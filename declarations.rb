@@ -10,7 +10,9 @@
 class DataStore; end
 class Serializable; end
 class Menu; end
+class MenuOptions; end
 module Display; end
+module Tools; end
 
 class BaseRoll < Serializable; end
 class Roll < BaseRoll; end
@@ -33,3 +35,4 @@ class CombatMath; end
 module RulesMath; end
 
 module ResetCharacters; end
+

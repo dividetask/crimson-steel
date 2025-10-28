@@ -3,7 +3,7 @@ require 'date'
 require 'time'
 
 class DataStore
-	attr_accessor :character_list
+	attr_accessor :character_list, :status_list
 
 	def initialize(filename)
 		@filename = "#{filename.to_s}.json"
@@ -14,6 +14,7 @@ class DataStore
 			end
 		else
 			@character_list = []
+			@status_list = []
 		end
 	end
 
