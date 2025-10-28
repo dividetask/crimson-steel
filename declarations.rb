@@ -23,6 +23,7 @@ class Gender < Serializable; end
 class Equipment < Serializable; end
 
 
+class CharacterStatus < Serializable; end
 class CharacterSheet < Serializable; end
 class Identity < Serializable; end
 class Progression < Serializable; end

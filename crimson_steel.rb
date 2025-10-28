@@ -24,9 +24,10 @@ require_relative 'reset.rb'
 	#def update_status(attack_details)
 
 
-ResetCharacters.overwrite_data
+#ResetCharacters.overwrite_data
 
 data = DataStore.new('campaign')
 #Display.cycle_through_characters(data)
 Display.select_characters(data)
+p 'Done'
 

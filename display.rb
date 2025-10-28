@@ -125,7 +125,8 @@ module Display
     char_hash_list.each { |role, char_array| char_array.each.with_index { |char, index| option_array << [role, index] } }
     selected_option = 0
 
-    loop do
+    input = nil
+    while (input != 'q')
       menu = Menu.new(80)
       system('clear')
 
@@ -161,13 +162,14 @@ module Display
         	data.status_list << CharacterStatus.new(selected_char)
         elsif input == "-"
           (index = data.status_list.find_index { |status| status.character == selected_char }) && data.status_list.delete_at(index)
-        elsif input == "q" || input == "\u0003"
+        elsif input == "\u0003"
           exit
         else
           last_input = input
         end
       end
     end
+    data.save
   end
 
   def self.cycle_through_characters(data)

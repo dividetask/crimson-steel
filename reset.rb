@@ -2,6 +2,7 @@ module ResetCharacters
 	def self.overwrite_data
 		data = DataStore.new('campaign')
 		data.character_list = get_party
+    data.status_list = data.character_list.map { |char| CharacterStatus.new(char) }
 		data.character_list << get_krithrak_spider
 		data.character_list << get_barbarian_3
 		data.character_list << get_rogue_3

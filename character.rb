@@ -102,7 +102,7 @@ class Gender < Serializable
   def to_s; @gender == 'M' ? 'male' : (@gender == 'F' ? 'female' : 'sexless'); end
 end
 
-class CharacterStatus
+class CharacterStatus < Serializable
   attr_reader :character, :health_notes, :combat_pool
 
 	def update_bleed(bleed_mod); @health_notes[:bleed] = [0, @health_notes[:bleed] += bleed_mod].max; end
