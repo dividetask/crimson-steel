@@ -27,5 +27,6 @@ require_relative 'reset.rb'
 ResetCharacters.overwrite_data
 
 data = DataStore.new('campaign')
-Display.cycle_through_characters(data)
+#Display.cycle_through_characters(data)
+Display.select_characters(data)
 

@@ -6,15 +6,14 @@ class DataStore
 	attr_accessor :character_list, :status_list
 
 	def initialize(filename)
+    @character_list = []
+    @status_list = []
 		@filename = "#{filename.to_s}.json"
 		if File.exist?(@filename)
 			data = JSON.parse(File.read(@filename))
 			data.each do |key, value|
 				instance_variable_set("@#{key}", Serializable.deserialize_value(value))
 			end
-		else
-			@character_list = []
-			@status_list = []
 		end
 	end
 

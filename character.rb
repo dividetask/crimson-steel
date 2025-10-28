@@ -111,18 +111,19 @@ class CharacterStatus
 	def spend_dice(dice_count); @combat_pool[:remaining] -= dice_count; end
 	def get_remaining_hp; return @health_notes[:maximum] + @health_notes[:damage_list].sum(&:damage_amount); end
 
-  def initialize(character)
-		@character = character
-		max_hp = RulesMath.get_max_hp(character)
-		@health_notes = {maximum: max_hp, bleed: 0, damage_list: []}
-		max_combat_pool = RulesMath.get_max_combat_pool(character)
-		@combat_pool = {remaining: max_combat_pool, maximum: max_combat_pool}
+  def initialize(char)
+		@character = char
+		@health_notes = {maximum: char.max_hp, bleed: 0, damage_list: []}
+		@combat_pool = {remaining: char.max_combat_pool, maximum: char.max_combat_pool}
 	end
 
 	def update_status(attack_details)
 		update_bleed(attack_details.conditions[:bleed])
 		@health_notes[:damage_list] << attack_details.damage_list.dup
 	end
+
+  def method_missing(method, *args, &block); return @character.send(method, *args, &block) if @character.respond_to?(method); super; end
+  def respond_to_missing?(method_name, include_private = false); @character.respond_to?(method_name, include_private) || super; end
 end
 
 class AbilityScores < Serializable
