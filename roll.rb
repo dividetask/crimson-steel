@@ -22,16 +22,13 @@ class BaseRoll < Serializable
 end
 
 class InitiativeRoll < BaseRoll
-  attr_reader :char_sym
+  attr_reader :character
 
-  def initialize(char_sym, number_of_dice); @char_sym = char_sym; super(number_of_dice); end
+  def initialize(character, number_of_dice); @character = character; super(number_of_dice); end
 	def to_s; return @dice_rolls.sort.reverse.map { |v| v == 10 ? 'X' : v.to_s }.join; end
 
 		#combatants is expected to be a <Hash>, with each key a <Symbol> and each value a <Integer>
-	def self.roll(combatants); return combatants.map { |char_sym , init_dice| InitiativeRoll.new(char_sym, init_dice) }; end
-
-		#combatants is expected to be a <Array>, with each value a <InitiativeRoll>
-	def self.turn_order init_array; return init_array.sort_by { |init_roll| -1 * init_roll.to_i }; end
+	def self.roll(statuses); return turn_order(multi_roll(statuses)); end
 
 	def to_i
 		digits_before_decimal = 5
@@ -40,6 +37,10 @@ class InitiativeRoll < BaseRoll
   	return sorted.map.with_index { |die, i| die.to_f * (10 ** (digits_before_decimal-i)) }.sum
 	end
 
+	private
+		#combatants is expected to be a <Array>, with each value a <InitiativeRoll>
+	def self.turn_order(init_array); return init_array.sort_by { |init_roll| -1 * init_roll.to_i }; end
+	def self.multi_roll(statuses); statuses.uniq { |status| status.character }.map { |status| InitiativeRoll.new(status.character, status.initiative) }; end
 end
 
 class Roll < BaseRoll

@@ -87,8 +87,7 @@ module Display
 
       print "1. Select Characters\n"
       print "2. View Character Sheets\n"
-      #Display.select_characters(data)
-      #display_character_sheet(char, opt)
+      print "3. Display Combat\n"
 
       input = gets.chomp  # Use normal input instead of STDIN.raw
 
@@ -96,9 +95,37 @@ module Display
         select_characters(data)
       elsif input == '2'
         cycle_through_characters(data)
+      elsif input == '3'
+        display_combat(data)
       end
     end
   end
+
+  def self.display_combat(data)
+    menu = Menu.new(140)
+    system('clear')
+    menu.display_header('Combat')
+
+    init_roll = InitiativeRoll.roll(data.status_list)
+
+    lines = []
+    lines << [ "Init", "Name", "HP", "Afflictions", "Combat Dice"]
+    init_roll.each do |init|
+    	status_info = [init.to_s]
+      data.status_list.select { |status| status.character == init.character }.each do |status|
+        status_info << status.name
+        status_info << "#{status.get_remaining_hp}/#{status.max_hp}"
+        status_info << "bleed: #{status.health_notes[:bleed]}"
+        status_info << "#{status.combat_pool[:remaining]}/#{status.combat_pool[:maximum]}"
+        lines << status_info.dup
+        status_info = ['']
+      end
+    end
+
+    menu.display_section lines
+    press_any_key
+  end
+	
 
   def self.display_character_sheet(char, opt)
     menu = Menu.new(140)
