@@ -3,7 +3,7 @@ class Damage
   attr_reader :damage_type, :damage_severity, :damage_amount
 	#damage_severity: 0 - none, 1 - minor, 2 - moderate, 3 - major
   def initialize(dt, ds, da); @damage_type, @damage_severity, @damage_amount = dt, ds, da; end
-	def get_pain; return @damage_type => 3 ? @damage_amount * 2 : 0; end
+	def get_pain; return @damage_type == 3 ? @damage_amount * 2 : 0; end
 end
 
 class Attack
