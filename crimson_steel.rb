@@ -28,6 +28,7 @@ require_relative 'reset.rb'
 
 data = DataStore.new('campaign')
 #Display.cycle_through_characters(data)
-Display.select_characters(data)
+#Display.select_characters(data)
+Display.main_menu(data)
 p 'Done'
 

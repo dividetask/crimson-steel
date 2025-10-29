@@ -78,6 +78,28 @@ end
 
 module Display
 
+
+  def self.main_menu(data)
+
+    input = nil
+    while (input != 'q')
+      system('clear')
+
+      print "1. Select Characters\n"
+      print "2. View Character Sheets\n"
+      #Display.select_characters(data)
+      #display_character_sheet(char, opt)
+
+      input = gets.chomp  # Use normal input instead of STDIN.raw
+
+      if input == '1'
+        select_characters(data)
+      elsif input == '2'
+        cycle_through_characters(data)
+      end
+    end
+  end
+
   def self.display_character_sheet(char, opt)
     menu = Menu.new(140)
     system('clear')
@@ -119,6 +141,7 @@ module Display
   end
 
   def self.select_characters(data)
+    system('clear')
     last_input = nil
     char_hash_list = data.character_list.map { |char| char.role}.uniq.map { |role| [role, data.character_list.select { |char| char.role == role }] }.to_h
     option_array = []
