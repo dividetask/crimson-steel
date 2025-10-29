@@ -89,7 +89,7 @@ module Display
       print "2. View Character Sheets\n"
       print "3. Display Combat\n"
 
-      input = gets.chomp  # Use normal input instead of STDIN.raw
+      input = gets.chomp
 
       if input == '1'
         select_characters(data)
@@ -101,12 +101,54 @@ module Display
     end
   end
 
+  def self.handle_initiative(data)
+    input, exit_loop = nil
+    while (exit_loop != true)
+      system('clear')
+
+      init_found = data.status_list.uniq { |status| status.character }.sort == data.initiative.map { |init_roll| init_roll.character }
+
+			if init_found
+        print "Initiative roll saved\n\n"
+      elsif data.initiative and data.initiative.count > 0
+        print "Initiative doesn't match characters\n\n"
+      end
+			
+      print "1. Manually input character rolls\n"
+      print "2. Roll for everyone\n"
+      print "3. Keep saved rolls\n" if init_found 
+
+      input = gets.chomp
+
+      if input == '1'
+        npc_rolls = InitiativeRoll.roll(data.status_list.select { |status| status.roll != :PC })
+        npc_rolls.each { |init_roll| print "#{init_roll.character.name} rolled #{init_roll.to_s}\n" }
+        pc_rolls = data.status_list.select { |status| status.roll == :PC }.map do |status|
+          print "\nPlease input #{status.name}'s roll: "
+          input = gets.chomp
+          binding.irb
+        	
+          #InitiativeRoll.cheat cheat_values
+        end
+        data.initiative = InitiativeRoll.sort(pc_rolls + npc_status)
+        #data.initiative = InitiativeRoll.roll(data.status_list)
+        exit_loop = true
+      elsif input == '2'
+        data.initiative = InitiativeRoll.roll(data.status_list)
+        exit_loop = true
+      elsif input == '3'
+        exit_loop = true
+      end
+    end
+    return data.initiative
+  end
+
   def self.display_combat(data)
     menu = Menu.new(140)
     system('clear')
     menu.display_header('Combat')
 
-    init_roll = InitiativeRoll.roll(data.status_list)
+		init_roll = handle_initiative(data)
 
     lines = []
     lines << [ "Init", "Name", "HP", "Afflictions", "Combat Dice"]

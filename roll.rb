@@ -28,7 +28,8 @@ class InitiativeRoll < BaseRoll
 	def to_s; return @dice_rolls.sort.reverse.map { |v| v == 10 ? 'X' : v.to_s }.join; end
 
 		#combatants is expected to be a <Hash>, with each key a <Symbol> and each value a <Integer>
-	def self.roll(statuses); return turn_order(multi_roll(statuses)); end
+	def self.roll(statuses); return sort(multi_roll(statuses)); end
+	def self.sort(init_array); return init_array.sort_by { |init_roll| -1 * init_roll.to_i }; end
 
 	def to_i
 		digits_before_decimal = 5
@@ -39,7 +40,6 @@ class InitiativeRoll < BaseRoll
 
 	private
 		#combatants is expected to be a <Array>, with each value a <InitiativeRoll>
-	def self.turn_order(init_array); return init_array.sort_by { |init_roll| -1 * init_roll.to_i }; end
 	def self.multi_roll(statuses); statuses.uniq { |status| status.character }.map { |status| InitiativeRoll.new(status.character, status.initiative) }; end
 end
 
