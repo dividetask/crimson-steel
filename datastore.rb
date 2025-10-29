@@ -10,6 +10,7 @@ class DataStore
     @status_list = []
 		@filename = "#{filename.to_s}.json"
 		if File.exist?(@filename)
+      Serializable.clear_cache  # Clear before loading
 			data = JSON.parse(File.read(@filename))
 			data.each do |key, value|
 				instance_variable_set("@#{key}", Serializable.deserialize_value(value))
@@ -26,6 +27,7 @@ class DataStore
 end
 
 class Serializable
+  @@deserialized_objects = {}
   def self.serialize_value(value)
     case value
     when Symbol
@@ -58,7 +60,11 @@ class Serializable
 				end
 				result
 			elsif value['_class']
-				Object.const_get(value['_class']).from_hash(value['_data']).after_load()
+        # Check if we've already deserialized this object
+        object_key = "#{value['_class']}_#{value['_data'].hash}"
+        @@deserialized_objects[object_key] ||= begin
+          Object.const_get(value['_class']).from_hash(value['_data']).after_load()
+        end
 			else
 				# Plain hash, deserialize values only
 				value.transform_values { |v| deserialize_value(v) }
@@ -69,6 +75,10 @@ class Serializable
 			value
 		end
 	end
+
+  def self.clear_cache
+    @@deserialized_objects = {}
+  end
 
   def to_hash_for_datastore
 		vars ||= instance_variables
