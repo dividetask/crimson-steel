@@ -26,9 +26,17 @@ class InitiativeRoll < BaseRoll
 
   def initialize(character, number_of_dice); @character = character; super(number_of_dice); end
 	def to_s; return @dice_rolls.sort.reverse.map { |v| v == 10 ? 'X' : v.to_s }.join; end
+	def self.from_s(roll_s); return roll_s.split('').map { |c| c == 'X' ? 10 : c.to_i }; end
 
 		#combatants is expected to be a <Hash>, with each key a <Symbol> and each value a <Integer>
-	def self.roll(statuses); return turn_order(multi_roll(statuses)); end
+	def self.roll(status_list); return sort(multi_roll(status_list)); end
+	def self.sort(init_array); return init_array.sort_by { |init_roll| -1 * init_roll.to_i }; end
+	def self.roll_manual(status, roll_s)
+		roll = allocate
+    roll.instance_variable_set(:@character, status.character)
+    roll.instance_variable_set(:@dice_rolls, from_s(roll_s))
+		return roll
+	end
 
 	def to_i
 		digits_before_decimal = 5
@@ -39,8 +47,8 @@ class InitiativeRoll < BaseRoll
 
 	private
 		#combatants is expected to be a <Array>, with each value a <InitiativeRoll>
-	def self.turn_order(init_array); return init_array.sort_by { |init_roll| -1 * init_roll.to_i }; end
-	def self.multi_roll(statuses); statuses.uniq { |status| status.character }.map { |status| InitiativeRoll.new(status.character, status.initiative) }; end
+	def self.uniq_status_list(status_list); return status_list.uniq { |status| status.character }; end
+	def self.multi_roll(status_list); uniq_status_list(status_list).map { |status| InitiativeRoll.new(status.character, status.initiative) }; end
 end
 
 class Roll < BaseRoll

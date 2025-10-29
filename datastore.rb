@@ -3,10 +3,11 @@ require 'date'
 require 'time'
 
 class DataStore
-	attr_accessor :character_list, :status_list
+	attr_accessor :character_list, :status_list, :initiative
 
 	def initialize(filename)
     @character_list = []
+    @initiative = nil
     @status_list = []
 		@filename = "#{filename.to_s}.json"
 		if File.exist?(@filename)

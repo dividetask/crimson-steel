@@ -89,7 +89,7 @@ module Display
       print "2. View Character Sheets\n"
       print "3. Display Combat\n"
 
-      input = gets.chomp  # Use normal input instead of STDIN.raw
+      input = gets.chomp
 
       if input == '1'
         select_characters(data)
@@ -101,16 +101,77 @@ module Display
     end
   end
 
-  def self.display_combat(data)
+  def self.handle_initiative(data)
     menu = Menu.new(140)
     system('clear')
     menu.display_header('Combat')
 
-    init_roll = InitiativeRoll.roll(data.status_list)
+    input, exit_loop, init_found = nil
+    while (exit_loop != true)
+      system('clear')
+
+			data.status_list ||= []
+			data.initiative ||= []
+      init_found = data.status_list.map { |status| data.initiative.any? { |init_roll| init_roll.character == status.character } }.any?
+
+			if data.status_list == []
+				break
+			elsif init_found
+				display_init(data)
+        print "\n\n"
+      elsif data.initiative and data.initiative.count > 0
+        print "Initiative doesn't match characters\n\n"
+      end
+			
+      print "1. Manually input character rolls\n"
+      print "2. Roll for everyone\n"
+      print "3. Keep saved rolls\n" if init_found 
+
+      input = gets.chomp
+
+      if input == '1'
+        npc_rolls = InitiativeRoll.roll(data.status_list.select { |status| status.role != :PC })
+        npc_rolls.each { |init_roll| print "#{init_roll.character.name} rolled #{init_roll.to_s}\n" }
+        pc_rolls = data.status_list.select { |status| status.role == :PC }.map do |status|
+          print "\nPlease input #{status.name}'s roll: "
+          input = gets.chomp
+					InitiativeRoll.roll_manual(status, input)
+        end
+        data.initiative = InitiativeRoll.sort(pc_rolls + npc_rolls)
+				data.save
+        exit_loop = true
+      elsif input == '2'
+        data.initiative = InitiativeRoll.roll(data.status_list)
+				data.save
+        exit_loop = true
+      elsif input == '3' and init_found
+        exit_loop = true
+      end
+    end
+  end
+
+	def self.display_init(data)
+    menu = Menu.new(80)
+    lines = []
+    lines << [ "Init", "Name" ]
+    data.initiative.each do |init|
+			mob_count = data.status_list.select { |status| status.character == init.character }.count
+			lines << [init.to_s, "#{init.character.name}#{" x#{mob_count}" if mob_count > 1}"]
+		end
+    menu.display_section lines
+	end
+
+  def self.display_combat(data)
+		handle_initiative(data)
+
+    menu = Menu.new(140)
+    system('clear')
+    menu.display_header('Combat')
+
 
     lines = []
     lines << [ "Init", "Name", "HP", "Afflictions", "Combat Dice"]
-    init_roll.each do |init|
+    data.initiative.each do |init|
     	status_info = [init.to_s]
       data.status_list.select { |status| status.character == init.character }.each do |status|
         status_info << status.name
