@@ -229,8 +229,6 @@ module Display
             char_index = (data.character_list.count + char_index - 1) % data.character_list.count	
           when "\u0003"
             exit
-          #when "\e[A" #up
-          #when "\e[B" #down
           end
         elsif input == "q" || input == "\u0003"
           exit
