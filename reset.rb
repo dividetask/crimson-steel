@@ -1,3 +1,7 @@
+RANKS_MAX = 3
+RANKS_MOD = 1
+RANKS_MIN = 1
+
 module ResetCharacters
 	def self.overwrite_data
 		data = DataStore.new('campaign')
@@ -6,15 +10,43 @@ module ResetCharacters
 		data.character_list << get_krithrak_spider
 		data.character_list << get_barbarian_3
 		data.character_list << get_rogue_3
+		data.character_list << get_werewolf
+		data.character_list << get_werewolf_alpha
 		data.save
+	end
+
+	def self.get_werewolf
+		id = Identity.new("NPC Werewolf 4", Gender.m, :NPC) 
+  														#str, dex, 	con, 	int, 	wis, 	cha
+		stats = AbilityScores.new(16, 	13, 	16, 	8, 		12, 		8) 
+		skill_list = [:intimidate , :athletics, :perception, :survival].map { |s| [s, RANKS_MAX] }.to_h
+		progression = Progression.new(:barbarian,	4, {bab: RANKS_MAX}.merge(skill_list)) 
+		equipment = [Equipment.new("Leather", :armor, :light, 0)]
+		equipment << Equipment.new("Sword", :weapon, :short_sword, 0)
+		equipment << Equipment.new("Javelin", :weapon, :javelin, 0)
+		equipment << Equipment.new("Natural Attack", :weapon, :bite, 0)
+		CharacterSheet.new(id, stats, progression, equipment)
+	end
+
+	def self.get_werewolf_alpha
+		id = Identity.new("NPC Alpha Werewolf 8", Gender.m, :NPC) 
+  														#str, dex, 	con, 	int, 	wis, 	cha
+		stats = AbilityScores.new(20, 	14, 	19, 	12, 	14, 	10) 
+		skill_list = [:intimidate , :athletics, :perception, :survival].map { |s| [s, RANKS_MAX] }.to_h
+		progression = Progression.new(:barbarian,	4, {bab: RANKS_MAX}.merge(skill_list)) 
+		equipment = [Equipment.new("Leather", :armor, :light, 0)]
+		equipment << Equipment.new("Sword", :weapon, :short_sword, 0)
+		equipment << Equipment.new("Javelin", :weapon, :javelin, 0)
+		equipment << Equipment.new("Natural Attack", :weapon, :bite, 0)
+		CharacterSheet.new(id, stats, progression, equipment)
 	end
 
 	def self.get_barbarian_3
 		id = Identity.new("NPC Fighter 3", Gender.m, :NPC) 
   														#str, dex, 	con, 	int, 	wis, 	cha
 		stats = AbilityScores.new(14, 	11, 	14, 	8, 		8, 		9) 
-		skill_list = [:intimidate , :athletics].map { |s| [s, 1] }.to_h
-		progression = Progression.new(:barbarian,	3, {melee: 3, ranged: 2}.merge(skill_list)) 
+		skill_list = [:intimidate , :athletics].map { |s| [s, RANKS_MAX] }.to_h
+		progression = Progression.new(:barbarian,	3, {bab: RANKS_MAX}.merge(skill_list)) 
 		equipment = [Equipment.new("Leather", :armor, :light, 0)]
 		equipment << Equipment.new("Maul", :weapon, :maul, 0)
 		equipment << Equipment.new("Javelin", :weapon, :javelin, 0)
@@ -26,9 +58,8 @@ module ResetCharacters
 		id = Identity.new("NPC Rogue 3", Gender.f, :NPC) 
   														#str, dex, 	con, 	int, 	wis, 	cha
 		stats = AbilityScores.new(8, 		15, 	8, 		12, 	12, 	12) 
-
-		skill_list = [:slight_of_hand, :deception, :persuasion, :sense_motive, :perform_juggle].map { |s| [s, 3] }.to_h
-		progression = Progression.new(:rogue,	3, {melee: 1, ranged: 2}.merge(skill_list)) 
+		skill_list = [:slight_of_hand, :deception, :persuasion, :sense_motive, :perform_juggle].map { |s| [s, RANKS_MAX] }.to_h
+		progression = Progression.new(:rogue,	3, {bab: RANKS_MOD}.merge(skill_list)) 
 		equipment = [Equipment.new("Chain Shirt", :armor, :light, 0)]
 		equipment << Equipment.new("Dagger", :weapon, :dagger, 0)
 		equipment << Equipment.new("Shortbow", :weapon, :shortbow, 0)
@@ -42,8 +73,9 @@ module ResetCharacters
 		id = Identity.new("Stumpy", Gender.m, :PC) 
   														#str, dex, 	con, 	int, 	wis, 	cha
 		stats = AbilityScores.new(11,		13, 	14, 	13, 	15, 	10) 
-		skill_list = [:survival, :religion, :sense_motive, :intimidate, :arcana].map { |s| [s, 2] }.to_h
-		progression = Progression.new(:cleric,	3, {melee: 3, ranged: 2, healing: 3}.merge(skill_list)) 
+		skill_list = [:religion, :sense_motive, :arcana].map { |s| [s, RANKS_MAX] }.to_h
+		skill_list = [:survival, :intimidate].map { |s| [s, RANKS_MOD] }.to_h.merge(skill_list)
+		progression = Progression.new(:cleric,	3, {bab: RANKS_MOD}.merge(skill_list)) 
 		equipment = [Equipment.new('Breastplate', :armor, :medium, 0)]
 		equipment << Equipment.new('Mirror Shield', :shield, :light_shield, 1)
 		equipment << Equipment.new("Last Laugh Axe", :weapon, :battleaxe, 1, {bonus_damage: {emotional: 4}})
@@ -51,12 +83,13 @@ module ResetCharacters
 		equipment << Equipment.new('Punch', :weapon, :punch, 0)
 		party << CharacterSheet.new(id, stats, progression, equipment)
 
-
 		id = Identity.new("Olga", Gender.f, :PC) 
   														#str, dex, 	con, 	int, 	wis, 	cha
-		stats = AbilityScores.new(16, 	14, 	16, 	10, 	12, 	9) 
-		skill_list = [:athletics, :sense_motive, :slight_of_hand, :stealth, :survival].map { |s| [s, 1] }.to_h
-		progression = Progression.new(:barbarian,	3, {melee: 3, ranged: 2}.merge(skill_list)) 
+		stats = AbilityScores.new(16, 	14, 	16, 	10, 	12, 	9)
+		skill_list = [:athletics, :survival].map { |s| [s, RANKS_MAX] }.to_h
+		skill_list = [:sense_motive, :slight_of_hand, :stealth].map { |s| [s, RANKS_MOD] }.to_h.merge(skill_list)
+
+		progression = Progression.new(:barbarian,	3, {bab: RANKS_MAX}.merge(skill_list))
 		equipment = [Equipment.new("Leather", :armor, :light, 0)]
 		equipment << Equipment.new("Fey Great Axe (Gary)", :weapon, :greataxe, 1)
 		equipment << Equipment.new("Javelin", :weapon, :javelin, 0)
@@ -66,8 +99,9 @@ module ResetCharacters
 		id = Identity.new("Lysander", Gender.m, :PC) 
   														#str, dex, 	con, 	int, 	wis, 	cha
 		stats = AbilityScores.new(8, 		16, 	12, 	10, 	14, 	14) 
-		skill_list = [:arcana, :stealth, :slight_of_hand, :deception, :persuasion, :larceny].map { |s| [s, 3] }.to_h
-		progression = Progression.new(:rogue,	3, {melee: 1, ranged: 2}.merge(skill_list)) 
+		skill_list = [:stealth, :slight_of_hand, :deception, :persuasion, :larceny].map { |s| [s, RANKS_MAX] }.to_h
+		skill_list = [:arcana].map { |s| [s, RANKS_MOD] }.to_h.merge(skill_list)
+		progression = Progression.new(:rogue,	3, {bab: RANKS_MOD}.merge(skill_list)) 
 		equipment = [Equipment.new("Chain Shirt", :armor, :light, 0)]
 		equipment << Equipment.new("Short Sword", :weapon, :short_sword, 0)
 		equipment << Equipment.new("Wyd Bow of Mirth", :weapon, :longbow, 1, {bonus_damage: {emotional: 4}})

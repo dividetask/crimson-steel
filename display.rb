@@ -205,7 +205,7 @@ module Display
       [opt.add(name, attr), char[attr].to_s, attr_skill, attr_save]
     end
 
-    skill_display = char.skills.select { |skill, skill_p| ![:melee, :ranged].include?(skill) }.map do |skill, skill_p| 
+    skill_display = char.skills.select { |skill, skill_p| ![:bab].include?(skill) }.map do |skill, skill_p| 
       [opt.add(skill.to_s, skill) , char.ranks(skill).to_s, "#{char.dice(skill)}d (TN #{char.base_tn(skill)})", "-"] 
     end
 
