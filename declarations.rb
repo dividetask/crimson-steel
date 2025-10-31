@@ -3,7 +3,6 @@
 #class CharacterStats; end
 #class Character; end
 #class Check; end
-#class Attack; end
 #class RunTests; end
 #class PlayTest; end
 
@@ -22,6 +21,7 @@ class InitiativeRoll < BaseRoll; end
 class Gender < Serializable; end
 class Equipment < Serializable; end
 
+class Damage < Serializable; end
 
 class CharacterStatus < Serializable; end
 class CharacterSheet < Serializable; end
