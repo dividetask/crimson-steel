@@ -39,6 +39,12 @@ class Menu
 		Tools.each2d(msg_na2, ->(msg, r, c) { print "#{@col_width[c] ? msg.send(@col_align[c],@col_width[c]) : msg}" }, ->(row, r) { print "\n" })
 	end
 
+	def display_section_set_width(msg_na2, width_overides)
+		update_width(msg_na2)
+		width_overides.each_with_index { |new_width,index| @col_width[index] = new_width if new_width}
+		Tools.each2d(msg_na2, ->(msg, r, c) { print "#{@col_width[c] ? msg.send(@col_align[c],@col_width[c]) : msg}" }, ->(row, r) { print "\n" })
+	end
+
 	def display_list(msg_nha2)
 		update_width(msg_nha2.values)
 
@@ -87,7 +93,7 @@ module Display
 
       print "1. Select Characters\n"
       print "2. View Character Sheets\n"
-      print "3. Display Combat\n"
+      print "3. Start Combat\n"
 
       input = gets.chomp
 
@@ -102,14 +108,23 @@ module Display
   end
 
   def self.handle_initiative(data)
-    input, exit_loop = nil
+    menu = Menu.new(140)
+    system('clear')
+    menu.display_header('Combat')
+
+    input, exit_loop, init_found = nil
     while (exit_loop != true)
       system('clear')
 
-      init_found = data.status_list.uniq { |status| status.character }.sort == data.initiative.map { |init_roll| init_roll.character }
+			data.status_list ||= []
+			data.initiative ||= []
+      init_found = data.status_list.map { |status| data.initiative.any? { |init_roll| init_roll.character == status.character } }.any?
 
-			if init_found
-        print "Initiative roll saved\n\n"
+			if data.status_list == []
+				break
+			elsif init_found
+				display_init(data)
+        print "\n\n"
       elsif data.initiative and data.initiative.count > 0
         print "Initiative doesn't match characters\n\n"
       end
@@ -121,51 +136,183 @@ module Display
       input = gets.chomp
 
       if input == '1'
-        npc_rolls = InitiativeRoll.roll(data.status_list.select { |status| status.roll != :PC })
+        npc_rolls = InitiativeRoll.roll(data.status_list.select { |status| status.role != :PC })
         npc_rolls.each { |init_roll| print "#{init_roll.character.name} rolled #{init_roll.to_s}\n" }
-        pc_rolls = data.status_list.select { |status| status.roll == :PC }.map do |status|
+        pc_rolls = data.status_list.select { |status| status.role == :PC }.map do |status|
           print "\nPlease input #{status.name}'s roll: "
           input = gets.chomp
-          binding.irb
-        	
-          #InitiativeRoll.cheat cheat_values
+					InitiativeRoll.roll_manual(status, input)
         end
-        data.initiative = InitiativeRoll.sort(pc_rolls + npc_status)
-        #data.initiative = InitiativeRoll.roll(data.status_list)
+        data.initiative = InitiativeRoll.sort(pc_rolls + npc_rolls)
+				data.save
         exit_loop = true
       elsif input == '2'
         data.initiative = InitiativeRoll.roll(data.status_list)
+				data.save
         exit_loop = true
-      elsif input == '3'
+      elsif input == '3' and init_found
         exit_loop = true
       end
     end
-    return data.initiative
   end
 
-  def self.display_combat(data)
-    menu = Menu.new(140)
-    system('clear')
-    menu.display_header('Combat')
-
-		init_roll = handle_initiative(data)
-
+	def self.display_init(data)
+    menu = Menu.new(80)
     lines = []
-    lines << [ "Init", "Name", "HP", "Afflictions", "Combat Dice"]
-    init_roll.each do |init|
-    	status_info = [init.to_s]
-      data.status_list.select { |status| status.character == init.character }.each do |status|
-        status_info << status.name
-        status_info << "#{status.get_remaining_hp}/#{status.max_hp}"
-        status_info << "bleed: #{status.health_notes[:bleed]}"
-        status_info << "#{status.combat_pool[:remaining]}/#{status.combat_pool[:maximum]}"
-        lines << status_info.dup
-        status_info = ['']
-      end
-    end
-
+    lines << [ "Init", "Name" ]
+    data.initiative.each do |init|
+			mob_count = data.status_list.select { |status| status.character == init.character }.count
+			lines << [init.to_s, "#{init.character.name}#{" x#{mob_count}" if mob_count > 1}"]
+		end
     menu.display_section lines
-    press_any_key
+	end
+
+  def self.choose_defense_weapon(active_char)
+		print "Choose defense weapon\n"
+		weapons = ('a'..'z').to_a.zip(active_char.items.select { |item| [:weapon, :shield].include? item.category }).to_h.compact
+		weapons.each { |letter, weapon| print "#{letter}. #{weapon.name}\n" }
+
+		weapon_choice = gets.chomp
+		return weapons[weapon_choice] if weapons.keys.include?(weapon_choice)
+	end
+
+  def self.choose_weapon(data, active_char)
+		print "Choose weapon\n"
+		weapons = ('a'..'z').to_a.zip(active_char.items.select { |item| item.category == :weapon }).to_h.compact
+		weapons.each { |letter, weapon| print "#{letter}. #{weapon.name}\n" }
+
+		weapon_choice = gets.chomp
+		return weapons[weapon_choice] if weapons.keys.include?(weapon_choice)
+	end
+
+  def self.choose_enemy(data, active_char)
+		print "Choose target\n"
+		enemies = ('a'..'z').to_a.zip(data.status_list.select { |status| status.role != active_char.role }).to_h.compact
+		enemies.each { |letter, target| print "#{letter}. #{target.get_name}\n" }
+
+		target_choice = gets.chomp
+		return enemies[target_choice] if enemies.keys.include?(target_choice)
+	end
+
+  def self.how_many_dice(data, active_char)
+		print "How many dice (min 2, max #{active_char.attack_dice})?\n"
+		return gets.chomp
+	end
+
+  def self.how_many_dodge_dice(data, target)
+		print "How many dodge dice for #{target.get_name}?\n"
+		return gets.chomp
+	end
+
+  def self.display_combat(data)
+		handle_initiative(data)
+
+		input = nil
+		while (input != 'q')
+			menu = Menu.new(140)
+			system('clear')
+			menu.display_header('Combat')
+			active_char = nil
+
+
+			lines = []
+			lines << [ "Init", "Name", "HP", "Afflictions", "Combat Dice"]
+			data.initiative.each do |init|
+				status_info = [init.to_s]
+				data.status_list.select { |status| status.character == init.character }.each do |status|
+					active_char = status if active_char == nil and status.turn_complete? == false
+
+					status_info << status.name
+					status_info << "#{status.get_remaining_hp}/#{status.max_hp}"
+					status_info << "bleed: #{status.health_notes[:bleed]}"
+					status_info << "#{status.combat_pool[:remaining]}/#{status.combat_pool[:maximum]}"
+					lines << status_info.dup
+					status_info = ['']
+				end
+			end
+			if active_char == nil
+				data.status_list.each do |status|
+					status.new_initiative
+					active_char = status if active_char == nil and status.character == data.initiative.first.character
+				end
+			end
+
+			menu.display_section_set_width lines, [10]
+
+			print "\n\n#{active_char.name}'s turn\n\n"
+			
+			print "1. Single Attack\n"
+			print "2. Full Round Attack\n"
+			print "3. Spell/Ability\n"
+			print "4. Move\n"
+			print "5. Bonus Action\n"
+			print "6. End Turn\n"
+			print "q. Exit Combat\n\n"
+
+			input = gets.chomp
+			#print "\e[1A\e[K"  # Move cursor up one line and Clear from cursor to end of line
+
+			if input == '1' or input == '2'
+				begin
+					print "press q to finish attacks\n"
+					weapon = choose_weapon(data, active_char)
+					break unless weapon
+					target_char = choose_enemy(data, active_char)
+					break unless target_char
+					attack_dice_count = how_many_dice(data, active_char).to_i
+					break unless attack_dice_count.to_i > 0
+					dodge_dice_count = how_many_dodge_dice(data, target_char).to_i
+
+					tn = active_char.attack_base_tn(weapon)
+					success_mod = active_char.attack_bonus(weapon)
+					tn -= 2 if dodge_dice_count == 0 and target_char.klas != :barbarian
+					if dodge_dice_count > 0
+						defense_weapon = choose_defense_weapon(target_char)
+						tn -= target_char.attack_tn_mod(defense_weapon)
+					end
+					success_mod += [0, 4 - tn].max
+					success_mod -= [0, tn - 9].max
+					tn = [4,[9, tn].min].max
+
+					print "How many successes [TN: #{tn}, success mod: #{success_mod}] ('r' to roll)\n"
+					success_count = gets.chomp.to_i
+					loop if success_count < 2
+
+					target_char.take_action(BONUS_ACTION, dodge_dice_count) if dodge_dice_count > 0
+					active_char.spend_dice(attack_dice_count)
+
+
+					damage = success_count + weapon.get_base_weapon_damage(active_char)
+					damage -= target_char.get_dr(active_char)
+
+					minor_damage = [damage, target_char.get_resiliance].min
+					moderate_damage = [[damage - minor_damage, 0].max, weapon.get_threshold].min
+					major_damage = [damage - minor_damage - moderate_damage, 0].max
+
+					target_char.add_damage(Damage.new(nil, MINOR_DAMAGE, minor_damage)) if minor_damage > 0
+					target_char.add_damage(Damage.new(nil, MODERATE_DAMAGE, moderate_damage)) if moderate_damage > 0
+					target_char.add_damage(Damage.new(nil, MAJOR_DAMAGE, major_damage)) if major_damage > 0
+
+					print "How much bonus damage\n"
+					bonus_damage = gets.chomp.to_i
+					target_char.add_damage(Damage.new(nil, MODERATE_DAMAGE, bonus_damage)) if bonus_damage > 0
+					target_char.update_bleed(weapon.get_bleed_mod + damage)
+				end while (input == '2')
+				active_char.take_action(MAIN_ACTION, 0) if (input == '1')
+				active_char.take_action(FULL_ROUND, 0) if (input == '2')
+			elsif input == '3'
+				print 'Not implemented yet\n'
+			elsif input == '4' #move
+				active_char.take_action(MOVE_ACTION)
+			elsif input == '5'
+				dice_spent = gets.chomp
+				active_char.take_action(BONUS_ACTION, dice_spent.to_i) if dice_spent.to_i > 0
+			elsif input == '6'
+				active_char.end_turn
+				active_char = nil
+			end
+			data.save
+		end
   end
 	
 
@@ -186,7 +333,7 @@ module Display
       [opt.add(name, attr), char[attr].to_s, attr_skill, attr_save]
     end
 
-    skill_display = char.skills.select { |skill, skill_p| ![:melee, :ranged].include?(skill) }.map do |skill, skill_p| 
+    skill_display = char.skills.select { |skill, skill_p| ![:bab].include?(skill) }.map do |skill, skill_p| 
       [opt.add(skill.to_s, skill) , char.ranks(skill).to_s, "#{char.dice(skill)}d (TN #{char.base_tn(skill)})", "-"] 
     end
 
@@ -251,7 +398,15 @@ module Display
             exit
           end
         elsif input == "+"
-        	data.status_list << CharacterStatus.new(selected_char)
+        	new_char =  CharacterStatus.new(selected_char)
+					if data.status_list.select { |status| status.character == new_char.character }.count == 0
+						new_char.set_mob_index(nil)
+					else
+						new_char_index = 0
+						data.status_list.each { |status| status.set_mob_index(++new_char_index) }
+						new_char.set_mob_index(new_char_index)
+					end
+					data.status_list << new_char
         elsif input == "-"
           (index = data.status_list.find_index { |status| status.character == selected_char }) && data.status_list.delete_at(index)
         elsif input == "\u0003"

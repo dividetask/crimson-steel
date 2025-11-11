@@ -1,5 +1,12 @@
 
-SKILL_ATTRIBUTE = {
+FULL_ROUND = 6
+MOVE_ACTION = 4
+MAIN_ACTION = 2
+BONUS_ACTION = 1
+FREE_ACTION = 0
+ACTION_COST = {FULL_ROUND => 2, MOVE_ACTION => 1, MAIN_ACTION => 1, BONUS_ACTION => 0, FREE_ACTION => 0}
+
+SKILL_ATTRIBUTE = { bab: :dex,
 	melee: :dex,						ranged: :dex, 					acrobatics: :dex, 			animal_handling: :cha,	appraisal: :int, 
 	arcana: :int, 					athletics: :str, 				deception: :cha, 				disguise: :cha, 				druidic: :wis, 
 	dungeoneering: :int, 		escape_artist: :dex, 		healing: :wis, 					history: :int, 					intimidate: :cha, 
@@ -11,6 +18,7 @@ SKILL_ATTRIBUTE = {
 ATTRIBUTES = {str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma'}
 
 SKILL_BASE_TN = Hash.new(9).merge( { melee: 7, block: 7 })
+CLASS_RESILIANCE = {barbarian: (1..20).to_a.map { |level| [level, 1 + (level / 2)] }.to_h}
 
 
 module CharMath
@@ -48,6 +56,9 @@ module CharMath
   	return 4 if self.level < 32
     return 5
   end
+	def get_resiliance; density + @items.map { |item| item.category == :armor ? item.bonus : 0 }.sum + (CLASS_RESILIANCE[klass] || [])[level].to_i; end
+	def get_disparity_dr; d = density; return d == 0 ? 0 : (d*5)-3;end
+	def get_dr(attacker); @items.map { |item| item.get_dr }.sum + [0, get_disparity_dr - attacker.get_disparity_dr].max; end
 end
 
 module SkillMath
@@ -66,8 +77,18 @@ module SkillMath
   def perception(); return quarter_mod(:wis); end
 
 						#Skill Functions
-	def ranks(skill); return ((self.level * self.skills[skill]) / 3); end
+	def ranks(skill); return ((self.level * (1 + self.skills[skill])) / 3); end
   def attr_sym(skill); return SKILL_ATTRIBUTE[skill_category_name(skill) || skill]; end
+
+  def attack_dice; return ((half_mod(attr_sym(:bab)) + ranks(:bab) - 2) % 5) + 6; end
+  def attack_base_tn(weapon); return [4, [9, SKILL_BASE_TN[weapon.get_attack_type] + tn_mod(:bab) - weapon.bonus].min].max; end
+  def attack_tn_mod(weapon); return 1 - ((half_mod(attr_sym(:bab)) + ranks(:bab) - weapon.bonus) / 6); end
+	def attack_bonus(weapon)  #gets starting successes and starting failures
+		unbound_tn = SKILL_BASE_TN[weapon.get_attack_type] + tn_mod(:bab) - weapon.bonus
+		return 4 - unbound_tn if unbound_tn < 4
+		return unbound_tn - 9 if unbound_tn > 9
+		return 0
+	end
 
   def dice(skill); return ((half_mod(attr_sym(skill)) + ranks(skill) - 2) % 5) + 6; end
   def base_tn(skill); return [4, [9, SKILL_BASE_TN[skill] + tn_mod(skill)].min].max; end
@@ -80,11 +101,8 @@ module SkillMath
 	end
 
 	def skill_category_name(skill); SKILL_ATTRIBUTE.keys.find { |k| skill.to_s.start_with?(k.to_s) }; end
-
 	def skill_roll(skill); Check.new(skill.to_s.split('_').join(' '), self.dice(skill), bonus(skill), {target: base_tn(skill)}); end
-	#def skill_roll(skill); Roll.new(self.dice(skill), {target: base_tn(skill)}); end
 	def attr_roll(attr); Check.new(ATTRIBUTES[attr], self.attr_dice(attr), attr_bonus(attr), {target: attr_tn(attr)}); end
-	#def attr_roll(attr); Roll.new(self.attr_dice(attr), {target: attr_tn(attr)}); end
 end
 
 class Gender < Serializable
@@ -103,25 +121,37 @@ class Gender < Serializable
 end
 
 class CharacterStatus < Serializable
-  attr_reader :character, :health_notes, :combat_pool
+  attr_reader :character, :health_notes, :combat_pool, :main_actions, :mob_index
 
 	def update_bleed(bleed_mod); @health_notes[:bleed] = [0, @health_notes[:bleed] += bleed_mod].max; end
 	def reset_combat_dice; @combat_pool[:remaining] = @combat_pool[:maximum]; end
 	def get_remaining_dice; @combat_pool[:remaining]; end
 	def spend_dice(dice_count); @combat_pool[:remaining] -= dice_count; end
 	def get_remaining_hp; return @health_notes[:maximum] + @health_notes[:damage_list].sum(&:damage_amount); end
+	def turn_complete?; @main_actions != -1; end
+	def new_initiative; @main_actions = 2; end
+	def end_turn; @main_actions = -1; end
+	def take_action(action_type, dice_spent = nil)
+		@main_actions -= ACTION_COST[action_type]
+		if dice_spent
+			@combat_pool[:remaining] -= dice_spent
+		elsif action_type == FULL_ROUND
+			@combat_pool[:remaining] -= 6
+		elsif action_type == MOVE_ACTION or action_type == MAIN_ACTION
+			@combat_pool[:remaining] -= 4
+		end
+	end
+	def set_mob_index(mob_index); @mob_index = mob_index; end;
+	def get_name; return @character.name unless @mob_index; return "#{@character.name} ##{@mob_index}"; end
 
   def initialize(char)
 		@character = char
 		@health_notes = {maximum: char.max_hp, bleed: 0, damage_list: []}
 		@combat_pool = {remaining: char.max_combat_pool, maximum: char.max_combat_pool}
+		@main_actions = 2 # -1 indicates they ended their turn
 	end
 
-	def update_status(attack_details)
-		update_bleed(attack_details.conditions[:bleed])
-		@health_notes[:damage_list] << attack_details.damage_list.dup
-	end
-
+	def add_damage(damage); @health_notes[:damage_list] << damage; end
   def method_missing(method, *args, &block); return @character.send(method, *args, &block) if @character.respond_to?(method); super; end
   def respond_to_missing?(method_name, include_private = false); @character.respond_to?(method_name, include_private) || super; end
 end

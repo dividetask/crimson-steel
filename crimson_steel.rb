@@ -3,7 +3,7 @@ require_relative 'declarations.rb'
 require_relative 'datastore.rb'
 require_relative 'roll.rb'
 require_relative 'items.rb'
-#require_relative 'combat.rb'
+require_relative 'combat.rb'
 require_relative 'character.rb'
 require_relative 'display.rb'
 #require_relative 'general.rb'
@@ -23,6 +23,20 @@ require_relative 'reset.rb'
   #def initialize(character)
 	#def update_status(attack_details)
 
+
+#alpha = ResetCharacters.get_werewolf_alpha
+#p alpha.dex
+#p alpha.half_mod(:dex)  #7
+#p alpha.ranks(:bab) #5
+#p alpha.attack_dice #6
+#p alpha.attack_base_tn
+#p alpha.attack_bonus
+
+
+#exit
+  #def attack_dice; return ((half_mod(attr_sym(:bab)) + ranks(:bab) - 2) % 5) + 6; end
+  #def attack_base_tn(weapon); return [4, [9, SKILL_BASE_TN[weapon.get_attack_type] + tn_mod(:bab)].min].max; end
+	#def attack_bonus(weapon);
 
 #ResetCharacters.overwrite_data
 
