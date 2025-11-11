@@ -214,7 +214,6 @@ module Display
 			menu.display_header('Combat')
 			active_char = nil
 
-
 			lines = []
 			lines << [ "Init", "Name", "HP", "Afflictions", "Combat Dice"]
 			data.initiative.each do |init|
@@ -241,18 +240,16 @@ module Display
 
 			print "\n\n#{active_char.name}'s turn\n\n"
 			
-			print "1. Single Attack\n"
-			print "2. Full Round Attack\n"
-			print "3. Spell/Ability\n"
-			print "4. Move\n"
-			print "5. Bonus Action\n"
-			print "6. End Turn\n"
+			print "1. Attack\n"
+			print "2. Spell/Ability\n"
+			print "3. Move\n"
+			print "4. Bonus Action\n"
+			print "5. End Turn\n"
 			print "q. Exit Combat\n\n"
 
 			input = gets.chomp
-			#print "\e[1A\e[K"  # Move cursor up one line and Clear from cursor to end of line
 
-			if input == '1' or input == '2'
+			if input == '1'
 				begin
 					print "press q to finish attacks\n"
 					weapon = choose_weapon(data, active_char)
@@ -265,22 +262,30 @@ module Display
 
 					tn = active_char.attack_base_tn(weapon)
 					success_mod = active_char.attack_bonus(weapon)
-					tn -= 2 if dodge_dice_count == 0 and target_char.klas != :barbarian
 					if dodge_dice_count > 0
 						defense_weapon = choose_defense_weapon(target_char)
-						tn -= target_char.attack_tn_mod(defense_weapon)
+            defense_tn_mod = target_char.attack_tn_mod(defense_weapon)
+            binding.irb
+            print "Attacker Bonus: #{tn}, Defender Bonus: #{defense_tn_mod}"
+						tn -= defense_tn_mod
+          elsif target_char.klass != :barbarian
+            print "Attacker Bonus: #{tn}, Flatfooted -2"
+            tn -= 2
+          else
+            print "Attacker Bonus: #{tn}"
 					end
 					success_mod += [0, 4 - tn].max
 					success_mod -= [0, tn - 9].max
 					tn = [4,[9, tn].min].max
 
+					print ", success mod: #{success_mod}\n"
 					print "How many successes [TN: #{tn}, success mod: #{success_mod}] ('r' to roll)\n"
 					success_count = gets.chomp.to_i
+
 					loop if success_count < 2
 
 					target_char.take_action(BONUS_ACTION, dodge_dice_count) if dodge_dice_count > 0
 					active_char.spend_dice(attack_dice_count)
-
 
 					damage = success_count + weapon.get_base_weapon_damage(active_char)
 					damage -= target_char.get_dr(active_char)
@@ -297,17 +302,16 @@ module Display
 					bonus_damage = gets.chomp.to_i
 					target_char.add_damage(Damage.new(nil, MODERATE_DAMAGE, bonus_damage)) if bonus_damage > 0
 					target_char.update_bleed(weapon.get_bleed_mod + damage)
-				end while (input == '2')
-				active_char.take_action(MAIN_ACTION, 0) if (input == '1')
-				active_char.take_action(FULL_ROUND, 0) if (input == '2')
-			elsif input == '3'
+				end while (true)
+				active_char.take_action(MAIN_ACTION, 0)
+			elsif input == '2'
 				print 'Not implemented yet\n'
-			elsif input == '4' #move
+			elsif input == '3' #move
 				active_char.take_action(MOVE_ACTION)
-			elsif input == '5'
+			elsif input == '4'
 				dice_spent = gets.chomp
 				active_char.take_action(BONUS_ACTION, dice_spent.to_i) if dice_spent.to_i > 0
-			elsif input == '6'
+			elsif input == '5'
 				active_char.end_turn
 				active_char = nil
 			end

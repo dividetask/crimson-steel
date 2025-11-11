@@ -24,27 +24,20 @@ CLASS_RESILIANCE = {barbarian: (1..20).to_a.map { |level| [level, 1 + (level / 2
 module CharMath
 	def max_combat_pool()
     dex_mod = half_mod(:dex)
-  	if self.klass == :beast
-      return dex_mod + (self.level * 0.5).to_i 	if self.level >= 16
-      return dex_mod + (self.level * 0.75).to_i 	if self.level >= 8
-      return dex_mod + (self.level * 1.5).to_i		if self.level >= 4
-      return dex_mod + (self.level * 2)
-  	elsif self.klass == :npc
-      return dex_mod + (self.level * 0.75).to_i	if self.level >= 16
-      return dex_mod + (self.level) 							if self.level >= 8
-      return dex_mod + (self.level * 2.5).to_i
-  	else
-      return dex_mod + (self.level) 							if self.level >= 16
-      return dex_mod + (self.level * 1.5).to_i 	if self.level >= 8
-      return dex_mod + (self.level * 3) 					if self.level >= 4
-      return dex_mod + (self.level * 4) 				
-    end
+    combat_pool_mod = (self.name == "Kraken") ? 2 : 1
+    
+    return dex_mod + combat_pool_mod * [1 + (self.level * 2  ).to_i, 10].min if self.density == 0
+    return dex_mod + combat_pool_mod * [2 + (self.level * 2  ).to_i, 12].min if self.density == 1
+    return dex_mod + combat_pool_mod * [2 + (self.level * 2  ).to_i, 15].min if self.density == 2
+    return dex_mod + combat_pool_mod * [1 + (self.level * 1.5).to_i, 15].min if self.density == 3
+    return dex_mod + combat_pool_mod * [1 + (self.level * 1  ).to_i, 15].min if self.density == 4
+    return dex_mod + combat_pool_mod * [1 + (self.level * 0.5).to_i, 15].min if self.density == 5
   end
 
 	def max_hp()
   	density = density()
   	return (self.con / 2) if density == 0
-    return (self.con * density * 2) if self.role == :beast and self.int <= 2
+    return (self.con * density * 2) if self.role == :beast
     return (self.con * density)
 	end
 
@@ -80,9 +73,9 @@ module SkillMath
 	def ranks(skill); return ((self.level * (1 + self.skills[skill])) / 3); end
   def attr_sym(skill); return SKILL_ATTRIBUTE[skill_category_name(skill) || skill]; end
 
-  def attack_dice; return ((half_mod(attr_sym(:bab)) + ranks(:bab) - 2) % 5) + 6; end
+  def attack_dice; return ((half_mod(attr_sym(:bab)) + ranks(:bab)) % 5) + 6; end
   def attack_base_tn(weapon); return [4, [9, SKILL_BASE_TN[weapon.get_attack_type] + tn_mod(:bab) - weapon.bonus].min].max; end
-  def attack_tn_mod(weapon); return 1 - ((half_mod(attr_sym(:bab)) + ranks(:bab) - weapon.bonus) / 6); end
+  def attack_tn_mod(weapon); tn_mod(:bab) - weapon.bonus; end
 	def attack_bonus(weapon)  #gets starting successes and starting failures
 		unbound_tn = SKILL_BASE_TN[weapon.get_attack_type] + tn_mod(:bab) - weapon.bonus
 		return 4 - unbound_tn if unbound_tn < 4

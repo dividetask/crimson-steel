@@ -1,19 +1,19 @@
 ATTACK_SUCCESS_THRESHOLD = 2
 WEAPON_THRESHOLDS_DEFAULTS = {pierce: 4, bludgeoning: 3, slashing: 5}
-WEAPON_THRESHOLDS = {bite: 5, rapier: 4, club: 3, scimitar: 5, quarterstaff: 3, battleaxe: 5, greataxe: 5, longbow: 4, javelin: 4, punch: 6, maul: 3, shortbow: 4}
+WEAPON_THRESHOLDS = {slam: 3, bite: 5, rapier: 4, club: 3, scimitar: 5, quarterstaff: 3, battleaxe: 5, greataxe: 5, longbow: 4, javelin: 4, punch: 6, maul: 3, shortbow: 4, dagger: 4}
 WEAPON_BLEEDMOD_DEFAULTS = {pierce: 3, bludgeoning: 5, slashing: 7}
-WEAPON_BLEEDMOD = {bite: 3, rapier: 3, club: 5, scimitar: 7, quarterstaff: 5, battleaxe: 7, greataxe: 7, longbow: 3, javelin: 3, punch: 1, shortbow: 3, maul: 5}
+WEAPON_BLEEDMOD = {slam: 5, bite: 3, rapier: 3, club: 5, scimitar: 7, quarterstaff: 5, battleaxe: 7, greataxe: 7, longbow: 3, javelin: 3, punch: 1, shortbow: 3, maul: 5, dagger: 3}
 EQUIPMENT_DR = {armor: {light: 1, natural: 2, medium: 3, heavy: 6}}
-WEAPON_CATEGORY = {greataxe: :heavy, battleaxe: :medium_1h, longbow: :ranged, bite: :light, maul: :heavy, shortbow: :ranged, punch: :light}
+WEAPON_CATEGORY = {greataxe: :heavy, battleaxe: :medium_1h, longbow: :ranged, slam: :light, bite: :light, maul: :heavy, shortbow: :ranged, punch: :light, dagger: :light, rapier: :medium_1h}
 ATTACK_TYPE = {heavy: :melee, medium_1h: :melee, light: :melee, ranged: :ranged}
 WEAPON_STR_MOD = {heavy: 0.5, medium_2h: 0.5, medium_1h: 0.25, light: 0.25, ranged: 0.25}
 WEAPON_BASE_MOD = {heavy: 2, medium_2h: 0, medium_1h: 0, light: -2, ranged: 0}
 
 class Equipment < Serializable
-  attr_reader :name, :category, :subcategory, :bonus, :additional_properties
+  attr_reader :name, :category, :subcategory, :bonus, :additional_properties, :equipped
 
-	def initialize(name, category, subcategory, bonus, additional_properties = {})
-		@name, @category, @subcategory, @bonus, @additional_properties = name, category, subcategory, bonus, additional_properties
+	def initialize(name, category, subcategory, bonus, additional_properties = {}, equipped = false)
+		@name, @category, @subcategory, @bonus, @additional_properties, @equipped = name, category, subcategory, bonus, additional_properties, equipped
 	end
 
 	def get_threshold; @additional_properties[:threshold] || WEAPON_THRESHOLDS[@subcategory] || 0; end
