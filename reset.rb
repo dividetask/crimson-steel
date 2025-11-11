@@ -24,7 +24,7 @@ module ResetCharacters
 		equipment = [Equipment.new("Leather", :armor, :light, 0)]
 		equipment << Equipment.new("Sword", :weapon, :short_sword, 0)
 		equipment << Equipment.new("Javelin", :weapon, :javelin, 0)
-		equipment << Equipment.new("Natural Attack", :weapon, :bite, 0)
+		equipment << Equipment.new("Natural Attack", :weapon, :bite, 2)
 		CharacterSheet.new(id, stats, progression, equipment)
 	end
 
@@ -37,7 +37,7 @@ module ResetCharacters
 		equipment = [Equipment.new("Leather", :armor, :light, 0)]
 		equipment << Equipment.new("Sword", :weapon, :short_sword, 0)
 		equipment << Equipment.new("Javelin", :weapon, :javelin, 0)
-		equipment << Equipment.new("Natural Attack", :weapon, :bite, 0)
+		equipment << Equipment.new("Natural Attack", :weapon, :bite, 3)
 		CharacterSheet.new(id, stats, progression, equipment)
 	end
 
