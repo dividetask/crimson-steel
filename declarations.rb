@@ -5,13 +5,19 @@
 #class Check; end
 #class RunTests; end
 #class PlayTest; end
+#class Menu; end
+#class MenuOptions; end
+#module Display; end
 
 class DataStore; end
 class Serializable; end
-class Menu; end
-class MenuOptions; end
-module Display; end
 module Tools; end
+
+class Display; end
+class Menu; end
+module MenuSelectMonsters; end
+module MenuInitiative; end
+module MenuCombat; end
 
 class BaseRoll < Serializable; end
 class Roll < BaseRoll; end

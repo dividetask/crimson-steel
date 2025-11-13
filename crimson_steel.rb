@@ -16,6 +16,8 @@ ResetCharacters.overwrite_data
 data = DataStore.new('campaign')
 #Display.cycle_through_characters(data)
 #Display.select_characters(data)
-Display.main_menu(data)
+#Display.main_menu(data)
+display = Menu.new(data)
+display.main_menu
 p 'Done'
 

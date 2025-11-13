@@ -4,7 +4,6 @@ MOVE_ACTION = 4
 MAIN_ACTION = 2
 BONUS_ACTION = 1
 FREE_ACTION = 0
-ACTION_COST = {FULL_ROUND => 2, MOVE_ACTION => 1, MAIN_ACTION => 1, BONUS_ACTION => 0, FREE_ACTION => 0}
 
 SKILL_ATTRIBUTE = { bab: :dex,
 	melee: :dex,						ranged: :dex, 					acrobatics: :dex, 			animal_handling: :cha,	appraisal: :int, 
@@ -20,6 +19,9 @@ ATTRIBUTES = {str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Inte
 SKILL_BASE_TN = Hash.new(9).merge( { melee: 7, block: 7 })
 CLASS_RESILIANCE = {barbarian: (1..20).to_a.map { |level| [level, 1 + (level / 2)] }.to_h}
 
+module CharTools
+  def weapons; self.items.select { |item| item.category == :weapon }; end
+end
 
 module CharMath
 	def max_combat_pool()
@@ -117,15 +119,15 @@ class CharacterStatus < Serializable
   attr_reader :character, :health_notes, :combat_pool, :main_actions, :mob_index
 
 	def update_bleed(bleed_mod); @health_notes[:bleed] = [0, @health_notes[:bleed] += bleed_mod].max; end
+  def bleed; @health_notes[:bleed]; end
 	def reset_combat_dice; @combat_pool[:remaining] = @combat_pool[:maximum]; end
 	def get_remaining_dice; @combat_pool[:remaining]; end
 	def spend_dice(dice_count); @combat_pool[:remaining] -= dice_count; end
 	def get_remaining_hp; return @health_notes[:maximum] + @health_notes[:damage_list].sum(&:damage_amount); end
-	def turn_complete?; @main_actions != -1; end
+	def turn_complete?; @main_actions == -1; end
 	def new_initiative; @main_actions = 2; end
 	def end_turn; @main_actions = -1; end
 	def take_action(action_type, dice_spent = nil)
-		@main_actions -= ACTION_COST[action_type]
 		if dice_spent
 			@combat_pool[:remaining] -= dice_spent
 		elsif action_type == FULL_ROUND
@@ -141,7 +143,7 @@ class CharacterStatus < Serializable
 		@character = char
 		@health_notes = {maximum: char.max_hp, bleed: 0, damage_list: []}
 		@combat_pool = {remaining: char.max_combat_pool, maximum: char.max_combat_pool}
-		@main_actions = 2 # -1 indicates they ended their turn
+		@main_actions = 2
 	end
 
 	def add_damage(damage); @health_notes[:damage_list] << damage; end
@@ -167,6 +169,7 @@ end
 class CharacterSheet < Serializable
   include SkillMath
 	include CharMath
+  include CharTools
   attr_reader :id, :scores, :prog, :items
 
   def initialize(id, scores, prog, items); @id, @scores, @prog, @items = id, scores, prog, items; end
