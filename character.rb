@@ -56,48 +56,62 @@ module CharMath
 	def get_dr(attacker); @items.map { |item| item.get_dr }.sum + [0, get_disparity_dr - attacker.get_disparity_dr].max; end
 end
 
-module SkillMath
-						#Attribute Functions
+module AttrMath
   def quarter_mod(attr); return self[attr] / 4; end
   def half_mod(attr); return self[attr] / 2; end
-	def attr_dice(attr); hm = half_mod(attr); return hm > 4 ? (hm % 5) + 4 : hm + 4; end
-	def attr_tn(attr); hm = half_mod(attr); return [4,[9, 10 - (hm / 5)].min].max; end
-	def attr_bonus(attr); hm = half_mod(attr); return ((hm / 5) - 1); end
+	def attr_dice(attr); return (half_mod(attr) % 5) + 4; end
+	def attr_bonus(attr); return ((half_mod(attr) / 5) - 1); end
+	def attr_result_mod(attr); tn = attr_tn_unbound(attr); return 9 - tn if tn > 9; return 4 - tn if tn < 4; return 0; end
+	def attr_tn(attr); return [4,[9, attr_tn_unbound(attr)].min].max; end
+	def attr_roll(attr); Check.new(ATTRIBUTES[attr], self.attr_dice(attr), attr_bonus(attr), {target: attr_tn(attr), result_mod: attr_result_mod(attr)}); end
+  private
+	def attr_tn_unbound(attr); return (9 - attr_bonus(attr)); end
+end
 
-	def save_dice(attr); hm = half_mod(attr); return hm > 4 ? (hm % 5) + 4 : hm + 4; end
-	def save_tn(attr); hm = half_mod(attr); return [4,[9, 10 - (hm / 5)].min].max; end
-	def save_bonus(attr); hm = half_mod(attr); return ((hm / 5) - 1); end
+module SaveMath
+	def save_dice(attr); return attr_dice(attr); end
+	def save_bonus(attr); return attr_bonus(attr); end
+	def save_result_mod(attr); attr_result_mod(attr); end
+	def save_tn(attr); return attr_tn(attr); end
+	def save_roll(attr); return attr_roll(attr); end
+  private
+	def save_tn_unbound(attr); attr_tn_unbound(attr); end
+end
 
+module SkillMath
   def initiative(); return half_mod(:wis); end
-  def perception(); return quarter_mod(:wis); end
+  def skill_name(skill); return skill.to_s.split('_').join(' '); end
 
-						#Skill Functions
-	def ranks(skill); return ((self.level * (1 + self.skills[skill])) / 3); end
-  def attr_sym(skill); return SKILL_ATTRIBUTE[skill_category_name(skill) || skill]; end
-
-  def attack_dice; return ((half_mod(attr_sym(:bab)) + ranks(:bab)) % 5) + 6; end
-  def attack_base_tn(weapon); return [4, [9, SKILL_BASE_TN[weapon.get_attack_type] + tn_mod(:bab) - weapon.bonus].min].max; end
-  def attack_tn_mod(weapon); tn_mod(:bab) - weapon.bonus; end
-	def attack_bonus(weapon)  #gets starting successes and starting failures
-		unbound_tn = SKILL_BASE_TN[weapon.get_attack_type] + tn_mod(:bab) - weapon.bonus
-		return 4 - unbound_tn if unbound_tn < 4
-		return unbound_tn - 9 if unbound_tn > 9
-		return 0
-	end
-
-  def dice(skill); return ((half_mod(attr_sym(skill)) + ranks(skill) - 2) % 5) + 6; end
-  def base_tn(skill); return [4, [9, SKILL_BASE_TN[skill] + tn_mod(skill)].min].max; end
-  def tn_mod(skill); return 1 - ((half_mod(attr_sym(skill)) + ranks(skill)) / 6); end
-	def bonus(skill)
-		unbound_tn = SKILL_BASE_TN[skill] + tn_mod(skill)
-		return 4 - unbound_tn if unbound_tn < 4
-		return unbound_tn - 9 if unbound_tn > 9
-		return 0
-	end
-
+	def skill_ranks(skill); return ((self.level * (1 + self.skills[skill])) / 3); end
+  def skill_attr_sym(skill); return SKILL_ATTRIBUTE[skill_category_name(skill) || skill]; end
 	def skill_category_name(skill); SKILL_ATTRIBUTE.keys.find { |k| skill.to_s.start_with?(k.to_s) }; end
-	def skill_roll(skill); Check.new(skill.to_s.split('_').join(' '), self.dice(skill), bonus(skill), {target: base_tn(skill)}); end
-	def attr_roll(attr); Check.new(ATTRIBUTES[attr], self.attr_dice(attr), attr_bonus(attr), {target: attr_tn(attr)}); end
+  def skill_attr_rank_sum(skill); return half_mod(skill_attr_sym(skill)) + skill_ranks(skill); end
+
+	def skill_dice(skill); return (skill_attr_rank_sum(skill) % 5) + 6; end
+	def skill_bonus(skill); return ((skill_attr_rank_sum(skill) / 5) - 1); end
+
+	def skill_result_mod(skill); tn = skill_tn_unbound(skill); return 9 - tn if tn > 9; return 4 - tn if tn < 4; return 0; end
+	def skill_tn(skill); return [4,[9, skill_tn_unbound(attr)].min].max; end
+	def skill_roll(skill); Check.new(skill_name(skill), self.skill_dice(skill), skill_bonus(skill), {target: skill_tn(attr), result_mod: skill_result_mod(skill)}); end
+
+  private
+	def skill_tn_unbound(skill); return (9 - skill_bonus(skill)); end
+end
+
+module AttackMath
+	def attack_name; return weapon.get_attack_type.to_s; end
+	def attack_dice; return skill_dice(:bab); end
+	def attack_bonus(weapon, tn_mod = 0); return skill_bonus(:bab) + weapon.bonus + tn_mod; end
+
+	def attack_result_mod(weapon, tn_mod = 0); tn = attack_tn_unbound(weapon, tn_mod); return 9 - tn if tn > 9; return 4 - tn if tn < 4; return 0; end
+	def attack_tn(weapon, tn_mod = 0); return [4,[9, attack_tn_unbound(weapon, tn_mod)].min].max; end
+	def attack_roll(weapon, tn_mod = 0)
+    params = {target: attack_tn(weapon, tn_mod), result_mod: attack_result_mod(weapon, tn_mod)}
+    Check.new(attack_name, self.attack_dice, attack_bonus(weapon, tn_mod), params)
+  end
+
+  private
+	def attack_tn_unbound(weapon, tn_mod = 0); return (SKILL_BASE_TN[weapon.get_attack_type] - attack_bonus(weapon, tn_mod)); end
 end
 
 class Gender < Serializable
@@ -168,6 +182,10 @@ end
 
 class CharacterSheet < Serializable
   include SkillMath
+  include AttrMath
+  include SaveMath
+  include AttackMath
+
 	include CharMath
   include CharTools
   attr_reader :id, :scores, :prog, :items

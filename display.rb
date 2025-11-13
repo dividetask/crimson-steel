@@ -103,14 +103,16 @@ class Menu
 
 	def initialize(data); @display_obj, @option_hash = nil; @data = data; end
   def main_menu; menu [:change_monsters, :roll_initiative, :combat]; end
+  #def main_menu; menu [:change_monsters, :roll_initiative, :combat]; end
   ##def main_menu; menu [:change_monsters, :view_characters, :roll_initiative, :view_combat]; end
 
-  def get_number(message, accepted_number_list)
+  def get_number(message, accepted_number_list, default_val = nil)
     input = nil
     while (true)
       print "#{message} "
       input = gets.chomp
       break if input == 'q'
+      return default_val if default_val and input == ''
       input = input.to_i
       break if accepted_number_list.include? input
     end
@@ -249,7 +251,7 @@ end
 
 
 module MenuCombat
-	def combat; display_combat_status; menu([:attack, :cast_spell, :move, :bonus_action, :end_turn, :skip_round], false); end
+	def combat; attack; menu([:attack, :cast_spell, :move, :bonus_action, :end_turn, :skip_round], false); end
   def skip_round; handle_afflictions; @data.status_list.each { |status| status.new_initiative }; display_combat_status; end
   def end_turn; @active_char.end_turn; display_combat_status; end
   def move; @active_char.take_action(MOVE_ACTION); end
@@ -284,6 +286,13 @@ module MenuCombat
     print "\n\n#{@active_char.name}'s turn\n\n"; 
   end
 
+  def choose_def_weapon target_char
+  	weapon_options = ('a'..'z').to_a.zip(target_char.weapons).to_h.compact
+		@option_hash = weapon_options.map { |letter, weapon| [letter, weapon.name] }.to_h
+  	weapon_key = get_menu_selection "(Defender) Choose weapon"
+		return weapon_options[weapon_key] if weapon_options[weapon_key]
+	end
+
   def choose_weapon
   	weapon_options = ('a'..'z').to_a.zip(@active_char.weapons).to_h.compact
 		@option_hash = weapon_options.map { |letter, weapon| [letter, weapon.name] }.to_h
@@ -300,28 +309,36 @@ module MenuCombat
 
   def attack
   	weapon = choose_weapon
-    attack_dice = get_number("How many attack dice for #{@active_char.name} (2-#{@active_char.attack_dice})", (0..@active_char.attack_dice).to_a)
+    attack_bonus = @active_char.attack_bonus(weapon)
+    attack_bonus_string = "#{'+' if attack_bonus >= 0}#{attack_bonus}"
+
+    attack_dice = get_number("Attack Bonus #{attack_bonus_string}, How many attack dice (2-#{@active_char.attack_dice})", (0..@active_char.attack_dice).to_a)
     target_char = choose_enemy
-    dodge_successes, def_tn_mod = defend(target_char, @active_char.attack_tn_mod(weapon))
-    attack_success = get_number("How many attack successes #{@active_char.name}", (-10..(2*@active_char.attack_dice)).to_a) 
+    dodge_successes, def_bonus = defend(target_char, attack_bonus)
+
+		tn = @active_char.attack_tn(weapon, (-1 * def_bonus))
+
+    base_damage = weapon.get_base_weapon_damage(@active_char) + attack_bonus - target_char.get_dr(@active_char)
+    base_damage_string = "#{'+' if base_damage >= 0}#{base_damage}"
+    attack_success = get_number("(Attacker)How many successes (TN #{tn}), (dmg success#{base_damage_string})", (-10..(2*attack_dice)).to_a) 
+    @active_char.spend_dice(attack_dice + weapon.speed)
+
     if attack_success - dodge_successes < 2
-      @active_char.spend_dice(attack_dice + weapon.speed)
       print " ** Attack Missed ** #{attack_success - dodge_successes} < 2 (#{attack_success} - #{dodge_successes})\n"
     else
-      @active_char.spend_dice(attack_dice + weapon.speed)
-
-			base_damage = weapon.get_base_weapon_damage(@active_char)
       damage = attack_success + base_damage
-      defender_dr = target_char.get_dr(@active_char)
-      damage -= defender_dr
 
       if damage < 0
-        print " ** Attack hit, but no damage ** #{damage} (#{attack_success} + #{base_damage} - #{defender_dr})\n"
+        print " ** Attack hit, but no damage ** #{damage} (#{attack_success} + #{base_damage})\n"
       elsif damage == 0
-        bleed = weapon.get_bleed_mod
-        print " ** Attack hit and causes #{bleed} bleed ** (#{attack_success} + #{base_damage} - #{defender_dr})\n"
+        bleed = weapon.get_bleed_mod + damage
+        print " ** Attack hit and causes #{bleed} bleed ** (#{attack_success} + #{base_damage})\n"
       else
-        minor_damage = [damage, target_char.get_resiliance].min
+        damage = damage - get_number("Increase damage reduction (0)?", (0..20).to_a)
+        damage = get_number("Fudge Damage? (damage #{damage}, threshold #{weapon.get_threshold + target_char.get_resiliance})", (0..100).to_a, damage) 
+        resiliance = get_number("Increase Resiliance (0)? (#{target_char.get_resiliance})", (0..100).to_a, 0) + target_char.get_resiliance
+
+        minor_damage = [damage, resiliance].min
         moderate_damage = [[damage - minor_damage, 0].max, weapon.get_threshold].min
         major_damage = [damage - minor_damage - moderate_damage, 0].max
 
@@ -333,23 +350,34 @@ module MenuCombat
         target_char.update_bleed(bleed)
 
         print " ** #{@active_char.name} hits #{target_char.name} for #{damage} points of damage **\n"
-        print "  #{target_char} reduces #{minor_damage} points to minor damage, and takes #{major_damage} points of major damage\n"
-        print "  #{target_char} takes #{bleed} bleed (Total: #{target_char.bleed}\n" if bleed > 0
+        print "  #{target_char.name} reduces #{minor_damage} points to minor damage, and takes #{major_damage} points of major damage\n"
+        print "  #{target_char.name} takes #{bleed} bleed (Total: #{target_char.bleed}\n" if bleed > 0
       end
 
-      bonus_damage = get_number("How much bonus damage", (0..20).to_a)
+      bonus_damage = get_number("How much bonus damage (0)", (0..20).to_a, 0)
       target_char.add_damage(Damage.new(:bonus, MODERATE_DAMAGE, bonus_damage)) if bonus_damage > 0
     end
     Tools.press_any_key
     display_combat_status
   end
 
-  def defend(target_char, attack_tn_mod)
-    dodge_dice = get_number("How many dodge dice for #{target_char.name}", (0..target_char.attr_dice(:dex)).to_a)
+  def defend(target_char, attack_bonus)
+  	weapon = choose_def_weapon target_char
+    def_base_bonus = target_char.attack_bonus(weapon)
+    def_bonus = def_base_bonus - attack_bonus
+    def_bonus_string = "#{'+' if def_bonus >= 0}#{def_bonus}"
+
+		dodge_request_string = "Defense Bonus #{def_bonus_string} (#{def_base_bonus}-#{attack_bonus}), How many defense dice (2-#{target_char.attack_dice})"
+    dodge_dice = get_number(dodge_request_string, (0..target_char.attack_dice).to_a)
     target_char.spend_dice(dodge_dice)
-    dodge_successes = get_number("How many defense successes", (-10..10).to_a)
-    def_tn_mod = 0
-    return dodge_successes, def_tn_mod
+
+		tn = target_char.attack_tn(weapon, (-1 * attack_bonus))
+    dodge_result_mod = target_char.attack_result_mod(weapon, attack_bonus)
+    #dodge_result_mod_string = "#{'+' if dodge_result_mod >= 0}#{dodge_result_mod}"
+    #dodge_successes = get_number("(Defender)How many successes (TN #{tn}) (#{dodge_result_mod_string})", (-10..(2*dodge_dice)).to_a) 
+    dodge_successes = get_number("(Defender)How many successes (TN #{tn})", (-10..(2*dodge_dice)).to_a) 
+
+    return (dodge_successes + dodge_result_mod), def_base_bonus
   end
 
   def cast_spell; end
