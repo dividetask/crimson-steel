@@ -26,6 +26,7 @@ class InitiativeRoll < BaseRoll; end
 
 class Gender < Serializable; end
 class Equipment < Serializable; end
+class ConjuredEquipment < Equipment; end
 
 class Damage < Serializable; end
 
@@ -34,6 +35,7 @@ class CharacterSheet < Serializable; end
 class Identity < Serializable; end
 class Progression < Serializable; end
 class AbilityScores < Serializable; end
+class SpecialAbilities < Serializable; end
 module SkillMath; end
 module CharMath; end
 

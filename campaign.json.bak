@@ -1,0 +1,4510 @@
+{
+  "character_list": [
+    {
+      "_class": "CharacterSheet",
+      "_data": {
+        "id": {
+          "_class": "Identity",
+          "_data": {
+            "name": "Stumpy",
+            "gender": {
+              "_class": "Gender",
+              "_data": {
+                "gender": "M"
+              }
+            },
+            "role": {
+              "_type": "symbol",
+              "_value": "PC"
+            }
+          }
+        },
+        "scores": {
+          "_class": "AbilityScores",
+          "_data": {
+            "str": 12,
+            "dex": 14,
+            "con": 17,
+            "int": 14,
+            "wis": 18,
+            "cha": 11
+          }
+        },
+        "prog": {
+          "_class": "Progression",
+          "_data": {
+            "klass": {
+              "_type": "symbol",
+              "_value": "cleric"
+            },
+            "level": 4,
+            "skills": {
+              "_type": "hash",
+              "_pairs": [
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "bab"
+                  },
+                  2
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "survival"
+                  },
+                  2
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "intimidate"
+                  },
+                  2
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "perception"
+                  },
+                  2
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "heal"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "sense_motive"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "arcana"
+                  },
+                  3
+                ]
+              ]
+            }
+          }
+        },
+        "items": [
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Breastplate",
+              "category": {
+                "_type": "symbol",
+                "_value": "armor"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "medium"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Mirror Shield",
+              "category": {
+                "_type": "symbol",
+                "_value": "shield"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "light_shield"
+              },
+              "bonus": 1,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": true
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Last Laugh Axe",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "battleaxe"
+              },
+              "bonus": 1,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "bonus_damage"
+                    },
+                    {
+                      "_type": "hash",
+                      "_pairs": [
+                        [
+                          {
+                            "_type": "symbol",
+                            "_value": "emotional"
+                          },
+                          4
+                        ]
+                      ]
+                    }
+                  ]
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Longbow",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "longbow"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Punch",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "punch"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "ConjuredEquipment",
+            "_data": {
+              "caster": null,
+              "magic_properties": {
+                "_type": "hash",
+                "_pairs": [
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "needs_dice"
+                    },
+                    true
+                  ],
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "block_allies"
+                    },
+                    true
+                  ],
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "skill"
+                    },
+                    {
+                      "_type": "symbol",
+                      "_value": "heal"
+                    }
+                  ]
+                ]
+              },
+              "name": "Shield of Faith",
+              "category": {
+                "_type": "symbol",
+                "_value": "shield"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "light_shield"
+              },
+              "bonus": 1,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "ConjuredEquipment",
+            "_data": {
+              "caster": null,
+              "magic_properties": {
+                "_type": "hash",
+                "_pairs": [
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "needs_dice"
+                    },
+                    false
+                  ],
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "skill"
+                    },
+                    {
+                      "_type": "symbol",
+                      "_value": "heal"
+                    }
+                  ]
+                ]
+              },
+              "name": "Spirtual Weapon",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "rapier"
+              },
+              "bonus": 1,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          }
+        ],
+        "special_abilities": [
+          {
+            "_class": "SpecialAbilities",
+            "_data": {
+              "name": "Cleave"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "_class": "CharacterSheet",
+      "_data": {
+        "id": {
+          "_class": "Identity",
+          "_data": {
+            "name": "Olga",
+            "gender": {
+              "_class": "Gender",
+              "_data": {
+                "gender": "F"
+              }
+            },
+            "role": {
+              "_type": "symbol",
+              "_value": "PC"
+            }
+          }
+        },
+        "scores": {
+          "_class": "AbilityScores",
+          "_data": {
+            "str": 19,
+            "dex": 17,
+            "con": 17,
+            "int": 11,
+            "wis": 13,
+            "cha": 10
+          }
+        },
+        "prog": {
+          "_class": "Progression",
+          "_data": {
+            "klass": {
+              "_type": "symbol",
+              "_value": "barbarian"
+            },
+            "level": 4,
+            "skills": {
+              "_type": "hash",
+              "_pairs": [
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "bab"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "sense_motive"
+                  },
+                  2
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "stealth"
+                  },
+                  2
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "athletics"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "survival"
+                  },
+                  3
+                ]
+              ]
+            }
+          }
+        },
+        "items": [
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Leather",
+              "category": {
+                "_type": "symbol",
+                "_value": "armor"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "light"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Fey Great Axe (Gary)",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "greataxe"
+              },
+              "bonus": 2,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Javelin",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "javelin"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Punch",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "punch"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "ConjuredEquipment",
+            "_data": {
+              "caster": null,
+              "magic_properties": {
+                "_type": "hash",
+                "_pairs": [
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "needs_dice"
+                    },
+                    false
+                  ],
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "parry"
+                    },
+                    true
+                  ],
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "skill"
+                    },
+                    {
+                      "_type": "symbol",
+                      "_value": "bab"
+                    }
+                  ]
+                ]
+              },
+              "name": "Ring of Parry",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "greataxe"
+              },
+              "bonus": 2,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          }
+        ],
+        "special_abilities": [
+          {
+            "_class": "SpecialAbilities",
+            "_data": {
+              "name": "Primal Tenacity"
+            }
+          },
+          {
+            "_class": "SpecialAbilities",
+            "_data": {
+              "name": "Cleave"
+            }
+          },
+          {
+            "_class": "SpecialAbilities",
+            "_data": {
+              "name": "Uncanny Dodge"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "_class": "CharacterSheet",
+      "_data": {
+        "id": {
+          "_class": "Identity",
+          "_data": {
+            "name": "Lysander",
+            "gender": {
+              "_class": "Gender",
+              "_data": {
+                "gender": "M"
+              }
+            },
+            "role": {
+              "_type": "symbol",
+              "_value": "PC"
+            }
+          }
+        },
+        "scores": {
+          "_class": "AbilityScores",
+          "_data": {
+            "str": 9,
+            "dex": 19,
+            "con": 13,
+            "int": 14,
+            "wis": 15,
+            "cha": 15
+          }
+        },
+        "prog": {
+          "_class": "Progression",
+          "_data": {
+            "klass": {
+              "_type": "symbol",
+              "_value": "rogue"
+            },
+            "level": 4,
+            "skills": {
+              "_type": "hash",
+              "_pairs": [
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "bab"
+                  },
+                  2
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "stealth"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "slight_of_hand"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "deception"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "persuasion"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "larceny"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "arcana"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "perception"
+                  },
+                  3
+                ]
+              ]
+            }
+          }
+        },
+        "items": [
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Chain Shirt",
+              "category": {
+                "_type": "symbol",
+                "_value": "armor"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "light"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Short Sword",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "short_sword"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Wyd Bow of Mirth",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "longbow"
+              },
+              "bonus": 1,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "bonus_damage"
+                    },
+                    {
+                      "_type": "hash",
+                      "_pairs": [
+                        [
+                          {
+                            "_type": "symbol",
+                            "_value": "emotional"
+                          },
+                          4
+                        ]
+                      ]
+                    }
+                  ]
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Punch",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "punch"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          }
+        ],
+        "special_abilities": [
+          {
+            "_class": "SpecialAbilities",
+            "_data": {
+              "name": "Danger Sense"
+            }
+          },
+          {
+            "_class": "SpecialAbilities",
+            "_data": {
+              "name": "Sneak Attack"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "_class": "CharacterSheet",
+      "_data": {
+        "id": {
+          "_class": "Identity",
+          "_data": {
+            "name": "Theron",
+            "gender": {
+              "_class": "Gender",
+              "_data": {
+                "gender": "M"
+              }
+            },
+            "role": {
+              "_type": "symbol",
+              "_value": "NPC"
+            }
+          }
+        },
+        "scores": {
+          "_class": "AbilityScores",
+          "_data": {
+            "str": 17,
+            "dex": 17,
+            "con": 12,
+            "int": 12,
+            "wis": 15,
+            "cha": 9
+          }
+        },
+        "prog": {
+          "_class": "Progression",
+          "_data": {
+            "klass": {
+              "_type": "symbol",
+              "_value": "ranger"
+            },
+            "level": 8,
+            "skills": {
+              "_type": "hash",
+              "_pairs": [
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "bab"
+                  },
+                  2
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "intimidate"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "heal"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "druidic"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "perception"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "stealth"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "sense_motive"
+                  },
+                  3
+                ]
+              ]
+            }
+          }
+        },
+        "items": [
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Chain Shirt",
+              "category": {
+                "_type": "symbol",
+                "_value": "armor"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "light"
+              },
+              "bonus": 2,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Dagger",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "dagger"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Longbow",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "longbow"
+              },
+              "bonus": 2,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "bonus_damage"
+                    },
+                    {
+                      "_type": "hash",
+                      "_pairs": [
+                        [
+                          {
+                            "_type": "symbol",
+                            "_value": "heart_seeker"
+                          },
+                          4
+                        ]
+                      ]
+                    }
+                  ]
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Punch",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "punch"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          }
+        ],
+        "special_abilities": [
+
+        ]
+      }
+    },
+    {
+      "_class": "CharacterSheet",
+      "_data": {
+        "id": {
+          "_class": "Identity",
+          "_data": {
+            "name": "Kraken",
+            "gender": {
+              "_class": "Gender",
+              "_data": {
+                "gender": "?"
+              }
+            },
+            "role": {
+              "_type": "symbol",
+              "_value": "beast"
+            }
+          }
+        },
+        "scores": {
+          "_class": "AbilityScores",
+          "_data": {
+            "str": 28,
+            "dex": 15,
+            "con": 21,
+            "int": 5,
+            "wis": 12,
+            "cha": 6
+          }
+        },
+        "prog": {
+          "_class": "Progression",
+          "_data": {
+            "klass": {
+              "_type": "symbol",
+              "_value": "beast"
+            },
+            "level": 10,
+            "skills": {
+              "_type": "hash",
+              "_pairs": [
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "bab"
+                  },
+                  1
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "athletics"
+                  },
+                  1
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "perception"
+                  },
+                  1
+                ]
+              ]
+            }
+          }
+        },
+        "items": [
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Natural Armor",
+              "category": {
+                "_type": "symbol",
+                "_value": "armor"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "natural"
+              },
+              "bonus": 3,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Bite",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "bite"
+              },
+              "bonus": 3,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "threshold"
+                    },
+                    5
+                  ]
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Tentacle",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "slam"
+              },
+              "bonus": 3,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "threshold"
+                    },
+                    3
+                  ],
+                  [
+                    {
+                      "_type": "symbol",
+                      "_value": "poison"
+                    },
+                    {
+                      "_type": "hash",
+                      "_pairs": [
+                        [
+                          {
+                            "_type": "symbol",
+                            "_value": "potency"
+                          },
+                          5
+                        ],
+                        [
+                          {
+                            "_type": "symbol",
+                            "_value": "effect"
+                          },
+                          {
+                            "_type": "hash",
+                            "_pairs": [
+                              [
+                                {
+                                  "_type": "symbol",
+                                  "_value": "severity"
+                                },
+                                {
+                                  "_type": "symbol",
+                                  "_value": "minor"
+                                }
+                              ],
+                              [
+                                {
+                                  "_type": "symbol",
+                                  "_value": "attr"
+                                },
+                                {
+                                  "_type": "symbol",
+                                  "_value": "int"
+                                }
+                              ]
+                            ]
+                          }
+                        ]
+                      ]
+                    }
+                  ]
+                ]
+              },
+              "equipped": false
+            }
+          }
+        ],
+        "special_abilities": [
+
+        ]
+      }
+    },
+    {
+      "_class": "CharacterSheet",
+      "_data": {
+        "id": {
+          "_class": "Identity",
+          "_data": {
+            "name": "NPC Pirate 1",
+            "gender": {
+              "_class": "Gender",
+              "_data": {
+                "gender": "M"
+              }
+            },
+            "role": {
+              "_type": "symbol",
+              "_value": "NPC"
+            }
+          }
+        },
+        "scores": {
+          "_class": "AbilityScores",
+          "_data": {
+            "str": 15,
+            "dex": 14,
+            "con": 15,
+            "int": 10,
+            "wis": 12,
+            "cha": 8
+          }
+        },
+        "prog": {
+          "_class": "Progression",
+          "_data": {
+            "klass": {
+              "_type": "symbol",
+              "_value": "rogue"
+            },
+            "level": 1,
+            "skills": {
+              "_type": "hash",
+              "_pairs": [
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "bab"
+                  },
+                  2
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "intimidate"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "profession_sailor"
+                  },
+                  3
+                ],
+                [
+                  {
+                    "_type": "symbol",
+                    "_value": "athletics"
+                  },
+                  3
+                ]
+              ]
+            }
+          }
+        },
+        "items": [
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Leather",
+              "category": {
+                "_type": "symbol",
+                "_value": "armor"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "light"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Rapier",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "rapier"
+              },
+              "bonus": 0,
+              "additional_properties": true,
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Shortbow",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "shortbow"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          },
+          {
+            "_class": "Equipment",
+            "_data": {
+              "name": "Punch",
+              "category": {
+                "_type": "symbol",
+                "_value": "weapon"
+              },
+              "subcategory": {
+                "_type": "symbol",
+                "_value": "punch"
+              },
+              "bonus": 0,
+              "additional_properties": {
+                "_type": "hash",
+                "_pairs": [
+
+                ]
+              },
+              "equipped": false
+            }
+          }
+        ],
+        "special_abilities": [
+
+        ]
+      }
+    }
+  ],
+  "initiative": [
+    {
+      "_class": "InitiativeRoll",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "Lysander",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "M"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "PC"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 9,
+                "dex": 19,
+                "con": 13,
+                "int": 14,
+                "wis": 15,
+                "cha": 15
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "rogue"
+                },
+                "level": 4,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "stealth"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "slight_of_hand"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "deception"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "persuasion"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "larceny"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "arcana"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "perception"
+                      },
+                      3
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Chain Shirt",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "light"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Short Sword",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "short_sword"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Wyd Bow of Mirth",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "longbow"
+                  },
+                  "bonus": 1,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "bonus_damage"
+                        },
+                        {
+                          "_type": "hash",
+                          "_pairs": [
+                            [
+                              {
+                                "_type": "symbol",
+                                "_value": "emotional"
+                              },
+                              4
+                            ]
+                          ]
+                        }
+                      ]
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Punch",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "punch"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+              {
+                "_class": "SpecialAbilities",
+                "_data": {
+                  "name": "Danger Sense"
+                }
+              },
+              {
+                "_class": "SpecialAbilities",
+                "_data": {
+                  "name": "Sneak Attack"
+                }
+              }
+            ]
+          }
+        },
+        "dice_rolls": [
+          4,
+          8,
+          10,
+          7,
+          9,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "_class": "InitiativeRoll",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "Olga",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "F"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "PC"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 19,
+                "dex": 17,
+                "con": 17,
+                "int": 11,
+                "wis": 13,
+                "cha": 10
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "barbarian"
+                },
+                "level": 4,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "sense_motive"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "stealth"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "athletics"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "survival"
+                      },
+                      3
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Leather",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "light"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Fey Great Axe (Gary)",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "greataxe"
+                  },
+                  "bonus": 2,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Javelin",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "javelin"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Punch",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "punch"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "ConjuredEquipment",
+                "_data": {
+                  "caster": null,
+                  "magic_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "needs_dice"
+                        },
+                        false
+                      ],
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "parry"
+                        },
+                        true
+                      ],
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "skill"
+                        },
+                        {
+                          "_type": "symbol",
+                          "_value": "bab"
+                        }
+                      ]
+                    ]
+                  },
+                  "name": "Ring of Parry",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "greataxe"
+                  },
+                  "bonus": 2,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+              {
+                "_class": "SpecialAbilities",
+                "_data": {
+                  "name": "Primal Tenacity"
+                }
+              },
+              {
+                "_class": "SpecialAbilities",
+                "_data": {
+                  "name": "Cleave"
+                }
+              },
+              {
+                "_class": "SpecialAbilities",
+                "_data": {
+                  "name": "Uncanny Dodge"
+                }
+              }
+            ]
+          }
+        },
+        "dice_rolls": [
+          9,
+          2,
+          7,
+          4,
+          4,
+          10
+        ]
+      }
+    },
+    {
+      "_class": "InitiativeRoll",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "Theron",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "M"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "NPC"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 17,
+                "dex": 17,
+                "con": 12,
+                "int": 12,
+                "wis": 15,
+                "cha": 9
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "ranger"
+                },
+                "level": 8,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "intimidate"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "heal"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "druidic"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "perception"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "stealth"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "sense_motive"
+                      },
+                      3
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Chain Shirt",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "light"
+                  },
+                  "bonus": 2,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Dagger",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "dagger"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Longbow",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "longbow"
+                  },
+                  "bonus": 2,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "bonus_damage"
+                        },
+                        {
+                          "_type": "hash",
+                          "_pairs": [
+                            [
+                              {
+                                "_type": "symbol",
+                                "_value": "heart_seeker"
+                              },
+                              4
+                            ]
+                          ]
+                        }
+                      ]
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Punch",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "punch"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+
+            ]
+          }
+        },
+        "dice_rolls": [
+          8,
+          10,
+          2,
+          4,
+          4,
+          5,
+          3
+        ]
+      }
+    },
+    {
+      "_class": "InitiativeRoll",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "Stumpy",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "M"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "PC"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 12,
+                "dex": 14,
+                "con": 17,
+                "int": 14,
+                "wis": 18,
+                "cha": 11
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "cleric"
+                },
+                "level": 4,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "survival"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "intimidate"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "perception"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "heal"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "sense_motive"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "arcana"
+                      },
+                      3
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Breastplate",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "medium"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Mirror Shield",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "shield"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "light_shield"
+                  },
+                  "bonus": 1,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": true
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Last Laugh Axe",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "battleaxe"
+                  },
+                  "bonus": 1,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "bonus_damage"
+                        },
+                        {
+                          "_type": "hash",
+                          "_pairs": [
+                            [
+                              {
+                                "_type": "symbol",
+                                "_value": "emotional"
+                              },
+                              4
+                            ]
+                          ]
+                        }
+                      ]
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Longbow",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "longbow"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Punch",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "punch"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "ConjuredEquipment",
+                "_data": {
+                  "caster": null,
+                  "magic_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "needs_dice"
+                        },
+                        true
+                      ],
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "block_allies"
+                        },
+                        true
+                      ],
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "skill"
+                        },
+                        {
+                          "_type": "symbol",
+                          "_value": "heal"
+                        }
+                      ]
+                    ]
+                  },
+                  "name": "Shield of Faith",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "shield"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "light_shield"
+                  },
+                  "bonus": 1,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "ConjuredEquipment",
+                "_data": {
+                  "caster": null,
+                  "magic_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "needs_dice"
+                        },
+                        false
+                      ],
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "skill"
+                        },
+                        {
+                          "_type": "symbol",
+                          "_value": "heal"
+                        }
+                      ]
+                    ]
+                  },
+                  "name": "Spirtual Weapon",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "rapier"
+                  },
+                  "bonus": 1,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+              {
+                "_class": "SpecialAbilities",
+                "_data": {
+                  "name": "Cleave"
+                }
+              }
+            ]
+          }
+        },
+        "dice_rolls": [
+          2,
+          3,
+          9,
+          8,
+          5,
+          8,
+          9,
+          9,
+          4
+        ]
+      }
+    },
+    {
+      "_class": "InitiativeRoll",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "Kraken",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "?"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "beast"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 28,
+                "dex": 15,
+                "con": 21,
+                "int": 5,
+                "wis": 12,
+                "cha": 6
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "beast"
+                },
+                "level": 10,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      1
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "athletics"
+                      },
+                      1
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "perception"
+                      },
+                      1
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Natural Armor",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "natural"
+                  },
+                  "bonus": 3,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Bite",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "bite"
+                  },
+                  "bonus": 3,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "threshold"
+                        },
+                        5
+                      ]
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Tentacle",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "slam"
+                  },
+                  "bonus": 3,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "threshold"
+                        },
+                        3
+                      ],
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "poison"
+                        },
+                        {
+                          "_type": "hash",
+                          "_pairs": [
+                            [
+                              {
+                                "_type": "symbol",
+                                "_value": "potency"
+                              },
+                              5
+                            ],
+                            [
+                              {
+                                "_type": "symbol",
+                                "_value": "effect"
+                              },
+                              {
+                                "_type": "hash",
+                                "_pairs": [
+                                  [
+                                    {
+                                      "_type": "symbol",
+                                      "_value": "severity"
+                                    },
+                                    {
+                                      "_type": "symbol",
+                                      "_value": "minor"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "_type": "symbol",
+                                      "_value": "attr"
+                                    },
+                                    {
+                                      "_type": "symbol",
+                                      "_value": "int"
+                                    }
+                                  ]
+                                ]
+                              }
+                            ]
+                          ]
+                        }
+                      ]
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+
+            ]
+          }
+        },
+        "dice_rolls": [
+          8,
+          5,
+          5,
+          6,
+          5,
+          9
+        ]
+      }
+    },
+    {
+      "_class": "InitiativeRoll",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "NPC Pirate 1",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "M"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "NPC"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 15,
+                "dex": 14,
+                "con": 15,
+                "int": 10,
+                "wis": 12,
+                "cha": 8
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "rogue"
+                },
+                "level": 1,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "intimidate"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "profession_sailor"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "athletics"
+                      },
+                      3
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Leather",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "light"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Rapier",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "rapier"
+                  },
+                  "bonus": 0,
+                  "additional_properties": true,
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Shortbow",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "shortbow"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Punch",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "punch"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+
+            ]
+          }
+        },
+        "dice_rolls": [
+          6,
+          2,
+          7,
+          7,
+          7,
+          4
+        ]
+      }
+    }
+  ],
+  "status_list": [
+    {
+      "_class": "CharacterStatus",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "Stumpy",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "M"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "PC"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 12,
+                "dex": 14,
+                "con": 17,
+                "int": 14,
+                "wis": 18,
+                "cha": 11
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "cleric"
+                },
+                "level": 4,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "survival"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "intimidate"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "perception"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "heal"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "sense_motive"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "arcana"
+                      },
+                      3
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Breastplate",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "medium"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Mirror Shield",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "shield"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "light_shield"
+                  },
+                  "bonus": 1,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": true
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Last Laugh Axe",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "battleaxe"
+                  },
+                  "bonus": 1,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "bonus_damage"
+                        },
+                        {
+                          "_type": "hash",
+                          "_pairs": [
+                            [
+                              {
+                                "_type": "symbol",
+                                "_value": "emotional"
+                              },
+                              4
+                            ]
+                          ]
+                        }
+                      ]
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Longbow",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "longbow"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Punch",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "punch"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "ConjuredEquipment",
+                "_data": {
+                  "caster": null,
+                  "magic_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "needs_dice"
+                        },
+                        true
+                      ],
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "block_allies"
+                        },
+                        true
+                      ],
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "skill"
+                        },
+                        {
+                          "_type": "symbol",
+                          "_value": "heal"
+                        }
+                      ]
+                    ]
+                  },
+                  "name": "Shield of Faith",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "shield"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "light_shield"
+                  },
+                  "bonus": 1,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "ConjuredEquipment",
+                "_data": {
+                  "caster": null,
+                  "magic_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "needs_dice"
+                        },
+                        false
+                      ],
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "skill"
+                        },
+                        {
+                          "_type": "symbol",
+                          "_value": "heal"
+                        }
+                      ]
+                    ]
+                  },
+                  "name": "Spirtual Weapon",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "rapier"
+                  },
+                  "bonus": 1,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+              {
+                "_class": "SpecialAbilities",
+                "_data": {
+                  "name": "Cleave"
+                }
+              }
+            ]
+          }
+        },
+        "health_notes": {
+          "_type": "hash",
+          "_pairs": [
+            [
+              {
+                "_type": "symbol",
+                "_value": "maximum"
+              },
+              34
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "bleed"
+              },
+              0
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "damage_list"
+              },
+              [
+
+              ]
+            ]
+          ]
+        },
+        "combat_pool": {
+          "_type": "hash",
+          "_pairs": [
+            [
+              {
+                "_type": "symbol",
+                "_value": "remaining"
+              },
+              17
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "maximum"
+              },
+              17
+            ]
+          ]
+        },
+        "main_actions": 2
+      }
+    },
+    {
+      "_class": "CharacterStatus",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "Olga",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "F"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "PC"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 19,
+                "dex": 17,
+                "con": 17,
+                "int": 11,
+                "wis": 13,
+                "cha": 10
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "barbarian"
+                },
+                "level": 4,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "sense_motive"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "stealth"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "athletics"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "survival"
+                      },
+                      3
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Leather",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "light"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Fey Great Axe (Gary)",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "greataxe"
+                  },
+                  "bonus": 2,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Javelin",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "javelin"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Punch",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "punch"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "ConjuredEquipment",
+                "_data": {
+                  "caster": null,
+                  "magic_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "needs_dice"
+                        },
+                        false
+                      ],
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "parry"
+                        },
+                        true
+                      ],
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "skill"
+                        },
+                        {
+                          "_type": "symbol",
+                          "_value": "bab"
+                        }
+                      ]
+                    ]
+                  },
+                  "name": "Ring of Parry",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "greataxe"
+                  },
+                  "bonus": 2,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+              {
+                "_class": "SpecialAbilities",
+                "_data": {
+                  "name": "Primal Tenacity"
+                }
+              },
+              {
+                "_class": "SpecialAbilities",
+                "_data": {
+                  "name": "Cleave"
+                }
+              },
+              {
+                "_class": "SpecialAbilities",
+                "_data": {
+                  "name": "Uncanny Dodge"
+                }
+              }
+            ]
+          }
+        },
+        "health_notes": {
+          "_type": "hash",
+          "_pairs": [
+            [
+              {
+                "_type": "symbol",
+                "_value": "maximum"
+              },
+              34
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "bleed"
+              },
+              0
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "damage_list"
+              },
+              [
+
+              ]
+            ]
+          ]
+        },
+        "combat_pool": {
+          "_type": "hash",
+          "_pairs": [
+            [
+              {
+                "_type": "symbol",
+                "_value": "remaining"
+              },
+              18
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "maximum"
+              },
+              18
+            ]
+          ]
+        },
+        "main_actions": 2
+      }
+    },
+    {
+      "_class": "CharacterStatus",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "Lysander",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "M"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "PC"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 9,
+                "dex": 19,
+                "con": 13,
+                "int": 14,
+                "wis": 15,
+                "cha": 15
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "rogue"
+                },
+                "level": 4,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "stealth"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "slight_of_hand"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "deception"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "persuasion"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "larceny"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "arcana"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "perception"
+                      },
+                      3
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Chain Shirt",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "light"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Short Sword",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "short_sword"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Wyd Bow of Mirth",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "longbow"
+                  },
+                  "bonus": 1,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "bonus_damage"
+                        },
+                        {
+                          "_type": "hash",
+                          "_pairs": [
+                            [
+                              {
+                                "_type": "symbol",
+                                "_value": "emotional"
+                              },
+                              4
+                            ]
+                          ]
+                        }
+                      ]
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Punch",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "punch"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+              {
+                "_class": "SpecialAbilities",
+                "_data": {
+                  "name": "Danger Sense"
+                }
+              },
+              {
+                "_class": "SpecialAbilities",
+                "_data": {
+                  "name": "Sneak Attack"
+                }
+              }
+            ]
+          }
+        },
+        "health_notes": {
+          "_type": "hash",
+          "_pairs": [
+            [
+              {
+                "_type": "symbol",
+                "_value": "maximum"
+              },
+              26
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "bleed"
+              },
+              0
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "damage_list"
+              },
+              [
+
+              ]
+            ]
+          ]
+        },
+        "combat_pool": {
+          "_type": "hash",
+          "_pairs": [
+            [
+              {
+                "_type": "symbol",
+                "_value": "remaining"
+              },
+              19
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "maximum"
+              },
+              19
+            ]
+          ]
+        },
+        "main_actions": 2
+      }
+    },
+    {
+      "_class": "CharacterStatus",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "Theron",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "M"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "NPC"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 17,
+                "dex": 17,
+                "con": 12,
+                "int": 12,
+                "wis": 15,
+                "cha": 9
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "ranger"
+                },
+                "level": 8,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "intimidate"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "heal"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "druidic"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "perception"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "stealth"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "sense_motive"
+                      },
+                      3
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Chain Shirt",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "light"
+                  },
+                  "bonus": 2,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Dagger",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "dagger"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Longbow",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "longbow"
+                  },
+                  "bonus": 2,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "bonus_damage"
+                        },
+                        {
+                          "_type": "hash",
+                          "_pairs": [
+                            [
+                              {
+                                "_type": "symbol",
+                                "_value": "heart_seeker"
+                              },
+                              4
+                            ]
+                          ]
+                        }
+                      ]
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Punch",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "punch"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+
+            ]
+          }
+        },
+        "health_notes": {
+          "_type": "hash",
+          "_pairs": [
+            [
+              {
+                "_type": "symbol",
+                "_value": "maximum"
+              },
+              36
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "bleed"
+              },
+              0
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "damage_list"
+              },
+              [
+
+              ]
+            ]
+          ]
+        },
+        "combat_pool": {
+          "_type": "hash",
+          "_pairs": [
+            [
+              {
+                "_type": "symbol",
+                "_value": "remaining"
+              },
+              21
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "maximum"
+              },
+              21
+            ]
+          ]
+        },
+        "main_actions": 2
+      }
+    },
+    {
+      "_class": "CharacterStatus",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "Kraken",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "?"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "beast"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 28,
+                "dex": 15,
+                "con": 21,
+                "int": 5,
+                "wis": 12,
+                "cha": 6
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "beast"
+                },
+                "level": 10,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      1
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "athletics"
+                      },
+                      1
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "perception"
+                      },
+                      1
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Natural Armor",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "natural"
+                  },
+                  "bonus": 3,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Bite",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "bite"
+                  },
+                  "bonus": 3,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "threshold"
+                        },
+                        5
+                      ]
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Tentacle",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "slam"
+                  },
+                  "bonus": 3,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "threshold"
+                        },
+                        3
+                      ],
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "poison"
+                        },
+                        {
+                          "_type": "hash",
+                          "_pairs": [
+                            [
+                              {
+                                "_type": "symbol",
+                                "_value": "potency"
+                              },
+                              5
+                            ],
+                            [
+                              {
+                                "_type": "symbol",
+                                "_value": "effect"
+                              },
+                              {
+                                "_type": "hash",
+                                "_pairs": [
+                                  [
+                                    {
+                                      "_type": "symbol",
+                                      "_value": "severity"
+                                    },
+                                    {
+                                      "_type": "symbol",
+                                      "_value": "minor"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "_type": "symbol",
+                                      "_value": "attr"
+                                    },
+                                    {
+                                      "_type": "symbol",
+                                      "_value": "int"
+                                    }
+                                  ]
+                                ]
+                              }
+                            ]
+                          ]
+                        }
+                      ]
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+
+            ]
+          }
+        },
+        "health_notes": {
+          "_type": "hash",
+          "_pairs": [
+            [
+              {
+                "_type": "symbol",
+                "_value": "maximum"
+              },
+              126
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "bleed"
+              },
+              0
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "damage_list"
+              },
+              [
+
+              ]
+            ]
+          ]
+        },
+        "combat_pool": {
+          "_type": "hash",
+          "_pairs": [
+            [
+              {
+                "_type": "symbol",
+                "_value": "remaining"
+              },
+              37
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "maximum"
+              },
+              37
+            ]
+          ]
+        },
+        "main_actions": 2
+      }
+    },
+    {
+      "_class": "CharacterStatus",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "NPC Pirate 1",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "M"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "NPC"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 15,
+                "dex": 14,
+                "con": 15,
+                "int": 10,
+                "wis": 12,
+                "cha": 8
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "rogue"
+                },
+                "level": 1,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "intimidate"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "profession_sailor"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "athletics"
+                      },
+                      3
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Leather",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "light"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Rapier",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "rapier"
+                  },
+                  "bonus": 0,
+                  "additional_properties": true,
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Shortbow",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "shortbow"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Punch",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "punch"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+
+            ]
+          }
+        },
+        "health_notes": {
+          "_type": "hash",
+          "_pairs": [
+            [
+              {
+                "_type": "symbol",
+                "_value": "maximum"
+              },
+              15
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "bleed"
+              },
+              0
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "damage_list"
+              },
+              [
+
+              ]
+            ]
+          ]
+        },
+        "combat_pool": {
+          "_type": "hash",
+          "_pairs": [
+            [
+              {
+                "_type": "symbol",
+                "_value": "remaining"
+              },
+              11
+            ],
+            [
+              {
+                "_type": "symbol",
+                "_value": "maximum"
+              },
+              11
+            ]
+          ]
+        },
+        "main_actions": 2
+      }
+    }
+  ]
+}

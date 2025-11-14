@@ -11,6 +11,21 @@ WEAPON_STR_MOD = {heavy: 0.5, medium_2h: 0.5, medium_1h: 0.25, light: 0.25, rang
 WEAPON_BASE_MOD = {heavy: 2, medium_2h: 0, medium_1h: 0, light: -2, ranged: 0}
 SPEED_MOD = {pierce: 0, slashing: 1, bludgeoning: 2, light: 0, medium_1h: 1, medium_2h: 1, heavy: 2} 
 
+class ConjuredEquipment < Equipment
+  attr_reader :magic_properties, :caster
+
+	def initialize(name, category, subcategory, bonus, magic_properties = {}, additional_properties = {}, equipped = false)
+  	@caster = nil
+    @magic_properties = magic_properties
+    super(name, category, subcategory, bonus, additional_properties, equipped)
+	end
+
+  def set_caster(caster); @caster = caster; end
+  def block_allies?; return @magic_properties[:block_allies] == true; end
+  def needs_dice?; return @magic_properties[:needs_dice] == true; end
+  def skill; return @magic_properties[:skill]; end
+end
+
 class Equipment < Serializable
   attr_reader :name, :category, :subcategory, :bonus, :additional_properties, :equipped
 

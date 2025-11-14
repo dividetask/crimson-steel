@@ -102,7 +102,7 @@ class Menu
   attr_reader :display_obj, :data, :option_hash
 
 	def initialize(data); @display_obj, @option_hash = nil; @data = data; end
-  def main_menu; menu [:change_monsters, :roll_initiative, :combat]; end
+  def main_menu; combat; menu [:change_monsters, :roll_initiative, :combat]; end
   #def main_menu; menu [:change_monsters, :roll_initiative, :combat]; end
   ##def main_menu; menu [:change_monsters, :view_characters, :roll_initiative, :view_combat]; end
 
@@ -251,7 +251,7 @@ end
 
 
 module MenuCombat
-	def combat; attack; menu([:attack, :cast_spell, :move, :bonus_action, :end_turn, :skip_round], false); end
+	def combat; display_combat_status; attack; menu([:attack, :cast_spell, :move, :bonus_action, :end_turn, :skip_round], false); end
   def skip_round; handle_afflictions; @data.status_list.each { |status| status.new_initiative }; display_combat_status; end
   def end_turn; @active_char.end_turn; display_combat_status; end
   def move; @active_char.take_action(MOVE_ACTION); end
@@ -286,9 +286,27 @@ module MenuCombat
     print "\n\n#{@active_char.name}'s turn\n\n"; 
   end
 
+  def choose_conjured_defense
+    conjured_weapons = []
+  	@data.status_list.each do |status|
+    	status.items.each do |item|
+      	if item.class == ConjuredEquipment and item.block_allies?
+          item.set_caster(status)
+          conjured_weapons << item
+        end
+      end
+    end
+  	weapon_options = ('a'..'z').to_a.zip([:none] + conjured_weapons).to_h.compact
+		@option_hash = weapon_options.map { |letter, weapon| [letter, (weapon.class == Symbol ? weapon.to_s : weapon.name)] }.to_h
+  	weapon_key = get_menu_selection "(Allies) Choose conjured defense"
+		return weapon_options[weapon_key] if weapon_options[weapon_key]
+  end
+
   def choose_def_weapon target_char
-  	weapon_options = ('a'..'z').to_a.zip(target_char.weapons).to_h.compact
-		@option_hash = weapon_options.map { |letter, weapon| [letter, weapon.name] }.to_h
+		action_options = [:flatfooted, :dodge]
+    action_options << :uncanny_dodge if target_char.special_abilities.any? { |sa| sa.name == "Uncanny Dodge" }
+  	weapon_options = ('a'..'z').to_a.zip(action_options + target_char.weapons).to_h.compact
+		@option_hash = weapon_options.map { |letter, weapon| [letter, (weapon.class == Symbol ? weapon.to_s : weapon.name)] }.to_h
   	weapon_key = get_menu_selection "(Defender) Choose weapon"
 		return weapon_options[weapon_key] if weapon_options[weapon_key]
 	end
@@ -319,8 +337,10 @@ module MenuCombat
 		tn = @active_char.attack_tn(weapon, (-1 * def_bonus))
 
     base_damage = weapon.get_base_weapon_damage(@active_char) + attack_bonus - target_char.get_dr(@active_char)
-    base_damage_string = "#{'+' if base_damage >= 0}#{base_damage}"
+    success_mod = @active_char.attack_result_mod(weapon, (-1 * def_bonus))
+    base_damage_string = "#{'+' if base_damage + success_mod >= 0}#{base_damage + success_mod}"
     attack_success = get_number("(Attacker)How many successes (TN #{tn}), (dmg success#{base_damage_string})", (-10..(2*attack_dice)).to_a) 
+    attack_success += success_mod
     @active_char.spend_dice(attack_dice + weapon.speed)
 
     if attack_success - dodge_successes < 2
@@ -362,22 +382,52 @@ module MenuCombat
   end
 
   def defend(target_char, attack_bonus)
+    conjured_defense = choose_conjured_defense
+
+    if conjured_defense.class == ConjuredEquipment
+      conjured_char = conjured_defense.caster
+      conjured_base_bonus = conjured_char.attack_bonus(conjured_defense)
+      conjured_bonus = conjured_base_bonus - attack_bonus
+      max_def_dice = conjured_char.magic_dice(conjured_defense.skill)
+      def_bonus_string = "#{'+' if conjured_bonus >= 0}#{conjured_bonus}"
+      def_request_string = "Conjured Defense Bonus #{def_bonus_string} (#{conjured_base_bonus}-#{attack_bonus}), How many defense dice (2-#{max_def_dice})"
+      conjured_dice = get_number(def_request_string, (2..max_def_dice).to_a)
+
+      tn = conjured_char.attack_tn(conjured_defense, (-1 * attack_bonus))
+      conjured_successes = [0, get_number("(Allies)How many successes (TN #{tn})", (-10..(2*conjured_dice)).to_a) ].max
+      conjured_char.spend_dice(conjured_dice)
+    else
+      conjured_bonus, conjured_successes = 0
+    end
+
   	weapon = choose_def_weapon target_char
-    def_base_bonus = target_char.attack_bonus(weapon)
-    def_bonus = def_base_bonus - attack_bonus
+    def_base_bonus = {dodge: target_char.attr_bonus(:dex),flatfooted: -2, unaware: -4, uncanny_dodge: 0}[weapon].to_i
+    return [0, def_base_bonus] if [:flatfooted, :unaware, :uncanny_dodge].include? weapon
+
+    def_base_bonus = target_char.attack_bonus(weapon) unless weapon.class == Symbol
+    def_bonus = def_base_bonus
+    def_bonus = def_bonus - attack_bonus unless weapon == :dodge
     def_bonus_string = "#{'+' if def_bonus >= 0}#{def_bonus}"
+    max_def_dice = (weapon == :dodge) ? target_char.attr_dice(:dex) : target_char.attack_dice
 
-		dodge_request_string = "Defense Bonus #{def_bonus_string} (#{def_base_bonus}-#{attack_bonus}), How many defense dice (2-#{target_char.attack_dice})"
-    dodge_dice = get_number(dodge_request_string, (0..target_char.attack_dice).to_a)
-    target_char.spend_dice(dodge_dice)
+		def_request_string = "Defense Bonus #{def_bonus_string} (#{def_base_bonus}-#{attack_bonus}), How many defense dice (2-#{max_def_dice})"
+    def_dice = get_number(def_request_string, (0..max_def_dice).to_a)
+    def_weapon_speed = (weapon.class == Symbol) ? 0 : weapon.speed
+    target_char.spend_dice(def_dice + def_weapon_speed)
 
-		tn = target_char.attack_tn(weapon, (-1 * attack_bonus))
-    dodge_result_mod = target_char.attack_result_mod(weapon, attack_bonus)
+    if weapon.class != Symbol
+      tn = target_char.attack_tn(weapon, (-1 * attack_bonus))
+      def_result_mod = target_char.attack_result_mod(weapon, (-1 * attack_bonus))
+    else #I am assuming this is dodge
+      tn = target_char.attr_tn(:dex)
+      def_result_mod = target_char.attr_result_mod(:dex)
+    end
     #dodge_result_mod_string = "#{'+' if dodge_result_mod >= 0}#{dodge_result_mod}"
     #dodge_successes = get_number("(Defender)How many successes (TN #{tn}) (#{dodge_result_mod_string})", (-10..(2*dodge_dice)).to_a) 
-    dodge_successes = get_number("(Defender)How many successes (TN #{tn})", (-10..(2*dodge_dice)).to_a) 
+    def_successes = get_number("(Defender)How many successes (TN #{tn})", (-10..(2*def_dice)).to_a) 
 
-    return (dodge_successes + dodge_result_mod), def_base_bonus
+    def_base_bonus = [def_base_bonus, conjured_base_bonus].max if conjured_defense.class == ConjuredEquipment
+    return (def_successes + def_result_mod + conjured_successes), def_base_bonus
   end
 
   def cast_spell; end

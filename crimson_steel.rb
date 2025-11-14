@@ -11,7 +11,7 @@ require_relative 'display.rb'
 #require_relative 'tests.rb'
 require_relative 'reset.rb'
 
-ResetCharacters.overwrite_data
+#ResetCharacters.overwrite_data
 
 data = DataStore.new('campaign')
 #Display.cycle_through_characters(data)

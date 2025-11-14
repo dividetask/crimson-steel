@@ -180,6 +180,11 @@ class Identity < Serializable
 	def initialize(name, gender, role); @name, @gender, @role = name, gender, role; end
 end
 
+class SpecialAbilities < Serializable
+  attr_reader :name
+	def initialize(name); @name = name; end
+end
+
 class CharacterSheet < Serializable
   include SkillMath
   include AttrMath
@@ -188,16 +193,16 @@ class CharacterSheet < Serializable
 
 	include CharMath
   include CharTools
-  attr_reader :id, :scores, :prog, :items
+  attr_reader :id, :scores, :prog, :items, :special_abilities
 
-  def initialize(id, scores, prog, items); @id, @scores, @prog, @items = id, scores, prog, items; end
+  def initialize(id, scores, prog, items, special_abilities = []); @id, @scores, @prog, @items, @special_abilities = id, scores, prog, items, special_abilities; end
   def [](attribute); send(attribute); end
 
   def method_missing(method, *args, &block)
-    [@id, @scores, @prog].each { |obj| return obj.send(method, *args, &block) if obj.respond_to?(method) }; super
+    [@id, @scores, @prog, @special_abilities].each { |obj| return obj.send(method, *args, &block) if obj.respond_to?(method) }; super
   end
 
   def respond_to_missing?(method_name, include_private = false)
-    [@id, @scores, @prog].any? { |obj| obj.respond_to?(method_name, include_private) } || super
+    [@id, @scores, @prog, @special_abilities].any? { |obj| obj.respond_to?(method_name, include_private) } || super
   end
 end

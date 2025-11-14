@@ -118,7 +118,11 @@ module ResetCharacters
 		equipment << Equipment.new("Last Laugh Axe", :weapon, :battleaxe, 1, {bonus_damage: {emotional: 4}})
 		equipment << Equipment.new('Longbow', :weapon, :longbow, 0)
 		equipment << Equipment.new('Punch', :weapon, :punch, 0)
-		party << CharacterSheet.new(id, stats, progression, equipment)
+    equipment << ConjuredEquipment.new('Shield of Faith', :shield, :light_shield, 1, {needs_dice: true, block_allies: true, skill: :heal})
+    equipment << ConjuredEquipment.new('Spirtual Weapon', :weapon, :rapier, 1, {needs_dice: false, skill: :heal})
+    special_abilities = [SpecialAbilities.new('Cleave')]
+
+		party << CharacterSheet.new(id, stats, progression, equipment, special_abilities)
 
 		id = Identity.new("Olga", Gender.f, :PC) 
   														#str, dex, 	con, 	int, 	wis, 	cha
@@ -128,10 +132,15 @@ module ResetCharacters
 
 		progression = Progression.new(:barbarian,	4, {bab: RANKS_MAX}.merge(skill_list))
 		equipment = [Equipment.new("Leather", :armor, :light, 0)]
-		equipment << Equipment.new("Fey Great Axe (Gary)", :weapon, :greataxe, 1)
+		equipment << Equipment.new("Fey Great Axe (Gary)", :weapon, :greataxe, 2)
 		equipment << Equipment.new("Javelin", :weapon, :javelin, 0)
 		equipment << Equipment.new("Punch", :weapon, :punch, 0)
-		party << CharacterSheet.new(id, stats, progression, equipment)
+    equipment << ConjuredEquipment.new('Ring of Parry', :weapon, :greataxe, 2, {needs_dice: false, parry: true, skill: :bab})
+    special_abilities = [SpecialAbilities.new('Primal Tenacity')]
+    special_abilities << SpecialAbilities.new('Cleave')
+    special_abilities << SpecialAbilities.new('Uncanny Dodge')
+
+		party << CharacterSheet.new(id, stats, progression, equipment, special_abilities)
 
 		id = Identity.new("Lysander", Gender.m, :PC) 
   														#str, dex, 	con, 	int, 	wis, 	cha
@@ -142,7 +151,9 @@ module ResetCharacters
 		equipment << Equipment.new("Short Sword", :weapon, :short_sword, 0)
 		equipment << Equipment.new("Wyd Bow of Mirth", :weapon, :longbow, 1, {bonus_damage: {emotional: 4}})
 		equipment << Equipment.new("Punch", :weapon, :punch, 0)
-		party << CharacterSheet.new(id, stats, progression, equipment)
+    special_abilities = [SpecialAbilities.new('Danger Sense')]
+    special_abilities << SpecialAbilities.new('Sneak Attack')
+		party << CharacterSheet.new(id, stats, progression, equipment, special_abilities)
 
 		party
 	end
