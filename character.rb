@@ -137,7 +137,7 @@ class CharacterStatus < Serializable
 	def reset_combat_dice; @combat_pool[:remaining] = @combat_pool[:maximum]; end
 	def get_remaining_dice; @combat_pool[:remaining]; end
 	def spend_dice(dice_count); @combat_pool[:remaining] -= dice_count; end
-	def get_remaining_hp; return @health_notes[:maximum] + @health_notes[:damage_list].sum(&:damage_amount); end
+	def get_remaining_hp; return @health_notes[:maximum] - @health_notes[:damage_list].sum(&:damage_amount); end
 	def turn_complete?; @main_actions == -1; end
 	def new_initiative; @main_actions = 2; end
 	def end_turn; @main_actions = -1; end
