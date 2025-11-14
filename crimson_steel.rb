@@ -16,14 +16,15 @@ class DebugStuff
     ResetCharacters.overwrite_data unless reset_database
     @data = DataStore.new('campaign')
     @menu = Menu.new(@data)
-    @active_char = @data.status_list.first
-    @target_char = @data.status_list[-2]
+    @kraken = @data.status_list[-2]
+    @stumpy = @data.status_list.first
   end
 
   def add_damage
-    @target_char.add_damage(Damage.new(:physical, MODERATE_DAMAGE, 10))
-    @target_char.update_bleed(10)
-    @target_char.add_damage(Damage.new(:bonus, MODERATE_DAMAGE, 5))
+    @stumpy.add_damage(Damage.new(:physical, MINOR_DAMAGE, 4))
+    @stumpy.add_damage(Damage.new(:physical, MODERATE_DAMAGE, 3))
+    @stumpy.add_damage(Damage.new(:physical, MAJOR_DAMAGE, 2))
+    @stumpy.update_bleed(10)
     @menu.display_combat_status
   end
 
@@ -36,7 +37,7 @@ class DebugStuff
 
   def print_info
     $debug_now = true
-  	p @target_char.get_remaining_hp
+  	p @kraken.get_remaining_hp
     Tools.press_any_key
   end
 end

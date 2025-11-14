@@ -263,15 +263,16 @@ module MenuCombat
     @active_char = nil
 
     lines = []
-    lines << [ "Init", "Name", "HP", "Afflictions", "Combat Dice"]
+    lines << [ "Init", "Name", "HP", "Combat Dice", "Afflictions", "Damage"]
     @data.initiative.each do |init|
       status_info = [init.to_s]
       @data.status_list.select { |status| status.character == init.character }.each do |status|
         @active_char = status if @active_char == nil and status.turn_complete? == false
         status_info << status.name
         status_info << "#{status.get_remaining_hp}/#{status.max_hp}"
-        status_info << "bleed: #{status.health_notes[:bleed]}"
         status_info << "#{status.combat_pool[:remaining]}/#{status.combat_pool[:maximum]}"
+        status_info << "bleed: #{status.health_notes[:bleed]}"
+        status_info << "minor: #{status.get_damage(MINOR_DAMAGE)}, major: #{status.get_damage(MAJOR_DAMAGE)}"
         lines << status_info.dup
         status_info = ['']
       end

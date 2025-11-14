@@ -134,10 +134,12 @@ class CharacterStatus < Serializable
 
 	def update_bleed(bleed_mod); @health_notes[:bleed] = [0, @health_notes[:bleed] += bleed_mod].max; end
   def bleed; @health_notes[:bleed]; end
-	def reset_combat_dice; @combat_pool[:remaining] = @combat_pool[:maximum]; end
+	def reset_combat_dice; @combat_pool[:remaining], @combat_pool[:maximum] = @character.max_combat_pool - (2 * get_damage(MAJOR_DAMAGE));end
 	def get_remaining_dice; @combat_pool[:remaining]; end
 	def spend_dice(dice_count); @combat_pool[:remaining] -= dice_count; end
 	def get_remaining_hp; return @health_notes[:maximum] - @health_notes[:damage_list].sum(&:damage_amount); end
+  def get_damage(severity = nil); return @health_notes[:damage_list].select { |dmg| [nil, dmg.damage_severity].include? severity}.sum(&:damage_amount); end
+
 	def turn_complete?; @main_actions == -1; end
 	def new_initiative; @main_actions = 2; end
 	def end_turn; @main_actions = -1; end
@@ -160,7 +162,7 @@ class CharacterStatus < Serializable
 		@main_actions = 2
 	end
 
-	def add_damage(damage); @health_notes[:damage_list] << damage; end
+	def add_damage(damage); @health_notes[:damage_list] << damage; @combat_pool[:remaining] -= (2 * damage.damage_amount) if damage.damage_severity == MAJOR_DAMAGE; end
   def method_missing(method, *args, &block); return @character.send(method, *args, &block) if @character.respond_to?(method); super; end
   def respond_to_missing?(method_name, include_private = false); @character.respond_to?(method_name, include_private) || super; end
 end
