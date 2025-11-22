@@ -15,9 +15,24 @@ module Tools; end
 
 class Display; end
 class Menu; end
+module MenuManual; end
 module MenuSelectMonsters; end
+module MenuCommonFunctions; end
 module MenuInitiative; end
 module MenuCombat; end
+
+
+class EmptyAction; end
+class SkillAction < EmptyAction; end
+class WeaponAction < EmptyAction; end
+class ConjuredAction < WeaponAction; end
+
+
+class CombatAction; end
+class ConjuredAction < WeaponAction; end
+class WeaponAction < EmptyAction; end
+
+class Attack; end
 
 class BaseRoll < Serializable; end
 class Roll < BaseRoll; end

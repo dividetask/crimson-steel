@@ -24,7 +24,7 @@ module CharTools
 end
 
 module CharMath
-	def max_combat_pool()
+	def max_combat_pool
     dex_mod = half_mod(:dex)
     combat_pool_mod = (self.name == "Kraken") ? 2 : 1
     
@@ -36,14 +36,22 @@ module CharMath
     return dex_mod + combat_pool_mod * [1 + (self.level * 0.5).to_i, 15].min if self.density == 5
   end
 
-	def max_hp()
-  	density = density()
-  	return (self.con / 2) if density == 0
-    return (self.con * density * 2) if self.role == :beast
-    return (self.con * density)
+	def max_hp
+  	return (self.con / 2) if density() == 0
+    return (self.con * density() * 2) if self.role == :beast
+    return (self.con * density())
 	end
 
-  def density()
+	def max_mana
+		mana_per_level = {bard: 2, rogue: 2, cleric: 4}[self.klass]
+		mana_per_level = 1 unless mana_per_level
+
+  	return (mana_per_level * self.level) + (self.int / 4) if density() == 0
+  	return (mana_per_level * self.level) + (self.int / 2) if density() == 1
+    return (mana_per_level * self.level) + (self.int * (density() -1))
+	end
+
+  def density
   	return 0 if self.level <= 0
   	return 1 if self.level < 4
   	return 2 if self.level < 8
@@ -54,6 +62,7 @@ module CharMath
 	def get_resiliance; density + @items.map { |item| item.category == :armor ? item.bonus : 0 }.sum + (CLASS_RESILIANCE[klass] || [])[level].to_i; end
 	def get_disparity_dr; d = density; return d == 0 ? 0 : (d*5)-3;end
 	def get_dr(attacker); @items.map { |item| item.get_dr }.sum + [0, get_disparity_dr - attacker.get_disparity_dr].max; end
+	def get_base_dr; @items.map { |item| item.get_dr }.sum + [0, get_disparity_dr].max; end
 end
 
 module AttrMath
@@ -88,14 +97,14 @@ module SkillMath
   def skill_attr_rank_sum(skill); return half_mod(skill_attr_sym(skill)) + skill_ranks(skill); end
 
 	def skill_dice(skill); return (skill_attr_rank_sum(skill) % 5) + 6; end
-	def skill_bonus(skill); return ((skill_attr_rank_sum(skill) / 5) - 1); end
+	def skill_bonus(skill, tn_mod = 0); return ((skill_attr_rank_sum(skill) / 5) - 1) + tn_mod; end
 
-	def skill_result_mod(skill); tn = skill_tn_unbound(skill); return 9 - tn if tn > 9; return 4 - tn if tn < 4; return 0; end
-	def skill_tn(skill); return [4,[9, skill_tn_unbound(attr)].min].max; end
+	def skill_result_mod(skill, tn_mod = 0); tn = skill_tn_unbound(skill, tn_mod); return 9 - tn if tn > 9; return 4 - tn if tn < 4; return 0; end
+	def skill_tn(skill, tn_mod = 0); return [4,[9, skill_tn_unbound(attr, tn_mod)].min].max; end
 	def skill_roll(skill); Check.new(skill_name(skill), self.skill_dice(skill), skill_bonus(skill), {target: skill_tn(attr), result_mod: skill_result_mod(skill)}); end
 
   private
-	def skill_tn_unbound(skill); return (9 - skill_bonus(skill)); end
+	def skill_tn_unbound(skill, tn_mod = 0); return (9 - (skill_bonus(skill) + tn_mod)); end
 end
 
 module AttackMath
@@ -137,8 +146,10 @@ class CharacterStatus < Serializable
 	def reset_combat_dice; @combat_pool[:remaining], @combat_pool[:maximum] = @character.max_combat_pool - (2 * get_damage(MAJOR_DAMAGE));end
 	def get_remaining_dice; @combat_pool[:remaining]; end
 	def spend_dice(dice_count); @combat_pool[:remaining] -= dice_count; end
-	def get_remaining_hp; return @health_notes[:maximum] - @health_notes[:damage_list].sum(&:damage_amount); end
-  def get_damage(severity = nil); return @health_notes[:damage_list].select { |dmg| [nil, dmg.damage_severity].include? severity}.sum(&:damage_amount); end
+	def get_remaining_hp; return @health_notes[:maximum] - @health_notes[:damage_list].sum(&:amount); end
+	def get_remaining_mana; return @character.max_mana - @health_notes[:mana_spent].to_i; end
+	def get_saturation; return @health_notes[:saturation].to_i; end
+  def get_damage(severity = nil); return @health_notes[:damage_list].select { |dmg| [nil, dmg.severity].include? severity}.sum(&:amount); end
 
 	def turn_complete?; @main_actions == -1; end
 	def new_initiative; @main_actions = 2; end
@@ -162,7 +173,10 @@ class CharacterStatus < Serializable
 		@main_actions = 2
 	end
 
-	def add_damage(damage); @health_notes[:damage_list] << damage; @combat_pool[:remaining] -= (2 * damage.damage_amount) if damage.damage_severity == MAJOR_DAMAGE; end
+	def add_damage(damage); @health_notes[:damage_list] << damage; @combat_pool[:remaining] -= (2 * damage.amount) if damage.severity == MAJOR_DAMAGE; end
+	def cure_damage(amount, sev); rem = amount; @health_notes[:damage_list].each { |dmg| rem = dmg.cure_damage(rem,sev)};end
+	def spend_mana(mana); @health_notes[:mana_spent] = @health_notes[:mana_spent].to_i + mana; end
+	def add_mana_saturation(saturation); @health_notes[:saturation] = @health_notes[:saturation].to_i + saturation; end
   def method_missing(method, *args, &block); return @character.send(method, *args, &block) if @character.respond_to?(method); super; end
   def respond_to_missing?(method_name, include_private = false); @character.respond_to?(method_name, include_private) || super; end
 end

@@ -414,7 +414,7 @@
           {
             "_class": "Equipment",
             "_data": {
-              "name": "Leather",
+              "name": "+1 Leather",
               "category": {
                 "_type": "symbol",
                 "_value": "armor"
@@ -423,7 +423,7 @@
                 "_type": "symbol",
                 "_value": "light"
               },
-              "bonus": 0,
+              "bonus": 1,
               "additional_properties": {
                 "_type": "hash",
                 "_pairs": [
@@ -679,7 +679,7 @@
           {
             "_class": "Equipment",
             "_data": {
-              "name": "Chain Shirt",
+              "name": "+1 Leather Armor",
               "category": {
                 "_type": "symbol",
                 "_value": "armor"
@@ -688,7 +688,7 @@
                 "_type": "symbol",
                 "_value": "light"
               },
-              "bonus": 0,
+              "bonus": 1,
               "additional_properties": {
                 "_type": "hash",
                 "_pairs": [
@@ -1477,7 +1477,7 @@
               {
                 "_class": "Equipment",
                 "_data": {
-                  "name": "Chain Shirt",
+                  "name": "+1 Leather Armor",
                   "category": {
                     "_type": "symbol",
                     "_value": "armor"
@@ -1486,7 +1486,7 @@
                     "_type": "symbol",
                     "_value": "light"
                   },
-                  "bonus": 0,
+                  "bonus": 1,
                   "additional_properties": {
                     "_type": "hash",
                     "_pairs": [
@@ -1597,12 +1597,12 @@
           }
         },
         "dice_rolls": [
-          4,
-          8,
           10,
-          7,
+          1,
           9,
-          2,
+          1,
+          7,
+          3,
           2
         ]
       }
@@ -1694,7 +1694,7 @@
               {
                 "_class": "Equipment",
                 "_data": {
-                  "name": "Leather",
+                  "name": "+1 Leather",
                   "category": {
                     "_type": "symbol",
                     "_value": "armor"
@@ -1703,7 +1703,7 @@
                     "_type": "symbol",
                     "_value": "light"
                   },
-                  "bonus": 0,
+                  "bonus": 1,
                   "additional_properties": {
                     "_type": "hash",
                     "_pairs": [
@@ -1856,11 +1856,400 @@
         },
         "dice_rolls": [
           9,
-          2,
-          7,
           4,
-          4,
+          1,
+          6,
+          1,
           10
+        ]
+      }
+    },
+    {
+      "_class": "InitiativeRoll",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "Kraken",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "?"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "beast"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 28,
+                "dex": 15,
+                "con": 21,
+                "int": 5,
+                "wis": 12,
+                "cha": 6
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "beast"
+                },
+                "level": 10,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      1
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "athletics"
+                      },
+                      1
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "perception"
+                      },
+                      1
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Natural Armor",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "natural"
+                  },
+                  "bonus": 3,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Bite",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "bite"
+                  },
+                  "bonus": 3,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "threshold"
+                        },
+                        5
+                      ]
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Tentacle",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "slam"
+                  },
+                  "bonus": 3,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "threshold"
+                        },
+                        3
+                      ],
+                      [
+                        {
+                          "_type": "symbol",
+                          "_value": "poison"
+                        },
+                        {
+                          "_type": "hash",
+                          "_pairs": [
+                            [
+                              {
+                                "_type": "symbol",
+                                "_value": "potency"
+                              },
+                              5
+                            ],
+                            [
+                              {
+                                "_type": "symbol",
+                                "_value": "effect"
+                              },
+                              {
+                                "_type": "hash",
+                                "_pairs": [
+                                  [
+                                    {
+                                      "_type": "symbol",
+                                      "_value": "severity"
+                                    },
+                                    {
+                                      "_type": "symbol",
+                                      "_value": "minor"
+                                    }
+                                  ],
+                                  [
+                                    {
+                                      "_type": "symbol",
+                                      "_value": "attr"
+                                    },
+                                    {
+                                      "_type": "symbol",
+                                      "_value": "int"
+                                    }
+                                  ]
+                                ]
+                              }
+                            ]
+                          ]
+                        }
+                      ]
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+
+            ]
+          }
+        },
+        "dice_rolls": [
+          2,
+          9,
+          6,
+          10,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "_class": "InitiativeRoll",
+      "_data": {
+        "character": {
+          "_class": "CharacterSheet",
+          "_data": {
+            "id": {
+              "_class": "Identity",
+              "_data": {
+                "name": "NPC Pirate 1",
+                "gender": {
+                  "_class": "Gender",
+                  "_data": {
+                    "gender": "M"
+                  }
+                },
+                "role": {
+                  "_type": "symbol",
+                  "_value": "NPC"
+                }
+              }
+            },
+            "scores": {
+              "_class": "AbilityScores",
+              "_data": {
+                "str": 15,
+                "dex": 14,
+                "con": 15,
+                "int": 10,
+                "wis": 12,
+                "cha": 8
+              }
+            },
+            "prog": {
+              "_class": "Progression",
+              "_data": {
+                "klass": {
+                  "_type": "symbol",
+                  "_value": "rogue"
+                },
+                "level": 1,
+                "skills": {
+                  "_type": "hash",
+                  "_pairs": [
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "bab"
+                      },
+                      2
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "intimidate"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "profession_sailor"
+                      },
+                      3
+                    ],
+                    [
+                      {
+                        "_type": "symbol",
+                        "_value": "athletics"
+                      },
+                      3
+                    ]
+                  ]
+                }
+              }
+            },
+            "items": [
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Leather",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "armor"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "light"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Rapier",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "rapier"
+                  },
+                  "bonus": 0,
+                  "additional_properties": true,
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Shortbow",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "shortbow"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              },
+              {
+                "_class": "Equipment",
+                "_data": {
+                  "name": "Punch",
+                  "category": {
+                    "_type": "symbol",
+                    "_value": "weapon"
+                  },
+                  "subcategory": {
+                    "_type": "symbol",
+                    "_value": "punch"
+                  },
+                  "bonus": 0,
+                  "additional_properties": {
+                    "_type": "hash",
+                    "_pairs": [
+
+                    ]
+                  },
+                  "equipped": false
+                }
+              }
+            ],
+            "special_abilities": [
+
+            ]
+          }
+        },
+        "dice_rolls": [
+          2,
+          1,
+          8,
+          10,
+          4,
+          1
         ]
       }
     },
@@ -2074,13 +2463,13 @@
           }
         },
         "dice_rolls": [
-          8,
           10,
-          2,
+          1,
           4,
-          4,
+          7,
           5,
-          3
+          5,
+          5
         ]
       }
     },
@@ -2418,404 +2807,15 @@
           }
         },
         "dice_rolls": [
-          2,
+          8,
+          6,
           3,
-          9,
           8,
-          5,
-          8,
-          9,
-          9,
-          4
-        ]
-      }
-    },
-    {
-      "_class": "InitiativeRoll",
-      "_data": {
-        "character": {
-          "_class": "CharacterSheet",
-          "_data": {
-            "id": {
-              "_class": "Identity",
-              "_data": {
-                "name": "Kraken",
-                "gender": {
-                  "_class": "Gender",
-                  "_data": {
-                    "gender": "?"
-                  }
-                },
-                "role": {
-                  "_type": "symbol",
-                  "_value": "beast"
-                }
-              }
-            },
-            "scores": {
-              "_class": "AbilityScores",
-              "_data": {
-                "str": 28,
-                "dex": 15,
-                "con": 21,
-                "int": 5,
-                "wis": 12,
-                "cha": 6
-              }
-            },
-            "prog": {
-              "_class": "Progression",
-              "_data": {
-                "klass": {
-                  "_type": "symbol",
-                  "_value": "beast"
-                },
-                "level": 10,
-                "skills": {
-                  "_type": "hash",
-                  "_pairs": [
-                    [
-                      {
-                        "_type": "symbol",
-                        "_value": "bab"
-                      },
-                      1
-                    ],
-                    [
-                      {
-                        "_type": "symbol",
-                        "_value": "athletics"
-                      },
-                      1
-                    ],
-                    [
-                      {
-                        "_type": "symbol",
-                        "_value": "perception"
-                      },
-                      1
-                    ]
-                  ]
-                }
-              }
-            },
-            "items": [
-              {
-                "_class": "Equipment",
-                "_data": {
-                  "name": "Natural Armor",
-                  "category": {
-                    "_type": "symbol",
-                    "_value": "armor"
-                  },
-                  "subcategory": {
-                    "_type": "symbol",
-                    "_value": "natural"
-                  },
-                  "bonus": 3,
-                  "additional_properties": {
-                    "_type": "hash",
-                    "_pairs": [
-
-                    ]
-                  },
-                  "equipped": false
-                }
-              },
-              {
-                "_class": "Equipment",
-                "_data": {
-                  "name": "Bite",
-                  "category": {
-                    "_type": "symbol",
-                    "_value": "weapon"
-                  },
-                  "subcategory": {
-                    "_type": "symbol",
-                    "_value": "bite"
-                  },
-                  "bonus": 3,
-                  "additional_properties": {
-                    "_type": "hash",
-                    "_pairs": [
-                      [
-                        {
-                          "_type": "symbol",
-                          "_value": "threshold"
-                        },
-                        5
-                      ]
-                    ]
-                  },
-                  "equipped": false
-                }
-              },
-              {
-                "_class": "Equipment",
-                "_data": {
-                  "name": "Tentacle",
-                  "category": {
-                    "_type": "symbol",
-                    "_value": "weapon"
-                  },
-                  "subcategory": {
-                    "_type": "symbol",
-                    "_value": "slam"
-                  },
-                  "bonus": 3,
-                  "additional_properties": {
-                    "_type": "hash",
-                    "_pairs": [
-                      [
-                        {
-                          "_type": "symbol",
-                          "_value": "threshold"
-                        },
-                        3
-                      ],
-                      [
-                        {
-                          "_type": "symbol",
-                          "_value": "poison"
-                        },
-                        {
-                          "_type": "hash",
-                          "_pairs": [
-                            [
-                              {
-                                "_type": "symbol",
-                                "_value": "potency"
-                              },
-                              5
-                            ],
-                            [
-                              {
-                                "_type": "symbol",
-                                "_value": "effect"
-                              },
-                              {
-                                "_type": "hash",
-                                "_pairs": [
-                                  [
-                                    {
-                                      "_type": "symbol",
-                                      "_value": "severity"
-                                    },
-                                    {
-                                      "_type": "symbol",
-                                      "_value": "minor"
-                                    }
-                                  ],
-                                  [
-                                    {
-                                      "_type": "symbol",
-                                      "_value": "attr"
-                                    },
-                                    {
-                                      "_type": "symbol",
-                                      "_value": "int"
-                                    }
-                                  ]
-                                ]
-                              }
-                            ]
-                          ]
-                        }
-                      ]
-                    ]
-                  },
-                  "equipped": false
-                }
-              }
-            ],
-            "special_abilities": [
-
-            ]
-          }
-        },
-        "dice_rolls": [
-          8,
-          5,
-          5,
+          6,
+          7,
           6,
           5,
           9
-        ]
-      }
-    },
-    {
-      "_class": "InitiativeRoll",
-      "_data": {
-        "character": {
-          "_class": "CharacterSheet",
-          "_data": {
-            "id": {
-              "_class": "Identity",
-              "_data": {
-                "name": "NPC Pirate 1",
-                "gender": {
-                  "_class": "Gender",
-                  "_data": {
-                    "gender": "M"
-                  }
-                },
-                "role": {
-                  "_type": "symbol",
-                  "_value": "NPC"
-                }
-              }
-            },
-            "scores": {
-              "_class": "AbilityScores",
-              "_data": {
-                "str": 15,
-                "dex": 14,
-                "con": 15,
-                "int": 10,
-                "wis": 12,
-                "cha": 8
-              }
-            },
-            "prog": {
-              "_class": "Progression",
-              "_data": {
-                "klass": {
-                  "_type": "symbol",
-                  "_value": "rogue"
-                },
-                "level": 1,
-                "skills": {
-                  "_type": "hash",
-                  "_pairs": [
-                    [
-                      {
-                        "_type": "symbol",
-                        "_value": "bab"
-                      },
-                      2
-                    ],
-                    [
-                      {
-                        "_type": "symbol",
-                        "_value": "intimidate"
-                      },
-                      3
-                    ],
-                    [
-                      {
-                        "_type": "symbol",
-                        "_value": "profession_sailor"
-                      },
-                      3
-                    ],
-                    [
-                      {
-                        "_type": "symbol",
-                        "_value": "athletics"
-                      },
-                      3
-                    ]
-                  ]
-                }
-              }
-            },
-            "items": [
-              {
-                "_class": "Equipment",
-                "_data": {
-                  "name": "Leather",
-                  "category": {
-                    "_type": "symbol",
-                    "_value": "armor"
-                  },
-                  "subcategory": {
-                    "_type": "symbol",
-                    "_value": "light"
-                  },
-                  "bonus": 0,
-                  "additional_properties": {
-                    "_type": "hash",
-                    "_pairs": [
-
-                    ]
-                  },
-                  "equipped": false
-                }
-              },
-              {
-                "_class": "Equipment",
-                "_data": {
-                  "name": "Rapier",
-                  "category": {
-                    "_type": "symbol",
-                    "_value": "weapon"
-                  },
-                  "subcategory": {
-                    "_type": "symbol",
-                    "_value": "rapier"
-                  },
-                  "bonus": 0,
-                  "additional_properties": true,
-                  "equipped": false
-                }
-              },
-              {
-                "_class": "Equipment",
-                "_data": {
-                  "name": "Shortbow",
-                  "category": {
-                    "_type": "symbol",
-                    "_value": "weapon"
-                  },
-                  "subcategory": {
-                    "_type": "symbol",
-                    "_value": "shortbow"
-                  },
-                  "bonus": 0,
-                  "additional_properties": {
-                    "_type": "hash",
-                    "_pairs": [
-
-                    ]
-                  },
-                  "equipped": false
-                }
-              },
-              {
-                "_class": "Equipment",
-                "_data": {
-                  "name": "Punch",
-                  "category": {
-                    "_type": "symbol",
-                    "_value": "weapon"
-                  },
-                  "subcategory": {
-                    "_type": "symbol",
-                    "_value": "punch"
-                  },
-                  "bonus": 0,
-                  "additional_properties": {
-                    "_type": "hash",
-                    "_pairs": [
-
-                    ]
-                  },
-                  "equipped": false
-                }
-              }
-            ],
-            "special_abilities": [
-
-            ]
-          }
-        },
-        "dice_rolls": [
-          6,
-          2,
-          7,
-          7,
-          7,
-          4
         ]
       }
     }
@@ -3291,7 +3291,7 @@
               {
                 "_class": "Equipment",
                 "_data": {
-                  "name": "Leather",
+                  "name": "+1 Leather",
                   "category": {
                     "_type": "symbol",
                     "_value": "armor"
@@ -3300,7 +3300,7 @@
                     "_type": "symbol",
                     "_value": "light"
                   },
-                  "bonus": 0,
+                  "bonus": 1,
                   "additional_properties": {
                     "_type": "hash",
                     "_pairs": [
@@ -3609,7 +3609,7 @@
               {
                 "_class": "Equipment",
                 "_data": {
-                  "name": "Chain Shirt",
+                  "name": "+1 Leather Armor",
                   "category": {
                     "_type": "symbol",
                     "_value": "armor"
@@ -3618,7 +3618,7 @@
                     "_type": "symbol",
                     "_value": "light"
                   },
-                  "bonus": 0,
+                  "bonus": 1,
                   "additional_properties": {
                     "_type": "hash",
                     "_pairs": [
@@ -4255,7 +4255,7 @@
                 "_type": "symbol",
                 "_value": "bleed"
               },
-              0
+              33
             ],
             [
               {
@@ -4263,7 +4263,50 @@
                 "_value": "damage_list"
               },
               [
-
+                {
+                  "_class": "Damage",
+                  "_data": {
+                    "type": {
+                      "_type": "symbol",
+                      "_value": "physical"
+                    },
+                    "severity": 1,
+                    "amount": 6
+                  }
+                },
+                {
+                  "_class": "Damage",
+                  "_data": {
+                    "type": {
+                      "_type": "symbol",
+                      "_value": "physical"
+                    },
+                    "severity": 2,
+                    "amount": 6
+                  }
+                },
+                {
+                  "_class": "Damage",
+                  "_data": {
+                    "type": {
+                      "_type": "symbol",
+                      "_value": "physical"
+                    },
+                    "severity": 3,
+                    "amount": 1
+                  }
+                },
+                {
+                  "_class": "Damage",
+                  "_data": {
+                    "type": {
+                      "_type": "symbol",
+                      "_value": "bonus"
+                    },
+                    "severity": 2,
+                    "amount": 1
+                  }
+                }
               ]
             ]
           ]
@@ -4276,7 +4319,7 @@
                 "_type": "symbol",
                 "_value": "remaining"
               },
-              37
+              35
             ],
             [
               {

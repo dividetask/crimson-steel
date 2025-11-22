@@ -9,7 +9,7 @@ WEAPON_DAMAGE_TYPE = {greataxe: :slashing, battleaxe: :slashing, longbow: :pierc
 ATTACK_TYPE = {heavy: :melee, medium_1h: :melee, light: :melee, ranged: :ranged}
 WEAPON_STR_MOD = {heavy: 0.5, medium_2h: 0.5, medium_1h: 0.25, light: 0.25, ranged: 0.25}
 WEAPON_BASE_MOD = {heavy: 2, medium_2h: 0, medium_1h: 0, light: -2, ranged: 0}
-SPEED_MOD = {pierce: 0, slashing: 1, bludgeoning: 2, light: 0, medium_1h: 1, medium_2h: 1, heavy: 2} 
+SPEED_MOD = {pierce: 0, slashing: 1, bludgeoning: 2, light: 0, medium_1h: 1, medium_2h: 1, heavy: 2, ranged: 2} 
 
 class ConjuredEquipment < Equipment
   attr_reader :magic_properties, :caster

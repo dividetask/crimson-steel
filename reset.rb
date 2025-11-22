@@ -131,7 +131,7 @@ module ResetCharacters
 		skill_list = [:sense_motive, :stealth].map { |s| [s, RANKS_MOD] }.to_h.merge(skill_list)
 
 		progression = Progression.new(:barbarian,	4, {bab: RANKS_MAX}.merge(skill_list))
-		equipment = [Equipment.new("Leather", :armor, :light, 0)]
+		equipment = [Equipment.new("+1 Leather", :armor, :light, 1)]
 		equipment << Equipment.new("Fey Great Axe (Gary)", :weapon, :greataxe, 2)
 		equipment << Equipment.new("Javelin", :weapon, :javelin, 0)
 		equipment << Equipment.new("Punch", :weapon, :punch, 0)
@@ -147,7 +147,7 @@ module ResetCharacters
 		stats = AbilityScores.new(9, 		19, 	13, 	14, 	15, 	15) 
 		skill_list = [:stealth, :slight_of_hand, :deception, :persuasion, :larceny, :arcana, :perception].map { |s| [s, RANKS_MAX] }.to_h
 		progression = Progression.new(:rogue,	4, {bab: RANKS_MOD}.merge(skill_list)) 
-		equipment = [Equipment.new("Chain Shirt", :armor, :light, 0)]
+		equipment = [Equipment.new("+1 Leather Armor", :armor, :light, 1)]
 		equipment << Equipment.new("Short Sword", :weapon, :short_sword, 0)
 		equipment << Equipment.new("Wyd Bow of Mirth", :weapon, :longbow, 1, {bonus_damage: {emotional: 4}})
 		equipment << Equipment.new("Punch", :weapon, :punch, 0)
