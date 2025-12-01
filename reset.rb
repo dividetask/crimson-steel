@@ -155,6 +155,20 @@ module ResetCharacters
     special_abilities << SpecialAbilities.new('Sneak Attack')
 		party << CharacterSheet.new(id, stats, progression, equipment, special_abilities)
 
+#(M) Cinnamon buns
+		id = Identity.new("Cottonballs", Gender.m, :PC) 
+  														#str, dex, 	con, 	int, 	wis, 	cha
+		stats = AbilityScores.new(11, 	18, 	14, 	12, 	13, 	18) 
+		skill_list = [:stealth, :slight_of_hand, :deception, :persuasion, :larceny, :arcana, :perception].map { |s| [s, RANKS_MAX] }.to_h
+		progression = Progression.new(:rogue,	4, {bab: RANKS_MOD}.merge(skill_list)) 
+		equipment = [Equipment.new("+1 Leather Armor", :armor, :light, 1)]
+		equipment << Equipment.new("Short Sword", :weapon, :short_sword, 0)
+		equipment << Equipment.new("Wyd Bow of Mirth", :weapon, :longbow, 1, {bonus_damage: {emotional: 4}})
+		equipment << Equipment.new("Punch", :weapon, :punch, 0)
+    special_abilities = [SpecialAbilities.new('Danger Sense')]
+    special_abilities << SpecialAbilities.new('Sneak Attack')
+		party << CharacterSheet.new(id, stats, progression, equipment, special_abilities)
+
 		party
 	end
 
