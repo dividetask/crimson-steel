@@ -2,6 +2,8 @@ RANKS_MAX = 3
 RANKS_MOD = 2
 RANKS_MIN = 1
 
+RANKS_PER_LEVEL = {RANKS_MAX => 5 / 3.0, RANKS_MOD => 1, RANKS_MIN => 2 / 3.0 }
+
 module ResetCharacters
 	def self.overwrite_data
 		data = DataStore.new('campaign')

@@ -91,7 +91,8 @@ module SkillMath
   def initiative(); return half_mod(:wis); end
   def skill_name(skill); return skill.to_s.split('_').join(' '); end
 
-	def skill_ranks(skill); return ((self.level * (1 + self.skills[skill])) / 3); end
+	#def skill_ranks(skill); return ((self.level * (1 + self.skills[skill])) / 3); end
+	def skill_ranks(skill); return (self.level * RANKS_PER_LEVEL[self.skills[skill]]).to_i; end
   def skill_attr_sym(skill); return SKILL_ATTRIBUTE[skill_category_name(skill) || skill]; end
 	def skill_category_name(skill); SKILL_ATTRIBUTE.keys.find { |k| skill.to_s.start_with?(k.to_s) }; end
   def skill_attr_rank_sum(skill); return half_mod(skill_attr_sym(skill)) + skill_ranks(skill); end
