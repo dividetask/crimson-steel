@@ -1,0 +1,209 @@
+<div class="navigation">
+  <a href="/character/<%= @prev_index %>" class="nav-arrow left">◀</a>
+  <span class="character-counter"><%= @current_index + 1 %> / <%= @total_characters %></span>
+  <a href="/character/<%= @next_index %>" class="nav-arrow right">▶</a>
+</div>
+
+<div class="sheet">
+  <div class="header">
+    <h1><%= @character['name'] %></h1>
+    <div class="subtitle">
+      <%= @character['race'].capitalize %> <%= @character['class'].capitalize %> Level <%= @character['level'] %>
+    </div>
+    <div class="tier-line">
+      Tier 2 &nbsp;&nbsp;&nbsp; BAB: 4
+    </div>
+  </div>
+
+  <div class="top-stats">
+    <div class="stat-box">
+      <span class="label">Combat Pool</span>
+      <span class="value">17</span>
+    </div>
+    <div class="stat-box">
+      <span class="label">Perception</span>
+      <span class="value">9d (+1)</span>
+    </div>
+    <div class="stat-box">
+      <span class="label">Initiative</span>
+      <span class="value">9</span>
+    </div>
+  </div>
+
+  <div class="top-stats">
+    <div class="stat-box">
+      <span class="label">Damage Reduction</span>
+      <span class="value">6</span>
+    </div>
+    <div class="stat-box">
+      <span class="label">Damage Resilience</span>
+      <span class="value">2</span>
+    </div>
+    <div class="stat-box">
+      <span class="label">Speed</span>
+      <span class="value">20</span>
+    </div>
+  </div>
+
+  <div class="top-stats">
+    <div class="stat-box">
+      <span class="label">Max HP</span>
+      <span class="value"><%= @stats['max_hp'] %></span>
+    </div>
+    <div class="stat-box">
+      <span class="label">Max Mana</span>
+      <span class="value"><%= @stats['max_mana'] %></span>
+    </div>
+    <div class="stat-box">
+      <span class="label">Mana Regen</span>
+      <span class="value">7</span>
+    </div>
+  </div>
+
+  <div class="two-column">
+    <div class="left-col">
+      <h2>Attributes</h2>
+      <table class="attributes">
+        <tr>
+          <th></th>
+          <th>Score</th>
+          <th>½</th>
+          <th>Check</th>
+          <th>Saves</th>
+        </tr>
+        <% @character['ability_scores'].each do |ability, score| %>
+        <% mod = @stats['mods'][ability] %>
+        <tr>
+          <td class="attr-name"><%= ability.capitalize %></td>
+          <td><%= score %></td>
+          <td><%= mod['half'] %></td>
+          <td><%= mod['half'] + 4 %>d (<%= mod['mod'] >= 0 ? '+' : '' %><%= mod['mod'] %>)</td>
+          <td><%= mod['half'] + 4 %>d (<%= mod['mod'] + 1 >= 0 ? '+' : '' %><%= mod['mod'] + 1 %>)</td>
+        </tr>
+        <% end %>
+      </table>
+      <div class="formula">Formula: 4+½ Attribute Mod, subtract 5 when > 8</div>
+
+      <h2>Skills</h2>
+      <table class="skills">
+        <tr>
+          <th>CS</th>
+          <th>Name</th>
+          <th>Ranks</th>
+          <th>Dice</th>
+        </tr>
+        <% @stats['skills'].each do |skill, data| %>
+        <tr>
+          <td>X</td>
+          <td><%= skill.gsub('_', ' ').split.map(&:capitalize).join(' ') %></td>
+          <td><%= data['ranks'] %></td>
+          <td><%= data['dice'] %>d <%= data['bonus'] > 0 ? "(+#{data['bonus']})" : '' %></td>
+        </tr>
+        <% end %>
+      </table>
+      <div class="formula">Formula: 6+rank+½ Attribute Mod, subtract 5 when > 10</div>
+
+      <h2>Additional Items</h2>
+      <div class="items">
+        <p><strong>Healing Potion (1):</strong> Cure light wounds. Cures 2 moderate damage, 4 minor damage, and reduces bleeding by 10. Inflicts 7 magical saturation.</p>
+        <p><strong>Mana Potion (2):</strong> Grants 4 spell points. Inflicts 7 magical saturation.</p>
+        <p><strong>Flasks of Oil (2):</strong> This can be used to fill a lantern or thrown at an enemy. 10 feet of range when thrown</p>
+        <p><strong>Alchemist Fire (3):</strong> 10 range increment. Deals fire damage and burns for an additional round</p>
+        <p><strong>Acid (1):</strong> 10 range increment. Deals acid damage</p>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <h2>Abilities</h2>
+
+      <h3>At Will Abilities</h3>
+      <p><strong>See Injury:</strong> You can see all life energy within 30 feet. This starts at 10 feet and increases by 5 feet per two levels. Undead have a false life energy which can be seen, but they can attempt to hide it from you. All afflictions and magical saturation is visible to you. This ability does not work if you are blinded.</p>
+
+      <p><strong>Improved Healing:</strong> Your healing spells impose less magical saturation. Decrease magical saturation of your spells by spell level times 2. Cantrips count as ½ level. Cannot reduce below 1.</p>
+
+      <p><strong>Combat Healing:</strong> You can cast some healing spells as a main action. These spells must be prepared each day and cannot be changed until the next day. Currently 4 cantrips, and 5 1st level, 3 2nd level.</p>
+
+      <h3>1 Mana Per Use</h3>
+      <p><strong>Channel Divinity:</strong> You gain a number of abilities from your god. Using these abilities requires you to be in good standing with your god. Abilities granted are noted with (CD)</p>
+
+      <p><strong>(CD) Turn Undead:</strong> All undead within 30 feet must make a wisdom saving throw or become panicked.</p>
+
+      <p><strong>(CD) Cleave:</strong> After downing an opponent with a melee attack you can reuse half of the dice to make an additional attack against another target within reach. You cannot add dice to this attack.</p>
+
+      <h3>Unidentified Equipment</h3>
+      <p><strong>(?) "Narn" Armband:</strong> Unknown properties. Forged from dull red iron and wrapped in worn leather stamped with crude battle scenes, this child-sized armband resizes to fit its wearer.</p>
+
+      <p><strong>(?) Alric's Liquor:</strong> Unknown properties. A potion of hard liquor that magically refills. You currently assume drinking this might impose a compulsion or contract upon the drinker.</p>
+
+      <h3>Spells</h3>
+      <p><strong>(1)</strong> Stabilize, Sacred Flame, Magic Vestments</p>
+      <p><strong>(4)</strong> Cure Lesser Wounds, Healing Word, Command, Lesser Ward, Divine Favor, Shield of Faith</p>
+      <p><strong>(6)</strong> Magic Weapon, Spiritual Weapon, Hold Person, Silence, Blindness/Deafness, Augury, Cure Simple Wounds, Standard Ward, Locate Object, Augury, Protection from Poison, Standard Surgery</p>
+    </div>
+  </div>
+
+  <h2>Combat</h2>
+  <table class="combat">
+    <tr>
+      <th>Name</th>
+      <th>Speed</th>
+      <th>Roll</th>
+      <th>Attk / Def Bonus</th>
+      <th>Dmg Bonus</th>
+      <th>Bleed</th>
+      <th>MT*</th>
+      <th>Notes</th>
+    </tr>
+    <tr>
+      <td>Last Laugh Axe</td>
+      <td>-2</td>
+      <td>7d</td>
+      <td>+2</td>
+      <td>+8</td>
+      <td>+7</td>
+      <td>5</td>
+      <td>+4d Emotional Damage</td>
+    </tr>
+    <tr>
+      <td>Longbow</td>
+      <td>-1/-1</td>
+      <td>7d</td>
+      <td>+1</td>
+      <td>+4</td>
+      <td>+4</td>
+      <td>4</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Thrown Item</td>
+      <td>-1/-1</td>
+      <td>7d</td>
+      <td>+1</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>10 foot range increment</td>
+    </tr>
+    <tr>
+      <td>Spells</td>
+      <td>0</td>
+      <td>6d</td>
+      <td>+2 + Tier</td>
+      <td>+6 + Tier</td>
+      <td>-</td>
+      <td>-</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Block</td>
+      <td>0</td>
+      <td>7d</td>
+      <td>+2</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td></td>
+    </tr>
+  </table>
+  <div class="formula">* MT is the base threshold for major damage.</div>
+</div>
