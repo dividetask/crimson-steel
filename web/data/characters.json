@@ -1,0 +1,70 @@
+{
+  "characters": [
+    {
+      "id": 1,
+      "name": "Stumpy",
+      "player": "Player1",
+      "race": "dwarf",
+      "class": "cleric",
+      "level": 4,
+      "ability_scores": {
+        "str": 12,
+        "dex": 14,
+        "con": 17,
+        "int": 14,
+        "wis": 18,
+        "cha": 11
+      },
+      "skill_progression": {
+        "heal": 3,
+        "sense_motive": 3,
+        "arcana": 3,
+        "survival": 2,
+        "intimidate": 2,
+        "perception": 2
+      },
+      "damage": [],
+      "afflictions": [],
+      "mana_used": 0,
+      "equipment": [
+        {
+          "name": "Plate Armor",
+          "type": "armor",
+          "subtype": "heavy",
+          "bonus": 0,
+          "properties": {},
+          "equipped": true
+        },
+        {
+          "name": "Mirror Leaf Shield",
+          "type": "shield",
+          "subtype": "light_shield",
+          "bonus": 1,
+          "properties": {},
+          "equipped": true
+        },
+        {
+          "name": "Last Laugh Axe",
+          "type": "weapon",
+          "subtype": "battleaxe",
+          "bonus": 1,
+          "properties": {
+            "bonus_damage": {
+              "emotional": 4
+            }
+          },
+          "equipped": true
+        },
+        {
+          "name": "Longbow",
+          "type": "weapon",
+          "subtype": "longbow",
+          "bonus": 0,
+          "properties": {},
+          "equipped": false
+        }
+      ],
+      "notes": []
+    }
+  ]
+}
