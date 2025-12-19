@@ -1,0 +1,43 @@
+{
+	{
+		"owner_id": 1,
+		"name": "Plate Armor",
+		"type": "armor",
+		"subtype": "heavy",
+		"bonus": 0,
+		"properties": {},
+		"equipped": true
+	},
+	{
+		"owner_id": 1,
+		"name": "Mirror Leaf Shield",
+		"type": "shield",
+		"subtype": "light_shield",
+		"bonus": 1,
+		"properties": {},
+		"equipped": true
+	},
+	{
+		"owner_id": 1,
+		"name": "Last Laugh Axe",
+		"type": "weapon",
+		"subtype": "battleaxe",
+		"bonus": 1,
+		"properties": {
+			"bonus_damage": {
+				"emotional": 4
+			}
+		},
+		"equipped": true
+	},
+	{
+		"owner_id": 1,
+		"name": "Longbow",
+		"type": "weapon",
+		"subtype": "longbow",
+		"bonus": 0,
+		"properties": {},
+		"equipped": false
+	}
+}
+
