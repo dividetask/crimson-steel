@@ -1,0 +1,70 @@
+[
+	{
+		"id": 1,
+		"name": "Stumpy",
+		"player": "Jarett",
+		"race": ["dwarf", "hill" ],
+		"deity": "Gorum",
+		"ability_scores": {
+			"str": 12,
+			"dex": 14,
+			"con": 17,
+			"int": 14,
+			"wis": 18,
+			"cha": 11
+		},
+		"classes": {"level": 4, "class": "cleric", "skills": ["heal", "sense_motive", "arcana", "survival", "intimidate", "perception"] },
+		"feats": { "race": ["armor_training"]}
+	},
+	{
+		"id": 2,
+		"name": "Olga",
+		"player": "Candace",
+		"race": ["human"],
+		"ability_scores": {
+			"str": 19,
+			"dex": 17,
+			"con": 17,
+			"int": 11,
+			"wis": 13,
+			"cha": 10
+		},
+		"classes": {"level": 4, "class": "barbarian", "skills": ["athletics", "survival", "sense_motive", "stealth" ] },
+		"feats": {"class": ["cleave"]}
+	},
+	{
+		"id": 3,
+		"name": "Lysander",
+		"player": "Zack",
+		"race": ["elf", "high"],
+		"ability_scores": {
+			"str": 9,
+			"dex": 19,
+			"con": 13,
+			"int": 14,
+			"wis": 15,
+			"cha": 15
+		},
+		"classes": {"level": 4, "class": "arcane_trickster", 
+			"skills": ["arcana", "stealth", "larceny", "slight_of_hand", "deception", "persuasion", "perception", "game_chess" ] },
+		"feats": { "race": ["elven_magic", "firebolt"]}
+	},
+	{
+		"id": 4,
+		"name": "Cottonballs",
+		"player": "Dave",
+		"race": ["satyr"],
+		"ability_scores": {
+			"str": 11,
+			"dex": 18,
+			"con": 14,
+			"int": 12,
+			"wis": 13,
+			"cha": 18
+		},
+		"classes": {"level": 4, "class": "bard", "choices": {"versatile_performance": ["sing"]},
+			"skills": ["perform_sing", "perform_percussion", "animal_handling", "persuasion", "perception", "use_magic_device", "nature" ], 
+			"spells": [ ["detect_magic", "ghost_sound", "sift", "stabilize", "vacuous_vessel", "vicious_mockery" ] ] },
+		"feats": { "race": ["fey_magic", "friends"], "class": ["social_spell"]}
+	}
+]
