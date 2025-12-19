@@ -16,7 +16,7 @@ module CharacterHelpers
 	def get_bab(character, rules)
 		bab_increases = character["classes"].map do |klass|
 			bab_adv_rate = rules["class_advancement"][klass["class"]]["bab"]
-			bab_mod = rules["advancement"]["competency"]["bab_ranks_per_level"][bab_adv_rate]
+			bab_mod = rules["advancement"]["competency"]["bab_ranks_per_level"][bab_adv_rate - 1]
 			(klass["level"].to_f * bab_mod[0].to_f / bab_mod[1].to_f).to_i
 		end
 		bab_increases.sum
