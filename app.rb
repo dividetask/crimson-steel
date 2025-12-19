@@ -9,35 +9,25 @@ set :public_folder, File.join(__dir__, 'public')
 
 helpers CharacterHelpers
 
+
 get '/' do
-  characters = load_json('characters.json')['characters']
-  halt 404, "No characters found" if characters.empty?
-
-  @character = characters[0]
-  @stats = calculate_stats(@character)
-  @current_index = 0
-  @total_characters = characters.length
-  @prev_index = characters.length - 1
-  @next_index = 1 % characters.length
-
-  erb :character_sheet
+  redirect '/character/0'
 end
 
 get '/character/:index' do
-  characters = load_json('characters.json')['characters']
-  index = params[:index].to_i
-
+  characters = load_json('characters.json')
   halt 404, "No characters found" if characters.empty?
+  index = params[:index].to_i
 
   # Wrap around if index is out of bounds
   index = index % characters.length
 
-  @character = characters[index]
-  @stats = calculate_stats(@character)
-  @current_index = index
   @total_characters = characters.length
   @prev_index = (index - 1) % characters.length
   @next_index = (index + 1) % characters.length
+
+  @character = get_info(characters[index])
+  @current_index = index
 
   erb :character_sheet
 end

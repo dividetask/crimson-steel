@@ -6,12 +6,12 @@
 
 <div class="sheet">
   <div class="header">
-    <h1><%= @character['name'] %></h1>
+    <h1><%= @character[:name] %></h1>
     <div class="subtitle">
-      <%= @character['race'].capitalize %> <%= @character['class'].capitalize %> Level <%= @character['level'] %>
+      <%= @character[:race] %> <%= @character[:full_klass] %>
     </div>
     <div class="tier-line">
-      Tier 2 &nbsp;&nbsp;&nbsp; BAB: 4
+      Tier <%= @character[:tier] %> &nbsp;&nbsp;&nbsp; BAB: <%= @character[:bab] %>
     </div>
   </div>
 
@@ -48,11 +48,11 @@
   <div class="top-stats">
     <div class="stat-box">
       <span class="label">Max HP</span>
-      <span class="value"><%= @stats['max_hp'] %></span>
+      <span class="value"><%= @character[:hp_max] %></span>
     </div>
     <div class="stat-box">
       <span class="label">Max Mana</span>
-      <span class="value"><%= @stats['max_mana'] %></span>
+      <span class="value"><%= @character[:mana_max] %></span>
     </div>
     <div class="stat-box">
       <span class="label">Mana Regen</span>
@@ -68,17 +68,18 @@
           <th></th>
           <th>Score</th>
           <th>½</th>
-          <th>Check</th>
-          <th>Saves</th>
+          <th colspan="2">Check</th>
+          <th colspan="2">Saves</th>
         </tr>
-        <% @character['ability_scores'].each do |ability, score| %>
-        <% mod = @stats['mods'][ability] %>
+        <% @character[:ability_scores].each do |ability_details| %>
         <tr>
-          <td class="attr-name"><%= ability.capitalize %></td>
-          <td><%= score %></td>
-          <td><%= mod['half'] %></td>
-          <td><%= mod['half'] + 4 %>d (<%= mod['mod'] >= 0 ? '+' : '' %><%= mod['mod'] %>)</td>
-          <td><%= mod['half'] + 4 %>d (<%= mod['mod'] + 1 >= 0 ? '+' : '' %><%= mod['mod'] + 1 %>)</td>
+          <td class="attr-name"><%= ability_details[:name] %></td>
+          <td><%= ability_details[:score] %></td>
+          <td><%= ability_details[:half_score] %></td>
+          <td><%= ability_details[:skill_dice] %>d</td>
+          <td><%= ability_details[:skill_bonus] %></td>
+          <td><%= ability_details[:save_dice] %>d</td>
+          <td><%= ability_details[:save_bonus] %></td>
         </tr>
         <% end %>
       </table>
@@ -91,13 +92,15 @@
           <th>Name</th>
           <th>Ranks</th>
           <th>Dice</th>
+          <th>Bonus</th>
         </tr>
-        <% @stats['skills'].each do |skill, data| %>
+        <% @character[:skills].each do |skill_details| %>
         <tr>
           <td>X</td>
-          <td><%= skill.gsub('_', ' ').split.map(&:capitalize).join(' ') %></td>
-          <td><%= data['ranks'] %></td>
-          <td><%= data['dice'] %>d <%= data['bonus'] > 0 ? "(+#{data['bonus']})" : '' %></td>
+          <td><%= skill_details[:name] %></td>
+          <td><%= skill_details[:ranks] %></td>
+          <td><%= skill_details[:dice] %>d</td>
+          <td><%= skill_details[:bonus] %>d</td>
         </tr>
         <% end %>
       </table>
