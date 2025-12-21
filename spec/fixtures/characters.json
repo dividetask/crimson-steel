@@ -29,5 +29,24 @@
 			"cha": 26
 		},
 		"classes": [{"level": 8, "class": "barbarian", "skills": ["athletics", "survival", "sense_motive", "stealth" ] }]
+	},
+	{
+		"id": 3,
+		"name": "Bob",
+		"player": "Bobby",
+		"race": ["elf", "high" ],
+		"deity": "Calistria",
+		"classes": [
+			{"level": 3, "class": "rogue", "skills": ["larceny", "deception", "slight_of_hand", "survival", "intimidate", "perception"] },
+			{"level": 4, "class": "wizard", "skills": ["arcana", "history", "use_magic_device"] }]
+	},
+	{
+		"id": 4,
+		"name": "Paul",
+		"player": "Pauly",
+		"race": ["human"],
+		"classes": [
+			{"level": 1, "class": "druid", "skills": ["perception", "nature", "survival"] },
+			{"level": 3, "class": "ranger", "skills": ["druidic", "nature", "survival", "intimidate", "perception"] }]
 	}
 ]
