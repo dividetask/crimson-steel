@@ -1,0 +1,33 @@
+[
+	{
+		"id": 1,
+		"name": "Joe",
+		"player": "Blow",
+		"race": ["dwarf", "hill" ],
+		"deity": "Gorum",
+		"ability_scores": {
+			"str": 10,
+			"dex": 11,
+			"con": 12,
+			"int": 13,
+			"wis": 14,
+			"cha": 15
+		},
+		"classes": [{"level": 1, "class": "cleric", "skills": ["heal", "sense_motive", "arcana", "survival", "intimidate", "perception"] }]
+	},
+	{
+		"id": 2,
+		"name": "Kevin",
+		"player": "Quan",
+		"race": ["human"],
+		"ability_scores": {
+			"str": 21,
+			"dex": 22,
+			"con": 23,
+			"int": 24,
+			"wis": 25,
+			"cha": 26
+		},
+		"classes": [{"level": 8, "class": "barbarian", "skills": ["athletics", "survival", "sense_motive", "stealth" ] }]
+	}
+]

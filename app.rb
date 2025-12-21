@@ -15,7 +15,7 @@ get '/' do
 end
 
 get '/character/:index' do
-  characters = load_json('characters.json')
+  characters = Tools.load_json('characters.json')
   halt 404, "No characters found" if characters.empty?
   index = params[:index].to_i
 
