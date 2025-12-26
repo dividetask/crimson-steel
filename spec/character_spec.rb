@@ -1,6 +1,16 @@
 require_relative '../helpers'
 require 'json'
 
+module SpecData
+  attr_reader :index, :expected
+	def self.clean(hash_or_array)
+		return hash_or_array if hash_or_array.is_a?(Hash)
+		return hash_or_array.map.with_index { |data, index| [index, data] }.to_h
+	end
+
+end
+
+
 RSpec.describe CharacterSheet do
 	let(:rules) { JSON.parse(File.read('spec/fixtures/rules.json')) }
 	let(:character_list) { JSON.parse(File.read('spec/fixtures/characters.json')) }
@@ -8,7 +18,7 @@ RSpec.describe CharacterSheet do
 	describe '#CharacterSheet' do
 		context 'Lookup static details' do
 			it 'finds name, and player info' do
-				[['Joe', 'Blow'], ['Kevin', 'Quan'], ['Bob', 'Bobby'], ['Paul', 'Pauly']].each_with_index do |expected, index|
+				SpecData.clean([['Joe', 'Blow'], ['Kevin', 'Quan'], ['Bob', 'Bobby'], ['Paul', 'Pauly']]).each do |index, expected|
 					character = CharacterSheet.new(character_list[index])
 					expect(character.name).to eq(expected[0])
 					expect(character.player).to eq(expected[1])
@@ -30,7 +40,7 @@ RSpec.describe CharacterSheet do
 			end
 
 			it 'correctly displays race' do
-				['Hill dwarf', 'Human', 'High elf', 'Human'].each_with_index do |expected_race, index|
+				SpecData.clean(['Hill dwarf', 'Human', 'High elf', 'Human']).each do |index, expected_race|
 					character = CharacterSheet.new(character_list[index])
 					expect(character.race).to eq(expected_race)
 				end
@@ -59,7 +69,7 @@ RSpec.describe CharacterSheet do
 	describe '#TierMath' do
 		context 'Verify class mana math' do
 			it 'calculates tier with example characters' do
-				[4, 8, 19, 10].each_with_index do |expected, index|
+				SpecData.clean([4, 8, 19, 10]).each do |index, expected|
 					character = CharacterSheet.new(character_list[index])
 					expect(character.mana_from_klasses).to eq(expected)
 				end
@@ -169,7 +179,7 @@ RSpec.describe CharacterSheet do
 			it 'calculates max mana with example characters' do
 				[10, 56, 25, 12].each_with_index do |expected, index|
 					character = CharacterSheet.new(character_list[index])
-					expect(character.hp_max).to eq(expected)
+					expect(character.mana_max).to eq(expected)
 				end
 			end
 		end
@@ -180,7 +190,6 @@ RSpec.describe CharacterSheet do
 			it 'calculates combat pool with example characters' do
 				[9, 26, 18, 12].each_with_index do |expected, index|
 					character = CharacterSheet.new(character_list[index])
-					#p "Level - #{character.level}, Tier - #{character.tier}, Dex - #{character.dex}, #{rules["advancement"]["competency"]["combat_pool"]}"
 					expect(character.combat_pool).to eq(expected)
 				end
 			end

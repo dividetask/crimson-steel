@@ -7,33 +7,45 @@ module SkillMath
 		combat_pool = pool_math["max"] if combat_pool > pool_math["max"]
 		combat_pool + half_mod(:dex)
 	end
+	#def skill_dice(skill); parse_formula(@rules["advancement"]["competency"]["attribute_dice"], {"attr" => attr}); end
+			#"skill_dice": "6+((skill/2)%5)",
+
+	def skills
+		return [ {name: "Heal", ranks: 6, dice: 6, bonus: 2}, {name: "Sense Motive", ranks: 6, dice: 6, bonus: 2} ]
+	end
 end
 
 module BaseStatsMath
-	def str; return @data["ability_scores"]["str"]; end
-	def dex; return @data["ability_scores"]["dex"]; end
-	def con; return @data["ability_scores"]["con"]; end
-	def int; return @data["ability_scores"]["int"]; end
-	def wis; return @data["ability_scores"]["wis"]; end
-	def cha; return @data["ability_scores"]["cha"]; end
+	def cleaned_ability_scores
+		return [
+			{name: "Strength", 			sym: :str},
+			{name: "Dexterity", 		sym: :dex},
+			{name: "Constitution", 	sym: :con},
+			{name: "Intelligence", 	sym: :int},
+			{name: "Wisdom", 				sym: :wis},
+			{name: "Charisma",		 	sym: :cha} ].map do |ability_details|
+				ability_details[:score] = send(ability_details[:sym])
+				ability_details[:half_score] = half_mod(ability_details[:sym])
+				ability_details[:skill_dice] = 6
+				ability_details[:skill_bonus] = "+0"
+				ability_details[:save_dice] = 6
+				ability_details[:save_bonus] = "+0"
+				ability_details
+		end
+	end
+
+	def str; return @data["ability_scores"]["str"].to_i; end
+	def dex; return @data["ability_scores"]["dex"].to_i; end
+	def con; return @data["ability_scores"]["con"].to_i; end
+	def int; return @data["ability_scores"]["int"].to_i; end
+	def wis; return @data["ability_scores"]["wis"].to_i; end
+	def cha; return @data["ability_scores"]["cha"].to_i; end
 	def half_mod(attr); (self.send(attr) / 2).to_i; end
+	def attr_dice(attr); parse_formula(@rules["advancement"]["competency"]["attribute_dice"], {"attr" => attr}); end
 
 	def hp_max; return parse_formula(@rules["advancement"]["natural"]["hp"][tier]); end
 	def mana_max; return parse_formula(@rules["advancement"]["natural"]["mana"][tier]) + mana_from_klasses; end
 	def mana_regen; return (mana_max / 4).to_i; end
-
-	private
-
-	def parse_formula(formula)
-		result = formula.dup
-		func_list = [:str, :dex, :con, :int, :wis, :cha]
-		
-		func_list.each do |func_sym|
-			result.gsub!(func_sym.to_s, send(func_sym).to_s)
-		end
-		
-		eval(result)
-	end
 end
 
 module TierMath
@@ -90,5 +102,24 @@ class CharacterSheet
 	def race; @data["race"].reverse.join(' ').capitalize; end
 	def damage_reduction(); tier_damage_reduction; end  #Needs to add for armor
 	def damage_resiliance(); tier_damage_resiliance; end  #Needs to add for armor
+
+	private
+
+	def parse_formula(formula, params = {})
+		result = formula.dup
+		func_hash = params.dup.merge({str: :str, dex: :dex, con: :con, int: :int, wis: :wis, cha: :cha})
+
+		func_hash.each do |key, func_sym|
+			result.gsub!(key.to_s, send(func_sym).to_s)
+		end
+
+		#func_list = [:str, :dex, :con, :int, :wis, :cha]
+		
+		#func_list.each do |func_sym|
+			#result.gsub!(func_sym.to_s, send(func_sym).to_s)
+		#end
+		
+		eval(result)
+	end
 end
 

@@ -6,19 +6,19 @@
 
 <div class="sheet">
   <div class="header">
-    <h1><%= @character[:name] %></h1>
+    <h1><%= @character.name %></h1>
     <div class="subtitle">
-      <%= @character[:race] %> <%= @character[:full_klass] %>
+      <%= @character.race %> <%= @character.full_klass %>
     </div>
     <div class="tier-line">
-      Tier <%= @character[:tier] %> &nbsp;&nbsp;&nbsp; BAB: <%= @character[:bab] %>
+      Tier <%= @character.tier %> &nbsp;&nbsp;&nbsp; BAB: <%= @character.bab %>
     </div>
   </div>
 
   <div class="top-stats">
     <div class="stat-box">
       <span class="label">Combat Pool</span>
-      <span class="value">17</span>
+      <span class="value"><%= @character.combat_pool %></span>
     </div>
     <div class="stat-box">
       <span class="label">Perception</span>
@@ -48,15 +48,15 @@
   <div class="top-stats">
     <div class="stat-box">
       <span class="label">Max HP</span>
-      <span class="value"><%= @character[:hp_max] %></span>
+      <span class="value"><%= @character.hp_max %></span>
     </div>
     <div class="stat-box">
       <span class="label">Max Mana</span>
-      <span class="value"><%= @character[:mana_max] %></span>
+      <span class="value"><%= @character.mana_max %></span>
     </div>
     <div class="stat-box">
       <span class="label">Mana Regen</span>
-      <span class="value">7</span>
+      <span class="value"><%= @character.mana_regen %></span>
     </div>
   </div>
 
@@ -71,7 +71,7 @@
           <th colspan="2">Check</th>
           <th colspan="2">Saves</th>
         </tr>
-        <% @character[:ability_scores].each do |ability_details| %>
+        <% @character.cleaned_ability_scores.each do |ability_details| %>
         <tr>
           <td class="attr-name"><%= ability_details[:name] %></td>
           <td><%= ability_details[:score] %></td>
@@ -83,7 +83,7 @@
         </tr>
         <% end %>
       </table>
-      <div class="formula">Formula: 4+½ Attribute Mod, subtract 5 when > 8</div>
+      <div class="formula">Formula: 4+½ Attribute Mod, subtract 5 when &gt; 8</div>
 
       <h2>Skills</h2>
       <table class="skills">
@@ -94,7 +94,7 @@
           <th>Dice</th>
           <th>Bonus</th>
         </tr>
-        <% @character[:skills].each do |skill_details| %>
+        <% @character.skills.each do |skill_details| %>
         <tr>
           <td>X</td>
           <td><%= skill_details[:name] %></td>
@@ -104,7 +104,7 @@
         </tr>
         <% end %>
       </table>
-      <div class="formula">Formula: 6+rank+½ Attribute Mod, subtract 5 when > 10</div>
+      <div class="formula">Formula: 6+rank+½ Attribute Mod, subtract 5 when &gt; 10</div>
 
       <h2>Additional Items</h2>
       <div class="items">
