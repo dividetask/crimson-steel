@@ -7,6 +7,9 @@
 	"class_advancement": {
 		"cleric": 						{"bab": 2, "mana": 4},
 		"barbarian":					{"bab": 3, "mana": 1},
+		"rogue":							{"bab": 2, "mana": 1},
+		"druid":							{"bab": 2, "mana": 4},
+		"ranger":							{"bab": 3, "mana": 2},
 		"arcane_trickster": 	{"bab": 2, "mana": 2},
 		"bard": 							{"bab": 2, "mana": 2} },
 	"advancement": {

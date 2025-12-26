@@ -1,67 +1,40 @@
 require_relative 'tools'
 
-#module SkillMath
-	#def combat_pool
-		#pool_math = rules["advancement"]["competency"]["combat_pool"][tier]
-		#combat_pool = pool_math["base"] + (pool_math["inc"] * level)
-		#combat_pool = pool_math["max"] if combat_pool > pool_math["max"]
-		#combat_pool
-	#end
-#end
+module SkillMath
+	def combat_pool
+		pool_math = rules["advancement"]["competency"]["combat_pool"][tier]
+		combat_pool = pool_math["base"] + (pool_math["inc"] * level)
+		combat_pool = pool_math["max"] if combat_pool > pool_math["max"]
+		combat_pool + half_mod(:dex)
+	end
+end
 
-#module BaseStatsMath
-	#def hp_max; return parse_formula(@rules["advancement"]["natural"]["hp"][tier]); end
-	#def mana_max; return parse_formula(@rules["advancement"]["natural"]["mana"][tier]) + mana_from_klasses; end
-	#def mana_regen; return (mana_max / 4).to_i; end
+module BaseStatsMath
+	def str; return @data["ability_scores"]["str"]; end
+	def dex; return @data["ability_scores"]["dex"]; end
+	def con; return @data["ability_scores"]["con"]; end
+	def int; return @data["ability_scores"]["int"]; end
+	def wis; return @data["ability_scores"]["wis"]; end
+	def cha; return @data["ability_scores"]["cha"]; end
+	def half_mod(attr); (self.send(attr) / 2).to_i; end
 
-	#private
+	def hp_max; return parse_formula(@rules["advancement"]["natural"]["hp"][tier]); end
+	def mana_max; return parse_formula(@rules["advancement"]["natural"]["mana"][tier]) + mana_from_klasses; end
+	def mana_regen; return (mana_max / 4).to_i; end
 
-	#def parse_formula(formula)
-		#stat_sym_list = [:str, :dex, :con, :int, :wis, :cha]
-		#i = 0
-		#formula_parts = []
-		#while (i < formula.length)
-			#if ( (i + 3 <= formula.length) and (stat_sym_list.include?(formula[i..(i+3)])) )
-				#formula_parts << self.send(formula[i..(i+3)].to_sym).to_i
-				#i = i + 3
-			#end
+	private
 
-			#if ["+", "-", "*", "/"].include? formula[i]
-				#formula_parts << self.send(formula[i].to_sym)
-				#i = i + 1
-			#end
-
-			#j = i
-			#while ("0".."9").to_a.include(formula[j]) {j++}
-
-			#if j > i
-				#formula_parts << formula[i..j].to_i
-				#i = j
-			#end
-		#end
-
-		#i = 1
-		#results = formula_parts[0]
-
-		#while (i + 1 < formula_parts.length)
-			#if formula_parts[i] == '+'
-				#results = results + formula_parts[i+1]
-				#i = i + 1
-			#elsif formula_parts[i] == '-'
-				#results = results - formula_parts[i+1]
-				#i = i + 1
-			#elsif formula_parts[i] == '*'
-				#results = results * formula_parts[i+1]
-				#i = i + 1
-			#elsif formula_parts[i] == '/'
-				#results = results / formula_parts[i+1]
-				#i = i + 1
-			#end
-		#end
-		#results
-		#0
-	#end
-#end
+	def parse_formula(formula)
+		result = formula.dup
+		func_list = [:str, :dex, :con, :int, :wis, :cha]
+		
+		func_list.each do |func_sym|
+			result.gsub!(func_sym.to_s, send(func_sym).to_s)
+		end
+		
+		eval(result)
+	end
+end
 
 module TierMath
 	def tier
@@ -88,7 +61,7 @@ module KlassMath
 		bab_increases.sum
 	end
 
-	def mana_from_klasses; @data["classes"].map { |klass| klass["mana"].to_i }.sum; end
+	def mana_from_klasses; @data["classes"].map { |klass| @rules["class_advancement"][klass["class"]]["mana"].to_i * klass["level"]}.sum; end
 
 	private
 	def competency; return @rules["advancement"]["competency"]; end
@@ -106,8 +79,8 @@ end
 class CharacterSheet
   include TierMath
   include KlassMath
-  #include BaseStatsMath
-  #include SkillMath
+  include BaseStatsMath
+  include SkillMath
   attr_reader :rules, :id, :data
 
   def initialize(character); @rules = Tools.load_json('rules.json'); @id = character["id"]; @data = character; end
@@ -115,7 +88,7 @@ class CharacterSheet
 	def player; @data["player"]; end
 	def deity; @data["deity"]; end
 	def race; @data["race"].reverse.join(' ').capitalize; end
-	#def damage_reduction(); tier_damage_reduction; end  #Needs to add for armor
-	#def damage_resiliance(); tier_damage_resiliance; end  #Needs to add for armor
+	def damage_reduction(); tier_damage_reduction; end  #Needs to add for armor
+	def damage_resiliance(); tier_damage_resiliance; end  #Needs to add for armor
 end
 

@@ -36,6 +36,14 @@
 		"player": "Bobby",
 		"race": ["elf", "high" ],
 		"deity": "Calistria",
+		"ability_scores": {
+			"str": 4,
+			"dex": 7,
+			"con": 5,
+			"int": 6,
+			"wis": 1,
+			"cha": 3
+		},
 		"classes": [
 			{"level": 3, "class": "rogue", "skills": ["larceny", "deception", "slight_of_hand", "survival", "intimidate", "perception"] },
 			{"level": 4, "class": "wizard", "skills": ["arcana", "history", "use_magic_device"] }]
@@ -45,6 +53,14 @@
 		"name": "Paul",
 		"player": "Pauly",
 		"race": ["human"],
+		"ability_scores": {
+			"str": 2,
+			"dex": 5,
+			"con": 9,
+			"int": 2,
+			"wis": 8,
+			"cha": 1
+		},
 		"classes": [
 			{"level": 1, "class": "druid", "skills": ["perception", "nature", "survival"] },
 			{"level": 3, "class": "ranger", "skills": ["druidic", "nature", "survival", "intimidate", "perception"] }]
