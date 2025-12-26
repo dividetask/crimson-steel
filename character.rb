@@ -1,5 +1,33 @@
 require_relative 'tools'
 
+class SingleKlassProgress
+  attr_reader :name, :level, :skills
+	def initialize(klass_data); @name = klass_data['class']; @level = klass_data['level'].to_i; @skills = klass_data['skills']; end
+	def self.force_values(name, level, skill_list); return SingleKlassProgress.new({"level" => level, "class" => name, "skills" => skill_list}); end
+
+	def save_ranks(attr, rules)
+		return ranks(rules["class_advancement"][@name]["saves"][attr.to_s], rules["advancement"]["competency"]["save_ranks_per_level"])
+	end
+
+	private
+	def ranks(adv_rate, adv_rules); mod = adv_rules[adv_rate - 1]; return (@level.to_f * mod[0].to_f / mod[1].to_f).to_i; end
+end
+
+module KlassProgress
+  attr_reader :klass_list
+
+	def initialize(character); @klass_list = character["classes"].map { |klass_data| SingleKlassProgress.new(klass_data) }; end
+	def level(); @klass_list.sum(&:level); end
+	def save_total(attr); return save_ranks(attr) + half_mod(attr); end
+	def save_ranks(attr); return @klass_list.sum { |progress| progress.save_ranks(attr, @rules) }; end
+	def save_dice(attr); parse_formula(@rules["advancement"]["competency"]["save_dice"], {"ranks" => save_total(attr)}); end
+	def save_bonus(attr); parse_formula(@rules["advancement"]["competency"]["save_bonus"], {"ranks" => save_total(attr)}); end
+
+	def skill_ranks(skill); 5; end
+	#def skill_dice(skill); parse_formula(@rules["advancement"]["competency"]["skill_dice"], {"ranks" => skill_ranks(skill)}); end
+	#def skill_bonus(skill); parse_formula(@rules["advancement"]["competency"]["skill_bonus"], {"ranks" => skill_ranks(skill)}); end
+end
+
 module SkillMath
 	def combat_pool
 		pool_math = rules["advancement"]["competency"]["combat_pool"][tier]
@@ -16,22 +44,8 @@ module SkillMath
 end
 
 module BaseStatsMath
-	def cleaned_ability_scores
-		return [
-			{name: "Strength", 			sym: :str},
-			{name: "Dexterity", 		sym: :dex},
-			{name: "Constitution", 	sym: :con},
-			{name: "Intelligence", 	sym: :int},
-			{name: "Wisdom", 				sym: :wis},
-			{name: "Charisma",		 	sym: :cha} ].map do |ability_details|
-				ability_details[:score] = send(ability_details[:sym])
-				ability_details[:half_score] = half_mod(ability_details[:sym])
-				ability_details[:skill_dice] = 6
-				ability_details[:skill_bonus] = "+0"
-				ability_details[:save_dice] = 6
-				ability_details[:save_bonus] = "+0"
-				ability_details
-		end
+	def ability_score_names
+		return {"Strength" => :str, "Dexterity" => :dex, "Constitution" => :con, "Intelligence" => :int, "Wisdom" => :wis, "Charisma"=> :cha }
 	end
 
 	def str; return @data["ability_scores"]["str"].to_i; end
@@ -40,8 +54,10 @@ module BaseStatsMath
 	def int; return @data["ability_scores"]["int"].to_i; end
 	def wis; return @data["ability_scores"]["wis"].to_i; end
 	def cha; return @data["ability_scores"]["cha"].to_i; end
+	def score(attr); self.send(attr); end
 	def half_mod(attr); (self.send(attr) / 2).to_i; end
 	def attr_dice(attr); parse_formula(@rules["advancement"]["competency"]["attribute_dice"], {"attr" => attr}); end
+	def attr_bonus(attr); parse_formula(@rules["advancement"]["competency"]["attribute_bonus"], {"attr" => attr}); end
 
 	def hp_max; return parse_formula(@rules["advancement"]["natural"]["hp"][tier]); end
 	def mana_max; return parse_formula(@rules["advancement"]["natural"]["mana"][tier]) + mana_from_klasses; end
@@ -61,7 +77,6 @@ module TierMath
 end
 
 module KlassMath
-	def level(); @data["classes"].map { |klass| klass["level"].to_i }.sum; end
 	def full_klass(); @data["classes"].map { |klass| "#{klass["class"]} #{klass["level"]}" }.join(', '); end
 
 	def bab
@@ -90,18 +105,26 @@ end
 
 class CharacterSheet
   include TierMath
+	include KlassProgress
   include KlassMath
   include BaseStatsMath
   include SkillMath
   attr_reader :rules, :id, :data
 
-  def initialize(character); @rules = Tools.load_json('rules.json'); @id = character["id"]; @data = character; end
+  def initialize(character)
+		@rules = Tools.load_json('rules.json')
+		@id = character["id"]
+		@data = character
+		super(character)
+	end
+
 	def name; @data["name"]; end
 	def player; @data["player"]; end
 	def deity; @data["deity"]; end
 	def race; @data["race"].reverse.join(' ').capitalize; end
 	def damage_reduction(); tier_damage_reduction; end  #Needs to add for armor
 	def damage_resiliance(); tier_damage_resiliance; end  #Needs to add for armor
+	def add_plus(func, params = nil); r = send(func,params); return "#{'+' if r >= 0}#{r}"; end
 
 	private
 
@@ -110,14 +133,12 @@ class CharacterSheet
 		func_hash = params.dup.merge({str: :str, dex: :dex, con: :con, int: :int, wis: :wis, cha: :cha})
 
 		func_hash.each do |key, func_sym|
-			result.gsub!(key.to_s, send(func_sym).to_s)
+			if func_sym.is_a?(Symbol)
+				result.gsub!(key.to_s, send(func_sym).to_s)
+			elsif func_sym.is_a?(Integer)
+				result.gsub!(key.to_s, func_sym.to_s)
+			end
 		end
-
-		#func_list = [:str, :dex, :con, :int, :wis, :cha]
-		
-		#func_list.each do |func_sym|
-			#result.gsub!(func_sym.to_s, send(func_sym).to_s)
-		#end
 		
 		eval(result)
 	end

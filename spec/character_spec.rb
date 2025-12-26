@@ -156,10 +156,10 @@ RSpec.describe CharacterSheet do
 			end
 
 			it 'calcs half mod with example characters' do
-				[{"str": 10, "dex": 11, "con": 12, "int": 13, "wis": 14, "cha": 15},
+				SpecData.clean([{"str": 10, "dex": 11, "con": 12, "int": 13, "wis": 14, "cha": 15},
 					{"str": 21, "dex": 22, "con": 23, "int": 24, "wis": 25, "cha": 26},
 					{"str": 4, "dex": 7, "con": 5, "int": 6, "wis": 1, "cha": 3},
-					{"str": 2, "dex": 5, "con": 9, "int": 2, "wis": 8, "cha": 1}].each_with_index do |expected_hash, index|
+					{"str": 2, "dex": 5, "con": 9, "int": 2, "wis": 8, "cha": 1}]).each do |index, expected_hash|
 					character = CharacterSheet.new(character_list[index])
 					expected_hash.each do |key, expected|
 						expect(character.half_mod(key)).to eq((expected / 2).to_i)
@@ -170,16 +170,73 @@ RSpec.describe CharacterSheet do
 
 		context 'parse_formula' do
 			it 'calculates max hp with example characters' do
-				[12, 23*3, 5*2, 9*2].each_with_index do |expected, index|
+				SpecData.clean([12, 23*3, 5*2, 9*2]).each do |index, expected|
 					character = CharacterSheet.new(character_list[index])
 					expect(character.hp_max).to eq(expected)
 				end
 			end
 
 			it 'calculates max mana with example characters' do
-				[10, 56, 25, 12].each_with_index do |expected, index|
+				SpecData.clean([10, 56, 25, 12]).each do |index, expected|
 					character = CharacterSheet.new(character_list[index])
 					expect(character.mana_max).to eq(expected)
+				end
+			end
+
+			it 'calculates attr_dice with example characters' do
+				SpecData.clean([{"str": 4, "dex": 4, "con": 5, "int": 5, "wis": 6, "cha": 6},
+					{"str": 4, "dex": 5, "con": 5, "int": 6, "wis": 6, "cha": 7},
+					{"str": 6, "dex": 7, "con": 6, "int": 7, "wis": 4, "cha": 5},
+					{"str": 5, "dex": 6, "con": 8, "int": 5, "wis": 8, "cha": 4}]).each do |index, expected_hash|
+					character = CharacterSheet.new(character_list[index])
+					expected_hash.each do |key, expected|
+						expect(character.attr_dice(key)).to eq(expected)
+					end
+				end
+			end
+
+
+			it 'calculates attr_bonus with example characters' do
+				SpecData.clean([{"str": 0, "dex": 0, "con": 0, "int": 0, "wis": 0, "cha": 0},
+					{"str": 1, "dex": 1, "con": 1, "int": 1, "wis": 1, "cha": 1},
+					{"str": -1, "dex": -1, "con": -1, "int": -1, "wis": -1, "cha": -1},
+					{"str": -1, "dex": -1, "con": -1, "int": -1, "wis": -1, "cha": -1}]).each do |index, expected_hash|
+					character = CharacterSheet.new(character_list[index])
+					expected_hash.each do |key, expected|
+						expect(character.attr_bonus(key)).to eq(expected)
+					end
+				end
+			end
+
+			it 'calculates attr_bonus for each attr from 0 to 40' do
+				(0..40).to_a.each do |score|
+					sym = [:str, :dex, :con, :int, :wis, :cha].sample
+					character = CharacterSheet.new(character_list.sample)
+					allow(character).to receive(sym).and_return(score)
+					expect(character.attr_bonus(sym)).to eq( (score / 10).to_i - 1)
+				end
+			end
+
+			it 'calculates save ranks for single classes correctly' do
+				(0..20).to_a.each do |level|
+					{
+						"cleric": [:wis, :cha], "barbarian": [:str, :con] , "rogue": [:dex, :int] ,
+						"druid": [:int, :wis], "wizard": [:int, :wis], "ranger": [:str, :dex],
+						"arcane_trickster": [:dex, :int], "bard": [:dex, :cha]}.each do |klass_name, high_attr|
+						[:str, :dex, :con, :int, :wis, :cha].each do |attr|
+							character = CharacterSheet.new(character_list.sample)
+							test_klass = SingleKlassProgress.force_values(klass_name.to_s, level, [])
+							character.instance_variable_set(:@klass_list, [test_klass])
+
+							if high_attr.include?(attr)
+								binding.irb if character.save_ranks(attr) != (((5.0 * level) / 3).to_i)
+								expect(character.save_ranks(attr)).to eq(((5.0 * level) / 3).to_i)
+							else
+								binding.irb if character.save_ranks(attr) != (((2.0 * level) / 3).to_i)
+								expect(character.save_ranks(attr)).to eq(((2.0 * level) / 3).to_i)
+							end
+						end
+					end
 				end
 			end
 		end

@@ -130,6 +130,21 @@ table th {
   font-weight: bold;
 }
 
+.attributes td:not(:first-child),
+.attributes th:not(:first-child) {
+  text-align: center;
+}
+
+.attributes td:nth-child(2),
+.attributes th:nth-child(2) {
+  border-right: none;
+}
+
+.attributes td:nth-child(3),
+.attributes th:nth-child(3) {
+  border-left: none;
+}
+
 .skills td:first-child {
   text-align: center;
   width: 30px;

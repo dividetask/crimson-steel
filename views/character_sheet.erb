@@ -71,15 +71,15 @@
           <th colspan="2">Check</th>
           <th colspan="2">Saves</th>
         </tr>
-        <% @character.cleaned_ability_scores.each do |ability_details| %>
+        <% @character.ability_score_names.each do |name, sym| %>
         <tr>
-          <td class="attr-name"><%= ability_details[:name] %></td>
-          <td><%= ability_details[:score] %></td>
-          <td><%= ability_details[:half_score] %></td>
-          <td><%= ability_details[:skill_dice] %>d</td>
-          <td><%= ability_details[:skill_bonus] %></td>
-          <td><%= ability_details[:save_dice] %>d</td>
-          <td><%= ability_details[:save_bonus] %></td>
+          <td class="attr-name"><%= name %></td>
+          <td><%= @character.score(sym) %></td>
+          <td><%= @character.half_mod(sym) %></td>
+          <td><%= @character.attr_dice(sym) %>d</td>
+          <td><%= @character.add_plus(:attr_bonus, sym) %></td>
+          <td><%= @character.save_dice(sym) %>d</td>
+          <td><%= @character.add_plus(:save_bonus, sym) %></td>
         </tr>
         <% end %>
       </table>
