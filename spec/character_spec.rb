@@ -229,12 +229,27 @@ RSpec.describe CharacterSheet do
 							character.instance_variable_set(:@klass_list, [test_klass])
 
 							if high_attr.include?(attr)
-								binding.irb if character.save_ranks(attr) != (((5.0 * level) / 3).to_i)
 								expect(character.save_ranks(attr)).to eq(((5.0 * level) / 3).to_i)
 							else
-								binding.irb if character.save_ranks(attr) != (((2.0 * level) / 3).to_i)
 								expect(character.save_ranks(attr)).to eq(((2.0 * level) / 3).to_i)
 							end
+						end
+					end
+				end
+			end
+
+			it 'calculates skill ranks for single classes correctly' do
+				(0..20).to_a.each do |level|
+					fast = ((5.0 * level) / 3).to_i
+					slow = ((2.0 * level) / 3).to_i
+
+					{"cleric": {"healing": fast, "religion": fast, "acrobatics": slow, "stealth": slow},
+					"barbarian": {"athletics": fast, "intimidation": fast, "planes": slow, "disguise": slow}}.each do |klass_name, skill_data|
+						skill_data.each do |skill_name, expected|
+							character = CharacterSheet.new(character_list.sample)
+							test_klass = SingleKlassProgress.force_values(klass_name.to_s, level, [])
+							character.instance_variable_set(:@klass_list, [test_klass])
+							expect(character.skill_ranks(skill_name.to_sym)).to eq(expected)
 						end
 					end
 				end

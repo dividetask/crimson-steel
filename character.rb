@@ -1,15 +1,22 @@
 require_relative 'tools'
 
 class SingleKlassProgress
-  attr_reader :name, :level, :skills
-	def initialize(klass_data); @name = klass_data['class']; @level = klass_data['level'].to_i; @skills = klass_data['skills']; end
+  attr_reader :name, :level, :skill_list
+	def initialize(klass_data); @name = klass_data['class']; @level = klass_data['level'].to_i; @skill_list = klass_data['skills']; end
 	def self.force_values(name, level, skill_list); return SingleKlassProgress.new({"level" => level, "class" => name, "skills" => skill_list}); end
 
 	def save_ranks(attr, rules)
 		return ranks(rules["class_advancement"][@name]["saves"][attr.to_s], rules["advancement"]["competency"]["save_ranks_per_level"])
 	end
 
+	def is_class_skill(skill, rules); return rules["reference"]["class_skills"][@name.to_s].include?(skill.to_s); end
+	def skill_ranks(skill, rules)
+		return 0 unless @skill_list.include?(skill)
+		return ranks(skill_adv_rate(skill,rules), rules["advancement"]["competency"]["skill_ranks_per_level"])
+	end
+
 	private
+	def skill_adv_rate(skill, rules); return is_class_skill(skill, rules) ? 3 : 1; end
 	def ranks(adv_rate, adv_rules); mod = adv_rules[adv_rate - 1]; return (@level.to_f * mod[0].to_f / mod[1].to_f).to_i; end
 end
 
@@ -23,7 +30,8 @@ module KlassProgress
 	def save_dice(attr); parse_formula(@rules["advancement"]["competency"]["save_dice"], {"ranks" => save_total(attr)}); end
 	def save_bonus(attr); parse_formula(@rules["advancement"]["competency"]["save_bonus"], {"ranks" => save_total(attr)}); end
 
-	def skill_ranks(skill); 5; end
+	def skill_ranks(skill); return @klass_list.sum { |progress| progress.skill_ranks(skill, @rules) }; end
+	def skill_list(); return @klass_list.map { |progress| progress.skill_list }.flatten; end
 	#def skill_dice(skill); parse_formula(@rules["advancement"]["competency"]["skill_dice"], {"ranks" => skill_ranks(skill)}); end
 	#def skill_bonus(skill); parse_formula(@rules["advancement"]["competency"]["skill_bonus"], {"ranks" => skill_ranks(skill)}); end
 end
@@ -38,9 +46,9 @@ module SkillMath
 	#def skill_dice(skill); parse_formula(@rules["advancement"]["competency"]["attribute_dice"], {"attr" => attr}); end
 			#"skill_dice": "6+((skill/2)%5)",
 
-	def skills
-		return [ {name: "Heal", ranks: 6, dice: 6, bonus: 2}, {name: "Sense Motive", ranks: 6, dice: 6, bonus: 2} ]
-	end
+	#def skills
+		#return [ {name: "Heal", ranks: 6, dice: 6, bonus: 2}, {name: "Sense Motive", ranks: 6, dice: 6, bonus: 2} ]
+	#end
 end
 
 module BaseStatsMath

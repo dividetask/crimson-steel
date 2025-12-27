@@ -94,13 +94,13 @@
           <th>Dice</th>
           <th>Bonus</th>
         </tr>
-        <% @character.skills.each do |skill_details| %>
+        <% @character.skill_list.each do |skill_name| %>
         <tr>
           <td>X</td>
-          <td><%= skill_details[:name] %></td>
-          <td><%= skill_details[:ranks] %></td>
-          <td><%= skill_details[:dice] %>d</td>
-          <td><%= skill_details[:bonus] %>d</td>
+          <td><%= skill_name.capitalize %></td>
+          <td><%= @character.skill_ranks(skill_name) %></td>
+          <td><%= 0 %>d</td>
+          <td><%= 0 %>d</td>
         </tr>
         <% end %>
       </table>
