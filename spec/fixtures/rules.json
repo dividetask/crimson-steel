@@ -8,7 +8,7 @@
 			"nature", "nobility", "perform_", "persuasion", "planes", "profession_", "restricted_magic", "religion", "ride", "sense_motive", 
 			"slight_of_hand", "stealth", "survival", "use_magic_device"],
 		"class_skills": { 
-			"barbarian":					["animal_handling", "athletics", "craft_", "healing", "intimidation", "nature", "perception", "survival"],
+			"barbarian":					["animal_handling", "athletics", "craft_", "healing", "intimidate", "nature", "perception", "survival"],
 			"bard": 							["acrobatics", "animal_handling", "appraisal", "arcana", "athletics", "craft_", "deception", "disguise", 
 				"dungeoneering", "escape_artist", "healing", "history", "intimidate", "investigation", "larceny", "linguistics", 
 				"nature", "nobility", "perform_", "persuasion", "planes", "profession_", "religion", "ride", "sense_motive", 

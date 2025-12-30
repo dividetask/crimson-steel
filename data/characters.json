@@ -13,7 +13,7 @@
 			"wis": 18,
 			"cha": 11
 		},
-		"classes": [{"level": 4, "class": "cleric", "skills": ["heal", "sense_motive", "arcana", "survival", "intimidate", "perception"] }],
+		"classes": [{"level": 4, "class": "cleric", "skills": ["healing", "sense_motive", "arcana", "nature", "intimidate", "perception"] }],
 		"feats": { "race": ["armor_training"]}
 	},
 	{
@@ -29,7 +29,7 @@
 			"wis": 13,
 			"cha": 10
 		},
-		"classes": [{"level": 4, "class": "barbarian", "skills": ["athletics", "survival", "sense_motive", "stealth" ] }],
+		"classes": [{"level": 4, "class": "barbarian", "skills": ["athletics", "nature", "sense_motive", "stealth" ] }],
 		"feats": {"class": ["cleave"]}
 	},
 	{

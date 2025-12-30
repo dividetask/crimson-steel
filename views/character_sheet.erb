@@ -88,7 +88,6 @@
       <h2>Skills</h2>
       <table class="skills">
         <tr>
-          <th>CS</th>
           <th>Name</th>
           <th>Ranks</th>
           <th>Dice</th>
@@ -96,11 +95,10 @@
         </tr>
         <% @character.skill_list.each do |skill_name| %>
         <tr>
-          <td>X</td>
-          <td><%= skill_name.capitalize %></td>
+          <td><%= @character.clean_skill_name(skill_name) %></td>
           <td><%= @character.skill_ranks(skill_name) %></td>
-          <td><%= 0 %>d</td>
-          <td><%= 0 %>d</td>
+          <td><%= @character.skill_dice(skill_name) %>d</td>
+          <td><%= @character.add_plus(:skill_bonus,skill_name) %></td>
         </tr>
         <% end %>
       </table>

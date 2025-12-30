@@ -146,8 +146,13 @@ table th {
 }
 
 .skills td:first-child {
+  text-align: left;
+}
+
+.skills td:not(:first-child),
+.skills th:not(:first-child) {
+  width: 50px;
   text-align: center;
-  width: 30px;
 }
 
 .combat th {

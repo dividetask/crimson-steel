@@ -11,12 +11,12 @@ class SingleKlassProgress
 
 	def is_class_skill(skill, rules); return rules["reference"]["class_skills"][@name.to_s].include?(skill.to_s); end
 	def skill_ranks(skill, rules)
-		return 0 unless @skill_list.include?(skill)
+		return 0 unless @skill_list.include?(skill.to_s)
 		return ranks(skill_adv_rate(skill,rules), rules["advancement"]["competency"]["skill_ranks_per_level"])
 	end
 
 	private
-	def skill_adv_rate(skill, rules); return is_class_skill(skill, rules) ? 3 : 1; end
+	def skill_adv_rate(skill, rules); return is_class_skill(skill, rules) ? 3 : 2; end
 	def ranks(adv_rate, adv_rules); mod = adv_rules[adv_rate - 1]; return (@level.to_f * mod[0].to_f / mod[1].to_f).to_i; end
 end
 
@@ -30,10 +30,14 @@ module KlassProgress
 	def save_dice(attr); parse_formula(@rules["advancement"]["competency"]["save_dice"], {"ranks" => save_total(attr)}); end
 	def save_bonus(attr); parse_formula(@rules["advancement"]["competency"]["save_bonus"], {"ranks" => save_total(attr)}); end
 
+	def clean_skill_name(skill); return skill.gsub('_', ' ').split(' ').map(&:capitalize).join(' '); end
+  
+	def get_skill_attr(skill); return @rules["reference"]["skill_list"][skill.to_s].to_sym; end
+	def skill_total(skill); attr = get_skill_attr(skill).to_sym; return skill_ranks(skill) + half_mod(attr); end
 	def skill_ranks(skill); return @klass_list.sum { |progress| progress.skill_ranks(skill, @rules) }; end
 	def skill_list(); return @klass_list.map { |progress| progress.skill_list }.flatten; end
-	#def skill_dice(skill); parse_formula(@rules["advancement"]["competency"]["skill_dice"], {"ranks" => skill_ranks(skill)}); end
-	#def skill_bonus(skill); parse_formula(@rules["advancement"]["competency"]["skill_bonus"], {"ranks" => skill_ranks(skill)}); end
+	def skill_dice(skill); parse_formula(@rules["advancement"]["competency"]["skill_dice"], {"ranks" => skill_total(skill)}); end
+	def skill_bonus(skill); parse_formula(@rules["advancement"]["competency"]["skill_bonus"], {"ranks" => skill_total(skill)}); end
 end
 
 module SkillMath

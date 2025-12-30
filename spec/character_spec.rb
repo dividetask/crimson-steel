@@ -241,19 +241,53 @@ RSpec.describe CharacterSheet do
 			it 'calculates skill ranks for single classes correctly' do
 				(0..20).to_a.each do |level|
 					fast = ((5.0 * level) / 3).to_i
-					slow = ((2.0 * level) / 3).to_i
+					slow = ((3.0 * level) / 3).to_i
 
 					{"cleric": {"healing": fast, "religion": fast, "acrobatics": slow, "stealth": slow},
-					"barbarian": {"athletics": fast, "intimidation": fast, "planes": slow, "disguise": slow}}.each do |klass_name, skill_data|
+					"barbarian": {"athletics": fast, "intimidate": fast, "planes": slow, "disguise": slow}}.each do |klass_name, skill_data|
 						skill_data.each do |skill_name, expected|
 							character = CharacterSheet.new(character_list.sample)
-							test_klass = SingleKlassProgress.force_values(klass_name.to_s, level, [])
+							test_klass = SingleKlassProgress.force_values(klass_name.to_s, level, [skill_name.to_s])
 							character.instance_variable_set(:@klass_list, [test_klass])
 							expect(character.skill_ranks(skill_name.to_sym)).to eq(expected)
 						end
 					end
 				end
 			end
+
+			it 'calculates skill total for single classes correctly' do
+				(0..20).to_a.each do |ranks|
+					(0..20).to_a.each do |score|
+						{"healing": :wis, "religion": :int, "acrobatics": :dex, "stealth": :dex, 
+						"athletics": :str, "intimidate": :cha, "planes": :int, "disguise": :cha}.each do |skill_name, attr|
+							character = CharacterSheet.new(character_list.sample)
+							allow(character).to receive(attr).and_return(score)
+							allow(character).to receive(:skill_ranks).and_return(ranks)
+							expect(character.skill_total(skill_name.to_sym)).to eq((score / 2).to_i + ranks)
+						end
+					end
+				end
+			end
+
+			it 'calculates get skill attr skill correctly' do
+				{"healing": :wis, "religion": :int, "acrobatics": :dex, "stealth": :dex, 
+				"athletics": :str, "intimidate": :cha, "planes": :int, "disguise": :cha}.each do |skill_name, attr|
+					character = CharacterSheet.new(character_list.sample)
+					expect(character.get_skill_attr(skill_name)).to eq(attr)
+				end
+			end
+
+			it 'calculates get skill data correctly' do
+				skill_data = {"healing" => 8, "religion" => 8, "acrobatics" => 5, "stealth" => 5}
+				character = CharacterSheet.new(character_list.sample)
+				test_klass = SingleKlassProgress.force_values('cleric', 5, skill_data.keys)
+				character.instance_variable_set(:@klass_list, [test_klass])
+				expect(character.skill_list).to eq(skill_data.keys)
+				skill_data.each do |skill_name, expected|
+					expect(character.skill_ranks(skill_name)).to eq(expected)
+				end
+			end
+
 		end
 	end
 
