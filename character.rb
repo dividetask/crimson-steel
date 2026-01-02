@@ -1,5 +1,12 @@
 require_relative 'tools'
 
+module Skills
+	def self.skill_group(skill, rules); return skill_list(rules).find { |skill_group, attr| skills_match?(skill_group, skill) }[0]; end
+	def self.skill_attr(skill, rules); return skill_list(rules)[skill_group(skill, rules)].to_sym; end
+	def self.skill_list(rules); rules["reference"]["skill_list"]; end
+	def self.skills_match?(skill_g, skill); skill_g == skill.to_s || (skill_g.end_with?('_') && skill.to_s.start_with?(skill_g)); end
+end
+
 class SingleKlassProgress
   attr_reader :name, :level, :skill_list
 	def initialize(klass_data); @name = klass_data['class']; @level = klass_data['level'].to_i; @skill_list = klass_data['skills']; end
@@ -9,12 +16,11 @@ class SingleKlassProgress
 		return ranks(rules["class_advancement"][@name]["saves"][attr.to_s], rules["advancement"]["competency"]["save_ranks_per_level"])
 	end
 
-	def is_class_skill(skill, rules); return rules["reference"]["class_skills"][@name.to_s].include?(skill.to_s); end
+	def is_class_skill(skill, rules); return rules['reference']['class_skills'][@name].include?(Skills.skill_group(skill, rules)); end
 	def skill_ranks(skill, rules)
 		return 0 unless @skill_list.include?(skill.to_s)
 		return ranks(skill_adv_rate(skill,rules), rules["advancement"]["competency"]["skill_ranks_per_level"])
 	end
-
 	private
 	def skill_adv_rate(skill, rules); return is_class_skill(skill, rules) ? 3 : 2; end
 	def ranks(adv_rate, adv_rules); mod = adv_rules[adv_rate - 1]; return (@level.to_f * mod[0].to_f / mod[1].to_f).to_i; end
@@ -32,7 +38,7 @@ module KlassProgress
 
 	def clean_skill_name(skill); return skill.gsub('_', ' ').split(' ').map(&:capitalize).join(' '); end
   
-	def get_skill_attr(skill); return @rules["reference"]["skill_list"][skill.to_s].to_sym; end
+	def get_skill_attr(skill); return @rules["reference"]["skill_list"][Skills.skill_group(skill, rules)].to_sym; end
 	def skill_total(skill); attr = get_skill_attr(skill).to_sym; return skill_ranks(skill) + half_mod(attr); end
 	def skill_ranks(skill); return @klass_list.sum { |progress| progress.skill_ranks(skill, @rules) }; end
 	def skill_list(); return @klass_list.map { |progress| progress.skill_list }.flatten; end
@@ -66,6 +72,7 @@ module BaseStatsMath
 	def int; return @data["ability_scores"]["int"].to_i; end
 	def wis; return @data["ability_scores"]["wis"].to_i; end
 	def cha; return @data["ability_scores"]["cha"].to_i; end
+	def initiative; return half_mod(:wis); end
 	def score(attr); self.send(attr); end
 	def half_mod(attr); (self.send(attr) / 2).to_i; end
 	def attr_dice(attr); parse_formula(@rules["advancement"]["competency"]["attribute_dice"], {"attr" => attr}); end
@@ -134,9 +141,10 @@ class CharacterSheet
 	def player; @data["player"]; end
 	def deity; @data["deity"]; end
 	def race; @data["race"].reverse.join(' ').capitalize; end
+	def speed; @data["speed"]; end
 	def damage_reduction(); tier_damage_reduction; end  #Needs to add for armor
 	def damage_resiliance(); tier_damage_resiliance; end  #Needs to add for armor
-	def add_plus(func, params = nil); r = send(func,params); return "#{'+' if r >= 0}#{r}"; end
+	def add_plus(func, params = nil); r = params ? send(func, params) : send(func); return "#{'+' if r >= 0}#{r}"; end
 
 	private
 
