@@ -22,9 +22,12 @@ class SingleKlassProgress
 		return ranks(skill_adv_rate(skill,rules), rules["advancement"]["competency"]["skill_ranks_per_level"])
 	end
 	def mana_from_klass(rules); rules["class_advancement"][@name]["mana"].to_i * @level; end
+	def speed_modifiers(rules); (speed_rules(rules)["class"][@name] || []).sum { |level, bonus| @level >= level.to_i ? bonus.to_i : 0}; end
+
 	private
 	def skill_adv_rate(skill, rules); return is_class_skill(skill, rules) ? 3 : 2; end
 	def ranks(adv_rate, adv_rules); mod = adv_rules[adv_rate - 1]; return (@level.to_f * mod[0].to_f / mod[1].to_f).to_i; end
+	def speed_rules(rules); return rules["reference"]["speed_modifiers"]; end
 end
 
 module KlassProgress
@@ -48,7 +51,9 @@ module KlassProgress
 
 	def full_klass(); @data["classes"].map { |klass| "#{klass["class"]} #{klass["level"]}" }.join(', '); end
 	def bab; return @klass_list.sum { |progress| progress.skill_ranks(:bab, @rules) }; end
-	def mana_from_klasses; return @klass_list.sum { |progress| progress.mana_from_klass(rules) }; end
+	def mana_from_klasses; return @klass_list.sum { |progress| progress.mana_from_klass(@rules) }; end
+
+	def speed_modifiers; return @klass_list.sum { |progress| progress.speed_modifiers(@rules) }; end
 end
 
 module SkillMath
@@ -97,7 +102,6 @@ end
 class CharacterSheet
   include TierMath
 	include KlassProgress
-  #include KlassMath
   include BaseStatsMath
   include SkillMath
   attr_reader :rules, :id, :data
@@ -113,7 +117,10 @@ class CharacterSheet
 	def player; @data["player"]; end
 	def deity; @data["deity"]; end
 	def race; @data["race"].reverse.join(' ').capitalize; end
-	def speed; @data["speed"]; end
+	def race_sym; return (@data["race"][0] || @data["race"]).to_sym; end
+	def speed; return 30 + @rules["reference"]["speed_modifiers"]["race"][race_sym.to_s].to_i + speed_modifiers; end
+	def speed_modifiers; return 0 + super; end
+
 	def damage_reduction(); tier_damage_reduction; end  #Needs to add for armor
 	def damage_resiliance(); tier_damage_resiliance; end  #Needs to add for armor
 	def add_plus(func, params = nil); r = params ? send(func, params) : send(func); return "#{'+' if r >= 0}#{r}"; end

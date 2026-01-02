@@ -2,6 +2,7 @@
   "version": "0.1",
 
 	"reference": {
+		"speed_modifiers": {"race": {"dwarf": -10, "satyr": 5}, "class": {"barbarian": {"2": 10}}},
 		"attribute_list": ["str", "dex", "con", "int", "wis", "cha"],
 		"skill_list": {"acrobatics": "dex", "animal_handling": "cha", "appraisal": "int", "arcana": "int", "athletics": "str", 
 		"craft_": "int", "deception": "cha", "disguise": "cha", "druidic": "wis", "dungeoneering": "int", "escape_artist": "dex", 

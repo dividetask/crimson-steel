@@ -126,6 +126,10 @@ table th {
   font-size: 10px;
 }
 
+.attributes {
+  margin-bottom: 0px;
+}
+
 .attributes td:first-child {
   font-weight: bold;
 }
@@ -143,6 +147,10 @@ table th {
 .attributes td:nth-child(3),
 .attributes th:nth-child(3) {
   border-left: none;
+}
+
+.skills {
+  margin-bottom: 0px;
 }
 
 .skills td:first-child {
