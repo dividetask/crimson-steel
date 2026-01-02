@@ -6,10 +6,35 @@ RSpec.describe CharacterSheet do
 	let(:rules) { JSON.parse(File.read('spec/fixtures/rules.json')) }
 	let(:character_list) { JSON.parse(File.read('spec/fixtures/characters.json')) }
 
-				#['cleric', 'barbarian', 'fighter'].each do |klass_name|
-					#test_level = (1..20).to_a.sample
-					#test_klass = SingleKlassProgress.force_values(klass_name, test_level, [])
-					#character.instance_variable_set(:@klass_list, [test_klass])
+	describe '#BaseStatsMath' do
+		context 'attributes' do
+			it 'returns basic attributes correctly' do
+				[:str, :dex, :con, :int, :wis, :cha].each do |attr_sym|
+					attr_val = (1..40).to_a.sample
+					character = CharacterSheet.new(character_list.sample)
+					character.instance_variable_set(:@data, {"ability_scores" => {attr_sym.to_s => attr_val}})
+					expect(character.send(attr_sym)).to eq(attr_val)
+					expect(character.score(attr_sym)).to eq(attr_val)
+				end
+			end
+
+			it 'returns initiative correctly' do
+				attr_val = (1..40).to_a.sample
+				character = CharacterSheet.new(character_list.sample)
+				character.instance_variable_set(:@data, {"ability_scores" => {"wis" => attr_val}})
+				expect(character.initiative).to eq(attr_val / 2)
+			end
+
+			it 'returns half_mod correctly' do
+				[3, 5, 9, 11, 2, 8, 14, 44].each do |attr_val|
+					attr_sym = [:str, :dex, :con, :int, :wis, :cha].sample
+					character = CharacterSheet.new(character_list.sample)
+					character.instance_variable_set(:@data, {"ability_scores" => {attr_sym.to_s => attr_val}})
+					expect(character.half_mod(attr_sym)).to eq((attr_val / 2).to_i)
+				end
+			end
+		end
+	end
 
 	describe '#TierMath' do
 		context 'tier' do
