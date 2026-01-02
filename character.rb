@@ -21,6 +21,7 @@ class SingleKlassProgress
 		return 0 unless @skill_list.include?(skill.to_s)
 		return ranks(skill_adv_rate(skill,rules), rules["advancement"]["competency"]["skill_ranks_per_level"])
 	end
+	def mana_from_klass(rules); rules["class_advancement"][@name]["mana"].to_i * @level; end
 	private
 	def skill_adv_rate(skill, rules); return is_class_skill(skill, rules) ? 3 : 2; end
 	def ranks(adv_rate, adv_rules); mod = adv_rules[adv_rate - 1]; return (@level.to_f * mod[0].to_f / mod[1].to_f).to_i; end
@@ -44,6 +45,10 @@ module KlassProgress
 	def skill_list(); return @klass_list.map { |progress| progress.skill_list }.flatten; end
 	def skill_dice(skill); parse_formula(@rules["advancement"]["competency"]["skill_dice"], {"ranks" => skill_total(skill)}); end
 	def skill_bonus(skill); parse_formula(@rules["advancement"]["competency"]["skill_bonus"], {"ranks" => skill_total(skill)}); end
+
+	def full_klass(); @data["classes"].map { |klass| "#{klass["class"]} #{klass["level"]}" }.join(', '); end
+	def bab; return @klass_list.sum { |progress| progress.skill_ranks(:bab, @rules) }; end
+	def mana_from_klasses; return @klass_list.sum { |progress| progress.mana_from_klass(rules) }; end
 end
 
 module SkillMath
@@ -84,48 +89,15 @@ module BaseStatsMath
 end
 
 module TierMath
-	def tier
-		@rules["advancement"]["tier"].each_with_index do |threshold, tier|
-			return tier if level < threshold
-		end
-		
-		@rules["advancement"]["tier"].length
-	end
+	def tier; @rules["advancement"]["tier"].find_index { |threshold| level < threshold } || @rules["advancement"]["tier"].length; end
 	def tier_damage_reduction(); @rules["tier"]["damage_reduction"][tier]; end
 	def tier_damage_resiliance(); @rules["tier"]["damage_resiliance"][tier]; end
-end
-
-module KlassMath
-	def full_klass(); @data["classes"].map { |klass| "#{klass["class"]} #{klass["level"]}" }.join(', '); end
-
-	def bab
-		bab_increases = @data["classes"].map do |klass|
-			bab_adv_rate = @rules["class_advancement"][klass["class"]]["bab"]
-			bab_mod = @rules["advancement"]["competency"]["bab_ranks_per_level"][bab_adv_rate - 1]
-			(klass["level"].to_f * bab_mod[0].to_f / bab_mod[1].to_f).to_i
-		end
-		bab_increases.sum
-	end
-
-	def mana_from_klasses; @data["classes"].map { |klass| @rules["class_advancement"][klass["class"]]["mana"].to_i * klass["level"]}.sum; end
-
-	private
-	def competency; return @rules["advancement"]["competency"]; end
-	def klass_rules(klass_name); return @rules["class_advancement"][klass_name]; end
-
-	def bab_klass_priority(klass_name); return klass_rules(klass_name)["bab"]; end
-	def bab_per_level(klass_name); frac = competency["bab_ranks_per_level"][bab_klass_priority(klass_name)]; return frac[0].to_f / frac[1].to_f; end
-
-	def bab_from_klass(klass_index)
-		klass_data = @data["classes"][klass_index]
-		return (klass_data["level"].to_i * bab_per_level(klass_data["class"])).to_i
-	end
 end
 
 class CharacterSheet
   include TierMath
 	include KlassProgress
-  include KlassMath
+  #include KlassMath
   include BaseStatsMath
   include SkillMath
   attr_reader :rules, :id, :data

@@ -6,6 +6,29 @@ RSpec.describe CharacterSheet do
 	let(:rules) { JSON.parse(File.read('spec/fixtures/rules.json')) }
 	let(:character_list) { JSON.parse(File.read('spec/fixtures/characters.json')) }
 
+				#['cleric', 'barbarian', 'fighter'].each do |klass_name|
+					#test_level = (1..20).to_a.sample
+					#test_klass = SingleKlassProgress.force_values(klass_name, test_level, [])
+					#character.instance_variable_set(:@klass_list, [test_klass])
+
+	describe '#TierMath' do
+		context 'tier' do
+			it 'tier is correct' do
+				current_tier = 0
+				tier_rules = [4, 9, 12, 16, 20]
+				character = CharacterSheet.new(character_list.first)
+
+				character.instance_variable_set(:@rules, {"advancement" => {"tier" => tier_rules} })
+				test_level = (1..25).to_a.each do |level|
+
+					allow(character).to receive(:level).and_return(level)
+					current_tier = current_tier + 1 if tier_rules[current_tier] and level >= tier_rules[current_tier]
+					expect(character.tier).to eq(current_tier)
+				end
+			end
+		end
+	end
+
 	describe '#Skills' do
 		context "skills_match?" do
 			it "Handles skill categories" do
