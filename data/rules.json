@@ -10,6 +10,27 @@
 		"linguistics": "int", "nature": "wis", "nobility": "int", "perform_": "cha", "perception": "wis", "persuasion": "cha", 
 		"planes": "int", "profession_": "wis", "restricted_magic": "int", "religion": "int", "ride": "dex", "sense_motive": "wis", 
 		"slight_of_hand": "dex", "stealth": "dex", "use_magic_device": "cha"},
+		"class_abilities": {
+			"barbarian": {
+				"1": ["rage", "fast_movement", "reckless_attacks"],
+				"2": ["uncanny_dodge", "primal_tenacity", "combat_feat"],
+				"3": ["mindless_rage"],
+				"4": []},
+			"bard": {
+				"1": ["magical_performance", "bardic_spellcasting", "bardic_inspiration"],
+				"2": ["jack_of_all_trades", "better_lucky_than_good", "performance_feat"],
+				"3": ["silver_tongue", "unsettling_words"],
+				"4": ["versatile_performance"]},
+			"cleric": {
+				"1": ["see_injury", "improved_healing", "combat_healing", "domain"],
+				"2": ["channel_divinity", "turn_undead", "casting_feat"],
+				"3": [],
+				"4": []},
+			"arcane_trickster": {
+				"1": ["trapfinding", "sneak_attack", "thieves_cant"],
+				"2": ["danger_sense", "combat_trickery", "mage_hand_legermain"],
+				"3": [],
+				"4": []}},
 		"class_skills": { 
 			"barbarian":					["animal_handling", "athletics", "craft_", "healing", "intimidate", "nature", "perception"],
 			"bard": 							["acrobatics", "animal_handling", "appraisal", "arcana", "athletics", "craft_", "deception", "disguise", 

@@ -11,7 +11,9 @@ RSpec.describe CharacterSheet do
 				p ''
 				character_list.each do |character_data|
 					character = CharacterSheet.new(character_data)
-					p "#{character.name} - #{character.speed}"
+					character.item_list.each do |item_data|
+						p "#{item_data["name"]} #{item_data["description"].to_s}"
+					end
 				end
 			end
 		end

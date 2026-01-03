@@ -1,5 +1,13 @@
 require_relative 'tools'
 
+class Compendium
+  attr_reader :data
+
+  def initialize; @data = Tools.load_json('compendium.json'); end
+	def format_name(ability_name); return ability_name.gsub('_', ' ').split(' ').map(&:capitalize).join(' '); end
+	def ability(entry); return @data["abilities"][entry.to_s]; end
+end
+
 module Skills
 	def self.skill_group(skill, rules); return skill_list(rules).find { |skill_group, attr| skills_match?(skill_group, skill) }[0]; end
 	def self.skill_attr(skill, rules); return skill_list(rules)[skill_group(skill, rules)].to_sym; end
@@ -21,8 +29,12 @@ class SingleKlassProgress
 		return 0 unless @skill_list.include?(skill.to_s)
 		return ranks(skill_adv_rate(skill,rules), rules["advancement"]["competency"]["skill_ranks_per_level"])
 	end
+
+	def bab(rules); return ranks(rules["class_advancement"][@name]["bab"], rules["advancement"]["competency"]["skill_ranks_per_level"]); end
+
 	def mana_from_klass(rules); rules["class_advancement"][@name]["mana"].to_i * @level; end
 	def speed_modifiers(rules); (speed_rules(rules)["class"][@name] || []).sum { |level, bonus| @level >= level.to_i ? bonus.to_i : 0}; end
+	def ability_list(rules); return rules["reference"]["class_abilities"][@name].select { |level, list| @level >= level.to_i }.values.flatten; end
 
 	private
 	def skill_adv_rate(skill, rules); return is_class_skill(skill, rules) ? 3 : 2; end
@@ -33,7 +45,11 @@ end
 module KlassProgress
   attr_reader :klass_list
 
-	def initialize(character); @klass_list = character["classes"].map { |klass_data| SingleKlassProgress.new(klass_data) }; end
+	def initialize(character)
+		@klass_list = character["classes"].map { |klass_data| SingleKlassProgress.new(klass_data) }
+		super(character); rescue ArgumentError
+	end
+
 	def level(); @klass_list.sum(&:level); end
 	def save_total(attr); return save_ranks(attr) + half_mod(attr); end
 	def save_ranks(attr); return @klass_list.sum { |progress| progress.save_ranks(attr, @rules) }; end
@@ -49,11 +65,19 @@ module KlassProgress
 	def skill_dice(skill); parse_formula(@rules["advancement"]["competency"]["skill_dice"], {"ranks" => skill_total(skill)}); end
 	def skill_bonus(skill); parse_formula(@rules["advancement"]["competency"]["skill_bonus"], {"ranks" => skill_total(skill)}); end
 
+	def bab; return @klass_list.sum { |progress| progress.bab(@rules) }; end
+	def bab_total; return bab + half_mod(:dex); end
+	def bab_dice; parse_formula(@rules["advancement"]["competency"]["skill_dice"], {"ranks" => bab_total}); end
+	def bab_bonus; parse_formula(@rules["advancement"]["competency"]["skill_bonus"], {"ranks" => bab_total}); end
+
+	def attack_dice(weapon_bonus); parse_formula(@rules["advancement"]["competency"]["skill_dice"], {"ranks" => bab_total}); end
+	def attack_bonus(weapon_bonus); parse_formula(@rules["advancement"]["competency"]["skill_bonus"], {"ranks" => bab_total}) + weapon_bonus; end
+
 	def full_klass(); @data["classes"].map { |klass| "#{klass["class"]} #{klass["level"]}" }.join(', '); end
-	def bab; return @klass_list.sum { |progress| progress.skill_ranks(:bab, @rules) }; end
 	def mana_from_klasses; return @klass_list.sum { |progress| progress.mana_from_klass(@rules) }; end
 
-	def speed_modifiers; return @klass_list.sum { |progress| progress.speed_modifiers(@rules) }; end
+	def speed_modifiers; return @klass_list.sum { |progress| progress.speed_modifiers(@rules) } + (defined?(super) ? super : 0); end
+	def ability_list; return @klass_list.map { |progress| progress.ability_list(@rules) }.flatten; end
 end
 
 module SkillMath
@@ -99,11 +123,23 @@ module TierMath
 	def tier_damage_resiliance(); @rules["tier"]["damage_resiliance"][tier]; end
 end
 
+module CharacterEquipment
+  attr_reader :item_list, :all_items
+	def initialize(character); super(character) if defined?(super); @all_items = Tools.load_json('items.json'); refresh_items; end
+	def refresh_items; @item_list = @all_items.select { |item| item["owner_id"].to_i == @id }; end
+	def weapon_list; return @item_list.select { |item| item["type"] == "weapon" }; end
+	def shield_list; return @item_list.select { |item| item["type"] == "shield" }; end
+
+	def weapon_dice(weapon_data); attack_dice(weapon_data["bonus"]); end
+	def weapon_attack_bonus(weapon_data); attack_bonus(weapon_data["bonus"]); end
+end
+
 class CharacterSheet
   include TierMath
 	include KlassProgress
   include BaseStatsMath
   include SkillMath
+  include CharacterEquipment
   attr_reader :rules, :id, :data
 
   def initialize(character)

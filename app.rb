@@ -27,6 +27,8 @@ get '/character/:index' do
   @next_index = (index + 1) % characters.length
 
   @character = get_info(characters[index])
+	@compendium = Compendium.new
+
   @current_index = index
 
   erb :character_sheet

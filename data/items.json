@@ -1,4 +1,4 @@
-{
+[
 	{
 		"owner_id": 1,
 		"name": "Plate Armor",
@@ -15,6 +15,7 @@
 		"subtype": "light_shield",
 		"bonus": 1,
 		"properties": {},
+		"description": "A shining mental shield. It’s magic reduces TN to block and increases TN to attack you. Ranged magic attacks can be reflected",
 		"equipped": true
 	},
 	{
@@ -28,6 +29,7 @@
 				"emotional": 4
 			}
 		},
+		"description": "A jagged battle axe that giggles when drawn. It deals an additional 4 dice of emotional damage",
 		"equipped": true
 	},
 	{
@@ -39,5 +41,5 @@
 		"properties": {},
 		"equipped": false
 	}
-}
+]
 

@@ -22,11 +22,11 @@
     </div>
     <div class="stat-box">
       <span class="label">Perception</span>
-      <span class="value">9d (+1)</span>
+      <span class="value"><%= @character.skill_dice(:perception) %>d (<%= @character.add_plus(:skill_bonus,:perception) %>)</span>
     </div>
     <div class="stat-box">
       <span class="label">Initiative</span>
-      <span class="value">9</span>
+      <span class="value"><%= @character.initiative %></span>
     </div>
   </div>
 
@@ -106,40 +106,18 @@
 
       <h2>Additional Items</h2>
       <div class="items">
-        <p><strong>Healing Potion (1):</strong> Cure light wounds. Cures 2 moderate damage, 4 minor damage, and reduces bleeding by 10. Inflicts 7 magical saturation.</p>
-        <p><strong>Mana Potion (2):</strong> Grants 4 spell points. Inflicts 7 magical saturation.</p>
-        <p><strong>Flasks of Oil (2):</strong> This can be used to fill a lantern or thrown at an enemy. 10 feet of range when thrown</p>
-        <p><strong>Alchemist Fire (3):</strong> 10 range increment. Deals fire damage and burns for an additional round</p>
-        <p><strong>Acid (1):</strong> 10 range increment. Deals acid damage</p>
+        <% @character.item_list.each do |item_data| %>
+					<p><strong><%= item_data["name"] %>:</strong> <%= item_data["description"].to_s %></p>
+        <% end %>
       </div>
     </div>
 
     <div class="right-col">
       <h2>Abilities</h2>
 
-      <h3>At Will Abilities</h3>
-      <p><strong>See Injury:</strong> You can see all life energy within 30 feet. This starts at 10 feet and increases by 5 feet per two levels. Undead have a false life energy which can be seen, but they can attempt to hide it from you. All afflictions and magical saturation is visible to you. This ability does not work if you are blinded.</p>
-
-      <p><strong>Improved Healing:</strong> Your healing spells impose less magical saturation. Decrease magical saturation of your spells by spell level times 2. Cantrips count as ½ level. Cannot reduce below 1.</p>
-
-      <p><strong>Combat Healing:</strong> You can cast some healing spells as a main action. These spells must be prepared each day and cannot be changed until the next day. Currently 4 cantrips, and 5 1st level, 3 2nd level.</p>
-
-      <h3>1 Mana Per Use</h3>
-      <p><strong>Channel Divinity:</strong> You gain a number of abilities from your god. Using these abilities requires you to be in good standing with your god. Abilities granted are noted with (CD)</p>
-
-      <p><strong>(CD) Turn Undead:</strong> All undead within 30 feet must make a wisdom saving throw or become panicked.</p>
-
-      <p><strong>(CD) Cleave:</strong> After downing an opponent with a melee attack you can reuse half of the dice to make an additional attack against another target within reach. You cannot add dice to this attack.</p>
-
-      <h3>Unidentified Equipment</h3>
-      <p><strong>(?) "Narn" Armband:</strong> Unknown properties. Forged from dull red iron and wrapped in worn leather stamped with crude battle scenes, this child-sized armband resizes to fit its wearer.</p>
-
-      <p><strong>(?) Alric's Liquor:</strong> Unknown properties. A potion of hard liquor that magically refills. You currently assume drinking this might impose a compulsion or contract upon the drinker.</p>
-
-      <h3>Spells</h3>
-      <p><strong>(1)</strong> Stabilize, Sacred Flame, Magic Vestments</p>
-      <p><strong>(4)</strong> Cure Lesser Wounds, Healing Word, Command, Lesser Ward, Divine Favor, Shield of Faith</p>
-      <p><strong>(6)</strong> Magic Weapon, Spiritual Weapon, Hold Person, Silence, Blindness/Deafness, Augury, Cure Simple Wounds, Standard Ward, Locate Object, Augury, Protection from Poison, Standard Surgery</p>
+			<% @character.ability_list.each do |ability_name| %>
+				<p><strong><%= @compendium.format_name(ability_name) %>:</strong> <%= @compendium.ability(ability_name) %></p>
+			<% end %>
     </div>
   </div>
 
@@ -155,56 +133,31 @@
       <th>MT*</th>
       <th>Notes</th>
     </tr>
+
+<% (@character.shield_list + @character.weapon_list).each do |weapon| %>
     <tr>
-      <td>Last Laugh Axe</td>
-      <td>-2</td>
-      <td>7d</td>
-      <td>+2</td>
-      <td>+8</td>
-      <td>+7</td>
-      <td>5</td>
-      <td>+4d Emotional Damage</td>
-    </tr>
-    <tr>
-      <td>Longbow</td>
-      <td>-1/-1</td>
-      <td>7d</td>
-      <td>+1</td>
-      <td>+4</td>
-      <td>+4</td>
-      <td>4</td>
+      <td><%= weapon["name"] %></td>
+      <td></td>
+      <td><%= @character.weapon_dice(weapon) %>d</td>
+      <td><%= @character.add_plus(:weapon_attack_bonus, weapon) %></td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
       <td></td>
     </tr>
+<% end %>
+
     <tr>
-      <td>Thrown Item</td>
-      <td>-1/-1</td>
-      <td>7d</td>
-      <td>+1</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>10 foot range increment</td>
-    </tr>
-    <tr>
-      <td>Spells</td>
+      <td>Dodge</td>
       <td>0</td>
-      <td>6d</td>
-      <td>+2 + Tier</td>
-      <td>+6 + Tier</td>
-      <td>-</td>
-      <td>-</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>Block</td>
-      <td>0</td>
-      <td>7d</td>
-      <td>+2</td>
+      <td><%= @character.bab_dice %>d</td>
+      <td><%= @character.add_plus(:bab_bonus) %></td>
       <td>-</td>
       <td>-</td>
       <td>-</td>
       <td></td>
     </tr>
+
   </table>
   <div class="formula">* MT is the base threshold for major damage.</div>
 </div>
