@@ -15,11 +15,19 @@ body {
 }
 
 .navigation {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: white;
+  padding: 10px 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
-  padding: 10px 0;
+  width: 300px;
 }
 
 .nav-arrow {
@@ -44,6 +52,7 @@ body {
 .sheet {
   border: 2px solid #000;
   padding: 15px;
+  margin-bottom: 100px;  /* Add space at bottom */
 }
 
 .header {

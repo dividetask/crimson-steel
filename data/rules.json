@@ -10,6 +10,9 @@
 		"linguistics": "int", "nature": "wis", "nobility": "int", "perform_": "cha", "perception": "wis", "persuasion": "cha", 
 		"planes": "int", "profession_": "wis", "restricted_magic": "int", "religion": "int", "ride": "dex", "sense_motive": "wis", 
 		"slight_of_hand": "dex", "stealth": "dex", "use_magic_device": "cha"},
+		"abilities": {
+			"silver_tongue": {"passive": {"persuasion": "1", "deception": "1"}},
+			"rage": {"active": {"combat_pool": "level", "damage_reduction": "1+(level/3)", "damage_resiliance": "1+(level/2)"}}},
 		"class_abilities": {
 			"barbarian": {
 				"1": ["rage", "fast_movement", "reckless_attacks"],
