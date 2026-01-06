@@ -121,21 +121,6 @@ module KlassProgress
 	def damage_resiliance(); return @klass_list.sum { |progress| progress.damage_resiliance(@rules) } + (defined?(super) ? super : 0); end
 end
 
-module SkillMath
-	def combat_pool
-		pool_math = rules["advancement"]["competency"]["combat_pool"][tier]
-		combat_pool = pool_math["base"] + (pool_math["inc"] * level)
-		combat_pool = pool_math["max"] if combat_pool > pool_math["max"]
-		combat_pool + half_mod(:dex)
-	end
-	#def skill_dice(skill); parse_formula(@rules["advancement"]["competency"]["attribute_dice"], {"attr" => attr}); end
-			#"skill_dice": "6+((skill/2)%5)",
-
-	#def skills
-		#return [ {name: "Heal", ranks: 6, dice: 6, bonus: 2}, {name: "Sense Motive", ranks: 6, dice: 6, bonus: 2} ]
-	#end
-end
-
 module BaseStatsMath
 	def ability_score_names
 		return {"Strength" => :str, "Dexterity" => :dex, "Constitution" => :con, "Intelligence" => :int, "Wisdom" => :wis, "Charisma"=> :cha }
@@ -164,6 +149,12 @@ module TierMath
 	def tier_damage_reduction(attacker_tier); r = @rules["tier"]["damage_reduction"]; [0, r[tier] - r[attacker_tier]].min; end
 	def damage_reduction(); return 0; end
 	def damage_resiliance(); return @rules["tier"]["damage_resiliance"][tier] + (defined?(super) ? super : 0); end
+	def combat_pool
+		pool_math = rules["advancement"]["competency"]["combat_pool"][tier]
+		combat_pool = pool_math["base"] + (pool_math["inc"] * level)
+		combat_pool = pool_math["max"] if combat_pool > pool_math["max"]
+		combat_pool + half_mod(:dex)
+	end
 end
 
 module CharacterEquipment
@@ -199,7 +190,6 @@ class CharacterSheet
   include TierMath
 	include KlassProgress
   include BaseStatsMath
-  include SkillMath
   include CharacterEquipment
   attr_reader :rules, :id, :data
 
