@@ -139,7 +139,6 @@ module BaseStatsMath
 	def attr_bonus(attr); parse_formula(@rules["advancement"]["competency"]["attribute_bonus"], {"attr" => attr}); end
 
 	def hp_max; return parse_formula(@rules["advancement"]["natural"]["hp"][tier]); end
-	#def mana_max; return parse_formula(@rules["advancement"]["natural"]["mana"][tier]) + mana_from_klasses; end
 	def mana_max; return parse_formula(@rules["advancement"]["natural"]["mana"][tier]) + (defined?(super) ? super : 0); end
 	def mana_regen; return (mana_max / 4).to_i; end
 end
@@ -161,6 +160,8 @@ module CharacterEquipment
   attr_reader :item_list, :all_items
 	def initialize(character); super(character) if defined?(super); @all_items = Tools.load_json('items.json'); refresh_items; end
 	def refresh_items; @item_list = @all_items.select { |item| item["owner_id"].to_i == @id }; end
+	def equip_search(params = {}); return @item_list.select { |item| params.map { |key, value| item[key] == value }.all? }; end
+
 	def weapon_list; return @item_list.select { |item| item["type"] == "weapon" }; end
 	def shield_list; return @item_list.select { |item| item["type"] == "shield" }; end
 	def equipped_list; return @item_list.select { |item| item["equipped"] == true }; end

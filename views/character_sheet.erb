@@ -106,7 +106,7 @@
 
       <h2>Additional Items</h2>
       <div class="items">
-				<p><strong>Equipped:</strong> <%= @character.equipped_list.map { |item| item["name"] }.join(", ") %></p>
+				<p><strong>Equipped:</strong> <%= @character.equip_search({"equipped" => true}).map { |item| item["name"] }.join(", ") %></p>
 				<% unless @character.ammunition.empty? %>
 					<p><strong>Ammunition:</strong> <%= @character.ammunition.map { |item| "(#{item['quantity'] || 1}) #{item['name']}" }.join(", ") %></p>
 				<% end %>
