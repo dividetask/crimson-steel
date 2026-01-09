@@ -91,7 +91,10 @@ module KlassProgress
 		return base + class_bonus
 	 end
 
-	def clean_skill_name(skill); return skill.gsub('_', ' ').split(' ').map(&:capitalize).join(' '); end
+	def clean_skill_name(skill)
+		return "Perform Sing (Deception, Sense Motive)" if name == 'Cottonballs' and skill == 'perform_sing'
+		return skill.gsub('_', ' ').split(' ').map(&:capitalize).join(' ')
+	end
   
 	def get_skill_attr(skill); return @rules["reference"]["skill_list"][Skills.skill_group(skill, rules)].to_sym; end
 	def skill_total(skill); attr = get_skill_attr(skill).to_sym; return skill_ranks(skill) + half_mod(attr); end
