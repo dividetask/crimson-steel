@@ -83,9 +83,9 @@ module KlassProgress
 	def level(); @klass_list.sum(&:level); end
 	def save_total(attr); return save_ranks(attr) + half_mod(attr); end
 	def save_ranks(attr); return @klass_list.sum { |progress| progress.save_ranks(attr, @rules) }; end
-	def save_dice(attr); parse_formula(@rules["advancement"]["competency"]["save_dice"], {"ranks" => save_total(attr)}); end
+	def save_dice(attr); parse_formula(@rules["reference"]["skill_dice"], {"ranks" => save_total(attr)}); end
 	def save_bonus(attr)
-		base = parse_formula(@rules["advancement"]["competency"]["save_bonus"], {"ranks" => save_total(attr)})
+		base = parse_formula(@rules["reference"]["skill_bonus"], {"ranks" => save_total(attr)})
 		class_bonus = @klass_list.sum { |progress| progress.save_bonus(attr, @rules) }
 		return base + class_bonus
 	 end
@@ -96,20 +96,20 @@ module KlassProgress
 	def skill_total(skill); attr = get_skill_attr(skill).to_sym; return skill_ranks(skill) + half_mod(attr); end
 	def skill_ranks(skill); return @klass_list.sum { |progress| progress.skill_ranks(skill, @rules) }; end
 	def skill_list(); return @klass_list.map { |progress| progress.skill_list }.flatten; end
-	def skill_dice(skill); parse_formula(@rules["advancement"]["competency"]["skill_dice"], {"ranks" => skill_total(skill)}); end
+	def skill_dice(skill); parse_formula(@rules["reference"]["skill_dice"], {"ranks" => skill_total(skill)}); end
 	def skill_bonus(skill)
-		base = parse_formula(@rules["advancement"]["competency"]["skill_bonus"], {"ranks" => skill_total(skill)})
+		base = parse_formula(@rules["reference"]["skill_bonus"], {"ranks" => skill_total(skill)})
 		class_bonus = @klass_list.sum { |progress| progress.skill_bonus(skill, @rules) }
 		return base + class_bonus
 	 end
 
 	def bab; return @klass_list.sum { |progress| progress.bab(@rules) }; end
 	def bab_total; return bab + half_mod(:dex); end
-	def bab_dice; parse_formula(@rules["advancement"]["competency"]["skill_dice"], {"ranks" => bab_total}); end
-	def bab_bonus; parse_formula(@rules["advancement"]["competency"]["skill_bonus"], {"ranks" => bab_total}); end
+	def bab_dice; parse_formula(@rules["reference"]["skill_dice"], {"ranks" => bab_total}); end
+	def bab_bonus; parse_formula(@rules["reference"]["skill_bonus"], {"ranks" => bab_total}); end
 
-	def attack_dice(weapon_bonus); parse_formula(@rules["advancement"]["competency"]["skill_dice"], {"ranks" => bab_total}); end
-	def attack_bonus(weapon_bonus); parse_formula(@rules["advancement"]["competency"]["skill_bonus"], {"ranks" => bab_total}) + weapon_bonus; end
+	def attack_dice(weapon_bonus); parse_formula(@rules["reference"]["skill_dice"], {"ranks" => bab_total}); end
+	def attack_bonus(weapon_bonus); parse_formula(@rules["reference"]["skill_bonus"], {"ranks" => bab_total}) + weapon_bonus; end
 
 	def full_klass(); @data["classes"].map { |klass| "#{klass["class"]} #{klass["level"]}" }.join(', '); end
 	def mana_max; return @klass_list.sum { |progress| progress.mana_max(@rules) } + (defined?(super) ? super : 0); end
@@ -135,8 +135,8 @@ module BaseStatsMath
 	def initiative; return half_mod(:wis); end
 	def score(attr); self.send(attr); end
 	def half_mod(attr); (self.send(attr) / 2).to_i; end
-	def attr_dice(attr); parse_formula(@rules["advancement"]["competency"]["attribute_dice"], {"attr" => attr}); end
-	def attr_bonus(attr); parse_formula(@rules["advancement"]["competency"]["attribute_bonus"], {"attr" => attr}); end
+	def attr_dice(attr); parse_formula(@rules["reference"]["skill_dice"], {"ranks" => 0}); end
+	def attr_bonus(attr); parse_formula(@rules["reference"]["skill_bonus"], {"ranks" => 0}); end
 
 	def hp_max; return parse_formula(@rules["advancement"]["natural"]["hp"][tier]); end
 	def mana_max; return parse_formula(@rules["advancement"]["natural"]["mana"][tier]) + (defined?(super) ? super : 0); end
