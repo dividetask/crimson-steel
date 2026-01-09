@@ -2,8 +2,8 @@
   "version": "0.1",
 
 	"reference": {
-		"skill_dice": "(ranks==0 ? 4 : 6)+((ranks/2)%5)",
-		"skill_bonus": "(ranks/5)-1",
+		"skill_dice": "(ranks==0 ? 4 : 6)+((ranks+half_attr)%5)",
+		"skill_bonus": "((ranks+half_attr)/5)-1",
 		"speed_modifiers": {"race": {"dwarf": -10, "satyr": 5}, "class": {"barbarian": {"2": 10}}},
 		"attribute_list": ["str", "dex", "con", "int", "wis", "cha"],
 		"skill_list": {"acrobatics": "dex", "animal_handling": "cha", "appraisal": "int", "arcana": "int", "athletics": "str", 
