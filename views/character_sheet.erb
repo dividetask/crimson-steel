@@ -149,12 +149,12 @@
 <% (@character.shield_list + @character.weapon_list).each do |weapon| %>
     <tr>
       <td><%= weapon["name"] %></td>
-      <td></td>
+      <td><%= @character.weapon_speed(weapon) %><%= @character.weapon_arm_speed(weapon) %></td>
       <td><%= @character.weapon_dice(weapon) %>d</td>
       <td><%= @character.add_plus(:weapon_attack_bonus, weapon) %></td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
+      <td><%= @character.weapon_dmg(weapon) %></td>
+      <td><%= @character.weapon_bleed(weapon) %></td>
+      <td><%= @character.weapon_threshold(weapon) %></td>
       <td></td>
     </tr>
 <% end %>

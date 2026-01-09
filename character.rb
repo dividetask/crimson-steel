@@ -170,6 +170,24 @@ module CharacterEquipment
 	def ammunition; return @item_list.select { |item| item["properties"]["ammunition"] == true }; end
 	def consumable; return @item_list.select { |item| item["properties"]["consumable"] == true }; end
 
+	def weapon_speed(weapon_data); (weapon_data["properties"]["details"] || []).sum { |detail| @rules["reference"]["weapon_speed"][detail].to_i }; end
+	def weapon_arm_speed(weapon_data); return ((weapon_data["properties"]["details"] || []).include?("ranged")) ? "+1" : ""; end
+	def weapon_dmg(weapon_data)
+		weight = weapon_data["properties"]["details"] & ['heavy', 'medium', 'light']
+		return '-' if weight == [] or weight == false
+		return parse_formula(@rules["reference"]["weapon_dmg"][weight.first])
+	end
+	def weapon_threshold(weapon_data)
+		dmg_type = weapon_data["properties"]["details"] & ["bludgeoning", "slashing", "piercing"]
+		return '-' if dmg_type == [] or dmg_type == false
+		return @rules["reference"]["weapon_threshold"][dmg_type.first]
+	end
+	def weapon_bleed(weapon_data)
+		dmg_type = weapon_data["properties"]["details"] & ["bludgeoning", "slashing", "piercing"]
+		return '-' if dmg_type == [] or dmg_type == false
+		return @rules["reference"]["weapon_bleed"][dmg_type.first]
+	end
+
 	def weapon_dice(weapon_data); attack_dice(weapon_data["bonus"]); end
 	def weapon_attack_bonus(weapon_data); attack_bonus(weapon_data["bonus"]); end
 
