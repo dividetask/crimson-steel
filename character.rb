@@ -1,5 +1,75 @@
 require_relative 'tools'
 
+class CombatTurn
+  attr_reader :rules, :character, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage
+
+  def initialize(combat_turn, character)
+		@rules = Tools.load_json('rules.json')
+		@initiative, @mana, @combat_pool = combat_turn['initiative'], combat_turn['mana'], combat_turn['combat_pool']
+		@minor_damage, @moderate_damage, @major_damage = combat_turn['minor_damage'], combat_turn['moderate_damage'], combat_turn['major_damage']
+		@character = CharacterSheet.new(character)
+	end
+
+	def new_turn; @combat_pool = @character.combat_pool; end
+	def reroll_init
+		@initiative = (1..10).to_a.sample(@character.initiative).sort.reverse.map { |i| i == 10 ? 'X' : i.to_s}.join
+	end
+
+	def init_to_a; @initiative.chars.map { |r| r == 'X' ? 10 : r.to_i }.sort.reverse; end
+
+	def to_json 
+		return {'id' => @character.id,
+			'initiative' => @initiative, 'mana' => @mana, 'combat_pool' => @combat_pool, 
+			'minor_damage' => @minor_damage, 'moderate_damage' => @moderate_damage, 'major_damage' => @major_damage}
+	end
+
+	def hp; return @character.hp_max - @minor_damage - @moderate_damage - @major_damage; end
+end
+
+class Combat
+  attr_reader :combat_turn_list
+
+  def initialize
+		character_list = Tools.load_json('characters.json')
+		@combat_turn_list = Tools.load_json('combat.json')['participants'].map do |combat_turn| 
+			CombatTurn.new(combat_turn, character_list.find { |c| c["id"] == combat_turn["id"] })
+		end
+		sort_init
+	end
+	def sort_init; @combat_turn_list = @combat_turn_list.sort { |a,b| init_compare(a,b) }; end
+
+	def init_compare(a,b)
+		a_list = a.init_to_a
+		b_list = b.init_to_a
+
+		a_cur = b_cur = 0
+		while ( (a_cur == b_cur) and (a_list.empty? == false) and (b_list.empty? == false) )
+			a_cur = a_list.shift
+			b_cur = b_list.shift
+		end
+		return 0 if a_cur == b_cur
+		return -1 if a_cur > b_cur or b_cur == nil
+		return 1 if b_cur > a_cur or a_cur == nil
+	end
+
+	def new_turn; @combat_turn_list.each(&:new_turn); update_data; end
+	def reroll_init; @combat_turn_list.each(&:reroll_init); sort_init; update_data; end
+	def update_data
+		combat_data = Tools.load_json('combat.json')
+		combat_data['participants'] = @combat_turn_list.map(&:to_json)
+		Tools.save_json('combat.json', combat_data)
+	end
+
+	def self.update(id, params)
+		combat_data = Tools.load_json('combat.json')
+		participant = combat_data['participants'].find { |p| p['id'] == id }
+		
+		return unless participant
+		params.each { |k, v| participant[k.to_s] = participant[k.to_s].to_i + v.to_i }
+		Tools.save_json('combat.json', combat_data)
+	end
+end
+
 class Compendium
   attr_reader :data
 

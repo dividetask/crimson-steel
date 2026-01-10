@@ -9,6 +9,51 @@ set :public_folder, File.join(__dir__, 'public')
 
 helpers CharacterHelpers
 
+get '/combat' do
+  redirect '/character/0' unless local_request?
+  @combat = Combat.new()
+  erb :combat_tracker
+end
+
+post '/combat/damage/:id' do
+  redirect '/character/0' unless local_request?
+  
+  id = params[:id].to_i
+	Combat.update(id, params.slice('minor_damage', 'moderate_damage', 'major_damage'))
+  redirect '/combat'
+end
+
+post '/combat/mana/:id' do
+  redirect '/character/0' unless local_request?
+  id = params[:id].to_i
+	Combat.update(id, {mana: params[:amount]})
+  redirect '/combat'
+end
+
+post '/combat/dice/:id' do
+  redirect '/character/0' unless local_request?
+  id = params[:id].to_i
+	Combat.update(id, {combat_pool: params[:amount]})
+  redirect '/combat'
+end
+
+post '/combat/reset_dice' do
+  redirect '/character/0' unless local_request?
+  combat = Combat.new()
+	combat.new_turn
+  redirect '/combat'
+end
+
+post '/combat/reroll_init' do
+  redirect '/character/0' unless local_request?
+  combat = Combat.new()
+	combat.reroll_init
+  redirect '/combat'
+end
+
+def local_request?
+  request.ip == "127.0.0.1" || request.ip == "::1" || request.ip == "localhost"
+end
 
 get '/' do
   redirect '/character/0'

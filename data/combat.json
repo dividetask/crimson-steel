@@ -2,5 +2,42 @@
   "active": false,
   "round": 0,
   "current_turn": 0,
-  "participants": []
+  "participants": [
+    {
+      "id": 1,
+      "initiative": "X97654321",
+      "mana": 5,
+      "combat_pool": 17,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0
+    },
+    {
+      "id": 2,
+      "initiative": "X86532",
+      "mana": 5,
+      "combat_pool": 18,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0
+    },
+    {
+      "id": 4,
+      "initiative": "987531",
+      "mana": 5,
+      "combat_pool": 19,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0
+    },
+    {
+      "id": 3,
+      "initiative": "9865431",
+      "mana": 5,
+      "combat_pool": 19,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0
+    }
+  ]
 }
