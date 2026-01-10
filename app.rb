@@ -60,21 +60,46 @@ get '/' do
 end
 
 get '/character/:index' do
-  characters = Tools.load_json('characters.json')
-  halt 404, "No characters found" if characters.empty?
+  character_list = Tools.load_json('characters.json').select { |character| character["group"] == "PC" }
+
+  halt 404, "No characters found" if character_list.empty?
   index = params[:index].to_i
 
   # Wrap around if index is out of bounds
-  index = index % characters.length
+  index = index % character_list.length
 
-  @total_characters = characters.length
-  @prev_index = (index - 1) % characters.length
-  @next_index = (index + 1) % characters.length
+  @total_characters = character_list.length
+  @prev_index = (index - 1) % character_list.length
+  @next_index = (index + 1) % character_list.length
 
-  @character = get_info(characters[index])
+  @character = get_info(character_list[index])
 	@compendium = Compendium.new
 
   @current_index = index
+  @route_prefix = '/character'
+
+  erb :character_sheet
+end
+
+get '/all_characters/:index' do
+  redirect '/character/0' unless local_request?
+  character_list = Tools.load_json('characters.json')
+
+  halt 404, "No characters found" if character_list.empty?
+  index = params[:index].to_i
+
+  # Wrap around if index is out of bounds
+  index = index % character_list.length
+
+  @total_characters = character_list.length
+  @prev_index = (index - 1) % character_list.length
+  @next_index = (index + 1) % character_list.length
+
+  @character = get_info(character_list[index])
+	@compendium = Compendium.new
+
+  @current_index = index
+  @route_prefix = '/all_characters'
 
   erb :character_sheet
 end

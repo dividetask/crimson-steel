@@ -39,6 +39,11 @@
 				"1": ["trapfinding", "sneak_attack", "thieves_cant"],
 				"2": ["danger_sense", "combat_trickery", "mage_hand_legermain"],
 				"3": [],
+				"4": []},
+			"rogue": {
+				"1": ["trapfinding", "sneak_attack", "thieves_cant"],
+				"2": ["danger_sense"],
+				"3": [],
 				"4": []}},
 		"class_skills": { 
 			"barbarian":					["animal_handling", "athletics", "craft_", "healing", "intimidate", "nature", "perception"],
@@ -47,6 +52,9 @@
 				"nature", "nobility", "perception", "perform_", "persuasion", "planes", "profession_", "religion", "ride", "sense_motive", 
 				"slight_of_hand", "stealth", "use_magic_device"],
 			"arcane_trickster": 	["acrobatics", "appraisal", "arcana", "athletics", "craft_", "deception", "disguise", "dungeoneering",
+				"escape_artist", "intimidate", "investigation", "larceny", "linguistics", "perception", "perform_", "persuasion", 
+				"profession_", "sense_motive", "slight_of_hand", "stealth", "use_magic_device"],
+			"rogue": 	["acrobatics", "appraisal", "arcana", "athletics", "craft_", "deception", "disguise", "dungeoneering",
 				"escape_artist", "intimidate", "investigation", "larceny", "linguistics", "perception", "perform_", "persuasion", 
 				"profession_", "sense_motive", "slight_of_hand", "stealth", "use_magic_device"],
 			"cleric": 						["appraisal", "arcana", "craft_", "healing", "history", "linguistics", "nobility", "persuasion",

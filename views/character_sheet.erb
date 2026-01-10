@@ -1,7 +1,7 @@
 <div class="navigation">
-  <a href="/character/<%= @prev_index %>" class="nav-arrow left">◀</a>
+  <a href="<%= @route_prefix %>/<%= @prev_index %>" class="nav-arrow left">◀</a>
   <span class="character-counter"><%= @current_index + 1 %> / <%= @total_characters %></span>
-  <a href="/character/<%= @next_index %>" class="nav-arrow right">▶</a>
+  <a href="<%= @route_prefix %>/<%= @next_index %>" class="nav-arrow right">▶</a>
 </div>
 
 <div class="sheet">

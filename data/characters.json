@@ -1,6 +1,7 @@
 [
 	{
 		"id": 1,
+		"group": "PC",
 		"name": "Stumpy",
 		"player": "Jarett",
 		"race": ["dwarf", "hill" ],
@@ -22,6 +23,7 @@
 	},
 	{
 		"id": 2,
+		"group": "PC",
 		"name": "Olga",
 		"player": "Candace",
 		"race": ["human"],
@@ -38,6 +40,7 @@
 	},
 	{
 		"id": 3,
+		"group": "PC",
 		"name": "Lysander",
 		"player": "Zack",
 		"race": ["elf", "high"],
@@ -58,6 +61,7 @@
 	},
 	{
 		"id": 4,
+		"group": "PC",
 		"name": "Cottonballs",
 		"player": "Dave",
 		"race": ["satyr"],
@@ -76,5 +80,21 @@
 		"spells": [ 
 			["Detect Magic", "Friends", "Ghost Sound", "Sift", "Stabilize", "Vacuous Vessel", "Vicious Mockery"],
 			["Biting Words", "Ears of the City", "Silent Image", "Timely Inspiration"]]
+	},
+	{
+		"id": 5,
+		"group": "Enemies",
+		"name": "Pirate",
+		"player": "DM",
+		"race": ["human"],
+		"ability_scores": {
+			"str": 13,
+			"dex": 14,
+			"con": 13,
+			"int": 12,
+			"wis": 10,
+			"cha": 8
+		},
+		"classes": [{"level": 1, "class": "rogue", "skills": ["acrobatics", "athletics", "deception", "intimidate", "perception", "profession_sailor", "sense_motive" ] }]
 	}
 ]
