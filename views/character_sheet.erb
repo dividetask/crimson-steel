@@ -130,6 +130,14 @@
 			<% @character.ability_list.each do |ability_name| %>
 				<p><strong><%= @compendium.format_name(ability_name) %>:</strong> <%= @compendium.ability(ability_name) %></p>
 			<% end %>
+
+			<% if @character.spell_list %>
+				<h2>Spell List</h2>
+
+				<% @character.spell_list.each.with_index do |spell_sub_list, index| %>
+					<p><strong><%= index %>:</strong> <%= spell_sub_list.join(', ') %></p>
+				<% end %>
+			<% end %>
     </div>
   </div>
 
@@ -172,4 +180,14 @@
 
   </table>
   <div class="formula">* MT is the base threshold for major damage.</div>
+
+
+  <h2>Items</h2>
+	<div class="items">
+
+		<% @character.defined_items.each do |item| %>
+			<p><strong><%= item['name'] %>:</strong> <%= item['description'] %></p>
+		<% end %>
+	</div>
+
 </div>

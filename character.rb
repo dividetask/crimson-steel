@@ -167,6 +167,7 @@ module CharacterEquipment
 	def refresh_items; @item_list = @all_items.select { |item| item["owner_id"].to_i == @id }; end
 	def equip_search(params = {}); return @item_list.select { |item| params.map { |key, value| item[key] == value }.all? }; end
 
+	def defined_items; return @item_list.select { |item| item["description"] }; end
 	def weapon_list; return @item_list.select { |item| item["type"] == "weapon" }; end
 	def shield_list; return @item_list.select { |item| item["type"] == "shield" }; end
 	def equipped_list; return @item_list.select { |item| item["equipped"] == true }; end
@@ -238,6 +239,7 @@ class CharacterSheet
 
 	def add_plus(func, params = nil); r = params ? send(func, params) : send(func); return "#{'+' if r >= 0}#{r}"; end
 
+	def spell_list; return @data["spells"]; end
 	private
 
 	def parse_formula(formula, params = {})
