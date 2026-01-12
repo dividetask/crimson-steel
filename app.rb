@@ -26,14 +26,21 @@ end
 post '/combat/mana/:id' do
   redirect '/character/0' unless local_request?
   id = params[:id].to_i
-	Combat.update(id, {mana: params[:amount]})
+	Combat.update(id, {mana: -1 * params[:amount].to_i})
   redirect '/combat'
 end
 
 post '/combat/dice/:id' do
   redirect '/character/0' unless local_request?
   id = params[:id].to_i
-	Combat.update(id, {combat_pool: params[:amount]})
+	Combat.update(id, {combat_pool:  -1 * params[:amount].to_i})
+  redirect '/combat'
+end
+
+post '/combat/sat/:id' do
+  redirect '/character/0' unless local_request?
+  id = params[:id].to_i
+	Combat.update(id, {saturation: params[:amount]})
   redirect '/combat'
 end
 

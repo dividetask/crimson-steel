@@ -27,6 +27,7 @@
         <th>Major Damage</th>
         <th>Mana</th>
         <th>Dice Remaining</th>
+        <th>Saturation</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -40,6 +41,7 @@
           <td>0</td>
           <td><%= combat_turn.mana %>/<%= combat_turn.character.mana_max %></td>
           <td><%= combat_turn.combat_pool %>/<%= combat_turn.character.combat_pool %></td>
+          <td><%= combat_turn.saturation %>/<%= combat_turn.character.cha %></td>
           <td>
 						<form method="post" action="/combat/damage/<%= combat_turn.character.id %>" style="display: inline;">
 							<input type="number" name="minor_damage" placeholder="Minor" min="0" value="0" style="width: 50px;">
@@ -48,12 +50,16 @@
 							<button type="submit">Add Damage</button>
 						</form>
             <form method="post" action="/combat/mana/<%= combat_turn.character.id %>" style="display: inline;">
-              <input type="number" name="amount" placeholder="Mana" min="1">
+              <input type="number" name="amount" placeholder="Mana">
               <button type="submit">Subtract Mana</button>
             </form>
             <form method="post" action="/combat/dice/<%= combat_turn.character.id %>" style="display: inline;">
-              <input type="number" name="amount" placeholder="Dice" min="1">
+              <input type="number" name="amount" placeholder="Dice">
               <button type="submit">Subtract Dice</button>
+            </form>
+            <form method="post" action="/combat/sat/<%= combat_turn.character.id %>" style="display: inline;">
+              <input type="number" name="amount" placeholder="Saturation">
+              <button type="submit">Mana Saturation</button>
             </form>
           </td>
         </tr>

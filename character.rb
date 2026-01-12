@@ -1,12 +1,13 @@
 require_relative 'tools'
 
 class CombatTurn
-  attr_reader :rules, :character, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage
+  attr_reader :rules, :character, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation
 
   def initialize(combat_turn, character)
 		@rules = Tools.load_json('rules.json')
 		@initiative, @mana, @combat_pool = combat_turn['initiative'], combat_turn['mana'], combat_turn['combat_pool']
 		@minor_damage, @moderate_damage, @major_damage = combat_turn['minor_damage'], combat_turn['moderate_damage'], combat_turn['major_damage']
+		@saturation = combat_turn['saturation']
 		@character = CharacterSheet.new(character)
 	end
 
