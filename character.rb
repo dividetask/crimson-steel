@@ -244,6 +244,30 @@ module CharacterEquipment
 	def equipped_list; return @item_list.select { |item| item["equipped"] == true }; end
 	def ammunition; return @item_list.select { |item| item["properties"]["ammunition"] == true }; end
 	def consumable; return @item_list.select { |item| item["properties"]["consumable"] == true }; end
+	def other_items
+		item_list = @item_list.select do |item| 
+			#binding.irb if item["subtype"] == "vial"
+			(item["properties"]["consumable"] != true && item["properties"]["ammunition"] != true && 
+				item["equipped"] != true && !item["description"])
+		end
+		return item_list
+	end
+
+	def item_spell_list
+		return_val = {}
+		all = @item_list.select { |item| item['properties']['spell'] }
+
+		['wand', 'scroll'].each do |cat|
+			found = all.select { |item| item['subtype'] == cat }
+			all = all - found
+			return_val[cat] = found.map { |item| item['properties']['spell'].gsub('_', ' ').split(' ').map(&:capitalize).join(' ') } unless found.empty?
+		end
+		return_val['other'] == all.map { |item| item['properties']['spell'].gsub('_', ' ').split(' ').map(&:capitalize).join(' ') } unless all.empty?
+
+		return false if return_val == {}
+		return return_val
+	end
+
 
 	def weapon_speed(weapon_data); (weapon_data["properties"]["details"] || []).sum { |detail| @rules["reference"]["weapon_speed"][detail].to_i }; end
 	def weapon_arm_speed(weapon_data); return ((weapon_data["properties"]["details"] || []).include?("ranged")) ? "+1" : ""; end

@@ -121,6 +121,7 @@
 					end %>
 					<%= items.join(", ") %></p>
 				<% end %>
+				<p><strong>Other:</strong> <%= @character.other_items().map { |item| item["name"] }.join(", ") %></p>
       </div>
     </div>
 
@@ -136,6 +137,14 @@
 
 				<% @character.spell_list.each.with_index do |spell_sub_list, index| %>
 					<p><strong><%= index %>:</strong> <%= spell_sub_list.join(', ') %></p>
+				<% end %>
+			<% end %>
+
+			<% if @character.item_spell_list %>
+				<h2>Item Spells</h2>
+
+				<% @character.item_spell_list.each do |cat, spell_sub_list| %>
+					<p><strong><%= cat %>:</strong> <%= spell_sub_list.join(', ') %></p>
 				<% end %>
 			<% end %>
     </div>

@@ -4,6 +4,21 @@
 	"reference": {
 		"skill_dice": "(ranks==0 ? 4 : 6)+((ranks+half_attr)%5)",
 		"skill_bonus": "((ranks+half_attr)/5)-1",
+		"weapon_properties": {
+			"rapier": ["light", "piercing"],
+			"shortbow": ["medium", "piercing", "ranged"],
+			"dagger": ["light", "piercing"],
+			"bola": ["light", "piercing", "ranged"],
+			"javelin": ["medium", "piercing", "ranged"],
+			"longbow": ["medium", "piercing", "ranged"],
+			"battleaxe": ["heavy", "slashing"]},
+		"item_tree": {
+        "weapon": {
+					"subtype": ["rapier","shortbow","dagger","bola","javelin","longbow","battleaxe"]},
+        "armor": {"subtype": ["natural", "light", "medium", "heavy"]},
+        "shield": {"subtype": ["light", "medium", "tower"]},
+        "item": {"subtype": ["belt", "body", "chest", "eyes", "feet", "hands", "head", "headband", "neck", "shoulders", "wrists"]}
+		},
 		"weapon_speed": {"light": 0, "medium": 1, "heavy": 3, "bludgeoning": 2, "slashing": 1, "piercing": 0},
 		"weapon_dmg": {"light": "(str/4)-2", "medium": "(str/4)", "heavy": "(str/2)+2"},
 		"weapon_bleed": {"bludgeoning": 5, "slashing": 7, "piercing": 3},

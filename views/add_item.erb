@@ -1,0 +1,102 @@
+Great! Now you can make the form dynamic. Update the form to populate subtypes based on the selected type:
+
+Update views/add_item.erb:
+erb
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Add Item</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+    form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .full-width { grid-column: 1 / -1; }
+    label { font-weight: bold; display: block; margin-bottom: 5px; }
+    input, select, textarea { padding: 8px; font-size: 14px; width: 100%; box-sizing: border-box; }
+    button { padding: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; font-size: 16px; }
+    button:hover { background: #45a049; }
+  </style>
+</head>
+<body>
+  <h1>Add Item</h1>
+  
+  <form method="post" action="/add_item">
+    <div>
+      <label>Owner:</label>
+      <select name="owner_id" required>
+        <% @characters.each do |char| %>
+          <option value="<%= char['id'] %>"><%= char['name'] %></option>
+        <% end %>
+      </select>
+    </div>
+    
+    <div>
+      <label>Type:</label>
+      <select name="type" id="type" required onchange="updateSubtypes()">
+        <% @item_tree.keys.each do |type| %>
+          <option value="<%= type %>"><%= type.capitalize %></option>
+        <% end %>
+      </select>
+    </div>
+    
+    <div>
+      <label>Name:</label>
+      <input type="text" name="name" required>
+    </div>
+    
+    <div>
+      <label>Subtype:</label>
+      <select name="subtype" id="subtype" required>
+      </select>
+    </div>
+    
+    <div>
+      <label>Bonus:</label>
+      <input type="number" name="bonus" value="0">
+    </div>
+    
+    <div>
+      <label>Quantity:</label>
+      <input type="number" name="quantity" placeholder="Optional">
+    </div>
+    
+    <div>
+      <label>Equipped:</label>
+      <select name="equipped">
+        <option value="false">No</option>
+        <option value="true">Yes</option>
+      </select>
+    </div>
+    
+    <div class="full-width">
+      <label>Description:</label>
+      <textarea name="description" rows="2"></textarea>
+    </div>
+    
+    <button type="submit" class="full-width">Add Item</button>
+  </form>
+  
+  <p><a href="/character/0">Back to Characters</a></p>
+
+  <script>
+    const itemTree = <%= @item_tree.to_json %>;
+    
+    function updateSubtypes() {
+      const type = document.getElementById('type').value;
+      const subtypeSelect = document.getElementById('subtype');
+      const subtypes = itemTree[type].subtype;
+      
+      subtypeSelect.innerHTML = '';
+      subtypes.forEach(subtype => {
+        const option = document.createElement('option');
+        option.value = subtype;
+        option.textContent = subtype.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        subtypeSelect.appendChild(option);
+      });
+    }
+    
+    // Initialize on page load
+    updateSubtypes();
+  </script>
+</body>
+</html>

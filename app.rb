@@ -88,6 +88,40 @@ get '/character/:index' do
   erb :character_sheet
 end
 
+get '/add_item' do
+  redirect '/character/0' unless local_request?
+  @characters = Tools.load_json('characters.json')
+  @item_tree = Tools.load_json('rules.json')['reference']['item_tree']
+  erb :add_item
+end
+
+post '/add_item' do
+  redirect '/character/0' unless local_request?
+  
+  items = Tools.load_json('items.json')
+  
+  # Build the new item from form params
+  new_item = {
+    "owner_id" => params[:owner_id].to_i,
+    "name" => params[:name],
+    "type" => params[:type],
+    "subtype" => params[:subtype],
+    "bonus" => params[:bonus].to_i,
+    "properties" => {}
+  }
+  
+  # Add optional fields
+  new_item["quantity"] = params[:quantity].to_i if params[:quantity] && !params[:quantity].empty?
+  new_item["description"] = params[:description] if params[:description] && !params[:description].empty?
+  new_item["equipped"] = params[:equipped] == "true"
+  
+  items << new_item
+  Tools.save_json('items.json', items)
+  
+  redirect '/add_item'
+end
+
+
 get '/all_characters/:index' do
   redirect '/character/0' unless local_request?
   character_list = Tools.load_json('characters.json')
