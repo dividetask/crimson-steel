@@ -1,0 +1,47 @@
+{
+  "active": false,
+  "round": 0,
+  "current_turn": 0,
+  "participants": [
+    {
+      "id": 1,
+      "initiative": "X97654321",
+      "mana": 11,
+      "combat_pool": 17,
+      "saturation": 12,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0
+    },
+    {
+      "id": 2,
+      "initiative": "X86532",
+      "mana": 15,
+      "combat_pool": 18,
+      "saturation": 8,
+      "minor_damage": 9,
+      "moderate_damage": 0,
+      "major_damage": 0
+    },
+    {
+      "id": 4,
+      "initiative": "987531",
+      "mana": 20,
+      "combat_pool": 19,
+      "saturation": 0,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0
+    },
+    {
+      "id": 3,
+      "initiative": "9865431",
+      "mana": 10,
+      "combat_pool": 19,
+      "saturation": 0,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0
+    }
+  ]
+}
