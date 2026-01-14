@@ -88,6 +88,22 @@ get '/character/:index' do
   erb :character_sheet
 end
 
+post '/add_note' do
+  characters = Tools.load_json('characters.json')
+  notes = Tools.load_json('notes.json')
+  
+  char_id = params[:owner_id].to_i
+  notes << {
+    "owner_id" => char_id,
+    "note" => params[:note]
+  }
+  
+  Tools.save_json('notes.json', notes)
+  char_index = characters.find_index { |char| char['id'].to_i == char_id.to_i }
+  
+  redirect "/character/#{char_index}"
+end
+
 get '/add_item' do
   redirect '/character/0' unless local_request?
   @characters = Tools.load_json('characters.json')

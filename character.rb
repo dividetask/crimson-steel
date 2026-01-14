@@ -306,11 +306,17 @@ module CharacterEquipment
 	def find_item(type); return @item_list.find { |item| item["type"] == type }; end  #Needs to add for armor
 end
 
+module CharacterNotes
+  attr_reader :note_list
+	def initialize(character); super(character) if defined?(super); @note_list = Tools.load_json('notes.json').select { |note| note['owner_id'] == @id}; end
+end
+
 class CharacterSheet
   include TierMath
 	include KlassProgress
   include BaseStatsMath
   include CharacterEquipment
+  include CharacterNotes
   attr_reader :rules, :id, :data
 
   def initialize(character)
