@@ -262,7 +262,7 @@ module CharacterEquipment
 			all = all - found
 			return_val[cat] = found.map { |item| item['properties']['spell'].gsub('_', ' ').split(' ').map(&:capitalize).join(' ') } unless found.empty?
 		end
-		return_val['other'] == all.map { |item| item['properties']['spell'].gsub('_', ' ').split(' ').map(&:capitalize).join(' ') } unless all.empty?
+		return_val['other'] = all.map { |item| item['properties']['spell'].gsub('_', ' ').split(' ').map(&:capitalize).join(' ') } unless all.empty?
 
 		return false if return_val == {}
 		return return_val
