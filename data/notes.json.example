@@ -2,6 +2,20 @@
   {
     "owner_id": 1,
     "note": "Test"
+  },
+  {
+    "owner_id": 0,
+    "note": "DM WARNS OF DANGER",
+    "public": true,
+    "type": "note"
+  },
+  {
+    "owner_id": 0,
+    "note": "He is very sketchy",
+    "public": true,
+    "type": "character",
+    "title": "Sketchy Dude #1",
+    "tier": 3
   }
 ]
 

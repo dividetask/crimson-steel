@@ -137,6 +137,39 @@ post '/add_item' do
   redirect '/add_item'
 end
 
+get '/notes/:viewer_id' do
+  viewer_id = params[:viewer_id].to_i
+  
+  # Redirect if not local and trying to view DM notes
+  redirect '/notes/1' if viewer_id == 0 && !local_request?
+  
+  @viewer_id = viewer_id
+  @is_dm = viewer_id == 0 && local_request?
+  @notes = Tools.load_json('notes.json')
+  @characters = Tools.load_json('characters.json')
+  
+  erb :notes_view
+end
+
+post '/add_note_entry' do
+  notes = Tools.load_json('notes.json')
+  
+  new_note = {
+    "owner_id" => params[:owner_id].to_i,
+    "note" => params[:note],
+    "public" => params[:public] == "true"
+  }
+  
+  new_note["type"] = params[:type] if params[:type] && !params[:type].empty?
+  new_note["title"] = params[:title] if params[:title] && !params[:title].empty?
+  new_note["tier"] = params[:tier].to_i if params[:tier] && !params[:tier].empty?
+  
+  notes << new_note
+  Tools.save_json('notes.json', notes)
+  
+  redirect "/notes/#{params[:owner_id]}"
+end
+
 
 get '/all_characters/:index' do
   redirect '/character/0' unless local_request?
