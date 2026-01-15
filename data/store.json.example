@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Potion of Healing",
+    "price": 50,
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 1,
+    "properties": {"consumable": true, "effect": "heal"}
+  },
+  {
+    "name": "Longsword",
+    "price": 15,
+    "type": "weapon",
+    "subtype": "longsword",
+    "bonus": 0,
+    "properties": {"details": ["medium", "slashing"]}
+  }
+]

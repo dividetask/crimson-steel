@@ -2,3 +2,5 @@
 Archive/*.json
 data/items.json
 data/notes.json
+data/campaign.json
+data/store.json

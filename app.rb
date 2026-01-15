@@ -170,6 +170,63 @@ post '/add_note_entry' do
   redirect "/notes/#{params[:owner_id]}"
 end
 
+get '/store' do
+  @store_items = Tools.load_json('store.json')
+  @campaign = Tools.load_json('campaign.json')
+  @characters = Tools.load_json('characters.json')
+  erb :store
+end
+
+post '/purchase/:item_index' do
+  store_items = Tools.load_json('store.json')
+  campaign = Tools.load_json('campaign.json')
+  items = Tools.load_json('items.json')
+
+  item_index = params[:item_index].to_i
+  owner_id = params[:owner_id].to_i
+  store_item = store_items[item_index]
+
+  # Check if enough gold
+  if campaign['gold'] < store_item['price']
+    redirect '/store?error=insufficient_gold'
+    return
+  end
+
+  # Check if item already exists for this owner
+  existing_item = items.find do |i|
+    i['owner_id'] == owner_id &&
+    i['name'] == store_item['name'] &&
+    i['type'] == store_item['type'] &&
+    i['subtype'] == store_item['subtype']
+  end
+
+  if existing_item
+    # Increase quantity
+    existing_item['quantity'] = (existing_item['quantity'] || 1) + 1
+  else
+    # Add new item
+    new_item = {
+      'owner_id' => owner_id,
+      'name' => store_item['name'],
+      'type' => store_item['type'],
+      'subtype' => store_item['subtype'],
+      'bonus' => store_item['bonus'],
+      'properties' => store_item['properties'],
+      'equipped' => false
+    }
+    new_item['quantity'] = 1 if store_item['properties']['consumable']
+    items << new_item
+  end
+
+  # Deduct gold
+  campaign['gold'] -= store_item['price']
+
+  Tools.save_json('items.json', items)
+  Tools.save_json('campaign.json', campaign)
+
+  redirect '/store?success=true'
+end
+
 
 get '/all_characters/:index' do
   redirect '/character/0' unless local_request?

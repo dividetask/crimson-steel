@@ -1,0 +1,54 @@
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
+    .menu { background: #333; padding: 10px; margin: -20px -20px 20px -20px; }
+    .menu a { color: white; margin-right: 20px; text-decoration: none; }
+    .menu a:hover { text-decoration: underline; }
+    
+    .gold-display { font-size: 24px; font-weight: bold; margin-bottom: 20px; }
+    .store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    .store-item { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+    .store-item h3 { margin-top: 0; }
+    .price { font-weight: bold; font-size: 18px; }
+    .purchase-form { margin-top: 10px; display: flex; gap: 10px; align-items: center; }
+    select, button { padding: 8px; }
+    button { background: #4CAF50; color: white; border: none; cursor: pointer; }
+    button:hover { background: #45a049; }
+    .alert { padding: 10px; margin-bottom: 20px; border-radius: 5px; }
+    .alert-success { background: #d4edda; color: #155724; }
+    .alert-error { background: #f8d7da; color: #721c24; }
+  </style>
+  
+  <h1>Store</h1>
+  
+  <div class="gold-display">Party Gold: <%= @campaign['gold'] %> gp</div>
+  
+  <% if params[:error] == 'insufficient_gold' %>
+    <div class="alert alert-error">Insufficient gold!</div>
+  <% end %>
+  
+  <% if params[:success] %>
+    <div class="alert alert-success">Purchase successful!</div>
+  <% end %>
+  
+  <div class="store-grid">
+    <% @store_items.each_with_index do |item, index| %>
+      <div class="store-item">
+        <h3><%= item['name'] %></h3>
+        <p><strong>Type:</strong> <%= item['type'].capitalize %> - <%= item['subtype'] %></p>
+        <% if item['bonus'] > 0 %>
+          <p><strong>Bonus:</strong> +<%= item['bonus'] %></p>
+        <% end %>
+        <p class="price"><%= item['price'] %> gp</p>
+        
+        <form method="post" action="/purchase/<%= index %>" class="purchase-form">
+          <select name="owner_id" required>
+            <option value="">Select Character</option>
+            <% @characters.each do |char| %>
+              <option value="<%= char['id'] %>"><%= char['name'] %></option>
+            <% end %>
+          </select>
+          <button type="submit">Purchase</button>
+        </form>
+      </div>
+    <% end %>
+  </div>

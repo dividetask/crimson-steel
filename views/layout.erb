@@ -5,6 +5,11 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+  <div class="menu" style="background: #333; padding: 10px; margin: -20px -20px 20px -20px;">
+    <a href="/character/0" style="color: white; margin-right: 20px; text-decoration: none;">Character Sheets</a>
+    <a href="/store" style="color: white; margin-right: 20px; text-decoration: none;">Store</a>
+    <a href="/notes/<%= @viewer_id || 0 %>" style="color: white; text-decoration: none;">Notes</a>
+  </div>
   <%= yield %>
 </body>
 </html>
