@@ -4,118 +4,78 @@ require 'open-uri'
 require 'nokogiri'
 require 'json'
 
-MAX_PER_RUN = 100
+def fetch_descriptions(fetch_count)
+  # Load spells.json
+  unless File.exist?('spells.json')
+    puts "Error: spells.json not found!"
+    exit 1
+  end
 
-# Load the spells from spells.json
-unless File.exist?('spells.json')
-  puts "Error: spells.json not found!"
-  puts "Run spell_scraper.rb first to generate the spell list."
-  exit 1
-end
-
-spells = JSON.parse(File.read('spells.json'))
-
-# Load existing progress if it exists
-if File.exist?('spells_with_descriptions.json')
-  existing_spells = JSON.parse(File.read('spells_with_descriptions.json'))
-  puts "Loaded existing progress: spells_with_descriptions.json"
+  spells = JSON.parse(File.read('spells.json'))
   
-  # Merge existing descriptions back into the spell list
-  existing_map = existing_spells.each_with_object({}) do |spell, hash|
-    hash[spell['url']] = spell['description']
+  # Find spells that need descriptions (no description and not failed)
+  spells_to_fetch = spells.select { |s| s['description'].nil? && !s['failed'] }
+  
+  puts "Total spells: #{spells.size}"
+  puts "Need to fetch: #{spells_to_fetch.size}"
+  
+  if spells_to_fetch.empty?
+    puts "Nothing to fetch!"
+    return false
   end
   
-  spells.each do |spell|
-    if existing_map.key?(spell['url'])
-      spell['description'] = existing_map[spell['url']]
-    end
-  end
-else
-  puts "No existing progress found, starting fresh"
-end
-
-# Find spells that need descriptions (don't have one yet)
-spells_to_fetch = spells.select { |s| !s.key?('description') || s['description'].nil? }
-
-puts "Total spells: #{spells.size}"
-puts "Already have descriptions: #{spells.size - spells_to_fetch.size}"
-puts "Need to fetch: #{spells_to_fetch.size}"
-
-if spells_to_fetch.empty?
-  puts "\nAll spells already have descriptions!"
-  exit 0
-end
-
-# Limit to MAX_PER_RUN
-spells_to_process = spells_to_fetch.first(MAX_PER_RUN)
-puts "Processing #{spells_to_process.size} spells this run (max #{MAX_PER_RUN})\n\n"
-
-failed_spells = []
-processed_count = 0
-
-spells_to_process.each_with_index do |spell, index|
-  print "[#{index + 1}/#{spells_to_process.size}] #{spell['text']}... "
+  # Limit to fetch_count
+  spells_to_process = spells_to_fetch.first(fetch_count)
+  puts "Fetching #{spells_to_process.size} spells\n\n"
   
-  begin
-    # Fetch the spell page
-    html = URI.open(spell['url']).read
-    doc = Nokogiri::HTML(html)
+  spells_to_process.each_with_index do |spell, index|
+    print "[#{index + 1}/#{spells_to_process.size}] #{spell['text']}... "
     
-    # Find the DESCRIPTION divider
-    divider = doc.css('p.divider').find { |p| p.text.strip == 'DESCRIPTION' }
-    
-    if divider
-      # Get the next <p> tag after the divider
-      description_p = divider.next_element
+    begin
+      html = URI.open(spell['url']).read
+      doc = Nokogiri::HTML(html)
       
-      if description_p && description_p.name == 'p'
-        spell['description'] = description_p.text.strip
-        puts "✓"
-        processed_count += 1
+      divider = doc.css('p.divider').find { |p| p.text.strip == 'DESCRIPTION' }
+      
+      if divider
+        description_p = divider.next_element
+        
+        if description_p && description_p.name == 'p'
+          spell['description'] = description_p.text.strip
+          puts "✓"
+        else
+          spell['failed'] = true
+          puts "✗ (no <p> after divider)"
+        end
       else
-        spell['description'] = nil
-        failed_spells << spell['text']
-        puts "✗ (no <p> after divider)"
+        spell['failed'] = true
+        puts "✗ (no DESCRIPTION divider)"
       end
-    else
-      spell['description'] = nil
-      failed_spells << spell['text']
-      puts "✗ (no DESCRIPTION divider found)"
+      
+      sleep 0.5
+      
+    rescue => e
+      spell['failed'] = true
+      puts "✗ (#{e.message})"
     end
-    
-    # Be polite - small delay between requests
-    sleep 0.5
-    
-  rescue => e
-    spell['description'] = nil
-    failed_spells << spell['text']
-    puts "✗ (error: #{e.message})"
   end
+  
+  # Save
+  File.write('spells.json', JSON.pretty_generate(spells))
+  puts "\nSaved to spells.json"
+  return true
 end
 
-# Save updated spells with descriptions
-File.write('spells_with_descriptions.json', JSON.pretty_generate(spells))
+# Main
+#if ARGV.empty?
+  #puts "Usage: ruby fetch_descriptions.rb <count>"
+  #puts "Example: ruby fetch_descriptions.rb 100"
+  #exit 1
+#end
 
-puts "\n" + "="*60
-puts "Run Complete!"
-puts "="*60
-puts "Saved to: spells_with_descriptions.json"
-puts "Successfully fetched this run: #{processed_count}/#{spells_to_process.size}"
-
-remaining = spells.count { |s| !s.key?('description') || s['description'].nil? }
-puts "\nOverall progress:"
-puts "  Total spells: #{spells.size}"
-puts "  With descriptions: #{spells.size - remaining}"
-puts "  Still need: #{remaining}"
-
-if remaining > 0
-  puts "\nRun the script again to fetch more descriptions"
-end
-
-if failed_spells.any?
-  puts "\nFailed to get descriptions for #{failed_spells.size} spells this run:"
-  failed_spells.each do |name|
-    puts "  - #{name}"
-  end
+#fetch_count = ARGV[0].to_i
+fetch_count = 10
+while fetch_descriptions(fetch_count)
+  true
 end
 

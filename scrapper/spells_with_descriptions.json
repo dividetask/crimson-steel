@@ -15,7 +15,7 @@
     "text": "Drench",
     "url": "https://www.d20pfsrd.com/magic/rare-cantrips/#Drench",
     "level": "0",
-    "description": null
+    "description": "ERROR"
   },
   {
     "text": "Detect Fiendish Presence",
@@ -57,547 +57,457 @@
     "text": "Breeze",
     "url": "https://www.d20pfsrd.com/magic/rare-cantrips/#Breeze",
     "level": "0",
-    "description": null
+    "description": "ERROR"
   },
   {
     "text": "Dancing Lights",
     "url": "https://www.d20pfsrd.com/magic/all-spells/d/dancing-lights/",
-    "level": "0",
-    "description": "Depending on the version selected, you create up to four lights that resemble lanterns or torches (and cast that amount of light), or up to four glowing spheres of light (which look like will-o’-wisps), or one faintly glowing, vaguely humanoid shape. The dancing lights must stay within a 10-foot-radius area in relation to each other but otherwise move as you desire (no concentration required): forward or back, up or down, straight or turning corners, or the like. The lights can move up to 100 feet per round. A light winks out if the distance between you and it exceeds the spell’s range."
+    "level": "0"
   },
   {
     "text": "Flare",
     "url": "https://www.d20pfsrd.com/magic/all-spells/f/flare/",
-    "level": "0",
-    "description": "This cantrip creates a burst of light. If you cause the light to burst in front of a single creature, that creature is dazzled for 1 minute unless it makes a successful Fortitude save. Sightless creatures, as well as creatures already dazzled, are not affected by flare."
+    "level": "0"
   },
   {
     "text": "Light",
     "url": "https://www.d20pfsrd.com/magic/all-spells/l/light/",
-    "level": "0",
-    "description": "This spell causes a touched object to glow like a torch, shedding normal light in a 20-foot radius from the point touched, and increasing the light level for an additional 20 feet by one step, up to normal light (darkness becomes dim light, and dim light becomes normal light). In an area of normal or bright light, this spell has no effect. The effect is immobile, but it can be cast on a movable object."
+    "level": "0"
   },
   {
     "text": "Penumbra",
     "url": "https://www.d20pfsrd.com/magic/rare-cantrips/#Penumbra",
-    "level": "0",
-    "description": null
+    "level": "0"
   },
   {
     "text": "Ray of Frost",
     "url": "https://www.d20pfsrd.com/magic/all-spells/r/ray-of-frost/",
-    "level": "0",
-    "description": "A ray of freezing air and ice projects from your pointing finger. You must succeed on a ranged touch attack with the ray to deal damage to a target. The ray deals 1d3 points of cold damage."
+    "level": "0"
   },
   {
     "text": "Scoop",
     "url": "https://www.d20pfsrd.com/magic/rare-cantrips/#Scoop",
-    "level": "0",
-    "description": null
+    "level": "0"
   },
   {
     "text": "Spark",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/spark/",
-    "level": "0",
-    "description": "You can make an unattended Fine flammable object catch on fire. This works as if you were using flint and steel except that you can use spark in any sort of weather and it takes much less time to actually ignite an object."
+    "level": "0"
   },
   {
     "text": "Ghost Sound",
     "url": "https://www.d20pfsrd.com/magic/all-spells/g/ghost-sound/",
-    "level": "0",
-    "description": "Ghost sound allows you to create a volume of sound that rises, recedes, approaches, or remains at a fixed place. You choose what type of sound ghost sound creates when casting it and cannot thereafter change the sound’s basic character."
+    "level": "0"
   },
   {
     "text": "Haunted Fey Aspect",
     "url": "https://www.d20pfsrd.com/magic/all-spells/h/haunted-fey-aspect/",
-    "level": "0",
-    "description": "You surround yourself with disturbing illusions, making you look and sound like a bizarre, insane fey creature. You gain DR 1/cold iron against a single opponent until the end of the spell, or until you take damage."
+    "level": "0"
   },
   {
     "text": "Oath of Anonymity",
     "url": "https://www.d20pfsrd.com/magic/all-spells/o/oath-of-anonymity/",
-    "level": "0",
-    "description": "You swear an oath not to reveal your identity, magically preventing anyone from discovering it so long as you avoid revealing your face or other easily identifiable features. The spell distorts your voice and subtly alters your body language and the appearance of your gear and any animals you use, whether as companions, mounts, or otherwise. This spell does not make you appear to be a different creature type, nor does it change your apparent height or body type."
+    "level": "0"
   },
   {
     "text": "Vacuous Vessel",
     "url": "https://www.d20pfsrd.com/magic/all-spells/v/vacuous-vessel/",
-    "level": "0",
-    "description": "This spell makes a single bag, chest, sack, or other container look and feel empty. The container must be no larger than 1 cubic foot per caster level or the spell fails. Anyone peering into or reaching into the container must succeed at a Will save or perceive the container as being completely empty. All items within the container when the spell was cast are still present, but they can’t be noticed unless removed from the bag—such as by someone who can perceive them, or who upends the container."
+    "level": "0"
   },
   {
     "text": "Bleed",
     "url": "https://www.d20pfsrd.com/magic/all-spells/b/bleed/",
-    "level": "0",
-    "description": "You cause a living creature that is below 0 hit points but stabilized to resume dying. Upon casting this spell, you target a living creature that has -1 or fewer hit points. That creature begins dying, taking 1 point of damage per round. The creature can be stabilized later normally. This spell causes a creature that is dying to take 1 point of damage."
+    "level": "0"
   },
   {
     "text": "Disrupt Undead",
     "url": "https://www.d20pfsrd.com/magic/all-spells/d/disrupt-undead/",
-    "level": "0",
-    "description": "You direct a ray of positive energy."
+    "level": "0"
   },
   {
     "text": "Sotto Voce",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/sotto-voce/",
-    "level": "0",
-    "description": "Your dry, rasping whisper fills a living creature of 4 or fewer Hit Dice with unnatural dread. The affected creature must make a Will save or be shaken for 1 round."
+    "level": "0"
   },
   {
     "text": "Touch of Fatigue",
     "url": "https://www.d20pfsrd.com/magic/all-spells/t/touch-of-fatigue/",
-    "level": "0",
-    "description": "You channel negative energy through your touch, fatiguing the target. You must succeed on a touch attack to strike a target. The subject is immediately fatigued for the spell’s duration."
+    "level": "0"
   },
   {
     "text": "Chameleon Scales",
     "url": "https://www.d20pfsrd.com/magic/all-spells/c/chameleon-scales/",
-    "level": "0",
-    "description": "You temporarily alter the color of your skin, hide, or scales to another option legal for your race. You take no penalty for using Disguise to appear as a member of a different race as long as that race has the same type and color of skin, hide, or scales as you."
+    "level": "0"
   },
   {
     "text": "Jolt",
     "url": "https://www.d20pfsrd.com/magic/rare-cantrips/#Jolt",
-    "level": "0",
-    "description": null
+    "level": "0"
   },
   {
     "text": "Mage Hand",
     "url": "https://www.d20pfsrd.com/magic/all-spells/m/mage-hand/",
-    "level": "0",
-    "description": "You point your finger at an object and can lift it and move it at will from a distance. As a move action, you can propel the object as far as 15 feet in any direction, though the spell ends if the distance between you and the object ever exceeds the spell’s range."
+    "level": "0"
   },
   {
     "text": "telekinesis",
     "url": "https://www.d20pfsrd.com/magic/all-spells/t/telekinesis/",
-    "level": "0",
-    "description": "You move objects or creatures by concentrating on them. Depending on the version selected, the spell can provide a gentle, sustained force, perform a variety of combat maneuvers, or exert a single short, violent thrust."
+    "level": "0"
   },
   {
     "text": "Mending",
     "url": "https://www.d20pfsrd.com/magic/all-spells/m/mending/",
-    "level": "0",
-    "description": "This spell repairs damaged objects, restoring 1d4 hit points to the object. If the object has the broken condition, this condition is removed if the object is restored to at least half its original hit points. All of the pieces of an object must be present for this spell to function. Magic items can be repaired by this spell, but you must have a caster level equal to or higher than that of the object. Magic items that are destroyed (at 0 hit points or less) can be repaired with this spell, but this spell does not restore their magic abilities. This spell does not affect creatures (including constructs). This spell has no effect on objects that have been warped or otherwise transmuted, but it can still repair damage done to such items."
+    "level": "0"
   },
   {
     "text": "Message",
     "url": "https://www.d20pfsrd.com/magic/all-spells/m/message/",
-    "level": "0",
-    "description": "You can whisper messages and receive whispered replies. Those nearby can hear these messages with a DC 25 Perception check. You point your finger at each creature you want to receive the message. When you whisper, the whispered message is audible to all targeted creatures within range. Magical silence, 1 foot of stone, 1 inch of common metal (or a thin sheet of lead), or 3 feet of wood or dirt blocks the spell. The message does not have to travel in a straight line. It can circumvent a barrier if there is an open path between you and the subject, and the path’s entire length lies within the spell’s range. The creatures that receive the message can whisper a reply that you hear. The spell transmits sound, not meaning; it doesn’t transcend language barriers. To speak a message, you must mouth the words and whisper."
+    "level": "0"
   },
   {
     "text": "Open/Close",
     "url": "https://www.d20pfsrd.com/magic/all-spells/o/open-close/",
-    "level": "0",
-    "description": "You can open or close (your choice) a door, chest, box, window, bag, pouch, bottle, barrel, or other container. If anything resists this activity (such as a bar on a door or a lock on a chest), the spell fails. In addition, the spell can only open and close things weighing 30 pounds or less. Thus, doors, chests, and similar objects sized for enormous creatures may be beyond this spell’s ability to affect."
+    "level": "0"
   },
   {
     "text": "Root",
     "url": "https://www.d20pfsrd.com/magic/rare-cantrips/#Root",
-    "level": "0",
-    "description": null
+    "level": "0"
   },
   {
     "text": "Scrivener’s Chant",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/scriveners-chant/",
-    "level": "0",
-    "description": "This spell imbues a quill with animate energy and rapidly transcribes words from one page to another. The quill copies a written work at the rate of one normal-sized page per minute. The Linguistics skill can be used to make a convincing copy, but otherwise the reproduction is written in the hand of the caster. You must concentrate upon the material being duplicated for the spell’s duration and provide new blank pages as required. The scrivener’s chant requires blank paper and a quill or other writing materials, in addition to the material components."
+    "level": "0"
   },
   {
     "text": "Arcane Mark",
     "url": "https://www.d20pfsrd.com/magic/all-spells/a/arcane-mark/",
-    "level": "0",
-    "description": "This spell allows you to inscribe your personal rune or mark, which can consist of no more than six characters. The writing can be visible or invisible. An arcane mark spell enables you to etch the rune upon any substance without harm to the material upon which it is placed. If an invisible mark is made, a detect magic spell causes it to glow and be visible, though not necessarily understandable."
+    "level": "0"
   },
   {
     "text": "Prestidigitation",
     "url": "https://www.d20pfsrd.com/magic/all-spells/p/prestidigitation/",
-    "level": "0",
-    "description": "Prestidigitations are minor tricks that novice spellcasters use for practice. Once cast, a prestidigitation spell enables you to perform simple magical effects for 1 hour. The effects are minor and have severe limitations. A prestidigitation can slowly lift 1 pound of material. It can color, clean, or soil items in a 1-foot cube each round. It can chill, warm, or flavor 1 pound of nonliving material. It cannot deal damage or affect the concentration of spellcasters. Prestidigitation can create small objects, but they look crude and artificial. The materials created by a prestidigitation spell are extremely fragile, and they cannot be used as tools, weapons, or spell components. Finally, prestidigitation lacks the power to duplicate any other spell effects. Any actual change to an object (beyond just moving, cleaning, or soiling it) persists only 1 hour."
+    "level": "0"
   },
   {
     "text": "Abjuring Step",
     "url": "https://www.d20pfsrd.com/magic/all-spells/a/abjuring-step/",
-    "level": "1",
-    "description": "This spell creates a subtle and complicated force effect that is most effective when used by a still or slow-moving spellcaster or formula user. While you are subject to this spell, you can take two 5-foot steps each round and still cast spells and use spell-like abilities without provoke attacks of opportunity."
+    "level": "1"
   },
   {
     "text": "Alarm",
     "url": "https://www.d20pfsrd.com/magic/all-spells/a/alarm/",
-    "level": "1",
-    "description": "Alarm creates a subtle ward on an area you select. Once the spell effect is in place, it thereafter sounds a mental or audible alarm each time a creature of Tiny or larger size enters the warded area or touches it. A creature that speaks the password (determined by you at the time of casting) does not set off the alarm. You decide at the time of casting whether the alarm will be mental or audible in nature."
+    "level": "1"
   },
   {
     "text": "Endure Elements",
     "url": "https://www.d20pfsrd.com/magic/all-spells/e/endure-elements/",
-    "level": "1",
-    "description": "A creature protected by endure elements suffers no harm from being in a hot or cold environment. It can exist comfortably in conditions between -50 and 140 degrees Fahrenheit (-45 and 60 degrees Celsius) without having to make Fortitude saves. The creature’s equipment is likewise protected."
+    "level": "1"
   },
   {
     "text": "Fastidiousness",
     "url": "https://www.d20pfsrd.com/magic/all-spells/f/fastidiousness/",
-    "level": "1",
-    "description": "While protected by fastidiousness, your person and your equipment stay clean and dry. Dust and moisture slough off immediately; even when you are completely soiled, your appearance reverts to a pristine state over the course of 1 minute."
+    "level": "1"
   },
   {
     "text": "Hold Portal",
     "url": "https://www.d20pfsrd.com/magic/all-spells/h/hold-portal/",
-    "level": "1",
-    "description": "This spell magically holds shut a door, gate, window, or shutter of wood, metal, or stone. The magic affects the portal just as if it were securely closed and normally locked. A knock spell or a successful dispel magic spell can negate a hold portal spell."
+    "level": "1"
   },
   {
     "text": "Incendiary Runes",
     "url": "https://www.d20pfsrd.com/magic/all-spells/i/incendiary-runes/",
-    "level": "1",
-    "description": "This spell functions as explosive runes, except it creates a small surge of flames rather than an explosion of force. The runes automatically deal 1d6 points of fire damage to any creatures and objects in adjacent squares, and those creatures and objects catch fire unless they succeed at Reflex saves."
+    "level": "1"
   },
   {
     "text": "explosive runes",
     "url": "https://www.d20pfsrd.com/magic/all-spells/i/e/explosive-runes/",
-    "level": "1",
-    "description": "You trace mystic runes upon a book, map, scroll, or similar object bearing written information. The explosive runes detonate when read, dealing 6d6 points of force damage. Anyone next to the explosive runes (close enough to read them) takes the full damage with no saving throw; any other creature within 10 feet of the explosive runes is entitled to a Reflex save for half damage. The object on which the explosive runes were written also takes full damage (no saving throw)."
+    "level": "1"
   },
   {
     "text": "Invisibility Alarm",
     "url": "https://www.d20pfsrd.com/magic/all-spells/i/invisibility-alarm/",
-    "level": "1",
-    "description": "This spell functions as alarm, except it is triggered only by invisible creatures entering or leaving the warded area. The spell has a different mental alarm depending on whether the invisible creature is entering or leaving the area. This spell does not aid you in sensing or pinpointing the location of an invisible creature within the spell’s area."
+    "level": "1"
   },
   {
     "text": "alarm",
     "url": "https://www.d20pfsrd.com/magic/all-spells/a/alarm/",
-    "level": "1",
-    "description": "Alarm creates a subtle ward on an area you select. Once the spell effect is in place, it thereafter sounds a mental or audible alarm each time a creature of Tiny or larger size enters the warded area or touches it. A creature that speaks the password (determined by you at the time of casting) does not set off the alarm. You decide at the time of casting whether the alarm will be mental or audible in nature."
+    "level": "1"
   },
   {
     "text": "Line in the Sand",
     "url": "https://www.d20pfsrd.com/magic/all-spells/l/line-in-the-sand/",
-    "level": "1",
-    "description": "You create a glowing crimson line around the area. Against creatures in the area, you can attempt a number of additional attacks of opportunity per round equal to your spellcasting ability score modifier (Intelligence for magi and wizards, Charisma for bloodragers and sorcerers), although this does not allow you to make more than one attack against a creature per action that provokes."
+    "level": "1"
   },
   {
     "text": "Obscure Poison",
     "url": "https://www.d20pfsrd.com/magic/all-spells/o/obscure-poison/",
-    "level": "1",
-    "description": "You make the touched poison difficult to detect or identify. Detect poison and similar effects detect an obscured poison only with a successful caster level check against a DC equal to 15 + your caster level (rolled secretly by the GM). Even if the poison is detected, the DC of Craft (alchemy) or Wisdom checks to identify the poison is increased by 10."
+    "level": "1"
   },
   {
     "text": "Peace Bond",
     "url": "https://www.d20pfsrd.com/magic/all-spells/p/peace-bond/",
-    "level": "1",
-    "description": "This spell creates one glowing rune of peace, plus one per 2 caster levels above 1st (to a maximum of five runes at 9th level). An identical symbol appears on your forehead for the duration of the spell and cannot be disguised (though it is visible only if you are visible). Each rune illuminates a 5-foot cube, preventing any spell you cast of up to 3rd level and that has a defined area (as opposed to targets or an effect) from entering or affecting the 5-foot cube. For example, creatures and items within any square affected by peace bond take no damage from a fireball you cast. However, if you cast stinking cloud, the noxious vapors are an effect and enter such cubes normally. This spell does not break line of effect within any other spells you cast; it simply negates all effects of your 1st-, 2nd- and 3rd-level area spells within the peace bond’s area."
+    "level": "1"
   },
   {
     "text": "Peacebond",
     "url": "https://www.d20pfsrd.com/magic/all-spells/p/peacebond/",
-    "level": "1",
-    "description": "You lock a weapon in place on its owner’s body, or within the weapon’s sheath or holster. Anyone who then tries to draw the weapon must spend a standard action and succeed at a Strength check (DC equal to the saving throw DC) to do so, provoking attacks of opportunity whether the attempt succeeds or fails."
+    "level": "1"
   },
   {
     "text": "Protection from Chaos",
     "url": "https://www.d20pfsrd.com/magic/all-spells/p/protection-from-chaos/",
-    "level": "1",
-    "description": "This spell functions like protection from evil, except that the deflection and resistance bonuses apply to attacks made by chaotic creatures. The target receives a new saving throw against control by chaotic creatures and chaotic summoned creatures cannot touch the target."
+    "level": "1"
   },
   {
     "text": "Evil",
     "url": "https://www.d20pfsrd.com/magic/all-spells/p/protection-from-evil/",
-    "level": "1",
-    "description": "This spell wards a creature from attacks by evil creatures, from mental control, and from summoned creatures. It creates a magical barrier around the subject at a distance of 1 foot. The barrier moves with the subject and has three major effects."
+    "level": "1"
   },
   {
     "text": "Good",
     "url": "https://www.d20pfsrd.com/magic/all-spells/p/protection-from-good/",
-    "level": "1",
-    "description": "This spell functions like protection from evil, except that the deflection and resistance bonuses apply to attacks made by good creatures. The target receives a new saving throw against control by good creatures and good summoned creatures cannot touch the target."
+    "level": "1"
   },
   {
     "text": "Law",
     "url": "https://www.d20pfsrd.com/magic/all-spells/p/protection-from-law/",
-    "level": "1",
-    "description": "This spell functions like protection from law, except you divide the duration in 1-minute intervals among the creatures touched."
+    "level": "1"
   },
   {
     "text": "Punishing Armor",
     "url": "https://www.d20pfsrd.com/magic/all-spells/p/punishing-armor/",
-    "level": "1",
-    "description": "You coat yourself with a thin layer of shimmering energy. Any creature dealing nonlethal damage to you immediately takes half the amount of nonlethal damage dealt. A successful Fortitude save made by the attacking creature negates this damage."
+    "level": "1"
   },
   {
     "text": "Rite of Centered Mind",
     "url": "https://www.d20pfsrd.com/magic/all-spells/r/rite-of-centered-mind/",
-    "level": "1",
-    "description": "You heighten your awareness of your own thoughts, allowing you to more easily resist outside influences."
+    "level": "1"
   },
   {
     "text": "Shield",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/shield/",
-    "level": "1",
-    "description": "Shield creates an invisible shield of force that hovers in front of you. It negates magic missile attacks directed at you. The disk also provides a +4 shield bonus to AC. This bonus applies against incorporeal touch attacks, since it is a force effect. The shield has no armor check penalty or arcane spell failure chance."
+    "level": "1"
   },
   {
     "text": "magic missiles",
     "url": "https://www.d20pfsrd.com/magic/all-spells/m/magic-missile/",
-    "level": "1",
-    "description": "A missile of magical energy darts forth from your fingertip and strikes its target, dealing 1d4+1 points of force damage."
+    "level": "1"
   },
   {
     "text": "Shield Companion (AA)",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/shield-companion/",
-    "level": "1",
-    "description": "This spell functions as shield other but affects only the caster’s animal companion or familiar. Spellcasters from classes that do not normally gain an animal companion, familiar, or fiendish servant but who gain one through an alternate class feature, archetype, or prestige class can prepare and cast this spell as a 1st-level spell if they are capable of casting spells."
+    "level": "1"
   },
   {
     "text": "shield other",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/shield-other/",
-    "level": "1",
-    "description": "This spell wards the subject and creates a mystic connection between you and the subject so that some of its wounds are transferred to you. The subject gains a +1 deflection bonus to AC and a +1 resistance bonus on saves. Additionally, the subject takes only half damage from all wounds and attacks (including those dealt by special abilities) that deal hit point damage. The amount of damage not taken by the warded creature is taken by you. Forms of harm that do not involve hit points, such as charm effects, temporary ability damage, level draining, and death effects, are not affected. If the subject suffers a reduction of hit points from a lowered Constitution score, the reduction is not split with you because it is not hit point damage. When the spell ends, subsequent damage is no longer divided between the subject and you, but damage already split is not reassigned to the subject."
+    "level": "1"
   },
   {
     "text": "Shield Speech",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/shield-speech/",
-    "level": "1",
-    "description": "You can securely communicate with one creature within range. So long as your target remains within 10 feet of you, you and it can speak freely to each other without fear of being overheard. Communications that involve shield speech cannot be spied on, such as with a divination spell, and observers of the conversation can tell you are communicating but cannot read lips or hear the conversation unless they are the target of the spell. If you or the target speak to any other creatures, they can hear you normally (only communication between you and the target is protected)."
+    "level": "1"
   },
   {
     "text": "Shock Shield",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/shock-shield/",
-    "level": "1",
-    "description": "This spell creates an invisible shield similar to but not as strong as the shield spell. This shield hovers in front of you and negates magic missile attacks directed at you. The disk provides a +2 shield bonus to AC. This bonus applies against incorporeal touch attacks. At any time, as a free action, you may dismiss your shield, at which point it deals 1d6 points of electrical damage to all creatures within a 5-foot burst, including you. A Reflex saving throw halves the damage."
+    "level": "1"
   },
   {
     "text": "Stunning Barrier",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/stunning-barrier/",
-    "level": "1",
-    "description": "You are closely surrounded by a barely visible magical field. The field provides a +1 deflection bonus to AC and a +1 resistance bonus on saves. Any creature that strikes you with a melee attack is stunned for 1 round (Will negates). Once the field has stunned an opponent, the spell is discharged."
+    "level": "1"
   },
   {
     "text": "Sunder Breaker",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/sunder-breaker/",
-    "level": "1",
-    "description": "You place an invisible ward upon the target. The next time a creature succeeds at a sunder combat maneuver against the target, the attacker’s weapon takes 1d6 points of damage per caster level (maximum 10d6). If the attacker used a natural weapon for the sunder, the attacker takes half this damage. Spell resistance applies to this damage. The attacker can attempt a Fortitude save to halve this damage."
+    "level": "1"
   },
   {
     "text": "Theft Ward",
     "url": "https://www.d20pfsrd.com/magic/all-spells/t/theft-ward/",
-    "level": "1",
-    "description": "You ward a single object in your possession against theft. You gain a +10 bonus on Perception checks to notice someone trying to take the object from you."
+    "level": "1"
   },
   {
     "text": "Waterproof",
     "url": "https://www.d20pfsrd.com/magic/all-spells/w/waterproof/",
-    "level": "1",
-    "description": "This spell renders a touched object waterproof for the duration of the spell. The object must be no larger than 10 pounds per caster level. The spell protects the object from any mundane liquids (such as alcohol or oil) but not from magically created liquids."
+    "level": "1"
   },
   {
     "text": "Wave Shield",
     "url": "https://www.d20pfsrd.com/magic/all-spells/w/wave-shield/",
-    "level": "1",
-    "description": "You create a rushing torrent of water in the rough outline of a shield. The water protects you from one physical or fire attack, granting you DR/— and fire resistance equal to half your caster level (minimum 1) on that attack. Once the spell has reduced the damage of one attack against you, it is discharged."
+    "level": "1"
   },
   {
     "text": "Winter Feathers",
     "url": "https://www.d20pfsrd.com/magic/all-spells/w/winter-feathers/",
-    "level": "1",
-    "description": "The target’s feathers thicken and fluff up to ward against winter’s chill. The target suffers no harm from being in a cold environment, and can exist comfortably in conditions as low as –50 degrees Fahrenheit without having to make Fortitude saves. The creature’s equipment is likewise protected. This spell doesn’t provide any protection from cold damage, nor does it protect against other environmental hazards associated with cold weather (such as slipping on ice, blindness from snow, and so on)."
+    "level": "1"
   },
   {
     "text": "Abundant Ammunition",
     "url": "https://www.d20pfsrd.com/magic/all-spells/a/abundant-ammunition/",
-    "level": "1",
-    "description": "When cast on a container such as a quiver or a pouch that contains nonmagical ammunition or shuriken (including masterwork ammunition or shuriken, but not special materials, alchemical attributes, or nonmagical treatments on the ammunition) at the start of each round this spell replaces any ammunition taken from the container the round before. The ammunition taken from the container the round before vanishes. If, after casting this spell, you cast a spell that enhances projectiles, such as align weapon or greater magic weapon, on the same container, all projectiles this spell conjures are affected by that spell."
+    "level": "1"
   },
   {
     "text": "Adhesive Spittle",
     "url": "https://www.d20pfsrd.com/magic/all-spells/a/adhesive-spittle/",
-    "level": "1",
-    "description": "Once during this spell’s duration, you can spit a viscous liquid as a standard action. This liquid functions as a tanglefoot bag, except you do not have to make a successful attack roll to hit your target. The DCs to counteract this adhesive (to avoid being stuck to the floor, to fly, to break the adhesive, or to cast a spell) use the spell’s DC rather than a tanglefoot bag’s normal DCs. The adhesive persists for 2d4 rounds after you spit it."
+    "level": "1"
   },
   {
     "text": "Air Bubble",
     "url": "https://www.d20pfsrd.com/magic/all-spells/a/air-bubble/",
-    "level": "1",
-    "description": "Air bubble creates a small pocket of breathable air that surrounds the touched creature’s head or the touched object. The air bubble allows the creature touched to breathe underwater or in similar airless environments, or protects the object touched from water damage. A firearm within an air bubble can be loaded—assuming the black powder comes from a powder horn, a cartridge, or some other airtight protective device—and fired. When shooting such a firearm underwater, the shot still takes the standard –2 penalty on attack rolls for every 5 feet of water the bullet passes through, in addition to normal penalties due to range. If a firearm within the air bubble explodes, the explosion occurs normally."
+    "level": "1"
   },
   {
     "text": "Arcane Pocket",
     "url": "https://www.d20pfsrd.com/magic/all-spells/a/arcane-pocket/",
-    "level": "1",
-    "description": "With a touch, you conjure an extradimensional space inside a pouch or pocket. The pocket acts as a bag of holding, except it can hold only 10 pounds per caster level. Regardless of what is placed into the pocket, it weighs 3 pounds. Unlike a bag of holding, the pocket created by this ability cannot be overloaded or ruptured—any additional material simply spills out of the top—nor does it have any special interaction with other kinds of extradimensional spaces."
+    "level": "1"
   },
   {
     "text": "Burning Sands",
     "url": "https://www.d20pfsrd.com/magic/all-spells/b/burning-sands/",
-    "level": "1",
-    "description": "You cause sheets of hot sand to spread over the ground in the area of effect. This layer of sand is 1 foot deep and constantly shifts and churns, transforming the ground in the area into difficult terrain. The sand itself burns, and periodic flames rise from the grit. While these flames cannot ignite objects, they deal 1d4 points of fire damage to any creature that ends its turn in contact with the ground within the area of effect. At the end of the duration, the sand vanishes, leaving no aftereffects (other than damage dealt)."
+    "level": "1"
   },
   {
     "text": "Celestial Healing",
     "url": "https://www.d20pfsrd.com/magic/all-spells/c/celestial-healing/",
-    "level": "1",
-    "description": "You anoint a wounded creature with the blood of an outsider with the good subtype (such as an angel) or holy water, giving it fast healing 1. The target radiates the aura of a good creature for the duration of the spell and can sense the righteousness of the magic, though this has no long-term effect on the target’s alignment. If the target has its own evil aura, this is not suppressed by celestial healing, and can also be detected normally."
+    "level": "1"
   },
   {
     "text": "Corrosive Touch",
     "url": "https://www.d20pfsrd.com/magic/all-spells/c/corrosive-touch/",
-    "level": "1",
-    "description": "Your successful melee touch attack deals 1d4 points of acid damage per caster level (maximum 5d4)."
+    "level": "1"
   },
   {
     "text": "Desperate Weapon",
     "url": "https://www.d20pfsrd.com/magic/all-spells/d/desperate-weapon/",
-    "level": "1",
-    "description": "You create a one-handed object that you might expect to see in your current surroundings, which you can then use as an improvised weapon. The spell conjures such an object near your hand such that you can retrieve it as you complete the spell."
+    "level": "1"
   },
   {
     "text": "Expeditious Construction",
     "url": "https://www.d20pfsrd.com/magic/all-spells/e/expeditious-construction/",
-    "level": "1",
-    "description": "You create a low wall or other simple structure of packed earth or loose stone measuring 3 feet thick, 3 feet tall, and 10 feet long per 3 caster levels you possess (minimum 10 feet). Each square of the structure can appear only in unoccupied spaces atop earthen or stone surfaces able to support it. The wall grants cover as per a low wall and can be climbed with a successful DC 5 Climb check."
+    "level": "1"
   },
   {
     "text": "Fumblestep",
     "url": "https://www.d20pfsrd.com/magic/all-spells/f/fumblestep/",
-    "level": "1",
-    "description": "Fumblestep coats a target’s feet in slick ectoplasm that retains some psychic connection to your mind. While the spell remains in effect, the target creature takes a –1 penalty on Reflex saving throws and Acrobatics checks."
+    "level": "1"
   },
   {
     "text": "Glue Seal",
     "url": "https://www.d20pfsrd.com/magic/all-spells/g/glue-seal/",
-    "level": "1",
-    "description": "You cover a solid surface with a layer of sticky glue. Anyone in the area when the spell is cast must attempt a Reflex save. Those who fail become entangled, but can break free by succeeding at a combat maneuver check or an Escape Artist check as a standard action against the DC of this spell. The area of the spell is considered difficult terrain. A creature moving through the glue must succeed at a combat maneuver check or an Escape Artist check as part of its move action (DC = the spell’s DC). Creatures that fail lose their movement and become entangled in the first square they enter."
+    "level": "1"
   },
   {
     "text": "Grease",
     "url": "https://www.d20pfsrd.com/magic/all-spells/g/grease/",
-    "level": "1",
-    "description": "A grease spell covers a solid surface with a layer of slippery grease. Any creature in the area when the spell is cast must make a successful Reflex save or fall. A creature can walk within or through the area of grease at half normal speed with a DC 10 Acrobatics check. Failure means it can’t move that round (and must then make a Reflex save or fall), while failure by 5 or more means it falls (see the Acrobatics skill for details). Creatures that do not move on their turn do not need to make this check and are not considered flat-footed."
+    "level": "1"
   },
   {
     "text": "Guardian Armor",
     "url": "https://www.d20pfsrd.com/magic/all-spells/g/guardian-armor/",
-    "level": "1",
-    "description": "This spell teleports the suit of armor you are wearing off of your body and onto an ally within range; the target must be the same size and general shape as you. This armor appears on the target’s body fully formed and properly donned, granting the creature the immediate benefit of its protection. If the target of guardian armor was already wearing armor, the armor wearing it is removed from the target’s body and falls undamaged into an adjacent square."
+    "level": "1"
   },
   {
     "text": "Icicle Dagger",
     "url": "https://www.d20pfsrd.com/magic/all-spells/i/icicle-dagger/",
-    "level": "1",
-    "description": "You create a masterwork dagger out of ice. The dagger deals 1 point of cold damage in addition to normal dagger damage. If the dagger leaves your hand for more than 1 round, it melts and the spell ends. At 6th level, the dagger functions as a +1 frost dagger. At 11th level, it gains the returning property when thrown, melting away and reforming in your hand just before your next turn."
+    "level": "1"
   },
   {
     "text": "Infernal Healing",
     "url": "https://www.d20pfsrd.com/magic/all-spells/i/infernal-healing/",
-    "level": "1",
-    "description": "You anoint a wounded creature with devil’s blood or unholy water, giving it fast healing 1. This ability cannot repair damage caused by silver weapons, good-aligned weapons, or spells or effects with the good descriptor. The target detects as an evil creature for the duration of the spell and can sense the evil of the magic, though this has no long-term effect on the target’s alignment."
+    "level": "1"
   },
   {
     "text": "Instant Portrait",
     "url": "https://www.d20pfsrd.com/magic/all-spells/i/instant-portrait/",
-    "level": "1",
-    "description": "You touch a surface and produce a painted portrait of either yourself or a creature you can see without needing to attempt a Craft (painting) check. The surface to be affected must be relatively flat, such as a piece of paper or a wall. The image can be any color of your choice, but is monochromatic. While it is of too poor a quality to sell, it is otherwise accurate enough to recognize the subject or to serve as a target for the enter image spell. The portrait reflects your perception of the creature depicted, including any disguises, magical or mundane, that the subject is wearing at the time of the painting’s creation."
+    "level": "1"
   },
   {
     "text": "Ki Arrow",
     "url": "https://www.d20pfsrd.com/magic/all-spells/k/ki-arrow/",
-    "level": "1",
-    "description": "You imbue an arrow with your power and throw it at a target up to 100 feet away. Make a ranged attack roll. If it hits, the target takes damage from the arrow as if you had hit it with a single unarmed strike (including your Strength bonus)."
+    "level": "1"
   },
   {
     "text": "Mage Armor",
     "url": "https://www.d20pfsrd.com/magic/all-spells/m/mage-armor/",
-    "level": "1",
-    "description": "An invisible but tangible field of force surrounds the subject of a mage armor spell, providing a +4 armor bonus to AC."
+    "level": "1"
   },
   {
     "text": "Mount",
     "url": "https://www.d20pfsrd.com/magic/all-spells/m/mount/",
-    "level": "1",
-    "description": "You summon a light horse or a pony (your choice) to serve you as a mount. The steed serves willingly and well. The mount comes with a bit and bridle and a riding saddle."
+    "level": "1"
   },
   {
     "text": "Mudball",
     "url": "https://www.d20pfsrd.com/magic/all-spells/m/mudball/",
-    "level": "1",
-    "description": "When you cast this spell, you conjure a single ball of sticky mud and launch it at an enemy’s face as a ranged touch attack. If the mudball hits, the target is blinded. Each round at the beginning of its turn, a creature blinded by this spell can attempt a Reflex saving throw to shake off the mud, ending the effect. The mudball can also be wiped off by the creature affected by it or by a creature adjacent to the creature affected by it as a standard action."
+    "level": "1"
   },
   {
     "text": "Murderous Crow",
     "url": "https://www.d20pfsrd.com/magic/all-spells/m/murderous-crow-orc/",
-    "level": "1",
-    "description": "You conjure a supernaturally vicious and clever crow to watch over you on the battlefield. Choose one of the following templates; the crow has that template and this spell gains the descriptor listed in parentheses: celestial (good), entropic (chaotic), fiendish (evil), or resolute (lawful). In addition to its normal abilities, the crow gains the Improved Steal feat as a bonus feat and gains an eye rake attack. If both of its claw attacks hit the same living foe in a single round, that foe must succeed at a DC 13 Reflex save or be blinded as the bird scratches and tears at the foe’s eyes. The blindness lasts for 1d4 days or until healed with remove blindness."
+    "level": "1"
   },
   {
     "text": "Obscuring Mist",
     "url": "https://www.d20pfsrd.com/magic/all-spells/o/obscuring-mist/",
-    "level": "1",
-    "description": "A misty vapor arises around you. It is stationary. The vapor obscures all sight, including darkvision, beyond 5 feet. A creature 5 feet away has concealment (attacks have a 20% miss chance). Creatures farther away have total concealment (50% miss chance, and the attacker cannot use sight to locate the target)."
+    "level": "1"
   },
   {
     "text": "Secluded Grimoire",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/secluded-grimoire/",
-    "level": "1",
-    "description": "This spell sends a spellbook into a random but safe location on the Ethereal Plane, where it remains indefinitely. When you cast this spell, the target spellbook dissolves into quickly fading lines of energy and runes that reflect all of the spells stored within. Thereafter, you can retrieve the spellbook by concentrating as a standard action, causing it to reappear in your hands. You cannot cast this spell on another spellbook if you currently have a spellbook in the Ethereal Plane. No other creatures or objects accompany the spellbook you send away, and the duration of any spells currently affecting the spellbook continue normally."
+    "level": "1"
   },
   {
     "text": "Snowball",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/snowball/",
-    "level": "1",
-    "description": "You conjure a ball of packed ice and snow that you can throw at a single target as a ranged touch attack. The snowball deals 1d6 points of cold damage per caster level (maximum 5d6) on a successful hit, and the target must make a successful Fortitude saving throw or be staggered for 1 round."
+    "level": "1"
   },
   {
     "text": "Songbird",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/songbird/",
-    "level": "1",
-    "description": "You conjure uplifting music from the wilds of Elysium, Heaven, or Nirvana to bolster other musical activities."
+    "level": "1"
   },
   {
     "text": "Stone Shield",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/stone-shield/",
-    "level": "1",
-    "description": "A 1-inch-thick slab of stone springs up from the ground, interposing itself between you and an opponent of your choice. The stone shield provides you with cover from that enemy until the beginning of your next turn, granting you a +4 bonus to Armor Class and a +2 bonus on Reflex saving throws. If the opponent’s attack misses you by 4 or less, the attack strikes the shield instead. The stone shield has hardness 8 and 15 hit points. If the shield is destroyed, the spell ends and the shield crumbles away into nothingness. Spells and effects that damage an area deal damage to the shield."
+    "level": "1"
   },
   {
     "text": "Stumble Gap",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/stumble-gap/",
-    "level": "1",
-    "description": "You create a shallow extra-dimensional hole perfectly sized to trip anyone who steps within it. This hole occupies a single 5-foot square with a depth of six inches. Any creature occupying the square when you first create the hole, or who later steps into the square containing the hole, must make a Reflex saving throw to avoid falling prone in an adjacent square and taking 1d6 points of damage. A creature that makes its saving throw still stumbles ever so slightly and takes a -1 penalty on all rolls and checks for 1 round. The spell has no effect on creatures adjacent to the square containing the hole."
+    "level": "1"
   },
   {
     "text": "Summon Minor Monster",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/summon-minor-monster/",
-    "level": "1",
-    "description": "This spell functions as summon monster I, except you can summon 1d3 Tiny or smaller animals, such as bats, lizards, monkeys, rats, ravens, toads, or weasels. The summoned animals must all be the same type of creature. As with animals summoned with summon monster I, you may apply one alignment-appropriate template to these animals."
+    "level": "1"
   },
   {
     "text": "Summon Monster I",
     "url": "https://www.d20pfsrd.com/magic/all-spells/s/summon-monster/",
-    "level": "1",
-    "description": "This spell summons an extraplanar creature (typically an outsider, elemental, or magical beast native to another plane). It appears where you designate and acts immediately, on your turn. It attacks your opponents to the best of its ability. If you can communicate with the creature, you can direct it not to attack, to attack particular enemies, or to perform other actions. The spell conjures one of the creatures from the 1st Level list on Table: Summon Monster. You choose which kind of creature to summon, and you can choose a different one each time you cast the spell."
+    "level": "1"
   },
   {
     "text": "Unseen Servant",
     "url": "https://www.d20pfsrd.com/magic/all-spells/u/unseen-servant/",
-    "level": "1",
-    "description": "An unseen servant is an invisible, mindless, shapeless force that performs simple tasks at your command. It can run and fetch things, open unstuck doors, and hold chairs, as well as clean and mend. The servant can perform only one activity at a time, but it repeats the same activity over and over again if told to do so as long as you remain within range. It can open only normal doors, drawers, lids, and the like. It has an effective Strength score of 2 (so it can lift 20 pounds or drag 100 pounds). It can trigger traps and such, but it can exert only 20 pounds of force, which is not enough to activate certain pressure plates and other devices. It can’t perform any task that requires a skill check with a DC higher than 10 or that requires a check using a skill that can’t be used untrained. This servant cannot fly, climb, or even swim (though it can walk on water). Its base speed is 15 feet."
+    "level": "1"
   },
   {
     "text": "Web Bolt",
     "url": "https://www.d20pfsrd.com/magic/all-spells/w/web-bolt/",
-    "level": "1",
-    "description": "You launch a ball of webbing at a target, which must make a save or be affected as if by a web spell occupying only the creature’s space. If the creature saves or breaks free of the webbing, the remaining webs dissolve and the square is not considered difficult terrain. The spell has no effect if the target is not on or adjacent to a solid surface that can support the webbing."
+    "level": "1"
   },
   {
     "text": "Anticipate Peril",
     "url": "https://www.d20pfsrd.com/magic/all-spells/a/anticipate-peril/",
-    "level": "1",
-    "description": "A creature affected by anticipate peril gains a preternatural sense of danger. The first time during this spell’s duration that the target has to make an initiative check, the creature adds an insight bonus on that initiative check equal to the spell’s caster level (maximum +5). Once this bonus applies, the effects of the spell end."
+    "level": "1"
   },
   {
     "text": "Authenticating Gaze",
     "url": "https://www.d20pfsrd.com/magic/all-spells/a/authenticating-gaze/",
-    "level": "1",
-    "description": "Your understanding of the written word becomes analytical and discerning. You gain an insight bonus equal to your caster level (maximum +10) on Appraise checks to determine the value of books and scrolls and on Linguistics checks to detect forgeries, and you can attempt a Linguistics check to detect a forged document at a glance, rather than taking the normal 1 round of examination per page. In addition, you immediately detect whether written works within 30 feet and within your line of sight have a magical aura and the strength of any such auras, as though you had concentrated on each written work for 1 round using detect magic."
+    "level": "1"
   },
   {
     "text": "Comprehend Languages",
