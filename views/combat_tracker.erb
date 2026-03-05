@@ -31,8 +31,8 @@
           <td><%= combat_turn.initiative %></td>
           <td><%= combat_turn.character.name %></td>
           <td><%= combat_turn.hp %>/<%= combat_turn.character.hp_max %></td>
-          <td>0</td>
-          <td>0</td>
+          <td><%= combat_turn.moderate_damage %></td>
+          <td><%= combat_turn.major_damage %></td>
           <td><%= combat_turn.mana %>/<%= combat_turn.character.mana_max %></td>
           <td><%= combat_turn.combat_pool %>/<%= combat_turn.character.combat_pool %></td>
           <td><%= combat_turn.saturation %>/<%= combat_turn.character.cha %></td>

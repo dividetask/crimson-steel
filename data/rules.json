@@ -33,7 +33,7 @@
 		"slight_of_hand": "dex", "stealth": "dex", "use_magic_device": "cha"},
 		"abilities": {
 			"silver_tongue": {"passive": {"persuasion": "1", "deception": "1"}},
-			"rage": {"active": {"combat_pool": "level", "damage_reduction": "1+(level/3)", "damage_resiliance": "1+(level/2)"}}},
+			"rage": {"active": {"combat_pool": "level", "damage_reduction": "1+(level/3)", "damage_resilience": "1+(level/2)"}}},
 		"class_abilities": {
 			"barbarian": {
 				"1": ["rage", "fast_movement", "reckless_attacks"],
@@ -78,7 +78,7 @@
 	"tier": {
 		"color": ["red", "orange", "yellow", "green", "blue", "purple", "aether"],
 		"damage_reduction": [2, 7, 12, 17, 22, 27, 32],
-		"damage_resiliance": [0, 1, 2, 3, 4, 5, 20] },
+		"damage_resilience": [0, 1, 2, 3, 4, 5, 20] },
 	"class_advancement": {
 		"cleric": 						{"bab": 2, "mana": 4, "saves": {"str": 1, "dex": 1, "con": 1, "int": 1, "wis": 3, "cha": 3}},
 		"barbarian":					{"bab": 3, "mana": 1, "saves": {"str": 3, "dex": 1, "con": 3, "int": 1, "wis": 1, "cha": 1}},
