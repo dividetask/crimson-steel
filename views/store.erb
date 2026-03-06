@@ -3,7 +3,7 @@
     .menu { background: #333; padding: 10px; margin: -20px -20px 20px -20px; }
     .menu a { color: white; margin-right: 20px; text-decoration: none; }
     .menu a:hover { text-decoration: underline; }
-    
+
     .gold-display { font-size: 24px; font-weight: bold; margin-bottom: 20px; }
     .store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
     .store-item { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
@@ -16,20 +16,29 @@
     .alert { padding: 10px; margin-bottom: 20px; border-radius: 5px; }
     .alert-success { background: #d4edda; color: #155724; }
     .alert-error { background: #f8d7da; color: #721c24; }
+    .spell-item { border: 1px solid #a0c4e8; padding: 15px; border-radius: 5px; background: #f0f7ff; }
+    .spell-item h3 { margin-top: 0; }
+    .item-type { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; color: white; }
+    .item-type-potion { background: #9c27b0; }
+    .item-type-scroll { background: #1976d2; }
+    .item-type-oil { background: #e65100; }
+    .item-type-wand { background: #2e7d32; }
+    .tier-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; background: #666; color: white; margin-left: 5px; }
   </style>
-  
+
   <h1>Store</h1>
-  
+
   <div class="gold-display">Party Gold: <%= @campaign['gold'] %> gp</div>
-  
+
   <% if params[:error] == 'insufficient_gold' %>
     <div class="alert alert-error">Insufficient gold!</div>
   <% end %>
-  
+
   <% if params[:success] %>
     <div class="alert alert-success">Purchase successful!</div>
   <% end %>
-  
+
+  <h2>Equipment</h2>
   <div class="store-grid">
     <% @store_items.each_with_index do |item, index| %>
       <div class="store-item">
@@ -39,8 +48,33 @@
           <p><strong>Bonus:</strong> +<%= item['bonus'] %></p>
         <% end %>
         <p class="price"><%= item['price'] %> gp</p>
-        
+
         <form method="post" action="/purchase/<%= index %>" class="purchase-form">
+          <select name="owner_id" required>
+            <option value="">Select Character</option>
+            <% @characters.each do |char| %>
+              <option value="<%= char['id'] %>"><%= char['name'] %></option>
+            <% end %>
+          </select>
+          <button type="submit">Purchase</button>
+        </form>
+      </div>
+    <% end %>
+  </div>
+
+  <h2>Spell Items</h2>
+  <div class="store-grid">
+    <% @spell_items.each_with_index do |item, index| %>
+      <div class="spell-item">
+        <h3><%= item['name'] %></h3>
+        <p>
+          <span class="item-type item-type-<%= item['subtype'] %>"><%= item['subtype'].capitalize %></span>
+          <span class="tier-badge">Tier <%= item['tier'] %></span>
+        </p>
+        <p><%= item['description'] %></p>
+        <p class="price"><%= item['price'] %> gp</p>
+
+        <form method="post" action="/purchase/spell_<%= index %>" class="purchase-form">
           <select name="owner_id" required>
             <option value="">Select Character</option>
             <% @characters.each do |char| %>

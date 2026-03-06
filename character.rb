@@ -85,6 +85,42 @@ class Compendium
   def initialize; @data = Tools.load_json('compendium.json'); end
   def format_name(ability_name); return ability_name.gsub('_', ' ').split(' ').map(&:capitalize).join(' '); end
   def ability(entry); return @data["abilities"][entry.to_s]; end
+
+  def spell_store_items
+    items = []
+    item_costs = @data["item_costs"]
+    @data["spells"].each do |spell_name, spell|
+      next unless spell["items"]
+      tiers = spell["tier"].is_a?(Array) ? spell["tier"] : [spell["tier"]]
+      spell["items"].each do |item_type|
+        cost_formula = item_costs[item_type]
+        next unless cost_formula
+        tiers.each_with_index do |tier_val, idx|
+          price = eval(cost_formula.gsub("tier", tier_val.to_s))
+          name = spell_item_name(spell_name, spell, idx, tiers.length, item_type)
+          items << {
+            "name" => name, "price" => price, "type" => "consumable", "subtype" => item_type,
+            "bonus" => 0, "spell" => spell_name.downcase.gsub(' ', '_'), "tier" => tier_val,
+            "properties" => {"consumable" => true, "spell" => spell_name.downcase.gsub(' ', '_')},
+            "description" => spell["description"]
+          }
+        end
+      end
+    end
+    items
+  end
+
+  private
+
+  def spell_item_name(spell_name, spell, idx, tier_count, item_type)
+    if tier_count > 1 && spell["prefix"]
+      "#{spell["prefix"][idx]} #{spell_name} #{item_type.capitalize}"
+    elsif tier_count > 1 && spell["suffix"]
+      "#{spell_name} #{spell["suffix"][idx]} #{item_type.capitalize}"
+    else
+      "#{spell_name} #{item_type.capitalize}"
+    end
+  end
 end
 
 module Skills
