@@ -56,33 +56,47 @@
       </div>
 
       <h2>Ammunition</h2>
-      <div class="store-grid" id="ammo-grid">
-        <% @ammo_items.each_with_index do |item, index| %>
-          <div class="store-item" data-category="<%= item['type'] %>" data-tier="<%= item['tier'] %>">
-            <h3><%= item['name'] %></h3>
-            <p>
-              <span class="item-type item-type-ammunition">Ammunition</span>
-              <span class="tier-badge">Tier <%= item['tier'] %></span>
-            </p>
-            <p><%= item['description'] %></p>
-            <p class="price"><%= item['price'] %> gp</p>
-
-            <form method="post" action="/purchase/ammo_<%= index %>" class="purchase-form">
-              <select name="owner_id" required>
-                <option value="">Select Character</option>
-                <% @characters.each do |char| %>
-                  <option value="<%= char['id'] %>"><%= char['name'] %></option>
-                <% end %>
-              </select>
-              <button type="submit">Purchase</button>
-            </form>
+      <div class="store-card">
+        <div class="card-header">
+          <span class="item-type item-type-ammunition">Ammunition</span>
+        </div>
+        <div class="selector-row">
+          <div class="selector-field">
+            <label>Tier</label>
+            <select id="ammo-tier-select">
+              <option value="">Select Tier</option>
+            </select>
           </div>
-        <% end %>
+          <div class="selector-field">
+            <label>Property</label>
+            <select id="ammo-property-select" disabled>
+              <option value="">None</option>
+            </select>
+          </div>
+        </div>
+        <div id="ammo-details" style="display:none;">
+          <p class="ammo-description"></p>
+          <p class="price">0 gp</p>
+          <form method="post" action="/purchase/ammo_lookup" class="purchase-form">
+            <input type="hidden" name="tier" value="">
+            <input type="hidden" name="property" value="">
+            <select name="owner_id" required>
+              <option value="">Select Character</option>
+              <% @characters.each do |char| %>
+                <option value="<%= char['id'] %>"><%= char['name'] %></option>
+              <% end %>
+            </select>
+            <button type="submit">Purchase</button>
+          </form>
+        </div>
       </div>
 
       <% ['scroll', 'potion', 'oil', 'wand'].each do |item_type| %>
         <h2><%= item_type.capitalize %>s</h2>
-        <div class="spell-selector" id="selector-<%= item_type %>">
+        <div class="store-card">
+          <div class="card-header">
+            <span class="item-type item-type-<%= item_type %>"><%= item_type.capitalize %></span>
+          </div>
           <div class="selector-row">
             <div class="selector-field">
               <label>Skill</label>
@@ -127,6 +141,8 @@
   <script>
     var spellData = <%= JSON.generate(@spell_data) %>;
     var itemCosts = <%= JSON.generate(@item_costs) %>;
+    var propertyCosts = <%= JSON.generate(@property_costs) %>;
+    var ammoCosts = itemCosts['ammunition'];
 
     var skillLabels = {
       'nature': 'Nature', 'perform_': 'Perform', 'arcana': 'Arcana',
@@ -206,6 +222,75 @@
         return val;
       });
     }
+
+    // Initialize ammunition selects
+    (function() {
+      var tierSelect = document.getElementById('ammo-tier-select');
+      var propSelect = document.getElementById('ammo-property-select');
+      var details = document.getElementById('ammo-details');
+
+      ammoCosts.forEach(function(price, tier) {
+        var opt = document.createElement('option');
+        opt.value = tier;
+        opt.textContent = 'Tier ' + tier;
+        tierSelect.appendChild(opt);
+      });
+
+      tierSelect.addEventListener('change', function() {
+        propSelect.innerHTML = '<option value="">None</option>';
+        propSelect.disabled = true;
+        details.style.display = 'none';
+
+        if (!this.value) return;
+        var tier = parseInt(this.value);
+        var basePrice = ammoCosts[tier];
+
+        // Add property options available at this tier
+        for (var propName in propertyCosts) {
+          var prop = propertyCosts[propName];
+          var available = prop.requirements.some(function(req) {
+            if (req.type !== 'ammunition') return false;
+            var minTier = parseInt(req.tier.toString().replace('>=', ''));
+            return tier >= minTier;
+          });
+          if (available) {
+            var opt = document.createElement('option');
+            opt.value = propName;
+            opt.textContent = propName;
+            propSelect.appendChild(opt);
+          }
+        }
+        propSelect.disabled = false;
+
+        // Show base arrow details
+        var name = tier === 0 ? 'Arrows' : 'Arrows +' + tier;
+        var desc = tier === 0 ? 'Standard arrows.' : 'Magical arrows with a +' + tier + ' enhancement bonus.';
+        details.querySelector('.ammo-description').textContent = desc;
+        details.querySelector('.price').textContent = basePrice + ' gp';
+        details.querySelector('input[name="tier"]').value = tier;
+        details.querySelector('input[name="property"]').value = '';
+        details.style.display = '';
+      });
+
+      propSelect.addEventListener('change', function() {
+        var tier = parseInt(tierSelect.value);
+        var basePrice = ammoCosts[tier];
+        var propName = this.value;
+
+        if (propName && propertyCosts[propName]) {
+          var prop = propertyCosts[propName];
+          var price = basePrice + prop.cost;
+          details.querySelector('.ammo-description').textContent = prop.description;
+          details.querySelector('.price').textContent = price + ' gp';
+          details.querySelector('input[name="property"]').value = propName;
+        } else {
+          var desc = tier === 0 ? 'Standard arrows.' : 'Magical arrows with a +' + tier + ' enhancement bonus.';
+          details.querySelector('.ammo-description').textContent = desc;
+          details.querySelector('.price').textContent = basePrice + ' gp';
+          details.querySelector('input[name="property"]').value = '';
+        }
+      });
+    })();
 
     // Initialize skill selects
     ['scroll', 'potion', 'oil', 'wand'].forEach(function(itemType) {
