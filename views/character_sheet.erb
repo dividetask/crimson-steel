@@ -129,7 +129,7 @@
       <h2>Abilities</h2>
 
 			<% @character.ability_list.each do |ability_name| %>
-				<p><strong><%= @compendium.format_name(ability_name) %>:</strong> <%= @compendium.ability(ability_name) %></p>
+				<p><strong><%= h(@compendium.format_name(ability_name)) %>:</strong> <%= h(@compendium.ability(ability_name)) %></p>
 			<% end %>
 
 			<% if @character.spell_list %>
@@ -195,7 +195,7 @@
 	<div class="items">
 
 		<% @character.defined_items.each do |item| %>
-			<p><strong><%= item['name'] %>:</strong> <%= item['description'] %></p>
+			<p><strong><%= h(item['name']) %>:</strong> <%= h(item['description']) %></p>
 		<% end %>
 	</div>
 
@@ -203,7 +203,7 @@
 	<div class="notes">
 
 		<% @character.note_list.each do |note| %>
-			<p><%= note['note'] %></p>
+			<p><%= h(note['note']) %></p>
 		<% end %>
   <form method="post" action="/add_note" style="margin-top: 20px;">
     <label>Note:</label>
