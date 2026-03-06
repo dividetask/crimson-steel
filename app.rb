@@ -174,7 +174,9 @@ get '/store' do
   @store_items = Tools.load_json('store.json')
   @campaign = Tools.load_json('campaign.json')
   @characters = Tools.load_json('characters.json')
-  @spell_items = Compendium.new.spell_store_items
+  compendium = Compendium.new
+  @spell_items = compendium.spell_store_items
+  @ammo_items = compendium.ammunition_store_items
   erb :store
 end
 
@@ -184,9 +186,13 @@ post '/purchase/:item_index' do
   items = Tools.load_json('items.json')
 
   owner_id = params[:owner_id].to_i
+  compendium = Compendium.new
   if params[:item_index].start_with?('spell_')
     spell_index = params[:item_index].sub('spell_', '').to_i
-    store_item = Compendium.new.spell_store_items[spell_index]
+    store_item = compendium.spell_store_items[spell_index]
+  elsif params[:item_index].start_with?('ammo_')
+    ammo_index = params[:item_index].sub('ammo_', '').to_i
+    store_item = compendium.ammunition_store_items[ammo_index]
   else
     store_item = store_items[params[:item_index].to_i]
   end

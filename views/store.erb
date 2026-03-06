@@ -97,6 +97,31 @@
         <% end %>
       </div>
 
+      <h2>Ammunition</h2>
+      <div class="store-grid" id="ammo-grid">
+        <% @ammo_items.each_with_index do |item, index| %>
+          <div class="store-item" data-category="<%= item['type'] %>" data-tier="<%= item['tier'] %>">
+            <h3><%= item['name'] %></h3>
+            <p>
+              <span class="item-type item-type-ammunition">Ammunition</span>
+              <span class="tier-badge">Tier <%= item['tier'] %></span>
+            </p>
+            <p><%= item['description'] %></p>
+            <p class="price"><%= item['price'] %> gp</p>
+
+            <form method="post" action="/purchase/ammo_<%= index %>" class="purchase-form">
+              <select name="owner_id" required>
+                <option value="">Select Character</option>
+                <% @characters.each do |char| %>
+                  <option value="<%= char['id'] %>"><%= char['name'] %></option>
+                <% end %>
+              </select>
+              <button type="submit">Purchase</button>
+            </form>
+          </div>
+        <% end %>
+      </div>
+
       <h2>Spell Items</h2>
       <div class="store-grid" id="spell-grid">
         <% @spell_items.each_with_index do |item, index| %>

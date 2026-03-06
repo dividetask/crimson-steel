@@ -86,6 +86,46 @@ class Compendium
   def format_name(ability_name); return ability_name.gsub('_', ' ').split(' ').map(&:capitalize).join(' '); end
   def ability(entry); return @data["abilities"][entry.to_s]; end
 
+  def ammunition_store_items
+    items = []
+    item_costs = @data["item_costs"]
+    property_costs = @data["property_costs"] || {}
+    ammo_costs = item_costs["ammunition"]
+    return items unless ammo_costs.is_a?(Array)
+
+    # Base ammunition at each tier
+    ammo_costs.each_with_index do |price, tier|
+      items << {
+        "name" => tier == 0 ? "Arrows" : "Arrows +#{tier}",
+        "price" => price, "type" => "ammunition", "subtype" => "arrow",
+        "bonus" => tier, "tier" => tier,
+        "properties" => {"consumable" => true},
+        "description" => tier == 0 ? "Standard arrows." : "Magical arrows with a +#{tier} enhancement bonus."
+      }
+    end
+
+    # Property variants
+    property_costs.each do |prop_name, prop|
+      prop["requirements"].each do |req|
+        next unless req["type"] == "ammunition"
+        min_tier = req["tier"].to_s.gsub(">=", "").to_i
+        ammo_costs.each_with_index do |base_price, tier|
+          next if tier < min_tier
+          items << {
+            "name" => "#{prop_name} Arrows +#{tier}",
+            "price" => base_price + prop["cost"],
+            "type" => "ammunition", "subtype" => "arrow",
+            "bonus" => tier, "tier" => tier,
+            "properties" => {"consumable" => true, prop_name.downcase => true},
+            "description" => prop["description"]
+          }
+        end
+      end
+    end
+
+    items
+  end
+
   def spell_store_items
     items = []
     item_costs = @data["item_costs"]
