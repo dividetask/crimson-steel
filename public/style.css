@@ -243,13 +243,17 @@ table th {
 .item-type-wand { background: #2e7d32; }
 .item-type-ammunition { background: #795548; }
 .tier-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; background: #666; color: white; margin-left: 5px; }
-.spell-selector { border: 1px solid #a0c4e8; padding: 15px; border-radius: 5px; background: #f0f7ff; margin-bottom: 15px; }
+.store-card { border: 1px solid #ddd; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
+.card-header { margin-bottom: 12px; }
 .selector-row { display: flex; gap: 15px; align-items: flex-end; }
 .selector-field { flex: 1; }
 .selector-field label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 12px; }
 .selector-field select { width: 100%; padding: 8px; font-size: 14px; }
-.spell-details { margin-top: 15px; padding-top: 15px; border-top: 1px solid #a0c4e8; }
-.spell-description { margin-bottom: 10px; font-size: 12px; line-height: 1.5; }
+.store-card select, .store-card button { padding: 8px; }
+.store-card button { background: #4CAF50; color: white; border: none; cursor: pointer; }
+.store-card button:hover { background: #45a049; }
+.spell-details, #ammo-details { margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd; }
+.spell-description, .ammo-description { margin-bottom: 10px; font-size: 12px; line-height: 1.5; }
 
 /* Notes page */
 .section { margin-bottom: 30px; border: 1px solid #ccc; padding: 15px; }

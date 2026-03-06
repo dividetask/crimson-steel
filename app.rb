@@ -183,6 +183,7 @@ get '/store' do
   @ammo_items = compendium.ammunition_store_items
   @spell_data = compendium.data["spells"]
   @item_costs = compendium.data["item_costs"]
+  @property_costs = compendium.data["property_costs"] || {}
   erb :store
 end
 
@@ -193,7 +194,14 @@ post '/purchase/:item_index' do
 
   owner_id = params[:owner_id].to_i
   compendium = Compendium.new
-  if params[:item_index] == 'spell_lookup'
+  if params[:item_index] == 'ammo_lookup'
+    store_item = compendium.ammunition_store_items.find do |item|
+      item['tier'] == params[:tier].to_i &&
+      (params[:property].to_s.empty? ? !item['properties'].keys.any? { |k| k != 'consumable' } :
+        item['properties'][params[:property].downcase] == true)
+    end
+    halt 400, "Ammunition not found" unless store_item
+  elsif params[:item_index] == 'spell_lookup'
     store_item = compendium.spell_store_items.find do |item|
       item['spell'] == params[:spell_name] &&
       item['subtype'] == params[:item_type] &&
