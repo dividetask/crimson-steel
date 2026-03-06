@@ -76,7 +76,7 @@
       <h2>Equipment</h2>
       <div class="store-grid" id="equipment-grid">
         <% @store_items.each_with_index do |item, index| %>
-          <div class="store-item" data-category="<%= item['type'] %>">
+          <div class="store-item" data-category="<%= item['type'] %>" data-tier="<%= item['bonus'] %>">
             <h3><%= item['name'] %></h3>
             <p><strong>Type:</strong> <%= item['type'].capitalize %> - <%= item['subtype'] %></p>
             <% if item['bonus'] > 0 %>
@@ -152,7 +152,7 @@
         var isSpell = card.classList.contains('spell-item');
 
         var categoryMatch = noCategories || activeCategories.indexOf(category) !== -1;
-        var tierMatch = noTiers || (tier !== undefined && activeTiers.indexOf(tier) !== -1);
+        var tierMatch = noTiers || activeTiers.indexOf(tier) !== -1;
 
         var visible = categoryMatch && tierMatch;
         card.style.display = visible ? '' : 'none';
