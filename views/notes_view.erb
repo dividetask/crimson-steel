@@ -1,27 +1,3 @@
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
-    .section { margin-bottom: 30px; border: 1px solid #ccc; padding: 15px; }
-    .section h2 { margin-top: 0; border-bottom: 2px solid #333; padding-bottom: 10px; }
-    
-    .character-list { display: grid; gap: 15px; }
-    .character-card { border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
-    .character-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
-    .tier-0 { color: #d32f2f; } /* red */
-    .tier-1 { color: #f57c00; } /* orange */
-    .tier-2 { color: #fbc02d; } /* yellow */
-    .tier-3 { color: #388e3c; } /* green */
-    .tier-4 { color: #1976d2; } /* blue */
-    
-    .note-item { margin-bottom: 10px; padding: 10px; background: #f5f5f5; border-radius: 5px; }
-    .note-item p { margin: 0; }
-    
-    form { display: grid; gap: 10px; margin-top: 15px; padding: 15px; background: #e3f2fd; border-radius: 5px; }
-    label { font-weight: bold; }
-    input, textarea, select { padding: 8px; font-size: 14px; width: 100%; box-sizing: border-box; }
-    button { padding: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; font-size: 16px; }
-    button:hover { background: #45a049; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  </style>
   <h1>Notes & Characters</h1>
   
     <div class="section">
@@ -38,7 +14,7 @@
       <% end %>
       
     <% if @is_dm %>
-      <form method="post" action="/add_note_entry">
+      <form class="notes-form" method="post" action="/add_note_entry">
         <input type="hidden" name="owner_id" value="0">
         <input type="hidden" name="type" value="note">
         <label>New DM Note:</label>
@@ -68,7 +44,7 @@
     </div>
     
     <% if @is_dm %>
-      <form method="post" action="/add_note_entry">
+      <form class="notes-form" method="post" action="/add_note_entry">
         <input type="hidden" name="owner_id" value="0">
         <input type="hidden" name="type" value="character">
         <h3>Add New Character</h3>
@@ -110,7 +86,7 @@
         </div>
       <% end %>
       
-      <form method="post" action="/add_note_entry">
+      <form class="notes-form" method="post" action="/add_note_entry">
         <input type="hidden" name="owner_id" value="<%= @viewer_id %>">
         <input type="hidden" name="type" value="note">
         <input type="hidden" name="public" value="false">

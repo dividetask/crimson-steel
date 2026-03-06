@@ -1,16 +1,6 @@
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
-    form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .full-width { grid-column: 1 / -1; }
-    label { font-weight: bold; display: block; margin-bottom: 5px; }
-    input, select, textarea { padding: 8px; font-size: 14px; width: 100%; box-sizing: border-box; }
-    button { padding: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; font-size: 16px; }
-    button:hover { background: #45a049; }
-  </style>
-
   <h1>Add Item</h1>
-  
-  <form method="post" action="/add_item">
+
+  <form class="add-item-form" method="post" action="/add_item">
     <div>
       <label>Owner:</label>
       <select name="owner_id" required>
