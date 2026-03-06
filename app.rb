@@ -174,6 +174,7 @@ get '/store' do
   @store_items = Tools.load_json('store.json')
   @campaign = Tools.load_json('campaign.json')
   @characters = Tools.load_json('characters.json')
+  @spell_items = Compendium.new.spell_store_items
   erb :store
 end
 
@@ -182,9 +183,13 @@ post '/purchase/:item_index' do
   campaign = Tools.load_json('campaign.json')
   items = Tools.load_json('items.json')
 
-  item_index = params[:item_index].to_i
   owner_id = params[:owner_id].to_i
-  store_item = store_items[item_index]
+  if params[:item_index].start_with?('spell_')
+    spell_index = params[:item_index].sub('spell_', '').to_i
+    store_item = Compendium.new.spell_store_items[spell_index]
+  else
+    store_item = store_items[params[:item_index].to_i]
+  end
 
   # Check if enough gold
   if campaign['gold'] < store_item['price']
