@@ -181,6 +181,8 @@ get '/store' do
   compendium = Compendium.new
   @spell_items = compendium.spell_store_items
   @ammo_items = compendium.ammunition_store_items
+  @spell_data = compendium.data["spells"]
+  @item_costs = compendium.data["item_costs"]
   erb :store
 end
 
@@ -191,7 +193,14 @@ post '/purchase/:item_index' do
 
   owner_id = params[:owner_id].to_i
   compendium = Compendium.new
-  if params[:item_index].start_with?('spell_')
+  if params[:item_index] == 'spell_lookup'
+    store_item = compendium.spell_store_items.find do |item|
+      item['spell'] == params[:spell_name] &&
+      item['subtype'] == params[:item_type] &&
+      item['tier'] == params[:tier].to_i
+    end
+    halt 400, "Spell item not found" unless store_item
+  elsif params[:item_index].start_with?('spell_')
     spell_index = params[:item_index].sub('spell_', '').to_i
     store_item = compendium.spell_store_items[spell_index]
   elsif params[:item_index].start_with?('ammo_')
