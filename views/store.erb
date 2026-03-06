@@ -152,7 +152,7 @@
         var isSpell = card.classList.contains('spell-item');
 
         var categoryMatch = noCategories || activeCategories.indexOf(category) !== -1;
-        var tierMatch = !isSpell || noTiers || activeTiers.indexOf(tier) !== -1;
+        var tierMatch = noTiers || (tier !== undefined && activeTiers.indexOf(tier) !== -1);
 
         var visible = categoryMatch && tierMatch;
         card.style.display = visible ? '' : 'none';
