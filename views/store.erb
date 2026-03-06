@@ -20,10 +20,6 @@
         <label><input type="checkbox" class="filter-cb" data-filter="category" value="item"> Item</label>
         <label><input type="checkbox" class="filter-cb" data-filter="category" value="ammunition"> Ammunition</label>
         <label><input type="checkbox" class="filter-cb" data-filter="category" value="equipment"> Equipment</label>
-        <label><input type="checkbox" class="filter-cb" data-filter="category" value="potion"> Potion</label>
-        <label><input type="checkbox" class="filter-cb" data-filter="category" value="scroll"> Scroll</label>
-        <label><input type="checkbox" class="filter-cb" data-filter="category" value="oil"> Oil</label>
-        <label><input type="checkbox" class="filter-cb" data-filter="category" value="wand"> Wand</label>
       </div>
 
       <div class="filter-group">
@@ -84,19 +80,36 @@
         <% end %>
       </div>
 
-      <h2>Spell Items</h2>
-      <div class="store-grid" id="spell-grid">
-        <% @spell_items.each_with_index do |item, index| %>
-          <div class="spell-item" data-category="<%= item['subtype'] %>" data-tier="<%= item['tier'] %>">
-            <h3><%= item['name'] %></h3>
-            <p>
-              <span class="item-type item-type-<%= item['subtype'] %>"><%= item['subtype'].capitalize %></span>
-              <span class="tier-badge">Tier <%= item['tier'] %></span>
-            </p>
-            <p><%= item['description'] %></p>
-            <p class="price"><%= item['price'] %> gp</p>
-
-            <form method="post" action="/purchase/spell_<%= index %>" class="purchase-form">
+      <% ['scroll', 'potion', 'oil', 'wand'].each do |item_type| %>
+        <h2><%= item_type.capitalize %>s</h2>
+        <div class="spell-selector" id="selector-<%= item_type %>">
+          <div class="selector-row">
+            <div class="selector-field">
+              <label>Skill</label>
+              <select class="skill-select" data-item-type="<%= item_type %>">
+                <option value="">Select Skill</option>
+              </select>
+            </div>
+            <div class="selector-field">
+              <label>Tier</label>
+              <select class="tier-select" data-item-type="<%= item_type %>" disabled>
+                <option value="">Select Tier</option>
+              </select>
+            </div>
+            <div class="selector-field">
+              <label>Spell</label>
+              <select class="spell-select" data-item-type="<%= item_type %>" disabled>
+                <option value="">Select Spell</option>
+              </select>
+            </div>
+          </div>
+          <div class="spell-details" id="details-<%= item_type %>" style="display:none;">
+            <p class="spell-description"></p>
+            <p class="price">0 gp</p>
+            <form method="post" action="/purchase/spell_lookup" class="purchase-form">
+              <input type="hidden" name="spell_name" value="">
+              <input type="hidden" name="item_type" value="<%= item_type %>">
+              <input type="hidden" name="tier" value="">
               <select name="owner_id" required>
                 <option value="">Select Character</option>
                 <% @characters.each do |char| %>
@@ -106,12 +119,183 @@
               <button type="submit">Purchase</button>
             </form>
           </div>
-        <% end %>
-      </div>
+        </div>
+      <% end %>
     </div>
   </div>
 
   <script>
+    var spellData = <%= JSON.generate(@spell_data) %>;
+    var itemCosts = <%= JSON.generate(@item_costs) %>;
+
+    var skillLabels = {
+      'nature': 'Nature', 'perform_': 'Perform', 'arcana': 'Arcana',
+      'use_magic_device': 'Use Magic Device', 'healing': 'Healing'
+    };
+
+    function calcPrice(itemType, tier) {
+      var formula = itemCosts[itemType];
+      if (!formula) return 0;
+      return eval(formula.replace(/tier/g, tier));
+    }
+
+    function getSpellName(spellKey, spell, tierIdx, totalTiers, itemType) {
+      if (totalTiers > 1 && spell.prefix) {
+        return spell.prefix[tierIdx] + ' ' + spellKey + ' ' + itemType.charAt(0).toUpperCase() + itemType.slice(1);
+      } else if (totalTiers > 1 && spell.suffix) {
+        return spellKey + ' ' + spell.suffix[tierIdx] + ' ' + itemType.charAt(0).toUpperCase() + itemType.slice(1);
+      }
+      return spellKey + ' ' + itemType.charAt(0).toUpperCase() + itemType.slice(1);
+    }
+
+    function getSpellsForType(itemType) {
+      var result = [];
+      for (var name in spellData) {
+        var spell = spellData[name];
+        if (spell.items && spell.items.indexOf(itemType) !== -1) {
+          result.push({key: name, spell: spell});
+        }
+      }
+      return result;
+    }
+
+    function getSkillsForType(itemType) {
+      var spells = getSpellsForType(itemType);
+      var skills = {};
+      spells.forEach(function(s) {
+        s.spell.skill.forEach(function(sk) { skills[sk] = true; });
+      });
+      // Always add use_magic_device
+      skills['use_magic_device'] = true;
+      return Object.keys(skills).sort();
+    }
+
+    function getTiersForSkillAndType(skill, itemType) {
+      var spells = getSpellsForType(itemType);
+      var tiers = {};
+      spells.forEach(function(s) {
+        if (skill === 'use_magic_device' || s.spell.skill.indexOf(skill) !== -1) {
+          var tierList = Array.isArray(s.spell.tier) ? s.spell.tier : [s.spell.tier];
+          tierList.forEach(function(t) { tiers[t] = true; });
+        }
+      });
+      return Object.keys(tiers).map(Number).sort(function(a,b) { return a - b; });
+    }
+
+    function getSpellsForSkillTierType(skill, tier, itemType) {
+      var spells = getSpellsForType(itemType);
+      var result = [];
+      spells.forEach(function(s) {
+        if (skill !== 'use_magic_device' && s.spell.skill.indexOf(skill) === -1) return;
+        var tierList = Array.isArray(s.spell.tier) ? s.spell.tier : [s.spell.tier];
+        var tierIdx = tierList.indexOf(tier);
+        if (tierIdx === -1) return;
+        result.push({key: s.key, spell: s.spell, tierIdx: tierIdx, tier: tier});
+      });
+      return result;
+    }
+
+    function resolveDescription(spell, tierIdx, tierVal) {
+      return spell.description.replace(/\{(\w+)\}/g, function(match, varName) {
+        var val = spell.effect_hash ? spell.effect_hash[varName] : null;
+        if (!val) return match;
+        if (Array.isArray(val)) return val[tierIdx];
+        if (typeof val === 'string') {
+          try { return eval(val.replace(/tier/g, tierVal)); } catch(e) { return val; }
+        }
+        return val;
+      });
+    }
+
+    // Initialize skill selects
+    ['scroll', 'potion', 'oil', 'wand'].forEach(function(itemType) {
+      var skillSelect = document.querySelector('.skill-select[data-item-type="' + itemType + '"]');
+      var tierSelect = document.querySelector('.tier-select[data-item-type="' + itemType + '"]');
+      var spellSelect = document.querySelector('.spell-select[data-item-type="' + itemType + '"]');
+      var details = document.getElementById('details-' + itemType);
+
+      var skills = getSkillsForType(itemType);
+      skills.forEach(function(sk) {
+        var opt = document.createElement('option');
+        opt.value = sk;
+        opt.textContent = skillLabels[sk] || sk;
+        skillSelect.appendChild(opt);
+      });
+
+      skillSelect.addEventListener('change', function() {
+        tierSelect.innerHTML = '<option value="">Select Tier</option>';
+        spellSelect.innerHTML = '<option value="">Select Spell</option>';
+        tierSelect.disabled = true;
+        spellSelect.disabled = true;
+        details.style.display = 'none';
+
+        if (!this.value) return;
+        var tiers = getTiersForSkillAndType(this.value, itemType);
+        tiers.forEach(function(t) {
+          var opt = document.createElement('option');
+          opt.value = t;
+          opt.textContent = 'Tier ' + t;
+          tierSelect.appendChild(opt);
+        });
+        tierSelect.disabled = false;
+      });
+
+      tierSelect.addEventListener('change', function() {
+        spellSelect.innerHTML = '<option value="">Select Spell</option>';
+        spellSelect.disabled = true;
+        details.style.display = 'none';
+
+        if (!this.value) return;
+        var skill = skillSelect.value;
+        var tier = parseInt(this.value);
+        var spells = getSpellsForSkillTierType(skill, tier, itemType);
+
+        // Update price display immediately
+        var price = calcPrice(itemType, tier);
+        details.querySelector('.price').textContent = price + ' gp';
+
+        spells.forEach(function(s) {
+          var opt = document.createElement('option');
+          var tierList = Array.isArray(s.spell.tier) ? s.spell.tier : [s.spell.tier];
+          opt.value = s.key.toLowerCase().replace(/ /g, '_');
+          opt.textContent = getSpellName(s.key, s.spell, s.tierIdx, tierList.length, itemType);
+          spellSelect.appendChild(opt);
+        });
+        spellSelect.disabled = false;
+      });
+
+      spellSelect.addEventListener('change', function() {
+        details.style.display = 'none';
+        if (!this.value) return;
+
+        var tier = parseInt(tierSelect.value);
+        var spellKey = this.value;
+        var price = calcPrice(itemType, tier);
+
+        // Find the spell data
+        var spell = null;
+        var tierIdx = 0;
+        for (var name in spellData) {
+          if (name.toLowerCase().replace(/ /g, '_') === spellKey) {
+            spell = spellData[name];
+            var tierList = Array.isArray(spell.tier) ? spell.tier : [spell.tier];
+            tierIdx = tierList.indexOf(tier);
+            break;
+          }
+        }
+
+        if (!spell) return;
+
+        var desc = resolveDescription(spell, tierIdx, tier);
+        details.querySelector('.spell-description').textContent = desc;
+        details.querySelector('.price').textContent = price + ' gp';
+        details.querySelector('input[name="spell_name"]').value = spellKey;
+        details.querySelector('input[name="tier"]').value = tier;
+        details.style.display = '';
+      });
+    });
+
+    // Equipment/Ammo filters
     document.querySelectorAll('.filter-cb').forEach(function(cb) {
       cb.addEventListener('change', applyFilters);
     });
@@ -130,31 +314,15 @@
       var noCategories = activeCategories.length === 0;
       var noTiers = activeTiers.length === 0;
 
-      var equipmentVisible = false;
-      var spellVisible = false;
-
-      document.querySelectorAll('.store-item, .spell-item').forEach(function(card) {
+      document.querySelectorAll('.store-item').forEach(function(card) {
         var category = card.dataset.category;
         var tier = card.dataset.tier;
-        var isSpell = card.classList.contains('spell-item');
 
         var categoryMatch = noCategories || activeCategories.indexOf(category) !== -1;
         var tierMatch = noTiers || activeTiers.indexOf(tier) !== -1;
 
-        var visible = categoryMatch && tierMatch;
-        card.style.display = visible ? '' : 'none';
-
-        if (visible) {
-          if (isSpell) spellVisible = true;
-          else equipmentVisible = true;
-        }
+        card.style.display = (categoryMatch && tierMatch) ? '' : 'none';
       });
-
-      document.getElementById('equipment-grid').previousElementSibling.style.display = equipmentVisible ? '' : 'none';
-      document.getElementById('equipment-grid').style.display = equipmentVisible ? '' : 'none';
-
-      document.getElementById('spell-grid').previousElementSibling.style.display = spellVisible ? '' : 'none';
-      document.getElementById('spell-grid').style.display = spellVisible ? '' : 'none';
     }
 
     function getChecked(filterName) {
