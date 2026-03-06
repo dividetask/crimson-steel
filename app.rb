@@ -210,12 +210,16 @@ post '/purchase/:item_index' do
     existing_item['quantity'] = (existing_item['quantity'] || 1) + 1
   else
     # Add new item
+    bonus = store_item['bonus']
+    if store_item['tier'] && %w[potion oil scroll].include?(store_item['subtype'])
+      bonus = store_item['tier']
+    end
     new_item = {
       'owner_id' => owner_id,
       'name' => store_item['name'],
       'type' => store_item['type'],
       'subtype' => store_item['subtype'],
-      'bonus' => store_item['bonus'],
+      'bonus' => bonus,
       'properties' => store_item['properties'],
       'equipped' => false
     }

@@ -55,16 +55,13 @@
 
       <div class="filter-group">
         <h4>Type</h4>
-        <label><input type="checkbox" class="filter-cb" data-filter="type" value="equipment"> Equipment</label>
-        <label><input type="checkbox" class="filter-cb" data-filter="type" value="spell"> Spell Items</label>
-      </div>
-
-      <div class="filter-group">
-        <h4>Item Form</h4>
-        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="potion"> Potion</label>
-        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="scroll"> Scroll</label>
-        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="oil"> Oil</label>
-        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="wand"> Wand</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="category" value="item"> Item</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="category" value="ammunition"> Ammunition</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="category" value="equipment"> Equipment</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="category" value="potion"> Potion</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="category" value="scroll"> Scroll</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="category" value="oil"> Oil</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="category" value="wand"> Wand</label>
       </div>
 
       <div class="filter-group">
@@ -79,7 +76,7 @@
       <h2>Equipment</h2>
       <div class="store-grid" id="equipment-grid">
         <% @store_items.each_with_index do |item, index| %>
-          <div class="store-item" data-type="equipment" data-subtype="<%= item['subtype'] %>">
+          <div class="store-item" data-category="<%= item['type'] %>">
             <h3><%= item['name'] %></h3>
             <p><strong>Type:</strong> <%= item['type'].capitalize %> - <%= item['subtype'] %></p>
             <% if item['bonus'] > 0 %>
@@ -103,7 +100,7 @@
       <h2>Spell Items</h2>
       <div class="store-grid" id="spell-grid">
         <% @spell_items.each_with_index do |item, index| %>
-          <div class="spell-item" data-type="spell" data-subtype="<%= item['subtype'] %>" data-tier="<%= item['tier'] %>">
+          <div class="spell-item" data-category="<%= item['subtype'] %>" data-tier="<%= item['tier'] %>">
             <h3><%= item['name'] %></h3>
             <p>
               <span class="item-type item-type-<%= item['subtype'] %>"><%= item['subtype'].capitalize %></span>
@@ -140,34 +137,37 @@
     });
 
     function applyFilters() {
-      var activeTypes = getChecked('type');
-      var activeSubtypes = getChecked('subtype');
+      var activeCategories = getChecked('category');
       var activeTiers = getChecked('tier');
 
-      var noTypes = activeTypes.length === 0;
-      var noSubtypes = activeSubtypes.length === 0;
+      var noCategories = activeCategories.length === 0;
       var noTiers = activeTiers.length === 0;
 
+      var equipmentVisible = false;
+      var spellVisible = false;
+
       document.querySelectorAll('.store-item, .spell-item').forEach(function(card) {
-        var type = card.dataset.type;
-        var subtype = card.dataset.subtype;
+        var category = card.dataset.category;
         var tier = card.dataset.tier;
+        var isSpell = card.classList.contains('spell-item');
 
-        var typeMatch = noTypes || activeTypes.indexOf(type) !== -1;
-        var subtypeMatch = type === 'equipment' || noSubtypes || activeSubtypes.indexOf(subtype) !== -1;
-        var tierMatch = type === 'equipment' || noTiers || activeTiers.indexOf(tier) !== -1;
+        var categoryMatch = noCategories || activeCategories.indexOf(category) !== -1;
+        var tierMatch = !isSpell || noTiers || activeTiers.indexOf(tier) !== -1;
 
-        card.style.display = (typeMatch && subtypeMatch && tierMatch) ? '' : 'none';
+        var visible = categoryMatch && tierMatch;
+        card.style.display = visible ? '' : 'none';
+
+        if (visible) {
+          if (isSpell) spellVisible = true;
+          else equipmentVisible = true;
+        }
       });
 
-      var showEquipment = noTypes || activeTypes.indexOf('equipment') !== -1;
-      var showSpells = noTypes || activeTypes.indexOf('spell') !== -1;
+      document.getElementById('equipment-grid').previousElementSibling.style.display = equipmentVisible ? '' : 'none';
+      document.getElementById('equipment-grid').style.display = equipmentVisible ? '' : 'none';
 
-      document.getElementById('equipment-grid').previousElementSibling.style.display = showEquipment ? '' : 'none';
-      document.getElementById('equipment-grid').style.display = showEquipment ? '' : 'none';
-
-      document.getElementById('spell-grid').previousElementSibling.style.display = showSpells ? '' : 'none';
-      document.getElementById('spell-grid').style.display = showSpells ? '' : 'none';
+      document.getElementById('spell-grid').previousElementSibling.style.display = spellVisible ? '' : 'none';
+      document.getElementById('spell-grid').style.display = spellVisible ? '' : 'none';
     }
 
     function getChecked(filterName) {
