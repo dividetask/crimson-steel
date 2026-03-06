@@ -14,6 +14,10 @@ def local_request?
   request.ip == "127.0.0.1" || request.ip == "::1" || request.ip == "localhost"
 end
 
+before do
+  @is_local = local_request?
+end
+
 def load_character_view(character_list, index, route_prefix)
   halt 404, "No characters found" if character_list.empty?
   index = index % character_list.length

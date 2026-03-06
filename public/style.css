@@ -12,10 +12,15 @@ body {
   max-width: 900px;
   margin: 0 auto;
   font-size: 11px;
-
-  padding-bottom: 160px; /* Add space for navigation */
+  padding-bottom: 160px;
 }
 
+/* Menu */
+.menu { background: #333; padding: 10px; margin: -20px -20px 20px -20px; }
+.menu a { color: white; margin-right: 20px; text-decoration: none; }
+.menu a:hover { text-decoration: underline; }
+
+/* Character sheet navigation */
 .navigation {
   position: fixed;
   bottom: 20px;
@@ -54,7 +59,7 @@ body {
 .sheet {
   border: 2px solid #000;
   padding: 15px;
-  margin-bottom: 100px;  /* Add space at bottom */
+  margin-bottom: 100px;
 }
 
 .header {
@@ -205,6 +210,75 @@ table th {
   font-weight: bold;
 }
 
+/* Store page */
+.gold-display { font-size: 24px; font-weight: bold; margin-bottom: 20px; }
+.store-layout { display: flex; gap: 20px; }
+.filter-sidebar { width: 200px; flex-shrink: 0; }
+.filter-sidebar h3 { margin-top: 0; }
+.filter-group { margin-bottom: 15px; }
+.filter-group h4 { margin: 0 0 8px 0; color: #555; font-size: 13px; text-transform: uppercase; }
+.filter-group label { display: block; padding: 4px 0; cursor: pointer; font-size: 14px; }
+.filter-group input[type="checkbox"] { margin-right: 6px; }
+.clear-btn { background: #888; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 13px; margin-bottom: 15px; }
+.clear-btn:hover { background: #666; }
+.store-content { flex: 1; min-width: 0; }
+.store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.store-item { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+.store-item h3 { margin-top: 0; }
+.price { font-weight: bold; font-size: 18px; }
+.purchase-form { margin-top: 10px; display: flex; gap: 10px; align-items: center; }
+.store-item select, .store-item button,
+.spell-item select, .spell-item button { padding: 8px; }
+.store-item button, .spell-item button { background: #4CAF50; color: white; border: none; cursor: pointer; }
+.store-item button:hover, .spell-item button:hover { background: #45a049; }
+.alert { padding: 10px; margin-bottom: 20px; border-radius: 5px; }
+.alert-success { background: #d4edda; color: #155724; }
+.alert-error { background: #f8d7da; color: #721c24; }
+.spell-item { border: 1px solid #a0c4e8; padding: 15px; border-radius: 5px; background: #f0f7ff; }
+.spell-item h3 { margin-top: 0; }
+.item-type { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; color: white; }
+.item-type-potion { background: #9c27b0; }
+.item-type-scroll { background: #1976d2; }
+.item-type-oil { background: #e65100; }
+.item-type-wand { background: #2e7d32; }
+.item-type-ammunition { background: #795548; }
+.tier-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; background: #666; color: white; margin-left: 5px; }
+
+/* Notes page */
+.section { margin-bottom: 30px; border: 1px solid #ccc; padding: 15px; }
+.section h2 { margin-top: 0; border-bottom: 2px solid #333; padding-bottom: 10px; }
+.character-list { display: grid; gap: 15px; }
+.character-card { border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
+.character-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+.tier-0 { color: #d32f2f; }
+.tier-1 { color: #f57c00; }
+.tier-2 { color: #fbc02d; }
+.tier-3 { color: #388e3c; }
+.tier-4 { color: #1976d2; }
+.note-item { margin-bottom: 10px; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+.note-item p { margin: 0; }
+.notes-form { display: grid; gap: 10px; margin-top: 15px; padding: 15px; background: #e3f2fd; border-radius: 5px; }
+.notes-form label { font-weight: bold; }
+.notes-form input, .notes-form textarea, .notes-form select { padding: 8px; font-size: 14px; width: 100%; box-sizing: border-box; }
+.notes-form button { padding: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; font-size: 16px; }
+.notes-form button:hover { background: #45a049; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Add item page */
+.add-item-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.add-item-form .full-width { grid-column: 1 / -1; }
+.add-item-form label { font-weight: bold; display: block; margin-bottom: 5px; }
+.add-item-form input, .add-item-form select, .add-item-form textarea { padding: 8px; font-size: 14px; width: 100%; box-sizing: border-box; }
+.add-item-form button { padding: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; font-size: 16px; }
+.add-item-form button:hover { background: #45a049; }
+
+/* Combat tracker page */
+.combat-tracker input[type="number"] { width: 50px; }
+.combat-tracker button { margin: 2px; padding: 2px 6px; }
+.combat-tracker form { display: inline-block; margin: 0; }
+.combat-tracker td form { white-space: nowrap; }
+.combat-tracker th, .combat-tracker td { white-space: nowrap; }
+
 @media print {
   body {
     padding: 0;
@@ -212,5 +286,9 @@ table th {
 
   .sheet {
     border: none;
+  }
+
+  .menu {
+    display: none;
   }
 }
