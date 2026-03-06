@@ -56,24 +56,25 @@
       </div>
 
       <h2>Ammunition</h2>
-      <div class="store-card">
-        <div class="card-header">
-          <span class="item-type item-type-ammunition">Ammunition</span>
-        </div>
-        <div class="selector-row">
-          <div class="selector-field">
-            <label>Tier</label>
-            <select id="ammo-tier-select">
-              <option value="">Select Tier</option>
-            </select>
+      <div class="store-card-grid">
+        <div class="store-card">
+          <div class="card-header">
+            <span class="item-type item-type-ammunition">Ammunition</span>
           </div>
-          <div class="selector-field">
-            <label>Property</label>
-            <select id="ammo-property-select" disabled>
-              <option value="">None</option>
-            </select>
+          <div class="selector-row">
+            <div class="selector-field-narrow">
+              <label>Tier</label>
+              <select id="ammo-tier-select">
+                <option value="">-</option>
+              </select>
+            </div>
+            <div class="selector-field">
+              <label>Property</label>
+              <select id="ammo-property-select" disabled>
+                <option value="">None</option>
+              </select>
+            </div>
           </div>
-        </div>
         <div id="ammo-details" style="display:none;">
           <p class="ammo-description"></p>
           <p class="price">0 gp</p>
@@ -88,53 +89,56 @@
             </select>
             <button type="submit">Purchase</button>
           </form>
+          </div>
         </div>
       </div>
 
-      <% ['scroll', 'potion', 'oil', 'wand'].each do |item_type| %>
-        <h2><%= item_type.capitalize %>s</h2>
-        <div class="store-card">
-          <div class="card-header">
-            <span class="item-type item-type-<%= item_type %>"><%= item_type.capitalize %></span>
-          </div>
-          <div class="selector-row">
-            <div class="selector-field">
-              <label>Skill</label>
-              <select class="skill-select" data-item-type="<%= item_type %>">
-                <option value="">Select Skill</option>
-              </select>
+      <h2>Spell Items</h2>
+      <div class="store-card-grid">
+        <% ['scroll', 'potion', 'oil', 'wand'].each do |item_type| %>
+          <div class="store-card">
+            <div class="card-header">
+              <span class="item-type item-type-<%= item_type %>"><%= item_type.capitalize %></span>
             </div>
-            <div class="selector-field">
-              <label>Tier</label>
-              <select class="tier-select" data-item-type="<%= item_type %>" disabled>
-                <option value="">Select Tier</option>
-              </select>
+            <div class="selector-row">
+              <div class="selector-field">
+                <label>Skill</label>
+                <select class="skill-select" data-item-type="<%= item_type %>">
+                  <option value="">Select Skill</option>
+                </select>
+              </div>
+              <div class="selector-field-narrow">
+                <label>Tier</label>
+                <select class="tier-select" data-item-type="<%= item_type %>" disabled>
+                  <option value="">-</option>
+                </select>
+              </div>
+              <div class="selector-field">
+                <label>Spell</label>
+                <select class="spell-select" data-item-type="<%= item_type %>" disabled>
+                  <option value="">Select Spell</option>
+                </select>
+              </div>
             </div>
-            <div class="selector-field">
-              <label>Spell</label>
-              <select class="spell-select" data-item-type="<%= item_type %>" disabled>
-                <option value="">Select Spell</option>
-              </select>
+            <div class="spell-details" id="details-<%= item_type %>" style="display:none;">
+              <p class="spell-description"></p>
+              <p class="price">0 gp</p>
+              <form method="post" action="/purchase/spell_lookup" class="purchase-form">
+                <input type="hidden" name="spell_name" value="">
+                <input type="hidden" name="item_type" value="<%= item_type %>">
+                <input type="hidden" name="tier" value="">
+                <select name="owner_id" required>
+                  <option value="">Select Character</option>
+                  <% @characters.each do |char| %>
+                    <option value="<%= char['id'] %>"><%= char['name'] %></option>
+                  <% end %>
+                </select>
+                <button type="submit">Purchase</button>
+              </form>
             </div>
           </div>
-          <div class="spell-details" id="details-<%= item_type %>" style="display:none;">
-            <p class="spell-description"></p>
-            <p class="price">0 gp</p>
-            <form method="post" action="/purchase/spell_lookup" class="purchase-form">
-              <input type="hidden" name="spell_name" value="">
-              <input type="hidden" name="item_type" value="<%= item_type %>">
-              <input type="hidden" name="tier" value="">
-              <select name="owner_id" required>
-                <option value="">Select Character</option>
-                <% @characters.each do |char| %>
-                  <option value="<%= char['id'] %>"><%= char['name'] %></option>
-                <% end %>
-              </select>
-              <button type="submit">Purchase</button>
-            </form>
-          </div>
-        </div>
-      <% end %>
+        <% end %>
+      </div>
     </div>
   </div>
 
@@ -232,7 +236,7 @@
       ammoCosts.forEach(function(price, tier) {
         var opt = document.createElement('option');
         opt.value = tier;
-        opt.textContent = 'Tier ' + tier;
+        opt.textContent = tier;
         tierSelect.appendChild(opt);
       });
 
@@ -308,7 +312,7 @@
       });
 
       skillSelect.addEventListener('change', function() {
-        tierSelect.innerHTML = '<option value="">Select Tier</option>';
+        tierSelect.innerHTML = '<option value="">-</option>';
         spellSelect.innerHTML = '<option value="">Select Spell</option>';
         tierSelect.disabled = true;
         spellSelect.disabled = true;
@@ -319,7 +323,7 @@
         tiers.forEach(function(t) {
           var opt = document.createElement('option');
           opt.value = t;
-          opt.textContent = 'Tier ' + t;
+          opt.textContent = t;
           tierSelect.appendChild(opt);
         });
         tierSelect.disabled = false;
