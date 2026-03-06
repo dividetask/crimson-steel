@@ -29,7 +29,7 @@
       <% @notes.select { |n| n['owner_id'] == 0 && n['type'] != 'character' }.each do |note| %>
         <% if @is_dm or note['public'] %>
           <div class="note-item">
-            <p><%= note['note'] %></p>
+            <p><%= h(note['note']) %></p>
             <% if @is_dm and note['public'] %>
               <small style="color: #666;">(Public)</small>
             <% end %>
@@ -57,12 +57,12 @@
       <% @notes.select { |n| n['type'] == 'character' && (@is_dm || n['public']) }.each do |char| %>
         <div class="character-card">
           <div class="character-name tier-<%= char['tier'] || 0 %>">
-            <%= char['title'] %>
+            <%= h(char['title']) %>
             <% if char['tier'] %>
               <span style="font-size: 14px; color: #666;">(Tier <%= char['tier'] %>)</span>
             <% end %>
           </div>
-          <p><%= char['note'] %></p>
+          <p><%= h(char['note']) %></p>
         </div>
       <% end %>
     </div>
@@ -106,7 +106,7 @@
       <h2><%= player_character['name'] %>'s Notes</h2>
       <% @notes.select { |n| n['owner_id'] == @viewer_id }.each do |note| %>
         <div class="note-item">
-          <p><%= note['note'] %></p>
+          <p><%= h(note['note']) %></p>
         </div>
       <% end %>
       
