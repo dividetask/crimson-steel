@@ -8,14 +8,6 @@
     "description": "This can be thrown as a splash weapon dealing 1 point of moderate fire damage to all creatures within 5 feet. On a direct hit this damage is increased by the number of successes and sneak attack damage when appropriate"
   },
   {
-    "name": "Heartseeker Arrows",
-    "price": 240,
-    "type": "ammunition",
-    "subtype": "arrow",
-    "bonus": 3,
-    "description": "These arrows have 4 additional dice that add their damage to physical damage. Damage is increased by 1 for each success and 4 for each critical."
-  },
-  {
     "name": "Hat of Disguise",
     "price": 1800,
     "type": "equipment",
