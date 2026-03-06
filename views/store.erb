@@ -12,6 +12,8 @@
     .filter-group h4 { margin: 0 0 8px 0; color: #555; font-size: 13px; text-transform: uppercase; }
     .filter-group label { display: block; padding: 4px 0; cursor: pointer; font-size: 14px; }
     .filter-group input[type="checkbox"] { margin-right: 6px; }
+    .clear-btn { background: #888; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 13px; margin-bottom: 15px; }
+    .clear-btn:hover { background: #666; }
     .store-content { flex: 1; min-width: 0; }
     .store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
     .store-item { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
@@ -32,7 +34,6 @@
     .item-type-oil { background: #e65100; }
     .item-type-wand { background: #2e7d32; }
     .tier-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; background: #666; color: white; margin-left: 5px; }
-    .no-results { color: #888; font-style: italic; padding: 20px; }
   </style>
 
   <h1>Store</h1>
@@ -50,25 +51,26 @@
   <div class="store-layout">
     <div class="filter-sidebar">
       <h3>Filters</h3>
+      <button class="clear-btn" id="clear-filters">Clear All</button>
 
       <div class="filter-group">
         <h4>Type</h4>
-        <label><input type="checkbox" class="filter-cb" data-filter="type" value="equipment" checked> Equipment</label>
-        <label><input type="checkbox" class="filter-cb" data-filter="type" value="spell" checked> Spell Items</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="type" value="equipment"> Equipment</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="type" value="spell"> Spell Items</label>
       </div>
 
       <div class="filter-group">
         <h4>Item Form</h4>
-        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="potion" checked> Potion</label>
-        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="scroll" checked> Scroll</label>
-        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="oil" checked> Oil</label>
-        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="wand" checked> Wand</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="potion"> Potion</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="scroll"> Scroll</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="oil"> Oil</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="wand"> Wand</label>
       </div>
 
       <div class="filter-group">
         <h4>Tier</h4>
         <% (0..6).each do |t| %>
-          <label><input type="checkbox" class="filter-cb" data-filter="tier" value="<%= t %>" checked> Tier <%= t %></label>
+          <label><input type="checkbox" class="filter-cb" data-filter="tier" value="<%= t %>"> Tier <%= t %></label>
         <% end %>
       </div>
     </div>
@@ -130,32 +132,42 @@
       cb.addEventListener('change', applyFilters);
     });
 
+    document.getElementById('clear-filters').addEventListener('click', function() {
+      document.querySelectorAll('.filter-cb').forEach(function(cb) {
+        cb.checked = false;
+      });
+      applyFilters();
+    });
+
     function applyFilters() {
       var activeTypes = getChecked('type');
       var activeSubtypes = getChecked('subtype');
       var activeTiers = getChecked('tier');
+
+      var noTypes = activeTypes.length === 0;
+      var noSubtypes = activeSubtypes.length === 0;
+      var noTiers = activeTiers.length === 0;
 
       document.querySelectorAll('.store-item, .spell-item').forEach(function(card) {
         var type = card.dataset.type;
         var subtype = card.dataset.subtype;
         var tier = card.dataset.tier;
 
-        var typeMatch = activeTypes.indexOf(type) !== -1;
-        var subtypeMatch = type === 'equipment' || activeSubtypes.indexOf(subtype) !== -1;
-        var tierMatch = type === 'equipment' || activeTiers.indexOf(tier) !== -1;
+        var typeMatch = noTypes || activeTypes.indexOf(type) !== -1;
+        var subtypeMatch = type === 'equipment' || noSubtypes || activeSubtypes.indexOf(subtype) !== -1;
+        var tierMatch = type === 'equipment' || noTiers || activeTiers.indexOf(tier) !== -1;
 
         card.style.display = (typeMatch && subtypeMatch && tierMatch) ? '' : 'none';
       });
 
-      document.getElementById('equipment-grid').parentElement.previousElementSibling.style.display =
-        activeTypes.indexOf('equipment') !== -1 ? '' : 'none';
-      document.getElementById('equipment-grid').style.display =
-        activeTypes.indexOf('equipment') !== -1 ? '' : 'none';
+      var showEquipment = noTypes || activeTypes.indexOf('equipment') !== -1;
+      var showSpells = noTypes || activeTypes.indexOf('spell') !== -1;
 
-      document.getElementById('spell-grid').parentElement.previousElementSibling.style.display =
-        activeTypes.indexOf('spell') !== -1 ? '' : 'none';
-      document.getElementById('spell-grid').style.display =
-        activeTypes.indexOf('spell') !== -1 ? '' : 'none';
+      document.getElementById('equipment-grid').previousElementSibling.style.display = showEquipment ? '' : 'none';
+      document.getElementById('equipment-grid').style.display = showEquipment ? '' : 'none';
+
+      document.getElementById('spell-grid').previousElementSibling.style.display = showSpells ? '' : 'none';
+      document.getElementById('spell-grid').style.display = showSpells ? '' : 'none';
     }
 
     function getChecked(filterName) {
