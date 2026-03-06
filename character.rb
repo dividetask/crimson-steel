@@ -98,11 +98,12 @@ class Compendium
         tiers.each_with_index do |tier_val, idx|
           price = eval(cost_formula.gsub("tier", tier_val.to_s))
           name = spell_item_name(spell_name, spell, idx, tiers.length, item_type)
+          desc = resolve_description(spell, idx, tier_val)
           items << {
             "name" => name, "price" => price, "type" => "consumable", "subtype" => item_type,
             "bonus" => 0, "spell" => spell_name.downcase.gsub(' ', '_'), "tier" => tier_val,
             "properties" => {"consumable" => true, "spell" => spell_name.downcase.gsub(' ', '_')},
-            "description" => spell["description"]
+            "description" => desc
           }
         end
       end
@@ -111,6 +112,21 @@ class Compendium
   end
 
   private
+
+  def resolve_description(spell, idx, tier_val)
+    spell["description"].gsub(/\{(\w+)\}/) do |match|
+      var = $1
+      val = spell[var] || (spell["effect_hash"] && spell["effect_hash"][var])
+      next match unless val
+      if val.is_a?(Array)
+        val[idx].to_s
+      elsif val.is_a?(String)
+        eval(val.gsub("tier", tier_val.to_s)).to_s rescue val
+      else
+        val.to_s
+      end
+    end
+  end
 
   def spell_item_name(spell_name, spell, idx, tier_count, item_type)
     if tier_count > 1 && spell["prefix"]
