@@ -147,7 +147,7 @@ class SingleKlassProgress
       end
     end
 
-    raise "Unsafe formula: #{result}" unless result.match?(/\A[\d\s+\-*\/().%=?:]+\z/)
+    raise "Unsafe formula: #{result}" unless result.match?(/\A[\d\s+\-*\/().%=?:]+\z/) && !result.match?(/(?<!=)=(?!=)/)
     eval(result)
   end
 end
@@ -362,7 +362,7 @@ class CharacterSheet
       end
     end
 
-    raise "Unsafe formula: #{result}" unless result.match?(/\A[\d\s+\-*\/().%=?:]+\z/)
+    raise "Unsafe formula: #{result}" unless result.match?(/\A[\d\s+\-*\/().%=?:]+\z/) && !result.match?(/(?<!=)=(?!=)/)
     eval(result)
   end
 end
