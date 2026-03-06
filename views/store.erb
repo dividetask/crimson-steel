@@ -1,10 +1,18 @@
   <style>
-    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; }
+    body { font-family: Arial, sans-serif; margin: 20px auto; padding: 20px; }
     .menu { background: #333; padding: 10px; margin: -20px -20px 20px -20px; }
     .menu a { color: white; margin-right: 20px; text-decoration: none; }
     .menu a:hover { text-decoration: underline; }
 
     .gold-display { font-size: 24px; font-weight: bold; margin-bottom: 20px; }
+    .store-layout { display: flex; gap: 20px; }
+    .filter-sidebar { width: 200px; flex-shrink: 0; }
+    .filter-sidebar h3 { margin-top: 0; }
+    .filter-group { margin-bottom: 15px; }
+    .filter-group h4 { margin: 0 0 8px 0; color: #555; font-size: 13px; text-transform: uppercase; }
+    .filter-group label { display: block; padding: 4px 0; cursor: pointer; font-size: 14px; }
+    .filter-group input[type="checkbox"] { margin-right: 6px; }
+    .store-content { flex: 1; min-width: 0; }
     .store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
     .store-item { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
     .store-item h3 { margin-top: 0; }
@@ -24,6 +32,7 @@
     .item-type-oil { background: #e65100; }
     .item-type-wand { background: #2e7d32; }
     .tier-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; background: #666; color: white; margin-left: 5px; }
+    .no-results { color: #888; font-style: italic; padding: 20px; }
   </style>
 
   <h1>Store</h1>
@@ -38,51 +47,122 @@
     <div class="alert alert-success">Purchase successful!</div>
   <% end %>
 
-  <h2>Equipment</h2>
-  <div class="store-grid">
-    <% @store_items.each_with_index do |item, index| %>
-      <div class="store-item">
-        <h3><%= item['name'] %></h3>
-        <p><strong>Type:</strong> <%= item['type'].capitalize %> - <%= item['subtype'] %></p>
-        <% if item['bonus'] > 0 %>
-          <p><strong>Bonus:</strong> +<%= item['bonus'] %></p>
+  <div class="store-layout">
+    <div class="filter-sidebar">
+      <h3>Filters</h3>
+
+      <div class="filter-group">
+        <h4>Type</h4>
+        <label><input type="checkbox" class="filter-cb" data-filter="type" value="equipment" checked> Equipment</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="type" value="spell" checked> Spell Items</label>
+      </div>
+
+      <div class="filter-group">
+        <h4>Item Form</h4>
+        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="potion" checked> Potion</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="scroll" checked> Scroll</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="oil" checked> Oil</label>
+        <label><input type="checkbox" class="filter-cb" data-filter="subtype" value="wand" checked> Wand</label>
+      </div>
+
+      <div class="filter-group">
+        <h4>Tier</h4>
+        <% (0..6).each do |t| %>
+          <label><input type="checkbox" class="filter-cb" data-filter="tier" value="<%= t %>" checked> Tier <%= t %></label>
         <% end %>
-        <p class="price"><%= item['price'] %> gp</p>
-
-        <form method="post" action="/purchase/<%= index %>" class="purchase-form">
-          <select name="owner_id" required>
-            <option value="">Select Character</option>
-            <% @characters.each do |char| %>
-              <option value="<%= char['id'] %>"><%= char['name'] %></option>
-            <% end %>
-          </select>
-          <button type="submit">Purchase</button>
-        </form>
       </div>
-    <% end %>
+    </div>
+
+    <div class="store-content">
+      <h2>Equipment</h2>
+      <div class="store-grid" id="equipment-grid">
+        <% @store_items.each_with_index do |item, index| %>
+          <div class="store-item" data-type="equipment" data-subtype="<%= item['subtype'] %>">
+            <h3><%= item['name'] %></h3>
+            <p><strong>Type:</strong> <%= item['type'].capitalize %> - <%= item['subtype'] %></p>
+            <% if item['bonus'] > 0 %>
+              <p><strong>Bonus:</strong> +<%= item['bonus'] %></p>
+            <% end %>
+            <p class="price"><%= item['price'] %> gp</p>
+
+            <form method="post" action="/purchase/<%= index %>" class="purchase-form">
+              <select name="owner_id" required>
+                <option value="">Select Character</option>
+                <% @characters.each do |char| %>
+                  <option value="<%= char['id'] %>"><%= char['name'] %></option>
+                <% end %>
+              </select>
+              <button type="submit">Purchase</button>
+            </form>
+          </div>
+        <% end %>
+      </div>
+
+      <h2>Spell Items</h2>
+      <div class="store-grid" id="spell-grid">
+        <% @spell_items.each_with_index do |item, index| %>
+          <div class="spell-item" data-type="spell" data-subtype="<%= item['subtype'] %>" data-tier="<%= item['tier'] %>">
+            <h3><%= item['name'] %></h3>
+            <p>
+              <span class="item-type item-type-<%= item['subtype'] %>"><%= item['subtype'].capitalize %></span>
+              <span class="tier-badge">Tier <%= item['tier'] %></span>
+            </p>
+            <p><%= item['description'] %></p>
+            <p class="price"><%= item['price'] %> gp</p>
+
+            <form method="post" action="/purchase/spell_<%= index %>" class="purchase-form">
+              <select name="owner_id" required>
+                <option value="">Select Character</option>
+                <% @characters.each do |char| %>
+                  <option value="<%= char['id'] %>"><%= char['name'] %></option>
+                <% end %>
+              </select>
+              <button type="submit">Purchase</button>
+            </form>
+          </div>
+        <% end %>
+      </div>
+    </div>
   </div>
 
-  <h2>Spell Items</h2>
-  <div class="store-grid">
-    <% @spell_items.each_with_index do |item, index| %>
-      <div class="spell-item">
-        <h3><%= item['name'] %></h3>
-        <p>
-          <span class="item-type item-type-<%= item['subtype'] %>"><%= item['subtype'].capitalize %></span>
-          <span class="tier-badge">Tier <%= item['tier'] %></span>
-        </p>
-        <p><%= item['description'] %></p>
-        <p class="price"><%= item['price'] %> gp</p>
+  <script>
+    document.querySelectorAll('.filter-cb').forEach(function(cb) {
+      cb.addEventListener('change', applyFilters);
+    });
 
-        <form method="post" action="/purchase/spell_<%= index %>" class="purchase-form">
-          <select name="owner_id" required>
-            <option value="">Select Character</option>
-            <% @characters.each do |char| %>
-              <option value="<%= char['id'] %>"><%= char['name'] %></option>
-            <% end %>
-          </select>
-          <button type="submit">Purchase</button>
-        </form>
-      </div>
-    <% end %>
-  </div>
+    function applyFilters() {
+      var activeTypes = getChecked('type');
+      var activeSubtypes = getChecked('subtype');
+      var activeTiers = getChecked('tier');
+
+      document.querySelectorAll('.store-item, .spell-item').forEach(function(card) {
+        var type = card.dataset.type;
+        var subtype = card.dataset.subtype;
+        var tier = card.dataset.tier;
+
+        var typeMatch = activeTypes.indexOf(type) !== -1;
+        var subtypeMatch = type === 'equipment' || activeSubtypes.indexOf(subtype) !== -1;
+        var tierMatch = type === 'equipment' || activeTiers.indexOf(tier) !== -1;
+
+        card.style.display = (typeMatch && subtypeMatch && tierMatch) ? '' : 'none';
+      });
+
+      document.getElementById('equipment-grid').parentElement.previousElementSibling.style.display =
+        activeTypes.indexOf('equipment') !== -1 ? '' : 'none';
+      document.getElementById('equipment-grid').style.display =
+        activeTypes.indexOf('equipment') !== -1 ? '' : 'none';
+
+      document.getElementById('spell-grid').parentElement.previousElementSibling.style.display =
+        activeTypes.indexOf('spell') !== -1 ? '' : 'none';
+      document.getElementById('spell-grid').style.display =
+        activeTypes.indexOf('spell') !== -1 ? '' : 'none';
+    }
+
+    function getChecked(filterName) {
+      var checked = [];
+      document.querySelectorAll('.filter-cb[data-filter="' + filterName + '"]:checked').forEach(function(cb) {
+        checked.push(cb.value);
+      });
+      return checked;
+    }
+  </script>
