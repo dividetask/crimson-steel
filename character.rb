@@ -29,15 +29,22 @@ class CombatTurn
 end
 
 class Combat
-  attr_reader :combat_turn_list
+  attr_reader :combat_turn_list, :current_turn_id, :current_action, :current_actor_turn_id, :current_action_item
 
   def initialize
     character_list = Tools.load_json('characters.json')
-    @combat_turn_list = Tools.load_json('combat.json')['participants'].map do |combat_turn|
+    combat_data = Tools.load_json('combat.json')
+    @current_turn_id = combat_data['current_turn_id'] || 0
+    @current_action = combat_data['current_action'] || ''
+    @current_actor_turn_id = combat_data['current_actor_turn_id'] || 0
+    @current_action_item = combat_data['current_action_item'] || ''
+    @combat_turn_list = combat_data['participants'].map do |combat_turn|
       CombatTurn.new(combat_turn, character_list.find { |c| c["id"] == combat_turn["id"] })
     end
     sort_init
   end
+
+  def current_turn_character; @combat_turn_list[@current_turn_id]; end
 
   def sort_init; @combat_turn_list = @combat_turn_list.sort { |a,b| init_compare(a,b) }; end
 

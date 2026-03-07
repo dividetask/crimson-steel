@@ -2,6 +2,10 @@
   "active": false,
   "round": 0,
   "current_turn": 0,
+  "current_turn_id": 0,
+  "current_action": "",
+  "current_actor_turn_id": 0,
+  "current_action_item": "",
   "participants": [
     {
       "id": 1,
