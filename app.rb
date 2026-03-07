@@ -86,12 +86,12 @@ post '/combat/action' do
   if action == 'attack'
     dice = params[:dice].to_i
     target_turn_id = params[:target_turn_id].to_i
+    weapon_item_id = params[:weapon_item_id].to_i
     participant = combat_data['participants'].find { |p| p['id'] == char_id }
     character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
     character = CharacterSheet.new(character_data)
 
-    weapon_name = params[:weapon_name]
-    weapon = character.equipped_list.find { |item| item['type'] == 'weapon' && item['name'] == weapon_name }
+    weapon = character.equipped_list.find { |item| item['item_id'] == weapon_item_id }
     halt 400, "Weapon not found" unless weapon
 
     speed = character.weapon_speed(weapon)
@@ -105,8 +105,9 @@ post '/combat/action' do
     turn_index = combat.combat_turn_list.index { |ct| ct.character.id == char_id }
     combat_data['current_action'] = 'attack'
     combat_data['current_actor_turn_id'] = turn_index
-    combat_data['current_action_tool_id'] = weapon_name
+    combat_data['current_action_tool_id'] = weapon_item_id
     combat_data['target_id'] = target_turn_id
+    combat_data['action_params'] = { 'attack_dice' => dice }
 
     Tools.save_json('combat.json', combat_data)
 
@@ -145,6 +146,15 @@ post '/combat/action' do
 
     participant['combat_pool'] -= dice
     combat_data['current_action'] = 'dodge'
+
+    action_params = combat_data['action_params'] || {}
+    action_params['dodge_dice'] = dice
+    combat_data['action_params'] = Combat.calculate_damage(
+      combat_data['current_actor_turn_id'],
+      combat_data['target_id'],
+      combat_data['current_action_tool_id'],
+      action_params
+    )
 
     Tools.save_json('combat.json', combat_data)
   end
@@ -198,6 +208,7 @@ post '/add_item' do
 
   # Build the new item from form params
   new_item = {
+    "item_id" => Tools.next_item_id,
     "owner_id" => params[:owner_id].to_i,
     "name" => params[:name],
     "type" => params[:type],
@@ -318,6 +329,7 @@ post '/purchase/:item_index' do
       bonus = store_item['tier']
     end
     new_item = {
+      'item_id' => Tools.next_item_id,
       'owner_id' => owner_id,
       'name' => store_item['name'],
       'type' => store_item['type'],

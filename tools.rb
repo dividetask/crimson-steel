@@ -11,4 +11,10 @@ module Tools
     file_path = File.join(File.dirname(__FILE__), 'data', filename)
     File.write(file_path, JSON.pretty_generate(data))
   end
+
+  def self.next_item_id
+    items = load_json('items.json')
+    return 1 if items.empty?
+    items.map { |i| i['item_id'].to_i }.max + 1
+  end
 end

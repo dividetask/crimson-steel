@@ -62,14 +62,16 @@
   <% current = @combat.current_turn_character %>
   <% if current %>
     <div class="turn-status">
-      <% if @combat.current_action == 'attack' %>
+      <% if @combat.current_action == 'attack' || @combat.current_action == 'dodge' %>
         <% actor = @combat.combat_turn_list[@combat.current_actor_turn_id] %>
         <% target = @combat.combat_turn_list[@combat.target_id] %>
-        <h2><%= actor.character.name %> attacks <%= target.character.name %> with <%= @combat.current_action_tool_id %></h2>
-      <% elsif @combat.current_action == 'dodge' %>
-        <% actor = @combat.combat_turn_list[@combat.current_actor_turn_id] %>
-        <% target = @combat.combat_turn_list[@combat.target_id] %>
-        <h2><%= actor.character.name %> attacks <%= target.character.name %> with <%= @combat.current_action_tool_id %> - <%= target.character.name %> dodges</h2>
+        <% action_weapon = actor.character.item_list.find { |i| i['item_id'] == @combat.current_action_tool_id } %>
+        <% weapon_display = action_weapon ? action_weapon['name'] : 'Unknown' %>
+        <% if @combat.current_action == 'dodge' %>
+          <h2><%= actor.character.name %> attacks <%= target.character.name %> with <%= weapon_display %> - <%= target.character.name %> dodges</h2>
+        <% else %>
+          <h2><%= actor.character.name %> attacks <%= target.character.name %> with <%= weapon_display %></h2>
+        <% end %>
       <% else %>
         <h2><%= current.character.name %>'s Turn</h2>
       <% end %>
@@ -103,6 +105,7 @@
     var equippedWeapons = <%= current ? JSON.generate(
       current.character.equipped_list.select { |i| i['type'] == 'weapon' }.map { |w|
         {
+          item_id: w['item_id'],
           name: w['name'],
           weapon_dice: current.character.weapon_dice(w),
           weapon_speed: current.character.weapon_speed(w)
@@ -203,7 +206,7 @@
         return;
       }
 
-      submitAction({id: currentCharId, combat_action: 'attack', dice: dice, weapon_name: weapon.name, target_turn_id: targetTurnId});
+      submitAction({id: currentCharId, combat_action: 'attack', dice: dice, weapon_item_id: weapon.item_id, target_turn_id: targetTurnId});
     }
 
     function selectDefense(defense) {
