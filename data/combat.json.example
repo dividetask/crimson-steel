@@ -6,6 +6,7 @@
   "current_action": "",
   "current_actor_turn_id": 0,
   "current_action_tool_id": "",
+  "target_id": 0,
   "participants": [
     {
       "id": 1,

@@ -85,12 +85,11 @@ post '/combat/action' do
 
   if action == 'attack'
     dice = params[:dice].to_i
-    # Find the participant and character
+    target_turn_id = params[:target_turn_id].to_i
     participant = combat_data['participants'].find { |p| p['id'] == char_id }
     character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
     character = CharacterSheet.new(character_data)
 
-    # Find the weapon by name from equipped weapons
     weapon_name = params[:weapon_name]
     weapon = character.equipped_list.find { |item| item['type'] == 'weapon' && item['name'] == weapon_name }
     halt 400, "Weapon not found" unless weapon
@@ -99,17 +98,15 @@ post '/combat/action' do
     max_dice = character.weapon_dice(weapon)
     dice_remaining = participant['combat_pool']
 
-    # Validate dice
     halt 400, "Invalid dice count" unless dice.is_a?(Integer) && dice >= 2 && dice <= max_dice && dice <= (dice_remaining - speed)
 
-    # Subtract dice + speed from combat pool
     participant['combat_pool'] -= (dice + speed)
 
-    # Set current action state
     turn_index = combat.combat_turn_list.index { |ct| ct.character.id == char_id }
     combat_data['current_action'] = 'attack'
     combat_data['current_actor_turn_id'] = turn_index
     combat_data['current_action_tool_id'] = weapon_name
+    combat_data['target_id'] = target_turn_id
 
     Tools.save_json('combat.json', combat_data)
 
@@ -125,6 +122,31 @@ post '/combat/action' do
 
     Combat.add_log("#{character.name} moves")
     Combat.clear_action
+
+  elsif action == 'end_turn'
+    character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
+    character = CharacterSheet.new(character_data)
+
+    Combat.add_log("#{character.name} ends turn")
+    Combat.clear_action
+    Combat.advance_turn
+
+  elsif action == 'dodge'
+    dice = params[:dice].to_i
+    target_char_id = params[:target_char_id].to_i
+    participant = combat_data['participants'].find { |p| p['id'] == target_char_id }
+    character_data = Tools.load_json('characters.json').find { |c| c['id'] == target_char_id }
+    character = CharacterSheet.new(character_data)
+
+    max_dice = character.bab_dice
+    dice_remaining = participant['combat_pool']
+
+    halt 400, "Invalid dice count" unless dice.is_a?(Integer) && dice >= 2 && dice <= max_dice && dice <= dice_remaining
+
+    participant['combat_pool'] -= dice
+    combat_data['current_action'] = 'dodge'
+
+    Tools.save_json('combat.json', combat_data)
   end
 
   redirect '/combat'

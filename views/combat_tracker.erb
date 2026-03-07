@@ -64,20 +64,33 @@
     <div class="turn-status">
       <% if @combat.current_action == 'attack' %>
         <% actor = @combat.combat_turn_list[@combat.current_actor_turn_id] %>
-        <h2><%= actor.character.name %>'s attacking with <%= @combat.current_action_tool_id %></h2>
+        <% target = @combat.combat_turn_list[@combat.target_id] %>
+        <h2><%= actor.character.name %> attacks <%= target.character.name %> with <%= @combat.current_action_tool_id %></h2>
+      <% elsif @combat.current_action == 'dodge' %>
+        <% actor = @combat.combat_turn_list[@combat.current_actor_turn_id] %>
+        <% target = @combat.combat_turn_list[@combat.target_id] %>
+        <h2><%= actor.character.name %> attacks <%= target.character.name %> with <%= @combat.current_action_tool_id %> - <%= target.character.name %> dodges</h2>
       <% else %>
         <h2><%= current.character.name %>'s Turn</h2>
       <% end %>
     </div>
 
     <div class="turn-panel">
-      <div class="action-buttons">
-        <button class="action-btn" onclick="selectAction('attack')">Attack</button>
-        <button class="action-btn" onclick="selectAction('move')">Move</button>
-        <button class="action-btn" onclick="selectAction('cast')">Cast</button>
-        <button class="action-btn" onclick="selectAction('item')">Item</button>
-        <button class="action-btn" onclick="selectAction('special')">Special</button>
-        <button class="action-btn" onclick="selectAction('end_turn')">End Turn</button>
+      <div class="action-buttons" id="action-buttons">
+        <% if @combat.current_action == 'attack' || @combat.current_action == 'dodge' %>
+          <button class="action-btn" onclick="selectDefense('ally_action')">Ally Action</button>
+          <button class="action-btn" onclick="selectDefense('dodge')">Dodge</button>
+          <button class="action-btn" onclick="selectDefense('block')">Block</button>
+          <button class="action-btn" onclick="selectDefense('parry')">Parry</button>
+          <button class="action-btn" onclick="selectDefense('nothing')">Nothing</button>
+        <% else %>
+          <button class="action-btn" onclick="selectAction('attack')">Attack</button>
+          <button class="action-btn" onclick="selectAction('move')">Move</button>
+          <button class="action-btn" onclick="selectAction('cast')">Cast</button>
+          <button class="action-btn" onclick="selectAction('item')">Item</button>
+          <button class="action-btn" onclick="selectAction('special')">Special</button>
+          <button class="action-btn" onclick="selectAction('end_turn')">End Turn</button>
+        <% end %>
       </div>
       <div class="action-context" id="action-context">
       </div>
@@ -98,6 +111,12 @@
     ) : '[]' %>;
     var diceRemaining = <%= current ? current.combat_pool : 0 %>;
     var moveSpeed = <%= current ? current.character.speed : 0 %>;
+    var combatants = <%= JSON.generate(
+      @combat.combat_turn_list.each_with_index.map { |ct, idx|
+        { turn_id: idx, char_id: ct.character.id, name: ct.character.name, dice_remaining: ct.combat_pool, bab_dice: ct.character.bab_dice }
+      }
+    ) %>;
+    var targetId = <%= @combat.target_id %>;
 
     function selectAction(action) {
       var context = document.getElementById('action-context');
@@ -114,18 +133,57 @@
         return;
       }
 
+      if (action === 'end_turn') {
+        var result = confirm(currentCharName + ' ends turn?');
+        if (!result) return;
+        submitAction({id: currentCharId, combat_action: 'end_turn'});
+        return;
+      }
+
       if (action === 'attack') {
-        equippedWeapons.forEach(function(weapon) {
-          var btn = document.createElement('button');
-          btn.className = 'weapon-btn';
-          btn.textContent = weapon.name;
-          btn.addEventListener('click', function() { promptAttackDice(weapon); });
-          context.appendChild(btn);
+        // Target dropdown
+        var label = document.createElement('label');
+        label.textContent = 'Target: ';
+        label.style.fontWeight = 'bold';
+        var select = document.createElement('select');
+        select.id = 'attack-target';
+        var defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = 'Select Target';
+        select.appendChild(defaultOpt);
+        combatants.forEach(function(c) {
+          var opt = document.createElement('option');
+          opt.value = c.turn_id;
+          opt.textContent = c.name;
+          select.appendChild(opt);
+        });
+        context.appendChild(label);
+        context.appendChild(select);
+
+        // Weapon buttons container (hidden until target selected)
+        var weaponDiv = document.createElement('div');
+        weaponDiv.id = 'weapon-buttons';
+        weaponDiv.style.marginTop = '10px';
+        context.appendChild(weaponDiv);
+
+        select.addEventListener('change', function() {
+          weaponDiv.innerHTML = '';
+          if (!this.value) return;
+          equippedWeapons.forEach(function(weapon) {
+            var btn = document.createElement('button');
+            btn.className = 'weapon-btn';
+            btn.textContent = weapon.name;
+            btn.addEventListener('click', function() {
+              promptAttackDice(weapon, parseInt(select.value, 10));
+            });
+            weaponDiv.appendChild(btn);
+          });
         });
       }
     }
 
-    function promptAttackDice(weapon) {
+    function promptAttackDice(weapon, targetTurnId) {
+      var target = combatants[targetTurnId];
       var minDice = 2;
       var maxDice = weapon.weapon_dice;
       var speed = weapon.weapon_speed;
@@ -136,7 +194,7 @@
       }
       var capDice = Math.min(maxDice, available);
 
-      var input = prompt(currentCharName + ' spends how many dice attacking with ' + weapon.name + '? ' + minDice + '-' + capDice + ' (Speed ' + speed + ')');
+      var input = prompt(currentCharName + ' spends how many dice attacking ' + target.name + ' with ' + weapon.name + '? ' + minDice + '-' + capDice + ' (Speed ' + speed + ')');
       if (input === null) return;
 
       var dice = parseInt(input, 10);
@@ -145,7 +203,33 @@
         return;
       }
 
-      submitAction({id: currentCharId, combat_action: 'attack', dice: dice, weapon_name: weapon.name});
+      submitAction({id: currentCharId, combat_action: 'attack', dice: dice, weapon_name: weapon.name, target_turn_id: targetTurnId});
+    }
+
+    function selectDefense(defense) {
+      var context = document.getElementById('action-context');
+      context.innerHTML = '';
+
+      if (defense === 'dodge') {
+        var target = combatants[targetId];
+        var minDice = 2;
+        var maxDice = Math.min(target.bab_dice, target.dice_remaining);
+        if (maxDice < minDice) {
+          alert(target.name + ' does not have enough dice to dodge. Need at least ' + minDice + ', have ' + target.dice_remaining + '.');
+          return;
+        }
+
+        var input = prompt(target.name + ' spends how many dice dodging? ' + minDice + '-' + maxDice);
+        if (input === null) return;
+
+        var dice = parseInt(input, 10);
+        if (isNaN(dice) || dice < minDice || dice > maxDice) {
+          alert('Invalid. Enter a number between ' + minDice + ' and ' + maxDice + '.');
+          return;
+        }
+
+        submitAction({target_char_id: target.char_id, combat_action: 'dodge', dice: dice});
+      }
     }
 
     function submitAction(fields) {
