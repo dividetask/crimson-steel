@@ -76,6 +76,47 @@ post '/combat/reset_dice' do
   redirect '/combat'
 end
 
+post '/combat/action' do
+  redirect '/character/0' unless local_request?
+  combat = Combat.new
+  combat_data = Tools.load_json('combat.json')
+  char_id = params[:id].to_i
+  action = params[:combat_action]
+
+  if action == 'attack'
+    dice = params[:dice].to_i
+    # Find the participant and character
+    participant = combat_data['participants'].find { |p| p['id'] == char_id }
+    character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
+    character = CharacterSheet.new(character_data)
+
+    # Find the weapon by name from equipped weapons
+    weapon_name = params[:weapon_name]
+    weapon = character.equipped_list.find { |item| item['type'] == 'weapon' && item['name'] == weapon_name }
+    halt 400, "Weapon not found" unless weapon
+
+    speed = character.weapon_speed(weapon)
+    max_dice = character.weapon_dice(weapon)
+    dice_remaining = participant['combat_pool']
+
+    # Validate dice
+    halt 400, "Invalid dice count" unless dice.is_a?(Integer) && dice >= 2 && dice <= max_dice && dice <= (dice_remaining - speed)
+
+    # Subtract dice + speed from combat pool
+    participant['combat_pool'] -= (dice + speed)
+
+    # Set current action state
+    turn_index = combat.combat_turn_list.index { |ct| ct.character.id == char_id }
+    combat_data['current_action'] = 'attack'
+    combat_data['current_actor_turn_id'] = turn_index
+    combat_data['current_action_item'] = weapon_name
+
+    Tools.save_json('combat.json', combat_data)
+  end
+
+  redirect '/combat'
+end
+
 post '/combat/reroll_init' do
   redirect '/character/0' unless local_request?
   combat = Combat.new()

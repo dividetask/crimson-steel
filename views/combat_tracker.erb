@@ -58,4 +58,98 @@
   <form method="post" action="/combat/reroll_init" style="margin-top: 20px;">
     <button type="submit">Reroll Init</button>
   </form>
+
+  <% current = @combat.current_turn_character %>
+  <% if current %>
+    <div class="turn-status">
+      <% if @combat.current_action == 'attack' %>
+        <% actor = @combat.combat_turn_list[@combat.current_actor_turn_id] %>
+        <h2><%= actor.character.name %>'s attacking with <%= @combat.current_action_item %></h2>
+      <% else %>
+        <h2><%= current.character.name %>'s Turn</h2>
+      <% end %>
+    </div>
+
+    <div class="turn-panel">
+      <div class="action-buttons">
+        <button class="action-btn" onclick="selectAction('attack')">Attack</button>
+        <button class="action-btn" onclick="selectAction('move')">Move</button>
+        <button class="action-btn" onclick="selectAction('cast')">Cast</button>
+        <button class="action-btn" onclick="selectAction('item')">Item</button>
+        <button class="action-btn" onclick="selectAction('special')">Special</button>
+        <button class="action-btn" onclick="selectAction('end_turn')">End Turn</button>
+      </div>
+      <div class="action-context" id="action-context">
+      </div>
+    </div>
+  <% end %>
+
+  <script>
+    var currentCharId = <%= current ? current.character.id : 'null' %>;
+    var currentCharName = '<%= current ? current.character.name : '' %>';
+    var equippedWeapons = <%= current ? JSON.generate(
+      current.character.equipped_list.select { |i| i['type'] == 'weapon' }.map { |w|
+        {
+          name: w['name'],
+          weapon_dice: current.character.weapon_dice(w),
+          weapon_speed: current.character.weapon_speed(w)
+        }
+      }
+    ) : '[]' %>;
+    var diceRemaining = <%= current ? current.combat_pool : 0 %>;
+
+    function selectAction(action) {
+      var context = document.getElementById('action-context');
+      context.innerHTML = '';
+
+      if (action === 'attack') {
+        equippedWeapons.forEach(function(weapon) {
+          var btn = document.createElement('button');
+          btn.className = 'weapon-btn';
+          btn.textContent = weapon.name;
+          btn.addEventListener('click', function() { promptAttackDice(weapon); });
+          context.appendChild(btn);
+        });
+      }
+    }
+
+    function promptAttackDice(weapon) {
+      var minDice = 2;
+      var maxDice = weapon.weapon_dice;
+      var speed = weapon.weapon_speed;
+      var available = diceRemaining - speed;
+      if (available < minDice) {
+        alert('Not enough dice remaining. Need at least ' + (minDice + speed) + ' dice (' + minDice + ' + ' + speed + ' speed).');
+        return;
+      }
+      var capDice = Math.min(maxDice, available);
+
+      var input = prompt(currentCharName + ' spends how many dice attacking with ' + weapon.name + '? ' + minDice + '-' + capDice + ' (Speed ' + speed + ')');
+      if (input === null) return;
+
+      var dice = parseInt(input, 10);
+      if (isNaN(dice) || dice < minDice || dice > capDice) {
+        alert('Invalid. Enter a number between ' + minDice + ' and ' + capDice + '.');
+        return;
+      }
+
+      // Submit via hidden form
+      var form = document.createElement('form');
+      form.method = 'post';
+      form.action = '/combat/action';
+      form.style.display = 'none';
+
+      var fields = {id: currentCharId, combat_action: 'attack', dice: dice, weapon_name: weapon.name};
+      for (var key in fields) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = fields[key];
+        form.appendChild(input);
+      }
+
+      document.body.appendChild(form);
+      form.submit();
+    }
+  </script>
   </div>
