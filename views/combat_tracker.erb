@@ -64,7 +64,7 @@
     <div class="turn-status">
       <% if @combat.current_action == 'attack' %>
         <% actor = @combat.combat_turn_list[@combat.current_actor_turn_id] %>
-        <h2><%= actor.character.name %>'s attacking with <%= @combat.current_action_item %></h2>
+        <h2><%= actor.character.name %>'s attacking with <%= @combat.current_action_tool_id %></h2>
       <% else %>
         <h2><%= current.character.name %>'s Turn</h2>
       <% end %>
@@ -97,10 +97,22 @@
       }
     ) : '[]' %>;
     var diceRemaining = <%= current ? current.combat_pool : 0 %>;
+    var moveSpeed = <%= current ? current.character.speed : 0 %>;
 
     function selectAction(action) {
       var context = document.getElementById('action-context');
       context.innerHTML = '';
+
+      if (action === 'move') {
+        if (diceRemaining < 4) {
+          alert('Not enough dice remaining to move. Need 4, have ' + diceRemaining + '.');
+          return;
+        }
+        var result = confirm(currentCharName + ' moves up to ' + moveSpeed + ' feet');
+        if (!result) return;
+        submitAction({id: currentCharId, combat_action: 'move'});
+        return;
+      }
 
       if (action === 'attack') {
         equippedWeapons.forEach(function(weapon) {
@@ -133,21 +145,21 @@
         return;
       }
 
-      // Submit via hidden form
+      submitAction({id: currentCharId, combat_action: 'attack', dice: dice, weapon_name: weapon.name});
+    }
+
+    function submitAction(fields) {
       var form = document.createElement('form');
       form.method = 'post';
       form.action = '/combat/action';
       form.style.display = 'none';
-
-      var fields = {id: currentCharId, combat_action: 'attack', dice: dice, weapon_name: weapon.name};
       for (var key in fields) {
-        var input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = fields[key];
-        form.appendChild(input);
+        var el = document.createElement('input');
+        el.type = 'hidden';
+        el.name = key;
+        el.value = fields[key];
+        form.appendChild(el);
       }
-
       document.body.appendChild(form);
       form.submit();
     }

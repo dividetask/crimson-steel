@@ -109,9 +109,22 @@ post '/combat/action' do
     turn_index = combat.combat_turn_list.index { |ct| ct.character.id == char_id }
     combat_data['current_action'] = 'attack'
     combat_data['current_actor_turn_id'] = turn_index
-    combat_data['current_action_item'] = weapon_name
+    combat_data['current_action_tool_id'] = weapon_name
 
     Tools.save_json('combat.json', combat_data)
+
+  elsif action == 'move'
+    participant = combat_data['participants'].find { |p| p['id'] == char_id }
+    character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
+    character = CharacterSheet.new(character_data)
+
+    halt 400, "Not enough dice to move" unless participant['combat_pool'] >= 4
+
+    participant['combat_pool'] -= 4
+    Tools.save_json('combat.json', combat_data)
+
+    Combat.add_log("#{character.name} moves")
+    Combat.clear_action
   end
 
   redirect '/combat'

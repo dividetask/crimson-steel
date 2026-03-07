@@ -29,7 +29,7 @@ class CombatTurn
 end
 
 class Combat
-  attr_reader :combat_turn_list, :current_turn_id, :current_action, :current_actor_turn_id, :current_action_item
+  attr_reader :combat_turn_list, :current_turn_id, :current_action, :current_actor_turn_id, :current_action_tool_id
 
   def initialize
     character_list = Tools.load_json('characters.json')
@@ -37,7 +37,7 @@ class Combat
     @current_turn_id = combat_data['current_turn_id'] || 0
     @current_action = combat_data['current_action'] || ''
     @current_actor_turn_id = combat_data['current_actor_turn_id'] || 0
-    @current_action_item = combat_data['current_action_item'] || ''
+    @current_action_tool_id = combat_data['current_action_tool_id'] || ''
     @combat_turn_list = combat_data['participants'].map do |combat_turn|
       CombatTurn.new(combat_turn, character_list.find { |c| c["id"] == combat_turn["id"] })
     end
@@ -63,11 +63,42 @@ class Combat
   end
 
   def new_turn; @combat_turn_list.each(&:new_turn); update_data; end
-  def reroll_init; @combat_turn_list.each(&:reroll_init); sort_init; update_data; end
+
+  def reroll_init
+    @combat_turn_list.each(&:reroll_init)
+    sort_init
+    update_data
+
+    # Create new combat log entry
+    log = Tools.load_json('combat_log.json')
+    log << {
+      'date' => Time.now.to_i,
+      'participants' => @combat_turn_list.map { |ct| ct.character.id },
+      'initiative' => @combat_turn_list.map(&:initiative),
+      'log' => []
+    }
+    Tools.save_json('combat_log.json', log)
+  end
+
   def update_data
     combat_data = Tools.load_json('combat.json')
     combat_data['participants'] = @combat_turn_list.map(&:to_json)
     Tools.save_json('combat.json', combat_data)
+  end
+
+  def self.clear_action
+    combat_data = Tools.load_json('combat.json')
+    combat_data['current_action'] = ''
+    combat_data['current_actor_turn_id'] = 0
+    combat_data['current_action_tool_id'] = ''
+    Tools.save_json('combat.json', combat_data)
+  end
+
+  def self.add_log(message)
+    log = Tools.load_json('combat_log.json')
+    return if log.empty?
+    log.last['log'] << message
+    Tools.save_json('combat_log.json', log)
   end
 
   def self.update(id, params, set_keys: [])
