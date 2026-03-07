@@ -5,7 +5,7 @@
   "current_turn_id": 0,
   "current_action": "",
   "current_actor_turn_id": 0,
-  "current_action_item": "",
+  "current_action_tool_id": "",
   "participants": [
     {
       "id": 1,
