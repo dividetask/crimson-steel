@@ -1,11 +1,17 @@
   <h1>Notes & Characters</h1>
 
   <% max_chapter = @notes.map { |n| n['chapter'] }.compact.max || 1 %>
+  <%
+    chapter_names = {}
+    @notes.select { |n| n['type'] == 'chapter_title' }.each do |n|
+      chapter_names[n['chapter']] = n['title'] if n['chapter']
+    end
+  %>
   <div class="chapter-filter">
     <label>Chapter:</label>
     <a href="/notes/<%= @viewer_id %>" class="chapter-btn <%= 'active' if @current_chapter.nil? %>">All</a>
     <% (1..max_chapter).each do |ch| %>
-      <a href="/notes/<%= @viewer_id %>?chapter=<%= ch %>" class="chapter-btn <%= 'active' if @current_chapter == ch %>"><%= ch %></a>
+      <a href="/notes/<%= @viewer_id %>?chapter=<%= ch %>" class="chapter-btn <%= 'active' if @current_chapter == ch %>"><%= chapter_names[ch] || "Chapter #{ch}" %></a>
     <% end %>
   </div>
 
@@ -18,7 +24,7 @@
 
     <div class="section">
       <h2>DM Notes</h2>
-      <% filtered_notes.select { |n| n['owner_id'] == 0 && n['type'] != 'character' }.each do |note| %>
+      <% filtered_notes.select { |n| n['owner_id'] == 0 && n['type'] != 'character' && n['type'] != 'chapter_title' }.each do |note| %>
         <% if @is_dm or note['public'] %>
           <div class="note-item">
             <% if note['title'] %>
@@ -54,6 +60,25 @@
           </div>
         </div>
         <button type="submit">Add DM Note</button>
+      </form>
+
+      <form class="notes-form" method="post" action="/add_note_entry" style="margin-top: 10px;">
+        <input type="hidden" name="owner_id" value="0">
+        <input type="hidden" name="type" value="chapter_title">
+        <input type="hidden" name="public" value="true">
+        <input type="hidden" name="note" value="">
+        <h3>Set Chapter Name</h3>
+        <div class="form-row">
+          <div>
+            <label>Chapter:</label>
+            <input type="number" name="chapter" min="1" value="<%= max_chapter %>" style="width: 60px;">
+          </div>
+          <div>
+            <label>Name:</label>
+            <input type="text" name="title" required>
+          </div>
+        </div>
+        <button type="submit">Set Name</button>
       </form>
     <% end %>
   </div>
