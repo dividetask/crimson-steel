@@ -19,6 +19,8 @@ body {
 .menu { background: #333; padding: 10px; margin: -20px -20px 20px -20px; }
 .menu a { color: white; margin-right: 20px; text-decoration: none; }
 .menu a:hover { text-decoration: underline; }
+.menu-view-btn { background: none; border: 1px solid #999; color: white; cursor: pointer; padding: 2px 8px; font-size: 11px; margin-left: 10px; }
+.menu-view-btn:hover { background: #555; }
 
 /* Character sheet navigation */
 .navigation {
@@ -269,6 +271,7 @@ table th {
 .tier-2 { color: #fbc02d; }
 .tier-3 { color: #388e3c; }
 .tier-4 { color: #1976d2; }
+.tier-unknown { color: #9e9e9e; }
 .note-item { margin-bottom: 10px; padding: 10px; background: #f5f5f5; border-radius: 5px; }
 .note-item p { margin: 0; }
 .notes-form { display: grid; gap: 10px; margin-top: 15px; padding: 15px; background: #e3f2fd; border-radius: 5px; }

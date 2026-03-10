@@ -32,10 +32,12 @@
     <div class="character-list">
       <% @notes.select { |n| n['type'] == 'character' && (@is_dm || n['public']) }.each do |char| %>
         <div class="character-card">
-          <div class="character-name tier-<%= char['tier'] || 0 %>">
+          <div class="character-name tier-<%= char['tier'] && char['tier'] >= 0 ? char['tier'] : 'unknown' %>">
             <%= h(char['title']) %>
-            <% if char['tier'] %>
+            <% if char['tier'] && char['tier'] >= 0 %>
               <span style="font-size: 14px; color: #666;">(Tier <%= char['tier'] %>)</span>
+            <% elsif char['tier'] && char['tier'] == -1 %>
+              <span style="font-size: 14px; color: #666;">(Tier ?)</span>
             <% end %>
           </div>
           <p><%= h(char['note']) %></p>
@@ -55,6 +57,7 @@
           <div>
             <label>Tier:</label>
             <select name="tier">
+              <option value="-1">Unknown</option>
               <option value="0">0 - Red</option>
               <option value="1">1 - Orange</option>
               <option value="2">2 - Yellow</option>

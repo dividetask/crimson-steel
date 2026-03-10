@@ -12,6 +12,19 @@
     <% if @is_local %>
       <a href="/combat">Combat</a>
     <% end %>
+    <% if @is_local || @view_as_player %>
+      <% if @view_as_player %>
+        <form method="post" action="/view_mode" style="display: inline;">
+          <input type="hidden" name="mode" value="dm">
+          <button type="submit" class="menu-view-btn">View as DM</button>
+        </form>
+      <% else %>
+        <form method="post" action="/view_mode" style="display: inline;">
+          <input type="hidden" name="mode" value="player">
+          <button type="submit" class="menu-view-btn">View as Player</button>
+        </form>
+      <% end %>
+    <% end %>
   </div>
   <%= yield %>
 </body>
