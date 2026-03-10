@@ -1,36 +1,67 @@
   <h1>Notes & Characters</h1>
-  
+
+  <% max_chapter = @notes.map { |n| n['chapter'] }.compact.max || 1 %>
+  <div class="chapter-filter">
+    <label>Chapter:</label>
+    <a href="/notes/<%= @viewer_id %>" class="chapter-btn <%= 'active' if @current_chapter.nil? %>">All</a>
+    <% (1..max_chapter).each do |ch| %>
+      <a href="/notes/<%= @viewer_id %>?chapter=<%= ch %>" class="chapter-btn <%= 'active' if @current_chapter == ch %>"><%= ch %></a>
+    <% end %>
+  </div>
+
+  <%
+    filtered_notes = @notes
+    if @current_chapter
+      filtered_notes = @notes.select { |n| n['chapter'].nil? || n['chapter'] == @current_chapter }
+    end
+  %>
+
     <div class="section">
       <h2>DM Notes</h2>
-      <% @notes.select { |n| n['owner_id'] == 0 && n['type'] != 'character' }.each do |note| %>
+      <% filtered_notes.select { |n| n['owner_id'] == 0 && n['type'] != 'character' }.each do |note| %>
         <% if @is_dm or note['public'] %>
           <div class="note-item">
+            <% if note['title'] %>
+              <strong><%= h(note['title']) %></strong>
+            <% end %>
             <p><%= h(note['note']) %></p>
-            <% if @is_dm and note['public'] %>
-              <small style="color: #666;">(Public)</small>
+            <% if @is_dm %>
+              <small style="color: #666;">
+                <%= note['public'] ? '(Public)' : '(DM Only)' %>
+                <%= "Ch.#{note['chapter']}" if note['chapter'] %>
+              </small>
             <% end %>
           </div>
         <% end %>
       <% end %>
-      
+
     <% if @is_dm %>
       <form class="notes-form" method="post" action="/add_note_entry">
         <input type="hidden" name="owner_id" value="0">
         <input type="hidden" name="type" value="note">
         <label>New DM Note:</label>
+        <input type="text" name="title" placeholder="Title (optional)">
         <textarea name="note" rows="3" required></textarea>
-        <label>
-          <input type="checkbox" name="public" value="true"> Make Public
-        </label>
+        <div class="form-row">
+          <div>
+            <label>Chapter:</label>
+            <input type="number" name="chapter" min="1" value="<%= max_chapter %>" style="width: 60px;">
+          </div>
+          <div>
+            <label>
+              <input type="checkbox" name="public" value="true"> Make Public
+            </label>
+          </div>
+        </div>
         <button type="submit">Add DM Note</button>
       </form>
     <% end %>
   </div>
-  
+
   <div class="section">
     <h2>Characters of Interest</h2>
     <div class="character-list">
-      <% @notes.select { |n| n['type'] == 'character' && (@is_dm || n['public']) }.each do |char| %>
+      <% filtered_notes.select { |n| n['type'] == 'character' && (@is_dm || n['public']) }.each do |char| %>
         <div class="character-card">
           <div class="character-name tier-<%= char['tier'] && char['tier'] >= 0 ? char['tier'] : 'unknown' %>">
             <%= h(char['title']) %>
@@ -41,10 +72,16 @@
             <% end %>
           </div>
           <p><%= h(char['note']) %></p>
+          <% if @is_dm %>
+            <small style="color: #666;">
+              <%= char['public'] ? '(Public)' : '(DM Only)' %>
+              <%= "Ch.#{char['chapter']}" if char['chapter'] %>
+            </small>
+          <% end %>
         </div>
       <% end %>
     </div>
-    
+
     <% if @is_dm %>
       <form class="notes-form" method="post" action="/add_note_entry">
         <input type="hidden" name="owner_id" value="0">
@@ -52,7 +89,7 @@
         <h3>Add New Character</h3>
         <label>Character Name:</label>
         <input type="text" name="title" required>
-        
+
         <div class="form-row">
           <div>
             <label>Tier:</label>
@@ -66,34 +103,42 @@
             </select>
           </div>
           <div>
+            <label>Chapter:</label>
+            <input type="number" name="chapter" min="1" value="<%= max_chapter %>" style="width: 60px;">
+          </div>
+          <div>
             <label>
               <input type="checkbox" name="public" value="true" checked> Visible to Players
             </label>
           </div>
         </div>
-        
+
         <label>Description/Notes:</label>
         <textarea name="note" rows="3" required></textarea>
         <button type="submit">Add Character</button>
       </form>
     <% end %>
   </div>
-  
+
   <% player_character = @characters.find { |c| c['id'] == @viewer_id } %>
   <% if player_character %>
     <div class="section">
       <h2><%= player_character['name'] %>'s Notes</h2>
-      <% @notes.select { |n| n['owner_id'] == @viewer_id }.each do |note| %>
+      <% filtered_notes.select { |n| n['owner_id'] == @viewer_id }.each do |note| %>
         <div class="note-item">
+          <% if note['title'] %>
+            <strong><%= h(note['title']) %></strong>
+          <% end %>
           <p><%= h(note['note']) %></p>
         </div>
       <% end %>
-      
+
       <form class="notes-form" method="post" action="/add_note_entry">
         <input type="hidden" name="owner_id" value="<%= @viewer_id %>">
         <input type="hidden" name="type" value="note">
         <input type="hidden" name="public" value="false">
         <label>Add Note:</label>
+        <input type="text" name="title" placeholder="Title (optional)">
         <textarea name="note" rows="3" required></textarea>
         <button type="submit">Add Note</button>
       </form>

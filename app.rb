@@ -25,7 +25,12 @@ end
 post '/view_mode' do
   redirect '/' unless local_request?
   session[:view_mode] = params[:mode]
-  redirect back
+  referrer = request.referrer || '/'
+  if params[:mode] == 'dm' && referrer =~ /\/notes\/\d+/
+    redirect '/notes/0'
+  else
+    redirect back
+  end
 end
 
 def load_character_view(character_list, index, route_prefix)
@@ -250,6 +255,7 @@ get '/notes/:viewer_id' do
   @is_dm = viewer_id == 0 && @is_local
   @notes = Tools.load_json('notes.json')
   @characters = Tools.load_json('characters.json')
+  @current_chapter = params[:chapter] ? params[:chapter].to_i : nil
 
   erb :notes_view
 end
@@ -266,6 +272,7 @@ post '/add_note_entry' do
   new_note["type"] = params[:type] if params[:type] && !params[:type].empty?
   new_note["title"] = params[:title] if params[:title] && !params[:title].empty?
   new_note["tier"] = params[:tier].to_i if params[:tier] && !params[:tier].empty?
+  new_note["chapter"] = params[:chapter].to_i if params[:chapter] && !params[:chapter].empty?
 
   notes << new_note
   Tools.save_json('notes.json', notes)

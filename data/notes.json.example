@@ -1,13 +1,17 @@
 [
   {
     "owner_id": 1,
-    "note": "Test"
+    "note": "Test",
+    "public": false,
+    "type": "note"
   },
   {
     "owner_id": 0,
     "note": "DM WARNS OF DANGER",
     "public": true,
-    "type": "note"
+    "type": "note",
+    "title": "Warning",
+    "chapter": 1
   },
   {
     "owner_id": 0,
@@ -15,7 +19,7 @@
     "public": true,
     "type": "character",
     "title": "Sketchy Dude #1",
-    "tier": 3
+    "tier": 3,
+    "chapter": 1
   }
 ]
-
