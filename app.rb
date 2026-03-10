@@ -8,6 +8,8 @@ set :views, File.join(__dir__, 'views')
 set :public_folder, File.join(__dir__, 'public')
 set :erb, escape_html: false
 
+enable :sessions
+
 helpers CharacterHelpers
 
 def local_request?
@@ -16,6 +18,14 @@ end
 
 before do
   @is_local = local_request?
+  @view_as_player = local_request? && session[:view_mode] == 'player'
+  @is_local = false if @view_as_player
+end
+
+post '/view_mode' do
+  redirect '/' unless local_request?
+  session[:view_mode] = params[:mode]
+  redirect back
 end
 
 def load_character_view(character_list, index, route_prefix)
@@ -232,10 +242,10 @@ get '/notes/:viewer_id' do
   viewer_id = params[:viewer_id].to_i
 
   # Redirect if not local and trying to view DM notes
-  redirect '/notes/1' if viewer_id == 0 && !local_request?
+  redirect '/notes/1' if viewer_id == 0 && !@is_local
 
   @viewer_id = viewer_id
-  @is_dm = viewer_id == 0 && local_request?
+  @is_dm = viewer_id == 0 && @is_local
   @notes = Tools.load_json('notes.json')
   @characters = Tools.load_json('characters.json')
 
