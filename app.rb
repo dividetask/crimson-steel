@@ -195,7 +195,9 @@ post '/add_note' do
   char_id = params[:owner_id].to_i
   notes << {
     "owner_id" => char_id,
-    "note" => params[:note]
+    "note" => params[:note],
+    "public" => false,
+    "type" => "note"
   }
 
   Tools.save_json('notes.json', notes)
