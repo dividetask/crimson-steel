@@ -18,7 +18,9 @@
   <%
     filtered_notes = @notes
     if @current_chapter
-      filtered_notes = @notes.select { |n| n['chapter'].nil? || n['chapter'] == @current_chapter || n['active'] }
+      filtered_notes = @notes.select { |n|
+        n['chapter'].nil? || n['chapter'] == @current_chapter || (n['active'] && n['chapter'] < @current_chapter)
+      }
     end
   %>
 
