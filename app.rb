@@ -273,6 +273,7 @@ post '/add_note_entry' do
   new_note["title"] = params[:title] if params[:title] && !params[:title].empty?
   new_note["tier"] = params[:tier].to_i if params[:tier] && !params[:tier].empty?
   new_note["chapter"] = params[:chapter].to_i if params[:chapter] && !params[:chapter].empty?
+  new_note["active"] = true if params[:active] == "true"
 
   notes << new_note
   Tools.save_json('notes.json', notes)
