@@ -193,6 +193,73 @@ get '/character/:index' do
   load_character_view(character_list, params[:index].to_i, '/character')
 end
 
+get '/enemies/:index' do
+  redirect '/character/0' unless local_request?
+  characters = Tools.load_json('characters.json')
+  enemy_list = characters.select { |c| c["group"] != "PC" }
+  halt 404, "No enemies found" if enemy_list.empty?
+
+  index = params[:index].to_i % enemy_list.length
+  @total_characters = enemy_list.length
+  @prev_index = (index - 1) % enemy_list.length
+  @next_index = (index + 1) % enemy_list.length
+  @current_index = index
+  @route_prefix = '/enemies'
+
+  @character = get_info(enemy_list[index])
+  @compendium = Compendium.new
+  @enemy_list = enemy_list.each_with_index.map { |e, i| { index: i, id: e['id'], name: e['name'] } }
+
+  combat_data = Tools.load_json('combat.json')
+  @combat_ids = combat_data['participants'].map { |p| p['id'] }
+
+  erb :enemies
+end
+
+post '/combat/add_enemy' do
+  redirect '/character/0' unless local_request?
+  enemy_id = params[:enemy_id].to_i
+  combat_data = Tools.load_json('combat.json')
+  characters = Tools.load_json('characters.json')
+
+  enemy = characters.find { |c| c['id'] == enemy_id }
+  halt 400, "Enemy not found" unless enemy
+  return redirect back if combat_data['participants'].any? { |p| p['id'] == enemy_id }
+
+  character = CharacterSheet.new(enemy)
+  combat_data['participants'] << {
+    'id' => enemy_id,
+    'initiative' => '',
+    'mana' => character.mana_max,
+    'combat_pool' => character.combat_pool,
+    'saturation' => 0,
+    'minor_damage' => 0,
+    'moderate_damage' => 0,
+    'major_damage' => 0
+  }
+  Tools.save_json('combat.json', combat_data)
+  redirect back
+end
+
+post '/combat/remove_enemy' do
+  redirect '/character/0' unless local_request?
+  enemy_id = params[:enemy_id].to_i
+  combat_data = Tools.load_json('combat.json')
+  combat_data['participants'].reject! { |p| p['id'] == enemy_id }
+  Tools.save_json('combat.json', combat_data)
+  redirect back
+end
+
+post '/combat/clear_enemies' do
+  redirect '/character/0' unless local_request?
+  characters = Tools.load_json('characters.json')
+  pc_ids = characters.select { |c| c['group'] == 'PC' }.map { |c| c['id'] }
+  combat_data = Tools.load_json('combat.json')
+  combat_data['participants'].select! { |p| pc_ids.include?(p['id']) }
+  Tools.save_json('combat.json', combat_data)
+  redirect back
+end
+
 post '/add_note' do
   characters = Tools.load_json('characters.json')
   notes = Tools.load_json('notes.json')
