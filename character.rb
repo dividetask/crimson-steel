@@ -15,7 +15,8 @@ class CombatTurn
 
   def new_turn; @combat_pool = @character.combat_pool; end
   def reroll_init
-    @initiative = (1..10).to_a.sample(@character.initiative).sort.reverse.map { |i| i == 10 ? 'X' : i.to_s}.join
+    bonus = @character.respond_to?(:initiative_die_bonus) ? @character.initiative_die_bonus : 0
+    @initiative = (1..10).to_a.sample(@character.initiative).map { |i| [i + bonus, 10].min }.sort.reverse.map { |i| i == 10 ? 'X' : i.to_s}.join
   end
 
   def init_to_a; @initiative.chars.map { |r| r == 'X' ? 10 : r.to_i }.sort.reverse; end
@@ -403,8 +404,32 @@ end
 
 module CharacterEquipment
   attr_reader :item_list, :all_items
-  def initialize(character); super(character) if defined?(super); @all_items = Tools.load_json('items.json'); refresh_items; end
-  def refresh_items; @item_list = @all_items.select { |item| item["owner_id"].to_i == @id }; end
+  def initialize(character)
+    super(character) if defined?(super)
+    @all_items = Tools.load_json('items.json')
+    @inline_items = (character["items"] || []).each_with_index.map do |item, i|
+      item.merge(
+        "item_id" => item["item_id"] || -(i + 1),
+        "owner_id" => character["id"],
+        "equipped" => item.fetch("equipped", true),
+        "properties" => item["properties"] || build_item_properties(item)
+      )
+    end
+    refresh_items
+  end
+  def refresh_items; @item_list = @all_items.select { |item| item["owner_id"].to_i == @id } + @inline_items; end
+
+  def build_item_properties(item)
+    props = {}
+    subtype = item["subtype"].to_s
+    case item["type"]
+    when "weapon"
+      props["details"] = @rules["reference"]["weapon_properties"][subtype] || []
+    when "shield"
+      props["details"] = []
+    end
+    props
+  end
   def equip_search(params = {}); return @item_list.select { |item| params.map { |key, value| item[key] == value }.all? }; end
 
   def defined_items; return @item_list.select { |item| item["description"] }; end
@@ -498,17 +523,71 @@ class CharacterSheet
   def deity; @data["deity"]; end
   def race; @data["race"].reverse.join(' ').capitalize; end
   def race_sym; return (@data["race"][0] || @data["race"]).to_sym; end
+  def undead?; @data["race"].include?("undead"); end
   def speed; return 30 + @rules["reference"]["speed_modifiers"]["race"][race_sym.to_s].to_i + speed_modifiers; end
+
+  def con; undead? ? cha_raw : super; end
+  def cha_raw; @data["ability_scores"]["cha"].to_i; end
+
+  def tier; @data["tier"] || super; end
 
   def speed_modifiers; return 0 + super; end
   def mana_max; return 0 + super; end
-  def damage_reduction(); return 0 + super; end
-  def damage_resilience(); return 0 + super; end
+  def damage_reduction(); race_ability_bonus("damage_reduction") + super; end
+  def damage_resilience(); race_ability_bonus("damage_resilience") + super; end
 
   def add_plus(func, params = nil); r = params ? send(func, params) : send(func); return "#{'+' if r >= 0}#{r}"; end
 
   def spell_list; return @data["spells"]; end
+
+  NATURAL_WEAPONS = %w[bite claws slam].freeze
+
+  def race_abilities; (@data["abilities"] || {}).values.flatten.map { |a| a.downcase.gsub(' ', '_') }; end
+  def ability_list; race_abilities + super; end
+
+  def natural_weapons
+    weapon_props = @rules["reference"]["weapon_properties"]
+    race_abilities.select { |a| weapon_props.key?(a) }.map do |ability_name|
+      key = ability_name
+      {
+        "name" => ability_name.capitalize,
+        "type" => "weapon",
+        "subtype" => key,
+        "bonus" => 0,
+        "equipped" => true,
+        "properties" => { "details" => weapon_props[key], "natural" => true }
+      }
+    end
+  end
+
+  def weapon_list; super + natural_weapons; end
+
+  def weapon_dmg(weapon_data)
+    return (str / 4).to_i if weapon_data.dig("properties", "natural")
+    super
+  end
+
+  def combat_pool
+    pool = super
+    pool = (pool / 2).to_i if has_race_ability?("staggered")
+    pool
+  end
+
+  def initiative_die_bonus
+    race_ability_bonus("initiative_bonus")
+  end
+
   private
+
+  def has_race_ability?(name); race_abilities.include?(name); end
+
+  def race_ability_bonus(var)
+    abilities_ref = @rules["reference"]["abilities"]
+    race_abilities.sum do |ability|
+      val = abilities_ref.dig(ability, "passive", var)
+      val ? val.to_i : 0
+    end
+  end
 
   def parse_formula(formula, params = {})
     result = formula.dup
