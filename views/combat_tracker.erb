@@ -19,7 +19,7 @@
       <% @combat.combat_turn_list.each do |combat_turn| %>
         <tr>
           <td><%= combat_turn.initiative %></td>
-          <td><%= combat_turn.character.name %></td>
+          <td><%= @combat.display_name(combat_turn) %></td>
           <td><%= combat_turn.hp %>/<%= combat_turn.character.hp_max %></td>
           <td><%= combat_turn.moderate_damage %></td>
           <td><%= combat_turn.major_damage %></td>
@@ -27,21 +27,21 @@
           <td><%= combat_turn.combat_pool %>/<%= combat_turn.character.combat_pool %></td>
           <td><%= combat_turn.saturation %>/<%= combat_turn.character.cha %></td>
           <td>
-						<form method="post" action="/combat/damage/<%= combat_turn.character.id %>" style="display: inline;">
+						<form method="post" action="/combat/damage/<%= combat_turn.combat_id %>" style="display: inline;">
 							<input type="number" name="minor_damage" placeholder="Minor" min="0" value="0" style="width: 50px;">
 							<input type="number" name="moderate_damage" placeholder="Mod" min="0" value="0" style="width: 50px;">
 							<input type="number" name="major_damage" placeholder="Major" min="0" value="0" style="width: 50px;">
 							<button type="submit">Add Damage</button>
 						</form>
-            <form method="post" action="/combat/mana/<%= combat_turn.character.id %>" style="display: inline;">
+            <form method="post" action="/combat/mana/<%= combat_turn.combat_id %>" style="display: inline;">
               <input type="number" name="amount" placeholder="Mana">
               <button type="submit">Subtract Mana</button>
             </form>
-            <form method="post" action="/combat/dice/<%= combat_turn.character.id %>" style="display: inline;">
+            <form method="post" action="/combat/dice/<%= combat_turn.combat_id %>" style="display: inline;">
               <input type="number" name="amount" placeholder="Dice">
               <button type="submit">Subtract Dice</button>
             </form>
-            <form method="post" action="/combat/sat/<%= combat_turn.character.id %>" style="display: inline;">
+            <form method="post" action="/combat/sat/<%= combat_turn.combat_id %>" style="display: inline;">
               <input type="number" name="amount" placeholder="Saturation">
               <button type="submit">Mana Saturation</button>
             </form>
@@ -68,9 +68,9 @@
         <% action_weapon = actor.character.item_list.find { |i| i['item_id'] == @combat.current_action_tool_id } %>
         <% weapon_display = action_weapon ? action_weapon['name'] : 'Unknown' %>
         <% if @combat.current_action == 'dodge' %>
-          <h2><%= actor.character.name %> attacks <%= target.character.name %> with <%= weapon_display %> - <%= target.character.name %> dodges</h2>
+          <h2><%= @combat.display_name(actor) %> attacks <%= @combat.display_name(target) %> with <%= weapon_display %> - <%= @combat.display_name(target) %> dodges</h2>
         <% else %>
-          <h2><%= actor.character.name %> attacks <%= target.character.name %> with <%= weapon_display %></h2>
+          <h2><%= @combat.display_name(actor) %> attacks <%= @combat.display_name(target) %> with <%= weapon_display %></h2>
         <% end %>
       <% else %>
         <h2><%= current.character.name %>'s Turn</h2>
@@ -100,8 +100,8 @@
   <% end %>
 
   <script>
-    var currentCharId = <%= current ? current.character.id : 'null' %>;
-    var currentCharName = '<%= current ? current.character.name : '' %>';
+    var currentCharId = <%= current ? current.combat_id : 'null' %>;
+    var currentCharName = '<%= current ? @combat.display_name(current) : '' %>';
     var equippedWeapons = <%= current ? JSON.generate(
       current.character.equipped_list.select { |i| i['type'] == 'weapon' }.map { |w|
         {
@@ -116,7 +116,7 @@
     var moveSpeed = <%= current ? current.character.speed : 0 %>;
     var combatants = <%= JSON.generate(
       @combat.combat_turn_list.each_with_index.map { |ct, idx|
-        { turn_id: idx, char_id: ct.character.id, name: ct.character.name, dice_remaining: ct.combat_pool, bab_dice: ct.character.bab_dice }
+        { turn_id: idx, combat_id: ct.combat_id, char_id: ct.character.id, name: @combat.display_name(ct), dice_remaining: ct.combat_pool, bab_dice: ct.character.bab_dice }
       }
     ) %>;
     var targetId = <%= @combat.target_id %>;
@@ -231,7 +231,7 @@
           return;
         }
 
-        submitAction({target_char_id: target.char_id, combat_action: 'dodge', dice: dice});
+        submitAction({target_char_id: target.combat_id, combat_action: 'dodge', dice: dice});
       }
     }
 

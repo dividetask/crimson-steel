@@ -9,20 +9,26 @@
     <h3>Enemies</h3>
     <div class="enemy-list">
       <% @enemy_list.each do |enemy| %>
+        <% copies = @combat_participants.select { |p| (p['char_id'] || p['id']) == enemy[:id] } %>
         <div class="enemy-entry <%= 'selected' if enemy[:index] == @current_index %>">
           <a href="/enemies/<%= enemy[:index] %>"><%= enemy[:name] %></a>
-          <% if @combat_ids.include?(enemy[:id]) %>
+          <% unless copies.empty? %>
+            <span class="enemy-count">(<%= copies.length %>)</span>
+          <% end %>
+          <form method="post" action="/combat/add_enemy" style="display:inline;">
+            <input type="hidden" name="enemy_id" value="<%= enemy[:id] %>">
+            <button type="submit" class="enemy-combat-btn add" title="Add copy to combat">+</button>
+          </form>
+        </div>
+        <% copies.each_with_index do |copy, ci| %>
+          <div class="enemy-copy-entry">
+            <span class="enemy-copy-label"><%= enemy[:name] %> #<%= ci + 1 %></span>
             <form method="post" action="/combat/remove_enemy" style="display:inline;">
-              <input type="hidden" name="enemy_id" value="<%= enemy[:id] %>">
+              <input type="hidden" name="combat_id" value="<%= copy['id'] %>">
               <button type="submit" class="enemy-combat-btn remove" title="Remove from combat">-</button>
             </form>
-          <% else %>
-            <form method="post" action="/combat/add_enemy" style="display:inline;">
-              <input type="hidden" name="enemy_id" value="<%= enemy[:id] %>">
-              <button type="submit" class="enemy-combat-btn add" title="Add to combat">+</button>
-            </form>
-          <% end %>
-        </div>
+          </div>
+        <% end %>
       <% end %>
     </div>
     <form method="post" action="/combat/clear_enemies" style="margin-top: 10px;">
@@ -40,8 +46,9 @@
         <div class="tier-line">
           Tier <%= @character.tier %> &nbsp;&nbsp;&nbsp; BAB: <%= @character.bab %>
         </div>
-        <% if @combat_ids.include?(@character.id) %>
-          <div style="color: #388e3c; font-weight: bold;">In Combat</div>
+        <% enemy_copies = @combat_participants.count { |p| (p['char_id'] || p['id']) == @character.id } %>
+        <% if enemy_copies > 0 %>
+          <div style="color: #388e3c; font-weight: bold;">In Combat (<%= enemy_copies %> <%= enemy_copies == 1 ? 'copy' : 'copies' %>)</div>
         <% end %>
       </div>
 

@@ -324,6 +324,9 @@ table th {
 .enemy-combat-btn.add:hover { background: #c8e6c9; }
 .enemy-combat-btn.remove { background: #ffebee; color: #d32f2f; }
 .enemy-combat-btn.remove:hover { background: #ffcdd2; }
+.enemy-count { font-size: 10px; color: #388e3c; font-weight: bold; margin-left: 2px; }
+.enemy-copy-entry { display: flex; justify-content: space-between; align-items: center; padding: 1px 0 1px 12px; font-size: 10px; color: #666; }
+.enemy-copy-label { flex: 1; }
 .enemy-clear-btn { width: 100%; padding: 6px; font-size: 11px; background: #d32f2f; color: white; border: none; cursor: pointer; border-radius: 3px; }
 .enemy-clear-btn:hover { background: #b71c1c; }
 .enemy-sheet { min-width: 0; }

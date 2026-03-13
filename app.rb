@@ -95,14 +95,15 @@ post '/combat/action' do
   redirect '/character/0' unless local_request?
   combat = Combat.new
   combat_data = Tools.load_json('combat.json')
-  char_id = params[:id].to_i
+  combat_id = params[:id].to_i
   action = params[:combat_action]
 
   if action == 'attack'
     dice = params[:dice].to_i
     target_turn_id = params[:target_turn_id].to_i
     weapon_item_id = params[:weapon_item_id].to_i
-    participant = combat_data['participants'].find { |p| p['id'] == char_id }
+    participant = combat_data['participants'].find { |p| p['id'] == combat_id }
+    char_id = participant['char_id'] || participant['id']
     character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
     character = CharacterSheet.new(character_data)
 
@@ -117,7 +118,7 @@ post '/combat/action' do
 
     participant['combat_pool'] -= (dice + speed)
 
-    turn_index = combat.combat_turn_list.index { |ct| ct.character.id == char_id }
+    turn_index = combat.combat_turn_list.index { |ct| ct.combat_id == combat_id }
     combat_data['current_action'] = 'attack'
     combat_data['current_actor_turn_id'] = turn_index
     combat_data['current_action_tool_id'] = weapon_item_id
@@ -127,7 +128,8 @@ post '/combat/action' do
     Tools.save_json('combat.json', combat_data)
 
   elsif action == 'move'
-    participant = combat_data['participants'].find { |p| p['id'] == char_id }
+    participant = combat_data['participants'].find { |p| p['id'] == combat_id }
+    char_id = participant['char_id'] || participant['id']
     character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
     character = CharacterSheet.new(character_data)
 
@@ -140,6 +142,8 @@ post '/combat/action' do
     Combat.clear_action
 
   elsif action == 'end_turn'
+    participant = combat_data['participants'].find { |p| p['id'] == combat_id }
+    char_id = participant['char_id'] || participant['id']
     character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
     character = CharacterSheet.new(character_data)
 
@@ -149,9 +153,10 @@ post '/combat/action' do
 
   elsif action == 'dodge'
     dice = params[:dice].to_i
-    target_char_id = params[:target_char_id].to_i
-    participant = combat_data['participants'].find { |p| p['id'] == target_char_id }
-    character_data = Tools.load_json('characters.json').find { |c| c['id'] == target_char_id }
+    target_combat_id = params[:target_char_id].to_i
+    participant = combat_data['participants'].find { |p| p['id'] == target_combat_id }
+    char_id = participant['char_id'] || participant['id']
+    character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
     character = CharacterSheet.new(character_data)
 
     max_dice = character.bab_dice
@@ -211,7 +216,7 @@ get '/enemies/:index' do
   @enemy_list = enemy_list.each_with_index.map { |e, i| { index: i, id: e['id'], name: e['name'] } }
 
   combat_data = Tools.load_json('combat.json')
-  @combat_ids = combat_data['participants'].map { |p| p['id'] }
+  @combat_participants = combat_data['participants']
 
   erb :enemies
 end
@@ -224,11 +229,16 @@ post '/combat/add_enemy' do
 
   enemy = characters.find { |c| c['id'] == enemy_id }
   halt 400, "Enemy not found" unless enemy
-  return redirect back if combat_data['participants'].any? { |p| p['id'] == enemy_id }
+
+  # Generate a unique combat ID
+  max_id = combat_data['participants'].map { |p| p['id'] }.max || 0
+  combat_id = [max_id + 1, enemy_id].max + 1000
+  combat_id = max_id + 1 if combat_id <= max_id
 
   character = CharacterSheet.new(enemy)
   combat_data['participants'] << {
-    'id' => enemy_id,
+    'id' => combat_id,
+    'char_id' => enemy_id,
     'initiative' => '',
     'mana' => character.mana_max,
     'combat_pool' => character.combat_pool,
@@ -243,9 +253,9 @@ end
 
 post '/combat/remove_enemy' do
   redirect '/character/0' unless local_request?
-  enemy_id = params[:enemy_id].to_i
+  combat_id = params[:combat_id].to_i
   combat_data = Tools.load_json('combat.json')
-  combat_data['participants'].reject! { |p| p['id'] == enemy_id }
+  combat_data['participants'].reject! { |p| p['id'] == combat_id }
   Tools.save_json('combat.json', combat_data)
   redirect back
 end
@@ -255,7 +265,7 @@ post '/combat/clear_enemies' do
   characters = Tools.load_json('characters.json')
   pc_ids = characters.select { |c| c['group'] == 'PC' }.map { |c| c['id'] }
   combat_data = Tools.load_json('combat.json')
-  combat_data['participants'].select! { |p| pc_ids.include?(p['id']) }
+  combat_data['participants'].select! { |p| pc_ids.include?(p['char_id'] || p['id']) }
   Tools.save_json('combat.json', combat_data)
   redirect back
 end
