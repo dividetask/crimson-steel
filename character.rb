@@ -1,10 +1,12 @@
 require_relative 'tools'
 
 class CombatTurn
-  attr_reader :rules, :character, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation
+  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation
 
   def initialize(combat_turn, character)
     @rules = Tools.load_json('rules.json')
+    @combat_id = combat_turn['id']
+    @char_id = combat_turn['char_id'] || combat_turn['id']
     @initiative, @mana, @combat_pool = combat_turn['initiative'], combat_turn['mana'], combat_turn['combat_pool']
     @minor_damage, @moderate_damage, @major_damage = combat_turn['minor_damage'], combat_turn['moderate_damage'], combat_turn['major_damage']
     @saturation = combat_turn['saturation']
@@ -19,13 +21,17 @@ class CombatTurn
   def init_to_a; @initiative.chars.map { |r| r == 'X' ? 10 : r.to_i }.sort.reverse; end
 
   def to_json
-    return {'id' => @character.id,
+    return {'id' => @combat_id, 'char_id' => @char_id,
       'initiative' => @initiative, 'mana' => @mana, 'combat_pool' => @combat_pool,
       'minor_damage' => @minor_damage, 'moderate_damage' => @moderate_damage, 'major_damage' => @major_damage,
       'saturation' => @saturation}
   end
 
   def hp; return @character.hp_max - @minor_damage - @moderate_damage - @major_damage; end
+
+  def display_name(suffix = nil)
+    suffix ? "#{@character.name} ##{suffix}" : @character.name
+  end
 end
 
 class Combat
@@ -41,12 +47,20 @@ class Combat
     @target_id = combat_data['target_id'] || 0
     @action_params = combat_data['action_params'] || {}
     @combat_turn_list = combat_data['participants'].map do |combat_turn|
-      CombatTurn.new(combat_turn, character_list.find { |c| c["id"] == combat_turn["id"] })
+      char_id = combat_turn['char_id'] || combat_turn['id']
+      CombatTurn.new(combat_turn, character_list.find { |c| c["id"] == char_id })
     end
     sort_init
   end
 
   def current_turn_character; @combat_turn_list[@current_turn_id]; end
+
+  def display_name(combat_turn)
+    char_id = combat_turn.character.id
+    same = @combat_turn_list.select { |ct| ct.character.id == char_id }
+    return combat_turn.character.name if same.length == 1
+    combat_turn.display_name(same.index(combat_turn).to_i + 1)
+  end
 
   def sort_init; @combat_turn_list = @combat_turn_list.sort { |a,b| init_compare(a,b) }; end
 
