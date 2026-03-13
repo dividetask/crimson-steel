@@ -580,7 +580,10 @@ class CharacterSheet
   def ability_proficiency(ability_name)
     formula = @rules["reference"]["abilities"].dig(ability_name, "proficiency")
     return nil unless formula
-    parse_formula(formula)
+    total = parse_formula(formula)
+    dice = parse_formula(@rules["reference"]["skill_dice"], {"ranks" => 0, "half_attr" => total})
+    bonus = (total / 5) + tier - 1
+    { total: total, dice: dice, bonus: bonus }
   end
 
   private

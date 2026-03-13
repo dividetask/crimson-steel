@@ -144,7 +144,7 @@
           <h2>Abilities</h2>
           <% @character.ability_list.each do |ability_name| %>
             <% prof = @character.ability_proficiency(ability_name) %>
-            <p><strong><%= h(@compendium.format_name(ability_name)) %><% if prof %> (<%= prof >= 0 ? "+#{prof}" : prof %>)<% end %>:</strong> <%= h(@compendium.ability(ability_name)) %></p>
+            <p><strong><%= h(@compendium.format_name(ability_name)) %><% if prof %> [<%= prof[:dice] %>d (<%= prof[:bonus] >= 0 ? "+#{prof[:bonus]}" : prof[:bonus] %>)]<% end %>:</strong> <%= h(@compendium.ability(ability_name)) %></p>
           <% end %>
         </div>
       </div>
