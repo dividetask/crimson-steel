@@ -143,7 +143,8 @@
         <div class="right-col">
           <h2>Abilities</h2>
           <% @character.ability_list.each do |ability_name| %>
-            <p><strong><%= h(@compendium.format_name(ability_name)) %>:</strong> <%= h(@compendium.ability(ability_name)) %></p>
+            <% prof = @character.ability_proficiency(ability_name) %>
+            <p><strong><%= h(@compendium.format_name(ability_name)) %><% if prof %> (<%= prof >= 0 ? "+#{prof}" : prof %>)<% end %>:</strong> <%= h(@compendium.ability(ability_name)) %></p>
           <% end %>
         </div>
       </div>

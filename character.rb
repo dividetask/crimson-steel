@@ -577,6 +577,12 @@ class CharacterSheet
     race_ability_bonus("initiative_bonus")
   end
 
+  def ability_proficiency(ability_name)
+    formula = @rules["reference"]["abilities"].dig(ability_name, "proficiency")
+    return nil unless formula
+    parse_formula(formula)
+  end
+
   private
 
   def has_race_ability?(name); race_abilities.include?(name); end
@@ -591,7 +597,7 @@ class CharacterSheet
 
   def parse_formula(formula, params = {})
     result = formula.dup
-    func_hash = params.dup.merge({str: :str, dex: :dex, con: :con, int: :int, wis: :wis, cha: :cha})
+    func_hash = params.dup.merge({level: level, str: :str, dex: :dex, con: :con, int: :int, wis: :wis, cha: :cha})
 
     func_hash.each do |key, func_sym|
       if func_sym.is_a?(Symbol)

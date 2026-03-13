@@ -40,7 +40,9 @@
 			"rage": {"active": {"combat_pool": "level", "damage_reduction": "1+(level/3)", "damage_resilience": "1+(level/2)"}},
 			"natural_armor": {"passive": {"damage_reduction": "1"}},
 			"staggered": {"passive": {"combat_pool_modifier": "half"}},
-			"improved_initiative": {"passive": {"initiative_bonus": "1"}}},
+			"improved_initiative": {"passive": {"initiative_bonus": "1"}},
+			"ghoul_fever": {"proficiency": "-1+(level/2)+(cha/2)"},
+			"ghoul_paralysis": {"proficiency": "-1+(level/2)+(cha/2)"}},
 		"class_abilities": {
 			"barbarian": {
 				"1": ["rage", "fast_movement", "reckless_attacks"],
