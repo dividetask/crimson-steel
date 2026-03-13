@@ -311,6 +311,23 @@ table th {
 .weapon-btn { display: block; margin-bottom: 8px; padding: 8px 16px; font-size: 13px; background: #1976d2; color: white; border: none; cursor: pointer; border-radius: 3px; }
 .weapon-btn:hover { background: #1565c0; }
 
+/* Enemies page */
+.enemies-layout { display: grid; grid-template-columns: 180px 1fr; gap: 15px; }
+.enemy-sidebar { border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: #f9f9f9; position: sticky; top: 10px; align-self: start; max-height: 90vh; overflow-y: auto; }
+.enemy-sidebar h3 { margin: 0 0 8px 0; font-size: 14px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+.enemy-entry { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; font-size: 11px; }
+.enemy-entry a { color: #333; text-decoration: none; flex: 1; }
+.enemy-entry a:hover { text-decoration: underline; }
+.enemy-entry.selected a { font-weight: bold; color: #1976d2; }
+.enemy-combat-btn { width: 20px; height: 20px; font-size: 14px; line-height: 1; border: 1px solid #999; border-radius: 3px; cursor: pointer; padding: 0; text-align: center; flex-shrink: 0; margin-left: 4px; }
+.enemy-combat-btn.add { background: #e8f5e9; color: #388e3c; }
+.enemy-combat-btn.add:hover { background: #c8e6c9; }
+.enemy-combat-btn.remove { background: #ffebee; color: #d32f2f; }
+.enemy-combat-btn.remove:hover { background: #ffcdd2; }
+.enemy-clear-btn { width: 100%; padding: 6px; font-size: 11px; background: #d32f2f; color: white; border: none; cursor: pointer; border-radius: 3px; }
+.enemy-clear-btn:hover { background: #b71c1c; }
+.enemy-sheet { min-width: 0; }
+
 @media print {
   body {
     padding: 0;

@@ -1,0 +1,191 @@
+<div class="navigation">
+  <a href="<%= @route_prefix %>/<%= @prev_index %>" class="nav-arrow left">&#9664;</a>
+  <span class="character-counter"><%= @current_index + 1 %> / <%= @total_characters %></span>
+  <a href="<%= @route_prefix %>/<%= @next_index %>" class="nav-arrow right">&#9654;</a>
+</div>
+
+<div class="enemies-layout">
+  <div class="enemy-sidebar">
+    <h3>Enemies</h3>
+    <div class="enemy-list">
+      <% @enemy_list.each do |enemy| %>
+        <div class="enemy-entry <%= 'selected' if enemy[:index] == @current_index %>">
+          <a href="/enemies/<%= enemy[:index] %>"><%= enemy[:name] %></a>
+          <% if @combat_ids.include?(enemy[:id]) %>
+            <form method="post" action="/combat/remove_enemy" style="display:inline;">
+              <input type="hidden" name="enemy_id" value="<%= enemy[:id] %>">
+              <button type="submit" class="enemy-combat-btn remove" title="Remove from combat">-</button>
+            </form>
+          <% else %>
+            <form method="post" action="/combat/add_enemy" style="display:inline;">
+              <input type="hidden" name="enemy_id" value="<%= enemy[:id] %>">
+              <button type="submit" class="enemy-combat-btn add" title="Add to combat">+</button>
+            </form>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+    <form method="post" action="/combat/clear_enemies" style="margin-top: 10px;">
+      <button type="submit" class="enemy-clear-btn">Clear All Enemies</button>
+    </form>
+  </div>
+
+  <div class="enemy-sheet">
+    <div class="sheet">
+      <div class="header">
+        <h1><%= @character.name %></h1>
+        <div class="subtitle">
+          <%= @character.race %> <%= @character.full_klass %>
+        </div>
+        <div class="tier-line">
+          Tier <%= @character.tier %> &nbsp;&nbsp;&nbsp; BAB: <%= @character.bab %>
+        </div>
+        <% if @combat_ids.include?(@character.id) %>
+          <div style="color: #388e3c; font-weight: bold;">In Combat</div>
+        <% end %>
+      </div>
+
+      <div class="top-stats">
+        <div class="stat-box">
+          <span class="label">Combat Pool</span>
+          <span class="value"><%= @character.combat_pool %></span>
+        </div>
+        <div class="stat-box">
+          <span class="label">Perception</span>
+          <span class="value"><%= @character.skill_dice(:perception) %>d (<%= @character.add_plus(:skill_bonus,:perception) %>)</span>
+        </div>
+        <div class="stat-box">
+          <span class="label">Initiative</span>
+          <span class="value"><%= @character.initiative %></span>
+        </div>
+      </div>
+
+      <div class="top-stats">
+        <div class="stat-box">
+          <span class="label">Damage Reduction</span>
+          <span class="value"><%= @character.damage_reduction %></span>
+        </div>
+        <div class="stat-box">
+          <span class="label">Damage Resilience</span>
+          <span class="value"><%= @character.damage_resilience %></span>
+        </div>
+        <div class="stat-box">
+          <span class="label">Speed</span>
+          <span class="value"><%= @character.speed %></span>
+        </div>
+      </div>
+
+      <div class="top-stats">
+        <div class="stat-box">
+          <span class="label">Max HP</span>
+          <span class="value"><%= @character.hp_max %></span>
+        </div>
+        <div class="stat-box">
+          <span class="label">Max Mana</span>
+          <span class="value"><%= @character.mana_max %></span>
+        </div>
+        <div class="stat-box">
+          <span class="label">Mana Regen</span>
+          <span class="value"><%= @character.mana_regen %></span>
+        </div>
+      </div>
+
+      <div class="two-column">
+        <div class="left-col">
+          <h2>Attributes</h2>
+          <table class="attributes">
+            <tr>
+              <th></th>
+              <th>Score</th>
+              <th>&frac12;</th>
+              <th colspan="2">Check</th>
+              <th colspan="2">Saves</th>
+            </tr>
+            <% @character.ability_score_names.each do |name, sym| %>
+            <tr>
+              <td class="attr-name"><%= name %></td>
+              <td><%= @character.score(sym) %></td>
+              <td><%= @character.half_mod(sym) %></td>
+              <td><%= @character.attr_dice(sym) %>d</td>
+              <td><%= @character.add_plus(:attr_bonus, sym) %></td>
+              <td><%= @character.save_dice(sym) %>d</td>
+              <td><%= @character.add_plus(:save_bonus, sym) %></td>
+            </tr>
+            <% end %>
+          </table>
+
+          <h2>Skills</h2>
+          <table class="skills">
+            <tr>
+              <th>Name</th>
+              <th>Ranks</th>
+              <th>Dice</th>
+              <th>Bonus</th>
+            </tr>
+            <% @character.skill_list.each do |skill_name| %>
+            <tr>
+              <td><%= @character.clean_skill_name(skill_name) %></td>
+              <td><%= @character.skill_ranks(skill_name) %></td>
+              <td><%= @character.skill_dice(skill_name) %>d</td>
+              <td><%= @character.add_plus(:skill_bonus,skill_name) %></td>
+            </tr>
+            <% end %>
+          </table>
+        </div>
+
+        <div class="right-col">
+          <h2>Abilities</h2>
+          <% @character.ability_list.each do |ability_name| %>
+            <p><strong><%= h(@compendium.format_name(ability_name)) %>:</strong> <%= h(@compendium.ability(ability_name)) %></p>
+          <% end %>
+        </div>
+      </div>
+
+      <h2>Combat</h2>
+      <table class="combat">
+        <tr>
+          <th>Name</th>
+          <th>Speed</th>
+          <th>Roll</th>
+          <th>Attk / Def Bonus</th>
+          <th>Dmg Bonus</th>
+          <th>Bleed</th>
+          <th>MT*</th>
+          <th>Notes</th>
+        </tr>
+        <% (@character.shield_list + @character.weapon_list).each do |weapon| %>
+        <tr>
+          <td><%= weapon["name"] %></td>
+          <td><%= @character.weapon_speed(weapon) %><%= @character.weapon_arm_speed(weapon) %></td>
+          <td><%= @character.weapon_dice(weapon) %>d</td>
+          <td><%= @character.add_plus(:weapon_attack_bonus, weapon) %></td>
+          <td><%= @character.weapon_dmg(weapon) %></td>
+          <td><%= @character.weapon_bleed(weapon) %></td>
+          <td><%= @character.weapon_threshold(weapon) %></td>
+          <td></td>
+        </tr>
+        <% end %>
+        <tr>
+          <td>Dodge</td>
+          <td>0</td>
+          <td><%= @character.bab_dice %>d</td>
+          <td><%= @character.add_plus(:bab_bonus) %></td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+          <td></td>
+        </tr>
+      </table>
+      <div class="formula">* MT is the base threshold for major damage.</div>
+
+      <% unless @character.defined_items.empty? %>
+        <h2>Items</h2>
+        <div class="items">
+          <% @character.defined_items.each do |item| %>
+            <p><strong><%= h(item['name']) %>:</strong> <%= h(item['description']) %></p>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
