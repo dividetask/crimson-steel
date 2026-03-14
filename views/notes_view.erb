@@ -32,7 +32,7 @@
             <% if note['title'] %>
               <strong><%= h(note['title']) %></strong>
             <% end %>
-            <p><%= h(note['note']) %></p>
+            <p><%= h(note['note']).gsub("\n", "<br>") %></p>
             <% if @is_dm %>
               <small style="color: #666;">
                 <%= note['public'] ? '(Public)' : '(DM Only)' %>
@@ -168,7 +168,7 @@
           <% if note['title'] %>
             <strong><%= h(note['title']) %></strong>
           <% end %>
-          <p><%= h(note['note']) %></p>
+          <p><%= h(note['note']).gsub("\n", "<br>") %></p>
         </div>
       <% end %>
 

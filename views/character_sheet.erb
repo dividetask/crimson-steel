@@ -203,7 +203,7 @@
 	<div class="notes">
 
 		<% @character.note_list.each do |note| %>
-			<p><%= h(note['note']) %></p>
+			<p><%= h(note['note']).gsub("\n", "<br>") %></p>
 		<% end %>
   <form method="post" action="/add_note" style="margin-top: 20px;">
     <label>Note:</label>
