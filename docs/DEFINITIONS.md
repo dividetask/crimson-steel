@@ -41,7 +41,7 @@ A measurable ability that determines a creature's effectiveness at specific task
 The contribution of a skill's associated attribute to the total skill value:
 
 ```
-Skill Attribute Modifier = floor(attribute / attributeDivider)
+Skill Attribute Modifier = floor(attribute / attribute_divider)
 ```
 
 ## Skill Ranks
@@ -54,7 +54,7 @@ The sum of a creature's skill attribute modifier and skill ranks for a given ski
 
 ```
 Total Skill Value = Skill Attribute Modifier + Skill Ranks
-                  = floor(attribute / attributeDivider) + Skill Ranks
+                  = floor(attribute / attribute_divider) + Skill Ranks
 ```
 
 ## Skill Dice Maximum
@@ -62,7 +62,7 @@ Total Skill Value = Skill Attribute Modifier + Skill Ranks
 The maximum number of dice a creature can spend when using a skill, depending upon the creature's attributes and skill:
 
 ```
-Skill Dice Maximum = diceCountMinimum + (Total Skill Value % diceCountRange)
+Skill Dice Maximum = dice_count_minimum + (Total Skill Value % dice_count_range)
 ```
 
 ## Skill Proficiency Bonus
@@ -70,10 +70,10 @@ Skill Dice Maximum = diceCountMinimum + (Total Skill Value % diceCountRange)
 The bonus to target number adjustments from a creature's skill level:
 
 ```
-Skill Proficiency Bonus = proficiencyBonusBase + floor(Total Skill Value / diceCountRange)
+Skill Proficiency Bonus = proficiency_bonus_base + floor(Total Skill Value / dice_count_range)
 ```
 
-The `proficiencyBonusBase` is defined in `game-config.json` (`skill.proficiencyBonusBase`) and can be overridden in `server-config.json` (`gameOverrides.skill.proficiencyBonusBase`). Default: **-1**. This means untrained creatures start with a penalty to their TN.
+The `proficiency_bonus_base` is defined in `data/rules.json` (`skill.proficiency_bonus_base`). Default: **-1**. This means untrained creatures start with a penalty to their TN.
 
 ## Skill Item Bonuses / Penalties
 
@@ -121,7 +121,7 @@ A check fumbles if net successes <= -`default_fumble_threshold` OR any individua
 
 ## Starting Successes and Starting Failures
 
-When a TN is adjusted below `tnMinimum`, each point below the minimum becomes one **starting success**. When a TN is adjusted above `tnMaximum`, each point above the maximum becomes one **starting failure**. The TN is then clamped to the nearest bound. 
+When a TN is adjusted below `tn_minimum`, each point below the minimum becomes one **starting success**. When a TN is adjusted above `tn_maximum`, each point above the maximum becomes one **starting failure**. The TN is then clamped to the nearest bound. 
 
 ## Circumstantial Bonuses and Circumstantial Penalties
 

@@ -391,9 +391,9 @@ end
 
 module TierMath
   def tier; @rules["advancement"]["tier"].find_index { |threshold| level < threshold } || @rules["advancement"]["tier"].length; end
-  def tier_damage_reduction(attacker_tier); r = @rules["tier"]["damage_reduction"]; [0, r[tier] - r[attacker_tier]].min; end
+  def tier_damage_reduction(attacker_tier); r = @rules["reference"]["tier"]["damage_reduction"]; [0, r[tier] - r[attacker_tier]].min; end
   def damage_reduction(); return 0; end
-  def damage_resilience(); return @rules["tier"]["damage_resilience"][tier] + (defined?(super) ? super : 0); end
+  def damage_resilience(); return @rules["reference"]["tier"]["damage_resilience"][tier] + (defined?(super) ? super : 0); end
   def combat_pool
     pool_math = rules["advancement"]["competency"]["combat_pool"][tier]
     combat_pool = pool_math["base"] + (pool_math["inc"] * level)
@@ -406,7 +406,7 @@ module CharacterEquipment
   attr_reader :item_list, :all_items
   def initialize(character)
     super(character) if defined?(super)
-    @all_items = Tools.load_json('items.json')
+    @all_items = Tools.load_json('equipment.json')
     @inline_items = (character["items"] || []).each_with_index.map do |item, i|
       item.merge(
         "item_id" => item["item_id"] || -(i + 1),
@@ -513,9 +513,33 @@ class CharacterSheet
 
   def initialize(character)
     @rules = Tools.load_json('rules.json')
+    classes_data = Tools.load_json('classes.json')
+    inject_class_data(classes_data)
     @id = character["id"]
     @data = character
     super(character)
+  end
+
+  def inject_class_data(classes_data)
+    class_advancement = {}
+    class_abilities = {}
+    class_skills = {}
+    classes_data.each do |name, data|
+      class_advancement[name] = data["advancement"] if data["advancement"]
+      class_abilities[name] = data["ability_progression"] || {}
+      class_skills[name] = data["class_skills"] || []
+      (data["sub_class"] || {}).each do |sub_name, sub_data|
+        merged_adv = (data["advancement"] || {}).merge(sub_data["advancement"] || {})
+        class_advancement[sub_name] = merged_adv
+        merged_abilities = (data["ability_progression"] || {}).merge(sub_data["ability_progression"] || {})
+        class_abilities[sub_name] = merged_abilities
+        class_skills[sub_name] = (data["class_skills"] || []) + (sub_data["class_skills"] || [])
+      end
+    end
+    @rules["class_advancement"] = class_advancement
+    @rules["reference"] ||= {}
+    @rules["reference"]["class_abilities"] = class_abilities
+    @rules["reference"]["class_skills"] = class_skills
   end
 
   def name; @data["name"]; end
