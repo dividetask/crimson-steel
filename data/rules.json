@@ -94,7 +94,7 @@
 		"attribute_divider": 2,
 		"untrained_dice_count_minimum": 4,
 		"trained_dice_count_minimum": 6,
-		"dice_count_range": 4,
+		"dice_count_range": 5,
 		"skill_aptitude_formula": "skill_ranks+floor(attr/attribute_divider)",
 		"skill_proficiency_formula": "floor(skill_aptitude/dice_count_range)-1",
 		"untrained_proficiency_penalty": -1,

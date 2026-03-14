@@ -428,7 +428,7 @@ module CharacterEquipment
   attr_reader :item_list, :all_items
   def initialize(character)
     super(character) if defined?(super)
-    @all_items = Tools.load_json('equipment.json')
+    @all_items = Tools.load_json('equipment.json').each_with_index.map { |item, i| item["item_id"] ||= i + 1; item }
     @inline_items = (character["items"] || []).each_with_index.map do |item, i|
       item.merge(
         "item_id" => item["item_id"] || -(i + 1),
@@ -612,8 +612,9 @@ class CharacterSheet
 
   def natural_weapons
     weapon_props = @rules["reference"]["natural_weapons"]
-    race_abilities.select { |a| weapon_props.key?(a) }.map do |ability_name|
+    race_abilities.select { |a| weapon_props.key?(a) }.each_with_index.map do |ability_name, i|
       {
+        "item_id" => -(1000 + i),
         "name" => ability_name.capitalize,
         "type" => "weapon",
         "subtype" => ability_name,

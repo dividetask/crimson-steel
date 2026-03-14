@@ -107,7 +107,7 @@ post '/combat/action' do
     character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
     character = CharacterSheet.new(character_data)
 
-    weapon = character.equipped_list.find { |item| item['item_id'] == weapon_item_id }
+    weapon = character.weapon_list.find { |item| item['item_id'] == weapon_item_id }
     halt 400, "Weapon not found" unless weapon
 
     speed = character.weapon_speed(weapon)
