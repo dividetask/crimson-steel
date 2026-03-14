@@ -626,11 +626,6 @@ class CharacterSheet
 
   def weapon_list; super + natural_weapons; end
 
-  def weapon_dmg(weapon_data)
-    return (str / 4).to_i if weapon_data.dig("properties", "natural")
-    super
-  end
-
   def combat_pool
     pool = super
     pool = (pool / 2).to_i if has_race_ability?("staggered")

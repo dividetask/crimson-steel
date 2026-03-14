@@ -203,7 +203,13 @@
 	<div class="notes">
 
 		<% @character.note_list.each do |note| %>
-			<p><%= h(note['note']).gsub("\n", "<br>") %></p>
+			<% note_lines = h(note['note']).split("\n").length %>
+			<div class="note-item">
+				<p class="note-text<%= ' collapsed' if note_lines > 3 %>"><%= h(note['note']).gsub("\n", "<br>") %></p>
+				<% if note_lines > 3 %>
+					<button class="note-toggle" onclick="toggleNote(this)">Show more</button>
+				<% end %>
+			</div>
 		<% end %>
   <form method="post" action="/add_note" style="margin-top: 20px;">
     <label>Note:</label>

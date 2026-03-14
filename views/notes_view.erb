@@ -32,7 +32,11 @@
             <% if note['title'] %>
               <strong><%= h(note['title']) %></strong>
             <% end %>
-            <p><%= h(note['note']).gsub("\n", "<br>") %></p>
+            <% note_lines = h(note['note']).split("\n").length %>
+            <p class="note-text<%= ' collapsed' if note_lines > 3 %>"><%= h(note['note']).gsub("\n", "<br>") %></p>
+            <% if note_lines > 3 %>
+              <button class="note-toggle" onclick="toggleNote(this)">Show more</button>
+            <% end %>
             <% if @is_dm %>
               <small style="color: #666;">
                 <%= note['public'] ? '(Public)' : '(DM Only)' %>
@@ -168,7 +172,11 @@
           <% if note['title'] %>
             <strong><%= h(note['title']) %></strong>
           <% end %>
-          <p><%= h(note['note']).gsub("\n", "<br>") %></p>
+          <% note_lines = h(note['note']).split("\n").length %>
+          <p class="note-text<%= ' collapsed' if note_lines > 3 %>"><%= h(note['note']).gsub("\n", "<br>") %></p>
+          <% if note_lines > 3 %>
+            <button class="note-toggle" onclick="toggleNote(this)">Show more</button>
+          <% end %>
         </div>
       <% end %>
 

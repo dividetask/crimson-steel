@@ -28,5 +28,17 @@
     <% end %>
   </div>
   <%= yield %>
+<script>
+function toggleNote(btn) {
+  var text = btn.previousElementSibling;
+  if (text.classList.contains('collapsed')) {
+    text.classList.remove('collapsed');
+    btn.textContent = 'Show less';
+  } else {
+    text.classList.add('collapsed');
+    btn.textContent = 'Show more';
+  }
+}
+</script>
 </body>
 </html>
