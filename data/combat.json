@@ -3,51 +3,57 @@
   "round": 0,
   "current_turn": 0,
   "current_turn_id": 0,
-  "current_action": "",
+  "current_action": "attack",
   "current_actor_turn_id": 0,
-  "current_action_tool_id": "",
-  "target_id": 0,
-  "action_params": {},
+  "current_action_tool_id": 3,
+  "target_id": 4,
+  "action_params": {
+    "attack_dice": 6
+  },
   "participants": [
     {
       "id": 1,
-      "initiative": "X97654321",
-      "mana": 11,
+      "char_id": 1,
+      "initiative": "X98764321",
+      "mana": 26,
       "combat_pool": 17,
-      "saturation": 12,
       "minor_damage": 0,
       "moderate_damage": 0,
-      "major_damage": 0
+      "major_damage": 0,
+      "saturation": 0
     },
     {
       "id": 2,
-      "initiative": "X86532",
+      "char_id": 2,
+      "initiative": "X97631",
       "mana": 15,
       "combat_pool": 18,
-      "saturation": 8,
-      "minor_damage": 9,
+      "minor_damage": 7,
       "moderate_damage": 0,
-      "major_damage": 0
-    },
-    {
-      "id": 4,
-      "initiative": "987531",
-      "mana": 20,
-      "combat_pool": 19,
-      "saturation": 0,
-      "minor_damage": 0,
-      "moderate_damage": 0,
-      "major_damage": 0
+      "major_damage": 0,
+      "saturation": 0
     },
     {
       "id": 3,
-      "initiative": "9865431",
-      "mana": 10,
+      "char_id": 3,
+      "initiative": "9765321",
+      "mana": 6,
       "combat_pool": 19,
-      "saturation": 0,
       "minor_damage": 0,
       "moderate_damage": 0,
-      "major_damage": 0
+      "major_damage": 0,
+      "saturation": 0
+    },
+    {
+      "id": 4,
+      "char_id": 4,
+      "initiative": "876421",
+      "mana": 20,
+      "combat_pool": 19,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0,
+      "saturation": 0
     }
   ]
 }
