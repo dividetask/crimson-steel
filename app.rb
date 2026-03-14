@@ -298,7 +298,7 @@ end
 post '/add_item' do
   redirect '/character/0' unless local_request?
 
-  items = Tools.load_json('items.json')
+  items = Tools.load_json('equipment.json')
 
   # Build the new item from form params
   new_item = {
@@ -317,7 +317,7 @@ post '/add_item' do
   new_item["equipped"] = params[:equipped] == "true"
 
   items << new_item
-  Tools.save_json('items.json', items)
+  Tools.save_json('equipment.json', items)
 
   redirect '/add_item'
 end
@@ -374,7 +374,7 @@ end
 post '/purchase/:item_index' do
   store_items = Tools.load_json('store.json')
   campaign = Tools.load_json('campaign.json')
-  items = Tools.load_json('items.json')
+  items = Tools.load_json('equipment.json')
 
   owner_id = params[:owner_id].to_i
   compendium = Compendium.new
@@ -442,7 +442,7 @@ post '/purchase/:item_index' do
   # Deduct gold
   campaign['gold'] -= store_item['price']
 
-  Tools.save_json('items.json', items)
+  Tools.save_json('equipment.json', items)
   Tools.save_json('campaign.json', campaign)
 
   redirect '/store?success=true'

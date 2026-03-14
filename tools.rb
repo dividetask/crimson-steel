@@ -13,7 +13,7 @@ module Tools
   end
 
   def self.next_item_id
-    items = load_json('items.json')
+    items = load_json('equipment.json')
     return 1 if items.empty?
     items.map { |i| i['item_id'].to_i }.max + 1
   end

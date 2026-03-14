@@ -5,18 +5,18 @@
 Every skill has a **skill aptitude value** calculated as:
 
 ```
-Skill Aptitude Value = floor(Associated Attribute / attributeDivider) + Skill Ranks
+Skill Aptitude Value = floor(Associated Attribute / attribute_divider) + Skill Ranks
 ```
 
-Where `attributeDivider` is defined in `data/rules.json` (`skill.attributeDivider`).
+Where `attribute_divider` is defined in `data/rules.json` (`skill.attribute_divider`).
 
 From the total skill value, two derived values are calculated:
 
-- **Skill Proficiency Bonus** = proficiencyBonusBase + floor(Skill Aptitude Value / diceCountRange) + proficiency_bonus_base + p
-- **Untrained Skill Proficiency Bonus** = proficiencyBonusBase + floor(Skill Aptitude Value / diceCountRange) — proficiency_bonus_base + untrained_skill_proficiency_penalty
-- **Skill Dice Maximum** = diceCountMinimum + (Total Skill Value % diceCountRange)
+- **Skill Proficiency Bonus** = proficiency_bonus_base + floor(Skill Aptitude Value / dice_count_range)
+- **Untrained Skill Proficiency Bonus** = proficiency_bonus_base + floor(Skill Aptitude Value / dice_count_range) + untrained_proficiency_penalty
+- **Skill Dice Maximum** = dice_count_minimum + (Total Skill Value % dice_count_range)
 
-Where `diceCountMinimum`, `diceCountRange`, and `proficiencyBonusBase` are defined in `data\rules.json` 
+Where `dice_count_minimum`, `dice_count_range`, and `proficiency_bonus_base` are defined in `data/rules.json` 
 
 
 ## Skill Categories
