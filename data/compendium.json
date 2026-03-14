@@ -55,6 +55,7 @@
 		"natural_armor": "Naturally tough hide or skin that reduces all damage taken by 1. Stacks with worn armor.",
 		"staggered": "This creature is limited in its actions, halving its combat pool.",
 		"improved_initiative": "This creature reacts faster than normal. All initiative dice rolled are increased by 1, to a maximum of 10.",
+		"ferocity": "Hit points are increased by 5, and damage resiliance is increased by 3",
 		"ghoul_fever": "A creature bitten by a ghoul must make a Constitution save against the ghoul's proficiency bonus or contract ghoul fever. Each day the afflicted creature must make a new save or take 1 point of major damage. A creature that dies from ghoul fever rises as a ghoul at the next midnight.",
 		"ghoul_paralysis": "A creature hit by a ghoul's natural attack must make a Constitution save against the ghoul's proficiency bonus or be paralyzed for 1d4+1 rounds. Elves are immune to this effect."}
 }

@@ -27,6 +27,11 @@
 			"class_skills": ["appraisal", "arcana", "craft_", "healing", "history", "linguistics", "nobility", "persuasion",
 				"planes", "profession_", "restricted_magic", "religion", "sense_motive"]},
 	"druid": {"advancement": {"bab": 2, "mana": 4, "saves": {"str": 1, "dex": 1, "con": 1, "int": 3, "wis": 3, "cha": 1}}},
+	"fighter": {
+		"advancement": {"bab": 3, "mana": 1, "saves": {"str": 3, "dex": 1, "con": 3, "int": 1, "wis": 1, "cha": 1}},
+		"ability_progression": {
+				"1": ["weapon_training", "armor_training"]},
+		"class_skills": ["acrobatics", "animal_handling", "athletics", "history", "intimidate", "nature", "perception"]},
 	"ranger": {"advancement": {"bab": 3, "mana": 2, "saves": {"str": 3, "dex": 3, "con": 1, "int": 1, "wis": 1, "cha": 1}}},
 	"rogue": {
 		"advancement": {"bab": 2, "mana": 1, "saves": {"str": 1, "dex": 3, "con": 1, "int": 3, "wis": 1, "cha": 1}},

@@ -99,6 +99,7 @@
 	},
 	{
 		"id": 6,
+		"tier": 2,
 		"group": "Enemies",
 		"name": "Ghoul",
 		"player": "DM",
@@ -111,11 +112,28 @@
 			"wis": 14,
 			"cha": 14
 		},
-		"classes": [{"level": 2, "class": "undead", "skills": ["acrobatics", "athletics", "perception", "stealth" ] }],
-		"abilities": { "race": ["Ghoul Fever", "Ghoul Paralysis", "Bite", "Claws", "Natural Armor"]}
+		"classes": [{"level": 2, "class": "undead", "skills": ["acrobatics", "athletics", "perception", "stealth" ] }]
 	},
 	{
 		"id": 7,
+		"tier": 2,
+		"group": "Enemies",
+		"name": "Wight",
+		"player": "DM",
+		"race": ["undead"],
+		"ability_scores": {
+			"str": 12,
+			"dex": 12,
+			"con": 0,
+			"int": 11,
+			"wis": 13,
+			"cha": 15
+		},
+		"classes": [{"level": 4, "class": "undead", "skills": ["intimidate", "religion", "perception", "stealth" ] }]
+	},
+	{
+		"id": 8,
+		"tier": 2,
 		"group": "Enemies",
 		"name": "Zombie",
 		"player": "DM",
@@ -128,11 +146,11 @@
 			"wis": 10,
 			"cha": 10
 		},
-		"classes": [{"level": 2, "class": "undead", "skills": [] }],
-		"abilities": { "race": ["Staggered", "Slam", "Natural Armor"]}
+		"classes": [{"level": 2, "class": "undead", "skills": [] }]
 	},
 	{
-		"id": 8,
+		"id": 9,
+		"tier": 2,
 		"group": "Enemies",
 		"name": "Skeleton",
 		"player": "DM",
@@ -146,8 +164,45 @@
 			"cha": 10
 		},
 		"classes": [{"level": 2, "class": "undead", "skills": [] }],
-		"abilities": { "race": ["Natural Armor", "Improved Initiative"]},
 		"items": [{"name": "scimitar", "type": "weapon", "subtype": "scimitar", "bonus": 0  },
 			{"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0  }]
+	},
+	{
+		"id": 10,
+		"tier": 1,
+		"group": "Enemies",
+		"name": "Slaver",
+		"player": "DM",
+		"race": ["orc"],
+		"ability_scores": {
+			"str": 17,
+			"dex": 11,
+			"con": 12,
+			"int": 7,
+			"wis": 8,
+			"cha": 6
+		},
+		"classes": [{"level": 3, "class": "fighter", "skills": ["intimidate", "athletics"] }],
+		"items": [{"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0  },
+			{"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0  }]
+	},
+	{
+		"id": 11,
+		"tier": 2,
+		"group": "Enemies",
+		"name": "Slaver Captain",
+		"player": "DM",
+		"race": ["orc"],
+		"ability_scores": {
+			"str": 25,
+			"dex": 16,
+			"con": 14,
+			"int": 12,
+			"wis": 11,
+			"cha": 9
+		},
+		"classes": [{"level": 8, "class": "fighter", "skills": ["intimidate", "athletics", "perception"] }],
+		"items": [{"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0  },
+			{"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 1  }]
 	}
 ]
