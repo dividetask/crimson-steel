@@ -251,7 +251,13 @@ end
 module Skills
   def self.skill_group(skill, rules); return skill_list(rules).find { |skill_group, attr| skills_match?(skill_group, skill) }[0]; end
   def self.skill_attr(skill, rules); return skill_list(rules)[skill_group(skill, rules)].to_sym; end
-  def self.skill_list(rules); rules["reference"]["skill_list"]; end
+  def self.skill_list(rules)
+    inverted = {}
+    rules["skill"]["skill_list"].each do |attr, skills|
+      skills.each { |skill| inverted[skill] = attr }
+    end
+    inverted
+  end
   def self.skills_match?(skill_g, skill); skill_g == skill.to_s || (skill_g.end_with?('_') && skill.to_s.start_with?(skill_g)); end
 end
 
@@ -278,6 +284,7 @@ class SingleKlassProgress
 
   def damage_reduction(rules); return ability_list(rules).sum { |ability| calc_ability_bonus(rules, ability, "damage_reduction") }; end
   def damage_resilience(rules); return ability_list(rules).sum { |ability| calc_ability_bonus(rules, ability, "damage_resilience") }; end
+  def weapon_attack_bonus(rules); return ability_list(rules).sum { |ability| calc_ability_bonus(rules, ability, "weapon_attack_bonus") }; end
   def skill_bonus(skill, rules); return ability_list(rules).sum { |ability| calc_ability_bonus(rules, ability, skill) }; end
   def save_bonus(attr, rules); return ability_list(rules).sum { |ability| calc_ability_bonus(rules, ability, attr) }; end
 
@@ -324,10 +331,10 @@ module KlassProgress
   def level(); @klass_list.sum(&:level); end
   def save_total(attr); return save_ranks(attr) + half_mod(attr); end
   def save_ranks(attr); return @klass_list.sum { |progress| progress.save_ranks(attr, @rules) }; end
-  def save_dice(attr); parse_formula(@rules["reference"]["skill_dice"], {"ranks" => save_ranks(attr), "half_attr" => half_mod(attr)}); end
+  def save_dice(attr); compute_dice(save_ranks(attr), half_mod(attr)); end
 
   def save_bonus(attr)
-    base = parse_formula(@rules["reference"]["skill_bonus"], {"ranks" => save_ranks(attr), "half_attr" => half_mod(attr)})
+    base = compute_bonus(save_ranks(attr), half_mod(attr))
     class_bonus = @klass_list.sum { |progress| progress.save_bonus(attr, @rules) }
     return base + class_bonus
   end
@@ -337,25 +344,40 @@ module KlassProgress
     return skill.gsub('_', ' ').split(' ').map(&:capitalize).join(' ')
   end
 
-  def get_skill_attr(skill); return @rules["reference"]["skill_list"][Skills.skill_group(skill, rules)].to_sym; end
+  def get_skill_attr(skill); Skills.skill_attr(skill, @rules); end
   def skill_total(skill); attr = get_skill_attr(skill).to_sym; return skill_ranks(skill) + half_mod(attr); end
   def skill_ranks(skill); return @klass_list.sum { |progress| progress.skill_ranks(skill, @rules) }; end
 
   def skill_list(); return @klass_list.map { |progress| progress.skill_list }.flatten; end
-  def skill_dice(skill); parse_formula(@rules["reference"]["skill_dice"], {"ranks" => skill_ranks(skill), "half_attr" => half_mod(get_skill_attr(skill))}); end
+  def skill_dice(skill); compute_dice(skill_ranks(skill), half_mod(get_skill_attr(skill))); end
   def skill_bonus(skill)
-    base = parse_formula(@rules["reference"]["skill_bonus"], {"ranks" => skill_ranks(skill), "half_attr" => half_mod(get_skill_attr(skill))})
+    base = compute_bonus(skill_ranks(skill), half_mod(get_skill_attr(skill)))
     class_bonus = @klass_list.sum { |progress| progress.skill_bonus(skill, @rules) }
     return base + class_bonus
   end
 
   def bab; return @klass_list.sum { |progress| progress.bab(@rules) }; end
   def bab_total; return bab + half_mod(:dex); end
-  def bab_dice; parse_formula(@rules["reference"]["skill_dice"], {"ranks" => bab, "half_attr" => half_mod(:dex)}); end
-  def bab_bonus; parse_formula(@rules["reference"]["skill_bonus"], {"ranks" => bab, "half_attr" => half_mod(:dex)}); end
+  def bab_dice; compute_dice(bab, half_mod(:dex)); end
+  def bab_bonus; compute_bonus(bab, half_mod(:dex)); end
 
-  def attack_dice(weapon_bonus); parse_formula(@rules["reference"]["skill_dice"], {"ranks" => bab, "half_attr" => half_mod(:dex)}); end
-  def attack_bonus(weapon_bonus); parse_formula(@rules["reference"]["skill_bonus"], {"ranks" => bab, "half_attr" => half_mod(:dex)}) + weapon_bonus; end
+  def attack_dice(weapon_bonus); compute_dice(bab, half_mod(:dex)); end
+  def attack_bonus(weapon_bonus); compute_bonus(bab, half_mod(:dex)) + weapon_bonus; end
+
+  def compute_dice(ranks, half_attr, trained = true)
+    sc = @rules["skill"]
+    aptitude = ranks + half_attr
+    min_dice = trained ? sc["trained_dice_count_minimum"] : sc["untrained_dice_count_minimum"]
+    min_dice + (aptitude % sc["dice_count_range"])
+  end
+
+  def compute_bonus(ranks, half_attr)
+    sc = @rules["skill"]
+    aptitude = ranks + half_attr
+    (aptitude / sc["dice_count_range"]).to_i + sc["proficiency_bonus_base"]
+  end
+
+  def weapon_training_bonus; return @klass_list.sum { |progress| progress.weapon_attack_bonus(@rules) }; end
 
   def full_klass(); @data["classes"].map { |klass| "#{klass["class"]} #{klass["level"]}" }.join(', '); end
   def mana_max; return @klass_list.sum { |progress| progress.mana_max(@rules) } + (defined?(super) ? super : 0); end
@@ -381,8 +403,8 @@ module BaseStatsMath
   def initiative; return half_mod(:wis); end
   def score(attr); self.send(attr); end
   def half_mod(attr); (self.send(attr) / 2).to_i; end
-  def attr_dice(attr); parse_formula(@rules["reference"]["skill_dice"], {"ranks" => 0, "half_attr" => half_mod(attr)}); end
-  def attr_bonus(attr); parse_formula(@rules["reference"]["skill_bonus"], {"ranks" => 0, "half_attr" => half_mod(attr)}); end
+  def attr_dice(attr); compute_dice(0, half_mod(attr), false); end
+  def attr_bonus(attr); compute_bonus(0, half_mod(attr)); end
 
   def hp_max; return parse_formula(@rules["advancement"]["natural"]["hp"][tier]); end
   def mana_max; return parse_formula(@rules["advancement"]["natural"]["mana"][tier]) + (defined?(super) ? super : 0); end
@@ -419,12 +441,20 @@ module CharacterEquipment
   end
   def refresh_items; @item_list = @all_items.select { |item| item["owner_id"].to_i == @id } + @inline_items; end
 
+  WEAPON_DEFAULTS = {
+    "falcion" => ["heavy", "slashing"], "scimitar" => ["medium", "slashing"],
+    "longsword" => ["medium", "slashing"], "shortsword" => ["light", "piercing"],
+    "greataxe" => ["heavy", "slashing"], "greatsword" => ["heavy", "slashing"],
+    "mace" => ["medium", "bludgeoning"], "warhammer" => ["medium", "bludgeoning"]
+  }.freeze
+
   def build_item_properties(item)
     props = {}
     subtype = item["subtype"].to_s
     case item["type"]
     when "weapon"
-      props["details"] = @rules["reference"]["weapon_properties"][subtype] || []
+      template = @all_items.find { |eq| eq["type"] == "weapon" && eq["subtype"] == subtype }
+      props["details"] = template ? (template.dig("properties", "details") || []) : (WEAPON_DEFAULTS[subtype] || [])
     when "shield"
       props["details"] = []
     end
@@ -557,8 +587,11 @@ class CharacterSheet
 
   def speed_modifiers; return 0 + super; end
   def mana_max; return 0 + super; end
+  def hp_max; super + race_ability_bonus("hp_bonus"); end
   def damage_reduction(); race_ability_bonus("damage_reduction") + super; end
   def damage_resilience(); race_ability_bonus("damage_resilience") + super; end
+
+  def weapon_attack_bonus(weapon_data); super + weapon_training_bonus; end
 
   def add_plus(func, params = nil); r = params ? send(func, params) : send(func); return "#{'+' if r >= 0}#{r}"; end
 
@@ -566,20 +599,27 @@ class CharacterSheet
 
   NATURAL_WEAPONS = %w[bite claws slam].freeze
 
-  def race_abilities; (@data["abilities"] || {}).values.flatten.map { |a| a.downcase.gsub(' ', '_') }; end
+  def race_abilities
+    char_abilities = (@data["abilities"] || {}).values.flatten.map { |a| a.downcase.gsub(' ', '_') }
+    race_name = @data["race"][0]
+    creature_name = @data["name"].downcase
+    tier_prog = @rules.dig("reference", "race", "tier_progression", race_name) ||
+                @rules.dig("reference", "race", "tier_progression", creature_name) || {}
+    race_tier_abilities = tier_prog.select { |t, _| tier >= t.to_i }.values.flatten
+    (char_abilities + race_tier_abilities).uniq
+  end
   def ability_list; race_abilities + super; end
 
   def natural_weapons
-    weapon_props = @rules["reference"]["weapon_properties"]
+    weapon_props = @rules["reference"]["natural_weapons"]
     race_abilities.select { |a| weapon_props.key?(a) }.map do |ability_name|
-      key = ability_name
       {
         "name" => ability_name.capitalize,
         "type" => "weapon",
-        "subtype" => key,
+        "subtype" => ability_name,
         "bonus" => 0,
         "equipped" => true,
-        "properties" => { "details" => weapon_props[key], "natural" => true }
+        "properties" => { "details" => weapon_props[ability_name], "natural" => true }
       }
     end
   end
@@ -605,7 +645,8 @@ class CharacterSheet
     formula = @rules["reference"]["abilities"].dig(ability_name, "proficiency")
     return nil unless formula
     total = parse_formula(formula)
-    dice = parse_formula(@rules["reference"]["skill_dice"], {"ranks" => 0, "half_attr" => total})
+    sc = @rules["skill"]
+    dice = sc["untrained_dice_count_minimum"] + (total % sc["dice_count_range"])
     bonus = (total / 5) + tier - 1
     { total: total, dice: dice, bonus: bonus }
   end
