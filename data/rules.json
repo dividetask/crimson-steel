@@ -72,17 +72,21 @@
 			"natural_armor": {"passive": {"damage_reduction": "1"}},
 			"staggered": {"passive": {"combat_pool_modifier": "half"}},
 			"improved_initiative": {"passive": {"initiative_bonus": "1"}},
-			"ghoul_fever": {"proficiency": "(level/2)+(cha/2)", "passive": {"disease": {"condition": ["bite"], "attr": "cha", "ranks": "level/2",
+			"energy_drain": {"passive": {"spell": {"condition": ["slam"], "attr": "cha", "ranks": "level/2", "severity": "moderate", "damage": ["cha"]}}},
+			"ferocity": {"passive": {"damage_resilience": "3", "hit points": "5"}},
+			"ghoul_fever": "passive": {"disease": {"condition": ["bite"], "attr": "cha", "ranks": "level/2",
 				"frequency": "day", "severity": "moderate", "damage": ["con", "dex"]}}},
-			"ghoul_paralysis": {"proficiency": "(level/2)+(cha/2)", "passive": {"spell": {"condition": ["bite", "claw"], "attr": "cha", "ranks": "level/2",
+			"ghoul_paralysis": {"passive": {"spell": {"condition": ["bite", "claw"], "attr": "cha", "ranks": "level/2",
 				"duration": "1", "effect": ["paralysis"]}}}
 		},
 		"race": {
 			"speed": {"default": 30, "dwarf": 20, "satyr": 35},
 			"tier_progression": {
-				"zombie": {"0": ["staggered"]},
-				"skeleton": {"1": ["improved_initiative"]},
-				"ghoul": {"1": ["ghoul_fever", "ghoul_paralysis"], "2": ["ghoul_stench"]}}
+				"orc": {"0": ["ferocity"]},
+				"wight": {"0": ["ferocity", "energy_drain", "create_spawn", "resurrection_vulnerability"]},
+				"zombie": {"0": ["staggered", "slam"]},
+				"skeleton": {"0": ["improved_initiative", "claws"]},
+				"ghoul": {"1": ["ghoul_fever", "ghoul_paralysis", "bite", "claws"], "2": ["ghoul_stench"]}}
 		},
 		"potion_sickness": {
 			"base": [2, 4, 6, 8, 10, 20, 50],
