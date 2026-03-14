@@ -96,5 +96,58 @@
 			"cha": 8
 		},
 		"classes": [{"level": 1, "class": "rogue", "skills": ["acrobatics", "athletics", "deception", "intimidate", "perception", "profession_sailor", "sense_motive" ] }]
+	},
+	{
+		"id": 6,
+		"group": "Enemies",
+		"name": "Ghoul",
+		"player": "DM",
+		"race": ["undead"],
+		"ability_scores": {
+			"str": 13,
+			"dex": 15,
+			"con": 0,
+			"int": 13,
+			"wis": 14,
+			"cha": 14
+		},
+		"classes": [{"level": 2, "class": "undead", "skills": ["acrobatics", "athletics", "perception", "stealth" ] }],
+		"abilities": { "race": ["Ghoul Fever", "Ghoul Paralysis", "Bite", "Claws", "Natural Armor"]}
+	},
+	{
+		"id": 7,
+		"group": "Enemies",
+		"name": "Zombie",
+		"player": "DM",
+		"race": ["undead"],
+		"ability_scores": {
+			"str": 17,
+			"dex": 10,
+			"con": 0,
+			"int": 0,
+			"wis": 10,
+			"cha": 10
+		},
+		"classes": [{"level": 2, "class": "undead", "skills": [] }],
+		"abilities": { "race": ["Staggered", "Slam", "Natural Armor"]}
+	},
+	{
+		"id": 8,
+		"group": "Enemies",
+		"name": "Skeleton",
+		"player": "DM",
+		"race": ["undead"],
+		"ability_scores": {
+			"str": 17,
+			"dex": 10,
+			"con": 0,
+			"int": 0,
+			"wis": 10,
+			"cha": 10
+		},
+		"classes": [{"level": 2, "class": "undead", "skills": [] }],
+		"abilities": { "race": ["Natural Armor", "Improved Initiative"]},
+		"items": [{"name": "scimitar", "type": "weapon", "subtype": "scimitar", "bonus": 0  },
+			{"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0  }]
 	}
 ]
