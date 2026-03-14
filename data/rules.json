@@ -39,7 +39,7 @@
 			"slam": ["medium", "bludgeoning"]},
 		"item_tree": {
 			"weapon": {
-				"subtype": ["rapier","shortbow","dagger","bola","javelin","longbow","battleaxe","scimitar"]},
+				"subtype": ["rapier","shortbow","dagger","bola","javelin","longbow","battleaxe","scimitar", "falcion"]},
 			"armor": {"subtype": ["natural", "light", "medium", "heavy"]},
 			"shield": {"subtype": ["light", "medium", "tower"]},
 			"item": {"subtype": ["belt", "body", "chest", "eyes", "feet", "hands", "head", "headband", "neck", "shoulders", "wrists"]}
@@ -69,7 +69,7 @@
 			"speed": {"default": 30, "dwarf": 20, "satyr": 35},
 			"tier_progression": {
 				"orc": {"0": ["ferocity"]},
-				"wight": {"0": ["ferocity", "energy_drain", "create_spawn", "resurrection_vulnerability"]},
+				"wight": {"0": ["ferocity", "slam", "energy_drain", "create_spawn", "resurrection_vulnerability"]},
 				"zombie": {"0": ["staggered", "slam"]},
 				"skeleton": {"0": ["improved_initiative", "claws"]},
 				"ghoul": {"1": ["ghoul_fever", "ghoul_paralysis", "bite", "claws"], "2": ["ghoul_stench"]}}

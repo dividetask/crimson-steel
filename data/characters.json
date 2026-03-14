@@ -95,7 +95,9 @@
 			"wis": 10,
 			"cha": 8
 		},
-		"classes": [{"level": 1, "class": "rogue", "skills": ["acrobatics", "athletics", "deception", "intimidate", "perception", "profession_sailor", "sense_motive" ] }]
+		"classes": [{"level": 1, "class": "rogue", "skills": ["acrobatics", "athletics", "deception", "intimidate", "perception", "profession_sailor", "sense_motive" ] }],
+		"items": [{"name": "scimitar", "type": "weapon", "subtype": "scimitar", "bonus": 0  },
+			{"name": "leather armor", "type": "armor", "subtype": "light", "bonus": 1  }]
 	},
 	{
 		"id": 6,
