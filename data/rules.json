@@ -69,6 +69,7 @@
 			"speed": {"default": 30, "dwarf": 20, "satyr": 35},
 			"tier_progression": {
 				"orc": {"0": ["ferocity"]},
+				"troll": {"0": ["regeneration", "claws","bite", "rend", "natural_armor"]},
 				"wight": {"0": ["ferocity", "slam", "energy_drain", "create_spawn", "resurrection_vulnerability"]},
 				"zombie": {"0": ["staggered", "slam"]},
 				"skeleton": {"0": ["improved_initiative", "claws"]},

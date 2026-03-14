@@ -206,5 +206,41 @@
 		"classes": [{"level": 8, "class": "fighter", "skills": ["intimidate", "athletics", "perception"] }],
 		"items": [{"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0  },
 			{"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 1  }]
+	},
+	{
+		"id": 12,
+		"tier": 3,
+		"group": "Enemies",
+		"name": "Cleric Slaver",
+		"player": "DM",
+		"race": ["orc"],
+		"ability_scores": {
+			"str": 19,
+			"dex": 14,
+			"con": 14,
+			"int": 14,
+			"wis": 16,
+			"cha": 14
+		},
+		"classes": [{"level": 8, "class": "cleric", "skills": ["healing", "religion", "perception", "sense_motive","intimidate"] }],
+		"items": [{"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0  },
+			{"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 1  }]
+	},
+	{
+		"id": 13,
+		"tier": 3,
+		"group": "Enemies",
+		"name": "Troll",
+		"player": "DM",
+		"race": ["troll"],
+		"ability_scores": {
+			"str": 30,
+			"dex": 14,
+			"con": 30,
+			"int": 6,
+			"wis": 9,
+			"cha": 6
+		},
+		"classes": [{"level": 6, "class": "giant", "skills": ["intimidate", "perception"] }]
 	}
 ]
