@@ -1,0 +1,860 @@
+[
+  {
+    "owner_id": 1,
+    "name": "Plate Armor",
+    "type": "armor",
+    "subtype": "heavy",
+    "bonus": 0,
+    "properties": {
+    },
+    "equipped": true
+  },
+  {
+    "owner_id": 1,
+    "name": "Mirror Leaf Shield",
+    "type": "shield",
+    "subtype": "light",
+    "bonus": 1,
+    "properties": {
+    },
+    "description": "A shining mental shield. It’s magic reduces TN to block and increases TN to attack you. Ranged magic attacks can be reflected",
+    "equipped": true
+  },
+  {
+    "owner_id": 1,
+    "name": "Last Laugh Axe",
+    "type": "weapon",
+    "subtype": "battleaxe",
+    "bonus": 1,
+    "properties": {
+      "details": [
+        "heavy",
+        "slashing"
+      ],
+      "bonus_damage": {
+        "emotional": 4
+      }
+    },
+    "description": "A jagged battle axe that giggles when drawn. It deals an additional 4 dice of emotional damage",
+    "equipped": true
+  },
+  {
+    "owner_id": 1,
+    "name": "Longbow",
+    "type": "weapon",
+    "subtype": "longbow",
+    "bonus": 0,
+    "properties": {
+      "details": [
+        "medium",
+        "piercing",
+        "ranged"
+      ]
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 1,
+    "name": "+1 Cloak of Resistance",
+    "type": "item",
+    "subtype": "back",
+    "bonus": 1,
+    "properties": {
+      "bonus": {
+        "saves": 1
+      }
+    },
+    "equipped": true
+  },
+  {
+    "owner_id": 1,
+    "name": "Alric's Liquor",
+    "type": "item",
+    "subtype": "bottle",
+    "bonus": 0,
+    "properties": {
+    },
+    "description": "Unknown properties. Elegant glass bottle with a crystal stopper shaped like a blooming thistle. Magically refills.",
+    "equipped": false
+  },
+  {
+    "owner_id": 1,
+    "name": "Narn (Armband)",
+    "type": "item",
+    "subtype": "wrist",
+    "bonus": 0,
+    "properties": {
+    },
+    "description": "Unknown properties. Forged from dull red iron and wrapped in worn leather stamped with crude battle scenes, this child-sized armband resizes to fit its wearer.",
+    "equipped": false
+  },
+  {
+    "owner_id": 1,
+    "name": "Potion of Basic Healing",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 2,
+    "quantity": 1,
+    "properties": {
+      "consumable": true,
+      "effect": "heal"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 1,
+    "name": "Potion of Lesser Healing",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 1,
+    "quantity": 4,
+    "properties": {
+      "consumable": true,
+      "effect": "heal"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 1,
+    "name": "Potion of Lesser Mana",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 1,
+    "quantity": 1,
+    "properties": {
+      "consumable": true,
+      "effect": "mana"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 1,
+    "name": "Krithrak (Poison)",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 2,
+    "properties": {
+      "consumable": true
+    },
+    "description": "Injury poison. Causes minor dex damage.",
+    "equipped": true
+  },
+  {
+    "owner_id": 1,
+    "name": "Oil",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 2,
+    "properties": {
+      "consumable": true,
+      "thrown": true
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 1,
+    "name": "Alchemist Fire",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 3,
+    "properties": {
+      "consumable": true,
+      "thrown": true
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 1,
+    "name": "Acid Flask",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 1,
+    "properties": {
+      "consumable": true,
+      "thrown": true
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 2,
+    "name": "+1 Leather Armor",
+    "type": "armor",
+    "subtype": "light",
+    "bonus": 1,
+    "properties": {
+    },
+    "equipped": true
+  },
+  {
+    "owner_id": 2,
+    "name": "Gary (Axe)",
+    "type": "weapon",
+    "subtype": "greataxe",
+    "bonus": 2,
+    "properties": {
+      "details": [
+        "heavy",
+        "slashing"
+      ]
+    },
+    "description": "Unknown properties. Two handed +2 great axe. Found in the Fey Wilds. It became more powerful after killing the cultists.",
+    "equipped": true
+  },
+  {
+    "owner_id": 2,
+    "name": "Martha (Footwraps)",
+    "type": "shoes",
+    "subtype": "footwraps",
+    "bonus": 0,
+    "properties": {
+    },
+    "description": "Unknown properties. Footwraps. You have felt a great amount of emotion coming from these wraps. After taking damage in combat you gain one point of luck that can be used to reroll one of your attack dice. Only one point can be granted per round from this item.",
+    "equipped": true
+  },
+  {
+    "owner_id": 2,
+    "name": "Ring of Parry",
+    "type": "item",
+    "subtype": "ring",
+    "bonus": 1,
+    "properties": {
+    },
+    "description": "Allows a single free parry once per day",
+    "equipped": true
+  },
+  {
+    "owner_id": 2,
+    "name": "Javelin",
+    "type": "weapon",
+    "subtype": "javelin",
+    "bonus": 0,
+    "quantity": 4,
+    "properties": {
+      "details": [
+        "medium",
+        "piercing",
+        "ranged"
+      ]
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 2,
+    "name": "Bola",
+    "type": "weapon",
+    "subtype": "bola",
+    "bonus": 0,
+    "quantity": 5,
+    "properties": {
+      "details": [
+        "light",
+        "piercing",
+        "ranged"
+      ]
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 2,
+    "name": "Krithrak (Poison)",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 2,
+    "properties": {
+      "consumable": true
+    },
+    "description": "Injury poison. Causes minor dex damage.",
+    "equipped": false
+  },
+  {
+    "owner_id": 2,
+    "name": "Potion of Minor Ward",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 1,
+    "quantity": 2,
+    "properties": {
+      "consumable": true,
+      "effect": "ward"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 2,
+    "name": "Potion of Basic Healing",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 2,
+    "quantity": 1,
+    "properties": {
+      "consumable": true,
+      "effect": "heal"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 2,
+    "name": "Potion of Lesser Healing",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 1,
+    "quantity": 4,
+    "properties": {
+      "consumable": true,
+      "effect": "heal"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 2,
+    "name": "Potion of Resistance",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 1,
+    "properties": {
+      "consumable": true,
+      "effect": "heal"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 2,
+    "name": "Oil",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 2,
+    "properties": {
+      "consumable": true,
+      "thrown": true
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 2,
+    "name": "Alchemist Fire",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 3,
+    "properties": {
+      "consumable": true,
+      "thrown": true
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 2,
+    "name": "Acid Flask",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 1,
+    "properties": {
+      "consumable": true,
+      "thrown": true
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "+1 Leather Armor",
+    "type": "armor",
+    "subtype": "light",
+    "bonus": 1,
+    "properties": {
+    },
+    "equipped": true
+  },
+  {
+    "owner_id": 3,
+    "name": "Wyrd Bow of Mirth",
+    "type": "weapon",
+    "subtype": "longbow",
+    "bonus": 1,
+    "properties": {
+      "details": [
+        "medium",
+        "piercing",
+        "ranged"
+      ],
+      "bonus_damage": {
+        "emotional": 4
+      }
+    },
+    "equipped": true
+  },
+  {
+    "owner_id": 3,
+    "name": "Dagger",
+    "type": "weapon",
+    "subtype": "dagger",
+    "bonus": 0,
+    "properties": {
+      "details": [
+        "light",
+        "piercing"
+      ]
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Elven Cloak",
+    "type": "item",
+    "subtype": "cloak",
+    "slot": "back",
+    "bonus": 1,
+    "properties": {
+      "bonus": {
+        "stealth": 1
+      }
+    },
+    "equipped": true
+  },
+  {
+    "owner_id": 3,
+    "name": "Circlet of Bough-King",
+    "type": "item",
+    "subtype": "circlet",
+    "slot": "head",
+    "bonus": 1,
+    "properties": {
+    },
+    "equipped": true
+  },
+  {
+    "owner_id": 3,
+    "name": "Orin (Key)",
+    "type": "item",
+    "subtype": "key",
+    "bonus": 0,
+    "properties": {
+    },
+    "description": "Unknown properties. A small, tarnished silver key, the kind that might open a simple padlock or shackle. The name 'Orin' is crudely scratched into the bow (handle) as if carved by an unsteady hand. The key is unexpectedly warm to the touch and occasionally pulses with a faint, gentle golden light.",
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Petey (Ring)",
+    "type": "item",
+    "subtype": "ring",
+    "bonus": 0,
+    "properties": {
+    },
+    "description": "A simple brass ring shaped like a curled ribbon, slightly tarnished with age. Inside is etched the name 'Petey' in childish scrawl. Sentient, dimensional storage, and can steal items from 10’. It may have additional properties.",
+    "equipped": true
+  },
+  {
+    "owner_id": 3,
+    "name": "Ring of Bound Whimsy",
+    "type": "item",
+    "subtype": "ring",
+    "bonus": 2,
+    "properties": {
+    },
+    "description": "Allows you to animate an inanimate object once per day for 5 minutes.",
+    "equipped": true
+  },
+  {
+    "owner_id": 3,
+    "name": "Tempting Gold Coin",
+    "type": "item",
+    "subtype": "coin",
+    "bonus": 0,
+    "properties": {
+    },
+    "description": "Anyone who sees the coin feels compelled to possess it. Mind effecting, range 30 feet, and effect lasts 1 minute.",
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Spellbook",
+    "type": "item",
+    "subtype": "book",
+    "bonus": 0,
+    "properties": {
+      "spellbook": [
+        [
+          "guidance",
+          "resistance",
+          "acid splash",
+          "drench",
+          "light",
+          "spark",
+          "mending"
+        ],
+        [
+          "alarm",
+          "endure_elements",
+          "mount",
+          "charm_person",
+          "silent_image",
+          "ant_haul",
+          "disguise_self",
+          "obscuring_mist"
+        ]
+      ]
+    },
+    "description": "An arcane spellbook",
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Scroll of Obscuring Mist",
+    "type": "item",
+    "subtype": "scroll",
+    "bonus": 1,
+    "quantity": 1,
+    "properties": {
+      "consumable": true,
+      "spell": "obscuring_mist"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Potion of Basic Healing",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 2,
+    "quantity": 1,
+    "properties": {
+      "consumable": true,
+      "effect": "heal"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Potion of Lesser Healing",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 1,
+    "quantity": 4,
+    "properties": {
+      "consumable": true,
+      "effect": "heal"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Potion of Lesser Mana",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 1,
+    "quantity": 2,
+    "properties": {
+      "consumable": true,
+      "effect": "mana"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Oil",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 2,
+    "properties": {
+      "consumable": true,
+      "thrown": true
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Acid Flask",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 1,
+    "properties": {
+      "consumable": true,
+      "thrown": true
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Sleeping Death (Poison)",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 1,
+    "properties": {
+      "consumable": true
+    },
+    "description": "Injestable poison. Causes unconciousness and appearance of death for 8 to 12 hours.",
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Krithrak (Poison)",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 6,
+    "properties": {
+      "consumable": true
+    },
+    "description": "Injury poison. Causes minor dex damage.",
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Poison Arrows",
+    "type": "item",
+    "subtype": "arrow",
+    "bonus": 2,
+    "quantity": 5,
+    "properties": {
+      "ammunition": true
+    },
+    "description": "Injury poison. Causes moderate constitution damage.",
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "+3 Heart Seeker Arrows",
+    "type": "item",
+    "subtype": "arrow",
+    "bonus": 3,
+    "quantity": 1,
+    "properties": {
+      "ammunition": true
+    },
+    "description": "Bypasses tier disparity. Inflicts 4x damage on crit.",
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Mirror Marble",
+    "type": "item",
+    "subtype": "marble",
+    "bonus": 1,
+    "quantity": 1,
+    "properties": {
+      "consumable": true
+    },
+    "description": "This small glass orb, when crushed, creates a temporary illusory duplicate of the holder for 3 rounds.",
+    "equipped": false
+  },
+  {
+    "owner_id": 3,
+    "name": "Miscellaneous items",
+    "type": "item",
+    "subtype": "misc",
+    "bonus": 0,
+    "quantity": 1,
+    "properties": {
+    },
+    "description": "Glass eye, poisoner's chalice, chess board",
+    "equipped": false
+  },
+  {
+    "owner_id": 4,
+    "name": "+1 Leather Armor",
+    "type": "armor",
+    "subtype": "light",
+    "bonus": 1,
+    "properties": {
+    },
+    "equipped": true
+  },
+  {
+    "owner_id": 4,
+    "name": "+1 Shortbow",
+    "type": "weapon",
+    "subtype": "shortbow",
+    "bonus": 1,
+    "properties": {
+      "details": [
+        "medium",
+        "piercing",
+        "ranged"
+      ]
+    },
+    "equipped": true
+  },
+  {
+    "owner_id": 4,
+    "name": "+1 Drums",
+    "type": "item",
+    "subtype": "instrument",
+    "bonus": 1,
+    "properties": {
+    },
+    "equipped": true
+  },
+  {
+    "owner_id": 4,
+    "name": "Rapier",
+    "type": "weapon",
+    "subtype": "rapier",
+    "bonus": 0,
+    "properties": {
+      "details": [
+        "light",
+        "piercing"
+      ]
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 4,
+    "name": "Wand of Benign Transposition",
+    "type": "item",
+    "subtype": "wand",
+    "bonus": 1,
+    "properties": {
+      "spell": "benign_transposition"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 4,
+    "name": "Wand of Expeditious Excavation",
+    "type": "item",
+    "subtype": "wand",
+    "bonus": 1,
+    "properties": {
+      "spell": "expeditious_excavation"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 4,
+    "name": "Trailmix Bag",
+    "type": "item",
+    "subtype": "bag",
+    "bonus": 0,
+    "properties": {
+    },
+    "description": "A seemingly unremarkable leather pouch of trail rations. It contains an assortment of nuts, berries, and sweets sufficient to feed five people. Every night it is magically refilled.",
+    "equipped": false
+  },
+  {
+    "owner_id": 4,
+    "name": "Alric's Locket",
+    "type": "item",
+    "subtype": "amulet",
+    "slot": "neck",
+    "bonus": 0,
+    "properties": {
+    },
+    "description": "An ordinary looking silver locket",
+    "equipped": true
+  },
+  {
+    "owner_id": 4,
+    "name": "Potion of Basic Healing",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 2,
+    "quantity": 1,
+    "properties": {
+      "consumable": true,
+      "effect": "heal"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 4,
+    "name": "Potion of Lesser Healing",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 1,
+    "quantity": 4,
+    "properties": {
+      "consumable": true,
+      "effect": "heal"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 4,
+    "name": "Potion of Lesser Mana",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 1,
+    "quantity": 2,
+    "properties": {
+      "consumable": true,
+      "effect": "mana"
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 4,
+    "name": "Oil",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 2,
+    "properties": {
+      "consumable": true,
+      "thrown": true
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 4,
+    "name": "Alchemist Fire",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 3,
+    "properties": {
+      "consumable": true,
+      "thrown": true
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 4,
+    "name": "Acid Flask",
+    "type": "item",
+    "subtype": "vial",
+    "bonus": 0,
+    "quantity": 1,
+    "properties": {
+      "consumable": true,
+      "thrown": true
+    },
+    "equipped": false
+  },
+  {
+    "owner_id": 1,
+    "name": "Ceremonial Dagger of Blood Drinking",
+    "type": "weapon",
+    "subtype": "dagger",
+    "bonus": 1,
+    "properties": {
+    },
+    "description": "Sacrificing a helpless victim destroys its soul and casts cure light wounds without any magical saturation. The victim must be your magical density or more. May have additional effects.",
+    "equipped": false
+  },
+  {
+    "owner_id": 1,
+    "name": "Faint Recharge Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 0,
+    "properties": {
+      "consumable": true,
+      "spell": "recharge"
+    },
+    "equipped": false,
+    "quantity": 1
+  }
+]
+

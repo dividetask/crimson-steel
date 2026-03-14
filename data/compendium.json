@@ -1,5 +1,6 @@
 {
-  "version": "0.1",
+  "version": "0.2",
+
 	"range": {"0": "personal", "1": "touch", "2": "close", "3": "medium", "4": "long"},
 	"item_costs": {"potion": "50*tier", "scroll": "25*tier", "oil": "50*tier", "wand": "1000*tier*tier", "ammunition": [0, 20, 80, 160, 320, 640]},
 	"property_costs": {"Heartseeker": {"requirements": [{"type": "ammunition", "tier": ">=3"}], "cost": 80, "description": "Adds 4 additional dice that add their damage to physical damage. Damage is increased by 1 for each success and 4 for each critical."}},
