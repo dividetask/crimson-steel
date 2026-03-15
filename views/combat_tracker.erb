@@ -108,7 +108,11 @@
           item_id: w['item_id'],
           name: w['name'],
           weapon_dice: current.character.weapon_dice(w),
-          weapon_speed: current.character.weapon_speed(w)
+          weapon_speed: current.character.weapon_speed(w),
+          weapon_attack_bonus: current.character.weapon_attack_bonus(w),
+          weapon_dmg: (d = current.character.weapon_dmg(w); d.is_a?(Numeric) ? d : 0),
+          weapon_threshold: (t = current.character.weapon_threshold(w); t.is_a?(Numeric) ? t : 0),
+          weapon_bonus: w['bonus'].to_i
         }
       }
     ) : '[]' %>;
@@ -116,10 +120,37 @@
     var moveSpeed = <%= current ? current.character.speed : 0 %>;
     var combatants = <%= JSON.generate(
       @combat.combat_turn_list.each_with_index.map { |ct, idx|
-        { turn_id: idx, combat_id: ct.combat_id, char_id: ct.character.id, name: @combat.display_name(ct), dice_remaining: ct.combat_pool, bab_dice: ct.character.bab_dice }
+        {
+          turn_id: idx, combat_id: ct.combat_id, char_id: ct.character.id,
+          name: @combat.display_name(ct), dice_remaining: ct.combat_pool,
+          bab_dice: ct.character.bab_dice, bab_bonus: ct.character.bab_bonus,
+          damage_reduction: ct.character.damage_reduction,
+          damage_resilience: ct.character.damage_resilience
+        }
       }
     ) %>;
     var targetId = <%= @combat.target_id %>;
+    var diceRules = <%= JSON.generate(Tools.load_json('rules.json')['dice']) %>;
+    <% if (@combat.current_action == 'attack' || @combat.current_action == 'dodge') &&
+          (actor = @combat.combat_turn_list[@combat.current_actor_turn_id]) &&
+          (target = @combat.combat_turn_list[@combat.target_id]) &&
+          (action_weapon = actor.character.weapon_list.find { |i| i['item_id'] == @combat.current_action_tool_id }) %>
+    var attackContext = <%= JSON.generate({
+      attacker_turn_id: @combat.current_actor_turn_id,
+      attacker_combat_id: actor.combat_id,
+      target_combat_id: target.combat_id,
+      attack_dice: (@combat.action_params['attack_dice'] || 0),
+      weapon: {
+        name: action_weapon['name'],
+        attack_bonus: actor.character.weapon_attack_bonus(action_weapon),
+        dmg: (d = actor.character.weapon_dmg(action_weapon); d.is_a?(Numeric) ? d : 0),
+        threshold: (t = actor.character.weapon_threshold(action_weapon); t.is_a?(Numeric) ? t : 0),
+        bonus: action_weapon['bonus'].to_i
+      }
+    }) %>;
+    <% else %>
+    var attackContext = null;
+    <% end %>
 
     function selectAction(action) {
       var context = document.getElementById('action-context');
@@ -209,29 +240,163 @@
       submitAction({id: currentCharId, combat_action: 'attack', dice: dice, weapon_item_id: weapon.item_id, target_turn_id: targetTurnId});
     }
 
+    function clampTn(tn) {
+      return Math.max(diceRules.tn_minimum, Math.min(diceRules.tn_maximum, tn));
+    }
+
+    function calcDamageSplit(totalDamage, threshold) {
+      var minor = Math.min(totalDamage, threshold);
+      var moderate = Math.min(Math.max(totalDamage - threshold, 0), threshold);
+      var major = Math.max(totalDamage - 2 * threshold, 0);
+      return {minor: minor, moderate: moderate, major: major};
+    }
+
+    function showDamagePrompt(totalDamage, threshold, target, breakdown) {
+      var split = calcDamageSplit(totalDamage, threshold);
+      var msg = breakdown + '\n\n' +
+        'Threshold: ' + threshold + ' (Resilience ' + target.damage_resilience + ' + Weapon TH ' + attackContext.weapon.threshold + ')\n' +
+        'Minor: ' + split.minor + ' | Moderate: ' + split.moderate + ' | Major: ' + split.major + '\n\n' +
+        'Total damage (editable):';
+      return prompt(msg, totalDamage);
+    }
+
     function selectDefense(defense) {
       var context = document.getElementById('action-context');
       context.innerHTML = '';
+      if (!attackContext) return;
 
-      if (defense === 'dodge') {
-        var target = combatants[targetId];
-        var minDice = 2;
-        var maxDice = Math.min(target.bab_dice, target.dice_remaining);
-        if (maxDice < minDice) {
-          alert(target.name + ' does not have enough dice to dodge. Need at least ' + minDice + ', have ' + target.dice_remaining + '.');
+      var target = combatants[targetId];
+      var baseTn = diceRules.base_target_number;
+      var reqSuccesses = diceRules.default_required_successes;
+      var weaponDmg = attackContext.weapon.dmg;
+      var weaponBonus = attackContext.weapon.bonus;
+      var threshold = target.damage_resilience + attackContext.weapon.threshold;
+
+      if (defense === 'nothing') {
+        // Flatfooted: TN reduced by 2
+        var tn = clampTn(baseTn - attackContext.weapon.attack_bonus - 2);
+
+        var input = prompt(currentCharName + ' attacks (TN ' + tn + ', ' + attackContext.attack_dice + ' dice, flatfooted -2)\nHow many successes?');
+        if (input === null) return;
+        var successes = parseInt(input, 10);
+        if (isNaN(successes) || successes < 0) { alert('Invalid number.'); return; }
+
+        if (successes < reqSuccesses) {
+          alert('Miss! (' + successes + ' successes, need ' + reqSuccesses + ')');
+          submitAction({combat_action: 'clear_action'});
           return;
         }
 
-        var input = prompt(target.name + ' spends how many dice dodging? ' + minDice + '-' + maxDice);
-        if (input === null) return;
+        var totalDamage = Math.max(0, weaponDmg + successes + weaponBonus - target.damage_reduction);
+        var breakdown = 'Weapon Dmg: ' + weaponDmg + ' + Successes: ' + successes + ' + Bonus: ' + weaponBonus + ' - DR: ' + target.damage_reduction + ' = ' + totalDamage;
 
-        var dice = parseInt(input, 10);
-        if (isNaN(dice) || dice < minDice || dice > maxDice) {
+        var finalDamage = showDamagePrompt(totalDamage, threshold, target, breakdown);
+        if (finalDamage === null) {
+          submitAction({combat_action: 'clear_action'});
+          return;
+        }
+        finalDamage = parseInt(finalDamage, 10);
+        if (isNaN(finalDamage) || finalDamage < 0) { alert('Invalid number.'); return; }
+
+        var split = calcDamageSplit(finalDamage, threshold);
+        submitAction({
+          combat_action: 'resolve_attack',
+          target_combat_id: attackContext.target_combat_id,
+          minor_damage: split.minor, moderate_damage: split.moderate, major_damage: split.major,
+          dodge_dice: 0
+        });
+      }
+
+      else if (defense === 'dodge') {
+        // Attack TN: no flatfooted bonus
+        var attackTn = clampTn(baseTn - attackContext.weapon.attack_bonus);
+
+        var atkInput = prompt(currentCharName + ' attacks (TN ' + attackTn + ', ' + attackContext.attack_dice + ' dice)\nHow many successes?');
+        if (atkInput === null) return;
+        var attackSuccesses = parseInt(atkInput, 10);
+        if (isNaN(attackSuccesses) || attackSuccesses < 0) { alert('Invalid number.'); return; }
+
+        // Dodge TN: base - defender's bab_bonus + attacker's weapon_attack_bonus
+        var dodgeTn = clampTn(baseTn - target.bab_bonus + attackContext.weapon.attack_bonus);
+
+        var minDice = 2;
+        var maxDice = Math.min(target.bab_dice, target.dice_remaining);
+        if (maxDice < minDice) {
+          alert(target.name + ' cannot dodge (need ' + minDice + ' dice, have ' + target.dice_remaining + ').');
+          // Fall through as flatfooted
+          var netSuccesses = attackSuccesses;
+          if (netSuccesses < reqSuccesses) {
+            alert('Miss! (' + netSuccesses + ' successes, need ' + reqSuccesses + ')');
+            submitAction({combat_action: 'clear_action'});
+            return;
+          }
+          var totalDamage = Math.max(0, weaponDmg + netSuccesses + weaponBonus - target.damage_reduction);
+          var breakdown = 'Weapon Dmg: ' + weaponDmg + ' + Successes: ' + netSuccesses + ' + Bonus: ' + weaponBonus + ' - DR: ' + target.damage_reduction + ' = ' + totalDamage;
+          var finalDamage = showDamagePrompt(totalDamage, threshold, target, breakdown);
+          if (finalDamage === null) { submitAction({combat_action: 'clear_action'}); return; }
+          finalDamage = parseInt(finalDamage, 10);
+          if (isNaN(finalDamage) || finalDamage < 0) { alert('Invalid number.'); return; }
+          var split = calcDamageSplit(finalDamage, threshold);
+          submitAction({
+            combat_action: 'resolve_attack',
+            target_combat_id: attackContext.target_combat_id,
+            minor_damage: split.minor, moderate_damage: split.moderate, major_damage: split.major,
+            dodge_dice: 0
+          });
+          return;
+        }
+
+        var dodgeDiceInput = prompt(target.name + ' dodges (TN ' + dodgeTn + '). How many dice? ' + minDice + '-' + maxDice);
+        if (dodgeDiceInput === null) return;
+        var dodgeDice = parseInt(dodgeDiceInput, 10);
+        if (isNaN(dodgeDice) || dodgeDice < minDice || dodgeDice > maxDice) {
           alert('Invalid. Enter a number between ' + minDice + ' and ' + maxDice + '.');
           return;
         }
 
-        submitAction({target_char_id: target.combat_id, combat_action: 'dodge', dice: dice});
+        var dodgeInput = prompt(target.name + ' rolls ' + dodgeDice + ' dice (TN ' + dodgeTn + '). How many successes?');
+        if (dodgeInput === null) return;
+        var dodgeSuccesses = parseInt(dodgeInput, 10);
+        if (isNaN(dodgeSuccesses) || dodgeSuccesses < 0) { alert('Invalid number.'); return; }
+
+        var netSuccesses = attackSuccesses - dodgeSuccesses;
+
+        if (netSuccesses < reqSuccesses) {
+          alert('Attack dodged! (Attack: ' + attackSuccesses + ' - Dodge: ' + dodgeSuccesses + ' = ' + netSuccesses + ' net, need ' + reqSuccesses + ')');
+          submitAction({
+            combat_action: 'resolve_attack',
+            target_combat_id: attackContext.target_combat_id,
+            minor_damage: 0, moderate_damage: 0, major_damage: 0,
+            dodge_dice: dodgeDice
+          });
+          return;
+        }
+
+        var totalDamage = Math.max(0, weaponDmg + netSuccesses + weaponBonus - target.damage_reduction);
+        var breakdown = 'Attack: ' + attackSuccesses + ' - Dodge: ' + dodgeSuccesses + ' = ' + netSuccesses + ' net successes\n' +
+          'Weapon Dmg: ' + weaponDmg + ' + Net Successes: ' + netSuccesses + ' + Bonus: ' + weaponBonus + ' - DR: ' + target.damage_reduction + ' = ' + totalDamage;
+
+        var finalDamage = showDamagePrompt(totalDamage, threshold, target, breakdown);
+        if (finalDamage === null) {
+          // Cancel: still subtract dodge dice, no damage
+          submitAction({
+            combat_action: 'resolve_attack',
+            target_combat_id: attackContext.target_combat_id,
+            minor_damage: 0, moderate_damage: 0, major_damage: 0,
+            dodge_dice: dodgeDice
+          });
+          return;
+        }
+        finalDamage = parseInt(finalDamage, 10);
+        if (isNaN(finalDamage) || finalDamage < 0) { alert('Invalid number.'); return; }
+
+        var split = calcDamageSplit(finalDamage, threshold);
+        submitAction({
+          combat_action: 'resolve_attack',
+          target_combat_id: attackContext.target_combat_id,
+          minor_damage: split.minor, moderate_damage: split.moderate, major_damage: split.major,
+          dodge_dice: dodgeDice
+        });
       }
     }
 
