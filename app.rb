@@ -151,32 +151,29 @@ post '/combat/action' do
     Combat.clear_action
     Combat.advance_turn
 
-  elsif action == 'dodge'
-    dice = params[:dice].to_i
-    target_combat_id = params[:target_char_id].to_i
-    participant = combat_data['participants'].find { |p| p['id'] == target_combat_id }
-    char_id = participant['char_id'] || participant['id']
-    character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
-    character = CharacterSheet.new(character_data)
+  elsif action == 'resolve_attack'
+    target_combat_id = params[:target_combat_id].to_i
+    target_participant = combat_data['participants'].find { |p| p['id'] == target_combat_id }
+    halt 400, "Target not found" unless target_participant
 
-    max_dice = character.bab_dice
-    dice_remaining = participant['combat_pool']
+    minor = params[:minor_damage].to_i
+    moderate = params[:moderate_damage].to_i
+    major = params[:major_damage].to_i
+    dodge_dice = params[:dodge_dice].to_i
 
-    halt 400, "Invalid dice count" unless dice.is_a?(Integer) && dice >= 2 && dice <= max_dice && dice <= dice_remaining
-
-    participant['combat_pool'] -= dice
-    combat_data['current_action'] = 'dodge'
-
-    action_params = combat_data['action_params'] || {}
-    action_params['dodge_dice'] = dice
-    combat_data['action_params'] = Combat.calculate_damage(
-      combat_data['current_actor_turn_id'],
-      combat_data['target_id'],
-      combat_data['current_action_tool_id'],
-      action_params
-    )
+    target_participant['minor_damage'] = target_participant['minor_damage'].to_i + minor
+    target_participant['moderate_damage'] = target_participant['moderate_damage'].to_i + moderate
+    target_participant['major_damage'] = target_participant['major_damage'].to_i + major
+    target_participant['combat_pool'] = target_participant['combat_pool'].to_i - dodge_dice if dodge_dice > 0
 
     Tools.save_json('combat.json', combat_data)
+
+    total = minor + moderate + major
+    Combat.add_log("Attack resolved: #{total} damage (#{minor}/#{moderate}/#{major})") if total > 0
+    Combat.clear_action
+
+  elsif action == 'clear_action'
+    Combat.clear_action
   end
 
   redirect '/combat'
