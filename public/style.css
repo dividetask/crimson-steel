@@ -361,6 +361,7 @@ table th {
 .school-divination { background: #0277bd; }
 .school-abjuration { background: #00695c; }
 .school-conjuration { background: #ef6c00; }
+.school-transmutation { background: #558b2f; }
 
 /* Spell detail page */
 .spell-detail-stats { display: flex; justify-content: space-between; margin: 15px 0; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 8px 0; }
