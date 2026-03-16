@@ -47,9 +47,11 @@ class Combat
     @current_action_tool_id = combat_data['current_action_tool_id'] || ''
     @target_id = combat_data['target_id'] || 0
     @action_params = combat_data['action_params'] || {}
-    @combat_turn_list = combat_data['participants'].map do |combat_turn|
+    @combat_turn_list = combat_data['participants'].filter_map do |combat_turn|
       char_id = combat_turn['char_id'] || combat_turn['id']
-      CombatTurn.new(combat_turn, character_list.find { |c| c["id"] == char_id })
+      character = character_list.find { |c| c["id"] == char_id }
+      next nil unless character
+      CombatTurn.new(combat_turn, character)
     end
     sort_init
   end
@@ -57,8 +59,9 @@ class Combat
   def current_turn_character; @combat_turn_list[@current_turn_id]; end
 
   def display_name(combat_turn)
+    return "Unknown" unless combat_turn&.character
     char_id = combat_turn.character.id
-    same = @combat_turn_list.select { |ct| ct.character.id == char_id }
+    same = @combat_turn_list.select { |ct| ct.character&.id == char_id }
     return combat_turn.character.name if same.length == 1
     combat_turn.display_name(same.index(combat_turn).to_i + 1)
   end

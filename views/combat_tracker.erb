@@ -65,12 +65,14 @@
       <% if @combat.current_action == 'attack' || @combat.current_action == 'dodge' %>
         <% actor = @combat.combat_turn_list[@combat.current_actor_turn_id] %>
         <% target = @combat.combat_turn_list[@combat.target_id] %>
-        <% action_weapon = actor.character.weapon_list.find { |i| i['item_id'] == @combat.current_action_tool_id } %>
-        <% weapon_display = action_weapon ? action_weapon['name'] : 'Unknown' %>
-        <% if @combat.current_action == 'dodge' %>
-          <h2><%= @combat.display_name(actor) %> attacks <%= @combat.display_name(target) %> with <%= weapon_display %> - <%= @combat.display_name(target) %> dodges</h2>
-        <% else %>
-          <h2><%= @combat.display_name(actor) %> attacks <%= @combat.display_name(target) %> with <%= weapon_display %></h2>
+        <% if actor&.character && target&.character %>
+          <% action_weapon = actor.character.weapon_list.find { |i| i['item_id'] == @combat.current_action_tool_id } %>
+          <% weapon_display = action_weapon ? action_weapon['name'] : 'Unknown' %>
+          <% if @combat.current_action == 'dodge' %>
+            <h2><%= @combat.display_name(actor) %> attacks <%= @combat.display_name(target) %> with <%= weapon_display %> - <%= @combat.display_name(target) %> dodges</h2>
+          <% else %>
+            <h2><%= @combat.display_name(actor) %> attacks <%= @combat.display_name(target) %> with <%= weapon_display %></h2>
+          <% end %>
         <% end %>
       <% else %>
         <h2><%= current.character.name %>'s Turn</h2>
