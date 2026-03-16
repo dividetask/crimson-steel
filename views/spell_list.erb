@@ -1,0 +1,178 @@
+<div class="sheet">
+  <div class="header">
+    <h1>Spell Compendium</h1>
+  </div>
+
+  <div class="spell-filters">
+    <div class="filter-row">
+      <div class="filter-field">
+        <label for="filter-school">School</label>
+        <select id="filter-school" onchange="filterSpells()">
+          <option value="">All Schools</option>
+          <% @spell_schools.each do |school| %>
+            <option value="<%= school %>"><%= school.capitalize %></option>
+          <% end %>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label for="filter-tier">Tier</label>
+        <select id="filter-tier" onchange="filterSpells()">
+          <option value="">All Tiers</option>
+          <% (0..6).each do |t| %>
+            <option value="<%= t %>"><%= t %></option>
+          <% end %>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label for="filter-skill">Skill</label>
+        <select id="filter-skill" onchange="filterSpells()">
+          <option value="">All Skills</option>
+          <% @all_skills.each do |skill| %>
+            <option value="<%= skill %>"><%= skill.gsub('_', ' ').split(' ').map(&:capitalize).join(' ') %></option>
+          <% end %>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>&nbsp;</label>
+        <button class="clear-btn" onclick="clearFilters()">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <table class="spell-table">
+    <tr>
+      <th>Name</th>
+      <th>School</th>
+      <th>Tier</th>
+      <th>Skills</th>
+      <th>Save</th>
+      <th>Range</th>
+      <th>Duration</th>
+      <th>Cast Time</th>
+    </tr>
+    <% @spells.each do |name, spell| %>
+      <% tiers = spell["tier"].is_a?(Array) ? spell["tier"] : [spell["tier"]] %>
+      <% school = spell["school"] || "universal" %>
+      <% skills = (spell["skill"] || []).join(",") %>
+      <tr class="spell-row" data-school="<%= school %>" data-tiers="<%= tiers.join(',') %>" data-skills="<%= skills %>">
+        <td><a href="/spell/<%= ERB::Util.url_encode(name) %>"><%= name %></a></td>
+        <td><span class="school-badge school-<%= school %>"><%= school.capitalize %></span></td>
+        <td><%= tiers.join(', ') %></td>
+        <td><%= (spell["skill"] || []).map { |s| s.gsub('_', ' ').split(' ').map(&:capitalize).join(' ') }.join(', ') %></td>
+        <td><%= spell["save"] == 0 ? "None" : spell["save"].to_s.capitalize %></td>
+        <td><%= @range_labels[spell["range"].to_s] || spell["range"] %></td>
+        <td><%= spell["duration"].is_a?(Array) ? "varies" : spell["duration"] %></td>
+        <td><%= spell["casting_time"] %></td>
+      </tr>
+    <% end %>
+  </table>
+
+  <% if @is_local %>
+  <div class="dm-section">
+    <h2>Add New Spell (DM Only)</h2>
+    <form method="post" action="/spells/add" class="add-spell-form">
+      <div class="form-row">
+        <div>
+          <label for="spell-name">Name</label>
+          <input type="text" id="spell-name" name="name" required>
+        </div>
+        <div>
+          <label for="spell-school">School</label>
+          <select id="spell-school" name="school">
+            <% @spell_schools.each do |school| %>
+              <option value="<%= school %>"><%= school.capitalize %></option>
+            <% end %>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label for="spell-tiers">Tiers (comma-separated, e.g. 0,1,2,3)</label>
+          <input type="text" id="spell-tiers" name="tiers" required placeholder="0,1,2">
+        </div>
+        <div>
+          <label for="spell-save">Save</label>
+          <select id="spell-save" name="save">
+            <option value="0">None</option>
+            <option value="str">Strength</option>
+            <option value="dex">Dexterity</option>
+            <option value="con">Constitution</option>
+            <option value="int">Intelligence</option>
+            <option value="wis">Wisdom</option>
+            <option value="cha">Charisma</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label for="spell-range">Range</label>
+          <select id="spell-range" name="range">
+            <option value="0">Personal</option>
+            <option value="1">Touch</option>
+            <option value="2">Close</option>
+            <option value="3">Medium</option>
+            <option value="4">Long</option>
+          </select>
+        </div>
+        <div>
+          <label for="spell-duration">Duration</label>
+          <input type="text" id="spell-duration" name="duration" placeholder="instant">
+        </div>
+        <div>
+          <label for="spell-casting-time">Casting Time</label>
+          <input type="text" id="spell-casting-time" name="casting_time" value="0.5">
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label for="spell-skills">Skills (comma-separated)</label>
+          <input type="text" id="spell-skills" name="skills" placeholder="arcana,healing">
+        </div>
+        <div>
+          <label for="spell-items">Item Types (comma-separated)</label>
+          <input type="text" id="spell-items" name="items" placeholder="potion,scroll,wand">
+        </div>
+      </div>
+      <div class="full-width">
+        <label for="spell-description">Description</label>
+        <textarea id="spell-description" name="description" rows="4" required></textarea>
+      </div>
+      <button type="submit">Add Spell</button>
+    </form>
+  </div>
+  <% end %>
+</div>
+
+<script>
+function filterSpells() {
+  var school = document.getElementById('filter-school').value;
+  var tier = document.getElementById('filter-tier').value;
+  var skill = document.getElementById('filter-skill').value;
+  var rows = document.querySelectorAll('.spell-row');
+
+  rows.forEach(function(row) {
+    var show = true;
+    if (school && row.dataset.school !== school) show = false;
+    if (tier && row.dataset.tiers.split(',').indexOf(tier) === -1) show = false;
+    if (skill) {
+      var rowSkills = row.dataset.skills.split(',');
+      var match = false;
+      for (var i = 0; i < rowSkills.length; i++) {
+        if (rowSkills[i] === skill || (rowSkills[i].endsWith('_') && skill.startsWith(rowSkills[i]))) {
+          match = true;
+          break;
+        }
+      }
+      if (!match) show = false;
+    }
+    row.style.display = show ? '' : 'none';
+  });
+}
+
+function clearFilters() {
+  document.getElementById('filter-school').value = '';
+  document.getElementById('filter-tier').value = '';
+  document.getElementById('filter-skill').value = '';
+  filterSpells();
+}
+</script>
