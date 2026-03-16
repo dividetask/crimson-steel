@@ -352,13 +352,11 @@ table th {
 
 .school-badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: bold; color: white; }
 .school-universal { background: #757575; }
-.school-necromancy { background: #4a148c; }
-.school-evocation { background: #c62828; }
-.school-illusion { background: #6a1b9a; }
+.school-pneumancy { background: #4a148c; }
+.school-resonance { background: #c62828; }
 .school-enchantment { background: #ad1457; }
-.school-divination { background: #0277bd; }
-.school-abjuration { background: #00695c; }
-.school-conjuration { background: #ef6c00; }
+.school-augury { background: #0277bd; }
+.school-convergence { background: #ef6c00; }
 .school-transmutation { background: #558b2f; }
 
 /* Spell detail page */
