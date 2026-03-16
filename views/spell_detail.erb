@@ -1,0 +1,113 @@
+<div class="sheet">
+  <div class="header">
+    <h1><%= @spell_name %></h1>
+    <div class="subtitle">
+      <span class="school-badge school-<%= @school %>"><%= @school.capitalize %></span>
+      <% if @spell["tier"].is_a?(Array) %>
+        Tier <%= @spell["tier"].first %> - <%= @spell["tier"].last %>
+      <% else %>
+        Tier <%= @spell["tier"] %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="spell-detail-stats">
+    <div class="spell-stat">
+      <span class="label">Range</span>
+      <span class="value"><%= @range_labels[@spell["range"].to_s] || @spell["range"] %></span>
+    </div>
+    <div class="spell-stat">
+      <span class="label">Duration</span>
+      <span class="value"><%= @spell["duration"].is_a?(Array) ? "varies by tier" : @spell["duration"] %></span>
+    </div>
+    <div class="spell-stat">
+      <span class="label">Casting Time</span>
+      <span class="value"><%= @spell["casting_time"] %></span>
+    </div>
+    <div class="spell-stat">
+      <span class="label">Save</span>
+      <span class="value"><%= @spell["save"] == 0 ? "None" : @spell["save"].to_s.capitalize %></span>
+    </div>
+  </div>
+
+  <div class="spell-detail-section">
+    <h2>Skills</h2>
+    <p><%= (@spell["skill"] || []).map { |s| s.gsub('_', ' ').split(' ').map(&:capitalize).join(' ') }.join(', ') %></p>
+  </div>
+
+  <div class="spell-detail-section">
+    <h2>Description</h2>
+    <% tiers = @spell["tier"].is_a?(Array) ? @spell["tier"] : [@spell["tier"]] %>
+    <% if tiers.length > 1 %>
+      <% tiers.each_with_index do |tier_val, idx| %>
+        <% prefix = @spell["prefix"] ? @spell["prefix"][idx] : nil %>
+        <% suffix = @spell["suffix"] ? @spell["suffix"][idx] : nil %>
+        <p>
+          <strong>Tier <%= tier_val %><%= prefix ? " (#{prefix})" : "" %><%= suffix ? " (#{suffix})" : "" %>:</strong>
+          <%= resolve_spell_description(@spell, idx, tier_val) %>
+        </p>
+      <% end %>
+    <% else %>
+      <p><%= resolve_spell_description(@spell, 0, tiers.first) %></p>
+    <% end %>
+  </div>
+
+  <% if @spell["effect_hash"] && !@spell["effect_hash"].empty? %>
+  <div class="spell-detail-section">
+    <h2>Effects by Tier</h2>
+    <table class="spell-effects-table">
+      <tr>
+        <th>Effect</th>
+        <% tiers.each do |t| %>
+          <th>Tier <%= t %></th>
+        <% end %>
+      </tr>
+      <% @spell["effect_hash"].each do |effect_name, values| %>
+        <tr>
+          <td><strong><%= effect_name.gsub('_', ' ').capitalize %></strong></td>
+          <% tiers.each_with_index do |tier_val, idx| %>
+            <td>
+              <% if values.is_a?(Array) %>
+                <%= values[idx] %>
+              <% elsif values.is_a?(String) %>
+                <%= begin; eval(values.gsub("tier", tier_val.to_s)); rescue; values; end %>
+              <% elsif values.is_a?(Hash) %>
+                <%= values.map { |k, v| "#{k}: #{v}" }.join(', ') %>
+              <% else %>
+                <%= values %>
+              <% end %>
+            </td>
+          <% end %>
+        </tr>
+      <% end %>
+    </table>
+  </div>
+  <% end %>
+
+  <% if @spell["duration"].is_a?(Array) %>
+  <div class="spell-detail-section">
+    <h2>Duration by Tier</h2>
+    <table class="spell-effects-table">
+      <tr>
+        <% tiers.each do |t| %>
+          <th>Tier <%= t %></th>
+        <% end %>
+      </tr>
+      <tr>
+        <% @spell["duration"].each do |d| %>
+          <td><%= d %></td>
+        <% end %>
+      </tr>
+    </table>
+  </div>
+  <% end %>
+
+  <% if @spell["items"] && !@spell["items"].empty? %>
+  <div class="spell-detail-section">
+    <h2>Available As</h2>
+    <p><%= @spell["items"].map(&:capitalize).join(', ') %></p>
+  </div>
+  <% end %>
+
+  <p style="margin-top: 20px;"><a href="/spells">&larr; Back to Spell List</a></p>
+</div>
