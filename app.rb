@@ -377,7 +377,7 @@ end
 
 get '/spells' do
   compendium = Compendium.new
-  @spells = compendium.data["spells"]
+  @spells = compendium.data["spells"].sort_by { |name, _| name.downcase }.to_h
   @spell_schools = compendium.data["spell_schools"] || ["universal", "necromancy", "evocation", "illusion", "enchantment", "divination", "abjuration", "conjuration"]
   @range_labels = compendium.data["range"]
   @all_skills = @spells.values.flat_map { |s| s["skill"] || [] }.uniq.sort
