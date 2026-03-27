@@ -88,7 +88,8 @@
 		"default_required_successes": 2,
 		"default_fumble_threshold": -2,
 		"critical_value": 10,
-		"failure_value": 1
+		"failure_value": 1,
+		"flatfooted_penalty": 1
 	},
 	"skill": {
 		"ranks_per_level": [ "2/3", "1", "5/3" ],
