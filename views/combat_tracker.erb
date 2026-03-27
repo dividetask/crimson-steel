@@ -1,15 +1,6 @@
   <div class="combat-tracker">
   <h1>Combat Tracker</h1>
 
-  <% if @combat.current_action == 'attack' %>
-    <% atk_actor = @combat.combat_turn_list[@combat.current_actor_turn_id] %>
-    <% atk_target = @combat.combat_turn_list[@combat.target_id] %>
-    <% atk_weapon = atk_actor.character.weapon_list.find { |i| i['item_id'] == @combat.current_action_tool_id } %>
-    <div class="attack-banner">
-      <%= @combat.display_name(atk_actor) %> attacks <%= @combat.display_name(atk_target) %> with <%= atk_weapon ? atk_weapon['name'] : 'Unknown' %>
-    </div>
-  <% end %>
-
   <table>
     <thead>
       <tr>
@@ -45,7 +36,7 @@
       <% end %>
     </tbody>
   </table>
-  
+
   <div style="margin-top: 20px; display: flex; gap: 10px;">
     <form method="post" action="/combat/reset_dice">
       <button type="submit">Reset All Dice</button>
@@ -53,54 +44,22 @@
     <form method="post" action="/combat/reroll_init">
       <button type="submit">Reroll Init</button>
     </form>
-    <form method="post" action="/combat/action">
-      <input type="hidden" name="combat_action" value="clear_action">
-      <button type="submit">Reset Action</button>
-    </form>
   </div>
 
   <% current = @combat.current_turn_character %>
   <% if current %>
     <div class="turn-status">
-      <% if @combat.current_action == 'attack' || @combat.current_action == 'dodge' %>
-        <% actor = @combat.combat_turn_list[@combat.current_actor_turn_id] %>
-        <% target = @combat.combat_turn_list[@combat.target_id] %>
-        <% if actor&.character && target&.character %>
-          <% action_weapon = actor.character.weapon_list.find { |i| i['item_id'] == @combat.current_action_tool_id } %>
-          <% weapon_display = action_weapon ? action_weapon['name'] : 'Unknown' %>
-          <% if @combat.current_action == 'dodge' %>
-            <h2><%= @combat.display_name(actor) %> attacks <%= @combat.display_name(target) %> with <%= weapon_display %> - <%= @combat.display_name(target) %> dodges</h2>
-          <% else %>
-            <h2><%= @combat.display_name(actor) %> attacks <%= @combat.display_name(target) %> with <%= weapon_display %></h2>
-          <% end %>
-        <% end %>
-      <% else %>
-        <h2><%= current.character.name %>'s Turn</h2>
-      <% end %>
+      <h2><%= current.character.name %>'s Turn</h2>
     </div>
 
     <div class="turn-panel">
       <div class="action-buttons" id="action-buttons">
-        <% if @combat.current_action == 'attack' || @combat.current_action == 'dodge' %>
-          <button class="action-btn" onclick="selectDefense('ally_action')">Ally Action</button>
-          <button class="action-btn" onclick="selectDefense('dodge')">Dodge</button>
-          <button class="action-btn" onclick="selectDefense('block')">Block</button>
-          <button class="action-btn" onclick="selectDefense('parry')">Parry</button>
-          <button class="action-btn" onclick="selectDefense('nothing')">Nothing</button>
-          <div style="margin-top: 8px;">
-            <label style="font-size: 11px; font-weight: bold;">Parry/Block with:</label>
-            <select id="defense-weapon" style="font-size: 11px; padding: 2px;">
-              <option value="">-- select --</option>
-            </select>
-          </div>
-        <% else %>
-          <button class="action-btn" onclick="selectAction('attack')">Attack</button>
-          <button class="action-btn" onclick="selectAction('move')">Move</button>
-          <button class="action-btn" onclick="selectAction('cast')">Cast</button>
-          <button class="action-btn" onclick="selectAction('item')">Item</button>
-          <button class="action-btn" onclick="selectAction('special')">Special</button>
-          <button class="action-btn" onclick="selectAction('end_turn')">End Turn</button>
-        <% end %>
+        <button class="action-btn" onclick="selectAction('attack')">Attack</button>
+        <button class="action-btn" onclick="selectAction('move')">Move</button>
+        <button class="action-btn" onclick="selectAction('cast')">Cast</button>
+        <button class="action-btn" onclick="selectAction('item')">Item</button>
+        <button class="action-btn" onclick="selectAction('special')">Special</button>
+        <button class="action-btn" onclick="selectAction('end_turn')">End Turn</button>
       </div>
       <div class="action-context" id="action-context">
       </div>
@@ -145,115 +104,135 @@
         }
       }
     ) %>;
-    var targetId = <%= @combat.target_id %>;
     var diceRules = <%= JSON.generate(Tools.load_json('rules.json')['dice']) %>;
-    <% if (@combat.current_action == 'attack' || @combat.current_action == 'dodge') &&
-          (actor = @combat.combat_turn_list[@combat.current_actor_turn_id]) &&
-          (target = @combat.combat_turn_list[@combat.target_id]) &&
-          (action_weapon = actor.character.weapon_list.find { |i| i['item_id'] == @combat.current_action_tool_id }) %>
-    var attackContext = <%= JSON.generate({
-      attacker_turn_id: @combat.current_actor_turn_id,
-      attacker_combat_id: actor.combat_id,
-      target_combat_id: target.combat_id,
-      attack_dice: (@combat.action_params['attack_dice'] || 0),
-      weapon: {
-        name: action_weapon['name'],
-        attack_bonus: actor.character.weapon_attack_bonus(action_weapon),
-        dmg: (d = actor.character.weapon_dmg(action_weapon); d.is_a?(Numeric) ? d : 0),
-        threshold: (t = actor.character.weapon_threshold(action_weapon); t.is_a?(Numeric) ? t : 0),
-        bonus: action_weapon['bonus'].to_i
-      }
-    }) %>;
-    <% else %>
-    var attackContext = null;
-    <% end %>
+
+    // --- Client-side attack state ---
+    var attackState = null;
 
     function selectAction(action) {
       var context = document.getElementById('action-context');
       context.innerHTML = '';
+      attackState = null;
 
       if (action === 'move') {
         if (diceRemaining < 4) {
-          alert('Not enough dice remaining to move. Need 4, have ' + diceRemaining + '.');
+          addStep('<strong>Cannot move</strong> - need 4 dice, have ' + diceRemaining);
           return;
         }
-        var result = confirm(currentCharName + ' moves up to ' + moveSpeed + ' feet');
-        if (!result) return;
-        submitAction({id: currentCharId, combat_action: 'move'});
+        addStep('<strong>Move</strong>: ' + currentCharName + ' moves up to ' + moveSpeed + ' feet' +
+          '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'move\'})" style="margin-top:8px;">Confirm Move</button>');
         return;
       }
 
       if (action === 'end_turn') {
-        var result = confirm(currentCharName + ' ends turn?');
-        if (!result) return;
-        submitAction({id: currentCharId, combat_action: 'end_turn'});
+        addStep('<strong>End Turn</strong>: ' + currentCharName + ' ends their turn' +
+          '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'end_turn\'})" style="margin-top:8px;">Confirm End Turn</button>');
         return;
       }
 
       if (action === 'attack') {
-        // Target dropdown
-        var label = document.createElement('label');
-        label.textContent = 'Target: ';
-        label.style.fontWeight = 'bold';
-        var select = document.createElement('select');
-        select.id = 'attack-target';
-        var defaultOpt = document.createElement('option');
-        defaultOpt.value = '';
-        defaultOpt.textContent = 'Select Target';
-        select.appendChild(defaultOpt);
-        combatants.forEach(function(c) {
-          var opt = document.createElement('option');
-          opt.value = c.turn_id;
-          opt.textContent = c.name;
-          select.appendChild(opt);
-        });
-        context.appendChild(label);
-        context.appendChild(select);
-
-        // Weapon buttons container (hidden until target selected)
-        var weaponDiv = document.createElement('div');
-        weaponDiv.id = 'weapon-buttons';
-        weaponDiv.style.marginTop = '10px';
-        context.appendChild(weaponDiv);
-
-        select.addEventListener('change', function() {
-          weaponDiv.innerHTML = '';
-          if (!this.value) return;
-          equippedWeapons.forEach(function(weapon) {
-            var btn = document.createElement('button');
-            btn.className = 'weapon-btn';
-            btn.textContent = weapon.name;
-            btn.addEventListener('click', function() {
-              promptAttackDice(weapon, parseInt(select.value, 10));
-            });
-            weaponDiv.appendChild(btn);
-          });
-        });
+        showTargetSelection();
       }
     }
 
-    function promptAttackDice(weapon, targetTurnId) {
+    // --- ATTACK STEP 1: Select target ---
+    function showTargetSelection() {
+      addStep('<strong>Select Target</strong>' +
+        '<br><select id="attack-target" style="margin-top:4px;"><option value="">-- select target --</option>' +
+        combatants.map(function(c) { return '<option value="' + c.turn_id + '">' + c.name + '</option>'; }).join('') +
+        '</select>' +
+        '<div id="weapon-buttons" style="margin-top:8px;"></div>');
+
+      document.getElementById('attack-target').addEventListener('change', function() {
+        var weaponDiv = document.getElementById('weapon-buttons');
+        weaponDiv.innerHTML = '';
+        if (!this.value) return;
+        var tid = parseInt(this.value, 10);
+        equippedWeapons.forEach(function(weapon) {
+          var btn = document.createElement('button');
+          btn.className = 'weapon-btn';
+          btn.textContent = weapon.name;
+          btn.addEventListener('click', function() { showAttackDice(weapon, tid); });
+          weaponDiv.appendChild(btn);
+        });
+      });
+    }
+
+    // --- ATTACK STEP 2: Choose attack dice ---
+    function showAttackDice(weapon, targetTurnId) {
       var target = combatants[targetTurnId];
-      var minDice = 2;
-      var maxDice = weapon.weapon_dice;
       var speed = weapon.weapon_speed;
       var available = diceRemaining - speed;
+      var minDice = 2;
+      var capDice = Math.min(weapon.weapon_dice, available);
+
       if (available < minDice) {
-        alert('Not enough dice remaining. Need at least ' + (minDice + speed) + ' dice (' + minDice + ' + ' + speed + ' speed).');
-        return;
-      }
-      var capDice = Math.min(maxDice, available);
-
-      var input = prompt(currentCharName + ' spends how many dice attacking ' + target.name + ' with ' + weapon.name + '? ' + minDice + '-' + capDice + ' (Speed ' + speed + ')');
-      if (input === null) return;
-
-      var dice = parseInt(input, 10);
-      if (isNaN(dice) || dice < minDice || dice > capDice) {
-        alert('Invalid. Enter a number between ' + minDice + ' and ' + capDice + '.');
+        addStep('<strong>Cannot attack</strong> - need at least ' + (minDice + speed) + ' dice (' + minDice + ' + ' + speed + ' speed), have ' + diceRemaining);
         return;
       }
 
-      submitAction({id: currentCharId, combat_action: 'attack', dice: dice, weapon_item_id: weapon.item_id, target_turn_id: targetTurnId});
+      // Lock in target selection
+      document.getElementById('attack-target').disabled = true;
+      var btns = document.getElementById('weapon-buttons');
+      if (btns) btns.innerHTML = '<em>Weapon: ' + weapon.name + '</em>';
+
+      attackState = {
+        weapon: weapon,
+        targetTurnId: targetTurnId,
+        target: target,
+        attackerCombatId: currentCharId,
+        targetCombatId: target.combat_id,
+        attackDiceSpeed: speed
+      };
+
+      addStep('<strong>Attack Dice</strong>: ' + currentCharName + ' attacks ' + target.name + ' with ' + weapon.name +
+        '<br><span class="math-detail">Dice range: ' + minDice + '-' + capDice + ' | Weapon speed: ' + speed + ' (total cost: dice + ' + speed + ')</span>' +
+        '<br><label>Attack dice: <input type="number" id="attack-dice-input" min="' + minDice + '" max="' + capDice + '" value="' + minDice + '" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="confirmAttackDice(' + minDice + ',' + capDice + ')">Confirm</button>');
+    }
+
+    function confirmAttackDice(minDice, capDice) {
+      var input = document.getElementById('attack-dice-input');
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < minDice || val > capDice) {
+        alert('Enter ' + minDice + '-' + capDice + '.'); return;
+      }
+      attackState.attackDice = val;
+      attackState.attackerDiceSpent = val + attackState.attackDiceSpeed;
+      input.disabled = true;
+      input.parentElement.nextElementSibling.style.display = 'none';
+      showDefenseSelection();
+    }
+
+    // --- ATTACK STEP 3: Select defense ---
+    function showDefenseSelection() {
+      var target = attackState.target;
+      var targetWeapons = target.weapons || [];
+      var weaponOptions = targetWeapons.map(function(w) {
+        return '<option value="' + w.item_id + '">' + w.name +
+          ' (Atk/Def ' + (w.weapon_attack_bonus >= 0 ? '+' : '') + w.weapon_attack_bonus + ', Spd ' + w.weapon_speed + ')</option>';
+      }).join('');
+
+      addStep('<strong>Select Defense for ' + target.name + '</strong>' +
+        '<br><button class="action-btn" onclick="selectDefense(\'nothing\')">Nothing</button>' +
+        ' <button class="action-btn" onclick="selectDefense(\'dodge\')">Dodge</button>' +
+        ' <button class="action-btn" onclick="selectDefense(\'parry\')">Parry</button>' +
+        ' <button class="action-btn" onclick="selectDefense(\'block\')">Block</button>' +
+        (targetWeapons.length > 0 ?
+          '<br><label style="margin-top:6px;display:inline-block;font-size:11px;font-weight:bold;">Parry/Block with: ' +
+          '<select id="defense-weapon" style="font-size:11px;padding:2px;"><option value="">-- select --</option>' +
+          weaponOptions + '</select></label>' : ''));
+    }
+
+    // --- Utility functions ---
+    function addStep(html) {
+      var context = document.getElementById('action-context');
+      var step = document.createElement('div');
+      step.className = 'resolve-step';
+      step.innerHTML = html;
+      context.appendChild(step);
+      step.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+      return step;
     }
 
     function clampTn(tn) {
@@ -265,34 +244,6 @@
       var moderate = Math.min(Math.max(totalDamage - threshold, 0), threshold);
       var major = Math.max(totalDamage - 2 * threshold, 0);
       return {minor: minor, moderate: moderate, major: major};
-    }
-
-    // Populate defense weapon dropdown for target
-    if (attackContext && targetId >= 0 && targetId < combatants.length) {
-      var defWeaponSelect = document.getElementById('defense-weapon');
-      if (defWeaponSelect) {
-        var targetWeapons = combatants[targetId].weapons || [];
-        targetWeapons.forEach(function(w) {
-          var opt = document.createElement('option');
-          opt.value = w.item_id;
-          opt.textContent = w.name + ' (Atk/Def ' + (w.weapon_attack_bonus >= 0 ? '+' : '') + w.weapon_attack_bonus + ', Spd ' + w.weapon_speed + ')';
-          defWeaponSelect.appendChild(opt);
-        });
-      }
-    }
-
-    // --- Step-by-step attack resolution UI ---
-
-    var resolveState = {};
-
-    function addStep(html) {
-      var context = document.getElementById('action-context');
-      var step = document.createElement('div');
-      step.className = 'resolve-step';
-      step.innerHTML = html;
-      context.appendChild(step);
-      step.scrollIntoView({behavior: 'smooth', block: 'nearest'});
-      return step;
     }
 
     function tnBreakdown(label, base, modifiers, clamped) {
@@ -307,53 +258,59 @@
       return parts;
     }
 
+    // --- Defense resolution ---
     function selectDefense(defense) {
-      var context = document.getElementById('action-context');
-      context.innerHTML = '';
-      if (!attackContext) return;
-
-      resolveState = {defense: defense};
-      var target = combatants[targetId];
-      var baseTn = diceRules.base_target_number;
-      var flatPenalty = diceRules.flatfooted_penalty || 1;
-      var weapon = attackContext.weapon;
-      var reqSuccesses = diceRules.default_required_successes;
-
-      // --- STEP 1: Defense declaration ---
-      if (defense === 'nothing') {
-        resolveState.defenseDice = 0;
-        resolveState.attackTn = clampTn(baseTn - weapon.attack_bonus - flatPenalty);
-        var tnMath = tnBreakdown('Attack TN', baseTn,
-          [{value: -weapon.attack_bonus, label: 'weapon proficiency'}, {value: -flatPenalty, label: 'flatfooted'}],
-          resolveState.attackTn);
-        addStep('<strong>Defense: Flatfooted</strong><br><span class="math-detail">' + tnMath + '</span>');
-        showAttackStep(target);
+      // Remove the defense selection step and rebuild from there
+      var steps = document.querySelectorAll('.resolve-step');
+      var lastStep = steps[steps.length - 1];
+      if (lastStep && lastStep.innerHTML.indexOf('Select Defense') !== -1) {
+        // Keep it but disable buttons
       }
 
+      if (!attackState) return;
+
+      attackState.defense = defense;
+      var target = attackState.target;
+      var baseTn = diceRules.base_target_number;
+      var flatPenalty = diceRules.flatfooted_penalty || 1;
+      var weapon = attackState.weapon;
+
+      // --- Defense: Nothing (flatfooted) ---
+      if (defense === 'nothing') {
+        attackState.defenseDice = 0;
+        attackState.attackTn = clampTn(baseTn - weapon.weapon_attack_bonus - flatPenalty);
+        var tnMath = tnBreakdown('Attack TN', baseTn,
+          [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}, {value: -flatPenalty, label: 'flatfooted'}],
+          attackState.attackTn);
+        addStep('<strong>Defense: Flatfooted</strong><br><span class="math-detail">' + tnMath + '</span>');
+        showAttackRoll();
+      }
+
+      // --- Defense: Dodge ---
       else if (defense === 'dodge') {
-        resolveState.attackTn = clampTn(baseTn - weapon.attack_bonus);
-        var dodgeTn = clampTn(baseTn - target.bab_bonus + weapon.attack_bonus);
-        resolveState.dodgeTn = dodgeTn;
+        attackState.attackTn = clampTn(baseTn - weapon.weapon_attack_bonus);
+        var dodgeTn = clampTn(baseTn - target.bab_bonus + weapon.weapon_attack_bonus);
+        attackState.dodgeTn = dodgeTn;
         var minDice = 2;
         var maxDice = Math.min(target.bab_dice, target.dice_remaining);
 
         var atkTnMath = tnBreakdown('Attack TN', baseTn,
-          [{value: -weapon.attack_bonus, label: 'weapon proficiency'}],
-          resolveState.attackTn);
+          [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}],
+          attackState.attackTn);
         var dodgeTnMath = tnBreakdown('Dodge TN', baseTn,
-          [{value: -target.bab_bonus, label: 'dodge bonus'}, {value: weapon.attack_bonus, label: 'attacker proficiency'}],
+          [{value: -target.bab_bonus, label: 'dodge bonus'}, {value: weapon.weapon_attack_bonus, label: 'attacker proficiency'}],
           dodgeTn);
 
         if (maxDice < minDice) {
-          resolveState.defenseDice = 0;
+          attackState.defenseDice = 0;
           addStep('<strong>Defense: Dodge</strong> - <em>Cannot dodge (need ' + minDice + ' dice, have ' + target.dice_remaining + ')</em>' +
             '<br><span class="math-detail">' + atkTnMath + '</span>');
-          showAttackStep(target);
+          showAttackRoll();
           return;
         }
 
-        resolveState.dodgeMin = minDice;
-        resolveState.dodgeMax = maxDice;
+        attackState.dodgeMin = minDice;
+        attackState.dodgeMax = maxDice;
         addStep('<strong>Defense: Dodge</strong>' +
           '<br><span class="math-detail">' + atkTnMath + '</span>' +
           '<br><span class="math-detail">' + dodgeTnMath + '</span>' +
@@ -361,6 +318,7 @@
           ' <button class="action-btn" onclick="confirmDodgeDice()">Confirm</button>');
       }
 
+      // --- Defense: Parry ---
       else if (defense === 'parry') {
         var defWeaponSelect = document.getElementById('defense-weapon');
         var selectedId = defWeaponSelect ? parseInt(defWeaponSelect.value, 10) : NaN;
@@ -371,24 +329,24 @@
           alert('Select a weapon to parry with first.');
           return;
         }
-        resolveState.parryWeapon = parryWeapon;
+        attackState.parryWeapon = parryWeapon;
 
-        var parryTn = clampTn(baseTn - parryWeapon.weapon_attack_bonus + weapon.attack_bonus);
-        var attackTn = clampTn(baseTn - weapon.attack_bonus + parryWeapon.weapon_attack_bonus);
-        resolveState.attackTn = attackTn;
-        resolveState.parryTn = parryTn;
+        var parryTn = clampTn(baseTn - parryWeapon.weapon_attack_bonus + weapon.weapon_attack_bonus);
+        var attackTn = clampTn(baseTn - weapon.weapon_attack_bonus + parryWeapon.weapon_attack_bonus);
+        attackState.attackTn = attackTn;
+        attackState.parryTn = parryTn;
 
         var parrySpeed = parryWeapon.weapon_speed;
-        resolveState.parrySpeed = parrySpeed;
+        attackState.parrySpeed = parrySpeed;
         var minDice = 2;
         var maxAvailable = target.dice_remaining - parrySpeed;
         var maxDice = Math.min(parryWeapon.weapon_dice, maxAvailable);
 
         var atkTnMath = tnBreakdown('Attack TN', baseTn,
-          [{value: -weapon.attack_bonus, label: 'weapon proficiency'}, {value: parryWeapon.weapon_attack_bonus, label: parryWeapon.name + ' defense'}],
+          [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}, {value: parryWeapon.weapon_attack_bonus, label: parryWeapon.name + ' defense'}],
           attackTn);
         var parryTnMath = tnBreakdown('Parry TN', baseTn,
-          [{value: -parryWeapon.weapon_attack_bonus, label: parryWeapon.name + ' proficiency'}, {value: weapon.attack_bonus, label: 'attacker proficiency'}],
+          [{value: -parryWeapon.weapon_attack_bonus, label: parryWeapon.name + ' proficiency'}, {value: weapon.weapon_attack_bonus, label: 'attacker proficiency'}],
           parryTn);
 
         if (maxDice < minDice) {
@@ -396,8 +354,8 @@
           return;
         }
 
-        resolveState.parryMin = minDice;
-        resolveState.parryMax = maxDice;
+        attackState.parryMin = minDice;
+        attackState.parryMax = maxDice;
         addStep('<strong>Defense: Parry with ' + parryWeapon.name + '</strong>' +
           '<br><span class="math-detail">' + atkTnMath + '</span>' +
           '<br><span class="math-detail">' + parryTnMath + '</span>' +
@@ -410,31 +368,31 @@
     function confirmDodgeDice() {
       var input = document.getElementById('dodge-dice-input');
       var val = parseInt(input.value, 10);
-      if (isNaN(val) || val < resolveState.dodgeMin || val > resolveState.dodgeMax) {
-        alert('Enter ' + resolveState.dodgeMin + '-' + resolveState.dodgeMax + '.'); return;
+      if (isNaN(val) || val < attackState.dodgeMin || val > attackState.dodgeMax) {
+        alert('Enter ' + attackState.dodgeMin + '-' + attackState.dodgeMax + '.'); return;
       }
-      resolveState.defenseDice = val;
+      attackState.defenseDice = val;
       input.disabled = true;
       input.parentElement.nextElementSibling.style.display = 'none';
-      showAttackStep(combatants[targetId]);
+      showAttackRoll();
     }
 
     function confirmParryDice() {
       var input = document.getElementById('parry-dice-input');
       var val = parseInt(input.value, 10);
-      if (isNaN(val) || val < resolveState.parryMin || val > resolveState.parryMax) {
-        alert('Enter ' + resolveState.parryMin + '-' + resolveState.parryMax + '.'); return;
+      if (isNaN(val) || val < attackState.parryMin || val > attackState.parryMax) {
+        alert('Enter ' + attackState.parryMin + '-' + attackState.parryMax + '.'); return;
       }
-      resolveState.parryDice = val;
-      resolveState.defenseDice = val + resolveState.parrySpeed;
+      attackState.parryDice = val;
+      attackState.defenseDice = val + attackState.parrySpeed;
       input.disabled = true;
       input.parentElement.nextElementSibling.style.display = 'none';
-      showAttackStep(combatants[targetId]);
+      showAttackRoll();
     }
 
-    // --- STEP 2: Attack roll ---
-    function showAttackStep(target) {
-      addStep('<strong>Attack Roll</strong>: ' + attackContext.attack_dice + ' dice, TN ' + resolveState.attackTn +
+    // --- Attack roll step ---
+    function showAttackRoll() {
+      addStep('<strong>Attack Roll</strong>: ' + attackState.attackDice + ' dice, TN ' + attackState.attackTn +
         '<br><label>Attack successes: <input type="number" id="attack-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmAttackSuccesses()">Confirm</button>');
     }
@@ -443,30 +401,28 @@
       var input = document.getElementById('attack-successes-input');
       var val = parseInt(input.value, 10);
       if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
-      resolveState.attackSuccesses = val;
+      attackState.attackSuccesses = val;
       input.disabled = true;
       input.parentElement.nextElementSibling.style.display = 'none';
 
-      var target = combatants[targetId];
-
-      if (resolveState.defense === 'dodge' && resolveState.defenseDice > 0) {
-        showDodgeRollStep(target);
-      } else if (resolveState.defense === 'parry') {
-        showParryRollStep(target);
+      if (attackState.defense === 'dodge' && attackState.defenseDice > 0) {
+        showDodgeRoll();
+      } else if (attackState.defense === 'parry') {
+        showParryRoll();
       } else {
-        showDamageResult(val, 0, target);
+        showDamageResult(val, 0);
       }
     }
 
-    // --- STEP 3: Defense roll (dodge/parry) ---
-    function showDodgeRollStep(target) {
-      addStep('<strong>Dodge Roll</strong>: ' + resolveState.defenseDice + ' dice, TN ' + resolveState.dodgeTn +
+    // --- Defense roll steps ---
+    function showDodgeRoll() {
+      addStep('<strong>Dodge Roll</strong>: ' + attackState.defenseDice + ' dice, TN ' + attackState.dodgeTn +
         '<br><label>Dodge successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>');
     }
 
-    function showParryRollStep(target) {
-      addStep('<strong>Parry Roll</strong>: ' + resolveState.parryDice + ' dice, TN ' + resolveState.parryTn +
+    function showParryRoll() {
+      addStep('<strong>Parry Roll</strong>: ' + attackState.parryDice + ' dice, TN ' + attackState.parryTn +
         '<br><label>Parry successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>');
     }
@@ -475,93 +431,105 @@
       var input = document.getElementById('defense-successes-input');
       var val = parseInt(input.value, 10);
       if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
-      resolveState.defenseSuccesses = val;
+      attackState.defenseSuccesses = val;
       input.disabled = true;
       input.parentElement.nextElementSibling.style.display = 'none';
-
-      var target = combatants[targetId];
-      showDamageResult(resolveState.attackSuccesses, val, target);
+      showDamageResult(attackState.attackSuccesses, val);
     }
 
-    // --- STEP 4: Damage result ---
-    function showDamageResult(attackSuccesses, defenseSuccesses, target) {
-      var weapon = attackContext.weapon;
+    // --- Damage result ---
+    function showDamageResult(attackSuccesses, defenseSuccesses) {
+      var weapon = attackState.weapon;
+      var target = attackState.target;
       var reqSuccesses = diceRules.default_required_successes;
       var netSuccesses = attackSuccesses - defenseSuccesses;
-      var threshold = target.damage_resilience + weapon.threshold;
-
-      resolveState.target = target;
+      var threshold = target.damage_resilience + weapon.weapon_threshold;
 
       if (netSuccesses < reqSuccesses) {
         var missMsg = '<strong>Miss!</strong> ' + attackSuccesses + ' attack' + (defenseSuccesses > 0 ? ' - ' + defenseSuccesses + ' defense' : '') +
           ' = ' + netSuccesses + ' net (need ' + reqSuccesses + ')';
-        var step = addStep(missMsg +
+        addStep(missMsg +
           '<br><button class="action-btn" onclick="submitFinalResult(true)" style="margin-top:8px;">Submit (Miss)</button>' +
-          ' <button class="action-btn" onclick="resetDefense()" style="margin-top:8px;">Change Defense</button>');
+          ' <button class="action-btn" onclick="restartDefense()" style="margin-top:8px;">Change Defense</button>');
         return;
       }
 
-      var totalDamage = Math.max(0, weapon.dmg + netSuccesses + weapon.bonus - target.damage_reduction);
-      resolveState.totalDamage = totalDamage;
+      var totalDamage = Math.max(0, weapon.weapon_dmg + netSuccesses + weapon.weapon_bonus - target.damage_reduction);
 
       var breakdown = '<strong>Damage Calculation</strong><br>' +
         '<span class="math-detail">' +
-        'Weapon Damage: ' + weapon.dmg + ' (' + weapon.name + ')' +
+        'Weapon Damage: ' + weapon.weapon_dmg + ' (' + weapon.name + ')' +
         ' + Net Successes: ' + netSuccesses +
         (defenseSuccesses > 0 ? ' (' + attackSuccesses + ' attack - ' + defenseSuccesses + ' defense)' : '') +
-        ' + Weapon Enhancement: ' + weapon.bonus +
+        ' + Weapon Enhancement: ' + weapon.weapon_bonus +
         ' - Damage Reduction: ' + target.damage_reduction +
         ' = <strong>' + totalDamage + '</strong></span>';
 
       var split = calcDamageSplit(totalDamage, threshold);
       var thresholdMath = '<span class="math-detail">Threshold: ' + threshold +
-        ' (Resilience ' + target.damage_resilience + ' + Weapon Threshold ' + weapon.threshold + ')</span>';
+        ' (Resilience ' + target.damage_resilience + ' + Weapon Threshold ' + weapon.weapon_threshold + ')</span>';
       var splitDisplay = '<span class="math-detail">Minor: ' + split.minor + ' | Moderate: ' + split.moderate + ' | Major: ' + split.major + '</span>';
 
       addStep(breakdown + '<br>' + thresholdMath + '<br>' + splitDisplay +
         '<br><label style="margin-top:8px;display:inline-block;">Final damage (editable): <input type="number" id="final-damage-input" min="0" value="' + totalDamage + '" style="width:60px;" onchange="updateDamageSplit()"></label>' +
         '<span id="final-split" class="math-detail" style="margin-left:10px;">Minor: ' + split.minor + ' | Moderate: ' + split.moderate + ' | Major: ' + split.major + '</span>' +
         '<br><button class="action-btn" onclick="submitFinalResult(false)" style="margin-top:8px;">Submit Damage</button>' +
-        ' <button class="action-btn" onclick="resetDefense()" style="margin-top:8px;">Change Defense</button>');
+        ' <button class="action-btn" onclick="restartDefense()" style="margin-top:8px;">Change Defense</button>');
     }
 
     function updateDamageSplit() {
       var input = document.getElementById('final-damage-input');
       var val = parseInt(input.value, 10) || 0;
-      var target = resolveState.target;
-      var threshold = target.damage_resilience + attackContext.weapon.threshold;
+      var target = attackState.target;
+      var threshold = target.damage_resilience + attackState.weapon.weapon_threshold;
       var split = calcDamageSplit(val, threshold);
       document.getElementById('final-split').textContent = 'Minor: ' + split.minor + ' | Moderate: ' + split.moderate + ' | Major: ' + split.major;
     }
 
-    function resetDefense() {
-      var context = document.getElementById('action-context');
-      context.innerHTML = '';
-      resolveState = {};
+    function restartDefense() {
+      // Remove steps from defense selection onward, keep target + dice steps
+      var steps = document.querySelectorAll('.resolve-step');
+      var removing = false;
+      for (var i = 0; i < steps.length; i++) {
+        if (steps[i].innerHTML.indexOf('Select Defense') !== -1) removing = true;
+        if (removing) steps[i].remove();
+      }
+      attackState.defense = null;
+      attackState.defenseDice = 0;
+      attackState.attackSuccesses = null;
+      attackState.defenseSuccesses = null;
+      showDefenseSelection();
     }
 
     function submitFinalResult(isMiss) {
-      var defenseDice = resolveState.defenseDice || 0;
+      var defenseDice = attackState.defenseDice || 0;
+      var attackerDiceSpent = attackState.attackerDiceSpent || 0;
+
       if (isMiss) {
-        if (defenseDice > 0) {
-          submitAction({
-            combat_action: 'resolve_attack', target_combat_id: attackContext.target_combat_id,
-            minor_damage: 0, moderate_damage: 0, major_damage: 0, dodge_dice: defenseDice
-          });
-        } else {
-          submitAction({combat_action: 'clear_action'});
-        }
+        submitAction({
+          combat_action: 'attack',
+          attacker_combat_id: attackState.attackerCombatId,
+          target_combat_id: attackState.targetCombatId,
+          attacker_dice_spent: attackerDiceSpent,
+          defense_dice: defenseDice,
+          minor_damage: 0, moderate_damage: 0, major_damage: 0
+        });
         return;
       }
+
       var finalDamage = parseInt(document.getElementById('final-damage-input').value, 10);
       if (isNaN(finalDamage) || finalDamage < 0) { alert('Invalid damage.'); return; }
-      var target = resolveState.target;
-      var threshold = target.damage_resilience + attackContext.weapon.threshold;
+      var target = attackState.target;
+      var threshold = target.damage_resilience + attackState.weapon.weapon_threshold;
       var split = calcDamageSplit(finalDamage, threshold);
+
       submitAction({
-        combat_action: 'resolve_attack', target_combat_id: attackContext.target_combat_id,
-        minor_damage: split.minor, moderate_damage: split.moderate, major_damage: split.major,
-        dodge_dice: defenseDice
+        combat_action: 'attack',
+        attacker_combat_id: attackState.attackerCombatId,
+        target_combat_id: attackState.targetCombatId,
+        attacker_dice_spent: attackerDiceSpent,
+        defense_dice: defenseDice,
+        minor_damage: split.minor, moderate_damage: split.moderate, major_damage: split.major
       });
     }
 

@@ -92,33 +92,30 @@ post '/combat/action' do
   action = params[:combat_action]
 
   if action == 'attack'
-    dice = params[:dice].to_i
-    target_turn_id = params[:target_turn_id].to_i
-    weapon_item_id = params[:weapon_item_id].to_i
-    participant = combat_data['participants'].find { |p| p['id'] == combat_id }
-    char_id = participant['char_id'] || participant['id']
-    character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
-    character = CharacterSheet.new(character_data)
+    attacker_combat_id = params[:attacker_combat_id].to_i
+    target_combat_id = params[:target_combat_id].to_i
+    attacker_dice_spent = params[:attacker_dice_spent].to_i
+    defense_dice = params[:defense_dice].to_i
+    minor = params[:minor_damage].to_i
+    moderate = params[:moderate_damage].to_i
+    major = params[:major_damage].to_i
 
-    weapon = character.weapon_list.find { |item| item['item_id'] == weapon_item_id }
-    halt 400, "Weapon not found" unless weapon
+    attacker = combat_data['participants'].find { |p| p['id'] == attacker_combat_id }
+    target_participant = combat_data['participants'].find { |p| p['id'] == target_combat_id }
+    halt 400, "Attacker not found" unless attacker
+    halt 400, "Target not found" unless target_participant
 
-    speed = character.weapon_speed(weapon)
-    max_dice = character.weapon_dice(weapon)
-    dice_remaining = participant['combat_pool']
-
-    halt 400, "Invalid dice count" unless dice.is_a?(Integer) && dice >= 2 && dice <= max_dice && dice <= (dice_remaining - speed)
-
-    participant['combat_pool'] -= (dice + speed)
-
-    turn_index = combat.combat_turn_list.index { |ct| ct.combat_id == combat_id }
-    combat_data['current_action'] = 'attack'
-    combat_data['current_actor_turn_id'] = turn_index
-    combat_data['current_action_tool_id'] = weapon_item_id
-    combat_data['target_id'] = target_turn_id
-    combat_data['action_params'] = { 'attack_dice' => dice }
+    attacker['combat_pool'] = attacker['combat_pool'].to_i - attacker_dice_spent if attacker_dice_spent > 0
+    target_participant['combat_pool'] = target_participant['combat_pool'].to_i - defense_dice if defense_dice > 0
+    target_participant['minor_damage'] = target_participant['minor_damage'].to_i + minor
+    target_participant['moderate_damage'] = target_participant['moderate_damage'].to_i + moderate
+    target_participant['major_damage'] = target_participant['major_damage'].to_i + major
 
     Tools.save_json('combat.json', combat_data)
+
+    total = minor + moderate + major
+    Combat.add_log("Attack resolved: #{total} damage (#{minor}/#{moderate}/#{major})") if total > 0
+    Combat.add_log("Attack missed") if total == 0
 
   elsif action == 'move'
     participant = combat_data['participants'].find { |p| p['id'] == combat_id }
@@ -132,7 +129,6 @@ post '/combat/action' do
     Tools.save_json('combat.json', combat_data)
 
     Combat.add_log("#{character.name} moves")
-    Combat.clear_action
 
   elsif action == 'end_turn'
     participant = combat_data['participants'].find { |p| p['id'] == combat_id }
@@ -141,32 +137,8 @@ post '/combat/action' do
     character = CharacterSheet.new(character_data)
 
     Combat.add_log("#{character.name} ends turn")
-    Combat.clear_action
     Combat.advance_turn
 
-  elsif action == 'resolve_attack'
-    target_combat_id = params[:target_combat_id].to_i
-    target_participant = combat_data['participants'].find { |p| p['id'] == target_combat_id }
-    halt 400, "Target not found" unless target_participant
-
-    minor = params[:minor_damage].to_i
-    moderate = params[:moderate_damage].to_i
-    major = params[:major_damage].to_i
-    dodge_dice = params[:dodge_dice].to_i
-
-    target_participant['minor_damage'] = target_participant['minor_damage'].to_i + minor
-    target_participant['moderate_damage'] = target_participant['moderate_damage'].to_i + moderate
-    target_participant['major_damage'] = target_participant['major_damage'].to_i + major
-    target_participant['combat_pool'] = target_participant['combat_pool'].to_i - dodge_dice if dodge_dice > 0
-
-    Tools.save_json('combat.json', combat_data)
-
-    total = minor + moderate + major
-    Combat.add_log("Attack resolved: #{total} damage (#{minor}/#{moderate}/#{major})") if total > 0
-    Combat.clear_action
-
-  elsif action == 'clear_action'
-    Combat.clear_action
   end
 
   redirect '/combat'

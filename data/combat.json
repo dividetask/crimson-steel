@@ -3,13 +3,6 @@
   "round": 0,
   "current_turn": 0,
   "current_turn_id": 0,
-  "current_action": "attack",
-  "current_actor_turn_id": 0,
-  "current_action_tool_id": 3,
-  "target_id": 4,
-  "action_params": {
-    "attack_dice": 6
-  },
   "participants": [
     {
       "id": 1,
