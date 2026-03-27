@@ -9,6 +9,16 @@ module CharacterHelpers
     Rack::Utils.escape_html(text.to_s)
   end
 
+  def format_casting_time(val)
+    v = val.to_f
+    return "Free" if v == 0
+    return "Bonus Action" if v == 0.5
+    return "Main Action" if v == 1
+    return "#{(v / 3600).to_i} hour#{'s' if v >= 7200}" if v >= 3600
+    return "#{(v / 60).to_i} minute#{'s' if v >= 120}" if v >= 60
+    return "#{v.to_i} round#{'s' if v > 1}"
+  end
+
   def resolve_spell_description(spell, idx, tier_val)
     spell["description"].gsub(/\{(\w+)\}/) do |match|
       var = $1

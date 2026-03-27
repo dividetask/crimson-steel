@@ -62,7 +62,7 @@
         <td><%= spell["save"] == 0 ? "None" : spell["save"].to_s.capitalize %></td>
         <td><%= @range_labels[spell["range"].to_s] || spell["range"] %></td>
         <td><%= spell["duration"].is_a?(Array) ? "varies" : spell["duration"] %></td>
-        <td><%= spell["casting_time"] %></td>
+        <td><%= format_casting_time(spell["casting_time"]) %></td>
       </tr>
     <% end %>
   </table>
