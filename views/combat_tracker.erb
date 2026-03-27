@@ -406,11 +406,6 @@
           return;
         }
 
-        // Attack TN: base - attacker bonus + defender's parry weapon bonus
-        var attackTn = clampTn(baseTn - attackContext.weapon.attack_bonus + parryWeapon.weapon_attack_bonus);
-        var attackSuccesses = promptSuccesses(currentCharName + ' attacks (TN ' + attackTn + ', ' + attackContext.attack_dice + ' dice, parry +' + parryWeapon.weapon_attack_bonus + ')', attackContext.attack_dice);
-        if (attackSuccesses === null) return;
-
         // Parry TN: base - defender's parry bonus + attacker's weapon bonus
         var parryTn = clampTn(baseTn - parryWeapon.weapon_attack_bonus + attackContext.weapon.attack_bonus);
 
@@ -420,7 +415,6 @@
         var maxDice = Math.min(parryWeapon.weapon_dice, maxAvailable);
         if (maxDice < minDice) {
           alert(target.name + ' cannot parry with ' + parryWeapon.name + ' (need ' + (minDice + parrySpeed) + ' dice, have ' + target.dice_remaining + ').');
-          submitResolve(resolveDamage(attackSuccesses, 0, target), target);
           return;
         }
 
@@ -430,6 +424,11 @@
         if (isNaN(parryDice) || parryDice < minDice || parryDice > maxDice) {
           alert('Invalid. Enter ' + minDice + '-' + maxDice + '.'); return;
         }
+
+        // Attack TN: base - attacker bonus + defender's parry weapon bonus
+        var attackTn = clampTn(baseTn - attackContext.weapon.attack_bonus + parryWeapon.weapon_attack_bonus);
+        var attackSuccesses = promptSuccesses(currentCharName + ' attacks (TN ' + attackTn + ', ' + attackContext.attack_dice + ' dice, parry +' + parryWeapon.weapon_attack_bonus + ')', attackContext.attack_dice);
+        if (attackSuccesses === null) return;
 
         var parrySuccesses = promptSuccesses(target.name + ' rolls ' + parryDice + ' dice (TN ' + parryTn + ')', parryDice);
         if (parrySuccesses === null) return;
