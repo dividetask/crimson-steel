@@ -18,8 +18,8 @@
 		"feats": { "race": ["armor_training"]},
 		"spells": [ 
 			["Stabilize", "Sacred Flame", "Magic Vestments"],
-			["Cure Lesser Wounds", "Healing Word", "Command", "Lesser Ward", "Divine Favor", "Shield of Faith "],
-			["Magic Weapon", "Spiritual Weapon", "Hold Person", "Silence", "Blindness/Deafness", "Augury", "Cure Simple Wounds", "Standard Ward", "Locate Object", "Augury", "Protection from Poison", "Standard Surgery"]]
+			["Cure Lesser Wounds", "Healing Word", "Command", "Lesser Ward", "Divine Favor", "Shield of Faith"],
+			["Magic Weapon", "Spiritual Weapon", "Hold Person", "Silence", "Blindness/Deafness", "Commune", "Cure Simple Wounds", "Simple Ward", "Locate Object", "Commune", "Protection from Poison", "Standard Surgery"]]
 	},
 	{
 		"id": 2,
