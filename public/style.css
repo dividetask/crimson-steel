@@ -312,7 +312,9 @@ table th {
 .action-buttons { display: flex; flex-direction: column; gap: 8px; }
 .action-btn { padding: 8px 16px; font-size: 13px; font-weight: bold; background: #333; color: white; border: none; cursor: pointer; border-radius: 3px; }
 .action-btn:hover { background: #555; }
-.action-context { min-height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+.action-context { min-height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; max-width: 600px; }
+.resolve-step { padding: 8px 10px; margin-bottom: 6px; border-left: 3px solid #1976d2; background: #f5f8ff; border-radius: 2px; font-size: 13px; line-height: 1.6; }
+.math-detail { color: #555; font-size: 12px; }
 .weapon-btn { display: block; margin-bottom: 8px; padding: 8px 16px; font-size: 13px; background: #1976d2; color: white; border: none; cursor: pointer; border-radius: 3px; }
 .weapon-btn:hover { background: #1565c0; }
 
