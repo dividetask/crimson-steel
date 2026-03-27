@@ -368,6 +368,26 @@ get '/spell/:name' do
   compendium = Compendium.new
   @spell_name = params[:name]
   @spell = compendium.data["spells"][@spell_name]
+  @tier_index = nil
+
+  unless @spell
+    compendium.data["spells"].each do |base_name, spell_data|
+      tiers = spell_data["tier"].is_a?(Array) ? spell_data["tier"] : [spell_data["tier"]]
+      tiers.each_with_index do |tier_val, idx|
+        variant_names = []
+        variant_names << "#{spell_data["prefix"][idx]} #{base_name}" if spell_data["prefix"] && spell_data["prefix"][idx]
+        variant_names << "#{base_name} #{spell_data["suffix"][idx]}" if spell_data["suffix"] && spell_data["suffix"][idx]
+        if variant_names.any? { |v| v == @spell_name }
+          @spell = spell_data
+          @spell_name = base_name
+          @tier_index = idx
+          break
+        end
+      end
+      break if @spell
+    end
+  end
+
   halt 404, "Spell not found" unless @spell
   @school = @spell["school"] || "universal"
   @range_labels = compendium.data["range"]
