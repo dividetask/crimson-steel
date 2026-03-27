@@ -36,17 +36,12 @@ class CombatTurn
 end
 
 class Combat
-  attr_reader :combat_turn_list, :current_turn_id, :current_action, :current_actor_turn_id, :current_action_tool_id, :target_id, :action_params
+  attr_reader :combat_turn_list, :current_turn_id
 
   def initialize
     character_list = Tools.load_json('characters.json')
     combat_data = Tools.load_json('combat.json')
     @current_turn_id = combat_data['current_turn_id'] || 0
-    @current_action = combat_data['current_action'] || ''
-    @current_actor_turn_id = combat_data['current_actor_turn_id'] || 0
-    @current_action_tool_id = combat_data['current_action_tool_id'] || ''
-    @target_id = combat_data['target_id'] || 0
-    @action_params = combat_data['action_params'] || {}
     @combat_turn_list = combat_data['participants'].filter_map do |combat_turn|
       char_id = combat_turn['char_id'] || combat_turn['id']
       character = character_list.find { |c| c["id"] == char_id }
@@ -106,15 +101,6 @@ class Combat
     Tools.save_json('combat.json', combat_data)
   end
 
-  def self.clear_action
-    combat_data = Tools.load_json('combat.json')
-    combat_data['current_action'] = ''
-    combat_data['current_actor_turn_id'] = 0
-    combat_data['current_action_tool_id'] = ''
-    combat_data['target_id'] = 0
-    combat_data['action_params'] = {}
-    Tools.save_json('combat.json', combat_data)
-  end
 
   def self.calculate_damage(attacker_id, target_id, weapon_id, action_params)
     action_params['damage'] = 0
