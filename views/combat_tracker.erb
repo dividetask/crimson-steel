@@ -1,18 +1,28 @@
   <div class="combat-tracker">
   <h1>Combat Tracker</h1>
-  
+
+  <% if @combat.current_action == 'attack' %>
+    <% atk_actor = @combat.combat_turn_list[@combat.current_actor_turn_id] %>
+    <% atk_target = @combat.combat_turn_list[@combat.target_id] %>
+    <% atk_weapon = atk_actor.character.weapon_list.find { |i| i['item_id'] == @combat.current_action_tool_id } %>
+    <div class="attack-banner">
+      <%= @combat.display_name(atk_actor) %> attacks <%= @combat.display_name(atk_target) %> with <%= atk_weapon ? atk_weapon['name'] : 'Unknown' %>
+    </div>
+  <% end %>
+
   <table>
     <thead>
       <tr>
         <th>Initiative</th>
         <th>Character Name</th>
         <th>HP</th>
-        <th>Moderate Damage</th>
-        <th>Major Damage</th>
+        <th>Minor</th>
+        <th>Moderate</th>
+        <th>Major</th>
         <th>Mana</th>
-        <th>Dice Remaining</th>
+        <th>Dice</th>
         <th>Saturation</th>
-        <th>Actions</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
@@ -21,31 +31,16 @@
           <td><%= combat_turn.initiative %></td>
           <td><%= @combat.display_name(combat_turn) %></td>
           <td><%= combat_turn.hp %>/<%= combat_turn.character.hp_max %></td>
-          <td><%= combat_turn.moderate_damage %></td>
-          <td><%= combat_turn.major_damage %></td>
-          <td><%= combat_turn.mana %>/<%= combat_turn.character.mana_max %></td>
-          <td><%= combat_turn.combat_pool %>/<%= combat_turn.character.combat_pool %></td>
-          <td><%= combat_turn.saturation %>/<%= combat_turn.character.cha %></td>
           <td>
-						<form method="post" action="/combat/damage/<%= combat_turn.combat_id %>" style="display: inline;">
-							<input type="number" name="minor_damage" placeholder="Minor" min="0" value="0" style="width: 50px;">
-							<input type="number" name="moderate_damage" placeholder="Mod" min="0" value="0" style="width: 50px;">
-							<input type="number" name="major_damage" placeholder="Major" min="0" value="0" style="width: 50px;">
-							<button type="submit">Add Damage</button>
-						</form>
-            <form method="post" action="/combat/mana/<%= combat_turn.combat_id %>" style="display: inline;">
-              <input type="number" name="amount" placeholder="Mana">
-              <button type="submit">Subtract Mana</button>
-            </form>
-            <form method="post" action="/combat/dice/<%= combat_turn.combat_id %>" style="display: inline;">
-              <input type="number" name="amount" placeholder="Dice">
-              <button type="submit">Subtract Dice</button>
-            </form>
-            <form method="post" action="/combat/sat/<%= combat_turn.combat_id %>" style="display: inline;">
-              <input type="number" name="amount" placeholder="Saturation">
-              <button type="submit">Mana Saturation</button>
-            </form>
+            <form method="post" action="/combat/update/<%= combat_turn.combat_id %>" class="combat-update-form">
+            <input type="number" name="minor_damage" value="<%= combat_turn.minor_damage %>" style="width: 45px;">
           </td>
+          <td><input type="number" name="moderate_damage" value="<%= combat_turn.moderate_damage %>" style="width: 45px;"></td>
+          <td><input type="number" name="major_damage" value="<%= combat_turn.major_damage %>" style="width: 45px;"></td>
+          <td><input type="number" name="mana" value="<%= combat_turn.mana %>" style="width: 45px;">/<%= combat_turn.character.mana_max %></td>
+          <td><input type="number" name="combat_pool" value="<%= combat_turn.combat_pool %>" style="width: 45px;">/<%= combat_turn.character.combat_pool %></td>
+          <td><input type="number" name="saturation" value="<%= combat_turn.saturation %>" style="width: 45px;">/<%= combat_turn.character.cha %></td>
+          <td><button type="submit">Update</button></form></td>
         </tr>
       <% end %>
     </tbody>

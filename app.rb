@@ -56,24 +56,17 @@ get '/combat' do
   erb :combat_tracker
 end
 
-post '/combat/damage/:id' do
+post '/combat/update/:id' do
   redirect '/character/0' unless local_request?
   id = params[:id].to_i
-  Combat.update(id, params.slice('minor_damage', 'moderate_damage', 'major_damage'))
-  redirect '/combat'
-end
-
-post '/combat/mana/:id' do
-  redirect '/character/0' unless local_request?
-  id = params[:id].to_i
-  Combat.update(id, {mana: -1 * params[:amount].to_i})
-  redirect '/combat'
-end
-
-post '/combat/dice/:id' do
-  redirect '/character/0' unless local_request?
-  id = params[:id].to_i
-  Combat.update(id, {combat_pool: -1 * params[:amount].to_i})
+  Combat.update(id, {
+    'minor_damage' => params[:minor_damage],
+    'moderate_damage' => params[:moderate_damage],
+    'major_damage' => params[:major_damage],
+    'mana' => params[:mana],
+    'combat_pool' => params[:combat_pool],
+    'saturation' => params[:saturation]
+  }, set_keys: %w[minor_damage moderate_damage major_damage mana combat_pool saturation])
   redirect '/combat'
 end
 
