@@ -30,6 +30,11 @@
   </div>
   <%= yield %>
 <script>
+history.pushState(null, '', location.href);
+window.addEventListener('popstate', function() {
+  history.pushState(null, '', location.href);
+});
+
 function toggleNote(btn) {
   var text = btn.previousElementSibling;
   if (text.classList.contains('collapsed')) {
