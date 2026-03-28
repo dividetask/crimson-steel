@@ -113,6 +113,15 @@ post '/combat/action' do
     target_participant['moderate_damage'] = target_participant['moderate_damage'].to_i + moderate
     target_participant['major_damage'] = target_participant['major_damage'].to_i + major
 
+    # Subtract ally dice spent
+    ally_data = params[:ally_data] || ''
+    ally_data.split(';').each do |entry|
+      next if entry.empty?
+      aid, adice = entry.split(':').map(&:to_i)
+      ally = combat_data['participants'].find { |p| p['id'] == aid }
+      ally['combat_pool'] = ally['combat_pool'].to_i - adice if ally && adice > 0
+    end
+
     Tools.save_json('combat.json', combat_data)
 
     total = minor + moderate + major
