@@ -116,6 +116,8 @@
           damage_reduction: ct.character.damage_reduction,
           damage_resilience: ct.character.damage_resilience,
           abilities: ct.character.ability_list,
+          healing_dice: ct.character.skill_dice("healing"),
+          healing_bonus: ct.character.skill_bonus("healing"),
           weapons: ct.character.weapon_list.select { |w| w['equipped'] }.map { |w|
             {
               item_id: w['item_id'], name: w['name'],
@@ -127,6 +129,7 @@
         }
       }
     ) %>;
+    var activeEffects = <%= JSON.generate(@combat.active_effects) %>;
     var diceRules = <%= JSON.generate(Tools.load_json('rules.json')['dice']) %>;
 
     // --- Client-side attack state ---
@@ -375,7 +378,7 @@
         var tnMath = tnBreakdown('Attack TN', baseTn, tnMods, attackState.attackTn);
         var defLabel = hasUncannyDodge ? '<strong>Defense: Nothing</strong> (Uncanny Dodge - not flatfooted)' : '<strong>Defense: Flatfooted</strong>';
         addStep(defLabel + '<br><span class="math-detail">' + tnMath + '</span>');
-        showAttackRoll();
+        showAllyActions();
       }
 
       // --- Defense: Dodge ---
@@ -397,7 +400,7 @@
           attackState.defenseDice = 0;
           addStep('<strong>Defense: Dodge</strong> - <em>Cannot dodge (need ' + minDice + ' dice, have ' + target.dice_remaining + ')</em>' +
             '<br><span class="math-detail">' + atkTnMath + '</span>');
-          showAttackRoll();
+          showAllyActions();
           return;
         }
 
@@ -484,7 +487,7 @@
         addStep('<strong>Defense: ' + abilityLabel + '</strong> (4 mana)' +
           '<br><span class="math-detail">' + abilityDetail + '</span>' +
           '<br><span class="math-detail">' + tnMath + '</span>');
-        showAttackRoll();
+        showAllyActions();
       }
     }
 
@@ -497,7 +500,7 @@
       attackState.defenseDice = val;
       input.disabled = true;
       input.parentElement.nextElementSibling.style.display = 'none';
-      showAttackRoll();
+      showAllyActions();
     }
 
     function confirmParryDice() {
@@ -510,6 +513,107 @@
       attackState.defenseDice = val + attackState.parrySpeed;
       input.disabled = true;
       input.parentElement.nextElementSibling.style.display = 'none';
+      showAllyActions();
+    }
+
+    // --- Ally actions step ---
+    function showAllyActions() {
+      var target = attackState.target;
+      var baseTn = diceRules.base_target_number;
+      var weapon = attackState.weapon;
+
+      // Find allies with Shield of Faith active
+      var allyShields = [];
+      activeEffects.forEach(function(effect) {
+        if (effect.spell_name !== 'Shield of Faith') return;
+        var caster = combatants.find(function(c) { return c.combat_id === effect.caster_id; });
+        if (!caster) return;
+        if (caster.combat_id === target.combat_id) return;
+        if (caster.dice_remaining < 2) return;
+        allyShields.push({
+          caster: caster,
+          shieldBonus: 1,
+          defenseBonus: caster.healing_bonus,
+          maxDice: caster.healing_dice,
+          available: caster.dice_remaining
+        });
+      });
+
+      if (allyShields.length === 0) {
+        showAttackRoll();
+        return;
+      }
+
+      attackState.allyActions = [];
+      var html = '<strong>Ally Actions</strong>';
+      allyShields.forEach(function(ally, idx) {
+        var capDice = Math.min(ally.maxDice, ally.available);
+        var minDice = 2;
+        html += '<div style="margin-top:6px;">' +
+          '<span class="math-detail">' + ally.caster.name + ' - Shield of Faith (+' + ally.shieldBonus + ' shield, defense bonus ' +
+          (ally.defenseBonus >= 0 ? '+' : '') + ally.defenseBonus + ')</span>' +
+          '<br><label>Block dice (' + minDice + '-' + capDice + '): ' +
+          '<input type="number" id="ally-dice-' + idx + '" min="0" max="' + capDice + '" value="0" style="width:50px;"></label>' +
+          '<input type="hidden" id="ally-cid-' + idx + '" value="' + ally.caster.combat_id + '">' +
+          '<input type="hidden" id="ally-bonus-' + idx + '" value="' + ally.defenseBonus + '">' +
+          '</div>';
+      });
+      html += '<br><button class="action-btn" onclick="confirmAllyActions(' + allyShields.length + ')">Confirm</button>';
+      addStep(html);
+    }
+
+    function confirmAllyActions(count) {
+      attackState.allyActions = [];
+      var totalAllyBonus = 0;
+      var baseTn = diceRules.base_target_number;
+      var weapon = attackState.weapon;
+
+      for (var i = 0; i < count; i++) {
+        var diceInput = document.getElementById('ally-dice-' + i);
+        var cidInput = document.getElementById('ally-cid-' + i);
+        var bonusInput = document.getElementById('ally-bonus-' + i);
+        var dice = parseInt(diceInput.value, 10) || 0;
+        if (dice < 2) continue;
+        var cid = parseInt(cidInput.value, 10);
+        var bonus = parseInt(bonusInput.value, 10);
+        attackState.allyActions.push({combat_id: cid, dice: dice, bonus: bonus});
+        totalAllyBonus += bonus;
+        diceInput.disabled = true;
+      }
+
+      if (attackState.allyActions.length > 0) {
+        // Ally intervention removes flatfooted
+        var hasUncannyDodge = ((attackState.target.abilities || []).indexOf('uncanny_dodge') !== -1);
+        var flatPenalty = hasUncannyDodge ? 0 : (diceRules.flatfooted_penalty || 1);
+
+        // Recalculate attack TN: add ally defense bonuses, remove flatfooted if was applied
+        var tnMods = [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}];
+        // Add back flatfooted that was previously applied (for nothing/ability defenses)
+        if (attackState.defense === 'nothing' || attackState.defense === 'danger_sense' ||
+            attackState.defense === 'better_lucky_than_good' || attackState.defense === 'primal_tenacity') {
+          // Flatfooted was applied but ally negates it - recalc without it
+        }
+        // Add parry weapon bonus if parrying
+        if (attackState.defense === 'parry' && attackState.parryWeapon) {
+          tnMods.push({value: attackState.parryWeapon.weapon_attack_bonus, label: attackState.parryWeapon.name + ' defense'});
+        }
+        // Add ally bonuses
+        attackState.allyActions.forEach(function(a) {
+          var allyName = combatants.find(function(c) { return c.combat_id === a.combat_id; });
+          tnMods.push({value: a.bonus, label: (allyName ? allyName.name : 'Ally') + ' Shield of Faith'});
+        });
+
+        attackState.attackTn = clampTn(baseTn + tnMods.reduce(function(sum, m) { return sum + m.value; }, 0));
+        var tnMath = tnBreakdown('Attack TN (revised)', baseTn, tnMods, attackState.attackTn);
+        addStep('<span class="math-detail">' + tnMath + '</span>');
+      }
+
+      // Hide confirm button
+      var steps = document.querySelectorAll('.resolve-step');
+      var lastBtnStep = steps[steps.length - (attackState.allyActions.length > 0 ? 2 : 1)];
+      var confirmBtn = lastBtnStep ? lastBtnStep.querySelector('button') : null;
+      if (confirmBtn) confirmBtn.style.display = 'none';
+
       showAttackRoll();
     }
 
@@ -535,7 +639,7 @@
       } else if (attackState.defense === 'parry') {
         showParryRoll();
       } else {
-        showDamageResult(val, 0);
+        proceedToAllyRolls(val, 0);
       }
     }
 
@@ -559,7 +663,45 @@
       attackState.defenseSuccesses = val;
       input.disabled = true;
       input.parentElement.nextElementSibling.style.display = 'none';
-      showDamageResult(attackState.attackSuccesses, val);
+      proceedToAllyRolls(attackState.attackSuccesses, val);
+    }
+
+    // --- Ally block rolls ---
+    function proceedToAllyRolls(attackSuccesses, defenseSuccesses) {
+      attackState.allyRollQueue = (attackState.allyActions || []).slice();
+      attackState.allyBlockSuccesses = 0;
+      attackState.pendingAttackSuccesses = attackSuccesses;
+      attackState.pendingDefenseSuccesses = defenseSuccesses;
+      showNextAllyRoll();
+    }
+
+    function showNextAllyRoll() {
+      if (attackState.allyRollQueue.length === 0) {
+        var totalDef = attackState.pendingDefenseSuccesses + attackState.allyBlockSuccesses;
+        showDamageResult(attackState.pendingAttackSuccesses, totalDef);
+        return;
+      }
+      var ally = attackState.allyRollQueue.shift();
+      var caster = combatants.find(function(c) { return c.combat_id === ally.combat_id; });
+      var baseTn = diceRules.base_target_number;
+      var blockTn = clampTn(baseTn - ally.bonus + attackState.weapon.weapon_attack_bonus);
+      var tnMath = tnBreakdown('Block TN', baseTn,
+        [{value: -ally.bonus, label: 'healing bonus'}, {value: attackState.weapon.weapon_attack_bonus, label: 'attacker proficiency'}],
+        blockTn);
+      addStep('<strong>' + (caster ? caster.name : 'Ally') + ' blocks with Shield of Faith</strong>: ' + ally.dice + ' dice' +
+        '<br><span class="math-detail">' + tnMath + '</span>' +
+        '<br><label>Block successes: <input type="number" id="ally-block-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="confirmAllyBlockSuccesses()">Confirm</button>');
+    }
+
+    function confirmAllyBlockSuccesses() {
+      var input = document.getElementById('ally-block-successes');
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
+      attackState.allyBlockSuccesses += val;
+      input.disabled = true;
+      input.parentElement.nextElementSibling.style.display = 'none';
+      showNextAllyRoll();
     }
 
     // --- Damage result ---
@@ -637,6 +779,9 @@
       attackState.drBonus = 0;
       attackState.resilienceBonus = 0;
       attackState.attackDiceOverride = null;
+      attackState.allyActions = [];
+      attackState.allyBlockSuccesses = [];
+      attackState.allyRollQueue = [];
       showDefenseSelection();
     }
 
@@ -644,6 +789,14 @@
       var defenseDice = attackState.defenseDice || 0;
       var attackerDiceSpent = attackState.attackerDiceSpent || 0;
       var manaCost = attackState.manaCost || 0;
+
+      // Build ally_data string from allyActions: "combat_id:dice;combat_id:dice"
+      var allyDataStr = '';
+      if (attackState.allyActions && attackState.allyActions.length > 0) {
+        allyDataStr = attackState.allyActions.map(function(a) {
+          return a.combat_id + ':' + a.dice;
+        }).join(';');
+      }
 
       if (isMiss) {
         submitAction({
@@ -653,6 +806,7 @@
           attacker_dice_spent: attackerDiceSpent,
           defense_dice: defenseDice,
           target_mana_cost: manaCost,
+          ally_data: allyDataStr,
           minor_damage: 0, moderate_damage: 0, major_damage: 0
         });
         return;
@@ -672,6 +826,7 @@
         attacker_dice_spent: attackerDiceSpent,
         defense_dice: defenseDice,
         target_mana_cost: manaCost,
+        ally_data: allyDataStr,
         minor_damage: split.minor, moderate_damage: split.moderate, major_damage: split.major
       });
     }
