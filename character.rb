@@ -36,12 +36,13 @@ class CombatTurn
 end
 
 class Combat
-  attr_reader :combat_turn_list, :current_turn_id
+  attr_reader :combat_turn_list, :current_turn_id, :active_effects
 
   def initialize
     character_list = Tools.load_json('characters.json')
     combat_data = Tools.load_json('combat.json')
     @current_turn_id = combat_data['current_turn_id'] || 0
+    @active_effects = combat_data['active_effects'] || []
     @combat_turn_list = combat_data['participants'].filter_map do |combat_turn|
       char_id = combat_turn['char_id'] || combat_turn['id']
       character = character_list.find { |c| c["id"] == char_id }
