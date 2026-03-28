@@ -523,10 +523,11 @@
       // Find allies with Shield of Faith active
       var allyShields = [];
       activeEffects.forEach(function(effect) {
-        if (effect.spell_name !== 'Shield of Faith') return;
+        if ((effect.spell_name || '').trim() !== 'Shield of Faith') return;
         var caster = combatants.find(function(c) { return c.combat_id === effect.caster_id; });
         if (!caster) return;
-        if (caster.combat_id === target.combat_id) return;
+        // Exclude the attacker from using Shield of Faith on the target
+        if (caster.combat_id === attackState.attackerCombatId) return;
         if (caster.dice_remaining < 2) return;
         allyShields.push({
           caster: caster,
