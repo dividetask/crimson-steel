@@ -2,13 +2,15 @@
   "active": false,
   "round": 0,
   "current_turn": 0,
-  "current_turn_id": 0,
-  "active_effects": [],
+  "current_turn_id": 4,
+  "active_effects": [
+
+  ],
   "participants": [
     {
       "id": 1,
       "char_id": 1,
-      "initiative": "X98764321",
+      "initiative": "",
       "mana": 26,
       "combat_pool": 17,
       "minor_damage": 0,
@@ -19,7 +21,7 @@
     {
       "id": 2,
       "char_id": 2,
-      "initiative": "X97631",
+      "initiative": "",
       "mana": 15,
       "combat_pool": 18,
       "minor_damage": 7,
@@ -30,8 +32,8 @@
     {
       "id": 3,
       "char_id": 3,
-      "initiative": "9765321",
-      "mana": 6,
+      "initiative": "",
+      "mana": 16,
       "combat_pool": 19,
       "minor_damage": 0,
       "moderate_damage": 0,
@@ -41,13 +43,35 @@
     {
       "id": 4,
       "char_id": 4,
-      "initiative": "876421",
-      "mana": 20,
+      "initiative": "",
+      "mana": 16,
       "combat_pool": 19,
       "minor_damage": 0,
       "moderate_damage": 0,
       "major_damage": 0,
       "saturation": 0
+    },
+    {
+      "id": 1010,
+      "char_id": 10,
+      "initiative": "",
+      "mana": 6,
+      "combat_pool": 13,
+      "saturation": 0,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0
+    },
+    {
+      "id": 2011,
+      "char_id": 10,
+      "initiative": "",
+      "mana": 6,
+      "combat_pool": 13,
+      "saturation": 0,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0
     }
   ]
 }
