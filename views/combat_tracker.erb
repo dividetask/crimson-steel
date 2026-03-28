@@ -119,6 +119,14 @@
           healing_dice: ct.character.skill_dice("healing"),
           healing_bonus: ct.character.skill_bonus("healing"),
           spells: (ct.character.spell_list || []).flatten,
+          shields: ct.character.shield_list.select { |s| s['equipped'] }.map { |s|
+            {
+              item_id: s['item_id'], name: s['name'],
+              shield_dice: ct.character.shield_dice(s),
+              shield_speed: ct.character.shield_speed(s),
+              shield_attack_bonus: ct.character.shield_attack_bonus(s)
+            }
+          },
           weapons: ct.character.weapon_list.select { |w| w['equipped'] }.map { |w|
             {
               item_id: w['item_id'], name: w['name'],
@@ -289,9 +297,14 @@
     function showDefenseSelection() {
       var target = attackState.target;
       var targetWeapons = target.weapons || [];
+      var targetShields = target.shields || [];
       var weaponOptions = targetWeapons.map(function(w) {
-        return '<option value="' + w.item_id + '">' + w.name +
+        return '<option value="w-' + w.item_id + '">' + w.name +
           ' (Atk/Def ' + (w.weapon_attack_bonus >= 0 ? '+' : '') + w.weapon_attack_bonus + ', Spd ' + w.weapon_speed + ')</option>';
+      }).join('');
+      var shieldOptions = targetShields.map(function(s) {
+        return '<option value="s-' + s.item_id + '">' + s.name +
+          ' (Def ' + (s.shield_attack_bonus >= 0 ? '+' : '') + s.shield_attack_bonus + ', Spd ' + s.shield_speed + ')</option>';
       }).join('');
 
       var abilities = target.abilities || [];
@@ -300,16 +313,19 @@
         abilityBtns += ' <button class="action-btn" onclick="selectDefense(\'better_lucky_than_good\')">Better Lucky Than Good</button>';
       }
 
+      var hasEquipment = targetWeapons.length > 0 || targetShields.length > 0;
+      var blockBtn = targetShields.length > 0 ? ' <button class="action-btn" onclick="selectDefense(\'block\')">Block</button>' : '';
+
       addStep('<strong>Select Defense for ' + target.name + '</strong>' +
         '<br><button class="action-btn" onclick="selectDefense(\'nothing\')">Nothing</button>' +
         ' <button class="action-btn" onclick="selectDefense(\'dodge\')">Dodge</button>' +
         ' <button class="action-btn" onclick="selectDefense(\'parry\')">Parry</button>' +
-        ' <button class="action-btn" onclick="selectDefense(\'block\')">Block</button>' +
+        blockBtn +
         abilityBtns +
-        (targetWeapons.length > 0 ?
+        (hasEquipment ?
           '<br><label style="margin-top:6px;display:inline-block;font-size:11px;font-weight:bold;">Parry/Block with: ' +
           '<select id="defense-weapon" style="font-size:11px;padding:2px;"><option value="">-- select --</option>' +
-          weaponOptions + '</select></label>' : ''));
+          weaponOptions + shieldOptions + '</select></label>' : ''));
     }
 
     // --- Utility functions ---
@@ -411,7 +427,12 @@
       // --- Defense: Parry ---
       else if (defense === 'parry') {
         var defWeaponSelect = document.getElementById('defense-weapon');
-        var selectedId = defWeaponSelect ? parseInt(defWeaponSelect.value, 10) : NaN;
+        var selectedVal = defWeaponSelect ? defWeaponSelect.value : '';
+        if (!selectedVal || !selectedVal.startsWith('w-')) {
+          alert('Select a weapon to parry with first.');
+          return;
+        }
+        var selectedId = parseInt(selectedVal.substring(2), 10);
         var targetWeapons = target.weapons || [];
         var parryWeapon = targetWeapons.find(function(w) { return w.item_id === selectedId; });
 
@@ -454,6 +475,57 @@
           ' <button class="action-btn" onclick="confirmParryDice()">Confirm</button>');
       }
 
+      // --- Defense: Block (with shield, works like parry) ---
+      else if (defense === 'block') {
+        var defWeaponSelect = document.getElementById('defense-weapon');
+        var selectedVal = defWeaponSelect ? defWeaponSelect.value : '';
+        if (!selectedVal || !selectedVal.startsWith('s-')) {
+          alert('Select a shield to block with first.');
+          return;
+        }
+        var selectedId = parseInt(selectedVal.substring(2), 10);
+        var targetShields = target.shields || [];
+        var blockShield = targetShields.find(function(s) { return s.item_id === selectedId; });
+
+        if (!blockShield) {
+          alert('Select a shield to block with first.');
+          return;
+        }
+        attackState.blockShield = blockShield;
+
+        var blockTn = clampTn(baseTn - blockShield.shield_attack_bonus + weapon.weapon_attack_bonus);
+        var attackTn = clampTn(baseTn - weapon.weapon_attack_bonus + blockShield.shield_attack_bonus);
+        attackState.attackTn = attackTn;
+        attackState.blockTn = blockTn;
+
+        var blockSpeed = blockShield.shield_speed;
+        attackState.blockSpeed = blockSpeed;
+        var minDice = 2;
+        var maxAvailable = target.dice_remaining - blockSpeed;
+        var maxDice = Math.min(blockShield.shield_dice, maxAvailable);
+
+        var atkTnMath = tnBreakdown('Attack TN', baseTn,
+          [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}, {value: blockShield.shield_attack_bonus, label: blockShield.name + ' defense'}],
+          attackTn);
+        var blockTnMath = tnBreakdown('Block TN', baseTn,
+          [{value: -blockShield.shield_attack_bonus, label: blockShield.name + ' bonus'}, {value: weapon.weapon_attack_bonus, label: 'attacker proficiency'}],
+          blockTn);
+
+        if (maxDice < minDice) {
+          addStep('<strong>Defense: Block with ' + blockShield.name + '</strong> - <em>Cannot block (need ' + (minDice + blockSpeed) + ' dice, have ' + target.dice_remaining + ')</em>');
+          return;
+        }
+
+        attackState.blockMin = minDice;
+        attackState.blockMax = maxDice;
+        addStep('<strong>Defense: Block with ' + blockShield.name + '</strong>' +
+          '<br><span class="math-detail">' + atkTnMath + '</span>' +
+          '<br><span class="math-detail">' + blockTnMath + '</span>' +
+          '<br><span class="math-detail">Block cost: dice + ' + blockSpeed + ' (shield speed)</span>' +
+          '<br><label>Block dice (' + minDice + '-' + maxDice + '): <input type="number" id="block-dice-input" min="' + minDice + '" max="' + maxDice + '" value="' + minDice + '" style="width:50px;"></label>' +
+          ' <button class="action-btn" onclick="confirmBlockDice()">Confirm</button>');
+      }
+
       // --- Better Lucky Than Good (stays in defense step since it affects attack dice) ---
       else if (defense === 'better_lucky_than_good') {
         attackState.defenseDice = 0;
@@ -491,6 +563,19 @@
       }
       attackState.parryDice = val;
       attackState.defenseDice = val + attackState.parrySpeed;
+      input.disabled = true;
+      input.parentElement.nextElementSibling.style.display = 'none';
+      showAllyActions();
+    }
+
+    function confirmBlockDice() {
+      var input = document.getElementById('block-dice-input');
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < attackState.blockMin || val > attackState.blockMax) {
+        alert('Enter ' + attackState.blockMin + '-' + attackState.blockMax + '.'); return;
+      }
+      attackState.blockDice = val;
+      attackState.defenseDice = val + attackState.blockSpeed;
       input.disabled = true;
       input.parentElement.nextElementSibling.style.display = 'none';
       showAllyActions();
@@ -606,6 +691,9 @@
         if (attackState.defense === 'parry' && attackState.parryWeapon) {
           tnMods.push({value: attackState.parryWeapon.weapon_attack_bonus, label: attackState.parryWeapon.name + ' defense'});
         }
+        if (attackState.defense === 'block' && attackState.blockShield) {
+          tnMods.push({value: attackState.blockShield.shield_attack_bonus, label: attackState.blockShield.name + ' defense'});
+        }
         attackState.allyActions.forEach(function(a) {
           var allyName = combatants.find(function(c) { return c.combat_id === a.combat_id; });
           tnMods.push({value: a.bonus, label: (allyName ? allyName.name : 'Ally') + ' Shield of Faith'});
@@ -640,6 +728,8 @@
         showDodgeRoll();
       } else if (attackState.defense === 'parry') {
         showParryRoll();
+      } else if (attackState.defense === 'block') {
+        showBlockRoll();
       } else {
         proceedToAllyRolls(val, 0);
       }
@@ -655,6 +745,12 @@
     function showParryRoll() {
       addStep('<strong>Parry Roll</strong>: ' + attackState.parryDice + ' dice, TN ' + attackState.parryTn +
         '<br><label>Parry successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>');
+    }
+
+    function showBlockRoll() {
+      addStep('<strong>Block Roll</strong>: ' + attackState.blockDice + ' dice, TN ' + attackState.blockTn +
+        '<br><label>Block successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>');
     }
 
@@ -925,6 +1021,10 @@
       attackState.drBonus = 0;
       attackState.resilienceBonus = 0;
       attackState.attackDiceOverride = null;
+      attackState.blockShield = null;
+      attackState.blockDice = 0;
+      attackState.blockTn = null;
+      attackState.blockSpeed = 0;
       attackState.allyActions = [];
       attackState.allyBlockSuccesses = [];
       attackState.allyRollQueue = [];

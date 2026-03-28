@@ -502,6 +502,10 @@ module CharacterEquipment
   def weapon_dice(weapon_data); attack_dice(weapon_data["bonus"]); end
   def weapon_attack_bonus(weapon_data); attack_bonus(weapon_data["bonus"]); end
 
+  def shield_dice(shield_data); attack_dice(shield_data["bonus"]); end
+  def shield_attack_bonus(shield_data); attack_bonus(shield_data["bonus"]); end
+  def shield_speed(shield_data); @rules["reference"]["weapon_speed"][shield_data["subtype"]].to_i; end
+
   def damage_reduction()
     armor = find_item("armor");
     dr = armor ? {"light" => 1, "medium" => 3, "heavy" => 6}[armor["subtype"]].to_i + armor["bonus"].to_i : 0
