@@ -551,7 +551,7 @@ class CharacterSheet
       (data["sub_class"] || {}).each do |sub_name, sub_data|
         merged_adv = (data["advancement"] || {}).merge(sub_data["advancement"] || {})
         class_advancement[sub_name] = merged_adv
-        merged_abilities = (data["ability_progression"] || {}).merge(sub_data["ability_progression"] || {})
+        merged_abilities = (data["ability_progression"] || {}).merge(sub_data["ability_progression"] || {}) { |_key, parent, child| (parent + child).uniq }
         class_abilities[sub_name] = merged_abilities
         class_skills[sub_name] = (data["class_skills"] || []) + (sub_data["class_skills"] || [])
       end
