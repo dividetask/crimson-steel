@@ -96,6 +96,7 @@ post '/combat/action' do
     target_combat_id = params[:target_combat_id].to_i
     attacker_dice_spent = params[:attacker_dice_spent].to_i
     defense_dice = params[:defense_dice].to_i
+    target_mana_cost = params[:target_mana_cost].to_i
     minor = params[:minor_damage].to_i
     moderate = params[:moderate_damage].to_i
     major = params[:major_damage].to_i
@@ -107,6 +108,7 @@ post '/combat/action' do
 
     attacker['combat_pool'] = attacker['combat_pool'].to_i - attacker_dice_spent if attacker_dice_spent > 0
     target_participant['combat_pool'] = target_participant['combat_pool'].to_i - defense_dice if defense_dice > 0
+    target_participant['mana'] = target_participant['mana'].to_i - target_mana_cost if target_mana_cost > 0
     target_participant['minor_damage'] = target_participant['minor_damage'].to_i + minor
     target_participant['moderate_damage'] = target_participant['moderate_damage'].to_i + moderate
     target_participant['major_damage'] = target_participant['major_damage'].to_i + major

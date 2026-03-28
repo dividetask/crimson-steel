@@ -89,10 +89,11 @@
       @combat.combat_turn_list.each_with_index.map { |ct, idx|
         {
           turn_id: idx, combat_id: ct.combat_id, char_id: ct.character.id,
-          name: @combat.display_name(ct), dice_remaining: ct.combat_pool,
+          name: @combat.display_name(ct), dice_remaining: ct.combat_pool, mana: ct.mana,
           bab_dice: ct.character.bab_dice, bab_bonus: ct.character.bab_bonus,
           damage_reduction: ct.character.damage_reduction,
           damage_resilience: ct.character.damage_resilience,
+          abilities: ct.character.ability_list,
           weapons: ct.character.weapon_list.select { |w| w['equipped'] }.map { |w|
             {
               item_id: w['item_id'], name: w['name'],
@@ -187,7 +188,7 @@
 
       addStep('<strong>Attack Dice</strong>: ' + currentCharName + ' attacks ' + target.name + ' with ' + weapon.name +
         '<br><span class="math-detail">Dice range: ' + minDice + '-' + capDice + ' | Weapon speed: ' + speed + ' (total cost: dice + ' + speed + ')</span>' +
-        '<br><label>Attack dice: <input type="number" id="attack-dice-input" min="' + minDice + '" max="' + capDice + '" value="' + minDice + '" style="width:50px;"></label>' +
+        '<br><label>Attack dice: <input type="number" id="attack-dice-input" min="' + minDice + '" max="' + capDice + '" value="' + capDice + '" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmAttackDice(' + minDice + ',' + capDice + ')">Confirm</button>');
     }
 
@@ -213,11 +214,24 @@
           ' (Atk/Def ' + (w.weapon_attack_bonus >= 0 ? '+' : '') + w.weapon_attack_bonus + ', Spd ' + w.weapon_speed + ')</option>';
       }).join('');
 
+      var abilities = target.abilities || [];
+      var abilityBtns = '';
+      if (abilities.indexOf('danger_sense') !== -1 && target.mana >= 4) {
+        abilityBtns += ' <button class="action-btn" onclick="selectDefense(\'danger_sense\')">Danger Sense</button>';
+      }
+      if (abilities.indexOf('better_lucky_than_good') !== -1 && target.mana >= 4) {
+        abilityBtns += ' <button class="action-btn" onclick="selectDefense(\'better_lucky_than_good\')">Better Lucky Than Good</button>';
+      }
+      if (abilities.indexOf('primal_tenacity') !== -1 && target.mana >= 4) {
+        abilityBtns += ' <button class="action-btn" onclick="selectDefense(\'primal_tenacity\')">Primal Tenacity</button>';
+      }
+
       addStep('<strong>Select Defense for ' + target.name + '</strong>' +
         '<br><button class="action-btn" onclick="selectDefense(\'nothing\')">Nothing</button>' +
         ' <button class="action-btn" onclick="selectDefense(\'dodge\')">Dodge</button>' +
         ' <button class="action-btn" onclick="selectDefense(\'parry\')">Parry</button>' +
         ' <button class="action-btn" onclick="selectDefense(\'block\')">Block</button>' +
+        abilityBtns +
         (targetWeapons.length > 0 ?
           '<br><label style="margin-top:6px;display:inline-block;font-size:11px;font-weight:bold;">Parry/Block with: ' +
           '<select id="defense-weapon" style="font-size:11px;padding:2px;"><option value="">-- select --</option>' +
@@ -363,6 +377,49 @@
           '<br><label>Parry dice (' + minDice + '-' + maxDice + '): <input type="number" id="parry-dice-input" min="' + minDice + '" max="' + maxDice + '" value="' + minDice + '" style="width:50px;"></label>' +
           ' <button class="action-btn" onclick="confirmParryDice()">Confirm</button>');
       }
+
+      // --- Ability defenses (flatfooted + special effect + 4 mana) ---
+      else if (defense === 'danger_sense') {
+        attackState.defenseDice = 0;
+        attackState.manaCost = 4;
+        attackState.resilienceBonus = 4;
+        attackState.attackTn = clampTn(baseTn - weapon.weapon_attack_bonus - flatPenalty);
+        var tnMath = tnBreakdown('Attack TN', baseTn,
+          [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}, {value: -flatPenalty, label: 'flatfooted'}],
+          attackState.attackTn);
+        addStep('<strong>Defense: Danger Sense</strong> (4 mana)' +
+          '<br><span class="math-detail">Damage resilience +4 for this attack</span>' +
+          '<br><span class="math-detail">' + tnMath + '</span>');
+        showAttackRoll();
+      }
+
+      else if (defense === 'better_lucky_than_good') {
+        attackState.defenseDice = 0;
+        attackState.manaCost = 4;
+        attackState.attackDiceOverride = 3;
+        attackState.attackTn = clampTn(baseTn - weapon.weapon_attack_bonus - flatPenalty);
+        var tnMath = tnBreakdown('Attack TN', baseTn,
+          [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}, {value: -flatPenalty, label: 'flatfooted'}],
+          attackState.attackTn);
+        addStep('<strong>Defense: Better Lucky Than Good</strong> (4 mana)' +
+          '<br><span class="math-detail">Attacker dice reduced to 3</span>' +
+          '<br><span class="math-detail">' + tnMath + '</span>');
+        showAttackRoll();
+      }
+
+      else if (defense === 'primal_tenacity') {
+        attackState.defenseDice = 0;
+        attackState.manaCost = 4;
+        attackState.drBonus = 4;
+        attackState.attackTn = clampTn(baseTn - weapon.weapon_attack_bonus - flatPenalty);
+        var tnMath = tnBreakdown('Attack TN', baseTn,
+          [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}, {value: -flatPenalty, label: 'flatfooted'}],
+          attackState.attackTn);
+        addStep('<strong>Defense: Primal Tenacity</strong> (4 mana)' +
+          '<br><span class="math-detail">Damage reduction +4 for this attack</span>' +
+          '<br><span class="math-detail">' + tnMath + '</span>');
+        showAttackRoll();
+      }
     }
 
     function confirmDodgeDice() {
@@ -392,7 +449,9 @@
 
     // --- Attack roll step ---
     function showAttackRoll() {
-      addStep('<strong>Attack Roll</strong>: ' + attackState.attackDice + ' dice, TN ' + attackState.attackTn +
+      var rollDice = attackState.attackDiceOverride || attackState.attackDice;
+      var diceNote = attackState.attackDiceOverride ? ' (reduced from ' + attackState.attackDice + ')' : '';
+      addStep('<strong>Attack Roll</strong>: ' + rollDice + ' dice' + diceNote + ', TN ' + attackState.attackTn +
         '<br><label>Attack successes: <input type="number" id="attack-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmAttackSuccesses()">Confirm</button>');
     }
@@ -443,7 +502,6 @@
       var target = attackState.target;
       var reqSuccesses = diceRules.default_required_successes;
       var netSuccesses = attackSuccesses - defenseSuccesses;
-      var threshold = target.damage_resilience + weapon.weapon_threshold;
 
       if (netSuccesses < reqSuccesses) {
         var missMsg = '<strong>Miss!</strong> ' + attackSuccesses + ' attack' + (defenseSuccesses > 0 ? ' - ' + defenseSuccesses + ' defense' : '') +
@@ -454,20 +512,30 @@
         return;
       }
 
-      var totalDamage = Math.max(0, weapon.weapon_dmg + netSuccesses + weapon.weapon_bonus - target.damage_reduction);
+      var drBonus = attackState.drBonus || 0;
+      var resilienceBonus = attackState.resilienceBonus || 0;
+      var effectiveDR = target.damage_reduction + drBonus;
+      var effectiveResilience = target.damage_resilience + resilienceBonus;
+      var threshold = effectiveResilience + weapon.weapon_threshold;
 
+      var totalDamage = Math.max(0, weapon.weapon_dmg + netSuccesses + weapon.weapon_bonus - effectiveDR);
+
+      var drText = 'Damage Reduction: ' + target.damage_reduction;
+      if (drBonus > 0) drText += ' + ' + drBonus + ' (Primal Tenacity)';
       var breakdown = '<strong>Damage Calculation</strong><br>' +
         '<span class="math-detail">' +
         'Weapon Damage: ' + weapon.weapon_dmg + ' (' + weapon.name + ')' +
         ' + Net Successes: ' + netSuccesses +
         (defenseSuccesses > 0 ? ' (' + attackSuccesses + ' attack - ' + defenseSuccesses + ' defense)' : '') +
         ' + Weapon Enhancement: ' + weapon.weapon_bonus +
-        ' - Damage Reduction: ' + target.damage_reduction +
+        ' - ' + drText +
         ' = <strong>' + totalDamage + '</strong></span>';
 
       var split = calcDamageSplit(totalDamage, threshold);
+      var resilText = 'Resilience ' + target.damage_resilience;
+      if (resilienceBonus > 0) resilText += ' + ' + resilienceBonus + ' (Danger Sense)';
       var thresholdMath = '<span class="math-detail">Threshold: ' + threshold +
-        ' (Resilience ' + target.damage_resilience + ' + Weapon Threshold ' + weapon.weapon_threshold + ')</span>';
+        ' (' + resilText + ' + Weapon Threshold ' + weapon.weapon_threshold + ')</span>';
       var splitDisplay = '<span class="math-detail">Minor: ' + split.minor + ' | Moderate: ' + split.moderate + ' | Major: ' + split.major + '</span>';
 
       addStep(breakdown + '<br>' + thresholdMath + '<br>' + splitDisplay +
@@ -481,7 +549,8 @@
       var input = document.getElementById('final-damage-input');
       var val = parseInt(input.value, 10) || 0;
       var target = attackState.target;
-      var threshold = target.damage_resilience + attackState.weapon.weapon_threshold;
+      var effectiveResilience = target.damage_resilience + (attackState.resilienceBonus || 0);
+      var threshold = effectiveResilience + attackState.weapon.weapon_threshold;
       var split = calcDamageSplit(val, threshold);
       document.getElementById('final-split').textContent = 'Minor: ' + split.minor + ' | Moderate: ' + split.moderate + ' | Major: ' + split.major;
     }
@@ -498,12 +567,17 @@
       attackState.defenseDice = 0;
       attackState.attackSuccesses = null;
       attackState.defenseSuccesses = null;
+      attackState.manaCost = 0;
+      attackState.drBonus = 0;
+      attackState.resilienceBonus = 0;
+      attackState.attackDiceOverride = null;
       showDefenseSelection();
     }
 
     function submitFinalResult(isMiss) {
       var defenseDice = attackState.defenseDice || 0;
       var attackerDiceSpent = attackState.attackerDiceSpent || 0;
+      var manaCost = attackState.manaCost || 0;
 
       if (isMiss) {
         submitAction({
@@ -512,6 +586,7 @@
           target_combat_id: attackState.targetCombatId,
           attacker_dice_spent: attackerDiceSpent,
           defense_dice: defenseDice,
+          target_mana_cost: manaCost,
           minor_damage: 0, moderate_damage: 0, major_damage: 0
         });
         return;
@@ -520,7 +595,8 @@
       var finalDamage = parseInt(document.getElementById('final-damage-input').value, 10);
       if (isNaN(finalDamage) || finalDamage < 0) { alert('Invalid damage.'); return; }
       var target = attackState.target;
-      var threshold = target.damage_resilience + attackState.weapon.weapon_threshold;
+      var effectiveResilience = target.damage_resilience + (attackState.resilienceBonus || 0);
+      var threshold = effectiveResilience + attackState.weapon.weapon_threshold;
       var split = calcDamageSplit(finalDamage, threshold);
 
       submitAction({
@@ -529,6 +605,7 @@
         target_combat_id: attackState.targetCombatId,
         attacker_dice_spent: attackerDiceSpent,
         defense_dice: defenseDice,
+        target_mana_cost: manaCost,
         minor_damage: split.minor, moderate_damage: split.moderate, major_damage: split.major
       });
     }
