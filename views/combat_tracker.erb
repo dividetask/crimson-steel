@@ -517,80 +517,115 @@
     }
 
     // --- Ally actions step (after defense, before attack roll) ---
-    function showAllyActions() {
-      var target = attackState.target;
+    // Store available shield casters for use across functions
+    var pendingAllyShields = [];
 
-      // Find allies with Shield of Faith active
-      var allyShields = [];
+    function showAllyActions() {
+      attackState.allyActions = [];
+      pendingAllyShields = [];
+
       activeEffects.forEach(function(effect) {
         if ((effect.spell_name || '').trim() !== 'Shield of Faith') return;
         var caster = combatants.find(function(c) { return c.combat_id === effect.caster_id; });
         if (!caster) return;
-        // Exclude the attacker from using Shield of Faith on the target
         if (caster.combat_id === attackState.attackerCombatId) return;
         if (caster.dice_remaining < 2) return;
-        allyShields.push({
+        pendingAllyShields.push({
           caster: caster,
           shieldBonus: 1,
           defenseBonus: caster.healing_bonus,
           maxDice: caster.healing_dice,
-          available: caster.dice_remaining
+          available: caster.dice_remaining,
+          used: false
         });
       });
 
-      if (allyShields.length === 0) {
+      if (pendingAllyShields.length === 0) {
         showAttackRoll();
         return;
       }
 
-      attackState.allyActions = [];
-      var html = '<strong>Ally Actions</strong>';
-      allyShields.forEach(function(ally, idx) {
-        var capDice = Math.min(ally.maxDice, ally.available);
-        var minDice = 2;
-        html += '<div style="margin-top:6px;">' +
-          '<span class="math-detail">' + ally.caster.name + ' - Shield of Faith (+' + ally.shieldBonus + ' shield, defense bonus ' +
-          (ally.defenseBonus >= 0 ? '+' : '') + ally.defenseBonus + ')</span>' +
-          '<br><label>Block dice (' + minDice + '-' + capDice + '): ' +
-          '<input type="number" id="ally-dice-' + idx + '" min="0" max="' + capDice + '" value="0" style="width:50px;"></label>' +
-          '<input type="hidden" id="ally-cid-' + idx + '" value="' + ally.caster.combat_id + '">' +
-          '<input type="hidden" id="ally-bonus-' + idx + '" value="' + ally.defenseBonus + '">' +
-          '</div>';
+      showAllyButtons();
+    }
+
+    function showAllyButtons() {
+      var html = '<strong>Ally Reactions</strong><br>';
+      var anyRemaining = false;
+      pendingAllyShields.forEach(function(ally, idx) {
+        if (ally.used) return;
+        anyRemaining = true;
+        html += '<button class="action-btn" onclick="activateShieldOfFaith(' + idx + ')" style="margin:2px;">' +
+          ally.caster.name + ' — Shield of Faith</button> ';
       });
-      html += '<br><button class="action-btn" onclick="confirmAllyActions(' + allyShields.length + ')">Confirm</button>';
+      if (!anyRemaining) {
+        finalizeAllyActions();
+        return;
+      }
+      html += '<button class="action-btn" onclick="finalizeAllyActions()" style="margin:2px;">Skip</button>';
       addStep(html);
     }
 
-    function confirmAllyActions(count) {
-      attackState.allyActions = [];
-      var totalAllyBonus = 0;
+    function activateShieldOfFaith(idx) {
+      var ally = pendingAllyShields[idx];
+      ally.used = true;
+      var capDice = Math.min(ally.maxDice, ally.available);
+      var minDice = 2;
+
+      // Remove the buttons step
+      var steps = document.querySelectorAll('.resolve-step');
+      steps[steps.length - 1].remove();
+
+      addStep('<strong>' + ally.caster.name + ' — Shield of Faith</strong>' +
+        '<br><span class="math-detail">+' + ally.shieldBonus + ' shield, defense bonus ' +
+        (ally.defenseBonus >= 0 ? '+' : '') + ally.defenseBonus + '</span>' +
+        '<br><label>Block dice (' + minDice + '-' + capDice + '): ' +
+        '<input type="number" id="ally-dice-' + idx + '" min="' + minDice + '" max="' + capDice + '" value="' + minDice + '" style="width:50px;"></label>' +
+        '<input type="hidden" id="ally-cid-' + idx + '" value="' + ally.caster.combat_id + '">' +
+        '<input type="hidden" id="ally-bonus-' + idx + '" value="' + ally.defenseBonus + '">' +
+        ' <button class="action-btn" onclick="confirmOneAlly(' + idx + ')">Confirm</button>');
+    }
+
+    function confirmOneAlly(idx) {
+      var diceInput = document.getElementById('ally-dice-' + idx);
+      var ally = pendingAllyShields[idx];
+      var dice = parseInt(diceInput.value, 10) || 0;
+      var minDice = 2;
+      var capDice = Math.min(ally.maxDice, ally.available);
+      if (dice < minDice || dice > capDice) {
+        alert('Enter ' + minDice + '-' + capDice + '.'); return;
+      }
+      var cid = parseInt(document.getElementById('ally-cid-' + idx).value, 10);
+      var bonus = parseInt(document.getElementById('ally-bonus-' + idx).value, 10);
+      attackState.allyActions.push({combat_id: cid, dice: dice, bonus: bonus});
+      diceInput.disabled = true;
+      diceInput.parentElement.parentElement.querySelector('button').style.display = 'none';
+
+      // Check if more allies available
+      var moreAvailable = pendingAllyShields.some(function(a) { return !a.used; });
+      if (moreAvailable) {
+        showAllyButtons();
+      } else {
+        finalizeAllyActions();
+      }
+    }
+
+    function finalizeAllyActions() {
       var baseTn = diceRules.base_target_number;
       var weapon = attackState.weapon;
 
-      for (var i = 0; i < count; i++) {
-        var diceInput = document.getElementById('ally-dice-' + i);
-        var cidInput = document.getElementById('ally-cid-' + i);
-        var bonusInput = document.getElementById('ally-bonus-' + i);
-        var dice = parseInt(diceInput.value, 10) || 0;
-        if (dice < 2) continue;
-        var cid = parseInt(cidInput.value, 10);
-        var bonus = parseInt(bonusInput.value, 10);
-        attackState.allyActions.push({combat_id: cid, dice: dice, bonus: bonus});
-        totalAllyBonus += bonus;
-        diceInput.disabled = true;
+      // Remove the skip/buttons step if it's still there
+      var steps = document.querySelectorAll('.resolve-step');
+      var lastStep = steps[steps.length - 1];
+      if (lastStep && lastStep.innerHTML.indexOf('Ally Reactions') !== -1) {
+        lastStep.remove();
       }
 
       if (attackState.allyActions.length > 0) {
-        // Ally intervention removes flatfooted
-        var hasUncannyDodge = ((attackState.target.abilities || []).indexOf('uncanny_dodge') !== -1);
-
-        // Recalculate attack TN: add ally defense bonuses, remove flatfooted if was applied
+        // Ally intervention removes flatfooted — recalculate TN without it
         var tnMods = [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}];
-        // Add parry weapon bonus if parrying
         if (attackState.defense === 'parry' && attackState.parryWeapon) {
           tnMods.push({value: attackState.parryWeapon.weapon_attack_bonus, label: attackState.parryWeapon.name + ' defense'});
         }
-        // Add ally bonuses
         attackState.allyActions.forEach(function(a) {
           var allyName = combatants.find(function(c) { return c.combat_id === a.combat_id; });
           tnMods.push({value: a.bonus, label: (allyName ? allyName.name : 'Ally') + ' Shield of Faith'});
@@ -600,12 +635,6 @@
         var tnMath = tnBreakdown('Attack TN (revised)', baseTn, tnMods, attackState.attackTn);
         addStep('<span class="math-detail">' + tnMath + '</span>');
       }
-
-      // Hide confirm button
-      var steps = document.querySelectorAll('.resolve-step');
-      var lastBtnStep = steps[steps.length - (attackState.allyActions.length > 0 ? 2 : 1)];
-      var confirmBtn = lastBtnStep ? lastBtnStep.querySelector('button') : null;
-      if (confirmBtn) confirmBtn.style.display = 'none';
 
       showAttackRoll();
     }
