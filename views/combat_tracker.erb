@@ -118,6 +118,7 @@
           abilities: ct.character.ability_list,
           healing_dice: ct.character.skill_dice("healing"),
           healing_bonus: ct.character.skill_bonus("healing"),
+          spells: (ct.character.spell_list || []).flatten,
           weapons: ct.character.weapon_list.select { |w| w['equipped'] }.map { |w|
             {
               item_id: w['item_id'], name: w['name'],
@@ -295,14 +296,8 @@
 
       var abilities = target.abilities || [];
       var abilityBtns = '';
-      if (abilities.indexOf('danger_sense') !== -1 && target.mana >= 4) {
-        abilityBtns += ' <button class="action-btn" onclick="selectDefense(\'danger_sense\')">Danger Sense</button>';
-      }
       if (abilities.indexOf('better_lucky_than_good') !== -1 && target.mana >= 4) {
         abilityBtns += ' <button class="action-btn" onclick="selectDefense(\'better_lucky_than_good\')">Better Lucky Than Good</button>';
-      }
-      if (abilities.indexOf('primal_tenacity') !== -1 && target.mana >= 4) {
-        abilityBtns += ' <button class="action-btn" onclick="selectDefense(\'primal_tenacity\')">Primal Tenacity</button>';
       }
 
       addStep('<strong>Select Defense for ' + target.name + '</strong>' +
@@ -459,33 +454,18 @@
           ' <button class="action-btn" onclick="confirmParryDice()">Confirm</button>');
       }
 
-      // --- Ability defenses (flatfooted + special effect + 4 mana) ---
-      else if (defense === 'danger_sense' || defense === 'better_lucky_than_good' || defense === 'primal_tenacity') {
+      // --- Better Lucky Than Good (stays in defense step since it affects attack dice) ---
+      else if (defense === 'better_lucky_than_good') {
         attackState.defenseDice = 0;
         attackState.manaCost = 4;
+        attackState.attackDiceOverride = 3;
         attackState.attackTn = clampTn(baseTn - weapon.weapon_attack_bonus - flatPenalty);
         var tnMods = [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}];
         if (flatPenalty > 0) tnMods.push({value: -flatPenalty, label: 'flatfooted'});
         var tnMath = tnBreakdown('Attack TN', baseTn, tnMods, attackState.attackTn);
 
-        var abilityLabel = '';
-        var abilityDetail = '';
-        if (defense === 'danger_sense') {
-          attackState.resilienceBonus = 4;
-          abilityLabel = 'Danger Sense';
-          abilityDetail = 'Damage resilience +4 for this attack';
-        } else if (defense === 'better_lucky_than_good') {
-          attackState.attackDiceOverride = 3;
-          abilityLabel = 'Better Lucky Than Good';
-          abilityDetail = 'Attacker dice reduced to 3';
-        } else if (defense === 'primal_tenacity') {
-          attackState.drBonus = 4;
-          abilityLabel = 'Primal Tenacity';
-          abilityDetail = 'Damage reduction +4 for this attack';
-        }
-
-        addStep('<strong>Defense: ' + abilityLabel + '</strong> (4 mana)' +
-          '<br><span class="math-detail">' + abilityDetail + '</span>' +
+        addStep('<strong>Defense: Better Lucky Than Good</strong> (4 mana)' +
+          '<br><span class="math-detail">Attacker dice reduced to 3</span>' +
           '<br><span class="math-detail">' + tnMath + '</span>');
         showAllyActions();
       }
@@ -699,8 +679,7 @@
 
     function showNextAllyRoll() {
       if (attackState.allyRollQueue.length === 0) {
-        var totalDef = attackState.pendingDefenseSuccesses + attackState.allyBlockSuccesses;
-        showDamageResult(attackState.pendingAttackSuccesses, totalDef);
+        showPostDefenseAbilities();
         return;
       }
       var ally = attackState.allyRollQueue.shift();
@@ -726,6 +705,149 @@
       showNextAllyRoll();
     }
 
+    // --- Post-defense abilities (Danger Sense, Primal Tenacity) ---
+    function showPostDefenseAbilities() {
+      var target = attackState.target;
+      var abilities = target.abilities || [];
+      var isNothing = (attackState.defense === 'nothing' || attackState.defense === 'better_lucky_than_good');
+
+      if (!isNothing) {
+        showHealingWord();
+        return;
+      }
+
+      var btns = '';
+      if (abilities.indexOf('danger_sense') !== -1 && target.mana >= 4) {
+        btns += '<button class="action-btn" onclick="usePostAbility(\'danger_sense\')" style="margin:2px;">Danger Sense</button> ';
+      }
+      if (abilities.indexOf('primal_tenacity') !== -1 && target.mana >= 4) {
+        btns += '<button class="action-btn" onclick="usePostAbility(\'primal_tenacity\')" style="margin:2px;">Primal Tenacity</button> ';
+      }
+
+      if (btns === '') {
+        showHealingWord();
+        return;
+      }
+
+      btns += '<button class="action-btn" onclick="showHealingWord()" style="margin:2px;">Skip</button>';
+      addStep('<strong>Reactive Abilities for ' + target.name + '</strong><br>' + btns);
+    }
+
+    function usePostAbility(ability) {
+      // Remove buttons step
+      var steps = document.querySelectorAll('.resolve-step');
+      steps[steps.length - 1].remove();
+
+      attackState.manaCost += 4;
+      if (ability === 'danger_sense') {
+        attackState.resilienceBonus = 4;
+        addStep('<strong>Danger Sense</strong> (4 mana)<br><span class="math-detail">Damage resilience +4 for this attack</span>');
+      } else if (ability === 'primal_tenacity') {
+        attackState.drBonus = 4;
+        addStep('<strong>Primal Tenacity</strong> (4 mana)<br><span class="math-detail">Damage reduction +4 for this attack</span>');
+      }
+      showHealingWord();
+    }
+
+    // --- Healing Word reactive ally spell ---
+    function showHealingWord() {
+      attackState.healingWordActions = attackState.healingWordActions || [];
+      attackState.healingWordSuccesses = attackState.healingWordSuccesses || 0;
+
+      // Find allies who know Healing Word, have mana, and have dice
+      var healers = [];
+      var healingWordCost = spellManaCost(1); // tier 1 = 4 mana
+      combatants.forEach(function(c) {
+        if (c.combat_id === attackState.attackerCombatId) return;
+        // Skip already used healers
+        var alreadyUsed = attackState.healingWordActions.some(function(a) { return a.combat_id === c.combat_id; });
+        if (alreadyUsed) return;
+        if (!c.spells || c.spells.indexOf('Healing Word') === -1) return;
+        if (c.mana < healingWordCost) return;
+        if (c.dice_remaining < 2) return;
+        healers.push(c);
+      });
+
+      if (healers.length === 0) {
+        proceedToDamage();
+        return;
+      }
+
+      var html = '<strong>Healing Word Reactions</strong><br>';
+      healers.forEach(function(healer) {
+        html += '<button class="action-btn" onclick="activateHealingWord(' + healer.combat_id + ')" style="margin:2px;">' +
+          healer.name + ' — Healing Word (' + healingWordCost + ' mana)</button> ';
+      });
+      html += '<button class="action-btn" onclick="proceedToDamage()" style="margin:2px;">Skip</button>';
+      addStep(html);
+    }
+
+    function activateHealingWord(combatId) {
+      var healer = combatants.find(function(c) { return c.combat_id === combatId; });
+      if (!healer) return;
+      var maxDice = Math.min(healer.healing_dice, healer.dice_remaining);
+      var minDice = 2;
+      var healingWordCost = spellManaCost(1);
+      var baseTn = diceRules.base_target_number;
+      var healTn = clampTn(baseTn - healer.healing_bonus);
+      var tnMath = tnBreakdown('Healing TN', baseTn,
+        [{value: -healer.healing_bonus, label: 'healing bonus'}], healTn);
+
+      // Remove the buttons step
+      var steps = document.querySelectorAll('.resolve-step');
+      steps[steps.length - 1].remove();
+
+      addStep('<strong>' + healer.name + ' — Healing Word</strong> (' + healingWordCost + ' mana)' +
+        '<br><span class="math-detail">' + tnMath + '</span>' +
+        '<br><label>Healing dice (' + minDice + '-' + maxDice + '): ' +
+        '<input type="number" id="hw-dice" min="' + minDice + '" max="' + maxDice + '" value="' + minDice + '" style="width:50px;"></label>' +
+        '<input type="hidden" id="hw-cid" value="' + combatId + '">' +
+        '<input type="hidden" id="hw-tn" value="' + healTn + '">' +
+        ' <button class="action-btn" onclick="confirmHealingWordDice()">Confirm</button>');
+    }
+
+    function confirmHealingWordDice() {
+      var diceInput = document.getElementById('hw-dice');
+      var dice = parseInt(diceInput.value, 10) || 0;
+      var cid = parseInt(document.getElementById('hw-cid').value, 10);
+      var healTn = parseInt(document.getElementById('hw-tn').value, 10);
+      var healer = combatants.find(function(c) { return c.combat_id === cid; });
+      var maxDice = Math.min(healer.healing_dice, healer.dice_remaining);
+      if (dice < 2 || dice > maxDice) { alert('Enter 2-' + maxDice + '.'); return; }
+
+      diceInput.disabled = true;
+      diceInput.parentElement.parentElement.querySelector('button').style.display = 'none';
+
+      attackState.healingWordActions.push({combat_id: cid, dice: dice});
+
+      addStep('<strong>' + healer.name + ' rolls Healing Word</strong>: ' + dice + ' dice, TN ' + healTn +
+        '<br><label>Successes (each reduces damage by 1): <input type="number" id="hw-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="confirmHealingWordSuccesses()">Confirm</button>');
+    }
+
+    function confirmHealingWordSuccesses() {
+      var input = document.getElementById('hw-successes');
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
+      attackState.healingWordSuccesses += val;
+      input.disabled = true;
+      input.parentElement.nextElementSibling.style.display = 'none';
+      // Offer more healers
+      showHealingWord();
+    }
+
+    function proceedToDamage() {
+      // Remove skip buttons step if present
+      var steps = document.querySelectorAll('.resolve-step');
+      var lastStep = steps[steps.length - 1];
+      if (lastStep && (lastStep.innerHTML.indexOf('Healing Word Reactions') !== -1)) {
+        lastStep.remove();
+      }
+
+      var totalDef = attackState.pendingDefenseSuccesses + attackState.allyBlockSuccesses;
+      showDamageResult(attackState.pendingAttackSuccesses, totalDef);
+    }
+
     // --- Damage result ---
     function showDamageResult(attackSuccesses, defenseSuccesses) {
       var weapon = attackState.weapon;
@@ -748,17 +870,19 @@
       var effectiveResilience = target.damage_resilience + resilienceBonus;
       var threshold = effectiveResilience + weapon.weapon_threshold;
 
-      var totalDamage = Math.max(0, weapon.weapon_dmg + netSuccesses + weapon.weapon_bonus - effectiveDR);
+      var hwReduction = attackState.healingWordSuccesses || 0;
+      var totalDamage = Math.max(0, weapon.weapon_dmg + netSuccesses + weapon.weapon_bonus - effectiveDR - hwReduction);
 
       var drText = 'Damage Reduction: ' + target.damage_reduction;
       if (drBonus > 0) drText += ' + ' + drBonus + ' (Primal Tenacity)';
+      var hwText = hwReduction > 0 ? ' - Healing Word: ' + hwReduction : '';
       var breakdown = '<strong>Damage Calculation</strong><br>' +
         '<span class="math-detail">' +
         'Weapon Damage: ' + weapon.weapon_dmg + ' (' + weapon.name + ')' +
         ' + Net Successes: ' + netSuccesses +
         (defenseSuccesses > 0 ? ' (' + attackSuccesses + ' attack - ' + defenseSuccesses + ' defense)' : '') +
         ' + Weapon Enhancement: ' + weapon.weapon_bonus +
-        ' - ' + drText +
+        ' - ' + drText + hwText +
         ' = <strong>' + totalDamage + '</strong></span>';
 
       var split = calcDamageSplit(totalDamage, threshold);
@@ -804,6 +928,8 @@
       attackState.allyActions = [];
       attackState.allyBlockSuccesses = [];
       attackState.allyRollQueue = [];
+      attackState.healingWordActions = [];
+      attackState.healingWordSuccesses = 0;
       showDefenseSelection();
     }
 
@@ -820,6 +946,15 @@
         }).join(';');
       }
 
+      // Build healing_word_data string: "combat_id:mana_cost;combat_id:mana_cost"
+      var hwDataStr = '';
+      var hwCost = spellManaCost(1);
+      if (attackState.healingWordActions && attackState.healingWordActions.length > 0) {
+        hwDataStr = attackState.healingWordActions.map(function(a) {
+          return a.combat_id + ':' + hwCost;
+        }).join(';');
+      }
+
       if (isMiss) {
         submitAction({
           combat_action: 'attack',
@@ -829,6 +964,7 @@
           defense_dice: defenseDice,
           target_mana_cost: manaCost,
           ally_data: allyDataStr,
+          healing_word_data: hwDataStr,
           minor_damage: 0, moderate_damage: 0, major_damage: 0
         });
         return;
@@ -849,6 +985,7 @@
         defense_dice: defenseDice,
         target_mana_cost: manaCost,
         ally_data: allyDataStr,
+        healing_word_data: hwDataStr,
         minor_damage: split.minor, moderate_damage: split.moderate, major_damage: split.major
       });
     }
