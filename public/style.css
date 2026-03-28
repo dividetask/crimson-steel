@@ -338,6 +338,57 @@ table th {
 .enemy-clear-btn:hover { background: #b71c1c; }
 .enemy-sheet { min-width: 0; }
 
+/* Spell list page */
+.spell-filters { margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+.spell-filters .filter-row { display: flex; gap: 15px; align-items: flex-end; }
+.spell-filters .filter-field { flex: 1; }
+.spell-filters .filter-field label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 12px; }
+.spell-filters .filter-field select { width: 100%; padding: 6px; font-size: 13px; }
+
+.spell-table { width: 100%; border-collapse: collapse; }
+.spell-table th { background: #333; color: white; padding: 6px 8px; text-align: left; font-size: 11px; }
+.spell-table td { padding: 5px 8px; border-bottom: 1px solid #ddd; font-size: 11px; }
+.spell-table tr:hover { background: #f0f7ff; }
+.spell-table a { color: #1976d2; text-decoration: none; font-weight: bold; }
+.spell-table a:hover { text-decoration: underline; }
+
+.school-badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: bold; color: white; }
+.school-universal { background: #757575; }
+.school-pneumancy { background: #4a148c; }
+.school-resonance { background: #c62828; }
+.school-enchantment { background: #ad1457; }
+.school-augury { background: #0277bd; }
+.school-convergence { background: #ef6c00; }
+.school-transmutation { background: #558b2f; }
+
+/* Spell detail page */
+.spell-detail-stats { display: flex; justify-content: space-between; margin: 15px 0; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 8px 0; }
+.spell-stat { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.spell-stat .label { font-weight: bold; font-size: 10px; text-transform: uppercase; color: #666; }
+.spell-stat .value { font-size: 13px; margin-top: 2px; }
+
+.spell-detail-section { margin-bottom: 15px; }
+.spell-detail-section p { font-size: 12px; line-height: 1.6; margin-bottom: 8px; }
+
+.spell-effects-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.spell-effects-table th { background: #f0f0f0; padding: 4px 8px; border: 1px solid #ccc; text-align: center; }
+.spell-effects-table td { padding: 4px 8px; border: 1px solid #ccc; text-align: center; }
+.spell-effects-table td:first-child { text-align: left; }
+
+/* DM add spell form */
+.dm-section { margin-top: 20px; padding: 15px; background: #fff3e0; border: 1px solid #ffcc80; border-radius: 5px; }
+.add-spell-form { display: grid; gap: 12px; }
+.add-spell-form .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.add-spell-form .full-width { grid-column: 1 / -1; }
+.add-spell-form label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 12px; }
+.add-spell-form input, .add-spell-form select, .add-spell-form textarea { width: 100%; padding: 6px; font-size: 13px; box-sizing: border-box; }
+.add-spell-form button { padding: 8px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; font-size: 14px; }
+.add-spell-form button:hover { background: #45a049; }
+
+/* Spell links on character sheet */
+.spell-link { color: #1976d2; text-decoration: none; }
+.spell-link:hover { text-decoration: underline; }
+
 @media print {
   body {
     padding: 0;

@@ -375,6 +375,74 @@ post '/add_note_entry' do
   redirect "/notes/#{params[:owner_id]}"
 end
 
+get '/spells' do
+  compendium = Compendium.new
+  @spells = compendium.data["spells"].sort_by { |name, _| name.downcase }.to_h
+  @spell_schools = compendium.data["spell_schools"] || ["universal", "necromancy", "evocation", "illusion", "enchantment", "divination", "abjuration", "conjuration"]
+  @range_labels = compendium.data["range"]
+  @all_skills = @spells.values.flat_map { |s| s["skill"] || [] }.uniq.sort
+  erb :spell_list
+end
+
+get '/spell/:name' do
+  compendium = Compendium.new
+  @spell_name = params[:name]
+  @spell = compendium.data["spells"][@spell_name]
+  @tier_index = nil
+
+  unless @spell
+    compendium.data["spells"].each do |base_name, spell_data|
+      tiers = spell_data["tier"].is_a?(Array) ? spell_data["tier"] : [spell_data["tier"]]
+      tiers.each_with_index do |tier_val, idx|
+        variant_names = []
+        variant_names << "#{spell_data["prefix"][idx]} #{base_name}" if spell_data["prefix"] && spell_data["prefix"][idx]
+        variant_names << "#{base_name} #{spell_data["suffix"][idx]}" if spell_data["suffix"] && spell_data["suffix"][idx]
+        if variant_names.any? { |v| v == @spell_name }
+          @spell = spell_data
+          @spell_name = base_name
+          @tier_index = idx
+          break
+        end
+      end
+      break if @spell
+    end
+  end
+
+  halt 404, "Spell not found" unless @spell
+  @school = @spell["school"] || "universal"
+  @range_labels = compendium.data["range"]
+  erb :spell_detail
+end
+
+post '/spells/add' do
+  redirect '/spells' unless local_request?
+  compendium_data = Tools.load_json('compendium.json')
+
+  tiers = params[:tiers].split(',').map(&:strip).map(&:to_i)
+  tiers = tiers.length == 1 ? tiers.first : tiers
+
+  save_val = params[:save] == "0" ? 0 : params[:save]
+  skills = params[:skills].to_s.split(',').map(&:strip).reject(&:empty?)
+  items = params[:items].to_s.split(',').map(&:strip).reject(&:empty?)
+
+  compendium_data["spells"][params[:name]] = {
+    "tier" => tiers,
+    "save" => save_val,
+    "school" => params[:school] || "universal",
+    "items" => items.empty? ? [] : items,
+    "range" => params[:range].to_i,
+    "duration" => params[:duration] || "instant",
+    "casting_time" => params[:casting_time].to_f,
+    "skill" => skills,
+    "properties" => [],
+    "effect_hash" => {},
+    "description" => params[:description]
+  }
+
+  Tools.save_json('compendium.json', compendium_data)
+  redirect '/spells'
+end
+
 get '/store' do
   @store_items = Tools.load_json('store.json')
   @campaign = Tools.load_json('campaign.json')
