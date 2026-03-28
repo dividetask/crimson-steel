@@ -487,7 +487,7 @@
         addStep('<strong>Defense: ' + abilityLabel + '</strong> (4 mana)' +
           '<br><span class="math-detail">' + abilityDetail + '</span>' +
           '<br><span class="math-detail">' + tnMath + '</span>');
-        showAttackRoll();
+        showAllyActions();
       }
     }
 
@@ -500,7 +500,7 @@
       attackState.defenseDice = val;
       input.disabled = true;
       input.parentElement.nextElementSibling.style.display = 'none';
-      showAttackRoll();
+      showAllyActions();
     }
 
     function confirmParryDice() {
@@ -513,18 +513,10 @@
       attackState.defenseDice = val + attackState.parrySpeed;
       input.disabled = true;
       input.parentElement.nextElementSibling.style.display = 'none';
-      showAttackRoll();
-    }
-
-    // --- Attack roll step ---
-    function showAttackRoll() {
-      var rollDice = attackState.attackDiceOverride || attackState.attackDice;
-      var diceNote = attackState.attackDiceOverride ? ' (reduced from ' + attackState.attackDice + ')' : '';
-      addStep('<strong>Attack Roll</strong>: ' + rollDice + ' dice' + diceNote + ', TN ' + attackState.attackTn);
       showAllyActions();
     }
 
-    // --- Ally actions step (before asking for attack successes) ---
+    // --- Ally actions step (after defense, before attack roll) ---
     function showAllyActions() {
       var target = attackState.target;
 
@@ -546,7 +538,7 @@
       });
 
       if (allyShields.length === 0) {
-        showAttackSuccessesInput();
+        showAttackRoll();
         return;
       }
 
@@ -614,11 +606,15 @@
       var confirmBtn = lastBtnStep ? lastBtnStep.querySelector('button') : null;
       if (confirmBtn) confirmBtn.style.display = 'none';
 
-      showAttackSuccessesInput();
+      showAttackRoll();
     }
 
-    function showAttackSuccessesInput() {
-      addStep('<label>Attack successes: <input type="number" id="attack-successes-input" min="0" value="0" style="width:50px;"></label>' +
+    // --- Attack roll step ---
+    function showAttackRoll() {
+      var rollDice = attackState.attackDiceOverride || attackState.attackDice;
+      var diceNote = attackState.attackDiceOverride ? ' (reduced from ' + attackState.attackDice + ')' : '';
+      addStep('<strong>Attack Roll</strong>: ' + rollDice + ' dice' + diceNote + ', TN ' + attackState.attackTn +
+        '<br><label>Attack successes: <input type="number" id="attack-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmAttackSuccesses()">Confirm</button>');
     }
 
