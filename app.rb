@@ -132,6 +132,41 @@ post '/combat/action' do
 
     Combat.add_log("#{character.name} moves")
 
+  elsif action == 'cast'
+    participant = combat_data['participants'].find { |p| p['id'] == combat_id }
+    halt 400, "Participant not found" unless participant
+    char_id = participant['char_id'] || participant['id']
+    character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
+    character = CharacterSheet.new(character_data)
+
+    spell_name = params[:spell_name]
+    spell_tier = params[:spell_tier].to_i
+    mana_cost = spell_tier == 0 ? 1 : (spell_tier * 2 + 2)
+    concentration = params[:concentration] == 'true'
+
+    halt 400, "Not enough mana" unless participant['mana'].to_i >= mana_cost
+
+    participant['mana'] = participant['mana'].to_i - mana_cost
+    if concentration
+      combat_data['active_effects'] ||= []
+      combat_data['active_effects'] << {
+        'caster_id' => combat_id,
+        'caster_name' => character.name,
+        'spell_name' => spell_name,
+        'spell_tier' => spell_tier,
+        'round_cast' => combat_data['round']
+      }
+    end
+    Tools.save_json('combat.json', combat_data)
+    Combat.add_log("#{character.name} casts #{spell_name} (#{mana_cost} mana)")
+
+  elsif action == 'dismiss_effect'
+    effect_index = params[:effect_index].to_i
+    combat_data['active_effects'] ||= []
+    removed = combat_data['active_effects'].delete_at(effect_index)
+    Tools.save_json('combat.json', combat_data)
+    Combat.add_log("#{removed['spell_name']} ended") if removed
+
   elsif action == 'end_turn'
     participant = combat_data['participants'].find { |p| p['id'] == combat_id }
     char_id = participant['char_id'] || participant['id']

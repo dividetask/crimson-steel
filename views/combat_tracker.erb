@@ -46,6 +46,22 @@
     </form>
   </div>
 
+  <% if @combat.active_effects.any? %>
+    <div class="active-effects" style="margin-top: 15px;">
+      <h3 style="margin-bottom: 8px;">Active Effects</h3>
+      <% @combat.active_effects.each_with_index do |effect, idx| %>
+        <div class="effect-row" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; padding: 4px 8px; background: #f0f4ff; border-left: 3px solid #1976d2; border-radius: 2px; font-size: 13px;">
+          <span><strong><%= effect['spell_name'] %></strong> (<%= effect['caster_name'] %>, round <%= effect['round_cast'] %>)</span>
+          <form method="post" action="/combat/action" style="margin:0;">
+            <input type="hidden" name="combat_action" value="dismiss_effect">
+            <input type="hidden" name="effect_index" value="<%= idx %>">
+            <button type="submit" style="font-size:11px;padding:2px 6px;cursor:pointer;">Dismiss</button>
+          </form>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
   <% current = @combat.current_turn_character %>
   <% if current %>
     <div class="turn-status">
@@ -84,7 +100,13 @@
       }
     ) : '[]' %>;
     var diceRemaining = <%= current ? current.combat_pool : 0 %>;
+    var currentMana = <%= current ? current.mana : 0 %>;
     var moveSpeed = <%= current ? current.character.speed : 0 %>;
+    var spellList = <%= current && current.character.spell_list ? JSON.generate(
+      current.character.spell_list.each_with_index.map { |spells, tier|
+        (spells || []).map { |name| {name: name, tier: tier} }
+      }.flatten
+    ) : '[]' %>;
     var combatants = <%= JSON.generate(
       @combat.combat_turn_list.each_with_index.map { |ct, idx|
         {
@@ -134,6 +156,10 @@
       if (action === 'attack') {
         showTargetSelection();
       }
+
+      if (action === 'cast') {
+        showSpellSelection();
+      }
     }
 
     // --- ATTACK STEP 1: Select target ---
@@ -157,6 +183,56 @@
           weaponDiv.appendChild(btn);
         });
       });
+    }
+
+    // --- CAST: Spell selection ---
+    function spellManaCost(tier) {
+      return tier === 0 ? 1 : (tier * 2 + 2);
+    }
+
+    function showSpellSelection() {
+      if (!spellList || spellList.length === 0) {
+        addStep('<strong>No spells available</strong>');
+        return;
+      }
+
+      // Group spells by tier
+      var tiers = {};
+      spellList.forEach(function(s) {
+        if (!tiers[s.tier]) tiers[s.tier] = [];
+        tiers[s.tier].push(s);
+      });
+
+      var html = '<strong>Cast Spell</strong> (Mana: ' + currentMana + ')';
+      var tierKeys = Object.keys(tiers).sort(function(a, b) { return a - b; });
+      tierKeys.forEach(function(tier) {
+        var cost = spellManaCost(parseInt(tier, 10));
+        var canAfford = currentMana >= cost;
+        html += '<div style="margin-top:6px;"><span class="math-detail">Tier ' + tier + ' (' + cost + ' mana):</span><br>';
+        tiers[tier].forEach(function(spell) {
+          if (canAfford) {
+            html += '<button class="action-btn spell-btn" onclick="confirmCast(\'' +
+              spell.name.replace(/'/g, "\\'") + '\', ' + spell.tier + ')" style="margin:2px;">' + spell.name + '</button>';
+          } else {
+            html += '<button class="action-btn spell-btn" disabled style="margin:2px;opacity:0.5;">' + spell.name + '</button>';
+          }
+        });
+        html += '</div>';
+      });
+
+      addStep(html);
+    }
+
+    function confirmCast(spellName, spellTier) {
+      var cost = spellManaCost(spellTier);
+      var isConcentration = confirm(spellName + ' (Tier ' + spellTier + ', ' + cost + ' mana)\n\nIs this a concentration spell?');
+
+      addStep('<strong>Casting: ' + spellName + '</strong>' +
+        '<br><span class="math-detail">Tier ' + spellTier + ' | Cost: ' + cost + ' mana' +
+        (isConcentration ? ' | Concentration' : '') + '</span>' +
+        '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'cast\', spell_name: \'' +
+        spellName.replace(/'/g, "\\'") + '\', spell_tier: ' + spellTier +
+        ', concentration: ' + isConcentration + '})" style="margin-top:8px;">Confirm Cast</button>');
     }
 
     // --- ATTACK STEP 2: Choose attack dice ---
@@ -286,17 +362,19 @@
       attackState.defense = defense;
       var target = attackState.target;
       var baseTn = diceRules.base_target_number;
-      var flatPenalty = diceRules.flatfooted_penalty || 1;
+      var hasUncannyDodge = (target.abilities || []).indexOf('uncanny_dodge') !== -1;
+      var flatPenalty = hasUncannyDodge ? 0 : (diceRules.flatfooted_penalty || 1);
       var weapon = attackState.weapon;
 
-      // --- Defense: Nothing (flatfooted) ---
+      // --- Defense: Nothing (flatfooted, unless uncanny dodge) ---
       if (defense === 'nothing') {
         attackState.defenseDice = 0;
         attackState.attackTn = clampTn(baseTn - weapon.weapon_attack_bonus - flatPenalty);
-        var tnMath = tnBreakdown('Attack TN', baseTn,
-          [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}, {value: -flatPenalty, label: 'flatfooted'}],
-          attackState.attackTn);
-        addStep('<strong>Defense: Flatfooted</strong><br><span class="math-detail">' + tnMath + '</span>');
+        var tnMods = [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}];
+        if (flatPenalty > 0) tnMods.push({value: -flatPenalty, label: 'flatfooted'});
+        var tnMath = tnBreakdown('Attack TN', baseTn, tnMods, attackState.attackTn);
+        var defLabel = hasUncannyDodge ? '<strong>Defense: Nothing</strong> (Uncanny Dodge - not flatfooted)' : '<strong>Defense: Flatfooted</strong>';
+        addStep(defLabel + '<br><span class="math-detail">' + tnMath + '</span>');
         showAttackRoll();
       }
 
@@ -379,44 +457,32 @@
       }
 
       // --- Ability defenses (flatfooted + special effect + 4 mana) ---
-      else if (defense === 'danger_sense') {
+      else if (defense === 'danger_sense' || defense === 'better_lucky_than_good' || defense === 'primal_tenacity') {
         attackState.defenseDice = 0;
         attackState.manaCost = 4;
-        attackState.resilienceBonus = 4;
         attackState.attackTn = clampTn(baseTn - weapon.weapon_attack_bonus - flatPenalty);
-        var tnMath = tnBreakdown('Attack TN', baseTn,
-          [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}, {value: -flatPenalty, label: 'flatfooted'}],
-          attackState.attackTn);
-        addStep('<strong>Defense: Danger Sense</strong> (4 mana)' +
-          '<br><span class="math-detail">Damage resilience +4 for this attack</span>' +
-          '<br><span class="math-detail">' + tnMath + '</span>');
-        showAttackRoll();
-      }
+        var tnMods = [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}];
+        if (flatPenalty > 0) tnMods.push({value: -flatPenalty, label: 'flatfooted'});
+        var tnMath = tnBreakdown('Attack TN', baseTn, tnMods, attackState.attackTn);
 
-      else if (defense === 'better_lucky_than_good') {
-        attackState.defenseDice = 0;
-        attackState.manaCost = 4;
-        attackState.attackDiceOverride = 3;
-        attackState.attackTn = clampTn(baseTn - weapon.weapon_attack_bonus - flatPenalty);
-        var tnMath = tnBreakdown('Attack TN', baseTn,
-          [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}, {value: -flatPenalty, label: 'flatfooted'}],
-          attackState.attackTn);
-        addStep('<strong>Defense: Better Lucky Than Good</strong> (4 mana)' +
-          '<br><span class="math-detail">Attacker dice reduced to 3</span>' +
-          '<br><span class="math-detail">' + tnMath + '</span>');
-        showAttackRoll();
-      }
+        var abilityLabel = '';
+        var abilityDetail = '';
+        if (defense === 'danger_sense') {
+          attackState.resilienceBonus = 4;
+          abilityLabel = 'Danger Sense';
+          abilityDetail = 'Damage resilience +4 for this attack';
+        } else if (defense === 'better_lucky_than_good') {
+          attackState.attackDiceOverride = 3;
+          abilityLabel = 'Better Lucky Than Good';
+          abilityDetail = 'Attacker dice reduced to 3';
+        } else if (defense === 'primal_tenacity') {
+          attackState.drBonus = 4;
+          abilityLabel = 'Primal Tenacity';
+          abilityDetail = 'Damage reduction +4 for this attack';
+        }
 
-      else if (defense === 'primal_tenacity') {
-        attackState.defenseDice = 0;
-        attackState.manaCost = 4;
-        attackState.drBonus = 4;
-        attackState.attackTn = clampTn(baseTn - weapon.weapon_attack_bonus - flatPenalty);
-        var tnMath = tnBreakdown('Attack TN', baseTn,
-          [{value: -weapon.weapon_attack_bonus, label: 'weapon proficiency'}, {value: -flatPenalty, label: 'flatfooted'}],
-          attackState.attackTn);
-        addStep('<strong>Defense: Primal Tenacity</strong> (4 mana)' +
-          '<br><span class="math-detail">Damage reduction +4 for this attack</span>' +
+        addStep('<strong>Defense: ' + abilityLabel + '</strong> (4 mana)' +
+          '<br><span class="math-detail">' + abilityDetail + '</span>' +
           '<br><span class="math-detail">' + tnMath + '</span>');
         showAttackRoll();
       }
