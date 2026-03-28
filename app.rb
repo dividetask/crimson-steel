@@ -122,6 +122,15 @@ post '/combat/action' do
       ally['combat_pool'] = ally['combat_pool'].to_i - adice if ally && adice > 0
     end
 
+    # Subtract mana from Healing Word casters
+    hw_data = params[:healing_word_data] || ''
+    hw_data.split(';').each do |entry|
+      next if entry.empty?
+      hid, hcost = entry.split(':').map(&:to_i)
+      healer = combat_data['participants'].find { |p| p['id'] == hid }
+      healer['mana'] = healer['mana'].to_i - hcost if healer && hcost > 0
+    end
+
     Tools.save_json('combat.json', combat_data)
 
     total = minor + moderate + major
