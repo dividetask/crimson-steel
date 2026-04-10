@@ -44,7 +44,7 @@
 			"shield": {"subtype": ["light", "medium", "tower"]},
 			"item": {"subtype": ["belt", "body", "chest", "eyes", "feet", "hands", "head", "headband", "neck", "shoulders", "wrists"]}
 		},
-		"weapon_speed": {"light": 0, "medium": 1, "heavy": 3, "bludgeoning": 2, "slashing": 1, "piercing": 0},
+		"weapon_speed": {"light": 0, "medium": 1, "heavy": 2, "bludgeoning": 2, "slashing": 1, "piercing": 0},
 		"weapon_dmg": {"light": "(str/4)-2", "medium": "(str/4)", "heavy": "(str/2)+2"},
 		"weapon_bleed": {"bludgeoning": 5, "slashing": 7, "piercing": 3},
 		"weapon_threshold": {"bludgeoning": 0, "slashing": 2, "piercing": 1},
