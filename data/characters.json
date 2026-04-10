@@ -101,7 +101,7 @@
 	},
 	{
 		"id": 6,
-		"tier": 2,
+		"tier": 3,
 		"group": "Enemies",
 		"name": "Ghoul",
 		"player": "DM",
@@ -118,7 +118,7 @@
 	},
 	{
 		"id": 7,
-		"tier": 2,
+		"tier": 3,
 		"group": "Enemies",
 		"name": "Wight",
 		"player": "DM",
@@ -186,7 +186,7 @@
 		},
 		"classes": [{"level": 3, "class": "fighter", "skills": ["intimidate", "athletics"] }],
 		"items": [{"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0  },
-			{"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0  }]
+			{"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0  },{"name": "longbow", "type": "weapon", "subtype": "longbow", "bonus": 0  }]
 	},
 	{
 		"id": 11,
@@ -230,6 +230,25 @@
 		"id": 13,
 		"tier": 3,
 		"group": "Enemies",
+		"name": "Slaver Assasin",
+		"player": "DM",
+		"race": ["human"],
+		"ability_scores": {
+			"str": 14,
+			"dex": 18,
+			"con": 14,
+			"int": 12,
+			"wis": 12,
+			"cha": 14
+		},
+		"classes": [{"level": 9, "class": "rogue", "skills": ["acrobatics", "religion", "perception", "sense_motive","intimidate", "larceny", "slight_of_hand", "stealth"] }],
+		"items": [{"name": "dagger", "type": "weapon", "subtype": "dagger", "bonus": 2  },
+			{"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 2  }]
+	},
+	{
+		"id": 14,
+		"tier": 3,
+		"group": "Enemies",
 		"name": "Troll",
 		"player": "DM",
 		"race": ["troll"],
@@ -242,5 +261,24 @@
 			"cha": 6
 		},
 		"classes": [{"level": 6, "class": "giant", "skills": ["intimidate", "perception"] }]
+	},
+	{
+		"id": 15,
+		"tier": 1,
+		"group": "Enemies",
+		"name": "Slaver Guard",
+		"player": "DM",
+		"race": ["orc"],
+		"ability_scores": {
+			"str": 17,
+			"dex": 11,
+			"con": 12,
+			"int": 7,
+			"wis": 8,
+			"cha": 6
+		},
+		"classes": [{"level": 5, "class": "fighter", "skills": ["intimidate", "athletics"] }],
+		"items": [{"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0  },
+			{"name": "plate", "type": "armor", "subtype": "heavy", "bonus": 0  }]
 	}
 ]
