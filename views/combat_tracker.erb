@@ -109,11 +109,19 @@
     var diceRemaining = <%= current ? current.combat_pool : 0 %>;
     var currentMana = <%= current ? current.mana : 0 %>;
     var moveSpeed = <%= current ? current.character.speed : 0 %>;
-    var spellList = <%= current && current.character.spell_list ? JSON.generate(
-      current.character.spell_list.each_with_index.map { |spells, tier|
-        (spells || []).map { |name| {name: name, tier: tier} }
-      }.flatten
-    ) : '[]' %>;
+    var spellList = <%= if current && current.character.spell_list
+      compendium = Compendium.new
+      JSON.generate(
+        current.character.spell_list.each_with_index.map { |spells, tier|
+          (spells || []).map do |name|
+            cure = compendium.cure_effects(name)
+            {name: name, tier: tier, cure: cure ? true : false}
+          end
+        }.flatten
+      )
+    else
+      '[]'
+    end %>;
     var combatants = <%= JSON.generate(
       @combat.combat_turn_list.each_with_index.map { |ct, idx|
         {
@@ -230,8 +238,9 @@
         html += '<div style="margin-top:6px;"><span class="math-detail">Tier ' + tier + ' (' + cost + ' mana):</span><br>';
         tiers[tier].forEach(function(spell) {
           if (canAfford) {
-            html += '<button class="action-btn spell-btn" onclick="confirmCast(\'' +
-              spell.name.replace(/'/g, "\\'") + '\', ' + spell.tier + ')" style="margin:2px;">' + spell.name + '</button>';
+            html += '<button class="action-btn spell-btn" onclick="selectSpellTarget(\'' +
+              spell.name.replace(/'/g, "\\'") + '\', ' + spell.tier + ', ' + (spell.cure ? 'true' : 'false') +
+              ')" style="margin:2px;">' + spell.name + '</button>';
           } else {
             html += '<button class="action-btn spell-btn" disabled style="margin:2px;opacity:0.5;">' + spell.name + '</button>';
           }
@@ -242,16 +251,39 @@
       addStep(html);
     }
 
-    function confirmCast(spellName, spellTier) {
+    function selectSpellTarget(spellName, spellTier, isCure) {
+      var optionsHtml = combatants.map(function(c) {
+        return '<option value="' + c.combat_id + '">' + c.name + '</option>';
+      }).join('');
+      var selectId = 'cast-target-' + Date.now();
+      addStep('<strong>Select Target for ' + spellName + '</strong>' +
+        '<br><select id="' + selectId + '" style="margin-top:4px;">' +
+        '<option value="">-- select target --</option>' + optionsHtml + '</select>' +
+        '<br><button class="action-btn" style="margin-top:8px;" onclick="(function(){' +
+        'var v=document.getElementById(\'' + selectId + '\').value;' +
+        'if(!v){alert(\'Pick a target\');return;}' +
+        'confirmCast(\'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ', parseInt(v,10), ' +
+        (isCure ? 'true' : 'false') + ');})()">Next</button>');
+    }
+
+    function confirmCast(spellName, spellTier, targetCombatId, isCure) {
       var cost = spellManaCost(spellTier);
-      var isConcentration = confirm(spellName + ' (Tier ' + spellTier + ', ' + cost + ' mana)\n\nIs this a concentration spell?');
+      var isConcentration = false;
+      if (!isCure) {
+        isConcentration = confirm(spellName + ' (Tier ' + spellTier + ', ' + cost + ' mana)\n\nIs this a concentration spell?');
+      }
+
+      var targetName = '';
+      for (var i = 0; i < combatants.length; i++) {
+        if (combatants[i].combat_id === targetCombatId) { targetName = combatants[i].name; break; }
+      }
 
       addStep('<strong>Casting: ' + spellName + '</strong>' +
-        '<br><span class="math-detail">Tier ' + spellTier + ' | Cost: ' + cost + ' mana' +
-        (isConcentration ? ' | Concentration' : '') + '</span>' +
+        '<br><span class="math-detail">Tier ' + spellTier + ' | Cost: ' + cost + ' mana | Target: ' + targetName +
+        (isConcentration ? ' | Concentration' : '') + (isCure ? ' | Cure' : '') + '</span>' +
         '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'cast\', spell_name: \'' +
         spellName.replace(/'/g, "\\'") + '\', spell_tier: ' + spellTier +
-        ', concentration: ' + isConcentration + '})" style="margin-top:8px;">Confirm Cast</button>');
+        ', concentration: ' + isConcentration + ', target_combat_id: ' + targetCombatId + '})" style="margin-top:8px;">Confirm Cast</button>');
     }
 
     // --- ATTACK STEP 2: Choose attack dice ---

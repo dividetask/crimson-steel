@@ -154,6 +154,60 @@ class Compendium
   def format_name(ability_name); return ability_name.gsub('_', ' ').split(' ').map(&:capitalize).join(' '); end
   def ability(entry); return @data["abilities"][entry.to_s]; end
 
+  # Given a spell name (which may be a variant like "Cure Lesser Wounds"),
+  # return [base_name, spell_data, tier_idx, tier_val] or nil if not found.
+  def resolve_spell_variant(spell_name)
+    if @data["spells"][spell_name]
+      spell_data = @data["spells"][spell_name]
+      tier_val = spell_data["tier"].is_a?(Array) ? spell_data["tier"][0] : spell_data["tier"]
+      return [spell_name, spell_data, 0, tier_val]
+    end
+    @data["spells"].each do |base_name, spell_data|
+      tiers = spell_data["tier"].is_a?(Array) ? spell_data["tier"] : [spell_data["tier"]]
+      tiers.each_with_index do |tier_val, idx|
+        variants = []
+        variants << "#{spell_data["prefix"][idx]} #{base_name}" if spell_data["prefix"] && spell_data["prefix"][idx]
+        variants << "#{base_name} #{spell_data["suffix"][idx]}" if spell_data["suffix"] && spell_data["suffix"][idx]
+        return [base_name, spell_data, idx, tier_val] if variants.include?(spell_name)
+      end
+    end
+    nil
+  end
+
+  # For a spell variant, return a hash of cure effects resolved at its tier,
+  # or nil if the spell has no healing effect_hash keys.
+  def cure_effects(spell_name)
+    resolved = resolve_spell_variant(spell_name)
+    return nil unless resolved
+    _base, spell_data, idx, tier_val = resolved
+    effect = spell_data["effect_hash"] || {}
+    has_heal = %w[minor_damage moderate_damage major_damage].any? { |k| effect.key?(k) }
+    return nil unless has_heal
+    {
+      base_name: resolved[0],
+      tier_idx: idx,
+      tier_val: tier_val,
+      minor: resolve_effect_value(effect["minor_damage"], idx, tier_val).to_i,
+      moderate: resolve_effect_value(effect["moderate_damage"], idx, tier_val).to_i,
+      major: resolve_effect_value(effect["major_damage"], idx, tier_val).to_i,
+      saturation: resolve_effect_value(effect["saturation"], idx, tier_val).to_i,
+      minimum_saturation: resolve_effect_value(effect["minimum_saturation"], idx, tier_val).to_i
+    }
+  end
+
+  def resolve_effect_value(val, idx, tier_val)
+    return nil if val.nil?
+    return val[idx] if val.is_a?(Array)
+    return eval_tier_formula(val, tier_val) if val.is_a?(String)
+    val
+  end
+
+  def eval_tier_formula(formula, tier_val)
+    result = formula.to_s.gsub("tier", tier_val.to_s)
+    raise "Unsafe formula: #{formula}" unless result.match?(/\A[\d\s+\-*\/().]+\z/)
+    eval(result)
+  end
+
   def ammunition_store_items
     items = []
     item_costs = @data["item_costs"]
