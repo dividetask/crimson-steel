@@ -641,6 +641,29 @@ class CharacterSheet
     { total: total, dice: dice, bonus: bonus }
   end
 
+  def combat_status
+    @combat_status ||= begin
+      combat_data = Tools.load_json('combat.json')
+      participant = (combat_data['participants'] || []).find { |p| (p['char_id'] || p['id']) == @id }
+      if participant
+        {
+          minor_damage: participant['minor_damage'].to_i,
+          moderate_damage: participant['moderate_damage'].to_i,
+          major_damage: participant['major_damage'].to_i,
+          current_mana: participant['mana'].to_i
+        }
+      else
+        { minor_damage: 0, moderate_damage: 0, major_damage: 0, current_mana: mana_max }
+      end
+    end
+  end
+
+  def current_hp; hp_max - combat_status[:minor_damage] - combat_status[:moderate_damage] - combat_status[:major_damage]; end
+  def current_mana; combat_status[:current_mana]; end
+  def minor_damage; combat_status[:minor_damage]; end
+  def moderate_damage; combat_status[:moderate_damage]; end
+  def major_damage; combat_status[:major_damage]; end
+
   private
 
   def has_race_ability?(name); race_abilities.include?(name); end

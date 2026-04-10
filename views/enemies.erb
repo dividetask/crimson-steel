@@ -84,17 +84,29 @@
 
       <div class="top-stats">
         <div class="stat-box">
-          <span class="label">Max HP</span>
-          <span class="value"><%= @character.hp_max %></span>
+          <span class="label">HP</span>
+          <span class="value"><%= @character.current_hp %>/<%= @character.hp_max %></span>
         </div>
         <div class="stat-box">
-          <span class="label">Max Mana</span>
-          <span class="value"><%= @character.mana_max %></span>
+          <span class="label">Mana</span>
+          <span class="value"><%= @character.current_mana %>/<%= @character.mana_max %></span>
         </div>
         <div class="stat-box">
           <span class="label">Mana Regen</span>
           <span class="value"><%= @character.mana_regen %></span>
         </div>
+      </div>
+
+      <div class="top-stats">
+        <div class="stat-box">
+          <span class="label">Moderate Damage</span>
+          <span class="value"><%= @character.moderate_damage %></span>
+        </div>
+        <div class="stat-box">
+          <span class="label">Major Damage</span>
+          <span class="value"><%= @character.major_damage %></span>
+        </div>
+        <div class="stat-box"></div>
       </div>
 
       <div class="two-column">
