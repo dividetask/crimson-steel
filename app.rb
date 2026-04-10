@@ -65,8 +65,9 @@ post '/combat/update/:id' do
     'major_damage' => params[:major_damage],
     'mana' => params[:mana],
     'combat_pool' => params[:combat_pool],
-    'saturation' => params[:saturation]
-  }, set_keys: %w[minor_damage moderate_damage major_damage mana combat_pool saturation])
+    'saturation' => params[:saturation],
+    'temporary_hit_points' => params[:temporary_hit_points]
+  }, set_keys: %w[minor_damage moderate_damage major_damage mana combat_pool saturation temporary_hit_points])
   redirect '/combat'
 end
 
@@ -109,6 +110,17 @@ post '/combat/action' do
     attacker['combat_pool'] = attacker['combat_pool'].to_i - attacker_dice_spent if attacker_dice_spent > 0
     target_participant['combat_pool'] = target_participant['combat_pool'].to_i - defense_dice if defense_dice > 0
     target_participant['mana'] = target_participant['mana'].to_i - target_mana_cost if target_mana_cost > 0
+
+    # Temp HP absorbs incoming damage worst-first (major -> moderate -> minor).
+    temp_hp = target_participant['temporary_hit_points'].to_i
+    absorbed_major = [major, temp_hp].min; temp_hp -= absorbed_major
+    absorbed_moderate = [moderate, temp_hp].min; temp_hp -= absorbed_moderate
+    absorbed_minor = [minor, temp_hp].min; temp_hp -= absorbed_minor
+    target_participant['temporary_hit_points'] = temp_hp
+    major -= absorbed_major
+    moderate -= absorbed_moderate
+    minor -= absorbed_minor
+
     target_participant['minor_damage'] = target_participant['minor_damage'].to_i + minor
     target_participant['moderate_damage'] = target_participant['moderate_damage'].to_i + moderate
     target_participant['major_damage'] = target_participant['major_damage'].to_i + major
@@ -134,8 +146,13 @@ post '/combat/action' do
     Tools.save_json('combat.json', combat_data)
 
     total = minor + moderate + major
-    Combat.add_log("Attack resolved: #{total} damage (#{minor}/#{moderate}/#{major})") if total > 0
-    Combat.add_log("Attack missed") if total == 0
+    absorbed = absorbed_major + absorbed_moderate + absorbed_minor
+    if total > 0 || absorbed > 0
+      suffix = absorbed > 0 ? " (#{absorbed} absorbed by temp HP)" : ""
+      Combat.add_log("Attack resolved: #{total} damage (#{minor}/#{moderate}/#{major})#{suffix}")
+    else
+      Combat.add_log("Attack missed")
+    end
 
   elsif action == 'move'
     participant = combat_data['participants'].find { |p| p['id'] == combat_id }
@@ -168,8 +185,25 @@ post '/combat/action' do
 
     compendium = Compendium.new
     cure = compendium.cure_effects(spell_name)
+    ward = compendium.ward_effects(spell_name)
 
-    if cure
+    if ward
+      halt 400, "Ward spell requires a target" unless target_combat_id
+      target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
+      halt 400, "Target not found" unless target
+      target_char_id = target['char_id'] || target['id']
+      target_data = Tools.load_json('characters.json').find { |c| c['id'] == target_char_id }
+      halt 400, "Target character not found" unless target_data
+      target_character = CharacterSheet.new(target_data)
+
+      current_temp = target['temporary_hit_points'].to_i
+      new_temp = [current_temp, ward[:temp_hp]].max
+      target['temporary_hit_points'] = new_temp
+
+      participant['mana'] = participant['mana'].to_i - mana_cost
+      Tools.save_json('combat.json', combat_data)
+      Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana) - temp HP #{current_temp} -> #{new_temp}")
+    elsif cure
       halt 400, "Cure spell requires a target" unless target_combat_id
       target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
       halt 400, "Target not found" unless target
@@ -336,7 +370,8 @@ post '/combat/add_enemy' do
     'saturation' => 0,
     'minor_damage' => 0,
     'moderate_damage' => 0,
-    'major_damage' => 0
+    'major_damage' => 0,
+    'temporary_hit_points' => 0
   }
   Tools.save_json('combat.json', combat_data)
   redirect back

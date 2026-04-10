@@ -8,6 +8,7 @@
         <th>Initiative</th>
         <th>Character Name</th>
         <th>HP</th>
+        <th>Temp HP</th>
         <th>Minor</th>
         <th>Moderate</th>
         <th>Major</th>
@@ -31,8 +32,9 @@
           <td><%= combat_turn.hp %>/<%= combat_turn.character.hp_max %></td>
           <td>
             <form method="post" action="/combat/update/<%= combat_turn.combat_id %>" class="combat-update-form">
-            <input type="number" name="minor_damage" value="<%= combat_turn.minor_damage %>" style="width: 45px;">
+            <input type="number" name="temporary_hit_points" value="<%= combat_turn.temporary_hit_points %>" style="width: 45px;">
           </td>
+          <td><input type="number" name="minor_damage" value="<%= combat_turn.minor_damage %>" style="width: 45px;"></td>
           <td><input type="number" name="moderate_damage" value="<%= combat_turn.moderate_damage %>" style="width: 45px;"></td>
           <td><input type="number" name="major_damage" value="<%= combat_turn.major_damage %>" style="width: 45px;"></td>
           <td><input type="number" name="mana" value="<%= combat_turn.mana %>" style="width: 45px;">/<%= combat_turn.character.mana_max %></td>
@@ -115,7 +117,8 @@
         current.character.spell_list.each_with_index.map { |spells, tier|
           (spells || []).map do |name|
             cure = compendium.cure_effects(name)
-            {name: name, tier: tier, cure: cure ? true : false}
+            ward = compendium.ward_effects(name)
+            {name: name, tier: tier, cure: cure ? true : false, ward: ward ? true : false}
           end
         }.flatten
       )
@@ -237,9 +240,11 @@
         var canAfford = currentMana >= cost;
         html += '<div style="margin-top:6px;"><span class="math-detail">Tier ' + tier + ' (' + cost + ' mana):</span><br>';
         tiers[tier].forEach(function(spell) {
+          var isInstant = spell.cure || spell.ward;
           if (canAfford) {
             html += '<button class="action-btn spell-btn" onclick="selectSpellTarget(\'' +
-              spell.name.replace(/'/g, "\\'") + '\', ' + spell.tier + ', ' + (spell.cure ? 'true' : 'false') +
+              spell.name.replace(/'/g, "\\'") + '\', ' + spell.tier + ', ' + (isInstant ? 'true' : 'false') +
+              ', \'' + (spell.cure ? 'cure' : (spell.ward ? 'ward' : '')) + '\'' +
               ')" style="margin:2px;">' + spell.name + '</button>';
           } else {
             html += '<button class="action-btn spell-btn" disabled style="margin:2px;opacity:0.5;">' + spell.name + '</button>';
@@ -251,7 +256,7 @@
       addStep(html);
     }
 
-    function selectSpellTarget(spellName, spellTier, isCure) {
+    function selectSpellTarget(spellName, spellTier, isInstant, effectLabel) {
       var optionsHtml = combatants.map(function(c) {
         return '<option value="' + c.combat_id + '">' + c.name + '</option>';
       }).join('');
@@ -263,13 +268,13 @@
         'var v=document.getElementById(\'' + selectId + '\').value;' +
         'if(!v){alert(\'Pick a target\');return;}' +
         'confirmCast(\'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ', parseInt(v,10), ' +
-        (isCure ? 'true' : 'false') + ');})()">Next</button>');
+        (isInstant ? 'true' : 'false') + ', \'' + effectLabel + '\');})()">Next</button>');
     }
 
-    function confirmCast(spellName, spellTier, targetCombatId, isCure) {
+    function confirmCast(spellName, spellTier, targetCombatId, isInstant, effectLabel) {
       var cost = spellManaCost(spellTier);
       var isConcentration = false;
-      if (!isCure) {
+      if (!isInstant) {
         isConcentration = confirm(spellName + ' (Tier ' + spellTier + ', ' + cost + ' mana)\n\nIs this a concentration spell?');
       }
 
@@ -278,9 +283,10 @@
         if (combatants[i].combat_id === targetCombatId) { targetName = combatants[i].name; break; }
       }
 
+      var label = effectLabel ? ' | ' + effectLabel.charAt(0).toUpperCase() + effectLabel.slice(1) : '';
       addStep('<strong>Casting: ' + spellName + '</strong>' +
         '<br><span class="math-detail">Tier ' + spellTier + ' | Cost: ' + cost + ' mana | Target: ' + targetName +
-        (isConcentration ? ' | Concentration' : '') + (isCure ? ' | Cure' : '') + '</span>' +
+        (isConcentration ? ' | Concentration' : '') + label + '</span>' +
         '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'cast\', spell_name: \'' +
         spellName.replace(/'/g, "\\'") + '\', spell_tier: ' + spellTier +
         ', concentration: ' + isConcentration + ', target_combat_id: ' + targetCombatId + '})" style="margin-top:8px;">Confirm Cast</button>');

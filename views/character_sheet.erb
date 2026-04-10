@@ -62,6 +62,10 @@
 
   <div class="top-stats">
     <div class="stat-box">
+      <span class="label">Temporary HP</span>
+      <span class="value"><%= @character.temporary_hit_points %></span>
+    </div>
+    <div class="stat-box">
       <span class="label">Moderate Damage</span>
       <span class="value"><%= @character.moderate_damage %></span>
     </div>
@@ -69,7 +73,6 @@
       <span class="label">Major Damage</span>
       <span class="value"><%= @character.major_damage %></span>
     </div>
-    <div class="stat-box"></div>
   </div>
 
   <div class="two-column">

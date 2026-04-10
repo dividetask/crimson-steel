@@ -1,7 +1,7 @@
 require_relative 'tools'
 
 class CombatTurn
-  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation
+  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation, :temporary_hit_points
 
   def initialize(combat_turn, character)
     @rules = Tools.load_json('rules.json')
@@ -10,6 +10,7 @@ class CombatTurn
     @initiative, @mana, @combat_pool = combat_turn['initiative'], combat_turn['mana'], combat_turn['combat_pool']
     @minor_damage, @moderate_damage, @major_damage = combat_turn['minor_damage'], combat_turn['moderate_damage'], combat_turn['major_damage']
     @saturation = combat_turn['saturation']
+    @temporary_hit_points = combat_turn['temporary_hit_points'].to_i
     @character = CharacterSheet.new(character)
   end
 
@@ -25,7 +26,7 @@ class CombatTurn
     return {'id' => @combat_id, 'char_id' => @char_id,
       'initiative' => @initiative, 'mana' => @mana, 'combat_pool' => @combat_pool,
       'minor_damage' => @minor_damage, 'moderate_damage' => @moderate_damage, 'major_damage' => @major_damage,
-      'saturation' => @saturation}
+      'saturation' => @saturation, 'temporary_hit_points' => @temporary_hit_points}
   end
 
   def hp; return @character.hp_max - @minor_damage - @moderate_damage - @major_damage; end
@@ -172,6 +173,22 @@ class Compendium
       end
     end
     nil
+  end
+
+  # For a spell variant, return a hash of ward effects (temp hp grant),
+  # or nil if the spell has no temp_hp effect_hash key.
+  def ward_effects(spell_name)
+    resolved = resolve_spell_variant(spell_name)
+    return nil unless resolved
+    _base, spell_data, idx, tier_val = resolved
+    effect = spell_data["effect_hash"] || {}
+    return nil unless effect.key?("temp_hp")
+    {
+      base_name: resolved[0],
+      tier_idx: idx,
+      tier_val: tier_val,
+      temp_hp: resolve_effect_value(effect["temp_hp"], idx, tier_val).to_i
+    }
   end
 
   # For a spell variant, return a hash of cure effects resolved at its tier,
@@ -713,10 +730,11 @@ class CharacterSheet
           minor_damage: participant['minor_damage'].to_i,
           moderate_damage: participant['moderate_damage'].to_i,
           major_damage: participant['major_damage'].to_i,
-          current_mana: participant['mana'].to_i
+          current_mana: participant['mana'].to_i,
+          temporary_hit_points: participant['temporary_hit_points'].to_i
         }
       else
-        { minor_damage: 0, moderate_damage: 0, major_damage: 0, current_mana: mana_max }
+        { minor_damage: 0, moderate_damage: 0, major_damage: 0, current_mana: mana_max, temporary_hit_points: 0 }
       end
     end
   end
@@ -726,6 +744,7 @@ class CharacterSheet
   def minor_damage; combat_status[:minor_damage]; end
   def moderate_damage; combat_status[:moderate_damage]; end
   def major_damage; combat_status[:major_damage]; end
+  def temporary_hit_points; combat_status[:temporary_hit_points]; end
 
   private
 
