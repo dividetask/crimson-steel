@@ -4,6 +4,7 @@
   <table>
     <thead>
       <tr>
+        <th></th>
         <th>Initiative</th>
         <th>Character Name</th>
         <th>HP</th>
@@ -18,7 +19,13 @@
     </thead>
     <tbody>
       <% @combat.combat_turn_list.each do |combat_turn| %>
-        <tr>
+        <% is_current = @combat.current_turn_character && @combat.current_turn_character.combat_id == combat_turn.combat_id %>
+        <tr class="<%= 'current-turn' if is_current %>">
+          <td>
+            <form method="post" action="/combat/set_turn/<%= combat_turn.combat_id %>" style="margin:0;">
+              <button type="submit" class="set-turn-btn" title="Set as current turn"><%= is_current ? '&#9654;' : 'Set' %></button>
+            </form>
+          </td>
           <td><%= combat_turn.initiative %></td>
           <td><%= @combat.display_name(combat_turn) %></td>
           <td><%= combat_turn.hp %>/<%= combat_turn.character.hp_max %></td>

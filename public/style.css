@@ -305,6 +305,8 @@ table th {
 .combat-tracker button { margin: 2px; padding: 2px 6px; }
 .combat-tracker th, .combat-tracker td { white-space: nowrap; }
 .combat-update-form { display: contents; }
+.combat-tracker tr.current-turn { background: #fff4c2; font-weight: bold; }
+.combat-tracker .set-turn-btn { font-size: 11px; padding: 2px 6px; cursor: pointer; }
 .attack-banner { background: #d32f2f; color: white; padding: 8px 15px; border-radius: 3px; margin-bottom: 10px; font-weight: bold; font-size: 13px; }
 .turn-status { margin-top: 20px; }
 .turn-status h2 { font-size: 18px; border-bottom: 2px solid #333; padding-bottom: 8px; }
