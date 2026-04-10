@@ -115,6 +115,15 @@ class Combat
     Tools.save_json('combat.json', combat_data)
   end
 
+  def self.set_current_turn(combat_id)
+    combat = Combat.new
+    idx = combat.combat_turn_list.find_index { |ct| ct.combat_id == combat_id }
+    return unless idx
+    combat_data = Tools.load_json('combat.json')
+    combat_data['current_turn_id'] = idx
+    Tools.save_json('combat.json', combat_data)
+  end
+
   def self.add_log(message)
     log = Tools.load_json('combat_log.json')
     return if log.empty?

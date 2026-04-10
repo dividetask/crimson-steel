@@ -206,6 +206,12 @@ post '/combat/reroll_init' do
   redirect '/combat'
 end
 
+post '/combat/set_turn/:id' do
+  redirect '/character/0' unless local_request?
+  Combat.set_current_turn(params[:id].to_i)
+  redirect '/combat'
+end
+
 get '/' do
   redirect '/character/0'
 end
