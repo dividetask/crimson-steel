@@ -164,19 +164,87 @@ post '/combat/action' do
 
     halt 400, "Not enough mana" unless participant['mana'].to_i >= mana_cost
 
-    participant['mana'] = participant['mana'].to_i - mana_cost
-    if concentration
-      combat_data['active_effects'] ||= []
-      combat_data['active_effects'] << {
-        'caster_id' => combat_id,
-        'caster_name' => character.name,
-        'spell_name' => spell_name,
-        'spell_tier' => spell_tier,
-        'round_cast' => combat_data['round']
-      }
+    target_combat_id = params[:target_combat_id].to_i if params[:target_combat_id] && !params[:target_combat_id].empty?
+
+    compendium = Compendium.new
+    cure = compendium.cure_effects(spell_name)
+
+    if cure
+      halt 400, "Cure spell requires a target" unless target_combat_id
+      target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
+      halt 400, "Target not found" unless target
+      target_char_id = target['char_id'] || target['id']
+      target_data = Tools.load_json('characters.json').find { |c| c['id'] == target_char_id }
+      halt 400, "Target character not found" unless target_data
+      target_character = CharacterSheet.new(target_data)
+
+      max_saturation = target_character.cha
+      current_saturation = target['saturation'].to_i
+      if current_saturation >= max_saturation
+        halt 400, "#{target_character.name} is already at maximum magical saturation (#{current_saturation}/#{max_saturation})"
+      end
+
+      # Cascade: major -> moderate -> minor. Excess in each category flows down.
+      major_before = target['major_damage'].to_i
+      moderate_before = target['moderate_damage'].to_i
+      minor_before = target['minor_damage'].to_i
+
+      pool = cure[:major]
+      healed_major = [major_before, pool].min
+      pool -= healed_major
+
+      pool += cure[:moderate]
+      healed_moderate = [moderate_before, pool].min
+      pool -= healed_moderate
+
+      pool += cure[:minor]
+      healed_minor = [minor_before, pool].min
+      # remaining pool is excess minor healing, lost
+
+      target['major_damage'] = major_before - healed_major
+      target['moderate_damage'] = moderate_before - healed_moderate
+      target['minor_damage'] = minor_before - healed_minor
+
+      # Saturation: reduce by target tier, and by 2*caster_tier if caster has improved_healing.
+      # Floor at minimum_saturation.
+      sat_add = cure[:saturation] - target_character.tier
+      sat_add -= 2 * character.tier if character.ability_list.include?("improved_healing")
+      sat_add = cure[:minimum_saturation] if sat_add < cure[:minimum_saturation]
+      target['saturation'] = current_saturation + sat_add
+
+      participant['mana'] = participant['mana'].to_i - mana_cost
+      Tools.save_json('combat.json', combat_data)
+
+      total_healed = healed_major + healed_moderate + healed_minor
+      Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana) - healed #{healed_major}/#{healed_moderate}/#{healed_minor} (major/moderate/minor), +#{sat_add} saturation")
+    else
+      target_name = nil
+      if target_combat_id
+        target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
+        if target
+          target_char_id = target['char_id'] || target['id']
+          target_data = Tools.load_json('characters.json').find { |c| c['id'] == target_char_id }
+          target_name = CharacterSheet.new(target_data).name if target_data
+        end
+      end
+
+      participant['mana'] = participant['mana'].to_i - mana_cost
+      if concentration
+        combat_data['active_effects'] ||= []
+        combat_data['active_effects'] << {
+          'caster_id' => combat_id,
+          'caster_name' => character.name,
+          'spell_name' => spell_name,
+          'spell_tier' => spell_tier,
+          'round_cast' => combat_data['round'],
+          'target_combat_id' => target_combat_id,
+          'target_name' => target_name
+        }
+      end
+      Tools.save_json('combat.json', combat_data)
+      suffix = target_name ? " on #{target_name}" : ""
+      Combat.add_log("#{character.name} casts #{spell_name}#{suffix} (#{mana_cost} mana)")
     end
-    Tools.save_json('combat.json', combat_data)
-    Combat.add_log("#{character.name} casts #{spell_name} (#{mana_cost} mana)")
 
   elsif action == 'dismiss_effect'
     effect_index = params[:effect_index].to_i
