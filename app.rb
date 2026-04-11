@@ -280,6 +280,112 @@ post '/combat/action' do
       Combat.add_log("#{character.name} casts #{spell_name}#{suffix} (#{mana_cost} mana)")
     end
 
+  elsif action == 'item'
+    user_participant = combat_data['participants'].find { |p| p['id'] == combat_id }
+    halt 400, "Participant not found" unless user_participant
+    user_char_id = user_participant['char_id'] || user_participant['id']
+    user_character_data = Tools.load_json('characters.json').find { |c| c['id'] == user_char_id }
+    user_character = CharacterSheet.new(user_character_data)
+
+    item_id = params[:item_id].to_i
+    item = user_character.item_list.find { |i| i['item_id'].to_i == item_id }
+    halt 400, "Item not found" unless item
+
+    compendium = Compendium.new
+    effect = compendium.item_effects(item)
+    halt 400, "This item cannot be used (only healing, mana, and ward potions are supported)" unless effect
+
+    target_combat_id = params[:target_combat_id] && !params[:target_combat_id].to_s.empty? ? params[:target_combat_id].to_i : combat_id
+    target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
+    halt 400, "Target not found" unless target
+    target_char_id = target['char_id'] || target['id']
+    target_data = Tools.load_json('characters.json').find { |c| c['id'] == target_char_id }
+    halt 400, "Target character not found" unless target_data
+    target_character = CharacterSheet.new(target_data)
+
+    max_saturation = target_character.cha
+    current_saturation = target['saturation'].to_i
+    if current_saturation >= max_saturation
+      halt 400, "#{target_character.name} is already at maximum magical saturation (#{current_saturation}/#{max_saturation})"
+    end
+
+    # Target is the drinker; use their tier as the "user tier" for potion saturation.
+    potion_sat = Compendium.potion_saturation(effect[:item_tier], target_character.tier)
+    effect_log = ""
+
+    case effect[:type]
+    when :cure
+      major_before = target['major_damage'].to_i
+      moderate_before = target['moderate_damage'].to_i
+      minor_before = target['minor_damage'].to_i
+
+      pool = effect[:major]
+      healed_major = [major_before, pool].min
+      pool -= healed_major
+      pool += effect[:moderate]
+      healed_moderate = [moderate_before, pool].min
+      pool -= healed_moderate
+      pool += effect[:minor]
+      healed_minor = [minor_before, pool].min
+
+      target['major_damage'] = major_before - healed_major
+      target['moderate_damage'] = moderate_before - healed_moderate
+      target['minor_damage'] = minor_before - healed_minor
+
+      # Cure spell saturation rules apply (improved_healing does NOT affect
+      # potions) and the potion adds its own saturation on top of that.
+      cure_sat = effect[:saturation] - target_character.tier
+      cure_sat = effect[:minimum_saturation] if cure_sat < effect[:minimum_saturation]
+      total_sat = cure_sat + potion_sat
+      target['saturation'] = current_saturation + total_sat
+
+      effect_log = "healed #{healed_major}/#{healed_moderate}/#{healed_minor}, +#{total_sat} saturation (#{cure_sat} cure + #{potion_sat} potion)"
+
+    when :mana
+      target_max_mana = target_character.mana_max
+      current_mana = target['mana'].to_i
+      new_mana = [current_mana + effect[:mana], target_max_mana].min
+      target['mana'] = new_mana
+      target['saturation'] = current_saturation + potion_sat
+      effect_log = "mana #{current_mana} -> #{new_mana}, +#{potion_sat} saturation"
+
+    when :ward
+      current_temp = target['temporary_hit_points'].to_i
+      new_temp = [current_temp, effect[:temp_hp]].max
+      target['temporary_hit_points'] = new_temp
+      target['saturation'] = current_saturation + potion_sat
+      effect_log = "temp HP #{current_temp} -> #{new_temp}, +#{potion_sat} saturation"
+    end
+
+    # Consume one charge. Inline character items have negative item_ids;
+    # equipment.json items use in-memory position-based ids (i + 1) if the
+    # stored record lacks an item_id, matching CharacterEquipment's assignment.
+    if item['item_id'].to_i > 0
+      equipment = Tools.load_json('equipment.json')
+      stored_idx = equipment.each_with_index.find { |entry, i| (entry['item_id'] || (i + 1)).to_i == item_id }&.last
+      if stored_idx
+        stored = equipment[stored_idx]
+        stored['quantity'] = (stored['quantity'] || 1) - 1
+        equipment.delete_at(stored_idx) if stored['quantity'] <= 0
+        Tools.save_json('equipment.json', equipment)
+      end
+    else
+      characters = Tools.load_json('characters.json')
+      owner = characters.find { |c| c['id'] == user_char_id }
+      if owner && owner['items']
+        inline_idx = owner['items'].each_with_index.find { |entry, i| -(i + 1) == item['item_id'].to_i }&.last
+        if inline_idx
+          inline = owner['items'][inline_idx]
+          inline['quantity'] = (inline['quantity'] || 1) - 1
+          owner['items'].delete_at(inline_idx) if inline['quantity'] <= 0
+          Tools.save_json('characters.json', characters)
+        end
+      end
+    end
+
+    Tools.save_json('combat.json', combat_data)
+    Combat.add_log("#{user_character.name} uses #{item['name']} on #{target_character.name} - #{effect_log}")
+
   elsif action == 'dismiss_effect'
     effect_index = params[:effect_index].to_i
     combat_data['active_effects'] ||= []
