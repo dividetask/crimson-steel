@@ -125,6 +125,27 @@ class Combat
     Tools.save_json('combat.json', combat_data)
   end
 
+  # Worst-first cure cascade. Mutates target's damage counters and returns
+  # [healed_major, healed_moderate, healed_minor]. Excess pool (beyond
+  # minor_damage) is lost.
+  def self.apply_cure_cascade(target, cure_effect)
+    major_before = target['major_damage'].to_i
+    moderate_before = target['moderate_damage'].to_i
+    minor_before = target['minor_damage'].to_i
+    pool = cure_effect[:major].to_i
+    healed_major = [major_before, pool].min
+    pool -= healed_major
+    pool += cure_effect[:moderate].to_i
+    healed_moderate = [moderate_before, pool].min
+    pool -= healed_moderate
+    pool += cure_effect[:minor].to_i
+    healed_minor = [minor_before, pool].min
+    target['major_damage'] = major_before - healed_major
+    target['moderate_damage'] = moderate_before - healed_moderate
+    target['minor_damage'] = minor_before - healed_minor
+    [healed_major, healed_moderate, healed_minor]
+  end
+
   def self.add_log(message)
     log = Tools.load_json('combat_log.json')
     return if log.empty?
@@ -182,31 +203,45 @@ class Compendium
     @data["spells"].find { |name, _| name.downcase.gsub(' ', '_') == normalized }
   end
 
-  # Returns the resolved effect of a consumable potion, or nil if the item
-  # is not a supported potion (healing / mana / ward).
+  # Returns the resolved effect of a consumable potion or scroll, or nil
+  # if the item is not a supported consumable. Potions with spells we don't
+  # recognize return nil. Scrolls for unrecognized spells return a :generic
+  # entry so they can still be consumed (just no mechanical effect).
   #
   # Output hash shape: {
-  #   type: :cure | :mana | :ward,
+  #   kind: :potion | :scroll,
+  #   type: :cure | :mana | :ward | :generic,
   #   item_tier: Integer,
   #   base_name: String,
+  #   variant_name: String,
   #   # cure keys: :minor, :moderate, :major, :saturation, :minimum_saturation
-  #   # mana keys: :mana
+  #   # mana keys: :mana, :saturation, :minimum_saturation
   #   # ward keys: :temp_hp
   # }
   def item_effects(item)
     return nil unless item.is_a?(Hash)
     return nil unless item.dig("properties", "consumable")
-    return nil unless item["subtype"] == "potion"
+    return nil unless %w[potion scroll].include?(item["subtype"])
+    kind = item["subtype"].to_sym
+
     spell_key = item.dig("properties", "spell")
     base_pair = spell_by_key(spell_key)
-    return nil unless base_pair
+    if base_pair.nil?
+      # Unknown spell: scrolls are still usable as a no-op; potions are not.
+      return nil unless kind == :scroll
+      return { kind: :scroll, type: :generic, item_tier: item["bonus"].to_i, base_name: nil, variant_name: item["name"] }
+    end
+
     base_name, base_data = base_pair
     item_tier = item["bonus"].to_i
     tiers = base_data["tier"].is_a?(Array) ? base_data["tier"] : [base_data["tier"]]
     tier_idx = tiers.index(item_tier) || 0
     tier_val = tiers[tier_idx]
     effect = base_data["effect_hash"] || {}
-    base = { type: nil, item_tier: item_tier, base_name: base_name, tier_idx: tier_idx, tier_val: tier_val }
+    variant_name = variant_name_at(base_name, base_data, tier_idx)
+    base = { kind: kind, type: nil, item_tier: item_tier, base_name: base_name,
+             variant_name: variant_name, tier_idx: tier_idx, tier_val: tier_val }
+
     if %w[minor_damage moderate_damage major_damage].any? { |k| effect.key?(k) }
       base.merge(
         type: :cure,
@@ -219,7 +254,9 @@ class Compendium
     elsif effect.key?("mana")
       base.merge(
         type: :mana,
-        mana: resolve_effect_value(effect["mana"], tier_idx, tier_val).to_i
+        mana: resolve_effect_value(effect["mana"], tier_idx, tier_val).to_i,
+        saturation: resolve_effect_value(effect["saturation"], tier_idx, tier_val).to_i,
+        minimum_saturation: resolve_effect_value(effect["minimum_saturation"], tier_idx, tier_val).to_i
       )
     elsif effect.key?("temp_hp")
       base.merge(
@@ -227,7 +264,21 @@ class Compendium
         temp_hp: resolve_effect_value(effect["temp_hp"], tier_idx, tier_val).to_i
       )
     else
-      nil
+      # No recognized effect_hash keys. Scrolls still work as a no-op;
+      # potions aren't supported (we don't know how to apply them).
+      kind == :scroll ? base.merge(type: :generic) : nil
+    end
+  end
+
+  def variant_name_at(base_name, spell_data, tier_idx)
+    tiers = spell_data["tier"].is_a?(Array) ? spell_data["tier"] : [spell_data["tier"]]
+    return base_name unless tiers.length > 1
+    if spell_data["prefix"] && spell_data["prefix"][tier_idx]
+      "#{spell_data["prefix"][tier_idx]} #{base_name}"
+    elsif spell_data["suffix"] && spell_data["suffix"][tier_idx]
+      "#{base_name} #{spell_data["suffix"][tier_idx]}"
+    else
+      base_name
     end
   end
 

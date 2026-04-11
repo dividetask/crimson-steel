@@ -136,7 +136,8 @@
             name: item['name'],
             quantity: item['quantity'] || 1,
             item_tier: fx[:item_tier],
-            type: fx[:type].to_s
+            type: fx[:type].to_s,
+            kind: fx[:kind].to_s
           }
         end
       )
@@ -317,19 +318,19 @@
     // --- ITEM: Consumable selection ---
     function showItemSelection() {
       if (!itemList || itemList.length === 0) {
-        addStep('<strong>No usable items</strong> (supports healing, mana, and ward potions)');
+        addStep('<strong>No usable items</strong>');
         return;
       }
       var html = '<strong>Use Item</strong>';
       itemList.forEach(function(item) {
         var label = item.name + ' (tier ' + item.item_tier + ', x' + item.quantity + ')';
         html += '<br><button class="action-btn" style="margin:2px;" onclick="selectItemTarget(' + item.item_id + ', \'' +
-          item.name.replace(/'/g, "\\'") + '\', ' + item.item_tier + ', \'' + item.type + '\')">' + label + '</button>';
+          item.name.replace(/'/g, "\\'") + '\', ' + item.item_tier + ', \'' + item.type + '\', \'' + item.kind + '\')">' + label + '</button>';
       });
       addStep(html);
     }
 
-    function selectItemTarget(itemId, itemName, itemTier, itemType) {
+    function selectItemTarget(itemId, itemName, itemTier, itemType, itemKind) {
       var optionsHtml = combatants.map(function(c) {
         var sel = c.combat_id === currentCharId ? ' selected' : '';
         return '<option value="' + c.combat_id + '"' + sel + '>' + c.name + '</option>';
@@ -341,16 +342,17 @@
         '<br><button class="action-btn" style="margin-top:8px;" onclick="(function(){' +
         'var v=document.getElementById(\'' + selectId + '\').value;' +
         'if(!v){alert(\'Pick a target\');return;}' +
-        'confirmItemUse(' + itemId + ', \'' + itemName.replace(/'/g, "\\'") + '\', ' + itemTier + ', \'' + itemType + '\', parseInt(v,10));})()">Next</button>');
+        'confirmItemUse(' + itemId + ', \'' + itemName.replace(/'/g, "\\'") + '\', ' + itemTier + ', \'' + itemType + '\', \'' + itemKind + '\', parseInt(v,10));})()">Next</button>');
     }
 
-    function confirmItemUse(itemId, itemName, itemTier, itemType, targetCombatId) {
+    function confirmItemUse(itemId, itemName, itemTier, itemType, itemKind, targetCombatId) {
       var targetName = '';
       for (var i = 0; i < combatants.length; i++) {
         if (combatants[i].combat_id === targetCombatId) { targetName = combatants[i].name; break; }
       }
+      var kindLabel = itemKind.charAt(0).toUpperCase() + itemKind.slice(1);
       addStep('<strong>Using: ' + itemName + '</strong>' +
-        '<br><span class="math-detail">Tier ' + itemTier + ' | Effect: ' + itemType + ' | Target: ' + targetName + '</span>' +
+        '<br><span class="math-detail">Tier ' + itemTier + ' | ' + kindLabel + ' | Effect: ' + itemType + ' | Target: ' + targetName + '</span>' +
         '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'item\'' +
         ', item_id: ' + itemId + ', target_combat_id: ' + targetCombatId + '})" style="margin-top:8px;">Confirm Use</button>');
     }
