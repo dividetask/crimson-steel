@@ -118,7 +118,8 @@
           (spells || []).map do |name|
             cure = compendium.cure_effects(name)
             ward = compendium.ward_effects(name)
-            {name: name, tier: tier, cure: cure ? true : false, ward: ward ? true : false}
+            {name: name, tier: tier, cure: cure ? true : false, ward: ward ? true : false,
+             target_mode: compendium.target_mode(name) || "single"}
           end
         }.flatten
       )
@@ -137,7 +138,8 @@
             quantity: item['quantity'] || 1,
             item_tier: fx[:item_tier],
             type: fx[:type].to_s,
-            kind: fx[:kind].to_s
+            kind: fx[:kind].to_s,
+            target_mode: fx[:target_mode].to_s
           }
         end
       )
@@ -264,55 +266,96 @@
         html += '<div style="margin-top:6px;"><span class="math-detail">Tier ' + tier + ' (' + cost + ' mana):</span><br>';
         tiers[tier].forEach(function(spell) {
           var isInstant = spell.cure || spell.ward;
+          var mode = spell.target_mode || 'single';
+          var marker = mode === 'multi' ? ' *' : (mode === 'none' ? ' \u25CB' : '');
+          var label = spell.name + marker;
           if (canAfford) {
             html += '<button class="action-btn spell-btn" onclick="selectSpellTarget(\'' +
               spell.name.replace(/'/g, "\\'") + '\', ' + spell.tier + ', ' + (isInstant ? 'true' : 'false') +
               ', \'' + (spell.cure ? 'cure' : (spell.ward ? 'ward' : '')) + '\'' +
-              ')" style="margin:2px;">' + spell.name + '</button>';
+              ', \'' + mode + '\'' +
+              ')" style="margin:2px;">' + label + '</button>';
           } else {
-            html += '<button class="action-btn spell-btn" disabled style="margin:2px;opacity:0.5;">' + spell.name + '</button>';
+            html += '<button class="action-btn spell-btn" disabled style="margin:2px;opacity:0.5;">' + label + '</button>';
           }
         });
         html += '</div>';
       });
+      html += '<br><span class="math-detail">* = multi-target &nbsp; \u25CB = no target</span>';
 
       addStep(html);
     }
 
-    function selectSpellTarget(spellName, spellTier, isInstant, effectLabel) {
-      var optionsHtml = combatants.map(function(c) {
-        return '<option value="' + c.combat_id + '">' + c.name + '</option>';
-      }).join('');
+    function selectSpellTarget(spellName, spellTier, isInstant, effectLabel, targetMode) {
+      if (targetMode === 'none') {
+        confirmCast(spellName, spellTier, [], isInstant, effectLabel, 'none');
+        return;
+      }
       var selectId = 'cast-target-' + Date.now();
-      addStep('<strong>Select Target for ' + spellName + '</strong>' +
-        '<br><select id="' + selectId + '" style="margin-top:4px;">' +
-        '<option value="">-- select target --</option>' + optionsHtml + '</select>' +
-        '<br><button class="action-btn" style="margin-top:8px;" onclick="(function(){' +
-        'var v=document.getElementById(\'' + selectId + '\').value;' +
-        'if(!v){alert(\'Pick a target\');return;}' +
-        'confirmCast(\'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ', parseInt(v,10), ' +
-        (isInstant ? 'true' : 'false') + ', \'' + effectLabel + '\');})()">Next</button>');
+      if (targetMode === 'multi') {
+        var checkboxesHtml = combatants.map(function(c) {
+          return '<label style="display:block;margin:2px 0;">' +
+            '<input type="checkbox" class="' + selectId + '-cb" value="' + c.combat_id + '"> ' + c.name + '</label>';
+        }).join('');
+        addStep('<strong>Select Targets for ' + spellName + '</strong>' +
+          '<br><span class="math-detail">Pick one or more.</span>' +
+          '<div style="margin-top:4px;">' + checkboxesHtml + '</div>' +
+          '<button class="action-btn" style="margin-top:8px;" onclick="(function(){' +
+          'var boxes=document.getElementsByClassName(\'' + selectId + '-cb\');' +
+          'var ids=[];for(var i=0;i<boxes.length;i++){if(boxes[i].checked)ids.push(parseInt(boxes[i].value,10));}' +
+          'if(ids.length===0){alert(\'Pick at least one target\');return;}' +
+          'confirmCast(\'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ', ids, ' +
+          (isInstant ? 'true' : 'false') + ', \'' + effectLabel + '\', \'multi\');})()">Next</button>');
+      } else {
+        var optionsHtml = combatants.map(function(c) {
+          return '<option value="' + c.combat_id + '">' + c.name + '</option>';
+        }).join('');
+        addStep('<strong>Select Target for ' + spellName + '</strong>' +
+          '<br><select id="' + selectId + '" style="margin-top:4px;">' +
+          '<option value="">-- select target --</option>' + optionsHtml + '</select>' +
+          '<br><button class="action-btn" style="margin-top:8px;" onclick="(function(){' +
+          'var v=document.getElementById(\'' + selectId + '\').value;' +
+          'if(!v){alert(\'Pick a target\');return;}' +
+          'confirmCast(\'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ', [parseInt(v,10)], ' +
+          (isInstant ? 'true' : 'false') + ', \'' + effectLabel + '\', \'single\');})()">Next</button>');
+      }
     }
 
-    function confirmCast(spellName, spellTier, targetCombatId, isInstant, effectLabel) {
+    function confirmCast(spellName, spellTier, targetIds, isInstant, effectLabel, targetMode) {
       var cost = spellManaCost(spellTier);
       var isConcentration = false;
       if (!isInstant) {
         isConcentration = confirm(spellName + ' (Tier ' + spellTier + ', ' + cost + ' mana)\n\nIs this a concentration spell?');
       }
 
-      var targetName = '';
-      for (var i = 0; i < combatants.length; i++) {
-        if (combatants[i].combat_id === targetCombatId) { targetName = combatants[i].name; break; }
+      var targetNames = [];
+      for (var t = 0; t < targetIds.length; t++) {
+        for (var i = 0; i < combatants.length; i++) {
+          if (combatants[i].combat_id === targetIds[t]) { targetNames.push(combatants[i].name); break; }
+        }
       }
 
       var label = effectLabel ? ' | ' + effectLabel.charAt(0).toUpperCase() + effectLabel.slice(1) : '';
-      addStep('<strong>Casting: ' + spellName + '</strong>' +
-        '<br><span class="math-detail">Tier ' + spellTier + ' | Cost: ' + cost + ' mana | Target: ' + targetName +
-        (isConcentration ? ' | Concentration' : '') + label + '</span>' +
-        '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'cast\', spell_name: \'' +
+      var targetLabel;
+      if (targetMode === 'none') {
+        targetLabel = '';
+      } else if (targetMode === 'multi') {
+        targetLabel = ' | Targets: ' + targetNames.join(', ');
+      } else {
+        targetLabel = ' | Target: ' + targetNames.join(', ');
+      }
+      var fields = 'id: currentCharId, combat_action: \'cast\', spell_name: \'' +
         spellName.replace(/'/g, "\\'") + '\', spell_tier: ' + spellTier +
-        ', concentration: ' + isConcentration + ', target_combat_id: ' + targetCombatId + '})" style="margin-top:8px;">Confirm Cast</button>');
+        ', concentration: ' + isConcentration;
+      if (targetMode === 'multi') {
+        fields += ', target_combat_ids: \'' + targetIds.join(',') + '\'';
+      } else if (targetMode === 'single') {
+        fields += ', target_combat_id: ' + targetIds[0];
+      }
+      addStep('<strong>Casting: ' + spellName + '</strong>' +
+        '<br><span class="math-detail">Tier ' + spellTier + ' | Cost: ' + cost + ' mana' + targetLabel +
+        (isConcentration ? ' | Concentration' : '') + label + '</span>' +
+        '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Confirm Cast</button>');
     }
 
     // --- ITEM: Consumable selection ---
@@ -323,38 +366,76 @@
       }
       var html = '<strong>Use Item</strong>';
       itemList.forEach(function(item) {
-        var label = item.name + ' (tier ' + item.item_tier + ', x' + item.quantity + ')';
+        var mode = item.target_mode || 'single';
+        var marker = mode === 'multi' ? ' *' : (mode === 'none' ? ' \u25CB' : '');
+        var label = item.name + ' (tier ' + item.item_tier + ', x' + item.quantity + ')' + marker;
         html += '<br><button class="action-btn" style="margin:2px;" onclick="selectItemTarget(' + item.item_id + ', \'' +
-          item.name.replace(/'/g, "\\'") + '\', ' + item.item_tier + ', \'' + item.type + '\', \'' + item.kind + '\')">' + label + '</button>';
+          item.name.replace(/'/g, "\\'") + '\', ' + item.item_tier + ', \'' + item.type + '\', \'' + item.kind + '\', \'' +
+          mode + '\')">' + label + '</button>';
       });
+      html += '<br><span class="math-detail">* = multi-target &nbsp; \u25CB = no target</span>';
       addStep(html);
     }
 
-    function selectItemTarget(itemId, itemName, itemTier, itemType, itemKind) {
-      var optionsHtml = combatants.map(function(c) {
-        var sel = c.combat_id === currentCharId ? ' selected' : '';
-        return '<option value="' + c.combat_id + '"' + sel + '>' + c.name + '</option>';
-      }).join('');
+    function selectItemTarget(itemId, itemName, itemTier, itemType, itemKind, targetMode) {
+      if (targetMode === 'none') {
+        confirmItemUse(itemId, itemName, itemTier, itemType, itemKind, [], 'none');
+        return;
+      }
       var selectId = 'item-target-' + Date.now();
-      addStep('<strong>Select Target for ' + itemName + '</strong>' +
-        '<br><span class="math-detail">Default target is self.</span>' +
-        '<br><select id="' + selectId + '" style="margin-top:4px;">' + optionsHtml + '</select>' +
-        '<br><button class="action-btn" style="margin-top:8px;" onclick="(function(){' +
-        'var v=document.getElementById(\'' + selectId + '\').value;' +
-        'if(!v){alert(\'Pick a target\');return;}' +
-        'confirmItemUse(' + itemId + ', \'' + itemName.replace(/'/g, "\\'") + '\', ' + itemTier + ', \'' + itemType + '\', \'' + itemKind + '\', parseInt(v,10));})()">Next</button>');
+      if (targetMode === 'multi') {
+        var checkboxesHtml = combatants.map(function(c) {
+          return '<label style="display:block;margin:2px 0;">' +
+            '<input type="checkbox" class="' + selectId + '-cb" value="' + c.combat_id + '"> ' + c.name + '</label>';
+        }).join('');
+        addStep('<strong>Select Targets for ' + itemName + '</strong>' +
+          '<br><span class="math-detail">Pick one or more.</span>' +
+          '<div style="margin-top:4px;">' + checkboxesHtml + '</div>' +
+          '<button class="action-btn" style="margin-top:8px;" onclick="(function(){' +
+          'var boxes=document.getElementsByClassName(\'' + selectId + '-cb\');' +
+          'var ids=[];for(var i=0;i<boxes.length;i++){if(boxes[i].checked)ids.push(parseInt(boxes[i].value,10));}' +
+          'if(ids.length===0){alert(\'Pick at least one target\');return;}' +
+          'confirmItemUse(' + itemId + ', \'' + itemName.replace(/'/g, "\\'") + '\', ' + itemTier + ', \'' + itemType + '\', \'' + itemKind + '\', ids, \'multi\');})()">Next</button>');
+      } else {
+        var optionsHtml = combatants.map(function(c) {
+          var sel = c.combat_id === currentCharId ? ' selected' : '';
+          return '<option value="' + c.combat_id + '"' + sel + '>' + c.name + '</option>';
+        }).join('');
+        addStep('<strong>Select Target for ' + itemName + '</strong>' +
+          '<br><span class="math-detail">Default target is self.</span>' +
+          '<br><select id="' + selectId + '" style="margin-top:4px;">' + optionsHtml + '</select>' +
+          '<br><button class="action-btn" style="margin-top:8px;" onclick="(function(){' +
+          'var v=document.getElementById(\'' + selectId + '\').value;' +
+          'if(!v){alert(\'Pick a target\');return;}' +
+          'confirmItemUse(' + itemId + ', \'' + itemName.replace(/'/g, "\\'") + '\', ' + itemTier + ', \'' + itemType + '\', \'' + itemKind + '\', [parseInt(v,10)], \'single\');})()">Next</button>');
+      }
     }
 
-    function confirmItemUse(itemId, itemName, itemTier, itemType, itemKind, targetCombatId) {
-      var targetName = '';
-      for (var i = 0; i < combatants.length; i++) {
-        if (combatants[i].combat_id === targetCombatId) { targetName = combatants[i].name; break; }
+    function confirmItemUse(itemId, itemName, itemTier, itemType, itemKind, targetIds, targetMode) {
+      var targetNames = [];
+      for (var t = 0; t < targetIds.length; t++) {
+        for (var i = 0; i < combatants.length; i++) {
+          if (combatants[i].combat_id === targetIds[t]) { targetNames.push(combatants[i].name); break; }
+        }
       }
       var kindLabel = itemKind.charAt(0).toUpperCase() + itemKind.slice(1);
+      var targetLabel;
+      if (targetMode === 'none') {
+        targetLabel = '';
+      } else if (targetMode === 'multi') {
+        targetLabel = ' | Targets: ' + targetNames.join(', ');
+      } else {
+        targetLabel = ' | Target: ' + targetNames.join(', ');
+      }
+      var fields = 'id: currentCharId, combat_action: \'item\', item_id: ' + itemId;
+      if (targetMode === 'multi') {
+        fields += ', target_combat_ids: \'' + targetIds.join(',') + '\'';
+      } else if (targetMode === 'single') {
+        fields += ', target_combat_id: ' + targetIds[0];
+      }
       addStep('<strong>Using: ' + itemName + '</strong>' +
-        '<br><span class="math-detail">Tier ' + itemTier + ' | ' + kindLabel + ' | Effect: ' + itemType + ' | Target: ' + targetName + '</span>' +
-        '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'item\'' +
-        ', item_id: ' + itemId + ', target_combat_id: ' + targetCombatId + '})" style="margin-top:8px;">Confirm Use</button>');
+        '<br><span class="math-detail">Tier ' + itemTier + ' | ' + kindLabel + ' | Effect: ' + itemType + targetLabel + '</span>' +
+        '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Confirm Use</button>');
     }
 
     // --- ATTACK STEP 2: Choose attack dice ---

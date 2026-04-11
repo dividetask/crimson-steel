@@ -176,6 +176,17 @@ class Compendium
   def format_name(ability_name); return ability_name.gsub('_', ' ').split(' ').map(&:capitalize).join(' '); end
   def ability(entry); return @data["abilities"][entry.to_s]; end
 
+  # Returns "none" | "single" | "multi" for a spell variant. Spells without
+  # an explicit "target" field default to "single". Unknown spells return
+  # nil -- callers (item_effects) decide how to handle that.
+  def target_mode(spell_name)
+    resolved = resolve_spell_variant(spell_name)
+    return nil unless resolved
+    _base, spell_data, * = resolved
+    mode = spell_data["target"].to_s
+    %w[none single multi].include?(mode) ? mode : "single"
+  end
+
   # Given a spell name (which may be a variant like "Cure Lesser Wounds"),
   # return [base_name, spell_data, tier_idx, tier_val] or nil if not found.
   def resolve_spell_variant(spell_name)
@@ -228,8 +239,10 @@ class Compendium
     base_pair = spell_by_key(spell_key)
     if base_pair.nil?
       # Unknown spell: scrolls are still usable as a no-op; potions are not.
+      # Unknown spells have no target by default (nothing to validate).
       return nil unless kind == :scroll
-      return { kind: :scroll, type: :generic, item_tier: item["bonus"].to_i, base_name: nil, variant_name: item["name"] }
+      return { kind: :scroll, type: :generic, item_tier: item["bonus"].to_i,
+               base_name: nil, variant_name: item["name"], target_mode: "none" }
     end
 
     base_name, base_data = base_pair
@@ -239,8 +252,13 @@ class Compendium
     tier_val = tiers[tier_idx]
     effect = base_data["effect_hash"] || {}
     variant_name = variant_name_at(base_name, base_data, tier_idx)
+    # Potions are always single-target regardless of the underlying spell.
+    spell_mode = base_data["target"].to_s
+    spell_mode = "single" unless %w[none single multi].include?(spell_mode)
+    item_mode = kind == :potion ? "single" : spell_mode
     base = { kind: kind, type: nil, item_tier: item_tier, base_name: base_name,
-             variant_name: variant_name, tier_idx: tier_idx, tier_val: tier_val }
+             variant_name: variant_name, tier_idx: tier_idx, tier_val: tier_val,
+             target_mode: item_mode }
 
     if %w[minor_damage moderate_damage major_damage].any? { |k| effect.key?(k) }
       base.merge(
