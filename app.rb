@@ -181,7 +181,18 @@ post '/combat/action' do
 
     halt 400, "Not enough mana" unless participant['mana'].to_i >= mana_cost
 
-    target_combat_id = params[:target_combat_id].to_i if params[:target_combat_id] && !params[:target_combat_id].empty?
+    # Accept either a single target_combat_id or a comma-separated
+    # target_combat_ids list (for multi-target spells). Single-target
+    # effect branches (cure, ward) use the first id; the generic branch
+    # iterates the full list.
+    target_ids = if params[:target_combat_ids] && !params[:target_combat_ids].to_s.empty?
+      params[:target_combat_ids].to_s.split(',').map { |s| s.strip.to_i }.reject(&:zero?)
+    elsif params[:target_combat_id] && !params[:target_combat_id].to_s.empty?
+      [params[:target_combat_id].to_i]
+    else
+      []
+    end
+    target_combat_id = target_ids.first
 
     compendium = Compendium.new
     cure = compendium.cure_effects(spell_name)
@@ -232,14 +243,13 @@ post '/combat/action' do
 
       Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana) - healed #{healed_major}/#{healed_moderate}/#{healed_minor} (major/moderate/minor), +#{sat_add} saturation")
     else
-      target_name = nil
-      if target_combat_id
-        target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
-        if target
-          target_char_id = target['char_id'] || target['id']
-          target_data = Tools.load_json('characters.json').find { |c| c['id'] == target_char_id }
-          target_name = CharacterSheet.new(target_data).name if target_data
-        end
+      target_names = []
+      target_ids.each do |tid|
+        target = combat_data['participants'].find { |p| p['id'] == tid }
+        next unless target
+        target_char_id = target['char_id'] || target['id']
+        target_data = Tools.load_json('characters.json').find { |c| c['id'] == target_char_id }
+        target_names << CharacterSheet.new(target_data).name if target_data
       end
 
       participant['mana'] = participant['mana'].to_i - mana_cost
@@ -251,12 +261,12 @@ post '/combat/action' do
           'spell_name' => spell_name,
           'spell_tier' => spell_tier,
           'round_cast' => combat_data['round'],
-          'target_combat_id' => target_combat_id,
-          'target_name' => target_name
+          'target_combat_ids' => target_ids,
+          'target_names' => target_names
         }
       end
       Tools.save_json('combat.json', combat_data)
-      suffix = target_name ? " on #{target_name}" : ""
+      suffix = target_names.empty? ? "" : " on #{target_names.join(', ')}"
       Combat.add_log("#{character.name} casts #{spell_name}#{suffix} (#{mana_cost} mana)")
     end
 
@@ -275,17 +285,43 @@ post '/combat/action' do
     effect = compendium.item_effects(item)
     halt 400, "This item cannot be used" unless effect
 
-    target_combat_id = params[:target_combat_id] && !params[:target_combat_id].to_s.empty? ? params[:target_combat_id].to_i : combat_id
-    target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
-    halt 400, "Target not found" unless target
-    target_char_id = target['char_id'] || target['id']
-    target_data = Tools.load_json('characters.json').find { |c| c['id'] == target_char_id }
-    halt 400, "Target character not found" unless target_data
-    target_character = CharacterSheet.new(target_data)
+    item_target_mode = effect[:target_mode].to_s
+    item_target_mode = "single" if item_target_mode.empty?
 
-    max_saturation = target_character.cha
-    current_saturation = target['saturation'].to_i
-    at_max = current_saturation >= max_saturation
+    # Parse targets. Accept target_combat_ids (comma-separated) for multi-target
+    # scrolls, or target_combat_id for the single-target flow. For no-target
+    # items we don't require any id; otherwise default to self.
+    raw_multi = params[:target_combat_ids].to_s
+    target_ids = if !raw_multi.empty?
+      raw_multi.split(',').map { |s| s.strip.to_i }.reject(&:zero?)
+    elsif params[:target_combat_id] && !params[:target_combat_id].to_s.empty?
+      [params[:target_combat_id].to_i]
+    elsif item_target_mode == "none"
+      []
+    else
+      [combat_id]
+    end
+
+    # Single-target branches (all potions, and scroll cure/ward/mana) use
+    # the first target. No-target items skip resolution entirely.
+    target_combat_id = target_ids.first
+    if item_target_mode == "none"
+      target = nil
+      target_character = nil
+      max_saturation = 0
+      current_saturation = 0
+      at_max = false
+    else
+      target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
+      halt 400, "Target not found" unless target
+      target_char_id = target['char_id'] || target['id']
+      target_data = Tools.load_json('characters.json').find { |c| c['id'] == target_char_id }
+      halt 400, "Target character not found" unless target_data
+      target_character = CharacterSheet.new(target_data)
+      max_saturation = target_character.cha
+      current_saturation = target['saturation'].to_i
+      at_max = current_saturation >= max_saturation
+    end
 
     effect_log = ""
 
@@ -359,7 +395,17 @@ post '/combat/action' do
 
       when :generic
         # Spell effect not yet implemented. Scroll is still consumed.
-        effect_log = "casts #{effect[:variant_name] || item['name']} (no implemented effect)"
+        # Collect target names (for multi-target scrolls, all selected targets).
+        generic_names = []
+        target_ids.each do |tid|
+          p = combat_data['participants'].find { |x| x['id'] == tid }
+          next unless p
+          pc_id = p['char_id'] || p['id']
+          pd = Tools.load_json('characters.json').find { |c| c['id'] == pc_id }
+          generic_names << CharacterSheet.new(pd).name if pd
+        end
+        suffix = generic_names.empty? ? "" : " on #{generic_names.join(', ')}"
+        effect_log = "casts #{effect[:variant_name] || item['name']}#{suffix} (no implemented effect)"
       end
     end
 
@@ -390,7 +436,15 @@ post '/combat/action' do
     end
 
     Tools.save_json('combat.json', combat_data)
-    Combat.add_log("#{user_character.name} uses #{item['name']} on #{target_character.name} - #{effect_log}")
+    # Single-target branches name `target_character`; the multi-target /
+    # no-target scroll-generic branch embeds names (or nothing) in effect_log.
+    generic_multi_or_none = effect[:kind] == :scroll && effect[:type] == :generic && target_ids.length != 1
+    log_prefix = if generic_multi_or_none || target_character.nil?
+      "#{user_character.name} uses #{item['name']}"
+    else
+      "#{user_character.name} uses #{item['name']} on #{target_character.name}"
+    end
+    Combat.add_log("#{log_prefix} - #{effect_log}")
 
   elsif action == 'dismiss_effect'
     effect_index = params[:effect_index].to_i
