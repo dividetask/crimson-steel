@@ -29,7 +29,7 @@ class CombatTurn
       'saturation' => @saturation, 'temporary_hit_points' => @temporary_hit_points}
   end
 
-  def hp; return @character.hp_max - @minor_damage - @moderate_damage - @major_damage; end
+  def hp; return @character.hp_max - @minor_damage - @moderate_damage - @major_damage + @temporary_hit_points.to_i; end
 
   def display_name(suffix = nil)
     suffix ? "#{@character.name} ##{suffix}" : @character.name
@@ -175,6 +175,72 @@ class Compendium
     nil
   end
 
+  # Look up a base spell by lowercase-underscore key (e.g., "cure" -> "Cure").
+  def spell_by_key(key)
+    return nil unless key
+    normalized = key.to_s.downcase
+    @data["spells"].find { |name, _| name.downcase.gsub(' ', '_') == normalized }
+  end
+
+  # Returns the resolved effect of a consumable potion, or nil if the item
+  # is not a supported potion (healing / mana / ward).
+  #
+  # Output hash shape: {
+  #   type: :cure | :mana | :ward,
+  #   item_tier: Integer,
+  #   base_name: String,
+  #   # cure keys: :minor, :moderate, :major, :saturation, :minimum_saturation
+  #   # mana keys: :mana
+  #   # ward keys: :temp_hp
+  # }
+  def item_effects(item)
+    return nil unless item.is_a?(Hash)
+    return nil unless item.dig("properties", "consumable")
+    return nil unless item["subtype"] == "potion"
+    spell_key = item.dig("properties", "spell")
+    base_pair = spell_by_key(spell_key)
+    return nil unless base_pair
+    base_name, base_data = base_pair
+    item_tier = item["bonus"].to_i
+    tiers = base_data["tier"].is_a?(Array) ? base_data["tier"] : [base_data["tier"]]
+    tier_idx = tiers.index(item_tier) || 0
+    tier_val = tiers[tier_idx]
+    effect = base_data["effect_hash"] || {}
+    base = { type: nil, item_tier: item_tier, base_name: base_name, tier_idx: tier_idx, tier_val: tier_val }
+    if %w[minor_damage moderate_damage major_damage].any? { |k| effect.key?(k) }
+      base.merge(
+        type: :cure,
+        minor: resolve_effect_value(effect["minor_damage"], tier_idx, tier_val).to_i,
+        moderate: resolve_effect_value(effect["moderate_damage"], tier_idx, tier_val).to_i,
+        major: resolve_effect_value(effect["major_damage"], tier_idx, tier_val).to_i,
+        saturation: resolve_effect_value(effect["saturation"], tier_idx, tier_val).to_i,
+        minimum_saturation: resolve_effect_value(effect["minimum_saturation"], tier_idx, tier_val).to_i
+      )
+    elsif effect.key?("mana")
+      base.merge(
+        type: :mana,
+        mana: resolve_effect_value(effect["mana"], tier_idx, tier_val).to_i
+      )
+    elsif effect.key?("temp_hp")
+      base.merge(
+        type: :ward,
+        temp_hp: resolve_effect_value(effect["temp_hp"], tier_idx, tier_val).to_i
+      )
+    else
+      nil
+    end
+  end
+
+  # Potion saturation: 2 * item_tier, doubled for each step the item tier
+  # exceeds the user tier. Tier 0 counts as 0.5 for the base multiplication
+  # (per CLAUDE.md), but the step count uses integer tier values. Result floored.
+  def self.potion_saturation(item_tier, user_tier)
+    base_tier = item_tier.to_i == 0 ? 0.5 : item_tier.to_f
+    base = 2 * base_tier
+    diff = [item_tier.to_i - user_tier.to_i, 0].max
+    (base * (2 ** diff)).floor
+  end
+
   # For a spell variant, return a hash of ward effects (temp hp grant),
   # or nil if the spell has no temp_hp effect_hash key.
   def ward_effects(spell_name)
@@ -219,10 +285,12 @@ class Compendium
     val
   end
 
+  # Per CLAUDE.md: tier 0 counts as 0.5 in all formulas. Result is floored.
   def eval_tier_formula(formula, tier_val)
-    result = formula.to_s.gsub("tier", tier_val.to_s)
+    effective_tier = tier_val.to_i == 0 ? 0.5 : tier_val.to_f
+    result = formula.to_s.gsub("tier", effective_tier.to_s)
     raise "Unsafe formula: #{formula}" unless result.match?(/\A[\d\s+\-*\/().]+\z/)
-    eval(result)
+    eval(result).floor
   end
 
   def ammunition_store_items
@@ -739,7 +807,7 @@ class CharacterSheet
     end
   end
 
-  def current_hp; hp_max - combat_status[:minor_damage] - combat_status[:moderate_damage] - combat_status[:major_damage]; end
+  def current_hp; hp_max - combat_status[:minor_damage] - combat_status[:moderate_damage] - combat_status[:major_damage] + combat_status[:temporary_hit_points]; end
   def current_mana; combat_status[:current_mana]; end
   def minor_damage; combat_status[:minor_damage]; end
   def moderate_damage; combat_status[:moderate_damage]; end

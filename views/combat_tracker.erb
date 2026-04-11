@@ -125,6 +125,24 @@
     else
       '[]'
     end %>;
+    var itemList = <%= if current
+      compendium = Compendium.new
+      JSON.generate(
+        current.character.item_list.filter_map do |item|
+          fx = compendium.item_effects(item)
+          next nil unless fx
+          {
+            item_id: item['item_id'],
+            name: item['name'],
+            quantity: item['quantity'] || 1,
+            item_tier: fx[:item_tier],
+            type: fx[:type].to_s
+          }
+        end
+      )
+    else
+      '[]'
+    end %>;
     var combatants = <%= JSON.generate(
       @combat.combat_turn_list.each_with_index.map { |ct, idx|
         {
@@ -189,6 +207,10 @@
 
       if (action === 'cast') {
         showSpellSelection();
+      }
+
+      if (action === 'item') {
+        showItemSelection();
       }
     }
 
@@ -290,6 +312,47 @@
         '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'cast\', spell_name: \'' +
         spellName.replace(/'/g, "\\'") + '\', spell_tier: ' + spellTier +
         ', concentration: ' + isConcentration + ', target_combat_id: ' + targetCombatId + '})" style="margin-top:8px;">Confirm Cast</button>');
+    }
+
+    // --- ITEM: Consumable selection ---
+    function showItemSelection() {
+      if (!itemList || itemList.length === 0) {
+        addStep('<strong>No usable items</strong> (supports healing, mana, and ward potions)');
+        return;
+      }
+      var html = '<strong>Use Item</strong>';
+      itemList.forEach(function(item) {
+        var label = item.name + ' (tier ' + item.item_tier + ', x' + item.quantity + ')';
+        html += '<br><button class="action-btn" style="margin:2px;" onclick="selectItemTarget(' + item.item_id + ', \'' +
+          item.name.replace(/'/g, "\\'") + '\', ' + item.item_tier + ', \'' + item.type + '\')">' + label + '</button>';
+      });
+      addStep(html);
+    }
+
+    function selectItemTarget(itemId, itemName, itemTier, itemType) {
+      var optionsHtml = combatants.map(function(c) {
+        var sel = c.combat_id === currentCharId ? ' selected' : '';
+        return '<option value="' + c.combat_id + '"' + sel + '>' + c.name + '</option>';
+      }).join('');
+      var selectId = 'item-target-' + Date.now();
+      addStep('<strong>Select Target for ' + itemName + '</strong>' +
+        '<br><span class="math-detail">Default target is self.</span>' +
+        '<br><select id="' + selectId + '" style="margin-top:4px;">' + optionsHtml + '</select>' +
+        '<br><button class="action-btn" style="margin-top:8px;" onclick="(function(){' +
+        'var v=document.getElementById(\'' + selectId + '\').value;' +
+        'if(!v){alert(\'Pick a target\');return;}' +
+        'confirmItemUse(' + itemId + ', \'' + itemName.replace(/'/g, "\\'") + '\', ' + itemTier + ', \'' + itemType + '\', parseInt(v,10));})()">Next</button>');
+    }
+
+    function confirmItemUse(itemId, itemName, itemTier, itemType, targetCombatId) {
+      var targetName = '';
+      for (var i = 0; i < combatants.length; i++) {
+        if (combatants[i].combat_id === targetCombatId) { targetName = combatants[i].name; break; }
+      }
+      addStep('<strong>Using: ' + itemName + '</strong>' +
+        '<br><span class="math-detail">Tier ' + itemTier + ' | Effect: ' + itemType + ' | Target: ' + targetName + '</span>' +
+        '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'item\'' +
+        ', item_id: ' + itemId + ', target_combat_id: ' + targetCombatId + '})" style="margin-top:8px;">Confirm Use</button>');
     }
 
     // --- ATTACK STEP 2: Choose attack dice ---
