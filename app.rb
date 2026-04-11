@@ -218,26 +218,7 @@ post '/combat/action' do
         halt 400, "#{target_character.name} is already at maximum magical saturation (#{current_saturation}/#{max_saturation})"
       end
 
-      # Cascade: major -> moderate -> minor. Excess in each category flows down.
-      major_before = target['major_damage'].to_i
-      moderate_before = target['moderate_damage'].to_i
-      minor_before = target['minor_damage'].to_i
-
-      pool = cure[:major]
-      healed_major = [major_before, pool].min
-      pool -= healed_major
-
-      pool += cure[:moderate]
-      healed_moderate = [moderate_before, pool].min
-      pool -= healed_moderate
-
-      pool += cure[:minor]
-      healed_minor = [minor_before, pool].min
-      # remaining pool is excess minor healing, lost
-
-      target['major_damage'] = major_before - healed_major
-      target['moderate_damage'] = moderate_before - healed_moderate
-      target['minor_damage'] = minor_before - healed_minor
+      healed_major, healed_moderate, healed_minor = Combat.apply_cure_cascade(target, cure)
 
       # Saturation: reduce by target tier, and by 2*caster_tier if caster has improved_healing.
       # Floor at minimum_saturation.
@@ -249,7 +230,6 @@ post '/combat/action' do
       participant['mana'] = participant['mana'].to_i - mana_cost
       Tools.save_json('combat.json', combat_data)
 
-      total_healed = healed_major + healed_moderate + healed_minor
       Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana) - healed #{healed_major}/#{healed_moderate}/#{healed_minor} (major/moderate/minor), +#{sat_add} saturation")
     else
       target_name = nil
@@ -293,7 +273,7 @@ post '/combat/action' do
 
     compendium = Compendium.new
     effect = compendium.item_effects(item)
-    halt 400, "This item cannot be used (only healing, mana, and ward potions are supported)" unless effect
+    halt 400, "This item cannot be used" unless effect
 
     target_combat_id = params[:target_combat_id] && !params[:target_combat_id].to_s.empty? ? params[:target_combat_id].to_i : combat_id
     target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
@@ -305,56 +285,82 @@ post '/combat/action' do
 
     max_saturation = target_character.cha
     current_saturation = target['saturation'].to_i
-    if current_saturation >= max_saturation
-      halt 400, "#{target_character.name} is already at maximum magical saturation (#{current_saturation}/#{max_saturation})"
-    end
+    at_max = current_saturation >= max_saturation
 
-    # Target is the drinker; use their tier as the "user tier" for potion saturation.
-    potion_sat = Compendium.potion_saturation(effect[:item_tier], target_character.tier)
     effect_log = ""
 
-    case effect[:type]
-    when :cure
-      major_before = target['major_damage'].to_i
-      moderate_before = target['moderate_damage'].to_i
-      minor_before = target['minor_damage'].to_i
+    if effect[:kind] == :potion
+      # Potions always cause saturation (flat potion rule), so blocked at max.
+      halt 400, "#{target_character.name} is already at maximum magical saturation (#{current_saturation}/#{max_saturation})" if at_max
 
-      pool = effect[:major]
-      healed_major = [major_before, pool].min
-      pool -= healed_major
-      pool += effect[:moderate]
-      healed_moderate = [moderate_before, pool].min
-      pool -= healed_moderate
-      pool += effect[:minor]
-      healed_minor = [minor_before, pool].min
+      potion_sat = Compendium.potion_saturation(effect[:item_tier], target_character.tier)
 
-      target['major_damage'] = major_before - healed_major
-      target['moderate_damage'] = moderate_before - healed_moderate
-      target['minor_damage'] = minor_before - healed_minor
+      case effect[:type]
+      when :cure
+        healed_major, healed_moderate, healed_minor = Combat.apply_cure_cascade(target, effect)
+        # Cure spell saturation rules (no improved_healing for potions)
+        # PLUS the potion's own saturation on top.
+        cure_sat = effect[:saturation] - target_character.tier
+        cure_sat = effect[:minimum_saturation] if cure_sat < effect[:minimum_saturation]
+        total_sat = cure_sat + potion_sat
+        target['saturation'] = current_saturation + total_sat
+        effect_log = "healed #{healed_major}/#{healed_moderate}/#{healed_minor}, +#{total_sat} saturation (#{cure_sat} cure + #{potion_sat} potion)"
 
-      # Cure spell saturation rules apply (improved_healing does NOT affect
-      # potions) and the potion adds its own saturation on top of that.
-      cure_sat = effect[:saturation] - target_character.tier
-      cure_sat = effect[:minimum_saturation] if cure_sat < effect[:minimum_saturation]
-      total_sat = cure_sat + potion_sat
-      target['saturation'] = current_saturation + total_sat
+      when :mana
+        target_max_mana = target_character.mana_max
+        current_mana = target['mana'].to_i
+        new_mana = [current_mana + effect[:mana], target_max_mana].min
+        target['mana'] = new_mana
+        target['saturation'] = current_saturation + potion_sat
+        effect_log = "mana #{current_mana} -> #{new_mana}, +#{potion_sat} saturation"
 
-      effect_log = "healed #{healed_major}/#{healed_moderate}/#{healed_minor}, +#{total_sat} saturation (#{cure_sat} cure + #{potion_sat} potion)"
+      when :ward
+        current_temp = target['temporary_hit_points'].to_i
+        new_temp = [current_temp, effect[:temp_hp]].max
+        target['temporary_hit_points'] = new_temp
+        target['saturation'] = current_saturation + potion_sat
+        effect_log = "temp HP #{current_temp} -> #{new_temp}, +#{potion_sat} saturation"
+      end
 
-    when :mana
-      target_max_mana = target_character.mana_max
-      current_mana = target['mana'].to_i
-      new_mana = [current_mana + effect[:mana], target_max_mana].min
-      target['mana'] = new_mana
-      target['saturation'] = current_saturation + potion_sat
-      effect_log = "mana #{current_mana} -> #{new_mana}, +#{potion_sat} saturation"
+    elsif effect[:kind] == :scroll
+      # Scrolls act like casting the underlying spell with no mana cost.
+      # Full spell saturation rules apply (including improved_healing for cures),
+      # and scrolls with unrecognized spell effects are still consumable.
+      case effect[:type]
+      when :cure
+        halt 400, "#{target_character.name} is already at maximum magical saturation (#{current_saturation}/#{max_saturation})" if at_max
 
-    when :ward
-      current_temp = target['temporary_hit_points'].to_i
-      new_temp = [current_temp, effect[:temp_hp]].max
-      target['temporary_hit_points'] = new_temp
-      target['saturation'] = current_saturation + potion_sat
-      effect_log = "temp HP #{current_temp} -> #{new_temp}, +#{potion_sat} saturation"
+        healed_major, healed_moderate, healed_minor = Combat.apply_cure_cascade(target, effect)
+        sat_add = effect[:saturation] - target_character.tier
+        sat_add -= 2 * user_character.tier if user_character.ability_list.include?("improved_healing")
+        sat_add = effect[:minimum_saturation] if sat_add < effect[:minimum_saturation]
+        target['saturation'] = current_saturation + sat_add
+        effect_log = "healed #{healed_major}/#{healed_moderate}/#{healed_minor}, +#{sat_add} saturation"
+
+      when :mana
+        halt 400, "#{target_character.name} is already at maximum magical saturation (#{current_saturation}/#{max_saturation})" if at_max
+
+        target_max_mana = target_character.mana_max
+        current_mana = target['mana'].to_i
+        new_mana = [current_mana + effect[:mana], target_max_mana].min
+        target['mana'] = new_mana
+        # Recharge is universal school, not healing -- improved_healing does not apply.
+        sat_add = effect[:saturation] - target_character.tier
+        sat_add = effect[:minimum_saturation] if sat_add < effect[:minimum_saturation]
+        target['saturation'] = current_saturation + sat_add
+        effect_log = "mana #{current_mana} -> #{new_mana}, +#{sat_add} saturation"
+
+      when :ward
+        # Ward has no saturation when cast, so no max-sat block.
+        current_temp = target['temporary_hit_points'].to_i
+        new_temp = [current_temp, effect[:temp_hp]].max
+        target['temporary_hit_points'] = new_temp
+        effect_log = "temp HP #{current_temp} -> #{new_temp}"
+
+      when :generic
+        # Spell effect not yet implemented. Scroll is still consumed.
+        effect_log = "casts #{effect[:variant_name] || item['name']} (no implemented effect)"
+      end
     end
 
     # Consume one charge. Inline character items have negative item_ids;
