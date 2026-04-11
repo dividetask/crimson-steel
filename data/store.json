@@ -8,6 +8,14 @@
     "description": "This can be thrown as a splash weapon dealing 1 point of moderate fire damage to all creatures within 5 feet. On a direct hit this damage is increased by the number of successes and sneak attack damage when appropriate"
   },
   {
+    "name": "Lesser Bag of Holding",
+    "price": 2500,
+    "type": "item",
+    "subtype": "bag",
+    "bonus": 1,
+    "description": "The bag of holding opens into a nondimensional space: its inside is larger than its outside dimensions. Regardless of what is put into the bag, it weighs a fixed Amount. This weight, and the limits in weight and volume of the bag’s contents, depend on the bag’s type. This bag weighs 15 pounds, can hold up to 250 pounds with a maximum dimensions of 30 cubic feet."
+  },
+  {
     "name": "Hat of Disguise",
     "price": 1800,
     "type": "equipment",

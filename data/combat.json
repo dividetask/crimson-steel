@@ -2,7 +2,7 @@
   "active": false,
   "round": 0,
   "current_turn": 0,
-  "current_turn_id": 3,
+  "current_turn_id": 0,
   "active_effects": [
     {
       "caster_id": 1,
@@ -21,103 +21,112 @@
   ],
   "participants": [
     {
-      "id": 2,
-      "char_id": 2,
-      "initiative": "X98765",
-      "mana": 14,
-      "combat_pool": 0,
-      "minor_damage": 28,
-      "moderate_damage": 0,
-      "major_damage": 0,
-      "saturation": 2
-    },
-    {
-      "id": 2011,
-      "char_id": 12,
-      "initiative": "X9876531",
-      "mana": 60,
-      "combat_pool": 20,
-      "minor_damage": 12,
-      "moderate_damage": 5,
-      "major_damage": 0,
-      "saturation": 0
-    },
-    {
       "id": 1,
       "char_id": 1,
-      "initiative": "987654321",
+      "initiative": "X98765432",
       "mana": 6,
       "combat_pool": 17,
       "minor_damage": 12,
       "moderate_damage": 9,
       "major_damage": 1,
-      "saturation": 2
+      "saturation": 2,
+      "temporary_hit_points": 0
     },
     {
       "id": 3,
       "char_id": 3,
-      "initiative": "9765432",
+      "initiative": "X976541",
       "mana": 12,
       "combat_pool": 0,
       "minor_damage": 0,
       "moderate_damage": 0,
       "major_damage": 0,
-      "saturation": 2
+      "saturation": 2,
+      "temporary_hit_points": 0
     },
     {
-      "id": 4,
-      "char_id": 4,
-      "initiative": "876421",
-      "mana": 9,
-      "combat_pool": 5,
-      "minor_damage": 4,
-      "moderate_damage": 1,
-      "major_damage": 0,
-      "saturation": 2
-    },
-    {
-      "id": 7016,
-      "char_id": 14,
-      "initiative": "8751",
-      "mana": 18,
-      "combat_pool": 0,
-      "minor_damage": 13,
-      "moderate_damage": 14,
-      "major_damage": 3,
-      "saturation": 0
-    },
-    {
-      "id": 5014,
-      "char_id": 15,
-      "initiative": "8631",
-      "mana": 8,
-      "combat_pool": 0,
-      "minor_damage": 17,
-      "moderate_damage": 4,
-      "major_damage": 0,
-      "saturation": 0
-    },
-    {
-      "id": 10019,
-      "char_id": 10,
-      "initiative": "",
-      "mana": 6,
-      "combat_pool": 2,
-      "minor_damage": 11,
+      "id": 2011,
+      "char_id": 12,
+      "initiative": "X9764321",
+      "mana": 60,
+      "combat_pool": 20,
+      "minor_damage": 12,
       "moderate_damage": 5,
       "major_damage": 0,
-      "saturation": 0
+      "saturation": 0,
+      "temporary_hit_points": 0
+    },
+    {
+      "id": 2,
+      "char_id": 2,
+      "initiative": "X96432",
+      "mana": 14,
+      "combat_pool": 0,
+      "minor_damage": 28,
+      "moderate_damage": 0,
+      "major_damage": 0,
+      "saturation": 2,
+      "temporary_hit_points": 0
     },
     {
       "id": 11020,
       "char_id": 10,
-      "initiative": "",
+      "initiative": "X742",
       "mana": 6,
       "combat_pool": 4,
       "minor_damage": 0,
       "moderate_damage": 0,
       "major_damage": 0,
-      "saturation": 0
+      "saturation": 0,
+      "temporary_hit_points": 0
+    },
+    {
+      "id": 7016,
+      "char_id": 14,
+      "initiative": "X643",
+      "mana": 18,
+      "combat_pool": 0,
+      "minor_damage": 13,
+      "moderate_damage": 14,
+      "major_damage": 3,
+      "saturation": 0,
+      "temporary_hit_points": 0
+    },
+    {
+      "id": 4,
+      "char_id": 4,
+      "initiative": "987531",
+      "mana": 9,
+      "combat_pool": 5,
+      "minor_damage": 4,
+      "moderate_damage": 1,
+      "major_damage": 0,
+      "saturation": 2,
+      "temporary_hit_points": 0
+    },
+    {
+      "id": 10019,
+      "char_id": 10,
+      "initiative": "9431",
+      "mana": 6,
+      "combat_pool": 2,
+      "minor_damage": 11,
+      "moderate_damage": 5,
+      "major_damage": 0,
+      "saturation": 0,
+      "temporary_hit_points": 0
+    },
+    {
+      "id": 5014,
+      "char_id": 15,
+      "initiative": "8753",
+      "mana": 8,
+      "combat_pool": 0,
+      "minor_damage": 17,
+      "moderate_damage": 4,
+      "major_damage": 0,
+      "saturation": 0,
+      "temporary_hit_points": 0
     }
   ]
 }
