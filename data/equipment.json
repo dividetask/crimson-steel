@@ -90,45 +90,6 @@
   },
   {
     "owner_id": 1,
-    "name": "Potion of Basic Healing",
-    "type": "item",
-    "subtype": "vial",
-    "bonus": 2,
-    "quantity": 1,
-    "properties": {
-      "consumable": true,
-      "effect": "heal"
-    },
-    "equipped": false
-  },
-  {
-    "owner_id": 1,
-    "name": "Potion of Lesser Healing",
-    "type": "item",
-    "subtype": "vial",
-    "bonus": 1,
-    "quantity": 4,
-    "properties": {
-      "consumable": true,
-      "effect": "heal"
-    },
-    "equipped": false
-  },
-  {
-    "owner_id": 1,
-    "name": "Potion of Lesser Mana",
-    "type": "item",
-    "subtype": "vial",
-    "bonus": 1,
-    "quantity": 1,
-    "properties": {
-      "consumable": true,
-      "effect": "mana"
-    },
-    "equipped": false
-  },
-  {
-    "owner_id": 1,
     "name": "Krithrak (Poison)",
     "type": "item",
     "subtype": "vial",
@@ -291,19 +252,6 @@
     "subtype": "vial",
     "bonus": 2,
     "quantity": 1,
-    "properties": {
-      "consumable": true,
-      "effect": "heal"
-    },
-    "equipped": false
-  },
-  {
-    "owner_id": 2,
-    "name": "Potion of Lesser Healing",
-    "type": "item",
-    "subtype": "vial",
-    "bonus": 1,
-    "quantity": 4,
     "properties": {
       "consumable": true,
       "effect": "heal"
@@ -855,6 +803,229 @@
     },
     "equipped": false,
     "quantity": 1
+  },
+  {
+    "item_id": 1,
+    "owner_id": 1,
+    "name": "Minor Recharge Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 1,
+    "properties": {
+      "consumable": true,
+      "spell": "recharge"
+    },
+    "equipped": false,
+    "quantity": 4
+  },
+  {
+    "item_id": 2,
+    "owner_id": 1,
+    "name": "Cure Lesser Wounds Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 1,
+    "properties": {
+      "consumable": true,
+      "spell": "cure"
+    },
+    "equipped": false,
+    "quantity": 8
+  },
+  {
+    "item_id": 3,
+    "owner_id": 1,
+    "name": "Cure Simple Wounds Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "cure"
+    },
+    "equipped": false,
+    "quantity": 2
+  },
+  {
+    "item_id": 4,
+    "owner_id": 1,
+    "name": "Invisibility Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "invisibility"
+    },
+    "equipped": false,
+    "quantity": 1
+  },
+  {
+    "item_id": 5,
+    "owner_id": 2,
+    "name": "Invisibility Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "invisibility"
+    },
+    "equipped": false,
+    "quantity": 1
+  },
+  {
+    "item_id": 6,
+    "owner_id": 3,
+    "name": "Invisibility Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "invisibility"
+    },
+    "equipped": false,
+    "quantity": 2
+  },
+  {
+    "item_id": 7,
+    "owner_id": 4,
+    "name": "Invisibility Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "invisibility"
+    },
+    "equipped": false,
+    "quantity": 2
+  },
+  {
+    "item_id": 8,
+    "owner_id": 3,
+    "name": "Darkness Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "darkness"
+    },
+    "equipped": false,
+    "quantity": 1
+  },
+  {
+    "item_id": 9,
+    "owner_id": 3,
+    "name": "Web Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "web"
+    },
+    "equipped": false,
+    "quantity": 1
+  },
+  {
+    "item_id": 10,
+    "owner_id": 1,
+    "name": "Spiritual Weapon Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "spiritual_weapon"
+    },
+    "equipped": false,
+    "quantity": 1
+  },
+  {
+    "item_id": 11,
+    "owner_id": 3,
+    "name": "Grease Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 1,
+    "properties": {
+      "consumable": true,
+      "spell": "grease"
+    },
+    "equipped": false,
+    "quantity": 4
+  },
+  {
+    "item_id": 12,
+    "owner_id": 3,
+    "name": "Expeditious Retreat Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 1,
+    "properties": {
+      "consumable": true,
+      "spell": "expeditious_retreat"
+    },
+    "equipped": false,
+    "quantity": 2
+  },
+  {
+    "item_id": 13,
+    "owner_id": 2,
+    "name": "Expeditious Retreat Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 1,
+    "properties": {
+      "consumable": true,
+      "spell": "expeditious_retreat"
+    },
+    "equipped": false,
+    "quantity": 1
+  },
+  {
+    "item_id": 14,
+    "owner_id": 1,
+    "name": "Expeditious Retreat Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 1,
+    "properties": {
+      "consumable": true,
+      "spell": "expeditious_retreat"
+    },
+    "equipped": false,
+    "quantity": 2
+  },
+  {
+    "item_id": 15,
+    "owner_id": 4,
+    "name": "Expeditious Retreat Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 1,
+    "properties": {
+      "consumable": true,
+      "spell": "expeditious_retreat"
+    },
+    "equipped": false,
+    "quantity": 1
+  },
+  {
+    "item_id": 16,
+    "owner_id": 1,
+    "name": "Lesser Ward Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 1,
+    "properties": {
+      "consumable": true,
+      "spell": "ward"
+    },
+    "equipped": false,
+    "quantity": 4
   }
 ]
-
