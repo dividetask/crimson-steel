@@ -415,10 +415,15 @@ class Compendium
           price = eval(cost_formula.gsub("tier", tier_val.to_s))
           name = spell_item_name(spell_name, spell, idx, tiers.length, item_type)
           desc = resolve_description(spell, idx, tier_val)
+          # Wands are not consumable (they have charges, not a single use), so
+          # they omit the consumable flag and use "item" as their type.
+          type = item_type == "wand" ? "item" : "consumable"
+          properties = item_type == "wand" ? {"spell" => spell_name.downcase.gsub(' ', '_')}
+                                           : {"consumable" => true, "spell" => spell_name.downcase.gsub(' ', '_')}
           items << {
-            "name" => name, "price" => price, "type" => "consumable", "subtype" => item_type,
+            "name" => name, "price" => price, "type" => type, "subtype" => item_type,
             "bonus" => 0, "spell" => spell_name.downcase.gsub(' ', '_'), "tier" => tier_val,
-            "properties" => {"consumable" => true, "spell" => spell_name.downcase.gsub(' ', '_')},
+            "properties" => properties,
             "description" => desc
           }
         end

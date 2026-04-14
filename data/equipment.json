@@ -455,8 +455,8 @@
   },
   {
     "owner_id": 3,
-    "name": "Scroll of Obscuring Mist",
-    "type": "item",
+    "name": "Obscuring Mist Scroll",
+    "type": "consumable",
     "subtype": "scroll",
     "bonus": 1,
     "quantity": 1,
@@ -659,7 +659,7 @@
   },
   {
     "owner_id": 4,
-    "name": "Wand of Benign Transposition",
+    "name": "Benign Transposition Wand",
     "type": "item",
     "subtype": "wand",
     "bonus": 1,
@@ -670,7 +670,7 @@
   },
   {
     "owner_id": 4,
-    "name": "Wand of Expeditious Excavation",
+    "name": "Expeditious Excavation Wand",
     "type": "item",
     "subtype": "wand",
     "bonus": 1,
