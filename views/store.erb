@@ -94,22 +94,27 @@
       </div>
 
       <h2>Spell Items</h2>
+      <% pcs = @characters.select { |c| c['group'] == 'PC' } %>
       <div class="store-card-grid">
         <% ['scroll', 'potion', 'oil', 'wand'].each do |item_type| %>
+          <% uses_skill = %w[scroll wand].include?(item_type) %>
+          <% uses_pc_grid = %w[scroll potion oil].include?(item_type) %>
           <div class="store-card">
             <div class="card-header">
               <span class="item-type item-type-<%= item_type %>"><%= item_type.capitalize %></span>
             </div>
             <div class="selector-row">
-              <div class="selector-field">
-                <label>Skill</label>
-                <select class="skill-select" data-item-type="<%= item_type %>">
-                  <option value="">Select Skill</option>
-                </select>
-              </div>
+              <% if uses_skill %>
+                <div class="selector-field">
+                  <label>Skill</label>
+                  <select class="skill-select" data-item-type="<%= item_type %>">
+                    <option value="">Select Skill</option>
+                  </select>
+                </div>
+              <% end %>
               <div class="selector-field-narrow">
                 <label>Tier</label>
-                <select class="tier-select" data-item-type="<%= item_type %>" disabled>
+                <select class="tier-select" data-item-type="<%= item_type %>" <%= 'disabled' if uses_skill %>>
                   <option value="">-</option>
                 </select>
               </div>
@@ -127,13 +132,26 @@
                 <input type="hidden" name="spell_name" value="">
                 <input type="hidden" name="item_type" value="<%= item_type %>">
                 <input type="hidden" name="tier" value="">
-                <select name="owner_id" required>
-                  <option value="">Select Character</option>
-                  <% @characters.each do |char| %>
-                    <option value="<%= char['id'] %>"><%= char['name'] %></option>
-                  <% end %>
-                </select>
-                <button type="submit">Purchase</button>
+                <% if uses_pc_grid %>
+                  <div class="pc-qty-grid">
+                    <% pcs.each do |pc| %>
+                      <div class="pc-qty-row">
+                        <label><%= pc['name'] %></label>
+                        <input type="number" class="pc-qty" name="quantities[<%= pc['id'] %>]" value="0" min="0" step="1">
+                      </div>
+                    <% end %>
+                  </div>
+                  <div class="total-cost">Total: <span class="total-display">0 gp</span></div>
+                  <button type="submit">Purchase</button>
+                <% else %>
+                  <select name="owner_id" required>
+                    <option value="">Select Character</option>
+                    <% pcs.each do |char| %>
+                      <option value="<%= char['id'] %>"><%= char['name'] %></option>
+                    <% end %>
+                  </select>
+                  <button type="submit">Purchase</button>
+                <% end %>
               </form>
             </div>
           </div>
@@ -213,6 +231,38 @@
         result.push({key: s.key, spell: s.spell, tierIdx: tierIdx, tier: tier});
       });
       return result;
+    }
+
+    function getTiersForType(itemType) {
+      var spells = getSpellsForType(itemType);
+      var tiers = {};
+      spells.forEach(function(s) {
+        var tierList = Array.isArray(s.spell.tier) ? s.spell.tier : [s.spell.tier];
+        tierList.forEach(function(t) { tiers[t] = true; });
+      });
+      return Object.keys(tiers).map(Number).sort(function(a,b){return a-b;});
+    }
+
+    function getSpellsForTierType(tier, itemType) {
+      var spells = getSpellsForType(itemType);
+      var result = [];
+      spells.forEach(function(s) {
+        var tierList = Array.isArray(s.spell.tier) ? s.spell.tier : [s.spell.tier];
+        var tierIdx = tierList.indexOf(tier);
+        if (tierIdx === -1) return;
+        result.push({key: s.key, spell: s.spell, tierIdx: tierIdx, tier: tier});
+      });
+      return result;
+    }
+
+    function updateTotalCost(details) {
+      var priceText = details.querySelector('.price').textContent;
+      var price = parseInt(priceText) || 0;
+      var inputs = details.querySelectorAll('.pc-qty');
+      var total = 0;
+      inputs.forEach(function(inp) { total += (parseInt(inp.value) || 0) * price; });
+      var display = details.querySelector('.total-display');
+      if (display) display.textContent = total + ' gp';
     }
 
     function resolveDescription(spell, tierIdx, tierVal) {
@@ -296,38 +346,52 @@
       });
     })();
 
-    // Initialize skill selects
+    // Initialize per-item-type selects. Scrolls and wands use a Skill -> Tier -> Spell
+    // flow; potions and oils skip the skill dropdown since any skill can be used to
+    // drink/apply them.
     ['scroll', 'potion', 'oil', 'wand'].forEach(function(itemType) {
+      var usesSkill = itemType === 'scroll' || itemType === 'wand';
       var skillSelect = document.querySelector('.skill-select[data-item-type="' + itemType + '"]');
       var tierSelect = document.querySelector('.tier-select[data-item-type="' + itemType + '"]');
       var spellSelect = document.querySelector('.spell-select[data-item-type="' + itemType + '"]');
       var details = document.getElementById('details-' + itemType);
 
-      var skills = getSkillsForType(itemType);
-      skills.forEach(function(sk) {
-        var opt = document.createElement('option');
-        opt.value = sk;
-        opt.textContent = skillLabels[sk] || sk;
-        skillSelect.appendChild(opt);
-      });
+      if (usesSkill) {
+        var skills = getSkillsForType(itemType);
+        skills.forEach(function(sk) {
+          var opt = document.createElement('option');
+          opt.value = sk;
+          opt.textContent = skillLabels[sk] || sk;
+          skillSelect.appendChild(opt);
+        });
 
-      skillSelect.addEventListener('change', function() {
-        tierSelect.innerHTML = '<option value="">-</option>';
-        spellSelect.innerHTML = '<option value="">Select Spell</option>';
-        tierSelect.disabled = true;
-        spellSelect.disabled = true;
-        details.style.display = 'none';
+        skillSelect.addEventListener('change', function() {
+          tierSelect.innerHTML = '<option value="">-</option>';
+          spellSelect.innerHTML = '<option value="">Select Spell</option>';
+          tierSelect.disabled = true;
+          spellSelect.disabled = true;
+          details.style.display = 'none';
 
-        if (!this.value) return;
-        var tiers = getTiersForSkillAndType(this.value, itemType);
+          if (!this.value) return;
+          var tiers = getTiersForSkillAndType(this.value, itemType);
+          tiers.forEach(function(t) {
+            var opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t;
+            tierSelect.appendChild(opt);
+          });
+          tierSelect.disabled = false;
+        });
+      } else {
+        // No skill filter: populate tiers directly with every tier that has a spell of this type.
+        var tiers = getTiersForType(itemType);
         tiers.forEach(function(t) {
           var opt = document.createElement('option');
           opt.value = t;
           opt.textContent = t;
           tierSelect.appendChild(opt);
         });
-        tierSelect.disabled = false;
-      });
+      }
 
       tierSelect.addEventListener('change', function() {
         spellSelect.innerHTML = '<option value="">Select Spell</option>';
@@ -335,9 +399,10 @@
         details.style.display = 'none';
 
         if (!this.value) return;
-        var skill = skillSelect.value;
         var tier = parseInt(this.value);
-        var spells = getSpellsForSkillTierType(skill, tier, itemType);
+        var spells = usesSkill
+          ? getSpellsForSkillTierType(skillSelect.value, tier, itemType)
+          : getSpellsForTierType(tier, itemType);
 
         // Update price display immediately
         var price = calcPrice(itemType, tier);
@@ -381,7 +446,17 @@
         details.querySelector('input[name="spell_name"]').value = spellKey;
         details.querySelector('input[name="tier"]').value = tier;
         details.style.display = '';
+        // Reset quantities and recompute total when a new spell is picked.
+        details.querySelectorAll('.pc-qty').forEach(function(inp) { inp.value = 0; });
+        updateTotalCost(details);
       });
+
+      // Live-update the total as quantities change.
+      if (details) {
+        details.querySelectorAll('.pc-qty').forEach(function(inp) {
+          inp.addEventListener('input', function() { updateTotalCost(details); });
+        });
+      }
     });
 
     // Equipment/Ammo filters
