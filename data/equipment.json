@@ -1027,5 +1027,19 @@
     },
     "equipped": false,
     "quantity": 4
+  },
+  {
+    "item_id": 17,
+    "owner_id": 3,
+    "name": "Create Pit Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "create_pit"
+    },
+    "equipped": false,
+    "quantity": 1
   }
 ]
