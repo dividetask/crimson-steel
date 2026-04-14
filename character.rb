@@ -635,10 +635,13 @@ module CharacterEquipment
   attr_reader :item_list, :all_items
   def initialize(character)
     super(character) if defined?(super)
-    @all_items = Tools.load_equipment_with_ids
+    # item_ids are ephemeral and reflect the array position in equipment.json
+    # at load time. They are never persisted -- they exist only so the
+    # frontend can reference a specific item within a single request cycle.
+    @all_items = Tools.load_json('equipment.json').each_with_index.map { |item, i| item["item_id"] = i + 1; item }
     @inline_items = (character["items"] || []).each_with_index.map do |item, i|
       item.merge(
-        "item_id" => item["item_id"] || -(i + 1),
+        "item_id" => -(i + 1),
         "owner_id" => character["id"],
         "equipped" => item.fetch("equipped", true),
         "properties" => item["properties"] || build_item_properties(item)
