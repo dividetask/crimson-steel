@@ -1595,6 +1595,30 @@
       "effect_hash": {
       },
       "description": "All creatures in the area are able to move twice as fast doubling the number of turns per round. All creatures affected by this spell increase their magical saturation by 1 for every round they are affected by this spell."
+    },
+    "Obscuring Mist": {
+      "tier": 1,
+      "save": 0,
+      "school": "convergence",
+      "items": [
+        "scroll",
+        "wand"
+      ],
+      "range": 0,
+      "duration": "rank*10",
+      "casting_time": 0.5,
+      "skill": [
+        "arcana",
+        "healing",
+        "nature"
+      ],
+      "target": "none",
+      "properties": [
+
+      ],
+      "effect_hash": {
+      },
+      "description": "A misty vapor arises around you. It is stationary. The vapor obscures all sight beyond 5 feet. A creature 5 feet away has concealment. Creatures farther away have total concealment.\n\nA moderate wind (11+ mph), such as from a gust of wind spell, disperses the fog in 4 rounds. A strong wind (21+ mph) disperses the fog in 1 round. A fireball, flame strike, or similar spell burns away the fog in the explosive or fiery spell's area. A wall of fire burns away the fog in the area into which it deals damage."
     }
   },
   "abilities": {
