@@ -15,6 +15,7 @@
         <th>Mana</th>
         <th>Dice</th>
         <th>Saturation</th>
+        <th>Conditions</th>
         <th></th>
       </tr>
     </thead>
@@ -40,6 +41,11 @@
           <td><input type="number" name="mana" value="<%= combat_turn.mana %>" style="width: 45px;">/<%= combat_turn.character.mana_max %></td>
           <td><input type="number" name="combat_pool" value="<%= combat_turn.combat_pool %>" style="width: 45px;">/<%= combat_turn.character.combat_pool %></td>
           <td><input type="number" name="saturation" value="<%= combat_turn.saturation %>" style="width: 45px;">/<%= combat_turn.character.cha %></td>
+          <td class="conditions-cell">
+            <% combat_turn.active_conditions.each do |cname, cval| %>
+              <span class="condition-badge condition-<%= cname %>"><%= cname.tr('_', ' ').capitalize %>: <%= cval %></span>
+            <% end %>
+          </td>
           <td><button type="submit">Update</button></form></td>
         </tr>
       <% end %>
@@ -1251,6 +1257,7 @@
           combat_action: 'attack',
           attacker_combat_id: attackState.attackerCombatId,
           target_combat_id: attackState.targetCombatId,
+          weapon_item_id: attackState.weapon.item_id,
           attacker_dice_spent: attackerDiceSpent,
           defense_dice: defenseDice,
           target_mana_cost: manaCost,
@@ -1272,6 +1279,7 @@
         combat_action: 'attack',
         attacker_combat_id: attackState.attackerCombatId,
         target_combat_id: attackState.targetCombatId,
+        weapon_item_id: attackState.weapon.item_id,
         attacker_dice_spent: attackerDiceSpent,
         defense_dice: defenseDice,
         target_mana_cost: manaCost,

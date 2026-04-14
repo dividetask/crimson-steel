@@ -111,6 +111,8 @@ post '/combat/action' do
     target_participant['combat_pool'] = target_participant['combat_pool'].to_i - defense_dice if defense_dice > 0
     target_participant['mana'] = target_participant['mana'].to_i - target_mana_cost if target_mana_cost > 0
 
+    incoming_total = minor + moderate + major
+
     # Temp HP absorbs incoming damage worst-first (major -> moderate -> minor).
     temp_hp = target_participant['temporary_hit_points'].to_i
     absorbed_major = [major, temp_hp].min; temp_hp -= absorbed_major
@@ -124,6 +126,42 @@ post '/combat/action' do
     target_participant['minor_damage'] = target_participant['minor_damage'].to_i + minor
     target_participant['moderate_damage'] = target_participant['moderate_damage'].to_i + moderate
     target_participant['major_damage'] = target_participant['major_damage'].to_i + major
+
+    # Apply per-attack conditions when the hit lands (incoming_total > 0).
+    # The weapon used is identified by weapon_item_id sent from the client;
+    # the attacker's CharacterSheet.weapon_list includes both carried items
+    # and natural weapons (ghoul's bite/claws, etc.).
+    if incoming_total > 0 && params[:weapon_item_id] && !params[:weapon_item_id].to_s.empty?
+      weapon_item_id = params[:weapon_item_id].to_i
+      attacker_char_id = attacker['char_id'] || attacker['id']
+      attacker_data = Tools.load_json('characters.json').find { |c| c['id'] == attacker_char_id }
+      if attacker_data
+        attacker_sheet = CharacterSheet.new(attacker_data)
+        weapon = attacker_sheet.weapon_list.find { |w| w['item_id'] == weapon_item_id }
+        if weapon
+          details = weapon.dig('properties', 'details') || []
+          is_ranged = details.include?('ranged')
+          is_natural = weapon.dig('properties', 'natural') == true
+
+          target_participant['conditions'] ||= {}
+
+          # Bleed: melee hit -> damage + weapon's bleed rating.
+          unless is_ranged
+            weapon_bleed = attacker_sheet.weapon_bleed(weapon)
+            weapon_bleed = weapon_bleed.is_a?(Numeric) ? weapon_bleed : 0
+            target_participant['conditions']['bleed'] =
+              target_participant['conditions']['bleed'].to_i + incoming_total + weapon_bleed
+          end
+
+          # Ghoul paralysis: attacker with ghoul_paralysis ability making a
+          # natural attack -> damage + attacker's tier.
+          if is_natural && attacker_sheet.race_abilities.include?('ghoul_paralysis')
+            target_participant['conditions']['ghoul_paralysis'] =
+              target_participant['conditions']['ghoul_paralysis'].to_i + incoming_total + attacker_sheet.tier.to_i
+          end
+        end
+      end
+    end
 
     # Subtract ally dice spent
     ally_data = params[:ally_data] || ''
