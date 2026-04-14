@@ -58,7 +58,7 @@
               <select name="target_id" required>
                 <option value=""></option>
                 <% @pcs.each do |pc| %>
-                  <option value="<%= pc.id %>"><%= h pc.name %></option>
+                  <option value="<%= pc.id %>"><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
                 <% end %>
               </select>
             </label>
@@ -122,7 +122,7 @@
               <select name="target_id" required>
                 <option value=""></option>
                 <% @pcs.each do |pc| %>
-                  <option value="<%= pc.id %>"><%= h pc.name %></option>
+                  <option value="<%= pc.id %>"><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
                 <% end %>
               </select>
             </label>
@@ -151,7 +151,7 @@
               <select name="target_id" required <%= 'disabled' unless @is_local %>>
                 <option value=""></option>
                 <% @pcs.each do |pc| %>
-                  <option value="<%= pc.id %>"><%= h pc.name %></option>
+                  <option value="<%= pc.id %>"><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
                 <% end %>
               </select>
             </label>
@@ -165,19 +165,87 @@
       <h2>Rest / Pass Time <span class="dt-note">(DM only)</span></h2>
       <form method="post" action="/downtime/rest" class="dt-rest-form">
         <label>Mode
-          <select name="mode" required>
+          <select name="mode" id="rest-mode" required onchange="updateRestPreview()">
             <option value="pass_time">Pass time (slow recovery)</option>
             <option value="long_term_recovery">Long-term recovery (full rest)</option>
           </select>
         </label>
         <label>Days
-          <input type="number" name="days" value="1" min="1" required>
+          <input type="number" name="days" id="rest-days" value="1" min="1" required oninput="updateRestPreview()">
         </label>
         <button type="submit">Apply</button>
       </form>
+
+      <div class="dt-rest-preview">
+        <h3>Recovery Preview</h3>
+        <table class="dt-rest-table">
+          <thead>
+            <tr>
+              <th>Character</th>
+              <th>Damage (min/mod/maj)</th>
+              <th>Healed</th>
+              <th>Damage after</th>
+              <th>Mana</th>
+              <th>Saturation</th>
+            </tr>
+          </thead>
+          <tbody id="rest-preview-body"></tbody>
+        </table>
+      </div>
     <% end %>
   </div>
 </div>
+
+<% if @is_local %>
+<script>
+window.REST_PC_DATA = <%= @rest_preview_data.to_json.gsub('<', '\\u003c') %>;
+
+function periodCount(days, unit) {
+  if (unit === 'hour')  return days * 24;
+  if (unit === 'day')   return days;
+  if (unit === 'week')  return days >= 7  ? Math.floor(days / 7)  : 0;
+  if (unit === 'month') return days >= 28 ? Math.floor(days / 28) : 0;
+  return 0;
+}
+
+function updateRestPreview() {
+  var mode = document.getElementById('rest-mode').value;
+  var days = parseInt(document.getElementById('rest-days').value, 10);
+  if (!(days > 0)) days = 0;
+  var useHigh = mode === 'long_term_recovery';
+  var body = document.getElementById('rest-preview-body');
+  var rows = '';
+
+  window.REST_PC_DATA.forEach(function(pc) {
+    var healed = [0, 1, 2].map(function(i) {
+      var row = pc.rows[i];
+      if (!row) return 0;
+      var per = useHigh ? row[1] : row[0];
+      return Math.min(per * periodCount(days, row[2]), pc.damage[i]);
+    });
+    var after = [0, 1, 2].map(function(i) { return pc.damage[i] - healed[i]; });
+    var manaPerDay = Math.floor(pc.manaMax / 4);
+    var manaGain = Math.min(manaPerDay * days, pc.manaMax - pc.mana);
+    var newMana = pc.mana + manaGain;
+    var satPerDay = Math.floor(pc.cha / 4);
+    var satLoss = Math.min(satPerDay * days, pc.saturation);
+    var newSat = pc.saturation - satLoss;
+
+    rows += '<tr>' +
+      '<td>' + pc.name + '</td>' +
+      '<td>' + pc.damage.join('/') + '</td>' +
+      '<td class="dt-heal">-' + healed.join(' / -') + '</td>' +
+      '<td>' + after.join('/') + '</td>' +
+      '<td>' + pc.mana + ' &rarr; ' + newMana + ' (+' + manaGain + ')</td>' +
+      '<td>' + pc.saturation + ' &rarr; ' + newSat + ' (-' + satLoss + ')</td>' +
+      '</tr>';
+  });
+
+  body.innerHTML = rows;
+}
+updateRestPreview();
+</script>
+<% end %>
 
 <script>
 function updateSurgeryDice() {

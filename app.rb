@@ -882,6 +882,26 @@ get '/downtime' do
     @consumable_owners[pc.id] = items unless items.empty?
   end
 
+  # Per-PC data used by the rest/recovery preview in JS. Each row is
+  # [low, high, unit]; empty rows are passed through as nil so the
+  # client can skip them.
+  rules = Tools.load_json('rules.json')
+  heal_rate = rules['advancement']['natural']['heal_rate']
+  @rest_preview_data = @pcs.map do |pc|
+    row_base = pc.tier * 3
+    rows = [heal_rate[row_base], heal_rate[row_base + 1], heal_rate[row_base + 2]]
+    {
+      name: pc.name,
+      tier: pc.tier,
+      cha: pc.cha,
+      mana: pc.current_mana,
+      manaMax: pc.mana_max,
+      saturation: pc.saturation,
+      damage: [pc.minor_damage, pc.moderate_damage, pc.major_damage],
+      rows: rows
+    }
+  end
+
   erb :downtime
 end
 
