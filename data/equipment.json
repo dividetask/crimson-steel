@@ -7,8 +7,7 @@
     "bonus": 0,
     "properties": {
     },
-    "equipped": true,
-    "item_id": 18
+    "equipped": true
   },
   {
     "owner_id": 1,
@@ -19,8 +18,7 @@
     "properties": {
     },
     "description": "A shining mental shield. It’s magic reduces TN to block and increases TN to attack you. Ranged magic attacks can be reflected",
-    "equipped": true,
-    "item_id": 19
+    "equipped": true
   },
   {
     "owner_id": 1,
@@ -38,8 +36,7 @@
       }
     },
     "description": "A jagged battle axe that giggles when drawn. It deals an additional 4 dice of emotional damage",
-    "equipped": true,
-    "item_id": 20
+    "equipped": true
   },
   {
     "owner_id": 1,
@@ -54,8 +51,7 @@
         "ranged"
       ]
     },
-    "equipped": false,
-    "item_id": 21
+    "equipped": false
   },
   {
     "owner_id": 1,
@@ -68,8 +64,7 @@
         "saves": 1
       }
     },
-    "equipped": true,
-    "item_id": 22
+    "equipped": true
   },
   {
     "owner_id": 1,
@@ -80,8 +75,7 @@
     "properties": {
     },
     "description": "Unknown properties. Elegant glass bottle with a crystal stopper shaped like a blooming thistle. Magically refills.",
-    "equipped": false,
-    "item_id": 23
+    "equipped": false
   },
   {
     "owner_id": 1,
@@ -92,8 +86,7 @@
     "properties": {
     },
     "description": "Unknown properties. Forged from dull red iron and wrapped in worn leather stamped with crude battle scenes, this child-sized armband resizes to fit its wearer.",
-    "equipped": false,
-    "item_id": 24
+    "equipped": false
   },
   {
     "owner_id": 1,
@@ -106,8 +99,7 @@
       "consumable": true
     },
     "description": "Injury poison. Causes minor dex damage.",
-    "equipped": true,
-    "item_id": 25
+    "equipped": true
   },
   {
     "owner_id": 1,
@@ -120,8 +112,7 @@
       "consumable": true,
       "thrown": true
     },
-    "equipped": false,
-    "item_id": 26
+    "equipped": false
   },
   {
     "owner_id": 1,
@@ -134,8 +125,7 @@
       "consumable": true,
       "thrown": true
     },
-    "equipped": false,
-    "item_id": 27
+    "equipped": false
   },
   {
     "owner_id": 1,
@@ -148,8 +138,7 @@
       "consumable": true,
       "thrown": true
     },
-    "equipped": false,
-    "item_id": 28
+    "equipped": false
   },
   {
     "owner_id": 2,
@@ -159,8 +148,7 @@
     "bonus": 1,
     "properties": {
     },
-    "equipped": true,
-    "item_id": 29
+    "equipped": true
   },
   {
     "owner_id": 2,
@@ -175,8 +163,7 @@
       ]
     },
     "description": "Unknown properties. Two handed +2 great axe. Found in the Fey Wilds. It became more powerful after killing the cultists.",
-    "equipped": true,
-    "item_id": 30
+    "equipped": true
   },
   {
     "owner_id": 2,
@@ -187,8 +174,7 @@
     "properties": {
     },
     "description": "Unknown properties. Footwraps. You have felt a great amount of emotion coming from these wraps. After taking damage in combat you gain one point of luck that can be used to reroll one of your attack dice. Only one point can be granted per round from this item.",
-    "equipped": true,
-    "item_id": 31
+    "equipped": true
   },
   {
     "owner_id": 2,
@@ -199,8 +185,7 @@
     "properties": {
     },
     "description": "Allows a single free parry once per day",
-    "equipped": true,
-    "item_id": 32
+    "equipped": true
   },
   {
     "owner_id": 2,
@@ -216,8 +201,7 @@
         "ranged"
       ]
     },
-    "equipped": false,
-    "item_id": 33
+    "equipped": false
   },
   {
     "owner_id": 2,
@@ -233,8 +217,7 @@
         "ranged"
       ]
     },
-    "equipped": false,
-    "item_id": 34
+    "equipped": false
   },
   {
     "owner_id": 2,
@@ -247,8 +230,7 @@
       "consumable": true
     },
     "description": "Injury poison. Causes minor dex damage.",
-    "equipped": false,
-    "item_id": 35
+    "equipped": false
   },
   {
     "owner_id": 2,
@@ -261,8 +243,7 @@
       "consumable": true,
       "effect": "ward"
     },
-    "equipped": false,
-    "item_id": 36
+    "equipped": false
   },
   {
     "owner_id": 2,
@@ -275,8 +256,7 @@
       "consumable": true,
       "effect": "heal"
     },
-    "equipped": false,
-    "item_id": 37
+    "equipped": false
   },
   {
     "owner_id": 2,
@@ -289,8 +269,7 @@
       "consumable": true,
       "effect": "heal"
     },
-    "equipped": false,
-    "item_id": 38
+    "equipped": false
   },
   {
     "owner_id": 2,
@@ -303,8 +282,7 @@
       "consumable": true,
       "thrown": true
     },
-    "equipped": false,
-    "item_id": 39
+    "equipped": false
   },
   {
     "owner_id": 2,
@@ -317,8 +295,7 @@
       "consumable": true,
       "thrown": true
     },
-    "equipped": false,
-    "item_id": 40
+    "equipped": false
   },
   {
     "owner_id": 2,
@@ -331,8 +308,7 @@
       "consumable": true,
       "thrown": true
     },
-    "equipped": false,
-    "item_id": 41
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -342,8 +318,7 @@
     "bonus": 1,
     "properties": {
     },
-    "equipped": true,
-    "item_id": 42
+    "equipped": true
   },
   {
     "owner_id": 3,
@@ -361,8 +336,7 @@
         "emotional": 4
       }
     },
-    "equipped": true,
-    "item_id": 43
+    "equipped": true
   },
   {
     "owner_id": 3,
@@ -376,8 +350,7 @@
         "piercing"
       ]
     },
-    "equipped": false,
-    "item_id": 44
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -391,8 +364,7 @@
         "stealth": 1
       }
     },
-    "equipped": true,
-    "item_id": 45
+    "equipped": true
   },
   {
     "owner_id": 3,
@@ -403,8 +375,7 @@
     "bonus": 1,
     "properties": {
     },
-    "equipped": true,
-    "item_id": 46
+    "equipped": true
   },
   {
     "owner_id": 3,
@@ -415,8 +386,7 @@
     "properties": {
     },
     "description": "Unknown properties. A small, tarnished silver key, the kind that might open a simple padlock or shackle. The name 'Orin' is crudely scratched into the bow (handle) as if carved by an unsteady hand. The key is unexpectedly warm to the touch and occasionally pulses with a faint, gentle golden light.",
-    "equipped": false,
-    "item_id": 47
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -427,8 +397,7 @@
     "properties": {
     },
     "description": "A simple brass ring shaped like a curled ribbon, slightly tarnished with age. Inside is etched the name 'Petey' in childish scrawl. Sentient, dimensional storage, and can steal items from 10’. It may have additional properties.",
-    "equipped": true,
-    "item_id": 48
+    "equipped": true
   },
   {
     "owner_id": 3,
@@ -439,8 +408,7 @@
     "properties": {
     },
     "description": "Allows you to animate an inanimate object once per day for 5 minutes.",
-    "equipped": true,
-    "item_id": 49
+    "equipped": true
   },
   {
     "owner_id": 3,
@@ -451,8 +419,7 @@
     "properties": {
     },
     "description": "Anyone who sees the coin feels compelled to possess it. Mind effecting, range 30 feet, and effect lasts 1 minute.",
-    "equipped": false,
-    "item_id": 50
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -484,8 +451,7 @@
       ]
     },
     "description": "An arcane spellbook",
-    "equipped": false,
-    "item_id": 51
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -498,8 +464,7 @@
       "consumable": true,
       "spell": "obscuring_mist"
     },
-    "equipped": false,
-    "item_id": 52
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -512,8 +477,7 @@
       "consumable": true,
       "effect": "heal"
     },
-    "equipped": false,
-    "item_id": 53
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -526,8 +490,7 @@
       "consumable": true,
       "effect": "heal"
     },
-    "equipped": false,
-    "item_id": 54
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -540,8 +503,7 @@
       "consumable": true,
       "effect": "mana"
     },
-    "equipped": false,
-    "item_id": 55
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -554,8 +516,7 @@
       "consumable": true,
       "thrown": true
     },
-    "equipped": false,
-    "item_id": 56
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -568,8 +529,7 @@
       "consumable": true,
       "thrown": true
     },
-    "equipped": false,
-    "item_id": 57
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -582,8 +542,7 @@
       "consumable": true
     },
     "description": "Injestable poison. Causes unconciousness and appearance of death for 8 to 12 hours.",
-    "equipped": false,
-    "item_id": 58
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -596,8 +555,7 @@
       "consumable": true
     },
     "description": "Injury poison. Causes minor dex damage.",
-    "equipped": false,
-    "item_id": 59
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -610,8 +568,7 @@
       "ammunition": true
     },
     "description": "Injury poison. Causes moderate constitution damage.",
-    "equipped": false,
-    "item_id": 60
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -624,8 +581,7 @@
       "ammunition": true
     },
     "description": "Bypasses tier disparity. Inflicts 4x damage on crit.",
-    "equipped": false,
-    "item_id": 61
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -638,8 +594,7 @@
       "consumable": true
     },
     "description": "This small glass orb, when crushed, creates a temporary illusory duplicate of the holder for 3 rounds.",
-    "equipped": false,
-    "item_id": 62
+    "equipped": false
   },
   {
     "owner_id": 3,
@@ -651,8 +606,7 @@
     "properties": {
     },
     "description": "Glass eye, poisoner's chalice, chess board",
-    "equipped": false,
-    "item_id": 63
+    "equipped": false
   },
   {
     "owner_id": 4,
@@ -662,8 +616,7 @@
     "bonus": 1,
     "properties": {
     },
-    "equipped": true,
-    "item_id": 64
+    "equipped": true
   },
   {
     "owner_id": 4,
@@ -678,8 +631,7 @@
         "ranged"
       ]
     },
-    "equipped": true,
-    "item_id": 65
+    "equipped": true
   },
   {
     "owner_id": 4,
@@ -689,8 +641,7 @@
     "bonus": 1,
     "properties": {
     },
-    "equipped": true,
-    "item_id": 66
+    "equipped": true
   },
   {
     "owner_id": 4,
@@ -704,8 +655,7 @@
         "piercing"
       ]
     },
-    "equipped": false,
-    "item_id": 67
+    "equipped": false
   },
   {
     "owner_id": 4,
@@ -716,8 +666,7 @@
     "properties": {
       "spell": "benign_transposition"
     },
-    "equipped": false,
-    "item_id": 68
+    "equipped": false
   },
   {
     "owner_id": 4,
@@ -728,8 +677,7 @@
     "properties": {
       "spell": "expeditious_excavation"
     },
-    "equipped": false,
-    "item_id": 69
+    "equipped": false
   },
   {
     "owner_id": 4,
@@ -740,8 +688,7 @@
     "properties": {
     },
     "description": "A seemingly unremarkable leather pouch of trail rations. It contains an assortment of nuts, berries, and sweets sufficient to feed five people. Every night it is magically refilled.",
-    "equipped": false,
-    "item_id": 70
+    "equipped": false
   },
   {
     "owner_id": 4,
@@ -753,8 +700,7 @@
     "properties": {
     },
     "description": "An ordinary looking silver locket",
-    "equipped": true,
-    "item_id": 71
+    "equipped": true
   },
   {
     "owner_id": 4,
@@ -767,8 +713,7 @@
       "consumable": true,
       "effect": "heal"
     },
-    "equipped": false,
-    "item_id": 72
+    "equipped": false
   },
   {
     "owner_id": 4,
@@ -781,8 +726,7 @@
       "consumable": true,
       "effect": "heal"
     },
-    "equipped": false,
-    "item_id": 73
+    "equipped": false
   },
   {
     "owner_id": 4,
@@ -795,8 +739,7 @@
       "consumable": true,
       "effect": "mana"
     },
-    "equipped": false,
-    "item_id": 74
+    "equipped": false
   },
   {
     "owner_id": 4,
@@ -809,8 +752,7 @@
       "consumable": true,
       "thrown": true
     },
-    "equipped": false,
-    "item_id": 75
+    "equipped": false
   },
   {
     "owner_id": 4,
@@ -823,8 +765,7 @@
       "consumable": true,
       "thrown": true
     },
-    "equipped": false,
-    "item_id": 76
+    "equipped": false
   },
   {
     "owner_id": 4,
@@ -837,8 +778,7 @@
       "consumable": true,
       "thrown": true
     },
-    "equipped": false,
-    "item_id": 77
+    "equipped": false
   },
   {
     "owner_id": 1,
@@ -849,8 +789,7 @@
     "properties": {
     },
     "description": "Sacrificing a helpless victim destroys its soul and casts cure light wounds without any magical saturation. The victim must be your magical density or more. May have additional effects.",
-    "equipped": false,
-    "item_id": 78
+    "equipped": false
   },
   {
     "owner_id": 1,
@@ -863,11 +802,9 @@
       "spell": "recharge"
     },
     "equipped": false,
-    "quantity": 1,
-    "item_id": 79
+    "quantity": 1
   },
   {
-    "item_id": 1,
     "owner_id": 1,
     "name": "Minor Recharge Potion",
     "type": "consumable",
@@ -881,7 +818,6 @@
     "quantity": 4
   },
   {
-    "item_id": 2,
     "owner_id": 1,
     "name": "Cure Lesser Wounds Scroll",
     "type": "consumable",
@@ -895,7 +831,6 @@
     "quantity": 8
   },
   {
-    "item_id": 3,
     "owner_id": 1,
     "name": "Cure Simple Wounds Scroll",
     "type": "consumable",
@@ -909,7 +844,6 @@
     "quantity": 2
   },
   {
-    "item_id": 4,
     "owner_id": 1,
     "name": "Invisibility Potion",
     "type": "consumable",
@@ -923,7 +857,6 @@
     "quantity": 1
   },
   {
-    "item_id": 5,
     "owner_id": 2,
     "name": "Invisibility Potion",
     "type": "consumable",
@@ -937,7 +870,6 @@
     "quantity": 1
   },
   {
-    "item_id": 6,
     "owner_id": 3,
     "name": "Invisibility Scroll",
     "type": "consumable",
@@ -951,7 +883,6 @@
     "quantity": 2
   },
   {
-    "item_id": 7,
     "owner_id": 4,
     "name": "Invisibility Scroll",
     "type": "consumable",
@@ -965,7 +896,6 @@
     "quantity": 2
   },
   {
-    "item_id": 8,
     "owner_id": 3,
     "name": "Darkness Scroll",
     "type": "consumable",
@@ -979,7 +909,6 @@
     "quantity": 1
   },
   {
-    "item_id": 9,
     "owner_id": 3,
     "name": "Web Scroll",
     "type": "consumable",
@@ -993,7 +922,6 @@
     "quantity": 1
   },
   {
-    "item_id": 10,
     "owner_id": 1,
     "name": "Spiritual Weapon Scroll",
     "type": "consumable",
@@ -1007,7 +935,6 @@
     "quantity": 1
   },
   {
-    "item_id": 11,
     "owner_id": 3,
     "name": "Grease Scroll",
     "type": "consumable",
@@ -1021,7 +948,6 @@
     "quantity": 4
   },
   {
-    "item_id": 12,
     "owner_id": 3,
     "name": "Expeditious Retreat Scroll",
     "type": "consumable",
@@ -1035,7 +961,6 @@
     "quantity": 2
   },
   {
-    "item_id": 13,
     "owner_id": 2,
     "name": "Expeditious Retreat Potion",
     "type": "consumable",
@@ -1049,7 +974,6 @@
     "quantity": 1
   },
   {
-    "item_id": 14,
     "owner_id": 1,
     "name": "Expeditious Retreat Potion",
     "type": "consumable",
@@ -1063,7 +987,6 @@
     "quantity": 2
   },
   {
-    "item_id": 15,
     "owner_id": 4,
     "name": "Expeditious Retreat Scroll",
     "type": "consumable",
@@ -1077,7 +1000,6 @@
     "quantity": 1
   },
   {
-    "item_id": 16,
     "owner_id": 1,
     "name": "Lesser Ward Scroll",
     "type": "consumable",
@@ -1091,7 +1013,6 @@
     "quantity": 4
   },
   {
-    "item_id": 17,
     "owner_id": 3,
     "name": "Create Pit Scroll",
     "type": "consumable",

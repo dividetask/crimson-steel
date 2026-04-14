@@ -409,24 +409,25 @@ post '/combat/action' do
       end
     end
 
-    # Consume one charge. Inline character items have negative item_ids;
-    # equipment.json items use load_equipment_with_ids to match the same
-    # assignment policy CharacterEquipment uses, avoiding id collisions.
+    # Consume one charge. item_ids in equipment.json are ephemeral positional
+    # ids (i + 1), so the stored index is simply item_id - 1. Inline character
+    # items use negative item_ids and live in characters.json instead.
     if item['item_id'].to_i > 0
-      equipment = Tools.load_equipment_with_ids
-      stored_idx = equipment.each_with_index.find { |entry, _| entry['item_id'].to_i == item_id }&.last
-      if stored_idx
+      equipment = Tools.load_json('equipment.json')
+      stored_idx = item_id - 1
+      if stored_idx >= 0 && stored_idx < equipment.length
         stored = equipment[stored_idx]
         stored['quantity'] = (stored['quantity'] || 1) - 1
         equipment.delete_at(stored_idx) if stored['quantity'] <= 0
         Tools.save_json('equipment.json', equipment)
       end
     else
+      # Inline item id is -(position + 1), so position is -id - 1.
       characters = Tools.load_json('characters.json')
       owner = characters.find { |c| c['id'] == user_char_id }
       if owner && owner['items']
-        inline_idx = owner['items'].each_with_index.find { |entry, i| -(i + 1) == item['item_id'].to_i }&.last
-        if inline_idx
+        inline_idx = -item['item_id'].to_i - 1
+        if inline_idx >= 0 && inline_idx < owner['items'].length
           inline = owner['items'][inline_idx]
           inline['quantity'] = (inline['quantity'] || 1) - 1
           owner['items'].delete_at(inline_idx) if inline['quantity'] <= 0
@@ -592,9 +593,9 @@ post '/add_item' do
 
   items = Tools.load_json('equipment.json')
 
-  # Build the new item from form params
+  # Build the new item from form params. item_id is not persisted -- it's
+  # synthesized from the array position at load time.
   new_item = {
-    "item_id" => Tools.next_item_id,
     "owner_id" => params[:owner_id].to_i,
     "name" => params[:name],
     "type" => params[:type],
@@ -786,7 +787,6 @@ post '/purchase/:item_index' do
       bonus = store_item['tier']
     end
     new_item = {
-      'item_id' => Tools.next_item_id,
       'owner_id' => owner_id,
       'name' => store_item['name'],
       'type' => store_item['type'],

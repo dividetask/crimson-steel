@@ -1,27 +1,26 @@
 [
   {
-    "item_id": 1,
     "owner_id": 1,
     "name": "Plate Armor",
     "type": "armor",
     "subtype": "heavy",
     "bonus": 0,
-    "properties": {},
+    "properties": {
+    },
     "equipped": true
   },
   {
-    "item_id": 2,
     "owner_id": 1,
     "name": "Mirror Leaf Shield",
     "type": "shield",
     "subtype": "light",
     "bonus": 1,
-    "properties": {},
-    "description": "A shining mental shield. It\u2019s magic reduces TN to block and increases TN to attack you. Ranged magic attacks can be reflected",
+    "properties": {
+    },
+    "description": "A shining mental shield. It’s magic reduces TN to block and increases TN to attack you. Ranged magic attacks can be reflected",
     "equipped": true
   },
   {
-    "item_id": 3,
     "owner_id": 1,
     "name": "Last Laugh Axe",
     "type": "weapon",
@@ -40,7 +39,6 @@
     "equipped": true
   },
   {
-    "item_id": 4,
     "owner_id": 1,
     "name": "Longbow",
     "type": "weapon",
@@ -56,7 +54,6 @@
     "equipped": false
   },
   {
-    "item_id": 5,
     "owner_id": 1,
     "name": "+1 Cloak of Resistance",
     "type": "item",
@@ -70,29 +67,28 @@
     "equipped": true
   },
   {
-    "item_id": 6,
     "owner_id": 1,
     "name": "Alric's Liquor",
     "type": "item",
     "subtype": "bottle",
     "bonus": 0,
-    "properties": {},
+    "properties": {
+    },
     "description": "Unknown properties. Elegant glass bottle with a crystal stopper shaped like a blooming thistle. Magically refills.",
     "equipped": false
   },
   {
-    "item_id": 7,
     "owner_id": 1,
     "name": "Narn (Armband)",
     "type": "item",
     "subtype": "wrist",
     "bonus": 0,
-    "properties": {},
+    "properties": {
+    },
     "description": "Unknown properties. Forged from dull red iron and wrapped in worn leather stamped with crude battle scenes, this child-sized armband resizes to fit its wearer.",
     "equipped": false
   },
   {
-    "item_id": 8,
     "owner_id": 1,
     "name": "Potion of Basic Healing",
     "type": "item",
@@ -106,7 +102,6 @@
     "equipped": false
   },
   {
-    "item_id": 9,
     "owner_id": 1,
     "name": "Potion of Lesser Healing",
     "type": "item",
@@ -120,7 +115,6 @@
     "equipped": false
   },
   {
-    "item_id": 10,
     "owner_id": 1,
     "name": "Potion of Lesser Mana",
     "type": "item",
@@ -134,7 +128,6 @@
     "equipped": false
   },
   {
-    "item_id": 11,
     "owner_id": 1,
     "name": "Krithrak (Poison)",
     "type": "item",
@@ -148,7 +141,6 @@
     "equipped": true
   },
   {
-    "item_id": 12,
     "owner_id": 1,
     "name": "Oil",
     "type": "item",
@@ -162,7 +154,6 @@
     "equipped": false
   },
   {
-    "item_id": 13,
     "owner_id": 1,
     "name": "Alchemist Fire",
     "type": "item",
@@ -176,7 +167,6 @@
     "equipped": false
   },
   {
-    "item_id": 14,
     "owner_id": 1,
     "name": "Acid Flask",
     "type": "item",
@@ -190,17 +180,16 @@
     "equipped": false
   },
   {
-    "item_id": 15,
     "owner_id": 2,
     "name": "+1 Leather Armor",
     "type": "armor",
     "subtype": "light",
     "bonus": 1,
-    "properties": {},
+    "properties": {
+    },
     "equipped": true
   },
   {
-    "item_id": 16,
     "owner_id": 2,
     "name": "Gary (Axe)",
     "type": "weapon",
@@ -216,29 +205,28 @@
     "equipped": true
   },
   {
-    "item_id": 17,
     "owner_id": 2,
     "name": "Martha (Footwraps)",
     "type": "shoes",
     "subtype": "footwraps",
     "bonus": 0,
-    "properties": {},
+    "properties": {
+    },
     "description": "Unknown properties. Footwraps. You have felt a great amount of emotion coming from these wraps. After taking damage in combat you gain one point of luck that can be used to reroll one of your attack dice. Only one point can be granted per round from this item.",
     "equipped": true
   },
   {
-    "item_id": 18,
     "owner_id": 2,
     "name": "Ring of Parry",
     "type": "item",
     "subtype": "ring",
     "bonus": 1,
-    "properties": {},
+    "properties": {
+    },
     "description": "Allows a single free parry once per day",
     "equipped": true
   },
   {
-    "item_id": 19,
     "owner_id": 2,
     "name": "Javelin",
     "type": "weapon",
@@ -255,7 +243,6 @@
     "equipped": false
   },
   {
-    "item_id": 20,
     "owner_id": 2,
     "name": "Bola",
     "type": "weapon",
@@ -272,7 +259,6 @@
     "equipped": false
   },
   {
-    "item_id": 21,
     "owner_id": 2,
     "name": "Krithrak (Poison)",
     "type": "item",
@@ -286,7 +272,6 @@
     "equipped": false
   },
   {
-    "item_id": 22,
     "owner_id": 2,
     "name": "Potion of Minor Ward",
     "type": "item",
@@ -300,7 +285,6 @@
     "equipped": false
   },
   {
-    "item_id": 23,
     "owner_id": 2,
     "name": "Potion of Basic Healing",
     "type": "item",
@@ -314,7 +298,6 @@
     "equipped": false
   },
   {
-    "item_id": 24,
     "owner_id": 2,
     "name": "Potion of Lesser Healing",
     "type": "item",
@@ -328,7 +311,6 @@
     "equipped": false
   },
   {
-    "item_id": 25,
     "owner_id": 2,
     "name": "Potion of Resistance",
     "type": "item",
@@ -342,7 +324,6 @@
     "equipped": false
   },
   {
-    "item_id": 26,
     "owner_id": 2,
     "name": "Oil",
     "type": "item",
@@ -356,7 +337,6 @@
     "equipped": false
   },
   {
-    "item_id": 27,
     "owner_id": 2,
     "name": "Alchemist Fire",
     "type": "item",
@@ -370,7 +350,6 @@
     "equipped": false
   },
   {
-    "item_id": 28,
     "owner_id": 2,
     "name": "Acid Flask",
     "type": "item",
@@ -384,17 +363,16 @@
     "equipped": false
   },
   {
-    "item_id": 29,
     "owner_id": 3,
     "name": "+1 Leather Armor",
     "type": "armor",
     "subtype": "light",
     "bonus": 1,
-    "properties": {},
+    "properties": {
+    },
     "equipped": true
   },
   {
-    "item_id": 30,
     "owner_id": 3,
     "name": "Wyrd Bow of Mirth",
     "type": "weapon",
@@ -413,7 +391,6 @@
     "equipped": true
   },
   {
-    "item_id": 31,
     "owner_id": 3,
     "name": "Dagger",
     "type": "weapon",
@@ -428,7 +405,6 @@
     "equipped": false
   },
   {
-    "item_id": 32,
     "owner_id": 3,
     "name": "Elven Cloak",
     "type": "item",
@@ -443,7 +419,6 @@
     "equipped": true
   },
   {
-    "item_id": 33,
     "owner_id": 3,
     "name": "Circlet of Bough-King",
     "type": "item",
@@ -459,51 +434,50 @@
     "equipped": true
   },
   {
-    "item_id": 34,
     "owner_id": 3,
     "name": "Orin (Key)",
     "type": "item",
     "subtype": "key",
     "bonus": 0,
-    "properties": {},
+    "properties": {
+    },
     "description": "Unknown properties. A small, tarnished silver key, the kind that might open a simple padlock or shackle. The name 'Orin' is crudely scratched into the bow (handle) as if carved by an unsteady hand. The key is unexpectedly warm to the touch and occasionally pulses with a faint, gentle golden light.",
     "equipped": false
   },
   {
-    "item_id": 35,
     "owner_id": 3,
     "name": "Petey (Ring)",
     "type": "item",
     "subtype": "ring",
     "bonus": 0,
-    "properties": {},
-    "description": "A simple brass ring shaped like a curled ribbon, slightly tarnished with age. Inside is etched the name 'Petey' in childish scrawl. Sentient, dimensional storage, and can steal items from 10\u2019. It may have additional properties.",
+    "properties": {
+    },
+    "description": "A simple brass ring shaped like a curled ribbon, slightly tarnished with age. Inside is etched the name 'Petey' in childish scrawl. Sentient, dimensional storage, and can steal items from 10’. It may have additional properties.",
     "equipped": true
   },
   {
-    "item_id": 36,
     "owner_id": 3,
     "name": "Ring of Bound Whimsy",
     "type": "item",
     "subtype": "ring",
     "bonus": 2,
-    "properties": {},
+    "properties": {
+    },
     "description": "Allows you to animate an inanimate object once per day for 5 minutes.",
     "equipped": true
   },
   {
-    "item_id": 37,
     "owner_id": 3,
     "name": "Tempting Gold Coin",
     "type": "item",
     "subtype": "coin",
     "bonus": 0,
-    "properties": {},
+    "properties": {
+    },
     "description": "Anyone who sees the coin feels compelled to possess it. Mind effecting, range 30 feet, and effect lasts 1 minute.",
     "equipped": false
   },
   {
-    "item_id": 38,
     "owner_id": 3,
     "name": "Spellbook",
     "type": "item",
@@ -536,7 +510,6 @@
     "equipped": false
   },
   {
-    "item_id": 39,
     "owner_id": 3,
     "name": "Scroll of Obscuring Mist",
     "type": "item",
@@ -550,7 +523,6 @@
     "equipped": false
   },
   {
-    "item_id": 40,
     "owner_id": 3,
     "name": "Potion of Basic Healing",
     "type": "item",
@@ -564,7 +536,6 @@
     "equipped": false
   },
   {
-    "item_id": 41,
     "owner_id": 3,
     "name": "Potion of Lesser Healing",
     "type": "item",
@@ -578,7 +549,6 @@
     "equipped": false
   },
   {
-    "item_id": 42,
     "owner_id": 3,
     "name": "Potion of Lesser Mana",
     "type": "item",
@@ -592,7 +562,6 @@
     "equipped": false
   },
   {
-    "item_id": 43,
     "owner_id": 3,
     "name": "Oil",
     "type": "item",
@@ -606,7 +575,6 @@
     "equipped": false
   },
   {
-    "item_id": 44,
     "owner_id": 3,
     "name": "Acid Flask",
     "type": "item",
@@ -620,7 +588,6 @@
     "equipped": false
   },
   {
-    "item_id": 45,
     "owner_id": 3,
     "name": "Sleeping Death (Poison)",
     "type": "item",
@@ -634,7 +601,6 @@
     "equipped": false
   },
   {
-    "item_id": 46,
     "owner_id": 3,
     "name": "Krithrak (Poison)",
     "type": "item",
@@ -648,7 +614,6 @@
     "equipped": false
   },
   {
-    "item_id": 47,
     "owner_id": 3,
     "name": "Poison Arrows",
     "type": "item",
@@ -662,7 +627,6 @@
     "equipped": false
   },
   {
-    "item_id": 48,
     "owner_id": 3,
     "name": "+3 Heart Seeker Arrows",
     "type": "item",
@@ -676,7 +640,6 @@
     "equipped": false
   },
   {
-    "item_id": 49,
     "owner_id": 3,
     "name": "Mirror Marble",
     "type": "item",
@@ -690,29 +653,28 @@
     "equipped": false
   },
   {
-    "item_id": 50,
     "owner_id": 3,
     "name": "Miscellaneous items",
     "type": "item",
     "subtype": "misc",
     "bonus": 0,
     "quantity": 1,
-    "properties": {},
+    "properties": {
+    },
     "description": "Glass eye, poisoner's chalice, chess board",
     "equipped": false
   },
   {
-    "item_id": 51,
     "owner_id": 4,
     "name": "+1 Leather Armor",
     "type": "armor",
     "subtype": "light",
     "bonus": 1,
-    "properties": {},
+    "properties": {
+    },
     "equipped": true
   },
   {
-    "item_id": 52,
     "owner_id": 4,
     "name": "+1 Shortbow",
     "type": "weapon",
@@ -728,17 +690,16 @@
     "equipped": true
   },
   {
-    "item_id": 53,
     "owner_id": 4,
     "name": "+1 Drums",
     "type": "item",
     "subtype": "instrument",
     "bonus": 1,
-    "properties": {},
+    "properties": {
+    },
     "equipped": true
   },
   {
-    "item_id": 54,
     "owner_id": 4,
     "name": "Rapier",
     "type": "weapon",
@@ -753,7 +714,6 @@
     "equipped": false
   },
   {
-    "item_id": 55,
     "owner_id": 4,
     "name": "Wand of Benign Transposition",
     "type": "item",
@@ -765,7 +725,6 @@
     "equipped": false
   },
   {
-    "item_id": 56,
     "owner_id": 4,
     "name": "Wand of Expeditious Excavation",
     "type": "item",
@@ -777,30 +736,29 @@
     "equipped": false
   },
   {
-    "item_id": 57,
     "owner_id": 4,
     "name": "Trailmix Bag",
     "type": "item",
     "subtype": "bag",
     "bonus": 0,
-    "properties": {},
+    "properties": {
+    },
     "description": "A seemingly unremarkable leather pouch of trail rations. It contains an assortment of nuts, berries, and sweets sufficient to feed five people. Every night it is magically refilled.",
     "equipped": false
   },
   {
-    "item_id": 58,
     "owner_id": 4,
     "name": "Alric's Locket",
     "type": "item",
     "subtype": "amulet",
     "slot": "neck",
     "bonus": 0,
-    "properties": {},
+    "properties": {
+    },
     "description": "An ordinary looking silver locket",
     "equipped": true
   },
   {
-    "item_id": 59,
     "owner_id": 4,
     "name": "Potion of Basic Healing",
     "type": "item",
@@ -814,7 +772,6 @@
     "equipped": false
   },
   {
-    "item_id": 60,
     "owner_id": 4,
     "name": "Potion of Lesser Healing",
     "type": "item",
@@ -828,7 +785,6 @@
     "equipped": false
   },
   {
-    "item_id": 61,
     "owner_id": 4,
     "name": "Potion of Lesser Mana",
     "type": "item",
@@ -842,7 +798,6 @@
     "equipped": false
   },
   {
-    "item_id": 62,
     "owner_id": 4,
     "name": "Oil",
     "type": "item",
@@ -856,7 +811,6 @@
     "equipped": false
   },
   {
-    "item_id": 63,
     "owner_id": 4,
     "name": "Alchemist Fire",
     "type": "item",
@@ -870,7 +824,6 @@
     "equipped": false
   },
   {
-    "item_id": 64,
     "owner_id": 4,
     "name": "Acid Flask",
     "type": "item",
@@ -884,13 +837,13 @@
     "equipped": false
   },
   {
-    "item_id": 65,
     "owner_id": 1,
     "name": "Ceremonial Dagger of Blood Drinking",
     "type": "weapon",
     "subtype": "dagger",
     "bonus": 1,
-    "properties": {},
+    "properties": {
+    },
     "description": "Sacrificing a helpless victim destroys its soul and casts cure light wounds without any magical saturation. The victim must be your magical density or more. May have additional effects.",
     "equipped": false
   }
