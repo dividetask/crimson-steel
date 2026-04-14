@@ -144,6 +144,7 @@ post '/combat/action' do
           is_natural = weapon.dig('properties', 'natural') == true
 
           target_participant['conditions'] ||= {}
+          target_participant['condition_meta'] ||= {}
 
           # Bleed: melee hit -> damage + weapon's bleed rating.
           unless is_ranged
@@ -154,10 +155,14 @@ post '/combat/action' do
           end
 
           # Ghoul paralysis: attacker with ghoul_paralysis ability making a
-          # natural attack -> damage + attacker's tier.
+          # natural attack -> damage + attacker's tier. Track the highest
+          # ghoul tier that has hit this target; it modifies save TN until
+          # the condition decays to 0 (at which point it resets).
           if is_natural && attacker_sheet.race_abilities.include?('ghoul_paralysis')
             target_participant['conditions']['ghoul_paralysis'] =
               target_participant['conditions']['ghoul_paralysis'].to_i + incoming_total + attacker_sheet.tier.to_i
+            target_participant['condition_meta']['max_ghoul_tier'] =
+              [target_participant['condition_meta']['max_ghoul_tier'].to_i, attacker_sheet.tier.to_i].max
           end
         end
       end
@@ -500,6 +505,98 @@ post '/combat/action' do
 
     Combat.add_log("#{character.name} ends turn")
     Combat.advance_turn
+
+  elsif action == 'start_of_turn'
+    participant = combat_data['participants'].find { |p| p['id'] == combat_id }
+    halt 400, "Participant not found" unless participant
+    char_id = participant['char_id'] || participant['id']
+    character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
+    character = CharacterSheet.new(character_data)
+
+    log_lines = ["#{character.name} starts turn"]
+
+    # Step 1: decrement rounds_remaining on active_effects targeting this
+    # combatant; remove effects whose counter hits 0. Effects with no
+    # rounds_remaining field (e.g. concentration spells) are untouched.
+    combat_data['active_effects'] ||= []
+    combat_data['active_effects'].reject! do |effect|
+      next false unless effect['rounds_remaining']
+      target_ids = effect['target_combat_ids'] || []
+      next false unless target_ids.include?(combat_id)
+      effect['rounds_remaining'] = effect['rounds_remaining'].to_i - 1
+      if effect['rounds_remaining'] <= 0
+        log_lines << "  #{effect['spell_name']} ends on #{character.name}"
+        true
+      else
+        false
+      end
+    end
+
+    # Step 2: resolve each active condition in insertion order. The client
+    # submits save results as `successes_<name>` (integer) for each.
+    participant['conditions'] ||= {}
+    participant['condition_meta'] ||= {}
+    participant['conditions'].keys.each do |cname|
+      value = participant['conditions'][cname].to_i
+      next if value <= 0
+      successes_param = params["successes_#{cname}".to_sym] || params["successes_#{cname}"]
+      successes = successes_param.to_i
+
+      case cname
+      when 'bleed'
+        # 1 point + 1 per 10 severity, reduced by 1 per success, min 0.
+        raw_damage = 1 + (value / 10)
+        dealt = [raw_damage - successes, 0].max
+        if dealt > 0
+          temp_hp = participant['temporary_hit_points'].to_i
+          absorbed = [dealt, temp_hp].min
+          participant['temporary_hit_points'] = temp_hp - absorbed
+          remaining = dealt - absorbed
+          if remaining > 0
+            participant['minor_damage'] = participant['minor_damage'].to_i + remaining
+          end
+          absorb_suffix = absorbed > 0 ? " (#{absorbed} absorbed by temp HP)" : ""
+          log_lines << "  Bleed save (#{successes} successes): #{dealt} minor damage#{absorb_suffix}"
+        else
+          log_lines << "  Bleed save (#{successes} successes): no damage"
+        end
+      when 'ghoul_paralysis'
+        # 0 successes = failure -> paralyzed for the turn (1 round).
+        if successes <= 0
+          combat_data['active_effects'] ||= []
+          combat_data['active_effects'] << {
+            'caster_id' => nil,
+            'caster_name' => 'Ghoul Paralysis',
+            'spell_name' => 'Paralyzed',
+            'target_combat_ids' => [combat_id],
+            'target_names' => [character.name],
+            'round_cast' => combat_data['round'],
+            'rounds_remaining' => 1
+          }
+          log_lines << "  Ghoul paralysis save (0 successes): PARALYZED for 1 round"
+        else
+          log_lines << "  Ghoul paralysis save (#{successes} successes): resisted"
+        end
+      else
+        log_lines << "  #{cname.tr('_', ' ').capitalize} save (#{successes} successes)"
+      end
+
+      # Universal decay: reduce severity by 1 + successes, floor 0.
+      new_value = [value - (1 + successes), 0].max
+      if new_value <= 0
+        participant['conditions'].delete(cname)
+        # Clear any meta tied to this condition ending.
+        if cname == 'ghoul_paralysis'
+          participant['condition_meta'].delete('max_ghoul_tier')
+        end
+        log_lines << "  #{cname.tr('_', ' ').capitalize} ends"
+      else
+        participant['conditions'][cname] = new_value
+      end
+    end
+
+    Tools.save_json('combat.json', combat_data)
+    log_lines.each { |line| Combat.add_log(line) }
 
   end
 
