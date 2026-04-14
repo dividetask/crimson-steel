@@ -635,7 +635,7 @@ module CharacterEquipment
   attr_reader :item_list, :all_items
   def initialize(character)
     super(character) if defined?(super)
-    @all_items = Tools.load_json('equipment.json').each_with_index.map { |item, i| item["item_id"] ||= i + 1; item }
+    @all_items = Tools.load_equipment_with_ids
     @inline_items = (character["items"] || []).each_with_index.map do |item, i|
       item.merge(
         "item_id" => item["item_id"] || -(i + 1),

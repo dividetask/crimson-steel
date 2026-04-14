@@ -410,11 +410,11 @@ post '/combat/action' do
     end
 
     # Consume one charge. Inline character items have negative item_ids;
-    # equipment.json items use in-memory position-based ids (i + 1) if the
-    # stored record lacks an item_id, matching CharacterEquipment's assignment.
+    # equipment.json items use load_equipment_with_ids to match the same
+    # assignment policy CharacterEquipment uses, avoiding id collisions.
     if item['item_id'].to_i > 0
-      equipment = Tools.load_json('equipment.json')
-      stored_idx = equipment.each_with_index.find { |entry, i| (entry['item_id'] || (i + 1)).to_i == item_id }&.last
+      equipment = Tools.load_equipment_with_ids
+      stored_idx = equipment.each_with_index.find { |entry, _| entry['item_id'].to_i == item_id }&.last
       if stored_idx
         stored = equipment[stored_idx]
         stored['quantity'] = (stored['quantity'] || 1) - 1
