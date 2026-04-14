@@ -737,7 +737,6 @@ post '/purchase/:item_index' do
   campaign = Tools.load_json('campaign.json')
   items = Tools.load_json('equipment.json')
 
-  owner_id = params[:owner_id].to_i
   compendium = Compendium.new
   if params[:item_index] == 'ammo_lookup'
     store_item = compendium.ammunition_store_items.find do |item|
@@ -763,44 +762,61 @@ post '/purchase/:item_index' do
     store_item = store_items[params[:item_index].to_i]
   end
 
-  # Check if enough gold
-  if campaign['gold'] < store_item['price']
+  # Build the purchase list: owner_id -> quantity. Scrolls/potions/oils submit a
+  # quantities hash (one entry per PC); everything else submits a single owner_id.
+  purchases = if params[:quantities].is_a?(Hash)
+    params[:quantities].each_with_object({}) do |(oid, qty), acc|
+      q = qty.to_i
+      acc[oid.to_i] = q if q > 0
+    end
+  else
+    oid = params[:owner_id].to_i
+    oid > 0 ? { oid => 1 } : {}
+  end
+
+  if purchases.empty?
     redirect '/store?error=insufficient_gold'
     return
   end
 
-  # Check if item already exists for this owner
-  existing_item = items.find do |i|
-    i['owner_id'] == owner_id &&
-    i['name'] == store_item['name'] &&
-    i['type'] == store_item['type'] &&
-    i['subtype'] == store_item['subtype']
+  total_qty = purchases.values.sum
+  total_cost = store_item['price'] * total_qty
+
+  if campaign['gold'] < total_cost
+    redirect '/store?error=insufficient_gold'
+    return
   end
 
-  if existing_item
-    # Increase quantity
-    existing_item['quantity'] = (existing_item['quantity'] || 1) + 1
-  else
-    # Add new item
-    bonus = store_item['bonus']
-    if store_item['tier'] && %w[potion oil scroll].include?(store_item['subtype'])
-      bonus = store_item['tier']
+  purchases.each do |owner_id, qty|
+    existing_item = items.find do |i|
+      i['owner_id'] == owner_id &&
+      i['name'] == store_item['name'] &&
+      i['type'] == store_item['type'] &&
+      i['subtype'] == store_item['subtype']
     end
-    new_item = {
-      'owner_id' => owner_id,
-      'name' => store_item['name'],
-      'type' => store_item['type'],
-      'subtype' => store_item['subtype'],
-      'bonus' => bonus,
-      'properties' => store_item['properties'],
-      'equipped' => false
-    }
-    new_item['quantity'] = 1 if store_item['properties']['consumable']
-    items << new_item
+
+    if existing_item
+      existing_item['quantity'] = (existing_item['quantity'] || 1) + qty
+    else
+      bonus = store_item['bonus']
+      if store_item['tier'] && %w[potion oil scroll].include?(store_item['subtype'])
+        bonus = store_item['tier']
+      end
+      new_item = {
+        'owner_id' => owner_id,
+        'name' => store_item['name'],
+        'type' => store_item['type'],
+        'subtype' => store_item['subtype'],
+        'bonus' => bonus,
+        'properties' => store_item['properties'],
+        'equipped' => false
+      }
+      new_item['quantity'] = qty if store_item['properties']['consumable']
+      items << new_item
+    end
   end
 
-  # Deduct gold
-  campaign['gold'] -= store_item['price']
+  campaign['gold'] -= total_cost
 
   Tools.save_json('equipment.json', items)
   Tools.save_json('campaign.json', campaign)
