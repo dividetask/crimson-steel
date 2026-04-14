@@ -1,0 +1,192 @@
+<div class="downtime">
+  <div class="downtime-header">
+    <h1>Downtime</h1>
+    <div class="gold-display">Gold: <%= @campaign['gold'] %></div>
+  </div>
+
+  <div class="downtime-cards">
+    <% @pcs.each do |pc| %>
+      <% consumables = pc.item_list.select { |i| e = @compendium.item_effects(i); e && (e[:type] == :cure || e[:base_name] == 'Standard Surgery') } %>
+      <div class="downtime-card">
+        <h3><%= h pc.name %></h3>
+        <div class="dt-subtitle">
+          <%= h pc.race %> <%= h pc.full_klass %> &middot; Tier <%= pc.tier %>
+        </div>
+        <div class="dt-stats">
+          <div><span class="label">HP</span><span class="value"><%= pc.current_hp %>/<%= pc.hp_max %></span></div>
+          <div><span class="label">Mana</span><span class="value"><%= pc.current_mana %>/<%= pc.mana_max %></span></div>
+          <div><span class="label">Saturation</span><span class="value"><%= pc.saturation %>/<%= pc.cha %></span></div>
+          <div><span class="label">Temp HP</span><span class="value"><%= pc.temporary_hit_points %></span></div>
+          <div><span class="label">Minor Dmg</span><span class="value"><%= pc.minor_damage %></span></div>
+          <div><span class="label">Moderate Dmg</span><span class="value"><%= pc.moderate_damage %></span></div>
+          <div><span class="label">Major Dmg</span><span class="value"><%= pc.major_damage %></span></div>
+        </div>
+        <% if consumables.any? %>
+          <div class="dt-consumables">
+            <h4>Healing items</h4>
+            <ul>
+              <% consumables.each do |item| %>
+                <li><%= h item['name'] %><%= " ×#{item['quantity']}" if item['quantity'].to_i > 1 %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="downtime-actions">
+    <h2>Healing Actions</h2>
+
+    <div class="dt-action-grid">
+      <% cure_options = @cure_casters.flat_map { |pc| downtime_known_variants(pc, @compendium, 'Cure').map { |v| [pc, v] } } %>
+      <div class="dt-action">
+        <h3>Cast Cure</h3>
+        <% if cure_options.empty? %>
+          <p class="dt-note">No party member knows any Cure spell.</p>
+        <% else %>
+          <form method="post" action="/downtime/cast">
+            <label>Caster &amp; spell
+              <select name="caster_spell" required>
+                <option value=""></option>
+                <% cure_options.each do |pc, variant| %>
+                  <option value="<%= pc.id %>|<%= h variant %>"><%= h pc.name %> - <%= h variant %></option>
+                <% end %>
+              </select>
+            </label>
+            <label>Target
+              <select name="target_id" required>
+                <option value=""></option>
+                <% @pcs.each do |pc| %>
+                  <option value="<%= pc.id %>"><%= h pc.name %></option>
+                <% end %>
+              </select>
+            </label>
+            <button type="submit">Cast Cure</button>
+          </form>
+        <% end %>
+      </div>
+
+      <div class="dt-action">
+        <h3>Cast Surgery</h3>
+        <% if @surgery_casters.empty? %>
+          <p class="dt-note">No party member knows Standard Surgery.</p>
+        <% else %>
+          <form method="post" action="/downtime/cast">
+            <input type="hidden" name="spell_name" value="Standard Surgery">
+            <label>Caster
+              <select name="caster_id" id="surgery-caster" required onchange="updateSurgeryDice()">
+                <option value=""></option>
+                <% @surgery_casters.each do |pc| %>
+                  <option value="<%= pc.id %>"
+                    data-dice="<%= pc.skill_dice(:healing) %>"
+                    data-bonus="<%= pc.add_plus(:skill_bonus, :healing) %>"><%= h pc.name %></option>
+                <% end %>
+              </select>
+            </label>
+            <label>Target
+              <select name="target_id" required>
+                <option value=""></option>
+                <% @pcs.each do |pc| %>
+                  <option value="<%= pc.id %>"><%= h pc.name %> (major dmg <%= pc.major_damage %>)</option>
+                <% end %>
+              </select>
+            </label>
+            <div class="dt-dice" id="surgery-dice">Healing check: —</div>
+            <label>Successes rolled
+              <input type="number" name="successes" value="0" min="0" required>
+            </label>
+            <button type="submit">Apply Surgery</button>
+          </form>
+        <% end %>
+      </div>
+
+      <div class="dt-action">
+        <h3>Use Potion / Scroll</h3>
+        <% if @consumable_owners.empty? %>
+          <p class="dt-note">No party member has a healing potion or scroll.</p>
+        <% else %>
+          <form method="post" action="/downtime/use_item">
+            <label>Owner &amp; item
+              <select name="owner_item" required>
+                <option value=""></option>
+                <% @consumable_owners.each do |owner_id, items| %>
+                  <% pc = @pcs.find { |p| p.id == owner_id } %>
+                  <% items.each do |item| %>
+                    <option value="<%= owner_id %>|<%= item['item_id'] %>"><%= h pc.name %> - <%= h item['name'] %><%= " ×#{item['quantity']}" if item['quantity'].to_i > 1 %></option>
+                  <% end %>
+                <% end %>
+              </select>
+            </label>
+            <label>Target
+              <select name="target_id" required>
+                <option value=""></option>
+                <% @pcs.each do |pc| %>
+                  <option value="<%= pc.id %>"><%= h pc.name %></option>
+                <% end %>
+              </select>
+            </label>
+            <button type="submit">Use Item</button>
+          </form>
+        <% end %>
+      </div>
+
+      <div class="dt-action">
+        <h3>Spellcasting Services <% unless @is_local %><span class="dt-note">(DM only)</span><% end %></h3>
+        <% if @services.empty? %>
+          <p class="dt-note">No spellcasting services defined.</p>
+        <% else %>
+          <form method="post" action="/downtime/service">
+            <label>Service
+              <select name="service_index" required <%= 'disabled' unless @is_local %>>
+                <option value=""></option>
+                <% @services.each_with_index do |svc, i| %>
+                  <option value="<%= i %>">
+                    <%= h svc['spell'] %> (<%= h svc['title'] %>) - <%= h svc['class'].to_s.capitalize %> tier <%= svc['tier'] %> - <%= svc['cost'] %>g
+                  </option>
+                <% end %>
+              </select>
+            </label>
+            <label>Target
+              <select name="target_id" required <%= 'disabled' unless @is_local %>>
+                <option value=""></option>
+                <% @pcs.each do |pc| %>
+                  <option value="<%= pc.id %>"><%= h pc.name %></option>
+                <% end %>
+              </select>
+            </label>
+            <button type="submit" <%= 'disabled' unless @is_local %>>Purchase &amp; Apply</button>
+          </form>
+        <% end %>
+      </div>
+    </div>
+
+    <% if @is_local %>
+      <h2>Rest / Pass Time <span class="dt-note">(DM only)</span></h2>
+      <form method="post" action="/downtime/rest" class="dt-rest-form">
+        <label>Mode
+          <select name="mode" required>
+            <option value="pass_time">Pass time (slow recovery)</option>
+            <option value="long_term_recovery">Long-term recovery (full rest)</option>
+          </select>
+        </label>
+        <label>Days
+          <input type="number" name="days" value="1" min="1" required>
+        </label>
+        <button type="submit">Apply</button>
+      </form>
+    <% end %>
+  </div>
+</div>
+
+<script>
+function updateSurgeryDice() {
+  var sel = document.getElementById('surgery-caster');
+  var out = document.getElementById('surgery-dice');
+  var opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) { out.textContent = 'Healing check: \u2014'; return; }
+  var dice = opt.dataset.dice;
+  var bonus = opt.dataset.bonus;
+  out.textContent = 'Healing check: ' + dice + 'd (' + bonus + ')';
+}
+</script>

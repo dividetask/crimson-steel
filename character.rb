@@ -876,10 +876,11 @@ class CharacterSheet
           moderate_damage: participant['moderate_damage'].to_i,
           major_damage: participant['major_damage'].to_i,
           current_mana: participant['mana'].to_i,
-          temporary_hit_points: participant['temporary_hit_points'].to_i
+          temporary_hit_points: participant['temporary_hit_points'].to_i,
+          saturation: participant['saturation'].to_i
         }
       else
-        { minor_damage: 0, moderate_damage: 0, major_damage: 0, current_mana: mana_max, temporary_hit_points: 0 }
+        { minor_damage: 0, moderate_damage: 0, major_damage: 0, current_mana: mana_max, temporary_hit_points: 0, saturation: 0 }
       end
     end
   end
@@ -890,6 +891,7 @@ class CharacterSheet
   def moderate_damage; combat_status[:moderate_damage]; end
   def major_damage; combat_status[:major_damage]; end
   def temporary_hit_points; combat_status[:temporary_hit_points]; end
+  def saturation; combat_status[:saturation]; end
 
   private
 

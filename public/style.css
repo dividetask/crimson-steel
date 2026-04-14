@@ -396,6 +396,40 @@ table th {
 .spell-link { color: #1976d2; text-decoration: none; }
 .spell-link:hover { text-decoration: underline; }
 
+/* Downtime page */
+.downtime .downtime-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.downtime .downtime-header h1 { font-size: 22px; }
+.downtime .downtime-header .gold-display { font-size: 18px; margin-bottom: 0; }
+.downtime-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 25px; }
+.downtime-card { border: 1px solid #bbb; border-radius: 5px; padding: 10px; background: #fafafa; }
+.downtime-card h3 { margin: 0 0 2px 0; font-size: 15px; text-decoration: none; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+.downtime-card .dt-subtitle { font-size: 11px; color: #555; margin-bottom: 6px; }
+.downtime-card .dt-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; font-size: 11px; }
+.downtime-card .dt-stats > div { display: flex; justify-content: space-between; }
+.downtime-card .dt-stats .label { color: #555; }
+.downtime-card .dt-stats .value { font-weight: bold; }
+.downtime-card .dt-consumables { margin-top: 8px; padding-top: 6px; border-top: 1px dashed #ccc; }
+.downtime-card .dt-consumables h4 { font-size: 11px; margin: 0 0 4px 0; }
+.downtime-card .dt-consumables ul { list-style: disc; padding-left: 18px; font-size: 11px; margin: 0; }
+
+.downtime-actions h2 { font-size: 16px; margin-top: 20px; }
+.dt-action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; margin-bottom: 15px; }
+.dt-action { border: 1px solid #ddd; border-radius: 5px; padding: 12px; background: #fff; }
+.dt-action h3 { font-size: 13px; margin: 0 0 8px 0; text-decoration: none; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+.dt-action form { display: flex; flex-direction: column; gap: 8px; }
+.dt-action label { display: flex; flex-direction: column; font-size: 11px; font-weight: bold; gap: 2px; }
+.dt-action select, .dt-action input { padding: 5px; font-size: 12px; font-weight: normal; }
+.dt-action button { padding: 6px 10px; background: #4CAF50; color: white; border: none; cursor: pointer; font-size: 12px; border-radius: 3px; }
+.dt-action button:hover:not(:disabled) { background: #45a049; }
+.dt-action button:disabled, .dt-action select:disabled { background: #ccc; color: #666; cursor: not-allowed; }
+.dt-action .dt-note { font-size: 11px; color: #888; font-style: italic; margin: 0; }
+.dt-action .dt-dice { font-size: 11px; background: #f5f8ff; padding: 4px 6px; border-radius: 3px; }
+.dt-rest-form { display: flex; gap: 12px; align-items: flex-end; padding: 12px; border: 1px solid #ddd; border-radius: 5px; background: #fff3e0; max-width: 600px; }
+.dt-rest-form label { display: flex; flex-direction: column; font-size: 11px; font-weight: bold; gap: 2px; flex: 1; }
+.dt-rest-form select, .dt-rest-form input { padding: 5px; font-size: 12px; font-weight: normal; }
+.dt-rest-form button { padding: 6px 12px; background: #4CAF50; color: white; border: none; cursor: pointer; font-size: 12px; border-radius: 3px; }
+.dt-rest-form button:hover { background: #45a049; }
+
 @media print {
   body {
     padding: 0;
