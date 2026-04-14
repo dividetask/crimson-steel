@@ -1,7 +1,11 @@
 require_relative 'tools'
 
 class CombatTurn
-  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation, :temporary_hit_points
+  # Known condition keys. Each combatant starts at 0 for every condition;
+  # a value > 0 means the condition is active on them.
+  CONDITION_KEYS = %w[bleed ghoul_paralysis].freeze
+
+  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation, :temporary_hit_points, :conditions
 
   def initialize(combat_turn, character)
     @rules = Tools.load_json('rules.json')
@@ -11,8 +15,13 @@ class CombatTurn
     @minor_damage, @moderate_damage, @major_damage = combat_turn['minor_damage'], combat_turn['moderate_damage'], combat_turn['major_damage']
     @saturation = combat_turn['saturation']
     @temporary_hit_points = combat_turn['temporary_hit_points'].to_i
+    stored_conditions = combat_turn['conditions'] || {}
+    @conditions = CONDITION_KEYS.each_with_object({}) { |k, h| h[k] = stored_conditions[k].to_i }
     @character = CharacterSheet.new(character)
   end
+
+  def condition(name); @conditions[name.to_s].to_i; end
+  def active_conditions; @conditions.select { |_, v| v.to_i > 0 }; end
 
   def new_turn; @combat_pool = @character.combat_pool; end
   def reroll_init
@@ -26,7 +35,8 @@ class CombatTurn
     return {'id' => @combat_id, 'char_id' => @char_id,
       'initiative' => @initiative, 'mana' => @mana, 'combat_pool' => @combat_pool,
       'minor_damage' => @minor_damage, 'moderate_damage' => @moderate_damage, 'major_damage' => @major_damage,
-      'saturation' => @saturation, 'temporary_hit_points' => @temporary_hit_points}
+      'saturation' => @saturation, 'temporary_hit_points' => @temporary_hit_points,
+      'conditions' => @conditions}
   end
 
   def hp; return @character.hp_max - @minor_damage - @moderate_damage - @major_damage + @temporary_hit_points.to_i; end
