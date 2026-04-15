@@ -333,12 +333,14 @@
       }
       document.getElementById(inputId).value = successes;
       var colored = rolls.map(function(d) {
-        var color;
-        if (d === 1) color = '#c62828';
-        else if (d === 10) color = '#1565c0';
-        else if (d >= cond.tn) color = '#2e7d32';
-        else color = '#777';
-        return '<span style="color:' + color + ';font-weight:bold;">' + d + '</span>';
+        var bg = null;
+        if (d === 1) bg = '#e57373';             // red   (fumble)
+        else if (d === 10) bg = '#64b5f6';       // blue  (crit)
+        else if (d >= cond.tn) bg = '#81c784';   // green (success)
+        if (bg) {
+          return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
+        }
+        return '<span style="color:#777;">' + d + '</span>';
       }).join(', ');
       document.getElementById(rollsId).innerHTML = 'Rolled: [' + colored + '] &rarr; ' + successes + ' success' + (successes === 1 ? '' : 'es');
     }
