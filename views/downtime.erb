@@ -237,37 +237,39 @@
         <% end %>
       </div>
 
-      <div class="dt-action">
-        <h3>Spellcasting Services <% unless @is_local %><span class="dt-note">(DM only)</span><% end %></h3>
-        <% if @dt_data[:servicesSpells].empty? %>
-          <p class="dt-note">No spellcasting services defined.</p>
-        <% else %>
-          <form method="post" action="/downtime/service" id="service-form">
-            <label>Spell
-              <select name="spell" id="service-spell" required <%= 'disabled' unless @is_local %>>
-                <% @dt_data[:servicesSpells].each_with_index do |spell, i| %>
-                  <option value="<%= h spell %>" <%= 'selected' if i == 0 %>><%= h spell %></option>
-                <% end %>
-              </select>
-            </label>
-            <label>Caster
-              <select name="service_caster" id="service-caster" required <%= 'disabled' unless @is_local %>></select>
-            </label>
-            <label>Target
-              <select name="target_id" id="service-target" required <%= 'disabled' unless @is_local %>>
-                <% @pcs.each_with_index do |pc, i| %>
-                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
-                <% end %>
-              </select>
-            </label>
-            <label>Quantity
-              <input type="number" name="quantity" id="service-quantity" min="1" value="1" <%= 'disabled' unless @is_local %>>
-            </label>
-            <div class="dt-preview" id="service-preview">&nbsp;</div>
-            <button type="submit" <%= 'disabled' unless @is_local %>>Purchase &amp; Apply</button>
-          </form>
-        <% end %>
-      </div>
+      <% [0, 1, 2].each do |slot| %>
+        <div class="dt-action">
+          <h3>Spellcasting Services <%= "##{slot + 1}" %><% unless @is_local %> <span class="dt-note">(DM only)</span><% end %></h3>
+          <% if @dt_data[:servicesSpells].empty? %>
+            <p class="dt-note">No spellcasting services defined.</p>
+          <% else %>
+            <form method="post" action="/downtime/service" id="service-form-<%= slot %>" class="service-form" data-slot="<%= slot %>">
+              <label>Spell
+                <select name="spell" class="service-spell" id="service-spell-<%= slot %>" required <%= 'disabled' unless @is_local %>>
+                  <% @dt_data[:servicesSpells].each_with_index do |spell, i| %>
+                    <option value="<%= h spell %>" <%= 'selected' if i == 0 %>><%= h spell %></option>
+                  <% end %>
+                </select>
+              </label>
+              <label>Caster
+                <select name="service_caster" class="service-caster" id="service-caster-<%= slot %>" required <%= 'disabled' unless @is_local %>></select>
+              </label>
+              <label>Target
+                <select name="target_id" class="service-target" id="service-target-<%= slot %>" required <%= 'disabled' unless @is_local %>>
+                  <% @pcs.each_with_index do |pc, i| %>
+                    <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
+                  <% end %>
+                </select>
+              </label>
+              <label>Quantity
+                <input type="number" name="quantity" class="service-quantity" id="service-quantity-<%= slot %>" min="1" value="1" <%= 'disabled' unless @is_local %>>
+              </label>
+              <div class="dt-preview service-preview" id="service-preview-<%= slot %>">&nbsp;</div>
+              <button type="submit" <%= 'disabled' unless @is_local %>>Purchase &amp; Apply</button>
+            </form>
+          <% end %>
+        </div>
+      <% end %>
     </div>
 
     <% if @is_local %>
@@ -1022,14 +1024,15 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
     updateSurgeryPreview();
   }
 
-  // --- Services form ---
-  var serviceForm = document.getElementById('service-form');
-  if (serviceForm) {
-    var svcSpell = document.getElementById('service-spell');
-    var svcCaster = document.getElementById('service-caster');
-    var svcTarget = document.getElementById('service-target');
-    var svcQty = document.getElementById('service-quantity');
-    var svcPreview = document.getElementById('service-preview');
+  // --- Services forms (one per slot, independent comparison cells). ---
+  document.querySelectorAll('.service-form').forEach(function(serviceForm) {
+    var slot = serviceForm.dataset.slot;
+    var svcSpell = document.getElementById('service-spell-' + slot);
+    var svcCaster = document.getElementById('service-caster-' + slot);
+    var svcTarget = document.getElementById('service-target-' + slot);
+    var svcQty = document.getElementById('service-quantity-' + slot);
+    var svcPreview = document.getElementById('service-preview-' + slot);
+    var submitBtn = serviceForm.querySelector('button[type="submit"]');
 
     function refreshServiceCasters() {
       var spell = svcSpell.value;
@@ -1052,15 +1055,13 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
       var list = D.services[spell] || [];
       var svc = list.find(function(s) { return s.title === title; });
       var target = pc(targetId);
-      var submitBtn = serviceForm.querySelector('button[type="submit"]');
       if (!svc || !target) {
         svcPreview.innerHTML = '&nbsp;';
         svcQty.disabled = true; submitBtn.disabled = true;
         return;
       }
 
-      // Compute the per-cast saturation impact once (constant for the
-      // selected svc + target) so we can derive the maximum legal quantity.
+      // Per-cast saturation impact (constant for selected svc + target).
       var satPerCast = svc.effect.saturation - target.tier;
       if (svc.improvedHealing) satPerCast -= 2 * svc.tier;
       if (satPerCast < svc.effect.minimumSaturation) satPerCast = svc.effect.minimumSaturation;
@@ -1068,15 +1069,12 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
       var gold = D.campaignGold;
       var maxByGold = Math.floor(gold / svc.cost);
       var atCap = target.saturation >= target.cha;
-      // Each cast drives saturation up by satPerCast; the LAST cast is the
-      // one whose pre-cast sat was still under the cap, so we need ceil here.
       var maxBySat;
       if (atCap) maxBySat = 0;
-      else if (satPerCast <= 0) maxBySat = Infinity; // never blocked by sat
+      else if (satPerCast <= 0) maxBySat = Infinity;
       else maxBySat = Math.ceil((target.cha - target.saturation) / satPerCast);
       var maxAllowed = Math.min(maxByGold, maxBySat);
 
-      // Block the form entirely when even one cast can't land.
       if (maxAllowed < 1) {
         svcQty.disabled = true; submitBtn.disabled = true;
         var why = atCap ? target.name + ' is already at saturation cap (' + target.saturation + '/' + target.cha + ')'
@@ -1085,8 +1083,6 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         return;
       }
 
-      // Clamp the user-entered quantity into [1, maxAllowed] so the form can
-      // only ever submit a valid request.
       svcQty.disabled = false; submitBtn.disabled = false;
       svcQty.max = isFinite(maxAllowed) ? maxAllowed : '';
       var qty = parseInt(svcQty.value, 10);
@@ -1094,7 +1090,6 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
       if (qty > maxAllowed) qty = maxAllowed;
       if (String(qty) !== svcQty.value) svcQty.value = qty;
 
-      // Simulate qty casts (always lands in full thanks to the clamp above).
       var damage = target.damage.slice();
       var sat = target.saturation;
       var totals = { major: 0, moderate: 0, minor: 0, sat: 0 };
@@ -1130,7 +1125,7 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
     svcTarget.addEventListener('change', updateServicePreview);
     svcQty.addEventListener('input', updateServicePreview);
     refreshServiceCasters();
-  }
+  });
 
   // --- Rest preview (DM only) ---
   var restForm = document.getElementById('rest-mode');
