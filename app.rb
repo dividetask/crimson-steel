@@ -250,6 +250,21 @@ post '/combat/action' do
     resolved = compendium.resolve_spell_variant(spell_name)
     base_name = resolved ? resolved[0] : nil
 
+    # Dice cost from combat pool based on casting time:
+    #   casting_time == 0.5 (half action): 4 dice minimum
+    #   0 < casting_time < 0.5 (bonus action): 2 dice minimum
+    #   otherwise (free / main action / longer): 0
+    # Stabilize asks the DM for its own dice count; the rest spend
+    # min_cast_dice automatically from the pool.
+    casting_time = resolved ? resolved[1]['casting_time'].to_f : 0
+    min_cast_dice = if casting_time == 0.5
+                      4
+                    elsif casting_time > 0 && casting_time < 0.5
+                      2
+                    else
+                      0
+                    end
+
     if base_name == 'Stabilize'
       halt 400, "Stabilize requires a target" unless target_combat_id
       target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
@@ -260,7 +275,8 @@ post '/combat/action' do
       target_character = CharacterSheet.new(target_data)
 
       dice_spent = params[:stabilize_dice].to_i
-      halt 400, "Stabilize requires spending at least 1 die" unless dice_spent > 0
+      floor = [min_cast_dice, 1].max
+      halt 400, "Stabilize requires spending at least #{floor} #{floor == 1 ? 'die' : 'dice'}" if dice_spent < floor
       halt 400, "Not enough combat dice" unless participant['combat_pool'].to_i >= dice_spent
 
       successes = params[:stabilize_successes].to_i
@@ -304,18 +320,26 @@ post '/combat/action' do
       halt 400, "Target character not found" unless target_data
       target_character = CharacterSheet.new(target_data)
 
+      halt 400, "Not enough combat dice (need #{min_cast_dice})" if min_cast_dice > 0 && participant['combat_pool'].to_i < min_cast_dice
+
       current_temp = target['temporary_hit_points'].to_i
       new_temp = [current_temp, ward[:temp_hp]].max
       target['temporary_hit_points'] = new_temp
+      # How much temp HP this ward actually contributed; stored so the
+      # expiry cleanup can subtract exactly this amount without stomping
+      # other temp-HP sources.
+      temp_hp_added = [new_temp - current_temp, 0].max
 
       participant['mana'] = participant['mana'].to_i - mana_cost
+      participant['combat_pool'] = participant['combat_pool'].to_i - min_cast_dice if min_cast_dice > 0
 
       # Register the Ward as a duration-bound active effect so the
       # combat tracker can display how many rounds remain before it
       # fades. Uses the same ends_on_round machinery as paralysis; the
-      # Start of Turn cleanup purges the entry when the round arrives.
-      # Temp HP itself is left on the participant and is not rolled
-      # back on expiry -- the DM can adjust if needed.
+      # Start of Turn cleanup purges the entry when the round arrives
+      # and subtracts temp_hp_added from the target's current temp HP
+      # (floored at 0), so the ward's contribution is rolled back without
+      # stomping other temp-HP sources.
       campaign = Tools.load_json('campaign.json')
       rounds_elapsed_now = campaign.is_a?(Hash) ? campaign['rounds_elapsed'].to_i : 0
       duration_rounds = ward[:duration_rounds].to_i
@@ -329,7 +353,8 @@ post '/combat/action' do
         'round_cast' => combat_data['round'],
         'target_combat_ids' => [target_combat_id],
         'target_names' => [target_character.name],
-        'ends_on_round' => rounds_elapsed_now + duration_rounds
+        'ends_on_round' => rounds_elapsed_now + duration_rounds,
+        'temp_hp_added' => temp_hp_added
       }
 
       Tools.save_json('combat.json', combat_data)
@@ -601,13 +626,21 @@ post '/combat/action' do
     # are untouched. ends_on_round is set when the effect is created, as
     # rounds_elapsed_at_creation + duration, so the effect clears the first
     # time the target hits Start of Turn on or after that round.
+    # Wards additionally roll back whatever temp HP they contributed so
+    # the shielding disappears with the spell.
     combat_data['active_effects'] ||= []
     combat_data['active_effects'].reject! do |effect|
       next false unless effect['ends_on_round']
       target_ids = effect['target_combat_ids'] || []
       next false unless target_ids.include?(combat_id)
       if effect['ends_on_round'].to_i <= rounds_elapsed
-        log_lines << "  #{effect['spell_name']} ends on #{character.name}"
+        if effect['temp_hp_added'].to_i > 0
+          before_temp = participant['temporary_hit_points'].to_i
+          participant['temporary_hit_points'] = [before_temp - effect['temp_hp_added'].to_i, 0].max
+          log_lines << "  #{effect['spell_name']} ends on #{character.name} (temp HP #{before_temp} -> #{participant['temporary_hit_points']})"
+        else
+          log_lines << "  #{effect['spell_name']} ends on #{character.name}"
+        end
         true
       else
         false
@@ -705,6 +738,16 @@ post '/combat/action' do
       else
         participant['conditions'][cname] = new_value
       end
+    end
+
+    # Refill combat pool at the start of this combatant's turn. Paralysis
+    # and other conditions still apply to whether they can act; the pool
+    # just resets to its maximum so they have dice to work with either way.
+    pool_before = participant['combat_pool'].to_i
+    pool_max = character.combat_pool
+    if pool_max != pool_before
+      participant['combat_pool'] = pool_max
+      log_lines << "  Combat pool refilled: #{pool_before} -> #{pool_max}"
     end
 
     Tools.save_json('combat.json', combat_data)

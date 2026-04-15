@@ -53,26 +53,28 @@
           <td><input type="number" name="combat_pool" value="<%= combat_turn.combat_pool %>" style="width: 45px;">/<%= combat_turn.character.combat_pool %></td>
           <td><input type="number" name="saturation" value="<%= combat_turn.saturation %>" style="width: 45px;">/<%= combat_turn.character.cha %></td>
           <td class="conditions-cell">
-            <% combat_turn.active_conditions.each do |cname, cval| %>
-              <% short, full = condition_label(cname) %>
-              <span class="condition-badge condition-<%= cname %>" title="<%= full %>"><%= short %>: <%= cval %></span>
-            <% end %>
-            <% combat_turn.active_ability_damage.each do |ability, severity, val| %>
-              <span class="condition-badge condition-ability-damage"><%= ability.upcase %> -<%= val %> <%= severity %></span>
-            <% end %>
-            <% (@combat.active_effects || []).each do |effect| %>
-              <% next unless (effect['target_combat_ids'] || []).include?(combat_turn.combat_id) %>
-              <% end_round = effect['ends_on_round'] %>
-              <% remaining = end_round ? [end_round.to_i - rounds_elapsed_view, 0].max : nil %>
-              <% duration_suffix = remaining ? " (#{remaining} round#{'s' unless remaining == 1})" : '' %>
-              <% if effect['spell_name'] == 'Paralyzed' %>
-                <span class="condition-badge condition-paralyzed" title="Ends at start of round <%= end_round %>">Paralyzed<%= duration_suffix %></span>
-              <% elsif end_round %>
-                <%# Every other duration-bound active effect (Ward, future %>
-                <%# spell effects with ends_on_round) gets a generic badge. %>
-                <span class="condition-badge condition-effect" title="Ends at start of round <%= end_round %>"><%= effect['spell_name'] %><%= duration_suffix %></span>
+            <div class="conditions-list">
+              <% combat_turn.active_conditions.each do |cname, cval| %>
+                <% short, full = condition_label(cname) %>
+                <span class="condition-badge condition-<%= cname %>" title="<%= full %>"><%= short %>: <%= cval %></span>
               <% end %>
-            <% end %>
+              <% combat_turn.active_ability_damage.each do |ability, severity, val| %>
+                <span class="condition-badge condition-ability-damage"><%= ability.upcase %> -<%= val %> <%= severity %></span>
+              <% end %>
+              <% (@combat.active_effects || []).each do |effect| %>
+                <% next unless (effect['target_combat_ids'] || []).include?(combat_turn.combat_id) %>
+                <% end_round = effect['ends_on_round'] %>
+                <% remaining = end_round ? [end_round.to_i - rounds_elapsed_view, 0].max : nil %>
+                <% duration_suffix = remaining ? " (#{remaining} round#{'s' unless remaining == 1})" : '' %>
+                <% if effect['spell_name'] == 'Paralyzed' %>
+                  <span class="condition-badge condition-paralyzed" title="Ends at start of round <%= end_round %>">Paralyzed<%= duration_suffix %></span>
+                <% elsif end_round %>
+                  <%# Every other duration-bound active effect (Ward, future %>
+                  <%# spell effects with ends_on_round) gets a generic badge. %>
+                  <span class="condition-badge condition-effect" title="Ends at start of round <%= end_round %>"><%= effect['spell_name'] %><%= duration_suffix %></span>
+                <% end %>
+              <% end %>
+            </div>
           </td>
           <td><button type="submit">Update</button></form></td>
         </tr>
