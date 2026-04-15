@@ -28,7 +28,15 @@
               <button type="submit" class="set-turn-btn" title="Set as current turn"><%= is_current ? '&#9654;' : 'Set' %></button>
             </form>
           </td>
-          <td><%= combat_turn.initiative %></td>
+          <td>
+            <% if combat_turn.initiative.to_s.strip.empty? %>
+              <form method="post" action="/combat/roll_init/<%= combat_turn.combat_id %>" style="margin:0;">
+                <button type="submit" class="set-turn-btn" title="Roll initiative">Roll</button>
+              </form>
+            <% else %>
+              <%= combat_turn.initiative %>
+            <% end %>
+          </td>
           <td><%= @combat.display_name(combat_turn) %></td>
           <td><%= combat_turn.hp %>/<%= combat_turn.character.hp_max %></td>
           <td>
@@ -43,7 +51,8 @@
           <td><input type="number" name="saturation" value="<%= combat_turn.saturation %>" style="width: 45px;">/<%= combat_turn.character.cha %></td>
           <td class="conditions-cell">
             <% combat_turn.active_conditions.each do |cname, cval| %>
-              <span class="condition-badge condition-<%= cname %>"><%= cname.tr('_', ' ').capitalize %>: <%= cval %></span>
+              <% short, full = condition_label(cname) %>
+              <span class="condition-badge condition-<%= cname %>" title="<%= full %>"><%= short %>: <%= cval %></span>
             <% end %>
             <% combat_turn.active_ability_damage.each do |ability, severity, val| %>
               <span class="condition-badge condition-ability-damage"><%= ability.upcase %> -<%= val %> <%= severity %></span>
@@ -135,7 +144,10 @@
           (spells || []).map do |name|
             cure = compendium.cure_effects(name)
             ward = compendium.ward_effects(name)
+            resolved = compendium.resolve_spell_variant(name)
+            base = resolved ? resolved[0] : nil
             {name: name, tier: tier, cure: cure ? true : false, ward: ward ? true : false,
+             stabilize: base == 'Stabilize',
              target_mode: compendium.target_mode(name) || "single"}
           end
         }.flatten
@@ -143,6 +155,10 @@
     else
       '[]'
     end %>;
+
+    // Caster's healing skill dice / TN, used by Stabilize cast rolls.
+    var currentHealingDice = <%= current ? current.character.skill_dice('healing').to_i : 0 %>;
+    var currentHealingBonus = <%= current ? current.character.skill_bonus('healing').to_i : 0 %>;
     var itemList = <%= if current
       compendium = Compendium.new
       JSON.generate(
@@ -458,14 +474,15 @@
         var canAfford = currentMana >= cost;
         html += '<div style="margin-top:6px;"><span class="math-detail">Tier ' + tier + ' (' + cost + ' mana):</span><br>';
         tiers[tier].forEach(function(spell) {
-          var isInstant = spell.cure || spell.ward;
+          var isInstant = spell.cure || spell.ward || spell.stabilize;
           var mode = spell.target_mode || 'single';
           var marker = mode === 'multi' ? ' *' : (mode === 'none' ? ' \u25CB' : '');
           var label = spell.name + marker;
+          var effectLabel = spell.cure ? 'cure' : (spell.ward ? 'ward' : (spell.stabilize ? 'stabilize' : ''));
           if (canAfford) {
             html += '<button class="action-btn spell-btn" onclick="selectSpellTarget(\'' +
               spell.name.replace(/'/g, "\\'") + '\', ' + spell.tier + ', ' + (isInstant ? 'true' : 'false') +
-              ', \'' + (spell.cure ? 'cure' : (spell.ward ? 'ward' : '')) + '\'' +
+              ', \'' + effectLabel + '\'' +
               ', \'' + mode + '\'' +
               ')" style="margin:2px;">' + label + '</button>';
           } else {
@@ -545,6 +562,26 @@
       } else if (targetMode === 'single') {
         fields += ', target_combat_id: ' + targetIds[0];
       }
+
+      // Stabilize requires a healing-skill roll; each success drops the
+      // target's bleed by 3. Prompt for successes (with a Roll helper)
+      // before submitting so the DM can roll or enter manually.
+      if (effectLabel === 'stabilize') {
+        var tn = Math.max(diceRules.tn_minimum, Math.min(diceRules.tn_maximum, diceRules.base_target_number - currentHealingBonus));
+        addStep('<strong>Casting: ' + spellName + '</strong>' +
+          '<br><span class="math-detail">Tier ' + spellTier + ' | Cost: ' + cost + ' mana' + targetLabel + label + '</span>' +
+          '<br><span class="math-detail">Healing Roll: ' + currentHealingDice + ' dice at TN ' + tn + ' (each success reduces bleed by 3)</span>' +
+          '<br><label>Successes: <input type="number" id="stabilize-successes" min="0" value="0" style="width:50px;"></label>' +
+          ' <button class="action-btn" onclick="(function(){' +
+            'var v=parseInt(document.getElementById(\'stabilize-successes\').value,10);' +
+            'if(isNaN(v)||v<0){alert(\'Enter a non-negative number of successes.\');return;}' +
+            'submitAction({' + fields + ', stabilize_successes: v});' +
+          '})()" style="margin-top:4px;">Confirm Cast</button>' +
+          ' <button class="action-btn" onclick="rollDicePool(' + currentHealingDice + ', ' + tn + ', \'stabilize-successes\', \'stabilize-roll-display\')">Roll</button>' +
+          '<div id="stabilize-roll-display" class="math-detail" style="margin-top:4px;"></div>');
+        return;
+      }
+
       addStep('<strong>Casting: ' + spellName + '</strong>' +
         '<br><span class="math-detail">Tier ' + spellTier + ' | Cost: ' + cost + ' mana' + targetLabel +
         (isConcentration ? ' | Concentration' : '') + label + '</span>' +

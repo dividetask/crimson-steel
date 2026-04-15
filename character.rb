@@ -121,6 +121,18 @@ class Combat
     Tools.save_json('combat_log.json', log)
   end
 
+  # Roll initiative for a single combatant (used when a newcomer joins and the
+  # DM doesn't want to reroll everyone). Re-sorts so the new position takes
+  # effect; no new combat-log entry since this doesn't start a new encounter.
+  def reroll_init_for(combat_id)
+    ct = @combat_turn_list.find { |t| t.combat_id == combat_id }
+    return unless ct
+    ct.reroll_init
+    sort_init
+    update_data
+    ct
+  end
+
   def update_data
     combat_data = Tools.load_json('combat.json')
     combat_data['participants'] = @combat_turn_list.map(&:to_json)

@@ -1,6 +1,20 @@
 require_relative 'character'
 
 module CharacterHelpers
+  # Short/full display labels for the combat-tracker condition badges.
+  # Entries not listed fall back to a title-cased version of the key.
+  # The full form is shown as a tooltip so abbreviations stay discoverable.
+  CONDITION_LABEL_OVERRIDES = {
+    'minor_strength_poison' => ['Poison', 'Minor strength poison']
+  }.freeze
+
+  def condition_label(cname)
+    key = cname.to_s
+    return CONDITION_LABEL_OVERRIDES[key] if CONDITION_LABEL_OVERRIDES.key?(key)
+    full = key.tr('_', ' ').capitalize
+    [full, full]
+  end
+
   def get_info(character)
     CharacterSheet.new(character)
   end

@@ -254,8 +254,43 @@ post '/combat/action' do
     compendium = Compendium.new
     cure = compendium.cure_effects(spell_name)
     ward = compendium.ward_effects(spell_name)
+    resolved = compendium.resolve_spell_variant(spell_name)
+    base_name = resolved ? resolved[0] : nil
 
-    if ward
+    if base_name == 'Stabilize'
+      halt 400, "Stabilize requires a target" unless target_combat_id
+      target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
+      halt 400, "Target not found" unless target
+      target_char_id = target['char_id'] || target['id']
+      target_data = Tools.load_json('characters.json').find { |c| c['id'] == target_char_id }
+      halt 400, "Target character not found" unless target_data
+      target_character = CharacterSheet.new(target_data)
+
+      successes = params[:stabilize_successes].to_i
+      target['conditions'] ||= {}
+      before = target['conditions']['bleed'].to_i
+      if before <= 0
+        reduction = 0
+        after = 0
+      else
+        # Stabilize description: "Reduce bleeding by 3 for each success."
+        after = [before - 3 * successes, 0].max
+        reduction = before - after
+        if after <= 0
+          target['conditions'].delete('bleed')
+        else
+          target['conditions']['bleed'] = after
+        end
+      end
+
+      participant['mana'] = participant['mana'].to_i - mana_cost
+      Tools.save_json('combat.json', combat_data)
+      if before <= 0
+        Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana) - target not bleeding")
+      else
+        Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana, #{successes} successes) - bleed #{before} -> #{after} (-#{reduction})")
+      end
+    elsif ward
       halt 400, "Ward spell requires a target" unless target_combat_id
       target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
       halt 400, "Target not found" unless target
@@ -654,6 +689,15 @@ end
 post '/combat/set_turn/:id' do
   redirect '/character/0' unless local_request?
   Combat.set_current_turn(params[:id].to_i)
+  redirect '/combat'
+end
+
+# Roll initiative for just one combatant (e.g. a newcomer joining mid-fight).
+# The full reroll_init button still rerolls everyone; this avoids scrambling
+# the order for combatants who have already rolled.
+post '/combat/roll_init/:id' do
+  redirect '/character/0' unless local_request?
+  Combat.new.reroll_init_for(params[:id].to_i)
   redirect '/combat'
 end
 
