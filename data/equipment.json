@@ -704,14 +704,14 @@
   },
   {
     "owner_id": 4,
-    "name": "Potion of Lesser Healing",
-    "type": "item",
-    "subtype": "vial",
+    "name": "Cure Lesser Wounds Potion",
+    "type": "consumable",
+    "subtype": "potion",
     "bonus": 1,
     "quantity": 4,
     "properties": {
       "consumable": true,
-      "effect": "heal"
+      "spell": "cure"
     },
     "equipped": false
   },
