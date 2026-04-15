@@ -54,7 +54,7 @@
         </div>
 
         <% @ua_data[:combatants].each do |c| %>
-          <div class="ua-combatant" data-cid="<%= c[:combatId] %>">
+          <div class="ua-combatant" data-cid="<%= c[:combatId] %>" data-has-conditions="<%= c[:conditions].any? %>"<%= ' style="display:none;"' unless c[:conditions].any? %>>
             <div class="ua-combatant-header">
               <span class="ua-name"><%= h c[:name] %></span>
               <span class="ua-group ua-group-<%= h c[:group].to_s.downcase %>"><%= h c[:group] %></span>
@@ -497,8 +497,17 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
   document.querySelectorAll('.ua-show-actions').forEach(function(cb) {
     cb.addEventListener('change', function() {
       var cid = cb.dataset.cid;
-      var slotsEl = form.querySelector('.ua-combatant[data-cid="' + cid + '"] .ua-slots');
-      if (slotsEl) slotsEl.style.display = cb.checked ? '' : 'none';
+      var combatantEl = form.querySelector('.ua-combatant[data-cid="' + cid + '"]');
+      var slotsEl = combatantEl ? combatantEl.querySelector('.ua-slots') : null;
+      var hasConditions = combatantEl && combatantEl.dataset.hasConditions === 'true';
+      if (cb.checked) {
+        if (combatantEl) combatantEl.style.display = '';
+        if (slotsEl) slotsEl.style.display = '';
+      } else {
+        if (slotsEl) slotsEl.style.display = 'none';
+        // No conditions and unchecked -> hide the whole row, not just the slots.
+        if (combatantEl && !hasConditions) combatantEl.style.display = 'none';
+      }
       updateSummary();
     });
   });
@@ -566,24 +575,25 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
     if (!act) return 'Nothing';
     if (act.kind === 'cast') {
       var spell = act.spell;
-      var targets = act.targets.map(function(tid) { return byId[String(tid)] && byId[String(tid)].name; }).filter(Boolean);
+      var targetIds = act.targets;
+      var targetNames = targetIds.map(function(tid) { return byId[String(tid)] && byId[String(tid)].name; }).filter(Boolean);
       var parts = ['Cast <b>' + spell.name + '</b>'];
-      if (targets.length) parts.push('on ' + targets.join(', '));
+      if (targetNames.length) parts.push('on ' + targetNames.join(', '));
       parts.push('(-' + spell.manaCost + ' mana' + (spell.affordable ? '' : ' <span class="dt-warn">N/A</span>') + ')');
-      if (spell.baseName === 'Cure' && spell.cure && targets.length) {
-        targets.forEach(function(tid) {
+      if (spell.baseName === 'Cure' && spell.cure && targetIds.length) {
+        targetIds.forEach(function(tid) {
           var t = byId[String(tid)]; if (!t) return;
           var res = cureCascade(spell.cure, t, act.caster.improvedHealing, act.caster.tier);
           parts.push('&rarr; ' + t.name + ' heals ' + res.major + '/' + res.moderate + '/' + res.minor + ', +' + res.sat + ' sat');
         });
-      } else if (spell.baseName === 'Ward' && spell.ward && targets.length) {
-        targets.forEach(function(tid) {
+      } else if (spell.baseName === 'Ward' && spell.ward && targetIds.length) {
+        targetIds.forEach(function(tid) {
           var t = byId[String(tid)]; if (!t) return;
           var newTemp = Math.max(t.tempHp, spell.ward.tempHp);
           parts.push('&rarr; ' + t.name + ' temp HP ' + t.tempHp + ' &rarr; ' + newTemp);
         });
-      } else if (spell.baseName === 'Stabilize' && targets.length) {
-        targets.forEach(function(tid) {
+      } else if (spell.baseName === 'Stabilize' && targetIds.length) {
+        targetIds.forEach(function(tid) {
           var t = byId[String(tid)]; if (!t) return;
           var bleed = (t.conditions.find(function(c) { return c.name === 'bleed'; }) || {}).value || 0;
           var reduce = Math.min(bleed, 3 * act.successes);
@@ -597,8 +607,8 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
       return parts.join(' ');
     }
     if (act.kind === 'item') {
-      var targets = act.targets.map(function(tid) { return byId[String(tid)] && byId[String(tid)].name; }).filter(Boolean);
-      return 'Use <b>' + act.item.name + '</b>' + (targets.length ? ' on ' + targets.join(', ') : '');
+      var itemTargetNames = act.targets.map(function(tid) { return byId[String(tid)] && byId[String(tid)].name; }).filter(Boolean);
+      return 'Use <b>' + act.item.name + '</b>' + (itemTargetNames.length ? ' on ' + itemTargetNames.join(', ') : '');
     }
     return 'Nothing';
   }
