@@ -879,6 +879,52 @@ post '/combat/clear_enemies' do
   redirect back
 end
 
+# DM-only loot page. Lists current combatants split into Allies / Non-Allies,
+# lets the DM toggle ally status, roll a previewable loot haul for the
+# non-allies, then commit it (which appends items to equipment.json with
+# owner_id 0, adds gold to campaign.json, and removes the looted creatures
+# from combat.json).
+get '/loot' do
+  redirect '/character/0' unless local_request?
+  @combat_data = Tools.load_json('combat.json')
+  @characters  = Tools.load_json('characters.json')
+  @campaign    = Tools.load_json('campaign.json')
+  @campaign    = {} unless @campaign.is_a?(Hash)
+  @pending     = LootRoller.load_pending
+  erb :loot
+end
+
+post '/loot/toggle_ally' do
+  redirect '/character/0' unless local_request?
+  combat_id = params[:combat_id].to_i
+  ally_val  = (params[:ally] == 'true')
+  combat_data = Tools.load_json('combat.json')
+  participant = (combat_data['participants'] || []).find { |p| p['id'] == combat_id }
+  if participant
+    participant['ally'] = ally_val
+    Tools.save_json('combat.json', combat_data)
+  end
+  redirect '/loot'
+end
+
+post '/loot/roll' do
+  redirect '/character/0' unless local_request?
+  LootRoller.new.roll_for_combat
+  redirect '/loot'
+end
+
+post '/loot/clear' do
+  redirect '/character/0' unless local_request?
+  LootRoller.clear_pending!
+  redirect '/loot'
+end
+
+post '/loot/confirm' do
+  redirect '/character/0' unless local_request?
+  LootRoller.commit!
+  redirect '/downtime'
+end
+
 post '/add_note' do
   characters = Tools.load_json('characters.json')
   notes = Tools.load_json('notes.json')

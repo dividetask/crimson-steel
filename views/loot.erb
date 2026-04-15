@@ -1,0 +1,185 @@
+<%
+  # Build the combatant list, joining each participant to their character so we
+  # can render race/class and decide ally status. Dead combatants are still
+  # eligible for looting -- they're the typical case.
+  rows = (@combat_data['participants'] || []).filter_map do |p|
+    char_id = p['char_id'] || p['id']
+    char = @characters.find { |c| c['id'] == char_id }
+    next nil unless char
+    klass = ((char['classes'] || [{}]).first || {})['class'].to_s
+    race = (char['race'] || []).join(' ')
+    {
+      participant: p,
+      character: char,
+      combat_id: p['id'],
+      name: char['name'],
+      race: race,
+      klass: klass,
+      ally: LootRoller.ally?(p, char),
+      explicitly_set: p.key?('ally')
+    }
+  end
+
+  allies = rows.select { |r| r[:ally] }
+  enemies = rows.reject { |r| r[:ally] }
+
+  # Pending preview, if any. Maps combat_id -> roll result for quick lookup
+  # when rendering enemy cards.
+  pending_rolls = {}
+  if @pending && @pending['rolls'].is_a?(Array)
+    @pending['rolls'].each { |r| pending_rolls[r['combat_id']] = r }
+  end
+
+  def render_item_row(item)
+    suffix = item['bonus'].to_i > 0 ? " +#{item['bonus']}" : ""
+    type_str = [item['type'], item['subtype']].compact.reject(&:empty?).join(' / ')
+    "<td>#{item['name']}#{suffix}</td><td>#{type_str}</td>"
+  end
+%>
+
+<div class="loot-layout">
+  <div class="loot-sidebar">
+    <h3>Combatants</h3>
+
+    <div class="loot-group">
+      <h4>Allies (<%= allies.length %>)</h4>
+      <% if allies.empty? %>
+        <p class="loot-empty">No allies in combat.</p>
+      <% else %>
+        <% allies.each do |row| %>
+          <div class="loot-row loot-row-ally">
+            <div class="loot-row-info">
+              <div class="loot-row-name"><%= row[:name] %></div>
+              <div class="loot-row-meta"><%= row[:race] %> <%= row[:klass] %></div>
+            </div>
+            <% if row[:character]['group'] != 'PC' || row[:explicitly_set] %>
+              <form method="post" action="/loot/toggle_ally" style="display:inline;">
+                <input type="hidden" name="combat_id" value="<%= row[:combat_id] %>">
+                <input type="hidden" name="ally" value="false">
+                <button type="submit" class="loot-toggle-btn loot-toggle-enemy" title="Mark as enemy">&#8594; Enemy</button>
+              </form>
+            <% else %>
+              <span class="loot-pc-badge" title="PC, default ally">PC</span>
+            <% end %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+
+    <div class="loot-group">
+      <h4>Non-Allies (<%= enemies.length %>) <span class="loot-subhead">will be looted</span></h4>
+      <% if enemies.empty? %>
+        <p class="loot-empty">No non-allies in combat.</p>
+      <% else %>
+        <% enemies.each do |row| %>
+          <div class="loot-row loot-row-enemy">
+            <div class="loot-row-info">
+              <div class="loot-row-name"><%= row[:name] %></div>
+              <div class="loot-row-meta"><%= row[:race] %> <%= row[:klass] %></div>
+            </div>
+            <form method="post" action="/loot/toggle_ally" style="display:inline;">
+              <input type="hidden" name="combat_id" value="<%= row[:combat_id] %>">
+              <input type="hidden" name="ally" value="true">
+              <button type="submit" class="loot-toggle-btn loot-toggle-ally" title="Mark as ally">&#8592; Ally</button>
+            </form>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="loot-main">
+    <div class="loot-header">
+      <h1>Loot</h1>
+      <div class="loot-current-gold">Party gold: <strong><%= @campaign['gold'].to_i %>g</strong></div>
+    </div>
+
+    <div class="loot-action-bar">
+      <form method="post" action="/loot/roll" style="display:inline;">
+        <button type="submit" class="loot-btn loot-btn-roll">
+          <%= @pending ? 'Re-roll Loot' : 'Roll Loot' %>
+        </button>
+      </form>
+      <% if @pending %>
+        <form method="post" action="/loot/clear" style="display:inline;">
+          <button type="submit" class="loot-btn loot-btn-clear">Discard Preview</button>
+        </form>
+        <form method="post" action="/loot/confirm" style="display:inline;"
+              onsubmit="return confirm('Confirm: remove all non-allies from combat and add this loot to the party pool?');">
+          <button type="submit" class="loot-btn loot-btn-confirm">Confirm &amp; Clear Enemies</button>
+        </form>
+      <% end %>
+    </div>
+
+    <% if enemies.empty? %>
+      <div class="loot-empty-state">
+        <p>No non-allies in combat to loot. Mark a combatant as a non-ally on the left, or add enemies via the Enemies page.</p>
+      </div>
+    <% elsif @pending.nil? %>
+      <div class="loot-empty-state">
+        <p>No roll yet. Click <strong>Roll Loot</strong> to preview the haul for the <%= enemies.length %> non-<%= enemies.length == 1 ? 'ally' : 'allies' %> above.</p>
+      </div>
+    <% else %>
+      <div class="loot-summary">
+        <strong>Preview total:</strong>
+        <%= @pending['totals']['items'].to_i %> item<%= @pending['totals']['items'].to_i == 1 ? '' : 's' %>
+        + <%= @pending['totals']['gold'].to_i %>g gold
+      </div>
+
+      <% enemies.each do |row| %>
+        <% roll = pending_rolls[row[:combat_id]] %>
+        <div class="loot-card">
+          <div class="loot-card-header">
+            <h3><%= row[:name] %></h3>
+            <span class="loot-card-meta">
+              <%= row[:race] %> <%= row[:klass] %>
+              <% if roll %>
+                &middot; budget rolled: <%= roll['budget_initial'].to_i %>g
+              <% end %>
+            </span>
+          </div>
+
+          <% if roll.nil? %>
+            <p class="loot-empty">Not in last roll.</p>
+          <% else %>
+            <% if (roll['pre_items'] || []).any? %>
+              <div class="loot-section">
+                <h4>Items carried (always included)</h4>
+                <table class="loot-table">
+                  <thead><tr><th>Name</th><th>Type</th></tr></thead>
+                  <tbody>
+                    <% roll['pre_items'].each do |item| %>
+                      <tr><%= render_item_row(item) %></tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            <% end %>
+
+            <% if (roll['rolled_items'] || []).any? %>
+              <div class="loot-section">
+                <h4>Rolled loot</h4>
+                <table class="loot-table">
+                  <thead><tr><th>Name</th><th>Type</th><th class="num">Base</th><th class="num">Counted as</th></tr></thead>
+                  <tbody>
+                    <% roll['rolled_items'].each do |item| %>
+                      <tr>
+                        <%= render_item_row(item) %>
+                        <td class="num"><%= item['base_value'].to_i %>g</td>
+                        <td class="num"><%= item['modified_value'].to_f.round(1) %>g</td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            <% else %>
+              <p class="loot-empty">No additional items rolled.</p>
+            <% end %>
+
+            <div class="loot-gold-line">Remaining as gold: <strong><%= roll['gold'].to_i %>g</strong></div>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

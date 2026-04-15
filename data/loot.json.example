@@ -1,0 +1,181 @@
+{
+  "value_ranges": {
+    "races": {
+      "human":  { "min": 10, "max": 100 },
+      "orc":    { "min": 5,  "max": 80 },
+      "dwarf":  { "min": 15, "max": 120 },
+      "elf":    { "min": 20, "max": 150 },
+      "gnome":  { "min": 15, "max": 120 },
+      "satyr":  { "min": 5,  "max": 40 },
+      "troll":  { "min": 0,  "max": 20 },
+      "undead": { "min": 0,  "max": 10 },
+      "animal": { "min": 0,  "max": 2 },
+      "_default": { "min": 0, "max": 10 }
+    },
+    "classes": {
+      "fighter":          { "min": 20, "max": 150 },
+      "barbarian":        { "min": 10, "max": 80 },
+      "ranger":           { "min": 15, "max": 100 },
+      "rogue":            { "min": 20, "max": 120 },
+      "cleric":           { "min": 30, "max": 200 },
+      "druid":            { "min": 10, "max": 80 },
+      "bard":             { "min": 20, "max": 120 },
+      "arcane_trickster": { "min": 40, "max": 250 },
+      "undead":           { "min": 0,  "max": 10 },
+      "giant":            { "min": 0,  "max": 30 },
+      "animal":           { "min": 0,  "max": 0 },
+      "_default":         { "min": 0,  "max": 20 }
+    }
+  },
+  "items": [
+    {
+      "name": "Falchion",
+      "type": "weapon",
+      "subtype": "falcion",
+      "bonus": 0,
+      "base_value": 20,
+      "likelihood": { "orc": 5, "fighter": 2, "barbarian": 1 },
+      "value_modifier": { "orc": 0.5 }
+    },
+    {
+      "name": "Scimitar",
+      "type": "weapon",
+      "subtype": "scimitar",
+      "bonus": 0,
+      "base_value": 15,
+      "likelihood": { "human": 2, "rogue": 2, "ranger": 2, "undead": 1 },
+      "value_modifier": {}
+    },
+    {
+      "name": "Dagger",
+      "type": "weapon",
+      "subtype": "dagger",
+      "bonus": 0,
+      "base_value": 5,
+      "likelihood": { "rogue": 5, "arcane_trickster": 4, "bard": 2, "human": 1 },
+      "value_modifier": {}
+    },
+    {
+      "name": "Battleaxe",
+      "type": "weapon",
+      "subtype": "battleaxe",
+      "bonus": 0,
+      "base_value": 18,
+      "likelihood": { "dwarf": 5, "fighter": 2, "barbarian": 2 },
+      "value_modifier": { "dwarf": 0.5 }
+    },
+    {
+      "name": "Longbow",
+      "type": "weapon",
+      "subtype": "longbow",
+      "bonus": 0,
+      "base_value": 25,
+      "properties": { "details": ["medium", "piercing", "ranged"] },
+      "likelihood": { "elf": 4, "ranger": 5, "rogue": 1, "fighter": 1 },
+      "value_modifier": { "barbarian": 0.5, "animal": 0 }
+    },
+    {
+      "name": "Chain Shirt",
+      "type": "armor",
+      "subtype": "light",
+      "bonus": 0,
+      "base_value": 50,
+      "likelihood": { "fighter": 3, "rogue": 2, "ranger": 2, "orc": 2, "human": 1 },
+      "value_modifier": {}
+    },
+    {
+      "name": "Leather Armor",
+      "type": "armor",
+      "subtype": "light",
+      "bonus": 0,
+      "base_value": 20,
+      "likelihood": { "rogue": 3, "ranger": 3, "bard": 2, "druid": 2, "human": 1 },
+      "value_modifier": {}
+    },
+    {
+      "name": "Breastplate",
+      "type": "armor",
+      "subtype": "medium",
+      "bonus": 0,
+      "base_value": 75,
+      "likelihood": { "fighter": 2, "cleric": 3, "orc": 2 },
+      "value_modifier": {}
+    },
+    {
+      "name": "Plate",
+      "type": "armor",
+      "subtype": "heavy",
+      "bonus": 0,
+      "base_value": 150,
+      "likelihood": { "fighter": 2, "cleric": 1 },
+      "value_modifier": { "barbarian": 0.5, "rogue": 0.25, "animal": 0 }
+    },
+    {
+      "name": "Light Shield",
+      "type": "shield",
+      "subtype": "light",
+      "bonus": 0,
+      "base_value": 15,
+      "likelihood": { "fighter": 2, "cleric": 2, "ranger": 1 },
+      "value_modifier": {}
+    },
+    {
+      "name": "Healing Potion (Lesser)",
+      "type": "item",
+      "subtype": "potion",
+      "bonus": 0,
+      "base_value": 50,
+      "properties": { "consumable": true, "spell": "cure_lesser_wounds" },
+      "likelihood": { "barbarian": 4, "fighter": 2, "cleric": 3, "ranger": 2 },
+      "value_modifier": { "animal": 0 }
+    },
+    {
+      "name": "Potion of Rage",
+      "type": "item",
+      "subtype": "potion",
+      "bonus": 0,
+      "base_value": 100,
+      "properties": { "consumable": true },
+      "likelihood": { "barbarian": 5, "fighter": 2, "orc": 2 },
+      "value_modifier": { "animal": 0 }
+    },
+    {
+      "name": "Scroll of Magic Missile",
+      "type": "item",
+      "subtype": "scroll",
+      "bonus": 0,
+      "base_value": 75,
+      "properties": { "consumable": true, "spell": "magic_missile" },
+      "likelihood": { "arcane_trickster": 5, "bard": 3, "cleric": 1 },
+      "value_modifier": { "barbarian": 0.25, "fighter": 0.5, "animal": 0 }
+    },
+    {
+      "name": "Scroll of Cure Lesser Wounds",
+      "type": "item",
+      "subtype": "scroll",
+      "bonus": 0,
+      "base_value": 40,
+      "properties": { "consumable": true, "spell": "cure_lesser_wounds" },
+      "likelihood": { "cleric": 5, "druid": 3, "bard": 2 },
+      "value_modifier": { "barbarian": 0.25, "animal": 0 }
+    },
+    {
+      "name": "Spellbook",
+      "type": "item",
+      "subtype": "book",
+      "bonus": 0,
+      "base_value": 15,
+      "likelihood": { "arcane_trickster": 5, "bard": 3, "elf": 2 },
+      "value_modifier": { "barbarian": 0.1, "fighter": 0.25, "animal": 0 }
+    },
+    {
+      "name": "Pouch of Gems",
+      "type": "item",
+      "subtype": "treasure",
+      "bonus": 0,
+      "base_value": 100,
+      "likelihood": { "human": 1, "dwarf": 2, "elf": 1, "rogue": 2 },
+      "value_modifier": {}
+    }
+  ]
+}

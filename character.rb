@@ -1,7 +1,7 @@
 require_relative 'tools'
 
 class CombatTurn
-  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation, :temporary_hit_points, :conditions, :condition_meta, :ability_damage
+  attr_reader :rules, :character, :combat_id, :char_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation, :temporary_hit_points, :conditions, :condition_meta, :ability_damage, :ally
 
   def initialize(combat_turn, character)
     @rules = Tools.load_json('rules.json')
@@ -11,6 +11,9 @@ class CombatTurn
     @minor_damage, @moderate_damage, @major_damage = combat_turn['minor_damage'], combat_turn['moderate_damage'], combat_turn['major_damage']
     @saturation = combat_turn['saturation']
     @temporary_hit_points = combat_turn['temporary_hit_points'].to_i
+    # Optional ally flag set by the DM on the loot page. nil = use group default
+    # (PC -> ally, everything else -> non-ally). True/false explicitly overrides.
+    @ally = combat_turn.key?('ally') ? combat_turn['ally'] : nil
     # Conditions: insertion order preserved from stored JSON (attack handler
     # appends new keys; saves that decay a condition to 0 delete the key so
     # it re-enters at the end if re-applied later).
@@ -63,12 +66,14 @@ class CombatTurn
   def init_to_a; @initiative.chars.map { |r| r == 'X' ? 10 : r.to_i }.sort.reverse; end
 
   def to_json
-    return {'id' => @combat_id, 'char_id' => @char_id,
+    out = {'id' => @combat_id, 'char_id' => @char_id,
       'initiative' => @initiative, 'mana' => @mana, 'combat_pool' => @combat_pool,
       'minor_damage' => @minor_damage, 'moderate_damage' => @moderate_damage, 'major_damage' => @major_damage,
       'saturation' => @saturation, 'temporary_hit_points' => @temporary_hit_points,
       'conditions' => @conditions, 'condition_meta' => @condition_meta,
       'ability_damage' => @ability_damage}
+    out['ally'] = @ally unless @ally.nil?
+    out
   end
 
   def hp; return @character.hp_max - @minor_damage - @moderate_damage - @major_damage + @temporary_hit_points.to_i; end
@@ -1243,5 +1248,223 @@ class CharacterSheet
 
     raise "Unsafe formula: #{result}" unless result.match?(/\A[\d\s+\-*\/().%=?:]+\z/) && !result.match?(/(?<!=)=(?!=)/)
     eval(result)
+  end
+end
+
+# LootRoller drives the DM-only /loot page. Reads data/loot.json (likelihood
+# weights and value ranges per race/class) plus the current combat + character
+# roster, then produces a previewable haul for every non-ally combatant.
+# Pre-existing creature items are always included as free bonus loot and do
+# NOT count against the rolled budget; the full budget is spent rolling
+# additional items, with leftover value becoming gold.
+#
+# Workflow: roll_for_combat -> writes data/loot_pending.json (preview)
+#           commit!         -> applies pending to equipment.json + campaign.json
+#                              + combat.json, then removes the pending file.
+class LootRoller
+  PENDING_FILE = 'loot_pending.json'.freeze
+  PARTY_OWNER_ID = 0  # Reserved owner_id meaning "unclaimed party loot pool".
+  ROLL_ITERATION_CAP = 20
+
+  attr_reader :loot_table
+
+  def initialize
+    @loot_table = Tools.load_json('loot.json')
+    @loot_table = {} unless @loot_table.is_a?(Hash)
+    @value_ranges = @loot_table['value_ranges'] || {}
+    @items = @loot_table['items'] || []
+  end
+
+  # Resolve ally status for a combat participant. Explicit `ally` flag wins;
+  # otherwise default by group (PC -> ally, anything else -> non-ally).
+  def self.ally?(participant, character)
+    return participant['ally'] if participant.is_a?(Hash) && participant.key?('ally')
+    character.is_a?(Hash) && character['group'] == 'PC'
+  end
+
+  # Roll a fresh preview for every non-ally in combat. Persists the result to
+  # data/loot_pending.json so /loot can render it across requests and so
+  # /loot/confirm commits exactly the previewed haul (no fresh re-roll).
+  def roll_for_combat
+    combat_data = Tools.load_json('combat.json')
+    characters = Tools.load_json('characters.json')
+    rolls = []
+    (combat_data['participants'] || []).each do |p|
+      char = characters.find { |c| c['id'] == (p['char_id'] || p['id']) }
+      next unless char
+      next if LootRoller.ally?(p, char)
+      rolls << roll_for_creature(p, char)
+    end
+    payload = {
+      'rolls' => rolls,
+      'totals' => {
+        'items' => rolls.sum { |r| r['pre_items'].length + r['rolled_items'].length },
+        'gold'  => rolls.sum { |r| r['gold'].to_i }
+      }
+    }
+    Tools.save_json(PENDING_FILE, payload)
+    payload
+  end
+
+  # Returns the previewed roll, or nil if no preview is staged.
+  def self.load_pending
+    path = File.join(File.dirname(__FILE__), 'data', PENDING_FILE)
+    return nil unless File.exist?(path)
+    data = JSON.parse(File.read(path))
+    data.is_a?(Hash) ? data : nil
+  end
+
+  def self.clear_pending!
+    path = File.join(File.dirname(__FILE__), 'data', PENDING_FILE)
+    File.delete(path) if File.exist?(path)
+  end
+
+  # Apply a previewed roll to disk:
+  #   - append items (pre-existing + rolled) to equipment.json with owner_id 0
+  #   - add total gold to campaign.json
+  #   - remove the looted (non-ally) participants from combat.json
+  # Then delete the pending file.
+  def self.commit!
+    pending = load_pending
+    return false unless pending && pending['rolls'].is_a?(Array)
+    rolls = pending['rolls']
+
+    equipment = Tools.load_json('equipment.json')
+    equipment = [] unless equipment.is_a?(Array)
+    rolls.each do |r|
+      ((r['pre_items'] || []) + (r['rolled_items'] || [])).each do |it|
+        equipment << equipment_entry(it)
+      end
+    end
+    Tools.save_json('equipment.json', equipment)
+
+    total_gold = rolls.sum { |r| r['gold'].to_i }
+    if total_gold != 0
+      campaign = Tools.load_json('campaign.json')
+      campaign = {} unless campaign.is_a?(Hash)
+      campaign['gold'] = campaign['gold'].to_i + total_gold
+      Tools.save_json('campaign.json', campaign)
+    end
+
+    looted_ids = rolls.map { |r| r['combat_id'] }
+    combat_data = Tools.load_json('combat.json')
+    if combat_data.is_a?(Hash) && combat_data['participants'].is_a?(Array)
+      combat_data['participants'].reject! { |p| looted_ids.include?(p['id']) }
+      Tools.save_json('combat.json', combat_data)
+    end
+
+    clear_pending!
+    true
+  end
+
+  def self.equipment_entry(item)
+    entry = {
+      'owner_id'   => PARTY_OWNER_ID,
+      'name'       => item['name'],
+      'type'       => item['type'],
+      'subtype'    => item['subtype'],
+      'bonus'      => item['bonus'].to_i,
+      'properties' => item['properties'] || {},
+      'equipped'   => false
+    }
+    entry['description'] = item['description'] if item['description']
+    entry
+  end
+
+  private
+
+  def roll_for_creature(participant, character)
+    race  = (character['race'] || []).first.to_s
+    klass = ((character['classes'] || [{}]).first || {})['class'].to_s
+
+    race_range  = @value_ranges.dig('races', race)   || @value_ranges.dig('races', '_default')   || {}
+    klass_range = @value_ranges.dig('classes', klass) || @value_ranges.dig('classes', '_default') || {}
+    budget_initial = rand_in_range(race_range) + rand_in_range(klass_range)
+    budget = budget_initial.to_f
+
+    rolled = []
+    ROLL_ITERATION_CAP.times do
+      affordable = @items.select { |it| modified_value(it, race, klass) <= budget }
+      break if affordable.empty?
+      pick = weighted_pick(affordable, race, klass)
+      break unless pick
+      mv = modified_value(pick, race, klass)
+      rolled << loot_item_record(pick, mv)
+      budget -= mv
+    end
+
+    pre = (character['items'] || []).map { |it| pre_existing_record(it) }
+    {
+      'combat_id'      => participant['id'],
+      'char_id'        => character['id'],
+      'name'           => character['name'],
+      'race'           => race,
+      'klass'          => klass,
+      'budget_initial' => budget_initial,
+      'pre_items'      => pre,
+      'rolled_items'   => rolled,
+      'gold'           => budget.floor
+    }
+  end
+
+  def rand_in_range(range)
+    return 0 unless range.is_a?(Hash)
+    min = range['min'].to_i
+    max = range['max'].to_i
+    return min if max < min
+    rand(min..max)
+  end
+
+  # When both race and class define a modifier we take the SMALLER one --
+  # this is more generous to the creature's loot pile (items count for less
+  # of the budget, so more items fit before gold takes over).
+  def modified_value(item, race, klass)
+    base = item['base_value'].to_f
+    mods = item['value_modifier'] || {}
+    candidates = [mods[race], mods[klass]].compact.map(&:to_f)
+    multiplier = candidates.empty? ? 1.0 : candidates.min
+    (base * multiplier).round(2)
+  end
+
+  def weighted_pick(items, race, klass)
+    weights = items.map { |it| weight_for(it, race, klass) }
+    total = weights.sum.to_f
+    return nil if total <= 0
+    pick = rand * total
+    cumulative = 0.0
+    items.each_with_index do |it, i|
+      cumulative += weights[i]
+      return it if pick < cumulative
+    end
+    items.last
+  end
+
+  def weight_for(item, race, klass)
+    likes = item['likelihood'] || {}
+    1 + likes[race].to_i + likes[klass].to_i
+  end
+
+  def loot_item_record(item, mv)
+    {
+      'name'           => item['name'],
+      'type'           => item['type'],
+      'subtype'        => item['subtype'],
+      'bonus'          => item['bonus'].to_i,
+      'properties'     => item['properties'] || {},
+      'base_value'     => item['base_value'].to_i,
+      'modified_value' => mv,
+      'rolled'         => true
+    }
+  end
+
+  def pre_existing_record(item)
+    {
+      'name'       => item['name'],
+      'type'       => item['type'],
+      'subtype'    => item['subtype'],
+      'bonus'      => item['bonus'].to_i,
+      'properties' => item['properties'] || {},
+      'rolled'     => false
+    }
   end
 end

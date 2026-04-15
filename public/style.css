@@ -542,3 +542,51 @@ table th {
     display: none;
   }
 }
+
+/* ---------- Loot page ---------- */
+.loot-layout { display: grid; grid-template-columns: 260px 1fr; gap: 15px; }
+.loot-sidebar { border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: #f9f9f9; position: sticky; top: 10px; align-self: start; max-height: 90vh; overflow-y: auto; }
+.loot-sidebar h3 { margin: 0 0 8px 0; font-size: 14px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+.loot-group { margin-top: 10px; }
+.loot-group h4 { margin: 4px 0; font-size: 12px; color: #555; }
+.loot-subhead { font-weight: normal; color: #888; font-size: 10px; }
+.loot-empty { font-size: 11px; color: #888; margin: 4px 0; font-style: italic; }
+.loot-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; margin: 2px 0; border-radius: 3px; font-size: 11px; }
+.loot-row-ally { background: #e3f2fd; }
+.loot-row-enemy { background: #ffebee; }
+.loot-row-info { flex: 1; min-width: 0; }
+.loot-row-name { font-weight: bold; color: #333; }
+.loot-row-meta { font-size: 10px; color: #666; text-transform: capitalize; }
+.loot-toggle-btn { font-size: 10px; padding: 2px 6px; border: 1px solid #999; border-radius: 3px; cursor: pointer; background: #fff; flex-shrink: 0; margin-left: 4px; white-space: nowrap; }
+.loot-toggle-ally { background: #e3f2fd; color: #1565c0; border-color: #90caf9; }
+.loot-toggle-ally:hover { background: #bbdefb; }
+.loot-toggle-enemy { background: #ffebee; color: #c62828; border-color: #ef9a9a; }
+.loot-toggle-enemy:hover { background: #ffcdd2; }
+.loot-pc-badge { font-size: 10px; padding: 2px 6px; background: #1976d2; color: #fff; border-radius: 3px; flex-shrink: 0; }
+
+.loot-main { min-width: 0; }
+.loot-header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-bottom: 10px; }
+.loot-header h1 { margin: 0; }
+.loot-current-gold { color: #555; font-size: 13px; }
+.loot-action-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.loot-btn { padding: 6px 14px; border-radius: 4px; border: 1px solid #999; cursor: pointer; font-size: 13px; }
+.loot-btn-roll { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+.loot-btn-roll:hover { background: #c8e6c9; }
+.loot-btn-clear { background: #f5f5f5; color: #555; }
+.loot-btn-clear:hover { background: #e0e0e0; }
+.loot-btn-confirm { background: #fff3e0; color: #e65100; border-color: #ffb74d; font-weight: bold; }
+.loot-btn-confirm:hover { background: #ffe0b2; }
+.loot-empty-state { padding: 24px; text-align: center; color: #888; background: #fafafa; border: 1px dashed #ddd; border-radius: 4px; }
+.loot-summary { background: #fffde7; border: 1px solid #fff59d; padding: 8px 12px; margin-bottom: 12px; border-radius: 4px; font-size: 13px; }
+.loot-card { border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 14px; margin-bottom: 12px; background: #fff; }
+.loot-card-header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #f0f0f0; padding-bottom: 4px; margin-bottom: 8px; }
+.loot-card-header h3 { margin: 0; font-size: 16px; }
+.loot-card-meta { font-size: 11px; color: #666; text-transform: capitalize; }
+.loot-section { margin: 8px 0; }
+.loot-section h4 { margin: 6px 0 4px 0; font-size: 12px; color: #444; }
+.loot-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.loot-table th, .loot-table td { padding: 3px 6px; border-bottom: 1px solid #f0f0f0; text-align: left; }
+.loot-table th { background: #f5f5f5; font-weight: normal; color: #666; }
+.loot-table th.num, .loot-table td.num { text-align: right; }
+.loot-gold-line { margin-top: 8px; padding-top: 6px; border-top: 1px dashed #ddd; font-size: 13px; color: #555; }
+.loot-gold-line strong { color: #f57f17; }
