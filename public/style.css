@@ -245,6 +245,11 @@ table th {
 .item-type-wand { background: #2e7d32; }
 .item-type-ammunition { background: #795548; }
 .tier-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; background: #666; color: white; margin-left: 5px; }
+.conditions-cell { white-space: normal; max-width: 180px; }
+.condition-badge { display: inline-block; padding: 2px 6px; margin: 1px 2px; border-radius: 3px; font-size: 11px; font-weight: bold; color: white; background: #777; }
+.condition-bleed { background: #c62828; }
+.condition-ghoul_paralysis { background: #6a1b9a; }
+.condition-paralyzed { background: #4527a0; }
 .store-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-bottom: 15px; }
 .store-card { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
 .card-header { margin-bottom: 12px; }

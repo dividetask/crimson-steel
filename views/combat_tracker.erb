@@ -15,6 +15,7 @@
         <th>Mana</th>
         <th>Dice</th>
         <th>Saturation</th>
+        <th>Conditions</th>
         <th></th>
       </tr>
     </thead>
@@ -40,6 +41,16 @@
           <td><input type="number" name="mana" value="<%= combat_turn.mana %>" style="width: 45px;">/<%= combat_turn.character.mana_max %></td>
           <td><input type="number" name="combat_pool" value="<%= combat_turn.combat_pool %>" style="width: 45px;">/<%= combat_turn.character.combat_pool %></td>
           <td><input type="number" name="saturation" value="<%= combat_turn.saturation %>" style="width: 45px;">/<%= combat_turn.character.cha %></td>
+          <td class="conditions-cell">
+            <% combat_turn.active_conditions.each do |cname, cval| %>
+              <span class="condition-badge condition-<%= cname %>"><%= cname.tr('_', ' ').capitalize %>: <%= cval %></span>
+            <% end %>
+            <% (@combat.active_effects || []).each do |effect| %>
+              <% if effect['spell_name'] == 'Paralyzed' && (effect['target_combat_ids'] || []).include?(combat_turn.combat_id) %>
+                <span class="condition-badge condition-paralyzed">Paralyzed (<%= effect['rounds_remaining'] %>)</span>
+              <% end %>
+            <% end %>
+          </td>
           <td><button type="submit">Update</button></form></td>
         </tr>
       <% end %>
@@ -59,8 +70,10 @@
     <div class="active-effects" style="margin-top: 15px;">
       <h3 style="margin-bottom: 8px;">Active Effects</h3>
       <% @combat.active_effects.each_with_index do |effect, idx| %>
+        <% duration_text = effect['rounds_remaining'] ? "#{effect['rounds_remaining']} turn#{'s' unless effect['rounds_remaining'].to_i == 1} remaining" : "round #{effect['round_cast']}" %>
+        <% target_text = (effect['target_names'] || []).any? ? " on #{(effect['target_names'] || []).join(', ')}" : '' %>
         <div class="effect-row" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; padding: 4px 8px; background: #f0f4ff; border-left: 3px solid #1976d2; border-radius: 2px; font-size: 13px;">
-          <span><strong><%= effect['spell_name'] %></strong> (<%= effect['caster_name'] %>, round <%= effect['round_cast'] %>)</span>
+          <span><strong><%= effect['spell_name'] %></strong> (<%= effect['caster_name'] %><%= target_text %>, <%= duration_text %>)</span>
           <form method="post" action="/combat/action" style="margin:0;">
             <input type="hidden" name="combat_action" value="dismiss_effect">
             <input type="hidden" name="effect_index" value="<%= idx %>">
@@ -79,6 +92,7 @@
 
     <div class="turn-panel">
       <div class="action-buttons" id="action-buttons">
+        <button class="action-btn" onclick="selectAction('start_of_turn')">Start of Turn</button>
         <button class="action-btn" onclick="selectAction('attack')">Attack</button>
         <button class="action-btn" onclick="selectAction('move')">Move</button>
         <button class="action-btn" onclick="selectAction('cast')">Cast</button>
@@ -180,13 +194,48 @@
     var activeEffects = <%= JSON.generate(@combat.active_effects) %>;
     var diceRules = <%= JSON.generate(Tools.load_json('rules.json')['dice']) %>;
 
+    // Start-of-turn info for the current combatant: each active condition
+    // paired with the save dice/TN the DM should roll against. TN starts at 9
+    // and is reduced by the character's CON save proficiency bonus; specific
+    // conditions may add more (ghoul paralysis adds the highest ghoul tier
+    // that has hit the target). TN is clamped to the rules' [min, max] range.
+    var startOfTurnConditions = <%= if current
+      dice_rules = Tools.load_json('rules.json')['dice']
+      tn_min = dice_rules['tn_minimum'].to_i
+      tn_max = dice_rules['tn_maximum'].to_i
+      base_dice = current.character.save_dice(:con).to_i
+      base_tn = 9 - current.character.save_bonus(:con).to_i
+      max_ghoul_tier = current.condition_meta['max_ghoul_tier'].to_i
+      JSON.generate(
+        current.active_conditions.map do |cname, value|
+          tn_mod = cname == 'ghoul_paralysis' ? max_ghoul_tier : 0
+          raw_tn = base_tn + tn_mod
+          clamped_tn = [[raw_tn, tn_min].max, tn_max].min
+          {
+            name: cname,
+            label: cname.tr('_', ' ').split.map(&:capitalize).join(' '),
+            value: value.to_i,
+            dice: base_dice,
+            tn: clamped_tn,
+            tn_mod: tn_mod,
+            tn_mod_label: cname == 'ghoul_paralysis' && tn_mod > 0 ? ('ghoul tier +' + tn_mod.to_s) : ''
+          }
+        end
+      )
+    else
+      '[]'
+    end %>;
+
     // --- Client-side attack state ---
     var attackState = null;
+    // --- Client-side start-of-turn state ---
+    var startOfTurnState = null;
 
     function selectAction(action) {
       var context = document.getElementById('action-context');
       context.innerHTML = '';
       attackState = null;
+      startOfTurnState = null;
 
       if (action === 'move') {
         if (diceRemaining < 4) {
@@ -204,6 +253,11 @@
         return;
       }
 
+      if (action === 'start_of_turn') {
+        showStartOfTurn();
+        return;
+      }
+
       if (action === 'attack') {
         showTargetSelection();
       }
@@ -215,6 +269,122 @@
       if (action === 'item') {
         showItemSelection();
       }
+    }
+
+    // --- START OF TURN: show every active-condition save at once, then
+    // preview consequences before confirm. Two screens: entry -> preview.
+    function showStartOfTurn() {
+      startOfTurnState = { successes: {} };
+      if (!startOfTurnConditions || startOfTurnConditions.length === 0) {
+        addStep('<strong>Start of Turn</strong>: no active conditions for ' + currentCharName +
+          '<br><button class="action-btn" onclick="confirmStartOfTurn()" style="margin-top:8px;">Confirm</button>');
+        return;
+      }
+      var rows = startOfTurnConditions.map(function(cond, i) {
+        var tnSuffix = cond.tn_mod_label ? ' <span class="math-detail">(' + cond.tn_mod_label + ')</span>' : '';
+        var inputId = 'save-successes-' + i;
+        var rollsId = 'save-rolls-' + i;
+        return '<div style="margin:6px 0;padding:4px 6px;border-left:3px solid #ddd;">' +
+          '<strong>Save vs ' + cond.label + '</strong> <span class="math-detail">(severity ' + cond.value + ')</span>' +
+          '<br><span class="math-detail">Roll ' + cond.dice + ' dice at TN ' + cond.tn + '</span>' + tnSuffix +
+          '<br><label>Successes: <input type="number" id="' + inputId + '" min="0" max="' + cond.dice + '" value="0" style="width:50px;"></label>' +
+          ' <button class="action-btn" onclick="rollSaveDice(' + i + ', \'' + inputId + '\', \'' + rollsId + '\')">Roll</button>' +
+          '<div id="' + rollsId + '" class="math-detail" style="margin-top:4px;"></div>' +
+          '</div>';
+      }).join('');
+      addStep('<strong>Start of Turn</strong>: ' + currentCharName + ' has ' +
+        startOfTurnConditions.length + ' condition' + (startOfTurnConditions.length === 1 ? '' : 's') + ' to save against.' +
+        rows +
+        '<button class="action-btn" onclick="showStartOfTurnPreview()" style="margin-top:6px;">Next</button>');
+    }
+
+    // Collect successes, show consequences, then offer a single Confirm.
+    // Replaces the action-context so repeated clicks don't duplicate.
+    function showStartOfTurnPreview() {
+      for (var i = 0; i < startOfTurnConditions.length; i++) {
+        var cond = startOfTurnConditions[i];
+        var val = parseInt(document.getElementById('save-successes-' + i).value, 10);
+        if (isNaN(val) || val < 0) { alert('Enter a non-negative number of successes for ' + cond.label + '.'); return; }
+        startOfTurnState.successes[cond.name] = val;
+      }
+      var summary = startOfTurnConditions.map(function(c) {
+        return '<li>' + summarizeConditionOutcome(c, startOfTurnState.successes[c.name] || 0) + '</li>';
+      }).join('');
+      var context = document.getElementById('action-context');
+      context.innerHTML = '';
+      addStep('<strong>All saves recorded.</strong>' +
+        '<br><span class="math-detail">Consequences:</span><ul style="margin:4px 0 8px 18px;">' + summary + '</ul>' +
+        '<button class="action-btn" onclick="confirmStartOfTurn()">Confirm Start of Turn</button>' +
+        ' <button class="action-btn" onclick="showStartOfTurn()" style="background:#eee;color:#333;">Back</button>');
+    }
+
+    // Roll `cond.dice` d10s, count results >= cond.tn, fill the successes
+    // input, and render the raw dice. Colors: red=1 (fumble), blue=10 (crit),
+    // green=other success, grey=other failure. Re-clickable so the DM can
+    // fudge by re-rolling until a desired outcome.
+    function rollSaveDice(i, inputId, rollsId) {
+      var cond = startOfTurnConditions[i];
+      var rolls = [];
+      var successes = 0;
+      for (var r = 0; r < cond.dice; r++) {
+        var d = Math.floor(Math.random() * 10) + 1;
+        rolls.push(d);
+        if (d >= cond.tn) successes++;
+      }
+      document.getElementById(inputId).value = successes;
+      var colored = rolls.map(function(d) {
+        var bg = null;
+        if (d === 1) bg = '#e57373';             // red   (fumble)
+        else if (d === 10) bg = '#64b5f6';       // blue  (crit)
+        else if (d >= cond.tn) bg = '#81c784';   // green (success)
+        if (bg) {
+          return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
+        }
+        return '<span style="color:#777;">' + d + '</span>';
+      }).join(', ');
+      document.getElementById(rollsId).innerHTML = 'Rolled: [' + colored + '] &rarr; ' + successes + ' success' + (successes === 1 ? '' : 'es');
+    }
+
+    // Preview of what a save with `successes` will do to `cond` on Confirm.
+    // Mirrors the server-side resolution in app.rb start_of_turn so the DM
+    // can see damage/paralysis/decay before submitting.
+    function summarizeConditionOutcome(cond, successes) {
+      var parts = [];
+      if (cond.name === 'bleed') {
+        var raw = 1 + Math.floor(cond.value / 10);
+        var dealt = Math.max(0, raw - successes);
+        if (dealt > 0) {
+          parts.push('<strong>Bleed:</strong> ' + dealt + ' minor damage (' + raw + ' - ' + successes + ' successes, temp HP absorbs first)');
+        } else {
+          parts.push('<strong>Bleed:</strong> no damage (' + raw + ' blocked by ' + successes + ' successes)');
+        }
+      } else if (cond.name === 'ghoul_paralysis') {
+        var rawRounds = 1 + Math.floor(cond.value / 10);
+        var rounds = Math.max(0, rawRounds - successes);
+        if (rounds > 0) {
+          parts.push('<strong>Ghoul Paralysis:</strong> <span style="color:#6a1b9a;font-weight:bold;">PARALYZED for ' + rounds + ' turn' + (rounds === 1 ? '' : 's') + '</span> (stacks with existing)');
+        } else {
+          parts.push('<strong>Ghoul Paralysis:</strong> no paralysis (' + rawRounds + ' blocked by ' + successes + ' successes)');
+        }
+      } else {
+        parts.push('<strong>' + cond.label + ':</strong> save recorded');
+      }
+      var decay = 1 + successes;
+      var newValue = Math.max(0, cond.value - decay);
+      if (newValue <= 0) {
+        parts.push(cond.label + ' ends (' + cond.value + ' &rarr; 0)');
+      } else {
+        parts.push(cond.label + ' decays ' + cond.value + ' &rarr; ' + newValue);
+      }
+      return parts.join('; ');
+    }
+
+    function confirmStartOfTurn() {
+      var fields = { id: currentCharId, combat_action: 'start_of_turn' };
+      for (var cname in startOfTurnState.successes) {
+        fields['successes_' + cname] = startOfTurnState.successes[cname];
+      }
+      submitAction(fields);
     }
 
     // --- ATTACK STEP 1: Select target ---
@@ -1251,6 +1421,7 @@
           combat_action: 'attack',
           attacker_combat_id: attackState.attackerCombatId,
           target_combat_id: attackState.targetCombatId,
+          weapon_item_id: attackState.weapon.item_id,
           attacker_dice_spent: attackerDiceSpent,
           defense_dice: defenseDice,
           target_mana_cost: manaCost,
@@ -1272,6 +1443,7 @@
         combat_action: 'attack',
         attacker_combat_id: attackState.attackerCombatId,
         target_combat_id: attackState.targetCombatId,
+        weapon_item_id: attackState.weapon.item_id,
         attacker_dice_spent: attackerDiceSpent,
         defense_dice: defenseDice,
         target_mana_cost: manaCost,
