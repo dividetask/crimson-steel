@@ -39,29 +39,30 @@
     <h2>Healing Actions</h2>
 
     <div class="dt-action-grid">
-      <% cure_options = @cure_casters.flat_map { |pc| downtime_known_variants(pc, @compendium, 'Cure').map { |v| [pc, v] } } %>
       <div class="dt-action">
         <h3>Cast Cure</h3>
-        <% if cure_options.empty? %>
+        <% if @dt_data[:cureSpells].empty? %>
           <p class="dt-note">No party member knows any Cure spell.</p>
         <% else %>
-          <form method="post" action="/downtime/cast">
-            <label>Caster &amp; spell
-              <select name="caster_spell" required>
-                <option value=""></option>
-                <% cure_options.each do |pc, variant| %>
-                  <option value="<%= pc.id %>|<%= h variant %>"><%= h pc.name %> - <%= h variant %></option>
+          <form method="post" action="/downtime/cast" id="cure-form">
+            <label>Spell
+              <select name="spell_name" id="cure-spell" required>
+                <% @dt_data[:cureSpells].each_with_index do |variant, i| %>
+                  <option value="<%= h variant %>" <%= 'selected' if i == 0 %>><%= h variant %></option>
                 <% end %>
               </select>
+            </label>
+            <label>Caster
+              <select name="caster_id" id="cure-caster" required></select>
             </label>
             <label>Target
-              <select name="target_id" required>
-                <option value=""></option>
-                <% @pcs.each do |pc| %>
-                  <option value="<%= pc.id %>"><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
+              <select name="target_id" id="cure-target" required>
+                <% @pcs.each_with_index do |pc, i| %>
+                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
                 <% end %>
               </select>
             </label>
+            <div class="dt-preview" id="cure-preview">&nbsp;</div>
             <button type="submit">Cast Cure</button>
           </form>
         <% end %>
@@ -72,30 +73,27 @@
         <% if @surgery_casters.empty? %>
           <p class="dt-note">No party member knows Standard Surgery.</p>
         <% else %>
-          <form method="post" action="/downtime/cast">
+          <form method="post" action="/downtime/cast" id="surgery-form">
             <input type="hidden" name="spell_name" value="Standard Surgery">
             <label>Caster
-              <select name="caster_id" id="surgery-caster" required onchange="updateSurgeryDice()">
-                <option value=""></option>
-                <% @surgery_casters.each do |pc| %>
-                  <option value="<%= pc.id %>"
-                    data-dice="<%= pc.skill_dice(:healing) %>"
-                    data-bonus="<%= pc.add_plus(:skill_bonus, :healing) %>"><%= h pc.name %></option>
+              <select name="caster_id" id="surgery-caster" required>
+                <% @surgery_casters.each_with_index do |pc, i| %>
+                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %></option>
                 <% end %>
               </select>
             </label>
             <label>Target
-              <select name="target_id" required>
-                <option value=""></option>
-                <% @pcs.each do |pc| %>
-                  <option value="<%= pc.id %>"><%= h pc.name %> (major dmg <%= pc.major_damage %>)</option>
+              <select name="target_id" id="surgery-target" required>
+                <% @pcs.each_with_index do |pc, i| %>
+                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (major dmg <%= pc.major_damage %>)</option>
                 <% end %>
               </select>
             </label>
-            <div class="dt-dice" id="surgery-dice">Healing check: —</div>
+            <div class="dt-dice" id="surgery-dice">Healing check: &mdash;</div>
             <label>Successes rolled
-              <input type="number" name="successes" value="0" min="0" required>
+              <input type="number" name="successes" id="surgery-successes" value="0" min="0" required>
             </label>
+            <div class="dt-preview" id="surgery-preview">&nbsp;</div>
             <button type="submit">Apply Surgery</button>
           </form>
         <% end %>
@@ -108,7 +106,7 @@
         <% else %>
           <form method="post" action="/downtime/use_item">
             <label>Owner &amp; item
-              <select name="owner_item" required>
+              <select name="owner_item_combined" required onchange="var p=this.value.split('|');this.form.owner_id.value=p[0];this.form.item_id.value=p[1];">
                 <option value=""></option>
                 <% @consumable_owners.each do |owner_id, items| %>
                   <% pc = @pcs.find { |p| p.id == owner_id } %>
@@ -118,11 +116,12 @@
                 <% end %>
               </select>
             </label>
+            <input type="hidden" name="owner_id" value="">
+            <input type="hidden" name="item_id" value="">
             <label>Target
               <select name="target_id" required>
-                <option value=""></option>
-                <% @pcs.each do |pc| %>
-                  <option value="<%= pc.id %>"><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
+                <% @pcs.each_with_index do |pc, i| %>
+                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
                 <% end %>
               </select>
             </label>
@@ -133,28 +132,28 @@
 
       <div class="dt-action">
         <h3>Spellcasting Services <% unless @is_local %><span class="dt-note">(DM only)</span><% end %></h3>
-        <% if @services.empty? %>
+        <% if @dt_data[:servicesSpells].empty? %>
           <p class="dt-note">No spellcasting services defined.</p>
         <% else %>
-          <form method="post" action="/downtime/service">
-            <label>Service
-              <select name="service_index" required <%= 'disabled' unless @is_local %>>
-                <option value=""></option>
-                <% @services.each_with_index do |svc, i| %>
-                  <option value="<%= i %>">
-                    <%= h svc['spell'] %> (<%= h svc['title'] %>) - <%= h svc['class'].to_s.capitalize %> tier <%= svc['tier'] %> - <%= svc['cost'] %>g
-                  </option>
+          <form method="post" action="/downtime/service" id="service-form">
+            <label>Spell
+              <select name="spell" id="service-spell" required <%= 'disabled' unless @is_local %>>
+                <% @dt_data[:servicesSpells].each_with_index do |spell, i| %>
+                  <option value="<%= h spell %>" <%= 'selected' if i == 0 %>><%= h spell %></option>
                 <% end %>
               </select>
+            </label>
+            <label>Caster
+              <select name="service_caster" id="service-caster" required <%= 'disabled' unless @is_local %>></select>
             </label>
             <label>Target
-              <select name="target_id" required <%= 'disabled' unless @is_local %>>
-                <option value=""></option>
-                <% @pcs.each do |pc| %>
-                  <option value="<%= pc.id %>"><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
+              <select name="target_id" id="service-target" required <%= 'disabled' unless @is_local %>>
+                <% @pcs.each_with_index do |pc, i| %>
+                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
                 <% end %>
               </select>
             </label>
+            <div class="dt-preview" id="service-preview">&nbsp;</div>
             <button type="submit" <%= 'disabled' unless @is_local %>>Purchase &amp; Apply</button>
           </form>
         <% end %>
@@ -165,96 +164,290 @@
       <h2>Rest / Pass Time <span class="dt-note">(DM only)</span></h2>
       <form method="post" action="/downtime/rest" class="dt-rest-form">
         <label>Mode
-          <select name="mode" id="rest-mode" required onchange="updateRestPreview()">
+          <select name="mode" id="rest-mode" required>
             <option value="pass_time">Pass time (slow recovery)</option>
             <option value="long_term_recovery">Long-term recovery (full rest)</option>
           </select>
         </label>
         <label>Days
-          <input type="number" name="days" id="rest-days" value="1" min="1" required oninput="updateRestPreview()">
+          <input type="number" name="days" id="rest-days" value="1" min="1" required>
         </label>
         <button type="submit">Apply</button>
       </form>
 
       <div class="dt-rest-preview">
         <h3>Recovery Preview</h3>
-        <table class="dt-rest-table">
-          <thead>
-            <tr>
-              <th>Character</th>
-              <th>Damage (min/mod/maj)</th>
-              <th>Healed</th>
-              <th>Damage after</th>
-              <th>Mana</th>
-              <th>Saturation</th>
-            </tr>
-          </thead>
-          <tbody id="rest-preview-body"></tbody>
-        </table>
+        <div id="rest-preview-body" class="dt-rest-lines"></div>
       </div>
     <% end %>
   </div>
 </div>
 
-<% if @is_local %>
 <script>
-window.REST_PC_DATA = <%= @rest_preview_data.to_json.gsub('<', '\\u003c') %>;
+window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
 
-function periodCount(days, unit) {
-  if (unit === 'hour')  return days * 24;
-  if (unit === 'day')   return days;
-  if (unit === 'week')  return days >= 7  ? Math.floor(days / 7)  : 0;
-  if (unit === 'month') return days >= 28 ? Math.floor(days / 28) : 0;
-  return 0;
-}
+(function() {
+  var D = window.DT_DATA;
 
-function updateRestPreview() {
-  var mode = document.getElementById('rest-mode').value;
-  var days = parseInt(document.getElementById('rest-days').value, 10);
-  if (!(days > 0)) days = 0;
-  var useHigh = mode === 'long_term_recovery';
-  var body = document.getElementById('rest-preview-body');
-  var rows = '';
+  function pc(id) { return D.pcs[String(id)]; }
 
-  window.REST_PC_DATA.forEach(function(pc) {
-    var healed = [0, 1, 2].map(function(i) {
-      var row = pc.rows[i];
-      if (!row) return 0;
-      var per = useHigh ? row[1] : row[0];
-      return Math.min(per * periodCount(days, row[2]), pc.damage[i]);
-    });
-    var after = [0, 1, 2].map(function(i) { return pc.damage[i] - healed[i]; });
-    var manaPerDay = Math.floor(pc.manaMax / 4);
-    var manaGain = Math.min(manaPerDay * days, pc.manaMax - pc.mana);
-    var newMana = pc.mana + manaGain;
-    var satPerDay = Math.floor(pc.cha / 4);
-    var satLoss = Math.min(satPerDay * days, pc.saturation);
-    var newSat = pc.saturation - satLoss;
+  // --- Cure cascade preview (shared by Cure + Services). ---
+  function cureCascade(effect, target, improvedHealing, casterTier) {
+    var pool = effect.major;
+    var healedMajor = Math.min(target.damage[2], pool); pool -= healedMajor;
+    pool += effect.moderate;
+    var healedModerate = Math.min(target.damage[1], pool); pool -= healedModerate;
+    pool += effect.minor;
+    var healedMinor = Math.min(target.damage[0], pool);
 
-    rows += '<tr>' +
-      '<td>' + pc.name + '</td>' +
-      '<td>' + pc.damage.join('/') + '</td>' +
-      '<td class="dt-heal">-' + healed.join(' / -') + '</td>' +
-      '<td>' + after.join('/') + '</td>' +
-      '<td>' + pc.mana + ' &rarr; ' + newMana + ' (+' + manaGain + ')</td>' +
-      '<td>' + pc.saturation + ' &rarr; ' + newSat + ' (-' + satLoss + ')</td>' +
-      '</tr>';
-  });
+    var satAdd = effect.saturation - target.tier;
+    if (improvedHealing) satAdd -= 2 * casterTier;
+    if (satAdd < effect.minimumSaturation) satAdd = effect.minimumSaturation;
+    return {major: healedMajor, moderate: healedModerate, minor: healedMinor, sat: satAdd};
+  }
 
-  body.innerHTML = rows;
-}
-updateRestPreview();
-</script>
-<% end %>
+  function formatCurePreview(target, result, extraNote) {
+    var newSat = target.saturation + result.sat;
+    var capHit = newSat >= target.cha;
+    var lines = [
+      'Heals <b>' + result.major + '</b> major, <b>' + result.moderate + '</b> moderate, <b>' + result.minor + '</b> minor.',
+      'Saturation <b>+' + result.sat + '</b> (' + target.saturation + ' &rarr; ' + newSat + '/' + target.cha + ')' + (capHit ? ' <span class="dt-warn">at/over cap</span>' : '') + '.'
+    ];
+    if (extraNote) lines.push(extraNote);
+    return lines.join('<br>');
+  }
 
-<script>
-function updateSurgeryDice() {
-  var sel = document.getElementById('surgery-caster');
-  var out = document.getElementById('surgery-dice');
-  var opt = sel.options[sel.selectedIndex];
-  if (!opt || !opt.value) { out.textContent = 'Healing check: \u2014'; return; }
-  var dice = opt.dataset.dice;
-  var bonus = opt.dataset.bonus;
-  out.textContent = 'Healing check: ' + dice + 'd (' + bonus + ')';
-}
+  // --- Cure form ---
+  var cureForm = document.getElementById('cure-form');
+  if (cureForm) {
+    var cureSpell = document.getElementById('cure-spell');
+    var cureCaster = document.getElementById('cure-caster');
+    var cureTarget = document.getElementById('cure-target');
+    var curePreview = document.getElementById('cure-preview');
+
+    function refreshCureCasters() {
+      var spell = cureSpell.value;
+      var entry = D.cures[spell];
+      cureCaster.innerHTML = '';
+      if (!entry) return;
+      entry.casterIds.forEach(function(id, i) {
+        var p = pc(id);
+        var opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = p.name;
+        if (i === 0) opt.selected = true;
+        cureCaster.appendChild(opt);
+      });
+      updateCurePreview();
+    }
+
+    function updateCurePreview() {
+      var spell = cureSpell.value;
+      var casterId = parseInt(cureCaster.value, 10);
+      var targetId = parseInt(cureTarget.value, 10);
+      var effect = D.cures[spell];
+      var caster = pc(casterId);
+      var target = pc(targetId);
+      if (!effect || !caster || !target) { curePreview.innerHTML = '&nbsp;'; return; }
+      var result = cureCascade(effect, target, caster.improvedHealing, caster.tier);
+      curePreview.innerHTML = formatCurePreview(target, result);
+    }
+
+    cureSpell.addEventListener('change', refreshCureCasters);
+    cureCaster.addEventListener('change', updateCurePreview);
+    cureTarget.addEventListener('change', updateCurePreview);
+    refreshCureCasters();
+  }
+
+  // --- Surgery form ---
+  var surgeryForm = document.getElementById('surgery-form');
+  if (surgeryForm) {
+    var sCaster = document.getElementById('surgery-caster');
+    var sTarget = document.getElementById('surgery-target');
+    var sSuccess = document.getElementById('surgery-successes');
+    var sDice = document.getElementById('surgery-dice');
+    var sPreview = document.getElementById('surgery-preview');
+
+    function updateSurgeryDice() {
+      var info = D.surgeryCasters[sCaster.value];
+      if (!info) { sDice.innerHTML = 'Healing check: &mdash;'; return; }
+      var starting = info.startingSuccesses > 0 ? ' <span class="dt-warn">+' + info.startingSuccesses + ' starting</span>' : '';
+      sDice.innerHTML = 'Healing check: <b>' + info.dice + 'd</b> TN <b>' + info.tn + '</b>' + starting;
+    }
+
+    function updateSurgeryPreview() {
+      var info = D.surgeryCasters[sCaster.value];
+      var target = pc(sTarget.value);
+      var successes = parseInt(sSuccess.value, 10);
+      if (!(successes >= 0)) successes = 0;
+      if (!info || !target) { sPreview.innerHTML = '&nbsp;'; return; }
+      var majorBefore = target.damage[2];
+      var addedModerate = 2 * majorBefore;
+      var healedMajor = Math.min(successes, majorBefore);
+      var minSat = 5 * healedMajor;
+      var satAdd = 10 * healedMajor;
+      if (info.improvedHealing) satAdd -= 2 * info.tier;
+      if (satAdd < minSat) satAdd = minSat;
+      var newSat = target.saturation + satAdd;
+
+      var parts = [];
+      parts.push('Deals <b>+' + addedModerate + '</b> moderate damage to target.');
+      if (target.tempHp > 0) parts.push('Zeroes <b>' + target.tempHp + '</b> temp HP.');
+      parts.push('Cures <b>' + healedMajor + '</b> major.');
+      parts.push('Saturation <b>+' + satAdd + '</b> (' + target.saturation + ' &rarr; ' + newSat + '/' + target.cha + ').');
+      sPreview.innerHTML = parts.join('<br>');
+    }
+
+    sCaster.addEventListener('change', function() { updateSurgeryDice(); updateSurgeryPreview(); });
+    sTarget.addEventListener('change', updateSurgeryPreview);
+    sSuccess.addEventListener('input', updateSurgeryPreview);
+    updateSurgeryDice();
+    updateSurgeryPreview();
+  }
+
+  // --- Services form ---
+  var serviceForm = document.getElementById('service-form');
+  if (serviceForm) {
+    var svcSpell = document.getElementById('service-spell');
+    var svcCaster = document.getElementById('service-caster');
+    var svcTarget = document.getElementById('service-target');
+    var svcPreview = document.getElementById('service-preview');
+
+    function refreshServiceCasters() {
+      var spell = svcSpell.value;
+      var list = D.services[spell] || [];
+      svcCaster.innerHTML = '';
+      list.forEach(function(svc, i) {
+        var opt = document.createElement('option');
+        opt.value = svc.title;
+        opt.textContent = svc.title + ' (' + svc.casterClass.charAt(0).toUpperCase() + svc.casterClass.slice(1) + ' tier ' + svc.tier + ', ' + svc.cost + 'g)';
+        if (i === 0) opt.selected = true;
+        svcCaster.appendChild(opt);
+      });
+      updateServicePreview();
+    }
+
+    function updateServicePreview() {
+      var spell = svcSpell.value;
+      var title = svcCaster.value;
+      var targetId = parseInt(svcTarget.value, 10);
+      var list = D.services[spell] || [];
+      var svc = list.find(function(s) { return s.title === title; });
+      var target = pc(targetId);
+      if (!svc || !target) { svcPreview.innerHTML = '&nbsp;'; return; }
+      var result = cureCascade(svc.effect, target, svc.improvedHealing, svc.tier);
+      var gold = D.campaignGold;
+      var shortfall = gold < svc.cost ? ' <span class="dt-warn">not enough gold</span>' : '';
+      var note = 'Cost <b>' + svc.cost + 'g</b> (gold after: ' + (gold - svc.cost) + ')' + shortfall + '.';
+      svcPreview.innerHTML = formatCurePreview(target, result, note);
+    }
+
+    svcSpell.addEventListener('change', refreshServiceCasters);
+    svcCaster.addEventListener('change', updateServicePreview);
+    svcTarget.addEventListener('change', updateServicePreview);
+    refreshServiceCasters();
+  }
+
+  // --- Rest preview (DM only) ---
+  var restForm = document.getElementById('rest-mode');
+  if (restForm) {
+    var restMode = document.getElementById('rest-mode');
+    var restDays = document.getElementById('rest-days');
+    var restBody = document.getElementById('rest-preview-body');
+
+    function periodCount(days, unit) {
+      if (unit === 'hour')  return days * 24;
+      if (unit === 'day')   return days;
+      if (unit === 'week')  return days >= 7  ? Math.floor(days / 7)  : 0;
+      if (unit === 'month') return days >= 28 ? Math.floor(days / 28) : 0;
+      return 0;
+    }
+
+    // Minimum days for a single damage row to reach 0 at the given per/unit rate.
+    function daysToClear(amount, per, unit) {
+      if (amount <= 0) return 0;
+      if (per <= 0) return Infinity;
+      if (unit === 'hour')  return Math.ceil(amount / (per * 24));
+      if (unit === 'day')   return Math.ceil(amount / per);
+      if (unit === 'week')  return Math.ceil(amount / per) * 7;
+      if (unit === 'month') return Math.ceil(amount / per) * 28;
+      return Infinity;
+    }
+
+    function minFullRecoveryDays(p, useHigh) {
+      var candidates = [];
+      [0, 1, 2].forEach(function(i) {
+        var row = p.rows[i];
+        if (!row) { if (p.damage[i] > 0) candidates.push(Infinity); return; }
+        var per = useHigh ? row[1] : row[0];
+        candidates.push(daysToClear(p.damage[i], per, row[2]));
+      });
+      var manaPerDay = Math.floor(p.manaMax / 4);
+      var manaNeed = p.manaMax - p.mana;
+      candidates.push(manaNeed <= 0 ? 0 : (manaPerDay > 0 ? Math.ceil(manaNeed / manaPerDay) : Infinity));
+      var satPerDay = Math.floor(p.cha / 4);
+      candidates.push(p.saturation <= 0 ? 0 : (satPerDay > 0 ? Math.ceil(p.saturation / satPerDay) : Infinity));
+      return Math.max.apply(null, candidates);
+    }
+
+    function updateRestPreview() {
+      var mode = restMode.value;
+      var days = parseInt(restDays.value, 10);
+      if (!(days > 0)) days = 0;
+      var useHigh = mode === 'long_term_recovery';
+      var lines = [];
+
+      D.pcOrder.forEach(function(id) {
+        var p = D.pcs[String(id)];
+        // Skip PCs who don't need anything right now.
+        if (p.damage[0] === 0 && p.damage[1] === 0 && p.damage[2] === 0 &&
+            p.mana >= p.manaMax && p.saturation === 0) return;
+
+        // Compute per-field post-rest values.
+        var healed = [0, 1, 2].map(function(i) {
+          var row = p.rows[i];
+          if (!row) return 0;
+          var per = useHigh ? row[1] : row[0];
+          return Math.min(per * periodCount(days, row[2]), p.damage[i]);
+        });
+        var after = [0, 1, 2].map(function(i) { return p.damage[i] - healed[i]; });
+        var manaPerDay = Math.floor(p.manaMax / 4);
+        var manaGain = Math.min(manaPerDay * days, p.manaMax - p.mana);
+        var newMana = p.mana + manaGain;
+        var satPerDay = Math.floor(p.cha / 4);
+        var satLoss = Math.min(satPerDay * days, p.saturation);
+        var newSat = p.saturation - satLoss;
+        var newHp = p.hpMax - after[0] - after[1] - after[2];
+
+        // Nothing changes for this PC? Skip.
+        if (healed[0] === 0 && healed[1] === 0 && healed[2] === 0 && manaGain === 0 && satLoss === 0) return;
+
+        // Fully recovered check: any damage at 0, mana at max, saturation at 0.
+        var fullyRecovered = after[0] === 0 && after[1] === 0 && after[2] === 0 &&
+                             newMana === p.manaMax && newSat === 0;
+        if (fullyRecovered) {
+          var minDays = minFullRecoveryDays(p, useHigh);
+          var dayWord = minDays === 1 ? 'day' : 'days';
+          lines.push('<div class="dt-rest-line"><b>' + p.name + '</b> Fully recovered after ' + minDays + ' ' + dayWord + '</div>');
+          return;
+        }
+
+        var parts = [];
+        if (newHp < p.hpMax) parts.push('HP: ' + newHp + '/' + p.hpMax);
+        if (newMana < p.manaMax) parts.push('Mana: ' + newMana + '/' + p.manaMax);
+        if (newSat > 0) parts.push('Sat: ' + newSat);
+        if (after[1] > 0) parts.push('Moderate ' + after[1]);
+        if (after[2] > 0) parts.push('Major ' + after[2]);
+        lines.push('<div class="dt-rest-line"><b>' + p.name + '</b> ' + parts.join(', ') + '</div>');
+      });
+
+      if (lines.length === 0) lines.push('<div class="dt-rest-line dt-note">Everyone is fully rested.</div>');
+      restBody.innerHTML = lines.join('');
+    }
+
+    restMode.addEventListener('change', updateRestPreview);
+    restDays.addEventListener('input', updateRestPreview);
+    updateRestPreview();
+  }
+})();
 </script>

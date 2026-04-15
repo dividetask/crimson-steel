@@ -429,12 +429,12 @@ table th {
 .dt-rest-form select, .dt-rest-form input { padding: 5px; font-size: 12px; font-weight: normal; }
 .dt-rest-form button { padding: 6px 12px; background: #4CAF50; color: white; border: none; cursor: pointer; font-size: 12px; border-radius: 3px; }
 .dt-rest-form button:hover { background: #45a049; }
-.dt-rest-preview { margin-top: 12px; }
+.dt-rest-preview { margin-top: 12px; max-width: 800px; }
 .dt-rest-preview h3 { font-size: 12px; margin: 0 0 6px 0; text-decoration: none; }
-.dt-rest-table { font-size: 11px; width: 100%; max-width: 800px; }
-.dt-rest-table th, .dt-rest-table td { padding: 4px 8px; border: 1px solid #ccc; text-align: left; }
-.dt-rest-table th { background: #fff3e0; font-size: 10px; }
-.dt-rest-table .dt-heal { color: #1976d2; font-weight: bold; }
+.dt-rest-lines { display: flex; flex-direction: column; gap: 3px; }
+.dt-rest-line { font-size: 12px; padding: 3px 8px; background: #fff8e8; border-left: 3px solid #ffb74d; border-radius: 2px; line-height: 1.4; }
+.dt-preview { font-size: 11px; padding: 6px 8px; background: #f5f8ff; border-left: 3px solid #1976d2; border-radius: 2px; min-height: 14px; line-height: 1.5; }
+.dt-warn { color: #d32f2f; font-weight: bold; }
 
 @media print {
   body {

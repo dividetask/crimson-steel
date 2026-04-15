@@ -882,25 +882,108 @@ get '/downtime' do
     @consumable_owners[pc.id] = items unless items.empty?
   end
 
-  # Per-PC data used by the rest/recovery preview in JS. Each row is
-  # [low, high, unit]; empty rows are passed through as nil so the
-  # client can skip them.
+  # --- DT_DATA: single JSON payload driving all client-side previews. ---
   rules = Tools.load_json('rules.json')
   heal_rate = rules['advancement']['natural']['heal_rate']
-  @rest_preview_data = @pcs.map do |pc|
+  dice_rules = rules['dice'] || {}
+  base_tn = dice_rules['base_target_number'].to_i
+  tn_min = dice_rules['tn_minimum'].to_i
+  tn_max = dice_rules['tn_maximum'].to_i
+
+  pc_payload = {}
+  pc_order = []
+  @pcs.each do |pc|
+    pc_order << pc.id
     row_base = pc.tier * 3
     rows = [heal_rate[row_base], heal_rate[row_base + 1], heal_rate[row_base + 2]]
-    {
+    pc_payload[pc.id.to_s] = {
+      id: pc.id,
       name: pc.name,
       tier: pc.tier,
       cha: pc.cha,
+      hpMax: pc.hp_max,
       mana: pc.current_mana,
       manaMax: pc.mana_max,
       saturation: pc.saturation,
       damage: [pc.minor_damage, pc.moderate_damage, pc.major_damage],
+      tempHp: pc.temporary_hit_points,
+      improvedHealing: pc.ability_list.include?('improved_healing'),
       rows: rows
     }
   end
+
+  # Cure variants keyed by variant name, including which PCs know them.
+  cure_payload = {}
+  @cure_casters.each do |caster|
+    downtime_known_variants(caster, @compendium, 'Cure').each do |variant|
+      effect = @compendium.cure_effects(variant)
+      next unless effect
+      cure_payload[variant] ||= {
+        minor: effect[:minor],
+        moderate: effect[:moderate],
+        major: effect[:major],
+        saturation: effect[:saturation],
+        minimumSaturation: effect[:minimum_saturation],
+        casterIds: []
+      }
+      cure_payload[variant][:casterIds] << caster.id
+    end
+  end
+  cure_payload.each_value { |v| v[:casterIds].uniq! }
+
+  # Surgery casters with dice / TN computed from their healing skill.
+  surgery_payload = {}
+  @surgery_casters.each do |caster|
+    dice = caster.skill_dice(:healing)
+    bonus = caster.skill_bonus(:healing)
+    raw_tn = base_tn - bonus
+    tn = [tn_min, [raw_tn, tn_max].min].max
+    starting_successes = raw_tn < tn_min ? (tn_min - raw_tn) : 0
+    surgery_payload[caster.id.to_s] = {
+      id: caster.id,
+      name: caster.name,
+      dice: dice,
+      tn: tn,
+      startingSuccesses: starting_successes,
+      improvedHealing: caster.ability_list.include?('improved_healing'),
+      tier: caster.tier
+    }
+  end
+
+  # Services grouped by spell. Each entry has the resolved cure effect and the
+  # improved_healing flag derived from the caster's class.
+  services_by_spell = {}
+  @services.each do |svc|
+    effect = @compendium.cure_effects(svc['spell'])
+    next unless effect
+    services_by_spell[svc['spell']] ||= []
+    services_by_spell[svc['spell']] << {
+      title: svc['title'],
+      casterClass: svc['class'],
+      tier: svc['tier'].to_i,
+      cost: svc['cost'].to_i,
+      improvedHealing: svc['class'].to_s == 'cleric',
+      effect: {
+        minor: effect[:minor],
+        moderate: effect[:moderate],
+        major: effect[:major],
+        saturation: effect[:saturation],
+        minimumSaturation: effect[:minimum_saturation]
+      }
+    }
+  end
+
+  @dt_data = {
+    pcs: pc_payload,
+    pcOrder: pc_order,
+    cures: cure_payload,
+    cureSpells: cure_payload.keys,
+    surgeryCasters: surgery_payload,
+    services: services_by_spell,
+    servicesSpells: services_by_spell.keys,
+    campaignGold: @campaign['gold'].to_i,
+    diceRules: { baseTn: base_tn, tnMin: tn_min, tnMax: tn_max }
+  }
 
   erb :downtime
 end
@@ -910,15 +993,8 @@ post '/downtime/cast' do
   characters = Tools.load_json('characters.json')
   combat_data = Tools.load_json('combat.json')
 
-  # The Cure form bundles caster + spell into a single combined field; the
-  # Surgery form submits caster_id and a fixed spell_name directly.
-  if params[:caster_spell].to_s.include?('|')
-    caster_id_str, spell_name = params[:caster_spell].to_s.split('|', 2)
-    caster_id = caster_id_str.to_i
-  else
-    caster_id = params[:caster_id].to_i
-    spell_name = params[:spell_name].to_s
-  end
+  caster_id = params[:caster_id].to_i
+  spell_name = params[:spell_name].to_s
   target_id = params[:target_id].to_i
 
   caster_data = characters.find { |c| c['id'] == caster_id }
@@ -991,8 +1067,10 @@ post '/downtime/use_item' do
   characters = Tools.load_json('characters.json')
   combat_data = Tools.load_json('combat.json')
 
-  if params[:owner_item].to_s.include?('|')
-    owner_id_str, item_id_str = params[:owner_item].to_s.split('|', 2)
+  # The form uses a combined "owner|item" select that writes to hidden
+  # owner_id / item_id inputs on change; accept either representation.
+  if params[:owner_item_combined].to_s.include?('|')
+    owner_id_str, item_id_str = params[:owner_item_combined].to_s.split('|', 2)
     owner_id = owner_id_str.to_i
     item_id = item_id_str.to_i
   else
@@ -1110,10 +1188,11 @@ post '/downtime/service' do
   combat_data = Tools.load_json('combat.json')
   campaign = Tools.load_json('campaign.json')
 
-  service_index = params[:service_index].to_i
+  spell = params[:spell].to_s
+  caster_title = params[:service_caster].to_s
   target_id = params[:target_id].to_i
   services = compendium.data['spellcasting_services'] || []
-  service = services[service_index]
+  service = services.find { |s| s['spell'].to_s == spell && s['title'].to_s == caster_title }
   halt 400, "Service not found" unless service
 
   target_data = characters.find { |c| c['id'] == target_id }
@@ -1211,6 +1290,9 @@ post '/downtime/rest' do
     sat_after = [sat_before - sat_per_day * days, 0].max
     sat_lost = sat_before - sat_after
     participant['saturation'] = sat_after
+
+    # Temp HP always falls off over rest / passing time.
+    participant['temporary_hit_points'] = 0
 
     summary_lines << "#{character.name}: -#{healed[0]}/#{healed[1]}/#{healed[2]} damage, +#{mana_gained} mana, -#{sat_lost} saturation"
   end
