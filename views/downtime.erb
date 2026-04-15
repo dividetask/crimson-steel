@@ -5,22 +5,55 @@
   </div>
 
   <div class="downtime-cards">
+    <% attr_full = { 'str' => 'Strength', 'dex' => 'Dexterity', 'con' => 'Constitution', 'int' => 'Intelligence', 'wis' => 'Wisdom', 'cha' => 'Charisma' } %>
     <% @pcs.each do |pc| %>
       <% consumables = pc.item_list.select { |i| e = @compendium.item_effects(i); e && (e[:type] == :cure || e[:type] == :mana || e[:base_name] == 'Standard Surgery') } %>
+      <%
+        # Stat color thresholds: HP/Mana ramp red <=25%, yellow <=50%,
+        # yellow-green <=75%, green otherwise. Saturation reverses (low is
+        # good, high is bad).
+        ramp = lambda do |cur, max, reversed = false|
+          return '' if max.to_i <= 0
+          pct = (cur.to_f / max) * 100.0
+          buckets = reversed ? %w[bad warn caution good] : %w[bad warn caution good].reverse
+          # Walk reversed=false: 0-25% -> good, 25-50% -> caution, 50-75% -> warn, >75% -> bad
+          # Walk reversed=true: 0-25% -> bad,  25-50% -> warn,    50-75% -> caution, >75% -> good
+          if pct <= 25 then buckets[0]
+          elsif pct <= 50 then buckets[1]
+          elsif pct <= 75 then buckets[2]
+          else buckets[3]
+          end
+        end
+        # HP/Mana: high-is-good. Build a high-good ramp by inverting (since
+        # ramp() is built with cur/max thinking in HP-style).
+        hp_class = pc.hp_max > 0 ? "stat-#{ramp.call(pc.current_hp, pc.hp_max)}" : ''
+        mana_class = pc.mana_max > 0 ? "stat-#{ramp.call(pc.current_mana, pc.mana_max)}" : ''
+        # Saturation: low-is-good. Use reversed = true.
+        sat_class = pc.cha > 0 ? "stat-#{ramp.call(pc.saturation, pc.cha, true)}" : ''
+      %>
       <div class="downtime-card">
         <h3><%= h pc.name %></h3>
         <div class="dt-subtitle">
           <%= h pc.race %> <%= h pc.full_klass %> &middot; Tier <%= pc.tier %>
         </div>
         <div class="dt-stats">
-          <div><span class="label">HP</span><span class="value"><%= pc.current_hp %>/<%= pc.hp_max %></span></div>
-          <div><span class="label">Mana</span><span class="value"><%= pc.current_mana %>/<%= pc.mana_max %></span></div>
-          <div><span class="label">Saturation</span><span class="value"><%= pc.saturation %>/<%= pc.cha %></span></div>
+          <div class="<%= hp_class %>"><span class="label">HP</span><span class="value"><%= pc.current_hp %>/<%= pc.hp_max %></span></div>
+          <div class="<%= mana_class %>"><span class="label">Mana</span><span class="value"><%= pc.current_mana %>/<%= pc.mana_max %></span></div>
+          <div class="<%= sat_class %>"><span class="label">Saturation</span><span class="value"><%= pc.saturation %>/<%= pc.cha %></span></div>
           <div><span class="label">Temp HP</span><span class="value"><%= pc.temporary_hit_points %></span></div>
           <div><span class="label">Minor Dmg</span><span class="value"><%= pc.minor_damage %></span></div>
-          <div><span class="label">Moderate Dmg</span><span class="value"><%= pc.moderate_damage %></span></div>
-          <div><span class="label">Major Dmg</span><span class="value"><%= pc.major_damage %></span></div>
+          <div class="<%= 'stat-warn' if pc.moderate_damage > 0 %>"><span class="label">Moderate Dmg</span><span class="value"><%= pc.moderate_damage %></span></div>
+          <div class="<%= 'stat-bad' if pc.major_damage > 0 %>"><span class="label">Major Dmg</span><span class="value"><%= pc.major_damage %></span></div>
         </div>
+        <% ad_entries = pc.ability_damage_entries %>
+        <% if ad_entries.any? %>
+          <div class="dt-stats dt-ability-damage">
+            <% ad_entries.each do |attr, sev, n| %>
+              <% sev_class = sev == 'major' ? 'stat-bad' : (sev == 'moderate' ? 'stat-warn' : '') %>
+              <div class="<%= sev_class %>"><span class="label"><%= sev.capitalize %> <%= attr_full[attr] || attr.upcase %> Damage</span><span class="value"><%= n %></span></div>
+            <% end %>
+          </div>
+        <% end %>
         <% if consumables.any? %>
           <div class="dt-consumables">
             <h4>Healing items</h4>
@@ -1001,7 +1034,19 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
       var manaCost = entry.manaCost;
       var goldCost = opts.gold ? (entry.goldCost || 0) : 0;
       var gold = D.campaignGold;
-      var maxByMana = Math.floor(caster.mana / manaCost);
+      // Recharge transfers entry.mana from caster to target, so the caster
+      // must have manaCost + entry.mana up front. For a self-cast the
+      // transfer comes back, so the per-cast net loss is just manaCost.
+      var requiredPerCast = manaCost + (entry.type === 'mana' ? entry.mana : 0);
+      var netPerCast = manaCost + (entry.type === 'mana' && caster.id !== target.id ? entry.mana : 0);
+      var maxByMana;
+      if (caster.mana < requiredPerCast) {
+        maxByMana = 0;
+      } else if (netPerCast <= 0) {
+        maxByMana = Infinity;
+      } else {
+        maxByMana = 1 + Math.floor((caster.mana - requiredPerCast) / netPerCast);
+      }
       var maxByGold = goldCost > 0 ? Math.floor(gold / goldCost) : Infinity;
       var atSatCap = target.saturation >= target.cha;
       var maxBySat;
@@ -1029,7 +1074,7 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
       if (maxAllowed < 1) {
         qtyEl.disabled = true; submitBtn.disabled = true;
         var why;
-        if (caster.mana < manaCost) why = caster.name + ' does not have enough mana (' + caster.mana + '/' + manaCost + ')';
+        if (caster.mana < requiredPerCast) why = caster.name + ' does not have enough mana (' + caster.mana + '/' + requiredPerCast + ')';
         else if (goldCost > 0 && maxByGold < 1) why = 'Not enough gold (have ' + gold + 'g, need ' + goldCost + 'g)';
         else if (atSatCap) why = target.name + ' is already at saturation cap (' + target.saturation + '/' + target.cha + ')';
         else if (entry.type === 'mana' && target.mana >= target.manaMax && caster.id !== target.id) why = target.name + ' is already at full mana (' + target.mana + '/' + target.manaMax + ')';
@@ -1077,17 +1122,23 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         var targetMana = target.mana;
         var manaRestored = 0;
         for (var j = 0; j < qty; j++) {
-          casterManaEnd -= manaCost;
-          if (selfCast) targetMana -= manaCost;
+          // Transfer first (caster pays entry.mana, target receives clamped),
+          // then the cast cost. For self-cast the running pools are kept in
+          // sync after each step.
+          casterManaEnd -= entry.mana;
+          if (selfCast) targetMana = casterManaEnd;
           var beforeT = targetMana;
           targetMana = Math.min(target.manaMax, targetMana + entry.mana);
           manaRestored += (targetMana - beforeT);
           if (selfCast) casterManaEnd = targetMana;
+          casterManaEnd -= manaCost;
+          if (selfCast) targetMana = casterManaEnd;
           targetSatEnd += satPerCast;
         }
         var capWarn2 = targetSatEnd >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
         lines.push('Restores <b>' + manaRestored + '</b> mana to ' + target.name + ' (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
         lines.push('Target mana: <b>' + target.mana + '</b> &rarr; <b>' + targetMana + '</b>/' + target.manaMax + '.');
+        lines.push('Per-cast drain: <b>' + requiredPerCast + '</b> mana (' + manaCost + ' cast + ' + entry.mana + ' transferred).');
         lines.push('Saturation <b>+' + (targetSatEnd - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ')' + capWarn2 + '.');
       } else if (entry.type === 'ability') {
         // Cascade ability damage cure: pop the available pool starting at
@@ -1324,6 +1375,15 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         var per = useHigh ? row[1] : row[0];
         candidates.push(daysToClear(p.damage[i], per, row[2]));
       });
+      // Ability damage clears at the (independent) ability_heal_rate.
+      [['minor', 0], ['moderate', 1], ['major', 2]].forEach(function(pair) {
+        var sev = pair[0], i = pair[1];
+        var amount = p.abilityDamage[sev] | 0;
+        var row = p.abilityRows && p.abilityRows[i];
+        if (!row) { if (amount > 0) candidates.push(Infinity); return; }
+        var per = useHigh ? row[1] : row[0];
+        candidates.push(daysToClear(amount, per, row[2]));
+      });
       var manaPerDay = Math.floor(p.manaMax / 4);
       var manaNeed = p.manaMax - p.mana;
       candidates.push(manaNeed <= 0 ? 0 : (manaPerDay > 0 ? Math.ceil(manaNeed / manaPerDay) : Infinity));
@@ -1341,9 +1401,10 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
 
       D.pcOrder.forEach(function(id) {
         var p = D.pcs[String(id)];
+        var totalAbility = (p.abilityDamage.minor | 0) + (p.abilityDamage.moderate | 0) + (p.abilityDamage.major | 0);
         // Skip PCs who don't need anything right now.
         if (p.damage[0] === 0 && p.damage[1] === 0 && p.damage[2] === 0 &&
-            p.mana >= p.manaMax && p.saturation === 0) return;
+            p.mana >= p.manaMax && p.saturation === 0 && totalAbility === 0) return;
 
         // Compute per-field post-rest values.
         var healed = [0, 1, 2].map(function(i) {
@@ -1353,6 +1414,18 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
           return Math.min(per * periodCount(days, row[2]), p.damage[i]);
         });
         var after = [0, 1, 2].map(function(i) { return p.damage[i] - healed[i]; });
+        var abilityHealed = [0, 1, 2].map(function(i) {
+          var row = p.abilityRows && p.abilityRows[i];
+          if (!row) return 0;
+          var per = useHigh ? row[1] : row[0];
+          var sevTotal = i === 0 ? (p.abilityDamage.minor | 0) : (i === 1 ? (p.abilityDamage.moderate | 0) : (p.abilityDamage.major | 0));
+          return Math.min(per * periodCount(days, row[2]), sevTotal);
+        });
+        var abilityAfter = [
+          (p.abilityDamage.minor | 0) - abilityHealed[0],
+          (p.abilityDamage.moderate | 0) - abilityHealed[1],
+          (p.abilityDamage.major | 0) - abilityHealed[2]
+        ];
         var manaPerDay = Math.floor(p.manaMax / 4);
         var manaGain = Math.min(manaPerDay * days, p.manaMax - p.mana);
         var newMana = p.mana + manaGain;
@@ -1360,13 +1433,16 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         var satLoss = Math.min(satPerDay * days, p.saturation);
         var newSat = p.saturation - satLoss;
         var newHp = p.hpMax - after[0] - after[1] - after[2];
+        var abilityHealTotal = abilityHealed[0] + abilityHealed[1] + abilityHealed[2];
 
         // Nothing changes for this PC? Skip.
-        if (healed[0] === 0 && healed[1] === 0 && healed[2] === 0 && manaGain === 0 && satLoss === 0) return;
+        if (healed[0] === 0 && healed[1] === 0 && healed[2] === 0 && manaGain === 0 && satLoss === 0 && abilityHealTotal === 0) return;
 
-        // Fully recovered check: any damage at 0, mana at max, saturation at 0.
+        // Fully recovered check: damage zero, mana max, saturation zero,
+        // and no ability damage queued.
         var fullyRecovered = after[0] === 0 && after[1] === 0 && after[2] === 0 &&
-                             newMana === p.manaMax && newSat === 0;
+                             newMana === p.manaMax && newSat === 0 &&
+                             abilityAfter[0] === 0 && abilityAfter[1] === 0 && abilityAfter[2] === 0;
         if (fullyRecovered) {
           var minDays = minFullRecoveryDays(p, useHigh);
           var dayWord = minDays === 1 ? 'day' : 'days';
@@ -1380,6 +1456,9 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         if (newSat > 0) parts.push('Sat: ' + newSat);
         if (after[1] > 0) parts.push('Moderate ' + after[1]);
         if (after[2] > 0) parts.push('Major ' + after[2]);
+        if (abilityAfter[0] + abilityAfter[1] + abilityAfter[2] > 0) {
+          parts.push('Ability dmg ' + abilityAfter[0] + '/' + abilityAfter[1] + '/' + abilityAfter[2]);
+        }
         lines.push('<div class="dt-rest-line"><b>' + p.name + '</b> ' + parts.join(', ') + '</div>');
       });
 

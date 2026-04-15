@@ -1069,10 +1069,11 @@ class CharacterSheet
           major_damage: participant['major_damage'].to_i,
           current_mana: participant['mana'].to_i,
           temporary_hit_points: participant['temporary_hit_points'].to_i,
-          saturation: participant['saturation'].to_i
+          saturation: participant['saturation'].to_i,
+          ability_damage: participant['ability_damage'] || {}
         }
       else
-        { minor_damage: 0, moderate_damage: 0, major_damage: 0, current_mana: mana_max, temporary_hit_points: 0, saturation: 0 }
+        { minor_damage: 0, moderate_damage: 0, major_damage: 0, current_mana: mana_max, temporary_hit_points: 0, saturation: 0, ability_damage: {} }
       end
     end
   end
@@ -1084,6 +1085,21 @@ class CharacterSheet
   def major_damage; combat_status[:major_damage]; end
   def temporary_hit_points; combat_status[:temporary_hit_points]; end
   def saturation; combat_status[:saturation]; end
+  def ability_damage; combat_status[:ability_damage]; end
+
+  # Flat list of [attr, severity, count] tuples in insertion order, filtered
+  # to entries with count > 0. Useful for compactly listing what's queued.
+  def ability_damage_entries
+    out = []
+    (ability_damage || {}).each do |attr, sevs|
+      next unless sevs.is_a?(Hash)
+      sevs.each do |sev, n|
+        n = n.to_i
+        out << [attr, sev, n] if n > 0
+      end
+    end
+    out
+  end
 
   private
 

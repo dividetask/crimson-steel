@@ -1628,7 +1628,10 @@ def downtime_apply_cast(compendium, combat_data, caster, target_char, caster_p, 
       stop_reason = :sat_cap
       break
     end
-    if caster_p['mana'].to_i < mana_cost
+    # Recharge requires mana_cost + transfer up-front (transfer comes back
+    # for self-cast but the caster still has to "have" it to spend).
+    cast_required = mana_cost + (mana ? mana[:mana].to_i : 0)
+    if caster_p['mana'].to_i < cast_required
       stop_reason = :mana
       break
     end
@@ -1643,7 +1646,13 @@ def downtime_apply_cast(compendium, combat_data, caster, target_char, caster_p, 
       sat_add = cure[:minimum_saturation] if sat_add < cure[:minimum_saturation]
       totals[:major] += h_major; totals[:moderate] += h_mod; totals[:minor] += h_minor
     elsif mana
+      # Recharge transfers mana from the caster to the target. The caster
+      # pays mana_cost (cast cost) PLUS mana[:mana] (transferred), and the
+      # target receives mana[:mana] (clamped to mana_max). For a self-cast
+      # the same participant hash is on both sides, so the transfer nets
+      # to zero on top of the cast cost.
       target_max_mana = target_char.mana_max
+      caster_p['mana'] = caster_p['mana'].to_i - mana[:mana]
       current_mana = target_p['mana'].to_i
       new_mana = [current_mana + mana[:mana], target_max_mana].min
       target_p['mana'] = new_mana
@@ -1685,7 +1694,7 @@ def downtime_apply_cast(compendium, combat_data, caster, target_char, caster_p, 
   if applied == 0
     msg = case stop_reason
           when :sat_cap then "#{target_char.name} is already at maximum magical saturation (#{target_p['saturation']}/#{max_saturation})"
-          when :mana    then "#{caster.name} does not have enough mana (#{caster_p['mana']}/#{mana_cost})"
+          when :mana    then "#{caster.name} does not have enough mana (#{caster_p['mana']}/#{mana_cost + (mana ? mana[:mana].to_i : 0)})"
           when :gold    then "Not enough gold (have #{(campaign && campaign['gold']) || 0}g, need #{gold_cost}g)"
           else "Cast failed"
           end
