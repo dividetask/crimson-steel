@@ -358,6 +358,23 @@ class Compendium
     }
   end
 
+  # Resolved mana-restoration effect for a Recharge-like spell variant.
+  def mana_effects(spell_name)
+    resolved = resolve_spell_variant(spell_name)
+    return nil unless resolved
+    _base, spell_data, idx, tier_val = resolved
+    effect = spell_data["effect_hash"] || {}
+    return nil unless effect.key?("mana")
+    {
+      base_name: resolved[0],
+      tier_idx: idx,
+      tier_val: tier_val,
+      mana: resolve_effect_value(effect["mana"], idx, tier_val).to_i,
+      saturation: resolve_effect_value(effect["saturation"], idx, tier_val).to_i,
+      minimum_saturation: resolve_effect_value(effect["minimum_saturation"], idx, tier_val).to_i
+    }
+  end
+
   def resolve_effect_value(val, idx, tier_val)
     return nil if val.nil?
     return val[idx] if val.is_a?(Array)

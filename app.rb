@@ -1017,14 +1017,14 @@ get '/downtime' do
   @cure_casters = @pcs.select { |pc| downtime_known_variants(pc, @compendium, 'Cure').any? }
   @surgery_casters = @pcs.select { |pc| downtime_known_variants(pc, @compendium, 'Standard Surgery').any? }
 
-  # Consumable owner map: char_id -> [items]. Restricted to Cure potions/scrolls
-  # and Standard Surgery scrolls per the downtime spec.
+  # Consumable owner map: char_id -> [items]. Restricted to Cure/Recharge
+  # potions and scrolls, plus Standard Surgery scrolls, per the downtime spec.
   @consumable_owners = {}
   @pcs.each do |pc|
     items = pc.item_list.select do |i|
       effect = @compendium.item_effects(i)
       next false unless effect
-      effect[:type] == :cure || effect[:base_name] == 'Standard Surgery'
+      effect[:type] == :cure || effect[:type] == :mana || effect[:base_name] == 'Standard Surgery'
     end
     @consumable_owners[pc.id] = items unless items.empty?
   end
@@ -1097,26 +1097,38 @@ get '/downtime' do
     }
   end
 
-  # Services grouped by spell. Each entry has the resolved cure effect and the
-  # improved_healing flag derived from the caster's class.
+  # Services grouped by spell. Each entry has the resolved effect (cure OR
+  # mana-restoration for Recharge-style spells) and the improved_healing flag
+  # derived from the caster's class.
   services_by_spell = {}
   @services.each do |svc|
-    effect = @compendium.cure_effects(svc['spell'])
+    cure_eff = @compendium.cure_effects(svc['spell'])
+    mana_eff = cure_eff.nil? ? @compendium.mana_effects(svc['spell']) : nil
+    effect = cure_eff || mana_eff
     next unless effect
+    type = cure_eff ? 'cure' : 'mana'
+    payload_effect = if type == 'cure'
+      {
+        minor: effect[:minor], moderate: effect[:moderate], major: effect[:major],
+        saturation: effect[:saturation], minimumSaturation: effect[:minimum_saturation]
+      }
+    else
+      {
+        mana: effect[:mana],
+        saturation: effect[:saturation], minimumSaturation: effect[:minimum_saturation]
+      }
+    end
     services_by_spell[svc['spell']] ||= []
     services_by_spell[svc['spell']] << {
       title: svc['title'],
       casterClass: svc['class'],
       tier: svc['tier'].to_i,
       cost: svc['cost'].to_i,
-      improvedHealing: svc['class'].to_s == 'cleric',
-      effect: {
-        minor: effect[:minor],
-        moderate: effect[:moderate],
-        major: effect[:major],
-        saturation: effect[:saturation],
-        minimumSaturation: effect[:minimum_saturation]
-      }
+      # improved_healing reduces saturation for healing spells only; Recharge
+      # is Universal school so it never benefits even if the caster has the ability.
+      improvedHealing: svc['class'].to_s == 'cleric' && type == 'cure',
+      type: type,
+      effect: payload_effect
     }
   end
 
@@ -1473,8 +1485,11 @@ post '/downtime/service' do
   target_char = CharacterSheet.new(target_data)
   target_p = downtime_find_or_create_participant(combat_data, target_char)
 
+  # Services support cure (healing) and mana (Recharge) spells. Fall through
+  # if we can resolve either.
   cure = compendium.cure_effects(service['spell'])
-  halt 400, "Service spell is not a cure" unless cure
+  mana = cure.nil? ? compendium.mana_effects(service['spell']) : nil
+  halt 400, "Service spell effect not recognized" unless cure || mana
 
   max_saturation = target_char.cha
   unit_cost = service['cost'].to_i
@@ -1482,7 +1497,7 @@ post '/downtime/service' do
   # Apply up to `quantity` casts, stopping if the target hits the saturation
   # cap or the campaign runs out of gold mid-batch. Each cast charges its
   # cost individually so a partial batch only deducts for what landed.
-  totals = { major: 0, moderate: 0, minor: 0, sat: 0 }
+  totals = { major: 0, moderate: 0, minor: 0, mana: 0, sat: 0 }
   applied = 0
   stop_reason = nil
   quantity.times do
@@ -1494,13 +1509,25 @@ post '/downtime/service' do
       stop_reason = :gold
       break
     end
-    h_major, h_mod, h_minor = Combat.apply_cure_cascade(target_p, cure)
-    sat_add = cure[:saturation] - target_char.tier
-    sat_add -= 2 * service['tier'].to_i if service['class'].to_s == 'cleric'
-    sat_add = cure[:minimum_saturation] if sat_add < cure[:minimum_saturation]
+    if cure
+      h_major, h_mod, h_minor = Combat.apply_cure_cascade(target_p, cure)
+      sat_add = cure[:saturation] - target_char.tier
+      sat_add -= 2 * service['tier'].to_i if service['class'].to_s == 'cleric'
+      sat_add = cure[:minimum_saturation] if sat_add < cure[:minimum_saturation]
+      totals[:major] += h_major; totals[:moderate] += h_mod; totals[:minor] += h_minor
+    else
+      # Recharge: restore mana (clamped to max), add saturation (no
+      # improved_healing since Recharge is Universal school).
+      target_max_mana = target_char.mana_max
+      current_mana = target_p['mana'].to_i
+      new_mana = [current_mana + mana[:mana], target_max_mana].min
+      target_p['mana'] = new_mana
+      sat_add = mana[:saturation] - target_char.tier
+      sat_add = mana[:minimum_saturation] if sat_add < mana[:minimum_saturation]
+      totals[:mana] += (new_mana - current_mana)
+    end
     target_p['saturation'] = target_p['saturation'].to_i + sat_add
     campaign['gold'] = campaign['gold'].to_i - unit_cost
-    totals[:major] += h_major; totals[:moderate] += h_mod; totals[:minor] += h_minor
     totals[:sat] += sat_add
     applied += 1
   end
@@ -1516,7 +1543,10 @@ post '/downtime/service' do
   Tools.save_json('campaign.json', campaign)
   label = "#{service['spell']} (#{service['title']})#{applied > 1 ? " x#{applied}" : ''}"
   total_cost = unit_cost * applied
-  Combat.add_log("#{target_char.name} paid #{total_cost}g for #{label} service - healed #{totals[:major]}/#{totals[:moderate]}/#{totals[:minor]}, +#{totals[:sat]} saturation")
+  summary = cure ?
+    "healed #{totals[:major]}/#{totals[:moderate]}/#{totals[:minor]}" :
+    "restored #{totals[:mana]} mana"
+  Combat.add_log("#{target_char.name} paid #{total_cost}g for #{label} service - #{summary}, +#{totals[:sat]} saturation")
   redirect '/downtime'
 end
 

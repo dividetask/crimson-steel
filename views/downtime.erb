@@ -6,7 +6,7 @@
 
   <div class="downtime-cards">
     <% @pcs.each do |pc| %>
-      <% consumables = pc.item_list.select { |i| e = @compendium.item_effects(i); e && (e[:type] == :cure || e[:base_name] == 'Standard Surgery') } %>
+      <% consumables = pc.item_list.select { |i| e = @compendium.item_effects(i); e && (e[:type] == :cure || e[:type] == :mana || e[:base_name] == 'Standard Surgery') } %>
       <div class="downtime-card">
         <h3><%= h pc.name %></h3>
         <div class="dt-subtitle">
@@ -1073,12 +1073,21 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
       if (atCap) maxBySat = 0;
       else if (satPerCast <= 0) maxBySat = Infinity;
       else maxBySat = Math.ceil((target.cha - target.saturation) / satPerCast);
-      var maxAllowed = Math.min(maxByGold, maxBySat);
+      // Recharge: also block once the target's mana is full (further casts
+      // would waste gold and add saturation for no benefit).
+      var maxByMana = Infinity;
+      if (svc.type === 'mana') {
+        if (target.mana >= target.manaMax) maxByMana = 0;
+        else if (svc.effect.mana > 0) maxByMana = Math.ceil((target.manaMax - target.mana) / svc.effect.mana);
+      }
+      var maxAllowed = Math.min(maxByGold, maxBySat, maxByMana);
 
       if (maxAllowed < 1) {
         svcQty.disabled = true; submitBtn.disabled = true;
-        var why = atCap ? target.name + ' is already at saturation cap (' + target.saturation + '/' + target.cha + ')'
-                        : 'Not enough gold (have ' + gold + 'g, need ' + svc.cost + 'g)';
+        var why;
+        if (atCap) why = target.name + ' is already at saturation cap (' + target.saturation + '/' + target.cha + ')';
+        else if (svc.type === 'mana' && target.mana >= target.manaMax) why = target.name + ' is already at full mana (' + target.mana + '/' + target.manaMax + ')';
+        else why = 'Not enough gold (have ' + gold + 'g, need ' + svc.cost + 'g)';
         svcPreview.innerHTML = '<span class="dt-warn">' + why + '.</span>';
         return;
       }
@@ -1090,39 +1099,67 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
       if (qty > maxAllowed) qty = maxAllowed;
       if (String(qty) !== svcQty.value) svcQty.value = qty;
 
-      var damage = target.damage.slice();
-      var sat = target.saturation;
-      var totals = { major: 0, moderate: 0, minor: 0, sat: 0 };
-      for (var i = 0; i < qty; i++) {
-        var pool = svc.effect.major;
-        var hMaj = Math.min(damage[2], pool); pool -= hMaj;
-        pool += svc.effect.moderate;
-        var hMod = Math.min(damage[1], pool); pool -= hMod;
-        pool += svc.effect.minor;
-        var hMin = Math.min(damage[0], pool);
-        damage[2] -= hMaj; damage[1] -= hMod; damage[0] -= hMin;
-        sat += satPerCast;
-        totals.major += hMaj; totals.moderate += hMod; totals.minor += hMin;
-        totals.sat += satPerCast;
-      }
-
-      var capWarn = sat >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
-      var totalCost = svc.cost * qty;
       var maxNote = isFinite(maxAllowed)
         ? '<span class="dt-note">(max possible: ' + maxAllowed + ')</span>'
         : '';
-      var lines = [
-        'Heals <b>' + totals.major + '</b> major, <b>' + totals.moderate + '</b> moderate, <b>' + totals.minor + '</b> minor (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.',
-        'Damage remaining: <b>' + damage[0] + '</b> minor, <b>' + damage[1] + '</b> moderate, <b>' + damage[2] + '</b> major.',
-        'Saturation <b>+' + totals.sat + '</b> (' + target.saturation + ' &rarr; ' + sat + '/' + target.cha + ')' + capWarn + '.',
-        'Cost <b>' + totalCost + 'g</b> (gold after: ' + (gold - totalCost) + ').'
-      ];
+      var totalCost = svc.cost * qty;
+      var lines = [];
+
+      if (svc.type === 'mana') {
+        // Recharge simulation: restore mana (clamped to max) per cast.
+        var mana = target.mana;
+        var sat = target.saturation;
+        var manaTotal = 0;
+        for (var i = 0; i < qty; i++) {
+          var before = mana;
+          mana = Math.min(target.manaMax, mana + svc.effect.mana);
+          manaTotal += (mana - before);
+          sat += satPerCast;
+        }
+        var capWarn = sat >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
+        lines.push('Restores <b>' + manaTotal + '</b> mana (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
+        lines.push('Mana: <b>' + target.mana + '</b> &rarr; <b>' + mana + '</b>/' + target.manaMax + '.');
+        lines.push('Saturation <b>+' + (sat - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + sat + '/' + target.cha + ')' + capWarn + '.');
+      } else {
+        // Cure simulation: cascade heals major -> moderate -> minor per cast.
+        var damage = target.damage.slice();
+        var sat2 = target.saturation;
+        var totals = { major: 0, moderate: 0, minor: 0 };
+        for (var j = 0; j < qty; j++) {
+          var pool = svc.effect.major;
+          var hMaj = Math.min(damage[2], pool); pool -= hMaj;
+          pool += svc.effect.moderate;
+          var hMod = Math.min(damage[1], pool); pool -= hMod;
+          pool += svc.effect.minor;
+          var hMin = Math.min(damage[0], pool);
+          damage[2] -= hMaj; damage[1] -= hMod; damage[0] -= hMin;
+          sat2 += satPerCast;
+          totals.major += hMaj; totals.moderate += hMod; totals.minor += hMin;
+        }
+        var capWarn2 = sat2 >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
+        lines.push('Heals <b>' + totals.major + '</b> major, <b>' + totals.moderate + '</b> moderate, <b>' + totals.minor + '</b> minor (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
+        lines.push('Damage remaining: <b>' + damage[0] + '</b> minor, <b>' + damage[1] + '</b> moderate, <b>' + damage[2] + '</b> major.');
+        lines.push('Saturation <b>+' + (sat2 - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + sat2 + '/' + target.cha + ')' + capWarn2 + '.');
+      }
+      lines.push('Cost <b>' + totalCost + 'g</b> (gold after: ' + (gold - totalCost) + ').');
       svcPreview.innerHTML = lines.join('<br>');
     }
 
     svcSpell.addEventListener('change', refreshServiceCasters);
     svcCaster.addEventListener('change', updateServicePreview);
-    svcTarget.addEventListener('change', updateServicePreview);
+    // Target change mirrors to the other service cells so the DM can compare
+    // three options for the same target without updating each cell by hand.
+    svcTarget.addEventListener('change', function() {
+      var newTarget = svcTarget.value;
+      document.querySelectorAll('.service-target').forEach(function(other) {
+        if (other === svcTarget) return;
+        if (other.value !== newTarget) {
+          other.value = newTarget;
+          other.dispatchEvent(new Event('change'));
+        }
+      });
+      updateServicePreview();
+    });
     svcQty.addEventListener('input', updateServicePreview);
     refreshServiceCasters();
   });
