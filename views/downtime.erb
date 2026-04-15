@@ -755,7 +755,29 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
       });
     });
     payloadEl.value = JSON.stringify(payload);
+    // Persist which combatants the DM has enabled so we can restore the same
+    // set after the End Round redirect. Stored as a JSON array of combat ids.
+    try {
+      var activeIds = [];
+      document.querySelectorAll('.ua-show-actions').forEach(function(cb) {
+        if (cb.checked) activeIds.push(cb.dataset.cid);
+      });
+      localStorage.setItem('crimsonSteel.urgentActions.active', JSON.stringify(activeIds));
+    } catch (e) { /* private mode etc.; ignore */ }
   });
+
+  // Restore the previously enabled combatants (if any). Persists across the
+  // /downtime/urgent_actions redirect so the DM can click End Round multiple
+  // times in a row without rechecking the same set every time.
+  try {
+    var saved = localStorage.getItem('crimsonSteel.urgentActions.active');
+    if (saved) {
+      JSON.parse(saved).forEach(function(cid) {
+        var cb = document.querySelector('.ua-show-actions[data-cid="' + cid + '"]');
+        if (cb && !cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); }
+      });
+    }
+  } catch (e) { /* ignore parse / storage errors */ }
 
   updateSummary();
 
