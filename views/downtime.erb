@@ -49,9 +49,9 @@
           <div class="<%= mana_class %>"><span class="label">Mana</span><span class="value"><%= pc.current_mana %>/<%= pc.mana_max %></span></div>
           <div class="<%= sat_class %>"><span class="label">Saturation</span><span class="value"><%= pc.saturation %>/<%= pc.cha %></span></div>
           <div><span class="label">Temp HP</span><span class="value"><%= pc.temporary_hit_points %></span></div>
-          <div class="<%= 'stat-warn'   if pc.minor_damage    > 0 %>"><span class="label">Minor Dmg</span><span class="value"><%= pc.minor_damage %></span></div>
-          <div class="<%= 'stat-orange' if pc.moderate_damage > 0 %>"><span class="label">Moderate Dmg</span><span class="value"><%= pc.moderate_damage %></span></div>
-          <div class="<%= 'stat-bad'    if pc.major_damage    > 0 %>"><span class="label">Major Dmg</span><span class="value"><%= pc.major_damage %></span></div>
+          <% if pc.minor_damage > 0 %><div class="stat-warn"><span class="label">Minor Dmg</span><span class="value"><%= pc.minor_damage %></span></div><% end %>
+          <% if pc.moderate_damage > 0 %><div class="stat-orange"><span class="label">Moderate Dmg</span><span class="value"><%= pc.moderate_damage %></span></div><% end %>
+          <% if pc.major_damage > 0 %><div class="stat-bad"><span class="label">Major Dmg</span><span class="value"><%= pc.major_damage %></span></div><% end %>
         </div>
         <% ad_entries = pc.ability_damage_entries %>
         <% if ad_entries.any? %>
