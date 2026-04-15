@@ -122,18 +122,29 @@
     var currentCharName = '<%= current ? @combat.display_name(current) : '' %>';
     var equippedWeapons = <%= current ? JSON.generate(
       current.character.weapon_list.select { |w| w['equipped'] }.map { |w|
+        details = (w.dig('properties', 'details') || [])
+        bleed = current.character.weapon_bleed(w)
         {
           item_id: w['item_id'],
           name: w['name'],
+          subtype: w['subtype'],
           weapon_dice: current.character.weapon_dice(w),
           weapon_speed: current.character.weapon_speed(w),
           weapon_attack_bonus: current.character.weapon_attack_bonus(w),
           weapon_dmg: (d = current.character.weapon_dmg(w); d.is_a?(Numeric) ? d : 0),
           weapon_threshold: (t = current.character.weapon_threshold(w); t.is_a?(Numeric) ? t : 0),
-          weapon_bonus: w['bonus'].to_i
+          weapon_bonus: w['bonus'].to_i,
+          is_natural: w.dig('properties', 'natural') == true,
+          is_ranged: details.include?('ranged'),
+          weapon_bleed: bleed.is_a?(Numeric) ? bleed : 0
         }
       }
     ) : '[]' %>;
+
+    // Current attacker metadata needed to compute default affliction amounts
+    // at the damage step (e.g. ghoul_paralysis adds attacker's tier).
+    var currentAttackerTier = <%= current ? current.character.tier.to_i : 0 %>;
+    var currentAttackerAbilities = <%= current ? JSON.generate(current.character.ability_list) : '[]' %>;
     var diceRemaining = <%= current ? current.combat_pool : 0 %>;
     var currentMana = <%= current ? current.mana : 0 %>;
     var moveSpeed = <%= current ? current.character.speed : 0 %>;
@@ -1428,9 +1439,35 @@
         ' (' + resilText + ' + Weapon Threshold ' + weapon.weapon_threshold + ')</span>';
       var splitDisplay = '<span class="math-detail">Minor: ' + split.minor + ' | Moderate: ' + split.moderate + ' | Major: ' + split.major + '</span>';
 
+      // Affliction defaults, computed from the same totalDamage shown above.
+      // Only afflictions that would naturally apply to this attack are
+      // shown; the DM can edit each value (or zero it out to suppress).
+      // Must match the order used by the server's attack handler.
+      var afflictionHtml = '';
+      attackState.afflictionDefaults = [];
+      if (attackState.attackPenetrates) {
+        if (!weapon.is_ranged && weapon.weapon_bleed > 0) {
+          attackState.afflictionDefaults.push({ key: 'bleed', label: 'Bleed', amount: totalDamage + weapon.weapon_bleed });
+        }
+        if (weapon.is_natural && currentAttackerAbilities.indexOf('ghoul_paralysis') !== -1) {
+          attackState.afflictionDefaults.push({ key: 'ghoul_paralysis', label: 'Ghoul Paralysis', amount: totalDamage + currentAttackerTier });
+        }
+        if (weapon.is_natural && weapon.subtype === 'bite' && currentAttackerAbilities.indexOf('poison_bite') !== -1) {
+          attackState.afflictionDefaults.push({ key: 'minor_strength_poison', label: 'Poison (minor STR)', amount: 5 + totalDamage });
+        }
+      }
+      if (attackState.afflictionDefaults.length > 0) {
+        afflictionHtml = '<br><span class="math-detail" style="margin-top:6px;display:inline-block;">Afflictions (editable):</span>';
+        attackState.afflictionDefaults.forEach(function(a) {
+          afflictionHtml += '<br><label style="margin-left:8px;">' + a.label + ': ' +
+            '<input type="number" id="afflict-' + a.key + '" min="0" value="' + a.amount + '" style="width:60px;"></label>';
+        });
+      }
+
       addStep(breakdown + '<br>' + thresholdMath + '<br>' + splitDisplay +
         '<br><label style="margin-top:8px;display:inline-block;">Final damage (editable): <input type="number" id="final-damage-input" min="0" value="' + totalDamage + '" style="width:60px;" onchange="updateDamageSplit()"></label>' +
         '<span id="final-split" class="math-detail" style="margin-left:10px;">Minor: ' + split.minor + ' | Moderate: ' + split.moderate + ' | Major: ' + split.major + '</span>' +
+        afflictionHtml +
         '<br><button class="action-btn" onclick="submitFinalResult(false)" style="margin-top:8px;">Submit Damage</button>' +
         ' <button class="action-btn" onclick="restartDefense()" style="margin-top:8px;">Change Defense</button>');
     }
@@ -1519,7 +1556,7 @@
       var threshold = effectiveResilience + attackState.weapon.weapon_threshold;
       var split = calcDamageSplit(finalDamage, threshold);
 
-      submitAction({
+      var fields = {
         combat_action: 'attack',
         attacker_combat_id: attackState.attackerCombatId,
         target_combat_id: attackState.targetCombatId,
@@ -1531,7 +1568,20 @@
         healing_word_data: hwDataStr,
         afflict: attackState.attackPenetrates ? 'true' : 'false',
         minor_damage: split.minor, moderate_damage: split.moderate, major_damage: split.major
+      };
+
+      // Forward DM-edited affliction amounts; only keys shown in the UI
+      // are sent so the server doesn't double-apply anything. Each key is
+      // named afflict_<condition> and is an absolute amount to add.
+      (attackState.afflictionDefaults || []).forEach(function(a) {
+        var el = document.getElementById('afflict-' + a.key);
+        if (el) {
+          var v = parseInt(el.value, 10);
+          if (!isNaN(v) && v >= 0) fields['afflict_' + a.key] = v;
+        }
       });
+
+      submitAction(fields);
     }
 
     function submitAction(fields) {

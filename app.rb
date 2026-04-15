@@ -131,54 +131,47 @@ post '/combat/action' do
     # client sets afflict='true' when pre-DR damage >= target's DR, so an
     # attack whose damage exactly matches armor still inflicts afflictions
     # even though 0 HP damage got through. A miss or damage < DR sends
-    # afflict='false' and this block is skipped. The weapon is identified
-    # by weapon_item_id sent from the client; the attacker's
-    # CharacterSheet.weapon_list includes both carried items and natural
-    # weapons (ghoul's bite/claws, spider's bite, etc.).
+    # afflict='false' and this block is skipped.
+    #
+    # The client computes default affliction amounts from the weapon's
+    # bleed rating / attacker tier / 5+damage for poison, but the DM can
+    # edit each value before submit. We trust the submitted afflict_<key>
+    # values here; the client only shows inputs for afflictions that
+    # would naturally apply to this attack. The attacker/weapon lookup is
+    # still needed to update condition_meta.max_ghoul_tier.
     afflict = params[:afflict] == 'true'
-    if afflict && params[:weapon_item_id] && !params[:weapon_item_id].to_s.empty?
-      weapon_item_id = params[:weapon_item_id].to_i
-      attacker_char_id = attacker['char_id'] || attacker['id']
-      attacker_data = Tools.load_json('characters.json').find { |c| c['id'] == attacker_char_id }
-      if attacker_data
-        attacker_sheet = CharacterSheet.new(attacker_data)
-        weapon = attacker_sheet.weapon_list.find { |w| w['item_id'] == weapon_item_id }
-        if weapon
-          details = weapon.dig('properties', 'details') || []
-          is_ranged = details.include?('ranged')
-          is_natural = weapon.dig('properties', 'natural') == true
+    if afflict
+      target_participant['conditions'] ||= {}
+      target_participant['condition_meta'] ||= {}
 
-          target_participant['conditions'] ||= {}
-          target_participant['condition_meta'] ||= {}
+      bleed_amt = params[:afflict_bleed].to_i
+      if bleed_amt > 0
+        target_participant['conditions']['bleed'] =
+          target_participant['conditions']['bleed'].to_i + bleed_amt
+      end
 
-          # Bleed: melee hit -> damage + weapon's bleed rating.
-          unless is_ranged
-            weapon_bleed = attacker_sheet.weapon_bleed(weapon)
-            weapon_bleed = weapon_bleed.is_a?(Numeric) ? weapon_bleed : 0
-            target_participant['conditions']['bleed'] =
-              target_participant['conditions']['bleed'].to_i + incoming_total + weapon_bleed
-          end
-
-          # Ghoul paralysis: attacker with ghoul_paralysis ability making a
-          # natural attack -> damage + attacker's tier. Track the highest
-          # ghoul tier that has hit this target; it modifies save TN until
-          # the condition decays to 0 (at which point it resets).
-          if is_natural && attacker_sheet.race_abilities.include?('ghoul_paralysis')
-            target_participant['conditions']['ghoul_paralysis'] =
-              target_participant['conditions']['ghoul_paralysis'].to_i + incoming_total + attacker_sheet.tier.to_i
+      gp_amt = params[:afflict_ghoul_paralysis].to_i
+      if gp_amt > 0
+        target_participant['conditions']['ghoul_paralysis'] =
+          target_participant['conditions']['ghoul_paralysis'].to_i + gp_amt
+        # Track the highest ghoul tier that has hit this target; it modifies
+        # save TN until the condition decays to 0. Look up the attacker to
+        # know their tier.
+        if params[:weapon_item_id] && !params[:weapon_item_id].to_s.empty?
+          attacker_char_id = attacker['char_id'] || attacker['id']
+          attacker_data = Tools.load_json('characters.json').find { |c| c['id'] == attacker_char_id }
+          if attacker_data
+            attacker_tier = CharacterSheet.new(attacker_data).tier.to_i
             target_participant['condition_meta']['max_ghoul_tier'] =
-              [target_participant['condition_meta']['max_ghoul_tier'].to_i, attacker_sheet.tier.to_i].max
-          end
-
-          # Poison bite: attacker with poison_bite ability hitting with a
-          # bite specifically (not claws / stinger / other natural weapons).
-          # This gating by weapon subtype supports e.g. a scorpion whose
-          # poison is on the stinger only, not the claws.
-          if is_natural && weapon['subtype'] == 'bite' && attacker_sheet.race_abilities.include?('poison_bite')
-            target_participant['conditions']['minor_strength_poison'] =
-              target_participant['conditions']['minor_strength_poison'].to_i + 5 + incoming_total
+              [target_participant['condition_meta']['max_ghoul_tier'].to_i, attacker_tier].max
           end
         end
+      end
+
+      poison_amt = params[:afflict_minor_strength_poison].to_i
+      if poison_amt > 0
+        target_participant['conditions']['minor_strength_poison'] =
+          target_participant['conditions']['minor_strength_poison'].to_i + poison_amt
       end
     end
 
