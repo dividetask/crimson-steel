@@ -292,30 +292,30 @@
 
       <% [0, 1, 2].each do |slot| %>
         <div class="dt-action">
-          <h3>Spellcasting Services <%= "##{slot + 1}" %><% unless @is_local %> <span class="dt-note">(DM only)</span><% end %></h3>
+          <h3>Spellcasting Services <%= "##{slot + 1}" %><% unless @is_local %> <span class="dt-note">(DM only to purchase)</span><% end %></h3>
           <% if @dt_data[:servicesSpells].empty? %>
             <p class="dt-note">No spellcasting services defined.</p>
           <% else %>
-            <form method="post" action="/downtime/service" id="service-form-<%= slot %>" class="service-form" data-slot="<%= slot %>">
+            <form method="post" action="/downtime/service" id="service-form-<%= slot %>" class="service-form" data-slot="<%= slot %>" data-can-purchase="<%= @is_local ? '1' : '0' %>">
               <label>Spell
-                <select name="spell" class="service-spell" id="service-spell-<%= slot %>" required <%= 'disabled' unless @is_local %>>
+                <select name="spell" class="service-spell" id="service-spell-<%= slot %>" required>
                   <% @dt_data[:servicesSpells].each_with_index do |spell, i| %>
                     <option value="<%= h spell %>" <%= 'selected' if i == 0 %>><%= h spell %></option>
                   <% end %>
                 </select>
               </label>
               <label>Caster
-                <select name="service_caster" class="service-caster" id="service-caster-<%= slot %>" required <%= 'disabled' unless @is_local %>></select>
+                <select name="service_caster" class="service-caster" id="service-caster-<%= slot %>" required></select>
               </label>
               <label>Target
-                <select name="target_id" class="service-target" id="service-target-<%= slot %>" required <%= 'disabled' unless @is_local %>>
+                <select name="target_id" class="service-target" id="service-target-<%= slot %>" required>
                   <% @pcs.each_with_index do |pc, i| %>
                     <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
                   <% end %>
                 </select>
               </label>
               <label>Quantity
-                <input type="number" name="quantity" class="service-quantity" id="service-quantity-<%= slot %>" min="1" value="1" <%= 'disabled' unless @is_local %>>
+                <input type="number" name="quantity" class="service-quantity" id="service-quantity-<%= slot %>" min="1" value="1">
               </label>
               <div class="dt-preview service-preview" id="service-preview-<%= slot %>">&nbsp;</div>
               <button type="submit" <%= 'disabled' unless @is_local %>>Purchase &amp; Apply</button>
@@ -1249,6 +1249,10 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
   // --- Services forms (one per slot, independent comparison cells). ---
   document.querySelectorAll('.service-form').forEach(function(serviceForm) {
     var slot = serviceForm.dataset.slot;
+    // Players can adjust the dropdowns to compute costs; only the DM can
+    // actually submit a purchase. Lock the button on for non-DM regardless
+    // of how the affordability computation comes out.
+    var canPurchase = serviceForm.dataset.canPurchase === '1';
     var svcSpell = document.getElementById('service-spell-' + slot);
     var svcCaster = document.getElementById('service-caster-' + slot);
     var svcTarget = document.getElementById('service-target-' + slot);
@@ -1314,7 +1318,7 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         return;
       }
 
-      svcQty.disabled = false; submitBtn.disabled = false;
+      svcQty.disabled = false; submitBtn.disabled = !canPurchase;
       svcQty.max = isFinite(maxAllowed) ? maxAllowed : '';
       var qty = parseInt(svcQty.value, 10);
       if (!(qty >= 1)) qty = 1;
