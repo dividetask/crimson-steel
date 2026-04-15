@@ -1362,6 +1362,13 @@
       var effectiveResilience = target.damage_resilience + resilienceBonus;
       var threshold = effectiveResilience + weapon.weapon_threshold;
 
+      // Pre-DR damage -- what the weapon would deal before armor soaks it.
+      // Used to decide if afflictions (bleed / poison / paralysis) apply:
+      // if raw damage >= target's DR, the strike penetrates enough to
+      // inflict conditions, even when net HP damage ends up 0.
+      var preDrDamage = weapon.weapon_dmg + netSuccesses + weapon.weapon_bonus;
+      attackState.attackPenetrates = preDrDamage >= effectiveDR;
+
       var hwReduction = attackState.healingWordSuccesses || 0;
       var totalDamage = Math.max(0, weapon.weapon_dmg + netSuccesses + weapon.weapon_bonus - effectiveDR - hwReduction);
 
@@ -1462,6 +1469,7 @@
           target_mana_cost: manaCost,
           ally_data: allyDataStr,
           healing_word_data: hwDataStr,
+          afflict: 'false',
           minor_damage: 0, moderate_damage: 0, major_damage: 0
         });
         return;
@@ -1484,6 +1492,7 @@
         target_mana_cost: manaCost,
         ally_data: allyDataStr,
         healing_word_data: hwDataStr,
+        afflict: attackState.attackPenetrates ? 'true' : 'false',
         minor_damage: split.minor, moderate_damage: split.moderate, major_damage: split.major
       });
     }

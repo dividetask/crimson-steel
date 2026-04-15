@@ -127,11 +127,16 @@ post '/combat/action' do
     target_participant['moderate_damage'] = target_participant['moderate_damage'].to_i + moderate
     target_participant['major_damage'] = target_participant['major_damage'].to_i + major
 
-    # Apply per-attack conditions when the hit lands (incoming_total > 0).
-    # The weapon used is identified by weapon_item_id sent from the client;
-    # the attacker's CharacterSheet.weapon_list includes both carried items
-    # and natural weapons (ghoul's bite/claws, etc.).
-    if incoming_total > 0 && params[:weapon_item_id] && !params[:weapon_item_id].to_s.empty?
+    # Apply per-attack conditions when the strike penetrates armor. The
+    # client sets afflict='true' when pre-DR damage >= target's DR, so an
+    # attack whose damage exactly matches armor still inflicts afflictions
+    # even though 0 HP damage got through. A miss or damage < DR sends
+    # afflict='false' and this block is skipped. The weapon is identified
+    # by weapon_item_id sent from the client; the attacker's
+    # CharacterSheet.weapon_list includes both carried items and natural
+    # weapons (ghoul's bite/claws, spider's bite, etc.).
+    afflict = params[:afflict] == 'true'
+    if afflict && params[:weapon_item_id] && !params[:weapon_item_id].to_s.empty?
       weapon_item_id = params[:weapon_item_id].to_i
       attacker_char_id = attacker['char_id'] || attacker['id']
       attacker_data = Tools.load_json('characters.json').find { |c| c['id'] == attacker_char_id }
