@@ -147,14 +147,14 @@
 
     <div class="dt-action-grid">
       <div class="dt-action">
-        <h3>Cast Cure</h3>
-        <% if @dt_data[:cureSpells].empty? %>
-          <p class="dt-note">No party member knows any Cure spell.</p>
+        <h3>Cast Cure / Recharge</h3>
+        <% if @dt_data[:castSpellNames].empty? %>
+          <p class="dt-note">No party member knows any Cure or Recharge spell.</p>
         <% else %>
           <form method="post" action="/downtime/cast" id="cure-form">
             <label>Spell
               <select name="spell_name" id="cure-spell" required>
-                <% @dt_data[:cureSpells].each_with_index do |variant, i| %>
+                <% @dt_data[:castSpellNames].each_with_index do |variant, i| %>
                   <option value="<%= h variant %>" <%= 'selected' if i == 0 %>><%= h variant %></option>
                 <% end %>
               </select>
@@ -169,8 +169,11 @@
                 <% end %>
               </select>
             </label>
+            <label>Quantity
+              <input type="number" name="quantity" id="cure-quantity" min="1" value="1">
+            </label>
             <div class="dt-preview" id="cure-preview">&nbsp;</div>
-            <button type="submit">Cast Cure</button>
+            <button type="submit">Cast</button>
           </form>
         <% end %>
       </div>
@@ -911,42 +914,19 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
   function pc(id) { return D.pcs[String(id)]; }
 
   // --- Cure cascade preview (shared by Cure + Services). ---
-  function cureCascade(effect, target, improvedHealing, casterTier) {
-    var pool = effect.major;
-    var healedMajor = Math.min(target.damage[2], pool); pool -= healedMajor;
-    pool += effect.moderate;
-    var healedModerate = Math.min(target.damage[1], pool); pool -= healedModerate;
-    pool += effect.minor;
-    var healedMinor = Math.min(target.damage[0], pool);
-
-    var satAdd = effect.saturation - target.tier;
-    if (improvedHealing) satAdd -= 2 * casterTier;
-    if (satAdd < effect.minimumSaturation) satAdd = effect.minimumSaturation;
-    return {major: healedMajor, moderate: healedModerate, minor: healedMinor, sat: satAdd};
-  }
-
-  function formatCurePreview(target, result, extraNote) {
-    var newSat = target.saturation + result.sat;
-    var capHit = newSat >= target.cha;
-    var lines = [
-      'Heals <b>' + result.major + '</b> major, <b>' + result.moderate + '</b> moderate, <b>' + result.minor + '</b> minor.',
-      'Saturation <b>+' + result.sat + '</b> (' + target.saturation + ' &rarr; ' + newSat + '/' + target.cha + ')' + (capHit ? ' <span class="dt-warn">at/over cap</span>' : '') + '.'
-    ];
-    if (extraNote) lines.push(extraNote);
-    return lines.join('<br>');
-  }
-
-  // --- Cure form ---
+  // --- Cast Cure / Recharge form ---
   var cureForm = document.getElementById('cure-form');
   if (cureForm) {
     var cureSpell = document.getElementById('cure-spell');
     var cureCaster = document.getElementById('cure-caster');
     var cureTarget = document.getElementById('cure-target');
+    var cureQty = document.getElementById('cure-quantity');
     var curePreview = document.getElementById('cure-preview');
+    var cureSubmit = cureForm.querySelector('button[type="submit"]');
 
     function refreshCureCasters() {
       var spell = cureSpell.value;
-      var entry = D.cures[spell];
+      var entry = D.castSpells[spell];
       cureCaster.innerHTML = '';
       if (!entry) return;
       entry.casterIds.forEach(function(id, i) {
@@ -964,17 +944,113 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
       var spell = cureSpell.value;
       var casterId = parseInt(cureCaster.value, 10);
       var targetId = parseInt(cureTarget.value, 10);
-      var effect = D.cures[spell];
+      var entry = D.castSpells[spell];
       var caster = pc(casterId);
       var target = pc(targetId);
-      if (!effect || !caster || !target) { curePreview.innerHTML = '&nbsp;'; return; }
-      var result = cureCascade(effect, target, caster.improvedHealing, caster.tier);
-      curePreview.innerHTML = formatCurePreview(target, result);
+      if (!entry || !caster || !target) {
+        curePreview.innerHTML = '&nbsp;';
+        cureQty.disabled = true; cureSubmit.disabled = true;
+        return;
+      }
+
+      // Per-cast saturation applied to target. Same rules as services: cure
+      // spells can benefit from improved_healing; Recharge (mana) cannot.
+      var satPerCast = entry.saturation - target.tier;
+      if (entry.type === 'cure' && caster.improvedHealing) satPerCast -= 2 * caster.tier;
+      if (satPerCast < entry.minimumSaturation) satPerCast = entry.minimumSaturation;
+
+      var manaCost = entry.manaCost;
+      // Caster mana pool shrinks by cost/cast. Note: for a self-cast of
+      // Recharge, the net change is (restoreAmount - manaCost); we account
+      // for that during the per-cast simulation.
+      var maxByMana = Math.floor(caster.mana / manaCost);
+      var atSatCap = target.saturation >= target.cha;
+      var maxBySat;
+      if (atSatCap) maxBySat = 0;
+      else if (satPerCast <= 0) maxBySat = Infinity;
+      else maxBySat = Math.ceil((target.cha - target.saturation) / satPerCast);
+      // Recharge: also stop once target is at mana cap (further casts would
+      // cost the caster mana for no target benefit but still add saturation).
+      // When caster === target, the running mana simulation handles it.
+      var maxByTargetMana = Infinity;
+      if (entry.type === 'mana' && caster.id !== target.id) {
+        if (target.mana >= target.manaMax) maxByTargetMana = 0;
+        else if (entry.mana > 0) maxByTargetMana = Math.ceil((target.manaMax - target.mana) / entry.mana);
+      }
+      var maxAllowed = Math.min(maxByMana, maxBySat, maxByTargetMana);
+
+      if (maxAllowed < 1) {
+        cureQty.disabled = true; cureSubmit.disabled = true;
+        var why;
+        if (atSatCap) why = target.name + ' is already at saturation cap (' + target.saturation + '/' + target.cha + ')';
+        else if (entry.type === 'mana' && target.mana >= target.manaMax && caster.id !== target.id) why = target.name + ' is already at full mana (' + target.mana + '/' + target.manaMax + ')';
+        else why = caster.name + ' does not have enough mana (' + caster.mana + '/' + manaCost + ')';
+        curePreview.innerHTML = '<span class="dt-warn">' + why + '.</span>';
+        return;
+      }
+
+      cureQty.disabled = false; cureSubmit.disabled = false;
+      cureQty.max = isFinite(maxAllowed) ? maxAllowed : '';
+      var qty = parseInt(cureQty.value, 10);
+      if (!(qty >= 1)) qty = 1;
+      if (qty > maxAllowed) qty = maxAllowed;
+      if (String(qty) !== cureQty.value) cureQty.value = qty;
+
+      var maxNote = isFinite(maxAllowed)
+        ? '<span class="dt-note">(max possible: ' + maxAllowed + ')</span>'
+        : '';
+      var lines = [];
+      var casterManaEnd = caster.mana;
+      var targetSatEnd = target.saturation;
+
+      if (entry.type === 'cure') {
+        var damage = target.damage.slice();
+        var totals = { major: 0, moderate: 0, minor: 0 };
+        for (var i = 0; i < qty; i++) {
+          var pool = entry.major;
+          var hMaj = Math.min(damage[2], pool); pool -= hMaj;
+          pool += entry.moderate;
+          var hMod = Math.min(damage[1], pool); pool -= hMod;
+          pool += entry.minor;
+          var hMin = Math.min(damage[0], pool);
+          damage[2] -= hMaj; damage[1] -= hMod; damage[0] -= hMin;
+          targetSatEnd += satPerCast;
+          casterManaEnd -= manaCost;
+          totals.major += hMaj; totals.moderate += hMod; totals.minor += hMin;
+        }
+        var capWarn = targetSatEnd >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
+        lines.push('Heals <b>' + totals.major + '</b> major, <b>' + totals.moderate + '</b> moderate, <b>' + totals.minor + '</b> minor (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
+        lines.push('Damage remaining: <b>' + damage[0] + '</b> minor, <b>' + damage[1] + '</b> moderate, <b>' + damage[2] + '</b> major.');
+        lines.push('Saturation <b>+' + (targetSatEnd - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ')' + capWarn + '.');
+      } else {
+        // Recharge simulation -- handle caster==target by tracking both pools.
+        var selfCast = caster.id === target.id;
+        var targetMana = target.mana;
+        var manaRestored = 0;
+        for (var j = 0; j < qty; j++) {
+          // Subtract the caster's cast cost first. If it's a self-cast this
+          // also reduces the available "target" mana immediately (same pool).
+          casterManaEnd -= manaCost;
+          if (selfCast) targetMana -= manaCost;
+          var beforeT = targetMana;
+          targetMana = Math.min(target.manaMax, targetMana + entry.mana);
+          manaRestored += (targetMana - beforeT);
+          if (selfCast) casterManaEnd = targetMana; // same pool, stays in sync
+          targetSatEnd += satPerCast;
+        }
+        var capWarn2 = targetSatEnd >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
+        lines.push('Restores <b>' + manaRestored + '</b> mana to ' + target.name + ' (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
+        lines.push('Target mana: <b>' + target.mana + '</b> &rarr; <b>' + targetMana + '</b>/' + target.manaMax + '.');
+        lines.push('Saturation <b>+' + (targetSatEnd - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ')' + capWarn2 + '.');
+      }
+      lines.push('Caster mana: <b>' + caster.mana + '</b> &rarr; <b>' + casterManaEnd + '</b>/' + caster.manaMax + '.');
+      curePreview.innerHTML = lines.join('<br>');
     }
 
     cureSpell.addEventListener('change', refreshCureCasters);
     cureCaster.addEventListener('change', updateCurePreview);
     cureTarget.addEventListener('change', updateCurePreview);
+    cureQty.addEventListener('input', updateCurePreview);
     refreshCureCasters();
   }
 
