@@ -55,9 +55,13 @@
 		"classes": [{"level": 4, "class": "arcane_trickster", 
 			"skills": ["arcana", "stealth", "larceny", "slight_of_hand", "deception", "persuasion", "perception", "game_chess" ] }],
 		"feats": { "race": ["elven_magic", "firebolt"]},
-		"spells": [ 
+		"spells": [
 			["Fire Bolt", "Message", "Silent Portal", "Ghost Sound", "Mage Hand"],
-			["Hideous Laughter", "Illusion of Calm", "Auditory Hallucination"]]
+			["Hideous Laughter", "Illusion of Calm", "Auditory Hallucination"]],
+		"rituals": [
+			["Guidance", "Resistance", "Acid Splash", "Drench", "Light", "Spark", "Mending", "Detect Magic"],
+			["Alarm", "Endure Elements", "Mount", "Charm Person", "Ant Haul", "Disguise Self", "Obscuring Mist", "Minor Recharge"],
+			["Silent Image", "Disguise Other", "Invisibility", "Basic Recharge"]]
 	},
 	{
 		"id": 4,

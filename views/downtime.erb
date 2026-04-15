@@ -5,22 +5,63 @@
   </div>
 
   <div class="downtime-cards">
+    <% attr_full = { 'str' => 'Strength', 'dex' => 'Dexterity', 'con' => 'Constitution', 'int' => 'Intelligence', 'wis' => 'Wisdom', 'cha' => 'Charisma' } %>
     <% @pcs.each do |pc| %>
       <% consumables = pc.item_list.select { |i| e = @compendium.item_effects(i); e && (e[:type] == :cure || e[:type] == :mana || e[:base_name] == 'Standard Surgery') } %>
+      <%
+        # Stat color thresholds. HP/Mana use the "high-is-good" ramp:
+        # full -> no highlight, >=75% green, >=50% yellow, >=25% orange,
+        # otherwise red. Saturation reverses (low is good): 0 -> no
+        # highlight, <=25% green, <=50% yellow, <=75% orange, else red.
+        # Damage rows highlight by severity when non-zero (minor=yellow,
+        # moderate=orange, major=red).
+        good_ramp = lambda do |cur, max|
+          return '' if max.to_i <= 0
+          return '' if cur.to_i >= max.to_i
+          pct = (cur.to_f / max) * 100.0
+          if    pct >= 75 then 'stat-good'
+          elsif pct >= 50 then 'stat-warn'
+          elsif pct >= 25 then 'stat-orange'
+          else 'stat-bad'
+          end
+        end
+        bad_ramp = lambda do |cur, max|
+          return '' if max.to_i <= 0
+          return '' if cur.to_i <= 0
+          pct = (cur.to_f / max) * 100.0
+          if    pct <= 25 then 'stat-good'
+          elsif pct <= 50 then 'stat-warn'
+          elsif pct <= 75 then 'stat-orange'
+          else 'stat-bad'
+          end
+        end
+        hp_class   = good_ramp.call(pc.current_hp, pc.hp_max)
+        mana_class = good_ramp.call(pc.current_mana, pc.mana_max)
+        sat_class  = bad_ramp.call(pc.saturation, pc.cha)
+      %>
       <div class="downtime-card">
         <h3><%= h pc.name %></h3>
         <div class="dt-subtitle">
           <%= h pc.race %> <%= h pc.full_klass %> &middot; Tier <%= pc.tier %>
         </div>
         <div class="dt-stats">
-          <div><span class="label">HP</span><span class="value"><%= pc.current_hp %>/<%= pc.hp_max %></span></div>
-          <div><span class="label">Mana</span><span class="value"><%= pc.current_mana %>/<%= pc.mana_max %></span></div>
-          <div><span class="label">Saturation</span><span class="value"><%= pc.saturation %>/<%= pc.cha %></span></div>
+          <div class="<%= hp_class %>"><span class="label">HP</span><span class="value"><%= pc.current_hp %>/<%= pc.hp_max %></span></div>
+          <div class="<%= mana_class %>"><span class="label">Mana</span><span class="value"><%= pc.current_mana %>/<%= pc.mana_max %></span></div>
+          <div class="<%= sat_class %>"><span class="label">Saturation</span><span class="value"><%= pc.saturation %>/<%= pc.cha %></span></div>
           <div><span class="label">Temp HP</span><span class="value"><%= pc.temporary_hit_points %></span></div>
-          <div><span class="label">Minor Dmg</span><span class="value"><%= pc.minor_damage %></span></div>
-          <div><span class="label">Moderate Dmg</span><span class="value"><%= pc.moderate_damage %></span></div>
-          <div><span class="label">Major Dmg</span><span class="value"><%= pc.major_damage %></span></div>
+          <% if pc.minor_damage > 0 %><div class="stat-warn"><span class="label">Minor Dmg</span><span class="value"><%= pc.minor_damage %></span></div><% end %>
+          <% if pc.moderate_damage > 0 %><div class="stat-orange"><span class="label">Moderate Dmg</span><span class="value"><%= pc.moderate_damage %></span></div><% end %>
+          <% if pc.major_damage > 0 %><div class="stat-bad"><span class="label">Major Dmg</span><span class="value"><%= pc.major_damage %></span></div><% end %>
         </div>
+        <% ad_entries = pc.ability_damage_entries %>
+        <% if ad_entries.any? %>
+          <div class="dt-stats dt-ability-damage">
+            <% ad_entries.each do |attr, sev, n| %>
+              <% sev_class = case sev when 'major' then 'stat-bad' when 'moderate' then 'stat-orange' else 'stat-warn' end %>
+              <div class="<%= sev_class %>"><span class="label"><%= sev.capitalize %> <%= attr_full[attr] || attr.upcase %> Damage</span><span class="value"><%= n %></span></div>
+            <% end %>
+          </div>
+        <% end %>
         <% if consumables.any? %>
           <div class="dt-consumables">
             <h4>Healing items</h4>
@@ -147,9 +188,9 @@
 
     <div class="dt-action-grid">
       <div class="dt-action">
-        <h3>Cast Cure / Recharge</h3>
+        <h3>Cast Spell</h3>
         <% if @dt_data[:castSpellNames].empty? %>
-          <p class="dt-note">No party member knows any Cure or Recharge spell.</p>
+          <p class="dt-note">No party member knows any downtime-castable spell.</p>
         <% else %>
           <form method="post" action="/downtime/cast" id="cure-form">
             <label>Spell
@@ -169,8 +210,12 @@
                 <% end %>
               </select>
             </label>
-            <label>Quantity
+            <label class="cure-quantity-label">Quantity
               <input type="number" name="quantity" id="cure-quantity" min="1" value="1">
+            </label>
+            <div class="dt-dice cure-surgery-only" id="cure-dice" style="display:none;">Healing check: &mdash;</div>
+            <label class="cure-surgery-only" style="display:none;">Successes rolled
+              <input type="number" name="successes" id="cure-successes" value="0" min="0">
             </label>
             <div class="dt-preview" id="cure-preview">&nbsp;</div>
             <button type="submit">Cast</button>
@@ -179,32 +224,37 @@
       </div>
 
       <div class="dt-action">
-        <h3>Cast Surgery</h3>
-        <% if @surgery_casters.empty? %>
-          <p class="dt-note">No party member knows Standard Surgery.</p>
+        <h3>Cast Ritual</h3>
+        <% if @dt_data[:ritualSpellNames].empty? %>
+          <p class="dt-note">No PC has a downtime-castable ritual in their spellbook.</p>
         <% else %>
-          <form method="post" action="/downtime/cast" id="surgery-form">
-            <input type="hidden" name="spell_name" value="Standard Surgery">
-            <label>Caster
-              <select name="caster_id" id="surgery-caster" required>
-                <% @surgery_casters.each_with_index do |pc, i| %>
-                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %></option>
+          <form method="post" action="/downtime/cast_ritual" id="ritual-form">
+            <label>Spell
+              <select name="spell_name" id="ritual-spell" required>
+                <% @dt_data[:ritualSpellNames].each_with_index do |variant, i| %>
+                  <option value="<%= h variant %>" <%= 'selected' if i == 0 %>><%= h variant %></option>
                 <% end %>
               </select>
+            </label>
+            <label>Caster
+              <select name="caster_id" id="ritual-caster" required></select>
             </label>
             <label>Target
-              <select name="target_id" id="surgery-target" required>
+              <select name="target_id" id="ritual-target" required>
                 <% @pcs.each_with_index do |pc, i| %>
-                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (major dmg <%= pc.major_damage %>)</option>
+                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
                 <% end %>
               </select>
             </label>
-            <div class="dt-dice" id="surgery-dice">Healing check: &mdash;</div>
-            <label>Successes rolled
-              <input type="number" name="successes" id="surgery-successes" value="0" min="0" required>
+            <label class="ritual-quantity-label">Quantity
+              <input type="number" name="quantity" id="ritual-quantity" min="1" value="1">
             </label>
-            <div class="dt-preview" id="surgery-preview">&nbsp;</div>
-            <button type="submit">Apply Surgery</button>
+            <div class="dt-dice ritual-surgery-only" id="ritual-dice" style="display:none;">Healing check: &mdash;</div>
+            <label class="ritual-surgery-only" style="display:none;">Successes rolled
+              <input type="number" name="successes" id="ritual-successes" value="0" min="0">
+            </label>
+            <div class="dt-preview" id="ritual-preview">&nbsp;</div>
+            <button type="submit">Cast Ritual</button>
           </form>
         <% end %>
       </div>
@@ -242,30 +292,30 @@
 
       <% [0, 1, 2].each do |slot| %>
         <div class="dt-action">
-          <h3>Spellcasting Services <%= "##{slot + 1}" %><% unless @is_local %> <span class="dt-note">(DM only)</span><% end %></h3>
+          <h3>Spellcasting Services <%= "##{slot + 1}" %><% unless @is_local %> <span class="dt-note">(DM only to purchase)</span><% end %></h3>
           <% if @dt_data[:servicesSpells].empty? %>
             <p class="dt-note">No spellcasting services defined.</p>
           <% else %>
-            <form method="post" action="/downtime/service" id="service-form-<%= slot %>" class="service-form" data-slot="<%= slot %>">
+            <form method="post" action="/downtime/service" id="service-form-<%= slot %>" class="service-form" data-slot="<%= slot %>" data-can-purchase="<%= @is_local ? '1' : '0' %>">
               <label>Spell
-                <select name="spell" class="service-spell" id="service-spell-<%= slot %>" required <%= 'disabled' unless @is_local %>>
+                <select name="spell" class="service-spell" id="service-spell-<%= slot %>" required>
                   <% @dt_data[:servicesSpells].each_with_index do |spell, i| %>
                     <option value="<%= h spell %>" <%= 'selected' if i == 0 %>><%= h spell %></option>
                   <% end %>
                 </select>
               </label>
               <label>Caster
-                <select name="service_caster" class="service-caster" id="service-caster-<%= slot %>" required <%= 'disabled' unless @is_local %>></select>
+                <select name="service_caster" class="service-caster" id="service-caster-<%= slot %>" required></select>
               </label>
               <label>Target
-                <select name="target_id" class="service-target" id="service-target-<%= slot %>" required <%= 'disabled' unless @is_local %>>
+                <select name="target_id" class="service-target" id="service-target-<%= slot %>" required>
                   <% @pcs.each_with_index do |pc, i| %>
                     <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
                   <% end %>
                 </select>
               </label>
               <label>Quantity
-                <input type="number" name="quantity" class="service-quantity" id="service-quantity-<%= slot %>" min="1" value="1" <%= 'disabled' unless @is_local %>>
+                <input type="number" name="quantity" class="service-quantity" id="service-quantity-<%= slot %>" min="1" value="1">
               </label>
               <div class="dt-preview service-preview" id="service-preview-<%= slot %>">&nbsp;</div>
               <button type="submit" <%= 'disabled' unless @is_local %>>Purchase &amp; Apply</button>
@@ -810,6 +860,21 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
       return { rolls: rolls, successes: successes };
     }
 
+    // Parse condition names like "minor_strength_poison" into {severity, attr}
+    // for any ability-damage-style affliction. Returns null for conditions
+    // whose name doesn't follow that pattern.
+    var ABILITY_ATTR_MAP = {
+      strength: 'str', dexterity: 'dex', constitution: 'con',
+      intelligence: 'int', wisdom: 'wis', charisma: 'cha'
+    };
+    function parseAbilityCondition(name) {
+      var m = /^(minor|moderate|major)_([a-z]+)_/.exec(name);
+      if (!m) return null;
+      var attr = ABILITY_ATTR_MAP[m[2]];
+      if (!attr) return null;
+      return { severity: m[1], attr: attr };
+    }
+
     function simulateCondition(cond, tempHpStart) {
       var severity = cond.severity;
       var dice = cond.dice;
@@ -817,9 +882,11 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
       var totalDamage = 0;       // bleed: minor damage dealt (post-temp HP)
       var tempAbsorbed = 0;      // bleed: amount soaked by temp HP
       var totalRounds = 0;       // ghoul_paralysis: paralysis rounds queued
+      var abilityDealt = {};     // ability-damage conds: {severity: {attr: count}}
       var tempHp = tempHpStart;
       var savesLog = [];
       var saves = 0;
+      var ab = parseAbilityCondition(cond.name);
       while (severity > 0 && saves < QR_MAX_SAVES) {
         var roll = simulateOneSave(dice, tn);
         saves++;
@@ -833,6 +900,13 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
         } else if (cond.name === 'ghoul_paralysis') {
           var rawR = 1 + Math.floor(severity / 10);
           totalRounds += Math.max(0, rawR - roll.successes);
+        } else if (ab) {
+          var rawA = 1 + Math.floor(severity / 10);
+          var dealtA = Math.max(0, rawA - roll.successes);
+          if (dealtA > 0) {
+            abilityDealt[ab.severity] = abilityDealt[ab.severity] || {};
+            abilityDealt[ab.severity][ab.attr] = (abilityDealt[ab.severity][ab.attr] || 0) + dealtA;
+          }
         }
         savesLog.push(roll.successes);
         severity = Math.max(0, severity - (1 + roll.successes));
@@ -843,6 +917,7 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
         damage: totalDamage,
         tempAbsorbed: tempAbsorbed,
         rounds: totalRounds,
+        abilityDealt: abilityDealt,
         savesLog: savesLog,
         tempHpAfter: tempHp
       };
@@ -889,6 +964,18 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
             detail = '<br>Took <b>' + sim.damage + '</b> minor damage' + absorb + '.';
           } else if (cond.name === 'ghoul_paralysis') {
             detail = '<br>Queued <b>' + sim.rounds + '</b> paralysis round' + (sim.rounds === 1 ? '' : 's') + '.';
+          } else if (sim.abilityDealt) {
+            // Flatten {severity: {attr: count}} into "N <severity> <ATTR>" pieces.
+            var pieces = [];
+            ['minor', 'moderate', 'major'].forEach(function(sev) {
+              var bucket = sim.abilityDealt[sev]; if (!bucket) return;
+              Object.keys(bucket).forEach(function(attr) {
+                var n = bucket[attr]; if (n <= 0) return;
+                pieces.push('<b>' + n + '</b> ' + sev + ' ' + attr.toUpperCase() + ' damage');
+              });
+            });
+            if (pieces.length) detail = '<br>Took ' + pieces.join(', ') + '.';
+            else detail = '<br>No ability damage taken.';
           }
           var savesLine = sim.savesLog.length ? '<br><span class="math-detail">Successes per save: ' + sim.savesLog.join(', ') + '</span>' : '';
           el.innerHTML = status + detail + savesLine;
@@ -914,20 +1001,31 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
   function pc(id) { return D.pcs[String(id)]; }
 
   // --- Cure cascade preview (shared by Cure + Services). ---
-  // --- Cast Cure / Recharge form ---
-  var cureForm = document.getElementById('cure-form');
-  if (cureForm) {
-    var cureSpell = document.getElementById('cure-spell');
-    var cureCaster = document.getElementById('cure-caster');
-    var cureTarget = document.getElementById('cure-target');
-    var cureQty = document.getElementById('cure-quantity');
-    var curePreview = document.getElementById('cure-preview');
-    var cureSubmit = cureForm.querySelector('button[type="submit"]');
+  // --- Generic cast cell wiring shared by Cast Spell + Cast Ritual.
+  // `opts.payloadKey` selects D.castSpells or D.ritualSpells; `opts.gold`
+  // toggles the per-cast gold cost (Ritual only). Handles cure / mana /
+  // ability (Restoration) / surgery effect types. ---
+  function wireCastCell(opts) {
+    var prefix = opts.prefix;
+    var form = document.getElementById(prefix + '-form');
+    if (!form) return;
+    var spellEl   = document.getElementById(prefix + '-spell');
+    var casterEl  = document.getElementById(prefix + '-caster');
+    var targetEl  = document.getElementById(prefix + '-target');
+    var qtyEl     = document.getElementById(prefix + '-quantity');
+    var qtyLbl    = form.querySelector('.' + prefix + '-quantity-label');
+    var diceEl    = document.getElementById(prefix + '-dice');
+    var sucEl     = document.getElementById(prefix + '-successes');
+    var surgUI    = form.querySelectorAll('.' + prefix + '-surgery-only');
+    var preview   = document.getElementById(prefix + '-preview');
+    var submitBtn = form.querySelector('button[type="submit"]');
 
-    function refreshCureCasters() {
-      var spell = cureSpell.value;
-      var entry = D.castSpells[spell];
-      cureCaster.innerHTML = '';
+    function payloadFor(spell) { return D[opts.payloadKey][spell]; }
+
+    function refreshCasters() {
+      var spell = spellEl.value;
+      var entry = payloadFor(spell);
+      casterEl.innerHTML = '';
       if (!entry) return;
       entry.casterIds.forEach(function(id, i) {
         var p = pc(id);
@@ -935,68 +1033,110 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         opt.value = id;
         opt.textContent = p.name;
         if (i === 0) opt.selected = true;
-        cureCaster.appendChild(opt);
+        casterEl.appendChild(opt);
       });
-      updateCurePreview();
+      update();
     }
 
-    function updateCurePreview() {
-      var spell = cureSpell.value;
-      var casterId = parseInt(cureCaster.value, 10);
-      var targetId = parseInt(cureTarget.value, 10);
-      var entry = D.castSpells[spell];
+    function update() {
+      var spell = spellEl.value;
+      var casterId = parseInt(casterEl.value, 10);
+      var targetId = parseInt(targetEl.value, 10);
+      var entry = payloadFor(spell);
       var caster = pc(casterId);
       var target = pc(targetId);
       if (!entry || !caster || !target) {
-        curePreview.innerHTML = '&nbsp;';
-        cureQty.disabled = true; cureSubmit.disabled = true;
+        preview.innerHTML = '&nbsp;';
+        qtyEl.disabled = true; submitBtn.disabled = true;
+        if (qtyLbl) qtyLbl.style.display = '';
+        surgUI.forEach(function(el) { el.style.display = 'none'; });
         return;
       }
 
-      // Per-cast saturation applied to target. Same rules as services: cure
-      // spells can benefit from improved_healing; Recharge (mana) cannot.
-      var satPerCast = entry.saturation - target.tier;
+      // Show / hide Surgery-specific UI vs Quantity row.
+      var isSurgery = entry.type === 'surgery';
+      if (qtyLbl) qtyLbl.style.display = isSurgery ? 'none' : '';
+      surgUI.forEach(function(el) { el.style.display = isSurgery ? '' : 'none'; });
+
+      // Surgery: surface the caster's healing-skill check from the
+      // surgeryCasters payload (precomputed dice/TN/starting successes).
+      if (isSurgery) {
+        var sc = D.surgeryCasters[String(caster.id)];
+        if (sc) {
+          var starting = sc.startingSuccesses > 0 ? ' <span class="dt-warn">+' + sc.startingSuccesses + ' starting</span>' : '';
+          diceEl.innerHTML = 'Healing check: <b>' + sc.dice + 'd</b> TN <b>' + sc.tn + '</b>' + starting;
+        } else {
+          diceEl.innerHTML = 'Healing check: &mdash;';
+        }
+      }
+
+      // Saturation per cast (cure spells get improved_healing reduction).
+      var satPerCast = entry.type === 'surgery' ? 0 : (entry.saturation - target.tier);
       if (entry.type === 'cure' && caster.improvedHealing) satPerCast -= 2 * caster.tier;
-      if (satPerCast < entry.minimumSaturation) satPerCast = entry.minimumSaturation;
+      if (entry.type === 'ability' && caster.improvedHealing) satPerCast -= 2 * caster.tier;
+      if (entry.type !== 'surgery' && satPerCast < entry.minimumSaturation) satPerCast = entry.minimumSaturation;
 
       var manaCost = entry.manaCost;
-      // Caster mana pool shrinks by cost/cast. Note: for a self-cast of
-      // Recharge, the net change is (restoreAmount - manaCost); we account
-      // for that during the per-cast simulation.
-      var maxByMana = Math.floor(caster.mana / manaCost);
+      var goldCost = opts.gold ? (entry.goldCost || 0) : 0;
+      var gold = D.campaignGold;
+      // Recharge transfers entry.mana from caster to target, so the caster
+      // must have manaCost + entry.mana up front. For a self-cast the
+      // transfer comes back, so the per-cast net loss is just manaCost.
+      var requiredPerCast = manaCost + (entry.type === 'mana' ? entry.mana : 0);
+      var netPerCast = manaCost + (entry.type === 'mana' && caster.id !== target.id ? entry.mana : 0);
+      var maxByMana;
+      if (caster.mana < requiredPerCast) {
+        maxByMana = 0;
+      } else if (netPerCast <= 0) {
+        maxByMana = Infinity;
+      } else {
+        maxByMana = 1 + Math.floor((caster.mana - requiredPerCast) / netPerCast);
+      }
+      var maxByGold = goldCost > 0 ? Math.floor(gold / goldCost) : Infinity;
       var atSatCap = target.saturation >= target.cha;
       var maxBySat;
-      if (atSatCap) maxBySat = 0;
-      else if (satPerCast <= 0) maxBySat = Infinity;
-      else maxBySat = Math.ceil((target.cha - target.saturation) / satPerCast);
-      // Recharge: also stop once target is at mana cap (further casts would
-      // cost the caster mana for no target benefit but still add saturation).
-      // When caster === target, the running mana simulation handles it.
+      if (isSurgery) {
+        maxBySat = caster.mana >= manaCost ? 1 : 0;
+      } else if (atSatCap) {
+        maxBySat = 0;
+      } else if (satPerCast <= 0) {
+        maxBySat = Infinity;
+      } else {
+        maxBySat = Math.ceil((target.cha - target.saturation) / satPerCast);
+      }
       var maxByTargetMana = Infinity;
       if (entry.type === 'mana' && caster.id !== target.id) {
         if (target.mana >= target.manaMax) maxByTargetMana = 0;
         else if (entry.mana > 0) maxByTargetMana = Math.ceil((target.manaMax - target.mana) / entry.mana);
       }
-      var maxAllowed = Math.min(maxByMana, maxBySat, maxByTargetMana);
+      var maxByAbility = Infinity;
+      if (entry.type === 'ability') {
+        var totalAbility = (target.abilityDamage.major | 0) + (target.abilityDamage.moderate | 0) + (target.abilityDamage.minor | 0);
+        if (totalAbility === 0) maxByAbility = 0;
+      }
+      var maxAllowed = isSurgery ? Math.min(1, maxByMana) : Math.min(maxByMana, maxByGold, maxBySat, maxByTargetMana, maxByAbility);
 
       if (maxAllowed < 1) {
-        cureQty.disabled = true; cureSubmit.disabled = true;
+        qtyEl.disabled = true; submitBtn.disabled = true;
         var why;
-        if (atSatCap) why = target.name + ' is already at saturation cap (' + target.saturation + '/' + target.cha + ')';
+        if (caster.mana < requiredPerCast) why = caster.name + ' does not have enough mana (' + caster.mana + '/' + requiredPerCast + ')';
+        else if (goldCost > 0 && maxByGold < 1) why = 'Not enough gold (have ' + gold + 'g, need ' + goldCost + 'g)';
+        else if (atSatCap) why = target.name + ' is already at saturation cap (' + target.saturation + '/' + target.cha + ')';
         else if (entry.type === 'mana' && target.mana >= target.manaMax && caster.id !== target.id) why = target.name + ' is already at full mana (' + target.mana + '/' + target.manaMax + ')';
-        else why = caster.name + ' does not have enough mana (' + caster.mana + '/' + manaCost + ')';
-        curePreview.innerHTML = '<span class="dt-warn">' + why + '.</span>';
+        else if (entry.type === 'ability') why = target.name + ' has no ability damage to cure';
+        else why = 'Cannot cast';
+        preview.innerHTML = '<span class="dt-warn">' + why + '.</span>';
         return;
       }
 
-      cureQty.disabled = false; cureSubmit.disabled = false;
-      cureQty.max = isFinite(maxAllowed) ? maxAllowed : '';
-      var qty = parseInt(cureQty.value, 10);
+      qtyEl.disabled = false; submitBtn.disabled = false;
+      qtyEl.max = isFinite(maxAllowed) ? maxAllowed : '';
+      var qty = isSurgery ? 1 : parseInt(qtyEl.value, 10);
       if (!(qty >= 1)) qty = 1;
       if (qty > maxAllowed) qty = maxAllowed;
-      if (String(qty) !== cureQty.value) cureQty.value = qty;
+      if (!isSurgery && String(qty) !== qtyEl.value) qtyEl.value = qty;
 
-      var maxNote = isFinite(maxAllowed)
+      var maxNote = isFinite(maxAllowed) && !isSurgery
         ? '<span class="dt-note">(max possible: ' + maxAllowed + ')</span>'
         : '';
       var lines = [];
@@ -1022,87 +1162,97 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         lines.push('Heals <b>' + totals.major + '</b> major, <b>' + totals.moderate + '</b> moderate, <b>' + totals.minor + '</b> minor (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
         lines.push('Damage remaining: <b>' + damage[0] + '</b> minor, <b>' + damage[1] + '</b> moderate, <b>' + damage[2] + '</b> major.');
         lines.push('Saturation <b>+' + (targetSatEnd - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ')' + capWarn + '.');
-      } else {
-        // Recharge simulation -- handle caster==target by tracking both pools.
+      } else if (entry.type === 'mana') {
         var selfCast = caster.id === target.id;
         var targetMana = target.mana;
         var manaRestored = 0;
         for (var j = 0; j < qty; j++) {
-          // Subtract the caster's cast cost first. If it's a self-cast this
-          // also reduces the available "target" mana immediately (same pool).
-          casterManaEnd -= manaCost;
-          if (selfCast) targetMana -= manaCost;
+          // Transfer first (caster pays entry.mana, target receives clamped),
+          // then the cast cost. For self-cast the running pools are kept in
+          // sync after each step.
+          casterManaEnd -= entry.mana;
+          if (selfCast) targetMana = casterManaEnd;
           var beforeT = targetMana;
           targetMana = Math.min(target.manaMax, targetMana + entry.mana);
           manaRestored += (targetMana - beforeT);
-          if (selfCast) casterManaEnd = targetMana; // same pool, stays in sync
+          if (selfCast) casterManaEnd = targetMana;
+          casterManaEnd -= manaCost;
+          if (selfCast) targetMana = casterManaEnd;
           targetSatEnd += satPerCast;
         }
         var capWarn2 = targetSatEnd >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
         lines.push('Restores <b>' + manaRestored + '</b> mana to ' + target.name + ' (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
         lines.push('Target mana: <b>' + target.mana + '</b> &rarr; <b>' + targetMana + '</b>/' + target.manaMax + '.');
+        lines.push('Per-cast drain: <b>' + requiredPerCast + '</b> mana (' + manaCost + ' cast + ' + entry.mana + ' transferred).');
         lines.push('Saturation <b>+' + (targetSatEnd - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ')' + capWarn2 + '.');
+      } else if (entry.type === 'ability') {
+        // Cascade ability damage cure: pop the available pool starting at
+        // major and cascading down. We don't simulate the FIFO attribute
+        // detail here -- just totals by severity.
+        var ad = { major: target.abilityDamage.major | 0, moderate: target.abilityDamage.moderate | 0, minor: target.abilityDamage.minor | 0 };
+        var aTotals = { major: 0, moderate: 0, minor: 0 };
+        for (var k = 0; k < qty; k++) {
+          var aPool = entry.major;
+          var aMaj = Math.min(ad.major, aPool); aPool -= aMaj;
+          aPool += entry.moderate;
+          var aMod = Math.min(ad.moderate, aPool); aPool -= aMod;
+          aPool += entry.minor;
+          var aMin = Math.min(ad.minor, aPool);
+          ad.major -= aMaj; ad.moderate -= aMod; ad.minor -= aMin;
+          aTotals.major += aMaj; aTotals.moderate += aMod; aTotals.minor += aMin;
+          targetSatEnd += satPerCast;
+          casterManaEnd -= manaCost;
+        }
+        var capWarn3 = targetSatEnd >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
+        lines.push('Cures <b>' + aTotals.major + '</b> major, <b>' + aTotals.moderate + '</b> moderate, <b>' + aTotals.minor + '</b> minor ability damage (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
+        lines.push('Ability damage remaining: <b>' + ad.minor + '</b> minor, <b>' + ad.moderate + '</b> moderate, <b>' + ad.major + '</b> major.');
+        lines.push('Saturation <b>+' + (targetSatEnd - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ')' + capWarn3 + '.');
+      } else { // surgery
+        var sucs = parseInt(sucEl.value, 10);
+        if (!(sucs >= 0)) sucs = 0;
+        var majorBefore = target.damage[2];
+        var addedModerate = 2 * majorBefore;
+        var healedMajor = Math.min(sucs, majorBefore);
+        var minSat = 5 * healedMajor;
+        var sa = 10 * healedMajor;
+        if (caster.improvedHealing) sa -= 2 * caster.tier;
+        if (sa < minSat) sa = minSat;
+        targetSatEnd += sa;
+        casterManaEnd -= manaCost;
+        var parts = [];
+        parts.push('Deals <b>+' + addedModerate + '</b> moderate damage to target.');
+        if (target.tempHp > 0) parts.push('Zeroes <b>' + target.tempHp + '</b> temp HP.');
+        parts.push('Cures <b>' + healedMajor + '</b> major.');
+        parts.push('Saturation <b>+' + sa + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ').');
+        lines = parts;
       }
       lines.push('Caster mana: <b>' + caster.mana + '</b> &rarr; <b>' + casterManaEnd + '</b>/' + caster.manaMax + '.');
-      curePreview.innerHTML = lines.join('<br>');
+      if (goldCost > 0) {
+        var totalGold = goldCost * qty;
+        lines.push('Gold <b>' + totalGold + 'g</b> (party gold after: ' + (gold - totalGold) + ').');
+      }
+      preview.innerHTML = lines.join('<br>');
     }
 
-    cureSpell.addEventListener('change', refreshCureCasters);
-    cureCaster.addEventListener('change', updateCurePreview);
-    cureTarget.addEventListener('change', updateCurePreview);
-    cureQty.addEventListener('input', updateCurePreview);
-    refreshCureCasters();
+    spellEl.addEventListener('change', refreshCasters);
+    casterEl.addEventListener('change', update);
+    targetEl.addEventListener('change', update);
+    qtyEl.addEventListener('input', update);
+    if (sucEl) sucEl.addEventListener('input', update);
+    refreshCasters();
   }
 
-  // --- Surgery form ---
-  var surgeryForm = document.getElementById('surgery-form');
-  if (surgeryForm) {
-    var sCaster = document.getElementById('surgery-caster');
-    var sTarget = document.getElementById('surgery-target');
-    var sSuccess = document.getElementById('surgery-successes');
-    var sDice = document.getElementById('surgery-dice');
-    var sPreview = document.getElementById('surgery-preview');
+  wireCastCell({ prefix: 'cure',   payloadKey: 'castSpells',   gold: false });
 
-    function updateSurgeryDice() {
-      var info = D.surgeryCasters[sCaster.value];
-      if (!info) { sDice.innerHTML = 'Healing check: &mdash;'; return; }
-      var starting = info.startingSuccesses > 0 ? ' <span class="dt-warn">+' + info.startingSuccesses + ' starting</span>' : '';
-      sDice.innerHTML = 'Healing check: <b>' + info.dice + 'd</b> TN <b>' + info.tn + '</b>' + starting;
-    }
-
-    function updateSurgeryPreview() {
-      var info = D.surgeryCasters[sCaster.value];
-      var target = pc(sTarget.value);
-      var successes = parseInt(sSuccess.value, 10);
-      if (!(successes >= 0)) successes = 0;
-      if (!info || !target) { sPreview.innerHTML = '&nbsp;'; return; }
-      var majorBefore = target.damage[2];
-      var addedModerate = 2 * majorBefore;
-      var healedMajor = Math.min(successes, majorBefore);
-      var minSat = 5 * healedMajor;
-      var satAdd = 10 * healedMajor;
-      if (info.improvedHealing) satAdd -= 2 * info.tier;
-      if (satAdd < minSat) satAdd = minSat;
-      var newSat = target.saturation + satAdd;
-
-      var parts = [];
-      parts.push('Deals <b>+' + addedModerate + '</b> moderate damage to target.');
-      if (target.tempHp > 0) parts.push('Zeroes <b>' + target.tempHp + '</b> temp HP.');
-      parts.push('Cures <b>' + healedMajor + '</b> major.');
-      parts.push('Saturation <b>+' + satAdd + '</b> (' + target.saturation + ' &rarr; ' + newSat + '/' + target.cha + ').');
-      sPreview.innerHTML = parts.join('<br>');
-    }
-
-    sCaster.addEventListener('change', function() { updateSurgeryDice(); updateSurgeryPreview(); });
-    sTarget.addEventListener('change', updateSurgeryPreview);
-    sSuccess.addEventListener('input', updateSurgeryPreview);
-    updateSurgeryDice();
-    updateSurgeryPreview();
-  }
+  wireCastCell({ prefix: 'ritual', payloadKey: 'ritualSpells', gold: true });
 
   // --- Services forms (one per slot, independent comparison cells). ---
   document.querySelectorAll('.service-form').forEach(function(serviceForm) {
     var slot = serviceForm.dataset.slot;
+    // Players can adjust the dropdowns to compute costs; only the DM can
+    // actually submit a purchase. Lock the button on for non-DM regardless
+    // of how the affordability computation comes out.
+    var canPurchase = serviceForm.dataset.canPurchase === '1';
     var svcSpell = document.getElementById('service-spell-' + slot);
     var svcCaster = document.getElementById('service-caster-' + slot);
     var svcTarget = document.getElementById('service-target-' + slot);
@@ -1168,7 +1318,7 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         return;
       }
 
-      svcQty.disabled = false; submitBtn.disabled = false;
+      svcQty.disabled = false; submitBtn.disabled = !canPurchase;
       svcQty.max = isFinite(maxAllowed) ? maxAllowed : '';
       var qty = parseInt(svcQty.value, 10);
       if (!(qty >= 1)) qty = 1;
@@ -1274,6 +1424,15 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         var per = useHigh ? row[1] : row[0];
         candidates.push(daysToClear(p.damage[i], per, row[2]));
       });
+      // Ability damage clears at the (independent) ability_heal_rate.
+      [['minor', 0], ['moderate', 1], ['major', 2]].forEach(function(pair) {
+        var sev = pair[0], i = pair[1];
+        var amount = p.abilityDamage[sev] | 0;
+        var row = p.abilityRows && p.abilityRows[i];
+        if (!row) { if (amount > 0) candidates.push(Infinity); return; }
+        var per = useHigh ? row[1] : row[0];
+        candidates.push(daysToClear(amount, per, row[2]));
+      });
       var manaPerDay = Math.floor(p.manaMax / 4);
       var manaNeed = p.manaMax - p.mana;
       candidates.push(manaNeed <= 0 ? 0 : (manaPerDay > 0 ? Math.ceil(manaNeed / manaPerDay) : Infinity));
@@ -1291,9 +1450,10 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
 
       D.pcOrder.forEach(function(id) {
         var p = D.pcs[String(id)];
+        var totalAbility = (p.abilityDamage.minor | 0) + (p.abilityDamage.moderate | 0) + (p.abilityDamage.major | 0);
         // Skip PCs who don't need anything right now.
         if (p.damage[0] === 0 && p.damage[1] === 0 && p.damage[2] === 0 &&
-            p.mana >= p.manaMax && p.saturation === 0) return;
+            p.mana >= p.manaMax && p.saturation === 0 && totalAbility === 0) return;
 
         // Compute per-field post-rest values.
         var healed = [0, 1, 2].map(function(i) {
@@ -1303,6 +1463,18 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
           return Math.min(per * periodCount(days, row[2]), p.damage[i]);
         });
         var after = [0, 1, 2].map(function(i) { return p.damage[i] - healed[i]; });
+        var abilityHealed = [0, 1, 2].map(function(i) {
+          var row = p.abilityRows && p.abilityRows[i];
+          if (!row) return 0;
+          var per = useHigh ? row[1] : row[0];
+          var sevTotal = i === 0 ? (p.abilityDamage.minor | 0) : (i === 1 ? (p.abilityDamage.moderate | 0) : (p.abilityDamage.major | 0));
+          return Math.min(per * periodCount(days, row[2]), sevTotal);
+        });
+        var abilityAfter = [
+          (p.abilityDamage.minor | 0) - abilityHealed[0],
+          (p.abilityDamage.moderate | 0) - abilityHealed[1],
+          (p.abilityDamage.major | 0) - abilityHealed[2]
+        ];
         var manaPerDay = Math.floor(p.manaMax / 4);
         var manaGain = Math.min(manaPerDay * days, p.manaMax - p.mana);
         var newMana = p.mana + manaGain;
@@ -1310,13 +1482,16 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         var satLoss = Math.min(satPerDay * days, p.saturation);
         var newSat = p.saturation - satLoss;
         var newHp = p.hpMax - after[0] - after[1] - after[2];
+        var abilityHealTotal = abilityHealed[0] + abilityHealed[1] + abilityHealed[2];
 
         // Nothing changes for this PC? Skip.
-        if (healed[0] === 0 && healed[1] === 0 && healed[2] === 0 && manaGain === 0 && satLoss === 0) return;
+        if (healed[0] === 0 && healed[1] === 0 && healed[2] === 0 && manaGain === 0 && satLoss === 0 && abilityHealTotal === 0) return;
 
-        // Fully recovered check: any damage at 0, mana at max, saturation at 0.
+        // Fully recovered check: damage zero, mana max, saturation zero,
+        // and no ability damage queued.
         var fullyRecovered = after[0] === 0 && after[1] === 0 && after[2] === 0 &&
-                             newMana === p.manaMax && newSat === 0;
+                             newMana === p.manaMax && newSat === 0 &&
+                             abilityAfter[0] === 0 && abilityAfter[1] === 0 && abilityAfter[2] === 0;
         if (fullyRecovered) {
           var minDays = minFullRecoveryDays(p, useHigh);
           var dayWord = minDays === 1 ? 'day' : 'days';
@@ -1330,6 +1505,9 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         if (newSat > 0) parts.push('Sat: ' + newSat);
         if (after[1] > 0) parts.push('Moderate ' + after[1]);
         if (after[2] > 0) parts.push('Major ' + after[2]);
+        if (abilityAfter[0] + abilityAfter[1] + abilityAfter[2] > 0) {
+          parts.push('Ability dmg ' + abilityAfter[0] + '/' + abilityAfter[1] + '/' + abilityAfter[2]);
+        }
         lines.push('<div class="dt-rest-line"><b>' + p.name + '</b> ' + parts.join(', ') + '</div>');
       });
 

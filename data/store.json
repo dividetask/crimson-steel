@@ -1,5 +1,13 @@
 [
   {
+    "name": "Spellbook",
+    "price": 15,
+    "type": "item",
+    "subtype": "book",
+    "bonus": 0,
+    "description": "A blank ritual spellbook. Required to learn and cast ritual spells. One-time purchase; additional rituals are inscribed separately."
+  },
+  {
     "name": "Alchemist's Fire",
     "price": 20,
     "type": "item",

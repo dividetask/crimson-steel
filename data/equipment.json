@@ -410,38 +410,6 @@
   },
   {
     "owner_id": 3,
-    "name": "Spellbook",
-    "type": "item",
-    "subtype": "book",
-    "bonus": 0,
-    "properties": {
-      "spellbook": [
-        [
-          "guidance",
-          "resistance",
-          "acid splash",
-          "drench",
-          "light",
-          "spark",
-          "mending"
-        ],
-        [
-          "alarm",
-          "endure_elements",
-          "mount",
-          "charm_person",
-          "silent_image",
-          "ant_haul",
-          "disguise_self",
-          "obscuring_mist"
-        ]
-      ]
-    },
-    "description": "An arcane spellbook",
-    "equipped": false
-  },
-  {
-    "owner_id": 3,
     "name": "Obscuring Mist Scroll",
     "type": "consumable",
     "subtype": "scroll",

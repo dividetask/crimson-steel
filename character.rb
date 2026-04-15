@@ -238,6 +238,44 @@ class Combat
     [healed_major, healed_moderate, healed_minor]
   end
 
+  # Pop up to `n` ability-damage points at `severity` in FIFO order across
+  # attributes (Ruby hash insertion order acts as the queue). Mutates
+  # target['ability_damage'] in place. Returns the actual count popped.
+  def self.pop_ability_damage(target, severity, n)
+    return 0 if n <= 0
+    ad = target['ability_damage'] ||= {}
+    severity = severity.to_s
+    popped = 0
+    ad.keys.each do |attr|
+      break if popped >= n
+      bucket = ad[attr]
+      next unless bucket.is_a?(Hash)
+      avail = bucket[severity].to_i
+      next if avail <= 0
+      take = [n - popped, avail].min
+      bucket[severity] = avail - take
+      bucket.delete(severity) if bucket[severity].to_i <= 0
+      popped += take
+    end
+    ad.delete_if { |_, b| !b.is_a?(Hash) || b.empty? || b.values.all? { |v| v.to_i <= 0 } }
+    popped
+  end
+
+  # Cascading ability-damage cure: pool starts at major, cascades down to
+  # moderate then minor, popping FIFO within each severity. Returns
+  # [healed_major, healed_moderate, healed_minor]. Excess pool is lost.
+  def self.apply_ability_cure_cascade(target, ability_cure)
+    pool = ability_cure[:major].to_i
+    h_major = pop_ability_damage(target, 'major', pool)
+    pool -= h_major
+    pool += ability_cure[:moderate].to_i
+    h_mod = pop_ability_damage(target, 'moderate', pool)
+    pool -= h_mod
+    pool += ability_cure[:minor].to_i
+    h_min = pop_ability_damage(target, 'minor', pool)
+    [h_major, h_mod, h_min]
+  end
+
   def self.add_log(message)
     log = Tools.load_json('combat_log.json')
     return if log.empty?
@@ -480,6 +518,28 @@ class Compendium
     }
   end
 
+  # Resolved ability-damage cure pool for a Restoration-like spell variant.
+  # Same shape as cure_effects but the major / moderate / minor numbers
+  # represent ability damage points the cascade can clear.
+  def ability_cure_effects(spell_name)
+    resolved = resolve_spell_variant(spell_name)
+    return nil unless resolved
+    _base, spell_data, idx, tier_val = resolved
+    effect = spell_data["effect_hash"] || {}
+    has_pool = %w[minor_ability_damage moderate_ability_damage major_ability_damage].any? { |k| effect.key?(k) }
+    return nil unless has_pool
+    {
+      base_name: resolved[0],
+      tier_idx: idx,
+      tier_val: tier_val,
+      minor: resolve_effect_value(effect["minor_ability_damage"], idx, tier_val).to_i,
+      moderate: resolve_effect_value(effect["moderate_ability_damage"], idx, tier_val).to_i,
+      major: resolve_effect_value(effect["major_ability_damage"], idx, tier_val).to_i,
+      saturation: resolve_effect_value(effect["saturation"], idx, tier_val).to_i,
+      minimum_saturation: resolve_effect_value(effect["minimum_saturation"], idx, tier_val).to_i
+    }
+  end
+
   def resolve_effect_value(val, idx, tier_val)
     return nil if val.nil?
     return val[idx] if val.is_a?(Array)
@@ -563,6 +623,47 @@ class Compendium
       end
     end
     items
+  end
+
+  # One entry per spell-variant that can be inscribed into a ritual spellbook.
+  # Any spell from the compendium is eligible; cost matches the scroll formula
+  # (item_costs.ritual) and defaults to item_costs.scroll if missing.
+  def ritual_store_items
+    items = []
+    cost_formula = @data["item_costs"]["ritual"] || @data["item_costs"]["scroll"]
+    @data["spells"].each do |spell_name, spell|
+      tiers = spell["tier"].is_a?(Array) ? spell["tier"] : [spell["tier"]]
+      tiers.each_with_index do |tier_val, idx|
+        variant_name = variant_display_name(spell_name, spell, idx, tiers.length)
+        price = eval(cost_formula.gsub("tier", tier_val.to_s))
+        items << {
+          "name" => variant_name,
+          "base" => spell_name,
+          "tier" => tier_val,
+          "price" => price,
+          "skills" => spell["skill"] || [],
+          "school" => spell["school"] || "universal",
+          "description" => resolve_description(spell, idx, tier_val)
+        }
+      end
+    end
+    items.sort_by { |r| [r["tier"], r["name"]] }
+  end
+
+  # Like spell_item_name but without the trailing item-type suffix. Empty
+  # prefix/suffix entries are treated as missing so a variant table like
+  # ["Lesser", "", "Greater"] yields "Lesser X" / "X" / "Greater X".
+  def variant_display_name(spell_name, spell, tier_idx, tier_count)
+    return spell_name unless tier_count > 1
+    pre = spell["prefix"] && spell["prefix"][tier_idx]
+    suf = spell["suffix"] && spell["suffix"][tier_idx]
+    if pre && !pre.to_s.empty?
+      "#{pre} #{spell_name}"
+    elsif suf && !suf.to_s.empty?
+      "#{spell_name} #{suf}"
+    else
+      spell_name
+    end
   end
 
   private
@@ -996,6 +1097,7 @@ class CharacterSheet
   def add_plus(func, params = nil); r = params ? send(func, params) : send(func); return "#{'+' if r >= 0}#{r}"; end
 
   def spell_list; return @data["spells"]; end
+  def ritual_list; return @data["rituals"]; end
 
   NATURAL_WEAPONS = %w[bite claws slam].freeze
 
@@ -1099,6 +1201,21 @@ class CharacterSheet
   def major_damage; combat_status[:major_damage]; end
   def temporary_hit_points; combat_status[:temporary_hit_points]; end
   def saturation; combat_status[:saturation]; end
+  def ability_damage; combat_status[:ability_damage]; end
+
+  # Flat list of [attr, severity, count] tuples in insertion order, filtered
+  # to entries with count > 0. Useful for compactly listing what's queued.
+  def ability_damage_entries
+    out = []
+    (ability_damage || {}).each do |attr, sevs|
+      next unless sevs.is_a?(Hash)
+      sevs.each do |sev, n|
+        n = n.to_i
+        out << [attr, sev, n] if n > 0
+      end
+    end
+    out
+  end
 
   private
 

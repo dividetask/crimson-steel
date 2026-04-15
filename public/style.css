@@ -244,6 +244,7 @@ table th {
 .item-type-oil { background: #e65100; }
 .item-type-wand { background: #2e7d32; }
 .item-type-ammunition { background: #795548; }
+.item-type-ritual { background: #6a1b9a; }
 .tier-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; background: #666; color: white; margin-left: 5px; }
 .conditions-cell { vertical-align: top; padding: 4px !important; }
 /* Flex container lets badges wrap to new lines; setting width rather than
@@ -329,6 +330,19 @@ table th {
 .killed-list strong { color: #c62828; margin-right: 6px; }
 .incap-label { font-size: 13px; color: #c62828; font-weight: bold; margin-left: 6px; }
 .ability-damage { color: #c62828; font-weight: bold; margin-left: 4px; }
+
+/* Scene page: simplified initiative table for player-facing display.
+ * Enemy HP is masked behind a colored bar instead of a number. */
+.scene-init { width: 100%; max-width: 600px; margin-bottom: 20px; }
+.scene-init th, .scene-init td { padding: 6px 10px; }
+.scene-init tr.current-turn { background: #fff4c2; font-weight: bold; }
+.scene-hp-bar { display: inline-block; width: 70px; height: 14px; border-radius: 3px; vertical-align: middle; }
+.scene-hp-good   { background: #4caf50; }
+.scene-hp-warn   { background: #fdd835; }
+.scene-hp-orange { background: #fb8c00; }
+.scene-hp-bad    { background: #d32f2f; }
+.scene-hp-down-text { color: #d32f2f; font-weight: bold; text-transform: uppercase; }
+.scene-current-name { margin-top: 16px; font-size: 18px; }
 .combat-tracker .set-turn-btn { font-size: 11px; padding: 2px 6px; cursor: pointer; }
 .attack-banner { background: #d32f2f; color: white; padding: 8px 15px; border-radius: 3px; margin-bottom: 10px; font-weight: bold; font-size: 13px; }
 .turn-status { margin-top: 20px; }
@@ -423,9 +437,19 @@ table th {
 .downtime-card h3 { margin: 0 0 2px 0; font-size: 15px; text-decoration: none; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
 .downtime-card .dt-subtitle { font-size: 11px; color: #555; margin-bottom: 6px; }
 .downtime-card .dt-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; font-size: 11px; }
-.downtime-card .dt-stats > div { display: flex; justify-content: space-between; }
+.downtime-card .dt-stats > div { display: flex; justify-content: space-between; padding: 1px 4px; border-radius: 2px; }
 .downtime-card .dt-stats .label { color: #555; }
 .downtime-card .dt-stats .value { font-weight: bold; }
+/* Stat health colors. HP/Mana ramp good -> warn -> orange -> bad as they
+ * empty toward zero; Saturation reverses polarity (good when low). Damage
+ * rows highlight by severity (Minor=warn, Moderate=orange, Major=bad).
+ * Cells at full / zero get no class so they render plain. */
+.downtime-card .dt-stats .stat-good    { background: #d4edda; color: #155724; }
+.downtime-card .dt-stats .stat-warn    { background: #fff3cd; color: #856404; }
+.downtime-card .dt-stats .stat-orange  { background: #ffe0b2; color: #6f3500; }
+.downtime-card .dt-stats .stat-bad     { background: #f8d7da; color: #721c24; }
+.downtime-card .dt-ability-damage { margin-top: 4px; padding-top: 4px; border-top: 1px dashed #ccc; }
+.downtime-card .dt-ability-damage > div { font-size: 11px; }
 .downtime-card .dt-consumables { margin-top: 8px; padding-top: 6px; border-top: 1px dashed #ccc; }
 .downtime-card .dt-consumables h4 { font-size: 11px; margin: 0 0 4px 0; }
 .downtime-card .dt-consumables ul { list-style: disc; padding-left: 18px; font-size: 11px; margin: 0; }
