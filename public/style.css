@@ -244,6 +244,7 @@ table th {
 .item-type-oil { background: #e65100; }
 .item-type-wand { background: #2e7d32; }
 .item-type-ammunition { background: #795548; }
+.item-type-ritual { background: #6a1b9a; }
 .tier-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; background: #666; color: white; margin-left: 5px; }
 .conditions-cell { white-space: normal; max-width: 180px; }
 .condition-badge { display: inline-block; padding: 2px 6px; margin: 1px 2px; border-radius: 3px; font-size: 11px; font-weight: bold; color: white; background: #777; }

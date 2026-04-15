@@ -6,6 +6,10 @@
     <div class="alert alert-error">Insufficient gold!</div>
   <% end %>
 
+  <% if params[:error] == 'already_known' %>
+    <div class="alert alert-error">That character already knows this ritual.</div>
+  <% end %>
+
   <% if params[:success] %>
     <div class="alert alert-success">Purchase successful!</div>
   <% end %>
@@ -157,10 +161,50 @@
           </div>
         <% end %>
       </div>
+
+      <h2>Rituals</h2>
+      <div class="store-card-grid">
+        <div class="store-card">
+          <div class="card-header">
+            <span class="item-type item-type-ritual">Ritual</span>
+            <p class="dt-note" style="margin-top:6px;">Inscribe a spell into a character's ritual spellbook. Cost equals the scroll price (25 &times; tier &times; (2&times;tier-1)).</p>
+          </div>
+          <div class="selector-row">
+            <div class="selector-field-narrow">
+              <label>Tier</label>
+              <select id="ritual-tier-select">
+                <option value="">-</option>
+              </select>
+            </div>
+            <div class="selector-field">
+              <label>Ritual</label>
+              <select id="ritual-spell-select" disabled>
+                <option value="">Select Ritual</option>
+              </select>
+            </div>
+          </div>
+          <div id="ritual-details" style="display:none; margin-top:15px; padding-top:15px; border-top:1px solid #ddd;">
+            <p class="spell-description"></p>
+            <p class="price">0 gp</p>
+            <form method="post" action="/purchase_ritual" class="purchase-form">
+              <input type="hidden" name="spell_name" value="">
+              <select name="owner_id" id="ritual-owner-select" required>
+                <option value="">Select Character</option>
+                <% pcs.each do |char| %>
+                  <option value="<%= char['id'] %>"><%= char['name'] %></option>
+                <% end %>
+              </select>
+              <button type="submit">Purchase</button>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
+    var ritualItems = <%= JSON.generate(@ritual_items) %>;
+    var characterRituals = <%= JSON.generate(@character_rituals) %>;
     var spellData = <%= JSON.generate(@spell_data) %>;
     var itemCosts = <%= JSON.generate(@item_costs) %>;
     var propertyCosts = <%= JSON.generate(@property_costs) %>;
@@ -458,6 +502,63 @@
         });
       }
     });
+
+    // --- Ritual purchase card ---
+    (function() {
+      var tierSel = document.getElementById('ritual-tier-select');
+      var spellSel = document.getElementById('ritual-spell-select');
+      var ownerSel = document.getElementById('ritual-owner-select');
+      var details = document.getElementById('ritual-details');
+      if (!tierSel) return;
+
+      var tiers = {};
+      ritualItems.forEach(function(r) { tiers[r.tier] = true; });
+      Object.keys(tiers).map(Number).sort(function(a,b){return a-b;}).forEach(function(t) {
+        var opt = document.createElement('option'); opt.value = t; opt.textContent = t;
+        tierSel.appendChild(opt);
+      });
+
+      tierSel.addEventListener('change', function() {
+        spellSel.innerHTML = '<option value="">Select Ritual</option>';
+        details.style.display = 'none';
+        spellSel.disabled = !this.value;
+        if (!this.value) return;
+        var tier = parseInt(this.value, 10);
+        ritualItems.filter(function(r) { return r.tier === tier; }).forEach(function(r) {
+          var opt = document.createElement('option');
+          opt.value = r.name; opt.textContent = r.name;
+          spellSel.appendChild(opt);
+        });
+      });
+
+      function refreshOwnerOptions(ritualName) {
+        // Disable PCs who already know the selected ritual so the form can
+        // only submit purchases that will actually land.
+        Array.from(ownerSel.options).forEach(function(opt) {
+          if (!opt.value) return;
+          var known = (characterRituals[opt.value] || []).indexOf(ritualName) !== -1;
+          opt.disabled = known;
+          opt.textContent = opt.textContent.replace(/ \(Already known\)$/, '');
+          if (known) opt.textContent += ' (Already known)';
+        });
+        // If the currently selected owner knows it, reset selection.
+        var selected = ownerSel.options[ownerSel.selectedIndex];
+        if (selected && selected.disabled) ownerSel.value = '';
+      }
+
+      spellSel.addEventListener('change', function() {
+        details.style.display = 'none';
+        if (!this.value) return;
+        var tier = parseInt(tierSel.value, 10);
+        var ritual = ritualItems.find(function(r) { return r.name === spellSel.value && r.tier === tier; });
+        if (!ritual) return;
+        details.querySelector('.spell-description').textContent = ritual.description || '';
+        details.querySelector('.price').textContent = ritual.price + ' gp';
+        details.querySelector('input[name="spell_name"]').value = ritual.name;
+        refreshOwnerOptions(ritual.name);
+        details.style.display = '';
+      });
+    })();
 
     // Equipment/Ammo filters
     document.querySelectorAll('.filter-cb').forEach(function(cb) {

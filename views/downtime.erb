@@ -179,6 +179,38 @@
       </div>
 
       <div class="dt-action">
+        <h3>Cast Ritual</h3>
+        <% if @dt_data[:ritualSpellNames].empty? %>
+          <p class="dt-note">No PC has a Cure or Recharge ritual in their spellbook.</p>
+        <% else %>
+          <form method="post" action="/downtime/cast_ritual" id="ritual-form">
+            <label>Spell
+              <select name="spell_name" id="ritual-spell" required>
+                <% @dt_data[:ritualSpellNames].each_with_index do |variant, i| %>
+                  <option value="<%= h variant %>" <%= 'selected' if i == 0 %>><%= h variant %></option>
+                <% end %>
+              </select>
+            </label>
+            <label>Caster
+              <select name="caster_id" id="ritual-caster" required></select>
+            </label>
+            <label>Target
+              <select name="target_id" id="ritual-target" required>
+                <% @pcs.each_with_index do |pc, i| %>
+                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
+                <% end %>
+              </select>
+            </label>
+            <label>Quantity
+              <input type="number" name="quantity" id="ritual-quantity" min="1" value="1">
+            </label>
+            <div class="dt-preview" id="ritual-preview">&nbsp;</div>
+            <button type="submit">Cast Ritual</button>
+          </form>
+        <% end %>
+      </div>
+
+      <div class="dt-action">
         <h3>Cast Surgery</h3>
         <% if @surgery_casters.empty? %>
           <p class="dt-note">No party member knows Standard Surgery.</p>
@@ -1052,6 +1084,144 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
     cureTarget.addEventListener('change', updateCurePreview);
     cureQty.addEventListener('input', updateCurePreview);
     refreshCureCasters();
+  }
+
+  // --- Cast Ritual form (Cure/Recharge drawn from PC ritual books). Mana +
+  // gold are both charged per cast; preview clamps quantity by caster mana,
+  // campaign gold, target saturation cap, and (for Recharge on a non-self
+  // target) target mana cap. ---
+  var ritualForm = document.getElementById('ritual-form');
+  if (ritualForm) {
+    var ritualSpell = document.getElementById('ritual-spell');
+    var ritualCaster = document.getElementById('ritual-caster');
+    var ritualTarget = document.getElementById('ritual-target');
+    var ritualQty = document.getElementById('ritual-quantity');
+    var ritualPreview = document.getElementById('ritual-preview');
+    var ritualSubmit = ritualForm.querySelector('button[type="submit"]');
+
+    function refreshRitualCasters() {
+      var spell = ritualSpell.value;
+      var entry = D.ritualSpells[spell];
+      ritualCaster.innerHTML = '';
+      if (!entry) return;
+      entry.casterIds.forEach(function(id, i) {
+        var p = pc(id);
+        var opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = p.name;
+        if (i === 0) opt.selected = true;
+        ritualCaster.appendChild(opt);
+      });
+      updateRitualPreview();
+    }
+
+    function updateRitualPreview() {
+      var spell = ritualSpell.value;
+      var casterId = parseInt(ritualCaster.value, 10);
+      var targetId = parseInt(ritualTarget.value, 10);
+      var entry = D.ritualSpells[spell];
+      var caster = pc(casterId);
+      var target = pc(targetId);
+      if (!entry || !caster || !target) {
+        ritualPreview.innerHTML = '&nbsp;';
+        ritualQty.disabled = true; ritualSubmit.disabled = true;
+        return;
+      }
+
+      var satPerCast = entry.saturation - target.tier;
+      if (entry.type === 'cure' && caster.improvedHealing) satPerCast -= 2 * caster.tier;
+      if (satPerCast < entry.minimumSaturation) satPerCast = entry.minimumSaturation;
+
+      var manaCost = entry.manaCost;
+      var goldCost = entry.goldCost;
+      var gold = D.campaignGold;
+      var maxByMana = Math.floor(caster.mana / manaCost);
+      var maxByGold = Math.floor(gold / goldCost);
+      var atSatCap = target.saturation >= target.cha;
+      var maxBySat;
+      if (atSatCap) maxBySat = 0;
+      else if (satPerCast <= 0) maxBySat = Infinity;
+      else maxBySat = Math.ceil((target.cha - target.saturation) / satPerCast);
+      var maxByTargetMana = Infinity;
+      if (entry.type === 'mana' && caster.id !== target.id) {
+        if (target.mana >= target.manaMax) maxByTargetMana = 0;
+        else if (entry.mana > 0) maxByTargetMana = Math.ceil((target.manaMax - target.mana) / entry.mana);
+      }
+      var maxAllowed = Math.min(maxByMana, maxByGold, maxBySat, maxByTargetMana);
+
+      if (maxAllowed < 1) {
+        ritualQty.disabled = true; ritualSubmit.disabled = true;
+        var why;
+        if (atSatCap) why = target.name + ' is already at saturation cap (' + target.saturation + '/' + target.cha + ')';
+        else if (entry.type === 'mana' && target.mana >= target.manaMax && caster.id !== target.id) why = target.name + ' is already at full mana (' + target.mana + '/' + target.manaMax + ')';
+        else if (maxByGold < 1) why = 'Not enough gold (have ' + gold + 'g, need ' + goldCost + 'g)';
+        else why = caster.name + ' does not have enough mana (' + caster.mana + '/' + manaCost + ')';
+        ritualPreview.innerHTML = '<span class="dt-warn">' + why + '.</span>';
+        return;
+      }
+
+      ritualQty.disabled = false; ritualSubmit.disabled = false;
+      ritualQty.max = isFinite(maxAllowed) ? maxAllowed : '';
+      var qty = parseInt(ritualQty.value, 10);
+      if (!(qty >= 1)) qty = 1;
+      if (qty > maxAllowed) qty = maxAllowed;
+      if (String(qty) !== ritualQty.value) ritualQty.value = qty;
+
+      var maxNote = isFinite(maxAllowed)
+        ? '<span class="dt-note">(max possible: ' + maxAllowed + ')</span>'
+        : '';
+      var lines = [];
+      var casterManaEnd = caster.mana;
+      var targetSatEnd = target.saturation;
+
+      if (entry.type === 'cure') {
+        var damage = target.damage.slice();
+        var totals = { major: 0, moderate: 0, minor: 0 };
+        for (var i = 0; i < qty; i++) {
+          var pool = entry.major;
+          var hMaj = Math.min(damage[2], pool); pool -= hMaj;
+          pool += entry.moderate;
+          var hMod = Math.min(damage[1], pool); pool -= hMod;
+          pool += entry.minor;
+          var hMin = Math.min(damage[0], pool);
+          damage[2] -= hMaj; damage[1] -= hMod; damage[0] -= hMin;
+          targetSatEnd += satPerCast;
+          casterManaEnd -= manaCost;
+          totals.major += hMaj; totals.moderate += hMod; totals.minor += hMin;
+        }
+        var capWarn = targetSatEnd >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
+        lines.push('Heals <b>' + totals.major + '</b> major, <b>' + totals.moderate + '</b> moderate, <b>' + totals.minor + '</b> minor (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
+        lines.push('Damage remaining: <b>' + damage[0] + '</b> minor, <b>' + damage[1] + '</b> moderate, <b>' + damage[2] + '</b> major.');
+        lines.push('Saturation <b>+' + (targetSatEnd - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ')' + capWarn + '.');
+      } else {
+        var selfCast = caster.id === target.id;
+        var targetMana = target.mana;
+        var manaRestored = 0;
+        for (var j = 0; j < qty; j++) {
+          casterManaEnd -= manaCost;
+          if (selfCast) targetMana -= manaCost;
+          var beforeT = targetMana;
+          targetMana = Math.min(target.manaMax, targetMana + entry.mana);
+          manaRestored += (targetMana - beforeT);
+          if (selfCast) casterManaEnd = targetMana;
+          targetSatEnd += satPerCast;
+        }
+        var capWarn2 = targetSatEnd >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
+        lines.push('Restores <b>' + manaRestored + '</b> mana to ' + target.name + ' (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
+        lines.push('Target mana: <b>' + target.mana + '</b> &rarr; <b>' + targetMana + '</b>/' + target.manaMax + '.');
+        lines.push('Saturation <b>+' + (targetSatEnd - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ')' + capWarn2 + '.');
+      }
+      var totalGold = goldCost * qty;
+      lines.push('Caster mana: <b>' + caster.mana + '</b> &rarr; <b>' + casterManaEnd + '</b>/' + caster.manaMax + '.');
+      lines.push('Gold <b>' + totalGold + 'g</b> (party gold after: ' + (gold - totalGold) + ').');
+      ritualPreview.innerHTML = lines.join('<br>');
+    }
+
+    ritualSpell.addEventListener('change', refreshRitualCasters);
+    ritualCaster.addEventListener('change', updateRitualPreview);
+    ritualTarget.addEventListener('change', updateRitualPreview);
+    ritualQty.addEventListener('input', updateRitualPreview);
+    refreshRitualCasters();
   }
 
   // --- Surgery form ---

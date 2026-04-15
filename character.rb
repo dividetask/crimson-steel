@@ -460,6 +460,43 @@ class Compendium
     items
   end
 
+  # One entry per spell-variant that can be inscribed into a ritual spellbook.
+  # Any spell from the compendium is eligible; cost matches the scroll formula
+  # (item_costs.ritual) and defaults to item_costs.scroll if missing.
+  def ritual_store_items
+    items = []
+    cost_formula = @data["item_costs"]["ritual"] || @data["item_costs"]["scroll"]
+    @data["spells"].each do |spell_name, spell|
+      tiers = spell["tier"].is_a?(Array) ? spell["tier"] : [spell["tier"]]
+      tiers.each_with_index do |tier_val, idx|
+        variant_name = variant_display_name(spell_name, spell, idx, tiers.length)
+        price = eval(cost_formula.gsub("tier", tier_val.to_s))
+        items << {
+          "name" => variant_name,
+          "base" => spell_name,
+          "tier" => tier_val,
+          "price" => price,
+          "skills" => spell["skill"] || [],
+          "school" => spell["school"] || "universal",
+          "description" => resolve_description(spell, idx, tier_val)
+        }
+      end
+    end
+    items.sort_by { |r| [r["tier"], r["name"]] }
+  end
+
+  # Like spell_item_name but without the trailing item-type suffix.
+  def variant_display_name(spell_name, spell, tier_idx, tier_count)
+    return spell_name unless tier_count > 1
+    if spell["prefix"] && spell["prefix"][tier_idx]
+      "#{spell["prefix"][tier_idx]} #{spell_name}"
+    elsif spell["suffix"] && spell["suffix"][tier_idx]
+      "#{spell_name} #{spell["suffix"][tier_idx]}"
+    else
+      spell_name
+    end
+  end
+
   private
 
   def resolve_description(spell, idx, tier_val)
@@ -843,6 +880,7 @@ class CharacterSheet
   def add_plus(func, params = nil); r = params ? send(func, params) : send(func); return "#{'+' if r >= 0}#{r}"; end
 
   def spell_list; return @data["spells"]; end
+  def ritual_list; return @data["rituals"]; end
 
   NATURAL_WEAPONS = %w[bite claws slam].freeze
 

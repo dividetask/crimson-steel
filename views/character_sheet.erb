@@ -162,6 +162,15 @@
 					<p><strong><%= cat %>:</strong> <%= spell_sub_list.map { |s| "<a href=\"/spell/#{ERB::Util.url_encode(s)}\" class=\"spell-link\">#{h(s)}</a>" }.join(', ') %></p>
 				<% end %>
 			<% end %>
+
+			<% if @character.ritual_list && @character.ritual_list.any? { |t| t && t.any? } %>
+				<h2>Ritual Spellbook</h2>
+
+				<% @character.ritual_list.each_with_index do |ritual_sub_list, index| %>
+					<% next unless ritual_sub_list && ritual_sub_list.any? %>
+					<p><strong><%= index %>:</strong> <%= ritual_sub_list.map { |s| "<a href=\"/spell/#{ERB::Util.url_encode(s)}\" class=\"spell-link\">#{h(s)}</a>" }.join(', ') %></p>
+				<% end %>
+			<% end %>
     </div>
   </div>
 

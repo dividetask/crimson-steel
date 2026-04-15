@@ -873,10 +873,57 @@ get '/store' do
   compendium = Compendium.new
   @spell_items = compendium.spell_store_items
   @ammo_items = compendium.ammunition_store_items
+  @ritual_items = compendium.ritual_store_items
   @spell_data = compendium.data["spells"]
   @item_costs = compendium.data["item_costs"]
   @property_costs = compendium.data["property_costs"] || {}
+  # Known-ritual map keyed by char id, used by the store to flag rituals a
+  # PC already has in their spellbook (so a re-purchase can't accidentally be
+  # submitted).
+  @character_rituals = {}
+  @characters.each do |c|
+    list = (c['rituals'] || []).flatten.map(&:to_s)
+    @character_rituals[c['id']] = list
+  end
   erb :store
+end
+
+post '/purchase_ritual' do
+  compendium = Compendium.new
+  campaign = Tools.load_json('campaign.json')
+  characters = Tools.load_json('characters.json')
+
+  variant_name = params[:spell_name].to_s
+  owner_id = params[:owner_id].to_i
+  ritual = compendium.ritual_store_items.find { |r| r['name'] == variant_name }
+  halt 400, "Ritual not found" unless ritual
+
+  owner = characters.find { |c| c['id'] == owner_id }
+  halt 400, "Owner not found" unless owner
+
+  owner['rituals'] ||= []
+  flat_existing = owner['rituals'].flatten.map(&:to_s)
+  if flat_existing.include?(variant_name)
+    redirect '/store?error=already_known'
+    return
+  end
+  if campaign['gold'].to_i < ritual['price'].to_i
+    redirect '/store?error=insufficient_gold'
+    return
+  end
+
+  # Append to the tier bucket matching the ritual's spell tier; create the
+  # bucket (and any missing earlier buckets) if needed.
+  tier = ritual['tier'].to_i
+  owner['rituals'][tier] ||= []
+  while owner['rituals'].length <= tier
+    owner['rituals'] << []
+  end
+  owner['rituals'][tier] << variant_name
+  campaign['gold'] = campaign['gold'].to_i - ritual['price'].to_i
+  Tools.save_json('characters.json', characters)
+  Tools.save_json('campaign.json', campaign)
+  redirect '/store?success=true'
 end
 
 post '/purchase/:item_index' do
@@ -1022,6 +1069,17 @@ get '/downtime' do
   end
   @surgery_casters = @pcs.select { |pc| downtime_known_variants(pc, @compendium, 'Standard Surgery').any? }
 
+  # Rituals with downtime-mechanical effect (Cure/Recharge). We only surface
+  # these in the Cast Ritual cell -- utility rituals (Invisibility, Disguise,
+  # etc.) stay in the character's ritual list on the sheet but aren't
+  # castable through this UI.
+  @ritual_casters = @pcs.select do |pc|
+    (pc.ritual_list || []).flatten.compact.any? do |r|
+      resolved = @compendium.resolve_spell_variant(r)
+      resolved && %w[Cure Recharge].include?(resolved[0])
+    end
+  end
+
   # Consumable owner map: char_id -> [items]. Restricted to Cure/Recharge
   # potions and scrolls, plus Standard Surgery scrolls, per the downtime spec.
   @consumable_owners = {}
@@ -1097,6 +1155,43 @@ get '/downtime' do
   end
   cast_payload.each_value { |v| v[:casterIds].uniq! }
 
+  # Ritual casting payload: same shape as cast_payload but driven by each
+  # PC's ritual_list filtered to Cure/Recharge variants. Also carries the
+  # per-tier gold cost so the preview can show it.
+  ritual_gold_cost_by_tier = @compendium.data['ritual_gold_cost_by_tier'] || [1, 10, 50, 100, 200, 400]
+  ritual_cast_payload = {}
+  @ritual_casters.each do |caster|
+    (caster.ritual_list || []).flatten.compact.each do |variant|
+      resolved = @compendium.resolve_spell_variant(variant)
+      next unless resolved
+      base_name = resolved[0]
+      next unless %w[Cure Recharge].include?(base_name)
+      cure = @compendium.cure_effects(variant)
+      mana = cure.nil? ? @compendium.mana_effects(variant) : nil
+      next unless cure || mana
+      tier_val = (cure || mana)[:tier_val].to_i
+      mana_cost = tier_val == 0 ? 1 : (tier_val * 2 + 2)
+      gold_cost = ritual_gold_cost_by_tier[tier_val] || ritual_gold_cost_by_tier.last
+      entry = ritual_cast_payload[variant] ||= {
+        type: cure ? 'cure' : 'mana',
+        baseName: base_name,
+        tier: tier_val,
+        manaCost: mana_cost,
+        goldCost: gold_cost,
+        saturation: (cure || mana)[:saturation],
+        minimumSaturation: (cure || mana)[:minimum_saturation],
+        casterIds: []
+      }
+      if cure
+        entry[:minor] = cure[:minor]; entry[:moderate] = cure[:moderate]; entry[:major] = cure[:major]
+      else
+        entry[:mana] = mana[:mana]
+      end
+      entry[:casterIds] << caster.id
+    end
+  end
+  ritual_cast_payload.each_value { |v| v[:casterIds].uniq! }
+
   # Surgery casters with dice / TN computed from their healing skill.
   surgery_payload = {}
   @surgery_casters.each do |caster|
@@ -1156,6 +1251,8 @@ get '/downtime' do
     pcOrder: pc_order,
     castSpells: cast_payload,
     castSpellNames: cast_payload.keys,
+    ritualSpells: ritual_cast_payload,
+    ritualSpellNames: ritual_cast_payload.keys,
     surgeryCasters: surgery_payload,
     services: services_by_spell,
     servicesSpells: services_by_spell.keys,
@@ -1404,6 +1501,100 @@ post '/downtime/cast' do
     "healed #{totals[:major]}/#{totals[:moderate]}/#{totals[:minor]} (major/moderate/minor)" :
     "restored #{totals[:mana]} mana"
   Combat.add_log("#{caster.name} casts #{spell_name}#{suffix} on #{target_char.name} (#{mana_cost * applied} mana) - #{log_effect}, +#{totals[:sat]} saturation")
+  redirect '/downtime'
+end
+
+post '/downtime/cast_ritual' do
+  compendium = Compendium.new
+  characters = Tools.load_json('characters.json')
+  combat_data = Tools.load_json('combat.json')
+  campaign = Tools.load_json('campaign.json')
+
+  caster_id = params[:caster_id].to_i
+  spell_name = params[:spell_name].to_s
+  target_id = params[:target_id].to_i
+  quantity = [params[:quantity].to_i, 1].max
+
+  caster_data = characters.find { |c| c['id'] == caster_id }
+  target_data = characters.find { |c| c['id'] == target_id }
+  halt 400, "Caster not found" unless caster_data
+  halt 400, "Target not found" unless target_data
+  caster = CharacterSheet.new(caster_data)
+  target_char = CharacterSheet.new(target_data)
+
+  known = (caster.ritual_list || []).flatten.compact.map(&:to_s)
+  halt 400, "Caster does not know that ritual" unless known.include?(spell_name)
+
+  caster_p = downtime_find_or_create_participant(combat_data, caster)
+  target_p = downtime_find_or_create_participant(combat_data, target_char)
+
+  resolved = compendium.resolve_spell_variant(spell_name)
+  halt 400, "Unknown spell" unless resolved
+  _base, _spell_data, _idx, tier_val = resolved
+  mana_cost = tier_val.to_i == 0 ? 1 : (tier_val.to_i * 2 + 2)
+  ritual_costs = compendium.data['ritual_gold_cost_by_tier'] || [1, 10, 50, 100, 200, 400]
+  gold_cost = ritual_costs[tier_val.to_i] || ritual_costs.last
+
+  cure = compendium.cure_effects(spell_name)
+  mana = cure.nil? ? compendium.mana_effects(spell_name) : nil
+  halt 400, "Ritual has no downtime-castable effect" unless cure || mana
+
+  max_saturation = target_char.cha
+  totals = { major: 0, moderate: 0, minor: 0, mana: 0, sat: 0 }
+  applied = 0
+  stop_reason = nil
+  quantity.times do
+    if target_p['saturation'].to_i >= max_saturation
+      stop_reason = :sat_cap
+      break
+    end
+    if caster_p['mana'].to_i < mana_cost
+      stop_reason = :mana
+      break
+    end
+    if campaign['gold'].to_i < gold_cost
+      stop_reason = :gold
+      break
+    end
+    if cure
+      h_major, h_mod, h_minor = Combat.apply_cure_cascade(target_p, cure)
+      sat_add = cure[:saturation] - target_char.tier
+      sat_add -= 2 * caster.tier if caster.ability_list.include?('improved_healing')
+      sat_add = cure[:minimum_saturation] if sat_add < cure[:minimum_saturation]
+      totals[:major] += h_major; totals[:moderate] += h_mod; totals[:minor] += h_minor
+    else
+      target_max_mana = target_char.mana_max
+      current_mana = target_p['mana'].to_i
+      new_mana = [current_mana + mana[:mana], target_max_mana].min
+      target_p['mana'] = new_mana
+      sat_add = mana[:saturation] - target_char.tier
+      sat_add = mana[:minimum_saturation] if sat_add < mana[:minimum_saturation]
+      totals[:mana] += (new_mana - current_mana)
+    end
+    target_p['saturation'] = target_p['saturation'].to_i + sat_add
+    caster_p['mana'] = caster_p['mana'].to_i - mana_cost
+    campaign['gold'] = campaign['gold'].to_i - gold_cost
+    totals[:sat] += sat_add
+    applied += 1
+  end
+
+  if applied == 0
+    msg = case stop_reason
+          when :sat_cap then "#{target_char.name} is already at maximum magical saturation (#{target_p['saturation']}/#{max_saturation})"
+          when :mana    then "#{caster.name} does not have enough mana (#{caster_p['mana']}/#{mana_cost})"
+          when :gold    then "Not enough gold (have #{campaign['gold']}g, need #{gold_cost}g)"
+          else "Ritual cast failed"
+          end
+    halt 400, msg
+  end
+
+  Tools.save_json('combat.json', combat_data)
+  Tools.save_json('campaign.json', campaign)
+  suffix = applied > 1 ? " x#{applied}" : ''
+  log_effect = cure ?
+    "healed #{totals[:major]}/#{totals[:moderate]}/#{totals[:minor]} (major/moderate/minor)" :
+    "restored #{totals[:mana]} mana"
+  Combat.add_log("#{caster.name} rituals #{spell_name}#{suffix} on #{target_char.name} (#{mana_cost * applied} mana, #{gold_cost * applied}g) - #{log_effect}, +#{totals[:sat]} saturation")
   redirect '/downtime'
 end
 
