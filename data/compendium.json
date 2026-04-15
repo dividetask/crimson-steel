@@ -1664,12 +1664,14 @@
     "ghoul_paralysis": "A creature hit by a ghoul's natural attack must make a Constitution save against the ghoul's proficiency bonus or be paralyzed for 1d4+1 rounds. Elves are immune to this effect."
   },
   "spellcasting_services": [
-    {"spell": "Cure Lesser Wounds",   "title": "Discrete", "class": "druid",  "tier": 1, "cost": 40},
-    {"spell": "Cure Lesser Wounds",   "title": "Acolyte",  "class": "cleric", "tier": 1, "cost": 20},
-    {"spell": "Cure Lesser Wounds",   "title": "Adept",    "class": "cleric", "tier": 2, "cost": 30},
-    {"spell": "Cure Simple Wounds",   "title": "Adept",    "class": "cleric", "tier": 2, "cost": 40},
-    {"spell": "Cure Simple Wounds",   "title": "Priest",   "class": "cleric", "tier": 3, "cost": 80},
-    {"spell": "Cure Moderate Wounds", "title": "Priest",   "class": "cleric", "tier": 3, "cost": 200}
+    {"spell": "Cure Lesser Wounds",   "title": "Discrete",  "class": "druid",    "tier": 1, "cost": 40},
+    {"spell": "Cure Lesser Wounds",   "title": "Acolyte",   "class": "cleric",   "tier": 1, "cost": 20},
+    {"spell": "Cure Lesser Wounds",   "title": "Adept",     "class": "cleric",   "tier": 2, "cost": 30},
+    {"spell": "Cure Simple Wounds",   "title": "Adept",     "class": "cleric",   "tier": 2, "cost": 40},
+    {"spell": "Cure Simple Wounds",   "title": "Priest",    "class": "cleric",   "tier": 3, "cost": 80},
+    {"spell": "Cure Moderate Wounds", "title": "Priest",    "class": "cleric",   "tier": 3, "cost": 200},
+    {"spell": "Minor Recharge",       "title": "Alchemist", "class": "arcanist", "tier": 2, "cost": 40},
+    {"spell": "Basic Recharge",       "title": "Alchemist", "class": "arcanist", "tier": 2, "cost": 80}
   ],
   "urgent_action_spells": ["Cure", "Ward", "Stabilize"]
 }
