@@ -1,0 +1,61 @@
+<div class="scene">
+  <h1>Scene</h1>
+
+  <% if @combat.combat_turn_list.empty? %>
+    <p class="dt-note">No combatants in the initiative track yet.</p>
+  <% else %>
+    <table class="scene-init">
+      <thead>
+        <tr>
+          <th>Initiative</th>
+          <th>Name</th>
+          <th>HP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @combat.combat_turn_list.each do |ct| %>
+          <% is_pc = (ct.character.data['group'] || 'PC').to_s == 'PC' %>
+          <% is_current = @combat.current_turn_character && @combat.current_turn_character.combat_id == ct.combat_id %>
+          <tr class="<%= 'current-turn' if is_current %>">
+            <td><%= h ct.initiative.to_s.empty? ? '—' : ct.initiative %></td>
+            <td><%= is_pc ? h(@combat.display_name(ct)) : 'DM' %></td>
+            <td>
+              <% if is_pc %>
+                <%= ct.hp %>/<%= ct.character.hp_max %>
+              <% else %>
+                <%
+                  hp_max = ct.character.hp_max.to_i
+                  hp_now = ct.hp.to_i
+                  pct = hp_max > 0 ? (hp_now.to_f / hp_max * 100.0) : 0
+                  if hp_now <= 0
+                    hp_label = 'Down'; hp_class = 'scene-hp-down'
+                  elsif pct >= 75
+                    hp_label = nil; hp_class = 'scene-hp-good'
+                  elsif pct >= 50
+                    hp_label = nil; hp_class = 'scene-hp-warn'
+                  elsif pct >= 25
+                    hp_label = nil; hp_class = 'scene-hp-orange'
+                  else
+                    hp_label = nil; hp_class = 'scene-hp-bad'
+                  end
+                %>
+                <% if hp_label %>
+                  <span class="scene-hp-down-text"><%= hp_label %></span>
+                <% else %>
+                  <span class="scene-hp-bar <%= hp_class %>"></span>
+                <% end %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+
+  <% if @character %>
+    <h2 class="scene-current-name"><%= h @character.name %>'s Turn</h2>
+    <%= erb :character_sheet, layout: false %>
+  <% elsif @combat.current_turn_character %>
+    <p class="dt-note">It's the DM's turn.</p>
+  <% end %>
+</div>

@@ -324,6 +324,19 @@ table th {
 .combat-tracker th, .combat-tracker td { white-space: nowrap; }
 .combat-update-form { display: contents; }
 .combat-tracker tr.current-turn { background: #fff4c2; font-weight: bold; }
+
+/* Scene page: simplified initiative table for player-facing display.
+ * Enemy HP is masked behind a colored bar instead of a number. */
+.scene-init { width: 100%; max-width: 600px; margin-bottom: 20px; }
+.scene-init th, .scene-init td { padding: 6px 10px; }
+.scene-init tr.current-turn { background: #fff4c2; font-weight: bold; }
+.scene-hp-bar { display: inline-block; width: 70px; height: 14px; border-radius: 3px; vertical-align: middle; }
+.scene-hp-good   { background: #4caf50; }
+.scene-hp-warn   { background: #fdd835; }
+.scene-hp-orange { background: #fb8c00; }
+.scene-hp-bad    { background: #d32f2f; }
+.scene-hp-down-text { color: #d32f2f; font-weight: bold; text-transform: uppercase; }
+.scene-current-name { margin-top: 16px; font-size: 18px; }
 .combat-tracker .set-turn-btn { font-size: 11px; padding: 2px 6px; cursor: pointer; }
 .attack-banner { background: #d32f2f; color: white; padding: 8px 15px; border-radius: 3px; margin-bottom: 10px; font-weight: bold; font-size: 13px; }
 .turn-status { margin-top: 20px; }

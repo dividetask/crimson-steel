@@ -56,6 +56,23 @@ get '/combat' do
   erb :combat_tracker
 end
 
+# Scene: shared player/DM view. Shows a simplified initiative table (names,
+# HP, initiative rolls) with enemy identities masked behind "DM" + a HP
+# color band, plus the current PC's character sheet when it's a player's
+# turn (hidden when an enemy is acting).
+get '/scene' do
+  @combat = Combat.new()
+  @compendium = Compendium.new
+  current = @combat.current_turn_character
+  if current && current.character.data['group'] == 'PC'
+    @character = current.character
+    @route_prefix = nil # suppress the navigation widget in character_sheet
+  else
+    @character = nil
+  end
+  erb :scene
+end
+
 post '/combat/update/:id' do
   redirect '/character/0' unless local_request?
   id = params[:id].to_i
