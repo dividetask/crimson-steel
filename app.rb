@@ -818,6 +818,24 @@ post '/combat/action' do
         participant['combat_pool'] = participant['combat_pool'].to_i - spiritual_weapon_dice
       end
 
+      # Blindness/Deafness: dice are spent on the spell check, success or
+      # failure, and a condition (Blindness or Deafness) is applied when the
+      # caster beats the target save by >= 2 net successes. Client handles
+      # the opposed roll and sends bd_hit plus the chosen sub-effect.
+      bd_dice = 0
+      bd_effect = nil
+      bd_hit = false
+      if spell_name == 'Blindness/Deafness'
+        halt 400, "Blindness/Deafness requires a target" if target_ids.empty?
+        bd_dice = params[:dice_spent].to_i
+        halt 400, "Blindness/Deafness must spend at least 2 dice" if bd_dice < 2
+        halt 400, "Not enough dice" if participant['combat_pool'].to_i < bd_dice
+        bd_effect = params[:bd_effect].to_s
+        halt 400, "Invalid effect" unless %w[blindness deafness].include?(bd_effect)
+        bd_hit = params[:bd_hit].to_s == 'true'
+        participant['combat_pool'] = participant['combat_pool'].to_i - bd_dice
+      end
+
       participant['mana'] = participant['mana'].to_i - mana_cost
       # Enhancement spells (Resistance, Bull's Strength, ...) write an
       # active_effect carrying the resolved bonus payload. The target's
@@ -841,11 +859,40 @@ post '/combat/action' do
         effect_entry['dice_spent'] = spiritual_weapon_dice if spell_name == 'Spiritual Weapon'
         combat_data['active_effects'] << effect_entry
       end
+
+      if spell_name == 'Blindness/Deafness' && bd_hit
+        combat_data['active_effects'] ||= []
+        combat_data['active_effects'] << {
+          'caster_id' => combat_id,
+          'caster_name' => character.name,
+          'spell_name' => bd_effect == 'blindness' ? 'Blindness' : 'Deafness',
+          'spell_tier' => spell_tier,
+          'round_cast' => combat_data['round'],
+          'target_combat_ids' => target_ids,
+          'target_names' => target_names,
+          'permanent' => true
+        }
+      end
       Tools.save_json('combat.json', combat_data)
       suffix = target_names.empty? ? "" : " on #{target_names.join(', ')}"
-      dice_suffix = spiritual_weapon_dice > 0 ? " with #{spiritual_weapon_dice} dice" : ""
+      dice_suffix = if spiritual_weapon_dice > 0
+        " with #{spiritual_weapon_dice} dice"
+      elsif bd_dice > 0
+        " with #{bd_dice} dice"
+      else
+        ""
+      end
+      outcome = ""
+      if spell_name == 'Blindness/Deafness'
+        label = bd_effect == 'blindness' ? 'Blindness' : 'Deafness'
+        caster_s = params[:bd_caster_successes].to_i
+        save_s = params[:bd_save_successes].to_i
+        outcome = bd_hit ?
+          " - #{label} applied (#{caster_s} vs #{save_s} save)" :
+          " - save succeeded (#{caster_s} vs #{save_s} save)"
+      end
       duration_log = enhancement ? " (#{[enhancement[:duration_rounds].to_i, 1].max} round#{'s' unless enhancement[:duration_rounds].to_i == 1})" : ""
-      Combat.add_log("#{character.name} casts #{spell_name}#{suffix}#{dice_suffix} (#{mana_cost} mana)#{duration_log}")
+      Combat.add_log("#{character.name} casts #{spell_name}#{suffix}#{dice_suffix} (#{mana_cost} mana)#{outcome}#{duration_log}")
     end
 
   elsif action == 'item'

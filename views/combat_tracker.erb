@@ -72,6 +72,8 @@
                 <% duration_suffix = remaining ? " (#{remaining} round#{'s' unless remaining == 1})" : '' %>
                 <% if effect['spell_name'] == 'Paralyzed' %>
                   <span class="condition-badge condition-paralyzed" title="Ends at start of round <%= end_round %>">Paralyzed<%= duration_suffix %></span>
+                <% elsif %w[Blindness Deafness].include?(effect['spell_name']) %>
+                  <span class="condition-badge condition-<%= effect['spell_name'].downcase %>" title="Permanent until dispelled"><%= effect['spell_name'] %></span>
                 <% elsif end_round %>
                   <%# Every other duration-bound active effect (Ward, future %>
                   <%# spell effects with ends_on_round) gets a generic badge. %>
@@ -110,7 +112,9 @@
     <div class="active-effects" style="margin-top: 15px;">
       <h3 style="margin-bottom: 8px;">Active Effects</h3>
       <% @combat.active_effects.each_with_index do |effect, idx| %>
-        <% duration_text = if effect['ends_on_round']
+        <% duration_text = if effect['permanent']
+             "permanent"
+           elsif effect['ends_on_round']
              _rem = [effect['ends_on_round'].to_i - rounds_elapsed_view, 0].max
              "#{_rem} round#{'s' unless _rem == 1} remaining"
            elsif effect['rounds_remaining']
@@ -202,10 +206,21 @@
             ward = compendium.ward_effects(name)
             resolved = compendium.resolve_spell_variant(name)
             base = resolved ? resolved[0] : nil
+            save_attr = compendium.save_attr(name)
+            spell_skills = compendium.spell_skills(name)
+            # Pick the caster's best skill for this spell — highest dice
+            # count, break ties on bonus.
+            caster_skill = spell_skills.max_by { |s|
+              [current.character.skill_dice(s).to_i, current.character.skill_bonus(s).to_i]
+            }
             {name: name, tier: tier, cure: cure ? true : false, ward: ward ? true : false,
              stabilize: base == 'Stabilize',
              concentration: compendium.concentration?(name),
-             target_mode: compendium.target_mode(name) || "single"}
+             target_mode: compendium.target_mode(name) || "single",
+             save_attr: save_attr,
+             caster_skill: caster_skill,
+             caster_skill_dice: caster_skill ? current.character.skill_dice(caster_skill).to_i : 0,
+             caster_skill_bonus: caster_skill ? current.character.skill_bonus(caster_skill).to_i : 0}
           end
         }.flatten
       )
@@ -248,6 +263,8 @@
           abilities: ct.incapacitated? ? [] : ct.character.ability_list,
           healing_dice: ct.character.skill_dice("healing"),
           healing_bonus: ct.character.skill_bonus("healing"),
+          save_dice: %w[str dex con int wis cha].each_with_object({}) { |a, h| h[a] = ct.character.save_dice(a.to_sym) },
+          save_bonus: %w[str dex con int wis cha].each_with_object({}) { |a, h| h[a] = ct.character.save_bonus(a.to_sym) },
           spells: (ct.character.spell_list || []).flatten,
           shields: ct.character.shield_list.select { |s| s['equipped'] }.map { |s|
             {
@@ -638,6 +655,10 @@
     // skill dice (Spiritual Weapon rolls off Healing) capped by their
     // remaining combat pool. Default value is the max.
     function selectSpellDice(spellName, spellTier, targetIds, isInstant, effectLabel, targetMode, isConcentration) {
+      if (spellName === 'Blindness/Deafness') {
+        startBlindnessDeafnessCast(spellName, spellTier, targetIds);
+        return;
+      }
       if (spellName !== 'Spiritual Weapon') {
         confirmCast(spellName, spellTier, targetIds, isInstant, effectLabel, targetMode, isConcentration, 0);
         return;
@@ -749,6 +770,151 @@
         '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'cast\', spell_name: \'' +
           spellName.replace(/'/g, "\\'") + '\', spell_tier: ' + spellTier + ', concentration: true, target_combat_id: ' + targetId +
           ', stabilize_dice: ' + dice + ', stabilize_successes: ' + successes + '})" style="margin-top:8px;">Submit</button>');
+    }
+
+    // --- Blindness/Deafness: save-based spell flow ---
+    //   1. Pick blindness vs deafness + dice to spend on the spell check.
+    //   2. DM enters caster spell check successes (rolled at TN derived from
+    //      the caster's best spell-skill proficiency).
+    //   3. DM enters target save successes (rolled at TN penalised by the
+    //      spell tier and caster's skill bonus).
+    //   4. Net (caster - target) >= 2 applies the condition; either way the
+    //      caster still pays mana.
+    var bdCast = null;
+
+    function startBlindnessDeafnessCast(spellName, spellTier, targetIds) {
+      var targetCombatId = targetIds[0];
+      var target = combatants.find(function(c) { return c.combat_id === targetCombatId; });
+      if (!target) { alert('No target'); return; }
+      var spellEntry = spellList.find(function(s) { return s.name === spellName; });
+      if (!spellEntry || !spellEntry.caster_skill) {
+        alert('Caster has no eligible skill for ' + spellName);
+        return;
+      }
+
+      bdCast = {
+        spellName: spellName,
+        spellTier: spellTier,
+        targetCombatId: targetCombatId,
+        targetName: target.name,
+        saveAttr: spellEntry.save_attr,
+        casterSkill: spellEntry.caster_skill,
+        casterSkillDice: spellEntry.caster_skill_dice,
+        casterSkillBonus: spellEntry.caster_skill_bonus,
+        effectType: null,
+        diceSpent: 0,
+        casterSuccesses: null,
+        saveSuccesses: null
+      };
+
+      var maxDice = Math.min(bdCast.casterSkillDice, diceRemaining);
+      var minDice = 2;
+      if (maxDice < minDice) {
+        addStep('<strong>Cannot cast ' + spellName + '</strong> - need at least ' +
+          minDice + ' dice (skill allows ' + bdCast.casterSkillDice + ', pool has ' + diceRemaining + ')');
+        return;
+      }
+
+      var diceId = 'bd-dice-' + Date.now();
+      addStep('<strong>' + spellName + ' on ' + target.name + '</strong>' +
+        '<br><span class="math-detail">Rolls off ' + bdCast.casterSkill.replace('_', ' ') +
+        ' (' + bdCast.casterSkillDice + ' dice max, bonus ' +
+        (bdCast.casterSkillBonus >= 0 ? '+' : '') + bdCast.casterSkillBonus + ').</span>' +
+        '<br><label>Dice: <input type="number" id="' + diceId + '" min="' + minDice + '" max="' + maxDice + '" value="' + maxDice + '" style="width:50px;"></label>' +
+        '<br><span class="math-detail">Choose which condition to inflict:</span>' +
+        '<br><button class="action-btn" style="margin:2px;" onclick="bdPickEffect(\'blindness\', \'' + diceId + '\')">Blindness</button>' +
+        '<button class="action-btn" style="margin:2px;" onclick="bdPickEffect(\'deafness\', \'' + diceId + '\')">Deafness</button>');
+    }
+
+    function bdPickEffect(effect, diceInputId) {
+      var v = parseInt(document.getElementById(diceInputId).value, 10);
+      var maxDice = Math.min(bdCast.casterSkillDice, diceRemaining);
+      if (isNaN(v) || v < 2 || v > maxDice) {
+        alert('Enter 2-' + maxDice + '.');
+        return;
+      }
+      bdCast.effectType = effect;
+      bdCast.diceSpent = v;
+      bdCasterRollStep();
+    }
+
+    function bdCasterRollStep() {
+      var casterTn = clampTn(diceRules.base_target_number - bdCast.casterSkillBonus);
+      var tnMath = tnBreakdown('Caster TN', diceRules.base_target_number,
+        [{value: -bdCast.casterSkillBonus, label: bdCast.casterSkill.replace('_', ' ') + ' bonus'}], casterTn);
+      addStep('<strong>Caster Spell Check</strong>: ' + bdCast.diceSpent + ' dice, TN ' + casterTn +
+        '<br><span class="math-detail">' + tnMath + ' &nbsp;|&nbsp; failures subtract from successes.</span>' +
+        '<br><label>Net successes: <input type="number" id="bd-caster-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="bdConfirmCasterSuccesses()">Confirm</button>');
+    }
+
+    function bdConfirmCasterSuccesses() {
+      var input = document.getElementById('bd-caster-successes');
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
+      bdCast.casterSuccesses = val;
+      input.disabled = true;
+      input.parentElement.nextElementSibling.style.display = 'none';
+      bdSaveRollStep();
+    }
+
+    function bdSaveRollStep() {
+      var target = combatants.find(function(c) { return c.combat_id === bdCast.targetCombatId; });
+      if (!target) { alert('Target vanished'); return; }
+      var saveAttr = bdCast.saveAttr;
+      var saveDice = (target.save_dice && target.save_dice[saveAttr]) || 0;
+      var saveBonus = (target.save_bonus && target.save_bonus[saveAttr]) || 0;
+      var baseTn = diceRules.base_target_number;
+      var rawTn = baseTn - saveBonus + bdCast.spellTier + bdCast.casterSkillBonus;
+      var saveTn = clampTn(rawTn);
+      bdCast.saveDice = saveDice;
+      bdCast.saveTn = saveTn;
+      var tnMods = [
+        {value: -saveBonus, label: saveAttr.toUpperCase() + ' save bonus'},
+        {value: bdCast.spellTier, label: 'spell tier penalty'},
+        {value: bdCast.casterSkillBonus, label: 'caster skill penalty'}
+      ];
+      var tnMath = tnBreakdown('Save TN', baseTn, tnMods, saveTn);
+      addStep('<strong>' + bdCast.targetName + '\'s ' + saveAttr.toUpperCase() + ' Save</strong>: ' +
+        saveDice + ' dice, TN ' + saveTn +
+        '<br><span class="math-detail">' + tnMath + '</span>' +
+        '<br><label>Save successes: <input type="number" id="bd-save-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="bdConfirmSaveSuccesses()">Confirm</button>');
+    }
+
+    function bdConfirmSaveSuccesses() {
+      var input = document.getElementById('bd-save-successes');
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
+      bdCast.saveSuccesses = val;
+      input.disabled = true;
+      input.parentElement.nextElementSibling.style.display = 'none';
+      bdShowResult();
+    }
+
+    function bdShowResult() {
+      var net = bdCast.casterSuccesses - bdCast.saveSuccesses;
+      var required = 2;
+      var hit = net >= required;
+      var manaCost = spellManaCost(bdCast.spellTier);
+      var effectLabel = bdCast.effectType.charAt(0).toUpperCase() + bdCast.effectType.slice(1);
+      var summary = hit
+        ? '<strong>' + effectLabel + ' applied!</strong> (' + bdCast.casterSuccesses + ' caster - ' +
+            bdCast.saveSuccesses + ' save = ' + net + ' net, need ' + required + '; permanent until dispelled)'
+        : '<strong>Save succeeded.</strong> ' + bdCast.targetName + ' resists ' + effectLabel + '. (' +
+            bdCast.casterSuccesses + ' caster - ' + bdCast.saveSuccesses + ' save = ' + net + ' net, need ' + required + ')';
+
+      var fields =
+        'id: currentCharId, combat_action: \'cast\', spell_name: \'Blindness/Deafness\', spell_tier: ' + bdCast.spellTier +
+        ', target_combat_id: ' + bdCast.targetCombatId +
+        ', dice_spent: ' + bdCast.diceSpent +
+        ', bd_effect: \'' + bdCast.effectType + '\'' +
+        ', bd_hit: ' + (hit ? 'true' : 'false') +
+        ', bd_caster_successes: ' + bdCast.casterSuccesses +
+        ', bd_save_successes: ' + bdCast.saveSuccesses;
+      addStep(summary +
+        '<br><span class="math-detail">Cost: ' + manaCost + ' mana + ' + bdCast.diceSpent + ' dice</span>' +
+        '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Submit</button>');
     }
 
     // --- ITEM: Consumable selection ---

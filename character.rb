@@ -326,6 +326,26 @@ class Compendium
     (spell_data["properties"] || []).include?("concentration")
   end
 
+  # Returns the save attribute ("str", "dex", "con", "int", "wis", "cha") a
+  # spell forces its target to roll, or nil when the spell has no save.
+  def save_attr(spell_name)
+    resolved = resolve_spell_variant(spell_name)
+    return nil unless resolved
+    _base, spell_data, * = resolved
+    attr = spell_data["save"]
+    return nil if attr.nil? || attr == 0 || attr.to_s.empty?
+    attr.to_s
+  end
+
+  # Returns the list of skills usable to cast a given spell (each spell's
+  # skill array in the compendium).
+  def spell_skills(spell_name)
+    resolved = resolve_spell_variant(spell_name)
+    return [] unless resolved
+    _base, spell_data, * = resolved
+    spell_data["skill"] || []
+  end
+
   # Given a spell name (which may be a variant like "Cure Lesser Wounds"),
   # return [base_name, spell_data, tier_idx, tier_val] or nil if not found.
   def resolve_spell_variant(spell_name)
