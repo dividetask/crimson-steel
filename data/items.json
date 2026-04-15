@@ -1,0 +1,35 @@
+{
+  "version": "0.2",
+	"weapon": {
+		"base": {
+			"damage": {"light": "str/4-2", "medium": "str/4", "heavy": "str/2+2"},
+			"draw_speed": {"ammunition": 1, "light": 1, "medium": 2, "heavy": 4},
+			"speed": {"light": 0, "medium": 1, "heavy": 2, "piercing": 0, "slashing": 1, "bludgeoning": 2},
+			"bleed": {"light": 0, "medium": 2, "heavy": 4, "piercing": 1, "slashing": 5, "bludgeoning": 3},
+			"threshold": {"light": 2, "medium": 1, "heavy": 0, "piercing": 3, "slashing": 4, "bludgeoning": 2}},
+		"overwrite": {
+			"category": {
+				"speed": {"natural": 0}
+			}},
+		"all": {
+			"rapier": ["light", "piercing"],
+			"shortbow": ["medium", "piercing", "ranged"],
+			"dagger": ["light", "piercing"],
+			"bola": ["light", "piercing", "ranged"],
+			"javelin": ["medium", "piercing", "ranged"],
+			"longbow": ["medium", "piercing", "ranged"],
+			"battleaxe": ["heavy", "slashing"],
+			"scimitar": ["medium", "slashing"],
+			"falcion": ["heavy", "slashing"],
+			"bite": ["natural", "light", "piercing"],
+			"claws": ["natural", "light", "slashing"],
+			"slam": ["natural", "medium", "bludgeoning"]}
+	},
+	"armor": {
+		"baseDR": {"none": 0, "light": 1, "natural": 1, "medium": 3, "heavy": 6},
+		"magicalResilienceMultiplier": {"light": 1, "medium": 2, "heavy": 3}
+	},
+	"shield": {"subtype": ["light", "medium", "tower"]},
+	"item": {"subtype": ["belt", "body", "chest", "eyes", "feet", "hands", "head", "headband", "neck", "shoulders", "wrists"]}
+}
+
