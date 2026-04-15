@@ -309,8 +309,31 @@ post '/combat/action' do
       target['temporary_hit_points'] = new_temp
 
       participant['mana'] = participant['mana'].to_i - mana_cost
+
+      # Register the Ward as a duration-bound active effect so the
+      # combat tracker can display how many rounds remain before it
+      # fades. Uses the same ends_on_round machinery as paralysis; the
+      # Start of Turn cleanup purges the entry when the round arrives.
+      # Temp HP itself is left on the participant and is not rolled
+      # back on expiry -- the DM can adjust if needed.
+      campaign = Tools.load_json('campaign.json')
+      rounds_elapsed_now = campaign.is_a?(Hash) ? campaign['rounds_elapsed'].to_i : 0
+      duration_rounds = ward[:duration_rounds].to_i
+      duration_rounds = 1 if duration_rounds < 1
+      combat_data['active_effects'] ||= []
+      combat_data['active_effects'] << {
+        'caster_id' => combat_id,
+        'caster_name' => character.name,
+        'spell_name' => spell_name,
+        'spell_tier' => spell_tier,
+        'round_cast' => combat_data['round'],
+        'target_combat_ids' => [target_combat_id],
+        'target_names' => [target_character.name],
+        'ends_on_round' => rounds_elapsed_now + duration_rounds
+      }
+
       Tools.save_json('combat.json', combat_data)
-      Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana) - temp HP #{current_temp} -> #{new_temp}")
+      Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana, #{duration_rounds} round#{'s' unless duration_rounds == 1}) - temp HP #{current_temp} -> #{new_temp}")
     elsif cure
       halt 400, "Cure spell requires a target" unless target_combat_id
       target = combat_data['participants'].find { |p| p['id'] == target_combat_id }

@@ -1,5 +1,8 @@
+  <% campaign_data = Tools.load_json('campaign.json') %>
+  <% rounds_elapsed_view = campaign_data.is_a?(Hash) ? campaign_data['rounds_elapsed'].to_i : 0 %>
   <div class="combat-tracker">
   <h1>Combat Tracker</h1>
+  <div class="math-detail" style="margin-bottom: 10px;">Round <%= rounds_elapsed_view %></div>
 
   <table>
     <thead>
@@ -58,9 +61,16 @@
               <span class="condition-badge condition-ability-damage"><%= ability.upcase %> -<%= val %> <%= severity %></span>
             <% end %>
             <% (@combat.active_effects || []).each do |effect| %>
-              <% if effect['spell_name'] == 'Paralyzed' && (effect['target_combat_ids'] || []).include?(combat_turn.combat_id) %>
-                <% end_round = effect['ends_on_round'] %>
-                <span class="condition-badge condition-paralyzed" title="Ends at start of round <%= end_round %>">Paralyzed<%= end_round ? " (ends R#{end_round})" : '' %></span>
+              <% next unless (effect['target_combat_ids'] || []).include?(combat_turn.combat_id) %>
+              <% end_round = effect['ends_on_round'] %>
+              <% remaining = end_round ? [end_round.to_i - rounds_elapsed_view, 0].max : nil %>
+              <% duration_suffix = remaining ? " (#{remaining} round#{'s' unless remaining == 1})" : '' %>
+              <% if effect['spell_name'] == 'Paralyzed' %>
+                <span class="condition-badge condition-paralyzed" title="Ends at start of round <%= end_round %>">Paralyzed<%= duration_suffix %></span>
+              <% elsif end_round %>
+                <%# Every other duration-bound active effect (Ward, future %>
+                <%# spell effects with ends_on_round) gets a generic badge. %>
+                <span class="condition-badge condition-effect" title="Ends at start of round <%= end_round %>"><%= effect['spell_name'] %><%= duration_suffix %></span>
               <% end %>
             <% end %>
           </td>
@@ -84,7 +94,8 @@
       <h3 style="margin-bottom: 8px;">Active Effects</h3>
       <% @combat.active_effects.each_with_index do |effect, idx| %>
         <% duration_text = if effect['ends_on_round']
-             "ends R#{effect['ends_on_round']}"
+             _rem = [effect['ends_on_round'].to_i - rounds_elapsed_view, 0].max
+             "#{_rem} round#{'s' unless _rem == 1} remaining"
            elsif effect['rounds_remaining']
              # Legacy entries written before ends_on_round existed.
              "#{effect['rounds_remaining']} turn#{'s' unless effect['rounds_remaining'].to_i == 1} remaining"
@@ -388,11 +399,12 @@
 
     // Roll `dice` d10s, count results >= `tn`, fill `inputId`, render the
     // raw dice in `rollsId`. A 10 is a crit and counts as 2 successes;
-    // every other result >= tn counts as 1. Colors: red=1 (fumble),
-    // blue=10 (crit), green=other success, grey=other failure.
-    // Re-clickable so the DM can fudge by re-rolling until a desired
-    // outcome. Used by every combat roll (attack/defense/ally/healing/
-    // condition saves).
+    // every other result >= tn counts as 1; every rolled 1 is a fumble
+    // and subtracts 1 from the running total. Final successes are
+    // floored at 0 for the input. Colors: red=1 (fumble), blue=10 (crit),
+    // green=other success, grey=other failure. Re-clickable so the DM
+    // can fudge by re-rolling. Used by every combat roll (attack/
+    // defense/ally/healing/condition saves).
     function rollDicePool(dice, tn, inputId, rollsId) {
       var rolls = [];
       var successes = 0;
@@ -401,9 +413,11 @@
         rolls.push(d);
         if (d === 10) successes += 2;
         else if (d >= tn) successes++;
+        else if (d === 1) successes--;
       }
+      var displaySuccesses = Math.max(0, successes);
       var inputEl = document.getElementById(inputId);
-      if (inputEl) inputEl.value = successes;
+      if (inputEl) inputEl.value = displaySuccesses;
       var rollsEl = document.getElementById(rollsId);
       if (rollsEl) {
         var colored = rolls.map(function(d) {
@@ -416,7 +430,8 @@
           }
           return '<span style="color:#777;">' + d + '</span>';
         }).join(', ');
-        rollsEl.innerHTML = 'Rolled: [' + colored + '] &rarr; ' + successes + ' success' + (successes === 1 ? '' : 'es');
+        rollsEl.innerHTML = 'Rolled: [' + colored + '] &rarr; ' + displaySuccesses + ' success' + (displaySuccesses === 1 ? '' : 'es') +
+          (successes < 0 ? ' <span class="math-detail">(raw ' + successes + ', floored)</span>' : '');
       }
     }
 
@@ -1670,4 +1685,18 @@
       form.submit();
     }
   </script>
+
+  <% if current %>
+    <h2 style="margin-top: 30px;">Current Character</h2>
+    <% _saved_character = @character %>
+    <% _saved_compendium = @compendium %>
+    <% _saved_route_prefix = @route_prefix %>
+    <% @character = current.character %>
+    <% @compendium = Compendium.new %>
+    <% @route_prefix = nil %>
+    <%= erb :character_sheet, layout: false %>
+    <% @character = _saved_character %>
+    <% @compendium = _saved_compendium %>
+    <% @route_prefix = _saved_route_prefix %>
+  <% end %>
   </div>

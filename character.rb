@@ -371,8 +371,32 @@ class Compendium
       base_name: resolved[0],
       tier_idx: idx,
       tier_val: tier_val,
-      temp_hp: resolve_effect_value(effect["temp_hp"], idx, tier_val).to_i
+      temp_hp: resolve_effect_value(effect["temp_hp"], idx, tier_val).to_i,
+      duration_rounds: ward_duration_rounds(spell_data, idx, tier_val)
     }
+  end
+
+  # Rough conversion of a Ward spell's "duration" entry into rounds for
+  # combat display. Arrays index by spell tier. String formulas may use
+  # "rank" and "tier" -- we substitute both with the spell's tier value
+  # (tier 0 treated as 0.5 per CLAUDE.md). Non-numeric or unparseable
+  # entries fall back to 1 round so the DM at least sees a badge and can
+  # dismiss it manually. Result is floored at 1 round.
+  def ward_duration_rounds(spell_data, idx, tier_val)
+    raw = spell_data["duration"]
+    raw = raw[idx] if raw.is_a?(Array)
+    value = if raw.is_a?(Numeric)
+      raw.to_i
+    elsif raw.is_a?(String)
+      rank_val = tier_val.to_i == 0 ? 0.5 : tier_val.to_f
+      formula = raw.gsub('rank', rank_val.to_s).gsub('tier', rank_val.to_s)
+      formula.match?(/\A[\d\s+\-*\/().]+\z/) ? eval(formula).to_i : 1
+    else
+      1
+    end
+    [value, 1].max
+  rescue StandardError
+    1
   end
 
   # For a spell variant, return a hash of cure effects resolved at its tier,
