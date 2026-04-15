@@ -569,16 +569,21 @@ post '/combat/action' do
 
     log_lines = ["#{character.name} starts turn"]
 
-    # Step 1: decrement rounds_remaining on active_effects targeting this
-    # combatant; remove effects whose counter hits 0. Effects with no
-    # rounds_remaining field (e.g. concentration spells) are untouched.
+    campaign = Tools.load_json('campaign.json')
+    campaign = {} unless campaign.is_a?(Hash)
+    rounds_elapsed = campaign['rounds_elapsed'].to_i
+
+    # Step 1: purge active_effects targeting this combatant whose end round
+    # has arrived. Effects with no ends_on_round (e.g. concentration spells)
+    # are untouched. ends_on_round is set when the effect is created, as
+    # rounds_elapsed_at_creation + duration, so the effect clears the first
+    # time the target hits Start of Turn on or after that round.
     combat_data['active_effects'] ||= []
     combat_data['active_effects'].reject! do |effect|
-      next false unless effect['rounds_remaining']
+      next false unless effect['ends_on_round']
       target_ids = effect['target_combat_ids'] || []
       next false unless target_ids.include?(combat_id)
-      effect['rounds_remaining'] = effect['rounds_remaining'].to_i - 1
-      if effect['rounds_remaining'] <= 0
+      if effect['ends_on_round'].to_i <= rounds_elapsed
         log_lines << "  #{effect['spell_name']} ends on #{character.name}"
         true
       else
@@ -617,8 +622,9 @@ post '/combat/action' do
       when 'ghoul_paralysis'
         # Paralysis rounds mirrors the bleed formula:
         # rounds = (1 + severity/10) - successes, floor 0. If any rounds
-        # result, add them to the existing Paralyzed effect (stacking) or
-        # create a new one if the target isn't already paralyzed.
+        # result, set ends_on_round = rounds_elapsed + rounds so the
+        # effect clears at the target's Start of Turn `rounds` rounds from
+        # now. Stack by pushing the existing effect's end back by `rounds`.
         raw_rounds = 1 + (value / 10)
         rounds = [raw_rounds - successes, 0].max
         if rounds > 0
@@ -626,9 +632,11 @@ post '/combat/action' do
             e['spell_name'] == 'Paralyzed' && (e['target_combat_ids'] || []).include?(combat_id)
           end
           if existing
-            existing['rounds_remaining'] = existing['rounds_remaining'].to_i + rounds
-            log_lines << "  Ghoul paralysis save (#{successes} successes): +#{rounds} paralysis round#{'s' unless rounds == 1} (now #{existing['rounds_remaining']})"
+            new_end = existing['ends_on_round'].to_i + rounds
+            existing['ends_on_round'] = new_end
+            log_lines << "  Ghoul paralysis save (#{successes} successes): +#{rounds} paralysis round#{'s' unless rounds == 1} (now ends R#{new_end})"
           else
+            end_round = rounds_elapsed + rounds
             combat_data['active_effects'] << {
               'caster_id' => nil,
               'caster_name' => 'Ghoul Paralysis',
@@ -636,9 +644,9 @@ post '/combat/action' do
               'target_combat_ids' => [combat_id],
               'target_names' => [character.name],
               'round_cast' => combat_data['round'],
-              'rounds_remaining' => rounds
+              'ends_on_round' => end_round
             }
-            log_lines << "  Ghoul paralysis save (#{successes} successes): PARALYZED for #{rounds} round#{'s' unless rounds == 1}"
+            log_lines << "  Ghoul paralysis save (#{successes} successes): PARALYZED until R#{end_round} (#{rounds} round#{'s' unless rounds == 1})"
           end
         else
           log_lines << "  Ghoul paralysis save (#{successes} successes): no paralysis (#{raw_rounds} blocked)"
@@ -1678,13 +1686,15 @@ def downtime_resolve_condition(combat_data, participant, character, combat_id, c
         e['spell_name'] == 'Paralyzed' && (e['target_combat_ids'] || []).include?(combat_id)
       end
       if existing
-        existing['rounds_remaining'] = existing['rounds_remaining'].to_i + rounds
+        existing['ends_on_round'] = existing['ends_on_round'].to_i + rounds
       else
+        campaign = Tools.load_json('campaign.json')
+        rounds_elapsed = campaign.is_a?(Hash) ? campaign['rounds_elapsed'].to_i : 0
         combat_data['active_effects'] << {
           'caster_id' => nil, 'caster_name' => 'Ghoul Paralysis',
           'spell_name' => 'Paralyzed',
           'target_combat_ids' => [combat_id], 'target_names' => [character.name],
-          'round_cast' => combat_data['round'], 'rounds_remaining' => rounds
+          'round_cast' => combat_data['round'], 'ends_on_round' => rounds_elapsed + rounds
         }
       end
     end
@@ -1946,16 +1956,18 @@ post '/downtime/quick_resolve' do
           e['spell_name'] == 'Paralyzed' && (e['target_combat_ids'] || []).include?(cid_str.to_i)
         end
         if existing
-          existing['rounds_remaining'] = existing['rounds_remaining'].to_i + rounds
+          existing['ends_on_round'] = existing['ends_on_round'].to_i + rounds
         else
           char_id = participant['char_id'] || participant['id']
           char_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
           char_name = char_data ? char_data['name'] : 'Unknown'
+          campaign = Tools.load_json('campaign.json')
+          rounds_elapsed = campaign.is_a?(Hash) ? campaign['rounds_elapsed'].to_i : 0
           combat_data['active_effects'] << {
             'caster_id' => nil, 'caster_name' => 'Ghoul Paralysis',
             'spell_name' => 'Paralyzed',
             'target_combat_ids' => [cid_str.to_i], 'target_names' => [char_name],
-            'round_cast' => combat_data['round'], 'rounds_remaining' => rounds
+            'round_cast' => combat_data['round'], 'ends_on_round' => rounds_elapsed + rounds
           }
         end
       end

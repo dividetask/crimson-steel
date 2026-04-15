@@ -148,8 +148,21 @@ class Combat
   def self.advance_turn
     combat_data = Tools.load_json('combat.json')
     num_participants = combat_data['participants'].length
-    combat_data['current_turn_id'] = (combat_data['current_turn_id'] + 1) % num_participants
+    old_turn_id = combat_data['current_turn_id'].to_i
+    new_turn_id = (old_turn_id + 1) % num_participants
+    combat_data['current_turn_id'] = new_turn_id
     Tools.save_json('combat.json', combat_data)
+
+    # Wrap = new round. Bump the campaign-wide round counter which drives
+    # ends_on_round expiry for paralysis and other duration effects.
+    # combat.json['round'] is a separate, downtime-managed counter for
+    # post-combat urgent-action cycles; we leave it alone here.
+    if new_turn_id == 0
+      campaign = Tools.load_json('campaign.json')
+      campaign = {} unless campaign.is_a?(Hash)
+      campaign['rounds_elapsed'] = campaign['rounds_elapsed'].to_i + 1
+      Tools.save_json('campaign.json', campaign)
+    end
   end
 
   def self.set_current_turn(combat_id)

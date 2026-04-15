@@ -59,7 +59,8 @@
             <% end %>
             <% (@combat.active_effects || []).each do |effect| %>
               <% if effect['spell_name'] == 'Paralyzed' && (effect['target_combat_ids'] || []).include?(combat_turn.combat_id) %>
-                <span class="condition-badge condition-paralyzed">Paralyzed (<%= effect['rounds_remaining'] %>)</span>
+                <% end_round = effect['ends_on_round'] %>
+                <span class="condition-badge condition-paralyzed" title="Ends at start of round <%= end_round %>">Paralyzed<%= end_round ? " (ends R#{end_round})" : '' %></span>
               <% end %>
             <% end %>
           </td>
@@ -82,7 +83,14 @@
     <div class="active-effects" style="margin-top: 15px;">
       <h3 style="margin-bottom: 8px;">Active Effects</h3>
       <% @combat.active_effects.each_with_index do |effect, idx| %>
-        <% duration_text = effect['rounds_remaining'] ? "#{effect['rounds_remaining']} turn#{'s' unless effect['rounds_remaining'].to_i == 1} remaining" : "round #{effect['round_cast']}" %>
+        <% duration_text = if effect['ends_on_round']
+             "ends R#{effect['ends_on_round']}"
+           elsif effect['rounds_remaining']
+             # Legacy entries written before ends_on_round existed.
+             "#{effect['rounds_remaining']} turn#{'s' unless effect['rounds_remaining'].to_i == 1} remaining"
+           else
+             "round #{effect['round_cast']}"
+           end %>
         <% target_text = (effect['target_names'] || []).any? ? " on #{(effect['target_names'] || []).join(', ')}" : '' %>
         <div class="effect-row" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; padding: 4px 8px; background: #f0f4ff; border-left: 3px solid #1976d2; border-radius: 2px; font-size: 13px;">
           <span><strong><%= effect['spell_name'] %></strong> (<%= effect['caster_name'] %><%= target_text %>, <%= duration_text %>)</span>
@@ -223,6 +231,9 @@
     ) %>;
     var activeEffects = <%= JSON.generate(@combat.active_effects) %>;
     var diceRules = <%= JSON.generate(Tools.load_json('rules.json')['dice']) %>;
+    // Campaign-wide round counter. Effects with ends_on_round <= this value
+    // are scheduled to end at the target's next Start of Turn confirm.
+    var roundsElapsed = <%= (Tools.load_json('campaign.json').is_a?(Hash) ? Tools.load_json('campaign.json')['rounds_elapsed'].to_i : 0) %>;
 
     // Start-of-turn info for the current combatant: each active condition
     // paired with the save dice/TN the DM should roll against. TN starts at 9
@@ -301,13 +312,33 @@
       }
     }
 
+    // Active effects targeting the current combatant that will expire at
+    // the next Start of Turn confirm (ends_on_round <= campaign
+    // rounds_elapsed). Purely display -- the server performs the actual
+    // removal when Confirm Start of Turn is submitted.
+    function expiringEffectsForCurrent() {
+      if (currentCharId == null) return [];
+      return (activeEffects || []).filter(function(e) {
+        return e.ends_on_round != null &&
+               (e.target_combat_ids || []).indexOf(currentCharId) !== -1 &&
+               e.ends_on_round <= roundsElapsed;
+      });
+    }
+
     // --- START OF TURN: show every active-condition save at once, then
     // preview consequences before confirm. Two screens: entry -> preview.
     function showStartOfTurn() {
       startOfTurnState = { successes: {} };
-      if (!startOfTurnConditions || startOfTurnConditions.length === 0) {
+      var expiring = expiringEffectsForCurrent();
+      if ((!startOfTurnConditions || startOfTurnConditions.length === 0) && expiring.length === 0) {
         addStep('<strong>Start of Turn</strong>: no active conditions for ' + currentCharName +
           '<br><button class="action-btn" onclick="confirmStartOfTurn()" style="margin-top:8px;">Confirm</button>');
+        return;
+      }
+      if (!startOfTurnConditions || startOfTurnConditions.length === 0) {
+        // No saves to roll, but there are effects to end; go straight to
+        // the preview so the DM can see and confirm.
+        showStartOfTurnPreview();
         return;
       }
       var rows = startOfTurnConditions.map(function(cond, i) {
@@ -331,21 +362,28 @@
     // Collect successes, show consequences, then offer a single Confirm.
     // Replaces the action-context so repeated clicks don't duplicate.
     function showStartOfTurnPreview() {
-      for (var i = 0; i < startOfTurnConditions.length; i++) {
+      for (var i = 0; i < (startOfTurnConditions || []).length; i++) {
         var cond = startOfTurnConditions[i];
-        var val = parseInt(document.getElementById('save-successes-' + i).value, 10);
+        var inp = document.getElementById('save-successes-' + i);
+        var val = inp ? parseInt(inp.value, 10) : 0;
         if (isNaN(val) || val < 0) { alert('Enter a non-negative number of successes for ' + cond.label + '.'); return; }
         startOfTurnState.successes[cond.name] = val;
       }
-      var summary = startOfTurnConditions.map(function(c) {
+      var summary = (startOfTurnConditions || []).map(function(c) {
         return '<li>' + summarizeConditionOutcome(c, startOfTurnState.successes[c.name] || 0) + '</li>';
       }).join('');
+      // Append one bullet per active effect that will be purged on confirm.
+      var expiring = expiringEffectsForCurrent();
+      expiring.forEach(function(e) {
+        summary += '<li><strong>' + e.spell_name + '</strong> ends (ended round ' + e.ends_on_round + ')</li>';
+      });
       var context = document.getElementById('action-context');
       context.innerHTML = '';
+      var hasBack = (startOfTurnConditions || []).length > 0;
       addStep('<strong>All saves recorded.</strong>' +
         '<br><span class="math-detail">Consequences:</span><ul style="margin:4px 0 8px 18px;">' + summary + '</ul>' +
         '<button class="action-btn" onclick="confirmStartOfTurn()">Confirm Start of Turn</button>' +
-        ' <button class="action-btn" onclick="showStartOfTurn()" style="background:#eee;color:#333;">Back</button>');
+        (hasBack ? ' <button class="action-btn" onclick="showStartOfTurn()" style="background:#eee;color:#333;">Back</button>' : ''));
     }
 
     // Roll `dice` d10s, count results >= `tn`, fill `inputId`, render the
@@ -404,7 +442,8 @@
         var rawRounds = 1 + Math.floor(cond.value / 10);
         var rounds = Math.max(0, rawRounds - successes);
         if (rounds > 0) {
-          parts.push('<strong>Ghoul Paralysis:</strong> <span style="color:#6a1b9a;font-weight:bold;">PARALYZED for ' + rounds + ' turn' + (rounds === 1 ? '' : 's') + '</span> (stacks with existing)');
+          var endRound = roundsElapsed + rounds;
+          parts.push('<strong>Ghoul Paralysis:</strong> <span style="color:#6a1b9a;font-weight:bold;">PARALYZED until R' + endRound + '</span> (' + rounds + ' round' + (rounds === 1 ? '' : 's') + ', stacks with existing)');
         } else {
           parts.push('<strong>Ghoul Paralysis:</strong> no paralysis (' + rawRounds + ' blocked by ' + successes + ' successes)');
         }
