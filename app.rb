@@ -633,7 +633,6 @@ post '/combat/action' do
     spell_name = params[:spell_name]
     spell_tier = params[:spell_tier].to_i
     mana_cost = spell_tier == 0 ? 1 : (spell_tier * 2 + 2)
-    concentration = params[:concentration] == 'true'
 
     halt 400, "Not enough mana" unless participant['mana'].to_i >= mana_cost
 
@@ -655,6 +654,7 @@ post '/combat/action' do
     ward = compendium.ward_effects(spell_name)
     resolved = compendium.resolve_spell_variant(spell_name)
     base_name = resolved ? resolved[0] : nil
+    concentration = compendium.concentration?(spell_name)
 
     # Dice cost from combat pool based on casting time:
     #   casting_time == 0.5 (half action): 4 dice minimum
@@ -803,6 +803,21 @@ post '/combat/action' do
         target_names << CharacterSheet.new(target_data).name if target_data
       end
 
+      # Spiritual Weapon: record the number of dice spent at cast time. Those
+      # dice come out of the caster's combat pool now and are "locked in" on
+      # the active effect for later concentrate attacks. The dice cap is the
+      # caster's Healing skill dice (Spiritual Weapon rolls off Healing).
+      spiritual_weapon_dice = 0
+      if spell_name == 'Spiritual Weapon'
+        spiritual_weapon_dice = params[:dice_spent].to_i
+        healing_cap = character.skill_dice("healing").to_i
+        halt 400, "Spiritual Weapon requires a target" if target_ids.empty?
+        halt 400, "Spiritual Weapon must spend at least 2 dice" if spiritual_weapon_dice < 2
+        halt 400, "Not enough dice" if participant['combat_pool'].to_i < spiritual_weapon_dice
+        halt 400, "Spiritual Weapon is capped at your Healing dice (#{healing_cap})" if spiritual_weapon_dice > healing_cap
+        participant['combat_pool'] = participant['combat_pool'].to_i - spiritual_weapon_dice
+      end
+
       participant['mana'] = participant['mana'].to_i - mana_cost
       # Enhancement spells (Resistance, Bull's Strength, ...) write an
       # active_effect carrying the resolved bonus payload. The target's
@@ -814,7 +829,7 @@ post '/combat/action' do
         apply_enhancement_effect(combat_data, enhancement.merge(variant_name: spell_name), nil, character, nil, target_ids, target_names, combat_id)
       elsif concentration
         combat_data['active_effects'] ||= []
-        combat_data['active_effects'] << {
+        effect_entry = {
           'caster_id' => combat_id,
           'caster_name' => character.name,
           'spell_name' => spell_name,
@@ -823,11 +838,14 @@ post '/combat/action' do
           'target_combat_ids' => target_ids,
           'target_names' => target_names
         }
+        effect_entry['dice_spent'] = spiritual_weapon_dice if spell_name == 'Spiritual Weapon'
+        combat_data['active_effects'] << effect_entry
       end
       Tools.save_json('combat.json', combat_data)
       suffix = target_names.empty? ? "" : " on #{target_names.join(', ')}"
+      dice_suffix = spiritual_weapon_dice > 0 ? " with #{spiritual_weapon_dice} dice" : ""
       duration_log = enhancement ? " (#{[enhancement[:duration_rounds].to_i, 1].max} round#{'s' unless enhancement[:duration_rounds].to_i == 1})" : ""
-      Combat.add_log("#{character.name} casts #{spell_name}#{suffix} (#{mana_cost} mana)#{duration_log}")
+      Combat.add_log("#{character.name} casts #{spell_name}#{suffix}#{dice_suffix} (#{mana_cost} mana)#{duration_log}")
     end
 
   elsif action == 'item'
@@ -1018,6 +1036,129 @@ post '/combat/action' do
       "#{user_character.name} uses #{item['name']} on #{target_character.name}"
     end
     Combat.add_log("#{log_prefix} - #{effect_log}")
+
+  elsif action == 'concentrate'
+    participant = combat_data['participants'].find { |p| p['id'] == combat_id }
+    halt 400, "Participant not found" unless participant
+    char_id = participant['char_id'] || participant['id']
+    character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
+    character = CharacterSheet.new(character_data)
+
+    effect_index = params[:effect_index].to_i
+    combat_data['active_effects'] ||= []
+    effect = combat_data['active_effects'][effect_index]
+    halt 400, "Effect not found" unless effect
+    halt 400, "You are not concentrating on that effect" unless effect['caster_id'] == combat_id
+
+    sub = (params[:sub_action] || 'reapply').to_s
+
+    new_target_ids = if params[:target_combat_ids] && !params[:target_combat_ids].to_s.empty?
+      params[:target_combat_ids].to_s.split(',').map { |s| s.strip.to_i }.reject(&:zero?)
+    elsif params[:target_combat_id] && !params[:target_combat_id].to_s.empty?
+      [params[:target_combat_id].to_i]
+    else
+      []
+    end
+
+    target_names_for = ->(ids) {
+      names = []
+      ids.each do |tid|
+        tp = combat_data['participants'].find { |p| p['id'] == tid }
+        next unless tp
+        tc_id = tp['char_id'] || tp['id']
+        td = Tools.load_json('characters.json').find { |c| c['id'] == tc_id }
+        names << CharacterSheet.new(td).name if td
+      end
+      names
+    }
+
+    spell_name = effect['spell_name']
+
+    if sub == 'change_target'
+      # Changing target for a concentration effect costs 4 action dice
+      # (Spiritual Weapon / Shield of Faith redirect both specify a move
+      # action's worth of effort).
+      halt 400, "New target required" if new_target_ids.empty?
+      halt 400, "Not enough dice (need 4)" unless participant['combat_pool'].to_i >= 4
+      participant['combat_pool'] = participant['combat_pool'].to_i - 4
+      effect['target_combat_ids'] = new_target_ids
+      effect['target_names'] = target_names_for.call(new_target_ids)
+      Tools.save_json('combat.json', combat_data)
+      Combat.add_log("#{character.name} redirects #{spell_name} to #{effect['target_names'].join(', ')} (4 dice)")
+
+    elsif sub == 'attack' && spell_name == 'Spiritual Weapon'
+      # Spiritual Weapon attack: costs no action dice for the attacker and
+      # no mana. The attack roll uses the recorded dice count. Damage split
+      # is resolved client-side (same flow as a weapon attack).
+      target_combat_id = new_target_ids.first || (effect['target_combat_ids'] || []).first
+      halt 400, "Target required" unless target_combat_id
+      target_participant = combat_data['participants'].find { |p| p['id'] == target_combat_id }
+      halt 400, "Target not found" unless target_participant
+
+      defense_dice = params[:defense_dice].to_i
+      target_mana_cost = params[:target_mana_cost].to_i
+      minor = params[:minor_damage].to_i
+      moderate = params[:moderate_damage].to_i
+      major = params[:major_damage].to_i
+
+      target_participant['combat_pool'] = target_participant['combat_pool'].to_i - defense_dice if defense_dice > 0
+      target_participant['mana'] = target_participant['mana'].to_i - target_mana_cost if target_mana_cost > 0
+
+      temp_hp = target_participant['temporary_hit_points'].to_i
+      absorbed_major = [major, temp_hp].min; temp_hp -= absorbed_major
+      absorbed_moderate = [moderate, temp_hp].min; temp_hp -= absorbed_moderate
+      absorbed_minor = [minor, temp_hp].min; temp_hp -= absorbed_minor
+      target_participant['temporary_hit_points'] = temp_hp
+      major -= absorbed_major
+      moderate -= absorbed_moderate
+      minor -= absorbed_minor
+
+      target_participant['minor_damage'] = target_participant['minor_damage'].to_i + minor
+      target_participant['moderate_damage'] = target_participant['moderate_damage'].to_i + moderate
+      target_participant['major_damage'] = target_participant['major_damage'].to_i + major
+
+      # Subtract ally dice spent (Shield of Faith blockers, etc.)
+      ally_data = params[:ally_data] || ''
+      ally_data.split(';').each do |entry|
+        next if entry.empty?
+        aid, adice = entry.split(':').map(&:to_i)
+        ally = combat_data['participants'].find { |p| p['id'] == aid }
+        ally['combat_pool'] = ally['combat_pool'].to_i - adice if ally && adice > 0
+      end
+
+      # Subtract mana from Healing Word casters
+      hw_data = params[:healing_word_data] || ''
+      hw_data.split(';').each do |entry|
+        next if entry.empty?
+        hid, hcost = entry.split(':').map(&:to_i)
+        healer = combat_data['participants'].find { |p| p['id'] == hid }
+        healer['mana'] = healer['mana'].to_i - hcost if healer && hcost > 0
+      end
+
+      Tools.save_json('combat.json', combat_data)
+
+      total = minor + moderate + major
+      absorbed = absorbed_major + absorbed_moderate + absorbed_minor
+      target_name = CharacterSheet.new(
+        Tools.load_json('characters.json').find { |c| c['id'] == (target_participant['char_id'] || target_participant['id']) }
+      ).name
+      if total > 0 || absorbed > 0
+        suffix = absorbed > 0 ? " (#{absorbed} absorbed by temp HP)" : ""
+        Combat.add_log("#{character.name}'s Spiritual Weapon attacks #{target_name}: #{total} damage (#{minor}/#{moderate}/#{major})#{suffix}")
+      else
+        Combat.add_log("#{character.name}'s Spiritual Weapon attacks #{target_name} - missed")
+      end
+
+    else
+      # Generic concentrate reapply: the caster continues to focus on the
+      # spell. No mana cost. Log it as a concentrate action.
+      target_names = (effect['target_names'] || []).dup
+      if new_target_ids.any?
+        target_names = target_names_for.call(new_target_ids)
+      end
+      suffix = target_names.empty? ? "" : " on #{target_names.join(', ')}"
+      Combat.add_log("#{character.name} concentrates on #{spell_name}#{suffix}")
+    end
 
   elsif action == 'dismiss_effect'
     effect_index = params[:effect_index].to_i

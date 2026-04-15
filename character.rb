@@ -317,6 +317,15 @@ class Compendium
     %w[none single multi].include?(mode) ? mode : "single"
   end
 
+  # True when the given spell (or variant) has "concentration" in its
+  # properties list. Unknown spells return false.
+  def concentration?(spell_name)
+    resolved = resolve_spell_variant(spell_name)
+    return false unless resolved
+    _base, spell_data, * = resolved
+    (spell_data["properties"] || []).include?("concentration")
+  end
+
   # Given a spell name (which may be a variant like "Cure Lesser Wounds"),
   # return [base_name, spell_data, tier_idx, tier_val] or nil if not found.
   def resolve_spell_variant(spell_name)
