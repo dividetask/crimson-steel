@@ -561,21 +561,33 @@ post '/combat/action' do
           log_lines << "  Bleed save (#{successes} successes): no damage"
         end
       when 'ghoul_paralysis'
-        # 0 successes = failure -> paralyzed for the turn (1 round).
-        if successes <= 0
-          combat_data['active_effects'] ||= []
-          combat_data['active_effects'] << {
-            'caster_id' => nil,
-            'caster_name' => 'Ghoul Paralysis',
-            'spell_name' => 'Paralyzed',
-            'target_combat_ids' => [combat_id],
-            'target_names' => [character.name],
-            'round_cast' => combat_data['round'],
-            'rounds_remaining' => 1
-          }
-          log_lines << "  Ghoul paralysis save (0 successes): PARALYZED for 1 round"
+        # Paralysis rounds mirrors the bleed formula:
+        # rounds = (1 + severity/10) - successes, floor 0. If any rounds
+        # result, add them to the existing Paralyzed effect (stacking) or
+        # create a new one if the target isn't already paralyzed.
+        raw_rounds = 1 + (value / 10)
+        rounds = [raw_rounds - successes, 0].max
+        if rounds > 0
+          existing = combat_data['active_effects'].find do |e|
+            e['spell_name'] == 'Paralyzed' && (e['target_combat_ids'] || []).include?(combat_id)
+          end
+          if existing
+            existing['rounds_remaining'] = existing['rounds_remaining'].to_i + rounds
+            log_lines << "  Ghoul paralysis save (#{successes} successes): +#{rounds} paralysis round#{'s' unless rounds == 1} (now #{existing['rounds_remaining']})"
+          else
+            combat_data['active_effects'] << {
+              'caster_id' => nil,
+              'caster_name' => 'Ghoul Paralysis',
+              'spell_name' => 'Paralyzed',
+              'target_combat_ids' => [combat_id],
+              'target_names' => [character.name],
+              'round_cast' => combat_data['round'],
+              'rounds_remaining' => rounds
+            }
+            log_lines << "  Ghoul paralysis save (#{successes} successes): PARALYZED for #{rounds} round#{'s' unless rounds == 1}"
+          end
         else
-          log_lines << "  Ghoul paralysis save (#{successes} successes): resisted"
+          log_lines << "  Ghoul paralysis save (#{successes} successes): no paralysis (#{raw_rounds} blocked)"
         end
       else
         log_lines << "  #{cname.tr('_', ' ').capitalize} save (#{successes} successes)"

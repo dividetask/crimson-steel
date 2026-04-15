@@ -271,45 +271,57 @@
       }
     }
 
-    // --- START OF TURN: walk through each active condition ---
+    // --- START OF TURN: show every active-condition save at once, then
+    // preview consequences before confirm. Two screens: entry -> preview.
     function showStartOfTurn() {
-      startOfTurnState = { index: 0, successes: {} };
+      startOfTurnState = { successes: {} };
       if (!startOfTurnConditions || startOfTurnConditions.length === 0) {
         addStep('<strong>Start of Turn</strong>: no active conditions for ' + currentCharName +
           '<br><button class="action-btn" onclick="confirmStartOfTurn()" style="margin-top:8px;">Confirm</button>');
         return;
       }
+      var rows = startOfTurnConditions.map(function(cond, i) {
+        var tnSuffix = cond.tn_mod_label ? ' <span class="math-detail">(' + cond.tn_mod_label + ')</span>' : '';
+        var inputId = 'save-successes-' + i;
+        var rollsId = 'save-rolls-' + i;
+        return '<div style="margin:6px 0;padding:4px 6px;border-left:3px solid #ddd;">' +
+          '<strong>Save vs ' + cond.label + '</strong> <span class="math-detail">(severity ' + cond.value + ')</span>' +
+          '<br><span class="math-detail">Roll ' + cond.dice + ' dice at TN ' + cond.tn + '</span>' + tnSuffix +
+          '<br><label>Successes: <input type="number" id="' + inputId + '" min="0" max="' + cond.dice + '" value="0" style="width:50px;"></label>' +
+          ' <button class="action-btn" onclick="rollSaveDice(' + i + ', \'' + inputId + '\', \'' + rollsId + '\')">Roll</button>' +
+          '<div id="' + rollsId + '" class="math-detail" style="margin-top:4px;"></div>' +
+          '</div>';
+      }).join('');
       addStep('<strong>Start of Turn</strong>: ' + currentCharName + ' has ' +
-        startOfTurnConditions.length + ' condition' + (startOfTurnConditions.length === 1 ? '' : 's') + ' to save against.');
-      promptNextConditionSave();
+        startOfTurnConditions.length + ' condition' + (startOfTurnConditions.length === 1 ? '' : 's') + ' to save against.' +
+        rows +
+        '<button class="action-btn" onclick="showStartOfTurnPreview()" style="margin-top:6px;">Next</button>');
     }
 
-    function promptNextConditionSave() {
-      var i = startOfTurnState.index;
-      if (i >= startOfTurnConditions.length) {
-        var summary = startOfTurnConditions.map(function(c) {
-          return '<li>' + summarizeConditionOutcome(c, startOfTurnState.successes[c.name] || 0) + '</li>';
-        }).join('');
-        addStep('<strong>All saves recorded.</strong>' +
-          '<br><span class="math-detail">Consequences:</span><ul style="margin:4px 0 8px 18px;">' + summary + '</ul>' +
-          '<button class="action-btn" onclick="confirmStartOfTurn()">Confirm Start of Turn</button>');
-        return;
+    // Collect successes, show consequences, then offer a single Confirm.
+    // Replaces the action-context so repeated clicks don't duplicate.
+    function showStartOfTurnPreview() {
+      for (var i = 0; i < startOfTurnConditions.length; i++) {
+        var cond = startOfTurnConditions[i];
+        var val = parseInt(document.getElementById('save-successes-' + i).value, 10);
+        if (isNaN(val) || val < 0) { alert('Enter a non-negative number of successes for ' + cond.label + '.'); return; }
+        startOfTurnState.successes[cond.name] = val;
       }
-      var cond = startOfTurnConditions[i];
-      var tnSuffix = cond.tn_mod_label ? ' <span class="math-detail">(' + cond.tn_mod_label + ')</span>' : '';
-      var inputId = 'save-successes-' + i;
-      var rollsId = 'save-rolls-' + i;
-      addStep('<strong>Save vs ' + cond.label + '</strong> (severity ' + cond.value + ')' +
-        '<br><span class="math-detail">Roll ' + cond.dice + ' dice at TN ' + cond.tn + '</span>' + tnSuffix +
-        '<br><label>Successes: <input type="number" id="' + inputId + '" min="0" max="' + cond.dice + '" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="recordConditionSave(' + i + ', \'' + inputId + '\')">Next</button>' +
-        ' <button class="action-btn" onclick="rollSaveDice(' + i + ', \'' + inputId + '\', \'' + rollsId + '\')">Roll</button>' +
-        '<span id="' + rollsId + '" class="math-detail" style="margin-left:8px;"></span>');
+      var summary = startOfTurnConditions.map(function(c) {
+        return '<li>' + summarizeConditionOutcome(c, startOfTurnState.successes[c.name] || 0) + '</li>';
+      }).join('');
+      var context = document.getElementById('action-context');
+      context.innerHTML = '';
+      addStep('<strong>All saves recorded.</strong>' +
+        '<br><span class="math-detail">Consequences:</span><ul style="margin:4px 0 8px 18px;">' + summary + '</ul>' +
+        '<button class="action-btn" onclick="confirmStartOfTurn()">Confirm Start of Turn</button>' +
+        ' <button class="action-btn" onclick="showStartOfTurn()" style="background:#eee;color:#333;">Back</button>');
     }
 
-    // Roll `cond.dice` d10s, count results >= cond.tn as successes, fill the
-    // successes input, and show the raw dice so the DM can see (or fudge)
-    // the outcome. Can be clicked multiple times to re-roll.
+    // Roll `cond.dice` d10s, count results >= cond.tn, fill the successes
+    // input, and render the raw dice. Colors: red=1 (fumble), blue=10 (crit),
+    // green=other success, grey=other failure. Re-clickable so the DM can
+    // fudge by re-rolling until a desired outcome.
     function rollSaveDice(i, inputId, rollsId) {
       var cond = startOfTurnConditions[i];
       var rolls = [];
@@ -320,7 +332,15 @@
         if (d >= cond.tn) successes++;
       }
       document.getElementById(inputId).value = successes;
-      document.getElementById(rollsId).innerHTML = 'Rolled: [' + rolls.join(', ') + '] &rarr; ' + successes + ' success' + (successes === 1 ? '' : 'es');
+      var colored = rolls.map(function(d) {
+        var color;
+        if (d === 1) color = '#c62828';
+        else if (d === 10) color = '#1565c0';
+        else if (d >= cond.tn) color = '#2e7d32';
+        else color = '#777';
+        return '<span style="color:' + color + ';font-weight:bold;">' + d + '</span>';
+      }).join(', ');
+      document.getElementById(rollsId).innerHTML = 'Rolled: [' + colored + '] &rarr; ' + successes + ' success' + (successes === 1 ? '' : 'es');
     }
 
     // Preview of what a save with `successes` will do to `cond` on Confirm.
@@ -337,10 +357,12 @@
           parts.push('<strong>Bleed:</strong> no damage (' + raw + ' blocked by ' + successes + ' successes)');
         }
       } else if (cond.name === 'ghoul_paralysis') {
-        if (successes <= 0) {
-          parts.push('<strong>Ghoul Paralysis:</strong> <span style="color:#6a1b9a;font-weight:bold;">PARALYZED for 1 turn</span>');
+        var rawRounds = 1 + Math.floor(cond.value / 10);
+        var rounds = Math.max(0, rawRounds - successes);
+        if (rounds > 0) {
+          parts.push('<strong>Ghoul Paralysis:</strong> <span style="color:#6a1b9a;font-weight:bold;">PARALYZED for ' + rounds + ' turn' + (rounds === 1 ? '' : 's') + '</span> (stacks with existing)');
         } else {
-          parts.push('<strong>Ghoul Paralysis:</strong> resisted');
+          parts.push('<strong>Ghoul Paralysis:</strong> no paralysis (' + rawRounds + ' blocked by ' + successes + ' successes)');
         }
       } else {
         parts.push('<strong>' + cond.label + ':</strong> save recorded');
@@ -353,15 +375,6 @@
         parts.push(cond.label + ' decays ' + cond.value + ' &rarr; ' + newValue);
       }
       return parts.join('; ');
-    }
-
-    function recordConditionSave(i, inputId) {
-      var val = parseInt(document.getElementById(inputId).value, 10);
-      if (isNaN(val) || val < 0) { alert('Enter a non-negative number of successes.'); return; }
-      var cond = startOfTurnConditions[i];
-      startOfTurnState.successes[cond.name] = val;
-      startOfTurnState.index = i + 1;
-      promptNextConditionSave();
     }
 
     function confirmStartOfTurn() {
