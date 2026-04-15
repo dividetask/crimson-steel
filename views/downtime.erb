@@ -260,6 +260,9 @@
                 <% end %>
               </select>
             </label>
+            <label>Quantity
+              <input type="number" name="quantity" id="service-quantity" min="1" value="1" <%= 'disabled' unless @is_local %>>
+            </label>
             <div class="dt-preview" id="service-preview">&nbsp;</div>
             <button type="submit" <%= 'disabled' unless @is_local %>>Purchase &amp; Apply</button>
           </form>
@@ -1025,6 +1028,7 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
     var svcSpell = document.getElementById('service-spell');
     var svcCaster = document.getElementById('service-caster');
     var svcTarget = document.getElementById('service-target');
+    var svcQty = document.getElementById('service-quantity');
     var svcPreview = document.getElementById('service-preview');
 
     function refreshServiceCasters() {
@@ -1045,20 +1049,60 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
       var spell = svcSpell.value;
       var title = svcCaster.value;
       var targetId = parseInt(svcTarget.value, 10);
+      var qty = Math.max(1, parseInt(svcQty.value, 10) || 1);
       var list = D.services[spell] || [];
       var svc = list.find(function(s) { return s.title === title; });
       var target = pc(targetId);
       if (!svc || !target) { svcPreview.innerHTML = '&nbsp;'; return; }
-      var result = cureCascade(svc.effect, target, svc.improvedHealing, svc.tier);
+
+      // Simulate up to `qty` casts. Each cast halts if the target is already
+      // at saturation cap (matches the server-side guard). Mutates a local
+      // damage/saturation copy so subsequent casts see the partially healed
+      // state.
+      var damage = target.damage.slice();
+      var sat = target.saturation;
+      var totals = { major: 0, moderate: 0, minor: 0, sat: 0 };
+      var applied = 0;
+      var stoppedAtCap = false;
+      for (var i = 0; i < qty; i++) {
+        if (sat >= target.cha) { stoppedAtCap = true; break; }
+        var pool = svc.effect.major;
+        var hMaj = Math.min(damage[2], pool); pool -= hMaj;
+        pool += svc.effect.moderate;
+        var hMod = Math.min(damage[1], pool); pool -= hMod;
+        pool += svc.effect.minor;
+        var hMin = Math.min(damage[0], pool);
+        var sa = svc.effect.saturation - target.tier;
+        if (svc.improvedHealing) sa -= 2 * svc.tier;
+        if (sa < svc.effect.minimumSaturation) sa = svc.effect.minimumSaturation;
+        damage[2] -= hMaj; damage[1] -= hMod; damage[0] -= hMin;
+        sat += sa;
+        totals.major += hMaj; totals.moderate += hMod; totals.minor += hMin;
+        totals.sat += sa;
+        applied++;
+      }
+
       var gold = D.campaignGold;
-      var shortfall = gold < svc.cost ? ' <span class="dt-warn">not enough gold</span>' : '';
-      var note = 'Cost <b>' + svc.cost + 'g</b> (gold after: ' + (gold - svc.cost) + ')' + shortfall + '.';
-      svcPreview.innerHTML = formatCurePreview(target, result, note);
+      var totalCost = svc.cost * applied;
+      var shortfall = gold < totalCost ? ' <span class="dt-warn">not enough gold</span>' : '';
+      var capWarn = sat >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
+      var qtyNote = applied < qty
+        ? '<span class="dt-warn">Only ' + applied + ' of ' + qty + ' will land</span> (saturation cap reached).<br>'
+        : '';
+      var lines = [
+        qtyNote +
+          'Heals <b>' + totals.major + '</b> major, <b>' + totals.moderate + '</b> moderate, <b>' + totals.minor + '</b> minor (across ' + applied + ' cast' + (applied === 1 ? '' : 's') + ').',
+        'Damage remaining: <b>' + damage[0] + '</b> minor, <b>' + damage[1] + '</b> moderate, <b>' + damage[2] + '</b> major.',
+        'Saturation <b>+' + totals.sat + '</b> (' + target.saturation + ' &rarr; ' + sat + '/' + target.cha + ')' + capWarn + '.',
+        'Cost <b>' + totalCost + 'g</b> (gold after: ' + (gold - totalCost) + ')' + shortfall + '.'
+      ];
+      svcPreview.innerHTML = lines.join('<br>');
     }
 
     svcSpell.addEventListener('change', refreshServiceCasters);
     svcCaster.addEventListener('change', updateServicePreview);
     svcTarget.addEventListener('change', updateServicePreview);
+    svcQty.addEventListener('input', updateServicePreview);
     refreshServiceCasters();
   }
 

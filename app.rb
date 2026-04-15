@@ -1463,6 +1463,7 @@ post '/downtime/service' do
   spell = params[:spell].to_s
   caster_title = params[:service_caster].to_s
   target_id = params[:target_id].to_i
+  quantity = [params[:quantity].to_i, 1].max
   services = compendium.data['spellcasting_services'] || []
   service = services.find { |s| s['spell'].to_s == spell && s['title'].to_s == caster_title }
   halt 400, "Service not found" unless service
@@ -1472,29 +1473,50 @@ post '/downtime/service' do
   target_char = CharacterSheet.new(target_data)
   target_p = downtime_find_or_create_participant(combat_data, target_char)
 
-  cost = service['cost'].to_i
-  halt 400, "Not enough gold (have #{campaign['gold']}, need #{cost})" if campaign['gold'].to_i < cost
-
   cure = compendium.cure_effects(service['spell'])
   halt 400, "Service spell is not a cure" unless cure
 
   max_saturation = target_char.cha
-  current_saturation = target_p['saturation'].to_i
-  halt 400, "#{target_char.name} is already at maximum magical saturation (#{current_saturation}/#{max_saturation})" if current_saturation >= max_saturation
+  unit_cost = service['cost'].to_i
 
-  healed_major, healed_moderate, healed_minor = Combat.apply_cure_cascade(target_p, cure)
-  sat_add = cure[:saturation] - target_char.tier
-  # Cleric casters always have improved_healing (class ability at level 1);
-  # druids do not. Any other class is treated as having no improved_healing.
-  sat_add -= 2 * service['tier'].to_i if service['class'].to_s == 'cleric'
-  sat_add = cure[:minimum_saturation] if sat_add < cure[:minimum_saturation]
-  target_p['saturation'] = current_saturation + sat_add
+  # Apply up to `quantity` casts, stopping if the target hits the saturation
+  # cap or the campaign runs out of gold mid-batch. Each cast charges its
+  # cost individually so a partial batch only deducts for what landed.
+  totals = { major: 0, moderate: 0, minor: 0, sat: 0 }
+  applied = 0
+  stop_reason = nil
+  quantity.times do
+    if target_p['saturation'].to_i >= max_saturation
+      stop_reason = :sat_cap
+      break
+    end
+    if campaign['gold'].to_i < unit_cost
+      stop_reason = :gold
+      break
+    end
+    h_major, h_mod, h_minor = Combat.apply_cure_cascade(target_p, cure)
+    sat_add = cure[:saturation] - target_char.tier
+    sat_add -= 2 * service['tier'].to_i if service['class'].to_s == 'cleric'
+    sat_add = cure[:minimum_saturation] if sat_add < cure[:minimum_saturation]
+    target_p['saturation'] = target_p['saturation'].to_i + sat_add
+    campaign['gold'] = campaign['gold'].to_i - unit_cost
+    totals[:major] += h_major; totals[:moderate] += h_mod; totals[:minor] += h_minor
+    totals[:sat] += sat_add
+    applied += 1
+  end
 
-  campaign['gold'] = campaign['gold'].to_i - cost
+  if applied == 0
+    msg = stop_reason == :sat_cap ?
+      "#{target_char.name} is already at maximum magical saturation (#{target_p['saturation']}/#{max_saturation})" :
+      "Not enough gold (have #{campaign['gold']}, need #{unit_cost})"
+    halt 400, msg
+  end
+
   Tools.save_json('combat.json', combat_data)
   Tools.save_json('campaign.json', campaign)
-  label = "#{service['spell']} (#{service['title']})"
-  Combat.add_log("#{target_char.name} paid #{cost}g for #{label} service - healed #{healed_major}/#{healed_moderate}/#{healed_minor}, +#{sat_add} saturation")
+  label = "#{service['spell']} (#{service['title']})#{applied > 1 ? " x#{applied}" : ''}"
+  total_cost = unit_cost * applied
+  Combat.add_log("#{target_char.name} paid #{total_cost}g for #{label} service - healed #{totals[:major]}/#{totals[:moderate]}/#{totals[:minor]}, +#{totals[:sat]} saturation")
   redirect '/downtime'
 end
 
