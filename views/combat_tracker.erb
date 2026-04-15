@@ -319,17 +319,20 @@
     }
 
     // Roll `dice` d10s, count results >= `tn`, fill `inputId`, render the
-    // raw dice in `rollsId`. Colors: red=1 (fumble), blue=10 (crit),
-    // green=other success, grey=other failure. Re-clickable so the DM can
-    // fudge by re-rolling until a desired outcome. Used by every combat
-    // roll (attack/defense/ally/healing/condition saves).
+    // raw dice in `rollsId`. A 10 is a crit and counts as 2 successes;
+    // every other result >= tn counts as 1. Colors: red=1 (fumble),
+    // blue=10 (crit), green=other success, grey=other failure.
+    // Re-clickable so the DM can fudge by re-rolling until a desired
+    // outcome. Used by every combat roll (attack/defense/ally/healing/
+    // condition saves).
     function rollDicePool(dice, tn, inputId, rollsId) {
       var rolls = [];
       var successes = 0;
       for (var r = 0; r < dice; r++) {
         var d = Math.floor(Math.random() * 10) + 1;
         rolls.push(d);
-        if (d >= tn) successes++;
+        if (d === 10) successes += 2;
+        else if (d >= tn) successes++;
       }
       var inputEl = document.getElementById(inputId);
       if (inputEl) inputEl.value = successes;
