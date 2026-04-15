@@ -1673,7 +1673,9 @@
     {"spell": "Cure Simple Wounds",   "title": "Priest",    "class": "cleric",   "tier": 3, "cost": 80},
     {"spell": "Cure Moderate Wounds", "title": "Priest",    "class": "cleric",   "tier": 3, "cost": 200},
     {"spell": "Minor Recharge",       "title": "Alchemist", "class": "arcanist", "tier": 2, "cost": 40},
-    {"spell": "Basic Recharge",       "title": "Alchemist", "class": "arcanist", "tier": 2, "cost": 80}
+    {"spell": "Basic Recharge",       "title": "Alchemist", "class": "arcanist", "tier": 2, "cost": 80},
+    {"spell": "Lesser Restoration",   "title": "Adept",     "class": "cleric",   "tier": 2, "cost": 40},
+    {"spell": "Lesser Restoration",   "title": "Priest",    "class": "cleric",   "tier": 3, "cost": 80}
   ],
   "urgent_action_spells": ["Cure", "Ward", "Stabilize"]
 }

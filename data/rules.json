@@ -150,5 +150,13 @@
 				[3, 6, "day"], [3, 6, "week"], [3, 6, "month"],
 				[4, 8, "day"], [4, 8, "week"], [4, 8, "month"],
 				[1, 2, "hour"], [1, 2, "day"], [1, 2, "week"],
+				[4, 8, "hour"], [4, 8, "day"], [4, 8, "week"] ],
+			"ability_heal_rate": [
+				[1, 2, "week"], [1, 2, "month"], [0, 0, "none"],
+				[1, 2, "day"], [1, 2, "week"], [1, 2, "month"],
+				[2, 4, "day"], [2, 4, "week"], [2, 4, "month"],
+				[3, 6, "day"], [3, 6, "week"], [3, 6, "month"],
+				[4, 8, "day"], [4, 8, "week"], [4, 8, "month"],
+				[1, 2, "hour"], [1, 2, "day"], [1, 2, "week"],
 				[4, 8, "hour"], [4, 8, "day"], [4, 8, "week"] ] } }
 }

@@ -147,9 +147,9 @@
 
     <div class="dt-action-grid">
       <div class="dt-action">
-        <h3>Cast Cure / Recharge</h3>
+        <h3>Cast Spell</h3>
         <% if @dt_data[:castSpellNames].empty? %>
-          <p class="dt-note">No party member knows any Cure or Recharge spell.</p>
+          <p class="dt-note">No party member knows any downtime-castable spell.</p>
         <% else %>
           <form method="post" action="/downtime/cast" id="cure-form">
             <label>Spell
@@ -169,8 +169,12 @@
                 <% end %>
               </select>
             </label>
-            <label>Quantity
+            <label class="cure-quantity-label">Quantity
               <input type="number" name="quantity" id="cure-quantity" min="1" value="1">
+            </label>
+            <div class="dt-dice cure-surgery-only" id="cure-dice" style="display:none;">Healing check: &mdash;</div>
+            <label class="cure-surgery-only" style="display:none;">Successes rolled
+              <input type="number" name="successes" id="cure-successes" value="0" min="0">
             </label>
             <div class="dt-preview" id="cure-preview">&nbsp;</div>
             <button type="submit">Cast</button>
@@ -181,7 +185,7 @@
       <div class="dt-action">
         <h3>Cast Ritual</h3>
         <% if @dt_data[:ritualSpellNames].empty? %>
-          <p class="dt-note">No PC has a Cure or Recharge ritual in their spellbook.</p>
+          <p class="dt-note">No PC has a downtime-castable ritual in their spellbook.</p>
         <% else %>
           <form method="post" action="/downtime/cast_ritual" id="ritual-form">
             <label>Spell
@@ -201,42 +205,15 @@
                 <% end %>
               </select>
             </label>
-            <label>Quantity
+            <label class="ritual-quantity-label">Quantity
               <input type="number" name="quantity" id="ritual-quantity" min="1" value="1">
+            </label>
+            <div class="dt-dice ritual-surgery-only" id="ritual-dice" style="display:none;">Healing check: &mdash;</div>
+            <label class="ritual-surgery-only" style="display:none;">Successes rolled
+              <input type="number" name="successes" id="ritual-successes" value="0" min="0">
             </label>
             <div class="dt-preview" id="ritual-preview">&nbsp;</div>
             <button type="submit">Cast Ritual</button>
-          </form>
-        <% end %>
-      </div>
-
-      <div class="dt-action">
-        <h3>Cast Surgery</h3>
-        <% if @surgery_casters.empty? %>
-          <p class="dt-note">No party member knows Standard Surgery.</p>
-        <% else %>
-          <form method="post" action="/downtime/cast" id="surgery-form">
-            <input type="hidden" name="spell_name" value="Standard Surgery">
-            <label>Caster
-              <select name="caster_id" id="surgery-caster" required>
-                <% @surgery_casters.each_with_index do |pc, i| %>
-                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %></option>
-                <% end %>
-              </select>
-            </label>
-            <label>Target
-              <select name="target_id" id="surgery-target" required>
-                <% @pcs.each_with_index do |pc, i| %>
-                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (major dmg <%= pc.major_damage %>)</option>
-                <% end %>
-              </select>
-            </label>
-            <div class="dt-dice" id="surgery-dice">Healing check: &mdash;</div>
-            <label>Successes rolled
-              <input type="number" name="successes" id="surgery-successes" value="0" min="0" required>
-            </label>
-            <div class="dt-preview" id="surgery-preview">&nbsp;</div>
-            <button type="submit">Apply Surgery</button>
           </form>
         <% end %>
       </div>
@@ -946,20 +923,31 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
   function pc(id) { return D.pcs[String(id)]; }
 
   // --- Cure cascade preview (shared by Cure + Services). ---
-  // --- Cast Cure / Recharge form ---
-  var cureForm = document.getElementById('cure-form');
-  if (cureForm) {
-    var cureSpell = document.getElementById('cure-spell');
-    var cureCaster = document.getElementById('cure-caster');
-    var cureTarget = document.getElementById('cure-target');
-    var cureQty = document.getElementById('cure-quantity');
-    var curePreview = document.getElementById('cure-preview');
-    var cureSubmit = cureForm.querySelector('button[type="submit"]');
+  // --- Generic cast cell wiring shared by Cast Spell + Cast Ritual.
+  // `opts.payloadKey` selects D.castSpells or D.ritualSpells; `opts.gold`
+  // toggles the per-cast gold cost (Ritual only). Handles cure / mana /
+  // ability (Restoration) / surgery effect types. ---
+  function wireCastCell(opts) {
+    var prefix = opts.prefix;
+    var form = document.getElementById(prefix + '-form');
+    if (!form) return;
+    var spellEl   = document.getElementById(prefix + '-spell');
+    var casterEl  = document.getElementById(prefix + '-caster');
+    var targetEl  = document.getElementById(prefix + '-target');
+    var qtyEl     = document.getElementById(prefix + '-quantity');
+    var qtyLbl    = form.querySelector('.' + prefix + '-quantity-label');
+    var diceEl    = document.getElementById(prefix + '-dice');
+    var sucEl     = document.getElementById(prefix + '-successes');
+    var surgUI    = form.querySelectorAll('.' + prefix + '-surgery-only');
+    var preview   = document.getElementById(prefix + '-preview');
+    var submitBtn = form.querySelector('button[type="submit"]');
 
-    function refreshCureCasters() {
-      var spell = cureSpell.value;
-      var entry = D.castSpells[spell];
-      cureCaster.innerHTML = '';
+    function payloadFor(spell) { return D[opts.payloadKey][spell]; }
+
+    function refreshCasters() {
+      var spell = spellEl.value;
+      var entry = payloadFor(spell);
+      casterEl.innerHTML = '';
       if (!entry) return;
       entry.casterIds.forEach(function(id, i) {
         var p = pc(id);
@@ -967,207 +955,98 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         opt.value = id;
         opt.textContent = p.name;
         if (i === 0) opt.selected = true;
-        cureCaster.appendChild(opt);
+        casterEl.appendChild(opt);
       });
-      updateCurePreview();
+      update();
     }
 
-    function updateCurePreview() {
-      var spell = cureSpell.value;
-      var casterId = parseInt(cureCaster.value, 10);
-      var targetId = parseInt(cureTarget.value, 10);
-      var entry = D.castSpells[spell];
+    function update() {
+      var spell = spellEl.value;
+      var casterId = parseInt(casterEl.value, 10);
+      var targetId = parseInt(targetEl.value, 10);
+      var entry = payloadFor(spell);
       var caster = pc(casterId);
       var target = pc(targetId);
       if (!entry || !caster || !target) {
-        curePreview.innerHTML = '&nbsp;';
-        cureQty.disabled = true; cureSubmit.disabled = true;
+        preview.innerHTML = '&nbsp;';
+        qtyEl.disabled = true; submitBtn.disabled = true;
+        if (qtyLbl) qtyLbl.style.display = '';
+        surgUI.forEach(function(el) { el.style.display = 'none'; });
         return;
       }
 
-      // Per-cast saturation applied to target. Same rules as services: cure
-      // spells can benefit from improved_healing; Recharge (mana) cannot.
-      var satPerCast = entry.saturation - target.tier;
+      // Show / hide Surgery-specific UI vs Quantity row.
+      var isSurgery = entry.type === 'surgery';
+      if (qtyLbl) qtyLbl.style.display = isSurgery ? 'none' : '';
+      surgUI.forEach(function(el) { el.style.display = isSurgery ? '' : 'none'; });
+
+      // Surgery: surface the caster's healing-skill check from the
+      // surgeryCasters payload (precomputed dice/TN/starting successes).
+      if (isSurgery) {
+        var sc = D.surgeryCasters[String(caster.id)];
+        if (sc) {
+          var starting = sc.startingSuccesses > 0 ? ' <span class="dt-warn">+' + sc.startingSuccesses + ' starting</span>' : '';
+          diceEl.innerHTML = 'Healing check: <b>' + sc.dice + 'd</b> TN <b>' + sc.tn + '</b>' + starting;
+        } else {
+          diceEl.innerHTML = 'Healing check: &mdash;';
+        }
+      }
+
+      // Saturation per cast (cure spells get improved_healing reduction).
+      var satPerCast = entry.type === 'surgery' ? 0 : (entry.saturation - target.tier);
       if (entry.type === 'cure' && caster.improvedHealing) satPerCast -= 2 * caster.tier;
-      if (satPerCast < entry.minimumSaturation) satPerCast = entry.minimumSaturation;
+      if (entry.type === 'ability' && caster.improvedHealing) satPerCast -= 2 * caster.tier;
+      if (entry.type !== 'surgery' && satPerCast < entry.minimumSaturation) satPerCast = entry.minimumSaturation;
 
       var manaCost = entry.manaCost;
-      // Caster mana pool shrinks by cost/cast. Note: for a self-cast of
-      // Recharge, the net change is (restoreAmount - manaCost); we account
-      // for that during the per-cast simulation.
-      var maxByMana = Math.floor(caster.mana / manaCost);
-      var atSatCap = target.saturation >= target.cha;
-      var maxBySat;
-      if (atSatCap) maxBySat = 0;
-      else if (satPerCast <= 0) maxBySat = Infinity;
-      else maxBySat = Math.ceil((target.cha - target.saturation) / satPerCast);
-      // Recharge: also stop once target is at mana cap (further casts would
-      // cost the caster mana for no target benefit but still add saturation).
-      // When caster === target, the running mana simulation handles it.
-      var maxByTargetMana = Infinity;
-      if (entry.type === 'mana' && caster.id !== target.id) {
-        if (target.mana >= target.manaMax) maxByTargetMana = 0;
-        else if (entry.mana > 0) maxByTargetMana = Math.ceil((target.manaMax - target.mana) / entry.mana);
-      }
-      var maxAllowed = Math.min(maxByMana, maxBySat, maxByTargetMana);
-
-      if (maxAllowed < 1) {
-        cureQty.disabled = true; cureSubmit.disabled = true;
-        var why;
-        if (atSatCap) why = target.name + ' is already at saturation cap (' + target.saturation + '/' + target.cha + ')';
-        else if (entry.type === 'mana' && target.mana >= target.manaMax && caster.id !== target.id) why = target.name + ' is already at full mana (' + target.mana + '/' + target.manaMax + ')';
-        else why = caster.name + ' does not have enough mana (' + caster.mana + '/' + manaCost + ')';
-        curePreview.innerHTML = '<span class="dt-warn">' + why + '.</span>';
-        return;
-      }
-
-      cureQty.disabled = false; cureSubmit.disabled = false;
-      cureQty.max = isFinite(maxAllowed) ? maxAllowed : '';
-      var qty = parseInt(cureQty.value, 10);
-      if (!(qty >= 1)) qty = 1;
-      if (qty > maxAllowed) qty = maxAllowed;
-      if (String(qty) !== cureQty.value) cureQty.value = qty;
-
-      var maxNote = isFinite(maxAllowed)
-        ? '<span class="dt-note">(max possible: ' + maxAllowed + ')</span>'
-        : '';
-      var lines = [];
-      var casterManaEnd = caster.mana;
-      var targetSatEnd = target.saturation;
-
-      if (entry.type === 'cure') {
-        var damage = target.damage.slice();
-        var totals = { major: 0, moderate: 0, minor: 0 };
-        for (var i = 0; i < qty; i++) {
-          var pool = entry.major;
-          var hMaj = Math.min(damage[2], pool); pool -= hMaj;
-          pool += entry.moderate;
-          var hMod = Math.min(damage[1], pool); pool -= hMod;
-          pool += entry.minor;
-          var hMin = Math.min(damage[0], pool);
-          damage[2] -= hMaj; damage[1] -= hMod; damage[0] -= hMin;
-          targetSatEnd += satPerCast;
-          casterManaEnd -= manaCost;
-          totals.major += hMaj; totals.moderate += hMod; totals.minor += hMin;
-        }
-        var capWarn = targetSatEnd >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
-        lines.push('Heals <b>' + totals.major + '</b> major, <b>' + totals.moderate + '</b> moderate, <b>' + totals.minor + '</b> minor (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
-        lines.push('Damage remaining: <b>' + damage[0] + '</b> minor, <b>' + damage[1] + '</b> moderate, <b>' + damage[2] + '</b> major.');
-        lines.push('Saturation <b>+' + (targetSatEnd - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ')' + capWarn + '.');
-      } else {
-        // Recharge simulation -- handle caster==target by tracking both pools.
-        var selfCast = caster.id === target.id;
-        var targetMana = target.mana;
-        var manaRestored = 0;
-        for (var j = 0; j < qty; j++) {
-          // Subtract the caster's cast cost first. If it's a self-cast this
-          // also reduces the available "target" mana immediately (same pool).
-          casterManaEnd -= manaCost;
-          if (selfCast) targetMana -= manaCost;
-          var beforeT = targetMana;
-          targetMana = Math.min(target.manaMax, targetMana + entry.mana);
-          manaRestored += (targetMana - beforeT);
-          if (selfCast) casterManaEnd = targetMana; // same pool, stays in sync
-          targetSatEnd += satPerCast;
-        }
-        var capWarn2 = targetSatEnd >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
-        lines.push('Restores <b>' + manaRestored + '</b> mana to ' + target.name + ' (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
-        lines.push('Target mana: <b>' + target.mana + '</b> &rarr; <b>' + targetMana + '</b>/' + target.manaMax + '.');
-        lines.push('Saturation <b>+' + (targetSatEnd - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ')' + capWarn2 + '.');
-      }
-      lines.push('Caster mana: <b>' + caster.mana + '</b> &rarr; <b>' + casterManaEnd + '</b>/' + caster.manaMax + '.');
-      curePreview.innerHTML = lines.join('<br>');
-    }
-
-    cureSpell.addEventListener('change', refreshCureCasters);
-    cureCaster.addEventListener('change', updateCurePreview);
-    cureTarget.addEventListener('change', updateCurePreview);
-    cureQty.addEventListener('input', updateCurePreview);
-    refreshCureCasters();
-  }
-
-  // --- Cast Ritual form (Cure/Recharge drawn from PC ritual books). Mana +
-  // gold are both charged per cast; preview clamps quantity by caster mana,
-  // campaign gold, target saturation cap, and (for Recharge on a non-self
-  // target) target mana cap. ---
-  var ritualForm = document.getElementById('ritual-form');
-  if (ritualForm) {
-    var ritualSpell = document.getElementById('ritual-spell');
-    var ritualCaster = document.getElementById('ritual-caster');
-    var ritualTarget = document.getElementById('ritual-target');
-    var ritualQty = document.getElementById('ritual-quantity');
-    var ritualPreview = document.getElementById('ritual-preview');
-    var ritualSubmit = ritualForm.querySelector('button[type="submit"]');
-
-    function refreshRitualCasters() {
-      var spell = ritualSpell.value;
-      var entry = D.ritualSpells[spell];
-      ritualCaster.innerHTML = '';
-      if (!entry) return;
-      entry.casterIds.forEach(function(id, i) {
-        var p = pc(id);
-        var opt = document.createElement('option');
-        opt.value = id;
-        opt.textContent = p.name;
-        if (i === 0) opt.selected = true;
-        ritualCaster.appendChild(opt);
-      });
-      updateRitualPreview();
-    }
-
-    function updateRitualPreview() {
-      var spell = ritualSpell.value;
-      var casterId = parseInt(ritualCaster.value, 10);
-      var targetId = parseInt(ritualTarget.value, 10);
-      var entry = D.ritualSpells[spell];
-      var caster = pc(casterId);
-      var target = pc(targetId);
-      if (!entry || !caster || !target) {
-        ritualPreview.innerHTML = '&nbsp;';
-        ritualQty.disabled = true; ritualSubmit.disabled = true;
-        return;
-      }
-
-      var satPerCast = entry.saturation - target.tier;
-      if (entry.type === 'cure' && caster.improvedHealing) satPerCast -= 2 * caster.tier;
-      if (satPerCast < entry.minimumSaturation) satPerCast = entry.minimumSaturation;
-
-      var manaCost = entry.manaCost;
-      var goldCost = entry.goldCost;
+      var goldCost = opts.gold ? (entry.goldCost || 0) : 0;
       var gold = D.campaignGold;
       var maxByMana = Math.floor(caster.mana / manaCost);
-      var maxByGold = Math.floor(gold / goldCost);
+      var maxByGold = goldCost > 0 ? Math.floor(gold / goldCost) : Infinity;
       var atSatCap = target.saturation >= target.cha;
       var maxBySat;
-      if (atSatCap) maxBySat = 0;
-      else if (satPerCast <= 0) maxBySat = Infinity;
-      else maxBySat = Math.ceil((target.cha - target.saturation) / satPerCast);
+      if (isSurgery) {
+        maxBySat = caster.mana >= manaCost ? 1 : 0;
+      } else if (atSatCap) {
+        maxBySat = 0;
+      } else if (satPerCast <= 0) {
+        maxBySat = Infinity;
+      } else {
+        maxBySat = Math.ceil((target.cha - target.saturation) / satPerCast);
+      }
       var maxByTargetMana = Infinity;
       if (entry.type === 'mana' && caster.id !== target.id) {
         if (target.mana >= target.manaMax) maxByTargetMana = 0;
         else if (entry.mana > 0) maxByTargetMana = Math.ceil((target.manaMax - target.mana) / entry.mana);
       }
-      var maxAllowed = Math.min(maxByMana, maxByGold, maxBySat, maxByTargetMana);
+      var maxByAbility = Infinity;
+      if (entry.type === 'ability') {
+        var totalAbility = (target.abilityDamage.major | 0) + (target.abilityDamage.moderate | 0) + (target.abilityDamage.minor | 0);
+        if (totalAbility === 0) maxByAbility = 0;
+      }
+      var maxAllowed = isSurgery ? Math.min(1, maxByMana) : Math.min(maxByMana, maxByGold, maxBySat, maxByTargetMana, maxByAbility);
 
       if (maxAllowed < 1) {
-        ritualQty.disabled = true; ritualSubmit.disabled = true;
+        qtyEl.disabled = true; submitBtn.disabled = true;
         var why;
-        if (atSatCap) why = target.name + ' is already at saturation cap (' + target.saturation + '/' + target.cha + ')';
+        if (caster.mana < manaCost) why = caster.name + ' does not have enough mana (' + caster.mana + '/' + manaCost + ')';
+        else if (goldCost > 0 && maxByGold < 1) why = 'Not enough gold (have ' + gold + 'g, need ' + goldCost + 'g)';
+        else if (atSatCap) why = target.name + ' is already at saturation cap (' + target.saturation + '/' + target.cha + ')';
         else if (entry.type === 'mana' && target.mana >= target.manaMax && caster.id !== target.id) why = target.name + ' is already at full mana (' + target.mana + '/' + target.manaMax + ')';
-        else if (maxByGold < 1) why = 'Not enough gold (have ' + gold + 'g, need ' + goldCost + 'g)';
-        else why = caster.name + ' does not have enough mana (' + caster.mana + '/' + manaCost + ')';
-        ritualPreview.innerHTML = '<span class="dt-warn">' + why + '.</span>';
+        else if (entry.type === 'ability') why = target.name + ' has no ability damage to cure';
+        else why = 'Cannot cast';
+        preview.innerHTML = '<span class="dt-warn">' + why + '.</span>';
         return;
       }
 
-      ritualQty.disabled = false; ritualSubmit.disabled = false;
-      ritualQty.max = isFinite(maxAllowed) ? maxAllowed : '';
-      var qty = parseInt(ritualQty.value, 10);
+      qtyEl.disabled = false; submitBtn.disabled = false;
+      qtyEl.max = isFinite(maxAllowed) ? maxAllowed : '';
+      var qty = isSurgery ? 1 : parseInt(qtyEl.value, 10);
       if (!(qty >= 1)) qty = 1;
       if (qty > maxAllowed) qty = maxAllowed;
-      if (String(qty) !== ritualQty.value) ritualQty.value = qty;
+      if (!isSurgery && String(qty) !== qtyEl.value) qtyEl.value = qty;
 
-      var maxNote = isFinite(maxAllowed)
+      var maxNote = isFinite(maxAllowed) && !isSurgery
         ? '<span class="dt-note">(max possible: ' + maxAllowed + ')</span>'
         : '';
       var lines = [];
@@ -1193,7 +1072,7 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         lines.push('Heals <b>' + totals.major + '</b> major, <b>' + totals.moderate + '</b> moderate, <b>' + totals.minor + '</b> minor (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
         lines.push('Damage remaining: <b>' + damage[0] + '</b> minor, <b>' + damage[1] + '</b> moderate, <b>' + damage[2] + '</b> major.');
         lines.push('Saturation <b>+' + (targetSatEnd - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ')' + capWarn + '.');
-      } else {
+      } else if (entry.type === 'mana') {
         var selfCast = caster.id === target.id;
         var targetMana = target.mana;
         var manaRestored = 0;
@@ -1210,65 +1089,66 @@ window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
         lines.push('Restores <b>' + manaRestored + '</b> mana to ' + target.name + ' (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
         lines.push('Target mana: <b>' + target.mana + '</b> &rarr; <b>' + targetMana + '</b>/' + target.manaMax + '.');
         lines.push('Saturation <b>+' + (targetSatEnd - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ')' + capWarn2 + '.');
+      } else if (entry.type === 'ability') {
+        // Cascade ability damage cure: pop the available pool starting at
+        // major and cascading down. We don't simulate the FIFO attribute
+        // detail here -- just totals by severity.
+        var ad = { major: target.abilityDamage.major | 0, moderate: target.abilityDamage.moderate | 0, minor: target.abilityDamage.minor | 0 };
+        var aTotals = { major: 0, moderate: 0, minor: 0 };
+        for (var k = 0; k < qty; k++) {
+          var aPool = entry.major;
+          var aMaj = Math.min(ad.major, aPool); aPool -= aMaj;
+          aPool += entry.moderate;
+          var aMod = Math.min(ad.moderate, aPool); aPool -= aMod;
+          aPool += entry.minor;
+          var aMin = Math.min(ad.minor, aPool);
+          ad.major -= aMaj; ad.moderate -= aMod; ad.minor -= aMin;
+          aTotals.major += aMaj; aTotals.moderate += aMod; aTotals.minor += aMin;
+          targetSatEnd += satPerCast;
+          casterManaEnd -= manaCost;
+        }
+        var capWarn3 = targetSatEnd >= target.cha ? ' <span class="dt-warn">at/over cap</span>' : '';
+        lines.push('Cures <b>' + aTotals.major + '</b> major, <b>' + aTotals.moderate + '</b> moderate, <b>' + aTotals.minor + '</b> minor ability damage (across ' + qty + ' cast' + (qty === 1 ? '' : 's') + ') ' + maxNote + '.');
+        lines.push('Ability damage remaining: <b>' + ad.minor + '</b> minor, <b>' + ad.moderate + '</b> moderate, <b>' + ad.major + '</b> major.');
+        lines.push('Saturation <b>+' + (targetSatEnd - target.saturation) + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ')' + capWarn3 + '.');
+      } else { // surgery
+        var sucs = parseInt(sucEl.value, 10);
+        if (!(sucs >= 0)) sucs = 0;
+        var majorBefore = target.damage[2];
+        var addedModerate = 2 * majorBefore;
+        var healedMajor = Math.min(sucs, majorBefore);
+        var minSat = 5 * healedMajor;
+        var sa = 10 * healedMajor;
+        if (caster.improvedHealing) sa -= 2 * caster.tier;
+        if (sa < minSat) sa = minSat;
+        targetSatEnd += sa;
+        casterManaEnd -= manaCost;
+        var parts = [];
+        parts.push('Deals <b>+' + addedModerate + '</b> moderate damage to target.');
+        if (target.tempHp > 0) parts.push('Zeroes <b>' + target.tempHp + '</b> temp HP.');
+        parts.push('Cures <b>' + healedMajor + '</b> major.');
+        parts.push('Saturation <b>+' + sa + '</b> (' + target.saturation + ' &rarr; ' + targetSatEnd + '/' + target.cha + ').');
+        lines = parts;
       }
-      var totalGold = goldCost * qty;
       lines.push('Caster mana: <b>' + caster.mana + '</b> &rarr; <b>' + casterManaEnd + '</b>/' + caster.manaMax + '.');
-      lines.push('Gold <b>' + totalGold + 'g</b> (party gold after: ' + (gold - totalGold) + ').');
-      ritualPreview.innerHTML = lines.join('<br>');
+      if (goldCost > 0) {
+        var totalGold = goldCost * qty;
+        lines.push('Gold <b>' + totalGold + 'g</b> (party gold after: ' + (gold - totalGold) + ').');
+      }
+      preview.innerHTML = lines.join('<br>');
     }
 
-    ritualSpell.addEventListener('change', refreshRitualCasters);
-    ritualCaster.addEventListener('change', updateRitualPreview);
-    ritualTarget.addEventListener('change', updateRitualPreview);
-    ritualQty.addEventListener('input', updateRitualPreview);
-    refreshRitualCasters();
+    spellEl.addEventListener('change', refreshCasters);
+    casterEl.addEventListener('change', update);
+    targetEl.addEventListener('change', update);
+    qtyEl.addEventListener('input', update);
+    if (sucEl) sucEl.addEventListener('input', update);
+    refreshCasters();
   }
 
-  // --- Surgery form ---
-  var surgeryForm = document.getElementById('surgery-form');
-  if (surgeryForm) {
-    var sCaster = document.getElementById('surgery-caster');
-    var sTarget = document.getElementById('surgery-target');
-    var sSuccess = document.getElementById('surgery-successes');
-    var sDice = document.getElementById('surgery-dice');
-    var sPreview = document.getElementById('surgery-preview');
+  wireCastCell({ prefix: 'cure',   payloadKey: 'castSpells',   gold: false });
 
-    function updateSurgeryDice() {
-      var info = D.surgeryCasters[sCaster.value];
-      if (!info) { sDice.innerHTML = 'Healing check: &mdash;'; return; }
-      var starting = info.startingSuccesses > 0 ? ' <span class="dt-warn">+' + info.startingSuccesses + ' starting</span>' : '';
-      sDice.innerHTML = 'Healing check: <b>' + info.dice + 'd</b> TN <b>' + info.tn + '</b>' + starting;
-    }
-
-    function updateSurgeryPreview() {
-      var info = D.surgeryCasters[sCaster.value];
-      var target = pc(sTarget.value);
-      var successes = parseInt(sSuccess.value, 10);
-      if (!(successes >= 0)) successes = 0;
-      if (!info || !target) { sPreview.innerHTML = '&nbsp;'; return; }
-      var majorBefore = target.damage[2];
-      var addedModerate = 2 * majorBefore;
-      var healedMajor = Math.min(successes, majorBefore);
-      var minSat = 5 * healedMajor;
-      var satAdd = 10 * healedMajor;
-      if (info.improvedHealing) satAdd -= 2 * info.tier;
-      if (satAdd < minSat) satAdd = minSat;
-      var newSat = target.saturation + satAdd;
-
-      var parts = [];
-      parts.push('Deals <b>+' + addedModerate + '</b> moderate damage to target.');
-      if (target.tempHp > 0) parts.push('Zeroes <b>' + target.tempHp + '</b> temp HP.');
-      parts.push('Cures <b>' + healedMajor + '</b> major.');
-      parts.push('Saturation <b>+' + satAdd + '</b> (' + target.saturation + ' &rarr; ' + newSat + '/' + target.cha + ').');
-      sPreview.innerHTML = parts.join('<br>');
-    }
-
-    sCaster.addEventListener('change', function() { updateSurgeryDice(); updateSurgeryPreview(); });
-    sTarget.addEventListener('change', updateSurgeryPreview);
-    sSuccess.addEventListener('input', updateSurgeryPreview);
-    updateSurgeryDice();
-    updateSurgeryPreview();
-  }
+  wireCastCell({ prefix: 'ritual', payloadKey: 'ritualSpells', gold: true });
 
   // --- Services forms (one per slot, independent comparison cells). ---
   document.querySelectorAll('.service-form').forEach(function(serviceForm) {
