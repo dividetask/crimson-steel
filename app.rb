@@ -1833,6 +1833,70 @@ post '/downtime/urgent_actions' do
   redirect '/downtime'
 end
 
+post '/downtime/quick_resolve' do
+  redirect '/downtime' unless local_request?
+  combat_data = Tools.load_json('combat.json')
+
+  payload_raw = params[:payload].to_s
+  payload = payload_raw.empty? ? {} : JSON.parse(payload_raw)
+  results = payload['results'] || {}
+
+  # Apply per-combatant, per-condition results from the simulation. The client
+  # has already done all the dice rolling and accounting (bleed damage,
+  # paralysis rounds, severity decay); the server just stamps the outcome
+  # onto combat.json.
+  results.each do |cid_str, conds|
+    participant = combat_data['participants'].find { |p| p['id'].to_i == cid_str.to_i }
+    next unless participant
+    participant['conditions'] ||= {}
+    participant['condition_meta'] ||= {}
+    conds.each do |cname, sim|
+      cname = cname.to_s
+      damage = sim['damage'].to_i
+      temp_absorbed = sim['tempAbsorbed'].to_i
+      rounds = sim['rounds'].to_i
+      final_severity = sim['finalSeverity'].to_i
+
+      if cname == 'bleed'
+        # Temp HP soaks damage first; remainder lands as minor damage.
+        if temp_absorbed > 0
+          participant['temporary_hit_points'] = [participant['temporary_hit_points'].to_i - temp_absorbed, 0].max
+        end
+        participant['minor_damage'] = participant['minor_damage'].to_i + damage if damage > 0
+      elsif cname == 'ghoul_paralysis' && rounds > 0
+        existing = (combat_data['active_effects'] ||= []).find do |e|
+          e['spell_name'] == 'Paralyzed' && (e['target_combat_ids'] || []).include?(cid_str.to_i)
+        end
+        if existing
+          existing['rounds_remaining'] = existing['rounds_remaining'].to_i + rounds
+        else
+          char_id = participant['char_id'] || participant['id']
+          char_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
+          char_name = char_data ? char_data['name'] : 'Unknown'
+          combat_data['active_effects'] << {
+            'caster_id' => nil, 'caster_name' => 'Ghoul Paralysis',
+            'spell_name' => 'Paralyzed',
+            'target_combat_ids' => [cid_str.to_i], 'target_names' => [char_name],
+            'round_cast' => combat_data['round'], 'rounds_remaining' => rounds
+          }
+        end
+      end
+
+      # Final severity: 0 means the condition resolved, else it stalled at 30
+      # saves and the remaining severity rolls forward.
+      if final_severity <= 0
+        participant['conditions'].delete(cname)
+        participant['condition_meta'].delete('max_ghoul_tier') if cname == 'ghoul_paralysis'
+      else
+        participant['conditions'][cname] = final_severity
+      end
+    end
+  end
+
+  Tools.save_json('combat.json', combat_data)
+  redirect '/downtime'
+end
+
 get '/all_characters/:index' do
   redirect '/character/0' unless local_request?
   character_list = Tools.load_json('characters.json')

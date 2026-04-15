@@ -98,6 +98,39 @@
         <button type="submit" class="ua-submit">End Round</button>
       </form>
     </div>
+
+    <% qr_combatants = @ua_data[:combatants].select { |c| c[:conditions].any? } %>
+    <% if qr_combatants.any? %>
+      <div class="quick-resolve">
+        <h2>Quickly Resolve Conditions <span class="dt-note">(DM only)</span></h2>
+        <p class="dt-note">Roll CON saves repeatedly (up to 30 per condition) until each condition ends. Use this when the party is just waiting it out instead of casting spells.</p>
+        <form method="post" action="/downtime/quick_resolve" id="qr-form">
+          <input type="hidden" name="payload" id="qr-payload" value="">
+
+          <% qr_combatants.each do |c| %>
+            <div class="qr-combatant" data-cid="<%= c[:combatId] %>">
+              <h3><%= h c[:name] %></h3>
+              <% c[:conditions].each do |cond| %>
+                <div class="qr-condition" data-cname="<%= h cond[:name] %>" data-severity="<%= cond[:value] %>" data-dice="<%= cond[:dice] %>" data-tn="<%= cond[:tn] %>">
+                  <div class="qr-condition-header">
+                    <strong><%= h cond[:label] %></strong>
+                    <span class="math-detail">severity <%= cond[:value] %> &middot; <%= cond[:dice] %>d at TN <%= cond[:tn] %></span>
+                  </div>
+                  <div class="qr-result" id="qr-result-<%= c[:combatId] %>-<%= h cond[:name] %>">
+                    <span class="dt-note">Not rolled yet.</span>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+
+          <div class="qr-buttons">
+            <button type="button" id="qr-roll-btn">Roll All</button>
+            <button type="submit" id="qr-submit-btn" disabled>Submit Results</button>
+          </div>
+        </form>
+      </div>
+    <% end %>
   <% end %>
 
   <div class="downtime-actions">
@@ -630,6 +663,119 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
   });
 
   updateSummary();
+
+  // --- Quickly Resolve Conditions: simulate up to 30 saves per condition. ---
+  // Each save deals damage / paralysis based on remaining severity, then the
+  // severity decays by (1 + successes). Stops when severity hits 0.
+  var qrForm = document.getElementById('qr-form');
+  if (qrForm) {
+    var qrRollBtn = document.getElementById('qr-roll-btn');
+    var qrSubmitBtn = document.getElementById('qr-submit-btn');
+    var qrPayloadEl = document.getElementById('qr-payload');
+    var QR_MAX_SAVES = 30;
+    var qrResults = {};
+
+    function simulateOneSave(dice, tn) {
+      var rolls = [], successes = 0;
+      for (var i = 0; i < dice; i++) {
+        var d = Math.floor(Math.random() * 10) + 1;
+        rolls.push(d);
+        if (d >= tn) successes++;
+      }
+      return { rolls: rolls, successes: successes };
+    }
+
+    function simulateCondition(cond, tempHpStart) {
+      var severity = cond.severity;
+      var dice = cond.dice;
+      var tn = cond.tn;
+      var totalDamage = 0;       // bleed: minor damage dealt (post-temp HP)
+      var tempAbsorbed = 0;      // bleed: amount soaked by temp HP
+      var totalRounds = 0;       // ghoul_paralysis: paralysis rounds queued
+      var tempHp = tempHpStart;
+      var savesLog = [];
+      var saves = 0;
+      while (severity > 0 && saves < QR_MAX_SAVES) {
+        var roll = simulateOneSave(dice, tn);
+        saves++;
+        if (cond.name === 'bleed') {
+          var raw = 1 + Math.floor(severity / 10);
+          var dealt = Math.max(0, raw - roll.successes);
+          var absorbed = Math.min(dealt, tempHp);
+          tempHp -= absorbed;
+          tempAbsorbed += absorbed;
+          totalDamage += (dealt - absorbed);
+        } else if (cond.name === 'ghoul_paralysis') {
+          var rawR = 1 + Math.floor(severity / 10);
+          totalRounds += Math.max(0, rawR - roll.successes);
+        }
+        savesLog.push(roll.successes);
+        severity = Math.max(0, severity - (1 + roll.successes));
+      }
+      return {
+        finalSeverity: severity,
+        savesRolled: saves,
+        damage: totalDamage,
+        tempAbsorbed: tempAbsorbed,
+        rounds: totalRounds,
+        savesLog: savesLog,
+        tempHpAfter: tempHp
+      };
+    }
+
+    function rollAll() {
+      qrResults = {};
+      UA.combatants.forEach(function(c) {
+        if (!c.conditions.length) return;
+        var perChar = {};
+        // Each combatant's bleed shares one running temp-HP pool across saves.
+        var tempHp = c.tempHp;
+        c.conditions.forEach(function(cond) {
+          var sim = simulateCondition({
+            name: cond.name, severity: cond.value, dice: cond.dice, tn: cond.tn
+          }, tempHp);
+          // Update the running temp HP after a bleed simulation so a paralysis
+          // sim that follows would see the absorbed amount; ordering matches
+          // the stored conditions order.
+          if (cond.name === 'bleed') tempHp = sim.tempHpAfter;
+          perChar[cond.name] = sim;
+        });
+        qrResults[c.combatId] = perChar;
+      });
+      renderResults();
+      qrSubmitBtn.disabled = false;
+    }
+
+    function renderResults() {
+      UA.combatants.forEach(function(c) {
+        if (!c.conditions.length) return;
+        var perChar = qrResults[c.combatId] || {};
+        c.conditions.forEach(function(cond) {
+          var el = document.getElementById('qr-result-' + c.combatId + '-' + cond.name);
+          if (!el) return;
+          var sim = perChar[cond.name];
+          if (!sim) { el.innerHTML = '<span class="dt-note">Not rolled yet.</span>'; return; }
+          var status = sim.finalSeverity === 0
+            ? '<b>Ended</b> after ' + sim.savesRolled + ' save' + (sim.savesRolled === 1 ? '' : 's')
+            : '<b>Still active</b> at severity ' + sim.finalSeverity + ' after ' + QR_MAX_SAVES + ' saves';
+          var detail = '';
+          if (cond.name === 'bleed') {
+            var absorb = sim.tempAbsorbed > 0 ? ' (' + sim.tempAbsorbed + ' absorbed by temp HP)' : '';
+            detail = '<br>Took <b>' + sim.damage + '</b> minor damage' + absorb + '.';
+          } else if (cond.name === 'ghoul_paralysis') {
+            detail = '<br>Queued <b>' + sim.rounds + '</b> paralysis round' + (sim.rounds === 1 ? '' : 's') + '.';
+          }
+          var savesLine = sim.savesLog.length ? '<br><span class="math-detail">Successes per save: ' + sim.savesLog.join(', ') + '</span>' : '';
+          el.innerHTML = status + detail + savesLine;
+        });
+      });
+    }
+
+    qrRollBtn.addEventListener('click', rollAll);
+    qrForm.addEventListener('submit', function() {
+      qrPayloadEl.value = JSON.stringify({ results: qrResults });
+    });
+  }
 })();
 </script>
 <% end %>
