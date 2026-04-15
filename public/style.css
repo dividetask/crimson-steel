@@ -421,12 +421,13 @@ table th {
 .downtime-card .dt-stats > div { display: flex; justify-content: space-between; padding: 1px 4px; border-radius: 2px; }
 .downtime-card .dt-stats .label { color: #555; }
 .downtime-card .dt-stats .value { font-weight: bold; }
-/* Stat health colors -- HP/Mana use bad/warn/caution/good as the value
- * fills toward max; Saturation and the Major/Moderate damage rows reverse
- * polarity (high is bad). */
+/* Stat health colors. HP/Mana ramp good -> warn -> orange -> bad as they
+ * empty toward zero; Saturation reverses polarity (good when low). Damage
+ * rows highlight by severity (Minor=warn, Moderate=orange, Major=bad).
+ * Cells at full / zero get no class so they render plain. */
 .downtime-card .dt-stats .stat-good    { background: #d4edda; color: #155724; }
-.downtime-card .dt-stats .stat-caution { background: #e6f4d5; color: #355c1a; }
 .downtime-card .dt-stats .stat-warn    { background: #fff3cd; color: #856404; }
+.downtime-card .dt-stats .stat-orange  { background: #ffe0b2; color: #6f3500; }
 .downtime-card .dt-stats .stat-bad     { background: #f8d7da; color: #721c24; }
 .downtime-card .dt-ability-damage { margin-top: 4px; padding-top: 4px; border-top: 1px dashed #ccc; }
 .downtime-card .dt-ability-damage > div { font-size: 11px; }

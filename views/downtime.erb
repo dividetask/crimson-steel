@@ -9,27 +9,35 @@
     <% @pcs.each do |pc| %>
       <% consumables = pc.item_list.select { |i| e = @compendium.item_effects(i); e && (e[:type] == :cure || e[:type] == :mana || e[:base_name] == 'Standard Surgery') } %>
       <%
-        # Stat color thresholds: HP/Mana ramp red <=25%, yellow <=50%,
-        # yellow-green <=75%, green otherwise. Saturation reverses (low is
-        # good, high is bad).
-        ramp = lambda do |cur, max, reversed = false|
+        # Stat color thresholds. HP/Mana use the "high-is-good" ramp:
+        # full -> no highlight, >=75% green, >=50% yellow, >=25% orange,
+        # otherwise red. Saturation reverses (low is good): 0 -> no
+        # highlight, <=25% green, <=50% yellow, <=75% orange, else red.
+        # Damage rows highlight by severity when non-zero (minor=yellow,
+        # moderate=orange, major=red).
+        good_ramp = lambda do |cur, max|
           return '' if max.to_i <= 0
+          return '' if cur.to_i >= max.to_i
           pct = (cur.to_f / max) * 100.0
-          buckets = reversed ? %w[bad warn caution good] : %w[bad warn caution good].reverse
-          # Walk reversed=false: 0-25% -> good, 25-50% -> caution, 50-75% -> warn, >75% -> bad
-          # Walk reversed=true: 0-25% -> bad,  25-50% -> warn,    50-75% -> caution, >75% -> good
-          if pct <= 25 then buckets[0]
-          elsif pct <= 50 then buckets[1]
-          elsif pct <= 75 then buckets[2]
-          else buckets[3]
+          if    pct >= 75 then 'stat-good'
+          elsif pct >= 50 then 'stat-warn'
+          elsif pct >= 25 then 'stat-orange'
+          else 'stat-bad'
           end
         end
-        # HP/Mana: high-is-good. Build a high-good ramp by inverting (since
-        # ramp() is built with cur/max thinking in HP-style).
-        hp_class = pc.hp_max > 0 ? "stat-#{ramp.call(pc.current_hp, pc.hp_max)}" : ''
-        mana_class = pc.mana_max > 0 ? "stat-#{ramp.call(pc.current_mana, pc.mana_max)}" : ''
-        # Saturation: low-is-good. Use reversed = true.
-        sat_class = pc.cha > 0 ? "stat-#{ramp.call(pc.saturation, pc.cha, true)}" : ''
+        bad_ramp = lambda do |cur, max|
+          return '' if max.to_i <= 0
+          return '' if cur.to_i <= 0
+          pct = (cur.to_f / max) * 100.0
+          if    pct <= 25 then 'stat-good'
+          elsif pct <= 50 then 'stat-warn'
+          elsif pct <= 75 then 'stat-orange'
+          else 'stat-bad'
+          end
+        end
+        hp_class   = good_ramp.call(pc.current_hp, pc.hp_max)
+        mana_class = good_ramp.call(pc.current_mana, pc.mana_max)
+        sat_class  = bad_ramp.call(pc.saturation, pc.cha)
       %>
       <div class="downtime-card">
         <h3><%= h pc.name %></h3>
@@ -41,15 +49,15 @@
           <div class="<%= mana_class %>"><span class="label">Mana</span><span class="value"><%= pc.current_mana %>/<%= pc.mana_max %></span></div>
           <div class="<%= sat_class %>"><span class="label">Saturation</span><span class="value"><%= pc.saturation %>/<%= pc.cha %></span></div>
           <div><span class="label">Temp HP</span><span class="value"><%= pc.temporary_hit_points %></span></div>
-          <div><span class="label">Minor Dmg</span><span class="value"><%= pc.minor_damage %></span></div>
-          <div class="<%= 'stat-warn' if pc.moderate_damage > 0 %>"><span class="label">Moderate Dmg</span><span class="value"><%= pc.moderate_damage %></span></div>
-          <div class="<%= 'stat-bad' if pc.major_damage > 0 %>"><span class="label">Major Dmg</span><span class="value"><%= pc.major_damage %></span></div>
+          <div class="<%= 'stat-warn'   if pc.minor_damage    > 0 %>"><span class="label">Minor Dmg</span><span class="value"><%= pc.minor_damage %></span></div>
+          <div class="<%= 'stat-orange' if pc.moderate_damage > 0 %>"><span class="label">Moderate Dmg</span><span class="value"><%= pc.moderate_damage %></span></div>
+          <div class="<%= 'stat-bad'    if pc.major_damage    > 0 %>"><span class="label">Major Dmg</span><span class="value"><%= pc.major_damage %></span></div>
         </div>
         <% ad_entries = pc.ability_damage_entries %>
         <% if ad_entries.any? %>
           <div class="dt-stats dt-ability-damage">
             <% ad_entries.each do |attr, sev, n| %>
-              <% sev_class = sev == 'major' ? 'stat-bad' : (sev == 'moderate' ? 'stat-warn' : '') %>
+              <% sev_class = case sev when 'major' then 'stat-bad' when 'moderate' then 'stat-orange' else 'stat-warn' end %>
               <div class="<%= sev_class %>"><span class="label"><%= sev.capitalize %> <%= attr_full[attr] || attr.upcase %> Damage</span><span class="value"><%= n %></span></div>
             <% end %>
           </div>
