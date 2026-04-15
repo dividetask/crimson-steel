@@ -266,18 +266,13 @@ post '/combat/action' do
       successes = params[:stabilize_successes].to_i
       target['conditions'] ||= {}
       before = target['conditions']['bleed'].to_i
-      if before <= 0
-        reduction = 0
-        after = 0
+      # Stabilize description: "Reduce bleeding by 3 for each success."
+      after = [before - 3 * successes, 0].max
+      reduction = before - after
+      if after <= 0
+        target['conditions'].delete('bleed')
       else
-        # Stabilize description: "Reduce bleeding by 3 for each success."
-        after = [before - 3 * successes, 0].max
-        reduction = before - after
-        if after <= 0
-          target['conditions'].delete('bleed')
-        else
-          target['conditions']['bleed'] = after
-        end
+        target['conditions']['bleed'] = after
       end
 
       participant['mana'] = participant['mana'].to_i - mana_cost
@@ -299,11 +294,7 @@ post '/combat/action' do
       }
 
       Tools.save_json('combat.json', combat_data)
-      if before <= 0
-        Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana, #{dice_spent} dice) - target not bleeding")
-      else
-        Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana, #{dice_spent} dice, #{successes} successes) - bleed #{before} -> #{after} (-#{reduction})")
-      end
+      Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana, #{dice_spent} dice, #{successes} successes) - bleed #{before} -> #{after} (-#{reduction})")
     elsif ward
       halt 400, "Ward spell requires a target" unless target_combat_id
       target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
