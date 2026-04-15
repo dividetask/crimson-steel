@@ -247,27 +247,14 @@
   },
   {
     "owner_id": 2,
-    "name": "Potion of Basic Healing",
-    "type": "item",
-    "subtype": "vial",
+    "name": "Cure Simple Wounds Potion",
+    "type": "consumable",
+    "subtype": "potion",
     "bonus": 2,
-    "quantity": 1,
+    "quantity": 4,
     "properties": {
       "consumable": true,
-      "effect": "heal"
-    },
-    "equipped": false
-  },
-  {
-    "owner_id": 2,
-    "name": "Potion of Resistance",
-    "type": "item",
-    "subtype": "vial",
-    "bonus": 0,
-    "quantity": 1,
-    "properties": {
-      "consumable": true,
-      "effect": "heal"
+      "spell": "cure"
     },
     "equipped": false
   },
@@ -468,40 +455,40 @@
   },
   {
     "owner_id": 3,
-    "name": "Potion of Basic Healing",
-    "type": "item",
-    "subtype": "vial",
+    "name": "Cure Simple Wounds Potion",
+    "type": "consumable",
+    "subtype": "potion",
     "bonus": 2,
     "quantity": 1,
     "properties": {
       "consumable": true,
-      "effect": "heal"
+      "spell": "cure"
     },
     "equipped": false
   },
   {
     "owner_id": 3,
-    "name": "Potion of Lesser Healing",
-    "type": "item",
-    "subtype": "vial",
+    "name": "Cure Lesser Wounds Potion",
+    "type": "consumable",
+    "subtype": "potion",
     "bonus": 1,
     "quantity": 4,
     "properties": {
       "consumable": true,
-      "effect": "heal"
+      "spell": "cure"
     },
     "equipped": false
   },
   {
     "owner_id": 3,
-    "name": "Potion of Lesser Mana",
-    "type": "item",
-    "subtype": "vial",
+    "name": "Minor Recharge Potion",
+    "type": "consumable",
+    "subtype": "potion",
     "bonus": 1,
     "quantity": 2,
     "properties": {
       "consumable": true,
-      "effect": "mana"
+      "spell": "recharge"
     },
     "equipped": false
   },
@@ -704,14 +691,14 @@
   },
   {
     "owner_id": 4,
-    "name": "Potion of Basic Healing",
-    "type": "item",
-    "subtype": "vial",
+    "name": "Cure Simple Wounds Potion",
+    "type": "consumable",
+    "subtype": "potion",
     "bonus": 2,
     "quantity": 1,
     "properties": {
       "consumable": true,
-      "effect": "heal"
+      "spell": "cure"
     },
     "equipped": false
   },
@@ -730,14 +717,14 @@
   },
   {
     "owner_id": 4,
-    "name": "Potion of Lesser Mana",
-    "type": "item",
-    "subtype": "vial",
+    "name": "Minor Recharge Potion",
+    "type": "consumable",
+    "subtype": "potion",
     "bonus": 1,
     "quantity": 2,
     "properties": {
       "consumable": true,
-      "effect": "mana"
+      "spell": "recharge"
     },
     "equipped": false
   },
