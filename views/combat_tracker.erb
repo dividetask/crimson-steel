@@ -1663,12 +1663,19 @@
       attackState.healingWordActions = attackState.healingWordActions || [];
       attackState.healingWordSuccesses = attackState.healingWordSuccesses || 0;
 
+      // Each character has 1 reaction per attack. Shield of Faith and
+      // Healing Word are both reactions, so an ally that already used
+      // Shield of Faith on this attack cannot also cast Healing Word.
+      var reactionUsed = {};
+      (attackState.allyActions || []).forEach(function(a) { reactionUsed[a.combat_id] = true; });
+
       // Find allies who know Healing Word, have mana, and have dice
       var healers = [];
       var healingWordCost = spellManaCost(1); // tier 1 = 4 mana
       combatants.forEach(function(c) {
         if (c.combat_id === attackState.attackerCombatId) return;
         if (c.incapacitated) return;
+        if (reactionUsed[c.combat_id]) return;
         // Skip already used healers
         var alreadyUsed = attackState.healingWordActions.some(function(a) { return a.combat_id === c.combat_id; });
         if (alreadyUsed) return;
@@ -1683,7 +1690,8 @@
         return;
       }
 
-      var html = '<strong>Healing Word Reactions</strong><br>';
+      var html = '<strong>Healing Word Reactions</strong>' +
+        '<br><span class="math-detail">1 reaction per character — Shield of Faith users above cannot also cast Healing Word.</span><br>';
       healers.forEach(function(healer) {
         html += '<button class="action-btn" onclick="activateHealingWord(' + healer.combat_id + ')" style="margin:2px;">' +
           healer.name + ' — Healing Word (' + healingWordCost + ' mana)</button> ';
