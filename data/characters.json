@@ -280,5 +280,22 @@
 		"classes": [{"level": 5, "class": "fighter", "skills": ["intimidate", "athletics"] }],
 		"items": [{"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0  },
 			{"name": "plate", "type": "armor", "subtype": "heavy", "bonus": 0  }]
+	},
+	{
+		"id": 16,
+		"tier": 1,
+		"group": "Enemies",
+		"name": "Giant Spider",
+		"player": "DM",
+		"race": ["animal"],
+		"ability_scores": {
+			"str": 11,
+			"dex": 17,
+			"con": 12,
+			"int": 1,
+			"wis": 10,
+			"cha": 2
+		},
+		"classes": [{"level": 3, "class": "animal", "skills": ["climb", "perception", "stealth"] }]
 	}
 ]

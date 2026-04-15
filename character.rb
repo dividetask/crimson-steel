@@ -1,7 +1,7 @@
 require_relative 'tools'
 
 class CombatTurn
-  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation, :temporary_hit_points, :conditions, :condition_meta
+  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation, :temporary_hit_points, :conditions, :condition_meta, :ability_damage
 
   def initialize(combat_turn, character)
     @rules = Tools.load_json('rules.json')
@@ -18,11 +18,23 @@ class CombatTurn
     # Extra condition state that isn't itself a severity counter (e.g. the
     # highest ghoul tier that has hit this target, which modifies save TN).
     @condition_meta = (combat_turn['condition_meta'] || {}).dup
+    # Ability damage: nested hash of ability (str/dex/...) -> severity
+    # (minor/moderate/major) -> amount. Persists until cured.
+    @ability_damage = (combat_turn['ability_damage'] || {}).dup
     @character = CharacterSheet.new(character)
   end
 
   def condition(name); @conditions[name.to_s].to_i; end
   def active_conditions; @conditions.select { |_, v| v.to_i > 0 }; end
+  def active_ability_damage
+    result = []
+    (@ability_damage || {}).each do |ability, severities|
+      (severities || {}).each do |severity, val|
+        result << [ability, severity, val.to_i] if val.to_i > 0
+      end
+    end
+    result
+  end
 
   def new_turn; @combat_pool = @character.combat_pool; end
   def reroll_init
@@ -37,7 +49,8 @@ class CombatTurn
       'initiative' => @initiative, 'mana' => @mana, 'combat_pool' => @combat_pool,
       'minor_damage' => @minor_damage, 'moderate_damage' => @moderate_damage, 'major_damage' => @major_damage,
       'saturation' => @saturation, 'temporary_hit_points' => @temporary_hit_points,
-      'conditions' => @conditions, 'condition_meta' => @condition_meta}
+      'conditions' => @conditions, 'condition_meta' => @condition_meta,
+      'ability_damage' => @ability_damage}
   end
 
   def hp; return @character.hp_max - @minor_damage - @moderate_damage - @major_damage + @temporary_hit_points.to_i; end

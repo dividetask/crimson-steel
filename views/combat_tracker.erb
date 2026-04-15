@@ -45,6 +45,9 @@
             <% combat_turn.active_conditions.each do |cname, cval| %>
               <span class="condition-badge condition-<%= cname %>"><%= cname.tr('_', ' ').capitalize %>: <%= cval %></span>
             <% end %>
+            <% combat_turn.active_ability_damage.each do |ability, severity, val| %>
+              <span class="condition-badge condition-ability-damage"><%= ability.upcase %> -<%= val %> <%= severity %></span>
+            <% end %>
             <% (@combat.active_effects || []).each do |effect| %>
               <% if effect['spell_name'] == 'Paralyzed' && (effect['target_combat_ids'] || []).include?(combat_turn.combat_id) %>
                 <span class="condition-badge condition-paralyzed">Paralyzed (<%= effect['rounds_remaining'] %>)</span>
@@ -377,6 +380,14 @@
           parts.push('<strong>Ghoul Paralysis:</strong> <span style="color:#6a1b9a;font-weight:bold;">PARALYZED for ' + rounds + ' turn' + (rounds === 1 ? '' : 's') + '</span> (stacks with existing)');
         } else {
           parts.push('<strong>Ghoul Paralysis:</strong> no paralysis (' + rawRounds + ' blocked by ' + successes + ' successes)');
+        }
+      } else if (cond.name === 'minor_strength_poison') {
+        var rawPoisonDmg = 1 + Math.floor(cond.value / 10);
+        var poisonDmg = Math.max(0, rawPoisonDmg - successes);
+        if (poisonDmg > 0) {
+          parts.push('<strong>Minor Strength Poison:</strong> ' + poisonDmg + ' minor STR damage (' + rawPoisonDmg + ' - ' + successes + ' successes)');
+        } else {
+          parts.push('<strong>Minor Strength Poison:</strong> no damage (' + rawPoisonDmg + ' blocked by ' + successes + ' successes)');
         }
       } else {
         parts.push('<strong>' + cond.label + ':</strong> save recorded');

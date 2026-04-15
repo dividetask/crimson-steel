@@ -52,6 +52,9 @@
 	"giant": {
 		"advancement": {"bab": 2, "mana": 1, "saves": {"str": 3, "dex": 1, "con": 3, "int": 1, "wis": 1, "cha": 1}},
 		"class_skills": ["intimidate", "athletics", "perception"]},
-	"wizard": {"advancement": {"bab": 1, "mana": 4, "saves": {"str": 1, "dex": 1, "con": 1, "int": 3, "wis": 3, "cha": 1}}}
+	"wizard": {"advancement": {"bab": 1, "mana": 4, "saves": {"str": 1, "dex": 1, "con": 1, "int": 3, "wis": 3, "cha": 1}}},
+	"animal": {
+		"advancement": {"bab": 2, "mana": 0, "saves": {"str": 2, "dex": 3, "con": 2, "int": 0, "wis": 1, "cha": 0}},
+		"class_skills": ["acrobatics", "athletics", "climb", "perception", "stealth"]}
 }
 
