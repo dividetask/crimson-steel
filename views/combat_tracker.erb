@@ -318,31 +318,40 @@
         ' <button class="action-btn" onclick="showStartOfTurn()" style="background:#eee;color:#333;">Back</button>');
     }
 
-    // Roll `cond.dice` d10s, count results >= cond.tn, fill the successes
-    // input, and render the raw dice. Colors: red=1 (fumble), blue=10 (crit),
+    // Roll `dice` d10s, count results >= `tn`, fill `inputId`, render the
+    // raw dice in `rollsId`. Colors: red=1 (fumble), blue=10 (crit),
     // green=other success, grey=other failure. Re-clickable so the DM can
-    // fudge by re-rolling until a desired outcome.
-    function rollSaveDice(i, inputId, rollsId) {
-      var cond = startOfTurnConditions[i];
+    // fudge by re-rolling until a desired outcome. Used by every combat
+    // roll (attack/defense/ally/healing/condition saves).
+    function rollDicePool(dice, tn, inputId, rollsId) {
       var rolls = [];
       var successes = 0;
-      for (var r = 0; r < cond.dice; r++) {
+      for (var r = 0; r < dice; r++) {
         var d = Math.floor(Math.random() * 10) + 1;
         rolls.push(d);
-        if (d >= cond.tn) successes++;
+        if (d >= tn) successes++;
       }
-      document.getElementById(inputId).value = successes;
-      var colored = rolls.map(function(d) {
-        var bg = null;
-        if (d === 1) bg = '#e57373';             // red   (fumble)
-        else if (d === 10) bg = '#64b5f6';       // blue  (crit)
-        else if (d >= cond.tn) bg = '#81c784';   // green (success)
-        if (bg) {
-          return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
-        }
-        return '<span style="color:#777;">' + d + '</span>';
-      }).join(', ');
-      document.getElementById(rollsId).innerHTML = 'Rolled: [' + colored + '] &rarr; ' + successes + ' success' + (successes === 1 ? '' : 'es');
+      var inputEl = document.getElementById(inputId);
+      if (inputEl) inputEl.value = successes;
+      var rollsEl = document.getElementById(rollsId);
+      if (rollsEl) {
+        var colored = rolls.map(function(d) {
+          var bg = null;
+          if (d === 1) bg = '#e57373';          // red   (fumble)
+          else if (d === 10) bg = '#64b5f6';    // blue  (crit)
+          else if (d >= tn) bg = '#81c784';     // green (success)
+          if (bg) {
+            return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
+          }
+          return '<span style="color:#777;">' + d + '</span>';
+        }).join(', ');
+        rollsEl.innerHTML = 'Rolled: [' + colored + '] &rarr; ' + successes + ' success' + (successes === 1 ? '' : 'es');
+      }
+    }
+
+    function rollSaveDice(i, inputId, rollsId) {
+      var cond = startOfTurnConditions[i];
+      rollDicePool(cond.dice, cond.tn, inputId, rollsId);
     }
 
     // Preview of what a save with `successes` will do to `cond` on Confirm.
@@ -1074,7 +1083,9 @@
       var diceNote = attackState.attackDiceOverride ? ' (reduced from ' + attackState.attackDice + ')' : '';
       addStep('<strong>Attack Roll</strong>: ' + rollDice + ' dice' + diceNote + ', TN ' + attackState.attackTn +
         '<br><label>Attack successes: <input type="number" id="attack-successes-input" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="confirmAttackSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="confirmAttackSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + rollDice + ', ' + attackState.attackTn + ', \'attack-successes-input\', \'attack-roll-display\')">Roll</button>' +
+        '<div id="attack-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function confirmAttackSuccesses() {
@@ -1100,19 +1111,25 @@
     function showDodgeRoll() {
       addStep('<strong>Dodge Roll</strong>: ' + attackState.defenseDice + ' dice, TN ' + attackState.dodgeTn +
         '<br><label>Dodge successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + attackState.defenseDice + ', ' + attackState.dodgeTn + ', \'defense-successes-input\', \'defense-roll-display\')">Roll</button>' +
+        '<div id="defense-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function showParryRoll() {
       addStep('<strong>Parry Roll</strong>: ' + attackState.parryDice + ' dice, TN ' + attackState.parryTn +
         '<br><label>Parry successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + attackState.parryDice + ', ' + attackState.parryTn + ', \'defense-successes-input\', \'defense-roll-display\')">Roll</button>' +
+        '<div id="defense-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function showBlockRoll() {
       addStep('<strong>Block Roll</strong>: ' + attackState.blockDice + ' dice, TN ' + attackState.blockTn +
         '<br><label>Block successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + attackState.blockDice + ', ' + attackState.blockTn + ', \'defense-successes-input\', \'defense-roll-display\')">Roll</button>' +
+        '<div id="defense-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function confirmDefenseSuccesses() {
@@ -1149,7 +1166,9 @@
       addStep('<strong>' + (caster ? caster.name : 'Ally') + ' blocks with Shield of Faith</strong>: ' + ally.dice + ' dice' +
         '<br><span class="math-detail">' + tnMath + '</span>' +
         '<br><label>Block successes: <input type="number" id="ally-block-successes" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="confirmAllyBlockSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="confirmAllyBlockSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + ally.dice + ', ' + blockTn + ', \'ally-block-successes\', \'ally-block-display\')">Roll</button>' +
+        '<div id="ally-block-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function confirmAllyBlockSuccesses() {
@@ -1279,7 +1298,9 @@
 
       addStep('<strong>' + healer.name + ' rolls Healing Word</strong>: ' + dice + ' dice, TN ' + healTn +
         '<br><label>Successes (each reduces damage by 1): <input type="number" id="hw-successes" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="confirmHealingWordSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="confirmHealingWordSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + dice + ', ' + healTn + ', \'hw-successes\', \'hw-roll-display\')">Roll</button>' +
+        '<div id="hw-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function confirmHealingWordSuccesses() {
