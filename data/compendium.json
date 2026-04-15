@@ -562,7 +562,8 @@
         "arcana"
       ],
       "properties": [
-        "concentration"
+        "concentration",
+        "ranged_attack"
       ],
       "effect_hash": {
       },
@@ -665,11 +666,33 @@
         "healing"
       ],
       "properties": [
-        "concentration"
+        "concentration",
+        "ranged_attack"
       ],
       "effect_hash": {
       },
       "description": "Make a ranged attack that does radiant damage to the target."
+    },
+    "Acid Splash": {
+      "tier": 0,
+      "save": 0,
+      "school": "resonance",
+      "items": [
+
+      ],
+      "range": 2,
+      "duration": "concentration",
+      "casting_time": 1,
+      "skill": [
+        "arcana"
+      ],
+      "properties": [
+        "concentration",
+        "ranged_attack"
+      ],
+      "effect_hash": {
+      },
+      "description": "Make a ranged attack that does acid damage to the target. Each cast fires a new splash."
     },
     "Light": {
       "tier": 0,

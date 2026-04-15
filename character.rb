@@ -326,6 +326,16 @@ class Compendium
     (spell_data["properties"] || []).include?("concentration")
   end
 
+  # True when the spell's properties mark it as a ranged attack spell
+  # (Acid Splash, Sacred Flame, Fire Bolt, etc.) — each cast makes a
+  # ranged attack using the caster's spell skill.
+  def ranged_attack?(spell_name)
+    resolved = resolve_spell_variant(spell_name)
+    return false unless resolved
+    _base, spell_data, * = resolved
+    (spell_data["properties"] || []).include?("ranged_attack")
+  end
+
   # Returns the save attribute ("str", "dex", "con", "int", "wis", "cha") a
   # spell forces its target to roll, or nil when the spell has no save.
   def save_attr(spell_name)

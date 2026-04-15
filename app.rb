@@ -836,6 +836,46 @@ post '/combat/action' do
         participant['combat_pool'] = participant['combat_pool'].to_i - bd_dice
       end
 
+      # Ranged attack spells (Acid Splash / Sacred Flame / Fire Bolt):
+      # deduct dice and mana up-front, apply damage/defense/ally-reaction
+      # outcomes to the target, then register the concentration effect.
+      ranged_attack_cast = params[:ranged_attack].to_s == 'true'
+      ranged_dice = 0
+      if ranged_attack_cast
+        halt 400, "Ranged attack spell requires a target" if target_ids.empty?
+        ranged_dice = params[:dice_spent].to_i
+        halt 400, "Ranged attack spell must spend at least 2 dice" if ranged_dice < 2
+        halt 400, "Not enough dice" if participant['combat_pool'].to_i < ranged_dice
+        participant['combat_pool'] = participant['combat_pool'].to_i - ranged_dice
+      end
+
+      # Vicious Mockery: apply Distracted (1 round) on hit; apply crit
+      # damage regardless. Both depend on the client's opposed-roll result.
+      vm_dice = 0
+      vm_hit = false
+      vm_crit_damage = 0
+      if spell_name == 'Vicious Mockery'
+        halt 400, "Vicious Mockery requires a target" if target_ids.empty?
+        vm_dice = params[:dice_spent].to_i
+        halt 400, "Vicious Mockery must spend at least 2 dice" if vm_dice < 2
+        halt 400, "Not enough dice" if participant['combat_pool'].to_i < vm_dice
+        vm_hit = params[:vm_hit].to_s == 'true'
+        vm_crit_damage = params[:vm_crit_damage].to_i
+        participant['combat_pool'] = participant['combat_pool'].to_i - vm_dice
+      end
+
+      # Biting Words: opposed roll; apply computed minor damage.
+      bw_dice = 0
+      bw_damage = 0
+      if spell_name == 'Biting Words'
+        halt 400, "Biting Words requires a target" if target_ids.empty?
+        bw_dice = params[:dice_spent].to_i
+        halt 400, "Biting Words must spend at least 2 dice" if bw_dice < 2
+        halt 400, "Not enough dice" if participant['combat_pool'].to_i < bw_dice
+        bw_damage = params[:bw_damage].to_i
+        participant['combat_pool'] = participant['combat_pool'].to_i - bw_dice
+      end
+
       participant['mana'] = participant['mana'].to_i - mana_cost
       # Enhancement spells (Resistance, Bull's Strength, ...) write an
       # active_effect carrying the resolved bonus payload. The target's
@@ -873,15 +913,82 @@ post '/combat/action' do
           'permanent' => true
         }
       end
+
+      # Apply ranged-attack spell damage + resolve defender reactions.
+      if ranged_attack_cast
+        tgt = combat_data['participants'].find { |p| p['id'] == target_ids.first }
+        halt 400, "Target not found" unless tgt
+        defense_dice = params[:defense_dice].to_i
+        target_mana_cost = params[:target_mana_cost].to_i
+        minor_in = params[:minor_damage].to_i
+        moderate_in = params[:moderate_damage].to_i
+        major_in = params[:major_damage].to_i
+
+        tgt['combat_pool'] = tgt['combat_pool'].to_i - defense_dice if defense_dice > 0
+        tgt['mana'] = tgt['mana'].to_i - target_mana_cost if target_mana_cost > 0
+
+        temp_hp = tgt['temporary_hit_points'].to_i
+        abs_major = [major_in, temp_hp].min; temp_hp -= abs_major
+        abs_moderate = [moderate_in, temp_hp].min; temp_hp -= abs_moderate
+        abs_minor = [minor_in, temp_hp].min; temp_hp -= abs_minor
+        tgt['temporary_hit_points'] = temp_hp
+        maj_applied = major_in - abs_major
+        mod_applied = moderate_in - abs_moderate
+        min_applied = minor_in - abs_minor
+        tgt['minor_damage'] = tgt['minor_damage'].to_i + min_applied
+        tgt['moderate_damage'] = tgt['moderate_damage'].to_i + mod_applied
+        tgt['major_damage'] = tgt['major_damage'].to_i + maj_applied
+
+        (params[:ally_data] || '').split(';').each do |entry|
+          next if entry.empty?
+          aid, adice = entry.split(':').map(&:to_i)
+          ally = combat_data['participants'].find { |p| p['id'] == aid }
+          ally['combat_pool'] = ally['combat_pool'].to_i - adice if ally && adice > 0
+        end
+        (params[:healing_word_data] || '').split(';').each do |entry|
+          next if entry.empty?
+          hid, hcost = entry.split(':').map(&:to_i)
+          h = combat_data['participants'].find { |p| p['id'] == hid }
+          h['mana'] = h['mana'].to_i - hcost if h && hcost > 0
+        end
+      end
+
+      # Vicious Mockery: Distracted (1 round) on hit; crit damage always.
+      if spell_name == 'Vicious Mockery'
+        tgt = combat_data['participants'].find { |p| p['id'] == target_ids.first }
+        halt 400, "Target not found" unless tgt
+        if vm_hit
+          tgt['conditions'] ||= {}
+          # Distracted: value 1 = active; expires at start of next round.
+          tgt['conditions']['distracted'] = 1
+          # Record the round this was applied so start-of-turn can clear it
+          # on the next round.
+          tgt['condition_meta'] ||= {}
+          tgt['condition_meta']['distracted_applied_round'] = combat_data['round'].to_i
+        end
+        if vm_crit_damage > 0
+          temp_hp = tgt['temporary_hit_points'].to_i
+          absorbed = [vm_crit_damage, temp_hp].min
+          tgt['temporary_hit_points'] = temp_hp - absorbed
+          remaining = vm_crit_damage - absorbed
+          tgt['minor_damage'] = tgt['minor_damage'].to_i + remaining if remaining > 0
+        end
+      end
+
+      # Biting Words: minor damage (never modifies conditions).
+      if spell_name == 'Biting Words' && bw_damage > 0
+        tgt = combat_data['participants'].find { |p| p['id'] == target_ids.first }
+        halt 400, "Target not found" unless tgt
+        temp_hp = tgt['temporary_hit_points'].to_i
+        absorbed = [bw_damage, temp_hp].min
+        tgt['temporary_hit_points'] = temp_hp - absorbed
+        remaining = bw_damage - absorbed
+        tgt['minor_damage'] = tgt['minor_damage'].to_i + remaining if remaining > 0
+      end
       Tools.save_json('combat.json', combat_data)
       suffix = target_names.empty? ? "" : " on #{target_names.join(', ')}"
-      dice_suffix = if spiritual_weapon_dice > 0
-        " with #{spiritual_weapon_dice} dice"
-      elsif bd_dice > 0
-        " with #{bd_dice} dice"
-      else
-        ""
-      end
+      dice_total = [spiritual_weapon_dice, bd_dice, ranged_dice, vm_dice, bw_dice].max
+      dice_suffix = dice_total > 0 ? " with #{dice_total} dice" : ""
       outcome = ""
       if spell_name == 'Blindness/Deafness'
         label = bd_effect == 'blindness' ? 'Blindness' : 'Deafness'
@@ -890,6 +997,22 @@ post '/combat/action' do
         outcome = bd_hit ?
           " - #{label} applied (#{caster_s} vs #{save_s} save)" :
           " - save succeeded (#{caster_s} vs #{save_s} save)"
+      elsif ranged_attack_cast
+        total = params[:minor_damage].to_i + params[:moderate_damage].to_i + params[:major_damage].to_i
+        outcome = total > 0 ? " - hits for #{total} damage" : " - misses"
+      elsif spell_name == 'Vicious Mockery'
+        caster_s = params[:vm_caster_successes].to_i
+        save_s = params[:vm_save_successes].to_i
+        parts = []
+        parts << (vm_hit ? "Distracted applied" : "save succeeded")
+        parts << "#{vm_crit_damage} crit minor damage" if vm_crit_damage > 0
+        outcome = " - #{parts.join(', ')} (#{caster_s} vs #{save_s} save)"
+      elsif spell_name == 'Biting Words'
+        caster_s = params[:bw_caster_successes].to_i
+        save_s = params[:bw_save_successes].to_i
+        outcome = bw_damage > 0 ?
+          " - #{bw_damage} minor damage (#{caster_s} vs #{save_s} save)" :
+          " - no damage (#{caster_s} vs #{save_s} save)"
       end
       duration_log = enhancement ? " (#{[enhancement[:duration_rounds].to_i, 1].max} round#{'s' unless enhancement[:duration_rounds].to_i == 1})" : ""
       Combat.add_log("#{character.name} casts #{spell_name}#{suffix}#{dice_suffix} (#{mana_cost} mana)#{outcome}#{duration_log}")
@@ -1133,6 +1256,65 @@ post '/combat/action' do
       Tools.save_json('combat.json', combat_data)
       Combat.add_log("#{character.name} redirects #{spell_name} to #{effect['target_names'].join(', ')} (4 dice)")
 
+    elsif sub == 'ranged_attack'
+      # Ranged attack concentrate re-use (Acid Splash / Sacred Flame /
+      # Fire Bolt): spend dice from the pool, no mana, resolve damage on
+      # the chosen target, update the effect's stored target for display.
+      target_combat_id = new_target_ids.first || (effect['target_combat_ids'] || []).first
+      halt 400, "Target required" unless target_combat_id
+      target_participant = combat_data['participants'].find { |p| p['id'] == target_combat_id }
+      halt 400, "Target not found" unless target_participant
+
+      dice_spent = params[:dice_spent].to_i
+      halt 400, "Must spend at least 2 dice" if dice_spent < 2
+      halt 400, "Not enough dice" if participant['combat_pool'].to_i < dice_spent
+      participant['combat_pool'] = participant['combat_pool'].to_i - dice_spent
+
+      defense_dice = params[:defense_dice].to_i
+      target_mana_cost = params[:target_mana_cost].to_i
+      minor = params[:minor_damage].to_i
+      moderate = params[:moderate_damage].to_i
+      major = params[:major_damage].to_i
+
+      target_participant['combat_pool'] = target_participant['combat_pool'].to_i - defense_dice if defense_dice > 0
+      target_participant['mana'] = target_participant['mana'].to_i - target_mana_cost if target_mana_cost > 0
+
+      temp_hp = target_participant['temporary_hit_points'].to_i
+      absorbed_major = [major, temp_hp].min; temp_hp -= absorbed_major
+      absorbed_moderate = [moderate, temp_hp].min; temp_hp -= absorbed_moderate
+      absorbed_minor = [minor, temp_hp].min; temp_hp -= absorbed_minor
+      target_participant['temporary_hit_points'] = temp_hp
+      major -= absorbed_major
+      moderate -= absorbed_moderate
+      minor -= absorbed_minor
+      target_participant['minor_damage'] = target_participant['minor_damage'].to_i + minor
+      target_participant['moderate_damage'] = target_participant['moderate_damage'].to_i + moderate
+      target_participant['major_damage'] = target_participant['major_damage'].to_i + major
+
+      (params[:ally_data] || '').split(';').each do |entry|
+        next if entry.empty?
+        aid, adice = entry.split(':').map(&:to_i)
+        ally = combat_data['participants'].find { |p| p['id'] == aid }
+        ally['combat_pool'] = ally['combat_pool'].to_i - adice if ally && adice > 0
+      end
+      (params[:healing_word_data] || '').split(';').each do |entry|
+        next if entry.empty?
+        hid, hcost = entry.split(':').map(&:to_i)
+        h = combat_data['participants'].find { |p| p['id'] == hid }
+        h['mana'] = h['mana'].to_i - hcost if h && hcost > 0
+      end
+
+      effect['target_combat_ids'] = [target_combat_id]
+      effect['target_names'] = target_names_for.call([target_combat_id])
+      Tools.save_json('combat.json', combat_data)
+
+      total = minor + moderate + major
+      target_name = effect['target_names'].first || 'target'
+      msg = total > 0 ?
+        "#{character.name}'s #{spell_name} hits #{target_name} for #{total} damage (#{dice_spent} dice)" :
+        "#{character.name}'s #{spell_name} misses #{target_name} (#{dice_spent} dice)"
+      Combat.add_log(msg)
+
     elsif sub == 'attack' && spell_name == 'Spiritual Weapon'
       # Spiritual Weapon attack: costs no action dice for the attacker and
       # no mana. The attack roll uses the recorded dice count. Damage split
@@ -1337,8 +1519,19 @@ post '/combat/action' do
         else
           log_lines << "  Minor strength poison save (#{successes} successes): no damage (#{raw_damage} blocked)"
         end
+      when 'distracted'
+        # Distracted (Vicious Mockery): lasts until the target's next
+        # Start of Turn. No damage, no save — just clears.
+        log_lines << "  Distracted ends"
       else
         log_lines << "  #{cname.tr('_', ' ').capitalize} save (#{successes} successes)"
+      end
+
+      if cname == 'distracted'
+        # Always clear after one Start of Turn regardless of successes.
+        participant['conditions'].delete(cname)
+        participant['condition_meta']&.delete('distracted_applied_round')
+        next
       end
 
       # Universal decay: reduce severity by 1 + successes, floor 0.

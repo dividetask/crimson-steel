@@ -60,7 +60,9 @@
             <div class="conditions-list">
               <% combat_turn.active_conditions.each do |cname, cval| %>
                 <% short, full = condition_label(cname) %>
-                <span class="condition-badge condition-<%= cname %>" title="<%= full %>"><%= short %>: <%= cval %></span>
+                <% # Flag conditions (distracted, etc.) don't carry a numeric severity. %>
+                <% no_severity = %w[distracted].include?(cname) %>
+                <span class="condition-badge condition-<%= cname %>" title="<%= full %>"><%= short %><% unless no_severity %>: <%= cval %><% end %></span>
               <% end %>
               <% combat_turn.active_ability_damage.each do |ability, severity, val| %>
                 <span class="condition-badge condition-ability-damage"><%= ability.upcase %> -<%= val %> <%= severity %></span>
@@ -216,6 +218,7 @@
             {name: name, tier: tier, cure: cure ? true : false, ward: ward ? true : false,
              stabilize: base == 'Stabilize',
              concentration: compendium.concentration?(name),
+             ranged_attack: compendium.ranged_attack?(name),
              target_mode: compendium.target_mode(name) || "single",
              save_attr: save_attr,
              caster_skill: caster_skill,
@@ -231,6 +234,7 @@
     // Caster's healing skill dice / TN, used by Stabilize cast rolls.
     var currentHealingDice = <%= current ? current.character.skill_dice('healing').to_i : 0 %>;
     var currentHealingBonus = <%= current ? current.character.skill_bonus('healing').to_i : 0 %>;
+    var currentChaHalf = <%= current ? (current.character.cha / 2).to_i : 0 %>;
     var itemList = <%= if current
       compendium = Compendium.new
       JSON.generate(
@@ -303,8 +307,10 @@
       base_dice = current.character.save_dice(:con).to_i
       base_tn = 9 - current.character.save_bonus(:con).to_i
       max_ghoul_tier = current.condition_meta['max_ghoul_tier'].to_i
+      # Flag conditions that auto-clear at start of turn and don't need a save.
+      auto_clear = %w[distracted]
       JSON.generate(
-        current.active_conditions.map do |cname, value|
+        current.active_conditions.reject { |cname, _| auto_clear.include?(cname) }.map do |cname, value|
           tn_mod = cname == 'ghoul_paralysis' ? max_ghoul_tier : 0
           raw_tn = base_tn + tn_mod
           clamped_tn = [[raw_tn, tn_min].max, tn_max].min
@@ -655,8 +661,21 @@
     // skill dice (Spiritual Weapon rolls off Healing) capped by their
     // remaining combat pool. Default value is the max.
     function selectSpellDice(spellName, spellTier, targetIds, isInstant, effectLabel, targetMode, isConcentration) {
+      var spellEntry = spellList.find(function(s) { return s.name === spellName; });
       if (spellName === 'Blindness/Deafness') {
         startBlindnessDeafnessCast(spellName, spellTier, targetIds);
+        return;
+      }
+      if (spellName === 'Vicious Mockery') {
+        startViciousMockeryCast(spellName, spellTier, targetIds);
+        return;
+      }
+      if (spellName === 'Biting Words') {
+        startBitingWordsCast(spellName, spellTier, targetIds);
+        return;
+      }
+      if (spellEntry && spellEntry.ranged_attack) {
+        startRangedAttackSpellCast(spellName, spellTier, targetIds, /*isConcentrateReuse=*/false, /*effectIndex=*/-1);
         return;
       }
       if (spellName !== 'Spiritual Weapon') {
@@ -917,6 +936,316 @@
         '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Submit</button>');
     }
 
+    // --- Ranged attack spells (Acid Splash / Sacred Flame / Fire Bolt) ---
+    //   Each cast picks a target + dice, then falls through to the
+    //   standard defense/attack-resolution UI via a pseudo-weapon built
+    //   from the caster's spell skill. On submit, the cast is routed
+    //   through /combat/action either as combat_action=cast (first cast)
+    //   or combat_action=concentrate sub_action=ranged_attack (re-use).
+    function startRangedAttackSpellCast(spellName, spellTier, targetIds, isConcentrateReuse, effectIndex) {
+      var spellEntry = spellList.find(function(s) { return s.name === spellName; });
+      if (!spellEntry || !spellEntry.caster_skill) {
+        alert('Caster has no eligible skill for ' + spellName);
+        return;
+      }
+      var targetCombatId = targetIds[0];
+      var maxDice = Math.min(spellEntry.caster_skill_dice, diceRemaining);
+      var minDice = 2;
+      if (maxDice < minDice) {
+        addStep('<strong>Cannot cast ' + spellName + '</strong> - need at least ' + minDice +
+          ' dice (skill allows ' + spellEntry.caster_skill_dice + ', pool has ' + diceRemaining + ')');
+        return;
+      }
+      var diceId = 'rs-dice-' + Date.now();
+      var manaNote = isConcentrateReuse ? 'no mana cost' : spellManaCost(spellTier) + ' mana';
+      addStep('<strong>' + spellName + ' - Attack Dice</strong>' +
+        '<br><span class="math-detail">Rolls off ' + spellEntry.caster_skill.replace('_', ' ') +
+        ' (' + spellEntry.caster_skill_dice + ' dice max, bonus ' +
+        (spellEntry.caster_skill_bonus >= 0 ? '+' : '') + spellEntry.caster_skill_bonus +
+        '). Cost: ' + manaNote + '.</span>' +
+        '<br><label>Dice: <input type="number" id="' + diceId + '" min="' + minDice + '" max="' + maxDice + '" value="' + maxDice + '" style="width:50px;"></label>' +
+        ' <button class="action-btn" style="margin-top:4px;" onclick="(function(){' +
+        'var v=parseInt(document.getElementById(\'' + diceId + '\').value,10);' +
+        'if(isNaN(v)||v<' + minDice + '||v>' + maxDice + '){alert(\'Enter ' + minDice + '-' + maxDice + '.\');return;}' +
+        'beginRangedSpellAttack(\'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ', ' +
+        targetCombatId + ', v, ' + (isConcentrateReuse ? 'true' : 'false') + ', ' + effectIndex + ');' +
+        '})()">Next</button>');
+    }
+
+    function beginRangedSpellAttack(spellName, spellTier, targetCombatId, dice, isConcentrateReuse, effectIndex) {
+      var spellEntry = spellList.find(function(s) { return s.name === spellName; });
+      var target = combatants.find(function(c) { return c.combat_id === targetCombatId; });
+      if (!target) { alert('Target missing'); return; }
+
+      // Build a pseudo-weapon so the normal defense/attack-resolution UI
+      // works. Ranged attack uses the caster's skill proficiency as the
+      // attack bonus. Damage = successes (no base, no enhancement).
+      var swWeapon = {
+        item_id: 0,
+        name: spellName,
+        weapon_dice: dice,
+        weapon_speed: 0,
+        weapon_attack_bonus: spellEntry.caster_skill_bonus || 0,
+        weapon_dmg: 0,
+        weapon_threshold: 0,
+        weapon_bonus: 0
+      };
+
+      attackState = {
+        weapon: swWeapon,
+        targetTurnId: null,
+        target: target,
+        attackerCombatId: currentCharId,
+        targetCombatId: targetCombatId,
+        attackDiceSpeed: 0,
+        attackDice: dice,
+        // Dice are spent up-front as part of the spell cast (not on top of it)
+        attackerDiceSpent: dice,
+        isRangedSpell: true,
+        rangedSpellName: spellName,
+        rangedSpellTier: spellTier,
+        rangedSpellReuse: isConcentrateReuse,
+        rangedSpellEffectIndex: effectIndex
+      };
+
+      showDefenseSelection();
+    }
+
+    // --- Vicious Mockery: opposed roll with distracted condition + crit damage ---
+    var vmCast = null;
+
+    function startViciousMockeryCast(spellName, spellTier, targetIds) {
+      var targetCombatId = targetIds[0];
+      var target = combatants.find(function(c) { return c.combat_id === targetCombatId; });
+      if (!target) { alert('No target'); return; }
+      var spellEntry = spellList.find(function(s) { return s.name === spellName; });
+      if (!spellEntry || !spellEntry.caster_skill) {
+        alert('Caster has no eligible skill for ' + spellName);
+        return;
+      }
+
+      vmCast = {
+        spellName: spellName, spellTier: spellTier,
+        targetCombatId: targetCombatId, targetName: target.name,
+        saveAttr: spellEntry.save_attr,
+        casterSkill: spellEntry.caster_skill,
+        casterSkillDice: spellEntry.caster_skill_dice,
+        casterSkillBonus: spellEntry.caster_skill_bonus,
+        diceSpent: 0, casterSuccesses: null, casterCrits: 0, saveSuccesses: null
+      };
+
+      var maxDice = Math.min(vmCast.casterSkillDice, diceRemaining);
+      var minDice = 2;
+      if (maxDice < minDice) {
+        addStep('<strong>Cannot cast ' + spellName + '</strong> - need at least ' + minDice +
+          ' dice (skill allows ' + vmCast.casterSkillDice + ', pool has ' + diceRemaining + ')');
+        return;
+      }
+      var diceId = 'vm-dice-' + Date.now();
+      addStep('<strong>' + spellName + ' on ' + target.name + '</strong>' +
+        '<br><span class="math-detail">Rolls off ' + vmCast.casterSkill.replace('_', ' ') +
+        ' (' + vmCast.casterSkillDice + ' dice max). Distracted: -1 to all rolls for 1 round. ' +
+        'Each 10 rolled deals 3 minor damage even on a successful save.</span>' +
+        '<br><label>Dice: <input type="number" id="' + diceId + '" min="' + minDice + '" max="' + maxDice + '" value="' + maxDice + '" style="width:50px;"></label>' +
+        ' <button class="action-btn" style="margin-top:4px;" onclick="(function(){' +
+        'var v=parseInt(document.getElementById(\'' + diceId + '\').value,10);' +
+        'if(isNaN(v)||v<' + minDice + '||v>' + maxDice + '){alert(\'Enter ' + minDice + '-' + maxDice + '.\');return;}' +
+        'vmCast.diceSpent=v;vmCasterRollStep();})()">Next</button>');
+    }
+
+    function vmCasterRollStep() {
+      var casterTn = clampTn(diceRules.base_target_number - vmCast.casterSkillBonus);
+      var tnMath = tnBreakdown('Caster TN', diceRules.base_target_number,
+        [{value: -vmCast.casterSkillBonus, label: vmCast.casterSkill.replace('_', ' ') + ' bonus'}], casterTn);
+      addStep('<strong>Caster Spell Check</strong>: ' + vmCast.diceSpent + ' dice, TN ' + casterTn +
+        '<br><span class="math-detail">' + tnMath + ' &nbsp;|&nbsp; count crits (10s) separately.</span>' +
+        '<br><label>Net successes: <input type="number" id="vm-caster-successes" min="0" value="0" style="width:50px;"></label>' +
+        '&nbsp;<label>Crits (10s): <input type="number" id="vm-caster-crits" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="vmConfirmCasterSuccesses()">Confirm</button>');
+    }
+
+    function vmConfirmCasterSuccesses() {
+      var succInput = document.getElementById('vm-caster-successes');
+      var critInput = document.getElementById('vm-caster-crits');
+      var s = parseInt(succInput.value, 10);
+      var c = parseInt(critInput.value, 10);
+      if (isNaN(s) || s < 0 || isNaN(c) || c < 0) { alert('Invalid numbers.'); return; }
+      vmCast.casterSuccesses = s;
+      vmCast.casterCrits = c;
+      succInput.disabled = true; critInput.disabled = true;
+      succInput.parentElement.parentElement.querySelector('button').style.display = 'none';
+      vmSaveRollStep();
+    }
+
+    function vmSaveRollStep() {
+      var target = combatants.find(function(c) { return c.combat_id === vmCast.targetCombatId; });
+      if (!target) { alert('Target vanished'); return; }
+      var saveAttr = vmCast.saveAttr;
+      var saveDice = (target.save_dice && target.save_dice[saveAttr]) || 0;
+      var saveBonus = (target.save_bonus && target.save_bonus[saveAttr]) || 0;
+      var baseTn = diceRules.base_target_number;
+      var saveTn = clampTn(baseTn - saveBonus + vmCast.spellTier + vmCast.casterSkillBonus);
+      vmCast.saveDice = saveDice;
+      vmCast.saveTn = saveTn;
+      var tnMath = tnBreakdown('Save TN', baseTn, [
+        {value: -saveBonus, label: saveAttr.toUpperCase() + ' save bonus'},
+        {value: vmCast.spellTier, label: 'spell tier penalty'},
+        {value: vmCast.casterSkillBonus, label: 'caster skill penalty'}
+      ], saveTn);
+      addStep('<strong>' + vmCast.targetName + '\'s ' + saveAttr.toUpperCase() + ' Save</strong>: ' +
+        saveDice + ' dice, TN ' + saveTn +
+        '<br><span class="math-detail">' + tnMath + '</span>' +
+        '<br><label>Save successes: <input type="number" id="vm-save-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="vmConfirmSaveSuccesses()">Confirm</button>');
+    }
+
+    function vmConfirmSaveSuccesses() {
+      var input = document.getElementById('vm-save-successes');
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
+      vmCast.saveSuccesses = val;
+      input.disabled = true;
+      input.parentElement.nextElementSibling.style.display = 'none';
+      vmShowResult();
+    }
+
+    function vmShowResult() {
+      var net = vmCast.casterSuccesses - vmCast.saveSuccesses;
+      var applyDistracted = net >= 2;
+      var critDamage = vmCast.casterCrits > 0 ? 3 : 0;
+      var manaCost = spellManaCost(vmCast.spellTier);
+      var lines = [];
+      lines.push(applyDistracted
+        ? '<strong>Distracted applied!</strong> (' + vmCast.casterSuccesses + ' - ' + vmCast.saveSuccesses + ' = ' + net + ' net, need 2; -1 to all rolls for 1 round)'
+        : '<strong>Save succeeded.</strong> ' + vmCast.targetName + ' resists Distracted. (' + vmCast.casterSuccesses + ' - ' + vmCast.saveSuccesses + ' = ' + net + ' net, need 2)');
+      if (critDamage > 0) {
+        lines.push('<strong>Crit damage:</strong> ' + vmCast.casterCrits + ' crit(s) &rarr; ' + critDamage + ' minor damage (applies even on save)');
+      }
+      var fields =
+        'id: currentCharId, combat_action: \'cast\', spell_name: \'Vicious Mockery\', spell_tier: ' + vmCast.spellTier +
+        ', target_combat_id: ' + vmCast.targetCombatId +
+        ', dice_spent: ' + vmCast.diceSpent +
+        ', vm_hit: ' + (applyDistracted ? 'true' : 'false') +
+        ', vm_caster_successes: ' + vmCast.casterSuccesses +
+        ', vm_save_successes: ' + vmCast.saveSuccesses +
+        ', vm_crit_damage: ' + critDamage;
+      addStep(lines.join('<br>') +
+        '<br><span class="math-detail">Cost: ' + manaCost + ' mana + ' + vmCast.diceSpent + ' dice</span>' +
+        '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Submit</button>');
+    }
+
+    // --- Biting Words: opposed roll; net 2+ deals damage = 2 + net + cha/2 ---
+    var bwCast = null;
+
+    function startBitingWordsCast(spellName, spellTier, targetIds) {
+      var targetCombatId = targetIds[0];
+      var target = combatants.find(function(c) { return c.combat_id === targetCombatId; });
+      if (!target) { alert('No target'); return; }
+      var spellEntry = spellList.find(function(s) { return s.name === spellName; });
+      if (!spellEntry || !spellEntry.caster_skill) {
+        alert('Caster has no eligible skill for ' + spellName);
+        return;
+      }
+      bwCast = {
+        spellName: spellName, spellTier: spellTier,
+        targetCombatId: targetCombatId, targetName: target.name,
+        saveAttr: spellEntry.save_attr,
+        casterSkill: spellEntry.caster_skill,
+        casterSkillDice: spellEntry.caster_skill_dice,
+        casterSkillBonus: spellEntry.caster_skill_bonus,
+        diceSpent: 0, casterSuccesses: null, saveSuccesses: null
+      };
+
+      var maxDice = Math.min(bwCast.casterSkillDice, diceRemaining);
+      var minDice = 2;
+      if (maxDice < minDice) {
+        addStep('<strong>Cannot cast ' + spellName + '</strong> - need at least ' + minDice +
+          ' dice (skill allows ' + bwCast.casterSkillDice + ', pool has ' + diceRemaining + ')');
+        return;
+      }
+      var diceId = 'bw-dice-' + Date.now();
+      addStep('<strong>' + spellName + ' on ' + target.name + '</strong>' +
+        '<br><span class="math-detail">Rolls off ' + bwCast.casterSkill.replace('_', ' ') +
+        ' (' + bwCast.casterSkillDice + ' dice max). Damage (if 2+ net): 2 + net + cha/2 (' + currentChaHalf + ') minor.</span>' +
+        '<br><label>Dice: <input type="number" id="' + diceId + '" min="' + minDice + '" max="' + maxDice + '" value="' + maxDice + '" style="width:50px;"></label>' +
+        ' <button class="action-btn" style="margin-top:4px;" onclick="(function(){' +
+        'var v=parseInt(document.getElementById(\'' + diceId + '\').value,10);' +
+        'if(isNaN(v)||v<' + minDice + '||v>' + maxDice + '){alert(\'Enter ' + minDice + '-' + maxDice + '.\');return;}' +
+        'bwCast.diceSpent=v;bwCasterRollStep();})()">Next</button>');
+    }
+
+    function bwCasterRollStep() {
+      var casterTn = clampTn(diceRules.base_target_number - bwCast.casterSkillBonus);
+      var tnMath = tnBreakdown('Caster TN', diceRules.base_target_number,
+        [{value: -bwCast.casterSkillBonus, label: bwCast.casterSkill.replace('_', ' ') + ' bonus'}], casterTn);
+      addStep('<strong>Caster Spell Check</strong>: ' + bwCast.diceSpent + ' dice, TN ' + casterTn +
+        '<br><span class="math-detail">' + tnMath + '</span>' +
+        '<br><label>Net successes: <input type="number" id="bw-caster-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="bwConfirmCasterSuccesses()">Confirm</button>');
+    }
+
+    function bwConfirmCasterSuccesses() {
+      var input = document.getElementById('bw-caster-successes');
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
+      bwCast.casterSuccesses = val;
+      input.disabled = true;
+      input.parentElement.nextElementSibling.style.display = 'none';
+      bwSaveRollStep();
+    }
+
+    function bwSaveRollStep() {
+      var target = combatants.find(function(c) { return c.combat_id === bwCast.targetCombatId; });
+      if (!target) { alert('Target vanished'); return; }
+      var saveAttr = bwCast.saveAttr;
+      var saveDice = (target.save_dice && target.save_dice[saveAttr]) || 0;
+      var saveBonus = (target.save_bonus && target.save_bonus[saveAttr]) || 0;
+      var baseTn = diceRules.base_target_number;
+      var saveTn = clampTn(baseTn - saveBonus + bwCast.spellTier + bwCast.casterSkillBonus);
+      bwCast.saveDice = saveDice;
+      bwCast.saveTn = saveTn;
+      var tnMath = tnBreakdown('Save TN', baseTn, [
+        {value: -saveBonus, label: saveAttr.toUpperCase() + ' save bonus'},
+        {value: bwCast.spellTier, label: 'spell tier penalty'},
+        {value: bwCast.casterSkillBonus, label: 'caster skill penalty'}
+      ], saveTn);
+      addStep('<strong>' + bwCast.targetName + '\'s ' + saveAttr.toUpperCase() + ' Save</strong>: ' +
+        saveDice + ' dice, TN ' + saveTn +
+        '<br><span class="math-detail">' + tnMath + '</span>' +
+        '<br><label>Save successes: <input type="number" id="bw-save-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="bwConfirmSaveSuccesses()">Confirm</button>');
+    }
+
+    function bwConfirmSaveSuccesses() {
+      var input = document.getElementById('bw-save-successes');
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
+      bwCast.saveSuccesses = val;
+      input.disabled = true;
+      input.parentElement.nextElementSibling.style.display = 'none';
+      bwShowResult();
+    }
+
+    function bwShowResult() {
+      var net = bwCast.casterSuccesses - bwCast.saveSuccesses;
+      var manaCost = spellManaCost(bwCast.spellTier);
+      var damage = net >= 2 ? (2 + net + currentChaHalf) : 0;
+      var summary = damage > 0
+        ? '<strong>Biting Words hits</strong> for ' + damage + ' minor damage. ' +
+            '(2 base + ' + net + ' net + ' + currentChaHalf + ' cha/2; ' + bwCast.casterSuccesses + ' - ' + bwCast.saveSuccesses + ' = ' + net + ')'
+        : '<strong>No damage</strong>. ' + bwCast.casterSuccesses + ' - ' + bwCast.saveSuccesses + ' = ' + net + ' net (need 2).';
+      var fields =
+        'id: currentCharId, combat_action: \'cast\', spell_name: \'Biting Words\', spell_tier: ' + bwCast.spellTier +
+        ', target_combat_id: ' + bwCast.targetCombatId +
+        ', dice_spent: ' + bwCast.diceSpent +
+        ', bw_damage: ' + damage +
+        ', bw_caster_successes: ' + bwCast.casterSuccesses +
+        ', bw_save_successes: ' + bwCast.saveSuccesses;
+      addStep(summary +
+        '<br><span class="math-detail">Cost: ' + manaCost + ' mana + ' + bwCast.diceSpent + ' dice</span>' +
+        '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Submit</button>');
+    }
+
     // --- ITEM: Consumable selection ---
     function showItemSelection() {
       if (!itemList || itemList.length === 0) {
@@ -1046,12 +1375,41 @@
         return;
       }
 
+      // Ranged attack spells (Acid Splash / Sacred Flame / Fire Bolt):
+      // each concentrate use re-runs the ranged attack flow against a
+      // target the caster picks, spending dice from the combat pool
+      // without paying additional mana.
+      var spellEntry = spellList.find(function(s) { return s.name === effect.spell_name; });
+      if (spellEntry && spellEntry.ranged_attack) {
+        var tgtNames = (effect.target_names || []).join(', ');
+        addStep('<strong>' + effect.spell_name + '</strong>' +
+          '<br><span class="math-detail">Last target: ' + (tgtNames || '(none)') + '</span>' +
+          '<br><button class="action-btn" style="margin:2px;" onclick="pickRangedSpellTarget(' + effectIndex + ')">Ranged Attack</button>');
+        return;
+      }
+
       // Generic concentration spell: continue focus. No mana cost; targets
       // can optionally be re-picked (useful for mobile/multi-target spells).
       var mode = 'single';
-      var spellEntry = spellList.find(function(s) { return s.name === effect.spell_name; });
       if (spellEntry) mode = spellEntry.target_mode || 'single';
       selectConcentrateReapplyTarget(effectIndex, mode);
+    }
+
+    function pickRangedSpellTarget(effectIndex) {
+      var effect = activeEffects[effectIndex];
+      var selectId = 'rs-target-' + Date.now();
+      var lastTarget = (effect.target_combat_ids || [])[0];
+      var optionsHtml = combatants.map(function(c) {
+        var sel = c.combat_id === lastTarget ? ' selected' : '';
+        return '<option value="' + c.combat_id + '"' + sel + '>' + c.name + '</option>';
+      }).join('');
+      addStep('<strong>' + effect.spell_name + ' - Target</strong>' +
+        '<br><select id="' + selectId + '" style="margin-top:4px;">' + optionsHtml + '</select>' +
+        '<br><button class="action-btn" style="margin-top:8px;" onclick="(function(){' +
+        'var v=document.getElementById(\'' + selectId + '\').value;' +
+        'if(!v){alert(\'Pick a target\');return;}' +
+        'startRangedAttackSpellCast(\'' + effect.spell_name.replace(/'/g, "\\'") + '\', ' +
+          (effect.spell_tier || 0) + ', [parseInt(v,10)], true, ' + effectIndex + ');})()">Next</button>');
     }
 
     function selectConcentrateNewTarget(effectIndex) {
@@ -2105,6 +2463,44 @@
           afflict: 'false',
           minor_damage: minor, moderate_damage: moderate, major_damage: major
         });
+        return;
+      }
+
+      // Ranged attack spells (Acid Splash / Sacred Flame / Fire Bolt).
+      // First cast is cast+mana+dice; reuse via Concentrate skips mana
+      // but still spends dice. Neither applies physical afflictions.
+      if (attackState.isRangedSpell) {
+        if (attackState.rangedSpellReuse) {
+          submitAction({
+            id: attackState.attackerCombatId,
+            combat_action: 'concentrate',
+            sub_action: 'ranged_attack',
+            effect_index: attackState.rangedSpellEffectIndex,
+            target_combat_id: attackState.targetCombatId,
+            dice_spent: attackState.attackDice,
+            defense_dice: defenseDice,
+            target_mana_cost: manaCost,
+            ally_data: allyDataStr,
+            healing_word_data: hwDataStr,
+            afflict: 'false',
+            minor_damage: minor, moderate_damage: moderate, major_damage: major
+          });
+        } else {
+          submitAction({
+            id: attackState.attackerCombatId,
+            combat_action: 'cast',
+            spell_name: attackState.rangedSpellName,
+            spell_tier: attackState.rangedSpellTier,
+            target_combat_id: attackState.targetCombatId,
+            dice_spent: attackState.attackDice,
+            defense_dice: defenseDice,
+            target_mana_cost: manaCost,
+            ally_data: allyDataStr,
+            healing_word_data: hwDataStr,
+            ranged_attack: 'true',
+            minor_damage: minor, moderate_damage: moderate, major_damage: major
+          });
+        }
         return;
       }
 
