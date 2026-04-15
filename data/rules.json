@@ -44,6 +44,12 @@
 			"shield": {"subtype": ["light", "medium", "tower"]},
 			"item": {"subtype": ["belt", "body", "chest", "eyes", "feet", "hands", "head", "headband", "neck", "shoulders", "wrists"]}
 		},
+		"bag_of_holding": {
+			"minor":    {"weight": 15, "capacity": 250,  "volume": 30},
+			"lesser":   {"weight": 25, "capacity": 500,  "volume": 70},
+			"moderate": {"weight": 35, "capacity": 1000, "volume": 150},
+			"major":    {"weight": 60, "capacity": 1500, "volume": 250}
+		},
 		"weapon_speed": {"light": 0, "medium": 1, "heavy": 2, "bludgeoning": 2, "slashing": 1, "piercing": 0},
 		"weapon_dmg": {"light": "(str/4)-2", "medium": "(str/4)", "heavy": "(str/2)+2"},
 		"weapon_bleed": {"bludgeoning": 5, "slashing": 7, "piercing": 3},

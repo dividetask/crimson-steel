@@ -5,6 +5,7 @@
     "type": "item",
     "subtype": "book",
     "bonus": 0,
+    "properties": {},
     "description": "A blank ritual spellbook. Required to learn and cast ritual spells. One-time purchase; additional rituals are inscribed separately."
   },
   {
@@ -13,15 +14,25 @@
     "type": "item",
     "subtype": "thrown",
     "bonus": 0,
+    "properties": {"consumable": true, "thrown": true},
     "description": "This can be thrown as a splash weapon dealing 1 point of moderate fire damage to all creatures within 5 feet. On a direct hit this damage is increased by the number of successes and sneak attack damage when appropriate"
   },
   {
-    "name": "Lesser Bag of Holding",
-    "price": 2500,
+    "name": "Bag of Holding",
     "type": "item",
     "subtype": "bag",
-    "bonus": 1,
-    "description": "The bag of holding opens into a nondimensional space: its inside is larger than its outside dimensions. Regardless of what is put into the bag, it weighs a fixed Amount. This weight, and the limits in weight and volume of the bag’s contents, depend on the bag’s type. This bag weighs 15 pounds, can hold up to 250 pounds with a maximum dimensions of 30 cubic feet."
+    "properties": {},
+    "description": "The bag of holding opens into a nondimensional space: its inside is larger than its outside dimensions. Regardless of what is put into the bag, it weighs a fixed amount. This bag weighs {weight} pounds, can hold up to {capacity} pounds, with maximum dimensions of {volume} cubic feet.",
+    "variant_rules_table": "bag_of_holding",
+    "variant_selectors": [
+      {"key": "size", "label": "Size"}
+    ],
+    "variants": [
+      {"size": "Minor",    "rules_key": "minor",    "bonus": 1, "price": 2500,  "display_name": "Minor Bag of Holding"},
+      {"size": "Lesser",   "rules_key": "lesser",   "bonus": 2, "price": 5000,  "display_name": "Lesser Bag of Holding"},
+      {"size": "Moderate", "rules_key": "moderate", "bonus": 3, "price": 7400,  "display_name": "Moderate Bag of Holding"},
+      {"size": "Major",    "rules_key": "major",    "bonus": 4, "price": 10000, "display_name": "Major Bag of Holding"}
+    ]
   },
   {
     "name": "Hat of Disguise",
@@ -29,6 +40,80 @@
     "type": "equipment",
     "subtype": "head",
     "bonus": 1,
+    "properties": {},
     "description": "This allows the wearer to benefit from the effects of Disguise Self. The appearance of the hat may be changed within the bounds of the spell but cannot be hidden."
+  },
+  {
+    "name": "Cloak of Resistance",
+    "type": "item",
+    "subtype": "back",
+    "properties": {},
+    "description": "Increases the wearer's enhancement bonus on all saves.",
+    "variant_selectors": [
+      {"key": "enhancement_bonus", "label": "Enhancement"}
+    ],
+    "variants": [
+      {"enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Cloak of Resistance"},
+      {"enhancement_bonus": "+2", "bonus": 2, "price": 4000,  "display_name": "+2 Cloak of Resistance"},
+      {"enhancement_bonus": "+3", "bonus": 3, "price": 9000,  "display_name": "+3 Cloak of Resistance"},
+      {"enhancement_bonus": "+4", "bonus": 4, "price": 16000, "display_name": "+4 Cloak of Resistance"},
+      {"enhancement_bonus": "+5", "bonus": 5, "price": 25000, "display_name": "+5 Cloak of Resistance"}
+    ]
+  },
+  {
+    "name": "Belt",
+    "type": "item",
+    "subtype": "belt",
+    "properties": {},
+    "description": "Increases the wearer's enhancement bonus for a single attribute.",
+    "variant_selectors": [
+      {"key": "attribute", "label": "Attribute"},
+      {"key": "enhancement_bonus", "label": "Enhancement"}
+    ],
+    "variants": [
+      {"attribute": "Strength",     "enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Belt of Strength"},
+      {"attribute": "Strength",     "enhancement_bonus": "+2", "bonus": 1, "price": 4000,  "display_name": "+2 Belt of Strength"},
+      {"attribute": "Strength",     "enhancement_bonus": "+3", "bonus": 1, "price": 9000,  "display_name": "+3 Belt of Strength"},
+      {"attribute": "Strength",     "enhancement_bonus": "+4", "bonus": 2, "price": 16000, "display_name": "+4 Belt of Strength"},
+      {"attribute": "Strength",     "enhancement_bonus": "+5", "bonus": 2, "price": 25000, "display_name": "+5 Belt of Strength"},
+      {"attribute": "Constitution", "enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Belt of Constitution"},
+      {"attribute": "Constitution", "enhancement_bonus": "+2", "bonus": 1, "price": 4000,  "display_name": "+2 Belt of Constitution"},
+      {"attribute": "Constitution", "enhancement_bonus": "+3", "bonus": 1, "price": 9000,  "display_name": "+3 Belt of Constitution"},
+      {"attribute": "Constitution", "enhancement_bonus": "+4", "bonus": 2, "price": 16000, "display_name": "+4 Belt of Constitution"},
+      {"attribute": "Constitution", "enhancement_bonus": "+5", "bonus": 2, "price": 25000, "display_name": "+5 Belt of Constitution"},
+      {"attribute": "Dexterity",    "enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Belt of Dexterity"},
+      {"attribute": "Dexterity",    "enhancement_bonus": "+2", "bonus": 1, "price": 4000,  "display_name": "+2 Belt of Dexterity"},
+      {"attribute": "Dexterity",    "enhancement_bonus": "+3", "bonus": 1, "price": 9000,  "display_name": "+3 Belt of Dexterity"},
+      {"attribute": "Dexterity",    "enhancement_bonus": "+4", "bonus": 2, "price": 16000, "display_name": "+4 Belt of Dexterity"},
+      {"attribute": "Dexterity",    "enhancement_bonus": "+5", "bonus": 2, "price": 25000, "display_name": "+5 Belt of Dexterity"}
+    ]
+  },
+  {
+    "name": "Headband",
+    "type": "item",
+    "subtype": "head",
+    "properties": {},
+    "description": "Increases the wearer's enhancement bonus for a single attribute.",
+    "variant_selectors": [
+      {"key": "attribute", "label": "Attribute"},
+      {"key": "enhancement_bonus", "label": "Enhancement"}
+    ],
+    "variants": [
+      {"attribute": "Intelligence", "enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Headband of Intelligence"},
+      {"attribute": "Intelligence", "enhancement_bonus": "+2", "bonus": 1, "price": 4000,  "display_name": "+2 Headband of Intelligence"},
+      {"attribute": "Intelligence", "enhancement_bonus": "+3", "bonus": 1, "price": 9000,  "display_name": "+3 Headband of Intelligence"},
+      {"attribute": "Intelligence", "enhancement_bonus": "+4", "bonus": 2, "price": 16000, "display_name": "+4 Headband of Intelligence"},
+      {"attribute": "Intelligence", "enhancement_bonus": "+5", "bonus": 2, "price": 25000, "display_name": "+5 Headband of Intelligence"},
+      {"attribute": "Wisdom",       "enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Headband of Wisdom"},
+      {"attribute": "Wisdom",       "enhancement_bonus": "+2", "bonus": 1, "price": 4000,  "display_name": "+2 Headband of Wisdom"},
+      {"attribute": "Wisdom",       "enhancement_bonus": "+3", "bonus": 1, "price": 9000,  "display_name": "+3 Headband of Wisdom"},
+      {"attribute": "Wisdom",       "enhancement_bonus": "+4", "bonus": 2, "price": 16000, "display_name": "+4 Headband of Wisdom"},
+      {"attribute": "Wisdom",       "enhancement_bonus": "+5", "bonus": 2, "price": 25000, "display_name": "+5 Headband of Wisdom"},
+      {"attribute": "Charisma",     "enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Headband of Charisma"},
+      {"attribute": "Charisma",     "enhancement_bonus": "+2", "bonus": 1, "price": 4000,  "display_name": "+2 Headband of Charisma"},
+      {"attribute": "Charisma",     "enhancement_bonus": "+3", "bonus": 1, "price": 9000,  "display_name": "+3 Headband of Charisma"},
+      {"attribute": "Charisma",     "enhancement_bonus": "+4", "bonus": 2, "price": 16000, "display_name": "+4 Headband of Charisma"},
+      {"attribute": "Charisma",     "enhancement_bonus": "+5", "bonus": 2, "price": 25000, "display_name": "+5 Headband of Charisma"}
+    ]
   }
 ]

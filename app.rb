@@ -1046,6 +1046,10 @@ get '/store' do
   @spell_data = compendium.data["spells"]
   @item_costs = compendium.data["item_costs"]
   @property_costs = compendium.data["property_costs"] || {}
+  # rules.reference tables referenced by store variants (e.g. bag_of_holding
+  # sizes) are passed to the view so description templates like "{weight}
+  # pounds / {capacity} pounds / {volume} cubic feet" resolve client-side.
+  @rules_reference = Tools.load_json('rules.json')['reference'] || {}
   # Known-ritual map keyed by char id, used by the store to flag rituals a
   # PC already has in their spellbook (so a re-purchase can't accidentally be
   # submitted).
@@ -1125,6 +1129,31 @@ post '/purchase/:item_index' do
     store_item = store_items[params[:item_index].to_i]
   end
 
+  # Resolve variants: if the store entry has a `variants` array, the client
+  # submits `variant_index` to pick one. The variant contributes its own
+  # display_name, price, and bonus; the description is rendered from the
+  # parent's template, substituting any {placeholders} from the linked
+  # rules.reference table (e.g. bag_of_holding sizes) so weight/capacity/
+  # volume numbers remain the single source of truth.
+  variant = nil
+  if store_item['variants']
+    idx = params[:variant_index].to_i
+    variant = store_item['variants'][idx]
+    halt 400, "Variant not found" unless variant
+  end
+
+  purchase_name  = variant ? variant['display_name'] : store_item['name']
+  purchase_price = variant ? variant['price']        : store_item['price']
+  purchase_bonus = variant ? variant['bonus']        : store_item['bonus']
+  purchase_props = store_item['properties'] || {}
+
+  purchase_desc = store_item['description']
+  if variant && store_item['variant_rules_table'] && purchase_desc
+    table = Tools.load_json('rules.json').dig('reference', store_item['variant_rules_table']) || {}
+    ref   = table[variant['rules_key']] || {}
+    purchase_desc = purchase_desc.gsub(/\{(\w+)\}/) { |m| ref[$1].nil? ? m : ref[$1].to_s }
+  end
+
   # Build the purchase list: owner_id -> quantity. Scrolls/potions/oils submit a
   # quantities hash (one entry per PC); everything else submits a single owner_id.
   purchases = if params[:quantities].is_a?(Hash)
@@ -1143,7 +1172,7 @@ post '/purchase/:item_index' do
   end
 
   total_qty = purchases.values.sum
-  total_cost = store_item['price'] * total_qty
+  total_cost = purchase_price * total_qty
 
   if campaign['gold'] < total_cost
     redirect '/store?error=insufficient_gold'
@@ -1153,7 +1182,7 @@ post '/purchase/:item_index' do
   purchases.each do |owner_id, qty|
     existing_item = items.find do |i|
       i['owner_id'] == owner_id &&
-      i['name'] == store_item['name'] &&
+      i['name'] == purchase_name &&
       i['type'] == store_item['type'] &&
       i['subtype'] == store_item['subtype']
     end
@@ -1161,20 +1190,21 @@ post '/purchase/:item_index' do
     if existing_item
       existing_item['quantity'] = (existing_item['quantity'] || 1) + qty
     else
-      bonus = store_item['bonus']
+      bonus = purchase_bonus
       if store_item['tier'] && %w[potion oil scroll].include?(store_item['subtype'])
         bonus = store_item['tier']
       end
       new_item = {
         'owner_id' => owner_id,
-        'name' => store_item['name'],
+        'name' => purchase_name,
         'type' => store_item['type'],
         'subtype' => store_item['subtype'],
         'bonus' => bonus,
-        'properties' => store_item['properties'],
+        'properties' => purchase_props,
         'equipped' => false
       }
-      new_item['quantity'] = qty if store_item['properties']['consumable']
+      new_item['description'] = purchase_desc if purchase_desc
+      new_item['quantity'] = qty if purchase_props['consumable']
       items << new_item
     end
   end

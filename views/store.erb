@@ -38,24 +38,59 @@
       <h2>Equipment</h2>
       <div class="store-grid" id="equipment-grid">
         <% @store_items.each_with_index do |item, index| %>
-          <div class="store-item" data-category="<%= item['type'] %>" data-tier="<%= item['bonus'] %>">
-            <h3><%= item['name'] %></h3>
-            <p><strong>Type:</strong> <%= item['type'].capitalize %> - <%= item['subtype'] %></p>
-            <% if item['bonus'] > 0 %>
-              <p><strong>Bonus:</strong> +<%= item['bonus'] %></p>
-            <% end %>
-            <p class="price"><%= item['price'] %> gp</p>
+          <% if item['variants'] %>
+            <% tier_values = item['variants'].map { |v| v['bonus'] }.uniq.join(' ') %>
+            <% first_variant = item['variants'].first %>
+            <div class="store-item variant-item" data-category="<%= item['type'] %>" data-tier="<%= tier_values %>" data-rules-table="<%= item['variant_rules_table'] %>">
+              <h3><%= item['name'] %></h3>
+              <p><strong>Type:</strong> <%= item['type'].capitalize %> - <%= item['subtype'] %></p>
+              <% item['variant_selectors'].each do |selector| %>
+                <% options = item['variants'].map { |v| v[selector['key']] }.uniq %>
+                <div class="variant-selector-row">
+                  <label><%= selector['label'] %>:
+                    <select class="variant-selector" data-selector-key="<%= selector['key'] %>">
+                      <% options.each do |opt| %>
+                        <option value="<%= opt %>"><%= opt %></option>
+                      <% end %>
+                    </select>
+                  </label>
+                </div>
+              <% end %>
+              <p class="variant-desc" data-desc-template="<%= h(item['description']) %>"><%= item['description'] %></p>
+              <p class="price"><span class="variant-price"><%= first_variant['price'] %></span> gp</p>
 
-            <form method="post" action="/purchase/<%= index %>" class="purchase-form">
-              <select name="owner_id" required>
-                <option value="">Select Character</option>
-                <% @characters.each do |char| %>
-                  <option value="<%= char['id'] %>"><%= char['name'] %></option>
-                <% end %>
-              </select>
-              <button type="submit">Purchase</button>
-            </form>
-          </div>
+              <form method="post" action="/purchase/<%= index %>" class="purchase-form">
+                <input type="hidden" name="variant_index" class="variant-index-input" value="0">
+                <select name="owner_id" required>
+                  <option value="">Select Character</option>
+                  <% @characters.each do |char| %>
+                    <option value="<%= char['id'] %>"><%= char['name'] %></option>
+                  <% end %>
+                </select>
+                <button type="submit">Purchase</button>
+              </form>
+              <script type="application/json" class="variant-data"><%= JSON.generate(item['variants']) %></script>
+            </div>
+          <% else %>
+            <div class="store-item" data-category="<%= item['type'] %>" data-tier="<%= item['bonus'] %>">
+              <h3><%= item['name'] %></h3>
+              <p><strong>Type:</strong> <%= item['type'].capitalize %> - <%= item['subtype'] %></p>
+              <% if item['bonus'] > 0 %>
+                <p><strong>Bonus:</strong> +<%= item['bonus'] %></p>
+              <% end %>
+              <p class="price"><%= item['price'] %> gp</p>
+
+              <form method="post" action="/purchase/<%= index %>" class="purchase-form">
+                <select name="owner_id" required>
+                  <option value="">Select Character</option>
+                  <% @characters.each do |char| %>
+                    <option value="<%= char['id'] %>"><%= char['name'] %></option>
+                  <% end %>
+                </select>
+                <button type="submit">Purchase</button>
+              </form>
+            </div>
+          <% end %>
         <% end %>
       </div>
 
@@ -208,7 +243,61 @@
     var spellData = <%= JSON.generate(@spell_data) %>;
     var itemCosts = <%= JSON.generate(@item_costs) %>;
     var propertyCosts = <%= JSON.generate(@property_costs) %>;
+    var rulesReference = <%= JSON.generate(@rules_reference || {}) %>;
     var ammoCosts = itemCosts['ammunition'];
+
+    // Variant items: each card has one or more <select class="variant-selector">
+    // dropdowns (Size, Attribute, Enhancement, etc.). The variants array lists every
+    // legal combination; matching the selected values back into the list resolves
+    // price, display name, and the description template (which may reference
+    // rulesReference[table][rules_key] for size-dependent numbers like bag weight).
+    document.querySelectorAll('.variant-item').forEach(function(card) {
+      var dataEl = card.querySelector('.variant-data');
+      var variants = JSON.parse(dataEl.textContent);
+      var selectors = card.querySelectorAll('.variant-selector');
+      var priceEl = card.querySelector('.variant-price');
+      var descEl = card.querySelector('.variant-desc');
+      var indexInput = card.querySelector('.variant-index-input');
+      var descTemplate = descEl.getAttribute('data-desc-template') || descEl.textContent;
+      var rulesTable = card.getAttribute('data-rules-table');
+
+      function findVariantIndex() {
+        for (var i = 0; i < variants.length; i++) {
+          var match = true;
+          selectors.forEach(function(sel) {
+            var key = sel.getAttribute('data-selector-key');
+            if (String(variants[i][key]) !== String(sel.value)) match = false;
+          });
+          if (match) return i;
+        }
+        return -1;
+      }
+
+      function resolveDescription(variant) {
+        if (!rulesTable) return descTemplate;
+        var table = rulesReference[rulesTable];
+        if (!table) return descTemplate;
+        var refData = table[variant.rules_key];
+        if (!refData) return descTemplate;
+        return descTemplate.replace(/\{(\w+)\}/g, function(m, k) {
+          return refData[k] != null ? refData[k] : m;
+        });
+      }
+
+      function update() {
+        var idx = findVariantIndex();
+        if (idx < 0) return;
+        var v = variants[idx];
+        priceEl.textContent = v.price;
+        descEl.textContent = resolveDescription(v);
+        indexInput.value = idx;
+      }
+
+      selectors.forEach(function(sel) {
+        sel.addEventListener('change', update);
+      });
+      update();
+    });
 
     var skillLabels = {
       'nature': 'Nature', 'perform_': 'Perform', 'arcana': 'Arcana',
@@ -581,10 +670,12 @@
 
       document.querySelectorAll('.store-item').forEach(function(card) {
         var category = card.dataset.category;
-        var tier = card.dataset.tier;
+        // Variant items publish a space-separated list of bonuses (one per variant)
+        // so the tier filter matches if any of the variants sits at an active tier.
+        var tiers = (card.dataset.tier || '').split(' ').filter(Boolean);
 
         var categoryMatch = noCategories || activeCategories.indexOf(category) !== -1;
-        var tierMatch = noTiers || activeTiers.indexOf(tier) !== -1;
+        var tierMatch = noTiers || tiers.some(function(t) { return activeTiers.indexOf(t) !== -1; });
 
         card.style.display = (categoryMatch && tierMatch) ? '' : 'none';
       });
