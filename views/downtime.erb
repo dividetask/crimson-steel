@@ -40,7 +40,18 @@
       <h2>Urgent Actions <span class="dt-note">(DM only)</span></h2>
       <form method="post" action="/downtime/urgent_actions" id="ua-form">
         <input type="hidden" name="payload" id="ua-payload" value="">
-        <div class="ua-summary" id="ua-summary">&nbsp;</div>
+
+        <div class="ua-checkbox-list">
+          <span class="ua-checkbox-label">Show actions for:</span>
+          <% @ua_data[:combatants].each do |c| %>
+            <label><input type="checkbox" class="ua-show-actions" data-cid="<%= c[:combatId] %>"> <%= h c[:name] %></label>
+          <% end %>
+        </div>
+
+        <div class="ua-summary-row">
+          <div class="ua-summary" id="ua-summary">&nbsp;</div>
+          <button type="submit" class="ua-submit">End Round</button>
+        </div>
 
         <% @ua_data[:combatants].each do |c| %>
           <div class="ua-combatant" data-cid="<%= c[:combatId] %>">
@@ -65,7 +76,7 @@
               </div>
             <% end %>
 
-            <div class="ua-slots">
+            <div class="ua-slots" style="display:none;">
               <% [0, 1].each do |slot| %>
                 <div class="ua-slot" data-slot="<%= slot %>">
                   <label class="ua-slot-label">Action <%= slot + 1 %>
@@ -94,8 +105,6 @@
             </div>
           </div>
         <% end %>
-
-        <button type="submit" class="ua-submit">End Round</button>
       </form>
     </div>
 
@@ -483,6 +492,22 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
     el.addEventListener('change', updateSummary);
   });
 
+  // Show-actions checkbox: toggles slot visibility and excludes the
+  // combatant from action submission/summary when unchecked.
+  document.querySelectorAll('.ua-show-actions').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var cid = cb.dataset.cid;
+      var slotsEl = form.querySelector('.ua-combatant[data-cid="' + cid + '"] .ua-slots');
+      if (slotsEl) slotsEl.style.display = cb.checked ? '' : 'none';
+      updateSummary();
+    });
+  });
+
+  function isCombatantActive(cid) {
+    var cb = document.querySelector('.ua-show-actions[data-cid="' + cid + '"]');
+    return !!(cb && cb.checked);
+  }
+
   // --- Save-phase projection (matches app.rb downtime_resolve_condition). ---
   function projectSaves(combatant) {
     var out = { damageMinor: 0, paralysisRounds: 0, decay: {}, extraTempHpAbsorbed: 0 };
@@ -562,7 +587,11 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
           var t = byId[String(tid)]; if (!t) return;
           var bleed = (t.conditions.find(function(c) { return c.name === 'bleed'; }) || {}).value || 0;
           var reduce = Math.min(bleed, 3 * act.successes);
-          parts.push('&rarr; ' + t.name + ' bleed ' + bleed + ' &rarr; ' + (bleed - reduce));
+          if (bleed === 0) {
+            parts.push('&rarr; ' + t.name + ' has no bleed to stop');
+          } else {
+            parts.push('&rarr; ' + t.name + ' stops <b>' + reduce + '</b> bleed (' + bleed + ' &rarr; ' + (bleed - reduce) + ')');
+          }
         });
       }
       return parts.join(' ');
@@ -616,10 +645,12 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
       }
       var slotsEl = form.querySelectorAll('.ua-combatant[data-cid="' + c.combatId + '"] .ua-slot');
       var actionParts = [];
-      slotsEl.forEach(function(slotEl) {
-        var act = projectAction(c, slotEl);
-        if (act) actionParts.push(describeAction(act));
-      });
+      if (isCombatantActive(c.combatId)) {
+        slotsEl.forEach(function(slotEl) {
+          var act = projectAction(c, slotEl);
+          if (act) actionParts.push(describeAction(act));
+        });
+      }
       if (actionParts.length) segments.push(actionParts.join(' | '));
       if (segments.length) lines.push('<div class="ua-summary-line"><b>' + c.name + '</b>: ' + segments.join(' &middot; ') + '</div>');
     });
@@ -638,6 +669,9 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
           payload.saves[c.combatId][cond.name] = el ? (parseInt(el.value, 10) || 0) : 0;
         });
       }
+      // Skip actions entirely for unchecked combatants -- the server's
+      // Array(actions[cid]) handles missing keys gracefully.
+      if (!isCombatantActive(c.combatId)) return;
       var slotsEl = form.querySelectorAll('.ua-combatant[data-cid="' + c.combatId + '"] .ua-slot');
       payload.actions[c.combatId] = [];
       slotsEl.forEach(function(slotEl) {

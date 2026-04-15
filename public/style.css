@@ -437,9 +437,14 @@ table th {
 /* Urgent Actions (downtime) */
 .urgent-actions { background: #fff5f5; border: 1px solid #d32f2f; border-radius: 5px; padding: 14px; margin-bottom: 20px; }
 .urgent-actions h2 { font-size: 16px; margin: 0 0 10px 0; border-bottom: 1px solid #d32f2f; padding-bottom: 4px; color: #b71c1c; }
-.ua-summary { background: #fff; border-left: 3px solid #d32f2f; padding: 8px 12px; margin-bottom: 12px; font-size: 11px; line-height: 1.5; min-height: 30px; }
+.ua-summary { background: #fff; border-left: 3px solid #d32f2f; padding: 8px 12px; font-size: 11px; line-height: 1.5; min-height: 30px; flex: 1; }
 .ua-summary h3 { font-size: 11px; margin: 0 0 4px 0; text-decoration: none; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
 .ua-summary-line { margin: 3px 0; }
+.ua-summary-row { display: flex; gap: 12px; align-items: stretch; margin-bottom: 12px; }
+.ua-summary-row .ua-submit { margin: 0; align-self: stretch; white-space: nowrap; }
+.ua-checkbox-list { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 10px; padding: 8px 10px; background: #fff; border: 1px solid #eee; border-radius: 3px; font-size: 11px; }
+.ua-checkbox-label { font-weight: bold; color: #555; margin-right: 4px; }
+.ua-checkbox-list label { cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-weight: normal; }
 .ua-combatant { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-bottom: 10px; }
 .ua-combatant-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 5px; flex-wrap: wrap; }
 .ua-name { font-weight: bold; font-size: 13px; }
@@ -461,7 +466,7 @@ table th {
 .ua-check label { flex-direction: row; align-items: center; gap: 4px; }
 .ua-roll-btn { background: #1976d2; color: white; border: none; padding: 3px 8px; font-size: 11px; border-radius: 3px; cursor: pointer; }
 .ua-roll-btn:hover { background: #1565c0; }
-.ua-submit { display: block; margin-top: 14px; padding: 10px 24px; font-size: 14px; font-weight: bold; background: #c62828; color: white; border: none; border-radius: 3px; cursor: pointer; }
+.ua-submit { padding: 10px 24px; font-size: 14px; font-weight: bold; background: #c62828; color: white; border: none; border-radius: 3px; cursor: pointer; }
 .ua-submit:hover { background: #b71c1c; }
 
 /* Quickly Resolve Conditions */
