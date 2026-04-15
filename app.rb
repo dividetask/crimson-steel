@@ -164,6 +164,15 @@ post '/combat/action' do
             target_participant['condition_meta']['max_ghoul_tier'] =
               [target_participant['condition_meta']['max_ghoul_tier'].to_i, attacker_sheet.tier.to_i].max
           end
+
+          # Poison bite: attacker with poison_bite ability hitting with a
+          # bite specifically (not claws / stinger / other natural weapons).
+          # This gating by weapon subtype supports e.g. a scorpion whose
+          # poison is on the stinger only, not the claws.
+          if is_natural && weapon['subtype'] == 'bite' && attacker_sheet.race_abilities.include?('poison_bite')
+            target_participant['conditions']['minor_strength_poison'] =
+              target_participant['conditions']['minor_strength_poison'].to_i + 5 + incoming_total
+          end
         end
       end
     end
@@ -588,6 +597,21 @@ post '/combat/action' do
           end
         else
           log_lines << "  Ghoul paralysis save (#{successes} successes): no paralysis (#{raw_rounds} blocked)"
+        end
+      when 'minor_strength_poison'
+        # (1 + severity/10) minor STR damage, reduced by 1 per success,
+        # min 0. Accumulates on participant.ability_damage.str.minor and
+        # persists until cured (e.g. by Restoration).
+        raw_damage = 1 + (value / 10)
+        dealt = [raw_damage - successes, 0].max
+        if dealt > 0
+          participant['ability_damage'] ||= {}
+          participant['ability_damage']['str'] ||= {}
+          participant['ability_damage']['str']['minor'] =
+            participant['ability_damage']['str']['minor'].to_i + dealt
+          log_lines << "  Minor strength poison save (#{successes} successes): #{dealt} minor STR damage"
+        else
+          log_lines << "  Minor strength poison save (#{successes} successes): no damage (#{raw_damage} blocked)"
         end
       else
         log_lines << "  #{cname.tr('_', ' ').capitalize} save (#{successes} successes)"
