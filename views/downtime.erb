@@ -517,26 +517,6 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
     return !!(cb && cb.checked);
   }
 
-  // --- Save-phase projection (matches app.rb downtime_resolve_condition). ---
-  function projectSaves(combatant) {
-    var out = { damageMinor: 0, paralysisRounds: 0, decay: {}, extraTempHpAbsorbed: 0 };
-    combatant.conditions.forEach(function(cond) {
-      var el = document.getElementById('ua-save-' + combatant.combatId + '-' + cond.name);
-      var suc = el ? (parseInt(el.value, 10) || 0) : 0;
-      if (cond.name === 'bleed') {
-        var raw = 1 + Math.floor(cond.value / 10);
-        var dealt = Math.max(0, raw - suc);
-        out.damageMinor += dealt;
-      } else if (cond.name === 'ghoul_paralysis') {
-        var rawR = 1 + Math.floor(cond.value / 10);
-        out.paralysisRounds += Math.max(0, rawR - suc);
-      }
-      var newVal = Math.max(0, cond.value - (1 + suc));
-      out.decay[cond.name] = { from: cond.value, to: newVal };
-    });
-    return out;
-  }
-
   // --- Action-phase projection. Mirrors apply_spell_effect / apply_item_effect
   // so the DM sees results before End Round. ---
   function projectAction(caster, slotEl) {
@@ -571,7 +551,28 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
     return Array.from(sel.selectedOptions || []).map(function(o) { return parseInt(o.value, 10); }).filter(function(v) { return v; });
   }
 
-  function describeAction(act) {
+  // --- Mutating cure cascade. Updates state.damage / state.saturation in
+  // place and returns the per-tier heal amounts so the summary can show them. ---
+  function cureCascadeOnState(effect, ts, improvedHealing, casterTier) {
+    var pool = effect.major;
+    var healedMajor = Math.min(ts.damage[2], pool); pool -= healedMajor;
+    pool += effect.moderate;
+    var healedModerate = Math.min(ts.damage[1], pool); pool -= healedModerate;
+    pool += effect.minor;
+    var healedMinor = Math.min(ts.damage[0], pool);
+    var sat = effect.saturation - ts.tier;
+    if (improvedHealing) sat -= 2 * casterTier;
+    if (sat < effect.minimumSaturation) sat = effect.minimumSaturation;
+    ts.damage[2] -= healedMajor;
+    ts.damage[1] -= healedModerate;
+    ts.damage[0] -= healedMinor;
+    ts.saturation += sat;
+    return { major: healedMajor, moderate: healedModerate, minor: healedMinor, sat: sat };
+  }
+
+  // Render an action description AND advance the simulated state for the
+  // affected target(s) so a later combatant's save / action sees the result.
+  function describeAndApplyAction(act, state) {
     if (!act) return 'Nothing';
     if (act.kind === 'cast') {
       var spell = act.spell;
@@ -582,25 +583,30 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
       parts.push('(-' + spell.manaCost + ' mana' + (spell.affordable ? '' : ' <span class="dt-warn">N/A</span>') + ')');
       if (spell.baseName === 'Cure' && spell.cure && targetIds.length) {
         targetIds.forEach(function(tid) {
-          var t = byId[String(tid)]; if (!t) return;
-          var res = cureCascade(spell.cure, t, act.caster.improvedHealing, act.caster.tier);
+          var ts = state[String(tid)]; var t = byId[String(tid)];
+          if (!ts || !t) return;
+          var res = cureCascadeOnState(spell.cure, ts, act.caster.improvedHealing, act.caster.tier);
           parts.push('&rarr; ' + t.name + ' heals ' + res.major + '/' + res.moderate + '/' + res.minor + ', +' + res.sat + ' sat');
         });
       } else if (spell.baseName === 'Ward' && spell.ward && targetIds.length) {
         targetIds.forEach(function(tid) {
-          var t = byId[String(tid)]; if (!t) return;
-          var newTemp = Math.max(t.tempHp, spell.ward.tempHp);
-          parts.push('&rarr; ' + t.name + ' temp HP ' + t.tempHp + ' &rarr; ' + newTemp);
+          var ts = state[String(tid)]; var t = byId[String(tid)];
+          if (!ts || !t) return;
+          var newTemp = Math.max(ts.tempHp, spell.ward.tempHp);
+          parts.push('&rarr; ' + t.name + ' temp HP ' + ts.tempHp + ' &rarr; ' + newTemp);
+          ts.tempHp = newTemp;
         });
       } else if (spell.baseName === 'Stabilize' && targetIds.length) {
         targetIds.forEach(function(tid) {
-          var t = byId[String(tid)]; if (!t) return;
-          var bleed = (t.conditions.find(function(c) { return c.name === 'bleed'; }) || {}).value || 0;
+          var ts = state[String(tid)]; var t = byId[String(tid)];
+          if (!ts || !t) return;
+          var bleed = ts.conditions.bleed || 0;
           var reduce = Math.min(bleed, 3 * act.successes);
           if (bleed === 0) {
             parts.push('&rarr; ' + t.name + ' has no bleed to stop');
           } else {
             parts.push('&rarr; ' + t.name + ' stops <b>' + reduce + '</b> bleed (' + bleed + ' &rarr; ' + (bleed - reduce) + ')');
+            ts.conditions.bleed = bleed - reduce;
           }
         });
       }
@@ -608,60 +614,105 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
     }
     if (act.kind === 'item') {
       var itemTargetNames = act.targets.map(function(tid) { return byId[String(tid)] && byId[String(tid)].name; }).filter(Boolean);
+      // For consumables that match an allowed cure/ward base, simulate the
+      // state change so subsequent combatants see it. (Stabilize has no
+      // potion/scroll variants today.)
+      var bn = act.item.baseName;
+      var kind = act.item.kind;
+      act.targets.forEach(function(tid) {
+        var ts = state[String(tid)]; var t = byId[String(tid)];
+        if (!ts || !t) return;
+        // Items currently passed to this UI are scrolls/potions. We do not
+        // mirror full item effects here (potion saturation, mana) -- only
+        // the Ward temp-HP path that interacts with bleed saves. Cure scrolls
+        // also affect damage but not saves; Stabilize has no items.
+        if (bn === 'Ward') {
+          // Without per-tier ward data on items, leave temp HP untouched here.
+          // Server still applies the effect correctly.
+        }
+      });
       return 'Use <b>' + act.item.name + '</b>' + (itemTargetNames.length ? ' on ' + itemTargetNames.join(', ') : '');
     }
     return 'Nothing';
   }
 
-  function cureCascade(effect, target, improvedHealing, casterTier) {
-    var pool = effect.major;
-    var healedMajor = Math.min(target.damage[2], pool); pool -= healedMajor;
-    pool += effect.moderate;
-    var healedModerate = Math.min(target.damage[1], pool); pool -= healedModerate;
-    pool += effect.minor;
-    var healedMinor = Math.min(target.damage[0], pool);
-    var sat = effect.saturation - target.tier;
-    if (improvedHealing) sat -= 2 * casterTier;
-    if (sat < effect.minimumSaturation) sat = effect.minimumSaturation;
-    return { major: healedMajor, moderate: healedModerate, minor: healedMinor, sat: sat };
+  // Snapshot a combatant's current state. The summary mutates these copies
+  // in initiative order so a Stabilize cast in turn 1 reduces the bleed
+  // severity that turn 2's bleed save reads from.
+  function snapshotInitialState() {
+    var state = {};
+    UA.combatants.forEach(function(c) {
+      var conds = {};
+      c.conditions.forEach(function(cond) { conds[cond.name] = cond.value; });
+      state[String(c.combatId)] = {
+        damage: c.damage.slice(),
+        mana: c.mana,
+        saturation: c.saturation,
+        tempHp: c.tempHp,
+        cha: c.cha,
+        tier: c.tier,
+        conditions: conds
+      };
+    });
+    return state;
   }
 
   function updateSummary() {
+    var state = snapshotInitialState();
     var lines = [];
+    // UA.combatants is already sorted by initiative (server-side). Save and
+    // action phases for each combatant happen back-to-back so heals queued
+    // by an earlier combatant land before the next one's save.
     UA.combatants.forEach(function(c) {
-      var saveProj = projectSaves(c);
+      var ss = state[String(c.combatId)];
       var segments = [];
+
+      // --- Save phase: read CURRENT condition severities (post any prior
+      // mutations) and decay/damage based on the user's entered successes. ---
       if (c.conditions.length) {
         var savePart = [];
         c.conditions.forEach(function(cond) {
-          var d = saveProj.decay[cond.name];
+          var sev = ss.conditions[cond.name] || 0;
+          var el = document.getElementById('ua-save-' + c.combatId + '-' + cond.name);
+          var suc = el ? (parseInt(el.value, 10) || 0) : 0;
+          var newSev = Math.max(0, sev - (1 + suc));
           if (cond.name === 'bleed') {
-            var raw = 1 + Math.floor(cond.value / 10);
-            var el = document.getElementById('ua-save-' + c.combatId + '-' + cond.name);
-            var suc = el ? (parseInt(el.value, 10) || 0) : 0;
-            var dealt = Math.max(0, raw - suc);
-            savePart.push('Bleed ' + dealt + ' minor (' + raw + '-' + suc + '), ' + cond.value + '&rarr;' + d.to);
+            if (sev <= 0) {
+              savePart.push('Bleed already ended');
+            } else {
+              var raw = 1 + Math.floor(sev / 10);
+              var dealt = Math.max(0, raw - suc);
+              var absorbed = Math.min(dealt, ss.tempHp);
+              ss.tempHp -= absorbed;
+              var landed = dealt - absorbed;
+              ss.damage[0] += landed;
+              var absorbNote = absorbed > 0 ? ' (' + absorbed + ' temp HP absorbed)' : '';
+              savePart.push('Bleed ' + landed + ' minor (' + raw + '-' + suc + ')' + absorbNote + ', ' + sev + '&rarr;' + newSev);
+            }
           } else if (cond.name === 'ghoul_paralysis') {
-            var rawR = 1 + Math.floor(cond.value / 10);
-            var elG = document.getElementById('ua-save-' + c.combatId + '-' + cond.name);
-            var sucG = elG ? (parseInt(elG.value, 10) || 0) : 0;
-            var rounds = Math.max(0, rawR - sucG);
-            savePart.push('Paralyzed ' + rounds + 'r, ' + cond.value + '&rarr;' + d.to);
+            var rawR = 1 + Math.floor(sev / 10);
+            var rounds = Math.max(0, rawR - suc);
+            savePart.push('Paralyzed ' + rounds + 'r, ' + sev + '&rarr;' + newSev);
           } else {
-            savePart.push(cond.label + ' ' + cond.value + '&rarr;' + d.to);
+            savePart.push(cond.label + ' ' + sev + '&rarr;' + newSev);
           }
+          ss.conditions[cond.name] = newSev;
         });
-        segments.push('Saves: ' + savePart.join('; '));
+        if (savePart.length) segments.push('Saves: ' + savePart.join('; '));
       }
-      var slotsEl = form.querySelectorAll('.ua-combatant[data-cid="' + c.combatId + '"] .ua-slot');
-      var actionParts = [];
+
+      // --- Action phase: each action mutates the target's state so a Stabilize
+      // here drops the bleed severity that a later combatant reads. ---
       if (isCombatantActive(c.combatId)) {
+        var slotsEl = form.querySelectorAll('.ua-combatant[data-cid="' + c.combatId + '"] .ua-slot');
+        var actionParts = [];
         slotsEl.forEach(function(slotEl) {
           var act = projectAction(c, slotEl);
-          if (act) actionParts.push(describeAction(act));
+          if (act) actionParts.push(describeAndApplyAction(act, state));
         });
+        if (actionParts.length) segments.push(actionParts.join(' | '));
       }
-      if (actionParts.length) segments.push(actionParts.join(' | '));
+
       if (segments.length) lines.push('<div class="ua-summary-line"><b>' + c.name + '</b>: ' + segments.join(' &middot; ') + '</div>');
     });
     if (!lines.length) lines.push('<div class="ua-summary-line dt-note">No queued saves or actions yet.</div>');

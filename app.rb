@@ -1790,36 +1790,36 @@ post '/downtime/urgent_actions' do
   saves = payload['saves'] || {}
   actions = payload['actions'] || {}
 
-  # --- Phase 1: resolve saves per combatant. Applies damage / paralysis and
-  # decays severity, same shape as start_of_turn. ---
-  (combat_data['participants'] || []).each do |participant|
-    cid = participant['id']
-    participant['conditions'] ||= {}
-    participant['condition_meta'] ||= {}
+  # Resolve in initiative order so that a combatant's queued action (e.g. a
+  # Stabilize that drops a target's bleed severity, or a Ward that adds temp
+  # HP) takes effect before that target's own save phase later in the round.
+  # Combat.new loads a sorted snapshot; we mutate combat_data as we go so each
+  # subsequent combatant sees the up-to-date state.
+  combat = Combat.new
+  combat.combat_turn_list.each do |ct|
+    cid = ct.combat_id
+    participant = combat_data['participants'].find { |p| p['id'].to_i == cid.to_i }
+    next unless participant
     char_id = participant['char_id'] || participant['id']
     char_data = characters.find { |c| c['id'] == char_id }
     next unless char_data
     character = CharacterSheet.new(char_data)
+
+    # 1. Save phase for this combatant.
+    participant['conditions'] ||= {}
+    participant['condition_meta'] ||= {}
     (saves[cid.to_s] || {}).each do |cname, successes|
       downtime_resolve_condition(combat_data, participant, character, cid, cname.to_s, successes.to_i)
     end
-  end
 
-  # --- Phase 2: resolve each combatant's queued actions in order. ---
-  (combat_data['participants'] || []).each do |caster_p|
-    cid = caster_p['id']
-    caster_actions = Array(actions[cid.to_s])
-    next if caster_actions.empty?
-    char_id = caster_p['char_id'] || caster_p['id']
-    char_data = characters.find { |c| c['id'] == char_id }
-    next unless char_data
-    caster = CharacterSheet.new(char_data)
-    caster_actions.each do |action|
-      downtime_apply_urgent_action(combat_data, characters, caster_p, caster, action)
+    # 2. Action phase for this combatant. Both phases mutate combat_data so a
+    # heal cast here is visible to later combatants.
+    Array(actions[cid.to_s]).each do |action|
+      downtime_apply_urgent_action(combat_data, characters, participant, character, action)
     end
   end
 
-  # --- Phase 3: refresh combat pools, advance the round counter. ---
+  # Refresh combat pools, advance round counter.
   (combat_data['participants'] || []).each do |participant|
     char_id = participant['char_id'] || participant['id']
     char_data = characters.find { |c| c['id'] == char_id }
