@@ -1,0 +1,1167 @@
+<div class="downtime">
+  <div class="downtime-header">
+    <h1>Downtime</h1>
+    <div class="gold-display">Gold: <%= @campaign['gold'] %></div>
+  </div>
+
+  <div class="downtime-cards">
+    <% @pcs.each do |pc| %>
+      <% consumables = pc.item_list.select { |i| e = @compendium.item_effects(i); e && (e[:type] == :cure || e[:base_name] == 'Standard Surgery') } %>
+      <div class="downtime-card">
+        <h3><%= h pc.name %></h3>
+        <div class="dt-subtitle">
+          <%= h pc.race %> <%= h pc.full_klass %> &middot; Tier <%= pc.tier %>
+        </div>
+        <div class="dt-stats">
+          <div><span class="label">HP</span><span class="value"><%= pc.current_hp %>/<%= pc.hp_max %></span></div>
+          <div><span class="label">Mana</span><span class="value"><%= pc.current_mana %>/<%= pc.mana_max %></span></div>
+          <div><span class="label">Saturation</span><span class="value"><%= pc.saturation %>/<%= pc.cha %></span></div>
+          <div><span class="label">Temp HP</span><span class="value"><%= pc.temporary_hit_points %></span></div>
+          <div><span class="label">Minor Dmg</span><span class="value"><%= pc.minor_damage %></span></div>
+          <div><span class="label">Moderate Dmg</span><span class="value"><%= pc.moderate_damage %></span></div>
+          <div><span class="label">Major Dmg</span><span class="value"><%= pc.major_damage %></span></div>
+        </div>
+        <% if consumables.any? %>
+          <div class="dt-consumables">
+            <h4>Healing items</h4>
+            <ul>
+              <% consumables.each do |item| %>
+                <li><%= h item['name'] %><%= " ×#{item['quantity']}" if item['quantity'].to_i > 1 %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if @ua_data %>
+    <div class="urgent-actions">
+      <h2>Urgent Actions <span class="dt-note">(DM only)</span></h2>
+      <form method="post" action="/downtime/urgent_actions" id="ua-form">
+        <input type="hidden" name="payload" id="ua-payload" value="">
+
+        <div class="ua-checkbox-list">
+          <span class="ua-checkbox-label">Show actions for:</span>
+          <% @ua_data[:combatants].each do |c| %>
+            <label><input type="checkbox" class="ua-show-actions" data-cid="<%= c[:combatId] %>"> <%= h c[:name] %></label>
+          <% end %>
+        </div>
+
+        <div class="ua-summary-row">
+          <div class="ua-summary" id="ua-summary">&nbsp;</div>
+          <button type="submit" class="ua-submit">End Round</button>
+        </div>
+
+        <% @ua_data[:combatants].each do |c| %>
+          <div class="ua-combatant" data-cid="<%= c[:combatId] %>" data-has-conditions="<%= c[:conditions].any? %>"<%= ' style="display:none;"' unless c[:conditions].any? %>>
+            <div class="ua-combatant-header">
+              <span class="ua-name"><%= h c[:name] %></span>
+              <span class="ua-group ua-group-<%= h c[:group].to_s.downcase %>"><%= h c[:group] %></span>
+              <span class="ua-stats">HP <%= c[:hpMax] - c[:damage].sum + c[:tempHp] %>/<%= c[:hpMax] %> &middot; Mana <%= c[:mana] %>/<%= c[:manaMax] %> &middot; Sat <%= c[:saturation] %>/<%= c[:cha] %> &middot; Dmg <%= c[:damage].join('/') %><% if c[:tempHp] > 0 %> &middot; Temp HP <%= c[:tempHp] %><% end %></span>
+            </div>
+
+            <% if c[:conditions].any? %>
+              <div class="ua-saves">
+                <% c[:conditions].each_with_index do |cond, ci| %>
+                  <div class="ua-save" data-cname="<%= h cond[:name] %>" data-cvalue="<%= cond[:value] %>" data-dice="<%= cond[:dice] %>" data-tn="<%= cond[:tn] %>">
+                    <strong>Save vs <%= h cond[:label] %></strong> <span class="math-detail">(severity <%= cond[:value] %>)</span>
+                    <span class="math-detail">&mdash; <%= cond[:dice] %> dice at TN <%= cond[:tn] %></span>
+                    <% unless cond[:tnModLabel].empty? %><span class="math-detail">(<%= h cond[:tnModLabel] %>)</span><% end %>
+                    <label>Successes <input type="number" id="ua-save-<%= c[:combatId] %>-<%= h cond[:name] %>" min="0" max="<%= cond[:dice] %>" value="0" class="ua-input-small"></label>
+                    <button type="button" class="ua-roll-btn" data-roll-target="ua-save-<%= c[:combatId] %>-<%= h cond[:name] %>" data-dice="<%= cond[:dice] %>" data-tn="<%= cond[:tn] %>" data-rolls-target="ua-save-rolls-<%= c[:combatId] %>-<%= h cond[:name] %>">Roll</button>
+                    <span class="ua-rolls math-detail" id="ua-save-rolls-<%= c[:combatId] %>-<%= h cond[:name] %>"></span>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <div class="ua-slots" style="display:none;">
+              <% [0, 1].each do |slot| %>
+                <div class="ua-slot" data-slot="<%= slot %>">
+                  <label class="ua-slot-label">Action <%= slot + 1 %>
+                    <select class="ua-type" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>">
+                      <option value="nothing">Nothing</option>
+                      <option value="cast">Cast</option>
+                      <option value="item">Item</option>
+                    </select>
+                  </label>
+                  <label class="ua-spell-label" style="display:none;">Spell
+                    <select class="ua-spell" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>"></select>
+                  </label>
+                  <label class="ua-item-label" style="display:none;">Item
+                    <select class="ua-item" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>"></select>
+                  </label>
+                  <label class="ua-target-label" style="display:none;">Target
+                    <select class="ua-target" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>"></select>
+                  </label>
+                  <div class="ua-check" style="display:none;">
+                    <label>Successes <input type="number" class="ua-successes ua-input-small" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>" min="0" value="0"></label>
+                    <button type="button" class="ua-roll-btn ua-action-roll" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>">Roll</button>
+                    <span class="ua-rolls math-detail ua-action-rolls" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>"></span>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </form>
+    </div>
+
+    <% qr_combatants = @ua_data[:combatants].select { |c| c[:conditions].any? } %>
+    <% if qr_combatants.any? %>
+      <div class="quick-resolve">
+        <h2>Quickly Resolve Conditions <span class="dt-note">(DM only)</span></h2>
+        <p class="dt-note">Roll CON saves repeatedly (up to 30 per condition) until each condition ends. Use this when the party is just waiting it out instead of casting spells.</p>
+        <form method="post" action="/downtime/quick_resolve" id="qr-form">
+          <input type="hidden" name="payload" id="qr-payload" value="">
+
+          <% qr_combatants.each do |c| %>
+            <div class="qr-combatant" data-cid="<%= c[:combatId] %>">
+              <h3><%= h c[:name] %></h3>
+              <% c[:conditions].each do |cond| %>
+                <div class="qr-condition" data-cname="<%= h cond[:name] %>" data-severity="<%= cond[:value] %>" data-dice="<%= cond[:dice] %>" data-tn="<%= cond[:tn] %>">
+                  <div class="qr-condition-header">
+                    <strong><%= h cond[:label] %></strong>
+                    <span class="math-detail">severity <%= cond[:value] %> &middot; <%= cond[:dice] %>d at TN <%= cond[:tn] %></span>
+                  </div>
+                  <div class="qr-result" id="qr-result-<%= c[:combatId] %>-<%= h cond[:name] %>">
+                    <span class="dt-note">Not rolled yet.</span>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+
+          <div class="qr-buttons">
+            <button type="button" id="qr-roll-btn">Roll All</button>
+            <button type="submit" id="qr-submit-btn" disabled>Submit Results</button>
+          </div>
+        </form>
+      </div>
+    <% end %>
+  <% end %>
+
+  <div class="downtime-actions">
+    <h2>Healing Actions</h2>
+
+    <div class="dt-action-grid">
+      <div class="dt-action">
+        <h3>Cast Cure</h3>
+        <% if @dt_data[:cureSpells].empty? %>
+          <p class="dt-note">No party member knows any Cure spell.</p>
+        <% else %>
+          <form method="post" action="/downtime/cast" id="cure-form">
+            <label>Spell
+              <select name="spell_name" id="cure-spell" required>
+                <% @dt_data[:cureSpells].each_with_index do |variant, i| %>
+                  <option value="<%= h variant %>" <%= 'selected' if i == 0 %>><%= h variant %></option>
+                <% end %>
+              </select>
+            </label>
+            <label>Caster
+              <select name="caster_id" id="cure-caster" required></select>
+            </label>
+            <label>Target
+              <select name="target_id" id="cure-target" required>
+                <% @pcs.each_with_index do |pc, i| %>
+                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
+                <% end %>
+              </select>
+            </label>
+            <div class="dt-preview" id="cure-preview">&nbsp;</div>
+            <button type="submit">Cast Cure</button>
+          </form>
+        <% end %>
+      </div>
+
+      <div class="dt-action">
+        <h3>Cast Surgery</h3>
+        <% if @surgery_casters.empty? %>
+          <p class="dt-note">No party member knows Standard Surgery.</p>
+        <% else %>
+          <form method="post" action="/downtime/cast" id="surgery-form">
+            <input type="hidden" name="spell_name" value="Standard Surgery">
+            <label>Caster
+              <select name="caster_id" id="surgery-caster" required>
+                <% @surgery_casters.each_with_index do |pc, i| %>
+                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %></option>
+                <% end %>
+              </select>
+            </label>
+            <label>Target
+              <select name="target_id" id="surgery-target" required>
+                <% @pcs.each_with_index do |pc, i| %>
+                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (major dmg <%= pc.major_damage %>)</option>
+                <% end %>
+              </select>
+            </label>
+            <div class="dt-dice" id="surgery-dice">Healing check: &mdash;</div>
+            <label>Successes rolled
+              <input type="number" name="successes" id="surgery-successes" value="0" min="0" required>
+            </label>
+            <div class="dt-preview" id="surgery-preview">&nbsp;</div>
+            <button type="submit">Apply Surgery</button>
+          </form>
+        <% end %>
+      </div>
+
+      <div class="dt-action">
+        <h3>Use Potion / Scroll</h3>
+        <% if @consumable_owners.empty? %>
+          <p class="dt-note">No party member has a healing potion or scroll.</p>
+        <% else %>
+          <form method="post" action="/downtime/use_item">
+            <label>Owner &amp; item
+              <select name="owner_item_combined" required onchange="var p=this.value.split('|');this.form.owner_id.value=p[0];this.form.item_id.value=p[1];">
+                <option value=""></option>
+                <% @consumable_owners.each do |owner_id, items| %>
+                  <% pc = @pcs.find { |p| p.id == owner_id } %>
+                  <% items.each do |item| %>
+                    <option value="<%= owner_id %>|<%= item['item_id'] %>"><%= h pc.name %> - <%= h item['name'] %><%= " ×#{item['quantity']}" if item['quantity'].to_i > 1 %></option>
+                  <% end %>
+                <% end %>
+              </select>
+            </label>
+            <input type="hidden" name="owner_id" value="">
+            <input type="hidden" name="item_id" value="">
+            <label>Target
+              <select name="target_id" required>
+                <% @pcs.each_with_index do |pc, i| %>
+                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
+                <% end %>
+              </select>
+            </label>
+            <button type="submit">Use Item</button>
+          </form>
+        <% end %>
+      </div>
+
+      <div class="dt-action">
+        <h3>Spellcasting Services <% unless @is_local %><span class="dt-note">(DM only)</span><% end %></h3>
+        <% if @dt_data[:servicesSpells].empty? %>
+          <p class="dt-note">No spellcasting services defined.</p>
+        <% else %>
+          <form method="post" action="/downtime/service" id="service-form">
+            <label>Spell
+              <select name="spell" id="service-spell" required <%= 'disabled' unless @is_local %>>
+                <% @dt_data[:servicesSpells].each_with_index do |spell, i| %>
+                  <option value="<%= h spell %>" <%= 'selected' if i == 0 %>><%= h spell %></option>
+                <% end %>
+              </select>
+            </label>
+            <label>Caster
+              <select name="service_caster" id="service-caster" required <%= 'disabled' unless @is_local %>></select>
+            </label>
+            <label>Target
+              <select name="target_id" id="service-target" required <%= 'disabled' unless @is_local %>>
+                <% @pcs.each_with_index do |pc, i| %>
+                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (<%= pc.minor_damage %>/<%= pc.moderate_damage %>/<%= pc.major_damage %>)</option>
+                <% end %>
+              </select>
+            </label>
+            <div class="dt-preview" id="service-preview">&nbsp;</div>
+            <button type="submit" <%= 'disabled' unless @is_local %>>Purchase &amp; Apply</button>
+          </form>
+        <% end %>
+      </div>
+    </div>
+
+    <% if @is_local %>
+      <h2>Rest / Pass Time <span class="dt-note">(DM only)</span></h2>
+      <form method="post" action="/downtime/rest" class="dt-rest-form">
+        <label>Mode
+          <select name="mode" id="rest-mode" required>
+            <option value="pass_time">Pass time (slow recovery)</option>
+            <option value="long_term_recovery">Long-term recovery (full rest)</option>
+          </select>
+        </label>
+        <label>Days
+          <input type="number" name="days" id="rest-days" value="1" min="1" required>
+        </label>
+        <button type="submit">Apply</button>
+      </form>
+
+      <div class="dt-rest-preview">
+        <h3>Recovery Preview</h3>
+        <div id="rest-preview-body" class="dt-rest-lines"></div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<% if @ua_data %>
+<script>
+window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
+
+(function() {
+  var UA = window.UA_DATA;
+  var payloadEl = document.getElementById('ua-payload');
+  var summaryEl = document.getElementById('ua-summary');
+  var form = document.getElementById('ua-form');
+
+  // combatantsById and byId helpers.
+  var byId = {};
+  UA.combatants.forEach(function(c) { byId[String(c.combatId)] = c; });
+
+  // --- Dice rolling (save rolls + action success rolls). ---
+  function rollDice(nDice, tn, outEl, inputEl) {
+    var rolls = [], successes = 0;
+    for (var i = 0; i < nDice; i++) {
+      var d = Math.floor(Math.random() * 10) + 1;
+      rolls.push(d);
+      if (d >= tn) successes++;
+    }
+    if (inputEl) inputEl.value = successes;
+    if (outEl) {
+      var colored = rolls.map(function(d) {
+        var bg = null;
+        if (d === 1) bg = '#e57373';
+        else if (d === 10) bg = '#64b5f6';
+        else if (d >= tn) bg = '#81c784';
+        if (bg) return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
+        return '<span style="color:#777;">' + d + '</span>';
+      }).join(', ');
+      outEl.innerHTML = 'Rolled: [' + colored + '] &rarr; ' + successes + ' success' + (successes === 1 ? '' : 'es');
+    }
+    updateSummary();
+  }
+
+  // Save-row Roll buttons + Stabilize-check Roll buttons share this handler.
+  document.querySelectorAll('.ua-roll-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      if (btn.classList.contains('ua-action-roll')) {
+        // Action-slot roll: look up the selected spell to know dice+TN.
+        var cid = btn.dataset.cid, slot = btn.dataset.slot;
+        var combatant = byId[cid];
+        var slotEl = form.querySelector('.ua-combatant[data-cid="' + cid + '"] .ua-slot[data-slot="' + slot + '"]');
+        var spellSel = slotEl.querySelector('.ua-spell');
+        var spellName = spellSel ? spellSel.value : null;
+        if (!spellName) return;
+        // For Stabilize we reuse the caster's healing skill TN -- the game
+        // treats all spell checks as the caster's default skill dice/TN. This
+        // data isn't pre-computed in UA for brevity, so default to 6d TN 5.
+        var dice = 6, tn = 5;
+        var sucEl = slotEl.querySelector('.ua-successes');
+        var outEl = slotEl.querySelector('.ua-action-rolls');
+        rollDice(dice, tn, outEl, sucEl);
+      } else {
+        var dice = parseInt(btn.dataset.dice, 10);
+        var tn = parseInt(btn.dataset.tn, 10);
+        var inputEl = document.getElementById(btn.dataset.rollTarget);
+        var outEl = document.getElementById(btn.dataset.rollsTarget);
+        rollDice(dice, tn, outEl, inputEl);
+      }
+    });
+  });
+
+  // --- Target dropdown population. Multi-target spells render a multi-select;
+  // single-target renders a regular select. Every combatant is a valid target.
+  function populateTargets(selectEl, mode) {
+    var multi = mode === 'multi';
+    if (multi) selectEl.setAttribute('multiple', 'multiple');
+    else selectEl.removeAttribute('multiple');
+    selectEl.innerHTML = '';
+    if (!multi) {
+      var empty = document.createElement('option');
+      empty.value = ''; empty.textContent = '';
+      selectEl.appendChild(empty);
+    }
+    UA.combatants.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c.combatId;
+      opt.textContent = c.name + ' (' + c.damage.join('/') + ')';
+      selectEl.appendChild(opt);
+    });
+  }
+
+  // --- Action-slot cascade: Type -> (spell|item) -> target (+ successes). ---
+  document.querySelectorAll('.ua-type').forEach(function(sel) {
+    sel.addEventListener('change', function() { refreshSlot(sel.dataset.cid, sel.dataset.slot); });
+  });
+
+  function refreshSlot(cid, slot) {
+    var combatant = byId[cid];
+    var slotEl = form.querySelector('.ua-combatant[data-cid="' + cid + '"] .ua-slot[data-slot="' + slot + '"]');
+    var type = slotEl.querySelector('.ua-type').value;
+    var spellLbl = slotEl.querySelector('.ua-spell-label');
+    var itemLbl = slotEl.querySelector('.ua-item-label');
+    var targetLbl = slotEl.querySelector('.ua-target-label');
+    var check = slotEl.querySelector('.ua-check');
+    var spellSel = slotEl.querySelector('.ua-spell');
+    var itemSel = slotEl.querySelector('.ua-item');
+    var targetSel = slotEl.querySelector('.ua-target');
+
+    spellLbl.style.display = 'none';
+    itemLbl.style.display = 'none';
+    targetLbl.style.display = 'none';
+    check.style.display = 'none';
+
+    if (type === 'cast') {
+      spellLbl.style.display = '';
+      spellSel.innerHTML = '';
+      combatant.spells.forEach(function(s) {
+        var opt = document.createElement('option');
+        opt.value = s.name;
+        var label = s.name + ' (' + s.manaCost + ' mana';
+        if (!s.affordable) label += ' N/A';
+        label += ')';
+        opt.textContent = label;
+        opt.dataset.targetMode = s.targetMode;
+        opt.dataset.needsCheck = s.needsCheck ? '1' : '0';
+        spellSel.appendChild(opt);
+      });
+      if (spellSel.options.length === 0) {
+        var opt = document.createElement('option');
+        opt.value = ''; opt.textContent = '-- no allowed spells --';
+        spellSel.appendChild(opt);
+      }
+      refreshSpellTarget(cid, slot);
+    } else if (type === 'item') {
+      itemLbl.style.display = '';
+      itemSel.innerHTML = '';
+      combatant.items.forEach(function(it) {
+        var opt = document.createElement('option');
+        opt.value = it.itemId;
+        var q = it.quantity > 1 ? ' x' + it.quantity : '';
+        opt.textContent = it.name + q;
+        opt.dataset.targetMode = it.targetMode;
+        itemSel.appendChild(opt);
+      });
+      if (itemSel.options.length === 0) {
+        var opt = document.createElement('option');
+        opt.value = ''; opt.textContent = '-- no matching items --';
+        itemSel.appendChild(opt);
+      }
+      refreshItemTarget(cid, slot);
+    }
+    updateSummary();
+  }
+
+  function refreshSpellTarget(cid, slot) {
+    var slotEl = form.querySelector('.ua-combatant[data-cid="' + cid + '"] .ua-slot[data-slot="' + slot + '"]');
+    var spellSel = slotEl.querySelector('.ua-spell');
+    var targetLbl = slotEl.querySelector('.ua-target-label');
+    var targetSel = slotEl.querySelector('.ua-target');
+    var check = slotEl.querySelector('.ua-check');
+    var opt = spellSel.options[spellSel.selectedIndex];
+    if (!opt || !opt.value) { targetLbl.style.display = 'none'; check.style.display = 'none'; return; }
+    var mode = opt.dataset.targetMode || 'single';
+    if (mode === 'none') {
+      targetLbl.style.display = 'none';
+      targetSel.innerHTML = '';
+    } else {
+      targetLbl.style.display = '';
+      populateTargets(targetSel, mode);
+    }
+    check.style.display = opt.dataset.needsCheck === '1' ? '' : 'none';
+  }
+
+  function refreshItemTarget(cid, slot) {
+    var slotEl = form.querySelector('.ua-combatant[data-cid="' + cid + '"] .ua-slot[data-slot="' + slot + '"]');
+    var itemSel = slotEl.querySelector('.ua-item');
+    var targetLbl = slotEl.querySelector('.ua-target-label');
+    var targetSel = slotEl.querySelector('.ua-target');
+    var check = slotEl.querySelector('.ua-check');
+    var opt = itemSel.options[itemSel.selectedIndex];
+    if (!opt || !opt.value) { targetLbl.style.display = 'none'; check.style.display = 'none'; return; }
+    var mode = opt.dataset.targetMode || 'single';
+    if (mode === 'none') {
+      targetLbl.style.display = 'none';
+      targetSel.innerHTML = '';
+    } else {
+      targetLbl.style.display = '';
+      populateTargets(targetSel, mode);
+    }
+    check.style.display = 'none';
+  }
+
+  // Sub-dropdown change listeners (spell/item selection updates target).
+  document.querySelectorAll('.ua-spell').forEach(function(sel) {
+    sel.addEventListener('change', function() { refreshSpellTarget(sel.dataset.cid, sel.dataset.slot); updateSummary(); });
+  });
+  document.querySelectorAll('.ua-item').forEach(function(sel) {
+    sel.addEventListener('change', function() { refreshItemTarget(sel.dataset.cid, sel.dataset.slot); updateSummary(); });
+  });
+  document.querySelectorAll('.ua-target, .ua-successes').forEach(function(el) {
+    el.addEventListener('change', updateSummary);
+    el.addEventListener('input', updateSummary);
+  });
+  document.querySelectorAll('.ua-save input').forEach(function(el) {
+    el.addEventListener('input', updateSummary);
+    el.addEventListener('change', updateSummary);
+  });
+
+  // Show-actions checkbox: toggles slot visibility and excludes the
+  // combatant from action submission/summary when unchecked.
+  document.querySelectorAll('.ua-show-actions').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var cid = cb.dataset.cid;
+      var combatantEl = form.querySelector('.ua-combatant[data-cid="' + cid + '"]');
+      var slotsEl = combatantEl ? combatantEl.querySelector('.ua-slots') : null;
+      var hasConditions = combatantEl && combatantEl.dataset.hasConditions === 'true';
+      if (cb.checked) {
+        if (combatantEl) combatantEl.style.display = '';
+        if (slotsEl) slotsEl.style.display = '';
+      } else {
+        if (slotsEl) slotsEl.style.display = 'none';
+        // No conditions and unchecked -> hide the whole row, not just the slots.
+        if (combatantEl && !hasConditions) combatantEl.style.display = 'none';
+      }
+      updateSummary();
+    });
+  });
+
+  function isCombatantActive(cid) {
+    var cb = document.querySelector('.ua-show-actions[data-cid="' + cid + '"]');
+    return !!(cb && cb.checked);
+  }
+
+  // --- Action-phase projection. Mirrors apply_spell_effect / apply_item_effect
+  // so the DM sees results before End Round. ---
+  function projectAction(caster, slotEl) {
+    var type = slotEl.querySelector('.ua-type').value;
+    if (type === 'nothing') return null;
+    if (type === 'cast') {
+      var spellSel = slotEl.querySelector('.ua-spell');
+      var opt = spellSel.options[spellSel.selectedIndex];
+      if (!opt || !opt.value) return null;
+      var spell = caster.spells.find(function(s) { return s.name === opt.value; });
+      if (!spell) return null;
+      var targets = collectTargets(slotEl);
+      var sucEl = slotEl.querySelector('.ua-successes');
+      var suc = sucEl ? (parseInt(sucEl.value, 10) || 0) : 0;
+      return { kind: 'cast', caster: caster, spell: spell, targets: targets, successes: suc };
+    }
+    if (type === 'item') {
+      var itemSel = slotEl.querySelector('.ua-item');
+      var opt = itemSel.options[itemSel.selectedIndex];
+      if (!opt || !opt.value) return null;
+      var item = caster.items.find(function(i) { return String(i.itemId) === opt.value; });
+      if (!item) return null;
+      var targets = collectTargets(slotEl);
+      return { kind: 'item', caster: caster, item: item, targets: targets };
+    }
+    return null;
+  }
+
+  function collectTargets(slotEl) {
+    var sel = slotEl.querySelector('.ua-target');
+    if (!sel || slotEl.querySelector('.ua-target-label').style.display === 'none') return [];
+    return Array.from(sel.selectedOptions || []).map(function(o) { return parseInt(o.value, 10); }).filter(function(v) { return v; });
+  }
+
+  // --- Mutating cure cascade. Updates state.damage / state.saturation in
+  // place and returns the per-tier heal amounts so the summary can show them. ---
+  function cureCascadeOnState(effect, ts, improvedHealing, casterTier) {
+    var pool = effect.major;
+    var healedMajor = Math.min(ts.damage[2], pool); pool -= healedMajor;
+    pool += effect.moderate;
+    var healedModerate = Math.min(ts.damage[1], pool); pool -= healedModerate;
+    pool += effect.minor;
+    var healedMinor = Math.min(ts.damage[0], pool);
+    var sat = effect.saturation - ts.tier;
+    if (improvedHealing) sat -= 2 * casterTier;
+    if (sat < effect.minimumSaturation) sat = effect.minimumSaturation;
+    ts.damage[2] -= healedMajor;
+    ts.damage[1] -= healedModerate;
+    ts.damage[0] -= healedMinor;
+    ts.saturation += sat;
+    return { major: healedMajor, moderate: healedModerate, minor: healedMinor, sat: sat };
+  }
+
+  // Render an action description AND advance the simulated state for the
+  // affected target(s) so a later combatant's save / action sees the result.
+  function describeAndApplyAction(act, state) {
+    if (!act) return 'Nothing';
+    if (act.kind === 'cast') {
+      var spell = act.spell;
+      var targetIds = act.targets;
+      var targetNames = targetIds.map(function(tid) { return byId[String(tid)] && byId[String(tid)].name; }).filter(Boolean);
+      var parts = ['Cast <b>' + spell.name + '</b>'];
+      if (targetNames.length) parts.push('on ' + targetNames.join(', '));
+      parts.push('(-' + spell.manaCost + ' mana' + (spell.affordable ? '' : ' <span class="dt-warn">N/A</span>') + ')');
+      if (spell.baseName === 'Cure' && spell.cure && targetIds.length) {
+        targetIds.forEach(function(tid) {
+          var ts = state[String(tid)]; var t = byId[String(tid)];
+          if (!ts || !t) return;
+          var res = cureCascadeOnState(spell.cure, ts, act.caster.improvedHealing, act.caster.tier);
+          parts.push('&rarr; ' + t.name + ' heals ' + res.major + '/' + res.moderate + '/' + res.minor + ', +' + res.sat + ' sat');
+        });
+      } else if (spell.baseName === 'Ward' && spell.ward && targetIds.length) {
+        targetIds.forEach(function(tid) {
+          var ts = state[String(tid)]; var t = byId[String(tid)];
+          if (!ts || !t) return;
+          var newTemp = Math.max(ts.tempHp, spell.ward.tempHp);
+          parts.push('&rarr; ' + t.name + ' temp HP ' + ts.tempHp + ' &rarr; ' + newTemp);
+          ts.tempHp = newTemp;
+        });
+      } else if (spell.baseName === 'Stabilize' && targetIds.length) {
+        targetIds.forEach(function(tid) {
+          var ts = state[String(tid)]; var t = byId[String(tid)];
+          if (!ts || !t) return;
+          var bleed = ts.conditions.bleed || 0;
+          var reduce = Math.min(bleed, 3 * act.successes);
+          if (bleed === 0) {
+            parts.push('&rarr; ' + t.name + ' has no bleed to stop');
+          } else {
+            parts.push('&rarr; ' + t.name + ' stops <b>' + reduce + '</b> bleed (' + bleed + ' &rarr; ' + (bleed - reduce) + ')');
+            ts.conditions.bleed = bleed - reduce;
+          }
+        });
+      }
+      return parts.join(' ');
+    }
+    if (act.kind === 'item') {
+      var itemTargetNames = act.targets.map(function(tid) { return byId[String(tid)] && byId[String(tid)].name; }).filter(Boolean);
+      // For consumables that match an allowed cure/ward base, simulate the
+      // state change so subsequent combatants see it. (Stabilize has no
+      // potion/scroll variants today.)
+      var bn = act.item.baseName;
+      var kind = act.item.kind;
+      act.targets.forEach(function(tid) {
+        var ts = state[String(tid)]; var t = byId[String(tid)];
+        if (!ts || !t) return;
+        // Items currently passed to this UI are scrolls/potions. We do not
+        // mirror full item effects here (potion saturation, mana) -- only
+        // the Ward temp-HP path that interacts with bleed saves. Cure scrolls
+        // also affect damage but not saves; Stabilize has no items.
+        if (bn === 'Ward') {
+          // Without per-tier ward data on items, leave temp HP untouched here.
+          // Server still applies the effect correctly.
+        }
+      });
+      return 'Use <b>' + act.item.name + '</b>' + (itemTargetNames.length ? ' on ' + itemTargetNames.join(', ') : '');
+    }
+    return 'Nothing';
+  }
+
+  // Snapshot a combatant's current state. The summary mutates these copies
+  // in initiative order so a Stabilize cast in turn 1 reduces the bleed
+  // severity that turn 2's bleed save reads from.
+  function snapshotInitialState() {
+    var state = {};
+    UA.combatants.forEach(function(c) {
+      var conds = {};
+      c.conditions.forEach(function(cond) { conds[cond.name] = cond.value; });
+      state[String(c.combatId)] = {
+        damage: c.damage.slice(),
+        mana: c.mana,
+        saturation: c.saturation,
+        tempHp: c.tempHp,
+        cha: c.cha,
+        tier: c.tier,
+        conditions: conds
+      };
+    });
+    return state;
+  }
+
+  function updateSummary() {
+    var state = snapshotInitialState();
+    var lines = [];
+    // UA.combatants is already sorted by initiative (server-side). Save and
+    // action phases for each combatant happen back-to-back so heals queued
+    // by an earlier combatant land before the next one's save.
+    UA.combatants.forEach(function(c) {
+      var ss = state[String(c.combatId)];
+      var segments = [];
+
+      // --- Save phase: read CURRENT condition severities (post any prior
+      // mutations) and decay/damage based on the user's entered successes. ---
+      if (c.conditions.length) {
+        var savePart = [];
+        c.conditions.forEach(function(cond) {
+          var sev = ss.conditions[cond.name] || 0;
+          var el = document.getElementById('ua-save-' + c.combatId + '-' + cond.name);
+          var suc = el ? (parseInt(el.value, 10) || 0) : 0;
+          var newSev = Math.max(0, sev - (1 + suc));
+          if (cond.name === 'bleed') {
+            if (sev <= 0) {
+              savePart.push('Saves vs Bleed: already ended');
+            } else {
+              var raw = 1 + Math.floor(sev / 10);
+              var dealt = Math.max(0, raw - suc);
+              var absorbed = Math.min(dealt, ss.tempHp);
+              ss.tempHp -= absorbed;
+              var landed = dealt - absorbed;
+              ss.damage[0] += landed;
+              var absorbNote = absorbed > 0 ? ' (' + absorbed + ' temp HP absorbed)' : '';
+              savePart.push('Saves vs Bleed: ' + landed + ' minor damage' + absorbNote + ', Bleed reduced from ' + sev + ' to ' + newSev);
+            }
+          } else if (cond.name === 'ghoul_paralysis') {
+            var rawR = 1 + Math.floor(sev / 10);
+            var rounds = Math.max(0, rawR - suc);
+            savePart.push('Saves vs Ghoul Paralysis: ' + rounds + ' round' + (rounds === 1 ? '' : 's') + ' paralyzed, Ghoul Paralysis reduced from ' + sev + ' to ' + newSev);
+          } else {
+            savePart.push('Saves vs ' + cond.label + ': ' + cond.label + ' reduced from ' + sev + ' to ' + newSev);
+          }
+          ss.conditions[cond.name] = newSev;
+        });
+        if (savePart.length) segments.push(savePart.join('; '));
+      }
+
+      // --- Action phase: each action mutates the target's state so a Stabilize
+      // here drops the bleed severity that a later combatant reads. ---
+      if (isCombatantActive(c.combatId)) {
+        var slotsEl = form.querySelectorAll('.ua-combatant[data-cid="' + c.combatId + '"] .ua-slot');
+        var actionParts = [];
+        slotsEl.forEach(function(slotEl) {
+          var act = projectAction(c, slotEl);
+          if (act) actionParts.push(describeAndApplyAction(act, state));
+        });
+        if (actionParts.length) segments.push(actionParts.join(' | '));
+      }
+
+      if (segments.length) lines.push('<div class="ua-summary-line"><b>' + c.name + '</b>: ' + segments.join(' &middot; ') + '</div>');
+    });
+    if (!lines.length) lines.push('<div class="ua-summary-line dt-note">No queued saves or actions yet.</div>');
+    summaryEl.innerHTML = '<h3>Summary</h3>' + lines.join('');
+  }
+
+  // --- Build JSON payload on submit; hidden input goes to the server. ---
+  form.addEventListener('submit', function() {
+    var payload = { saves: {}, actions: {} };
+    UA.combatants.forEach(function(c) {
+      if (c.conditions.length) {
+        payload.saves[c.combatId] = {};
+        c.conditions.forEach(function(cond) {
+          var el = document.getElementById('ua-save-' + c.combatId + '-' + cond.name);
+          payload.saves[c.combatId][cond.name] = el ? (parseInt(el.value, 10) || 0) : 0;
+        });
+      }
+      // Skip actions entirely for unchecked combatants -- the server's
+      // Array(actions[cid]) handles missing keys gracefully.
+      if (!isCombatantActive(c.combatId)) return;
+      var slotsEl = form.querySelectorAll('.ua-combatant[data-cid="' + c.combatId + '"] .ua-slot');
+      payload.actions[c.combatId] = [];
+      slotsEl.forEach(function(slotEl) {
+        var type = slotEl.querySelector('.ua-type').value;
+        if (type === 'nothing') { payload.actions[c.combatId].push({ type: 'nothing' }); return; }
+        var action = { type: type };
+        if (type === 'cast') {
+          var spellSel = slotEl.querySelector('.ua-spell');
+          action.spell = spellSel ? spellSel.value : '';
+        } else if (type === 'item') {
+          var itemSel = slotEl.querySelector('.ua-item');
+          action.item_id = itemSel ? (parseInt(itemSel.value, 10) || 0) : 0;
+        }
+        action.targets = collectTargets(slotEl);
+        var sucEl = slotEl.querySelector('.ua-successes');
+        if (sucEl && slotEl.querySelector('.ua-check').style.display !== 'none') {
+          action.successes = parseInt(sucEl.value, 10) || 0;
+        }
+        payload.actions[c.combatId].push(action);
+      });
+    });
+    payloadEl.value = JSON.stringify(payload);
+    // Persist which combatants the DM has enabled so we can restore the same
+    // set after the End Round redirect. Stored as a JSON array of combat ids.
+    try {
+      var activeIds = [];
+      document.querySelectorAll('.ua-show-actions').forEach(function(cb) {
+        if (cb.checked) activeIds.push(cb.dataset.cid);
+      });
+      localStorage.setItem('crimsonSteel.urgentActions.active', JSON.stringify(activeIds));
+    } catch (e) { /* private mode etc.; ignore */ }
+  });
+
+  // Restore the previously enabled combatants (if any). Persists across the
+  // /downtime/urgent_actions redirect so the DM can click End Round multiple
+  // times in a row without rechecking the same set every time.
+  try {
+    var saved = localStorage.getItem('crimsonSteel.urgentActions.active');
+    if (saved) {
+      JSON.parse(saved).forEach(function(cid) {
+        var cb = document.querySelector('.ua-show-actions[data-cid="' + cid + '"]');
+        if (cb && !cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); }
+      });
+    }
+  } catch (e) { /* ignore parse / storage errors */ }
+
+  updateSummary();
+
+  // --- Quickly Resolve Conditions: simulate up to 30 saves per condition. ---
+  // Each save deals damage / paralysis based on remaining severity, then the
+  // severity decays by (1 + successes). Stops when severity hits 0.
+  var qrForm = document.getElementById('qr-form');
+  if (qrForm) {
+    var qrRollBtn = document.getElementById('qr-roll-btn');
+    var qrSubmitBtn = document.getElementById('qr-submit-btn');
+    var qrPayloadEl = document.getElementById('qr-payload');
+    var QR_MAX_SAVES = 30;
+    var qrResults = {};
+
+    function simulateOneSave(dice, tn) {
+      var rolls = [], successes = 0;
+      for (var i = 0; i < dice; i++) {
+        var d = Math.floor(Math.random() * 10) + 1;
+        rolls.push(d);
+        if (d >= tn) successes++;
+      }
+      return { rolls: rolls, successes: successes };
+    }
+
+    function simulateCondition(cond, tempHpStart) {
+      var severity = cond.severity;
+      var dice = cond.dice;
+      var tn = cond.tn;
+      var totalDamage = 0;       // bleed: minor damage dealt (post-temp HP)
+      var tempAbsorbed = 0;      // bleed: amount soaked by temp HP
+      var totalRounds = 0;       // ghoul_paralysis: paralysis rounds queued
+      var tempHp = tempHpStart;
+      var savesLog = [];
+      var saves = 0;
+      while (severity > 0 && saves < QR_MAX_SAVES) {
+        var roll = simulateOneSave(dice, tn);
+        saves++;
+        if (cond.name === 'bleed') {
+          var raw = 1 + Math.floor(severity / 10);
+          var dealt = Math.max(0, raw - roll.successes);
+          var absorbed = Math.min(dealt, tempHp);
+          tempHp -= absorbed;
+          tempAbsorbed += absorbed;
+          totalDamage += (dealt - absorbed);
+        } else if (cond.name === 'ghoul_paralysis') {
+          var rawR = 1 + Math.floor(severity / 10);
+          totalRounds += Math.max(0, rawR - roll.successes);
+        }
+        savesLog.push(roll.successes);
+        severity = Math.max(0, severity - (1 + roll.successes));
+      }
+      return {
+        finalSeverity: severity,
+        savesRolled: saves,
+        damage: totalDamage,
+        tempAbsorbed: tempAbsorbed,
+        rounds: totalRounds,
+        savesLog: savesLog,
+        tempHpAfter: tempHp
+      };
+    }
+
+    function rollAll() {
+      qrResults = {};
+      UA.combatants.forEach(function(c) {
+        if (!c.conditions.length) return;
+        var perChar = {};
+        // Each combatant's bleed shares one running temp-HP pool across saves.
+        var tempHp = c.tempHp;
+        c.conditions.forEach(function(cond) {
+          var sim = simulateCondition({
+            name: cond.name, severity: cond.value, dice: cond.dice, tn: cond.tn
+          }, tempHp);
+          // Update the running temp HP after a bleed simulation so a paralysis
+          // sim that follows would see the absorbed amount; ordering matches
+          // the stored conditions order.
+          if (cond.name === 'bleed') tempHp = sim.tempHpAfter;
+          perChar[cond.name] = sim;
+        });
+        qrResults[c.combatId] = perChar;
+      });
+      renderResults();
+      qrSubmitBtn.disabled = false;
+    }
+
+    function renderResults() {
+      UA.combatants.forEach(function(c) {
+        if (!c.conditions.length) return;
+        var perChar = qrResults[c.combatId] || {};
+        c.conditions.forEach(function(cond) {
+          var el = document.getElementById('qr-result-' + c.combatId + '-' + cond.name);
+          if (!el) return;
+          var sim = perChar[cond.name];
+          if (!sim) { el.innerHTML = '<span class="dt-note">Not rolled yet.</span>'; return; }
+          var status = sim.finalSeverity === 0
+            ? '<b>Ended</b> after ' + sim.savesRolled + ' save' + (sim.savesRolled === 1 ? '' : 's')
+            : '<b>Still active</b> at severity ' + sim.finalSeverity + ' after ' + QR_MAX_SAVES + ' saves';
+          var detail = '';
+          if (cond.name === 'bleed') {
+            var absorb = sim.tempAbsorbed > 0 ? ' (' + sim.tempAbsorbed + ' absorbed by temp HP)' : '';
+            detail = '<br>Took <b>' + sim.damage + '</b> minor damage' + absorb + '.';
+          } else if (cond.name === 'ghoul_paralysis') {
+            detail = '<br>Queued <b>' + sim.rounds + '</b> paralysis round' + (sim.rounds === 1 ? '' : 's') + '.';
+          }
+          var savesLine = sim.savesLog.length ? '<br><span class="math-detail">Successes per save: ' + sim.savesLog.join(', ') + '</span>' : '';
+          el.innerHTML = status + detail + savesLine;
+        });
+      });
+    }
+
+    qrRollBtn.addEventListener('click', rollAll);
+    qrForm.addEventListener('submit', function() {
+      qrPayloadEl.value = JSON.stringify({ results: qrResults });
+    });
+  }
+})();
+</script>
+<% end %>
+
+<script>
+window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;
+
+(function() {
+  var D = window.DT_DATA;
+
+  function pc(id) { return D.pcs[String(id)]; }
+
+  // --- Cure cascade preview (shared by Cure + Services). ---
+  function cureCascade(effect, target, improvedHealing, casterTier) {
+    var pool = effect.major;
+    var healedMajor = Math.min(target.damage[2], pool); pool -= healedMajor;
+    pool += effect.moderate;
+    var healedModerate = Math.min(target.damage[1], pool); pool -= healedModerate;
+    pool += effect.minor;
+    var healedMinor = Math.min(target.damage[0], pool);
+
+    var satAdd = effect.saturation - target.tier;
+    if (improvedHealing) satAdd -= 2 * casterTier;
+    if (satAdd < effect.minimumSaturation) satAdd = effect.minimumSaturation;
+    return {major: healedMajor, moderate: healedModerate, minor: healedMinor, sat: satAdd};
+  }
+
+  function formatCurePreview(target, result, extraNote) {
+    var newSat = target.saturation + result.sat;
+    var capHit = newSat >= target.cha;
+    var lines = [
+      'Heals <b>' + result.major + '</b> major, <b>' + result.moderate + '</b> moderate, <b>' + result.minor + '</b> minor.',
+      'Saturation <b>+' + result.sat + '</b> (' + target.saturation + ' &rarr; ' + newSat + '/' + target.cha + ')' + (capHit ? ' <span class="dt-warn">at/over cap</span>' : '') + '.'
+    ];
+    if (extraNote) lines.push(extraNote);
+    return lines.join('<br>');
+  }
+
+  // --- Cure form ---
+  var cureForm = document.getElementById('cure-form');
+  if (cureForm) {
+    var cureSpell = document.getElementById('cure-spell');
+    var cureCaster = document.getElementById('cure-caster');
+    var cureTarget = document.getElementById('cure-target');
+    var curePreview = document.getElementById('cure-preview');
+
+    function refreshCureCasters() {
+      var spell = cureSpell.value;
+      var entry = D.cures[spell];
+      cureCaster.innerHTML = '';
+      if (!entry) return;
+      entry.casterIds.forEach(function(id, i) {
+        var p = pc(id);
+        var opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = p.name;
+        if (i === 0) opt.selected = true;
+        cureCaster.appendChild(opt);
+      });
+      updateCurePreview();
+    }
+
+    function updateCurePreview() {
+      var spell = cureSpell.value;
+      var casterId = parseInt(cureCaster.value, 10);
+      var targetId = parseInt(cureTarget.value, 10);
+      var effect = D.cures[spell];
+      var caster = pc(casterId);
+      var target = pc(targetId);
+      if (!effect || !caster || !target) { curePreview.innerHTML = '&nbsp;'; return; }
+      var result = cureCascade(effect, target, caster.improvedHealing, caster.tier);
+      curePreview.innerHTML = formatCurePreview(target, result);
+    }
+
+    cureSpell.addEventListener('change', refreshCureCasters);
+    cureCaster.addEventListener('change', updateCurePreview);
+    cureTarget.addEventListener('change', updateCurePreview);
+    refreshCureCasters();
+  }
+
+  // --- Surgery form ---
+  var surgeryForm = document.getElementById('surgery-form');
+  if (surgeryForm) {
+    var sCaster = document.getElementById('surgery-caster');
+    var sTarget = document.getElementById('surgery-target');
+    var sSuccess = document.getElementById('surgery-successes');
+    var sDice = document.getElementById('surgery-dice');
+    var sPreview = document.getElementById('surgery-preview');
+
+    function updateSurgeryDice() {
+      var info = D.surgeryCasters[sCaster.value];
+      if (!info) { sDice.innerHTML = 'Healing check: &mdash;'; return; }
+      var starting = info.startingSuccesses > 0 ? ' <span class="dt-warn">+' + info.startingSuccesses + ' starting</span>' : '';
+      sDice.innerHTML = 'Healing check: <b>' + info.dice + 'd</b> TN <b>' + info.tn + '</b>' + starting;
+    }
+
+    function updateSurgeryPreview() {
+      var info = D.surgeryCasters[sCaster.value];
+      var target = pc(sTarget.value);
+      var successes = parseInt(sSuccess.value, 10);
+      if (!(successes >= 0)) successes = 0;
+      if (!info || !target) { sPreview.innerHTML = '&nbsp;'; return; }
+      var majorBefore = target.damage[2];
+      var addedModerate = 2 * majorBefore;
+      var healedMajor = Math.min(successes, majorBefore);
+      var minSat = 5 * healedMajor;
+      var satAdd = 10 * healedMajor;
+      if (info.improvedHealing) satAdd -= 2 * info.tier;
+      if (satAdd < minSat) satAdd = minSat;
+      var newSat = target.saturation + satAdd;
+
+      var parts = [];
+      parts.push('Deals <b>+' + addedModerate + '</b> moderate damage to target.');
+      if (target.tempHp > 0) parts.push('Zeroes <b>' + target.tempHp + '</b> temp HP.');
+      parts.push('Cures <b>' + healedMajor + '</b> major.');
+      parts.push('Saturation <b>+' + satAdd + '</b> (' + target.saturation + ' &rarr; ' + newSat + '/' + target.cha + ').');
+      sPreview.innerHTML = parts.join('<br>');
+    }
+
+    sCaster.addEventListener('change', function() { updateSurgeryDice(); updateSurgeryPreview(); });
+    sTarget.addEventListener('change', updateSurgeryPreview);
+    sSuccess.addEventListener('input', updateSurgeryPreview);
+    updateSurgeryDice();
+    updateSurgeryPreview();
+  }
+
+  // --- Services form ---
+  var serviceForm = document.getElementById('service-form');
+  if (serviceForm) {
+    var svcSpell = document.getElementById('service-spell');
+    var svcCaster = document.getElementById('service-caster');
+    var svcTarget = document.getElementById('service-target');
+    var svcPreview = document.getElementById('service-preview');
+
+    function refreshServiceCasters() {
+      var spell = svcSpell.value;
+      var list = D.services[spell] || [];
+      svcCaster.innerHTML = '';
+      list.forEach(function(svc, i) {
+        var opt = document.createElement('option');
+        opt.value = svc.title;
+        opt.textContent = svc.title + ' (' + svc.casterClass.charAt(0).toUpperCase() + svc.casterClass.slice(1) + ' tier ' + svc.tier + ', ' + svc.cost + 'g)';
+        if (i === 0) opt.selected = true;
+        svcCaster.appendChild(opt);
+      });
+      updateServicePreview();
+    }
+
+    function updateServicePreview() {
+      var spell = svcSpell.value;
+      var title = svcCaster.value;
+      var targetId = parseInt(svcTarget.value, 10);
+      var list = D.services[spell] || [];
+      var svc = list.find(function(s) { return s.title === title; });
+      var target = pc(targetId);
+      if (!svc || !target) { svcPreview.innerHTML = '&nbsp;'; return; }
+      var result = cureCascade(svc.effect, target, svc.improvedHealing, svc.tier);
+      var gold = D.campaignGold;
+      var shortfall = gold < svc.cost ? ' <span class="dt-warn">not enough gold</span>' : '';
+      var note = 'Cost <b>' + svc.cost + 'g</b> (gold after: ' + (gold - svc.cost) + ')' + shortfall + '.';
+      svcPreview.innerHTML = formatCurePreview(target, result, note);
+    }
+
+    svcSpell.addEventListener('change', refreshServiceCasters);
+    svcCaster.addEventListener('change', updateServicePreview);
+    svcTarget.addEventListener('change', updateServicePreview);
+    refreshServiceCasters();
+  }
+
+  // --- Rest preview (DM only) ---
+  var restForm = document.getElementById('rest-mode');
+  if (restForm) {
+    var restMode = document.getElementById('rest-mode');
+    var restDays = document.getElementById('rest-days');
+    var restBody = document.getElementById('rest-preview-body');
+
+    function periodCount(days, unit) {
+      if (unit === 'hour')  return days * 24;
+      if (unit === 'day')   return days;
+      if (unit === 'week')  return days >= 7  ? Math.floor(days / 7)  : 0;
+      if (unit === 'month') return days >= 28 ? Math.floor(days / 28) : 0;
+      return 0;
+    }
+
+    // Minimum days for a single damage row to reach 0 at the given per/unit rate.
+    function daysToClear(amount, per, unit) {
+      if (amount <= 0) return 0;
+      if (per <= 0) return Infinity;
+      if (unit === 'hour')  return Math.ceil(amount / (per * 24));
+      if (unit === 'day')   return Math.ceil(amount / per);
+      if (unit === 'week')  return Math.ceil(amount / per) * 7;
+      if (unit === 'month') return Math.ceil(amount / per) * 28;
+      return Infinity;
+    }
+
+    function minFullRecoveryDays(p, useHigh) {
+      var candidates = [];
+      [0, 1, 2].forEach(function(i) {
+        var row = p.rows[i];
+        if (!row) { if (p.damage[i] > 0) candidates.push(Infinity); return; }
+        var per = useHigh ? row[1] : row[0];
+        candidates.push(daysToClear(p.damage[i], per, row[2]));
+      });
+      var manaPerDay = Math.floor(p.manaMax / 4);
+      var manaNeed = p.manaMax - p.mana;
+      candidates.push(manaNeed <= 0 ? 0 : (manaPerDay > 0 ? Math.ceil(manaNeed / manaPerDay) : Infinity));
+      var satPerDay = Math.floor(p.cha / 4);
+      candidates.push(p.saturation <= 0 ? 0 : (satPerDay > 0 ? Math.ceil(p.saturation / satPerDay) : Infinity));
+      return Math.max.apply(null, candidates);
+    }
+
+    function updateRestPreview() {
+      var mode = restMode.value;
+      var days = parseInt(restDays.value, 10);
+      if (!(days > 0)) days = 0;
+      var useHigh = mode === 'long_term_recovery';
+      var lines = [];
+
+      D.pcOrder.forEach(function(id) {
+        var p = D.pcs[String(id)];
+        // Skip PCs who don't need anything right now.
+        if (p.damage[0] === 0 && p.damage[1] === 0 && p.damage[2] === 0 &&
+            p.mana >= p.manaMax && p.saturation === 0) return;
+
+        // Compute per-field post-rest values.
+        var healed = [0, 1, 2].map(function(i) {
+          var row = p.rows[i];
+          if (!row) return 0;
+          var per = useHigh ? row[1] : row[0];
+          return Math.min(per * periodCount(days, row[2]), p.damage[i]);
+        });
+        var after = [0, 1, 2].map(function(i) { return p.damage[i] - healed[i]; });
+        var manaPerDay = Math.floor(p.manaMax / 4);
+        var manaGain = Math.min(manaPerDay * days, p.manaMax - p.mana);
+        var newMana = p.mana + manaGain;
+        var satPerDay = Math.floor(p.cha / 4);
+        var satLoss = Math.min(satPerDay * days, p.saturation);
+        var newSat = p.saturation - satLoss;
+        var newHp = p.hpMax - after[0] - after[1] - after[2];
+
+        // Nothing changes for this PC? Skip.
+        if (healed[0] === 0 && healed[1] === 0 && healed[2] === 0 && manaGain === 0 && satLoss === 0) return;
+
+        // Fully recovered check: any damage at 0, mana at max, saturation at 0.
+        var fullyRecovered = after[0] === 0 && after[1] === 0 && after[2] === 0 &&
+                             newMana === p.manaMax && newSat === 0;
+        if (fullyRecovered) {
+          var minDays = minFullRecoveryDays(p, useHigh);
+          var dayWord = minDays === 1 ? 'day' : 'days';
+          lines.push('<div class="dt-rest-line"><b>' + p.name + '</b> Fully recovered after ' + minDays + ' ' + dayWord + '</div>');
+          return;
+        }
+
+        var parts = [];
+        if (newHp < p.hpMax) parts.push('HP: ' + newHp + '/' + p.hpMax);
+        if (newMana < p.manaMax) parts.push('Mana: ' + newMana + '/' + p.manaMax);
+        if (newSat > 0) parts.push('Sat: ' + newSat);
+        if (after[1] > 0) parts.push('Moderate ' + after[1]);
+        if (after[2] > 0) parts.push('Major ' + after[2]);
+        lines.push('<div class="dt-rest-line"><b>' + p.name + '</b> ' + parts.join(', ') + '</div>');
+      });
+
+      if (lines.length === 0) lines.push('<div class="dt-rest-line dt-note">Everyone is fully rested.</div>');
+      restBody.innerHTML = lines.join('');
+    }
+
+    restMode.addEventListener('change', updateRestPreview);
+    restDays.addEventListener('input', updateRestPreview);
+    updateRestPreview();
+  }
+})();
+</script>

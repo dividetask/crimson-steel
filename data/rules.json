@@ -142,7 +142,7 @@
 			"hp": ["con/2", "con", "2*con", "3*con", "4*con", "5*con"],
 			"mana": ["int/4", "int/2", "int", "2*int", "3*int", "4*int"],
 			"sat_resist": [0, 1, 2, 3, 4, 5, 10],
-			"sat_recovery": ["cha/2", "day"],
+			"sat_recovery": ["cha/4", "day"],
 			"heal_rate": [
 				[1, 2, "week"], [1, 2, "month"], [0, 0, "none"],
 				[1, 2, "day"], [1, 2, "week"], [1, 2, "month"],

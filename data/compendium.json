@@ -1032,7 +1032,7 @@
       "save": 0,
       "school": "pneumancy",
       "items": [
-
+        "scroll"
       ],
       "range": 1,
       "duration": "instant",
@@ -1662,5 +1662,14 @@
     "ferocity": "Hit points are increased by 5, and damage resiliance is increased by 3",
     "ghoul_fever": "A creature bitten by a ghoul must make a Constitution save against the ghoul's proficiency bonus or contract ghoul fever. Each day the afflicted creature must make a new save or take 1 point of major damage. A creature that dies from ghoul fever rises as a ghoul at the next midnight.",
     "ghoul_paralysis": "A creature hit by a ghoul's natural attack must make a Constitution save against the ghoul's proficiency bonus or be paralyzed for 1d4+1 rounds. Elves are immune to this effect."
-  }
+  },
+  "spellcasting_services": [
+    {"spell": "Cure Lesser Wounds",   "title": "Discrete", "class": "druid",  "tier": 1, "cost": 40},
+    {"spell": "Cure Lesser Wounds",   "title": "Acolyte",  "class": "cleric", "tier": 1, "cost": 20},
+    {"spell": "Cure Lesser Wounds",   "title": "Adept",    "class": "cleric", "tier": 2, "cost": 30},
+    {"spell": "Cure Simple Wounds",   "title": "Adept",    "class": "cleric", "tier": 2, "cost": 40},
+    {"spell": "Cure Simple Wounds",   "title": "Priest",   "class": "cleric", "tier": 3, "cost": 80},
+    {"spell": "Cure Moderate Wounds", "title": "Priest",   "class": "cleric", "tier": 3, "cost": 200}
+  ],
+  "urgent_action_spells": ["Cure", "Ward", "Stabilize"]
 }

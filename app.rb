@@ -1000,6 +1000,932 @@ post '/purchase/:item_index' do
   redirect '/store?success=true'
 end
 
+# --- Downtime ---------------------------------------------------------------
+
+# Locate (or create) the combat.json participant record for a PC. Downtime
+# reads and writes the same per-character state used during combat so the
+# current HP / mana / saturation stays consistent across screens.
+def downtime_find_or_create_participant(combat_data, character)
+  char_id = character.id
+  participant = (combat_data['participants'] ||= []).find { |p| (p['char_id'] || p['id']) == char_id }
+  return participant if participant
+  max_id = combat_data['participants'].map { |p| p['id'].to_i }.max || 0
+  participant = {
+    'id' => [max_id + 1, char_id].max,
+    'char_id' => char_id,
+    'initiative' => '',
+    'mana' => character.mana_max,
+    'combat_pool' => character.combat_pool,
+    'saturation' => 0,
+    'minor_damage' => 0,
+    'moderate_damage' => 0,
+    'major_damage' => 0,
+    'temporary_hit_points' => 0
+  }
+  combat_data['participants'] << participant
+  participant
+end
+
+# Flattened list of spell variants a character knows that resolve to a given
+# base spell (e.g., "Cure" -> ["Cure Lesser Wounds", ...]).
+def downtime_known_variants(character, compendium, base_name)
+  (character.spell_list || []).flatten.select do |spell_name|
+    resolved = compendium.resolve_spell_variant(spell_name)
+    resolved && resolved[0] == base_name
+  end
+end
+
+get '/downtime' do
+  characters = Tools.load_json('characters.json')
+  @campaign = Tools.load_json('campaign.json')
+  @compendium = Compendium.new
+  @pcs = characters.select { |c| c['group'] == 'PC' }.map { |c| CharacterSheet.new(c) }
+  @services = @compendium.data['spellcasting_services'] || []
+
+  # Per-PC rows: who can cast Cure / Surgery and what healing consumables they own.
+  @cure_casters = @pcs.select { |pc| downtime_known_variants(pc, @compendium, 'Cure').any? }
+  @surgery_casters = @pcs.select { |pc| downtime_known_variants(pc, @compendium, 'Standard Surgery').any? }
+
+  # Consumable owner map: char_id -> [items]. Restricted to Cure potions/scrolls
+  # and Standard Surgery scrolls per the downtime spec.
+  @consumable_owners = {}
+  @pcs.each do |pc|
+    items = pc.item_list.select do |i|
+      effect = @compendium.item_effects(i)
+      next false unless effect
+      effect[:type] == :cure || effect[:base_name] == 'Standard Surgery'
+    end
+    @consumable_owners[pc.id] = items unless items.empty?
+  end
+
+  # --- DT_DATA: single JSON payload driving all client-side previews. ---
+  rules = Tools.load_json('rules.json')
+  heal_rate = rules['advancement']['natural']['heal_rate']
+  dice_rules = rules['dice'] || {}
+  base_tn = dice_rules['base_target_number'].to_i
+  tn_min = dice_rules['tn_minimum'].to_i
+  tn_max = dice_rules['tn_maximum'].to_i
+
+  pc_payload = {}
+  pc_order = []
+  @pcs.each do |pc|
+    pc_order << pc.id
+    row_base = pc.tier * 3
+    rows = [heal_rate[row_base], heal_rate[row_base + 1], heal_rate[row_base + 2]]
+    pc_payload[pc.id.to_s] = {
+      id: pc.id,
+      name: pc.name,
+      tier: pc.tier,
+      cha: pc.cha,
+      hpMax: pc.hp_max,
+      mana: pc.current_mana,
+      manaMax: pc.mana_max,
+      saturation: pc.saturation,
+      damage: [pc.minor_damage, pc.moderate_damage, pc.major_damage],
+      tempHp: pc.temporary_hit_points,
+      improvedHealing: pc.ability_list.include?('improved_healing'),
+      rows: rows
+    }
+  end
+
+  # Cure variants keyed by variant name, including which PCs know them.
+  cure_payload = {}
+  @cure_casters.each do |caster|
+    downtime_known_variants(caster, @compendium, 'Cure').each do |variant|
+      effect = @compendium.cure_effects(variant)
+      next unless effect
+      cure_payload[variant] ||= {
+        minor: effect[:minor],
+        moderate: effect[:moderate],
+        major: effect[:major],
+        saturation: effect[:saturation],
+        minimumSaturation: effect[:minimum_saturation],
+        casterIds: []
+      }
+      cure_payload[variant][:casterIds] << caster.id
+    end
+  end
+  cure_payload.each_value { |v| v[:casterIds].uniq! }
+
+  # Surgery casters with dice / TN computed from their healing skill.
+  surgery_payload = {}
+  @surgery_casters.each do |caster|
+    dice = caster.skill_dice(:healing)
+    bonus = caster.skill_bonus(:healing)
+    raw_tn = base_tn - bonus
+    tn = [tn_min, [raw_tn, tn_max].min].max
+    starting_successes = raw_tn < tn_min ? (tn_min - raw_tn) : 0
+    surgery_payload[caster.id.to_s] = {
+      id: caster.id,
+      name: caster.name,
+      dice: dice,
+      tn: tn,
+      startingSuccesses: starting_successes,
+      improvedHealing: caster.ability_list.include?('improved_healing'),
+      tier: caster.tier
+    }
+  end
+
+  # Services grouped by spell. Each entry has the resolved cure effect and the
+  # improved_healing flag derived from the caster's class.
+  services_by_spell = {}
+  @services.each do |svc|
+    effect = @compendium.cure_effects(svc['spell'])
+    next unless effect
+    services_by_spell[svc['spell']] ||= []
+    services_by_spell[svc['spell']] << {
+      title: svc['title'],
+      casterClass: svc['class'],
+      tier: svc['tier'].to_i,
+      cost: svc['cost'].to_i,
+      improvedHealing: svc['class'].to_s == 'cleric',
+      effect: {
+        minor: effect[:minor],
+        moderate: effect[:moderate],
+        major: effect[:major],
+        saturation: effect[:saturation],
+        minimumSaturation: effect[:minimum_saturation]
+      }
+    }
+  end
+
+  @dt_data = {
+    pcs: pc_payload,
+    pcOrder: pc_order,
+    cures: cure_payload,
+    cureSpells: cure_payload.keys,
+    surgeryCasters: surgery_payload,
+    services: services_by_spell,
+    servicesSpells: services_by_spell.keys,
+    campaignGold: @campaign['gold'].to_i,
+    diceRules: { baseTn: base_tn, tnMin: tn_min, tnMax: tn_max }
+  }
+
+  # --- Urgent Actions: condition saves + queued heals for every combatant. ---
+  # Only rendered in DM view, and only if at least one combatant has an active
+  # condition (bleed, ghoul paralysis, etc.).
+  @ua_data = nil
+  if @is_local
+    @ua_data = build_urgent_actions_payload(base_tn, tn_min, tn_max)
+  end
+
+  erb :downtime
+end
+
+# Build the combatant-list payload used by the Urgent Actions UI. Returns nil
+# if there is nothing urgent (no combatant has an active condition).
+def build_urgent_actions_payload(base_tn, tn_min, tn_max)
+  combat = Combat.new
+  return nil if combat.combat_turn_list.empty?
+
+  allowed_bases = (@compendium.data['urgent_action_spells'] || []).map(&:to_s)
+  return nil if allowed_bases.empty?
+
+  # Only surface the section when someone has a condition to resolve.
+  has_conditions = combat.combat_turn_list.any? { |ct| ct.active_conditions.any? }
+  return nil unless has_conditions
+
+  combatants = combat.combat_turn_list.map do |ct|
+    char = ct.character
+    save_dice = char.save_dice(:con).to_i
+    save_bonus_con = char.save_bonus(:con).to_i
+    # Base save TN mirrors start_of_turn: start at 9, subtract CON save bonus,
+    # then add per-condition modifiers (e.g. highest ghoul tier that hit us).
+    base_raw_tn = 9 - save_bonus_con
+    max_ghoul_tier = ct.condition_meta['max_ghoul_tier'].to_i
+
+    conditions = ct.active_conditions.map do |cname, value|
+      tn_mod = cname == 'ghoul_paralysis' ? max_ghoul_tier : 0
+      raw_tn = base_raw_tn + tn_mod
+      clamped_tn = [[raw_tn, tn_min].max, tn_max].min
+      {
+        name: cname,
+        label: cname.tr('_', ' ').split.map(&:capitalize).join(' '),
+        value: value.to_i,
+        dice: save_dice,
+        tn: clamped_tn,
+        tnModLabel: cname == 'ghoul_paralysis' && tn_mod > 0 ? "ghoul tier +#{tn_mod}" : ''
+      }
+    end
+
+    # Allowed spells the character knows, flattened across tiers. Each carries
+    # its mana cost and whether the character can currently afford it. DM may
+    # cast unaffordable spells anyway (marked N/A in the dropdown).
+    known_variants = (char.spell_list || []).flatten.select do |spell_name|
+      resolved = @compendium.resolve_spell_variant(spell_name)
+      resolved && allowed_bases.include?(resolved[0])
+    end.uniq
+
+    spells = known_variants.map do |variant|
+      resolved = @compendium.resolve_spell_variant(variant)
+      base_name, spell_data, _idx, tier_val = resolved
+      mana_cost = tier_val.to_i == 0 ? 1 : (tier_val.to_i * 2 + 2)
+      affordable = ct.mana.to_i >= mana_cost
+      needs_check = base_name == 'Stabilize'
+      target_mode = @compendium.target_mode(variant) || 'single'
+      kind = base_name == 'Cure' ? 'cure' : (base_name == 'Ward' ? 'ward' : (base_name == 'Stabilize' ? 'stabilize' : 'other'))
+      entry = {
+        name: variant,
+        baseName: base_name,
+        tier: tier_val.to_i,
+        manaCost: mana_cost,
+        affordable: affordable,
+        targetMode: target_mode,
+        needsCheck: needs_check,
+        kind: kind
+      }
+      if base_name == 'Cure'
+        effect = @compendium.cure_effects(variant)
+        if effect
+          entry[:cure] = {
+            minor: effect[:minor], moderate: effect[:moderate], major: effect[:major],
+            saturation: effect[:saturation], minimumSaturation: effect[:minimum_saturation]
+          }
+        end
+      elsif base_name == 'Ward'
+        ward = @compendium.ward_effects(variant)
+        entry[:ward] = { tempHp: ward[:temp_hp] } if ward
+      end
+      entry
+    end
+
+    # Matching consumables (potion/scroll) whose spell resolves to an allowed base.
+    items = char.item_list.filter_map do |item|
+      fx = @compendium.item_effects(item)
+      next nil unless fx
+      next nil unless fx[:base_name] && allowed_bases.include?(fx[:base_name].to_s)
+      {
+        itemId: item['item_id'],
+        name: item['name'],
+        quantity: item['quantity'] || 1,
+        baseName: fx[:base_name],
+        kind: fx[:kind].to_s,
+        type: fx[:type].to_s,
+        targetMode: fx[:target_mode].to_s.empty? ? 'single' : fx[:target_mode].to_s,
+        itemTier: fx[:item_tier]
+      }
+    end
+
+    {
+      combatId: ct.combat_id,
+      charId: char.id,
+      name: combat.display_name(ct),
+      group: (char.data['group'] || 'PC'),
+      tier: char.tier,
+      cha: char.cha,
+      mana: ct.mana.to_i,
+      manaMax: char.mana_max,
+      saturation: ct.saturation.to_i,
+      damage: [ct.minor_damage.to_i, ct.moderate_damage.to_i, ct.major_damage.to_i],
+      tempHp: ct.temporary_hit_points,
+      hpMax: char.hp_max,
+      improvedHealing: char.ability_list.include?('improved_healing'),
+      conditions: conditions,
+      spells: spells,
+      items: items
+    }
+  end
+
+  { combatants: combatants, allowedSpells: allowed_bases, round: combat.combat_turn_list.first ? (Tools.load_json('combat.json')['round'] || 0) : 0 }
+end
+
+post '/downtime/cast' do
+  compendium = Compendium.new
+  characters = Tools.load_json('characters.json')
+  combat_data = Tools.load_json('combat.json')
+
+  caster_id = params[:caster_id].to_i
+  spell_name = params[:spell_name].to_s
+  target_id = params[:target_id].to_i
+
+  caster_data = characters.find { |c| c['id'] == caster_id }
+  target_data = characters.find { |c| c['id'] == target_id }
+  halt 400, "Caster not found" unless caster_data
+  halt 400, "Target not found" unless target_data
+  caster = CharacterSheet.new(caster_data)
+  target_char = CharacterSheet.new(target_data)
+
+  caster_p = downtime_find_or_create_participant(combat_data, caster)
+  target_p = downtime_find_or_create_participant(combat_data, target_char)
+
+  resolved = compendium.resolve_spell_variant(spell_name)
+  halt 400, "Unknown spell" unless resolved
+  _base, _spell_data, _idx, tier_val = resolved
+  mana_cost = tier_val.to_i == 0 ? 1 : (tier_val.to_i * 2 + 2)
+  halt 400, "Not enough mana" unless caster_p['mana'].to_i >= mana_cost
+
+  if resolved[0] == 'Standard Surgery'
+    successes = params[:successes].to_i
+    halt 400, "Surgery requires non-negative successes" if successes < 0
+
+    # Start of spell: target loses all temp HP and gains moderate = 2 * major.
+    major_before = target_p['major_damage'].to_i
+    target_p['moderate_damage'] = target_p['moderate_damage'].to_i + (2 * major_before)
+    target_p['temporary_hit_points'] = 0
+
+    healed_major = [successes, major_before].min
+    target_p['major_damage'] = major_before - healed_major
+
+    # Saturation: 10 per major cured, with a minimum of 5 per major cured.
+    # improved_healing reduces saturation by 2 * caster_tier. Min is never
+    # reducible below the (5 * successes) floor.
+    per = 10
+    min_per = 5
+    base_sat = per * healed_major
+    min_sat = min_per * healed_major
+    sat_add = base_sat
+    sat_add -= 2 * caster.tier if caster.ability_list.include?('improved_healing')
+    sat_add = min_sat if sat_add < min_sat
+    target_p['saturation'] = target_p['saturation'].to_i + sat_add
+
+    caster_p['mana'] = caster_p['mana'].to_i - mana_cost
+    Tools.save_json('combat.json', combat_data)
+    Combat.add_log("#{caster.name} casts #{spell_name} on #{target_char.name} (#{mana_cost} mana) - cured #{healed_major} major (+2*#{major_before} moderate), +#{sat_add} saturation")
+    redirect '/downtime'
+  end
+
+  cure = compendium.cure_effects(spell_name)
+  halt 400, "Spell not supported in downtime" unless cure
+
+  max_saturation = target_char.cha
+  current_saturation = target_p['saturation'].to_i
+  halt 400, "#{target_char.name} is already at maximum magical saturation (#{current_saturation}/#{max_saturation})" if current_saturation >= max_saturation
+
+  healed_major, healed_moderate, healed_minor = Combat.apply_cure_cascade(target_p, cure)
+  sat_add = cure[:saturation] - target_char.tier
+  sat_add -= 2 * caster.tier if caster.ability_list.include?('improved_healing')
+  sat_add = cure[:minimum_saturation] if sat_add < cure[:minimum_saturation]
+  target_p['saturation'] = current_saturation + sat_add
+
+  caster_p['mana'] = caster_p['mana'].to_i - mana_cost
+  Tools.save_json('combat.json', combat_data)
+  Combat.add_log("#{caster.name} casts #{spell_name} on #{target_char.name} (#{mana_cost} mana) - healed #{healed_major}/#{healed_moderate}/#{healed_minor} (major/moderate/minor), +#{sat_add} saturation")
+  redirect '/downtime'
+end
+
+post '/downtime/use_item' do
+  compendium = Compendium.new
+  characters = Tools.load_json('characters.json')
+  combat_data = Tools.load_json('combat.json')
+
+  # The form uses a combined "owner|item" select that writes to hidden
+  # owner_id / item_id inputs on change; accept either representation.
+  if params[:owner_item_combined].to_s.include?('|')
+    owner_id_str, item_id_str = params[:owner_item_combined].to_s.split('|', 2)
+    owner_id = owner_id_str.to_i
+    item_id = item_id_str.to_i
+  else
+    owner_id = params[:owner_id].to_i
+    item_id = params[:item_id].to_i
+  end
+  target_id = params[:target_id].to_i
+
+  owner_data = characters.find { |c| c['id'] == owner_id }
+  target_data = characters.find { |c| c['id'] == target_id }
+  halt 400, "Owner not found" unless owner_data
+  halt 400, "Target not found" unless target_data
+  owner = CharacterSheet.new(owner_data)
+  target_char = CharacterSheet.new(target_data)
+
+  item = owner.item_list.find { |i| i['item_id'].to_i == item_id }
+  halt 400, "Item not found" unless item
+  effect = compendium.item_effects(item)
+  halt 400, "This item cannot be used" unless effect
+
+  target_p = downtime_find_or_create_participant(combat_data, target_char)
+  max_saturation = target_char.cha
+  current_saturation = target_p['saturation'].to_i
+  at_max = current_saturation >= max_saturation
+  effect_log = ''
+
+  if effect[:kind] == :potion
+    halt 400, "#{target_char.name} is already at maximum magical saturation (#{current_saturation}/#{max_saturation})" if at_max
+    potion_sat = Compendium.potion_saturation(effect[:item_tier], target_char.tier)
+    case effect[:type]
+    when :cure
+      healed_major, healed_moderate, healed_minor = Combat.apply_cure_cascade(target_p, effect)
+      cure_sat = effect[:saturation] - target_char.tier
+      cure_sat = effect[:minimum_saturation] if cure_sat < effect[:minimum_saturation]
+      total_sat = cure_sat + potion_sat
+      target_p['saturation'] = current_saturation + total_sat
+      effect_log = "healed #{healed_major}/#{healed_moderate}/#{healed_minor}, +#{total_sat} saturation (#{cure_sat} cure + #{potion_sat} potion)"
+    when :mana
+      target_max_mana = target_char.mana_max
+      current_mana = target_p['mana'].to_i
+      new_mana = [current_mana + effect[:mana], target_max_mana].min
+      target_p['mana'] = new_mana
+      target_p['saturation'] = current_saturation + potion_sat
+      effect_log = "mana #{current_mana} -> #{new_mana}, +#{potion_sat} saturation"
+    when :ward
+      current_temp = target_p['temporary_hit_points'].to_i
+      new_temp = [current_temp, effect[:temp_hp]].max
+      target_p['temporary_hit_points'] = new_temp
+      target_p['saturation'] = current_saturation + potion_sat
+      effect_log = "temp HP #{current_temp} -> #{new_temp}, +#{potion_sat} saturation"
+    end
+  elsif effect[:kind] == :scroll
+    case effect[:type]
+    when :cure
+      halt 400, "#{target_char.name} is already at maximum magical saturation (#{current_saturation}/#{max_saturation})" if at_max
+      healed_major, healed_moderate, healed_minor = Combat.apply_cure_cascade(target_p, effect)
+      sat_add = effect[:saturation] - target_char.tier
+      sat_add -= 2 * owner.tier if owner.ability_list.include?('improved_healing')
+      sat_add = effect[:minimum_saturation] if sat_add < effect[:minimum_saturation]
+      target_p['saturation'] = current_saturation + sat_add
+      effect_log = "healed #{healed_major}/#{healed_moderate}/#{healed_minor}, +#{sat_add} saturation"
+    when :mana
+      halt 400, "#{target_char.name} is already at maximum magical saturation (#{current_saturation}/#{max_saturation})" if at_max
+      target_max_mana = target_char.mana_max
+      current_mana = target_p['mana'].to_i
+      new_mana = [current_mana + effect[:mana], target_max_mana].min
+      target_p['mana'] = new_mana
+      sat_add = effect[:saturation] - target_char.tier
+      sat_add = effect[:minimum_saturation] if sat_add < effect[:minimum_saturation]
+      target_p['saturation'] = current_saturation + sat_add
+      effect_log = "mana #{current_mana} -> #{new_mana}, +#{sat_add} saturation"
+    when :ward
+      current_temp = target_p['temporary_hit_points'].to_i
+      new_temp = [current_temp, effect[:temp_hp]].max
+      target_p['temporary_hit_points'] = new_temp
+      effect_log = "temp HP #{current_temp} -> #{new_temp}"
+    when :generic
+      effect_log = "used #{effect[:variant_name] || item['name']} (no implemented effect)"
+    end
+  end
+
+  # Consume one charge (same bookkeeping as combat /item).
+  if item['item_id'].to_i > 0
+    equipment = Tools.load_json('equipment.json')
+    stored_idx = item_id - 1
+    if stored_idx >= 0 && stored_idx < equipment.length
+      stored = equipment[stored_idx]
+      stored['quantity'] = (stored['quantity'] || 1) - 1
+      equipment.delete_at(stored_idx) if stored['quantity'] <= 0
+      Tools.save_json('equipment.json', equipment)
+    end
+  else
+    chars = Tools.load_json('characters.json')
+    owner_rec = chars.find { |c| c['id'] == owner_id }
+    if owner_rec && owner_rec['items']
+      inline_idx = -item['item_id'].to_i - 1
+      if inline_idx >= 0 && inline_idx < owner_rec['items'].length
+        inline = owner_rec['items'][inline_idx]
+        inline['quantity'] = (inline['quantity'] || 1) - 1
+        owner_rec['items'].delete_at(inline_idx) if inline['quantity'] <= 0
+        Tools.save_json('characters.json', chars)
+      end
+    end
+  end
+
+  Tools.save_json('combat.json', combat_data)
+  Combat.add_log("#{owner.name} uses #{item['name']} on #{target_char.name} - #{effect_log}")
+  redirect '/downtime'
+end
+
+post '/downtime/service' do
+  redirect '/downtime' unless local_request?
+  compendium = Compendium.new
+  characters = Tools.load_json('characters.json')
+  combat_data = Tools.load_json('combat.json')
+  campaign = Tools.load_json('campaign.json')
+
+  spell = params[:spell].to_s
+  caster_title = params[:service_caster].to_s
+  target_id = params[:target_id].to_i
+  services = compendium.data['spellcasting_services'] || []
+  service = services.find { |s| s['spell'].to_s == spell && s['title'].to_s == caster_title }
+  halt 400, "Service not found" unless service
+
+  target_data = characters.find { |c| c['id'] == target_id }
+  halt 400, "Target not found" unless target_data
+  target_char = CharacterSheet.new(target_data)
+  target_p = downtime_find_or_create_participant(combat_data, target_char)
+
+  cost = service['cost'].to_i
+  halt 400, "Not enough gold (have #{campaign['gold']}, need #{cost})" if campaign['gold'].to_i < cost
+
+  cure = compendium.cure_effects(service['spell'])
+  halt 400, "Service spell is not a cure" unless cure
+
+  max_saturation = target_char.cha
+  current_saturation = target_p['saturation'].to_i
+  halt 400, "#{target_char.name} is already at maximum magical saturation (#{current_saturation}/#{max_saturation})" if current_saturation >= max_saturation
+
+  healed_major, healed_moderate, healed_minor = Combat.apply_cure_cascade(target_p, cure)
+  sat_add = cure[:saturation] - target_char.tier
+  # Cleric casters always have improved_healing (class ability at level 1);
+  # druids do not. Any other class is treated as having no improved_healing.
+  sat_add -= 2 * service['tier'].to_i if service['class'].to_s == 'cleric'
+  sat_add = cure[:minimum_saturation] if sat_add < cure[:minimum_saturation]
+  target_p['saturation'] = current_saturation + sat_add
+
+  campaign['gold'] = campaign['gold'].to_i - cost
+  Tools.save_json('combat.json', combat_data)
+  Tools.save_json('campaign.json', campaign)
+  label = "#{service['spell']} (#{service['title']})"
+  Combat.add_log("#{target_char.name} paid #{cost}g for #{label} service - healed #{healed_major}/#{healed_moderate}/#{healed_minor}, +#{sat_add} saturation")
+  redirect '/downtime'
+end
+
+# Number of recovery periods a `days` span covers for a given unit. The
+# "week"/"month" thresholds only kick in once the party has rested a full
+# 7 / 28 days -- partial weeks or months yield zero week/month benefit (per
+# the campaign rules). Hours count as `days * 24` since a day is always
+# more than 24 hours of rest.
+def downtime_period_count(days, unit)
+  case unit.to_s
+  when 'hour'  then days * 24
+  when 'day'   then days
+  when 'week'  then days >= 7  ? (days / 7)  : 0
+  when 'month' then days >= 28 ? (days / 28) : 0
+  else 0
+  end
+end
+
+post '/downtime/rest' do
+  redirect '/downtime' unless local_request?
+  rules = Tools.load_json('rules.json')
+  characters = Tools.load_json('characters.json')
+  combat_data = Tools.load_json('combat.json')
+
+  mode = params[:mode].to_s
+  days = params[:days].to_i
+  halt 400, "Days must be positive" if days <= 0
+  use_high = mode == 'long_term_recovery'
+
+  heal_rate = rules['advancement']['natural']['heal_rate']
+  pc_list = characters.select { |c| c['group'] == 'PC' }
+
+  summary_lines = []
+  pc_list.each do |char_data|
+    character = CharacterSheet.new(char_data)
+    participant = downtime_find_or_create_participant(combat_data, character)
+    tier = character.tier
+
+    # Per-PC heal rows = 3 entries (minor / moderate / major), each [low, high, unit].
+    row_base = tier * 3
+    rows = [heal_rate[row_base], heal_rate[row_base + 1], heal_rate[row_base + 2]]
+    keys = %w[minor_damage moderate_damage major_damage]
+    healed = [0, 0, 0]
+    rows.each_with_index do |row, i|
+      next unless row
+      low, high, unit = row
+      per = use_high ? high.to_i : low.to_i
+      periods = downtime_period_count(days, unit)
+      amt = per * periods
+      before = participant[keys[i]].to_i
+      after = [before - amt, 0].max
+      healed[i] = before - after
+      participant[keys[i]] = after
+    end
+
+    # Mana regen: floor(mana_max/4) per day, clamped to mana_max.
+    mana_per_day = (character.mana_max.to_i / 4).to_i
+    new_mana = [participant['mana'].to_i + mana_per_day * days, character.mana_max.to_i].min
+    mana_gained = new_mana - participant['mana'].to_i
+    participant['mana'] = new_mana
+
+    # Saturation: floor(cha/4) per day, floored at 0.
+    sat_per_day = (character.cha.to_i / 4).to_i
+    sat_before = participant['saturation'].to_i
+    sat_after = [sat_before - sat_per_day * days, 0].max
+    sat_lost = sat_before - sat_after
+    participant['saturation'] = sat_after
+
+    # Temp HP always falls off over rest / passing time.
+    participant['temporary_hit_points'] = 0
+
+    summary_lines << "#{character.name}: -#{healed[0]}/#{healed[1]}/#{healed[2]} damage, +#{mana_gained} mana, -#{sat_lost} saturation"
+  end
+
+  Tools.save_json('combat.json', combat_data)
+  label = use_high ? 'Long-term recovery' : 'Pass time'
+  Combat.add_log("#{label} for #{days} day#{'s' if days != 1}: #{summary_lines.join('; ')}")
+  redirect '/downtime'
+end
+
+# Resolve one active condition exactly like start_of_turn: apply consequences
+# (bleed damage / paralysis rounds) then decay severity. Mutates `participant`
+# and `combat_data`. Shared between /combat/action=start_of_turn and
+# /downtime/urgent_actions so behavior stays in lockstep.
+def downtime_resolve_condition(combat_data, participant, character, combat_id, cname, successes)
+  value = participant['conditions'][cname].to_i
+  return if value <= 0
+  case cname
+  when 'bleed'
+    raw_damage = 1 + (value / 10)
+    dealt = [raw_damage - successes, 0].max
+    if dealt > 0
+      temp_hp = participant['temporary_hit_points'].to_i
+      absorbed = [dealt, temp_hp].min
+      participant['temporary_hit_points'] = temp_hp - absorbed
+      participant['minor_damage'] = participant['minor_damage'].to_i + (dealt - absorbed)
+    end
+  when 'ghoul_paralysis'
+    raw_rounds = 1 + (value / 10)
+    rounds = [raw_rounds - successes, 0].max
+    if rounds > 0
+      existing = (combat_data['active_effects'] ||= []).find do |e|
+        e['spell_name'] == 'Paralyzed' && (e['target_combat_ids'] || []).include?(combat_id)
+      end
+      if existing
+        existing['rounds_remaining'] = existing['rounds_remaining'].to_i + rounds
+      else
+        combat_data['active_effects'] << {
+          'caster_id' => nil, 'caster_name' => 'Ghoul Paralysis',
+          'spell_name' => 'Paralyzed',
+          'target_combat_ids' => [combat_id], 'target_names' => [character.name],
+          'round_cast' => combat_data['round'], 'rounds_remaining' => rounds
+        }
+      end
+    end
+  end
+  # Universal decay: severity drops by 1 + successes, floor 0.
+  new_value = [value - (1 + successes), 0].max
+  if new_value <= 0
+    participant['conditions'].delete(cname)
+    participant['condition_meta'].delete('max_ghoul_tier') if cname == 'ghoul_paralysis'
+  else
+    participant['conditions'][cname] = new_value
+  end
+end
+
+# Find a combat participant row and the backing CharacterSheet for a combat_id.
+def downtime_lookup_combatant(combat_data, characters, combat_id)
+  participant = combat_data['participants'].find { |p| p['id'].to_i == combat_id.to_i }
+  return [nil, nil] unless participant
+  char_id = participant['char_id'] || participant['id']
+  char_data = characters.find { |c| c['id'] == char_id }
+  return [participant, nil] unless char_data
+  [participant, CharacterSheet.new(char_data)]
+end
+
+# Resolve one queued urgent action (cast or item) against a list of target
+# combat_ids. All game-rule math (cure cascade, ward temp HP, Stabilize bleed
+# reduction, mana/charge bookkeeping) lives here so End Round stays a thin
+# orchestrator.
+def downtime_apply_urgent_action(combat_data, characters, caster_p, caster, action)
+  return if action.nil?
+  type = action['type'].to_s
+  return if type == 'nothing' || type.empty?
+  targets = Array(action['targets']).map(&:to_i).reject(&:zero?)
+  successes = action['successes'].to_i
+
+  if type == 'cast'
+    spell_name = action['spell'].to_s
+    return if spell_name.empty?
+    resolved = @compendium_cache.resolve_spell_variant(spell_name)
+    return unless resolved
+    base_name, _spell_data, _idx, tier_val = resolved
+    mana_cost = tier_val.to_i == 0 ? 1 : (tier_val.to_i * 2 + 2)
+    # DM is allowed to cast when unaffordable -- mana simply goes negative.
+    caster_p['mana'] = caster_p['mana'].to_i - mana_cost
+
+    targets.each do |tid|
+      target_p, target = downtime_lookup_combatant(combat_data, characters, tid)
+      next unless target_p && target
+      apply_spell_effect(base_name, spell_name, caster, target_p, target, successes)
+    end
+
+  elsif type == 'item'
+    item_id = action['item_id'].to_i
+    item = caster.item_list.find { |i| i['item_id'].to_i == item_id }
+    return unless item
+    effect = @compendium_cache.item_effects(item)
+    return unless effect
+
+    targets.each do |tid|
+      target_p, target = downtime_lookup_combatant(combat_data, characters, tid)
+      next unless target_p && target
+      apply_item_effect(effect, caster, target_p, target)
+    end
+    consume_item_charge(caster, item, item_id)
+  end
+end
+
+# Cure/Ward/Stabilize branches shared between cast and (via apply_item_effect)
+# the scroll consumable path.
+def apply_spell_effect(base_name, spell_name, caster, target_p, target, successes)
+  case base_name
+  when 'Cure'
+    cure = @compendium_cache.cure_effects(spell_name)
+    return unless cure
+    Combat.apply_cure_cascade(target_p, cure)
+    sat_add = cure[:saturation] - target.tier
+    sat_add -= 2 * caster.tier if caster.ability_list.include?('improved_healing')
+    sat_add = cure[:minimum_saturation] if sat_add < cure[:minimum_saturation]
+    target_p['saturation'] = target_p['saturation'].to_i + sat_add
+  when 'Ward'
+    ward = @compendium_cache.ward_effects(spell_name)
+    return unless ward
+    current_temp = target_p['temporary_hit_points'].to_i
+    target_p['temporary_hit_points'] = [current_temp, ward[:temp_hp]].max
+  when 'Stabilize'
+    # Reduce bleed severity by 3 per success (description: "Reduce bleeding by
+    # 3 for each success."). No effect if target has no bleed condition.
+    target_p['conditions'] ||= {}
+    current = target_p['conditions']['bleed'].to_i
+    return if current <= 0
+    new_val = [current - 3 * successes, 0].max
+    if new_val <= 0
+      target_p['conditions'].delete('bleed')
+    else
+      target_p['conditions']['bleed'] = new_val
+    end
+  end
+end
+
+def apply_item_effect(effect, user, target_p, target)
+  max_saturation = target.cha
+  current_saturation = target_p['saturation'].to_i
+  at_max = current_saturation >= max_saturation
+
+  if effect[:kind] == :potion
+    return if at_max
+    potion_sat = Compendium.potion_saturation(effect[:item_tier], target.tier)
+    case effect[:type]
+    when :cure
+      Combat.apply_cure_cascade(target_p, effect)
+      cure_sat = effect[:saturation] - target.tier
+      cure_sat = effect[:minimum_saturation] if cure_sat < effect[:minimum_saturation]
+      target_p['saturation'] = current_saturation + cure_sat + potion_sat
+    when :mana
+      new_mana = [target_p['mana'].to_i + effect[:mana], target.mana_max].min
+      target_p['mana'] = new_mana
+      target_p['saturation'] = current_saturation + potion_sat
+    when :ward
+      current_temp = target_p['temporary_hit_points'].to_i
+      target_p['temporary_hit_points'] = [current_temp, effect[:temp_hp]].max
+      target_p['saturation'] = current_saturation + potion_sat
+    end
+  elsif effect[:kind] == :scroll
+    case effect[:type]
+    when :cure
+      return if at_max
+      Combat.apply_cure_cascade(target_p, effect)
+      sat_add = effect[:saturation] - target.tier
+      sat_add -= 2 * user.tier if user.ability_list.include?('improved_healing')
+      sat_add = effect[:minimum_saturation] if sat_add < effect[:minimum_saturation]
+      target_p['saturation'] = current_saturation + sat_add
+    when :mana
+      return if at_max
+      new_mana = [target_p['mana'].to_i + effect[:mana], target.mana_max].min
+      target_p['mana'] = new_mana
+      sat_add = effect[:saturation] - target.tier
+      sat_add = effect[:minimum_saturation] if sat_add < effect[:minimum_saturation]
+      target_p['saturation'] = current_saturation + sat_add
+    when :ward
+      current_temp = target_p['temporary_hit_points'].to_i
+      target_p['temporary_hit_points'] = [current_temp, effect[:temp_hp]].max
+    end
+  end
+end
+
+# Consume one charge. Mirrors the equipment.json / inline-items bookkeeping
+# used by /combat/action=item and /downtime/use_item.
+def consume_item_charge(owner, item, item_id)
+  if item['item_id'].to_i > 0
+    equipment = Tools.load_json('equipment.json')
+    stored_idx = item_id - 1
+    if stored_idx >= 0 && stored_idx < equipment.length
+      stored = equipment[stored_idx]
+      stored['quantity'] = (stored['quantity'] || 1) - 1
+      equipment.delete_at(stored_idx) if stored['quantity'] <= 0
+      Tools.save_json('equipment.json', equipment)
+    end
+  else
+    chars = Tools.load_json('characters.json')
+    owner_rec = chars.find { |c| c['id'] == owner.id }
+    if owner_rec && owner_rec['items']
+      inline_idx = -item['item_id'].to_i - 1
+      if inline_idx >= 0 && inline_idx < owner_rec['items'].length
+        inline = owner_rec['items'][inline_idx]
+        inline['quantity'] = (inline['quantity'] || 1) - 1
+        owner_rec['items'].delete_at(inline_idx) if inline['quantity'] <= 0
+        Tools.save_json('characters.json', chars)
+      end
+    end
+  end
+end
+
+post '/downtime/urgent_actions' do
+  redirect '/downtime' unless local_request?
+  @compendium_cache = Compendium.new
+  combat_data = Tools.load_json('combat.json')
+  characters = Tools.load_json('characters.json')
+
+  payload_raw = params[:payload].to_s
+  payload = payload_raw.empty? ? {} : JSON.parse(payload_raw)
+  saves = payload['saves'] || {}
+  actions = payload['actions'] || {}
+
+  # Resolve in initiative order so that a combatant's queued action (e.g. a
+  # Stabilize that drops a target's bleed severity, or a Ward that adds temp
+  # HP) takes effect before that target's own save phase later in the round.
+  # Combat.new loads a sorted snapshot; we mutate combat_data as we go so each
+  # subsequent combatant sees the up-to-date state.
+  combat = Combat.new
+  combat.combat_turn_list.each do |ct|
+    cid = ct.combat_id
+    participant = combat_data['participants'].find { |p| p['id'].to_i == cid.to_i }
+    next unless participant
+    char_id = participant['char_id'] || participant['id']
+    char_data = characters.find { |c| c['id'] == char_id }
+    next unless char_data
+    character = CharacterSheet.new(char_data)
+
+    # 1. Save phase for this combatant.
+    participant['conditions'] ||= {}
+    participant['condition_meta'] ||= {}
+    (saves[cid.to_s] || {}).each do |cname, successes|
+      downtime_resolve_condition(combat_data, participant, character, cid, cname.to_s, successes.to_i)
+    end
+
+    # 2. Action phase for this combatant. Both phases mutate combat_data so a
+    # heal cast here is visible to later combatants.
+    Array(actions[cid.to_s]).each do |action|
+      downtime_apply_urgent_action(combat_data, characters, participant, character, action)
+    end
+  end
+
+  # Refresh combat pools, advance round counter.
+  (combat_data['participants'] || []).each do |participant|
+    char_id = participant['char_id'] || participant['id']
+    char_data = characters.find { |c| c['id'] == char_id }
+    next unless char_data
+    character = CharacterSheet.new(char_data)
+    participant['combat_pool'] = character.combat_pool
+  end
+  combat_data['round'] = combat_data['round'].to_i + 1
+
+  Tools.save_json('combat.json', combat_data)
+  redirect '/downtime'
+end
+
+post '/downtime/quick_resolve' do
+  redirect '/downtime' unless local_request?
+  combat_data = Tools.load_json('combat.json')
+
+  payload_raw = params[:payload].to_s
+  payload = payload_raw.empty? ? {} : JSON.parse(payload_raw)
+  results = payload['results'] || {}
+
+  # Apply per-combatant, per-condition results from the simulation. The client
+  # has already done all the dice rolling and accounting (bleed damage,
+  # paralysis rounds, severity decay); the server just stamps the outcome
+  # onto combat.json.
+  results.each do |cid_str, conds|
+    participant = combat_data['participants'].find { |p| p['id'].to_i == cid_str.to_i }
+    next unless participant
+    participant['conditions'] ||= {}
+    participant['condition_meta'] ||= {}
+    conds.each do |cname, sim|
+      cname = cname.to_s
+      damage = sim['damage'].to_i
+      temp_absorbed = sim['tempAbsorbed'].to_i
+      rounds = sim['rounds'].to_i
+      final_severity = sim['finalSeverity'].to_i
+
+      if cname == 'bleed'
+        # Temp HP soaks damage first; remainder lands as minor damage.
+        if temp_absorbed > 0
+          participant['temporary_hit_points'] = [participant['temporary_hit_points'].to_i - temp_absorbed, 0].max
+        end
+        participant['minor_damage'] = participant['minor_damage'].to_i + damage if damage > 0
+      elsif cname == 'ghoul_paralysis' && rounds > 0
+        existing = (combat_data['active_effects'] ||= []).find do |e|
+          e['spell_name'] == 'Paralyzed' && (e['target_combat_ids'] || []).include?(cid_str.to_i)
+        end
+        if existing
+          existing['rounds_remaining'] = existing['rounds_remaining'].to_i + rounds
+        else
+          char_id = participant['char_id'] || participant['id']
+          char_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
+          char_name = char_data ? char_data['name'] : 'Unknown'
+          combat_data['active_effects'] << {
+            'caster_id' => nil, 'caster_name' => 'Ghoul Paralysis',
+            'spell_name' => 'Paralyzed',
+            'target_combat_ids' => [cid_str.to_i], 'target_names' => [char_name],
+            'round_cast' => combat_data['round'], 'rounds_remaining' => rounds
+          }
+        end
+      end
+
+      # Final severity: 0 means the condition resolved, else it stalled at 30
+      # saves and the remaining severity rolls forward.
+      if final_severity <= 0
+        participant['conditions'].delete(cname)
+        participant['condition_meta'].delete('max_ghoul_tier') if cname == 'ghoul_paralysis'
+      else
+        participant['conditions'][cname] = final_severity
+      end
+    end
+  end
+
+  Tools.save_json('combat.json', combat_data)
+  redirect '/downtime'
+end
+
 get '/all_characters/:index' do
   redirect '/character/0' unless local_request?
   character_list = Tools.load_json('characters.json')

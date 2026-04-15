@@ -403,6 +403,97 @@ table th {
 .spell-link { color: #1976d2; text-decoration: none; }
 .spell-link:hover { text-decoration: underline; }
 
+/* Downtime page */
+.downtime .downtime-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.downtime .downtime-header h1 { font-size: 22px; }
+.downtime .downtime-header .gold-display { font-size: 18px; margin-bottom: 0; }
+.downtime-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 25px; }
+.downtime-card { border: 1px solid #bbb; border-radius: 5px; padding: 10px; background: #fafafa; }
+.downtime-card h3 { margin: 0 0 2px 0; font-size: 15px; text-decoration: none; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+.downtime-card .dt-subtitle { font-size: 11px; color: #555; margin-bottom: 6px; }
+.downtime-card .dt-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; font-size: 11px; }
+.downtime-card .dt-stats > div { display: flex; justify-content: space-between; }
+.downtime-card .dt-stats .label { color: #555; }
+.downtime-card .dt-stats .value { font-weight: bold; }
+.downtime-card .dt-consumables { margin-top: 8px; padding-top: 6px; border-top: 1px dashed #ccc; }
+.downtime-card .dt-consumables h4 { font-size: 11px; margin: 0 0 4px 0; }
+.downtime-card .dt-consumables ul { list-style: disc; padding-left: 18px; font-size: 11px; margin: 0; }
+
+.downtime-actions h2 { font-size: 16px; margin-top: 20px; }
+.dt-action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; margin-bottom: 15px; }
+.dt-action { border: 1px solid #ddd; border-radius: 5px; padding: 12px; background: #fff; }
+.dt-action h3 { font-size: 13px; margin: 0 0 8px 0; text-decoration: none; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+.dt-action form { display: flex; flex-direction: column; gap: 8px; }
+.dt-action label { display: flex; flex-direction: column; font-size: 11px; font-weight: bold; gap: 2px; }
+.dt-action select, .dt-action input { padding: 5px; font-size: 12px; font-weight: normal; }
+.dt-action button { padding: 6px 10px; background: #4CAF50; color: white; border: none; cursor: pointer; font-size: 12px; border-radius: 3px; }
+.dt-action button:hover:not(:disabled) { background: #45a049; }
+.dt-action button:disabled, .dt-action select:disabled { background: #ccc; color: #666; cursor: not-allowed; }
+.dt-action .dt-note { font-size: 11px; color: #888; font-style: italic; margin: 0; }
+.dt-action .dt-dice { font-size: 11px; background: #f5f8ff; padding: 4px 6px; border-radius: 3px; }
+.dt-rest-form { display: flex; gap: 12px; align-items: flex-end; padding: 12px; border: 1px solid #ddd; border-radius: 5px; background: #fff3e0; max-width: 600px; }
+.dt-rest-form label { display: flex; flex-direction: column; font-size: 11px; font-weight: bold; gap: 2px; flex: 1; }
+.dt-rest-form select, .dt-rest-form input { padding: 5px; font-size: 12px; font-weight: normal; }
+.dt-rest-form button { padding: 6px 12px; background: #4CAF50; color: white; border: none; cursor: pointer; font-size: 12px; border-radius: 3px; }
+.dt-rest-form button:hover { background: #45a049; }
+/* Urgent Actions (downtime) */
+.urgent-actions { background: #fff5f5; border: 1px solid #d32f2f; border-radius: 5px; padding: 14px; margin-bottom: 20px; }
+.urgent-actions h2 { font-size: 16px; margin: 0 0 10px 0; border-bottom: 1px solid #d32f2f; padding-bottom: 4px; color: #b71c1c; }
+.ua-summary { background: #fff; border-left: 3px solid #d32f2f; padding: 8px 12px; font-size: 11px; line-height: 1.5; min-height: 30px; flex: 1; }
+.ua-summary h3 { font-size: 11px; margin: 0 0 4px 0; text-decoration: none; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+.ua-summary-line { margin: 3px 0; }
+.ua-summary-row { display: flex; gap: 12px; align-items: stretch; margin-bottom: 12px; }
+.ua-summary-row .ua-submit { margin: 0; align-self: stretch; white-space: nowrap; }
+.ua-checkbox-list { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 10px; padding: 8px 10px; background: #fff; border: 1px solid #eee; border-radius: 3px; font-size: 11px; }
+.ua-checkbox-label { font-weight: bold; color: #555; margin-right: 4px; }
+.ua-checkbox-list label { cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-weight: normal; }
+.ua-combatant { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-bottom: 10px; }
+.ua-combatant-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 5px; flex-wrap: wrap; }
+.ua-name { font-weight: bold; font-size: 13px; }
+.ua-group { font-size: 9px; padding: 1px 6px; border-radius: 3px; color: white; background: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+.ua-group-pc { background: #388e3c; }
+.ua-group-enemies { background: #c62828; }
+.ua-stats { font-size: 10px; color: #666; margin-left: auto; }
+.ua-saves { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; padding: 6px 8px; background: #fff3e0; border-left: 3px solid #ef6c00; border-radius: 2px; }
+.ua-save { font-size: 11px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ua-save label { font-size: 11px; margin: 0; }
+.ua-rolls { font-size: 10px; color: #555; }
+.ua-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ua-slot { background: #f9f9f9; border: 1px solid #eee; border-radius: 3px; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+.ua-slot label { font-size: 11px; font-weight: bold; display: flex; flex-direction: column; gap: 2px; }
+.ua-slot select, .ua-slot input { padding: 4px; font-size: 11px; font-weight: normal; }
+.ua-slot select[multiple] { min-height: 60px; }
+.ua-input-small { width: 55px; }
+.ua-check { display: flex; gap: 6px; align-items: center; font-size: 11px; font-weight: normal; }
+.ua-check label { flex-direction: row; align-items: center; gap: 4px; }
+.ua-roll-btn { background: #1976d2; color: white; border: none; padding: 3px 8px; font-size: 11px; border-radius: 3px; cursor: pointer; }
+.ua-roll-btn:hover { background: #1565c0; }
+.ua-submit { padding: 10px 24px; font-size: 14px; font-weight: bold; background: #c62828; color: white; border: none; border-radius: 3px; cursor: pointer; }
+.ua-submit:hover { background: #b71c1c; }
+
+/* Quickly Resolve Conditions */
+.quick-resolve { background: #fffbe6; border: 1px solid #f57c00; border-radius: 5px; padding: 14px; margin-bottom: 20px; }
+.quick-resolve h2 { font-size: 16px; margin: 0 0 6px 0; border-bottom: 1px solid #f57c00; padding-bottom: 4px; color: #e65100; }
+.quick-resolve > p.dt-note { margin-bottom: 10px; font-size: 11px; }
+.qr-combatant { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-bottom: 10px; }
+.qr-combatant h3 { font-size: 13px; margin: 0 0 6px 0; text-decoration: none; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+.qr-condition { padding: 6px 10px; margin: 4px 0; background: #fff8e8; border-left: 3px solid #ffb74d; border-radius: 2px; font-size: 11px; }
+.qr-condition-header { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.qr-result { font-size: 11px; line-height: 1.5; padding-left: 4px; }
+.qr-buttons { display: flex; gap: 10px; margin-top: 12px; }
+#qr-roll-btn { padding: 8px 18px; background: #1976d2; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 13px; font-weight: bold; }
+#qr-roll-btn:hover { background: #1565c0; }
+#qr-submit-btn { padding: 8px 18px; background: #f57c00; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 13px; font-weight: bold; }
+#qr-submit-btn:hover:not(:disabled) { background: #e65100; }
+#qr-submit-btn:disabled { background: #ccc; color: #666; cursor: not-allowed; }
+
+.dt-rest-preview { margin-top: 12px; max-width: 800px; }
+.dt-rest-preview h3 { font-size: 12px; margin: 0 0 6px 0; text-decoration: none; }
+.dt-rest-lines { display: flex; flex-direction: column; gap: 3px; }
+.dt-rest-line { font-size: 12px; padding: 3px 8px; background: #fff8e8; border-left: 3px solid #ffb74d; border-radius: 2px; line-height: 1.4; }
+.dt-preview { font-size: 11px; padding: 6px 8px; background: #f5f8ff; border-left: 3px solid #1976d2; border-radius: 2px; min-height: 14px; line-height: 1.5; }
+.dt-warn { color: #d32f2f; font-weight: bold; }
+
 @media print {
   body {
     padding: 0;
