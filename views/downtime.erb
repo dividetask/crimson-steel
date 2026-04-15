@@ -35,6 +35,71 @@
     <% end %>
   </div>
 
+  <% if @ua_data %>
+    <div class="urgent-actions">
+      <h2>Urgent Actions <span class="dt-note">(DM only)</span></h2>
+      <form method="post" action="/downtime/urgent_actions" id="ua-form">
+        <input type="hidden" name="payload" id="ua-payload" value="">
+        <div class="ua-summary" id="ua-summary">&nbsp;</div>
+
+        <% @ua_data[:combatants].each do |c| %>
+          <div class="ua-combatant" data-cid="<%= c[:combatId] %>">
+            <div class="ua-combatant-header">
+              <span class="ua-name"><%= h c[:name] %></span>
+              <span class="ua-group ua-group-<%= h c[:group].to_s.downcase %>"><%= h c[:group] %></span>
+              <span class="ua-stats">HP <%= c[:hpMax] - c[:damage].sum + c[:tempHp] %>/<%= c[:hpMax] %> &middot; Mana <%= c[:mana] %>/<%= c[:manaMax] %> &middot; Sat <%= c[:saturation] %>/<%= c[:cha] %> &middot; Dmg <%= c[:damage].join('/') %><% if c[:tempHp] > 0 %> &middot; Temp HP <%= c[:tempHp] %><% end %></span>
+            </div>
+
+            <% if c[:conditions].any? %>
+              <div class="ua-saves">
+                <% c[:conditions].each_with_index do |cond, ci| %>
+                  <div class="ua-save" data-cname="<%= h cond[:name] %>" data-cvalue="<%= cond[:value] %>" data-dice="<%= cond[:dice] %>" data-tn="<%= cond[:tn] %>">
+                    <strong>Save vs <%= h cond[:label] %></strong> <span class="math-detail">(severity <%= cond[:value] %>)</span>
+                    <span class="math-detail">&mdash; <%= cond[:dice] %> dice at TN <%= cond[:tn] %></span>
+                    <% unless cond[:tnModLabel].empty? %><span class="math-detail">(<%= h cond[:tnModLabel] %>)</span><% end %>
+                    <label>Successes <input type="number" id="ua-save-<%= c[:combatId] %>-<%= h cond[:name] %>" min="0" max="<%= cond[:dice] %>" value="0" class="ua-input-small"></label>
+                    <button type="button" class="ua-roll-btn" data-roll-target="ua-save-<%= c[:combatId] %>-<%= h cond[:name] %>" data-dice="<%= cond[:dice] %>" data-tn="<%= cond[:tn] %>" data-rolls-target="ua-save-rolls-<%= c[:combatId] %>-<%= h cond[:name] %>">Roll</button>
+                    <span class="ua-rolls math-detail" id="ua-save-rolls-<%= c[:combatId] %>-<%= h cond[:name] %>"></span>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <div class="ua-slots">
+              <% [0, 1].each do |slot| %>
+                <div class="ua-slot" data-slot="<%= slot %>">
+                  <label class="ua-slot-label">Action <%= slot + 1 %>
+                    <select class="ua-type" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>">
+                      <option value="nothing">Nothing</option>
+                      <option value="cast">Cast</option>
+                      <option value="item">Item</option>
+                    </select>
+                  </label>
+                  <label class="ua-spell-label" style="display:none;">Spell
+                    <select class="ua-spell" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>"></select>
+                  </label>
+                  <label class="ua-item-label" style="display:none;">Item
+                    <select class="ua-item" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>"></select>
+                  </label>
+                  <label class="ua-target-label" style="display:none;">Target
+                    <select class="ua-target" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>"></select>
+                  </label>
+                  <div class="ua-check" style="display:none;">
+                    <label>Successes <input type="number" class="ua-successes ua-input-small" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>" min="0" value="0"></label>
+                    <button type="button" class="ua-roll-btn ua-action-roll" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>">Roll</button>
+                    <span class="ua-rolls math-detail ua-action-rolls" data-cid="<%= c[:combatId] %>" data-slot="<%= slot %>"></span>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <button type="submit" class="ua-submit">End Round</button>
+      </form>
+    </div>
+  <% end %>
+
   <div class="downtime-actions">
     <h2>Healing Actions</h2>
 
@@ -182,6 +247,392 @@
     <% end %>
   </div>
 </div>
+
+<% if @ua_data %>
+<script>
+window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
+
+(function() {
+  var UA = window.UA_DATA;
+  var payloadEl = document.getElementById('ua-payload');
+  var summaryEl = document.getElementById('ua-summary');
+  var form = document.getElementById('ua-form');
+
+  // combatantsById and byId helpers.
+  var byId = {};
+  UA.combatants.forEach(function(c) { byId[String(c.combatId)] = c; });
+
+  // --- Dice rolling (save rolls + action success rolls). ---
+  function rollDice(nDice, tn, outEl, inputEl) {
+    var rolls = [], successes = 0;
+    for (var i = 0; i < nDice; i++) {
+      var d = Math.floor(Math.random() * 10) + 1;
+      rolls.push(d);
+      if (d >= tn) successes++;
+    }
+    if (inputEl) inputEl.value = successes;
+    if (outEl) {
+      var colored = rolls.map(function(d) {
+        var bg = null;
+        if (d === 1) bg = '#e57373';
+        else if (d === 10) bg = '#64b5f6';
+        else if (d >= tn) bg = '#81c784';
+        if (bg) return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
+        return '<span style="color:#777;">' + d + '</span>';
+      }).join(', ');
+      outEl.innerHTML = 'Rolled: [' + colored + '] &rarr; ' + successes + ' success' + (successes === 1 ? '' : 'es');
+    }
+    updateSummary();
+  }
+
+  // Save-row Roll buttons + Stabilize-check Roll buttons share this handler.
+  document.querySelectorAll('.ua-roll-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      if (btn.classList.contains('ua-action-roll')) {
+        // Action-slot roll: look up the selected spell to know dice+TN.
+        var cid = btn.dataset.cid, slot = btn.dataset.slot;
+        var combatant = byId[cid];
+        var slotEl = form.querySelector('.ua-combatant[data-cid="' + cid + '"] .ua-slot[data-slot="' + slot + '"]');
+        var spellSel = slotEl.querySelector('.ua-spell');
+        var spellName = spellSel ? spellSel.value : null;
+        if (!spellName) return;
+        // For Stabilize we reuse the caster's healing skill TN -- the game
+        // treats all spell checks as the caster's default skill dice/TN. This
+        // data isn't pre-computed in UA for brevity, so default to 6d TN 5.
+        var dice = 6, tn = 5;
+        var sucEl = slotEl.querySelector('.ua-successes');
+        var outEl = slotEl.querySelector('.ua-action-rolls');
+        rollDice(dice, tn, outEl, sucEl);
+      } else {
+        var dice = parseInt(btn.dataset.dice, 10);
+        var tn = parseInt(btn.dataset.tn, 10);
+        var inputEl = document.getElementById(btn.dataset.rollTarget);
+        var outEl = document.getElementById(btn.dataset.rollsTarget);
+        rollDice(dice, tn, outEl, inputEl);
+      }
+    });
+  });
+
+  // --- Target dropdown population. Multi-target spells render a multi-select;
+  // single-target renders a regular select. Every combatant is a valid target.
+  function populateTargets(selectEl, mode) {
+    var multi = mode === 'multi';
+    if (multi) selectEl.setAttribute('multiple', 'multiple');
+    else selectEl.removeAttribute('multiple');
+    selectEl.innerHTML = '';
+    if (!multi) {
+      var empty = document.createElement('option');
+      empty.value = ''; empty.textContent = '';
+      selectEl.appendChild(empty);
+    }
+    UA.combatants.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c.combatId;
+      opt.textContent = c.name + ' (' + c.damage.join('/') + ')';
+      selectEl.appendChild(opt);
+    });
+  }
+
+  // --- Action-slot cascade: Type -> (spell|item) -> target (+ successes). ---
+  document.querySelectorAll('.ua-type').forEach(function(sel) {
+    sel.addEventListener('change', function() { refreshSlot(sel.dataset.cid, sel.dataset.slot); });
+  });
+
+  function refreshSlot(cid, slot) {
+    var combatant = byId[cid];
+    var slotEl = form.querySelector('.ua-combatant[data-cid="' + cid + '"] .ua-slot[data-slot="' + slot + '"]');
+    var type = slotEl.querySelector('.ua-type').value;
+    var spellLbl = slotEl.querySelector('.ua-spell-label');
+    var itemLbl = slotEl.querySelector('.ua-item-label');
+    var targetLbl = slotEl.querySelector('.ua-target-label');
+    var check = slotEl.querySelector('.ua-check');
+    var spellSel = slotEl.querySelector('.ua-spell');
+    var itemSel = slotEl.querySelector('.ua-item');
+    var targetSel = slotEl.querySelector('.ua-target');
+
+    spellLbl.style.display = 'none';
+    itemLbl.style.display = 'none';
+    targetLbl.style.display = 'none';
+    check.style.display = 'none';
+
+    if (type === 'cast') {
+      spellLbl.style.display = '';
+      spellSel.innerHTML = '';
+      combatant.spells.forEach(function(s) {
+        var opt = document.createElement('option');
+        opt.value = s.name;
+        var label = s.name + ' (' + s.manaCost + ' mana';
+        if (!s.affordable) label += ' N/A';
+        label += ')';
+        opt.textContent = label;
+        opt.dataset.targetMode = s.targetMode;
+        opt.dataset.needsCheck = s.needsCheck ? '1' : '0';
+        spellSel.appendChild(opt);
+      });
+      if (spellSel.options.length === 0) {
+        var opt = document.createElement('option');
+        opt.value = ''; opt.textContent = '-- no allowed spells --';
+        spellSel.appendChild(opt);
+      }
+      refreshSpellTarget(cid, slot);
+    } else if (type === 'item') {
+      itemLbl.style.display = '';
+      itemSel.innerHTML = '';
+      combatant.items.forEach(function(it) {
+        var opt = document.createElement('option');
+        opt.value = it.itemId;
+        var q = it.quantity > 1 ? ' x' + it.quantity : '';
+        opt.textContent = it.name + q;
+        opt.dataset.targetMode = it.targetMode;
+        itemSel.appendChild(opt);
+      });
+      if (itemSel.options.length === 0) {
+        var opt = document.createElement('option');
+        opt.value = ''; opt.textContent = '-- no matching items --';
+        itemSel.appendChild(opt);
+      }
+      refreshItemTarget(cid, slot);
+    }
+    updateSummary();
+  }
+
+  function refreshSpellTarget(cid, slot) {
+    var slotEl = form.querySelector('.ua-combatant[data-cid="' + cid + '"] .ua-slot[data-slot="' + slot + '"]');
+    var spellSel = slotEl.querySelector('.ua-spell');
+    var targetLbl = slotEl.querySelector('.ua-target-label');
+    var targetSel = slotEl.querySelector('.ua-target');
+    var check = slotEl.querySelector('.ua-check');
+    var opt = spellSel.options[spellSel.selectedIndex];
+    if (!opt || !opt.value) { targetLbl.style.display = 'none'; check.style.display = 'none'; return; }
+    var mode = opt.dataset.targetMode || 'single';
+    if (mode === 'none') {
+      targetLbl.style.display = 'none';
+      targetSel.innerHTML = '';
+    } else {
+      targetLbl.style.display = '';
+      populateTargets(targetSel, mode);
+    }
+    check.style.display = opt.dataset.needsCheck === '1' ? '' : 'none';
+  }
+
+  function refreshItemTarget(cid, slot) {
+    var slotEl = form.querySelector('.ua-combatant[data-cid="' + cid + '"] .ua-slot[data-slot="' + slot + '"]');
+    var itemSel = slotEl.querySelector('.ua-item');
+    var targetLbl = slotEl.querySelector('.ua-target-label');
+    var targetSel = slotEl.querySelector('.ua-target');
+    var check = slotEl.querySelector('.ua-check');
+    var opt = itemSel.options[itemSel.selectedIndex];
+    if (!opt || !opt.value) { targetLbl.style.display = 'none'; check.style.display = 'none'; return; }
+    var mode = opt.dataset.targetMode || 'single';
+    if (mode === 'none') {
+      targetLbl.style.display = 'none';
+      targetSel.innerHTML = '';
+    } else {
+      targetLbl.style.display = '';
+      populateTargets(targetSel, mode);
+    }
+    check.style.display = 'none';
+  }
+
+  // Sub-dropdown change listeners (spell/item selection updates target).
+  document.querySelectorAll('.ua-spell').forEach(function(sel) {
+    sel.addEventListener('change', function() { refreshSpellTarget(sel.dataset.cid, sel.dataset.slot); updateSummary(); });
+  });
+  document.querySelectorAll('.ua-item').forEach(function(sel) {
+    sel.addEventListener('change', function() { refreshItemTarget(sel.dataset.cid, sel.dataset.slot); updateSummary(); });
+  });
+  document.querySelectorAll('.ua-target, .ua-successes').forEach(function(el) {
+    el.addEventListener('change', updateSummary);
+    el.addEventListener('input', updateSummary);
+  });
+  document.querySelectorAll('.ua-save input').forEach(function(el) {
+    el.addEventListener('input', updateSummary);
+    el.addEventListener('change', updateSummary);
+  });
+
+  // --- Save-phase projection (matches app.rb downtime_resolve_condition). ---
+  function projectSaves(combatant) {
+    var out = { damageMinor: 0, paralysisRounds: 0, decay: {}, extraTempHpAbsorbed: 0 };
+    combatant.conditions.forEach(function(cond) {
+      var el = document.getElementById('ua-save-' + combatant.combatId + '-' + cond.name);
+      var suc = el ? (parseInt(el.value, 10) || 0) : 0;
+      if (cond.name === 'bleed') {
+        var raw = 1 + Math.floor(cond.value / 10);
+        var dealt = Math.max(0, raw - suc);
+        out.damageMinor += dealt;
+      } else if (cond.name === 'ghoul_paralysis') {
+        var rawR = 1 + Math.floor(cond.value / 10);
+        out.paralysisRounds += Math.max(0, rawR - suc);
+      }
+      var newVal = Math.max(0, cond.value - (1 + suc));
+      out.decay[cond.name] = { from: cond.value, to: newVal };
+    });
+    return out;
+  }
+
+  // --- Action-phase projection. Mirrors apply_spell_effect / apply_item_effect
+  // so the DM sees results before End Round. ---
+  function projectAction(caster, slotEl) {
+    var type = slotEl.querySelector('.ua-type').value;
+    if (type === 'nothing') return null;
+    if (type === 'cast') {
+      var spellSel = slotEl.querySelector('.ua-spell');
+      var opt = spellSel.options[spellSel.selectedIndex];
+      if (!opt || !opt.value) return null;
+      var spell = caster.spells.find(function(s) { return s.name === opt.value; });
+      if (!spell) return null;
+      var targets = collectTargets(slotEl);
+      var sucEl = slotEl.querySelector('.ua-successes');
+      var suc = sucEl ? (parseInt(sucEl.value, 10) || 0) : 0;
+      return { kind: 'cast', caster: caster, spell: spell, targets: targets, successes: suc };
+    }
+    if (type === 'item') {
+      var itemSel = slotEl.querySelector('.ua-item');
+      var opt = itemSel.options[itemSel.selectedIndex];
+      if (!opt || !opt.value) return null;
+      var item = caster.items.find(function(i) { return String(i.itemId) === opt.value; });
+      if (!item) return null;
+      var targets = collectTargets(slotEl);
+      return { kind: 'item', caster: caster, item: item, targets: targets };
+    }
+    return null;
+  }
+
+  function collectTargets(slotEl) {
+    var sel = slotEl.querySelector('.ua-target');
+    if (!sel || slotEl.querySelector('.ua-target-label').style.display === 'none') return [];
+    return Array.from(sel.selectedOptions || []).map(function(o) { return parseInt(o.value, 10); }).filter(function(v) { return v; });
+  }
+
+  function describeAction(act) {
+    if (!act) return 'Nothing';
+    if (act.kind === 'cast') {
+      var spell = act.spell;
+      var targets = act.targets.map(function(tid) { return byId[String(tid)] && byId[String(tid)].name; }).filter(Boolean);
+      var parts = ['Cast <b>' + spell.name + '</b>'];
+      if (targets.length) parts.push('on ' + targets.join(', '));
+      parts.push('(-' + spell.manaCost + ' mana' + (spell.affordable ? '' : ' <span class="dt-warn">N/A</span>') + ')');
+      if (spell.baseName === 'Cure' && spell.cure && targets.length) {
+        targets.forEach(function(tid) {
+          var t = byId[String(tid)]; if (!t) return;
+          var res = cureCascade(spell.cure, t, act.caster.improvedHealing, act.caster.tier);
+          parts.push('&rarr; ' + t.name + ' heals ' + res.major + '/' + res.moderate + '/' + res.minor + ', +' + res.sat + ' sat');
+        });
+      } else if (spell.baseName === 'Ward' && spell.ward && targets.length) {
+        targets.forEach(function(tid) {
+          var t = byId[String(tid)]; if (!t) return;
+          var newTemp = Math.max(t.tempHp, spell.ward.tempHp);
+          parts.push('&rarr; ' + t.name + ' temp HP ' + t.tempHp + ' &rarr; ' + newTemp);
+        });
+      } else if (spell.baseName === 'Stabilize' && targets.length) {
+        targets.forEach(function(tid) {
+          var t = byId[String(tid)]; if (!t) return;
+          var bleed = (t.conditions.find(function(c) { return c.name === 'bleed'; }) || {}).value || 0;
+          var reduce = Math.min(bleed, 3 * act.successes);
+          parts.push('&rarr; ' + t.name + ' bleed ' + bleed + ' &rarr; ' + (bleed - reduce));
+        });
+      }
+      return parts.join(' ');
+    }
+    if (act.kind === 'item') {
+      var targets = act.targets.map(function(tid) { return byId[String(tid)] && byId[String(tid)].name; }).filter(Boolean);
+      return 'Use <b>' + act.item.name + '</b>' + (targets.length ? ' on ' + targets.join(', ') : '');
+    }
+    return 'Nothing';
+  }
+
+  function cureCascade(effect, target, improvedHealing, casterTier) {
+    var pool = effect.major;
+    var healedMajor = Math.min(target.damage[2], pool); pool -= healedMajor;
+    pool += effect.moderate;
+    var healedModerate = Math.min(target.damage[1], pool); pool -= healedModerate;
+    pool += effect.minor;
+    var healedMinor = Math.min(target.damage[0], pool);
+    var sat = effect.saturation - target.tier;
+    if (improvedHealing) sat -= 2 * casterTier;
+    if (sat < effect.minimumSaturation) sat = effect.minimumSaturation;
+    return { major: healedMajor, moderate: healedModerate, minor: healedMinor, sat: sat };
+  }
+
+  function updateSummary() {
+    var lines = [];
+    UA.combatants.forEach(function(c) {
+      var saveProj = projectSaves(c);
+      var segments = [];
+      if (c.conditions.length) {
+        var savePart = [];
+        c.conditions.forEach(function(cond) {
+          var d = saveProj.decay[cond.name];
+          if (cond.name === 'bleed') {
+            var raw = 1 + Math.floor(cond.value / 10);
+            var el = document.getElementById('ua-save-' + c.combatId + '-' + cond.name);
+            var suc = el ? (parseInt(el.value, 10) || 0) : 0;
+            var dealt = Math.max(0, raw - suc);
+            savePart.push('Bleed ' + dealt + ' minor (' + raw + '-' + suc + '), ' + cond.value + '&rarr;' + d.to);
+          } else if (cond.name === 'ghoul_paralysis') {
+            var rawR = 1 + Math.floor(cond.value / 10);
+            var elG = document.getElementById('ua-save-' + c.combatId + '-' + cond.name);
+            var sucG = elG ? (parseInt(elG.value, 10) || 0) : 0;
+            var rounds = Math.max(0, rawR - sucG);
+            savePart.push('Paralyzed ' + rounds + 'r, ' + cond.value + '&rarr;' + d.to);
+          } else {
+            savePart.push(cond.label + ' ' + cond.value + '&rarr;' + d.to);
+          }
+        });
+        segments.push('Saves: ' + savePart.join('; '));
+      }
+      var slotsEl = form.querySelectorAll('.ua-combatant[data-cid="' + c.combatId + '"] .ua-slot');
+      var actionParts = [];
+      slotsEl.forEach(function(slotEl) {
+        var act = projectAction(c, slotEl);
+        if (act) actionParts.push(describeAction(act));
+      });
+      if (actionParts.length) segments.push(actionParts.join(' | '));
+      if (segments.length) lines.push('<div class="ua-summary-line"><b>' + c.name + '</b>: ' + segments.join(' &middot; ') + '</div>');
+    });
+    if (!lines.length) lines.push('<div class="ua-summary-line dt-note">No queued saves or actions yet.</div>');
+    summaryEl.innerHTML = '<h3>Summary</h3>' + lines.join('');
+  }
+
+  // --- Build JSON payload on submit; hidden input goes to the server. ---
+  form.addEventListener('submit', function() {
+    var payload = { saves: {}, actions: {} };
+    UA.combatants.forEach(function(c) {
+      if (c.conditions.length) {
+        payload.saves[c.combatId] = {};
+        c.conditions.forEach(function(cond) {
+          var el = document.getElementById('ua-save-' + c.combatId + '-' + cond.name);
+          payload.saves[c.combatId][cond.name] = el ? (parseInt(el.value, 10) || 0) : 0;
+        });
+      }
+      var slotsEl = form.querySelectorAll('.ua-combatant[data-cid="' + c.combatId + '"] .ua-slot');
+      payload.actions[c.combatId] = [];
+      slotsEl.forEach(function(slotEl) {
+        var type = slotEl.querySelector('.ua-type').value;
+        if (type === 'nothing') { payload.actions[c.combatId].push({ type: 'nothing' }); return; }
+        var action = { type: type };
+        if (type === 'cast') {
+          var spellSel = slotEl.querySelector('.ua-spell');
+          action.spell = spellSel ? spellSel.value : '';
+        } else if (type === 'item') {
+          var itemSel = slotEl.querySelector('.ua-item');
+          action.item_id = itemSel ? (parseInt(itemSel.value, 10) || 0) : 0;
+        }
+        action.targets = collectTargets(slotEl);
+        var sucEl = slotEl.querySelector('.ua-successes');
+        if (sucEl && slotEl.querySelector('.ua-check').style.display !== 'none') {
+          action.successes = parseInt(sucEl.value, 10) || 0;
+        }
+        payload.actions[c.combatId].push(action);
+      });
+    });
+    payloadEl.value = JSON.stringify(payload);
+  });
+
+  updateSummary();
+})();
+</script>
+<% end %>
 
 <script>
 window.DT_DATA = <%= @dt_data.to_json.gsub('<', '\\u003c') %>;

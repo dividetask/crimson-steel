@@ -1670,5 +1670,6 @@
     {"spell": "Cure Simple Wounds",   "title": "Adept",    "class": "cleric", "tier": 2, "cost": 40},
     {"spell": "Cure Simple Wounds",   "title": "Priest",   "class": "cleric", "tier": 3, "cost": 80},
     {"spell": "Cure Moderate Wounds", "title": "Priest",   "class": "cleric", "tier": 3, "cost": 200}
-  ]
+  ],
+  "urgent_action_spells": ["Cure", "Ward", "Stabilize"]
 }
