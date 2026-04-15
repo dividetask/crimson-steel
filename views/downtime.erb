@@ -678,7 +678,7 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
           var newSev = Math.max(0, sev - (1 + suc));
           if (cond.name === 'bleed') {
             if (sev <= 0) {
-              savePart.push('Bleed already ended');
+              savePart.push('Saves vs Bleed: already ended');
             } else {
               var raw = 1 + Math.floor(sev / 10);
               var dealt = Math.max(0, raw - suc);
@@ -687,18 +687,18 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
               var landed = dealt - absorbed;
               ss.damage[0] += landed;
               var absorbNote = absorbed > 0 ? ' (' + absorbed + ' temp HP absorbed)' : '';
-              savePart.push('Bleed ' + landed + ' minor (' + raw + '-' + suc + ')' + absorbNote + ', ' + sev + '&rarr;' + newSev);
+              savePart.push('Saves vs Bleed: ' + landed + ' minor damage' + absorbNote + ', Bleed reduced from ' + sev + ' to ' + newSev);
             }
           } else if (cond.name === 'ghoul_paralysis') {
             var rawR = 1 + Math.floor(sev / 10);
             var rounds = Math.max(0, rawR - suc);
-            savePart.push('Paralyzed ' + rounds + 'r, ' + sev + '&rarr;' + newSev);
+            savePart.push('Saves vs Ghoul Paralysis: ' + rounds + ' round' + (rounds === 1 ? '' : 's') + ' paralyzed, Ghoul Paralysis reduced from ' + sev + ' to ' + newSev);
           } else {
-            savePart.push(cond.label + ' ' + sev + '&rarr;' + newSev);
+            savePart.push('Saves vs ' + cond.label + ': ' + cond.label + ' reduced from ' + sev + ' to ' + newSev);
           }
           ss.conditions[cond.name] = newSev;
         });
-        if (savePart.length) segments.push('Saves: ' + savePart.join('; '));
+        if (savePart.length) segments.push(savePart.join('; '));
       }
 
       // --- Action phase: each action mutates the target's state so a Stabilize
