@@ -22,7 +22,25 @@ class CombatTurn
     # (minor/moderate/major) -> amount. Persists until cured.
     @ability_damage = (combat_turn['ability_damage'] || {}).dup
     @character = CharacterSheet.new(character)
+    # Inject this participant's combat state into the CharacterSheet so
+    # every derived stat (effective ability scores, combat_pool via dex,
+    # current_hp, etc.) reflects the correct combatant -- not whichever
+    # participant combat_status' char_id lookup finds first.
+    @character.override_combat_data(
+      minor_damage: @minor_damage,
+      moderate_damage: @moderate_damage,
+      major_damage: @major_damage,
+      mana: @mana,
+      temporary_hit_points: @temporary_hit_points,
+      saturation: @saturation,
+      ability_damage: @ability_damage
+    )
   end
+
+  # Incapacitated / dead delegate to the CharacterSheet, which now reads
+  # this participant's combat_status via override_combat_data above.
+  def incapacitated?; @character.incapacitated?; end
+  def dead?; @character.dead?; end
 
   def condition(name); @conditions[name.to_s].to_i; end
   def active_conditions; @conditions.select { |_, v| v.to_i > 0 }; end
@@ -78,6 +96,13 @@ class Combat
   end
 
   def current_turn_character; @combat_turn_list[@current_turn_id]; end
+
+  # Combatants currently on the initiative order (not yet killed). Dead
+  # characters remain in the underlying combat.json record -- so their
+  # state is preserved -- but are skipped by the combat tracker table,
+  # turn advancement, and targeting.
+  def living_turn_list; @combat_turn_list.reject(&:dead?); end
+  def killed_list; @combat_turn_list.select(&:dead?); end
 
   def display_name(combat_turn)
     return "Unknown" unless combat_turn&.character
@@ -146,10 +171,28 @@ class Combat
   end
 
   def self.advance_turn
+    combat = Combat.new
+    turn_list = combat.combat_turn_list
+    num_participants = turn_list.length
+    return if num_participants == 0
+
     combat_data = Tools.load_json('combat.json')
-    num_participants = combat_data['participants'].length
     old_turn_id = combat_data['current_turn_id'].to_i
-    new_turn_id = (old_turn_id + 1) % num_participants
+    new_turn_id = old_turn_id
+    round_wrapped = false
+
+    # Advance past any dead combatants. Each time we wrap past the end of
+    # the initiative order (index n-1 -> 0) we've started a new round.
+    # Guard with num_participants iterations so an all-dead encounter
+    # doesn't loop forever.
+    num_participants.times do
+      prev_id = new_turn_id
+      new_turn_id = (new_turn_id + 1) % num_participants
+      round_wrapped = true if new_turn_id <= prev_id
+      target = turn_list[new_turn_id]
+      break if target.nil? || !target.dead?
+    end
+
     combat_data['current_turn_id'] = new_turn_id
     Tools.save_json('combat.json', combat_data)
 
@@ -157,7 +200,7 @@ class Combat
     # ends_on_round expiry for paralysis and other duration effects.
     # combat.json['round'] is a separate, downtime-managed counter for
     # post-combat urgent-action cycles; we leave it alone here.
-    if new_turn_id == 0
+    if round_wrapped
       campaign = Tools.load_json('campaign.json')
       campaign = {} unless campaign.is_a?(Hash)
       campaign['rounds_elapsed'] = campaign['rounds_elapsed'].to_i + 1
@@ -797,12 +840,21 @@ module BaseStatsMath
     return {"Strength" => :str, "Dexterity" => :dex, "Constitution" => :con, "Intelligence" => :int, "Wisdom" => :wis, "Charisma"=> :cha }
   end
 
-  def str; return @data["ability_scores"]["str"].to_i; end
-  def dex; return @data["ability_scores"]["dex"].to_i; end
-  def con; return @data["ability_scores"]["con"].to_i; end
-  def int; return @data["ability_scores"]["int"].to_i; end
-  def wis; return @data["ability_scores"]["wis"].to_i; end
-  def cha; return @data["ability_scores"]["cha"].to_i; end
+  # Default: no ability damage. CharacterSheet overrides this to read
+  # accumulated ability_damage from the character's combat_status so that
+  # effective ability scores flow through to every skill/dice/save formula.
+  def ability_damage_total(sym); 0; end
+
+  # Raw ability score (before any damage). Use this for display purposes when
+  # showing the base value alongside a "-X" damage annotation.
+  def ability_score_base(sym); @data["ability_scores"][sym.to_s].to_i; end
+
+  def str; return ability_score_base(:str) - ability_damage_total(:str); end
+  def dex; return ability_score_base(:dex) - ability_damage_total(:dex); end
+  def con; return ability_score_base(:con) - ability_damage_total(:con); end
+  def int; return ability_score_base(:int) - ability_damage_total(:int); end
+  def wis; return ability_score_base(:wis) - ability_damage_total(:wis); end
+  def cha; return ability_score_base(:cha) - ability_damage_total(:cha); end
   def initiative; return half_mod(:wis); end
   def score(attr); self.send(attr); end
   def half_mod(attr); (self.send(attr) / 2).to_i; end
@@ -991,7 +1043,46 @@ class CharacterSheet
   def speed; return 30 + @rules["reference"]["speed_modifiers"]["race"][race_sym.to_s].to_i + speed_modifiers; end
 
   def con; undead? ? cha_raw : super; end
-  def cha_raw; @data["ability_scores"]["cha"].to_i; end
+  # cha_raw is undead's substitute for CON; include CHA ability damage so
+  # damage to an undead's CHA flows through to HP / CON saves just like any
+  # other score. (Undead have five raw ability scores, not six.)
+  def cha_raw; ability_score_base(:cha) - ability_damage_total(:cha); end
+
+  # Summed ability damage (minor + moderate + major) for a given attribute.
+  # BaseStatsMath provides a zero default; this override pulls from the
+  # character's combat_status so derived stats (half_mod, dice, saves,
+  # combat_pool, etc.) all see the reduced effective score.
+  def ability_damage_total(sym)
+    damage_hash = combat_status[:ability_damage] || {}
+    (damage_hash[sym.to_s] || {}).values.map(&:to_i).sum
+  end
+
+  # List of ability scores relevant to this character. Undead lack a CON
+  # score (CHA takes its place), so incapacitation / death checks for
+  # undead skip CON entirely.
+  def ability_score_list
+    undead? ? %i[str dex int wis cha] : %i[str dex con int wis cha]
+  end
+
+  # A character is incapacitated when HP has dropped to 0 or below, or any
+  # effective ability score has dropped to 0 or below. Incapacitated
+  # characters may only take the Start of Turn action.
+  def incapacitated?
+    return true if current_hp <= 0
+    ability_score_list.any? { |sym| score(sym) <= 0 }
+  end
+
+  # A character is dead (no revive possible) when HP reaches -hp_max or
+  # lower, or any ability score reaches -base or lower (i.e. double the
+  # maximum has been dealt). Dead combatants are removed from initiative.
+  # Guard the HP check with hp_max > 0 so a formula that collapses to
+  # zero (e.g. undead whose CHA -- their substitute CON -- is zeroed
+  # by damage) doesn't spuriously trigger death via 0 <= -0; in that
+  # case the ability-score check below is the authoritative signal.
+  def dead?
+    return true if hp_max > 0 && current_hp <= -hp_max
+    ability_score_list.any? { |sym| score(sym) <= -ability_score_base(sym) }
+  end
 
   def tier; @data["tier"] || super; end
 
@@ -1059,23 +1150,48 @@ class CharacterSheet
   end
 
   def combat_status
-    @combat_status ||= begin
-      combat_data = Tools.load_json('combat.json')
-      participant = (combat_data['participants'] || []).find { |p| (p['char_id'] || p['id']) == @id }
-      if participant
-        {
-          minor_damage: participant['minor_damage'].to_i,
-          moderate_damage: participant['moderate_damage'].to_i,
-          major_damage: participant['major_damage'].to_i,
-          current_mana: participant['mana'].to_i,
-          temporary_hit_points: participant['temporary_hit_points'].to_i,
-          saturation: participant['saturation'].to_i,
-          ability_damage: participant['ability_damage'] || {}
-        }
-      else
-        { minor_damage: 0, moderate_damage: 0, major_damage: 0, current_mana: mana_max, temporary_hit_points: 0, saturation: 0, ability_damage: {} }
-      end
+    return @combat_status if @combat_status
+    combat_data = Tools.load_json('combat.json')
+    participant = (combat_data['participants'] || []).find { |p| (p['char_id'] || p['id']) == @id }
+    if participant
+      @combat_status = {
+        minor_damage: participant['minor_damage'].to_i,
+        moderate_damage: participant['moderate_damage'].to_i,
+        major_damage: participant['major_damage'].to_i,
+        current_mana: participant['mana'].to_i,
+        temporary_hit_points: participant['temporary_hit_points'].to_i,
+        saturation: participant['saturation'].to_i,
+        ability_damage: participant['ability_damage'] || {}
+      }
+    else
+      # Seed with a zero-damage stub first so that ability_damage_total can
+      # resolve while mana_max is being computed below. Without this,
+      # mana_max -> parse_formula -> str -> ability_damage_total ->
+      # combat_status recurses indefinitely.
+      @combat_status = { minor_damage: 0, moderate_damage: 0, major_damage: 0,
+                         current_mana: 0, temporary_hit_points: 0, saturation: 0,
+                         ability_damage: {} }
+      @combat_status[:current_mana] = mana_max
     end
+    @combat_status
+  end
+
+  # Override combat_status with explicit values -- used by CombatTurn so each
+  # participant's CharacterSheet reflects that specific combatant's state,
+  # rather than the first characters.json match (which can differ when
+  # multiple copies of the same enemy are in the tracker).
+  def override_combat_data(minor_damage: 0, moderate_damage: 0, major_damage: 0,
+                           mana: nil, temporary_hit_points: 0, saturation: 0,
+                           ability_damage: {})
+    @combat_status = {
+      minor_damage: minor_damage.to_i,
+      moderate_damage: moderate_damage.to_i,
+      major_damage: major_damage.to_i,
+      current_mana: (mana.nil? ? mana_max : mana.to_i),
+      temporary_hit_points: temporary_hit_points.to_i,
+      saturation: saturation.to_i,
+      ability_damage: ability_damage || {}
+    }
   end
 
   def current_hp; hp_max - combat_status[:minor_damage] - combat_status[:moderate_damage] - combat_status[:major_damage] + combat_status[:temporary_hit_points]; end
