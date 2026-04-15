@@ -287,17 +287,72 @@
     function promptNextConditionSave() {
       var i = startOfTurnState.index;
       if (i >= startOfTurnConditions.length) {
+        var summary = startOfTurnConditions.map(function(c) {
+          return '<li>' + summarizeConditionOutcome(c, startOfTurnState.successes[c.name] || 0) + '</li>';
+        }).join('');
         addStep('<strong>All saves recorded.</strong>' +
-          '<br><button class="action-btn" onclick="confirmStartOfTurn()" style="margin-top:8px;">Confirm Start of Turn</button>');
+          '<br><span class="math-detail">Consequences:</span><ul style="margin:4px 0 8px 18px;">' + summary + '</ul>' +
+          '<button class="action-btn" onclick="confirmStartOfTurn()">Confirm Start of Turn</button>');
         return;
       }
       var cond = startOfTurnConditions[i];
       var tnSuffix = cond.tn_mod_label ? ' <span class="math-detail">(' + cond.tn_mod_label + ')</span>' : '';
       var inputId = 'save-successes-' + i;
+      var rollsId = 'save-rolls-' + i;
       addStep('<strong>Save vs ' + cond.label + '</strong> (severity ' + cond.value + ')' +
-        '<br><span class="math-detail">Roll ' + cond.dice + 'd10 at TN ' + cond.tn + '</span>' + tnSuffix +
+        '<br><span class="math-detail">Roll ' + cond.dice + ' dice at TN ' + cond.tn + '</span>' + tnSuffix +
         '<br><label>Successes: <input type="number" id="' + inputId + '" min="0" max="' + cond.dice + '" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="recordConditionSave(' + i + ', \'' + inputId + '\')">Next</button>');
+        ' <button class="action-btn" onclick="recordConditionSave(' + i + ', \'' + inputId + '\')">Next</button>' +
+        ' <button class="action-btn" onclick="rollSaveDice(' + i + ', \'' + inputId + '\', \'' + rollsId + '\')">Roll</button>' +
+        '<span id="' + rollsId + '" class="math-detail" style="margin-left:8px;"></span>');
+    }
+
+    // Roll `cond.dice` d10s, count results >= cond.tn as successes, fill the
+    // successes input, and show the raw dice so the DM can see (or fudge)
+    // the outcome. Can be clicked multiple times to re-roll.
+    function rollSaveDice(i, inputId, rollsId) {
+      var cond = startOfTurnConditions[i];
+      var rolls = [];
+      var successes = 0;
+      for (var r = 0; r < cond.dice; r++) {
+        var d = Math.floor(Math.random() * 10) + 1;
+        rolls.push(d);
+        if (d >= cond.tn) successes++;
+      }
+      document.getElementById(inputId).value = successes;
+      document.getElementById(rollsId).innerHTML = 'Rolled: [' + rolls.join(', ') + '] &rarr; ' + successes + ' success' + (successes === 1 ? '' : 'es');
+    }
+
+    // Preview of what a save with `successes` will do to `cond` on Confirm.
+    // Mirrors the server-side resolution in app.rb start_of_turn so the DM
+    // can see damage/paralysis/decay before submitting.
+    function summarizeConditionOutcome(cond, successes) {
+      var parts = [];
+      if (cond.name === 'bleed') {
+        var raw = 1 + Math.floor(cond.value / 10);
+        var dealt = Math.max(0, raw - successes);
+        if (dealt > 0) {
+          parts.push('<strong>Bleed:</strong> ' + dealt + ' minor damage (' + raw + ' - ' + successes + ' successes, temp HP absorbs first)');
+        } else {
+          parts.push('<strong>Bleed:</strong> no damage (' + raw + ' blocked by ' + successes + ' successes)');
+        }
+      } else if (cond.name === 'ghoul_paralysis') {
+        if (successes <= 0) {
+          parts.push('<strong>Ghoul Paralysis:</strong> <span style="color:#6a1b9a;font-weight:bold;">PARALYZED for 1 turn</span>');
+        } else {
+          parts.push('<strong>Ghoul Paralysis:</strong> resisted');
+        }
+      } else {
+        parts.push('<strong>' + cond.label + ':</strong> save recorded');
+      }
+      var decay = 1 + successes;
+      var newValue = Math.max(0, cond.value - decay);
+      if (newValue <= 0) {
+        parts.push(cond.label + ' ends (' + cond.value + ' &rarr; 0)');
+      } else {
+        parts.push(cond.label + ' decays ' + cond.value + ' &rarr; ' + newValue);
+      }
+      return parts.join('; ');
     }
 
     function recordConditionSave(i, inputId) {
