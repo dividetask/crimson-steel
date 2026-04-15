@@ -259,6 +259,10 @@ post '/combat/action' do
       halt 400, "Target character not found" unless target_data
       target_character = CharacterSheet.new(target_data)
 
+      dice_spent = params[:stabilize_dice].to_i
+      halt 400, "Stabilize requires spending at least 1 die" unless dice_spent > 0
+      halt 400, "Not enough combat dice" unless participant['combat_pool'].to_i >= dice_spent
+
       successes = params[:stabilize_successes].to_i
       target['conditions'] ||= {}
       before = target['conditions']['bleed'].to_i
@@ -277,11 +281,28 @@ post '/combat/action' do
       end
 
       participant['mana'] = participant['mana'].to_i - mana_cost
+      participant['combat_pool'] = participant['combat_pool'].to_i - dice_spent
+
+      # Stabilize is a concentration spell; register the effect so the DM
+      # can dismiss it (or later let it tick down). Consistent shape with
+      # other concentration entries so the existing dismiss/display paths
+      # handle it without special-casing.
+      combat_data['active_effects'] ||= []
+      combat_data['active_effects'] << {
+        'caster_id' => combat_id,
+        'caster_name' => character.name,
+        'spell_name' => spell_name,
+        'spell_tier' => spell_tier,
+        'round_cast' => combat_data['round'],
+        'target_combat_ids' => [target_combat_id],
+        'target_names' => [target_character.name]
+      }
+
       Tools.save_json('combat.json', combat_data)
       if before <= 0
-        Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana) - target not bleeding")
+        Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana, #{dice_spent} dice) - target not bleeding")
       else
-        Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana, #{successes} successes) - bleed #{before} -> #{after} (-#{reduction})")
+        Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana, #{dice_spent} dice, #{successes} successes) - bleed #{before} -> #{after} (-#{reduction})")
       end
     elsif ward
       halt 400, "Ward spell requires a target" unless target_combat_id

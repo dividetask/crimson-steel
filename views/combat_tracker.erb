@@ -574,22 +574,11 @@
         fields += ', target_combat_id: ' + targetIds[0];
       }
 
-      // Stabilize requires a healing-skill roll; each success drops the
-      // target's bleed by 3. Prompt for successes (with a Roll helper)
-      // before submitting so the DM can roll or enter manually.
+      // Stabilize is a concentration spell that spends combat dice and rolls
+      // a healing check; each success reduces target's bleed by 3. We walk
+      // the DM through: pick dice -> roll -> summary -> submit.
       if (effectLabel === 'stabilize') {
-        var tn = Math.max(diceRules.tn_minimum, Math.min(diceRules.tn_maximum, diceRules.base_target_number - currentHealingBonus));
-        addStep('<strong>Casting: ' + spellName + '</strong>' +
-          '<br><span class="math-detail">Tier ' + spellTier + ' | Cost: ' + cost + ' mana' + targetLabel + label + '</span>' +
-          '<br><span class="math-detail">Healing Roll: ' + currentHealingDice + ' dice at TN ' + tn + ' (each success reduces bleed by 3)</span>' +
-          '<br><label>Successes: <input type="number" id="stabilize-successes" min="0" value="0" style="width:50px;"></label>' +
-          ' <button class="action-btn" onclick="(function(){' +
-            'var v=parseInt(document.getElementById(\'stabilize-successes\').value,10);' +
-            'if(isNaN(v)||v<0){alert(\'Enter a non-negative number of successes.\');return;}' +
-            'submitAction({' + fields + ', stabilize_successes: v});' +
-          '})()" style="margin-top:4px;">Confirm Cast</button>' +
-          ' <button class="action-btn" onclick="rollDicePool(' + currentHealingDice + ', ' + tn + ', \'stabilize-successes\', \'stabilize-roll-display\')">Roll</button>' +
-          '<div id="stabilize-roll-display" class="math-detail" style="margin-top:4px;"></div>');
+        showStabilizeDice(spellName, spellTier, targetIds[0], targetLabel);
         return;
       }
 
@@ -597,6 +586,48 @@
         '<br><span class="math-detail">Tier ' + spellTier + ' | Cost: ' + cost + ' mana' + targetLabel +
         (isConcentration ? ' | Concentration' : '') + label + '</span>' +
         '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Confirm Cast</button>');
+    }
+
+    // --- STABILIZE: multi-step flow (dice -> roll -> summary -> submit) ---
+    function showStabilizeDice(spellName, spellTier, targetId, targetLabel) {
+      var target = combatants.find(function(c) { return c.combat_id === targetId; });
+      var targetName = target ? target.name : 'target';
+      var maxDice = Math.min(currentHealingDice, diceRemaining);
+      if (maxDice < 1) {
+        addStep('<strong>Cannot cast Stabilize</strong> - no combat dice remaining (healing ' + currentHealingDice + ', remaining ' + diceRemaining + ')');
+        return;
+      }
+      var tn = clampTn(diceRules.base_target_number - currentHealingBonus);
+      addStep('<strong>Stabilize</strong> on ' + targetName +
+        '<br><span class="math-detail">Healing check, TN ' + tn + ' | Max dice: ' + maxDice + ' (healing ' + currentHealingDice + ', remaining ' + diceRemaining + ')</span>' +
+        '<br><label>Dice to spend: <input type="number" id="stabilize-dice" min="1" max="' + maxDice + '" value="' + maxDice + '" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="showStabilizeRoll(\'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ', ' + targetId + ', ' + tn + ')" style="margin-top:4px;">Next</button>');
+    }
+
+    function showStabilizeRoll(spellName, spellTier, targetId, tn) {
+      var dice = parseInt(document.getElementById('stabilize-dice').value, 10);
+      var maxDice = Math.min(currentHealingDice, diceRemaining);
+      if (isNaN(dice) || dice < 1 || dice > maxDice) { alert('Enter 1-' + maxDice + '.'); return; }
+      addStep('<strong>Stabilize Roll</strong>: ' + dice + ' dice, TN ' + tn +
+        '<br><label>Successes: <input type="number" id="stabilize-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="showStabilizeSummary(\'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ', ' + targetId + ', ' + dice + ')">Next</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + dice + ', ' + tn + ', \'stabilize-successes\', \'stabilize-roll-display\')">Roll</button>' +
+        '<div id="stabilize-roll-display" class="math-detail" style="margin-top:4px;"></div>');
+    }
+
+    function showStabilizeSummary(spellName, spellTier, targetId, dice) {
+      var successes = parseInt(document.getElementById('stabilize-successes').value, 10);
+      if (isNaN(successes) || successes < 0) { alert('Enter a non-negative number of successes.'); return; }
+      var target = combatants.find(function(c) { return c.combat_id === targetId; });
+      var targetName = target ? target.name : 'target';
+      var cost = spellManaCost(spellTier);
+      var reduction = 3 * successes;
+      addStep('<strong>Confirm Stabilize</strong> on ' + targetName +
+        '<br><span class="math-detail">Tier ' + spellTier + ' | Cost: ' + cost + ' mana + ' + dice + ' dice | Concentration</span>' +
+        '<br>' + successes + ' success' + (successes === 1 ? '' : 'es') + ' &times; 3 = <strong>bleed &minus;' + reduction + '</strong> on ' + targetName +
+        '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'cast\', spell_name: \'' +
+          spellName.replace(/'/g, "\\'") + '\', spell_tier: ' + spellTier + ', concentration: true, target_combat_id: ' + targetId +
+          ', stabilize_dice: ' + dice + ', stabilize_successes: ' + successes + '})" style="margin-top:8px;">Submit</button>');
     }
 
     // --- ITEM: Consumable selection ---
