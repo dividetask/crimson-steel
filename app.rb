@@ -2335,8 +2335,8 @@ post '/downtime/quick_resolve' do
 
   # Apply per-combatant, per-condition results from the simulation. The client
   # has already done all the dice rolling and accounting (bleed damage,
-  # paralysis rounds, severity decay); the server just stamps the outcome
-  # onto combat.json.
+  # paralysis rounds, ability damage, severity decay); the server just stamps
+  # the outcome onto combat.json.
   results.each do |cid_str, conds|
     participant = combat_data['participants'].find { |p| p['id'].to_i == cid_str.to_i }
     next unless participant
@@ -2347,6 +2347,7 @@ post '/downtime/quick_resolve' do
       damage = sim['damage'].to_i
       temp_absorbed = sim['tempAbsorbed'].to_i
       rounds = sim['rounds'].to_i
+      ability_dealt = sim['abilityDealt'] || {}
       final_severity = sim['finalSeverity'].to_i
 
       if cname == 'bleed'
@@ -2373,6 +2374,21 @@ post '/downtime/quick_resolve' do
             'target_combat_ids' => [cid_str.to_i], 'target_names' => [char_name],
             'round_cast' => combat_data['round'], 'ends_on_round' => rounds_elapsed + rounds
           }
+        end
+      end
+
+      # Generic ability-damage application: client sends totals as
+      # {severity: {attr: count}} from minor_strength_poison-style
+      # conditions. Accumulate onto participant.ability_damage[attr][severity].
+      ability_dealt.each do |sev, attr_map|
+        next unless attr_map.is_a?(Hash)
+        attr_map.each do |attr, n|
+          n = n.to_i
+          next if n <= 0
+          participant['ability_damage'] ||= {}
+          participant['ability_damage'][attr.to_s] ||= {}
+          participant['ability_damage'][attr.to_s][sev.to_s] =
+            participant['ability_damage'][attr.to_s][sev.to_s].to_i + n
         end
       end
 

@@ -860,6 +860,21 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
       return { rolls: rolls, successes: successes };
     }
 
+    // Parse condition names like "minor_strength_poison" into {severity, attr}
+    // for any ability-damage-style affliction. Returns null for conditions
+    // whose name doesn't follow that pattern.
+    var ABILITY_ATTR_MAP = {
+      strength: 'str', dexterity: 'dex', constitution: 'con',
+      intelligence: 'int', wisdom: 'wis', charisma: 'cha'
+    };
+    function parseAbilityCondition(name) {
+      var m = /^(minor|moderate|major)_([a-z]+)_/.exec(name);
+      if (!m) return null;
+      var attr = ABILITY_ATTR_MAP[m[2]];
+      if (!attr) return null;
+      return { severity: m[1], attr: attr };
+    }
+
     function simulateCondition(cond, tempHpStart) {
       var severity = cond.severity;
       var dice = cond.dice;
@@ -867,9 +882,11 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
       var totalDamage = 0;       // bleed: minor damage dealt (post-temp HP)
       var tempAbsorbed = 0;      // bleed: amount soaked by temp HP
       var totalRounds = 0;       // ghoul_paralysis: paralysis rounds queued
+      var abilityDealt = {};     // ability-damage conds: {severity: {attr: count}}
       var tempHp = tempHpStart;
       var savesLog = [];
       var saves = 0;
+      var ab = parseAbilityCondition(cond.name);
       while (severity > 0 && saves < QR_MAX_SAVES) {
         var roll = simulateOneSave(dice, tn);
         saves++;
@@ -883,6 +900,13 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
         } else if (cond.name === 'ghoul_paralysis') {
           var rawR = 1 + Math.floor(severity / 10);
           totalRounds += Math.max(0, rawR - roll.successes);
+        } else if (ab) {
+          var rawA = 1 + Math.floor(severity / 10);
+          var dealtA = Math.max(0, rawA - roll.successes);
+          if (dealtA > 0) {
+            abilityDealt[ab.severity] = abilityDealt[ab.severity] || {};
+            abilityDealt[ab.severity][ab.attr] = (abilityDealt[ab.severity][ab.attr] || 0) + dealtA;
+          }
         }
         savesLog.push(roll.successes);
         severity = Math.max(0, severity - (1 + roll.successes));
@@ -893,6 +917,7 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
         damage: totalDamage,
         tempAbsorbed: tempAbsorbed,
         rounds: totalRounds,
+        abilityDealt: abilityDealt,
         savesLog: savesLog,
         tempHpAfter: tempHp
       };
@@ -939,6 +964,18 @@ window.UA_DATA = <%= @ua_data.to_json.gsub('<', '\\u003c') %>;
             detail = '<br>Took <b>' + sim.damage + '</b> minor damage' + absorb + '.';
           } else if (cond.name === 'ghoul_paralysis') {
             detail = '<br>Queued <b>' + sim.rounds + '</b> paralysis round' + (sim.rounds === 1 ? '' : 's') + '.';
+          } else if (sim.abilityDealt) {
+            // Flatten {severity: {attr: count}} into "N <severity> <ATTR>" pieces.
+            var pieces = [];
+            ['minor', 'moderate', 'major'].forEach(function(sev) {
+              var bucket = sim.abilityDealt[sev]; if (!bucket) return;
+              Object.keys(bucket).forEach(function(attr) {
+                var n = bucket[attr]; if (n <= 0) return;
+                pieces.push('<b>' + n + '</b> ' + sev + ' ' + attr.toUpperCase() + ' damage');
+              });
+            });
+            if (pieces.length) detail = '<br>Took ' + pieces.join(', ') + '.';
+            else detail = '<br>No ability damage taken.';
           }
           var savesLine = sim.savesLog.length ? '<br><span class="math-detail">Successes per save: ' + sim.savesLog.join(', ') + '</span>' : '';
           el.innerHTML = status + detail + savesLine;
