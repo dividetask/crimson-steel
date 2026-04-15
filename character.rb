@@ -1,7 +1,7 @@
 require_relative 'tools'
 
 class CombatTurn
-  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation, :temporary_hit_points, :conditions, :condition_meta
+  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation, :temporary_hit_points, :conditions, :condition_meta, :ability_damage
 
   def initialize(combat_turn, character)
     @rules = Tools.load_json('rules.json')
@@ -18,11 +18,23 @@ class CombatTurn
     # Extra condition state that isn't itself a severity counter (e.g. the
     # highest ghoul tier that has hit this target, which modifies save TN).
     @condition_meta = (combat_turn['condition_meta'] || {}).dup
+    # Ability damage: nested hash of ability (str/dex/...) -> severity
+    # (minor/moderate/major) -> amount. Persists until cured.
+    @ability_damage = (combat_turn['ability_damage'] || {}).dup
     @character = CharacterSheet.new(character)
   end
 
   def condition(name); @conditions[name.to_s].to_i; end
   def active_conditions; @conditions.select { |_, v| v.to_i > 0 }; end
+  def active_ability_damage
+    result = []
+    (@ability_damage || {}).each do |ability, severities|
+      (severities || {}).each do |severity, val|
+        result << [ability, severity, val.to_i] if val.to_i > 0
+      end
+    end
+    result
+  end
 
   def new_turn; @combat_pool = @character.combat_pool; end
   def reroll_init
@@ -37,7 +49,8 @@ class CombatTurn
       'initiative' => @initiative, 'mana' => @mana, 'combat_pool' => @combat_pool,
       'minor_damage' => @minor_damage, 'moderate_damage' => @moderate_damage, 'major_damage' => @major_damage,
       'saturation' => @saturation, 'temporary_hit_points' => @temporary_hit_points,
-      'conditions' => @conditions, 'condition_meta' => @condition_meta}
+      'conditions' => @conditions, 'condition_meta' => @condition_meta,
+      'ability_damage' => @ability_damage}
   end
 
   def hp; return @character.hp_max - @minor_damage - @moderate_damage - @major_damage + @temporary_hit_points.to_i; end
@@ -108,6 +121,18 @@ class Combat
     Tools.save_json('combat_log.json', log)
   end
 
+  # Roll initiative for a single combatant (used when a newcomer joins and the
+  # DM doesn't want to reroll everyone). Re-sorts so the new position takes
+  # effect; no new combat-log entry since this doesn't start a new encounter.
+  def reroll_init_for(combat_id)
+    ct = @combat_turn_list.find { |t| t.combat_id == combat_id }
+    return unless ct
+    ct.reroll_init
+    sort_init
+    update_data
+    ct
+  end
+
   def update_data
     combat_data = Tools.load_json('combat.json')
     combat_data['participants'] = @combat_turn_list.map(&:to_json)
@@ -123,8 +148,21 @@ class Combat
   def self.advance_turn
     combat_data = Tools.load_json('combat.json')
     num_participants = combat_data['participants'].length
-    combat_data['current_turn_id'] = (combat_data['current_turn_id'] + 1) % num_participants
+    old_turn_id = combat_data['current_turn_id'].to_i
+    new_turn_id = (old_turn_id + 1) % num_participants
+    combat_data['current_turn_id'] = new_turn_id
     Tools.save_json('combat.json', combat_data)
+
+    # Wrap = new round. Bump the campaign-wide round counter which drives
+    # ends_on_round expiry for paralysis and other duration effects.
+    # combat.json['round'] is a separate, downtime-managed counter for
+    # post-combat urgent-action cycles; we leave it alone here.
+    if new_turn_id == 0
+      campaign = Tools.load_json('campaign.json')
+      campaign = {} unless campaign.is_a?(Hash)
+      campaign['rounds_elapsed'] = campaign['rounds_elapsed'].to_i + 1
+      Tools.save_json('campaign.json', campaign)
+    end
   end
 
   def self.set_current_turn(combat_id)
@@ -333,8 +371,32 @@ class Compendium
       base_name: resolved[0],
       tier_idx: idx,
       tier_val: tier_val,
-      temp_hp: resolve_effect_value(effect["temp_hp"], idx, tier_val).to_i
+      temp_hp: resolve_effect_value(effect["temp_hp"], idx, tier_val).to_i,
+      duration_rounds: ward_duration_rounds(spell_data, idx, tier_val)
     }
+  end
+
+  # Rough conversion of a Ward spell's "duration" entry into rounds for
+  # combat display. Arrays index by spell tier. String formulas may use
+  # "rank" and "tier" -- we substitute both with the spell's tier value
+  # (tier 0 treated as 0.5 per CLAUDE.md). Non-numeric or unparseable
+  # entries fall back to 1 round so the DM at least sees a badge and can
+  # dismiss it manually. Result is floored at 1 round.
+  def ward_duration_rounds(spell_data, idx, tier_val)
+    raw = spell_data["duration"]
+    raw = raw[idx] if raw.is_a?(Array)
+    value = if raw.is_a?(Numeric)
+      raw.to_i
+    elsif raw.is_a?(String)
+      rank_val = tier_val.to_i == 0 ? 0.5 : tier_val.to_f
+      formula = raw.gsub('rank', rank_val.to_s).gsub('tier', rank_val.to_s)
+      formula.match?(/\A[\d\s+\-*\/().]+\z/) ? eval(formula).to_i : 1
+    else
+      1
+    end
+    [value, 1].max
+  rescue StandardError
+    1
   end
 
   # For a spell variant, return a hash of cure effects resolved at its tier,

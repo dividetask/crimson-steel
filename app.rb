@@ -127,44 +127,51 @@ post '/combat/action' do
     target_participant['moderate_damage'] = target_participant['moderate_damage'].to_i + moderate
     target_participant['major_damage'] = target_participant['major_damage'].to_i + major
 
-    # Apply per-attack conditions when the hit lands (incoming_total > 0).
-    # The weapon used is identified by weapon_item_id sent from the client;
-    # the attacker's CharacterSheet.weapon_list includes both carried items
-    # and natural weapons (ghoul's bite/claws, etc.).
-    if incoming_total > 0 && params[:weapon_item_id] && !params[:weapon_item_id].to_s.empty?
-      weapon_item_id = params[:weapon_item_id].to_i
-      attacker_char_id = attacker['char_id'] || attacker['id']
-      attacker_data = Tools.load_json('characters.json').find { |c| c['id'] == attacker_char_id }
-      if attacker_data
-        attacker_sheet = CharacterSheet.new(attacker_data)
-        weapon = attacker_sheet.weapon_list.find { |w| w['item_id'] == weapon_item_id }
-        if weapon
-          details = weapon.dig('properties', 'details') || []
-          is_ranged = details.include?('ranged')
-          is_natural = weapon.dig('properties', 'natural') == true
+    # Apply per-attack conditions when the strike penetrates armor. The
+    # client sets afflict='true' when pre-DR damage >= target's DR, so an
+    # attack whose damage exactly matches armor still inflicts afflictions
+    # even though 0 HP damage got through. A miss or damage < DR sends
+    # afflict='false' and this block is skipped.
+    #
+    # The client computes default affliction amounts from the weapon's
+    # bleed rating / attacker tier / 5+damage for poison, but the DM can
+    # edit each value before submit. We trust the submitted afflict_<key>
+    # values here; the client only shows inputs for afflictions that
+    # would naturally apply to this attack. The attacker/weapon lookup is
+    # still needed to update condition_meta.max_ghoul_tier.
+    afflict = params[:afflict] == 'true'
+    if afflict
+      target_participant['conditions'] ||= {}
+      target_participant['condition_meta'] ||= {}
 
-          target_participant['conditions'] ||= {}
-          target_participant['condition_meta'] ||= {}
+      bleed_amt = params[:afflict_bleed].to_i
+      if bleed_amt > 0
+        target_participant['conditions']['bleed'] =
+          target_participant['conditions']['bleed'].to_i + bleed_amt
+      end
 
-          # Bleed: melee hit -> damage + weapon's bleed rating.
-          unless is_ranged
-            weapon_bleed = attacker_sheet.weapon_bleed(weapon)
-            weapon_bleed = weapon_bleed.is_a?(Numeric) ? weapon_bleed : 0
-            target_participant['conditions']['bleed'] =
-              target_participant['conditions']['bleed'].to_i + incoming_total + weapon_bleed
-          end
-
-          # Ghoul paralysis: attacker with ghoul_paralysis ability making a
-          # natural attack -> damage + attacker's tier. Track the highest
-          # ghoul tier that has hit this target; it modifies save TN until
-          # the condition decays to 0 (at which point it resets).
-          if is_natural && attacker_sheet.race_abilities.include?('ghoul_paralysis')
-            target_participant['conditions']['ghoul_paralysis'] =
-              target_participant['conditions']['ghoul_paralysis'].to_i + incoming_total + attacker_sheet.tier.to_i
+      gp_amt = params[:afflict_ghoul_paralysis].to_i
+      if gp_amt > 0
+        target_participant['conditions']['ghoul_paralysis'] =
+          target_participant['conditions']['ghoul_paralysis'].to_i + gp_amt
+        # Track the highest ghoul tier that has hit this target; it modifies
+        # save TN until the condition decays to 0. Look up the attacker to
+        # know their tier.
+        if params[:weapon_item_id] && !params[:weapon_item_id].to_s.empty?
+          attacker_char_id = attacker['char_id'] || attacker['id']
+          attacker_data = Tools.load_json('characters.json').find { |c| c['id'] == attacker_char_id }
+          if attacker_data
+            attacker_tier = CharacterSheet.new(attacker_data).tier.to_i
             target_participant['condition_meta']['max_ghoul_tier'] =
-              [target_participant['condition_meta']['max_ghoul_tier'].to_i, attacker_sheet.tier.to_i].max
+              [target_participant['condition_meta']['max_ghoul_tier'].to_i, attacker_tier].max
           end
         end
+      end
+
+      poison_amt = params[:afflict_minor_strength_poison].to_i
+      if poison_amt > 0
+        target_participant['conditions']['minor_strength_poison'] =
+          target_participant['conditions']['minor_strength_poison'].to_i + poison_amt
       end
     end
 
@@ -240,8 +247,71 @@ post '/combat/action' do
     compendium = Compendium.new
     cure = compendium.cure_effects(spell_name)
     ward = compendium.ward_effects(spell_name)
+    resolved = compendium.resolve_spell_variant(spell_name)
+    base_name = resolved ? resolved[0] : nil
 
-    if ward
+    # Dice cost from combat pool based on casting time:
+    #   casting_time == 0.5 (half action): 4 dice minimum
+    #   0 < casting_time < 0.5 (bonus action): 2 dice minimum
+    #   otherwise (free / main action / longer): 0
+    # Stabilize asks the DM for its own dice count; the rest spend
+    # min_cast_dice automatically from the pool.
+    casting_time = resolved ? resolved[1]['casting_time'].to_f : 0
+    min_cast_dice = if casting_time == 0.5
+                      4
+                    elsif casting_time > 0 && casting_time < 0.5
+                      2
+                    else
+                      0
+                    end
+
+    if base_name == 'Stabilize'
+      halt 400, "Stabilize requires a target" unless target_combat_id
+      target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
+      halt 400, "Target not found" unless target
+      target_char_id = target['char_id'] || target['id']
+      target_data = Tools.load_json('characters.json').find { |c| c['id'] == target_char_id }
+      halt 400, "Target character not found" unless target_data
+      target_character = CharacterSheet.new(target_data)
+
+      dice_spent = params[:stabilize_dice].to_i
+      floor = [min_cast_dice, 1].max
+      halt 400, "Stabilize requires spending at least #{floor} #{floor == 1 ? 'die' : 'dice'}" if dice_spent < floor
+      halt 400, "Not enough combat dice" unless participant['combat_pool'].to_i >= dice_spent
+
+      successes = params[:stabilize_successes].to_i
+      target['conditions'] ||= {}
+      before = target['conditions']['bleed'].to_i
+      # Stabilize description: "Reduce bleeding by 3 for each success."
+      after = [before - 3 * successes, 0].max
+      reduction = before - after
+      if after <= 0
+        target['conditions'].delete('bleed')
+      else
+        target['conditions']['bleed'] = after
+      end
+
+      participant['mana'] = participant['mana'].to_i - mana_cost
+      participant['combat_pool'] = participant['combat_pool'].to_i - dice_spent
+
+      # Stabilize is a concentration spell; register the effect so the DM
+      # can dismiss it (or later let it tick down). Consistent shape with
+      # other concentration entries so the existing dismiss/display paths
+      # handle it without special-casing.
+      combat_data['active_effects'] ||= []
+      combat_data['active_effects'] << {
+        'caster_id' => combat_id,
+        'caster_name' => character.name,
+        'spell_name' => spell_name,
+        'spell_tier' => spell_tier,
+        'round_cast' => combat_data['round'],
+        'target_combat_ids' => [target_combat_id],
+        'target_names' => [target_character.name]
+      }
+
+      Tools.save_json('combat.json', combat_data)
+      Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana, #{dice_spent} dice, #{successes} successes) - bleed #{before} -> #{after} (-#{reduction})")
+    elsif ward
       halt 400, "Ward spell requires a target" unless target_combat_id
       target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
       halt 400, "Target not found" unless target
@@ -250,13 +320,45 @@ post '/combat/action' do
       halt 400, "Target character not found" unless target_data
       target_character = CharacterSheet.new(target_data)
 
+      halt 400, "Not enough combat dice (need #{min_cast_dice})" if min_cast_dice > 0 && participant['combat_pool'].to_i < min_cast_dice
+
       current_temp = target['temporary_hit_points'].to_i
       new_temp = [current_temp, ward[:temp_hp]].max
       target['temporary_hit_points'] = new_temp
+      # How much temp HP this ward actually contributed; stored so the
+      # expiry cleanup can subtract exactly this amount without stomping
+      # other temp-HP sources.
+      temp_hp_added = [new_temp - current_temp, 0].max
 
       participant['mana'] = participant['mana'].to_i - mana_cost
+      participant['combat_pool'] = participant['combat_pool'].to_i - min_cast_dice if min_cast_dice > 0
+
+      # Register the Ward as a duration-bound active effect so the
+      # combat tracker can display how many rounds remain before it
+      # fades. Uses the same ends_on_round machinery as paralysis; the
+      # Start of Turn cleanup purges the entry when the round arrives
+      # and subtracts temp_hp_added from the target's current temp HP
+      # (floored at 0), so the ward's contribution is rolled back without
+      # stomping other temp-HP sources.
+      campaign = Tools.load_json('campaign.json')
+      rounds_elapsed_now = campaign.is_a?(Hash) ? campaign['rounds_elapsed'].to_i : 0
+      duration_rounds = ward[:duration_rounds].to_i
+      duration_rounds = 1 if duration_rounds < 1
+      combat_data['active_effects'] ||= []
+      combat_data['active_effects'] << {
+        'caster_id' => combat_id,
+        'caster_name' => character.name,
+        'spell_name' => spell_name,
+        'spell_tier' => spell_tier,
+        'round_cast' => combat_data['round'],
+        'target_combat_ids' => [target_combat_id],
+        'target_names' => [target_character.name],
+        'ends_on_round' => rounds_elapsed_now + duration_rounds,
+        'temp_hp_added' => temp_hp_added
+      }
+
       Tools.save_json('combat.json', combat_data)
-      Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana) - temp HP #{current_temp} -> #{new_temp}")
+      Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana, #{duration_rounds} round#{'s' unless duration_rounds == 1}) - temp HP #{current_temp} -> #{new_temp}")
     elsif cure
       halt 400, "Cure spell requires a target" unless target_combat_id
       target = combat_data['participants'].find { |p| p['id'] == target_combat_id }
@@ -515,17 +617,30 @@ post '/combat/action' do
 
     log_lines = ["#{character.name} starts turn"]
 
-    # Step 1: decrement rounds_remaining on active_effects targeting this
-    # combatant; remove effects whose counter hits 0. Effects with no
-    # rounds_remaining field (e.g. concentration spells) are untouched.
+    campaign = Tools.load_json('campaign.json')
+    campaign = {} unless campaign.is_a?(Hash)
+    rounds_elapsed = campaign['rounds_elapsed'].to_i
+
+    # Step 1: purge active_effects targeting this combatant whose end round
+    # has arrived. Effects with no ends_on_round (e.g. concentration spells)
+    # are untouched. ends_on_round is set when the effect is created, as
+    # rounds_elapsed_at_creation + duration, so the effect clears the first
+    # time the target hits Start of Turn on or after that round.
+    # Wards additionally roll back whatever temp HP they contributed so
+    # the shielding disappears with the spell.
     combat_data['active_effects'] ||= []
     combat_data['active_effects'].reject! do |effect|
-      next false unless effect['rounds_remaining']
+      next false unless effect['ends_on_round']
       target_ids = effect['target_combat_ids'] || []
       next false unless target_ids.include?(combat_id)
-      effect['rounds_remaining'] = effect['rounds_remaining'].to_i - 1
-      if effect['rounds_remaining'] <= 0
-        log_lines << "  #{effect['spell_name']} ends on #{character.name}"
+      if effect['ends_on_round'].to_i <= rounds_elapsed
+        if effect['temp_hp_added'].to_i > 0
+          before_temp = participant['temporary_hit_points'].to_i
+          participant['temporary_hit_points'] = [before_temp - effect['temp_hp_added'].to_i, 0].max
+          log_lines << "  #{effect['spell_name']} ends on #{character.name} (temp HP #{before_temp} -> #{participant['temporary_hit_points']})"
+        else
+          log_lines << "  #{effect['spell_name']} ends on #{character.name}"
+        end
         true
       else
         false
@@ -563,8 +678,9 @@ post '/combat/action' do
       when 'ghoul_paralysis'
         # Paralysis rounds mirrors the bleed formula:
         # rounds = (1 + severity/10) - successes, floor 0. If any rounds
-        # result, add them to the existing Paralyzed effect (stacking) or
-        # create a new one if the target isn't already paralyzed.
+        # result, set ends_on_round = rounds_elapsed + rounds so the
+        # effect clears at the target's Start of Turn `rounds` rounds from
+        # now. Stack by pushing the existing effect's end back by `rounds`.
         raw_rounds = 1 + (value / 10)
         rounds = [raw_rounds - successes, 0].max
         if rounds > 0
@@ -572,9 +688,11 @@ post '/combat/action' do
             e['spell_name'] == 'Paralyzed' && (e['target_combat_ids'] || []).include?(combat_id)
           end
           if existing
-            existing['rounds_remaining'] = existing['rounds_remaining'].to_i + rounds
-            log_lines << "  Ghoul paralysis save (#{successes} successes): +#{rounds} paralysis round#{'s' unless rounds == 1} (now #{existing['rounds_remaining']})"
+            new_end = existing['ends_on_round'].to_i + rounds
+            existing['ends_on_round'] = new_end
+            log_lines << "  Ghoul paralysis save (#{successes} successes): +#{rounds} paralysis round#{'s' unless rounds == 1} (now ends R#{new_end})"
           else
+            end_round = rounds_elapsed + rounds
             combat_data['active_effects'] << {
               'caster_id' => nil,
               'caster_name' => 'Ghoul Paralysis',
@@ -582,12 +700,27 @@ post '/combat/action' do
               'target_combat_ids' => [combat_id],
               'target_names' => [character.name],
               'round_cast' => combat_data['round'],
-              'rounds_remaining' => rounds
+              'ends_on_round' => end_round
             }
-            log_lines << "  Ghoul paralysis save (#{successes} successes): PARALYZED for #{rounds} round#{'s' unless rounds == 1}"
+            log_lines << "  Ghoul paralysis save (#{successes} successes): PARALYZED until R#{end_round} (#{rounds} round#{'s' unless rounds == 1})"
           end
         else
           log_lines << "  Ghoul paralysis save (#{successes} successes): no paralysis (#{raw_rounds} blocked)"
+        end
+      when 'minor_strength_poison'
+        # (1 + severity/10) minor STR damage, reduced by 1 per success,
+        # min 0. Accumulates on participant.ability_damage.str.minor and
+        # persists until cured (e.g. by Restoration).
+        raw_damage = 1 + (value / 10)
+        dealt = [raw_damage - successes, 0].max
+        if dealt > 0
+          participant['ability_damage'] ||= {}
+          participant['ability_damage']['str'] ||= {}
+          participant['ability_damage']['str']['minor'] =
+            participant['ability_damage']['str']['minor'].to_i + dealt
+          log_lines << "  Minor strength poison save (#{successes} successes): #{dealt} minor STR damage"
+        else
+          log_lines << "  Minor strength poison save (#{successes} successes): no damage (#{raw_damage} blocked)"
         end
       else
         log_lines << "  #{cname.tr('_', ' ').capitalize} save (#{successes} successes)"
@@ -605,6 +738,16 @@ post '/combat/action' do
       else
         participant['conditions'][cname] = new_value
       end
+    end
+
+    # Refill combat pool at the start of this combatant's turn. Paralysis
+    # and other conditions still apply to whether they can act; the pool
+    # just resets to its maximum so they have dice to work with either way.
+    pool_before = participant['combat_pool'].to_i
+    pool_max = character.combat_pool
+    if pool_max != pool_before
+      participant['combat_pool'] = pool_max
+      log_lines << "  Combat pool refilled: #{pool_before} -> #{pool_max}"
     end
 
     Tools.save_json('combat.json', combat_data)
@@ -625,6 +768,15 @@ end
 post '/combat/set_turn/:id' do
   redirect '/character/0' unless local_request?
   Combat.set_current_turn(params[:id].to_i)
+  redirect '/combat'
+end
+
+# Roll initiative for just one combatant (e.g. a newcomer joining mid-fight).
+# The full reroll_init button still rerolls everyone; this avoids scrambling
+# the order for combatants who have already rolled.
+post '/combat/roll_init/:id' do
+  redirect '/character/0' unless local_request?
+  Combat.new.reroll_init_for(params[:id].to_i)
   redirect '/combat'
 end
 
@@ -1904,13 +2056,15 @@ def downtime_resolve_condition(combat_data, participant, character, combat_id, c
         e['spell_name'] == 'Paralyzed' && (e['target_combat_ids'] || []).include?(combat_id)
       end
       if existing
-        existing['rounds_remaining'] = existing['rounds_remaining'].to_i + rounds
+        existing['ends_on_round'] = existing['ends_on_round'].to_i + rounds
       else
+        campaign = Tools.load_json('campaign.json')
+        rounds_elapsed = campaign.is_a?(Hash) ? campaign['rounds_elapsed'].to_i : 0
         combat_data['active_effects'] << {
           'caster_id' => nil, 'caster_name' => 'Ghoul Paralysis',
           'spell_name' => 'Paralyzed',
           'target_combat_ids' => [combat_id], 'target_names' => [character.name],
-          'round_cast' => combat_data['round'], 'rounds_remaining' => rounds
+          'round_cast' => combat_data['round'], 'ends_on_round' => rounds_elapsed + rounds
         }
       end
     end
@@ -2172,16 +2326,18 @@ post '/downtime/quick_resolve' do
           e['spell_name'] == 'Paralyzed' && (e['target_combat_ids'] || []).include?(cid_str.to_i)
         end
         if existing
-          existing['rounds_remaining'] = existing['rounds_remaining'].to_i + rounds
+          existing['ends_on_round'] = existing['ends_on_round'].to_i + rounds
         else
           char_id = participant['char_id'] || participant['id']
           char_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
           char_name = char_data ? char_data['name'] : 'Unknown'
+          campaign = Tools.load_json('campaign.json')
+          rounds_elapsed = campaign.is_a?(Hash) ? campaign['rounds_elapsed'].to_i : 0
           combat_data['active_effects'] << {
             'caster_id' => nil, 'caster_name' => 'Ghoul Paralysis',
             'spell_name' => 'Paralyzed',
             'target_combat_ids' => [cid_str.to_i], 'target_names' => [char_name],
-            'round_cast' => combat_data['round'], 'rounds_remaining' => rounds
+            'round_cast' => combat_data['round'], 'ends_on_round' => rounds_elapsed + rounds
           }
         end
       end

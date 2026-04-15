@@ -1,6 +1,20 @@
 require_relative 'character'
 
 module CharacterHelpers
+  # Short/full display labels for the combat-tracker condition badges.
+  # Entries not listed fall back to a title-cased version of the key.
+  # The full form is shown as a tooltip so abbreviations stay discoverable.
+  CONDITION_LABEL_OVERRIDES = {
+    'minor_strength_poison' => ['Poison', 'Minor strength poison']
+  }.freeze
+
+  def condition_label(cname)
+    key = cname.to_s
+    return CONDITION_LABEL_OVERRIDES[key] if CONDITION_LABEL_OVERRIDES.key?(key)
+    full = key.tr('_', ' ').capitalize
+    [full, full]
+  end
+
   def get_info(character)
     CharacterSheet.new(character)
   end
@@ -12,7 +26,11 @@ module CharacterHelpers
   def format_casting_time(val)
     v = val.to_f
     return "Free" if v == 0
-    return "Bonus Action" if v == 0.5
+    # Casting times less than a half-action are bonus actions. Exactly 0.5
+    # is a half action (used for in-combat healing/buff spells). 1 is a
+    # standard action; larger values roll over to rounds/minutes/hours.
+    return "Bonus Action" if v > 0 && v < 0.5
+    return "Half Action" if v == 0.5
     return "Main Action" if v == 1
     return "#{(v / 3600).to_i} hour#{'s' if v >= 7200}" if v >= 3600
     return "#{(v / 60).to_i} minute#{'s' if v >= 120}" if v >= 60

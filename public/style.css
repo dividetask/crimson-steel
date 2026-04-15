@@ -246,11 +246,18 @@ table th {
 .item-type-ammunition { background: #795548; }
 .item-type-ritual { background: #6a1b9a; }
 .tier-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; background: #666; color: white; margin-left: 5px; }
-.conditions-cell { white-space: normal; max-width: 180px; }
-.condition-badge { display: inline-block; padding: 2px 6px; margin: 1px 2px; border-radius: 3px; font-size: 11px; font-weight: bold; color: white; background: #777; }
+.conditions-cell { vertical-align: top; padding: 4px !important; }
+/* Flex container lets badges wrap to new lines; setting width rather than
+ * max-width forces the cell to honour the bound even inside auto-layout
+ * tables. The parent <td> is what heightens as rows wrap. */
+.conditions-list { display: flex; flex-wrap: wrap; gap: 4px; width: 260px; }
+.condition-badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold; color: white; background: #777; white-space: nowrap; }
 .condition-bleed { background: #c62828; }
 .condition-ghoul_paralysis { background: #6a1b9a; }
 .condition-paralyzed { background: #4527a0; }
+.condition-minor_strength_poison { background: #558b2f; }
+.condition-ability-damage { background: #455a64; }
+.condition-effect { background: #1976d2; }
 .store-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-bottom: 15px; }
 .store-card { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
 .card-header { margin-bottom: 12px; }

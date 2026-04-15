@@ -1,3 +1,7 @@
 {
-  "gold": 900
+  "gold": 900,
+  "start_year": 0,
+  "start_day": 0,
+  "days_elapsed": 0,
+  "rounds_elapsed": 0
 }

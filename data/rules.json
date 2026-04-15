@@ -63,7 +63,9 @@
 			"ghoul_fever": {"proficiency": "(level/2)+(cha/2)", "passive": {"disease": {"condition": ["bite"], "attr": "cha", "ranks": "level/2",
 				"frequency": "day", "severity": "moderate", "damage": ["con", "dex"]}}},
 			"ghoul_paralysis": {"proficiency": "(level/2)+(cha/2)", "passive": {"spell": {"condition": ["bite", "claw"], "attr": "cha", "ranks": "level/2",
-				"duration": "1", "effect": ["paralysis"]}}}
+				"duration": "1", "effect": ["paralysis"]}}},
+			"poison_bite": {"proficiency": "(level/2)+(con/2)", "passive": {"poison": {"condition": ["bite"], "attr": "con", "severity": "minor",
+				"damage": ["str"]}}}
 		},
 		"race": {
 			"speed": {"default": 30, "dwarf": 20, "satyr": 35},
@@ -73,7 +75,8 @@
 				"wight": {"0": ["ferocity", "slam", "energy_drain", "create_spawn", "resurrection_vulnerability"]},
 				"zombie": {"0": ["staggered", "slam"]},
 				"skeleton": {"0": ["improved_initiative", "claws"]},
-				"ghoul": {"1": ["ghoul_fever", "ghoul_paralysis", "bite", "claws"], "2": ["ghoul_stench"]}}
+				"ghoul": {"1": ["ghoul_fever", "ghoul_paralysis", "bite", "claws"], "2": ["ghoul_stench"]},
+				"giant spider": {"0": ["poison_bite", "bite"]}}
 		},
 		"potion_sickness": {
 			"base": [2, 4, 6, 8, 10, 20, 50],
@@ -102,7 +105,7 @@
 		"untrained_proficiency_penalty": -1,
 		"proficiency_bonus_base": -1,
 		"skill_list": {
-			"str": ["athletics"],
+			"str": ["athletics", "climb"],
 			"dex": ["bab", "acrobatics", "escape_artist", "intimidate", "larceny", "ride", "slight_of_hand", "stealth"],
 			"con": [],
 			"int": ["appraisal", "arcana", "craft_", "dungeoneering", "game_", "history", "investigation", "linguistics", "nobility",

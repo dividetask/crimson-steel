@@ -1,5 +1,8 @@
+  <% campaign_data = Tools.load_json('campaign.json') %>
+  <% rounds_elapsed_view = campaign_data.is_a?(Hash) ? campaign_data['rounds_elapsed'].to_i : 0 %>
   <div class="combat-tracker">
   <h1>Combat Tracker</h1>
+  <div class="math-detail" style="margin-bottom: 10px;">Round <%= rounds_elapsed_view %></div>
 
   <table>
     <thead>
@@ -28,7 +31,15 @@
               <button type="submit" class="set-turn-btn" title="Set as current turn"><%= is_current ? '&#9654;' : 'Set' %></button>
             </form>
           </td>
-          <td><%= combat_turn.initiative %></td>
+          <td>
+            <% if combat_turn.initiative.to_s.strip.empty? %>
+              <form method="post" action="/combat/roll_init/<%= combat_turn.combat_id %>" style="margin:0;">
+                <button type="submit" class="set-turn-btn" title="Roll initiative">Roll</button>
+              </form>
+            <% else %>
+              <%= combat_turn.initiative %>
+            <% end %>
+          </td>
           <td><%= @combat.display_name(combat_turn) %></td>
           <td><%= combat_turn.hp %>/<%= combat_turn.character.hp_max %></td>
           <td>
@@ -42,14 +53,28 @@
           <td><input type="number" name="combat_pool" value="<%= combat_turn.combat_pool %>" style="width: 45px;">/<%= combat_turn.character.combat_pool %></td>
           <td><input type="number" name="saturation" value="<%= combat_turn.saturation %>" style="width: 45px;">/<%= combat_turn.character.cha %></td>
           <td class="conditions-cell">
-            <% combat_turn.active_conditions.each do |cname, cval| %>
-              <span class="condition-badge condition-<%= cname %>"><%= cname.tr('_', ' ').capitalize %>: <%= cval %></span>
-            <% end %>
-            <% (@combat.active_effects || []).each do |effect| %>
-              <% if effect['spell_name'] == 'Paralyzed' && (effect['target_combat_ids'] || []).include?(combat_turn.combat_id) %>
-                <span class="condition-badge condition-paralyzed">Paralyzed (<%= effect['rounds_remaining'] %>)</span>
+            <div class="conditions-list">
+              <% combat_turn.active_conditions.each do |cname, cval| %>
+                <% short, full = condition_label(cname) %>
+                <span class="condition-badge condition-<%= cname %>" title="<%= full %>"><%= short %>: <%= cval %></span>
               <% end %>
-            <% end %>
+              <% combat_turn.active_ability_damage.each do |ability, severity, val| %>
+                <span class="condition-badge condition-ability-damage"><%= ability.upcase %> -<%= val %> <%= severity %></span>
+              <% end %>
+              <% (@combat.active_effects || []).each do |effect| %>
+                <% next unless (effect['target_combat_ids'] || []).include?(combat_turn.combat_id) %>
+                <% end_round = effect['ends_on_round'] %>
+                <% remaining = end_round ? [end_round.to_i - rounds_elapsed_view, 0].max : nil %>
+                <% duration_suffix = remaining ? " (#{remaining} round#{'s' unless remaining == 1})" : '' %>
+                <% if effect['spell_name'] == 'Paralyzed' %>
+                  <span class="condition-badge condition-paralyzed" title="Ends at start of round <%= end_round %>">Paralyzed<%= duration_suffix %></span>
+                <% elsif end_round %>
+                  <%# Every other duration-bound active effect (Ward, future %>
+                  <%# spell effects with ends_on_round) gets a generic badge. %>
+                  <span class="condition-badge condition-effect" title="Ends at start of round <%= end_round %>"><%= effect['spell_name'] %><%= duration_suffix %></span>
+                <% end %>
+              <% end %>
+            </div>
           </td>
           <td><button type="submit">Update</button></form></td>
         </tr>
@@ -70,7 +95,15 @@
     <div class="active-effects" style="margin-top: 15px;">
       <h3 style="margin-bottom: 8px;">Active Effects</h3>
       <% @combat.active_effects.each_with_index do |effect, idx| %>
-        <% duration_text = effect['rounds_remaining'] ? "#{effect['rounds_remaining']} turn#{'s' unless effect['rounds_remaining'].to_i == 1} remaining" : "round #{effect['round_cast']}" %>
+        <% duration_text = if effect['ends_on_round']
+             _rem = [effect['ends_on_round'].to_i - rounds_elapsed_view, 0].max
+             "#{_rem} round#{'s' unless _rem == 1} remaining"
+           elsif effect['rounds_remaining']
+             # Legacy entries written before ends_on_round existed.
+             "#{effect['rounds_remaining']} turn#{'s' unless effect['rounds_remaining'].to_i == 1} remaining"
+           else
+             "round #{effect['round_cast']}"
+           end %>
         <% target_text = (effect['target_names'] || []).any? ? " on #{(effect['target_names'] || []).join(', ')}" : '' %>
         <div class="effect-row" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; padding: 4px 8px; background: #f0f4ff; border-left: 3px solid #1976d2; border-radius: 2px; font-size: 13px;">
           <span><strong><%= effect['spell_name'] %></strong> (<%= effect['caster_name'] %><%= target_text %>, <%= duration_text %>)</span>
@@ -110,18 +143,29 @@
     var currentCharName = '<%= current ? @combat.display_name(current) : '' %>';
     var equippedWeapons = <%= current ? JSON.generate(
       current.character.weapon_list.select { |w| w['equipped'] }.map { |w|
+        details = (w.dig('properties', 'details') || [])
+        bleed = current.character.weapon_bleed(w)
         {
           item_id: w['item_id'],
           name: w['name'],
+          subtype: w['subtype'],
           weapon_dice: current.character.weapon_dice(w),
           weapon_speed: current.character.weapon_speed(w),
           weapon_attack_bonus: current.character.weapon_attack_bonus(w),
           weapon_dmg: (d = current.character.weapon_dmg(w); d.is_a?(Numeric) ? d : 0),
           weapon_threshold: (t = current.character.weapon_threshold(w); t.is_a?(Numeric) ? t : 0),
-          weapon_bonus: w['bonus'].to_i
+          weapon_bonus: w['bonus'].to_i,
+          is_natural: w.dig('properties', 'natural') == true,
+          is_ranged: details.include?('ranged'),
+          weapon_bleed: bleed.is_a?(Numeric) ? bleed : 0
         }
       }
     ) : '[]' %>;
+
+    // Current attacker metadata needed to compute default affliction amounts
+    // at the damage step (e.g. ghoul_paralysis adds attacker's tier).
+    var currentAttackerTier = <%= current ? current.character.tier.to_i : 0 %>;
+    var currentAttackerAbilities = <%= current ? JSON.generate(current.character.ability_list) : '[]' %>;
     var diceRemaining = <%= current ? current.combat_pool : 0 %>;
     var currentMana = <%= current ? current.mana : 0 %>;
     var moveSpeed = <%= current ? current.character.speed : 0 %>;
@@ -132,7 +176,10 @@
           (spells || []).map do |name|
             cure = compendium.cure_effects(name)
             ward = compendium.ward_effects(name)
+            resolved = compendium.resolve_spell_variant(name)
+            base = resolved ? resolved[0] : nil
             {name: name, tier: tier, cure: cure ? true : false, ward: ward ? true : false,
+             stabilize: base == 'Stabilize',
              target_mode: compendium.target_mode(name) || "single"}
           end
         }.flatten
@@ -140,6 +187,10 @@
     else
       '[]'
     end %>;
+
+    // Caster's healing skill dice / TN, used by Stabilize cast rolls.
+    var currentHealingDice = <%= current ? current.character.skill_dice('healing').to_i : 0 %>;
+    var currentHealingBonus = <%= current ? current.character.skill_bonus('healing').to_i : 0 %>;
     var itemList = <%= if current
       compendium = Compendium.new
       JSON.generate(
@@ -193,6 +244,9 @@
     ) %>;
     var activeEffects = <%= JSON.generate(@combat.active_effects) %>;
     var diceRules = <%= JSON.generate(Tools.load_json('rules.json')['dice']) %>;
+    // Campaign-wide round counter. Effects with ends_on_round <= this value
+    // are scheduled to end at the target's next Start of Turn confirm.
+    var roundsElapsed = <%= (Tools.load_json('campaign.json').is_a?(Hash) ? Tools.load_json('campaign.json')['rounds_elapsed'].to_i : 0) %>;
 
     // Start-of-turn info for the current combatant: each active condition
     // paired with the save dice/TN the DM should roll against. TN starts at 9
@@ -271,13 +325,33 @@
       }
     }
 
+    // Active effects targeting the current combatant that will expire at
+    // the next Start of Turn confirm (ends_on_round <= campaign
+    // rounds_elapsed). Purely display -- the server performs the actual
+    // removal when Confirm Start of Turn is submitted.
+    function expiringEffectsForCurrent() {
+      if (currentCharId == null) return [];
+      return (activeEffects || []).filter(function(e) {
+        return e.ends_on_round != null &&
+               (e.target_combat_ids || []).indexOf(currentCharId) !== -1 &&
+               e.ends_on_round <= roundsElapsed;
+      });
+    }
+
     // --- START OF TURN: show every active-condition save at once, then
     // preview consequences before confirm. Two screens: entry -> preview.
     function showStartOfTurn() {
       startOfTurnState = { successes: {} };
-      if (!startOfTurnConditions || startOfTurnConditions.length === 0) {
+      var expiring = expiringEffectsForCurrent();
+      if ((!startOfTurnConditions || startOfTurnConditions.length === 0) && expiring.length === 0) {
         addStep('<strong>Start of Turn</strong>: no active conditions for ' + currentCharName +
           '<br><button class="action-btn" onclick="confirmStartOfTurn()" style="margin-top:8px;">Confirm</button>');
+        return;
+      }
+      if (!startOfTurnConditions || startOfTurnConditions.length === 0) {
+        // No saves to roll, but there are effects to end; go straight to
+        // the preview so the DM can see and confirm.
+        showStartOfTurnPreview();
         return;
       }
       var rows = startOfTurnConditions.map(function(cond, i) {
@@ -301,48 +375,71 @@
     // Collect successes, show consequences, then offer a single Confirm.
     // Replaces the action-context so repeated clicks don't duplicate.
     function showStartOfTurnPreview() {
-      for (var i = 0; i < startOfTurnConditions.length; i++) {
+      for (var i = 0; i < (startOfTurnConditions || []).length; i++) {
         var cond = startOfTurnConditions[i];
-        var val = parseInt(document.getElementById('save-successes-' + i).value, 10);
+        var inp = document.getElementById('save-successes-' + i);
+        var val = inp ? parseInt(inp.value, 10) : 0;
         if (isNaN(val) || val < 0) { alert('Enter a non-negative number of successes for ' + cond.label + '.'); return; }
         startOfTurnState.successes[cond.name] = val;
       }
-      var summary = startOfTurnConditions.map(function(c) {
+      var summary = (startOfTurnConditions || []).map(function(c) {
         return '<li>' + summarizeConditionOutcome(c, startOfTurnState.successes[c.name] || 0) + '</li>';
       }).join('');
+      // Append one bullet per active effect that will be purged on confirm.
+      var expiring = expiringEffectsForCurrent();
+      expiring.forEach(function(e) {
+        summary += '<li><strong>' + e.spell_name + '</strong> ends (ended round ' + e.ends_on_round + ')</li>';
+      });
       var context = document.getElementById('action-context');
       context.innerHTML = '';
+      var hasBack = (startOfTurnConditions || []).length > 0;
       addStep('<strong>All saves recorded.</strong>' +
         '<br><span class="math-detail">Consequences:</span><ul style="margin:4px 0 8px 18px;">' + summary + '</ul>' +
         '<button class="action-btn" onclick="confirmStartOfTurn()">Confirm Start of Turn</button>' +
-        ' <button class="action-btn" onclick="showStartOfTurn()" style="background:#eee;color:#333;">Back</button>');
+        (hasBack ? ' <button class="action-btn" onclick="showStartOfTurn()" style="background:#eee;color:#333;">Back</button>' : ''));
     }
 
-    // Roll `cond.dice` d10s, count results >= cond.tn, fill the successes
-    // input, and render the raw dice. Colors: red=1 (fumble), blue=10 (crit),
-    // green=other success, grey=other failure. Re-clickable so the DM can
-    // fudge by re-rolling until a desired outcome.
-    function rollSaveDice(i, inputId, rollsId) {
-      var cond = startOfTurnConditions[i];
+    // Roll `dice` d10s, count results >= `tn`, fill `inputId`, render the
+    // raw dice in `rollsId`. A 10 is a crit and counts as 2 successes;
+    // every other result >= tn counts as 1; every rolled 1 is a fumble
+    // and subtracts 1 from the running total. Final successes are
+    // floored at 0 for the input. Colors: red=1 (fumble), blue=10 (crit),
+    // green=other success, grey=other failure. Re-clickable so the DM
+    // can fudge by re-rolling. Used by every combat roll (attack/
+    // defense/ally/healing/condition saves).
+    function rollDicePool(dice, tn, inputId, rollsId) {
       var rolls = [];
       var successes = 0;
-      for (var r = 0; r < cond.dice; r++) {
+      for (var r = 0; r < dice; r++) {
         var d = Math.floor(Math.random() * 10) + 1;
         rolls.push(d);
-        if (d >= cond.tn) successes++;
+        if (d === 10) successes += 2;
+        else if (d >= tn) successes++;
+        else if (d === 1) successes--;
       }
-      document.getElementById(inputId).value = successes;
-      var colored = rolls.map(function(d) {
-        var bg = null;
-        if (d === 1) bg = '#e57373';             // red   (fumble)
-        else if (d === 10) bg = '#64b5f6';       // blue  (crit)
-        else if (d >= cond.tn) bg = '#81c784';   // green (success)
-        if (bg) {
-          return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
-        }
-        return '<span style="color:#777;">' + d + '</span>';
-      }).join(', ');
-      document.getElementById(rollsId).innerHTML = 'Rolled: [' + colored + '] &rarr; ' + successes + ' success' + (successes === 1 ? '' : 'es');
+      var displaySuccesses = Math.max(0, successes);
+      var inputEl = document.getElementById(inputId);
+      if (inputEl) inputEl.value = displaySuccesses;
+      var rollsEl = document.getElementById(rollsId);
+      if (rollsEl) {
+        var colored = rolls.map(function(d) {
+          var bg = null;
+          if (d === 1) bg = '#e57373';          // red   (fumble)
+          else if (d === 10) bg = '#64b5f6';    // blue  (crit)
+          else if (d >= tn) bg = '#81c784';     // green (success)
+          if (bg) {
+            return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
+          }
+          return '<span style="color:#777;">' + d + '</span>';
+        }).join(', ');
+        rollsEl.innerHTML = 'Rolled: [' + colored + '] &rarr; ' + displaySuccesses + ' success' + (displaySuccesses === 1 ? '' : 'es') +
+          (successes < 0 ? ' <span class="math-detail">(raw ' + successes + ', floored)</span>' : '');
+      }
+    }
+
+    function rollSaveDice(i, inputId, rollsId) {
+      var cond = startOfTurnConditions[i];
+      rollDicePool(cond.dice, cond.tn, inputId, rollsId);
     }
 
     // Preview of what a save with `successes` will do to `cond` on Confirm.
@@ -362,9 +459,18 @@
         var rawRounds = 1 + Math.floor(cond.value / 10);
         var rounds = Math.max(0, rawRounds - successes);
         if (rounds > 0) {
-          parts.push('<strong>Ghoul Paralysis:</strong> <span style="color:#6a1b9a;font-weight:bold;">PARALYZED for ' + rounds + ' turn' + (rounds === 1 ? '' : 's') + '</span> (stacks with existing)');
+          var endRound = roundsElapsed + rounds;
+          parts.push('<strong>Ghoul Paralysis:</strong> <span style="color:#6a1b9a;font-weight:bold;">PARALYZED until R' + endRound + '</span> (' + rounds + ' round' + (rounds === 1 ? '' : 's') + ', stacks with existing)');
         } else {
           parts.push('<strong>Ghoul Paralysis:</strong> no paralysis (' + rawRounds + ' blocked by ' + successes + ' successes)');
+        }
+      } else if (cond.name === 'minor_strength_poison') {
+        var rawPoisonDmg = 1 + Math.floor(cond.value / 10);
+        var poisonDmg = Math.max(0, rawPoisonDmg - successes);
+        if (poisonDmg > 0) {
+          parts.push('<strong>Minor Strength Poison:</strong> ' + poisonDmg + ' minor STR damage (' + rawPoisonDmg + ' - ' + successes + ' successes)');
+        } else {
+          parts.push('<strong>Minor Strength Poison:</strong> no damage (' + rawPoisonDmg + ' blocked by ' + successes + ' successes)');
         }
       } else {
         parts.push('<strong>' + cond.label + ':</strong> save recorded');
@@ -435,14 +541,15 @@
         var canAfford = currentMana >= cost;
         html += '<div style="margin-top:6px;"><span class="math-detail">Tier ' + tier + ' (' + cost + ' mana):</span><br>';
         tiers[tier].forEach(function(spell) {
-          var isInstant = spell.cure || spell.ward;
+          var isInstant = spell.cure || spell.ward || spell.stabilize;
           var mode = spell.target_mode || 'single';
           var marker = mode === 'multi' ? ' *' : (mode === 'none' ? ' \u25CB' : '');
           var label = spell.name + marker;
+          var effectLabel = spell.cure ? 'cure' : (spell.ward ? 'ward' : (spell.stabilize ? 'stabilize' : ''));
           if (canAfford) {
             html += '<button class="action-btn spell-btn" onclick="selectSpellTarget(\'' +
               spell.name.replace(/'/g, "\\'") + '\', ' + spell.tier + ', ' + (isInstant ? 'true' : 'false') +
-              ', \'' + (spell.cure ? 'cure' : (spell.ward ? 'ward' : '')) + '\'' +
+              ', \'' + effectLabel + '\'' +
               ', \'' + mode + '\'' +
               ')" style="margin:2px;">' + label + '</button>';
           } else {
@@ -522,10 +629,61 @@
       } else if (targetMode === 'single') {
         fields += ', target_combat_id: ' + targetIds[0];
       }
+
+      // Stabilize is a concentration spell that spends combat dice and rolls
+      // a healing check; each success reduces target's bleed by 3. We walk
+      // the DM through: pick dice -> roll -> summary -> submit.
+      if (effectLabel === 'stabilize') {
+        showStabilizeDice(spellName, spellTier, targetIds[0], targetLabel);
+        return;
+      }
+
       addStep('<strong>Casting: ' + spellName + '</strong>' +
         '<br><span class="math-detail">Tier ' + spellTier + ' | Cost: ' + cost + ' mana' + targetLabel +
         (isConcentration ? ' | Concentration' : '') + label + '</span>' +
         '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Confirm Cast</button>');
+    }
+
+    // --- STABILIZE: multi-step flow (dice -> roll -> summary -> submit) ---
+    function showStabilizeDice(spellName, spellTier, targetId, targetLabel) {
+      var target = combatants.find(function(c) { return c.combat_id === targetId; });
+      var targetName = target ? target.name : 'target';
+      var maxDice = Math.min(currentHealingDice, diceRemaining);
+      if (maxDice < 1) {
+        addStep('<strong>Cannot cast Stabilize</strong> - no combat dice remaining (healing ' + currentHealingDice + ', remaining ' + diceRemaining + ')');
+        return;
+      }
+      var tn = clampTn(diceRules.base_target_number - currentHealingBonus);
+      addStep('<strong>Stabilize</strong> on ' + targetName +
+        '<br><span class="math-detail">Healing check, TN ' + tn + ' | Max dice: ' + maxDice + ' (healing ' + currentHealingDice + ', remaining ' + diceRemaining + ')</span>' +
+        '<br><label>Dice to spend: <input type="number" id="stabilize-dice" min="1" max="' + maxDice + '" value="' + maxDice + '" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="showStabilizeRoll(\'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ', ' + targetId + ', ' + tn + ')" style="margin-top:4px;">Next</button>');
+    }
+
+    function showStabilizeRoll(spellName, spellTier, targetId, tn) {
+      var dice = parseInt(document.getElementById('stabilize-dice').value, 10);
+      var maxDice = Math.min(currentHealingDice, diceRemaining);
+      if (isNaN(dice) || dice < 1 || dice > maxDice) { alert('Enter 1-' + maxDice + '.'); return; }
+      addStep('<strong>Stabilize Roll</strong>: ' + dice + ' dice, TN ' + tn +
+        '<br><label>Successes: <input type="number" id="stabilize-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="showStabilizeSummary(\'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ', ' + targetId + ', ' + dice + ')">Next</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + dice + ', ' + tn + ', \'stabilize-successes\', \'stabilize-roll-display\')">Roll</button>' +
+        '<div id="stabilize-roll-display" class="math-detail" style="margin-top:4px;"></div>');
+    }
+
+    function showStabilizeSummary(spellName, spellTier, targetId, dice) {
+      var successes = parseInt(document.getElementById('stabilize-successes').value, 10);
+      if (isNaN(successes) || successes < 0) { alert('Enter a non-negative number of successes.'); return; }
+      var target = combatants.find(function(c) { return c.combat_id === targetId; });
+      var targetName = target ? target.name : 'target';
+      var cost = spellManaCost(spellTier);
+      var reduction = 3 * successes;
+      addStep('<strong>Confirm Stabilize</strong> on ' + targetName +
+        '<br><span class="math-detail">Tier ' + spellTier + ' | Cost: ' + cost + ' mana + ' + dice + ' dice | Concentration</span>' +
+        '<br>' + successes + ' success' + (successes === 1 ? '' : 'es') + ' &times; 3 = <strong>bleed &minus;' + reduction + '</strong> on ' + targetName +
+        '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'cast\', spell_name: \'' +
+          spellName.replace(/'/g, "\\'") + '\', spell_tier: ' + spellTier + ', concentration: true, target_combat_id: ' + targetId +
+          ', stabilize_dice: ' + dice + ', stabilize_successes: ' + successes + '})" style="margin-top:8px;">Submit</button>');
     }
 
     // --- ITEM: Consumable selection ---
@@ -1074,7 +1232,9 @@
       var diceNote = attackState.attackDiceOverride ? ' (reduced from ' + attackState.attackDice + ')' : '';
       addStep('<strong>Attack Roll</strong>: ' + rollDice + ' dice' + diceNote + ', TN ' + attackState.attackTn +
         '<br><label>Attack successes: <input type="number" id="attack-successes-input" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="confirmAttackSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="confirmAttackSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + rollDice + ', ' + attackState.attackTn + ', \'attack-successes-input\', \'attack-roll-display\')">Roll</button>' +
+        '<div id="attack-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function confirmAttackSuccesses() {
@@ -1100,19 +1260,25 @@
     function showDodgeRoll() {
       addStep('<strong>Dodge Roll</strong>: ' + attackState.defenseDice + ' dice, TN ' + attackState.dodgeTn +
         '<br><label>Dodge successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + attackState.defenseDice + ', ' + attackState.dodgeTn + ', \'defense-successes-input\', \'defense-roll-display\')">Roll</button>' +
+        '<div id="defense-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function showParryRoll() {
       addStep('<strong>Parry Roll</strong>: ' + attackState.parryDice + ' dice, TN ' + attackState.parryTn +
         '<br><label>Parry successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + attackState.parryDice + ', ' + attackState.parryTn + ', \'defense-successes-input\', \'defense-roll-display\')">Roll</button>' +
+        '<div id="defense-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function showBlockRoll() {
       addStep('<strong>Block Roll</strong>: ' + attackState.blockDice + ' dice, TN ' + attackState.blockTn +
         '<br><label>Block successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + attackState.blockDice + ', ' + attackState.blockTn + ', \'defense-successes-input\', \'defense-roll-display\')">Roll</button>' +
+        '<div id="defense-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function confirmDefenseSuccesses() {
@@ -1149,7 +1315,9 @@
       addStep('<strong>' + (caster ? caster.name : 'Ally') + ' blocks with Shield of Faith</strong>: ' + ally.dice + ' dice' +
         '<br><span class="math-detail">' + tnMath + '</span>' +
         '<br><label>Block successes: <input type="number" id="ally-block-successes" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="confirmAllyBlockSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="confirmAllyBlockSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + ally.dice + ', ' + blockTn + ', \'ally-block-successes\', \'ally-block-display\')">Roll</button>' +
+        '<div id="ally-block-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function confirmAllyBlockSuccesses() {
@@ -1279,7 +1447,9 @@
 
       addStep('<strong>' + healer.name + ' rolls Healing Word</strong>: ' + dice + ' dice, TN ' + healTn +
         '<br><label>Successes (each reduces damage by 1): <input type="number" id="hw-successes" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="confirmHealingWordSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="confirmHealingWordSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + dice + ', ' + healTn + ', \'hw-successes\', \'hw-roll-display\')">Roll</button>' +
+        '<div id="hw-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function confirmHealingWordSuccesses() {
@@ -1327,6 +1497,13 @@
       var effectiveResilience = target.damage_resilience + resilienceBonus;
       var threshold = effectiveResilience + weapon.weapon_threshold;
 
+      // Pre-DR damage -- what the weapon would deal before armor soaks it.
+      // Used to decide if afflictions (bleed / poison / paralysis) apply:
+      // if raw damage >= target's DR, the strike penetrates enough to
+      // inflict conditions, even when net HP damage ends up 0.
+      var preDrDamage = weapon.weapon_dmg + netSuccesses + weapon.weapon_bonus;
+      attackState.attackPenetrates = preDrDamage >= effectiveDR;
+
       var hwReduction = attackState.healingWordSuccesses || 0;
       var totalDamage = Math.max(0, weapon.weapon_dmg + netSuccesses + weapon.weapon_bonus - effectiveDR - hwReduction);
 
@@ -1349,9 +1526,35 @@
         ' (' + resilText + ' + Weapon Threshold ' + weapon.weapon_threshold + ')</span>';
       var splitDisplay = '<span class="math-detail">Minor: ' + split.minor + ' | Moderate: ' + split.moderate + ' | Major: ' + split.major + '</span>';
 
+      // Affliction defaults, computed from the same totalDamage shown above.
+      // Only afflictions that would naturally apply to this attack are
+      // shown; the DM can edit each value (or zero it out to suppress).
+      // Must match the order used by the server's attack handler.
+      var afflictionHtml = '';
+      attackState.afflictionDefaults = [];
+      if (attackState.attackPenetrates) {
+        if (!weapon.is_ranged && weapon.weapon_bleed > 0) {
+          attackState.afflictionDefaults.push({ key: 'bleed', label: 'Bleed', amount: totalDamage + weapon.weapon_bleed });
+        }
+        if (weapon.is_natural && currentAttackerAbilities.indexOf('ghoul_paralysis') !== -1) {
+          attackState.afflictionDefaults.push({ key: 'ghoul_paralysis', label: 'Ghoul Paralysis', amount: totalDamage + currentAttackerTier });
+        }
+        if (weapon.is_natural && weapon.subtype === 'bite' && currentAttackerAbilities.indexOf('poison_bite') !== -1) {
+          attackState.afflictionDefaults.push({ key: 'minor_strength_poison', label: 'Poison (minor STR)', amount: 5 + totalDamage });
+        }
+      }
+      if (attackState.afflictionDefaults.length > 0) {
+        afflictionHtml = '<br><span class="math-detail" style="margin-top:6px;display:inline-block;">Afflictions (editable):</span>';
+        attackState.afflictionDefaults.forEach(function(a) {
+          afflictionHtml += '<br><label style="margin-left:8px;">' + a.label + ': ' +
+            '<input type="number" id="afflict-' + a.key + '" min="0" value="' + a.amount + '" style="width:60px;"></label>';
+        });
+      }
+
       addStep(breakdown + '<br>' + thresholdMath + '<br>' + splitDisplay +
         '<br><label style="margin-top:8px;display:inline-block;">Final damage (editable): <input type="number" id="final-damage-input" min="0" value="' + totalDamage + '" style="width:60px;" onchange="updateDamageSplit()"></label>' +
         '<span id="final-split" class="math-detail" style="margin-left:10px;">Minor: ' + split.minor + ' | Moderate: ' + split.moderate + ' | Major: ' + split.major + '</span>' +
+        afflictionHtml +
         '<br><button class="action-btn" onclick="submitFinalResult(false)" style="margin-top:8px;">Submit Damage</button>' +
         ' <button class="action-btn" onclick="restartDefense()" style="margin-top:8px;">Change Defense</button>');
     }
@@ -1427,6 +1630,7 @@
           target_mana_cost: manaCost,
           ally_data: allyDataStr,
           healing_word_data: hwDataStr,
+          afflict: 'false',
           minor_damage: 0, moderate_damage: 0, major_damage: 0
         });
         return;
@@ -1439,7 +1643,7 @@
       var threshold = effectiveResilience + attackState.weapon.weapon_threshold;
       var split = calcDamageSplit(finalDamage, threshold);
 
-      submitAction({
+      var fields = {
         combat_action: 'attack',
         attacker_combat_id: attackState.attackerCombatId,
         target_combat_id: attackState.targetCombatId,
@@ -1449,8 +1653,22 @@
         target_mana_cost: manaCost,
         ally_data: allyDataStr,
         healing_word_data: hwDataStr,
+        afflict: attackState.attackPenetrates ? 'true' : 'false',
         minor_damage: split.minor, moderate_damage: split.moderate, major_damage: split.major
+      };
+
+      // Forward DM-edited affliction amounts; only keys shown in the UI
+      // are sent so the server doesn't double-apply anything. Each key is
+      // named afflict_<condition> and is an absolute amount to add.
+      (attackState.afflictionDefaults || []).forEach(function(a) {
+        var el = document.getElementById('afflict-' + a.key);
+        if (el) {
+          var v = parseInt(el.value, 10);
+          if (!isNaN(v) && v >= 0) fields['afflict_' + a.key] = v;
+        }
       });
+
+      submitAction(fields);
     }
 
     function submitAction(fields) {
@@ -1469,4 +1687,18 @@
       form.submit();
     }
   </script>
+
+  <% if current %>
+    <h2 style="margin-top: 30px;">Current Character</h2>
+    <% _saved_character = @character %>
+    <% _saved_compendium = @compendium %>
+    <% _saved_route_prefix = @route_prefix %>
+    <% @character = current.character %>
+    <% @compendium = Compendium.new %>
+    <% @route_prefix = nil %>
+    <%= erb :character_sheet, layout: false %>
+    <% @character = _saved_character %>
+    <% @compendium = _saved_compendium %>
+    <% @route_prefix = _saved_route_prefix %>
+  <% end %>
   </div>
