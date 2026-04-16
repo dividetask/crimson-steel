@@ -76,6 +76,8 @@
                   <span class="condition-badge condition-paralyzed" title="Ends at start of round <%= end_round %>">Paralyzed<%= duration_suffix %></span>
                 <% elsif %w[Blindness Deafness].include?(effect['spell_name']) %>
                   <span class="condition-badge condition-<%= effect['spell_name'].downcase %>" title="Permanent until dispelled"><%= effect['spell_name'] %></span>
+                <% elsif %w[Entangled Stuck].include?(effect['spell_name']) %>
+                  <span class="condition-badge condition-<%= effect['spell_name'].downcase %>" title="Ends at start of round <%= end_round %>"><%= effect['spell_name'] %><%= duration_suffix %></span>
                 <% elsif end_round %>
                   <%# Every other duration-bound active effect (Ward, future %>
                   <%# spell effects with ends_on_round) gets a generic badge. %>
@@ -151,6 +153,9 @@
     </div>
 
     <div class="turn-panel">
+      <% bind_effects = (@combat.active_effects || []).select { |e|
+           %w[Entangled Stuck].include?(e['spell_name']) && (e['target_combat_ids'] || []).include?(current.combat_id)
+         } %>
       <div class="action-buttons" id="action-buttons">
         <button class="action-btn" onclick="selectAction('start_of_turn')">Start of Turn</button>
         <% unless current_incapacitated %>
@@ -158,6 +163,9 @@
           <button class="action-btn" onclick="selectAction('move')">Move</button>
           <button class="action-btn" onclick="selectAction('cast')">Cast</button>
           <button class="action-btn" onclick="selectAction('concentrate')">Concentrate</button>
+          <% if bind_effects.any? %>
+            <button class="action-btn" onclick="selectAction('escape')">Escape</button>
+          <% end %>
           <button class="action-btn" onclick="selectAction('item')">Item</button>
           <button class="action-btn" onclick="selectAction('special')">Special</button>
         <% end %>
@@ -223,7 +231,8 @@
              save_attr: save_attr,
              caster_skill: caster_skill,
              caster_skill_dice: caster_skill ? current.character.skill_dice(caster_skill).to_i : 0,
-             caster_skill_bonus: caster_skill ? current.character.skill_bonus(caster_skill).to_i : 0}
+             caster_skill_bonus: caster_skill ? current.character.skill_bonus(caster_skill).to_i : 0,
+             caster_skill_ranks: caster_skill ? current.character.skill_ranks(caster_skill).to_i : 0}
           end
         }.flatten
       )
@@ -371,6 +380,10 @@
 
       if (action === 'concentrate') {
         showConcentrateSelection();
+      }
+
+      if (action === 'escape') {
+        showEscapeSelection();
       }
 
       if (action === 'item') {
@@ -672,6 +685,10 @@
       }
       if (spellName === 'Biting Words') {
         startBitingWordsCast(spellName, spellTier, targetIds);
+        return;
+      }
+      if (spellName === 'Web') {
+        startWebCast(spellName, spellTier, targetIds);
         return;
       }
       if (spellEntry && spellEntry.ranged_attack) {
@@ -1244,6 +1261,221 @@
       addStep(summary +
         '<br><span class="math-detail">Cost: ' + manaCost + ' mana + ' + bwCast.diceSpent + ' dice</span>' +
         '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Submit</button>');
+    }
+
+    // --- Web: multi-target entangle + stuck with per-target DEX saves ---
+    //   1. Pick dice. Caster rolls once.
+    //   2. DM enters caster's total successes.
+    //   3. For each target, DM enters save successes; net = caster - save.
+    //      net >= 1 => Entangled; net >= 2 => Entangled + Stuck.
+    //   4. Duration: caster_skill_ranks * 10 rounds (rank*10 per compendium).
+    var webCast = null;
+
+    function startWebCast(spellName, spellTier, targetIds) {
+      var spellEntry = spellList.find(function(s) { return s.name === spellName; });
+      if (!spellEntry || !spellEntry.caster_skill) {
+        alert('Caster has no eligible skill for ' + spellName);
+        return;
+      }
+      if (!targetIds || targetIds.length === 0) {
+        alert('Pick at least one target');
+        return;
+      }
+
+      webCast = {
+        spellName: spellName, spellTier: spellTier,
+        targetIds: targetIds.slice(),
+        casterSkill: spellEntry.caster_skill,
+        casterSkillDice: spellEntry.caster_skill_dice,
+        casterSkillBonus: spellEntry.caster_skill_bonus,
+        casterSkillRanks: spellEntry.caster_skill_ranks,
+        saveAttr: spellEntry.save_attr,
+        diceSpent: 0, casterSuccesses: null,
+        targetSaves: {} // target_combat_id -> save_successes
+      };
+
+      var maxDice = Math.min(webCast.casterSkillDice, diceRemaining);
+      var minDice = 2;
+      if (maxDice < minDice) {
+        addStep('<strong>Cannot cast Web</strong> - need at least ' + minDice +
+          ' dice (skill allows ' + webCast.casterSkillDice + ', pool has ' + diceRemaining + ')');
+        return;
+      }
+      var diceId = 'web-dice-' + Date.now();
+      var targetNames = targetIds.map(function(id) {
+        var c = combatants.find(function(x) { return x.combat_id === id; });
+        return c ? c.name : '?';
+      }).join(', ');
+      addStep('<strong>Web</strong> on ' + targetNames +
+        '<br><span class="math-detail">Rolls off ' + webCast.casterSkill.replace('_', ' ') +
+        ' (' + webCast.casterSkillDice + ' dice max). Dex save; net &ge;1 entangles, &ge;2 also sticks. ' +
+        'Duration: ' + (webCast.casterSkillRanks * 10) + ' rounds.</span>' +
+        '<br><label>Dice: <input type="number" id="' + diceId + '" min="' + minDice + '" max="' + maxDice + '" value="' + maxDice + '" style="width:50px;"></label>' +
+        ' <button class="action-btn" style="margin-top:4px;" onclick="(function(){' +
+        'var v=parseInt(document.getElementById(\'' + diceId + '\').value,10);' +
+        'if(isNaN(v)||v<' + minDice + '||v>' + maxDice + '){alert(\'Enter ' + minDice + '-' + maxDice + '.\');return;}' +
+        'webCast.diceSpent=v;webCasterRollStep();})()">Next</button>');
+    }
+
+    function webCasterRollStep() {
+      var casterTn = clampTn(diceRules.base_target_number - webCast.casterSkillBonus);
+      var tnMath = tnBreakdown('Caster TN', diceRules.base_target_number,
+        [{value: -webCast.casterSkillBonus, label: webCast.casterSkill.replace('_', ' ') + ' bonus'}], casterTn);
+      addStep('<strong>Caster Spell Check</strong>: ' + webCast.diceSpent + ' dice, TN ' + casterTn +
+        '<br><span class="math-detail">' + tnMath + ' &nbsp;|&nbsp; enter total rolled successes (compared individually against each target save).</span>' +
+        '<br><label>Total successes: <input type="number" id="web-caster-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="webConfirmCasterSuccesses()">Confirm</button>');
+    }
+
+    function webConfirmCasterSuccesses() {
+      var input = document.getElementById('web-caster-successes');
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
+      webCast.casterSuccesses = val;
+      input.disabled = true;
+      input.parentElement.nextElementSibling.style.display = 'none';
+      webNextTargetSave(0);
+    }
+
+    function webNextTargetSave(idx) {
+      if (idx >= webCast.targetIds.length) {
+        webShowResult();
+        return;
+      }
+      var tid = webCast.targetIds[idx];
+      var target = combatants.find(function(c) { return c.combat_id === tid; });
+      if (!target) { webCast.targetSaves[tid] = 0; webNextTargetSave(idx + 1); return; }
+      var saveAttr = webCast.saveAttr;
+      var saveDice = (target.save_dice && target.save_dice[saveAttr]) || 0;
+      var saveBonus = (target.save_bonus && target.save_bonus[saveAttr]) || 0;
+      var baseTn = diceRules.base_target_number;
+      var saveTn = clampTn(baseTn - saveBonus + webCast.spellTier + webCast.casterSkillBonus);
+      var tnMath = tnBreakdown('Save TN', baseTn, [
+        {value: -saveBonus, label: saveAttr.toUpperCase() + ' save bonus'},
+        {value: webCast.spellTier, label: 'spell tier penalty'},
+        {value: webCast.casterSkillBonus, label: 'caster skill penalty'}
+      ], saveTn);
+      var inputId = 'web-save-' + idx;
+      addStep('<strong>' + target.name + '\'s ' + saveAttr.toUpperCase() + ' Save</strong>: ' +
+        saveDice + ' dice, TN ' + saveTn +
+        '<br><span class="math-detail">' + tnMath + '</span>' +
+        '<br><label>Save successes: <input type="number" id="' + inputId + '" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="webConfirmTargetSave(' + idx + ', ' + tid + ', \'' + inputId + '\')">Confirm</button>');
+    }
+
+    function webConfirmTargetSave(idx, tid, inputId) {
+      var input = document.getElementById(inputId);
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
+      webCast.targetSaves[tid] = val;
+      input.disabled = true;
+      input.parentElement.nextElementSibling.style.display = 'none';
+      webNextTargetSave(idx + 1);
+    }
+
+    function webShowResult() {
+      var rows = [];
+      // Build payload: "tid:save_successes:outcome" joined by ';'
+      // outcome ∈ {'free','entangled','stuck'} so server knows what to apply.
+      var payloadParts = [];
+      webCast.targetIds.forEach(function(tid) {
+        var save = webCast.targetSaves[tid] || 0;
+        var net = webCast.casterSuccesses - save;
+        var target = combatants.find(function(c) { return c.combat_id === tid; });
+        var name = target ? target.name : '?';
+        var outcome = 'free';
+        if (net >= 2) outcome = 'stuck';
+        else if (net >= 1) outcome = 'entangled';
+        var label;
+        if (outcome === 'stuck')
+          label = '<strong style="color:#ad1457;">' + name + ': Entangled + Stuck</strong> (' + webCast.casterSuccesses + ' - ' + save + ' = ' + net + ' net)';
+        else if (outcome === 'entangled')
+          label = '<strong style="color:#6a1b9a;">' + name + ': Entangled</strong> (' + webCast.casterSuccesses + ' - ' + save + ' = ' + net + ' net)';
+        else
+          label = name + ': clean save (' + webCast.casterSuccesses + ' - ' + save + ' = ' + net + ' net)';
+        rows.push(label);
+        payloadParts.push(tid + ':' + save + ':' + outcome);
+      });
+      var manaCost = spellManaCost(webCast.spellTier);
+      var fields =
+        'id: currentCharId, combat_action: \'cast\', spell_name: \'Web\', spell_tier: ' + webCast.spellTier +
+        ', target_combat_ids: \'' + webCast.targetIds.join(',') + '\'' +
+        ', dice_spent: ' + webCast.diceSpent +
+        ', web_caster_successes: ' + webCast.casterSuccesses +
+        ', web_duration_rounds: ' + (webCast.casterSkillRanks * 10) +
+        ', web_caster_skill_bonus: ' + webCast.casterSkillBonus +
+        ', web_results: \'' + payloadParts.join(';') + '\'';
+      addStep(rows.join('<br>') +
+        '<br><span class="math-detail">Cost: ' + manaCost + ' mana + ' + webCast.diceSpent + ' dice</span>' +
+        '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Submit</button>');
+    }
+
+    // --- Escape (break Entangled / Stuck) ---
+    //   Strength save with TN penalty equal to the caster's skill bonus
+    //   plus spell tier (recorded on the effect when Web was cast). Two
+    //   or more successes frees the target from both conditions.
+    function showEscapeSelection() {
+      var me = combatants.find(function(c) { return c.combat_id === currentCharId; });
+      if (!me) return;
+      var binds = activeEffects
+        .map(function(e, i) { return {effect: e, idx: i}; })
+        .filter(function(p) {
+          if (!p.effect) return false;
+          if (['Entangled', 'Stuck'].indexOf(p.effect.spell_name) === -1) return false;
+          return (p.effect.target_combat_ids || []).indexOf(currentCharId) !== -1;
+        });
+      if (binds.length === 0) {
+        addStep('<strong>Nothing to escape from</strong>');
+        return;
+      }
+      // Collect the most punitive penalty across current binds (usually
+      // the same spell, but if stacked from different casts, use the worst).
+      var worst = binds.reduce(function(acc, p) {
+        var tier = (p.effect.spell_tier || 0) | 0;
+        var bonus = (p.effect.caster_skill_bonus || 0) | 0;
+        var penalty = tier + bonus;
+        if (acc == null || penalty > acc.penalty) {
+          return {penalty: penalty, tier: tier, skillBonus: bonus, labels: [p.effect.spell_name]};
+        }
+        if (penalty === acc.penalty && acc.labels.indexOf(p.effect.spell_name) === -1) {
+          acc.labels.push(p.effect.spell_name);
+        }
+        return acc;
+      }, null);
+
+      var strDice = (me.save_dice && me.save_dice.str) || 0;
+      var strBonus = (me.save_bonus && me.save_bonus.str) || 0;
+      var baseTn = diceRules.base_target_number;
+      var escapeTn = clampTn(baseTn - strBonus + worst.penalty);
+      var tnMath = tnBreakdown('Escape TN', baseTn, [
+        {value: -strBonus, label: 'STR save bonus'},
+        {value: worst.tier, label: 'spell tier penalty'},
+        {value: worst.skillBonus, label: 'caster skill penalty'}
+      ], escapeTn);
+
+      var effectIndices = binds.map(function(p) { return p.idx; });
+      addStep('<strong>Escape: Strength Check</strong>' +
+        '<br><span class="math-detail">Bound by: ' + worst.labels.join(', ') + '. ' +
+        'Roll ' + strDice + ' STR dice at TN ' + escapeTn + '. 2+ successes frees all binds.</span>' +
+        '<br><span class="math-detail">' + tnMath + '</span>' +
+        '<br><label>Successes: <input type="number" id="escape-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="confirmEscape(\'' + effectIndices.join(',') + '\')">Confirm</button>');
+    }
+
+    function confirmEscape(indicesCsv) {
+      var input = document.getElementById('escape-successes');
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
+      var free = val >= 2;
+      var summary = free ?
+        '<strong>Escaped!</strong> ' + val + ' successes &ge; 2 &mdash; binds removed.' :
+        '<strong>Still bound.</strong> ' + val + ' successes (need 2).';
+      addStep(summary +
+        '<br><button class="action-btn" onclick="submitAction({' +
+          'id: currentCharId, combat_action: \'escape\'' +
+          ', successes: ' + val +
+          ', effect_indices: \'' + indicesCsv + '\'' +
+        '})" style="margin-top:8px;">Submit</button>');
     }
 
     // --- ITEM: Consumable selection ---

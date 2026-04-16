@@ -876,6 +876,30 @@ post '/combat/action' do
         participant['combat_pool'] = participant['combat_pool'].to_i - bw_dice
       end
 
+      # Web: multi-target entangle/stuck; client sends per-target outcomes.
+      web_dice = 0
+      web_results = []
+      web_duration = 0
+      web_skill_bonus = 0
+      if spell_name == 'Web'
+        halt 400, "Web requires at least one target" if target_ids.empty?
+        web_dice = params[:dice_spent].to_i
+        halt 400, "Web must spend at least 2 dice" if web_dice < 2
+        halt 400, "Not enough dice" if participant['combat_pool'].to_i < web_dice
+        participant['combat_pool'] = participant['combat_pool'].to_i - web_dice
+        web_duration = params[:web_duration_rounds].to_i
+        web_skill_bonus = params[:web_caster_skill_bonus].to_i
+        params[:web_results].to_s.split(';').each do |part|
+          next if part.empty?
+          tid_s, save_s, outcome = part.split(':')
+          web_results << {
+            'target_combat_id' => tid_s.to_i,
+            'save_successes' => save_s.to_i,
+            'outcome' => outcome.to_s
+          }
+        end
+      end
+
       participant['mana'] = participant['mana'].to_i - mana_cost
       # Enhancement spells (Resistance, Bull's Strength, ...) write an
       # active_effect carrying the resolved bonus payload. The target's
@@ -985,9 +1009,45 @@ post '/combat/action' do
         remaining = bw_damage - absorbed
         tgt['minor_damage'] = tgt['minor_damage'].to_i + remaining if remaining > 0
       end
+
+      # Web: per-target outcomes. 'entangled' adds an Entangled active
+      # effect; 'stuck' adds both Entangled and Stuck. Each effect carries
+      # ends_on_round so start_of_turn purges it at expiry, plus the
+      # caster's skill bonus + spell tier so a later Escape strength
+      # check can recompute its TN penalty.
+      if spell_name == 'Web' && web_results.any?
+        combat_data['active_effects'] ||= []
+        campaign = Tools.load_json('campaign.json')
+        campaign = {} unless campaign.is_a?(Hash)
+        rounds_elapsed = campaign['rounds_elapsed'].to_i
+        end_round = rounds_elapsed + [web_duration, 1].max
+        web_results.each do |r|
+          next if r['outcome'] == 'free'
+          tgt = combat_data['participants'].find { |p| p['id'] == r['target_combat_id'] }
+          next unless tgt
+          tgt_char_id = tgt['char_id'] || tgt['id']
+          tgt_data = Tools.load_json('characters.json').find { |c| c['id'] == tgt_char_id }
+          tgt_name = tgt_data ? CharacterSheet.new(tgt_data).name : 'target'
+
+          common = {
+            'caster_id' => combat_id,
+            'caster_name' => character.name,
+            'spell_tier' => spell_tier,
+            'round_cast' => combat_data['round'],
+            'ends_on_round' => end_round,
+            'target_combat_ids' => [r['target_combat_id']],
+            'target_names' => [tgt_name],
+            'caster_skill_bonus' => web_skill_bonus
+          }
+          combat_data['active_effects'] << common.merge('spell_name' => 'Entangled')
+          if r['outcome'] == 'stuck'
+            combat_data['active_effects'] << common.merge('spell_name' => 'Stuck')
+          end
+        end
+      end
       Tools.save_json('combat.json', combat_data)
       suffix = target_names.empty? ? "" : " on #{target_names.join(', ')}"
-      dice_total = [spiritual_weapon_dice, bd_dice, ranged_dice, vm_dice, bw_dice].max
+      dice_total = [spiritual_weapon_dice, bd_dice, ranged_dice, vm_dice, bw_dice, web_dice].max
       dice_suffix = dice_total > 0 ? " with #{dice_total} dice" : ""
       outcome = ""
       if spell_name == 'Blindness/Deafness'
@@ -1013,6 +1073,16 @@ post '/combat/action' do
         outcome = bw_damage > 0 ?
           " - #{bw_damage} minor damage (#{caster_s} vs #{save_s} save)" :
           " - no damage (#{caster_s} vs #{save_s} save)"
+      elsif spell_name == 'Web'
+        parts = web_results.map do |r|
+          tgt = combat_data['participants'].find { |p| p['id'] == r['target_combat_id'] }
+          next nil unless tgt
+          tgt_char_id = tgt['char_id'] || tgt['id']
+          tgt_data = Tools.load_json('characters.json').find { |c| c['id'] == tgt_char_id }
+          name = tgt_data ? CharacterSheet.new(tgt_data).name : 'target'
+          "#{name}: #{r['outcome']}"
+        end.compact
+        outcome = " - #{parts.join('; ')}" unless parts.empty?
       end
       duration_log = enhancement ? " (#{[enhancement[:duration_rounds].to_i, 1].max} round#{'s' unless enhancement[:duration_rounds].to_i == 1})" : ""
       Combat.add_log("#{character.name} casts #{spell_name}#{suffix}#{dice_suffix} (#{mana_cost} mana)#{outcome}#{duration_log}")
@@ -1387,6 +1457,37 @@ post '/combat/action' do
       end
       suffix = target_names.empty? ? "" : " on #{target_names.join(', ')}"
       Combat.add_log("#{character.name} concentrates on #{spell_name}#{suffix}")
+    end
+
+  elsif action == 'escape'
+    # Strength-check attempt to break Entangled / Stuck. 2+ successes
+    # removes every bind targeting this combatant; otherwise the action
+    # is logged and nothing changes. (Dice cost for an escape is the
+    # strength-check roll itself, resolved off-client.)
+    participant = combat_data['participants'].find { |p| p['id'] == combat_id }
+    halt 400, "Participant not found" unless participant
+    char_id = participant['char_id'] || participant['id']
+    character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
+    character = CharacterSheet.new(character_data)
+    successes = params[:successes].to_i
+    indices = params[:effect_indices].to_s.split(',').map(&:to_i)
+    combat_data['active_effects'] ||= []
+
+    if successes >= 2
+      # Delete in reverse order so indices stay valid.
+      removed = []
+      indices.sort.reverse.each do |i|
+        next if i < 0 || i >= combat_data['active_effects'].length
+        effect = combat_data['active_effects'][i]
+        next unless effect && (effect['target_combat_ids'] || []).include?(combat_id)
+        next unless %w[Entangled Stuck].include?(effect['spell_name'])
+        combat_data['active_effects'].delete_at(i)
+        removed << effect['spell_name']
+      end
+      Tools.save_json('combat.json', combat_data)
+      Combat.add_log("#{character.name} escapes #{removed.uniq.join(' + ')} (#{successes} successes)")
+    else
+      Combat.add_log("#{character.name} fails to escape (#{successes} successes, needs 2)")
     end
 
   elsif action == 'dismiss_effect'

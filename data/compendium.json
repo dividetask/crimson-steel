@@ -436,7 +436,7 @@
     },
     "Web": {
       "tier": 2,
-      "save": "reflex",
+      "save": "dex",
       "school": "convergence",
       "items": [
         "scroll",

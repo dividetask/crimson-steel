@@ -270,6 +270,8 @@ table th {
 .condition-blindness { background: #263238; }
 .condition-deafness { background: #37474f; }
 .condition-distracted { background: #8e24aa; }
+.condition-entangled { background: #6a1b9a; }
+.condition-stuck { background: #ad1457; }
 .store-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-bottom: 15px; }
 .store-card { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
 .card-header { margin-bottom: 12px; }
