@@ -981,5 +981,16 @@
     },
     "equipped": false,
     "quantity": 1
+  },
+  {
+    "owner_id": 4,
+    "name": "Desna's Whim",
+    "type": "item",
+    "subtype": "ring",
+    "bonus": 3,
+    "properties": {
+    },
+    "description": "Unknown Properties. Can be activated as a reaction to another's check with unpredictable results.",
+    "equipped": true
   }
 ]

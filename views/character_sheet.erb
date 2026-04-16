@@ -77,115 +77,6 @@
     </div>
   </div>
 
-  <div class="two-column">
-    <div class="left-col">
-      <h2>Attributes</h2>
-      <table class="attributes">
-        <tr>
-          <th></th>
-          <th>Score</th>
-          <th>½</th>
-          <th colspan="2">Check</th>
-          <th colspan="2">Saves</th>
-        </tr>
-        <% @character.ability_score_names.each do |name, sym| %>
-        <% attr_enh = @character.attribute_enhancement(sym) %>
-        <tr>
-          <td class="attr-name"><%= name %></td>
-          <td>
-            <%= @character.score(sym) %>
-            <% if attr_enh > 0 %>
-              <span class="enh-note" title="base <%= @character.base_score(sym) %> +<%= attr_enh %> enhancement">(+<%= attr_enh %>)</span>
-            <% end %>
-          </td>
-          <td><%= @character.half_mod(sym) %></td>
-          <td><%= @character.attr_dice(sym) %>d</td>
-          <td><%= @character.add_plus(:attr_bonus, sym) %></td>
-          <td><%= @character.save_dice(sym) %>d</td>
-          <td><%= @character.add_plus(:save_bonus, sym) %></td>
-        </tr>
-        <% end %>
-      </table>
-      <% save_enh = @character.save_enhancement %>
-      <% if save_enh > 0 %>
-        <div class="formula">Saves include +<%= save_enh %> enhancement bonus.</div>
-      <% end %>
-      <div class="formula">Formula: 4+½ Attribute Mod, subtract 5 when &gt; 8</div>
-
-      <h2>Skills</h2>
-      <table class="skills">
-        <tr>
-          <th>Name</th>
-          <th>Ranks</th>
-          <th>Dice</th>
-          <th>Bonus</th>
-        </tr>
-        <% @character.skill_list.each do |skill_name| %>
-        <tr>
-          <td><%= @character.clean_skill_name(skill_name) %></td>
-          <td><%= @character.skill_ranks(skill_name) %></td>
-          <td><%= @character.skill_dice(skill_name) %>d</td>
-          <td><%= @character.add_plus(:skill_bonus,skill_name) %></td>
-        </tr>
-        <% end %>
-      </table>
-      <div class="formula">Formula: 6+rank+½ Attribute Mod, subtract 5 when &gt; 10</div>
-
-      <h2>Additional Items</h2>
-      <div class="items">
-				<p><strong>Equipped:</strong> <%= @character.equip_search({"equipped" => true}).map { |item| item["name"] }.join(", ") %></p>
-				<% unless @character.ammunition.empty? %>
-					<p><strong>Ammunition:</strong> <%= @character.ammunition.map { |item| "(#{item['quantity'] || 1}) #{item['name']}" }.join(", ") %></p>
-				<% end %>
-
-				<% unless @character.consumable.empty? %>
-					<p><strong>Consumable:</strong> <% items = @character.consumable.map do |item|
-						if item["quantity"] and item["quantity"] > 1
-							"(#{item['quantity']}) #{item['name']}" 
-						else
-							"#{item['name']}" 
-						end
-					end %>
-					<%= items.join(", ") %></p>
-				<% end %>
-				<p><strong>Other:</strong> <%= @character.other_items().map { |item| item["name"] }.join(", ") %></p>
-      </div>
-    </div>
-
-    <div class="right-col">
-      <h2>Abilities</h2>
-
-			<% @character.ability_list.each do |ability_name| %>
-				<p><strong><%= h(@compendium.format_name(ability_name)) %>:</strong> <%= h(@compendium.ability(ability_name)) %></p>
-			<% end %>
-
-			<% if @character.spell_list %>
-				<h2>Spell List</h2>
-
-				<% @character.spell_list.each.with_index do |spell_sub_list, index| %>
-					<p><strong><%= index %>:</strong> <%= spell_sub_list.map { |s| "<a href=\"/spell/#{ERB::Util.url_encode(s)}\" class=\"spell-link\">#{h(s)}</a>" }.join(', ') %></p>
-				<% end %>
-			<% end %>
-
-			<% if @character.item_spell_list %>
-				<h2>Item Spells</h2>
-
-				<% @character.item_spell_list.each do |cat, spell_sub_list| %>
-					<p><strong><%= cat %>:</strong> <%= spell_sub_list.map { |s| "<a href=\"/spell/#{ERB::Util.url_encode(s)}\" class=\"spell-link\">#{h(s)}</a>" }.join(', ') %></p>
-				<% end %>
-			<% end %>
-
-			<% if @character.ritual_list && @character.ritual_list.any? { |t| t && t.any? } %>
-				<h2>Ritual Spellbook</h2>
-
-				<% @character.ritual_list.each_with_index do |ritual_sub_list, index| %>
-					<% next unless ritual_sub_list && ritual_sub_list.any? %>
-					<p><strong><%= index %>:</strong> <%= ritual_sub_list.map { |s| "<a href=\"/spell/#{ERB::Util.url_encode(s)}\" class=\"spell-link\">#{h(s)}</a>" }.join(', ') %></p>
-				<% end %>
-			<% end %>
-    </div>
-  </div>
-
   <h2>Combat</h2>
   <table class="combat">
     <tr>
@@ -226,14 +117,117 @@
   </table>
   <div class="formula">* MT is the base threshold for major damage.</div>
 
+  <div class="two-column">
+    <div class="left-col">
+      <h2>Attributes</h2>
+      <table class="attributes">
+        <tr>
+          <th></th>
+          <th>Score</th>
+          <th>½</th>
+          <th colspan="2">Check</th>
+          <th colspan="2">Saves</th>
+        </tr>
+        <% @character.ability_score_names.each do |name, sym| %>
+        <% dmg = @character.ability_damage_total(sym) %>
+        <% attr_enh = @character.attribute_enhancement(sym) %>
+        <tr>
+          <td class="attr-name"><%= name %></td>
+          <td>
+            <%= @character.ability_score_base(sym) %><% if dmg > 0 %><span class="ability-damage">-<%= dmg %></span><% end %><% if attr_enh > 0 %><span class="enh-note" title="base <%= @character.ability_score_base(sym) %> +<%= attr_enh %> enhancement">(+<%= attr_enh %>)</span><% end %>
+          </td>
+          <td><%= @character.half_mod(sym) %></td>
+          <td><%= @character.attr_dice(sym) %>d</td>
+          <td><%= @character.add_plus(:attr_bonus, sym) %></td>
+          <td><%= @character.save_dice(sym) %>d</td>
+          <td><%= @character.add_plus(:save_bonus, sym) %></td>
+        </tr>
+        <% end %>
+      </table>
+      <% save_enh = @character.save_enhancement %>
+      <% if save_enh > 0 %>
+        <div class="formula">Saves include +<%= save_enh %> enhancement bonus.</div>
+      <% end %>
+      <div class="formula">Formula: 4+½ Attribute Mod, subtract 5 when &gt; 8</div>
 
-  <h2>Items</h2>
-	<div class="items">
+      <h2>Skills</h2>
+      <table class="skills">
+        <tr>
+          <th>Name</th>
+          <th>Ranks</th>
+          <th>Dice</th>
+          <th>Bonus</th>
+        </tr>
+        <% @character.skill_list.each do |skill_name| %>
+        <tr>
+          <td><%= @character.clean_skill_name(skill_name) %></td>
+          <td><%= @character.skill_ranks(skill_name) %></td>
+          <td><%= @character.skill_dice(skill_name) %>d</td>
+          <td><%= @character.add_plus(:skill_bonus,skill_name) %></td>
+        </tr>
+        <% end %>
+      </table>
+      <div class="formula">Formula: 6+rank+½ Attribute Mod, subtract 5 when &gt; 10</div>
 
-		<% @character.defined_items.each do |item| %>
-			<p><strong><%= h(item['name']) %>:</strong> <%= h(item['description']) %></p>
-		<% end %>
-	</div>
+      <h2>Items</h2>
+      <div class="items">
+				<p><strong>Equipped:</strong> <%= @character.equip_search({"equipped" => true}).map { |item| item["name"] }.join(", ") %></p>
+				<% unless @character.ammunition.empty? %>
+					<p><strong>Ammunition:</strong> <%= @character.ammunition.map { |item| "(#{item['quantity'] || 1}) #{item['name']}" }.join(", ") %></p>
+				<% end %>
+
+				<% unless @character.consumable.empty? %>
+					<p><strong>Consumable:</strong> <% items = @character.consumable.map do |item|
+						if item["quantity"] and item["quantity"] > 1
+							"(#{item['quantity']}) #{item['name']}"
+						else
+							"#{item['name']}"
+						end
+					end %>
+					<%= items.join(", ") %></p>
+				<% end %>
+				<p><strong>Other:</strong> <%= @character.other_items().map { |item| item["name"] }.join(", ") %></p>
+
+				<h3>Item Descriptions</h3>
+				<% @character.defined_items.each do |item| %>
+					<p><strong><%= h(item['name']) %>:</strong> <%= h(item['description']) %></p>
+				<% end %>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <h2>Abilities</h2>
+
+			<% @character.ability_list.each do |ability_name| %>
+				<p><strong><%= h(@compendium.format_name(ability_name)) %>:</strong> <%= h(@compendium.ability(ability_name)) %></p>
+			<% end %>
+
+			<% if @character.spell_list %>
+				<h2>Spell List</h2>
+
+				<% @character.spell_list.each.with_index do |spell_sub_list, index| %>
+					<p><strong><%= index %>:</strong> <%= spell_sub_list.map { |s| "<a href=\"/spell/#{ERB::Util.url_encode(s)}\" class=\"spell-link\">#{h(s)}</a>" }.join(', ') %></p>
+				<% end %>
+			<% end %>
+
+			<% if @character.item_spell_list %>
+				<h2>Item Spells</h2>
+
+				<% @character.item_spell_list.each do |cat, spell_sub_list| %>
+					<p><strong><%= cat %>:</strong> <%= spell_sub_list.map { |s| "<a href=\"/spell/#{ERB::Util.url_encode(s)}\" class=\"spell-link\">#{h(s)}</a>" }.join(', ') %></p>
+				<% end %>
+			<% end %>
+
+			<% if @character.ritual_list && @character.ritual_list.any? { |t| t && t.any? } %>
+				<h2>Ritual Spellbook</h2>
+
+				<% @character.ritual_list.each_with_index do |ritual_sub_list, index| %>
+					<% next unless ritual_sub_list && ritual_sub_list.any? %>
+					<p><strong><%= index %>:</strong> <%= ritual_sub_list.map { |s| "<a href=\"/spell/#{ERB::Util.url_encode(s)}\" class=\"spell-link\">#{h(s)}</a>" }.join(', ') %></p>
+				<% end %>
+			<% end %>
+    </div>
+  </div>
 
   <h2>Notes</h2>
 	<div class="notes">

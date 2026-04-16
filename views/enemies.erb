@@ -130,7 +130,7 @@
               <td>
                 <%= @character.score(sym) %>
                 <% if attr_enh > 0 %>
-                  <span class="enh-note" title="base <%= @character.base_score(sym) %> +<%= attr_enh %> enhancement">(+<%= attr_enh %>)</span>
+                  <span class="enh-note" title="base <%= @character.ability_score_base(sym) %> +<%= attr_enh %> enhancement">(+<%= attr_enh %>)</span>
                 <% end %>
               </td>
               <td><%= @character.half_mod(sym) %></td>

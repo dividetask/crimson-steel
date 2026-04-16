@@ -24,8 +24,12 @@
     </thead>
     <tbody>
       <% @combat.combat_turn_list.each do |combat_turn| %>
+        <% next if combat_turn.dead? %>
         <% is_current = @combat.current_turn_character && @combat.current_turn_character.combat_id == combat_turn.combat_id %>
-        <tr class="<%= 'current-turn' if is_current %>">
+        <% row_classes = [] %>
+        <% row_classes << 'current-turn' if is_current %>
+        <% row_classes << 'incapacitated' if combat_turn.incapacitated? %>
+        <tr class="<%= row_classes.join(' ') %>">
           <td>
             <form method="post" action="/combat/set_turn/<%= combat_turn.combat_id %>" style="margin:0;">
               <button type="submit" class="set-turn-btn" title="Set as current turn"><%= is_current ? '&#9654;' : 'Set' %></button>
@@ -82,6 +86,14 @@
     </tbody>
   </table>
 
+  <% killed = @combat.killed_list %>
+  <% if killed.any? %>
+    <div class="killed-list" style="margin-top: 8px;">
+      <strong>Killed:</strong>
+      <%= killed.map { |ct| @combat.display_name(ct) }.join(', ') %>
+    </div>
+  <% end %>
+
   <div style="margin-top: 20px; display: flex; gap: 10px;">
     <form method="post" action="/combat/reset_dice">
       <button type="submit">Reset All Dice</button>
@@ -119,18 +131,26 @@
 
   <% current = @combat.current_turn_character %>
   <% if current %>
+    <% current_incapacitated = current.incapacitated? %>
     <div class="turn-status">
-      <h2><%= current.character.name %>'s Turn</h2>
+      <h2>
+        <%= current.character.name %>'s Turn
+        <% if current_incapacitated %>
+          <span class="incap-label">(Incapacitated)</span>
+        <% end %>
+      </h2>
     </div>
 
     <div class="turn-panel">
       <div class="action-buttons" id="action-buttons">
         <button class="action-btn" onclick="selectAction('start_of_turn')">Start of Turn</button>
-        <button class="action-btn" onclick="selectAction('attack')">Attack</button>
-        <button class="action-btn" onclick="selectAction('move')">Move</button>
-        <button class="action-btn" onclick="selectAction('cast')">Cast</button>
-        <button class="action-btn" onclick="selectAction('item')">Item</button>
-        <button class="action-btn" onclick="selectAction('special')">Special</button>
+        <% unless current_incapacitated %>
+          <button class="action-btn" onclick="selectAction('attack')">Attack</button>
+          <button class="action-btn" onclick="selectAction('move')">Move</button>
+          <button class="action-btn" onclick="selectAction('cast')">Cast</button>
+          <button class="action-btn" onclick="selectAction('item')">Item</button>
+          <button class="action-btn" onclick="selectAction('special')">Special</button>
+        <% end %>
         <button class="action-btn" onclick="selectAction('end_turn')">End Turn</button>
       </div>
       <div class="action-context" id="action-context">
@@ -212,14 +232,15 @@
       '[]'
     end %>;
     var combatants = <%= JSON.generate(
-      @combat.combat_turn_list.each_with_index.map { |ct, idx|
+      @combat.combat_turn_list.reject(&:dead?).each_with_index.map { |ct, idx|
         {
           turn_id: idx, combat_id: ct.combat_id, char_id: ct.character.id,
           name: @combat.display_name(ct), dice_remaining: ct.combat_pool, mana: ct.mana,
+          incapacitated: ct.incapacitated?,
           bab_dice: ct.character.bab_dice, bab_bonus: ct.character.bab_bonus,
           damage_reduction: ct.character.damage_reduction,
           damage_resilience: ct.character.damage_resilience,
-          abilities: ct.character.ability_list,
+          abilities: ct.incapacitated? ? [] : ct.character.ability_list,
           healing_dice: ct.character.skill_dice("healing"),
           healing_bonus: ct.character.skill_bonus("healing"),
           spells: (ct.character.spell_list || []).flatten,
@@ -815,6 +836,18 @@
     // --- ATTACK STEP 3: Select defense ---
     function showDefenseSelection() {
       var target = attackState.target;
+
+      // Incapacitated targets can't spend dice or mana to defend; the DM
+      // has only one option -- Nothing (flatfooted). No reactive abilities
+      // either. Allies can still Shield of Faith / Healing Word in the
+      // next step.
+      if (target.incapacitated) {
+        addStep('<strong>Select Defense for ' + target.name + '</strong>' +
+          ' <span class="math-detail">(incapacitated -- no defensive actions)</span>' +
+          '<br><button class="action-btn" onclick="selectDefense(\'nothing\')">Nothing</button>');
+        return;
+      }
+
       var targetWeapons = target.weapons || [];
       var targetShields = target.shields || [];
       var weaponOptions = targetWeapons.map(function(w) {
@@ -1112,6 +1145,7 @@
         if ((effect.spell_name || '').trim() !== 'Shield of Faith') return;
         var caster = combatants.find(function(c) { return c.combat_id === effect.caster_id; });
         if (!caster) return;
+        if (caster.incapacitated) return;
         if (caster.combat_id === attackState.attackerCombatId) return;
         if (caster.dice_remaining < 2) return;
         pendingAllyShields.push({
@@ -1384,6 +1418,7 @@
       var healingWordCost = spellManaCost(1); // tier 1 = 4 mana
       combatants.forEach(function(c) {
         if (c.combat_id === attackState.attackerCombatId) return;
+        if (c.incapacitated) return;
         // Skip already used healers
         var alreadyUsed = attackState.healingWordActions.some(function(a) { return a.combat_id === c.combat_id; });
         if (alreadyUsed) return;
