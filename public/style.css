@@ -529,6 +529,45 @@ table th {
 .dt-preview { font-size: 11px; padding: 6px 8px; background: #f5f8ff; border-left: 3px solid #1976d2; border-radius: 2px; min-height: 14px; line-height: 1.5; }
 .dt-warn { color: #d32f2f; font-weight: bold; }
 
+/* Scene page: shared panels, shared images, and DM staging block */
+.scene-panels { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+.scene-panel { border: 1px solid #ccc; background: #fafafa; padding: 12px 16px; border-radius: 4px; }
+.scene-panel h2 { margin: 0 0 8px 0; font-size: 18px; }
+.scene-panel p { margin: 0; }
+
+.scene-shared-images { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+.scene-shared-image { margin: 0; }
+.scene-shared-image img { max-width: 100%; max-height: 400px; display: block; border: 1px solid #ccc; }
+.scene-shared-image figcaption { font-size: 13px; color: #555; margin-bottom: 4px; }
+
+.dm-staging { margin-top: 30px; padding: 15px; border: 2px dashed #b71c1c; background: #fff5f5; border-radius: 6px; }
+.dm-staging h2 { margin-top: 0; color: #b71c1c; }
+.dm-staging .section { background: #fff; }
+
+.staging-names { list-style: none; padding-left: 0; }
+.staging-names li { padding: 6px 0; border-bottom: 1px solid #eee; }
+.staging-names summary { cursor: pointer; }
+.staging-name-label { font-weight: bold; }
+
+.staging-draft-note, .staging-panel, .staging-image { border: 1px solid #ddd; padding: 10px; margin: 10px 0; background: #fafafa; border-radius: 4px; }
+
+.panel-visibility { display: flex; flex-wrap: wrap; gap: 10px; padding: 6px 0; }
+.panel-visibility label { font-weight: normal; }
+
+.staging-image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.staging-image img { max-width: 100%; max-height: 180px; display: block; border: 1px solid #ccc; }
+
+.notes-form button.danger { background: #c62828; }
+.notes-form button.danger:hover { background: #b71c1c; }
+form button.danger { background: #c62828; color: white; border: none; padding: 8px 12px; cursor: pointer; }
+form button.danger:hover { background: #b71c1c; }
+
+/* Image notes in the notes view */
+.note-image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.note-image-item { margin: 0; border: 1px solid #ccc; padding: 8px; background: #fafafa; }
+.note-image { max-width: 100%; max-height: 400px; display: block; }
+.note-image-item figcaption { font-size: 13px; font-weight: bold; margin-top: 6px; }
+
 @media print {
   body {
     padding: 0;

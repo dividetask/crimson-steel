@@ -16,9 +16,9 @@
   </div>
 
   <%
-    filtered_notes = @notes
+    filtered_notes = @notes.reject { |n| n['draft'] }
     if @current_chapter
-      filtered_notes = @notes.select { |n|
+      filtered_notes = filtered_notes.select { |n|
         n['chapter'].nil? || n['chapter'] == @current_chapter || (n['active'] && n['chapter'] < @current_chapter)
       }
     end
@@ -162,6 +162,29 @@
       </form>
     <% end %>
   </div>
+
+  <% image_notes = filtered_notes.select { |n| n['type'] == 'image' && (@is_dm || n['public']) } %>
+  <% if image_notes.any? %>
+    <div class="section">
+      <h2>Scene Images</h2>
+      <div class="note-image-grid">
+        <% image_notes.each do |img| %>
+          <figure class="note-image-item">
+            <img src="<%= h(img['image_path']) %>" alt="<%= h(img['title']) %>" class="note-image">
+            <% if img['title'] && !img['title'].to_s.empty? %>
+              <figcaption><%= h(img['title']) %></figcaption>
+            <% end %>
+            <% if @is_dm %>
+              <small style="color:#666;">
+                <%= img['public'] ? '(Public)' : '(DM Only)' %>
+                <%= "Ch.#{img['chapter']}" if img['chapter'] %>
+              </small>
+            <% end %>
+          </figure>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
 
   <% player_character = @characters.find { |c| c['id'] == @viewer_id } %>
   <% if player_character %>
