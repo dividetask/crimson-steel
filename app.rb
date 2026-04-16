@@ -16,6 +16,59 @@ def local_request?
   request.ip == "127.0.0.1" || request.ip == "::1" || request.ip == "localhost"
 end
 
+# Recursively walks a properties_template hash, replacing any "{placeholder}"
+# string leaf with the matching field from the variant row. Numeric variant
+# values come through as integers; strings stay as strings. Used by the
+# store purchase flow to synthesize properties.enhancement from a single
+# template plus the selected variant's amount / attribute_key.
+def resolve_properties_template(template, variant)
+  case template
+  when Hash
+    template.each_with_object({}) { |(k, v), h| h[k] = resolve_properties_template(v, variant) }
+  when Array
+    template.map { |v| resolve_properties_template(v, variant) }
+  when String
+    m = template.match(/\A\{(\w+)\}\z/)
+    m ? variant[m[1]] : template.gsub(/\{(\w+)\}/) { variant[$1].to_s }
+  else
+    template
+  end
+end
+
+# Human-readable label for an enhancement bonus payload; used in combat log
+# lines ("+4 str", "+1 save") so the DM can see what effect just landed.
+def enhancement_log_label(enhancement)
+  amount = enhancement["amount"].to_i
+  if enhancement["type"] == "attribute"
+    "+#{amount} #{enhancement["attribute"]}"
+  else
+    "+#{amount} save"
+  end
+end
+
+# Append a duration-bound active_effect carrying the resolved enhancement
+# payload. The target's CharacterSheet picks up `enhancement` via
+# active_effects_targeting_me, and the existing start_of_turn cleanup in
+# /combat action=start_of_turn clears the entry when ends_on_round hits.
+# Shared by the direct-cast, potion, and scroll item-use paths.
+def apply_enhancement_effect(combat_data, effect, _target, user_character, target_character, target_ids, target_names, caster_combat_id)
+  campaign = Tools.load_json('campaign.json')
+  rounds_elapsed_now = campaign.is_a?(Hash) ? campaign['rounds_elapsed'].to_i : 0
+  duration = [effect[:duration_rounds].to_i, 1].max
+  combat_data['active_effects'] ||= []
+  combat_data['active_effects'] << {
+    'caster_id' => caster_combat_id,
+    'caster_name' => user_character ? user_character.name : nil,
+    'spell_name' => effect[:variant_name] || effect[:base_name],
+    'spell_tier' => effect[:tier_val],
+    'round_cast' => combat_data['round'],
+    'target_combat_ids' => target_ids,
+    'target_names' => target_names,
+    'ends_on_round' => rounds_elapsed_now + duration,
+    'enhancement' => effect[:enhancement]
+  }
+end
+
 before do
   @is_local = local_request?
   @view_as_player = local_request? && session[:view_mode] == 'player'
@@ -415,7 +468,15 @@ post '/combat/action' do
       end
 
       participant['mana'] = participant['mana'].to_i - mana_cost
-      if concentration
+      # Enhancement spells (Resistance, Bull's Strength, ...) write an
+      # active_effect carrying the resolved bonus payload. The target's
+      # CharacterSheet picks it up via active_effects_targeting_me so the
+      # bonus shows up on saves / attributes until ends_on_round clears it
+      # at the target's next Start of Turn.
+      enhancement = Compendium.new.enhancement_effects(spell_name)
+      if enhancement && !target_ids.empty?
+        apply_enhancement_effect(combat_data, enhancement.merge(variant_name: spell_name), nil, character, nil, target_ids, target_names, combat_id)
+      elsif concentration
         combat_data['active_effects'] ||= []
         combat_data['active_effects'] << {
           'caster_id' => combat_id,
@@ -429,7 +490,8 @@ post '/combat/action' do
       end
       Tools.save_json('combat.json', combat_data)
       suffix = target_names.empty? ? "" : " on #{target_names.join(', ')}"
-      Combat.add_log("#{character.name} casts #{spell_name}#{suffix} (#{mana_cost} mana)")
+      duration_log = enhancement ? " (#{[enhancement[:duration_rounds].to_i, 1].max} round#{'s' unless enhancement[:duration_rounds].to_i == 1})" : ""
+      Combat.add_log("#{character.name} casts #{spell_name}#{suffix} (#{mana_cost} mana)#{duration_log}")
     end
 
   elsif action == 'item'
@@ -518,6 +580,11 @@ post '/combat/action' do
         target['temporary_hit_points'] = new_temp
         target['saturation'] = current_saturation + potion_sat
         effect_log = "temp HP #{current_temp} -> #{new_temp}, +#{potion_sat} saturation"
+
+      when :enhancement
+        apply_enhancement_effect(combat_data, effect, target, user_character, target_character, [target_combat_id], [target_character.name], combat_id)
+        target['saturation'] = current_saturation + potion_sat
+        effect_log = "#{enhancement_log_label(effect[:enhancement])} for #{[effect[:duration_rounds].to_i, 1].max} round#{'s' unless effect[:duration_rounds].to_i == 1}, +#{potion_sat} saturation"
       end
 
     elsif effect[:kind] == :scroll
@@ -554,6 +621,13 @@ post '/combat/action' do
         new_temp = [current_temp, effect[:temp_hp]].max
         target['temporary_hit_points'] = new_temp
         effect_log = "temp HP #{current_temp} -> #{new_temp}"
+
+      when :enhancement
+        # Scroll-cast enhancement buffs target a single creature (the scroll
+        # flow doesn't populate multi-target for this type today) and reuse
+        # the same apply_enhancement_effect helper as potions / direct casts.
+        apply_enhancement_effect(combat_data, effect, target, user_character, target_character, [target_combat_id], [target_character.name], combat_id)
+        effect_log = "#{enhancement_log_label(effect[:enhancement])} for #{[effect[:duration_rounds].to_i, 1].max} round#{'s' unless effect[:duration_rounds].to_i == 1}"
 
       when :generic
         # Spell effect not yet implemented. Scroll is still consumed.
@@ -1145,7 +1219,17 @@ post '/purchase/:item_index' do
   purchase_name  = variant ? variant['display_name'] : store_item['name']
   purchase_price = variant ? variant['price']        : store_item['price']
   purchase_bonus = variant ? variant['bonus']        : store_item['bonus']
-  purchase_props = store_item['properties'] || {}
+  purchase_props = (store_item['properties'] || {}).dup
+
+  # properties_template resolves {placeholder} fields using values from the
+  # selected variant. Cloak/Belt/Headband use this to synthesize the
+  # properties.enhancement block so worn items feed into the character's
+  # attribute/save enhancement pool without enumerating full properties for
+  # every variant row.
+  if variant && store_item['properties_template']
+    resolved_template = resolve_properties_template(store_item['properties_template'], variant)
+    purchase_props = purchase_props.merge(resolved_template)
+  end
 
   purchase_desc = store_item['description']
   if variant && store_item['variant_rules_table'] && purchase_desc

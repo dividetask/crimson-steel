@@ -60,10 +60,12 @@
     "subtype": "back",
     "bonus": 1,
     "properties": {
-      "bonus": {
-        "saves": 1
+      "enhancement": {
+        "type": "save",
+        "amount": 1
       }
     },
+    "description": "Increases the wearer's enhancement bonus on all saves.",
     "equipped": true
   },
   {

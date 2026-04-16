@@ -124,9 +124,15 @@
               <th colspan="2">Saves</th>
             </tr>
             <% @character.ability_score_names.each do |name, sym| %>
+            <% attr_enh = @character.attribute_enhancement(sym) %>
             <tr>
               <td class="attr-name"><%= name %></td>
-              <td><%= @character.score(sym) %></td>
+              <td>
+                <%= @character.score(sym) %>
+                <% if attr_enh > 0 %>
+                  <span class="enh-note" title="base <%= @character.base_score(sym) %> +<%= attr_enh %> enhancement">(+<%= attr_enh %>)</span>
+                <% end %>
+              </td>
               <td><%= @character.half_mod(sym) %></td>
               <td><%= @character.attr_dice(sym) %>d</td>
               <td><%= @character.add_plus(:attr_bonus, sym) %></td>

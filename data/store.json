@@ -48,16 +48,19 @@
     "type": "item",
     "subtype": "back",
     "properties": {},
+    "properties_template": {
+      "enhancement": {"type": "save", "amount": "{amount}"}
+    },
     "description": "Increases the wearer's enhancement bonus on all saves.",
     "variant_selectors": [
       {"key": "enhancement_bonus", "label": "Enhancement"}
     ],
     "variants": [
-      {"enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Cloak of Resistance"},
-      {"enhancement_bonus": "+2", "bonus": 2, "price": 4000,  "display_name": "+2 Cloak of Resistance"},
-      {"enhancement_bonus": "+3", "bonus": 3, "price": 9000,  "display_name": "+3 Cloak of Resistance"},
-      {"enhancement_bonus": "+4", "bonus": 4, "price": 16000, "display_name": "+4 Cloak of Resistance"},
-      {"enhancement_bonus": "+5", "bonus": 5, "price": 25000, "display_name": "+5 Cloak of Resistance"}
+      {"enhancement_bonus": "+1", "amount": 1, "bonus": 1, "price": 1000,  "display_name": "+1 Cloak of Resistance"},
+      {"enhancement_bonus": "+2", "amount": 2, "bonus": 2, "price": 4000,  "display_name": "+2 Cloak of Resistance"},
+      {"enhancement_bonus": "+3", "amount": 3, "bonus": 3, "price": 9000,  "display_name": "+3 Cloak of Resistance"},
+      {"enhancement_bonus": "+4", "amount": 4, "bonus": 4, "price": 16000, "display_name": "+4 Cloak of Resistance"},
+      {"enhancement_bonus": "+5", "amount": 5, "bonus": 5, "price": 25000, "display_name": "+5 Cloak of Resistance"}
     ]
   },
   {
@@ -65,27 +68,30 @@
     "type": "item",
     "subtype": "belt",
     "properties": {},
+    "properties_template": {
+      "enhancement": {"type": "attribute", "attribute": "{attribute_key}", "amount": "{amount}"}
+    },
     "description": "Increases the wearer's enhancement bonus for a single attribute.",
     "variant_selectors": [
       {"key": "attribute", "label": "Attribute"},
       {"key": "enhancement_bonus", "label": "Enhancement"}
     ],
     "variants": [
-      {"attribute": "Strength",     "enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Belt of Strength"},
-      {"attribute": "Strength",     "enhancement_bonus": "+2", "bonus": 1, "price": 4000,  "display_name": "+2 Belt of Strength"},
-      {"attribute": "Strength",     "enhancement_bonus": "+3", "bonus": 1, "price": 9000,  "display_name": "+3 Belt of Strength"},
-      {"attribute": "Strength",     "enhancement_bonus": "+4", "bonus": 2, "price": 16000, "display_name": "+4 Belt of Strength"},
-      {"attribute": "Strength",     "enhancement_bonus": "+5", "bonus": 2, "price": 25000, "display_name": "+5 Belt of Strength"},
-      {"attribute": "Constitution", "enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Belt of Constitution"},
-      {"attribute": "Constitution", "enhancement_bonus": "+2", "bonus": 1, "price": 4000,  "display_name": "+2 Belt of Constitution"},
-      {"attribute": "Constitution", "enhancement_bonus": "+3", "bonus": 1, "price": 9000,  "display_name": "+3 Belt of Constitution"},
-      {"attribute": "Constitution", "enhancement_bonus": "+4", "bonus": 2, "price": 16000, "display_name": "+4 Belt of Constitution"},
-      {"attribute": "Constitution", "enhancement_bonus": "+5", "bonus": 2, "price": 25000, "display_name": "+5 Belt of Constitution"},
-      {"attribute": "Dexterity",    "enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Belt of Dexterity"},
-      {"attribute": "Dexterity",    "enhancement_bonus": "+2", "bonus": 1, "price": 4000,  "display_name": "+2 Belt of Dexterity"},
-      {"attribute": "Dexterity",    "enhancement_bonus": "+3", "bonus": 1, "price": 9000,  "display_name": "+3 Belt of Dexterity"},
-      {"attribute": "Dexterity",    "enhancement_bonus": "+4", "bonus": 2, "price": 16000, "display_name": "+4 Belt of Dexterity"},
-      {"attribute": "Dexterity",    "enhancement_bonus": "+5", "bonus": 2, "price": 25000, "display_name": "+5 Belt of Dexterity"}
+      {"attribute": "Strength",     "attribute_key": "str", "enhancement_bonus": "+1", "amount": 1, "bonus": 1, "price": 1000,  "display_name": "+1 Belt of Strength"},
+      {"attribute": "Strength",     "attribute_key": "str", "enhancement_bonus": "+2", "amount": 2, "bonus": 1, "price": 4000,  "display_name": "+2 Belt of Strength"},
+      {"attribute": "Strength",     "attribute_key": "str", "enhancement_bonus": "+3", "amount": 3, "bonus": 1, "price": 9000,  "display_name": "+3 Belt of Strength"},
+      {"attribute": "Strength",     "attribute_key": "str", "enhancement_bonus": "+4", "amount": 4, "bonus": 2, "price": 16000, "display_name": "+4 Belt of Strength"},
+      {"attribute": "Strength",     "attribute_key": "str", "enhancement_bonus": "+5", "amount": 5, "bonus": 2, "price": 25000, "display_name": "+5 Belt of Strength"},
+      {"attribute": "Constitution", "attribute_key": "con", "enhancement_bonus": "+1", "amount": 1, "bonus": 1, "price": 1000,  "display_name": "+1 Belt of Constitution"},
+      {"attribute": "Constitution", "attribute_key": "con", "enhancement_bonus": "+2", "amount": 2, "bonus": 1, "price": 4000,  "display_name": "+2 Belt of Constitution"},
+      {"attribute": "Constitution", "attribute_key": "con", "enhancement_bonus": "+3", "amount": 3, "bonus": 1, "price": 9000,  "display_name": "+3 Belt of Constitution"},
+      {"attribute": "Constitution", "attribute_key": "con", "enhancement_bonus": "+4", "amount": 4, "bonus": 2, "price": 16000, "display_name": "+4 Belt of Constitution"},
+      {"attribute": "Constitution", "attribute_key": "con", "enhancement_bonus": "+5", "amount": 5, "bonus": 2, "price": 25000, "display_name": "+5 Belt of Constitution"},
+      {"attribute": "Dexterity",    "attribute_key": "dex", "enhancement_bonus": "+1", "amount": 1, "bonus": 1, "price": 1000,  "display_name": "+1 Belt of Dexterity"},
+      {"attribute": "Dexterity",    "attribute_key": "dex", "enhancement_bonus": "+2", "amount": 2, "bonus": 1, "price": 4000,  "display_name": "+2 Belt of Dexterity"},
+      {"attribute": "Dexterity",    "attribute_key": "dex", "enhancement_bonus": "+3", "amount": 3, "bonus": 1, "price": 9000,  "display_name": "+3 Belt of Dexterity"},
+      {"attribute": "Dexterity",    "attribute_key": "dex", "enhancement_bonus": "+4", "amount": 4, "bonus": 2, "price": 16000, "display_name": "+4 Belt of Dexterity"},
+      {"attribute": "Dexterity",    "attribute_key": "dex", "enhancement_bonus": "+5", "amount": 5, "bonus": 2, "price": 25000, "display_name": "+5 Belt of Dexterity"}
     ]
   },
   {
@@ -93,27 +99,30 @@
     "type": "item",
     "subtype": "head",
     "properties": {},
+    "properties_template": {
+      "enhancement": {"type": "attribute", "attribute": "{attribute_key}", "amount": "{amount}"}
+    },
     "description": "Increases the wearer's enhancement bonus for a single attribute.",
     "variant_selectors": [
       {"key": "attribute", "label": "Attribute"},
       {"key": "enhancement_bonus", "label": "Enhancement"}
     ],
     "variants": [
-      {"attribute": "Intelligence", "enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Headband of Intelligence"},
-      {"attribute": "Intelligence", "enhancement_bonus": "+2", "bonus": 1, "price": 4000,  "display_name": "+2 Headband of Intelligence"},
-      {"attribute": "Intelligence", "enhancement_bonus": "+3", "bonus": 1, "price": 9000,  "display_name": "+3 Headband of Intelligence"},
-      {"attribute": "Intelligence", "enhancement_bonus": "+4", "bonus": 2, "price": 16000, "display_name": "+4 Headband of Intelligence"},
-      {"attribute": "Intelligence", "enhancement_bonus": "+5", "bonus": 2, "price": 25000, "display_name": "+5 Headband of Intelligence"},
-      {"attribute": "Wisdom",       "enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Headband of Wisdom"},
-      {"attribute": "Wisdom",       "enhancement_bonus": "+2", "bonus": 1, "price": 4000,  "display_name": "+2 Headband of Wisdom"},
-      {"attribute": "Wisdom",       "enhancement_bonus": "+3", "bonus": 1, "price": 9000,  "display_name": "+3 Headband of Wisdom"},
-      {"attribute": "Wisdom",       "enhancement_bonus": "+4", "bonus": 2, "price": 16000, "display_name": "+4 Headband of Wisdom"},
-      {"attribute": "Wisdom",       "enhancement_bonus": "+5", "bonus": 2, "price": 25000, "display_name": "+5 Headband of Wisdom"},
-      {"attribute": "Charisma",     "enhancement_bonus": "+1", "bonus": 1, "price": 1000,  "display_name": "+1 Headband of Charisma"},
-      {"attribute": "Charisma",     "enhancement_bonus": "+2", "bonus": 1, "price": 4000,  "display_name": "+2 Headband of Charisma"},
-      {"attribute": "Charisma",     "enhancement_bonus": "+3", "bonus": 1, "price": 9000,  "display_name": "+3 Headband of Charisma"},
-      {"attribute": "Charisma",     "enhancement_bonus": "+4", "bonus": 2, "price": 16000, "display_name": "+4 Headband of Charisma"},
-      {"attribute": "Charisma",     "enhancement_bonus": "+5", "bonus": 2, "price": 25000, "display_name": "+5 Headband of Charisma"}
+      {"attribute": "Intelligence", "attribute_key": "int", "enhancement_bonus": "+1", "amount": 1, "bonus": 1, "price": 1000,  "display_name": "+1 Headband of Intelligence"},
+      {"attribute": "Intelligence", "attribute_key": "int", "enhancement_bonus": "+2", "amount": 2, "bonus": 1, "price": 4000,  "display_name": "+2 Headband of Intelligence"},
+      {"attribute": "Intelligence", "attribute_key": "int", "enhancement_bonus": "+3", "amount": 3, "bonus": 1, "price": 9000,  "display_name": "+3 Headband of Intelligence"},
+      {"attribute": "Intelligence", "attribute_key": "int", "enhancement_bonus": "+4", "amount": 4, "bonus": 2, "price": 16000, "display_name": "+4 Headband of Intelligence"},
+      {"attribute": "Intelligence", "attribute_key": "int", "enhancement_bonus": "+5", "amount": 5, "bonus": 2, "price": 25000, "display_name": "+5 Headband of Intelligence"},
+      {"attribute": "Wisdom",       "attribute_key": "wis", "enhancement_bonus": "+1", "amount": 1, "bonus": 1, "price": 1000,  "display_name": "+1 Headband of Wisdom"},
+      {"attribute": "Wisdom",       "attribute_key": "wis", "enhancement_bonus": "+2", "amount": 2, "bonus": 1, "price": 4000,  "display_name": "+2 Headband of Wisdom"},
+      {"attribute": "Wisdom",       "attribute_key": "wis", "enhancement_bonus": "+3", "amount": 3, "bonus": 1, "price": 9000,  "display_name": "+3 Headband of Wisdom"},
+      {"attribute": "Wisdom",       "attribute_key": "wis", "enhancement_bonus": "+4", "amount": 4, "bonus": 2, "price": 16000, "display_name": "+4 Headband of Wisdom"},
+      {"attribute": "Wisdom",       "attribute_key": "wis", "enhancement_bonus": "+5", "amount": 5, "bonus": 2, "price": 25000, "display_name": "+5 Headband of Wisdom"},
+      {"attribute": "Charisma",     "attribute_key": "cha", "enhancement_bonus": "+1", "amount": 1, "bonus": 1, "price": 1000,  "display_name": "+1 Headband of Charisma"},
+      {"attribute": "Charisma",     "attribute_key": "cha", "enhancement_bonus": "+2", "amount": 2, "bonus": 1, "price": 4000,  "display_name": "+2 Headband of Charisma"},
+      {"attribute": "Charisma",     "attribute_key": "cha", "enhancement_bonus": "+3", "amount": 3, "bonus": 1, "price": 9000,  "display_name": "+3 Headband of Charisma"},
+      {"attribute": "Charisma",     "attribute_key": "cha", "enhancement_bonus": "+4", "amount": 4, "bonus": 2, "price": 16000, "display_name": "+4 Headband of Charisma"},
+      {"attribute": "Charisma",     "attribute_key": "cha", "enhancement_bonus": "+5", "amount": 5, "bonus": 2, "price": 25000, "display_name": "+5 Headband of Charisma"}
     ]
   }
 ]
