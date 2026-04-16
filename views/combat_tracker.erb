@@ -897,7 +897,9 @@
       addStep('<strong>Caster Spell Check</strong>: ' + bdCast.diceSpent + ' dice, TN ' + casterTn +
         '<br><span class="math-detail">' + tnMath + ' &nbsp;|&nbsp; failures subtract from successes.</span>' +
         '<br><label>Net successes: <input type="number" id="bd-caster-successes" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="bdConfirmCasterSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="bdConfirmCasterSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + bdCast.diceSpent + ', ' + casterTn + ', \'bd-caster-successes\', \'bd-caster-roll-display\')">Roll</button>' +
+        '<div id="bd-caster-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function bdConfirmCasterSuccesses() {
@@ -931,7 +933,9 @@
         saveDice + ' dice, TN ' + saveTn +
         '<br><span class="math-detail">' + tnMath + '</span>' +
         '<br><label>Save successes: <input type="number" id="bd-save-successes" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="bdConfirmSaveSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="bdConfirmSaveSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + saveDice + ', ' + saveTn + ', \'bd-save-successes\', \'bd-save-roll-display\')">Roll</button>' +
+        '<div id="bd-save-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function bdConfirmSaveSuccesses() {
@@ -1095,7 +1099,41 @@
         '<br><span class="math-detail">' + tnMath + ' &nbsp;|&nbsp; count crits (10s) separately.</span>' +
         '<br><label>Net successes: <input type="number" id="vm-caster-successes" min="0" value="0" style="width:50px;"></label>' +
         '&nbsp;<label>Crits (10s): <input type="number" id="vm-caster-crits" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="vmConfirmCasterSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="vmConfirmCasterSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollVmCasterDice(' + vmCast.diceSpent + ', ' + casterTn + ')">Roll</button>' +
+        '<div id="vm-caster-roll-display" class="math-detail" style="margin-top:4px;"></div>');
+    }
+
+    // Variant of rollDicePool that also populates a crit count input
+    // (used by Vicious Mockery where 10s deal bonus damage even on save).
+    function rollVmCasterDice(dice, tn) {
+      var rolls = [];
+      var successes = 0;
+      var crits = 0;
+      for (var r = 0; r < dice; r++) {
+        var d = Math.floor(Math.random() * 10) + 1;
+        rolls.push(d);
+        if (d === 10) { successes += 2; crits++; }
+        else if (d >= tn) successes++;
+        else if (d === 1) successes--;
+      }
+      var displaySuccesses = Math.max(0, successes);
+      var succEl = document.getElementById('vm-caster-successes');
+      if (succEl) succEl.value = displaySuccesses;
+      var critEl = document.getElementById('vm-caster-crits');
+      if (critEl) critEl.value = crits;
+      var rollsEl = document.getElementById('vm-caster-roll-display');
+      if (rollsEl) {
+        var colored = rolls.map(function(d) {
+          var bg = null;
+          if (d === 1) bg = '#e57373';
+          else if (d === 10) bg = '#64b5f6';
+          else if (d >= tn) bg = '#81c784';
+          if (bg) return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
+          return '<span style="color:#777;">' + d + '</span>';
+        }).join(', ');
+        rollsEl.innerHTML = 'Rolled: [' + colored + '] &rarr; ' + displaySuccesses + ' successes, ' + crits + ' crit' + (crits === 1 ? '' : 's');
+      }
     }
 
     function vmConfirmCasterSuccesses() {
@@ -1130,7 +1168,9 @@
         saveDice + ' dice, TN ' + saveTn +
         '<br><span class="math-detail">' + tnMath + '</span>' +
         '<br><label>Save successes: <input type="number" id="vm-save-successes" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="vmConfirmSaveSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="vmConfirmSaveSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + saveDice + ', ' + saveTn + ', \'vm-save-successes\', \'vm-save-roll-display\')">Roll</button>' +
+        '<div id="vm-save-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function vmConfirmSaveSuccesses() {
@@ -1216,7 +1256,9 @@
       addStep('<strong>Caster Spell Check</strong>: ' + bwCast.diceSpent + ' dice, TN ' + casterTn +
         '<br><span class="math-detail">' + tnMath + '</span>' +
         '<br><label>Net successes: <input type="number" id="bw-caster-successes" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="bwConfirmCasterSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="bwConfirmCasterSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + bwCast.diceSpent + ', ' + casterTn + ', \'bw-caster-successes\', \'bw-caster-roll-display\')">Roll</button>' +
+        '<div id="bw-caster-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function bwConfirmCasterSuccesses() {
@@ -1248,7 +1290,9 @@
         saveDice + ' dice, TN ' + saveTn +
         '<br><span class="math-detail">' + tnMath + '</span>' +
         '<br><label>Save successes: <input type="number" id="bw-save-successes" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="bwConfirmSaveSuccesses()">Confirm</button>');
+        ' <button class="action-btn" onclick="bwConfirmSaveSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + saveDice + ', ' + saveTn + ', \'bw-save-successes\', \'bw-save-roll-display\')">Roll</button>' +
+        '<div id="bw-save-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function bwConfirmSaveSuccesses() {
@@ -1340,10 +1384,13 @@
       var casterTn = clampTn(diceRules.base_target_number - webCast.casterSkillBonus);
       var tnMath = tnBreakdown('Caster TN', diceRules.base_target_number,
         [{value: -webCast.casterSkillBonus, label: webCast.casterSkill.replace('_', ' ') + ' bonus'}], casterTn);
+      webCast.casterTn = casterTn;
       addStep('<strong>Caster Spell Check</strong>: ' + webCast.diceSpent + ' dice, TN ' + casterTn +
-        '<br><span class="math-detail">' + tnMath + ' &nbsp;|&nbsp; enter total rolled successes (compared individually against each target save).</span>' +
-        '<br><label>Total successes: <input type="number" id="web-caster-successes" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="webConfirmCasterSuccesses()">Confirm</button>');
+        '<br><span class="math-detail">' + tnMath + ' &nbsp;|&nbsp; compared individually against each target save.</span>' +
+        '<br><label>Successes: <input type="number" id="web-caster-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="webConfirmCasterSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + webCast.diceSpent + ', ' + casterTn + ', \'web-caster-successes\', \'web-caster-roll-display\')">Roll</button>' +
+        '<div id="web-caster-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function webConfirmCasterSuccesses() {
@@ -1353,43 +1400,74 @@
       webCast.casterSuccesses = val;
       input.disabled = true;
       input.parentElement.nextElementSibling.style.display = 'none';
-      webNextTargetSave(0);
+      webShowAllSaves();
     }
 
-    function webNextTargetSave(idx) {
-      if (idx >= webCast.targetIds.length) {
-        webShowResult();
-        return;
-      }
-      var tid = webCast.targetIds[idx];
-      var target = combatants.find(function(c) { return c.combat_id === tid; });
-      if (!target) { webCast.targetSaves[tid] = 0; webNextTargetSave(idx + 1); return; }
+    // All targets shown on one screen, grouped by unique (saveTn, saveDice)
+    // so creatures with identical DEX saves share one roll. Each group has
+    // a Roll button; a master "Roll All" button rolls every group at once.
+    function webShowAllSaves() {
       var saveAttr = webCast.saveAttr;
-      var saveDice = (target.save_dice && target.save_dice[saveAttr]) || 0;
-      var saveBonus = (target.save_bonus && target.save_bonus[saveAttr]) || 0;
       var baseTn = diceRules.base_target_number;
-      var saveTn = clampTn(baseTn - saveBonus + webCast.spellTier + webCast.casterSkillBonus);
-      var tnMath = tnBreakdown('Save TN', baseTn, [
-        {value: -saveBonus, label: saveAttr.toUpperCase() + ' save bonus'},
-        {value: webCast.spellTier, label: 'spell tier penalty'},
-        {value: webCast.casterSkillBonus, label: 'caster skill penalty'}
-      ], saveTn);
-      var inputId = 'web-save-' + idx;
-      addStep('<strong>' + target.name + '\'s ' + saveAttr.toUpperCase() + ' Save</strong>: ' +
-        saveDice + ' dice, TN ' + saveTn +
-        '<br><span class="math-detail">' + tnMath + '</span>' +
-        '<br><label>Save successes: <input type="number" id="' + inputId + '" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="webConfirmTargetSave(' + idx + ', ' + tid + ', \'' + inputId + '\')">Confirm</button>');
+      var groups = {}; // key = "dice:tn" -> {dice, tn, targetIds[], inputId}
+      var groupOrder = [];
+      webCast.targetIds.forEach(function(tid) {
+        var target = combatants.find(function(c) { return c.combat_id === tid; });
+        if (!target) return;
+        var saveDice = (target.save_dice && target.save_dice[saveAttr]) || 0;
+        var saveBonus = (target.save_bonus && target.save_bonus[saveAttr]) || 0;
+        var saveTn = clampTn(baseTn - saveBonus + webCast.spellTier + webCast.casterSkillBonus);
+        var key = saveDice + ':' + saveTn;
+        if (!groups[key]) {
+          groups[key] = {
+            dice: saveDice, tn: saveTn,
+            targetIds: [], targetNames: [],
+            inputId: 'web-group-success-' + groupOrder.length,
+            rollsId: 'web-group-rolls-' + groupOrder.length
+          };
+          groupOrder.push(key);
+        }
+        groups[key].targetIds.push(tid);
+        groups[key].targetNames.push(target.name);
+      });
+
+      webCast.saveGroups = groupOrder.map(function(k) { return groups[k]; });
+
+      var rowsHtml = webCast.saveGroups.map(function(g) {
+        var namesHtml = g.targetNames.join(', ');
+        return '<div style="margin:6px 0;padding:4px 6px;border-left:3px solid #ddd;">' +
+          '<strong>' + saveAttr.toUpperCase() + ' Save: ' + namesHtml + '</strong>' +
+          ' <span class="math-detail">(' + g.dice + ' dice, TN ' + g.tn + ')</span>' +
+          '<br><label>Successes: <input type="number" id="' + g.inputId + '" min="0" value="0" style="width:50px;"></label>' +
+          ' <button class="action-btn" onclick="rollDicePool(' + g.dice + ', ' + g.tn + ', \'' + g.inputId + '\', \'' + g.rollsId + '\')">Roll</button>' +
+          '<div id="' + g.rollsId + '" class="math-detail" style="margin-top:4px;"></div>' +
+          '</div>';
+      }).join('');
+
+      addStep('<strong>Target Saves</strong> <span class="math-detail">(' +
+        webCast.saveGroups.length + (webCast.saveGroups.length === 1 ? ' unique TN' : ' unique TNs') +
+        ', targets sharing a TN roll as a group)</span>' +
+        rowsHtml +
+        '<button class="action-btn" onclick="webRollAllSaves()">Roll All Saves</button>' +
+        ' <button class="action-btn" onclick="webConfirmAllSaves()">Next</button>');
     }
 
-    function webConfirmTargetSave(idx, tid, inputId) {
-      var input = document.getElementById(inputId);
-      var val = parseInt(input.value, 10);
-      if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
-      webCast.targetSaves[tid] = val;
-      input.disabled = true;
-      input.parentElement.nextElementSibling.style.display = 'none';
-      webNextTargetSave(idx + 1);
+    function webRollAllSaves() {
+      (webCast.saveGroups || []).forEach(function(g) {
+        rollDicePool(g.dice, g.tn, g.inputId, g.rollsId);
+      });
+    }
+
+    function webConfirmAllSaves() {
+      var groups = webCast.saveGroups || [];
+      for (var i = 0; i < groups.length; i++) {
+        var g = groups[i];
+        var val = parseInt(document.getElementById(g.inputId).value, 10);
+        if (isNaN(val) || val < 0) { alert('Enter a valid success count for each group.'); return; }
+        g.successes = val;
+        g.targetIds.forEach(function(tid) { webCast.targetSaves[tid] = val; });
+      }
+      webShowResult();
     }
 
     function webShowResult() {
