@@ -68,6 +68,7 @@
             "subtype": "vial",
             "bonus": 1,
             "quantity": 1,
+            "equipped": false,
             "properties": {"consumable": true, "effect": "heal"}
           }
         },
@@ -80,6 +81,7 @@
             "subtype": "vial",
             "bonus": 0,
             "quantity": 1,
+            "equipped": false,
             "properties": {"consumable": true, "spell": "invisibility"}
           }
         }
