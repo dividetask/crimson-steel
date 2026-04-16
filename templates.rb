@@ -234,7 +234,7 @@ module GearTable
       # table at all. Without a `chance`, the weighted roll always happens
       # (with remainder = nothing).
       return nil if row.key?('chance') && rng.rand >= row['chance'].to_f
-      roll_weighted(options, rng)
+      roll_weighted(options, rng, lists)
     elsif row.key?('chance')
       ((rng.rand < row['chance'].to_f) ? Templates.deep_dup(row['item']) : nil)
     elsif row.key?('item')
@@ -244,7 +244,10 @@ module GearTable
 
   # Walk the options in order, summing chances. A single uniform sample
   # against the cumulative total picks one option; remainder -> nothing.
-  def roll_weighted(options, rng)
+  # An option whose body is `{chance, from: "other_list"}` recursively
+  # rolls from another option list when picked -- useful for overflow
+  # (e.g. "5% chance of a tier-1 slot actually grabs from tier-2").
+  def roll_weighted(options, rng, lists = {})
     total = options.sum { |o| o['chance'].to_f }
     warn "GearTable: weighted options sum > 1.0 (got #{total})" if total > 1.0 + 1e-9
     pick = rng.rand
@@ -252,6 +255,10 @@ module GearTable
     options.each do |opt|
       running += opt['chance'].to_f
       if pick < running
+        if opt['from'].is_a?(String)
+          sub = lists[opt['from']] || []
+          return roll_weighted(sub, rng, lists)
+        end
         item = Templates.deep_dup(opt['item'])
         item['bonus'] = opt['bonus'] if opt.key?('bonus')
         return item

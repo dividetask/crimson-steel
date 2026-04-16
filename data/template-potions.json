@@ -161,7 +161,8 @@
       {"chance": 0.03, "item": {
         "name": "Potion of Touch of the Sea", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
         "properties": {"consumable": true, "spell": "touch_of_the_sea", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
-          "pathfinder_description": "Subject gains +10 swim speed."}}}
+          "pathfinder_description": "Subject gains +10 swim speed."}}},
+      {"chance": 0.05, "from": "tier_two_potions"}
     ],
     "tier_two_potions": [
       {"chance": 0.02, "item": {
