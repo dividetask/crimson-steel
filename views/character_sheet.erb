@@ -77,6 +77,46 @@
     </div>
   </div>
 
+  <h2>Combat</h2>
+  <table class="combat">
+    <tr>
+      <th>Name</th>
+      <th>Speed</th>
+      <th>Roll</th>
+      <th>Attk / Def Bonus</th>
+      <th>Dmg Bonus</th>
+      <th>Bleed</th>
+      <th>MT*</th>
+      <th>Notes</th>
+    </tr>
+
+<% (@character.shield_list + @character.weapon_list).each do |weapon| %>
+    <tr>
+      <td><%= weapon["name"] %></td>
+      <td><%= @character.weapon_speed(weapon) %><%= @character.weapon_arm_speed(weapon) %></td>
+      <td><%= @character.weapon_dice(weapon) %>d</td>
+      <td><%= @character.add_plus(:weapon_attack_bonus, weapon) %></td>
+      <td><%= @character.weapon_dmg(weapon) %></td>
+      <td><%= @character.weapon_bleed(weapon) %></td>
+      <td><%= @character.weapon_threshold(weapon) %></td>
+      <td></td>
+    </tr>
+<% end %>
+
+    <tr>
+      <td>Dodge</td>
+      <td>0</td>
+      <td><%= @character.bab_dice %>d</td>
+      <td><%= @character.add_plus(:bab_bonus) %></td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td></td>
+    </tr>
+
+  </table>
+  <div class="formula">* MT is the base threshold for major damage.</div>
+
   <div class="two-column">
     <div class="left-col">
       <h2>Attributes</h2>
@@ -124,7 +164,7 @@
       </table>
       <div class="formula">Formula: 6+rank+½ Attribute Mod, subtract 5 when &gt; 10</div>
 
-      <h2>Additional Items</h2>
+      <h2>Items</h2>
       <div class="items">
 				<p><strong>Equipped:</strong> <%= @character.equip_search({"equipped" => true}).map { |item| item["name"] }.join(", ") %></p>
 				<% unless @character.ammunition.empty? %>
@@ -134,14 +174,19 @@
 				<% unless @character.consumable.empty? %>
 					<p><strong>Consumable:</strong> <% items = @character.consumable.map do |item|
 						if item["quantity"] and item["quantity"] > 1
-							"(#{item['quantity']}) #{item['name']}" 
+							"(#{item['quantity']}) #{item['name']}"
 						else
-							"#{item['name']}" 
+							"#{item['name']}"
 						end
 					end %>
 					<%= items.join(", ") %></p>
 				<% end %>
 				<p><strong>Other:</strong> <%= @character.other_items().map { |item| item["name"] }.join(", ") %></p>
+
+				<h3>Item Descriptions</h3>
+				<% @character.defined_items.each do |item| %>
+					<p><strong><%= h(item['name']) %>:</strong> <%= h(item['description']) %></p>
+				<% end %>
       </div>
     </div>
 
@@ -178,55 +223,6 @@
 			<% end %>
     </div>
   </div>
-
-  <h2>Combat</h2>
-  <table class="combat">
-    <tr>
-      <th>Name</th>
-      <th>Speed</th>
-      <th>Roll</th>
-      <th>Attk / Def Bonus</th>
-      <th>Dmg Bonus</th>
-      <th>Bleed</th>
-      <th>MT*</th>
-      <th>Notes</th>
-    </tr>
-
-<% (@character.shield_list + @character.weapon_list).each do |weapon| %>
-    <tr>
-      <td><%= weapon["name"] %></td>
-      <td><%= @character.weapon_speed(weapon) %><%= @character.weapon_arm_speed(weapon) %></td>
-      <td><%= @character.weapon_dice(weapon) %>d</td>
-      <td><%= @character.add_plus(:weapon_attack_bonus, weapon) %></td>
-      <td><%= @character.weapon_dmg(weapon) %></td>
-      <td><%= @character.weapon_bleed(weapon) %></td>
-      <td><%= @character.weapon_threshold(weapon) %></td>
-      <td></td>
-    </tr>
-<% end %>
-
-    <tr>
-      <td>Dodge</td>
-      <td>0</td>
-      <td><%= @character.bab_dice %>d</td>
-      <td><%= @character.add_plus(:bab_bonus) %></td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td></td>
-    </tr>
-
-  </table>
-  <div class="formula">* MT is the base threshold for major damage.</div>
-
-
-  <h2>Items</h2>
-	<div class="items">
-
-		<% @character.defined_items.each do |item| %>
-			<p><strong><%= h(item['name']) %>:</strong> <%= h(item['description']) %></p>
-		<% end %>
-	</div>
 
   <h2>Notes</h2>
 	<div class="notes">
