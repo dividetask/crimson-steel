@@ -62,20 +62,20 @@
         </div>
       </div>
 
-      <div style="margin: 10px 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-        <form method="post" action="/enemies/instance/<%= @instance_data['id'] %>/rename" style="display: inline-flex; gap: 6px; align-items: center;">
-          <input type="text" name="name" value="<%= h(@character.name) %>" style="padding: 4px 8px; width: 200px;">
-          <button type="submit" class="enemy-combat-btn add" title="Rename">Rename</button>
+      <div class="instance-actions">
+        <form method="post" action="/enemies/instance/<%= @instance_data['id'] %>/rename">
+          <input type="text" name="name" value="<%= h(@character.name) %>">
+          <button type="submit" class="instance-btn primary" title="Rename this enemy">Rename</button>
         </form>
-        <form method="post" action="/enemies/instance/<%= @instance_data['id'] %>/reroll" style="display: inline;">
-          <button type="submit" class="enemy-combat-btn remove" title="Re-roll this instance from its template" onclick="return confirm('Reroll this enemy? Stats, items, and gold will be randomized again.')">Reroll</button>
+        <form method="post" action="/enemies/instance/<%= @instance_data['id'] %>/reroll">
+          <button type="submit" class="instance-btn danger" title="Re-roll this instance from its template" onclick="return confirm('Reroll this enemy? Stats, items, and gold will be randomized again.')">Reroll</button>
         </form>
         <% if @instance_data['template_id'] %>
           <%
             tmpl_index = @enemy_list.index { |e| e[:id].to_s == @instance_data['template_id'].to_s }
           %>
           <% if tmpl_index %>
-            <a href="/enemies/<%= tmpl_index %>" style="font-size: 0.9em;">View Template</a>
+            <a href="/enemies/<%= tmpl_index %>">View Template &rarr;</a>
           <% end %>
         <% end %>
       </div>

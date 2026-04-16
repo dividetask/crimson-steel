@@ -14,6 +14,11 @@ require_relative 'tools'
 #       * independent yes/no: { slot, chance, item }
 #       * weighted choice: { slot, options: [{ chance, item }, ...] }
 #         Remainder of 1.0 = nothing rolled in that slot.
+#       * gated weighted choice: { slot, chance, options: [...] }
+#         First roll `chance` to decide if we drop into the table at all;
+#         if yes, weighted choice among options (remainder still = nothing).
+#         Useful for tiered loot (e.g. 25% chance of a tier-0 potion, and
+#         which tier-0 potion is itself a weighted roll).
 #
 # Instantiation writes the resolved character into characters.json with a
 # fresh integer id so each spawned copy has its own stats, items, and gold.
@@ -212,6 +217,10 @@ module GearTable
   # Returns the item hash that was rolled, or nil if nothing was rolled.
   def roll_row(row, rng)
     if row['options'].is_a?(Array)
+      # Gated weighted choice: outer `chance` decides if we drop into the
+      # table at all. Without a `chance`, the weighted roll always happens
+      # (with remainder = nothing).
+      return nil if row.key?('chance') && rng.rand >= row['chance'].to_f
       roll_weighted(row['options'], rng)
     elsif row.key?('chance')
       ((rng.rand < row['chance'].to_f) ? Templates.deep_dup(row['item']) : nil)
