@@ -1716,17 +1716,29 @@ post '/combat/action' do
           log_lines << "  Minor strength poison save (#{successes} successes): no damage (#{raw_damage} blocked)"
         end
       when 'distracted'
-        # Distracted (Vicious Mockery): lasts until the target's next
-        # Start of Turn. No damage, no save — just clears.
-        log_lines << "  Distracted ends"
+        # Distracted (Vicious Mockery): lasts one round. The condition
+        # needs to be present DURING the affected turn (so rolls get the
+        # -1 penalty), so we clear at the first Start of Turn in a later
+        # round than the one the spell was cast in.
+        applied_round = participant['condition_meta']&.dig('distracted_applied_round').to_i
+        if rounds_elapsed > applied_round
+          log_lines << "  Distracted ends"
+        else
+          log_lines << "  Distracted active (-1 to all rolls this turn)"
+        end
       else
         log_lines << "  #{cname.tr('_', ' ').capitalize} save (#{successes} successes)"
       end
 
       if cname == 'distracted'
-        # Always clear after one Start of Turn regardless of successes.
-        participant['conditions'].delete(cname)
-        participant['condition_meta']&.delete('distracted_applied_round')
+        applied_round = participant['condition_meta']&.dig('distracted_applied_round').to_i
+        if rounds_elapsed > applied_round
+          participant['conditions'].delete(cname)
+          participant['condition_meta']&.delete('distracted_applied_round')
+        end
+        # The condition stays in place on the round it was applied so
+        # the target's next turn picks up the penalty; it's removed the
+        # Start of Turn of the round after.
         next
       end
 
