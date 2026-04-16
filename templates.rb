@@ -21,11 +21,27 @@ module Templates
   module_function
 
   FILENAME = 'templates.json'.freeze
+  GLOB_PATTERN = 'template-*.json'.freeze
 
-  # Raw data hash: { "creatures" => [...], "gear_tables" => [...] }.
+  # Load and merge all template files: templates.json (primary) plus any
+  # template-*.json files. Gear tables from all files share a single
+  # namespace so creature templates can reference tables from any file.
   def load_raw(rng: nil)
-    data = Tools.load_json(FILENAME)
-    data.is_a?(Hash) ? data : {}
+    data_dir = File.join(File.dirname(__FILE__), 'data')
+    primary = Tools.load_json(FILENAME)
+    primary = {} unless primary.is_a?(Hash)
+
+    creatures = primary['creatures'] || []
+    gear = primary['gear_tables'] || []
+
+    Dir.glob(File.join(data_dir, GLOB_PATTERN)).sort.each do |path|
+      extra = JSON.parse(File.read(path)) rescue next
+      next unless extra.is_a?(Hash)
+      creatures += (extra['creatures'] || [])
+      gear += (extra['gear_tables'] || [])
+    end
+
+    { 'creatures' => creatures, 'gear_tables' => gear }
   end
 
   def creatures; (load_raw['creatures'] || []); end

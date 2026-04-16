@@ -877,6 +877,77 @@ post '/combat/add_enemy' do
   redirect back
 end
 
+get '/enemies/instance/:id' do
+  redirect '/character/0' unless local_request?
+  char_id = params[:id].to_i
+  characters = Tools.load_json('characters.json')
+  instance = characters.find { |c| c['id'] == char_id }
+  halt 404, "Enemy instance not found" unless instance
+
+  @character = get_info(instance)
+  @compendium = Compendium.new
+  @instance_data = instance
+
+  combat_data = Tools.load_json('combat.json')
+  @combat_participants = combat_data['participants']
+  templates = Templates.creatures
+  @enemy_list = templates.each_with_index.map { |t, i| { index: i, id: t['id'], name: t['name'] } }
+
+  # Build the char_by_id lookup the sidebar needs.
+  @all_characters = characters
+
+  erb :enemy_instance
+end
+
+post '/enemies/instance/:id/rename' do
+  redirect '/character/0' unless local_request?
+  char_id = params[:id].to_i
+  new_name = params[:name].to_s.strip
+  halt 400, "Name cannot be blank" if new_name.empty?
+
+  characters = Tools.load_json('characters.json')
+  instance = characters.find { |c| c['id'] == char_id }
+  halt 404, "Enemy instance not found" unless instance
+
+  instance['name'] = new_name
+  Tools.save_json('characters.json', characters)
+  redirect "/enemies/instance/#{char_id}"
+end
+
+post '/enemies/instance/:id/reroll' do
+  redirect '/character/0' unless local_request?
+  char_id = params[:id].to_i
+  characters = Tools.load_json('characters.json')
+  old_instance = characters.find { |c| c['id'] == char_id }
+  halt 404, "Enemy instance not found" unless old_instance
+  template_id = old_instance['template_id']
+  halt 400, "Instance has no template_id" unless template_id
+
+  new_instance = Templates.instantiate(template_id, new_id: char_id)
+  new_instance['template_id'] = template_id
+  idx = characters.index { |c| c['id'] == char_id }
+  characters[idx] = new_instance
+
+  # Update the combat participant so mana/combat_pool reflect new stats.
+  combat_data = Tools.load_json('combat.json')
+  participant = combat_data['participants'].find { |p| p['char_id'] == char_id }
+  if participant
+    cs = CharacterSheet.new(new_instance)
+    participant['mana'] = cs.mana_max
+    participant['combat_pool'] = cs.combat_pool
+    participant['minor_damage'] = 0
+    participant['moderate_damage'] = 0
+    participant['major_damage'] = 0
+    participant['temporary_hit_points'] = 0
+    participant['saturation'] = 0
+    participant['initiative'] = ''
+    Tools.save_json('combat.json', combat_data)
+  end
+
+  Tools.save_json('characters.json', characters)
+  redirect "/enemies/instance/#{char_id}"
+end
+
 post '/combat/remove_enemy' do
   redirect '/character/0' unless local_request?
   combat_id = params[:combat_id].to_i
