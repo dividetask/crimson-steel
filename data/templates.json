@@ -1,0 +1,217 @@
+{
+  "creatures": [
+    {
+      "id": "pirate",
+      "name": "Pirate",
+      "player": "DM",
+      "race": ["human"],
+      "ability_scores": {"str": 13, "dex": 14, "con": 13, "int": 12, "wis": 10, "cha": 8},
+      "classes": [{"level": 1, "class": "rogue", "skills": ["acrobatics", "athletics", "deception", "intimidate", "perception", "profession_sailor", "sense_motive"]}],
+      "gear": "pirate_loot"
+    },
+    {
+      "id": "ghoul",
+      "tier": 3,
+      "name": "Ghoul",
+      "player": "DM",
+      "race": ["undead"],
+      "ability_scores": {"str": 13, "dex": 15, "con": 0, "int": 13, "wis": 14, "cha": 14},
+      "classes": [{"level": 2, "class": "undead", "skills": ["acrobatics", "athletics", "perception", "stealth"]}]
+    },
+    {
+      "id": "wight",
+      "tier": 3,
+      "name": "Wight",
+      "player": "DM",
+      "race": ["undead"],
+      "ability_scores": {"str": 12, "dex": 12, "con": 0, "int": 11, "wis": 13, "cha": 15},
+      "classes": [{"level": 4, "class": "undead", "skills": ["intimidate", "religion", "perception", "stealth"]}]
+    },
+    {
+      "id": "zombie",
+      "tier": 2,
+      "name": "Zombie",
+      "player": "DM",
+      "race": ["undead"],
+      "ability_scores": {"str": 17, "dex": 10, "con": 0, "int": 0, "wis": 10, "cha": 10},
+      "classes": [{"level": 2, "class": "undead", "skills": []}]
+    },
+    {
+      "id": "skeleton",
+      "tier": 2,
+      "name": "Skeleton",
+      "player": "DM",
+      "race": ["undead"],
+      "ability_scores": {"str": 17, "dex": 10, "con": 0, "int": 0, "wis": 10, "cha": 10},
+      "classes": [{"level": 2, "class": "undead", "skills": []}],
+      "gear": "skeleton_loot"
+    },
+    {
+      "id": "slaver",
+      "tier": 1,
+      "name": "Slaver",
+      "player": "DM",
+      "race": ["orc"],
+      "ability_scores": {"str": 17, "dex": 11, "con": 12, "int": 7, "wis": 8, "cha": 6},
+      "classes": [{"level": 3, "class": "fighter", "skills": ["intimidate", "athletics"]}],
+      "variants": [
+        {
+          "id": "human",
+          "chance": 0.10,
+          "overrides": {
+            "race": ["human"],
+            "ability_scores": {"cha": "+2", "int": "+2"},
+            "name": "Slaver (Human)"
+          },
+          "gear_patch": {"gold": "3d6 + 10"}
+        },
+        {
+          "id": "barbarian",
+          "chance": 0.10,
+          "classes_add": [{"level": 1, "class": "barbarian", "skills": ["athletics"]}],
+          "name_suffix": " (Barbarian)"
+        }
+      ],
+      "gear": "slaver_loot"
+    },
+    {
+      "id": "slaver_captain",
+      "tier": 2,
+      "name": "Slaver Captain",
+      "player": "DM",
+      "race": ["orc"],
+      "ability_scores": {"str": 25, "dex": 16, "con": 14, "int": 12, "wis": 11, "cha": 9},
+      "classes": [{"level": 8, "class": "fighter", "skills": ["intimidate", "athletics", "perception"]}],
+      "gear": {
+        "rolls": [
+          {"slot": "weapon", "item": {"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0}},
+          {"slot": "armor", "item": {"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 1}}
+        ],
+        "gold": "4d10 + 20"
+      }
+    },
+    {
+      "id": "cleric_slaver",
+      "tier": 3,
+      "name": "Cleric Slaver",
+      "player": "DM",
+      "race": ["orc"],
+      "ability_scores": {"str": 19, "dex": 14, "con": 14, "int": 14, "wis": 16, "cha": 14},
+      "classes": [{"level": 8, "class": "cleric", "skills": ["healing", "religion", "perception", "sense_motive", "intimidate"]}],
+      "gear": {
+        "rolls": [
+          {"slot": "weapon", "item": {"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0}},
+          {"slot": "armor", "item": {"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 1}}
+        ],
+        "gold": "3d10 + 15"
+      }
+    },
+    {
+      "id": "slaver_assassin",
+      "tier": 3,
+      "name": "Slaver Assasin",
+      "player": "DM",
+      "race": ["human"],
+      "ability_scores": {"str": 14, "dex": 18, "con": 14, "int": 12, "wis": 12, "cha": 14},
+      "classes": [{"level": 9, "class": "rogue", "skills": ["acrobatics", "religion", "perception", "sense_motive", "intimidate", "larceny", "slight_of_hand", "stealth"]}],
+      "gear": {
+        "rolls": [
+          {"slot": "weapon", "item": {"name": "dagger", "type": "weapon", "subtype": "dagger", "bonus": 2}},
+          {"slot": "armor", "item": {"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 2}}
+        ],
+        "gold": "2d10 + 10"
+      }
+    },
+    {
+      "id": "troll",
+      "tier": 3,
+      "name": "Troll",
+      "player": "DM",
+      "race": ["troll"],
+      "ability_scores": {"str": 30, "dex": 14, "con": 30, "int": 6, "wis": 9, "cha": 6},
+      "classes": [{"level": 6, "class": "giant", "skills": ["intimidate", "perception"]}]
+    },
+    {
+      "id": "slaver_guard",
+      "tier": 1,
+      "name": "Slaver Guard",
+      "player": "DM",
+      "race": ["orc"],
+      "ability_scores": {"str": 17, "dex": 11, "con": 12, "int": 7, "wis": 8, "cha": 6},
+      "classes": [{"level": 5, "class": "fighter", "skills": ["intimidate", "athletics"]}],
+      "gear": {
+        "rolls": [
+          {"slot": "weapon", "item": {"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0}},
+          {"slot": "armor", "item": {"name": "plate", "type": "armor", "subtype": "heavy", "bonus": 0}}
+        ],
+        "gold": "1d10 + 5"
+      }
+    },
+    {
+      "id": "giant_spider",
+      "tier": 1,
+      "name": "Giant Spider",
+      "player": "DM",
+      "race": ["animal"],
+      "ability_scores": {"str": 11, "dex": 17, "con": 12, "int": 1, "wis": 10, "cha": 2},
+      "classes": [{"level": 3, "class": "animal", "skills": ["climb", "perception", "stealth"]}]
+    }
+  ],
+  "gear_tables": [
+    {
+      "id": "pirate_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "scimitar", "type": "weapon", "subtype": "scimitar", "bonus": 0}},
+        {"slot": "armor", "item": {"name": "leather armor", "type": "armor", "subtype": "light", "bonus": 1}}
+      ],
+      "gold": "1d6 + 2"
+    },
+    {
+      "id": "skeleton_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "scimitar", "type": "weapon", "subtype": "scimitar", "bonus": 0}},
+        {"slot": "armor", "item": {"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0}}
+      ]
+    },
+    {
+      "id": "slaver_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0}},
+        {"slot": "sidearm", "item": {"name": "longbow", "type": "weapon", "subtype": "longbow", "bonus": 0}},
+        {
+          "slot": "armor",
+          "options": [
+            {"chance": 0.90, "item": {"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0}},
+            {"chance": 0.05, "item": {"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 0}},
+            {"chance": 0.05, "item": {"name": "chain shirt +1", "type": "armor", "subtype": "light", "bonus": 1}}
+          ]
+        },
+        {
+          "slot": "potion_heal",
+          "chance": 0.50,
+          "item": {
+            "name": "Potion of Lesser Healing",
+            "type": "item",
+            "subtype": "vial",
+            "bonus": 1,
+            "quantity": 1,
+            "properties": {"consumable": true, "effect": "heal"}
+          }
+        },
+        {
+          "slot": "potion_invis",
+          "chance": 0.01,
+          "item": {
+            "name": "Potion of Invisibility",
+            "type": "item",
+            "subtype": "vial",
+            "bonus": 0,
+            "quantity": 1,
+            "properties": {"consumable": true, "spell": "invisibility"}
+          }
+        }
+      ],
+      "gold": "2d6 + 5"
+    }
+  ]
+}

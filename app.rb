@@ -1,6 +1,7 @@
 require 'sinatra'
 require 'json'
 require_relative 'helpers'
+require_relative 'templates'
 
 set :port, 4567
 set :bind, '0.0.0.0'
@@ -808,45 +809,61 @@ end
 
 get '/enemies/:index' do
   redirect '/character/0' unless local_request?
-  characters = Tools.load_json('characters.json')
-  enemy_list = characters.select { |c| c["group"] != "PC" }
-  halt 404, "No enemies found" if enemy_list.empty?
+  templates = Templates.creatures
+  halt 404, "No enemy templates found" if templates.empty?
 
-  index = params[:index].to_i % enemy_list.length
-  @total_characters = enemy_list.length
-  @prev_index = (index - 1) % enemy_list.length
-  @next_index = (index + 1) % enemy_list.length
+  index = params[:index].to_i % templates.length
+  @total_characters = templates.length
+  @prev_index = (index - 1) % templates.length
+  @next_index = (index + 1) % templates.length
   @current_index = index
   @route_prefix = '/enemies'
 
-  @character = get_info(enemy_list[index])
+  template = templates[index]
+  @template = template
+  @character = get_info(Templates.preview_character(template))
   @compendium = Compendium.new
-  @enemy_list = enemy_list.each_with_index.map { |e, i| { index: i, id: e['id'], name: e['name'] } }
+  @enemy_list = templates.each_with_index.map { |t, i| { index: i, id: t['id'], name: t['name'] } }
 
   combat_data = Tools.load_json('combat.json')
   @combat_participants = combat_data['participants']
+  characters = Tools.load_json('characters.json')
+  # Live instances spawned from this template. Each instance carries its own
+  # rolled stats + items, so we link to its character record rather than the
+  # template's combat-less preview sheet.
+  @template_instances = characters.select { |c| c['template_id'].to_s == template['id'].to_s }
 
   erb :enemies
 end
 
 post '/combat/add_enemy' do
   redirect '/character/0' unless local_request?
-  enemy_id = params[:enemy_id].to_i
-  combat_data = Tools.load_json('combat.json')
+  template_id = params[:enemy_id].to_s
+  template = Templates.find(template_id)
+  halt 400, "Enemy template not found" unless template
+
   characters = Tools.load_json('characters.json')
+  combat_data = Tools.load_json('combat.json')
 
-  enemy = characters.find { |c| c['id'] == enemy_id }
-  halt 400, "Enemy not found" unless enemy
+  # Pick a fresh integer id above any existing character record and any
+  # char_id in combat (stale combat rows from before the refactor can
+  # reference enemy ids that were pulled out of characters.json).
+  char_ids = characters.map { |c| c['id'].to_i }
+  combat_refs = combat_data['participants'].map { |p| (p['char_id'] || p['id']).to_i }
+  new_id = ([0] + char_ids + combat_refs).max + 1
 
-  # Generate a unique combat ID
-  max_id = combat_data['participants'].map { |p| p['id'] }.max || 0
-  combat_id = [max_id + 1, enemy_id].max + 1000
-  combat_id = max_id + 1 if combat_id <= max_id
+  instance = Templates.instantiate(template_id, new_id: new_id)
+  instance['template_id'] = template_id
+  characters << instance
+  Tools.save_json('characters.json', characters)
 
-  character = CharacterSheet.new(enemy)
+  max_participant_id = combat_data['participants'].map { |p| p['id'].to_i }.max || 0
+  combat_id = max_participant_id + 1
+
+  character = CharacterSheet.new(instance)
   combat_data['participants'] << {
     'id' => combat_id,
-    'char_id' => enemy_id,
+    'char_id' => new_id,
     'initiative' => '',
     'mana' => character.mana_max,
     'combat_pool' => character.combat_pool,

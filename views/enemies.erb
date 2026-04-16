@@ -8,8 +8,20 @@
   <div class="enemy-sidebar">
     <h3>Enemies</h3>
     <div class="enemy-list">
+      <%
+        # Each participant links back to a concrete character instance whose
+        # `template_id` points at the template it was rolled from. Build a
+        # lookup once so each template can list its live combat copies.
+        all_characters = Tools.load_json('characters.json')
+        char_by_id = all_characters.each_with_object({}) { |c, h| h[c['id']] = c }
+      %>
       <% @enemy_list.each do |enemy| %>
-        <% copies = @combat_participants.select { |p| (p['char_id'] || p['id']) == enemy[:id] } %>
+        <%
+          copies = @combat_participants.select do |p|
+            char = char_by_id[p['char_id'] || p['id']]
+            char && char['template_id'].to_s == enemy[:id].to_s
+          end
+        %>
         <div class="enemy-entry <%= 'selected' if enemy[:index] == @current_index %>">
           <a href="/enemies/<%= enemy[:index] %>"><%= enemy[:name] %></a>
           <% unless copies.empty? %>
@@ -21,8 +33,12 @@
           </form>
         </div>
         <% copies.each_with_index do |copy, ci| %>
+          <%
+            char = char_by_id[copy['char_id'] || copy['id']]
+            label = char ? char['name'] : enemy[:name]
+          %>
           <div class="enemy-copy-entry">
-            <span class="enemy-copy-label"><%= enemy[:name] %> #<%= ci + 1 %></span>
+            <span class="enemy-copy-label"><%= label %> #<%= ci + 1 %></span>
             <form method="post" action="/combat/remove_enemy" style="display:inline;">
               <input type="hidden" name="combat_id" value="<%= copy['id'] %>">
               <button type="submit" class="enemy-combat-btn remove" title="Remove from combat">-</button>
@@ -46,7 +62,10 @@
         <div class="tier-line">
           Tier <%= @character.tier %> &nbsp;&nbsp;&nbsp; BAB: <%= @character.bab %>
         </div>
-        <% enemy_copies = @combat_participants.count { |p| (p['char_id'] || p['id']) == @character.id } %>
+        <%
+          instance_ids = (@template_instances || []).map { |c| c['id'] }
+          enemy_copies = @combat_participants.count { |p| instance_ids.include?(p['char_id'] || p['id']) }
+        %>
         <% if enemy_copies > 0 %>
           <div style="color: #388e3c; font-weight: bold;">In Combat (<%= enemy_copies %> <%= enemy_copies == 1 ? 'copy' : 'copies' %>)</div>
         <% end %>
@@ -208,6 +227,57 @@
             <p><strong><%= h(item['name']) %>:</strong> <%= h(item['description']) %></p>
           <% end %>
         </div>
+      <% end %>
+
+      <% if @template && ((@template['variants'] || []).any? || @template['gear']) %>
+        <h2>Template</h2>
+        <% if (@template['variants'] || []).any? %>
+          <h3>Variants</h3>
+          <ul>
+            <% @template['variants'].each do |variant| %>
+              <li>
+                <strong><%= h(variant['id']) %></strong>
+                (<%= ((variant['chance'] || 0).to_f * 100).round(1) %>% chance)
+                <% if variant['overrides'] %>
+                  <span>- overrides: <%= h(variant['overrides'].keys.join(', ')) %></span>
+                <% end %>
+                <% if variant['classes_add'] %>
+                  <span>- adds <%= h(variant['classes_add'].map { |c| "level #{c['level']} #{c['class']}" }.join(', ')) %></span>
+                <% end %>
+                <% if variant['gear_patch'] %>
+                  <span>- gear patch</span>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+        <%
+          tables = Templates.gear_tables
+          gear_ref = @template['gear']
+          gear_table = GearTable.resolve(gear_ref, tables) if gear_ref
+        %>
+        <% if gear_table && (gear_table['rolls'] || []).any? %>
+          <h3>Gear<% if gear_ref.is_a?(String) %> (<%= h(gear_ref) %>)<% end %></h3>
+          <ul>
+            <% gear_table['rolls'].each do |row| %>
+              <li>
+                <strong><%= h(row['slot']) %>:</strong>
+                <% if row['options'].is_a?(Array) %>
+                  <% row['options'].each do |opt| %>
+                    <div>&nbsp;&nbsp;<%= (opt['chance'].to_f * 100).round(1) %>% - <%= h(opt['item'] && opt['item']['name']) %></div>
+                  <% end %>
+                <% elsif row.key?('chance') %>
+                  <%= (row['chance'].to_f * 100).round(1) %>% - <%= h(row['item'] && row['item']['name']) %>
+                <% else %>
+                  <%= h(row['item'] && row['item']['name']) %>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+          <% if gear_table['gold'] %>
+            <p><strong>Gold:</strong> <%= h(gear_table['gold']) %></p>
+          <% end %>
+        <% end %>
       <% end %>
     </div>
   </div>
