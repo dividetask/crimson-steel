@@ -1058,7 +1058,8 @@ end
 get '/spells' do
   compendium = Compendium.new
   @spells = compendium.data["spells"].sort_by { |name, _| name.downcase }.to_h
-  @spell_schools = compendium.data["spell_schools"] || ["universal", "necromancy", "evocation", "illusion", "enchantment", "divination", "abjuration", "conjuration"]
+  @spell_schools = compendium.data["spell_schools"] || {}
+  @spell_schools = @spell_schools.map { |s| [s, ""] }.to_h if @spell_schools.is_a?(Array)
   @range_labels = compendium.data["range"]
   @all_skills = @spells.values.flat_map { |s| s["skill"] || [] }.uniq.sort
   erb :spell_list

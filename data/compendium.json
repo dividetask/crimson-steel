@@ -35,15 +35,15 @@
       "description": "Adds 4 additional dice that add their damage to physical damage. Damage is increased by 1 for each success and 4 for each critical."
     }
   },
-  "spell_schools": [
-    "universal",
-    "pneumancy",
-    "resonance",
-    "enchantment",
-    "augury",
-    "convergence",
-    "transmutation"
-  ],
+  "spell_schools": {
+    "universal": "General magic — available to every school.",
+    "pneumancy": "Soul / spirit magic — undead, binding, communing, and most healing conjurations.",
+    "resonance": "Force, energy, light, sound, warding, and illusions.",
+    "enchantment": "Mind-affecting magic; most effects prompt a Wisdom save.",
+    "augury": "Fate reading, detection, foresight; effects prompt a Charisma save.",
+    "convergence": "Dimensional pulling — summoning and translocation, temporary by nature.",
+    "transmutation": "Physical transformation of matter or bodies."
+  },
   "spells": {
     "Recharge": {
       "tier": [
@@ -630,7 +630,7 @@
       "description": "Reduce bleeding by 3 for each success."
     },
     "Magic Vestments": {
-      "tier": 0,
+      "tier": [0, 3],
       "save": 0,
       "school": "resonance",
       "items": [
@@ -648,7 +648,8 @@
       ],
       "effect_hash": {
       },
-      "description": "Increase target’s damage reduction and damage resilience by 3 for 1 round."
+      "prefix": [null, "Greater"],
+      "description": "Increase target’s damage reduction and damage resilience by 3 for 1 round. The Greater variant boosts a worn suit of armor with a +1 enhancement per four caster levels for 1 hour/level."
     },
     "Sacred Flame": {
       "tier": 0,
@@ -737,7 +738,7 @@
     "Resistance": {
       "tier": 0,
       "save": 0,
-      "school": "universal",
+      "school": "resonance",
       "items": [
 
       ],
@@ -1010,7 +1011,7 @@
     "Liberating Command": {
       "tier": 1,
       "save": 0,
-      "school": "universal",
+      "school": "enchantment",
       "items": [
 
       ],
@@ -1219,7 +1220,7 @@
     "Timely Inspiration": {
       "tier": 2,
       "save": 0,
-      "school": "universal",
+      "school": "enchantment",
       "items": [
 
       ],
@@ -1258,7 +1259,7 @@
       "description": "Object must have previously been seen up close, or this can be used to search for any item of the kind. Range is 1000 feet + 100 feet per rank."
     },
     "Magic Weapon": {
-      "tier": 2,
+      "tier": 1,
       "save": 0,
       "school": "transmutation",
       "items": [
@@ -1621,7 +1622,82 @@
       "effect_hash": {
       },
       "description": "A misty vapor arises around you. It is stationary. The vapor obscures all sight beyond 5 feet. A creature 5 feet away has concealment. Creatures farther away have total concealment.\n\nA moderate wind (11+ mph), such as from a gust of wind spell, disperses the fog in 4 rounds. A strong wind (21+ mph) disperses the fog in 1 round. A fireball, flame strike, or similar spell burns away the fog in the explosive or fiery spell's area. A wall of fire burns away the fog in the area into which it deals damage."
-    }
+    },
+    "Arcane Mark": {"tier": 0, "save": 0, "school": "universal", "items": ["oil", "scroll"], "range": 1, "duration": "permanent", "casting_time": 0.5, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Inscribe a personal rune (visible or invisible) on an object or surface."},
+    "Purify Food and Drink": {"tier": 0, "save": 0, "school": "transmutation", "items": ["oil", "scroll"], "range": 1, "duration": "instant", "casting_time": 1, "skill": ["nature", "healing"], "properties": [], "effect_hash": {}, "description": "Purifies 1 cu. ft./level of food or water, removing spoilage and poisons."},
+    "Bless Weapon": {"tier": 1, "save": 0, "school": "transmutation", "items": ["oil", "scroll"], "range": 1, "duration": "rank", "casting_time": 1, "skill": ["religion", "healing"], "properties": [], "effect_hash": {}, "description": "Weapon strikes true against evil foes for 1 round per rank."},
+    "Endure Elements": {"tier": 1, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "24 hours", "casting_time": 1, "skill": ["nature", "arcana"], "properties": [], "effect_hash": {}, "description": "Subject exists comfortably in extreme hot or cold environments."},
+    "Enlarge Person": {"tier": 1, "save": "str", "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 2, "duration": "rank", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Humanoid creature doubles in size for 1 round per rank."},
+    "Mage Armor": {"tier": 1, "save": 0, "school": "convergence", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "1 hour/level", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Gives target a +4 armor bonus for 1 hour per caster level."},
+    "Magic Fang": {"tier": 1, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "One natural weapon of subject creature gains +1 on attack and damage."},
+    "Pass Without Trace": {"tier": 1, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "One subject per level leaves no trail and cannot be tracked."},
+    "Protection from Chaos": {"tier": 1, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank", "casting_time": 1, "skill": ["religion"], "properties": [], "effect_hash": {}, "description": "+2 AC and saves against chaotic foes; counters mind control from chaotic sources."},
+    "Protection from Evil": {"tier": 1, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank", "casting_time": 1, "skill": ["religion"], "properties": [], "effect_hash": {}, "description": "+2 AC and saves against evil foes; counters mind control from evil sources."},
+    "Protection from Good": {"tier": 1, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank", "casting_time": 1, "skill": ["religion"], "properties": [], "effect_hash": {}, "description": "+2 AC and saves against good foes; counters mind control from good sources."},
+    "Protection from Law": {"tier": 1, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank", "casting_time": 1, "skill": ["religion"], "properties": [], "effect_hash": {}, "description": "+2 AC and saves against lawful foes; counters mind control from lawful sources."},
+    "Reduce Person": {"tier": 1, "save": "str", "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 2, "duration": "rank", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Humanoid creature shrinks to half size for 1 round per rank."},
+    "Remove Fear": {"tier": 1, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["healing", "perform_"], "properties": [], "effect_hash": {}, "description": "Suppresses fear effects or grants +4 bonus on saves against fear."},
+    "Sanctuary": {"tier": 1, "save": "wis", "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank", "casting_time": 1, "skill": ["religion", "healing"], "properties": [], "effect_hash": {}, "description": "Opponents can't attack the subject, and the subject can't attack."},
+    "Animate Rope": {"tier": 1, "save": 0, "school": "transmutation", "items": ["oil", "scroll", "wand"], "range": 3, "duration": "rank", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Makes a rope move, knot, coil, or perform simple tasks at your command."},
+    "Ant Haul": {"tier": 1, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "2 hours/level", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "Target's carrying capacity is tripled."},
+    "Goodberry": {"tier": 1, "save": 0, "school": "transmutation", "items": ["oil", "scroll"], "range": 1, "duration": "instant", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "2d4 berries each cure 1 point of damage when eaten."},
+    "Hide from Animals": {"tier": 1, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "Animals cannot perceive one subject per level."},
+    "Hide from Undead": {"tier": 1, "save": "wis", "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["religion"], "properties": [], "effect_hash": {}, "description": "Undead cannot perceive one subject per level."},
+    "Hold Portal": {"tier": 1, "save": 0, "school": "resonance", "items": ["oil", "scroll", "wand"], "range": 3, "duration": "rank", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Magically holds a door, gate, window, or shutter closed."},
+    "Invigorate": {"tier": 1, "save": "wis", "school": "enchantment", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["perform_", "healing"], "properties": [], "effect_hash": {}, "description": "Relieves fatigue and exhaustion for 10 minutes per level."},
+    "Keen Senses": {"tier": 1, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "Subject gains +2 Perception checks and low-light vision."},
+    "Magic Stone": {"tier": 1, "save": 0, "school": "transmutation", "items": ["oil", "scroll"], "range": 1, "duration": "rank", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "Three stones gain +1 attack bonus and deal 1d6+1 damage when thrown."},
+    "Remove Sickness": {"tier": 1, "save": 0, "school": "pneumancy", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["healing"], "properties": [], "effect_hash": {}, "description": "Suppresses disease, nausea, and the sickened condition."},
+    "Sanctify Corpse": {"tier": 1, "save": 0, "school": "pneumancy", "items": ["oil", "scroll"], "range": 1, "duration": "permanent", "casting_time": 1, "skill": ["religion"], "properties": [], "effect_hash": {}, "description": "Preserves a corpse and prevents it from rising as undead."},
+    "Shillelagh": {"tier": 1, "save": 0, "school": "transmutation", "items": ["oil", "scroll"], "range": 1, "duration": "rank", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "Cudgel or quarterstaff becomes a +1 magic weapon dealing 2d6 damage."},
+    "Touch of the Sea": {"tier": 1, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "Subject gains a +10 enhancement bonus to swim speed."},
+    "Aid": {"tier": 2, "save": 0, "school": "enchantment", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["healing", "religion"], "properties": [], "effect_hash": {}, "description": "+1 attack bonus, +1 save vs. fear, and 1d8 temporary hit points."},
+    "Align Weapon": {"tier": 2, "save": 0, "school": "transmutation", "items": ["oil", "scroll"], "range": 1, "duration": "rank", "casting_time": 1, "skill": ["religion"], "properties": [], "effect_hash": {}, "description": "Weapon becomes good, evil, lawful, or chaotic."},
+    "Barkskin": {"tier": 2, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "10 min/level", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "Grants +2 or higher enhancement bonus to natural armor."},
+    "Bear's Endurance": {"tier": 2, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "+4 enhancement to Constitution for 1 minute per level."},
+    "Blur": {"tier": 2, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Attacks miss subject 20% of the time due to blurred outline."},
+    "Bull's Strength": {"tier": 2, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "+4 enhancement to Strength for 1 minute per level."},
+    "Cat's Grace": {"tier": 2, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "+4 enhancement to Dexterity for 1 minute per level."},
+    "Darkvision": {"tier": 2, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "1 hour/level", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Subject sees 60 ft. in total darkness."},
+    "Delay Poison": {"tier": 2, "save": 0, "school": "pneumancy", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "1 hour/level", "casting_time": 1, "skill": ["healing", "nature"], "properties": [], "effect_hash": {}, "description": "Stops poison from harming subject for 1 hour per level."},
+    "Eagle's Splendor": {"tier": 2, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "+4 enhancement to Charisma for 1 minute per level."},
+    "Fox's Cunning": {"tier": 2, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "+4 enhancement to Intelligence for 1 minute per level."},
+    "Levitate": {"tier": 2, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 3, "duration": "rank*10", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Subject moves up and down at your direction."},
+    "Owl's Wisdom": {"tier": 2, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "+4 enhancement to Wisdom for 1 minute per level."},
+    "Protection from Arrows": {"tier": 2, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "1 hour/level", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Subject ignores first 10 points of damage per ranged attack."},
+    "Remove Paralysis": {"tier": 2, "save": 0, "school": "pneumancy", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "instant", "casting_time": 1, "skill": ["healing"], "properties": [], "effect_hash": {}, "description": "Frees one or more creatures from paralysis or slow effects."},
+    "Resist Energy Acid": {"tier": 2, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature", "arcana"], "properties": [], "effect_hash": {}, "description": "Ignores 10 or more points of damage per attack from acid."},
+    "Resist Energy Cold": {"tier": 2, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature", "arcana"], "properties": [], "effect_hash": {}, "description": "Ignores 10 or more points of damage per attack from cold."},
+    "Resist Energy Electricity": {"tier": 2, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature", "arcana"], "properties": [], "effect_hash": {}, "description": "Ignores 10 or more points of damage per attack from electricity."},
+    "Resist Energy Fire": {"tier": 2, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature", "arcana"], "properties": [], "effect_hash": {}, "description": "Ignores 10 or more points of damage per attack from fire."},
+    "Resist Energy Sonic": {"tier": 2, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature", "arcana"], "properties": [], "effect_hash": {}, "description": "Ignores 10 or more points of damage per attack from sonic."},
+    "Spider Climb": {"tier": 2, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature", "arcana"], "properties": [], "effect_hash": {}, "description": "Grants subject the ability to walk on walls and ceilings."},
+    "Undetectable Alignment": {"tier": 2, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "24 hours", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Conceals alignment from detection for 24 hours."},
+    "Ablative Barrier": {"tier": 2, "save": 0, "school": "convergence", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "1 hour/level", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Shimmering barrier converts lethal damage to nonlethal and grants DR 5/-."},
+    "Acute Senses": {"tier": 2, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "+10 enhancement bonus on Perception checks."},
+    "Arcane Lock": {"tier": 2, "save": 0, "school": "resonance", "items": ["oil", "scroll"], "range": 1, "duration": "permanent", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Magically locks a portal or chest; cannot be opened without the spell or a successful Knock."},
+    "Reduce Animal": {"tier": 2, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "Shrinks one willing animal to half its size."},
+    "Displacement": {"tier": 3, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Attacks miss subject 50% of the time due to displaced appearance."},
+    "Fly": {"tier": 3, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Subject flies at a speed of 60 ft."},
+    "Gaseous Form": {"tier": 3, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Subject becomes insubstantial mist and can fly slowly."},
+    "Good Hope": {"tier": 3, "save": "wis", "school": "enchantment", "items": ["potion", "scroll", "wand"], "range": 2, "duration": "rank*10", "casting_time": 1, "skill": ["perform_", "healing"], "properties": [], "effect_hash": {}, "description": "Subjects gain +2 on attacks, saves, checks, and weapon damage."},
+    "Heroism": {"tier": 3, "save": 0, "school": "enchantment", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "10 min/level", "casting_time": 1, "skill": ["perform_", "healing"], "properties": [], "effect_hash": {}, "description": "+2 bonus on attacks, saves, and skill checks."},
+    "Greater Magic Fang": {"tier": 3, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "1 hour/level", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "One natural weapon gains a +1 enhancement bonus per four levels (max +5)."},
+    "Neutralize Poison": {"tier": 3, "save": 0, "school": "pneumancy", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "10 min/level", "casting_time": 1, "skill": ["healing"], "properties": [], "effect_hash": {}, "description": "Immunizes subject against poison and detoxifies venom in or on them."},
+    "Protection from Energy Acid": {"tier": 3, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana", "nature"], "properties": [], "effect_hash": {}, "description": "Absorbs up to 12 points per level of acid damage."},
+    "Protection from Energy Cold": {"tier": 3, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana", "nature"], "properties": [], "effect_hash": {}, "description": "Absorbs up to 12 points per level of cold damage."},
+    "Protection from Energy Electricity": {"tier": 3, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana", "nature"], "properties": [], "effect_hash": {}, "description": "Absorbs up to 12 points per level of electricity damage."},
+    "Protection from Energy Fire": {"tier": 3, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana", "nature"], "properties": [], "effect_hash": {}, "description": "Absorbs up to 12 points per level of fire damage."},
+    "Protection from Energy Sonic": {"tier": 3, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana", "nature"], "properties": [], "effect_hash": {}, "description": "Absorbs up to 12 points per level of sonic damage."},
+    "Rage": {"tier": 3, "save": "wis", "school": "enchantment", "items": ["potion", "scroll", "wand"], "range": 2, "duration": "rank", "casting_time": 1, "skill": ["perform_"], "properties": [], "effect_hash": {}, "description": "Subjects gain +2 Str, +2 Con, +1 Will, -2 AC."},
+    "Remove Curse": {"tier": 3, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "instant", "casting_time": 1, "skill": ["healing"], "properties": [], "effect_hash": {}, "description": "Frees object or person from a curse."},
+    "Remove Disease": {"tier": 3, "save": 0, "school": "pneumancy", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "instant", "casting_time": 1, "skill": ["healing"], "properties": [], "effect_hash": {}, "description": "Cures all diseases currently affecting the subject."},
+    "Tongues": {"tier": 3, "save": 0, "school": "augury", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Subject can speak and understand any language."},
+    "Water Breathing": {"tier": 3, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "2 hours/level", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "Subjects can breathe water."},
+    "Water Walk": {"tier": 3, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "Subject treads on water as if it were solid ground."},
+    "Burrow": {"tier": 3, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["nature"], "properties": [], "effect_hash": {}, "description": "Target gains a burrow speed of 15 feet."},
+    "Countless Eyes": {"tier": 3, "save": 0, "school": "transmutation", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "rank*10", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Extra eyes grant all-around vision; you cannot be flanked."},
+    "Nondetection": {"tier": 3, "save": 0, "school": "resonance", "items": ["potion", "scroll", "wand"], "range": 1, "duration": "1 hour/level", "casting_time": 1, "skill": ["arcana"], "properties": [], "effect_hash": {}, "description": "Hides subject from divination and scrying."}
   },
   "abilities": {
     "bardic_inspiration": "During your magical performance you can use your performance to inspire your allies or distract your enemies. This creates a pool of luck that can be spent by you or your team to reroll dice on any check your or they make. Each point must be spent before the initial check is made, and each point will allow a single reroll. Using this ability costs one point of mana and can only be used once per turn. This is a main action that can be used as part of maintaining your performance but only if that action is not used for any other purpose such as casting a spell. You gain one point of luck per success, and each point must be used before your next turn or it is lost. Fumbling grants all failures to the DM to be used for the enemy, or against the players.",

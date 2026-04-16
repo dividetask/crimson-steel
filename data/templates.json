@@ -186,10 +186,10 @@
             {"chance": 0.05, "item": {"name": "chain shirt +1", "type": "armor", "subtype": "light", "bonus": 1}}
           ]
         },
-        {"slot": "potion_t0", "chance": 0.25, "options": "tier_zero_potions"},
-        {"slot": "potion_t1", "chance": 0.35, "options": "tier_one_potions"},
-        {"slot": "potion_t2", "chance": 0.15, "options": "tier_two_potions"},
-        {"slot": "potion_t3", "chance": 0.05, "options": "tier_three_potions"}
+        {"slot": "potion_t0", "chance": 0.25, "options": "tier_zero_potions_oils"},
+        {"slot": "potion_t1", "chance": 0.35, "options": "tier_one_potions_oils"},
+        {"slot": "potion_t2", "chance": 0.15, "options": "tier_two_potions_oils"},
+        {"slot": "potion_t3", "chance": 0.05, "options": "tier_three_potions_oils"}
       ],
       "gold": "2d6 + 5"
     }
