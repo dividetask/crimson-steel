@@ -29,8 +29,9 @@ module Templates
   GLOB_PATTERN = 'template-*.json'.freeze
 
   # Load and merge all template files: templates.json (primary) plus any
-  # template-*.json files. Gear tables from all files share a single
-  # namespace so creature templates can reference tables from any file.
+  # template-*.json files. Creature templates, gear tables, and option
+  # lists all share a single namespace across files so a creature in
+  # one file can reference a gear table or option list from another.
   def load_raw(rng: nil)
     data_dir = File.join(File.dirname(__FILE__), 'data')
     primary = Tools.load_json(FILENAME)
@@ -38,15 +39,17 @@ module Templates
 
     creatures = primary['creatures'] || []
     gear = primary['gear_tables'] || []
+    lists = (primary['option_lists'] || {}).dup
 
     Dir.glob(File.join(data_dir, GLOB_PATTERN)).sort.each do |path|
       extra = JSON.parse(File.read(path)) rescue next
       next unless extra.is_a?(Hash)
       creatures += (extra['creatures'] || [])
       gear += (extra['gear_tables'] || [])
+      (extra['option_lists'] || {}).each { |k, v| lists[k] = v }
     end
 
-    { 'creatures' => creatures, 'gear_tables' => gear }
+    { 'creatures' => creatures, 'gear_tables' => gear, 'option_lists' => lists }
   end
 
   def creatures; (load_raw['creatures'] || []); end
@@ -54,6 +57,11 @@ module Templates
   def gear_tables
     (load_raw['gear_tables'] || []).each_with_object({}) { |gt, h| h[gt['id']] = gt }
   end
+
+  # Named weighted-option lists. Rows in a gear table can set
+  # `options: "tier_one_potions"` instead of an inline array; the roller
+  # resolves the string via this hash. Useful for DRY loot references.
+  def option_lists; load_raw['option_lists'] || {}; end
 
   # Find a creature template by its string id.
   def find(template_id)
@@ -76,11 +84,12 @@ module Templates
   # Instantiate a template: roll variants, resolve gear, return a concrete
   # character hash (with a caller-supplied id) plus the gold amount.
   # `rng` lets callers inject a seeded Random for deterministic tests.
-  def instantiate(template_id, new_id:, rng: Random.new, tables: nil)
+  def instantiate(template_id, new_id:, rng: Random.new, tables: nil, lists: nil)
     template = find(template_id)
     raise ArgumentError, "unknown template: #{template_id}" unless template
 
     tables ||= gear_tables
+    lists ||= option_lists
     character = deep_dup(template)
     variants = character.delete('variants') || []
     gear_ref = character.delete('gear')
@@ -103,7 +112,7 @@ module Templates
     gear_table = GearTable.resolve(resolved_gear_ref, tables)
     gear_patches.each { |patch| gear_table = GearTable.apply_patch(gear_table, patch) }
 
-    items, gold = GearTable.roll(gear_table, rng: rng)
+    items, gold = GearTable.roll(gear_table, rng: rng, lists: lists)
     character['items'] = (character['items'] || []) + items
     character['gold'] = gold if gold
     character['applied_variants'] = applied_variants unless applied_variants.empty?
@@ -204,10 +213,12 @@ module GearTable
   end
 
   # Evaluate a gear table: returns [items, gold]. `rng` should be a Random.
-  def roll(table, rng: Random.new)
+  # `lists` is the named-option-list hash used to resolve string `options`
+  # references (see Templates.option_lists).
+  def roll(table, rng: Random.new, lists: {})
     items = []
     (table['rolls'] || []).each do |row|
-      item = roll_row(row, rng)
+      item = roll_row(row, rng, lists)
       items << item if item
     end
     gold = roll_gold(table['gold'], rng)
@@ -215,13 +226,15 @@ module GearTable
   end
 
   # Returns the item hash that was rolled, or nil if nothing was rolled.
-  def roll_row(row, rng)
-    if row['options'].is_a?(Array)
+  def roll_row(row, rng, lists = {})
+    options = row['options']
+    options = lists[options] if options.is_a?(String)
+    if options.is_a?(Array)
       # Gated weighted choice: outer `chance` decides if we drop into the
       # table at all. Without a `chance`, the weighted roll always happens
       # (with remainder = nothing).
       return nil if row.key?('chance') && rng.rand >= row['chance'].to_f
-      roll_weighted(row['options'], rng)
+      roll_weighted(options, rng)
     elsif row.key?('chance')
       ((rng.rand < row['chance'].to_f) ? Templates.deep_dup(row['item']) : nil)
     elsif row.key?('item')

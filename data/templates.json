@@ -186,32 +186,10 @@
             {"chance": 0.05, "item": {"name": "chain shirt +1", "type": "armor", "subtype": "light", "bonus": 1}}
           ]
         },
-        {
-          "slot": "potion_heal",
-          "chance": 0.50,
-          "item": {
-            "name": "Potion of Lesser Healing",
-            "type": "item",
-            "subtype": "vial",
-            "bonus": 1,
-            "quantity": 1,
-            "equipped": false,
-            "properties": {"consumable": true, "effect": "heal"}
-          }
-        },
-        {
-          "slot": "potion_invis",
-          "chance": 0.01,
-          "item": {
-            "name": "Potion of Invisibility",
-            "type": "item",
-            "subtype": "vial",
-            "bonus": 0,
-            "quantity": 1,
-            "equipped": false,
-            "properties": {"consumable": true, "spell": "invisibility"}
-          }
-        }
+        {"slot": "potion_t0", "chance": 0.25, "options": "tier_zero_potions"},
+        {"slot": "potion_t1", "chance": 0.35, "options": "tier_one_potions"},
+        {"slot": "potion_t2", "chance": 0.15, "options": "tier_two_potions"},
+        {"slot": "potion_t3", "chance": 0.05, "options": "tier_three_potions"}
       ],
       "gold": "2d6 + 5"
     }

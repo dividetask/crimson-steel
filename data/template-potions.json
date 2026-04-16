@@ -1,0 +1,387 @@
+{
+  "option_lists": {
+    "tier_zero_potions": [
+      {"chance": 0.10, "item": {
+        "name": "Potion of Arcane Mark",
+        "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "arcane_mark",
+          "pathfinder_school": "universal", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Inscribe a personal rune (visible or invisible)."}
+      }},
+      {"chance": 0.40, "item": {
+        "name": "Potion of Light",
+        "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "light",
+          "pathfinder_school": "evocation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Object shines like a torch."}
+      }},
+      {"chance": 0.10, "item": {
+        "name": "Potion of Purify Food and Drink",
+        "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "purify_food_and_drink",
+          "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "Purifies 1 cu. ft./level of food or water."}
+      }},
+      {"chance": 0.10, "item": {
+        "name": "Potion of Resistance",
+        "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "resistance",
+          "pathfinder_school": "abjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "+1 resistance bonus on saves."}
+      }},
+      {"chance": 0.30, "item": {
+        "name": "Potion of Stabilize",
+        "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "stabilize",
+          "pathfinder_school": "conjuration", "pathfinder_skill": "healing",
+          "pathfinder_description": "Stabilizes a dying creature."}
+      }}
+    ],
+    "tier_one_potions": [
+      {"chance": 0.03, "item": {
+        "name": "Potion of Bless Weapon", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "bless_weapon", "pathfinder_school": "transmutation", "pathfinder_skill": "religion",
+          "pathfinder_description": "Weapon strikes true against evil foes."}}},
+      {"chance": 0.21, "item": {
+        "name": "Potion of Cure Lesser Wounds", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "cure_lesser_wounds", "pathfinder_school": "conjuration", "pathfinder_skill": "healing",
+          "pathfinder_description": "Cures 1d8+1 damage (lesser variant)."}}},
+      {"chance": 0.04, "item": {
+        "name": "Potion of Endure Elements", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "endure_elements", "pathfinder_school": "abjuration", "pathfinder_skill": "nature",
+          "pathfinder_description": "Exist comfortably in hot or cold environments."}}},
+      {"chance": 0.04, "item": {
+        "name": "Potion of Enlarge Person", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "enlarge_person", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Humanoid creature doubles in size."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Jump", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "jump", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "Subject gets bonus on Acrobatics checks to jump."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Mage Armor", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "mage_armor", "pathfinder_school": "conjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Gives +4 armor bonus for 1 hour/level."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Magic Fang", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "magic_fang", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "One natural weapon gets +1 on attack/damage."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Magic Weapon", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "magic_weapon", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Weapon gains +1 enhancement bonus."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Pass Without Trace", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "pass_without_trace", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "One subject/level leaves no tracks."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Protection from Chaos", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "protection_from_chaos", "pathfinder_school": "abjuration", "pathfinder_skill": "religion",
+          "pathfinder_description": "+2 AC and saves against chaotic foes; counters mind control."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Protection from Evil", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "protection_from_evil", "pathfinder_school": "abjuration", "pathfinder_skill": "religion",
+          "pathfinder_description": "+2 AC and saves against evil foes; counters mind control."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Protection from Good", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "protection_from_good", "pathfinder_school": "abjuration", "pathfinder_skill": "religion",
+          "pathfinder_description": "+2 AC and saves against good foes; counters mind control."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Protection from Law", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "protection_from_law", "pathfinder_school": "abjuration", "pathfinder_skill": "religion",
+          "pathfinder_description": "+2 AC and saves against lawful foes; counters mind control."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Reduce Person", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "reduce_person", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Humanoid creature shrinks to half size."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Remove Fear", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "remove_fear", "pathfinder_school": "abjuration", "pathfinder_skill": "healing",
+          "pathfinder_description": "Suppresses fear or grants +4 on fear saves."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Sanctuary", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "sanctuary", "pathfinder_school": "abjuration", "pathfinder_skill": "religion",
+          "pathfinder_description": "Opponents can't attack you; you can't attack."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Shield of Faith", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "shield_of_faith", "pathfinder_school": "abjuration", "pathfinder_skill": "religion",
+          "pathfinder_description": "Aura grants +2 or higher deflection bonus."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Animate Rope", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "animate_rope", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Makes a rope move at your command."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Ant Haul", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "ant_haul", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "Target's carrying capacity triples."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Goodberry", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "goodberry", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "2d4 berries each cure 1 point of damage."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Grease", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "grease", "pathfinder_school": "conjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Makes a 10-ft. square or one object slippery."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Hide from Animals", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "hide_from_animals", "pathfinder_school": "abjuration", "pathfinder_skill": "nature",
+          "pathfinder_description": "Animals can't perceive one subject/level."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Hide from Undead", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "hide_from_undead", "pathfinder_school": "abjuration", "pathfinder_skill": "religion",
+          "pathfinder_description": "Undead can't perceive one subject/level."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Hold Portal", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "hold_portal", "pathfinder_school": "abjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Holds a door shut."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Invigorate", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "invigorate", "pathfinder_school": "illusion", "pathfinder_skill": "perform_",
+          "pathfinder_description": "Relieves fatigue and exhaustion for 10 min/level."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Keen Senses", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "keen_senses", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "Subject gains +2 Perception and low-light vision."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Magic Stone", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "magic_stone", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "Three stones gain +1 attack, deal 1d6+1 damage."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Remove Sickness", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "remove_sickness", "pathfinder_school": "conjuration", "pathfinder_skill": "healing",
+          "pathfinder_description": "Suppresses disease, nausea, and sickened condition."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Sanctify Corpse", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "sanctify_corpse", "pathfinder_school": "necromancy", "pathfinder_skill": "religion",
+          "pathfinder_description": "Preserves a corpse; prevents it from becoming undead."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Shillelagh", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "shillelagh", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "Cudgel or quarterstaff becomes +1 (2d6) for 1 min/level."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Touch of the Sea", "type": "item", "subtype": "vial", "bonus": 0, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "touch_of_the_sea", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "Subject gains +10 swim speed."}}}
+    ],
+    "tier_two_potions": [
+      {"chance": 0.02, "item": {
+        "name": "Potion of Aid", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "aid", "pathfinder_school": "enchantment", "pathfinder_skill": "healing",
+          "pathfinder_description": "+1 attack, +1 save vs fear, 1d8 temp HP."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Align Weapon", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "align_weapon", "pathfinder_school": "transmutation", "pathfinder_skill": "religion",
+          "pathfinder_description": "Weapon becomes good, evil, lawful, or chaotic."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Barkskin", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "barkskin", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "Grants +2 or higher enhancement to natural armor."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Bear's Endurance", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "bears_endurance", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "+4 to Con for 1 min/level."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Blur", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "blur", "pathfinder_school": "illusion", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Attacks miss subject 20% of the time."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Bull's Strength", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "bulls_strength", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "+4 to Str for 1 min/level."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Cat's Grace", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "cats_grace", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "+4 to Dex for 1 min/level."}}},
+      {"chance": 0.20, "item": {
+        "name": "Potion of Cure Simple Wounds", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "cure_simple_wounds", "pathfinder_school": "conjuration", "pathfinder_skill": "healing",
+          "pathfinder_description": "Cures 2d8+caster level damage."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Darkvision", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "darkvision", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "See 60 ft. in total darkness."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Delay Poison", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "delay_poison", "pathfinder_school": "conjuration", "pathfinder_skill": "healing",
+          "pathfinder_description": "Stops poison from harming subject for 1 hour/level."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Eagle's Splendor", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "eagles_splendor", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "+4 to Cha for 1 min/level."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Fox's Cunning", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "foxs_cunning", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "+4 to Int for 1 min/level."}}},
+      {"chance": 0.10, "item": {
+        "name": "Potion of Invisibility", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "invisibility", "pathfinder_school": "illusion", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Subject is invisible for 1 min/level or until it attacks."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Levitate", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "levitate", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Subject moves up and down at your direction."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Owl's Wisdom", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "owls_wisdom", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "+4 to Wis for 1 min/level."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Protection from Arrows", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "protection_from_arrows", "pathfinder_school": "abjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Subject ignores first 10 damage from ranged attacks."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Remove Paralysis", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "remove_paralysis", "pathfinder_school": "conjuration", "pathfinder_skill": "healing",
+          "pathfinder_description": "Frees creatures from paralysis or slow effects."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Resist Energy (Acid)", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "resist_energy_acid", "pathfinder_school": "abjuration", "pathfinder_skill": "nature",
+          "pathfinder_description": "Ignores 10+ points of acid damage per attack."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Resist Energy (Cold)", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "resist_energy_cold", "pathfinder_school": "abjuration", "pathfinder_skill": "nature",
+          "pathfinder_description": "Ignores 10+ points of cold damage per attack."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Resist Energy (Electricity)", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "resist_energy_electricity", "pathfinder_school": "abjuration", "pathfinder_skill": "nature",
+          "pathfinder_description": "Ignores 10+ points of electricity damage per attack."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Resist Energy (Fire)", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "resist_energy_fire", "pathfinder_school": "abjuration", "pathfinder_skill": "nature",
+          "pathfinder_description": "Ignores 10+ points of fire damage per attack."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Resist Energy (Sonic)", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "resist_energy_sonic", "pathfinder_school": "abjuration", "pathfinder_skill": "nature",
+          "pathfinder_description": "Ignores 10+ points of sonic damage per attack."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Spider Climb", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "spider_climb", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Grants ability to walk on walls and ceilings."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Undetectable Alignment", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "undetectable_alignment", "pathfinder_school": "abjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Conceals alignment for 24 hours."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Ablative Barrier", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "ablative_barrier", "pathfinder_school": "conjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Shimmering barrier converts damage and grants DR 5/—."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Acute Senses", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "acute_senses", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "+10 enhancement bonus on Perception checks."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Arcane Lock", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "arcane_lock", "pathfinder_school": "abjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Magically locks a portal or chest."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Disguise Other", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "disguise_other", "pathfinder_school": "illusion", "pathfinder_skill": "arcana",
+          "pathfinder_description": "As disguise self, but affects you or another."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Reduce Animal", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "reduce_animal", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "Shrinks one willing animal."}}}
+    ],
+    "tier_three_potions": [
+      {"chance": 0.20, "item": {
+        "name": "Potion of Cure Moderate Wounds", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "cure_moderate_wounds", "pathfinder_school": "conjuration", "pathfinder_skill": "healing",
+          "pathfinder_description": "Cures 2d8+caster level damage."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Displacement", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "displacement", "pathfinder_school": "illusion", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Attacks miss subject 50% of the time."}}},
+      {"chance": 0.03, "item": {
+        "name": "Potion of Fly", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "fly", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Subject flies at speed of 60 ft."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Gaseous Form", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "gaseous_form", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Subject becomes insubstantial and can fly slowly."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Good Hope", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "good_hope", "pathfinder_school": "enchantment", "pathfinder_skill": "perform_",
+          "pathfinder_description": "+2 attacks, saves, checks, weapon damage."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Haste", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "haste", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "One creature/level moves faster and gains an extra attack."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Heroism", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "heroism", "pathfinder_school": "enchantment", "pathfinder_skill": "perform_",
+          "pathfinder_description": "+2 bonus on attacks, saves, skill checks."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Greater Magic Fang", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "magic_fang_greater", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "One natural weapon gains +1/four levels on attack/damage."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Magic Vestment", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "magic_vestment", "pathfinder_school": "transmutation", "pathfinder_skill": "religion",
+          "pathfinder_description": "Armor or shield gains +1 enhancement per four levels."}}},
+      {"chance": 0.15, "item": {
+        "name": "Potion of Neutralize Poison", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "neutralize_poison", "pathfinder_school": "conjuration", "pathfinder_skill": "healing",
+          "pathfinder_description": "Immunizes subject against poison; detoxifies venom."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Protection from Energy (Acid)", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "protection_from_energy_acid", "pathfinder_school": "abjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Absorbs 12 points/level of acid damage."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Protection from Energy (Cold)", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "protection_from_energy_cold", "pathfinder_school": "abjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Absorbs 12 points/level of cold damage."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Protection from Energy (Electricity)", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "protection_from_energy_electricity", "pathfinder_school": "abjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Absorbs 12 points/level of electricity damage."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Protection from Energy (Fire)", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "protection_from_energy_fire", "pathfinder_school": "abjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Absorbs 12 points/level of fire damage."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Protection from Energy (Sonic)", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "protection_from_energy_sonic", "pathfinder_school": "abjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Absorbs 12 points/level of sonic damage."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Rage", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "rage", "pathfinder_school": "enchantment", "pathfinder_skill": "perform_",
+          "pathfinder_description": "+2 Str/Con, +1 Will, -2 AC on subjects."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Remove Blindness/Deafness", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "remove_blindness_deafness", "pathfinder_school": "conjuration", "pathfinder_skill": "healing",
+          "pathfinder_description": "Cures normal or magical blindness or deafness."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Remove Curse", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "remove_curse", "pathfinder_school": "abjuration", "pathfinder_skill": "healing",
+          "pathfinder_description": "Frees object or person from a curse."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Remove Disease", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "remove_disease", "pathfinder_school": "conjuration", "pathfinder_skill": "healing",
+          "pathfinder_description": "Cures all diseases affecting subject."}}},
+      {"chance": 0.01, "item": {
+        "name": "Potion of Tongues", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "tongues", "pathfinder_school": "divination", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Speak and understand any language."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Water Breathing", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "water_breathing", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "Subjects can breathe underwater."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Water Walk", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "water_walk", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "Subject treads on water as if solid."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Burrow", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "burrow", "pathfinder_school": "transmutation", "pathfinder_skill": "nature",
+          "pathfinder_description": "Target gains a burrow speed of 15 feet."}}},
+      {"chance": 0.02, "item": {
+        "name": "Potion of Countless Eyes", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "countless_eyes", "pathfinder_school": "transmutation", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Extra eyes give you all-around vision."}}},
+      {"chance": 0.05, "item": {
+        "name": "Potion of Nondetection", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false,
+        "properties": {"consumable": true, "spell": "nondetection", "pathfinder_school": "abjuration", "pathfinder_skill": "arcana",
+          "pathfinder_description": "Hides subject from divination and scrying."}}}
+    ]
+  }
+}
