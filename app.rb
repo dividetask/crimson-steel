@@ -634,7 +634,13 @@ post '/combat/action' do
     spell_tier = params[:spell_tier].to_i
     mana_cost = spell_tier == 0 ? 1 : (spell_tier * 2 + 2)
 
-    halt 400, "Not enough mana" unless participant['mana'].to_i >= mana_cost
+    # When the cast was launched from a scroll, the scroll -- not the
+    # caster's mana pool -- pays for it. We skip the mana check and
+    # deduction paths, and consume one charge of the scroll at the end.
+    from_scroll = params[:from_scroll].to_s == 'true'
+    scroll_item_id = params[:scroll_item_id].to_i
+
+    halt 400, "Not enough mana" unless from_scroll || participant['mana'].to_i >= mana_cost
 
     # Accept either a single target_combat_id or a comma-separated
     # target_combat_ids list (for multi-target spells). Single-target
@@ -697,7 +703,7 @@ post '/combat/action' do
         target['conditions']['bleed'] = after
       end
 
-      participant['mana'] = participant['mana'].to_i - mana_cost
+      participant['mana'] = participant['mana'].to_i - mana_cost unless from_scroll
       participant['combat_pool'] = participant['combat_pool'].to_i - dice_spent
 
       # Stabilize is a concentration spell; register the effect so the DM
@@ -736,7 +742,7 @@ post '/combat/action' do
       # other temp-HP sources.
       temp_hp_added = [new_temp - current_temp, 0].max
 
-      participant['mana'] = participant['mana'].to_i - mana_cost
+      participant['mana'] = participant['mana'].to_i - mana_cost unless from_scroll
       participant['combat_pool'] = participant['combat_pool'].to_i - min_cast_dice if min_cast_dice > 0
 
       # Register the Ward as a duration-bound active effect so the
@@ -789,7 +795,7 @@ post '/combat/action' do
       sat_add = cure[:minimum_saturation] if sat_add < cure[:minimum_saturation]
       target['saturation'] = current_saturation + sat_add
 
-      participant['mana'] = participant['mana'].to_i - mana_cost
+      participant['mana'] = participant['mana'].to_i - mana_cost unless from_scroll
       Tools.save_json('combat.json', combat_data)
 
       Combat.add_log("#{character.name} casts #{spell_name} on #{target_character.name} (#{mana_cost} mana) - healed #{healed_major}/#{healed_moderate}/#{healed_minor} (major/moderate/minor), +#{sat_add} saturation")
@@ -900,7 +906,7 @@ post '/combat/action' do
         end
       end
 
-      participant['mana'] = participant['mana'].to_i - mana_cost
+      participant['mana'] = participant['mana'].to_i - mana_cost unless from_scroll
       # Enhancement spells (Resistance, Bull's Strength, ...) write an
       # active_effect carrying the resolved bonus payload. The target's
       # CharacterSheet picks it up via active_effects_targeting_me so the
@@ -1084,8 +1090,37 @@ post '/combat/action' do
         end.compact
         outcome = " - #{parts.join('; ')}" unless parts.empty?
       end
+      # When the cast came from a scroll, consume one charge.
+      scroll_name = nil
+      if from_scroll && scroll_item_id != 0
+        if scroll_item_id > 0
+          equipment = Tools.load_json('equipment.json')
+          stored_idx = scroll_item_id - 1
+          if stored_idx >= 0 && stored_idx < equipment.length
+            stored = equipment[stored_idx]
+            scroll_name = stored['name']
+            stored['quantity'] = (stored['quantity'] || 1) - 1
+            equipment.delete_at(stored_idx) if stored['quantity'] <= 0
+            Tools.save_json('equipment.json', equipment)
+          end
+        else
+          characters = Tools.load_json('characters.json')
+          owner = characters.find { |c| c['id'] == char_id }
+          if owner && owner['items']
+            inline_idx = -scroll_item_id - 1
+            if inline_idx >= 0 && inline_idx < owner['items'].length
+              inline = owner['items'][inline_idx]
+              scroll_name = inline['name']
+              inline['quantity'] = (inline['quantity'] || 1) - 1
+              owner['items'].delete_at(inline_idx) if inline['quantity'] <= 0
+              Tools.save_json('characters.json', characters)
+            end
+          end
+        end
+      end
+      cost_label = from_scroll ? "scroll: #{scroll_name || 'scroll'}" : "#{mana_cost} mana"
       duration_log = enhancement ? " (#{[enhancement[:duration_rounds].to_i, 1].max} round#{'s' unless enhancement[:duration_rounds].to_i == 1})" : ""
-      Combat.add_log("#{character.name} casts #{spell_name}#{suffix}#{dice_suffix} (#{mana_cost} mana)#{outcome}#{duration_log}")
+      Combat.add_log("#{character.name} casts #{spell_name}#{suffix}#{dice_suffix} (#{cost_label})#{outcome}#{duration_log}")
     end
 
   elsif action == 'item'

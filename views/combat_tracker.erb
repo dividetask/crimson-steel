@@ -250,6 +250,13 @@
         current.character.item_list.filter_map do |item|
           fx = compendium.item_effects(item)
           next nil unless fx
+          # Scroll of a spell that has a specialised cast flow (Web, Blindness/
+          # Deafness, Vicious Mockery, Biting Words, ranged attack spells):
+          # expose enough metadata for the client to route through that flow
+          # using the scroll user's own spell skill.
+          base = fx[:base_name]
+          skills = base ? compendium.spell_skills(base) : []
+          best = skills.max_by { |s| [current.character.skill_dice(s).to_i, current.character.skill_bonus(s).to_i] }
           {
             item_id: item['item_id'],
             name: item['name'],
@@ -257,7 +264,15 @@
             item_tier: fx[:item_tier],
             type: fx[:type].to_s,
             kind: fx[:kind].to_s,
-            target_mode: fx[:target_mode].to_s
+            target_mode: fx[:target_mode].to_s,
+            base_name: base,
+            spell_tier: fx[:tier_val],
+            save_attr: base ? compendium.save_attr(base) : nil,
+            ranged_attack: base ? compendium.ranged_attack?(base) : false,
+            caster_skill: best,
+            caster_skill_dice: best ? current.character.skill_dice(best).to_i : 0,
+            caster_skill_bonus: best ? current.character.skill_bonus(best).to_i : 0,
+            caster_skill_ranks: best ? current.character.skill_ranks(best).to_i : 0
           }
         end
       )
@@ -348,6 +363,7 @@
       context.innerHTML = '';
       attackState = null;
       startOfTurnState = null;
+      clearActiveScroll();
 
       if (action === 'move') {
         if (diceRemaining < 4) {
@@ -822,7 +838,7 @@
       var targetCombatId = targetIds[0];
       var target = combatants.find(function(c) { return c.combat_id === targetCombatId; });
       if (!target) { alert('No target'); return; }
-      var spellEntry = spellList.find(function(s) { return s.name === spellName; });
+      var spellEntry = spellMetaFor(spellName);
       if (!spellEntry || !spellEntry.caster_skill) {
         alert('Caster has no eligible skill for ' + spellName);
         return;
@@ -947,9 +963,10 @@
         ', bd_effect: \'' + bdCast.effectType + '\'' +
         ', bd_hit: ' + (hit ? 'true' : 'false') +
         ', bd_caster_successes: ' + bdCast.casterSuccesses +
-        ', bd_save_successes: ' + bdCast.saveSuccesses;
+        ', bd_save_successes: ' + bdCast.saveSuccesses +
+        scrollFields();
       addStep(summary +
-        '<br><span class="math-detail">Cost: ' + manaCost + ' mana + ' + bdCast.diceSpent + ' dice</span>' +
+        '<br><span class="math-detail">Cost: ' + costLabel(manaCost) + ' + ' + bdCast.diceSpent + ' dice</span>' +
         '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Submit</button>');
     }
 
@@ -960,7 +977,7 @@
     //   through /combat/action either as combat_action=cast (first cast)
     //   or combat_action=concentrate sub_action=ranged_attack (re-use).
     function startRangedAttackSpellCast(spellName, spellTier, targetIds, isConcentrateReuse, effectIndex) {
-      var spellEntry = spellList.find(function(s) { return s.name === spellName; });
+      var spellEntry = spellMetaFor(spellName);
       if (!spellEntry || !spellEntry.caster_skill) {
         alert('Caster has no eligible skill for ' + spellName);
         return;
@@ -990,7 +1007,7 @@
     }
 
     function beginRangedSpellAttack(spellName, spellTier, targetCombatId, dice, isConcentrateReuse, effectIndex) {
-      var spellEntry = spellList.find(function(s) { return s.name === spellName; });
+      var spellEntry = spellMetaFor(spellName);
       var target = combatants.find(function(c) { return c.combat_id === targetCombatId; });
       if (!target) { alert('Target missing'); return; }
 
@@ -1035,7 +1052,7 @@
       var targetCombatId = targetIds[0];
       var target = combatants.find(function(c) { return c.combat_id === targetCombatId; });
       if (!target) { alert('No target'); return; }
-      var spellEntry = spellList.find(function(s) { return s.name === spellName; });
+      var spellEntry = spellMetaFor(spellName);
       if (!spellEntry || !spellEntry.caster_skill) {
         alert('Caster has no eligible skill for ' + spellName);
         return;
@@ -1145,9 +1162,10 @@
         ', vm_hit: ' + (applyDistracted ? 'true' : 'false') +
         ', vm_caster_successes: ' + vmCast.casterSuccesses +
         ', vm_save_successes: ' + vmCast.saveSuccesses +
-        ', vm_crit_damage: ' + critDamage;
+        ', vm_crit_damage: ' + critDamage +
+        scrollFields();
       addStep(lines.join('<br>') +
-        '<br><span class="math-detail">Cost: ' + manaCost + ' mana + ' + vmCast.diceSpent + ' dice</span>' +
+        '<br><span class="math-detail">Cost: ' + costLabel(manaCost) + ' + ' + vmCast.diceSpent + ' dice</span>' +
         '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Submit</button>');
     }
 
@@ -1158,7 +1176,7 @@
       var targetCombatId = targetIds[0];
       var target = combatants.find(function(c) { return c.combat_id === targetCombatId; });
       if (!target) { alert('No target'); return; }
-      var spellEntry = spellList.find(function(s) { return s.name === spellName; });
+      var spellEntry = spellMetaFor(spellName);
       if (!spellEntry || !spellEntry.caster_skill) {
         alert('Caster has no eligible skill for ' + spellName);
         return;
@@ -1257,9 +1275,10 @@
         ', dice_spent: ' + bwCast.diceSpent +
         ', bw_damage: ' + damage +
         ', bw_caster_successes: ' + bwCast.casterSuccesses +
-        ', bw_save_successes: ' + bwCast.saveSuccesses;
+        ', bw_save_successes: ' + bwCast.saveSuccesses +
+        scrollFields();
       addStep(summary +
-        '<br><span class="math-detail">Cost: ' + manaCost + ' mana + ' + bwCast.diceSpent + ' dice</span>' +
+        '<br><span class="math-detail">Cost: ' + costLabel(manaCost) + ' + ' + bwCast.diceSpent + ' dice</span>' +
         '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Submit</button>');
     }
 
@@ -1272,7 +1291,7 @@
     var webCast = null;
 
     function startWebCast(spellName, spellTier, targetIds) {
-      var spellEntry = spellList.find(function(s) { return s.name === spellName; });
+      var spellEntry = spellMetaFor(spellName);
       if (!spellEntry || !spellEntry.caster_skill) {
         alert('Caster has no eligible skill for ' + spellName);
         return;
@@ -1404,9 +1423,10 @@
         ', web_caster_successes: ' + webCast.casterSuccesses +
         ', web_duration_rounds: ' + (webCast.casterSkillRanks * 10) +
         ', web_caster_skill_bonus: ' + webCast.casterSkillBonus +
-        ', web_results: \'' + payloadParts.join(';') + '\'';
+        ', web_results: \'' + payloadParts.join(';') + '\'' +
+        scrollFields();
       addStep(rows.join('<br>') +
-        '<br><span class="math-detail">Cost: ' + manaCost + ' mana + ' + webCast.diceSpent + ' dice</span>' +
+        '<br><span class="math-detail">Cost: ' + costLabel(manaCost) + ' + ' + webCast.diceSpent + ' dice</span>' +
         '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Submit</button>');
     }
 
@@ -1497,7 +1517,115 @@
       addStep(html);
     }
 
+    // Active scroll (set when routing a scroll through a spell cast flow).
+    // The specialised cast functions read activeScrollSpellMeta in place of
+    // the current character's spellList entry — scrolls can be cast by
+    // characters who don't know the spell — and the submit payload adds
+    // from_scroll + scroll_item_id so the server skips mana and consumes
+    // the scroll charge instead.
+    var activeScroll = null;
+    var activeScrollSpellMeta = null;
+
+    function clearActiveScroll() { activeScroll = null; activeScrollSpellMeta = null; }
+
+    // Extra hidden fields appended to a specialised cast's submit payload
+    // when that cast was routed through a scroll. The server uses these
+    // to skip mana cost and consume the scroll charge.
+    function scrollFields() {
+      if (!activeScroll) return '';
+      return ', from_scroll: \'true\', scroll_item_id: ' + activeScroll.itemId;
+    }
+
+    // "N mana" normally, "scroll: <name>" when casting from a scroll.
+    function costLabel(manaCost) {
+      if (activeScroll) return 'scroll: ' + activeScroll.itemName;
+      return manaCost + ' mana';
+    }
+
+    // If a scroll's underlying spell has a specialised cast flow (Web,
+    // Blindness/Deafness, Vicious Mockery, Biting Words, ranged attack
+    // spells), route through that flow. Returns true when handled.
+    function routeScrollToCastFlow(item) {
+      if (item.kind !== 'scroll' || !item.base_name) return false;
+      var base = item.base_name;
+      var tier = (item.spell_tier != null) ? item.spell_tier : item.item_tier;
+      activeScroll = { itemId: item.item_id, itemName: item.name };
+      activeScrollSpellMeta = item;
+      if (base === 'Web') {
+        pickScrollMultiTargets(base, tier);
+      } else if (base === 'Blindness/Deafness' || base === 'Vicious Mockery' || base === 'Biting Words') {
+        pickScrollSingleTarget(base, tier);
+      } else if (item.ranged_attack) {
+        pickScrollSingleTarget(base, tier);
+      } else {
+        clearActiveScroll();
+        return false;
+      }
+      return true;
+    }
+
+    function pickScrollSingleTarget(spellName, spellTier) {
+      var selectId = 'scroll-target-' + Date.now();
+      var optionsHtml = combatants.map(function(c) {
+        return '<option value="' + c.combat_id + '">' + c.name + '</option>';
+      }).join('');
+      addStep('<strong>Scroll: ' + spellName + ' - Target</strong>' +
+        '<br><select id="' + selectId + '" style="margin-top:4px;">' +
+        '<option value="">-- select target --</option>' + optionsHtml + '</select>' +
+        '<br><button class="action-btn" style="margin-top:8px;" onclick="scrollSingleTargetPicked(\'' +
+          selectId + '\', \'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ')">Next</button>');
+    }
+
+    function scrollSingleTargetPicked(selectId, spellName, spellTier) {
+      var v = document.getElementById(selectId).value;
+      if (!v) { alert('Pick a target'); return; }
+      var ids = [parseInt(v, 10)];
+      dispatchScrollCast(spellName, spellTier, ids);
+    }
+
+    function pickScrollMultiTargets(spellName, spellTier) {
+      var selectId = 'scroll-multi-' + Date.now();
+      var checkboxesHtml = combatants.map(function(c) {
+        return '<label style="display:block;margin:2px 0;">' +
+          '<input type="checkbox" class="' + selectId + '-cb" value="' + c.combat_id + '"> ' + c.name + '</label>';
+      }).join('');
+      addStep('<strong>Scroll: ' + spellName + ' - Targets</strong>' +
+        '<br><span class="math-detail">Pick one or more.</span>' +
+        '<div style="margin-top:4px;">' + checkboxesHtml + '</div>' +
+        '<button class="action-btn" style="margin-top:8px;" onclick="scrollMultiTargetsPicked(\'' +
+          selectId + '\', \'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ')">Next</button>');
+    }
+
+    function scrollMultiTargetsPicked(selectId, spellName, spellTier) {
+      var boxes = document.getElementsByClassName(selectId + '-cb');
+      var ids = [];
+      for (var i = 0; i < boxes.length; i++) if (boxes[i].checked) ids.push(parseInt(boxes[i].value, 10));
+      if (ids.length === 0) { alert('Pick at least one target'); return; }
+      dispatchScrollCast(spellName, spellTier, ids);
+    }
+
+    function dispatchScrollCast(spellName, spellTier, ids) {
+      if (spellName === 'Web') { startWebCast(spellName, spellTier, ids); return; }
+      if (spellName === 'Blindness/Deafness') { startBlindnessDeafnessCast(spellName, spellTier, ids); return; }
+      if (spellName === 'Vicious Mockery') { startViciousMockeryCast(spellName, spellTier, ids); return; }
+      if (spellName === 'Biting Words') { startBitingWordsCast(spellName, spellTier, ids); return; }
+      if (activeScrollSpellMeta && activeScrollSpellMeta.ranged_attack) {
+        startRangedAttackSpellCast(spellName, spellTier, ids, false, -1);
+        return;
+      }
+    }
+
+    // Returns the spell-skill metadata the current cast should use. When
+    // casting from a scroll the user may not know the spell, so we fall
+    // back to the metadata stored on the scroll itemList entry.
+    function spellMetaFor(name) {
+      if (activeScrollSpellMeta) return activeScrollSpellMeta;
+      return spellList.find(function(s) { return s.name === name; });
+    }
+
     function selectItemTarget(itemId, itemName, itemTier, itemType, itemKind, targetMode) {
+      var item = itemList.find(function(i) { return i.item_id === itemId; });
+      if (item && routeScrollToCastFlow(item)) return;
       if (targetMode === 'none') {
         confirmItemUse(itemId, itemName, itemTier, itemType, itemKind, [], 'none');
         return;
@@ -2718,7 +2846,7 @@
             minor_damage: minor, moderate_damage: moderate, major_damage: major
           });
         } else {
-          submitAction({
+          var castFields = {
             id: attackState.attackerCombatId,
             combat_action: 'cast',
             spell_name: attackState.rangedSpellName,
@@ -2731,7 +2859,12 @@
             healing_word_data: hwDataStr,
             ranged_attack: 'true',
             minor_damage: minor, moderate_damage: moderate, major_damage: major
-          });
+          };
+          if (activeScroll) {
+            castFields.from_scroll = 'true';
+            castFields.scroll_item_id = activeScroll.itemId;
+          }
+          submitAction(castFields);
         }
         return;
       }
