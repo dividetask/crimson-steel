@@ -543,6 +543,9 @@ table th {
 .dm-staging { margin-top: 30px; padding: 15px; border: 2px dashed #b71c1c; background: #fff5f5; border-radius: 6px; }
 .dm-staging h2 { margin-top: 0; color: #b71c1c; }
 .dm-staging .section { background: #fff; }
+.staging-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding: 8px 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px; }
+.staging-toolbar button { padding: 8px 12px; background: #1976d2; color: white; border: none; cursor: pointer; }
+.staging-toolbar button:hover { background: #1565c0; }
 
 .staging-names { list-style: none; padding-left: 0; }
 .staging-names li { padding: 6px 0; border-bottom: 1px solid #eee; }

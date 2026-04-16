@@ -1,7 +1,7 @@
 <div class="scene">
   <h1>Scene</h1>
 
-  <% if @combat_active %>
+  <% if @show_initiative %>
     <% if @combat.combat_turn_list.empty? %>
       <p class="dt-note">No combatants in the initiative track yet.</p>
     <% else %>
@@ -106,6 +106,21 @@
       <h2>DM Staging</h2>
       <p class="dt-note" style="color:#888;">Only visible to the DM. Promote items to move them into the notes section; share panels or images to surface them on the scene.</p>
 
+      <div class="staging-toolbar">
+        <form method="post" action="/scene/toggle_initiative" style="display:inline;">
+          <button type="submit"><%= @hide_initiative ? 'Show initiative table' : 'Hide initiative table' %></button>
+        </form>
+        <small style="color:#666;">
+          Combat is <strong><%= @combat_active ? 'active' : 'inactive' %></strong>.
+          Initiative <%= @show_initiative ? 'is showing' : 'is hidden' %>
+          <% if !@combat_active %>
+            (activate combat on <a href="/combat">/combat</a> to show).
+          <% elsif @hide_initiative %>
+            (manually hidden).
+          <% end %>
+        </small>
+      </div>
+
       <div class="section">
         <h3>Names</h3>
         <% if @draft_names.empty? %>
@@ -153,6 +168,11 @@
           <label>Add Name:</label>
           <input type="text" name="title" required>
           <button type="submit">Add</button>
+        </form>
+        <form method="post" action="/scene/draft_names_bulk" class="notes-form">
+          <label>Add Many Names (one per line):</label>
+          <textarea name="titles" rows="4" placeholder="Bartender Greta&#10;Captain Harris&#10;Old Willem"></textarea>
+          <button type="submit">Add All</button>
         </form>
       </div>
 

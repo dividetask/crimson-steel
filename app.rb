@@ -30,6 +30,10 @@ post '/view_mode' do
   referrer = request.referrer || '/'
   if params[:mode] == 'dm' && referrer =~ /\/notes\/\d+/
     redirect '/notes/0'
+  elsif params[:mode] == 'dm' && referrer =~ /\/scene(\/|$)/
+    redirect '/scene/0'
+  elsif params[:mode] == 'player' && referrer =~ /\/scene(\/|$)/
+    redirect '/scene/1'
   else
     redirect back
   end
@@ -117,6 +121,8 @@ get '/scene/:viewer_id' do
 
   combat_data = Tools.load_json('combat.json')
   @combat_active = combat_data['active'] ? true : false
+  @hide_initiative = combat_data['hide_initiative'] ? true : false
+  @show_initiative = @combat_active && !@hide_initiative
 
   current = @combat.current_turn_character
   if current && current.character.data['group'] == 'PC'
@@ -148,6 +154,15 @@ get '/scene/:viewer_id' do
   erb :scene
 end
 
+# --- Initiative visibility toggle ---
+post '/scene/toggle_initiative' do
+  scene_require_dm!
+  combat_data = Tools.load_json('combat.json')
+  combat_data['hide_initiative'] = !combat_data['hide_initiative']
+  Tools.save_json('combat.json', combat_data)
+  redirect '/scene/0'
+end
+
 # --- Draft names ---
 post '/scene/draft_name' do
   scene_require_dm!
@@ -161,6 +176,26 @@ post '/scene/draft_name' do
     'type' => 'draft_name',
     'title' => title
   }
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+# Bulk-add names: one per line in the `titles` textarea.
+post '/scene/draft_names_bulk' do
+  scene_require_dm!
+  raw = params[:titles].to_s
+  titles = raw.split(/[\r\n]+/).map(&:strip).reject(&:empty?)
+  redirect '/scene/0' if titles.empty?
+  notes = scene_load_notes
+  titles.each do |title|
+    notes << {
+      'id' => SecureRandom.uuid,
+      'owner_id' => 0,
+      'draft' => true,
+      'type' => 'draft_name',
+      'title' => title
+    }
+  end
   scene_save_notes(notes)
   redirect '/scene/0'
 end
