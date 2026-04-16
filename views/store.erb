@@ -14,6 +14,7 @@
     <div class="alert alert-success">Purchase successful!</div>
   <% end %>
 
+  <% pcs = @characters.select { |c| c['group'] == 'PC' } %>
   <div class="store-layout">
     <div class="filter-sidebar">
       <h3>Filters</h3>
@@ -63,7 +64,7 @@
                 <input type="hidden" name="variant_index" class="variant-index-input" value="0">
                 <select name="owner_id" required>
                   <option value="">Select Character</option>
-                  <% @characters.each do |char| %>
+                  <% pcs.each do |char| %>
                     <option value="<%= char['id'] %>"><%= char['name'] %></option>
                   <% end %>
                 </select>
@@ -83,7 +84,7 @@
               <form method="post" action="/purchase/<%= index %>" class="purchase-form">
                 <select name="owner_id" required>
                   <option value="">Select Character</option>
-                  <% @characters.each do |char| %>
+                  <% pcs.each do |char| %>
                     <option value="<%= char['id'] %>"><%= char['name'] %></option>
                   <% end %>
                 </select>
@@ -122,7 +123,7 @@
             <input type="hidden" name="property" value="">
             <select name="owner_id" required>
               <option value="">Select Character</option>
-              <% @characters.each do |char| %>
+              <% pcs.each do |char| %>
                 <option value="<%= char['id'] %>"><%= char['name'] %></option>
               <% end %>
             </select>
@@ -133,7 +134,6 @@
       </div>
 
       <h2>Spell Items</h2>
-      <% pcs = @characters.select { |c| c['group'] == 'PC' } %>
       <div class="store-card-grid">
         <% ['scroll', 'potion', 'oil', 'wand'].each do |item_type| %>
           <% uses_skill = %w[scroll wand].include?(item_type) %>
