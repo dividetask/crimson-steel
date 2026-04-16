@@ -1,61 +1,295 @@
 <div class="scene">
   <h1>Scene</h1>
 
-  <% if @combat.combat_turn_list.empty? %>
-    <p class="dt-note">No combatants in the initiative track yet.</p>
-  <% else %>
-    <table class="scene-init">
-      <thead>
-        <tr>
-          <th>Initiative</th>
-          <th>Name</th>
-          <th>HP</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @combat.combat_turn_list.each do |ct| %>
-          <% is_pc = (ct.character.data['group'] || 'PC').to_s == 'PC' %>
-          <% is_current = @combat.current_turn_character && @combat.current_turn_character.combat_id == ct.combat_id %>
-          <tr class="<%= 'current-turn' if is_current %>">
-            <td><%= h ct.initiative.to_s.empty? ? '—' : ct.initiative %></td>
-            <td><%= is_pc ? h(@combat.display_name(ct)) : 'DM' %></td>
-            <td>
-              <% if is_pc %>
-                <%= ct.hp %>/<%= ct.character.hp_max %>
-              <% else %>
-                <%
-                  hp_max = ct.character.hp_max.to_i
-                  hp_now = ct.hp.to_i
-                  pct = hp_max > 0 ? (hp_now.to_f / hp_max * 100.0) : 0
-                  if hp_now <= 0
-                    hp_label = 'Down'; hp_class = 'scene-hp-down'
-                  elsif pct >= 75
-                    hp_label = nil; hp_class = 'scene-hp-good'
-                  elsif pct >= 50
-                    hp_label = nil; hp_class = 'scene-hp-warn'
-                  elsif pct >= 25
-                    hp_label = nil; hp_class = 'scene-hp-orange'
-                  else
-                    hp_label = nil; hp_class = 'scene-hp-bad'
-                  end
-                %>
-                <% if hp_label %>
-                  <span class="scene-hp-down-text"><%= hp_label %></span>
-                <% else %>
-                  <span class="scene-hp-bar <%= hp_class %>"></span>
-                <% end %>
-              <% end %>
-            </td>
+  <% if @show_initiative %>
+    <% if @combat.combat_turn_list.empty? %>
+      <p class="dt-note">No combatants in the initiative track yet.</p>
+    <% else %>
+      <table class="scene-init">
+        <thead>
+          <tr>
+            <th>Initiative</th>
+            <th>Name</th>
+            <th>HP</th>
           </tr>
-        <% end %>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <% @combat.combat_turn_list.each do |ct| %>
+            <% is_pc = (ct.character.data['group'] || 'PC').to_s == 'PC' %>
+            <% is_current = @combat.current_turn_character && @combat.current_turn_character.combat_id == ct.combat_id %>
+            <tr class="<%= 'current-turn' if is_current %>">
+              <td><%= h ct.initiative.to_s.empty? ? '—' : ct.initiative %></td>
+              <td><%= is_pc ? h(@combat.display_name(ct)) : 'DM' %></td>
+              <td>
+                <% if is_pc %>
+                  <%= ct.hp %>/<%= ct.character.hp_max %>
+                <% else %>
+                  <%
+                    hp_max = ct.character.hp_max.to_i
+                    hp_now = ct.hp.to_i
+                    pct = hp_max > 0 ? (hp_now.to_f / hp_max * 100.0) : 0
+                    if hp_now <= 0
+                      hp_label = 'Down'; hp_class = 'scene-hp-down'
+                    elsif pct >= 75
+                      hp_label = nil; hp_class = 'scene-hp-good'
+                    elsif pct >= 50
+                      hp_label = nil; hp_class = 'scene-hp-warn'
+                    elsif pct >= 25
+                      hp_label = nil; hp_class = 'scene-hp-orange'
+                    else
+                      hp_label = nil; hp_class = 'scene-hp-bad'
+                    end
+                  %>
+                  <% if hp_label %>
+                    <span class="scene-hp-down-text"><%= hp_label %></span>
+                  <% else %>
+                    <span class="scene-hp-bar <%= hp_class %>"></span>
+                  <% end %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+
+    <% if @character %>
+      <h2 class="scene-current-name"><%= h @character.name %>'s Turn</h2>
+      <%= erb :character_sheet, layout: false %>
+    <% elsif @combat.current_turn_character %>
+      <p class="dt-note">It's the DM's turn.</p>
+    <% end %>
   <% end %>
 
-  <% if @character %>
-    <h2 class="scene-current-name"><%= h @character.name %>'s Turn</h2>
-    <%= erb :character_sheet, layout: false %>
-  <% elsif @combat.current_turn_character %>
-    <p class="dt-note">It's the DM's turn.</p>
+  <% if @visible_panels.any? %>
+    <div class="scene-panels">
+      <% @visible_panels.each do |panel| %>
+        <div class="scene-panel">
+          <% if panel['title'] && !panel['title'].to_s.empty? %>
+            <h2><%= h(panel['title']) %></h2>
+          <% end %>
+          <p><%= h(panel['note']).gsub("\n", "<br>") %></p>
+          <% if @is_dm %>
+            <small style="color:#666;">
+              <% vt = Array(panel['visible_to']) %>
+              <% if vt.empty? %>
+                (Hidden from all players)
+              <% else %>
+                Visible to:
+                <% vt.each do |pid| %>
+                  <% pc = @pc_characters.find { |c| c['id'] == pid } %>
+                  <%= pc ? h(pc['name']) : "##{pid}" %><%= ',' unless pid == vt.last %>
+                <% end %>
+              <% end %>
+            </small>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if @visible_images.any? %>
+    <div class="scene-shared-images">
+      <% @visible_images.each do |img| %>
+        <figure class="scene-shared-image">
+          <% if img['title'] && !img['title'].to_s.empty? %>
+            <figcaption><%= h(img['title']) %></figcaption>
+          <% end %>
+          <img src="<%= h(img['image_path']) %>" alt="<%= h(img['title']) %>">
+        </figure>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if @is_dm %>
+    <div class="dm-staging">
+      <h2>DM Staging</h2>
+      <p class="dt-note" style="color:#888;">Only visible to the DM. Promote items to move them into the notes section; share panels or images to surface them on the scene.</p>
+
+      <div class="staging-toolbar">
+        <form method="post" action="/scene/toggle_initiative" style="display:inline;">
+          <button type="submit"><%= @hide_initiative ? 'Show initiative table' : 'Hide initiative table' %></button>
+        </form>
+        <small style="color:#666;">Initiative is <strong><%= @show_initiative ? 'showing' : 'hidden' %></strong> for everyone.</small>
+      </div>
+
+      <div class="section">
+        <h3>Names</h3>
+        <% if @draft_names.empty? %>
+          <p class="dt-note">No names yet.</p>
+        <% else %>
+          <ul class="staging-names">
+            <% @draft_names.each do |n| %>
+              <li>
+                <details>
+                  <summary>
+                    <span class="staging-name-label"><%= h(n['title']) %></span>
+                  </summary>
+                  <form method="post" action="/scene/draft_name/promote" class="notes-form">
+                    <input type="hidden" name="id" value="<%= h(n['id']) %>">
+                    <label>Description:</label>
+                    <textarea name="note" rows="2" required></textarea>
+                    <div class="form-row">
+                      <div>
+                        <label>Tier:</label>
+                        <select name="tier">
+                          <option value="-1">Unknown</option>
+                          <option value="0">0 - Red</option>
+                          <option value="1">1 - Orange</option>
+                          <option value="2">2 - Yellow</option>
+                          <option value="3">3 - Green</option>
+                          <option value="4">4 - Blue</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label><input type="checkbox" name="public" value="true" checked> Visible to Players</label>
+                      </div>
+                    </div>
+                    <button type="submit">Promote to Character of Interest</button>
+                  </form>
+                  <form method="post" action="/scene/draft_name/delete" style="display:inline;">
+                    <input type="hidden" name="id" value="<%= h(n['id']) %>">
+                    <button type="submit" class="danger" onclick="return confirm('Delete this name?');">Delete</button>
+                  </form>
+                </details>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+        <form method="post" action="/scene/draft_name" class="notes-form">
+          <label>Add Name:</label>
+          <input type="text" name="title" required>
+          <button type="submit">Add</button>
+        </form>
+        <form method="post" action="/scene/draft_names_bulk" class="notes-form">
+          <label>Add Many Names (one per line):</label>
+          <textarea name="titles" rows="4" placeholder="Bartender Greta&#10;Captain Harris&#10;Old Willem"></textarea>
+          <button type="submit">Add All</button>
+        </form>
+      </div>
+
+      <div class="section">
+        <h3>Draft Notes</h3>
+        <p class="dt-note" style="color:#888;">Prep scratchpad. Never shown on the scene. Promote to move into the notes section.</p>
+        <% if @draft_notes.empty? %>
+          <p class="dt-note">No draft notes yet.</p>
+        <% else %>
+          <% @draft_notes.each do |n| %>
+            <div class="staging-draft-note">
+              <form method="post" action="/scene/draft_note/update" class="notes-form">
+                <input type="hidden" name="id" value="<%= h(n['id']) %>">
+                <input type="text" name="title" value="<%= h(n['title']) %>" placeholder="Title (optional)">
+                <textarea name="note" rows="3" required><%= h(n['note']) %></textarea>
+                <label><input type="checkbox" name="public" value="true" <%= 'checked' if n['public'] %>> Public when promoted</label>
+                <div class="form-row">
+                  <button type="submit">Save</button>
+                </div>
+              </form>
+              <form method="post" action="/scene/draft_note/promote" style="display:inline;">
+                <input type="hidden" name="id" value="<%= h(n['id']) %>">
+                <button type="submit">Promote to Notes</button>
+              </form>
+              <form method="post" action="/scene/draft_note/delete" style="display:inline;">
+                <input type="hidden" name="id" value="<%= h(n['id']) %>">
+                <button type="submit" class="danger" onclick="return confirm('Delete this draft?');">Delete</button>
+              </form>
+            </div>
+          <% end %>
+        <% end %>
+        <form method="post" action="/scene/draft_note" class="notes-form">
+          <h4>Add Draft Note</h4>
+          <input type="text" name="title" placeholder="Title (optional)">
+          <textarea name="note" rows="3" required></textarea>
+          <label><input type="checkbox" name="public" value="true"> Public when promoted</label>
+          <button type="submit">Add Draft</button>
+        </form>
+      </div>
+
+      <div class="section">
+        <h3>Scene Panels</h3>
+        <p class="dt-note" style="color:#888;">Text shown on /scene. Per-player visibility. Empty visibility = hidden from all players (still visible to you).</p>
+        <% if @scene_panels.empty? %>
+          <p class="dt-note">No panels yet.</p>
+        <% else %>
+          <% @scene_panels.each do |panel| %>
+            <div class="staging-panel">
+              <form method="post" action="/scene/panel/update" class="notes-form">
+                <input type="hidden" name="id" value="<%= h(panel['id']) %>">
+                <input type="text" name="title" value="<%= h(panel['title']) %>" placeholder="Title (optional)">
+                <textarea name="note" rows="3" required><%= h(panel['note']) %></textarea>
+                <div class="panel-visibility">
+                  <% @pc_characters.each do |pc| %>
+                    <label>
+                      <input type="checkbox" name="visible_to[]" value="<%= pc['id'] %>" <%= 'checked' if Array(panel['visible_to']).include?(pc['id']) %>>
+                      <%= h(pc['name']) %>
+                    </label>
+                  <% end %>
+                </div>
+                <button type="submit">Save</button>
+              </form>
+              <form method="post" action="/scene/panel/delete" style="display:inline;">
+                <input type="hidden" name="id" value="<%= h(panel['id']) %>">
+                <button type="submit" class="danger" onclick="return confirm('Delete this panel?');">Delete</button>
+              </form>
+            </div>
+          <% end %>
+        <% end %>
+        <form method="post" action="/scene/panel" class="notes-form">
+          <h4>Add Panel</h4>
+          <input type="text" name="title" placeholder="Title (optional)">
+          <textarea name="note" rows="3" required></textarea>
+          <div class="panel-visibility">
+            <% @pc_characters.each do |pc| %>
+              <label>
+                <input type="checkbox" name="visible_to[]" value="<%= pc['id'] %>" checked>
+                <%= h(pc['name']) %>
+              </label>
+            <% end %>
+          </div>
+          <button type="submit">Add Panel</button>
+        </form>
+      </div>
+
+      <div class="section">
+        <h3>Images</h3>
+        <form method="post" action="/scene/image" class="notes-form" enctype="multipart/form-data">
+          <h4>Upload Image</h4>
+          <label>Title (optional):</label>
+          <input type="text" name="title">
+          <label>File (png/jpg/gif/webp, max 10 MB):</label>
+          <input type="file" name="image" accept="image/*" required>
+          <button type="submit">Upload</button>
+        </form>
+        <% if @draft_images.empty? %>
+          <p class="dt-note">No images yet.</p>
+        <% else %>
+          <div class="staging-image-grid">
+            <% @draft_images.each do |img| %>
+              <div class="staging-image">
+                <img src="<%= h(img['image_path']) %>" alt="<%= h(img['title']) %>">
+                <form method="post" action="/scene/image/update" class="notes-form">
+                  <input type="hidden" name="id" value="<%= h(img['id']) %>">
+                  <input type="text" name="title" value="<%= h(img['title']) %>" placeholder="Title">
+                  <button type="submit">Save title</button>
+                </form>
+                <form method="post" action="/scene/image/share" style="display:inline;">
+                  <input type="hidden" name="id" value="<%= h(img['id']) %>">
+                  <button type="submit"><%= img['shared'] ? 'Unshare' : 'Share' %></button>
+                </form>
+                <form method="post" action="/scene/image/promote" style="display:inline;">
+                  <input type="hidden" name="id" value="<%= h(img['id']) %>">
+                  <button type="submit">Promote to Notes</button>
+                </form>
+                <form method="post" action="/scene/image/delete" style="display:inline;">
+                  <input type="hidden" name="id" value="<%= h(img['id']) %>">
+                  <button type="submit" class="danger" onclick="return confirm('Delete this image?');">Delete</button>
+                </form>
+                <small style="color:#666;"><%= img['shared'] ? 'Shared with all players' : 'Not shared' %></small>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
   <% end %>
 </div>
