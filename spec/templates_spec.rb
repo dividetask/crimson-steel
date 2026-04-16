@@ -136,6 +136,35 @@ RSpec.describe Templates do
       expect(result['gold']).to eq(10) # variant gear_patch override
     end
 
+    it 'applies a gold_bonus that adds to the base gold formula' do
+      # Override the slaver template to use gold_bonus instead of replacement.
+      custom_slaver = Templates.deep_dup(slaver)
+      custom_slaver['variants'].first['gear_patch'] = {'gold_bonus' => '1d4'}
+      allow(Templates).to receive(:find).with('slaver').and_return(custom_slaver)
+
+      # Patch the loot table so base gold is a constant 5, and gold_bonus
+      # will evaluate to 1 (min roll of 1d4).
+      custom_tables = Templates.deep_dup(tables)
+      custom_tables['slaver_loot']['gold'] = '5'
+      allow(Templates).to receive(:gear_tables).and_return(custom_tables)
+
+      call_count = 0
+      rng = instance_double(Random)
+      allow(rng).to receive(:rand) do |*args|
+        call_count += 1
+        if args.empty?
+          # Variant rolls: fire human (0.05 < 0.10), skip barbarian, then
+          # every weighted/independent-chance row rolls 0.99 (no loot).
+          [0.05, 0.99, 0.99, 0.99, 0.99, 0.99][call_count - 1] || 0.99
+        else
+          0   # every die rolls minimum (1)
+        end
+      end
+      result = Templates.instantiate('slaver', new_id: 55, rng: rng)
+      expect(result['applied_variants']).to include('human')
+      expect(result['gold']).to eq(6) # base 5 + 1d4 minimum (1)
+    end
+
     it 'stacks multiple variants when both succeed' do
       rng = instance_double(Random)
       call_count = 0
@@ -219,6 +248,24 @@ RSpec.describe GearTable do
       result = GearTable.apply_patch(table, {'rolls' => {'weapon' => {'item' => {'name' => 'new'}}}})
       expect(result['rolls'].find { |r| r['slot'] == 'weapon' }['item']['name']).to eq('new')
       expect(result['rolls'].find { |r| r['slot'] == 'armor' }['item']['name']).to eq('leather')
+    end
+
+    it 'appends gold_bonus onto the existing formula' do
+      table = {'rolls' => [], 'gold' => '2d6 + 5'}
+      result = GearTable.apply_patch(table, {'gold_bonus' => '2d6'})
+      expect(result['gold']).to eq('2d6 + 5 +2d6')
+    end
+
+    it 'accepts a signed gold_bonus without double-prefixing' do
+      table = {'rolls' => [], 'gold' => '2d6 + 5'}
+      result = GearTable.apply_patch(table, {'gold_bonus' => '-1d4'})
+      expect(result['gold']).to eq('2d6 + 5 -1d4')
+    end
+
+    it 'seeds gold from gold_bonus when the base had none' do
+      table = {'rolls' => []}
+      result = GearTable.apply_patch(table, {'gold_bonus' => '2d6'})
+      expect(GearTable.roll_gold(result['gold'], instance_double(Random, rand: 0))).to eq(2)
     end
 
     it 'drops a slot with nil' do

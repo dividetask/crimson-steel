@@ -26,7 +26,7 @@
             "ability_scores": {"cha": "+2", "int": "+2"},
             "name": "Slaver (Human)"
           },
-          "gear_patch": {"gold": "3d6 + 10"}
+          "gear_patch": {"gold_bonus": "2d6"}
         },
         {
           "id": "barbarian",

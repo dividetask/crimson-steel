@@ -149,13 +149,22 @@ module GearTable
     end
   end
 
-  # Apply a shallow patch to a resolved gear table. Patches may set `gold`
-  # or patch individual slots via `rolls` (hash keyed by slot id). A value
-  # of nil drops that slot from the table.
+  # Apply a shallow patch to a resolved gear table. Patches may:
+  #   * `gold`       -> replace the gold expression outright
+  #   * `gold_bonus` -> append the expression onto the existing gold formula
+  #                     (e.g. "+2d6" or "2d6" both work; useful for "this
+  #                     variant rolls the base gold plus some extra")
+  #   * `rolls`      -> hash keyed by slot id; each value replaces (or, with
+  #                     nil, removes) the matching slot's roll definition.
   def apply_patch(table, patch)
     return table unless patch.is_a?(Hash)
     patched = Templates.deep_dup(table)
     patched['gold'] = patch['gold'] if patch.key?('gold')
+    if patch.key?('gold_bonus') && !patch['gold_bonus'].nil?
+      bonus = patch['gold_bonus'].to_s.strip
+      bonus = "+#{bonus}" unless bonus.start_with?('+', '-')
+      patched['gold'] = [patched['gold'], bonus].compact.reject { |s| s.to_s.empty? }.join(' ')
+    end
     if patch['rolls'].is_a?(Hash)
       rolls = (patched['rolls'] || []).dup
       patch['rolls'].each do |slot, replacement|
