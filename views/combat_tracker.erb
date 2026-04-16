@@ -156,6 +156,7 @@
       <% bind_effects = (@combat.active_effects || []).select { |e|
            %w[Entangled Stuck].include?(e['spell_name']) && (e['target_combat_ids'] || []).include?(current.combat_id)
          } %>
+      <% web_environments = (@combat.active_effects || []).select { |e| e['spell_name'] == 'Web Environment' } %>
       <div class="action-buttons" id="action-buttons">
         <button class="action-btn" onclick="selectAction('start_of_turn')">Start of Turn</button>
         <% unless current_incapacitated %>
@@ -163,8 +164,8 @@
           <button class="action-btn" onclick="selectAction('move')">Move</button>
           <button class="action-btn" onclick="selectAction('cast')">Cast</button>
           <button class="action-btn" onclick="selectAction('concentrate')">Concentrate</button>
-          <% if bind_effects.any? %>
-            <button class="action-btn" onclick="selectAction('escape')">Escape</button>
+          <% if bind_effects.any? || web_environments.any? %>
+            <button class="action-btn" onclick="selectAction('environment')">Environment</button>
           <% end %>
           <button class="action-btn" onclick="selectAction('item')">Item</button>
           <button class="action-btn" onclick="selectAction('special')">Special</button>
@@ -398,8 +399,8 @@
         showConcentrateSelection();
       }
 
-      if (action === 'escape') {
-        showEscapeSelection();
+      if (action === 'environment') {
+        showEnvironmentSelection();
       }
 
       if (action === 'item') {
@@ -1508,6 +1509,42 @@
         '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Submit</button>');
     }
 
+    // --- Environment ---
+    //   Menu of environment interactions available to the current
+    //   combatant. Currently:
+    //     - Escape: STR check to break Entangled / Stuck (2+ successes
+    //       removes both conditions).
+    //     - Walk Into Web: DEX check to avoid getting stuck/entangled
+    //       when entering a standing Web Environment.
+    function showEnvironmentSelection() {
+      var binds = activeEffects
+        .map(function(e, i) { return {effect: e, idx: i}; })
+        .filter(function(p) {
+          if (!p.effect) return false;
+          if (['Entangled', 'Stuck'].indexOf(p.effect.spell_name) === -1) return false;
+          return (p.effect.target_combat_ids || []).indexOf(currentCharId) !== -1;
+        });
+      var webs = activeEffects
+        .map(function(e, i) { return {effect: e, idx: i}; })
+        .filter(function(p) { return p.effect && p.effect.spell_name === 'Web Environment'; });
+
+      if (binds.length === 0 && webs.length === 0) {
+        addStep('<strong>No environment actions available</strong>');
+        return;
+      }
+
+      var html = '<strong>Environment</strong>';
+      if (binds.length > 0) {
+        html += '<br><button class="action-btn" style="margin:2px;" onclick="showEscapeSelection()">Escape (Entangled / Stuck)</button>';
+      }
+      webs.forEach(function(p) {
+        var label = 'Walk Into Web';
+        if (p.effect.caster_name) label += ' (' + p.effect.caster_name + ')';
+        html += '<br><button class="action-btn" style="margin:2px;" onclick="showWalkIntoWeb(' + p.idx + ')">' + label + '</button>';
+      });
+      addStep(html);
+    }
+
     // --- Escape (break Entangled / Stuck) ---
     //   Strength save with TN penalty equal to the caster's skill bonus
     //   plus spell tier (recorded on the effect when Web was cast). Two
@@ -1557,7 +1594,9 @@
         'Roll ' + strDice + ' STR dice at TN ' + escapeTn + '. 2+ successes frees all binds.</span>' +
         '<br><span class="math-detail">' + tnMath + '</span>' +
         '<br><label>Successes: <input type="number" id="escape-successes" min="0" value="0" style="width:50px;"></label>' +
-        ' <button class="action-btn" onclick="confirmEscape(\'' + effectIndices.join(',') + '\')">Confirm</button>');
+        ' <button class="action-btn" onclick="confirmEscape(\'' + effectIndices.join(',') + '\')">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + strDice + ', ' + escapeTn + ', \'escape-successes\', \'escape-roll-display\')">Roll</button>' +
+        '<div id="escape-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function confirmEscape(indicesCsv) {
@@ -1570,9 +1609,60 @@
         '<strong>Still bound.</strong> ' + val + ' successes (need 2).';
       addStep(summary +
         '<br><button class="action-btn" onclick="submitAction({' +
-          'id: currentCharId, combat_action: \'escape\'' +
+          'id: currentCharId, combat_action: \'environment\'' +
+          ', sub_action: \'escape\'' +
           ', successes: ' + val +
           ', effect_indices: \'' + indicesCsv + '\'' +
+        '})" style="margin-top:8px;">Submit</button>');
+    }
+
+    // --- Walk Into Web ---
+    //   The current combatant enters a standing Web Environment. DEX
+    //   save at the same TN the web cast used (base - save bonus +
+    //   spell tier + caster skill bonus). 2+ successes = clean, 1 =
+    //   entangled, 0 = stuck + entangled.
+    function showWalkIntoWeb(envIndex) {
+      var me = combatants.find(function(c) { return c.combat_id === currentCharId; });
+      var env = activeEffects[envIndex];
+      if (!env || env.spell_name !== 'Web Environment') {
+        addStep('<strong>Web Environment not found</strong>');
+        return;
+      }
+      var tier = (env.spell_tier || 0) | 0;
+      var skillBonus = (env.caster_skill_bonus || 0) | 0;
+      var dexDice = (me && me.save_dice && me.save_dice.dex) || 0;
+      var dexBonus = (me && me.save_bonus && me.save_bonus.dex) || 0;
+      var baseTn = diceRules.base_target_number;
+      var saveTn = clampTn(baseTn - dexBonus + tier + skillBonus);
+      var tnMath = tnBreakdown('Save TN', baseTn, [
+        {value: -dexBonus, label: 'DEX save bonus'},
+        {value: tier, label: 'spell tier penalty'},
+        {value: skillBonus, label: 'caster skill penalty'}
+      ], saveTn);
+      addStep('<strong>Walk Into Web</strong>' +
+        '<br><span class="math-detail">' + dexDice + ' DEX dice, TN ' + saveTn + '. ' +
+        '2+ clean, 1 entangled, 0 stuck + entangled.</span>' +
+        '<br><span class="math-detail">' + tnMath + '</span>' +
+        '<br><label>Successes: <input type="number" id="wiw-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="confirmWalkIntoWeb(' + envIndex + ')">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + dexDice + ', ' + saveTn + ', \'wiw-successes\', \'wiw-roll-display\')">Roll</button>' +
+        '<div id="wiw-roll-display" class="math-detail" style="margin-top:4px;"></div>');
+    }
+
+    function confirmWalkIntoWeb(envIndex) {
+      var input = document.getElementById('wiw-successes');
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
+      var summary;
+      if (val >= 2) summary = '<strong>Clean</strong>: ' + val + ' successes &mdash; avoids the web.';
+      else if (val === 1) summary = '<strong style="color:#6a1b9a;">Entangled</strong> (1 success).';
+      else summary = '<strong style="color:#ad1457;">Entangled + Stuck</strong> (0 successes).';
+      addStep(summary +
+        '<br><button class="action-btn" onclick="submitAction({' +
+          'id: currentCharId, combat_action: \'environment\'' +
+          ', sub_action: \'walk_into_web\'' +
+          ', effect_index: ' + envIndex +
+          ', successes: ' + val +
         '})" style="margin-top:8px;">Submit</button>');
     }
 

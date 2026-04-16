@@ -1021,12 +1021,29 @@ post '/combat/action' do
       # ends_on_round so start_of_turn purges it at expiry, plus the
       # caster's skill bonus + spell tier so a later Escape strength
       # check can recompute its TN penalty.
-      if spell_name == 'Web' && web_results.any?
+      if spell_name == 'Web'
         combat_data['active_effects'] ||= []
         campaign = Tools.load_json('campaign.json')
         campaign = {} unless campaign.is_a?(Hash)
         rounds_elapsed = campaign['rounds_elapsed'].to_i
         end_round = rounds_elapsed + [web_duration, 1].max
+
+        # Standing "Web Environment" hazard so creatures who wander into
+        # the webbed area later can roll a DEX check against it. Stored
+        # as a zone effect (no targets) with the caster's skill bonus +
+        # tier so later checks can recompute the save TN.
+        combat_data['active_effects'] << {
+          'caster_id' => combat_id,
+          'caster_name' => character.name,
+          'spell_name' => 'Web Environment',
+          'spell_tier' => spell_tier,
+          'round_cast' => combat_data['round'],
+          'ends_on_round' => end_round,
+          'target_combat_ids' => [],
+          'target_names' => [],
+          'caster_skill_bonus' => web_skill_bonus
+        }
+
         web_results.each do |r|
           next if r['outcome'] == 'free'
           tgt = combat_data['participants'].find { |p| p['id'] == r['target_combat_id'] }
@@ -1494,35 +1511,78 @@ post '/combat/action' do
       Combat.add_log("#{character.name} concentrates on #{spell_name}#{suffix}")
     end
 
-  elsif action == 'escape'
-    # Strength-check attempt to break Entangled / Stuck. 2+ successes
-    # removes every bind targeting this combatant; otherwise the action
-    # is logged and nothing changes. (Dice cost for an escape is the
-    # strength-check roll itself, resolved off-client.)
+  elsif action == 'environment'
+    # Environment interactions the current combatant can initiate:
+    #   - 'escape':  STR check to break Entangled / Stuck (2+ successes
+    #                removes every bind on this combatant).
+    #   - 'walk_into_web': DEX check to avoid getting stuck/entangled
+    #                when entering a standing Web Environment.
     participant = combat_data['participants'].find { |p| p['id'] == combat_id }
     halt 400, "Participant not found" unless participant
     char_id = participant['char_id'] || participant['id']
     character_data = Tools.load_json('characters.json').find { |c| c['id'] == char_id }
     character = CharacterSheet.new(character_data)
-    successes = params[:successes].to_i
-    indices = params[:effect_indices].to_s.split(',').map(&:to_i)
+    sub = (params[:sub_action] || '').to_s
     combat_data['active_effects'] ||= []
 
-    if successes >= 2
-      # Delete in reverse order so indices stay valid.
-      removed = []
-      indices.sort.reverse.each do |i|
-        next if i < 0 || i >= combat_data['active_effects'].length
-        effect = combat_data['active_effects'][i]
-        next unless effect && (effect['target_combat_ids'] || []).include?(combat_id)
-        next unless %w[Entangled Stuck].include?(effect['spell_name'])
-        combat_data['active_effects'].delete_at(i)
-        removed << effect['spell_name']
+    if sub == 'escape'
+      successes = params[:successes].to_i
+      indices = params[:effect_indices].to_s.split(',').map(&:to_i)
+      if successes >= 2
+        removed = []
+        indices.sort.reverse.each do |i|
+          next if i < 0 || i >= combat_data['active_effects'].length
+          effect = combat_data['active_effects'][i]
+          next unless effect && (effect['target_combat_ids'] || []).include?(combat_id)
+          next unless %w[Entangled Stuck].include?(effect['spell_name'])
+          combat_data['active_effects'].delete_at(i)
+          removed << effect['spell_name']
+        end
+        Tools.save_json('combat.json', combat_data)
+        Combat.add_log("#{character.name} escapes #{removed.uniq.join(' + ')} (#{successes} successes)")
+      else
+        Combat.add_log("#{character.name} fails to escape (#{successes} successes, needs 2)")
+      end
+
+    elsif sub == 'walk_into_web'
+      # Client picked which Web Environment (by index), rolled DEX, and
+      # sent the success count. 2+ successes = clean; 1 = entangled; 0 =
+      # stuck + entangled. Both condition effects share the web's end
+      # round so they expire with the standing hazard.
+      env_index = params[:effect_index].to_i
+      successes = params[:successes].to_i
+      env = combat_data['active_effects'][env_index]
+      halt 400, "Web Environment not found" unless env && env['spell_name'] == 'Web Environment'
+      end_round = env['ends_on_round']
+      spell_tier = env['spell_tier'].to_i
+      skill_bonus = env['caster_skill_bonus'].to_i
+      outcome = if successes >= 2 then 'free'
+                elsif successes == 1 then 'entangled'
+                else 'stuck' end
+      if outcome != 'free'
+        common = {
+          'caster_id' => env['caster_id'],
+          'caster_name' => env['caster_name'],
+          'spell_tier' => spell_tier,
+          'round_cast' => combat_data['round'],
+          'ends_on_round' => end_round,
+          'target_combat_ids' => [combat_id],
+          'target_names' => [character.name],
+          'caster_skill_bonus' => skill_bonus
+        }
+        combat_data['active_effects'] << common.merge('spell_name' => 'Entangled')
+        combat_data['active_effects'] << common.merge('spell_name' => 'Stuck') if outcome == 'stuck'
       end
       Tools.save_json('combat.json', combat_data)
-      Combat.add_log("#{character.name} escapes #{removed.uniq.join(' + ')} (#{successes} successes)")
+      msg = case outcome
+            when 'free' then "walks through the web unimpeded (#{successes} successes)"
+            when 'entangled' then "walks into the web: Entangled (#{successes} successes)"
+            else "walks into the web: Entangled + Stuck (#{successes} successes)"
+            end
+      Combat.add_log("#{character.name} #{msg}")
+
     else
-      Combat.add_log("#{character.name} fails to escape (#{successes} successes, needs 2)")
+      halt 400, "Unknown environment sub-action"
     end
 
   elsif action == 'dismiss_effect'
