@@ -110,15 +110,7 @@
         <form method="post" action="/scene/toggle_initiative" style="display:inline;">
           <button type="submit"><%= @hide_initiative ? 'Show initiative table' : 'Hide initiative table' %></button>
         </form>
-        <small style="color:#666;">
-          Combat is <strong><%= @combat_active ? 'active' : 'inactive' %></strong>.
-          Initiative <%= @show_initiative ? 'is showing' : 'is hidden' %>
-          <% if !@combat_active %>
-            (activate combat on <a href="/combat">/combat</a> to show).
-          <% elsif @hide_initiative %>
-            (manually hidden).
-          <% end %>
-        </small>
+        <small style="color:#666;">Initiative is <strong><%= @show_initiative ? 'showing' : 'hidden' %></strong> for everyone.</small>
       </div>
 
       <div class="section">

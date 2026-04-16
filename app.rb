@@ -122,7 +122,7 @@ get '/scene/:viewer_id' do
   combat_data = Tools.load_json('combat.json')
   @combat_active = combat_data['active'] ? true : false
   @hide_initiative = combat_data['hide_initiative'] ? true : false
-  @show_initiative = @combat_active && !@hide_initiative
+  @show_initiative = !@hide_initiative
 
   current = @combat.current_turn_character
   if current && current.character.data['group'] == 'PC'
