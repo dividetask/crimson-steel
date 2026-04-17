@@ -163,24 +163,7 @@ post '/scene/toggle_initiative' do
   redirect '/scene/0'
 end
 
-# --- Draft names ---
-post '/scene/draft_name' do
-  scene_require_dm!
-  title = params[:title].to_s.strip
-  halt 400, 'title required' if title.empty?
-  notes = scene_load_notes
-  notes << {
-    'id' => SecureRandom.uuid,
-    'owner_id' => 0,
-    'draft' => true,
-    'type' => 'draft_name',
-    'title' => title
-  }
-  scene_save_notes(notes)
-  redirect '/scene/0'
-end
-
-# Bulk-add names: one per line in the `titles` textarea.
+# --- Draft names (added in bulk; one per line in the `titles` textarea) ---
 post '/scene/draft_names_bulk' do
   scene_require_dm!
   raw = params[:titles].to_s
@@ -206,6 +189,18 @@ post '/scene/draft_name/delete' do
   _, idx = scene_find_note(notes, params[:id])
   halt 404 unless idx
   notes.delete_at(idx)
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/draft_name/update' do
+  scene_require_dm!
+  title = params[:title].to_s.strip
+  halt 400, 'title required' if title.empty?
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'draft_name'
+  entry['title'] = title
   scene_save_notes(notes)
   redirect '/scene/0'
 end
@@ -1119,6 +1114,29 @@ post '/combat/reroll_init' do
   redirect '/character/0' unless local_request?
   combat = Combat.new()
   combat.reroll_init
+  redirect '/combat'
+end
+
+# Clear initiative rolls, reset the displayed round counter, and drop
+# any round-bound active effects (they reference absolute round numbers
+# that stop making sense after the reset). Leaves participants and their
+# HP / damage / mana in place, so reopening combat just needs a reroll.
+post '/combat/end_combat' do
+  redirect '/character/0' unless local_request?
+  combat_data = Tools.load_json('combat.json')
+  combat_data['active'] = false
+  combat_data['round'] = 0
+  combat_data['current_turn'] = 0
+  combat_data['current_turn_id'] = 0
+  combat_data['active_effects'] = []
+  (combat_data['participants'] || []).each { |p| p['initiative'] = '' }
+  Tools.save_json('combat.json', combat_data)
+
+  campaign = Tools.load_json('campaign.json')
+  campaign = {} unless campaign.is_a?(Hash)
+  campaign['rounds_elapsed'] = 0
+  Tools.save_json('campaign.json', campaign)
+
   redirect '/combat'
 end
 
