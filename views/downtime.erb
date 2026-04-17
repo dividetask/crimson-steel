@@ -260,6 +260,61 @@
       </div>
 
       <div class="dt-action">
+        <h3>Concentrate</h3>
+        <%
+          # Gather all active concentration effects per PC (Stabilize, Cure variants).
+          conc_any = @pcs.any? do |pc|
+            data = @dt_data[:pcs][pc.id.to_s]
+            data && (data[:concentrationEffects] || []).any?
+          end
+        %>
+        <% if !conc_any %>
+          <p class="dt-note">No party member is concentrating on a spell.</p>
+        <% else %>
+          <form method="post" action="/downtime/concentrate">
+            <label>Caster
+              <select name="caster_id" id="conc-caster" required>
+                <% @pcs.each do |pc| %>
+                  <% data = @dt_data[:pcs][pc.id.to_s]; effects = data ? (data[:concentrationEffects] || []) : [] %>
+                  <% effects.each do |eff| %>
+                    <option value="<%= pc.id %>" data-effect-index="<%= eff[:idx] %>" data-spell="<%= h eff[:spell_name] %>" data-healing-dice="<%= data[:healingDice] %>" data-healing-bonus="<%= data[:healingBonus] %>">
+                      <%= h pc.name %>: <%= h eff[:spell_name] %><%= eff[:target_names].any? ? " (on #{eff[:target_names].join(', ')})" : '' %>
+                    </option>
+                  <% end %>
+                <% end %>
+              </select>
+            </label>
+            <input type="hidden" name="effect_index" id="conc-effect-index">
+            <label>Target
+              <select name="target_id" id="conc-target" required>
+                <% @pcs.each_with_index do |pc, i| %>
+                  <% bleed = (@dt_data[:pcs][pc.id.to_s] || {})[:conditions]&.dig('bleed').to_i %>
+                  <option value="<%= pc.id %>" <%= 'selected' if i == 0 %>><%= h pc.name %> (bleed: <%= bleed %>)</option>
+                <% end %>
+              </select>
+            </label>
+            <label>Successes
+              <input type="number" name="successes" min="0" value="0" style="width:60px;" required>
+            </label>
+            <div class="dt-preview" id="conc-preview">&nbsp;</div>
+            <button type="submit">Concentrate</button>
+          </form>
+          <script>
+            (function() {
+              var sel = document.getElementById('conc-caster');
+              var efIdx = document.getElementById('conc-effect-index');
+              function syncConc() {
+                var opt = sel.options[sel.selectedIndex];
+                efIdx.value = opt.getAttribute('data-effect-index');
+              }
+              sel.addEventListener('change', syncConc);
+              syncConc();
+            })();
+          </script>
+        <% end %>
+      </div>
+
+      <div class="dt-action">
         <h3>Use Potion / Scroll</h3>
         <% if @consumable_owners.empty? %>
           <p class="dt-note">No party member has a healing potion or scroll.</p>

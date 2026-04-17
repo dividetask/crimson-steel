@@ -2095,11 +2095,77 @@
         return;
       }
 
+      // Stabilize or Cure concentration: reduce target's bleeding by
+      // successes × 3 (same mechanic). No mana cost, only dice.
+      if (name === 'Stabilize' || (spellEntry && (spellEntry.stabilize || spellEntry.cure))) {
+        var tgtNames = (effect.target_names || []).join(', ');
+        addStep('<strong>Concentrate: ' + effect.spell_name + '</strong>' +
+          '<br><span class="math-detail">Current target: ' + (tgtNames || '(none)') + '. Reduce bleeding (successes × 3). No mana cost.</span>' +
+          '<br><button class="action-btn" style="margin:2px;" onclick="startConcentrateBleedReduction(' + effectIndex + ')">Reduce Bleeding</button>');
+        return;
+      }
+
       // Generic concentration spell: continue focus. No mana cost; targets
       // can optionally be re-picked (useful for mobile/multi-target spells).
       var mode = 'single';
       if (spellEntry) mode = spellEntry.target_mode || 'single';
       selectConcentrateReapplyTarget(effectIndex, mode);
+    }
+
+    // --- Concentrate bleed reduction (Stabilize / Cure) ---
+    //   Target select -> dice -> roll -> successes × 3 bleed reduction.
+    //   No mana. Dice come from combat pool.
+    function startConcentrateBleedReduction(effectIndex) {
+      var effect = activeEffects[effectIndex];
+      var selectId = 'cbr-target-' + Date.now();
+      var lastTarget = (effect.target_combat_ids || [])[0];
+      var optionsHtml = combatants.map(function(c) {
+        var sel = c.combat_id === lastTarget ? ' selected' : '';
+        return '<option value="' + c.combat_id + '"' + sel + '>' + c.name + '</option>';
+      }).join('');
+      addStep('<strong>' + effect.spell_name + ' - Reduce Bleeding</strong>' +
+        '<br><select id="' + selectId + '" style="margin-top:4px;">' + optionsHtml + '</select>' +
+        '<br><button class="action-btn" style="margin-top:8px;" onclick="cbrPickDice(' + effectIndex + ', \'' + selectId + '\')">Next</button>');
+    }
+
+    function cbrPickDice(effectIndex, selectId) {
+      var targetId = parseInt(document.getElementById(selectId).value, 10);
+      if (!targetId) { alert('Pick a target'); return; }
+      var maxDice = Math.min(currentHealingDice, diceRemaining);
+      if (maxDice < 1) {
+        addStep('<strong>Cannot concentrate</strong> - no dice remaining (healing ' + currentHealingDice + ', pool ' + diceRemaining + ')');
+        return;
+      }
+      var tn = clampTn(diceRules.base_target_number - currentHealingBonus);
+      var diceInputId = 'cbr-dice-' + Date.now();
+      addStep('<strong>Healing Check</strong>' +
+        '<br><span class="math-detail">TN ' + tn + ' | Max dice: ' + maxDice + ' (healing ' + currentHealingDice + ', pool ' + diceRemaining + ')</span>' +
+        '<br><label>Dice: <input type="number" id="' + diceInputId + '" min="1" max="' + maxDice + '" value="' + maxDice + '" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="cbrRoll(' + effectIndex + ', ' + targetId + ', \'' + diceInputId + '\', ' + tn + ')">Next</button>');
+    }
+
+    function cbrRoll(effectIndex, targetId, diceInputId, tn) {
+      var dice = parseInt(document.getElementById(diceInputId).value, 10);
+      var maxDice = Math.min(currentHealingDice, diceRemaining);
+      if (isNaN(dice) || dice < 1 || dice > maxDice) { alert('Enter 1-' + maxDice + '.'); return; }
+      addStep('<strong>Roll Healing</strong>: ' + dice + ' dice, TN ' + tn +
+        '<br><label>Successes: <input type="number" id="cbr-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="cbrConfirm(' + effectIndex + ', ' + targetId + ', ' + dice + ')">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + dice + ', ' + tn + ', \'cbr-successes\', \'cbr-roll-display\')">Roll</button>' +
+        '<div id="cbr-roll-display" class="math-detail" style="margin-top:4px;"></div>');
+    }
+
+    function cbrConfirm(effectIndex, targetId, dice) {
+      var successes = parseInt(document.getElementById('cbr-successes').value, 10);
+      if (isNaN(successes) || successes < 0) { alert('Invalid number.'); return; }
+      var reduction = 3 * successes;
+      var target = combatants.find(function(c) { return c.combat_id === targetId; });
+      var targetName = target ? target.name : 'target';
+      var effect = activeEffects[effectIndex];
+      addStep('<strong>Confirm Bleed Reduction</strong> on ' + targetName +
+        '<br>' + successes + ' success' + (successes === 1 ? '' : 'es') + ' × 3 = <strong>bleed −' + reduction + '</strong>' +
+        '<br><span class="math-detail">No mana cost. ' + dice + ' dice from pool.</span>' +
+        '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'concentrate\', sub_action: \'reduce_bleed\', effect_index: ' + effectIndex + ', target_combat_id: ' + targetId + ', dice_spent: ' + dice + ', successes: ' + successes + '})" style="margin-top:8px;">Submit</button>');
     }
 
     function pickRangedSpellTarget(effectIndex) {

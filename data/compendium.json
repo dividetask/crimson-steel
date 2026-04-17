@@ -178,7 +178,7 @@
         "perform_"
       ],
       "properties": [
-
+        "concentration"
       ],
       "effect_hash": {
         "minor_damage": [

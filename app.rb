@@ -1526,6 +1526,39 @@ post '/combat/action' do
         Combat.add_log("#{character.name}'s Spiritual Weapon attacks #{target_name} - missed")
       end
 
+    elsif sub == 'reduce_bleed'
+      # Stabilize / Cure concentration: reduce the target's bleed condition
+      # by successes × 3, spending only dice (no mana). Updates the
+      # effect's stored target for display.
+      target_combat_id = new_target_ids.first || (effect['target_combat_ids'] || []).first
+      halt 400, "Target required" unless target_combat_id
+      target_participant = combat_data['participants'].find { |p| p['id'] == target_combat_id }
+      halt 400, "Target not found" unless target_participant
+
+      dice_spent = params[:dice_spent].to_i
+      halt 400, "Must spend at least 1 die" if dice_spent < 1
+      halt 400, "Not enough dice" if participant['combat_pool'].to_i < dice_spent
+      participant['combat_pool'] = participant['combat_pool'].to_i - dice_spent
+
+      successes = params[:successes].to_i
+      target_participant['conditions'] ||= {}
+      before_bleed = target_participant['conditions']['bleed'].to_i
+      reduction = [3 * successes, before_bleed].min
+      after_bleed = before_bleed - reduction
+      if after_bleed <= 0
+        target_participant['conditions'].delete('bleed')
+      else
+        target_participant['conditions']['bleed'] = after_bleed
+      end
+
+      effect['target_combat_ids'] = [target_combat_id]
+      target_char_data = Tools.load_json('characters.json').find { |c| c['id'] == (target_participant['char_id'] || target_participant['id']) }
+      target_name = target_char_data ? CharacterSheet.new(target_char_data).name : 'target'
+      effect['target_names'] = [target_name]
+      Tools.save_json('combat.json', combat_data)
+
+      Combat.add_log("#{character.name} concentrates #{spell_name} on #{target_name} (#{dice_spent} dice, #{successes} successes) - bleed #{before_bleed} -> #{after_bleed} (-#{reduction})")
+
     else
       # Generic concentrate reapply: the caster continues to focus on the
       # spell. No mana cost. Log it as a concentrate action.
@@ -2480,6 +2513,15 @@ get '/downtime' do
       sevs.each { |sev, n| ability_queue << [attr, sev, n.to_i] if n.to_i > 0 }
     end
 
+    # Active concentration effects for this PC (by caster_id).
+    active_effects_now = combat_data_now['active_effects'] || []
+    conc_effects = active_effects_now.each_with_index.filter_map do |e, idx|
+      next nil unless e['caster_id'] == pc.id
+      next nil if %w[Blindness Deafness Web\ Environment Entangled Stuck Paralyzed].include?(e['spell_name'])
+      { idx: idx, spell_name: e['spell_name'], target_names: e['target_names'] || [] }
+    end
+    conditions = participant ? (participant['conditions'] || {}) : {}
+
     pc_payload[pc.id.to_s] = {
       id: pc.id,
       name: pc.name,
@@ -2489,6 +2531,10 @@ get '/downtime' do
       mana: pc.current_mana,
       manaMax: pc.mana_max,
       saturation: pc.saturation,
+      conditions: conditions,
+      concentrationEffects: conc_effects,
+      healingDice: pc.skill_dice('healing').to_i,
+      healingBonus: pc.skill_bonus('healing').to_i,
       damage: [pc.minor_damage, pc.moderate_damage, pc.major_damage],
       abilityDamage: { minor: ability_totals['minor'], moderate: ability_totals['moderate'], major: ability_totals['major'] },
       abilityQueue: ability_queue,
@@ -2948,6 +2994,46 @@ post '/downtime/cast_ritual' do
   Tools.save_json('combat.json', combat_data)
   Tools.save_json('campaign.json', campaign)
   Combat.add_log(result[:log])
+  redirect '/downtime'
+end
+
+post '/downtime/concentrate' do
+  redirect '/character/0' unless local_request?
+  combat_data = Tools.load_json('combat.json')
+  characters = Tools.load_json('characters.json')
+  caster_id = params[:caster_id].to_i
+  participant = (combat_data['participants'] || []).find { |p| (p['char_id'] || p['id']) == caster_id }
+  halt 400, "Participant not found" unless participant
+  char = characters.find { |c| c['id'] == caster_id }
+  halt 400, "Character not found" unless char
+  character = CharacterSheet.new(char)
+
+  effect_index = params[:effect_index].to_i
+  combat_data['active_effects'] ||= []
+  effect = combat_data['active_effects'][effect_index]
+  halt 400, "Effect not found" unless effect
+
+  target_id = params[:target_id].to_i
+  target_participant = (combat_data['participants'] || []).find { |p| (p['char_id'] || p['id']) == target_id }
+  halt 400, "Target not found" unless target_participant
+  target_char = characters.find { |c| c['id'] == target_id }
+  target_name = target_char ? target_char['name'] : 'target'
+
+  successes = params[:successes].to_i
+  target_participant['conditions'] ||= {}
+  before_bleed = target_participant['conditions']['bleed'].to_i
+  reduction = [3 * successes, before_bleed].min
+  after_bleed = before_bleed - reduction
+  if after_bleed <= 0
+    target_participant['conditions'].delete('bleed')
+  else
+    target_participant['conditions']['bleed'] = after_bleed
+  end
+
+  effect['target_combat_ids'] = [target_participant['id']]
+  effect['target_names'] = [target_name]
+  Tools.save_json('combat.json', combat_data)
+  Combat.add_log("#{character.name} concentrates #{effect['spell_name']} on #{target_name} (#{successes} successes) - bleed #{before_bleed} -> #{after_bleed} (-#{reduction})")
   redirect '/downtime'
 end
 
