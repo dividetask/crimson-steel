@@ -1,5 +1,7 @@
 require 'sinatra'
 require 'json'
+require 'securerandom'
+require 'fileutils'
 require_relative 'helpers'
 
 set :port, 4567
@@ -81,6 +83,10 @@ post '/view_mode' do
   referrer = request.referrer || '/'
   if params[:mode] == 'dm' && referrer =~ /\/notes\/\d+/
     redirect '/notes/0'
+  elsif params[:mode] == 'dm' && referrer =~ /\/scene(\/|$)/
+    redirect '/scene/0'
+  elsif params[:mode] == 'player' && referrer =~ /\/scene(\/|$)/
+    redirect '/scene/1'
   else
     redirect back
   end
@@ -109,13 +115,68 @@ get '/combat' do
   erb :combat_tracker
 end
 
-# Scene: shared player/DM view. Shows a simplified initiative table (names,
-# HP, initiative rolls) with enemy identities masked behind "DM" + a HP
-# color band, plus the current PC's character sheet when it's a player's
-# turn (hidden when an enemy is acting).
+# Scene: shared player/DM view. During combat, shows a simplified initiative
+# table (names, HP, initiative rolls) with enemy identities masked behind
+# "DM" + a HP color band, plus the current PC's character sheet when it's
+# a player's turn. Outside combat, initiative hides and players see whatever
+# the DM has shared: per-player scene panels and/or shared reference images.
+# The DM (local) also gets a staging block for names, draft notes, scene
+# panels, and images -- none of which are visible to players.
 get '/scene' do
-  @combat = Combat.new()
+  redirect "/scene/#{@is_local ? 0 : 1}"
+end
+
+SCENE_IMAGE_DIR = File.join(__dir__, 'public', 'images', 'scene')
+SCENE_IMAGE_EXTS = %w[.png .jpg .jpeg .gif .webp].freeze
+SCENE_IMAGE_MAX_BYTES = 10 * 1024 * 1024
+
+def scene_sanitize_filename(name)
+  base = File.basename(name.to_s)
+  base.gsub(/[^A-Za-z0-9._-]/, '_')
+end
+
+def scene_find_note(notes, id)
+  notes.each_with_index do |n, i|
+    return [n, i] if n['id'] == id
+  end
+  [nil, nil]
+end
+
+def scene_load_notes
+  Tools.load_json('notes.json')
+end
+
+def scene_save_notes(notes)
+  Tools.save_json('notes.json', notes)
+end
+
+def scene_max_chapter(notes)
+  notes.map { |n| n['chapter'] }.compact.max || 1
+end
+
+def scene_require_dm!
+  halt 403, 'DM only' unless local_request?
+end
+
+def scene_parse_visible_to(raw)
+  Array(raw).map { |v| v.to_i }.reject { |v| v <= 0 }.uniq
+end
+
+get '/scene/:viewer_id' do
+  viewer_id = params[:viewer_id].to_i
+  redirect '/scene/1' if viewer_id == 0 && !@is_local
+
+  @viewer_id = viewer_id
+  @is_dm = viewer_id == 0 && @is_local
+
+  @combat = Combat.new
   @compendium = Compendium.new
+
+  combat_data = Tools.load_json('combat.json')
+  @combat_active = combat_data['active'] ? true : false
+  @hide_initiative = combat_data['hide_initiative'] ? true : false
+  @show_initiative = !@hide_initiative
+
   current = @combat.current_turn_character
   if current && current.character.data['group'] == 'PC'
     @character = current.character
@@ -123,7 +184,286 @@ get '/scene' do
   else
     @character = nil
   end
+
+  @notes = scene_load_notes
+  @max_chapter = scene_max_chapter(@notes)
+
+  @draft_names = @notes.select { |n| n['draft'] && n['type'] == 'draft_name' }
+  @draft_notes = @notes.select { |n| n['draft'] && n['type'] == 'draft_note' }
+  @draft_images = @notes.select { |n| n['draft'] && n['type'] == 'draft_image' }
+  @scene_panels = @notes.select { |n| n['draft'] && n['type'] == 'scene_panel' }
+
+  @visible_images = @draft_images.select { |i| i['shared'] }
+  @visible_panels =
+    if @is_dm
+      @scene_panels
+    else
+      @scene_panels.select { |p| Array(p['visible_to']).include?(@viewer_id) }
+    end
+
+  characters = Tools.load_json('characters.json')
+  @pc_characters = characters.select { |c| (c['group'] || 'PC') == 'PC' }
+
   erb :scene
+end
+
+# --- Initiative visibility toggle ---
+post '/scene/toggle_initiative' do
+  scene_require_dm!
+  combat_data = Tools.load_json('combat.json')
+  combat_data['hide_initiative'] = !combat_data['hide_initiative']
+  Tools.save_json('combat.json', combat_data)
+  redirect '/scene/0'
+end
+
+# --- Draft names ---
+post '/scene/draft_name' do
+  scene_require_dm!
+  title = params[:title].to_s.strip
+  halt 400, 'title required' if title.empty?
+  notes = scene_load_notes
+  notes << {
+    'id' => SecureRandom.uuid,
+    'owner_id' => 0,
+    'draft' => true,
+    'type' => 'draft_name',
+    'title' => title
+  }
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+# Bulk-add names: one per line in the `titles` textarea.
+post '/scene/draft_names_bulk' do
+  scene_require_dm!
+  raw = params[:titles].to_s
+  titles = raw.split(/[\r\n]+/).map(&:strip).reject(&:empty?)
+  redirect '/scene/0' if titles.empty?
+  notes = scene_load_notes
+  titles.each do |title|
+    notes << {
+      'id' => SecureRandom.uuid,
+      'owner_id' => 0,
+      'draft' => true,
+      'type' => 'draft_name',
+      'title' => title
+    }
+  end
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/draft_name/delete' do
+  scene_require_dm!
+  notes = scene_load_notes
+  _, idx = scene_find_note(notes, params[:id])
+  halt 404 unless idx
+  notes.delete_at(idx)
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/draft_name/promote' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, idx = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'draft_name'
+  note_body = params[:note].to_s
+  tier = params[:tier] ? params[:tier].to_i : -1
+  public_flag = params[:public] == 'true'
+  promoted = {
+    'owner_id' => 0,
+    'type' => 'character',
+    'title' => entry['title'],
+    'note' => note_body,
+    'tier' => tier,
+    'chapter' => scene_max_chapter(notes),
+    'public' => public_flag,
+    'active' => true
+  }
+  notes[idx] = promoted
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+# --- Draft notes (prep scratchpad; never shown on /scene) ---
+post '/scene/draft_note' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry = {
+    'id' => SecureRandom.uuid,
+    'owner_id' => 0,
+    'draft' => true,
+    'type' => 'draft_note',
+    'title' => params[:title].to_s,
+    'note' => params[:note].to_s,
+    'public' => params[:public] == 'true'
+  }
+  notes << entry
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/draft_note/update' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, idx = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'draft_note'
+  entry['title'] = params[:title].to_s
+  entry['note'] = params[:note].to_s
+  entry['public'] = params[:public] == 'true'
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/draft_note/delete' do
+  scene_require_dm!
+  notes = scene_load_notes
+  _, idx = scene_find_note(notes, params[:id])
+  halt 404 unless idx
+  notes.delete_at(idx)
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/draft_note/promote' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, idx = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'draft_note'
+  promoted = {
+    'owner_id' => 0,
+    'type' => 'note',
+    'title' => entry['title'].to_s,
+    'note' => entry['note'].to_s,
+    'chapter' => scene_max_chapter(notes),
+    'public' => entry['public'] ? true : false
+  }
+  notes[idx] = promoted
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+# --- Scene panels (per-player visibility; shown on /scene) ---
+post '/scene/panel' do
+  scene_require_dm!
+  notes = scene_load_notes
+  notes << {
+    'id' => SecureRandom.uuid,
+    'owner_id' => 0,
+    'draft' => true,
+    'type' => 'scene_panel',
+    'title' => params[:title].to_s,
+    'note' => params[:note].to_s,
+    'visible_to' => scene_parse_visible_to(params[:visible_to])
+  }
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/panel/update' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'scene_panel'
+  entry['title'] = params[:title].to_s
+  entry['note'] = params[:note].to_s
+  entry['visible_to'] = scene_parse_visible_to(params[:visible_to])
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/panel/delete' do
+  scene_require_dm!
+  notes = scene_load_notes
+  _, idx = scene_find_note(notes, params[:id])
+  halt 404 unless idx
+  notes.delete_at(idx)
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+# --- Images ---
+post '/scene/image' do
+  scene_require_dm!
+  upload = params[:image]
+  halt 400, 'image required' unless upload.is_a?(Hash) && upload[:tempfile]
+  orig = upload[:filename] || 'upload'
+  ext = File.extname(orig).downcase
+  halt 400, 'unsupported file type' unless SCENE_IMAGE_EXTS.include?(ext)
+  halt 400, 'file too large' if upload[:tempfile].size > SCENE_IMAGE_MAX_BYTES
+
+  FileUtils.mkdir_p(SCENE_IMAGE_DIR)
+  safe_base = scene_sanitize_filename(File.basename(orig, ext))
+  filename = "#{Time.now.to_i}-#{SecureRandom.hex(4)}-#{safe_base}#{ext}"
+  dest = File.join(SCENE_IMAGE_DIR, filename)
+  FileUtils.cp(upload[:tempfile].path, dest)
+
+  notes = scene_load_notes
+  notes << {
+    'id' => SecureRandom.uuid,
+    'owner_id' => 0,
+    'draft' => true,
+    'type' => 'draft_image',
+    'title' => params[:title].to_s,
+    'image_path' => "/images/scene/#{filename}",
+    'shared' => false
+  }
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/image/share' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'draft_image'
+  entry['shared'] = !entry['shared']
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/image/update' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'draft_image'
+  entry['title'] = params[:title].to_s
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/image/delete' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, idx = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'draft_image'
+  path = entry['image_path'].to_s
+  if path.start_with?('/images/scene/')
+    disk = File.join(__dir__, 'public', path)
+    File.unlink(disk) if File.file?(disk)
+  end
+  notes.delete_at(idx)
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/image/promote' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, idx = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'draft_image'
+  promoted = {
+    'owner_id' => 0,
+    'type' => 'image',
+    'title' => entry['title'].to_s,
+    'image_path' => entry['image_path'],
+    'chapter' => scene_max_chapter(notes),
+    'public' => true
+  }
+  notes[idx] = promoted
+  scene_save_notes(notes)
+  redirect '/scene/0'
 end
 
 post '/combat/update/:id' do
