@@ -347,6 +347,28 @@
                   <input type="text" class="brush-icon-custom" maxlength="3" placeholder="?" title="Custom icon (1-3 chars)">
                 </div>
                 <div class="palette-group">
+                  <span class="palette-label">Class:</span>
+                  <% [
+                    ['🪓',  'Axe - barbarian / warrior'],
+                    ['⚔️', 'Crossed swords - fighter'],
+                    ['🛡️', 'Shield - defender / paladin'],
+                    ['🗡️', 'Dagger - rogue / assassin'],
+                    ['🏹',  'Bow - archer / ranger / elf'],
+                    ['🪄',  'Wand - mage / sorcerer'],
+                    ['📖',  'Tome - wizard / scholar'],
+                    ['⚕️', 'Medical staff - cleric / healer'],
+                    ['🎵',  'Music note - bard'],
+                    ['🎭',  'Masks - bard / performer'],
+                    ['🧝',  'Elf'],
+                    ['🧙',  'Mage / druid'],
+                    ['🐺',  'Wolf - druid / ranger companion'],
+                    ['👑',  'Crown - noble / leader'],
+                    ['💀',  'Skull - fallen / undead']
+                  ].each do |ic, name| %>
+                    <button type="button" class="brush icon-brush" data-brush-type="icon" data-icon="<%= ic %>" title="<%= name %>"><%= ic %></button>
+                  <% end %>
+                </div>
+                <div class="palette-group">
                   <span class="palette-label">Text:</span>
                   <button type="button" class="brush label-brush" data-brush-type="label" title="Prompt for a label on click">Label</button>
                 </div>
