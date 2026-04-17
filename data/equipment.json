@@ -301,6 +301,21 @@
   },
   {
     "owner_id": 3,
+    "name": "+1 Face Tattoo of Fox's Cunning",
+    "type": "tattoo",
+    "subtype": "face",
+    "bonus": 1,
+    "properties": {
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "int",
+        "amount": 1
+      }
+    },
+    "description": "A permanent tattoo that increases the bearer's enhancement bonus to Intelligence."
+  },
+  {
+    "owner_id": 3,
     "name": "+1 Leather Armor",
     "type": "armor",
     "subtype": "light",

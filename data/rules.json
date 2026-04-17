@@ -42,7 +42,8 @@
 				"subtype": ["rapier","shortbow","dagger","bola","javelin","longbow","battleaxe","scimitar", "falcion"]},
 			"armor": {"subtype": ["natural", "light", "medium", "heavy"]},
 			"shield": {"subtype": ["light", "medium", "tower"]},
-			"item": {"subtype": ["belt", "body", "chest", "eyes", "feet", "hands", "head", "headband", "neck", "shoulders", "wrists"]}
+			"item": {"subtype": ["belt", "body", "chest", "eyes", "feet", "hands", "head", "headband", "neck", "shoulders", "wrists"]},
+			"tattoo": {"subtype": ["belt", "body", "chest", "eyes", "feet", "hands", "face", "headband", "neck", "shoulders", "wrists", "back"]}
 		},
 		"bag_of_holding": {
 			"minor":    {"weight": 15, "capacity": 250,  "volume": 30},

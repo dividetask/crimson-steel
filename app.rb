@@ -1284,9 +1284,9 @@ post '/purchase/:item_index' do
         'type' => store_item['type'],
         'subtype' => store_item['subtype'],
         'bonus' => bonus,
-        'properties' => purchase_props,
-        'equipped' => false
+        'properties' => purchase_props
       }
+      new_item['equipped'] = false unless store_item['type'] == 'tattoo'
       new_item['description'] = purchase_desc if purchase_desc
       new_item['quantity'] = qty if purchase_props['consumable']
       items << new_item

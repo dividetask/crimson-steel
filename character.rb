@@ -980,7 +980,7 @@ module CharacterEquipment
   def collect_enhancement_amounts
     amounts = []
     (@item_list || []).each do |item|
-      next unless item["equipped"]
+      next unless item["equipped"] || item["type"] == "tattoo"
       enh = item.dig("properties", "enhancement")
       next unless enh.is_a?(Hash)
       amounts << enh["amount"].to_i if yield(enh)
@@ -1015,6 +1015,7 @@ module CharacterEquipment
   def weapon_list; return @item_list.select { |item| item["type"] == "weapon" }; end
   def shield_list; return @item_list.select { |item| item["type"] == "shield" }; end
   def equipped_list; return @item_list.select { |item| item["equipped"] == true }; end
+  def tattoo_list; return @item_list.select { |item| item["type"] == "tattoo" }; end
   def ammunition; return @item_list.select { |item| item["properties"]["ammunition"] == true }; end
   def consumable; return @item_list.select { |item| item["properties"]["consumable"] == true }; end
   def other_items
