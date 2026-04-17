@@ -1230,6 +1230,80 @@ post '/combat/roll_init/:id' do
   redirect '/combat'
 end
 
+# Bardic inspiration. Bard's Perform action: deduct 1 mana, apply
+# (successes - fumbles) to the bard's luck_ledger. A positive ledger is
+# player luck (spend on allies); negative is DM luck (spend against
+# players). Gated to once per turn via performed_this_turn, which clears
+# on new_turn.
+post '/combat/bardic_inspiration/:id' do
+  redirect '/character/0' unless local_request?
+  combat = Combat.new
+  bard = combat.combat_turn_list.find { |ct| ct.combat_id == params[:id].to_i }
+  halt 400, 'Bard not found' unless bard
+  halt 400, 'Character lacks bardic_inspiration' unless bard.has_ability?('bardic_inspiration')
+  halt 400, 'Already performed this turn' if bard.performed_this_turn
+  halt 400, 'Not enough mana' if bard.mana < 1
+
+  successes = params[:successes].to_i
+  fumbles = params[:fumbles].to_i
+  halt 400, 'Successes and fumbles must be non-negative' if successes < 0 || fumbles < 0
+
+  combat_data = Tools.load_json('combat.json')
+  participant = combat_data['participants'].find { |p| p['id'] == bard.combat_id }
+  halt 400, 'Participant row missing' unless participant
+
+  participant['mana'] = bard.mana - 1
+  new_ledger = bard.luck_ledger + successes - fumbles
+  participant['luck_ledger'] = new_ledger
+  participant['performed_this_turn'] = true
+  Tools.save_json('combat.json', combat_data)
+
+  name = combat.display_name(bard)
+  delta = successes - fumbles
+  sign = delta >= 0 ? '+' : ''
+  ledger_label = if new_ledger > 0 then "Luck #{new_ledger}"
+                 elsif new_ledger < 0 then "DM Luck #{-new_ledger}"
+                 else 'ledger 0'
+                 end
+  Combat.add_log("#{name} performs (#{successes} successes, #{fumbles} fumbles, #{sign}#{delta}; #{ledger_label}).")
+  redirect '/combat'
+end
+
+# Spend one point from a bard's luck ledger. kind=ally requires a
+# positive ledger (ally reroll via bardic_inspiration / versatile_performance);
+# kind=enemy requires a negative ledger (unsettling_words or DM-side
+# reroll against players). The actual die reroll happens at the table;
+# this endpoint just decrements the ledger and logs.
+post '/combat/spend_luck/:bard_id' do
+  redirect '/character/0' unless local_request?
+  combat = Combat.new
+  bard = combat.combat_turn_list.find { |ct| ct.combat_id == params[:bard_id].to_i }
+  halt 400, 'Bard not found' unless bard
+
+  kind = params[:kind].to_s
+  halt 400, 'Invalid kind' unless %w[ally enemy].include?(kind)
+  if kind == 'ally'
+    halt 400, 'No player luck to spend' unless bard.luck_ledger > 0
+    delta = -1
+  else
+    halt 400, 'No DM luck to spend' unless bard.luck_ledger < 0
+    delta = 1
+  end
+
+  combat_data = Tools.load_json('combat.json')
+  participant = combat_data['participants'].find { |p| p['id'] == bard.combat_id }
+  halt 400, 'Participant row missing' unless participant
+  participant['luck_ledger'] = bard.luck_ledger + delta
+  Tools.save_json('combat.json', combat_data)
+
+  bard_name = combat.display_name(bard)
+  target_name = params[:target_name].to_s.strip
+  target_clause = target_name.empty? ? '' : " for #{target_name}"
+  action_label = kind == 'ally' ? 'ally reroll' : 'enemy reroll'
+  Combat.add_log("#{bard_name} spends 1 luck (#{action_label}#{target_clause}).")
+  redirect '/combat'
+end
+
 get '/' do
   redirect '/character/0'
 end

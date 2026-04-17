@@ -58,6 +58,11 @@
           <td><input type="number" name="saturation" value="<%= combat_turn.saturation %>" style="width: 45px;">/<%= combat_turn.character.cha %></td>
           <td class="conditions-cell">
             <div class="conditions-list">
+              <% if combat_turn.luck_points > 0 %>
+                <span class="condition-badge" style="background:#fff7c2;color:#6b5800;border:1px solid #d4b84a;" title="Bardic luck pool (spendable on ally rerolls)">Luck: <%= combat_turn.luck_points %></span>
+              <% elsif combat_turn.dm_luck_points > 0 %>
+                <span class="condition-badge" style="background:#3a1f1f;color:#f7c9c9;border:1px solid #8a3838;" title="DM luck from fumbled performance (spendable against players)">DM Luck: <%= combat_turn.dm_luck_points %></span>
+              <% end %>
               <% combat_turn.active_conditions.each do |cname, cval| %>
                 <% short, full = condition_label(cname) %>
                 <span class="condition-badge condition-<%= cname %>" title="<%= full %>"><%= short %>: <%= cval %></span>
@@ -106,6 +111,38 @@
     </form>
   </div>
 
+  <% luck_bards = @combat.active_luck_bards %>
+  <% if luck_bards.any? %>
+    <% player_names = @combat.living_turn_list.select { |ct| ct.character.data['group'] == 'PC' }.map { |ct| @combat.display_name(ct) } %>
+    <% enemy_names = @combat.living_turn_list.reject { |ct| ct.character.data['group'] == 'PC' }.map { |ct| @combat.display_name(ct) } %>
+    <div class="bardic-luck" style="margin-top: 15px; padding: 8px; background: #f7f3e8; border-left: 3px solid #b38a2f; border-radius: 2px;">
+      <h3 style="margin: 0 0 6px 0; font-size: 14px;">Bardic Luck</h3>
+      <% luck_bards.each do |bard| %>
+        <% ledger = bard.luck_ledger %>
+        <% targets = ledger > 0 ? player_names : enemy_names %>
+        <% kind = ledger > 0 ? 'ally' : 'enemy' %>
+        <% label = ledger > 0 ? "Luck: #{bard.luck_points}" : "DM Luck: #{bard.dm_luck_points}" %>
+        <% reroll_label = ledger > 0 ? 'ally reroll' : 'enemy reroll' %>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 13px;">
+          <strong><%= @combat.display_name(bard) %></strong>
+          <span><%= label %></span>
+          <form method="post" action="/combat/spend_luck/<%= bard.combat_id %>" style="margin:0;display:flex;gap:4px;align-items:center;">
+            <input type="hidden" name="kind" value="<%= kind %>">
+            <label style="font-size: 12px;">Spend on:
+              <select name="target_name" style="font-size: 12px;">
+                <option value="">(unspecified)</option>
+                <% targets.each do |n| %>
+                  <option value="<%= n %>"><%= n %></option>
+                <% end %>
+              </select>
+            </label>
+            <button type="submit" style="font-size: 12px;" title="Spend 1 luck for a <%= reroll_label %>">Spend Luck</button>
+          </form>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
   <% if @combat.active_effects.any? %>
     <div class="active-effects" style="margin-top: 15px;">
       <h3 style="margin-bottom: 8px;">Active Effects</h3>
@@ -153,6 +190,9 @@
           <button class="action-btn" onclick="selectAction('cast')">Cast</button>
           <button class="action-btn" onclick="selectAction('item')">Item</button>
           <button class="action-btn" onclick="selectAction('special')">Special</button>
+          <% if current.has_ability?('bardic_inspiration') && !current.performed_this_turn && current.mana >= 1 %>
+            <button class="action-btn" onclick="selectAction('perform')">Perform</button>
+          <% end %>
         <% end %>
         <button class="action-btn" onclick="selectAction('end_turn')">End Turn</button>
       </div>
@@ -328,6 +368,11 @@
       if (action === 'end_turn') {
         addStep('<strong>End Turn</strong>: ' + currentCharName + ' ends their turn' +
           '<br><button class="action-btn" onclick="submitAction({id: currentCharId, combat_action: \'end_turn\'})" style="margin-top:8px;">Confirm End Turn</button>');
+        return;
+      }
+
+      if (action === 'perform') {
+        showBardicInspiration();
         return;
       }
 
@@ -881,6 +926,33 @@
           '<br><label style="margin-top:6px;display:inline-block;font-size:11px;font-weight:bold;">Parry/Block with: ' +
           '<select id="defense-weapon" style="font-size:11px;padding:2px;"><option value="">-- select --</option>' +
           weaponOptions + shieldOptions + '</select></label>' : ''));
+    }
+
+    // Bardic Inspiration: prompt DM for the performance roll's successes
+    // and fumbles, POST to /combat/bardic_inspiration/:id. The handler
+    // deducts 1 mana and applies (successes - fumbles) to the bard's
+    // luck_ledger, with overflow to DM luck handled naturally by sign.
+    function showBardicInspiration() {
+      addStep('<strong>Perform (Bardic Inspiration)</strong>: ' + currentCharName + ' performs (1 mana).' +
+        '<br><span class="math-detail">Enter the performance roll\'s successes and fumbles; the tool will update the luck ledger. Successes build player luck; fumbles drain it (and become DM luck on overflow).</span>' +
+        '<br><label style="margin-top:6px;display:inline-block;">Successes: <input type="number" id="bi-successes" min="0" value="0" style="width:55px;"></label>' +
+        ' <label style="display:inline-block;">Fumbles: <input type="number" id="bi-fumbles" min="0" value="0" style="width:55px;"></label>' +
+        '<br><button class="action-btn" onclick="submitBardicInspiration()" style="margin-top:8px;">Confirm Perform</button>');
+    }
+
+    function submitBardicInspiration() {
+      var s = parseInt(document.getElementById('bi-successes').value, 10);
+      var f = parseInt(document.getElementById('bi-fumbles').value, 10);
+      if (isNaN(s) || s < 0) { alert('Enter a non-negative number of successes.'); return; }
+      if (isNaN(f) || f < 0) { alert('Enter a non-negative number of fumbles.'); return; }
+      var form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/combat/bardic_inspiration/' + currentCharId;
+      form.innerHTML =
+        '<input type="hidden" name="successes" value="' + s + '">' +
+        '<input type="hidden" name="fumbles" value="' + f + '">';
+      document.body.appendChild(form);
+      form.submit();
     }
 
     // --- Utility functions ---
