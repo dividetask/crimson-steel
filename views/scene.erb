@@ -101,6 +101,36 @@
     </div>
   <% end %>
 
+  <% if @visible_maps.any? %>
+    <div class="scene-maps">
+      <% @visible_maps.each do |m| %>
+        <div class="scene-map">
+          <% if m['title'] && !m['title'].to_s.empty? %>
+            <h2><%= h(m['title']) %></h2>
+          <% end %>
+          <div class="scene-map-grid" style="grid-template-columns: repeat(<%= m['cols'].to_i %>, var(--scene-cell-size));">
+            <% rows = m['rows'].to_i %>
+            <% cols = m['cols'].to_i %>
+            <% cells = m['cells'].is_a?(Hash) ? m['cells'] : {} %>
+            <% rows.times do |r| %>
+              <% cols.times do |c| %>
+                <% cell = cells["#{r},#{c}"] || {} %>
+                <div class="scene-map-cell" style="<%= cell['color'] && !cell['color'].empty? ? "background:#{h cell['color']};" : '' %>">
+                  <% if cell['icon'] && !cell['icon'].to_s.empty? %>
+                    <span class="scene-map-icon"><%= h(cell['icon']) %></span>
+                  <% end %>
+                  <% if cell['label'] && !cell['label'].to_s.empty? %>
+                    <span class="scene-map-label"><%= h(cell['label']) %></span>
+                  <% end %>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
   <% if @is_dm %>
     <div class="dm-staging">
       <h2>DM Staging</h2>
@@ -252,6 +282,141 @@
       </div>
 
       <div class="section">
+        <h3>Maps</h3>
+        <p class="dt-note" style="color:#888;">Grid maps with per-cell colors, icons, and labels. Share to show to the players you choose. Click a palette brush, then click cells to paint; click "Label" then a cell to type in a name.</p>
+        <% @scene_maps.each do |m| %>
+          <% map_id = m['id'] %>
+          <% rows = m['rows'].to_i %>
+          <% cols = m['cols'].to_i %>
+          <% cells = m['cells'].is_a?(Hash) ? m['cells'] : {} %>
+          <div class="staging-map" data-map-id="<%= h(map_id) %>">
+            <form method="post" action="/scene/map/update" class="notes-form scene-map-editor" data-editor="1">
+              <input type="hidden" name="id" value="<%= h(map_id) %>">
+              <input type="hidden" name="cells_json" value='<%= h(cells.to_json) %>'>
+              <div class="form-row">
+                <div>
+                  <label>Title:</label>
+                  <input type="text" name="title" value="<%= h(m['title']) %>" placeholder="Untitled map">
+                </div>
+                <div>
+                  <label>Rows:</label>
+                  <input type="number" name="rows" value="<%= rows %>" min="1" max="40">
+                </div>
+                <div>
+                  <label>Cols:</label>
+                  <input type="number" name="cols" value="<%= cols %>" min="1" max="40">
+                </div>
+              </div>
+
+              <div class="scene-map-palette" data-palette="1">
+                <div class="palette-group">
+                  <span class="palette-label">Color:</span>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="" title="Clear color">none</button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#3a3a3a" style="background:#3a3a3a;" title="Wall"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#8a8a8a" style="background:#8a8a8a;" title="Stone"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#d7c79a" style="background:#d7c79a;" title="Floor"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#f0f0f0" style="background:#f0f0f0;" title="Web"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#ffb74d" style="background:#ffb74d;" title="Hazard"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#ef5350" style="background:#ef5350;" title="Fire / danger"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#4fc3f7" style="background:#4fc3f7;" title="Water"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#81c784" style="background:#81c784;" title="Poison / grass"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#ba68c8" style="background:#ba68c8;" title="Magic"></button>
+                  <input type="color" class="brush-color-picker" title="Pick a custom color">
+                </div>
+                <div class="palette-group">
+                  <span class="palette-label">Icon:</span>
+                  <button type="button" class="brush icon-brush" data-brush-type="icon" data-icon="" title="Clear icon">none</button>
+                  <% %w[🕸 🔥 💧 ☠ 🪤 🚪 ⛏ ⭐ ⬆ ⬇ ⬅ ➡ ❓ ❗].each do |ic| %>
+                    <button type="button" class="brush icon-brush" data-brush-type="icon" data-icon="<%= ic %>" title="<%= ic %>"><%= ic %></button>
+                  <% end %>
+                  <input type="text" class="brush-icon-custom" maxlength="3" placeholder="?" title="Custom icon (1-3 chars)">
+                </div>
+                <div class="palette-group">
+                  <span class="palette-label">Text:</span>
+                  <button type="button" class="brush label-brush" data-brush-type="label" title="Prompt for a label on click">Label</button>
+                </div>
+                <div class="palette-group">
+                  <span class="palette-label">Erase:</span>
+                  <button type="button" class="brush erase-brush" data-brush-type="erase" title="Clear the cell">Clear cell</button>
+                </div>
+                <div class="palette-group palette-status">
+                  <span class="palette-label">Brush:</span>
+                  <span class="active-brush-desc">Pick a palette item</span>
+                </div>
+              </div>
+
+              <div class="scene-map-editor-grid" data-grid="1"
+                   style="grid-template-columns: repeat(<%= cols %>, var(--scene-cell-size));">
+                <% rows.times do |r| %>
+                  <% cols.times do |c| %>
+                    <% cell = cells["#{r},#{c}"] || {} %>
+                    <div class="scene-map-cell editable"
+                         data-r="<%= r %>" data-c="<%= c %>"
+                         style="<%= cell['color'] && !cell['color'].empty? ? "background:#{h cell['color']};" : '' %>">
+                      <% if cell['icon'] && !cell['icon'].to_s.empty? %>
+                        <span class="scene-map-icon"><%= h(cell['icon']) %></span>
+                      <% end %>
+                      <% if cell['label'] && !cell['label'].to_s.empty? %>
+                        <span class="scene-map-label"><%= h(cell['label']) %></span>
+                      <% end %>
+                    </div>
+                  <% end %>
+                <% end %>
+              </div>
+
+              <div class="panel-visibility">
+                <% @pc_characters.each do |pc| %>
+                  <label>
+                    <input type="checkbox" name="visible_to[]" value="<%= pc['id'] %>" <%= 'checked' if Array(m['visible_to']).include?(pc['id']) %>>
+                    <%= h(pc['name']) %>
+                  </label>
+                <% end %>
+              </div>
+
+              <div class="form-row">
+                <button type="submit">Save map</button>
+              </div>
+            </form>
+            <form method="post" action="/scene/map/share" style="display:inline;">
+              <input type="hidden" name="id" value="<%= h(map_id) %>">
+              <button type="submit"><%= m['shared'] ? 'Unshare' : 'Share' %></button>
+            </form>
+            <form method="post" action="/scene/map/delete" style="display:inline;">
+              <input type="hidden" name="id" value="<%= h(map_id) %>">
+              <button type="submit" class="danger" onclick="return confirm('Delete this map?');">Delete</button>
+            </form>
+            <small style="color:#666;"><%= m['shared'] ? 'Shared with checked players' : 'Not shared' %></small>
+          </div>
+        <% end %>
+        <form method="post" action="/scene/map" class="notes-form">
+          <h4>New Map</h4>
+          <div class="form-row">
+            <div>
+              <label>Title:</label>
+              <input type="text" name="title" placeholder="Goblin Cave">
+            </div>
+            <div>
+              <label>Rows:</label>
+              <input type="number" name="rows" value="8" min="1" max="40">
+            </div>
+            <div>
+              <label>Cols:</label>
+              <input type="number" name="cols" value="8" min="1" max="40">
+            </div>
+          </div>
+          <div class="panel-visibility">
+            <% @pc_characters.each do |pc| %>
+              <label>
+                <input type="checkbox" name="visible_to[]" value="<%= pc['id'] %>" checked>
+                <%= h(pc['name']) %>
+              </label>
+            <% end %>
+          </div>
+          <button type="submit">Create map</button>
+        </form>
+      </div>
+
+      <div class="section">
         <h3>Images</h3>
         <form method="post" action="/scene/image" class="notes-form" enctype="multipart/form-data">
           <h4>Upload Image</h4>
@@ -292,5 +457,147 @@
         <% end %>
       </div>
     </div>
+  <% end %>
+
+  <% if @is_dm %>
+    <script>
+    (function() {
+      var editors = document.querySelectorAll('.scene-map-editor[data-editor="1"]');
+      editors.forEach(function(form) {
+        var hidden = form.querySelector('input[name="cells_json"]');
+        var grid = form.querySelector('[data-grid="1"]');
+        var palette = form.querySelector('[data-palette="1"]');
+        var status = palette.querySelector('.active-brush-desc');
+        var colorPicker = palette.querySelector('.brush-color-picker');
+        var iconCustom = palette.querySelector('.brush-icon-custom');
+        if (!hidden || !grid || !palette) return;
+
+        var cells = {};
+        try { cells = JSON.parse(hidden.value || '{}') || {}; }
+        catch (e) { cells = {}; }
+
+        var brush = null; // {type: 'color'|'icon'|'label'|'erase', color, icon}
+
+        function setActiveChip(btn) {
+          palette.querySelectorAll('.brush.active').forEach(function(b) { b.classList.remove('active'); });
+          if (btn) btn.classList.add('active');
+        }
+
+        function describe() {
+          if (!brush) { status.textContent = 'Pick a palette item'; return; }
+          if (brush.type === 'color') status.textContent = brush.color ? 'Paint color ' + brush.color : 'Clear color';
+          else if (brush.type === 'icon') status.textContent = brush.icon ? 'Place icon ' + brush.icon : 'Clear icon';
+          else if (brush.type === 'label') status.textContent = 'Click a cell to type a label';
+          else if (brush.type === 'erase') status.textContent = 'Clear cell contents';
+        }
+
+        palette.querySelectorAll('.brush').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var t = btn.getAttribute('data-brush-type');
+            if (t === 'color')      brush = { type: 'color', color: btn.getAttribute('data-color') || '' };
+            else if (t === 'icon')  brush = { type: 'icon',  icon: btn.getAttribute('data-icon') || '' };
+            else if (t === 'label') brush = { type: 'label' };
+            else if (t === 'erase') brush = { type: 'erase' };
+            setActiveChip(btn);
+            describe();
+          });
+        });
+
+        if (colorPicker) {
+          colorPicker.addEventListener('input', function() {
+            brush = { type: 'color', color: colorPicker.value };
+            setActiveChip(null);
+            describe();
+          });
+        }
+        if (iconCustom) {
+          iconCustom.addEventListener('input', function() {
+            brush = { type: 'icon', icon: iconCustom.value };
+            setActiveChip(null);
+            describe();
+          });
+        }
+
+        function redrawCell(cellEl, data) {
+          cellEl.style.background = data && data.color ? data.color : '';
+          cellEl.innerHTML = '';
+          if (data && data.icon) {
+            var i = document.createElement('span');
+            i.className = 'scene-map-icon';
+            i.textContent = data.icon;
+            cellEl.appendChild(i);
+          }
+          if (data && data.label) {
+            var l = document.createElement('span');
+            l.className = 'scene-map-label';
+            l.textContent = data.label;
+            cellEl.appendChild(l);
+          }
+        }
+
+        function applyBrush(key, current) {
+          if (!brush) return current;
+          var next = Object.assign({}, current || {});
+          if (brush.type === 'erase') return null;
+          if (brush.type === 'color') {
+            if (brush.color) next.color = brush.color; else delete next.color;
+          } else if (brush.type === 'icon') {
+            if (brush.icon) next.icon = brush.icon; else delete next.icon;
+          } else if (brush.type === 'label') {
+            var existing = next.label || '';
+            var text = window.prompt('Label for this cell (empty to clear):', existing);
+            if (text === null) return current;
+            if (text === '') delete next.label; else next.label = text;
+          }
+          if (!next.color && !next.icon && !next.label) return null;
+          return next;
+        }
+
+        grid.addEventListener('click', function(e) {
+          var cellEl = e.target.closest('.scene-map-cell.editable');
+          if (!cellEl || !grid.contains(cellEl)) return;
+          if (!brush) return;
+          var r = cellEl.getAttribute('data-r');
+          var c = cellEl.getAttribute('data-c');
+          var key = r + ',' + c;
+          var result = applyBrush(key, cells[key]);
+          if (result === null) delete cells[key]; else cells[key] = result;
+          redrawCell(cellEl, cells[key]);
+          hidden.value = JSON.stringify(cells);
+        });
+
+        grid.addEventListener('mousedown', function(e) {
+          // Drag-paint only for color/erase brushes to avoid accidental prompts.
+          if (!brush || (brush.type !== 'color' && brush.type !== 'erase')) return;
+          var dragging = true;
+          function move(ev) {
+            if (!dragging) return;
+            var el = document.elementFromPoint(ev.clientX, ev.clientY);
+            if (!el) return;
+            var cellEl = el.closest('.scene-map-cell.editable');
+            if (!cellEl || !grid.contains(cellEl)) return;
+            var r = cellEl.getAttribute('data-r');
+            var c = cellEl.getAttribute('data-c');
+            var key = r + ',' + c;
+            var result = applyBrush(key, cells[key]);
+            if (result === null) delete cells[key]; else cells[key] = result;
+            redrawCell(cellEl, cells[key]);
+            hidden.value = JSON.stringify(cells);
+          }
+          function up() {
+            dragging = false;
+            window.removeEventListener('mousemove', move);
+            window.removeEventListener('mouseup', up);
+          }
+          window.addEventListener('mousemove', move);
+          window.addEventListener('mouseup', up);
+        });
+
+        form.addEventListener('submit', function() {
+          hidden.value = JSON.stringify(cells);
+        });
+      });
+    })();
+    </script>
   <% end %>
 </div>

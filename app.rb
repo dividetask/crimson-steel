@@ -193,6 +193,7 @@ get '/scene/:viewer_id' do
   @draft_notes = @notes.select { |n| n['draft'] && n['type'] == 'draft_note' }
   @draft_images = @notes.select { |n| n['draft'] && n['type'] == 'draft_image' }
   @scene_panels = @notes.select { |n| n['draft'] && n['type'] == 'scene_panel' }
+  @scene_maps   = @notes.select { |n| n['draft'] && n['type'] == 'scene_map' }
 
   @visible_images = @draft_images.select { |i| i['shared'] }
   @visible_panels =
@@ -200,6 +201,12 @@ get '/scene/:viewer_id' do
       @scene_panels
     else
       @scene_panels.select { |p| Array(p['visible_to']).include?(@viewer_id) }
+    end
+  @visible_maps =
+    if @is_dm
+      []
+    else
+      @scene_maps.select { |m| m['shared'] && Array(m['visible_to']).include?(@viewer_id) }
     end
 
   characters = Tools.load_json('characters.json')
@@ -458,6 +465,101 @@ post '/scene/image/promote' do
     'public' => true
   }
   notes[idx] = promoted
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+# --- Scene maps (grid-based maps the DM paints with colors, labels, icons;
+# shared per-player like scene panels). Cells are stored in a sparse hash
+# keyed "row,col" so empty cells carry no weight in the JSON. ---
+SCENE_MAP_MAX_DIM = 40
+
+def scene_map_clamp_dim(v, default)
+  n = v.to_i
+  n = default if n <= 0
+  [[n, 1].max, SCENE_MAP_MAX_DIM].min
+end
+
+post '/scene/map' do
+  scene_require_dm!
+  notes = scene_load_notes
+  notes << {
+    'id' => SecureRandom.uuid,
+    'owner_id' => 0,
+    'draft' => true,
+    'type' => 'scene_map',
+    'title' => params[:title].to_s,
+    'rows' => scene_map_clamp_dim(params[:rows], 8),
+    'cols' => scene_map_clamp_dim(params[:cols], 8),
+    'cells' => {},
+    'shared' => false,
+    'visible_to' => scene_parse_visible_to(params[:visible_to])
+  }
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/map/update' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'scene_map'
+
+  entry['title'] = params[:title].to_s
+  entry['visible_to'] = scene_parse_visible_to(params[:visible_to])
+
+  new_rows = scene_map_clamp_dim(params[:rows], entry['rows'].to_i)
+  new_cols = scene_map_clamp_dim(params[:cols], entry['cols'].to_i)
+  entry['rows'] = new_rows
+  entry['cols'] = new_cols
+
+  # The editor posts the cell map as a JSON blob so we can round-trip the
+  # sparse structure without inventing per-cell form field names.
+  raw = params[:cells_json].to_s
+  unless raw.empty?
+    begin
+      parsed = JSON.parse(raw)
+      if parsed.is_a?(Hash)
+        cleaned = {}
+        parsed.each do |key, val|
+          next unless key.is_a?(String) && key =~ /\A(\d+),(\d+)\z/
+          r = Regexp.last_match(1).to_i
+          c = Regexp.last_match(2).to_i
+          next if r >= new_rows || c >= new_cols
+          next unless val.is_a?(Hash)
+          cell = {}
+          cell['color'] = val['color'].to_s[0, 20] if val['color'].is_a?(String) && !val['color'].to_s.empty?
+          cell['label'] = val['label'].to_s[0, 40] if val['label'].is_a?(String) && !val['label'].to_s.empty?
+          cell['icon']  = val['icon'].to_s[0, 20]  if val['icon'].is_a?(String)  && !val['icon'].to_s.empty?
+          cleaned[key] = cell unless cell.empty?
+        end
+        entry['cells'] = cleaned
+      end
+    rescue JSON::ParserError
+      # Leave cells as-is on a bad payload; the UI will re-send on next save.
+    end
+  end
+
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/map/share' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'scene_map'
+  entry['shared'] = !entry['shared']
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/map/delete' do
+  scene_require_dm!
+  notes = scene_load_notes
+  _, idx = scene_find_note(notes, params[:id])
+  halt 404 unless idx
+  notes.delete_at(idx)
   scene_save_notes(notes)
   redirect '/scene/0'
 end
