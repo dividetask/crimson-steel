@@ -605,151 +605,26 @@
     "chapter": 5
   },
   {
-    "id": "55636098-16b7-402a-a99d-c463047e7923",
+    "id": "4cb7ed56-80f8-498b-85ac-fcf9c15e3ea8",
     "owner_id": 0,
     "draft": true,
-    "type": "draft_name",
-    "title": "Alessandro Cortez"
+    "type": "scene_panel",
+    "title": "Highport",
+    "note": "You see yourself in a large city with a massive dock.",
+    "visible_to": [
+      1,
+      2,
+      3,
+      4
+    ]
   },
   {
-    "id": "608b11b2-805a-4fe0-a3e5-8e5533b091f6",
+    "id": "88c62b11-b982-48c0-9735-c1e1b39a7e6e",
     "owner_id": 0,
     "draft": true,
-    "type": "draft_name",
-    "title": "Beatrice Valdez"
-  },
-  {
-    "id": "a2f37dfc-b48d-4f63-9714-28c436186b4f",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Alfredo Ramos"
-  },
-  {
-    "id": "7a2187f9-37fb-4257-a90a-944c851bc487",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Gemma Costa"
-  },
-  {
-    "id": "b1e44904-5efa-4bd1-8671-9129baf400ef",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Lorenzo Ibarra"
-  },
-  {
-    "id": "5ad36943-3305-450c-920e-249e14d94888",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Francesca Ortega"
-  },
-  {
-    "id": "647fd4e5-a36b-4aa2-ad67-f2069ea78bdb",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Giancarlo Parra"
-  },
-  {
-    "id": "32c17945-7192-415c-9298-a6a0ebed13ad",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Paloma Reyes"
-  },
-  {
-    "id": "f0558104-1603-4bb0-a5c7-6c46805ee68e",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Amadeo Ortiz"
-  },
-  {
-    "id": "21cebb60-f313-4e14-a507-66523e5f83e4",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Catalina Gomez"
-  },
-  {
-    "id": "ca513530-886a-4c53-8b68-8de21b90de48",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Vasco Ruiz"
-  },
-  {
-    "id": "b7b44ca1-bacc-45c8-87e8-848420b2a4f3",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Margherita Jimenez"
-  },
-  {
-    "id": "7e801829-0e32-4456-a00c-12dfb485dc6d",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Gonzalo Vargas"
-  },
-  {
-    "id": "928ddbca-dfaf-4893-9cb2-85675f44c49e",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Chiara Moreno"
-  },
-  {
-    "id": "af198a6b-289c-4c89-a5b9-2602382dad6a",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Ignacio Lagos"
-  },
-  {
-    "id": "8835d999-37c8-4f34-a8aa-f27e80711d21",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Violetta Nunez"
-  },
-  {
-    "id": "7c6983fe-0dfd-480a-a26e-36cef78edc8e",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Bruno Cardoso"
-  },
-  {
-    "id": "160f71cc-bc9e-4abc-a8a3-a1db4e1577a6",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Lara Portillo"
-  },
-  {
-    "id": "e138010d-499d-4507-94ec-86decee79343",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Cristian Suarez"
-  },
-  {
-    "id": "3ded6ea5-a20a-4ea8-b841-2f436f3a369f",
-    "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Gabriela Montalvo"
-  },
-  {
-    "owner_id": 0,
-    "type": "image",
-    "title": "Letter from Hawthorne",
-    "image_path": "/images/scene/1776379229-da341abd-Letter.png",
-    "chapter": 4,
-    "public": true
+    "type": "draft_image",
+    "title": "Letter",
+    "image_path": "/images/scene/1776372218-bbf56a8c-Letter.png",
+    "shared": true
   }
 ]

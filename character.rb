@@ -411,6 +411,17 @@ class Compendium
         type: :ward,
         temp_hp: resolve_effect_value(effect["temp_hp"], tier_idx, tier_val).to_i
       )
+    elsif base_data["enhancement"].is_a?(Hash)
+      enh = base_data["enhancement"]
+      base.merge(
+        type: :enhancement,
+        enhancement: {
+          "type" => enh["type"],
+          "attribute" => enh["attribute"],
+          "amount" => resolve_effect_value(enh["amount"], tier_idx, tier_val).to_i
+        }.compact,
+        duration_rounds: ward_duration_rounds(base_data, tier_idx, tier_val)
+      )
     else
       # No recognized effect_hash keys. Scrolls still work as a no-op;
       # potions aren't supported (we don't know how to apply them).
@@ -453,6 +464,29 @@ class Compendium
       tier_idx: idx,
       tier_val: tier_val,
       temp_hp: resolve_effect_value(effect["temp_hp"], idx, tier_val).to_i,
+      duration_rounds: ward_duration_rounds(spell_data, idx, tier_val)
+    }
+  end
+
+  # For a spell variant, return the resolved enhancement payload (same shape
+  # as the item properties.enhancement block) plus a duration in rounds. The
+  # cast handler copies this straight into the combat.active_effects entry so
+  # the target's character sheet math picks it up while the effect is live.
+  def enhancement_effects(spell_name)
+    resolved = resolve_spell_variant(spell_name)
+    return nil unless resolved
+    _base, spell_data, idx, tier_val = resolved
+    enh = spell_data["enhancement"]
+    return nil unless enh.is_a?(Hash)
+    {
+      base_name: resolved[0],
+      tier_idx: idx,
+      tier_val: tier_val,
+      enhancement: {
+        "type" => enh["type"],
+        "attribute" => enh["attribute"],
+        "amount" => resolve_effect_value(enh["amount"], idx, tier_val).to_i
+      }.compact,
       duration_rounds: ward_duration_rounds(spell_data, idx, tier_val)
     }
   end
@@ -845,16 +879,21 @@ module BaseStatsMath
   # effective ability scores flow through to every skill/dice/save formula.
   def ability_damage_total(sym); 0; end
 
-  # Raw ability score (before any damage). Use this for display purposes when
-  # showing the base value alongside a "-X" damage annotation.
+  # Raw ability score (before any damage / enhancement). Use this for
+  # display purposes when showing the base value alongside annotations.
   def ability_score_base(sym); @data["ability_scores"][sym.to_s].to_i; end
 
-  def str; return ability_score_base(:str) - ability_damage_total(:str); end
-  def dex; return ability_score_base(:dex) - ability_damage_total(:dex); end
-  def con; return ability_score_base(:con) - ability_damage_total(:con); end
-  def int; return ability_score_base(:int) - ability_damage_total(:int); end
-  def wis; return ability_score_base(:wis) - ability_damage_total(:wis); end
-  def cha; return ability_score_base(:cha) - ability_damage_total(:cha); end
+  # Effective ability score = base - ability damage + enhancement bonus.
+  # Every downstream formula (half_mod, skill/save aptitude, parse_formula
+  # for hp_max/mana_max/etc.) goes through these getters, so belt /
+  # headband / buff-spell bonuses and ability-damage penalties cascade
+  # automatically without each consumer having to opt in.
+  def str; return ability_score_base(:str) - ability_damage_total(:str) + attribute_enhancement(:str); end
+  def dex; return ability_score_base(:dex) - ability_damage_total(:dex) + attribute_enhancement(:dex); end
+  def con; return ability_score_base(:con) - ability_damage_total(:con) + attribute_enhancement(:con); end
+  def int; return ability_score_base(:int) - ability_damage_total(:int) + attribute_enhancement(:int); end
+  def wis; return ability_score_base(:wis) - ability_damage_total(:wis) + attribute_enhancement(:wis); end
+  def cha; return ability_score_base(:cha) - ability_damage_total(:cha) + attribute_enhancement(:cha); end
   def initiative; return half_mod(:wis); end
   def score(attr); self.send(attr); end
   def half_mod(attr); (self.send(attr) / 2).to_i; end
@@ -864,6 +903,11 @@ module BaseStatsMath
   def hp_max; return parse_formula(@rules["advancement"]["natural"]["hp"][tier]); end
   def mana_max; return parse_formula(@rules["advancement"]["natural"]["mana"][tier]) + (defined?(super) ? super : 0); end
   def mana_regen; return (mana_max / 4).to_i; end
+
+  # Default no-op hooks: characters without CharacterEnhancements mixed in
+  # (e.g. plain hashes, tests) just see zero bonuses so the math stays honest.
+  def attribute_enhancement(_attr); 0; end
+  def save_enhancement; 0; end
 end
 
 module TierMath
@@ -920,10 +964,58 @@ module CharacterEquipment
   end
   def equip_search(params = {}); return @item_list.select { |item| params.map { |key, value| item[key] == value }.all? }; end
 
+  # Enhancement bonuses never stack -- the highest source wins. Equipped
+  # items and any active_effects (combat buffs) both publish the same
+  # shape: { type: "attribute"|"save", attribute: "str"?, amount: N }. We
+  # pull candidates from both pools and return the largest amount.
+  def attribute_enhancement(attr)
+    key = attr.to_s
+    collect_enhancement_amounts { |e| e["type"] == "attribute" && e["attribute"].to_s == key }.max || 0
+  end
+
+  def save_enhancement
+    collect_enhancement_amounts { |e| e["type"] == "save" }.max || 0
+  end
+
+  def collect_enhancement_amounts
+    amounts = []
+    (@item_list || []).each do |item|
+      next unless item["equipped"] || item["type"] == "tattoo"
+      enh = item.dig("properties", "enhancement")
+      next unless enh.is_a?(Hash)
+      amounts << enh["amount"].to_i if yield(enh)
+    end
+    active_effects_targeting_me.each do |effect|
+      enh = effect["enhancement"]
+      next unless enh.is_a?(Hash)
+      amounts << enh["amount"].to_i if yield(enh)
+    end
+    amounts
+  end
+
+  # Active combat effects -- loaded lazily from combat.json -- that target
+  # this character. Empty list when no combat is running or the character
+  # isn't a participant. Cached for the lifetime of this CharacterSheet.
+  def active_effects_targeting_me
+    return @active_effects_cache if defined?(@active_effects_cache)
+    @active_effects_cache = []
+    combat_data = Tools.load_json('combat.json')
+    return @active_effects_cache unless combat_data.is_a?(Hash)
+    participants = combat_data['participants'] || []
+    mine = participants.find { |p| (p['char_id'] || p['id']) == @id }
+    return @active_effects_cache unless mine
+    combat_id = mine['id']
+    effects = combat_data['active_effects'] || []
+    @active_effects_cache = effects.select do |effect|
+      (effect['target_combat_ids'] || []).include?(combat_id)
+    end
+  end
+
   def defined_items; return @item_list.select { |item| item["description"] }; end
   def weapon_list; return @item_list.select { |item| item["type"] == "weapon" }; end
   def shield_list; return @item_list.select { |item| item["type"] == "shield" }; end
   def equipped_list; return @item_list.select { |item| item["equipped"] == true }; end
+  def tattoo_list; return @item_list.select { |item| item["type"] == "tattoo" }; end
   def ammunition; return @item_list.select { |item| item["properties"]["ammunition"] == true }; end
   def consumable; return @item_list.select { |item| item["properties"]["consumable"] == true }; end
   def other_items
@@ -1041,6 +1133,12 @@ class CharacterSheet
   def race_sym; return (@data["race"][0] || @data["race"]).to_sym; end
   def undead?; @data["race"].include?("undead"); end
   def speed; return 30 + @rules["reference"]["speed_modifiers"]["race"][race_sym.to_s].to_i + speed_modifiers; end
+
+  # Enhancement bonuses to saves are flat additions on top of the class /
+  # attribute derived save bonus. Worn Cloaks of Resistance and the
+  # Resistance spell contribute here; stacking is capped to the highest
+  # amount by save_enhancement itself.
+  def save_bonus(attr); super + save_enhancement; end
 
   def con; undead? ? cha_raw : super; end
   # cha_raw is undead's substitute for CON; include CHA ability damage so

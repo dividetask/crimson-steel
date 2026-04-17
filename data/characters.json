@@ -48,11 +48,11 @@
 			"str": 9,
 			"dex": 19,
 			"con": 13,
-			"int": 14,
+			"int": 13,
 			"wis": 15,
 			"cha": 15
 		},
-		"classes": [{"level": 4, "class": "arcane_trickster", 
+		"classes": [{"level": 4, "class": "arcane_trickster",
 			"skills": ["arcana", "stealth", "larceny", "slight_of_hand", "deception", "persuasion", "perception", "game_chess" ] }],
 		"feats": { "race": ["elven_magic", "firebolt"]},
 		"spells": [

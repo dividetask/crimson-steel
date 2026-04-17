@@ -5,6 +5,8 @@
     "type": "item",
     "subtype": "book",
     "bonus": 0,
+    "properties": {
+    },
     "description": "A blank ritual spellbook. Required to learn and cast ritual spells. One-time purchase; additional rituals are inscribed separately."
   },
   {
@@ -13,15 +15,56 @@
     "type": "item",
     "subtype": "thrown",
     "bonus": 0,
+    "properties": {
+      "consumable": true,
+      "thrown": true
+    },
     "description": "This can be thrown as a splash weapon dealing 1 point of moderate fire damage to all creatures within 5 feet. On a direct hit this damage is increased by the number of successes and sneak attack damage when appropriate"
   },
   {
-    "name": "Lesser Bag of Holding",
-    "price": 2500,
+    "name": "Bag of Holding",
     "type": "item",
     "subtype": "bag",
-    "bonus": 1,
-    "description": "The bag of holding opens into a nondimensional space: its inside is larger than its outside dimensions. Regardless of what is put into the bag, it weighs a fixed Amount. This weight, and the limits in weight and volume of the bag’s contents, depend on the bag’s type. This bag weighs 15 pounds, can hold up to 250 pounds with a maximum dimensions of 30 cubic feet."
+    "properties": {
+    },
+    "description": "The bag of holding opens into a nondimensional space: its inside is larger than its outside dimensions. Regardless of what is put into the bag, it weighs a fixed amount. This bag weighs {weight} pounds, can hold up to {capacity} pounds, with maximum dimensions of {volume} cubic feet.",
+    "variant_rules_table": "bag_of_holding",
+    "variant_selectors": [
+      {
+        "key": "size",
+        "label": "Size"
+      }
+    ],
+    "variants": [
+      {
+        "size": "Minor",
+        "rules_key": "minor",
+        "bonus": 1,
+        "price": 2500,
+        "display_name": "Minor Bag of Holding"
+      },
+      {
+        "size": "Lesser",
+        "rules_key": "lesser",
+        "bonus": 2,
+        "price": 5000,
+        "display_name": "Lesser Bag of Holding"
+      },
+      {
+        "size": "Moderate",
+        "rules_key": "moderate",
+        "bonus": 3,
+        "price": 7400,
+        "display_name": "Moderate Bag of Holding"
+      },
+      {
+        "size": "Major",
+        "rules_key": "major",
+        "bonus": 4,
+        "price": 10000,
+        "display_name": "Major Bag of Holding"
+      }
+    ]
   },
   {
     "name": "Hat of Disguise",
@@ -29,6 +72,794 @@
     "type": "equipment",
     "subtype": "head",
     "bonus": 1,
+    "properties": {
+    },
     "description": "This allows the wearer to benefit from the effects of Disguise Self. The appearance of the hat may be changed within the bounds of the spell but cannot be hidden."
+  },
+  {
+    "name": "Cloak of Resistance",
+    "type": "item",
+    "subtype": "back",
+    "properties": {
+    },
+    "properties_template": {
+      "enhancement": {
+        "type": "save",
+        "amount": "{amount}"
+      }
+    },
+    "description": "Increases the wearer's enhancement bonus on all saves.",
+    "variant_selectors": [
+      {
+        "key": "enhancement_bonus",
+        "label": "Enhancement"
+      }
+    ],
+    "variants": [
+      {
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 1000,
+        "display_name": "+1 Cloak of Resistance"
+      },
+      {
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 2,
+        "price": 4000,
+        "display_name": "+2 Cloak of Resistance"
+      },
+      {
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 3,
+        "price": 9000,
+        "display_name": "+3 Cloak of Resistance"
+      },
+      {
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 4,
+        "price": 16000,
+        "display_name": "+4 Cloak of Resistance"
+      },
+      {
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 5,
+        "price": 25000,
+        "display_name": "+5 Cloak of Resistance"
+      }
+    ]
+  },
+  {
+    "name": "Belt",
+    "type": "item",
+    "subtype": "belt",
+    "properties": {
+    },
+    "properties_template": {
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "{attribute_key}",
+        "amount": "{amount}"
+      }
+    },
+    "description": "Increases the wearer's enhancement bonus for a single attribute.",
+    "variant_selectors": [
+      {
+        "key": "attribute",
+        "label": "Attribute"
+      },
+      {
+        "key": "enhancement_bonus",
+        "label": "Enhancement"
+      }
+    ],
+    "variants": [
+      {
+        "attribute": "Strength",
+        "attribute_key": "str",
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 500,
+        "display_name": "+1 Belt of Strength"
+      },
+      {
+        "attribute": "Strength",
+        "attribute_key": "str",
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 1,
+        "price": 2000,
+        "display_name": "+2 Belt of Strength"
+      },
+      {
+        "attribute": "Strength",
+        "attribute_key": "str",
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 1,
+        "price": 4500,
+        "display_name": "+3 Belt of Strength"
+      },
+      {
+        "attribute": "Strength",
+        "attribute_key": "str",
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 2,
+        "price": 8000,
+        "display_name": "+4 Belt of Strength"
+      },
+      {
+        "attribute": "Strength",
+        "attribute_key": "str",
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 2,
+        "price": 12500,
+        "display_name": "+5 Belt of Strength"
+      },
+      {
+        "attribute": "Constitution",
+        "attribute_key": "con",
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 500,
+        "display_name": "+1 Belt of Constitution"
+      },
+      {
+        "attribute": "Constitution",
+        "attribute_key": "con",
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 1,
+        "price": 2000,
+        "display_name": "+2 Belt of Constitution"
+      },
+      {
+        "attribute": "Constitution",
+        "attribute_key": "con",
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 1,
+        "price": 4500,
+        "display_name": "+3 Belt of Constitution"
+      },
+      {
+        "attribute": "Constitution",
+        "attribute_key": "con",
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 2,
+        "price": 8000,
+        "display_name": "+4 Belt of Constitution"
+      },
+      {
+        "attribute": "Constitution",
+        "attribute_key": "con",
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 2,
+        "price": 12500,
+        "display_name": "+5 Belt of Constitution"
+      },
+      {
+        "attribute": "Dexterity",
+        "attribute_key": "dex",
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 500,
+        "display_name": "+1 Belt of Dexterity"
+      },
+      {
+        "attribute": "Dexterity",
+        "attribute_key": "dex",
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 1,
+        "price": 2000,
+        "display_name": "+2 Belt of Dexterity"
+      },
+      {
+        "attribute": "Dexterity",
+        "attribute_key": "dex",
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 1,
+        "price": 4500,
+        "display_name": "+3 Belt of Dexterity"
+      },
+      {
+        "attribute": "Dexterity",
+        "attribute_key": "dex",
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 2,
+        "price": 8000,
+        "display_name": "+4 Belt of Dexterity"
+      },
+      {
+        "attribute": "Dexterity",
+        "attribute_key": "dex",
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 2,
+        "price": 12500,
+        "display_name": "+5 Belt of Dexterity"
+      }
+    ]
+  },
+  {
+    "name": "Headband",
+    "type": "item",
+    "subtype": "head",
+    "properties": {
+    },
+    "properties_template": {
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "{attribute_key}",
+        "amount": "{amount}"
+      }
+    },
+    "description": "Increases the wearer's enhancement bonus for a single attribute.",
+    "variant_selectors": [
+      {
+        "key": "attribute",
+        "label": "Attribute"
+      },
+      {
+        "key": "enhancement_bonus",
+        "label": "Enhancement"
+      }
+    ],
+    "variants": [
+      {
+        "attribute": "Intelligence",
+        "attribute_key": "int",
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 500,
+        "display_name": "+1 Headband of Intelligence"
+      },
+      {
+        "attribute": "Intelligence",
+        "attribute_key": "int",
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 1,
+        "price": 2000,
+        "display_name": "+2 Headband of Intelligence"
+      },
+      {
+        "attribute": "Intelligence",
+        "attribute_key": "int",
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 1,
+        "price": 4500,
+        "display_name": "+3 Headband of Intelligence"
+      },
+      {
+        "attribute": "Intelligence",
+        "attribute_key": "int",
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 2,
+        "price": 8000,
+        "display_name": "+4 Headband of Intelligence"
+      },
+      {
+        "attribute": "Intelligence",
+        "attribute_key": "int",
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 2,
+        "price": 12500,
+        "display_name": "+5 Headband of Intelligence"
+      },
+      {
+        "attribute": "Wisdom",
+        "attribute_key": "wis",
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 500,
+        "display_name": "+1 Headband of Wisdom"
+      },
+      {
+        "attribute": "Wisdom",
+        "attribute_key": "wis",
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 1,
+        "price": 2000,
+        "display_name": "+2 Headband of Wisdom"
+      },
+      {
+        "attribute": "Wisdom",
+        "attribute_key": "wis",
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 1,
+        "price": 4500,
+        "display_name": "+3 Headband of Wisdom"
+      },
+      {
+        "attribute": "Wisdom",
+        "attribute_key": "wis",
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 2,
+        "price": 8000,
+        "display_name": "+4 Headband of Wisdom"
+      },
+      {
+        "attribute": "Wisdom",
+        "attribute_key": "wis",
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 2,
+        "price": 12500,
+        "display_name": "+5 Headband of Wisdom"
+      },
+      {
+        "attribute": "Charisma",
+        "attribute_key": "cha",
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 500,
+        "display_name": "+1 Headband of Charisma"
+      },
+      {
+        "attribute": "Charisma",
+        "attribute_key": "cha",
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 1,
+        "price": 2000,
+        "display_name": "+2 Headband of Charisma"
+      },
+      {
+        "attribute": "Charisma",
+        "attribute_key": "cha",
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 1,
+        "price": 4500,
+        "display_name": "+3 Headband of Charisma"
+      },
+      {
+        "attribute": "Charisma",
+        "attribute_key": "cha",
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 2,
+        "price": 8000,
+        "display_name": "+4 Headband of Charisma"
+      },
+      {
+        "attribute": "Charisma",
+        "attribute_key": "cha",
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 2,
+        "price": 12500,
+        "display_name": "+5 Headband of Charisma"
+      }
+    ]
+  },
+  {
+    "name": "Back Tattoo of Resistance",
+    "type": "tattoo",
+    "subtype": "back",
+    "properties": {
+    },
+    "properties_template": {
+      "enhancement": {
+        "type": "save",
+        "amount": "{amount}"
+      }
+    },
+    "description": "A permanent tattoo that increases the bearer's enhancement bonus on all saves.",
+    "variant_selectors": [
+      {
+        "key": "enhancement_bonus",
+        "label": "Enhancement"
+      }
+    ],
+    "variants": [
+      {
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 2000,
+        "display_name": "+1 Back Tattoo of Resistance"
+      },
+      {
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 1,
+        "price": 8000,
+        "display_name": "+2 Back Tattoo of Resistance"
+      },
+      {
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 1,
+        "price": 18000,
+        "display_name": "+3 Back Tattoo of Resistance"
+      },
+      {
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 2,
+        "price": 32000,
+        "display_name": "+4 Back Tattoo of Resistance"
+      },
+      {
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 2,
+        "price": 50000,
+        "display_name": "+5 Back Tattoo of Resistance"
+      }
+    ]
+  },
+  {
+    "name": "Belt Tattoo of Bull's Strength",
+    "type": "tattoo",
+    "subtype": "belt",
+    "properties": {
+    },
+    "properties_template": {
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "str",
+        "amount": "{amount}"
+      }
+    },
+    "description": "A permanent tattoo that increases the bearer's enhancement bonus to Strength.",
+    "variant_selectors": [
+      {
+        "key": "enhancement_bonus",
+        "label": "Enhancement"
+      }
+    ],
+    "variants": [
+      {
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 1000,
+        "display_name": "+1 Belt Tattoo of Bull's Strength"
+      },
+      {
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 1,
+        "price": 4000,
+        "display_name": "+2 Belt Tattoo of Bull's Strength"
+      },
+      {
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 1,
+        "price": 9000,
+        "display_name": "+3 Belt Tattoo of Bull's Strength"
+      },
+      {
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 2,
+        "price": 16000,
+        "display_name": "+4 Belt Tattoo of Bull's Strength"
+      },
+      {
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 2,
+        "price": 25000,
+        "display_name": "+5 Belt Tattoo of Bull's Strength"
+      }
+    ]
+  },
+  {
+    "name": "Belt Tattoo of Bear's Endurance",
+    "type": "tattoo",
+    "subtype": "belt",
+    "properties": {
+    },
+    "properties_template": {
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "con",
+        "amount": "{amount}"
+      }
+    },
+    "description": "A permanent tattoo that increases the bearer's enhancement bonus to Constitution.",
+    "variant_selectors": [
+      {
+        "key": "enhancement_bonus",
+        "label": "Enhancement"
+      }
+    ],
+    "variants": [
+      {
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 1000,
+        "display_name": "+1 Belt Tattoo of Bear's Endurance"
+      },
+      {
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 1,
+        "price": 4000,
+        "display_name": "+2 Belt Tattoo of Bear's Endurance"
+      },
+      {
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 1,
+        "price": 9000,
+        "display_name": "+3 Belt Tattoo of Bear's Endurance"
+      },
+      {
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 2,
+        "price": 16000,
+        "display_name": "+4 Belt Tattoo of Bear's Endurance"
+      },
+      {
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 2,
+        "price": 25000,
+        "display_name": "+5 Belt Tattoo of Bear's Endurance"
+      }
+    ]
+  },
+  {
+    "name": "Belt Tattoo of Cat's Grace",
+    "type": "tattoo",
+    "subtype": "belt",
+    "properties": {
+    },
+    "properties_template": {
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "dex",
+        "amount": "{amount}"
+      }
+    },
+    "description": "A permanent tattoo that increases the bearer's enhancement bonus to Dexterity.",
+    "variant_selectors": [
+      {
+        "key": "enhancement_bonus",
+        "label": "Enhancement"
+      }
+    ],
+    "variants": [
+      {
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 1000,
+        "display_name": "+1 Belt Tattoo of Cat's Grace"
+      },
+      {
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 1,
+        "price": 4000,
+        "display_name": "+2 Belt Tattoo of Cat's Grace"
+      },
+      {
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 1,
+        "price": 9000,
+        "display_name": "+3 Belt Tattoo of Cat's Grace"
+      },
+      {
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 2,
+        "price": 16000,
+        "display_name": "+4 Belt Tattoo of Cat's Grace"
+      },
+      {
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 2,
+        "price": 25000,
+        "display_name": "+5 Belt Tattoo of Cat's Grace"
+      }
+    ]
+  },
+  {
+    "name": "Face Tattoo of Fox's Cunning",
+    "type": "tattoo",
+    "subtype": "face",
+    "properties": {
+    },
+    "properties_template": {
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "int",
+        "amount": "{amount}"
+      }
+    },
+    "description": "A permanent tattoo that increases the bearer's enhancement bonus to Intelligence.",
+    "variant_selectors": [
+      {
+        "key": "enhancement_bonus",
+        "label": "Enhancement"
+      }
+    ],
+    "variants": [
+      {
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 1000,
+        "display_name": "+1 Face Tattoo of Fox's Cunning"
+      },
+      {
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 1,
+        "price": 4000,
+        "display_name": "+2 Face Tattoo of Fox's Cunning"
+      },
+      {
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 1,
+        "price": 9000,
+        "display_name": "+3 Face Tattoo of Fox's Cunning"
+      },
+      {
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 2,
+        "price": 16000,
+        "display_name": "+4 Face Tattoo of Fox's Cunning"
+      },
+      {
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 2,
+        "price": 25000,
+        "display_name": "+5 Face Tattoo of Fox's Cunning"
+      }
+    ]
+  },
+  {
+    "name": "Face Tattoo of Owl's Wisdom",
+    "type": "tattoo",
+    "subtype": "face",
+    "properties": {
+    },
+    "properties_template": {
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "wis",
+        "amount": "{amount}"
+      }
+    },
+    "description": "A permanent tattoo that increases the bearer's enhancement bonus to Wisdom.",
+    "variant_selectors": [
+      {
+        "key": "enhancement_bonus",
+        "label": "Enhancement"
+      }
+    ],
+    "variants": [
+      {
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 1000,
+        "display_name": "+1 Face Tattoo of Owl's Wisdom"
+      },
+      {
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 1,
+        "price": 4000,
+        "display_name": "+2 Face Tattoo of Owl's Wisdom"
+      },
+      {
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 1,
+        "price": 9000,
+        "display_name": "+3 Face Tattoo of Owl's Wisdom"
+      },
+      {
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 2,
+        "price": 16000,
+        "display_name": "+4 Face Tattoo of Owl's Wisdom"
+      },
+      {
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 2,
+        "price": 25000,
+        "display_name": "+5 Face Tattoo of Owl's Wisdom"
+      }
+    ]
+  },
+  {
+    "name": "Face Tattoo of Eagle's Splendor",
+    "type": "tattoo",
+    "subtype": "face",
+    "properties": {
+    },
+    "properties_template": {
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "cha",
+        "amount": "{amount}"
+      }
+    },
+    "description": "A permanent tattoo that increases the bearer's enhancement bonus to Charisma.",
+    "variant_selectors": [
+      {
+        "key": "enhancement_bonus",
+        "label": "Enhancement"
+      }
+    ],
+    "variants": [
+      {
+        "enhancement_bonus": "+1",
+        "amount": 1,
+        "bonus": 1,
+        "price": 1000,
+        "display_name": "+1 Face Tattoo of Eagle's Splendor"
+      },
+      {
+        "enhancement_bonus": "+2",
+        "amount": 2,
+        "bonus": 1,
+        "price": 4000,
+        "display_name": "+2 Face Tattoo of Eagle's Splendor"
+      },
+      {
+        "enhancement_bonus": "+3",
+        "amount": 3,
+        "bonus": 1,
+        "price": 9000,
+        "display_name": "+3 Face Tattoo of Eagle's Splendor"
+      },
+      {
+        "enhancement_bonus": "+4",
+        "amount": 4,
+        "bonus": 2,
+        "price": 16000,
+        "display_name": "+4 Face Tattoo of Eagle's Splendor"
+      },
+      {
+        "enhancement_bonus": "+5",
+        "amount": 5,
+        "bonus": 2,
+        "price": 25000,
+        "display_name": "+5 Face Tattoo of Eagle's Splendor"
+      }
+    ]
   }
 ]

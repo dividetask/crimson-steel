@@ -167,6 +167,15 @@ table th {
   border-left: none;
 }
 
+/* Enhancement-bonus annotation shown next to an attribute score when a
+   belt / headband / buff spell is boosting the attribute. Kept small and
+   subdued so the main score stays the visual anchor. */
+.enh-note {
+  color: #4a7c59;
+  font-size: 0.8em;
+  margin-left: 3px;
+}
+
 .skills {
   margin-bottom: 0px;
 }

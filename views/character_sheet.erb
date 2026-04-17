@@ -130,10 +130,11 @@
         </tr>
         <% @character.ability_score_names.each do |name, sym| %>
         <% dmg = @character.ability_damage_total(sym) %>
+        <% attr_enh = @character.attribute_enhancement(sym) %>
         <tr>
           <td class="attr-name"><%= name %></td>
           <td>
-            <%= @character.ability_score_base(sym) %><% if dmg > 0 %><span class="ability-damage">-<%= dmg %></span><% end %>
+            <%= @character.ability_score_base(sym) %><% if dmg > 0 %><span class="ability-damage">-<%= dmg %></span><% end %><% if attr_enh > 0 %><span class="enh-note" title="base <%= @character.ability_score_base(sym) %> +<%= attr_enh %> enhancement">(+<%= attr_enh %>)</span><% end %>
           </td>
           <td><%= @character.half_mod(sym) %></td>
           <td><%= @character.attr_dice(sym) %>d</td>
@@ -143,6 +144,10 @@
         </tr>
         <% end %>
       </table>
+      <% save_enh = @character.save_enhancement %>
+      <% if save_enh > 0 %>
+        <div class="formula">Saves include +<%= save_enh %> enhancement bonus.</div>
+      <% end %>
       <div class="formula">Formula: 4+½ Attribute Mod, subtract 5 when &gt; 8</div>
 
       <h2>Skills</h2>
@@ -166,6 +171,10 @@
 
       <h2>Items</h2>
       <div class="items">
+				<% tattoos = @character.tattoo_list %>
+				<% unless tattoos.empty? %>
+					<p><strong>Tattoos:</strong> <%= tattoos.map { |item| item["name"] }.join(", ") %></p>
+				<% end %>
 				<p><strong>Equipped:</strong> <%= @character.equip_search({"equipped" => true}).map { |item| item["name"] }.join(", ") %></p>
 				<% unless @character.ammunition.empty? %>
 					<p><strong>Ammunition:</strong> <%= @character.ammunition.map { |item| "(#{item['quantity'] || 1}) #{item['name']}" }.join(", ") %></p>

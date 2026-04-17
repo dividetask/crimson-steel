@@ -742,6 +742,34 @@
 
       ],
       "range": 1,
+      "duration": "6",
+      "casting_time": 1,
+      "skill": [
+        "healing",
+        "arcana",
+        "perform_"
+      ],
+      "properties": [
+
+      ],
+      "effect_hash": {
+      },
+      "enhancement": {
+        "type": "save",
+        "amount": 1
+      },
+      "description": "Grants a +1 enhancement bonus to saving throws for 6 rounds."
+    },
+    "Bull's Strength": {
+      "tier": 1,
+      "save": 0,
+      "school": "transmutation",
+      "items": [
+        "potion",
+        "scroll",
+        "wand"
+      ],
+      "range": 1,
       "duration": "rank*10",
       "casting_time": 1,
       "skill": [
@@ -754,7 +782,157 @@
       ],
       "effect_hash": {
       },
-      "description": "Grants +1 enhancement bonus to saving throws."
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "str",
+        "amount": 4
+      },
+      "description": "Grants a +4 enhancement bonus to Strength for 1 minute per rank."
+    },
+    "Bear's Endurance": {
+      "tier": 1,
+      "save": 0,
+      "school": "transmutation",
+      "items": [
+        "potion",
+        "scroll",
+        "wand"
+      ],
+      "range": 1,
+      "duration": "rank*10",
+      "casting_time": 1,
+      "skill": [
+        "healing",
+        "arcana",
+        "perform_"
+      ],
+      "properties": [
+
+      ],
+      "effect_hash": {
+      },
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "con",
+        "amount": 4
+      },
+      "description": "Grants a +4 enhancement bonus to Constitution for 1 minute per rank."
+    },
+    "Cat's Grace": {
+      "tier": 1,
+      "save": 0,
+      "school": "transmutation",
+      "items": [
+        "potion",
+        "scroll",
+        "wand"
+      ],
+      "range": 1,
+      "duration": "rank*10",
+      "casting_time": 1,
+      "skill": [
+        "healing",
+        "arcana",
+        "perform_"
+      ],
+      "properties": [
+
+      ],
+      "effect_hash": {
+      },
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "dex",
+        "amount": 4
+      },
+      "description": "Grants a +4 enhancement bonus to Dexterity for 1 minute per rank."
+    },
+    "Fox's Cunning": {
+      "tier": 1,
+      "save": 0,
+      "school": "transmutation",
+      "items": [
+        "potion",
+        "scroll",
+        "wand"
+      ],
+      "range": 1,
+      "duration": "rank*10",
+      "casting_time": 1,
+      "skill": [
+        "healing",
+        "arcana",
+        "perform_"
+      ],
+      "properties": [
+
+      ],
+      "effect_hash": {
+      },
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "int",
+        "amount": 4
+      },
+      "description": "Grants a +4 enhancement bonus to Intelligence for 1 minute per rank."
+    },
+    "Owl's Wisdom": {
+      "tier": 1,
+      "save": 0,
+      "school": "transmutation",
+      "items": [
+        "potion",
+        "scroll",
+        "wand"
+      ],
+      "range": 1,
+      "duration": "rank*10",
+      "casting_time": 1,
+      "skill": [
+        "healing",
+        "arcana",
+        "perform_"
+      ],
+      "properties": [
+
+      ],
+      "effect_hash": {
+      },
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "wis",
+        "amount": 4
+      },
+      "description": "Grants a +4 enhancement bonus to Wisdom for 1 minute per rank."
+    },
+    "Eagle's Splendor": {
+      "tier": 1,
+      "save": 0,
+      "school": "transmutation",
+      "items": [
+        "potion",
+        "scroll",
+        "wand"
+      ],
+      "range": 1,
+      "duration": "rank*10",
+      "casting_time": 1,
+      "skill": [
+        "healing",
+        "arcana",
+        "perform_"
+      ],
+      "properties": [
+
+      ],
+      "effect_hash": {
+      },
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "cha",
+        "amount": 4
+      },
+      "description": "Grants a +4 enhancement bonus to Charisma for 1 minute per rank."
     },
     "Sift": {
       "tier": 0,
