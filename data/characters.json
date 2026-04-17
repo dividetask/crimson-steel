@@ -103,8 +103,8 @@
 		"classes": [{"level": 4, "class": "wizard", "skills": ["arcana", "deception", "persuasion", "sense_motive", "perception", "stealth", "linguistics"] }],
 		"spells": [
 			["Detect Magic", "Mage Hand", "Message", "Ghost Sound", "Sift", "Silent Portal"],
-			["Mage Armor", "Minor Disguise", "Grease", "Obscuring Mist", "Hideous Laughter"],
-			["Invisibility", "Disguise Other", "Silent Image"]],
+			["Mage Armor", "Minor Disguise", "Grease", "Obscuring Mist", "Hideous Laughter", "Silent Image"],
+			["Invisibility", "Web"]],
 		"rituals": [
 			["Arcane Mark", "Detect Magic", "Light", "Mage Hand", "Mending", "Message"],
 			["Disguise Self", "Expeditious Retreat", "Grease", "Mage Armor", "Obscuring Mist"],
