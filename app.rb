@@ -882,6 +882,18 @@ post '/combat/action' do
         participant['combat_pool'] = participant['combat_pool'].to_i - bw_dice
       end
 
+      # Generic save: any save-based spell without a specific handler
+      # above. Dice are spent on the spell check; per-target save results
+      # are logged but no mechanical effects are applied automatically.
+      generic_save_dice = 0
+      if params[:generic_save].to_s == 'true'
+        generic_save_dice = params[:dice_spent].to_i
+        if generic_save_dice >= 2
+          halt 400, "Not enough dice" if participant['combat_pool'].to_i < generic_save_dice
+          participant['combat_pool'] = participant['combat_pool'].to_i - generic_save_dice
+        end
+      end
+
       # Web: multi-target entangle/stuck; client sends per-target outcomes.
       web_dice = 0
       web_results = []
@@ -1070,7 +1082,7 @@ post '/combat/action' do
       end
       Tools.save_json('combat.json', combat_data)
       suffix = target_names.empty? ? "" : " on #{target_names.join(', ')}"
-      dice_total = [spiritual_weapon_dice, bd_dice, ranged_dice, vm_dice, bw_dice, web_dice].max
+      dice_total = [spiritual_weapon_dice, bd_dice, ranged_dice, vm_dice, bw_dice, web_dice, generic_save_dice].max
       dice_suffix = dice_total > 0 ? " with #{dice_total} dice" : ""
       outcome = ""
       if spell_name == 'Blindness/Deafness'
@@ -1106,6 +1118,20 @@ post '/combat/action' do
           "#{name}: #{r['outcome']}"
         end.compact
         outcome = " - #{parts.join('; ')}" unless parts.empty?
+      elsif generic_save_dice > 0
+        caster_s = params[:gs_caster_successes].to_i
+        save_parts = params[:gs_save_results].to_s.split(';').filter_map do |part|
+          next nil if part.empty?
+          tid_s, save_s = part.split(':')
+          tgt = combat_data['participants'].find { |p| p['id'] == tid_s.to_i }
+          next nil unless tgt
+          tgt_char_id = tgt['char_id'] || tgt['id']
+          tgt_data = Tools.load_json('characters.json').find { |c| c['id'] == tgt_char_id }
+          name = tgt_data ? CharacterSheet.new(tgt_data).name : 'target'
+          net = caster_s - save_s.to_i
+          "#{name}: #{net} net (#{caster_s} vs #{save_s.to_i} save)"
+        end
+        outcome = " - #{save_parts.join('; ')}" unless save_parts.empty?
       end
       # When the cast came from a scroll, consume one charge.
       scroll_name = nil

@@ -712,6 +712,14 @@
         startRangedAttackSpellCast(spellName, spellTier, targetIds, /*isConcentrateReuse=*/false, /*effectIndex=*/-1);
         return;
       }
+      // Any spell with a save that isn't already handled above gets the
+      // generic opposed-roll flow: caster check + target save(s). Cure,
+      // ward, and stabilize spells have saves for saturation mechanics
+      // that are handled by their dedicated backend branches, not here.
+      if (spellEntry && spellEntry.save_attr && !spellEntry.cure && !spellEntry.ward && !spellEntry.stabilize) {
+        startGenericSaveCast(spellName, spellTier, targetIds);
+        return;
+      }
       if (spellName !== 'Spiritual Weapon') {
         confirmCast(spellName, spellTier, targetIds, isInstant, effectLabel, targetMode, isConcentration, 0);
         return;
@@ -1327,6 +1335,166 @@
         '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Submit</button>');
     }
 
+    // --- Generic save spell (any spell with save_attr not already
+    //     handled by a dedicated flow). Caster rolls a spell check,
+    //     each target rolls a save. Supports single and multi-target.
+    //     Multi-target saves are grouped by unique (dice, tn).
+    var gsCast = null;
+
+    function startGenericSaveCast(spellName, spellTier, targetIds) {
+      var spellEntry = spellMetaFor(spellName);
+      if (!spellEntry || !spellEntry.caster_skill) {
+        alert('Caster has no eligible skill for ' + spellName);
+        return;
+      }
+      gsCast = {
+        spellName: spellName, spellTier: spellTier,
+        targetIds: targetIds.slice(),
+        saveAttr: spellEntry.save_attr,
+        casterSkill: spellEntry.caster_skill,
+        casterSkillDice: spellEntry.caster_skill_dice,
+        casterSkillBonus: spellEntry.caster_skill_bonus,
+        diceSpent: 0, casterSuccesses: null,
+        targetSaves: {},
+        saveGroups: null
+      };
+
+      var maxDice = Math.min(gsCast.casterSkillDice, diceRemaining);
+      var minDice = 2;
+      if (maxDice < minDice) {
+        addStep('<strong>Cannot cast ' + spellName + '</strong> - need at least ' +
+          minDice + ' dice (skill allows ' + gsCast.casterSkillDice + ', pool has ' + diceRemaining + ')');
+        return;
+      }
+      var targetNames = targetIds.map(function(id) {
+        var c = combatants.find(function(x) { return x.combat_id === id; });
+        return c ? c.name : '?';
+      }).join(', ');
+      var diceId = 'gs-dice-' + Date.now();
+      addStep('<strong>' + spellName + '</strong> on ' + targetNames +
+        '<br><span class="math-detail">Rolls off ' + gsCast.casterSkill.replace('_', ' ') +
+        ' (' + gsCast.casterSkillDice + ' dice max). Save: ' + gsCast.saveAttr.toUpperCase() + '.</span>' +
+        '<br><label>Dice: <input type="number" id="' + diceId + '" min="' + minDice + '" max="' + maxDice + '" value="' + maxDice + '" style="width:50px;"></label>' +
+        ' <button class="action-btn" style="margin-top:4px;" onclick="(function(){' +
+        'var v=parseInt(document.getElementById(\'' + diceId + '\').value,10);' +
+        'if(isNaN(v)||v<' + minDice + '||v>' + maxDice + '){alert(\'Enter ' + minDice + '-' + maxDice + '.\');return;}' +
+        'gsCast.diceSpent=v;gsCasterRollStep();})()">Next</button>');
+    }
+
+    function gsCasterRollStep() {
+      var casterTn = clampTn(diceRules.base_target_number - gsCast.casterSkillBonus);
+      gsCast.casterTn = casterTn;
+      var tnMath = tnBreakdown('Caster TN', diceRules.base_target_number,
+        [{value: -gsCast.casterSkillBonus, label: gsCast.casterSkill.replace('_', ' ') + ' bonus'}], casterTn);
+      addStep('<strong>Caster Spell Check</strong>: ' + gsCast.diceSpent + ' dice, TN ' + casterTn +
+        '<br><span class="math-detail">' + tnMath + '</span>' +
+        '<br><label>Successes: <input type="number" id="gs-caster-successes" min="0" value="0" style="width:50px;"></label>' +
+        ' <button class="action-btn" onclick="gsConfirmCasterSuccesses()">Confirm</button>' +
+        ' <button class="action-btn" onclick="rollDicePool(' + gsCast.diceSpent + ', ' + casterTn + ', \'gs-caster-successes\', \'gs-caster-roll-display\')">Roll</button>' +
+        '<div id="gs-caster-roll-display" class="math-detail" style="margin-top:4px;"></div>');
+    }
+
+    function gsConfirmCasterSuccesses() {
+      var input = document.getElementById('gs-caster-successes');
+      var val = parseInt(input.value, 10);
+      if (isNaN(val) || val < 0) { alert('Invalid number.'); return; }
+      gsCast.casterSuccesses = val;
+      input.disabled = true;
+      gsShowAllSaves();
+    }
+
+    // Group targets by (saveTn, saveDice) and display all on one page.
+    function gsShowAllSaves() {
+      var saveAttr = gsCast.saveAttr;
+      var baseTn = diceRules.base_target_number;
+      var groups = {};
+      var groupOrder = [];
+      gsCast.targetIds.forEach(function(tid) {
+        var target = combatants.find(function(c) { return c.combat_id === tid; });
+        if (!target) return;
+        var saveDice = (target.save_dice && target.save_dice[saveAttr]) || 0;
+        var saveBonus = (target.save_bonus && target.save_bonus[saveAttr]) || 0;
+        var saveTn = clampTn(baseTn - saveBonus + gsCast.spellTier + gsCast.casterSkillBonus);
+        var key = saveDice + ':' + saveTn;
+        if (!groups[key]) {
+          groups[key] = {
+            dice: saveDice, tn: saveTn,
+            targetIds: [], targetNames: [],
+            inputId: 'gs-group-success-' + groupOrder.length,
+            rollsId: 'gs-group-rolls-' + groupOrder.length
+          };
+          groupOrder.push(key);
+        }
+        groups[key].targetIds.push(tid);
+        groups[key].targetNames.push(target.name);
+      });
+      gsCast.saveGroups = groupOrder.map(function(k) { return groups[k]; });
+
+      var rowsHtml = gsCast.saveGroups.map(function(g) {
+        return '<div style="margin:6px 0;padding:4px 6px;border-left:3px solid #ddd;">' +
+          '<strong>' + saveAttr.toUpperCase() + ' Save: ' + g.targetNames.join(', ') + '</strong>' +
+          ' <span class="math-detail">(' + g.dice + ' dice, TN ' + g.tn + ')</span>' +
+          '<br><label>Successes: <input type="number" id="' + g.inputId + '" min="0" value="0" style="width:50px;"></label>' +
+          ' <button class="action-btn" onclick="rollDicePool(' + g.dice + ', ' + g.tn + ', \'' + g.inputId + '\', \'' + g.rollsId + '\')">Roll</button>' +
+          '<div id="' + g.rollsId + '" class="math-detail" style="margin-top:4px;"></div>' +
+          '</div>';
+      }).join('');
+
+      addStep('<strong>Target Saves</strong> <span class="math-detail">(' +
+        gsCast.saveGroups.length + (gsCast.saveGroups.length === 1 ? ' unique TN' : ' unique TNs') + ')</span>' +
+        rowsHtml +
+        '<button class="action-btn" onclick="gsRollAllSaves()">Roll All Saves</button>' +
+        ' <button class="action-btn" onclick="gsConfirmAllSaves()">Next</button>');
+    }
+
+    function gsRollAllSaves() {
+      (gsCast.saveGroups || []).forEach(function(g) {
+        rollDicePool(g.dice, g.tn, g.inputId, g.rollsId);
+      });
+    }
+
+    function gsConfirmAllSaves() {
+      var groups = gsCast.saveGroups || [];
+      for (var i = 0; i < groups.length; i++) {
+        var g = groups[i];
+        var val = parseInt(document.getElementById(g.inputId).value, 10);
+        if (isNaN(val) || val < 0) { alert('Enter a valid success count for each group.'); return; }
+        g.successes = val;
+        g.targetIds.forEach(function(tid) { gsCast.targetSaves[tid] = val; });
+      }
+      gsShowResult();
+    }
+
+    function gsShowResult() {
+      var rows = [];
+      var payloadParts = [];
+      gsCast.targetIds.forEach(function(tid) {
+        var save = gsCast.targetSaves[tid] || 0;
+        var net = gsCast.casterSuccesses - save;
+        var target = combatants.find(function(c) { return c.combat_id === tid; });
+        var name = target ? target.name : '?';
+        rows.push(name + ': ' + gsCast.casterSuccesses + ' caster - ' + save + ' save = <strong>' + net + ' net</strong>');
+        payloadParts.push(tid + ':' + save);
+      });
+      var manaCost = spellManaCost(gsCast.spellTier);
+      var fields =
+        'id: currentCharId, combat_action: \'cast\', spell_name: \'' +
+        gsCast.spellName.replace(/'/g, "\\'") + '\', spell_tier: ' + gsCast.spellTier +
+        ', dice_spent: ' + gsCast.diceSpent +
+        ', generic_save: \'true\'' +
+        ', gs_caster_successes: ' + gsCast.casterSuccesses +
+        ', gs_save_results: \'' + payloadParts.join(';') + '\'';
+      if (gsCast.targetIds.length === 1) {
+        fields += ', target_combat_id: ' + gsCast.targetIds[0];
+      } else {
+        fields += ', target_combat_ids: \'' + gsCast.targetIds.join(',') + '\'';
+      }
+      fields += scrollFields();
+      addStep(rows.join('<br>') +
+        '<br><span class="math-detail">Cost: ' + costLabel(manaCost) + ' + ' + gsCast.diceSpent + ' dice</span>' +
+        '<br><button class="action-btn" onclick="submitAction({' + fields + '})" style="margin-top:8px;">Submit</button>');
+    }
+
     // --- Web: multi-target entangle + stuck with per-target DEX saves ---
     //   1. Pick dice. Caster rolls once.
     //   2. DM enters caster's total successes.
@@ -1725,6 +1893,13 @@
         pickScrollSingleTarget(base, tier);
       } else if (item.ranged_attack) {
         pickScrollSingleTarget(base, tier);
+      } else if (item.save_attr) {
+        // Generic save spell scroll — route through generic save flow
+        if (item.target_mode === 'multi') {
+          pickScrollMultiTargets(base, tier);
+        } else {
+          pickScrollSingleTarget(base, tier);
+        }
       } else {
         clearActiveScroll();
         return false;
@@ -1779,6 +1954,10 @@
       if (spellName === 'Biting Words') { startBitingWordsCast(spellName, spellTier, ids); return; }
       if (activeScrollSpellMeta && activeScrollSpellMeta.ranged_attack) {
         startRangedAttackSpellCast(spellName, spellTier, ids, false, -1);
+        return;
+      }
+      if (activeScrollSpellMeta && activeScrollSpellMeta.save_attr) {
+        startGenericSaveCast(spellName, spellTier, ids);
         return;
       }
     }
