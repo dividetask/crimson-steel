@@ -5,38 +5,49 @@
       <%
         char_by_id = @all_characters.each_with_object({}) { |c, h| h[c['id']] = c }
       %>
-      <% @enemy_list.each do |enemy| %>
-        <%
-          copies = @combat_participants.select do |p|
-            char = char_by_id[p['char_id'] || p['id']]
-            char && char['template_id'].to_s == enemy[:id].to_s
-          end
-        %>
-        <div class="enemy-entry">
-          <a href="/enemies/<%= enemy[:index] %>"><%= enemy[:name] %></a>
-          <% unless copies.empty? %>
-            <span class="enemy-count">(<%= copies.length %>)</span>
-          <% end %>
-          <form method="post" action="/combat/add_enemy" style="display:inline;">
-            <input type="hidden" name="enemy_id" value="<%= enemy[:id] %>">
-            <button type="submit" class="enemy-combat-btn add" title="Add copy to combat">+</button>
-          </form>
-        </div>
-        <% copies.each_with_index do |copy, ci| %>
-          <%
-            char = char_by_id[copy['char_id'] || copy['id']]
-            label = char ? char['name'] : enemy[:name]
-            copy_char_id = copy['char_id'] || copy['id']
-            is_current = (copy_char_id == @instance_data['id'])
-          %>
-          <div class="enemy-copy-entry <%= 'selected' if is_current %>">
-            <a href="/enemies/instance/<%= copy_char_id %>" class="enemy-copy-label"><%= label %> #<%= ci + 1 %></a>
-            <form method="post" action="/combat/remove_enemy" style="display:inline;">
-              <input type="hidden" name="combat_id" value="<%= copy['id'] %>">
-              <button type="submit" class="enemy-combat-btn remove" title="Remove from combat">-</button>
-            </form>
+      <% (@enemy_groups || []).each do |group| %>
+        <div class="enemy-group">
+          <div class="enemy-group-header" onclick="this.parentElement.classList.toggle('collapsed')" title="Click to expand/collapse">
+            <span class="enemy-group-toggle">&#9660;</span>
+            <strong><%= group[:label] %></strong>
+            <span class="enemy-group-count">(<%= group[:enemies].length %>)</span>
           </div>
-        <% end %>
+          <div class="enemy-group-body">
+            <% group[:enemies].each do |enemy| %>
+              <%
+                copies = @combat_participants.select do |p|
+                  char = char_by_id[p['char_id'] || p['id']]
+                  char && char['template_id'].to_s == enemy[:id].to_s
+                end
+              %>
+              <div class="enemy-entry">
+                <a href="/enemies/<%= enemy[:index] %>"><%= enemy[:name] %></a>
+                <% unless copies.empty? %>
+                  <span class="enemy-count">(<%= copies.length %>)</span>
+                <% end %>
+                <form method="post" action="/combat/add_enemy" style="display:inline;">
+                  <input type="hidden" name="enemy_id" value="<%= enemy[:id] %>">
+                  <button type="submit" class="enemy-combat-btn add" title="Add copy to combat">+</button>
+                </form>
+              </div>
+              <% copies.each_with_index do |copy, ci| %>
+                <%
+                  char = char_by_id[copy['char_id'] || copy['id']]
+                  label = char ? char['name'] : enemy[:name]
+                  copy_char_id = copy['char_id'] || copy['id']
+                  is_current = (copy_char_id == @instance_data['id'])
+                %>
+                <div class="enemy-copy-entry <%= 'selected' if is_current %>">
+                  <a href="/enemies/instance/<%= copy_char_id %>" class="enemy-copy-label"><%= label %> #<%= ci + 1 %></a>
+                  <form method="post" action="/combat/remove_enemy" style="display:inline;">
+                    <input type="hidden" name="combat_id" value="<%= copy['id'] %>">
+                    <button type="submit" class="enemy-combat-btn remove" title="Remove from combat">-</button>
+                  </form>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
       <% end %>
     </div>
     <form method="post" action="/combat/clear_enemies" style="margin-top: 10px;">

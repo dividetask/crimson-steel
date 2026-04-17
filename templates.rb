@@ -32,18 +32,22 @@ module Templates
   # template-*.json files. Creature templates, gear tables, and option
   # lists all share a single namespace across files so a creature in
   # one file can reference a gear table or option list from another.
+  # Each creature is tagged with `_source` (display label derived from
+  # the filename) so views can group enemies by source file.
   def load_raw(rng: nil)
     data_dir = File.join(File.dirname(__FILE__), 'data')
     primary = Tools.load_json(FILENAME)
     primary = {} unless primary.is_a?(Hash)
 
-    creatures = primary['creatures'] || []
+    creatures = (primary['creatures'] || []).each { |c| c['_source'] ||= 'General' }
     gear = primary['gear_tables'] || []
     lists = (primary['option_lists'] || {}).dup
 
     Dir.glob(File.join(data_dir, GLOB_PATTERN)).sort.each do |path|
       extra = JSON.parse(File.read(path)) rescue next
       next unless extra.is_a?(Hash)
+      label = source_label(File.basename(path))
+      (extra['creatures'] || []).each { |c| c['_source'] ||= label }
       creatures += (extra['creatures'] || [])
       gear += (extra['gear_tables'] || [])
       (extra['option_lists'] || {}).each { |k, v| lists[k] = v }
@@ -52,7 +56,20 @@ module Templates
     { 'creatures' => creatures, 'gear_tables' => gear, 'option_lists' => lists }
   end
 
+  # Derive a human-readable group label from a template filename.
+  # "template-slave-lords.json" -> "Slave Lords"
+  # "template-potions.json"     -> "Potions"
+  def source_label(filename)
+    filename.sub(/\Atemplate-/, '').sub(/\.json\z/, '').tr('-', ' ').split.map(&:capitalize).join(' ')
+  end
+
   def creatures; (load_raw['creatures'] || []); end
+
+  # Returns creatures grouped by source file as an ordered array of
+  # [label, [creature, ...]] pairs. Preserves per-file insertion order.
+  def creatures_grouped
+    creatures.group_by { |c| c['_source'] || 'General' }.to_a
+  end
 
   def gear_tables
     (load_raw['gear_tables'] || []).each_with_object({}) { |gt, h| h[gt['id']] = gt }

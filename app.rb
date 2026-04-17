@@ -823,15 +823,17 @@ get '/enemies/:index' do
   @template = template
   @character = get_info(Templates.preview_character(template))
   @compendium = Compendium.new
-  @enemy_list = templates.each_with_index.map { |t, i| { index: i, id: t['id'], name: t['name'] } }
+  @enemy_list = templates.each_with_index.map { |t, i| { index: i, id: t['id'], name: t['name'], source: t['_source'] || 'General' } }
+  @enemy_groups = Templates.creatures_grouped.map do |label, group_creatures|
+    group_ids = group_creatures.map { |c| c['id'].to_s }.to_set
+    { label: label, enemies: @enemy_list.select { |e| group_ids.include?(e[:id].to_s) } }
+  end
 
   combat_data = Tools.load_json('combat.json')
   @combat_participants = combat_data['participants']
   characters = Tools.load_json('characters.json')
-  # Live instances spawned from this template. Each instance carries its own
-  # rolled stats + items, so we link to its character record rather than the
-  # template's combat-less preview sheet.
   @template_instances = characters.select { |c| c['template_id'].to_s == template['id'].to_s }
+  @all_characters = characters
 
   erb :enemies
 end
@@ -891,9 +893,12 @@ get '/enemies/instance/:id' do
   combat_data = Tools.load_json('combat.json')
   @combat_participants = combat_data['participants']
   templates = Templates.creatures
-  @enemy_list = templates.each_with_index.map { |t, i| { index: i, id: t['id'], name: t['name'] } }
+  @enemy_list = templates.each_with_index.map { |t, i| { index: i, id: t['id'], name: t['name'], source: t['_source'] || 'General' } }
+  @enemy_groups = Templates.creatures_grouped.map do |label, group_creatures|
+    group_ids = group_creatures.map { |c| c['id'].to_s }.to_set
+    { label: label, enemies: @enemy_list.select { |e| group_ids.include?(e[:id].to_s) } }
+  end
 
-  # Build the char_by_id lookup the sidebar needs.
   @all_characters = characters
 
   erb :enemy_instance
