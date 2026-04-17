@@ -336,8 +336,12 @@
                   <button type="button" class="brush label-brush" data-brush-type="label" title="Prompt for a label on click">Label</button>
                 </div>
                 <div class="palette-group">
+                  <span class="palette-label">Move:</span>
+                  <button type="button" class="brush move-brush" data-brush-type="move" title="Drag a cell's icon+label to a new square">Move</button>
+                </div>
+                <div class="palette-group">
                   <span class="palette-label">Erase:</span>
-                  <button type="button" class="brush erase-brush" data-brush-type="erase" title="Clear the cell">Clear cell</button>
+                  <button type="button" class="brush erase-brush" data-brush-type="erase" title="Clear cells (drag for a rectangle)">Clear cell</button>
                 </div>
                 <div class="palette-group palette-status">
                   <span class="palette-label">Brush:</span>
@@ -520,7 +524,8 @@
 
         function redrawCell(cellEl, data) {
           cellEl.style.background = data && data.color ? data.color : '';
-          cellEl.innerHTML = '';
+          // Preserve preview classes, wipe only the inner icon/label children.
+          Array.prototype.slice.call(cellEl.querySelectorAll('.scene-map-icon, .scene-map-label')).forEach(function(n) { n.remove(); });
           if (data && data.icon) {
             var i = document.createElement('span');
             i.className = 'scene-map-icon';
@@ -535,63 +540,189 @@
           }
         }
 
-        function applyBrush(key, current) {
+        function applyPaint(key, current) {
+          // Non-interactive brush application (color or erase). Safe to run
+          // once per cell inside a rectangle fill without prompting.
           if (!brush) return current;
-          var next = Object.assign({}, current || {});
           if (brush.type === 'erase') return null;
+          var next = Object.assign({}, current || {});
           if (brush.type === 'color') {
             if (brush.color) next.color = brush.color; else delete next.color;
-          } else if (brush.type === 'icon') {
-            if (brush.icon) next.icon = brush.icon; else delete next.icon;
-          } else if (brush.type === 'label') {
-            var existing = next.label || '';
-            var text = window.prompt('Label for this cell (empty to clear):', existing);
-            if (text === null) return current;
-            if (text === '') delete next.label; else next.label = text;
           }
           if (!next.color && !next.icon && !next.label) return null;
           return next;
         }
 
+        function cellAt(r, c) {
+          return grid.querySelector('.scene-map-cell.editable[data-r="' + r + '"][data-c="' + c + '"]');
+        }
+
+        function commitCell(cellEl, result) {
+          var key = cellEl.getAttribute('data-r') + ',' + cellEl.getAttribute('data-c');
+          if (result === null) delete cells[key]; else cells[key] = result;
+          redrawCell(cellEl, cells[key]);
+        }
+
+        // --- Click path: icon / label brushes (single cell, no drag) -------
         grid.addEventListener('click', function(e) {
           var cellEl = e.target.closest('.scene-map-cell.editable');
           if (!cellEl || !grid.contains(cellEl)) return;
           if (!brush) return;
-          var r = cellEl.getAttribute('data-r');
-          var c = cellEl.getAttribute('data-c');
-          var key = r + ',' + c;
-          var result = applyBrush(key, cells[key]);
-          if (result === null) delete cells[key]; else cells[key] = result;
-          redrawCell(cellEl, cells[key]);
+          if (brush.type !== 'icon' && brush.type !== 'label') return;
+          var key = cellEl.getAttribute('data-r') + ',' + cellEl.getAttribute('data-c');
+          var current = cells[key];
+          var next = Object.assign({}, current || {});
+          if (brush.type === 'icon') {
+            if (brush.icon) next.icon = brush.icon; else delete next.icon;
+          } else {
+            var existing = next.label || '';
+            var text = window.prompt('Label for this cell (empty to clear):', existing);
+            if (text === null) return;
+            if (text === '') delete next.label; else next.label = text;
+          }
+          if (!next.color && !next.icon && !next.label) {
+            commitCell(cellEl, null);
+          } else {
+            commitCell(cellEl, next);
+          }
           hidden.value = JSON.stringify(cells);
         });
 
+        // --- Mousedown path: rectangle-paint (color/erase) or move drag ----
         grid.addEventListener('mousedown', function(e) {
-          // Drag-paint only for color/erase brushes to avoid accidental prompts.
-          if (!brush || (brush.type !== 'color' && brush.type !== 'erase')) return;
-          var dragging = true;
-          function move(ev) {
-            if (!dragging) return;
+          if (e.button !== 0) return;
+          var cellEl = e.target.closest('.scene-map-cell.editable');
+          if (!cellEl || !grid.contains(cellEl)) return;
+          if (!brush) return;
+
+          if (brush.type === 'color' || brush.type === 'erase') {
+            e.preventDefault();
+            startRectDrag(cellEl);
+          } else if (brush.type === 'move') {
+            e.preventDefault();
+            startMoveDrag(cellEl, e);
+          }
+        });
+
+        function startRectDrag(startCell) {
+          var sr = +startCell.getAttribute('data-r');
+          var sc = +startCell.getAttribute('data-c');
+          var highlighted = [];
+
+          function clearPreview() {
+            highlighted.forEach(function(el) { el.classList.remove('rect-preview'); });
+            highlighted = [];
+          }
+
+          function previewFrom(ev) {
             var el = document.elementFromPoint(ev.clientX, ev.clientY);
-            if (!el) return;
-            var cellEl = el.closest('.scene-map-cell.editable');
-            if (!cellEl || !grid.contains(cellEl)) return;
-            var r = cellEl.getAttribute('data-r');
-            var c = cellEl.getAttribute('data-c');
-            var key = r + ',' + c;
-            var result = applyBrush(key, cells[key]);
-            if (result === null) delete cells[key]; else cells[key] = result;
-            redrawCell(cellEl, cells[key]);
+            var target = el && el.closest ? el.closest('.scene-map-cell.editable') : null;
+            if (!target || !grid.contains(target)) return;
+            var er = +target.getAttribute('data-r');
+            var ec = +target.getAttribute('data-c');
+            var r0 = Math.min(sr, er), r1 = Math.max(sr, er);
+            var c0 = Math.min(sc, ec), c1 = Math.max(sc, ec);
+            clearPreview();
+            for (var r = r0; r <= r1; r++) {
+              for (var c = c0; c <= c1; c++) {
+                var cellEl = cellAt(r, c);
+                if (cellEl) {
+                  cellEl.classList.add('rect-preview');
+                  highlighted.push(cellEl);
+                }
+              }
+            }
+          }
+
+          function finish() {
+            window.removeEventListener('mousemove', previewFrom);
+            window.removeEventListener('mouseup', finish);
+            var toCommit = highlighted.slice();
+            clearPreview();
+            toCommit.forEach(function(cellEl) {
+              var key = cellEl.getAttribute('data-r') + ',' + cellEl.getAttribute('data-c');
+              commitCell(cellEl, applyPaint(key, cells[key]));
+            });
             hidden.value = JSON.stringify(cells);
           }
-          function up() {
-            dragging = false;
-            window.removeEventListener('mousemove', move);
-            window.removeEventListener('mouseup', up);
+
+          // Start with the source cell highlighted so a plain click still
+          // paints a single square on release.
+          startCell.classList.add('rect-preview');
+          highlighted.push(startCell);
+          window.addEventListener('mousemove', previewFrom);
+          window.addEventListener('mouseup', finish);
+        }
+
+        function startMoveDrag(startCell, downEv) {
+          var srcKey = startCell.getAttribute('data-r') + ',' + startCell.getAttribute('data-c');
+          var srcData = cells[srcKey];
+          if (!srcData || (!srcData.icon && !srcData.label)) return;
+
+          var ghost = document.createElement('div');
+          ghost.className = 'scene-map-ghost';
+          if (srcData.color) ghost.style.background = srcData.color;
+          if (srcData.icon) {
+            var gi = document.createElement('span');
+            gi.className = 'scene-map-icon';
+            gi.textContent = srcData.icon;
+            ghost.appendChild(gi);
           }
-          window.addEventListener('mousemove', move);
-          window.addEventListener('mouseup', up);
-        });
+          if (srcData.label) {
+            var gl = document.createElement('span');
+            gl.className = 'scene-map-label';
+            gl.textContent = srcData.label;
+            ghost.appendChild(gl);
+          }
+          document.body.appendChild(ghost);
+          startCell.classList.add('move-source');
+          moveGhost(downEv);
+
+          var lastTarget = null;
+
+          function moveGhost(ev) {
+            ghost.style.left = ev.clientX + 'px';
+            ghost.style.top = ev.clientY + 'px';
+            var el = document.elementFromPoint(ev.clientX, ev.clientY);
+            var target = el && el.closest ? el.closest('.scene-map-cell.editable') : null;
+            if (lastTarget && lastTarget !== target) lastTarget.classList.remove('move-target');
+            if (target && grid.contains(target) && target !== startCell) {
+              target.classList.add('move-target');
+              lastTarget = target;
+            } else {
+              lastTarget = null;
+            }
+          }
+
+          function drop(ev) {
+            window.removeEventListener('mousemove', moveGhost);
+            window.removeEventListener('mouseup', drop);
+            ghost.remove();
+            startCell.classList.remove('move-source');
+            if (lastTarget) lastTarget.classList.remove('move-target');
+
+            var el = document.elementFromPoint(ev.clientX, ev.clientY);
+            var destCell = el && el.closest ? el.closest('.scene-map-cell.editable') : null;
+            if (!destCell || !grid.contains(destCell) || destCell === startCell) return;
+
+            var destKey = destCell.getAttribute('data-r') + ',' + destCell.getAttribute('data-c');
+            var destData = Object.assign({}, cells[destKey] || {});
+            if (srcData.icon) destData.icon = srcData.icon; else delete destData.icon;
+            if (srcData.label) destData.label = srcData.label; else delete destData.label;
+
+            var newSrc = Object.assign({}, srcData);
+            delete newSrc.icon;
+            delete newSrc.label;
+            var srcResult = (newSrc.color || newSrc.icon || newSrc.label) ? newSrc : null;
+
+            commitCell(startCell, srcResult);
+            commitCell(destCell, destData);
+            hidden.value = JSON.stringify(cells);
+          }
+
+          window.addEventListener('mousemove', moveGhost);
+          window.addEventListener('mouseup', drop);
+        }
 
         form.addEventListener('submit', function() {
           hidden.value = JSON.stringify(cells);
