@@ -759,5 +759,48 @@
     "type": "note",
     "title": "Desna's Whim",
     "chapter": 5
+  },
+  {
+    "id": "57db957d-0188-428e-bb33-d1ebdb82e2d1",
+    "owner_id": 0,
+    "draft": true,
+    "type": "draft_image",
+    "title": "Highport Map",
+    "image_path": "/images/scene/1776453073-90aca715-Highport-map-sm.jpg",
+    "shared": false
+  },
+  {
+    "owner_id": 0,
+    "type": "character",
+    "title": "Drav Kovin",
+    "note": "Mercenary Guard that helped the party escape",
+    "tier": 1,
+    "chapter": 5,
+    "public": true,
+    "active": true
+  },
+  {
+    "owner_id": 0,
+    "type": "character",
+    "title": "Caelian di Soliastres",
+    "note": "Caelian di Soliastres, third son of the di Soliastres family\r\nApparent age: Late 20s by mortal reckoning (so actually ~90 in elf years)\r\nAppearance: Tall, slender, olive-warm complexion, dark wavy hair pulled back, amber eyes. Fine travel clothes that have seen recent hard riding.",
+    "tier": 3,
+    "chapter": 5,
+    "public": true,
+    "active": true
+  },
+  {
+    "id": "bf1ff568-70cc-4531-909e-251fe56872f8",
+    "owner_id": 0,
+    "draft": true,
+    "type": "scene_panel",
+    "title": "Safehouse",
+    "note": "Drav led you here last night, through a back alley in the city's merchant quarter that smelled of fish brine and old rain. The building is a disused tannery — the ground floor still reeks faintly of lye and hide-scrapings. The living quarters are above, reached by a narrow stair behind a false cabinet in the rear workroom.\r\n\r\n\r\n\r\nThe upper floor is cramped but surprisingly well-appointed for a hideaway. Two small rooms and a common space, low-ceilinged with exposed beams dark from decades of smoke. A squat iron stove in the corner gives off more heat than light, and a single shuttered window faces an interior courtyard — no street view, no sightlines for anyone watching from outside. The floorboards have been carefully muffled with layered rugs of faded southern weave, the kind of detail that suggests whoever set this place up has done it many times before.\r\n\r\n\r\n\r\nThere's a cellar, too, with a second exit through the tannery's old drainage tunnel. Drav showed it to you without comment, the way one might show a guest where the chamber pot is kept.",
+    "visible_to": [
+      1,
+      2,
+      3,
+      4
+    ]
   }
 ]

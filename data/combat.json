@@ -79,5 +79,6 @@
       "ability_damage": {
       }
     }
-  ]
+  ],
+  "hide_initiative": true
 }
