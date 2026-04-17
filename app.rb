@@ -1230,11 +1230,11 @@ post '/combat/roll_init/:id' do
   redirect '/combat'
 end
 
-# Bardic inspiration. Bard's Perform action: deduct 1 mana, apply
-# (successes - fumbles) to the bard's luck_ledger. A positive ledger is
-# player luck (spend on allies); negative is DM luck (spend against
-# players). Gated to once per turn via performed_this_turn, which clears
-# on new_turn.
+# Bardic inspiration. Bard's Perform action: deduct 1 mana, apply a
+# signed net (successes - failures) to the bard's luck_ledger. Positive
+# net feeds the player luck pool; negative net feeds DM luck (spendable
+# against players). Only one side can ever be non-zero at a time, so the
+# DM just enters the net. Gated to once per turn via performed_this_turn.
 post '/combat/bardic_inspiration/:id' do
   redirect '/character/0' unless local_request?
   combat = Combat.new
@@ -1244,28 +1244,27 @@ post '/combat/bardic_inspiration/:id' do
   halt 400, 'Already performed this turn' if bard.performed_this_turn
   halt 400, 'Not enough mana' if bard.mana < 1
 
-  successes = params[:successes].to_i
-  fumbles = params[:fumbles].to_i
-  halt 400, 'Successes and fumbles must be non-negative' if successes < 0 || fumbles < 0
+  net = params[:net].to_i
+  skill = params[:skill].to_s
 
   combat_data = Tools.load_json('combat.json')
   participant = combat_data['participants'].find { |p| p['id'] == bard.combat_id }
   halt 400, 'Participant row missing' unless participant
 
   participant['mana'] = bard.mana - 1
-  new_ledger = bard.luck_ledger + successes - fumbles
+  new_ledger = bard.luck_ledger + net
   participant['luck_ledger'] = new_ledger
   participant['performed_this_turn'] = true
   Tools.save_json('combat.json', combat_data)
 
   name = combat.display_name(bard)
-  delta = successes - fumbles
-  sign = delta >= 0 ? '+' : ''
+  sign = net >= 0 ? '+' : ''
   ledger_label = if new_ledger > 0 then "Luck #{new_ledger}"
                  elsif new_ledger < 0 then "DM Luck #{-new_ledger}"
                  else 'ledger 0'
                  end
-  Combat.add_log("#{name} performs (#{successes} successes, #{fumbles} fumbles, #{sign}#{delta}; #{ledger_label}).")
+  skill_label = skill.empty? ? 'performance' : skill.tr('_', ' ')
+  Combat.add_log("#{name} performs #{skill_label} (#{sign}#{net}; #{ledger_label}).")
   redirect '/combat'
 end
 

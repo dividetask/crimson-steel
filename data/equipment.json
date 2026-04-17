@@ -612,6 +612,7 @@
     "subtype": "instrument",
     "bonus": 1,
     "properties": {
+      "enhancement": {"type": "skill", "skill": "perform_percussion", "amount": 1}
     },
     "equipped": true
   },

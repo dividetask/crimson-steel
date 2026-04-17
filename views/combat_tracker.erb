@@ -190,9 +190,6 @@
           <button class="action-btn" onclick="selectAction('cast')">Cast</button>
           <button class="action-btn" onclick="selectAction('item')">Item</button>
           <button class="action-btn" onclick="selectAction('special')">Special</button>
-          <% if current.has_ability?('bardic_inspiration') && !current.performed_this_turn && current.mana >= 1 %>
-            <button class="action-btn" onclick="selectAction('perform')">Perform</button>
-          <% end %>
         <% end %>
         <button class="action-btn" onclick="selectAction('end_turn')">End Turn</button>
       </div>
@@ -231,6 +228,7 @@
     var currentAttackerAbilities = <%= current ? JSON.generate(current.character.ability_list) : '[]' %>;
     var diceRemaining = <%= current ? current.combat_pool : 0 %>;
     var currentMana = <%= current ? current.mana : 0 %>;
+    var currentPerformedThisTurn = <%= current && current.performed_this_turn ? 'true' : 'false' %>;
     var moveSpeed = <%= current ? current.character.speed : 0 %>;
     var spellList = <%= if current && current.character.spell_list
       compendium = Compendium.new
@@ -344,6 +342,40 @@
       '[]'
     end %>;
 
+    // Per-character perform skills for Bardic Inspiration. Each entry is
+    // { skill, label, dice, tn }. TN applies the bard's skill bonus
+    // (which already folds in item enhancements like the +1 Drums) and a
+    // penalty equal to the highest-tier enemy in combat, clamped to the
+    // rules' [tn_minimum, tn_maximum]. Empty when current character
+    // can't perform or isn't a bard.
+    var performSkills = <%=
+      if current && current.has_ability?('bardic_inspiration')
+        dice_rules = Tools.load_json('rules.json')['dice']
+        base_tn = dice_rules['base_target_number'].to_i
+        tn_min = dice_rules['tn_minimum'].to_i
+        tn_max = dice_rules['tn_maximum'].to_i
+        enemy_tier = @combat.max_enemy_tier
+        perform_skills = (current.character.skill_list || []).select { |s| s.to_s.start_with?('perform_') }
+        JSON.generate(
+          perform_skills.map do |s|
+            bonus = current.character.skill_bonus(s).to_i
+            raw_tn = base_tn - bonus + enemy_tier
+            clamped = [[raw_tn, tn_min].max, tn_max].min
+            {
+              skill: s.to_s,
+              label: s.to_s.tr('_', ' ').split.map(&:capitalize).join(' '),
+              dice: current.character.skill_dice(s).to_i,
+              bonus: bonus,
+              raw_tn: raw_tn,
+              tn: clamped,
+              enemy_tier_penalty: enemy_tier
+            }
+          end
+        )
+      else
+        '[]'
+      end %>;
+
     // --- Client-side attack state ---
     var attackState = null;
     // --- Client-side start-of-turn state ---
@@ -371,8 +403,8 @@
         return;
       }
 
-      if (action === 'perform') {
-        showBardicInspiration();
+      if (action === 'special') {
+        showSpecialMenu();
         return;
       }
 
@@ -928,29 +960,99 @@
           weaponOptions + shieldOptions + '</select></label>' : ''));
     }
 
-    // Bardic Inspiration: prompt DM for the performance roll's successes
-    // and fumbles, POST to /combat/bardic_inspiration/:id. The handler
-    // deducts 1 mana and applies (successes - fumbles) to the bard's
-    // luck_ledger, with overflow to DM luck handled naturally by sign.
+    // Special actions menu. Currently only surfaces Bardic Inspiration;
+    // other class specials can be added here later.
+    function showSpecialMenu() {
+      var btns = '';
+      var canPerform = performSkills.length > 0 && currentMana >= 1 && !currentPerformedThisTurn;
+      if (performSkills.length > 0) {
+        btns += '<button class="action-btn" onclick="showBardicInspiration()"' +
+          (canPerform ? '' : ' disabled title="Need 1 mana and unused per-turn Perform"') +
+          '>Perform (Bardic Inspiration)</button>';
+      }
+      if (!btns) {
+        addStep('<strong>Special</strong>: no special actions available for ' + currentCharName + '.');
+        return;
+      }
+      addStep('<strong>Special</strong>: ' + btns);
+    }
+
+    // Bardic Inspiration: pick a perform skill, see its dice/TN, roll or
+    // enter the net (successes − failures), then confirm. Positive net
+    // goes to the bard's luck pool; negative goes to DM luck.
     function showBardicInspiration() {
+      if (performSkills.length === 0) {
+        addStep('<strong>Perform</strong>: this character has no perform skills.');
+        return;
+      }
+      var options = performSkills.map(function(p, i) {
+        return '<option value="' + i + '">' + p.label + ' &mdash; ' + p.dice + 'd @ TN ' + p.tn +
+          (p.enemy_tier_penalty > 0 ? ' (incl. +' + p.enemy_tier_penalty + ' enemy tier penalty)' : '') +
+          '</option>';
+      }).join('');
       addStep('<strong>Perform (Bardic Inspiration)</strong>: ' + currentCharName + ' performs (1 mana).' +
-        '<br><span class="math-detail">Enter the performance roll\'s successes and fumbles; the tool will update the luck ledger. Successes build player luck; fumbles drain it (and become DM luck on overflow).</span>' +
-        '<br><label style="margin-top:6px;display:inline-block;">Successes: <input type="number" id="bi-successes" min="0" value="0" style="width:55px;"></label>' +
-        ' <label style="display:inline-block;">Fumbles: <input type="number" id="bi-fumbles" min="0" value="0" style="width:55px;"></label>' +
-        '<br><button class="action-btn" onclick="submitBardicInspiration()" style="margin-top:8px;">Confirm Perform</button>');
+        '<br><label>Skill: <select id="bi-skill" onchange="renderPerformRoll()">' + options + '</select></label>' +
+        '<div id="bi-roll-area" style="margin-top:6px;"></div>');
+      renderPerformRoll();
+    }
+
+    function renderPerformRoll() {
+      var sel = document.getElementById('bi-skill');
+      if (!sel) return;
+      var p = performSkills[parseInt(sel.value, 10)];
+      var tnDetail = 'base ' + <%= Tools.load_json('rules.json')['dice']['base_target_number'].to_i %> +
+        ' − bonus ' + p.bonus +
+        (p.enemy_tier_penalty > 0 ? ' + enemy tier ' + p.enemy_tier_penalty : '') +
+        ' = ' + p.raw_tn + (p.raw_tn !== p.tn ? ' (clamped to ' + p.tn + ')' : '');
+      var html =
+        '<div class="math-detail">Roll ' + p.dice + 'd at TN ' + p.tn + ' <em>(' + tnDetail + ')</em></div>' +
+        '<label style="margin-top:4px;display:inline-block;">Net (successes − failures): ' +
+          '<input type="number" id="bi-net" value="0" style="width:60px;">' +
+        '</label>' +
+        ' <button class="action-btn" onclick="rollPerformDice()">Roll</button>' +
+        '<div id="bi-rolls" class="math-detail" style="margin-top:4px;"></div>' +
+        '<br><button class="action-btn" onclick="submitBardicInspiration()" style="margin-top:8px;">Confirm Perform</button>';
+      document.getElementById('bi-roll-area').innerHTML = html;
+    }
+
+    // Roll the perform pool and write the SIGNED net into bi-net so the
+    // sign-based routing to player/DM luck is preserved. Mirrors the
+    // coloring scheme of rollDicePool but keeps negative totals.
+    function rollPerformDice() {
+      var sel = document.getElementById('bi-skill');
+      var p = performSkills[parseInt(sel.value, 10)];
+      var rolls = [];
+      var net = 0;
+      for (var r = 0; r < p.dice; r++) {
+        var d = Math.floor(Math.random() * 10) + 1;
+        rolls.push(d);
+        if (d === 10) net += 2;
+        else if (d >= p.tn) net += 1;
+        else if (d === 1) net -= 1;
+      }
+      document.getElementById('bi-net').value = net;
+      var colored = rolls.map(function(d) {
+        var bg = null;
+        if (d === 1) bg = '#e57373';
+        else if (d === 10) bg = '#64b5f6';
+        else if (d >= p.tn) bg = '#81c784';
+        if (bg) return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
+        return '<span style="color:#777;">' + d + '</span>';
+      }).join(', ');
+      document.getElementById('bi-rolls').innerHTML = 'Rolled: [' + colored + '] &rarr; net ' + (net >= 0 ? '+' : '') + net;
     }
 
     function submitBardicInspiration() {
-      var s = parseInt(document.getElementById('bi-successes').value, 10);
-      var f = parseInt(document.getElementById('bi-fumbles').value, 10);
-      if (isNaN(s) || s < 0) { alert('Enter a non-negative number of successes.'); return; }
-      if (isNaN(f) || f < 0) { alert('Enter a non-negative number of fumbles.'); return; }
+      var sel = document.getElementById('bi-skill');
+      var p = performSkills[parseInt(sel.value, 10)];
+      var net = parseInt(document.getElementById('bi-net').value, 10);
+      if (isNaN(net)) { alert('Enter a net value (negative means the DM gets the luck).'); return; }
       var form = document.createElement('form');
       form.method = 'POST';
       form.action = '/combat/bardic_inspiration/' + currentCharId;
       form.innerHTML =
-        '<input type="hidden" name="successes" value="' + s + '">' +
-        '<input type="hidden" name="fumbles" value="' + f + '">';
+        '<input type="hidden" name="net" value="' + net + '">' +
+        '<input type="hidden" name="skill" value="' + p.skill + '">';
       document.body.appendChild(form);
       form.submit();
     }

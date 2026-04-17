@@ -126,6 +126,15 @@ class Combat
   # Bards whose luck ledger is non-zero; drives the Spend-Luck UI.
   def active_luck_bards; @combat_turn_list.select { |ct| ct.luck_ledger != 0 }; end
 
+  # Highest tier among living non-PC participants; 0 if no enemies are
+  # present. Used as a TN penalty on bardic performance checks.
+  def max_enemy_tier
+    living_turn_list
+      .reject { |ct| ct.character.data['group'] == 'PC' }
+      .map { |ct| ct.character.tier.to_i }
+      .max || 0
+  end
+
   def display_name(combat_turn)
     return "Unknown" unless combat_turn&.character
     char_id = combat_turn.character.id
@@ -855,7 +864,8 @@ module KlassProgress
   def skill_bonus(skill)
     base = compute_bonus(skill_ranks(skill), half_mod(get_skill_attr(skill)))
     class_bonus = @klass_list.sum { |progress| progress.skill_bonus(skill, @rules) }
-    return base + class_bonus
+    item_bonus = respond_to?(:skill_enhancement) ? skill_enhancement(skill) : 0
+    return base + class_bonus + item_bonus
   end
 
   def bab; return @klass_list.sum { |progress| progress.bab(@rules) }; end
@@ -997,6 +1007,13 @@ module CharacterEquipment
 
   def save_enhancement
     collect_enhancement_amounts { |e| e["type"] == "save" }.max || 0
+  end
+
+  # Enhancement bonuses that apply to a specific skill (e.g. +1 Drums for
+  # perform_percussion). Highest matching item wins; bonuses never stack.
+  def skill_enhancement(skill)
+    key = skill.to_s
+    collect_enhancement_amounts { |e| e["type"] == "skill" && e["skill"].to_s == key }.max || 0
   end
 
   def collect_enhancement_amounts
