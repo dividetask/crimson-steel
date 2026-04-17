@@ -61,6 +61,72 @@
     <% end %>
   <% end %>
 
+  <% if (@loot['gold'].to_i > 0) || @loot['items'].any? %>
+    <div class="scene-loot">
+      <h2>Combat Loot</h2>
+      <% if @loot['gold'].to_i > 0 %>
+        <div class="scene-loot-gold">
+          <span class="scene-loot-gold-amount"><%= @loot['gold'].to_i %> gold</span>
+          <form method="post" action="/scene/<%= @viewer_id %>/loot/claim_gold" style="display:inline;">
+            <button type="submit">Claim to party</button>
+          </form>
+        </div>
+      <% end %>
+      <% if @loot['items'].any? %>
+        <table class="scene-loot-items">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Source</th>
+              <th>Claim</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @loot['items'].each do |item| %>
+              <tr>
+                <td>
+                  <strong><%= h(item['name']) %></strong>
+                  <% if item['bonus'].to_i != 0 %> +<%= item['bonus'].to_i %><% end %>
+                  <% if item['type'] && !item['type'].to_s.empty? %>
+                    <small style="color:#666;">(<%= h(item['type']) %><% if item['subtype'] && !item['subtype'].to_s.empty? %>, <%= h(item['subtype']) %><% end %>)</small>
+                  <% end %>
+                  <% if item['description'] && !item['description'].to_s.empty? %>
+                    <div class="scene-loot-desc"><%= h(item['description']) %></div>
+                  <% end %>
+                </td>
+                <td><%= h(item['source']) %></td>
+                <td>
+                  <% if @is_dm %>
+                    <form method="post" action="/scene/0/loot/claim_item" style="display:inline;">
+                      <input type="hidden" name="loot_id" value="<%= h(item['id']) %>">
+                      <select name="target_id" required>
+                        <option value="">Give to...</option>
+                        <% @pc_characters.each do |pc| %>
+                          <option value="<%= pc['id'] %>"><%= h(pc['name']) %></option>
+                        <% end %>
+                      </select>
+                      <button type="submit">Claim</button>
+                    </form>
+                  <% elsif @viewer_id > 0 %>
+                    <form method="post" action="/scene/<%= @viewer_id %>/loot/claim_item" style="display:inline;">
+                      <input type="hidden" name="loot_id" value="<%= h(item['id']) %>">
+                      <button type="submit">Claim</button>
+                    </form>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+      <% if @is_dm %>
+        <form method="post" action="/scene/loot/clear" style="margin-top: 8px;">
+          <button type="submit" class="danger" onclick="return confirm('Clear all remaining loot? Items cannot be recovered.');">Clear loot</button>
+        </form>
+      <% end %>
+    </div>
+  <% end %>
+
   <% if @visible_panels.any? %>
     <div class="scene-panels">
       <% @visible_panels.each do |panel| %>
@@ -112,6 +178,25 @@
         </form>
         <small style="color:#666;">Initiative is <strong><%= @show_initiative ? 'showing' : 'hidden' %></strong> for everyone.</small>
       </div>
+
+      <% if @combat_active || @combat_enemies.any? %>
+        <div class="section scene-end-combat">
+          <h3>End Combat &amp; Collect Loot</h3>
+          <p class="dt-note" style="color:#888;">Checked enemies are deleted and their items &amp; gold move to the party loot pile. Unchecked enemies stay in combat.</p>
+          <% if @combat_enemies.empty? %>
+            <p class="dt-note">No enemies currently in combat.</p>
+          <% end %>
+          <form method="post" action="/scene/end_combat_loot" class="notes-form">
+            <% @combat_enemies.each do |e| %>
+              <label class="scene-enemy-choice">
+                <input type="checkbox" name="enemy_combat_ids[]" value="<%= e['combat_id'] %>" checked>
+                <span><%= h(e['name']) %> <small style="color:#666;">(<%= e['item_count'] %> item<%= 's' unless e['item_count'] == 1 %>, <%= e['gold'] %>g)</small></span>
+              </label>
+            <% end %>
+            <button type="submit" onclick="return confirm('End combat and collect loot from selected enemies?');">End Combat &amp; Collect Loot</button>
+          </form>
+        </div>
+      <% end %>
 
       <div class="section">
         <h3>Names</h3>

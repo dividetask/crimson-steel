@@ -565,6 +565,19 @@ table th {
 .scene-panel h2 { margin: 0 0 8px 0; font-size: 18px; }
 .scene-panel p { margin: 0; }
 
+.scene-loot { margin: 20px 0; padding: 14px 16px; border: 1px solid #d4a017; background: #fffbea; border-radius: 6px; }
+.scene-loot h2 { margin: 0 0 10px 0; color: #8a6d1a; }
+.scene-loot-gold { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.scene-loot-gold-amount { font-weight: bold; font-size: 16px; color: #8a6d1a; }
+.scene-loot-items { width: 100%; border-collapse: collapse; }
+.scene-loot-items th, .scene-loot-items td { padding: 6px 10px; border-bottom: 1px solid #eadcb0; text-align: left; vertical-align: top; }
+.scene-loot-items th { background: #f7eecb; }
+.scene-loot-desc { color: #666; font-size: 12px; margin-top: 2px; }
+
+.scene-end-combat { border-color: #b71c1c; }
+.scene-end-combat h3 { color: #b71c1c; margin-top: 0; }
+.scene-enemy-choice { display: block; padding: 4px 0; font-weight: normal; }
+
 .scene-shared-images { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
 .scene-shared-image { margin: 0; }
 .scene-shared-image img { max-width: 100%; max-height: 400px; display: block; border: 1px solid #ccc; }

@@ -205,6 +205,24 @@ get '/scene/:viewer_id' do
   characters = Tools.load_json('characters.json')
   @pc_characters = characters.select { |c| (c['group'] || 'PC') == 'PC' }
 
+  # Non-PC combat participants (enemies) paired with their source character.
+  # The DM loot panel lists these so the DM can pick which corpses contribute
+  # to the loot pool before ending combat.
+  char_by_id = characters.each_with_object({}) { |c, h| h[c['id']] = c }
+  @combat_enemies = (combat_data['participants'] || []).filter_map do |p|
+    char = char_by_id[p['char_id'] || p['id']]
+    next nil unless char
+    next nil if (char['group'] || 'PC') == 'PC'
+    { 'combat_id' => p['id'], 'char_id' => char['id'], 'name' => char['name'],
+      'gold' => char['gold'].to_i, 'item_count' => (char['items'] || []).length }
+  end
+
+  campaign = Tools.load_json('campaign.json')
+  campaign = {} unless campaign.is_a?(Hash)
+  @loot = campaign['loot'] || { 'gold' => 0, 'items' => [] }
+  @loot['gold'] ||= 0
+  @loot['items'] ||= []
+
   erb :scene
 end
 
@@ -214,6 +232,144 @@ post '/scene/toggle_initiative' do
   combat_data = Tools.load_json('combat.json')
   combat_data['hide_initiative'] = !combat_data['hide_initiative']
   Tools.save_json('combat.json', combat_data)
+  redirect '/scene/0'
+end
+
+# --- Loot collection ---
+#
+# Loot lives on campaign.json under 'loot' = { 'gold' => N, 'items' => [...] }.
+# Items are flat hashes shaped like equipment.json rows plus an 'id' (uuid)
+# so claim buttons can target a specific row, and a 'source' string for the
+# enemy that dropped it. Gold is a single pool any player can deposit into
+# the party's campaign.gold.
+
+def scene_load_loot
+  campaign = Tools.load_json('campaign.json')
+  campaign = {} unless campaign.is_a?(Hash)
+  loot = campaign['loot'] || {}
+  loot['gold'] ||= 0
+  loot['items'] ||= []
+  [campaign, loot]
+end
+
+def scene_save_loot(campaign, loot)
+  campaign['loot'] = loot
+  Tools.save_json('campaign.json', campaign)
+end
+
+# End combat and collect loot from selected enemy combatants. Selected
+# enemies are removed from characters.json and combat.participants; their
+# inline items and gold are appended to campaign.loot. Unselected enemies
+# stay put (useful for bosses you want to preserve or captives that fled).
+# Also ends combat the same way /combat/end_combat does and hides the
+# initiative panel so players stop seeing the initiative order.
+post '/scene/end_combat_loot' do
+  scene_require_dm!
+  enemy_combat_ids = Array(params[:enemy_combat_ids]).map(&:to_i)
+
+  characters = Tools.load_json('characters.json')
+  combat_data = Tools.load_json('combat.json')
+  campaign, loot = scene_load_loot
+
+  char_by_id = characters.each_with_object({}) { |c, h| h[c['id']] = c }
+  selected = (combat_data['participants'] || []).select { |p| enemy_combat_ids.include?(p['id'].to_i) }
+
+  deleted_char_ids = []
+  selected.each do |participant|
+    char_id = participant['char_id'] || participant['id']
+    char = char_by_id[char_id]
+    next unless char
+    next if (char['group'] || 'PC') == 'PC'   # safety: never loot/delete PCs
+
+    source_name = char['name'].to_s
+    (char['items'] || []).each do |item|
+      loot['items'] << item.merge(
+        'id' => SecureRandom.uuid,
+        'source' => source_name
+      )
+    end
+    loot['gold'] = loot['gold'].to_i + char['gold'].to_i
+    deleted_char_ids << char_id
+  end
+
+  combat_data['participants'] = (combat_data['participants'] || []).reject do |p|
+    enemy_combat_ids.include?(p['id'].to_i)
+  end
+  characters.reject! { |c| deleted_char_ids.include?(c['id']) }
+
+  # Mirror /combat/end_combat's cleanup so reopening combat is a reroll away.
+  combat_data['active'] = false
+  combat_data['round'] = 0
+  combat_data['current_turn'] = 0
+  combat_data['current_turn_id'] = 0
+  combat_data['active_effects'] = []
+  combat_data['hide_initiative'] = true
+  (combat_data['participants'] || []).each { |p| p['initiative'] = '' }
+
+  campaign['rounds_elapsed'] = 0
+
+  Tools.save_json('characters.json', characters)
+  Tools.save_json('combat.json', combat_data)
+  scene_save_loot(campaign, loot)
+
+  redirect '/scene/0'
+end
+
+# Claim a single loot item into a PC's inventory. Players (viewer_id > 0)
+# may only claim to their own character; the DM (viewer_id 0 + local) can
+# claim on any PC's behalf via a target_id param.
+post '/scene/:viewer_id/loot/claim_item' do
+  viewer_id = params[:viewer_id].to_i
+  is_dm = viewer_id == 0 && local_request?
+  target_id = is_dm ? params[:target_id].to_i : viewer_id
+  halt 400, 'Invalid target' if target_id <= 0
+
+  characters = Tools.load_json('characters.json')
+  target = characters.find { |c| c['id'] == target_id && (c['group'] || 'PC') == 'PC' }
+  halt 404, 'Target PC not found' unless target
+
+  campaign, loot = scene_load_loot
+  loot_id = params[:loot_id].to_s
+  idx = loot['items'].find_index { |i| i['id'] == loot_id }
+  halt 404, 'Loot item not found' unless idx
+  item = loot['items'][idx]
+
+  equipment = Tools.load_json('equipment.json')
+  equipment << {
+    'owner_id' => target_id,
+    'name' => item['name'],
+    'type' => item['type'],
+    'subtype' => item['subtype'],
+    'bonus' => item['bonus'].to_i,
+    'properties' => item['properties'] || {},
+    'description' => item['description'],
+    'equipped' => false
+  }.compact
+  Tools.save_json('equipment.json', equipment)
+
+  loot['items'].delete_at(idx)
+  scene_save_loot(campaign, loot)
+
+  redirect "/scene/#{viewer_id}"
+end
+
+# Deposit the entire loot gold pool into the shared campaign gold. Any
+# viewer may claim -- gold is party gold, there's no per-PC gold pocket.
+post '/scene/:viewer_id/loot/claim_gold' do
+  viewer_id = params[:viewer_id].to_i
+  campaign, loot = scene_load_loot
+  campaign['gold'] = campaign['gold'].to_i + loot['gold'].to_i
+  loot['gold'] = 0
+  scene_save_loot(campaign, loot)
+  redirect "/scene/#{viewer_id}"
+end
+
+post '/scene/loot/clear' do
+  scene_require_dm!
+  campaign, loot = scene_load_loot
+  loot['gold'] = 0
+  loot['items'] = []
+  scene_save_loot(campaign, loot)
   redirect '/scene/0'
 end
 
