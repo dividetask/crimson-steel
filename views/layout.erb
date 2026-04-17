@@ -47,6 +47,36 @@ window.addEventListener('popstate', function() {
   history.pushState(null, '', location.href);
 });
 
+(function() {
+  // Persist the enemies sidebar's per-group collapsed state across page
+  // loads. Stores only the labels of groups the DM has explicitly
+  // collapsed; absent labels stay expanded (matches existing default).
+  var KEY = 'enemies.collapsed';
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; }
+    catch (e) { return {}; }
+  }
+  function save(state) {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  var groups = document.querySelectorAll('.enemy-group[data-group-label]');
+  if (!groups.length) return;
+  var state = load();
+  groups.forEach(function(g) {
+    var label = g.getAttribute('data-group-label');
+    if (state[label]) g.classList.add('collapsed');
+    var header = g.querySelector('.enemy-group-header');
+    if (!header) return;
+    header.addEventListener('click', function() {
+      g.classList.toggle('collapsed');
+      var cur = load();
+      if (g.classList.contains('collapsed')) cur[label] = true;
+      else delete cur[label];
+      save(cur);
+    });
+  });
+})();
+
 function toggleNote(btn) {
   var text = btn.previousElementSibling;
   if (text.classList.contains('collapsed')) {

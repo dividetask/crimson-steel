@@ -6,8 +6,8 @@
         char_by_id = @all_characters.each_with_object({}) { |c, h| h[c['id']] = c }
       %>
       <% (@enemy_groups || []).each do |group| %>
-        <div class="enemy-group">
-          <div class="enemy-group-header" onclick="this.parentElement.classList.toggle('collapsed')" title="Click to expand/collapse">
+        <div class="enemy-group" data-group-label="<%= h(group[:label]) %>">
+          <div class="enemy-group-header" title="Click to expand/collapse">
             <span class="enemy-group-toggle">&#9660;</span>
             <strong><%= group[:label] %></strong>
             <span class="enemy-group-count">(<%= group[:enemies].length %>)</span>
