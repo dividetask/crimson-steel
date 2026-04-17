@@ -540,6 +540,10 @@ post '/scene/map/update' do
     end
   end
 
+  # A DM edit supersedes any player "where I want to move" marks; wipe the
+  # overlay so stale intents don't linger after the situation changes.
+  entry['player_cells'] = {}
+
   scene_save_notes(notes)
   redirect '/scene/0'
 end
@@ -562,6 +566,49 @@ post '/scene/map/delete' do
   notes.delete_at(idx)
   scene_save_notes(notes)
   redirect '/scene/0'
+end
+
+# --- Player marks on scene maps ---
+# Players can drop a restricted set of icons onto a shared map to signal
+# intent (e.g. "I want to move here"). All player marks on a map are wiped
+# whenever the DM next saves an edit via /scene/map/update, so they act as
+# an ephemeral overlay rather than persistent content.
+SCENE_MAP_PLAYER_ICONS = %w[🔥 ⚔️ 🏹 🕸 ⬆].freeze
+
+post '/scene/map/player_mark' do
+  content_type :json
+  viewer_id = params[:viewer_id].to_i
+  halt 403, '{}' if viewer_id <= 0
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404, '{}' unless entry && entry['type'] == 'scene_map'
+  halt 403, '{}' unless entry['shared'] && Array(entry['visible_to']).include?(viewer_id)
+
+  entry['player_cells'] ||= {}
+  action = params[:action].to_s
+  rows = entry['rows'].to_i
+  cols = entry['cols'].to_i
+
+  case action
+  when 'place'
+    icon = params[:icon].to_s
+    halt 400, '{}' unless SCENE_MAP_PLAYER_ICONS.include?(icon)
+    r = params[:r].to_i
+    c = params[:c].to_i
+    halt 400, '{}' if r < 0 || c < 0 || r >= rows || c >= cols
+    entry['player_cells']["#{r},#{c}"] = { 'icon' => icon, 'by' => viewer_id }
+  when 'clear'
+    r = params[:r].to_i
+    c = params[:c].to_i
+    entry['player_cells'].delete("#{r},#{c}")
+  when 'clear_mine'
+    entry['player_cells'].reject! { |_k, v| v.is_a?(Hash) && v['by'] == viewer_id }
+  else
+    halt 400, '{}'
+  end
+
+  scene_save_notes(notes)
+  { 'player_cells' => entry['player_cells'] }.to_json
 end
 
 post '/combat/update/:id' do

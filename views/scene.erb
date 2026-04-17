@@ -104,23 +104,49 @@
   <% if @visible_maps.any? %>
     <div class="scene-maps">
       <% @visible_maps.each do |m| %>
+        <% rows = m['rows'].to_i %>
+        <% cols = m['cols'].to_i %>
+        <% cells = m['cells'].is_a?(Hash) ? m['cells'] : {} %>
+        <% player_cells = m['player_cells'].is_a?(Hash) ? m['player_cells'] : {} %>
         <div class="scene-map">
           <% if m['title'] && !m['title'].to_s.empty? %>
             <h2><%= h(m['title']) %></h2>
           <% end %>
-          <div class="scene-map-grid" style="grid-template-columns: repeat(<%= m['cols'].to_i %>, var(--scene-cell-size));">
-            <% rows = m['rows'].to_i %>
-            <% cols = m['cols'].to_i %>
-            <% cells = m['cells'].is_a?(Hash) ? m['cells'] : {} %>
+          <div class="scene-map-player-palette" data-player-palette="1">
+            <span class="palette-label">Your marks:</span>
+            <% [
+              ['🔥', 'Fire'],
+              ['⚔️', 'Sword'],
+              ['🏹', 'Arrow'],
+              ['🕸', 'Web'],
+              ['⬆', 'Move here']
+            ].each do |ic, name| %>
+              <button type="button" class="brush player-brush" data-player-brush="place" data-icon="<%= ic %>" title="<%= name %>"><%= ic %></button>
+            <% end %>
+            <button type="button" class="brush player-brush" data-player-brush="erase" title="Click a cell to clear its mark">Erase</button>
+            <button type="button" class="brush player-clear-mine" title="Remove all of your marks on this map">Clear mine</button>
+            <span class="palette-status"><span class="active-brush-desc">Pick an icon to place</span></span>
+          </div>
+          <div class="scene-map-grid"
+               data-map-id="<%= h(m['id']) %>"
+               data-viewer-id="<%= @viewer_id %>"
+               data-player-grid="1"
+               style="grid-template-columns: repeat(<%= cols %>, var(--scene-cell-size));">
             <% rows.times do |r| %>
               <% cols.times do |c| %>
                 <% cell = cells["#{r},#{c}"] || {} %>
-                <div class="scene-map-cell" style="<%= cell['color'] && !cell['color'].empty? ? "background:#{h cell['color']};" : '' %>">
+                <% pmark = player_cells["#{r},#{c}"] %>
+                <div class="scene-map-cell editable player-editable"
+                     data-r="<%= r %>" data-c="<%= c %>"
+                     style="<%= cell['color'] && !cell['color'].empty? ? "background:#{h cell['color']};" : '' %>">
                   <% if cell['icon'] && !cell['icon'].to_s.empty? %>
                     <span class="scene-map-icon"><%= h(cell['icon']) %></span>
                   <% end %>
                   <% if cell['label'] && !cell['label'].to_s.empty? %>
                     <span class="scene-map-label"><%= h(cell['label']) %></span>
+                  <% end %>
+                  <% if pmark.is_a?(Hash) && pmark['icon'] %>
+                    <span class="scene-map-player-mark<%= ' mine' if pmark['by'] == @viewer_id %>" data-by="<%= pmark['by'] %>"><%= h(pmark['icon']) %></span>
                   <% end %>
                 </div>
               <% end %>
@@ -386,11 +412,16 @@
                 </div>
               </div>
 
+              <% player_cells_dm = m['player_cells'].is_a?(Hash) ? m['player_cells'] : {} %>
+              <% if player_cells_dm.any? %>
+                <p class="dt-note" style="color:#666;">Player marks show with a green ring. They're cleared the next time you save this map.</p>
+              <% end %>
               <div class="scene-map-editor-grid" data-grid="1"
                    style="grid-template-columns: repeat(<%= cols %>, var(--scene-cell-size));">
                 <% rows.times do |r| %>
                   <% cols.times do |c| %>
                     <% cell = cells["#{r},#{c}"] || {} %>
+                    <% pmark = player_cells_dm["#{r},#{c}"] %>
                     <div class="scene-map-cell editable"
                          data-r="<%= r %>" data-c="<%= c %>"
                          style="<%= cell['color'] && !cell['color'].empty? ? "background:#{h cell['color']};" : '' %>">
@@ -399,6 +430,10 @@
                       <% end %>
                       <% if cell['label'] && !cell['label'].to_s.empty? %>
                         <span class="scene-map-label"><%= h(cell['label']) %></span>
+                      <% end %>
+                      <% if pmark.is_a?(Hash) && pmark['icon'] %>
+                        <% by_pc = @pc_characters.find { |pc| pc['id'] == pmark['by'] } %>
+                        <span class="scene-map-player-mark" data-by="<%= pmark['by'] %>" title="By <%= by_pc ? h(by_pc['name']) : "player ##{pmark['by']}" %>"><%= h(pmark['icon']) %></span>
                       <% end %>
                     </div>
                   <% end %>
@@ -499,6 +534,97 @@
       </div>
     </div>
   <% end %>
+
+  <script>
+  (function() {
+    // Player-side map interactions: pick a restricted icon, click a cell to
+    // drop it. Backs /scene/map/player_mark; DM edits wipe these marks.
+    var grids = document.querySelectorAll('.scene-map-grid[data-player-grid="1"]');
+    grids.forEach(function(grid) {
+      var mapId = grid.getAttribute('data-map-id');
+      var viewerId = grid.getAttribute('data-viewer-id');
+      var panel = grid.parentElement.querySelector('[data-player-palette="1"]');
+      if (!panel) return;
+      var status = panel.querySelector('.active-brush-desc');
+      var brush = null; // {kind: 'place', icon} | {kind: 'erase'}
+
+      function describe() {
+        if (!brush) { status.textContent = 'Pick an icon to place'; return; }
+        if (brush.kind === 'erase') status.textContent = 'Click a cell to clear its mark';
+        else status.textContent = 'Click a cell to place ' + brush.icon;
+      }
+
+      function setActiveChip(btn) {
+        panel.querySelectorAll('.player-brush.active').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+      }
+
+      panel.querySelectorAll('.player-brush').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var kind = btn.getAttribute('data-player-brush');
+          if (kind === 'erase') brush = { kind: 'erase' };
+          else brush = { kind: 'place', icon: btn.getAttribute('data-icon') };
+          setActiveChip(btn);
+          describe();
+        });
+      });
+
+      function repaint(playerCells) {
+        grid.querySelectorAll('.scene-map-player-mark').forEach(function(el) { el.remove(); });
+        Object.keys(playerCells || {}).forEach(function(key) {
+          var p = playerCells[key];
+          if (!p || !p.icon) return;
+          var parts = key.split(',');
+          var cell = grid.querySelector('.scene-map-cell[data-r="' + parts[0] + '"][data-c="' + parts[1] + '"]');
+          if (!cell) return;
+          var span = document.createElement('span');
+          span.className = 'scene-map-player-mark' + (String(p.by) === String(viewerId) ? ' mine' : '');
+          span.setAttribute('data-by', p.by || '');
+          span.textContent = p.icon;
+          cell.appendChild(span);
+        });
+      }
+
+      function send(params) {
+        params.set('id', mapId);
+        params.set('viewer_id', viewerId);
+        return fetch('/scene/map/player_mark', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
+        }).then(function(r) { return r.ok ? r.json() : null; })
+          .then(function(body) { if (body && body.player_cells) repaint(body.player_cells); });
+      }
+
+      grid.addEventListener('click', function(e) {
+        var cell = e.target.closest('.scene-map-cell.player-editable');
+        if (!cell || !grid.contains(cell)) return;
+        if (!brush) return;
+        var r = cell.getAttribute('data-r');
+        var c = cell.getAttribute('data-c');
+        var p = new URLSearchParams();
+        if (brush.kind === 'erase') {
+          p.set('action', 'clear');
+          p.set('r', r); p.set('c', c);
+        } else {
+          p.set('action', 'place');
+          p.set('r', r); p.set('c', c);
+          p.set('icon', brush.icon);
+        }
+        send(p);
+      });
+
+      var clearMine = panel.querySelector('.player-clear-mine');
+      if (clearMine) {
+        clearMine.addEventListener('click', function() {
+          var p = new URLSearchParams();
+          p.set('action', 'clear_mine');
+          send(p);
+        });
+      }
+    });
+  })();
+  </script>
 
   <% if @is_dm %>
     <script>
