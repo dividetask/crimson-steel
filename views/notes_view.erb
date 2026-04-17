@@ -170,7 +170,7 @@
       <div class="note-image-grid">
         <% image_notes.each do |img| %>
           <figure class="note-image-item">
-            <img src="<%= h(img['image_path']) %>" alt="<%= h(img['title']) %>" class="note-image">
+            <img src="<%= h(img['image_path']) %>" alt="<%= h(img['title']) %>" class="note-image zoomable">
             <% if img['title'] && !img['title'].to_s.empty? %>
               <figcaption><%= h(img['title']) %></figcaption>
             <% end %>

@@ -95,7 +95,7 @@
           <% if img['title'] && !img['title'].to_s.empty? %>
             <figcaption><%= h(img['title']) %></figcaption>
           <% end %>
-          <img src="<%= h(img['image_path']) %>" alt="<%= h(img['title']) %>">
+          <img src="<%= h(img['image_path']) %>" alt="<%= h(img['title']) %>" class="zoomable">
         </figure>
       <% end %>
     </div>
@@ -125,6 +125,12 @@
                   <summary>
                     <span class="staging-name-label"><%= h(n['title']) %></span>
                   </summary>
+                  <form method="post" action="/scene/draft_name/update" class="notes-form">
+                    <input type="hidden" name="id" value="<%= h(n['id']) %>">
+                    <label>Rename:</label>
+                    <input type="text" name="title" value="<%= h(n['title']) %>" required>
+                    <button type="submit">Save name</button>
+                  </form>
                   <form method="post" action="/scene/draft_name/promote" class="notes-form">
                     <input type="hidden" name="id" value="<%= h(n['id']) %>">
                     <label>Description:</label>
@@ -142,7 +148,7 @@
                         </select>
                       </div>
                       <div>
-                        <label><input type="checkbox" name="public" value="true" checked> Visible to Players</label>
+                        <label><input type="checkbox" name="public" value="true" checked> Visible to players</label>
                       </div>
                     </div>
                     <button type="submit">Promote to Character of Interest</button>
@@ -156,15 +162,10 @@
             <% end %>
           </ul>
         <% end %>
-        <form method="post" action="/scene/draft_name" class="notes-form">
-          <label>Add Name:</label>
-          <input type="text" name="title" required>
-          <button type="submit">Add</button>
-        </form>
         <form method="post" action="/scene/draft_names_bulk" class="notes-form">
-          <label>Add Many Names (one per line):</label>
-          <textarea name="titles" rows="4" placeholder="Bartender Greta&#10;Captain Harris&#10;Old Willem"></textarea>
-          <button type="submit">Add All</button>
+          <label>Add names (one per line):</label>
+          <textarea name="titles" rows="4" placeholder="Bartender Greta&#10;Captain Harris&#10;Old Willem" required></textarea>
+          <button type="submit">Add</button>
         </form>
       </div>
 
@@ -266,7 +267,7 @@
           <div class="staging-image-grid">
             <% @draft_images.each do |img| %>
               <div class="staging-image">
-                <img src="<%= h(img['image_path']) %>" alt="<%= h(img['title']) %>">
+                <img src="<%= h(img['image_path']) %>" alt="<%= h(img['title']) %>" class="zoomable">
                 <form method="post" action="/scene/image/update" class="notes-form">
                   <input type="hidden" name="id" value="<%= h(img['id']) %>">
                   <input type="text" name="title" value="<%= h(img['title']) %>" placeholder="Title">

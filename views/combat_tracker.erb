@@ -101,6 +101,9 @@
     <form method="post" action="/combat/reroll_init">
       <button type="submit">Reroll Init</button>
     </form>
+    <form method="post" action="/combat/end_combat" onsubmit="return confirm('End combat? Clears initiative rolls, active effects, and resets the round counter to 0.');">
+      <button type="submit">End Combat</button>
+    </form>
   </div>
 
   <% if @combat.active_effects.any? %>
