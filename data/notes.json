@@ -802,5 +802,77 @@
       3,
       4
     ]
+  },
+  {
+    "id": "9e89617a-3915-4456-a496-68d987865294",
+    "owner_id": 0,
+    "draft": true,
+    "type": "draft_note",
+    "title": "Caravan Prep: Overview",
+    "note": "Emergency evacuation after party's temple raid. Panicked, moving fast, fewer guards than normal but the survivors are the toughest.\n\nCreature templates live under the \"Slave Lords\" group on the enemies page: pick the caravan master that fits the surviving temple NPCs, then scale soldier / scout / handler counts to party.",
+    "public": false
+  },
+  {
+    "id": "1f0c894b-6065-4e31-a68b-058299246ca7",
+    "owner_id": 0,
+    "draft": true,
+    "type": "draft_note",
+    "title": "Caravan Prep: Masters (pick 1)",
+    "note": "Pick ONE based on who survived the temple raid.\n\nOPTION A — Sturm Colasso [Tier 1, Human Rogue 5]\nSTR 12, DEX 16, CON 13, INT 14, WIS 11, CHA 10\nSkills: stealth, deception, perception, larceny, intimidate, sense_motive\nGear: short sword, leather armor, Ring of Protection +2, Potion of Invisibility, 50 gp\nBehavior: Coward. Drinks invisibility and runs at first sign of losing. Abandons caravan, slaves, everything. Runs toward Highport.\n\nOPTION B — Temple Cleric [Tier 2, Human Cleric 6, female]\nSTR 12, DEX 16, CON 13, INT 12, WIS 17, CHA 11\nSkills: religion, intimidate, perception, deception, sense_motive\nSpells prepared:\n  Cantrips: Guidance, Resistance\n  L1: Command x2, Cure Light Wounds x2, Protection from Good\n  L2: Hold Person x2, Resist Fire, Silence, Spiritual Hammer\n  L3: Bestow Curse, Blindness, Prayer\nGear: mace +1, plate mail, Potion of Haste, 30 gp\nBehavior: Opens with Prayer on self and guards, Silence on party casters, Hold Person on biggest threat. Surrenders if losing. Betrays everyone to save herself.\n\nOPTION C — Half-Orc Caravan Boss [Tier 1, Fighter 4 / Cleric 3]\nSTR 16, DEX 12, CON 15, INT 10, WIS 14, CHA 9\nSkills: athletics, intimidate, perception, religion\nSpells prepared:\n  Cantrips: Guidance\n  L1: Bless, Command, Cure Light Wounds, Darkness\n  L2: Hold Person, Spiritual Weapon\nGear: long sword, chain mail, shield, wooden holy symbol, 15 gp\nBehavior: Professional. Fights defensively. Threatens to kill slaves as hostages if cornered. Does not flee.",
+    "public": false
+  },
+  {
+    "id": "c68645a0-f173-4f82-a971-e33854039425",
+    "owner_id": 0,
+    "draft": true,
+    "type": "draft_note",
+    "title": "Caravan Prep: Soldiers, Scouts & Handlers",
+    "note": "HALF-ORC SOLDIERS (4-6)\nTier 0, Half-Orc Fighter 2\nSTR 15, DEX 12, CON 13, INT 10, WIS 10, CHA 8\nSkills: athletics, intimidate, perception\nGear: short sword, light crossbow (20 bolts), chain shirt, 1d6+2 gp\nPotion: 15% chance each of 1 random potion from tier_one_potions_oils\nBehavior: Fight in pairs. If 3+ soldiers die, survivors consider surrender. Disciplined but scared.\n\nHALF-ORC VETERAN (1, among the soldiers)\nTier 1, Half-Orc Fighter 4\nSTR 17, DEX 12, CON 14, INT 10, WIS 10, CHA 8\nGear: long sword, chain mail (instead of chain shirt), 2d6+5 gp\nBehavior: Last to break. Rallies others for one more round.\n\nHALF-ORC SCOUTS (2)\nTier 0, Half-Orc Rogue 2\nSTR 13, DEX 15, CON 12, INT 11, WIS 12, CHA 8\nSkills: stealth, perception, survival, athletics\nGear: short sword, short bow (20 arrows), leather armor, signal horn, 1d4 gp\nBehavior: Range 200-400 ft ahead and behind column. Watching for pursuit from Highport. If they spot the party, one warns the caravan while the other shadows to report numbers. They do NOT fight — they run.\n\nORC HANDLERS (2-3)\nTier 0, Orc Fighter 1\nSTR 13, DEX 11, CON 12, INT 8, WIS 9, CHA 7\nSkills: intimidate, animal_handling\nGear: whip (1d3, reach), short sword (backup), no armor, 1d4 gp\nBehavior: Bullies, not fighters. Drop whips and run if soldiers fall. One might kill a slave out of spite on the way out.",
+    "public": false
+  },
+  {
+    "id": "d2ea3a1d-7f75-4186-92ed-00e6f287e578",
+    "owner_id": 0,
+    "draft": true,
+    "type": "draft_note",
+    "title": "Caravan Prep: Doppelganger (optional)",
+    "note": "DOPPELGANGER (1, optional — from temple stable loft)\nTier 2, Aberration (shapeshifter), Monster 4\nSTR 18, DEX 18, CON 14, INT 13, WIS 14, CHA 14\nSkills: deception, stealth, perception, sense_motive\nTraits: immune to sleep and charm, reads surface thoughts, shapeshifts into any humanoid, surprise on 1-4, saves as level 10.\nGear: copies whatever form it's wearing (currently a half-orc soldier: short sword, chain shirt, crossbow), 2d6 gp (stolen).\nBehavior: Fights for whoever is winning. If party wins, it surrenders and claims to be a captured merchant. Wants to join the party, isolate a member, kill and replace them.\nTells: fights too well for a regular soldier; doesn't know slaver passwords, names, or procedures a real soldier would.",
+    "public": false
+  },
+  {
+    "id": "c2838078-d437-4232-8058-05df96fd0b0f",
+    "owner_id": 0,
+    "draft": true,
+    "type": "draft_note",
+    "title": "Caravan Prep: Slaves",
+    "note": "SLAVES (15-20)\nTier 0, Human commoner (mixed origins, some from Sorinsk)\nSTR/DEX/CON/INT/WIS/CHA all 10\nGear: rags, ankle manacles, nothing else.\nCondition: exhausted, dehydrated, beaten, terrified.\nChained in a coffle — single long chain through all ankle manacles, 3 ft apart. Total length 45-60 ft. Padlocked to iron stakes when camped.\n\nNOTABLE SLAVES (pick 3-4)\n\nSorinsk Farmer (male, 40s)\nRecognizes the party from the feast. Knows 20 captives left weeks ago on an earlier caravan. Knows \"important ones\" (Hawthorne, Varen) were separated immediately. Broken arm, walks slow.\n\nSorinsk Merchant's Wife (female, 30s)\nOverheard guards mention \"the elf woman's workshop\" and \"the stockade in the mountains.\" Knows Doran Svetov was moved inland a week ago. Physically ok, mentally fragile.\n\nForeign Sailor (male, 20s)\nCaptured from a merchant ship. Southern accent. Knows the slaver ships are the Ghoul and Reaper. Knows Casimir Rybar's Silver Sturgeon carries intel, not slaves. Strong enough to fight if armed. Eager.\n\nChild (girl, 10-12)\nCaptured near Elredd. Doesn't speak much. No useful intel. Malnourished, scared.\n\nOld Dock Worker (male, 60s)\nEnslaved from Highport for debt. Resigned. Knows temple layout from time as a labor slave. Knows about the aspis alliance (\"bug things in the sewers\"). Weak. Won't flee without convincing.",
+    "public": false
+  },
+  {
+    "id": "8d473ceb-fd2a-4adc-a2fe-f61b485c10d4",
+    "owner_id": 0,
+    "draft": true,
+    "type": "draft_note",
+    "title": "Caravan Prep: March Order & Night Camp",
+    "note": "MARCH ORDER (on the trail)\n  [Scout — 200 ft ahead]\n  [2 soldiers — point]\n  [Mules + 1 handler]\n  [Coffle of 15-20 slaves, 45-60 ft long]\n  [2 handlers flanking the coffle]\n  [Caravan master + 1-2 soldiers — rear]\n  [Scout — 200 ft behind, watching for pursuit]\nTotal column length roughly 120-150 ft, gate to gate.\n\nNIGHT CAMP LAYOUT (if the party ambushes at night)\nSingle fire, banked low. Slaves chained to a picket line (iron stakes). 2 guards on watch, rotating 4-hour shifts. Caravan master sleeps near the strongbox mule. Soldiers cluster near the fire. Handlers sleep furthest from the slaves. Scouts pulled in, camped 50 ft out as early warning. Mules hobbled.\nBest ambush window: pre-dawn third watch (guards groggy).\n\nDETECTION\nWatch guards make perception checks each turn.\nScouts wake on loud noise.\nMules snort if strangers approach upwind.\nDoppelganger doesn't really sleep — notices party 50% of the time but may choose not to alert anyone (waiting to see who wins).",
+    "public": false
+  },
+  {
+    "id": "38faa626-e64b-49f3-93a3-c3f5d51f6680",
+    "owner_id": 0,
+    "draft": true,
+    "type": "draft_note",
+    "title": "Caravan Prep: Random Encounter (Orc Patrol)",
+    "note": "ORC PATROL (only if the party delays 1+ days)\nChance: 1-in-6 per day\nNumber: 4-16 orcs\nTier 0, Orc Fighter 1\nSTR 15, DEX 10, CON 12, INT 7, WIS 8, CHA 6\nGear: short sword or hand axe (50/50), 50% have light crossbow, hide armor, 1d6 gp each\nBehavior: Part of a toll arrangement with slavers. If the party looks like slavers, the patrol ignores them. If not, they shadow and report. Don't attack unprovoked.",
+    "public": false
+  },
+  {
+    "id": "fa253e4f-8009-48ac-b120-ebb2e2c9eaf8",
+    "owner_id": 0,
+    "draft": true,
+    "type": "draft_note",
+    "title": "Caravan Prep: Caravan Loot (mules)",
+    "note": "CARAVAN LOOT (on the mules)\n\nStrongbox (locked, iron):\n  800 gp\n  3 gems worth 100 gp each (goblin tribe toll)\n  2 gems worth 200 gp each (gnoll tribe toll)\n  Caravan route map (landmarks to stockade, no distances)\n  Guard roster copy with agent abbreviations (Ag., Haz., MO, Tar.)\n\nSupplies:\n  Rations (2 weeks for 25 people)\n  Water skins (3 days)\n  Rope (100 ft)\n  Spare manacles (6 sets), branding irons (3), whips (2)\n  Canvas tarps (2), basic tools",
+    "public": false
   }
 ]
