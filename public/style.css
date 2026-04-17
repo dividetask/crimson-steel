@@ -582,7 +582,139 @@ table th {
 .staging-names summary { cursor: pointer; }
 .staging-name-label { font-weight: bold; }
 
-.staging-draft-note, .staging-panel, .staging-image { border: 1px solid #ddd; padding: 10px; margin: 10px 0; background: #fafafa; border-radius: 4px; }
+.staging-draft-note, .staging-panel, .staging-image, .staging-map { border: 1px solid #ddd; padding: 10px; margin: 10px 0; background: #fafafa; border-radius: 4px; }
+
+/* Scene grid maps */
+:root { --scene-cell-size: 32px; }
+.scene-maps { display: flex; flex-direction: column; gap: 16px; margin: 20px 0; }
+.scene-map { border: 1px solid #ccc; background: #fff; padding: 10px 12px; border-radius: 4px; }
+.scene-map h2 { margin: 0 0 8px 0; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+.scene-map-grid, .scene-map-editor-grid {
+  display: grid;
+  gap: 1px;
+  background: #999;
+  border: 1px solid #666;
+  padding: 1px;
+  width: max-content;
+  max-width: 100%;
+  overflow: auto;
+}
+.scene-map-cell {
+  width: var(--scene-cell-size);
+  height: var(--scene-cell-size);
+  background: #fff;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  text-align: center;
+}
+.scene-map-cell.editable { cursor: pointer; user-select: none; }
+.scene-map-cell.editable:hover { outline: 2px solid #1976d2; outline-offset: -2px; z-index: 1; }
+.scene-map-cell.rect-preview { box-shadow: inset 0 0 0 2px #1976d2; z-index: 2; }
+.scene-map-cell.rect-preview::after { content: ''; position: absolute; inset: 0; background: rgba(25,118,210,0.22); pointer-events: none; }
+.scene-map-icon {
+  font-size: 18px;
+  line-height: 1;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", "EmojiOne Color", "Segoe UI Symbol", sans-serif;
+}
+.scene-map-label { font-size: 9px; line-height: 1.1; padding: 0 1px; word-break: break-word; color: #000; text-shadow: 0 0 2px #fff, 0 0 2px #fff; }
+
+.scene-map-palette { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; padding: 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px; }
+.palette-group { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.palette-label { font-weight: bold; font-size: 11px; min-width: 50px; color: #555; }
+.palette-status .active-brush-desc { font-size: 11px; color: #1976d2; font-style: italic; }
+.scene-map-palette .brush {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  background: #f5f5f5;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", "EmojiOne Color", "Segoe UI Symbol", Arial, sans-serif;
+}
+.scene-map-palette .brush.color-brush { width: 26px; padding: 0; font-size: 11px; }
+.scene-map-palette .brush:hover { border-color: #1976d2; }
+.scene-map-palette .brush.active { outline: 2px solid #1976d2; outline-offset: 1px; }
+.scene-map-palette .brush-color-picker { width: 32px; height: 28px; padding: 0; border: 1px solid #aaa; cursor: pointer; }
+.scene-map-palette .brush-icon-custom { width: 50px; height: 28px; padding: 2px 4px; font-size: 13px; text-align: center; }
+
+.scene-map-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10001;
+  width: var(--scene-cell-size);
+  height: var(--scene-cell-size);
+  background: rgba(255,255,255,0.9);
+  border: 1px solid #1976d2;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+}
+.scene-map-cell.move-source { opacity: 0.4; }
+.scene-map-cell.move-target { outline: 2px dashed #388e3c; outline-offset: -2px; z-index: 3; }
+
+/* Player overlay marks -- ephemeral "I want to move here" icons players can
+ * drop on shared maps. Pinned to the top-right of the cell so they sit above
+ * the DM's own icon/label without fully obscuring it. */
+.scene-map-player-mark {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 62%;
+  height: 62%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  background: rgba(232, 245, 233, 0.95);
+  border: 1.5px solid #2e7d32;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  pointer-events: none;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", "EmojiOne Color", "Segoe UI Symbol", sans-serif;
+}
+.scene-map-player-mark.mine { border-color: #1565c0; background: rgba(227, 242, 253, 0.95); }
+
+/* Player palette: shown to players above any map the DM has shared with them. */
+.scene-map-player-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 6px 0;
+  padding: 6px 8px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+.scene-map-player-palette .palette-status { margin-left: auto; }
+.scene-map-player-palette .active-brush-desc { font-size: 11px; color: #1976d2; font-style: italic; }
+.scene-map-player-palette .brush {
+  min-width: 32px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  background: #f5f5f5;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", "EmojiOne Color", "Segoe UI Symbol", Arial, sans-serif;
+}
+.scene-map-player-palette .brush:hover { border-color: #1976d2; }
+.scene-map-player-palette .brush.active { outline: 2px solid #1976d2; outline-offset: 1px; }
+.scene-map-player-palette .player-clear-mine { background: #fff3e0; border-color: #e65100; color: #b71c1c; font-size: 12px; }
 
 .panel-visibility { display: flex; flex-wrap: wrap; gap: 10px; padding: 6px 0; }
 .panel-visibility label { font-weight: normal; }
