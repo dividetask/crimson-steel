@@ -223,6 +223,14 @@ get '/scene/:viewer_id' do
   @loot['gold'] ||= 0
   @loot['items'] ||= []
 
+  # Persisted "active player" for loot claims. Shared-screen tables pass
+  # the device between players rather than each loading /scene/<id>, so the
+  # claim buttons always target this id rather than the URL viewer. Default
+  # to the first PC on first load so the loot UI always has a target.
+  active_id = @loot['active_player_id'].to_i
+  @active_player = @pc_characters.find { |c| c['id'] == active_id } || @pc_characters.first
+  @loot['active_player_id'] = @active_player['id'] if @active_player
+
   erb :scene
 end
 
@@ -315,20 +323,19 @@ post '/scene/end_combat_loot' do
   redirect '/scene/0'
 end
 
-# Claim a single loot item into a PC's inventory. Players (viewer_id > 0)
-# may only claim to their own character; the DM (viewer_id 0 + local) can
-# claim on any PC's behalf via a target_id param.
+# Claim a single loot item into the active PC's inventory. The active PC
+# is a persisted piece of state that any viewer can toggle -- this models
+# the shared-screen table where players pass the device to each other.
 post '/scene/:viewer_id/loot/claim_item' do
   viewer_id = params[:viewer_id].to_i
-  is_dm = viewer_id == 0 && local_request?
-  target_id = is_dm ? params[:target_id].to_i : viewer_id
-  halt 400, 'Invalid target' if target_id <= 0
+  campaign, loot = scene_load_loot
+  target_id = loot['active_player_id'].to_i
+  halt 400, 'No active player selected' if target_id <= 0
 
   characters = Tools.load_json('characters.json')
   target = characters.find { |c| c['id'] == target_id && (c['group'] || 'PC') == 'PC' }
-  halt 404, 'Target PC not found' unless target
+  halt 404, 'Active player is not a PC' unless target
 
-  campaign, loot = scene_load_loot
   loot_id = params[:loot_id].to_s
   idx = loot['items'].find_index { |i| i['id'] == loot_id }
   halt 404, 'Loot item not found' unless idx
@@ -371,6 +378,21 @@ post '/scene/loot/clear' do
   loot['items'] = []
   scene_save_loot(campaign, loot)
   redirect '/scene/0'
+end
+
+# Switch the active loot-claim target. Any viewer may call this: the
+# scene is routinely shared across a table, so whichever player is
+# currently making picks clicks their own name before hitting Claim.
+post '/scene/:viewer_id/loot/set_active' do
+  viewer_id = params[:viewer_id].to_i
+  player_id = params[:player_id].to_i
+  characters = Tools.load_json('characters.json')
+  pc = characters.find { |c| c['id'] == player_id && (c['group'] || 'PC') == 'PC' }
+  halt 404, 'PC not found' unless pc
+  campaign, loot = scene_load_loot
+  loot['active_player_id'] = player_id
+  scene_save_loot(campaign, loot)
+  redirect "/scene/#{viewer_id}"
 end
 
 # --- Draft names (added in bulk; one per line in the `titles` textarea) ---

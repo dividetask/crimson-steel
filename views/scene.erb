@@ -64,6 +64,18 @@
   <% if (@loot['gold'].to_i > 0) || @loot['items'].any? %>
     <div class="scene-loot">
       <h2>Combat Loot</h2>
+      <div class="scene-loot-active">
+        <span class="scene-loot-active-label">Active player:</span>
+        <strong class="scene-loot-active-name"><%= @active_player ? h(@active_player['name']) : 'None' %></strong>
+        <span class="scene-loot-switch-label">Switch:</span>
+        <% @pc_characters.each do |pc| %>
+          <% is_active = @active_player && pc['id'] == @active_player['id'] %>
+          <form method="post" action="/scene/<%= @viewer_id %>/loot/set_active" style="display:inline;">
+            <input type="hidden" name="player_id" value="<%= pc['id'] %>">
+            <button type="submit" class="scene-loot-switch <%= 'active' if is_active %>" <%= 'disabled' if is_active %>><%= h(pc['name']) %></button>
+          </form>
+        <% end %>
+      </div>
       <% if @loot['gold'].to_i > 0 %>
         <div class="scene-loot-gold">
           <span class="scene-loot-gold-amount"><%= @loot['gold'].to_i %> gold</span>
@@ -84,9 +96,18 @@
           <tbody>
             <% @loot['items'].each do |item| %>
               <tr>
+                <%
+                  props = item['properties'] || {}
+                  # Consumables and other spell items (potions, scrolls, wands)
+                  # store their tier in `bonus`, which is already encoded in
+                  # the name via the spell's prefix/suffix (e.g. "Simple").
+                  # Only weapons / armor / gear treat `bonus` as an enhancement
+                  # worth displaying.
+                  show_bonus = item['bonus'].to_i != 0 && !props['consumable'] && !props['spell']
+                %>
                 <td>
                   <strong><%= h(item['name']) %></strong>
-                  <% if item['bonus'].to_i != 0 %> +<%= item['bonus'].to_i %><% end %>
+                  <% if show_bonus %> +<%= item['bonus'].to_i %><% end %>
                   <% if item['type'] && !item['type'].to_s.empty? %>
                     <small style="color:#666;">(<%= h(item['type']) %><% if item['subtype'] && !item['subtype'].to_s.empty? %>, <%= h(item['subtype']) %><% end %>)</small>
                   <% end %>
@@ -96,23 +117,10 @@
                 </td>
                 <td><%= h(item['source']) %></td>
                 <td>
-                  <% if @is_dm %>
-                    <form method="post" action="/scene/0/loot/claim_item" style="display:inline;">
-                      <input type="hidden" name="loot_id" value="<%= h(item['id']) %>">
-                      <select name="target_id" required>
-                        <option value="">Give to...</option>
-                        <% @pc_characters.each do |pc| %>
-                          <option value="<%= pc['id'] %>"><%= h(pc['name']) %></option>
-                        <% end %>
-                      </select>
-                      <button type="submit">Claim</button>
-                    </form>
-                  <% elsif @viewer_id > 0 %>
-                    <form method="post" action="/scene/<%= @viewer_id %>/loot/claim_item" style="display:inline;">
-                      <input type="hidden" name="loot_id" value="<%= h(item['id']) %>">
-                      <button type="submit">Claim</button>
-                    </form>
-                  <% end %>
+                  <form method="post" action="/scene/<%= @viewer_id %>/loot/claim_item" style="display:inline;">
+                    <input type="hidden" name="loot_id" value="<%= h(item['id']) %>">
+                    <button type="submit" <%= 'disabled' unless @active_player %>>Claim for <%= @active_player ? h(@active_player['name']) : '...' %></button>
+                  </form>
                 </td>
               </tr>
             <% end %>
