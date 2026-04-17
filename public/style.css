@@ -384,7 +384,28 @@ table th {
 .enemy-copy-label { flex: 1; }
 .enemy-clear-btn { width: 100%; padding: 6px; font-size: 11px; background: #d32f2f; color: white; border: none; cursor: pointer; border-radius: 3px; }
 .enemy-clear-btn:hover { background: #b71c1c; }
+.enemy-group { margin-bottom: 6px; }
+.enemy-group-header { display: flex; align-items: center; gap: 4px; padding: 4px 2px; cursor: pointer; user-select: none; font-size: 12px; border-bottom: 1px solid #ddd; }
+.enemy-group-header:hover { background: #eee; }
+.enemy-group-toggle { font-size: 9px; transition: transform 0.15s; width: 12px; text-align: center; }
+.enemy-group-count { color: #888; font-size: 10px; margin-left: auto; font-weight: normal; }
+.enemy-group.collapsed .enemy-group-body { display: none; }
+.enemy-group.collapsed .enemy-group-toggle { transform: rotate(-90deg); }
+.enemy-group-body { padding-left: 4px; }
 .enemy-sheet { min-width: 0; }
+
+/* Instance character sheet action bar (rename/reroll/view-template) --
+   larger action buttons than the sidebar's tiny +/- combat chips. */
+.instance-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 10px 0 15px; padding: 8px 10px; background: #f5f5f5; border-radius: 5px; }
+.instance-actions form { display: inline-flex; gap: 6px; align-items: center; margin: 0; }
+.instance-actions input[type="text"] { padding: 5px 8px; font-size: 13px; width: 200px; border: 1px solid #bbb; border-radius: 3px; }
+.instance-btn { padding: 5px 14px; font-size: 13px; border: 1px solid #999; border-radius: 3px; cursor: pointer; line-height: 1.2; }
+.instance-btn.primary { background: #e3f2fd; color: #1565c0; border-color: #1565c0; }
+.instance-btn.primary:hover { background: #bbdefb; }
+.instance-btn.danger { background: #fff3e0; color: #e65100; border-color: #e65100; }
+.instance-btn.danger:hover { background: #ffe0b2; }
+.instance-actions a { font-size: 13px; color: #1565c0; text-decoration: none; margin-left: auto; }
+.instance-actions a:hover { text-decoration: underline; }
 
 /* Spell list page */
 .spell-filters { margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 5px; }

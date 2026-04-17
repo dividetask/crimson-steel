@@ -3,6 +3,7 @@ require 'json'
 require 'securerandom'
 require 'fileutils'
 require_relative 'helpers'
+require_relative 'templates'
 
 set :port, 4567
 set :bind, '0.0.0.0'
@@ -1240,45 +1241,63 @@ end
 
 get '/enemies/:index' do
   redirect '/character/0' unless local_request?
-  characters = Tools.load_json('characters.json')
-  enemy_list = characters.select { |c| c["group"] != "PC" }
-  halt 404, "No enemies found" if enemy_list.empty?
+  templates = Templates.creatures
+  halt 404, "No enemy templates found" if templates.empty?
 
-  index = params[:index].to_i % enemy_list.length
-  @total_characters = enemy_list.length
-  @prev_index = (index - 1) % enemy_list.length
-  @next_index = (index + 1) % enemy_list.length
+  index = params[:index].to_i % templates.length
+  @total_characters = templates.length
+  @prev_index = (index - 1) % templates.length
+  @next_index = (index + 1) % templates.length
   @current_index = index
   @route_prefix = '/enemies'
 
-  @character = get_info(enemy_list[index])
+  template = templates[index]
+  @template = template
+  @character = get_info(Templates.preview_character(template))
   @compendium = Compendium.new
-  @enemy_list = enemy_list.each_with_index.map { |e, i| { index: i, id: e['id'], name: e['name'] } }
+  @enemy_list = templates.each_with_index.map { |t, i| { index: i, id: t['id'], name: t['name'], source: t['_source'] || 'General' } }
+  @enemy_groups = Templates.creatures_grouped.map do |label, group_creatures|
+    group_ids = group_creatures.map { |c| c['id'].to_s }.to_set
+    { label: label, enemies: @enemy_list.select { |e| group_ids.include?(e[:id].to_s) } }
+  end
 
   combat_data = Tools.load_json('combat.json')
   @combat_participants = combat_data['participants']
+  characters = Tools.load_json('characters.json')
+  @template_instances = characters.select { |c| c['template_id'].to_s == template['id'].to_s }
+  @all_characters = characters
 
   erb :enemies
 end
 
 post '/combat/add_enemy' do
   redirect '/character/0' unless local_request?
-  enemy_id = params[:enemy_id].to_i
-  combat_data = Tools.load_json('combat.json')
+  template_id = params[:enemy_id].to_s
+  template = Templates.find(template_id)
+  halt 400, "Enemy template not found" unless template
+
   characters = Tools.load_json('characters.json')
+  combat_data = Tools.load_json('combat.json')
 
-  enemy = characters.find { |c| c['id'] == enemy_id }
-  halt 400, "Enemy not found" unless enemy
+  # Pick a fresh integer id above any existing character record and any
+  # char_id in combat (stale combat rows from before the refactor can
+  # reference enemy ids that were pulled out of characters.json).
+  char_ids = characters.map { |c| c['id'].to_i }
+  combat_refs = combat_data['participants'].map { |p| (p['char_id'] || p['id']).to_i }
+  new_id = ([0] + char_ids + combat_refs).max + 1
 
-  # Generate a unique combat ID
-  max_id = combat_data['participants'].map { |p| p['id'] }.max || 0
-  combat_id = [max_id + 1, enemy_id].max + 1000
-  combat_id = max_id + 1 if combat_id <= max_id
+  instance = Templates.instantiate(template_id, new_id: new_id)
+  instance['template_id'] = template_id
+  characters << instance
+  Tools.save_json('characters.json', characters)
 
-  character = CharacterSheet.new(enemy)
+  max_participant_id = combat_data['participants'].map { |p| p['id'].to_i }.max || 0
+  combat_id = max_participant_id + 1
+
+  character = CharacterSheet.new(instance)
   combat_data['participants'] << {
     'id' => combat_id,
-    'char_id' => enemy_id,
+    'char_id' => new_id,
     'initiative' => '',
     'mana' => character.mana_max,
     'combat_pool' => character.combat_pool,
@@ -1290,6 +1309,80 @@ post '/combat/add_enemy' do
   }
   Tools.save_json('combat.json', combat_data)
   redirect back
+end
+
+get '/enemies/instance/:id' do
+  redirect '/character/0' unless local_request?
+  char_id = params[:id].to_i
+  characters = Tools.load_json('characters.json')
+  instance = characters.find { |c| c['id'] == char_id }
+  halt 404, "Enemy instance not found" unless instance
+
+  @character = get_info(instance)
+  @compendium = Compendium.new
+  @instance_data = instance
+
+  combat_data = Tools.load_json('combat.json')
+  @combat_participants = combat_data['participants']
+  templates = Templates.creatures
+  @enemy_list = templates.each_with_index.map { |t, i| { index: i, id: t['id'], name: t['name'], source: t['_source'] || 'General' } }
+  @enemy_groups = Templates.creatures_grouped.map do |label, group_creatures|
+    group_ids = group_creatures.map { |c| c['id'].to_s }.to_set
+    { label: label, enemies: @enemy_list.select { |e| group_ids.include?(e[:id].to_s) } }
+  end
+
+  @all_characters = characters
+
+  erb :enemy_instance
+end
+
+post '/enemies/instance/:id/rename' do
+  redirect '/character/0' unless local_request?
+  char_id = params[:id].to_i
+  new_name = params[:name].to_s.strip
+  halt 400, "Name cannot be blank" if new_name.empty?
+
+  characters = Tools.load_json('characters.json')
+  instance = characters.find { |c| c['id'] == char_id }
+  halt 404, "Enemy instance not found" unless instance
+
+  instance['name'] = new_name
+  Tools.save_json('characters.json', characters)
+  redirect "/enemies/instance/#{char_id}"
+end
+
+post '/enemies/instance/:id/reroll' do
+  redirect '/character/0' unless local_request?
+  char_id = params[:id].to_i
+  characters = Tools.load_json('characters.json')
+  old_instance = characters.find { |c| c['id'] == char_id }
+  halt 404, "Enemy instance not found" unless old_instance
+  template_id = old_instance['template_id']
+  halt 400, "Instance has no template_id" unless template_id
+
+  new_instance = Templates.instantiate(template_id, new_id: char_id)
+  new_instance['template_id'] = template_id
+  idx = characters.index { |c| c['id'] == char_id }
+  characters[idx] = new_instance
+
+  # Update the combat participant so mana/combat_pool reflect new stats.
+  combat_data = Tools.load_json('combat.json')
+  participant = combat_data['participants'].find { |p| p['char_id'] == char_id }
+  if participant
+    cs = CharacterSheet.new(new_instance)
+    participant['mana'] = cs.mana_max
+    participant['combat_pool'] = cs.combat_pool
+    participant['minor_damage'] = 0
+    participant['moderate_damage'] = 0
+    participant['major_damage'] = 0
+    participant['temporary_hit_points'] = 0
+    participant['saturation'] = 0
+    participant['initiative'] = ''
+    Tools.save_json('combat.json', combat_data)
+  end
+
+  Tools.save_json('characters.json', characters)
+  redirect "/enemies/instance/#{char_id}"
 end
 
 post '/combat/remove_enemy' do
@@ -1402,7 +1495,8 @@ end
 get '/spells' do
   compendium = Compendium.new
   @spells = compendium.data["spells"].sort_by { |name, _| name.downcase }.to_h
-  @spell_schools = compendium.data["spell_schools"] || ["universal", "necromancy", "evocation", "illusion", "enchantment", "divination", "abjuration", "conjuration"]
+  @spell_schools = compendium.data["spell_schools"] || {}
+  @spell_schools = @spell_schools.map { |s| [s, ""] }.to_h if @spell_schools.is_a?(Array)
   @range_labels = compendium.data["range"]
   @all_skills = @spells.values.flat_map { |s| s["skill"] || [] }.uniq.sort
   erb :spell_list

@@ -1,0 +1,70 @@
+{
+  "creatures": [
+    {
+      "id": "pirate",
+      "name": "Pirate",
+      "player": "DM",
+      "race": ["human"],
+      "ability_scores": {"str": 13, "dex": 14, "con": 13, "int": 12, "wis": 10, "cha": 8},
+      "classes": [{"level": 1, "class": "rogue", "skills": ["acrobatics", "athletics", "deception", "intimidate", "perception", "profession_sailor", "sense_motive"]}],
+      "gear": "pirate_loot"
+    },
+    {
+      "id": "slaver",
+      "tier": 1,
+      "name": "Slaver",
+      "player": "DM",
+      "race": ["orc"],
+      "ability_scores": {"str": 17, "dex": 11, "con": 12, "int": 7, "wis": 8, "cha": 6},
+      "classes": [{"level": 3, "class": "fighter", "skills": ["intimidate", "athletics"]}],
+      "variants": [
+        {
+          "id": "human",
+          "chance": 0.10,
+          "overrides": {
+            "race": ["human"],
+            "ability_scores": {"cha": "+2", "int": "+2"},
+            "name": "Slaver (Human)"
+          },
+          "gear_patch": {"gold_bonus": "2d6"}
+        },
+        {
+          "id": "barbarian",
+          "chance": 0.10,
+          "classes_add": [{"level": 1, "class": "barbarian", "skills": ["athletics"]}],
+          "name_suffix": " (Barbarian)"
+        }
+      ],
+      "gear": "slaver_loot"
+    }
+  ],
+  "gear_tables": [
+    {
+      "id": "pirate_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "scimitar", "type": "weapon", "subtype": "scimitar", "bonus": 0}},
+        {"slot": "armor", "item": {"name": "leather armor", "type": "armor", "subtype": "light", "bonus": 1}}
+      ],
+      "gold": "1d6 + 2"
+    },
+    {
+      "id": "slaver_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0}},
+        {
+          "slot": "armor",
+          "options": [
+            {"chance": 0.90, "item": {"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0}},
+            {"chance": 0.05, "item": {"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 0}},
+            {"chance": 0.05, "item": {"name": "chain shirt +1", "type": "armor", "subtype": "light", "bonus": 1}}
+          ]
+        },
+        {"slot": "potion_t0", "chance": 0.25, "options": "tier_zero_potions_oils"},
+        {"slot": "potion_t1", "chance": 0.35, "options": "tier_one_potions_oils"},
+        {"slot": "potion_t2", "chance": 0.15, "options": "tier_two_potions_oils"},
+        {"slot": "potion_t3", "chance": 0.05, "options": "tier_three_potions_oils"}
+      ],
+      "gold": "2d6 + 5"
+    }
+  ]
+}

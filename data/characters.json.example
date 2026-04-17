@@ -16,7 +16,7 @@
 		},
 		"classes": [{"level": 4, "class": "cleric", "skills": ["healing", "sense_motive", "arcana", "nature", "intimidate", "perception"] }],
 		"feats": { "race": ["armor_training"]},
-		"spells": [ 
+		"spells": [
 			["Stabilize", "Sacred Flame", "Magic Vestments"],
 			["Cure Lesser Wounds", "Healing Word", "Command", "Lesser Ward", "Divine Favor", "Shield of Faith"],
 			["Magic Weapon", "Spiritual Weapon", "Hold Person", "Silence", "Blindness/Deafness", "Augury", "Cure Simple Wounds", "Standard Ward", "Locate Object", "Augury", "Protection from Poison", "Standard Surgery"]]
@@ -52,10 +52,10 @@
 			"wis": 15,
 			"cha": 15
 		},
-		"classes": [{"level": 4, "class": "arcane_trickster", 
+		"classes": [{"level": 4, "class": "arcane_trickster",
 			"skills": ["arcana", "stealth", "larceny", "slight_of_hand", "deception", "persuasion", "perception", "game_chess" ] }],
 		"feats": { "race": ["elven_magic", "firebolt"]},
-		"spells": [ 
+		"spells": [
 			["Fire Bolt", "Message", "Silent Portal", "Ghost Sound", "Mage Hand"],
 			["Hideous Laughter", "Illusion of Calm", "Auditory Hallucination"]]
 	},
@@ -74,27 +74,11 @@
 			"cha": 18
 		},
 		"classes": [{"level": 4, "class": "bard", "choices": {"versatile_performance": ["sing"]},
-			"skills": ["perform_sing", "perform_percussion", "animal_handling", "persuasion", "perception", "use_magic_device", "nature" ], 
+			"skills": ["perform_sing", "perform_percussion", "animal_handling", "persuasion", "perception", "use_magic_device", "nature" ],
 			"spells": [ ["detect_magic", "ghost_sound", "sift", "stabilize", "vacuous_vessel", "vicious_mockery" ] ] }],
 		"feats": { "race": ["fey_magic", "friends"], "class": ["social_spell"]},
-		"spells": [ 
+		"spells": [
 			["Detect Magic", "Friends", "Ghost Sound", "Sift", "Stabilize", "Vacuous Vessel", "Vicious Mockery"],
 			["Biting Words", "Ears of the City", "Silent Image", "Timely Inspiration"]]
-	},
-	{
-		"id": 5,
-		"group": "Enemies",
-		"name": "Pirate",
-		"player": "DM",
-		"race": ["human"],
-		"ability_scores": {
-			"str": 13,
-			"dex": 14,
-			"con": 13,
-			"int": 12,
-			"wis": 10,
-			"cha": 8
-		},
-		"classes": [{"level": 1, "class": "rogue", "skills": ["acrobatics", "athletics", "deception", "intimidate", "perception", "profession_sailor", "sense_motive" ] }]
 	}
 ]

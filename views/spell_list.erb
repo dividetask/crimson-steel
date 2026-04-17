@@ -9,8 +9,8 @@
         <label for="filter-school">School</label>
         <select id="filter-school" onchange="filterSpells()">
           <option value="">All Schools</option>
-          <% @spell_schools.each do |school| %>
-            <option value="<%= school %>"><%= school.capitalize %></option>
+          <% @spell_schools.each do |school, description| %>
+            <option value="<%= school %>" title="<%= h(description) %>"><%= school.capitalize %></option>
           <% end %>
         </select>
       </div>
@@ -56,7 +56,7 @@
       <% skills = (spell["skill"] || []).join(",") %>
       <tr class="spell-row" data-school="<%= school %>" data-tiers="<%= tiers.join(',') %>" data-skills="<%= skills %>">
         <td><a href="/spell/<%= ERB::Util.url_encode(name) %>"><%= name %></a></td>
-        <td><span class="school-badge school-<%= school %>"><%= school.capitalize %></span></td>
+        <td><span class="school-badge school-<%= school %>" title="<%= h(@spell_schools[school] || '') %>"><%= school.capitalize %></span></td>
         <td><%= tiers.join(', ') %></td>
         <td><%= (spell["skill"] || []).map { |s| s.gsub('_', ' ').split(' ').map(&:capitalize).join(' ') }.join(', ') %></td>
         <td><%= spell["save"] == 0 ? "None" : spell["save"].to_s.capitalize %></td>
@@ -79,8 +79,8 @@
         <div>
           <label for="spell-school">School</label>
           <select id="spell-school" name="school">
-            <% @spell_schools.each do |school| %>
-              <option value="<%= school %>"><%= school.capitalize %></option>
+            <% @spell_schools.each do |school, description| %>
+              <option value="<%= school %>" title="<%= h(description) %>"><%= school.capitalize %></option>
             <% end %>
           </select>
         </div>

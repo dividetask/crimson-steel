@@ -1,0 +1,85 @@
+{
+  "creatures": [
+    {
+      "id": "pirate",
+      "name": "Pirate",
+      "player": "DM",
+      "race": ["human"],
+      "ability_scores": {"str": 13, "dex": 14, "con": 13, "int": 12, "wis": 10, "cha": 8},
+      "classes": [{"level": 1, "class": "rogue", "skills": ["acrobatics", "athletics", "deception", "intimidate", "perception", "profession_sailor", "sense_motive"]}],
+      "gear": "pirate_loot"
+    },
+    {
+      "id": "ghoul",
+      "tier": 3,
+      "name": "Ghoul",
+      "player": "DM",
+      "race": ["undead"],
+      "ability_scores": {"str": 13, "dex": 15, "con": 0, "int": 13, "wis": 14, "cha": 14},
+      "classes": [{"level": 2, "class": "undead", "skills": ["acrobatics", "athletics", "perception", "stealth"]}]
+    },
+    {
+      "id": "wight",
+      "tier": 3,
+      "name": "Wight",
+      "player": "DM",
+      "race": ["undead"],
+      "ability_scores": {"str": 12, "dex": 12, "con": 0, "int": 11, "wis": 13, "cha": 15},
+      "classes": [{"level": 4, "class": "undead", "skills": ["intimidate", "religion", "perception", "stealth"]}]
+    },
+    {
+      "id": "zombie",
+      "tier": 2,
+      "name": "Zombie",
+      "player": "DM",
+      "race": ["undead"],
+      "ability_scores": {"str": 17, "dex": 10, "con": 0, "int": 0, "wis": 10, "cha": 10},
+      "classes": [{"level": 2, "class": "undead", "skills": []}]
+    },
+    {
+      "id": "skeleton",
+      "tier": 2,
+      "name": "Skeleton",
+      "player": "DM",
+      "race": ["undead"],
+      "ability_scores": {"str": 17, "dex": 10, "con": 0, "int": 0, "wis": 10, "cha": 10},
+      "classes": [{"level": 2, "class": "undead", "skills": []}],
+      "gear": "skeleton_loot"
+    },
+    {
+      "id": "troll",
+      "tier": 3,
+      "name": "Troll",
+      "player": "DM",
+      "race": ["troll"],
+      "ability_scores": {"str": 30, "dex": 14, "con": 30, "int": 6, "wis": 9, "cha": 6},
+      "classes": [{"level": 6, "class": "giant", "skills": ["intimidate", "perception"]}]
+    },
+    {
+      "id": "giant_spider",
+      "tier": 1,
+      "name": "Giant Spider",
+      "player": "DM",
+      "race": ["animal"],
+      "ability_scores": {"str": 11, "dex": 17, "con": 12, "int": 1, "wis": 10, "cha": 2},
+      "classes": [{"level": 3, "class": "animal", "skills": ["climb", "perception", "stealth"]}]
+    }
+  ],
+  "gear_tables": [
+    {
+      "id": "pirate_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "scimitar", "type": "weapon", "subtype": "scimitar", "bonus": 0}},
+        {"slot": "armor", "item": {"name": "leather armor", "type": "armor", "subtype": "light", "bonus": 1}}
+      ],
+      "gold": "1d6 + 2"
+    },
+    {
+      "id": "skeleton_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "scimitar", "type": "weapon", "subtype": "scimitar", "bonus": 0}},
+        {"slot": "armor", "item": {"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0}}
+      ]
+    }
+  ]
+}
