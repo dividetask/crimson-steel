@@ -84,5 +84,44 @@
 		"spells": [
 			["Detect Magic", "Friends", "Ghost Sound", "Sift", "Stabilize", "Vacuous Vessel", "Vicious Mockery"],
 			["Biting Words", "Ears of the City", "Silent Image", "Timely Inspiration"]]
+	},
+	{
+		"id": 5,
+		"tier": 3,
+		"group": "PC",
+		"name": "Caelian di Soliastres",
+		"player": "DM",
+		"race": ["aberration"],
+		"ability_scores": {
+			"str": 14,
+			"dex": 16,
+			"con": 14,
+			"int": 18,
+			"wis": 14,
+			"cha": 16
+		},
+		"classes": [{"level": 4, "class": "wizard", "skills": ["arcana", "deception", "persuasion", "sense_motive", "perception", "stealth", "linguistics"] }],
+		"spells": [
+			["Detect Magic", "Mage Hand", "Message", "Ghost Sound", "Sift", "Silent Portal"],
+			["Mage Armor", "Minor Disguise", "Grease", "Obscuring Mist", "Hideous Laughter"],
+			["Invisibility", "Disguise Other", "Silent Image"]],
+		"rituals": [
+			["Arcane Mark", "Detect Magic", "Light", "Mage Hand", "Mending", "Message"],
+			["Disguise Self", "Expeditious Retreat", "Grease", "Mage Armor", "Obscuring Mist"],
+			["Darkness", "Invisibility", "Silent Image", "Web"]],
+		"items": [
+			{"name": "Traveling Robes", "type": "armor", "subtype": "light", "bonus": 1, "equipped": true, "properties": {"details": ["natural"]}, "description": "Finely tailored dark-grey robes embroidered with silver thread. Lightweight and well-made; comfortable enough to sleep in."},
+			{"name": "Silver-Capped Walking Staff", "type": "weapon", "subtype": "staff", "bonus": 0, "equipped": true, "properties": {"details": ["medium", "bludgeoning"]}, "description": "An ornate walking staff with a silver cap shaped like a crescent. Doubles as an arcane focus."},
+			{"name": "Dagger", "type": "weapon", "subtype": "dagger", "bonus": 0, "equipped": false, "properties": {"details": ["light", "piercing"]}, "description": "Plain steel dagger carried in a concealed sleeve sheath."},
+			{"name": "Ring of Protection +1", "type": "item", "subtype": "ring", "bonus": 1, "equipped": true, "properties": {"enhancement": {"type": "save", "amount": 1}}, "description": "A thin silver band set with a chip of obsidian. Grants a +1 enhancement bonus to all saves."},
+			{"name": "Circlet of Intellect +2", "type": "item", "subtype": "head", "bonus": 2, "equipped": true, "properties": {"enhancement": {"type": "attribute", "attribute": "int", "amount": 2}}, "description": "A slender platinum circlet with inlaid sapphire runes. Grants a +2 enhancement bonus to Intelligence."},
+			{"name": "Wand of Disguise Self", "type": "item", "subtype": "wand", "bonus": 1, "quantity": 15, "equipped": false, "properties": {"spell": "disguise_self"}, "description": "A slim ivory wand with 15 charges of Disguise Self."},
+			{"name": "Potion of Invisibility", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false, "properties": {"consumable": true, "spell": "invisibility"}},
+			{"name": "Potion of Cure Lesser Wounds", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 2, "equipped": false, "properties": {"consumable": true, "spell": "cure"}},
+			{"name": "Spellbook", "type": "item", "subtype": "hands", "bonus": 0, "equipped": false, "properties": {}, "description": "A leather-bound travel spellbook, edges scuffed from long use. The handwriting changes style every few pages."},
+			{"name": "Component Pouch", "type": "item", "subtype": "belt", "bonus": 0, "equipped": true, "properties": {}, "description": "A belt-slung pouch of spell components. Replenished at any town with an apothecary."},
+			{"name": "Doppelganger Traits", "type": "item", "subtype": "body", "bonus": 0, "equipped": false, "properties": {}, "description": "DM-only. Immune to sleep and charm. Reads surface thoughts. Shapeshifts into any humanoid. Surprise on 1-4. Saves as level 10. Currently wearing the face of Caelian di Soliastres, minor Soliastres cousin -- a cover that holds up to a casual inquiry but not a determined investigation."}
+		],
+		"notes": "Currently traveling with the party as a helpful arcane ally. Presents as a soft-spoken Soliastres minor cousin who was disinherited and turned to the adventuring life for coin and connections. In truth a doppelganger with his own agenda -- still being determined by the DM, but likely involves identifying which party member is most isolated and useful to replace later. Plays the quiet scholar. Offers spells, information, and the occasional clever plan; never volunteers for the front rank."
 	}
 ]
