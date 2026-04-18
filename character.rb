@@ -43,7 +43,11 @@ class CombatTurn
 
   # Incapacitated / dead delegate to the CharacterSheet, which now reads
   # this participant's combat_status via override_combat_data above.
-  def incapacitated?; @character.incapacitated?; end
+  # Combat-pool zero is ALSO incapacitation: a character with no dice
+  # can't attack, defend, or cast. This flag clears automatically as
+  # soon as the pool has any dice (e.g. after a start-of-turn refill,
+  # even one partially consumed by leftover shock).
+  def incapacitated?; @character.incapacitated? || @combat_pool.to_i <= 0; end
   def dead?; @character.dead?; end
 
   def condition(name); @conditions[name.to_s].to_i; end
