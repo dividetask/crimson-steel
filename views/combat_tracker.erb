@@ -58,6 +58,9 @@
           <td><input type="number" name="saturation" value="<%= combat_turn.saturation %>" style="width: 45px;">/<%= combat_turn.character.cha %></td>
           <td class="conditions-cell">
             <div class="conditions-list">
+              <% if combat_turn.shock.to_i > 0 %>
+                <span class="condition-badge condition-shock" title="Cancels combat-pool dice 1-for-1 on refill until it clears">Shock: <%= combat_turn.shock %></span>
+              <% end %>
               <% combat_turn.active_conditions.each do |cname, cval| %>
                 <% short, full = condition_label(cname) %>
                 <span class="condition-badge condition-<%= cname %>" title="<%= full %>"><%= short %>: <%= cval %></span>

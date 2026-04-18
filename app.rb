@@ -711,6 +711,32 @@ post '/combat/action' do
     target_participant['moderate_damage'] = target_participant['moderate_damage'].to_i + moderate
     target_participant['major_damage'] = target_participant['major_damage'].to_i + major
 
+    # Shock from subdual weapons (e.g. whip). `shock_per_damage` on the
+    # attacker's weapon multiplies the post-temp-HP damage that landed.
+    # New shock immediately eats into the target's remaining combat pool
+    # 1-for-1; any excess is stored on the participant and will keep
+    # consuming future refills until it clears.
+    landed_damage = minor + moderate + major
+    if landed_damage > 0 && params[:weapon_item_id] && !params[:weapon_item_id].to_s.empty?
+      attacker_char_id = attacker['char_id'] || attacker['id']
+      attacker_data = Tools.load_json('characters.json').find { |c| c['id'] == attacker_char_id }
+      if attacker_data
+        attacker_sheet = CharacterSheet.new(attacker_data)
+        wid = params[:weapon_item_id].to_i
+        weapon = attacker_sheet.item_list.find { |i| i['item_id'] == wid }
+        per_dmg = weapon && weapon.dig('properties', 'shock_per_damage').to_i
+        if per_dmg && per_dmg > 0
+          added = per_dmg * landed_damage
+          pool_now = target_participant['combat_pool'].to_i
+          total_shock = target_participant['shock'].to_i + added
+          consumed = [pool_now, total_shock].min
+          target_participant['combat_pool'] = pool_now - consumed
+          target_participant['shock'] = total_shock - consumed
+          Combat.add_log("  Shock +#{added} (ate #{consumed} dice; #{target_participant['shock']} shock remains)")
+        end
+      end
+    end
+
     # Apply per-attack conditions when the strike penetrates armor. The
     # client sets afflict='true' when pre-DR damage >= target's DR, so an
     # attack whose damage exactly matches armor still inflicts afflictions
@@ -1353,6 +1379,20 @@ post '/combat/action' do
     if pool_max != pool_before
       participant['combat_pool'] = pool_max
       log_lines << "  Combat pool refilled: #{pool_before} -> #{pool_max}"
+    end
+
+    # Shock keeps canceling incoming dice 1-for-1 until either the shock
+    # counter or the refilled pool hits zero. Leftover shock persists to
+    # future turns -- e.g. 8 shock vs. a 4-die pool = 0 dice this turn,
+    # 4 shock carried, which then eats the next refill in half.
+    shock_before = participant['shock'].to_i
+    if shock_before > 0
+      consumed = [participant['combat_pool'].to_i, shock_before].min
+      participant['combat_pool'] = participant['combat_pool'].to_i - consumed
+      participant['shock'] = shock_before - consumed
+      if consumed > 0
+        log_lines << "  Shock consumes #{consumed} dice on refill (shock #{shock_before} -> #{participant['shock']}, pool now #{participant['combat_pool']})"
+      end
     end
 
     Tools.save_json('combat.json', combat_data)

@@ -21,6 +21,13 @@
 			"battleaxe": ["heavy", "slashing"],
 			"scimitar": ["medium", "slashing"],
 			"falcion": ["heavy", "slashing"],
+			"shortsword": ["light", "piercing"],
+			"longsword": ["medium", "slashing"],
+			"mace": ["medium", "bludgeoning"],
+			"handaxe": ["light", "slashing"],
+			"staff": ["medium", "bludgeoning"],
+			"crossbow": ["medium", "piercing", "ranged"],
+			"whip": ["light", "bludgeoning"],
 			"bite": ["natural", "light", "piercing"],
 			"claws": ["natural", "light", "slashing"],
 			"slam": ["natural", "medium", "bludgeoning"]}

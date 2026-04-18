@@ -1,7 +1,7 @@
 require_relative 'tools'
 
 class CombatTurn
-  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation, :temporary_hit_points, :conditions, :condition_meta, :ability_damage
+  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation, :temporary_hit_points, :shock, :conditions, :condition_meta, :ability_damage
 
   def initialize(combat_turn, character)
     @rules = Tools.load_json('rules.json')
@@ -11,6 +11,10 @@ class CombatTurn
     @minor_damage, @moderate_damage, @major_damage = combat_turn['minor_damage'], combat_turn['moderate_damage'], combat_turn['major_damage']
     @saturation = combat_turn['saturation']
     @temporary_hit_points = combat_turn['temporary_hit_points'].to_i
+    # Shock (from whip subdual attacks): cancels combat-pool dice 1-for-1.
+    # Persists across refills until consumed; see apply_shock / start-of-
+    # turn reconciliation for the math.
+    @shock = combat_turn['shock'].to_i
     # Conditions: insertion order preserved from stored JSON (attack handler
     # appends new keys; saves that decay a condition to 0 delete the key so
     # it re-enters at the end if re-applied later).
@@ -67,6 +71,7 @@ class CombatTurn
       'initiative' => @initiative, 'mana' => @mana, 'combat_pool' => @combat_pool,
       'minor_damage' => @minor_damage, 'moderate_damage' => @moderate_damage, 'major_damage' => @major_damage,
       'saturation' => @saturation, 'temporary_hit_points' => @temporary_hit_points,
+      'shock' => @shock,
       'conditions' => @conditions, 'condition_meta' => @condition_meta,
       'ability_damage' => @ability_damage}
   end
@@ -947,7 +952,19 @@ module CharacterEquipment
     "falcion" => ["heavy", "slashing"], "scimitar" => ["medium", "slashing"],
     "longsword" => ["medium", "slashing"], "shortsword" => ["light", "piercing"],
     "greataxe" => ["heavy", "slashing"], "greatsword" => ["heavy", "slashing"],
-    "mace" => ["medium", "bludgeoning"], "warhammer" => ["medium", "bludgeoning"]
+    "mace" => ["medium", "bludgeoning"], "warhammer" => ["medium", "bludgeoning"],
+    "crossbow" => ["medium", "piercing", "ranged"],
+    "handaxe" => ["light", "slashing"],
+    "staff" => ["medium", "bludgeoning"],
+    "whip" => ["light", "bludgeoning"]
+  }.freeze
+
+  # Subtype-keyed defaults beyond the weight/type details list. Used to
+  # stamp mechanic-bearing properties (e.g. the whip's shock payload) onto
+  # inline items that only specify subtype, without the caller having to
+  # repeat them everywhere the weapon is minted.
+  WEAPON_SUBTYPE_PROPS = {
+    "whip" => { "non_strength" => true, "shock_per_damage" => 1 }
   }.freeze
 
   def build_item_properties(item)
@@ -957,6 +974,7 @@ module CharacterEquipment
     when "weapon"
       template = @all_items.find { |eq| eq["type"] == "weapon" && eq["subtype"] == subtype }
       props["details"] = template ? (template.dig("properties", "details") || []) : (WEAPON_DEFAULTS[subtype] || [])
+      (WEAPON_SUBTYPE_PROPS[subtype] || {}).each { |k, v| props[k] = v }
     when "shield"
       props["details"] = []
     end
@@ -1044,6 +1062,10 @@ module CharacterEquipment
   def weapon_speed(weapon_data); (weapon_data["properties"]["details"] || []).sum { |detail| @rules["reference"]["weapon_speed"][detail].to_i }; end
   def weapon_arm_speed(weapon_data); return ((weapon_data["properties"]["details"] || []).include?("ranged")) ? "+1" : ""; end
   def weapon_dmg(weapon_data)
+    # Non-strength weapons (e.g. the whip) deal no strength-bonus damage.
+    # Attack damage comes entirely from successes minus DR; this value is
+    # the weapon's flat str-mod contribution, which is zero.
+    return 0 if weapon_data.dig("properties", "non_strength")
     weight = weapon_data["properties"]["details"] & ['heavy', 'medium', 'light']
     return '-' if weight == [] or weight == false
     return parse_formula(@rules["reference"]["weapon_dmg"][weight.first])
