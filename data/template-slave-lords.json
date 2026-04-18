@@ -133,7 +133,7 @@
       "classes": [{"level": 1, "class": "fighter", "skills": ["intimidate", "animal_handling"]}],
       "gear": {
         "rolls": [
-          {"slot": "weapon", "item": {"name": "Whip", "type": "weapon", "subtype": "whip", "bonus": 0, "properties": {"details": ["light", "bludgeoning"], "non_strength": true, "shock_per_damage": 1}, "description": "Subdual weapon. Base damage 0 -- damage dealt equals successes minus DR. Each point of damage inflicts 1 shock, which cancels the target's combat-pool dice 1-for-1 until it clears."}},
+          {"slot": "weapon", "item": {"name": "Whip", "type": "weapon", "subtype": "whip", "bonus": 0, "properties": {"details": ["light", "bludgeoning"], "non_strength": true, "shock_per_damage": 1, "threshold": 10}, "description": "Subdual weapon. Base damage 0 -- damage dealt equals successes minus DR. Each point of damage inflicts 1 shock, which cancels the target's combat-pool dice 1-for-1 until it clears. Threshold 10 means a whip never naturally deals major damage."}},
           {"slot": "sidearm", "item": {"name": "Short Sword", "type": "weapon", "subtype": "shortsword", "bonus": 0, "equipped": false}}
         ],
         "gold": "1d4"

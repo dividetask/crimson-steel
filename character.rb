@@ -964,7 +964,7 @@ module CharacterEquipment
   # inline items that only specify subtype, without the caller having to
   # repeat them everywhere the weapon is minted.
   WEAPON_SUBTYPE_PROPS = {
-    "whip" => { "non_strength" => true, "shock_per_damage" => 1 }
+    "whip" => { "non_strength" => true, "shock_per_damage" => 1, "threshold" => 10 }
   }.freeze
 
   def build_item_properties(item)
@@ -1071,9 +1071,16 @@ module CharacterEquipment
     return parse_formula(@rules["reference"]["weapon_dmg"][weight.first])
   end
   def weapon_threshold(weapon_data)
-    dmg_type = weapon_data["properties"]["details"] & ["bludgeoning", "slashing", "piercing"]
+    # Per-item override (e.g. the whip's flat 10, so a subdual weapon can
+    # never naturally roll a major). Explicit wins over the pattern.
+    override = weapon_data.dig("properties", "threshold")
+    return override if override
+    details = weapon_data["properties"]["details"] || []
+    dmg_type = details & ["bludgeoning", "slashing", "piercing"]
     return '-' if dmg_type == [] or dmg_type == false
-    return @rules["reference"]["weapon_threshold"][dmg_type.first]
+    # Sum weight + damage-type contributions the same way weapon_speed
+    # does; rules.json weapon_threshold holds both axes.
+    details.sum { |d| @rules["reference"]["weapon_threshold"][d].to_i }
   end
   def weapon_bleed(weapon_data)
     dmg_type = weapon_data["properties"]["details"] & ["bludgeoning", "slashing", "piercing"]
