@@ -494,12 +494,14 @@
     // defense/ally/healing/condition saves). Saves the raw dice in
     // rollContexts[inputId] so Inspiration/Unsettling Words can reroll
     // specific dice later. signed=true writes negative net into the
-    // input (used by Perform); signed=false floors at 0.
+    // input (used by Perform); signed=false floors at 0. Preserves the
+    // original dice in originalRolls; applyLuckReroll attaches a
+    // separate `reroll` entry so the original line stays readable.
     var rollContexts = {};
     function rollDicePool(dice, tn, inputId, rollsId, signed) {
       var rolls = [];
       for (var r = 0; r < dice; r++) rolls.push(Math.floor(Math.random() * 10) + 1);
-      rollContexts[inputId] = {rolls: rolls, tn: tn, rollsId: rollsId, signed: !!signed};
+      rollContexts[inputId] = {originalRolls: rolls, tn: tn, rollsId: rollsId, signed: !!signed, reroll: null};
       paintRollResult(inputId);
       enableLuckButtons(inputId);
     }
@@ -514,26 +516,62 @@
       return s;
     }
 
+    function colorizeDie(d, tn) {
+      var bg = null;
+      if (d === 1) bg = '#e57373';
+      else if (d === 10) bg = '#64b5f6';
+      else if (d >= tn) bg = '#81c784';
+      if (bg) return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
+      return '<span style="color:#777;">' + d + '</span>';
+    }
+
+    function successLabel(successes, signed) {
+      var display = signed ? successes : Math.max(0, successes);
+      if (signed) return 'net ' + (display >= 0 ? '+' : '') + display;
+      return display + ' success' + (display === 1 ? '' : 'es') +
+        (successes < 0 ? ' <span class="math-detail">(raw ' + successes + ', floored)</span>' : '');
+    }
+
+    // Render the original roll, and if a reroll has been applied, append
+    // a second line showing which dice got replaced and the adjusted
+    // total. The DM can cross-check the math without losing the initial
+    // outcome.
     function paintRollResult(inputId) {
       var ctx = rollContexts[inputId];
       if (!ctx) return;
-      var raw = countRollSuccesses(ctx.rolls, ctx.tn);
-      var display = ctx.signed ? raw : Math.max(0, raw);
+      var origRolls = ctx.originalRolls;
+      var origSuccesses = countRollSuccesses(origRolls, ctx.tn);
+
+      // Build effective rolls (apply reroll replacements).
+      var effective = origRolls.slice();
+      if (ctx.reroll) {
+        ctx.reroll.indices.forEach(function(idx, k) {
+          effective[idx] = ctx.reroll.newValues[k];
+        });
+      }
+      var finalSuccesses = ctx.reroll ? countRollSuccesses(effective, ctx.tn) : origSuccesses;
+
       var inputEl = document.getElementById(inputId);
-      if (inputEl) inputEl.value = display;
+      if (inputEl) inputEl.value = ctx.signed ? finalSuccesses : Math.max(0, finalSuccesses);
+
       var rollsEl = document.getElementById(ctx.rollsId);
       if (!rollsEl) return;
-      var colored = ctx.rolls.map(function(d) {
-        var bg = null;
-        if (d === 1) bg = '#e57373';
-        else if (d === 10) bg = '#64b5f6';
-        else if (d >= ctx.tn) bg = '#81c784';
-        if (bg) return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
-        return '<span style="color:#777;">' + d + '</span>';
+      var origColored = origRolls.map(function(d, i) {
+        var replaced = ctx.reroll && ctx.reroll.indices.indexOf(i) !== -1;
+        var span = colorizeDie(d, ctx.tn);
+        return replaced ? '<s style="opacity:0.6;">' + span + '</s>' : span;
       }).join(', ');
-      var label = ctx.signed ? ('net ' + (display >= 0 ? '+' : '') + display)
-        : (display + ' success' + (display === 1 ? '' : 'es') + (raw < 0 ? ' <span class="math-detail">(raw ' + raw + ', floored)</span>' : ''));
-      rollsEl.innerHTML = 'Rolled: [' + colored + '] &rarr; ' + label;
+      var html = 'Rolled: [' + origColored + '] &rarr; ' + successLabel(origSuccesses, ctx.signed);
+      if (ctx.reroll) {
+        var newColored = ctx.reroll.newValues.map(function(d) { return colorizeDie(d, ctx.tn); }).join(', ');
+        var abilityLabel = ctx.reroll.ability === 'inspiration' ? 'Inspiration' : 'Unsettling Words';
+        var delta = finalSuccesses - origSuccesses;
+        var deltaText = (delta >= 0 ? '+' : '') + delta;
+        html += '<br>' + abilityLabel + ' rerolled ' + ctx.reroll.indices.length +
+          ' &rarr; [' + newColored + '] &rarr; ' + successLabel(finalSuccesses, ctx.signed) +
+          ' <span class="math-detail">(' + deltaText + ')</span>';
+      }
+      rollsEl.innerHTML = html;
     }
 
     function rollSaveDice(i, inputId, rollsId) {
@@ -649,12 +687,16 @@
       var src = srcEl ? srcEl.value : '';
       if (amt <= 0 || !src) { alert('Pick a luck source and amount first.'); return; }
       if (amt > luckSourceAmount(src)) { alert('That source only has ' + luckSourceAmount(src) + ' luck.'); return; }
-      var n = Math.min(amt, ctx.rolls.length);
-      var indexed = ctx.rolls.map(function(v, i) { return {v: v, i: i}; });
+      var n = Math.min(amt, ctx.originalRolls.length);
+      var indexed = ctx.originalRolls.map(function(v, i) { return {v: v, i: i}; });
       indexed.sort(function(a, b) { return ability === 'inspiration' ? a.v - b.v : b.v - a.v; });
+      var indices = [];
+      var newValues = [];
       for (var k = 0; k < n; k++) {
-        ctx.rolls[indexed[k].i] = Math.floor(Math.random() * 10) + 1;
+        indices.push(indexed[k].i);
+        newValues.push(Math.floor(Math.random() * 10) + 1);
       }
+      ctx.reroll = {ability: ability, indices: indices, newValues: newValues};
       paintRollResult(inputId);
       var fd = new FormData();
       fd.append('amount', amt);
