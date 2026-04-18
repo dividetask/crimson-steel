@@ -1231,10 +1231,10 @@ post '/combat/roll_init/:id' do
 end
 
 # Bardic inspiration. Bard's Perform action: deduct 1 mana, apply a
-# signed net (successes - failures) to the bard's luck_ledger. Positive
-# net feeds the player luck pool; negative net feeds DM luck (spendable
-# against players). Only one side can ever be non-zero at a time, so the
-# DM just enters the net. Gated to once per turn via performed_this_turn.
+# signed net (successes - failures). Positive net adds to the bard's
+# luck_points. Negative net drains the bard's pool first; any overflow
+# goes to Combat#dm_luck_points (the DM's separate pool). Gated to once
+# per turn via performed_this_turn.
 post '/combat/bardic_inspiration/:id' do
   redirect '/character/0' unless local_request?
   combat = Combat.new
@@ -1251,55 +1251,69 @@ post '/combat/bardic_inspiration/:id' do
   participant = combat_data['participants'].find { |p| p['id'] == bard.combat_id }
   halt 400, 'Participant row missing' unless participant
 
+  bard_pool_before = bard.luck_points
+  dm_pool_before = combat.dm_luck_points
+  if net >= 0
+    bard_pool_after = bard_pool_before + net
+    dm_gain = 0
+  else
+    bard_pool_after = [bard_pool_before + net, 0].max
+    dm_gain = [-net - bard_pool_before, 0].max
+  end
+  dm_pool_after = dm_pool_before + dm_gain
+
   participant['mana'] = bard.mana - 1
-  new_ledger = bard.luck_ledger + net
-  participant['luck_ledger'] = new_ledger
+  participant['luck_points'] = bard_pool_after
   participant['performed_this_turn'] = true
+  combat_data['dm_luck_points'] = dm_pool_after
   Tools.save_json('combat.json', combat_data)
 
   name = combat.display_name(bard)
   sign = net >= 0 ? '+' : ''
-  ledger_label = if new_ledger > 0 then "Luck #{new_ledger}"
-                 elsif new_ledger < 0 then "DM Luck #{-new_ledger}"
-                 else 'ledger 0'
-                 end
+  parts = []
+  parts << "Luck #{bard_pool_after}" if bard_pool_after != bard_pool_before || net > 0
+  parts << "DM Luck #{dm_pool_after}" if dm_gain > 0
   skill_label = skill.empty? ? 'performance' : skill.tr('_', ' ')
-  Combat.add_log("#{name} performs #{skill_label} (#{sign}#{net}; #{ledger_label}).")
+  Combat.add_log("#{name} performs #{skill_label} (#{sign}#{net}; #{parts.join(', ')}).")
   redirect '/combat'
 end
 
-# Spend one point from a bard's luck ledger. kind=ally requires a
-# positive ledger (ally reroll via bardic_inspiration / versatile_performance);
-# kind=enemy requires a negative ledger (unsettling_words or DM-side
-# reroll against players). The actual die reroll happens at the table;
-# this endpoint just decrements the ledger and logs.
-post '/combat/spend_luck/:bard_id' do
+# Spend luck from a named source on a roll. source_id is either a bard's
+# combat_id or the literal 'dm' for the DM's separate pool. The actual
+# die rerolls happen client-side; this endpoint validates the amount is
+# available, debits the source, and logs the spend so combat_log
+# reflects every luck movement.
+post '/combat/spend_luck/:source_id' do
   redirect '/character/0' unless local_request?
   combat = Combat.new
-  bard = combat.combat_turn_list.find { |ct| ct.combat_id == params[:bard_id].to_i }
-  halt 400, 'Bard not found' unless bard
+  source_id = params[:source_id].to_s
+  amount = params[:amount].to_i
+  ability = params[:ability].to_s
+  target_name = params[:target_name].to_s.strip
 
-  kind = params[:kind].to_s
-  halt 400, 'Invalid kind' unless %w[ally enemy].include?(kind)
-  if kind == 'ally'
-    halt 400, 'No player luck to spend' unless bard.luck_ledger > 0
-    delta = -1
-  else
-    halt 400, 'No DM luck to spend' unless bard.luck_ledger < 0
-    delta = 1
-  end
+  halt 400, 'Amount must be positive' unless amount > 0
+  halt 400, 'Invalid ability' unless %w[inspiration unsettling_words].include?(ability)
 
   combat_data = Tools.load_json('combat.json')
-  participant = combat_data['participants'].find { |p| p['id'] == bard.combat_id }
-  halt 400, 'Participant row missing' unless participant
-  participant['luck_ledger'] = bard.luck_ledger + delta
+
+  if source_id == 'dm'
+    halt 400, 'Not enough DM luck' if combat.dm_luck_points < amount
+    combat_data['dm_luck_points'] = combat.dm_luck_points - amount
+    source_label = 'DM'
+  else
+    bard = combat.combat_turn_list.find { |ct| ct.combat_id == source_id.to_i }
+    halt 400, 'Source bard not found' unless bard
+    halt 400, 'Not enough luck' if bard.luck_points < amount
+    participant = combat_data['participants'].find { |p| p['id'] == bard.combat_id }
+    halt 400, 'Participant row missing' unless participant
+    participant['luck_points'] = bard.luck_points - amount
+    source_label = combat.display_name(bard)
+  end
   Tools.save_json('combat.json', combat_data)
 
-  bard_name = combat.display_name(bard)
-  target_name = params[:target_name].to_s.strip
-  target_clause = target_name.empty? ? '' : " for #{target_name}"
-  action_label = kind == 'ally' ? 'ally reroll' : 'enemy reroll'
-  Combat.add_log("#{bard_name} spends 1 luck (#{action_label}#{target_clause}).")
+  ability_label = ability == 'inspiration' ? 'Inspiration' : 'Unsettling Words'
+  target_clause = target_name.empty? ? '' : " on #{target_name}"
+  Combat.add_log("#{source_label} spends #{amount} luck — #{ability_label}#{target_clause}.")
   redirect '/combat'
 end
 

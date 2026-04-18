@@ -1,7 +1,7 @@
 require_relative 'tools'
 
 class CombatTurn
-  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation, :temporary_hit_points, :conditions, :condition_meta, :ability_damage, :luck_ledger, :performed_this_turn
+  attr_reader :rules, :character, :combat_id, :initiative, :mana, :combat_pool, :minor_damage, :moderate_damage, :major_damage, :saturation, :temporary_hit_points, :conditions, :condition_meta, :ability_damage, :luck_points, :performed_this_turn
 
   def initialize(combat_turn, character)
     @rules = Tools.load_json('rules.json')
@@ -21,11 +21,10 @@ class CombatTurn
     # Ability damage: nested hash of ability (str/dex/...) -> severity
     # (minor/moderate/major) -> amount. Persists until cured.
     @ability_damage = (combat_turn['ability_damage'] || {}).dup
-    # Bardic inspiration ledger. Positive = player luck pool (spend on
-    # allies). Negative = DM luck pool (spend against players). Only one
-    # side is ever non-zero; sign flips naturally as fumbles exceed
-    # successes during Perform. Cleared on the bard's new_turn.
-    @luck_ledger = combat_turn['luck_ledger'].to_i
+    # Bardic luck pool. Non-negative; Perform adds net successes here,
+    # and fumbles drain it (overflow goes to Combat#dm_luck_points).
+    # Cleared on the bard's new_turn so each turn starts fresh.
+    @luck_points = [combat_turn['luck_points'].to_i, 0].max
     @performed_this_turn = combat_turn['performed_this_turn'] == true
     @character = CharacterSheet.new(character)
     # Inject this participant's combat state into the CharacterSheet so
@@ -62,15 +61,12 @@ class CombatTurn
 
   def new_turn
     @combat_pool = @character.combat_pool
-    # Bardic inspiration luck expires "before your next turn" — clearing on
-    # the new-round dice reset is the closest hook the combat tracker has
-    # to a per-combatant turn tick. Also re-arms the once-per-turn Perform.
-    @luck_ledger = 0
+    # Bardic luck expires "before your next turn"; the new-round dice
+    # reset is the closest per-combatant hook the tracker has. Also
+    # re-arms the once-per-turn Perform.
+    @luck_points = 0
     @performed_this_turn = false
   end
-
-  def luck_points; [@luck_ledger, 0].max; end
-  def dm_luck_points; [-@luck_ledger, 0].max; end
 
   def has_ability?(name); @character.ability_list.include?(name); end
   def reroll_init
@@ -87,7 +83,7 @@ class CombatTurn
       'saturation' => @saturation, 'temporary_hit_points' => @temporary_hit_points,
       'conditions' => @conditions, 'condition_meta' => @condition_meta,
       'ability_damage' => @ability_damage,
-      'luck_ledger' => @luck_ledger, 'performed_this_turn' => @performed_this_turn}
+      'luck_points' => @luck_points, 'performed_this_turn' => @performed_this_turn}
   end
 
   def hp; return @character.hp_max - @minor_damage - @moderate_damage - @major_damage + @temporary_hit_points.to_i; end
@@ -98,13 +94,16 @@ class CombatTurn
 end
 
 class Combat
-  attr_reader :combat_turn_list, :current_turn_id, :active_effects
+  attr_reader :combat_turn_list, :current_turn_id, :active_effects, :dm_luck_points
 
   def initialize
     character_list = Tools.load_json('characters.json')
     combat_data = Tools.load_json('combat.json')
     @current_turn_id = combat_data['current_turn_id'] || 0
     @active_effects = combat_data['active_effects'] || []
+    # DM's own luck pool, accumulated from Perform overflow across all
+    # bards. Treated as a separate "bard" for spending purposes.
+    @dm_luck_points = [combat_data['dm_luck_points'].to_i, 0].max
     @combat_turn_list = combat_data['participants'].filter_map do |combat_turn|
       char_id = combat_turn['char_id'] || combat_turn['id']
       character = character_list.find { |c| c["id"] == char_id }
@@ -123,8 +122,8 @@ class Combat
   def living_turn_list; @combat_turn_list.reject(&:dead?); end
   def killed_list; @combat_turn_list.select(&:dead?); end
 
-  # Bards whose luck ledger is non-zero; drives the Spend-Luck UI.
-  def active_luck_bards; @combat_turn_list.select { |ct| ct.luck_ledger != 0 }; end
+  # Bards whose luck pool is non-empty; drives the Spend-Luck UI.
+  def active_luck_bards; @combat_turn_list.select { |ct| ct.luck_points > 0 }; end
 
   # Highest tier among living non-PC participants; 0 if no enemies are
   # present. Used as a TN penalty on bardic performance checks.
@@ -159,7 +158,12 @@ class Combat
     return 1 if b_cur > a_cur or a_cur == nil
   end
 
-  def new_turn; @combat_turn_list.each(&:new_turn); update_data; end
+  def new_turn
+    @combat_turn_list.each(&:new_turn)
+    # DM luck expires each round, symmetric with bard luck.
+    @dm_luck_points = 0
+    update_data
+  end
 
   def reroll_init
     @combat_turn_list.each(&:reroll_init)
@@ -192,6 +196,7 @@ class Combat
   def update_data
     combat_data = Tools.load_json('combat.json')
     combat_data['participants'] = @combat_turn_list.map(&:to_json)
+    combat_data['dm_luck_points'] = @dm_luck_points.to_i
     Tools.save_json('combat.json', combat_data)
   end
 

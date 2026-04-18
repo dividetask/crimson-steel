@@ -59,9 +59,7 @@
           <td class="conditions-cell">
             <div class="conditions-list">
               <% if combat_turn.luck_points > 0 %>
-                <span class="condition-badge" style="background:#fff7c2;color:#6b5800;border:1px solid #d4b84a;" title="Bardic luck pool (spendable on ally rerolls)">Luck: <%= combat_turn.luck_points %></span>
-              <% elsif combat_turn.dm_luck_points > 0 %>
-                <span class="condition-badge" style="background:#3a1f1f;color:#f7c9c9;border:1px solid #8a3838;" title="DM luck from fumbled performance (spendable against players)">DM Luck: <%= combat_turn.dm_luck_points %></span>
+                <span class="condition-badge" style="background:#fff7c2;color:#6b5800;border:1px solid #d4b84a;" title="Bardic luck pool (spendable on rerolls)">Luck: <%= combat_turn.luck_points %></span>
               <% end %>
               <% combat_turn.active_conditions.each do |cname, cval| %>
                 <% short, full = condition_label(cname) %>
@@ -111,35 +109,9 @@
     </form>
   </div>
 
-  <% luck_bards = @combat.active_luck_bards %>
-  <% if luck_bards.any? %>
-    <% player_names = @combat.living_turn_list.select { |ct| ct.character.data['group'] == 'PC' }.map { |ct| @combat.display_name(ct) } %>
-    <% enemy_names = @combat.living_turn_list.reject { |ct| ct.character.data['group'] == 'PC' }.map { |ct| @combat.display_name(ct) } %>
-    <div class="bardic-luck" style="margin-top: 15px; padding: 8px; background: #f7f3e8; border-left: 3px solid #b38a2f; border-radius: 2px;">
-      <h3 style="margin: 0 0 6px 0; font-size: 14px;">Bardic Luck</h3>
-      <% luck_bards.each do |bard| %>
-        <% ledger = bard.luck_ledger %>
-        <% targets = ledger > 0 ? player_names : enemy_names %>
-        <% kind = ledger > 0 ? 'ally' : 'enemy' %>
-        <% label = ledger > 0 ? "Luck: #{bard.luck_points}" : "DM Luck: #{bard.dm_luck_points}" %>
-        <% reroll_label = ledger > 0 ? 'ally reroll' : 'enemy reroll' %>
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 13px;">
-          <strong><%= @combat.display_name(bard) %></strong>
-          <span><%= label %></span>
-          <form method="post" action="/combat/spend_luck/<%= bard.combat_id %>" style="margin:0;display:flex;gap:4px;align-items:center;">
-            <input type="hidden" name="kind" value="<%= kind %>">
-            <label style="font-size: 12px;">Spend on:
-              <select name="target_name" style="font-size: 12px;">
-                <option value="">(unspecified)</option>
-                <% targets.each do |n| %>
-                  <option value="<%= n %>"><%= n %></option>
-                <% end %>
-              </select>
-            </label>
-            <button type="submit" style="font-size: 12px;" title="Spend 1 luck for a <%= reroll_label %>">Spend Luck</button>
-          </form>
-        </div>
-      <% end %>
+  <% if @combat.dm_luck_points > 0 %>
+    <div style="margin-top: 10px; font-size: 13px;">
+      <span class="condition-badge" style="background:#3a1f1f;color:#f7c9c9;border:1px solid #8a3838;" title="DM luck (spendable on any roll via Inspiration/Unsettling Words)">DM Luck: <%= @combat.dm_luck_points %></span>
     </div>
   <% end %>
 
@@ -229,6 +201,17 @@
     var diceRemaining = <%= current ? current.combat_pool : 0 %>;
     var currentMana = <%= current ? current.mana : 0 %>;
     var currentPerformedThisTurn = <%= current && current.performed_this_turn ? 'true' : 'false' %>;
+
+    // Bard and DM luck pools, exposed to every roll prompt so the DM can
+    // pre-declare a source + amount before rolling, then use Inspiration
+    // (reroll N lowest) or Unsettling Words (reroll N highest) afterward.
+    // Treats the DM as a separate "bard"; /combat/spend_luck accepts
+    // either a bard's combat_id or the literal 'dm' as a source.
+    var luckSources = <%=
+      sources = @combat.active_luck_bards.map { |ct| { id: ct.combat_id.to_s, name: @combat.display_name(ct), amount: ct.luck_points } }
+      sources << { id: 'dm', name: 'DM', amount: @combat.dm_luck_points } if @combat.dm_luck_points > 0
+      JSON.generate(sources)
+    %>;
     var moveSpeed = <%= current ? current.character.speed : 0 %>;
     var spellList = <%= if current && current.character.spell_list
       compendium = Compendium.new
@@ -463,7 +446,7 @@
           '<strong>Save vs ' + cond.label + '</strong> <span class="math-detail">(severity ' + cond.value + ')</span>' +
           '<br><span class="math-detail">Roll ' + cond.dice + ' dice at TN ' + cond.tn + '</span>' + tnSuffix +
           '<br><label>Successes: <input type="number" id="' + inputId + '" min="0" max="' + cond.dice + '" value="0" style="width:50px;"></label>' +
-          ' <button class="action-btn" onclick="rollSaveDice(' + i + ', \'' + inputId + '\', \'' + rollsId + '\')">Roll</button>' +
+          ' ' + rollRowHtml({dice: cond.dice, tn: cond.tn, inputId: inputId, rollsId: rollsId, signed: false, targetName: currentCharName}) +
           '<div id="' + rollsId + '" class="math-detail" style="margin-top:4px;"></div>' +
           '</div>';
       }).join('');
@@ -507,40 +490,145 @@
     // floored at 0 for the input. Colors: red=1 (fumble), blue=10 (crit),
     // green=other success, grey=other failure. Re-clickable so the DM
     // can fudge by re-rolling. Used by every combat roll (attack/
-    // defense/ally/healing/condition saves).
-    function rollDicePool(dice, tn, inputId, rollsId) {
+    // defense/ally/healing/condition saves). Saves the raw dice in
+    // rollContexts[inputId] so Inspiration/Unsettling Words can reroll
+    // specific dice later. signed=true writes negative net into the
+    // input (used by Perform); signed=false floors at 0.
+    var rollContexts = {};
+    function rollDicePool(dice, tn, inputId, rollsId, signed) {
       var rolls = [];
-      var successes = 0;
-      for (var r = 0; r < dice; r++) {
-        var d = Math.floor(Math.random() * 10) + 1;
-        rolls.push(d);
-        if (d === 10) successes += 2;
-        else if (d >= tn) successes++;
-        else if (d === 1) successes--;
-      }
-      var displaySuccesses = Math.max(0, successes);
+      for (var r = 0; r < dice; r++) rolls.push(Math.floor(Math.random() * 10) + 1);
+      rollContexts[inputId] = {rolls: rolls, tn: tn, rollsId: rollsId, signed: !!signed};
+      paintRollResult(inputId);
+      enableLuckButtons(inputId);
+    }
+
+    function countRollSuccesses(rolls, tn) {
+      var s = 0;
+      rolls.forEach(function(d) {
+        if (d === 10) s += 2;
+        else if (d >= tn) s += 1;
+        else if (d === 1) s -= 1;
+      });
+      return s;
+    }
+
+    function paintRollResult(inputId) {
+      var ctx = rollContexts[inputId];
+      if (!ctx) return;
+      var raw = countRollSuccesses(ctx.rolls, ctx.tn);
+      var display = ctx.signed ? raw : Math.max(0, raw);
       var inputEl = document.getElementById(inputId);
-      if (inputEl) inputEl.value = displaySuccesses;
-      var rollsEl = document.getElementById(rollsId);
-      if (rollsEl) {
-        var colored = rolls.map(function(d) {
-          var bg = null;
-          if (d === 1) bg = '#e57373';          // red   (fumble)
-          else if (d === 10) bg = '#64b5f6';    // blue  (crit)
-          else if (d >= tn) bg = '#81c784';     // green (success)
-          if (bg) {
-            return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
-          }
-          return '<span style="color:#777;">' + d + '</span>';
-        }).join(', ');
-        rollsEl.innerHTML = 'Rolled: [' + colored + '] &rarr; ' + displaySuccesses + ' success' + (displaySuccesses === 1 ? '' : 'es') +
-          (successes < 0 ? ' <span class="math-detail">(raw ' + successes + ', floored)</span>' : '');
-      }
+      if (inputEl) inputEl.value = display;
+      var rollsEl = document.getElementById(ctx.rollsId);
+      if (!rollsEl) return;
+      var colored = ctx.rolls.map(function(d) {
+        var bg = null;
+        if (d === 1) bg = '#e57373';
+        else if (d === 10) bg = '#64b5f6';
+        else if (d >= ctx.tn) bg = '#81c784';
+        if (bg) return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
+        return '<span style="color:#777;">' + d + '</span>';
+      }).join(', ');
+      var label = ctx.signed ? ('net ' + (display >= 0 ? '+' : '') + display)
+        : (display + ' success' + (display === 1 ? '' : 'es') + (raw < 0 ? ' <span class="math-detail">(raw ' + raw + ', floored)</span>' : ''));
+      rollsEl.innerHTML = 'Rolled: [' + colored + '] &rarr; ' + label;
     }
 
     function rollSaveDice(i, inputId, rollsId) {
       var cond = startOfTurnConditions[i];
-      rollDicePool(cond.dice, cond.tn, inputId, rollsId);
+      rollDicePool(cond.dice, cond.tn, inputId, rollsId, false);
+    }
+
+    // Current cached snapshot of luck pools; the Inspiration / Unsettling
+    // Words buttons decrement this locally so a single roll can't spend
+    // more than the source has, even before the server round-trip.
+    var luckSourceCache = luckSources.slice().map(function(s) { return {id: s.id, name: s.name, amount: s.amount}; });
+    function luckSourceAmount(id) {
+      for (var i = 0; i < luckSourceCache.length; i++) if (luckSourceCache[i].id === id) return luckSourceCache[i].amount;
+      return 0;
+    }
+
+    // Build the inline Roll-row HTML: optional luck source/amount inputs,
+    // a Roll button, and hidden Inspiration / Unsettling Words buttons.
+    // Each call must pass a unique inputId so the context map doesn't
+    // collide across simultaneously-visible rolls.
+    function rollRowHtml(cfg) {
+      var iid = cfg.inputId;
+      var rid = cfg.rollsId;
+      var signed = cfg.signed ? 'true' : 'false';
+      var target = (cfg.targetName || '').replace(/'/g, "&#39;");
+      var srcId = 'luck-src-' + iid;
+      var amtId = 'luck-amt-' + iid;
+      var insId = 'luck-ins-' + iid;
+      var uwId  = 'luck-uw-' + iid;
+      var srcOpts = '<option value="">(no luck)</option>';
+      luckSourceCache.forEach(function(s) {
+        if (s.amount > 0) srcOpts += '<option value="' + s.id + '">' + s.name + ' (' + s.amount + ')</option>';
+      });
+      var hasSources = luckSourceCache.some(function(s) { return s.amount > 0; });
+      var refresh = "enableLuckButtons('" + iid + "')";
+      var luckControls = hasSources ?
+        '<span style="display:inline-block;margin-right:6px;padding:2px 6px;background:#fff7c2;border:1px solid #d4b84a;border-radius:3px;">' +
+          '<label style="font-size:11px;">Luck: <select id="' + srcId + '" style="font-size:11px;padding:0 2px;" onchange="' + refresh + '">' + srcOpts + '</select></label>' +
+          ' <label style="font-size:11px;">spend <input type="number" id="' + amtId + '" min="0" value="0" style="width:42px;font-size:11px;" oninput="' + refresh + '"></label>' +
+        '</span>' : '';
+      return luckControls +
+        '<button class="action-btn" onclick="rollDicePool(' + cfg.dice + ',' + cfg.tn + ",'" + iid + "','" + rid + "'," + signed + ')">Roll</button>' +
+        ' <button class="action-btn" id="' + insId + '" style="display:none;" title="Reroll the N lowest dice" onclick="applyLuckReroll(\'' + iid + "','inspiration','" + target + "')\">Inspiration</button>" +
+        ' <button class="action-btn" id="' + uwId + '" style="display:none;" title="Reroll the N highest dice" onclick="applyLuckReroll(\'' + iid + "','unsettling_words','" + target + "')\">Unsettling Words</button>";
+    }
+
+    function enableLuckButtons(inputId) {
+      var ctx = rollContexts[inputId];
+      var srcEl = document.getElementById('luck-src-' + inputId);
+      var amtEl = document.getElementById('luck-amt-' + inputId);
+      var ins = document.getElementById('luck-ins-' + inputId);
+      var uw  = document.getElementById('luck-uw-' + inputId);
+      var amt = amtEl ? parseInt(amtEl.value, 10) : 0;
+      var src = srcEl ? srcEl.value : '';
+      var show = ctx && amt > 0 && src !== '' && amt <= luckSourceAmount(src);
+      if (ins) ins.style.display = show ? '' : 'none';
+      if (uw)  uw.style.display  = show ? '' : 'none';
+    }
+
+    // Reroll N of the stored dice in-place. Inspiration picks the N
+    // lowest; Unsettling Words picks the N highest. After the reroll we
+    // repaint, POST the debit to /combat/spend_luck (server-side audit
+    // log + pool decrement), and hide the buttons so one commit per
+    // declared spend. The luckSourceCache mirrors the decrement so a
+    // subsequent roll in the same view can't overspend.
+    function applyLuckReroll(inputId, ability, targetName) {
+      var ctx = rollContexts[inputId];
+      if (!ctx) return;
+      var srcEl = document.getElementById('luck-src-' + inputId);
+      var amtEl = document.getElementById('luck-amt-' + inputId);
+      var amt = amtEl ? parseInt(amtEl.value, 10) : 0;
+      var src = srcEl ? srcEl.value : '';
+      if (amt <= 0 || !src) { alert('Pick a luck source and amount first.'); return; }
+      if (amt > luckSourceAmount(src)) { alert('That source only has ' + luckSourceAmount(src) + ' luck.'); return; }
+      var n = Math.min(amt, ctx.rolls.length);
+      var indexed = ctx.rolls.map(function(v, i) { return {v: v, i: i}; });
+      indexed.sort(function(a, b) { return ability === 'inspiration' ? a.v - b.v : b.v - a.v; });
+      for (var k = 0; k < n; k++) {
+        ctx.rolls[indexed[k].i] = Math.floor(Math.random() * 10) + 1;
+      }
+      paintRollResult(inputId);
+      var fd = new FormData();
+      fd.append('amount', amt);
+      fd.append('ability', ability);
+      fd.append('target_name', targetName || '');
+      fetch('/combat/spend_luck/' + encodeURIComponent(src), {method: 'POST', body: fd});
+      for (var i = 0; i < luckSourceCache.length; i++) {
+        if (luckSourceCache[i].id === src) {
+          luckSourceCache[i].amount = Math.max(0, luckSourceCache[i].amount - amt);
+          break;
+        }
+      }
+      var ins = document.getElementById('luck-ins-' + inputId);
+      var uw  = document.getElementById('luck-uw-' + inputId);
+      if (ins) ins.style.display = 'none';
+      if (uw)  uw.style.display  = 'none';
     }
 
     // Preview of what a save with `successes` will do to `cond` on Confirm.
@@ -768,7 +856,7 @@
       addStep('<strong>Stabilize Roll</strong>: ' + dice + ' dice, TN ' + tn +
         '<br><label>Successes: <input type="number" id="stabilize-successes" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="showStabilizeSummary(\'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ', ' + targetId + ', ' + dice + ')">Next</button>' +
-        ' <button class="action-btn" onclick="rollDicePool(' + dice + ', ' + tn + ', \'stabilize-successes\', \'stabilize-roll-display\')">Roll</button>' +
+        ' ' + rollRowHtml({dice: dice, tn: tn, inputId: 'stabilize-successes', rollsId: 'stabilize-roll-display', signed: false, targetName: currentCharName}) +
         '<div id="stabilize-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
@@ -1009,37 +1097,10 @@
         '<label style="margin-top:4px;display:inline-block;">Net (successes − failures): ' +
           '<input type="number" id="bi-net" value="0" style="width:60px;">' +
         '</label>' +
-        ' <button class="action-btn" onclick="rollPerformDice()">Roll</button>' +
+        ' ' + rollRowHtml({dice: p.dice, tn: p.tn, inputId: 'bi-net', rollsId: 'bi-rolls', signed: true, targetName: currentCharName}) +
         '<div id="bi-rolls" class="math-detail" style="margin-top:4px;"></div>' +
         '<br><button class="action-btn" onclick="submitBardicInspiration()" style="margin-top:8px;">Confirm Perform</button>';
       document.getElementById('bi-roll-area').innerHTML = html;
-    }
-
-    // Roll the perform pool and write the SIGNED net into bi-net so the
-    // sign-based routing to player/DM luck is preserved. Mirrors the
-    // coloring scheme of rollDicePool but keeps negative totals.
-    function rollPerformDice() {
-      var sel = document.getElementById('bi-skill');
-      var p = performSkills[parseInt(sel.value, 10)];
-      var rolls = [];
-      var net = 0;
-      for (var r = 0; r < p.dice; r++) {
-        var d = Math.floor(Math.random() * 10) + 1;
-        rolls.push(d);
-        if (d === 10) net += 2;
-        else if (d >= p.tn) net += 1;
-        else if (d === 1) net -= 1;
-      }
-      document.getElementById('bi-net').value = net;
-      var colored = rolls.map(function(d) {
-        var bg = null;
-        if (d === 1) bg = '#e57373';
-        else if (d === 10) bg = '#64b5f6';
-        else if (d >= p.tn) bg = '#81c784';
-        if (bg) return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
-        return '<span style="color:#777;">' + d + '</span>';
-      }).join(', ');
-      document.getElementById('bi-rolls').innerHTML = 'Rolled: [' + colored + '] &rarr; net ' + (net >= 0 ? '+' : '') + net;
     }
 
     function submitBardicInspiration() {
@@ -1444,7 +1505,7 @@
       addStep('<strong>Attack Roll</strong>: ' + rollDice + ' dice' + diceNote + ', TN ' + attackState.attackTn +
         '<br><label>Attack successes: <input type="number" id="attack-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmAttackSuccesses()">Confirm</button>' +
-        ' <button class="action-btn" onclick="rollDicePool(' + rollDice + ', ' + attackState.attackTn + ', \'attack-successes-input\', \'attack-roll-display\')">Roll</button>' +
+        ' ' + rollRowHtml({dice: rollDice, tn: attackState.attackTn, inputId: 'attack-successes-input', rollsId: 'attack-roll-display', signed: false, targetName: currentCharName}) +
         '<div id="attack-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
@@ -1472,7 +1533,7 @@
       addStep('<strong>Dodge Roll</strong>: ' + attackState.defenseDice + ' dice, TN ' + attackState.dodgeTn +
         '<br><label>Dodge successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>' +
-        ' <button class="action-btn" onclick="rollDicePool(' + attackState.defenseDice + ', ' + attackState.dodgeTn + ', \'defense-successes-input\', \'defense-roll-display\')">Roll</button>' +
+        ' ' + rollRowHtml({dice: attackState.defenseDice, tn: attackState.dodgeTn, inputId: 'defense-successes-input', rollsId: 'defense-roll-display', signed: false, targetName: attackState.target.name}) +
         '<div id="defense-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
@@ -1480,7 +1541,7 @@
       addStep('<strong>Parry Roll</strong>: ' + attackState.parryDice + ' dice, TN ' + attackState.parryTn +
         '<br><label>Parry successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>' +
-        ' <button class="action-btn" onclick="rollDicePool(' + attackState.parryDice + ', ' + attackState.parryTn + ', \'defense-successes-input\', \'defense-roll-display\')">Roll</button>' +
+        ' ' + rollRowHtml({dice: attackState.parryDice, tn: attackState.parryTn, inputId: 'defense-successes-input', rollsId: 'defense-roll-display', signed: false, targetName: attackState.target.name}) +
         '<div id="defense-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
@@ -1488,7 +1549,7 @@
       addStep('<strong>Block Roll</strong>: ' + attackState.blockDice + ' dice, TN ' + attackState.blockTn +
         '<br><label>Block successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>' +
-        ' <button class="action-btn" onclick="rollDicePool(' + attackState.blockDice + ', ' + attackState.blockTn + ', \'defense-successes-input\', \'defense-roll-display\')">Roll</button>' +
+        ' ' + rollRowHtml({dice: attackState.blockDice, tn: attackState.blockTn, inputId: 'defense-successes-input', rollsId: 'defense-roll-display', signed: false, targetName: attackState.target.name}) +
         '<div id="defense-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
@@ -1527,7 +1588,7 @@
         '<br><span class="math-detail">' + tnMath + '</span>' +
         '<br><label>Block successes: <input type="number" id="ally-block-successes" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmAllyBlockSuccesses()">Confirm</button>' +
-        ' <button class="action-btn" onclick="rollDicePool(' + ally.dice + ', ' + blockTn + ', \'ally-block-successes\', \'ally-block-display\')">Roll</button>' +
+        ' ' + rollRowHtml({dice: ally.dice, tn: blockTn, inputId: 'ally-block-successes', rollsId: 'ally-block-display', signed: false, targetName: (caster ? caster.name : 'Ally')}) +
         '<div id="ally-block-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
@@ -1660,7 +1721,7 @@
       addStep('<strong>' + healer.name + ' rolls Healing Word</strong>: ' + dice + ' dice, TN ' + healTn +
         '<br><label>Successes (each reduces damage by 1): <input type="number" id="hw-successes" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmHealingWordSuccesses()">Confirm</button>' +
-        ' <button class="action-btn" onclick="rollDicePool(' + dice + ', ' + healTn + ', \'hw-successes\', \'hw-roll-display\')">Roll</button>' +
+        ' ' + rollRowHtml({dice: dice, tn: healTn, inputId: 'hw-successes', rollsId: 'hw-roll-display', signed: false, targetName: healer.name}) +
         '<div id="hw-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
