@@ -445,8 +445,9 @@
         return '<div style="margin:6px 0;padding:4px 6px;border-left:3px solid #ddd;">' +
           '<strong>Save vs ' + cond.label + '</strong> <span class="math-detail">(severity ' + cond.value + ')</span>' +
           '<br><span class="math-detail">Roll ' + cond.dice + ' dice at TN ' + cond.tn + '</span>' + tnSuffix +
+          '<br>' + luckPickerHtml(inputId) +
           '<br><label>Successes: <input type="number" id="' + inputId + '" min="0" max="' + cond.dice + '" value="0" style="width:50px;"></label>' +
-          ' ' + rollRowHtml({dice: cond.dice, tn: cond.tn, inputId: inputId, rollsId: rollsId, signed: false, targetName: currentCharName}) +
+          ' ' + rollButtonsHtml({dice: cond.dice, tn: cond.tn, inputId: inputId, rollsId: rollsId, signed: false, targetName: currentCharName}) +
           '<div id="' + rollsId + '" class="math-detail" style="margin-top:4px;"></div>' +
           '</div>';
       }).join('');
@@ -549,34 +550,75 @@
       return 0;
     }
 
-    // Build the inline Roll-row HTML: optional luck source/amount inputs,
-    // a Roll button, and hidden Inspiration / Unsettling Words buttons.
-    // Each call must pass a unique inputId so the context map doesn't
-    // collide across simultaneously-visible rolls.
-    function rollRowHtml(cfg) {
+    // Pre-roll luck picker. Rendered BEFORE the successes input at each
+    // roll site so the DM declares their spend first. When only one bard
+    // (or the DM) has luck, the source is shown as static text instead
+    // of a dropdown. The "N available" span is refreshed across every
+    // visible prompt after a spend so multi-save screens stay accurate.
+    function luckPickerHtml(inputId) {
+      var sources = luckSourceCache.filter(function(s) { return s.amount > 0; });
+      if (sources.length === 0) return '';
+      var iid = inputId;
+      var srcId = 'luck-src-' + iid;
+      var amtId = 'luck-amt-' + iid;
+      var availId = 'luck-avail-' + iid;
+      var refresh = "onLuckChange('" + iid + "')";
+      var sourceField;
+      if (sources.length === 1) {
+        sourceField = '<span style="font-weight:bold;">' + sources[0].name + '</span>' +
+          '<input type="hidden" id="' + srcId + '" value="' + sources[0].id + '">';
+      } else {
+        var opts = sources.map(function(s) {
+          return '<option value="' + s.id + '">' + s.name + '</option>';
+        }).join('');
+        sourceField = '<select id="' + srcId + '" style="font-size:11px;padding:0 2px;" onchange="' + refresh + '">' + opts + '</select>';
+      }
+      var initial = sources[0].amount;
+      return '<div style="display:inline-block;margin:4px 0;padding:3px 8px;background:#fff7c2;border:1px solid #d4b84a;border-radius:3px;font-size:12px;">' +
+        '<span style="font-size:11px;color:#6b5800;margin-right:4px;">Spend luck:</span>' +
+        sourceField +
+        ' <input type="number" id="' + amtId + '" min="0" value="0" data-luck-amt="1" style="width:42px;font-size:12px;" oninput="' + refresh + '">' +
+        ' <span id="' + availId + '" data-luck-avail-for="' + iid + '" style="font-size:11px;color:#6b5800;">(' + initial + ' available)</span>' +
+        '</div>';
+    }
+
+    // Post-successes roll buttons: Roll (always) plus hidden Inspiration /
+    // Unsettling Words. The reroll buttons reveal themselves once dice
+    // have been rolled AND the luck picker has a valid source + amount.
+    function rollButtonsHtml(cfg) {
       var iid = cfg.inputId;
       var rid = cfg.rollsId;
       var signed = cfg.signed ? 'true' : 'false';
       var target = (cfg.targetName || '').replace(/'/g, "&#39;");
-      var srcId = 'luck-src-' + iid;
-      var amtId = 'luck-amt-' + iid;
       var insId = 'luck-ins-' + iid;
       var uwId  = 'luck-uw-' + iid;
-      var srcOpts = '<option value="">(no luck)</option>';
-      luckSourceCache.forEach(function(s) {
-        if (s.amount > 0) srcOpts += '<option value="' + s.id + '">' + s.name + ' (' + s.amount + ')</option>';
-      });
-      var hasSources = luckSourceCache.some(function(s) { return s.amount > 0; });
-      var refresh = "enableLuckButtons('" + iid + "')";
-      var luckControls = hasSources ?
-        '<span style="display:inline-block;margin-right:6px;padding:2px 6px;background:#fff7c2;border:1px solid #d4b84a;border-radius:3px;">' +
-          '<label style="font-size:11px;">Luck: <select id="' + srcId + '" style="font-size:11px;padding:0 2px;" onchange="' + refresh + '">' + srcOpts + '</select></label>' +
-          ' <label style="font-size:11px;">spend <input type="number" id="' + amtId + '" min="0" value="0" style="width:42px;font-size:11px;" oninput="' + refresh + '"></label>' +
-        '</span>' : '';
-      return luckControls +
-        '<button class="action-btn" onclick="rollDicePool(' + cfg.dice + ',' + cfg.tn + ",'" + iid + "','" + rid + "'," + signed + ')">Roll</button>' +
+      return '<button class="action-btn" onclick="rollDicePool(' + cfg.dice + ',' + cfg.tn + ",'" + iid + "','" + rid + "'," + signed + ')">Roll</button>' +
         ' <button class="action-btn" id="' + insId + '" style="display:none;" title="Reroll the N lowest dice" onclick="applyLuckReroll(\'' + iid + "','inspiration','" + target + "')\">Inspiration</button>" +
         ' <button class="action-btn" id="' + uwId + '" style="display:none;" title="Reroll the N highest dice" onclick="applyLuckReroll(\'' + iid + "','unsettling_words','" + target + "')\">Unsettling Words</button>";
+    }
+
+    // Update the "(N available)" hint for a single prompt, plus re-gate
+    // the Inspiration / Unsettling Words buttons on the same prompt.
+    function onLuckChange(inputId) {
+      refreshLuckAvailability(inputId);
+      enableLuckButtons(inputId);
+    }
+
+    function refreshLuckAvailability(inputId) {
+      var srcEl = document.getElementById('luck-src-' + inputId);
+      var availEl = document.getElementById('luck-avail-' + inputId);
+      if (!srcEl || !availEl) return;
+      availEl.textContent = '(' + luckSourceAmount(srcEl.value) + ' available)';
+    }
+
+    // Keep every visible luck hint in sync with the cache; called after
+    // each spend so concurrently-visible prompts (e.g. multiple saves
+    // during Start of Turn) don't still show the stale total.
+    function refreshAllLuckAvailability() {
+      var nodes = document.querySelectorAll('[data-luck-avail-for]');
+      for (var i = 0; i < nodes.length; i++) {
+        refreshLuckAvailability(nodes[i].getAttribute('data-luck-avail-for'));
+      }
     }
 
     function enableLuckButtons(inputId) {
@@ -625,6 +667,7 @@
           break;
         }
       }
+      refreshAllLuckAvailability();
       var ins = document.getElementById('luck-ins-' + inputId);
       var uw  = document.getElementById('luck-uw-' + inputId);
       if (ins) ins.style.display = 'none';
@@ -854,9 +897,10 @@
       var maxDice = Math.min(currentHealingDice, diceRemaining);
       if (isNaN(dice) || dice < 1 || dice > maxDice) { alert('Enter 1-' + maxDice + '.'); return; }
       addStep('<strong>Stabilize Roll</strong>: ' + dice + ' dice, TN ' + tn +
+        '<br>' + luckPickerHtml('stabilize-successes') +
         '<br><label>Successes: <input type="number" id="stabilize-successes" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="showStabilizeSummary(\'' + spellName.replace(/'/g, "\\'") + '\', ' + spellTier + ', ' + targetId + ', ' + dice + ')">Next</button>' +
-        ' ' + rollRowHtml({dice: dice, tn: tn, inputId: 'stabilize-successes', rollsId: 'stabilize-roll-display', signed: false, targetName: currentCharName}) +
+        ' ' + rollButtonsHtml({dice: dice, tn: tn, inputId: 'stabilize-successes', rollsId: 'stabilize-roll-display', signed: false, targetName: currentCharName}) +
         '<div id="stabilize-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
@@ -1094,10 +1138,11 @@
         ' = ' + p.raw_tn + (p.raw_tn !== p.tn ? ' (clamped to ' + p.tn + ')' : '');
       var html =
         '<div class="math-detail">Roll ' + p.dice + 'd at TN ' + p.tn + ' <em>(' + tnDetail + ')</em></div>' +
-        '<label style="margin-top:4px;display:inline-block;">Net (successes − failures): ' +
+        luckPickerHtml('bi-net') +
+        '<br><label style="margin-top:4px;display:inline-block;">Net (successes − failures): ' +
           '<input type="number" id="bi-net" value="0" style="width:60px;">' +
         '</label>' +
-        ' ' + rollRowHtml({dice: p.dice, tn: p.tn, inputId: 'bi-net', rollsId: 'bi-rolls', signed: true, targetName: currentCharName}) +
+        ' ' + rollButtonsHtml({dice: p.dice, tn: p.tn, inputId: 'bi-net', rollsId: 'bi-rolls', signed: true, targetName: currentCharName}) +
         '<div id="bi-rolls" class="math-detail" style="margin-top:4px;"></div>' +
         '<br><button class="action-btn" onclick="submitBardicInspiration()" style="margin-top:8px;">Confirm Perform</button>';
       document.getElementById('bi-roll-area').innerHTML = html;
@@ -1503,9 +1548,10 @@
       var rollDice = attackState.attackDiceOverride || attackState.attackDice;
       var diceNote = attackState.attackDiceOverride ? ' (reduced from ' + attackState.attackDice + ')' : '';
       addStep('<strong>Attack Roll</strong>: ' + rollDice + ' dice' + diceNote + ', TN ' + attackState.attackTn +
+        '<br>' + luckPickerHtml('attack-successes-input') +
         '<br><label>Attack successes: <input type="number" id="attack-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmAttackSuccesses()">Confirm</button>' +
-        ' ' + rollRowHtml({dice: rollDice, tn: attackState.attackTn, inputId: 'attack-successes-input', rollsId: 'attack-roll-display', signed: false, targetName: currentCharName}) +
+        ' ' + rollButtonsHtml({dice: rollDice, tn: attackState.attackTn, inputId: 'attack-successes-input', rollsId: 'attack-roll-display', signed: false, targetName: currentCharName}) +
         '<div id="attack-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
@@ -1531,25 +1577,28 @@
     // --- Defense roll steps ---
     function showDodgeRoll() {
       addStep('<strong>Dodge Roll</strong>: ' + attackState.defenseDice + ' dice, TN ' + attackState.dodgeTn +
+        '<br>' + luckPickerHtml('defense-successes-input') +
         '<br><label>Dodge successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>' +
-        ' ' + rollRowHtml({dice: attackState.defenseDice, tn: attackState.dodgeTn, inputId: 'defense-successes-input', rollsId: 'defense-roll-display', signed: false, targetName: attackState.target.name}) +
+        ' ' + rollButtonsHtml({dice: attackState.defenseDice, tn: attackState.dodgeTn, inputId: 'defense-successes-input', rollsId: 'defense-roll-display', signed: false, targetName: attackState.target.name}) +
         '<div id="defense-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function showParryRoll() {
       addStep('<strong>Parry Roll</strong>: ' + attackState.parryDice + ' dice, TN ' + attackState.parryTn +
+        '<br>' + luckPickerHtml('defense-successes-input') +
         '<br><label>Parry successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>' +
-        ' ' + rollRowHtml({dice: attackState.parryDice, tn: attackState.parryTn, inputId: 'defense-successes-input', rollsId: 'defense-roll-display', signed: false, targetName: attackState.target.name}) +
+        ' ' + rollButtonsHtml({dice: attackState.parryDice, tn: attackState.parryTn, inputId: 'defense-successes-input', rollsId: 'defense-roll-display', signed: false, targetName: attackState.target.name}) +
         '<div id="defense-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
     function showBlockRoll() {
       addStep('<strong>Block Roll</strong>: ' + attackState.blockDice + ' dice, TN ' + attackState.blockTn +
+        '<br>' + luckPickerHtml('defense-successes-input') +
         '<br><label>Block successes: <input type="number" id="defense-successes-input" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmDefenseSuccesses()">Confirm</button>' +
-        ' ' + rollRowHtml({dice: attackState.blockDice, tn: attackState.blockTn, inputId: 'defense-successes-input', rollsId: 'defense-roll-display', signed: false, targetName: attackState.target.name}) +
+        ' ' + rollButtonsHtml({dice: attackState.blockDice, tn: attackState.blockTn, inputId: 'defense-successes-input', rollsId: 'defense-roll-display', signed: false, targetName: attackState.target.name}) +
         '<div id="defense-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
@@ -1586,9 +1635,10 @@
         blockTn);
       addStep('<strong>' + (caster ? caster.name : 'Ally') + ' blocks with Shield of Faith</strong>: ' + ally.dice + ' dice' +
         '<br><span class="math-detail">' + tnMath + '</span>' +
+        '<br>' + luckPickerHtml('ally-block-successes') +
         '<br><label>Block successes: <input type="number" id="ally-block-successes" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmAllyBlockSuccesses()">Confirm</button>' +
-        ' ' + rollRowHtml({dice: ally.dice, tn: blockTn, inputId: 'ally-block-successes', rollsId: 'ally-block-display', signed: false, targetName: (caster ? caster.name : 'Ally')}) +
+        ' ' + rollButtonsHtml({dice: ally.dice, tn: blockTn, inputId: 'ally-block-successes', rollsId: 'ally-block-display', signed: false, targetName: (caster ? caster.name : 'Ally')}) +
         '<div id="ally-block-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
@@ -1719,9 +1769,10 @@
       attackState.healingWordActions.push({combat_id: cid, dice: dice});
 
       addStep('<strong>' + healer.name + ' rolls Healing Word</strong>: ' + dice + ' dice, TN ' + healTn +
+        '<br>' + luckPickerHtml('hw-successes') +
         '<br><label>Successes (each reduces damage by 1): <input type="number" id="hw-successes" min="0" value="0" style="width:50px;"></label>' +
         ' <button class="action-btn" onclick="confirmHealingWordSuccesses()">Confirm</button>' +
-        ' ' + rollRowHtml({dice: dice, tn: healTn, inputId: 'hw-successes', rollsId: 'hw-roll-display', signed: false, targetName: healer.name}) +
+        ' ' + rollButtonsHtml({dice: dice, tn: healTn, inputId: 'hw-successes', rollsId: 'hw-roll-display', signed: false, targetName: healer.name}) +
         '<div id="hw-roll-display" class="math-detail" style="margin-top:4px;"></div>');
     }
 
