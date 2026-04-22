@@ -39,16 +39,6 @@ get '/' do
   redirect '/test'
 end
 
-post '/user/claim_dm' do
-  @current_user.claim_dm!(force: params[:force] == '1')
-  redirect(request.referrer || '/')
-end
-
-post '/user/release_dm' do
-  @current_user.release_dm!
-  redirect(request.referrer || '/')
-end
-
 post '/user/assign_character' do
   char_id = params[:character_id].to_s.empty? ? nil : params[:character_id].to_i
   if char_id.nil?
@@ -60,4 +50,5 @@ post '/user/assign_character' do
 end
 
 require_relative 'stubs/roll_stub'
+require_relative 'stubs/initiative_stub'
 require_relative 'pages/test'

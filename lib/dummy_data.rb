@@ -77,14 +77,24 @@ class DummyData
     {
       'round' => 4,
       'active_effects' => [],
-      'participants' => [
-        { 'combat_id' => 'pc-1', 'char_id' => 1, 'initiative' => 17, 'hp' => 24, 'group' => 'PC' },
-        { 'combat_id' => 'pc-2', 'char_id' => 2, 'initiative' => 14, 'hp' => 32, 'group' => 'PC' },
-        { 'combat_id' => 'pc-3', 'char_id' => 3, 'initiative' => 21, 'hp' => 18, 'group' => 'PC' },
-        { 'combat_id' => 'mob-1', 'char_id' => 'bandit_thug', 'initiative' => 9, 'hp' => 8, 'group' => 'Enemy' }
-      ],
-      'current_turn' => 'pc-3'
+      'current_turn' => 'pc-3',
+      'turns' => [
+        { 'combat_id' => 'pc-3',  'char_id' => 3,              'name' => 'Lira Duskmoor',  'initiative' => 21, 'hp' => 18, 'hp_max' => 22, 'group' => 'PC' },
+        { 'combat_id' => 'pc-1',  'char_id' => 1,              'name' => 'Ash Windmere',   'initiative' => 17, 'hp' => 24, 'hp_max' => 28, 'group' => 'PC' },
+        { 'combat_id' => 'pc-2',  'char_id' => 2,              'name' => 'Bryn Ironvein',  'initiative' => 14, 'hp' => 32, 'hp_max' => 36, 'group' => 'PC' },
+        { 'combat_id' => 'mob-1', 'char_id' => 'bandit_thug',  'name' => 'Bandit Thug',    'initiative' => 12, 'hp' => 14, 'hp_max' => 14, 'group' => 'Enemy' },
+        { 'combat_id' => 'mob-2', 'char_id' => 'bandit_thug',  'name' => 'Bandit Thug',    'initiative' => 9,  'hp' => 5,  'hp_max' => 14, 'group' => 'Enemy' },
+        { 'combat_id' => 'mob-3', 'char_id' => 'bandit_archer','name' => 'Bandit Archer',  'initiative' => 7,  'hp' => 0,  'hp_max' => 10, 'group' => 'Enemy' }
+      ]
     }
+  end
+
+  # Initiative track sorted high-to-low. The shape is the canonical
+  # input the initiative stub expects; pages/components that already
+  # have a list of turns can pass their own data without going through
+  # combat_state.
+  def self.initiative_turns
+    combat_state['turns'].sort_by { |t| -t['initiative'].to_i }
   end
 
   # --- Notes ---------------------------------------------------------------

@@ -25,10 +25,13 @@ Legend:
   player" without dropping their role.
 - `character_picker_stub` — shown when the current device has no
   character assigned. Lists PCs and posts to `/user/assign_character`.
-- `dm_claim_stub` — shown when no DM is claimed yet; lets the viewer
-  claim DM status.
+- `public_view_stub` — fallback content shown to non-DM viewers with no
+  assigned character (scene + public notes only).
 - `lightbox_stub` — zoomable image viewer. Already part of the current
   layout; lift into its own stub for reuse.
+
+DM detection: any request whose IP matches the server is the DM.
+There is no claim flow and no per-device DM record.
 
 ## Character sheet (`/character/:index`)
 

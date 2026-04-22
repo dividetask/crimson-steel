@@ -1,0 +1,50 @@
+<div class="initiative-stub" data-stub-id="<%= stub_id %>" data-dm-view="<%= dm_view ? '1' : '0' %>">
+<% if turns.empty? %>
+  <p class="initiative-empty">No combatants in the initiative track yet.</p>
+<% else %>
+  <table class="initiative-table">
+    <thead>
+      <tr>
+        <th>Initiative</th>
+        <th>Name</th>
+        <th>HP</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% turns.each do |t| %>
+        <%
+          combat_id   = t['combat_id'] || t[:combat_id]
+          name        = t['name']      || t[:name]
+          init_value  = t['initiative'] || t[:initiative]
+          hp_now      = (t['hp']     || t[:hp]).to_i
+          hp_max      = (t['hp_max'] || t[:hp_max]).to_i
+          group       = (t['group']  || t[:group] || 'PC').to_s
+          is_pc       = group == 'PC'
+          is_current  = current_combat_id && combat_id == current_combat_id
+          show_full   = dm_view || is_pc
+          row_classes = []
+          row_classes << 'current-turn' if is_current
+          row_classes << (is_pc ? 'init-pc' : 'init-enemy')
+        %>
+        <tr class="<%= row_classes.join(' ') %>" data-combat-id="<%= h(combat_id) %>">
+          <td class="init-value"><%= init_value.to_s.empty? ? '&mdash;' : h(init_value) %></td>
+          <td class="init-name"><%= h(show_full ? name : 'DM') %></td>
+          <td class="init-hp">
+            <% if show_full %>
+              <%= hp_now %>/<%= hp_max %>
+            <% else %>
+              <% bucket = initiative_hp_bucket(hp_now, hp_max) %>
+              <% if bucket == :down %>
+                <span class="init-hp-down">Down</span>
+              <% else %>
+                <span class="init-hp-bar init-hp-<%= bucket %>"
+                      title="enemy HP"></span>
+              <% end %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+</div>

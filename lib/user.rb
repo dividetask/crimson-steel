@@ -4,10 +4,11 @@ require 'fileutils'
 require 'securerandom'
 
 # Per-device user tracking. The server gives each visiting device a
-# random UUID cookie and keeps a tiny record per device: the UUID, an
-# optional assigned character id, and whether the device is the DM.
-# That is enough to remember the device on return visits without
-# recording anything personally identifying. No passwords, no accounts.
+# random UUID cookie and keeps the bare minimum needed to remember the
+# device on return: the UUID and an optional assigned character id.
+# DM status is not stored — it is derived from the request itself
+# (see User.dm_request?), matching the before-refactor behavior where
+# whichever device runs the server is the DM.
 class UserStore
   DEVICE_COOKIE = 'crimson_device_id'.freeze
 
@@ -29,7 +30,6 @@ class UserStore
     rec = {
       'device_id' => device_id,
       'character_id' => nil,
-      'is_dm' => false,
       'first_seen' => Time.now.iso8601,
       'last_seen' => Time.now.iso8601
     }
@@ -45,33 +45,6 @@ class UserStore
 
   def list
     @records.map(&:dup)
-  end
-
-  def any_dm?
-    @records.any? { |r| r['is_dm'] }
-  end
-
-  def dm_record
-    @records.find { |r| r['is_dm'] }
-  end
-
-  # Promote a device to DM. When no DM exists yet this always succeeds;
-  # otherwise pass force: true to overwrite the current DM.
-  def set_dm(device_id, force: false)
-    rec = find(device_id) or return false
-    return true if rec['is_dm']
-    return false if any_dm? && !force
-    @records.each { |r| r['is_dm'] = false }
-    rec['is_dm'] = true
-    save!
-    true
-  end
-
-  def clear_dm(device_id)
-    rec = find(device_id) or return false
-    rec['is_dm'] = false
-    save!
-    true
   end
 
   def assign_character(device_id, character_id)
@@ -93,7 +66,16 @@ end
 # request. Reads the cookie, creates a record on first visit, and
 # exposes a small role-aware API for routes and views.
 class User
+  LOCAL_IPS = %w[127.0.0.1 ::1 localhost].freeze
+
   attr_reader :device_id, :record
+
+  # Whichever device shares an IP with the server is the DM. No state
+  # is stored about which device that is — it is just a property of
+  # the request.
+  def self.dm_request?(request)
+    LOCAL_IPS.include?(request.ip)
+  end
 
   def self.identify(request, response, store)
     device_id = request.cookies[UserStore::DEVICE_COOKIE]
@@ -107,17 +89,18 @@ class User
     end
     rec = store.find(device_id) || store.create(device_id)
     store.touch(rec)
-    new(device_id, rec, store)
+    new(device_id, rec, store, dm: dm_request?(request))
   end
 
-  def initialize(device_id, record, store)
+  def initialize(device_id, record, store, dm:)
     @device_id = device_id
     @record = record
     @store = store
+    @dm = dm
   end
 
   def dm?
-    @record['is_dm'] == true
+    @dm
   end
 
   def character_id
@@ -136,16 +119,5 @@ class User
   def unassign_character
     @store.unassign_character(@device_id)
     @record['character_id'] = nil
-  end
-
-  def claim_dm!(force: false)
-    return false unless @store.set_dm(@device_id, force: force)
-    @record['is_dm'] = true
-    true
-  end
-
-  def release_dm!
-    @store.clear_dm(@device_id)
-    @record['is_dm'] = false
   end
 end

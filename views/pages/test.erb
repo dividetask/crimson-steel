@@ -49,3 +49,28 @@
     });
   </script>
 <% end %>
+
+<h2>Initiative Stub</h2>
+
+<p class="dt-note">Viewer is currently
+  <strong><%= dm? ? 'DM' : 'Player' %></strong>
+  (DM is detected from the request IP &mdash; <%= h request.ip %>).
+  Both views are shown below for comparison.
+</p>
+
+<h3>DM view</h3>
+<%= initiative_stub(
+      turns: DATA.initiative_turns,
+      current_combat_id: DATA.combat_state['current_turn'],
+      dm_view: true
+    ) %>
+
+<h3>Player view</h3>
+<%= initiative_stub(
+      turns: DATA.initiative_turns,
+      current_combat_id: DATA.combat_state['current_turn'],
+      dm_view: false
+    ) %>
+
+<h3>Empty state</h3>
+<%= initiative_stub(turns: []) %>
