@@ -79,22 +79,54 @@ class DummyData
       'active_effects' => [],
       'current_turn' => 'pc-3',
       'turns' => [
-        { 'combat_id' => 'pc-3',  'char_id' => 3,              'name' => 'Lira Duskmoor',  'initiative' => 21, 'hp' => 18, 'hp_max' => 22, 'group' => 'PC' },
-        { 'combat_id' => 'pc-1',  'char_id' => 1,              'name' => 'Ash Windmere',   'initiative' => 17, 'hp' => 24, 'hp_max' => 28, 'group' => 'PC' },
-        { 'combat_id' => 'pc-2',  'char_id' => 2,              'name' => 'Bryn Ironvein',  'initiative' => 14, 'hp' => 32, 'hp_max' => 36, 'group' => 'PC' },
-        { 'combat_id' => 'mob-1', 'char_id' => 'bandit_thug',  'name' => 'Bandit Thug',    'initiative' => 12, 'hp' => 14, 'hp_max' => 14, 'group' => 'Enemy' },
-        { 'combat_id' => 'mob-2', 'char_id' => 'bandit_thug',  'name' => 'Bandit Thug',    'initiative' => 9,  'hp' => 5,  'hp_max' => 14, 'group' => 'Enemy' },
-        { 'combat_id' => 'mob-3', 'char_id' => 'bandit_archer','name' => 'Bandit Archer',  'initiative' => 7,  'hp' => 0,  'hp_max' => 10, 'group' => 'Enemy' }
+        { 'combat_id' => 'pc-3',  'char_id' => 3,              'name' => 'Lira Duskmoor',  'initiative' => 'X97',
+          'hp' => 18, 'hp_max' => 22,
+          'minor_damage' => 4, 'moderate_damage' => 0, 'major_damage' => 0,
+          'combat_pool' => 5, 'combat_pool_max' => 5, 'shock' => 0, 'pain' => 0,
+          'conditions' => [], 'group' => 'PC' },
+
+        { 'combat_id' => 'pc-1',  'char_id' => 1,              'name' => 'Ash Windmere',   'initiative' => 'X87',
+          'hp' => 22, 'hp_max' => 28,
+          'minor_damage' => 6, 'moderate_damage' => 0, 'major_damage' => 0,
+          'combat_pool' => 4, 'combat_pool_max' => 6, 'shock' => 1, 'pain' => 0,
+          'conditions' => [{ 'name' => 'bleed', 'value' => 2 }], 'group' => 'PC' },
+
+        { 'combat_id' => 'pc-2',  'char_id' => 2,              'name' => 'Bryn Ironvein',  'initiative' => '742',
+          'hp' => 24, 'hp_max' => 36,
+          'minor_damage' => 4, 'moderate_damage' => 8, 'major_damage' => 0,
+          'combat_pool' => 3, 'combat_pool_max' => 7, 'shock' => 0, 'pain' => 2,
+          'conditions' => [{ 'name' => 'poison', 'value' => 1 }], 'group' => 'PC' },
+
+        { 'combat_id' => 'mob-1', 'char_id' => 'bandit_thug',  'name' => 'Bandit Thug',    'initiative' => 'X4',
+          'hp' => 14, 'hp_max' => 14,
+          'minor_damage' => 0, 'moderate_damage' => 0, 'major_damage' => 0,
+          'combat_pool' => 3, 'combat_pool_max' => 3, 'shock' => 0, 'pain' => 0,
+          'conditions' => [], 'group' => 'Enemy' },
+
+        { 'combat_id' => 'mob-2', 'char_id' => 'bandit_thug',  'name' => 'Bandit Thug',    'initiative' => '951',
+          'hp' => 5, 'hp_max' => 14,
+          'minor_damage' => 2, 'moderate_damage' => 4, 'major_damage' => 3,
+          'combat_pool' => 1, 'combat_pool_max' => 3, 'shock' => 2, 'pain' => 1,
+          'conditions' => [{ 'name' => 'bleed', 'value' => 1 }, { 'name' => 'major_damage', 'value' => 1 }], 'group' => 'Enemy' },
+
+        { 'combat_id' => 'mob-3', 'char_id' => 'bandit_archer','name' => 'Bandit Archer',  'initiative' => '8',
+          'hp' => 0, 'hp_max' => 10,
+          'minor_damage' => 2, 'moderate_damage' => 4, 'major_damage' => 4,
+          'combat_pool' => 0, 'combat_pool_max' => 3, 'shock' => 0, 'pain' => 0,
+          'conditions' => [{ 'name' => 'major_damage', 'value' => 1 }], 'group' => 'Enemy' }
       ]
     }
   end
 
-  # Initiative track sorted high-to-low. The shape is the canonical
-  # input the initiative stub expects; pages/components that already
-  # have a list of turns can pass their own data without going through
-  # combat_state.
+  # Initiative track sorted high-to-low. Sort key is the X-bearing
+  # initiative string compared as a sequence of dice values (X = 10,
+  # then digits left-to-right).
   def self.initiative_turns
-    combat_state['turns'].sort_by { |t| -t['initiative'].to_i }
+    combat_state['turns'].sort_by { |t| initiative_sort_key(t['initiative']) }
+  end
+
+  def self.initiative_sort_key(str)
+    str.to_s.chars.map { |c| c == 'X' ? -10 : -c.to_i }
   end
 
   # --- Notes ---------------------------------------------------------------

@@ -55,20 +55,23 @@
 <p class="dt-note">Viewer is currently
   <strong><%= dm? ? 'DM' : 'Player' %></strong>
   (DM is detected from the request IP &mdash; <%= h request.ip %>).
-  Both views are shown below for comparison.
+  Both views are shown below for comparison; the Set-turn button updates
+  both views via <code>POST /combat/set_turn/:combat_id</code>.
 </p>
+
+<% current_turn = session[:current_turn] || DATA.combat_state['current_turn'] %>
 
 <h3>DM view</h3>
 <%= initiative_stub(
       turns: DATA.initiative_turns,
-      current_combat_id: DATA.combat_state['current_turn'],
+      current_combat_id: current_turn,
       dm_view: true
     ) %>
 
 <h3>Player view</h3>
 <%= initiative_stub(
       turns: DATA.initiative_turns,
-      current_combat_id: DATA.combat_state['current_turn'],
+      current_combat_id: current_turn,
       dm_view: false
     ) %>
 
