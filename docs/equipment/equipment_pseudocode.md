@@ -176,3 +176,215 @@ Two stacks match if and only if all seven fields are equal. The `quantity` and `
 - `active_generic_shops` and `current_day` always live in the base `shops.yaml`, never in glob files. This keeps transient state in one predictable place.
 - `option_lists` follow the `loot_tables` source_file grouping. A list added at runtime is written to `loot_tables.yaml`.
 - SAVE is idempotent: calling it twice in a row produces identical files.
+
+---
+
+## STACK_IDENTITY_TUPLE
+
+**Description:** Internal helper. Returns the ordered tuple of identity fields for an Item Stack. Two stacks are considered identical when their identity tuples compare equal. See `Identity Fields` at the top of this document.
+
+**Parameters:**
+- `stack`: an Item Stack.
+
+**Returns:** A tuple of seven values.
+
+1. `return (`
+2. `⠀⠀stack['item'],`
+3. `⠀⠀stack['tier'] or 0,`
+4. `⠀⠀stack['properties'] or empty list,`
+5. `⠀⠀stack['stored_spell'] or null,`
+6. `⠀⠀stack['durability_damage'] or 0,`
+7. `⠀⠀stack['name'] or null,`
+8. `⠀⠀stack['value_in_gold'] or null`
+9. `)`
+
+**Notes:**
+- `properties` equality is element-wise and order-sensitive: `[Elemental(Fire), Subdual]` does not match `[Subdual, Elemental(Fire)]`. This is intentional — the Naming Convention uses property order when generating display names, so order is a meaningful identity component.
+
+---
+
+## STACKS_MATCH
+
+**Description:** Internal helper. Returns true if two Item Stacks have matching Stack Identity.
+
+**Parameters:**
+- `a`, `b`: Item Stacks.
+
+**Returns:** Boolean.
+
+1. `return STACK_IDENTITY_TUPLE(a) == STACK_IDENTITY_TUPLE(b)`
+
+---
+
+## FIND_MATCHING_STACK_INDEX
+
+**Description:** Searches an inventory for the index of the first Stack whose identity matches a template Stack. Returns `null` when no match exists.
+
+**Parameters:**
+- `inventory`: a list of Item Stacks.
+- `template`: an Item Stack whose identity is the search key.
+
+**Returns:** A non-negative integer index, or `null`.
+
+1. `for i = 0 to length(inventory) - 1:`
+2. `⠀⠀if STACKS_MATCH(inventory[i], template):`
+3. `⠀⠀⠀⠀return i`
+4. `return null`
+
+---
+
+## MERGE_INVENTORY_STACKS
+
+**Description:** Returns a new inventory list in which any Stacks sharing identity have been combined into a single Stack with summed Quantity. Preserves the order of first occurrence. `restock_target` from the first Stack in each group is kept; later Stacks' `restock_target` values are discarded (a merge conflict warning is logged if they differ).
+
+**Parameters:**
+- `inventory`: a list of Item Stacks.
+
+**Returns:** A new list of Item Stacks.
+
+1. `merged = empty list`
+2. `for i = 0 to length(inventory) - 1:`
+3. `⠀⠀current = inventory[i]`
+4. `⠀⠀match_index = FIND_MATCHING_STACK_INDEX(merged, current)`
+5. `⠀⠀if match_index is null:`
+6. `⠀⠀⠀⠀append a shallow copy of current to merged`
+7. `⠀⠀else:`
+8. `⠀⠀⠀⠀merged[match_index]['quantity'] = (merged[match_index]['quantity'] or 1) + (current['quantity'] or 1)`
+9. `⠀⠀⠀⠀if current has 'restock_target' and merged[match_index].get('restock_target') != current['restock_target']:`
+10. `⠀⠀⠀⠀⠀⠀log warning ('merge discarded conflicting restock_target for ' + current['item'])`
+11. `return merged`
+
+---
+
+## CLEANUP_ZERO_QUANTITY
+
+**Description:** Removes every Stack with `quantity <= 0` from an Owner's inventory. Intended for periodic cleanup (e.g., at server startup or after a large batch of removals). Stacks with a `restock_target` set are NOT removed even when empty — the target is a directive that survives depletion.
+
+**Parameters:**
+- `owner_id`: the Owner whose inventory to clean.
+
+**Returns:** The number of Stacks removed.
+
+1. `entry = loot[owner_id]`
+2. `if entry is null: return 0`
+3. `original_length = length(entry['inventory'])`
+4. `entry['inventory'] = [s for s in entry['inventory'] if (s['quantity'] or 0) > 0 or 'restock_target' in s]`
+5. `return original_length - length(entry['inventory'])`
+
+---
+
+## GET_INVENTORY
+
+**Description:** Returns the Inventory list for an Owner. Creates an empty Inventory for unknown Owner IDs so that subsequent ADD_ITEM calls succeed without a pre-registration step. The returned list is a live reference — callers must not mutate it directly; all mutations go through ADD_ITEM / REMOVE_ITEM / ADJUST_STACK_QUANTITY.
+
+**Parameters:**
+- `owner_id`: the Owner to look up.
+
+**Returns:** A list of Item Stacks.
+
+1. `if owner_id not in loot:`
+2. `⠀⠀loot[owner_id] = { 'inventory': empty list, 'source_file': null }`
+3. `return loot[owner_id]['inventory']`
+
+**Notes:**
+- A `null` source_file means "not yet persisted to a file." SAVE routes such Owners to the base file for their kind.
+- Shop inventories are NOT stored in `loot`; use `specific_shops[shop_id]['inventory']` directly for those. This keeps Shop refresh logic from accidentally touching Character inventories and vice versa.
+
+---
+
+## ADD_ITEM
+
+**Description:** Adds an Item Stack to an Owner's Inventory. If an existing Stack matches the input's identity, the input's Quantity is added to it; otherwise the input is appended as a new Stack. The input's `restock_target`, if present, overwrites any existing target on a merged Stack (unlike the passive merge in MERGE_INVENTORY_STACKS — an explicit ADD_ITEM is taken as an authoritative update).
+
+**Parameters:**
+- `owner_id`: target Owner.
+- `item_stack`: the Stack to add. `quantity` defaults to 1. Must be positive; use REMOVE_ITEM to subtract.
+
+**Returns:** The index of the affected Stack.
+
+1. `inventory = GET_INVENTORY(owner_id)`
+2. `quantity = item_stack['quantity'] or 1`
+3. `if quantity <= 0:`
+4. `⠀⠀raise exception ('ADD_ITEM requires positive quantity; got ' + quantity)`
+5. `match_index = FIND_MATCHING_STACK_INDEX(inventory, item_stack)`
+6. `if match_index is null:`
+7. `⠀⠀append a shallow copy of item_stack (with quantity set) to inventory`
+8. `⠀⠀return length(inventory) - 1`
+9. `else:`
+10. `⠀⠀inventory[match_index]['quantity'] = (inventory[match_index]['quantity'] or 1) + quantity`
+11. `⠀⠀if 'restock_target' in item_stack:`
+12. `⠀⠀⠀⠀inventory[match_index]['restock_target'] = item_stack['restock_target']`
+13. `⠀⠀return match_index`
+
+---
+
+## REMOVE_ITEM
+
+**Description:** Removes a Quantity from a specific Stack (by index). Clamps at 0 rather than going negative. Does not delete the Stack — cleanup of zero-Quantity Stacks is deferred to CLEANUP_ZERO_QUANTITY (and Stacks with a `restock_target` persist regardless). Raises if `stack_index` is out of range.
+
+**Parameters:**
+- `owner_id`: target Owner.
+- `stack_index`: the Inventory index of the Stack to decrement.
+- `quantity`: amount to remove. Must be positive.
+
+**Returns:** The actual amount removed (may be less than `quantity` if the Stack had fewer units on hand).
+
+1. `inventory = GET_INVENTORY(owner_id)`
+2. `if stack_index < 0 or stack_index >= length(inventory):`
+3. `⠀⠀raise exception ('REMOVE_ITEM: stack_index out of range')`
+4. `if quantity <= 0:`
+5. `⠀⠀raise exception ('REMOVE_ITEM requires positive quantity; got ' + quantity)`
+6. `available = inventory[stack_index]['quantity'] or 0`
+7. `removed = min(quantity, available)`
+8. `inventory[stack_index]['quantity'] = available - removed`
+9. `return removed`
+
+---
+
+## ADJUST_STACK_QUANTITY
+
+**Description:** Signed adjustment to a Stack's Quantity by index. Positive delta increases the Stack; negative delta decreases it, clamped at 0. This is the generic primitive; ADD_ITEM and REMOVE_ITEM are ergonomic wrappers for the common cases.
+
+**Parameters:**
+- `owner_id`: target Owner.
+- `stack_index`: the Inventory index.
+- `delta`: signed integer (or float for Currency). Zero is a no-op.
+
+**Returns:** The Stack's new Quantity.
+
+1. `inventory = GET_INVENTORY(owner_id)`
+2. `if stack_index < 0 or stack_index >= length(inventory):`
+3. `⠀⠀raise exception ('ADJUST_STACK_QUANTITY: stack_index out of range')`
+4. `current = inventory[stack_index]['quantity'] or 0`
+5. `new_quantity = max(0, current + delta)`
+6. `inventory[stack_index]['quantity'] = new_quantity`
+7. `return new_quantity`
+
+---
+
+## TRANSFER_ITEM
+
+**Description:** Moves a Quantity of a specific Stack from one Owner to another. Atomically: either the source is decremented and the destination incremented, or neither happens. Uses ADD_ITEM on the destination side so the transferred Stack merges with any existing matching Stack.
+
+**Parameters:**
+- `from_owner`, `to_owner`: Owner IDs.
+- `stack_index`: the Inventory index on `from_owner`.
+- `quantity`: amount to transfer. Must be positive.
+
+**Returns:** The actual amount transferred (may be less than `quantity`).
+
+1. `source_inventory = GET_INVENTORY(from_owner)`
+2. `if stack_index < 0 or stack_index >= length(source_inventory):`
+3. `⠀⠀raise exception ('TRANSFER_ITEM: stack_index out of range')`
+4. `source_stack = source_inventory[stack_index]`
+5. `available = source_stack['quantity'] or 0`
+6. `transferred = min(quantity, available)`
+7. `if transferred == 0: return 0`
+8. `recipient_stack = shallow copy of source_stack with quantity = transferred, restock_target removed`
+9. `REMOVE_ITEM(from_owner, stack_index, transferred)`
+10. `ADD_ITEM(to_owner, recipient_stack)`
+11. `return transferred`
+
+**Notes:**
+- `restock_target` is a property of the source Owner's intent and does not travel with a transferred Stack.
+- Transfers between Characters and Shops go through this same entry point even though Shop inventories are stored separately — callers addressing a Shop use the `"shop:<id>"` Owner ID and internal plumbing routes to `specific_shops[id]['inventory']`. (The routing detail is a CONSTRUCTOR / SAVE concern; TRANSFER_ITEM itself does not need to distinguish.)
