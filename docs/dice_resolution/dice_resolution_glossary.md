@@ -97,6 +97,6 @@ Roll Modifiers alter the dice of a Roll rather than its Target Number. The dice 
 - **Value Adjustment**: a signed integer applied to a single die's value. Positive values raise a die and are targeted at the die most helpful to the Roll. Negative values lower a die and are targeted at the die most damaging to the Roll. Specific targeting rules depend on whether the Check counts Failures.
 - **Reroll Operation**: a signed integer indicating the number of dice to reroll. Positive values reroll dice that are neither Successes nor Critical Successes (preferring the lowest values, which are typically Failures). Negative values reroll dice that are Successes or Critical Successes (preferring the highest values, which are typically Critical Successes). No die may be rerolled more than once in a Roll.
 
-The Value Adjustment operation is applied before the Reroll Operation when both are present for the same Roll.
+The Reroll Operation is applied before the Value Adjustment operation when both are present for the same Roll.
 
 Specific named effects (those arising from divine intervention, fortune, magical guidance, and so on) are defined in the modules that introduce those concepts. Each such effect specifies which of the two generic operations it uses and with what magnitude.

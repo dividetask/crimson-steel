@@ -1,0 +1,51 @@
+<% p = @test_params || {} %>
+
+<h2>Roll Stub</h2>
+
+<form method="post" action="/test" class="stub-test-form">
+  <label>Check Name: <input type="text" name="check_name"
+         value="<%= h(p['check_name'] || 'Perception') %>"></label>
+  <label>Dice Count: <input type="number" name="dice_count" min="1"
+         value="<%= h(p['dice_count'] || 6) %>"></label>
+  <label>TN: <input type="number" name="tn"
+         value="<%= h(p['tn'] || 6) %>"></label>
+  <label>Starting Value: <input type="number" name="starting_value"
+         value="<%= h(p['starting_value'] || 0) %>"></label>
+  <label>Luck Amount: <input type="number" name="luck_amount" min="0"
+         value="<%= h(p['luck_amount'] || 2) %>"></label>
+  <label>Insight Amount: <input type="number" name="insight_amount" min="0"
+         value="<%= h(p['insight_amount'] || 4) %>"></label>
+  <button type="submit">Submit</button>
+</form>
+
+<% unless p.empty? %>
+  <%= roll_stub(
+        check_name: p['check_name'].to_s,
+        dice_count: p['dice_count'].to_i,
+        tn: p['tn'].to_i,
+        starting_value: p['starting_value'].to_i,
+        luck_bonus_name: "Bardic Inspiration",
+        luck_penalty_name: "Unsettling Words",
+        luck_amount: p['luck_amount'].to_i,
+        insight_bonus_name: "Insight Bonus",
+        insight_penalty_name: "Insight Penalty",
+        insight_amount: p['insight_amount'].to_i
+      ) %>
+
+  <div class="stub-test-capture">
+    <label>Confirmed total:
+      <input type="text" id="test-confirmed-total" readonly
+             placeholder="(press Confirm)">
+    </label>
+  </div>
+
+  <script>
+    // Capture the stub's confirm event so the test harness can show the
+    // total it would hand off to whatever feature embeds this stub.
+    // The stub itself stays unaware of the listener.
+    document.addEventListener('rollstub:confirm', function(e) {
+      var out = document.getElementById('test-confirmed-total');
+      if (out) out.value = e.detail.value;
+    });
+  </script>
+<% end %>

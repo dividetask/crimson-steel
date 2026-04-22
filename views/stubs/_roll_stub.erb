@@ -1,0 +1,47 @@
+<div class="roll-stub" data-stub-id="<%= stub_id %>">
+  <div class="roll-stub-title"><%= check_name %> Check</div>
+  <div class="roll-stub-params"><%= roll_stub_params_line(tn.to_i, dice_count.to_i, starting_value.to_i) %></div>
+
+  <div class="roll-stub-controls">
+    <input type="number" class="roll-stub-input" id="roll-stub-input-<%= stub_id %>" value="0">
+    <button type="button" class="roll-stub-roll"
+            onclick="rollStubRoll('<%= stub_id %>')">Roll</button>
+    <% if luck_amount.to_i > 0 %>
+      <button type="button" class="roll-stub-mod roll-stub-luck-bonus"
+              onclick="rollStubReroll('<%= stub_id %>', <%= luck_amount.to_i %>)"
+              disabled><%= luck_bonus_name %></button>
+      <button type="button" class="roll-stub-mod roll-stub-luck-penalty"
+              onclick="rollStubReroll('<%= stub_id %>', <%= -luck_amount.to_i %>)"
+              disabled><%= luck_penalty_name %></button>
+    <% end %>
+    <% if insight_amount.to_i > 0 %>
+      <button type="button" class="roll-stub-mod roll-stub-insight-bonus"
+              onclick="rollStubNudge('<%= stub_id %>', <%= insight_amount.to_i %>)"
+              disabled><%= insight_bonus_name %></button>
+      <button type="button" class="roll-stub-mod roll-stub-insight-penalty"
+              onclick="rollStubNudge('<%= stub_id %>', <%= -insight_amount.to_i %>)"
+              disabled><%= insight_penalty_name %></button>
+    <% end %>
+  </div>
+
+  <div class="roll-stub-dice" id="roll-stub-dice-<%= stub_id %>"></div>
+
+  <div class="roll-stub-confirm-row">
+    <button type="button" class="roll-stub-confirm"
+            onclick="rollStubConfirm('<%= stub_id %>')">Confirm</button>
+  </div>
+</div>
+<script>
+(function() {
+  window.rollStubConfigs = window.rollStubConfigs || {};
+  window.rollStubConfigs['<%= stub_id %>'] = {
+    checkName: <%= check_name.to_json %>,
+    diceCount: <%= dice_count.to_i %>,
+    tn: <%= tn.to_i %>,
+    startingValue: <%= starting_value.to_i %>,
+    luckAmount: <%= luck_amount.to_i %>,
+    insightAmount: <%= insight_amount.to_i %>,
+    token: null
+  };
+})();
+</script>

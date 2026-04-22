@@ -29,3 +29,117 @@ body {
 .menu a:hover {
   text-decoration: underline;
 }
+
+.stub-test-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  margin-bottom: 12px;
+}
+
+.stub-test-form label {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.stub-test-form input {
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+.stub-test-form input[type="number"] { width: 50px; }
+.stub-test-form input[type="text"]   { width: 90px; }
+
+.roll-stub {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.roll-stub-title {
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.roll-stub-params {
+  color: #555;
+}
+
+.roll-stub-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.roll-stub-input {
+  width: 50px;
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+.roll-stub button {
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.roll-stub button[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.roll-stub-dice {
+  min-height: 18px;
+  font-family: monospace;
+}
+
+.roll-stub-confirm-row {
+  margin-top: 2px;
+}
+
+.roll-stub-dice .roll-line {
+  display: block;
+  line-height: 1.6;
+}
+
+.roll-stub-dice .roll-label {
+  display: inline-block;
+  min-width: 72px;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+}
+
+.roll-stub-dice .die {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-weight: bold;
+  color: #000;
+}
+
+.roll-stub-dice .die-crit    { background: #64b5f6; }
+.roll-stub-dice .die-fumble  { background: #e57373; }
+.roll-stub-dice .die-success { background: #81c784; }
+.roll-stub-dice .die-miss    { color: #777; background: transparent; font-weight: normal; }
+.roll-stub-dice .die-blank   { background: transparent; color: transparent; font-weight: normal; }
+
+.stub-test-capture {
+  margin-top: 10px;
+}
+
+.stub-test-capture input {
+  font-size: 11px;
+  padding: 2px 4px;
+  width: 80px;
+}
