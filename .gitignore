@@ -2,3 +2,4 @@
 .*.swo
 .*
 data/users.json
+local.rb

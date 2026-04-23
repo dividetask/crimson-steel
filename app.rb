@@ -14,6 +14,13 @@ set :erb, escape_html: false
 
 enable :sessions
 
+# Optional machine-local overrides (environment, port, etc). Not
+# tracked in git — each host can drop in its own local.rb to set
+# things like `set :environment, :production`. Loaded before the
+# settings.development? check below so overrides take effect.
+local_config = File.join(__dir__, 'local.rb')
+require local_config if File.exist?(local_config)
+
 DICE_SYSTEM = DiceSystem.new(File.join(__dir__, 'data', 'dice_resolution.yaml'))
 USER_STORE = UserStore.new(File.join(__dir__, 'data', 'users.json'))
 DATA = DummyData
