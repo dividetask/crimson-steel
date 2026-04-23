@@ -1,0 +1,624 @@
+# Equipment Configuration (example)
+#
+# Defines what items CAN exist: weapons, armor, ammunition, currencies,
+# gems, magical properties, tier surcharges, and the naming rules used
+# to generate display names. Copy this file to `equipment_config.yaml`
+# and edit for your campaign.
+#
+# Runtime inventories (who owns what, shop state, loot tables) live in
+# separate files: `loot.yaml`, `loot_tables.yaml`, and `shops.yaml`.
+#
+# See `equipment_glossary.md` for the vocabulary used here, and
+# `equipment_pseudocode.md` for how each section is consumed.
+#
+# ---------------------------------------------------------------------
+# Pricing
+#
+# All prices are in gold pieces (gp) as real numbers. Currency exchange
+# is 1 gp = 10 sp = 100 cp. Prices may be fractional (e.g., 7.75 gp for
+# a Tier 1 Flaming Arrow). Comparisons should use a tolerance rather
+# than strict equality.
+
+# =====================================================================
+# CURRENCY
+# =====================================================================
+#
+# Currencies are Item Types that carry a fixed `value_in_gold`. They
+# appear in inventory as ordinary Item Stacks (e.g., `{item: Gold,
+# quantity: 147.5}`) and merge by Item Type alone. Fractional
+# quantities are permitted.
+
+Currency:
+  Gold:
+    symbol: gp
+    value_in_gold: 1.0
+  Silver:
+    symbol: sp
+    value_in_gold: 0.1
+  Copper:
+    symbol: cp
+    value_in_gold: 0.01
+
+# =====================================================================
+# GEMS
+# =====================================================================
+#
+# `Gem` is a single generic Item Type whose instances carry their own
+# `value_in_gold` and optional `name`. A gem stack in inventory looks
+# like:
+#
+#   - item: Gem
+#     value_in_gold: 500
+#     name: Ruby
+#     quantity: 2
+#
+# Two gem stacks merge only when both `value_in_gold` and `name` match.
+# Gems spend last in Debit Wealth (after all coins); a gem that would
+# overpay is still fully consumed and the overpayment returns as Gold.
+
+Gems:
+  Gem:
+    description: >
+      A precious stone. Individual instances carry their own
+      value_in_gold and optional name (e.g., Ruby, Emerald, Raw
+      Sapphire). No fixed catalog of gem types — any gem stack with a
+      value_in_gold is valid.
+
+# =====================================================================
+# TIER PRICING (shared)
+# =====================================================================
+#
+# The additional cost (in gp) of making any weapon, armor, or
+# ammunition magical. Tier 0 is non-magical and has no additional
+# cost. Consumed by weapons, armor, and ammunition alike.
+
+Tier Surcharges:
+  0: 0
+  1: 250
+  2: 1000
+  3: 4000
+  4: 16000
+  5: 80000
+
+# =====================================================================
+# NAMING CONVENTION
+# =====================================================================
+#
+# How a magical item's display name is constructed when no explicit
+# `name` override is set on the item instance.
+#
+# Format: <tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>
+#
+# - `tier_prefix` is `tier_prefix_format` with `{tier}` substituted.
+#   Shown for any item with `tier >= 1`, except items in a category
+#   listed under `tier_hidden_for`.
+# - `property_prefixes` and `property_suffixes` come from the `display`
+#   block on each property (see Weapon Properties and Armor Properties).
+#   Each display block specifies a `word` and an optional `position`
+#   (`prefix` or `suffix`; default taken from
+#   `default_property_position`). For subtyped properties, `display`
+#   is keyed by subtype. Properties apply in the order they appear on
+#   the item; prefixes accumulate in that order, suffixes likewise.
+
+Naming Convention:
+  tier_prefix_format: "+{tier}"
+  tier_hidden_for:
+    - Potion
+  default_property_position: prefix
+
+# =====================================================================
+# WEAPONS
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# Weapon Category Defaults
+#
+# Each category specifies the default damage formula for weapons in it.
+# `str` refers to the attacker's Strength score and is resolved by the
+# character module. Formula evaluation is the combat module's concern;
+# this module just stores the string.
+
+Weapon Category Defaults:
+  Ranged:
+    damage: "str / 4"
+  One Handed:
+    damage: "str / 4 - 2"
+  Two Handed:
+    damage: "str / 2 + 2"
+
+# ---------------------------------------------------------------------
+# Damage Type Defaults
+#
+# Each damage type specifies the default bleed and threshold values for
+# weapons dealing that type. When a weapon has multiple damage types,
+# the attack uses the highest bleed and the lowest threshold across
+# those types.
+
+Damage Type Defaults:
+  Slashing:
+    bleed: 7
+    threshold: 5
+  Bludgeoning:
+    bleed: 5
+    threshold: 3
+  Piercing:
+    bleed: 3
+    threshold: 4
+
+# ---------------------------------------------------------------------
+# Weapons
+#
+# A Ranged weapon with an `ammo_type` field is a projectile weapon; a
+# Ranged weapon without one is thrown. Thrown weapons override the
+# Ranged category's damage formula to match the 1H formula.
+
+Weapons:
+
+  # --- Ranged (projectile) ---
+
+  Longbow:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Arrow
+    base_price: 50
+
+  Shortbow:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Arrow
+    base_price: 15
+
+  Crossbow:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Bolt
+    base_price: 35
+
+  Blowgun:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Blowgun dart
+    base_price: 2
+
+  Sling:
+    category: Ranged
+    damage_type: Bludgeoning
+    ammo_type: Stone
+    base_price: 1
+
+  # --- Ranged (thrown) ---
+
+  Tomahawk:
+    category: Ranged
+    damage_type: Slashing
+    damage: "str / 4 - 2"
+    base_price: 8
+
+  Javelin:
+    category: Ranged
+    damage_type: Piercing
+    damage: "str / 4 - 2"
+    base_price: 4
+
+  Shuriken:
+    category: Ranged
+    damage_type: Piercing
+    damage: "str / 4 - 2"
+    base_price: 1
+
+  Throwing dart:
+    category: Ranged
+    damage_type: Piercing
+    damage: "str / 4 - 2"
+    base_price: 1
+
+  # --- One Handed ---
+
+  Mace:
+    category: One Handed
+    damage_type: Bludgeoning
+    base_price: 10
+
+  Flail:
+    category: One Handed
+    damage_type: Bludgeoning
+    base_price: 15
+
+  Morningstar:
+    category: One Handed
+    damage_type: Piercing
+    base_price: 15
+
+  Hatchet:
+    category: One Handed
+    damage_type: Slashing
+    base_price: 8
+
+  Warhammer:
+    category: One Handed
+    damage_type: Bludgeoning
+    base_price: 15
+
+  Long sword:
+    category: One Handed
+    damage_type:
+      - Slashing
+      - Piercing
+    base_price: 35
+
+  Broad sword:
+    category: One Handed
+    damage_type: Slashing
+    base_price: 30
+
+  Short sword:
+    category: One Handed
+    damage_type:
+      - Slashing
+      - Piercing
+    base_price: 8
+
+  Rapier:
+    category: One Handed
+    damage_type: Piercing
+    base_price: 25
+
+  Dagger:
+    category: One Handed
+    damage_type:
+      - Slashing
+      - Piercing
+    base_price: 2
+
+  Whip:
+    category: One Handed
+    damage_type: Slashing
+    damage: 0
+    threshold: null
+    base_price: 4
+
+  # --- Two Handed ---
+
+  Spear:
+    category: Two Handed
+    damage_type: Piercing
+    base_price: 5
+
+  Halberd:
+    category: Two Handed
+    damage_type: Slashing
+    base_price: 25
+
+  Poleaxe:
+    category: Two Handed
+    damage_type: Slashing
+    base_price: 25
+
+  Bardiche:
+    category: Two Handed
+    damage_type: Slashing
+    base_price: 20
+
+  Glaive:
+    category: Two Handed
+    damage_type: Slashing
+    base_price: 20
+
+  Great sword:
+    category: Two Handed
+    damage_type: Slashing
+    base_price: 60
+
+  Great Axe:
+    category: Two Handed
+    damage_type: Slashing
+    base_price: 40
+
+  Quarterstaff:
+    category: Two Handed
+    damage_type: Bludgeoning
+    properties:
+      - double_weapon
+    base_price: 2
+
+  Twinblade:
+    category: Two Handed
+    damage_type:
+      - Slashing
+      - Piercing
+    properties:
+      - double_weapon
+    base_price: 40
+
+# ---------------------------------------------------------------------
+# Weapon Magical Properties
+#
+# Properties that can be applied to a weapon when it is made magical.
+# Each property lists the minimum tier required, the cost in gp, which
+# weapon categories it applies to, whether it accepts a subtype, and a
+# `display` block describing how it contributes to the item's name.
+#
+# `applies_to` vocabulary for weapon properties: `melee`, `ranged`,
+# `ammo`. These tags also appear in the Magical Item Constraints used
+# by loot tables and the magical-item generator.
+#
+# `display` fields:
+#   word     — the word the property contributes to the name.
+#   position — 'prefix' or 'suffix'. Optional; defaults to the
+#              Naming Convention's `default_property_position`.
+# For properties with subtypes, `display` is a map of subtype to
+# `{word, position}` instead.
+
+Weapon Properties:
+
+  Elemental:
+    min_tier: 1
+    cost: 500
+    applies_to: [melee, ranged, ammo]
+    has_subtype: true
+    subtypes: [Fire, Acid, Electricity, Cold]
+    display:
+      Fire:
+        word: Flaming
+      Acid:
+        word: Corrosive
+      Electricity:
+        word: Shocking
+      Cold:
+        word: Freezing
+
+  Subdual:
+    min_tier: 1
+    cost: 250
+    applies_to: [melee, ranged, ammo]
+    has_subtype: false
+    display:
+      word: Merciful
+
+  Emotional:
+    min_tier: 1
+    cost: 500
+    applies_to: [melee, ranged, ammo]
+    has_subtype: false
+    display:
+      word: Laughing
+
+  Radiant:
+    min_tier: 1
+    cost: 500
+    applies_to: [melee, ranged, ammo]
+    has_subtype: false
+    display:
+      word: Radiant
+
+  Necrotic:
+    min_tier: 2
+    cost: 2000
+    applies_to: [melee, ranged, ammo]
+    has_subtype: false
+    display:
+      word: Withering
+
+  Vicious:
+    min_tier: 2
+    cost: 2000
+    applies_to: [melee]
+    has_subtype: false
+    display:
+      word: Vicious
+
+# =====================================================================
+# AMMUNITION
+# =====================================================================
+#
+# Ammunition is sold in bundles of `bundle_size`. `base_price` is the
+# price of a full mundane bundle. Per-unit price (as reported by
+# ITEM_UNIT_PRICE):
+#
+#   (base_price / bundle_size) + (tier_surcharge + sum property costs) / 100
+#
+# Example: a Tier 1 Flaming Arrow. Magical surcharge = 250 (Tier 1)
+# + 500 (Elemental Fire) = 750 gp. Per-unit magical cost = 7.5 gp.
+# Mundane Arrow per-unit = 5 / 20 = 0.25 gp. Total = 7.75 gp.
+#
+# Magical ammunition draws its properties from Weapon Properties with
+# `applies_to: [..., ammo]` — there is no separate ammo property
+# catalog.
+
+Ammunition:
+
+  Arrow:
+    base_price: 5
+    bundle_size: 20
+    used_by: [Longbow, Shortbow]
+
+  Bolt:
+    base_price: 5
+    bundle_size: 20
+    used_by: [Crossbow]
+
+  Blowgun dart:
+    base_price: 2
+    bundle_size: 20
+    used_by: [Blowgun]
+
+  Stone:
+    base_price: 1
+    bundle_size: 20
+    used_by: [Sling]
+
+# =====================================================================
+# ARMOR
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# Armor Category Defaults
+
+Armor Category Defaults:
+  Light:
+    damage_reduction: 1
+    resilience_increment: 1
+    category_level: 1
+  Medium:
+    damage_reduction: 3
+    resilience_increment: 2
+    category_level: 2
+  Heavy:
+    damage_reduction: 6
+    resilience_increment: 3
+    category_level: 3
+  Shield:
+    damage_reduction: null
+    resilience_increment: null
+    category_level: 1
+
+# ---------------------------------------------------------------------
+# Material Defaults
+
+Material Defaults:
+  Leather:
+    hardness: 2
+    hit_points: "5 * category_level"
+  Metal:
+    hardness: 10
+    hit_points: "30 * category_level"
+  Wood:
+    hardness: 5
+    hit_points: "10 * category_level"
+
+# ---------------------------------------------------------------------
+# Armor
+#
+# Non-magical armor has no resilience. Magical armor has resilience
+# equal to the armor's Tier multiplied by its `resilience_increment`.
+
+Armor:
+
+  # --- Light ---
+
+  Leather armor:
+    category: Light
+    material: Leather
+    base_price: 10
+
+  Chain shirt:
+    category: Light
+    material: Metal
+    base_price: 100
+
+  # --- Medium ---
+
+  Hide armor:
+    category: Medium
+    material: Leather
+    base_price: 15
+
+  Chain mail:
+    category: Medium
+    material: Metal
+    base_price: 150
+
+  # --- Heavy ---
+
+  Plate mail:
+    category: Heavy
+    material: Metal
+    base_price: 500
+
+  # --- Shield ---
+
+  Light wooden shield:
+    category: Shield
+    material: Wood
+    base_price: 3
+
+  Light shield:
+    category: Shield
+    material: Metal
+    base_price: 8
+
+  Tower shield:
+    category: Shield
+    material: Metal
+    base_price: 30
+
+# ---------------------------------------------------------------------
+# Armor Magical Properties
+#
+# `applies_to` vocabulary for armor properties: `all_armor` (any armor
+# including shields), `all_body` (any armor except shields). These
+# tags also appear in Magical Item Constraints.
+
+Armor Properties:
+
+  Fortification:
+    min_tier: 1
+    cost: 500
+    applies_to: [all_body]
+    has_subtype: false
+    display:
+      word: Fortified
+
+  Spell Storing 1:
+    min_tier: 1
+    cost: 500
+    applies_to: [all_armor]
+    has_subtype: false
+    display:
+      word: Warded
+
+  Spell Crystal 0:
+    min_tier: 1
+    cost: 1000
+    applies_to: [all_armor]
+    has_subtype: false
+    display:
+      word: Crystalline
+
+  Elemental Affinity:
+    min_tier: 1
+    cost: 500
+    applies_to: [all_armor]
+    has_subtype: true
+    subtypes: [Fire, Acid, Electricity, Cold]
+    display:
+      Fire:
+        word: Smoldering
+      Acid:
+        word: Caustic
+      Electricity:
+        word: Storm-kissed
+      Cold:
+        word: Frostbound
+
+  Spell Storing 2:
+    min_tier: 2
+    cost: 2000
+    applies_to: [all_armor]
+    has_subtype: false
+    display:
+      word: Greater Warded
+
+  Spell Crystal 1:
+    min_tier: 2
+    cost: 4000
+    applies_to: [all_armor]
+    has_subtype: false
+    display:
+      word: Prismatic
+
+  Elemental Resistance:
+    min_tier: 2
+    cost: 2000
+    applies_to: [all_armor]
+    has_subtype: true
+    subtypes: [Fire, Acid, Electricity, Cold]
+    display:
+      Fire:
+        word: Fireproof
+      Acid:
+        word: Acidproof
+      Electricity:
+        word: Grounded
+      Cold:
+        word: Coldproof
