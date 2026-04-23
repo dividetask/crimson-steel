@@ -5,7 +5,7 @@
 - Class names use `PascalCase`. Method names use `ALL_CAPS_WITH_UNDERSCORES` to signal pseudocode.
 - Config is accessed as `equipment_config['Key Name']` using the human-readable keys defined in `equipment_config.yaml`.
 - `RAND_INT(low, high)` returns a uniformly random integer in the inclusive range `[low, high]`. `RAND_FLOAT()` returns a uniform real in `[0, 1)`.
-- `floor(x)` returns the largest integer less than or equal to `x`. All divisions in pricing and quantity math use `floor` unless noted.
+- `floor(x)` returns the largest integer less than or equal to `x`. Divisions involving integer Quantities (e.g., bundle counts) use `floor`; divisions involving Gold prices are real-valued because prices may be fractional (e.g., 7.75 gp for a magical arrow).
 - `null` should be translated to `null` in C# and `nil` in Ruby.
 - Equality on floats should use a tolerance of `1e-9` for price comparisons; prices can be fractional (e.g., 7.75 gp).
 - This module does not share the `DiceSystem` class. Loot Tables evaluate arbitrary dice strings (`"2d6 + 3"`) via a local helper, `RAND_ROLL_DICE_EXPRESSION`. `DiceSystem` is for the success-counting d10 resolution system and is not used here.
@@ -388,3 +388,218 @@ Two stacks match if and only if all seven fields are equal. The `quantity` and `
 **Notes:**
 - `restock_target` is a property of the source Owner's intent and does not travel with a transferred Stack.
 - Transfers between Characters and Shops go through this same entry point even though Shop inventories are stored separately — callers addressing a Shop use the `"shop:<id>"` Owner ID and internal plumbing routes to `specific_shops[id]['inventory']`. (The routing detail is a CONSTRUCTOR / SAVE concern; TRANSFER_ITEM itself does not need to distinguish.)
+
+---
+
+## ITEM_DEFINITION
+
+**Description:** Internal helper. Returns the config block for a named Item Type, or `null` if no definition exists. Searches Weapons, Armor, Ammunition, Currency in that order. The name `"Gem"` returns a synthetic definition indicating the Gem category.
+
+**Parameters:**
+- `item_name`: a string matching a key in `equipment_config`.
+
+**Returns:** A dictionary `{ 'category': string, 'definition': dict }`, or `null`.
+
+1. `if item_name in equipment_config['Weapons']:`
+2. `⠀⠀return { 'category': 'Weapon', 'definition': equipment_config['Weapons'][item_name] }`
+3. `if item_name in equipment_config['Armor']:`
+4. `⠀⠀return { 'category': 'Armor', 'definition': equipment_config['Armor'][item_name] }`
+5. `if item_name in equipment_config['Ammunition']:`
+6. `⠀⠀return { 'category': 'Ammunition', 'definition': equipment_config['Ammunition'][item_name] }`
+7. `if item_name in equipment_config['Currency']:`
+8. `⠀⠀return { 'category': 'Currency', 'definition': equipment_config['Currency'][item_name] }`
+9. `if item_name == 'Gem':`
+10. `⠀⠀return { 'category': 'Gem', 'definition': empty dictionary }`
+11. `return null`
+
+---
+
+## PROPERTY_COST
+
+**Description:** Internal helper. Returns the Gold cost of a single Magical Property entry as it would appear on an Item Stack. Looks up the property by name in the appropriate property catalog (weapon or armor); subtypes do not affect cost in this module.
+
+**Parameters:**
+- `property_entry`: either a string (property name only) or a dictionary `{ 'name': <string>, 'subtype': <string> }`.
+- `catalog_key`: `'Weapon Properties'` or `'Armor Properties'` — which catalog to look up in.
+
+**Returns:** A real-valued Gold cost (≥ 0). Unknown properties raise.
+
+1. `if property_entry is a string:`
+2. `⠀⠀property_name = property_entry`
+3. `else:`
+4. `⠀⠀property_name = property_entry['name']`
+5. `catalog = equipment_config[catalog_key]`
+6. `if property_name not in catalog:`
+7. `⠀⠀raise exception ('Unknown property: ' + property_name + ' in ' + catalog_key)`
+8. `return catalog[property_name]['cost']`
+
+---
+
+## ITEM_UNIT_PRICE
+
+**Description:** Returns the Gold cost of a single copy of an Item configuration. Dispatches on category:
+
+- **Weapon, Armor**: `base_price + tier_surcharge + Σ property_cost`.
+- **Ammunition**: `(base_price / bundle_size) + (tier_surcharge + Σ property_cost) / 100`. Mundane ammunition is sold in bundles, but `ITEM_UNIT_PRICE` always reports the per-unit cost.
+- **Currency**: `value_in_gold` from the Currency config.
+- **Gem**: `stack['value_in_gold']`. Raises if absent.
+- **Unknown category**: raises unless the Stack carries an explicit `unit_price` override.
+
+**Parameters:**
+- `stack`: an Item Stack.
+
+**Returns:** A real-valued Gold price for one unit (not multiplied by Quantity).
+
+1. `info = ITEM_DEFINITION(stack['item'])`
+2. `if info is null:`
+3. `⠀⠀if 'unit_price' in stack: return stack['unit_price']`
+4. `⠀⠀raise exception ('Unknown item: ' + stack['item'])`
+5. `tier = stack['tier'] or 0`
+6. `tier_surcharge = equipment_config['Tier Surcharges'][tier] or 0`
+7. `properties = stack['properties'] or empty list`
+8. `if info['category'] == 'Weapon':`
+9. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Weapon Properties') for p in properties`
+10. `⠀⠀return info['definition']['base_price'] + tier_surcharge + property_sum`
+11. `if info['category'] == 'Armor':`
+12. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Armor Properties') for p in properties`
+13. `⠀⠀return info['definition']['base_price'] + tier_surcharge + property_sum`
+14. `if info['category'] == 'Ammunition':`
+15. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Weapon Properties') for p in properties`
+16. `⠀⠀bundle_size = info['definition']['bundle_size']`
+17. `⠀⠀mundane_unit = info['definition']['base_price'] / bundle_size`
+18. `⠀⠀magical_unit = (tier_surcharge + property_sum) / 100`
+19. `⠀⠀return mundane_unit + magical_unit`
+20. `if info['category'] == 'Currency':`
+21. `⠀⠀return info['definition']['value_in_gold']`
+22. `if info['category'] == 'Gem':`
+23. `⠀⠀if 'value_in_gold' not in stack: raise exception ('Gem stack missing value_in_gold')`
+24. `⠀⠀return stack['value_in_gold']`
+25. `raise exception ('Unhandled item category: ' + info['category'])`
+
+**Notes:**
+- Ammunition uses weapon-property costs because magical ammunition applies the same Weapon Properties (Elemental, Subdual, etc.). The property catalog enforces applicability separately (`applies_to: [ammo]`).
+- `unit_price` override on a Stack is an escape hatch for items whose category this module does not yet handle (e.g., Consumables in the "second-pass" category set).
+
+---
+
+## ITEM_VALUE_IN_GOLD
+
+**Description:** Returns the per-unit Gold value of an Item Stack for wealth math. Distinct from ITEM_UNIT_PRICE: this is how much the item is *worth as payment*, which is meaningful only for Currencies and Gems. All other items return `null` (they cannot be spent directly).
+
+**Parameters:**
+- `stack`: an Item Stack.
+
+**Returns:** A real-valued per-unit Gold value, or `null`.
+
+1. `info = ITEM_DEFINITION(stack['item'])`
+2. `if info is null: return null`
+3. `if info['category'] == 'Currency':`
+4. `⠀⠀return info['definition']['value_in_gold']`
+5. `if info['category'] == 'Gem':`
+6. `⠀⠀return stack['value_in_gold']`
+7. `return null`
+
+---
+
+## TOTAL_WEALTH_IN_GOLD
+
+**Description:** Sums the Gold-equivalent value of every Currency Stack and Gem Stack on an Owner. Non-Currency, non-Gem Stacks contribute 0.
+
+**Parameters:**
+- `owner_id`: the Owner.
+
+**Returns:** A real-valued Gold total ≥ 0.
+
+1. `inventory = GET_INVENTORY(owner_id)`
+2. `total = 0`
+3. `for each stack in inventory:`
+4. `⠀⠀value = ITEM_VALUE_IN_GOLD(stack)`
+5. `⠀⠀if value is null: continue`
+6. `⠀⠀total = total + (stack['quantity'] or 0) * value`
+7. `return total`
+
+---
+
+## CAN_AFFORD
+
+**Description:** Returns whether an Owner's Total Wealth is sufficient to cover a Gold cost. Uses a tolerance of `1e-9` to absorb floating-point error in fractional prices.
+
+**Parameters:**
+- `owner_id`, `cost_in_gold`.
+
+**Returns:** Boolean.
+
+1. `return TOTAL_WEALTH_IN_GOLD(owner_id) + 1e-9 >= cost_in_gold`
+
+---
+
+## DEBIT_WEALTH
+
+**Description:** Removes Gold from an Owner's Inventory to pay a cost. Coins are spent cheapest-first (Copper before Silver before Gold) and may be spent fractionally. If coins are exhausted before the cost is covered, Gems are spent next, cheapest-first by `value_in_gold`; a Gem that would overpay is still fully consumed, and the overpayment is returned to the Owner as Gold. If the Owner's Total Wealth is insufficient, DEBIT_WEALTH makes no changes and returns `false`.
+
+**Parameters:**
+- `owner_id`: the Owner being debited.
+- `cost_in_gold`: a non-negative real. Zero is a no-op that returns `true`.
+
+**Returns:** Boolean — `true` if the debit succeeded, `false` if the Owner could not afford it.
+
+1. `if cost_in_gold < 0: raise exception ('DEBIT_WEALTH requires non-negative cost')`
+2. `if cost_in_gold == 0: return true`
+3. `if not CAN_AFFORD(owner_id, cost_in_gold): return false`
+4. `inventory = GET_INVENTORY(owner_id)`
+5. `remaining = cost_in_gold`
+6. `# Spend coins cheapest-first, fractionally.`
+7. `coin_types = list of (currency_name, value_in_gold) pairs from equipment_config['Currency'], sorted ascending by value_in_gold`
+8. `for each (currency_name, value_in_gold) in coin_types:`
+9. `⠀⠀if remaining <= 1e-9: break`
+10. `⠀⠀stack_index = FIND_MATCHING_STACK_INDEX(inventory, { 'item': currency_name })`
+11. `⠀⠀if stack_index is null: continue`
+12. `⠀⠀quantity_available = inventory[stack_index]['quantity'] or 0`
+13. `⠀⠀gold_available = quantity_available * value_in_gold`
+14. `⠀⠀if gold_available <= remaining + 1e-9:`
+15. `⠀⠀⠀⠀inventory[stack_index]['quantity'] = 0`
+16. `⠀⠀⠀⠀remaining = remaining - gold_available`
+17. `⠀⠀else:`
+18. `⠀⠀⠀⠀units_to_spend = remaining / value_in_gold`
+19. `⠀⠀⠀⠀inventory[stack_index]['quantity'] = quantity_available - units_to_spend`
+20. `⠀⠀⠀⠀remaining = 0`
+21. `# Spend gems cheapest-first if needed; overpayment returns as Gold.`
+22. `if remaining > 1e-9:`
+23. `⠀⠀gem_stack_indices = indices of every stack with stack['item'] == 'Gem', sorted by stack['value_in_gold'] ascending`
+24. `⠀⠀for each gem_index in gem_stack_indices:`
+25. `⠀⠀⠀⠀if remaining <= 1e-9: break`
+26. `⠀⠀⠀⠀gem_value = inventory[gem_index]['value_in_gold']`
+27. `⠀⠀⠀⠀while (inventory[gem_index]['quantity'] or 0) > 0 and remaining > 1e-9:`
+28. `⠀⠀⠀⠀⠀⠀inventory[gem_index]['quantity'] = inventory[gem_index]['quantity'] - 1`
+29. `⠀⠀⠀⠀⠀⠀if gem_value <= remaining + 1e-9:`
+30. `⠀⠀⠀⠀⠀⠀⠀⠀remaining = remaining - gem_value`
+31. `⠀⠀⠀⠀⠀⠀else:`
+32. `⠀⠀⠀⠀⠀⠀⠀⠀change = gem_value - remaining`
+33. `⠀⠀⠀⠀⠀⠀⠀⠀remaining = 0`
+34. `⠀⠀⠀⠀⠀⠀⠀⠀ADD_ITEM(owner_id, { 'item': 'Gold', 'quantity': change })`
+35. `return true`
+
+**Notes:**
+- Coin stacks are allowed to hold fractional Quantities (the example inventory shows Gold at 147.5). Spending 0.37 gp worth of Silver (from a 10-unit stack) leaves 6.3 Silver on that stack. Integer-only Quantities are a caller convention, not a module invariant.
+- Gem Stacks, by contrast, are integer-Quantity and a single Gem unit is the smallest indivisible purchase unit. Giving change as Gold preserves the Owner's exact-minus-cost wealth after the debit.
+- The affordability check in step 3 uses TOTAL_WEALTH_IN_GOLD, which already counts Gems. There is no case where the function proceeds past step 3 and then runs out of items — total wealth and the spending loop draw from the same pool.
+- Zero-Quantity coin stacks are left in place; a later CLEANUP_ZERO_QUANTITY removes them (currency stacks have no restock_target by default, so they will be cleaned).
+
+---
+
+## CREDIT_WEALTH
+
+**Description:** Adds Gold to an Owner's Inventory as a Gold Currency stack. The counterpart to DEBIT_WEALTH; used whenever a Shop pays the party for an item, the party loots coins, or a Gem's overpayment is returned as change.
+
+**Parameters:**
+- `owner_id`: the Owner being credited.
+- `amount_in_gold`: a non-negative real. Zero is a no-op.
+
+**Returns:** None.
+
+1. `if amount_in_gold < 0: raise exception ('CREDIT_WEALTH requires non-negative amount')`
+2. `if amount_in_gold == 0: return`
+3. `ADD_ITEM(owner_id, { 'item': 'Gold', 'quantity': amount_in_gold })`
+
+**Notes:**
+- Always credits in Gold, never in Silver or Copper. Callers who need to hand out small change explicitly can compose ADD_ITEM calls of their own; this function's job is just to increase the Gold-equivalent wealth by the specified amount.
