@@ -1,0 +1,11 @@
+<h1>Status</h1>
+
+<h2>Viewer</h2>
+<%= debug_stub %>
+
+<h2>Devices</h2>
+<%= assignment_stub(
+      devices: USER_STORE.list,
+      characters: DATA.pcs,
+      current_device_id: current_user&.device_id
+    ) %>

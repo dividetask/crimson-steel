@@ -1,0 +1,97 @@
+<div class="initiative-stub" data-stub-id="<%= stub_id %>" data-dm-view="<%= dm_view ? '1' : '0' %>">
+<% if turns.empty? %>
+  <p class="initiative-empty">No combatants in the initiative track yet.</p>
+<% else %>
+  <table class="initiative-table">
+    <thead>
+      <tr>
+        <% if dm_view %><th class="init-set-col"></th><% end %>
+        <th>Initiative</th>
+        <th>Name</th>
+        <th>HP</th>
+        <th>Combat Pool</th>
+        <th>Conditions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% turns.each do |t| %>
+        <%
+          combat_id   = t['combat_id'] || t[:combat_id]
+          name        = t['name']      || t[:name]
+          init_value  = t['initiative'] || t[:initiative]
+          hp_now      = (t['hp']     || t[:hp]).to_i
+          hp_max      = (t['hp_max'] || t[:hp_max]).to_i
+          minor       = (t['minor_damage']    || t[:minor_damage]).to_i
+          moderate    = (t['moderate_damage'] || t[:moderate_damage]).to_i
+          major       = (t['major_damage']    || t[:major_damage]).to_i
+          pool        = (t['combat_pool']     || t[:combat_pool]).to_i
+          pool_max    = (t['combat_pool_max'] || t[:combat_pool_max]).to_i
+          shock       = (t['shock'] || t[:shock]).to_i
+          pain        = (t['pain']  || t[:pain]).to_i
+          conditions  = t['conditions'] || t[:conditions] || []
+          group       = (t['group']  || t[:group] || 'PC').to_s
+          is_pc       = group == 'PC'
+          is_current  = current_combat_id && combat_id == current_combat_id
+          show_full   = dm_view || is_pc
+          row_classes = []
+          row_classes << 'current-turn' if is_current
+          row_classes << (is_pc ? 'init-pc' : 'init-enemy')
+          segments    = initiative_hp_segments(hp_now, hp_max, minor, moderate, major)
+        %>
+        <tr class="<%= row_classes.join(' ') %>" data-combat-id="<%= h(combat_id) %>">
+          <% if dm_view %>
+            <td class="init-set-col">
+              <form method="post" action="<%= h(set_turn_action) %>/<%= h(combat_id) %>" style="margin:0;">
+                <button type="submit" class="init-set-btn" title="Set as current turn">
+                  <%= is_current ? '&#9654;' : 'Set' %>
+                </button>
+              </form>
+            </td>
+          <% end %>
+          <td class="init-value"><%= init_value.to_s.empty? ? '&mdash;' : h(init_value) %></td>
+          <td class="init-name"><%= h(show_full ? name : 'DM') %></td>
+          <td class="init-hp">
+            <div class="init-hp-bar" title="<%= show_full ? "#{hp_now}/#{hp_max}" : 'enemy HP' %>">
+              <% segments.each do |cls, pct| %>
+                <span class="<%= cls %>" style="width:<%= '%.2f' % pct %>%"></span>
+              <% end %>
+            </div>
+            <% if show_full %>
+              <div class="init-hp-numbers">
+                <span class="init-hp-current"><%= hp_now %>/<%= hp_max %></span>
+                <% if moderate > 0 %><span class="init-hp-mod-num"   title="moderate damage"><%= moderate %> Mod</span><% end %>
+                <% if major    > 0 %><span class="init-hp-major-num" title="major damage"><%= major %> Maj</span><% end %>
+              </div>
+            <% end %>
+          </td>
+          <td class="init-pool">
+            <% if show_full %>
+              <span class="init-pool-value"><%= pool %><%= pool_max > 0 ? "/#{pool_max}" : '' %></span>
+              <% if shock > 0 %>
+                <span class="init-badge init-badge-shock" title="Shock"><%= shock %> Shock</span>
+              <% end %>
+              <% if pain > 0 %>
+                <span class="init-badge init-badge-pain" title="Pain"><%= pain %> Pain</span>
+              <% end %>
+            <% end %>
+          </td>
+          <td class="init-conditions">
+            <% if show_full %>
+              <% conditions.each do |cond| %>
+                <%
+                  cname = cond['name']  || cond[:name]
+                  cval  = cond['value'] || cond[:value]
+                  short, full = initiative_condition_label(cname)
+                %>
+                <span class="init-badge init-badge-cond init-badge-<%= h(cname) %>" title="<%= h(full) %>">
+                  <%= h(short) %><%= cval ? ": #{h(cval)}" : '' %>
+                </span>
+              <% end %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+</div>
