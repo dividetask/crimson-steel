@@ -62,3 +62,8 @@ helpers do
     end
   end
 end
+
+post '/combat/set_turn/:combat_id' do
+  session[:current_turn] = params[:combat_id]
+  redirect(request.referrer || '/')
+end

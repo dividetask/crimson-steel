@@ -34,3 +34,15 @@ helpers do
     end
   end
 end
+
+post '/user/assign_character' do
+  target = params[:device_id].to_s.empty? ? @current_user.device_id : params[:device_id]
+  halt 403, 'forbidden' if target != @current_user.device_id && !@current_user.dm?
+  char_id = params[:character_id].to_s.empty? ? nil : params[:character_id].to_i
+  if char_id.nil?
+    USER_STORE.unassign_character(target)
+  else
+    USER_STORE.assign_character(target, char_id)
+  end
+  redirect(request.referrer || '/')
+end
