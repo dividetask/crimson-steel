@@ -38,9 +38,6 @@ helpers do
     @current_user&.dm? == true
   end
 
-  # LAN address players connect to. We pick the first non-loopback
-  # IPv4 the server binds; if there isn't one (e.g. no network), fall
-  # back to the loopback address the DM is browsing from.
   def server_ip
     @server_ip ||= begin
       addr = Socket.ip_address_list.find { |a| a.ipv4? && !a.ipv4_loopback? }

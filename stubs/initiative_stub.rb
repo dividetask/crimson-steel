@@ -1,14 +1,4 @@
-# Reusable initiative-track stub. Renders a row per combatant with set-turn
-# button (DM only), initiative string, name, segmented HP bar, combat pool
-# with shock/pain badges, and a conditions cell. The same partial is used
-# for the player-facing scene view and the DM combat tracker; dm_view
-# controls how much enemy detail is exposed and whether the set-turn
-# column is rendered.
-#
-# Each turn is a hash with: combat_id, name, initiative (string of digits
-# and 'X' where X=10), hp, hp_max, minor_damage, moderate_damage,
-# major_damage, combat_pool, combat_pool_max, shock, pain, conditions
-# (array of {name, value}), group ("PC" or anything else, e.g. "Enemy").
+# Reusable initiative-track stub. Renders a row per combatant 
 
 helpers do
   def initiative_stub(turns:, current_combat_id: nil, dm_view: false, set_turn_action: '/combat/set_turn')

@@ -6,6 +6,7 @@
 # answer.
 class DummyData
   # --- Campaign-level state ------------------------------------------------
+	# Gold was tracked in campaign.json before refactor. It is being migrated to Equipment
 
   def self.campaign
     {
@@ -78,6 +79,8 @@ class DummyData
   end
 
   # --- Combat --------------------------------------------------------------
+	# Hitpoints, damage, and conditions will be tracked by the Conditions class not Combat
+	# Combat will hold current combat pool, initiative, and track which creatures are in combat
 
   def self.combat_state
     {
@@ -151,6 +154,7 @@ class DummyData
   end
 
   # --- Spells --------------------------------------------------------------
+	# The spell schools and descriptions are placeholders and do not reflect the actual schools
 
   def self.spell_schools
     {
