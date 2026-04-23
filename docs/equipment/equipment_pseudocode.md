@@ -603,3 +603,190 @@ Two stacks match if and only if all seven fields are equal. The `quantity` and `
 
 **Notes:**
 - Always credits in Gold, never in Silver or Copper. Callers who need to hand out small change explicitly can compose ADD_ITEM calls of their own; this function's job is just to increase the Gold-equivalent wealth by the specified amount.
+
+---
+
+## RAND_ROLL_DICE_EXPRESSION
+
+**Description:** Evaluates a Dice Expression string like `"2d6 + 3"` and returns the integer result. This is a utility evaluator for arbitrary dice — it is *not* a wrapper around `DiceSystem`, which uses a fixed Die Size and a success-counting rubric. Accepts `NdM` terms, integer constants, and `+`/`−` joiners. Whitespace is ignored. An integer input is returned unchanged.
+
+**Parameters:**
+- `expression`: a string, an integer, or `null`. `null` and empty strings return 0.
+
+**Returns:** An integer (may be negative if the expression produces a negative net).
+
+1. `if expression is null: return 0`
+2. `if expression is an integer: return expression`
+3. `compact = expression with all whitespace removed`
+4. `if compact is empty: return 0`
+5. `tokens = regex scan of compact for '[+-]?(\d+d\d+|\d+)'`
+6. `rebuilt = join tokens with no separator`
+7. `if rebuilt != compact: raise exception ('Invalid dice expression: ' + expression)`
+8. `total = 0`
+9. `for each token in tokens:`
+10. `⠀⠀sign = (token starts with '-') ? -1 : 1`
+11. `⠀⠀body = token with any leading '+' or '-' removed`
+12. `⠀⠀if body contains 'd':`
+13. `⠀⠀⠀⠀count_str, sides_str = body split on 'd'`
+14. `⠀⠀⠀⠀count = integer(count_str); sides = integer(sides_str)`
+15. `⠀⠀⠀⠀if count <= 0 or sides <= 0: raise exception ('Invalid dice term: ' + token)`
+16. `⠀⠀⠀⠀term = 0`
+17. `⠀⠀⠀⠀for i = 1 to count:`
+18. `⠀⠀⠀⠀⠀⠀term = term + RAND_INT(1, sides)`
+19. `⠀⠀⠀⠀total = total + sign * term`
+20. `⠀⠀else:`
+21. `⠀⠀⠀⠀total = total + sign * integer(body)`
+22. `return total`
+
+**Notes:**
+- The rebuild-and-compare check (step 7) rejects malformed input such as `"2d"`, `"d6"`, or `"2d6 ** 3"` that would otherwise be silently partially parsed.
+- Negative totals are allowed and surface when an expression subtracts more than it adds (`"1 - 1d4"` can produce `0`, `-1`, `-2`, `-3`). Callers that need a lower bound should clamp after the call.
+
+---
+
+## RESOLVE_QUANTITY
+
+**Description:** Internal helper. Normalizes a Quantity spec into a number. A Quantity spec is either a plain number (returned as-is) or a Dice Expression (evaluated via RAND_ROLL_DICE_EXPRESSION and clamped to non-negative). Missing quantity defaults to 1.
+
+**Parameters:**
+- `quantity_spec`: a number, a string, or `null`.
+
+**Returns:** A non-negative number.
+
+1. `if quantity_spec is null: return 1`
+2. `if quantity_spec is a number: return quantity_spec`
+3. `rolled = RAND_ROLL_DICE_EXPRESSION(quantity_spec)`
+4. `return max(0, rolled)`
+
+---
+
+## ADD_LOOT_TABLE
+
+**Description:** Registers a Loot Table at runtime. Later persisted by SAVE to `loot_tables.yaml` (since no source file is associated with a runtime-created table).
+
+**Parameters:**
+- `table_id`: unique string id. Raises if already registered.
+- `table`: the table body (`{ 'rolls': [...] }`, with optional per-table metadata).
+
+**Returns:** None.
+
+1. `if table_id in loot_tables: raise exception ('Loot table already registered: ' + table_id)`
+2. `loot_tables[table_id] = { 'table': table, 'source_file': null }`
+
+---
+
+## GET_LOOT_TABLE
+
+**Description:** Returns the table body for a registered Loot Table. Raises if the id is unknown (callers that want a soft lookup should check `table_id in loot_tables` first).
+
+**Parameters:**
+- `table_id`: the registered id.
+
+**Returns:** The table body.
+
+1. `if table_id not in loot_tables: raise exception ('Unknown loot table: ' + table_id)`
+2. `return loot_tables[table_id]['table']`
+
+---
+
+## ROLL_LOOT_TABLE
+
+**Description:** Rolls every row of a Loot Table in order and returns the list of Item Stacks produced. Empty rows (nothing dropped) are omitted from the result. The returned stacks are **not** merged with each other — merge happens when the caller feeds them into ADD_ITEM. Currencies (Gold, Silver, Copper) and Gems appear in the list as ordinary stacks; Loot Tables do not have a separate `gold` field.
+
+**Parameters:**
+- `table_id`: the id of the Loot Table to roll.
+
+**Returns:** A list of Item Stacks (possibly empty).
+
+1. `table = GET_LOOT_TABLE(table_id)`
+2. `results = empty list`
+3. `for each row in (table['rolls'] or empty):`
+4. `⠀⠀rolled = ROLL_ROW(row)`
+5. `⠀⠀if rolled is not null: append rolled to results`
+6. `return results`
+
+---
+
+## ROLL_ROW
+
+**Description:** Rolls one row of a Loot Table and returns either an Item Stack or `null` (nothing dropped). Dispatches on row shape:
+
+- **Guaranteed** (`{slot, item}`): always returns a resolved copy of `item`.
+- **Independent Chance** (`{slot, chance, item}`): returns `item` with probability `chance`.
+- **Weighted Choice** (`{slot, options: [...]}` or `{slot, options: "<list_name>"}`): picks one option by cumulative probability; the remainder (when `sum(chance) < 1`) means nothing drops.
+- **Gated Weighted Choice** (`{slot, chance, options: [...]}`): first rolls `chance` to decide whether to descend into the weighted choice.
+
+The `slot` field is a label used for human-readable identification only; ROLL_ROW does not consume it.
+
+**Parameters:**
+- `row`: a row dictionary.
+
+**Returns:** An Item Stack or `null`.
+
+1. `options = row['options']`
+2. `if options is a string:`
+3. `⠀⠀if options not in option_lists: raise exception ('Unknown option list: ' + options)`
+4. `⠀⠀options = option_lists[options]`
+5. `if options is a list:`
+6. `⠀⠀if 'chance' in row and RAND_FLOAT() >= row['chance']:`
+7. `⠀⠀⠀⠀return null`
+8. `⠀⠀return ROLL_WEIGHTED(options)`
+9. `if 'chance' in row:`
+10. `⠀⠀if RAND_FLOAT() >= row['chance']: return null`
+11. `⠀⠀return RESOLVE_ITEM_SPEC(row['item'])`
+12. `if 'item' in row:`
+13. `⠀⠀return RESOLVE_ITEM_SPEC(row['item'])`
+14. `return null`
+
+---
+
+## ROLL_WEIGHTED
+
+**Description:** Picks one option from a weighted-choice list. Each option carries a `chance` ∈ `[0, 1]`; their sum is permitted to be less than 1 (the remainder means "nothing"). An option whose body is `{chance, from: "<list_name>"}` recurses into another Option List when selected — useful for cross-tier overflow (e.g., "5% of a tier-1 roll actually grabs from tier-2").
+
+**Parameters:**
+- `options`: a list of option dictionaries.
+
+**Returns:** An Item Stack or `null`.
+
+1. `total = Σ (option['chance'] or 0) for option in options`
+2. `if total > 1 + 1e-9: log warning ('weighted options sum > 1.0 (got ' + total + ')')`
+3. `pick = RAND_FLOAT()`
+4. `running = 0`
+5. `for each option in options:`
+6. `⠀⠀running = running + (option['chance'] or 0)`
+7. `⠀⠀if pick < running:`
+8. `⠀⠀⠀⠀if 'from' in option:`
+9. `⠀⠀⠀⠀⠀⠀sub_list_name = option['from']`
+10. `⠀⠀⠀⠀⠀⠀if sub_list_name not in option_lists: raise exception ('Unknown option list: ' + sub_list_name)`
+11. `⠀⠀⠀⠀⠀⠀return ROLL_WEIGHTED(option_lists[sub_list_name])`
+12. `⠀⠀⠀⠀return RESOLVE_ITEM_SPEC(option['item'])`
+13. `return null`
+
+---
+
+## RESOLVE_ITEM_SPEC
+
+**Description:** Internal helper. Converts an `item` spec from a Loot Table row into a fresh Item Stack. Two spec shapes are recognized:
+
+- **Literal Stack**: a dictionary with an `item` key. A shallow copy is returned with `quantity` resolved through RESOLVE_QUANTITY (so specs like `{item: Arrow, quantity: "1d6+4"}` work).
+- **Inline Magical Row**: a dictionary with a `magical` key. The `magical` value is a Magical Item Constraint; generation is dispatched to GENERATE_MAGICAL_ITEM (A5).
+
+Specs with neither key raise.
+
+**Parameters:**
+- `spec`: a dictionary.
+
+**Returns:** An Item Stack.
+
+1. `if 'magical' in spec:`
+2. `⠀⠀return GENERATE_MAGICAL_ITEM(spec['magical'])`
+3. `if 'item' in spec:`
+4. `⠀⠀stack = shallow copy of spec`
+5. `⠀⠀stack['quantity'] = RESOLVE_QUANTITY(spec['quantity'])`
+6. `⠀⠀return stack`
+7. `raise exception ('Invalid item spec in loot table: ' + spec)`
+
+**Notes:**
+- The copy is shallow; mutable nested fields (`properties` list) are shared with the spec. Callers that mutate a resolved stack must deep-copy first. In practice ROLL_LOOT_TABLE's results flow into ADD_ITEM, which stores them as-is, and the Loot Table spec is treated as read-only after load — so the shallow copy is safe.
+- Inline Magical Rows may appear at any position a literal `item` can, including inside Option Lists: `{chance: 0.1, item: {magical: {category: melee, tier: [1]}}}`.
