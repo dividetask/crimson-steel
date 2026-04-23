@@ -275,20 +275,32 @@ Two stacks match if and only if all seven fields are equal. The `quantity` and `
 
 ## GET_INVENTORY
 
-**Description:** Returns the Inventory list for an Owner. Creates an empty Inventory for unknown Owner IDs so that subsequent ADD_ITEM calls succeed without a pre-registration step. The returned list is a live reference — callers must not mutate it directly; all mutations go through ADD_ITEM / REMOVE_ITEM / ADJUST_STACK_QUANTITY.
+**Description:** Returns the Inventory list for an Owner. Dispatches on the Owner ID prefix so that Shop inventories (stored under `specific_shops` / `active_generic_shops`) and everything else (stored in `loot`) share a single caller API. Creates an empty Inventory for unknown non-shop Owners so that subsequent ADD_ITEM calls succeed without a pre-registration step.
+
+The returned list is a live reference — callers must not mutate it directly; all mutations go through ADD_ITEM / REMOVE_ITEM / ADJUST_STACK_QUANTITY.
 
 **Parameters:**
 - `owner_id`: the Owner to look up.
 
 **Returns:** A list of Item Stacks.
 
-1. `if owner_id not in loot:`
-2. `⠀⠀loot[owner_id] = { 'inventory': empty list, 'source_file': null }`
-3. `return loot[owner_id]['inventory']`
+1. `if owner_id starts with 'shop:':`
+2. `⠀⠀shop_id = owner_id after the 'shop:' prefix`
+3. `⠀⠀if shop_id not in specific_shops: raise exception ('Unknown specific shop: ' + shop_id)`
+4. `⠀⠀return specific_shops[shop_id]['inventory']`
+5. `if owner_id starts with 'generic_shop:':`
+6. `⠀⠀shop_id = owner_id after the 'generic_shop:' prefix`
+7. `⠀⠀if shop_id not in active_generic_shops:`
+8. `⠀⠀⠀⠀VISIT_GENERIC_SHOP(shop_id)  # generates and caches the stock`
+9. `⠀⠀return active_generic_shops[shop_id]['stock']`
+10. `if owner_id not in loot:`
+11. `⠀⠀loot[owner_id] = { 'inventory': empty list, 'source_file': null }`
+12. `return loot[owner_id]['inventory']`
 
 **Notes:**
 - A `null` source_file means "not yet persisted to a file." SAVE routes such Owners to the base file for their kind.
-- Shop inventories are NOT stored in `loot`; use `specific_shops[shop_id]['inventory']` directly for those. This keeps Shop refresh logic from accidentally touching Character inventories and vice versa.
+- Shop inventories are owned by `specific_shops` / `active_generic_shops`, not by `loot`. Routing through GET_INVENTORY lets ADD_ITEM, REMOVE_ITEM, TOTAL_WEALTH_IN_GOLD, and TRANSFER_ITEM work uniformly across all Owner kinds.
+- A `generic_shop:<id>` lookup implicitly triggers generation if the shop has no active stock. This is the one place GET_INVENTORY has a side effect — it is the intended ergonomics, so that buying from a generic shop "just works" without a separate VISIT step. Callers that want to inspect a stock without forcing generation should check `active_generic_shops` directly.
 
 ---
 
@@ -961,3 +973,95 @@ Produced Stack shape: `{ item, tier, properties: [{name, subtype?}], quantity: 1
 - The generator picks a tier first and then filters properties; a tier for which no properties are eligible raises at step 9. Authors whose `tier_weights` allow a tier with no eligible properties will find out quickly.
 - Subtype selection is uniform across the property's declared subtypes. Weighted subtypes are not supported at the constraint level; an author who wants to bias, say, Fire over Cold can achieve it by splitting the definition of Elemental into per-subtype properties (or by using literal stacks in the table).
 - The returned Stack's `properties` list uses the dict form `{name, subtype}` consistently, matching the Loot and display-name conventions used elsewhere in the module.
+
+---
+
+## REFRESH_SPECIFIC_SHOP
+
+**Description:** Rerolls a Specific Shop's stock from its Template. The operation has three phases:
+
+1. **Decay each existing stack.** Flip a d2 per Stack. On a 1, remove the Stack entirely (set its quantity to 0). On a 2, keep the Stack but pick a new Quantity uniformly in `[1, floor(current_quantity)]` for non-Currency stacks, or in `[0, current_quantity]` (continuous) for Currency stacks. Gems follow the non-Currency rule.
+2. **Roll the Template.** Produce a list of new Stacks via ROLL_LOOT_TABLE.
+3. **Merge.** Append the new Stacks into the shop's inventory and run MERGE_INVENTORY_STACKS so that matching identities combine.
+
+The shop's gold is just a Currency Stack in its inventory — the same decay rule applies. No CLEANUP_ZERO_QUANTITY is invoked automatically; empty stacks are left in place and get removed at the next save-and-load cycle (or on manual cleanup).
+
+**Parameters:**
+- `shop_id`: the Specific Shop id (without the `"shop:"` prefix).
+
+**Returns:** None; mutates `specific_shops[shop_id]['inventory']`.
+
+1. `if shop_id not in specific_shops: raise exception ('Unknown specific shop: ' + shop_id)`
+2. `shop = specific_shops[shop_id]`
+3. `for each stack in shop['inventory']:`
+4. `⠀⠀roll = RAND_INT(1, 2)`
+5. `⠀⠀if roll == 1:`
+6. `⠀⠀⠀⠀stack['quantity'] = 0`
+7. `⠀⠀⠀⠀continue`
+8. `⠀⠀current = stack['quantity'] or 0`
+9. `⠀⠀if current <= 0: continue`
+10. `⠀⠀info = ITEM_DEFINITION(stack['item'])`
+11. `⠀⠀is_currency = (info is not null) and (info['category'] == 'Currency')`
+12. `⠀⠀if is_currency:`
+13. `⠀⠀⠀⠀stack['quantity'] = current * RAND_FLOAT()`
+14. `⠀⠀else:`
+15. `⠀⠀⠀⠀stack['quantity'] = RAND_INT(1, floor(current))`
+16. `new_stacks = ROLL_LOOT_TABLE(shop['template'])`
+17. `for each new_stack in new_stacks:`
+18. `⠀⠀shop['inventory'].append(new_stack)`
+19. `shop['inventory'] = MERGE_INVENTORY_STACKS(shop['inventory'])`
+
+**Notes:**
+- The d2 is stated explicitly (rather than "flip a coin") to match the user-facing description of the rule; implementers may use any fair binary random source.
+- Currencies decay continuously because their Quantities are allowed to be fractional — a 50-50 partial removal of 147.5 gold should not snap to an integer. Gems, despite carrying a `value_in_gold`, are integer-Quantity items so they follow the non-Currency branch.
+- Step 15's `floor(current)` guards against the rare case of a non-integer non-Currency quantity (e.g., a legacy stack). `RAND_INT(1, n)` requires `n >= 1`; the `current <= 0` early-exit at step 9 handles the empty-stack case.
+- The Template may contain Inline Magical Rows; ROLL_LOOT_TABLE resolves them via GENERATE_MAGICAL_ITEM, so a shop template can legitimately specify "roll a random tier-1 magical sword."
+
+---
+
+## VISIT_GENERIC_SHOP
+
+**Description:** Returns the current stock of a Generic Shop. On the first visit of a Game Day, the stock is generated from the shop's Template and cached under `active_generic_shops`; subsequent visits the same Game Day return the same cached stock. Visits after the Game Day has advanced regenerate from scratch — the previous day's entry is overwritten.
+
+**Parameters:**
+- `shop_id`: the Generic Shop id (without the `"generic_shop:"` prefix).
+
+**Returns:** A list of Item Stacks (live reference — the caller may mutate it via ADD_ITEM / REMOVE_ITEM to represent purchases).
+
+1. `if shop_id not in generic_shop_templates: raise exception ('Unknown generic shop: ' + shop_id)`
+2. `cached = active_generic_shops[shop_id]  # may be null`
+3. `if cached is not null and cached['generated_at_day'] == current_day:`
+4. `⠀⠀return cached['stock']`
+5. `template_id = generic_shop_templates[shop_id]['template']`
+6. `new_stacks = ROLL_LOOT_TABLE(template_id)`
+7. `merged = MERGE_INVENTORY_STACKS(new_stacks)`
+8. `active_generic_shops[shop_id] = { 'stock': merged, 'generated_at_day': current_day }`
+9. `return active_generic_shops[shop_id]['stock']`
+
+**Notes:**
+- The check at step 3 uses equality, not `<=`. A cached entry with a `generated_at_day` greater than `current_day` (possible if someone edits `shops.yaml` by hand to a future day) will still trigger regeneration. This is deliberate: the cache is valid only for its own day.
+- Purchases made against a Generic Shop mutate the cached stock directly (because GET_INVENTORY returns the live `stock` list). That is intentional — players browsing the same shop twice in a day see inventory that reflects what they've already bought.
+- Sales TO a generic shop (the party selling items) also mutate the cached stock. Since the cache is discarded at day-end, any items sold to a generic shop are effectively lost to the world unless the party visits again that same day. This is an intentional simplification: generic shops are ephemeral.
+
+---
+
+## ADVANCE_TIME
+
+**Description:** Notifies the Equipment class that game time has elapsed. Increments the Game Day counter by `days_elapsed` and discards any cached Active Generic Shop whose stock was generated on an earlier Game Day. Intended to be called by a higher-level game-time orchestrator (e.g., a rest/long-rest action in the combat module, or a DM-driven "next day" button).
+
+**Parameters:**
+- `days_elapsed`: a non-negative integer. Zero is a no-op.
+
+**Returns:** None.
+
+1. `if days_elapsed < 0: raise exception ('ADVANCE_TIME requires non-negative days_elapsed')`
+2. `if days_elapsed == 0: return`
+3. `current_day = current_day + days_elapsed`
+4. `expired = [shop_id for (shop_id, entry) in active_generic_shops if entry['generated_at_day'] < current_day]`
+5. `for each shop_id in expired:`
+6. `⠀⠀remove shop_id from active_generic_shops`
+
+**Notes:**
+- Only `active_generic_shops` is time-sensitive today. As other time-aware features land (spell durations, buff timers, character rest, etc.), they will likely join this entry point — at which point a shared "time-aware module" interface can be factored out. For now the Equipment class is the sole owner.
+- The counter is persisted to `shops.yaml` under `state.current_day`. ADVANCE_TIME does not itself save; the caller invokes SAVE when it is ready to flush state to disk.
+- Passing `days_elapsed > 1` is supported and common (e.g., a long journey that skips several days); every cached shop generated before the new `current_day` is discarded in a single pass.
