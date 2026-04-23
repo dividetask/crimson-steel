@@ -72,6 +72,7 @@ require_relative 'stubs/initiative_stub'
 require_relative 'stubs/debug_stub'
 require_relative 'stubs/assignment_stub'
 require_relative 'pages/test'
+require_relative 'pages/status'
 
 # Pre-seed a couple of demo devices so the assignment stub has rows
 # to show out of the box. Idempotent — skipped if the ids already

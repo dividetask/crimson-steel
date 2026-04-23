@@ -6,6 +6,10 @@
 helpers do
   def assignment_stub(devices:, characters:, current_device_id: nil,
                       assign_action: '/user/assign_character')
+    # Defense in depth: the caller is expected to gate the stub on
+    # dm? but we refuse to render if the viewing request is not a
+    # DM, so a forgotten guard cannot leak the device list.
+    return '' unless @current_user&.dm?
     erb :"stubs/_assignment_stub", layout: false, locals: {
       devices: devices || [],
       characters: characters || [],

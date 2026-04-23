@@ -9,6 +9,9 @@
     <div class="menu-links">
       <a href="/" class="menu-home">Home</a>
       <a href="/test">Test</a>
+      <% if dm? %>
+        <a href="/status">Status</a>
+      <% end %>
     </div>
     <% if dm? %>
       <div class="menu-server-ip" title="Address players connect to">

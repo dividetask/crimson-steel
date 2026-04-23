@@ -71,12 +71,14 @@
 
 <% current_turn = session[:current_turn] || DATA.combat_state['current_turn'] %>
 
-<h3>DM view</h3>
-<%= initiative_stub(
-      turns: DATA.initiative_turns,
-      current_combat_id: current_turn,
-      dm_view: true
-    ) %>
+<% if dm? %>
+  <h3>DM view <small>(DM only)</small></h3>
+  <%= initiative_stub(
+        turns: DATA.initiative_turns,
+        current_combat_id: current_turn,
+        dm_view: true
+      ) %>
+<% end %>
 
 <h3>Player view</h3>
 <%= initiative_stub(
@@ -85,5 +87,7 @@
       dm_view: false
     ) %>
 
-<h3>Empty state</h3>
-<%= initiative_stub(turns: []) %>
+<% if dm? %>
+  <h3>Empty state</h3>
+  <%= initiative_stub(turns: []) %>
+<% end %>
