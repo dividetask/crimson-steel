@@ -1065,3 +1065,79 @@ The shop's gold is just a Currency Stack in its inventory — the same decay rul
 - Only `active_generic_shops` is time-sensitive today. As other time-aware features land (spell durations, buff timers, character rest, etc.), they will likely join this entry point — at which point a shared "time-aware module" interface can be factored out. For now the Equipment class is the sole owner.
 - The counter is persisted to `shops.yaml` under `state.current_day`. ADVANCE_TIME does not itself save; the caller invokes SAVE when it is ready to flush state to disk.
 - Passing `days_elapsed > 1` is supported and common (e.g., a long journey that skips several days); every cached shop generated before the new `current_day` is discarded in a single pass.
+
+---
+
+## CALCULATE_RESTOCK_COST
+
+**Description:** Returns the total Gold cost of bringing every understocked Stack in an Owner's Inventory up to its Restock Target. A Stack contributes to the cost only when it has a `restock_target` set and its current Quantity is strictly below that target. Currency and Gem stacks are skipped: "restocking" either one would mean spending its own value back into itself, which is always a no-op.
+
+The cost is real-valued — fractional prices (e.g., magical arrows at 7.75 gp each) survive into the total without rounding.
+
+**Parameters:**
+- `owner_id`: the Owner whose Inventory is being considered.
+
+**Returns:** A real-valued Gold cost ≥ 0.
+
+1. `inventory = GET_INVENTORY(owner_id)`
+2. `total = 0`
+3. `for each stack in inventory:`
+4. `⠀⠀if 'restock_target' not in stack: continue`
+5. `⠀⠀target = stack['restock_target']`
+6. `⠀⠀current = stack['quantity'] or 0`
+7. `⠀⠀if current >= target: continue`
+8. `⠀⠀info = ITEM_DEFINITION(stack['item'])`
+9. `⠀⠀if info is not null and info['category'] in ('Currency', 'Gem'): continue`
+10. `⠀⠀shortfall = target - current`
+11. `⠀⠀unit_price = ITEM_UNIT_PRICE(stack)`
+12. `⠀⠀total = total + shortfall * unit_price`
+13. `return total`
+
+**Notes:**
+- A Stack whose `restock_target` is zero (or absent) contributes nothing; the check at step 7 covers both cases because `current >= 0` is always true and the "strictly below target" requirement doubles as a trip-wire.
+- `ITEM_UNIT_PRICE` reads tier and properties off the Stack itself, so a magical Stack restocks at its magical unit price (a tier-1 Flaming Arrow costs 7.75 gp per unit, a mundane Arrow 0.25 gp per unit). Stacks sharing the same Item Type but different identities (mundane vs. magical) contribute independently.
+- This function is pure — it reads state without mutating it. Safe to call repeatedly (e.g., to display cost in a UI before the player confirms).
+
+---
+
+## PERFORM_RESTOCK
+
+**Description:** Atomically restocks an Owner's Inventory. Computes the Restock Cost, debits it from the Owner's Total Wealth, and increments every understocked Stack's Quantity up to its Restock Target. If Total Wealth is insufficient, the call returns `false` and makes no changes.
+
+The operation is all-or-nothing: partial restocks are not supported. Callers who want "buy what you can afford" semantics should adjust targets first.
+
+**Parameters:**
+- `owner_id`: the Owner being restocked.
+
+**Returns:** A dictionary `{ 'success': boolean, 'cost': number, 'items_restocked': integer }` where:
+- `success` is `true` when the debit succeeded and Stacks were topped up.
+- `cost` is the Gold amount debited (0 on failure and on "nothing to restock").
+- `items_restocked` is the count of Stacks whose Quantity was increased.
+
+1. `cost = CALCULATE_RESTOCK_COST(owner_id)`
+2. `if cost == 0:`
+3. `⠀⠀return { 'success': true, 'cost': 0, 'items_restocked': 0 }`
+4. `if not CAN_AFFORD(owner_id, cost):`
+5. `⠀⠀return { 'success': false, 'cost': 0, 'items_restocked': 0 }`
+6. `debited = DEBIT_WEALTH(owner_id, cost)`
+7. `if not debited:  # defensive — should not happen after CAN_AFFORD, but guard against races`
+8. `⠀⠀return { 'success': false, 'cost': 0, 'items_restocked': 0 }`
+9. `inventory = GET_INVENTORY(owner_id)`
+10. `items_restocked = 0`
+11. `for each stack in inventory:`
+12. `⠀⠀if 'restock_target' not in stack: continue`
+13. `⠀⠀target = stack['restock_target']`
+14. `⠀⠀current = stack['quantity'] or 0`
+15. `⠀⠀if current >= target: continue`
+16. `⠀⠀info = ITEM_DEFINITION(stack['item'])`
+17. `⠀⠀if info is not null and info['category'] in ('Currency', 'Gem'): continue`
+18. `⠀⠀stack['quantity'] = target`
+19. `⠀⠀items_restocked = items_restocked + 1`
+20. `return { 'success': true, 'cost': cost, 'items_restocked': items_restocked }`
+
+**Notes:**
+- The cost-then-debit-then-top-up ordering keeps the atomicity guarantee: if DEBIT_WEALTH can't find the full amount, it returns `false` without mutating the Inventory, and we return without topping up any Stack.
+- CALCULATE_RESTOCK_COST and the top-up loop apply the same filter (`restock_target` set, below target, not Currency or Gem), so the number of Stacks that contributed to the cost equals the number of Stacks that get incremented. If a Stack's Quantity somehow changes between steps 1 and 11 (e.g., a concurrent mutation in another thread), the top-up might under- or over-pay relative to the actual shortfall — but the module is not thread-safe by design, and callers are expected to serialize mutations.
+- Understocked Stacks are set directly to `target`, not incremented by `shortfall`. The two are equivalent given no concurrent mutation, and direct assignment reads more cleanly.
+- `items_restocked` counts Stacks, not units; a call that tops up 18 Arrows counts as one restocked Stack.
+- An Owner with no `restock_target` on any Stack will hit the `cost == 0` early-exit at step 2 and succeed trivially. This is the expected behavior — a "restock" call on an Owner with nothing to restock is a harmless no-op.
