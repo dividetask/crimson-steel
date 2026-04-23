@@ -50,18 +50,7 @@ get '/' do
   redirect '/test'
 end
 
-require_relative 'stubs/roll_stub'
-require_relative 'stubs/initiative_stub'
-require_relative 'stubs/debug_stub'
-require_relative 'stubs/assignment_stub'
-require_relative 'pages/test'
-require_relative 'pages/status'
+Dir[File.join(__dir__, 'stubs', '*.rb')].sort.each { |f| require f }
+Dir[File.join(__dir__, 'pages', '*.rb')].sort.each { |f| require f }
 
-# Pre-seed a couple of demo devices so the assignment stub has rows
-# to show out of the box. Idempotent — skipped if the ids already
-# exist or the store already has several real devices in it.
-if USER_STORE.list.size < 3
-  %w[demo-phone-alice demo-tablet-bob].each do |did|
-    USER_STORE.create(did) unless USER_STORE.find(did)
-  end
-end
+require_relative 'seed_dev' if settings.development?
