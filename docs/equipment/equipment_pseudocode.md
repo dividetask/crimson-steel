@@ -1141,3 +1141,131 @@ The operation is all-or-nothing: partial restocks are not supported. Callers who
 - Understocked Stacks are set directly to `target`, not incremented by `shortfall`. The two are equivalent given no concurrent mutation, and direct assignment reads more cleanly.
 - `items_restocked` counts Stacks, not units; a call that tops up 18 Arrows counts as one restocked Stack.
 - An Owner with no `restock_target` on any Stack will hit the `cost == 0` early-exit at step 2 and succeed trivially. This is the expected behavior — a "restock" call on an Owner with nothing to restock is a harmless no-op.
+
+---
+
+## GET_DISPLAY_NAME
+
+**Description:** Returns the human-readable display name for an Item Stack. If the Stack has a `name` override, returns it verbatim. Otherwise builds the name from the rule:
+
+```
+<tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>
+```
+
+- `tier_prefix` is `equipment_config['Naming Convention']['tier_prefix_format']` with `{tier}` substituted, shown only when `tier >= 1` and the Item Type's category is NOT listed under `tier_hidden_for`.
+- Each property on the Stack contributes a word plus a position (prefix or suffix). Subtyped properties pull their word and position from the subtype-keyed display block. Non-subtyped properties use the display block directly. Missing `position` defaults to `equipment_config['Naming Convention']['default_property_position']` (normally `prefix`).
+- Prefix words accumulate in property order before the item name; suffix words accumulate in property order after it.
+
+**Parameters:**
+- `stack`: an Item Stack.
+
+**Returns:** A string.
+
+1. `if 'name' in stack and stack['name'] not null and stack['name'] not empty:`
+2. `⠀⠀return stack['name']`
+3. `item_name = stack['item']`
+4. `tier = stack['tier'] or 0`
+5. `info = ITEM_DEFINITION(item_name)`
+6. `naming = equipment_config['Naming Convention']`
+7. `tier_prefix = ''`
+8. `if tier >= 1 and (info is null or info['definition'].get('category') not in (naming['tier_hidden_for'] or empty list)):`
+9. `⠀⠀tier_prefix = naming['tier_prefix_format'] with '{tier}' replaced by tier`
+10. `prefix_words = empty list`
+11. `suffix_words = empty list`
+12. `catalog_key = (info is not null and info['category'] == 'Armor') ? 'Armor Properties' : 'Weapon Properties'`
+13. `catalog = equipment_config[catalog_key]`
+14. `for each property_entry in (stack['properties'] or empty list):`
+15. `⠀⠀property_name = (property_entry is string) ? property_entry : property_entry['name']`
+16. `⠀⠀property_def = catalog[property_name]`
+17. `⠀⠀if property_def['has_subtype']:`
+18. `⠀⠀⠀⠀subtype = (property_entry is dict) ? property_entry['subtype'] : null`
+19. `⠀⠀⠀⠀display_block = property_def['display'][subtype]`
+20. `⠀⠀else:`
+21. `⠀⠀⠀⠀display_block = property_def['display']`
+22. `⠀⠀word = display_block['word']`
+23. `⠀⠀position = display_block['position'] or naming['default_property_position'] or 'prefix'`
+24. `⠀⠀if position == 'suffix':`
+25. `⠀⠀⠀⠀suffix_words.append(word)`
+26. `⠀⠀else:`
+27. `⠀⠀⠀⠀prefix_words.append(word)`
+28. `parts = filter out empty strings from [tier_prefix] + prefix_words + [item_name] + suffix_words`
+29. `return parts joined by single spaces`
+
+**Notes:**
+- Step 12's catalog pick is a pragmatic shortcut: Weapon and Armor properties do not share names in the default config, so either catalog would resolve the same properties in practice. If a future property appears in both catalogs under the same name with different display blocks, this function would need a more discerning dispatch (e.g., carrying the catalog tag on the Stack).
+- A property entry given as a plain string (`"Vicious"`) works for non-subtyped properties; a subtyped property must use the dict form `{name, subtype}`.
+- An item whose category falls under `tier_hidden_for` (e.g., `Potion`) never shows a tier prefix even at tier 5. This keeps flavor names like "Potion of Cure Moderate Wounds" intact instead of becoming "+3 Potion of…".
+- Missing display blocks or subtype keys raise implicitly via dictionary lookup; implementers may wrap with a clearer error if desired.
+
+---
+
+## Combat Attributes — Second Pass Stubs
+
+The following five functions are the Equipment class's lookup surface for the combat / attack-roll module. Their bodies are intentionally left `TBD — second pass` in this document, pending the open rules questions tracked in `project_summary.md` (defender tier's role in threshold calculation, shield DR, thrown-weapon balance, durability mechanics, whip bleed). The method signatures are fixed now so the combat module can be designed against them without waiting for the implementation.
+
+### GET_WEAPON_DAMAGE
+
+**Description:** Returns the damage dealt by a single attack with the given weapon, given the attacker's Strength. Honors the weapon's `damage` override when present; otherwise applies the category default formula (`Weapon Category Defaults[<category>]['damage']`) with `str` substituted. Magical (`tier >= 1`) weapons may add a flat bonus from their properties; the specific rule is TBD.
+
+**Parameters:**
+- `weapon_stack`: an Item Stack whose Item Type is a Weapon.
+- `attacker_strength`: the attacker's Strength score.
+
+**Returns:** An integer damage value.
+
+1. `# TBD — second pass`
+2. `# Planned sources: Weapons[<name>]['damage'] override, Weapon Category Defaults[<category>]['damage'], stack['tier'], weapon properties.`
+3. `raise exception ('GET_WEAPON_DAMAGE not yet implemented')`
+
+### GET_DAMAGE_REDUCTION
+
+**Description:** Returns the flat damage reduction granted by a piece of armor. Category default comes from `Armor Category Defaults[<category>]['damage_reduction']` and may be overridden per-armor. Shield DR behavior and magical bonus contributions are TBD.
+
+**Parameters:**
+- `armor_stack`: an Item Stack whose Item Type is Armor.
+
+**Returns:** An integer DR value.
+
+1. `# TBD — second pass`
+2. `# Planned sources: Armor[<name>] override, Armor Category Defaults[<category>]['damage_reduction'], stack['tier'].`
+3. `raise exception ('GET_DAMAGE_REDUCTION not yet implemented')`
+
+### GET_BLEED
+
+**Description:** Returns the Bleed value for a weapon, per the combat module's ongoing-damage rule. Default comes from `Damage Type Defaults[<damage_type>]['bleed']`; weapons with multiple damage types use the highest of the defaults; individual weapons may override.
+
+**Parameters:**
+- `weapon_stack`: an Item Stack whose Item Type is a Weapon.
+
+**Returns:** An integer Bleed value.
+
+1. `# TBD — second pass`
+2. `# Planned sources: Weapons[<name>]['bleed'] override, max over Damage Type Defaults[<type>]['bleed'] across the weapon's damage_type(s).`
+3. `raise exception ('GET_BLEED not yet implemented')`
+
+### GET_THRESHOLD
+
+**Description:** Returns the Threshold value for a weapon attack. Default comes from `Damage Type Defaults[<damage_type>]['threshold']`; weapons with multiple damage types use the lowest of the defaults; individual weapons may override. Defender tier's role in threshold is a blocker flagged in `project_summary.md`.
+
+**Parameters:**
+- `weapon_stack`: an Item Stack whose Item Type is a Weapon.
+- `defender_tier` *(optional)*: the defender's Tier, reserved for the second-pass rule.
+
+**Returns:** An integer Threshold value.
+
+1. `# TBD — second pass`
+2. `# Planned sources: Weapons[<name>]['threshold'] override, min over Damage Type Defaults[<type>]['threshold'] across the weapon's damage_type(s), defender_tier adjustment.`
+3. `raise exception ('GET_THRESHOLD not yet implemented')`
+
+### GET_RESILIENCE
+
+**Description:** Returns the magical Armor's effective HP against damage, equal to `tier × resilience_increment` from the armor's category. Non-magical armor (tier 0) has zero resilience.
+
+**Parameters:**
+- `armor_stack`: an Item Stack whose Item Type is Armor.
+
+**Returns:** An integer Resilience value ≥ 0.
+
+1. `# TBD — second pass`
+2. `# Planned formula: tier × Armor Category Defaults[<category>]['resilience_increment'] (with null-category shields excluded per their null increment).`
+3. `raise exception ('GET_RESILIENCE not yet implemented')`
