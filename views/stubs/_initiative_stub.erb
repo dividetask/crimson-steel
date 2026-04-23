@@ -59,9 +59,8 @@
             <% if show_full %>
               <div class="init-hp-numbers">
                 <span class="init-hp-current"><%= hp_now %>/<%= hp_max %></span>
-                <% if minor    > 0 %><span class="init-hp-minor-num"    title="minor damage"><%= minor %> Minor</span><% end %>
-                <% if moderate > 0 %><span class="init-hp-mod-num"      title="moderate damage"><%= moderate %> Moderate</span><% end %>
-                <% if major    > 0 %><span class="init-hp-major-num"    title="major damage"><%= major %> Major</span><% end %>
+                <% if moderate > 0 %><span class="init-hp-mod-num"   title="moderate damage"><%= moderate %> Mod</span><% end %>
+                <% if major    > 0 %><span class="init-hp-major-num" title="major damage"><%= major %> Maj</span><% end %>
               </div>
             <% end %>
           </td>

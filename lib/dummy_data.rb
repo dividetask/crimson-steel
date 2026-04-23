@@ -28,12 +28,18 @@ class DummyData
 
   def self.characters
     @characters ||= [
-      build_pc(id: 1, name: 'Ash Windmere', race: 'Human',    klass: 'Bard',    tier: 3,
+      build_pc(id: 1, name: 'Ash Windmere',   race: 'Human',    klass: 'Bard',    tier: 3,
                hp: 24, hp_max: 28, mana: 12, mana_max: 14, abilities: %w[bardic_inspiration unsettling_words]),
-      build_pc(id: 2, name: 'Bryn Ironvein', race: 'Dwarf',   klass: 'Fighter', tier: 3,
+      build_pc(id: 2, name: 'Bryn Ironvein',  race: 'Dwarf',    klass: 'Fighter', tier: 3,
                hp: 32, hp_max: 36, mana: 0,  mana_max: 0,  abilities: %w[shield_bash second_wind]),
-      build_pc(id: 3, name: 'Lira Duskmoor',  race: 'Elf',    klass: 'Wizard',  tier: 3,
-               hp: 18, hp_max: 22, mana: 16, mana_max: 18, abilities: %w[arcane_focus ritual_caster])
+      build_pc(id: 3, name: 'Lira Duskmoor',  race: 'Elf',      klass: 'Wizard',  tier: 3,
+               hp: 18, hp_max: 22, mana: 16, mana_max: 18, abilities: %w[arcane_focus ritual_caster]),
+      build_pc(id: 4, name: 'Kass Thorne',    race: 'Halfling', klass: 'Rogue',   tier: 3,
+               hp: 20, hp_max: 24, mana: 0,  mana_max: 0,  abilities: %w[sneak_attack evasion]),
+      build_pc(id: 5, name: 'Rowan Vale',     race: 'Half-Elf', klass: 'Ranger',  tier: 3,
+               hp: 26, hp_max: 30, mana: 6,  mana_max: 8,  abilities: %w[hunters_mark quick_draw]),
+      build_pc(id: 6, name: 'Ember Blackoak', race: 'Half-Orc', klass: 'Druid',   tier: 3,
+               hp: 22, hp_max: 26, mana: 10, mana_max: 12, abilities: %w[wild_shape spore_cloud])
     ]
   end
 

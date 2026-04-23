@@ -1,0 +1,55 @@
+<div class="assignment-stub">
+<% if devices.empty? %>
+  <p class="assignment-empty">No known devices yet.</p>
+<% else %>
+  <table class="assignment-table">
+    <thead>
+      <tr>
+        <th>Device</th>
+        <th>Last Seen</th>
+        <th>Assigned Character</th>
+        <th>Change</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% devices.each do |d|
+           device_id = d['device_id'] || d[:device_id]
+           last_seen = d['last_seen'] || d[:last_seen]
+           assigned_id = d['character_id'] || d[:character_id]
+           assigned = characters.find { |c| c['id'].to_i == assigned_id.to_i } if assigned_id
+           is_current = current_device_id && device_id == current_device_id
+      %>
+        <tr class="<%= 'assignment-self' if is_current %>">
+          <td class="assignment-id" title="<%= h device_id %>">
+            <%= h assignment_short_id(device_id) %>
+            <% if is_current %><span class="assignment-tag">this device</span><% end %>
+          </td>
+          <td class="assignment-seen"><%= assignment_format_seen(last_seen) %></td>
+          <td class="assignment-assigned">
+            <% if assigned %>
+              <%= h assigned['name'] %>
+              <span class="assignment-hint">(<%= h assigned['klass'] %>)</span>
+            <% else %>
+              <em>unassigned</em>
+            <% end %>
+          </td>
+          <td class="assignment-form">
+            <form method="post" action="<%= h assign_action %>">
+              <input type="hidden" name="device_id" value="<%= h device_id %>">
+              <select name="character_id">
+                <option value="">(unassign)</option>
+                <% characters.each do |c| %>
+                  <option value="<%= c['id'] %>" <%= 'selected' if assigned && assigned['id'] == c['id'] %>>
+                    <%= h c['name'] %> &mdash; <%= h c['klass'] %>
+                  </option>
+                <% end %>
+              </select>
+              <button type="submit">Save</button>
+            </form>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+</div>

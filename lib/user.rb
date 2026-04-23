@@ -30,7 +30,6 @@ class UserStore
     rec = {
       'device_id' => device_id,
       'character_id' => nil,
-      'first_seen' => Time.now.iso8601,
       'last_seen' => Time.now.iso8601
     }
     @records << rec

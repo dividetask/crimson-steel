@@ -1,0 +1,30 @@
+<div class="debug-stub">
+  <table class="debug-table">
+    <tr>
+      <th>Role</th>
+      <td>
+        <strong><%= user&.dm? ? 'DM' : 'Player' %></strong>
+        <span class="debug-hint">(DM is detected from the request IP &mdash; <%= h req.ip %>)</span>
+      </td>
+    </tr>
+    <tr>
+      <th>Device ID</th>
+      <td class="debug-mono" title="<%= h user&.device_id %>"><%= h user&.device_id %></td>
+    </tr>
+    <tr>
+      <th>Character</th>
+      <td>
+        <% if character %>
+          <%= h character['name'] %>
+          <span class="debug-hint">(id <%= h character['id'] %>, <%= h character['race'] %> <%= h character['klass'] %>)</span>
+        <% else %>
+          <em>unassigned</em>
+        <% end %>
+      </td>
+    </tr>
+    <tr>
+      <th>User-Agent</th>
+      <td class="debug-mono debug-ua"><%= h req.user_agent %></td>
+    </tr>
+  </table>
+</div>

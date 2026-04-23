@@ -50,13 +50,23 @@
   </script>
 <% end %>
 
+<h2>Debug Stub</h2>
+<%= debug_stub %>
+
+<% if dm? %>
+  <h2>Character Assignment Stub <small>(DM only)</small></h2>
+  <%= assignment_stub(
+        devices: USER_STORE.list,
+        characters: DATA.pcs,
+        current_device_id: current_user&.device_id
+      ) %>
+<% end %>
+
 <h2>Initiative Stub</h2>
 
-<p class="dt-note">Viewer is currently
-  <strong><%= dm? ? 'DM' : 'Player' %></strong>
-  (DM is detected from the request IP &mdash; <%= h request.ip %>).
+<p class="dt-note">
   Both views are shown below for comparison; the Set-turn button updates
-  both views via <code>POST /combat/set_turn/:combat_id</code>.
+  both via <code>POST /combat/set_turn/:combat_id</code>.
 </p>
 
 <% current_turn = session[:current_turn] || DATA.combat_state['current_turn'] %>

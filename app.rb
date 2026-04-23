@@ -51,11 +51,13 @@ get '/' do
 end
 
 post '/user/assign_character' do
+  target = params[:device_id].to_s.empty? ? @current_user.device_id : params[:device_id]
+  halt 403, 'forbidden' if target != @current_user.device_id && !@current_user.dm?
   char_id = params[:character_id].to_s.empty? ? nil : params[:character_id].to_i
   if char_id.nil?
-    @current_user.unassign_character
+    USER_STORE.unassign_character(target)
   else
-    @current_user.assign_character(char_id)
+    USER_STORE.assign_character(target, char_id)
   end
   redirect(request.referrer || '/')
 end
@@ -67,4 +69,15 @@ end
 
 require_relative 'stubs/roll_stub'
 require_relative 'stubs/initiative_stub'
+require_relative 'stubs/debug_stub'
+require_relative 'stubs/assignment_stub'
 require_relative 'pages/test'
+
+# Pre-seed a couple of demo devices so the assignment stub has rows
+# to show out of the box. Idempotent — skipped if the ids already
+# exist or the store already has several real devices in it.
+if USER_STORE.list.size < 3
+  %w[demo-phone-alice demo-tablet-bob].each do |did|
+    USER_STORE.create(did) unless USER_STORE.find(did)
+  end
+end
