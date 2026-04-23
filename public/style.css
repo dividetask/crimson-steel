@@ -18,16 +18,31 @@ body {
   background: #333;
   padding: 10px;
   margin: -20px -20px 20px -20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.menu-links {
+  display: flex;
+  gap: 20px;
 }
 
 .menu a {
   color: white;
-  margin-right: 20px;
   text-decoration: none;
 }
 
 .menu a:hover {
   text-decoration: underline;
+}
+
+.menu-server-ip {
+  color: #bbb;
+  font-family: monospace;
+  font-size: 12px;
+  user-select: all;
 }
 
 .stub-test-form {
@@ -177,8 +192,8 @@ body {
 .initiative-table .init-set-col { width: 44px; }
 .initiative-table .init-value   { width: 70px; font-family: monospace; font-size: 13px; }
 .initiative-table .init-name    { width: 140px; }
-.initiative-table .init-hp      { width: 160px; }
-.initiative-table .init-pool    { width: 130px; }
+.initiative-table .init-hp      { width: 180px; }
+.initiative-table .init-pool    { width: 220px; white-space: nowrap; }
 
 .initiative-table tr.current-turn {
   background: #fff3c4;
@@ -225,8 +240,11 @@ body {
   align-items: center;
 }
 
+.init-hp-minor-num { color: #ad1457; font-weight: bold; }
 .init-hp-mod-num   { color: #c62828; font-weight: bold; }
 .init-hp-major-num { color: #6a0000; font-weight: bold; }
+
+.init-hp-numbers { flex-wrap: wrap; }
 
 .init-pool-value {
   font-family: monospace;

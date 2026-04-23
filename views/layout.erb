@@ -6,8 +6,15 @@
 </head>
 <body>
   <div class="menu">
-    <a href="/" class="menu-home">Home</a>
-    <a href="/test">Test</a>
+    <div class="menu-links">
+      <a href="/" class="menu-home">Home</a>
+      <a href="/test">Test</a>
+    </div>
+    <% if dm? %>
+      <div class="menu-server-ip" title="Address players connect to">
+        Server: <%= h server_ip %>:<%= h settings.port %>
+      </div>
+    <% end %>
   </div>
   <%= yield %>
   <script src="/js/roll_stub.js"></script>
