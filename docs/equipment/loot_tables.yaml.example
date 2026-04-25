@@ -277,6 +277,105 @@ loot_tables:
               Subdual: 1
               Radiant: 1
 
+  # --- Shop stock templates ----------------------------------------
+  #
+  # These tables are referenced from `shops.yaml.example` as the
+  # initial stock for specific shops and the per-day stock for
+  # generic shops. Quantities use dice expressions so each refresh
+  # produces a slightly different mix.
+
+  blacksmith_stock:
+    rolls:
+      - slot: long_swords
+        chance: 0.80
+        item: {item: Long sword, quantity: "1d3"}
+      - slot: hatchets
+        item: {item: Hatchet, quantity: "1d4 + 2"}
+      - slot: spears
+        item: {item: Spear, quantity: "1d6 + 2"}
+      - slot: maces
+        chance: 0.70
+        item: {item: Mace, quantity: "1d4 + 1"}
+      - slot: daggers
+        item: {item: Dagger, quantity: "1d6"}
+      - slot: leather_armor
+        chance: 0.80
+        item: {item: Leather armor, quantity: "1d3"}
+      - slot: chain_shirts
+        chance: 0.50
+        item: {item: Chain shirt, quantity: "1d2"}
+      - slot: shields
+        item: {item: Light wooden shield, quantity: "1d4"}
+      - slot: arrows
+        item: {item: Arrow, quantity: "2d10 + 20"}
+      - slot: bolts
+        chance: 0.50
+        item: {item: Bolt, quantity: "1d10 + 10"}
+      - slot: refresh_gold
+        item: {item: Gold, quantity: "3d20 + 100"}
+
+  alchemist_stock:
+    rolls:
+      # Potion entries elided until the Potion category lands.
+      - slot: refresh_gold
+        item: {item: Gold, quantity: "2d20 + 50"}
+      - slot: gems
+        chance: 0.40
+        item:
+          item: Gem
+          name: Quartz
+          value_in_gold: 50
+          quantity: "1d4"
+
+  random_market_stall_stock:
+    rolls:
+      - slot: weapon
+        chance: 0.50
+        options:
+          - chance: 0.40
+            item: {item: Dagger, quantity: "1d3"}
+          - chance: 0.30
+            item: {item: Hatchet}
+          - chance: 0.30
+            item: {item: Short sword}
+      - slot: armor
+        chance: 0.30
+        item: {item: Leather armor}
+      - slot: arrows
+        chance: 0.50
+        item: {item: Arrow, quantity: "1d20 + 5"}
+      - slot: gold
+        item: {item: Gold, quantity: "2d10 + 10"}
+
+  traveling_peddler_stock:
+    rolls:
+      - slot: trinket
+        options:
+          - chance: 0.20
+            item: {item: Dagger}
+          - chance: 0.20
+            item: {item: Throwing dart, quantity: "1d4 + 1"}
+          - chance: 0.20
+            item: {item: Shuriken, quantity: "1d6"}
+          - chance: 0.10
+            item:
+              item: Gem
+              name: Polished Pebble
+              value_in_gold: 10
+              quantity: "1d4"
+          # 30% nothing
+      - slot: rare_find
+        chance: 0.05
+        item:
+          magical:
+            category: melee
+            tier: [1]
+            properties_weighted:
+              Subdual: 2
+              Emotional: 1
+      - slot: gold
+        item: {item: Gold, quantity: "1d10 + 5"}
+
 # ---------------------------------------------------------------------
 # Option lists
 # ---------------------------------------------------------------------
