@@ -27,17 +27,26 @@
 # appear in inventory as ordinary Item Stacks (e.g., `{item: Gold,
 # quantity: 147.5}`) and merge by Item Type alone. Fractional
 # quantities are permitted.
+#
+# Optional fields:
+#   weight  — mass per unit (free-form units, e.g. pounds). The
+#             Equipment module stores this field but does not act on
+#             it; encumbrance calculations live elsewhere. Omit if
+#             your campaign does not track coin weight.
 
 Currency:
   Gold:
     symbol: gp
     value_in_gold: 1.0
+    weight: 0.02
   Silver:
     symbol: sp
     value_in_gold: 0.1
+    weight: 0.02
   Copper:
     symbol: cp
     value_in_gold: 0.01
+    weight: 0.02
 
 # =====================================================================
 # GEMS
@@ -68,17 +77,30 @@ Gems:
 # TIER PRICING (shared)
 # =====================================================================
 #
-# The additional cost (in gp) of making any weapon, armor, or
-# ammunition magical. Tier 0 is non-magical and has no additional
-# cost. Consumed by weapons, armor, and ammunition alike.
+# Per-tier costs and the magical-ammunition divisor.
+#
+#   surcharges
+#     The flat additional cost in gp added to a Weapon's or Armor's
+#     base price when it is made magical. Tier 0 is non-magical and
+#     has no surcharge.
+#
+#   ammunition_divisor
+#     The number of units of magical ammunition whose combined
+#     magical cost equals the magical surcharge of one equivalent
+#     magical weapon. Per-unit magical ammo cost is
+#       (tier_surcharge + sum property costs) / ammunition_divisor
+#     A higher divisor means cheaper magical ammunition; a lower
+#     divisor means more expensive. Defaults to 100 if absent.
 
-Tier Surcharges:
-  0: 0
-  1: 250
-  2: 1000
-  3: 4000
-  4: 16000
-  5: 80000
+Tier Pricing:
+  surcharges:
+    0: 0
+    1: 250
+    2: 1000
+    3: 4000
+    4: 16000
+    5: 80000
+  ammunition_divisor: 100
 
 # =====================================================================
 # NAMING CONVENTION

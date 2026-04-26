@@ -13,7 +13,7 @@
 
 ## Common Variables/Parameters
 
-- `owner_id`: a string identifying an Owner. Character IDs are bare strings (`"alice"`). The party is the reserved string `"party"`. Ground Piles use `"ground:<location>"`. Specific Shops use `"shop:<id>"`. Active Generic Shops use `"generic_shop:<id>"`.
+- `owner_id`: a string identifying an Owner, formatted with a kind prefix and an id. Characters use `"character:<id>"` where `<id>` is the immutable character id assigned by the character module (never the display name — names may collide or change). The party uses the reserved string `"party"`. Ground Piles use `"ground:<location>"`. Specific Shops use `"shop:<id>"`. Active Generic Shops use `"generic_shop:<id>"`.
 - `item_stack`: a dictionary of inventory fields. Required: `item`. Optional: `quantity`, `tier`, `properties`, `stored_spell`, `durability_damage`, `name`, `restock_target`, `value_in_gold`.
 - `table_id`: the string id of a Loot Table.
 - `constraint`: a Magical Item Constraint (see GENERATE_MAGICAL_ITEM).
@@ -89,7 +89,7 @@ Two stacks match if and only if all seven fields are equal. The `quantity` and `
 8. `⠀⠀⠀⠀loot[owner_key] = { 'inventory': owner_data['inventory'] or [], 'source_file': file_path }`
 
 **Helper `iterate_owner_entries(data)`** yields `(owner_id, {'inventory': [...]})` pairs for each recognized section in a loot file:
-- `data['characters']` — each key is a Character ID. Yielded as `(character_key, {...})`.
+- `data['characters']` — each key is a Character ID assigned by the character module. Yielded as `('character:' + character_key, {...})`. The yaml structure stays as a `{characters: {<id>: ...}}` map for human readability; the loader rewrites the key into the prefixed Owner ID format used throughout the rest of the module.
 - `data['party']` — yielded as `('party', {...})` at most once.
 - `data['ground_piles']` — a list of `{location, inventory}`. Yielded as `('ground:' + location, {'inventory': inventory})`.
 
@@ -452,7 +452,7 @@ The returned list is a live reference — callers must not mutate it directly; a
 **Description:** Returns the Gold cost of a single copy of an Item configuration. Dispatches on category:
 
 - **Weapon, Armor**: `base_price + tier_surcharge + Σ property_cost`.
-- **Ammunition**: `(base_price / bundle_size) + (tier_surcharge + Σ property_cost) / 100`. Mundane ammunition is sold in bundles, but `ITEM_UNIT_PRICE` always reports the per-unit cost.
+- **Ammunition**: `(base_price / bundle_size) + (tier_surcharge + Σ property_cost) / ammunition_divisor`. Mundane ammunition is sold in bundles, but `ITEM_UNIT_PRICE` always reports the per-unit cost. The divisor — how many magical ammo units sum to one equivalent magical weapon's surcharge — is read from `equipment_config['Tier Pricing']['ammunition_divisor']` (default 100).
 - **Currency**: `value_in_gold` from the Currency config.
 - **Gem**: `stack['value_in_gold']`. Raises if absent.
 - **Unknown category**: raises unless the Stack carries an explicit `unit_price` override.
@@ -467,7 +467,7 @@ The returned list is a live reference — callers must not mutate it directly; a
 3. `⠀⠀if 'unit_price' in stack: return stack['unit_price']`
 4. `⠀⠀raise exception ('Unknown item: ' + stack['item'])`
 5. `tier = stack['tier'] or 0`
-6. `tier_surcharge = equipment_config['Tier Surcharges'][tier] or 0`
+6. `tier_surcharge = equipment_config['Tier Pricing']['surcharges'][tier] or 0`
 7. `properties = stack['properties'] or empty list`
 8. `if info['category'] == 'Weapon':`
 9. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Weapon Properties') for p in properties`
@@ -479,14 +479,15 @@ The returned list is a live reference — callers must not mutate it directly; a
 15. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Weapon Properties') for p in properties`
 16. `⠀⠀bundle_size = info['definition']['bundle_size']`
 17. `⠀⠀mundane_unit = info['definition']['base_price'] / bundle_size`
-18. `⠀⠀magical_unit = (tier_surcharge + property_sum) / 100`
-19. `⠀⠀return mundane_unit + magical_unit`
-20. `if info['category'] == 'Currency':`
-21. `⠀⠀return info['definition']['value_in_gold']`
-22. `if info['category'] == 'Gem':`
-23. `⠀⠀if 'value_in_gold' not in stack: raise exception ('Gem stack missing value_in_gold')`
-24. `⠀⠀return stack['value_in_gold']`
-25. `raise exception ('Unhandled item category: ' + info['category'])`
+18. `⠀⠀ammo_divisor = equipment_config['Tier Pricing']['ammunition_divisor'] or 100`
+19. `⠀⠀magical_unit = (tier_surcharge + property_sum) / ammo_divisor`
+20. `⠀⠀return mundane_unit + magical_unit`
+21. `if info['category'] == 'Currency':`
+22. `⠀⠀return info['definition']['value_in_gold']`
+23. `if info['category'] == 'Gem':`
+24. `⠀⠀if 'value_in_gold' not in stack: raise exception ('Gem stack missing value_in_gold')`
+25. `⠀⠀return stack['value_in_gold']`
+26. `raise exception ('Unhandled item category: ' + info['category'])`
 
 **Notes:**
 - Ammunition uses weapon-property costs because magical ammunition applies the same Weapon Properties (Elemental, Subdual, etc.). The property catalog enforces applicability separately (`applies_to: [ammo]`).

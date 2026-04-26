@@ -34,14 +34,22 @@
 #
 # The Equipment class addresses inventories by Owner ID:
 #
-#   - Character:  bare string (e.g. "alice")
+#   - Character:  "character:<id>"  (e.g. "character:char_001")
 #   - Party:      the reserved string "party"
 #   - Ground pile: "ground:<location>" (e.g. "ground:Goblin cave — entrance")
 #   - Shop:       "shop:<id>"  (lives in shops.yaml, not here)
 #
-# In this file, characters appear under the `characters:` map, the
-# party under the top-level `party:` key, and ground piles under the
-# `ground_piles:` list (each entry carries its own `location`).
+# Character IDs are immutable identifiers assigned by the character
+# module — NOT the character's display name. Two characters can share
+# a name, and a name can change over the course of a campaign, so the
+# id is what we key on. The character module owns the id-to-name
+# mapping.
+#
+# In this file, characters appear under the `characters:` map keyed
+# by their ID; the loader prepends "character:" to produce the Owner
+# ID used elsewhere in the module. The party appears under the
+# top-level `party:` key, and ground piles under the `ground_piles:`
+# list (each entry carries its own `location`).
 #
 # ---------------------------------------------------------------------
 # Stacks, identity, and merging

@@ -14,7 +14,7 @@
 
 **Owner**: An entity that can hold an Inventory. Four Owner kinds: Character, Party, Ground Pile, and Shop. Each is addressed by an Owner ID.
 
-**Owner ID**: A string that identifies an Owner. Characters use bare strings (`"alice"`). The party uses the reserved string `"party"`. Ground Piles use `"ground:<location>"`. Specific Shops use `"shop:<id>"`. Generic Shop instances use `"generic_shop:<id>"`.
+**Owner ID**: A string that identifies an Owner, formatted as a kind prefix plus an id. Characters use `"character:<id>"`, where `<id>` is the immutable character id assigned by the character module (NOT the character's display name — names may collide between characters or change over time). The party uses the reserved string `"party"` (no id; there is exactly one). Ground Piles use `"ground:<location>"` where `<location>` is a free-form string. Specific Shops use `"shop:<id>"`. Generic Shop instances use `"generic_shop:<id>"`.
 
 **Tier**: A non-negative integer representing how magically infused an item is. Tier 0 is non-magical. Tier 0.5 is not used in this module; fractional tier math belongs to other modules.
 
@@ -26,7 +26,7 @@
 
 **Stack Identity**: The set of fields that must all match exactly for two Stacks to merge. These are: Item Type, Tier, Properties (in order), stored_spell, durability_damage, name override, and — for Gems — value_in_gold. If any identity field differs, the Stacks remain separate.
 
-**Stack Merge**: Combining two Stacks with matching Stack Identity by summing their Quantities and keeping all other fields.
+**Stack Merge**: The operation of combining two Stacks with matching Stack Identity into a single Stack. The merged Stack's Quantity is the sum of the inputs' Quantities; every identity field stays the same (the inputs were already equal on those fields, by definition of Stack Identity).
 
 **Durability Damage**: An integer recording damage an item has taken. Defaults to 0. Mechanical effects are deferred to a later pass.
 
@@ -42,9 +42,11 @@
 
 **Base Price**: The price in Gold of one non-magical (Tier 0) unit of the Item Type.
 
-**Tier Surcharge**: A flat additional cost in Gold added when an item is made magical, keyed by Tier. Shared across Weapons, Armor, and Ammunition. *(configurable)*
+**Tier Surcharge**: A flat additional cost in Gold added to a Weapon's or Armor's Unit Price when it is made magical, keyed by Tier. Defined under `Tier Pricing.surcharges` in `equipment_config.yaml`. Magical Ammunition uses a fraction of this cost — see Magical Ammunition Divisor. *(configurable)*
 
-**Unit Price**: The gold cost of a single copy of a specific item configuration (Item Type plus Tier plus Properties). For Weapons and Armor, `Unit Price = Base Price + Tier Surcharge + sum of Property costs`. For Ammunition, `Unit Price = (Base Price / bundle size) + (Tier Surcharge + sum of Property costs) / 100`. For Currencies, `Unit Price = value_in_gold`. For Gems, `Unit Price = the Gem's value_in_gold`.
+**Magical Ammunition Divisor**: The number of units of Magical Ammunition whose combined magical cost equals the magical surcharge of one equivalent Magical Weapon. Per-unit magical ammunition cost is `(Tier Surcharge + sum of Property costs) / Magical Ammunition Divisor`. Defined under `Tier Pricing.ammunition_divisor`. Defaults to 100. *(configurable)*
+
+**Unit Price**: The gold cost of a single copy of a specific item configuration (Item Type plus Tier plus Properties). For Weapons and Armor, `Unit Price = Base Price + Tier Surcharge + sum of Property costs`. For Ammunition, `Unit Price = (Base Price / bundle size) + (Tier Surcharge + sum of Property costs) / Magical Ammunition Divisor`. For Currencies, `Unit Price = value_in_gold`. For Gems, `Unit Price = the Gem's value_in_gold`.
 
 **Magical Property**: A named effect that can be attached to a Weapon or Armor. Each Property specifies a minimum Tier, a cost in Gold, which Item Categories it applies to, whether it takes a Subtype (e.g., Elemental Fire vs. Elemental Cold), and a Display block used by the Name Generator.
 
@@ -54,7 +56,7 @@
 
 ## Currency and Gems
 
-**Currency**: An Item Type with a fixed `value_in_gold` — Gold (1.0), Silver (0.1), Copper (0.01). Currencies stack by Item Type alone; fractional Quantities are permitted.
+**Currency**: An Item Type with a fixed `value_in_gold` — Gold (1.0), Silver (0.1), Copper (0.01). Currencies stack by Item Type alone; fractional Quantities are permitted. Each Currency may optionally declare a `weight` (e.g., grams or pounds per unit) for use by an outside encumbrance calculation; this module stores the field but does not act on it.
 
 **Gem**: An Item Type (`Gem`) whose instances carry their own `value_in_gold` field and optional `name` (e.g., "Ruby", "Emerald"). Two Gem Stacks merge only if both `value_in_gold` and `name` match. Gems do not have fixed types defined up-front; any Gem instance with a value_in_gold is a valid Gem.
 
