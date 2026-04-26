@@ -1,0 +1,29 @@
+<div class="notes-characters-stub" data-stub-id="<%= stub_id %>" data-dm-view="<%= dm_view ? '1' : '0' %>">
+<% if entries.empty? %>
+  <p class="notes-empty">No characters of interest yet.</p>
+<% else %>
+  <table class="notes-characters-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Role</th>
+        <th>Last seen</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% entries.each do |e| %>
+        <tr>
+          <td class="notes-character-name">
+            <%= h e['name'] %>
+            <% if e['public'] == false %><span class="notes-meta-chip notes-meta-private">DM only</span><% end %>
+          </td>
+          <td><%= h e['role'] %></td>
+          <td><%= h e['last_seen'] %></td>
+          <td><%= h e['note'] %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+</div>

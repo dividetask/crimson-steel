@@ -153,6 +153,42 @@ class DummyData
     ]
   end
 
+  # Characters of interest — NPCs the party has met or is tracking.
+  # Backs notes_characters_stub. Players only see entries with
+  # public => true; DM sees everything.
+  def self.characters_of_interest
+    [
+      { 'id' => 1, 'name' => 'Lord Halric',        'role' => 'Patron',
+        'last_seen' => 'Crimson Hold',        'chapter' => 1, 'public' => true,
+        'note' => 'Sent the sealed writ that started the journey.' },
+      { 'id' => 2, 'name' => 'Steward Voss',       'role' => 'Hostile (secret)',
+        'last_seen' => 'Beneath the Mountain', 'chapter' => 2, 'public' => false,
+        'note' => 'Working with the bandits. Knows the party route.' },
+      { 'id' => 3, 'name' => 'Mara the Innkeep',   'role' => 'Ally',
+        'last_seen' => 'Weeping Stag',        'chapter' => 1, 'public' => true,
+        'note' => 'Knows local rumors. Takes coppers for hot tea.' },
+      { 'id' => 4, 'name' => 'The Hooded Stranger', 'role' => 'Unknown',
+        'last_seen' => 'Forest road',         'chapter' => 1, 'public' => true,
+        'note' => 'Watched the party leave. Did not approach.' }
+    ]
+  end
+
+  # Image attachments — maps, portraits, props. Backs notes_images_stub.
+  # No real binaries yet; the stub renders an inline SVG placeholder
+  # whose look is picked by the kind field.
+  def self.note_images
+    [
+      { 'id' => 1, 'kind' => 'document', 'chapter' => 1, 'public' => true,
+        'caption' => 'The sealed writ delivered to the party in the Weeping Stag.' },
+      { 'id' => 2, 'kind' => 'map',      'chapter' => 2, 'public' => false,
+        'caption' => 'Bandit ambush map (DM only).' },
+      { 'id' => 3, 'kind' => 'portrait', 'chapter' => 1, 'public' => true,
+        'caption' => 'Mara, the innkeep at the Weeping Stag.' },
+      { 'id' => 4, 'kind' => 'location', 'chapter' => 2, 'public' => true,
+        'caption' => 'Cave entrance under the mountain.' }
+    ]
+  end
+
   # --- Spells --------------------------------------------------------------
 	# The spell schools and descriptions are placeholders and do not reflect the actual schools
 
@@ -210,9 +246,12 @@ class DummyData
   def self.scene
     {
       'title' => 'The Bandit Ambush',
-      'image' => nil,
+      'description' => 'Crossbows click from the treeline. Smoke rises off the wrecked wagon.',
       'show_initiative' => true,
-      'description' => 'Crossbows click from the treeline. Smoke rises off the wrecked wagon.'
+      'map' => {
+        'caption' => 'Forest road south of the wagon. Treeline curves on the east; the wagon wreck blocks the road.',
+        'kind' => 'map'
+      }
     }
   end
 

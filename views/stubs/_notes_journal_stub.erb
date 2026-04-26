@@ -1,0 +1,18 @@
+<div class="notes-journal-stub" data-stub-id="<%= stub_id %>" data-dm-view="<%= dm_view ? '1' : '0' %>">
+<% if entries.empty? %>
+  <p class="notes-empty">No journal entries yet.</p>
+<% else %>
+  <ul class="notes-journal-list">
+    <% entries.each do |e| %>
+      <li class="notes-journal-item">
+        <% if e['title'] %><div class="notes-journal-title"><%= h e['title'] %></div><% end %>
+        <div class="notes-journal-body"><%= h(e['note']).gsub("\n", '<br>') %></div>
+        <div class="notes-journal-meta">
+          <% if e['chapter'] %><span class="notes-meta-chip">Ch. <%= h e['chapter'] %></span><% end %>
+          <% if e['public'] == false %><span class="notes-meta-chip notes-meta-private">DM only</span><% end %>
+        </div>
+      </li>
+    <% end %>
+  </ul>
+<% end %>
+</div>

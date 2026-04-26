@@ -1,0 +1,15 @@
+<% scene = DATA.scene %>
+
+<h1><%= h scene['title'] %></h1>
+<p class="scene-description"><%= h scene['description'] %></p>
+
+<%= scene_map_stub(map: scene['map']) %>
+
+<% if scene['show_initiative'] %>
+  <h2>Initiative</h2>
+  <%= initiative_stub(
+        turns: DATA.initiative_turns,
+        current_combat_id: session[:current_turn] || DATA.combat_state['current_turn'],
+        dm_view: dm?
+      ) %>
+<% end %>
