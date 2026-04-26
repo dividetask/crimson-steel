@@ -1,3 +1,5 @@
+require 'yaml'
+
 # Placeholder data source for the UI rebuild. The real rule engine from
 # before-refactor (character.rb, templates.rb, tools.rb, etc.) is not
 # wired up yet; this class returns hard-coded values shaped the way the
@@ -202,6 +204,122 @@ class DummyData
       'item'       => %w[potion scroll misc],
       'tattoo'     => %w[shoulder arm chest],
       'ammunition' => %w[arrow bolt sling]
+    }
+  end
+
+  # --- Melee attack stub ---------------------------------------------------
+  # The melee_attack_stub is rule-ignorant: callers hand it the attacker's
+  # weapons, the candidate targets, the concrete defense options for each
+  # target (one per equipped weapon for parry, one per shield for block,
+  # etc.), and the lists of ally / target reactions. Everything below is
+  # placeholder data shaped the way the stub expects, so the UI flow can
+  # be exercised end-to-end before any real rule engine is wired up.
+  #
+  # The defenses catalog (`data/defenses.yaml`) defines the abstract kinds
+  # — `melee_defense_options` is responsible for expanding `parry` into
+  # one option per equipped weapon, `block` into one per shield, etc.
+
+  def self.defenses_catalog
+    @defenses_catalog ||= YAML.load_file(File.join(__dir__, '..', 'data', 'defenses.yaml'))['defenses']
+  end
+
+  def self.melee_attacker_sample
+    {
+      'name'  => 'Bryn Ironvein',
+      'skill' => { 'name' => 'Attack', 'bonus' => 2, 'dice' => 8, 'ranks' => 3 },
+      'weapons' => [
+        { 'key' => 'longsword',
+          'name' => 'Longsword',
+          'min_dice' => 2, 'max_dice' => 6,
+          'attack_bonus' => 2, 'damage' => 4, 'threshold' => 8, 'bleed' => 1, 'speed' => 2 },
+        { 'key' => 'handaxe',
+          'name' => 'Handaxe',
+          'min_dice' => 2, 'max_dice' => 5,
+          'attack_bonus' => 1, 'damage' => 3, 'threshold' => 6, 'bleed' => 1, 'speed' => 1 }
+      ]
+    }
+  end
+
+  def self.melee_target_samples
+    [
+      { 'key' => 'mob-1', 'name' => 'Bandit Thug',   'incapacitated' => false,
+        'defenses'  => melee_defense_options(:thug),
+        'reactions' => [] },
+      { 'key' => 'mob-2', 'name' => 'Bandit Captain','incapacitated' => false,
+        'defenses'  => melee_defense_options(:captain),
+        'reactions' => [
+          { 'key' => 'danger_sense',    'label' => 'Danger Sense',    'cost' => '4 mana',
+            'description' => 'Damage resilience +4 against this attack.' },
+          { 'key' => 'primal_tenacity', 'label' => 'Primal Tenacity', 'cost' => '4 mana',
+            'description' => 'Damage reduction +4 against this attack.' }
+        ] },
+      { 'key' => 'mob-3', 'name' => 'Skeleton',      'incapacitated' => true,
+        'defenses'  => [defense_option('nothing')],
+        'reactions' => [] }
+    ]
+  end
+
+  def self.melee_ally_reactions
+    [
+      { 'key'   => 'lira-shield-of-faith',
+        'label' => 'Lira — Shield of Faith',
+        'min_dice' => 2, 'max_dice' => 4,
+        'skill'  => { 'name' => 'Healing', 'bonus' => 2, 'dice' => 4, 'ranks' => 2 },
+        'cost'   => 'no mana (concentration)',
+        'tn_label' => 'Block TN' },
+      { 'key'   => 'ash-bardic-inspiration',
+        'label' => 'Ash — Bardic Inspiration',
+        'reroll' => true,
+        'cost'   => '1 mana',
+        'description' => 'Reroll N lowest dice on the attack roll (handled in the roll stub).' }
+    ]
+  end
+
+  # Build the `defenses` array a target ships to the stub. A real data
+  # layer will derive this from the target's equipped items; here we
+  # synthesize representative loadouts per archetype.
+  def self.melee_defense_options(archetype)
+    case archetype
+    when :thug
+      [
+        defense_option('nothing'),
+        defense_option('dodge', skill: { 'bonus' => 1, 'dice' => 5 }, min_dice: 2, max_dice: 5),
+        defense_option('parry', label_suffix: 'Club',
+                       implement: { 'name' => 'Club', 'attack_bonus' => 1, 'speed' => 1 },
+                       skill: { 'bonus' => 1, 'dice' => 4 }, min_dice: 2, max_dice: 4)
+      ]
+    when :captain
+      [
+        defense_option('nothing'),
+        defense_option('dodge', skill: { 'bonus' => 2, 'dice' => 6 }, min_dice: 2, max_dice: 6),
+        defense_option('parry', label_suffix: 'Axe',
+                       implement: { 'name' => 'Axe', 'attack_bonus' => 2, 'speed' => 2 },
+                       skill: { 'bonus' => 2, 'dice' => 5 }, min_dice: 2, max_dice: 5),
+        defense_option('parry', label_suffix: 'Dagger',
+                       implement: { 'name' => 'Dagger', 'attack_bonus' => 1, 'speed' => 1 },
+                       skill: { 'bonus' => 1, 'dice' => 4 }, min_dice: 2, max_dice: 4),
+        defense_option('block', label_suffix: 'Buckler',
+                       implement: { 'name' => 'Buckler', 'attack_bonus' => 1, 'speed' => 1 },
+                       skill: { 'bonus' => 1, 'dice' => 4 }, min_dice: 2, max_dice: 4)
+      ]
+    else
+      [defense_option('nothing')]
+    end
+  end
+
+  def self.defense_option(kind, label_suffix: nil, implement: nil, skill: nil, min_dice: 0, max_dice: 0)
+    catalog = defenses_catalog.fetch(kind)
+    label = label_suffix ? "#{catalog['label']} with #{label_suffix}" : catalog['label']
+    {
+      'kind'        => kind,
+      'key'         => label_suffix ? "#{kind}-#{label_suffix.downcase.tr(' ', '-')}" : kind,
+      'label'       => label,
+      'description' => catalog['description'],
+      'uses_dice'   => catalog['uses_dice'],
+      'implement'   => implement,
+      'skill'       => skill,
+      'min_dice'    => min_dice,
+      'max_dice'    => max_dice
     }
   end
 

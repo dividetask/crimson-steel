@@ -87,3 +87,34 @@
 
 <h3>Empty state</h3>
 <%= initiative_stub(turns: []) %>
+
+<h2>Melee Attack Stub</h2>
+
+<p class="dt-note">
+  Walks the DM through target &rarr; weapon &rarr; attack dice &rarr; defense
+  &rarr; ally reactions &rarr; rolls &rarr; target reactions &rarr; damage.
+  Steps with a single (or zero) option auto-advance.
+</p>
+
+<%= melee_attack_stub(
+      attacker:       DATA.melee_attacker_sample,
+      targets:        DATA.melee_target_samples,
+      ally_reactions: DATA.melee_ally_reactions
+    ) %>
+
+<div class="stub-test-capture">
+  <label>Last melee result:
+    <textarea id="test-melee-result" rows="6" readonly
+              placeholder="(submit the damage step)"
+              style="width:100%;font-family:monospace;font-size:11px;"></textarea>
+  </label>
+</div>
+
+<script>
+  // Echo the meleeattack:confirm payload so the test harness can show
+  // what the stub would hand off to a real combat handler.
+  document.addEventListener('meleeattack:confirm', function(e) {
+    var out = document.getElementById('test-melee-result');
+    if (out) out.value = JSON.stringify(e.detail, null, 2);
+  });
+</script>

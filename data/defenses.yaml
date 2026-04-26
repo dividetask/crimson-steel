@@ -1,0 +1,45 @@
+# Defenses — Catalog of defensive reactions a target may declare against
+# an attack. The melee_attack_stub (and later the ranged_attack_stub) walks
+# the DM through these options. Adding a new entry here surfaces it as a
+# selectable defense once the data layer learns how to expand it into the
+# concrete options shown to the DM (e.g. "Parry with Axe" vs "Parry with
+# Dagger" both originate from the `parry` kind).
+#
+# Field reference:
+#   label           Button label and step heading.
+#   description     Short DM-facing explanation.
+#   uses_dice       Whether the defense spends combat dice and rolls.
+#   uses_implement  Implement type required to choose this defense:
+#                     - none     -> always available
+#                     - weapon   -> one option per equipped melee weapon
+#                     - shield   -> one option per equipped shield
+#   sort_order      Order the buttons appear in the UI.
+
+defenses:
+  nothing:
+    label: Nothing
+    description: Take no defensive action; the attacker rolls flatfooted.
+    uses_dice: false
+    uses_implement: none
+    sort_order: 1
+
+  dodge:
+    label: Dodge
+    description: Spend dice on a Dexterity-based dodge roll.
+    uses_dice: true
+    uses_implement: none
+    sort_order: 2
+
+  parry:
+    label: Parry
+    description: Block the attack with a melee weapon. One option per equipped weapon.
+    uses_dice: true
+    uses_implement: weapon
+    sort_order: 3
+
+  block:
+    label: Block
+    description: Block the attack with a shield. One option per equipped shield.
+    uses_dice: true
+    uses_implement: shield
+    sort_order: 4
