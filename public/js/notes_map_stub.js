@@ -189,6 +189,21 @@
       });
     }
 
+    // ----- Arrow type (remember last selection across reloads) -----
+
+    if (typeSel) {
+      var typeKey = 'notes_map_arrow_type/' + mapId;
+      try {
+        var savedType = window.localStorage && localStorage.getItem(typeKey);
+        if (savedType && Array.from(typeSel.options).some(function (o) { return o.value === savedType; })) {
+          typeSel.value = savedType;
+        }
+      } catch (e) {}
+      typeSel.addEventListener('change', function () {
+        try { if (window.localStorage) localStorage.setItem(typeKey, typeSel.value); } catch (e) {}
+      });
+    }
+
     // ----- Arrow drawing (immediate POST) -------------------------
 
     var pendingPick = null;
