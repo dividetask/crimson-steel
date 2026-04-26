@@ -473,6 +473,83 @@ body {
 .notes-journal-body  { line-height: 1.4; }
 .notes-journal-meta  { margin-top: 6px; }
 
+.notes-journal-add,
+.notes-journal-edit {
+  margin-top: 8px;
+  border: 1px dashed #bbb;
+  border-radius: 3px;
+  padding: 4px 8px;
+  background: #fff;
+}
+
+.notes-journal-add summary,
+.notes-journal-edit summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: #444;
+}
+
+.notes-journal-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: flex-start;
+  margin-top: 6px;
+}
+
+.notes-journal-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: #444;
+}
+
+.notes-journal-form .notes-journal-flag {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.notes-journal-form input[type="text"],
+.notes-journal-form input[type="number"],
+.notes-journal-form textarea {
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+.notes-journal-form input[type="text"]   { width: 240px; }
+.notes-journal-form input[type="number"] { width: 60px; }
+.notes-journal-form textarea             { width: 360px; max-width: 100%; }
+
+.notes-journal-actions {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.notes-journal-form button {
+  font-size: 11px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+
+.notes-journal-delete-form {
+  margin-top: 6px;
+  border-top: 1px dashed #ddd;
+  padding-top: 6px;
+}
+
+.notes-journal-delete-btn {
+  font-size: 11px;
+  padding: 2px 10px;
+  background: #6a0000;
+  color: #fff;
+  border: 1px solid #3a0000;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
 .notes-characters-stub { margin: 8px 0; }
 
 .notes-characters-table {
@@ -578,6 +655,16 @@ body {
 }
 
 .notes-map-svg.place-mode { cursor: crosshair; }
+
+.notes-map-pending-point {
+  fill: #ffeb3b;
+  stroke: #fbc02d;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.notes-map-arrow-remove circle { transition: fill 0.1s; }
+.notes-map-arrow-remove:hover circle { fill: #fff5f5; }
 
 .notes-map-controls {
   padding: 8px;

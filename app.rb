@@ -6,6 +6,7 @@ require_relative 'lib/dice_system'
 require_relative 'lib/user'
 require_relative 'lib/dummy_data'
 require_relative 'lib/scene_state'
+require_relative 'lib/notes_state'
 
 set :port, 4567
 set :bind, '0.0.0.0'
@@ -25,6 +26,7 @@ require local_config if File.exist?(local_config)
 DICE_SYSTEM = DiceSystem.new(File.join(__dir__, 'data', 'dice_resolution.yaml'))
 USER_STORE = UserStore.new(File.join(__dir__, 'data', 'users.json'))
 SCENE_STATE = SceneState.new
+NOTES_STATE = NotesState.new
 DATA = DummyData
 
 helpers do

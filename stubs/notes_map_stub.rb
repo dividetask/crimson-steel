@@ -56,13 +56,30 @@ end
 post '/scene/draw_arrow' do
   content_type :json
   ok = SCENE_STATE.add_arrow(
-    map_id: params[:map_id].to_i,
-    from:   params[:from].to_s,
-    to:     params[:to].to_s,
-    type:   params[:type].to_s,
-    label:  current_user&.character_id ? DATA.character_by_id(current_user.character_id)&.dig('name') : nil
+    map_id:    params[:map_id].to_i,
+    type:      params[:type].to_s,
+    device_id: current_user&.device_id,
+    label:     current_user&.character_id ? DATA.character_by_id(current_user.character_id)&.dig('name') : nil,
+    from_id:   params[:from_id].to_s.empty? ? nil : params[:from_id],
+    from_x:    params[:from_x].to_s.empty? ? nil : params[:from_x],
+    from_y:    params[:from_y].to_s.empty? ? nil : params[:from_y],
+    to_id:     params[:to_id].to_s.empty? ? nil : params[:to_id],
+    to_x:      params[:to_x].to_s.empty? ? nil : params[:to_x],
+    to_y:      params[:to_y].to_s.empty? ? nil : params[:to_y]
   )
   status(ok ? 200 : 422)
+  { ok: ok }.to_json
+end
+
+post '/scene/remove_arrow' do
+  content_type :json
+  ok = SCENE_STATE.remove_arrow(
+    params[:map_id].to_i,
+    params[:arrow_id].to_s,
+    current_user&.device_id,
+    dm: current_user&.dm? == true
+  )
+  status(ok ? 200 : 403)
   { ok: ok }.to_json
 end
 

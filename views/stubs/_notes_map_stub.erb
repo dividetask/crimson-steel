@@ -33,17 +33,38 @@
           </g>
           <path d="M0,160 Q100,140 200,150 T400,160" stroke="#8aa86b" stroke-width="3" fill="none"/>
 
-          <%# Arrows beneath the objects %>
+          <%# Arrows beneath the objects. Either endpoint can be a
+              token reference (snaps to that token's current
+              position) or a free (x, y) — handled by
+              SceneState.resolve_endpoint. %>
           <% arrows.each do |a|
-               from = by_id[a['from']]; to = by_id[a['to']]; next unless from && to
                style = NOTES_MAP_ARROW_STYLES[a['type']]
-               next unless style %>
-            <line class="notes-map-arrow" data-arrow-type="<%= h a['type'] %>"
-                  x1="<%= from['x'] %>" y1="<%= from['y'] %>"
-                  x2="<%= to['x']   %>" y2="<%= to['y']   %>"
-                  stroke="<%= style[:color] %>" stroke-width="<%= style[:width] %>"
-                  <%= "stroke-dasharray=\"#{style[:dash]}\"" if style[:dash] %>
-                  marker-end="url(#arrowhead-<%= map_id %>-<%= a['type'] %>)"/>
+               next unless style
+               from_xy = SceneState.resolve_endpoint(a, 'from', by_id)
+               to_xy   = SceneState.resolve_endpoint(a, 'to',   by_id)
+               next unless from_xy && to_xy
+               own = current_user && a['device_id'] == current_user.device_id
+               can_remove = interactive && (dm_view || own)
+               mid_x = (from_xy[0] + to_xy[0]) / 2.0
+               mid_y = (from_xy[1] + to_xy[1]) / 2.0 %>
+            <g class="notes-map-arrow-group" data-arrow-id="<%= h a['id'] %>">
+              <line class="notes-map-arrow" data-arrow-type="<%= h a['type'] %>"
+                    x1="<%= from_xy[0] %>" y1="<%= from_xy[1] %>"
+                    x2="<%= to_xy[0]   %>" y2="<%= to_xy[1]   %>"
+                    stroke="<%= style[:color] %>" stroke-width="<%= style[:width] %>"
+                    <%= "stroke-dasharray=\"#{style[:dash]}\"" if style[:dash] %>
+                    marker-end="url(#arrowhead-<%= map_id %>-<%= a['type'] %>)"/>
+              <% if can_remove %>
+                <g class="notes-map-arrow-remove"
+                   transform="translate(<%= '%.1f' % mid_x %>,<%= '%.1f' % mid_y %>)"
+                   data-arrow-id="<%= h a['id'] %>">
+                  <circle r="7" fill="#fff" stroke="<%= style[:color] %>" stroke-width="1.5"/>
+                  <text x="0" y="3" text-anchor="middle"
+                        font-family="Arial,sans-serif" font-size="10"
+                        fill="<%= style[:color] %>" pointer-events="none">&#x2715;</text>
+                </g>
+              <% end %>
+            </g>
           <% end %>
 
           <%# Objects on top %>
@@ -85,7 +106,7 @@
                 <option value="move-carefully">Move (carefully)</option>
               </select>
             </label>
-            <span class="notes-map-arrow-status">Click two tokens to draw an arrow.</span>
+            <span class="notes-map-arrow-status">Click two points (token or empty space) to draw an arrow.</span>
             <% if dm_view %>
               <form method="post" action="/scene/clear_arrows" class="notes-map-clear-form">
                 <input type="hidden" name="map_id" value="<%= h map_id %>">
