@@ -16,6 +16,46 @@ NOTES_MAP_ARROW_STYLES = {
 
 NOTES_MAP_ARROW_TYPES = NOTES_MAP_ARROW_STYLES.keys.freeze
 
+# Emoji palette (DM only for now). Adapted from
+# claude/add-scene-map-drawing-xzz3R — the original branch had three
+# groups (player / general / class). The general + class groups are
+# the DM palette here.
+NOTES_MAP_DM_ICONS = {
+  'general' => [
+    ['🕸',   'Web'],
+    ['🔥',   'Fire'],
+    ['💧',   'Water'],
+    ['☠',    'Death / skull'],
+    ['🪤',   'Trap'],
+    ['🚪',   'Door'],
+    ['⛏',    'Rubble / mining'],
+    ['⭐',   'Objective / star'],
+    ['⬆',    'Up / north'],
+    ['⬇',    'Down / south'],
+    ['⬅',    'Left / west'],
+    ['➡',    'Right / east'],
+    ['❓',   'Unknown'],
+    ['❗',   'Alert']
+  ],
+  'class' => [
+    ['🪓',   'Axe — barbarian / warrior'],
+    ['⚔️',   'Crossed swords — fighter'],
+    ['🛡️',   'Shield — defender / paladin'],
+    ['🗡️',   'Dagger — rogue / assassin'],
+    ['🏹',   'Bow — archer / ranger / elf'],
+    ['🪄',   'Wand — mage / sorcerer'],
+    ['📖',   'Tome — wizard / scholar'],
+    ['⚕️',   'Medical staff — cleric / healer'],
+    ['🎵',   'Music note — bard'],
+    ['🎭',   'Masks — bard / performer'],
+    ['🧝',   'Elf'],
+    ['🧙',   'Mage / druid'],
+    ['🐺',   'Wolf — druid / ranger companion'],
+    ['👑',   'Crown — noble / leader'],
+    ['💀',   'Skull — fallen / undead']
+  ]
+}.freeze
+
 helpers do
   def notes_map_stub(entries:, dm_view: false, current_chapter: nil,
                      active_only: false, interactive: false,
@@ -107,9 +147,21 @@ post '/scene/add_shape' do
     kind:   params[:kind].to_s,
     x:      params[:x].to_f,
     y:      params[:y].to_f,
-    w:      params[:w] ? params[:w].to_f : nil,
-    h:      params[:h] ? params[:h].to_f : nil,
-    r:      params[:r] ? params[:r].to_f : nil
+    w:      params[:w]  ? params[:w].to_f  : nil,
+    h:      params[:h]  ? params[:h].to_f  : nil,
+    rx:     params[:rx] ? params[:rx].to_f : nil,
+    ry:     params[:ry] ? params[:ry].to_f : nil
+  )
+  redirect(request.referrer || '/scene')
+end
+
+post '/scene/add_icon' do
+  halt 403, 'forbidden' unless current_user&.dm?
+  SCENE_STATE.add_icon(
+    map_id: params[:map_id].to_i,
+    glyph:  params[:glyph].to_s,
+    x:      params[:x].to_f,
+    y:      params[:y].to_f
   )
   redirect(request.referrer || '/scene')
 end
@@ -207,9 +259,18 @@ post '/scene/batch' do
         kind:   op['shape_kind'].to_s,
         x:      op['x'].to_f,
         y:      op['y'].to_f,
-        w:      op['w'] ? op['w'].to_f : nil,
-        h:      op['h'] ? op['h'].to_f : nil,
-        r:      op['r'] ? op['r'].to_f : nil
+        w:      op['w']  ? op['w'].to_f  : nil,
+        h:      op['h']  ? op['h'].to_f  : nil,
+        rx:     op['rx'] ? op['rx'].to_f : nil,
+        ry:     op['ry'] ? op['ry'].to_f : nil
+      )
+      applied += 1
+    when 'add_icon'
+      SCENE_STATE.add_icon(
+        map_id: map_id,
+        glyph:  op['glyph'].to_s,
+        x:      op['x'].to_f,
+        y:      op['y'].to_f
       )
       applied += 1
     end

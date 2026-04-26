@@ -67,7 +67,7 @@
 
     var toolBtns      = card.querySelectorAll('.notes-map-tool-btn');
     var zoomBtns      = card.querySelectorAll('.notes-map-zoom-btn');
-    var typeSel       = card.querySelector('.notes-map-arrow-type');
+    var arrowBtns     = card.querySelectorAll('.notes-map-arrow-btn');
     var status        = card.querySelector('.notes-map-arrow-status');
     var pendingBar    = card.querySelector('.notes-map-pending');
     var pendingCount  = card.querySelector('.notes-map-pending-count');
@@ -189,20 +189,125 @@
       });
     }
 
-    // ----- Arrow type (remember last selection across reloads) -----
+    // ----- Arrow type buttons (and DM hold-down "Move" flyout) ----
 
-    if (typeSel) {
-      var typeKey = 'notes_map_arrow_type/' + mapId;
-      try {
-        var savedType = window.localStorage && localStorage.getItem(typeKey);
-        if (savedType && Array.from(typeSel.options).some(function (o) { return o.value === savedType; })) {
-          typeSel.value = savedType;
-        }
-      } catch (e) {}
-      typeSel.addEventListener('change', function () {
-        try { if (window.localStorage) localStorage.setItem(typeKey, typeSel.value); } catch (e) {}
+    var ARROW_TYPES = {
+      'attack':         { color: '#c62828', label: 'Attack' },
+      'move-hurry':     { color: '#ef6c00', label: 'Move (hurry)' },
+      'move-sneak':     { color: '#6a1b9a', label: 'Move (sneak)' },
+      'move-carefully': { color: '#2e7d32', label: 'Move (carefully)' }
+    };
+    var MOVE_VARIANTS = ['move-hurry', 'move-sneak', 'move-carefully'];
+
+    var typeKey      = 'notes_map_arrow_type/' + mapId;
+    var moveVarKey   = 'notes_map_move_variant/' + mapId;
+    var arrowType    = 'attack';
+    var moveVariant  = 'move-hurry';
+
+    try {
+      var sv = window.localStorage && localStorage.getItem(typeKey);
+      if (sv && ARROW_TYPES[sv]) arrowType = sv;
+      var sm = window.localStorage && localStorage.getItem(moveVarKey);
+      if (sm && MOVE_VARIANTS.indexOf(sm) >= 0) moveVariant = sm;
+    } catch (e) {}
+
+    function arrowTypeForButton(btn) {
+      // The DM "Move" group button reflects the active variant.
+      if (btn.getAttribute('data-arrow-group') === 'move') return moveVariant;
+      return btn.getAttribute('data-arrow-type');
+    }
+
+    function refreshArrowButtons() {
+      arrowBtns.forEach(function (b) {
+        var t = arrowTypeForButton(b);
+        var st = ARROW_TYPES[t];
+        if (st) b.style.setProperty('--arrow-color', st.color);
+        b.classList.toggle('active', t === arrowType);
       });
     }
+
+    function setArrowType(t) {
+      if (!ARROW_TYPES[t]) return;
+      arrowType = t;
+      try { if (window.localStorage) localStorage.setItem(typeKey, t); } catch (e) {}
+      if (MOVE_VARIANTS.indexOf(t) >= 0) {
+        moveVariant = t;
+        try { if (window.localStorage) localStorage.setItem(moveVarKey, t); } catch (e) {}
+        // Reflect the chosen variant on the DM "Move" button so its
+        // next click uses the same variant without re-opening the
+        // flyout.
+        arrowBtns.forEach(function (b) {
+          if (b.getAttribute('data-arrow-group') === 'move') {
+            b.setAttribute('data-arrow-type', t);
+          }
+        });
+      }
+      refreshArrowButtons();
+    }
+
+    refreshArrowButtons();
+
+    // Photoshop-style hold-down menu on .notes-map-arrow-move-group:
+    //   - quick click → use current variant
+    //   - long press (>=350ms) → flyout with the three variants
+    //   - mouseup over a flyout item → select that variant
+    var FLYOUT_DELAY = 350;
+    var moveFlyout = null;
+    function openMoveFlyout(btn) {
+      closeMoveFlyout();
+      moveFlyout = document.createElement('div');
+      moveFlyout.className = 'notes-map-arrow-flyout';
+      MOVE_VARIANTS.forEach(function (t) {
+        var item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'notes-map-arrow-flyout-item';
+        item.setAttribute('data-arrow-type', t);
+        item.style.setProperty('--arrow-color', ARROW_TYPES[t].color);
+        item.textContent = ARROW_TYPES[t].label;
+        moveFlyout.appendChild(item);
+      });
+      btn.parentNode.appendChild(moveFlyout);
+      moveFlyout.addEventListener('mouseup', function (e) {
+        var item = e.target.closest('.notes-map-arrow-flyout-item');
+        if (item) setArrowType(item.getAttribute('data-arrow-type'));
+        closeMoveFlyout();
+      });
+    }
+    function closeMoveFlyout() {
+      if (moveFlyout && moveFlyout.parentNode) moveFlyout.parentNode.removeChild(moveFlyout);
+      moveFlyout = null;
+    }
+
+    arrowBtns.forEach(function (btn) {
+      var holdTimer = null;
+      var fired = false;
+
+      btn.addEventListener('mousedown', function () {
+        if (btn.getAttribute('data-arrow-group') !== 'move') return;
+        fired = false;
+        holdTimer = setTimeout(function () { fired = true; openMoveFlyout(btn); }, FLYOUT_DELAY);
+      });
+      btn.addEventListener('mouseup', function () {
+        if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+        if (!fired) setArrowType(arrowTypeForButton(btn));
+      });
+      btn.addEventListener('mouseleave', function () {
+        if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+      });
+      btn.addEventListener('click', function (e) {
+        // Suppress the synthetic click that follows a flyout-mouseup
+        // (the flyout's `mouseup` already updated the variant).
+        if (fired) e.preventDefault();
+      });
+    });
+
+    document.addEventListener('mousedown', function (e) {
+      if (!moveFlyout) return;
+      if (!e.target.closest('.notes-map-arrow-flyout') &&
+          !e.target.closest('.notes-map-arrow-move-group')) {
+        closeMoveFlyout();
+      }
+    });
 
     // ----- Arrow drawing (immediate POST) -------------------------
 
@@ -228,8 +333,7 @@
     }
 
     function commitArrow(ep) {
-      var type = typeSel ? typeSel.value : 'attack';
-      var fields = { map_id: mapId, type: type };
+      var fields = { map_id: mapId, type: arrowType };
       Object.assign(fields, fieldsForEndpoint('from', pendingPick));
       Object.assign(fields, fieldsForEndpoint('to', ep));
       setStatus('Drawing…');
@@ -317,7 +421,14 @@
       }, glyph);
     }
 
-    // ----- Add-shape (drag to draw, batched) ----------------------
+    // ----- Add-shape (drag to draw or click for default size) -----
+    //
+    // Rect: drag from corner to corner; click without drag → 50x50.
+    // Ellipse: drag horizontally for rx, vertically for ry (drag is
+    // measured from the click point); click without drag → rx=ry=25.
+
+    var DEFAULT_RECT_W = 50, DEFAULT_RECT_H = 50;
+    var DEFAULT_ELLIPSE_RX = 25, DEFAULT_ELLIPSE_RY = 25;
 
     var shape = null;
     function startShape(p) {
@@ -327,7 +438,7 @@
       if (kind === 'rect') {
         preview = svgEl('rect', { class: 'notes-map-shape-preview', x: p.x, y: p.y, width: 0, height: 0 });
       } else {
-        preview = svgEl('circle', { class: 'notes-map-shape-preview', cx: p.x, cy: p.y, r: 0 });
+        preview = svgEl('ellipse', { class: 'notes-map-shape-preview', cx: p.x, cy: p.y, rx: 0, ry: 0 });
       }
       svg.appendChild(preview);
       shape = { kind: kind, sx: p.x, sy: p.y, ex: p.x, ey: p.y, preview: preview };
@@ -343,8 +454,8 @@
         shape.preview.setAttribute('width',  Math.abs(p.x - shape.sx));
         shape.preview.setAttribute('height', Math.abs(p.y - shape.sy));
       } else {
-        var dx = p.x - shape.sx, dy = p.y - shape.sy;
-        shape.preview.setAttribute('r', Math.sqrt(dx*dx + dy*dy));
+        shape.preview.setAttribute('rx', Math.abs(p.x - shape.sx));
+        shape.preview.setAttribute('ry', Math.abs(p.y - shape.sy));
       }
     }
     function commitShape() {
@@ -353,29 +464,78 @@
       var op;
       if (s.kind === 'rect') {
         var w = Math.abs(s.ex - s.sx), h = Math.abs(s.ey - s.sy);
-        if (w < 4 || h < 4) { s.preview.remove(); return; }
+        var defaulted = (w < 4 && h < 4);
+        if (defaulted) { w = DEFAULT_RECT_W; h = DEFAULT_RECT_H; }
+        var cx = defaulted ? s.sx : (s.sx + s.ex) / 2;
+        var cy = defaulted ? s.sy : (s.sy + s.ey) / 2;
+        // Update the preview to reflect the committed dims.
+        s.preview.setAttribute('x', cx - w / 2);
+        s.preview.setAttribute('y', cy - h / 2);
+        s.preview.setAttribute('width',  w);
+        s.preview.setAttribute('height', h);
         op = {
           kind: 'add_shape', shape_kind: 'rect',
-          x: parseFloat(((s.sx + s.ex) / 2).toFixed(1)),
-          y: parseFloat(((s.sy + s.ey) / 2).toFixed(1)),
+          x: parseFloat(cx.toFixed(1)),
+          y: parseFloat(cy.toFixed(1)),
           w: parseFloat(w.toFixed(1)),
           h: parseFloat(h.toFixed(1))
         };
       } else {
-        var dx = s.ex - s.sx, dy = s.ey - s.sy;
-        var r  = Math.sqrt(dx*dx + dy*dy);
-        if (r < 4) { s.preview.remove(); return; }
+        var rx = Math.abs(s.ex - s.sx), ry = Math.abs(s.ey - s.sy);
+        if (rx < 4 && ry < 4) { rx = DEFAULT_ELLIPSE_RX; ry = DEFAULT_ELLIPSE_RY; }
+        s.preview.setAttribute('cx', s.sx);
+        s.preview.setAttribute('cy', s.sy);
+        s.preview.setAttribute('rx', rx);
+        s.preview.setAttribute('ry', ry);
         op = {
-          kind: 'add_shape', shape_kind: 'circle',
+          kind: 'add_shape', shape_kind: 'ellipse',
           x: parseFloat(s.sx.toFixed(1)),
           y: parseFloat(s.sy.toFixed(1)),
-          r: parseFloat(r.toFixed(1))
+          rx: parseFloat(rx.toFixed(1)),
+          ry: parseFloat(ry.toFixed(1))
         };
       }
       // Promote the preview into a "pending" rendered shape.
       s.preview.classList.remove('notes-map-shape-preview');
       s.preview.classList.add('pending-op');
       pushOp(op, s.preview);
+    }
+
+    // ----- Add-icon (DM emoji palette → click on map) --------------
+
+    var pickedIcon = null;
+    card.querySelectorAll('.notes-map-icon-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        pickedIcon = btn.getAttribute('data-glyph');
+        card.querySelectorAll('.notes-map-icon-btn.active').forEach(function (b) {
+          b.classList.remove('active');
+        });
+        btn.classList.add('active');
+        var statusEl = card.querySelector('.notes-map-icon-status');
+        if (statusEl) statusEl.textContent = 'Click on the map to place ' + pickedIcon + '.';
+      });
+    });
+
+    function placeIconAt(p) {
+      if (!pickedIcon) {
+        var statusEl = card.querySelector('.notes-map-icon-status');
+        if (statusEl) statusEl.textContent = 'Pick an icon first.';
+        return;
+      }
+      var t = svgEl('text', {
+        class: 'notes-map-icon',
+        x: p.x.toFixed(1), y: p.y.toFixed(1),
+        'text-anchor': 'middle', 'dominant-baseline': 'central',
+        'font-size': 28
+      });
+      t.textContent = pickedIcon;
+      svg.appendChild(t);
+      pushOp({
+        kind: 'add_icon',
+        glyph: pickedIcon,
+        x: parseFloat(p.x.toFixed(1)),
+        y: parseFloat(p.y.toFixed(1))
+      }, t);
     }
 
     // ----- Token mouse handling (decide based on tool) ------------
@@ -421,6 +581,8 @@
         pickArrowEndpoint({ kind: 'point', x: p.x, y: p.y }, null);
       } else if (tool === 'add-object') {
         addObjectAt(vboxPoint(svg, e));
+      } else if (tool === 'add-icon') {
+        placeIconAt(vboxPoint(svg, e));
       }
     });
 

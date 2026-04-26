@@ -36,6 +36,7 @@
             <button type="button" class="notes-map-tool-btn" data-tool="move"       title="Move tokens">&#10021;</button>
             <button type="button" class="notes-map-tool-btn" data-tool="add-object" title="Add object">&#8853;</button>
             <button type="button" class="notes-map-tool-btn" data-tool="add-shape"  title="Add shape">&#9645;</button>
+            <button type="button" class="notes-map-tool-btn" data-tool="add-icon"   title="Add icon">&#9733;</button>
             <hr>
             <button type="button" class="notes-map-zoom-btn" data-zoom="in"    title="Zoom in">+</button>
             <button type="button" class="notes-map-zoom-btn" data-zoom="reset" title="Reset zoom">&#9874;</button>
@@ -80,11 +81,24 @@
                   <rect x="<%= -s['w']/2 %>" y="<%= -s['h']/2 %>"
                         width="<%= s['w'] %>" height="<%= s['h'] %>"
                         fill="<%= h s['fill'] %>" stroke="<%= h s['stroke'] %>" stroke-width="1.5"/>
-                <% elsif s['kind'] == 'circle' %>
-                  <circle r="<%= s['r'] %>"
-                          fill="<%= h s['fill'] %>" stroke="<%= h s['stroke'] %>" stroke-width="1.5"/>
+                <% elsif s['kind'] == 'ellipse' %>
+                  <ellipse rx="<%= s['rx'] %>" ry="<%= s['ry'] %>"
+                           fill="<%= h s['fill'] %>" stroke="<%= h s['stroke'] %>" stroke-width="1.5"/>
                 <% end %>
               </g>
+            <% end %>
+
+            <%# Emoji icons (DM-placed). Rendered as <text> with
+                font-size = icon size. Each icon is centered on its
+                (x, y); SVG text dominant-baseline gives consistent
+                vertical centering across browsers. %>
+            <% icons = scene_state ? scene_state.icons_for(map_id) : [] %>
+            <% icons.each do |i| %>
+              <text class="notes-map-icon"
+                    data-icon-id="<%= h i['id'] %>"
+                    x="<%= i['x'] %>" y="<%= i['y'] %>"
+                    text-anchor="middle" dominant-baseline="central"
+                    font-size="<%= i['size'] %>"><%= h i['glyph'] %></text>
             <% end %>
 
             <%# Arrows beneath objects. %>
@@ -161,16 +175,39 @@
               hides whichever matches the active tool. %>
 
           <% if can_draw %>
+            <%# Arrow type picker. Players see four buttons (one per
+                type). DMs see two — Attack, plus a Move button that
+                opens a flyout (hold-down) with the three move
+                variants. The currently-selected type is reflected
+                via the .active class and tracked in JS. %>
             <div class="notes-map-arrow-controls" data-tool="arrow"
                  <%= 'hidden' if dm_view %>>
-              <label>Arrow type:
-                <select class="notes-map-arrow-type">
-                  <option value="attack">Attack</option>
-                  <option value="move-hurry">Move (hurry)</option>
-                  <option value="move-sneak">Move (sneak)</option>
-                  <option value="move-carefully">Move (carefully)</option>
-                </select>
-              </label>
+              <% if dm_view %>
+                <button type="button" class="notes-map-arrow-btn active"
+                        data-arrow-type="attack"
+                        style="--arrow-color:#c62828">Attack</button>
+                <button type="button"
+                        class="notes-map-arrow-btn notes-map-arrow-move-group"
+                        data-arrow-type="move-hurry"
+                        data-arrow-group="move"
+                        style="--arrow-color:#ef6c00">
+                  <span class="notes-map-arrow-btn-label">Move</span>
+                  <span class="notes-map-arrow-btn-caret">&#9662;</span>
+                </button>
+              <% else %>
+                <button type="button" class="notes-map-arrow-btn active"
+                        data-arrow-type="attack"
+                        style="--arrow-color:#c62828">Attack</button>
+                <button type="button" class="notes-map-arrow-btn"
+                        data-arrow-type="move-hurry"
+                        style="--arrow-color:#ef6c00">Move (hurry)</button>
+                <button type="button" class="notes-map-arrow-btn"
+                        data-arrow-type="move-sneak"
+                        style="--arrow-color:#6a1b9a">Move (sneak)</button>
+                <button type="button" class="notes-map-arrow-btn"
+                        data-arrow-type="move-carefully"
+                        style="--arrow-color:#2e7d32">Move (carefully)</button>
+              <% end %>
               <span class="notes-map-arrow-status">Click two points (token or empty) to draw an arrow.</span>
             </div>
           <% elsif !dm_view %>
@@ -212,6 +249,23 @@
 
             <div class="notes-map-move-hint" data-tool="move" hidden>
               Drag a token to reposition. Save to commit.
+            </div>
+
+            <div class="notes-map-add-icon" data-tool="add-icon" hidden>
+              <% NOTES_MAP_DM_ICONS.each do |group, list| %>
+                <div class="notes-map-icon-group">
+                  <span class="notes-map-icon-group-label"><%= group.capitalize %>:</span>
+                  <% list.each do |glyph, name| %>
+                    <button type="button"
+                            class="notes-map-icon-btn"
+                            data-glyph="<%= h glyph %>"
+                            title="<%= h name %>"><%= h glyph %></button>
+                  <% end %>
+                </div>
+              <% end %>
+              <div class="notes-map-icon-status">
+                Pick an icon, then click on the map. Save to commit.
+              </div>
             </div>
 
             <div class="notes-map-tool-hint-row">

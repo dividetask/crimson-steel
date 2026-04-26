@@ -14,7 +14,7 @@
 
 class SceneState
   ARROW_TYPES = %w[attack move-hurry move-sneak move-carefully].freeze
-  SHAPE_KINDS = %w[rect circle].freeze
+  SHAPE_KINDS = %w[rect ellipse].freeze
   ICON_KINDS  = %w[pc npc enemy scenery door trap treasure hazard].freeze
 
   # One grid square is this many viewBox units. Map sizes are stored
@@ -28,6 +28,7 @@ class SceneState
     @added_objects_by_map  = Hash.new { |h, k| h[k] = [] }
     @moves_by_map          = Hash.new { |h, k| h[k] = {} }
     @shapes_by_map         = Hash.new { |h, k| h[k] = [] }
+    @icons_by_map          = Hash.new { |h, k| h[k] = [] }
     @map_settings_by_map   = {}    # map_id => { 'label' => str, 'w' => sq, 'h' => sq }
     @current_turn          = nil
   end
@@ -108,7 +109,7 @@ class SceneState
     @shapes_by_map[map_id.to_i]
   end
 
-  def add_shape(map_id:, kind:, x:, y:, w: nil, h: nil, r: nil,
+  def add_shape(map_id:, kind:, x:, y:, w: nil, h: nil, rx: nil, ry: nil,
                 fill: '#cfd8dc', stroke: '#546e7a')
     return false unless SHAPE_KINDS.include?(kind)
     shape = {
@@ -120,8 +121,8 @@ class SceneState
       'stroke' => stroke
     }
     case kind
-    when 'rect'   then shape['w'] = (w || 40).to_f; shape['h'] = (h || 40).to_f
-    when 'circle' then shape['r'] = (r || 20).to_f
+    when 'rect'    then shape['w']  = (w  || 40).to_f; shape['h']  = (h  || 40).to_f
+    when 'ellipse' then shape['rx'] = (rx || 20).to_f; shape['ry'] = (ry || 20).to_f
     end
     @shapes_by_map[map_id.to_i] << shape
     shape
@@ -136,6 +137,36 @@ class SceneState
     return false unless s
     s['x'] = x.to_f
     s['y'] = y.to_f
+    true
+  end
+
+  # ----- Icons (emoji glyphs placed on the map) -------------------------
+
+  def icons_for(map_id)
+    @icons_by_map[map_id.to_i]
+  end
+
+  def add_icon(map_id:, glyph:, x:, y:, size: 28)
+    icon = {
+      'id'    => "icon_#{SecureRandom.hex(3)}",
+      'glyph' => glyph.to_s,
+      'x'     => x.to_f,
+      'y'     => y.to_f,
+      'size'  => size.to_f
+    }
+    @icons_by_map[map_id.to_i] << icon
+    icon
+  end
+
+  def remove_icon(map_id, icon_id)
+    @icons_by_map[map_id.to_i].reject! { |i| i['id'] == icon_id }
+  end
+
+  def move_icon(map_id, icon_id, x, y)
+    icon = @icons_by_map[map_id.to_i].find { |i| i['id'] == icon_id }
+    return false unless icon
+    icon['x'] = x.to_f
+    icon['y'] = y.to_f
     true
   end
 

@@ -854,7 +854,8 @@ body {
 }
 
 .notes-map-arrow-status,
-.notes-map-add-status {
+.notes-map-add-status,
+.notes-map-icon-status {
   color: #666;
   font-style: italic;
 }
@@ -866,9 +867,138 @@ body {
   padding: 2px 4px;
 }
 
+/* Arrow type buttons (replaces the old <select>). The line color
+   for each arrow type is set inline as --arrow-color and used both
+   for the left edge and the active outline. */
+.notes-map-arrow-btn {
+  position: relative;
+  font-size: 11px;
+  padding: 2px 10px 2px 14px;
+  cursor: pointer;
+  background: #fff;
+  color: #333;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+}
+
+.notes-map-arrow-btn::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background: var(--arrow-color, #888);
+  border-radius: 1px;
+}
+
+.notes-map-arrow-btn:hover { background: #f0f0f0; }
+.notes-map-arrow-btn.active {
+  background: var(--arrow-color, #1976d2);
+  color: #fff;
+  border-color: var(--arrow-color, #1976d2);
+}
+.notes-map-arrow-btn.active::before { background: rgba(255,255,255,0.7); }
+
+.notes-map-arrow-move-group { padding-right: 18px; }
+.notes-map-arrow-btn-caret  {
+  margin-left: 4px;
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+/* Photoshop-style flyout under the Move button. */
+.notes-map-arrow-flyout {
+  position: absolute;
+  margin-top: 2px;
+  background: #fff;
+  border: 1px solid #888;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.notes-map-arrow-flyout-item {
+  position: relative;
+  text-align: left;
+  padding: 4px 10px 4px 14px;
+  background: #fff;
+  color: #333;
+  border: 0;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.notes-map-arrow-flyout-item::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background: var(--arrow-color, #888);
+  border-radius: 1px;
+}
+
+.notes-map-arrow-flyout-item:hover {
+  background: var(--arrow-color, #1976d2);
+  color: #fff;
+}
+.notes-map-arrow-flyout-item:hover::before { background: rgba(255,255,255,0.7); }
+
 .notes-map-arrow-controls button,
 .notes-map-add-object button {
   font-size: 11px;
   padding: 2px 8px;
   cursor: pointer;
+}
+
+/* Emoji icon palette (DM tool=add-icon panel). */
+.notes-map-add-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notes-map-icon-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.notes-map-icon-group-label {
+  font-weight: bold;
+  font-size: 11px;
+  color: #444;
+  margin-right: 4px;
+  width: 60px;
+}
+
+.notes-map-icon-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+  padding: 0;
+}
+
+.notes-map-icon-btn:hover  { background: #f0f0f0; }
+.notes-map-icon-btn.active { background: #1976d2; border-color: #0d47a1; }
+
+/* Emoji glyphs rendered into the SVG itself need the same font
+   stack so they show up with proper colors. */
+.notes-map-svg .notes-map-icon {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+  user-select: none;
 }
