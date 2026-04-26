@@ -39,6 +39,12 @@ Crimson Steel DM Tools is a local server that allows other players to connect to
 | File | Purpose | Scope |
 |------|---------|-------|
 
+### Test page ordering
+
+- New stub previews on `views/pages/test.erb` go at the **top** of
+  the page, not the bottom. The most recently added feature should
+  be the first thing visible without scrolling.
+
 ## File Structure
 
 ```

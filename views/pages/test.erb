@@ -1,5 +1,74 @@
 <% p = @test_params || {} %>
 
+<%# Newest stub previews go at the top — see CLAUDE.md. %>
+
+<h2>Notes Map Stub</h2>
+
+<p class="dt-note">
+  Two simulated perspectives — both edit the same shared map state.
+  The "as player" stub forces <code>can_draw: true</code> so you can
+  exercise the arrow flow without juggling combat turns.
+</p>
+
+<h3>As player (current turn)</h3>
+<%= notes_map_stub(
+      entries: DATA.note_maps,
+      dm_view: false,
+      active_only: true,
+      interactive: true,
+      scene_state: SCENE_STATE,
+      can_draw: true
+    ) %>
+
+<% if dm? %>
+  <h3>As DM</h3>
+  <%= notes_map_stub(
+        entries: DATA.note_maps,
+        dm_view: true,
+        active_only: true,
+        interactive: true,
+        scene_state: SCENE_STATE
+      ) %>
+<% end %>
+
+<h2>Initiative Stub</h2>
+
+<p class="dt-note">
+  Both views are shown below for comparison; the Set-turn button updates
+  both via <code>POST /combat/set_turn/:combat_id</code>.
+</p>
+
+<% current_turn = SCENE_STATE.current_turn || DATA.combat_state['current_turn'] %>
+
+<h3>As current viewer</h3>
+<%= initiative_stub(
+      turns: DATA.initiative_turns,
+      current_combat_id: current_turn,
+      dm_view: dm?
+    ) %>
+
+<h3>As player</h3>
+<%= initiative_stub(
+      turns: DATA.initiative_turns,
+      current_combat_id: current_turn,
+      dm_view: false
+    ) %>
+
+<h3>Empty state</h3>
+<%= initiative_stub(turns: []) %>
+
+<% if dm? %>
+  <h2>Character Assignment Stub <small>(DM only)</small></h2>
+  <%= assignment_stub(
+        devices: USER_STORE.list,
+        characters: DATA.pcs,
+        current_device_id: current_user&.device_id
+      ) %>
+<% end %>
+
+<h2>Debug Stub</h2>
+<%= debug_stub %>
+
 <h2>Roll Stub</h2>
 
 <form method="post" action="/test" class="stub-test-form">
@@ -48,71 +117,4 @@
       if (out) out.value = e.detail.value;
     });
   </script>
-<% end %>
-
-<h2>Debug Stub</h2>
-<%= debug_stub %>
-
-<% if dm? %>
-  <h2>Character Assignment Stub <small>(DM only)</small></h2>
-  <%= assignment_stub(
-        devices: USER_STORE.list,
-        characters: DATA.pcs,
-        current_device_id: current_user&.device_id
-      ) %>
-<% end %>
-
-<h2>Initiative Stub</h2>
-
-<p class="dt-note">
-  Both views are shown below for comparison; the Set-turn button updates
-  both via <code>POST /combat/set_turn/:combat_id</code>.
-</p>
-
-<% current_turn = SCENE_STATE.current_turn || DATA.combat_state['current_turn'] %>
-
-<h3>As current viewer</h3>
-<%= initiative_stub(
-      turns: DATA.initiative_turns,
-      current_combat_id: current_turn,
-      dm_view: dm?
-    ) %>
-
-<h3>As player</h3>
-<%= initiative_stub(
-      turns: DATA.initiative_turns,
-      current_combat_id: current_turn,
-      dm_view: false
-    ) %>
-
-<h3>Empty state</h3>
-<%= initiative_stub(turns: []) %>
-
-<h2>Notes Map Stub</h2>
-
-<p class="dt-note">
-  Two simulated perspectives — both edit the same shared map state.
-  The "as player" stub forces <code>can_draw: true</code> so you can
-  exercise the arrow flow without juggling combat turns.
-</p>
-
-<h3>As player (current turn)</h3>
-<%= notes_map_stub(
-      entries: DATA.note_maps,
-      dm_view: false,
-      active_only: true,
-      interactive: true,
-      scene_state: SCENE_STATE,
-      can_draw: true
-    ) %>
-
-<% if dm? %>
-  <h3>As DM</h3>
-  <%= notes_map_stub(
-        entries: DATA.note_maps,
-        dm_view: true,
-        active_only: true,
-        interactive: true,
-        scene_state: SCENE_STATE
-      ) %>
 <% end %>
