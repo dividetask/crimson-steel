@@ -33,7 +33,9 @@
   function appendStep(stubId, label) {
     var step = makeStep(label);
     stepsEl(stubId).appendChild(step.root);
-    step.root.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    if (step.root.scrollIntoView) {
+      step.root.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    }
     return step;
   }
 
@@ -485,7 +487,25 @@
     step.body.appendChild(submit);
   }
 
-  // The partial calls window.meleeAttackInit(stubId) once its config is
-  // registered. This lets the script load order stay flexible.
-  window.meleeAttackInit = function(stubId) { start(stubId); };
+  // The partial calls window.meleeAttackInit(stubId) inline once its
+  // config is registered. If this script hasn't loaded yet (script tag
+  // is at the bottom of the layout, but the partial's <script> runs
+  // mid-body), the inline call no-ops; this DOMContentLoaded handler
+  // catches up and starts every registered stub that isn't running yet.
+  window.meleeAttackInit = function(stubId) {
+    var c = cfg(stubId);
+    if (!c || c._started) return;
+    c._started = true;
+    start(stubId);
+  };
+
+  function bootAll() {
+    var configs = window.meleeAttackConfigs || {};
+    Object.keys(configs).forEach(function(id) { window.meleeAttackInit(id); });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootAll);
+  } else {
+    bootAll();
+  }
 })();
