@@ -564,6 +564,21 @@ body {
   background: #0d47a1;
 }
 
+.melee-rollback-btn {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+  background: #fff;
+  color: #b88a00;
+  border: 1px solid #d4b84a;
+  border-radius: 3px;
+}
+
+.melee-rollback-btn:hover {
+  background: #fff7c2;
+}
+
 .melee-roll-slot {
   flex: 1 1 100%;
   margin-top: 4px;

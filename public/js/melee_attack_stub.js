@@ -30,8 +30,15 @@
     return { root: step, body: body };
   }
 
-  function appendStep(stubId, label) {
+  // `kind` identifies a decision step so we can roll back to it later.
+  // Roll steps and final/error states leave it unset and skip the
+  // rollback button. The host stub id is stored on the step object so
+  // lockStep can wire up the rollback handler without re-plumbing.
+  function appendStep(stubId, label, kind) {
     var step = makeStep(label);
+    if (kind) step.root.dataset.kind = kind;
+    step.stubId = stubId;
+    step.kind = kind || null;
     stepsEl(stubId).appendChild(step.root);
     if (step.root.scrollIntoView) {
       step.root.scrollIntoView({behavior: 'smooth', block: 'nearest'});
@@ -46,6 +53,46 @@
     sum.innerHTML = summary;
     step.body.appendChild(sum);
     step.root.classList.add('melee-step-locked');
+    if (step.kind) {
+      var back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'melee-rollback-btn';
+      back.title = 'Undo this decision and everything after it';
+      back.innerHTML = '↶ Change';
+      back.addEventListener('click', function() { rollbackTo(step.stubId, step.kind); });
+      step.body.appendChild(back);
+    }
+  }
+
+  // Map of decision-step kinds to the function that re-opens that step.
+  // Built lazily so the function references resolve after declarations.
+  function rollbackHandler(kind) {
+    return ({
+      target:          chooseTarget,
+      weapon:          chooseWeapon,
+      attackDice:      chooseAttackDice,
+      defense:         chooseDefense,
+      defenseDice:     chooseDefenseDice,
+      allyReactions:   chooseAllyReactions,
+      targetReactions: chooseTargetReactions,
+      damage:          collectDamage
+    })[kind];
+  }
+
+  // Drop the named decision step (most recent occurrence) and every
+  // step that came after it, then re-run the handler that produced it.
+  // The handler will rewrite any state fields the new flow touches; the
+  // older state values for downstream steps stay around but get
+  // overwritten as the user walks forward again.
+  function rollbackTo(stubId, kind) {
+    var container = stepsEl(stubId);
+    if (!container) return;
+    var node = container.querySelector('.melee-step[data-kind="' + kind + '"]');
+    if (!node) return;
+    while (node.nextSibling) container.removeChild(node.nextSibling);
+    container.removeChild(node);
+    var handler = rollbackHandler(kind);
+    if (handler) handler(stubId);
   }
 
   function btn(label, onClick, extraClass) {
@@ -141,7 +188,7 @@
   // --- Step 1: Target ------------------------------------------------------
   function chooseTarget(stubId) {
     var c = cfg(stubId);
-    var step = appendStep(stubId, 'Select Target');
+    var step = appendStep(stubId, 'Select Target', 'target');
     var pick = function(t) {
       c.state.target = t;
       lockStep(step, 'Target: <strong>' + escapeHtml(t.name) + '</strong>');
@@ -165,7 +212,7 @@
   function chooseWeapon(stubId) {
     var c = cfg(stubId);
     var weapons = c.attacker.weapons || [];
-    var step = appendStep(stubId, 'Select Weapon');
+    var step = appendStep(stubId, 'Select Weapon', 'weapon');
     var pick = function(w) {
       c.state.weapon = w;
       lockStep(step, 'Weapon: <strong>' + escapeHtml(w.name) + '</strong>' +
@@ -192,7 +239,7 @@
     var w = c.state.weapon;
     var min = w.min_dice | 0;
     var max = Math.min(w.max_dice | 0, c.attacker.skill.dice | 0);
-    var step = appendStep(stubId, 'Attack Dice (' + min + '–' + max + ')');
+    var step = appendStep(stubId, 'Attack Dice (' + min + '–' + max + ')', 'attackDice');
     if (max < min) {
       step.body.textContent = 'No valid attack dice count.';
       return;
@@ -219,7 +266,7 @@
   function chooseDefense(stubId) {
     var c = cfg(stubId);
     var defs = c.state.target.defenses || [];
-    var step = appendStep(stubId, 'Select Defense (' + escapeHtml(c.state.target.name) + ')');
+    var step = appendStep(stubId, 'Select Defense (' + escapeHtml(c.state.target.name) + ')', 'defense');
     var pick = function(d) {
       c.state.defense = d;
       lockStep(step, 'Defense: <strong>' + escapeHtml(d.label) + '</strong>');
@@ -239,7 +286,7 @@
     if (!d || !d.uses_dice) { chooseAllyReactions(stubId); return; }
     var min = d.min_dice | 0;
     var max = d.max_dice | 0;
-    var step = appendStep(stubId, 'Defense Dice (' + min + '–' + max + ')');
+    var step = appendStep(stubId, 'Defense Dice (' + min + '–' + max + ')', 'defenseDice');
     if (max < min) {
       step.body.textContent = 'Cannot afford defense; no dice available.';
       chooseAllyReactions(stubId);
@@ -263,7 +310,7 @@
     var c = cfg(stubId);
     var allies = c.allyReactions || [];
     if (allies.length === 0) { rollAttack(stubId); return; }
-    var step = appendStep(stubId, 'Ally Reactions');
+    var step = appendStep(stubId, 'Ally Reactions', 'allyReactions');
     var picks = [];
     allies.forEach(function(a) {
       var b = btn(escapeHtml(a.label), function() {
@@ -385,7 +432,7 @@
     var c = cfg(stubId);
     var reactions = (c.state.target && c.state.target.reactions) || [];
     if (reactions.length === 0) { collectDamage(stubId); return; }
-    var step = appendStep(stubId, 'Target Reactions');
+    var step = appendStep(stubId, 'Target Reactions', 'targetReactions');
     var picks = [];
     reactions.forEach(function(r) {
       var label = escapeHtml(r.label) + (r.cost ? ' <span class="melee-meta">(' + escapeHtml(r.cost) + ')</span>' : '');
@@ -421,7 +468,7 @@
     var defaultDmg = Math.max(0, (w.damage|0) + net);
     var defaultBleed = Math.max(0, w.bleed|0);
     var defaultThreshold = w.threshold|0;
-    var step = appendStep(stubId, 'Confirm Damage');
+    var step = appendStep(stubId, 'Confirm Damage', 'damage');
     var meta = document.createElement('div');
     meta.className = 'melee-meta';
     meta.innerHTML = 'Net successes: <strong>' + net + '</strong> ' +
