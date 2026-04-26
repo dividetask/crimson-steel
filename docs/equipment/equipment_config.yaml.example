@@ -77,12 +77,14 @@ Gems:
 # TIER PRICING (shared)
 # =====================================================================
 #
-# Per-tier costs and the magical-ammunition divisor.
+# Per-tier costs and the divisors / multipliers that adjust them.
 #
-#   surcharges
-#     The flat additional cost in gp added to a Weapon's or Armor's
-#     base price when it is made magical. Tier 0 is non-magical and
-#     has no surcharge.
+#   default_surcharges
+#     The default flat additional cost in gp added to an item's base
+#     price when it is made magical. Tier 0 is non-magical and has no
+#     surcharge. This default applies to every Item Type unless that
+#     type defines its own `tier_surcharge` block, in which case the
+#     per-item map replaces this one for that type's pricing.
 #
 #   ammunition_divisor
 #     The number of units of magical ammunition whose combined
@@ -91,9 +93,23 @@ Gems:
 #       (tier_surcharge + sum property costs) / ammunition_divisor
 #     A higher divisor means cheaper magical ammunition; a lower
 #     divisor means more expensive. Defaults to 100 if absent.
+#
+#   consumable_divisor
+#     Like ammunition_divisor but for non-ammo Consumables (potions,
+#     oils, scrolls, etc.). The magical surcharge for one consumable
+#     unit is `(tier_surcharge + property costs) / consumable_divisor`.
+#     Magical ammunition uses `ammunition_divisor` instead — the two
+#     are independent. Defaults to 10 if absent.
+#
+#   untrained_usage_multiplier
+#     Items that an untrained user can activate without magical
+#     knowledge (most notably potions and oils — anyone can drink a
+#     potion) carry a usage premium. When an item is flagged
+#     `untrained_use: true`, its computed Unit Price is multiplied
+#     by this number. Defaults to 2.0 if absent.
 
 Tier Pricing:
-  surcharges:
+  default_surcharges:
     0: 0
     1: 250
     2: 1000
@@ -101,6 +117,8 @@ Tier Pricing:
     4: 16000
     5: 80000
   ammunition_divisor: 100
+  consumable_divisor: 10
+  untrained_usage_multiplier: 2.0
 
 # =====================================================================
 # NAMING CONVENTION
@@ -129,24 +147,96 @@ Naming Convention:
   default_property_position: prefix
 
 # =====================================================================
+# SLOTS
+# =====================================================================
+#
+# The body slots an equippable item may occupy. Items in the `Items`
+# section below specify a `slot` from this list. Worn armor and held
+# weapons use their own implicit slots (body / hand) and do not list
+# a slot here. The character module enforces "one item per slot"
+# rules at equip time; this module just stores the slot string.
+
+Slots:
+  - back
+  - belt
+  - body
+  - chest
+  - eyes
+  - feet
+  - hands
+  - head
+  - neck
+  - shoulders
+  - wrists
+
+# =====================================================================
 # WEAPONS
 # =====================================================================
 
 # ---------------------------------------------------------------------
-# Weapon Category Defaults
+# Weapon Categories
 #
 # Each category specifies the default damage formula for weapons in it.
 # `str` refers to the attacker's Strength score and is resolved by the
 # character module. Formula evaluation is the combat module's concern;
 # this module just stores the string.
 
-Weapon Category Defaults:
+Weapon Categories:
   Ranged:
     damage: "str / 4"
   One Handed:
     damage: "str / 4 - 2"
   Two Handed:
     damage: "str / 2 + 2"
+
+# ---------------------------------------------------------------------
+# Weapon Tags
+#
+# Mundane structural tags attached to a weapon definition (NOT to be
+# confused with magical Weapon Properties below — those go in a
+# separate catalog and live on inventory stacks). A weapon's `tags`
+# list pulls from this catalog.
+#
+# Each tag may declare:
+#   damage_formula   — overrides the weapon category's default damage
+#                      formula. The first tag with a damage_formula
+#                      wins (multiple are not stacked).
+#   damage_offset    — a signed integer added to whichever damage
+#                      formula is in effect. Stacks across multiple
+#                      tags.
+#   description      — free-form prose for humans.
+#
+# The combat module is the consumer; this module just stores the
+# definitions. Tags whose mechanical effect is still being designed
+# may declare only a description.
+
+Weapon Tags:
+
+  thrown:
+    damage_formula: "str / 4 - 2"
+    description: >
+      A weapon balanced for throwing. Uses the same damage formula
+      as a One Handed melee weapon when thrown.
+
+  light:
+    description: >
+      A small, easily wielded weapon. Mechanical effects TBD by the
+      combat module.
+
+  heavy:
+    description: >
+      A large, cumbersome weapon. Mechanical effects TBD by the
+      combat module.
+
+  exotic:
+    description: >
+      A weapon requiring specialized training. Untrained wielders
+      may suffer penalties; details TBD by the combat module.
+
+  double_weapon:
+    description: >
+      A weapon that can attack with both ends in a single round.
+      Mechanical effects TBD by the combat module.
 
 # ---------------------------------------------------------------------
 # Damage Type Defaults
@@ -171,8 +261,13 @@ Damage Type Defaults:
 # Weapons
 #
 # A Ranged weapon with an `ammo_type` field is a projectile weapon; a
-# Ranged weapon without one is thrown. Thrown weapons override the
-# Ranged category's damage formula to match the 1H formula.
+# Ranged weapon without one is typically thrown and carries the
+# `thrown` tag (which overrides the Ranged damage formula).
+#
+# A weapon may carry zero or more `tags` from the Weapon Tags
+# catalog. Tags differ from the magical-property Weapon Properties
+# catalog used by inventory stacks: tags are intrinsic to the weapon
+# definition; properties are runtime per-instance enchantments.
 
 Weapons:
 
@@ -213,25 +308,25 @@ Weapons:
   Tomahawk:
     category: Ranged
     damage_type: Slashing
-    damage: "str / 4 - 2"
+    tags: [thrown]
     base_price: 8
 
   Javelin:
     category: Ranged
     damage_type: Piercing
-    damage: "str / 4 - 2"
+    tags: [thrown]
     base_price: 4
 
   Shuriken:
     category: Ranged
     damage_type: Piercing
-    damage: "str / 4 - 2"
+    tags: [thrown, light]
     base_price: 1
 
   Throwing dart:
     category: Ranged
     damage_type: Piercing
-    damage: "str / 4 - 2"
+    tags: [thrown, light]
     base_price: 1
 
   # --- One Handed ---
@@ -339,8 +434,7 @@ Weapons:
   Quarterstaff:
     category: Two Handed
     damage_type: Bludgeoning
-    properties:
-      - double_weapon
+    tags: [double_weapon]
     base_price: 2
 
   Twinblade:
@@ -348,8 +442,7 @@ Weapons:
     damage_type:
       - Slashing
       - Piercing
-    properties:
-      - double_weapon
+    tags: [double_weapon]
     base_price: 40
 
 # ---------------------------------------------------------------------
@@ -495,9 +588,22 @@ Armor Category Defaults:
     category_level: 1
 
 # ---------------------------------------------------------------------
-# Material Defaults
+# Materials
+#
+# Each material specifies its baseline hardness and a hit-point
+# formula. There is no per-armor override for these — armor entries
+# pick a material by name and inherit its values.
+#
+# Effective hardness scales with Tier:
+#
+#   effective_hardness = base_hardness + (2 * tier)
+#
+# A non-magical (Tier 0) leather armor has hardness 2; a Tier 3
+# leather armor has hardness 8. Hit points come from the formula
+# string and are evaluated by the combat module (`category_level`
+# resolves from the armor's Armor Category Defaults entry).
 
-Material Defaults:
+Materials:
   Leather:
     hardness: 2
     hit_points: "5 * category_level"
@@ -644,3 +750,127 @@ Armor Properties:
         word: Grounded
       Cold:
         word: Coldproof
+
+# =====================================================================
+# ITEMS (slot-equippable accessories)
+# =====================================================================
+#
+# Slot-equippable items that aren't Weapons or Armor — cloaks, belts,
+# headbands, amulets, rings, and so on. Each entry specifies:
+#
+#   slot          REQUIRED. One of the Slots listed above.
+#   base_price    Mundane cost in gp. Use 0 for items that are
+#                 inherently magical and have no Tier 0 form.
+#   tier_surcharge (optional)
+#                 A per-item override of the global
+#                 `Tier Pricing.default_surcharges` map. Used by
+#                 items whose magical pricing follows a different
+#                 curve (e.g., Cloak of Resistance grows
+#                 quadratically rather than the default ×4 per
+#                 tier).
+#   description   Free-form prose for humans / the UI.
+#
+# Items in this section do not currently accept magical Properties
+# from the Weapon or Armor catalogs — their magical effect is the
+# inherent tier-scaled enchantment. The combat / character modules
+# read the effect off the Item Type by name.
+
+Items:
+
+  Cloak of Resistance:
+    slot: back
+    base_price: 0
+    tier_surcharge:
+      0: 0
+      1: 1000
+      2: 4000
+      3: 9000
+      4: 16000
+      5: 25000
+    description: >
+      Increases the wearer's enhancement bonus on all saves by an
+      amount equal to the cloak's Tier.
+
+  Belt of Strength:
+    slot: belt
+    base_price: 0
+    tier_surcharge:
+      0: 0
+      1: 500
+      2: 2000
+      3: 4500
+      4: 8000
+      5: 12500
+    description: >
+      Increases the wearer's enhancement bonus to Strength by an
+      amount equal to the belt's Tier.
+
+  Belt of Dexterity:
+    slot: belt
+    base_price: 0
+    tier_surcharge:
+      0: 0
+      1: 500
+      2: 2000
+      3: 4500
+      4: 8000
+      5: 12500
+    description: >
+      Increases the wearer's enhancement bonus to Dexterity by an
+      amount equal to the belt's Tier.
+
+  Belt of Constitution:
+    slot: belt
+    base_price: 0
+    tier_surcharge:
+      0: 0
+      1: 500
+      2: 2000
+      3: 4500
+      4: 8000
+      5: 12500
+    description: >
+      Increases the wearer's enhancement bonus to Constitution by an
+      amount equal to the belt's Tier.
+
+  Headband of Intelligence:
+    slot: head
+    base_price: 0
+    tier_surcharge:
+      0: 0
+      1: 500
+      2: 2000
+      3: 4500
+      4: 8000
+      5: 12500
+    description: >
+      Increases the wearer's enhancement bonus to Intelligence by an
+      amount equal to the headband's Tier.
+
+  Headband of Wisdom:
+    slot: head
+    base_price: 0
+    tier_surcharge:
+      0: 0
+      1: 500
+      2: 2000
+      3: 4500
+      4: 8000
+      5: 12500
+    description: >
+      Increases the wearer's enhancement bonus to Wisdom by an
+      amount equal to the headband's Tier.
+
+  Headband of Charisma:
+    slot: head
+    base_price: 0
+    tier_surcharge:
+      0: 0
+      1: 500
+      2: 2000
+      3: 4500
+      4: 8000
+      5: 12500
+    description: >
+      Increases the wearer's enhancement bonus to Charisma by an
+      amount equal to the headband's Tier.

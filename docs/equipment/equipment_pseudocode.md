@@ -405,7 +405,7 @@ The returned list is a live reference — callers must not mutate it directly; a
 
 ## ITEM_DEFINITION
 
-**Description:** Internal helper. Returns the config block for a named Item Type, or `null` if no definition exists. Searches Weapons, Armor, Ammunition, Currency in that order. The name `"Gem"` returns a synthetic definition indicating the Gem category.
+**Description:** Internal helper. Returns the config block for a named Item Type, or `null` if no definition exists. Searches Weapons, Armor, Ammunition, Items, Consumables, Currency in that order. The name `"Gem"` returns a synthetic definition indicating the Gem category.
 
 **Parameters:**
 - `item_name`: a string matching a key in `equipment_config`.
@@ -418,11 +418,19 @@ The returned list is a live reference — callers must not mutate it directly; a
 4. `⠀⠀return { 'category': 'Armor', 'definition': equipment_config['Armor'][item_name] }`
 5. `if item_name in equipment_config['Ammunition']:`
 6. `⠀⠀return { 'category': 'Ammunition', 'definition': equipment_config['Ammunition'][item_name] }`
-7. `if item_name in equipment_config['Currency']:`
-8. `⠀⠀return { 'category': 'Currency', 'definition': equipment_config['Currency'][item_name] }`
-9. `if item_name == 'Gem':`
-10. `⠀⠀return { 'category': 'Gem', 'definition': empty dictionary }`
-11. `return null`
+7. `if item_name in (equipment_config['Items'] or empty):`
+8. `⠀⠀return { 'category': 'Item', 'definition': equipment_config['Items'][item_name] }`
+9. `if item_name in (equipment_config['Consumables'] or empty):`
+10. `⠀⠀return { 'category': 'Consumable', 'definition': equipment_config['Consumables'][item_name] }`
+11. `if item_name in equipment_config['Currency']:`
+12. `⠀⠀return { 'category': 'Currency', 'definition': equipment_config['Currency'][item_name] }`
+13. `if item_name == 'Gem':`
+14. `⠀⠀return { 'category': 'Gem', 'definition': empty dictionary }`
+15. `return null`
+
+**Notes:**
+- The `Items` and `Consumables` sections may be absent from a campaign's config; the `or empty` guards keep the lookup defensive.
+- When an item name appears in more than one section (which would be a configuration error), the first match wins. Implementers may add a startup-time validation pass to reject duplicates.
 
 ---
 
@@ -447,15 +455,36 @@ The returned list is a live reference — callers must not mutate it directly; a
 
 ---
 
+## TIER_SURCHARGE_FOR
+
+**Description:** Internal helper. Returns the flat Gold surcharge for a specific Item Type at a specific Tier. Honors a per-item `tier_surcharge` override on the Item Type's definition; otherwise falls back to `Tier Pricing.default_surcharges`.
+
+**Parameters:**
+- `definition`: the Item Type's definition dictionary (the inner `definition` returned by ITEM_DEFINITION).
+- `tier`: a non-negative integer.
+
+**Returns:** A real-valued Gold surcharge.
+
+1. `if 'tier_surcharge' in definition:`
+2. `⠀⠀return definition['tier_surcharge'][tier] or 0`
+3. `return equipment_config['Tier Pricing']['default_surcharges'][tier] or 0`
+
+---
+
 ## ITEM_UNIT_PRICE
 
 **Description:** Returns the Gold cost of a single copy of an Item configuration. Dispatches on category:
 
-- **Weapon, Armor**: `base_price + tier_surcharge + Σ property_cost`.
-- **Ammunition**: `(base_price / bundle_size) + (tier_surcharge + Σ property_cost) / ammunition_divisor`. Mundane ammunition is sold in bundles, but `ITEM_UNIT_PRICE` always reports the per-unit cost. The divisor — how many magical ammo units sum to one equivalent magical weapon's surcharge — is read from `equipment_config['Tier Pricing']['ammunition_divisor']` (default 100).
+- **Weapon, Armor, Item**: `base_price + tier_surcharge + Σ property_cost`.
+- **Ammunition**: `(base_price / bundle_size) + (tier_surcharge + Σ property_cost) / ammunition_divisor`. Mundane ammunition is sold in bundles, but `ITEM_UNIT_PRICE` always reports the per-unit cost. The divisor is read from `equipment_config['Tier Pricing']['ammunition_divisor']` (default 100).
+- **Consumable** (non-ammo): `base_price + (tier_surcharge + Σ property_cost) / consumable_divisor`. The divisor is read from `equipment_config['Tier Pricing']['consumable_divisor']` (default 10).
 - **Currency**: `value_in_gold` from the Currency config.
 - **Gem**: `stack['value_in_gold']`. Raises if absent.
 - **Unknown category**: raises unless the Stack carries an explicit `unit_price` override.
+
+The `tier_surcharge` for any category is computed via TIER_SURCHARGE_FOR — per-item override if present, otherwise the configured default.
+
+After the category formula, if the Item Type is flagged `untrained_use: true`, the returned price is multiplied by `equipment_config['Tier Pricing']['untrained_usage_multiplier']` (default 2.0). Currency and Gem are exempt — their Unit Price is always their fixed value.
 
 **Parameters:**
 - `stack`: an Item Stack.
@@ -466,32 +495,50 @@ The returned list is a live reference — callers must not mutate it directly; a
 2. `if info is null:`
 3. `⠀⠀if 'unit_price' in stack: return stack['unit_price']`
 4. `⠀⠀raise exception ('Unknown item: ' + stack['item'])`
-5. `tier = stack['tier'] or 0`
-6. `tier_surcharge = equipment_config['Tier Pricing']['surcharges'][tier] or 0`
-7. `properties = stack['properties'] or empty list`
-8. `if info['category'] == 'Weapon':`
-9. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Weapon Properties') for p in properties`
-10. `⠀⠀return info['definition']['base_price'] + tier_surcharge + property_sum`
-11. `if info['category'] == 'Armor':`
-12. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Armor Properties') for p in properties`
-13. `⠀⠀return info['definition']['base_price'] + tier_surcharge + property_sum`
-14. `if info['category'] == 'Ammunition':`
-15. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Weapon Properties') for p in properties`
-16. `⠀⠀bundle_size = info['definition']['bundle_size']`
-17. `⠀⠀mundane_unit = info['definition']['base_price'] / bundle_size`
-18. `⠀⠀ammo_divisor = equipment_config['Tier Pricing']['ammunition_divisor'] or 100`
-19. `⠀⠀magical_unit = (tier_surcharge + property_sum) / ammo_divisor`
-20. `⠀⠀return mundane_unit + magical_unit`
-21. `if info['category'] == 'Currency':`
-22. `⠀⠀return info['definition']['value_in_gold']`
-23. `if info['category'] == 'Gem':`
-24. `⠀⠀if 'value_in_gold' not in stack: raise exception ('Gem stack missing value_in_gold')`
-25. `⠀⠀return stack['value_in_gold']`
-26. `raise exception ('Unhandled item category: ' + info['category'])`
+5. `definition = info['definition']`
+6. `tier = stack['tier'] or 0`
+7. `tier_surcharge = TIER_SURCHARGE_FOR(definition, tier)`
+8. `properties = stack['properties'] or empty list`
+9. `category = info['category']`
+10. `price = null`
+11. `if category == 'Weapon':`
+12. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Weapon Properties') for p in properties`
+13. `⠀⠀price = (definition['base_price'] or 0) + tier_surcharge + property_sum`
+14. `else if category == 'Armor':`
+15. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Armor Properties') for p in properties`
+16. `⠀⠀price = (definition['base_price'] or 0) + tier_surcharge + property_sum`
+17. `else if category == 'Item':`
+18. `⠀⠀property_sum = 0  # Items do not currently accept catalog Properties`
+19. `⠀⠀price = (definition['base_price'] or 0) + tier_surcharge + property_sum`
+20. `else if category == 'Ammunition':`
+21. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Weapon Properties') for p in properties`
+22. `⠀⠀bundle_size = definition['bundle_size']`
+23. `⠀⠀mundane_unit = definition['base_price'] / bundle_size`
+24. `⠀⠀ammo_divisor = equipment_config['Tier Pricing']['ammunition_divisor'] or 100`
+25. `⠀⠀magical_unit = (tier_surcharge + property_sum) / ammo_divisor`
+26. `⠀⠀price = mundane_unit + magical_unit`
+27. `else if category == 'Consumable':`
+28. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Weapon Properties') for p in properties  # consumables draw from the weapon-property catalog by default; override per consumable if needed`
+29. `⠀⠀consumable_divisor = equipment_config['Tier Pricing']['consumable_divisor'] or 10`
+30. `⠀⠀magical_unit = (tier_surcharge + property_sum) / consumable_divisor`
+31. `⠀⠀price = (definition['base_price'] or 0) + magical_unit`
+32. `else if category == 'Currency':`
+33. `⠀⠀return definition['value_in_gold']`
+34. `else if category == 'Gem':`
+35. `⠀⠀if 'value_in_gold' not in stack: raise exception ('Gem stack missing value_in_gold')`
+36. `⠀⠀return stack['value_in_gold']`
+37. `else:`
+38. `⠀⠀raise exception ('Unhandled item category: ' + category)`
+39. `if definition.get('untrained_use') == true:`
+40. `⠀⠀multiplier = equipment_config['Tier Pricing']['untrained_usage_multiplier'] or 2.0`
+41. `⠀⠀price = price * multiplier`
+42. `return price`
 
 **Notes:**
-- Ammunition uses weapon-property costs because magical ammunition applies the same Weapon Properties (Elemental, Subdual, etc.). The property catalog enforces applicability separately (`applies_to: [ammo]`).
-- `unit_price` override on a Stack is an escape hatch for items whose category this module does not yet handle (e.g., Consumables in the "second-pass" category set).
+- Ammunition uses weapon-property costs because magical ammunition applies the same Weapon Properties (Elemental, Subdual, etc.). The property catalog enforces applicability separately (`applies_to: [ammo]`). Consumables follow the same convention pending a dedicated property catalog; if a future Consumable Properties section is added, step 28 changes to consult it.
+- The `Item` category is for slot-equippable accessories like Cloak of Resistance, Belt of Strength, Headband of Wisdom. Properties from the catalog are not currently applicable; their magical effect comes entirely from Tier and the per-item tier_surcharge curve. A future revision may extend the property catalog with `applies_to: [item]` and remove the hard-coded zero at step 18.
+- `unit_price` override on a Stack is an escape hatch for items whose category this module does not yet handle, or for one-off unique items.
+- The untrained-usage multiplier is applied AFTER the category formula. For a Tier 1 potion with `base_price: 0`, `tier_surcharge: 250`, `consumable_divisor: 10`, and `untrained_use: true`, the math is: `(0 + 250/10) × 2.0 = 50` gp.
 
 ---
 

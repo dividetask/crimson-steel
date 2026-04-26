@@ -38,21 +38,43 @@
 
 ## Item Definitions
 
-**Item Category**: The top-level grouping an Item Type belongs to. Defined categories: Weapon, Armor, Ammunition, Currency, Gem. Further categories (Consumable, Tool, etc.) may be added without code changes — the module dispatches on category where necessary and treats unrecognized categories as inert for category-specific logic.
+**Item Category**: The top-level grouping an Item Type belongs to. Defined categories: Weapon, Armor, Ammunition, Currency, Gem, Item (slot-equippable accessories like cloaks, belts, headbands), Consumable (potions, oils, scrolls; ammo is a separate category despite also being consumed). Further categories (Tool, etc.) may be added without code changes — the module dispatches on category where necessary and treats unrecognized categories as inert for category-specific logic.
 
-**Base Price**: The price in Gold of one non-magical (Tier 0) unit of the Item Type.
+**Slot**: The body location an Item or Armor occupies when worn. Slot strings are listed in `equipment_config.yaml` under `Slots:` (e.g., `back`, `belt`, `body`, `head`, `neck`, …). The Item Type's `slot` field selects one. Held weapons and worn armor have implicit slots (hand / body) and do not appear in the `Slots:` list. The character module enforces the "one item per slot" rule at equip time; this module just stores the slot string.
 
-**Tier Surcharge**: A flat additional cost in Gold added to a Weapon's or Armor's Unit Price when it is made magical, keyed by Tier. Defined under `Tier Pricing.surcharges` in `equipment_config.yaml`. Magical Ammunition uses a fraction of this cost — see Magical Ammunition Divisor. *(configurable)*
+**Material**: A property of Armor specifying its baseline `hardness` and `hit_points` formula. Defined under `Materials:` in `equipment_config.yaml`. Effective hardness scales with Tier as `hardness = base_hardness + 2 × Tier`; non-magical armor uses the base value. Hit-point formulas are evaluated by the combat module.
+
+**Weapon Tag**: A mundane structural tag attached to a Weapon definition (distinct from the magical Weapon Properties catalog used on inventory stacks). Tags live under `Weapon Tags:` in `equipment_config.yaml`. A tag may declare a `damage_formula` override or a `damage_offset`; multiple tags compose. Standard tags include `thrown` (overrides damage to `str / 4 - 2`), `light`, `heavy`, `exotic`, and `double_weapon`.
+
+**Base Price**: The price in Gold of one non-magical (Tier 0) unit of the Item Type. Items that are inherently magical (e.g., Cloak of Resistance, which has no mundane Tier 0 form) declare `base_price: 0`.
+
+**Default Tier Surcharge**: The default flat additional cost in Gold added to an item's Unit Price when it is made magical, keyed by Tier. Defined under `Tier Pricing.default_surcharges` in `equipment_config.yaml`. Applies to every Item Type that does not declare its own `tier_surcharge` override. *(configurable)*
+
+**Per-Item Tier Surcharge**: An optional `tier_surcharge` map on an individual Item Type that REPLACES the Default Tier Surcharge for that type's magical pricing. Used by items whose magical pricing follows a different curve (e.g., Cloak of Resistance grows quadratically rather than the default ×4 per tier).
+
+**Tier Surcharge**: The effective per-tier flat additional cost for an Item Type — the Per-Item Tier Surcharge if declared, otherwise the Default Tier Surcharge. Used directly by Unit Price math and divided by category-specific divisors for Ammunition and non-ammo Consumables.
 
 **Magical Ammunition Divisor**: The number of units of Magical Ammunition whose combined magical cost equals the magical surcharge of one equivalent Magical Weapon. Per-unit magical ammunition cost is `(Tier Surcharge + sum of Property costs) / Magical Ammunition Divisor`. Defined under `Tier Pricing.ammunition_divisor`. Defaults to 100. *(configurable)*
 
-**Unit Price**: The gold cost of a single copy of a specific item configuration (Item Type plus Tier plus Properties). For Weapons and Armor, `Unit Price = Base Price + Tier Surcharge + sum of Property costs`. For Ammunition, `Unit Price = (Base Price / bundle size) + (Tier Surcharge + sum of Property costs) / Magical Ammunition Divisor`. For Currencies, `Unit Price = value_in_gold`. For Gems, `Unit Price = the Gem's value_in_gold`.
+**Consumable Surcharge Divisor**: The analogue of the Magical Ammunition Divisor for non-ammo Consumables (potions, oils, scrolls, …). Per-unit magical consumable cost is `(Tier Surcharge + sum of Property costs) / Consumable Surcharge Divisor`. Magical Ammunition uses its own divisor; the two are independent. Defined under `Tier Pricing.consumable_divisor`. Defaults to 10. *(configurable)*
+
+**Untrained Usage Multiplier**: A multiplier applied to the Unit Price of any Item Type flagged with `untrained_use: true`. Models the premium charged for items that anyone can activate without magical knowledge — most notably potions and oils. Defined under `Tier Pricing.untrained_usage_multiplier`. Defaults to 2.0. *(configurable)*
+
+**Unit Price**: The Gold cost of a single copy of a specific item configuration (Item Type plus Tier plus Properties).
+
+- For Weapons, Armor, and Items: `Unit Price = Base Price + Tier Surcharge + sum of Property costs`.
+- For Ammunition: `Unit Price = (Base Price / bundle size) + (Tier Surcharge + sum of Property costs) / Magical Ammunition Divisor`.
+- For non-ammo Consumables: `Unit Price = Base Price + (Tier Surcharge + sum of Property costs) / Consumable Surcharge Divisor`.
+- For Currencies: `Unit Price = value_in_gold`.
+- For Gems: `Unit Price = the Gem's value_in_gold`.
+
+When the Item Type is flagged `untrained_use: true`, the result of the formula above is then multiplied by the Untrained Usage Multiplier.
 
 **Magical Property**: A named effect that can be attached to a Weapon or Armor. Each Property specifies a minimum Tier, a cost in Gold, which Item Categories it applies to, whether it takes a Subtype (e.g., Elemental Fire vs. Elemental Cold), and a Display block used by the Name Generator.
 
 **Property Subtype**: A variant of a Property (e.g., Fire, Acid, Electricity, Cold for Elemental). Subtyped Properties have one Display entry per Subtype.
 
-**Generated Display Name**: The item name produced from `<tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>` when no Name Override is set. The tier prefix is omitted for Tier 0 items and for any category listed in `tier_hidden_for` (currently Potion).
+**Generated Display Name**: The item name produced from `<tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>` when no Name Override is set. The tier prefix is omitted for Tier 0 items and for any category listed in `tier_hidden_for` (e.g., Potion).
 
 ## Currency and Gems
 
