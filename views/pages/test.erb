@@ -69,7 +69,7 @@
   both via <code>POST /combat/set_turn/:combat_id</code>.
 </p>
 
-<% current_turn = session[:current_turn] || DATA.combat_state['current_turn'] %>
+<% current_turn = SCENE_STATE.current_turn || DATA.combat_state['current_turn'] %>
 
 <h3>As current viewer</h3>
 <%= initiative_stub(

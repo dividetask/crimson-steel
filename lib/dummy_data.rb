@@ -198,12 +198,14 @@ class DummyData
     [
       { 'id' => 1, 'chapter' => 1, 'public' => true,  'active' => false,
         'caption' => 'Crimson Hold, ground floor.',
+        'width' => 400, 'height' => 240,
         'objects' => [
           { 'id' => 'cb_door',   'kind' => 'scenery', 'x' =>  60, 'y' => 200, 'label' => 'Front door' },
           { 'id' => 'cb_throne', 'kind' => 'scenery', 'x' => 320, 'y' =>  60, 'label' => 'Throne' }
         ] },
       { 'id' => 2, 'chapter' => 2, 'public' => true,  'active' => true,
         'caption' => 'Forest road south of the wagon. Treeline curves on the east; the wagon wreck blocks the road.',
+        'width' => 400, 'height' => 240,
         'objects' => [
           { 'id' => 'pc_ash',  'kind' => 'pc',      'x' =>  60, 'y' =>  80, 'label' => 'Ash' },
           { 'id' => 'pc_bryn', 'kind' => 'pc',      'x' =>  80, 'y' =>  60, 'label' => 'Bryn' },
@@ -214,6 +216,7 @@ class DummyData
         ] },
       { 'id' => 3, 'chapter' => 2, 'public' => false, 'active' => false,
         'caption' => 'DM-only overlay: bandit positions before the ambush is sprung.',
+        'width' => 400, 'height' => 240,
         'objects' => [
           { 'id' => 'lookout',  'kind' => 'enemy', 'x' => 220, 'y' =>  40, 'label' => 'Lookout' },
           { 'id' => 'archer_1', 'kind' => 'enemy', 'x' => 300, 'y' =>  90, 'label' => 'Archer' },

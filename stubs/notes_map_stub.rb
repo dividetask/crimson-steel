@@ -55,6 +55,10 @@ end
 
 post '/scene/draw_arrow' do
   content_type :json
+  unless viewer_can_draw_arrow?
+    status 403
+    return { ok: false, error: 'not your turn' }.to_json
+  end
   ok = SCENE_STATE.add_arrow(
     map_id:    params[:map_id].to_i,
     type:      params[:type].to_s,
@@ -69,6 +73,51 @@ post '/scene/draw_arrow' do
   )
   status(ok ? 200 : 422)
   { ok: ok }.to_json
+end
+
+post '/scene/move_object' do
+  halt 403, 'forbidden' unless current_user&.dm?
+  content_type :json
+  SCENE_STATE.move_object(
+    params[:map_id].to_i, params[:object_id].to_s,
+    params[:x].to_f, params[:y].to_f
+  )
+  { ok: true }.to_json
+end
+
+post '/scene/add_shape' do
+  halt 403, 'forbidden' unless current_user&.dm?
+  SCENE_STATE.add_shape(
+    map_id: params[:map_id].to_i,
+    kind:   params[:kind].to_s,
+    x:      params[:x].to_f,
+    y:      params[:y].to_f
+  )
+  redirect(request.referrer || '/scene')
+end
+
+post '/scene/remove_shape' do
+  halt 403, 'forbidden' unless current_user&.dm?
+  content_type :json
+  SCENE_STATE.remove_shape(params[:map_id].to_i, params[:shape_id].to_s)
+  { ok: true }.to_json
+end
+
+post '/scene/move_shape' do
+  halt 403, 'forbidden' unless current_user&.dm?
+  content_type :json
+  ok = SCENE_STATE.move_shape(
+    params[:map_id].to_i, params[:shape_id].to_s,
+    params[:x].to_f, params[:y].to_f
+  )
+  { ok: ok }.to_json
+end
+
+post '/scene/resize_map' do
+  halt 403, 'forbidden' unless current_user&.dm?
+  SCENE_STATE.set_map_size(params[:map_id].to_i,
+                           params[:width], params[:height])
+  redirect(request.referrer || '/scene')
 end
 
 post '/scene/remove_arrow' do

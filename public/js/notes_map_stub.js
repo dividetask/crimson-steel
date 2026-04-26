@@ -1,14 +1,20 @@
-// notes_map_stub — interactive bits for the maps. Wires up three
-// flows per <figure.notes-map-card>:
-//   1. Pick an arrow type, click two points → POST /scene/draw_arrow.
-//      Each click is either on a token (snap to that object) or on
-//      empty SVG space (use viewBox coordinates).
-//   2. Click the small ✕ at an arrow's midpoint → POST
-//      /scene/remove_arrow. Only rendered for the arrow's owner or
-//      the DM, so the click is allowed by definition.
-//   3. (DM only) Pick a kind + label, click "Click map to place",
-//      then click the SVG → POST /scene/add_object.
-// Page reloads after each mutation so all viewers stay in sync.
+// notes_map_stub — tool-driven interactivity for the maps.
+//
+// Each <figure.notes-map-card> has a tool picker (DM only). The
+// active tool decides what clicks/drags do:
+//   view        — clicks do nothing (DM default)
+//   arrow       — click two points (token or empty) → POST draw_arrow
+//   move        — drag a token → POST move_object on release
+//   add-object  — pick kind+label, click on map → POST add_object
+//   add-shape   — pick shape kind, click on map → POST add_shape
+//
+// Players don't get a tool picker; their tool is implicitly "arrow"
+// when their card is flagged data-can-draw="1" (i.e. it's their
+// turn), and the click handlers no-op otherwise.
+//
+// Per-arrow ✕ buttons are wired separately and always work for the
+// drawing player or the DM (the partial only renders the ✕ for
+// those viewers).
 
 (function () {
   'use strict';
@@ -35,11 +41,43 @@
     var svg = card.querySelector('svg.notes-map-svg[data-interactive="1"]');
     if (!svg) return;
     var mapId   = card.getAttribute('data-map-id');
+    var dmView  = card.getAttribute('data-dm-view') === '1';
+    var canDraw = card.getAttribute('data-can-draw') === '1';
+
+    var toolSel = card.querySelector('.notes-map-tool');
     var typeSel = card.querySelector('.notes-map-arrow-type');
     var status  = card.querySelector('.notes-map-arrow-status');
 
-    // --- Arrow drawing (token or free coords) -----------------------
-    // pendingEndpoint: { kind: 'object'|'point', id?, x?, y? } or null.
+    function currentTool() {
+      if (toolSel) return toolSel.value;
+      // No picker → players drawing arrows on their turn.
+      return canDraw ? 'arrow' : 'view';
+    }
+
+    function syncToolPanels(tool) {
+      svg.dataset.tool = tool;
+      svg.classList.toggle('crosshair-mode',
+        tool === 'add-object' || tool === 'add-shape');
+      svg.classList.toggle('move-mode', tool === 'move');
+      // Show/hide the per-tool DM panels.
+      card.querySelectorAll('[data-tool]').forEach(function (el) {
+        el.hidden = (el.getAttribute('data-tool') !== tool);
+      });
+      // Arrow-type picker is only useful in arrow mode for DMs;
+      // keep it visible for players (it's their only tool).
+      var arrowControls = card.querySelector('.notes-map-arrow-controls[data-dm-only="1"]');
+      if (arrowControls) arrowControls.hidden = (tool !== 'arrow');
+    }
+
+    if (toolSel) {
+      toolSel.addEventListener('change', function () {
+        clearPending();
+        syncToolPanels(toolSel.value);
+      });
+      syncToolPanels(toolSel.value);
+    }
+
+    // --- Arrow drawing ----------------------------------------------
     var pending = null;
     var marker  = null;
 
@@ -71,14 +109,14 @@
       return out;
     }
 
-    function commitSecondEndpoint(ep) {
+    function commitArrow(ep) {
       var type = typeSel ? typeSel.value : 'attack';
       var fields = { map_id: mapId, type: type };
       Object.assign(fields, fieldsForEndpoint('from', pending));
       Object.assign(fields, fieldsForEndpoint('to', ep));
       setStatus('Drawing…');
       postForm('/scene/draw_arrow', fields).then(function (r) {
-        if (!r.ok) throw new Error('draw_arrow failed: ' + r.status);
+        if (!r.ok) throw new Error('draw_arrow ' + r.status);
         window.location.reload();
       }).catch(function (err) {
         setStatus(err.message);
@@ -86,46 +124,106 @@
       });
     }
 
-    function pickEndpoint(ep, sourceEl) {
+    function pickArrowEndpoint(ep, sourceEl) {
       if (!pending) {
         pending = ep;
         if (ep.kind === 'object' && sourceEl) sourceEl.classList.add('selected');
-        else if (ep.kind === 'point') drawPendingMarker(ep.x, ep.y);
+        else if (ep.kind === 'point')         drawPendingMarker(ep.x, ep.y);
         setStatus('Pick the destination (token or empty space). Click the same spot to cancel.');
         return;
       }
-      // Cancel if the same endpoint is picked twice.
       if (pending.kind === 'object' && ep.kind === 'object' && pending.id === ep.id) {
         clearPending();
         setStatus('Click two points (token or empty space) to draw an arrow.');
         return;
       }
-      commitSecondEndpoint(ep);
+      commitArrow(ep);
     }
 
-    // Token clicks: stop propagation so the SVG handler doesn't also
-    // treat them as empty-space clicks.
+    // --- Object drag-to-move ----------------------------------------
+    var drag = null;
+
+    function startDrag(obj, evt) {
+      var t = (obj.getAttribute('transform') || '').match(/translate\(([^,]+),([^)]+)\)/);
+      drag = {
+        obj: obj,
+        objId: obj.getAttribute('data-object-id'),
+        startX: t ? parseFloat(t[1]) : 0,
+        startY: t ? parseFloat(t[2]) : 0,
+        startPt: vboxPoint(svg, evt)
+      };
+      obj.classList.add('dragging');
+      evt.preventDefault();
+    }
+
+    function dragMove(evt) {
+      if (!drag) return;
+      var p = vboxPoint(svg, evt);
+      var x = drag.startX + (p.x - drag.startPt.x);
+      var y = drag.startY + (p.y - drag.startPt.y);
+      drag.obj.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')');
+      drag.endX = x; drag.endY = y;
+    }
+
+    function dragEnd() {
+      if (!drag) return;
+      var d = drag; drag = null;
+      d.obj.classList.remove('dragging');
+      if (d.endX === undefined) return; // pure click, no movement
+      postForm('/scene/move_object', {
+        map_id: mapId, object_id: d.objId,
+        x: d.endX.toFixed(1), y: d.endY.toFixed(1)
+      }).then(function (r) {
+        if (!r.ok) throw new Error('move_object ' + r.status);
+        window.location.reload();
+      }).catch(function (err) { setStatus && setStatus(err.message); });
+    }
+
+    // --- Token clicks (decide based on tool) ------------------------
     svg.querySelectorAll('.notes-map-object').forEach(function (obj) {
+      obj.addEventListener('mousedown', function (e) {
+        if (currentTool() !== 'move') return;
+        startDrag(obj, e);
+      });
       obj.addEventListener('click', function (e) {
-        if (svg.dataset.placeMode === '1') return;
+        var tool = currentTool();
+        if (tool !== 'arrow') { e.stopPropagation(); return; }
         e.stopPropagation();
-        pickEndpoint({ kind: 'object', id: obj.getAttribute('data-object-id') }, obj);
+        pickArrowEndpoint({ kind: 'object', id: obj.getAttribute('data-object-id') }, obj);
       });
     });
 
-    // Empty-space clicks on the SVG itself become coordinate
-    // endpoints. The DM "place new object" flow reuses the same
-    // listener, so check placeMode first.
+    // While dragging, follow the mouse on the SVG itself.
+    svg.addEventListener('mousemove', dragMove);
+    document.addEventListener('mouseup', dragEnd);
+
+    // --- SVG (empty-space) clicks ----------------------------------
     svg.addEventListener('click', function (e) {
-      if (svg.dataset.placeMode === '1') return; // handled below
-      // If the click landed on an arrow's remove button it bubbled
-      // here after its own handler ran; ignore.
-      if (e.target.closest('.notes-map-arrow-remove')) return;
+      if (e.target.closest('.notes-map-object'))         return; // handled
+      if (e.target.closest('.notes-map-arrow-remove'))   return; // handled
+      var tool = currentTool();
       var p = vboxPoint(svg, e);
-      pickEndpoint({ kind: 'point', x: p.x, y: p.y }, null);
+
+      if (tool === 'arrow') {
+        pickArrowEndpoint({ kind: 'point', x: p.x, y: p.y }, null);
+      } else if (tool === 'add-object') {
+        var addForm = card.querySelector('.notes-map-add-form');
+        if (!addForm) return;
+        var label = addForm.querySelector('input[name="label"]');
+        if (!label.value.trim()) { label.focus(); return; }
+        addForm.querySelector('.notes-map-add-x').value = p.x.toFixed(1);
+        addForm.querySelector('.notes-map-add-y').value = p.y.toFixed(1);
+        addForm.submit();
+      } else if (tool === 'add-shape') {
+        var shapeForm = card.querySelector('.notes-map-shape-form');
+        if (!shapeForm) return;
+        shapeForm.querySelector('.notes-map-shape-x').value = p.x.toFixed(1);
+        shapeForm.querySelector('.notes-map-shape-y').value = p.y.toFixed(1);
+        shapeForm.submit();
+      }
     });
 
-    // --- Per-arrow remove ✕ -----------------------------------------
+    // --- Per-arrow ✕ ------------------------------------------------
     svg.querySelectorAll('.notes-map-arrow-remove').forEach(function (btn) {
       btn.style.cursor = 'pointer';
       btn.addEventListener('click', function (e) {
@@ -133,42 +231,11 @@
         var arrowId = btn.getAttribute('data-arrow-id');
         postForm('/scene/remove_arrow', { map_id: mapId, arrow_id: arrowId })
           .then(function (r) {
-            if (!r.ok) throw new Error('remove_arrow failed: ' + r.status);
+            if (!r.ok) throw new Error('remove_arrow ' + r.status);
             window.location.reload();
           })
           .catch(function (err) { setStatus(err.message); });
       });
-    });
-
-    // --- DM: place new object ---------------------------------------
-    var addForm  = card.querySelector('.notes-map-add-form');
-    var placeBtn = card.querySelector('.notes-map-place-btn');
-    var addStat  = card.querySelector('.notes-map-add-status');
-    if (!addForm || !placeBtn) return;
-
-    placeBtn.addEventListener('click', function () {
-      var labelInput = addForm.querySelector('input[name="label"]');
-      if (!labelInput.value.trim()) {
-        labelInput.focus();
-        if (addStat) addStat.textContent = 'Type a label first.';
-        return;
-      }
-      // Cancel any pending arrow draw — these two flows are
-      // mutually exclusive.
-      clearPending();
-      svg.dataset.placeMode = '1';
-      svg.classList.add('place-mode');
-      if (addStat) addStat.textContent = 'Click on the map to place.';
-    });
-
-    svg.addEventListener('click', function (e) {
-      if (svg.dataset.placeMode !== '1') return;
-      var p = vboxPoint(svg, e);
-      addForm.querySelector('.notes-map-add-x').value = p.x.toFixed(1);
-      addForm.querySelector('.notes-map-add-y').value = p.y.toFixed(1);
-      svg.dataset.placeMode = '0';
-      svg.classList.remove('place-mode');
-      addForm.submit();
     });
   }
 

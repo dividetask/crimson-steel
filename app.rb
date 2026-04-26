@@ -48,6 +48,27 @@ helpers do
       addr ? addr.ip_address : '127.0.0.1'
     end
   end
+
+  # combat_id → the char_id whose turn it is right now. Reads the
+  # SceneState override first, then falls back to DummyData.
+  def current_turn_combat_id
+    SCENE_STATE.current_turn || DATA.combat_state['current_turn']
+  end
+
+  def current_turn_char_id
+    cid = current_turn_combat_id
+    DATA.combat_state['turns'].find { |t| t['combat_id'] == cid }&.dig('char_id')
+  end
+
+  # Can the viewer add map arrows right now? DMs always can (via the
+  # tool picker). Players can only when their assigned character is
+  # the current-turn character. Devices with no character assigned
+  # are spectators.
+  def viewer_can_draw_arrow?
+    return true if dm?
+    return false unless current_user&.character_id
+    current_user.character_id == current_turn_char_id
+  end
 end
 
 before do

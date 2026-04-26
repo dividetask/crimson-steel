@@ -654,7 +654,9 @@ body {
   filter: drop-shadow(0 0 3px #fbc02d);
 }
 
-.notes-map-svg.place-mode { cursor: crosshair; }
+.notes-map-svg.crosshair-mode { cursor: crosshair; }
+.notes-map-svg.move-mode .notes-map-object { cursor: grab; }
+.notes-map-svg.move-mode .notes-map-object.dragging { cursor: grabbing; }
 
 .notes-map-pending-point {
   fill: #ffeb3b;
@@ -673,18 +675,76 @@ body {
   font-size: 11px;
 }
 
+.notes-map-tool-row,
 .notes-map-arrow-controls,
-.notes-map-add-object {
+.notes-map-add-object,
+.notes-map-add-shape,
+.notes-map-move-hint {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.notes-map-arrow-controls + .notes-map-add-object {
+.notes-map-tool-row + .notes-map-arrow-controls,
+.notes-map-arrow-controls + .notes-map-add-object,
+.notes-map-add-object   + .notes-map-add-shape,
+.notes-map-add-shape    + .notes-map-move-hint,
+.notes-map-controls > div + div {
   margin-top: 6px;
   border-top: 1px dashed #ddd;
   padding-top: 6px;
+}
+
+.notes-map-controls > details.notes-map-resize {
+  margin-top: 6px;
+  border: 1px dashed #bbb;
+  border-radius: 3px;
+  padding: 4px 8px;
+  background: #fff;
+}
+
+.notes-map-controls > details.notes-map-resize summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: #444;
+}
+
+.notes-map-resize-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #444;
+}
+
+.notes-map-resize-form input[type="number"] {
+  width: 70px;
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+.notes-map-resize-form button {
+  font-size: 11px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+
+.notes-map-tool-hint,
+.notes-map-shape-status,
+.notes-map-move-hint {
+  color: #666;
+  font-style: italic;
+}
+
+.notes-map-wait-turn {
+  padding: 8px;
+  font-size: 11px;
+  font-style: italic;
+  color: #777;
+  background: #fff;
+  border-top: 1px solid #ddd;
 }
 
 .notes-map-arrow-status,
