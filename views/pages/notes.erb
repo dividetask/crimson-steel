@@ -2,7 +2,7 @@
 
 <div class="notes-chapter-filter">
   <span class="notes-chapter-label">Chapter:</span>
-  <a href="/notes" class="notes-chapter-chip <%= 'active' if @current_chapter.nil? %>">All</a>
+  <a href="/notes?chapter=all" class="notes-chapter-chip <%= 'active' if @current_chapter.nil? %>">All</a>
   <% DATA.chapters.each do |c| %>
     <a href="/notes?chapter=<%= c['number'] %>"
        class="notes-chapter-chip <%= 'active' if @current_chapter == c['number'] %>">
@@ -36,5 +36,6 @@
 <%= notes_map_stub(
       entries: DATA.note_maps,
       dm_view: dm?,
-      current_chapter: @current_chapter
+      current_chapter: @current_chapter,
+      scene_state: SCENE_STATE
     ) %>

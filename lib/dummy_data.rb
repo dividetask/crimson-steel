@@ -189,15 +189,41 @@ class DummyData
     ]
   end
 
+  # Each map entry can carry an `objects` array of tokens placed on
+  # the map. Object coordinates use the placeholder SVG's 400x240
+  # viewBox. Players can later add `arrows` to indicate actions; the
+  # arrow store lives in SceneState (see lib/scene_state.rb), not
+  # here, since it's mutable across the table.
   def self.note_maps
     [
       { 'id' => 1, 'chapter' => 1, 'public' => true,  'active' => false,
-        'caption' => 'Crimson Hold, ground floor.' },
+        'caption' => 'Crimson Hold, ground floor.',
+        'objects' => [
+          { 'id' => 'cb_door',   'kind' => 'scenery', 'x' =>  60, 'y' => 200, 'label' => 'Front door' },
+          { 'id' => 'cb_throne', 'kind' => 'scenery', 'x' => 320, 'y' =>  60, 'label' => 'Throne' }
+        ] },
       { 'id' => 2, 'chapter' => 2, 'public' => true,  'active' => true,
-        'caption' => 'Forest road south of the wagon. Treeline curves on the east; the wagon wreck blocks the road.' },
+        'caption' => 'Forest road south of the wagon. Treeline curves on the east; the wagon wreck blocks the road.',
+        'objects' => [
+          { 'id' => 'pc_ash',  'kind' => 'pc',      'x' =>  60, 'y' =>  80, 'label' => 'Ash' },
+          { 'id' => 'pc_bryn', 'kind' => 'pc',      'x' =>  80, 'y' =>  60, 'label' => 'Bryn' },
+          { 'id' => 'wagon',   'kind' => 'scenery', 'x' => 200, 'y' => 112, 'label' => 'Wagon' },
+          { 'id' => 'mob_1',   'kind' => 'enemy',   'x' => 320, 'y' => 180, 'label' => 'Bandit 1' },
+          { 'id' => 'mob_2',   'kind' => 'enemy',   'x' => 340, 'y' => 200, 'label' => 'Bandit 2' },
+          { 'id' => 'mob_3',   'kind' => 'enemy',   'x' => 350, 'y' => 170, 'label' => 'Bandit 3' }
+        ] },
       { 'id' => 3, 'chapter' => 2, 'public' => false, 'active' => false,
-        'caption' => 'DM-only overlay: bandit positions before the ambush is sprung.' }
+        'caption' => 'DM-only overlay: bandit positions before the ambush is sprung.',
+        'objects' => [
+          { 'id' => 'lookout',  'kind' => 'enemy', 'x' => 220, 'y' =>  40, 'label' => 'Lookout' },
+          { 'id' => 'archer_1', 'kind' => 'enemy', 'x' => 300, 'y' =>  90, 'label' => 'Archer' },
+          { 'id' => 'archer_2', 'kind' => 'enemy', 'x' => 360, 'y' => 130, 'label' => 'Archer' }
+        ] }
     ]
+  end
+
+  def self.note_map_by_id(id)
+    note_maps.find { |m| m['id'].to_i == id.to_i }
   end
 
   # --- Spells --------------------------------------------------------------

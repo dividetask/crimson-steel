@@ -2,15 +2,117 @@
 <% if entries.empty? %>
   <p class="notes-empty">No maps yet.</p>
 <% else %>
-  <% entries.each do |e| %>
-    <figure class="notes-map-card">
-      <div class="notes-map-frame"><%= notes_map_placeholder %></div>
+  <% entries.each do |e|
+       map_id  = e['id']
+       base    = e['objects'] || []
+       objects = scene_state ? scene_state.objects_for(map_id, base) : base
+       arrows  = scene_state ? scene_state.arrows_for(map_id) : []
+       by_id   = objects.each_with_object({}) { |o, h| h[o['id']] = o }
+  %>
+    <figure class="notes-map-card" data-map-id="<%= h map_id %>">
+      <div class="notes-map-frame">
+        <svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid meet"
+             xmlns="http://www.w3.org/2000/svg" class="notes-map-svg"
+             data-interactive="<%= interactive ? '1' : '0' %>">
+          <defs>
+            <% NOTES_MAP_ARROW_TYPES.each do |t|
+                 style = NOTES_MAP_ARROW_STYLES[t] %>
+              <marker id="arrowhead-<%= map_id %>-<%= t %>" viewBox="0 0 10 10"
+                      refX="8" refY="5" markerWidth="6" markerHeight="6"
+                      orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="<%= style[:color] %>"/>
+              </marker>
+            <% end %>
+          </defs>
+
+          <%# Background — same look as the original placeholder %>
+          <rect width="400" height="240" fill="#eef1e8"/>
+          <g stroke="#c5cdb4" stroke-width="1">
+            <% (1..7).each do |i| %><line x1="<%= i*50 %>" y1="0" x2="<%= i*50 %>" y2="240"/><% end %>
+            <% (1..4).each do |j| %><line x1="0" y1="<%= j*48 %>" x2="400" y2="<%= j*48 %>"/><% end %>
+          </g>
+          <path d="M0,160 Q100,140 200,150 T400,160" stroke="#8aa86b" stroke-width="3" fill="none"/>
+
+          <%# Arrows beneath the objects %>
+          <% arrows.each do |a|
+               from = by_id[a['from']]; to = by_id[a['to']]; next unless from && to
+               style = NOTES_MAP_ARROW_STYLES[a['type']]
+               next unless style %>
+            <line class="notes-map-arrow" data-arrow-type="<%= h a['type'] %>"
+                  x1="<%= from['x'] %>" y1="<%= from['y'] %>"
+                  x2="<%= to['x']   %>" y2="<%= to['y']   %>"
+                  stroke="<%= style[:color] %>" stroke-width="<%= style[:width] %>"
+                  <%= "stroke-dasharray=\"#{style[:dash]}\"" if style[:dash] %>
+                  marker-end="url(#arrowhead-<%= map_id %>-<%= a['type'] %>)"/>
+          <% end %>
+
+          <%# Objects on top %>
+          <% objects.each do |o|
+               fill, stroke = notes_map_object_colors(o['kind']) %>
+            <g class="notes-map-object notes-map-object-<%= h o['kind'] %>"
+               data-object-id="<%= h o['id'] %>"
+               data-label="<%= h o['label'] %>"
+               transform="translate(<%= o['x'] %>,<%= o['y'] %>)">
+              <% if o['kind'] == 'scenery' %>
+                <rect x="-18" y="-12" width="36" height="24"
+                      fill="<%= fill %>" stroke="<%= stroke %>" stroke-width="1"/>
+              <% else %>
+                <circle r="9" fill="<%= fill %>" stroke="<%= stroke %>" stroke-width="1.5"/>
+              <% end %>
+              <text x="0" y="-14" text-anchor="middle"
+                    font-family="Arial,sans-serif" font-size="9" fill="#333"><%= h o['label'] %></text>
+            </g>
+          <% end %>
+        </svg>
+      </div>
+
       <% if e['caption'] %>
         <figcaption class="notes-map-caption">
           <%= h e['caption'] %>
           <% if e['public'] == false %><span class="notes-meta-chip notes-meta-private">DM only</span><% end %>
-          <% if e['active']        %><span class="notes-meta-chip notes-meta-active">Active</span><% end %>
+          <% if e['active']          %><span class="notes-meta-chip notes-meta-active">Active</span><% end %>
         </figcaption>
+      <% end %>
+
+      <% if interactive %>
+        <div class="notes-map-controls">
+          <div class="notes-map-arrow-controls">
+            <label>Arrow type:
+              <select class="notes-map-arrow-type">
+                <option value="attack">Attack</option>
+                <option value="move-hurry">Move (hurry)</option>
+                <option value="move-sneak">Move (sneak)</option>
+                <option value="move-carefully">Move (carefully)</option>
+              </select>
+            </label>
+            <span class="notes-map-arrow-status">Click two tokens to draw an arrow.</span>
+            <% if dm_view %>
+              <form method="post" action="/scene/clear_arrows" class="notes-map-clear-form">
+                <input type="hidden" name="map_id" value="<%= h map_id %>">
+                <button type="submit">Clear arrows</button>
+              </form>
+            <% end %>
+          </div>
+
+          <% if dm_view %>
+            <div class="notes-map-add-object">
+              <form method="post" action="/scene/add_object" class="notes-map-add-form">
+                <input type="hidden" name="map_id" value="<%= h map_id %>">
+                <input type="hidden" name="x" class="notes-map-add-x">
+                <input type="hidden" name="y" class="notes-map-add-y">
+                <select name="kind">
+                  <option value="pc">PC</option>
+                  <option value="enemy">Enemy</option>
+                  <option value="scenery">Scenery</option>
+                </select>
+                <input type="text" name="label" placeholder="label" required>
+                <button type="button" class="notes-map-place-btn">Click map to place</button>
+                <button type="submit" class="notes-map-add-confirm" hidden>Add</button>
+              </form>
+              <span class="notes-map-add-status"></span>
+            </div>
+          <% end %>
+        </div>
       <% end %>
     </figure>
   <% end %>

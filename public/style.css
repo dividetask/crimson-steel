@@ -565,3 +565,57 @@ body {
   color: #444;
   background: #fafafa;
 }
+
+.notes-map-svg[data-interactive="1"] .notes-map-object {
+  cursor: pointer;
+}
+
+.notes-map-svg[data-interactive="1"] .notes-map-object.selected circle,
+.notes-map-svg[data-interactive="1"] .notes-map-object.selected rect {
+  stroke: #ffeb3b;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 3px #fbc02d);
+}
+
+.notes-map-svg.place-mode { cursor: crosshair; }
+
+.notes-map-controls {
+  padding: 8px;
+  background: #fafafa;
+  border-top: 1px solid #ddd;
+  font-size: 11px;
+}
+
+.notes-map-arrow-controls,
+.notes-map-add-object {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.notes-map-arrow-controls + .notes-map-add-object {
+  margin-top: 6px;
+  border-top: 1px dashed #ddd;
+  padding-top: 6px;
+}
+
+.notes-map-arrow-status,
+.notes-map-add-status {
+  color: #666;
+  font-style: italic;
+}
+
+.notes-map-arrow-controls select,
+.notes-map-add-object select,
+.notes-map-add-object input[type="text"] {
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+.notes-map-arrow-controls button,
+.notes-map-add-object button {
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
