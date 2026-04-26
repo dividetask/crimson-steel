@@ -21,111 +21,129 @@
   %>
     <figure class="notes-map-card"
             data-map-id="<%= h map_id %>"
-            data-can-draw="<%= can_draw ? '1' : '0' %>">
+            data-can-draw="<%= can_draw ? '1' : '0' %>"
+            data-base-w="<%= width %>"
+            data-base-h="<%= height %>">
       <% unless label.to_s.empty? %>
         <figcaption class="notes-map-label"><%= h label %></figcaption>
       <% end %>
 
-      <div class="notes-map-frame">
-        <svg viewBox="0 0 <%= width %> <%= height %>" preserveAspectRatio="xMidYMid meet"
-             xmlns="http://www.w3.org/2000/svg" class="notes-map-svg"
-             data-interactive="<%= interactive ? '1' : '0' %>"
-             data-tool="<%= dm_view ? 'view' : 'arrow' %>"
-             data-map-w="<%= width %>" data-map-h="<%= height %>">
-          <defs>
-            <% NOTES_MAP_ARROW_TYPES.each do |t|
-                 style = NOTES_MAP_ARROW_STYLES[t] %>
-              <marker id="arrowhead-<%= map_id %>-<%= t %>" viewBox="0 0 10 10"
-                      refX="8" refY="5" markerWidth="6" markerHeight="6"
-                      orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="<%= style[:color] %>"/>
-              </marker>
-            <% end %>
-          </defs>
+      <div class="notes-map-workspace">
+        <% if interactive && dm_view %>
+          <div class="notes-map-toolbar">
+            <button type="button" class="notes-map-tool-btn" data-tool="view"       title="View (no-op)">&#9679;</button>
+            <button type="button" class="notes-map-tool-btn" data-tool="arrow"      title="Draw arrow">&#10142;</button>
+            <button type="button" class="notes-map-tool-btn" data-tool="move"       title="Move tokens">&#10021;</button>
+            <button type="button" class="notes-map-tool-btn" data-tool="add-object" title="Add object">&#8853;</button>
+            <button type="button" class="notes-map-tool-btn" data-tool="add-shape"  title="Add shape">&#9645;</button>
+            <hr>
+            <button type="button" class="notes-map-zoom-btn" data-zoom="in"    title="Zoom in">+</button>
+            <button type="button" class="notes-map-zoom-btn" data-zoom="reset" title="Reset zoom">&#9874;</button>
+            <button type="button" class="notes-map-zoom-btn" data-zoom="out"   title="Zoom out">&minus;</button>
+          </div>
+        <% end %>
 
-          <%# Background — pale grid sized in 50-px squares. %>
-          <rect width="<%= width %>" height="<%= height %>" fill="#eef1e8"/>
-          <g stroke="#c5cdb4" stroke-width="1">
-            <% (1...settings['w']).each do |i| %>
-              <line x1="<%= i*sq %>" y1="0" x2="<%= i*sq %>" y2="<%= height %>"/>
-            <% end %>
-            <% (1...settings['h']).each do |j| %>
-              <line x1="0" y1="<%= j*sq %>" x2="<%= width %>" y2="<%= j*sq %>"/>
-            <% end %>
-          </g>
+        <div class="notes-map-frame">
+          <svg viewBox="0 0 <%= width %> <%= height %>" preserveAspectRatio="xMidYMid meet"
+               xmlns="http://www.w3.org/2000/svg" class="notes-map-svg"
+               data-interactive="<%= interactive ? '1' : '0' %>"
+               data-tool="<%= dm_view ? 'view' : 'arrow' %>"
+               data-map-w="<%= width %>" data-map-h="<%= height %>">
+            <defs>
+              <% NOTES_MAP_ARROW_TYPES.each do |t|
+                   style = NOTES_MAP_ARROW_STYLES[t] %>
+                <marker id="arrowhead-<%= map_id %>-<%= t %>" viewBox="0 0 10 10"
+                        refX="8" refY="5" markerWidth="6" markerHeight="6"
+                        orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="<%= style[:color] %>"/>
+                </marker>
+              <% end %>
+            </defs>
 
-          <%# DM-placed shapes, rendered beneath tokens and arrows. %>
-          <% shapes.each do |s| %>
-            <g class="notes-map-shape notes-map-shape-<%= h s['kind'] %>"
-               data-shape-id="<%= h s['id'] %>"
-               transform="translate(<%= s['x'] %>,<%= s['y'] %>)">
-              <% if s['kind'] == 'rect' %>
-                <rect x="<%= -s['w']/2 %>" y="<%= -s['h']/2 %>"
-                      width="<%= s['w'] %>" height="<%= s['h'] %>"
-                      fill="<%= h s['fill'] %>" stroke="<%= h s['stroke'] %>" stroke-width="1.5"/>
-              <% elsif s['kind'] == 'circle' %>
-                <circle r="<%= s['r'] %>"
+            <%# Background — pale grid sized in 50-px squares. %>
+            <rect width="<%= width %>" height="<%= height %>" fill="#eef1e8"/>
+            <g stroke="#c5cdb4" stroke-width="1">
+              <% (1...settings['w']).each do |i| %>
+                <line x1="<%= i*sq %>" y1="0" x2="<%= i*sq %>" y2="<%= height %>"/>
+              <% end %>
+              <% (1...settings['h']).each do |j| %>
+                <line x1="0" y1="<%= j*sq %>" x2="<%= width %>" y2="<%= j*sq %>"/>
+              <% end %>
+            </g>
+
+            <%# DM-placed shapes. %>
+            <% shapes.each do |s| %>
+              <g class="notes-map-shape notes-map-shape-<%= h s['kind'] %>"
+                 data-shape-id="<%= h s['id'] %>"
+                 transform="translate(<%= s['x'] %>,<%= s['y'] %>)">
+                <% if s['kind'] == 'rect' %>
+                  <rect x="<%= -s['w']/2 %>" y="<%= -s['h']/2 %>"
+                        width="<%= s['w'] %>" height="<%= s['h'] %>"
                         fill="<%= h s['fill'] %>" stroke="<%= h s['stroke'] %>" stroke-width="1.5"/>
-              <% end %>
-            </g>
-          <% end %>
+                <% elsif s['kind'] == 'circle' %>
+                  <circle r="<%= s['r'] %>"
+                          fill="<%= h s['fill'] %>" stroke="<%= h s['stroke'] %>" stroke-width="1.5"/>
+                <% end %>
+              </g>
+            <% end %>
 
-          <%# Arrows beneath the objects. %>
-          <% arrows.each do |a|
-               style = NOTES_MAP_ARROW_STYLES[a['type']]
-               next unless style
-               from_xy = SceneState.resolve_endpoint(a, 'from', by_id)
-               to_xy   = SceneState.resolve_endpoint(a, 'to',   by_id)
-               next unless from_xy && to_xy
-               own = current_user && a['device_id'] == current_user.device_id
-               can_remove = interactive && (dm_view || own)
-               mid_x = (from_xy[0] + to_xy[0]) / 2.0
-               mid_y = (from_xy[1] + to_xy[1]) / 2.0 %>
-            <g class="notes-map-arrow-group" data-arrow-id="<%= h a['id'] %>">
-              <line class="notes-map-arrow" data-arrow-type="<%= h a['type'] %>"
-                    x1="<%= from_xy[0] %>" y1="<%= from_xy[1] %>"
-                    x2="<%= to_xy[0]   %>" y2="<%= to_xy[1]   %>"
-                    stroke="<%= style[:color] %>" stroke-width="<%= style[:width] %>"
-                    <%= "stroke-dasharray=\"#{style[:dash]}\"" if style[:dash] %>
-                    marker-end="url(#arrowhead-<%= map_id %>-<%= a['type'] %>)"/>
-              <% if can_remove %>
-                <g class="notes-map-arrow-remove"
-                   transform="translate(<%= '%.1f' % mid_x %>,<%= '%.1f' % mid_y %>)"
-                   data-arrow-id="<%= h a['id'] %>">
-                  <circle r="7" fill="#fff" stroke="<%= style[:color] %>" stroke-width="1.5"/>
-                  <text x="0" y="3" text-anchor="middle"
-                        font-family="Arial,sans-serif" font-size="10"
-                        fill="<%= style[:color] %>" pointer-events="none">&#x2715;</text>
-                </g>
-              <% end %>
-            </g>
-          <% end %>
+            <%# Arrows beneath objects. %>
+            <% arrows.each do |a|
+                 style = NOTES_MAP_ARROW_STYLES[a['type']]
+                 next unless style
+                 from_xy = SceneState.resolve_endpoint(a, 'from', by_id)
+                 to_xy   = SceneState.resolve_endpoint(a, 'to',   by_id)
+                 next unless from_xy && to_xy
+                 own = current_user && a['device_id'] == current_user.device_id
+                 can_remove = interactive && (dm_view || own)
+                 mid_x = (from_xy[0] + to_xy[0]) / 2.0
+                 mid_y = (from_xy[1] + to_xy[1]) / 2.0 %>
+              <g class="notes-map-arrow-group" data-arrow-id="<%= h a['id'] %>">
+                <line class="notes-map-arrow" data-arrow-type="<%= h a['type'] %>"
+                      x1="<%= from_xy[0] %>" y1="<%= from_xy[1] %>"
+                      x2="<%= to_xy[0]   %>" y2="<%= to_xy[1]   %>"
+                      stroke="<%= style[:color] %>" stroke-width="<%= style[:width] %>"
+                      <%= "stroke-dasharray=\"#{style[:dash]}\"" if style[:dash] %>
+                      marker-end="url(#arrowhead-<%= map_id %>-<%= a['type'] %>)"/>
+                <% if can_remove %>
+                  <g class="notes-map-arrow-remove"
+                     transform="translate(<%= '%.1f' % mid_x %>,<%= '%.1f' % mid_y %>)"
+                     data-arrow-id="<%= h a['id'] %>">
+                    <circle r="7" fill="#fff" stroke="<%= style[:color] %>" stroke-width="1.5"/>
+                    <text x="0" y="3" text-anchor="middle"
+                          font-family="Arial,sans-serif" font-size="10"
+                          fill="<%= style[:color] %>" pointer-events="none">&#x2715;</text>
+                  </g>
+                <% end %>
+              </g>
+            <% end %>
 
-          <%# Objects (tokens) on top — glyph picked per kind. %>
-          <% objects.each do |o|
-               fill, stroke, glyph = notes_map_object_style(o['kind']) %>
-            <g class="notes-map-object notes-map-object-<%= h o['kind'] %>"
-               data-object-id="<%= h o['id'] %>"
-               data-label="<%= h o['label'] %>"
-               transform="translate(<%= o['x'] %>,<%= o['y'] %>)">
-              <% case glyph
-                 when :circle %>
-                <circle r="9" fill="<%= fill %>" stroke="<%= stroke %>" stroke-width="1.5"/>
-              <% when :rect %>
-                <rect x="-14" y="-10" width="28" height="20"
-                      fill="<%= fill %>" stroke="<%= stroke %>" stroke-width="1.5"/>
-              <% when :triangle %>
-                <polygon points="0,-11 10,8 -10,8"
-                         fill="<%= fill %>" stroke="<%= stroke %>" stroke-width="1.5"/>
-              <% when :diamond %>
-                <polygon points="0,-11 11,0 0,11 -11,0"
-                         fill="<%= fill %>" stroke="<%= stroke %>" stroke-width="1.5"/>
-              <% end %>
-              <text x="0" y="-14" text-anchor="middle"
-                    font-family="Arial,sans-serif" font-size="9" fill="#333"><%= h o['label'] %></text>
-            </g>
-          <% end %>
-        </svg>
+            <%# Objects (tokens) on top — glyph picked per kind. %>
+            <% objects.each do |o|
+                 fill, stroke, glyph = notes_map_object_style(o['kind']) %>
+              <g class="notes-map-object notes-map-object-<%= h o['kind'] %>"
+                 data-object-id="<%= h o['id'] %>"
+                 data-label="<%= h o['label'] %>"
+                 transform="translate(<%= o['x'] %>,<%= o['y'] %>)">
+                <% case glyph
+                   when :circle %>
+                  <circle r="9" fill="<%= fill %>" stroke="<%= stroke %>" stroke-width="1.5"/>
+                <% when :rect %>
+                  <rect x="-14" y="-10" width="28" height="20"
+                        fill="<%= fill %>" stroke="<%= stroke %>" stroke-width="1.5"/>
+                <% when :triangle %>
+                  <polygon points="0,-11 10,8 -10,8"
+                           fill="<%= fill %>" stroke="<%= stroke %>" stroke-width="1.5"/>
+                <% when :diamond %>
+                  <polygon points="0,-11 11,0 0,11 -11,0"
+                           fill="<%= fill %>" stroke="<%= stroke %>" stroke-width="1.5"/>
+                <% end %>
+                <text x="0" y="-14" text-anchor="middle"
+                      font-family="Arial,sans-serif" font-size="9" fill="#333"><%= h o['label'] %></text>
+              </g>
+            <% end %>
+          </svg>
+        </div>
       </div>
 
       <% if e['caption'] %>
@@ -139,32 +157,12 @@
       <% if interactive %>
         <div class="notes-map-controls">
 
-          <% if dm_view %>
-            <%# DM tool picker — drives all click behavior. Default
-                "View" so a stray click never mutates the map. %>
-            <div class="notes-map-tool-row">
-              <label>Tool:
-                <select class="notes-map-tool">
-                  <option value="view">View</option>
-                  <option value="arrow">Draw arrow</option>
-                  <option value="move">Move</option>
-                  <option value="add-object">Add object</option>
-                  <option value="add-shape">Add shape</option>
-                </select>
-              </label>
-              <span class="notes-map-tool-hint">Pick a tool, then click on the map.</span>
-              <form method="post" action="/scene/clear_arrows" class="notes-map-clear-form">
-                <input type="hidden" name="map_id" value="<%= h map_id %>">
-                <button type="submit">Clear arrows</button>
-              </form>
-            </div>
-          <% end %>
+          <%# Per-tool inline panels. Hidden by default; the JS un-
+              hides whichever matches the active tool. %>
 
-          <%# Arrow controls — visible when the viewer can draw. For
-              players that's only on their own turn; for DMs it's
-              gated by the tool picker (handled in JS). %>
           <% if can_draw %>
-            <div class="notes-map-arrow-controls" <%= 'data-dm-only="1"' if dm_view %>>
+            <div class="notes-map-arrow-controls" data-tool="arrow"
+                 <%= 'hidden' if dm_view %>>
               <label>Arrow type:
                 <select class="notes-map-arrow-type">
                   <option value="attack">Attack</option>
@@ -173,13 +171,7 @@
                   <option value="move-carefully">Move (carefully)</option>
                 </select>
               </label>
-              <span class="notes-map-arrow-status">
-                <% if dm_view %>
-                  Switch to "Draw arrow" tool, then click two points (token or empty space).
-                <% else %>
-                  Click two points (token or empty space) to draw an arrow.
-                <% end %>
-              </span>
+              <span class="notes-map-arrow-status">Click two points (token or empty) to draw an arrow.</span>
             </div>
           <% elsif !dm_view %>
             <div class="notes-map-wait-turn">
@@ -188,13 +180,9 @@
           <% end %>
 
           <% if dm_view %>
-            <%# Add-object controls (DM, tool=add-object) %>
             <div class="notes-map-add-object" data-tool="add-object" hidden>
-              <form method="post" action="/scene/add_object" class="notes-map-add-form">
-                <input type="hidden" name="map_id" value="<%= h map_id %>">
-                <input type="hidden" name="x" class="notes-map-add-x">
-                <input type="hidden" name="y" class="notes-map-add-y">
-                <select name="kind">
+              <label>Kind:
+                <select name="kind" class="notes-map-add-kind">
                   <option value="pc">PC</option>
                   <option value="npc">NPC</option>
                   <option value="enemy">Enemy</option>
@@ -204,32 +192,42 @@
                   <option value="hazard">Hazard</option>
                   <option value="treasure">Treasure</option>
                 </select>
-                <input type="text" name="label" placeholder="label" required>
-                <span class="notes-map-add-status">Type a label, then click on the map to place.</span>
-              </form>
+              </label>
+              <label>Label:
+                <input type="text" name="label" class="notes-map-add-label"
+                       placeholder="(optional)">
+              </label>
+              <span class="notes-map-add-status">Click on the map to place. Save to commit.</span>
             </div>
 
-            <%# Add-shape controls (DM, tool=add-shape). No label
-                input — shapes are just decoration. %>
             <div class="notes-map-add-shape" data-tool="add-shape" hidden>
-              <form method="post" action="/scene/add_shape" class="notes-map-shape-form">
-                <input type="hidden" name="map_id" value="<%= h map_id %>">
-                <input type="hidden" name="x" class="notes-map-shape-x">
-                <input type="hidden" name="y" class="notes-map-shape-y">
-                <select name="kind">
+              <label>Shape:
+                <select name="kind" class="notes-map-shape-kind">
                   <option value="rect">Rectangle</option>
                   <option value="circle">Circle</option>
                 </select>
-                <span class="notes-map-shape-status">Click on the map to place a shape.</span>
+              </label>
+              <span class="notes-map-shape-status">Click and drag on the map to draw.</span>
+            </div>
+
+            <div class="notes-map-move-hint" data-tool="move" hidden>
+              Drag a token to reposition. Save to commit.
+            </div>
+
+            <div class="notes-map-tool-hint-row">
+              <form method="post" action="/scene/clear_arrows" class="notes-map-clear-form">
+                <input type="hidden" name="map_id" value="<%= h map_id %>">
+                <button type="submit">Clear arrows</button>
               </form>
             </div>
 
-            <%# Move-mode hint (DM, tool=move) %>
-            <div class="notes-map-move-hint" data-tool="move" hidden>
-              Drag a token to move it. Release to save the new position.
+            <%# Pending-changes bar — JS shows it when ops queue is non-empty. %>
+            <div class="notes-map-pending" hidden>
+              <span class="notes-map-pending-count">0 pending change(s)</span>
+              <button type="button" class="notes-map-save-btn">Save</button>
+              <button type="button" class="notes-map-discard-btn">Discard</button>
             </div>
 
-            <%# Map settings — label + size in squares. %>
             <details class="notes-map-settings">
               <summary>Map settings</summary>
               <form method="post" action="/scene/update_map" class="notes-map-settings-form">

@@ -636,6 +636,59 @@ body {
   max-height: 360px;
 }
 
+/* Side-toolbar layout. Toolbar is a fixed-width column to the left
+   of the SVG; the frame takes the remaining width. */
+.notes-map-workspace {
+  display: flex;
+  align-items: flex-start;
+}
+
+.notes-map-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px;
+  background: #2c2c2c;
+  border-right: 1px solid #ddd;
+}
+
+.notes-map-toolbar hr {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid #555;
+  margin: 4px 0;
+}
+
+.notes-map-tool-btn,
+.notes-map-zoom-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #3a3a3a;
+  color: #ddd;
+  border: 1px solid #555;
+  border-radius: 3px;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.notes-map-tool-btn:hover,
+.notes-map-zoom-btn:hover { background: #555; color: #fff; }
+
+.notes-map-tool-btn.active {
+  background: #1976d2;
+  border-color: #0d47a1;
+  color: #fff;
+}
+
+.notes-map-frame { flex: 1 1 auto; min-width: 0; }
+
 .notes-map-caption {
   padding: 6px 8px;
   font-size: 11px;
@@ -667,6 +720,50 @@ body {
 
 .notes-map-arrow-remove circle { transition: fill 0.1s; }
 .notes-map-arrow-remove:hover circle { fill: #fff5f5; }
+
+/* Optimistically-rendered (not yet saved) elements get a dashed
+   yellow stroke to set them apart from server state. */
+.notes-map-svg .pending-op {
+  stroke-dasharray: 4 3;
+  opacity: 0.85;
+}
+
+/* Live preview while dragging out a shape. */
+.notes-map-shape-preview {
+  fill: rgba(25, 118, 210, 0.15);
+  stroke: #1976d2;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+.notes-map-pending {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #fff8e1;
+  border: 1px solid #f4cf6f;
+  border-radius: 3px;
+  margin-top: 6px;
+}
+
+.notes-map-pending-count { font-weight: bold; color: #6b4f00; }
+.notes-map-save-btn,
+.notes-map-discard-btn {
+  font-size: 11px;
+  padding: 2px 12px;
+  cursor: pointer;
+}
+
+.notes-map-save-btn {
+  background: #2e7d32; color: #fff;
+  border: 1px solid #1b5e20; border-radius: 3px;
+}
+.notes-map-discard-btn {
+  background: #fff; color: #444;
+  border: 1px solid #aaa; border-radius: 3px;
+}
 
 .notes-map-controls {
   padding: 8px;
