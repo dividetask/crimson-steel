@@ -17,6 +17,7 @@
           <td class="notes-character-name">
             <%= h e['name'] %>
             <% if e['public'] == false %><span class="notes-meta-chip notes-meta-private">DM only</span><% end %>
+            <% if e['active']          %><span class="notes-meta-chip notes-meta-active">Active</span><% end %>
           </td>
           <td><%= h e['role'] %></td>
           <td><%= h e['last_seen'] %></td>

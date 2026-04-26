@@ -1,0 +1,18 @@
+<div class="notes-map-stub" data-stub-id="<%= stub_id %>" data-dm-view="<%= dm_view ? '1' : '0' %>">
+<% if entries.empty? %>
+  <p class="notes-empty">No maps yet.</p>
+<% else %>
+  <% entries.each do |e| %>
+    <figure class="notes-map-card">
+      <div class="notes-map-frame"><%= notes_map_placeholder %></div>
+      <% if e['caption'] %>
+        <figcaption class="notes-map-caption">
+          <%= h e['caption'] %>
+          <% if e['public'] == false %><span class="notes-meta-chip notes-meta-private">DM only</span><% end %>
+          <% if e['active']        %><span class="notes-meta-chip notes-meta-active">Active</span><% end %>
+        </figcaption>
+      <% end %>
+    </figure>
+  <% end %>
+<% end %>
+</div>

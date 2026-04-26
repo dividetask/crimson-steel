@@ -4,9 +4,10 @@
 # private rows. Optional chapter filter.
 
 helpers do
-  def notes_characters_stub(entries:, dm_view: false, current_chapter: nil)
+  def notes_characters_stub(entries:, dm_view: false, current_chapter: nil, active_only: false)
     visible = entries.reject { |e| !dm_view && e['public'] == false }
     visible = visible.select { |e| current_chapter.nil? || e['chapter'] == current_chapter }
+    visible = visible.select { |e| e['active'] } if active_only
     erb :"stubs/_notes_characters_stub", layout: false, locals: {
       stub_id: SecureRandom.hex(4),
       entries: visible,

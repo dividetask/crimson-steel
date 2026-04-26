@@ -9,6 +9,7 @@
         <figcaption class="notes-image-caption">
           <%= h e['caption'] %>
           <% if e['public'] == false %><span class="notes-meta-chip notes-meta-private">DM only</span><% end %>
+          <% if e['active']          %><span class="notes-meta-chip notes-meta-active">Active</span><% end %>
         </figcaption>
       </figure>
     <% end %>

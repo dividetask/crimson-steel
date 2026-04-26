@@ -444,6 +444,12 @@ body {
   border-color: #3a0000;
 }
 
+.notes-meta-active {
+  background: #1976d2;
+  color: #fff;
+  border-color: #0d47a1;
+}
+
 .notes-journal-stub {
   margin: 8px 0;
 }
@@ -523,7 +529,7 @@ body {
   color: #444;
 }
 
-/* --- Scene map stub ----------------------------------------------------- */
+/* --- Notes map stub ----------------------------------------------------- */
 
 .scene-description {
   font-style: italic;
@@ -531,27 +537,29 @@ body {
   margin: 4px 0 12px 0;
 }
 
-.scene-map-stub {
-  margin: 8px 0 16px 0;
+.notes-map-stub { margin: 8px 0 16px 0; }
+
+.notes-map-card {
+  margin: 0 0 12px 0;
   border: 1px solid #ddd;
   border-radius: 3px;
   overflow: hidden;
 }
 
-.scene-map-frame {
+.notes-map-frame {
   display: block;
   background: #eef1e8;
   border-bottom: 1px solid #ddd;
 }
 
-.scene-map-svg {
+.notes-map-svg {
   display: block;
   width: 100%;
   height: auto;
   max-height: 360px;
 }
 
-.scene-map-caption {
+.notes-map-caption {
   padding: 6px 8px;
   font-size: 11px;
   color: #444;

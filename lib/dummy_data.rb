@@ -139,53 +139,64 @@ class DummyData
   end
 
   # --- Notes ---------------------------------------------------------------
+  # All notes-page content lives here. Each kind (journal, characters,
+  # images, maps) is its own array but they share the same flag set:
+  #   public — false hides the entry from non-DM viewers
+  #   chapter — filters with the chapter pills on /notes
+  #   active — flags the entry as part of the current scene; /scene
+  #     renders only entries where active is true.
 
   def self.notes
     [
       { 'id' => 1, 'owner_id' => 0, 'chapter' => 1, 'type' => 'chapter_title',
-        'title' => 'The Road to Crimson', 'note' => '', 'public' => true },
-      { 'id' => 2, 'owner_id' => 0, 'chapter' => 1, 'public' => true,
+        'title' => 'The Road to Crimson', 'note' => '', 'public' => true, 'active' => false },
+      { 'id' => 2, 'owner_id' => 0, 'chapter' => 1, 'public' => true, 'active' => false,
         'note' => "The party meets at the Weeping Stag. A courier delivers a sealed writ from Lord Halric." },
-      { 'id' => 3, 'owner_id' => 0, 'chapter' => 2, 'public' => false,
+      { 'id' => 3, 'owner_id' => 0, 'chapter' => 2, 'public' => false, 'active' => true,
         'note' => "Secret: the steward is working with the bandits. He knows the party's route." },
-      { 'id' => 4, 'owner_id' => 1, 'chapter' => 2, 'public' => true,
+      { 'id' => 4, 'owner_id' => 1, 'chapter' => 2, 'public' => true, 'active' => true,
         'note' => "Ash's personal log: the song keeps coming back to me in dreams." }
     ]
   end
 
-  # Characters of interest — NPCs the party has met or is tracking.
-  # Backs notes_characters_stub. Players only see entries with
-  # public => true; DM sees everything.
   def self.characters_of_interest
     [
-      { 'id' => 1, 'name' => 'Lord Halric',        'role' => 'Patron',
-        'last_seen' => 'Crimson Hold',        'chapter' => 1, 'public' => true,
+      { 'id' => 1, 'name' => 'Lord Halric',         'role' => 'Patron',
+        'last_seen' => 'Crimson Hold',         'chapter' => 1, 'public' => true,  'active' => false,
         'note' => 'Sent the sealed writ that started the journey.' },
-      { 'id' => 2, 'name' => 'Steward Voss',       'role' => 'Hostile (secret)',
-        'last_seen' => 'Beneath the Mountain', 'chapter' => 2, 'public' => false,
+      { 'id' => 2, 'name' => 'Steward Voss',        'role' => 'Hostile (secret)',
+        'last_seen' => 'Beneath the Mountain', 'chapter' => 2, 'public' => false, 'active' => true,
         'note' => 'Working with the bandits. Knows the party route.' },
-      { 'id' => 3, 'name' => 'Mara the Innkeep',   'role' => 'Ally',
-        'last_seen' => 'Weeping Stag',        'chapter' => 1, 'public' => true,
+      { 'id' => 3, 'name' => 'Mara the Innkeep',    'role' => 'Ally',
+        'last_seen' => 'Weeping Stag',         'chapter' => 1, 'public' => true,  'active' => false,
         'note' => 'Knows local rumors. Takes coppers for hot tea.' },
       { 'id' => 4, 'name' => 'The Hooded Stranger', 'role' => 'Unknown',
-        'last_seen' => 'Forest road',         'chapter' => 1, 'public' => true,
+        'last_seen' => 'Forest road',          'chapter' => 1, 'public' => true,  'active' => true,
         'note' => 'Watched the party leave. Did not approach.' }
     ]
   end
 
-  # Image attachments — maps, portraits, props. Backs notes_images_stub.
-  # No real binaries yet; the stub renders an inline SVG placeholder
-  # whose look is picked by the kind field.
   def self.note_images
     [
-      { 'id' => 1, 'kind' => 'document', 'chapter' => 1, 'public' => true,
+      { 'id' => 1, 'kind' => 'document', 'chapter' => 1, 'public' => true,  'active' => false,
         'caption' => 'The sealed writ delivered to the party in the Weeping Stag.' },
-      { 'id' => 2, 'kind' => 'map',      'chapter' => 2, 'public' => false,
+      { 'id' => 2, 'kind' => 'map',      'chapter' => 2, 'public' => false, 'active' => true,
         'caption' => 'Bandit ambush map (DM only).' },
-      { 'id' => 3, 'kind' => 'portrait', 'chapter' => 1, 'public' => true,
+      { 'id' => 3, 'kind' => 'portrait', 'chapter' => 1, 'public' => true,  'active' => false,
         'caption' => 'Mara, the innkeep at the Weeping Stag.' },
-      { 'id' => 4, 'kind' => 'location', 'chapter' => 2, 'public' => true,
+      { 'id' => 4, 'kind' => 'location', 'chapter' => 2, 'public' => true,  'active' => true,
         'caption' => 'Cave entrance under the mountain.' }
+    ]
+  end
+
+  def self.note_maps
+    [
+      { 'id' => 1, 'chapter' => 1, 'public' => true,  'active' => false,
+        'caption' => 'Crimson Hold, ground floor.' },
+      { 'id' => 2, 'chapter' => 2, 'public' => true,  'active' => true,
+        'caption' => 'Forest road south of the wagon. Treeline curves on the east; the wagon wreck blocks the road.' },
+      { 'id' => 3, 'chapter' => 2, 'public' => false, 'active' => false,
+        'caption' => 'DM-only overlay: bandit positions before the ambush is sprung.' }
     ]
   end
 
@@ -242,16 +253,15 @@ class DummyData
   end
 
   # --- Scene ---------------------------------------------------------------
+  # The scene itself is just a label + description. Everything else
+  # the page renders comes from the active-flagged entries in the
+  # notes arrays above.
 
   def self.scene
     {
       'title' => 'The Bandit Ambush',
       'description' => 'Crossbows click from the treeline. Smoke rises off the wrecked wagon.',
-      'show_initiative' => true,
-      'map' => {
-        'caption' => 'Forest road south of the wagon. Treeline curves on the east; the wagon wreck blocks the road.',
-        'kind' => 'map'
-      }
+      'show_initiative' => true
     }
   end
 

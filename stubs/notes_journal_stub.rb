@@ -4,10 +4,11 @@
 # an argument so callers can pre-filter (e.g. by chapter).
 
 helpers do
-  def notes_journal_stub(entries:, dm_view: false, current_chapter: nil)
+  def notes_journal_stub(entries:, dm_view: false, current_chapter: nil, active_only: false)
     visible = entries.reject { |e| !dm_view && e['public'] == false }
     visible = visible.reject { |e| e['type'].to_s == 'chapter_title' }
     visible = visible.select { |e| current_chapter.nil? || e['chapter'] == current_chapter }
+    visible = visible.select { |e| e['active'] } if active_only
     erb :"stubs/_notes_journal_stub", layout: false, locals: {
       stub_id: SecureRandom.hex(4),
       entries: visible,

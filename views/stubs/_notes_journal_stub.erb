@@ -8,8 +8,9 @@
         <% if e['title'] %><div class="notes-journal-title"><%= h e['title'] %></div><% end %>
         <div class="notes-journal-body"><%= h(e['note']).gsub("\n", '<br>') %></div>
         <div class="notes-journal-meta">
-          <% if e['chapter'] %><span class="notes-meta-chip">Ch. <%= h e['chapter'] %></span><% end %>
+          <% if e['chapter']         %><span class="notes-meta-chip">Ch. <%= h e['chapter'] %></span><% end %>
           <% if e['public'] == false %><span class="notes-meta-chip notes-meta-private">DM only</span><% end %>
+          <% if e['active']          %><span class="notes-meta-chip notes-meta-active">Active</span><% end %>
         </div>
       </li>
     <% end %>
