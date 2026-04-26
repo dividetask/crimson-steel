@@ -70,7 +70,21 @@
     }
 
     if (toolSel) {
+      // Restore the last-picked tool for this map so a page reload
+      // (after drawing an arrow, placing a shape, etc) doesn't snap
+      // back to "View".
+      var toolKey = 'notes_map_tool/' + mapId;
+      try {
+        var saved = window.localStorage && localStorage.getItem(toolKey);
+        if (saved && Array.from(toolSel.options).some(function (o) { return o.value === saved; })) {
+          toolSel.value = saved;
+        }
+      } catch (e) { /* localStorage may be blocked — ignore */ }
+
       toolSel.addEventListener('change', function () {
+        try {
+          if (window.localStorage) localStorage.setItem(toolKey, toolSel.value);
+        } catch (e) { /* ignore */ }
         clearPending();
         syncToolPanels(toolSel.value);
       });

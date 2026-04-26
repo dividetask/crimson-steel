@@ -19,26 +19,41 @@ NOTES_MAP_ARROW_TYPES = NOTES_MAP_ARROW_STYLES.keys.freeze
 helpers do
   def notes_map_stub(entries:, dm_view: false, current_chapter: nil,
                      active_only: false, interactive: false,
-                     scene_state: nil)
+                     scene_state: nil, can_draw: nil)
     visible = entries.reject { |e| !dm_view && e['public'] == false }
     visible = visible.select { |e| current_chapter.nil? || e['chapter'] == current_chapter }
     visible = visible.select { |e| e['active'] } if active_only
+    # `can_draw` lets the test page simulate a non-DM "current
+    # turn" player; nil means use the live viewer_can_draw_arrow?
+    # check.
+    resolved_can_draw = if can_draw.nil?
+                         interactive && (defined?(viewer_can_draw_arrow?) ? viewer_can_draw_arrow? : true)
+                       else
+                         interactive && can_draw
+                       end
     erb :"stubs/_notes_map_stub", layout: false, locals: {
       stub_id: SecureRandom.hex(4),
       entries: visible,
       dm_view: dm_view,
       interactive: interactive,
-      scene_state: scene_state
+      scene_state: scene_state,
+      can_draw: resolved_can_draw
     }
   end
 
-  # Color/shape per object kind. Returns [fill, stroke].
-  def notes_map_object_colors(kind)
+  # Visual style per object kind. Returns [fill, stroke, glyph]
+  # where glyph is one of :circle, :rect, :triangle, :diamond.
+  def notes_map_object_style(kind)
     case kind.to_s
-    when 'pc'      then ['#577a99', '#1d3a5b']
-    when 'enemy'   then ['#a04848', '#5e1818']
-    when 'scenery' then ['#9c7a4a', '#5d4520']
-    else                ['#888888', '#3a3a3a']
+    when 'pc'       then ['#577a99', '#1d3a5b', :circle]
+    when 'npc'      then ['#9e9e9e', '#424242', :circle]
+    when 'enemy'    then ['#a04848', '#5e1818', :circle]
+    when 'scenery'  then ['#9c7a4a', '#5d4520', :rect]
+    when 'door'     then ['#5d4037', '#2e1c14', :rect]
+    when 'trap'     then ['#ffb300', '#7b5e00', :triangle]
+    when 'hazard'   then ['#e53935', '#7b1c1c', :triangle]
+    when 'treasure' then ['#fdd835', '#9c7a00', :diamond]
+    else                 ['#888888', '#3a3a3a', :circle]
     end
   end
 
@@ -113,10 +128,13 @@ post '/scene/move_shape' do
   { ok: ok }.to_json
 end
 
-post '/scene/resize_map' do
+post '/scene/update_map' do
   halt 403, 'forbidden' unless current_user&.dm?
-  SCENE_STATE.set_map_size(params[:map_id].to_i,
-                           params[:width], params[:height])
+  fields = {}
+  fields[:label]          = params[:label] if params.key?(:label)
+  fields[:width_squares]  = params[:width_squares].to_i  if !params[:width_squares].to_s.empty?
+  fields[:height_squares] = params[:height_squares].to_i if !params[:height_squares].to_s.empty?
+  SCENE_STATE.update_map_settings(params[:map_id].to_i, **fields)
   redirect(request.referrer || '/scene')
 end
 

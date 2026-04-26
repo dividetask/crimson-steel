@@ -194,33 +194,42 @@ class DummyData
   # viewBox. Players can later add `arrows` to indicate actions; the
   # arrow store lives in SceneState (see lib/scene_state.rb), not
   # here, since it's mutable across the table.
+  # Map sizes are now in *squares*. The partial scales up by
+  # SceneState::SQUARE_PX (currently 50) for the SVG viewBox; object
+  # x/y stay in pixel-equivalent viewBox coords.
   def self.note_maps
     [
       { 'id' => 1, 'chapter' => 1, 'public' => true,  'active' => false,
+        'label' => 'Crimson Hold',
         'caption' => 'Crimson Hold, ground floor.',
-        'width' => 400, 'height' => 240,
+        'width_squares' => 8, 'height_squares' => 5,
         'objects' => [
-          { 'id' => 'cb_door',   'kind' => 'scenery', 'x' =>  60, 'y' => 200, 'label' => 'Front door' },
-          { 'id' => 'cb_throne', 'kind' => 'scenery', 'x' => 320, 'y' =>  60, 'label' => 'Throne' }
+          { 'id' => 'cb_door',     'kind' => 'door',     'x' =>  60, 'y' => 200, 'label' => 'Front door' },
+          { 'id' => 'cb_throne',   'kind' => 'scenery',  'x' => 320, 'y' =>  60, 'label' => 'Throne' },
+          { 'id' => 'cb_treasure', 'kind' => 'treasure', 'x' => 280, 'y' => 130, 'label' => 'Vault' }
         ] },
       { 'id' => 2, 'chapter' => 2, 'public' => true,  'active' => true,
+        'label' => 'Forest road ambush',
         'caption' => 'Forest road south of the wagon. Treeline curves on the east; the wagon wreck blocks the road.',
-        'width' => 400, 'height' => 240,
+        'width_squares' => 8, 'height_squares' => 5,
         'objects' => [
           { 'id' => 'pc_ash',  'kind' => 'pc',      'x' =>  60, 'y' =>  80, 'label' => 'Ash' },
           { 'id' => 'pc_bryn', 'kind' => 'pc',      'x' =>  80, 'y' =>  60, 'label' => 'Bryn' },
           { 'id' => 'wagon',   'kind' => 'scenery', 'x' => 200, 'y' => 112, 'label' => 'Wagon' },
+          { 'id' => 'pit',     'kind' => 'trap',    'x' => 250, 'y' => 200, 'label' => 'Pit' },
           { 'id' => 'mob_1',   'kind' => 'enemy',   'x' => 320, 'y' => 180, 'label' => 'Bandit 1' },
           { 'id' => 'mob_2',   'kind' => 'enemy',   'x' => 340, 'y' => 200, 'label' => 'Bandit 2' },
           { 'id' => 'mob_3',   'kind' => 'enemy',   'x' => 350, 'y' => 170, 'label' => 'Bandit 3' }
         ] },
       { 'id' => 3, 'chapter' => 2, 'public' => false, 'active' => false,
+        'label' => 'Ambush overlay',
         'caption' => 'DM-only overlay: bandit positions before the ambush is sprung.',
-        'width' => 400, 'height' => 240,
+        'width_squares' => 8, 'height_squares' => 5,
         'objects' => [
-          { 'id' => 'lookout',  'kind' => 'enemy', 'x' => 220, 'y' =>  40, 'label' => 'Lookout' },
-          { 'id' => 'archer_1', 'kind' => 'enemy', 'x' => 300, 'y' =>  90, 'label' => 'Archer' },
-          { 'id' => 'archer_2', 'kind' => 'enemy', 'x' => 360, 'y' => 130, 'label' => 'Archer' }
+          { 'id' => 'lookout',  'kind' => 'enemy',  'x' => 220, 'y' =>  40, 'label' => 'Lookout' },
+          { 'id' => 'archer_1', 'kind' => 'enemy',  'x' => 300, 'y' =>  90, 'label' => 'Archer' },
+          { 'id' => 'archer_2', 'kind' => 'enemy',  'x' => 360, 'y' => 130, 'label' => 'Archer' },
+          { 'id' => 'fire',     'kind' => 'hazard', 'x' => 200, 'y' => 200, 'label' => 'Campfire' }
         ] }
     ]
   end

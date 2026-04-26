@@ -87,3 +87,32 @@
 
 <h3>Empty state</h3>
 <%= initiative_stub(turns: []) %>
+
+<h2>Notes Map Stub</h2>
+
+<p class="dt-note">
+  Two simulated perspectives — both edit the same shared map state.
+  The "as player" stub forces <code>can_draw: true</code> so you can
+  exercise the arrow flow without juggling combat turns.
+</p>
+
+<h3>As player (current turn)</h3>
+<%= notes_map_stub(
+      entries: DATA.note_maps,
+      dm_view: false,
+      active_only: true,
+      interactive: true,
+      scene_state: SCENE_STATE,
+      can_draw: true
+    ) %>
+
+<% if dm? %>
+  <h3>As DM</h3>
+  <%= notes_map_stub(
+        entries: DATA.note_maps,
+        dm_view: true,
+        active_only: true,
+        interactive: true,
+        scene_state: SCENE_STATE
+      ) %>
+<% end %>

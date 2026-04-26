@@ -686,6 +686,10 @@ body {
   gap: 8px;
 }
 
+/* The flex rules above otherwise win against [hidden]'s implicit
+   `display: none`, leaving every tool panel visible at once. */
+.notes-map-controls [hidden] { display: none !important; }
+
 .notes-map-tool-row + .notes-map-arrow-controls,
 .notes-map-arrow-controls + .notes-map-add-object,
 .notes-map-add-object   + .notes-map-add-shape,
@@ -696,7 +700,7 @@ body {
   padding-top: 6px;
 }
 
-.notes-map-controls > details.notes-map-resize {
+.notes-map-controls > details.notes-map-settings {
   margin-top: 6px;
   border: 1px dashed #bbb;
   border-radius: 3px;
@@ -704,31 +708,36 @@ body {
   background: #fff;
 }
 
-.notes-map-controls > details.notes-map-resize summary {
+.notes-map-controls > details.notes-map-settings summary {
   cursor: pointer;
   font-size: 11px;
   color: #444;
 }
 
-.notes-map-resize-form {
+.notes-map-settings-form {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   margin-top: 6px;
   font-size: 11px;
   color: #444;
 }
 
-.notes-map-resize-form input[type="number"] {
-  width: 70px;
-  font-size: 11px;
-  padding: 2px 4px;
+.notes-map-settings-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.notes-map-resize-form button {
-  font-size: 11px;
-  padding: 2px 10px;
-  cursor: pointer;
+.notes-map-settings-form input[type="text"]   { width: 200px; font-size: 11px; padding: 2px 4px; }
+.notes-map-settings-form input[type="number"] { width: 70px;  font-size: 11px; padding: 2px 4px; }
+.notes-map-settings-form button               { font-size: 11px; padding: 2px 10px; cursor: pointer; }
+
+.notes-map-label {
+  font-weight: bold;
+  font-size: 13px;
+  padding: 6px 8px 0;
 }
 
 .notes-map-tool-hint,

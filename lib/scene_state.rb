@@ -15,6 +15,11 @@
 class SceneState
   ARROW_TYPES = %w[attack move-hurry move-sneak move-carefully].freeze
   SHAPE_KINDS = %w[rect circle].freeze
+  ICON_KINDS  = %w[pc npc enemy scenery door trap treasure hazard].freeze
+
+  # One grid square is this many viewBox units. Map sizes are stored
+  # in squares; the partial multiplies up for the SVG viewBox.
+  SQUARE_PX = 50
 
   attr_accessor :current_turn
 
@@ -23,7 +28,7 @@ class SceneState
     @added_objects_by_map  = Hash.new { |h, k| h[k] = [] }
     @moves_by_map          = Hash.new { |h, k| h[k] = {} }
     @shapes_by_map         = Hash.new { |h, k| h[k] = [] }
-    @map_sizes             = {}
+    @map_settings_by_map   = {}    # map_id => { 'label' => str, 'w' => sq, 'h' => sq }
     @current_turn          = nil
   end
 
@@ -134,18 +139,25 @@ class SceneState
     true
   end
 
-  # ----- Map size --------------------------------------------------------
+  # ----- Map settings (label + size in squares) -------------------------
 
-  def map_size_for(map_id, base_w, base_h)
-    s = @map_sizes[map_id.to_i] || {}
-    [s['w'] || base_w || 400, s['h'] || base_h || 240]
+  # Returns the merged settings: DM overrides win, otherwise fall back
+  # to the values supplied by the base map record.
+  def map_settings_for(map_id, base_label: nil, base_w: 8, base_h: 5)
+    s = @map_settings_by_map[map_id.to_i] || {}
+    {
+      'label' => s['label'] || base_label.to_s,
+      'w'     => s['w']     || base_w,
+      'h'     => s['h']     || base_h
+    }
   end
 
-  def set_map_size(map_id, w, h)
-    w = w.to_f.clamp(50, 4000)
-    h = h.to_f.clamp(50, 4000)
-    @map_sizes[map_id.to_i] = { 'w' => w, 'h' => h }
-    [w, h]
+  def update_map_settings(map_id, label: nil, width_squares: nil, height_squares: nil)
+    cur = @map_settings_by_map[map_id.to_i] || {}
+    cur['label'] = label.to_s                                    unless label.nil?
+    cur['w']     = width_squares.to_i.clamp(1, 80)               unless width_squares.nil?
+    cur['h']     = height_squares.to_i.clamp(1, 80)              unless height_squares.nil?
+    @map_settings_by_map[map_id.to_i] = cur
   end
 
   # ----- Helpers ---------------------------------------------------------

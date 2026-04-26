@@ -79,6 +79,17 @@ get '/' do
   redirect '/test'
 end
 
+# In development a typo in the URL bar drops you on the test
+# scratchpad rather than a 404. Production keeps the standard 404
+# so we don't accidentally leak the test page to deployed users.
+not_found do
+  if settings.development?
+    redirect '/test'
+  else
+    'Not Found'
+  end
+end
+
 Dir[File.join(__dir__, 'stubs', '*.rb')].sort.each { |f| require f }
 Dir[File.join(__dir__, 'pages', '*.rb')].sort.each { |f| require f }
 
