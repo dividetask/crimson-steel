@@ -231,11 +231,17 @@ class DummyData
         { 'key' => 'longsword',
           'name' => 'Longsword',
           'min_dice' => 2, 'max_dice' => 6,
-          'attack_bonus' => 2, 'damage' => 4, 'threshold' => 8, 'bleed' => 1, 'speed' => 2 },
+          'attack_bonus' => 2, 'damage' => 4, 'threshold' => 8, 'bleed' => 1, 'speed' => 2,
+          'afflictions' => [
+            { 'key' => 'bleed', 'label' => 'Bleed', 'amount' => 1 }
+          ] },
         { 'key' => 'handaxe',
           'name' => 'Handaxe',
           'min_dice' => 2, 'max_dice' => 5,
-          'attack_bonus' => 1, 'damage' => 3, 'threshold' => 6, 'bleed' => 1, 'speed' => 1 }
+          'attack_bonus' => 1, 'damage' => 3, 'threshold' => 6, 'bleed' => 1, 'speed' => 1,
+          'afflictions' => [
+            { 'key' => 'bleed', 'label' => 'Bleed', 'amount' => 1 }
+          ] }
       ]
     }
   end
@@ -259,6 +265,10 @@ class DummyData
     ]
   end
 
+  # Allies who can take a reaction *during* this attack -- spend dice to
+  # roll a defensive check on the target's behalf, etc. Bardic
+  # Inspiration / Unsettling Words are not in here -- they are luck
+  # sources, applied to other rolls, and live in melee_luck_sources.
   def self.melee_ally_reactions
     [
       { 'key'   => 'lira-shield-of-faith',
@@ -266,12 +276,22 @@ class DummyData
         'min_dice' => 2, 'max_dice' => 4,
         'skill'  => { 'name' => 'Healing', 'bonus' => 2, 'dice' => 4, 'ranks' => 2 },
         'cost'   => 'no mana (concentration)',
-        'tn_label' => 'Block TN' },
-      { 'key'   => 'ash-bardic-inspiration',
-        'label' => 'Ash — Bardic Inspiration',
-        'reroll' => true,
-        'cost'   => '1 mana',
-        'description' => 'Reroll N lowest dice on the attack roll (handled in the roll stub).' }
+        'tn_label' => 'Block TN' }
+    ]
+  end
+
+  # Luck pools the DM can draw on after each roll-granting choice. The
+  # stub asks for points-to-spend from each pool after attack dice,
+  # defense dice, and per-ally roll selections; the chosen amounts ride
+  # along into the multi-roll display.
+  def self.melee_luck_sources
+    [
+      { 'key' => 'bardic_inspiration', 'label' => 'Bardic Inspiration',
+        'kind' => 'bonus',  'remaining' => 4,
+        'description' => 'Reroll N lowest dice on the chosen roll.' },
+      { 'key' => 'unsettling_words',   'label' => 'Unsettling Words',
+        'kind' => 'penalty', 'remaining' => 3,
+        'description' => 'Reroll N highest dice on the chosen roll.' }
     ]
   end
 

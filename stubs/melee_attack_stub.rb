@@ -18,7 +18,7 @@
 # the full chosen payload; the host page decides what to do with it.
 
 helpers do
-  def melee_attack_stub(attacker:, targets:, ally_reactions: [],
+  def melee_attack_stub(attacker:, targets:, ally_reactions: [], luck_sources: [],
                         title: 'Melee Attack',
                         die_size: DICE_SYSTEM.dice_resolution_config['Die Size'],
                         base_tn: DICE_SYSTEM.dice_resolution_config['Base Target Number'])
@@ -28,6 +28,7 @@ helpers do
       attacker: attacker,
       targets: targets,
       ally_reactions: ally_reactions,
+      luck_sources: luck_sources,
       die_size: die_size,
       base_tn: base_tn
     }
