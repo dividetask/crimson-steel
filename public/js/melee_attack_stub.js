@@ -66,17 +66,68 @@
 
   // Map of decision-step kinds to the function that re-opens that step.
   // Built lazily so the function references resolve after declarations.
+  // Per-ally luck steps use 'allyLuck-<idx>' so the dispatcher can
+  // dive back to the right ally when the user clicks Change.
   function rollbackHandler(kind) {
-    return ({
+    var staticHandlers = {
       target:          chooseTarget,
       weapon:          chooseWeapon,
       attackDice:      chooseAttackDice,
+      attackLuck:      chooseAttackLuck,
       defense:         chooseDefense,
       defenseDice:     chooseDefenseDice,
+      defenseLuck:     chooseDefenseLuck,
       allyReactions:   chooseAllyReactions,
       targetReactions: chooseTargetReactions,
       damage:          collectDamage
-    })[kind];
+    };
+    if (staticHandlers[kind]) return staticHandlers[kind];
+    if (kind.indexOf('allyLuck-') === 0) {
+      var idx = parseInt(kind.substring('allyLuck-'.length), 10);
+      return function(stubId) { chooseAllyLucks(stubId, idx); };
+    }
+    return null;
+  }
+
+  // Shared luck prompt. Renders one number input per configured luck
+  // source (label and remaining cap come from the data, never
+  // hardcoded). Skips entirely when no luck sources are configured so
+  // the host stays free to omit the feature. Defaults seed inputs from
+  // any prior chosen amounts -- handy when re-opening via rollback.
+  function promptLuck(stubId, kind, title, defaults, onContinue) {
+    var c = cfg(stubId);
+    var sources = c.luckSources || [];
+    if (sources.length === 0) { onContinue({}); return; }
+    var step = appendStep(stubId, title, kind);
+    var inputs = {};
+    sources.forEach(function(src) {
+      var row = document.createElement('label');
+      row.className = 'melee-luck-row';
+      var startVal = (defaults && defaults[src.key]) | 0;
+      row.innerHTML = '<strong>' + escapeHtml(src.label) + '</strong>: ' +
+        '<input type="number" min="0" max="' + (src.remaining | 0) + '" ' +
+        'value="' + startVal + '" data-src="' + escapeHtml(src.key) + '">' +
+        ' <span class="melee-meta">(remaining ' + (src.remaining | 0) + ')</span>';
+      step.body.appendChild(row);
+      inputs[src.key] = row.querySelector('input');
+    });
+    var done = btn('Continue', function() {
+      var chosen = {};
+      sources.forEach(function(src) {
+        var v = parseInt(inputs[src.key].value, 10) || 0;
+        if (v > 0) chosen[src.key] = v;
+      });
+      var picked = sources.filter(function(s) { return chosen[s.key]; });
+      var summary = picked.length === 0
+        ? '<em>No luck spent.</em>'
+        : picked.map(function(s) {
+            return '<strong>' + escapeHtml(s.label) + ':</strong> ' + chosen[s.key];
+          }).join(', ');
+      lockStep(step, summary);
+      onContinue(chosen);
+    }, 'melee-btn-primary');
+    step.body.appendChild(document.createElement('br'));
+    step.body.appendChild(done);
   }
 
   // Drop the named decision step (most recent occurrence) and every
@@ -175,8 +226,10 @@
     if (!c) return;
     c.state = {
       target: null, weapon: null, attackDice: 0,
+      attackLuck: {},
       defense: null, defenseDice: 0,
-      allyReactions: [], allyResults: [],
+      defenseLuck: {},
+      allyReactions: [], allyLucks: [], allyResults: [],
       attackSuccesses: 0, defenseSuccesses: 0,
       targetReactions: [],
       damage: 0, threshold: 0, afflictions: []
@@ -247,7 +300,7 @@
     var commit = function(n) {
       c.state.attackDice = n;
       lockStep(step, 'Attack dice: <strong>' + n + '</strong>');
-      chooseDefense(stubId);
+      chooseAttackLuck(stubId);
     };
     if (min === max) { commit(min); return; }
     var hint = document.createElement('span');
@@ -260,6 +313,16 @@
         step.body.appendChild(btn(String(v), function() { commit(v); }));
       })(n);
     }
+  }
+
+  // --- Step 3b: Luck for attack roll --------------------------------------
+  function chooseAttackLuck(stubId) {
+    var c = cfg(stubId);
+    promptLuck(stubId, 'attackLuck', 'Luck for Attack',
+      c.state.attackLuck, function(chosen) {
+        c.state.attackLuck = chosen;
+        chooseDefense(stubId);
+      });
   }
 
   // --- Step 4: Defense -----------------------------------------------------
@@ -295,7 +358,7 @@
     var commit = function(n) {
       c.state.defenseDice = n;
       lockStep(step, 'Defense dice: <strong>' + n + '</strong>');
-      chooseAllyReactions(stubId);
+      chooseDefenseLuck(stubId);
     };
     if (min === max) { commit(min); return; }
     for (var n = min; n <= max; n++) {
@@ -303,6 +366,16 @@
         step.body.appendChild(btn(String(v), function() { commit(v); }));
       })(n);
     }
+  }
+
+  // --- Step 4c: Luck for defense roll -------------------------------------
+  function chooseDefenseLuck(stubId) {
+    var c = cfg(stubId);
+    promptLuck(stubId, 'defenseLuck', 'Luck for ' + c.state.defense.label,
+      c.state.defenseLuck, function(chosen) {
+        c.state.defenseLuck = chosen;
+        chooseAllyReactions(stubId);
+      });
   }
 
   // --- Step 5: Ally reactions ---------------------------------------------
@@ -325,14 +398,35 @@
     });
     var done = btn('Continue', function() {
       c.state.allyReactions = picks.slice();
+      // Reset per-ally luck since the ally list just changed; the ally
+      // luck steps will repopulate as they fire.
+      c.state.allyLucks = [];
       var summary = picks.length === 0
         ? '<em>No ally reactions.</em>'
         : 'Ally reactions: <strong>' + picks.map(function(a){ return escapeHtml(a.label); }).join(', ') + '</strong>';
       lockStep(step, summary);
-      rollAttack(stubId);
+      chooseAllyLucks(stubId, 0);
     }, 'melee-btn-primary');
     step.body.appendChild(document.createElement('br'));
     step.body.appendChild(done);
+  }
+
+  // --- Step 5b: Luck per rolled ally reaction -----------------------------
+  // Walks the selected ally reactions and asks for luck on any that
+  // roll dice. Allies without skill+dice (pure rerolls etc.) skip.
+  function chooseAllyLucks(stubId, idx) {
+    var c = cfg(stubId);
+    var allies = (c.state.allyReactions || []).filter(function(a) {
+      return a.skill && (a.max_dice | 0) > 0;
+    });
+    if (idx >= allies.length) { rollAttack(stubId); return; }
+    var ally = allies[idx];
+    c.state.allyLucks = c.state.allyLucks || [];
+    promptLuck(stubId, 'allyLuck-' + idx, 'Luck for ' + ally.label,
+      c.state.allyLucks[idx], function(chosen) {
+        c.state.allyLucks[idx] = chosen;
+        chooseAllyLucks(stubId, idx + 1);
+      });
   }
 
   // --- Step 6: Roll attack (and any rolled defense / ally rolls) ----------
@@ -528,9 +622,12 @@
         target: c.state.target,
         weapon: c.state.weapon,
         attackDice: c.state.attackDice,
+        attackLuck: c.state.attackLuck,
         defense: c.state.defense,
         defenseDice: c.state.defenseDice,
+        defenseLuck: c.state.defenseLuck,
         allyReactions: c.state.allyReactions,
+        allyLucks: c.state.allyLucks,
         allyResults: c.state.allyResults,
         attackSuccesses: c.state.attackSuccesses,
         defenseSuccesses: c.state.defenseSuccesses,

@@ -579,6 +579,17 @@ body {
   background: #fff7c2;
 }
 
+.melee-luck-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 14px;
+}
+
+.melee-luck-row input[type="number"] {
+  width: 50px;
+}
+
 .melee-roll-slot {
   flex: 1 1 100%;
   margin-top: 4px;
