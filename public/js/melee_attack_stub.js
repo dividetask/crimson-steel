@@ -179,7 +179,7 @@
       allyReactions: [], allyResults: [],
       attackSuccesses: 0, defenseSuccesses: 0,
       targetReactions: [],
-      damage: 0, bleed: 0, threshold: 0, afflictions: []
+      damage: 0, threshold: 0, afflictions: []
     };
     stepsEl(stubId).innerHTML = '';
     chooseTarget(stubId);
@@ -466,8 +466,12 @@
     var allyBlock = c.state.allyResults.reduce(function(s, r) { return s + (r.successes|0); }, 0);
     var net = atk - defS - allyBlock;
     var defaultDmg = Math.max(0, (w.damage|0) + net);
-    var defaultBleed = Math.max(0, w.bleed|0);
     var defaultThreshold = w.threshold|0;
+    // Only afflictions the attack can already inflict (weapon + attacker
+    // abilities) are surfaced -- no freeform input. The DM zeroes out
+    // any line that should not actually trigger this swing.
+    var weaponAfflictions = (w.afflictions || []).slice();
+
     var step = appendStep(stubId, 'Confirm Damage', 'damage');
     var meta = document.createElement('div');
     meta.className = 'melee-meta';
@@ -478,33 +482,45 @@
 
     var form = document.createElement('div');
     form.className = 'melee-damage-form';
-    form.innerHTML =
+    var html =
       '<label>Damage <input type="number" min="0" value="' + defaultDmg + '" data-field="damage"></label>' +
-      '<label>Bleed <input type="number" min="0" value="' + defaultBleed + '" data-field="bleed"></label>' +
-      '<label>Threshold <input type="number" min="0" value="' + defaultThreshold + '" data-field="threshold"></label>' +
-      '<label>Afflictions <input type="text" placeholder="e.g. poison:2, paralysis:1" data-field="afflictions"></label>';
+      '<label>Threshold <input type="number" min="0" value="' + defaultThreshold + '" data-field="threshold"></label>';
+    if (weaponAfflictions.length > 0) {
+      html += '<div class="melee-affliction-list">' +
+        '<div class="melee-meta">Afflictions inflicted by this attack:</div>';
+      weaponAfflictions.forEach(function(a) {
+        html += '<label>' + escapeHtml(a.label) + ' ' +
+          '<input type="number" min="0" value="' + (a.amount|0) + '" ' +
+          'data-affliction-key="' + escapeHtml(a.key) + '" ' +
+          'data-affliction-label="' + escapeHtml(a.label) + '"></label>';
+      });
+      html += '</div>';
+    }
+    form.innerHTML = html;
     step.body.appendChild(form);
 
     var submit = btn('Submit', function() {
       var damage = parseInt(form.querySelector('[data-field="damage"]').value, 10) || 0;
-      var bleed = parseInt(form.querySelector('[data-field="bleed"]').value, 10) || 0;
       var threshold = parseInt(form.querySelector('[data-field="threshold"]').value, 10) || 0;
-      var raw = form.querySelector('[data-field="afflictions"]').value || '';
-      var afflictions = raw.split(',').map(function(t){return t.trim();}).filter(Boolean).map(function(t){
-        var p = t.split(':');
-        return {key: (p[0]||'').trim(), value: parseInt((p[1]||'0').trim(), 10) || 0};
-      });
+      var afflictions = Array.prototype.slice.call(
+        form.querySelectorAll('[data-affliction-key]')
+      ).map(function(el) {
+        return {
+          key:    el.dataset.afflictionKey,
+          label:  el.dataset.afflictionLabel,
+          amount: parseInt(el.value, 10) || 0
+        };
+      }).filter(function(a) { return a.amount > 0; });
+
       c.state.damage = damage;
-      c.state.bleed = bleed;
       c.state.threshold = threshold;
       c.state.afflictions = afflictions;
 
       var summary = '<strong>Damage:</strong> ' + damage +
-        ' &nbsp; <strong>Bleed:</strong> ' + bleed +
         ' &nbsp; <strong>Threshold:</strong> ' + threshold;
       if (afflictions.length > 0) {
         summary += '<br><strong>Afflictions:</strong> ' +
-          afflictions.map(function(a){ return escapeHtml(a.key) + ' ' + a.value; }).join(', ');
+          afflictions.map(function(a){ return escapeHtml(a.label) + ' ' + a.amount; }).join(', ');
       }
       lockStep(step, summary);
 
@@ -520,7 +536,6 @@
         defenseSuccesses: c.state.defenseSuccesses,
         targetReactions: c.state.targetReactions,
         damage: damage,
-        bleed: bleed,
         threshold: threshold,
         afflictions: afflictions
       };
