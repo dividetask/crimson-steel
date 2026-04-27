@@ -211,6 +211,20 @@
       e.preventDefault();
     });
 
+    // Wheel zoom works in every tool — even when drawing an arrow
+    // or placing a shape — so the user never has to switch tools to
+    // get closer. Anchored on the cursor so what's under it stays
+    // put. passive:false because we have to preventDefault to stop
+    // the page from scrolling.
+    svg.addEventListener('wheel', function (e) {
+      var p = vboxPoint(svg, e);
+      // deltaY < 0 → wheel up → zoom in. The factor is per-tick;
+      // trackpads emit many small deltas, so keep it modest.
+      var step = e.deltaY < 0 ? 1.15 : (1 / 1.15);
+      zoomAt(p.x, p.y, step);
+      e.preventDefault();
+    }, { passive: false });
+
     // ----- Pending-ops queue --------------------------------------
 
     function refreshPendingBar() {
