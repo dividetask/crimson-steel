@@ -1,0 +1,107 @@
+<% section_order.each do |section| %>
+  <% case section
+     when 'journal' %>
+    <h2>Journal</h2>
+    <% if show_journal_add %>
+      <details class="notes-journal-add">
+        <summary>Add a journal entry</summary>
+        <form method="post" action="/notes/journal/add" class="notes-journal-form">
+          <label>Title <input type="text" name="title"></label>
+          <label>Chapter
+            <input type="number" name="chapter" min="1"
+                   value="<%= h(current_chapter || (DATA.chapters.last && DATA.chapters.last['number']) || 1) %>">
+          </label>
+          <label>Note
+            <textarea name="note" rows="4" required></textarea>
+          </label>
+          <label class="notes-journal-flag">
+            <input type="checkbox" name="public" value="1" checked> Public
+          </label>
+          <label class="notes-journal-flag">
+            <input type="checkbox" name="active" value="1"> Active
+          </label>
+          <div class="notes-journal-actions">
+            <button type="submit">Add</button>
+          </div>
+        </form>
+      </details>
+    <% end %>
+    <%= notes_journal_stub(
+          entries: NOTES_STATE.effective_notes(DATA.notes),
+          dm_view: dm?,
+          current_chapter: current_chapter,
+          active_only: active_only,
+          editable: editable_journal
+        ) %>
+
+  <% when 'characters' %>
+    <h2>Characters of Interest</h2>
+    <%= notes_characters_stub(
+          entries: DATA.characters_of_interest,
+          dm_view: dm?,
+          current_chapter: current_chapter,
+          active_only: active_only
+        ) %>
+
+  <% when 'images' %>
+    <h2>Images</h2>
+    <%= notes_images_stub(
+          entries: DATA.note_images,
+          dm_view: dm?,
+          current_chapter: current_chapter,
+          active_only: active_only
+        ) %>
+
+  <% when 'maps' %>
+    <h2>Maps</h2>
+    <%
+      all_maps      = SCENE_STATE.all_maps(DATA.note_maps)
+      live_maps     = []
+      archived_maps = []
+      all_maps.each do |m|
+        s = SCENE_STATE.map_settings_for(m['id'],
+              base_label: m['label'], base_w: m['width_squares'],
+              base_h: m['height_squares'], base_public: m['public'],
+              base_active: m['active'], base_archived: m['archived'])
+        (s['archived'] ? archived_maps : live_maps) << m
+      end
+    %>
+
+    <% if show_create_map %>
+      <details class="notes-map-create">
+        <summary>Create a new map</summary>
+        <form method="post" action="/scene/create_map" class="notes-map-create-form">
+          <label>Label <input type="text" name="label" placeholder="e.g. Throne room"></label>
+          <label>Width (squares)  <input type="number" name="width_squares"  min="1" max="80" value="8"></label>
+          <label>Height (squares) <input type="number" name="height_squares" min="1" max="80" value="5"></label>
+          <label>Chapter <input type="number" name="chapter" min="1"
+                                value="<%= h(current_chapter || (DATA.chapters.last && DATA.chapters.last['number']) || 1) %>"></label>
+          <label class="notes-map-flag"><input type="checkbox" name="public" value="1" checked> Visible to players</label>
+          <label class="notes-map-flag"><input type="checkbox" name="active" value="1"> Active</label>
+          <button type="submit">Create</button>
+        </form>
+      </details>
+    <% end %>
+
+    <%= notes_map_stub(
+          entries: live_maps,
+          dm_view: dm?,
+          current_chapter: current_chapter,
+          active_only: active_only,
+          interactive: interactive_maps,
+          scene_state: scene_state
+        ) %>
+
+    <% if show_archived_maps && dm? && !archived_maps.empty? %>
+      <details class="notes-map-archived-section">
+        <summary>Archived maps (<%= archived_maps.size %>)</summary>
+        <%= notes_map_stub(
+              entries: archived_maps,
+              dm_view: dm?,
+              current_chapter: current_chapter,
+              scene_state: scene_state
+            ) %>
+      </details>
+    <% end %>
+  <% end %>
+<% end %>

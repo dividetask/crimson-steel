@@ -3,37 +3,12 @@
 <h1><%= h scene['title'] %></h1>
 <p class="scene-description"><%= h scene['description'] %></p>
 
-<h2>Map</h2>
-<% scene_maps = SCENE_STATE.all_maps(DATA.note_maps).reject do |m|
-     SCENE_STATE.map_settings_for(m['id'], base_archived: m['archived'])['archived']
-   end %>
-<%= notes_map_stub(
-      entries: scene_maps,
-      dm_view: dm?,
-      active_only: true,
-      interactive: true,
-      scene_state: SCENE_STATE
-    ) %>
-
-<h2>Journal</h2>
-<%= notes_journal_stub(
-      entries: DATA.notes,
-      dm_view: dm?,
-      active_only: true
-    ) %>
-
-<h2>Characters</h2>
-<%= notes_characters_stub(
-      entries: DATA.characters_of_interest,
-      dm_view: dm?,
-      active_only: true
-    ) %>
-
-<h2>Images</h2>
-<%= notes_images_stub(
-      entries: DATA.note_images,
-      dm_view: dm?,
-      active_only: true
+<%= notes_block(
+      current_chapter:    nil,
+      active_only:        true,
+      scene_state:        SCENE_STATE,
+      interactive_maps:   true,
+      section_order:      %w[maps journal characters images]
     ) %>
 
 <% if scene['show_initiative'] %>
