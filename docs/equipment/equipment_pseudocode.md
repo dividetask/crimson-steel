@@ -1200,8 +1200,7 @@ The operation is all-or-nothing: partial restocks are not supported. Callers who
 <tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>
 ```
 
-- `tier_prefix` is `equipment_config['Naming Convention']['tier_prefix_format']` with `{tier}` substituted, shown only when the displayed tier value is at least 1 and the Item Type's category is NOT listed under `tier_hidden_for`.
-- The displayed tier value is `Tier × enhancement_per_tier` when the Item Type declares `enhancement_per_tier`, otherwise the raw `Tier`. This lets a half-Tier item like a +3 Cloak of Resistance (Tier 1.5, `enhancement_per_tier: 2`) display as `+3` instead of `+1.5`. The displayed value is rendered as an integer when the result is whole.
+- `tier_prefix` is `equipment_config['Naming Convention']['tier_prefix_format']` with `{tier}` substituted, shown only when `tier >= 1` and the Item Type's category is NOT listed under `tier_hidden_for`.
 - Each property on the Stack contributes a word plus a position (prefix or suffix). Subtyped properties pull their word and position from the subtype-keyed display block. Non-subtyped properties use the display block directly. Missing `position` defaults to `equipment_config['Naming Convention']['default_property_position']` (normally `prefix`).
 - Prefix words accumulate in property order before the item name; suffix words accumulate in property order after it.
 
@@ -1216,38 +1215,34 @@ The operation is all-or-nothing: partial restocks are not supported. Callers who
 4. `tier = stack['tier'] or 0`
 5. `info = ITEM_DEFINITION(item_name)`
 6. `naming = equipment_config['Naming Convention']`
-7. `enhancement_per_tier = (info is not null) ? info['definition'].get('enhancement_per_tier') : null`
-8. `displayed_tier_value = (enhancement_per_tier is not null) ? tier * enhancement_per_tier : tier`
-9. `if displayed_tier_value == floor(displayed_tier_value): displayed_tier_value = floor(displayed_tier_value)  # render whole numbers without trailing .0`
-10. `tier_prefix = ''`
-11. `if displayed_tier_value >= 1 and (info is null or info['definition'].get('category') not in (naming['tier_hidden_for'] or empty list)):`
-12. `⠀⠀tier_prefix = naming['tier_prefix_format'] with '{tier}' replaced by displayed_tier_value`
-13. `prefix_words = empty list`
-14. `suffix_words = empty list`
-15. `catalog_key = (info is not null and info['category'] == 'Armor') ? 'Armor Properties' : 'Weapon Properties'`
-16. `catalog = equipment_config[catalog_key]`
-17. `for each property_entry in (stack['properties'] or empty list):`
-18. `⠀⠀property_name = (property_entry is string) ? property_entry : property_entry['name']`
-19. `⠀⠀property_def = catalog[property_name]`
-20. `⠀⠀if property_def['has_subtype']:`
-21. `⠀⠀⠀⠀subtype = (property_entry is dict) ? property_entry['subtype'] : null`
-22. `⠀⠀⠀⠀display_block = property_def['display'][subtype]`
-23. `⠀⠀else:`
-24. `⠀⠀⠀⠀display_block = property_def['display']`
-25. `⠀⠀word = display_block['word']`
-26. `⠀⠀position = display_block['position'] or naming['default_property_position'] or 'prefix'`
-27. `⠀⠀if position == 'suffix':`
-28. `⠀⠀⠀⠀suffix_words.append(word)`
-29. `⠀⠀else:`
-30. `⠀⠀⠀⠀prefix_words.append(word)`
-31. `parts = filter out empty strings from [tier_prefix] + prefix_words + [item_name] + suffix_words`
-32. `return parts joined by single spaces`
+7. `tier_prefix = ''`
+8. `if tier >= 1 and (info is null or info['definition'].get('category') not in (naming['tier_hidden_for'] or empty list)):`
+9. `⠀⠀tier_prefix = naming['tier_prefix_format'] with '{tier}' replaced by tier`
+10. `prefix_words = empty list`
+11. `suffix_words = empty list`
+12. `catalog_key = (info is not null and info['category'] == 'Armor') ? 'Armor Properties' : 'Weapon Properties'`
+13. `catalog = equipment_config[catalog_key]`
+14. `for each property_entry in (stack['properties'] or empty list):`
+15. `⠀⠀property_name = (property_entry is string) ? property_entry : property_entry['name']`
+16. `⠀⠀property_def = catalog[property_name]`
+17. `⠀⠀if property_def['has_subtype']:`
+18. `⠀⠀⠀⠀subtype = (property_entry is dict) ? property_entry['subtype'] : null`
+19. `⠀⠀⠀⠀display_block = property_def['display'][subtype]`
+20. `⠀⠀else:`
+21. `⠀⠀⠀⠀display_block = property_def['display']`
+22. `⠀⠀word = display_block['word']`
+23. `⠀⠀position = display_block['position'] or naming['default_property_position'] or 'prefix'`
+24. `⠀⠀if position == 'suffix':`
+25. `⠀⠀⠀⠀suffix_words.append(word)`
+26. `⠀⠀else:`
+27. `⠀⠀⠀⠀prefix_words.append(word)`
+28. `parts = filter out empty strings from [tier_prefix] + prefix_words + [item_name] + suffix_words`
+29. `return parts joined by single spaces`
 
 **Notes:**
-- Step 15's catalog pick is a pragmatic shortcut: Weapon and Armor properties do not share names in the default config, so either catalog would resolve the same properties in practice. If a future property appears in both catalogs under the same name with different display blocks, this function would need a more discerning dispatch (e.g., carrying the catalog tag on the Stack).
+- Step 12's catalog pick is a pragmatic shortcut: Weapon and Armor properties do not share names in the default config, so either catalog would resolve the same properties in practice. If a future property appears in both catalogs under the same name with different display blocks, this function would need a more discerning dispatch (e.g., carrying the catalog tag on the Stack).
 - A property entry given as a plain string (`"Vicious"`) works for non-subtyped properties; a subtyped property must use the dict form `{name, subtype}`.
 - An item whose category falls under `tier_hidden_for` (e.g., `Potion`) never shows a tier prefix even at tier 5. This keeps flavor names like "Potion of Cure Moderate Wounds" intact instead of becoming "+3 Potion of…".
-- The `enhancement_per_tier` multiplier (steps 7–9, 12) lets an Item Type with half-integer Tiers display a whole-number prefix. A Tier 1.5 Cloak of Resistance with `enhancement_per_tier: 2` displays as `+3 Cloak of Resistance`, not `+1.5`. Items without the field are unaffected — their displayed value is the raw Tier.
 - Missing display blocks or subtype keys raise implicitly via dictionary lookup; implementers may wrap with a clearer error if desired.
 
 ---

@@ -764,24 +764,22 @@ Armor Properties:
 #                             no Tier 0 form.
 #   tier_surcharge (optional) A per-item override of the global
 #                             `Tier Pricing.default_surcharges` map.
-#                             May be keyed by integer or half-integer
-#                             tiers. Used by items whose magical
-#                             pricing follows a different curve.
+#                             Keys are non-negative integer Tiers;
+#                             absent Tiers cannot be produced for
+#                             that Item Type.
 #   enhancement_attribute     The attribute that receives the item's
 #                             Enhancement Bonus. Free-form string
 #                             interpreted by the character module
 #                             (e.g., `saves`, `str`, `dex`, `con`,
-#                             `int`, `wis`, `cha`).
-#   enhancement_per_tier      Multiplier converting Tier into the
-#                             Enhancement Bonus and into the displayed
-#                             "+N" tier prefix. Cloaks/Belts/Headbands
-#                             all use 2, so a Tier 0.5 item is +1 and
-#                             a Tier 4.5 item is +9.
+#                             `int`, `wis`, `cha`). The bonus equals
+#                             the item's Tier.
 #   description               Free-form prose for humans / the UI.
 #
-# These cloaks/belts/headbands have nine versions each (+1 through
-# +9, i.e., Tiers 0.5 through 4.5 in 0.5 increments). The pricing
-# follows N² × base from before-refactor, extrapolated through +9.
+# Cloak of Resistance and the Belts/Headbands of Stat each come in
+# nine versions, +1 through +9, corresponding directly to Tiers 1
+# through 9. (These items are inherently magical — there is no
+# Tier 0 form.) The pricing follows N² × base from before-refactor,
+# extrapolated through +9.
 #
 # Items in this section do not currently accept magical Properties
 # from the Weapon or Armor catalogs — their magical effect is the
@@ -794,131 +792,124 @@ Items:
     slot: back
     base_price: 0
     enhancement_attribute: saves
-    enhancement_per_tier: 2
     tier_surcharge:
-      0.5: 1000
-      1: 4000
-      1.5: 9000
-      2: 16000
-      2.5: 25000
-      3: 36000
-      3.5: 49000
-      4: 64000
-      4.5: 81000
+      1: 1000
+      2: 4000
+      3: 9000
+      4: 16000
+      5: 25000
+      6: 36000
+      7: 49000
+      8: 64000
+      9: 81000
     description: >
       Increases the wearer's enhancement bonus on all saves by an
-      amount equal to twice the cloak's Tier.
+      amount equal to the cloak's Tier.
 
   Belt of Strength:
     slot: belt
     base_price: 0
     enhancement_attribute: str
-    enhancement_per_tier: 2
     tier_surcharge:
-      0.5: 500
-      1: 2000
-      1.5: 4500
-      2: 8000
-      2.5: 12500
-      3: 18000
-      3.5: 24500
-      4: 32000
-      4.5: 40500
+      1: 500
+      2: 2000
+      3: 4500
+      4: 8000
+      5: 12500
+      6: 18000
+      7: 24500
+      8: 32000
+      9: 40500
     description: >
       Increases the wearer's enhancement bonus to Strength by an
-      amount equal to twice the belt's Tier.
+      amount equal to the belt's Tier.
 
   Belt of Dexterity:
     slot: belt
     base_price: 0
     enhancement_attribute: dex
-    enhancement_per_tier: 2
     tier_surcharge:
-      0.5: 500
-      1: 2000
-      1.5: 4500
-      2: 8000
-      2.5: 12500
-      3: 18000
-      3.5: 24500
-      4: 32000
-      4.5: 40500
+      1: 500
+      2: 2000
+      3: 4500
+      4: 8000
+      5: 12500
+      6: 18000
+      7: 24500
+      8: 32000
+      9: 40500
     description: >
       Increases the wearer's enhancement bonus to Dexterity by an
-      amount equal to twice the belt's Tier.
+      amount equal to the belt's Tier.
 
   Belt of Constitution:
     slot: belt
     base_price: 0
     enhancement_attribute: con
-    enhancement_per_tier: 2
     tier_surcharge:
-      0.5: 500
-      1: 2000
-      1.5: 4500
-      2: 8000
-      2.5: 12500
-      3: 18000
-      3.5: 24500
-      4: 32000
-      4.5: 40500
+      1: 500
+      2: 2000
+      3: 4500
+      4: 8000
+      5: 12500
+      6: 18000
+      7: 24500
+      8: 32000
+      9: 40500
     description: >
       Increases the wearer's enhancement bonus to Constitution by an
-      amount equal to twice the belt's Tier.
+      amount equal to the belt's Tier.
 
   Headband of Intelligence:
     slot: head
     base_price: 0
     enhancement_attribute: int
-    enhancement_per_tier: 2
     tier_surcharge:
-      0.5: 500
-      1: 2000
-      1.5: 4500
-      2: 8000
-      2.5: 12500
-      3: 18000
-      3.5: 24500
-      4: 32000
-      4.5: 40500
+      1: 500
+      2: 2000
+      3: 4500
+      4: 8000
+      5: 12500
+      6: 18000
+      7: 24500
+      8: 32000
+      9: 40500
     description: >
       Increases the wearer's enhancement bonus to Intelligence by an
-      amount equal to twice the headband's Tier.
+      amount equal to the headband's Tier.
 
   Headband of Wisdom:
     slot: head
     base_price: 0
     enhancement_attribute: wis
-    enhancement_per_tier: 2
     tier_surcharge:
-      0.5: 500
-      1: 2000
-      1.5: 4500
-      2: 8000
-      2.5: 12500
-      3: 18000
-      3.5: 24500
-      4: 32000
-      4.5: 40500
+      1: 500
+      2: 2000
+      3: 4500
+      4: 8000
+      5: 12500
+      6: 18000
+      7: 24500
+      8: 32000
+      9: 40500
     description: >
       Increases the wearer's enhancement bonus to Wisdom by an
-      amount equal to twice the headband's Tier.
+      amount equal to the headband's Tier.
 
   Headband of Charisma:
     slot: head
     base_price: 0
     enhancement_attribute: cha
-    enhancement_per_tier: 2
     tier_surcharge:
-      0.5: 500
-      1: 2000
-      1.5: 4500
-      2: 8000
-      2.5: 12500
-      3: 18000
-      3.5: 24500
-      4: 32000
-      4.5: 40500
+      1: 500
+      2: 2000
+      3: 4500
+      4: 8000
+      5: 12500
+      6: 18000
+      7: 24500
+      8: 32000
+      9: 40500
     description: >
       Increases the wearer's enhancement bonus to Charisma by an
-      amount equal to twice the headband's Tier.
+      amount equal to the headband's Tier.

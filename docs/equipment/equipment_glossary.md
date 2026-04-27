@@ -16,7 +16,7 @@
 
 **Owner ID**: A string that identifies an Owner, formatted as a kind prefix plus an id. Characters use `"character:<id>"`, where `<id>` is the immutable character id assigned by the character module (NOT the character's display name — names may collide between characters or change over time). The party uses the reserved string `"party"` (no id; there is exactly one). Ground Piles use `"ground:<location>"` where `<location>` is a free-form string. Specific Shops use `"shop:<id>"`. Generic Shop instances use `"generic_shop:<id>"`.
 
-**Tier**: A non-negative number representing how magically infused an item is. Tier 0 is non-magical. Most items use integer Tiers; some Item Types — most notably Cloaks of Resistance and stat-boosting Belts and Headbands — use half-integer Tiers in 0.5 increments. The character module may treat fractional Tiers further (e.g., averaging) but this module accepts both forms uniformly.
+**Tier**: A non-negative integer representing how magically infused an item is. Tier 0 is non-magical. There are no half-Tier items — every Item Stack carries an integer Tier. Some formulas in other modules treat a Tier 0 input as 0.5 for calculation purposes (avoiding multiply-by-zero, etc.), but that is a calculation convention, not a Tier value: the item itself is still Tier 0.
 
 **Source File**: The yaml file an Owner was loaded from. Tracked per-Owner so that writes go back to the same file. Owners created at runtime are written to the base file for their Owner kind (`loot.yaml`, `shops.yaml`).
 
@@ -74,9 +74,9 @@ When the Item Type is flagged `innately_usable: true`, the result of the formula
 
 **Property Subtype**: A variant of a Property (e.g., Fire, Acid, Electricity, Cold for Elemental). Subtyped Properties have one Display entry per Subtype.
 
-**Generated Display Name**: The item name produced from `<tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>` when no Name Override is set. The tier prefix is omitted for Tier 0 items and for any category listed in `tier_hidden_for` (e.g., Potion). When the Item Type declares `enhancement_per_tier`, the value substituted into the prefix is `Tier × enhancement_per_tier` rather than the raw Tier — this lets a half-Tier item display as a whole number (e.g., a Tier 1.5 Cloak of Resistance shows "+3").
+**Generated Display Name**: The item name produced from `<tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>` when no Name Override is set. The tier prefix is omitted for Tier 0 items and for any category listed in `tier_hidden_for` (e.g., Potion).
 
-**Enhancement Bonus**: A flat numeric bonus an Item grants to a specific Attribute on the wearer. The bonus is `Tier × enhancement_per_tier`. Cloaks and stat-boosting Belts/Headbands all set `enhancement_per_tier: 2`, so a Tier 0.5 item grants +1 and a Tier 4.5 item grants +9. The character module applies the bonus; this module stores the multiplier and the target attribute.
+**Enhancement Bonus**: A flat numeric bonus an Item grants to a specific Attribute on the wearer, equal to the Item's Tier. A Tier 3 Cloak of Resistance grants +3 to all saves; a Tier 5 Belt of Strength grants +5 to Strength. The character module applies the bonus; this module just records the target attribute.
 
 **Enhancement Attribute**: The attribute affected by an Item's Enhancement Bonus. Stored on the Item Type as `enhancement_attribute` (e.g., `saves`, `str`, `dex`, `con`, `int`, `wis`, `cha`). The character module interprets the string; this module just records it.
 
