@@ -765,6 +765,15 @@ body {
   filter: grayscale(0.6);
 }
 
+/* By default SVG only forwards clicks where the element is
+   actually painted. A shape with fill="none" catches clicks on
+   its 1.5px stroke and nowhere else, which makes Move and Delete
+   miss the body of the shape. Force the whole bounding region of
+   shapes and icons to receive pointer events. */
+.notes-map-svg .notes-map-shape rect,
+.notes-map-svg .notes-map-shape ellipse,
+.notes-map-svg .notes-map-icon { pointer-events: all; }
+
 .notes-map-pending-point {
   fill: #ffeb3b;
   stroke: #fbc02d;
