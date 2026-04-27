@@ -5,34 +5,23 @@
 # to generate display names. Copy this file to `equipment_config.yaml`
 # and edit for your campaign.
 #
-# Runtime inventories (who owns what, shop state, loot tables) live in
-# separate files: `loot.yaml`, `loot_tables.yaml`, and `shops.yaml`.
-#
-# See `equipment_glossary.md` for the vocabulary used here, and
-# `equipment_pseudocode.md` for how each section is consumed.
-#
 # ---------------------------------------------------------------------
 # Pricing
 #
 # All prices are in gold pieces (gp) as real numbers. Currency exchange
-# is 1 gp = 10 sp = 100 cp. Prices may be fractional (e.g., 7.75 gp for
-# a Tier 1 Flaming Arrow). Comparisons should use a tolerance rather
-# than strict equality.
+# is 1 gp = 10 sp = 100 cp. Prices may be fractional. Comparisons should 
+# use a tolerance rather than strict equality.
 
 # =====================================================================
 # CURRENCY
 # =====================================================================
 #
 # Currencies are Item Types that carry a fixed `value_in_gold`. They
-# appear in inventory as ordinary Item Stacks (e.g., `{item: Gold,
-# quantity: 147.5}`) and merge by Item Type alone. Fractional
-# quantities are permitted.
+# appear in inventory as ordinary Item Stacks and merge by Item Type 
+# alone. 
 #
 # Optional fields:
-#   weight  — mass per unit (free-form units, e.g. pounds). The
-#             Equipment module stores this field but does not act on
-#             it; encumbrance calculations live elsewhere. Omit if
-#             your campaign does not track coin weight.
+#   weight  — pounds per unit
 
 Currency:
   Gold:
@@ -49,47 +38,26 @@ Currency:
     weight: 0.02
 
 # =====================================================================
-# GEMS
-# =====================================================================
-#
-# `Gem` is a single generic Item Type whose instances carry their own
-# `value_in_gold` and optional `name`. A gem stack in inventory looks
-# like:
-#
-#   - item: Gem
-#     value_in_gold: 500
-#     name: Ruby
-#     quantity: 2
-#
-# Two gem stacks merge only when both `value_in_gold` and `name` match.
-# Gems spend last in Debit Wealth (after all coins); a gem that would
-# overpay is still fully consumed and the overpayment returns as Gold.
-
-Gems:
-  Gem:
-    description: >
-      A precious stone. Individual instances carry their own
-      value_in_gold and optional name (e.g., Ruby, Emerald, Raw
-      Sapphire). No fixed catalog of gem types — any gem stack with a
-      value_in_gold is valid.
-
-# =====================================================================
 # TIER PRICING (shared)
 # =====================================================================
 #
 # Per-tier costs and the divisors / multipliers that adjust them.
 #
-#   default_surcharges
+#   default_tier_surcharges
 #     The default flat additional cost in gp added to an item's base
 #     price when it is made magical. Tier 0 is non-magical and has no
 #     surcharge. This default applies to every Item Type unless that
 #     type defines its own `tier_surcharge` block, in which case the
 #     per-item map replaces this one for that type's pricing.
 #
+#   default_bonus_surcharges
+#     The default flat additional cost in gp added to an item's base
+#     price per point of bonus applied. 
+#
 #   ammunition_divisor
 #     The number of units of magical ammunition whose combined
 #     magical cost equals the magical surcharge of one equivalent
-#     magical weapon. Per-unit magical ammo cost is
+#     magical item. Per-unit magical ammo cost is
 #       (tier_surcharge + sum property costs) / ammunition_divisor
 #     A higher divisor means cheaper magical ammunition; a lower
 #     divisor means more expensive. Defaults to 100 if absent.
@@ -109,13 +77,22 @@ Gems:
 #     by this number. Defaults to 2.0 if absent.
 
 Tier Pricing:
-  default_surcharges:
-    0: 0
+  default_tier_surcharges:
     1: 250
     2: 1000
     3: 4000
     4: 16000
     5: 80000
+  default_bonus_surcharges:
+    1: 500
+    2: 1000
+    3: 2000
+    4: 4000
+    5: 6500
+    6: 9000
+    7: 13500
+    8: 18000
+    9: 27000
   ammunition_divisor: 100
   consumable_divisor: 10
   innately_usable_price_multiplier: 2.0
@@ -201,9 +178,6 @@ Weapon Categories:
 #   damage_formula   — overrides the weapon category's default damage
 #                      formula. The first tag with a damage_formula
 #                      wins (multiple are not stacked).
-#   damage_offset    — a signed integer added to whichever damage
-#                      formula is in effect. Stacks across multiple
-#                      tags.
 #   description      — free-form prose for humans.
 #
 # The combat module is the consumer; this module just stores the
@@ -215,38 +189,27 @@ Weapon Tags:
   thrown:
     damage_formula: "str / 4 - 2"
     description: >
-      A weapon balanced for throwing. Uses the same damage formula
-      as a One Handed melee weapon when thrown.
+      A weapon balanced for throwing. 
 
   light:
     description: >
-      A small, easily wielded weapon. Mechanical effects TBD by the
-      combat module.
+      A light one-handed weapon. 
 
   heavy:
     description: >
-      A large, cumbersome weapon. Mechanical effects TBD by the
-      combat module.
+      A heavy weapon typically requiring both hands to wield.
 
   exotic:
     description: >
-      A weapon requiring specialized training. Untrained wielders
-      may suffer penalties; details TBD by the combat module.
+      A weapon requiring specialized training.
 
   double_weapon:
     description: >
-      A weapon that can attack with both ends in a single round.
-      Mechanical effects TBD by the combat module.
+      A weapon that can use both ends to attack with.
 
-  shock:
+  lesslethal:
     description: >
-      On a successful hit, the weapon inflicts Shock — a non-lethal
-      stunning effect — equal to the damage the weapon would deal
-      from its damage formula. A weapon may still set its physical
-      `damage` to 0 (the Whip does), in which case the attack
-      inflicts only Shock and no physical damage. Shock semantics
-      (recovery, accumulation, interaction with hit points) are
-      owned by the combat module.
+      These weapons deal less damage but inflict a stunning effect
 
 # ---------------------------------------------------------------------
 # Damage Type Defaults
@@ -584,19 +547,19 @@ Armor Category Defaults:
   Light:
     damage_reduction: 1
     resilience_increment: 1
-    category_level: 1
+    thickness: 1
   Medium:
     damage_reduction: 3
     resilience_increment: 2
-    category_level: 2
+    thickness: 2
   Heavy:
     damage_reduction: 6
     resilience_increment: 3
-    category_level: 3
+    thickness: 3
   Shield:
     damage_reduction: null
     resilience_increment: null
-    category_level: 1
+    thickness: 1
 
 # ---------------------------------------------------------------------
 # Materials
@@ -611,19 +574,19 @@ Armor Category Defaults:
 #
 # A non-magical (Tier 0) leather armor has hardness 2; a Tier 3
 # leather armor has hardness 8. Hit points come from the formula
-# string and are evaluated by the combat module (`category_level`
+# string and are evaluated by the combat module (`armor_level`
 # resolves from the armor's Armor Category Defaults entry).
 
 Materials:
   Leather:
     hardness: 2
-    hit_points: "5 * category_level"
+    hit_points: "5 * thickness"
   Metal:
     hardness: 10
-    hit_points: "30 * category_level"
+    hit_points: "30 * thickness"
   Wood:
     hardness: 5
-    hit_points: "10 * category_level"
+    hit_points: "10 * thickness"
 
 # ---------------------------------------------------------------------
 # Armor
@@ -763,16 +726,12 @@ Armor Properties:
         word: Coldproof
 
 # =====================================================================
-# ITEMS (slot-equippable accessories)
+# MAGIC ITEMS
 # =====================================================================
 #
-# Slot-equippable items that aren't Weapons or Armor — cloaks, belts,
-# headbands, amulets, rings, and so on. Each entry specifies:
+# Magic items that aren't Weapons or Armor. Each entry specifies:
 #
-#   slot                      REQUIRED. One of the Slots listed above.
-#   base_price                Mundane cost in gp. Use 0 for items
-#                             that are inherently magical and have
-#                             no Tier 0 form.
+#   slot                      One of the Slots listed above.
 #   tier_surcharge (optional) A per-item override of the global
 #                             `Tier Pricing.default_surcharges` map.
 #                             Keys are non-negative integer Tiers;
@@ -803,126 +762,56 @@ Items:
 
   Cloak of Resistance:
     slot: back
-    base_price: 0
     guidance_attribute: saves
-    tier_surcharge:
-      1: 1000
-      2: 4000
-      3: 9000
-      4: 16000
-      5: 25000
-      6: 36000
-      7: 49000
-      8: 64000
-      9: 81000
+    guidance_bonus: [1, 2, 3, 4, 5]
+		tier: [1, 2, 3, 4, 5]
     description: >
-      Increases the wearer's guidance bonus on all saves by an
-      amount equal to the cloak's Tier.
+      Grants a guidance bonus to wearer's saving throws
 
   Belt of Strength:
     slot: belt
-    base_price: 0
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+		tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     guidance_attribute: str
-    tier_surcharge:
-      1: 500
-      2: 2000
-      3: 4500
-      4: 8000
-      5: 12500
-      6: 18000
-      7: 24500
-      8: 32000
-      9: 40500
     description: >
-      Increases the wearer's guidance bonus to Strength by an
-      amount equal to the belt's Tier.
+      Grants a guidance bonus to wearer's Strength
 
   Belt of Dexterity:
     slot: belt
-    base_price: 0
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+		tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     guidance_attribute: dex
-    tier_surcharge:
-      1: 500
-      2: 2000
-      3: 4500
-      4: 8000
-      5: 12500
-      6: 18000
-      7: 24500
-      8: 32000
-      9: 40500
     description: >
-      Increases the wearer's guidance bonus to Dexterity by an
-      amount equal to the belt's Tier.
+      Grants a guidance bonus to wearer's Dexterity
 
   Belt of Constitution:
     slot: belt
-    base_price: 0
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+		tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     guidance_attribute: con
-    tier_surcharge:
-      1: 500
-      2: 2000
-      3: 4500
-      4: 8000
-      5: 12500
-      6: 18000
-      7: 24500
-      8: 32000
-      9: 40500
     description: >
-      Increases the wearer's guidance bonus to Constitution by an
-      amount equal to the belt's Tier.
+      Grants a guidance bonus to wearer's Constitution
 
   Headband of Intelligence:
     slot: head
-    base_price: 0
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+		tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     guidance_attribute: int
-    tier_surcharge:
-      1: 500
-      2: 2000
-      3: 4500
-      4: 8000
-      5: 12500
-      6: 18000
-      7: 24500
-      8: 32000
-      9: 40500
     description: >
-      Increases the wearer's guidance bonus to Intelligence by an
-      amount equal to the headband's Tier.
+      Grants a guidance bonus to wearer's Intelligence
 
   Headband of Wisdom:
     slot: head
-    base_price: 0
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+		tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     guidance_attribute: wis
-    tier_surcharge:
-      1: 500
-      2: 2000
-      3: 4500
-      4: 8000
-      5: 12500
-      6: 18000
-      7: 24500
-      8: 32000
-      9: 40500
     description: >
-      Increases the wearer's guidance bonus to Wisdom by an
-      amount equal to the headband's Tier.
+      Grants a guidance bonus to wearer's Wisdom
 
   Headband of Charisma:
     slot: head
-    base_price: 0
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+		tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     guidance_attribute: cha
-    tier_surcharge:
-      1: 500
-      2: 2000
-      3: 4500
-      4: 8000
-      5: 12500
-      6: 18000
-      7: 24500
-      8: 32000
-      9: 40500
     description: >
-      Increases the wearer's guidance bonus to Charisma by an
-      amount equal to the headband's Tier.
+      Grants a guidance bonus to wearer's Charisma
