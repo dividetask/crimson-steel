@@ -16,7 +16,7 @@
 
 **Owner ID**: A string that identifies an Owner, formatted as a kind prefix plus an id. Characters use `"character:<id>"`, where `<id>` is the immutable character id assigned by the character module (NOT the character's display name — names may collide between characters or change over time). The party uses the reserved string `"party"` (no id; there is exactly one). Ground Piles use `"ground:<location>"` where `<location>` is a free-form string. Specific Shops use `"shop:<id>"`. Generic Shop instances use `"generic_shop:<id>"`.
 
-**Tier**: A non-negative integer representing how magically infused an item is. Tier 0 is non-magical. Tier 0.5 is not used in this module; fractional tier math belongs to other modules.
+**Tier**: A non-negative number representing how magically infused an item is. Tier 0 is non-magical. Most items use integer Tiers; some Item Types — most notably Cloaks of Resistance and stat-boosting Belts and Headbands — use half-integer Tiers in 0.5 increments. The character module may treat fractional Tiers further (e.g., averaging) but this module accepts both forms uniformly.
 
 **Source File**: The yaml file an Owner was loaded from. Tracked per-Owner so that writes go back to the same file. Owners created at runtime are written to the base file for their Owner kind (`loot.yaml`, `shops.yaml`).
 
@@ -40,7 +40,7 @@
 
 **Item Category**: The top-level grouping an Item Type belongs to. Defined categories: Weapon, Armor, Ammunition, Currency, Gem, Item (slot-equippable accessories like cloaks, belts, headbands), Consumable (potions, oils, scrolls; ammo is a separate category despite also being consumed). Further categories (Tool, etc.) may be added without code changes — the module dispatches on category where necessary and treats unrecognized categories as inert for category-specific logic.
 
-**Slot**: The body location an Item or Armor occupies when worn. Slot strings are listed in `equipment_config.yaml` under `Slots:` (e.g., `back`, `belt`, `body`, `head`, `neck`, …). The Item Type's `slot` field selects one. Held weapons and worn armor have implicit slots (hand / body) and do not appear in the `Slots:` list. The character module enforces the "one item per slot" rule at equip time; this module just stores the slot string.
+**Slot**: The body location an Item or Armor occupies when worn or carried. Slot strings are listed in `equipment_config.yaml` under `Slots:` (e.g., `back`, `bag`, `belt`, `body`, `head`, `neck`, …). The Item Type's `slot` field selects one. Held weapons and worn armor have implicit slots (hand / body) and do not appear in the `Slots:` list. The character module enforces the "one item per slot" rule at equip time; this module just stores the slot string.
 
 **Material**: A property of Armor specifying its baseline `hardness` and `hit_points` formula. Defined under `Materials:` in `equipment_config.yaml`. Effective hardness scales with Tier as `hardness = base_hardness + 2 × Tier`; non-magical armor uses the base value. Hit-point formulas are evaluated by the combat module.
 
@@ -58,7 +58,7 @@
 
 **Consumable Surcharge Divisor**: The analogue of the Magical Ammunition Divisor for non-ammo Consumables (potions, oils, scrolls, …). Per-unit magical consumable cost is `(Tier Surcharge + sum of Property costs) / Consumable Surcharge Divisor`. Magical Ammunition uses its own divisor; the two are independent. Defined under `Tier Pricing.consumable_divisor`. Defaults to 10. *(configurable)*
 
-**Untrained Usage Multiplier**: A multiplier applied to the Unit Price of any Item Type flagged with `untrained_use: true`. Models the premium charged for items that anyone can activate without magical knowledge — most notably potions and oils. Defined under `Tier Pricing.untrained_usage_multiplier`. Defaults to 2.0. *(configurable)*
+**Innately Usable Price Multiplier**: A multiplier applied to the Unit Price of any Item Type flagged with `innately_usable: true`. Models the premium charged for items that anyone can activate without magical knowledge — most notably potions and oils. Defined under `Tier Pricing.innately_usable_price_multiplier`. Defaults to 2.0. *(configurable)*
 
 **Unit Price**: The Gold cost of a single copy of a specific item configuration (Item Type plus Tier plus Properties).
 
@@ -68,13 +68,17 @@
 - For Currencies: `Unit Price = value_in_gold`.
 - For Gems: `Unit Price = the Gem's value_in_gold`.
 
-When the Item Type is flagged `untrained_use: true`, the result of the formula above is then multiplied by the Untrained Usage Multiplier.
+When the Item Type is flagged `innately_usable: true`, the result of the formula above is then multiplied by the Innately Usable Price Multiplier.
 
 **Magical Property**: A named effect that can be attached to a Weapon or Armor. Each Property specifies a minimum Tier, a cost in Gold, which Item Categories it applies to, whether it takes a Subtype (e.g., Elemental Fire vs. Elemental Cold), and a Display block used by the Name Generator.
 
 **Property Subtype**: A variant of a Property (e.g., Fire, Acid, Electricity, Cold for Elemental). Subtyped Properties have one Display entry per Subtype.
 
-**Generated Display Name**: The item name produced from `<tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>` when no Name Override is set. The tier prefix is omitted for Tier 0 items and for any category listed in `tier_hidden_for` (e.g., Potion).
+**Generated Display Name**: The item name produced from `<tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>` when no Name Override is set. The tier prefix is omitted for Tier 0 items and for any category listed in `tier_hidden_for` (e.g., Potion). When the Item Type declares `enhancement_per_tier`, the value substituted into the prefix is `Tier × enhancement_per_tier` rather than the raw Tier — this lets a half-Tier item display as a whole number (e.g., a Tier 1.5 Cloak of Resistance shows "+3").
+
+**Enhancement Bonus**: A flat numeric bonus an Item grants to a specific Attribute on the wearer. The bonus is `Tier × enhancement_per_tier`. Cloaks and stat-boosting Belts/Headbands all set `enhancement_per_tier: 2`, so a Tier 0.5 item grants +1 and a Tier 4.5 item grants +9. The character module applies the bonus; this module stores the multiplier and the target attribute.
+
+**Enhancement Attribute**: The attribute affected by an Item's Enhancement Bonus. Stored on the Item Type as `enhancement_attribute` (e.g., `saves`, `str`, `dex`, `con`, `int`, `wis`, `cha`). The character module interprets the string; this module just records it.
 
 ## Currency and Gems
 
