@@ -125,14 +125,16 @@ class SceneState
   end
 
   def add_shape(map_id:, kind:, x:, y:, w: nil, h: nil, rx: nil, ry: nil,
-                fill: '#cfd8dc', stroke: '#546e7a')
+                fill: nil, stroke: nil)
     return false unless SHAPE_KINDS.include?(kind)
+    fill   = '#cfd8dc' if fill.nil? || fill.to_s.empty?
+    stroke = (stroke || '#444').to_s
     shape = {
       'id'     => "shape_#{SecureRandom.hex(3)}",
       'kind'   => kind,
       'x'      => x.to_f,
       'y'      => y.to_f,
-      'fill'   => fill,
+      'fill'   => fill.to_s,
       'stroke' => stroke
     }
     case kind

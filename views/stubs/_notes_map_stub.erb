@@ -215,9 +215,33 @@
 
           <% if dm_view %>
             <div class="notes-map-add-shape" data-tool="add-shape" hidden>
+              <div class="notes-map-shape-colors">
+                <span class="notes-map-shape-color-label">Color:</span>
+                <button type="button" class="notes-map-shape-color-btn"
+                        data-color="" title="No fill (outline only)">&times;</button>
+                <% [
+                     ['#3a3a3a', 'Wall'],
+                     ['#8a8a8a', 'Stone'],
+                     ['#d7c79a', 'Floor'],
+                     ['#f0f0f0', 'Web'],
+                     ['#ffb74d', 'Hazard'],
+                     ['#ef5350', 'Fire / danger'],
+                     ['#4fc3f7', 'Water'],
+                     ['#81c784', 'Poison / grass'],
+                     ['#ba68c8', 'Magic']
+                   ].each do |c, name| %>
+                  <button type="button" class="notes-map-shape-color-btn"
+                          data-color="<%= c %>"
+                          style="background:<%= c %>"
+                          title="<%= h name %>"></button>
+                <% end %>
+                <input type="color" class="notes-map-shape-color-custom"
+                       title="Custom color">
+              </div>
               <span class="notes-map-shape-status">
-                Click and drag on the map to draw, or click for a default size.
-                Hold the toolbar button to switch shape.
+                Pick a color, then click and drag on the map to draw
+                (or click for a default size). Hold the toolbar
+                button to switch shape.
               </span>
             </div>
 

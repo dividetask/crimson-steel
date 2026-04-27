@@ -957,6 +957,48 @@ body {
   font-style: italic;
 }
 
+.notes-map-shape-colors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.notes-map-shape-color-label {
+  font-weight: bold;
+  color: #444;
+  margin-right: 4px;
+}
+
+.notes-map-shape-color-btn {
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  border: 1px solid #888;
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  color: #c00;
+}
+
+.notes-map-shape-color-btn:hover { outline: 1px solid #555; }
+.notes-map-shape-color-btn.active {
+  outline: 2px solid #1976d2;
+  outline-offset: 1px;
+}
+
+.notes-map-shape-color-custom {
+  width: 28px;
+  height: 22px;
+  border: 1px solid #888;
+  border-radius: 3px;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+}
+
 .notes-map-arrow-controls select,
 .notes-map-add-object select,
 .notes-map-add-object input[type="text"] {

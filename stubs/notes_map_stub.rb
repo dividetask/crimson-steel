@@ -150,7 +150,8 @@ post '/scene/add_shape' do
     w:      params[:w]  ? params[:w].to_f  : nil,
     h:      params[:h]  ? params[:h].to_f  : nil,
     rx:     params[:rx] ? params[:rx].to_f : nil,
-    ry:     params[:ry] ? params[:ry].to_f : nil
+    ry:     params[:ry] ? params[:ry].to_f : nil,
+    fill:   params[:fill].to_s.empty? ? 'none' : params[:fill]
   )
   redirect(request.referrer || '/scene')
 end
@@ -249,6 +250,7 @@ post '/scene/batch' do
       SCENE_STATE.move_object(map_id, op['object_id'].to_s, op['x'].to_f, op['y'].to_f)
       applied += 1
     when 'add_shape'
+      fill = op['fill'].to_s
       SCENE_STATE.add_shape(
         map_id: map_id,
         kind:   op['shape_kind'].to_s,
@@ -257,7 +259,8 @@ post '/scene/batch' do
         w:      op['w']  ? op['w'].to_f  : nil,
         h:      op['h']  ? op['h'].to_f  : nil,
         rx:     op['rx'] ? op['rx'].to_f : nil,
-        ry:     op['ry'] ? op['ry'].to_f : nil
+        ry:     op['ry'] ? op['ry'].to_f : nil,
+        fill:   fill.empty? ? 'none' : fill
       )
       applied += 1
     when 'add_icon'

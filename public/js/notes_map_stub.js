@@ -484,6 +484,55 @@
     var DEFAULT_RECT_W = 50, DEFAULT_RECT_H = 50;
     var DEFAULT_ELLIPSE_RX = 25, DEFAULT_ELLIPSE_RY = 25;
 
+    // ----- Shape fill color picker -------------------------------
+
+    var shapeFillKey = 'notes_map_shape_fill/' + mapId;
+    // Empty string = "no fill" (outline only). Otherwise a CSS color.
+    var shapeFill = '#cfd8dc';
+    try {
+      var sf = window.localStorage && localStorage.getItem(shapeFillKey);
+      if (sf !== null) shapeFill = sf;
+    } catch (e) {}
+
+    function refreshShapeColorButtons() {
+      card.querySelectorAll('.notes-map-shape-color-btn').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-color') === shapeFill);
+      });
+    }
+
+    function setShapeFill(color) {
+      shapeFill = color || '';
+      try { if (window.localStorage) localStorage.setItem(shapeFillKey, shapeFill); } catch (e) {}
+      refreshShapeColorButtons();
+    }
+
+    card.querySelectorAll('.notes-map-shape-color-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setShapeFill(btn.getAttribute('data-color'));
+      });
+    });
+    var customPicker = card.querySelector('.notes-map-shape-color-custom');
+    if (customPicker) {
+      // Reflect the current fill into the picker so the user sees
+      // what they last chose.
+      if (shapeFill && /^#[0-9a-f]{6}$/i.test(shapeFill)) customPicker.value = shapeFill;
+      customPicker.addEventListener('input', function () { setShapeFill(customPicker.value); });
+    }
+    refreshShapeColorButtons();
+
+    function applyShapeStyle(el, fill) {
+      // Empty fill → outline only. Otherwise the chosen color, with
+      // a darker stroke that doesn't disappear into the fill.
+      if (!fill) {
+        el.setAttribute('fill', 'none');
+        el.setAttribute('stroke', '#444');
+      } else {
+        el.setAttribute('fill', fill);
+        el.setAttribute('stroke', '#444');
+      }
+      el.setAttribute('stroke-width', 1.5);
+    }
+
     var shape = null;
     function startShape(p) {
       var kind = shapeKind;
@@ -548,9 +597,11 @@
           ry: parseFloat(ry.toFixed(1))
         };
       }
-      // Promote the preview into a "pending" rendered shape.
+      // Bake the chosen color into the optimistic preview AND the op.
+      op.fill = shapeFill;
       s.preview.classList.remove('notes-map-shape-preview');
       s.preview.classList.add('pending-op');
+      applyShapeStyle(s.preview, shapeFill);
       pushOp(op, s.preview);
     }
 
