@@ -238,6 +238,14 @@ Weapon Tags:
       A weapon that can attack with both ends in a single round.
       Mechanical effects TBD by the combat module.
 
+  shock:
+    description: >
+      The weapon's damage is inflicted as Shock — a non-lethal
+      stunning effect — rather than as physical damage. The amount
+      of Shock applied equals the damage the weapon would otherwise
+      deal. Shock semantics (recovery, accumulation, interaction
+      with hit points) are owned by the combat module.
+
 # ---------------------------------------------------------------------
 # Damage Type Defaults
 #
@@ -390,7 +398,7 @@ Weapons:
   Whip:
     category: One Handed
     damage_type: Slashing
-    damage: 0
+    tags: [shock]
     threshold: null
     base_price: 4
 

@@ -155,6 +155,8 @@ Placeholder entries — full definitions land in the Attack Roll / Combat module
 
 **Resilience**: A magical Armor's effective HP against damage, equal to `Tier × resilience_increment`. *(TBD)*
 
+**Shock**: A non-lethal stunning effect applied by Weapons carrying the `shock` tag (currently the Whip). The magnitude of Shock applied on a successful hit equals the damage the weapon would otherwise deal — physical damage is not applied. Shock recovery, accumulation, and interaction with hit points belong to the combat module. *(TBD)*
+
 ## Time
 
 **Advance Time**: The function the caller invokes to notify the `Equipment` class that game-time has elapsed. Increments the Game Day counter and triggers Active Generic Shop expiry. No other time-sensitive state lives in the Equipment module today; a future shared "time-aware module" interface may generalize this across other systems.
