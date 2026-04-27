@@ -84,7 +84,7 @@ When the Item Type is flagged `innately_usable: true`, the result of the formula
 
 **Currency**: An Item Type with a fixed `value_in_gold` — Gold (1.0), Silver (0.1), Copper (0.01). Currencies stack by Item Type alone; fractional Quantities are permitted. Each Currency may optionally declare a `weight` (e.g., grams or pounds per unit) for use by an outside encumbrance calculation; this module stores the field but does not act on it.
 
-**Gem**: An Item Type (`Gem`) whose instances carry their own `value_in_gold` field and optional `name` (e.g., "Ruby", "Emerald"). Two Gem Stacks merge only if both `value_in_gold` and `name` match. Gems do not have fixed types defined up-front; any Gem instance with a value_in_gold is a valid Gem.
+**Gem**: An Item Type (`Gem`) whose instances carry their own `value_in_gold` field and optional `name` (e.g., "Ruby", "Emerald"). Two Gem Stacks merge only if both `value_in_gold` and `name` match. Gems do not have fixed types defined up-front; any Gem instance with a `value_in_gold` is a valid Gem. Gems are not configured in `equipment_config.yaml` — the Item Type is built into the module — and they are spent last when paying a cost (see Debit Wealth), with any overpayment returned as Gold.
 
 **Value in Gold**: The Gold-equivalent value of one unit of a Currency or Gem. Used by Total Wealth and Debit Wealth.
 

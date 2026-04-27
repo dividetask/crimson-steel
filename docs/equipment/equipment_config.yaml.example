@@ -38,6 +38,16 @@ Currency:
     weight: 0.02
 
 # =====================================================================
+# (Gems are not configured here)
+# =====================================================================
+#
+# `Gem` is a fixed Item Type built into the Equipment module — its
+# rules (per-stack value_in_gold, optional name, identity-by-value,
+# spend-last in Debit Wealth) are not homebrew-tunable and live in
+# `equipment_glossary.md` instead. Gem stacks appear in inventories
+# and loot tables without any matching entry in this file.
+
+# =====================================================================
 # TIER PRICING (shared)
 # =====================================================================
 #
