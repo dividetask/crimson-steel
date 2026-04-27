@@ -32,7 +32,13 @@
     return '<span class="' + cls + '">' + value + '</span>';
   }
 
-  function dieBlank() { return '<span class="die die-blank">&nbsp;</span>'; }
+  // Render an unchanged die (carried over from the previous row) in
+  // muted form so the reroll row still shows the full dice state -- the
+  // DM doesn't have to glance up to remember what the unchanged values
+  // were.
+  function dieCarry(value) {
+    return '<span class="die die-carry">' + value + '</span>';
+  }
 
   function renderRows(rowId, data) {
     var el = diceCell(rowId);
@@ -41,7 +47,7 @@
     data.rows.forEach(function(row, idx) {
       var prev = idx === 0 ? null : data.rows[idx - 1].dice;
       var pieces = row.dice.map(function(d, i) {
-        if (prev !== null && d === prev[i]) return dieBlank();
+        if (prev !== null && d === prev[i]) return dieCarry(d);
         return dieSpan(d, data.tn, 10);
       });
       html += '<div class="roll-line">' +

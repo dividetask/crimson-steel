@@ -457,13 +457,60 @@ body {
 }
 
 .multi-roll-row-luck:disabled {
-  opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* Bonus luck (e.g. Bardic Inspiration): green text. Penalty luck
+ * (e.g. Unsettling Words): orange text. Disabled state stays readable
+ * by lightening the background instead of dropping opacity. */
+.multi-roll-row-bonus {
+  color: #1b5e20;
+  border-color: #66bb6a;
+  font-weight: bold;
+}
+
+.multi-roll-row-bonus:disabled {
+  color: #2e7d32;
+  background: #e8f5e9;
+  border-color: #a5d6a7;
+}
+
+.multi-roll-row-penalty {
+  color: #b85b00;
+  border-color: #f29900;
+  font-weight: bold;
+}
+
+.multi-roll-row-penalty:disabled {
+  color: #b85b00;
+  background: #fff3e0;
+  border-color: #ffcc80;
 }
 
 .multi-roll-dice {
   font-family: monospace;
   min-width: 200px;
+}
+
+.multi-roll-dice .roll-line {
+  display: block;
+  line-height: 1.6;
+}
+
+.multi-roll-dice .roll-label {
+  display: inline-block;
+  min-width: 60px;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+}
+
+/* A die that was carried over unchanged from the previous row.
+ * Visible (so each row is self-contained) but muted so it doesn't
+ * compete with the dice that actually changed in this reroll. */
+.multi-roll-dice .die-carry {
+  color: #bbb;
+  background: transparent;
+  font-weight: normal;
 }
 
 .multi-roll-dice .die {
