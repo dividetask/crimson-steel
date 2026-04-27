@@ -189,8 +189,24 @@ post '/scene/update_map' do
   fields[:label]          = params[:label] if params.key?(:label)
   fields[:width_squares]  = params[:width_squares].to_i  if !params[:width_squares].to_s.empty?
   fields[:height_squares] = params[:height_squares].to_i if !params[:height_squares].to_s.empty?
+  fields[:public]         = params[:public]   == '1' if params.key?('public_set')
+  fields[:active]         = params[:active]   == '1' if params.key?('active_set')
+  fields[:archived]       = params[:archived] == '1' if params.key?('archived_set')
   SCENE_STATE.update_map_settings(params[:map_id].to_i, **fields)
   redirect(request.referrer || '/scene')
+end
+
+post '/scene/create_map' do
+  halt 403, 'forbidden' unless current_user&.dm?
+  rec = SCENE_STATE.create_map(
+    label:          params[:label].to_s,
+    width_squares:  params[:width_squares].to_s.empty?  ? 8 : params[:width_squares].to_i,
+    height_squares: params[:height_squares].to_s.empty? ? 5 : params[:height_squares].to_i,
+    public_flag:    params[:public] == '1',
+    active:         params[:active] == '1',
+    chapter:        params[:chapter].to_s.empty? ? nil : params[:chapter].to_i
+  )
+  redirect(request.referrer || '/notes')
 end
 
 post '/scene/remove_arrow' do
@@ -272,6 +288,21 @@ post '/scene/batch' do
         x:      op['x'].to_f,
         y:      op['y'].to_f
       )
+      applied += 1
+    when 'move_icon'
+      SCENE_STATE.move_icon(map_id, op['icon_id'].to_s, op['x'].to_f, op['y'].to_f)
+      applied += 1
+    when 'move_shape'
+      SCENE_STATE.move_shape(map_id, op['shape_id'].to_s, op['x'].to_f, op['y'].to_f)
+      applied += 1
+    when 'delete_object'
+      SCENE_STATE.remove_object(map_id, op['object_id'].to_s)
+      applied += 1
+    when 'delete_shape'
+      SCENE_STATE.remove_shape(map_id, op['shape_id'].to_s)
+      applied += 1
+    when 'delete_icon'
+      SCENE_STATE.remove_icon(map_id, op['icon_id'].to_s)
       applied += 1
     end
   end

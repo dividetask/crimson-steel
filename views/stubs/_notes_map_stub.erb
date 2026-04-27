@@ -29,14 +29,18 @@
       <% end %>
 
       <div class="notes-map-workspace">
-        <% if interactive && dm_view %>
+        <% if interactive %>
           <div class="notes-map-toolbar">
-            <button type="button" class="notes-map-tool-btn" data-tool="view"       title="View (no-op)">&#9679;</button>
-            <button type="button" class="notes-map-tool-btn" data-tool="arrow"      title="Draw arrow">&#10142;</button>
-            <button type="button" class="notes-map-tool-btn" data-tool="move"       title="Move tokens">&#10021;</button>
-            <button type="button" class="notes-map-tool-btn" data-tool="add-object" title="Add object">&#8853;</button>
-            <button type="button" class="notes-map-tool-btn" data-tool="add-shape"  title="Add shape">&#9645;</button>
-            <button type="button" class="notes-map-tool-btn" data-tool="add-icon"   title="Add icon">&#9733;</button>
+            <button type="button" class="notes-map-tool-btn" data-tool="view"
+                    title="View (drag to pan, double-click to zoom in, right-click to zoom out)">&#9776;</button>
+            <% if dm_view %>
+              <button type="button" class="notes-map-tool-btn" data-tool="arrow"      title="Draw arrow">&#10142;</button>
+              <button type="button" class="notes-map-tool-btn" data-tool="move"       title="Move tokens / icons">&#10021;</button>
+              <button type="button" class="notes-map-tool-btn" data-tool="delete"     title="Delete (click an item)">&#9986;</button>
+              <button type="button" class="notes-map-tool-btn" data-tool="add-object" title="Add object">&#8853;</button>
+              <button type="button" class="notes-map-tool-btn" data-tool="add-shape"  title="Add shape">&#9645;</button>
+              <button type="button" class="notes-map-tool-btn" data-tool="add-icon"   title="Add icon">&#9733;</button>
+            <% end %>
             <hr>
             <button type="button" class="notes-map-zoom-btn" data-zoom="in"    title="Zoom in">+</button>
             <button type="button" class="notes-map-zoom-btn" data-zoom="reset" title="Reset zoom">&#9874;</button>
@@ -48,7 +52,7 @@
           <svg viewBox="0 0 <%= width %> <%= height %>" preserveAspectRatio="xMidYMid meet"
                xmlns="http://www.w3.org/2000/svg" class="notes-map-svg"
                data-interactive="<%= interactive ? '1' : '0' %>"
-               data-tool="<%= dm_view ? 'view' : 'arrow' %>"
+               data-tool="view"
                data-map-w="<%= width %>" data-map-h="<%= height %>">
             <defs>
               <% NOTES_MAP_ARROW_TYPES.each do |t|
@@ -178,10 +182,10 @@
             <%# Arrow type picker. Players see four buttons (one per
                 type). DMs see two — Attack, plus a Move button that
                 opens a flyout (hold-down) with the three move
-                variants. The currently-selected type is reflected
-                via the .active class and tracked in JS. %>
-            <div class="notes-map-arrow-controls" data-tool="arrow"
-                 <%= 'hidden' if dm_view %>>
+                variants. Clicking any arrow button switches the
+                active tool to "arrow" so players don't need a
+                separate tool button to start drawing. %>
+            <div class="notes-map-arrow-controls" data-tool="arrow" hidden>
               <% if dm_view %>
                 <button type="button" class="notes-map-arrow-btn active"
                         data-arrow-type="attack"
@@ -248,7 +252,12 @@
             </div>
 
             <div class="notes-map-move-hint" data-tool="move" hidden>
-              Drag a token to reposition. Save to commit.
+              Drag a token, shape, or icon to reposition. Save to commit.
+            </div>
+
+            <div class="notes-map-delete-hint" data-tool="delete" hidden>
+              Click an object, shape, or icon to remove it. Save to commit.
+              Arrows have their own &#x2715; control.
             </div>
 
             <div class="notes-map-add-icon" data-tool="add-icon" hidden>
@@ -294,6 +303,21 @@
                 </label>
                 <label>Height (squares)
                   <input type="number" name="height_squares" min="1" max="80" value="<%= h settings['h'] %>">
+                </label>
+                <label class="notes-map-flag">
+                  <input type="checkbox" name="public" value="1" <%= 'checked' if settings['public'] %>>
+                  <input type="hidden" name="public_set" value="1">
+                  Visible to players
+                </label>
+                <label class="notes-map-flag">
+                  <input type="checkbox" name="active" value="1" <%= 'checked' if settings['active'] %>>
+                  <input type="hidden" name="active_set" value="1">
+                  Active (shows on /scene)
+                </label>
+                <label class="notes-map-flag">
+                  <input type="checkbox" name="archived" value="1" <%= 'checked' if settings['archived'] %>>
+                  <input type="hidden" name="archived_set" value="1">
+                  Archived
                 </label>
                 <button type="submit">Save</button>
               </form>

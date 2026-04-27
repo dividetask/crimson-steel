@@ -4,8 +4,11 @@
 <p class="scene-description"><%= h scene['description'] %></p>
 
 <h2>Map</h2>
+<% scene_maps = SCENE_STATE.all_maps(DATA.note_maps).reject do |m|
+     SCENE_STATE.map_settings_for(m['id'], base_archived: m['archived'])['archived']
+   end %>
 <%= notes_map_stub(
-      entries: DATA.note_maps,
+      entries: scene_maps,
       dm_view: dm?,
       active_only: true,
       interactive: true,

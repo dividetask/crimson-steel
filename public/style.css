@@ -708,8 +708,24 @@ body {
 }
 
 .notes-map-svg.crosshair-mode { cursor: crosshair; }
-.notes-map-svg.move-mode .notes-map-object { cursor: grab; }
-.notes-map-svg.move-mode .notes-map-object.dragging { cursor: grabbing; }
+.notes-map-svg.move-mode .notes-map-object,
+.notes-map-svg.move-mode .notes-map-shape,
+.notes-map-svg.move-mode .notes-map-icon { cursor: grab; }
+.notes-map-svg.move-mode .dragging { cursor: grabbing; }
+
+.notes-map-svg[data-tool="view"]   { cursor: grab; }
+.notes-map-svg[data-tool="view"].panning { cursor: grabbing; }
+.notes-map-svg[data-tool="delete"] { cursor: not-allowed; }
+.notes-map-svg[data-tool="delete"] .notes-map-object,
+.notes-map-svg[data-tool="delete"] .notes-map-shape,
+.notes-map-svg[data-tool="delete"] .notes-map-icon { cursor: pointer; }
+
+/* Items queued for delete via the Delete tool fade out so the DM
+   sees what's about to disappear on Save. */
+.notes-map-svg .pending-delete {
+  opacity: 0.35;
+  filter: grayscale(0.6);
+}
 
 .notes-map-pending-point {
   fill: #ffeb3b;
@@ -836,6 +852,49 @@ body {
   font-size: 13px;
   padding: 6px 8px 0;
 }
+
+.notes-map-flag {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 4px;
+}
+
+.notes-map-create,
+.notes-map-archived-section {
+  margin: 8px 0 16px 0;
+  border: 1px dashed #bbb;
+  border-radius: 3px;
+  padding: 4px 8px;
+  background: #fafafa;
+}
+
+.notes-map-create > summary,
+.notes-map-archived-section > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: #444;
+  padding: 4px 0;
+}
+
+.notes-map-create-form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #444;
+}
+
+.notes-map-create-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notes-map-create-form input[type="text"]   { width: 200px; font-size: 11px; padding: 2px 4px; }
+.notes-map-create-form input[type="number"] { width: 70px;  font-size: 11px; padding: 2px 4px; }
+.notes-map-create-form button               { font-size: 11px; padding: 2px 10px; cursor: pointer; }
 
 .notes-map-tool-hint,
 .notes-map-shape-status,

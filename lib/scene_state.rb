@@ -26,10 +26,13 @@ class SceneState
   def initialize
     @arrows_by_map         = Hash.new { |h, k| h[k] = [] }
     @added_objects_by_map  = Hash.new { |h, k| h[k] = [] }
+    @removed_objects_by_map= Hash.new { |h, k| h[k] = [] }
     @moves_by_map          = Hash.new { |h, k| h[k] = {} }
     @shapes_by_map         = Hash.new { |h, k| h[k] = [] }
     @icons_by_map          = Hash.new { |h, k| h[k] = [] }
-    @map_settings_by_map   = {}    # map_id => { 'label' => str, 'w' => sq, 'h' => sq }
+    @map_settings_by_map   = {}    # map_id => { 'label', 'w', 'h', 'public', 'active', 'archived' }
+    @created_maps          = []    # full map records that don't exist in DummyData
+    @next_created_id       = 10_000
     @current_turn          = nil
   end
 
@@ -96,11 +99,23 @@ class SceneState
     @moves_by_map[map_id.to_i][object_id.to_s] = { 'x' => x.to_f, 'y' => y.to_f }
   end
 
-  # Merged object list: base + added + per-id move overrides.
+  # Remove an object. Base DummyData rows are flagged in the
+  # removed-set; added objects are dropped from the added array.
+  def remove_object(map_id, object_id)
+    object_id = object_id.to_s
+    @added_objects_by_map[map_id.to_i].reject! { |o| o['id'] == object_id }
+    @removed_objects_by_map[map_id.to_i] << object_id unless @removed_objects_by_map[map_id.to_i].include?(object_id)
+    @moves_by_map[map_id.to_i].delete(object_id)
+  end
+
+  # Merged object list: base + added + per-id move overrides minus
+  # anything in the removed-set.
   def objects_for(map_id, base_objects)
-    moves = @moves_by_map[map_id.to_i]
-    list  = (base_objects || []) + @added_objects_by_map[map_id.to_i]
-    list.map { |o| moves[o['id']] ? o.merge(moves[o['id']]) : o }
+    moves   = @moves_by_map[map_id.to_i]
+    removed = @removed_objects_by_map[map_id.to_i]
+    list    = (base_objects || []) + @added_objects_by_map[map_id.to_i]
+    list.reject { |o| removed.include?(o['id'].to_s) }
+        .map    { |o| moves[o['id']] ? o.merge(moves[o['id']]) : o }
   end
 
   # ----- Shapes -----------------------------------------------------------
@@ -170,25 +185,64 @@ class SceneState
     true
   end
 
-  # ----- Map settings (label + size in squares) -------------------------
+  # ----- Map settings (label / size in squares / flags) ----------------
 
-  # Returns the merged settings: DM overrides win, otherwise fall back
-  # to the values supplied by the base map record.
-  def map_settings_for(map_id, base_label: nil, base_w: 8, base_h: 5)
+  # Returns merged settings: per-map override wins, otherwise fall
+  # back to whatever the base map record supplied.
+  def map_settings_for(map_id, base_label: nil, base_w: 8, base_h: 5,
+                       base_public: nil, base_active: nil, base_archived: false)
     s = @map_settings_by_map[map_id.to_i] || {}
     {
-      'label' => s['label'] || base_label.to_s,
-      'w'     => s['w']     || base_w,
-      'h'     => s['h']     || base_h
+      'label'    => s.key?('label')    ? s['label']    : base_label.to_s,
+      'w'        => s['w']     || base_w,
+      'h'        => s['h']     || base_h,
+      'public'   => s.key?('public')   ? s['public']   : (base_public.nil? ? true : base_public),
+      'active'   => s.key?('active')   ? s['active']   : (base_active.nil? ? false : base_active),
+      'archived' => s.key?('archived') ? s['archived'] : base_archived
     }
   end
 
-  def update_map_settings(map_id, label: nil, width_squares: nil, height_squares: nil)
+  def update_map_settings(map_id, label: nil, width_squares: nil, height_squares: nil,
+                          public: nil, active: nil, archived: nil)
     cur = @map_settings_by_map[map_id.to_i] || {}
-    cur['label'] = label.to_s                                    unless label.nil?
-    cur['w']     = width_squares.to_i.clamp(1, 80)               unless width_squares.nil?
-    cur['h']     = height_squares.to_i.clamp(1, 80)              unless height_squares.nil?
+    cur['label']    = label.to_s                       unless label.nil?
+    cur['w']        = width_squares.to_i.clamp(1, 80)  unless width_squares.nil?
+    cur['h']        = height_squares.to_i.clamp(1, 80) unless height_squares.nil?
+    cur['public']   = !!public                          unless public.nil?
+    cur['active']   = !!active                          unless active.nil?
+    cur['archived'] = !!archived                        unless archived.nil?
     @map_settings_by_map[map_id.to_i] = cur
+  end
+
+  # ----- Created maps (live alongside DummyData.note_maps) -------------
+
+  attr_reader :created_maps
+
+  def create_map(label: '', width_squares: 8, height_squares: 5,
+                 public_flag: true, active: false, chapter: nil)
+    rec = {
+      'id'             => @next_created_id,
+      'label'          => label.to_s,
+      'caption'        => '',
+      'chapter'        => chapter,
+      'public'         => !!public_flag,
+      'active'         => !!active,
+      'archived'       => false,
+      'width_squares'  => width_squares.to_i.clamp(1, 80),
+      'height_squares' => height_squares.to_i.clamp(1, 80),
+      'objects'        => []
+    }
+    @next_created_id += 1
+    @created_maps << rec
+    rec
+  end
+
+  # Merge DummyData's static maps with anything the DM has created
+  # in this session. Caller passes in DummyData.note_maps; the
+  # `archived` flag is honored via map_settings_for so created and
+  # base maps share the same toggle.
+  def all_maps(base_maps)
+    (base_maps || []) + @created_maps
   end
 
   # ----- Helpers ---------------------------------------------------------

@@ -120,32 +120,94 @@
       });
     }
 
-    // ----- Zoom ----------------------------------------------------
+    // ----- Zoom + pan ---------------------------------------------
+    //
+    // The viewBox is computed from (centerX, centerY, zoom). The
+    // View tool's gestures move (centerX, centerY) and adjust zoom:
+    //   - drag       → pan
+    //   - dbl-click  → zoom in centered on the click point
+    //   - right-click→ zoom out centered on the click point
+    // The zoom buttons in the toolbar still work too.
 
-    var zoomKey = 'notes_map_zoom/' + mapId;
+    var viewKey = 'notes_map_view/' + mapId;
     var zoom = 1;
-    function applyZoom() {
+    var center = { x: baseW / 2, y: baseH / 2 };
+    try {
+      var savedView = window.localStorage && JSON.parse(localStorage.getItem(viewKey) || 'null');
+      if (savedView && savedView.zoom > 0) {
+        zoom = savedView.zoom;
+        if (typeof savedView.cx === 'number') center.x = savedView.cx;
+        if (typeof savedView.cy === 'number') center.y = savedView.cy;
+      }
+    } catch (e) {}
+    function persistView() {
+      try {
+        if (window.localStorage) localStorage.setItem(viewKey, JSON.stringify({
+          zoom: zoom, cx: center.x, cy: center.y
+        }));
+      } catch (e) {}
+    }
+    function applyView() {
       var visW = baseW / zoom;
       var visH = baseH / zoom;
-      var offX = (baseW - visW) / 2;
-      var offY = (baseH - visH) / 2;
-      svg.setAttribute('viewBox', offX + ' ' + offY + ' ' + visW + ' ' + visH);
+      svg.setAttribute('viewBox',
+        (center.x - visW / 2) + ' ' + (center.y - visH / 2) + ' ' + visW + ' ' + visH);
     }
-    try {
-      var savedZoom = window.localStorage && parseFloat(localStorage.getItem(zoomKey));
-      if (savedZoom && savedZoom > 0) zoom = savedZoom;
-    } catch (e) {}
-    applyZoom();
+    function zoomAt(x, y, factor) {
+      var newZoom = Math.max(0.25, Math.min(8, zoom * factor));
+      // Anchor zoom around (x, y) so the click point stays under
+      // the cursor — shift center toward the click.
+      center.x = x - (x - center.x) * (zoom / newZoom);
+      center.y = y - (y - center.y) * (zoom / newZoom);
+      zoom = newZoom;
+      applyView();
+      persistView();
+    }
+    applyView();
 
     zoomBtns.forEach(function (btn) {
       btn.addEventListener('click', function () {
         var act = btn.getAttribute('data-zoom');
-        if      (act === 'in')    zoom = Math.min(zoom * 1.5, 8);
-        else if (act === 'out')   zoom = Math.max(zoom / 1.5, 0.25);
-        else                      zoom = 1;
-        try { if (window.localStorage) localStorage.setItem(zoomKey, zoom); } catch (e) {}
-        applyZoom();
+        if      (act === 'in')    zoomAt(center.x, center.y, 1.5);
+        else if (act === 'out')   zoomAt(center.x, center.y, 1 / 1.5);
+        else { zoom = 1; center = { x: baseW / 2, y: baseH / 2 }; applyView(); persistView(); }
       });
+    });
+
+    // Pan + zoom gestures attached to View tool. Pan tracks screen-
+    // pixel deltas converted to viewBox units via the bounding rect
+    // (vboxPoint can't be used during a pan because the viewBox
+    // moves under it on every frame).
+    var pan = null;
+    svg.addEventListener('mousedown', function (e) {
+      if (currentTool() !== 'view') return;
+      if (e.button !== 0) return;
+      // Don't start a pan from a click that landed on a token,
+      // shape, icon, or arrow ✕ — those have their own handlers.
+      if (e.target.closest('.notes-map-object, .notes-map-shape, .notes-map-icon, .notes-map-arrow-remove')) return;
+      var rect = svg.getBoundingClientRect();
+      var pxPerVbX = rect.width  / (baseW / zoom);
+      var pxPerVbY = rect.height / (baseH / zoom);
+      pan = {
+        startCenter: { x: center.x, y: center.y },
+        startClient: { x: e.clientX, y: e.clientY },
+        pxPerVbX: pxPerVbX, pxPerVbY: pxPerVbY,
+        moved: false
+      };
+      svg.classList.add('panning');
+      e.preventDefault();
+    });
+    svg.addEventListener('dblclick', function (e) {
+      if (currentTool() !== 'view') return;
+      var p = vboxPoint(svg, e);
+      zoomAt(p.x, p.y, 1.5);
+      e.preventDefault();
+    });
+    svg.addEventListener('contextmenu', function (e) {
+      if (currentTool() !== 'view') return;
+      var p = vboxPoint(svg, e);
+      zoomAt(p.x, p.y, 1 / 1.5);
+      e.preventDefault();
     });
 
     // ----- Pending-ops queue --------------------------------------
@@ -278,6 +340,14 @@
       moveFlyout = null;
     }
 
+    function activateArrowTool() {
+      // Switch to the arrow tool whenever an arrow type is picked,
+      // so players (no toolbar) and DMs alike can go from
+      // navigation straight into drawing.
+      try { if (window.localStorage) localStorage.setItem(toolKey, 'arrow'); } catch (e) {}
+      setActiveTool('arrow');
+    }
+
     arrowBtns.forEach(function (btn) {
       var holdTimer = null;
       var fired = false;
@@ -289,7 +359,10 @@
       });
       btn.addEventListener('mouseup', function () {
         if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-        if (!fired) setArrowType(arrowTypeForButton(btn));
+        if (!fired) {
+          setArrowType(arrowTypeForButton(btn));
+          activateArrowTool();
+        }
       });
       btn.addEventListener('mouseleave', function () {
         if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
@@ -371,37 +444,26 @@
     // ----- Move tool (drag tokens, batched) -----------------------
 
     var drag = null;
-    function startDrag(obj, evt) {
-      var t = (obj.getAttribute('transform') || '').match(/translate\(([^,]+),([^)]+)\)/);
-      drag = {
-        obj: obj,
-        objId: obj.getAttribute('data-object-id'),
-        startX: t ? parseFloat(t[1]) : 0,
-        startY: t ? parseFloat(t[2]) : 0,
-        startPt: vboxPoint(svg, evt)
-      };
-      obj.classList.add('dragging');
-      evt.preventDefault();
-    }
     function dragMove(evt) {
       if (!drag) return;
       var p = vboxPoint(svg, evt);
       var x = drag.startX + (p.x - drag.startPt.x);
       var y = drag.startY + (p.y - drag.startPt.y);
-      drag.obj.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')');
+      drag.spec.write(x, y);
       drag.endX = x; drag.endY = y;
     }
     function dragEnd() {
       if (!drag) return;
       var d = drag; drag = null;
-      d.obj.classList.remove('dragging');
+      d.el.classList.remove('dragging');
       if (d.endX === undefined) return; // pure click — no movement
-      pushOp({
-        kind: 'move_object',
-        object_id: d.objId,
+      var op = {
+        kind: d.spec.moveOp,
         x: parseFloat(d.endX.toFixed(1)),
         y: parseFloat(d.endY.toFixed(1))
-      }, d.obj);
+      };
+      op[d.spec.idKey] = d.elId;
+      pushOp(op, d.el);
     }
 
     // ----- Add-object (click to place, batched) -------------------
@@ -538,21 +600,79 @@
       }, t);
     }
 
-    // ----- Token mouse handling (decide based on tool) ------------
+    // ----- Element mouse handling (decide based on tool) ----------
+    //
+    // Same flow for tokens, shapes, and icons — just different
+    // attributes drive the move/delete op kinds. The `moveSpec`
+    // describes how to read the element's current x/y (from
+    // transform vs explicit attrs) and which op kinds to emit.
 
-    svg.querySelectorAll('.notes-map-object').forEach(function (obj) {
-      obj.addEventListener('mousedown', function (e) {
+    function moveSpecFor(el) {
+      if (el.classList.contains('notes-map-object')) {
+        return {
+          kind: 'object',
+          idAttr: 'data-object-id',
+          read: function () { var t = (el.getAttribute('transform') || '').match(/translate\(([^,]+),([^)]+)\)/); return t ? [parseFloat(t[1]), parseFloat(t[2])] : [0, 0]; },
+          write: function (x, y) { el.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')'); },
+          moveOp: 'move_object', deleteOp: 'delete_object', idKey: 'object_id'
+        };
+      }
+      if (el.classList.contains('notes-map-shape')) {
+        return {
+          kind: 'shape',
+          idAttr: 'data-shape-id',
+          read: function () { var t = (el.getAttribute('transform') || '').match(/translate\(([^,]+),([^)]+)\)/); return t ? [parseFloat(t[1]), parseFloat(t[2])] : [0, 0]; },
+          write: function (x, y) { el.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')'); },
+          moveOp: 'move_shape', deleteOp: 'delete_shape', idKey: 'shape_id'
+        };
+      }
+      if (el.classList.contains('notes-map-icon')) {
+        return {
+          kind: 'icon',
+          idAttr: 'data-icon-id',
+          read: function () { return [parseFloat(el.getAttribute('x')), parseFloat(el.getAttribute('y'))]; },
+          write: function (x, y) { el.setAttribute('x', x.toFixed(1)); el.setAttribute('y', y.toFixed(1)); },
+          moveOp: 'move_icon', deleteOp: 'delete_icon', idKey: 'icon_id'
+        };
+      }
+      return null;
+    }
+
+    function startElementDrag(el, evt) {
+      var spec = moveSpecFor(el); if (!spec) return;
+      var xy = spec.read();
+      drag = {
+        el: el, spec: spec,
+        elId: el.getAttribute(spec.idAttr),
+        startX: xy[0], startY: xy[1],
+        startPt: vboxPoint(svg, evt)
+      };
+      el.classList.add('dragging');
+      evt.preventDefault();
+    }
+
+    function bindElementHandlers(el) {
+      el.addEventListener('mousedown', function (e) {
         if (currentTool() !== 'move') return;
-        startDrag(obj, e);
+        startElementDrag(el, e);
       });
-      obj.addEventListener('click', function (e) {
+      el.addEventListener('click', function (e) {
         var tool = currentTool();
         e.stopPropagation();
-        if (tool === 'arrow') {
-          pickArrowEndpoint({ kind: 'object', id: obj.getAttribute('data-object-id') }, obj);
+        if (tool === 'arrow' && el.classList.contains('notes-map-object')) {
+          pickArrowEndpoint({ kind: 'object', id: el.getAttribute('data-object-id') }, el);
+        } else if (tool === 'delete') {
+          var spec = moveSpecFor(el); if (!spec) return;
+          var idVal = el.getAttribute(spec.idAttr); if (!idVal) return;
+          var op = { kind: spec.deleteOp };
+          op[spec.idKey] = idVal;
+          el.classList.add('pending-delete');
+          pushOp(op, el);
         }
       });
-    });
+    }
+
+    svg.querySelectorAll('.notes-map-object, .notes-map-shape, .notes-map-icon').forEach(bindElementHandlers);
 
     // ----- SVG (empty-space) mouse handling -----------------------
 
@@ -564,10 +684,23 @@
       e.preventDefault();
     });
     svg.addEventListener('mousemove', function (e) {
+      if (pan) {
+        var dx = (e.clientX - pan.startClient.x) / pan.pxPerVbX;
+        var dy = (e.clientY - pan.startClient.y) / pan.pxPerVbY;
+        if (Math.abs(dx) + Math.abs(dy) > 1) pan.moved = true;
+        center.x = pan.startCenter.x - dx;
+        center.y = pan.startCenter.y - dy;
+        applyView();
+      }
       if (drag)  dragMove(e);
       if (shape) updateShape(vboxPoint(svg, e));
     });
     document.addEventListener('mouseup', function () {
+      if (pan) {
+        svg.classList.remove('panning');
+        if (pan.moved) persistView();
+        pan = null;
+      }
       if (drag)  dragEnd();
       if (shape) commitShape();
     });
