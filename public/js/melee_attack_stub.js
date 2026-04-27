@@ -7,9 +7,9 @@
 // stub root with the full chosen payload at the end.
 //
 // Steps with a single (or zero) option auto-advance. Reaction steps
-// with no options are skipped entirely. Roll steps embed the existing
-// roll_stub partial via /roll_stub/render and listen for its
-// `rollstub:confirm` event to capture the value.
+// with no options are skipped entirely. The single Rolls step embeds
+// the multi_roll_stub partial via /multi_roll_stub/render and waits
+// for its `multiroll:confirm` event to capture per-row successes.
 (function() {
   function cfg(stubId)  { return (window.meleeAttackConfigs || {})[stubId]; }
   function rootEl(stubId){ return document.querySelector('.melee-attack-stub[data-stub-id="' + stubId + '"]'); }
@@ -174,17 +174,21 @@
     });
   }
 
-  function fetchRollPartial(params) {
+  function fetchMultiRollPartial(params) {
+    return postFormText('/multi_roll_stub/render', params);
+  }
+
+  function postFormText(url, params) {
     var body = new URLSearchParams();
     Object.keys(params).forEach(function(k) {
       if (params[k] !== undefined && params[k] !== null) body.append(k, params[k]);
     });
-    return fetch('/roll_stub/render', {
+    return fetch(url, {
       method: 'POST',
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: body.toString()
     }).then(function(r) {
-      if (!r.ok) throw new Error('roll_stub render failed: ' + r.status);
+      if (!r.ok) throw new Error(url + ' failed: ' + r.status);
       return r.text();
     });
   }
@@ -419,7 +423,7 @@
     var allies = (c.state.allyReactions || []).filter(function(a) {
       return a.skill && (a.max_dice | 0) > 0;
     });
-    if (idx >= allies.length) { rollAttack(stubId); return; }
+    if (idx >= allies.length) { rollsPanel(stubId); return; }
     var ally = allies[idx];
     c.state.allyLucks = c.state.allyLucks || [];
     promptLuck(stubId, 'allyLuck-' + idx, 'Luck for ' + ally.label,
@@ -429,94 +433,112 @@
       });
   }
 
-  // --- Step 6: Roll attack (and any rolled defense / ally rolls) ----------
-  function rollAttack(stubId) {
+  // --- Step 6: All rolls in one panel -------------------------------------
+  // Builds the row list (attack + optional defense + each rolled ally
+  // reaction), pulls a fresh multi_roll_stub partial, and waits for
+  // the panel's `multiroll:confirm` event to capture per-row successes.
+  // Each row gets its luck/unsettling buttons populated from the
+  // chosen luck amounts; labels come from luckSources -- never
+  // hardcoded.
+  function rollsPanel(stubId) {
     var c = cfg(stubId);
     var w = c.state.weapon;
     var def = c.state.defense;
     var isFlatfooted = !def || def.kind === 'nothing';
-    var tn = attackTn(stubId, w, def, isFlatfooted);
-    var step = appendStep(stubId, 'Attack Roll');
-    var hint = document.createElement('div');
-    hint.className = 'melee-meta';
-    hint.textContent = c.state.attackDice + ' dice @ TN ' + tn;
-    step.body.appendChild(hint);
-    var slot = document.createElement('div');
-    slot.className = 'melee-roll-slot';
-    step.body.appendChild(slot);
-    fetchRollPartial({
-      check_name: c.attacker.skill.name + ' (' + w.name + ')',
-      dice_count: c.state.attackDice,
-      tn: tn,
-      starting_value: 0
-    }).then(function(html) {
-      injectHtmlWithScripts(slot, html);
-      slot.addEventListener('rollstub:confirm', function onConfirm(e) {
-        slot.removeEventListener('rollstub:confirm', onConfirm);
-        c.state.attackSuccesses = parseInt(e.detail.value, 10) || 0;
-        lockStep(step, 'Attack: <strong>' + c.state.attackSuccesses + '</strong> successes' +
-          ' <span class="melee-meta">(' + c.state.attackDice + ' dice @ TN ' + tn + ')</span>');
-        rollDefense(stubId);
-      });
-    });
-  }
 
-  function rollDefense(stubId) {
-    var c = cfg(stubId);
-    var def = c.state.defense;
-    if (!def || !def.uses_dice || c.state.defenseDice <= 0) {
-      rollAllyReactions(stubId, 0);
-      return;
+    // Pull the first bonus and first penalty source for label/amount.
+    // Configs with multiple bonus or penalty sources still work; only
+    // the first of each kind is wired through to the per-row buttons.
+    var bonusSrc = null, penaltySrc = null;
+    (c.luckSources || []).forEach(function(s) {
+      if (!bonusSrc && s.kind === 'bonus') bonusSrc = s;
+      else if (!penaltySrc && s.kind === 'penalty') penaltySrc = s;
+    });
+    function rowLuck(chosen) {
+      chosen = chosen || {};
+      return {
+        luck_amount:        bonusSrc   ? (chosen[bonusSrc.key]   | 0) : 0,
+        luck_label:         bonusSrc   ? bonusSrc.label   : '',
+        unsettling_amount:  penaltySrc ? (chosen[penaltySrc.key] | 0) : 0,
+        unsettling_label:   penaltySrc ? penaltySrc.label : ''
+      };
     }
-    var tn = defenseTn(stubId, c.state.weapon, def);
-    var step = appendStep(stubId, def.label + ' Roll');
-    var hint = document.createElement('div');
-    hint.className = 'melee-meta';
-    hint.textContent = c.state.defenseDice + ' dice @ TN ' + tn;
-    step.body.appendChild(hint);
-    var slot = document.createElement('div');
-    slot.className = 'melee-roll-slot';
-    step.body.appendChild(slot);
-    fetchRollPartial({
-      check_name: def.label,
-      dice_count: c.state.defenseDice,
-      tn: tn,
-      starting_value: 0
-    }).then(function(html) {
-      injectHtmlWithScripts(slot, html);
-      slot.addEventListener('rollstub:confirm', function onConfirm(e) {
-        slot.removeEventListener('rollstub:confirm', onConfirm);
-        c.state.defenseSuccesses = parseInt(e.detail.value, 10) || 0;
-        lockStep(step, def.label + ': <strong>' + c.state.defenseSuccesses + '</strong> successes' +
-          ' <span class="melee-meta">(' + c.state.defenseDice + ' dice @ TN ' + tn + ')</span>');
-        rollAllyReactions(stubId, 0);
-      });
-    });
-  }
 
-  // Sequentially roll any selected ally reactions that supply skill+dice.
-  function rollAllyReactions(stubId, idx) {
-    var c = cfg(stubId);
-    var queue = c.state.allyReactions.filter(function(a) { return a.skill && a.max_dice; });
-    if (idx >= queue.length) { chooseTargetReactions(stubId); return; }
-    var a = queue[idx];
-    var w = c.state.weapon;
-    var tn = c.baseTn - (a.skill.bonus | 0) + (w.attack_bonus | 0);
-    var dice = a.max_dice | 0;
-    var step = appendStep(stubId, a.label);
+    var rolls = [];
+    var atkLuck = rowLuck(c.state.attackLuck);
+    rolls.push(Object.assign({
+      key:            'attack',
+      label:          c.attacker.skill.name + ' (' + w.name + ')',
+      dice_count:     c.state.attackDice,
+      tn:             attackTn(stubId, w, def, isFlatfooted),
+      starting_value: 0
+    }, atkLuck));
+
+    if (def && def.uses_dice && c.state.defenseDice > 0) {
+      var defLuck = rowLuck(c.state.defenseLuck);
+      rolls.push(Object.assign({
+        key:            'defense',
+        label:          def.label,
+        dice_count:     c.state.defenseDice,
+        tn:             defenseTn(stubId, w, def),
+        starting_value: 0
+      }, defLuck));
+    }
+
+    var allies = (c.state.allyReactions || []).filter(function(a) {
+      return a.skill && (a.max_dice | 0) > 0;
+    });
+    allies.forEach(function(a, idx) {
+      var tn = c.baseTn - (a.skill.bonus | 0) + (w.attack_bonus | 0);
+      var allyLuck = rowLuck((c.state.allyLucks || [])[idx]);
+      rolls.push(Object.assign({
+        key:            'ally-' + idx,
+        label:          a.label,
+        dice_count:     a.max_dice | 0,
+        tn:             tn,
+        starting_value: 0
+      }, allyLuck));
+    });
+
+    var step = appendStep(stubId, 'Rolls');
     var slot = document.createElement('div');
     slot.className = 'melee-roll-slot';
     step.body.appendChild(slot);
-    fetchRollPartial({
-      check_name: a.label, dice_count: dice, tn: tn, starting_value: 0
+
+    fetchMultiRollPartial({
+      rolls: JSON.stringify(rolls),
+      title: 'Rolls'
     }).then(function(html) {
       injectHtmlWithScripts(slot, html);
-      slot.addEventListener('rollstub:confirm', function onConfirm(e) {
-        slot.removeEventListener('rollstub:confirm', onConfirm);
-        var s = parseInt(e.detail.value, 10) || 0;
-        c.state.allyResults.push({key: a.key, label: a.label, successes: s, dice: dice, tn: tn});
-        lockStep(step, escapeHtml(a.label) + ': <strong>' + s + '</strong> successes');
-        rollAllyReactions(stubId, idx + 1);
+      slot.addEventListener('multiroll:confirm', function onConfirm(e) {
+        slot.removeEventListener('multiroll:confirm', onConfirm);
+        c.state.attackSuccesses = 0;
+        c.state.defenseSuccesses = 0;
+        c.state.allyResults = [];
+        e.detail.rows.forEach(function(r) {
+          if (r.key === 'attack') {
+            c.state.attackSuccesses = r.successes | 0;
+          } else if (r.key === 'defense') {
+            c.state.defenseSuccesses = r.successes | 0;
+          } else if (r.key.indexOf('ally-') === 0) {
+            var i = parseInt(r.key.substring(5), 10);
+            c.state.allyResults[i] = {
+              label: r.label, successes: r.successes | 0,
+              dice: r.diceCount, tn: r.tn
+            };
+          }
+        });
+        var allyBlock = c.state.allyResults.reduce(function(s, x) {
+          return s + (x ? (x.successes | 0) : 0);
+        }, 0);
+        var summary = document.createElement('div');
+        summary.className = 'melee-step-summary';
+        var bits = ['Attack: <strong>' + c.state.attackSuccesses + '</strong>'];
+        if (def && def.uses_dice) bits.push('Defense: <strong>' + c.state.defenseSuccesses + '</strong>');
+        if (allyBlock > 0) bits.push('Ally block: <strong>' + allyBlock + '</strong>');
+        summary.innerHTML = bits.join(' &nbsp; ');
+        step.body.appendChild(summary);
+        chooseTargetReactions(stubId);
       });
     });
   }
