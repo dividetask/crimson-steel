@@ -227,24 +227,12 @@ post '/scene/clear_arrows' do
   redirect(request.referrer || '/scene')
 end
 
-post '/scene/add_object' do
-  halt 403, 'forbidden' unless current_user&.dm?
-  SCENE_STATE.add_object(
-    map_id: params[:map_id].to_i,
-    kind:   params[:kind].to_s,
-    x:      params[:x],
-    y:      params[:y],
-    label:  params[:label].to_s
-  )
-  redirect(request.referrer || '/scene')
-end
-
 # Batched DM map edits. The client queues moves / adds locally and
 # submits the lot in one POST. Body is JSON:
 #   { "map_id": 2, "ops": [
 #       { "kind": "move_object", "object_id": "pc_ash", "x": 120, "y": 90 },
-#       { "kind": "add_object",  "object_kind": "npc", "label": "Innkeep", "x": 200, "y": 100 },
-#       { "kind": "add_shape",   "shape_kind": "rect", "x": 150, "y": 150, "w": 60, "h": 40 }
+#       { "kind": "add_shape",   "shape_kind": "rect", "x": 150, "y": 150, "w": 60, "h": 40 },
+#       { "kind": "add_icon",    "glyph": "🔥",   "x": 200, "y": 100 }
 #   ] }
 # Only DMs may send a batch; the whole request is rejected for
 # non-DM viewers since every op type here is a map-edit.
@@ -259,15 +247,6 @@ post '/scene/batch' do
     case op['kind']
     when 'move_object'
       SCENE_STATE.move_object(map_id, op['object_id'].to_s, op['x'].to_f, op['y'].to_f)
-      applied += 1
-    when 'add_object'
-      SCENE_STATE.add_object(
-        map_id: map_id,
-        kind:   op['object_kind'].to_s,
-        x:      op['x'].to_f,
-        y:      op['y'].to_f,
-        label:  op['label'].to_s
-      )
       applied += 1
     when 'add_shape'
       SCENE_STATE.add_shape(

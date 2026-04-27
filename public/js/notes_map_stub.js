@@ -67,7 +67,8 @@
 
     var toolBtns      = card.querySelectorAll('.notes-map-tool-btn');
     var zoomBtns      = card.querySelectorAll('.notes-map-zoom-btn');
-    var arrowBtns     = card.querySelectorAll('.notes-map-arrow-btn');
+    var arrowBtns     = card.querySelectorAll('.notes-map-arrow-tool-btn');
+    var shapeToolBtn  = card.querySelector('.notes-map-shape-tool-btn');
     var status        = card.querySelector('.notes-map-arrow-status');
     var pendingBar    = card.querySelector('.notes-map-pending');
     var pendingCount  = card.querySelector('.notes-map-pending-count');
@@ -261,30 +262,23 @@
     };
     var MOVE_VARIANTS = ['move-hurry', 'move-sneak', 'move-carefully'];
 
-    var typeKey      = 'notes_map_arrow_type/' + mapId;
-    var moveVarKey   = 'notes_map_move_variant/' + mapId;
-    var arrowType    = 'attack';
-    var moveVariant  = 'move-hurry';
+    var typeKey   = 'notes_map_arrow_type/' + mapId;
+    var arrowType = 'attack';
 
     try {
       var sv = window.localStorage && localStorage.getItem(typeKey);
       if (sv && ARROW_TYPES[sv]) arrowType = sv;
-      var sm = window.localStorage && localStorage.getItem(moveVarKey);
-      if (sm && MOVE_VARIANTS.indexOf(sm) >= 0) moveVariant = sm;
     } catch (e) {}
-
-    function arrowTypeForButton(btn) {
-      // The DM "Move" group button reflects the active variant.
-      if (btn.getAttribute('data-arrow-group') === 'move') return moveVariant;
-      return btn.getAttribute('data-arrow-type');
-    }
 
     function refreshArrowButtons() {
       arrowBtns.forEach(function (b) {
-        var t = arrowTypeForButton(b);
+        var t  = b.getAttribute('data-arrow-type');
         var st = ARROW_TYPES[t];
         if (st) b.style.setProperty('--arrow-color', st.color);
-        b.classList.toggle('active', t === arrowType);
+        // Highlight the toolbar arrow button whose type is selected
+        // *and* whose tool is the active one.
+        var on = (svg.dataset.tool === 'arrow') && (t === arrowType);
+        b.classList.toggle('active', on);
       });
     }
 
@@ -292,94 +286,29 @@
       if (!ARROW_TYPES[t]) return;
       arrowType = t;
       try { if (window.localStorage) localStorage.setItem(typeKey, t); } catch (e) {}
-      if (MOVE_VARIANTS.indexOf(t) >= 0) {
-        moveVariant = t;
-        try { if (window.localStorage) localStorage.setItem(moveVarKey, t); } catch (e) {}
-        // Reflect the chosen variant on the DM "Move" button so its
-        // next click uses the same variant without re-opening the
-        // flyout.
-        arrowBtns.forEach(function (b) {
-          if (b.getAttribute('data-arrow-group') === 'move') {
-            b.setAttribute('data-arrow-type', t);
-          }
-        });
-      }
+      refreshArrowButtons();
+    }
+
+    function activateArrowTool() {
+      try { if (window.localStorage) localStorage.setItem(toolKey, 'arrow'); } catch (e) {}
+      setActiveTool('arrow');
       refreshArrowButtons();
     }
 
     refreshArrowButtons();
 
-    // Photoshop-style hold-down menu on .notes-map-arrow-move-group:
-    //   - quick click → use current variant
-    //   - long press (>=350ms) → flyout with the three variants
-    //   - mouseup over a flyout item → select that variant
-    var FLYOUT_DELAY = 350;
-    var moveFlyout = null;
-    function openMoveFlyout(btn) {
-      closeMoveFlyout();
-      moveFlyout = document.createElement('div');
-      moveFlyout.className = 'notes-map-arrow-flyout';
-      MOVE_VARIANTS.forEach(function (t) {
-        var item = document.createElement('button');
-        item.type = 'button';
-        item.className = 'notes-map-arrow-flyout-item';
-        item.setAttribute('data-arrow-type', t);
-        item.style.setProperty('--arrow-color', ARROW_TYPES[t].color);
-        item.textContent = ARROW_TYPES[t].label;
-        moveFlyout.appendChild(item);
-      });
-      btn.parentNode.appendChild(moveFlyout);
-      moveFlyout.addEventListener('mouseup', function (e) {
-        var item = e.target.closest('.notes-map-arrow-flyout-item');
-        if (item) setArrowType(item.getAttribute('data-arrow-type'));
-        closeMoveFlyout();
-      });
-    }
-    function closeMoveFlyout() {
-      if (moveFlyout && moveFlyout.parentNode) moveFlyout.parentNode.removeChild(moveFlyout);
-      moveFlyout = null;
-    }
-
-    function activateArrowTool() {
-      // Switch to the arrow tool whenever an arrow type is picked,
-      // so players (no toolbar) and DMs alike can go from
-      // navigation straight into drawing.
-      try { if (window.localStorage) localStorage.setItem(toolKey, 'arrow'); } catch (e) {}
-      setActiveTool('arrow');
-    }
-
+    // The arrow tool buttons now live in the side toolbar (one per
+    // type). Clicking any of them activates the arrow tool AND
+    // selects that type — handled here rather than in the generic
+    // tool-button handler so we don't have to duplicate the type
+    // tracking. The generic handler still fires via the shared
+    // .notes-map-tool-btn click listener defined earlier; we read
+    // data-arrow-type if present.
     arrowBtns.forEach(function (btn) {
-      var holdTimer = null;
-      var fired = false;
-
-      btn.addEventListener('mousedown', function () {
-        if (btn.getAttribute('data-arrow-group') !== 'move') return;
-        fired = false;
-        holdTimer = setTimeout(function () { fired = true; openMoveFlyout(btn); }, FLYOUT_DELAY);
+      btn.addEventListener('click', function () {
+        var t = btn.getAttribute('data-arrow-type');
+        if (t) { setArrowType(t); activateArrowTool(); }
       });
-      btn.addEventListener('mouseup', function () {
-        if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-        if (!fired) {
-          setArrowType(arrowTypeForButton(btn));
-          activateArrowTool();
-        }
-      });
-      btn.addEventListener('mouseleave', function () {
-        if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-      });
-      btn.addEventListener('click', function (e) {
-        // Suppress the synthetic click that follows a flyout-mouseup
-        // (the flyout's `mouseup` already updated the variant).
-        if (fired) e.preventDefault();
-      });
-    });
-
-    document.addEventListener('mousedown', function (e) {
-      if (!moveFlyout) return;
-      if (!e.target.closest('.notes-map-arrow-flyout') &&
-          !e.target.closest('.notes-map-arrow-move-group')) {
-        closeMoveFlyout();
-      }
     });
 
     // ----- Arrow drawing (immediate POST) -------------------------
@@ -466,21 +395,84 @@
       pushOp(op, d.el);
     }
 
-    // ----- Add-object (click to place, batched) -------------------
+    // ----- Shape kind picker (hold-down flyout on the toolbar btn) -
 
-    function addObjectAt(p) {
-      var kindSel  = card.querySelector('.notes-map-add-kind');
-      var labelInp = card.querySelector('.notes-map-add-label');
-      var kind     = kindSel ? kindSel.value : 'pc';
-      var label    = labelInp ? labelInp.value.trim() : '';
-      var glyph    = renderObjectGlyph(svg, kind, p.x, p.y, label);
-      pushOp({
-        kind: 'add_object',
-        object_kind: kind,
-        label: label,
-        x: parseFloat(p.x.toFixed(1)),
-        y: parseFloat(p.y.toFixed(1))
-      }, glyph);
+    var SHAPE_KINDS = [
+      { kind: 'rect',    label: 'Rectangle' },
+      { kind: 'ellipse', label: 'Ellipse'   }
+    ];
+    var shapeKindKey = 'notes_map_shape_kind/' + mapId;
+    var shapeKind = 'rect';
+    try {
+      var sk = window.localStorage && localStorage.getItem(shapeKindKey);
+      if (sk && SHAPE_KINDS.some(function (x) { return x.kind === sk; })) shapeKind = sk;
+    } catch (e) {}
+
+    function setShapeKind(k) {
+      shapeKind = k;
+      try { if (window.localStorage) localStorage.setItem(shapeKindKey, k); } catch (e) {}
+    }
+
+    var FLYOUT_DELAY = 350;
+    var shapeFlyout = null;
+    function openShapeFlyout(btn) {
+      closeShapeFlyout();
+      shapeFlyout = document.createElement('div');
+      shapeFlyout.className = 'notes-map-tool-flyout';
+      // Position it right next to the toolbar button so the cursor
+      // is already over an item when the flyout opens.
+      var rect = btn.getBoundingClientRect();
+      var parentRect = btn.offsetParent.getBoundingClientRect();
+      shapeFlyout.style.left = (rect.right - parentRect.left + 4) + 'px';
+      shapeFlyout.style.top  = (rect.top   - parentRect.top)        + 'px';
+      SHAPE_KINDS.forEach(function (s) {
+        var item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'notes-map-tool-flyout-item';
+        item.setAttribute('data-shape-kind', s.kind);
+        item.textContent = s.label;
+        shapeFlyout.appendChild(item);
+      });
+      btn.offsetParent.appendChild(shapeFlyout);
+      shapeFlyout.addEventListener('mouseup', function (e) {
+        var item = e.target.closest('.notes-map-tool-flyout-item');
+        if (item) setShapeKind(item.getAttribute('data-shape-kind'));
+        closeShapeFlyout();
+      });
+    }
+    function closeShapeFlyout() {
+      if (shapeFlyout && shapeFlyout.parentNode) shapeFlyout.parentNode.removeChild(shapeFlyout);
+      shapeFlyout = null;
+    }
+
+    if (shapeToolBtn) {
+      var shapeHoldTimer = null;
+      var shapeHoldFired = false;
+      shapeToolBtn.addEventListener('mousedown', function () {
+        shapeHoldFired = false;
+        shapeHoldTimer = setTimeout(function () {
+          shapeHoldFired = true;
+          openShapeFlyout(shapeToolBtn);
+        }, FLYOUT_DELAY);
+      });
+      shapeToolBtn.addEventListener('mouseup', function () {
+        if (shapeHoldTimer) { clearTimeout(shapeHoldTimer); shapeHoldTimer = null; }
+        // Quick click → use the current shapeKind; the generic
+        // tool-button handler already activates the add-shape tool.
+      });
+      shapeToolBtn.addEventListener('mouseleave', function () {
+        if (shapeHoldTimer) { clearTimeout(shapeHoldTimer); shapeHoldTimer = null; }
+      });
+      shapeToolBtn.addEventListener('click', function (e) {
+        if (shapeHoldFired) e.preventDefault();
+      });
+      document.addEventListener('mousedown', function (e) {
+        if (!shapeFlyout) return;
+        if (!e.target.closest('.notes-map-tool-flyout') &&
+            !e.target.closest('.notes-map-shape-tool-btn')) {
+          closeShapeFlyout();
+        }
+      });
     }
 
     // ----- Add-shape (drag to draw or click for default size) -----
@@ -494,8 +486,7 @@
 
     var shape = null;
     function startShape(p) {
-      var kindSel = card.querySelector('.notes-map-shape-kind');
-      var kind    = kindSel ? kindSel.value : 'rect';
+      var kind = shapeKind;
       var preview;
       if (kind === 'rect') {
         preview = svgEl('rect', { class: 'notes-map-shape-preview', x: p.x, y: p.y, width: 0, height: 0 });
@@ -712,8 +703,6 @@
       if (tool === 'arrow') {
         var p = vboxPoint(svg, e);
         pickArrowEndpoint({ kind: 'point', x: p.x, y: p.y }, null);
-      } else if (tool === 'add-object') {
-        addObjectAt(vboxPoint(svg, e));
       } else if (tool === 'add-icon') {
         placeIconAt(vboxPoint(svg, e));
       }
@@ -736,48 +725,6 @@
     });
   }
 
-  // ----- Optimistic glyph rendering (for new objects) -------------
-
-  // Match the server-side glyph palette in stubs/notes_map_stub.rb.
-  var KIND_STYLE = {
-    pc:       { fill: '#577a99', stroke: '#1d3a5b', glyph: 'circle' },
-    npc:      { fill: '#9e9e9e', stroke: '#424242', glyph: 'circle' },
-    enemy:    { fill: '#a04848', stroke: '#5e1818', glyph: 'circle' },
-    scenery:  { fill: '#9c7a4a', stroke: '#5d4520', glyph: 'rect'   },
-    door:     { fill: '#5d4037', stroke: '#2e1c14', glyph: 'rect'   },
-    trap:     { fill: '#ffb300', stroke: '#7b5e00', glyph: 'triangle' },
-    hazard:   { fill: '#e53935', stroke: '#7b1c1c', glyph: 'triangle' },
-    treasure: { fill: '#fdd835', stroke: '#9c7a00', glyph: 'diamond' }
-  };
-
-  function renderObjectGlyph(svg, kind, x, y, label) {
-    var s = KIND_STYLE[kind] || KIND_STYLE.pc;
-    var g = svgEl('g', {
-      class: 'notes-map-object notes-map-object-' + kind,
-      transform: 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')'
-    });
-    var primitive;
-    if (s.glyph === 'rect') {
-      primitive = svgEl('rect', { x: -14, y: -10, width: 28, height: 20, fill: s.fill, stroke: s.stroke, 'stroke-width': 1.5 });
-    } else if (s.glyph === 'triangle') {
-      primitive = svgEl('polygon', { points: '0,-11 10,8 -10,8', fill: s.fill, stroke: s.stroke, 'stroke-width': 1.5 });
-    } else if (s.glyph === 'diamond') {
-      primitive = svgEl('polygon', { points: '0,-11 11,0 0,11 -11,0', fill: s.fill, stroke: s.stroke, 'stroke-width': 1.5 });
-    } else {
-      primitive = svgEl('circle', { r: 9, fill: s.fill, stroke: s.stroke, 'stroke-width': 1.5 });
-    }
-    g.appendChild(primitive);
-    if (label) {
-      var t = svgEl('text', {
-        x: 0, y: -14, 'text-anchor': 'middle',
-        'font-family': 'Arial,sans-serif', 'font-size': 9, fill: '#333'
-      });
-      t.textContent = label;
-      g.appendChild(t);
-    }
-    svg.appendChild(g);
-    return g;
-  }
 
   function init() {
     document.querySelectorAll('.notes-map-card').forEach(setupCard);

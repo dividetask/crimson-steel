@@ -29,18 +29,40 @@
       <% end %>
 
       <div class="notes-map-workspace">
-        <% if interactive %>
+        <% if interactive
+             can_use_arrows = dm_view || can_draw %>
           <div class="notes-map-toolbar">
             <button type="button" class="notes-map-tool-btn" data-tool="view"
                     title="View (drag to pan, double-click to zoom in, right-click to zoom out)">&#9776;</button>
-            <% if dm_view %>
-              <button type="button" class="notes-map-tool-btn" data-tool="arrow"      title="Draw arrow">&#10142;</button>
-              <button type="button" class="notes-map-tool-btn" data-tool="move"       title="Move tokens / icons">&#10021;</button>
-              <button type="button" class="notes-map-tool-btn" data-tool="delete"     title="Delete (click an item)">&#9986;</button>
-              <button type="button" class="notes-map-tool-btn" data-tool="add-object" title="Add object">&#8853;</button>
-              <button type="button" class="notes-map-tool-btn" data-tool="add-shape"  title="Add shape">&#9645;</button>
-              <button type="button" class="notes-map-tool-btn" data-tool="add-icon"   title="Add icon">&#9733;</button>
+
+            <% if can_use_arrows %>
+              <button type="button" class="notes-map-tool-btn notes-map-arrow-tool-btn"
+                      data-tool="arrow" data-arrow-type="attack"
+                      style="--arrow-color:#c62828"
+                      title="Attack arrow">&#10142;</button>
+              <button type="button" class="notes-map-tool-btn notes-map-arrow-tool-btn"
+                      data-tool="arrow" data-arrow-type="move-hurry"
+                      style="--arrow-color:#ef6c00"
+                      title="Move arrow (hurry)">&#10142;</button>
+              <button type="button" class="notes-map-tool-btn notes-map-arrow-tool-btn"
+                      data-tool="arrow" data-arrow-type="move-sneak"
+                      style="--arrow-color:#6a1b9a"
+                      title="Move arrow (sneak)">&#10142;</button>
+              <button type="button" class="notes-map-tool-btn notes-map-arrow-tool-btn"
+                      data-tool="arrow" data-arrow-type="move-carefully"
+                      style="--arrow-color:#2e7d32"
+                      title="Move arrow (carefully)">&#10142;</button>
             <% end %>
+
+            <% if dm_view %>
+              <button type="button" class="notes-map-tool-btn" data-tool="move"      title="Move tokens / icons">&#10021;</button>
+              <button type="button" class="notes-map-tool-btn" data-tool="delete"    title="Delete (click an item)">&#9986;</button>
+              <button type="button" class="notes-map-tool-btn notes-map-shape-tool-btn"
+                      data-tool="add-shape"
+                      title="Add shape (hold to pick)">&#9645;</button>
+              <button type="button" class="notes-map-tool-btn" data-tool="add-icon"  title="Add icon">&#9733;</button>
+            <% end %>
+
             <hr>
             <button type="button" class="notes-map-zoom-btn" data-zoom="in"    title="Zoom in">+</button>
             <button type="button" class="notes-map-zoom-btn" data-zoom="reset" title="Reset zoom">&#9874;</button>
@@ -178,40 +200,11 @@
           <%# Per-tool inline panels. Hidden by default; the JS un-
               hides whichever matches the active tool. %>
 
-          <% if can_draw %>
-            <%# Arrow type picker. Players see four buttons (one per
-                type). DMs see two — Attack, plus a Move button that
-                opens a flyout (hold-down) with the three move
-                variants. Clicking any arrow button switches the
-                active tool to "arrow" so players don't need a
-                separate tool button to start drawing. %>
+          <%# Arrow tool status line — shown while the arrow tool is
+              active. The tool buttons themselves now live in the
+              left-hand toolbar (one per arrow type). %>
+          <% if dm_view || can_draw %>
             <div class="notes-map-arrow-controls" data-tool="arrow" hidden>
-              <% if dm_view %>
-                <button type="button" class="notes-map-arrow-btn active"
-                        data-arrow-type="attack"
-                        style="--arrow-color:#c62828">Attack</button>
-                <button type="button"
-                        class="notes-map-arrow-btn notes-map-arrow-move-group"
-                        data-arrow-type="move-hurry"
-                        data-arrow-group="move"
-                        style="--arrow-color:#ef6c00">
-                  <span class="notes-map-arrow-btn-label">Move</span>
-                  <span class="notes-map-arrow-btn-caret">&#9662;</span>
-                </button>
-              <% else %>
-                <button type="button" class="notes-map-arrow-btn active"
-                        data-arrow-type="attack"
-                        style="--arrow-color:#c62828">Attack</button>
-                <button type="button" class="notes-map-arrow-btn"
-                        data-arrow-type="move-hurry"
-                        style="--arrow-color:#ef6c00">Move (hurry)</button>
-                <button type="button" class="notes-map-arrow-btn"
-                        data-arrow-type="move-sneak"
-                        style="--arrow-color:#6a1b9a">Move (sneak)</button>
-                <button type="button" class="notes-map-arrow-btn"
-                        data-arrow-type="move-carefully"
-                        style="--arrow-color:#2e7d32">Move (carefully)</button>
-              <% end %>
               <span class="notes-map-arrow-status">Click two points (token or empty) to draw an arrow.</span>
             </div>
           <% elsif !dm_view %>
@@ -221,34 +214,11 @@
           <% end %>
 
           <% if dm_view %>
-            <div class="notes-map-add-object" data-tool="add-object" hidden>
-              <label>Kind:
-                <select name="kind" class="notes-map-add-kind">
-                  <option value="pc">PC</option>
-                  <option value="npc">NPC</option>
-                  <option value="enemy">Enemy</option>
-                  <option value="scenery">Scenery</option>
-                  <option value="door">Door</option>
-                  <option value="trap">Trap</option>
-                  <option value="hazard">Hazard</option>
-                  <option value="treasure">Treasure</option>
-                </select>
-              </label>
-              <label>Label:
-                <input type="text" name="label" class="notes-map-add-label"
-                       placeholder="(optional)">
-              </label>
-              <span class="notes-map-add-status">Click on the map to place. Save to commit.</span>
-            </div>
-
             <div class="notes-map-add-shape" data-tool="add-shape" hidden>
-              <label>Shape:
-                <select name="kind" class="notes-map-shape-kind">
-                  <option value="rect">Rectangle</option>
-                  <option value="circle">Circle</option>
-                </select>
-              </label>
-              <span class="notes-map-shape-status">Click and drag on the map to draw.</span>
+              <span class="notes-map-shape-status">
+                Click and drag on the map to draw, or click for a default size.
+                Hold the toolbar button to switch shape.
+              </span>
             </div>
 
             <div class="notes-map-move-hint" data-tool="move" hidden>

@@ -687,7 +687,45 @@ body {
   color: #fff;
 }
 
+/* Arrow tool buttons in the toolbar — glyph in the type's color,
+   active state filled with the same color. The type-specific
+   color comes from --arrow-color set inline on the button. */
+.notes-map-arrow-tool-btn { color: var(--arrow-color, #ddd); }
+.notes-map-arrow-tool-btn.active {
+  background: var(--arrow-color, #1976d2);
+  border-color: var(--arrow-color, #0d47a1);
+  color: #fff;
+}
+
+/* Photoshop-style flyout for tool buttons that hold variants
+   (currently the Add Shape button). Positioned absolutely in JS;
+   the parent (.notes-map-workspace) is position: relative below
+   so left/top resolve against it. */
+.notes-map-tool-flyout {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #888;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.notes-map-tool-flyout-item {
+  text-align: left;
+  padding: 4px 12px;
+  background: #fff;
+  color: #333;
+  border: 0;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.notes-map-tool-flyout-item:hover { background: #1976d2; color: #fff; }
+
 .notes-map-frame { flex: 1 1 auto; min-width: 0; }
+.notes-map-workspace { position: relative; }
 
 .notes-map-caption {
   padding: 6px 8px;
