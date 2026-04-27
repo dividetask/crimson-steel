@@ -528,7 +528,8 @@ body {
 }
 
 .melee-step-summary {
-  flex: 1 1 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .melee-meta {
@@ -580,14 +581,37 @@ body {
 }
 
 .melee-luck-row {
-  display: inline-flex;
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  margin-right: 14px;
 }
 
-.melee-luck-row input[type="number"] {
-  width: 50px;
+.melee-luck-row-label {
+  margin-right: 6px;
+}
+
+.melee-luck-pt {
+  min-width: 32px;
+  text-align: center;
+}
+
+.melee-luck-pt-penalty {
+  color: #b71c1c;
+  border-color: #ef9a9a;
+}
+
+.melee-luck-pt-selected {
+  background: #1976d2;
+  color: #fff;
+  border-color: #0d47a1;
+}
+
+.melee-luck-pt-penalty.melee-luck-pt-selected {
+  background: #b71c1c;
+  color: #fff;
+  border-color: #7f1010;
 }
 
 .melee-roll-slot {

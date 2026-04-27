@@ -89,44 +89,86 @@
     return null;
   }
 
-  // Shared luck prompt. Renders one number input per configured luck
-  // source (label and remaining cap come from the data, never
-  // hardcoded). Skips entirely when no luck sources are configured so
-  // the host stays free to omit the feature. Defaults seed inputs from
-  // any prior chosen amounts -- handy when re-opening via rollback.
+  // Shared luck prompt. For each configured luck source we render one
+  // button per remaining point (e.g. 4 buttons for "+1..+4" Bardic, 3
+  // for "-1..-3" Unsettling). Selecting a button on any source clears
+  // the others -- a roll can carry bonus luck or penalty luck, never
+  // both. Click the same button again to deselect. Skips entirely
+  // when no luck sources are configured. Labels and remaining come
+  // from the data; nothing here is hardcoded.
   function promptLuck(stubId, kind, title, defaults, onContinue) {
     var c = cfg(stubId);
     var sources = c.luckSources || [];
     if (sources.length === 0) { onContinue({}); return; }
     var step = appendStep(stubId, title, kind);
-    var inputs = {};
+    // Mutually-exclusive selection: at most one entry across all sources.
+    var selected = {};
+    if (defaults) {
+      var seedKey = Object.keys(defaults).find(function(k) { return defaults[k] > 0; });
+      if (seedKey) selected[seedKey] = defaults[seedKey];
+    }
+    var btnsByKey = {};
     sources.forEach(function(src) {
-      var row = document.createElement('label');
+      var remaining = src.remaining | 0;
+      if (remaining <= 0) return;
+      var row = document.createElement('div');
       row.className = 'melee-luck-row';
-      var startVal = (defaults && defaults[src.key]) | 0;
-      row.innerHTML = '<strong>' + escapeHtml(src.label) + '</strong>: ' +
-        '<input type="number" min="0" max="' + (src.remaining | 0) + '" ' +
-        'value="' + startVal + '" data-src="' + escapeHtml(src.key) + '">' +
-        ' <span class="melee-meta">(remaining ' + (src.remaining | 0) + ')</span>';
+      var label = document.createElement('span');
+      label.className = 'melee-luck-row-label';
+      label.innerHTML = '<strong>' + escapeHtml(src.label) + '</strong>:';
+      row.appendChild(label);
+      var sign = src.kind === 'penalty' ? '-' : '+';
+      var entries = [];
+      btnsByKey[src.key] = entries;
+      for (var i = 1; i <= remaining; i++) {
+        (function(amount) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'melee-btn melee-luck-pt';
+          if (src.kind === 'penalty') b.classList.add('melee-luck-pt-penalty');
+          b.textContent = sign + amount;
+          b.addEventListener('click', function() {
+            if (selected[src.key] === amount) {
+              delete selected[src.key];
+            } else {
+              selected = {};
+              selected[src.key] = amount;
+            }
+            paint();
+          });
+          row.appendChild(b);
+          entries.push({btn: b, amount: amount});
+        })(i);
+      }
       step.body.appendChild(row);
-      inputs[src.key] = row.querySelector('input');
     });
+    function paint() {
+      Object.keys(btnsByKey).forEach(function(key) {
+        btnsByKey[key].forEach(function(item) {
+          item.btn.classList.toggle('melee-luck-pt-selected', selected[key] === item.amount);
+        });
+      });
+    }
+    paint();
     var done = btn('Continue', function() {
       var chosen = {};
-      sources.forEach(function(src) {
-        var v = parseInt(inputs[src.key].value, 10) || 0;
-        if (v > 0) chosen[src.key] = v;
+      Object.keys(selected).forEach(function(k) {
+        if (selected[k] > 0) chosen[k] = selected[k];
       });
-      var picked = sources.filter(function(s) { return chosen[s.key]; });
-      var summary = picked.length === 0
-        ? '<em>No luck spent.</em>'
-        : picked.map(function(s) {
-            return '<strong>' + escapeHtml(s.label) + ':</strong> ' + chosen[s.key];
-          }).join(', ');
+      var pickedKeys = Object.keys(chosen);
+      var summary;
+      if (pickedKeys.length === 0) {
+        summary = '<em>No luck spent.</em>';
+      } else {
+        summary = pickedKeys.map(function(k) {
+          var src = sources.filter(function(s) { return s.key === k; })[0];
+          var sign = src && src.kind === 'penalty' ? '-' : '+';
+          return '<strong>' + escapeHtml(src.label) + ':</strong> ' + sign + chosen[k];
+        }).join(', ');
+      }
       lockStep(step, summary);
       onContinue(chosen);
     }, 'melee-btn-primary');
-    step.body.appendChild(document.createElement('br'));
     step.body.appendChild(done);
   }
 

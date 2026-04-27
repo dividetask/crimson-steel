@@ -100,11 +100,14 @@
       .then(function(data) { applyResult(stubId, rowId, data); });
   };
 
+  // Roll every row -- including ones already rolled. Each click of
+  // Roll All produces a fresh result for every row so the DM can keep
+  // searching for one they like without manually clicking each Roll.
   window.multiRollRollAll = function(stubId) {
     var c = cfg(stubId);
     if (!c) return;
     c.rows.forEach(function(row) {
-      if (!row.token) window.multiRollRow(stubId, row.rowId);
+      window.multiRollRow(stubId, row.rowId);
     });
   };
 
