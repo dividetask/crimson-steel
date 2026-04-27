@@ -240,11 +240,13 @@ Weapon Tags:
 
   shock:
     description: >
-      The weapon's damage is inflicted as Shock — a non-lethal
-      stunning effect — rather than as physical damage. The amount
-      of Shock applied equals the damage the weapon would otherwise
-      deal. Shock semantics (recovery, accumulation, interaction
-      with hit points) are owned by the combat module.
+      On a successful hit, the weapon inflicts Shock — a non-lethal
+      stunning effect — equal to the damage the weapon would deal
+      from its damage formula. A weapon may still set its physical
+      `damage` to 0 (the Whip does), in which case the attack
+      inflicts only Shock and no physical damage. Shock semantics
+      (recovery, accumulation, interaction with hit points) are
+      owned by the combat module.
 
 # ---------------------------------------------------------------------
 # Damage Type Defaults
@@ -398,6 +400,7 @@ Weapons:
   Whip:
     category: One Handed
     damage_type: Slashing
+    damage: 0
     tags: [shock]
     threshold: null
     base_price: 4
@@ -775,12 +778,14 @@ Armor Properties:
 #                             Keys are non-negative integer Tiers;
 #                             absent Tiers cannot be produced for
 #                             that Item Type.
-#   enhancement_attribute     The attribute that receives the item's
-#                             Enhancement Bonus. Free-form string
+#   guidance_attribute        The attribute that receives the item's
+#                             Guidance Bonus. Free-form string
 #                             interpreted by the character module
 #                             (e.g., `saves`, `str`, `dex`, `con`,
 #                             `int`, `wis`, `cha`). The bonus equals
-#                             the item's Tier.
+#                             the item's Tier and stacks with other
+#                             Guidance modifiers per the dice
+#                             resolution module's rules.
 #   description               Free-form prose for humans / the UI.
 #
 # Cloak of Resistance and the Belts/Headbands of Stat each come in
@@ -791,15 +796,15 @@ Armor Properties:
 #
 # Items in this section do not currently accept magical Properties
 # from the Weapon or Armor catalogs — their magical effect is the
-# inherent tier-scaled enhancement. The combat / character modules
-# read the effect off the Item Type by name.
+# inherent tier-scaled Guidance Bonus. The combat / character
+# modules read the effect off the Item Type by name.
 
 Items:
 
   Cloak of Resistance:
     slot: back
     base_price: 0
-    enhancement_attribute: saves
+    guidance_attribute: saves
     tier_surcharge:
       1: 1000
       2: 4000
@@ -811,13 +816,13 @@ Items:
       8: 64000
       9: 81000
     description: >
-      Increases the wearer's enhancement bonus on all saves by an
+      Increases the wearer's guidance bonus on all saves by an
       amount equal to the cloak's Tier.
 
   Belt of Strength:
     slot: belt
     base_price: 0
-    enhancement_attribute: str
+    guidance_attribute: str
     tier_surcharge:
       1: 500
       2: 2000
@@ -829,13 +834,13 @@ Items:
       8: 32000
       9: 40500
     description: >
-      Increases the wearer's enhancement bonus to Strength by an
+      Increases the wearer's guidance bonus to Strength by an
       amount equal to the belt's Tier.
 
   Belt of Dexterity:
     slot: belt
     base_price: 0
-    enhancement_attribute: dex
+    guidance_attribute: dex
     tier_surcharge:
       1: 500
       2: 2000
@@ -847,13 +852,13 @@ Items:
       8: 32000
       9: 40500
     description: >
-      Increases the wearer's enhancement bonus to Dexterity by an
+      Increases the wearer's guidance bonus to Dexterity by an
       amount equal to the belt's Tier.
 
   Belt of Constitution:
     slot: belt
     base_price: 0
-    enhancement_attribute: con
+    guidance_attribute: con
     tier_surcharge:
       1: 500
       2: 2000
@@ -865,13 +870,13 @@ Items:
       8: 32000
       9: 40500
     description: >
-      Increases the wearer's enhancement bonus to Constitution by an
+      Increases the wearer's guidance bonus to Constitution by an
       amount equal to the belt's Tier.
 
   Headband of Intelligence:
     slot: head
     base_price: 0
-    enhancement_attribute: int
+    guidance_attribute: int
     tier_surcharge:
       1: 500
       2: 2000
@@ -883,13 +888,13 @@ Items:
       8: 32000
       9: 40500
     description: >
-      Increases the wearer's enhancement bonus to Intelligence by an
+      Increases the wearer's guidance bonus to Intelligence by an
       amount equal to the headband's Tier.
 
   Headband of Wisdom:
     slot: head
     base_price: 0
-    enhancement_attribute: wis
+    guidance_attribute: wis
     tier_surcharge:
       1: 500
       2: 2000
@@ -901,13 +906,13 @@ Items:
       8: 32000
       9: 40500
     description: >
-      Increases the wearer's enhancement bonus to Wisdom by an
+      Increases the wearer's guidance bonus to Wisdom by an
       amount equal to the headband's Tier.
 
   Headband of Charisma:
     slot: head
     base_price: 0
-    enhancement_attribute: cha
+    guidance_attribute: cha
     tier_surcharge:
       1: 500
       2: 2000
@@ -919,5 +924,5 @@ Items:
       8: 32000
       9: 40500
     description: >
-      Increases the wearer's enhancement bonus to Charisma by an
+      Increases the wearer's guidance bonus to Charisma by an
       amount equal to the headband's Tier.

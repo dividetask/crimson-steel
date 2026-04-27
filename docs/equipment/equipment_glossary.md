@@ -76,9 +76,9 @@ When the Item Type is flagged `innately_usable: true`, the result of the formula
 
 **Generated Display Name**: The item name produced from `<tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>` when no Name Override is set. The tier prefix is omitted for Tier 0 items and for any category listed in `tier_hidden_for` (e.g., Potion).
 
-**Enhancement Bonus**: A flat numeric bonus an Item grants to a specific Attribute on the wearer, equal to the Item's Tier. A Tier 3 Cloak of Resistance grants +3 to all saves; a Tier 5 Belt of Strength grants +5 to Strength. The character module applies the bonus; this module just records the target attribute.
+**Guidance Bonus**: A flat numeric bonus an Item grants to a specific Attribute on the wearer, equal to the Item's Tier. A Tier 3 Cloak of Resistance grants +3 to all saves; a Tier 5 Belt of Strength grants +5 to Strength. The character module applies the bonus; this module just records the target attribute. Guidance is the same modifier type defined under `Bonus Types List` in the dice resolution module — the cloak/belt/headband bonuses stack and clamp per those existing rules.
 
-**Enhancement Attribute**: The attribute affected by an Item's Enhancement Bonus. Stored on the Item Type as `enhancement_attribute` (e.g., `saves`, `str`, `dex`, `con`, `int`, `wis`, `cha`). The character module interprets the string; this module just records it.
+**Guidance Attribute**: The attribute affected by an Item's Guidance Bonus. Stored on the Item Type as `guidance_attribute` (e.g., `saves`, `str`, `dex`, `con`, `int`, `wis`, `cha`). The character module interprets the string; this module just records it.
 
 ## Currency and Gems
 
