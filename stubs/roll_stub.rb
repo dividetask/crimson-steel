@@ -7,24 +7,30 @@
 # present for the same Roll.
 
 helpers do
-  # Render the roll_stub partial inline. Callers pass the check
-  # metadata plus optional luck/insight button labels and per-click
-  # amounts; leave an amount at 0 to suppress that button pair.
+  # Render the roll_stub partial inline. luck_amount and insight_amount
+  # are signed: positive values reroll/nudge upward, negative downward.
+  # Pass 0 to suppress the row entirely. Pass show_confirm: false when
+  # embedded inside a parent stub (e.g. multi_roll_stub) that owns its
+  # own batched Confirm. stub_id may be supplied by a parent that needs
+  # to address this child after render; otherwise one is generated.
   def roll_stub(check_name:, dice_count:, tn:, starting_value:,
-                luck_bonus_name: nil, luck_penalty_name: nil, luck_amount: 0,
-                insight_bonus_name: nil, insight_penalty_name: nil, insight_amount: 0)
+                character_name: nil,
+                luck_amount: 0, luck_label: nil,
+                insight_amount: 0, insight_label: nil,
+                show_confirm: true,
+                stub_id: nil)
     erb :"stubs/_roll_stub", layout: false, locals: {
-      stub_id: SecureRandom.hex(4),
+      stub_id: stub_id || SecureRandom.hex(4),
       check_name: check_name,
+      character_name: character_name,
       dice_count: dice_count,
       tn: tn,
       starting_value: starting_value,
-      luck_bonus_name: luck_bonus_name,
-      luck_penalty_name: luck_penalty_name,
       luck_amount: luck_amount,
-      insight_bonus_name: insight_bonus_name,
-      insight_penalty_name: insight_penalty_name,
-      insight_amount: insight_amount
+      luck_label: luck_label,
+      insight_amount: insight_amount,
+      insight_label: insight_label,
+      show_confirm: show_confirm
     }
   end
 
@@ -35,7 +41,7 @@ helpers do
     original = state['original_dice']
     tn = state['tn']
     starting_value = state['starting_value']
-    rows = [{ 'label' => 'Rolled', 'dice' => original }]
+    rows = [{ 'label' => 'Initial', 'dice' => original }]
     rows << { 'label' => 'Luck',    'dice' => state['luck_dice']    } if state['luck_dice']
     rows << { 'label' => 'Insight', 'dice' => state['insight_dice'] } if state['insight_dice']
     current = rows.last['dice']
@@ -58,16 +64,24 @@ helpers do
   # optional "N starting successes/failures" clause when the starting
   # value is non-zero.
   def roll_stub_params_line(tn, dice_count, starting_value)
-    parts = ["TN #{tn}", "#{dice_count} dice"]
+    line = "#{dice_count} dice @ TN #{tn}"
     if starting_value > 0
       word = starting_value == 1 ? 'success' : 'successes'
-      parts << "#{starting_value} starting #{word}"
+      line += ", #{starting_value} starting #{word}"
     elsif starting_value < 0
       n = -starting_value
       word = n == 1 ? 'failure' : 'failures'
-      parts << "#{n} starting #{word}"
+      line += ", #{n} starting #{word}"
     end
-    parts.join(', ')
+    line
+  end
+
+  # Format a signed amount with its ability name, e.g. "+2 Bardic
+  # Inspiration" or "-1 Unsettling Words". Used both on the luck reroll
+  # button and the static insight label.
+  def roll_stub_modifier_text(amount, label)
+    sign = amount.to_i >= 0 ? '+' : '-'
+    "#{sign}#{amount.to_i.abs} #{label}"
   end
 end
 

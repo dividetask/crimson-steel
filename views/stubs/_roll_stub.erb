@@ -1,35 +1,62 @@
 <div class="roll-stub" data-stub-id="<%= stub_id %>">
-  <div class="roll-stub-title"><%= check_name %> Check</div>
-  <div class="roll-stub-params"><%= roll_stub_params_line(tn.to_i, dice_count.to_i, starting_value.to_i) %></div>
-
-  <div class="roll-stub-controls">
-    <input type="number" class="roll-stub-input" id="roll-stub-input-<%= stub_id %>" value="0">
+  <div class="roll-stub-header">
     <button type="button" class="roll-stub-roll"
             onclick="rollStubRoll('<%= stub_id %>')">Roll</button>
-    <% if luck_amount.to_i > 0 %>
-      <button type="button" class="roll-stub-mod roll-stub-luck-bonus"
-              onclick="rollStubReroll('<%= stub_id %>', <%= luck_amount.to_i %>)"
-              disabled><%= luck_bonus_name %></button>
-      <button type="button" class="roll-stub-mod roll-stub-luck-penalty"
-              onclick="rollStubReroll('<%= stub_id %>', <%= -luck_amount.to_i %>)"
-              disabled><%= luck_penalty_name %></button>
+    <div class="roll-stub-meta">
+      <% if character_name && !character_name.to_s.empty? %>
+        <div class="roll-stub-name"><%= h(character_name) %></div>
+      <% end %>
+      <div class="roll-stub-params"><%= h(roll_stub_params_line(tn.to_i, dice_count.to_i, starting_value.to_i)) %></div>
+      <div class="roll-stub-check">(<%= h(check_name) %>)</div>
+    </div>
+  </div>
+
+  <div class="roll-stub-rows">
+    <div class="roll-stub-row">
+      <div class="roll-stub-row-action"></div>
+      <div class="roll-stub-row-label">Initial:</div>
+      <div class="roll-stub-row-dice" id="roll-stub-row-initial-<%= stub_id %>"></div>
+    </div>
+    <% if luck_amount.to_i != 0 %>
+      <div class="roll-stub-row">
+        <div class="roll-stub-row-action">
+          <button type="button"
+                  class="roll-stub-reroll-luck <%= luck_amount.to_i > 0 ? 'roll-stub-luck-bonus' : 'roll-stub-luck-penalty' %>"
+                  onclick="rollStubRerollLuck('<%= stub_id %>')"
+                  disabled><%= h(roll_stub_modifier_text(luck_amount.to_i, luck_label)) %></button>
+        </div>
+        <div class="roll-stub-row-label">Luck:</div>
+        <div class="roll-stub-row-dice" id="roll-stub-row-luck-<%= stub_id %>"></div>
+      </div>
     <% end %>
-    <% if insight_amount.to_i > 0 %>
-      <button type="button" class="roll-stub-mod roll-stub-insight-bonus"
-              onclick="rollStubNudge('<%= stub_id %>', <%= insight_amount.to_i %>)"
-              disabled><%= insight_bonus_name %></button>
-      <button type="button" class="roll-stub-mod roll-stub-insight-penalty"
-              onclick="rollStubNudge('<%= stub_id %>', <%= -insight_amount.to_i %>)"
-              disabled><%= insight_penalty_name %></button>
+    <% if insight_amount.to_i != 0 %>
+      <div class="roll-stub-row">
+        <div class="roll-stub-row-action">
+          <span class="roll-stub-insight-label <%= insight_amount.to_i > 0 ? 'roll-stub-insight-bonus' : 'roll-stub-insight-penalty' %>"><%= h(roll_stub_modifier_text(insight_amount.to_i, insight_label)) %></span>
+        </div>
+        <div class="roll-stub-row-label">Insight:</div>
+        <div class="roll-stub-row-dice" id="roll-stub-row-insight-<%= stub_id %>"></div>
+      </div>
     <% end %>
   </div>
 
-  <div class="roll-stub-dice" id="roll-stub-dice-<%= stub_id %>"></div>
-
-  <div class="roll-stub-confirm-row">
-    <button type="button" class="roll-stub-confirm"
-            onclick="rollStubConfirm('<%= stub_id %>')">Confirm</button>
+  <div class="roll-stub-result-row">
+    <label>Result:
+      <input type="number" class="roll-stub-result-input"
+             id="roll-stub-result-<%= stub_id %>" value="0">
+    </label>
+    <label>Crits:
+      <input type="number" class="roll-stub-crit-input"
+             id="roll-stub-crits-<%= stub_id %>" value="0" min="0">
+    </label>
   </div>
+
+  <% if show_confirm %>
+    <div class="roll-stub-confirm-row">
+      <button type="button" class="roll-stub-confirm"
+              onclick="rollStubConfirm('<%= stub_id %>')">Confirm</button>
+    </div>
+  <% end %>
 </div>
 <script>
 (function() {
