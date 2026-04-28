@@ -77,41 +77,45 @@ class DummyData
   end
 
   # --- Combat --------------------------------------------------------------
+  # Shape mirrors how this will be stored on disk: each turn carries a
+  # foreign key (`char_id`) into either characters (integer id, PCs)
+  # or enemy_templates (string id, mobs). Display name is resolved on
+  # read via name_for; never duplicated in storage.
 
   def self.combat_state
     { 'round' => 4, 'active_effects' => [], 'current_turn' => 'pc-3',
       'turns' => [
-        { 'combat_id' => 'pc-3',  'char_id' => 3,              'name' => 'Lira Duskmoor',  'initiative' => 'X97',
+        { 'combat_id' => 'pc-3',  'char_id' => 3,              'initiative' => 'X97',
           'hp' => 18, 'hp_max' => 22,
           'minor_damage' => 4, 'moderate_damage' => 0, 'major_damage' => 0,
           'combat_pool' => 5, 'combat_pool_max' => 5, 'shock' => 0, 'pain' => 0,
           'conditions' => [], 'group' => 'PC' },
 
-        { 'combat_id' => 'pc-1',  'char_id' => 1,              'name' => 'Ash Windmere',   'initiative' => 'X87',
+        { 'combat_id' => 'pc-1',  'char_id' => 1,              'initiative' => 'X87',
           'hp' => 22, 'hp_max' => 28,
           'minor_damage' => 6, 'moderate_damage' => 0, 'major_damage' => 0,
           'combat_pool' => 4, 'combat_pool_max' => 6, 'shock' => 1, 'pain' => 0,
           'conditions' => [{ 'name' => 'bleed', 'value' => 2 }], 'group' => 'PC' },
 
-        { 'combat_id' => 'pc-2',  'char_id' => 2,              'name' => 'Bryn Ironvein',  'initiative' => '742',
+        { 'combat_id' => 'pc-2',  'char_id' => 2,              'initiative' => '742',
           'hp' => 24, 'hp_max' => 36,
           'minor_damage' => 4, 'moderate_damage' => 8, 'major_damage' => 0,
           'combat_pool' => 3, 'combat_pool_max' => 7, 'shock' => 0, 'pain' => 2,
           'conditions' => [{ 'name' => 'poison', 'value' => 1 }], 'group' => 'PC' },
 
-        { 'combat_id' => 'mob-1', 'char_id' => 'bandit_thug',  'name' => 'Bandit Thug',    'initiative' => 'X4',
+        { 'combat_id' => 'mob-1', 'char_id' => 'bandit_thug',  'initiative' => 'X4',
           'hp' => 14, 'hp_max' => 14,
           'minor_damage' => 0, 'moderate_damage' => 0, 'major_damage' => 0,
           'combat_pool' => 3, 'combat_pool_max' => 3, 'shock' => 0, 'pain' => 0,
           'conditions' => [], 'group' => 'Enemy' },
 
-        { 'combat_id' => 'mob-2', 'char_id' => 'bandit_thug',  'name' => 'Bandit Thug',    'initiative' => '951',
+        { 'combat_id' => 'mob-2', 'char_id' => 'bandit_thug',  'initiative' => '951',
           'hp' => 5, 'hp_max' => 14,
           'minor_damage' => 2, 'moderate_damage' => 4, 'major_damage' => 3,
           'combat_pool' => 1, 'combat_pool_max' => 3, 'shock' => 2, 'pain' => 1,
           'conditions' => [{ 'name' => 'bleed', 'value' => 1 }, { 'name' => 'major_damage', 'value' => 1 }], 'group' => 'Enemy' },
 
-        { 'combat_id' => 'mob-3', 'char_id' => 'bandit_archer','name' => 'Bandit Archer',  'initiative' => '8',
+        { 'combat_id' => 'mob-3', 'char_id' => 'bandit_archer','initiative' => '8',
           'hp' => 0, 'hp_max' => 10,
           'minor_damage' => 2, 'moderate_damage' => 4, 'major_damage' => 4,
           'combat_pool' => 0, 'combat_pool_max' => 3, 'shock' => 0, 'pain' => 0,
@@ -119,11 +123,26 @@ class DummyData
       ] }
   end
 
+  # Resolve a display name for a char_id. Integer ids map to PC
+  # entries; string ids map to enemy templates. Unknown ids fall back
+  # to the id itself so the UI never blanks out on bad data.
+  def self.name_for(char_id)
+    if char_id.is_a?(Integer)
+      character_by_id(char_id)&.dig('name') || char_id.to_s
+    else
+      enemy_templates.find { |e| e[:id].to_s == char_id.to_s }&.dig(:name) || char_id.to_s
+    end
+  end
+
   # Initiative track sorted high-to-low. Sort key is the X-bearing
   # initiative string compared as a sequence of dice values (X = 10,
-  # then digits left-to-right).
+  # then digits left-to-right). Returned turns are enriched with the
+  # display name resolved via name_for so the view layer doesn't have
+  # to know how the lookup works.
   def self.initiative_turns
-    combat_state['turns'].sort_by { |t| initiative_sort_key(t['initiative']) }
+    combat_state['turns']
+      .sort_by { |t| initiative_sort_key(t['initiative']) }
+      .map    { |t| t.merge('name' => name_for(t['char_id'])) }
   end
 
   def self.initiative_sort_key(str)
