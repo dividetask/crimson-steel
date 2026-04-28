@@ -82,9 +82,13 @@
       damage:          collectDamage
     };
     if (staticHandlers[kind]) return staticHandlers[kind];
+    if (kind.indexOf('allyDice-') === 0) {
+      var diceIdx = parseInt(kind.substring('allyDice-'.length), 10);
+      return function(stubId) { chooseAllyDices(stubId, diceIdx); };
+    }
     if (kind.indexOf('allyLuck-') === 0) {
-      var idx = parseInt(kind.substring('allyLuck-'.length), 10);
-      return function(stubId) { chooseAllyLucks(stubId, idx); };
+      var luckIdx = parseInt(kind.substring('allyLuck-'.length), 10);
+      return function(stubId) { chooseAllyLucks(stubId, luckIdx); };
     }
     return null;
   }
@@ -428,7 +432,7 @@
   function chooseAllyReactions(stubId) {
     var c = cfg(stubId);
     var allies = c.allyReactions || [];
-    if (allies.length === 0) { rollAttack(stubId); return; }
+    if (allies.length === 0) { rollsPanel(stubId); return; }
     var step = appendStep(stubId, 'Ally Reactions', 'allyReactions');
     var picks = [];
     allies.forEach(function(a) {
@@ -444,20 +448,56 @@
     });
     var done = btn('Continue', function() {
       c.state.allyReactions = picks.slice();
-      // Reset per-ally luck since the ally list just changed; the ally
-      // luck steps will repopulate as they fire.
+      // Reset per-ally dice / luck since the ally list just changed;
+      // the ally dice and ally luck steps will repopulate as they fire.
+      c.state.allyDices = [];
       c.state.allyLucks = [];
       var summary = picks.length === 0
         ? '<em>No ally reactions.</em>'
         : 'Ally reactions: <strong>' + picks.map(function(a){ return escapeHtml(a.label); }).join(', ') + '</strong>';
       lockStep(step, summary);
-      chooseAllyLucks(stubId, 0);
+      chooseAllyDices(stubId, 0);
     }, 'melee-btn-primary');
     step.body.appendChild(document.createElement('br'));
     step.body.appendChild(done);
   }
 
-  // --- Step 5b: Luck per rolled ally reaction -----------------------------
+  // --- Step 5b: Dice per rolled ally reaction -----------------------------
+  // Most ally reactions (Shield of Faith, Healing Word, etc.) cost
+  // dice; a few (Bardic Inspiration, pure rerolls) do not. Walk the
+  // selected reactions and prompt for a dice count on the ones that
+  // carry skill + max_dice; allies without those are passed through.
+  function chooseAllyDices(stubId, idx) {
+    var c = cfg(stubId);
+    var allies = (c.state.allyReactions || []).filter(function(a) {
+      return a.skill && (a.max_dice | 0) > 0;
+    });
+    if (idx >= allies.length) { chooseAllyLucks(stubId, 0); return; }
+    var ally = allies[idx];
+    var min = ally.min_dice | 0;
+    var max = ally.max_dice | 0;
+    var step = appendStep(stubId, 'Dice for ' + ally.label + ' (' + min + '–' + max + ')',
+                          'allyDice-' + idx);
+    if (max < min) {
+      step.body.textContent = 'Cannot afford this reaction.';
+      chooseAllyDices(stubId, idx + 1);
+      return;
+    }
+    c.state.allyDices = c.state.allyDices || [];
+    var commit = function(n) {
+      c.state.allyDices[idx] = n;
+      lockStep(step, 'Dice: <strong>' + n + '</strong>');
+      chooseAllyDices(stubId, idx + 1);
+    };
+    if (min === max) { commit(min); return; }
+    for (var n = min; n <= max; n++) {
+      (function(v) {
+        step.body.appendChild(btn(String(v), function() { commit(v); }));
+      })(n);
+    }
+  }
+
+  // --- Step 5c: Luck per rolled ally reaction -----------------------------
   // Walks the selected ally reactions and asks for luck on any that
   // roll dice. Allies without skill+dice (pure rerolls etc.) skip.
   function chooseAllyLucks(stubId, idx) {
@@ -533,10 +573,11 @@
     allies.forEach(function(a, idx) {
       var tn = c.baseTn - (a.skill.bonus | 0) + (w.attack_bonus | 0);
       var allyLuck = rowLuck((c.state.allyLucks || [])[idx]);
+      var diceCount = ((c.state.allyDices || [])[idx] | 0) || (a.max_dice | 0);
       rolls.push(Object.assign({
         key:            'ally-' + idx,
         label:          a.label,
-        dice_count:     a.max_dice | 0,
+        dice_count:     diceCount,
         tn:             tn,
         starting_value: 0
       }, allyLuck));
