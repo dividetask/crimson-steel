@@ -98,6 +98,18 @@ helpers do
     end
   end
 
+  # Files in public/images/ that the DM can drop onto a map as
+  # token-sized image glyphs. Listed alphabetically so the palette
+  # order is stable across reloads.
+  def notes_map_image_library
+    dir = File.join(__dir__, '..', 'public', 'images')
+    return [] unless File.directory?(dir)
+    exts = %w[.png .jpg .jpeg .gif .webp]
+    Dir.entries(dir).select do |f|
+      File.file?(File.join(dir, f)) && exts.include?(File.extname(f).downcase)
+    end.sort
+  end
+
   def notes_map_arrow_label(type)
     case type
     when 'attack'         then 'Attack'
@@ -224,6 +236,18 @@ post '/scene/batch' do
     when 'move_shape'
       NOTES_STATE.move_shape(map_id, op['shape_id'].to_s, op['x'].to_f, op['y'].to_f)
       applied += 1
+    when 'add_map_image'
+      ok = NOTES_STATE.add_map_image(
+        map_id: map_id,
+        src:    op['src'].to_s,
+        x:      op['x'].to_f,
+        y:      op['y'].to_f,
+        size:   op['size'] ? op['size'].to_f : NotesState::SQUARE_PX
+      )
+      applied += 1 if ok
+    when 'move_map_image'
+      NOTES_STATE.move_map_image(map_id, op['image_id'].to_s, op['x'].to_f, op['y'].to_f)
+      applied += 1
     when 'delete_object'
       NOTES_STATE.remove_object(map_id, op['object_id'].to_s)
       applied += 1
@@ -232,6 +256,9 @@ post '/scene/batch' do
       applied += 1
     when 'delete_icon'
       NOTES_STATE.remove_icon(map_id, op['icon_id'].to_s)
+      applied += 1
+    when 'delete_map_image'
+      NOTES_STATE.remove_map_image(map_id, op['image_id'].to_s)
       applied += 1
     end
   end

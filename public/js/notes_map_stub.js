@@ -184,7 +184,7 @@
       if (e.button !== 0) return;
       // Don't start a pan from a click that landed on a token,
       // shape, icon, or arrow ✕ — those have their own handlers.
-      if (e.target.closest('.notes-map-object, .notes-map-shape, .notes-map-icon, .notes-map-arrow-remove')) return;
+      if (e.target.closest('.notes-map-object, .notes-map-shape, .notes-map-icon, .notes-map-image, .notes-map-arrow-remove')) return;
       var rect = svg.getBoundingClientRect();
       var pxPerVbX = rect.width  / (baseW / zoom);
       var pxPerVbY = rect.height / (baseH / zoom);
@@ -655,6 +655,58 @@
       }, t);
     }
 
+    // ----- Add-image (DM picks a file from public/images/) -------
+    //
+    // Same flow as add-icon: pick a thumbnail in the panel, then
+    // click on the map. Tokens are one square wide; saved as a
+    // center-point so the existing transform-based move/delete
+    // machinery handles them like objects and shapes.
+
+    var IMAGE_TOKEN_SIZE = 50; // matches NotesState::SQUARE_PX
+    var pickedImage = null;
+    card.querySelectorAll('.notes-map-image-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        pickedImage = btn.getAttribute('data-image-src');
+        card.querySelectorAll('.notes-map-image-btn.active').forEach(function (b) {
+          b.classList.remove('active');
+        });
+        btn.classList.add('active');
+        var statusEl = card.querySelector('.notes-map-image-status');
+        if (statusEl) statusEl.textContent = 'Click on the map to place the image.';
+      });
+    });
+
+    function placeImageAt(p) {
+      if (!pickedImage) {
+        var statusEl = card.querySelector('.notes-map-image-status');
+        if (statusEl) statusEl.textContent = 'Pick an image first.';
+        return;
+      }
+      var sz = IMAGE_TOKEN_SIZE;
+      var g = svgEl('g', {
+        class: 'notes-map-image',
+        transform: 'translate(' + p.x.toFixed(1) + ',' + p.y.toFixed(1) + ')'
+      });
+      var img = svgEl('image', {
+        x: -sz / 2, y: -sz / 2,
+        width: sz, height: sz,
+        preserveAspectRatio: 'xMidYMid slice'
+      });
+      // Some browsers still want the legacy xlink:href for <image>.
+      img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', pickedImage);
+      img.setAttribute('href', pickedImage);
+      g.appendChild(img);
+      svg.appendChild(g);
+      bindElementHandlers(g);
+      pushOp({
+        kind: 'add_map_image',
+        src: pickedImage,
+        x: parseFloat(p.x.toFixed(1)),
+        y: parseFloat(p.y.toFixed(1)),
+        size: sz
+      }, g);
+    }
+
     // ----- Element mouse handling (decide based on tool) ----------
     //
     // Same flow for tokens, shapes, and icons — just different
@@ -688,6 +740,15 @@
           read: function () { return [parseFloat(el.getAttribute('x')), parseFloat(el.getAttribute('y'))]; },
           write: function (x, y) { el.setAttribute('x', x.toFixed(1)); el.setAttribute('y', y.toFixed(1)); },
           moveOp: 'move_icon', deleteOp: 'delete_icon', idKey: 'icon_id'
+        };
+      }
+      if (el.classList.contains('notes-map-image')) {
+        return {
+          kind: 'image',
+          idAttr: 'data-image-id',
+          read: function () { var t = (el.getAttribute('transform') || '').match(/translate\(([^,]+),([^)]+)\)/); return t ? [parseFloat(t[1]), parseFloat(t[2])] : [0, 0]; },
+          write: function (x, y) { el.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')'); },
+          moveOp: 'move_map_image', deleteOp: 'delete_map_image', idKey: 'image_id'
         };
       }
       return null;
@@ -727,7 +788,7 @@
       });
     }
 
-    svg.querySelectorAll('.notes-map-object, .notes-map-shape, .notes-map-icon').forEach(bindElementHandlers);
+    svg.querySelectorAll('.notes-map-object, .notes-map-shape, .notes-map-icon, .notes-map-image').forEach(bindElementHandlers);
 
     // ----- SVG (empty-space) mouse handling -----------------------
 
@@ -762,6 +823,7 @@
 
     svg.addEventListener('click', function (e) {
       if (e.target.closest('.notes-map-object')) return;
+      if (e.target.closest('.notes-map-image'))  return;
       if (e.target.closest('.notes-map-arrow-remove')) return;
       var tool = currentTool();
       if (tool === 'arrow') {
@@ -769,6 +831,8 @@
         pickArrowEndpoint({ kind: 'point', x: p.x, y: p.y }, null);
       } else if (tool === 'add-icon') {
         placeIconAt(vboxPoint(svg, e));
+      } else if (tool === 'add-image') {
+        placeImageAt(vboxPoint(svg, e));
       }
     });
 

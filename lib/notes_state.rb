@@ -31,6 +31,7 @@ class NotesState
     @moves_by_map           = {}
     @shapes_by_map          = {}
     @icons_by_map           = {}
+    @map_images_by_map      = {}
     @map_settings_by_map    = {}
     @created_maps           = []
     @next_created_id        = 10_000
@@ -283,6 +284,47 @@ class NotesState
     true
   end
 
+  # ----- Map images (image-token glyphs placed on the map) -------------
+  #
+  # Same lifecycle as icons: DM picks a file from public/images/ and
+  # clicks on the map to place. Stored as a center-point token; the
+  # SVG renders an <image> inside a <g transform> so the existing
+  # drag/delete machinery treats it like any other token.
+
+  def map_images_for(map_id)
+    @map_images_by_map[map_id.to_i] || []
+  end
+
+  def add_map_image(map_id:, src:, x:, y:, size: SQUARE_PX)
+    return false unless src.to_s.start_with?('/images/')
+    rec = {
+      'id'   => "img_#{SecureRandom.hex(3)}",
+      'src'  => src.to_s,
+      'x'    => x.to_f,
+      'y'    => y.to_f,
+      'size' => size.to_f
+    }
+    (@map_images_by_map[map_id.to_i] ||= []) << rec
+    save!
+    rec
+  end
+
+  def remove_map_image(map_id, image_id)
+    list = @map_images_by_map[map_id.to_i] or return
+    list.reject! { |i| i['id'] == image_id }
+    save!
+  end
+
+  def move_map_image(map_id, image_id, x, y)
+    list = @map_images_by_map[map_id.to_i] or return false
+    rec = list.find { |i| i['id'] == image_id }
+    return false unless rec
+    rec['x'] = x.to_f
+    rec['y'] = y.to_f
+    save!
+    true
+  end
+
   # ----- Map settings (label / size in squares / flags) ----------------
 
   # Returns merged settings: per-map override wins, otherwise fall
@@ -390,6 +432,7 @@ class NotesState
       'moves_by_map'           => @moves_by_map,
       'shapes_by_map'          => @shapes_by_map,
       'icons_by_map'           => @icons_by_map,
+      'map_images_by_map'      => @map_images_by_map,
       'map_settings_by_map'    => @map_settings_by_map,
       'created_maps'           => @created_maps,
       'next_created_id'        => @next_created_id,
@@ -413,6 +456,7 @@ class NotesState
     @moves_by_map           = (data['moves_by_map']           || {}).transform_keys(&:to_i)
     @shapes_by_map          = (data['shapes_by_map']          || {}).transform_keys(&:to_i)
     @icons_by_map           = (data['icons_by_map']           || {}).transform_keys(&:to_i)
+    @map_images_by_map      = (data['map_images_by_map']      || {}).transform_keys(&:to_i)
     @map_settings_by_map    = (data['map_settings_by_map']    || {}).transform_keys(&:to_i)
     @created_maps           = data['created_maps']    || []
     @next_created_id        = data['next_created_id'] || 10_000
