@@ -102,22 +102,15 @@ body {
 .roll-stub-table .col-roll,
 .roll-stub-table .col-confirm { width: 1%; white-space: nowrap; }
 .roll-stub-table .col-meta    { white-space: nowrap; }
-.roll-stub-table .col-initial,
-.roll-stub-table .col-luck,
-.roll-stub-table .col-insight { white-space: nowrap; font-family: monospace; }
+.roll-stub-table .col-mod     { white-space: nowrap; }
+.roll-stub-table .col-dice    { white-space: nowrap; font-family: monospace; }
 .roll-stub-table .col-result  { white-space: nowrap; width: 1%; }
 
-/* Modifier (button or label) sits above its dice in the same column
- * so each per-character cell is a tight 2-line block. The shared
- * table column algorithm then aligns Initial/Luck/Insight across
- * every character's row. */
-.roll-stub-luck-cell,
-.roll-stub-insight-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-}
+/* Each character is one <tbody class="roll-stub"> with 1–3 rows
+ * (Initial, optionally Luck, optionally Insight). Rows inside the
+ * group don't get a divider; only consecutive groups do. */
+.roll-stub-table tbody.roll-stub td { border-bottom: none; }
+.roll-stub-table tbody.roll-stub + tbody.roll-stub td { border-top: 1px solid #eee; }
 
 .roll-stub-roll {
   font-size: 11px;

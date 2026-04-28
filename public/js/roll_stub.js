@@ -51,8 +51,7 @@
   }
 
   function rerollButton(stubId) {
-    var root = rootEl(stubId);
-    return root ? root.querySelector('.roll-stub-reroll-luck') : null;
+    return document.getElementById('roll-stub-reroll-luck-' + stubId);
   }
 
   function dieSpan(value, tn, dieSize) {
