@@ -1,6 +1,6 @@
-<div class="melee-attack-stub" data-stub-id="<%= stub_id %>">
-  <div class="melee-attack-title"><%= h(title) %></div>
-  <div class="melee-attack-attacker">
+<div class="attack-stub" data-stub-id="<%= stub_id %>">
+  <div class="attack-stub-title"><%= h(title) %></div>
+  <div class="attack-stub-attacker">
     <strong><%= h(attacker['name']) %></strong>
     &mdash; <%= h(attacker['skill']['name']) %>
     (bonus +<%= attacker['skill']['bonus'].to_i %>,
@@ -8,12 +8,12 @@
      ranks <%= attacker['skill']['ranks'].to_i %>)
   </div>
 
-  <div class="melee-attack-steps" id="melee-steps-<%= stub_id %>"></div>
+  <div class="attack-stub-steps" id="attack-steps-<%= stub_id %>"></div>
 </div>
 <script>
 (function() {
-  window.meleeAttackConfigs = window.meleeAttackConfigs || {};
-  window.meleeAttackConfigs[<%= stub_id.to_json %>] = {
+  window.attackStubConfigs = window.attackStubConfigs || {};
+  window.attackStubConfigs[<%= stub_id.to_json %>] = {
     stubId:        <%= stub_id.to_json %>,
     attacker:      <%= attacker.to_json %>,
     targets:       <%= targets.to_json %>,
@@ -22,6 +22,6 @@
     dieSize:       <%= die_size.to_i %>,
     baseTn:        <%= base_tn.to_i %>
   };
-  if (window.meleeAttackInit) window.meleeAttackInit(<%= stub_id.to_json %>);
+  if (window.attackStubInit) window.attackStubInit(<%= stub_id.to_json %>);
 })();
 </script>

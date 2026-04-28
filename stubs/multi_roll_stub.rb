@@ -30,7 +30,7 @@ helpers do
 end
 
 # Render the multi_roll_stub partial in response to an AJAX request from
-# a parent stub (melee_attack_stub uses this to swap in the rolls panel
+# a parent stub (attack_stub uses this to swap in the rolls panel
 # once the DM has finished selecting target / weapon / defense / etc.).
 post '/multi_roll_stub/render' do
   content_type :html

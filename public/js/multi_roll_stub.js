@@ -4,7 +4,7 @@
 // top-level Roll All button rolls every row that hasn't been rolled
 // yet; per-row buttons roll/reroll just that row. Confirm All
 // dispatches `multiroll:confirm` on the stub root with the per-row
-// success counts so the parent stub (e.g. melee_attack_stub) can pick
+// success counts so the parent stub (e.g. attack_stub) can pick
 // up where it left off.
 (function() {
   function cfg(stubId) { return (window.multiRollConfigs || {})[stubId]; }

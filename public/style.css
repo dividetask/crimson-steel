@@ -537,24 +537,24 @@ body {
   white-space: nowrap;
 }
 
-.melee-attack-stub {
+.attack-stub {
   margin: 8px 0;
   padding: 8px 10px;
   border: 1px solid #ccc;
   border-radius: 3px;
 }
 
-.melee-attack-title {
+.attack-stub-title {
   font-weight: bold;
   font-size: 13px;
 }
 
-.melee-attack-attacker {
+.attack-stub-attacker {
   margin-bottom: 6px;
   color: #555;
 }
 
-.melee-step {
+.attack-step {
   margin-top: 8px;
   padding: 6px 8px;
   border: 1px solid #ddd;
@@ -562,33 +562,33 @@ body {
   background: #fcfcfc;
 }
 
-.melee-step-locked {
+.attack-step-locked {
   background: #f5f5f5;
   color: #555;
 }
 
-.melee-step-head {
+.attack-step-head {
   font-weight: bold;
   margin-bottom: 4px;
 }
 
-.melee-step-body {
+.attack-step-body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 6px;
 }
 
-.melee-step-summary {
+.attack-step-summary {
   flex: 1;
   min-width: 0;
 }
 
-.melee-meta {
+.attack-meta {
   color: #666;
 }
 
-.melee-btn {
+.attack-btn {
   font-size: 11px;
   padding: 3px 8px;
   cursor: pointer;
@@ -597,27 +597,27 @@ body {
   border-radius: 3px;
 }
 
-.melee-btn:hover {
+.attack-btn:hover {
   background: #eef4ff;
 }
 
-.melee-btn-selected {
+.attack-btn-selected {
   background: #1976d2;
   color: #fff;
   border-color: #0d47a1;
 }
 
-.melee-btn-primary {
+.attack-btn-primary {
   background: #1976d2;
   color: #fff;
   border-color: #0d47a1;
 }
 
-.melee-btn-primary:hover {
+.attack-btn-primary:hover {
   background: #0d47a1;
 }
 
-.melee-rollback-btn {
+.attack-rollback-btn {
   margin-left: auto;
   font-size: 11px;
   padding: 2px 8px;
@@ -628,11 +628,11 @@ body {
   border-radius: 3px;
 }
 
-.melee-rollback-btn:hover {
+.attack-rollback-btn:hover {
   background: #fff7c2;
 }
 
-.melee-luck-row {
+.attack-luck-row {
   flex: 1 1 100%;
   display: flex;
   flex-wrap: wrap;
@@ -640,38 +640,38 @@ body {
   gap: 4px;
 }
 
-.melee-luck-row-label {
+.attack-luck-row-label {
   margin-right: 6px;
 }
 
-.melee-luck-pt {
+.attack-luck-pt {
   min-width: 32px;
   text-align: center;
 }
 
-.melee-luck-pt-penalty {
+.attack-luck-pt-penalty {
   color: #b71c1c;
   border-color: #ef9a9a;
 }
 
-.melee-luck-pt-selected {
+.attack-luck-pt-selected {
   background: #1976d2;
   color: #fff;
   border-color: #0d47a1;
 }
 
-.melee-luck-pt-penalty.melee-luck-pt-selected {
+.attack-luck-pt-penalty.attack-luck-pt-selected {
   background: #b71c1c;
   color: #fff;
   border-color: #7f1010;
 }
 
-.melee-roll-slot {
+.attack-roll-slot {
   flex: 1 1 100%;
   margin-top: 4px;
 }
 
-.melee-damage-form {
+.attack-damage-form {
   flex: 1 1 100%;
   display: flex;
   flex-wrap: wrap;
@@ -679,16 +679,16 @@ body {
   margin-top: 4px;
 }
 
-.melee-damage-form label {
+.attack-damage-form label {
   display: inline-flex;
   gap: 4px;
   align-items: center;
 }
 
-.melee-damage-form input[type="number"] { width: 56px; }
-.melee-damage-form input[type="text"]   { width: 200px; }
+.attack-damage-form input[type="number"] { width: 56px; }
+.attack-damage-form input[type="text"]   { width: 200px; }
 
-.melee-affliction-list {
+.attack-affliction-list {
   flex: 1 1 100%;
   display: flex;
   flex-wrap: wrap;
@@ -699,7 +699,7 @@ body {
   border-radius: 3px;
 }
 
-.melee-affliction-list .melee-meta {
+.attack-affliction-list .attack-meta {
   flex: 1 1 100%;
 }
 

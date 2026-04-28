@@ -1,9 +1,9 @@
-// Client-side state machine driving the melee_attack_stub flow.
+// Client-side state machine driving the attack_stub flow.
 //
 // The Ruby helper renders an empty container and ships the stub config
-// (attacker, targets, ally reactions, dice rules) on window.meleeAttackConfigs
+// (attacker, targets, ally reactions, dice rules) on window.attackStubConfigs
 // keyed by stub id. This file picks the config up at init time, walks the
-// DM through the steps below, and dispatches `meleeattack:confirm` on the
+// DM through the steps below, and dispatches `attack:confirm` on the
 // stub root with the full chosen payload at the end.
 //
 // Steps with a single (or zero) option auto-advance. Reaction steps
@@ -11,21 +11,21 @@
 // the multi_roll_stub partial via /multi_roll_stub/render and waits
 // for its `multiroll:confirm` event to capture per-row successes.
 (function() {
-  function cfg(stubId)  { return (window.meleeAttackConfigs || {})[stubId]; }
-  function rootEl(stubId){ return document.querySelector('.melee-attack-stub[data-stub-id="' + stubId + '"]'); }
-  function stepsEl(stubId){ return document.getElementById('melee-steps-' + stubId); }
+  function cfg(stubId)  { return (window.attackStubConfigs || {})[stubId]; }
+  function rootEl(stubId){ return document.querySelector('.attack-stub[data-stub-id="' + stubId + '"]'); }
+  function stepsEl(stubId){ return document.getElementById('attack-steps-' + stubId); }
 
   // --- DOM helpers ---------------------------------------------------------
 
   function makeStep(label) {
     var step = document.createElement('div');
-    step.className = 'melee-step';
+    step.className = 'attack-step';
     var head = document.createElement('div');
-    head.className = 'melee-step-head';
+    head.className = 'attack-step-head';
     head.textContent = label;
     step.appendChild(head);
     var body = document.createElement('div');
-    body.className = 'melee-step-body';
+    body.className = 'attack-step-body';
     step.appendChild(body);
     return { root: step, body: body };
   }
@@ -49,14 +49,14 @@
   function lockStep(step, summary) {
     step.body.innerHTML = '';
     var sum = document.createElement('div');
-    sum.className = 'melee-step-summary';
+    sum.className = 'attack-step-summary';
     sum.innerHTML = summary;
     step.body.appendChild(sum);
-    step.root.classList.add('melee-step-locked');
+    step.root.classList.add('attack-step-locked');
     if (step.kind) {
       var back = document.createElement('button');
       back.type = 'button';
-      back.className = 'melee-rollback-btn';
+      back.className = 'attack-rollback-btn';
       back.title = 'Undo this decision and everything after it';
       back.innerHTML = '↶ Change';
       back.addEventListener('click', function() { rollbackTo(step.stubId, step.kind); });
@@ -116,9 +116,9 @@
       var remaining = src.remaining | 0;
       if (remaining <= 0) return;
       var row = document.createElement('div');
-      row.className = 'melee-luck-row';
+      row.className = 'attack-luck-row';
       var label = document.createElement('span');
-      label.className = 'melee-luck-row-label';
+      label.className = 'attack-luck-row-label';
       label.innerHTML = '<strong>' + escapeHtml(src.label) + '</strong>:';
       row.appendChild(label);
       var sign = src.kind === 'penalty' ? '-' : '+';
@@ -128,8 +128,8 @@
         (function(amount) {
           var b = document.createElement('button');
           b.type = 'button';
-          b.className = 'melee-btn melee-luck-pt';
-          if (src.kind === 'penalty') b.classList.add('melee-luck-pt-penalty');
+          b.className = 'attack-btn attack-luck-pt';
+          if (src.kind === 'penalty') b.classList.add('attack-luck-pt-penalty');
           b.textContent = sign + amount;
           b.addEventListener('click', function() {
             if (selected[src.key] === amount) {
@@ -149,7 +149,7 @@
     function paint() {
       Object.keys(btnsByKey).forEach(function(key) {
         btnsByKey[key].forEach(function(item) {
-          item.btn.classList.toggle('melee-luck-pt-selected', selected[key] === item.amount);
+          item.btn.classList.toggle('attack-luck-pt-selected', selected[key] === item.amount);
         });
       });
     }
@@ -172,7 +172,7 @@
       }
       lockStep(step, summary);
       onContinue(chosen);
-    }, 'melee-btn-primary');
+    }, 'attack-btn-primary');
     step.body.appendChild(done);
   }
 
@@ -184,7 +184,7 @@
   function rollbackTo(stubId, kind) {
     var container = stepsEl(stubId);
     if (!container) return;
-    var node = container.querySelector('.melee-step[data-kind="' + kind + '"]');
+    var node = container.querySelector('.attack-step[data-kind="' + kind + '"]');
     if (!node) return;
     while (node.nextSibling) container.removeChild(node.nextSibling);
     container.removeChild(node);
@@ -195,7 +195,7 @@
   function btn(label, onClick, extraClass) {
     var b = document.createElement('button');
     b.type = 'button';
-    b.className = 'melee-btn' + (extraClass ? ' ' + extraClass : '');
+    b.className = 'attack-btn' + (extraClass ? ' ' + extraClass : '');
     b.innerHTML = label;
     b.addEventListener('click', onClick);
     return b;
@@ -319,7 +319,7 @@
     var pick = function(w) {
       c.state.weapon = w;
       lockStep(step, 'Weapon: <strong>' + escapeHtml(w.name) + '</strong>' +
-        ' <span class="melee-meta">(atk +' + (w.attack_bonus|0) +
+        ' <span class="attack-meta">(atk +' + (w.attack_bonus|0) +
         ', dmg ' + (w.damage|0) +
         ', threshold ' + (w.threshold|0) +
         ', bleed ' + (w.bleed|0) +
@@ -327,7 +327,7 @@
       chooseAttackDice(stubId);
     };
     if (weapons.length === 0) {
-      step.body.textContent = 'Attacker has no equipped melee weapons.';
+      step.body.textContent = 'Attacker has no equipped weapons.';
       return;
     }
     if (weapons.length === 1) { pick(weapons[0]); return; }
@@ -354,7 +354,7 @@
     };
     if (min === max) { commit(min); return; }
     var hint = document.createElement('span');
-    hint.className = 'melee-meta';
+    hint.className = 'attack-meta';
     hint.textContent = 'Pick a value between ' + min + ' and ' + max + '.';
     step.body.appendChild(hint);
     step.body.appendChild(document.createElement('br'));
@@ -437,7 +437,7 @@
     var picks = [];
     allies.forEach(function(a) {
       var b = btn(escapeHtml(a.label), function() {
-        if (b.classList.toggle('melee-btn-selected')) {
+        if (b.classList.toggle('attack-btn-selected')) {
           picks.push(a);
         } else {
           var i = picks.indexOf(a);
@@ -457,7 +457,7 @@
         : 'Ally reactions: <strong>' + picks.map(function(a){ return escapeHtml(a.label); }).join(', ') + '</strong>';
       lockStep(step, summary);
       chooseAllyDices(stubId, 0);
-    }, 'melee-btn-primary');
+    }, 'attack-btn-primary');
     step.body.appendChild(document.createElement('br'));
     step.body.appendChild(done);
   }
@@ -585,7 +585,7 @@
 
     var step = appendStep(stubId, 'Rolls');
     var slot = document.createElement('div');
-    slot.className = 'melee-roll-slot';
+    slot.className = 'attack-roll-slot';
     step.body.appendChild(slot);
 
     fetchMultiRollPartial({
@@ -615,7 +615,7 @@
           return s + (x ? (x.successes | 0) : 0);
         }, 0);
         var summary = document.createElement('div');
-        summary.className = 'melee-step-summary';
+        summary.className = 'attack-step-summary';
         var bits = ['Attack: <strong>' + c.state.attackSuccesses + '</strong>'];
         if (def && def.uses_dice) bits.push('Defense: <strong>' + c.state.defenseSuccesses + '</strong>');
         if (allyBlock > 0) bits.push('Ally block: <strong>' + allyBlock + '</strong>');
@@ -634,9 +634,9 @@
     var step = appendStep(stubId, 'Target Reactions', 'targetReactions');
     var picks = [];
     reactions.forEach(function(r) {
-      var label = escapeHtml(r.label) + (r.cost ? ' <span class="melee-meta">(' + escapeHtml(r.cost) + ')</span>' : '');
+      var label = escapeHtml(r.label) + (r.cost ? ' <span class="attack-meta">(' + escapeHtml(r.cost) + ')</span>' : '');
       var b = btn(label, function() {
-        if (b.classList.toggle('melee-btn-selected')) picks.push(r);
+        if (b.classList.toggle('attack-btn-selected')) picks.push(r);
         else {
           var i = picks.indexOf(r);
           if (i !== -1) picks.splice(i, 1);
@@ -651,7 +651,7 @@
         : 'Target reactions: <strong>' + picks.map(function(r){ return escapeHtml(r.label); }).join(', ') + '</strong>';
       lockStep(step, summary);
       collectDamage(stubId);
-    }, 'melee-btn-primary');
+    }, 'attack-btn-primary');
     step.body.appendChild(document.createElement('br'));
     step.body.appendChild(done);
   }
@@ -673,20 +673,20 @@
 
     var step = appendStep(stubId, 'Confirm Damage', 'damage');
     var meta = document.createElement('div');
-    meta.className = 'melee-meta';
+    meta.className = 'attack-meta';
     meta.innerHTML = 'Net successes: <strong>' + net + '</strong> ' +
       '(' + atk + ' attack &minus; ' + defS + ' defense' +
       (allyBlock > 0 ? ' &minus; ' + allyBlock + ' ally block' : '') + ')';
     step.body.appendChild(meta);
 
     var form = document.createElement('div');
-    form.className = 'melee-damage-form';
+    form.className = 'attack-damage-form';
     var html =
       '<label>Damage <input type="number" min="0" value="' + defaultDmg + '" data-field="damage"></label>' +
       '<label>Threshold <input type="number" min="0" value="' + defaultThreshold + '" data-field="threshold"></label>';
     if (weaponAfflictions.length > 0) {
-      html += '<div class="melee-affliction-list">' +
-        '<div class="melee-meta">Afflictions inflicted by this attack:</div>';
+      html += '<div class="attack-affliction-list">' +
+        '<div class="attack-meta">Afflictions inflicted by this attack:</div>';
       weaponAfflictions.forEach(function(a) {
         html += '<label>' + escapeHtml(a.label) + ' ' +
           '<input type="number" min="0" value="' + (a.amount|0) + '" ' +
@@ -743,20 +743,20 @@
       };
       var root = rootEl(stubId);
       if (root) {
-        root.dispatchEvent(new CustomEvent('meleeattack:confirm', {
+        root.dispatchEvent(new CustomEvent('attack:confirm', {
           bubbles: true, detail: detail
         }));
       }
-    }, 'melee-btn-primary');
+    }, 'attack-btn-primary');
     step.body.appendChild(submit);
   }
 
-  // The partial calls window.meleeAttackInit(stubId) inline once its
+  // The partial calls window.attackStubInit(stubId) inline once its
   // config is registered. If this script hasn't loaded yet (script tag
   // is at the bottom of the layout, but the partial's <script> runs
   // mid-body), the inline call no-ops; this DOMContentLoaded handler
   // catches up and starts every registered stub that isn't running yet.
-  window.meleeAttackInit = function(stubId) {
+  window.attackStubInit = function(stubId) {
     var c = cfg(stubId);
     if (!c || c._started) return;
     c._started = true;
@@ -764,8 +764,8 @@
   };
 
   function bootAll() {
-    var configs = window.meleeAttackConfigs || {};
-    Object.keys(configs).forEach(function(id) { window.meleeAttackInit(id); });
+    var configs = window.attackStubConfigs || {};
+    Object.keys(configs).forEach(function(id) { window.attackStubInit(id); });
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootAll);

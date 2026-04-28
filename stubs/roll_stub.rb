@@ -72,7 +72,7 @@ helpers do
 end
 
 # Render the roll_stub partial in response to an AJAX request from a
-# parent stub (e.g. melee_attack_stub) that needs to inject a freshly
+# parent stub (e.g. attack_stub) that needs to inject a freshly
 # parameterised roll into its flow. Returns the partial HTML; the caller
 # is responsible for placing it in the DOM.
 post '/roll_stub/render' do

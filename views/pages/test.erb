@@ -1,34 +1,35 @@
 <% p = @test_params || {} %>
 <%# Newest stub previews go at the top — see CLAUDE.md. %>
 
-<h2>Melee Attack Stub</h2>
+<h2>Attack Stub</h2>
 
 <p class="dt-note">
   Walks the DM through target &rarr; weapon &rarr; attack dice &rarr; defense
   &rarr; ally reactions &rarr; rolls &rarr; target reactions &rarr; damage.
-  Steps with a single (or zero) option auto-advance.
+  Same stub serves melee and ranged. Steps with a single (or zero)
+  option auto-advance.
 </p>
 
-<%= melee_attack_stub(
-      attacker:       DATA.melee_attacker_sample,
-      targets:        DATA.melee_target_samples,
-      ally_reactions: DATA.melee_ally_reactions,
-      luck_sources:   DATA.melee_luck_sources
+<%= attack_stub(
+      attacker:       DATA.attacker_sample,
+      targets:        DATA.target_samples,
+      ally_reactions: DATA.ally_reactions,
+      luck_sources:   DATA.luck_sources
     ) %>
 
 <div class="stub-test-capture">
-  <label>Last melee result:
-    <textarea id="test-melee-result" rows="6" readonly
+  <label>Last attack result:
+    <textarea id="test-attack-result" rows="6" readonly
               placeholder="(submit the damage step)"
               style="width:100%;font-family:monospace;font-size:11px;"></textarea>
   </label>
 </div>
 
 <script>
-  // Echo the meleeattack:confirm payload so the test harness can show
+  // Echo the attack:confirm payload so the test harness can show
   // what the stub would hand off to a real combat handler.
-  document.addEventListener('meleeattack:confirm', function(e) {
-    var out = document.getElementById('test-melee-result');
+  document.addEventListener('attack:confirm', function(e) {
+    var out = document.getElementById('test-attack-result');
     if (out) out.value = JSON.stringify(e.detail, null, 2);
   });
 </script>

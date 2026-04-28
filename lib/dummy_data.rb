@@ -275,8 +275,8 @@ class DummyData
       'ammunition' => %w[arrow bolt sling] }
   end
 
-  # --- Melee attack stub ---------------------------------------------------
-  # The melee_attack_stub is rule-ignorant: callers hand it the attacker's
+  # --- Attack stub ---------------------------------------------------------
+  # The attack_stub is rule-ignorant: callers hand it the attacker's
   # weapons, the candidate targets, the concrete defense options for each
   # target (one per equipped weapon for parry, one per shield for block,
   # etc.), and the lists of ally / target reactions. Everything below is
@@ -284,14 +284,14 @@ class DummyData
   # be exercised end-to-end before any real rule engine is wired up.
   #
   # The defenses catalog (`data/defenses.yaml`) defines the abstract kinds
-  # — `melee_defense_options` is responsible for expanding `parry` into
+  # — `defense_options` is responsible for expanding `parry` into
   # one option per equipped weapon, `block` into one per shield, etc.
 
   def self.defenses_catalog
     @defenses_catalog ||= YAML.load_file(File.join(__dir__, '..', 'data', 'defenses.yaml'))['defenses']
   end
 
-  def self.melee_attacker_sample
+  def self.attacker_sample
     {
       'name'  => 'Bryn Ironvein',
       'skill' => { 'name' => 'Attack', 'bonus' => 2, 'dice' => 8, 'ranks' => 3 },
@@ -314,13 +314,13 @@ class DummyData
     }
   end
 
-  def self.melee_target_samples
+  def self.target_samples
     [
       { 'key' => 'mob-1', 'name' => 'Bandit Thug',   'incapacitated' => false,
-        'defenses'  => melee_defense_options(:thug),
+        'defenses'  => defense_options(:thug),
         'reactions' => [] },
       { 'key' => 'mob-2', 'name' => 'Bandit Captain','incapacitated' => false,
-        'defenses'  => melee_defense_options(:captain),
+        'defenses'  => defense_options(:captain),
         'reactions' => [
           { 'key' => 'danger_sense',    'label' => 'Danger Sense',    'cost' => '4 mana',
             'description' => 'Damage resilience +4 against this attack.' },
@@ -336,8 +336,8 @@ class DummyData
   # Allies who can take a reaction *during* this attack -- spend dice to
   # roll a defensive check on the target's behalf, etc. Bardic
   # Inspiration / Unsettling Words are not in here -- they are luck
-  # sources, applied to other rolls, and live in melee_luck_sources.
-  def self.melee_ally_reactions
+  # sources, applied to other rolls, and live in luck_sources.
+  def self.ally_reactions
     [
       { 'key'   => 'lira-shield-of-faith',
         'label' => 'Lira — Shield of Faith',
@@ -352,7 +352,7 @@ class DummyData
   # stub asks for points-to-spend from each pool after attack dice,
   # defense dice, and per-ally roll selections; the chosen amounts ride
   # along into the multi-roll display.
-  def self.melee_luck_sources
+  def self.luck_sources
     [
       { 'key' => 'bardic_inspiration', 'label' => 'Bardic Inspiration',
         'kind' => 'bonus',  'remaining' => 4,
@@ -366,7 +366,7 @@ class DummyData
   # Build the `defenses` array a target ships to the stub. A real data
   # layer will derive this from the target's equipped items; here we
   # synthesize representative loadouts per archetype.
-  def self.melee_defense_options(archetype)
+  def self.defense_options(archetype)
     case archetype
     when :thug
       [
