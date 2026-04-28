@@ -1,20 +1,19 @@
-# Placeholder data source for the UI rebuild. The real rule engine from
-# before-refactor (character.rb, templates.rb, tools.rb, etc.) is not
-# wired up yet; this class returns hard-coded values shaped the way the
-# views expect so the interface can be rebuilt one page at a time. Each
-# method here corresponds to a query the final data layer will have to
-# answer.
+# Placeholder data source for the UI rebuild. The real rule engine
+# from before-refactor (character.rb, templates.rb, tools.rb, etc.)
+# is not wired up yet; this class returns hard-coded values shaped
+# the way the views expect so the interface can be rebuilt one
+# page at a time.
+#
+# Production never loads this file. app.rb requires
+# lib/empty_data.rb instead and binds DATA to EmptyData, so prod
+# stays a clean slate sourced entirely from NotesState.
+
 class DummyData
   # --- Campaign-level state ------------------------------------------------
-	# Gold was tracked in campaign.json before refactor. It is being migrated to Equipment
 
   def self.campaign
-    {
-      'gold' => 275,
-      'rounds_elapsed' => 4,
-      'current_chapter' => 2,
-      'current_scene' => 1
-    }
+    { 'gold' => 275, 'rounds_elapsed' => 4,
+      'current_chapter' => 2, 'current_scene' => 1 }
   end
 
   def self.chapters
@@ -56,21 +55,17 @@ class DummyData
 
   def self.enemy_groups
     [
-      {
-        label: 'Bandits',
+      { label: 'Bandits',
         enemies: [
           { id: 'bandit_thug',    index: 0, name: 'Bandit Thug',    tier: 1 },
           { id: 'bandit_archer',  index: 1, name: 'Bandit Archer',  tier: 1 },
           { id: 'bandit_captain', index: 2, name: 'Bandit Captain', tier: 2 }
-        ]
-      },
-      {
-        label: 'Undead',
+        ] },
+      { label: 'Undead',
         enemies: [
           { id: 'skeleton',       index: 3, name: 'Skeleton',       tier: 1 },
           { id: 'wight',          index: 4, name: 'Wight',          tier: 3 }
-        ]
-      }
+        ] }
     ]
   end
 
@@ -79,14 +74,9 @@ class DummyData
   end
 
   # --- Combat --------------------------------------------------------------
-	# Hitpoints, damage, and conditions will be tracked by the Conditions class not Combat
-	# Combat will hold current combat pool, initiative, and track which creatures are in combat
 
   def self.combat_state
-    {
-      'round' => 4,
-      'active_effects' => [],
-      'current_turn' => 'pc-3',
+    { 'round' => 4, 'active_effects' => [], 'current_turn' => 'pc-3',
       'turns' => [
         { 'combat_id' => 'pc-3',  'char_id' => 3,              'name' => 'Lira Duskmoor',  'initiative' => 'X97',
           'hp' => 18, 'hp_max' => 22,
@@ -123,8 +113,7 @@ class DummyData
           'minor_damage' => 2, 'moderate_damage' => 4, 'major_damage' => 4,
           'combat_pool' => 0, 'combat_pool_max' => 3, 'shock' => 0, 'pain' => 0,
           'conditions' => [{ 'name' => 'major_damage', 'value' => 1 }], 'group' => 'Enemy' }
-      ]
-    }
+      ] }
   end
 
   # Initiative track sorted high-to-low. Sort key is the X-bearing
@@ -237,15 +226,12 @@ class DummyData
   end
 
   # --- Spells --------------------------------------------------------------
-	# The spell schools and descriptions are placeholders and do not reflect the actual schools
 
   def self.spell_schools
-    {
-      'evocation'     => 'Raw magical force shaped into damage or barriers.',
+    { 'evocation'     => 'Raw magical force shaped into damage or barriers.',
       'illusion'      => 'Deceptions of the senses and the mind.',
       'transmutation' => 'Reshaping matter, form, and state.',
-      'divination'    => 'Knowledge pulled from distance, memory, or fate.'
-    }
+      'divination'    => 'Knowledge pulled from distance, memory, or fate.' }
   end
 
   def self.spell_list
@@ -280,12 +266,10 @@ class DummyData
   end
 
   def self.item_tree
-    {
-      'equipment'  => %w[weapon armor shield],
+    { 'equipment'  => %w[weapon armor shield],
       'item'       => %w[potion scroll misc],
       'tattoo'     => %w[shoulder arm chest],
-      'ammunition' => %w[arrow bolt sling]
-    }
+      'ammunition' => %w[arrow bolt sling] }
   end
 
   # --- Scene ---------------------------------------------------------------
@@ -294,11 +278,9 @@ class DummyData
   # notes arrays above.
 
   def self.scene
-    {
-      'title' => 'The Bandit Ambush',
+    { 'title' => 'The Bandit Ambush',
       'description' => 'Crossbows click from the treeline. Smoke rises off the wrecked wagon.',
-      'show_initiative' => true
-    }
+      'show_initiative' => true }
   end
 
   # --- Builders ------------------------------------------------------------
