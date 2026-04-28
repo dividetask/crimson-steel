@@ -2,6 +2,39 @@
 
 <%# Newest stub previews go at the top — see CLAUDE.md. %>
 
+<h2>Multi Roll Stub</h2>
+
+<%= multi_roll_stub(
+      title: 'Group Perception Check',
+      rolls: [
+        { key: 'alice',   label: 'Alice',   dice_count: 6, tn: 6, starting_value: 0,
+          luck_amount: 2, luck_label: 'Bardic Inspiration',
+          unsettling_amount: 1, unsettling_label: 'Unsettling Words' },
+        { key: 'bob',     label: 'Bob',     dice_count: 5, tn: 6, starting_value: 1,
+          luck_amount: 2, luck_label: 'Bardic Inspiration',
+          unsettling_amount: 1, unsettling_label: 'Unsettling Words' },
+        { key: 'charlie', label: 'Charlie', dice_count: 4, tn: 7, starting_value: 0,
+          luck_amount: 0, unsettling_amount: 0 }
+      ]
+    ) %>
+
+<div class="stub-test-capture">
+  <label>Confirmed rows:
+    <textarea id="test-multiroll-result" rows="6" readonly
+              placeholder="(press Confirm All)"
+              style="width:100%;font-family:monospace;font-size:11px;"></textarea>
+  </label>
+</div>
+
+<script>
+  // Capture the multiroll:confirm payload so the test harness can show
+  // the per-row results the stub would hand off to its parent.
+  document.addEventListener('multiroll:confirm', function(e) {
+    var out = document.getElementById('test-multiroll-result');
+    if (out) out.value = JSON.stringify(e.detail.rows, null, 2);
+  });
+</script>
+
 <h2>Notes Map Stub</h2>
 
 <h3>As player (current turn)</h3>

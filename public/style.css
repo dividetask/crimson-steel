@@ -1051,3 +1051,148 @@ body {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
   user-select: none;
 }
+
+.multi-roll-stub {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.multi-roll-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.multi-roll-title {
+  font-weight: bold;
+  font-size: 13px;
+  flex: 1;
+}
+
+.multi-roll-roll-all,
+.multi-roll-confirm {
+  font-size: 11px;
+  padding: 3px 10px;
+  cursor: pointer;
+  background: #1976d2;
+  color: #fff;
+  border: 1px solid #0d47a1;
+  border-radius: 3px;
+}
+
+.multi-roll-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.multi-roll-table th,
+.multi-roll-table td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.multi-roll-table th {
+  background: #f5f5f5;
+  font-weight: bold;
+}
+
+.multi-roll-name { width: 200px; }
+.multi-roll-controls { white-space: nowrap; }
+.multi-roll-meta { color: #666; font-size: 10px; }
+
+.multi-roll-row-roll,
+.multi-roll-row-luck {
+  font-size: 11px;
+  padding: 2px 6px;
+  margin-right: 3px;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+}
+
+.multi-roll-row-luck:disabled {
+  cursor: not-allowed;
+}
+
+/* Bonus luck (e.g. Bardic Inspiration): green text. Penalty luck
+ * (e.g. Unsettling Words): orange text. Disabled state stays readable
+ * by lightening the background instead of dropping opacity. */
+.multi-roll-row-bonus {
+  color: #1b5e20;
+  border-color: #66bb6a;
+  font-weight: bold;
+}
+
+.multi-roll-row-bonus:disabled {
+  color: #2e7d32;
+  background: #e8f5e9;
+  border-color: #a5d6a7;
+}
+
+.multi-roll-row-penalty {
+  color: #b85b00;
+  border-color: #f29900;
+  font-weight: bold;
+}
+
+.multi-roll-row-penalty:disabled {
+  color: #b85b00;
+  background: #fff3e0;
+  border-color: #ffcc80;
+}
+
+.multi-roll-dice {
+  font-family: monospace;
+  min-width: 200px;
+}
+
+.multi-roll-dice .roll-line {
+  display: block;
+  line-height: 1.6;
+}
+
+.multi-roll-dice .roll-label {
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+/* Empty position placeholder used in reroll diffs. Same width as a
+ * real die so columns line up under the original. */
+.multi-roll-dice .die-blank {
+  background: transparent;
+  color: transparent;
+  font-weight: normal;
+}
+
+.multi-roll-dice .roll-arrow {
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  color: #555;
+  margin: 0 4px;
+}
+
+.multi-roll-dice .die {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-weight: bold;
+  color: #000;
+}
+
+.multi-roll-dice .die-crit    { background: #64b5f6; }
+.multi-roll-dice .die-fumble  { background: #e57373; }
+.multi-roll-dice .die-success { background: #81c784; }
+.multi-roll-dice .die-miss    { color: #777; background: transparent; font-weight: normal; }
+.multi-roll-dice .die-blank   { background: transparent; color: transparent; font-weight: normal; }
+
+.multi-roll-result {
+  font-weight: bold;
+  white-space: nowrap;
+}
