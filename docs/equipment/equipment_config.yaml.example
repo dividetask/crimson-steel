@@ -221,7 +221,7 @@ Weapon Tags:
 
   lesslethal:
     description: >
-      These weapons deal less damage but inflict a stunning effect
+      On a successful hit, the weapon inflicts a non-lethal stunning effect.
 
 # ---------------------------------------------------------------------
 # Damage Type Defaults
@@ -379,7 +379,7 @@ Weapons:
     category: One Handed
     damage_type: Slashing
     damage: 0
-    tags: [shock]
+    tags: [lesslethal]
     threshold: null
     base_price: 4
 

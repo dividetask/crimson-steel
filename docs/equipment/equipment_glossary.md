@@ -155,7 +155,7 @@ Placeholder entries — full definitions land in the Attack Roll / Combat module
 
 **Resilience**: A magical Armor's effective HP against damage, equal to `Tier × resilience_increment`. *(TBD)*
 
-**Shock**: A non-lethal stunning effect applied by Weapons carrying the `shock` tag (currently the Whip). The magnitude of Shock applied on a successful hit equals the damage the weapon would otherwise deal — physical damage is not applied. Shock recovery, accumulation, and interaction with hit points belong to the combat module. *(TBD)*
+**Lesslethal Effect**: A non-lethal stunning effect inflicted on a successful hit by Weapons carrying the `lesslethal` tag (currently the Whip). Recovery, accumulation, and interaction with hit points belong to the combat module. *(TBD)*
 
 ## Time
 
