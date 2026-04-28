@@ -3,3 +3,4 @@
 .*
 data/*
 local.rb
+public/uploads/

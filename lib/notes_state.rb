@@ -21,6 +21,9 @@ class NotesState
     @additions              = []
     @overrides              = {}
     @deletions              = []
+    # Image track
+    @image_additions        = []
+    @image_deletions        = []
     # Map / scene track
     @arrows_by_map          = {}
     @added_objects_by_map   = {}
@@ -87,6 +90,41 @@ class NotesState
     @additions.reject! { |n| n['id'] == id.to_i }
     save!
     true
+  end
+
+  # ----- Images ----------------------------------------------------------
+
+  # Merged image list: base entries (e.g. DummyData) minus anything
+  # marked deleted, plus uploads tracked here. Uploaded entries
+  # carry a `path` field that resolves under public/uploads/, which
+  # the view renders as a real <img> instead of an SVG placeholder.
+  def effective_images(base)
+    visible = (base || []).reject { |i| @image_deletions.include?(i['id']) }
+    visible + @image_additions.reject { |i| @image_deletions.include?(i['id']) }
+  end
+
+  def add_image(chapter:, kind:, caption:, public_flag:, active:, path:)
+    rec = {
+      'id'      => next_image_id,
+      'chapter' => chapter.to_i,
+      'kind'    => kind.to_s,
+      'caption' => caption.to_s,
+      'public'  => public_flag ? true : false,
+      'active'  => active ? true : false,
+      'path'    => path.to_s
+    }
+    @image_additions << rec
+    save!
+    rec
+  end
+
+  def delete_image(id)
+    id = id.to_i
+    removed = @image_additions.find { |i| i['id'] == id }
+    @image_additions.reject! { |i| i['id'] == id }
+    @image_deletions << id unless @image_deletions.include?(id)
+    save!
+    removed
   end
 
   # ----- Arrows ----------------------------------------------------------
@@ -326,6 +364,14 @@ class NotesState
     (used.max || base - 1) + 1
   end
 
+  # Image ids live in their own range (2000+) so they don't collide
+  # with note or map ids when they share the same JSON file.
+  def next_image_id
+    base = 2000
+    used = @image_additions.map { |i| i['id'].to_i }
+    (used.max || base - 1) + 1
+  end
+
   # Atomic write so a crash mid-save doesn't leave a half-written
   # file. Map-id-keyed hashes serialize as JSON objects with string
   # keys; load_from_disk! coerces them back to integers.
@@ -336,6 +382,8 @@ class NotesState
       'additions'              => @additions,
       'overrides'              => @overrides,
       'deletions'              => @deletions,
+      'image_additions'        => @image_additions,
+      'image_deletions'        => @image_deletions,
       'arrows_by_map'          => @arrows_by_map,
       'added_objects_by_map'   => @added_objects_by_map,
       'removed_objects_by_map' => @removed_objects_by_map,
@@ -357,6 +405,8 @@ class NotesState
     @additions              = data['additions'] || []
     @overrides              = (data['overrides'] || {}).transform_keys(&:to_i)
     @deletions              = data['deletions'] || []
+    @image_additions        = data['image_additions'] || []
+    @image_deletions        = data['image_deletions'] || []
     @arrows_by_map          = (data['arrows_by_map']          || {}).transform_keys(&:to_i)
     @added_objects_by_map   = (data['added_objects_by_map']   || {}).transform_keys(&:to_i)
     @removed_objects_by_map = (data['removed_objects_by_map'] || {}).transform_keys(&:to_i)
