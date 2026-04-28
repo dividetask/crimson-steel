@@ -24,7 +24,7 @@ require local_config if File.exist?(local_config)
 
 DICE_SYSTEM = DiceSystem.new(File.join(__dir__, 'data', 'dice_resolution.yaml'))
 USER_STORE  = UserStore.new(File.join(__dir__, 'data', 'users.json'))
-NOTES_STATE = NotesState.new
+NOTES_STATE = NotesState.new(File.join(__dir__, 'data', 'notes_state.json'))
 DATA        = DummyData
 
 helpers do
@@ -47,14 +47,11 @@ helpers do
     end
   end
 
-  # combat_id → the char_id whose turn it is right now. Reads the
-  # NotesState override first, then falls back to DummyData.
-  def current_turn_combat_id
-    NOTES_STATE.current_turn || DATA.combat_state['current_turn']
-  end
-
+  # The char_id of whose turn it is right now. NotesState owns the
+  # active combat slot (combat_id like 'pc-3'); we resolve that to
+  # the underlying character id by looking up the turn record.
   def current_turn_char_id
-    cid = current_turn_combat_id
+    cid = NOTES_STATE.current_turn || DATA.combat_state['current_turn']
     DATA.combat_state['turns'].find { |t| t['combat_id'] == cid }&.dig('char_id')
   end
 

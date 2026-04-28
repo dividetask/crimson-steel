@@ -5,10 +5,12 @@
 # /scene read from this class; /scene is just a filtered view of
 # the active subset.
 #
-# Persistence is the only piece that's provisional. Today the
-# data lives in process memory and resets on restart; once the
-# dummy-data phase ends, this same class reads/writes the on-disk
-# file (e.g. data/notes.json). Callers don't change either way.
+# Storage is JSON on disk, written through after every mutation.
+# When path is nil (tests, probes) the class stays in-process only.
+
+require 'json'
+require 'fileutils'
+require 'securerandom'
 
 class NotesState
   ARROW_TYPES = %w[attack move-hurry move-sneak move-carefully].freeze
@@ -19,25 +21,35 @@ class NotesState
   # in squares; the partial multiplies up for the SVG viewBox.
   SQUARE_PX = 50
 
-  attr_accessor :current_turn
-  attr_reader   :created_maps
+  attr_reader :created_maps
 
-  def initialize
+  def initialize(path = nil)
+    @path = path
     # Notes track
-    @additions             = []
-    @overrides             = {}
-    @deletions             = []
+    @additions              = []
+    @overrides              = {}
+    @deletions              = []
     # Map / scene track
-    @arrows_by_map         = Hash.new { |h, k| h[k] = [] }
-    @added_objects_by_map  = Hash.new { |h, k| h[k] = [] }
-    @removed_objects_by_map= Hash.new { |h, k| h[k] = [] }
-    @moves_by_map          = Hash.new { |h, k| h[k] = {} }
-    @shapes_by_map         = Hash.new { |h, k| h[k] = [] }
-    @icons_by_map          = Hash.new { |h, k| h[k] = [] }
-    @map_settings_by_map   = {}
-    @created_maps          = []
-    @next_created_id       = 10_000
-    @current_turn          = nil
+    @arrows_by_map          = {}
+    @added_objects_by_map   = {}
+    @removed_objects_by_map = {}
+    @moves_by_map           = {}
+    @shapes_by_map          = {}
+    @icons_by_map           = {}
+    @map_settings_by_map    = {}
+    @created_maps           = []
+    @next_created_id        = 10_000
+    @current_turn           = nil
+    load_from_disk! if @path && File.exist?(@path)
+  end
+
+  def current_turn
+    @current_turn
+  end
+
+  def current_turn=(v)
+    @current_turn = v
+    save!
   end
 
   # ----- Notes (journal entries) -----------------------------------------
@@ -59,6 +71,7 @@ class NotesState
     }
     rec['title'] = title.to_s unless title.to_s.empty?
     @additions << rec
+    save!
     rec
   end
 
@@ -72,6 +85,7 @@ class NotesState
     cleaned['active']  = fields['active']  ? true : false if fields.key?('active')
     return false if cleaned.empty?
     @overrides[id] = (@overrides[id] || {}).merge(cleaned)
+    save!
     true
   end
 
@@ -79,13 +93,14 @@ class NotesState
     @deletions << id.to_i
     @overrides.delete(id.to_i)
     @additions.reject! { |n| n['id'] == id.to_i }
+    save!
     true
   end
 
   # ----- Arrows ----------------------------------------------------------
 
   def arrows_for(map_id)
-    @arrows_by_map[map_id.to_i]
+    @arrows_by_map[map_id.to_i] || []
   end
 
   def add_arrow(map_id:, type:, device_id:, label: nil,
@@ -97,7 +112,7 @@ class NotesState
     return false if from_id.nil? && (from_x.nil? || from_y.nil?)
     return false if to_id.nil?   && (to_x.nil?   || to_y.nil?)
     return false if from_id && to_id && from_id == to_id
-    @arrows_by_map[map_id.to_i] << {
+    (@arrows_by_map[map_id.to_i] ||= []) << {
       'id'        => SecureRandom.hex(4),
       'type'      => type,
       'device_id' => device_id,
@@ -109,19 +124,22 @@ class NotesState
       'to_x'      => to_x&.to_f,
       'to_y'      => to_y&.to_f
     }
+    save!
     true
   end
 
   def clear_arrows(map_id)
     @arrows_by_map[map_id.to_i] = []
+    save!
   end
 
   def remove_arrow(map_id, arrow_id, requester_device_id, dm: false)
-    arr = @arrows_by_map[map_id.to_i]
+    arr = @arrows_by_map[map_id.to_i] || []
     idx = arr.index { |a| a['id'] == arrow_id }
     return false unless idx
     return false unless dm || arr[idx]['device_id'] == requester_device_id
     arr.delete_at(idx)
+    save!
     true
   end
 
@@ -130,24 +148,28 @@ class NotesState
   # Move a base or added object. Stored as an override so we don't
   # mutate the DummyData rows.
   def move_object(map_id, object_id, x, y)
-    @moves_by_map[map_id.to_i][object_id.to_s] = { 'x' => x.to_f, 'y' => y.to_f }
+    bucket = (@moves_by_map[map_id.to_i] ||= {})
+    bucket[object_id.to_s] = { 'x' => x.to_f, 'y' => y.to_f }
+    save!
   end
 
   # Remove an object. Base DummyData rows are flagged in the
   # removed-set; added objects are dropped from the added array.
   def remove_object(map_id, object_id)
     object_id = object_id.to_s
-    @added_objects_by_map[map_id.to_i].reject! { |o| o['id'] == object_id }
-    @removed_objects_by_map[map_id.to_i] << object_id unless @removed_objects_by_map[map_id.to_i].include?(object_id)
-    @moves_by_map[map_id.to_i].delete(object_id)
+    (@added_objects_by_map[map_id.to_i] ||= []).reject! { |o| o['id'] == object_id }
+    rm = (@removed_objects_by_map[map_id.to_i] ||= [])
+    rm << object_id unless rm.include?(object_id)
+    (@moves_by_map[map_id.to_i] ||= {}).delete(object_id)
+    save!
   end
 
   # Merged object list: base + added + per-id move overrides minus
   # anything in the removed-set.
   def objects_for(map_id, base_objects)
-    moves   = @moves_by_map[map_id.to_i]
-    removed = @removed_objects_by_map[map_id.to_i]
-    list    = (base_objects || []) + @added_objects_by_map[map_id.to_i]
+    moves   = @moves_by_map[map_id.to_i] || {}
+    removed = @removed_objects_by_map[map_id.to_i] || []
+    list    = (base_objects || []) + (@added_objects_by_map[map_id.to_i] || [])
     list.reject { |o| removed.include?(o['id'].to_s) }
         .map    { |o| moves[o['id']] ? o.merge(moves[o['id']]) : o }
   end
@@ -155,7 +177,7 @@ class NotesState
   # ----- Shapes ----------------------------------------------------------
 
   def shapes_for(map_id)
-    @shapes_by_map[map_id.to_i]
+    @shapes_by_map[map_id.to_i] || []
   end
 
   def add_shape(map_id:, kind:, x:, y:, w: nil, h: nil, rx: nil, ry: nil,
@@ -175,26 +197,31 @@ class NotesState
     when 'rect'    then shape['w']  = (w  || 40).to_f; shape['h']  = (h  || 40).to_f
     when 'ellipse' then shape['rx'] = (rx || 20).to_f; shape['ry'] = (ry || 20).to_f
     end
-    @shapes_by_map[map_id.to_i] << shape
+    (@shapes_by_map[map_id.to_i] ||= []) << shape
+    save!
     shape
   end
 
   def remove_shape(map_id, shape_id)
-    @shapes_by_map[map_id.to_i].reject! { |s| s['id'] == shape_id }
+    list = @shapes_by_map[map_id.to_i] or return
+    list.reject! { |s| s['id'] == shape_id }
+    save!
   end
 
   def move_shape(map_id, shape_id, x, y)
-    s = @shapes_by_map[map_id.to_i].find { |sh| sh['id'] == shape_id }
+    list = @shapes_by_map[map_id.to_i] or return false
+    s = list.find { |sh| sh['id'] == shape_id }
     return false unless s
     s['x'] = x.to_f
     s['y'] = y.to_f
+    save!
     true
   end
 
   # ----- Icons (emoji glyphs placed on the map) -------------------------
 
   def icons_for(map_id)
-    @icons_by_map[map_id.to_i]
+    @icons_by_map[map_id.to_i] || []
   end
 
   def add_icon(map_id:, glyph:, x:, y:, size: 28)
@@ -205,19 +232,24 @@ class NotesState
       'y'     => y.to_f,
       'size'  => size.to_f
     }
-    @icons_by_map[map_id.to_i] << icon
+    (@icons_by_map[map_id.to_i] ||= []) << icon
+    save!
     icon
   end
 
   def remove_icon(map_id, icon_id)
-    @icons_by_map[map_id.to_i].reject! { |i| i['id'] == icon_id }
+    list = @icons_by_map[map_id.to_i] or return
+    list.reject! { |i| i['id'] == icon_id }
+    save!
   end
 
   def move_icon(map_id, icon_id, x, y)
-    icon = @icons_by_map[map_id.to_i].find { |i| i['id'] == icon_id }
+    list = @icons_by_map[map_id.to_i] or return false
+    icon = list.find { |i| i['id'] == icon_id }
     return false unless icon
     icon['x'] = x.to_f
     icon['y'] = y.to_f
+    save!
     true
   end
 
@@ -248,6 +280,7 @@ class NotesState
     cur['active']   = !!active                          unless active.nil?
     cur['archived'] = !!archived                        unless archived.nil?
     @map_settings_by_map[map_id.to_i] = cur
+    save!
   end
 
   # ----- Created maps (live alongside DummyData.note_maps) -------------
@@ -268,6 +301,7 @@ class NotesState
     }
     @next_created_id += 1
     @created_maps << rec
+    save!
     rec
   end
 
@@ -298,5 +332,48 @@ class NotesState
     base = 1000
     used = @additions.map { |n| n['id'].to_i }
     (used.max || base - 1) + 1
+  end
+
+  # Atomic write so a crash mid-save doesn't leave a half-written
+  # file. Map-id-keyed hashes serialize as JSON objects with string
+  # keys; load_from_disk! coerces them back to integers.
+  def save!
+    return unless @path
+    FileUtils.mkdir_p(File.dirname(@path))
+    payload = {
+      'additions'              => @additions,
+      'overrides'              => @overrides,
+      'deletions'              => @deletions,
+      'arrows_by_map'          => @arrows_by_map,
+      'added_objects_by_map'   => @added_objects_by_map,
+      'removed_objects_by_map' => @removed_objects_by_map,
+      'moves_by_map'           => @moves_by_map,
+      'shapes_by_map'          => @shapes_by_map,
+      'icons_by_map'           => @icons_by_map,
+      'map_settings_by_map'    => @map_settings_by_map,
+      'created_maps'           => @created_maps,
+      'next_created_id'        => @next_created_id,
+      'current_turn'           => @current_turn
+    }
+    tmp = "#{@path}.tmp.#{SecureRandom.hex(4)}"
+    File.write(tmp, JSON.pretty_generate(payload))
+    File.rename(tmp, @path)
+  end
+
+  def load_from_disk!
+    data = JSON.parse(File.read(@path))
+    @additions              = data['additions'] || []
+    @overrides              = (data['overrides'] || {}).transform_keys(&:to_i)
+    @deletions              = data['deletions'] || []
+    @arrows_by_map          = (data['arrows_by_map']          || {}).transform_keys(&:to_i)
+    @added_objects_by_map   = (data['added_objects_by_map']   || {}).transform_keys(&:to_i)
+    @removed_objects_by_map = (data['removed_objects_by_map'] || {}).transform_keys(&:to_i)
+    @moves_by_map           = (data['moves_by_map']           || {}).transform_keys(&:to_i)
+    @shapes_by_map          = (data['shapes_by_map']          || {}).transform_keys(&:to_i)
+    @icons_by_map           = (data['icons_by_map']           || {}).transform_keys(&:to_i)
+    @map_settings_by_map    = (data['map_settings_by_map']    || {}).transform_keys(&:to_i)
+    @created_maps           = data['created_maps']    || []
+    @next_created_id        = data['next_created_id'] || 10_000
+    @current_turn           = data['current_turn']
   end
 end
