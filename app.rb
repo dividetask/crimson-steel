@@ -5,6 +5,7 @@ require 'socket'
 require_relative 'lib/dice_system'
 require_relative 'lib/user'
 require_relative 'lib/notes_state'
+require_relative 'lib/character'
 
 set :port, 4567
 set :bind, '0.0.0.0'
