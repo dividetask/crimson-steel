@@ -65,6 +65,19 @@
     var baseW   = parseFloat(card.getAttribute('data-base-w'));
     var baseH   = parseFloat(card.getAttribute('data-base-h'));
 
+    // Match NotesState::SQUARE_PX. Icons and image tokens snap to
+    // these centers so they always sit inside one square; clamping
+    // keeps them from sliding off the map.
+    var SQUARE_PX = 50;
+    function snapAndClampCenter(x, y) {
+      var sq = SQUARE_PX;
+      var cx = Math.floor(x / sq) * sq + sq / 2;
+      var cy = Math.floor(y / sq) * sq + sq / 2;
+      cx = Math.max(sq / 2, Math.min(baseW - sq / 2, cx));
+      cy = Math.max(sq / 2, Math.min(baseH - sq / 2, cy));
+      return [cx, cy];
+    }
+
     var toolBtns      = card.querySelectorAll('.notes-map-tool-btn');
     var zoomBtns      = card.querySelectorAll('.notes-map-zoom-btn');
     var arrowBtns     = card.querySelectorAll('.notes-map-arrow-tool-btn');
@@ -184,7 +197,7 @@
       if (e.button !== 0) return;
       // Don't start a pan from a click that landed on a token,
       // shape, icon, or arrow ✕ — those have their own handlers.
-      if (e.target.closest('.notes-map-object, .notes-map-shape, .notes-map-icon, .notes-map-arrow-remove')) return;
+      if (e.target.closest('.notes-map-object, .notes-map-shape, .notes-map-icon, .notes-map-image, .notes-map-arrow-remove')) return;
       var rect = svg.getBoundingClientRect();
       var pxPerVbX = rect.width  / (baseW / zoom);
       var pxPerVbY = rect.height / (baseH / zoom);
@@ -391,6 +404,10 @@
       var p = vboxPoint(svg, evt);
       var x = drag.startX + (p.x - drag.startPt.x);
       var y = drag.startY + (p.y - drag.startPt.y);
+      if (drag.spec.snap) {
+        var sc = snapAndClampCenter(x, y);
+        x = sc[0]; y = sc[1];
+      }
       drag.spec.write(x, y);
       drag.endX = x; drag.endY = y;
     }
@@ -399,6 +416,9 @@
       var d = drag; drag = null;
       d.el.classList.remove('dragging');
       if (d.endX === undefined) return; // pure click — no movement
+      // Snap can hold the token in the same square through a small
+      // drag; that produces a no-op move op, so drop it.
+      if (d.spec.snap && d.endX === d.startX && d.endY === d.startY) return;
       var op = {
         kind: d.spec.moveOp,
         x: parseFloat(d.endX.toFixed(1)),
@@ -639,9 +659,10 @@
         if (statusEl) statusEl.textContent = 'Pick an icon first.';
         return;
       }
+      var sc = snapAndClampCenter(p.x, p.y);
       var t = svgEl('text', {
         class: 'notes-map-icon',
-        x: p.x.toFixed(1), y: p.y.toFixed(1),
+        x: sc[0].toFixed(1), y: sc[1].toFixed(1),
         'text-anchor': 'middle', 'dominant-baseline': 'central',
         'font-size': 28
       });
@@ -650,9 +671,62 @@
       pushOp({
         kind: 'add_icon',
         glyph: pickedIcon,
-        x: parseFloat(p.x.toFixed(1)),
-        y: parseFloat(p.y.toFixed(1))
+        x: parseFloat(sc[0].toFixed(1)),
+        y: parseFloat(sc[1].toFixed(1))
       }, t);
+    }
+
+    // ----- Add-image (DM picks a file from public/images/) -------
+    //
+    // Same flow as add-icon: pick a thumbnail in the panel, then
+    // click on the map. Tokens are one square wide; saved as a
+    // center-point so the existing transform-based move/delete
+    // machinery handles them like objects and shapes.
+
+    var IMAGE_TOKEN_SIZE = 50; // matches NotesState::SQUARE_PX
+    var pickedImage = null;
+    card.querySelectorAll('.notes-map-image-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        pickedImage = btn.getAttribute('data-image-src');
+        card.querySelectorAll('.notes-map-image-btn.active').forEach(function (b) {
+          b.classList.remove('active');
+        });
+        btn.classList.add('active');
+        var statusEl = card.querySelector('.notes-map-image-status');
+        if (statusEl) statusEl.textContent = 'Click on the map to place the image.';
+      });
+    });
+
+    function placeImageAt(p) {
+      if (!pickedImage) {
+        var statusEl = card.querySelector('.notes-map-image-status');
+        if (statusEl) statusEl.textContent = 'Pick an image first.';
+        return;
+      }
+      var sz = IMAGE_TOKEN_SIZE;
+      var sc = snapAndClampCenter(p.x, p.y);
+      var g = svgEl('g', {
+        class: 'notes-map-image',
+        transform: 'translate(' + sc[0].toFixed(1) + ',' + sc[1].toFixed(1) + ')'
+      });
+      var img = svgEl('image', {
+        x: -sz / 2, y: -sz / 2,
+        width: sz, height: sz,
+        preserveAspectRatio: 'xMidYMid slice'
+      });
+      // Some browsers still want the legacy xlink:href for <image>.
+      img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', pickedImage);
+      img.setAttribute('href', pickedImage);
+      g.appendChild(img);
+      svg.appendChild(g);
+      bindElementHandlers(g);
+      pushOp({
+        kind: 'add_map_image',
+        src: pickedImage,
+        x: parseFloat(sc[0].toFixed(1)),
+        y: parseFloat(sc[1].toFixed(1)),
+        size: sz
+      }, g);
     }
 
     // ----- Element mouse handling (decide based on tool) ----------
@@ -687,7 +761,18 @@
           idAttr: 'data-icon-id',
           read: function () { return [parseFloat(el.getAttribute('x')), parseFloat(el.getAttribute('y'))]; },
           write: function (x, y) { el.setAttribute('x', x.toFixed(1)); el.setAttribute('y', y.toFixed(1)); },
-          moveOp: 'move_icon', deleteOp: 'delete_icon', idKey: 'icon_id'
+          moveOp: 'move_icon', deleteOp: 'delete_icon', idKey: 'icon_id',
+          snap: true
+        };
+      }
+      if (el.classList.contains('notes-map-image')) {
+        return {
+          kind: 'image',
+          idAttr: 'data-image-id',
+          read: function () { var t = (el.getAttribute('transform') || '').match(/translate\(([^,]+),([^)]+)\)/); return t ? [parseFloat(t[1]), parseFloat(t[2])] : [0, 0]; },
+          write: function (x, y) { el.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')'); },
+          moveOp: 'move_map_image', deleteOp: 'delete_map_image', idKey: 'image_id',
+          snap: true
         };
       }
       return null;
@@ -727,7 +812,7 @@
       });
     }
 
-    svg.querySelectorAll('.notes-map-object, .notes-map-shape, .notes-map-icon').forEach(bindElementHandlers);
+    svg.querySelectorAll('.notes-map-object, .notes-map-shape, .notes-map-icon, .notes-map-image').forEach(bindElementHandlers);
 
     // ----- SVG (empty-space) mouse handling -----------------------
 
@@ -762,6 +847,7 @@
 
     svg.addEventListener('click', function (e) {
       if (e.target.closest('.notes-map-object')) return;
+      if (e.target.closest('.notes-map-image'))  return;
       if (e.target.closest('.notes-map-arrow-remove')) return;
       var tool = currentTool();
       if (tool === 'arrow') {
@@ -769,6 +855,8 @@
         pickArrowEndpoint({ kind: 'point', x: p.x, y: p.y }, null);
       } else if (tool === 'add-icon') {
         placeIconAt(vboxPoint(svg, e));
+      } else if (tool === 'add-image') {
+        placeImageAt(vboxPoint(svg, e));
       }
     });
 

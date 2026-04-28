@@ -13,6 +13,16 @@ class NotesState
   # in squares; the partial multiplies up for the SVG viewBox.
   SQUARE_PX = 50
 
+  # Snap an (x, y) coordinate to the center of the grid square that
+  # contains it. Used for icons and image tokens so they always land
+  # inside a single square instead of straddling grid lines.
+  def self.snap_center(x, y)
+    sq = SQUARE_PX
+    cx = (x.to_f / sq).floor * sq + sq / 2.0
+    cy = (y.to_f / sq).floor * sq + sq / 2.0
+    [cx, cy]
+  end
+
   attr_reader :created_maps
 
   def initialize(path = nil)
@@ -21,6 +31,9 @@ class NotesState
     @additions              = []
     @overrides              = {}
     @deletions              = []
+    # Image track
+    @image_additions        = []
+    @image_deletions        = []
     # Map / scene track
     @arrows_by_map          = {}
     @added_objects_by_map   = {}
@@ -28,6 +41,7 @@ class NotesState
     @moves_by_map           = {}
     @shapes_by_map          = {}
     @icons_by_map           = {}
+    @map_images_by_map      = {}
     @map_settings_by_map    = {}
     @created_maps           = []
     @next_created_id        = 10_000
@@ -89,6 +103,37 @@ class NotesState
     true
   end
 
+  # ----- Images ----------------------------------------------------------
+
+  def effective_images(base)
+    visible = (base || []).reject { |i| @image_deletions.include?(i['id']) }
+    visible + @image_additions.reject { |i| @image_deletions.include?(i['id']) }
+  end
+
+  def add_image(chapter:, kind:, caption:, public_flag:, active:, path:)
+    rec = {
+      'id'      => next_image_id,
+      'chapter' => chapter.to_i,
+      'kind'    => kind.to_s,
+      'caption' => caption.to_s,
+      'public'  => public_flag ? true : false,
+      'active'  => active ? true : false,
+      'path'    => path.to_s
+    }
+    @image_additions << rec
+    save!
+    rec
+  end
+
+  def delete_image(id)
+    id = id.to_i
+    removed = @image_additions.find { |i| i['id'] == id }
+    @image_additions.reject! { |i| i['id'] == id }
+    @image_deletions << id unless @image_deletions.include?(id)
+    save!
+    removed
+  end
+
   # ----- Arrows ----------------------------------------------------------
 
   def arrows_for(map_id)
@@ -137,16 +182,12 @@ class NotesState
 
   # ----- Objects (tokens) ------------------------------------------------
 
-  # Move a base or added object. Stored as an override so we don't
-  # mutate the DummyData rows.
   def move_object(map_id, object_id, x, y)
     bucket = (@moves_by_map[map_id.to_i] ||= {})
     bucket[object_id.to_s] = { 'x' => x.to_f, 'y' => y.to_f }
     save!
   end
 
-  # Remove an object. Base DummyData rows are flagged in the
-  # removed-set; added objects are dropped from the added array.
   def remove_object(map_id, object_id)
     object_id = object_id.to_s
     (@added_objects_by_map[map_id.to_i] ||= []).reject! { |o| o['id'] == object_id }
@@ -156,8 +197,6 @@ class NotesState
     save!
   end
 
-  # Merged object list: base + added + per-id move overrides minus
-  # anything in the removed-set.
   def objects_for(map_id, base_objects)
     moves   = @moves_by_map[map_id.to_i] || {}
     removed = @removed_objects_by_map[map_id.to_i] || []
@@ -217,11 +256,12 @@ class NotesState
   end
 
   def add_icon(map_id:, glyph:, x:, y:, size: 28)
+    cx, cy = self.class.snap_center(x, y)
     icon = {
       'id'    => "icon_#{SecureRandom.hex(3)}",
       'glyph' => glyph.to_s,
-      'x'     => x.to_f,
-      'y'     => y.to_f,
+      'x'     => cx,
+      'y'     => cy,
       'size'  => size.to_f
     }
     (@icons_by_map[map_id.to_i] ||= []) << icon
@@ -239,16 +279,53 @@ class NotesState
     list = @icons_by_map[map_id.to_i] or return false
     icon = list.find { |i| i['id'] == icon_id }
     return false unless icon
-    icon['x'] = x.to_f
-    icon['y'] = y.to_f
+    cx, cy = self.class.snap_center(x, y)
+    icon['x'] = cx
+    icon['y'] = cy
+    save!
+    true
+  end
+
+  # ----- Map images (image-token glyphs placed on the map) -------------
+
+  def map_images_for(map_id)
+    @map_images_by_map[map_id.to_i] || []
+  end
+
+  def add_map_image(map_id:, src:, x:, y:, size: SQUARE_PX)
+    return false unless src.to_s.start_with?('/images/')
+    cx, cy = self.class.snap_center(x, y)
+    rec = {
+      'id'   => "img_#{SecureRandom.hex(3)}",
+      'src'  => src.to_s,
+      'x'    => cx,
+      'y'    => cy,
+      'size' => size.to_f
+    }
+    (@map_images_by_map[map_id.to_i] ||= []) << rec
+    save!
+    rec
+  end
+
+  def remove_map_image(map_id, image_id)
+    list = @map_images_by_map[map_id.to_i] or return
+    list.reject! { |i| i['id'] == image_id }
+    save!
+  end
+
+  def move_map_image(map_id, image_id, x, y)
+    list = @map_images_by_map[map_id.to_i] or return false
+    rec = list.find { |i| i['id'] == image_id }
+    return false unless rec
+    cx, cy = self.class.snap_center(x, y)
+    rec['x'] = cx
+    rec['y'] = cy
     save!
     true
   end
 
   # ----- Map settings (label / size in squares / flags) ----------------
 
-  # Returns merged settings: per-map override wins, otherwise fall
-  # back to whatever the base map record supplied.
   def map_settings_for(map_id, base_label: nil, base_w: 8, base_h: 5,
                        base_public: nil, base_active: nil, base_archived: false)
     s = @map_settings_by_map[map_id.to_i] || {}
@@ -326,6 +403,14 @@ class NotesState
     (used.max || base - 1) + 1
   end
 
+  # Image ids live in their own range (2000+) so they don't collide
+  # with note or map ids when they share the same JSON file.
+  def next_image_id
+    base = 2000
+    used = @image_additions.map { |i| i['id'].to_i }
+    (used.max || base - 1) + 1
+  end
+
   # Atomic write so a crash mid-save doesn't leave a half-written
   # file. Map-id-keyed hashes serialize as JSON objects with string
   # keys; load_from_disk! coerces them back to integers.
@@ -336,12 +421,15 @@ class NotesState
       'additions'              => @additions,
       'overrides'              => @overrides,
       'deletions'              => @deletions,
+      'image_additions'        => @image_additions,
+      'image_deletions'        => @image_deletions,
       'arrows_by_map'          => @arrows_by_map,
       'added_objects_by_map'   => @added_objects_by_map,
       'removed_objects_by_map' => @removed_objects_by_map,
       'moves_by_map'           => @moves_by_map,
       'shapes_by_map'          => @shapes_by_map,
       'icons_by_map'           => @icons_by_map,
+      'map_images_by_map'      => @map_images_by_map,
       'map_settings_by_map'    => @map_settings_by_map,
       'created_maps'           => @created_maps,
       'next_created_id'        => @next_created_id,
@@ -357,12 +445,15 @@ class NotesState
     @additions              = data['additions'] || []
     @overrides              = (data['overrides'] || {}).transform_keys(&:to_i)
     @deletions              = data['deletions'] || []
+    @image_additions        = data['image_additions'] || []
+    @image_deletions        = data['image_deletions'] || []
     @arrows_by_map          = (data['arrows_by_map']          || {}).transform_keys(&:to_i)
     @added_objects_by_map   = (data['added_objects_by_map']   || {}).transform_keys(&:to_i)
     @removed_objects_by_map = (data['removed_objects_by_map'] || {}).transform_keys(&:to_i)
     @moves_by_map           = (data['moves_by_map']           || {}).transform_keys(&:to_i)
     @shapes_by_map          = (data['shapes_by_map']          || {}).transform_keys(&:to_i)
     @icons_by_map           = (data['icons_by_map']           || {}).transform_keys(&:to_i)
+    @map_images_by_map      = (data['map_images_by_map']      || {}).transform_keys(&:to_i)
     @map_settings_by_map    = (data['map_settings_by_map']    || {}).transform_keys(&:to_i)
     @created_maps           = data['created_maps']    || []
     @next_created_id        = data['next_created_id'] || 10_000

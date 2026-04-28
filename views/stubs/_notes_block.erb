@@ -46,10 +46,11 @@
   <% when 'images' %>
     <h2>Images</h2>
     <%= notes_images_stub(
-          entries: DATA.note_images,
+          entries: NOTES_STATE.effective_images(DATA.note_images),
           dm_view: dm?,
           current_chapter: current_chapter,
-          active_only: active_only
+          active_only: active_only,
+          editable: editable_images
         ) %>
 
   <% when 'maps' %>

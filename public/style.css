@@ -600,10 +600,73 @@ body {
   height: 120px;
 }
 
+.notes-image-img {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  background: #eee;
+}
+
 .notes-image-caption {
   padding: 6px 8px;
   font-size: 11px;
   color: #444;
+}
+
+.notes-image-add {
+  margin: 0 0 12px 0;
+  border: 1px dashed #bbb;
+  border-radius: 3px;
+  padding: 4px 8px;
+  background: #fafafa;
+}
+
+.notes-image-add summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: #444;
+}
+
+.notes-image-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: flex-end;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #444;
+}
+
+.notes-image-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notes-image-form .notes-image-flag {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.notes-image-form input[type="text"]   { width: 200px; font-size: 11px; padding: 2px 4px; }
+.notes-image-form input[type="number"] { width: 60px;  font-size: 11px; padding: 2px 4px; }
+.notes-image-form select               { font-size: 11px; padding: 2px 4px; }
+.notes-image-form button               { font-size: 11px; padding: 2px 10px; cursor: pointer; }
+
+.notes-image-delete-form {
+  margin-top: 4px;
+}
+
+.notes-image-delete-btn {
+  font-size: 10px;
+  padding: 1px 8px;
+  background: #6a0000;
+  color: #fff;
+  border: 1px solid #3a0000;
+  border-radius: 3px;
+  cursor: pointer;
 }
 
 /* --- Notes map stub ----------------------------------------------------- */
@@ -748,7 +811,8 @@ body {
 .notes-map-svg.crosshair-mode { cursor: crosshair; }
 .notes-map-svg.move-mode .notes-map-object,
 .notes-map-svg.move-mode .notes-map-shape,
-.notes-map-svg.move-mode .notes-map-icon { cursor: grab; }
+.notes-map-svg.move-mode .notes-map-icon,
+.notes-map-svg.move-mode .notes-map-image { cursor: grab; }
 .notes-map-svg.move-mode .dragging { cursor: grabbing; }
 
 .notes-map-svg[data-tool="view"]   { cursor: grab; }
@@ -756,7 +820,8 @@ body {
 .notes-map-svg[data-tool="delete"] { cursor: not-allowed; }
 .notes-map-svg[data-tool="delete"] .notes-map-object,
 .notes-map-svg[data-tool="delete"] .notes-map-shape,
-.notes-map-svg[data-tool="delete"] .notes-map-icon { cursor: pointer; }
+.notes-map-svg[data-tool="delete"] .notes-map-icon,
+.notes-map-svg[data-tool="delete"] .notes-map-image { cursor: pointer; }
 
 /* Items queued for delete via the Delete tool fade out so the DM
    sees what's about to disappear on Save. */
@@ -772,7 +837,8 @@ body {
    shapes and icons to receive pointer events. */
 .notes-map-svg .notes-map-shape rect,
 .notes-map-svg .notes-map-shape ellipse,
-.notes-map-svg .notes-map-icon { pointer-events: all; }
+.notes-map-svg .notes-map-icon,
+.notes-map-svg .notes-map-image image { pointer-events: all; }
 
 .notes-map-pending-point {
   fill: #ffeb3b;
@@ -1044,6 +1110,42 @@ body {
 
 .notes-map-icon-btn:hover  { background: #f0f0f0; }
 .notes-map-icon-btn.active { background: #1976d2; border-color: #0d47a1; }
+
+/* Image-token palette (DM tool=add-image panel). Thumbnails are
+   shown at the same scale they'll appear on the map (one square,
+   50px) so the DM gets an accurate preview before placing. */
+.notes-map-add-image {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notes-map-image-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.notes-map-image-btn {
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  background: #fff;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.notes-map-image-btn img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.notes-map-image-btn:hover  { background: #f0f0f0; }
+.notes-map-image-btn.active { outline: 2px solid #1976d2; outline-offset: 1px; }
 
 /* Emoji glyphs rendered into the SVG itself need the same font
    stack so they show up with proper colors. */
