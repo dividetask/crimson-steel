@@ -38,12 +38,37 @@ body {
   text-decoration: underline;
 }
 
+.menu-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .menu-server-ip {
   color: #bbb;
   font-family: monospace;
   font-size: 12px;
   user-select: all;
 }
+
+/* DM-only toggle that flips the UI between DM and player views.
+   Players never see this; it stays visible for the DM in either
+   mode so they can switch back. */
+.menu-view-toggle { margin: 0; }
+.menu-view-toggle-btn {
+  font: inherit;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid #888;
+  background: #555;
+  color: #fff;
+  cursor: pointer;
+}
+.menu-view-toggle-btn:hover { background: #666; }
+.menu-view-toggle-btn.is-dm     { background: #1565c0; border-color: #0d47a1; }
+.menu-view-toggle-btn.is-dm:hover     { background: #1976d2; }
+.menu-view-toggle-btn.is-player { background: #7a1f1f; border-color: #4a0000; }
+.menu-view-toggle-btn.is-player:hover { background: #913030; }
 
 .stub-test-form {
   display: flex;

@@ -29,7 +29,7 @@
           notes:            NOTES_STATE.effective_notes(DATA.notes),
           images:           NOTES_STATE.effective_images(DATA.note_images),
           chapters:         DATA.chapters,
-          dm_view:          dm?,
+          dm_view:          dm_view?,
           current_chapter:  current_chapter,
           active_only:      active_only,
           editable_journal: editable_journal,
@@ -69,19 +69,19 @@
 
     <%= notes_map_stub(
           entries: live_maps,
-          dm_view: dm?,
+          dm_view: dm_view?,
           current_chapter: current_chapter,
           active_only: active_only,
           interactive: interactive_maps,
           scene_state: scene_state
         ) %>
 
-    <% if show_archived_maps && dm? && !archived_maps.empty? %>
+    <% if show_archived_maps && dm_view? && !archived_maps.empty? %>
       <details class="notes-map-archived-section">
         <summary>Archived maps (<%= archived_maps.size %>)</summary>
         <%= notes_map_stub(
               entries: archived_maps,
-              dm_view: dm?,
+              dm_view: dm_view?,
               current_chapter: current_chapter,
               scene_state: scene_state
             ) %>
