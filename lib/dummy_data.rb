@@ -139,18 +139,101 @@ class DummyData
   end
 
   # --- Notes ---------------------------------------------------------------
+  # All notes-page content lives here. Each kind (journal, characters,
+  # images, maps) is its own array but they share the same flag set:
+  #   public — false hides the entry from non-DM viewers
+  #   chapter — filters with the chapter pills on /notes
+  #   active — flags the entry as part of the current scene; /scene
+  #     renders only entries where active is true.
 
   def self.notes
     [
       { 'id' => 1, 'owner_id' => 0, 'chapter' => 1, 'type' => 'chapter_title',
-        'title' => 'The Road to Crimson', 'note' => '', 'public' => true },
-      { 'id' => 2, 'owner_id' => 0, 'chapter' => 1, 'public' => true,
+        'title' => 'The Road to Crimson', 'note' => '', 'public' => true, 'active' => false },
+      { 'id' => 2, 'owner_id' => 0, 'chapter' => 1, 'public' => true, 'active' => false,
         'note' => "The party meets at the Weeping Stag. A courier delivers a sealed writ from Lord Halric." },
-      { 'id' => 3, 'owner_id' => 0, 'chapter' => 2, 'public' => false,
+      { 'id' => 3, 'owner_id' => 0, 'chapter' => 2, 'public' => false, 'active' => true,
         'note' => "Secret: the steward is working with the bandits. He knows the party's route." },
-      { 'id' => 4, 'owner_id' => 1, 'chapter' => 2, 'public' => true,
+      { 'id' => 4, 'owner_id' => 1, 'chapter' => 2, 'public' => true, 'active' => true,
         'note' => "Ash's personal log: the song keeps coming back to me in dreams." }
     ]
+  end
+
+  def self.characters_of_interest
+    [
+      { 'id' => 1, 'name' => 'Lord Halric',         'role' => 'Patron',
+        'last_seen' => 'Crimson Hold',         'chapter' => 1, 'public' => true,  'active' => false,
+        'note' => 'Sent the sealed writ that started the journey.' },
+      { 'id' => 2, 'name' => 'Steward Voss',        'role' => 'Hostile (secret)',
+        'last_seen' => 'Beneath the Mountain', 'chapter' => 2, 'public' => false, 'active' => true,
+        'note' => 'Working with the bandits. Knows the party route.' },
+      { 'id' => 3, 'name' => 'Mara the Innkeep',    'role' => 'Ally',
+        'last_seen' => 'Weeping Stag',         'chapter' => 1, 'public' => true,  'active' => false,
+        'note' => 'Knows local rumors. Takes coppers for hot tea.' },
+      { 'id' => 4, 'name' => 'The Hooded Stranger', 'role' => 'Unknown',
+        'last_seen' => 'Forest road',          'chapter' => 1, 'public' => true,  'active' => true,
+        'note' => 'Watched the party leave. Did not approach.' }
+    ]
+  end
+
+  def self.note_images
+    [
+      { 'id' => 1, 'kind' => 'document', 'chapter' => 1, 'public' => true,  'active' => false,
+        'caption' => 'The sealed writ delivered to the party in the Weeping Stag.' },
+      { 'id' => 2, 'kind' => 'map',      'chapter' => 2, 'public' => false, 'active' => true,
+        'caption' => 'Bandit ambush map (DM only).' },
+      { 'id' => 3, 'kind' => 'portrait', 'chapter' => 1, 'public' => true,  'active' => false,
+        'caption' => 'Mara, the innkeep at the Weeping Stag.' },
+      { 'id' => 4, 'kind' => 'location', 'chapter' => 2, 'public' => true,  'active' => true,
+        'caption' => 'Cave entrance under the mountain.' }
+    ]
+  end
+
+  # Each map entry can carry an `objects` array of tokens placed on
+  # the map. Object coordinates use viewBox units. The arrow store
+  # and other mutable map state live in NotesState (see
+  # lib/notes_state.rb), not here, since they change at the table.
+  # Map sizes are in *squares*; the partial scales up by
+  # NotesState::SQUARE_PX (currently 50) for the SVG viewBox.
+  def self.note_maps
+    [
+      { 'id' => 1, 'chapter' => 1, 'public' => true,  'active' => false,
+        'label' => 'Crimson Hold',
+        'caption' => 'Crimson Hold, ground floor.',
+        'width_squares' => 8, 'height_squares' => 5,
+        'objects' => [
+          { 'id' => 'cb_door',     'kind' => 'door',     'x' =>  60, 'y' => 200, 'label' => 'Front door' },
+          { 'id' => 'cb_throne',   'kind' => 'scenery',  'x' => 320, 'y' =>  60, 'label' => 'Throne' },
+          { 'id' => 'cb_treasure', 'kind' => 'treasure', 'x' => 280, 'y' => 130, 'label' => 'Vault' }
+        ] },
+      { 'id' => 2, 'chapter' => 2, 'public' => true,  'active' => true,
+        'label' => 'Forest road ambush',
+        'caption' => 'Forest road south of the wagon. Treeline curves on the east; the wagon wreck blocks the road.',
+        'width_squares' => 8, 'height_squares' => 5,
+        'objects' => [
+          { 'id' => 'pc_ash',  'kind' => 'pc',      'x' =>  60, 'y' =>  80, 'label' => 'Ash' },
+          { 'id' => 'pc_bryn', 'kind' => 'pc',      'x' =>  80, 'y' =>  60, 'label' => 'Bryn' },
+          { 'id' => 'wagon',   'kind' => 'scenery', 'x' => 200, 'y' => 112, 'label' => 'Wagon' },
+          { 'id' => 'pit',     'kind' => 'trap',    'x' => 250, 'y' => 200, 'label' => 'Pit' },
+          { 'id' => 'mob_1',   'kind' => 'enemy',   'x' => 320, 'y' => 180, 'label' => 'Bandit 1' },
+          { 'id' => 'mob_2',   'kind' => 'enemy',   'x' => 340, 'y' => 200, 'label' => 'Bandit 2' },
+          { 'id' => 'mob_3',   'kind' => 'enemy',   'x' => 350, 'y' => 170, 'label' => 'Bandit 3' }
+        ] },
+      { 'id' => 3, 'chapter' => 2, 'public' => false, 'active' => false,
+        'label' => 'Ambush overlay',
+        'caption' => 'DM-only overlay: bandit positions before the ambush is sprung.',
+        'width_squares' => 8, 'height_squares' => 5,
+        'objects' => [
+          { 'id' => 'lookout',  'kind' => 'enemy',  'x' => 220, 'y' =>  40, 'label' => 'Lookout' },
+          { 'id' => 'archer_1', 'kind' => 'enemy',  'x' => 300, 'y' =>  90, 'label' => 'Archer' },
+          { 'id' => 'archer_2', 'kind' => 'enemy',  'x' => 360, 'y' => 130, 'label' => 'Archer' },
+          { 'id' => 'fire',     'kind' => 'hazard', 'x' => 200, 'y' => 200, 'label' => 'Campfire' }
+        ] }
+    ]
+  end
+
+  def self.note_map_by_id(id)
+    note_maps.find { |m| m['id'].to_i == id.to_i }
   end
 
   # --- Spells --------------------------------------------------------------
@@ -206,13 +289,15 @@ class DummyData
   end
 
   # --- Scene ---------------------------------------------------------------
+  # The scene itself is just a label + description. Everything else
+  # the page renders comes from the active-flagged entries in the
+  # notes arrays above.
 
   def self.scene
     {
       'title' => 'The Bandit Ambush',
-      'image' => nil,
-      'show_initiative' => true,
-      'description' => 'Crossbows click from the treeline. Smoke rises off the wrecked wagon.'
+      'description' => 'Crossbows click from the treeline. Smoke rises off the wrecked wagon.',
+      'show_initiative' => true
     }
   end
 
