@@ -498,19 +498,24 @@ body {
 }
 
 .multi-roll-dice .roll-label {
-  display: inline-block;
-  min-width: 60px;
   font-family: Arial, sans-serif;
   font-weight: bold;
+  margin-right: 4px;
 }
 
-/* A die that was carried over unchanged from the previous row.
- * Visible (so each row is self-contained) but muted so it doesn't
- * compete with the dice that actually changed in this reroll. */
-.multi-roll-dice .die-carry {
-  color: #bbb;
+/* Empty position placeholder used in reroll diffs. Same width as a
+ * real die so columns line up under the original. */
+.multi-roll-dice .die-blank {
   background: transparent;
+  color: transparent;
   font-weight: normal;
+}
+
+.multi-roll-dice .roll-arrow {
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  color: #555;
+  margin: 0 4px;
 }
 
 .multi-roll-dice .die {

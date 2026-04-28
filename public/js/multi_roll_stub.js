@@ -32,29 +32,34 @@
     return '<span class="' + cls + '">' + value + '</span>';
   }
 
-  // Render an unchanged die (carried over from the previous row) in
-  // muted form so the reroll row still shows the full dice state -- the
-  // DM doesn't have to glance up to remember what the unchanged values
-  // were.
-  function dieCarry(value) {
-    return '<span class="die die-carry">' + value + '</span>';
+  // Empty placeholder for a position that didn't change between rows.
+  // Renders as a same-width gap so columns line up under the original.
+  function dieBlank() {
+    return '<span class="die die-blank">&nbsp;</span>';
   }
 
+  // Single-line render: show the initial Rolled values, then for every
+  // subsequent row (Luck, Insight) append "→ [diff]" where unchanged
+  // positions are blanks and only the changed dice show their new
+  // value. The DM can read original-on-the-left and what-changed on
+  // the right at a glance.
   function renderRows(rowId, data) {
     var el = diceCell(rowId);
     if (!el) return;
-    var html = '';
-    data.rows.forEach(function(row, idx) {
-      var prev = idx === 0 ? null : data.rows[idx - 1].dice;
-      var pieces = row.dice.map(function(d, i) {
-        if (prev !== null && d === prev[i]) return dieCarry(d);
+    var first = data.rows[0];
+    var firstPieces = first.dice.map(function(d) { return dieSpan(d, data.tn, 10); });
+    var html = '<span class="roll-label">' + first.label + ':</span> [' +
+               firstPieces.join(', ') + ']';
+    for (var idx = 1; idx < data.rows.length; idx++) {
+      var prev = data.rows[idx - 1].dice;
+      var cur = data.rows[idx].dice;
+      var pieces = cur.map(function(d, i) {
+        if (d === prev[i]) return dieBlank();
         return dieSpan(d, data.tn, 10);
       });
-      html += '<div class="roll-line">' +
-              '<span class="roll-label">' + row.label + ':</span> [' +
-              pieces.join(', ') + ']</div>';
-    });
-    el.innerHTML = html;
+      html += ' <span class="roll-arrow">&rarr;</span> [' + pieces.join(', ') + ']';
+    }
+    el.innerHTML = '<div class="roll-line">' + html + '</div>';
   }
 
   function applyResult(stubId, rowId, data) {
