@@ -4,7 +4,6 @@ require 'securerandom'
 require 'socket'
 require_relative 'lib/dice_system'
 require_relative 'lib/user'
-require_relative 'lib/dummy_data'
 require_relative 'lib/notes_state'
 
 set :port, 4567
@@ -25,12 +24,19 @@ require local_config if File.exist?(local_config)
 DICE_SYSTEM = DiceSystem.new(File.join(__dir__, 'data', 'dice_resolution.yaml'))
 USER_STORE  = UserStore.new(File.join(__dir__, 'data', 'users.json'))
 NOTES_STATE = NotesState.new(File.join(__dir__, 'data', 'notes_state.json'))
-DATA        = DummyData
 
-# Hard rule: DummyData stays out of production. In dev it returns
-# its hard-coded sample content; in any other environment every
-# method funnels through gate(empty) and returns the empty default.
-DummyData.enabled = settings.development?
+# DATA — single source the views call (DATA.notes, DATA.note_maps,
+# etc.). The PRODUCTION TEST is `settings.development?`. In dev we
+# load and bind DummyData; in any other environment we load
+# EmptyData instead, so DummyData is never required and never
+# called and the only data the UI sees is whatever's in NotesState.
+if settings.development?
+  require_relative 'lib/dummy_data'
+  DATA = DummyData
+else
+  require_relative 'lib/empty_data'
+  DATA = EmptyData
+end
 
 helpers do
   def h(text)
