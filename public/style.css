@@ -71,22 +71,18 @@ body {
 .stub-test-form input[type="text"]   { width: 90px; }
 
 .roll-stub {
-  margin: 8px 0;
-  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0;
+  padding: 4px 8px;
   border: 1px solid #ccc;
   border-radius: 3px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.roll-stub-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  font-size: 11px;
 }
 
 .roll-stub-roll {
+  flex: none;
   font-size: 12px;
   padding: 6px 14px;
   cursor: pointer;
@@ -94,61 +90,40 @@ body {
   color: #fff;
   border: 1px solid #0d47a1;
   border-radius: 3px;
-  align-self: flex-start;
 }
 
-.roll-stub-roll:hover {
-  background: #0d47a1;
-}
+.roll-stub-roll:hover { background: #0d47a1; }
 
 .roll-stub-meta {
+  flex: none;
   display: flex;
   flex-direction: column;
-  line-height: 1.3;
+  line-height: 1.2;
+  min-width: 110px;
 }
 
-.roll-stub-name {
-  font-weight: bold;
-  font-size: 13px;
-}
-
-.roll-stub-params {
-  color: #555;
-}
-
-.roll-stub-check {
-  color: #555;
-  font-style: italic;
-}
+.roll-stub-name { font-weight: bold; font-size: 12px; }
+.roll-stub-params { color: #555; }
+.roll-stub-check { color: #555; font-style: italic; }
 
 .roll-stub-rows {
+  flex: 1;
+  min-width: 200px;
   display: grid;
   grid-template-columns: max-content max-content 1fr;
-  column-gap: 8px;
-  row-gap: 2px;
+  column-gap: 6px;
+  row-gap: 0;
   align-items: center;
-}
-
-.roll-stub-row {
-  display: contents;
-}
-
-.roll-stub-row-action {
-  white-space: nowrap;
-}
-
-.roll-stub-row-label {
-  font-weight: bold;
-}
-
-.roll-stub-row-dice {
   font-family: monospace;
-  min-height: 18px;
 }
+
+.roll-stub-row-action { white-space: nowrap; }
+.roll-stub-row-label  { font-weight: bold; }
+.roll-stub-row-dice   { min-height: 14px; }
 
 .roll-stub-reroll-luck {
-  font-size: 11px;
-  padding: 2px 6px;
+  font-size: 10px;
+  padding: 1px 5px;
   cursor: pointer;
   background: #fff;
   border: 1px solid #aaa;
@@ -156,58 +131,44 @@ body {
   font-weight: bold;
 }
 
-.roll-stub-reroll-luck:disabled {
-  cursor: not-allowed;
-}
+.roll-stub-reroll-luck:disabled { cursor: not-allowed; }
 
-.roll-stub-luck-bonus {
-  color: #1b5e20;
-  border-color: #66bb6a;
-}
-
-.roll-stub-luck-bonus:disabled {
-  color: #2e7d32;
-  background: #e8f5e9;
-  border-color: #a5d6a7;
-}
-
-.roll-stub-luck-penalty {
-  color: #b85b00;
-  border-color: #f29900;
-}
-
-.roll-stub-luck-penalty:disabled {
-  color: #b85b00;
-  background: #fff3e0;
-  border-color: #ffcc80;
-}
+.roll-stub-luck-bonus           { color: #1b5e20; border-color: #66bb6a; }
+.roll-stub-luck-bonus:disabled  { color: #2e7d32; background: #e8f5e9; border-color: #a5d6a7; }
+.roll-stub-luck-penalty         { color: #b85b00; border-color: #f29900; }
+.roll-stub-luck-penalty:disabled { color: #b85b00; background: #fff3e0; border-color: #ffcc80; }
 
 .roll-stub-insight-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: bold;
-  padding: 2px 6px;
+  padding: 1px 5px;
 }
 
-.roll-stub-insight-bonus  { color: #1b5e20; }
+.roll-stub-insight-bonus   { color: #1b5e20; }
 .roll-stub-insight-penalty { color: #b85b00; }
 
-.roll-stub-result-row {
+.roll-stub-result-block {
+  flex: none;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 10px;
+  color: #555;
 }
+
+.roll-stub-result-block label { display: flex; align-items: center; gap: 3px; }
 
 .roll-stub-result-input,
 .roll-stub-crit-input {
-  width: 60px;
+  width: 40px;
   font-size: 11px;
-  padding: 2px 4px;
+  padding: 1px 3px;
 }
 
 .roll-stub-confirm {
+  flex: none;
   font-size: 11px;
-  padding: 3px 12px;
+  padding: 4px 10px;
   cursor: pointer;
   background: #1976d2;
   color: #fff;
@@ -217,8 +178,8 @@ body {
 
 .roll-stub-row-dice .die {
   display: inline-block;
-  padding: 0 4px;
-  border-radius: 3px;
+  padding: 0 3px;
+  border-radius: 2px;
   font-weight: bold;
   color: #000;
 }
@@ -1166,12 +1127,18 @@ body {
 .multi-roll-children {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
 }
 
 /* Children are nested roll_stubs; flatten their outer border so the
- * panel reads as one container rather than N stacked boxes. */
+ * stack reads as one panel rather than N independent boxes. */
 .multi-roll-children .roll-stub {
   border: 1px solid #eee;
+  border-radius: 0;
   margin: 0;
+  border-bottom-width: 0;
+}
+
+.multi-roll-children .roll-stub:last-child {
+  border-bottom-width: 1px;
 }
