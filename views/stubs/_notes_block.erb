@@ -1,7 +1,6 @@
 <% section_order.each do |section| %>
   <% case section
-     when 'journal' %>
-    <h2>Journal</h2>
+     when 'combined' %>
     <% if show_journal_add %>
       <details class="notes-journal-add">
         <summary>Add a journal entry</summary>
@@ -26,31 +25,15 @@
         </form>
       </details>
     <% end %>
-    <%= notes_journal_stub(
-          entries: NOTES_STATE.effective_notes(DATA.notes),
-          dm_view: dm?,
-          current_chapter: current_chapter,
-          active_only: active_only,
-          editable: editable_journal
-        ) %>
-
-  <% when 'characters' %>
-    <h2>Characters of Interest</h2>
-    <%= notes_characters_stub(
-          entries: DATA.characters_of_interest,
-          dm_view: dm?,
-          current_chapter: current_chapter,
-          active_only: active_only
-        ) %>
-
-  <% when 'images' %>
-    <h2>Images</h2>
-    <%= notes_images_stub(
-          entries: NOTES_STATE.effective_images(DATA.note_images),
-          dm_view: dm?,
-          current_chapter: current_chapter,
-          active_only: active_only,
-          editable: editable_images
+    <%= notes_combined_stub(
+          notes:            NOTES_STATE.effective_notes(DATA.notes),
+          images:           NOTES_STATE.effective_images(DATA.note_images),
+          chapters:         DATA.chapters,
+          dm_view:          dm?,
+          current_chapter:  current_chapter,
+          active_only:      active_only,
+          editable_journal: editable_journal,
+          editable_images:  editable_images
         ) %>
 
   <% when 'maps' %>

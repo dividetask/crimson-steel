@@ -13,7 +13,7 @@ helpers do
                   show_journal_add: false,
                   show_create_map: false,
                   show_archived_maps: false,
-                  section_order: %w[journal characters images maps])
+                  section_order: %w[combined maps])
     erb :"stubs/_notes_block", layout: false, locals: {
       current_chapter:    current_chapter,
       active_only:        active_only,

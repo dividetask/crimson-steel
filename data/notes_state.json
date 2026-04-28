@@ -1,16 +1,6 @@
 {
   "additions": [
     {
-      "id": 1000,
-      "owner_id": 0,
-      "chapter": 1,
-      "type": "chapter_title",
-      "title": "The Heist",
-      "note": "",
-      "public": true,
-      "active": false
-    },
-    {
       "id": 1001,
       "owner_id": 0,
       "chapter": 1,
@@ -101,16 +91,6 @@
       "type": "note",
       "title": "Caught",
       "note": "The party fled town and made it to a village several days away. They awoke the next day to three people in their room: Alric, Virelle, and Sylwen. Virelle demanded they be executed but Alric thought that was too dull and uninteresting of a punishment. He instead sent them to his sisters as he put it. Before being banished to the fey wilds Stumpy was given a bottle of ale that Alric never asked to be returned.",
-      "public": true,
-      "active": false
-    },
-    {
-      "id": 1010,
-      "owner_id": 0,
-      "chapter": 2,
-      "type": "chapter_title",
-      "title": "Fey Wilds",
-      "note": "",
       "public": true,
       "active": false
     },
@@ -316,36 +296,6 @@
       "type": "note",
       "title": "Getting a Goat Laid",
       "note": "Trying to get Beau laid proves nearly impossible, and the party decides to give up looking. Instead Olga decides to sleep with him and hope Dala will accept that as a success",
-      "public": true,
-      "active": false
-    },
-    {
-      "id": 1031,
-      "owner_id": 0,
-      "chapter": 3,
-      "type": "chapter_title",
-      "title": "Rescuing Farmer Jon",
-      "note": "",
-      "public": true,
-      "active": false
-    },
-    {
-      "id": 1032,
-      "owner_id": 0,
-      "chapter": 4,
-      "type": "chapter_title",
-      "title": "Discrete Acquisition",
-      "note": "",
-      "public": true,
-      "active": false
-    },
-    {
-      "id": 1033,
-      "owner_id": 0,
-      "chapter": 5,
-      "type": "chapter_title",
-      "title": "Rescuing Hawthorne",
-      "note": "",
       "public": true,
       "active": false
     },
@@ -803,5 +753,12 @@
 
   ],
   "next_created_id": 10000,
-  "current_turn": null
+  "current_turn": null,
+  "chapters": {
+    "1": "The Heist",
+    "2": "Fey Wilds",
+    "3": "Rescuing Farmer Jon",
+    "4": "Discrete Acquisition",
+    "5": "Rescuing Hawthorne"
+  }
 }
