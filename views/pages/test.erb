@@ -16,7 +16,7 @@
       dm_view: false,
       active_only: true,
       interactive: true,
-      scene_state: SCENE_STATE,
+      scene_state: NOTES_STATE,
       can_draw: true
     ) %>
 
@@ -27,7 +27,7 @@
         dm_view: true,
         active_only: true,
         interactive: true,
-        scene_state: SCENE_STATE
+        scene_state: NOTES_STATE
       ) %>
 <% end %>
 
@@ -38,7 +38,7 @@
   both via <code>POST /combat/set_turn/:combat_id</code>.
 </p>
 
-<% current_turn = SCENE_STATE.current_turn || DATA.combat_state['current_turn'] %>
+<% current_turn = NOTES_STATE.current_turn || DATA.combat_state['current_turn'] %>
 
 <h3>As current viewer</h3>
 <%= initiative_stub(

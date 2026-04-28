@@ -5,7 +5,6 @@ require 'socket'
 require_relative 'lib/dice_system'
 require_relative 'lib/user'
 require_relative 'lib/dummy_data'
-require_relative 'lib/scene_state'
 require_relative 'lib/notes_state'
 
 set :port, 4567
@@ -24,10 +23,9 @@ local_config = File.join(__dir__, 'local.rb')
 require local_config if File.exist?(local_config)
 
 DICE_SYSTEM = DiceSystem.new(File.join(__dir__, 'data', 'dice_resolution.yaml'))
-USER_STORE = UserStore.new(File.join(__dir__, 'data', 'users.json'))
-SCENE_STATE = SceneState.new
+USER_STORE  = UserStore.new(File.join(__dir__, 'data', 'users.json'))
 NOTES_STATE = NotesState.new
-DATA = DummyData
+DATA        = DummyData
 
 helpers do
   def h(text)
@@ -50,9 +48,9 @@ helpers do
   end
 
   # combat_id → the char_id whose turn it is right now. Reads the
-  # SceneState override first, then falls back to DummyData.
+  # NotesState override first, then falls back to DummyData.
   def current_turn_combat_id
-    SCENE_STATE.current_turn || DATA.combat_state['current_turn']
+    NOTES_STATE.current_turn || DATA.combat_state['current_turn']
   end
 
   def current_turn_char_id

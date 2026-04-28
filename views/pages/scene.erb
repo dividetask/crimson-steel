@@ -6,7 +6,7 @@
 <%= notes_block(
       current_chapter:    nil,
       active_only:        true,
-      scene_state:        SCENE_STATE,
+      scene_state:        NOTES_STATE,
       interactive_maps:   true,
       section_order:      %w[maps journal characters images]
     ) %>
@@ -15,7 +15,7 @@
   <h2>Initiative</h2>
   <%= initiative_stub(
         turns: DATA.initiative_turns,
-        current_combat_id: SCENE_STATE.current_turn || DATA.combat_state['current_turn'],
+        current_combat_id: NOTES_STATE.current_turn || DATA.combat_state['current_turn'],
         dm_view: dm?
       ) %>
 <% end %>

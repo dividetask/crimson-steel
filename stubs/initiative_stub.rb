@@ -55,6 +55,6 @@ end
 
 post '/combat/set_turn/:combat_id' do
   halt 403, 'forbidden' unless current_user&.dm?
-  SCENE_STATE.current_turn = params[:combat_id]
+  NOTES_STATE.current_turn = params[:combat_id]
   redirect(request.referrer || '/')
 end

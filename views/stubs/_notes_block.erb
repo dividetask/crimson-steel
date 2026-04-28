@@ -55,11 +55,11 @@
   <% when 'maps' %>
     <h2>Maps</h2>
     <%
-      all_maps      = SCENE_STATE.all_maps(DATA.note_maps)
+      all_maps      = NOTES_STATE.all_maps(DATA.note_maps)
       live_maps     = []
       archived_maps = []
       all_maps.each do |m|
-        s = SCENE_STATE.map_settings_for(m['id'],
+        s = NOTES_STATE.map_settings_for(m['id'],
               base_label: m['label'], base_w: m['width_squares'],
               base_h: m['height_squares'], base_public: m['public'],
               base_active: m['active'], base_archived: m['archived'])

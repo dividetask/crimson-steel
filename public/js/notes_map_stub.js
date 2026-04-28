@@ -82,8 +82,7 @@
     var toolKey = 'notes_map_tool/' + mapId;
     function setActiveTool(tool) {
       svg.dataset.tool = tool;
-      svg.classList.toggle('crosshair-mode',
-        tool === 'add-object' || tool === 'add-shape');
+      svg.classList.toggle('crosshair-mode', tool === 'add-shape');
       svg.classList.toggle('move-mode', tool === 'move');
       toolBtns.forEach(function (b) {
         b.classList.toggle('active', b.getAttribute('data-tool') === tool);

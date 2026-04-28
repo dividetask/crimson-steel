@@ -8,7 +8,7 @@
        base_h_sq = e['height_squares'] || 5
        settings  = scene_state ? scene_state.map_settings_for(map_id, base_label: e['label'], base_w: base_w_sq, base_h: base_h_sq) :
                                  { 'label' => e['label'].to_s, 'w' => base_w_sq, 'h' => base_h_sq }
-       sq        = SceneState::SQUARE_PX
+       sq        = NotesState::SQUARE_PX
        width     = settings['w'] * sq
        height    = settings['h'] * sq
        label     = settings['label']
@@ -131,8 +131,8 @@
             <% arrows.each do |a|
                  style = NOTES_MAP_ARROW_STYLES[a['type']]
                  next unless style
-                 from_xy = SceneState.resolve_endpoint(a, 'from', by_id)
-                 to_xy   = SceneState.resolve_endpoint(a, 'to',   by_id)
+                 from_xy = NotesState.resolve_endpoint(a, 'from', by_id)
+                 to_xy   = NotesState.resolve_endpoint(a, 'to',   by_id)
                  next unless from_xy && to_xy
                  own = current_user && a['device_id'] == current_user.device_id
                  can_remove = interactive && (dm_view || own)

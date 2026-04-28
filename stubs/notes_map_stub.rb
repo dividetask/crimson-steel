@@ -1,8 +1,9 @@
 # notes_map_stub — gallery of map entries with optional interactive
 # editing. When `interactive` is true the partial renders objects
 # as clickable tokens, draws stored arrows on top, and shows the
-# arrow-type picker / clear / add-object controls. When false (the
-# default) it renders read-only thumbnails.
+# side toolbar (View / Arrow / Move / Delete / Add shape / Add
+# icon) plus zoom controls. When false (the default) it renders
+# read-only thumbnails.
 
 # Rendering style per arrow type. Pulled out as a top-level
 # constant so the partial can reach it without going through a
@@ -114,7 +115,7 @@ post '/scene/draw_arrow' do
     status 403
     return { ok: false, error: 'not your turn' }.to_json
   end
-  ok = SCENE_STATE.add_arrow(
+  ok = NOTES_STATE.add_arrow(
     map_id:    params[:map_id].to_i,
     type:      params[:type].to_s,
     device_id: current_user&.device_id,
@@ -130,60 +131,6 @@ post '/scene/draw_arrow' do
   { ok: ok }.to_json
 end
 
-post '/scene/move_object' do
-  halt 403, 'forbidden' unless current_user&.dm?
-  content_type :json
-  SCENE_STATE.move_object(
-    params[:map_id].to_i, params[:object_id].to_s,
-    params[:x].to_f, params[:y].to_f
-  )
-  { ok: true }.to_json
-end
-
-post '/scene/add_shape' do
-  halt 403, 'forbidden' unless current_user&.dm?
-  SCENE_STATE.add_shape(
-    map_id: params[:map_id].to_i,
-    kind:   params[:kind].to_s,
-    x:      params[:x].to_f,
-    y:      params[:y].to_f,
-    w:      params[:w]  ? params[:w].to_f  : nil,
-    h:      params[:h]  ? params[:h].to_f  : nil,
-    rx:     params[:rx] ? params[:rx].to_f : nil,
-    ry:     params[:ry] ? params[:ry].to_f : nil,
-    fill:   params[:fill].to_s.empty? ? 'none' : params[:fill]
-  )
-  redirect(request.referrer || '/scene')
-end
-
-post '/scene/add_icon' do
-  halt 403, 'forbidden' unless current_user&.dm?
-  SCENE_STATE.add_icon(
-    map_id: params[:map_id].to_i,
-    glyph:  params[:glyph].to_s,
-    x:      params[:x].to_f,
-    y:      params[:y].to_f
-  )
-  redirect(request.referrer || '/scene')
-end
-
-post '/scene/remove_shape' do
-  halt 403, 'forbidden' unless current_user&.dm?
-  content_type :json
-  SCENE_STATE.remove_shape(params[:map_id].to_i, params[:shape_id].to_s)
-  { ok: true }.to_json
-end
-
-post '/scene/move_shape' do
-  halt 403, 'forbidden' unless current_user&.dm?
-  content_type :json
-  ok = SCENE_STATE.move_shape(
-    params[:map_id].to_i, params[:shape_id].to_s,
-    params[:x].to_f, params[:y].to_f
-  )
-  { ok: ok }.to_json
-end
-
 post '/scene/update_map' do
   halt 403, 'forbidden' unless current_user&.dm?
   fields = {}
@@ -193,13 +140,13 @@ post '/scene/update_map' do
   fields[:public]         = params[:public]   == '1' if params.key?('public_set')
   fields[:active]         = params[:active]   == '1' if params.key?('active_set')
   fields[:archived]       = params[:archived] == '1' if params.key?('archived_set')
-  SCENE_STATE.update_map_settings(params[:map_id].to_i, **fields)
+  NOTES_STATE.update_map_settings(params[:map_id].to_i, **fields)
   redirect(request.referrer || '/scene')
 end
 
 post '/scene/create_map' do
   halt 403, 'forbidden' unless current_user&.dm?
-  rec = SCENE_STATE.create_map(
+  rec = NOTES_STATE.create_map(
     label:          params[:label].to_s,
     width_squares:  params[:width_squares].to_s.empty?  ? 8 : params[:width_squares].to_i,
     height_squares: params[:height_squares].to_s.empty? ? 5 : params[:height_squares].to_i,
@@ -212,7 +159,7 @@ end
 
 post '/scene/remove_arrow' do
   content_type :json
-  ok = SCENE_STATE.remove_arrow(
+  ok = NOTES_STATE.remove_arrow(
     params[:map_id].to_i,
     params[:arrow_id].to_s,
     current_user&.device_id,
@@ -224,7 +171,7 @@ end
 
 post '/scene/clear_arrows' do
   halt 403, 'forbidden' unless current_user&.dm?
-  SCENE_STATE.clear_arrows(params[:map_id].to_i)
+  NOTES_STATE.clear_arrows(params[:map_id].to_i)
   redirect(request.referrer || '/scene')
 end
 
@@ -247,11 +194,11 @@ post '/scene/batch' do
   ops.each do |op|
     case op['kind']
     when 'move_object'
-      SCENE_STATE.move_object(map_id, op['object_id'].to_s, op['x'].to_f, op['y'].to_f)
+      NOTES_STATE.move_object(map_id, op['object_id'].to_s, op['x'].to_f, op['y'].to_f)
       applied += 1
     when 'add_shape'
       fill = op['fill'].to_s
-      SCENE_STATE.add_shape(
+      NOTES_STATE.add_shape(
         map_id: map_id,
         kind:   op['shape_kind'].to_s,
         x:      op['x'].to_f,
@@ -264,7 +211,7 @@ post '/scene/batch' do
       )
       applied += 1
     when 'add_icon'
-      SCENE_STATE.add_icon(
+      NOTES_STATE.add_icon(
         map_id: map_id,
         glyph:  op['glyph'].to_s,
         x:      op['x'].to_f,
@@ -272,19 +219,19 @@ post '/scene/batch' do
       )
       applied += 1
     when 'move_icon'
-      SCENE_STATE.move_icon(map_id, op['icon_id'].to_s, op['x'].to_f, op['y'].to_f)
+      NOTES_STATE.move_icon(map_id, op['icon_id'].to_s, op['x'].to_f, op['y'].to_f)
       applied += 1
     when 'move_shape'
-      SCENE_STATE.move_shape(map_id, op['shape_id'].to_s, op['x'].to_f, op['y'].to_f)
+      NOTES_STATE.move_shape(map_id, op['shape_id'].to_s, op['x'].to_f, op['y'].to_f)
       applied += 1
     when 'delete_object'
-      SCENE_STATE.remove_object(map_id, op['object_id'].to_s)
+      NOTES_STATE.remove_object(map_id, op['object_id'].to_s)
       applied += 1
     when 'delete_shape'
-      SCENE_STATE.remove_shape(map_id, op['shape_id'].to_s)
+      NOTES_STATE.remove_shape(map_id, op['shape_id'].to_s)
       applied += 1
     when 'delete_icon'
-      SCENE_STATE.remove_icon(map_id, op['icon_id'].to_s)
+      NOTES_STATE.remove_icon(map_id, op['icon_id'].to_s)
       applied += 1
     end
   end

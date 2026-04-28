@@ -190,13 +190,11 @@ class DummyData
   end
 
   # Each map entry can carry an `objects` array of tokens placed on
-  # the map. Object coordinates use the placeholder SVG's 400x240
-  # viewBox. Players can later add `arrows` to indicate actions; the
-  # arrow store lives in SceneState (see lib/scene_state.rb), not
-  # here, since it's mutable across the table.
-  # Map sizes are now in *squares*. The partial scales up by
-  # SceneState::SQUARE_PX (currently 50) for the SVG viewBox; object
-  # x/y stay in pixel-equivalent viewBox coords.
+  # the map. Object coordinates use viewBox units. The arrow store
+  # and other mutable map state live in NotesState (see
+  # lib/notes_state.rb), not here, since they change at the table.
+  # Map sizes are in *squares*; the partial scales up by
+  # NotesState::SQUARE_PX (currently 50) for the SVG viewBox.
   def self.note_maps
     [
       { 'id' => 1, 'chapter' => 1, 'public' => true,  'active' => false,
