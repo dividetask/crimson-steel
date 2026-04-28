@@ -4,7 +4,7 @@ require 'securerandom'
 require 'socket'
 require_relative 'lib/dice_system'
 require_relative 'lib/user'
-require_relative 'lib/dummy_data'
+require_relative 'lib/notes_state'
 
 set :port, 4567
 set :bind, '0.0.0.0'
@@ -22,8 +22,16 @@ local_config = File.join(__dir__, 'local.rb')
 require local_config if File.exist?(local_config)
 
 DICE_SYSTEM = DiceSystem.new(File.join(__dir__, 'data', 'dice_resolution.yaml'))
-USER_STORE = UserStore.new(File.join(__dir__, 'data', 'users.json'))
-DATA = DummyData
+USER_STORE  = UserStore.new(File.join(__dir__, 'data', 'users.json'))
+NOTES_STATE = NotesState.new(File.join(__dir__, 'data', 'notes_state.json'))
+
+if settings.development?
+  require_relative 'lib/dummy_data'
+  DATA = DummyData
+else
+  require_relative 'lib/empty_data'
+  DATA = EmptyData
+end
 
 helpers do
   def h(text)
@@ -44,6 +52,20 @@ helpers do
       addr ? addr.ip_address : '127.0.0.1'
     end
   end
+
+  # The char_id of whose turn it is right now. NotesState owns the
+  # active combat slot (combat_id like 'pc-3'); we resolve that to
+  # the underlying character id by looking up the turn record.
+  def current_turn_char_id
+    cid = NOTES_STATE.current_turn || DATA.combat_state['current_turn']
+    DATA.combat_state['turns'].find { |t| t['combat_id'] == cid }&.dig('char_id')
+  end
+
+  def viewer_can_draw_arrow?
+    return true if dm?
+    return false unless current_user&.character_id
+    current_user.character_id == current_turn_char_id
+  end
 end
 
 before do
@@ -52,6 +74,17 @@ end
 
 get '/' do
   redirect '/test'
+end
+
+# In development a typo in the URL bar drops you on the test
+# scratchpad rather than a 404. Production keeps the standard 404
+# so we don't accidentally leak the test page to deployed users.
+not_found do
+  if settings.development?
+    redirect '/test'
+  else
+    'Not Found'
+  end
 end
 
 Dir[File.join(__dir__, 'stubs', '*.rb')].sort.each { |f| require f }

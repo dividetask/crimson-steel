@@ -22,6 +22,14 @@ Crimson Steel DM Tools is a local server that allows other players to connect to
 
 - Ask questions often especially when there is ambiguity or you believe I have made a mistake
 
+### When a referenced thing is missing, stop and ask
+
+- If the user references a branch, file, function, document, or anything else
+  that I can't find, do not silently proceed against the closest match — stop
+  and tell them what I looked for and where, and ask for clarification.
+- The same applies if I find something with a similar name but I'm not sure
+  it's the right thing.
+
 ### Stop after asking questions
 
 - Whenever you have a question, or multiple questions, stop immediatly after asking them.
@@ -38,6 +46,12 @@ Crimson Steel DM Tools is a local server that allows other players to connect to
 
 | File | Purpose | Scope |
 |------|---------|-------|
+
+### Test page ordering
+
+- New stub previews on `views/pages/test.erb` go at the **top** of
+  the page, not the bottom. The most recently added feature should
+  be the first thing visible without scrolling.
 
 ## File Structure
 

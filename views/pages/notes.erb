@@ -1,0 +1,23 @@
+<h1>Notes</h1>
+
+<div class="notes-chapter-filter">
+  <span class="notes-chapter-label">Chapter:</span>
+  <a href="/notes?chapter=all" class="notes-chapter-chip <%= 'active' if @current_chapter.nil? %>">All</a>
+  <% DATA.chapters.each do |c| %>
+    <a href="/notes?chapter=<%= c['number'] %>"
+       class="notes-chapter-chip <%= 'active' if @current_chapter == c['number'] %>">
+      <%= h c['title'] %>
+    </a>
+  <% end %>
+</div>
+
+<%= notes_block(
+      current_chapter:    @current_chapter,
+      active_only:        false,
+      scene_state:        NOTES_STATE,
+      interactive_maps:   false,
+      editable_journal:   dm?,
+      show_journal_add:   dm?,
+      show_create_map:    dm?,
+      show_archived_maps: true
+    ) %>

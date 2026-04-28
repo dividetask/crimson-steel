@@ -1,22 +1,22 @@
 require 'yaml'
 
-# Placeholder data source for the UI rebuild. The real rule engine from
-# before-refactor (character.rb, templates.rb, tools.rb, etc.) is not
-# wired up yet; this class returns hard-coded values shaped the way the
-# views expect so the interface can be rebuilt one page at a time. Each
-# method here corresponds to a query the final data layer will have to
-# answer.
+# Placeholder data source for the UI rebuild. The real rule engine
+# from before-refactor (character.rb, templates.rb, tools.rb, etc.)
+# is not wired up yet; this class returns hard-coded values shaped
+# the way the views expect so the interface can be rebuilt one
+# page at a time. Each method here corresponds to a query the final
+# data layer will have to answer.
+#
+# Production never loads this file. app.rb requires
+# lib/empty_data.rb instead and binds DATA to EmptyData, so prod
+# stays a clean slate sourced entirely from NotesState.
+
 class DummyData
   # --- Campaign-level state ------------------------------------------------
-	# Gold was tracked in campaign.json before refactor. It is being migrated to Equipment
 
   def self.campaign
-    {
-      'gold' => 275,
-      'rounds_elapsed' => 4,
-      'current_chapter' => 2,
-      'current_scene' => 1
-    }
+    { 'gold' => 275, 'rounds_elapsed' => 4,
+      'current_chapter' => 2, 'current_scene' => 1 }
   end
 
   def self.chapters
@@ -58,21 +58,17 @@ class DummyData
 
   def self.enemy_groups
     [
-      {
-        label: 'Bandits',
+      { label: 'Bandits',
         enemies: [
           { id: 'bandit_thug',    index: 0, name: 'Bandit Thug',    tier: 1 },
           { id: 'bandit_archer',  index: 1, name: 'Bandit Archer',  tier: 1 },
           { id: 'bandit_captain', index: 2, name: 'Bandit Captain', tier: 2 }
-        ]
-      },
-      {
-        label: 'Undead',
+        ] },
+      { label: 'Undead',
         enemies: [
           { id: 'skeleton',       index: 3, name: 'Skeleton',       tier: 1 },
           { id: 'wight',          index: 4, name: 'Wight',          tier: 3 }
-        ]
-      }
+        ] }
     ]
   end
 
@@ -81,14 +77,9 @@ class DummyData
   end
 
   # --- Combat --------------------------------------------------------------
-	# Hitpoints, damage, and conditions will be tracked by the Conditions class not Combat
-	# Combat will hold current combat pool, initiative, and track which creatures are in combat
 
   def self.combat_state
-    {
-      'round' => 4,
-      'active_effects' => [],
-      'current_turn' => 'pc-3',
+    { 'round' => 4, 'active_effects' => [], 'current_turn' => 'pc-3',
       'turns' => [
         { 'combat_id' => 'pc-3',  'char_id' => 3,              'name' => 'Lira Duskmoor',  'initiative' => 'X97',
           'hp' => 18, 'hp_max' => 22,
@@ -125,8 +116,7 @@ class DummyData
           'minor_damage' => 2, 'moderate_damage' => 4, 'major_damage' => 4,
           'combat_pool' => 0, 'combat_pool_max' => 3, 'shock' => 0, 'pain' => 0,
           'conditions' => [{ 'name' => 'major_damage', 'value' => 1 }], 'group' => 'Enemy' }
-      ]
-    }
+      ] }
   end
 
   # Initiative track sorted high-to-low. Sort key is the X-bearing
@@ -141,30 +131,110 @@ class DummyData
   end
 
   # --- Notes ---------------------------------------------------------------
+  # All notes-page content lives here. Each kind (journal, characters,
+  # images, maps) is its own array but they share the same flag set:
+  #   public — false hides the entry from non-DM viewers
+  #   chapter — filters with the chapter pills on /notes
+  #   active — flags the entry as part of the current scene; /scene
+  #     renders only entries where active is true.
 
   def self.notes
     [
       { 'id' => 1, 'owner_id' => 0, 'chapter' => 1, 'type' => 'chapter_title',
-        'title' => 'The Road to Crimson', 'note' => '', 'public' => true },
-      { 'id' => 2, 'owner_id' => 0, 'chapter' => 1, 'public' => true,
+        'title' => 'The Road to Crimson', 'note' => '', 'public' => true, 'active' => false },
+      { 'id' => 2, 'owner_id' => 0, 'chapter' => 1, 'public' => true, 'active' => false,
         'note' => "The party meets at the Weeping Stag. A courier delivers a sealed writ from Lord Halric." },
-      { 'id' => 3, 'owner_id' => 0, 'chapter' => 2, 'public' => false,
+      { 'id' => 3, 'owner_id' => 0, 'chapter' => 2, 'public' => false, 'active' => true,
         'note' => "Secret: the steward is working with the bandits. He knows the party's route." },
-      { 'id' => 4, 'owner_id' => 1, 'chapter' => 2, 'public' => true,
+      { 'id' => 4, 'owner_id' => 1, 'chapter' => 2, 'public' => true, 'active' => true,
         'note' => "Ash's personal log: the song keeps coming back to me in dreams." }
     ]
   end
 
+  def self.characters_of_interest
+    [
+      { 'id' => 1, 'name' => 'Lord Halric',         'role' => 'Patron',
+        'last_seen' => 'Crimson Hold',         'chapter' => 1, 'public' => true,  'active' => false,
+        'note' => 'Sent the sealed writ that started the journey.' },
+      { 'id' => 2, 'name' => 'Steward Voss',        'role' => 'Hostile (secret)',
+        'last_seen' => 'Beneath the Mountain', 'chapter' => 2, 'public' => false, 'active' => true,
+        'note' => 'Working with the bandits. Knows the party route.' },
+      { 'id' => 3, 'name' => 'Mara the Innkeep',    'role' => 'Ally',
+        'last_seen' => 'Weeping Stag',         'chapter' => 1, 'public' => true,  'active' => false,
+        'note' => 'Knows local rumors. Takes coppers for hot tea.' },
+      { 'id' => 4, 'name' => 'The Hooded Stranger', 'role' => 'Unknown',
+        'last_seen' => 'Forest road',          'chapter' => 1, 'public' => true,  'active' => true,
+        'note' => 'Watched the party leave. Did not approach.' }
+    ]
+  end
+
+  def self.note_images
+    [
+      { 'id' => 1, 'kind' => 'document', 'chapter' => 1, 'public' => true,  'active' => false,
+        'caption' => 'The sealed writ delivered to the party in the Weeping Stag.' },
+      { 'id' => 2, 'kind' => 'map',      'chapter' => 2, 'public' => false, 'active' => true,
+        'caption' => 'Bandit ambush map (DM only).' },
+      { 'id' => 3, 'kind' => 'portrait', 'chapter' => 1, 'public' => true,  'active' => false,
+        'caption' => 'Mara, the innkeep at the Weeping Stag.' },
+      { 'id' => 4, 'kind' => 'location', 'chapter' => 2, 'public' => true,  'active' => true,
+        'caption' => 'Cave entrance under the mountain.' }
+    ]
+  end
+
+  # Each map entry can carry an `objects` array of tokens placed on
+  # the map. Object coordinates use viewBox units. The arrow store
+  # and other mutable map state live in NotesState (see
+  # lib/notes_state.rb), not here, since they change at the table.
+  # Map sizes are in *squares*; the partial scales up by
+  # NotesState::SQUARE_PX (currently 50) for the SVG viewBox.
+  def self.note_maps
+    [
+      { 'id' => 1, 'chapter' => 1, 'public' => true,  'active' => false,
+        'label' => 'Crimson Hold',
+        'caption' => 'Crimson Hold, ground floor.',
+        'width_squares' => 8, 'height_squares' => 5,
+        'objects' => [
+          { 'id' => 'cb_door',     'kind' => 'door',     'x' =>  60, 'y' => 200, 'label' => 'Front door' },
+          { 'id' => 'cb_throne',   'kind' => 'scenery',  'x' => 320, 'y' =>  60, 'label' => 'Throne' },
+          { 'id' => 'cb_treasure', 'kind' => 'treasure', 'x' => 280, 'y' => 130, 'label' => 'Vault' }
+        ] },
+      { 'id' => 2, 'chapter' => 2, 'public' => true,  'active' => true,
+        'label' => 'Forest road ambush',
+        'caption' => 'Forest road south of the wagon. Treeline curves on the east; the wagon wreck blocks the road.',
+        'width_squares' => 8, 'height_squares' => 5,
+        'objects' => [
+          { 'id' => 'pc_ash',  'kind' => 'pc',      'x' =>  60, 'y' =>  80, 'label' => 'Ash' },
+          { 'id' => 'pc_bryn', 'kind' => 'pc',      'x' =>  80, 'y' =>  60, 'label' => 'Bryn' },
+          { 'id' => 'wagon',   'kind' => 'scenery', 'x' => 200, 'y' => 112, 'label' => 'Wagon' },
+          { 'id' => 'pit',     'kind' => 'trap',    'x' => 250, 'y' => 200, 'label' => 'Pit' },
+          { 'id' => 'mob_1',   'kind' => 'enemy',   'x' => 320, 'y' => 180, 'label' => 'Bandit 1' },
+          { 'id' => 'mob_2',   'kind' => 'enemy',   'x' => 340, 'y' => 200, 'label' => 'Bandit 2' },
+          { 'id' => 'mob_3',   'kind' => 'enemy',   'x' => 350, 'y' => 170, 'label' => 'Bandit 3' }
+        ] },
+      { 'id' => 3, 'chapter' => 2, 'public' => false, 'active' => false,
+        'label' => 'Ambush overlay',
+        'caption' => 'DM-only overlay: bandit positions before the ambush is sprung.',
+        'width_squares' => 8, 'height_squares' => 5,
+        'objects' => [
+          { 'id' => 'lookout',  'kind' => 'enemy',  'x' => 220, 'y' =>  40, 'label' => 'Lookout' },
+          { 'id' => 'archer_1', 'kind' => 'enemy',  'x' => 300, 'y' =>  90, 'label' => 'Archer' },
+          { 'id' => 'archer_2', 'kind' => 'enemy',  'x' => 360, 'y' => 130, 'label' => 'Archer' },
+          { 'id' => 'fire',     'kind' => 'hazard', 'x' => 200, 'y' => 200, 'label' => 'Campfire' }
+        ] }
+    ]
+  end
+
+  def self.note_map_by_id(id)
+    note_maps.find { |m| m['id'].to_i == id.to_i }
+  end
+
   # --- Spells --------------------------------------------------------------
-	# The spell schools and descriptions are placeholders and do not reflect the actual schools
 
   def self.spell_schools
-    {
-      'evocation'     => 'Raw magical force shaped into damage or barriers.',
+    { 'evocation'     => 'Raw magical force shaped into damage or barriers.',
       'illusion'      => 'Deceptions of the senses and the mind.',
       'transmutation' => 'Reshaping matter, form, and state.',
-      'divination'    => 'Knowledge pulled from distance, memory, or fate.'
-    }
+      'divination'    => 'Knowledge pulled from distance, memory, or fate.' }
   end
 
   def self.spell_list
@@ -199,12 +269,10 @@ class DummyData
   end
 
   def self.item_tree
-    {
-      'equipment'  => %w[weapon armor shield],
+    { 'equipment'  => %w[weapon armor shield],
       'item'       => %w[potion scroll misc],
       'tattoo'     => %w[shoulder arm chest],
-      'ammunition' => %w[arrow bolt sling]
-    }
+      'ammunition' => %w[arrow bolt sling] }
   end
 
   # --- Melee attack stub ---------------------------------------------------
@@ -344,14 +412,14 @@ class DummyData
   end
 
   # --- Scene ---------------------------------------------------------------
+  # The scene itself is just a label + description. Everything else
+  # the page renders comes from the active-flagged entries in the
+  # notes arrays above.
 
   def self.scene
-    {
-      'title' => 'The Bandit Ambush',
-      'image' => nil,
-      'show_initiative' => true,
-      'description' => 'Crossbows click from the treeline. Smoke rises off the wrecked wagon.'
-    }
+    { 'title' => 'The Bandit Ambush',
+      'description' => 'Crossbows click from the treeline. Smoke rises off the wrecked wagon.',
+      'show_initiative' => true }
   end
 
   # --- Builders ------------------------------------------------------------

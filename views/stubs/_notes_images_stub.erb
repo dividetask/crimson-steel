@@ -1,0 +1,18 @@
+<div class="notes-images-stub" data-stub-id="<%= stub_id %>" data-dm-view="<%= dm_view ? '1' : '0' %>">
+<% if entries.empty? %>
+  <p class="notes-empty">No images yet.</p>
+<% else %>
+  <div class="notes-images-grid">
+    <% entries.each do |e| %>
+      <figure class="notes-image-card">
+        <div class="notes-image-frame"><%= notes_image_placeholder(e['kind']) %></div>
+        <figcaption class="notes-image-caption">
+          <%= h e['caption'] %>
+          <% if e['public'] == false %><span class="notes-meta-chip notes-meta-private">DM only</span><% end %>
+          <% if e['active']          %><span class="notes-meta-chip notes-meta-active">Active</span><% end %>
+        </figcaption>
+      </figure>
+    <% end %>
+  </div>
+<% end %>
+</div>
