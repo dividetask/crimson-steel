@@ -6,23 +6,34 @@
     <button type="button" class="multi-roll-confirm"
             onclick="multiRollConfirmAll('<%= stub_id %>')">Confirm All</button>
   </div>
-  <div class="multi-roll-children">
-    <% children.each do |c| %>
-      <%= roll_stub(
-            stub_id:        c[:_child_id],
-            character_name: c[:character_name],
-            check_name:     c[:check_name],
-            dice_count:     c[:dice_count],
-            tn:             c[:tn],
-            starting_value: c[:starting_value] || 0,
-            luck_amount:    c[:luck_amount]    || 0,
-            luck_label:     c[:luck_label],
-            insight_amount: c[:insight_amount] || 0,
-            insight_label:  c[:insight_label],
-            show_confirm:   false
-          ) %>
-    <% end %>
-  </div>
+  <table class="roll-stub-table">
+    <thead>
+      <tr>
+        <th class="col-roll"></th>
+        <th class="col-meta">Character</th>
+        <th class="col-dice">Dice</th>
+        <th class="col-result">Result / Crits</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% children.each do |c| %>
+        <%= roll_stub(
+              stub_id:        c[:_child_id],
+              character_name: c[:character_name],
+              check_name:     c[:check_name],
+              dice_count:     c[:dice_count],
+              tn:             c[:tn],
+              starting_value: c[:starting_value] || 0,
+              luck_amount:    c[:luck_amount]    || 0,
+              luck_label:     c[:luck_label],
+              insight_amount: c[:insight_amount] || 0,
+              insight_label:  c[:insight_label],
+              show_confirm:   false,
+              bare_row:       true
+            ) %>
+      <% end %>
+    </tbody>
+  </table>
 </div>
 <script>
 (function() {

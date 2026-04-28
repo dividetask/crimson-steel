@@ -70,21 +70,38 @@ body {
 .stub-test-form input[type="number"] { width: 50px; }
 .stub-test-form input[type="text"]   { width: 90px; }
 
-.roll-stub {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 2px 0;
-  padding: 4px 8px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
+.roll-stub-table {
+  border-collapse: collapse;
   font-size: 11px;
+  margin: 4px 0;
 }
 
+.roll-stub-table th,
+.roll-stub-table td {
+  padding: 3px 8px;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+}
+
+.roll-stub-table thead th {
+  text-align: left;
+  background: #f5f5f5;
+  border-bottom: 1px solid #ccc;
+  font-weight: bold;
+  font-size: 10px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.roll-stub-table .col-roll,
+.roll-stub-table .col-confirm { width: 1%; white-space: nowrap; }
+.roll-stub-table .col-meta    { white-space: nowrap; }
+.roll-stub-table .col-result  { white-space: nowrap; width: 1%; }
+
 .roll-stub-roll {
-  flex: none;
-  font-size: 12px;
-  padding: 6px 14px;
+  font-size: 11px;
+  padding: 3px 10px;
   cursor: pointer;
   background: #1976d2;
   color: #fff;
@@ -94,21 +111,11 @@ body {
 
 .roll-stub-roll:hover { background: #0d47a1; }
 
-.roll-stub-meta {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-  min-width: 110px;
-}
-
-.roll-stub-name { font-weight: bold; font-size: 12px; }
-.roll-stub-params { color: #555; }
-.roll-stub-check { color: #555; font-style: italic; }
+.roll-stub-name   { font-weight: bold; font-size: 12px; line-height: 1.2; }
+.roll-stub-params { color: #555; line-height: 1.2; }
+.roll-stub-check  { color: #555; font-style: italic; line-height: 1.2; }
 
 .roll-stub-rows {
-  flex: 1;
-  min-width: 200px;
   display: grid;
   grid-template-columns: max-content max-content 1fr;
   column-gap: 6px;
@@ -133,30 +140,30 @@ body {
 
 .roll-stub-reroll-luck:disabled { cursor: not-allowed; }
 
-.roll-stub-luck-bonus           { color: #1b5e20; border-color: #66bb6a; }
-.roll-stub-luck-bonus:disabled  { color: #2e7d32; background: #e8f5e9; border-color: #a5d6a7; }
-.roll-stub-luck-penalty         { color: #b85b00; border-color: #f29900; }
+.roll-stub-luck-bonus            { color: #1b5e20; border-color: #66bb6a; }
+.roll-stub-luck-bonus:disabled   { color: #2e7d32; background: #e8f5e9; border-color: #a5d6a7; }
+.roll-stub-luck-penalty          { color: #b85b00; border-color: #f29900; }
 .roll-stub-luck-penalty:disabled { color: #b85b00; background: #fff3e0; border-color: #ffcc80; }
 
 .roll-stub-insight-label {
   font-size: 10px;
   font-weight: bold;
   padding: 1px 5px;
+  display: inline-block;
 }
 
 .roll-stub-insight-bonus   { color: #1b5e20; }
 .roll-stub-insight-penalty { color: #b85b00; }
 
-.roll-stub-result-block {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
+/* Result + Crits inline on one line. */
+.col-result label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 10px;
   color: #555;
+  margin-right: 6px;
 }
-
-.roll-stub-result-block label { display: flex; align-items: center; gap: 3px; }
 
 .roll-stub-result-input,
 .roll-stub-crit-input {
@@ -166,9 +173,8 @@ body {
 }
 
 .roll-stub-confirm {
-  flex: none;
   font-size: 11px;
-  padding: 4px 10px;
+  padding: 3px 10px;
   cursor: pointer;
   background: #1976d2;
   color: #fff;
@@ -1124,21 +1130,10 @@ body {
   border-radius: 3px;
 }
 
-.multi-roll-children {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-/* Children are nested roll_stubs; flatten their outer border so the
- * stack reads as one panel rather than N independent boxes. */
-.multi-roll-children .roll-stub {
-  border: 1px solid #eee;
-  border-radius: 0;
+/* Multi-roll embeds N roll_stub rows under one shared table so column
+ * widths line up across characters. The inner stubs render as <tr>s
+ * (bare_row: true) — no extra border styling needed here. */
+.multi-roll-stub .roll-stub-table {
   margin: 0;
-  border-bottom-width: 0;
-}
-
-.multi-roll-children .roll-stub:last-child {
-  border-bottom-width: 1px;
+  width: 100%;
 }

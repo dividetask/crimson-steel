@@ -16,8 +16,22 @@
 // inputs so the DM can override the computed values before handing
 // them off to the embedding feature.
 (function() {
+  // Look up (and lazily hydrate) a stub's config. The partial encodes
+  // the per-stub settings into a data-config attribute on the <tr>
+  // root rather than emitting an inline <script>, so the row can live
+  // inside a parent <table> without HTML5 foster-parenting moving the
+  // script tag elsewhere in the DOM.
   function cfg(stubId) {
-    return (window.rollStubConfigs || {})[stubId];
+    window.rollStubConfigs = window.rollStubConfigs || {};
+    var c = window.rollStubConfigs[stubId];
+    if (c) return c;
+    var el = rootEl(stubId);
+    if (!el) return null;
+    var raw = el.getAttribute('data-config');
+    if (!raw) return null;
+    try { c = JSON.parse(raw); } catch (e) { return null; }
+    window.rollStubConfigs[stubId] = c;
+    return c;
   }
 
   function rootEl(stubId) {
