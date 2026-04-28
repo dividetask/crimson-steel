@@ -4,7 +4,6 @@ require 'securerandom'
 require 'socket'
 require_relative 'lib/dice_system'
 require_relative 'lib/user'
-require_relative 'lib/dummy_data'
 require_relative 'lib/notes_state'
 
 set :port, 4567
@@ -25,7 +24,14 @@ require local_config if File.exist?(local_config)
 DICE_SYSTEM = DiceSystem.new(File.join(__dir__, 'data', 'dice_resolution.yaml'))
 USER_STORE  = UserStore.new(File.join(__dir__, 'data', 'users.json'))
 NOTES_STATE = NotesState.new(File.join(__dir__, 'data', 'notes_state.json'))
-DATA        = DummyData
+
+if settings.development?
+  require_relative 'lib/dummy_data'
+  DATA = DummyData
+else
+  require_relative 'lib/empty_data'
+  DATA = EmptyData
+end
 
 helpers do
   def h(text)
