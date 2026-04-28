@@ -291,6 +291,10 @@ class DummyData
     @defenses_catalog ||= YAML.load_file(File.join(__dir__, '..', 'data', 'defenses.yaml'))['defenses']
   end
 
+  def self.reactions_catalog
+    @reactions_catalog ||= YAML.load_file(File.join(__dir__, '..', 'data', 'reactions.yaml'))['reactions']
+  end
+
   def self.attacker_sample
     {
       'name'  => 'Bryn Ironvein',
@@ -318,18 +322,13 @@ class DummyData
     [
       { 'key' => 'mob-1', 'name' => 'Bandit Thug',   'incapacitated' => false,
         'defenses'  => defense_options(:thug),
-        'reactions' => [] },
+        'reactions' => reaction_options(:thug) },
       { 'key' => 'mob-2', 'name' => 'Bandit Captain','incapacitated' => false,
         'defenses'  => defense_options(:captain),
-        'reactions' => [
-          { 'key' => 'danger_sense',    'label' => 'Danger Sense',    'cost' => '4 mana',
-            'description' => 'Damage resilience +4 against this attack.' },
-          { 'key' => 'primal_tenacity', 'label' => 'Primal Tenacity', 'cost' => '4 mana',
-            'description' => 'Damage reduction +4 against this attack.' }
-        ] },
+        'reactions' => reaction_options(:captain) },
       { 'key' => 'mob-3', 'name' => 'Skeleton',      'incapacitated' => true,
         'defenses'  => [defense_option('nothing')],
-        'reactions' => [] }
+        'reactions' => reaction_options(:skeleton) }
     ]
   end
 
@@ -393,6 +392,30 @@ class DummyData
     else
       [defense_option('nothing')]
     end
+  end
+
+  # Build the `reactions` array a target ships to the stub. Same idea
+  # as defense_options: a real data layer will derive the per-target
+  # list from the target's abilities; here we synthesize per-archetype
+  # samples that the test page can exercise.
+  def self.reaction_options(archetype)
+    case archetype
+    when :captain
+      [reaction_option('danger_sense'), reaction_option('primal_tenacity')]
+    else
+      []
+    end
+  end
+
+  def self.reaction_option(kind)
+    catalog = reactions_catalog.fetch(kind)
+    {
+      'kind'        => kind,
+      'key'         => kind,
+      'label'       => catalog['label'],
+      'description' => catalog['description'],
+      'cost'        => catalog['cost']
+    }
   end
 
   def self.defense_option(kind, label_suffix: nil, implement: nil, skill: nil, min_dice: 0, max_dice: 0)
