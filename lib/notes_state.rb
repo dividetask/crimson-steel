@@ -1,27 +1,14 @@
-# Mutable shared state — everything that's not in DummyData. Lives in
-# process memory (resets on server restart). When we wire a real
-# backend the on-disk shape lives in something like data/notes.json
-# and this is the single class that reads/writes it.
+# NotesState — the canonical owner of every mutable notes-page
+# value: journal entries, the editable overlay on top of DummyData
+# notes, plus the per-map state (arrows, shapes, icons, settings,
+# created maps) and the current combat turn. Both /notes and
+# /scene read from this class; /scene is just a filtered view of
+# the active subset.
 #
-# Two tracks of state share this class because the user-facing model
-# is the same: notes-page content is the source of truth, /scene is
-# just a filtered view of the active subset.
-#
-# Notes track (used by /notes journal editing):
-#   * additions   — newly-created notes
-#   * overrides   — id => merged-fields hash
-#   * deletions   — ids hidden from DummyData.notes
-#
-# Map / scene track (used by both /notes and /scene):
-#   * arrows           — drawn by players (or DM) to indicate actions
-#   * added_objects    — DM-added tokens layered on top of DummyData
-#   * removed_objects  — DummyData token ids hidden from the map
-#   * object_moves     — overrides of token position
-#   * shapes           — DM-placed primitives (rect, ellipse)
-#   * icons            — emoji glyphs placed on the map
-#   * map_settings     — per-map label/size/visibility overrides
-#   * created_maps     — full map records that don't exist in DummyData
-#   * current_turn     — the combat_id of whose initiative slot is active
+# Persistence is the only piece that's provisional. Today the
+# data lives in process memory and resets on restart; once the
+# dummy-data phase ends, this same class reads/writes the on-disk
+# file (e.g. data/notes.json). Callers don't change either way.
 
 class NotesState
   ARROW_TYPES = %w[attack move-hurry move-sneak move-carefully].freeze
