@@ -752,32 +752,41 @@ Armor Properties:
 #
 # Magic items that aren't Weapons or Armor. Each entry specifies:
 #
-#   slot                      One of the Slots listed above.
-#   tier_surcharge (optional) A per-item override of the global
-#                             `Tier Pricing.default_surcharges` map.
-#                             Keys are non-negative integer Tiers;
-#                             absent Tiers cannot be produced for
-#                             that Item Type.
-#   guidance_attribute        The attribute that receives the item's
-#                             Guidance Bonus. Free-form string
-#                             interpreted by the character module
-#                             (e.g., `saves`, `str`, `dex`, `con`,
-#                             `int`, `wis`, `cha`). The bonus equals
-#                             the item's Tier and stacks with other
-#                             Guidance modifiers per the dice
-#                             resolution module's rules.
-#   description               Free-form prose for humans / the UI.
+#   slot                One of the Slots listed above.
+#   guidance_attribute  The attribute that receives the item's
+#                       Guidance Bonus. Free-form string interpreted
+#                       by the character module (e.g., `saves`, `str`,
+#                       `dex`, `con`, `int`, `wis`, `cha`).
+#   guidance_bonus      A list of the Guidance Bonus values this
+#                       item type can come in, in ascending order
+#                       (e.g., `[1, 2, 3, 4, 5]` for Cloak of
+#                       Resistance, `[1, 2, 3, 4, 5, 6, 7, 8, 9]`
+#                       for stat-boosting Belts and Headbands).
+#   tier                A list of Tiers, one per entry in
+#                       `guidance_bonus`, indicating the Tier of the
+#                       version with that bonus. Tier is capped at 5.
+#                       The cloak's bonuses scale 1:1 with Tier
+#                       (`[1, 2, 3, 4, 5]`), while the belts and
+#                       headbands fit two bonus values into each of
+#                       Tiers 1–4 and a single value at Tier 5
+#                       (`[1, 1, 2, 2, 3, 3, 4, 4, 5]`).
+#   description         Free-form prose for humans / the UI.
 #
-# Cloak of Resistance and the Belts/Headbands of Stat each come in
-# nine versions, +1 through +9, corresponding directly to Tiers 1
-# through 9. (These items are inherently magical — there is no
-# Tier 0 form.) The pricing follows N² × base from before-refactor,
-# extrapolated through +9.
+# Pricing for these items is computed from `Tier Pricing` directly:
+# the Unit Price of a specific +N version is
+#   default_tier_surcharges[tier_for_N] + default_bonus_surcharges[N]
+# where `tier_for_N` is the Tier paired with bonus N in the parallel
+# arrays above. No per-item `tier_surcharge` map is needed.
+#
+# A specific instance of one of these items in inventory carries
+# `tier` and `guidance_bonus` as identity fields on the stack, so
+# a +3 Belt of Strength and a +5 Belt of Strength remain separate
+# stacks even though they share the same Item Type and slot.
 #
 # Items in this section do not currently accept magical Properties
 # from the Weapon or Armor catalogs — their magical effect is the
-# inherent tier-scaled Guidance Bonus. The combat / character
-# modules read the effect off the Item Type by name.
+# inherent Guidance Bonus. The combat / character modules read the
+# effect off the Item Type by name.
 
 Items:
 
@@ -785,14 +794,14 @@ Items:
     slot: back
     guidance_attribute: saves
     guidance_bonus: [1, 2, 3, 4, 5]
-		tier: [1, 2, 3, 4, 5]
+    tier: [1, 2, 3, 4, 5]
     description: >
       Grants a guidance bonus to wearer's saving throws
 
   Belt of Strength:
     slot: belt
     guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-		tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     guidance_attribute: str
     description: >
       Grants a guidance bonus to wearer's Strength
@@ -800,7 +809,7 @@ Items:
   Belt of Dexterity:
     slot: belt
     guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-		tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     guidance_attribute: dex
     description: >
       Grants a guidance bonus to wearer's Dexterity
@@ -808,7 +817,7 @@ Items:
   Belt of Constitution:
     slot: belt
     guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-		tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     guidance_attribute: con
     description: >
       Grants a guidance bonus to wearer's Constitution
@@ -816,7 +825,7 @@ Items:
   Headband of Intelligence:
     slot: head
     guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-		tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     guidance_attribute: int
     description: >
       Grants a guidance bonus to wearer's Intelligence
@@ -824,7 +833,7 @@ Items:
   Headband of Wisdom:
     slot: head
     guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-		tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     guidance_attribute: wis
     description: >
       Grants a guidance bonus to wearer's Wisdom
@@ -832,7 +841,7 @@ Items:
   Headband of Charisma:
     slot: head
     guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-		tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     guidance_attribute: cha
     description: >
       Grants a guidance bonus to wearer's Charisma

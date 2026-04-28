@@ -24,7 +24,7 @@
 
 **Quantity**: How many of the Item Type are in the Stack. Defaults to 1. May be fractional for Currencies (e.g., 147.5 gp). Never negative. Zero-Quantity Stacks persist until a Cleanup pass removes them.
 
-**Stack Identity**: The set of fields that must all match exactly for two Stacks to merge. These are: Item Type, Tier, Properties (in order), stored_spell, durability_damage, name override, and — for Gems — value_in_gold. If any identity field differs, the Stacks remain separate.
+**Stack Identity**: The set of fields that must all match exactly for two Stacks to merge. These are: Item Type, Tier, Properties (in order), stored_spell, durability_damage, name override, and — for Gems — value_in_gold; for guidance Items, also guidance_bonus. If any identity field differs, the Stacks remain separate.
 
 **Stack Merge**: The operation of combining two Stacks with matching Stack Identity into a single Stack. The merged Stack's Quantity is the sum of the inputs' Quantities; every identity field stays the same (the inputs were already equal on those fields, by definition of Stack Identity).
 
@@ -48,11 +48,13 @@
 
 **Base Price**: The price in Gold of one non-magical (Tier 0) unit of the Item Type. Items that are inherently magical (e.g., Cloak of Resistance, which has no mundane Tier 0 form) declare `base_price: 0`.
 
-**Default Tier Surcharge**: The default flat additional cost in Gold added to an item's Unit Price when it is made magical, keyed by Tier. Defined under `Tier Pricing.default_surcharges` in `equipment_config.yaml`. Applies to every Item Type that does not declare its own `tier_surcharge` override. *(configurable)*
+**Default Tier Surcharge**: The default flat additional cost in Gold added to an item's Unit Price for being magical at a given Tier. Defined under `Tier Pricing.default_tier_surcharges` in `equipment_config.yaml`. Applies to every Item Type that does not declare its own `tier_surcharge` override. *(configurable)*
 
-**Per-Item Tier Surcharge**: An optional `tier_surcharge` map on an individual Item Type that REPLACES the Default Tier Surcharge for that type's magical pricing. Used by items whose magical pricing follows a different curve (e.g., Cloak of Resistance grows quadratically rather than the default ×4 per tier).
+**Per-Item Tier Surcharge**: An optional `tier_surcharge` map on an individual Item Type that REPLACES the Default Tier Surcharge for that type's magical pricing. Used by items whose magical pricing follows a different curve.
 
 **Tier Surcharge**: The effective per-tier flat additional cost for an Item Type — the Per-Item Tier Surcharge if declared, otherwise the Default Tier Surcharge. Used directly by Unit Price math and divided by category-specific divisors for Ammunition and non-ammo Consumables.
+
+**Default Bonus Surcharge**: A flat additional cost in Gold added per point of Guidance Bonus on an Item Type that grants one. Keyed by Bonus value. Defined under `Tier Pricing.default_bonus_surcharges`. Used together with Default Tier Surcharge to price guidance Items: a +N item at Tier T costs `default_tier_surcharges[T] + default_bonus_surcharges[N]`. *(configurable)*
 
 **Magical Ammunition Divisor**: The number of units of Magical Ammunition whose combined magical cost equals the magical surcharge of one equivalent Magical Weapon. Per-unit magical ammunition cost is `(Tier Surcharge + sum of Property costs) / Magical Ammunition Divisor`. Defined under `Tier Pricing.ammunition_divisor`. Defaults to 100. *(configurable)*
 
@@ -60,9 +62,10 @@
 
 **Innately Usable Price Multiplier**: A multiplier applied to the Unit Price of any Item Type flagged with `innately_usable: true`. Models the premium charged for items that anyone can activate without magical knowledge — most notably potions and oils. Defined under `Tier Pricing.innately_usable_price_multiplier`. Defaults to 2.0. *(configurable)*
 
-**Unit Price**: The Gold cost of a single copy of a specific item configuration (Item Type plus Tier plus Properties).
+**Unit Price**: The Gold cost of a single copy of a specific item configuration (Item Type plus Tier plus Properties plus, for guidance Items, Guidance Bonus).
 
-- For Weapons, Armor, and Items: `Unit Price = Base Price + Tier Surcharge + sum of Property costs`.
+- For Weapons and Armor: `Unit Price = Base Price + Tier Surcharge + sum of Property costs`.
+- For guidance Items (Cloak of Resistance, Belts/Headbands of Stat): `Unit Price = Default Tier Surcharge[Tier] + Default Bonus Surcharge[Guidance Bonus]`. There is no Base Price and no per-item `tier_surcharge` map; both surcharges come from `Tier Pricing` directly.
 - For Ammunition: `Unit Price = (Base Price / bundle size) + (Tier Surcharge + sum of Property costs) / Magical Ammunition Divisor`.
 - For non-ammo Consumables: `Unit Price = Base Price + (Tier Surcharge + sum of Property costs) / Consumable Surcharge Divisor`.
 - For Currencies: `Unit Price = value_in_gold`.
@@ -76,7 +79,7 @@ When the Item Type is flagged `innately_usable: true`, the result of the formula
 
 **Generated Display Name**: The item name produced from `<tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>` when no Name Override is set. The tier prefix is omitted for Tier 0 items and for any category listed in `tier_hidden_for` (e.g., Potion).
 
-**Guidance Bonus**: A flat numeric bonus an Item grants to a specific Attribute on the wearer, equal to the Item's Tier. A Tier 3 Cloak of Resistance grants +3 to all saves; a Tier 5 Belt of Strength grants +5 to Strength. The character module applies the bonus; this module just records the target attribute. Guidance is the same modifier type defined under `Bonus Types List` in the dice resolution module — the cloak/belt/headband bonuses stack and clamp per those existing rules.
+**Guidance Bonus**: A flat numeric bonus an Item grants to a specific Attribute on the wearer. The bonus value is primary; the Item's Tier is secondary (and the same Tier may correspond to more than one bonus value — a Tier 1 Belt of Strength comes in +1 and +2 versions). Each guidance Item Type lists its valid `guidance_bonus` values and the matching `tier` values as parallel arrays in `equipment_config.yaml`. Guidance is the same modifier type defined under `Bonus Types List` in the dice resolution module — the cloak/belt/headband bonuses stack and clamp per those existing rules.
 
 **Guidance Attribute**: The attribute affected by an Item's Guidance Bonus. Stored on the Item Type as `guidance_attribute` (e.g., `saves`, `str`, `dex`, `con`, `int`, `wis`, `cha`). The character module interprets the string; this module just records it.
 

@@ -30,8 +30,9 @@ The Stack Identity of an Item Stack is the tuple of:
 5. `durability_damage` (default 0)
 6. `name` (default null — the Name Override, not the generated name)
 7. `value_in_gold` (default null; present only on Gems)
+8. `guidance_bonus` (default null; present only on guidance Items)
 
-Two stacks match if and only if all seven fields are equal. The `quantity` and `restock_target` fields are NOT identity fields.
+Two stacks match if and only if all eight fields are equal. The `quantity` and `restock_target` fields are NOT identity fields.
 
 ---
 
@@ -186,7 +187,7 @@ Two stacks match if and only if all seven fields are equal. The `quantity` and `
 **Parameters:**
 - `stack`: an Item Stack.
 
-**Returns:** A tuple of seven values.
+**Returns:** A tuple of eight values.
 
 1. `return (`
 2. `⠀⠀stack['item'],`
@@ -195,8 +196,9 @@ Two stacks match if and only if all seven fields are equal. The `quantity` and `
 5. `⠀⠀stack['stored_spell'] or null,`
 6. `⠀⠀stack['durability_damage'] or 0,`
 7. `⠀⠀stack['name'] or null,`
-8. `⠀⠀stack['value_in_gold'] or null`
-9. `)`
+8. `⠀⠀stack['value_in_gold'] or null,`
+9. `⠀⠀stack['guidance_bonus'] or null`
+10. `)`
 
 **Notes:**
 - `properties` equality is element-wise and order-sensitive: `[Elemental(Fire), Subdual]` does not match `[Subdual, Elemental(Fire)]`. This is intentional — the Naming Convention uses property order when generating display names, so order is a meaningful identity component.
@@ -457,7 +459,7 @@ The returned list is a live reference — callers must not mutate it directly; a
 
 ## TIER_SURCHARGE_FOR
 
-**Description:** Internal helper. Returns the flat Gold surcharge for a specific Item Type at a specific Tier. Honors a per-item `tier_surcharge` override on the Item Type's definition; otherwise falls back to `Tier Pricing.default_surcharges`.
+**Description:** Internal helper. Returns the flat Gold surcharge for a specific Item Type at a specific Tier. Honors a per-item `tier_surcharge` override on the Item Type's definition; otherwise falls back to `Tier Pricing.default_tier_surcharges`.
 
 **Parameters:**
 - `definition`: the Item Type's definition dictionary (the inner `definition` returned by ITEM_DEFINITION).
@@ -467,7 +469,7 @@ The returned list is a live reference — callers must not mutate it directly; a
 
 1. `if 'tier_surcharge' in definition:`
 2. `⠀⠀return definition['tier_surcharge'][tier] or 0`
-3. `return equipment_config['Tier Pricing']['default_surcharges'][tier] or 0`
+3. `return equipment_config['Tier Pricing']['default_tier_surcharges'][tier] or 0`
 
 ---
 
@@ -475,7 +477,8 @@ The returned list is a live reference — callers must not mutate it directly; a
 
 **Description:** Returns the Gold cost of a single copy of an Item configuration. Dispatches on category:
 
-- **Weapon, Armor, Item**: `base_price + tier_surcharge + Σ property_cost`.
+- **Weapon, Armor**: `base_price + tier_surcharge + Σ property_cost`.
+- **Item** (slot-equippable, including guidance Items): `default_tier_surcharges[tier] + default_bonus_surcharges[guidance_bonus]` when the Item Type declares `guidance_attribute` (a guidance Item) — the Stack's `tier` and `guidance_bonus` fields drive the lookup directly. Otherwise (a non-guidance Item, e.g., a future amulet without a bonus): `base_price + tier_surcharge`. Items do not currently accept catalog Properties.
 - **Ammunition**: `(base_price / bundle_size) + (tier_surcharge + Σ property_cost) / ammunition_divisor`. Mundane ammunition is sold in bundles, but `ITEM_UNIT_PRICE` always reports the per-unit cost. The divisor is read from `equipment_config['Tier Pricing']['ammunition_divisor']` (default 100).
 - **Consumable** (non-ammo): `base_price + (tier_surcharge + Σ property_cost) / consumable_divisor`. The divisor is read from `equipment_config['Tier Pricing']['consumable_divisor']` (default 10).
 - **Currency**: `value_in_gold` from the Currency config.
@@ -508,35 +511,41 @@ After the category formula, if the Item Type is flagged `innately_usable: true`,
 15. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Armor Properties') for p in properties`
 16. `⠀⠀price = (definition['base_price'] or 0) + tier_surcharge + property_sum`
 17. `else if category == 'Item':`
-18. `⠀⠀property_sum = 0  # Items do not currently accept catalog Properties`
-19. `⠀⠀price = (definition['base_price'] or 0) + tier_surcharge + property_sum`
-20. `else if category == 'Ammunition':`
-21. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Weapon Properties') for p in properties`
-22. `⠀⠀bundle_size = definition['bundle_size']`
-23. `⠀⠀mundane_unit = definition['base_price'] / bundle_size`
-24. `⠀⠀ammo_divisor = equipment_config['Tier Pricing']['ammunition_divisor'] or 100`
-25. `⠀⠀magical_unit = (tier_surcharge + property_sum) / ammo_divisor`
-26. `⠀⠀price = mundane_unit + magical_unit`
-27. `else if category == 'Consumable':`
-28. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Weapon Properties') for p in properties  # consumables draw from the weapon-property catalog by default; override per consumable if needed`
-29. `⠀⠀consumable_divisor = equipment_config['Tier Pricing']['consumable_divisor'] or 10`
-30. `⠀⠀magical_unit = (tier_surcharge + property_sum) / consumable_divisor`
-31. `⠀⠀price = (definition['base_price'] or 0) + magical_unit`
-32. `else if category == 'Currency':`
-33. `⠀⠀return definition['value_in_gold']`
-34. `else if category == 'Gem':`
-35. `⠀⠀if 'value_in_gold' not in stack: raise exception ('Gem stack missing value_in_gold')`
-36. `⠀⠀return stack['value_in_gold']`
-37. `else:`
-38. `⠀⠀raise exception ('Unhandled item category: ' + category)`
-39. `if definition.get('innately_usable') == true:`
-40. `⠀⠀multiplier = equipment_config['Tier Pricing']['innately_usable_price_multiplier'] or 2.0`
-41. `⠀⠀price = price * multiplier`
-42. `return price`
+18. `⠀⠀if 'guidance_attribute' in definition:`
+19. `⠀⠀⠀⠀guidance_bonus = stack['guidance_bonus']`
+20. `⠀⠀⠀⠀if guidance_bonus is null: raise exception ('Guidance Item stack missing guidance_bonus: ' + stack['item'])`
+21. `⠀⠀⠀⠀tier_surcharges = equipment_config['Tier Pricing']['default_tier_surcharges']`
+22. `⠀⠀⠀⠀bonus_surcharges = equipment_config['Tier Pricing']['default_bonus_surcharges']`
+23. `⠀⠀⠀⠀price = (tier_surcharges[tier] or 0) + (bonus_surcharges[guidance_bonus] or 0)`
+24. `⠀⠀else:`
+25. `⠀⠀⠀⠀price = (definition['base_price'] or 0) + tier_surcharge`
+26. `else if category == 'Ammunition':`
+27. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Weapon Properties') for p in properties`
+28. `⠀⠀bundle_size = definition['bundle_size']`
+29. `⠀⠀mundane_unit = definition['base_price'] / bundle_size`
+30. `⠀⠀ammo_divisor = equipment_config['Tier Pricing']['ammunition_divisor'] or 100`
+31. `⠀⠀magical_unit = (tier_surcharge + property_sum) / ammo_divisor`
+32. `⠀⠀price = mundane_unit + magical_unit`
+33. `else if category == 'Consumable':`
+34. `⠀⠀property_sum = Σ PROPERTY_COST(p, 'Weapon Properties') for p in properties  # consumables draw from the weapon-property catalog by default; override per consumable if needed`
+35. `⠀⠀consumable_divisor = equipment_config['Tier Pricing']['consumable_divisor'] or 10`
+36. `⠀⠀magical_unit = (tier_surcharge + property_sum) / consumable_divisor`
+37. `⠀⠀price = (definition['base_price'] or 0) + magical_unit`
+38. `else if category == 'Currency':`
+39. `⠀⠀return definition['value_in_gold']`
+40. `else if category == 'Gem':`
+41. `⠀⠀if 'value_in_gold' not in stack: raise exception ('Gem stack missing value_in_gold')`
+42. `⠀⠀return stack['value_in_gold']`
+43. `else:`
+44. `⠀⠀raise exception ('Unhandled item category: ' + category)`
+45. `if definition.get('innately_usable') == true:`
+46. `⠀⠀multiplier = equipment_config['Tier Pricing']['innately_usable_price_multiplier'] or 2.0`
+47. `⠀⠀price = price * multiplier`
+48. `return price`
 
 **Notes:**
 - Ammunition uses weapon-property costs because magical ammunition applies the same Weapon Properties (Elemental, Subdual, etc.). The property catalog enforces applicability separately (`applies_to: [ammo]`). Consumables follow the same convention pending a dedicated property catalog; if a future Consumable Properties section is added, step 28 changes to consult it.
-- The `Item` category is for slot-equippable accessories like Cloak of Resistance, Belt of Strength, Headband of Wisdom. Properties from the catalog are not currently applicable; their magical effect comes entirely from Tier and the per-item tier_surcharge curve. A future revision may extend the property catalog with `applies_to: [item]` and remove the hard-coded zero at step 18.
+- The `Item` category branch (steps 17–25) splits on whether the Item Type is a guidance Item (declares `guidance_attribute`). Guidance Items price by the parallel `guidance_bonus` + `tier` arrays on the Item Type and the global `default_tier_surcharges` + `default_bonus_surcharges` maps; non-guidance Items fall back to the standard `base_price + tier_surcharge`. Properties from the catalog are not currently applicable to either form; a future revision may extend the property catalog with `applies_to: [item]`.
 - `unit_price` override on a Stack is an escape hatch for items whose category this module does not yet handle, or for one-off unique items.
 - The innately-usable multiplier is applied AFTER the category formula. For a Tier 1 potion with `base_price: 0`, `tier_surcharge: 250`, `consumable_divisor: 10`, and `innately_usable: true`, the math is: `(0 + 250/10) × 2.0 = 50` gp.
 
