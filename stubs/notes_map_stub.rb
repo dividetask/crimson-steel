@@ -98,16 +98,54 @@ helpers do
     end
   end
 
-  # Files in public/images/ that the DM can drop onto a map as
-  # token-sized image glyphs. Listed alphabetically so the palette
-  # order is stable across reloads.
+  # Map-image palette entries the DM can drop onto a map. The list
+  # is built from two sources, in this order:
+  #
+  #   1. data/map_images.yaml (optional) — curated entries with
+  #      explicit labels and ordering. Format:
+  #        - label: Lysander
+  #          src:   /images/Lysander.webp
+  #
+  #   2. Auto-discovery of supported files in public/images/. Files
+  #      already named in the YAML are skipped so curated entries
+  #      stay at the top in their authored order.
+  #
+  # Each returned row is a Hash { 'src' => ..., 'label' => ... }.
+  # Drop a file into public/images/ (or add it to the YAML) and it
+  # shows up on the next reload.
   def notes_map_image_library
+    rows = []
+    seen = {}
+
+    yaml_path = File.join(__dir__, '..', 'data', 'map_images.yaml')
+    if File.exist?(yaml_path)
+      require 'yaml'
+      raw = YAML.safe_load(File.read(yaml_path)) || []
+      raw.each do |entry|
+        next unless entry.is_a?(Hash)
+        src = entry['src'].to_s.strip
+        next if src.empty? || !src.start_with?('/images/')
+        label = (entry['label'] || File.basename(src, '.*')).to_s
+        next if seen[src]
+        rows << { 'src' => src, 'label' => label }
+        seen[src] = true
+      end
+    end
+
     dir = File.join(__dir__, '..', 'public', 'images')
-    return [] unless File.directory?(dir)
-    exts = %w[.png .jpg .jpeg .gif .webp]
-    Dir.entries(dir).select do |f|
-      File.file?(File.join(dir, f)) && exts.include?(File.extname(f).downcase)
-    end.sort
+    if File.directory?(dir)
+      exts = %w[.png .jpg .jpeg .gif .webp]
+      Dir.entries(dir).sort.each do |f|
+        next unless File.file?(File.join(dir, f))
+        next unless exts.include?(File.extname(f).downcase)
+        src = "/images/#{f}"
+        next if seen[src]
+        rows << { 'src' => src, 'label' => File.basename(f, '.*') }
+        seen[src] = true
+      end
+    end
+
+    rows
   end
 
   def notes_map_arrow_label(type)

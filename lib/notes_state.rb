@@ -13,6 +13,16 @@ class NotesState
   # in squares; the partial multiplies up for the SVG viewBox.
   SQUARE_PX = 50
 
+  # Snap an (x, y) coordinate to the center of the grid square that
+  # contains it. Used for icons and image tokens so they always land
+  # inside a single square instead of straddling grid lines.
+  def self.snap_center(x, y)
+    sq = SQUARE_PX
+    cx = (x.to_f / sq).floor * sq + sq / 2.0
+    cy = (y.to_f / sq).floor * sq + sq / 2.0
+    [cx, cy]
+  end
+
   attr_reader :created_maps
 
   def initialize(path = nil)
@@ -256,11 +266,12 @@ class NotesState
   end
 
   def add_icon(map_id:, glyph:, x:, y:, size: 28)
+    cx, cy = self.class.snap_center(x, y)
     icon = {
       'id'    => "icon_#{SecureRandom.hex(3)}",
       'glyph' => glyph.to_s,
-      'x'     => x.to_f,
-      'y'     => y.to_f,
+      'x'     => cx,
+      'y'     => cy,
       'size'  => size.to_f
     }
     (@icons_by_map[map_id.to_i] ||= []) << icon
@@ -278,8 +289,9 @@ class NotesState
     list = @icons_by_map[map_id.to_i] or return false
     icon = list.find { |i| i['id'] == icon_id }
     return false unless icon
-    icon['x'] = x.to_f
-    icon['y'] = y.to_f
+    cx, cy = self.class.snap_center(x, y)
+    icon['x'] = cx
+    icon['y'] = cy
     save!
     true
   end
@@ -297,11 +309,12 @@ class NotesState
 
   def add_map_image(map_id:, src:, x:, y:, size: SQUARE_PX)
     return false unless src.to_s.start_with?('/images/')
+    cx, cy = self.class.snap_center(x, y)
     rec = {
       'id'   => "img_#{SecureRandom.hex(3)}",
       'src'  => src.to_s,
-      'x'    => x.to_f,
-      'y'    => y.to_f,
+      'x'    => cx,
+      'y'    => cy,
       'size' => size.to_f
     }
     (@map_images_by_map[map_id.to_i] ||= []) << rec
@@ -319,8 +332,9 @@ class NotesState
     list = @map_images_by_map[map_id.to_i] or return false
     rec = list.find { |i| i['id'] == image_id }
     return false unless rec
-    rec['x'] = x.to_f
-    rec['y'] = y.to_f
+    cx, cy = self.class.snap_center(x, y)
+    rec['x'] = cx
+    rec['y'] = cy
     save!
     true
   end

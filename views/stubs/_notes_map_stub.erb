@@ -295,17 +295,19 @@
               <% if library.empty? %>
                 <div class="notes-map-image-status">
                   No images in <code>public/images/</code>. Drop .png /
-                  .jpg / .webp files there and reload.
+                  .jpg / .webp files there and reload, or curate the
+                  list via <code>data/map_images.yaml</code> (see
+                  <code>docs/map_images_config.yaml.example</code>).
                 </div>
               <% else %>
                 <div class="notes-map-image-group">
-                  <% library.each do |fn| %>
+                  <% library.each do |row| %>
                     <button type="button"
                             class="notes-map-image-btn"
-                            data-image-src="/images/<%= h fn %>"
-                            title="<%= h File.basename(fn, '.*') %>">
-                      <img src="/images/<%= h fn %>"
-                           alt="<%= h File.basename(fn, '.*') %>">
+                            data-image-src="<%= h row['src'] %>"
+                            title="<%= h row['label'] %>">
+                      <img src="<%= h row['src'] %>"
+                           alt="<%= h row['label'] %>">
                     </button>
                   <% end %>
                 </div>
