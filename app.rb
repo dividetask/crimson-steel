@@ -27,6 +27,11 @@ USER_STORE  = UserStore.new(File.join(__dir__, 'data', 'users.json'))
 NOTES_STATE = NotesState.new(File.join(__dir__, 'data', 'notes_state.json'))
 DATA        = DummyData
 
+# Hard rule: DummyData stays out of production. In dev it returns
+# its hard-coded sample content; in any other environment every
+# method funnels through gate(empty) and returns the empty default.
+DummyData.enabled = settings.development?
+
 helpers do
   def h(text)
     Rack::Utils.escape_html(text.to_s)
