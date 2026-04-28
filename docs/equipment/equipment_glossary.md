@@ -24,7 +24,7 @@
 
 **Quantity**: How many of the Item Type are in the Stack. Defaults to 1. May be fractional for Currencies (e.g., 147.5 gp). Never negative. Zero-Quantity Stacks persist until a Cleanup pass removes them.
 
-**Stack Identity**: The set of fields that must all match exactly for two Stacks to merge. These are: Item Type, Tier, Properties (in order), stored_spell, durability_damage, name override, and — for Gems — value_in_gold; for guidance Items, also guidance_bonus. If any identity field differs, the Stacks remain separate.
+**Stack Identity**: The set of fields that must all match exactly for two Stacks to merge. These are: Item Type, Tier, Properties (in order), stored_spell, durability_damage, name override, equipped status, and — for Gems — value_in_gold; for guidance Items, also guidance_bonus. If any identity field differs, the Stacks remain separate. (Equipped and unequipped copies of the same weapon do not merge — they are distinguishable to the wearer.)
 
 **Stack Merge**: The operation of combining two Stacks with matching Stack Identity into a single Stack. The merged Stack's Quantity is the sum of the inputs' Quantities; every identity field stays the same (the inputs were already equal on those fields, by definition of Stack Identity).
 
@@ -35,6 +35,8 @@
 **Name Override**: A string that fully replaces the Generated Display Name of an item instance.
 
 **Restock Target**: An optional per-Stack integer. When the Restock operation runs for the Owner, every understocked Stack (Quantity below its Restock Target) is brought back up to target. A Stack without a Restock Target is never restocked.
+
+**Equipped**: An optional boolean on an Item Stack. `true` means the wearer has the item equipped (worn, wielded, or otherwise active); `false` (or absent) means it is in the owner's possession but not active. Equipped status is part of Stack Identity, so an equipped Long sword and an unequipped Long sword on the same character do not merge into a single stack of quantity 2. Loot tables may set the flag via a row-level `equipped: true` so that creature-loadout drops arrive pre-equipped.
 
 ## Item Definitions
 
@@ -101,10 +103,12 @@ When the Item Type is flagged `innately_usable: true`, the result of the formula
 
 **Roll Row**: One entry in a Loot Table's `rolls` list. Four row shapes are recognized:
 
-- **Guaranteed**: `{slot, item}` — the item always drops.
-- **Independent Chance**: `{slot, chance, item}` — the item drops with probability `chance` ∈ `[0, 1]`.
-- **Weighted Choice**: `{slot, options: [{chance, item}, ...]}` — exactly one of the options is picked by cumulative-probability sample; the remainder (when `sum(chance) < 1`) means nothing drops.
-- **Gated Weighted Choice**: `{slot, chance, options: [...]}` — first roll `chance` to decide whether to enter the table; on success, do a Weighted Choice.
+- **Guaranteed**: `{item}` — the item always drops.
+- **Independent Chance**: `{chance, item}` — the item drops with probability `chance` ∈ `[0, 1]`.
+- **Weighted Choice**: `{options: [{chance, item}, ...]}` — exactly one of the options is picked by cumulative-probability sample; the remainder (when `sum(chance) < 1`) means nothing drops.
+- **Gated Weighted Choice**: `{chance, options: [...]}` — first roll `chance` to decide whether to enter the table; on success, do a Weighted Choice.
+
+Any row may also declare `equipped: true` at the row level. When present, the Item Stack produced by that row is tagged as equipped on its way into the recipient's inventory. The flag applies to whatever the row actually produces, including weighted-choice winners and inline magical results. Stacks without the flag default to unequipped.
 
 **Option List**: A named, reusable weighted-choice list stored under `option_lists:` in a loot table file. A Roll Row may set `options: "<list_name>"` (string) to pull options from the registry instead of inlining them. Option entries may also recurse via `{chance, from: "<other_list>"}`.
 

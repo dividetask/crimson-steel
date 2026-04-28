@@ -26,37 +26,39 @@
 # Each entry under a table's `rolls:` list takes one of four shapes:
 #
 # 1. Guaranteed — always drops.
-#      - slot: <label>
-#        item:
+#      - item:
 #          item: <name>       # key in equipment_config.yaml
 #          quantity: <number or dice expression>
 #          # ...any identity fields...
 #
 # 2. Independent Chance — drops with probability `chance` ∈ [0, 1].
-#      - slot: <label>
-#        chance: 0.5
+#      - chance: 0.5
 #        item:
 #          item: <name>
 #
 # 3. Weighted Choice — picks exactly one option by cumulative
 #    probability. If sum(chance) < 1, the remainder means "nothing."
 #    `options` may be an inline list OR the name of an Option List.
-#      - slot: <label>
-#        options:
+#      - options:
 #          - chance: 0.3
 #            item: {item: <name>}
 #          - chance: 0.2
 #            item: {item: <other>}
 #          # remainder 0.5 = nothing
 #
-#      - slot: <label>
-#        options: tier_one_magical_melee   # pull from option_lists
+#      - options: tier_one_magical_melee   # pull from option_lists
 #
 # 4. Gated Weighted Choice — first roll `chance` to decide whether to
 #    enter the table at all; on success, do a Weighted Choice.
-#      - slot: <label>
-#        chance: 0.1                       # 10% chance to drop anything
+#      - chance: 0.1                       # 10% chance to drop anything
 #        options: [...]                    # weighted choice inside
+#
+# Any row may also declare `equipped: true` at the row level. When
+# present, the Item Stack produced by that row is marked as equipped
+# (e.g., a guard rolls with their weapon and armor already on). The
+# flag applies to whatever the row actually produces, including
+# weighted-choice winners and inline magical results. Stacks without
+# the flag default to unequipped.
 #
 # ---------------------------------------------------------------------
 # Dice expressions
@@ -115,7 +117,7 @@ loot_tables:
   town_guard_equipment:
     rolls:
 
-      - slot: weapon
+      - equipped: true
         options:
           - chance: 0.40
             item: {item: Short sword}
@@ -126,7 +128,7 @@ loot_tables:
           - chance: 0.10
             item: {item: Hatchet}
 
-      - slot: armor
+      - equipped: true
         options:
           - chance: 0.60
             item: {item: Chain shirt}
@@ -134,12 +136,11 @@ loot_tables:
             item: {item: Leather armor}
           # 10% nothing
 
-      - slot: shield
+      - equipped: true
         chance: 0.40
         item: {item: Light wooden shield}
 
-      - slot: purse
-        item:
+      - item:
           item: Gold
           quantity: "2d6 + 5"
 
@@ -151,7 +152,7 @@ loot_tables:
   bandit_equipment:
     rolls:
 
-      - slot: weapon
+      - equipped: true
         options:
           - chance: 0.25
             item: {item: Dagger}
@@ -165,28 +166,26 @@ loot_tables:
             item: {item: Rapier}
           # 10% nothing
 
-      - slot: armor
+      - equipped: true
         chance: 0.50
         item: {item: Leather armor}
 
       # Archers carry a small bundle of arrows. Gated: 30% chance the
       # bandit is an archer, then weighted over bundle sizes.
-      - slot: ammo
-        chance: 0.30
+      - chance: 0.30
         options:
           - chance: 0.60
             item: {item: Arrow, quantity: "1d10 + 5"}
           - chance: 0.40
             item: {item: Arrow, quantity: "2d10 + 10"}
 
-      - slot: purse
-        item:
+      - item:
           item: Gold
           quantity: "1d6 + 1"
 
       # 5% of bandits have a stolen magical trinket — either a weapon
-      # or a piece of armor.
-      - slot: trinket
+      # or a piece of armor, worn or wielded.
+      - equipped: true
         chance: 0.05
         options:
           - chance: 0.50
@@ -216,29 +215,23 @@ loot_tables:
   dragon_hoard:
     rolls:
 
-      - slot: gold
-        item:
+      - item:
           item: Gold
           quantity: "4d100 + 500"
 
-      - slot: silver
-        item:
+      - item:
           item: Silver
           quantity: "5d100"
 
       # A fistful of gems, rolled from a shared distribution. Each
       # of these three rolls is independent — the dragon is likely
       # to hoard more than one gem.
-      - slot: gem_1
-        options: dragon_hoard_gems
-      - slot: gem_2
-        options: dragon_hoard_gems
-      - slot: gem_3
-        chance: 0.60
+      - options: dragon_hoard_gems
+      - options: dragon_hoard_gems
+      - chance: 0.60
         options: dragon_hoard_gems
 
-      - slot: weapon
-        item:
+      - item:
           magical:
             category: melee
             tier: [2, 3]
@@ -254,8 +247,7 @@ loot_tables:
               Long sword: 2
               Halberd: 1
 
-      - slot: armor
-        chance: 0.50
+      - chance: 0.50
         item:
           magical:
             category: all_body
@@ -265,8 +257,7 @@ loot_tables:
               Spell Storing 2: 1
               Elemental Resistance: 2
 
-      - slot: ammo
-        chance: 0.40
+      - chance: 0.40
         item:
           magical:
             category: ammo
@@ -286,41 +277,28 @@ loot_tables:
 
   blacksmith_stock:
     rolls:
-      - slot: long_swords
-        chance: 0.80
+      - chance: 0.80
         item: {item: Long sword, quantity: "1d3"}
-      - slot: hatchets
-        item: {item: Hatchet, quantity: "1d4 + 2"}
-      - slot: spears
-        item: {item: Spear, quantity: "1d6 + 2"}
-      - slot: maces
-        chance: 0.70
+      - item: {item: Hatchet, quantity: "1d4 + 2"}
+      - item: {item: Spear, quantity: "1d6 + 2"}
+      - chance: 0.70
         item: {item: Mace, quantity: "1d4 + 1"}
-      - slot: daggers
-        item: {item: Dagger, quantity: "1d6"}
-      - slot: leather_armor
-        chance: 0.80
+      - item: {item: Dagger, quantity: "1d6"}
+      - chance: 0.80
         item: {item: Leather armor, quantity: "1d3"}
-      - slot: chain_shirts
-        chance: 0.50
+      - chance: 0.50
         item: {item: Chain shirt, quantity: "1d2"}
-      - slot: shields
-        item: {item: Light wooden shield, quantity: "1d4"}
-      - slot: arrows
-        item: {item: Arrow, quantity: "2d10 + 20"}
-      - slot: bolts
-        chance: 0.50
+      - item: {item: Light wooden shield, quantity: "1d4"}
+      - item: {item: Arrow, quantity: "2d10 + 20"}
+      - chance: 0.50
         item: {item: Bolt, quantity: "1d10 + 10"}
-      - slot: refresh_gold
-        item: {item: Gold, quantity: "3d20 + 100"}
+      - item: {item: Gold, quantity: "3d20 + 100"}
 
   alchemist_stock:
     rolls:
       # Potion entries elided until the Potion category lands.
-      - slot: refresh_gold
-        item: {item: Gold, quantity: "2d20 + 50"}
-      - slot: gems
-        chance: 0.40
+      - item: {item: Gold, quantity: "2d20 + 50"}
+      - chance: 0.40
         item:
           item: Gem
           name: Quartz
@@ -329,8 +307,7 @@ loot_tables:
 
   random_market_stall_stock:
     rolls:
-      - slot: weapon
-        chance: 0.50
+      - chance: 0.50
         options:
           - chance: 0.40
             item: {item: Dagger, quantity: "1d3"}
@@ -338,19 +315,15 @@ loot_tables:
             item: {item: Hatchet}
           - chance: 0.30
             item: {item: Short sword}
-      - slot: armor
-        chance: 0.30
+      - chance: 0.30
         item: {item: Leather armor}
-      - slot: arrows
-        chance: 0.50
+      - chance: 0.50
         item: {item: Arrow, quantity: "1d20 + 5"}
-      - slot: gold
-        item: {item: Gold, quantity: "2d10 + 10"}
+      - item: {item: Gold, quantity: "2d10 + 10"}
 
   traveling_peddler_stock:
     rolls:
-      - slot: trinket
-        options:
+      - options:
           - chance: 0.20
             item: {item: Dagger}
           - chance: 0.20
@@ -364,8 +337,7 @@ loot_tables:
               value_in_gold: 10
               quantity: "1d4"
           # 30% nothing
-      - slot: rare_find
-        chance: 0.05
+      - chance: 0.05
         item:
           magical:
             category: melee
@@ -373,8 +345,7 @@ loot_tables:
             properties_weighted:
               Subdual: 2
               Emotional: 1
-      - slot: gold
-        item: {item: Gold, quantity: "1d10 + 5"}
+      - item: {item: Gold, quantity: "1d10 + 5"}
 
 # ---------------------------------------------------------------------
 # Option lists

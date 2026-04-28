@@ -31,8 +31,9 @@ The Stack Identity of an Item Stack is the tuple of:
 6. `name` (default null — the Name Override, not the generated name)
 7. `value_in_gold` (default null; present only on Gems)
 8. `guidance_bonus` (default null; present only on guidance Items)
+9. `equipped` (default false)
 
-Two stacks match if and only if all eight fields are equal. The `quantity` and `restock_target` fields are NOT identity fields.
+Two stacks match if and only if all nine fields are equal. The `quantity` and `restock_target` fields are NOT identity fields.
 
 ---
 
@@ -187,7 +188,7 @@ Two stacks match if and only if all eight fields are equal. The `quantity` and `
 **Parameters:**
 - `stack`: an Item Stack.
 
-**Returns:** A tuple of eight values.
+**Returns:** A tuple of nine values.
 
 1. `return (`
 2. `⠀⠀stack['item'],`
@@ -197,8 +198,9 @@ Two stacks match if and only if all eight fields are equal. The `quantity` and `
 6. `⠀⠀stack['durability_damage'] or 0,`
 7. `⠀⠀stack['name'] or null,`
 8. `⠀⠀stack['value_in_gold'] or null,`
-9. `⠀⠀stack['guidance_bonus'] or null`
-10. `)`
+9. `⠀⠀stack['guidance_bonus'] or null,`
+10. `⠀⠀stack['equipped'] or false`
+11. `)`
 
 **Notes:**
 - `properties` equality is element-wise and order-sensitive: `[Elemental(Fire), Subdual]` does not match `[Subdual, Elemental(Fire)]`. This is intentional — the Naming Convention uses property order when generating display names, so order is a meaningful identity component.
@@ -780,32 +782,35 @@ After the category formula, if the Item Type is flagged `innately_usable: true`,
 
 **Description:** Rolls one row of a Loot Table and returns either an Item Stack or `null` (nothing dropped). Dispatches on row shape:
 
-- **Guaranteed** (`{slot, item}`): always returns a resolved copy of `item`.
-- **Independent Chance** (`{slot, chance, item}`): returns `item` with probability `chance`.
-- **Weighted Choice** (`{slot, options: [...]}` or `{slot, options: "<list_name>"}`): picks one option by cumulative probability; the remainder (when `sum(chance) < 1`) means nothing drops.
-- **Gated Weighted Choice** (`{slot, chance, options: [...]}`): first rolls `chance` to decide whether to descend into the weighted choice.
+- **Guaranteed** (`{item}`): always returns a resolved copy of `item`.
+- **Independent Chance** (`{chance, item}`): returns `item` with probability `chance`.
+- **Weighted Choice** (`{options: [...]}` or `{options: "<list_name>"}`): picks one option by cumulative probability; the remainder (when `sum(chance) < 1`) means nothing drops.
+- **Gated Weighted Choice** (`{chance, options: [...]}`): first rolls `chance` to decide whether to descend into the weighted choice.
 
-The `slot` field is a label used for human-readable identification only; ROLL_ROW does not consume it.
+If the row carries `equipped: true`, the produced Stack is tagged with `equipped: true` before being returned. The flag applies to whatever the row produces, including weighted-choice winners and inline magical results.
 
 **Parameters:**
 - `row`: a row dictionary.
 
 **Returns:** An Item Stack or `null`.
 
-1. `options = row['options']`
-2. `if options is a string:`
-3. `⠀⠀if options not in option_lists: raise exception ('Unknown option list: ' + options)`
-4. `⠀⠀options = option_lists[options]`
-5. `if options is a list:`
-6. `⠀⠀if 'chance' in row and RAND_FLOAT() >= row['chance']:`
-7. `⠀⠀⠀⠀return null`
-8. `⠀⠀return ROLL_WEIGHTED(options)`
-9. `if 'chance' in row:`
-10. `⠀⠀if RAND_FLOAT() >= row['chance']: return null`
-11. `⠀⠀return RESOLVE_ITEM_SPEC(row['item'])`
-12. `if 'item' in row:`
-13. `⠀⠀return RESOLVE_ITEM_SPEC(row['item'])`
-14. `return null`
+1. `result = null`
+2. `options = row['options']`
+3. `if options is a string:`
+4. `⠀⠀if options not in option_lists: raise exception ('Unknown option list: ' + options)`
+5. `⠀⠀options = option_lists[options]`
+6. `if options is a list:`
+7. `⠀⠀if 'chance' in row and RAND_FLOAT() >= row['chance']:`
+8. `⠀⠀⠀⠀return null`
+9. `⠀⠀result = ROLL_WEIGHTED(options)`
+10. `else if 'chance' in row:`
+11. `⠀⠀if RAND_FLOAT() >= row['chance']: return null`
+12. `⠀⠀result = RESOLVE_ITEM_SPEC(row['item'])`
+13. `else if 'item' in row:`
+14. `⠀⠀result = RESOLVE_ITEM_SPEC(row['item'])`
+15. `if result is not null and row.get('equipped') == true:`
+16. `⠀⠀result['equipped'] = true`
+17. `return result`
 
 ---
 
