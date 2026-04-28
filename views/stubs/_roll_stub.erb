@@ -14,10 +14,12 @@
   <thead>
     <tr>
       <th class="col-roll"></th>
-      <th class="col-meta">Character</th>
-      <th class="col-dice">Dice</th>
-      <th class="col-result">Result / Crits</th>
       <% if show_confirm %><th class="col-confirm"></th><% end %>
+      <th class="col-meta">Character</th>
+      <th class="col-initial">Initial</th>
+      <th class="col-luck">Luck</th>
+      <th class="col-insight">Insight</th>
+      <th class="col-result">Result / Crits</th>
     </tr>
   </thead>
   <tbody>
@@ -27,6 +29,12 @@
         <button type="button" class="roll-stub-roll"
                 onclick="rollStubRoll('<%= stub_id %>')">Roll</button>
       </td>
+      <% if show_confirm %>
+        <td class="col-confirm">
+          <button type="button" class="roll-stub-confirm"
+                  onclick="rollStubConfirm('<%= stub_id %>')">Confirm</button>
+        </td>
+      <% end %>
       <td class="col-meta">
         <% if character_name && !character_name.to_s.empty? %>
           <div class="roll-stub-name"><%= h(character_name) %></div>
@@ -34,29 +42,27 @@
         <div class="roll-stub-params"><%= h(roll_stub_params_line(tn.to_i, dice_count.to_i, starting_value.to_i)) %></div>
         <div class="roll-stub-check">(<%= h(check_name) %>)</div>
       </td>
-      <td class="col-dice">
-        <div class="roll-stub-rows">
-          <span class="roll-stub-row-action"></span>
-          <span class="roll-stub-row-label">Initial:</span>
-          <span class="roll-stub-row-dice" id="roll-stub-row-initial-<%= stub_id %>"></span>
-          <% if luck_amount.to_i != 0 %>
-            <span class="roll-stub-row-action">
-              <button type="button"
-                      class="roll-stub-reroll-luck <%= luck_amount.to_i > 0 ? 'roll-stub-luck-bonus' : 'roll-stub-luck-penalty' %>"
-                      onclick="rollStubRerollLuck('<%= stub_id %>')"
-                      disabled><%= h(roll_stub_modifier_text(luck_amount.to_i, luck_label)) %></button>
-            </span>
-            <span class="roll-stub-row-label">Luck:</span>
-            <span class="roll-stub-row-dice" id="roll-stub-row-luck-<%= stub_id %>"></span>
-          <% end %>
-          <% if insight_amount.to_i != 0 %>
-            <span class="roll-stub-row-action">
-              <span class="roll-stub-insight-label <%= insight_amount.to_i > 0 ? 'roll-stub-insight-bonus' : 'roll-stub-insight-penalty' %>"><%= h(roll_stub_modifier_text(insight_amount.to_i, insight_label)) %></span>
-            </span>
-            <span class="roll-stub-row-label">Insight:</span>
-            <span class="roll-stub-row-dice" id="roll-stub-row-insight-<%= stub_id %>"></span>
-          <% end %>
-        </div>
+      <td class="col-initial">
+        <div class="roll-stub-row-dice" id="roll-stub-row-initial-<%= stub_id %>"></div>
+      </td>
+      <td class="col-luck">
+        <% if luck_amount.to_i != 0 %>
+          <div class="roll-stub-luck-cell">
+            <button type="button"
+                    class="roll-stub-reroll-luck <%= luck_amount.to_i > 0 ? 'roll-stub-luck-bonus' : 'roll-stub-luck-penalty' %>"
+                    onclick="rollStubRerollLuck('<%= stub_id %>')"
+                    disabled><%= h(roll_stub_modifier_text(luck_amount.to_i, luck_label)) %></button>
+            <div class="roll-stub-row-dice" id="roll-stub-row-luck-<%= stub_id %>"></div>
+          </div>
+        <% end %>
+      </td>
+      <td class="col-insight">
+        <% if insight_amount.to_i != 0 %>
+          <div class="roll-stub-insight-cell">
+            <span class="roll-stub-insight-label <%= insight_amount.to_i > 0 ? 'roll-stub-insight-bonus' : 'roll-stub-insight-penalty' %>"><%= h(roll_stub_modifier_text(insight_amount.to_i, insight_label)) %></span>
+            <div class="roll-stub-row-dice" id="roll-stub-row-insight-<%= stub_id %>"></div>
+          </div>
+        <% end %>
       </td>
       <td class="col-result">
         <label>R
@@ -68,12 +74,6 @@
                  id="roll-stub-crits-<%= stub_id %>" value="0" min="0">
         </label>
       </td>
-      <% if show_confirm %>
-        <td class="col-confirm">
-          <button type="button" class="roll-stub-confirm"
-                  onclick="rollStubConfirm('<%= stub_id %>')">Confirm</button>
-        </td>
-      <% end %>
     </tr>
 <% unless bare_row %>
   </tbody>

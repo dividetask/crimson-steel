@@ -74,6 +74,10 @@ body {
   border-collapse: collapse;
   font-size: 11px;
   margin: 4px 0;
+  /* Hug the left edge; don't expand to fill the parent so a stack
+   * of rolls reads as a tight block on the left instead of a sparse
+   * full-width grid. */
+  width: auto;
 }
 
 .roll-stub-table th,
@@ -81,6 +85,7 @@ body {
   padding: 3px 8px;
   vertical-align: middle;
   border-bottom: 1px solid #eee;
+  text-align: left;
 }
 
 .roll-stub-table thead th {
@@ -97,7 +102,22 @@ body {
 .roll-stub-table .col-roll,
 .roll-stub-table .col-confirm { width: 1%; white-space: nowrap; }
 .roll-stub-table .col-meta    { white-space: nowrap; }
+.roll-stub-table .col-initial,
+.roll-stub-table .col-luck,
+.roll-stub-table .col-insight { white-space: nowrap; font-family: monospace; }
 .roll-stub-table .col-result  { white-space: nowrap; width: 1%; }
+
+/* Modifier (button or label) sits above its dice in the same column
+ * so each per-character cell is a tight 2-line block. The shared
+ * table column algorithm then aligns Initial/Luck/Insight across
+ * every character's row. */
+.roll-stub-luck-cell,
+.roll-stub-insight-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
 
 .roll-stub-roll {
   font-size: 11px;
@@ -115,18 +135,7 @@ body {
 .roll-stub-params { color: #555; line-height: 1.2; }
 .roll-stub-check  { color: #555; font-style: italic; line-height: 1.2; }
 
-.roll-stub-rows {
-  display: grid;
-  grid-template-columns: max-content max-content 1fr;
-  column-gap: 6px;
-  row-gap: 0;
-  align-items: center;
-  font-family: monospace;
-}
-
-.roll-stub-row-action { white-space: nowrap; }
-.roll-stub-row-label  { font-weight: bold; }
-.roll-stub-row-dice   { min-height: 14px; }
+.roll-stub-row-dice { min-height: 14px; }
 
 .roll-stub-reroll-luck {
   font-size: 10px;
@@ -1135,5 +1144,4 @@ body {
  * (bare_row: true) — no extra border styling needed here. */
 .multi-roll-stub .roll-stub-table {
   margin: 0;
-  width: 100%;
 }
