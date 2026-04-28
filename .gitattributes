@@ -1,0 +1,3 @@
+local.rb merge=ours
+data/* merge=ours
+public/uploads/* merge=ours
