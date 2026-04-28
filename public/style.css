@@ -391,3 +391,663 @@ body {
   padding: 2px 8px;
   cursor: pointer;
 }
+
+/* --- Notes page stubs ---------------------------------------------------- */
+
+.notes-empty {
+  color: #777;
+  font-style: italic;
+}
+
+.notes-chapter-filter {
+  margin: 8px 0 16px 0;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.notes-chapter-label { font-weight: bold; }
+
+.notes-chapter-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  background: #f5f5f5;
+  color: #333;
+  text-decoration: none;
+  font-size: 11px;
+}
+
+.notes-chapter-chip:hover { background: #e8e8e8; }
+.notes-chapter-chip.active {
+  background: #1976d2;
+  border-color: #0d47a1;
+  color: #fff;
+}
+
+.notes-meta-chip {
+  display: inline-block;
+  padding: 1px 6px;
+  margin-left: 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  background: #eee;
+  color: #444;
+  border: 1px solid #ccc;
+}
+
+.notes-meta-private {
+  background: #6a0000;
+  color: #fff;
+  border-color: #3a0000;
+}
+
+.notes-meta-active {
+  background: #1976d2;
+  color: #fff;
+  border-color: #0d47a1;
+}
+
+.notes-journal-stub {
+  margin: 8px 0;
+}
+
+.notes-journal-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.notes-journal-item {
+  border: 1px solid #ddd;
+  border-left: 3px solid #1976d2;
+  border-radius: 3px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: #fafafa;
+}
+
+.notes-journal-title { font-weight: bold; margin-bottom: 4px; }
+.notes-journal-body  { line-height: 1.4; }
+.notes-journal-meta  { margin-top: 6px; }
+
+.notes-journal-add,
+.notes-journal-edit {
+  margin-top: 8px;
+  border: 1px dashed #bbb;
+  border-radius: 3px;
+  padding: 4px 8px;
+  background: #fff;
+}
+
+.notes-journal-add summary,
+.notes-journal-edit summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: #444;
+}
+
+.notes-journal-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: flex-start;
+  margin-top: 6px;
+}
+
+.notes-journal-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: #444;
+}
+
+.notes-journal-form .notes-journal-flag {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.notes-journal-form input[type="text"],
+.notes-journal-form input[type="number"],
+.notes-journal-form textarea {
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+.notes-journal-form input[type="text"]   { width: 240px; }
+.notes-journal-form input[type="number"] { width: 60px; }
+.notes-journal-form textarea             { width: 360px; max-width: 100%; }
+
+.notes-journal-actions {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.notes-journal-form button {
+  font-size: 11px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+
+.notes-journal-delete-form {
+  margin-top: 6px;
+  border-top: 1px dashed #ddd;
+  padding-top: 6px;
+}
+
+.notes-journal-delete-btn {
+  font-size: 11px;
+  padding: 2px 10px;
+  background: #6a0000;
+  color: #fff;
+  border: 1px solid #3a0000;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.notes-characters-stub { margin: 8px 0; }
+
+.notes-characters-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.notes-characters-table th,
+.notes-characters-table td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid #eee;
+  vertical-align: top;
+}
+
+.notes-characters-table th {
+  background: #f5f5f5;
+  font-weight: bold;
+}
+
+.notes-character-name { font-weight: bold; white-space: nowrap; }
+
+.notes-images-stub { margin: 8px 0; }
+
+.notes-images-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.notes-image-card {
+  margin: 0;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #fafafa;
+}
+
+.notes-image-frame {
+  display: block;
+  background: #eee;
+  border-bottom: 1px solid #ddd;
+}
+
+.notes-image-svg {
+  display: block;
+  width: 100%;
+  height: 120px;
+}
+
+.notes-image-caption {
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #444;
+}
+
+/* --- Notes map stub ----------------------------------------------------- */
+
+.scene-description {
+  font-style: italic;
+  color: #555;
+  margin: 4px 0 12px 0;
+}
+
+.notes-map-stub { margin: 8px 0 16px 0; }
+
+.notes-map-card {
+  margin: 0 0 12px 0;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.notes-map-frame {
+  display: block;
+  background: #eef1e8;
+  border-bottom: 1px solid #ddd;
+}
+
+.notes-map-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 360px;
+}
+
+/* Side-toolbar layout. Toolbar is a fixed-width column to the left
+   of the SVG; the frame takes the remaining width. */
+.notes-map-workspace {
+  display: flex;
+  align-items: flex-start;
+}
+
+.notes-map-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px;
+  background: #2c2c2c;
+  border-right: 1px solid #ddd;
+}
+
+.notes-map-toolbar hr {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid #555;
+  margin: 4px 0;
+}
+
+.notes-map-tool-btn,
+.notes-map-zoom-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #3a3a3a;
+  color: #ddd;
+  border: 1px solid #555;
+  border-radius: 3px;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.notes-map-tool-btn:hover,
+.notes-map-zoom-btn:hover { background: #555; color: #fff; }
+
+.notes-map-tool-btn.active {
+  background: #1976d2;
+  border-color: #0d47a1;
+  color: #fff;
+}
+
+/* Arrow tool buttons in the toolbar — glyph in the type's color,
+   active state filled with the same color. The type-specific
+   color comes from --arrow-color set inline on the button. */
+.notes-map-arrow-tool-btn { color: var(--arrow-color, #ddd); }
+.notes-map-arrow-tool-btn.active {
+  background: var(--arrow-color, #1976d2);
+  border-color: var(--arrow-color, #0d47a1);
+  color: #fff;
+}
+
+/* Photoshop-style flyout for tool buttons that hold variants
+   (currently the Add Shape button). Positioned absolutely in JS;
+   the parent (.notes-map-workspace) is position: relative below
+   so left/top resolve against it. */
+.notes-map-tool-flyout {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #888;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.notes-map-tool-flyout-item {
+  text-align: left;
+  padding: 4px 12px;
+  background: #fff;
+  color: #333;
+  border: 0;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.notes-map-tool-flyout-item:hover { background: #1976d2; color: #fff; }
+
+.notes-map-frame { flex: 1 1 auto; min-width: 0; }
+.notes-map-workspace { position: relative; }
+
+.notes-map-caption {
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #444;
+  background: #fafafa;
+}
+
+.notes-map-svg[data-interactive="1"] .notes-map-object {
+  cursor: pointer;
+}
+
+.notes-map-svg[data-interactive="1"] .notes-map-object.selected circle,
+.notes-map-svg[data-interactive="1"] .notes-map-object.selected rect {
+  stroke: #ffeb3b;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 3px #fbc02d);
+}
+
+.notes-map-svg.crosshair-mode { cursor: crosshair; }
+.notes-map-svg.move-mode .notes-map-object,
+.notes-map-svg.move-mode .notes-map-shape,
+.notes-map-svg.move-mode .notes-map-icon { cursor: grab; }
+.notes-map-svg.move-mode .dragging { cursor: grabbing; }
+
+.notes-map-svg[data-tool="view"]   { cursor: grab; }
+.notes-map-svg[data-tool="view"].panning { cursor: grabbing; }
+.notes-map-svg[data-tool="delete"] { cursor: not-allowed; }
+.notes-map-svg[data-tool="delete"] .notes-map-object,
+.notes-map-svg[data-tool="delete"] .notes-map-shape,
+.notes-map-svg[data-tool="delete"] .notes-map-icon { cursor: pointer; }
+
+/* Items queued for delete via the Delete tool fade out so the DM
+   sees what's about to disappear on Save. */
+.notes-map-svg .pending-delete {
+  opacity: 0.35;
+  filter: grayscale(0.6);
+}
+
+/* By default SVG only forwards clicks where the element is
+   actually painted. A shape with fill="none" catches clicks on
+   its 1.5px stroke and nowhere else, which makes Move and Delete
+   miss the body of the shape. Force the whole bounding region of
+   shapes and icons to receive pointer events. */
+.notes-map-svg .notes-map-shape rect,
+.notes-map-svg .notes-map-shape ellipse,
+.notes-map-svg .notes-map-icon { pointer-events: all; }
+
+.notes-map-pending-point {
+  fill: #ffeb3b;
+  stroke: #fbc02d;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.notes-map-arrow-remove circle { transition: fill 0.1s; }
+.notes-map-arrow-remove:hover circle { fill: #fff5f5; }
+
+/* Optimistically-rendered (not yet saved) elements get a dashed
+   yellow stroke to set them apart from server state. */
+.notes-map-svg .pending-op {
+  stroke-dasharray: 4 3;
+  opacity: 0.85;
+}
+
+/* Live preview while dragging out a shape. */
+.notes-map-shape-preview {
+  fill: rgba(25, 118, 210, 0.15);
+  stroke: #1976d2;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+.notes-map-pending {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #fff8e1;
+  border: 1px solid #f4cf6f;
+  border-radius: 3px;
+  margin-top: 6px;
+}
+
+.notes-map-pending-count { font-weight: bold; color: #6b4f00; }
+.notes-map-save-btn,
+.notes-map-discard-btn {
+  font-size: 11px;
+  padding: 2px 12px;
+  cursor: pointer;
+}
+
+.notes-map-save-btn {
+  background: #2e7d32; color: #fff;
+  border: 1px solid #1b5e20; border-radius: 3px;
+}
+.notes-map-discard-btn {
+  background: #fff; color: #444;
+  border: 1px solid #aaa; border-radius: 3px;
+}
+
+.notes-map-controls {
+  padding: 8px;
+  background: #fafafa;
+  border-top: 1px solid #ddd;
+  font-size: 11px;
+}
+
+.notes-map-tool-row,
+.notes-map-arrow-controls,
+.notes-map-add-shape,
+.notes-map-move-hint {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* The flex rules above otherwise win against [hidden]'s implicit
+   `display: none`, leaving every tool panel visible at once. */
+.notes-map-controls [hidden] { display: none !important; }
+
+.notes-map-controls > div + div {
+  margin-top: 6px;
+  border-top: 1px dashed #ddd;
+  padding-top: 6px;
+}
+
+.notes-map-controls > details.notes-map-settings {
+  margin-top: 6px;
+  border: 1px dashed #bbb;
+  border-radius: 3px;
+  padding: 4px 8px;
+  background: #fff;
+}
+
+.notes-map-controls > details.notes-map-settings summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: #444;
+}
+
+.notes-map-settings-form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #444;
+}
+
+.notes-map-settings-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notes-map-settings-form input[type="text"]   { width: 200px; font-size: 11px; padding: 2px 4px; }
+.notes-map-settings-form input[type="number"] { width: 70px;  font-size: 11px; padding: 2px 4px; }
+.notes-map-settings-form button               { font-size: 11px; padding: 2px 10px; cursor: pointer; }
+
+.notes-map-label {
+  font-weight: bold;
+  font-size: 13px;
+  padding: 6px 8px 0;
+}
+
+.notes-map-flag {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 4px;
+}
+
+.notes-map-create,
+.notes-map-archived-section {
+  margin: 8px 0 16px 0;
+  border: 1px dashed #bbb;
+  border-radius: 3px;
+  padding: 4px 8px;
+  background: #fafafa;
+}
+
+.notes-map-create > summary,
+.notes-map-archived-section > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: #444;
+  padding: 4px 0;
+}
+
+.notes-map-create-form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #444;
+}
+
+.notes-map-create-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notes-map-create-form input[type="text"]   { width: 200px; font-size: 11px; padding: 2px 4px; }
+.notes-map-create-form input[type="number"] { width: 70px;  font-size: 11px; padding: 2px 4px; }
+.notes-map-create-form button               { font-size: 11px; padding: 2px 10px; cursor: pointer; }
+
+.notes-map-tool-hint,
+.notes-map-shape-status,
+.notes-map-move-hint {
+  color: #666;
+  font-style: italic;
+}
+
+.notes-map-wait-turn {
+  padding: 8px;
+  font-size: 11px;
+  font-style: italic;
+  color: #777;
+  background: #fff;
+  border-top: 1px solid #ddd;
+}
+
+.notes-map-arrow-status,
+.notes-map-shape-status,
+.notes-map-icon-status {
+  color: #666;
+  font-style: italic;
+}
+
+.notes-map-shape-colors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.notes-map-shape-color-label {
+  font-weight: bold;
+  color: #444;
+  margin-right: 4px;
+}
+
+.notes-map-shape-color-btn {
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  border: 1px solid #888;
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  color: #c00;
+}
+
+.notes-map-shape-color-btn:hover { outline: 1px solid #555; }
+.notes-map-shape-color-btn.active {
+  outline: 2px solid #1976d2;
+  outline-offset: 1px;
+}
+
+.notes-map-shape-color-custom {
+  width: 28px;
+  height: 22px;
+  border: 1px solid #888;
+  border-radius: 3px;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+}
+
+
+/* Emoji icon palette (DM tool=add-icon panel). */
+.notes-map-add-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notes-map-icon-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.notes-map-icon-group-label {
+  font-weight: bold;
+  font-size: 11px;
+  color: #444;
+  margin-right: 4px;
+  width: 60px;
+}
+
+.notes-map-icon-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+  padding: 0;
+}
+
+.notes-map-icon-btn:hover  { background: #f0f0f0; }
+.notes-map-icon-btn.active { background: #1976d2; border-color: #0d47a1; }
+
+/* Emoji glyphs rendered into the SVG itself need the same font
+   stack so they show up with proper colors. */
+.notes-map-svg .notes-map-icon {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+  user-select: none;
+}
