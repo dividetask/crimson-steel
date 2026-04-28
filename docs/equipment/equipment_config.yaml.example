@@ -174,7 +174,7 @@ Weapon Categories:
   One Handed:
     damage: "str / 4 - 2"
   Two Handed:
-    damage: "str / 2 + 2"
+    damage: "str / 2"
 
 # ---------------------------------------------------------------------
 # Weapon Tags
@@ -199,13 +199,15 @@ Weapon Tags:
   thrown:
     damage_formula: "str / 4 - 2"
     description: >
-      A weapon balanced for throwing. 
+      A weapon balanced for throwing.
 
   light:
+    damage_formula: "str / 4 - 2"
     description: >
-      A light one-handed weapon. 
+      A light one-handed weapon.
 
   heavy:
+    damage_formula: "str / 2 + 2"
     description: >
       A heavy weapon typically requiring both hands to wield.
 
@@ -332,6 +334,7 @@ Weapons:
   Hatchet:
     category: One Handed
     damage_type: Slashing
+    tags: [light]
     base_price: 8
 
   Warhammer:
@@ -356,6 +359,7 @@ Weapons:
     damage_type:
       - Slashing
       - Piercing
+    tags: [light]
     base_price: 8
 
   Rapier:
@@ -368,6 +372,7 @@ Weapons:
     damage_type:
       - Slashing
       - Piercing
+    tags: [light]
     base_price: 2
 
   Whip:
@@ -388,31 +393,37 @@ Weapons:
   Halberd:
     category: Two Handed
     damage_type: Slashing
+    tags: [heavy]
     base_price: 25
 
   Poleaxe:
     category: Two Handed
     damage_type: Slashing
+    tags: [heavy]
     base_price: 25
 
   Bardiche:
     category: Two Handed
     damage_type: Slashing
+    tags: [heavy]
     base_price: 20
 
   Glaive:
     category: Two Handed
     damage_type: Slashing
+    tags: [heavy]
     base_price: 20
 
   Great sword:
     category: Two Handed
     damage_type: Slashing
+    tags: [heavy]
     base_price: 60
 
   Great Axe:
     category: Two Handed
     damage_type: Slashing
+    tags: [heavy]
     base_price: 40
 
   Quarterstaff:
