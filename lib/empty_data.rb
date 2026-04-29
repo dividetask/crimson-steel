@@ -18,12 +18,12 @@ class EmptyData
   def self.characters;             [];                 end
   def self.pcs;                    [];                 end
   def self.character_by_id(_id);   nil;                end
+  def self.pc_objects;             [];                 end
   def self.enemy_groups;           [];                 end
   def self.enemy_templates;        [];                 end
   def self.combat_state;           EMPTY_COMBAT_STATE; end
   def self.initiative_turns;       [];                 end
   def self.notes;                  [];                 end
-  def self.characters_of_interest; [];                 end
   def self.note_images;            [];                 end
   def self.note_maps;              [];                 end
   def self.note_map_by_id(_id);    nil;                end

@@ -1,47 +1,89 @@
-<div class="roll-stub" data-stub-id="<%= stub_id %>">
-  <div class="roll-stub-title"><%= check_name %> Check</div>
-  <div class="roll-stub-params"><%= roll_stub_params_line(tn.to_i, dice_count.to_i, starting_value.to_i) %></div>
-
-  <div class="roll-stub-controls">
-    <input type="number" class="roll-stub-input" id="roll-stub-input-<%= stub_id %>" value="0">
-    <button type="button" class="roll-stub-roll"
-            onclick="rollStubRoll('<%= stub_id %>')">Roll</button>
-    <% if luck_amount.to_i > 0 %>
-      <button type="button" class="roll-stub-mod roll-stub-luck-bonus"
-              onclick="rollStubReroll('<%= stub_id %>', <%= luck_amount.to_i %>)"
-              disabled><%= luck_bonus_name %></button>
-      <button type="button" class="roll-stub-mod roll-stub-luck-penalty"
-              onclick="rollStubReroll('<%= stub_id %>', <%= -luck_amount.to_i %>)"
-              disabled><%= luck_penalty_name %></button>
+<%
+  has_luck    = luck_amount.to_i    != 0
+  has_insight = insight_amount.to_i != 0
+  num_rows    = 1 + (has_luck ? 1 : 0) + (has_insight ? 1 : 0)
+  config_json = {
+    checkName:      check_name,
+    diceCount:      dice_count.to_i,
+    tn:             tn.to_i,
+    startingValue:  starting_value.to_i,
+    luckAmount:     luck_amount.to_i,
+    insightAmount:  insight_amount.to_i,
+    token:          nil
+  }.to_json
+%>
+<% unless bare_row %>
+<table class="roll-stub-table">
+  <thead>
+    <tr>
+      <th class="col-roll"></th>
+      <% if show_confirm %><th class="col-confirm"></th><% end %>
+      <th class="col-meta">Character</th>
+      <th class="col-mod">Modifier</th>
+      <th class="col-dice">Dice</th>
+      <th class="col-result">Result / Crits</th>
+    </tr>
+  </thead>
+<% end %>
+  <tbody class="roll-stub" data-stub-id="<%= stub_id %>" data-config='<%= h(config_json) %>'>
+    <tr class="roll-stub-row roll-stub-row-initial">
+      <td class="col-roll" rowspan="<%= num_rows %>">
+        <button type="button" class="roll-stub-roll"
+                onclick="rollStubRoll('<%= stub_id %>')">Roll</button>
+      </td>
+      <% if show_confirm %>
+        <td class="col-confirm" rowspan="<%= num_rows %>">
+          <button type="button" class="roll-stub-confirm"
+                  onclick="rollStubConfirm('<%= stub_id %>')">Confirm</button>
+        </td>
+      <% end %>
+      <td class="col-meta" rowspan="<%= num_rows %>">
+        <% if character_name && !character_name.to_s.empty? %>
+          <div class="roll-stub-name"><%= h(character_name) %></div>
+        <% end %>
+        <div class="roll-stub-params"><%= h(roll_stub_params_line(tn.to_i, dice_count.to_i, starting_value.to_i)) %></div>
+        <div class="roll-stub-check">(<%= h(check_name) %>)</div>
+      </td>
+      <td class="col-mod"></td>
+      <td class="col-dice">
+        <div class="roll-stub-row-dice" id="roll-stub-row-initial-<%= stub_id %>"></div>
+      </td>
+      <td class="col-result" rowspan="<%= num_rows %>">
+        <label>R
+          <input type="number" class="roll-stub-result-input"
+                 id="roll-stub-result-<%= stub_id %>" value="0">
+        </label>
+        <label>C
+          <input type="number" class="roll-stub-crit-input"
+                 id="roll-stub-crits-<%= stub_id %>" value="0" min="0">
+        </label>
+      </td>
+    </tr>
+    <% if has_luck %>
+      <tr class="roll-stub-row roll-stub-row-luck">
+        <td class="col-mod">
+          <button type="button"
+                  id="roll-stub-reroll-luck-<%= stub_id %>"
+                  class="roll-stub-reroll-luck <%= luck_amount.to_i > 0 ? 'roll-stub-luck-bonus' : 'roll-stub-luck-penalty' %>"
+                  onclick="rollStubRerollLuck('<%= stub_id %>')"
+                  disabled><%= h(roll_stub_modifier_text(luck_amount.to_i, luck_label)) %></button>
+        </td>
+        <td class="col-dice">
+          <div class="roll-stub-row-dice" id="roll-stub-row-luck-<%= stub_id %>"></div>
+        </td>
+      </tr>
     <% end %>
-    <% if insight_amount.to_i > 0 %>
-      <button type="button" class="roll-stub-mod roll-stub-insight-bonus"
-              onclick="rollStubNudge('<%= stub_id %>', <%= insight_amount.to_i %>)"
-              disabled><%= insight_bonus_name %></button>
-      <button type="button" class="roll-stub-mod roll-stub-insight-penalty"
-              onclick="rollStubNudge('<%= stub_id %>', <%= -insight_amount.to_i %>)"
-              disabled><%= insight_penalty_name %></button>
+    <% if has_insight %>
+      <tr class="roll-stub-row roll-stub-row-insight">
+        <td class="col-mod">
+          <span class="roll-stub-insight-label <%= insight_amount.to_i > 0 ? 'roll-stub-insight-bonus' : 'roll-stub-insight-penalty' %>"><%= h(roll_stub_modifier_text(insight_amount.to_i, insight_label)) %></span>
+        </td>
+        <td class="col-dice">
+          <div class="roll-stub-row-dice" id="roll-stub-row-insight-<%= stub_id %>"></div>
+        </td>
+      </tr>
     <% end %>
-  </div>
-
-  <div class="roll-stub-dice" id="roll-stub-dice-<%= stub_id %>"></div>
-
-  <div class="roll-stub-confirm-row">
-    <button type="button" class="roll-stub-confirm"
-            onclick="rollStubConfirm('<%= stub_id %>')">Confirm</button>
-  </div>
-</div>
-<script>
-(function() {
-  window.rollStubConfigs = window.rollStubConfigs || {};
-  window.rollStubConfigs['<%= stub_id %>'] = {
-    checkName: <%= check_name.to_json %>,
-    diceCount: <%= dice_count.to_i %>,
-    tn: <%= tn.to_i %>,
-    startingValue: <%= starting_value.to_i %>,
-    luckAmount: <%= luck_amount.to_i %>,
-    insightAmount: <%= insight_amount.to_i %>,
-    token: null
-  };
-})();
-</script>
+  </tbody>
+<% unless bare_row %>
+</table>
+<% end %>

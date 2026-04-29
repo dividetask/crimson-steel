@@ -95,84 +95,133 @@ body {
 .stub-test-form input[type="number"] { width: 50px; }
 .stub-test-form input[type="text"]   { width: 90px; }
 
-.roll-stub {
-  margin: 8px 0;
-  padding: 8px 10px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.roll-stub-table {
+  border-collapse: collapse;
+  font-size: 11px;
+  margin: 4px 0;
+  /* Hug the left edge; don't expand to fill the parent so a stack
+   * of rolls reads as a tight block on the left instead of a sparse
+   * full-width grid. */
+  width: auto;
 }
 
-.roll-stub-title {
+.roll-stub-table th,
+.roll-stub-table td {
+  padding: 3px 8px;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+.roll-stub-table thead th {
+  text-align: left;
+  background: #f5f5f5;
+  border-bottom: 1px solid #ccc;
   font-weight: bold;
-  font-size: 13px;
-}
-
-.roll-stub-params {
+  font-size: 10px;
   color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.roll-stub-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-}
+.roll-stub-table .col-roll,
+.roll-stub-table .col-confirm { width: 1%; white-space: nowrap; }
+.roll-stub-table .col-meta    { white-space: nowrap; }
+.roll-stub-table .col-mod     { white-space: nowrap; }
+.roll-stub-table .col-dice    { white-space: nowrap; font-family: monospace; }
+.roll-stub-table .col-result  { white-space: nowrap; width: 1%; }
 
-.roll-stub-input {
-  width: 50px;
+/* Each character is one <tbody class="roll-stub"> with 1–3 rows
+ * (Initial, optionally Luck, optionally Insight). Rows inside the
+ * group don't get a divider; only consecutive groups do. */
+.roll-stub-table tbody.roll-stub td { border-bottom: none; }
+.roll-stub-table tbody.roll-stub + tbody.roll-stub td { border-top: 1px solid #eee; }
+
+.roll-stub-roll {
   font-size: 11px;
-  padding: 2px 4px;
-}
-
-.roll-stub button {
-  font-size: 11px;
-  padding: 2px 8px;
+  padding: 3px 10px;
   cursor: pointer;
+  background: #1976d2;
+  color: #fff;
+  border: 1px solid #0d47a1;
+  border-radius: 3px;
 }
 
-.roll-stub button[disabled] {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+.roll-stub-roll:hover { background: #0d47a1; }
 
-.roll-stub-dice {
-  min-height: 18px;
-  font-family: monospace;
-}
+.roll-stub-name   { font-weight: bold; font-size: 12px; line-height: 1.2; }
+.roll-stub-params { color: #555; line-height: 1.2; }
+.roll-stub-check  { color: #555; font-style: italic; line-height: 1.2; }
 
-.roll-stub-confirm-row {
-  margin-top: 2px;
-}
+.roll-stub-row-dice { min-height: 14px; }
 
-.roll-stub-dice .roll-line {
-  display: block;
-  line-height: 1.6;
-}
-
-.roll-stub-dice .roll-label {
-  display: inline-block;
-  min-width: 72px;
-  font-family: Arial, sans-serif;
+.roll-stub-reroll-luck {
+  font-size: 10px;
+  padding: 1px 5px;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #aaa;
+  border-radius: 3px;
   font-weight: bold;
 }
 
-.roll-stub-dice .die {
+.roll-stub-reroll-luck:disabled { cursor: not-allowed; }
+
+.roll-stub-luck-bonus            { color: #1b5e20; border-color: #66bb6a; }
+.roll-stub-luck-bonus:disabled   { color: #2e7d32; background: #e8f5e9; border-color: #a5d6a7; }
+.roll-stub-luck-penalty          { color: #b85b00; border-color: #f29900; }
+.roll-stub-luck-penalty:disabled { color: #b85b00; background: #fff3e0; border-color: #ffcc80; }
+
+.roll-stub-insight-label {
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 5px;
   display: inline-block;
-  padding: 0 4px;
+}
+
+.roll-stub-insight-bonus   { color: #1b5e20; }
+.roll-stub-insight-penalty { color: #b85b00; }
+
+/* Result + Crits inline on one line. */
+.col-result label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: #555;
+  margin-right: 6px;
+}
+
+.roll-stub-result-input,
+.roll-stub-crit-input {
+  width: 40px;
+  font-size: 11px;
+  padding: 1px 3px;
+}
+
+.roll-stub-confirm {
+  font-size: 11px;
+  padding: 3px 10px;
+  cursor: pointer;
+  background: #1976d2;
+  color: #fff;
+  border: 1px solid #0d47a1;
   border-radius: 3px;
+}
+
+.roll-stub-row-dice .die {
+  display: inline-block;
+  padding: 0 3px;
+  border-radius: 2px;
   font-weight: bold;
   color: #000;
 }
 
-.roll-stub-dice .die-crit    { background: #64b5f6; }
-.roll-stub-dice .die-fumble  { background: #e57373; }
-.roll-stub-dice .die-success { background: #81c784; }
-.roll-stub-dice .die-miss    { color: #777; background: transparent; font-weight: normal; }
-.roll-stub-dice .die-blank   { background: transparent; color: transparent; font-weight: normal; }
+.roll-stub-row-dice .die-crit    { background: #64b5f6; }
+.roll-stub-row-dice .die-fumble  { background: #e57373; }
+.roll-stub-row-dice .die-success { background: #81c784; }
+.roll-stub-row-dice .die-miss    { color: #777; background: transparent; font-weight: normal; }
+.roll-stub-row-dice .die-blank   { background: transparent; color: transparent; font-weight: normal; }
 
 .stub-test-capture {
   margin-top: 10px;
@@ -1177,6 +1226,447 @@ body {
 .notes-map-svg .notes-map-icon {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
   user-select: none;
+}
+
+/* Character sheet (rendered by character_sheet_stub).
+   Ported from origin/before-refactor's character sheet styles.
+   Table / heading rules are scoped under .sheet so they don't
+   bleed into the rest of the site. */
+.sheet {
+  border: 2px solid #000;
+  padding: 15px;
+  margin-bottom: 100px;
+}
+
+.sheet .header {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.sheet .header h1 {
+  font-size: 28px;
+  margin-bottom: 5px;
+}
+
+.sheet .subtitle {
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.sheet .tier-line {
+  font-size: 12px;
+}
+
+.sheet .top-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  border-top: 1px solid #000;
+  padding-top: 5px;
+}
+
+.sheet .stat-box {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
+}
+
+.sheet .stat-box .label {
+  font-weight: bold;
+}
+
+.sheet .two-column {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 15px;
+}
+
+.sheet .left-col,
+.sheet .right-col {
+  border-top: 2px solid #000;
+  padding-top: 10px;
+}
+
+.sheet h2 {
+  font-size: 16px;
+  margin: 15px 0 8px 0;
+  border-bottom: 1px solid #000;
+}
+
+.sheet h3 {
+  font-size: 13px;
+  margin: 10px 0 5px 0;
+  text-decoration: underline;
+}
+
+.sheet table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.sheet table th,
+.sheet table td {
+  border: 1px solid #000;
+  padding: 4px;
+  text-align: left;
+}
+
+.sheet table th {
+  background: #f0f0f0;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.sheet .attributes,
+.sheet .skills {
+  margin-bottom: 0;
+}
+
+.sheet .attributes td:first-child {
+  font-weight: bold;
+}
+
+.sheet .attributes td:not(:first-child),
+.sheet .attributes th:not(:first-child) {
+  text-align: center;
+}
+
+.sheet .attributes td:nth-child(2),
+.sheet .attributes th:nth-child(2) {
+  border-right: none;
+}
+
+.sheet .attributes td:nth-child(3),
+.sheet .attributes th:nth-child(3) {
+  border-left: none;
+}
+
+.sheet .skills td:first-child {
+  text-align: left;
+}
+
+.sheet .skills td:not(:first-child),
+.sheet .skills th:not(:first-child) {
+  width: 50px;
+  text-align: center;
+}
+
+.sheet .combat th { font-size: 9px; }
+.sheet .combat td { font-size: 10px; }
+
+.sheet .formula {
+  font-size: 9px;
+  font-style: italic;
+  margin-bottom: 10px;
+  color: #666;
+}
+
+.sheet .items p {
+  margin-bottom: 8px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.sheet .right-col p {
+  margin-bottom: 10px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.sheet .right-col p strong {
+  font-weight: bold;
+}
+
+.sheet .ability-damage {
+  color: #c62828;
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+/* Enhancement-bonus annotation shown next to an attribute score when a
+   belt / headband / buff spell is boosting the attribute. */
+.sheet .enh-note {
+  color: #4a7c59;
+  font-size: 0.8em;
+  margin-left: 3px;
+}
+
+.sheet .note-item {
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 5px;
+}
+.sheet .note-item p { margin: 0; }
+.sheet .note-text { position: relative; }
+
+@media print {
+  .sheet { border: none; }
+}
+
+/* /character page header — prev/next arrows, character counter,
+   minimal/full toggle on the left, player tag on the right. Lives
+   above the sheet so the stub itself stays self-contained. */
+.character-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.character-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.character-controls .nav-arrow {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 14px;
+  text-decoration: none;
+  color: #333;
+  border: 1px solid #999;
+  border-radius: 3px;
+  background: #f5f5f5;
+}
+.character-controls .nav-arrow:hover { background: #ddd; }
+
+.character-controls .character-counter {
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 48px;
+  text-align: center;
+}
+
+.character-controls .detail-toggle {
+  margin-left: 12px;
+  padding: 3px 10px;
+  font-size: 11px;
+  text-decoration: none;
+  color: #fff;
+  background: #1976d2;
+  border-radius: 3px;
+}
+.character-controls .detail-toggle:hover { background: #145ea8; }
+
+.character-player {
+  font-size: 11px;
+  color: #555;
+}
+.character-player strong { color: #000; }
+
+/* Tier-tinted text colors. Used on character names, "Tier N" tags,
+   and anywhere else a tier should read at a glance. Matches the
+   palette used elsewhere in the app. */
+.tier-0 { color: #c0392b; }   /* tier 0 — red */
+.tier-1 { color: #d35400; }   /* tier 1 — burnt orange */
+.tier-2 { color: #b7950b; }   /* tier 2 — gold (darker for legibility) */
+.tier-3 { color: #2e7d32; }   /* tier 3 — green */
+.tier-4 { color: #1565c0; }   /* tier 4 — blue */
+.tier-unknown { color: #757575; }
+
+/* Compact character card (character_minimal_stub). Modeled on the
+   5e monster statblock: single column, crimson section rules,
+   tablet / phone friendly. Fills the available width. */
+.char-card {
+  width: 100%;
+  margin: 0 0 24px 0;
+  padding: 16px 20px;
+  background: #faf7f0;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  font-size: 14px;
+  line-height: 1.45;
+  color: #1a1a1a;
+}
+
+.char-card-name {
+  font-size: 26px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+}
+
+.char-card-type {
+  font-style: italic;
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.char-card-rule {
+  height: 3px;
+  margin: 8px 0;
+  background: #8b1538;
+  border-top: 1px solid #5a0d23;
+  border-bottom: 1px solid #5a0d23;
+}
+
+.char-card-line { margin: 3px 0; }
+.char-card-line strong { color: #8b1538; }
+
+/* Top section: attributes (left, 3-col grid that wraps to 2 rows
+   for STR/DEX/CON over INT/WIS/CHA) and HP / Mana vitals (right). */
+.char-card-top {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 1fr;
+  gap: 20px;
+  align-items: start;
+  margin: 6px 0;
+}
+
+.char-card-attrs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px 14px;
+}
+
+.char-card-attr {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.char-card-attr-label {
+  font-size: 12px;
+  font-weight: bold;
+  color: #8b1538;
+  letter-spacing: 0.5px;
+}
+
+.char-card-attr-value { font-size: 16px; }
+
+.char-card-vitals .char-card-line { margin: 4px 0; }
+
+/* Single-row Initiative / Perception / Speed strip. */
+.char-card-quickrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 4px 0;
+}
+.char-card-quickrow strong { color: #8b1538; }
+
+/* Two-column row used for Spells | Rituals and Items | Abilities.
+   Collapses to a single column on narrow viewports. */
+.char-card-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.char-card-empty { color: #888; font-style: italic; }
+
+.char-card-section-title {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  color: #8b1538;
+  border-bottom: 1px solid #d4c8a8;
+  margin: 8px 0 4px 0;
+  padding-bottom: 2px;
+}
+
+.char-card-entry { margin: 4px 0; }
+
+.char-card-actions {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0 6px 0;
+  font-size: 13px;
+}
+.char-card-actions th,
+.char-card-actions td {
+  padding: 5px 8px;
+  text-align: left;
+  border-bottom: 1px solid #e0d8c0;
+}
+.char-card-actions tr:last-child td { border-bottom: none; }
+.char-card-actions th {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 11px;
+  color: #8b1538;
+  border-bottom: 1px solid #8b1538;
+  letter-spacing: 0.5px;
+}
+
+.char-card .ability-damage { color: #c0392b; font-weight: bold; margin-left: 3px; font-size: 0.9em; }
+.char-card .enh-note       { color: #2e7d32; font-size: 0.85em; margin-left: 3px; }
+.char-card .hp-temp        { color: #1565c0; font-size: 0.9em; }
+.char-card .hp-mod         { color: #d35400; font-weight: bold; font-size: 0.9em; }
+.char-card .hp-major       { color: #c0392b; font-weight: bold; font-size: 0.9em; }
+.char-card .hp-bleed       { color: #c0392b; font-size: 0.9em; }
+.char-card .hp-poison      { color: #6a1b9a; font-size: 0.9em; }
+.char-card .toxicity       { color: #6a1b9a; font-size: 0.9em; }
+
+@media (max-width: 600px) {
+  .char-card-top,
+  .char-card-two-col {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .char-card {
+    margin-left: -10px;
+    margin-right: -10px;
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+    padding: 14px;
+    font-size: 13px;
+  }
+  .char-card-name { font-size: 22px; }
+  .char-card-attr-value { font-size: 15px; }
+}
+.multi-roll-stub {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.multi-roll-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.multi-roll-title {
+  font-weight: bold;
+  font-size: 13px;
+  flex: 1;
+}
+
+.multi-roll-roll-all,
+.multi-roll-confirm {
+  font-size: 11px;
+  padding: 3px 10px;
+  cursor: pointer;
+  background: #1976d2;
+  color: #fff;
+  border: 1px solid #0d47a1;
+  border-radius: 3px;
+}
+
+/* Multi-roll embeds N roll_stub rows under one shared table so column
+ * widths line up across characters. The inner stubs render as <tr>s
+ * (bare_row: true) — no extra border styling needed here. */
+.multi-roll-stub .roll-stub-table {
+  margin: 0;
 }
 
 /* ===== Combined notes/characters/images feed ========================== */
