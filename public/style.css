@@ -586,6 +586,17 @@ table th {
 .staging-name-label { font-weight: bold; }
 
 .staging-draft-note, .staging-panel, .staging-image, .staging-map { border: 1px solid #ddd; padding: 10px; margin: 10px 0; background: #fafafa; border-radius: 4px; }
+.staging-map-active { border-color: #1976d2; background: #f5fbff; }
+.staging-map-active-header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #cfd8dc; }
+.staging-map-active-label { font-weight: bold; color: #0d47a1; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.staging-map-active-header button.staging-map-vis-on  { background: #c8e6c9; border: 1px solid #66bb6a; color: #1b5e20; padding: 4px 10px; }
+.staging-map-active-header button.staging-map-vis-off { background: #fff;    border: 1px solid #bbb;    color: #555;    padding: 4px 10px; }
+
+.staging-map-list-heading { margin: 14px 0 6px 0; font-size: 13px; color: #555; }
+.staging-map-list { list-style: none; padding: 0; margin: 0 0 14px 0; }
+.staging-map-list-item { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 3px; background: #fff; margin-bottom: 4px; }
+.staging-map-list-title { font-weight: bold; flex: 1 1 auto; }
+.staging-map-list-meta { color: #888; font-size: 12px; }
 
 /* Scene grid maps. Cells are CSS-grid squares painted with color, an
  * emoji icon, and/or a small label; player marks float in the corner. */
@@ -762,7 +773,7 @@ table th {
 .scene-grid-cell p { margin: 0; font-size: 15px; line-height: 1.45; }
 .scene-grid-meta { color: #666; }
 .scene-grid-character { background: #fbf8ff; border-color: #c0b3e6; }
-.scene-grid-character-header { display: flex; align-items: center; gap: 8px; }
+.scene-grid-character-header { display: flex; align-items: flex-start; gap: 8px; }
 .scene-grid-character-name { font-size: 19px; font-weight: bold; }
 .scene-grid-character-x { background: #fff; border: 1px solid #c62828; color: #b71c1c; border-radius: 50%; width: 24px; height: 24px; line-height: 1; padding: 0; cursor: pointer; font-size: 16px; flex-shrink: 0; }
 .scene-grid-character-x:hover { background: #ffe0e0; }
@@ -786,10 +797,13 @@ table th {
 .scene-grid-vis-btn.off:hover { background: #f0f0f0; }
 .scene-grid-vis-btn.bulk:hover { background: #bbdefb; }
 
-.scene-grid-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
+/* Stack the per-cell DM forms vertically so they don't overflow the
+ * (narrow) grid cell. Each form takes one row; the file input and
+ * its submit button each take their own line inside the form. */
+.scene-grid-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; align-items: stretch; }
 .scene-grid-actions button { padding: 4px 10px; font-size: 13px; }
-.scene-grid-img-form { display: inline-flex; gap: 4px; align-items: center; }
-.scene-grid-img-form input[type=file] { font-size: 12px; }
+.scene-grid-actions form { display: flex; flex-direction: column; gap: 4px; }
+.scene-grid-img-form input[type=file] { font-size: 12px; max-width: 100%; }
 
 /* Drag-and-drop visuals. */
 .scene-grid[data-dm] .scene-grid-cell { cursor: grab; }

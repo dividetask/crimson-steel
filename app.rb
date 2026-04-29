@@ -235,6 +235,11 @@ get '/scene/:viewer_id' do
   @scene_notes = @scene_notes.sort_by { |n| -n['created_at'].to_f }
   @draft_images = @notes.select { |n| n['draft'] && n['type'] == 'draft_image' }
   @scene_maps   = @notes.select { |n| n['draft'] && n['type'] == 'scene_map' }
+  # If nothing is flagged active yet (legacy data, or all activations
+  # have been cleared), promote the first map so the editor has a
+  # target to render against.
+  @active_map = @scene_maps.find { |m| m['active'] } || @scene_maps.first
+  @inactive_maps = @scene_maps.reject { |m| m == @active_map }
 
   # Characters of Interest are gated by in_scene (DM-only choice for
   # which CoI are staged in this scene) and scene_visible_to (which PCs
@@ -538,9 +543,13 @@ post '/scene/reorder' do
 end
 
 # --- Scene maps ---
+# A newly-created map auto-activates so the editor for it surfaces
+# immediately; any previously-active map drops back to the inactive
+# list.
 post '/scene/map' do
   scene_require_dm!
   notes = scene_load_notes
+  notes.each { |n| n['active'] = false if n['type'] == 'scene_map' }
   notes << {
     'id' => SecureRandom.uuid,
     'owner_id' => 0,
@@ -551,6 +560,7 @@ post '/scene/map' do
     'cols' => scene_map_clamp_dim(params[:cols], 8),
     'cells' => {},
     'shared' => false,
+    'active' => true,
     'visible_to' => scene_parse_visible_to(params[:visible_to])
   }
   scene_save_notes(notes)
@@ -606,8 +616,11 @@ post '/scene/map/update' do
   redirect '/scene/0'
 end
 
-# Only one map can be displayed to players at a time. Toggling Share ON
-# for one map automatically clears Share on every other scene_map entry.
+# Visibility toggle on the active map only. shared and active are
+# independent flags: shared is "players can see it", active is "DM is
+# editing it". Only one map at a time is shared (toggling Share ON
+# clears it on every other map) so players never see two competing
+# maps.
 post '/scene/map/share' do
   scene_require_dm!
   notes = scene_load_notes
@@ -619,6 +632,20 @@ post '/scene/map/share' do
     notes.each { |n| n['shared'] = false if n['type'] == 'scene_map' }
     entry['shared'] = true
   end
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+# Mark a map as the DM's active editing target. Only one map is
+# active at a time, so the DM staging block can show its editor
+# without drowning in editors for every map ever made.
+post '/scene/map/activate' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'scene_map'
+  notes.each { |n| n['active'] = false if n['type'] == 'scene_map' }
+  entry['active'] = true
   scene_save_notes(notes)
   redirect '/scene/0'
 end

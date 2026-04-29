@@ -238,19 +238,6 @@
                 <%= h(char['title']) %>
               </div>
             </div>
-            <% if char['image_path'] && !char['image_path'].to_s.empty? %>
-              <img src="<%= h(char['image_path']) %>" alt="<%= h(char['title']) %>" class="scene-grid-character-img zoomable">
-            <% else %>
-              <div class="scene-grid-character-img scene-grid-character-img-placeholder" aria-hidden="true">
-                <svg viewBox="0 0 64 64" width="64" height="64">
-                  <circle cx="32" cy="22" r="11" fill="#bdbdbd"/>
-                  <path d="M10 60 C 10 44, 54 44, 54 60 Z" fill="#bdbdbd"/>
-                </svg>
-              </div>
-            <% end %>
-            <% if char['note'] && !char['note'].to_s.empty? %>
-              <p><%= h(char['note']).gsub("\n", '<br>') %></p>
-            <% end %>
             <% if @is_dm %>
               <details class="scene-grid-vis-collapse">
                 <summary class="scene-grid-vis-status <%= any_visible ? 'visible' : 'hidden' %>"><%= any_visible ? "Visible (#{svt.length})" : 'Hidden' %></summary>
@@ -276,6 +263,21 @@
                   </form>
                 </div>
               </details>
+            <% end %>
+            <% if char['image_path'] && !char['image_path'].to_s.empty? %>
+              <img src="<%= h(char['image_path']) %>" alt="<%= h(char['title']) %>" class="scene-grid-character-img zoomable">
+            <% else %>
+              <div class="scene-grid-character-img scene-grid-character-img-placeholder" aria-hidden="true">
+                <svg viewBox="0 0 64 64" width="64" height="64">
+                  <circle cx="32" cy="22" r="11" fill="#bdbdbd"/>
+                  <path d="M10 60 C 10 44, 54 44, 54 60 Z" fill="#bdbdbd"/>
+                </svg>
+              </div>
+            <% end %>
+            <% if char['note'] && !char['note'].to_s.empty? %>
+              <p><%= h(char['note']).gsub("\n", '<br>') %></p>
+            <% end %>
+            <% if @is_dm %>
               <div class="scene-grid-actions">
                 <form method="post" action="/scene/character/image" enctype="multipart/form-data" class="scene-grid-img-form">
                   <input type="hidden" name="id" value="<%= h(char['id']) %>">
@@ -283,7 +285,7 @@
                   <button type="submit"><%= char['image_path'] ? 'Replace image' : 'Attach image' %></button>
                 </form>
                 <% if char['image_path'] %>
-                  <form method="post" action="/scene/character/image/clear" style="display:inline;">
+                  <form method="post" action="/scene/character/image/clear">
                     <input type="hidden" name="id" value="<%= h(char['id']) %>">
                     <button type="submit">Remove image</button>
                   </form>
@@ -376,13 +378,27 @@
 
       <div class="section">
         <h3>Maps</h3>
-        <p class="dt-note" style="color:#888;">Grid maps with per-cell colors, icons, and labels. Only one map can be displayed to players at a time — sharing a map automatically unshares any other.</p>
-        <% @scene_maps.each do |m| %>
+        <p class="dt-note" style="color:#888;">Only the active map is editable; activate a different map to switch which one the editor and player view target. Toggling "Visible to players" controls whether the active map shows on /scene for the players checked below.</p>
+
+        <% if @active_map %>
+          <% m = @active_map %>
           <% map_id = m['id'] %>
           <% rows = m['rows'].to_i %>
           <% cols = m['cols'].to_i %>
           <% cells = m['cells'].is_a?(Hash) ? m['cells'] : {} %>
-          <div class="staging-map" data-map-id="<%= h(map_id) %>">
+          <div class="staging-map staging-map-active" data-map-id="<%= h(map_id) %>">
+            <div class="staging-map-active-header">
+              <span class="staging-map-active-label">Active map</span>
+              <form method="post" action="/scene/map/share" style="display:inline;">
+                <input type="hidden" name="id" value="<%= h(map_id) %>">
+                <button type="submit" class="<%= m['shared'] ? 'staging-map-vis-on' : 'staging-map-vis-off' %>"><%= m['shared'] ? 'Visible to players (click to hide)' : 'Hidden from players (click to show)' %></button>
+              </form>
+              <form method="post" action="/scene/map/delete" style="display:inline;">
+                <input type="hidden" name="id" value="<%= h(map_id) %>">
+                <button type="submit" class="danger" onclick="return confirm('Delete this map?');">Delete</button>
+              </form>
+            </div>
+
             <form method="post" action="/scene/map/update" class="notes-form scene-map-editor" data-editor="1">
               <input type="hidden" name="id" value="<%= h(map_id) %>">
               <input type="hidden" name="cells_json" value='<%= h(cells.to_json) %>'>
@@ -477,6 +493,7 @@
               </div>
 
               <div class="panel-visibility">
+                <span class="palette-label" style="margin-right: 6px;">Players who can see when visible:</span>
                 <% @pc_characters.each do |pc| %>
                   <label>
                     <input type="checkbox" name="visible_to[]" value="<%= pc['id'] %>" <%= 'checked' if Array(m['visible_to']).include?(pc['id']) %>>
@@ -489,19 +506,32 @@
                 <button type="submit">Save map</button>
               </div>
             </form>
-            <form method="post" action="/scene/map/share" style="display:inline;">
-              <input type="hidden" name="id" value="<%= h(map_id) %>">
-              <button type="submit"><%= m['shared'] ? 'Unshare' : 'Share' %></button>
-            </form>
-            <form method="post" action="/scene/map/delete" style="display:inline;">
-              <input type="hidden" name="id" value="<%= h(map_id) %>">
-              <button type="submit" class="danger" onclick="return confirm('Delete this map?');">Delete</button>
-            </form>
-            <small style="color:#666;"><%= m['shared'] ? 'Shared with checked players' : 'Not shared' %></small>
           </div>
         <% end %>
+
+        <% if @inactive_maps.any? %>
+          <h4 class="staging-map-list-heading">Other maps</h4>
+          <ul class="staging-map-list">
+            <% @inactive_maps.each do |m| %>
+              <li class="staging-map-list-item">
+                <span class="staging-map-list-title"><%= m['title'].to_s.empty? ? '(untitled)' : h(m['title']) %></span>
+                <span class="staging-map-list-meta"><%= m['rows'].to_i %>×<%= m['cols'].to_i %><%= ' · shared' if m['shared'] %></span>
+                <form method="post" action="/scene/map/activate" style="display:inline;">
+                  <input type="hidden" name="id" value="<%= h(m['id']) %>">
+                  <button type="submit">Activate</button>
+                </form>
+                <form method="post" action="/scene/map/delete" style="display:inline;">
+                  <input type="hidden" name="id" value="<%= h(m['id']) %>">
+                  <button type="submit" class="danger" onclick="return confirm('Delete this map?');">Delete</button>
+                </form>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+
         <form method="post" action="/scene/map" class="notes-form">
           <h4>New Map</h4>
+          <p class="dt-note" style="color:#888;">Creating a new map activates it (the previous active map drops to "Other maps").</p>
           <div class="form-row">
             <div>
               <label>Title:</label>
