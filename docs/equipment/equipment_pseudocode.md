@@ -962,23 +962,28 @@ Unknown category tags raise.
 
 **Description:** Internal helper. Filters a `properties_weighted` dictionary down to only properties that are applicable to the picked tier and category. A property is eligible when it is listed in the constraint's weights, its `min_tier` is ≤ the picked tier, and its `applies_to` list includes the category tag.
 
+The reserved key `none` may appear in `properties_weighted` and represents the "no property applied" outcome. It is always eligible regardless of tier and category — `none` is not a property in the catalog, just a sentinel for the magical-item generator. A constraint that wants, say, a 25% chance of a tier-1 magical item with no property and a 75% chance of one with Elemental should write `properties_weighted: {none: 1, Elemental: 3}`.
+
 **Parameters:**
 - `properties_weighted`: `{property_name: weight}` from the constraint.
 - `category_tag`: the magical-item category.
 - `tier`: the picked tier (integer ≥ 1).
 
-**Returns:** A filtered `{property_name: weight}` dictionary.
+**Returns:** A filtered `{property_name: weight}` dictionary; may include the reserved `none` key.
 
 1. `catalog = equipment_config[PROPERTY_CATALOG_FOR(category_tag)]`
 2. `eligible = empty dictionary`
 3. `for each (property_name, weight) in properties_weighted:`
-4. `⠀⠀if property_name not in catalog:`
-5. `⠀⠀⠀⠀raise exception ('Unknown property in constraint: ' + property_name)`
-6. `⠀⠀property_def = catalog[property_name]`
-7. `⠀⠀if property_def['min_tier'] > tier: continue`
-8. `⠀⠀if category_tag not in property_def['applies_to']: continue`
-9. `⠀⠀eligible[property_name] = weight`
-10. `return eligible`
+4. `⠀⠀if property_name == 'none':`
+5. `⠀⠀⠀⠀eligible[property_name] = weight`
+6. `⠀⠀⠀⠀continue`
+7. `⠀⠀if property_name not in catalog:`
+8. `⠀⠀⠀⠀raise exception ('Unknown property in constraint: ' + property_name)`
+9. `⠀⠀property_def = catalog[property_name]`
+10. `⠀⠀if property_def['min_tier'] > tier: continue`
+11. `⠀⠀if category_tag not in property_def['applies_to']: continue`
+12. `⠀⠀eligible[property_name] = weight`
+13. `return eligible`
 
 ---
 
@@ -1024,9 +1029,9 @@ Unknown category tags raise.
 
 ## GENERATE_MAGICAL_ITEM
 
-**Description:** Generates a random magical Item Stack given a Magical Item Constraint. The algorithm: pick a tier, pick an Item Type eligible for the category, filter properties down to those eligible for the tier + category intersection, pick one property, and resolve its subtype (uniformly from the property's subtype list when the property declares `has_subtype: true`).
+**Description:** Generates a random magical Item Stack given a Magical Item Constraint. The algorithm: pick a tier, pick an Item Type eligible for the category, filter properties down to those eligible for the tier + category intersection (with the reserved `none` key always eligible), pick one property weight, and either apply that property (resolving its subtype if `has_subtype: true`) or — if `none` won — leave the stack with no properties at all.
 
-Produced Stack shape: `{ item, tier, properties: [{name, subtype?}], quantity: 1 }`. The caller can override quantity afterward if needed (e.g., for magical ammunition).
+Produced Stack shape: `{ item, tier, properties: [{name, subtype?}] OR [], quantity: 1 }`. The caller can override quantity afterward if needed (e.g., for magical ammunition).
 
 **Parameters:**
 - `constraint`: a Magical Item Constraint. Required keys: `category`, `tier`, `properties_weighted`. Optional keys: `tier_weights`, `items_weighted`.
@@ -1043,18 +1048,20 @@ Produced Stack shape: `{ item, tier, properties: [{name, subtype?}], quantity: 1
 8. `if length(eligible_props) == 0:`
 9. `⠀⠀raise exception ('No properties eligible at tier ' + tier + ' for category ' + category_tag)`
 10. `property_name = PICK_WEIGHTED_KEY(eligible_props)`
-11. `catalog = equipment_config[PROPERTY_CATALOG_FOR(category_tag)]`
-12. `property_def = catalog[property_name]`
-13. `property_entry = { 'name': property_name }`
-14. `if property_def['has_subtype']:`
-15. `⠀⠀subtypes = property_def['subtypes'] or empty list`
-16. `⠀⠀if length(subtypes) == 0: raise exception ('Property ' + property_name + ' declares has_subtype but has no subtypes list')`
-17. `⠀⠀property_entry['subtype'] = subtypes[RAND_INT(0, length(subtypes) - 1)]`
-18. `stack = { 'item': item_name, 'tier': tier, 'properties': [property_entry], 'quantity': 1 }`
-19. `return stack`
+11. `if property_name == 'none':`
+12. `⠀⠀return { 'item': item_name, 'tier': tier, 'properties': empty list, 'quantity': 1 }`
+13. `catalog = equipment_config[PROPERTY_CATALOG_FOR(category_tag)]`
+14. `property_def = catalog[property_name]`
+15. `property_entry = { 'name': property_name }`
+16. `if property_def['has_subtype']:`
+17. `⠀⠀subtypes = property_def['subtypes'] or empty list`
+18. `⠀⠀if length(subtypes) == 0: raise exception ('Property ' + property_name + ' declares has_subtype but has no subtypes list')`
+19. `⠀⠀property_entry['subtype'] = subtypes[RAND_INT(0, length(subtypes) - 1)]`
+20. `stack = { 'item': item_name, 'tier': tier, 'properties': [property_entry], 'quantity': 1 }`
+21. `return stack`
 
 **Notes:**
-- Exactly one property is applied per generated item, matching the default item-design rule ("typically only one property per item"). Multi-property generation is not provided here; a loot table that wants a multi-property item should specify it as a literal stack.
+- At most one property is applied per generated item, matching the default item-design rule ("typically only one property per item"). The reserved `none` weight in `properties_weighted` lets a constraint produce a propertyless magical item (just tiered, no Elemental / Vicious / etc.). Multi-property generation is not provided here; a loot table that wants a multi-property item should specify it as a literal stack.
 - The generator picks a tier first and then filters properties; a tier for which no properties are eligible raises at step 9. Authors whose `tier_weights` allow a tier with no eligible properties will find out quickly.
 - Subtype selection is uniform across the property's declared subtypes. Weighted subtypes are not supported at the constraint level; an author who wants to bias, say, Fire over Cold can achieve it by splitting the definition of Elemental into per-subtype properties (or by using literal stacks in the table).
 - The returned Stack's `properties` list uses the dict form `{name, subtype}` consistently, matching the Loot and display-name conventions used elsewhere in the module.
