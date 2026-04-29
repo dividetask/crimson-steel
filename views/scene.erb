@@ -4,11 +4,11 @@
   <% unless @show_initiative %>
     <details class="scene-reminder">
       <summary>Reminder</summary>
-      <p>All information shown is what your character's believe rather then what is true. Most information is probably correct, but any assumptions your character's have made will affect the reliability of this information. Characters and Items can hide their tiers, and any lies your character's believe will be written as though it is truth. If a character's tier is unknown then that character hide it during your interactions and they are likely higher then yours</p>
+      <p>What you see here is what your characters believe — not necessarily what is true. Most of it is probably accurate, but assumptions your characters have made can color the details. Characters and items can hide their tiers, and any lies your characters believe will appear here as fact. When a character's tier is shown as unknown, they are concealing it during your interactions, and they are likely a higher tier than yours.</p>
     </details>
   <% end %>
 
-  <div class="scene-datetime">
+  <div class="scene-datetime <%= @sun_moon['is_day'] ? 'scene-datetime-day' : 'scene-datetime-night' %>">
     <svg class="scene-sky" viewBox="0 0 200 80" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
       <rect width="200" height="80" fill="<%= @sun_moon['is_day'] ? '#bcdcff' : '#1c2240' %>"/>
       <% unless @sun_moon['is_day'] %>
@@ -109,37 +109,59 @@
   <% end %>
 
   <%
-    # Mixed grid: scene notes (newest first) at the top, then in-scene
-    # CoI cells. DM sees every staged CoI; players see only the ones the
-    # DM has opted into scene_visible_to.
-    grid_cells = []
-    @visible_panels.each { |p| grid_cells << { kind: :note,      data: p } }
-    @visible_characters_of_interest.each { |c| grid_cells << { kind: :character, data: c } }
+    # Mixed grid: scene notes and in-scene CoI cells in a single ordered
+    # list. The DM can drag to reorder; entries with an explicit
+    # scene_order come first (sorted ascending), then anything new
+    # falls in default order (notes newest-first, characters in
+    # insertion order). Players see only the cells the DM has opted them
+    # into via visible_to / scene_visible_to.
+    raw_cells = []
+    @visible_panels.each_with_index    { |p, i| raw_cells << { kind: :note,      data: p, default_pos: i } }
+    @visible_characters_of_interest.each_with_index { |c, i| raw_cells << { kind: :character, data: c, default_pos: @visible_panels.length + i } }
+    grid_cells = raw_cells.sort_by { |c| [c[:data]['scene_order'].nil? ? 1 : 0, c[:data]['scene_order'].to_i, c[:default_pos]] }
   %>
   <% if grid_cells.any? %>
-    <div class="scene-grid">
+    <div class="scene-grid"<%= ' data-dm="1"' if @is_dm %>>
       <% grid_cells.each do |cell| %>
         <% if cell[:kind] == :note %>
           <% panel = cell[:data] %>
           <% vt = Array(panel['visible_to']) %>
-          <div class="scene-grid-cell scene-grid-note">
+          <% any_visible = vt.any? %>
+          <div class="scene-grid-cell scene-grid-note" data-grid-id="<%= h(panel['id']) %>"<%= ' draggable="true"' if @is_dm %>>
             <% if panel['title'] && !panel['title'].to_s.empty? %>
               <h3><%= h(panel['title']) %></h3>
             <% end %>
             <p><%= h(panel['note']).gsub("\n", '<br>') %></p>
             <% if @is_dm %>
-              <div class="scene-grid-vis">
-                <span class="scene-grid-vis-label">Players see:</span>
-                <% @pc_characters.each do |pc| %>
-                  <% on = vt.include?(pc['id']) %>
-                  <form method="post" action="/scene/panel/toggle_visible_to" style="display:inline;">
+              <details class="scene-grid-vis-collapse">
+                <summary class="scene-grid-vis-status <%= any_visible ? 'visible' : 'hidden' %>"><%= any_visible ? "Visible (#{vt.length})" : 'Hidden' %></summary>
+                <div class="scene-grid-vis">
+                  <span class="scene-grid-vis-label">Players see:</span>
+                  <% @pc_characters.each do |pc| %>
+                    <% on = vt.include?(pc['id']) %>
+                    <form method="post" action="/scene/panel/toggle_visible_to" style="display:inline;">
+                      <input type="hidden" name="id" value="<%= h(panel['id']) %>">
+                      <input type="hidden" name="pc_id" value="<%= pc['id'] %>">
+                      <button type="submit" class="scene-grid-vis-btn <%= on ? 'on' : 'off' %>" title="Click to <%= on ? 'hide from' : 'show to' %> <%= h(pc['name']) %>">
+                        <%= on ? '✓' : '✗' %> <%= h(pc['name']) %>
+                      </button>
+                    </form>
+                  <% end %>
+                  <form method="post" action="/scene/panel/visible_to_all" style="display:inline;">
                     <input type="hidden" name="id" value="<%= h(panel['id']) %>">
-                    <input type="hidden" name="pc_id" value="<%= pc['id'] %>">
-                    <button type="submit" class="scene-grid-vis-btn <%= on ? 'on' : 'off' %>" title="Click to <%= on ? 'hide from' : 'show to' %> <%= h(pc['name']) %>">
-                      <%= on ? '✓' : '✗' %> <%= h(pc['name']) %>
-                    </button>
+                    <button type="submit" class="scene-grid-vis-btn bulk">Show to all</button>
                   </form>
-                <% end %>
+                  <form method="post" action="/scene/panel/visible_to_none" style="display:inline;">
+                    <input type="hidden" name="id" value="<%= h(panel['id']) %>">
+                    <button type="submit" class="scene-grid-vis-btn bulk">Hide from all</button>
+                  </form>
+                </div>
+              </details>
+              <div class="scene-grid-actions">
+                <form method="post" action="/scene/panel/promote" style="display:inline;" onsubmit="return confirm('Promote this scene note into the permanent Notes section?');">
+                  <input type="hidden" name="id" value="<%= h(panel['id']) %>">
+                  <button type="submit">Promote to Notes</button>
+                </form>
               </div>
             <% end %>
           </div>
@@ -148,9 +170,18 @@
           <% tier = char['tier'].to_i if char.key?('tier') %>
           <% tier_class = (tier && tier >= 0) ? "tier-#{tier}" : 'tier-unknown' %>
           <% svt = Array(char['scene_visible_to']) %>
-          <div class="scene-grid-cell scene-grid-character">
-            <div class="scene-grid-character-name <%= tier_class %>">
-              <%= h(char['title']) %>
+          <% any_visible = svt.any? %>
+          <div class="scene-grid-cell scene-grid-character" data-grid-id="<%= h(char['id']) %>"<%= ' draggable="true"' if @is_dm %>>
+            <div class="scene-grid-character-header">
+              <% if @is_dm %>
+                <form method="post" action="/scene/character/remove_from_scene" style="display:inline;" onsubmit="return confirm('Remove this character from the scene?');">
+                  <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                  <button type="submit" class="scene-grid-character-x" title="Remove from scene">×</button>
+                </form>
+              <% end %>
+              <div class="scene-grid-character-name <%= tier_class %>">
+                <%= h(char['title']) %>
+              </div>
             </div>
             <% if char['image_path'] && !char['image_path'].to_s.empty? %>
               <img src="<%= h(char['image_path']) %>" alt="<%= h(char['title']) %>" class="scene-grid-character-img zoomable">
@@ -166,22 +197,42 @@
               <p><%= h(char['note']).gsub("\n", '<br>') %></p>
             <% end %>
             <% if @is_dm %>
-              <div class="scene-grid-vis">
-                <span class="scene-grid-vis-label">Players see:</span>
-                <% @pc_characters.each do |pc| %>
-                  <% on = svt.include?(pc['id']) %>
-                  <form method="post" action="/scene/character/toggle_scene_visible_to" style="display:inline;">
+              <details class="scene-grid-vis-collapse">
+                <summary class="scene-grid-vis-status <%= any_visible ? 'visible' : 'hidden' %>"><%= any_visible ? "Visible (#{svt.length})" : 'Hidden' %></summary>
+                <div class="scene-grid-vis">
+                  <span class="scene-grid-vis-label">Players see:</span>
+                  <% @pc_characters.each do |pc| %>
+                    <% on = svt.include?(pc['id']) %>
+                    <form method="post" action="/scene/character/toggle_scene_visible_to" style="display:inline;">
+                      <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                      <input type="hidden" name="pc_id" value="<%= pc['id'] %>">
+                      <button type="submit" class="scene-grid-vis-btn <%= on ? 'on' : 'off' %>" title="Click to <%= on ? 'hide from' : 'show to' %> <%= h(pc['name']) %>">
+                        <%= on ? '✓' : '✗' %> <%= h(pc['name']) %>
+                      </button>
+                    </form>
+                  <% end %>
+                  <form method="post" action="/scene/character/scene_visible_all" style="display:inline;">
                     <input type="hidden" name="id" value="<%= h(char['id']) %>">
-                    <input type="hidden" name="pc_id" value="<%= pc['id'] %>">
-                    <button type="submit" class="scene-grid-vis-btn <%= on ? 'on' : 'off' %>" title="Click to <%= on ? 'hide from' : 'show to' %> <%= h(pc['name']) %>">
-                      <%= on ? '✓' : '✗' %> <%= h(pc['name']) %>
-                    </button>
+                    <button type="submit" class="scene-grid-vis-btn bulk">Show to all</button>
+                  </form>
+                  <form method="post" action="/scene/character/scene_visible_none" style="display:inline;">
+                    <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                    <button type="submit" class="scene-grid-vis-btn bulk">Hide from all</button>
+                  </form>
+                </div>
+              </details>
+              <div class="scene-grid-actions">
+                <form method="post" action="/scene/character/image" enctype="multipart/form-data" class="scene-grid-img-form">
+                  <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                  <input type="file" name="image" accept="image/*" required>
+                  <button type="submit"><%= char['image_path'] ? 'Replace image' : 'Attach image' %></button>
+                </form>
+                <% if char['image_path'] %>
+                  <form method="post" action="/scene/character/image/clear" style="display:inline;">
+                    <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                    <button type="submit">Remove image</button>
                   </form>
                 <% end %>
-                <form method="post" action="/scene/character/remove_from_scene" style="display:inline;">
-                  <input type="hidden" name="id" value="<%= h(char['id']) %>">
-                  <button type="submit" class="scene-grid-vis-btn remove" title="Remove this character from the scene">Remove</button>
-                </form>
               </div>
             <% end %>
           </div>
@@ -368,3 +419,67 @@
     </div>
   <% end %>
 </div>
+
+<% if @is_dm %>
+<script>
+// Scene-grid drag reorder. Whole cells are draggable; on drop the new
+// DOM order is POSTed to /scene/reorder which stamps a scene_order
+// integer on each entry. Buttons inside cells still receive their
+// click first, so the drag only fires when the user actually drags.
+(function() {
+  var grid = document.querySelector('.scene-grid[data-dm]');
+  if (!grid) return;
+  var dragSrc = null;
+
+  function postOrder() {
+    var fd = new FormData();
+    grid.querySelectorAll('.scene-grid-cell[data-grid-id]').forEach(function(cell) {
+      fd.append('ids[]', cell.getAttribute('data-grid-id'));
+    });
+    fetch('/scene/reorder', { method: 'POST', body: fd });
+  }
+
+  grid.querySelectorAll('.scene-grid-cell[data-grid-id]').forEach(function(cell) {
+    cell.addEventListener('dragstart', function(e) {
+      // Don't start a drag from form controls — let buttons/inputs work normally.
+      var t = e.target;
+      if (t.closest('button, input, textarea, select, a, form, summary')) {
+        e.preventDefault();
+        return;
+      }
+      dragSrc = cell;
+      cell.classList.add('scene-grid-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', cell.getAttribute('data-grid-id')); } catch (_) {}
+    });
+    cell.addEventListener('dragend', function() {
+      cell.classList.remove('scene-grid-dragging');
+      grid.querySelectorAll('.scene-grid-drop-after, .scene-grid-drop-before').forEach(function(c) {
+        c.classList.remove('scene-grid-drop-after', 'scene-grid-drop-before');
+      });
+      dragSrc = null;
+    });
+    cell.addEventListener('dragover', function(e) {
+      if (!dragSrc || dragSrc === cell) return;
+      e.preventDefault();
+      var rect = cell.getBoundingClientRect();
+      var before = (e.clientY - rect.top) < rect.height / 2;
+      cell.classList.toggle('scene-grid-drop-before', before);
+      cell.classList.toggle('scene-grid-drop-after', !before);
+    });
+    cell.addEventListener('dragleave', function() {
+      cell.classList.remove('scene-grid-drop-after', 'scene-grid-drop-before');
+    });
+    cell.addEventListener('drop', function(e) {
+      e.preventDefault();
+      if (!dragSrc || dragSrc === cell) return;
+      var rect = cell.getBoundingClientRect();
+      var before = (e.clientY - rect.top) < rect.height / 2;
+      grid.insertBefore(dragSrc, before ? cell : cell.nextSibling);
+      cell.classList.remove('scene-grid-drop-after', 'scene-grid-drop-before');
+      postOrder();
+    });
+  });
+})();
+</script>
+<% end %>

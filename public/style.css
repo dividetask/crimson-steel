@@ -604,9 +604,16 @@ table th {
 .scene-reminder[open] summary::before { content: '▾ '; }
 .scene-reminder p { margin: 8px 0 4px 0; font-size: 13px; color: #1a237e; line-height: 1.45; }
 
-.scene-datetime { display: flex; align-items: center; gap: 14px; background: #fff7c2; border: 1px solid #d4b84a; padding: 8px 14px; border-radius: 4px; margin: 14px 0 10px 0; font-size: 16px; }
-.scene-sky { width: 200px; height: 80px; border: 1px solid #b58c2a; border-radius: 3px; background: #1c2240; }
-.scene-datetime-value { font-weight: bold; }
+/* The SVG covers the whole bar via absolute positioning so the date
+   floats on top of the sky. The bar's own background color matches the
+   sky for any letterbox space when the SVG (viewBox 200x80) doesn't
+   fill the bar's aspect ratio. */
+.scene-datetime { position: relative; min-height: 80px; padding: 16px 20px; border: 1px solid #b58c2a; border-radius: 4px; margin: 14px 0 10px 0; overflow: hidden; }
+.scene-datetime-day   { background: #bcdcff; border-color: #5a8fc4; }
+.scene-datetime-night { background: #1c2240; border-color: #4a4f6b; }
+.scene-sky { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.scene-datetime-value { position: relative; z-index: 1; font-size: 22px; font-weight: bold; color: #1a237e; padding: 4px 12px; background: rgba(255, 255, 255, 0.7); border-radius: 4px; display: inline-block; }
+.scene-datetime-night .scene-datetime-value { color: #e8ecf5; background: rgba(28, 34, 64, 0.6); }
 .scene-datetime-controls { margin: 0 0 16px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px; }
 .scene-datetime-controls-label { font-size: 13px; color: #555; margin-right: 4px; }
 .scene-datetime-controls button { padding: 4px 10px; }
@@ -615,24 +622,45 @@ table th {
 .scene-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0 18px 0; }
 @media (max-width: 900px) { .scene-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 600px) { .scene-grid { grid-template-columns: 1fr; } }
-.scene-grid-cell { border: 1px solid #ccc; background: #fafafa; padding: 10px 12px; border-radius: 4px; display: flex; flex-direction: column; gap: 6px; }
-.scene-grid-cell h3 { margin: 0; font-size: 16px; }
-.scene-grid-cell p { margin: 0; }
+.scene-grid-cell { border: 1px solid #ccc; background: #fafafa; padding: 10px 12px; border-radius: 4px; display: flex; flex-direction: column; gap: 6px; position: relative; }
+.scene-grid-cell h3 { margin: 0; font-size: 18px; }
+.scene-grid-cell p { margin: 0; font-size: 15px; line-height: 1.45; }
 .scene-grid-meta { color: #666; }
 .scene-grid-character { background: #fbf8ff; border-color: #c0b3e6; }
-.scene-grid-character-name { font-size: 17px; font-weight: bold; }
-.scene-grid-character-img { width: 100%; max-height: 180px; object-fit: cover; border: 1px solid #ddd; border-radius: 3px; }
-.scene-grid-character-img-placeholder { display: flex; align-items: center; justify-content: center; height: 120px; max-height: 120px; background: #f0eef5; border: 1px dashed #b8aed6; }
+.scene-grid-character-header { display: flex; align-items: center; gap: 8px; }
+.scene-grid-character-name { font-size: 19px; font-weight: bold; }
+.scene-grid-character-x { background: #fff; border: 1px solid #c62828; color: #b71c1c; border-radius: 50%; width: 24px; height: 24px; line-height: 1; padding: 0; cursor: pointer; font-size: 16px; flex-shrink: 0; }
+.scene-grid-character-x:hover { background: #ffe0e0; }
+/* Don't crop portraits — fit the full image, just bound the height. */
+.scene-grid-character-img { display: block; max-width: 100%; max-height: 260px; width: auto; height: auto; margin: 0 auto; border: 1px solid #ddd; border-radius: 3px; background: #fff; }
+.scene-grid-character-img-placeholder { display: flex; align-items: center; justify-content: center; width: 100%; height: 120px; background: #f0eef5; border: 1px dashed #b8aed6; }
 .scene-grid-character-img-placeholder svg { width: 64px; height: 64px; }
 
-.scene-grid-vis { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px dotted #ddd; }
+.scene-grid-vis-collapse { margin-top: 6px; padding-top: 6px; border-top: 1px dotted #ddd; }
+.scene-grid-vis-status { cursor: pointer; font-size: 12px; font-weight: bold; padding: 2px 8px; border-radius: 10px; display: inline-block; list-style: none; }
+.scene-grid-vis-status::-webkit-details-marker { display: none; }
+.scene-grid-vis-status.visible { background: #c8e6c9; color: #1b5e20; }
+.scene-grid-vis-status.hidden  { background: #eeeeee; color: #555; }
+.scene-grid-vis { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 6px; }
 .scene-grid-vis-label { font-size: 12px; color: #555; margin-right: 2px; }
 .scene-grid-vis-btn { padding: 2px 8px; font-size: 12px; border: 1px solid #999; border-radius: 12px; cursor: pointer; }
 .scene-grid-vis-btn.on { background: #c8e6c9; border-color: #66bb6a; color: #1b5e20; }
 .scene-grid-vis-btn.off { background: #fff; border-color: #bbb; color: #777; }
-.scene-grid-vis-btn.remove { background: #ffe0e0; border-color: #c62828; color: #b71c1c; margin-left: auto; }
+.scene-grid-vis-btn.bulk { background: #e3f2fd; border-color: #64b5f6; color: #0d47a1; }
 .scene-grid-vis-btn.on:hover { background: #a5d6a7; }
 .scene-grid-vis-btn.off:hover { background: #f0f0f0; }
+.scene-grid-vis-btn.bulk:hover { background: #bbdefb; }
+
+.scene-grid-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
+.scene-grid-actions button { padding: 4px 10px; font-size: 13px; }
+.scene-grid-img-form { display: inline-flex; gap: 4px; align-items: center; }
+.scene-grid-img-form input[type=file] { font-size: 12px; }
+
+/* Drag-and-drop visuals. */
+.scene-grid[data-dm] .scene-grid-cell { cursor: grab; }
+.scene-grid-dragging { opacity: 0.4; }
+.scene-grid-drop-before { box-shadow: 0 -3px 0 0 #1976d2 inset, 0 0 0 1px #1976d2; }
+.scene-grid-drop-after  { box-shadow: 0  3px 0 0 #1976d2 inset, 0 0 0 1px #1976d2; }
 
 .character-card-img { display: block; max-width: 100%; max-height: 200px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 3px; }
 .character-card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }

@@ -422,6 +422,101 @@ post '/scene/character/remove_from_scene' do
   redirect '/scene/0'
 end
 
+post '/scene/character/scene_visible_all' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  pc_ids = Tools.load_json('characters.json').select { |c| (c['group'] || 'PC') == 'PC' }.map { |c| c['id'] }
+  entry['scene_visible_to'] = pc_ids
+  Tools.save_json('notes.json', notes)
+  redirect '/scene/0'
+end
+
+post '/scene/character/scene_visible_none' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  entry['scene_visible_to'] = []
+  Tools.save_json('notes.json', notes)
+  redirect '/scene/0'
+end
+
+post '/scene/panel/visible_to_all' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && SCENE_NOTE_TYPES.include?(entry['type'])
+  pc_ids = Tools.load_json('characters.json').select { |c| (c['group'] || 'PC') == 'PC' }.map { |c| c['id'] }
+  entry['visible_to'] = pc_ids
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/panel/visible_to_none' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && SCENE_NOTE_TYPES.include?(entry['type'])
+  entry['visible_to'] = []
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+# Same as /notes/character/image but redirects back to /scene so the DM
+# can attach a portrait without leaving the scene view.
+post '/scene/character/image' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  upload = params[:image]
+  halt 400, 'image required' unless upload.is_a?(Hash) && upload[:tempfile]
+  orig = upload[:filename] || 'upload'
+  ext = File.extname(orig).downcase
+  halt 400, 'unsupported file type' unless SCENE_IMAGE_EXTS.include?(ext)
+  halt 400, 'file too large' if upload[:tempfile].size > SCENE_IMAGE_MAX_BYTES
+
+  FileUtils.mkdir_p(SCENE_IMAGE_DIR)
+  safe_base = scene_sanitize_filename(File.basename(orig, ext))
+  filename = "#{Time.now.to_i}-#{SecureRandom.hex(4)}-#{safe_base}#{ext}"
+  dest = File.join(SCENE_IMAGE_DIR, filename)
+  FileUtils.cp(upload[:tempfile].path, dest)
+
+  prev = entry['image_path'].to_s
+  if prev.start_with?('/images/scene/')
+    disk = File.join(__dir__, 'public', prev)
+    File.unlink(disk) if File.file?(disk)
+  end
+  entry['image_path'] = "/images/scene/#{filename}"
+  Tools.save_json('notes.json', notes)
+  redirect '/scene/0'
+end
+
+post '/scene/character/image/clear' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  prev = entry['image_path'].to_s
+  if prev.start_with?('/images/scene/')
+    disk = File.join(__dir__, 'public', prev)
+    File.unlink(disk) if File.file?(disk)
+  end
+  entry.delete('image_path')
+  Tools.save_json('notes.json', notes)
+  redirect '/scene/0'
+end
+
+# DM-only reorder of the /scene grid. Accepts ids[]= in the order the
+# user dragged them and stamps an integer scene_order on each entry.
+# Entries not in the payload keep whatever scene_order they had.
+post '/scene/reorder' do
+  scene_require_dm!
+  ids = Array(params['ids'])
+  notes = scene_load_notes
+  ids.each_with_index do |id, idx|
+    entry, _ = scene_find_note(notes, id)
+    next unless entry
+    entry['scene_order'] = idx
+  end
+  scene_save_notes(notes)
+  status 204
+end
+
 post '/notes/character/toggle_public' do
   scene_require_dm!
   notes, entry, _ = notes_find_character!(params[:id])
