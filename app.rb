@@ -131,6 +131,19 @@ SCENE_IMAGE_DIR = File.join(__dir__, 'public', 'images', 'scene')
 SCENE_IMAGE_EXTS = %w[.png .jpg .jpeg .gif .webp].freeze
 SCENE_IMAGE_MAX_BYTES = 10 * 1024 * 1024
 
+# Scene maps: grid-based, painted in the DM staging block, shared one-at-
+# a-time with players. Cells are stored sparsely under entry['cells'] as
+# "row,col" => { color, icon, label }; player overlay marks live under
+# entry['player_cells'] and are wiped on every DM save.
+SCENE_MAP_MAX_DIM = 40
+SCENE_MAP_PLAYER_ICONS = %w[🔥 ⚔️ 🏹 🕸 ⬆].freeze
+
+def scene_map_clamp_dim(v, default)
+  n = v.to_i
+  n = default if n <= 0
+  [[n, 1].max, SCENE_MAP_MAX_DIM].min
+end
+
 def scene_sanitize_filename(name)
   base = File.basename(name.to_s)
   base.gsub(/[^A-Za-z0-9._-]/, '_')
@@ -221,6 +234,7 @@ get '/scene/:viewer_id' do
   @scene_notes = @notes.select { |n| n['draft'] && (n['type'] == 'scene_panel' || n['type'] == 'draft_note') }
   @scene_notes = @scene_notes.sort_by { |n| -n['created_at'].to_f }
   @draft_images = @notes.select { |n| n['draft'] && n['type'] == 'draft_image' }
+  @scene_maps   = @notes.select { |n| n['draft'] && n['type'] == 'scene_map' }
 
   # Characters of Interest are gated by in_scene (DM-only choice for
   # which CoI are staged in this scene) and scene_visible_to (which PCs
@@ -236,6 +250,12 @@ get '/scene/:viewer_id' do
     end
 
   @visible_images = @draft_images.select { |i| i['shared'] }
+  @visible_maps =
+    if @is_dm
+      @scene_maps.select { |m| m['shared'] }
+    else
+      @scene_maps.select { |m| m['shared'] && Array(m['visible_to']).include?(@viewer_id) }
+    end
   @visible_panels =
     if @is_dm
       @scene_notes
@@ -515,6 +535,142 @@ post '/scene/reorder' do
   end
   scene_save_notes(notes)
   status 204
+end
+
+# --- Scene maps ---
+post '/scene/map' do
+  scene_require_dm!
+  notes = scene_load_notes
+  notes << {
+    'id' => SecureRandom.uuid,
+    'owner_id' => 0,
+    'draft' => true,
+    'type' => 'scene_map',
+    'title' => params[:title].to_s,
+    'rows' => scene_map_clamp_dim(params[:rows], 8),
+    'cols' => scene_map_clamp_dim(params[:cols], 8),
+    'cells' => {},
+    'shared' => false,
+    'visible_to' => scene_parse_visible_to(params[:visible_to])
+  }
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/map/update' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'scene_map'
+
+  entry['title'] = params[:title].to_s
+  entry['visible_to'] = scene_parse_visible_to(params[:visible_to])
+
+  new_rows = scene_map_clamp_dim(params[:rows], entry['rows'].to_i)
+  new_cols = scene_map_clamp_dim(params[:cols], entry['cols'].to_i)
+  entry['rows'] = new_rows
+  entry['cols'] = new_cols
+
+  # The editor posts the cell map as a JSON blob so the sparse structure
+  # round-trips without inventing per-cell form field names.
+  raw = params[:cells_json].to_s
+  unless raw.empty?
+    begin
+      parsed = JSON.parse(raw)
+      if parsed.is_a?(Hash)
+        cleaned = {}
+        parsed.each do |key, val|
+          next unless key.is_a?(String) && key =~ /\A(\d+),(\d+)\z/
+          r = Regexp.last_match(1).to_i
+          c = Regexp.last_match(2).to_i
+          next if r >= new_rows || c >= new_cols
+          next unless val.is_a?(Hash)
+          cell = {}
+          cell['color'] = val['color'].to_s[0, 20] if val['color'].is_a?(String) && !val['color'].to_s.empty?
+          cell['label'] = val['label'].to_s[0, 40] if val['label'].is_a?(String) && !val['label'].to_s.empty?
+          cell['icon']  = val['icon'].to_s[0, 20]  if val['icon'].is_a?(String)  && !val['icon'].to_s.empty?
+          cleaned[key] = cell unless cell.empty?
+        end
+        entry['cells'] = cleaned
+      end
+    rescue JSON::ParserError
+      # Leave cells as-is on a bad payload; the UI will re-send on next save.
+    end
+  end
+
+  # A DM edit supersedes any player "where I want to move" marks; wipe the
+  # overlay so stale intents don't linger after the situation changes.
+  entry['player_cells'] = {}
+
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+# Only one map can be displayed to players at a time. Toggling Share ON
+# for one map automatically clears Share on every other scene_map entry.
+post '/scene/map/share' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'scene_map'
+  if entry['shared']
+    entry['shared'] = false
+  else
+    notes.each { |n| n['shared'] = false if n['type'] == 'scene_map' }
+    entry['shared'] = true
+  end
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/map/delete' do
+  scene_require_dm!
+  notes = scene_load_notes
+  _, idx = scene_find_note(notes, params[:id])
+  halt 404 unless idx
+  notes.delete_at(idx)
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+# Players drop a restricted set of icons onto a shared map to signal
+# intent (e.g. "I want to move here"). All player marks on a map are
+# wiped whenever the DM next saves an edit via /scene/map/update, so they
+# act as an ephemeral overlay rather than persistent content.
+post '/scene/map/player_mark' do
+  content_type :json
+  viewer_id = params[:viewer_id].to_i
+  halt 403, '{}' if viewer_id <= 0
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404, '{}' unless entry && entry['type'] == 'scene_map'
+  halt 403, '{}' unless entry['shared'] && Array(entry['visible_to']).include?(viewer_id)
+
+  entry['player_cells'] ||= {}
+  action = params[:action].to_s
+  rows = entry['rows'].to_i
+  cols = entry['cols'].to_i
+
+  case action
+  when 'place'
+    icon = params[:icon].to_s
+    halt 400, '{}' unless SCENE_MAP_PLAYER_ICONS.include?(icon)
+    r = params[:r].to_i
+    c = params[:c].to_i
+    halt 400, '{}' if r < 0 || c < 0 || r >= rows || c >= cols
+    entry['player_cells']["#{r},#{c}"] = { 'icon' => icon, 'by' => viewer_id }
+  when 'clear'
+    r = params[:r].to_i
+    c = params[:c].to_i
+    entry['player_cells'].delete("#{r},#{c}")
+  when 'clear_mine'
+    entry['player_cells'].reject! { |_k, v| v.is_a?(Hash) && v['by'] == viewer_id }
+  else
+    halt 400, '{}'
+  end
+
+  scene_save_notes(notes)
+  { 'player_cells' => entry['player_cells'] }.to_json
 end
 
 post '/notes/character/toggle_public' do
