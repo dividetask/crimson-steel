@@ -1,8 +1,11 @@
+require 'yaml'
+
 # Placeholder data source for the UI rebuild. The real rule engine
 # from before-refactor (character.rb, templates.rb, tools.rb, etc.)
 # is not wired up yet; this class returns hard-coded values shaped
 # the way the views expect so the interface can be rebuilt one
-# page at a time.
+# page at a time. Each method here corresponds to a query the final
+# data layer will have to answer.
 #
 # Production never loads this file. app.rb requires
 # lib/empty_data.rb instead and binds DATA to EmptyData, so prod
@@ -293,41 +296,45 @@ class DummyData
   end
 
   # --- Combat --------------------------------------------------------------
+  # Shape mirrors how this will be stored on disk: each turn carries a
+  # foreign key (`char_id`) into either characters (integer id, PCs)
+  # or enemy_templates (string id, mobs). Display name is resolved on
+  # read via name_for; never duplicated in storage.
 
   def self.combat_state
     { 'round' => 4, 'active_effects' => [], 'current_turn' => 'pc-3',
       'turns' => [
-        { 'combat_id' => 'pc-3',  'char_id' => 3,              'name' => 'Lira Duskmoor',  'initiative' => 'X97',
+        { 'combat_id' => 'pc-3',  'char_id' => 3,              'initiative' => 'X97',
           'hp' => 18, 'hp_max' => 22,
           'minor_damage' => 4, 'moderate_damage' => 0, 'major_damage' => 0,
           'combat_pool' => 5, 'combat_pool_max' => 5, 'shock' => 0, 'pain' => 0,
           'conditions' => [], 'group' => 'PC' },
 
-        { 'combat_id' => 'pc-1',  'char_id' => 1,              'name' => 'Ash Windmere',   'initiative' => 'X87',
+        { 'combat_id' => 'pc-1',  'char_id' => 1,              'initiative' => 'X87',
           'hp' => 22, 'hp_max' => 28,
           'minor_damage' => 6, 'moderate_damage' => 0, 'major_damage' => 0,
           'combat_pool' => 4, 'combat_pool_max' => 6, 'shock' => 1, 'pain' => 0,
           'conditions' => [{ 'name' => 'bleed', 'value' => 2 }], 'group' => 'PC' },
 
-        { 'combat_id' => 'pc-2',  'char_id' => 2,              'name' => 'Bryn Ironvein',  'initiative' => '742',
+        { 'combat_id' => 'pc-2',  'char_id' => 2,              'initiative' => '742',
           'hp' => 24, 'hp_max' => 36,
           'minor_damage' => 4, 'moderate_damage' => 8, 'major_damage' => 0,
           'combat_pool' => 3, 'combat_pool_max' => 7, 'shock' => 0, 'pain' => 2,
           'conditions' => [{ 'name' => 'poison', 'value' => 1 }], 'group' => 'PC' },
 
-        { 'combat_id' => 'mob-1', 'char_id' => 'bandit_thug',  'name' => 'Bandit Thug',    'initiative' => 'X4',
+        { 'combat_id' => 'mob-1', 'char_id' => 'bandit_thug',  'initiative' => 'X4',
           'hp' => 14, 'hp_max' => 14,
           'minor_damage' => 0, 'moderate_damage' => 0, 'major_damage' => 0,
           'combat_pool' => 3, 'combat_pool_max' => 3, 'shock' => 0, 'pain' => 0,
           'conditions' => [], 'group' => 'Enemy' },
 
-        { 'combat_id' => 'mob-2', 'char_id' => 'bandit_thug',  'name' => 'Bandit Thug',    'initiative' => '951',
+        { 'combat_id' => 'mob-2', 'char_id' => 'bandit_thug',  'initiative' => '951',
           'hp' => 5, 'hp_max' => 14,
           'minor_damage' => 2, 'moderate_damage' => 4, 'major_damage' => 3,
           'combat_pool' => 1, 'combat_pool_max' => 3, 'shock' => 2, 'pain' => 1,
           'conditions' => [{ 'name' => 'bleed', 'value' => 1 }, { 'name' => 'major_damage', 'value' => 1 }], 'group' => 'Enemy' },
 
-        { 'combat_id' => 'mob-3', 'char_id' => 'bandit_archer','name' => 'Bandit Archer',  'initiative' => '8',
+        { 'combat_id' => 'mob-3', 'char_id' => 'bandit_archer','initiative' => '8',
           'hp' => 0, 'hp_max' => 10,
           'minor_damage' => 2, 'moderate_damage' => 4, 'major_damage' => 4,
           'combat_pool' => 0, 'combat_pool_max' => 3, 'shock' => 0, 'pain' => 0,
@@ -335,11 +342,26 @@ class DummyData
       ] }
   end
 
+  # Resolve a display name for a char_id. Integer ids map to PC
+  # entries; string ids map to enemy templates. Unknown ids fall back
+  # to the id itself so the UI never blanks out on bad data.
+  def self.name_for(char_id)
+    if char_id.is_a?(Integer)
+      character_by_id(char_id)&.dig('name') || char_id.to_s
+    else
+      enemy_templates.find { |e| e[:id].to_s == char_id.to_s }&.dig(:name) || char_id.to_s
+    end
+  end
+
   # Initiative track sorted high-to-low. Sort key is the X-bearing
   # initiative string compared as a sequence of dice values (X = 10,
-  # then digits left-to-right).
+  # then digits left-to-right). Returned turns are enriched with the
+  # display name resolved via name_for so the view layer doesn't have
+  # to know how the lookup works.
   def self.initiative_turns
-    combat_state['turns'].sort_by { |t| initiative_sort_key(t['initiative']) }
+    combat_state['turns']
+      .sort_by { |t| initiative_sort_key(t['initiative']) }
+      .map    { |t| t.merge('name' => name_for(t['char_id'])) }
   end
 
   def self.initiative_sort_key(str)
@@ -578,6 +600,171 @@ class DummyData
       'item'       => %w[potion scroll misc],
       'tattoo'     => %w[shoulder arm chest],
       'ammunition' => %w[arrow bolt sling] }
+  end
+
+  # --- Attack stub ---------------------------------------------------------
+  # The attack_stub is rule-ignorant: callers hand it the attacker's
+  # weapons, the candidate targets, the concrete defense options for each
+  # target (one per equipped weapon for parry, one per shield for block,
+  # etc.), and the lists of ally / target reactions. Everything below is
+  # placeholder data shaped the way the stub expects, so the UI flow can
+  # be exercised end-to-end before any real rule engine is wired up.
+  #
+  # The defenses catalog (`data/defenses.yaml`) defines the abstract kinds
+  # — `defense_options` is responsible for expanding `parry` into
+  # one option per equipped weapon, `block` into one per shield, etc.
+
+  def self.defenses_catalog
+    @defenses_catalog ||= YAML.load_file(File.join(__dir__, '..', 'data', 'defenses.yaml'))['defenses']
+  end
+
+  def self.reactions_catalog
+    @reactions_catalog ||= YAML.load_file(File.join(__dir__, '..', 'data', 'reactions.yaml'))['reactions']
+  end
+
+  def self.attacker_sample
+    {
+      'name'  => 'Bryn Ironvein',
+      'skill' => { 'name' => 'Attack', 'bonus' => 2, 'dice' => 8, 'ranks' => 3 },
+      'combat_pool' => 15, 'combat_pool_max' => 23,
+      'weapons' => [
+        { 'key' => 'longsword',
+          'name' => 'Longsword',
+          'min_dice' => 2, 'max_dice' => 8,
+          'attack_bonus' => 2, 'damage' => 4, 'threshold' => 8, 'bleed' => 1, 'speed' => 2,
+          'afflictions' => [
+            { 'key' => 'bleed', 'label' => 'Bleed', 'amount' => 1 }
+          ] },
+        { 'key' => 'hatchet',
+          'name' => 'Hatchet',
+          'min_dice' => 2, 'max_dice' => 5,
+          'attack_bonus' => 1, 'damage' => 3, 'threshold' => 6, 'bleed' => 1, 'speed' => 1,
+          'afflictions' => [
+            { 'key' => 'bleed', 'label' => 'Bleed', 'amount' => 1 }
+          ] }
+      ]
+    }
+  end
+
+  def self.target_samples
+    [
+      { 'key' => 'mob-1', 'name' => 'Bandit Thug',   'incapacitated' => false,
+        'combat_pool' => 9, 'combat_pool_max' => 12,
+        'defenses'  => defense_options(:thug),
+        'reactions' => reaction_options(:thug) },
+      { 'key' => 'mob-2', 'name' => 'Bandit Captain','incapacitated' => false,
+        'combat_pool' => 18, 'combat_pool_max' => 20,
+        'defenses'  => defense_options(:captain),
+        'reactions' => reaction_options(:captain) },
+      { 'key' => 'mob-3', 'name' => 'Skeleton',      'incapacitated' => true,
+        'combat_pool' => 0, 'combat_pool_max' => 6,
+        'defenses'  => [defense_option('nothing')],
+        'reactions' => reaction_options(:skeleton) }
+    ]
+  end
+
+  # Allies who can take a reaction *during* this attack -- spend dice to
+  # roll a defensive check on the target's behalf, etc. Bardic
+  # Inspiration / Unsettling Words are not in here -- they are luck
+  # sources, applied to other rolls, and live in luck_sources.
+  def self.ally_reactions
+    [
+      { 'key'   => 'lira-shield-of-faith',
+        'name'  => 'Lira',
+        'label' => 'Shield of Faith',
+        'combat_pool' => 5, 'combat_pool_max' => 12,
+        'min_dice' => 2, 'max_dice' => 6,
+        'skill'  => { 'name' => 'Healing', 'bonus' => 2, 'dice' => 6, 'ranks' => 2 },
+        'cost'   => 'no mana (concentration)',
+        'tn_label' => 'Block TN' }
+    ]
+  end
+
+  # Luck pools the DM can draw on after each roll-granting choice. The
+  # stub asks for points-to-spend from each pool after attack dice,
+  # defense dice, and per-ally roll selections; the chosen amounts ride
+  # along into the multi-roll display.
+  def self.luck_sources
+    [
+      { 'key' => 'bardic_inspiration', 'label' => 'Bardic Inspiration',
+        'kind' => 'bonus',  'remaining' => 4,
+        'description' => 'Reroll N lowest dice on the chosen roll.' },
+      { 'key' => 'unsettling_words',   'label' => 'Unsettling Words',
+        'kind' => 'penalty', 'remaining' => 3,
+        'description' => 'Reroll N highest dice on the chosen roll.' }
+    ]
+  end
+
+  # Build the `defenses` array a target ships to the stub. A real data
+  # layer will derive this from the target's equipped items; here we
+  # synthesize representative loadouts per archetype.
+  def self.defense_options(archetype)
+    case archetype
+    when :thug
+      [
+        defense_option('nothing'),
+        defense_option('dodge', skill: { 'bonus' => 1, 'dice' => 5 }, min_dice: 2, max_dice: 5),
+        defense_option('parry', label_suffix: 'Club',
+                       implement: { 'name' => 'Club', 'attack_bonus' => 1, 'speed' => 1 },
+                       skill: { 'bonus' => 1, 'dice' => 4 }, min_dice: 2, max_dice: 4)
+      ]
+    when :captain
+      [
+        defense_option('nothing'),
+        defense_option('dodge', skill: { 'bonus' => 2, 'dice' => 6 }, min_dice: 2, max_dice: 6),
+        defense_option('parry', label_suffix: 'Axe',
+                       implement: { 'name' => 'Axe', 'attack_bonus' => 2, 'speed' => 2 },
+                       skill: { 'bonus' => 2, 'dice' => 5 }, min_dice: 2, max_dice: 5),
+        defense_option('parry', label_suffix: 'Dagger',
+                       implement: { 'name' => 'Dagger', 'attack_bonus' => 1, 'speed' => 1 },
+                       skill: { 'bonus' => 1, 'dice' => 4 }, min_dice: 2, max_dice: 4),
+        defense_option('block', label_suffix: 'Buckler',
+                       implement: { 'name' => 'Buckler', 'attack_bonus' => 1, 'speed' => 1 },
+                       skill: { 'bonus' => 1, 'dice' => 4 }, min_dice: 2, max_dice: 4)
+      ]
+    else
+      [defense_option('nothing')]
+    end
+  end
+
+  # Build the `reactions` array a target ships to the stub. Same idea
+  # as defense_options: a real data layer will derive the per-target
+  # list from the target's abilities; here we synthesize per-archetype
+  # samples that the test page can exercise.
+  def self.reaction_options(archetype)
+    case archetype
+    when :captain
+      [reaction_option('danger_sense'), reaction_option('primal_tenacity')]
+    else
+      []
+    end
+  end
+
+  def self.reaction_option(kind)
+    catalog = reactions_catalog.fetch(kind)
+    {
+      'kind'        => kind,
+      'key'         => kind,
+      'label'       => catalog['label'],
+      'description' => catalog['description'],
+      'cost'        => catalog['cost']
+    }
+  end
+
+  def self.defense_option(kind, label_suffix: nil, implement: nil, skill: nil, min_dice: 0, max_dice: 0)
+    catalog = defenses_catalog.fetch(kind)
+    label = label_suffix ? "#{catalog['label']} with #{label_suffix}" : catalog['label']
+    {
+      'kind'        => kind,
+      'key'         => label_suffix ? "#{kind}-#{label_suffix.downcase.tr(' ', '-')}" : kind,
+      'label'       => label,
+      'description' => catalog['description'],
+      'uses_dice'   => catalog['uses_dice'],
+      'implement'   => implement,
+      'skill'       => skill,
+      'min_dice'    => min_dice,
+      'max_dice'    => max_dice
+    }
   end
 
   # --- Scene ---------------------------------------------------------------

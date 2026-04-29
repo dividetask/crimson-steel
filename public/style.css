@@ -466,6 +466,409 @@ body {
   cursor: pointer;
 }
 
+.multi-roll-stub {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.multi-roll-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.multi-roll-title {
+  font-weight: bold;
+  font-size: 13px;
+  flex: 1;
+}
+
+.multi-roll-roll-all,
+.multi-roll-confirm {
+  font-size: 11px;
+  padding: 3px 10px;
+  cursor: pointer;
+  background: #1976d2;
+  color: #fff;
+  border: 1px solid #0d47a1;
+  border-radius: 3px;
+}
+
+.multi-roll-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.multi-roll-table th,
+.multi-roll-table td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.multi-roll-table th {
+  background: #f5f5f5;
+  font-weight: bold;
+}
+
+.multi-roll-name { width: 200px; }
+.multi-roll-controls { white-space: nowrap; }
+.multi-roll-meta { color: #666; font-size: 10px; }
+
+.multi-roll-row-roll,
+.multi-roll-row-luck {
+  font-size: 11px;
+  padding: 2px 6px;
+  margin-right: 3px;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+}
+
+.multi-roll-row-luck:disabled {
+  cursor: not-allowed;
+}
+
+/* Bonus luck (e.g. Bardic Inspiration): green text. Penalty luck
+ * (e.g. Unsettling Words): orange text. Disabled state stays readable
+ * by lightening the background instead of dropping opacity. */
+.multi-roll-row-bonus {
+  color: #1b5e20;
+  border-color: #66bb6a;
+  font-weight: bold;
+}
+
+.multi-roll-row-bonus:disabled {
+  color: #2e7d32;
+  background: #e8f5e9;
+  border-color: #a5d6a7;
+}
+
+.multi-roll-row-penalty {
+  color: #b85b00;
+  border-color: #f29900;
+  font-weight: bold;
+}
+
+.multi-roll-row-penalty:disabled {
+  color: #b85b00;
+  background: #fff3e0;
+  border-color: #ffcc80;
+}
+
+.multi-roll-dice {
+  font-family: monospace;
+  min-width: 200px;
+}
+
+.multi-roll-dice .roll-line {
+  display: block;
+  line-height: 1.6;
+}
+
+.multi-roll-dice .roll-label {
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+/* Empty position placeholder used in reroll diffs. Same width as a
+ * real die so columns line up under the original. */
+.multi-roll-dice .die-blank {
+  background: transparent;
+  color: transparent;
+  font-weight: normal;
+}
+
+.multi-roll-dice .roll-arrow {
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  color: #555;
+  margin: 0 4px;
+}
+
+.multi-roll-dice .die {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-weight: bold;
+  color: #000;
+}
+
+.multi-roll-dice .die-crit    { background: #64b5f6; }
+.multi-roll-dice .die-fumble  { background: #e57373; }
+.multi-roll-dice .die-success { background: #81c784; }
+.multi-roll-dice .die-miss    { color: #777; background: transparent; font-weight: normal; }
+.multi-roll-dice .die-blank   { background: transparent; color: transparent; font-weight: normal; }
+
+.multi-roll-result {
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.attack-stub {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.attack-stub-title {
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.attack-stub-attacker {
+  margin-bottom: 6px;
+  color: #555;
+}
+
+.attack-step {
+  margin-top: 8px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  background: #fcfcfc;
+}
+
+.attack-step-locked {
+  background: #f5f5f5;
+  color: #555;
+}
+
+.attack-step-head {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.attack-step-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.attack-step-summary {
+  flex: 1;
+  min-width: 0;
+}
+
+.attack-meta {
+  color: #666;
+}
+
+.attack-btn {
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+}
+
+.attack-btn:hover {
+  background: #eef4ff;
+}
+
+.attack-btn-selected {
+  background: #1976d2;
+  color: #fff;
+  border-color: #0d47a1;
+}
+
+.attack-btn-primary {
+  background: #1976d2;
+  color: #fff;
+  border-color: #0d47a1;
+}
+
+.attack-btn-primary:hover {
+  background: #0d47a1;
+}
+
+.attack-rollback-btn {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+  background: #fff;
+  color: #b88a00;
+  border: 1px solid #d4b84a;
+  border-radius: 3px;
+}
+
+.attack-rollback-btn:hover {
+  background: #fff7c2;
+}
+
+/* Weapon / defense / ally pick table.  Three columns: clickable
+ * name button, plain-text meta, dice buttons.  Header row carries
+ * an optional combat-pool readout + right-aligned action button.
+ * Footer row holds a right-aligned [Continue] for the ally step. */
+.attack-pick-table {
+  flex: 1 1 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  width: auto;
+}
+
+.attack-pick-table td {
+  padding: 3px 6px;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+}
+
+.attack-pick-table tbody tr:last-child td { border-bottom: none; }
+.attack-pick-table tfoot td { border-top: 1px solid #eee; padding-top: 6px; }
+
+.attack-pool-readout {
+  font-size: 12px;
+}
+
+.attack-pick-name-cell { white-space: nowrap; }
+.attack-pick-meta-cell { color: #666; white-space: nowrap; }
+
+.attack-pick-dice-cell {
+  white-space: nowrap;
+}
+
+.attack-pick-dice-cell button + button { margin-left: 3px; }
+
+/* Right-aligned action cell -- [Do Nothing] in defense, [None] /
+ * [Continue] in ally.  Aligning right inside a table cell does the
+ * same job margin-left:auto did in the old flex layout. */
+.attack-action-cell { text-align: right; }
+
+.attack-pick-row-label {
+  /* Button hugs its name; meta info lives in a sibling cell. */
+  text-align: left;
+}
+
+.attack-pick-row-label:disabled {
+  /* Keep the readable role-style label even when un-clickable. */
+  background: #fff;
+  color: #000;
+  cursor: default;
+  opacity: 1;
+}
+
+.attack-pick-pt {
+  min-width: 32px;
+  text-align: center;
+}
+
+.attack-pick-pt:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.attack-luck-table {
+  flex: 1 1 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.attack-luck-table th,
+.attack-luck-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.attack-luck-table thead th {
+  background: #f5f5f5;
+  font-weight: bold;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #555;
+}
+
+.attack-luck-table-label {
+  white-space: nowrap;
+  font-weight: bold;
+}
+
+.attack-luck-table td button + button { margin-left: 3px; }
+
+.attack-luck-row {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.attack-luck-row-label {
+  margin-right: 6px;
+}
+
+.attack-luck-pt {
+  min-width: 32px;
+  text-align: center;
+}
+
+.attack-luck-pt-penalty {
+  color: #b71c1c;
+  border-color: #ef9a9a;
+}
+
+.attack-luck-pt-selected {
+  background: #1976d2;
+  color: #fff;
+  border-color: #0d47a1;
+}
+
+.attack-luck-pt-penalty.attack-luck-pt-selected {
+  background: #b71c1c;
+  color: #fff;
+  border-color: #7f1010;
+}
+
+.attack-roll-slot {
+  flex: 1 1 100%;
+  margin-top: 4px;
+}
+
+.attack-damage-form {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 4px;
+}
+
+.attack-damage-form label {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.attack-damage-form input[type="number"] { width: 56px; }
+.attack-damage-form input[type="text"]   { width: 200px; }
+
+.attack-affliction-list {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 6px 8px;
+  margin-top: 4px;
+  border: 1px dashed #ccc;
+  border-radius: 3px;
+}
+
+.attack-affliction-list .attack-meta {
+  flex: 1 1 100%;
+}
+
 /* --- Notes page stubs ---------------------------------------------------- */
 
 .notes-empty {

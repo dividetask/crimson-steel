@@ -37,3 +37,18 @@ helpers do
     }
   end
 end
+
+# Render the multi_roll_stub partial in response to an AJAX request from
+# a parent stub (attack_stub uses this to swap in the rolls panel
+# once the DM has finished selecting target / weapon / defense / etc.).
+# The `rolls` parameter is a JSON-encoded array of row hashes; each
+# row matches the `rolls:` shape that multi_roll_stub takes directly.
+post '/multi_roll_stub/render' do
+  content_type :html
+  raw = params[:rolls].to_s
+  rolls = raw.empty? ? [] : JSON.parse(raw)
+  multi_roll_stub(
+    rolls: rolls,
+    title: params[:title].to_s.empty? ? 'Rolls' : params[:title].to_s
+  )
+end

@@ -92,6 +92,26 @@ helpers do
   end
 end
 
+# Render the roll_stub partial in response to an AJAX request from a
+# parent stub (e.g. attack_stub) that needs to inject a freshly
+# parameterised roll into its flow. Returns the partial HTML; the caller
+# is responsible for placing it in the DOM.
+post '/roll_stub/render' do
+  content_type :html
+  roll_stub(
+    check_name:         params[:check_name].to_s,
+    dice_count:         params[:dice_count].to_i,
+    tn:                 params[:tn].to_i,
+    starting_value:     params[:starting_value].to_i,
+    luck_bonus_name:    params[:luck_bonus_name],
+    luck_penalty_name:  params[:luck_penalty_name],
+    luck_amount:        params[:luck_amount].to_i,
+    insight_bonus_name: params[:insight_bonus_name],
+    insight_penalty_name: params[:insight_penalty_name],
+    insight_amount:     params[:insight_amount].to_i
+  )
+end
+
 post '/roll_stub/roll' do
   content_type :json
   dice_count = params[:dice_count].to_i

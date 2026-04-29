@@ -2,6 +2,39 @@
 
 <%# Newest stub previews go at the top — see CLAUDE.md. %>
 
+<h2>Attack Stub</h2>
+
+<p class="dt-note">
+  Walks the DM through target &rarr; weapon &rarr; attack dice &rarr; defense
+  &rarr; ally reactions &rarr; rolls &rarr; target reactions &rarr; damage.
+  Same stub serves melee and ranged. Steps with a single (or zero)
+  option auto-advance.
+</p>
+
+<%= attack_stub(
+      attacker:       DATA.attacker_sample,
+      targets:        DATA.target_samples,
+      ally_reactions: DATA.ally_reactions,
+      luck_sources:   DATA.luck_sources
+    ) %>
+
+<div class="stub-test-capture">
+  <label>Last attack result:
+    <textarea id="test-attack-result" rows="6" readonly
+              placeholder="(submit the damage step)"
+              style="width:100%;font-family:monospace;font-size:11px;"></textarea>
+  </label>
+</div>
+
+<script>
+  // Echo the attack:confirm payload so the test harness can show
+  // what the stub would hand off to a real combat handler.
+  document.addEventListener('attack:confirm', function(e) {
+    var out = document.getElementById('test-attack-result');
+    if (out) out.value = JSON.stringify(e.detail, null, 2);
+  });
+</script>
+
 <h2>Roll Stub</h2>
 
 <form method="post" action="/test" class="stub-test-form">
