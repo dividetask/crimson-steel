@@ -186,7 +186,6 @@
             <% if panel['title'] && !panel['title'].to_s.empty? %>
               <h3><%= h(panel['title']) %></h3>
             <% end %>
-            <p><%= h(panel['note']).gsub("\n", '<br>') %></p>
             <% if @is_dm %>
               <details class="scene-grid-vis-collapse">
                 <summary class="scene-grid-vis-status <%= any_visible ? 'visible' : 'hidden' %>"><%= any_visible ? "Visible (#{vt.length})" : 'Hidden' %></summary>
@@ -212,6 +211,9 @@
                   </form>
                 </div>
               </details>
+            <% end %>
+            <p><%= h(panel['note']).gsub("\n", '<br>') %></p>
+            <% if @is_dm %>
               <div class="scene-grid-actions">
                 <form method="post" action="/scene/panel/promote" style="display:inline;" onsubmit="return confirm('Promote this scene note into the permanent Notes section?');">
                   <input type="hidden" name="id" value="<%= h(panel['id']) %>">
