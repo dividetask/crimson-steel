@@ -1,0 +1,25 @@
+# Reactions — Catalog of post-attack reactions a target can declare
+# once they've been hit. The attack_stub presents these as the Target
+# Reactions step. Same shape as data/defenses.yaml: each entry is a
+# kind; the data layer expands the kinds available to a given target
+# into the concrete options shown to the DM.
+#
+# Order matters: entries are presented in the order they appear in
+# this file. Move a block up to surface it sooner.
+#
+# Field reference:
+#   label         Button label and step heading.
+#   description   Short DM-facing explanation.
+#   cost          Resource string (e.g. "4 mana"). Display only;
+#                 the rule engine enforces the actual spend.
+
+reactions:
+  danger_sense:
+    label: Danger Sense
+    description: Damage resilience +4 against this attack.
+    cost: 4 mana
+
+  primal_tenacity:
+    label: Primal Tenacity
+    description: Damage reduction +4 against this attack.
+    cost: 4 mana
