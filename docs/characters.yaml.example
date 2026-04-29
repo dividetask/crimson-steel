@@ -1,0 +1,58 @@
+# Crimson Steel — character roster.
+#
+# Setup:
+#   1. Copy this file to `data/characters.yaml`
+#      (the data/ directory is gitignored, so each campaign keeps
+#      its own roster).
+#   2. Edit the entries below to match your party.
+#   3. Restart the server.
+#
+# Schema (one entry per character under `characters:`):
+#   id         integer   unique identifier; never reused.
+#   name       string    character name.
+#   player     string    name of the player running the character.
+#   race       string    character race.
+#   attributes map       six base ability scores. Each value should
+#                        sit in the 7-20 range. Keys: str, dex, con,
+#                        int, wis, cha.
+#
+# Only static data lives here. Anything that changes during play
+# — current HP, mana, conditions, items, levels, magical bonuses
+# — is tracked elsewhere and layered on top of these values.
+
+characters:
+  - id: 1
+    name: Ash Windmere
+    player: Sam
+    race: Human
+    attributes:
+      str: 10
+      dex: 14
+      con: 12
+      int: 13
+      wis: 16
+      cha: 18
+
+  - id: 2
+    name: Bryn Ironvein
+    player: Mira
+    race: Dwarf
+    attributes:
+      str: 18
+      dex: 10
+      con: 17
+      int: 9
+      wis: 12
+      cha: 8
+
+  - id: 3
+    name: Lira Duskmoor
+    player: Jordan
+    race: Elf
+    attributes:
+      str: 8
+      dex: 14
+      con: 11
+      int: 20
+      wis: 16
+      cha: 12

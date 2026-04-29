@@ -1,0 +1,25 @@
+<% if @character.nil? %>
+  <p><em>No characters available.</em></p>
+<% else %>
+  <%
+    other_detail = @detail == :full ? 'minimal' : 'full'
+    toggle_query = other_detail == 'full' ? '?detail=full' : ''
+    same_query   = @detail == :full ? '?detail=full' : ''
+    toggle_label = @detail == :full ? 'Show minimal' : 'Show full sheet'
+  %>
+  <div class="character-page-header">
+    <div class="character-controls">
+      <a href="/character/<%= @prev_index %><%= same_query %>" class="nav-arrow" aria-label="Previous character">◀</a>
+      <span class="character-counter"><%= @current_index %> / <%= @total %></span>
+      <a href="/character/<%= @next_index %><%= same_query %>" class="nav-arrow" aria-label="Next character">▶</a>
+      <a href="/character/<%= @current_index %><%= toggle_query %>" class="detail-toggle"><%= toggle_label %></a>
+    </div>
+    <div class="character-player">
+      Player: <strong><%= h @character.player %></strong>
+    </div>
+  </div>
+
+  <%= @detail == :full \
+        ? character_full_stub(character: @character, dummy: @dummy) \
+        : character_minimal_stub(character: @character, dummy: @dummy) %>
+<% end %>

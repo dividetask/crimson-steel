@@ -1,0 +1,154 @@
+# Shops (example)
+#
+# Two shop kinds:
+#
+#   - Specific shops have a persistent inventory and persistent gold.
+#     The party's trades mutate the shop's state. The DM refreshes the
+#     stock manually via REFRESH_SPECIFIC_SHOP, which decays the
+#     existing inventory (per-stack d2: remove or randomly reduce) and
+#     then merges in a fresh roll from the shop's template loot table.
+#
+#   - Generic shops are reusable templates with no persistent
+#     inventory. The first visit of a Game Day generates fresh stock
+#     from the template; subsequent visits the same day reuse it. After
+#     ADVANCE_TIME passes the day, the cached stock is discarded and
+#     the next visit regenerates.
+#
+# Copy to `shops.yaml` and edit for your campaign.
+#
+# See `equipment_glossary.md` for vocabulary (Specific Shop, Generic
+# Shop, Shop Template, Active Generic Shop, Game Day, Shop Refresh)
+# and `equipment_pseudocode.md` for the algorithms
+# (REFRESH_SPECIFIC_SHOP, VISIT_GENERIC_SHOP, ADVANCE_TIME).
+#
+# ---------------------------------------------------------------------
+# Multi-file loading
+#
+# The loader reads `shops.yaml` first, then every file matching
+# `shops-*.yaml` in the same directory. Specific and generic shops
+# merge into a single registry; duplicate IDs across files are an
+# error. Shops created at runtime persist back to this base
+# `shops.yaml`. Move an entry into a `shops-*.yaml` by hand to keep
+# it in a separate file.
+#
+# ---------------------------------------------------------------------
+# Owner IDs and addressing
+#
+# A specific shop's Owner ID is "shop:<id>" (e.g.,
+# "shop:village_blacksmith"). All inventory operations
+# (GET_INVENTORY, ADD_ITEM, REMOVE_ITEM, TRANSFER_ITEM,
+# TOTAL_WEALTH_IN_GOLD, etc.) work uniformly against shops via this
+# prefix.
+#
+# A generic shop instance is addressed as "generic_shop:<id>". A
+# GET_INVENTORY against this owner-id implicitly invokes
+# VISIT_GENERIC_SHOP — the cached stock is generated on the first
+# access of each Game Day.
+#
+# ---------------------------------------------------------------------
+# Shop fields
+#
+#   template   REQUIRED. The id of a Loot Table defined in
+#              loot_tables.yaml. The table is rolled to seed the
+#              shop's inventory (specific shops on REFRESH; generic
+#              shops on each new Game Day).
+#   inventory  Specific shops only. The persistent stack list. Same
+#              shape as a character inventory in loot.yaml. Gold lives
+#              here as an ordinary Currency stack — a specific shop
+#              refuses to buy what it cannot afford.
+#
+# ---------------------------------------------------------------------
+# Game-time state
+#
+# The `state:` block at the top of this file persists the Equipment
+# class's Game Day counter. Always lives in the base `shops.yaml`,
+# never in a `shops-*.yaml`. ADVANCE_TIME increments the counter and
+# evicts any active generic shops whose stock is older than the new
+# current_day; SAVE writes the updated counter back here.
+#
+# `active_generic_shops:` holds the runtime cache for generic shops
+# that have been visited today. The Equipment class manages this
+# block automatically — you normally do not edit it by hand. It is
+# included in the example only to document its shape.
+
+state:
+  current_day: 0
+
+# =====================================================================
+# Specific shops
+# =====================================================================
+
+specific_shops:
+
+  village_blacksmith:
+    template: blacksmith_stock
+    inventory:
+      - item: Long sword
+        quantity: 2
+      - item: Hatchet
+        quantity: 4
+      - item: Spear
+        quantity: 5
+      - item: Mace
+        quantity: 3
+      - item: Leather armor
+        quantity: 2
+      - item: Chain shirt
+        quantity: 1
+      - item: Light wooden shield
+        quantity: 3
+      - item: Arrow
+        quantity: 60
+      - item: Gold
+        quantity: 280
+
+  alchemists_corner:
+    template: alchemist_stock
+    inventory:
+      # Potions are not yet a defined Item Type in the example
+      # equipment_config; uncomment once you add a Potion category.
+      # - item: Healing Potion
+      #   quantity: 4
+      - item: Gold
+        quantity: 95
+      - item: Gem
+        name: Quartz
+        value_in_gold: 50
+        quantity: 3
+
+# =====================================================================
+# Generic shop templates
+# =====================================================================
+#
+# Reusable shop definitions with no persistent state. A visit
+# generates fresh stock from the template; the stock lives for one
+# Game Day, then is discarded.
+
+generic_shop_templates:
+
+  random_market_stall:
+    template: random_market_stall_stock
+
+  traveling_peddler:
+    template: traveling_peddler_stock
+
+# =====================================================================
+# Active generic shops (runtime cache)
+# =====================================================================
+#
+# Managed automatically by VISIT_GENERIC_SHOP and ADVANCE_TIME. Each
+# entry records the stock generated on a particular Game Day; the
+# Equipment class evicts entries whose generated_at_day is below
+# current_day. Manual edits are honored but normally not needed.
+#
+# Shape:
+#
+# active_generic_shops:
+#   <generic_shop_id>:
+#     generated_at_day: <integer>
+#     stock:
+#       - item: ...
+#         quantity: ...
+#       - ...
+
+active_generic_shops: {}

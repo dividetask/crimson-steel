@@ -54,6 +54,225 @@ class DummyData
     characters.find { |c| c['id'].to_i == id.to_i }
   end
 
+  # Character class instances + per-character dummy state for the
+  # /character preview page. The Character itself only stores static
+  # data (id, name, player, race, base attributes); everything else
+  # — current HP, mana, saturation, conditions, weapons, spells,
+  # rituals, abilities, items — lives in the per-entry `:dummy`
+  # hash and is merged onto character_sheet_dummy_defaults when the
+  # stub renders.
+  def self.pc_objects
+    @pc_objects ||= [
+      { character: Character.new(
+          id: 1, name: 'Ash Windmere', player: 'Sam', race: 'Human',
+          attributes: { str: 10, dex: 14, con: 12, int: 13, wis: 16, cha: 18 }),
+        dummy: {
+          klass: 'Bard 3', tier: 3, bab: 4,
+          current_hp: 22, hp_max: 28,
+          current_mana: 9, mana_max: 14,
+          mana_saturation: 3, mana_saturation_max: 7,
+          initiative: 4, perception_bonus: 5,
+          speed: 30, damage_reduction: 2, damage_resilience: 2,
+          weapons: [
+            { 'name' => 'Rapier',     'speed' => 2, 'arm_speed' => '',
+              'dice' => 4, 'attack_bonus' => 3, 'damage' => '+2',
+              'bleed' => 1, 'threshold' => 8 },
+            { 'name' => 'Hand Crossbow', 'speed' => 3, 'arm_speed' => '',
+              'dice' => 3, 'attack_bonus' => 4, 'damage' => '+1',
+              'bleed' => 0, 'threshold' => 7 }
+          ],
+          abilities: [
+            { 'name' => 'Bardic Inspiration',
+              'description' => 'Grant a luck bonus to an ally’s next check.' },
+            { 'name' => 'Unsettling Words',
+              'description' => 'Impose a luck penalty on an enemy’s next check.' }
+          ],
+          spell_list: [
+            %w[Mending],
+            ['Charm Person', 'Healing Word'],
+            ['Suggestion']
+          ],
+          ritual_list: [
+            [],
+            ['Comprehend Languages', 'Detect Magic']
+          ],
+          equipped:  ['Rapier', 'Hand Crossbow', 'Studded Leather'],
+          consumable: [{ 'name' => 'Healing Draught', 'quantity' => 2 }],
+          other_items: [{ 'name' => 'Lute' }, { 'name' => 'Rations (5)' }, { 'name' => 'Bedroll' }],
+          defined_items: [
+            { 'name' => 'Cloak of Resistance +1',
+              'description' => 'Adds +1 to all saves; does not stack with other resistance items.' },
+            { 'name' => 'Lute of the Wandering Bard',
+              'description' => 'Once per scene, grant Bardic Inspiration without spending the action.' }
+          ]
+        } },
+
+      { character: Character.new(
+          id: 2, name: 'Bryn Ironvein', player: 'Mira', race: 'Dwarf',
+          attributes: { str: 18, dex: 10, con: 17, int: 9, wis: 12, cha: 8 }),
+        dummy: {
+          klass: 'Fighter 3', tier: 3, bab: 6,
+          current_hp: 14, hp_max: 36,
+          moderate_damage: 8, major_damage: 6,
+          conditions: { 'bleed' => 1 },
+          current_mana: 4, mana_max: 6,
+          initiative: 2, perception_bonus: 2,
+          speed: 25, damage_reduction: 4, damage_resilience: 3,
+          weapons: [
+            { 'name' => 'Warhammer', 'speed' => 3, 'arm_speed' => '',
+              'dice' => 5, 'attack_bonus' => 5, 'damage' => '+4',
+              'bleed' => 0, 'threshold' => 9 },
+            { 'name' => 'Tower Shield (bash)', 'speed' => 4, 'arm_speed' => '',
+              'dice' => 3, 'attack_bonus' => 4, 'damage' => '+3',
+              'bleed' => 0, 'threshold' => 7 }
+          ],
+          abilities: [
+            { 'name' => 'Shield Bash',
+              'description' => 'Knock a target prone on a successful shield attack.' },
+            { 'name' => 'Second Wind',
+              'description' => 'Once per scene, recover 1d6 + level HP as a free action.' }
+          ],
+          spell_list: [], ritual_list: [],
+          equipped:  ['Warhammer', 'Tower Shield', 'Chain Mail'],
+          consumable: [{ 'name' => 'Healing Draught', 'quantity' => 1 }],
+          other_items: [{ 'name' => 'Whetstone' }, { 'name' => 'Rations (5)' }],
+          defined_items: []
+        } },
+
+      { character: Character.new(
+          id: 3, name: 'Lira Duskmoor', player: 'Jordan', race: 'Elf',
+          attributes: { str: 8, dex: 14, con: 11, int: 20, wis: 16, cha: 12 }),
+        dummy: {
+          klass: 'Wizard 3', tier: 3, bab: 2,
+          current_hp: 18, hp_max: 22,
+          current_mana: 16, mana_max: 18,
+          mana_saturation: 5, mana_saturation_max: 9,
+          conditions: { 'poison' => 2 },
+          initiative: 3, perception_bonus: 3,
+          speed: 30, damage_reduction: 1, damage_resilience: 2,
+          weapons: [
+            { 'name' => 'Quarterstaff', 'speed' => 3, 'arm_speed' => '',
+              'dice' => 2, 'attack_bonus' => 1, 'damage' => '+0',
+              'bleed' => 0, 'threshold' => 7 }
+          ],
+          abilities: [
+            { 'name' => 'Arcane Focus',
+              'description' => 'Spend mana to add insight dice to a focus check.' },
+            { 'name' => 'Ritual Caster',
+              'description' => 'Cast spells from the ritual list without preparation.' }
+          ],
+          spell_list: [
+            ['Mage Hand', 'Minor Illusion', 'Prestidigitation'],
+            ['Magic Missile', 'Shield', 'Mage Armor'],
+            ['Misty Step', 'Scorching Ray'],
+            ['Counterspell']
+          ],
+          ritual_list: [
+            ['Light'],
+            ['Comprehend Languages', 'Detect Magic', 'Identify'],
+            ['Locate Object']
+          ],
+          equipped:  ['Quarterstaff', 'Spellbook', 'Robes'],
+          consumable: [{ 'name' => 'Antitoxin', 'quantity' => 1 }],
+          other_items: [{ 'name' => 'Component Pouch' }, { 'name' => 'Ink and Quill' }],
+          defined_items: [
+            { 'name' => 'Spellbook',
+              'description' => 'Holds every spell Lira has researched. Required for daily preparation.' }
+          ]
+        } },
+
+      { character: Character.new(
+          id: 4, name: 'Kass Thorne', player: 'Pat', race: 'Halfling',
+          attributes: { str: 10, dex: 19, con: 13, int: 14, wis: 12, cha: 11 }),
+        dummy: {
+          klass: 'Rogue 3', tier: 3, bab: 4,
+          current_hp: 20, hp_max: 24,
+          current_mana: 5, mana_max: 8,
+          initiative: 5, perception_bonus: 4,
+          speed: 25, damage_reduction: 1, damage_resilience: 2,
+          weapons: [
+            { 'name' => 'Shortsword', 'speed' => 1, 'arm_speed' => '',
+              'dice' => 4, 'attack_bonus' => 5, 'damage' => '+2',
+              'bleed' => 1, 'threshold' => 7 },
+            { 'name' => 'Dagger',     'speed' => 1, 'arm_speed' => '',
+              'dice' => 3, 'attack_bonus' => 5, 'damage' => '+1',
+              'bleed' => 1, 'threshold' => 6 }
+          ],
+          abilities: [
+            { 'name' => 'Sneak Attack',
+              'description' => 'Add bonus damage when an attacker has advantage on the target.' },
+            { 'name' => 'Evasion',
+              'description' => 'On a successful Dexterity save, take no damage from area effects.' }
+          ],
+          spell_list: [], ritual_list: [],
+          equipped:  ['Shortsword', 'Dagger', 'Leather Armor'],
+          consumable: [{ 'name' => 'Healing Draught', 'quantity' => 3 }],
+          other_items: [{ 'name' => 'Thieves’ Tools' }, { 'name' => 'Rope (50 ft)' }],
+          defined_items: []
+        } },
+
+      { character: Character.new(
+          id: 5, name: 'Rowan Vale', player: 'Riley', race: 'Half-Elf',
+          attributes: { str: 14, dex: 17, con: 13, int: 11, wis: 16, cha: 10 }),
+        dummy: {
+          klass: 'Ranger 3', tier: 3, bab: 4,
+          current_hp: 26, hp_max: 30,
+          current_mana: 6, mana_max: 8,
+          initiative: 4, perception_bonus: 5,
+          speed: 30, damage_reduction: 2, damage_resilience: 2,
+          weapons: [
+            { 'name' => 'Longbow',   'speed' => 3, 'arm_speed' => '',
+              'dice' => 4, 'attack_bonus' => 5, 'damage' => '+3',
+              'bleed' => 0, 'threshold' => 8 },
+            { 'name' => 'Hand Axe',  'speed' => 2, 'arm_speed' => '',
+              'dice' => 3, 'attack_bonus' => 4, 'damage' => '+2',
+              'bleed' => 0, 'threshold' => 7 }
+          ],
+          abilities: [
+            { 'name' => "Hunter’s Mark",
+              'description' => 'Mark a target; gain bonus damage and tracking against it.' },
+            { 'name' => 'Quick Draw',
+              'description' => 'Draw a weapon as a free action once per turn.' }
+          ],
+          spell_list: [[], ['Hunter’s Mark', 'Cure Wounds']],
+          ritual_list: [],
+          equipped:  ['Longbow', 'Hand Axe', 'Studded Leather'],
+          consumable: [],
+          other_items: [{ 'name' => 'Quiver (20 arrows)' }, { 'name' => 'Trail Rations' }],
+          defined_items: []
+        } },
+
+      { character: Character.new(
+          id: 6, name: 'Ember Blackoak', player: 'Casey', race: 'Half-Orc',
+          attributes: { str: 13, dex: 11, con: 15, int: 10, wis: 18, cha: 9 }),
+        dummy: {
+          klass: 'Druid 3', tier: 3, bab: 3,
+          current_hp: 22, hp_max: 26,
+          current_mana: 10, mana_max: 12,
+          mana_saturation: 1, mana_saturation_max: 6,
+          initiative: 4, perception_bonus: 4,
+          speed: 30, damage_reduction: 2, damage_resilience: 3,
+          weapons: [
+            { 'name' => 'Scimitar', 'speed' => 2, 'arm_speed' => '',
+              'dice' => 3, 'attack_bonus' => 3, 'damage' => '+2',
+              'bleed' => 1, 'threshold' => 7 }
+          ],
+          abilities: [
+            { 'name' => 'Wild Shape',
+              'description' => 'Assume the form of a beast appropriate to your tier.' },
+            { 'name' => 'Spore Cloud',
+              'description' => 'Release a cloud that imposes Wisdom saves on adjacent foes.' }
+          ],
+          spell_list: [['Druidcraft'], ['Entangle', 'Cure Wounds']],
+          ritual_list: [['Light']],
+          equipped:  ['Scimitar', 'Hide Armor'],
+          consumable: [{ 'name' => 'Healing Draught', 'quantity' => 2 }],
+          other_items: [{ 'name' => 'Druidic Focus' }, { 'name' => 'Herbalism Kit' }],
+          defined_items: []
+        } }
+    ]
+  end
+
   # --- Enemies -------------------------------------------------------------
 
   def self.enemy_groups
@@ -161,32 +380,68 @@ class DummyData
     [
       { 'id' => 1, 'owner_id' => 0, 'chapter' => 1, 'type' => 'chapter_title',
         'title' => 'The Road to Crimson', 'note' => '', 'public' => true, 'active' => false },
-      { 'id' => 2, 'owner_id' => 0, 'chapter' => 1, 'public' => true, 'active' => false,
+      { 'id' => 2, 'owner_id' => 0, 'chapter' => 1, 'type' => 'note', 'public' => true, 'active' => false,
         'note' => "The party meets at the Weeping Stag. A courier delivers a sealed writ from Lord Halric." },
-      { 'id' => 3, 'owner_id' => 0, 'chapter' => 2, 'public' => false, 'active' => true,
+      { 'id' => 3, 'owner_id' => 0, 'chapter' => 2, 'type' => 'note', 'public' => false, 'active' => true,
         'note' => "Secret: the steward is working with the bandits. He knows the party's route." },
-      { 'id' => 4, 'owner_id' => 1, 'chapter' => 2, 'public' => true, 'active' => true,
-        'note' => "Ash's personal log: the song keeps coming back to me in dreams." }
+      { 'id' => 4, 'owner_id' => 1, 'chapter' => 2, 'type' => 'note', 'public' => true, 'active' => true,
+        'note' => "Ash's personal log: the song keeps coming back to me in dreams." },
+
+      # ----- Chapter 3 (Court of Ash) -----
+      { 'id' => 5, 'owner_id' => 0, 'chapter' => 3, 'type' => 'chapter_title',
+        'title' => 'Court of Ash', 'note' => '', 'public' => true, 'active' => false },
+      { 'id' => 6, 'owner_id' => 0, 'chapter' => 3, 'type' => 'note',
+        'title' => 'Arrival at the Ashen Gate', 'public' => true, 'active' => false,
+        'note' => "The road opens onto a basalt plaza. Ash falls like snow even though no fire is in sight; the gates of the Court stand open and unguarded." },
+      { 'id' => 7, 'owner_id' => 0, 'chapter' => 3, 'type' => 'note',
+        'title' => 'The Coronation Bargain', 'public' => false, 'active' => false,
+        'note' => "DM only: the Ash King will offer Ash Windmere a crown, but the price is the song from her dreams. If she gives it up, the bardic line is broken for a generation." },
+      { 'id' => 8, 'owner_id' => 0, 'chapter' => 3, 'type' => 'note',
+        'title' => 'Court Etiquette', 'public' => true, 'active' => false,
+        'note' => "Speak only when addressed by name. Bow to the Throne, never to a courtier. Iron at the hip is permitted; iron drawn is treason." },
+      { 'id' => 9, 'owner_id' => 1, 'chapter' => 3, 'type' => 'note',
+        'title' => "Ash's personal log", 'public' => true, 'active' => false,
+        'note' => "The song is louder here. I think the Court has been waiting for me." },
+
+      # ----- Chapter 3 characters (typed so the combined feed shows them) -----
+      { 'id' => 10, 'chapter' => 3, 'type' => 'character', 'tier' => 4,
+        'title' => 'The Ash King',         'public' => false, 'active' => false,
+        'note' => "Patron and threat. Wears a crown of cooled lava. Rumored to be older than the kingdom of Crimson itself." },
+      { 'id' => 11, 'chapter' => 3, 'type' => 'character', 'tier' => 2,
+        'title' => 'Cottonballs the Drummer', 'public' => true, 'active' => false,
+        'note' => "Satyr court entertainer. His drums set the rhythm of the throne hall; the courtiers move only on his beat." },
+      { 'id' => 12, 'chapter' => 3, 'type' => 'character', 'tier' => 3,
+        'title' => 'Lysander of the Verge', 'public' => true, 'active' => false,
+        'note' => "Half-elven envoy who claims to speak for the Old Wood. Friendly. Probably truthful. Not safe." },
+      { 'id' => 13, 'chapter' => 3, 'type' => 'character', 'tier' => 3,
+        'title' => 'Olga the Reaver',      'public' => true, 'active' => false,
+        'note' => "Sworn champion. The Court keeps her on a leash of geas; she has not lost a duel in seven years." },
+      { 'id' => 14, 'chapter' => 3, 'type' => 'character', 'tier' => 2,
+        'title' => 'Stumpy of the Forge',  'public' => true, 'active' => false,
+        'note' => "Dwarven smith who fled Crimson Hold years ago. Will reshoe the party's gear for the price of a story." },
+
+      # ----- Migrated from the old characters_of_interest array. The
+      # combined feed only renders typed entries (note / character),
+      # so these have to live alongside the journal notes now. -----
+      { 'id' => 15, 'chapter' => 1, 'type' => 'character', 'tier' => 4,
+        'title' => 'Lord Halric',          'public' => true,  'active' => false,
+        'note' => "Patron. Last seen at Crimson Hold. Sent the sealed writ that started the journey." },
+      { 'id' => 16, 'chapter' => 1, 'type' => 'character', 'tier' => 1,
+        'title' => 'Mara the Innkeep',     'public' => true,  'active' => false,
+        'note' => "Ally. Runs the Weeping Stag. Knows local rumors; takes coppers for hot tea." },
+      { 'id' => 17, 'chapter' => 1, 'type' => 'character', 'tier' => 2,
+        'title' => 'The Hooded Stranger',  'public' => true,  'active' => true,
+        'note' => "Unknown. Last seen on the forest road. Watched the party leave; did not approach." },
+      { 'id' => 18, 'chapter' => 2, 'type' => 'character', 'tier' => 3,
+        'title' => 'Steward Voss',         'public' => false, 'active' => true,
+        'note' => "Hostile (secret). Last seen Beneath the Mountain. Working with the bandits; knows the party route." }
     ]
   end
 
-  def self.characters_of_interest
-    [
-      { 'id' => 1, 'name' => 'Lord Halric',         'role' => 'Patron',
-        'last_seen' => 'Crimson Hold',         'chapter' => 1, 'public' => true,  'active' => false,
-        'note' => 'Sent the sealed writ that started the journey.' },
-      { 'id' => 2, 'name' => 'Steward Voss',        'role' => 'Hostile (secret)',
-        'last_seen' => 'Beneath the Mountain', 'chapter' => 2, 'public' => false, 'active' => true,
-        'note' => 'Working with the bandits. Knows the party route.' },
-      { 'id' => 3, 'name' => 'Mara the Innkeep',    'role' => 'Ally',
-        'last_seen' => 'Weeping Stag',         'chapter' => 1, 'public' => true,  'active' => false,
-        'note' => 'Knows local rumors. Takes coppers for hot tea.' },
-      { 'id' => 4, 'name' => 'The Hooded Stranger', 'role' => 'Unknown',
-        'last_seen' => 'Forest road',          'chapter' => 1, 'public' => true,  'active' => true,
-        'note' => 'Watched the party leave. Did not approach.' }
-    ]
-  end
-
+  # Image entries with a 'path' key render as the real file under
+  # public/; entries without a path fall back to the kind-specific
+  # SVG placeholder. Kept side by side so the gallery shows both
+  # modes for the demo.
   def self.note_images
     [
       { 'id' => 1, 'kind' => 'document', 'chapter' => 1, 'public' => true,  'active' => false,
@@ -196,7 +451,29 @@ class DummyData
       { 'id' => 3, 'kind' => 'portrait', 'chapter' => 1, 'public' => true,  'active' => false,
         'caption' => 'Mara, the innkeep at the Weeping Stag.' },
       { 'id' => 4, 'kind' => 'location', 'chapter' => 2, 'public' => true,  'active' => true,
-        'caption' => 'Cave entrance under the mountain.' }
+        'caption' => 'Cave entrance under the mountain.' },
+
+      # ----- Chapter 1 / 2 portraits with real images -----
+      { 'id' => 5, 'kind' => 'portrait', 'chapter' => 1, 'public' => true,  'active' => false,
+        'caption' => 'The hooded stranger on the forest road. Lysander, in better light.',
+        'path' => '/images/Lysander.webp' },
+      { 'id' => 6, 'kind' => 'portrait', 'chapter' => 2, 'public' => false, 'active' => true,
+        'caption' => 'Captured woodcut of the Reaver, from a torn bandit pamphlet (DM only).',
+        'path' => '/images/Olga.webp' },
+
+      # ----- Chapter 3 (Court of Ash) -----
+      { 'id' => 7, 'kind' => 'portrait', 'chapter' => 3, 'public' => true,  'active' => false,
+        'caption' => 'Cottonballs at the throne hall feast.',
+        'path' => '/images/Cottonballs.webp' },
+      { 'id' => 8, 'kind' => 'portrait', 'chapter' => 3, 'public' => true,  'active' => false,
+        'caption' => 'Stumpy the smith, pressing a brand into a ceremonial axe.',
+        'path' => '/images/Stumpy.webp' },
+      { 'id' => 9, 'kind' => 'document', 'chapter' => 3, 'public' => true,  'active' => false,
+        'caption' => 'Decree of the Ash Court — invitation to the coronation.' },
+      { 'id' => 10, 'kind' => 'location', 'chapter' => 3, 'public' => true,  'active' => false,
+        'caption' => 'The Ashen Gate, seen from the basalt plaza.' },
+      { 'id' => 11, 'kind' => 'map',      'chapter' => 3, 'public' => false, 'active' => false,
+        'caption' => 'Throne hall floorplan, smuggled from the masons (DM only).' }
     ]
   end
 
@@ -239,6 +516,37 @@ class DummyData
           { 'id' => 'archer_1', 'kind' => 'enemy',  'x' => 300, 'y' =>  90, 'label' => 'Archer' },
           { 'id' => 'archer_2', 'kind' => 'enemy',  'x' => 360, 'y' => 130, 'label' => 'Archer' },
           { 'id' => 'fire',     'kind' => 'hazard', 'x' => 200, 'y' => 200, 'label' => 'Campfire' }
+        ] },
+
+      # ----- Chapter 3 (Court of Ash) -----
+      { 'id' => 4, 'chapter' => 3, 'public' => true,  'active' => false,
+        'label' => 'Throne Hall of the Court of Ash',
+        'caption' => 'The basalt throne hall. Two hearth-lines flank the dais; courtiers stand along the colonnades.',
+        'width_squares' => 12, 'height_squares' => 7,
+        'objects' => [
+          { 'id' => 'ca_throne',   'kind' => 'scenery',  'x' => 525, 'y' =>  75, 'label' => 'Throne of Ash' },
+          { 'id' => 'ca_door',     'kind' => 'door',     'x' =>  25, 'y' => 175, 'label' => 'Ashen Gate' },
+          { 'id' => 'ca_dais',     'kind' => 'scenery',  'x' => 475, 'y' => 175, 'label' => 'Dais step' },
+          { 'id' => 'ca_hearth_1', 'kind' => 'hazard',   'x' => 325, 'y' =>  75, 'label' => 'Hearth-line (north)' },
+          { 'id' => 'ca_hearth_2', 'kind' => 'hazard',   'x' => 325, 'y' => 275, 'label' => 'Hearth-line (south)' },
+          { 'id' => 'ca_chest',    'kind' => 'treasure', 'x' => 575, 'y' => 275, 'label' => 'Reliquary' },
+          { 'id' => 'ca_king',     'kind' => 'npc',      'x' => 525, 'y' => 125, 'label' => 'Ash King' },
+          { 'id' => 'ca_champ',    'kind' => 'enemy',    'x' => 425, 'y' => 175, 'label' => 'Olga (champion)' },
+          { 'id' => 'ca_drummer',  'kind' => 'npc',      'x' => 425, 'y' =>  75, 'label' => 'Cottonballs' }
+        ] },
+      { 'id' => 5, 'chapter' => 3, 'public' => false, 'active' => false, 'archived' => true,
+        'label' => 'Outer hall (early sketch)',
+        'caption' => "DM scratch sketch of the Court's outer hall — replaced by the final throne map. Kept around in case the party finds the back stairs.",
+        'width_squares' => 10, 'height_squares' => 6,
+        'objects' => [
+          { 'id' => 'oh_door_main', 'kind' => 'door',    'x' =>  25, 'y' => 150, 'label' => 'Outer door' },
+          { 'id' => 'oh_door_back', 'kind' => 'door',    'x' => 475, 'y' => 150, 'label' => 'Back stairs' },
+          { 'id' => 'oh_pillar_1',  'kind' => 'scenery', 'x' => 175, 'y' => 100, 'label' => 'Pillar' },
+          { 'id' => 'oh_pillar_2',  'kind' => 'scenery', 'x' => 175, 'y' => 200, 'label' => 'Pillar' },
+          { 'id' => 'oh_pillar_3',  'kind' => 'scenery', 'x' => 325, 'y' => 100, 'label' => 'Pillar' },
+          { 'id' => 'oh_pillar_4',  'kind' => 'scenery', 'x' => 325, 'y' => 200, 'label' => 'Pillar' },
+          { 'id' => 'oh_guard_1',   'kind' => 'enemy',   'x' => 225, 'y' => 150, 'label' => 'Ashen guard' },
+          { 'id' => 'oh_guard_2',   'kind' => 'enemy',   'x' => 275, 'y' => 150, 'label' => 'Ashen guard' }
         ] }
     ]
   end

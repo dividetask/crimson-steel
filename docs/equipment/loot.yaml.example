@@ -1,0 +1,231 @@
+# Loot — Inventory and Item Tracking (example)
+#
+# Tracks who owns what. Item type definitions — weapons, armor,
+# ammunition, currencies, gems, magical properties — live in
+# `equipment_config.yaml`. This file only tracks quantities and
+# per-instance identity fields (tier, properties, stored spell,
+# durability damage, name override, restock target).
+#
+# Copy to `loot.yaml` and edit for your campaign.
+#
+# See `equipment_glossary.md` for the vocabulary used here and
+# `equipment_pseudocode.md` for how inventories are loaded, mutated,
+# and saved.
+#
+# ---------------------------------------------------------------------
+# Multi-file loading and implicit routing
+#
+# The Equipment class reads `loot.yaml` first, then every file
+# matching `loot-*.yaml` in the same directory (e.g.
+# `loot-party.yaml`, `loot-monsters.yaml`). All entries are merged into
+# a single in-memory inventory map. Duplicate owner IDs across files
+# are an error — each character, each ground pile, and the `party`
+# singleton must appear in exactly one file.
+#
+# Writes go back to whichever file the owner was loaded from. Owners
+# created at runtime (a newly-generated ground pile, a brand-new
+# character) are written to this base `loot.yaml`. If you want a
+# particular character to live in a separate file, move their entry
+# from `loot.yaml` into, say, `loot-party.yaml` by hand; the loader
+# will remember and keep writing them there.
+#
+# ---------------------------------------------------------------------
+# Owner IDs
+#
+# The Equipment class addresses inventories by Owner ID:
+#
+#   - Character:  "character:<id>"  (e.g. "character:char_001")
+#   - Party:      the reserved string "party"
+#   - Ground pile: "ground:<location>" (e.g. "ground:Goblin cave — entrance")
+#   - Shop:       "shop:<id>"  (lives in shops.yaml, not here)
+#
+# Character IDs are immutable identifiers assigned by the character
+# module — NOT the character's display name. Two characters can share
+# a name, and a name can change over the course of a campaign, so the
+# id is what we key on. The character module owns the id-to-name
+# mapping.
+#
+# In this file, characters appear under the `characters:` map keyed
+# by their ID; the loader prepends "character:" to produce the Owner
+# ID used elsewhere in the module. The party appears under the
+# top-level `party:` key, and ground piles under the `ground_piles:`
+# list (each entry carries its own `location`).
+#
+# ---------------------------------------------------------------------
+# Stacks, identity, and merging
+#
+# Each inventory entry is an Item Stack. Two stacks merge into one
+# when every identity field is equal:
+#   item, tier, properties (in order), stored_spell, durability_damage,
+#   name override, and value_in_gold (for Gems).
+# Quantity and restock_target are NOT identity fields.
+#
+# Zero-quantity stacks persist until a cleanup pass removes them,
+# EXCEPT when a stack carries a restock_target — those are preserved
+# so the next restock can refill them.
+#
+# ---------------------------------------------------------------------
+# Item Stack fields
+#
+#   item               REQUIRED. A key from equipment_config.yaml
+#                      (Weapons, Armor, Ammunition, Currency, Gems).
+#   quantity           Defaults to 1. Fractional allowed for Currency.
+#   tier               Defaults to 0 (non-magical).
+#   properties         List of magical properties. Each entry is either
+#                      a string (property name, for non-subtyped) or a
+#                      dict {name, subtype} (for subtyped properties).
+#   stored_spell       The spell held in a Spell Storing / Spell Crystal
+#                      item. Absent or blank means expended.
+#   durability_damage  Damage taken. Defaults to 0.
+#   name               Display-name override. When omitted, the name
+#                      is generated per the Naming Convention in
+#                      equipment_config.yaml.
+#   restock_target     Desired stack quantity. When Restock is invoked
+#                      on this owner, the stack is topped up to this
+#                      target (paid from the owner's Total Wealth).
+#                      Skip on Currency / Gem stacks — they can't be
+#                      restocked against themselves.
+#   value_in_gold      Required on Gem stacks. Absent elsewhere.
+
+# =====================================================================
+# Characters
+# =====================================================================
+
+characters:
+
+  # The keys under `characters:` are character IDs assigned by the
+  # character module — opaque, immutable identifiers, not display
+  # names. Two characters can share a name and a name can change
+  # over the course of a campaign, so the id is what we key on.
+  # The character module owns the id-to-name mapping.
+
+  char_001:
+    inventory:
+
+      - item: Long sword
+        tier: 1
+        properties:
+          - name: Elemental
+            subtype: Fire
+        # Generated display name: "+1 Flaming Long sword"
+
+      - item: Chain shirt
+
+      - item: Shortbow
+
+      - item: Arrow
+        quantity: 18
+        restock_target: 40
+
+      - item: Arrow
+        quantity: 3
+        tier: 1
+        properties:
+          - name: Elemental
+            subtype: Fire
+        # Separate stack from mundane arrows — tier and properties
+        # differ.
+
+      - item: Gold
+        quantity: 147.5
+
+  char_002:
+    inventory:
+
+      - item: Great Axe
+        tier: 2
+        properties:
+          - name: Vicious
+        name: "Skullsplitter"
+        # Explicit name override wins over the generated name.
+
+      - item: Plate mail
+        tier: 1
+        properties:
+          - name: Fortification
+        durability_damage: 12
+
+      - item: Gold
+        quantity: 34
+
+      # A gem stack. Identity is item + value_in_gold + name; two ruby
+      # stacks at 500 gp each merge, but a Ruby-500 and an Emerald-500
+      # do not.
+      - item: Gem
+        name: Ruby
+        value_in_gold: 500
+        quantity: 2
+
+  char_003:
+    inventory:
+
+      - item: Mace
+        tier: 1
+        properties:
+          - name: Radiant
+
+      - item: Chain mail
+        tier: 1
+        properties:
+          - name: Spell Storing 1
+        stored_spell: "Cure Light Wounds"
+
+      - item: Light wooden shield
+
+      - item: Gold
+        quantity: 52
+      - item: Silver
+        quantity: 8
+
+# =====================================================================
+# Party
+# =====================================================================
+#
+# Items the group shares without assigning ownership to any one
+# character. Addressed as Owner ID "party".
+
+party:
+  inventory:
+
+    - item: Gold
+      quantity: 400
+
+    - item: Bolt
+      quantity: 60
+      restock_target: 120
+
+    - item: Gem
+      name: Uncut Sapphire
+      value_in_gold: 200
+      quantity: 1
+
+# =====================================================================
+# Ground piles
+# =====================================================================
+#
+# Items on the ground at a named location. Each pile's Owner ID is
+# "ground:<location>". Locations are free-form strings; they persist
+# until the pile is cleared.
+
+ground_piles:
+
+  - location: "Goblin cave — entrance"
+    inventory:
+      - item: Shortbow
+      - item: Arrow
+        quantity: 11
+      - item: Dagger
+        quantity: 2
+      - item: Gold
+        quantity: 8
+      - item: Silver
+        quantity: 23
+
+  - location: "Abandoned shrine — altar"
+    inventory:
+      - item: Mace
+        tier: 1
+        properties:
+          - name: Radiant
+      - item: Leather armor
+        durability_damage: 5
