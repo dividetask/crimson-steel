@@ -23,7 +23,6 @@ class EmptyData
   def self.combat_state;           EMPTY_COMBAT_STATE; end
   def self.initiative_turns;       [];                 end
   def self.notes;                  [];                 end
-  def self.characters_of_interest; [];                 end
   def self.note_images;            [];                 end
   def self.note_maps;              [];                 end
   def self.note_map_by_id(_id);    nil;                end

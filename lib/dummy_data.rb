@@ -139,32 +139,68 @@ class DummyData
     [
       { 'id' => 1, 'owner_id' => 0, 'chapter' => 1, 'type' => 'chapter_title',
         'title' => 'The Road to Crimson', 'note' => '', 'public' => true, 'active' => false },
-      { 'id' => 2, 'owner_id' => 0, 'chapter' => 1, 'public' => true, 'active' => false,
+      { 'id' => 2, 'owner_id' => 0, 'chapter' => 1, 'type' => 'note', 'public' => true, 'active' => false,
         'note' => "The party meets at the Weeping Stag. A courier delivers a sealed writ from Lord Halric." },
-      { 'id' => 3, 'owner_id' => 0, 'chapter' => 2, 'public' => false, 'active' => true,
+      { 'id' => 3, 'owner_id' => 0, 'chapter' => 2, 'type' => 'note', 'public' => false, 'active' => true,
         'note' => "Secret: the steward is working with the bandits. He knows the party's route." },
-      { 'id' => 4, 'owner_id' => 1, 'chapter' => 2, 'public' => true, 'active' => true,
-        'note' => "Ash's personal log: the song keeps coming back to me in dreams." }
+      { 'id' => 4, 'owner_id' => 1, 'chapter' => 2, 'type' => 'note', 'public' => true, 'active' => true,
+        'note' => "Ash's personal log: the song keeps coming back to me in dreams." },
+
+      # ----- Chapter 3 (Court of Ash) -----
+      { 'id' => 5, 'owner_id' => 0, 'chapter' => 3, 'type' => 'chapter_title',
+        'title' => 'Court of Ash', 'note' => '', 'public' => true, 'active' => false },
+      { 'id' => 6, 'owner_id' => 0, 'chapter' => 3, 'type' => 'note',
+        'title' => 'Arrival at the Ashen Gate', 'public' => true, 'active' => false,
+        'note' => "The road opens onto a basalt plaza. Ash falls like snow even though no fire is in sight; the gates of the Court stand open and unguarded." },
+      { 'id' => 7, 'owner_id' => 0, 'chapter' => 3, 'type' => 'note',
+        'title' => 'The Coronation Bargain', 'public' => false, 'active' => false,
+        'note' => "DM only: the Ash King will offer Ash Windmere a crown, but the price is the song from her dreams. If she gives it up, the bardic line is broken for a generation." },
+      { 'id' => 8, 'owner_id' => 0, 'chapter' => 3, 'type' => 'note',
+        'title' => 'Court Etiquette', 'public' => true, 'active' => false,
+        'note' => "Speak only when addressed by name. Bow to the Throne, never to a courtier. Iron at the hip is permitted; iron drawn is treason." },
+      { 'id' => 9, 'owner_id' => 1, 'chapter' => 3, 'type' => 'note',
+        'title' => "Ash's personal log", 'public' => true, 'active' => false,
+        'note' => "The song is louder here. I think the Court has been waiting for me." },
+
+      # ----- Chapter 3 characters (typed so the combined feed shows them) -----
+      { 'id' => 10, 'chapter' => 3, 'type' => 'character', 'tier' => 4,
+        'title' => 'The Ash King',         'public' => false, 'active' => false,
+        'note' => "Patron and threat. Wears a crown of cooled lava. Rumored to be older than the kingdom of Crimson itself." },
+      { 'id' => 11, 'chapter' => 3, 'type' => 'character', 'tier' => 2,
+        'title' => 'Cottonballs the Drummer', 'public' => true, 'active' => false,
+        'note' => "Satyr court entertainer. His drums set the rhythm of the throne hall; the courtiers move only on his beat." },
+      { 'id' => 12, 'chapter' => 3, 'type' => 'character', 'tier' => 3,
+        'title' => 'Lysander of the Verge', 'public' => true, 'active' => false,
+        'note' => "Half-elven envoy who claims to speak for the Old Wood. Friendly. Probably truthful. Not safe." },
+      { 'id' => 13, 'chapter' => 3, 'type' => 'character', 'tier' => 3,
+        'title' => 'Olga the Reaver',      'public' => true, 'active' => false,
+        'note' => "Sworn champion. The Court keeps her on a leash of geas; she has not lost a duel in seven years." },
+      { 'id' => 14, 'chapter' => 3, 'type' => 'character', 'tier' => 2,
+        'title' => 'Stumpy of the Forge',  'public' => true, 'active' => false,
+        'note' => "Dwarven smith who fled Crimson Hold years ago. Will reshoe the party's gear for the price of a story." },
+
+      # ----- Migrated from the old characters_of_interest array. The
+      # combined feed only renders typed entries (note / character),
+      # so these have to live alongside the journal notes now. -----
+      { 'id' => 15, 'chapter' => 1, 'type' => 'character', 'tier' => 4,
+        'title' => 'Lord Halric',          'public' => true,  'active' => false,
+        'note' => "Patron. Last seen at Crimson Hold. Sent the sealed writ that started the journey." },
+      { 'id' => 16, 'chapter' => 1, 'type' => 'character', 'tier' => 1,
+        'title' => 'Mara the Innkeep',     'public' => true,  'active' => false,
+        'note' => "Ally. Runs the Weeping Stag. Knows local rumors; takes coppers for hot tea." },
+      { 'id' => 17, 'chapter' => 1, 'type' => 'character', 'tier' => 2,
+        'title' => 'The Hooded Stranger',  'public' => true,  'active' => true,
+        'note' => "Unknown. Last seen on the forest road. Watched the party leave; did not approach." },
+      { 'id' => 18, 'chapter' => 2, 'type' => 'character', 'tier' => 3,
+        'title' => 'Steward Voss',         'public' => false, 'active' => true,
+        'note' => "Hostile (secret). Last seen Beneath the Mountain. Working with the bandits; knows the party route." }
     ]
   end
 
-  def self.characters_of_interest
-    [
-      { 'id' => 1, 'name' => 'Lord Halric',         'role' => 'Patron',
-        'last_seen' => 'Crimson Hold',         'chapter' => 1, 'public' => true,  'active' => false,
-        'note' => 'Sent the sealed writ that started the journey.' },
-      { 'id' => 2, 'name' => 'Steward Voss',        'role' => 'Hostile (secret)',
-        'last_seen' => 'Beneath the Mountain', 'chapter' => 2, 'public' => false, 'active' => true,
-        'note' => 'Working with the bandits. Knows the party route.' },
-      { 'id' => 3, 'name' => 'Mara the Innkeep',    'role' => 'Ally',
-        'last_seen' => 'Weeping Stag',         'chapter' => 1, 'public' => true,  'active' => false,
-        'note' => 'Knows local rumors. Takes coppers for hot tea.' },
-      { 'id' => 4, 'name' => 'The Hooded Stranger', 'role' => 'Unknown',
-        'last_seen' => 'Forest road',          'chapter' => 1, 'public' => true,  'active' => true,
-        'note' => 'Watched the party leave. Did not approach.' }
-    ]
-  end
-
+  # Image entries with a 'path' key render as the real file under
+  # public/; entries without a path fall back to the kind-specific
+  # SVG placeholder. Kept side by side so the gallery shows both
+  # modes for the demo.
   def self.note_images
     [
       { 'id' => 1, 'kind' => 'document', 'chapter' => 1, 'public' => true,  'active' => false,
@@ -174,7 +210,29 @@ class DummyData
       { 'id' => 3, 'kind' => 'portrait', 'chapter' => 1, 'public' => true,  'active' => false,
         'caption' => 'Mara, the innkeep at the Weeping Stag.' },
       { 'id' => 4, 'kind' => 'location', 'chapter' => 2, 'public' => true,  'active' => true,
-        'caption' => 'Cave entrance under the mountain.' }
+        'caption' => 'Cave entrance under the mountain.' },
+
+      # ----- Chapter 1 / 2 portraits with real images -----
+      { 'id' => 5, 'kind' => 'portrait', 'chapter' => 1, 'public' => true,  'active' => false,
+        'caption' => 'The hooded stranger on the forest road. Lysander, in better light.',
+        'path' => '/images/Lysander.webp' },
+      { 'id' => 6, 'kind' => 'portrait', 'chapter' => 2, 'public' => false, 'active' => true,
+        'caption' => 'Captured woodcut of the Reaver, from a torn bandit pamphlet (DM only).',
+        'path' => '/images/Olga.webp' },
+
+      # ----- Chapter 3 (Court of Ash) -----
+      { 'id' => 7, 'kind' => 'portrait', 'chapter' => 3, 'public' => true,  'active' => false,
+        'caption' => 'Cottonballs at the throne hall feast.',
+        'path' => '/images/Cottonballs.webp' },
+      { 'id' => 8, 'kind' => 'portrait', 'chapter' => 3, 'public' => true,  'active' => false,
+        'caption' => 'Stumpy the smith, pressing a brand into a ceremonial axe.',
+        'path' => '/images/Stumpy.webp' },
+      { 'id' => 9, 'kind' => 'document', 'chapter' => 3, 'public' => true,  'active' => false,
+        'caption' => 'Decree of the Ash Court — invitation to the coronation.' },
+      { 'id' => 10, 'kind' => 'location', 'chapter' => 3, 'public' => true,  'active' => false,
+        'caption' => 'The Ashen Gate, seen from the basalt plaza.' },
+      { 'id' => 11, 'kind' => 'map',      'chapter' => 3, 'public' => false, 'active' => false,
+        'caption' => 'Throne hall floorplan, smuggled from the masons (DM only).' }
     ]
   end
 
@@ -217,6 +275,37 @@ class DummyData
           { 'id' => 'archer_1', 'kind' => 'enemy',  'x' => 300, 'y' =>  90, 'label' => 'Archer' },
           { 'id' => 'archer_2', 'kind' => 'enemy',  'x' => 360, 'y' => 130, 'label' => 'Archer' },
           { 'id' => 'fire',     'kind' => 'hazard', 'x' => 200, 'y' => 200, 'label' => 'Campfire' }
+        ] },
+
+      # ----- Chapter 3 (Court of Ash) -----
+      { 'id' => 4, 'chapter' => 3, 'public' => true,  'active' => false,
+        'label' => 'Throne Hall of the Court of Ash',
+        'caption' => 'The basalt throne hall. Two hearth-lines flank the dais; courtiers stand along the colonnades.',
+        'width_squares' => 12, 'height_squares' => 7,
+        'objects' => [
+          { 'id' => 'ca_throne',   'kind' => 'scenery',  'x' => 525, 'y' =>  75, 'label' => 'Throne of Ash' },
+          { 'id' => 'ca_door',     'kind' => 'door',     'x' =>  25, 'y' => 175, 'label' => 'Ashen Gate' },
+          { 'id' => 'ca_dais',     'kind' => 'scenery',  'x' => 475, 'y' => 175, 'label' => 'Dais step' },
+          { 'id' => 'ca_hearth_1', 'kind' => 'hazard',   'x' => 325, 'y' =>  75, 'label' => 'Hearth-line (north)' },
+          { 'id' => 'ca_hearth_2', 'kind' => 'hazard',   'x' => 325, 'y' => 275, 'label' => 'Hearth-line (south)' },
+          { 'id' => 'ca_chest',    'kind' => 'treasure', 'x' => 575, 'y' => 275, 'label' => 'Reliquary' },
+          { 'id' => 'ca_king',     'kind' => 'npc',      'x' => 525, 'y' => 125, 'label' => 'Ash King' },
+          { 'id' => 'ca_champ',    'kind' => 'enemy',    'x' => 425, 'y' => 175, 'label' => 'Olga (champion)' },
+          { 'id' => 'ca_drummer',  'kind' => 'npc',      'x' => 425, 'y' =>  75, 'label' => 'Cottonballs' }
+        ] },
+      { 'id' => 5, 'chapter' => 3, 'public' => false, 'active' => false, 'archived' => true,
+        'label' => 'Outer hall (early sketch)',
+        'caption' => "DM scratch sketch of the Court's outer hall — replaced by the final throne map. Kept around in case the party finds the back stairs.",
+        'width_squares' => 10, 'height_squares' => 6,
+        'objects' => [
+          { 'id' => 'oh_door_main', 'kind' => 'door',    'x' =>  25, 'y' => 150, 'label' => 'Outer door' },
+          { 'id' => 'oh_door_back', 'kind' => 'door',    'x' => 475, 'y' => 150, 'label' => 'Back stairs' },
+          { 'id' => 'oh_pillar_1',  'kind' => 'scenery', 'x' => 175, 'y' => 100, 'label' => 'Pillar' },
+          { 'id' => 'oh_pillar_2',  'kind' => 'scenery', 'x' => 175, 'y' => 200, 'label' => 'Pillar' },
+          { 'id' => 'oh_pillar_3',  'kind' => 'scenery', 'x' => 325, 'y' => 100, 'label' => 'Pillar' },
+          { 'id' => 'oh_pillar_4',  'kind' => 'scenery', 'x' => 325, 'y' => 200, 'label' => 'Pillar' },
+          { 'id' => 'oh_guard_1',   'kind' => 'enemy',   'x' => 225, 'y' => 150, 'label' => 'Ashen guard' },
+          { 'id' => 'oh_guard_2',   'kind' => 'enemy',   'x' => 275, 'y' => 150, 'label' => 'Ashen guard' }
         ] }
     ]
   end
