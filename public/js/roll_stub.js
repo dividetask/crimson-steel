@@ -1,55 +1,57 @@
 // Shared behaviour for the reusable roll_stub partial.
 //
-// Each rendered stub registers its configuration in window.rollStubConfigs
-// under its unique stub id. The Roll button POSTs to /roll_stub/roll; the
-// server rolls the original dice, freezes them under a token in the
-// session, and returns the original plus a nullable `changes` array
-// (positions that have been modified on the server's working copy).
+// Two buttons drive each stub: "Roll" rolls fresh dice and immediately
+// chains the configured luck reroll and insight nudge so the player
+// sees the final adjusted result in one click; "Reroll Luck" only
+// re-applies luck (against the original dice) and re-applies insight
+// on top, since insight depends on whatever row is above it.
 //
-// Luck buttons POST /roll_stub/reroll with a signed reroll_count; insight
-// buttons POST /roll_stub/nudge with a signed nudge_amount. Each click
-// re-rolls/re-nudges against the current working copy, so pressing a
-// button repeatedly keeps searching for a result the DM likes. The
-// original "Rolled:" row never changes; only the "Modified:" row and the
-// success total update.
+// The rendered layout has three slots — Initial, Luck, Insight — each
+// living in its own dedicated cell. The server returns the rows in
+// canonical order; we route each one to its slot by label and clear
+// any slot the server omitted.
 //
-// The Confirm button does not submit anything by itself — instead it
-// dispatches a `rollstub:confirm` CustomEvent on the stub's root element.
-// Parent stubs that embed this one listen for that event and capture the
-// success value from event.detail.
+// Confirm dispatches a `rollstub:confirm` CustomEvent on the stub
+// root; detail.successes and detail.criticals come from the editable
+// inputs so the DM can override the computed values before handing
+// them off to the embedding feature.
 (function() {
+  // Look up (and lazily hydrate) a stub's config. The partial encodes
+  // the per-stub settings into a data-config attribute on the <tr>
+  // root rather than emitting an inline <script>, so the row can live
+  // inside a parent <table> without HTML5 foster-parenting moving the
+  // script tag elsewhere in the DOM.
   function cfg(stubId) {
-    return (window.rollStubConfigs || {})[stubId];
-  }
-
-  function diceEl(stubId) {
-    return document.getElementById('roll-stub-dice-' + stubId);
-  }
-
-  function inputEl(stubId) {
-    return document.getElementById('roll-stub-input-' + stubId);
+    window.rollStubConfigs = window.rollStubConfigs || {};
+    var c = window.rollStubConfigs[stubId];
+    if (c) return c;
+    var el = rootEl(stubId);
+    if (!el) return null;
+    var raw = el.getAttribute('data-config');
+    if (!raw) return null;
+    try { c = JSON.parse(raw); } catch (e) { return null; }
+    window.rollStubConfigs[stubId] = c;
+    return c;
   }
 
   function rootEl(stubId) {
-    return document.querySelector('[data-stub-id="' + stubId + '"]');
+    return document.querySelector('.roll-stub[data-stub-id="' + stubId + '"]');
   }
 
-  function modButtons(stubId) {
-    var root = rootEl(stubId);
-    if (!root) return [];
-    return root.querySelectorAll('.roll-stub-mod');
+  function slotEl(stubId, label) {
+    return document.getElementById('roll-stub-row-' + label + '-' + stubId);
   }
 
-  function setModsEnabled(stubId, enabled) {
-    modButtons(stubId).forEach(function(btn) { btn.disabled = !enabled; });
+  function resultEl(stubId) {
+    return document.getElementById('roll-stub-result-' + stubId);
   }
 
-  function formatOutcome(successes) {
-    if (successes >= 0) {
-      return successes + ' success' + (successes === 1 ? '' : 'es');
-    }
-    var failures = -successes;
-    return failures + ' failure' + (failures === 1 ? '' : 's');
+  function critsEl(stubId) {
+    return document.getElementById('roll-stub-crits-' + stubId);
+  }
+
+  function rerollButton(stubId) {
+    return document.getElementById('roll-stub-reroll-luck-' + stubId);
   }
 
   function dieSpan(value, tn, dieSize) {
@@ -61,51 +63,55 @@
     return '<span class="' + cls + '">' + value + '</span>';
   }
 
-  // Placeholder for a position that has not been modified since the
-  // initial roll. Keeps positional alignment with the original row.
+  // Same-width transparent placeholder so unchanged positions in
+  // Luck/Insight rows line up under the Initial dice.
   function dieBlank() {
     return '<span class="die die-blank">&nbsp;</span>';
   }
 
-  function joinDice(pieces) {
-    return '[' + pieces.join(', ') + ']';
-  }
-
-  // Render the ordered row stack returned by the server. Row 0 shows
-  // every die; each subsequent row shows only the positions that
-  // differ from the row directly above, with unchanged positions as
-  // transparent placeholders so the columns stay aligned. The
-  // "→ N successes" summary lives on the bottom row. Starting value
-  // annotation is no longer rendered here — the stub's header already
-  // shows it up-front.
-  function renderRows(stubId, rows, tn, dieSize, successes) {
-    var el = diceEl(stubId);
-    if (!el) return;
-    var html = '';
-    rows.forEach(function(row, idx) {
-      var prev = idx === 0 ? null : rows[idx - 1].dice;
-      var pieces = row.dice.map(function(d, i) {
-        if (prev !== null && d === prev[i]) return dieBlank();
-        return dieSpan(d, tn, dieSize);
-      });
-      var isLast = idx === rows.length - 1;
-      html += '<div class="roll-line">' +
-        '<span class="roll-label">' + row.label + ':</span> ' +
-        joinDice(pieces);
-      if (isLast) html += ' → ' + formatOutcome(successes);
-      html += '</div>';
+  function renderDice(dice, prev, tn) {
+    var pieces = dice.map(function(d, i) {
+      if (prev && d === prev[i]) return dieBlank();
+      return dieSpan(d, tn, 10);
     });
-    el.innerHTML = html;
+    return '[' + pieces.join(', ') + ']';
   }
 
   function applyResult(stubId, data) {
     var c = cfg(stubId);
     if (!c) return;
     c.token = data.token;
-    var input = inputEl(stubId);
-    if (input) input.value = data.successes;
-    renderRows(stubId, data.rows, data.tn, 10, data.successes);
-    setModsEnabled(stubId, !!c.token);
+
+    var byLabel = {};
+    data.rows.forEach(function(r) { byLabel[r.label.toLowerCase()] = r.dice; });
+
+    var initialDice = byLabel.initial || null;
+    var luckDice    = byLabel.luck    || null;
+    var insightDice = byLabel.insight || null;
+
+    var initialSlot = slotEl(stubId, 'initial');
+    if (initialSlot) {
+      initialSlot.innerHTML = initialDice ? renderDice(initialDice, null, data.tn) : '';
+    }
+
+    var luckSlot = slotEl(stubId, 'luck');
+    if (luckSlot) {
+      luckSlot.innerHTML = luckDice ? renderDice(luckDice, initialDice, data.tn) : '';
+    }
+
+    var insightSlot = slotEl(stubId, 'insight');
+    if (insightSlot) {
+      var insightPrev = luckDice || initialDice;
+      insightSlot.innerHTML = insightDice ? renderDice(insightDice, insightPrev, data.tn) : '';
+    }
+
+    var result = resultEl(stubId);
+    if (result) result.value = data.successes;
+    var crits = critsEl(stubId);
+    if (crits) crits.value = data.criticals;
+
+    var rb = rerollButton(stubId);
+    if (rb) rb.disabled = !c.token;
   }
 
   function postForm(url, params) {
@@ -121,41 +127,62 @@
     });
   }
 
+  // After the initial roll (or a luck reroll) we chain the configured
+  // luck/insight follow-ups so the displayed dice reflect every
+  // adjustment the stub knows about. Each promise resolves to the
+  // server's response payload, which carries the token forward.
+  function chainLuck(c, data) {
+    if (c.luckAmount === 0) return Promise.resolve(data);
+    return postForm('/roll_stub/reroll', {
+      token: data.token,
+      reroll_count: c.luckAmount
+    });
+  }
+
+  function chainInsight(c, data) {
+    if (c.insightAmount === 0) return Promise.resolve(data);
+    return postForm('/roll_stub/nudge', {
+      token: data.token,
+      nudge_amount: c.insightAmount
+    });
+  }
+
   window.rollStubRoll = function(stubId) {
     var c = cfg(stubId);
     if (!c) return;
-    postForm('/roll_stub/roll', {
+    return postForm('/roll_stub/roll', {
       dice_count: c.diceCount,
       tn: c.tn,
       starting_value: c.startingValue
-    }).then(function(data) { applyResult(stubId, data); });
+    })
+      .then(function(d) { return chainLuck(c, d); })
+      .then(function(d) { return chainInsight(c, d); })
+      .then(function(d) { applyResult(stubId, d); });
   };
 
-  window.rollStubReroll = function(stubId, rerollCount) {
+  window.rollStubRerollLuck = function(stubId) {
     var c = cfg(stubId);
     if (!c || !c.token) return;
-    postForm('/roll_stub/reroll', {
+    return postForm('/roll_stub/reroll', {
       token: c.token,
-      reroll_count: rerollCount
-    }).then(function(data) { applyResult(stubId, data); });
-  };
-
-  window.rollStubNudge = function(stubId, nudgeAmount) {
-    var c = cfg(stubId);
-    if (!c || !c.token) return;
-    postForm('/roll_stub/nudge', {
-      token: c.token,
-      nudge_amount: nudgeAmount
-    }).then(function(data) { applyResult(stubId, data); });
+      reroll_count: c.luckAmount
+    })
+      .then(function(d) { return chainInsight(c, d); })
+      .then(function(d) { applyResult(stubId, d); });
   };
 
   window.rollStubConfirm = function(stubId) {
     var root = rootEl(stubId);
-    var input = inputEl(stubId);
-    if (!root || !input) return;
+    if (!root) return;
+    var result = resultEl(stubId);
+    var crits = critsEl(stubId);
     root.dispatchEvent(new CustomEvent('rollstub:confirm', {
       bubbles: true,
-      detail: { stubId: stubId, value: input.value }
+      detail: {
+        stubId: stubId,
+        successes: result ? parseInt(result.value, 10) : null,
+        criticals: crits ? parseInt(crits.value, 10) : null
+      }
     }));
   };
 })();

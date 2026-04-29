@@ -31,6 +31,8 @@ class NotesState
     @additions              = []
     @overrides              = {}
     @deletions              = []
+    # Chapters track (number => title)
+    @chapters               = {}
     # Image track
     @image_additions        = []
     @image_deletions        = []
@@ -99,6 +101,37 @@ class NotesState
     @deletions << id.to_i
     @overrides.delete(id.to_i)
     @additions.reject! { |n| n['id'] == id.to_i }
+    save!
+    true
+  end
+
+  # ----- Chapters --------------------------------------------------------
+
+  # Returns chapters as a sorted array shaped the way DATA.chapters
+  # callers expect: [{ 'number' => 1, 'title' => '...' }, ...].
+  def chapters
+    @chapters.keys.sort.map { |n| { 'number' => n, 'title' => @chapters[n] } }
+  end
+
+  def add_chapter(number:, title:)
+    n = number.to_i
+    @chapters[n] = title.to_s
+    save!
+    { 'number' => n, 'title' => @chapters[n] }
+  end
+
+  def update_chapter(number, title:)
+    n = number.to_i
+    return false unless @chapters.key?(n)
+    @chapters[n] = title.to_s
+    save!
+    true
+  end
+
+  def delete_chapter(number)
+    n = number.to_i
+    return false unless @chapters.key?(n)
+    @chapters.delete(n)
     save!
     true
   end
@@ -186,16 +219,12 @@ class NotesState
 
   # ----- Objects (tokens) ------------------------------------------------
 
-  # Move a base or added object. Stored as an override so we don't
-  # mutate the DummyData rows.
   def move_object(map_id, object_id, x, y)
     bucket = (@moves_by_map[map_id.to_i] ||= {})
     bucket[object_id.to_s] = { 'x' => x.to_f, 'y' => y.to_f }
     save!
   end
 
-  # Remove an object. Base DummyData rows are flagged in the
-  # removed-set; added objects are dropped from the added array.
   def remove_object(map_id, object_id)
     object_id = object_id.to_s
     (@added_objects_by_map[map_id.to_i] ||= []).reject! { |o| o['id'] == object_id }
@@ -205,8 +234,6 @@ class NotesState
     save!
   end
 
-  # Merged object list: base + added + per-id move overrides minus
-  # anything in the removed-set.
   def objects_for(map_id, base_objects)
     moves   = @moves_by_map[map_id.to_i] || {}
     removed = @removed_objects_by_map[map_id.to_i] || []
@@ -341,8 +368,6 @@ class NotesState
 
   # ----- Map settings (label / size in squares / flags) ----------------
 
-  # Returns merged settings: per-map override wins, otherwise fall
-  # back to whatever the base map record supplied.
   def map_settings_for(map_id, base_label: nil, base_w: 8, base_h: 5,
                        base_public: nil, base_active: nil, base_archived: false)
     s = @map_settings_by_map[map_id.to_i] || {}
@@ -438,6 +463,7 @@ class NotesState
       'additions'              => @additions,
       'overrides'              => @overrides,
       'deletions'              => @deletions,
+      'chapters'               => @chapters,
       'image_additions'        => @image_additions,
       'image_deletions'        => @image_deletions,
       'arrows_by_map'          => @arrows_by_map,
@@ -462,6 +488,7 @@ class NotesState
     @additions              = data['additions'] || []
     @overrides              = (data['overrides'] || {}).transform_keys(&:to_i)
     @deletions              = data['deletions'] || []
+    @chapters               = (data['chapters']  || {}).transform_keys(&:to_i)
     @image_additions        = data['image_additions'] || []
     @image_deletions        = data['image_deletions'] || []
     @arrows_by_map          = (data['arrows_by_map']          || {}).transform_keys(&:to_i)

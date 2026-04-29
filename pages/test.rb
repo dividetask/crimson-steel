@@ -11,12 +11,15 @@ end
 
 post '/test' do
   session[:test_params] = {
+    'character_name'  => params[:character_name].to_s,
     'check_name'      => params[:check_name].to_s,
     'dice_count'      => params[:dice_count].to_s,
     'tn'              => params[:tn].to_s,
     'starting_value'  => params[:starting_value].to_s,
     'luck_amount'     => params[:luck_amount].to_s,
-    'insight_amount'  => params[:insight_amount].to_s
+    'luck_label'      => params[:luck_label].to_s,
+    'insight_amount'  => params[:insight_amount].to_s,
+    'insight_label'   => params[:insight_label].to_s
   }
   redirect '/test'
 end

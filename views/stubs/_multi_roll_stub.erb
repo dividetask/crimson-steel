@@ -1,0 +1,45 @@
+<div class="multi-roll-stub" data-stub-id="<%= stub_id %>">
+  <div class="multi-roll-head">
+    <span class="multi-roll-title"><%= h(title) %></span>
+    <button type="button" class="multi-roll-roll-all"
+            onclick="multiRollRollAll('<%= stub_id %>')">Roll All</button>
+    <button type="button" class="multi-roll-confirm"
+            onclick="multiRollConfirmAll('<%= stub_id %>')">Confirm All</button>
+  </div>
+  <table class="roll-stub-table">
+    <thead>
+      <tr>
+        <th class="col-roll"></th>
+        <th class="col-meta">Character</th>
+        <th class="col-mod">Modifier</th>
+        <th class="col-dice">Dice</th>
+        <th class="col-result">Result / Crits</th>
+      </tr>
+    </thead>
+    <% children.each do |c| %>
+      <%= roll_stub(
+            stub_id:        c[:_child_id],
+            character_name: c[:character_name],
+            check_name:     c[:check_name],
+            dice_count:     c[:dice_count],
+            tn:             c[:tn],
+            starting_value: c[:starting_value] || 0,
+            luck_amount:    c[:luck_amount]    || 0,
+            luck_label:     c[:luck_label],
+            insight_amount: c[:insight_amount] || 0,
+            insight_label:  c[:insight_label],
+            show_confirm:   false,
+            bare_row:       true
+          ) %>
+    <% end %>
+  </table>
+</div>
+<script>
+(function() {
+  window.multiRollConfigs = window.multiRollConfigs || {};
+  window.multiRollConfigs[<%= stub_id.to_json %>] = {
+    childIds: <%= children.map { |c| c[:_child_id] }.to_json %>,
+    rollKeys: <%= children.map { |c| c[:_key] }.to_json %>
+  };
+})();
+</script>
