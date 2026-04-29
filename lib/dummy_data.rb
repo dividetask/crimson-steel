@@ -318,16 +318,17 @@ class DummyData
     {
       'name'  => 'Bryn Ironvein',
       'skill' => { 'name' => 'Attack', 'bonus' => 2, 'dice' => 8, 'ranks' => 3 },
+      'combat_pool' => 15, 'combat_pool_max' => 23,
       'weapons' => [
         { 'key' => 'longsword',
           'name' => 'Longsword',
-          'min_dice' => 2, 'max_dice' => 6,
+          'min_dice' => 2, 'max_dice' => 8,
           'attack_bonus' => 2, 'damage' => 4, 'threshold' => 8, 'bleed' => 1, 'speed' => 2,
           'afflictions' => [
             { 'key' => 'bleed', 'label' => 'Bleed', 'amount' => 1 }
           ] },
-        { 'key' => 'handaxe',
-          'name' => 'Handaxe',
+        { 'key' => 'hatchet',
+          'name' => 'Hatchet',
           'min_dice' => 2, 'max_dice' => 5,
           'attack_bonus' => 1, 'damage' => 3, 'threshold' => 6, 'bleed' => 1, 'speed' => 1,
           'afflictions' => [
@@ -340,12 +341,15 @@ class DummyData
   def self.target_samples
     [
       { 'key' => 'mob-1', 'name' => 'Bandit Thug',   'incapacitated' => false,
+        'combat_pool' => 9, 'combat_pool_max' => 12,
         'defenses'  => defense_options(:thug),
         'reactions' => reaction_options(:thug) },
       { 'key' => 'mob-2', 'name' => 'Bandit Captain','incapacitated' => false,
+        'combat_pool' => 18, 'combat_pool_max' => 20,
         'defenses'  => defense_options(:captain),
         'reactions' => reaction_options(:captain) },
       { 'key' => 'mob-3', 'name' => 'Skeleton',      'incapacitated' => true,
+        'combat_pool' => 0, 'combat_pool_max' => 6,
         'defenses'  => [defense_option('nothing')],
         'reactions' => reaction_options(:skeleton) }
     ]
@@ -358,9 +362,11 @@ class DummyData
   def self.ally_reactions
     [
       { 'key'   => 'lira-shield-of-faith',
-        'label' => 'Lira — Shield of Faith',
-        'min_dice' => 2, 'max_dice' => 4,
-        'skill'  => { 'name' => 'Healing', 'bonus' => 2, 'dice' => 4, 'ranks' => 2 },
+        'name'  => 'Lira',
+        'label' => 'Shield of Faith',
+        'combat_pool' => 5, 'combat_pool_max' => 12,
+        'min_dice' => 2, 'max_dice' => 6,
+        'skill'  => { 'name' => 'Healing', 'bonus' => 2, 'dice' => 6, 'ranks' => 2 },
         'cost'   => 'no mana (concentration)',
         'tn_label' => 'Block TN' }
     ]
