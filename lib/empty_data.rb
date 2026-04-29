@@ -15,7 +15,10 @@ class EmptyData
   EMPTY_SCENE        = { 'title' => '', 'description' => '',
                          'show_initiative' => false }.freeze
 
-  CHARACTERS_YAML = File.expand_path('../data/characters.yaml', __dir__)
+  CHARACTERS_YAML  = File.expand_path('../data/characters.yaml',  __dir__)
+  ADVANCEMENT_YAML = File.expand_path('../data/advancement.yaml', __dir__)
+  SKILLS_YAML      = File.expand_path('../data/skills.yaml',      __dir__)
+  RACES_YAML       = File.expand_path('../data/races.yaml',       __dir__)
 
   def self.campaign;               EMPTY_CAMPAIGN;     end
   def self.chapters;               NOTES_STATE.chapters; end
@@ -24,7 +27,12 @@ class EmptyData
   def self.character_by_id(_id);   nil;                end
 
   def self.pc_objects
-    @pc_objects ||= Character.load_yaml(CHARACTERS_YAML).map do |c|
+    @pc_objects ||= Character.load_yaml(
+      CHARACTERS_YAML,
+      advancement_path: ADVANCEMENT_YAML,
+      skills_path:      SKILLS_YAML,
+      races_path:       RACES_YAML
+    ).map do |c|
       { character: c, dummy: {} }
     end
   end

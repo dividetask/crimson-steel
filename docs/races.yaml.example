@@ -1,0 +1,166 @@
+# Crimson Steel — races.
+#
+# Setup:
+#   1. Copy this file to `data/races.yaml`.
+#   2. Edit the entries to match the rules of your campaign.
+#   3. Restart the server.
+#
+# Schema:
+#   races:
+#     <race_key>:
+#       name        optional human-readable race name. The race
+#                   key is used as a fallback wherever the name
+#                   is displayed.
+#       parent_race optional. Marks the race as a sub-race of
+#                   another. The sub-race inherits the parent's
+#                   speed, ability_score_adjustments, and
+#                   abilities; its own values stack on top.
+#       size        optional, e.g. "Small" or "Medium".
+#       speed       optional integer. Base walking speed in feet.
+#                   Inherited from a parent_race when omitted.
+#       ability_score_adjustments
+#                   optional map of attribute key (str/dex/con/
+#                   int/wis/cha) to integer. Stacks across the
+#                   parent_race chain — a Hill Dwarf's +2 con
+#                   inherited from Dwarf plus its own +2 wis
+#                   accumulates correctly.
+#       abilities   optional, list of ability entries shaped
+#                   exactly like a class's abilities list (see
+#                   advancement.yaml). Sticky context entries are
+#                   limited to `min_level`; per-ability fields
+#                   include `name`, `min_level`, and
+#                   `scales_with_level`. The level a racial
+#                   ability scales against is the character's
+#                   total class level.
+#
+# Characters reference a race by its key in the `race:` field of
+# their entry in characters.yaml.
+
+races:
+  human:
+    name: Human
+    size: Medium
+    speed: 30
+    ability_score_adjustments:
+      str: 1
+      dex: 1
+      con: 1
+      int: 1
+      wis: 1
+      cha: 1
+    abilities:
+      - name: bonus_feat
+
+  dwarf:
+    name: Dwarf
+    size: Medium
+    speed: 25
+    abilities:
+      - name: low_light_vision
+      - name: poison_resistance
+      - name: weapon_familiarity_dwarven
+      - name: heavy_armor_full_speed
+      - name: bonus_dwarven_feat
+
+  hill_dwarf:
+    name: Hill Dwarf
+    parent_race: dwarf
+    ability_score_adjustments:
+      con: 2
+      wis: 2
+
+  mountain_dwarf:
+    name: Mountain Dwarf
+    parent_race: dwarf
+    ability_score_adjustments:
+      con: 2
+      str: 2
+
+  elf:
+    name: Elf
+    size: Medium
+    speed: 30
+    abilities:
+      - name: far_sight
+      - name: elven_resistance
+      - name: weapon_familiarity_elven
+      - name: bonus_elven_feat
+
+  high_elf:
+    name: High Elf
+    parent_race: elf
+    ability_score_adjustments:
+      dex: 2
+      int: 2
+
+  wood_elf:
+    name: Wood Elf
+    parent_race: elf
+    ability_score_adjustments:
+      dex: 2
+      wis: 2
+
+  gnome:
+    name: Gnome
+    size: Small
+    speed: 25
+    abilities:
+      - name: far_sight
+      - name: bonus_gnome_feat
+
+  forest_gnome:
+    name: Forest Gnome
+    parent_race: gnome
+    ability_score_adjustments:
+      int: 2
+      dex: 2
+    abilities:
+      - name: natural_illusionist
+      - name: speak_with_small_beasts
+
+  rock_gnome:
+    name: Rock Gnome
+    parent_race: gnome
+    ability_score_adjustments:
+      int: 2
+      con: 2
+    abilities:
+      - name: tinkerer
+      - name: artificers_lore
+
+  halfling:
+    name: Halfling
+    size: Small
+    speed: 25
+    abilities:
+      - name: halfling_luck
+      - name: brave
+      - name: bonus_halfling_feat
+
+  lightfoot_halfling:
+    name: Lightfoot Halfling
+    parent_race: halfling
+    ability_score_adjustments:
+      dex: 2
+      cha: 2
+
+  stout_halfling:
+    name: Stout Halfling
+    parent_race: halfling
+    ability_score_adjustments:
+      dex: 2
+      con: 2
+
+  satyr:
+    name: Satyr
+    size: Medium
+    speed: 35
+    ability_score_adjustments:
+      dex: 2
+      cha: 2
+    abilities:
+      - name: fey
+      - name: horns
+      - name: fey_resistance
+      - name: reveler
+      - name: spell_like_ability

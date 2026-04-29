@@ -1,0 +1,160 @@
+# Crimson Steel — skills.
+#
+# Setup:
+#   1. Copy this file to `data/skills.yaml`.
+#   2. Edit the entries to match the rules of your campaign.
+#   3. Restart the server.
+#
+# Schema:
+#   skills:
+#     <skill_key>:
+#       attribute   one of str/dex/con/int/wis/cha. The attribute
+#                   modifier added when rolling this skill.
+#       description short, human-readable summary of what the
+#                   skill covers.
+#       set         optional, default false. Marks the entry as
+#                   a *skill set* rather than a single skill. By
+#                   convention a skill set's key ends in `_`; its
+#                   children share the parent's attribute and are
+#                   spelled `<set>_<specialty>` (e.g. craft_smith,
+#                   perform_dance). Characters cannot take ranks
+#                   in the parent set itself, only in specific
+#                   children — so a class skill of `craft_` allows
+#                   any `craft_<specialty>` to be advanced. The
+#                   children themselves do not need to be listed
+#                   here.
+#       mandatory   optional, default false. Marks a skill that
+#                   every character advances automatically: every
+#                   character treats it as if they had listed it
+#                   under every class. Characters should not list
+#                   mandatory skills in their chosen-skills lists.
+#
+# Each class lists its own class skills and (optionally) opposed
+# skills in advancement.yaml. A character then chooses, per class,
+# which of those skills they advance.
+
+
+# ─── Tier advancement ────────────────────────────────────────
+#
+# Every creature gains a minimum number of skills based upon 
+# one of their attributes (default: Intelligence).
+# They gain a number of skills equal to their attribute divided
+# by the attribute_divisor rounded down. These skills advance
+# each level based upon the class. Additional skills are granted
+# by the class. 
+
+minimum_skills_trained:
+  attribute: int
+  attribute_divisor: 4
+
+skills:
+  # Strength
+  athletics:
+    attribute: str
+    description: Climbing, jumping, swimming, and other feats of raw physical exertion.
+
+  # Dexterity
+  acrobatics:
+    attribute: dex
+    description: Balancing, tumbling, and moving through difficult terrain without losing footing.
+  escape_artist:
+    attribute: dex
+    description: Slipping bonds, grapples, and tight enclosures.
+  larceny:
+    attribute: dex
+    description: Picking pockets, opening locks, and disabling traps.
+  martial:
+    attribute: dex
+    mandatory: true
+    description: General combat training.
+  ride:
+    attribute: dex
+    description: Controlling a mount, especially under stress or in combat.
+  sleight_of_hand:
+    attribute: dex
+    description: Subtle hand-work — palming objects, planting items, and similar trickery.
+  stealth:
+    attribute: dex
+    description: Moving and hiding without being noticed.
+
+  # Intelligence
+  appraisal:
+    attribute: int
+    description: Estimating an object's worth, ease of resale, and magical aura.
+  arcana:
+    attribute: int
+    description: Knowledge of magical traditions and the casting skill for arcane spells.
+  craft_:
+    attribute: int
+    set: true
+    description: Producing goods of a particular trade.
+  dungeoneering:
+    attribute: int
+    description: Knowledge of underground hazards, aberrations, and subterranean navigation.
+  game_:
+    attribute: int
+    set: true
+    description: Skill at a particular game of strategy or chance.
+  history:
+    attribute: int
+    description: Knowledge of past events, civilizations, and notable figures.
+  investigation:
+    attribute: int
+    description: Searching for clues and reasoning out what they mean.
+  linguistics:
+    attribute: int
+    description: Languages, ciphers, and detecting forgeries.
+  nobility:
+    attribute: int
+    description: Knowledge of heraldry, courtly etiquette, and the politics of ruling houses.
+  planes:
+    attribute: int
+    description: Knowledge of the outer planes, their inhabitants, and travel between them.
+  restricted_magic:
+    attribute: int
+    description: The casting skill for restricted magical traditions.
+  religion:
+    attribute: int
+    description: Knowledge of deities, holy sites, and religious rites.
+
+  # Wisdom
+  healing:
+    attribute: wis
+    description: Tending wounds and casting divine healing magic.
+  nature:
+    attribute: wis
+    description: Wilderness lore, animal husbandry, and survival in the outdoors.
+  perception:
+    attribute: wis
+    description: Noticing fine details with any of the senses, including hidden creatures and auras.
+  profession_:
+    attribute: wis
+    set: true
+    description: Earning a living from a particular trade.
+  sense_motive:
+    attribute: wis
+    description: Reading intent, spotting deception, and gauging mood.
+
+  # Charisma
+  animal_handling:
+    attribute: cha
+    description: Calming, training, and directing animals.
+  deception:
+    attribute: cha
+    description: Lying convincingly, bluffing, and otherwise misleading on purpose.
+  disguise:
+    attribute: cha
+    description: Altering appearance to pose as someone else.
+  intimidate:
+    attribute: cha
+    description: Coercing through threat, force of personality, or open menace.
+  perform_:
+    attribute: cha
+    set: true
+    description: A particular performance art.
+  persuasion:
+    attribute: cha
+    description: Earnest argument, negotiation, and inspiring trust.
+  evocation:
+    attribute: cha
+    description: Innate magical casting and skill in activating magical devices.

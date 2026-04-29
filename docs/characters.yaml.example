@@ -8,23 +8,60 @@
 #   3. Restart the server.
 #
 # Schema (one entry per character under `characters:`):
-#   id         integer   unique identifier; never reused.
-#   name       string    character name.
-#   player     string    name of the player running the character.
-#   race       string    character race.
-#   attributes map       six base ability scores. Each value should
-#                        sit in the 7-20 range. Keys: str, dex, con,
-#                        int, wis, cha.
+#   id          integer   unique identifier; never reused.
+#   name        string    character name.
+#   player      string    name of the player running the character.
+#   race        string    race key matching an entry in
+#                         races.yaml. Sub-races (hill_dwarf,
+#                         high_elf, …) inherit from their parent
+#                         race automatically.
+#   type        string    optional, default `player_character`.
+#                         Selects the tier-advancement breakpoint
+#                         list (see advancement.yaml's
+#                         `tier_advancement`). Allowed values
+#                         match the keys in that map
+#                         (`player_character`, `boss`, `noble`,
+#                         `common`, …).
+#   attributes  map       six base ability scores. Keys: str,
+#                         dex, con, int, wis, cha.
+#   advancement map       optional. Tracks the character's
+#                         classes, tier, and tier-up choices.
+#                         Consulted by the Advancement class to
+#                         compute attribute and ability bonuses on
+#                         top of the base values above. Keys:
+#                           tier
+#                             optional integer override. Wins over
+#                             the auto-computed tier (which is
+#                             derived from total class levels via
+#                             advancement.yaml's tier_advancement
+#                             table for this character's `type`).
+#                           tier_attribute_advancement
+#                             optional flat list of attribute keys
+#                             — the focused-bonus picks made at
+#                             each tier-up, in order. The first
+#                             `focused_attribute_count` entries
+#                             are the picks for tier 2, the next
+#                             chunk are tier 3's picks, and so on.
+#                             May be filled in ahead of time so
+#                             future tier-ups are pre-allocated.
+#                           classes
+#                             map of class key (matching a key in
+#                             advancement.yaml) to one of:
+#                               * an integer — shorthand for "this
+#                                 many levels, no skills tracked".
+#                               * a map with:
+#                                   level  integer level in the
+#                                          class.
+#                                   skills list of skill keys the
+#                                          character is advancing
+#                                          for this class.
 #
-# Only static data lives here. Anything that changes during play
-# — current HP, mana, conditions, items, levels, magical bonuses
-# — is tracked elsewhere and layered on top of these values.
 
 characters:
   - id: 1
     name: Ash Windmere
     player: Sam
-    race: Human
+    race: human
     attributes:
       str: 10
       dex: 14
@@ -32,11 +69,20 @@ characters:
       int: 13
       wis: 16
       cha: 18
+    advancement:
+      classes:
+        bard:
+          level: 3
+          skills:
+            - perform_dance
+            - persuasion
+            - perception
+            - arcana
 
   - id: 2
     name: Bryn Ironvein
     player: Mira
-    race: Dwarf
+    race: hill_dwarf
     attributes:
       str: 18
       dex: 10
@@ -44,11 +90,27 @@ characters:
       int: 9
       wis: 12
       cha: 8
+    advancement:
+      tier_attribute_advancement:
+        - str
+        - con
+      classes:
+        fighter:
+          level: 4
+          skills:
+            - athletics
+            - intimidate
+            - perception
+        barbarian:
+          level: 2
+          skills:
+            - athletics
+            - intimidate
 
   - id: 3
     name: Lira Duskmoor
     player: Jordan
-    race: Elf
+    race: high_elf
     attributes:
       str: 8
       dex: 14
@@ -56,3 +118,12 @@ characters:
       int: 20
       wis: 16
       cha: 12
+    advancement:
+      tier: 3
+      tier_attribute_advancement:
+        - dex
+        - con
+        - con
+        - str
+      classes:
+        wizard: 3
