@@ -640,7 +640,26 @@
 
     var table = document.createElement('table');
     table.className = 'attack-luck-table';
+    var cols = sources.length + 1;
     var thead = document.createElement('thead');
+
+    // Action row above the column headers carries [None]
+    // right-aligned -- mirrors the ally step's [None] in <thead>.
+    var noneTr = document.createElement('tr');
+    var noneTd = document.createElement('td');
+    noneTd.colSpan = cols;
+    noneTd.className = 'attack-action-cell';
+    var noneBtn = actionBtn('None', function() {
+      rows.forEach(function(r) {
+        selections[r.key] = {};
+        paintRow(r.key);
+      });
+      advance();
+    });
+    noneTd.appendChild(noneBtn);
+    noneTr.appendChild(noneTd);
+    thead.appendChild(noneTr);
+
     var headRow = document.createElement('tr');
     var thRoll = document.createElement('th');
     thRoll.textContent = 'Roll';
@@ -696,17 +715,18 @@
       paintRow(r.key);
     });
     table.appendChild(tbody);
-    step.body.appendChild(table);
 
-    var footer = document.createElement('div');
-    footer.className = 'attack-pick-row';
-    var cont = document.createElement('button');
-    cont.type = 'button';
-    cont.className = 'attack-btn attack-btn-primary attack-action-right';
-    cont.textContent = 'Continue';
-    cont.addEventListener('click', advance);
-    footer.appendChild(cont);
-    step.body.appendChild(footer);
+    var tfoot = document.createElement('tfoot');
+    var contTr = document.createElement('tr');
+    var contTd = document.createElement('td');
+    contTd.colSpan = cols;
+    contTd.className = 'attack-action-cell';
+    contTd.appendChild(actionBtn('Continue', advance, 'attack-btn-primary'));
+    contTr.appendChild(contTd);
+    tfoot.appendChild(contTr);
+    table.appendChild(tfoot);
+
+    step.body.appendChild(table);
   }
 
   // --- Step 6: All rolls in one panel -------------------------------------
@@ -847,12 +867,26 @@
         : '<em>No target reaction.</em>');
       collectDamage(stubId);
     };
-    step.body.appendChild(btn('None', function() { pick(null); }));
+
+    // Reactions on the left, [None] right-aligned to line up with the
+    // [None] / [Do Nothing] / [Continue] actions in the other steps.
+    var table = pickTable();
+    var thead = document.createElement('thead');
+    var tr = document.createElement('tr');
+    var leftTd = document.createElement('td');
     reactions.forEach(function(r) {
       var label = escapeHtml(r.label) +
         (r.cost ? ' <span class="attack-meta">(' + escapeHtml(r.cost) + ')</span>' : '');
-      step.body.appendChild(btn(label, function() { pick(r); }));
+      leftTd.appendChild(btn(label, function() { pick(r); }));
     });
+    tr.appendChild(leftTd);
+    var rightTd = document.createElement('td');
+    rightTd.className = 'attack-action-cell';
+    rightTd.appendChild(actionBtn('None', function() { pick(null); }));
+    tr.appendChild(rightTd);
+    thead.appendChild(tr);
+    table.appendChild(thead);
+    step.body.appendChild(table);
   }
 
   // --- Step 8: Damage form -------------------------------------------------
