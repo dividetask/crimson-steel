@@ -148,21 +148,17 @@ Any row may also declare `equipped: true` at the row level. When present, the It
 
 **Restock Operation**: Manual, caller-initiated. Atomic: the operation either debits the full Restock Cost from the Owner's wealth AND increments every understocked Stack's Quantity up to its target, or it makes no changes at all. Fails when the Owner's Total Wealth is below the Restock Cost.
 
-## Combat Attributes (second pass)
+## Item Detail Lookups
 
-Placeholder entries — full definitions land in the Attack Roll / Combat modules. Listed here so that consumers know the `Equipment` class will own the per-item lookup surface.
+The Equipment class exposes three detail-fetcher functions so other modules (combat, character sheet UI, shop UI) can read everything they need about an item from a single call.
 
-**Weapon Damage**: Gold formula that converts an attacker's Strength into damage for a specific Weapon. *(pseudocode body TBD — second pass)*
+**Get Item Details**: Returns a generic dictionary describing any Item Stack — its category, definition block, tier, properties, equipped status, durability damage, display name, unit price, slot (when applicable), value_in_gold (Currency / Gem), and guidance fields (when applicable). Does not compute combat values.
 
-**Damage Reduction (DR)**: The flat damage an Armor subtracts from incoming damage. *(TBD)*
+**Get Weapon Details**: Returns the Get Item Details dictionary extended with weapon-specific fields: the resolved damage formula (per-weapon override → first tag with `damage_formula` → category default), the damage type list, the effective Bleed and Threshold (per-weapon override → max/min over the damage types' defaults), the weapon's tags, and the ammo type (projectile weapons only). The combat module evaluates the damage formula against the attacker's Strength.
 
-**Bleed**: A Weapon's Bleed value, used by the combat module's ongoing-damage rule. *(TBD)*
+**Get Armor Details**: Returns the Get Item Details dictionary extended with armor-specific fields: damage reduction, material, base hardness, effective hardness (`base + 2 × Tier`), the hit-points formula string, thickness, resilience increment, and computed resilience (`Tier × increment`, with shield/null guards).
 
-**Threshold**: A Weapon's Threshold value, used by the combat module's minimum-damage rule. *(TBD)*
-
-**Resilience**: A magical Armor's effective HP against damage, equal to `Tier × resilience_increment`. *(TBD)*
-
-**Lesslethal Effect**: A non-lethal stunning effect inflicted on a successful hit by Weapons carrying the `lesslethal` tag (currently the Whip). Recovery, accumulation, and interaction with hit points belong to the combat module. *(TBD)*
+**Lesslethal Effect**: A non-lethal stunning effect inflicted on a successful hit by Weapons carrying the `lesslethal` tag (currently the Whip). Recovery, accumulation, and interaction with hit points belong to the combat module.
 
 ## Time
 

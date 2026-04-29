@@ -1261,73 +1261,175 @@ The operation is all-or-nothing: partial restocks are not supported. Callers who
 
 ---
 
-## Combat Attributes — Second Pass Stubs
+## GET_ITEM_DETAILS
 
-The following five functions are the Equipment class's lookup surface for the combat / attack-roll module. Their bodies are intentionally left `TBD — second pass` in this document, pending the open rules questions tracked in `project_summary.md` (defender tier's role in threshold calculation, shield DR, thrown-weapon balance, durability mechanics, whip bleed). The method signatures are fixed now so the combat module can be designed against them without waiting for the implementation.
-
-### GET_WEAPON_DAMAGE
-
-**Description:** Returns the damage dealt by a single attack with the given weapon, given the attacker's Strength. Honors the weapon's `damage` override when present; otherwise applies the category default formula (`Weapon Category Defaults[<category>]['damage']`) with `str` substituted. Magical (`tier >= 1`) weapons may add a flat bonus from their properties; the specific rule is TBD.
+**Description:** Returns a dictionary describing an Item Stack: every per-instance field on the Stack, the resolved category, the relevant chunk of the Item Type's definition, the generated display name, and the per-unit price. This is the generic detail surface that other modules consult to render an item or read its data — it does NOT compute combat values like damage or DR (those are the combat module's job; see GET_WEAPON_DETAILS and GET_ARMOR_DETAILS for the weapon/armor-specific extensions).
 
 **Parameters:**
-- `weapon_stack`: an Item Stack whose Item Type is a Weapon.
-- `attacker_strength`: the attacker's Strength score.
+- `stack`: an Item Stack.
 
-**Returns:** An integer damage value.
+**Returns:** A dictionary with the following keys:
+- `item`: Item Type name.
+- `category`: `'Weapon'`, `'Armor'`, `'Ammunition'`, `'Item'`, `'Consumable'`, `'Currency'`, or `'Gem'`. `null` for items whose type is not in the config.
+- `definition`: the raw Item Type definition block from `equipment_config`, or `null`.
+- `tier`: integer Tier on the Stack (default 0).
+- `properties`: list of magical Property entries on the Stack (default empty).
+- `quantity`: Stack Quantity (default 1).
+- `equipped`: boolean from the Stack (default false).
+- `durability_damage`: integer (default 0).
+- `stored_spell`: the Stored Spell name or null.
+- `name_override`: the Stack's Name Override or null.
+- `display_name`: the result of GET_DISPLAY_NAME(stack).
+- `unit_price`: the result of ITEM_UNIT_PRICE(stack).
+- `slot`: the body slot if the Item Type defines one (Items only), else null.
+- `value_in_gold`: present on Currency and Gem stacks only.
+- `guidance_attribute`, `guidance_bonus`: present on guidance Items only.
 
-1. `# TBD — second pass`
-2. `# Planned sources: Weapons[<name>]['damage'] override, Weapon Category Defaults[<category>]['damage'], stack['tier'], weapon properties.`
-3. `raise exception ('GET_WEAPON_DAMAGE not yet implemented')`
+1. `info = ITEM_DEFINITION(stack['item'])`
+2. `category = (info is not null) ? info['category'] : null`
+3. `definition = (info is not null) ? info['definition'] : null`
+4. `result = {`
+5. `⠀⠀'item': stack['item'],`
+6. `⠀⠀'category': category,`
+7. `⠀⠀'definition': definition,`
+8. `⠀⠀'tier': stack['tier'] or 0,`
+9. `⠀⠀'properties': stack['properties'] or empty list,`
+10. `⠀⠀'quantity': stack['quantity'] or 1,`
+11. `⠀⠀'equipped': stack['equipped'] or false,`
+12. `⠀⠀'durability_damage': stack['durability_damage'] or 0,`
+13. `⠀⠀'stored_spell': stack['stored_spell'] or null,`
+14. `⠀⠀'name_override': stack['name'] or null,`
+15. `⠀⠀'display_name': GET_DISPLAY_NAME(stack),`
+16. `⠀⠀'unit_price': ITEM_UNIT_PRICE(stack)`
+17. `}`
+18. `if definition is not null and 'slot' in definition: result['slot'] = definition['slot']`
+19. `if 'value_in_gold' in stack: result['value_in_gold'] = stack['value_in_gold']`
+20. `if definition is not null and 'guidance_attribute' in definition:`
+21. `⠀⠀result['guidance_attribute'] = definition['guidance_attribute']`
+22. `⠀⠀result['guidance_bonus'] = stack['guidance_bonus']`
+23. `return result`
 
-### GET_DAMAGE_REDUCTION
+**Notes:**
+- The returned dictionary is a fresh allocation; mutating it does not affect the underlying Stack or config.
+- `definition` is included by reference so callers can read additional fields (description, base_price, etc.) without a second lookup, but they must NOT mutate it. (The Equipment class loads config once at startup; mutations would corrupt every other consumer.)
 
-**Description:** Returns the flat damage reduction granted by a piece of armor. Category default comes from `Armor Category Defaults[<category>]['damage_reduction']` and may be overridden per-armor. Shield DR behavior and magical bonus contributions are TBD.
+---
+
+## GET_WEAPON_DETAILS
+
+**Description:** Returns a dictionary with all weapon-specific data needed to resolve an attack: the resolved damage formula, the damage type(s), the effective bleed and threshold values, the weapon's tags, and the ammo type if it is a projectile weapon. The combat module evaluates the damage formula against the attacker's Strength; this function does not compute damage itself.
+
+Resolution rules:
+- **Damage formula**: per-weapon `damage` field on the definition wins first; otherwise the first tag in the weapon's `tags` list whose entry in `Weapon Tags` declares a `damage_formula` wins; otherwise the weapon's `Weapon Categories` entry's `damage` is used.
+- **Bleed**: per-weapon `bleed` field wins; otherwise the maximum of `Damage Type Defaults[t]['bleed']` across the weapon's damage type(s).
+- **Threshold**: per-weapon `threshold` field wins (and may be `null`, which returns `null`); otherwise the minimum of `Damage Type Defaults[t]['threshold']` across the weapon's damage type(s).
+- **Tags**: the literal `tags` list from the weapon's definition.
+- **Ammo type**: the literal `ammo_type` field if present; otherwise null.
+
+Raises if the Stack's Item Type is not a Weapon.
 
 **Parameters:**
-- `armor_stack`: an Item Stack whose Item Type is Armor.
+- `stack`: an Item Stack whose Item Type is a Weapon.
 
-**Returns:** An integer DR value.
+**Returns:** A dictionary extending GET_ITEM_DETAILS' result with:
+- `damage_formula`: a string like `"str / 2"` or `"str / 4 - 2"`. Combat module substitutes `str`.
+- `damage_types`: a list of damage type strings (always a list, even when the weapon has a single type).
+- `bleed`: integer.
+- `threshold`: integer, or `null` if the weapon explicitly suppresses threshold (e.g., the Whip).
+- `tags`: list of tag name strings (default empty).
+- `ammo_type`: ammo Item Type name, or null.
 
-1. `# TBD — second pass`
-2. `# Planned sources: Armor[<name>] override, Armor Category Defaults[<category>]['damage_reduction'], stack['tier'].`
-3. `raise exception ('GET_DAMAGE_REDUCTION not yet implemented')`
+1. `details = GET_ITEM_DETAILS(stack)`
+2. `if details['category'] != 'Weapon': raise exception ('GET_WEAPON_DETAILS: not a weapon: ' + stack['item'])`
+3. `definition = details['definition']`
+4. `tags = definition.get('tags') or empty list`
+5. `# Resolve damage formula.`
+6. `damage_formula = null`
+7. `if 'damage' in definition: damage_formula = definition['damage']`
+8. `else:`
+9. `⠀⠀for each tag in tags:`
+10. `⠀⠀⠀⠀tag_def = equipment_config['Weapon Tags'][tag]`
+11. `⠀⠀⠀⠀if 'damage_formula' in tag_def: damage_formula = tag_def['damage_formula']; break`
+12. `if damage_formula is null:`
+13. `⠀⠀damage_formula = equipment_config['Weapon Categories'][definition['category']]['damage']`
+14. `# Normalize damage_types to a list.`
+15. `damage_type_field = definition['damage_type']`
+16. `damage_types = (damage_type_field is a list) ? damage_type_field : [damage_type_field]`
+17. `damage_type_defaults = equipment_config['Damage Type Defaults']`
+18. `# Resolve bleed (per-weapon override or max over types).`
+19. `if 'bleed' in definition: bleed = definition['bleed']`
+20. `else: bleed = max(damage_type_defaults[t]['bleed'] for t in damage_types)`
+21. `# Resolve threshold (per-weapon override or min over types). A null override stays null.`
+22. `if 'threshold' in definition: threshold = definition['threshold']`
+23. `else: threshold = min(damage_type_defaults[t]['threshold'] for t in damage_types)`
+24. `details['damage_formula'] = damage_formula`
+25. `details['damage_types'] = damage_types`
+26. `details['bleed'] = bleed`
+27. `details['threshold'] = threshold`
+28. `details['tags'] = tags`
+29. `details['ammo_type'] = definition.get('ammo_type')`
+30. `return details`
 
-### GET_BLEED
+**Notes:**
+- The "first tag with a damage_formula wins" rule (step 9–11) walks tags in declaration order. Authors who care about precedence should order tags accordingly. In the current catalog, only `thrown`, `light`, and `heavy` declare a damage_formula; the other tags are descriptive only.
+- A weapon that declares its own `damage` (e.g., the Whip's `damage: 0`) bypasses the tag-formula and category-default branches entirely. This lets specific weapons override their tag-derived damage.
+- Bleed and threshold are reported as resolved numbers. The combat module's open question about defender Tier modifying threshold belongs to combat — this function's job is to report the weapon's intrinsic value.
 
-**Description:** Returns the Bleed value for a weapon, per the combat module's ongoing-damage rule. Default comes from `Damage Type Defaults[<damage_type>]['bleed']`; weapons with multiple damage types use the highest of the defaults; individual weapons may override.
+---
+
+## GET_ARMOR_DETAILS
+
+**Description:** Returns a dictionary with all armor-specific data needed by the combat module: damage reduction, hardness (with tier scaling already applied), the hit-points formula string, resilience, material, and the Armor Category's thickness. Raises if the Stack's Item Type is not Armor.
+
+Resolution rules:
+- **Damage reduction**: per-armor `damage_reduction` field wins; otherwise from `Armor Category Defaults[<category>]['damage_reduction']`. May be `null` (Shields by default).
+- **Hardness**: `Materials[<material>]['hardness'] + 2 × Tier`. (`effective_hardness` per the Materials block in `equipment_config.yaml`.)
+- **Hit points**: the formula string from the material — combat evaluates it with `thickness` substituted from the armor's category.
+- **Resilience**: `Tier × Armor Category Defaults[<category>]['resilience_increment']` for non-shield armor; `0` for non-magical armor; `null` for shields whose increment is null.
+- **Thickness**: from the armor's category default.
 
 **Parameters:**
-- `weapon_stack`: an Item Stack whose Item Type is a Weapon.
+- `stack`: an Item Stack whose Item Type is Armor.
 
-**Returns:** An integer Bleed value.
+**Returns:** A dictionary extending GET_ITEM_DETAILS' result with:
+- `damage_reduction`: integer, or `null` (e.g., default Shield).
+- `material`: material name string.
+- `base_hardness`: integer from Materials.
+- `effective_hardness`: integer = `base_hardness + 2 × Tier`.
+- `hit_points_formula`: string from Materials (combat evaluates it).
+- `thickness`: integer from the Armor Category Defaults.
+- `resilience_increment`: integer or `null` (Shield).
+- `resilience`: integer = `Tier × resilience_increment` when both are non-null and Tier > 0; otherwise `0` or `null` per the rule above.
 
-1. `# TBD — second pass`
-2. `# Planned sources: Weapons[<name>]['bleed'] override, max over Damage Type Defaults[<type>]['bleed'] across the weapon's damage_type(s).`
-3. `raise exception ('GET_BLEED not yet implemented')`
+1. `details = GET_ITEM_DETAILS(stack)`
+2. `if details['category'] != 'Armor': raise exception ('GET_ARMOR_DETAILS: not armor: ' + stack['item'])`
+3. `definition = details['definition']`
+4. `tier = details['tier']`
+5. `category_defaults = equipment_config['Armor Category Defaults'][definition['category']]`
+6. `material = definition['material']`
+7. `material_defaults = equipment_config['Materials'][material]`
+8. `# Damage reduction: per-armor override → category default (which may be null).`
+9. `if 'damage_reduction' in definition: damage_reduction = definition['damage_reduction']`
+10. `else: damage_reduction = category_defaults['damage_reduction']`
+11. `# Hardness: base + 2 × tier.`
+12. `base_hardness = material_defaults['hardness']`
+13. `effective_hardness = base_hardness + 2 * tier`
+14. `# Resilience: tier × increment, with shield/null guard.`
+15. `resilience_increment = category_defaults['resilience_increment']`
+16. `if resilience_increment is null: resilience = null`
+17. `else if tier == 0: resilience = 0`
+18. `else: resilience = tier * resilience_increment`
+19. `details['damage_reduction'] = damage_reduction`
+20. `details['material'] = material`
+21. `details['base_hardness'] = base_hardness`
+22. `details['effective_hardness'] = effective_hardness`
+23. `details['hit_points_formula'] = material_defaults['hit_points']`
+24. `details['thickness'] = category_defaults['thickness']`
+25. `details['resilience_increment'] = resilience_increment`
+26. `details['resilience'] = resilience`
+27. `return details`
 
-### GET_THRESHOLD
-
-**Description:** Returns the Threshold value for a weapon attack. Default comes from `Damage Type Defaults[<damage_type>]['threshold']`; weapons with multiple damage types use the lowest of the defaults; individual weapons may override. Defender tier's role in threshold is a blocker flagged in `project_summary.md`.
-
-**Parameters:**
-- `weapon_stack`: an Item Stack whose Item Type is a Weapon.
-- `defender_tier` *(optional)*: the defender's Tier, reserved for the second-pass rule.
-
-**Returns:** An integer Threshold value.
-
-1. `# TBD — second pass`
-2. `# Planned sources: Weapons[<name>]['threshold'] override, min over Damage Type Defaults[<type>]['threshold'] across the weapon's damage_type(s), defender_tier adjustment.`
-3. `raise exception ('GET_THRESHOLD not yet implemented')`
-
-### GET_RESILIENCE
-
-**Description:** Returns the magical Armor's effective HP against damage, equal to `tier × resilience_increment` from the armor's category. Non-magical armor (tier 0) has zero resilience.
-
-**Parameters:**
-- `armor_stack`: an Item Stack whose Item Type is Armor.
-
-**Returns:** An integer Resilience value ≥ 0.
-
-1. `# TBD — second pass`
-2. `# Planned formula: tier × Armor Category Defaults[<category>]['resilience_increment'] (with null-category shields excluded per their null increment).`
-3. `raise exception ('GET_RESILIENCE not yet implemented')`
+**Notes:**
+- Hit points are returned as a formula string (e.g., `"30 * thickness"`). Combat substitutes `thickness` from the same Armor Category Defaults entry — the value is included in the result for convenience.
+- Shields' damage_reduction and resilience both surface as `null` until specific shield rules are defined elsewhere. Callers that must produce a number should treat `null` as "ask the combat module."
+- `effective_hardness` is computed even for Tier 0 armor (where it equals `base_hardness`). Returning the precomputed value keeps callers from re-implementing the formula.
