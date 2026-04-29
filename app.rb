@@ -236,7 +236,7 @@ get '/scene/:viewer_id' do
 
   campaign = Tools.load_json('campaign.json')
   @datetime = GameDate.from_h(campaign.is_a?(Hash) ? campaign['datetime'] : nil)
-  @sun_moon = sun_moon_view(@datetime)
+  @sun_moon = GameDate.sun_moon_view(@datetime)
 
   characters = Tools.load_json('characters.json')
   @pc_characters = characters.select { |c| (c['group'] || 'PC') == 'PC' }
