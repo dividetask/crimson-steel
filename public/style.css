@@ -725,6 +725,22 @@ body {
   flex: 1 1 auto;
   margin-right: 6px;
   min-width: 220px;
+  text-align: left;
+}
+
+.attack-pick-row-label:disabled {
+  /* Keep the readable role-style label even when un-clickable. */
+  background: #fff;
+  color: #000;
+  cursor: default;
+  opacity: 1;
+}
+
+/* Right-aligned action buttons -- [Do Nothing] in defense, [None]
+ * and [Continue] in ally / luck. margin-left:auto inside a flex row
+ * pushes them to the far right so they all line up. */
+.attack-action-right {
+  margin-left: auto;
 }
 
 .attack-pick-pt {
