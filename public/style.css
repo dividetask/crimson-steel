@@ -1437,15 +1437,24 @@ body {
 .char-card-line { margin: 3px 0; }
 .char-card-line strong { color: #8b1538; }
 
-.char-card-attrs {
-  display: flex;
-  justify-content: space-between;
-  text-align: center;
-  gap: 8px;
+/* Top section: attributes (left, 3-col grid that wraps to 2 rows
+   for STR/DEX/CON over INT/WIS/CHA) and HP / Mana vitals (right). */
+.char-card-top {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 1fr;
+  gap: 20px;
+  align-items: start;
   margin: 6px 0;
 }
 
-.char-card-attr { flex: 1; min-width: 0; }
+.char-card-attrs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px 10px;
+  text-align: center;
+}
+
+.char-card-attr { min-width: 0; }
 
 .char-card-attr-label {
   font-size: 11px;
@@ -1455,6 +1464,19 @@ body {
 }
 
 .char-card-attr-value { font-size: 16px; }
+
+.char-card-vitals .char-card-line { margin: 4px 0; }
+
+/* Two-column row used for Spells | Rituals and Items | Abilities.
+   Collapses to a single column on narrow viewports. */
+.char-card-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.char-card-empty { color: #888; font-style: italic; }
 
 .char-card-section-title {
   font-variant: small-caps;
@@ -1496,7 +1518,17 @@ body {
 .char-card .hp-temp        { color: #1565c0; font-size: 0.9em; }
 .char-card .hp-mod         { color: #d35400; font-weight: bold; font-size: 0.9em; }
 .char-card .hp-major       { color: #c0392b; font-weight: bold; font-size: 0.9em; }
+.char-card .hp-bleed       { color: #c0392b; font-size: 0.9em; }
+.char-card .hp-poison      { color: #6a1b9a; font-size: 0.9em; }
 .char-card .toxicity       { color: #6a1b9a; font-size: 0.9em; }
+
+@media (max-width: 600px) {
+  .char-card-top,
+  .char-card-two-col {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
 
 @media (max-width: 480px) {
   .char-card {

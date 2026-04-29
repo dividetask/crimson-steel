@@ -111,7 +111,8 @@ class DummyData
           klass: 'Fighter 3', tier: 3, bab: 6,
           current_hp: 14, hp_max: 36,
           moderate_damage: 8, major_damage: 6,
-          current_mana: 0, mana_max: 0,
+          conditions: { 'bleed' => 1 },
+          current_mana: 4, mana_max: 6,
           initiative: 2, perception_bonus: 2,
           speed: 25, damage_reduction: 4, damage_resilience: 3,
           weapons: [
@@ -183,7 +184,7 @@ class DummyData
         dummy: {
           klass: 'Rogue 3', tier: 3, bab: 4,
           current_hp: 20, hp_max: 24,
-          current_mana: 0, mana_max: 0,
+          current_mana: 5, mana_max: 8,
           initiative: 5, perception_bonus: 4,
           speed: 25, damage_reduction: 1, damage_resilience: 2,
           weapons: [

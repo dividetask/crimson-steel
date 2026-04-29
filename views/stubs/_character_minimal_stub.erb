@@ -2,11 +2,14 @@
   temp = dummy[:temporary_hit_points].to_i
   mod  = dummy[:moderate_damage].to_i
   maj  = dummy[:major_damage].to_i
-  has_mana = dummy[:mana_max].to_i > 0
   sat = dummy[:mana_saturation].to_i
   sat_max = dummy[:mana_saturation_max].to_i
-  active_conditions = (dummy[:conditions] || {}).select { |_, v| v.to_i > 0 }
+  conditions = dummy[:conditions] || {}
+  bleed_v  = conditions['bleed'].to_i
+  poison_v = conditions['poison'].to_i
   weapons = dummy[:shields] + dummy[:weapons]
+  has_spells  = dummy[:spell_list]  && dummy[:spell_list].any?  { |t| t && t.any? }
+  has_rituals = dummy[:ritual_list] && dummy[:ritual_list].any? { |t| t && t.any? }
   tier_class = character_sheet_tier_class(dummy[:tier])
 %>
 <div class="char-card">
@@ -18,46 +21,41 @@
 
   <div class="char-card-rule"></div>
 
-  <div class="char-card-line">
-    <strong>HP</strong> <%= h dummy[:current_hp] %>/<%= h dummy[:hp_max] %><%
-    %><% if temp > 0 %> <span class="hp-temp">+<%= temp %> tmp</span><% end %><%
-    %><% if mod  > 0 %> &mdash; <span class="hp-mod">moderate <%= mod %></span><% end %><%
-    %><% if maj  > 0 %> &mdash; <span class="hp-major">major <%= maj %></span><% end %>
-  </div>
-  <% if has_mana %>
-    <div class="char-card-line">
-      <strong>Mana</strong> <%= h dummy[:current_mana] %>/<%= h dummy[:mana_max] %><%
-      %><% if sat_max > 0 || sat > 0 %>, <span class="toxicity">Toxicity <%= sat %>/<%= sat_max %></span><% end %>
-    </div>
-  <% end %>
-  <div class="char-card-line"><strong>Speed</strong> <%= h dummy[:speed] %></div>
-
-  <div class="char-card-rule"></div>
-
-  <div class="char-card-attrs">
-    <% character_sheet_attribute_short.each do |sym, label| %>
-      <% base = character.attribute(sym) %>
-      <% dmg  = dummy[:attribute_damage][sym].to_i %>
-      <% enh  = dummy[:attribute_enhancement][sym].to_i %>
-      <div class="char-card-attr">
-        <div class="char-card-attr-label"><%= label %></div>
-        <div class="char-card-attr-value">
-          <%= base %><% if dmg > 0 %><span class="ability-damage">-<%= dmg %></span><% end %><% if enh > 0 %><span class="enh-note">(+<%= enh %>)</span><% end %>
+  <div class="char-card-top">
+    <div class="char-card-attrs">
+      <% character_sheet_attribute_short.each do |sym, label| %>
+        <% base = character.attribute(sym) %>
+        <% dmg  = dummy[:attribute_damage][sym].to_i %>
+        <% enh  = dummy[:attribute_enhancement][sym].to_i %>
+        <div class="char-card-attr">
+          <div class="char-card-attr-label"><%= label %></div>
+          <div class="char-card-attr-value">
+            <%= base %><% if dmg > 0 %><span class="ability-damage">-<%= dmg %></span><% end %><% if enh > 0 %><span class="enh-note">(+<%= enh %>)</span><% end %>
+          </div>
         </div>
+      <% end %>
+    </div>
+    <div class="char-card-vitals">
+      <div class="char-card-line">
+        <strong>HP</strong> <%= h dummy[:current_hp] %>/<%= h dummy[:hp_max] %><%
+        %><% if temp     > 0 %> <span class="hp-temp">+<%= temp %> tmp</span><% end %><%
+        %><% if mod      > 0 %> &mdash; <span class="hp-mod">moderate <%= mod %></span><% end %><%
+        %><% if maj      > 0 %> &mdash; <span class="hp-major">major <%= maj %></span><% end %><%
+        %><% if bleed_v  > 0 %>, <span class="hp-bleed">Bleed <%= bleed_v %></span><% end %><%
+        %><% if poison_v > 0 %>, <span class="hp-poison">Poison <%= poison_v %></span><% end %>
       </div>
-    <% end %>
+      <div class="char-card-line">
+        <strong>Mana</strong> <%= h dummy[:current_mana] %>/<%= h dummy[:mana_max] %><%
+        %><% if sat_max > 0 || sat > 0 %>, <span class="toxicity">Toxicity <%= sat %>/<%= sat_max %></span><% end %>
+      </div>
+    </div>
   </div>
 
   <div class="char-card-rule"></div>
 
   <div class="char-card-line"><strong>Initiative</strong> <%= h dummy[:initiative] %></div>
   <div class="char-card-line"><strong>Perception</strong> <%= character_sheet_add_plus(dummy[:perception_bonus]) %></div>
-  <% if active_conditions.any? %>
-    <div class="char-card-line">
-      <strong>Conditions</strong>
-      <%= active_conditions.map { |k, v| "#{character_sheet_condition_label(k)} #{v}" }.join(', ') %>
-    </div>
-  <% end %>
+  <div class="char-card-line"><strong>Speed</strong> <%= h dummy[:speed] %></div>
 
   <% if weapons.any? %>
     <div class="char-card-rule"></div>
@@ -92,33 +90,32 @@
     </table>
   <% end %>
 
-  <% if dummy[:spell_list] && dummy[:spell_list].any? { |t| t && t.any? } %>
+  <% if has_spells || has_rituals %>
     <div class="char-card-rule"></div>
-    <div class="char-card-section-title">Spells</div>
-    <% dummy[:spell_list].each_with_index do |sub, idx| %>
-      <% next if sub.nil? || sub.empty? %>
-      <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| h(s) }.join(', ') %></p>
-    <% end %>
-  <% end %>
-
-  <% if dummy[:ritual_list] && dummy[:ritual_list].any? { |t| t && t.any? } %>
-    <div class="char-card-rule"></div>
-    <div class="char-card-section-title">Rituals</div>
-    <% dummy[:ritual_list].each_with_index do |sub, idx| %>
-      <% next if sub.nil? || sub.empty? %>
-      <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| h(s) }.join(', ') %></p>
-    <% end %>
-  <% end %>
-
-  <% if dummy[:abilities].any? %>
-    <div class="char-card-rule"></div>
-    <div class="char-card-section-title">Abilities</div>
-    <% dummy[:abilities].each do |ability| %>
-      <p class="char-card-entry">
-        <em><%= h ability['name'] %>.</em>
-        <%= h ability['description'] %>
-      </p>
-    <% end %>
+    <div class="char-card-two-col">
+      <div>
+        <div class="char-card-section-title">Spells</div>
+        <% if has_spells %>
+          <% dummy[:spell_list].each_with_index do |sub, idx| %>
+            <% next if sub.nil? || sub.empty? %>
+            <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| h(s) }.join(', ') %></p>
+          <% end %>
+        <% else %>
+          <p class="char-card-entry char-card-empty">&mdash;</p>
+        <% end %>
+      </div>
+      <div>
+        <div class="char-card-section-title">Rituals</div>
+        <% if has_rituals %>
+          <% dummy[:ritual_list].each_with_index do |sub, idx| %>
+            <% next if sub.nil? || sub.empty? %>
+            <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| h(s) }.join(', ') %></p>
+          <% end %>
+        <% else %>
+          <p class="char-card-entry char-card-empty">&mdash;</p>
+        <% end %>
+      </div>
+    </div>
   <% end %>
 
   <%
@@ -140,14 +137,38 @@
       end.join(', ')
       item_lines << ['Ammunition', ammo_str]
     end
-    item_lines << ['Other',      dummy[:other_items].map { |item| h(item['name']) }.join(', ')] if dummy[:other_items].any?
+    item_lines << ['Other', dummy[:other_items].map { |item| h(item['name']) }.join(', ')] if dummy[:other_items].any?
+
+    has_items     = item_lines.any?
+    has_abilities = dummy[:abilities].any?
   %>
-  <% if item_lines.any? %>
+  <% if has_items || has_abilities %>
     <div class="char-card-rule"></div>
-    <div class="char-card-section-title">Items</div>
-    <% item_lines.each do |label, body| %>
-      <p class="char-card-entry"><em><%= label %>.</em> <%= body %></p>
-    <% end %>
+    <div class="char-card-two-col">
+      <div>
+        <div class="char-card-section-title">Items</div>
+        <% if has_items %>
+          <% item_lines.each do |label, body| %>
+            <p class="char-card-entry"><em><%= label %>.</em> <%= body %></p>
+          <% end %>
+        <% else %>
+          <p class="char-card-entry char-card-empty">&mdash;</p>
+        <% end %>
+      </div>
+      <div>
+        <div class="char-card-section-title">Abilities</div>
+        <% if has_abilities %>
+          <% dummy[:abilities].each do |ability| %>
+            <p class="char-card-entry">
+              <em><%= h ability['name'] %>.</em>
+              <%= h ability['description'] %>
+            </p>
+          <% end %>
+        <% else %>
+          <p class="char-card-entry char-card-empty">&mdash;</p>
+        <% end %>
+      </div>
+    </div>
   <% end %>
 
   <% if dummy[:defined_items] && dummy[:defined_items].any? %>
