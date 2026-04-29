@@ -31,6 +31,8 @@ class NotesState
     @additions              = []
     @overrides              = {}
     @deletions              = []
+    # Chapters track (number => title)
+    @chapters               = {}
     # Image track
     @image_additions        = []
     @image_deletions        = []
@@ -99,6 +101,37 @@ class NotesState
     @deletions << id.to_i
     @overrides.delete(id.to_i)
     @additions.reject! { |n| n['id'] == id.to_i }
+    save!
+    true
+  end
+
+  # ----- Chapters --------------------------------------------------------
+
+  # Returns chapters as a sorted array shaped the way DATA.chapters
+  # callers expect: [{ 'number' => 1, 'title' => '...' }, ...].
+  def chapters
+    @chapters.keys.sort.map { |n| { 'number' => n, 'title' => @chapters[n] } }
+  end
+
+  def add_chapter(number:, title:)
+    n = number.to_i
+    @chapters[n] = title.to_s
+    save!
+    { 'number' => n, 'title' => @chapters[n] }
+  end
+
+  def update_chapter(number, title:)
+    n = number.to_i
+    return false unless @chapters.key?(n)
+    @chapters[n] = title.to_s
+    save!
+    true
+  end
+
+  def delete_chapter(number)
+    n = number.to_i
+    return false unless @chapters.key?(n)
+    @chapters.delete(n)
     save!
     true
   end
@@ -421,6 +454,7 @@ class NotesState
       'additions'              => @additions,
       'overrides'              => @overrides,
       'deletions'              => @deletions,
+      'chapters'               => @chapters,
       'image_additions'        => @image_additions,
       'image_deletions'        => @image_deletions,
       'arrows_by_map'          => @arrows_by_map,
@@ -445,6 +479,7 @@ class NotesState
     @additions              = data['additions'] || []
     @overrides              = (data['overrides'] || {}).transform_keys(&:to_i)
     @deletions              = data['deletions'] || []
+    @chapters               = (data['chapters']  || {}).transform_keys(&:to_i)
     @image_additions        = data['image_additions'] || []
     @image_deletions        = data['image_deletions'] || []
     @arrows_by_map          = (data['arrows_by_map']          || {}).transform_keys(&:to_i)

@@ -47,6 +47,14 @@ helpers do
     @current_user&.dm? == true
   end
 
+  # Whether the UI should render the DM-facing view. dm? is the
+  # auth check (IP-derived); dm_view? lets a real DM preview the
+  # player experience by flipping a session flag without losing
+  # their actual privileges.
+  def dm_view?
+    dm? && session[:view_mode] != 'player'
+  end
+
   def server_ip
     @server_ip ||= begin
       addr = Socket.ip_address_list.find { |a| a.ipv4? && !a.ipv4_loopback? }
@@ -75,6 +83,16 @@ end
 
 get '/' do
   redirect '/test'
+end
+
+# Toggle between DM and player view. Auth-gated on the real DM
+# check so players (or anyone who somehow forms this POST) can't
+# flip the flag for themselves. The flag has no effect for
+# non-DMs since dm_view? still requires dm?.
+post '/view-mode' do
+  halt 403, 'forbidden' unless dm?
+  session[:view_mode] = session[:view_mode] == 'player' ? 'dm' : 'player'
+  redirect(request.referer || '/')
 end
 
 # In development a typo in the URL bar drops you on the test

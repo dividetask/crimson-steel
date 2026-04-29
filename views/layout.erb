@@ -14,18 +14,30 @@
       <% if settings.development? %>
 				<a href="/test">Test</a>
       <% end %>
-      <% if dm? %>
+      <% if dm_view? %>
         <a href="/status">Status</a>
       <% end %>
     </div>
-    <% if dm? %>
-      <div class="menu-server-ip" title="Address players connect to">
-        Server: <%= h server_ip %>:<%= h settings.port %>
-      </div>
-    <% end %>
+    <div class="menu-right">
+      <% if dm? %>
+        <form method="post" action="/view-mode" class="menu-view-toggle">
+          <button type="submit"
+                  class="menu-view-toggle-btn <%= dm_view? ? 'is-dm' : 'is-player' %>"
+                  title="Switch between DM and player view">
+            <%= dm_view? ? 'View as Player' : 'Switch to DM View' %>
+          </button>
+        </form>
+      <% end %>
+      <% if dm_view? %>
+        <div class="menu-server-ip" title="Address players connect to">
+          Server: <%= h server_ip %>:<%= h settings.port %>
+        </div>
+      <% end %>
+    </div>
   </div>
   <%= yield %>
   <script src="/js/roll_stub.js"></script>
+  <script src="/js/multi_roll_stub.js"></script>
   <script src="/js/notes_map_stub.js"></script>
 </body>
 </html>
