@@ -88,6 +88,19 @@ module GameDate
     "#{dt['day']} #{month_name(dt['month'])} #{dt['year']} — #{'%02d:%02d' % [dt['hour'], dt['minute']]}"
   end
 
+  def format_date(dt)
+    "#{dt['day']} #{month_name(dt['month'])} #{dt['year']}"
+  end
+
+  def format_time_12h(dt)
+    h = dt['hour'].to_i
+    m = dt['minute'].to_i
+    suffix = h >= 12 ? 'PM' : 'AM'
+    hh = h % 12
+    hh = 12 if hh == 0
+    "#{hh}:#{'%02d' % m} #{suffix}"
+  end
+
   # Render hints for the scene's sun/moon SVG. Day runs 06:00–18:00; the
   # sun arcs from the east horizon (left) to the west horizon (right),
   # peaking at noon. The moon does the same from 18:00–06:00. Returns

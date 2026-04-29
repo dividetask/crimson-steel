@@ -615,6 +615,17 @@ table th {
 .scene-grid-character { background: #fbf8ff; border-color: #c0b3e6; }
 .scene-grid-character-name { font-size: 17px; font-weight: bold; }
 .scene-grid-character-img { width: 100%; max-height: 180px; object-fit: cover; border: 1px solid #ddd; border-radius: 3px; }
+.scene-grid-character-img-placeholder { display: flex; align-items: center; justify-content: center; height: 120px; max-height: 120px; background: #f0eef5; border: 1px dashed #b8aed6; }
+.scene-grid-character-img-placeholder svg { width: 64px; height: 64px; }
+
+.scene-grid-vis { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px dotted #ddd; }
+.scene-grid-vis-label { font-size: 12px; color: #555; margin-right: 2px; }
+.scene-grid-vis-btn { padding: 2px 8px; font-size: 12px; border: 1px solid #999; border-radius: 12px; cursor: pointer; }
+.scene-grid-vis-btn.on { background: #c8e6c9; border-color: #66bb6a; color: #1b5e20; }
+.scene-grid-vis-btn.off { background: #fff; border-color: #bbb; color: #777; }
+.scene-grid-vis-btn.remove { background: #ffe0e0; border-color: #c62828; color: #b71c1c; margin-left: auto; }
+.scene-grid-vis-btn.on:hover { background: #a5d6a7; }
+.scene-grid-vis-btn.off:hover { background: #f0f0f0; }
 
 .character-card-img { display: block; max-width: 100%; max-height: 200px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 3px; }
 .character-card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }

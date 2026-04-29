@@ -1,6 +1,46 @@
 <div class="scene">
   <h1>Scene</h1>
 
+  <div class="scene-datetime">
+    <svg class="scene-sky" viewBox="0 0 200 80" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <rect width="200" height="80" fill="<%= @sun_moon['is_day'] ? '#bcdcff' : '#1c2240' %>"/>
+      <% unless @sun_moon['is_day'] %>
+        <circle cx="40"  cy="20" r="0.6" fill="#fff" opacity="0.8"/>
+        <circle cx="80"  cy="14" r="0.5" fill="#fff" opacity="0.7"/>
+        <circle cx="120" cy="22" r="0.6" fill="#fff" opacity="0.8"/>
+        <circle cx="160" cy="16" r="0.5" fill="#fff" opacity="0.7"/>
+      <% end %>
+      <line x1="0" y1="70" x2="200" y2="70" stroke="<%= @sun_moon['is_day'] ? '#7a5b3c' : '#554840' %>" stroke-width="1"/>
+      <% if @sun_moon['is_day'] %>
+        <g transform="translate(<%= @sun_moon['cx'] %> <%= @sun_moon['cy'] %>)">
+          <% 8.times do |i| %>
+            <% angle = i * 45 %>
+            <line x1="0" y1="0" x2="0" y2="-13" stroke="#fbc02d" stroke-width="1.2" transform="rotate(<%= angle %>)" opacity="0.7"/>
+          <% end %>
+          <circle r="7" fill="#fdd835" stroke="#fb8c00" stroke-width="1"/>
+        </g>
+      <% else %>
+        <g transform="translate(<%= @sun_moon['cx'] %> <%= @sun_moon['cy'] %>)">
+          <circle r="7" fill="#e8ecf5"/>
+          <circle r="6" cx="2.2" fill="#1c2240"/>
+        </g>
+      <% end %>
+    </svg>
+    <span class="scene-datetime-value"><%= h GameDate.format_date(@datetime) %></span>
+  </div>
+
+  <% if @is_dm %>
+    <div class="scene-datetime-controls">
+      <span class="scene-datetime-controls-label">Advance Time (<%= h GameDate.format_time_12h(@datetime) %>)</span>
+      <% [['minute', '+1 min'], ['ten_minutes', '+10 min'], ['hour', '+1 hr'], ['day', 'Next day (8 AM)']].each do |unit, label| %>
+        <form method="post" action="/scene/datetime/advance" style="display:inline;">
+          <input type="hidden" name="unit" value="<%= unit %>">
+          <button type="submit"><%= label %></button>
+        </form>
+      <% end %>
+    </div>
+  <% end %>
+
   <% if @show_initiative %>
     <% if @combat.combat_turn_list.empty? %>
       <p class="dt-note">No combatants in the initiative track yet.</p>
@@ -61,50 +101,10 @@
     <% end %>
   <% end %>
 
-  <div class="scene-datetime">
-    <svg class="scene-sky" viewBox="0 0 200 80" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      <rect width="200" height="80" fill="<%= @sun_moon['is_day'] ? '#bcdcff' : '#1c2240' %>"/>
-      <% unless @sun_moon['is_day'] %>
-        <circle cx="40"  cy="20" r="0.6" fill="#fff" opacity="0.8"/>
-        <circle cx="80"  cy="14" r="0.5" fill="#fff" opacity="0.7"/>
-        <circle cx="120" cy="22" r="0.6" fill="#fff" opacity="0.8"/>
-        <circle cx="160" cy="16" r="0.5" fill="#fff" opacity="0.7"/>
-      <% end %>
-      <line x1="0" y1="70" x2="200" y2="70" stroke="<%= @sun_moon['is_day'] ? '#7a5b3c' : '#554840' %>" stroke-width="1"/>
-      <% if @sun_moon['is_day'] %>
-        <g transform="translate(<%= @sun_moon['cx'] %> <%= @sun_moon['cy'] %>)">
-          <% 8.times do |i| %>
-            <% angle = i * 45 %>
-            <line x1="0" y1="0" x2="0" y2="-13" stroke="#fbc02d" stroke-width="1.2" transform="rotate(<%= angle %>)" opacity="0.7"/>
-          <% end %>
-          <circle r="7" fill="#fdd835" stroke="#fb8c00" stroke-width="1"/>
-        </g>
-      <% else %>
-        <g transform="translate(<%= @sun_moon['cx'] %> <%= @sun_moon['cy'] %>)">
-          <circle r="7" fill="#e8ecf5"/>
-          <circle r="6" cx="2.2" fill="#1c2240"/>
-        </g>
-      <% end %>
-    </svg>
-    <span class="scene-datetime-value"><%= h GameDate.format_dt(@datetime) %></span>
-  </div>
-
-  <% if @is_dm %>
-    <div class="scene-datetime-controls">
-      <span class="scene-datetime-controls-label">Advance time:</span>
-      <% [['minute', '+1 min'], ['ten_minutes', '+10 min'], ['hour', '+1 hr'], ['day', 'Next day (8 AM)']].each do |unit, label| %>
-        <form method="post" action="/scene/datetime/advance" style="display:inline;">
-          <input type="hidden" name="unit" value="<%= unit %>">
-          <button type="submit"><%= label %></button>
-        </form>
-      <% end %>
-    </div>
-  <% end %>
-
   <%
     # Mixed grid: scene notes (newest first) at the top, then in-scene
     # CoI cells. DM sees every staged CoI; players see only the ones the
-    # DM has opted into scene_visible.
+    # DM has opted into scene_visible_to.
     grid_cells = []
     @visible_panels.each { |p| grid_cells << { kind: :note,      data: p } }
     @visible_characters_of_interest.each { |c| grid_cells << { kind: :character, data: c } }
@@ -114,45 +114,68 @@
       <% grid_cells.each do |cell| %>
         <% if cell[:kind] == :note %>
           <% panel = cell[:data] %>
+          <% vt = Array(panel['visible_to']) %>
           <div class="scene-grid-cell scene-grid-note">
             <% if panel['title'] && !panel['title'].to_s.empty? %>
               <h3><%= h(panel['title']) %></h3>
             <% end %>
             <p><%= h(panel['note']).gsub("\n", '<br>') %></p>
             <% if @is_dm %>
-              <small class="scene-grid-meta">
-                <% vt = Array(panel['visible_to']) %>
-                <% if vt.empty? %>
-                  (Hidden from all players)
-                <% else %>
-                  Visible to:
-                  <% vt.each do |pid| %>
-                    <% pc = @pc_characters.find { |c| c['id'] == pid } %>
-                    <%= pc ? h(pc['name']) : "##{pid}" %><%= ',' unless pid == vt.last %>
-                  <% end %>
+              <div class="scene-grid-vis">
+                <span class="scene-grid-vis-label">Players see:</span>
+                <% @pc_characters.each do |pc| %>
+                  <% on = vt.include?(pc['id']) %>
+                  <form method="post" action="/scene/panel/toggle_visible_to" style="display:inline;">
+                    <input type="hidden" name="id" value="<%= h(panel['id']) %>">
+                    <input type="hidden" name="pc_id" value="<%= pc['id'] %>">
+                    <button type="submit" class="scene-grid-vis-btn <%= on ? 'on' : 'off' %>" title="Click to <%= on ? 'hide from' : 'show to' %> <%= h(pc['name']) %>">
+                      <%= on ? '✓' : '✗' %> <%= h(pc['name']) %>
+                    </button>
+                  </form>
                 <% end %>
-              </small>
+              </div>
             <% end %>
           </div>
         <% else %>
           <% char = cell[:data] %>
           <% tier = char['tier'].to_i if char.key?('tier') %>
           <% tier_class = (tier && tier >= 0) ? "tier-#{tier}" : 'tier-unknown' %>
+          <% svt = Array(char['scene_visible_to']) %>
           <div class="scene-grid-cell scene-grid-character">
-            <% if char['image_path'] && !char['image_path'].to_s.empty? %>
-              <img src="<%= h(char['image_path']) %>" alt="<%= h(char['title']) %>" class="scene-grid-character-img zoomable">
-            <% end %>
             <div class="scene-grid-character-name <%= tier_class %>">
               <%= h(char['title']) %>
             </div>
+            <% if char['image_path'] && !char['image_path'].to_s.empty? %>
+              <img src="<%= h(char['image_path']) %>" alt="<%= h(char['title']) %>" class="scene-grid-character-img zoomable">
+            <% else %>
+              <div class="scene-grid-character-img scene-grid-character-img-placeholder" aria-hidden="true">
+                <svg viewBox="0 0 64 64" width="64" height="64">
+                  <circle cx="32" cy="22" r="11" fill="#bdbdbd"/>
+                  <path d="M10 60 C 10 44, 54 44, 54 60 Z" fill="#bdbdbd"/>
+                </svg>
+              </div>
+            <% end %>
             <% if char['note'] && !char['note'].to_s.empty? %>
               <p><%= h(char['note']).gsub("\n", '<br>') %></p>
             <% end %>
             <% if @is_dm %>
-              <small class="scene-grid-meta">
-                <%= char['scene_visible'] ? '(Visible to players in scene)' : '(DM-only in scene)' %>
-                <% if tier && tier >= 0 %>· Tier <%= tier %><% end %>
-              </small>
+              <div class="scene-grid-vis">
+                <span class="scene-grid-vis-label">Players see:</span>
+                <% @pc_characters.each do |pc| %>
+                  <% on = svt.include?(pc['id']) %>
+                  <form method="post" action="/scene/character/toggle_scene_visible_to" style="display:inline;">
+                    <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                    <input type="hidden" name="pc_id" value="<%= pc['id'] %>">
+                    <button type="submit" class="scene-grid-vis-btn <%= on ? 'on' : 'off' %>" title="Click to <%= on ? 'hide from' : 'show to' %> <%= h(pc['name']) %>">
+                      <%= on ? '✓' : '✗' %> <%= h(pc['name']) %>
+                    </button>
+                  </form>
+                <% end %>
+                <form method="post" action="/scene/character/remove_from_scene" style="display:inline;">
+                  <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                  <button type="submit" class="scene-grid-vis-btn remove" title="Remove this character from the scene">Remove</button>
+                </form>
+              </div>
             <% end %>
           </div>
         <% end %>

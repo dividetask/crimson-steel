@@ -118,7 +118,8 @@
               <%= "Ch.#{char['chapter']}" if char['chapter'] %>
               <%= '(Active)' if char['active'] %>
               · <%= char['in_scene'] ? 'In scene' : 'Not in scene' %>
-              · <%= char['scene_visible'] ? 'Players see in scene' : 'Hidden from players in scene' %>
+              · <% svt = Array(char['scene_visible_to']) %>
+              <%= svt.any? ? "Players see in scene (#{svt.length})" : 'Hidden from players in scene' %>
             </small>
             <div class="character-card-actions">
               <form method="post" action="/notes/character/toggle_in_scene" style="display:inline;">
@@ -127,7 +128,7 @@
               </form>
               <form method="post" action="/notes/character/toggle_scene_visible" style="display:inline;">
                 <input type="hidden" name="id" value="<%= h(char['id']) %>">
-                <button type="submit"><%= char['scene_visible'] ? 'Hide from players in scene' : 'Show to players in scene' %></button>
+                <button type="submit"><%= svt.any? ? 'Hide from all players in scene' : 'Show to all players in scene' %></button>
               </form>
               <form method="post" action="/notes/character/toggle_public" style="display:inline;">
                 <input type="hidden" name="id" value="<%= h(char['id']) %>">

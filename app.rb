@@ -165,13 +165,22 @@ end
 
 # Promoted Characters of Interest used to be written without an id, so
 # the toggle/delete/image routes had nothing to address. Backfill once
-# on the next read; the writes below stamp ids on new entries.
+# on the next read; the writes below stamp ids on new entries. Also
+# convert the legacy boolean scene_visible flag into a per-PC
+# scene_visible_to array so /scene cells can toggle visibility per PC.
 def notes_ensure_character_ids!(notes)
   changed = false
+  pc_ids = nil
   notes.each do |n|
     next unless n['type'] == 'character'
     if n['id'].nil? || n['id'].to_s.empty?
       n['id'] = SecureRandom.uuid
+      changed = true
+    end
+    if !n.key?('scene_visible_to') && n.key?('scene_visible')
+      pc_ids ||= Tools.load_json('characters.json').select { |c| (c['group'] || 'PC') == 'PC' }.map { |c| c['id'] }
+      n['scene_visible_to'] = n['scene_visible'] ? pc_ids.dup : []
+      n.delete('scene_visible')
       changed = true
     end
   end
@@ -213,17 +222,17 @@ get '/scene/:viewer_id' do
   @scene_notes = @scene_notes.sort_by { |n| -n['created_at'].to_f }
   @draft_images = @notes.select { |n| n['draft'] && n['type'] == 'draft_image' }
 
-  # Characters of Interest are gated by two flags: in_scene picks which
-  # ones the DM has staged for the current scene; scene_visible decides
-  # whether players see those staged entries on /scene. (public is a
-  # separate flag for the Notes page.) Both default false on existing
-  # data so a CoI doesn't surface until the DM toggles it on.
+  # Characters of Interest are gated by in_scene (DM-only choice for
+  # which CoI are staged in this scene) and scene_visible_to (which PCs
+  # see them on /scene). public is a separate flag for the Notes page.
+  # All default empty/false on existing data so a CoI doesn't surface
+  # until the DM toggles it on.
   in_scene_chars = @notes.select { |n| !n['draft'] && n['type'] == 'character' && n['in_scene'] }
   @visible_characters_of_interest =
     if @is_dm
       in_scene_chars
     else
-      in_scene_chars.select { |c| c['scene_visible'] }
+      in_scene_chars.select { |c| Array(c['scene_visible_to']).include?(@viewer_id) }
     end
 
   @visible_images = @draft_images.select { |i| i['shared'] }
@@ -334,7 +343,7 @@ post '/scene/draft_name/promote' do
     'public' => public_flag,
     'active' => true,
     'in_scene' => false,
-    'scene_visible' => false
+    'scene_visible_to' => []
   }
   notes[idx] = promoted
   scene_save_notes(notes)
@@ -370,9 +379,47 @@ end
 post '/notes/character/toggle_scene_visible' do
   scene_require_dm!
   notes, entry, _ = notes_find_character!(params[:id])
-  entry['scene_visible'] = !entry['scene_visible']
+  current = Array(entry['scene_visible_to'])
+  if current.any?
+    entry['scene_visible_to'] = []
+  else
+    pc_ids = Tools.load_json('characters.json').select { |c| (c['group'] || 'PC') == 'PC' }.map { |c| c['id'] }
+    entry['scene_visible_to'] = pc_ids
+  end
   Tools.save_json('notes.json', notes)
   redirect '/notes/0'
+end
+
+# Per-cell toggles invoked from the /scene grid. Flip a single PC's
+# inclusion on the relevant visibility array.
+post '/scene/panel/toggle_visible_to' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && SCENE_NOTE_TYPES.include?(entry['type'])
+  pc_id = params[:pc_id].to_i
+  current = Array(entry['visible_to'])
+  entry['visible_to'] = current.include?(pc_id) ? current - [pc_id] : current + [pc_id]
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/character/toggle_scene_visible_to' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  pc_id = params[:pc_id].to_i
+  current = Array(entry['scene_visible_to'])
+  entry['scene_visible_to'] = current.include?(pc_id) ? current - [pc_id] : current + [pc_id]
+  Tools.save_json('notes.json', notes)
+  redirect '/scene/0'
+end
+
+post '/scene/character/remove_from_scene' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  entry['in_scene'] = false
+  Tools.save_json('notes.json', notes)
+  redirect '/scene/0'
 end
 
 post '/notes/character/toggle_public' do
