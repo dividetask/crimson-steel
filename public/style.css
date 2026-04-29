@@ -584,11 +584,37 @@ table th {
 
 .staging-draft-note, .staging-panel, .staging-image { border: 1px solid #ddd; padding: 10px; margin: 10px 0; background: #fafafa; border-radius: 4px; }
 
+.staging-note-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.staging-note-grid .staging-panel { margin: 0; }
+@media (max-width: 900px) { .staging-note-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .staging-note-grid { grid-template-columns: 1fr; } }
+
+.scene-note-add { background: #fff; border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 4px; }
+
 .panel-visibility { display: flex; flex-wrap: wrap; gap: 10px; padding: 6px 0; }
 .panel-visibility label { font-weight: normal; }
 
 .staging-image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .staging-image img { max-width: 100%; max-height: 180px; display: block; border: 1px solid #ccc; }
+
+.scene-datetime { background: #fff7c2; border: 1px solid #d4b84a; padding: 8px 14px; border-radius: 4px; margin: 0 0 10px 0; font-size: 16px; }
+.scene-datetime-label { color: #6b5800; margin-right: 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+.scene-datetime-value { font-weight: bold; }
+.scene-datetime-controls { margin: 0 0 16px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px; }
+.scene-datetime-controls-label { font-size: 13px; color: #555; margin-right: 4px; }
+.scene-datetime-controls button { padding: 4px 10px; }
+
+.scene-coi { margin: 14px 0 18px 0; padding: 10px 14px; background: #f3f0ff; border: 1px solid #c0b3e6; border-radius: 4px; }
+.scene-coi h2 { margin: 0 0 8px 0; font-size: 17px; color: #4527a0; }
+.scene-coi-list { list-style: none; padding: 0; margin: 0; }
+.scene-coi-item { padding: 4px 0; border-bottom: 1px dotted #ddd; }
+.scene-coi-item:last-child { border-bottom: 0; }
+.scene-coi-note { color: #333; margin-left: 6px; }
+.scene-coi-meta { color: #666; margin-left: 6px; }
+
+.staging-coi-list { list-style: none; padding: 0; margin: 0; }
+.staging-coi-item { padding: 6px 0; border-bottom: 1px dotted #ddd; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.staging-coi-item > div { flex: 1 1 60%; }
 
 .notes-form button.danger { background: #c62828; }
 .notes-form button.danger:hover { background: #b71c1c; }

@@ -1,5 +1,94 @@
 require_relative 'character'
 
+# In-game (Golarion) calendar. 12 months totaling 365 days; no leap years.
+# State is stored in campaign.json under "datetime" as a hash with keys
+# year/month/day/hour/minute (all ints; month 1 = Abadius). Pure functions:
+# call from_h to coerce a stored hash into a normalized one before any
+# arithmetic.
+module GameDate
+  MONTHS = [
+    ['Abadius',   31],
+    ['Calistril', 28],
+    ['Pharast',   31],
+    ['Gozran',    30],
+    ['Desnus',    31],
+    ['Sarenith',  30],
+    ['Erastus',   31],
+    ['Arodus',    31],
+    ['Rova',      30],
+    ['Lamashan',  31],
+    ['Neth',      30],
+    ['Kuthona',   31]
+  ].freeze
+
+  DEFAULT = { 'year' => 4710, 'month' => 1, 'day' => 1, 'hour' => 8, 'minute' => 0 }.freeze
+
+  module_function
+
+  def from_h(raw)
+    src = raw.is_a?(Hash) ? raw : {}
+    DEFAULT.each_with_object({}) do |(key, fallback), out|
+      val = src[key] || src[key.to_sym]
+      out[key] = val.nil? ? fallback : val.to_i
+    end
+  end
+
+  def days_in(month_idx)
+    MONTHS[(month_idx - 1) % 12][1]
+  end
+
+  def month_name(month_idx)
+    MONTHS[(month_idx - 1) % 12][0]
+  end
+
+  # Advance dt by `minutes` (must be >= 0) and roll over hour/day/month/year.
+  def add_minutes(dt, minutes)
+    total_min = dt['hour'] * 60 + dt['minute'] + minutes.to_i
+    add_days = total_min / (24 * 60)
+    total_min %= (24 * 60)
+    out = {
+      'year'   => dt['year'],
+      'month'  => dt['month'],
+      'day'    => dt['day'] + add_days,
+      'hour'   => total_min / 60,
+      'minute' => total_min % 60
+    }
+    while out['day'] > days_in(out['month'])
+      out['day'] -= days_in(out['month'])
+      out['month'] += 1
+      if out['month'] > 12
+        out['month'] = 1
+        out['year'] += 1
+      end
+    end
+    out
+  end
+
+  # Advance to 8:00 AM on the next calendar day, regardless of current time.
+  def next_day_morning(dt)
+    out = {
+      'year'   => dt['year'],
+      'month'  => dt['month'],
+      'day'    => dt['day'] + 1,
+      'hour'   => 8,
+      'minute' => 0
+    }
+    if out['day'] > days_in(out['month'])
+      out['day'] = 1
+      out['month'] += 1
+      if out['month'] > 12
+        out['month'] = 1
+        out['year'] += 1
+      end
+    end
+    out
+  end
+
+  def format_dt(dt)
+    "#{dt['day']} #{month_name(dt['month'])} #{dt['year']} — #{'%02d:%02d' % [dt['hour'], dt['minute']]}"
+  end
+end
+
 module CharacterHelpers
   # Short/full display labels for the combat-tracker condition badges.
   # Entries not listed fall back to a title-cased version of the key.

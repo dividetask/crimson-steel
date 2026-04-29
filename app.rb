@@ -189,23 +189,56 @@ get '/scene/:viewer_id' do
   @notes = scene_load_notes
   @max_chapter = scene_max_chapter(@notes)
 
+  # Scene Notes are the unified successor of draft_note + scene_panel:
+  # both legacy types are read here so existing data keeps showing up.
+  # New writes use the scene_panel shape (visible_to per-PC).
   @draft_names = @notes.select { |n| n['draft'] && n['type'] == 'draft_name' }
-  @draft_notes = @notes.select { |n| n['draft'] && n['type'] == 'draft_note' }
+  @scene_notes = @notes.select { |n| n['draft'] && (n['type'] == 'scene_panel' || n['type'] == 'draft_note') }
+  @scene_notes = @scene_notes.sort_by { |n| -n['created_at'].to_f }
   @draft_images = @notes.select { |n| n['draft'] && n['type'] == 'draft_image' }
-  @scene_panels = @notes.select { |n| n['draft'] && n['type'] == 'scene_panel' }
+  @characters_of_interest = @notes.select { |n| !n['draft'] && n['type'] == 'character' }
 
   @visible_images = @draft_images.select { |i| i['shared'] }
   @visible_panels =
     if @is_dm
-      @scene_panels
+      @scene_notes
     else
-      @scene_panels.select { |p| Array(p['visible_to']).include?(@viewer_id) }
+      @scene_notes.select { |p| Array(p['visible_to']).include?(@viewer_id) }
     end
+  @visible_characters_of_interest =
+    if @is_dm
+      @characters_of_interest
+    else
+      @characters_of_interest.select { |c| c['public'] }
+    end
+
+  campaign = Tools.load_json('campaign.json')
+  @datetime = GameDate.from_h(campaign.is_a?(Hash) ? campaign['datetime'] : nil)
 
   characters = Tools.load_json('characters.json')
   @pc_characters = characters.select { |c| (c['group'] || 'PC') == 'PC' }
 
   erb :scene
+end
+
+# DM-only: bump the in-game calendar. unit is 'minute', 'ten_minutes',
+# 'hour', or 'day'. The day button snaps to 8:00 AM the next calendar
+# day regardless of current time.
+post '/scene/datetime/advance' do
+  scene_require_dm!
+  campaign = Tools.load_json('campaign.json')
+  campaign = {} unless campaign.is_a?(Hash)
+  current = GameDate.from_h(campaign['datetime'])
+  next_dt = case params[:unit].to_s
+            when 'minute'      then GameDate.add_minutes(current, 1)
+            when 'ten_minutes' then GameDate.add_minutes(current, 10)
+            when 'hour'        then GameDate.add_minutes(current, 60)
+            when 'day'         then GameDate.next_day_morning(current)
+            else                    current
+            end
+  campaign['datetime'] = next_dt
+  Tools.save_json('campaign.json', campaign)
+  redirect '/scene/0'
 end
 
 # --- Initiative visibility toggle ---
@@ -259,6 +292,29 @@ post '/scene/draft_name/update' do
   redirect '/scene/0'
 end
 
+# --- Characters of Interest (rendered at the top of /scene; managed
+# from the staging block). Promoted-from-name entries land in notes.json
+# as { type: 'character' } and these endpoints edit them in place.
+post '/scene/character/delete' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, idx = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'character'
+  notes.delete_at(idx)
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/character/toggle_public' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'character'
+  entry['public'] = !entry['public']
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
 post '/scene/draft_name/promote' do
   scene_require_dm!
   notes = scene_load_notes
@@ -282,65 +338,12 @@ post '/scene/draft_name/promote' do
   redirect '/scene/0'
 end
 
-# --- Draft notes (prep scratchpad; never shown on /scene) ---
-post '/scene/draft_note' do
-  scene_require_dm!
-  notes = scene_load_notes
-  entry = {
-    'id' => SecureRandom.uuid,
-    'owner_id' => 0,
-    'draft' => true,
-    'type' => 'draft_note',
-    'title' => params[:title].to_s,
-    'note' => params[:note].to_s,
-    'public' => params[:public] == 'true'
-  }
-  notes << entry
-  scene_save_notes(notes)
-  redirect '/scene/0'
-end
+# --- Scene Notes (unified scene_panel; subsumes the old draft_note shape).
+# Scene Notes show on /scene per-PC visible_to. Legacy entries written as
+# 'draft_note' are still accepted by update/delete/promote and migrated
+# to 'scene_panel' on first edit.
+SCENE_NOTE_TYPES = %w[scene_panel draft_note].freeze
 
-post '/scene/draft_note/update' do
-  scene_require_dm!
-  notes = scene_load_notes
-  entry, idx = scene_find_note(notes, params[:id])
-  halt 404 unless entry && entry['type'] == 'draft_note'
-  entry['title'] = params[:title].to_s
-  entry['note'] = params[:note].to_s
-  entry['public'] = params[:public] == 'true'
-  scene_save_notes(notes)
-  redirect '/scene/0'
-end
-
-post '/scene/draft_note/delete' do
-  scene_require_dm!
-  notes = scene_load_notes
-  _, idx = scene_find_note(notes, params[:id])
-  halt 404 unless idx
-  notes.delete_at(idx)
-  scene_save_notes(notes)
-  redirect '/scene/0'
-end
-
-post '/scene/draft_note/promote' do
-  scene_require_dm!
-  notes = scene_load_notes
-  entry, idx = scene_find_note(notes, params[:id])
-  halt 404 unless entry && entry['type'] == 'draft_note'
-  promoted = {
-    'owner_id' => 0,
-    'type' => 'note',
-    'title' => entry['title'].to_s,
-    'note' => entry['note'].to_s,
-    'chapter' => scene_max_chapter(notes),
-    'public' => entry['public'] ? true : false
-  }
-  notes[idx] = promoted
-  scene_save_notes(notes)
-  redirect '/scene/0'
-end
-
-# --- Scene panels (per-player visibility; shown on /scene) ---
 post '/scene/panel' do
   scene_require_dm!
   notes = scene_load_notes
@@ -351,7 +354,8 @@ post '/scene/panel' do
     'type' => 'scene_panel',
     'title' => params[:title].to_s,
     'note' => params[:note].to_s,
-    'visible_to' => scene_parse_visible_to(params[:visible_to])
+    'visible_to' => scene_parse_visible_to(params[:visible_to]),
+    'created_at' => Time.now.to_f
   }
   scene_save_notes(notes)
   redirect '/scene/0'
@@ -361,10 +365,12 @@ post '/scene/panel/update' do
   scene_require_dm!
   notes = scene_load_notes
   entry, _ = scene_find_note(notes, params[:id])
-  halt 404 unless entry && entry['type'] == 'scene_panel'
+  halt 404 unless entry && SCENE_NOTE_TYPES.include?(entry['type'])
+  entry['type'] = 'scene_panel'
   entry['title'] = params[:title].to_s
   entry['note'] = params[:note].to_s
   entry['visible_to'] = scene_parse_visible_to(params[:visible_to])
+  entry['created_at'] ||= Time.now.to_f
   scene_save_notes(notes)
   redirect '/scene/0'
 end
@@ -372,9 +378,30 @@ end
 post '/scene/panel/delete' do
   scene_require_dm!
   notes = scene_load_notes
-  _, idx = scene_find_note(notes, params[:id])
-  halt 404 unless idx
+  entry, idx = scene_find_note(notes, params[:id])
+  halt 404 unless entry && SCENE_NOTE_TYPES.include?(entry['type'])
   notes.delete_at(idx)
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+# Move a Scene Note out of staging into the permanent Notes section.
+# Public if any PC could see it; DM-only otherwise.
+post '/scene/panel/promote' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, idx = scene_find_note(notes, params[:id])
+  halt 404 unless entry && SCENE_NOTE_TYPES.include?(entry['type'])
+  is_public = Array(entry['visible_to']).any?
+  promoted = {
+    'owner_id' => 0,
+    'type' => 'note',
+    'title' => entry['title'].to_s,
+    'note' => entry['note'].to_s,
+    'chapter' => scene_max_chapter(notes),
+    'public' => is_public
+  }
+  notes[idx] = promoted
   scene_save_notes(notes)
   redirect '/scene/0'
 end
