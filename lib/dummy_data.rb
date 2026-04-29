@@ -139,11 +139,11 @@ class DummyData
     [
       { 'id' => 1, 'owner_id' => 0, 'chapter' => 1, 'type' => 'chapter_title',
         'title' => 'The Road to Crimson', 'note' => '', 'public' => true, 'active' => false },
-      { 'id' => 2, 'owner_id' => 0, 'chapter' => 1, 'public' => true, 'active' => false,
+      { 'id' => 2, 'owner_id' => 0, 'chapter' => 1, 'type' => 'note', 'public' => true, 'active' => false,
         'note' => "The party meets at the Weeping Stag. A courier delivers a sealed writ from Lord Halric." },
-      { 'id' => 3, 'owner_id' => 0, 'chapter' => 2, 'public' => false, 'active' => true,
+      { 'id' => 3, 'owner_id' => 0, 'chapter' => 2, 'type' => 'note', 'public' => false, 'active' => true,
         'note' => "Secret: the steward is working with the bandits. He knows the party's route." },
-      { 'id' => 4, 'owner_id' => 1, 'chapter' => 2, 'public' => true, 'active' => true,
+      { 'id' => 4, 'owner_id' => 1, 'chapter' => 2, 'type' => 'note', 'public' => true, 'active' => true,
         'note' => "Ash's personal log: the song keeps coming back to me in dreams." },
 
       # ----- Chapter 3 (Court of Ash) -----
@@ -177,24 +177,23 @@ class DummyData
         'note' => "Sworn champion. The Court keeps her on a leash of geas; she has not lost a duel in seven years." },
       { 'id' => 14, 'chapter' => 3, 'type' => 'character', 'tier' => 2,
         'title' => 'Stumpy of the Forge',  'public' => true, 'active' => false,
-        'note' => "Dwarven smith who fled Crimson Hold years ago. Will reshoe the party's gear for the price of a story." }
-    ]
-  end
+        'note' => "Dwarven smith who fled Crimson Hold years ago. Will reshoe the party's gear for the price of a story." },
 
-  def self.characters_of_interest
-    [
-      { 'id' => 1, 'name' => 'Lord Halric',         'role' => 'Patron',
-        'last_seen' => 'Crimson Hold',         'chapter' => 1, 'public' => true,  'active' => false,
-        'note' => 'Sent the sealed writ that started the journey.' },
-      { 'id' => 2, 'name' => 'Steward Voss',        'role' => 'Hostile (secret)',
-        'last_seen' => 'Beneath the Mountain', 'chapter' => 2, 'public' => false, 'active' => true,
-        'note' => 'Working with the bandits. Knows the party route.' },
-      { 'id' => 3, 'name' => 'Mara the Innkeep',    'role' => 'Ally',
-        'last_seen' => 'Weeping Stag',         'chapter' => 1, 'public' => true,  'active' => false,
-        'note' => 'Knows local rumors. Takes coppers for hot tea.' },
-      { 'id' => 4, 'name' => 'The Hooded Stranger', 'role' => 'Unknown',
-        'last_seen' => 'Forest road',          'chapter' => 1, 'public' => true,  'active' => true,
-        'note' => 'Watched the party leave. Did not approach.' }
+      # ----- Migrated from the old characters_of_interest array. The
+      # combined feed only renders typed entries (note / character),
+      # so these have to live alongside the journal notes now. -----
+      { 'id' => 15, 'chapter' => 1, 'type' => 'character', 'tier' => 4,
+        'title' => 'Lord Halric',          'public' => true,  'active' => false,
+        'note' => "Patron. Last seen at Crimson Hold. Sent the sealed writ that started the journey." },
+      { 'id' => 16, 'chapter' => 1, 'type' => 'character', 'tier' => 1,
+        'title' => 'Mara the Innkeep',     'public' => true,  'active' => false,
+        'note' => "Ally. Runs the Weeping Stag. Knows local rumors; takes coppers for hot tea." },
+      { 'id' => 17, 'chapter' => 1, 'type' => 'character', 'tier' => 2,
+        'title' => 'The Hooded Stranger',  'public' => true,  'active' => true,
+        'note' => "Unknown. Last seen on the forest road. Watched the party leave; did not approach." },
+      { 'id' => 18, 'chapter' => 2, 'type' => 'character', 'tier' => 3,
+        'title' => 'Steward Voss',         'public' => false, 'active' => true,
+        'note' => "Hostile (secret). Last seen Beneath the Mountain. Working with the bandits; knows the party route." }
     ]
   end
 
