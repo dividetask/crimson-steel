@@ -484,94 +484,135 @@
         (hasBack ? ' <button class="action-btn" onclick="showStartOfTurn()" style="background:#eee;color:#333;">Back</button>' : ''));
     }
 
-    // Roll `dice` d10s, count results >= `tn`, fill `inputId`, render the
-    // raw dice in `rollsId`. A 10 is a crit and counts as 2 successes;
-    // every other result >= tn counts as 1; every rolled 1 is a fumble
-    // and subtracts 1 from the running total. Final successes are
-    // floored at 0 for the input. Colors: red=1 (fumble), blue=10 (crit),
-    // green=other success, grey=other failure. Re-clickable so the DM
-    // can fudge by re-rolling. Used by every combat roll (attack/
-    // defense/ally/healing/condition saves). Saves the raw dice in
-    // rollContexts[inputId] so Inspiration/Unsettling Words can reroll
-    // specific dice later. signed=true writes negative net into the
-    // input (used by Perform); signed=false floors at 0. Preserves the
-    // original dice in originalRolls; applyLuckReroll attaches a
-    // separate `reroll` entry so the original line stays readable.
-    var rollContexts = {};
-    function rollDicePool(dice, tn, inputId, rollsId, signed) {
-      var rolls = [];
-      for (var r = 0; r < dice; r++) rolls.push(Math.floor(Math.random() * 10) + 1);
-      rollContexts[inputId] = {originalRolls: rolls, tn: tn, rollsId: rollsId, signed: !!signed, reroll: null};
-      paintRollResult(inputId);
-      enableLuckButtons(inputId);
+    // Roll: encapsulates one dice-pool roll bound to a UI cell.
+    //
+    // Scoring: a 10 is a crit and counts as 2 successes; every other
+    // result >= tn counts as 1; every rolled 1 is a fumble and
+    // subtracts 1. signed=true writes the net into the input (used by
+    // Perform); signed=false floors at 0. Re-rolling preserves the
+    // original dice and attaches a separate `reroll` entry so both
+    // lines stay visible — the DM can cross-check the math without
+    // losing the initial outcome.
+    //
+    // Colors on each die: red=1 (fumble), blue=10 (crit),
+    // green=other success, grey=other failure.
+    //
+    // Roll.registry is keyed by inputId so Inspiration / Unsettling
+    // Words can find the active roll for a cell. Used by every combat
+    // roll site (attack / defense / ally / healing / condition saves).
+    function Roll(inputId, rollsId, dice, tn, signed) {
+      this.inputId = inputId;
+      this.rollsId = rollsId;
+      this.dice = dice;
+      this.tn = tn;
+      this.signed = !!signed;
+      this.originalRolls = [];
+      this.reroll = null;
     }
+    Roll.registry = {};
+    Roll.get = function(inputId) { return Roll.registry[inputId]; };
+    Roll.rollOneDie = function() { return Math.floor(Math.random() * 10) + 1; };
 
-    function countRollSuccesses(rolls, tn) {
-      var s = 0;
-      rolls.forEach(function(d) {
-        if (d === 10) s += 2;
-        else if (d >= tn) s += 1;
-        else if (d === 1) s -= 1;
-      });
-      return s;
-    }
-
-    function colorizeDie(d, tn) {
+    Roll.colorizeDie = function(d, tn) {
       var bg = null;
       if (d === 1) bg = '#e57373';
       else if (d === 10) bg = '#64b5f6';
       else if (d >= tn) bg = '#81c784';
       if (bg) return '<span style="background:' + bg + ';color:#000;padding:1px 6px;border-radius:3px;font-weight:bold;">' + d + '</span>';
       return '<span style="color:#777;">' + d + '</span>';
-    }
+    };
 
-    function successLabel(successes, signed) {
+    Roll.successLabel = function(successes, signed) {
       var display = signed ? successes : Math.max(0, successes);
       if (signed) return 'net ' + (display >= 0 ? '+' : '') + display;
       return display + ' success' + (display === 1 ? '' : 'es') +
         (successes < 0 ? ' <span class="math-detail">(raw ' + successes + ', floored)</span>' : '');
-    }
+    };
 
-    // Render the original roll, and if a reroll has been applied, append
-    // a second line showing which dice got replaced and the adjusted
-    // total. The DM can cross-check the math without losing the initial
-    // outcome.
-    function paintRollResult(inputId) {
-      var ctx = rollContexts[inputId];
-      if (!ctx) return;
-      var origRolls = ctx.originalRolls;
-      var origSuccesses = countRollSuccesses(origRolls, ctx.tn);
+    Roll.prototype.rollFresh = function() {
+      this.originalRolls = [];
+      for (var r = 0; r < this.dice; r++) this.originalRolls.push(Roll.rollOneDie());
+      this.reroll = null;
+      this.paint();
+    };
 
-      // Build effective rolls (apply reroll replacements).
-      var effective = origRolls.slice();
-      if (ctx.reroll) {
-        ctx.reroll.indices.forEach(function(idx, k) {
-          effective[idx] = ctx.reroll.newValues[k];
-        });
+    Roll.prototype.effectiveRolls = function() {
+      var rolls = this.originalRolls.slice();
+      if (this.reroll) {
+        for (var k = 0; k < this.reroll.indices.length; k++) {
+          rolls[this.reroll.indices[k]] = this.reroll.newValues[k];
+        }
       }
-      var finalSuccesses = ctx.reroll ? countRollSuccesses(effective, ctx.tn) : origSuccesses;
+      return rolls;
+    };
 
-      var inputEl = document.getElementById(inputId);
-      if (inputEl) inputEl.value = ctx.signed ? finalSuccesses : Math.max(0, finalSuccesses);
+    Roll.prototype.successesIn = function(rolls) {
+      var tn = this.tn, s = 0;
+      for (var i = 0; i < rolls.length; i++) {
+        var d = rolls[i];
+        if (d === 10) s += 2;
+        else if (d >= tn) s += 1;
+        else if (d === 1) s -= 1;
+      }
+      return s;
+    };
 
-      var rollsEl = document.getElementById(ctx.rollsId);
+    Roll.prototype.originalSuccesses = function() { return this.successesIn(this.originalRolls); };
+    Roll.prototype.finalSuccesses    = function() { return this.successesIn(this.effectiveRolls()); };
+
+    // Inspiration picks the N lowest; Unsettling Words picks the N
+    // highest. Mutates `reroll` rather than `originalRolls` so the
+    // pre-reroll line stays in the rendered output.
+    Roll.prototype.applyLuckReroll = function(ability, count) {
+      var n = Math.min(count, this.originalRolls.length);
+      var indexed = this.originalRolls.map(function(v, i) { return {v: v, i: i}; });
+      indexed.sort(function(a, b) { return ability === 'inspiration' ? a.v - b.v : b.v - a.v; });
+      var indices = [], newValues = [];
+      for (var k = 0; k < n; k++) {
+        indices.push(indexed[k].i);
+        newValues.push(Roll.rollOneDie());
+      }
+      this.reroll = {ability: ability, indices: indices, newValues: newValues};
+      this.paint();
+    };
+
+    Roll.prototype.paint = function() {
+      var origSuccesses = this.originalSuccesses();
+      var finalSuccesses = this.reroll ? this.finalSuccesses() : origSuccesses;
+
+      var inputEl = document.getElementById(this.inputId);
+      if (inputEl) inputEl.value = this.signed ? finalSuccesses : Math.max(0, finalSuccesses);
+
+      var rollsEl = document.getElementById(this.rollsId);
       if (!rollsEl) return;
-      var origColored = origRolls.map(function(d, i) {
-        var replaced = ctx.reroll && ctx.reroll.indices.indexOf(i) !== -1;
-        var span = colorizeDie(d, ctx.tn);
+
+      var tn = this.tn, signed = this.signed, reroll = this.reroll;
+      var origColored = this.originalRolls.map(function(d, i) {
+        var replaced = reroll && reroll.indices.indexOf(i) !== -1;
+        var span = Roll.colorizeDie(d, tn);
         return replaced ? '<s style="opacity:0.6;">' + span + '</s>' : span;
       }).join(', ');
-      var html = 'Rolled: [' + origColored + '] &rarr; ' + successLabel(origSuccesses, ctx.signed);
-      if (ctx.reroll) {
-        var newColored = ctx.reroll.newValues.map(function(d) { return colorizeDie(d, ctx.tn); }).join(', ');
-        var abilityLabel = ctx.reroll.ability === 'inspiration' ? 'Inspiration' : 'Unsettling Words';
+      var html = 'Rolled: [' + origColored + '] &rarr; ' + Roll.successLabel(origSuccesses, signed);
+      if (reroll) {
+        var newColored = reroll.newValues.map(function(d) { return Roll.colorizeDie(d, tn); }).join(', ');
+        var abilityLabel = reroll.ability === 'inspiration' ? 'Inspiration' : 'Unsettling Words';
         var delta = finalSuccesses - origSuccesses;
         var deltaText = (delta >= 0 ? '+' : '') + delta;
-        html += '<br>' + abilityLabel + ' rerolled ' + ctx.reroll.indices.length +
-          ' &rarr; [' + newColored + '] &rarr; ' + successLabel(finalSuccesses, ctx.signed) +
+        html += '<br>' + abilityLabel + ' rerolled ' + reroll.indices.length +
+          ' &rarr; [' + newColored + '] &rarr; ' + Roll.successLabel(finalSuccesses, signed) +
           ' <span class="math-detail">(' + deltaText + ')</span>';
       }
       rollsEl.innerHTML = html;
+    };
+
+    // Thin global wrappers preserving the inline onclick="..." API
+    // emitted by rollButtonsHtml. Each call replaces any prior Roll
+    // bound to the same inputId so the DM can re-roll to fudge.
+    function rollDicePool(dice, tn, inputId, rollsId, signed) {
+      var roll = new Roll(inputId, rollsId, dice, tn, signed);
+      Roll.registry[inputId] = roll;
+      roll.rollFresh();
+      enableLuckButtons(inputId);
     }
 
     function rollSaveDice(i, inputId, rollsId) {
@@ -660,44 +701,33 @@
     }
 
     function enableLuckButtons(inputId) {
-      var ctx = rollContexts[inputId];
+      var roll = Roll.get(inputId);
       var srcEl = document.getElementById('luck-src-' + inputId);
       var amtEl = document.getElementById('luck-amt-' + inputId);
       var ins = document.getElementById('luck-ins-' + inputId);
       var uw  = document.getElementById('luck-uw-' + inputId);
       var amt = amtEl ? parseInt(amtEl.value, 10) : 0;
       var src = srcEl ? srcEl.value : '';
-      var show = ctx && amt > 0 && src !== '' && amt <= luckSourceAmount(src);
+      var show = roll && amt > 0 && src !== '' && amt <= luckSourceAmount(src);
       if (ins) ins.style.display = show ? '' : 'none';
       if (uw)  uw.style.display  = show ? '' : 'none';
     }
 
-    // Reroll N of the stored dice in-place. Inspiration picks the N
-    // lowest; Unsettling Words picks the N highest. After the reroll we
-    // repaint, POST the debit to /combat/spend_luck (server-side audit
-    // log + pool decrement), and hide the buttons so one commit per
+    // Validate the declared luck spend, run the in-place reroll on the
+    // bound Roll, then POST the debit to /combat/spend_luck (server-side
+    // audit log + pool decrement) and hide the buttons so one commit per
     // declared spend. The luckSourceCache mirrors the decrement so a
     // subsequent roll in the same view can't overspend.
     function applyLuckReroll(inputId, ability, targetName) {
-      var ctx = rollContexts[inputId];
-      if (!ctx) return;
+      var roll = Roll.get(inputId);
+      if (!roll) return;
       var srcEl = document.getElementById('luck-src-' + inputId);
       var amtEl = document.getElementById('luck-amt-' + inputId);
       var amt = amtEl ? parseInt(amtEl.value, 10) : 0;
       var src = srcEl ? srcEl.value : '';
       if (amt <= 0 || !src) { alert('Pick a luck source and amount first.'); return; }
       if (amt > luckSourceAmount(src)) { alert('That source only has ' + luckSourceAmount(src) + ' luck.'); return; }
-      var n = Math.min(amt, ctx.originalRolls.length);
-      var indexed = ctx.originalRolls.map(function(v, i) { return {v: v, i: i}; });
-      indexed.sort(function(a, b) { return ability === 'inspiration' ? a.v - b.v : b.v - a.v; });
-      var indices = [];
-      var newValues = [];
-      for (var k = 0; k < n; k++) {
-        indices.push(indexed[k].i);
-        newValues.push(Math.floor(Math.random() * 10) + 1);
-      }
-      ctx.reroll = {ability: ability, indices: indices, newValues: newValues};
-      paintRollResult(inputId);
+      roll.applyLuckReroll(ability, amt);
       var fd = new FormData();
       fd.append('amount', amt);
       fd.append('ability', ability);
