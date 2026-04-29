@@ -1,4 +1,5 @@
 <% p = @test_params || {} %>
+
 <%# Newest stub previews go at the top — see CLAUDE.md. %>
 
 <h2>Attack Stub</h2>
@@ -34,6 +35,91 @@
   });
 </script>
 
+<h2>Roll Stub</h2>
+
+<form method="post" action="/test" class="stub-test-form">
+  <label>Character: <input type="text" name="character_name"
+         value="<%= h(p['character_name'] || 'Alice') %>"></label>
+  <label>Check Name: <input type="text" name="check_name"
+         value="<%= h(p['check_name'] || 'Perception') %>"></label>
+  <label>Dice Count: <input type="number" name="dice_count" min="1"
+         value="<%= h(p['dice_count'] || 6) %>"></label>
+  <label>TN: <input type="number" name="tn"
+         value="<%= h(p['tn'] || 6) %>"></label>
+  <label>Starting Value: <input type="number" name="starting_value"
+         value="<%= h(p['starting_value'] || 0) %>"></label>
+  <label>Luck Amount: <input type="number" name="luck_amount"
+         value="<%= h(p['luck_amount'] || 2) %>"></label>
+  <label>Luck Label: <input type="text" name="luck_label"
+         value="<%= h(p['luck_label'] || 'Bardic Inspiration') %>"></label>
+  <label>Insight Amount: <input type="number" name="insight_amount"
+         value="<%= h(p['insight_amount'] || 1) %>"></label>
+  <label>Insight Label: <input type="text" name="insight_label"
+         value="<%= h(p['insight_label'] || 'Heroic Insight') %>"></label>
+  <button type="submit">Submit</button>
+</form>
+
+<% unless p.empty? %>
+  <%= roll_stub(
+        character_name: p['character_name'].to_s,
+        check_name:     p['check_name'].to_s,
+        dice_count:     p['dice_count'].to_i,
+        tn:             p['tn'].to_i,
+        starting_value: p['starting_value'].to_i,
+        luck_amount:    p['luck_amount'].to_i,
+        luck_label:     p['luck_label'].to_s,
+        insight_amount: p['insight_amount'].to_i,
+        insight_label:  p['insight_label'].to_s
+      ) %>
+
+  <div class="stub-test-capture">
+    <label>Confirmed result:
+      <textarea id="test-rollstub-result" rows="3" readonly
+                placeholder="(press Confirm)"
+                style="width:100%;font-family:monospace;font-size:11px;"></textarea>
+    </label>
+  </div>
+
+  <script>
+    document.addEventListener('rollstub:confirm', function(e) {
+      var out = document.getElementById('test-rollstub-result');
+      if (out) out.value = JSON.stringify(e.detail, null, 2);
+    });
+  </script>
+<% end %>
+
+<h2>Multi Roll Stub</h2>
+
+<%= multi_roll_stub(
+      title: 'Group Perception Check',
+      rolls: [
+        { key: 'alice',   character_name: 'Alice',   check_name: 'Perception',
+          dice_count: 6, tn: 6, starting_value: 0,
+          luck_amount:    2, luck_label:    'Bardic Inspiration',
+          insight_amount: 1, insight_label: 'Heroic Insight' },
+        { key: 'bob',     character_name: 'Bob',     check_name: 'Perception',
+          dice_count: 5, tn: 6, starting_value: 1,
+          luck_amount:   -1, luck_label:    'Unsettling Words' },
+        { key: 'charlie', character_name: 'Charlie', check_name: 'Perception',
+          dice_count: 4, tn: 7, starting_value: 0 }
+      ]
+    ) %>
+
+<div class="stub-test-capture">
+  <label>Confirmed rows:
+    <textarea id="test-multiroll-result" rows="6" readonly
+              placeholder="(press Confirm All)"
+              style="width:100%;font-family:monospace;font-size:11px;"></textarea>
+  </label>
+</div>
+
+<script>
+  document.addEventListener('multiroll:confirm', function(e) {
+    var out = document.getElementById('test-multiroll-result');
+    if (out) out.value = JSON.stringify(e.detail.rows, null, 2);
+  });
+</script>
+
 <h2>Notes Map Stub</h2>
 
 <h3>As player (current turn)</h3>
@@ -46,7 +132,7 @@
       can_draw: true
     ) %>
 
-<% if dm? %>
+<% if dm_view? %>
   <h3>As DM</h3>
   <%= notes_map_stub(
         entries: DATA.note_maps,
@@ -65,7 +151,7 @@
 <%= initiative_stub(
       turns: DATA.initiative_turns,
       current_combat_id: current_turn,
-      dm_view: dm?
+      dm_view: dm_view?
     ) %>
 
 <h3>As player</h3>
@@ -78,7 +164,7 @@
 <h3>Empty state</h3>
 <%= initiative_stub(turns: []) %>
 
-<% if dm? %>
+<% if dm_view? %>
   <h2>Character Assignment Stub <small>(DM only)</small></h2>
   <%= assignment_stub(
         devices: USER_STORE.list,
@@ -89,53 +175,3 @@
 
 <h2>Debug Stub</h2>
 <%= debug_stub %>
-
-<h2>Roll Stub</h2>
-
-<form method="post" action="/test" class="stub-test-form">
-  <label>Check Name: <input type="text" name="check_name"
-         value="<%= h(p['check_name'] || 'Perception') %>"></label>
-  <label>Dice Count: <input type="number" name="dice_count" min="1"
-         value="<%= h(p['dice_count'] || 6) %>"></label>
-  <label>TN: <input type="number" name="tn"
-         value="<%= h(p['tn'] || 6) %>"></label>
-  <label>Starting Value: <input type="number" name="starting_value"
-         value="<%= h(p['starting_value'] || 0) %>"></label>
-  <label>Luck Amount: <input type="number" name="luck_amount" min="0"
-         value="<%= h(p['luck_amount'] || 2) %>"></label>
-  <label>Insight Amount: <input type="number" name="insight_amount" min="0"
-         value="<%= h(p['insight_amount'] || 4) %>"></label>
-  <button type="submit">Submit</button>
-</form>
-
-<% unless p.empty? %>
-  <%= roll_stub(
-        check_name: p['check_name'].to_s,
-        dice_count: p['dice_count'].to_i,
-        tn: p['tn'].to_i,
-        starting_value: p['starting_value'].to_i,
-        luck_bonus_name: "Bardic Inspiration",
-        luck_penalty_name: "Unsettling Words",
-        luck_amount: p['luck_amount'].to_i,
-        insight_bonus_name: "Insight Bonus",
-        insight_penalty_name: "Insight Penalty",
-        insight_amount: p['insight_amount'].to_i
-      ) %>
-
-  <div class="stub-test-capture">
-    <label>Confirmed total:
-      <input type="text" id="test-confirmed-total" readonly
-             placeholder="(press Confirm)">
-    </label>
-  </div>
-
-  <script>
-    // Capture the stub's confirm event so the test harness can show the
-    // total it would hand off to whatever feature embeds this stub.
-    // The stub itself stays unaware of the listener.
-    document.addEventListener('rollstub:confirm', function(e) {
-      var out = document.getElementById('test-confirmed-total');
-      if (out) out.value = e.detail.value;
-    });
-  </script>
-<% end %>

@@ -4,74 +4,42 @@
     <button type="button" class="multi-roll-roll-all"
             onclick="multiRollRollAll('<%= stub_id %>')">Roll All</button>
     <button type="button" class="multi-roll-confirm"
-            onclick="multiRollConfirm('<%= stub_id %>')">Confirm All</button>
+            onclick="multiRollConfirmAll('<%= stub_id %>')">Confirm All</button>
   </div>
-  <table class="multi-roll-table">
+  <table class="roll-stub-table">
     <thead>
       <tr>
-        <th>Check</th>
-        <th>Roll</th>
-        <th>Dice</th>
-        <th>Result</th>
+        <th class="col-roll"></th>
+        <th class="col-meta">Character</th>
+        <th class="col-mod">Modifier</th>
+        <th class="col-dice">Dice</th>
+        <th class="col-result">Result / Crits</th>
       </tr>
     </thead>
-    <tbody>
-      <% rolls.each do |r| %>
-        <%
-          row_id = "#{stub_id}-#{r[:key] || r['key']}"
-          label  = r[:label] || r['label']
-          dice   = (r[:dice_count] || r['dice_count']).to_i
-          tn     = (r[:tn] || r['tn']).to_i
-          start  = (r[:starting_value] || r['starting_value']).to_i
-          luck   = (r[:luck_amount] || r['luck_amount']).to_i
-          unset  = (r[:unsettling_amount] || r['unsettling_amount']).to_i
-          luck_label  = r[:luck_label]  || r['luck_label']  || 'Bardic'
-          unset_label = r[:unsettling_label] || r['unsettling_label'] || 'Unsettling'
-        %>
-        <tr data-row-id="<%= row_id %>">
-          <td class="multi-roll-name">
-            <strong><%= h(label) %></strong>
-            <div class="multi-roll-meta"><%= dice %> dice @ TN <%= tn %><%= start != 0 ? " (start #{start})" : '' %></div>
-          </td>
-          <td class="multi-roll-controls">
-            <button type="button" class="multi-roll-row-roll"
-                    onclick="multiRollRow('<%= stub_id %>', '<%= h(row_id) %>')">Roll</button>
-            <% if luck > 0 %>
-              <button type="button" class="multi-roll-row-luck multi-roll-row-bonus" disabled
-                      onclick="multiRollReroll('<%= stub_id %>', '<%= h(row_id) %>', <%= luck %>)">+<%= luck %> <%= h(luck_label) %></button>
-            <% end %>
-            <% if unset > 0 %>
-              <button type="button" class="multi-roll-row-luck multi-roll-row-penalty" disabled
-                      onclick="multiRollReroll('<%= stub_id %>', '<%= h(row_id) %>', <%= -unset %>)">-<%= unset %> <%= h(unset_label) %></button>
-            <% end %>
-          </td>
-          <td class="multi-roll-dice" id="multi-roll-dice-<%= h(row_id) %>"></td>
-          <td class="multi-roll-result" id="multi-roll-result-<%= h(row_id) %>">&mdash;</td>
-        </tr>
-      <% end %>
-    </tbody>
+    <% children.each do |c| %>
+      <%= roll_stub(
+            stub_id:        c[:_child_id],
+            character_name: c[:character_name],
+            check_name:     c[:check_name],
+            dice_count:     c[:dice_count],
+            tn:             c[:tn],
+            starting_value: c[:starting_value] || 0,
+            luck_amount:    c[:luck_amount]    || 0,
+            luck_label:     c[:luck_label],
+            insight_amount: c[:insight_amount] || 0,
+            insight_label:  c[:insight_label],
+            show_confirm:   false,
+            bare_row:       true
+          ) %>
+    <% end %>
   </table>
 </div>
 <script>
 (function() {
   window.multiRollConfigs = window.multiRollConfigs || {};
   window.multiRollConfigs[<%= stub_id.to_json %>] = {
-    stubId: <%= stub_id.to_json %>,
-    rows: <%= rolls.map { |r|
-                {
-                  key:               r[:key]               || r['key'],
-                  rowId:             "#{stub_id}-#{r[:key] || r['key']}",
-                  label:             r[:label]             || r['label'],
-                  diceCount:         (r[:dice_count]       || r['dice_count']).to_i,
-                  tn:                (r[:tn]               || r['tn']).to_i,
-                  startingValue:     (r[:starting_value]   || r['starting_value']).to_i,
-                  luckAmount:        (r[:luck_amount]      || r['luck_amount']).to_i,
-                  unsettlingAmount:  (r[:unsettling_amount] || r['unsettling_amount']).to_i,
-                  token:             nil,
-                  successes:         nil,
-                  criticals:         nil
-                }
-              }.to_json %>
+    childIds: <%= children.map { |c| c[:_child_id] }.to_json %>,
+    rollKeys: <%= children.map { |c| c[:_key] }.to_json %>
   };
 })();
 </script>

@@ -519,52 +519,54 @@
   // Builds the row list (attack + optional defense + each rolled ally
   // reaction), pulls a fresh multi_roll_stub partial, and waits for
   // the panel's `multiroll:confirm` event to capture per-row successes.
-  // Each row gets its luck/unsettling buttons populated from the
-  // chosen luck amounts; labels come from luckSources -- never
-  // hardcoded.
+  //
+  // Each row's luck is a single signed amount + label: positive for a
+  // bonus source (Bardic-style), negative for a penalty source
+  // (Unsettling-style). The luck step enforces that at most one source
+  // is selected per roll, so we just walk the chosen amounts and pick
+  // the first non-zero one. Source labels come from luckSources --
+  // nothing is hardcoded.
   function rollsPanel(stubId) {
     var c = cfg(stubId);
     var w = c.state.weapon;
     var def = c.state.defense;
     var isFlatfooted = !def || def.kind === 'nothing';
 
-    // Pull the first bonus and first penalty source for label/amount.
-    // Configs with multiple bonus or penalty sources still work; only
-    // the first of each kind is wired through to the per-row buttons.
-    var bonusSrc = null, penaltySrc = null;
-    (c.luckSources || []).forEach(function(s) {
-      if (!bonusSrc && s.kind === 'bonus') bonusSrc = s;
-      else if (!penaltySrc && s.kind === 'penalty') penaltySrc = s;
-    });
-    function rowLuck(chosen) {
+    function signedLuck(chosen) {
       chosen = chosen || {};
-      return {
-        luck_amount:        bonusSrc   ? (chosen[bonusSrc.key]   | 0) : 0,
-        luck_label:         bonusSrc   ? bonusSrc.label   : '',
-        unsettling_amount:  penaltySrc ? (chosen[penaltySrc.key] | 0) : 0,
-        unsettling_label:   penaltySrc ? penaltySrc.label : ''
-      };
+      var sources = c.luckSources || [];
+      for (var i = 0; i < sources.length; i++) {
+        var src = sources[i];
+        var n = chosen[src.key] | 0;
+        if (n > 0) {
+          return {
+            luck_amount: src.kind === 'penalty' ? -n : n,
+            luck_label:  src.label
+          };
+        }
+      }
+      return { luck_amount: 0, luck_label: '' };
     }
 
     var rolls = [];
-    var atkLuck = rowLuck(c.state.attackLuck);
     rolls.push(Object.assign({
       key:            'attack',
-      label:          c.attacker.skill.name + ' (' + w.name + ')',
+      character_name: c.attacker.name,
+      check_name:     c.attacker.skill.name + ' (' + w.name + ')',
       dice_count:     c.state.attackDice,
       tn:             attackTn(stubId, w, def, isFlatfooted),
       starting_value: 0
-    }, atkLuck));
+    }, signedLuck(c.state.attackLuck)));
 
     if (def && def.uses_dice && c.state.defenseDice > 0) {
-      var defLuck = rowLuck(c.state.defenseLuck);
       rolls.push(Object.assign({
         key:            'defense',
-        label:          def.label,
+        character_name: c.state.target.name,
+        check_name:     def.label,
         dice_count:     c.state.defenseDice,
         tn:             defenseTn(stubId, w, def),
         starting_value: 0
-      }, defLuck));
+      }, signedLuck(c.state.defenseLuck)));
     }
 
     var allies = (c.state.allyReactions || []).filter(function(a) {
@@ -572,16 +574,22 @@
     });
     allies.forEach(function(a, idx) {
       var tn = c.baseTn - (a.skill.bonus | 0) + (w.attack_bonus | 0);
-      var allyLuck = rowLuck((c.state.allyLucks || [])[idx]);
       var diceCount = ((c.state.allyDices || [])[idx] | 0) || (a.max_dice | 0);
       rolls.push(Object.assign({
         key:            'ally-' + idx,
-        label:          a.label,
+        character_name: a.label,
+        check_name:     '',
         dice_count:     diceCount,
         tn:             tn,
         starting_value: 0
-      }, allyLuck));
+      }, signedLuck((c.state.allyLucks || [])[idx])));
     });
+
+    // Keep the row metadata around so we can rebuild allyResults on
+    // confirm: the new multiroll:confirm payload only ships
+    // {key, successes, criticals}.
+    var rollsByKey = {};
+    rolls.forEach(function(r) { rollsByKey[r.key] = r; });
 
     var step = appendStep(stubId, 'Rolls');
     var slot = document.createElement('div');
@@ -605,9 +613,12 @@
             c.state.defenseSuccesses = r.successes | 0;
           } else if (r.key.indexOf('ally-') === 0) {
             var i = parseInt(r.key.substring(5), 10);
+            var src = rollsByKey[r.key] || {};
             c.state.allyResults[i] = {
-              label: r.label, successes: r.successes | 0,
-              dice: r.diceCount, tn: r.tn
+              label:     src.character_name,
+              successes: r.successes | 0,
+              dice:      src.dice_count,
+              tn:        src.tn
             };
           }
         });

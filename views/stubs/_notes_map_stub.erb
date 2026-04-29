@@ -61,6 +61,7 @@
                       data-tool="add-shape"
                       title="Add shape (hold to pick)">&#9645;</button>
               <button type="button" class="notes-map-tool-btn" data-tool="add-icon"  title="Add icon">&#9733;</button>
+              <button type="button" class="notes-map-tool-btn" data-tool="add-image" title="Add image token">&#x1F5BC;</button>
             <% end %>
 
             <hr>
@@ -125,6 +126,24 @@
                     x="<%= i['x'] %>" y="<%= i['y'] %>"
                     text-anchor="middle" dominant-baseline="central"
                     font-size="<%= i['size'] %>"><%= h i['glyph'] %></text>
+            <% end %>
+
+            <%# Image tokens (DM-placed). Each is one square wide
+                by default; we wrap the <image> in a <g transform>
+                with the inner image offset by -size/2 so dragging
+                via translate() works the same as for objects and
+                shapes. %>
+            <% map_images = scene_state ? scene_state.map_images_for(map_id) : [] %>
+            <% map_images.each do |mi|
+                 sz = mi['size'] || sq %>
+              <g class="notes-map-image"
+                 data-image-id="<%= h mi['id'] %>"
+                 transform="translate(<%= mi['x'] %>,<%= mi['y'] %>)">
+                <image href="<%= h mi['src'] %>"
+                       x="<%= -sz/2.0 %>" y="<%= -sz/2.0 %>"
+                       width="<%= sz %>" height="<%= sz %>"
+                       preserveAspectRatio="xMidYMid slice"/>
+              </g>
             <% end %>
 
             <%# Arrows beneath objects. %>
@@ -269,6 +288,33 @@
               <div class="notes-map-icon-status">
                 Pick an icon, then click on the map. Save to commit.
               </div>
+            </div>
+
+            <div class="notes-map-add-image" data-tool="add-image" hidden>
+              <% library = notes_map_image_library %>
+              <% if library.empty? %>
+                <div class="notes-map-image-status">
+                  No images in <code>public/images/</code>. Drop .png /
+                  .jpg / .webp files there and reload, or curate the
+                  list via <code>data/map_images.yaml</code> (see
+                  <code>docs/map_images_config.yaml.example</code>).
+                </div>
+              <% else %>
+                <div class="notes-map-image-group">
+                  <% library.each do |row| %>
+                    <button type="button"
+                            class="notes-map-image-btn"
+                            data-image-src="<%= h row['src'] %>"
+                            title="<%= h row['label'] %>">
+                      <img src="<%= h row['src'] %>"
+                           alt="<%= h row['label'] %>">
+                    </button>
+                  <% end %>
+                </div>
+                <div class="notes-map-image-status">
+                  Pick an image, then click on the map. Save to commit.
+                </div>
+              <% end %>
             </div>
 
             <div class="notes-map-tool-hint-row">
