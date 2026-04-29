@@ -28,34 +28,43 @@
         <% dmg  = dummy[:attribute_damage][sym].to_i %>
         <% enh  = dummy[:attribute_enhancement][sym].to_i %>
         <div class="char-card-attr">
-          <div class="char-card-attr-label"><%= label %></div>
-          <div class="char-card-attr-value">
+          <span class="char-card-attr-label"><%= label %></span>
+          <span class="char-card-attr-value">
             <%= base %><% if dmg > 0 %><span class="ability-damage">-<%= dmg %></span><% end %><% if enh > 0 %><span class="enh-note">(+<%= enh %>)</span><% end %>
-          </div>
+          </span>
         </div>
       <% end %>
     </div>
     <div class="char-card-vitals">
       <div class="char-card-line">
         <strong>HP</strong> <%= h dummy[:current_hp] %>/<%= h dummy[:hp_max] %><%
-        %><% if temp     > 0 %> <span class="hp-temp">+<%= temp %> tmp</span><% end %><%
-        %><% if mod      > 0 %> &mdash; <span class="hp-mod">moderate <%= mod %></span><% end %><%
-        %><% if maj      > 0 %> &mdash; <span class="hp-major">major <%= maj %></span><% end %><%
-        %><% if bleed_v  > 0 %>, <span class="hp-bleed">Bleed <%= bleed_v %></span><% end %><%
-        %><% if poison_v > 0 %>, <span class="hp-poison">Poison <%= poison_v %></span><% end %>
+        %><% if temp > 0 %> <span class="hp-temp">+<%= temp %> tmp</span><% end %><%
+        %><% if mod  > 0 %> &mdash; <span class="hp-mod">moderate <%= mod %></span><% end %><%
+        %><% if maj  > 0 %> &mdash; <span class="hp-major">major <%= maj %></span><% end %>
       </div>
       <div class="char-card-line">
         <strong>Mana</strong> <%= h dummy[:current_mana] %>/<%= h dummy[:mana_max] %><%
         %><% if sat_max > 0 || sat > 0 %>, <span class="toxicity">Toxicity <%= sat %>/<%= sat_max %></span><% end %>
       </div>
+      <% if bleed_v > 0 || poison_v > 0 %>
+        <div class="char-card-line">
+          <strong>Conditions</strong>
+          <% parts = [] %>
+          <% parts << "<span class=\"hp-bleed\">Bleed #{bleed_v}</span>"   if bleed_v  > 0 %>
+          <% parts << "<span class=\"hp-poison\">Poison #{poison_v}</span>" if poison_v > 0 %>
+          <%= parts.join(', ') %>
+        </div>
+      <% end %>
     </div>
   </div>
 
   <div class="char-card-rule"></div>
 
-  <div class="char-card-line"><strong>Initiative</strong> <%= h dummy[:initiative] %></div>
-  <div class="char-card-line"><strong>Perception</strong> <%= character_sheet_add_plus(dummy[:perception_bonus]) %></div>
-  <div class="char-card-line"><strong>Speed</strong> <%= h dummy[:speed] %></div>
+  <div class="char-card-quickrow">
+    <div><strong>Initiative</strong> <%= h dummy[:initiative] %></div>
+    <div><strong>Perception</strong> <%= character_sheet_add_plus(dummy[:perception_bonus]) %></div>
+    <div><strong>Speed</strong> <%= h dummy[:speed] %></div>
+  </div>
 
   <% if weapons.any? %>
     <div class="char-card-rule"></div>

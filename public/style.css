@@ -1450,14 +1450,18 @@ body {
 .char-card-attrs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px 10px;
-  text-align: center;
+  gap: 4px 14px;
 }
 
-.char-card-attr { min-width: 0; }
+.char-card-attr {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
 
 .char-card-attr-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: bold;
   color: #8b1538;
   letter-spacing: 0.5px;
@@ -1466,6 +1470,16 @@ body {
 .char-card-attr-value { font-size: 16px; }
 
 .char-card-vitals .char-card-line { margin: 4px 0; }
+
+/* Single-row Initiative / Perception / Speed strip. */
+.char-card-quickrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 4px 0;
+}
+.char-card-quickrow strong { color: #8b1538; }
 
 /* Two-column row used for Spells | Rituals and Items | Abilities.
    Collapses to a single column on narrow viewports. */
