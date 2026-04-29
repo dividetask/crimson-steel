@@ -163,6 +163,22 @@ def scene_parse_visible_to(raw)
   Array(raw).map { |v| v.to_i }.reject { |v| v <= 0 }.uniq
 end
 
+# Promoted Characters of Interest used to be written without an id, so
+# the toggle/delete/image routes had nothing to address. Backfill once
+# on the next read; the writes below stamp ids on new entries.
+def notes_ensure_character_ids!(notes)
+  changed = false
+  notes.each do |n|
+    next unless n['type'] == 'character'
+    if n['id'].nil? || n['id'].to_s.empty?
+      n['id'] = SecureRandom.uuid
+      changed = true
+    end
+  end
+  Tools.save_json('notes.json', notes) if changed
+  notes
+end
+
 get '/scene/:viewer_id' do
   viewer_id = params[:viewer_id].to_i
   redirect '/scene/1' if viewer_id == 0 && !@is_local
@@ -186,7 +202,7 @@ get '/scene/:viewer_id' do
     @character = nil
   end
 
-  @notes = scene_load_notes
+  @notes = notes_ensure_character_ids!(scene_load_notes)
   @max_chapter = scene_max_chapter(@notes)
 
   # Scene Notes are the unified successor of draft_note + scene_panel:
@@ -196,7 +212,19 @@ get '/scene/:viewer_id' do
   @scene_notes = @notes.select { |n| n['draft'] && (n['type'] == 'scene_panel' || n['type'] == 'draft_note') }
   @scene_notes = @scene_notes.sort_by { |n| -n['created_at'].to_f }
   @draft_images = @notes.select { |n| n['draft'] && n['type'] == 'draft_image' }
-  @characters_of_interest = @notes.select { |n| !n['draft'] && n['type'] == 'character' }
+
+  # Characters of Interest are gated by two flags: in_scene picks which
+  # ones the DM has staged for the current scene; scene_visible decides
+  # whether players see those staged entries on /scene. (public is a
+  # separate flag for the Notes page.) Both default false on existing
+  # data so a CoI doesn't surface until the DM toggles it on.
+  in_scene_chars = @notes.select { |n| !n['draft'] && n['type'] == 'character' && n['in_scene'] }
+  @visible_characters_of_interest =
+    if @is_dm
+      in_scene_chars
+    else
+      in_scene_chars.select { |c| c['scene_visible'] }
+    end
 
   @visible_images = @draft_images.select { |i| i['shared'] }
   @visible_panels =
@@ -205,15 +233,10 @@ get '/scene/:viewer_id' do
     else
       @scene_notes.select { |p| Array(p['visible_to']).include?(@viewer_id) }
     end
-  @visible_characters_of_interest =
-    if @is_dm
-      @characters_of_interest
-    else
-      @characters_of_interest.select { |c| c['public'] }
-    end
 
   campaign = Tools.load_json('campaign.json')
   @datetime = GameDate.from_h(campaign.is_a?(Hash) ? campaign['datetime'] : nil)
+  @sun_moon = sun_moon_view(@datetime)
 
   characters = Tools.load_json('characters.json')
   @pc_characters = characters.select { |c| (c['group'] || 'PC') == 'PC' }
@@ -292,29 +315,6 @@ post '/scene/draft_name/update' do
   redirect '/scene/0'
 end
 
-# --- Characters of Interest (rendered at the top of /scene; managed
-# from the staging block). Promoted-from-name entries land in notes.json
-# as { type: 'character' } and these endpoints edit them in place.
-post '/scene/character/delete' do
-  scene_require_dm!
-  notes = scene_load_notes
-  entry, idx = scene_find_note(notes, params[:id])
-  halt 404 unless entry && entry['type'] == 'character'
-  notes.delete_at(idx)
-  scene_save_notes(notes)
-  redirect '/scene/0'
-end
-
-post '/scene/character/toggle_public' do
-  scene_require_dm!
-  notes = scene_load_notes
-  entry, _ = scene_find_note(notes, params[:id])
-  halt 404 unless entry && entry['type'] == 'character'
-  entry['public'] = !entry['public']
-  scene_save_notes(notes)
-  redirect '/scene/0'
-end
-
 post '/scene/draft_name/promote' do
   scene_require_dm!
   notes = scene_load_notes
@@ -324,6 +324,7 @@ post '/scene/draft_name/promote' do
   tier = params[:tier] ? params[:tier].to_i : -1
   public_flag = params[:public] == 'true'
   promoted = {
+    'id' => entry['id'] || SecureRandom.uuid,
     'owner_id' => 0,
     'type' => 'character',
     'title' => entry['title'],
@@ -331,11 +332,103 @@ post '/scene/draft_name/promote' do
     'tier' => tier,
     'chapter' => scene_max_chapter(notes),
     'public' => public_flag,
-    'active' => true
+    'active' => true,
+    'in_scene' => false,
+    'scene_visible' => false
   }
   notes[idx] = promoted
   scene_save_notes(notes)
   redirect '/scene/0'
+end
+
+# --- Characters of Interest (managed from /notes). Edits land here so
+# the DM can stage which CoI appear in /scene without leaving the Notes
+# page. in_scene gates whether the CoI shows on the scene at all;
+# scene_visible gates whether players see it on the scene; public gates
+# whether the CoI shows on /notes to players. All three are independent.
+def notes_find_character!(id)
+  notes = Tools.load_json('notes.json')
+  entry, idx = nil, nil
+  notes.each_with_index do |n, i|
+    if n['id'] == id
+      entry, idx = n, i
+      break
+    end
+  end
+  halt 404 unless entry && entry['type'] == 'character'
+  [notes, entry, idx]
+end
+
+post '/notes/character/toggle_in_scene' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  entry['in_scene'] = !entry['in_scene']
+  Tools.save_json('notes.json', notes)
+  redirect '/notes/0'
+end
+
+post '/notes/character/toggle_scene_visible' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  entry['scene_visible'] = !entry['scene_visible']
+  Tools.save_json('notes.json', notes)
+  redirect '/notes/0'
+end
+
+post '/notes/character/toggle_public' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  entry['public'] = !entry['public']
+  Tools.save_json('notes.json', notes)
+  redirect '/notes/0'
+end
+
+post '/notes/character/delete' do
+  scene_require_dm!
+  notes, _, idx = notes_find_character!(params[:id])
+  notes.delete_at(idx)
+  Tools.save_json('notes.json', notes)
+  redirect '/notes/0'
+end
+
+post '/notes/character/image' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  upload = params[:image]
+  halt 400, 'image required' unless upload.is_a?(Hash) && upload[:tempfile]
+  orig = upload[:filename] || 'upload'
+  ext = File.extname(orig).downcase
+  halt 400, 'unsupported file type' unless SCENE_IMAGE_EXTS.include?(ext)
+  halt 400, 'file too large' if upload[:tempfile].size > SCENE_IMAGE_MAX_BYTES
+
+  FileUtils.mkdir_p(SCENE_IMAGE_DIR)
+  safe_base = scene_sanitize_filename(File.basename(orig, ext))
+  filename = "#{Time.now.to_i}-#{SecureRandom.hex(4)}-#{safe_base}#{ext}"
+  dest = File.join(SCENE_IMAGE_DIR, filename)
+  FileUtils.cp(upload[:tempfile].path, dest)
+
+  # Clean up any previous image for this CoI so we don't accumulate orphans.
+  prev = entry['image_path'].to_s
+  if prev.start_with?('/images/scene/')
+    disk = File.join(__dir__, 'public', prev)
+    File.unlink(disk) if File.file?(disk)
+  end
+  entry['image_path'] = "/images/scene/#{filename}"
+  Tools.save_json('notes.json', notes)
+  redirect '/notes/0'
+end
+
+post '/notes/character/image/clear' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  prev = entry['image_path'].to_s
+  if prev.start_with?('/images/scene/')
+    disk = File.join(__dir__, 'public', prev)
+    File.unlink(disk) if File.file?(disk)
+  end
+  entry.delete('image_path')
+  Tools.save_json('notes.json', notes)
+  redirect '/notes/0'
 end
 
 # --- Scene Notes (unified scene_panel; subsumes the old draft_note shape).
@@ -1578,7 +1671,7 @@ get '/notes/:viewer_id' do
 
   @viewer_id = viewer_id
   @is_dm = viewer_id == 0 && @is_local
-  @notes = Tools.load_json('notes.json')
+  @notes = notes_ensure_character_ids!(Tools.load_json('notes.json'))
   @characters = Tools.load_json('characters.json')
   @current_chapter = params[:chapter] ? params[:chapter].to_i : nil
 
@@ -1599,6 +1692,7 @@ post '/add_note_entry' do
   new_note["tier"] = params[:tier].to_i if params[:tier] && !params[:tier].empty?
   new_note["chapter"] = params[:chapter].to_i if params[:chapter] && !params[:chapter].empty?
   new_note["active"] = true if params[:active] == "true"
+  new_note["id"] = SecureRandom.uuid if new_note["type"] == 'character'
 
   notes << new_note
   Tools.save_json('notes.json', notes)

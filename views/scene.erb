@@ -1,46 +1,6 @@
 <div class="scene">
   <h1>Scene</h1>
 
-  <div class="scene-datetime">
-    <span class="scene-datetime-label">In-game date:</span>
-    <span class="scene-datetime-value"><%= h GameDate.format_dt(@datetime) %></span>
-  </div>
-
-  <% if @is_dm %>
-    <div class="scene-datetime-controls">
-      <span class="scene-datetime-controls-label">Advance time:</span>
-      <% [['minute', '+1 min'], ['ten_minutes', '+10 min'], ['hour', '+1 hr'], ['day', 'Next day (8 AM)']].each do |unit, label| %>
-        <form method="post" action="/scene/datetime/advance" style="display:inline;">
-          <input type="hidden" name="unit" value="<%= unit %>">
-          <button type="submit"><%= label %></button>
-        </form>
-      <% end %>
-    </div>
-  <% end %>
-
-  <% if @visible_characters_of_interest.any? %>
-    <div class="scene-coi">
-      <h2>Characters of Interest</h2>
-      <ul class="scene-coi-list">
-        <% @visible_characters_of_interest.each do |char| %>
-          <li class="scene-coi-item">
-            <strong><%= h(char['title']) %></strong>
-            <% if char['note'] && !char['note'].to_s.empty? %>
-              <span class="scene-coi-note"><%= h(char['note']).gsub("\n", '<br>') %></span>
-            <% end %>
-            <% if @is_dm %>
-              <small class="scene-coi-meta">
-                <%= char['public'] ? '(Public)' : '(DM Only)' %>
-                <% tier = char['tier'].to_i if char.key?('tier') %>
-                <% if tier && tier >= 0 %>· Tier <%= tier %><% end %>
-              </small>
-            <% end %>
-          </li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
-
   <% if @show_initiative %>
     <% if @combat.combat_turn_list.empty? %>
       <p class="dt-note">No combatants in the initiative track yet.</p>
@@ -101,29 +61,101 @@
     <% end %>
   <% end %>
 
-  <% if @visible_panels.any? %>
-    <div class="scene-panels">
-      <% @visible_panels.each do |panel| %>
-        <div class="scene-panel">
-          <% if panel['title'] && !panel['title'].to_s.empty? %>
-            <h2><%= h(panel['title']) %></h2>
+  <div class="scene-datetime">
+    <svg class="scene-sky" viewBox="0 0 200 80" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <rect width="200" height="80" fill="<%= @sun_moon['is_day'] ? '#bcdcff' : '#1c2240' %>"/>
+      <% unless @sun_moon['is_day'] %>
+        <circle cx="40"  cy="20" r="0.6" fill="#fff" opacity="0.8"/>
+        <circle cx="80"  cy="14" r="0.5" fill="#fff" opacity="0.7"/>
+        <circle cx="120" cy="22" r="0.6" fill="#fff" opacity="0.8"/>
+        <circle cx="160" cy="16" r="0.5" fill="#fff" opacity="0.7"/>
+      <% end %>
+      <line x1="0" y1="70" x2="200" y2="70" stroke="<%= @sun_moon['is_day'] ? '#7a5b3c' : '#554840' %>" stroke-width="1"/>
+      <% if @sun_moon['is_day'] %>
+        <g transform="translate(<%= @sun_moon['cx'] %> <%= @sun_moon['cy'] %>)">
+          <% 8.times do |i| %>
+            <% angle = i * 45 %>
+            <line x1="0" y1="0" x2="0" y2="-13" stroke="#fbc02d" stroke-width="1.2" transform="rotate(<%= angle %>)" opacity="0.7"/>
           <% end %>
-          <p><%= h(panel['note']).gsub("\n", "<br>") %></p>
-          <% if @is_dm %>
-            <small style="color:#666;">
-              <% vt = Array(panel['visible_to']) %>
-              <% if vt.empty? %>
-                (Hidden from all players)
-              <% else %>
-                Visible to:
-                <% vt.each do |pid| %>
-                  <% pc = @pc_characters.find { |c| c['id'] == pid } %>
-                  <%= pc ? h(pc['name']) : "##{pid}" %><%= ',' unless pid == vt.last %>
+          <circle r="7" fill="#fdd835" stroke="#fb8c00" stroke-width="1"/>
+        </g>
+      <% else %>
+        <g transform="translate(<%= @sun_moon['cx'] %> <%= @sun_moon['cy'] %>)">
+          <circle r="7" fill="#e8ecf5"/>
+          <circle r="6" cx="2.2" fill="#1c2240"/>
+        </g>
+      <% end %>
+    </svg>
+    <span class="scene-datetime-value"><%= h GameDate.format_dt(@datetime) %></span>
+  </div>
+
+  <% if @is_dm %>
+    <div class="scene-datetime-controls">
+      <span class="scene-datetime-controls-label">Advance time:</span>
+      <% [['minute', '+1 min'], ['ten_minutes', '+10 min'], ['hour', '+1 hr'], ['day', 'Next day (8 AM)']].each do |unit, label| %>
+        <form method="post" action="/scene/datetime/advance" style="display:inline;">
+          <input type="hidden" name="unit" value="<%= unit %>">
+          <button type="submit"><%= label %></button>
+        </form>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%
+    # Mixed grid: scene notes (newest first) at the top, then in-scene
+    # CoI cells. DM sees every staged CoI; players see only the ones the
+    # DM has opted into scene_visible.
+    grid_cells = []
+    @visible_panels.each { |p| grid_cells << { kind: :note,      data: p } }
+    @visible_characters_of_interest.each { |c| grid_cells << { kind: :character, data: c } }
+  %>
+  <% if grid_cells.any? %>
+    <div class="scene-grid">
+      <% grid_cells.each do |cell| %>
+        <% if cell[:kind] == :note %>
+          <% panel = cell[:data] %>
+          <div class="scene-grid-cell scene-grid-note">
+            <% if panel['title'] && !panel['title'].to_s.empty? %>
+              <h3><%= h(panel['title']) %></h3>
+            <% end %>
+            <p><%= h(panel['note']).gsub("\n", '<br>') %></p>
+            <% if @is_dm %>
+              <small class="scene-grid-meta">
+                <% vt = Array(panel['visible_to']) %>
+                <% if vt.empty? %>
+                  (Hidden from all players)
+                <% else %>
+                  Visible to:
+                  <% vt.each do |pid| %>
+                    <% pc = @pc_characters.find { |c| c['id'] == pid } %>
+                    <%= pc ? h(pc['name']) : "##{pid}" %><%= ',' unless pid == vt.last %>
+                  <% end %>
                 <% end %>
-              <% end %>
-            </small>
-          <% end %>
-        </div>
+              </small>
+            <% end %>
+          </div>
+        <% else %>
+          <% char = cell[:data] %>
+          <% tier = char['tier'].to_i if char.key?('tier') %>
+          <% tier_class = (tier && tier >= 0) ? "tier-#{tier}" : 'tier-unknown' %>
+          <div class="scene-grid-cell scene-grid-character">
+            <% if char['image_path'] && !char['image_path'].to_s.empty? %>
+              <img src="<%= h(char['image_path']) %>" alt="<%= h(char['title']) %>" class="scene-grid-character-img zoomable">
+            <% end %>
+            <div class="scene-grid-character-name <%= tier_class %>">
+              <%= h(char['title']) %>
+            </div>
+            <% if char['note'] && !char['note'].to_s.empty? %>
+              <p><%= h(char['note']).gsub("\n", '<br>') %></p>
+            <% end %>
+            <% if @is_dm %>
+              <small class="scene-grid-meta">
+                <%= char['scene_visible'] ? '(Visible to players in scene)' : '(DM-only in scene)' %>
+                <% if tier && tier >= 0 %>· Tier <%= tier %><% end %>
+              </small>
+            <% end %>
+          </div>
+        <% end %>
       <% end %>
     </div>
   <% end %>
@@ -144,7 +176,7 @@
   <% if @is_dm %>
     <div class="dm-staging">
       <h2>DM Staging</h2>
-      <p class="dt-note" style="color:#888;">Only visible to the DM. Scene Notes show on /scene per the visibility checkboxes; promote them to move into the permanent Notes section.</p>
+      <p class="dt-note" style="color:#888;">Only visible to the DM. Scene Notes show on /scene per the visibility checkboxes; promote them to move into the permanent Notes section. Manage Characters of Interest from <a href="/notes/0">the Notes page</a>.</p>
 
       <div class="staging-toolbar">
         <form method="post" action="/scene/toggle_initiative" style="display:inline;">
@@ -155,7 +187,7 @@
 
       <div class="section">
         <h3>Scene Notes</h3>
-        <p class="dt-note" style="color:#888;">New notes appear at the top. Promote a note to move it into the permanent Notes section.</p>
+        <p class="dt-note" style="color:#888;">New notes appear at the top of the scene grid. Promote a note to move it into the permanent Notes section.</p>
         <form method="post" action="/scene/panel" class="notes-form scene-note-add">
           <h4>Add Scene Note</h4>
           <input type="text" name="title" placeholder="Title (optional)">
@@ -203,40 +235,6 @@
               </div>
             <% end %>
           </div>
-        <% end %>
-      </div>
-
-      <div class="section">
-        <h3>Characters of Interest</h3>
-        <p class="dt-note" style="color:#888;">Visible at the top of /scene. Promote a name below to add a new one.</p>
-        <% if @characters_of_interest.empty? %>
-          <p class="dt-note">No characters of interest yet.</p>
-        <% else %>
-          <ul class="staging-coi-list">
-            <% @characters_of_interest.each do |char| %>
-              <li class="staging-coi-item">
-                <div>
-                  <strong><%= h(char['title']) %></strong>
-                  <% if char['note'] && !char['note'].to_s.empty? %>
-                    — <span><%= h(char['note']) %></span>
-                  <% end %>
-                  <small style="color:#666;">
-                    <%= char['public'] ? '(Public)' : '(DM Only)' %>
-                    <% tier = char['tier'].to_i if char.key?('tier') %>
-                    <% if tier && tier >= 0 %>· Tier <%= tier %><% end %>
-                  </small>
-                </div>
-                <form method="post" action="/scene/character/toggle_public" style="display:inline;">
-                  <input type="hidden" name="id" value="<%= h(char['id']) %>">
-                  <button type="submit"><%= char['public'] ? 'Hide from players' : 'Show to players' %></button>
-                </form>
-                <form method="post" action="/scene/character/delete" style="display:inline;">
-                  <input type="hidden" name="id" value="<%= h(char['id']) %>">
-                  <button type="submit" class="danger" onclick="return confirm('Delete this character of interest?');">Delete</button>
-                </form>
-              </li>
-            <% end %>
-          </ul>
         <% end %>
       </div>
 
@@ -317,7 +315,7 @@
                         </select>
                       </div>
                       <div>
-                        <label><input type="checkbox" name="public" value="true" checked> Visible to players</label>
+                        <label><input type="checkbox" name="public" value="true" checked> Visible to players on Notes page</label>
                       </div>
                     </div>
                     <button type="submit">Promote to Character of Interest</button>

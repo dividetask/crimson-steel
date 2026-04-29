@@ -87,6 +87,25 @@ module GameDate
   def format_dt(dt)
     "#{dt['day']} #{month_name(dt['month'])} #{dt['year']} — #{'%02d:%02d' % [dt['hour'], dt['minute']]}"
   end
+
+  # Render hints for the scene's sun/moon SVG. Day runs 06:00–18:00; the
+  # sun arcs from the east horizon (left) to the west horizon (right),
+  # peaking at noon. The moon does the same from 18:00–06:00. Returns
+  # the cx/cy of the body in a 200x80 viewport, plus a flag for which
+  # body to draw.
+  def sun_moon_view(dt)
+    minutes = dt['hour'].to_i * 60 + dt['minute'].to_i
+    is_day = minutes >= 6 * 60 && minutes < 18 * 60
+    night_min = if is_day
+                  0
+                else
+                  minutes < 6 * 60 ? minutes + 6 * 60 : minutes - 18 * 60
+                end
+    progress = (is_day ? (minutes - 6 * 60) : night_min) / (12.0 * 60)
+    cx = 20.0 + 160.0 * progress
+    cy = 70.0 - 55.0 * Math.sin(progress * Math::PI)
+    { 'is_day' => is_day, 'cx' => cx.round(1), 'cy' => cy.round(1) }
+  end
 end
 
 module CharacterHelpers
