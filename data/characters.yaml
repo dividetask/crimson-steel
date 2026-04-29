@@ -1,0 +1,50 @@
+# Crimson Steel — character roster.
+
+characters:
+  - id: 1
+    name: Stumpy
+    player: Jarett
+    race: Dwarf
+    attributes:
+      str: 12
+      dex: 14
+      con: 17
+      int: 14
+      wis: 18
+      cha: 11
+
+  - id: 2
+    name: Olga
+    player: Candace
+    race: Human
+    attributes:
+      str: 19
+      dex: 17
+      con: 17
+      int: 11
+      wis: 13
+      cha: 10
+
+  - id: 3
+    name: Lysander
+    player: Zack
+    race: Elf
+    attributes:
+      str: 9
+      dex: 19
+      con: 13
+      int: 14
+      wis: 15
+      cha: 15
+
+  - id: 4
+    name: Cottonballs
+    player: Dave
+    race: Satyr
+    attributes:
+      str: 11
+      dex: 18
+      con: 14
+      int: 12
+      wis: 13
+      cha: 18
