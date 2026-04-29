@@ -14,7 +14,7 @@ class EmptyData
                          'show_initiative' => false }.freeze
 
   def self.campaign;               EMPTY_CAMPAIGN;     end
-  def self.chapters;               [];                 end
+  def self.chapters;               NOTES_STATE.chapters; end
   def self.characters;             [];                 end
   def self.pcs;                    [];                 end
   def self.character_by_id(_id);   nil;                end

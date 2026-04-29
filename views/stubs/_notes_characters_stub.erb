@@ -2,29 +2,24 @@
 <% if entries.empty? %>
   <p class="notes-empty">No characters of interest yet.</p>
 <% else %>
-  <table class="notes-characters-table">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Role</th>
-        <th>Last seen</th>
-        <th>Notes</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% entries.each do |e| %>
-        <tr>
-          <td class="notes-character-name">
-            <%= h e['name'] %>
-            <% if e['public'] == false %><span class="notes-meta-chip notes-meta-private">DM only</span><% end %>
-            <% if e['active']          %><span class="notes-meta-chip notes-meta-active">Active</span><% end %>
-          </td>
-          <td><%= h e['role'] %></td>
-          <td><%= h e['last_seen'] %></td>
-          <td><%= h e['note'] %></td>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
+  <% entries.each do |e| %>
+    <article class="notes-card notes-card-character" data-note-id="<%= h e['id'] %>">
+      <div class="notes-card-portrait <%= notes_tier_class(e['tier']) %>">
+        <span class="notes-card-portrait-placeholder">?</span>
+      </div>
+      <div class="notes-card-body">
+        <div class="notes-card-title notes-card-character-name <%= notes_tier_class(e['tier']) %>">
+          <%= h e['title'] %>
+          <% if e['tier'] %><span class="notes-tier-badge <%= notes_tier_class(e['tier']) %>">T<%= h e['tier'] %></span><% end %>
+        </div>
+        <%= notes_body_html(e['note']) %>
+        <div class="notes-card-meta">
+          <% if e['chapter']         %><span class="notes-meta-chip">Ch. <%= h e['chapter'] %></span><% end %>
+          <% if e['public'] == false %><span class="notes-meta-chip notes-meta-private">DM only</span><% end %>
+          <% if e['active']          %><span class="notes-meta-chip notes-meta-active">Active</span><% end %>
+        </div>
+      </div>
+    </article>
+  <% end %>
 <% end %>
 </div>
