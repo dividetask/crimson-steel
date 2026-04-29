@@ -14,7 +14,7 @@
       can_draw: true
     ) %>
 
-<% if dm? %>
+<% if dm_view? %>
   <h3>As DM</h3>
   <%= notes_map_stub(
         entries: DATA.note_maps,
@@ -33,7 +33,7 @@
 <%= initiative_stub(
       turns: DATA.initiative_turns,
       current_combat_id: current_turn,
-      dm_view: dm?
+      dm_view: dm_view?
     ) %>
 
 <h3>As player</h3>
@@ -46,7 +46,7 @@
 <h3>Empty state</h3>
 <%= initiative_stub(turns: []) %>
 
-<% if dm? %>
+<% if dm_view? %>
   <h2>Character Assignment Stub <small>(DM only)</small></h2>
   <%= assignment_stub(
         devices: USER_STORE.list,

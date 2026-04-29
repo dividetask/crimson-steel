@@ -38,12 +38,37 @@ body {
   text-decoration: underline;
 }
 
+.menu-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .menu-server-ip {
   color: #bbb;
   font-family: monospace;
   font-size: 12px;
   user-select: all;
 }
+
+/* DM-only toggle that flips the UI between DM and player views.
+   Players never see this; it stays visible for the DM in either
+   mode so they can switch back. */
+.menu-view-toggle { margin: 0; }
+.menu-view-toggle-btn {
+  font: inherit;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid #888;
+  background: #555;
+  color: #fff;
+  cursor: pointer;
+}
+.menu-view-toggle-btn:hover { background: #666; }
+.menu-view-toggle-btn.is-dm     { background: #1565c0; border-color: #0d47a1; }
+.menu-view-toggle-btn.is-dm:hover     { background: #1976d2; }
+.menu-view-toggle-btn.is-player { background: #7a1f1f; border-color: #4a0000; }
+.menu-view-toggle-btn.is-player:hover { background: #913030; }
 
 .stub-test-form {
   display: flex;
@@ -1153,3 +1178,141 @@ body {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
   user-select: none;
 }
+
+/* ===== Combined notes/characters/images feed ========================== */
+
+/* Section header before each chapter group. Sits flush-left with
+   the rest of the feed and uses a subtle rule under it so it reads
+   as a divider rather than a top-level page heading. */
+.notes-chapter-divider {
+  margin: 1.5em 0 0.5em;
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid #d0c8b8;
+  font-size: 1.15em;
+  font-weight: 600;
+  color: #4a3b1a;
+}
+.notes-chapter-divider-num   { color: #806b3a; margin-right: 0.4em; }
+.notes-chapter-divider-title { color: #2a1f00; }
+
+/* Card shell shared by note / character / image. */
+.notes-card {
+  border: 1px solid #e0d8c8;
+  background: #fffdf6;
+  border-radius: 6px;
+  padding: 0.75em 1em;
+  margin: 0.6em 0;
+}
+.notes-card-title {
+  font-weight: 600;
+  margin-bottom: 0.35em;
+}
+.notes-card-meta {
+  margin-top: 0.4em;
+  font-size: 0.85em;
+}
+
+/* Character card: portrait frame on the left, body on the right. */
+.notes-card-character {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 0.9em;
+  align-items: start;
+}
+.notes-card-portrait {
+  width: 64px;
+  height: 64px;
+  border-radius: 4px;
+  background: #f0ece0;
+  border: 2px solid #bbb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  font-size: 1.6em;
+  font-weight: bold;
+}
+.notes-card-portrait-placeholder { line-height: 1; }
+.notes-card-character-name { display: flex; align-items: center; gap: 0.5em; }
+
+/* Tier badge sits next to the name. Same color as the name itself. */
+.notes-tier-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* Tier color scale. Negative = above-tier / unknown (purple). 0
+   trivial through 4 standard rises through gray/green/blue/orange/red. */
+.notes-tier--1     { color: #6a1b9a; border-color: #6a1b9a; }
+.notes-tier-0      { color: #555;    border-color: #555;    }
+.notes-tier-1      { color: #2e7d32; border-color: #2e7d32; }
+.notes-tier-2      { color: #1565c0; border-color: #1565c0; }
+.notes-tier-3      { color: #ef6c00; border-color: #ef6c00; }
+.notes-tier-4      { color: #c62828; border-color: #c62828; }
+.notes-tier-5      { color: #7f0000; border-color: #7f0000; }
+.notes-tier-unknown{ color: #444;    border-color: #444;    }
+
+/* The portrait frame inherits the tier color as its border so the
+   character "card" reads as that tier at a glance. */
+.notes-card-portrait.notes-tier--1     { border-color: #6a1b9a; }
+.notes-card-portrait.notes-tier-0      { border-color: #555;    }
+.notes-card-portrait.notes-tier-1      { border-color: #2e7d32; }
+.notes-card-portrait.notes-tier-2      { border-color: #1565c0; }
+.notes-card-portrait.notes-tier-3      { border-color: #ef6c00; }
+.notes-card-portrait.notes-tier-4      { border-color: #c62828; }
+.notes-card-portrait.notes-tier-5      { border-color: #7f0000; }
+.notes-card-portrait.notes-tier-unknown{ border-color: #888;    }
+
+/* Image card */
+.notes-card-image {
+  display: inline-block;
+  vertical-align: top;
+  width: 240px;
+  margin-right: 0.6em;
+  padding: 0.5em;
+}
+.notes-card-image .notes-image-frame {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #eee;
+  border: 1px solid #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.notes-card-image .notes-image-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.notes-card-image .notes-image-caption {
+  font-size: 0.9em;
+  margin-top: 0.35em;
+  color: #444;
+}
+
+/* Note body with expand/collapse. Hidden by default; .expanded
+   reveals the rest, swaps the ellipsis off, and the toggle text
+   changes via JS. */
+.notes-body { line-height: 1.4; }
+.notes-body-collapsible .notes-body-rest      { display: none; }
+.notes-body-collapsible.expanded .notes-body-rest      { display: inline; }
+.notes-body-collapsible.expanded .notes-body-ellipsis  { display: none; }
+.notes-body-toggle {
+  display: inline-block;
+  margin-left: 0.4em;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1565c0;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+.notes-body-toggle:hover { text-decoration: underline; }
