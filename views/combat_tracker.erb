@@ -1929,7 +1929,7 @@
       var afflictionHtml = '';
       attackState.afflictionDefaults = [];
       if (attackState.attackPenetrates) {
-        if (!weapon.is_ranged && weapon.weapon_bleed > 0) {
+        if (weapon.weapon_bleed > 0) {
           attackState.afflictionDefaults.push({ key: 'bleed', label: 'Bleed', amount: totalDamage + weapon.weapon_bleed });
         }
         if (weapon.is_natural && currentAttackerAbilities.indexOf('ghoul_paralysis') !== -1) {
