@@ -706,23 +706,46 @@ body {
   background: #fff7c2;
 }
 
-.attack-pool-readout {
+/* Weapon / defense / ally pick table.  Three columns: clickable
+ * name button, plain-text meta, dice buttons.  Header row carries
+ * an optional combat-pool readout + right-aligned action button.
+ * Footer row holds a right-aligned [Continue] for the ally step. */
+.attack-pick-table {
   flex: 1 1 100%;
-  padding: 4px 0;
+  border-collapse: collapse;
+  font-size: 11px;
+  width: auto;
+}
+
+.attack-pick-table td {
+  padding: 3px 6px;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+}
+
+.attack-pick-table tbody tr:last-child td { border-bottom: none; }
+.attack-pick-table tfoot td { border-top: 1px solid #eee; padding-top: 6px; }
+
+.attack-pool-readout {
   font-size: 12px;
 }
 
-.attack-pick-row {
-  flex: 1 1 100%;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 0;
+.attack-pick-name-cell { white-space: nowrap; }
+.attack-pick-meta-cell { color: #666; white-space: nowrap; }
+
+.attack-pick-dice-cell {
+  white-space: nowrap;
 }
 
+.attack-pick-dice-cell button + button { margin-left: 3px; }
+
+/* Right-aligned action cell -- [Do Nothing] in defense, [None] /
+ * [Continue] in ally.  Aligning right inside a table cell does the
+ * same job margin-left:auto did in the old flex layout. */
+.attack-action-cell { text-align: right; }
+
 .attack-pick-row-label {
-  /* Button hugs its name; meta info lives in a sibling span. */
+  /* Button hugs its name; meta info lives in a sibling cell. */
   text-align: left;
 }
 
@@ -732,17 +755,6 @@ body {
   color: #000;
   cursor: default;
   opacity: 1;
-}
-
-.attack-pick-row-meta {
-  margin-right: 6px;
-}
-
-/* Right-aligned action buttons -- [Do Nothing] in defense, [None]
- * and [Continue] in ally / luck. margin-left:auto inside a flex row
- * pushes them to the far right so they all line up. */
-.attack-action-right {
-  margin-left: auto;
 }
 
 .attack-pick-pt {

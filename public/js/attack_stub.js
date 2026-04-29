@@ -213,9 +213,10 @@
   }
 
   // --- Step 2: Weapon + Attack Dice (combined) ----------------------------
-  // Renders one row per weapon with a dice button per valid count.
-  // Buttons are disabled when (dice + weapon.speed) exceeds the
-  // attacker's current combat pool.
+  // Renders a 3-column table: [Weapon button] [meta] [dice buttons].
+  // The header row holds the combat pool readout. Buttons are
+  // disabled when (dice + weapon.speed) exceeds the attacker's
+  // current combat pool.
   function chooseWeaponAndDice(stubId) {
     var c = cfg(stubId);
     var weapons = c.attacker.weapons || [];
@@ -226,7 +227,9 @@
       step.body.textContent = 'Attacker has no equipped weapons.';
       return;
     }
-    appendPoolHeader(step.body, pool, poolMax);
+    var table = pickTable();
+    table.appendChild(poolHeaderRow(pool, poolMax, 3));
+    var tbody = document.createElement('tbody');
     weapons.forEach(function(w) {
       var min = w.min_dice | 0;
       var max = w.max_dice | 0;
@@ -240,24 +243,28 @@
           ' <span class="attack-meta">(cost ' + cost + ')</span>');
         chooseDefenseAndDice(stubId);
       };
-      var row = pickRow(w.name,
+      var row = pickRowTr(w.name,
         '(Speed ' + speed + ', Max ' + max + ')',
         { onPickMax: function() { pickWith(max); },
           maxAffordable: (max + speed) <= pool });
+      var diceTd = row.lastChild; // dice cell
       for (var n = min; n <= max; n++) {
         (function(dice) {
           var cost = dice + speed;
-          row.appendChild(diceBtn(dice, cost, pool, function() { pickWith(dice); }));
+          diceTd.appendChild(diceBtn(dice, cost, pool, function() { pickWith(dice); }));
         })(n);
       }
-      step.body.appendChild(row);
+      tbody.appendChild(row);
     });
+    table.appendChild(tbody);
+    step.body.appendChild(table);
   }
 
   // --- Step 3: Defense + Defense Dice (combined) --------------------------
-  // Header row with combat pool readout and a "Do Nothing" button.
-  // Per-defense rows underneath, dice buttons greyed when the target
-  // can't afford (dice + implement speed).
+  // 3-column table; header row pairs the combat pool readout with a
+  // right-aligned [Do Nothing] action. Body has one row per defense
+  // option; dice buttons greyed when (dice + implement speed) exceeds
+  // the target's combat pool.
   function chooseDefenseAndDice(stubId) {
     var c = cfg(stubId);
     var target = c.state.target;
@@ -269,26 +276,20 @@
       step.body.textContent = 'No defenses available.';
       return;
     }
-    var header = document.createElement('div');
-    header.className = 'attack-pick-row';
-    var poolEl = document.createElement('span');
-    poolEl.innerHTML = '<strong>Combat Pool ' + pool + '/' + poolMax + '</strong>';
-    header.appendChild(poolEl);
+    var table = pickTable();
     var nothing = defs.filter(function(d) { return d.kind === 'nothing'; })[0];
+    var noneBtn = null;
     if (nothing) {
-      var none = document.createElement('button');
-      none.type = 'button';
-      none.className = 'attack-btn attack-action-right';
-      none.textContent = 'Do Nothing';
-      none.addEventListener('click', function() {
+      noneBtn = actionBtn('Do Nothing', function() {
         c.state.defense = nothing;
         c.state.defenseDice = 0;
         lockStep(step, 'Defense: <strong>' + escapeHtml(nothing.label) + '</strong>');
         chooseAllyAndDice(stubId);
       });
-      header.appendChild(none);
     }
-    step.body.appendChild(header);
+    table.appendChild(poolHeaderRow(pool, poolMax, 3, noneBtn));
+
+    var tbody = document.createElement('tbody');
     defs.forEach(function(d) {
       if (d.kind === 'nothing' || !d.uses_dice) return;
       var speed = (d.implement && d.implement.speed) | 0;
@@ -304,25 +305,28 @@
           ' <span class="attack-meta">(cost ' + cost + ')</span>');
         chooseAllyAndDice(stubId);
       };
-      var row = pickRow(d.label, '(' + meta + ')',
+      var row = pickRowTr(d.label, '(' + meta + ')',
         { onPickMax: function() { pickWith(max); },
           maxAffordable: (max + speed) <= pool });
+      var diceTd = row.lastChild;
       for (var n = min; n <= max; n++) {
         (function(dice) {
           var cost = dice + speed;
-          row.appendChild(diceBtn(dice, cost, pool, function() { pickWith(dice); }));
+          diceTd.appendChild(diceBtn(dice, cost, pool, function() { pickWith(dice); }));
         })(n);
       }
-      step.body.appendChild(row);
+      tbody.appendChild(row);
     });
+    table.appendChild(tbody);
+    step.body.appendChild(table);
   }
 
   // --- Step 4: Ally Reactions + Dice (combined) ---------------------------
-  // Header line carries [None] right-aligned (mirrors [Do Nothing] in
-  // the defense step); [None] advances with no allies engaged. A
-  // [Continue] action sits on the right of a footer line, lining up
-  // with [None] above it. Once every ally row has a dice pick, the
-  // step auto-advances -- so the single-ally common case is one click.
+  // 3-column table; header row holds [None] right-aligned, footer
+  // row holds [Continue] right-aligned. Both line up vertically with
+  // [Do Nothing] from the defense step. Once every ally row has a
+  // dice pick the step auto-advances; the single-ally common case is
+  // therefore one click.
   function chooseAllyAndDice(stubId) {
     var c = cfg(stubId);
     var allies = c.allyReactions || [];
@@ -363,20 +367,15 @@
       if (selections.every(function(s) { return s.dice > 0; })) advance();
     }
 
-    var header = document.createElement('div');
-    header.className = 'attack-pick-row';
-    var none = document.createElement('button');
-    none.type = 'button';
-    none.className = 'attack-btn attack-action-right';
-    none.textContent = 'None';
-    none.addEventListener('click', function() {
+    var table = pickTable();
+    var noneBtn = actionBtn('None', function() {
       selections.forEach(function(s) { s.dice = 0; });
       rowEntries.forEach(function(_, i) { paint(i); });
       advance();
     });
-    header.appendChild(none);
-    step.body.appendChild(header);
+    table.appendChild(actionHeaderRow(3, noneBtn));
 
+    var tbody = document.createElement('tbody');
     allies.forEach(function(a, idx) {
       var pool = a.combat_pool | 0;
       var poolMax = a.combat_pool_max | 0;
@@ -390,10 +389,11 @@
         paint(idx);
         maybeAutoAdvance();
       };
-      var row = pickRow(headLabel,
+      var row = pickRowTr(headLabel,
         '(Combat Pool ' + pool + '/' + poolMax + ', Max ' + max + ')',
         { onPickMax: function() { toggle(max); },
           maxAffordable: max <= pool });
+      var diceTd = row.lastChild;
       var ents = [];
       for (var n = min; n <= max; n++) {
         (function(dice) {
@@ -407,41 +407,88 @@
           } else {
             b.addEventListener('click', function() { toggle(dice); });
           }
-          row.appendChild(b);
+          diceTd.appendChild(b);
           ents.push({ btn: b, dice: dice });
         })(n);
       }
       rowEntries.push(ents);
-      step.body.appendChild(row);
+      tbody.appendChild(row);
     });
+    table.appendChild(tbody);
 
-    var footer = document.createElement('div');
-    footer.className = 'attack-pick-row';
-    var cont = document.createElement('button');
-    cont.type = 'button';
-    cont.className = 'attack-btn attack-btn-primary attack-action-right';
-    cont.textContent = 'Continue';
-    cont.addEventListener('click', advance);
-    footer.appendChild(cont);
-    step.body.appendChild(footer);
+    var contBtn = actionBtn('Continue', advance, 'attack-btn-primary');
+    table.appendChild(actionFooterRow(3, contBtn));
+
+    step.body.appendChild(table);
   }
 
   // --- Combined-step DOM helpers ------------------------------------------
-  function appendPoolHeader(parent, pool, poolMax) {
-    var el = document.createElement('div');
-    el.className = 'attack-pool-readout';
-    el.innerHTML = '<strong>Combat Pool ' + pool + '/' + poolMax + '</strong>';
-    parent.appendChild(el);
+
+  function pickTable() {
+    var t = document.createElement('table');
+    t.className = 'attack-pick-table';
+    return t;
   }
 
-  // Build a "weapon row": clickable name button (picks max dice) +
-  // plain-text meta + dice buttons appended by the caller.
-  // opts.onPickMax fires when the name is clicked. opts.maxAffordable
-  // disables the name button when the actor can't afford the max cost.
-  function pickRow(label, meta, opts) {
+  // Header row that just holds the combat-pool readout (left) and an
+  // optional right-aligned action button. Used by weapon and defense
+  // steps. cols is the table column count for colspan math.
+  function poolHeaderRow(pool, poolMax, cols, rightBtn) {
+    var thead = document.createElement('thead');
+    var tr = document.createElement('tr');
+    var poolTd = document.createElement('td');
+    poolTd.colSpan = rightBtn ? cols - 1 : cols;
+    poolTd.className = 'attack-pool-readout';
+    poolTd.innerHTML = '<strong>Combat Pool ' + pool + '/' + poolMax + '</strong>';
+    tr.appendChild(poolTd);
+    if (rightBtn) {
+      var actionTd = document.createElement('td');
+      actionTd.className = 'attack-action-cell';
+      actionTd.appendChild(rightBtn);
+      tr.appendChild(actionTd);
+    }
+    thead.appendChild(tr);
+    return thead;
+  }
+
+  // Header row that's just a right-aligned action (no pool readout).
+  // Used by the ally step's [None].
+  function actionHeaderRow(cols, rightBtn) {
+    var thead = document.createElement('thead');
+    var tr = document.createElement('tr');
+    var spacer = document.createElement('td');
+    spacer.colSpan = cols - 1;
+    tr.appendChild(spacer);
+    var actionTd = document.createElement('td');
+    actionTd.className = 'attack-action-cell';
+    actionTd.appendChild(rightBtn);
+    tr.appendChild(actionTd);
+    thead.appendChild(tr);
+    return thead;
+  }
+
+  // Footer row holding a right-aligned action. Used by the ally
+  // step's [Continue].
+  function actionFooterRow(cols, rightBtn) {
+    var tfoot = document.createElement('tfoot');
+    var tr = document.createElement('tr');
+    var td = document.createElement('td');
+    td.colSpan = cols;
+    td.className = 'attack-action-cell';
+    td.appendChild(rightBtn);
+    tr.appendChild(td);
+    tfoot.appendChild(tr);
+    return tfoot;
+  }
+
+  // Build a body row for the pick table: [name button] [meta] [dice]
+  // The dice cell is left empty for the caller to fill.
+  function pickRowTr(label, meta, opts) {
     opts = opts || {};
-    var row = document.createElement('div');
-    row.className = 'attack-pick-row';
+    var tr = document.createElement('tr');
+
+    var nameTd = document.createElement('td');
+    nameTd.className = 'attack-pick-name-cell';
     var head = document.createElement('button');
     head.type = 'button';
     head.className = 'attack-btn attack-pick-row-label';
@@ -451,12 +498,19 @@
     } else {
       head.disabled = true;
     }
-    row.appendChild(head);
-    var metaEl = document.createElement('span');
-    metaEl.className = 'attack-meta attack-pick-row-meta';
-    metaEl.textContent = meta;
-    row.appendChild(metaEl);
-    return row;
+    nameTd.appendChild(head);
+    tr.appendChild(nameTd);
+
+    var metaTd = document.createElement('td');
+    metaTd.className = 'attack-meta attack-pick-meta-cell';
+    metaTd.textContent = meta;
+    tr.appendChild(metaTd);
+
+    var diceTd = document.createElement('td');
+    diceTd.className = 'attack-pick-dice-cell';
+    tr.appendChild(diceTd);
+
+    return tr;
   }
 
   function diceBtn(dice, cost, pool, onPick) {
@@ -473,19 +527,14 @@
     return b;
   }
 
-  // Right-side action button: the [Do Nothing], [None], [Continue]
-  // family. Wraps a button in a flex row so margin-left:auto pushes
-  // it to the right edge regardless of what comes before it.
-  function actionRow(label, onClick, extraClass) {
-    var row = document.createElement('div');
-    row.className = 'attack-pick-row attack-action-row';
+  // Build a right-aligned action button used in header / footer rows.
+  function actionBtn(label, onClick, extraClass) {
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'attack-btn' + (extraClass ? ' ' + extraClass : '');
     b.textContent = label;
     b.addEventListener('click', onClick);
-    row.appendChild(b);
-    return { row: row, btn: b };
+    return b;
   }
 
   // --- Step 5: Consolidated Luck Table ------------------------------------
@@ -783,33 +832,27 @@
   }
 
   // --- Step 7: Target reactions -------------------------------------------
+  // Target may take at most one reaction (Danger Sense OR Primal
+  // Tenacity, never both). Each reaction button advances the flow
+  // immediately; [None] advances with no reaction.
   function chooseTargetReactions(stubId) {
     var c = cfg(stubId);
     var reactions = (c.state.target && c.state.target.reactions) || [];
     if (reactions.length === 0) { collectDamage(stubId); return; }
     var step = appendStep(stubId, 'Target Reactions', 'targetReactions');
-    var picks = [];
-    reactions.forEach(function(r) {
-      var label = escapeHtml(r.label) + (r.cost ? ' <span class="attack-meta">(' + escapeHtml(r.cost) + ')</span>' : '');
-      var b = btn(label, function() {
-        if (b.classList.toggle('attack-btn-selected')) picks.push(r);
-        else {
-          var i = picks.indexOf(r);
-          if (i !== -1) picks.splice(i, 1);
-        }
-      });
-      step.body.appendChild(b);
-    });
-    var done = btn('Continue', function() {
-      c.state.targetReactions = picks.slice();
-      var summary = picks.length === 0
-        ? '<em>No target reactions.</em>'
-        : 'Target reactions: <strong>' + picks.map(function(r){ return escapeHtml(r.label); }).join(', ') + '</strong>';
-      lockStep(step, summary);
+    var pick = function(r) {
+      c.state.targetReactions = r ? [r] : [];
+      lockStep(step, r
+        ? 'Target reaction: <strong>' + escapeHtml(r.label) + '</strong>'
+        : '<em>No target reaction.</em>');
       collectDamage(stubId);
-    }, 'attack-btn-primary');
-    step.body.appendChild(document.createElement('br'));
-    step.body.appendChild(done);
+    };
+    step.body.appendChild(btn('None', function() { pick(null); }));
+    reactions.forEach(function(r) {
+      var label = escapeHtml(r.label) +
+        (r.cost ? ' <span class="attack-meta">(' + escapeHtml(r.cost) + ')</span>' : '');
+      step.body.appendChild(btn(label, function() { pick(r); }));
+    });
   }
 
   // --- Step 8: Damage form -------------------------------------------------
