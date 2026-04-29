@@ -1,0 +1,28 @@
+# Crimson Steel — combat rules.
+#
+# Setup:
+#   1. Copy this file to `data/combat_rules.yaml`
+#      (the data/ directory is gitignored, so each campaign keeps
+#      its own tuned values).
+#   2. Adjust values to taste. The defaults match the values
+#      assumed by the rest of the game design.
+#   3. Restart the server.
+
+# Initiative dice count for a character is
+# floor(Attribute / Initiative Divisor). Attribute is Wisdom by
+# default. 2 means a Wis-16 character rolls 8 initiative dice
+# 3 means they roll 5.
+Initiative Attribute: wis
+Initiative Divisor: 2
+
+# Action dice (combat pool) max per combatant is calculated as
+#
+#   raw = martial_skill_ranks + (attribute / 2)
+#   action_dice_max = (raw % Combat Pool Range) + Combat Pool Minimum
+#
+# The integer-division part — raw / Combat Pool Range — is an
+# untyped bonus, exposed by the Combat class but not yet consumed
+# by combat-roll math.
+Combat Pool Attribute: wis
+Combat Pool Range: 10
+Combat Pool Minimum: 11

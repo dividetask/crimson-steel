@@ -30,6 +30,14 @@ class Character
     @attributes[sym.to_sym].to_i
   end
 
+  # Placeholder until the skill system lands. Other modules (Combat,
+  # for one) need a martial-ranks value to plug into their formulas;
+  # returning 0 lets them wire up now and pick up real numbers later
+  # without an interface change.
+  def martial_skill_ranks
+    0
+  end
+
   # Load a YAML roster from `path`. Returns [] if the file doesn't
   # exist (production starts empty until the DM drops one in). The
   # file format is documented in docs/characters.yaml.example.

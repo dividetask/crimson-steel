@@ -1,0 +1,35 @@
+# Crimson Steel — combat state.
+#
+# Setup:
+#   1. Copy this file to `data/combat.yaml`
+#      (the data/ directory is gitignored, so each campaign keeps
+#      its own combat state).
+#   2. Leave the values as-is — the Combat class atomically
+#      rewrites this file on every mutation. Listed here only so
+#      the schema is documented.
+#   3. Restart the server.
+#
+# Tunable rule values (Initiative Divisor, Combat Pool Range,
+# Combat Pool Minimum) live in `data/combat_rules.yaml`, not here.
+#
+# Schema:
+#   active             — true while combat is in progress
+#   round              — round counter (1 on the first round
+#                        after a reroll)
+#   current_turn_index — index into turn_order for the active
+#                        combatant
+#   combatants         — list of combatants. Per-entry fields:
+#     id              — per-instance combat id (unique within
+#                       this combat, distinct from char_id)
+#     char_id         — underlying character/template id
+#     name            — display name
+#     initiative_dice — dice values rolled for initiative, sorted
+#                       high-to-low. Empty until the first
+#                       reroll. Tie-break is die-by-die descending.
+#     action_dice     — current action dice remaining (max is
+#                       calculated on demand, not stored)
+
+active: false
+round: 0
+current_turn_index: 0
+combatants: []
