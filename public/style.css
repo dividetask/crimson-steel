@@ -597,6 +597,13 @@ table th {
 .staging-image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .staging-image img { max-width: 100%; max-height: 180px; display: block; border: 1px solid #ccc; }
 
+.scene-reminder { margin: 10px 0; padding: 6px 12px; background: #e3f2fd; border: 1px solid #64b5f6; border-radius: 4px; }
+.scene-reminder summary { cursor: pointer; font-weight: bold; color: #0d47a1; font-size: 14px; padding: 2px 0; list-style: none; }
+.scene-reminder summary::-webkit-details-marker { display: none; }
+.scene-reminder summary::before { content: '▸ '; display: inline-block; transition: transform 0.15s; }
+.scene-reminder[open] summary::before { content: '▾ '; }
+.scene-reminder p { margin: 8px 0 4px 0; font-size: 13px; color: #1a237e; line-height: 1.45; }
+
 .scene-datetime { display: flex; align-items: center; gap: 14px; background: #fff7c2; border: 1px solid #d4b84a; padding: 8px 14px; border-radius: 4px; margin: 14px 0 10px 0; font-size: 16px; }
 .scene-sky { width: 200px; height: 80px; border: 1px solid #b58c2a; border-radius: 3px; background: #1c2240; }
 .scene-datetime-value { font-weight: bold; }

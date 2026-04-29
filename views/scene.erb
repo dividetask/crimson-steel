@@ -1,6 +1,13 @@
 <div class="scene">
   <h1>Scene</h1>
 
+  <% unless @show_initiative %>
+    <details class="scene-reminder">
+      <summary>Reminder</summary>
+      <p>All information shown is what your character's believe rather then what is true. Most information is probably correct, but any assumptions your character's have made will affect the reliability of this information. Characters and Items can hide their tiers, and any lies your character's believe will be written as though it is truth. If a character's tier is unknown then that character hide it during your interactions and they are likely higher then yours</p>
+    </details>
+  <% end %>
+
   <div class="scene-datetime">
     <svg class="scene-sky" viewBox="0 0 200 80" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
       <rect width="200" height="80" fill="<%= @sun_moon['is_day'] ? '#bcdcff' : '#1c2240' %>"/>
