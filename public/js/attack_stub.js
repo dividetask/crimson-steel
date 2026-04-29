@@ -434,10 +434,10 @@
     parent.appendChild(el);
   }
 
-  // Build a "weapon row": clickable label that picks max dice, then
-  // one dice button per valid count. opts.onPickMax fires when the
-  // label is clicked (max dice). opts.maxAffordable disables the
-  // label button when the actor can't afford the max cost.
+  // Build a "weapon row": clickable name button (picks max dice) +
+  // plain-text meta + dice buttons appended by the caller.
+  // opts.onPickMax fires when the name is clicked. opts.maxAffordable
+  // disables the name button when the actor can't afford the max cost.
   function pickRow(label, meta, opts) {
     opts = opts || {};
     var row = document.createElement('div');
@@ -445,14 +445,17 @@
     var head = document.createElement('button');
     head.type = 'button';
     head.className = 'attack-btn attack-pick-row-label';
-    head.innerHTML = '<strong>' + escapeHtml(label) + '</strong> ' +
-      '<span class="attack-meta">' + escapeHtml(meta) + '</span>';
+    head.innerHTML = '<strong>' + escapeHtml(label) + '</strong>';
     if (opts.onPickMax && opts.maxAffordable !== false) {
       head.addEventListener('click', opts.onPickMax);
     } else {
       head.disabled = true;
     }
     row.appendChild(head);
+    var metaEl = document.createElement('span');
+    metaEl.className = 'attack-meta attack-pick-row-meta';
+    metaEl.textContent = meta;
+    row.appendChild(metaEl);
     return row;
   }
 
