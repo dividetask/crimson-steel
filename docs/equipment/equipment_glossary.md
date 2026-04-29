@@ -103,12 +103,14 @@ When the Item Type is flagged `innately_usable: true`, the result of the formula
 
 **Roll Row**: One entry in a Loot Table's `rolls` list. Four row shapes are recognized:
 
-- **Guaranteed**: `{item}` — the item always drops.
-- **Independent Chance**: `{chance, item}` — the item drops with probability `chance` ∈ `[0, 1]`.
+- **Guaranteed**: `{item}` or `{items}` — the item(s) always drop.
+- **Independent Chance**: `{chance, item}` or `{chance, items}` — the item(s) drop with probability `chance` ∈ `[0, 1]`.
 - **Weighted Choice**: `{options: [{chance, item}, ...]}` — exactly one of the options is picked by cumulative-probability sample; the remainder (when `sum(chance) < 1`) means nothing drops.
 - **Gated Weighted Choice**: `{chance, options: [...]}` — first roll `chance` to decide whether to enter the table; on success, do a Weighted Choice.
 
-Any row may also declare `equipped: true` at the row level. When present, the Item Stack produced by that row is tagged as equipped on its way into the recipient's inventory. The flag applies to whatever the row actually produces, including weighted-choice winners and inline magical results. Stacks without the flag default to unequipped.
+A row's payload (and likewise an option's payload inside a Weighted Choice) is either `item: <single spec>` or `items: <list of specs>`. The plural form is how a row produces multiple Stacks at once — for example, an archer's bow plus a quiver of arrows from the same row, or a magical sword bundled with its scabbard.
+
+Any row may also declare `equipped: true` at the row level. When present, every Item Stack produced by that row is tagged as equipped (multi-item rows tag all stacks uniformly). Stacks without the flag default to unequipped.
 
 **Option List**: A named, reusable weighted-choice list stored under `option_lists:` in a loot table file. A Roll Row may set `options: "<list_name>"` (string) to pull options from the registry instead of inlining them. Option entries may also recurse via `{chance, from: "<other_list>"}`.
 

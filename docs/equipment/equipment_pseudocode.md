@@ -772,56 +772,58 @@ After the category formula, if the Item Type is flagged `innately_usable: true`,
 1. `table = GET_LOOT_TABLE(table_id)`
 2. `results = empty list`
 3. `for each row in (table['rolls'] or empty):`
-4. `⠀⠀rolled = ROLL_ROW(row)`
-5. `⠀⠀if rolled is not null: append rolled to results`
+4. `⠀⠀stacks = ROLL_ROW(row)  # list of stacks; empty when nothing dropped`
+5. `⠀⠀for each stack in stacks: results.append(stack)`
 6. `return results`
 
 ---
 
 ## ROLL_ROW
 
-**Description:** Rolls one row of a Loot Table and returns either an Item Stack or `null` (nothing dropped). Dispatches on row shape:
+**Description:** Rolls one row of a Loot Table and returns the list of Item Stacks it produced (empty list when nothing drops). Dispatches on row shape:
 
-- **Guaranteed** (`{item}`): always returns a resolved copy of `item`.
-- **Independent Chance** (`{chance, item}`): returns `item` with probability `chance`.
+- **Guaranteed** (`{item}` or `{items}`): always returns the resolved stacks.
+- **Independent Chance** (`{chance, item}` or `{chance, items}`): returns the resolved stacks with probability `chance`, otherwise an empty list.
 - **Weighted Choice** (`{options: [...]}` or `{options: "<list_name>"}`): picks one option by cumulative probability; the remainder (when `sum(chance) < 1`) means nothing drops.
 - **Gated Weighted Choice** (`{chance, options: [...]}`): first rolls `chance` to decide whether to descend into the weighted choice.
 
-If the row carries `equipped: true`, the produced Stack is tagged with `equipped: true` before being returned. The flag applies to whatever the row produces, including weighted-choice winners and inline magical results.
+A row's payload may be either `item: <single spec>` (one stack) or `items: [<spec>, <spec>, ...]` (multiple stacks). Inside an `options:` list, each option likewise may use `item:` or `items:`. The `items:` form is how a row produces, e.g., a Shortbow + Arrows pair, or a magical weapon plus a matching scabbard.
+
+If the row carries `equipped: true`, every Stack in the produced list is tagged with `equipped: true` before being returned. The flag applies uniformly across all of a multi-item row's outputs.
 
 **Parameters:**
 - `row`: a row dictionary.
 
-**Returns:** An Item Stack or `null`.
+**Returns:** A list of Item Stacks. Empty when nothing dropped.
 
-1. `result = null`
+1. `result = empty list`
 2. `options = row['options']`
 3. `if options is a string:`
 4. `⠀⠀if options not in option_lists: raise exception ('Unknown option list: ' + options)`
 5. `⠀⠀options = option_lists[options]`
 6. `if options is a list:`
 7. `⠀⠀if 'chance' in row and RAND_FLOAT() >= row['chance']:`
-8. `⠀⠀⠀⠀return null`
+8. `⠀⠀⠀⠀return empty list`
 9. `⠀⠀result = ROLL_WEIGHTED(options)`
 10. `else if 'chance' in row:`
-11. `⠀⠀if RAND_FLOAT() >= row['chance']: return null`
-12. `⠀⠀result = RESOLVE_ITEM_SPEC(row['item'])`
-13. `else if 'item' in row:`
-14. `⠀⠀result = RESOLVE_ITEM_SPEC(row['item'])`
-15. `if result is not null and row.get('equipped') == true:`
-16. `⠀⠀result['equipped'] = true`
+11. `⠀⠀if RAND_FLOAT() >= row['chance']: return empty list`
+12. `⠀⠀result = RESOLVE_ITEM_SPECS(row)`
+13. `else if 'item' in row or 'items' in row:`
+14. `⠀⠀result = RESOLVE_ITEM_SPECS(row)`
+15. `if row.get('equipped') == true:`
+16. `⠀⠀for each stack in result: stack['equipped'] = true`
 17. `return result`
 
 ---
 
 ## ROLL_WEIGHTED
 
-**Description:** Picks one option from a weighted-choice list. Each option carries a `chance` ∈ `[0, 1]`; their sum is permitted to be less than 1 (the remainder means "nothing"). An option whose body is `{chance, from: "<list_name>"}` recurses into another Option List when selected — useful for cross-tier overflow (e.g., "5% of a tier-1 roll actually grabs from tier-2").
+**Description:** Picks one option from a weighted-choice list and returns the list of Item Stacks it produces. Each option carries a `chance` ∈ `[0, 1]`; their sum is permitted to be less than 1 (the remainder means "nothing"). An option whose body is `{chance, from: "<list_name>"}` recurses into another Option List when selected — useful for cross-tier overflow (e.g., "5% of a tier-1 roll actually grabs from tier-2"). An option may use `item:` (single) or `items:` (multiple).
 
 **Parameters:**
 - `options`: a list of option dictionaries.
 
-**Returns:** An Item Stack or `null`.
+**Returns:** A list of Item Stacks. Empty when the cumulative-probability draw lands in the "nothing" remainder.
 
 1. `total = Σ (option['chance'] or 0) for option in options`
 2. `if total > 1 + 1e-9: log warning ('weighted options sum > 1.0 (got ' + total + ')')`
@@ -834,24 +836,45 @@ If the row carries `equipped: true`, the produced Stack is tagged with `equipped
 9. `⠀⠀⠀⠀⠀⠀sub_list_name = option['from']`
 10. `⠀⠀⠀⠀⠀⠀if sub_list_name not in option_lists: raise exception ('Unknown option list: ' + sub_list_name)`
 11. `⠀⠀⠀⠀⠀⠀return ROLL_WEIGHTED(option_lists[sub_list_name])`
-12. `⠀⠀⠀⠀return RESOLVE_ITEM_SPEC(option['item'])`
-13. `return null`
+12. `⠀⠀⠀⠀return RESOLVE_ITEM_SPECS(option)`
+13. `return empty list`
 
 ---
 
-## RESOLVE_ITEM_SPEC
+## RESOLVE_ITEM_SPECS
 
-**Description:** Internal helper. Converts an `item` spec from a Loot Table row into a fresh Item Stack. Two spec shapes are recognized:
+**Description:** Internal helper. Reads an `item` (single) or `items` (list) field off a row or option and returns the resolved list of Item Stacks. Each individual spec is one of:
 
 - **Literal Stack**: a dictionary with an `item` key. A shallow copy is returned with `quantity` resolved through RESOLVE_QUANTITY (so specs like `{item: Arrow, quantity: "1d6+4"}` work).
-- **Inline Magical Row**: a dictionary with a `magical` key. The `magical` value is a Magical Item Constraint; generation is dispatched to GENERATE_MAGICAL_ITEM (A5).
+- **Inline Magical Row**: a dictionary with a `magical` key. The `magical` value is a Magical Item Constraint; generation is dispatched to GENERATE_MAGICAL_ITEM.
 
-Specs with neither key raise.
+A container that carries neither `item` nor `items` raises. A container that carries both raises (unambiguous shapes only).
 
 **Parameters:**
-- `spec`: a dictionary.
+- `container`: a row or option dictionary, expected to hold `item:` or `items:`.
 
-**Returns:** An Item Stack.
+**Returns:** A list of Item Stacks. Length 1 for `item:`, length ≥ 1 for `items:`.
+
+1. `has_single = 'item' in container`
+2. `has_multi = 'items' in container`
+3. `if has_single and has_multi: raise exception ('Loot row uses both item: and items:')`
+4. `if not has_single and not has_multi: raise exception ('Loot row missing item or items')`
+5. `specs = has_multi ? container['items'] : [container['item']]`
+6. `result = empty list`
+7. `for each spec in specs:`
+8. `⠀⠀result.append(RESOLVE_ONE_SPEC(spec))`
+9. `return result`
+
+---
+
+## RESOLVE_ONE_SPEC
+
+**Description:** Internal helper. Resolves a single item spec into a fresh Item Stack.
+
+**Parameters:**
+- `spec`: a single spec dictionary (literal stack or inline magical).
+
+**Returns:** A single Item Stack.
 
 1. `if 'magical' in spec:`
 2. `⠀⠀return GENERATE_MAGICAL_ITEM(spec['magical'])`

@@ -53,12 +53,22 @@
 #      - chance: 0.1                       # 10% chance to drop anything
 #        options: [...]                    # weighted choice inside
 #
+# Any row's `item:` (and any option's `item:` inside a Weighted
+# Choice) may be replaced with `items: [...]` to produce multiple
+# Stacks at once — for example, an archer's bow + arrows, or a
+# magical sword + its scabbard. The two forms are mutually
+# exclusive on the same row or option.
+#
+#      - chance: 0.30
+#        items:
+#          - {item: Shortbow}
+#          - {item: Arrow, quantity: "1d10 + 5"}
+#
 # Any row may also declare `equipped: true` at the row level. When
-# present, the Item Stack produced by that row is marked as equipped
-# (e.g., a guard rolls with their weapon and armor already on). The
-# flag applies to whatever the row actually produces, including
-# weighted-choice winners and inline magical results. Stacks without
-# the flag default to unequipped.
+# present, every Item Stack produced by that row is marked as
+# equipped (e.g., a guard rolls with their weapon, armor, and
+# arrows already on). For multi-item rows the flag applies to all
+# produced stacks uniformly.
 #
 # ---------------------------------------------------------------------
 # Dice expressions
@@ -152,6 +162,9 @@ loot_tables:
   bandit_equipment:
     rolls:
 
+      # Archers (the Shortbow option) get a quiver of arrows in the
+      # same row, so we never produce arrows without a bow to fire
+      # them.
       - equipped: true
         options:
           - chance: 0.25
@@ -161,7 +174,9 @@ loot_tables:
           - chance: 0.20
             item: {item: Hatchet}
           - chance: 0.15
-            item: {item: Shortbow}
+            items:
+              - {item: Shortbow}
+              - {item: Arrow, quantity: "1d10 + 10"}
           - chance: 0.10
             item: {item: Rapier}
           # 10% nothing
@@ -169,15 +184,6 @@ loot_tables:
       - equipped: true
         chance: 0.50
         item: {item: Leather armor}
-
-      # Archers carry a small bundle of arrows. Gated: 30% chance the
-      # bandit is an archer, then weighted over bundle sizes.
-      - chance: 0.30
-        options:
-          - chance: 0.60
-            item: {item: Arrow, quantity: "1d10 + 5"}
-          - chance: 0.40
-            item: {item: Arrow, quantity: "2d10 + 10"}
 
       - item:
           item: Gold
