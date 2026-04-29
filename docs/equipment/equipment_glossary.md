@@ -158,8 +158,6 @@ The Equipment class exposes three detail-fetcher functions so other modules (com
 
 **Get Armor Details**: Returns the Get Item Details dictionary extended with armor-specific fields: damage reduction, material, base hardness, effective hardness (`base + 2 × Tier`), the hit-points formula string, thickness, resilience increment, and computed resilience (`Tier × increment`, with shield/null guards).
 
-**Lesslethal Effect**: A non-lethal stunning effect inflicted on a successful hit by Weapons carrying the `lesslethal` tag (currently the Whip). Recovery, accumulation, and interaction with hit points belong to the combat module.
-
 ## Time
 
 **Advance Time**: The function the caller invokes to notify the `Equipment` class that game-time has elapsed. Increments the Game Day counter and triggers Active Generic Shop expiry. No other time-sensitive state lives in the Equipment module today; a future shared "time-aware module" interface may generalize this across other systems.
