@@ -65,109 +65,16 @@
   }
 
   // Map of decision-step kinds to the function that re-opens that step.
-  // Built lazily so the function references resolve after declarations.
-  // Per-ally luck steps use 'allyLuck-<idx>' so the dispatcher can
-  // dive back to the right ally when the user clicks Change.
   function rollbackHandler(kind) {
-    var staticHandlers = {
+    return ({
       target:          chooseTarget,
       weaponDice:      chooseWeaponAndDice,
-      attackLuck:      chooseAttackLuck,
       defense:         chooseDefenseAndDice,
-      defenseLuck:     chooseDefenseLuck,
       allyReactions:   chooseAllyAndDice,
+      luckTable:       chooseLuckTable,
       targetReactions: chooseTargetReactions,
       damage:          collectDamage
-    };
-    if (staticHandlers[kind]) return staticHandlers[kind];
-    if (kind.indexOf('allyLuck-') === 0) {
-      var luckIdx = parseInt(kind.substring('allyLuck-'.length), 10);
-      return function(stubId) { chooseAllyLucks(stubId, luckIdx); };
-    }
-    return null;
-  }
-
-  // Shared luck prompt. For each configured luck source we render one
-  // button per remaining point (e.g. 4 buttons for "+1..+4" Bardic, 3
-  // for "-1..-3" Unsettling). Selecting a button on any source clears
-  // the others -- a roll can carry bonus luck or penalty luck, never
-  // both. Click the same button again to deselect. Skips entirely
-  // when no luck sources are configured. Labels and remaining come
-  // from the data; nothing here is hardcoded.
-  function promptLuck(stubId, kind, title, defaults, onContinue) {
-    var c = cfg(stubId);
-    var sources = c.luckSources || [];
-    if (sources.length === 0) { onContinue({}); return; }
-    var step = appendStep(stubId, title, kind);
-    // Mutually-exclusive selection: at most one entry across all sources.
-    var selected = {};
-    if (defaults) {
-      var seedKey = Object.keys(defaults).find(function(k) { return defaults[k] > 0; });
-      if (seedKey) selected[seedKey] = defaults[seedKey];
-    }
-    var btnsByKey = {};
-    sources.forEach(function(src) {
-      var remaining = src.remaining | 0;
-      if (remaining <= 0) return;
-      var row = document.createElement('div');
-      row.className = 'attack-luck-row';
-      var label = document.createElement('span');
-      label.className = 'attack-luck-row-label';
-      label.innerHTML = '<strong>' + escapeHtml(src.label) + '</strong>:';
-      row.appendChild(label);
-      var sign = src.kind === 'penalty' ? '-' : '+';
-      var entries = [];
-      btnsByKey[src.key] = entries;
-      for (var i = 1; i <= remaining; i++) {
-        (function(amount) {
-          var b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'attack-btn attack-luck-pt';
-          if (src.kind === 'penalty') b.classList.add('attack-luck-pt-penalty');
-          b.textContent = sign + amount;
-          b.addEventListener('click', function() {
-            if (selected[src.key] === amount) {
-              delete selected[src.key];
-            } else {
-              selected = {};
-              selected[src.key] = amount;
-            }
-            paint();
-          });
-          row.appendChild(b);
-          entries.push({btn: b, amount: amount});
-        })(i);
-      }
-      step.body.appendChild(row);
-    });
-    function paint() {
-      Object.keys(btnsByKey).forEach(function(key) {
-        btnsByKey[key].forEach(function(item) {
-          item.btn.classList.toggle('attack-luck-pt-selected', selected[key] === item.amount);
-        });
-      });
-    }
-    paint();
-    var done = btn('Continue', function() {
-      var chosen = {};
-      Object.keys(selected).forEach(function(k) {
-        if (selected[k] > 0) chosen[k] = selected[k];
-      });
-      var pickedKeys = Object.keys(chosen);
-      var summary;
-      if (pickedKeys.length === 0) {
-        summary = '<em>No luck spent.</em>';
-      } else {
-        summary = pickedKeys.map(function(k) {
-          var src = sources.filter(function(s) { return s.key === k; })[0];
-          var sign = src && src.kind === 'penalty' ? '-' : '+';
-          return '<strong>' + escapeHtml(src.label) + ':</strong> ' + sign + chosen[k];
-        }).join(', ');
-      }
-      lockStep(step, summary);
-      onContinue(chosen);
-    }, 'attack-btn-primary');
-    step.body.appendChild(done);
+    })[kind];
   }
 
   // Drop the named decision step (most recent occurrence) and every
@@ -334,7 +241,7 @@
             lockStep(step, '<strong>' + escapeHtml(w.name) + '</strong>' +
               ', dice: <strong>' + dice + '</strong>' +
               ' <span class="attack-meta">(cost ' + cost + ')</span>');
-            chooseAttackLuck(stubId);
+            chooseDefenseAndDice(stubId);
           }));
         })(n);
       }
@@ -373,7 +280,7 @@
         c.state.defense = nothing;
         c.state.defenseDice = 0;
         lockStep(step, 'Defense: <strong>' + escapeHtml(nothing.label) + '</strong>');
-        chooseDefenseLuck(stubId);
+        chooseAllyAndDice(stubId);
       });
       header.appendChild(none);
     }
@@ -394,7 +301,7 @@
             lockStep(step, 'Defense: <strong>' + escapeHtml(d.label) + '</strong>' +
               ', dice: <strong>' + dice + '</strong>' +
               ' <span class="attack-meta">(cost ' + cost + ')</span>');
-            chooseDefenseLuck(stubId);
+            chooseAllyAndDice(stubId);
           }));
         })(n);
       }
@@ -410,7 +317,7 @@
   function chooseAllyAndDice(stubId) {
     var c = cfg(stubId);
     var allies = c.allyReactions || [];
-    if (allies.length === 0) { chooseAllyLucks(stubId, 0); return; }
+    if (allies.length === 0) { chooseLuckTable(stubId); return; }
     var step = appendStep(stubId, 'Ally Reactions', 'allyReactions');
 
     // selections[idx].dice == 0 means "not selected".
@@ -482,7 +389,7 @@
             return '<strong>' + escapeHtml(a.name || a.label) + '</strong> (' + dices[i] + ' dice)';
           }).join(', ');
       lockStep(step, summary);
-      chooseAllyLucks(stubId, 0);
+      chooseLuckTable(stubId);
     }, 'attack-btn-primary');
     step.body.appendChild(document.createElement('br'));
     step.body.appendChild(done);
@@ -521,42 +428,158 @@
     return b;
   }
 
-  // --- Step 3b: Luck for attack roll --------------------------------------
-  function chooseAttackLuck(stubId) {
+  // --- Step 5: Consolidated Luck Table ------------------------------------
+  // One row per upcoming roll, one column per luck source. Each cell
+  // shows a button per available point of that source (signed: bonus
+  // sources show "+N", penalty sources show "-N"). Selections are
+  // mutually exclusive within a row -- a single roll carries luck from
+  // at most one source. Clicking a selected button toggles back to
+  // unset.
+  //
+  // On Continue the per-row choices are written back into
+  // c.state.attackLuck / defenseLuck / allyLucks[idx] in the same
+  // {sourceKey: amount} shape rollsPanel already consumes.
+  function chooseLuckTable(stubId) {
     var c = cfg(stubId);
-    promptLuck(stubId, 'attackLuck', 'Luck for Attack',
-      c.state.attackLuck, function(chosen) {
-        c.state.attackLuck = chosen;
-        chooseDefenseAndDice(stubId);
-      });
-  }
+    var sources = c.luckSources || [];
 
-  // --- Step 4c: Luck for defense roll -------------------------------------
-  function chooseDefenseLuck(stubId) {
-    var c = cfg(stubId);
-    promptLuck(stubId, 'defenseLuck', 'Luck for ' + c.state.defense.label,
-      c.state.defenseLuck, function(chosen) {
-        c.state.defenseLuck = chosen;
-        chooseAllyAndDice(stubId);
-      });
-  }
-
-  // --- Step 5c: Luck per rolled ally reaction -----------------------------
-  // Walks the selected ally reactions and asks for luck on any that
-  // roll dice. Allies without skill+dice (pure rerolls etc.) skip.
-  function chooseAllyLucks(stubId, idx) {
-    var c = cfg(stubId);
+    // Build the list of rolls that need luck assignment.
     var allies = (c.state.allyReactions || []).filter(function(a) {
       return a.skill && (a.max_dice | 0) > 0;
     });
-    if (idx >= allies.length) { rollsPanel(stubId); return; }
-    var ally = allies[idx];
-    c.state.allyLucks = c.state.allyLucks || [];
-    promptLuck(stubId, 'allyLuck-' + idx, 'Luck for ' + (ally.name || ally.label),
-      c.state.allyLucks[idx], function(chosen) {
-        c.state.allyLucks[idx] = chosen;
-        chooseAllyLucks(stubId, idx + 1);
+    var rows = [];
+    rows.push({
+      key:   'attack',
+      label: c.attacker.skill.name + ' (' + c.state.weapon.name + ')',
+      seed:  c.state.attackLuck || {}
+    });
+    if (c.state.defense && c.state.defense.uses_dice && c.state.defenseDice > 0) {
+      rows.push({
+        key:   'defense',
+        label: c.state.defense.label,
+        seed:  c.state.defenseLuck || {}
       });
+    }
+    allies.forEach(function(a, idx) {
+      var name = (a.name || '').toString();
+      var action = a.label && a.label !== a.name ? a.label : '';
+      rows.push({
+        key:   'ally-' + idx,
+        label: name + (action ? ' - ' + action : ''),
+        seed:  ((c.state.allyLucks || [])[idx]) || {}
+      });
+    });
+
+    // No sources or no rolls -> nothing to ask, advance.
+    if (sources.length === 0 || rows.length === 0) {
+      rollsPanel(stubId);
+      return;
+    }
+
+    var step = appendStep(stubId, 'Luck', 'luckTable');
+
+    // selections[rowKey] = {sourceKey: amount}
+    var selections = {};
+    rows.forEach(function(r) {
+      selections[r.key] = {};
+      Object.keys(r.seed).forEach(function(k) {
+        if (r.seed[k] > 0) selections[r.key][k] = r.seed[k];
+      });
+    });
+
+    var btnsByRowSource = {};
+
+    function paintRow(rowKey) {
+      Object.keys(btnsByRowSource[rowKey]).forEach(function(srcKey) {
+        btnsByRowSource[rowKey][srcKey].forEach(function(item) {
+          item.btn.classList.toggle('attack-luck-pt-selected',
+            selections[rowKey][srcKey] === item.amount);
+        });
+      });
+    }
+
+    var table = document.createElement('table');
+    table.className = 'attack-luck-table';
+    var thead = document.createElement('thead');
+    var headRow = document.createElement('tr');
+    var thRoll = document.createElement('th');
+    thRoll.textContent = 'Roll';
+    headRow.appendChild(thRoll);
+    sources.forEach(function(src) {
+      var th = document.createElement('th');
+      th.textContent = src.label;
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    rows.forEach(function(r) {
+      var tr = document.createElement('tr');
+      var tdLabel = document.createElement('td');
+      tdLabel.className = 'attack-luck-table-label';
+      tdLabel.textContent = r.label;
+      tr.appendChild(tdLabel);
+
+      btnsByRowSource[r.key] = {};
+      sources.forEach(function(src) {
+        var td = document.createElement('td');
+        var remaining = src.remaining | 0;
+        var sign = src.kind === 'penalty' ? '-' : '+';
+        var entries = [];
+        btnsByRowSource[r.key][src.key] = entries;
+        for (var i = 1; i <= remaining; i++) {
+          (function(amount) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'attack-btn attack-luck-pt';
+            if (src.kind === 'penalty') b.classList.add('attack-luck-pt-penalty');
+            b.textContent = sign + amount;
+            b.addEventListener('click', function() {
+              if (selections[r.key][src.key] === amount) {
+                delete selections[r.key][src.key];
+              } else {
+                // Mutual exclusion within a row: clear other source picks.
+                selections[r.key] = {};
+                selections[r.key][src.key] = amount;
+              }
+              paintRow(r.key);
+            });
+            td.appendChild(b);
+            entries.push({ btn: b, amount: amount });
+          })(i);
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+      paintRow(r.key);
+    });
+    table.appendChild(tbody);
+    step.body.appendChild(table);
+
+    var done = btn('Continue', function() {
+      c.state.attackLuck  = selections.attack  || {};
+      c.state.defenseLuck = selections.defense || {};
+      c.state.allyLucks = [];
+      allies.forEach(function(_, idx) {
+        c.state.allyLucks[idx] = selections['ally-' + idx] || {};
+      });
+
+      var bits = rows.map(function(r) {
+        var sel = selections[r.key];
+        var keys = Object.keys(sel);
+        if (keys.length === 0) return null;
+        var k = keys[0];
+        var src = sources.filter(function(s) { return s.key === k; })[0];
+        var sn = src && src.kind === 'penalty' ? '-' : '+';
+        return '<strong>' + escapeHtml(r.label) + ':</strong> ' + sn + sel[k] +
+          ' ' + escapeHtml(src ? src.label : k);
+      }).filter(Boolean);
+      lockStep(step, bits.length === 0 ? '<em>No luck spent.</em>' : bits.join('; '));
+      rollsPanel(stubId);
+    }, 'attack-btn-primary');
+    step.body.appendChild(document.createElement('br'));
+    step.body.appendChild(done);
   }
 
   // --- Step 6: All rolls in one panel -------------------------------------
