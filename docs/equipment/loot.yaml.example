@@ -93,7 +93,13 @@
 
 characters:
 
-  alice:
+  # The keys under `characters:` are character IDs assigned by the
+  # character module — opaque, immutable identifiers, not display
+  # names. Two characters can share a name and a name can change
+  # over the course of a campaign, so the id is what we key on.
+  # The character module owns the id-to-name mapping.
+
+  char_001:
     inventory:
 
       - item: Long sword
@@ -123,7 +129,7 @@ characters:
       - item: Gold
         quantity: 147.5
 
-  borin:
+  char_002:
     inventory:
 
       - item: Great Axe
@@ -150,7 +156,7 @@ characters:
         value_in_gold: 500
         quantity: 2
 
-  cleric_elara:
+  char_003:
     inventory:
 
       - item: Mace
