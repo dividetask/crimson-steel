@@ -1,0 +1,29 @@
+# Map Images — DM Palette Curation
+#
+# This file is OPTIONAL. The map's "Add image" tool auto-discovers
+# every supported image file under public/images/ and shows them
+# alphabetically with the filename (minus extension) as the label.
+#
+# Use this file when you want to:
+#   - Pin specific images to the top of the palette in a chosen
+#     order (curated entries appear first; auto-discovered files
+#     are appended at the end).
+#   - Override the displayed label for a file.
+#
+# To activate, copy this file to data/map_images.yaml and edit:
+#
+#   cp docs/map_images_config.yaml.example data/map_images.yaml
+#
+# Supported extensions: .png .jpg .jpeg .gif .webp
+
+- label: Lysander
+  src:   /images/Lysander.webp
+
+- label: Olga
+  src:   /images/Olga.webp
+
+- label: Stumpy
+  src:   /images/Stumpy.webp
+
+- label: Cottonballs
+  src:   /images/Cottonballs.webp

@@ -1,15 +1,55 @@
 <div class="notes-images-stub" data-stub-id="<%= stub_id %>" data-dm-view="<%= dm_view ? '1' : '0' %>">
+<% if editable %>
+  <details class="notes-image-add">
+    <summary>Add an image</summary>
+    <form method="post" action="/notes/images/add" class="notes-image-form" enctype="multipart/form-data">
+      <label>File <input type="file" name="file" accept=".jpg,.jpeg,.png,.gif,.webp" required></label>
+      <label>Caption <input type="text" name="caption"></label>
+      <label>Kind
+        <select name="kind">
+          <option value="image">Image</option>
+          <option value="map">Map</option>
+          <option value="portrait">Portrait</option>
+          <option value="document">Document</option>
+          <option value="location">Location</option>
+        </select>
+      </label>
+      <label>Chapter
+        <input type="number" name="chapter" min="1"
+               value="<%= h(current_chapter || (DATA.chapters.last && DATA.chapters.last['number']) || 1) %>">
+      </label>
+      <label class="notes-image-flag"><input type="checkbox" name="public" value="1" checked> Public</label>
+      <label class="notes-image-flag"><input type="checkbox" name="active" value="1"> Active</label>
+      <button type="submit">Upload</button>
+    </form>
+  </details>
+<% end %>
 <% if entries.empty? %>
   <p class="notes-empty">No images yet.</p>
 <% else %>
   <div class="notes-images-grid">
     <% entries.each do |e| %>
       <figure class="notes-image-card">
-        <div class="notes-image-frame"><%= notes_image_placeholder(e['kind']) %></div>
+        <div class="notes-image-frame">
+          <% if e['path'] && !e['path'].to_s.empty? %>
+            <a href="<%= h e['path'] %>" target="_blank" rel="noopener">
+              <img src="<%= h e['path'] %>" alt="<%= h e['caption'] %>" class="notes-image-img">
+            </a>
+          <% else %>
+            <%= notes_image_placeholder(e['kind']) %>
+          <% end %>
+        </div>
         <figcaption class="notes-image-caption">
           <%= h e['caption'] %>
           <% if e['public'] == false %><span class="notes-meta-chip notes-meta-private">DM only</span><% end %>
           <% if e['active']          %><span class="notes-meta-chip notes-meta-active">Active</span><% end %>
+          <% if editable %>
+            <form method="post" action="/notes/images/delete" class="notes-image-delete-form"
+                  onsubmit="return confirm('Delete this image?');">
+              <input type="hidden" name="id" value="<%= h e['id'] %>">
+              <button type="submit" class="notes-image-delete-btn">Delete</button>
+            </form>
+          <% end %>
         </figcaption>
       </figure>
     <% end %>
