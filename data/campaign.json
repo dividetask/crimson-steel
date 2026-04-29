@@ -1,4 +1,11 @@
 {
   "gold": 2650,
-  "rounds_elapsed": 11
+  "rounds_elapsed": 11,
+  "datetime": {
+    "year": 4710,
+    "month": 1,
+    "day": 1,
+    "hour": 23,
+    "minute": 0
+  }
 }

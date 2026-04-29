@@ -13,7 +13,8 @@
     "public": true,
     "type": "character",
     "title": "Orman Harrington",
-    "tier": 2
+    "tier": 2,
+    "id": "6992b6c1-f596-48aa-897a-66881461121a"
   },
   {
     "owner_id": 0,
@@ -30,7 +31,8 @@
     "public": true,
     "type": "character",
     "title": "Alric Thorne",
-    "tier": -1
+    "tier": -1,
+    "id": "e9ac00a2-b53b-4fc0-a79a-f808058d16c3"
   },
   {
     "owner_id": 0,
@@ -39,7 +41,8 @@
     "public": true,
     "type": "character",
     "title": "Virelle",
-    "tier": 2
+    "tier": 2,
+    "id": "1713bd82-78d8-415b-9b14-6ea622461304"
   },
   {
     "owner_id": 0,
@@ -48,7 +51,8 @@
     "public": true,
     "type": "character",
     "title": "Sylwen",
-    "tier": 2
+    "tier": 2,
+    "id": "e965d25c-f305-47bb-a694-fdde892ee549"
   },
   {
     "owner_id": 0,
@@ -104,7 +108,8 @@
     "public": true,
     "type": "character",
     "title": "Dala Nyssira",
-    "tier": -1
+    "tier": -1,
+    "id": "1922600f-b36e-4231-a1a2-de9822119b1e"
   },
   {
     "owner_id": 0,
@@ -169,7 +174,10 @@
     "public": true,
     "type": "character",
     "title": "Harkon of the Hollow Antler, Master of the Tally",
-    "tier": 4
+    "tier": 4,
+    "id": "ccda3e2f-d434-4024-8ec4-af1ba9219bdd",
+    "in_scene": true,
+    "image_path": "/images/scene/1777490469-29bd66ec-Harkon.webp"
   },
   {
     "owner_id": 0,
@@ -178,7 +186,8 @@
     "public": true,
     "type": "character",
     "title": "Athach",
-    "tier": 2
+    "tier": 2,
+    "id": "75e18bae-3880-472e-b502-bebbc6e69ae1"
   },
   {
     "owner_id": 0,
@@ -211,7 +220,8 @@
     "public": true,
     "type": "character",
     "title": "Severus",
-    "tier": 2
+    "tier": 2,
+    "id": "8e8610ea-3e38-439d-8e7f-bfc0f82dc4d0"
   },
   {
     "owner_id": 0,
@@ -237,7 +247,15 @@
     "public": true,
     "type": "character",
     "title": "Petey",
-    "tier": -1
+    "tier": -1,
+    "id": "ab74ed63-68c8-4cee-be1a-ed3c11f0340b",
+    "in_scene": false,
+    "scene_visible_to": [
+      1,
+      2,
+      3,
+      4
+    ]
   },
   {
     "owner_id": 0,
@@ -283,7 +301,9 @@
     "public": true,
     "type": "character",
     "title": "Kael",
-    "tier": 2
+    "tier": 2,
+    "id": "93f519dc-4a29-4a79-b3c9-becb6074bd40",
+    "in_scene": true
   },
   {
     "owner_id": 0,
@@ -292,7 +312,9 @@
     "public": true,
     "type": "character",
     "title": "Theron Ashfeld",
-    "tier": 3
+    "tier": 3,
+    "id": "cbf03b3f-0c6f-479a-842c-1ba0549a2bc5",
+    "in_scene": true
   },
   {
     "owner_id": 0,
@@ -301,7 +323,8 @@
     "public": true,
     "type": "character",
     "title": "Sable",
-    "tier": 3
+    "tier": 3,
+    "id": "d273ddaf-35fe-4757-accf-55f894ac8706"
   },
   {
     "owner_id": 0,
@@ -310,7 +333,9 @@
     "public": true,
     "type": "character",
     "title": "Lady Selara Hawthorne",
-    "tier": 3
+    "tier": 3,
+    "id": "31b2dc12-4517-4ad1-a89f-9aa7ee702b23",
+    "in_scene": true
   },
   {
     "owner_id": 0,
@@ -319,7 +344,9 @@
     "public": true,
     "type": "character",
     "title": "Lord Varen Hawthorne",
-    "tier": 3
+    "tier": 3,
+    "id": "bfa6032f-d522-4972-8277-d398f60119b3",
+    "in_scene": true
   },
   {
     "owner_id": 0,
@@ -328,7 +355,8 @@
     "public": true,
     "type": "character",
     "title": "Silovan Kreshholm",
-    "tier": 3
+    "tier": 3,
+    "id": "21870984-5473-4f63-8085-4d2a956ecfb1"
   },
   {
     "owner_id": 0,
@@ -337,7 +365,8 @@
     "public": false,
     "type": "character",
     "title": "Aleks Ashfeld",
-    "tier": 0
+    "tier": 0,
+    "id": "f23de8b9-f76f-4d56-b615-ef5ff9b696aa"
   },
   {
     "owner_id": 0,
@@ -346,7 +375,8 @@
     "public": true,
     "type": "character",
     "title": "Varen",
-    "tier": 2
+    "tier": 2,
+    "id": "54337c0a-cb5d-4196-ab2f-57268e11a4f6"
   },
   {
     "owner_id": 0,
@@ -355,7 +385,8 @@
     "public": true,
     "type": "character",
     "title": "Lev 'The Moth' Rybar",
-    "tier": 0
+    "tier": 0,
+    "id": "ce979d5a-393d-4478-94e9-ad54648b177c"
   },
   {
     "owner_id": 0,
@@ -364,7 +395,9 @@
     "public": true,
     "type": "character",
     "title": "Vrakka Bloodfang",
-    "tier": 4
+    "tier": 4,
+    "id": "af50de47-79f3-4ab7-b5cb-61d178d83417",
+    "in_scene": true
   },
   {
     "owner_id": 0,
@@ -398,7 +431,8 @@
     "title": "Mayor Tamsin Holt",
     "tier": 1,
     "chapter": 3,
-    "active": true
+    "active": true,
+    "id": "538c0983-3fc9-401a-b208-39074decfca8"
   },
   {
     "owner_id": 0,
@@ -487,7 +521,8 @@
     "type": "character",
     "title": "Lev \"The Moth\" Rybar",
     "tier": 1,
-    "chapter": 3
+    "chapter": 3,
+    "id": "0bea871a-3edc-4087-b7e6-6d7f7f100f22"
   },
   {
     "owner_id": 0,
@@ -512,7 +547,9 @@
     "type": "character",
     "title": "Varen",
     "tier": 2,
-    "chapter": 3
+    "chapter": 3,
+    "id": "554a6d31-2169-4360-88ff-719749209f1e",
+    "in_scene": true
   },
   {
     "owner_id": 0,
@@ -538,7 +575,8 @@
     "title": "Silovan Kreshholm",
     "tier": 2,
     "chapter": 4,
-    "active": true
+    "active": true,
+    "id": "3d6c0458-229e-41e6-ba95-e97d8d9a8c06"
   },
   {
     "owner_id": 0,
@@ -759,5 +797,49 @@
     "type": "note",
     "title": "Desna's Whim",
     "chapter": 5
+  },
+  {
+    "owner_id": 0,
+    "note": "Mercenary sellsword from the eastern provinces. Met at the slaver's temple where he agreed to help you escape in exchange for his life. He sheltered you in the city while you recovered from your injuries.",
+    "public": true,
+    "type": "character",
+    "title": "Drav Kovin",
+    "tier": 1,
+    "chapter": 5,
+    "active": true,
+    "id": "90f18d74-6ade-4506-b6a8-9da64e4031a9",
+    "in_scene": true,
+    "image_path": "/images/scene/1777490163-e4878a18-Drav.webp",
+    "scene_visible_to": [
+      1
+    ]
+  },
+  {
+    "owner_id": 0,
+    "note": "Elven noble with some magical training. Drav informed him of you and where you were hiding. He offered to help you in exchange for land and a title under Lady Hawthorne.",
+    "public": false,
+    "type": "character",
+    "title": "Caelian di Soliastres",
+    "tier": 3,
+    "chapter": 5,
+    "active": true,
+    "id": "e2becdf2-dd74-4d82-8083-9a2c305a89f6",
+    "image_path": "/images/scene/1777490391-331dd9fb-Caelian_di_Soliastres.webp",
+    "in_scene": true
+  },
+  {
+    "id": "9d62d847-1a03-4aae-ad2a-c91e716f8c98",
+    "owner_id": 0,
+    "draft": true,
+    "type": "scene_panel",
+    "title": "An Unexpected Meeting",
+    "note": "The next morning, as you recover from your fight at the temple, an elf calling himself Caelian di Soliastres arrives. You are surprised as you were hiding and only Drav knew where you were. He explains that he purchased information about you from Drav, and would like to offer his services in exchange for land and title under Lady Hawthorne. As you offered it to Drav, he expects the offer can be given to him instead.",
+    "visible_to": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "created_at": 1777490984.1435974
   }
 ]
