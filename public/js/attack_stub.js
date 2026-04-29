@@ -71,21 +71,15 @@
   function rollbackHandler(kind) {
     var staticHandlers = {
       target:          chooseTarget,
-      weapon:          chooseWeapon,
-      attackDice:      chooseAttackDice,
+      weaponDice:      chooseWeaponAndDice,
       attackLuck:      chooseAttackLuck,
-      defense:         chooseDefense,
-      defenseDice:     chooseDefenseDice,
+      defense:         chooseDefenseAndDice,
       defenseLuck:     chooseDefenseLuck,
-      allyReactions:   chooseAllyReactions,
+      allyReactions:   chooseAllyAndDice,
       targetReactions: chooseTargetReactions,
       damage:          collectDamage
     };
     if (staticHandlers[kind]) return staticHandlers[kind];
-    if (kind.indexOf('allyDice-') === 0) {
-      var diceIdx = parseInt(kind.substring('allyDice-'.length), 10);
-      return function(stubId) { chooseAllyDices(stubId, diceIdx); };
-    }
     if (kind.indexOf('allyLuck-') === 0) {
       var luckIdx = parseInt(kind.substring('allyLuck-'.length), 10);
       return function(stubId) { chooseAllyLucks(stubId, luckIdx); };
@@ -295,7 +289,7 @@
     var pick = function(t) {
       c.state.target = t;
       lockStep(step, 'Target: <strong>' + escapeHtml(t.name) + '</strong>');
-      chooseWeapon(stubId);
+      chooseWeaponAndDice(stubId);
     };
     if (c.targets.length === 0) {
       step.body.textContent = 'No valid targets.';
@@ -311,58 +305,220 @@
     });
   }
 
-  // --- Step 2: Weapon ------------------------------------------------------
-  function chooseWeapon(stubId) {
+  // --- Step 2: Weapon + Attack Dice (combined) ----------------------------
+  // Renders one row per weapon with a dice button per valid count.
+  // Buttons are disabled when (dice + weapon.speed) exceeds the
+  // attacker's current combat pool.
+  function chooseWeaponAndDice(stubId) {
     var c = cfg(stubId);
     var weapons = c.attacker.weapons || [];
-    var step = appendStep(stubId, 'Select Weapon', 'weapon');
-    var pick = function(w) {
-      c.state.weapon = w;
-      lockStep(step, 'Weapon: <strong>' + escapeHtml(w.name) + '</strong>' +
-        ' <span class="attack-meta">(atk +' + (w.attack_bonus|0) +
-        ', dmg ' + (w.damage|0) +
-        ', threshold ' + (w.threshold|0) +
-        ', bleed ' + (w.bleed|0) +
-        ', spd ' + (w.speed|0) + ')</span>');
-      chooseAttackDice(stubId);
-    };
+    var pool = c.attacker.combat_pool | 0;
+    var poolMax = c.attacker.combat_pool_max | 0;
+    var step = appendStep(stubId, 'Weapon & Attack Dice', 'weaponDice');
     if (weapons.length === 0) {
       step.body.textContent = 'Attacker has no equipped weapons.';
       return;
     }
-    if (weapons.length === 1) { pick(weapons[0]); return; }
+    appendPoolHeader(step.body, pool, poolMax);
     weapons.forEach(function(w) {
-      step.body.appendChild(btn(escapeHtml(w.name), function() { pick(w); }));
+      var row = pickRow(w.name,
+        '(Speed ' + (w.speed | 0) + ', Max ' + (w.max_dice | 0) + ')');
+      var min = w.min_dice | 0;
+      var max = w.max_dice | 0;
+      for (var n = min; n <= max; n++) {
+        (function(dice) {
+          var cost = dice + (w.speed | 0);
+          row.appendChild(diceBtn(dice, cost, pool, function() {
+            c.state.weapon = w;
+            c.state.attackDice = dice;
+            lockStep(step, '<strong>' + escapeHtml(w.name) + '</strong>' +
+              ', dice: <strong>' + dice + '</strong>' +
+              ' <span class="attack-meta">(cost ' + cost + ')</span>');
+            chooseAttackLuck(stubId);
+          }));
+        })(n);
+      }
+      step.body.appendChild(row);
     });
   }
 
-  // --- Step 3: Attack dice count ------------------------------------------
-  function chooseAttackDice(stubId) {
+  // --- Step 3: Defense + Defense Dice (combined) --------------------------
+  // Header row with combat pool readout and a "Do Nothing" button.
+  // Per-defense rows underneath, dice buttons greyed when the target
+  // can't afford (dice + implement speed).
+  function chooseDefenseAndDice(stubId) {
     var c = cfg(stubId);
-    var w = c.state.weapon;
-    var min = w.min_dice | 0;
-    var max = Math.min(w.max_dice | 0, c.attacker.skill.dice | 0);
-    var step = appendStep(stubId, 'Attack Dice (' + min + '–' + max + ')', 'attackDice');
-    if (max < min) {
-      step.body.textContent = 'No valid attack dice count.';
+    var target = c.state.target;
+    var defs = target.defenses || [];
+    var pool = target.combat_pool | 0;
+    var poolMax = target.combat_pool_max | 0;
+    var step = appendStep(stubId, 'Defense (' + escapeHtml(target.name) + ')', 'defense');
+    if (defs.length === 0) {
+      step.body.textContent = 'No defenses available.';
       return;
     }
-    var commit = function(n) {
-      c.state.attackDice = n;
-      lockStep(step, 'Attack dice: <strong>' + n + '</strong>');
-      chooseAttackLuck(stubId);
-    };
-    if (min === max) { commit(min); return; }
-    var hint = document.createElement('span');
-    hint.className = 'attack-meta';
-    hint.textContent = 'Pick a value between ' + min + ' and ' + max + '.';
-    step.body.appendChild(hint);
-    step.body.appendChild(document.createElement('br'));
-    for (var n = min; n <= max; n++) {
-      (function(v) {
-        step.body.appendChild(btn(String(v), function() { commit(v); }));
-      })(n);
+    var header = document.createElement('div');
+    header.className = 'attack-pick-row';
+    var poolEl = document.createElement('span');
+    poolEl.className = 'attack-pick-row-label';
+    poolEl.innerHTML = '<strong>Combat Pool ' + pool + '/' + poolMax + '</strong>';
+    header.appendChild(poolEl);
+    var nothing = defs.filter(function(d) { return d.kind === 'nothing'; })[0];
+    if (nothing) {
+      var none = document.createElement('button');
+      none.type = 'button';
+      none.className = 'attack-btn';
+      none.textContent = 'Do Nothing';
+      none.addEventListener('click', function() {
+        c.state.defense = nothing;
+        c.state.defenseDice = 0;
+        lockStep(step, 'Defense: <strong>' + escapeHtml(nothing.label) + '</strong>');
+        chooseDefenseLuck(stubId);
+      });
+      header.appendChild(none);
     }
+    step.body.appendChild(header);
+    defs.forEach(function(d) {
+      if (d.kind === 'nothing' || !d.uses_dice) return;
+      var speed = (d.implement && d.implement.speed) | 0;
+      var meta = (d.implement ? 'Speed ' + speed + ', ' : '') + 'Max ' + (d.max_dice | 0);
+      var row = pickRow(d.label, '(' + meta + ')');
+      var min = d.min_dice | 0;
+      var max = d.max_dice | 0;
+      for (var n = min; n <= max; n++) {
+        (function(dice) {
+          var cost = dice + speed;
+          row.appendChild(diceBtn(dice, cost, pool, function() {
+            c.state.defense = d;
+            c.state.defenseDice = dice;
+            lockStep(step, 'Defense: <strong>' + escapeHtml(d.label) + '</strong>' +
+              ', dice: <strong>' + dice + '</strong>' +
+              ' <span class="attack-meta">(cost ' + cost + ')</span>');
+            chooseDefenseLuck(stubId);
+          }));
+        })(n);
+      }
+      step.body.appendChild(row);
+    });
+  }
+
+  // --- Step 4: Ally Reactions + Dice (combined) ---------------------------
+  // [None] shortcut, then one row per ally with its own combat-pool
+  // readout and dice buttons. Toggling on a button selects that ally
+  // with the chosen dice; toggling off (or [None]) clears. A trailing
+  // Continue confirms the multi-select.
+  function chooseAllyAndDice(stubId) {
+    var c = cfg(stubId);
+    var allies = c.allyReactions || [];
+    if (allies.length === 0) { chooseAllyLucks(stubId, 0); return; }
+    var step = appendStep(stubId, 'Ally Reactions', 'allyReactions');
+
+    // selections[idx].dice == 0 means "not selected".
+    var selections = allies.map(function() { return { dice: 0 }; });
+    var rowEntries = [];
+
+    function paint(idx) {
+      rowEntries[idx].forEach(function(item) {
+        item.btn.classList.toggle('attack-btn-selected', selections[idx].dice === item.dice);
+      });
+    }
+
+    var none = document.createElement('button');
+    none.type = 'button';
+    none.className = 'attack-btn';
+    none.textContent = 'None';
+    none.addEventListener('click', function() {
+      selections.forEach(function(s) { s.dice = 0; });
+      rowEntries.forEach(function(_, i) { paint(i); });
+    });
+    step.body.appendChild(none);
+
+    allies.forEach(function(a, idx) {
+      var pool = a.combat_pool | 0;
+      var poolMax = a.combat_pool_max | 0;
+      var name = (a.name || a.label || '').toString();
+      var action = a.label && a.label !== a.name ? a.label : '';
+      var headLabel = name + (action ? ' - ' + action : '');
+      var row = pickRow(headLabel,
+        '(Combat Pool ' + pool + '/' + poolMax + ', Max ' + (a.max_dice | 0) + ')');
+      var min = a.min_dice | 0;
+      var max = a.max_dice | 0;
+      var ents = [];
+      for (var n = min; n <= max; n++) {
+        (function(dice) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'attack-btn attack-pick-pt';
+          b.textContent = String(dice);
+          if (dice > pool) {
+            b.disabled = true;
+            b.title = 'Costs ' + dice + ' (only ' + pool + ' in pool)';
+          } else {
+            b.addEventListener('click', function() {
+              selections[idx].dice = selections[idx].dice === dice ? 0 : dice;
+              paint(idx);
+            });
+          }
+          row.appendChild(b);
+          ents.push({ btn: b, dice: dice });
+        })(n);
+      }
+      rowEntries.push(ents);
+      step.body.appendChild(row);
+    });
+
+    var done = btn('Continue', function() {
+      var picked = [];
+      var dices = [];
+      selections.forEach(function(s, idx) {
+        if (s.dice > 0) { picked.push(allies[idx]); dices.push(s.dice); }
+      });
+      c.state.allyReactions = picked;
+      c.state.allyDices = dices;
+      c.state.allyLucks = [];
+      var summary = picked.length === 0
+        ? '<em>No ally reactions.</em>'
+        : picked.map(function(a, i) {
+            return '<strong>' + escapeHtml(a.name || a.label) + '</strong> (' + dices[i] + ' dice)';
+          }).join(', ');
+      lockStep(step, summary);
+      chooseAllyLucks(stubId, 0);
+    }, 'attack-btn-primary');
+    step.body.appendChild(document.createElement('br'));
+    step.body.appendChild(done);
+  }
+
+  // --- Combined-step DOM helpers ------------------------------------------
+  function appendPoolHeader(parent, pool, poolMax) {
+    var el = document.createElement('div');
+    el.className = 'attack-pool-readout';
+    el.innerHTML = '<strong>Combat Pool ' + pool + '/' + poolMax + '</strong>';
+    parent.appendChild(el);
+  }
+
+  function pickRow(label, meta) {
+    var row = document.createElement('div');
+    row.className = 'attack-pick-row';
+    var head = document.createElement('span');
+    head.className = 'attack-pick-row-label';
+    head.innerHTML = '<strong>' + escapeHtml(label) + '</strong> ' +
+      '<span class="attack-meta">' + escapeHtml(meta) + '</span>';
+    row.appendChild(head);
+    return row;
+  }
+
+  function diceBtn(dice, cost, pool, onPick) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'attack-btn attack-pick-pt';
+    b.textContent = String(dice);
+    if (cost > pool) {
+      b.disabled = true;
+      b.title = 'Costs ' + cost + ' (only ' + pool + ' in pool)';
+    } else {
+      b.addEventListener('click', onPick);
+    }
+    return b;
   }
 
   // --- Step 3b: Luck for attack roll --------------------------------------
@@ -371,51 +527,8 @@
     promptLuck(stubId, 'attackLuck', 'Luck for Attack',
       c.state.attackLuck, function(chosen) {
         c.state.attackLuck = chosen;
-        chooseDefense(stubId);
+        chooseDefenseAndDice(stubId);
       });
-  }
-
-  // --- Step 4: Defense -----------------------------------------------------
-  function chooseDefense(stubId) {
-    var c = cfg(stubId);
-    var defs = c.state.target.defenses || [];
-    var step = appendStep(stubId, 'Select Defense (' + escapeHtml(c.state.target.name) + ')', 'defense');
-    var pick = function(d) {
-      c.state.defense = d;
-      lockStep(step, 'Defense: <strong>' + escapeHtml(d.label) + '</strong>');
-      chooseDefenseDice(stubId);
-    };
-    if (defs.length === 0) { step.body.textContent = 'No defenses available.'; return; }
-    if (defs.length === 1) { pick(defs[0]); return; }
-    defs.forEach(function(d) {
-      step.body.appendChild(btn(escapeHtml(d.label), function() { pick(d); }));
-    });
-  }
-
-  // --- Step 4b: Defense dice (only if defense uses dice) ------------------
-  function chooseDefenseDice(stubId) {
-    var c = cfg(stubId);
-    var d = c.state.defense;
-    if (!d || !d.uses_dice) { chooseAllyReactions(stubId); return; }
-    var min = d.min_dice | 0;
-    var max = d.max_dice | 0;
-    var step = appendStep(stubId, 'Defense Dice (' + min + '–' + max + ')', 'defenseDice');
-    if (max < min) {
-      step.body.textContent = 'Cannot afford defense; no dice available.';
-      chooseAllyReactions(stubId);
-      return;
-    }
-    var commit = function(n) {
-      c.state.defenseDice = n;
-      lockStep(step, 'Defense dice: <strong>' + n + '</strong>');
-      chooseDefenseLuck(stubId);
-    };
-    if (min === max) { commit(min); return; }
-    for (var n = min; n <= max; n++) {
-      (function(v) {
-        step.body.appendChild(btn(String(v), function() { commit(v); }));
-      })(n);
-    }
   }
 
   // --- Step 4c: Luck for defense roll -------------------------------------
@@ -424,77 +537,8 @@
     promptLuck(stubId, 'defenseLuck', 'Luck for ' + c.state.defense.label,
       c.state.defenseLuck, function(chosen) {
         c.state.defenseLuck = chosen;
-        chooseAllyReactions(stubId);
+        chooseAllyAndDice(stubId);
       });
-  }
-
-  // --- Step 5: Ally reactions ---------------------------------------------
-  function chooseAllyReactions(stubId) {
-    var c = cfg(stubId);
-    var allies = c.allyReactions || [];
-    if (allies.length === 0) { rollsPanel(stubId); return; }
-    var step = appendStep(stubId, 'Ally Reactions', 'allyReactions');
-    var picks = [];
-    allies.forEach(function(a) {
-      var b = btn(escapeHtml(a.label), function() {
-        if (b.classList.toggle('attack-btn-selected')) {
-          picks.push(a);
-        } else {
-          var i = picks.indexOf(a);
-          if (i !== -1) picks.splice(i, 1);
-        }
-      });
-      step.body.appendChild(b);
-    });
-    var done = btn('Continue', function() {
-      c.state.allyReactions = picks.slice();
-      // Reset per-ally dice / luck since the ally list just changed;
-      // the ally dice and ally luck steps will repopulate as they fire.
-      c.state.allyDices = [];
-      c.state.allyLucks = [];
-      var summary = picks.length === 0
-        ? '<em>No ally reactions.</em>'
-        : 'Ally reactions: <strong>' + picks.map(function(a){ return escapeHtml(a.label); }).join(', ') + '</strong>';
-      lockStep(step, summary);
-      chooseAllyDices(stubId, 0);
-    }, 'attack-btn-primary');
-    step.body.appendChild(document.createElement('br'));
-    step.body.appendChild(done);
-  }
-
-  // --- Step 5b: Dice per rolled ally reaction -----------------------------
-  // Most ally reactions (Shield of Faith, Healing Word, etc.) cost
-  // dice; a few (Bardic Inspiration, pure rerolls) do not. Walk the
-  // selected reactions and prompt for a dice count on the ones that
-  // carry skill + max_dice; allies without those are passed through.
-  function chooseAllyDices(stubId, idx) {
-    var c = cfg(stubId);
-    var allies = (c.state.allyReactions || []).filter(function(a) {
-      return a.skill && (a.max_dice | 0) > 0;
-    });
-    if (idx >= allies.length) { chooseAllyLucks(stubId, 0); return; }
-    var ally = allies[idx];
-    var min = ally.min_dice | 0;
-    var max = ally.max_dice | 0;
-    var step = appendStep(stubId, 'Dice for ' + ally.label + ' (' + min + '–' + max + ')',
-                          'allyDice-' + idx);
-    if (max < min) {
-      step.body.textContent = 'Cannot afford this reaction.';
-      chooseAllyDices(stubId, idx + 1);
-      return;
-    }
-    c.state.allyDices = c.state.allyDices || [];
-    var commit = function(n) {
-      c.state.allyDices[idx] = n;
-      lockStep(step, 'Dice: <strong>' + n + '</strong>');
-      chooseAllyDices(stubId, idx + 1);
-    };
-    if (min === max) { commit(min); return; }
-    for (var n = min; n <= max; n++) {
-      (function(v) {
-        step.body.appendChild(btn(String(v), function() { commit(v); }));
-      })(n);
-    }
   }
 
   // --- Step 5c: Luck per rolled ally reaction -----------------------------
@@ -508,7 +552,7 @@
     if (idx >= allies.length) { rollsPanel(stubId); return; }
     var ally = allies[idx];
     c.state.allyLucks = c.state.allyLucks || [];
-    promptLuck(stubId, 'allyLuck-' + idx, 'Luck for ' + ally.label,
+    promptLuck(stubId, 'allyLuck-' + idx, 'Luck for ' + (ally.name || ally.label),
       c.state.allyLucks[idx], function(chosen) {
         c.state.allyLucks[idx] = chosen;
         chooseAllyLucks(stubId, idx + 1);
