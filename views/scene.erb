@@ -264,6 +264,19 @@
                     <button type="submit" class="scene-grid-vis-btn bulk">Hide from all</button>
                   </form>
                 </div>
+                <div class="scene-grid-actions">
+                  <form method="post" action="/scene/character/image" enctype="multipart/form-data" class="scene-grid-img-form">
+                    <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                    <input type="file" name="image" accept="image/*" required>
+                    <button type="submit"><%= char['image_path'] ? 'Replace image' : 'Attach image' %></button>
+                  </form>
+                  <% if char['image_path'] %>
+                    <form method="post" action="/scene/character/image/clear">
+                      <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                      <button type="submit">Remove image</button>
+                    </form>
+                  <% end %>
+                </div>
               </details>
             <% end %>
             <% if char['image_path'] && !char['image_path'].to_s.empty? %>
@@ -278,21 +291,6 @@
             <% end %>
             <% if char['note'] && !char['note'].to_s.empty? %>
               <p><%= h(char['note']).gsub("\n", '<br>') %></p>
-            <% end %>
-            <% if @is_dm %>
-              <div class="scene-grid-actions">
-                <form method="post" action="/scene/character/image" enctype="multipart/form-data" class="scene-grid-img-form">
-                  <input type="hidden" name="id" value="<%= h(char['id']) %>">
-                  <input type="file" name="image" accept="image/*" required>
-                  <button type="submit"><%= char['image_path'] ? 'Replace image' : 'Attach image' %></button>
-                </form>
-                <% if char['image_path'] %>
-                  <form method="post" action="/scene/character/image/clear">
-                    <input type="hidden" name="id" value="<%= h(char['id']) %>">
-                    <button type="submit">Remove image</button>
-                  </form>
-                <% end %>
-              </div>
             <% end %>
           </div>
         <% end %>
