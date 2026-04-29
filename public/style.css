@@ -1386,24 +1386,99 @@ body {
 }
 .character-player strong { color: #000; }
 
-/* Inline HP annotations used in minimal mode when the character
-   has temp HP, or moderate / major damage taken. */
-.sheet .hp-temp   { color: #1976d2; font-size: 0.85em; margin-left: 4px; }
-.sheet .hp-mod    { color: #ef6c00; font-size: 0.85em; margin-left: 4px; }
-.sheet .hp-major  { color: #c62828; font-size: 0.85em; margin-left: 4px; }
-
-/* Empty stat-box keeps flex spacing balanced when a row has fewer
-   than three stats (minimal layout's second row). */
-.sheet .stat-box-empty {
-  visibility: hidden;
+/* Compact character card (character_minimal_stub). Modeled on the
+   5e monster statblock — single column, dark-red rules between
+   sections, sized to read on a tablet or phone. */
+.char-card {
+  max-width: 380px;
+  margin: 0 auto 20px auto;
+  padding: 12px 14px;
+  background: #fdf6e9;
+  border: 1px solid #b89a6f;
+  box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  line-height: 1.35;
+  color: #2b1d0e;
 }
 
-/* Minimal attribute table: just name + score, so don't carry the
-   full table's center-aligned columns or borderless 2nd/3rd cells. */
-.sheet .attributes-minimal td:nth-child(2),
-.sheet .attributes-minimal th:nth-child(2) {
-  border-right: 1px solid #000;
-  border-left: 1px solid #000;
+.char-card-name {
+  font-size: 20px;
+  font-weight: bold;
+  color: #7a1d1d;
+  letter-spacing: 0.5px;
+}
+
+.char-card-type {
+  font-style: italic;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.char-card-rule {
+  height: 4px;
+  margin: 6px 0;
+  background: #7a1d1d;
+  border-top: 1px solid #4a0f0f;
+  border-bottom: 1px solid #4a0f0f;
+}
+
+.char-card-line {
+  margin: 2px 0;
+}
+.char-card-line strong {
+  color: #7a1d1d;
+}
+
+.char-card-attrs {
+  display: flex;
+  justify-content: space-between;
   text-align: center;
-  width: 60px;
+  margin: 4px 0;
+  gap: 4px;
+}
+
+.char-card-attr {
+  flex: 1;
+  min-width: 0;
+}
+
+.char-card-attr-label {
+  font-size: 11px;
+  font-weight: bold;
+  color: #7a1d1d;
+  letter-spacing: 0.5px;
+}
+
+.char-card-attr-value {
+  font-size: 14px;
+}
+
+.char-card-section-title {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 14px;
+  color: #7a1d1d;
+  border-bottom: 1px solid #b89a6f;
+  margin: 4px 0;
+  padding-bottom: 2px;
+}
+
+.char-card-entry {
+  margin: 4px 0;
+}
+
+.char-card .ability-damage { color: #c62828; font-weight: bold; margin-left: 3px; font-size: 0.9em; }
+.char-card .enh-note       { color: #4a7c59; font-size: 0.85em; margin-left: 3px; }
+.char-card .hp-temp        { color: #1976d2; font-size: 0.85em; margin-left: 4px; }
+.char-card .hp-mod         { color: #ef6c00; font-size: 0.85em; margin-left: 4px; }
+.char-card .hp-major       { color: #c62828; font-size: 0.85em; margin-left: 4px; }
+
+@media (max-width: 480px) {
+  .char-card {
+    max-width: none;
+    margin-left: -10px;
+    margin-right: -10px;
+    border-left: none;
+    border-right: none;
+  }
 }

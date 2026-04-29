@@ -1,19 +1,16 @@
-# Character sheet stub. Renders a character's static data (from the
-# Character class) using the layout from origin/before-refactor's
-# views/character_sheet.erb. Every field the Character class doesn't
-# yet own — combat pool, hp, skills, weapons, abilities, etc. — is
-# pulled from the dummy hash passed in so the page still looks like
-# the old sheet while the per-feature classes are rebuilt.
+# Full character sheet stub. Renders every field the
+# before-refactor sheet showed (combat pool, dice columns, ranks,
+# the four secondary HP rows, etc.). Use character_minimal_stub
+# for the compact monster-card layout.
+#
+# Fields the Character class doesn't yet own come from the
+# `dummy:` hash — character_sheet_dummy_defaults supplies sane
+# defaults so callers only have to pass what differs.
 
 helpers do
-  # detail: :minimal (default) trims the sheet to what a player needs
-  # at a glance — dropping dice columns, weapon threshold/bleed, skill
-  # ranks, and the secondary HP rows. :full renders everything the
-  # before-refactor sheet showed.
-  def character_sheet_stub(character:, detail: :minimal, dummy: {})
-    erb :"stubs/_character_sheet_stub", layout: false, locals: {
+  def character_full_stub(character:, dummy: {})
+    erb :"stubs/_character_full_stub", layout: false, locals: {
       character: character,
-      detail:    detail == :full ? :full : :minimal,
       dummy:     character_sheet_dummy_defaults.merge(dummy || {})
     }
   end
@@ -27,9 +24,14 @@ helpers do
     'Charisma'     => :cha
   }.freeze
 
-  def character_sheet_attribute_names
-    ATTRIBUTE_NAMES
-  end
+  # Short labels for the minimal card's attribute strip.
+  ATTRIBUTE_SHORT = {
+    str: 'STR', dex: 'DEX', con: 'CON',
+    int: 'INT', wis: 'WIS', cha: 'CHA'
+  }.freeze
+
+  def character_sheet_attribute_names;  ATTRIBUTE_NAMES;  end
+  def character_sheet_attribute_short;  ATTRIBUTE_SHORT;  end
 
   def character_sheet_half_mod(score)
     (score.to_i / 2).to_i

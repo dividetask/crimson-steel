@@ -19,5 +19,7 @@
     </div>
   </div>
 
-  <%= character_sheet_stub(character: @character, detail: @detail) %>
+  <%= @detail == :full \
+        ? character_full_stub(character: @character) \
+        : character_minimal_stub(character: @character) %>
 <% end %>
