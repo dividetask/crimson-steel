@@ -51,23 +51,221 @@ class DummyData
     characters.find { |c| c['id'].to_i == id.to_i }
   end
 
-  # Character class instances for the /character preview page. Static
-  # data only (id, name, player, race, base attributes); per-feature
-  # state still comes from the dummy block in character_sheet_stub.
+  # Character class instances + per-character dummy state for the
+  # /character preview page. The Character itself only stores static
+  # data (id, name, player, race, base attributes); everything else
+  # — current HP, mana, saturation, conditions, weapons, spells,
+  # rituals, abilities, items — lives in the per-entry `:dummy`
+  # hash and is merged onto character_sheet_dummy_defaults when the
+  # stub renders.
   def self.pc_objects
     @pc_objects ||= [
-      Character.new(id: 1, name: 'Ash Windmere',  player: 'Sam',     race: 'Human',
-                    attributes: { str: 3, dex: 4, con: 3, int: 3, wis: 4, cha: 5 }),
-      Character.new(id: 2, name: 'Bryn Ironvein', player: 'Mira',    race: 'Dwarf',
-                    attributes: { str: 5, dex: 2, con: 5, int: 2, wis: 3, cha: 2 }),
-      Character.new(id: 3, name: 'Lira Duskmoor', player: 'Jordan',  race: 'Elf',
-                    attributes: { str: 2, dex: 4, con: 2, int: 5, wis: 4, cha: 3 }),
-      Character.new(id: 4, name: 'Kass Thorne',   player: 'Pat',     race: 'Halfling',
-                    attributes: { str: 2, dex: 5, con: 3, int: 3, wis: 3, cha: 4 }),
-      Character.new(id: 5, name: 'Rowan Vale',    player: 'Riley',   race: 'Half-Elf',
-                    attributes: { str: 3, dex: 4, con: 3, int: 3, wis: 4, cha: 3 }),
-      Character.new(id: 6, name: 'Ember Blackoak', player: 'Casey',  race: 'Half-Orc',
-                    attributes: { str: 4, dex: 3, con: 4, int: 2, wis: 4, cha: 3 })
+      { character: Character.new(
+          id: 1, name: 'Ash Windmere', player: 'Sam', race: 'Human',
+          attributes: { str: 10, dex: 14, con: 12, int: 13, wis: 16, cha: 18 }),
+        dummy: {
+          klass: 'Bard 3', tier: 3, bab: 4,
+          current_hp: 22, hp_max: 28,
+          current_mana: 9, mana_max: 14,
+          mana_saturation: 3, mana_saturation_max: 7,
+          initiative: 4, perception_bonus: 5,
+          speed: 30, damage_reduction: 2, damage_resilience: 2,
+          weapons: [
+            { 'name' => 'Rapier',     'speed' => 2, 'arm_speed' => '',
+              'dice' => 4, 'attack_bonus' => 3, 'damage' => '+2',
+              'bleed' => 1, 'threshold' => 8 },
+            { 'name' => 'Hand Crossbow', 'speed' => 3, 'arm_speed' => '',
+              'dice' => 3, 'attack_bonus' => 4, 'damage' => '+1',
+              'bleed' => 0, 'threshold' => 7 }
+          ],
+          abilities: [
+            { 'name' => 'Bardic Inspiration',
+              'description' => 'Grant a luck bonus to an ally’s next check.' },
+            { 'name' => 'Unsettling Words',
+              'description' => 'Impose a luck penalty on an enemy’s next check.' }
+          ],
+          spell_list: [
+            %w[Mending],
+            ['Charm Person', 'Healing Word'],
+            ['Suggestion']
+          ],
+          ritual_list: [
+            [],
+            ['Comprehend Languages', 'Detect Magic']
+          ],
+          equipped:  ['Rapier', 'Hand Crossbow', 'Studded Leather'],
+          consumable: [{ 'name' => 'Healing Draught', 'quantity' => 2 }],
+          other_items: [{ 'name' => 'Lute' }, { 'name' => 'Rations (5)' }, { 'name' => 'Bedroll' }],
+          defined_items: [
+            { 'name' => 'Cloak of Resistance +1',
+              'description' => 'Adds +1 to all saves; does not stack with other resistance items.' },
+            { 'name' => 'Lute of the Wandering Bard',
+              'description' => 'Once per scene, grant Bardic Inspiration without spending the action.' }
+          ]
+        } },
+
+      { character: Character.new(
+          id: 2, name: 'Bryn Ironvein', player: 'Mira', race: 'Dwarf',
+          attributes: { str: 18, dex: 10, con: 17, int: 9, wis: 12, cha: 8 }),
+        dummy: {
+          klass: 'Fighter 3', tier: 3, bab: 6,
+          current_hp: 14, hp_max: 36,
+          moderate_damage: 8, major_damage: 6,
+          current_mana: 0, mana_max: 0,
+          initiative: 2, perception_bonus: 2,
+          speed: 25, damage_reduction: 4, damage_resilience: 3,
+          weapons: [
+            { 'name' => 'Warhammer', 'speed' => 3, 'arm_speed' => '',
+              'dice' => 5, 'attack_bonus' => 5, 'damage' => '+4',
+              'bleed' => 0, 'threshold' => 9 },
+            { 'name' => 'Tower Shield (bash)', 'speed' => 4, 'arm_speed' => '',
+              'dice' => 3, 'attack_bonus' => 4, 'damage' => '+3',
+              'bleed' => 0, 'threshold' => 7 }
+          ],
+          abilities: [
+            { 'name' => 'Shield Bash',
+              'description' => 'Knock a target prone on a successful shield attack.' },
+            { 'name' => 'Second Wind',
+              'description' => 'Once per scene, recover 1d6 + level HP as a free action.' }
+          ],
+          spell_list: [], ritual_list: [],
+          equipped:  ['Warhammer', 'Tower Shield', 'Chain Mail'],
+          consumable: [{ 'name' => 'Healing Draught', 'quantity' => 1 }],
+          other_items: [{ 'name' => 'Whetstone' }, { 'name' => 'Rations (5)' }],
+          defined_items: []
+        } },
+
+      { character: Character.new(
+          id: 3, name: 'Lira Duskmoor', player: 'Jordan', race: 'Elf',
+          attributes: { str: 8, dex: 14, con: 11, int: 20, wis: 16, cha: 12 }),
+        dummy: {
+          klass: 'Wizard 3', tier: 3, bab: 2,
+          current_hp: 18, hp_max: 22,
+          current_mana: 16, mana_max: 18,
+          mana_saturation: 5, mana_saturation_max: 9,
+          conditions: { 'poison' => 2 },
+          initiative: 3, perception_bonus: 3,
+          speed: 30, damage_reduction: 1, damage_resilience: 2,
+          weapons: [
+            { 'name' => 'Quarterstaff', 'speed' => 3, 'arm_speed' => '',
+              'dice' => 2, 'attack_bonus' => 1, 'damage' => '+0',
+              'bleed' => 0, 'threshold' => 7 }
+          ],
+          abilities: [
+            { 'name' => 'Arcane Focus',
+              'description' => 'Spend mana to add insight dice to a focus check.' },
+            { 'name' => 'Ritual Caster',
+              'description' => 'Cast spells from the ritual list without preparation.' }
+          ],
+          spell_list: [
+            ['Mage Hand', 'Minor Illusion', 'Prestidigitation'],
+            ['Magic Missile', 'Shield', 'Mage Armor'],
+            ['Misty Step', 'Scorching Ray'],
+            ['Counterspell']
+          ],
+          ritual_list: [
+            ['Light'],
+            ['Comprehend Languages', 'Detect Magic', 'Identify'],
+            ['Locate Object']
+          ],
+          equipped:  ['Quarterstaff', 'Spellbook', 'Robes'],
+          consumable: [{ 'name' => 'Antitoxin', 'quantity' => 1 }],
+          other_items: [{ 'name' => 'Component Pouch' }, { 'name' => 'Ink and Quill' }],
+          defined_items: [
+            { 'name' => 'Spellbook',
+              'description' => 'Holds every spell Lira has researched. Required for daily preparation.' }
+          ]
+        } },
+
+      { character: Character.new(
+          id: 4, name: 'Kass Thorne', player: 'Pat', race: 'Halfling',
+          attributes: { str: 10, dex: 19, con: 13, int: 14, wis: 12, cha: 11 }),
+        dummy: {
+          klass: 'Rogue 3', tier: 3, bab: 4,
+          current_hp: 20, hp_max: 24,
+          current_mana: 0, mana_max: 0,
+          initiative: 5, perception_bonus: 4,
+          speed: 25, damage_reduction: 1, damage_resilience: 2,
+          weapons: [
+            { 'name' => 'Shortsword', 'speed' => 1, 'arm_speed' => '',
+              'dice' => 4, 'attack_bonus' => 5, 'damage' => '+2',
+              'bleed' => 1, 'threshold' => 7 },
+            { 'name' => 'Dagger',     'speed' => 1, 'arm_speed' => '',
+              'dice' => 3, 'attack_bonus' => 5, 'damage' => '+1',
+              'bleed' => 1, 'threshold' => 6 }
+          ],
+          abilities: [
+            { 'name' => 'Sneak Attack',
+              'description' => 'Add bonus damage when an attacker has advantage on the target.' },
+            { 'name' => 'Evasion',
+              'description' => 'On a successful Dexterity save, take no damage from area effects.' }
+          ],
+          spell_list: [], ritual_list: [],
+          equipped:  ['Shortsword', 'Dagger', 'Leather Armor'],
+          consumable: [{ 'name' => 'Healing Draught', 'quantity' => 3 }],
+          other_items: [{ 'name' => 'Thieves’ Tools' }, { 'name' => 'Rope (50 ft)' }],
+          defined_items: []
+        } },
+
+      { character: Character.new(
+          id: 5, name: 'Rowan Vale', player: 'Riley', race: 'Half-Elf',
+          attributes: { str: 14, dex: 17, con: 13, int: 11, wis: 16, cha: 10 }),
+        dummy: {
+          klass: 'Ranger 3', tier: 3, bab: 4,
+          current_hp: 26, hp_max: 30,
+          current_mana: 6, mana_max: 8,
+          initiative: 4, perception_bonus: 5,
+          speed: 30, damage_reduction: 2, damage_resilience: 2,
+          weapons: [
+            { 'name' => 'Longbow',   'speed' => 3, 'arm_speed' => '',
+              'dice' => 4, 'attack_bonus' => 5, 'damage' => '+3',
+              'bleed' => 0, 'threshold' => 8 },
+            { 'name' => 'Hand Axe',  'speed' => 2, 'arm_speed' => '',
+              'dice' => 3, 'attack_bonus' => 4, 'damage' => '+2',
+              'bleed' => 0, 'threshold' => 7 }
+          ],
+          abilities: [
+            { 'name' => "Hunter’s Mark",
+              'description' => 'Mark a target; gain bonus damage and tracking against it.' },
+            { 'name' => 'Quick Draw',
+              'description' => 'Draw a weapon as a free action once per turn.' }
+          ],
+          spell_list: [[], ['Hunter’s Mark', 'Cure Wounds']],
+          ritual_list: [],
+          equipped:  ['Longbow', 'Hand Axe', 'Studded Leather'],
+          consumable: [],
+          other_items: [{ 'name' => 'Quiver (20 arrows)' }, { 'name' => 'Trail Rations' }],
+          defined_items: []
+        } },
+
+      { character: Character.new(
+          id: 6, name: 'Ember Blackoak', player: 'Casey', race: 'Half-Orc',
+          attributes: { str: 13, dex: 11, con: 15, int: 10, wis: 18, cha: 9 }),
+        dummy: {
+          klass: 'Druid 3', tier: 3, bab: 3,
+          current_hp: 22, hp_max: 26,
+          current_mana: 10, mana_max: 12,
+          mana_saturation: 1, mana_saturation_max: 6,
+          initiative: 4, perception_bonus: 4,
+          speed: 30, damage_reduction: 2, damage_resilience: 3,
+          weapons: [
+            { 'name' => 'Scimitar', 'speed' => 2, 'arm_speed' => '',
+              'dice' => 3, 'attack_bonus' => 3, 'damage' => '+2',
+              'bleed' => 1, 'threshold' => 7 }
+          ],
+          abilities: [
+            { 'name' => 'Wild Shape',
+              'description' => 'Assume the form of a beast appropriate to your tier.' },
+            { 'name' => 'Spore Cloud',
+              'description' => 'Release a cloud that imposes Wisdom saves on adjacent foes.' }
+          ],
+          spell_list: [['Druidcraft'], ['Entangle', 'Cure Wounds']],
+          ritual_list: [['Light']],
+          equipped:  ['Scimitar', 'Hide Armor'],
+          consumable: [{ 'name' => 'Healing Draught', 'quantity' => 2 }],
+          other_items: [{ 'name' => 'Druidic Focus' }, { 'name' => 'Herbalism Kit' }],
+          defined_items: []
+        } }
     ]
   end
 

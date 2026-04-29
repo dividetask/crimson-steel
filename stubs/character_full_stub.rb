@@ -42,6 +42,20 @@ helpers do
     "#{'+' if n >= 0}#{n}"
   end
 
+  # CSS class for tier-tinted text. Matches the color palette used
+  # throughout the app: red / orange / gold / green / blue ramping
+  # from tier 0 → 4. Anything outside that range falls back to grey.
+  def character_sheet_tier_class(tier)
+    n = tier.to_i
+    n.between?(0, 4) ? "tier-#{n}" : 'tier-unknown'
+  end
+
+  # Pretty label for a condition key. Mirrors the initiative stub's
+  # naming so the same condition reads the same wherever it appears.
+  def character_sheet_condition_label(key)
+    key.to_s.tr('_', ' ').split.map(&:capitalize).join(' ')
+  end
+
   # Default dummy block for fields the Character class doesn't yet
   # cover. Anything passed into `dummy:` overrides these.
   def character_sheet_dummy_defaults
@@ -64,6 +78,9 @@ helpers do
       temporary_hit_points: 0,
       moderate_damage:     0,
       major_damage:        0,
+      mana_saturation:     0,
+      mana_saturation_max: 0,
+      conditions:          {},
       bab_dice:            3,
       bab_bonus:           2,
       save_enhancement:    0,

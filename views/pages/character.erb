@@ -20,6 +20,6 @@
   </div>
 
   <%= @detail == :full \
-        ? character_full_stub(character: @character) \
-        : character_minimal_stub(character: @character) %>
+        ? character_full_stub(character: @character, dummy: @dummy) \
+        : character_minimal_stub(character: @character, dummy: @dummy) %>
 <% end %>

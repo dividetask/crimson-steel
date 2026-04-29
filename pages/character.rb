@@ -25,7 +25,9 @@ get '/character/:index' do
   raw = params[:index].to_i
   raw = 1 if raw < 1
   @current_index = ((raw - 1) % @total) + 1
-  @character     = list[@current_index - 1]
+  entry          = list[@current_index - 1]
+  @character     = entry[:character]
+  @dummy         = entry[:dummy] || {}
   @prev_index    = ((@current_index - 2) % @total) + 1
   @next_index    = (@current_index % @total) + 1
   @detail        = params[:detail].to_s == 'full' ? :full : :minimal

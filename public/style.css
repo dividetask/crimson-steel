@@ -1386,99 +1386,128 @@ body {
 }
 .character-player strong { color: #000; }
 
+/* Tier-tinted text colors. Used on character names, "Tier N" tags,
+   and anywhere else a tier should read at a glance. Matches the
+   palette used elsewhere in the app. */
+.tier-0 { color: #c0392b; }   /* tier 0 — red */
+.tier-1 { color: #d35400; }   /* tier 1 — burnt orange */
+.tier-2 { color: #b7950b; }   /* tier 2 — gold (darker for legibility) */
+.tier-3 { color: #2e7d32; }   /* tier 3 — green */
+.tier-4 { color: #1565c0; }   /* tier 4 — blue */
+.tier-unknown { color: #757575; }
+
 /* Compact character card (character_minimal_stub). Modeled on the
-   5e monster statblock — single column, dark-red rules between
-   sections, sized to read on a tablet or phone. */
+   5e monster statblock: single column, crimson section rules,
+   tablet / phone friendly. Fills the available width. */
 .char-card {
-  max-width: 380px;
-  margin: 0 auto 20px auto;
-  padding: 12px 14px;
-  background: #fdf6e9;
-  border: 1px solid #b89a6f;
-  box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.15);
-  font-size: 13px;
-  line-height: 1.35;
-  color: #2b1d0e;
+  width: 100%;
+  margin: 0 0 24px 0;
+  padding: 16px 20px;
+  background: #faf7f0;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  font-size: 14px;
+  line-height: 1.45;
+  color: #1a1a1a;
 }
 
 .char-card-name {
-  font-size: 20px;
+  font-size: 26px;
   font-weight: bold;
-  color: #7a1d1d;
   letter-spacing: 0.5px;
+  line-height: 1.1;
 }
 
 .char-card-type {
   font-style: italic;
   font-size: 12px;
-  margin-bottom: 6px;
+  color: #555;
+  margin-bottom: 8px;
 }
 
 .char-card-rule {
-  height: 4px;
-  margin: 6px 0;
-  background: #7a1d1d;
-  border-top: 1px solid #4a0f0f;
-  border-bottom: 1px solid #4a0f0f;
+  height: 3px;
+  margin: 8px 0;
+  background: #8b1538;
+  border-top: 1px solid #5a0d23;
+  border-bottom: 1px solid #5a0d23;
 }
 
-.char-card-line {
-  margin: 2px 0;
-}
-.char-card-line strong {
-  color: #7a1d1d;
-}
+.char-card-line { margin: 3px 0; }
+.char-card-line strong { color: #8b1538; }
 
 .char-card-attrs {
   display: flex;
   justify-content: space-between;
   text-align: center;
-  margin: 4px 0;
-  gap: 4px;
+  gap: 8px;
+  margin: 6px 0;
 }
 
-.char-card-attr {
-  flex: 1;
-  min-width: 0;
-}
+.char-card-attr { flex: 1; min-width: 0; }
 
 .char-card-attr-label {
   font-size: 11px;
   font-weight: bold;
-  color: #7a1d1d;
+  color: #8b1538;
   letter-spacing: 0.5px;
 }
 
-.char-card-attr-value {
-  font-size: 14px;
-}
+.char-card-attr-value { font-size: 16px; }
 
 .char-card-section-title {
   font-variant: small-caps;
   font-weight: bold;
-  font-size: 14px;
-  color: #7a1d1d;
-  border-bottom: 1px solid #b89a6f;
-  margin: 4px 0;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  color: #8b1538;
+  border-bottom: 1px solid #d4c8a8;
+  margin: 8px 0 4px 0;
   padding-bottom: 2px;
 }
 
-.char-card-entry {
-  margin: 4px 0;
+.char-card-entry { margin: 4px 0; }
+
+.char-card-actions {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0 6px 0;
+  font-size: 13px;
+}
+.char-card-actions th,
+.char-card-actions td {
+  padding: 5px 8px;
+  text-align: left;
+  border-bottom: 1px solid #e0d8c0;
+}
+.char-card-actions tr:last-child td { border-bottom: none; }
+.char-card-actions th {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 11px;
+  color: #8b1538;
+  border-bottom: 1px solid #8b1538;
+  letter-spacing: 0.5px;
 }
 
-.char-card .ability-damage { color: #c62828; font-weight: bold; margin-left: 3px; font-size: 0.9em; }
-.char-card .enh-note       { color: #4a7c59; font-size: 0.85em; margin-left: 3px; }
-.char-card .hp-temp        { color: #1976d2; font-size: 0.85em; margin-left: 4px; }
-.char-card .hp-mod         { color: #ef6c00; font-size: 0.85em; margin-left: 4px; }
-.char-card .hp-major       { color: #c62828; font-size: 0.85em; margin-left: 4px; }
+.char-card .ability-damage { color: #c0392b; font-weight: bold; margin-left: 3px; font-size: 0.9em; }
+.char-card .enh-note       { color: #2e7d32; font-size: 0.85em; margin-left: 3px; }
+.char-card .hp-temp        { color: #1565c0; font-size: 0.9em; }
+.char-card .hp-mod         { color: #d35400; font-weight: bold; font-size: 0.9em; }
+.char-card .hp-major       { color: #c0392b; font-weight: bold; font-size: 0.9em; }
+.char-card .toxicity       { color: #6a1b9a; font-size: 0.9em; }
 
 @media (max-width: 480px) {
   .char-card {
-    max-width: none;
     margin-left: -10px;
     margin-right: -10px;
     border-left: none;
     border-right: none;
+    border-radius: 0;
+    padding: 14px;
+    font-size: 13px;
   }
+  .char-card-name { font-size: 22px; }
+  .char-card-attr-value { font-size: 15px; }
 }

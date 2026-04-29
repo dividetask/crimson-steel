@@ -3,21 +3,32 @@
   mod  = dummy[:moderate_damage].to_i
   maj  = dummy[:major_damage].to_i
   has_mana = dummy[:mana_max].to_i > 0
+  sat = dummy[:mana_saturation].to_i
+  sat_max = dummy[:mana_saturation_max].to_i
+  active_conditions = (dummy[:conditions] || {}).select { |_, v| v.to_i > 0 }
+  weapons = dummy[:shields] + dummy[:weapons]
+  tier_class = character_sheet_tier_class(dummy[:tier])
 %>
 <div class="char-card">
-  <div class="char-card-name"><%= h character.name %></div>
-  <div class="char-card-type"><%= h character.race %> <%= h dummy[:klass] %>, Tier <%= h dummy[:tier] %></div>
+  <div class="char-card-name <%= tier_class %>"><%= h character.name %></div>
+  <div class="char-card-type">
+    <%= h character.race %> <%= h dummy[:klass] %>,
+    <span class="<%= tier_class %>">Tier <%= h dummy[:tier] %></span>
+  </div>
 
   <div class="char-card-rule"></div>
 
   <div class="char-card-line">
     <strong>HP</strong> <%= h dummy[:current_hp] %>/<%= h dummy[:hp_max] %><%
     %><% if temp > 0 %> <span class="hp-temp">+<%= temp %> tmp</span><% end %><%
-    %><% if mod  > 0 %> <span class="hp-mod"><%= mod %> mod</span><% end %><%
-    %><% if maj  > 0 %> <span class="hp-major"><%= maj %> maj</span><% end %>
+    %><% if mod  > 0 %> &mdash; <span class="hp-mod">moderate <%= mod %></span><% end %><%
+    %><% if maj  > 0 %> &mdash; <span class="hp-major">major <%= maj %></span><% end %>
   </div>
   <% if has_mana %>
-    <div class="char-card-line"><strong>Mana</strong> <%= h dummy[:current_mana] %>/<%= h dummy[:mana_max] %></div>
+    <div class="char-card-line">
+      <strong>Mana</strong> <%= h dummy[:current_mana] %>/<%= h dummy[:mana_max] %><%
+      %><% if sat_max > 0 || sat > 0 %>, <span class="toxicity">Toxicity <%= sat %>/<%= sat_max %></span><% end %>
+    </div>
   <% end %>
   <div class="char-card-line"><strong>Speed</strong> <%= h dummy[:speed] %></div>
 
@@ -41,22 +52,62 @@
 
   <div class="char-card-line"><strong>Initiative</strong> <%= h dummy[:initiative] %></div>
   <div class="char-card-line"><strong>Perception</strong> <%= character_sheet_add_plus(dummy[:perception_bonus]) %></div>
+  <% if active_conditions.any? %>
+    <div class="char-card-line">
+      <strong>Conditions</strong>
+      <%= active_conditions.map { |k, v| "#{character_sheet_condition_label(k)} #{v}" }.join(', ') %>
+    </div>
+  <% end %>
 
-  <% weapons = dummy[:shields] + dummy[:weapons] %>
   <% if weapons.any? %>
     <div class="char-card-rule"></div>
     <div class="char-card-section-title">Actions</div>
-    <% weapons.each do |w| %>
-      <p class="char-card-entry">
-        <em><%= h w['name'] %>.</em>
-        Spd <%= h w['speed'] %><%= h w['arm_speed'] %>,
-        <%= h w['dice'] %>d (<%= character_sheet_add_plus(w['attack_bonus']) %>),
-        dmg <%= h w['damage'] %>.
-      </p>
+    <table class="char-card-actions">
+      <tr>
+        <th>Name</th>
+        <th>Spd</th>
+        <th>Roll</th>
+        <th>Bonus</th>
+        <th>Dmg</th>
+        <th>Notes</th>
+      </tr>
+      <% weapons.each do |w| %>
+        <tr>
+          <td><%= h w['name'] %></td>
+          <td><%= h w['speed'] %><%= h w['arm_speed'] %></td>
+          <td><%= h w['dice'] %>d</td>
+          <td><%= character_sheet_add_plus(w['attack_bonus']) %></td>
+          <td><%= h w['damage'] %></td>
+          <td></td>
+        </tr>
+      <% end %>
+      <tr>
+        <td>Dodge</td>
+        <td>0</td>
+        <td><%= h dummy[:bab_dice] %>d</td>
+        <td><%= character_sheet_add_plus(dummy[:bab_bonus]) %></td>
+        <td>&mdash;</td>
+        <td></td>
+      </tr>
+    </table>
+  <% end %>
+
+  <% if dummy[:spell_list] && dummy[:spell_list].any? { |t| t && t.any? } %>
+    <div class="char-card-rule"></div>
+    <div class="char-card-section-title">Spells</div>
+    <% dummy[:spell_list].each_with_index do |sub, idx| %>
+      <% next if sub.nil? || sub.empty? %>
+      <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| h(s) }.join(', ') %></p>
     <% end %>
-    <p class="char-card-entry">
-      <em>Dodge.</em> <%= h dummy[:bab_dice] %>d (<%= character_sheet_add_plus(dummy[:bab_bonus]) %>).
-    </p>
+  <% end %>
+
+  <% if dummy[:ritual_list] && dummy[:ritual_list].any? { |t| t && t.any? } %>
+    <div class="char-card-rule"></div>
+    <div class="char-card-section-title">Rituals</div>
+    <% dummy[:ritual_list].each_with_index do |sub, idx| %>
+      <% next if sub.nil? || sub.empty? %>
+      <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| h(s) }.join(', ') %></p>
+    <% end %>
   <% end %>
 
   <% if dummy[:abilities].any? %>
@@ -96,6 +147,17 @@
     <div class="char-card-section-title">Items</div>
     <% item_lines.each do |label, body| %>
       <p class="char-card-entry"><em><%= label %>.</em> <%= body %></p>
+    <% end %>
+  <% end %>
+
+  <% if dummy[:defined_items] && dummy[:defined_items].any? %>
+    <div class="char-card-rule"></div>
+    <div class="char-card-section-title">Item Descriptions</div>
+    <% dummy[:defined_items].each do |item| %>
+      <p class="char-card-entry">
+        <em><%= h(item['name']) %>.</em>
+        <%= h(item['description']) %>
+      </p>
     <% end %>
   <% end %>
 </div>
