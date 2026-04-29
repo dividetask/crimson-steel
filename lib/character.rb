@@ -11,6 +11,8 @@
 # items, spells, or level advancement live elsewhere and are applied by
 # whatever class composes those effects on top of this one.
 
+require 'yaml'
+
 class Character
   ATTRIBUTE_KEYS = %i[str dex con int wis cha].freeze
 
@@ -26,6 +28,23 @@ class Character
 
   def attribute(sym)
     @attributes[sym.to_sym].to_i
+  end
+
+  # Load a YAML roster from `path`. Returns [] if the file doesn't
+  # exist (production starts empty until the DM drops one in). The
+  # file format is documented in docs/characters.yaml.example.
+  def self.load_yaml(path)
+    return [] unless File.exist?(path)
+    data = YAML.safe_load_file(path, permitted_classes: [Symbol]) || {}
+    (data['characters'] || []).map do |entry|
+      new(
+        id:         entry['id'],
+        name:       entry['name'].to_s,
+        player:     entry['player'].to_s,
+        race:       entry['race'].to_s,
+        attributes: entry['attributes'] || {}
+      )
+    end
   end
 
   private

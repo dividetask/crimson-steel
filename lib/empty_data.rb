@@ -5,6 +5,8 @@
 # nor invoked, and the only data the UI sees is whatever's in
 # NotesState (data/notes_state.json).
 
+require_relative 'character'
+
 class EmptyData
   EMPTY_CAMPAIGN     = { 'gold' => 0, 'rounds_elapsed' => 0,
                          'current_chapter' => nil, 'current_scene' => nil }.freeze
@@ -13,12 +15,23 @@ class EmptyData
   EMPTY_SCENE        = { 'title' => '', 'description' => '',
                          'show_initiative' => false }.freeze
 
+  CHARACTERS_YAML = File.expand_path('../data/characters.yaml', __dir__)
+
   def self.campaign;               EMPTY_CAMPAIGN;     end
   def self.chapters;               NOTES_STATE.chapters; end
   def self.characters;             [];                 end
   def self.pcs;                    [];                 end
   def self.character_by_id(_id);   nil;                end
-  def self.pc_objects;             [];                 end
+
+  # Production roster for the /character page. Reads
+  # data/characters.yaml on first access and caches the result;
+  # restart the server after editing the file. Returns an empty
+  # array if the file is missing.
+  def self.pc_objects
+    @pc_objects ||= Character.load_yaml(CHARACTERS_YAML).map do |c|
+      { character: c, dummy: {} }
+    end
+  end
   def self.enemy_groups;           [];                 end
   def self.enemy_templates;        [];                 end
   def self.combat_state;           EMPTY_COMBAT_STATE; end
