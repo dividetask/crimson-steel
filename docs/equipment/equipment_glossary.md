@@ -112,6 +112,16 @@ A row's payload (and likewise an option's payload inside a Weighted Choice) is e
 
 Any row may also declare `equipped: true` at the row level. When present, every Item Stack produced by that row is tagged as equipped (multi-item rows tag all stacks uniformly). Stacks without the flag default to unequipped.
 
+A row may also participate in the table's **Roll Variables** system via `as:`, `key:`, and `when:` (see Roll Variable below).
+
+**Roll Variable**: A named, table-scoped value set by one Roll Row and consumed by later rows in the same Loot Table to gate themselves. Used to express dependencies between rows — e.g., "only roll for a shield if the chosen weapon was one-handed."
+
+A row that wants to publish a variable declares `as: <var_name>`; the value stored is the `key:` of the winning outcome (the `key:` field of the winning option for a Weighted Choice, or the row's own `key:` field for non-Weighted shapes). A row that drops nothing publishes `null`.
+
+A row that wants to consume a variable declares `when: { <var_name>: <expected_value> }`. If the variable equals the expected value the row runs normally; otherwise the row is skipped entirely (no items drop, no variable is updated). Multiple `(var, expected)` pairs in a single `when:` are AND-ed.
+
+Variables only live for the duration of one ROLL_LOOT_TABLE call. Skipped rows do not update vars. A `when:` against an unset variable is treated as a comparison against `null`.
+
 **Option List**: A named, reusable weighted-choice list stored under `option_lists:` in a loot table file. A Roll Row may set `options: "<list_name>"` (string) to pull options from the registry instead of inlining them. Option entries may also recurse via `{chance, from: "<other_list>"}`.
 
 **Dice Expression**: A string like `"2d6 + 3"` resolved by a simple expression evaluator. Accepts `NdM`, integer constants, and `+`/`−` joiners. Used anywhere a Loot Table wants a variable Quantity (e.g., `quantity: "1d6"` on a currency drop). Distinct from the `DiceSystem` module — this is a utility evaluator for arbitrary dice, not the success-counting d10 system.

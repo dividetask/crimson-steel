@@ -764,6 +764,8 @@ After the category formula, if the Item Type is flagged `innately_usable: true`,
 
 **Description:** Rolls every row of a Loot Table in order and returns the list of Item Stacks produced. Empty rows (nothing dropped) are omitted from the result. The returned stacks are **not** merged with each other — merge happens when the caller feeds them into ADD_ITEM. Currencies (Gold, Silver, Copper) and Gems appear in the list as ordinary stacks; Loot Tables do not have a separate `gold` field.
 
+A row may carry a `when: {<var>: <value>}` gate that consults variables set by earlier rows; if the gate fails, the row is skipped entirely (it does not appear in results and does not update any variable). A row may carry an `as: <var_name>` field to record its outcome's `key` under that name; later rows can then gate themselves on that key. Each option inside a Weighted Choice (and the row body itself for non-Weighted shapes) may carry a `key: <value>` that becomes the recorded value when that option wins. A row that drops nothing records `key: null`.
+
 **Parameters:**
 - `table_id`: the id of the Loot Table to roll.
 
@@ -771,59 +773,86 @@ After the category formula, if the Item Type is flagged `innately_usable: true`,
 
 1. `table = GET_LOOT_TABLE(table_id)`
 2. `results = empty list`
-3. `for each row in (table['rolls'] or empty):`
-4. `⠀⠀stacks = ROLL_ROW(row)  # list of stacks; empty when nothing dropped`
-5. `⠀⠀for each stack in stacks: results.append(stack)`
-6. `return results`
+3. `vars = empty dictionary`
+4. `for each row in (table['rolls'] or empty):`
+5. `⠀⠀if 'when' in row and not WHEN_GATE_PASSES(row['when'], vars): continue`
+6. `⠀⠀rolled = ROLL_ROW(row)  # { 'stacks': [...], 'key': <value or null> }`
+7. `⠀⠀for each stack in rolled['stacks']: results.append(stack)`
+8. `⠀⠀if 'as' in row: vars[row['as']] = rolled['key']`
+9. `return results`
+
+---
+
+## WHEN_GATE_PASSES
+
+**Description:** Internal helper. Evaluates a row's `when:` block against the running variables dict. Returns true when every `(var, expected)` pair matches the vars dict (with unset variables treated as `null`).
+
+**Parameters:**
+- `when`: a dictionary like `{hand: one_handed}` (one or more pairs).
+- `vars`: the running variables dict.
+
+**Returns:** Boolean.
+
+1. `for each (var_name, expected) in when:`
+2. `⠀⠀actual = vars[var_name] if var_name in vars else null`
+3. `⠀⠀if actual != expected: return false`
+4. `return true`
 
 ---
 
 ## ROLL_ROW
 
-**Description:** Rolls one row of a Loot Table and returns the list of Item Stacks it produced (empty list when nothing drops). Dispatches on row shape:
+**Description:** Rolls one row of a Loot Table and returns a dictionary `{stacks, key}` — the list of Item Stacks the row produced (empty when nothing drops) and the variable key associated with the outcome (used by ROLL_LOOT_TABLE to update its `vars` dict when the row carries an `as:` field). Dispatches on row shape:
 
-- **Guaranteed** (`{item}` or `{items}`): always returns the resolved stacks.
-- **Independent Chance** (`{chance, item}` or `{chance, items}`): returns the resolved stacks with probability `chance`, otherwise an empty list.
-- **Weighted Choice** (`{options: [...]}` or `{options: "<list_name>"}`): picks one option by cumulative probability; the remainder (when `sum(chance) < 1`) means nothing drops.
-- **Gated Weighted Choice** (`{chance, options: [...]}`): first rolls `chance` to decide whether to descend into the weighted choice.
+- **Guaranteed** (`{item}` or `{items}`): always returns the resolved stacks; `key` from the row's `key:` field if present, else `null`.
+- **Independent Chance** (`{chance, item}` or `{chance, items}`): returns the resolved stacks with probability `chance`, `key` from the row's `key:` field; otherwise empty stacks and `key: null`.
+- **Weighted Choice** (`{options: [...]}` or `{options: "<list_name>"}`): picks one option by cumulative probability; `key` comes from the winning option's `key:` field. The remainder (when `sum(chance) < 1`) means nothing drops and `key: null`.
+- **Gated Weighted Choice** (`{chance, options: [...]}`): first rolls `chance` to decide whether to descend into the weighted choice; gate failure produces empty stacks and `key: null`.
 
 A row's payload may be either `item: <single spec>` (one stack) or `items: [<spec>, <spec>, ...]` (multiple stacks). Inside an `options:` list, each option likewise may use `item:` or `items:`. The `items:` form is how a row produces, e.g., a Shortbow + Arrows pair, or a magical weapon plus a matching scabbard.
 
 If the row carries `equipped: true`, every Stack in the produced list is tagged with `equipped: true` before being returned. The flag applies uniformly across all of a multi-item row's outputs.
 
+The row-level `as:` and `when:` fields are NOT consumed by this function — ROLL_LOOT_TABLE handles them around the call.
+
 **Parameters:**
 - `row`: a row dictionary.
 
-**Returns:** A list of Item Stacks. Empty when nothing dropped.
+**Returns:** A dictionary `{ 'stacks': [...], 'key': <value or null> }`.
 
-1. `result = empty list`
-2. `options = row['options']`
-3. `if options is a string:`
-4. `⠀⠀if options not in option_lists: raise exception ('Unknown option list: ' + options)`
-5. `⠀⠀options = option_lists[options]`
-6. `if options is a list:`
-7. `⠀⠀if 'chance' in row and RAND_FLOAT() >= row['chance']:`
-8. `⠀⠀⠀⠀return empty list`
-9. `⠀⠀result = ROLL_WEIGHTED(options)`
-10. `else if 'chance' in row:`
-11. `⠀⠀if RAND_FLOAT() >= row['chance']: return empty list`
-12. `⠀⠀result = RESOLVE_ITEM_SPECS(row)`
-13. `else if 'item' in row or 'items' in row:`
-14. `⠀⠀result = RESOLVE_ITEM_SPECS(row)`
-15. `if row.get('equipped') == true:`
-16. `⠀⠀for each stack in result: stack['equipped'] = true`
-17. `return result`
+1. `stacks = empty list`
+2. `key = null`
+3. `options = row['options']`
+4. `if options is a string:`
+5. `⠀⠀if options not in option_lists: raise exception ('Unknown option list: ' + options)`
+6. `⠀⠀options = option_lists[options]`
+7. `if options is a list:`
+8. `⠀⠀if 'chance' in row and RAND_FLOAT() >= row['chance']:`
+9. `⠀⠀⠀⠀return { 'stacks': empty list, 'key': null }`
+10. `⠀⠀rolled = ROLL_WEIGHTED(options)`
+11. `⠀⠀stacks = rolled['stacks']`
+12. `⠀⠀key = rolled['key']`
+13. `else if 'chance' in row:`
+14. `⠀⠀if RAND_FLOAT() >= row['chance']: return { 'stacks': empty list, 'key': null }`
+15. `⠀⠀stacks = RESOLVE_ITEM_SPECS(row)`
+16. `⠀⠀key = row.get('key')`
+17. `else if 'item' in row or 'items' in row:`
+18. `⠀⠀stacks = RESOLVE_ITEM_SPECS(row)`
+19. `⠀⠀key = row.get('key')`
+20. `if row.get('equipped') == true:`
+21. `⠀⠀for each stack in stacks: stack['equipped'] = true`
+22. `return { 'stacks': stacks, 'key': key }`
 
 ---
 
 ## ROLL_WEIGHTED
 
-**Description:** Picks one option from a weighted-choice list and returns the list of Item Stacks it produces. Each option carries a `chance` ∈ `[0, 1]`; their sum is permitted to be less than 1 (the remainder means "nothing"). An option whose body is `{chance, from: "<list_name>"}` recurses into another Option List when selected — useful for cross-tier overflow (e.g., "5% of a tier-1 roll actually grabs from tier-2"). An option may use `item:` (single) or `items:` (multiple).
+**Description:** Picks one option from a weighted-choice list and returns `{stacks, key}` — the list of Item Stacks the winning option produces and the option's `key:` value (used by ROLL_ROW / ROLL_LOOT_TABLE for the variable system). Each option carries a `chance` ∈ `[0, 1]`; their sum is permitted to be less than 1 (the remainder means "nothing"). An option whose body is `{chance, from: "<list_name>"}` recurses into another Option List when selected — the recursive call's `key` bubbles up; the outer option's `key:` is ignored for `from:` options. An option may use `item:` (single) or `items:` (multiple).
 
 **Parameters:**
 - `options`: a list of option dictionaries.
 
-**Returns:** A list of Item Stacks. Empty when the cumulative-probability draw lands in the "nothing" remainder.
+**Returns:** A dictionary `{ 'stacks': [...], 'key': <value or null> }`. `stacks` is empty when the cumulative-probability draw lands in the "nothing" remainder.
 
 1. `total = Σ (option['chance'] or 0) for option in options`
 2. `if total > 1 + 1e-9: log warning ('weighted options sum > 1.0 (got ' + total + ')')`
@@ -836,8 +865,8 @@ If the row carries `equipped: true`, every Stack in the produced list is tagged 
 9. `⠀⠀⠀⠀⠀⠀sub_list_name = option['from']`
 10. `⠀⠀⠀⠀⠀⠀if sub_list_name not in option_lists: raise exception ('Unknown option list: ' + sub_list_name)`
 11. `⠀⠀⠀⠀⠀⠀return ROLL_WEIGHTED(option_lists[sub_list_name])`
-12. `⠀⠀⠀⠀return RESOLVE_ITEM_SPECS(option)`
-13. `return empty list`
+12. `⠀⠀⠀⠀return { 'stacks': RESOLVE_ITEM_SPECS(option), 'key': option.get('key') }`
+13. `return { 'stacks': empty list, 'key': null }`
 
 ---
 

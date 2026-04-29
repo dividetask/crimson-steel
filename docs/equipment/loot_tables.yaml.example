@@ -71,6 +71,40 @@
 # produced stacks uniformly.
 #
 # ---------------------------------------------------------------------
+# Roll variables (cross-row gating)
+#
+# A row can publish its outcome as a named variable, and later rows
+# can gate themselves on that variable. Use this to express row
+# dependencies — e.g., "only roll for a shield when the chosen
+# weapon was one-handed."
+#
+#     - as: hand
+#       options:
+#         - chance: 0.40
+#           key: one_handed
+#           item: {item: Short sword}
+#         - chance: 0.30
+#           key: two_handed
+#           item: {item: Spear}
+#
+#     - when: { hand: one_handed }
+#       chance: 0.40
+#       item: {item: Light wooden shield}
+#
+# `as: <name>` records the row's outcome under the variable. The
+# value stored is the `key:` of whichever option won (for a
+# Weighted Choice) or the row's own `key:` (for the other shapes).
+# A row that drops nothing records `null`.
+#
+# `when: { <name>: <value> }` gates the row. If the variable
+# doesn't equal the expected value, the row is skipped entirely
+# (no items drop, no variable is updated). Multiple key/value
+# pairs in one `when:` are AND-ed. An unset variable counts as
+# `null`.
+#
+# Variables are scoped to a single ROLL_LOOT_TABLE call.
+#
+# ---------------------------------------------------------------------
 # Dice expressions
 #
 # Any `quantity` field may be a dice expression string like
@@ -127,15 +161,23 @@ loot_tables:
   town_guard_equipment:
     rolls:
 
+      # Weapon row publishes the chosen handedness as `hand`. The
+      # spear is two-handed, so a spear-wielding guard's hand will
+      # be `two_handed`; the others are `one_handed`.
       - equipped: true
+        as: hand
         options:
           - chance: 0.40
+            key: one_handed
             item: {item: Short sword}
           - chance: 0.30
+            key: two_handed
             item: {item: Spear}
           - chance: 0.20
+            key: one_handed
             item: {item: Mace}
           - chance: 0.10
+            key: one_handed
             item: {item: Hatchet}
 
       - equipped: true
@@ -146,7 +188,10 @@ loot_tables:
             item: {item: Leather armor}
           # 10% nothing
 
+      # Shield row only fires for one-handed wielders. Spear-
+      # wielding guards skip this row entirely.
       - equipped: true
+        when: { hand: one_handed }
         chance: 0.40
         item: {item: Light wooden shield}
 
