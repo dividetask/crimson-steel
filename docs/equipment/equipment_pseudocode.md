@@ -49,6 +49,7 @@ Two stacks match if and only if all nine fields are equal. The `quantity` and `r
 - `generic_shop_templates`: dictionary from `shop_id` (without the `"generic_shop:"` prefix) to `{ 'template': table_id, 'source_file': string }`.
 - `active_generic_shops`: dictionary from `shop_id` to `{ 'stock': [item_stack, ...], 'generated_at_day': integer }`.
 - `current_day`: non-negative integer; the Game Day counter.
+- `loot_archive`: dictionary from `archive_id` to an Archive Entry record `{ 'id', 'ground_id', 'label', 'notes_ref', 'closed', 'items': [{'item', 'claimed_by'}, ...] }`. Loaded from / saved to `notes-loot.yaml`.
 - `random_source`: source of random numbers (`RAND_INT`, `RAND_FLOAT`).
 
 ---
@@ -57,7 +58,7 @@ Two stacks match if and only if all nine fields are equal. The `quantity` and `r
 
 **Description:** Loads all yaml files and initializes the random source.
 **Parameters:**
-- `data_dir`: directory containing `equipment_config.yaml`, `loot.yaml`, `loot_tables.yaml`, `shops.yaml`, and any matching `loot-*.yaml`, `loot_tables-*.yaml`, `shops-*.yaml`.
+- `data_dir`: directory containing `equipment_config.yaml`, `loot.yaml`, `loot_tables.yaml`, `shops.yaml`, `notes-loot.yaml`, and any matching `loot-*.yaml`, `loot_tables-*.yaml`, `shops-*.yaml`.
 - `random_source` *(optional)*: a random source, useful for deterministic tests. If omitted, a default system random source is created.
 
 **Returns:** None.
@@ -68,7 +69,8 @@ Two stacks match if and only if all nine fields are equal. The `quantity` and `r
 4. `LOAD_LOOT_FILES(data_dir)`
 5. `LOAD_LOOT_TABLE_FILES(data_dir)`
 6. `LOAD_SHOP_FILES(data_dir)`
-7. `store all state on the instance`
+7. `LOAD_NOTES_LOOT_FILE(data_dir)`
+8. `store all state on the instance`
 
 ---
 
@@ -154,9 +156,31 @@ Two stacks match if and only if all nine fields are equal. The `quantity` and `r
 
 ---
 
+## LOAD_NOTES_LOOT_FILE
+
+**Description:** Reads `notes-loot.yaml` from the data directory, populating `loot_archive`. The file may not exist (campaigns that don't use the archive feature simply omit it); a missing file produces an empty archive. Duplicate archive ids inside the file are an error.
+
+Unlike the other loot-related load helpers, this one is a single-file read (no glob). Archive entries are infrequent and are written back to the same `notes-loot.yaml` from runtime additions.
+
+**Parameters:**
+- `data_dir`: same as CONSTRUCTOR.
+
+**Returns:** None; mutates `loot_archive`.
+
+1. `loot_archive = empty dictionary`
+2. `file_path = data_dir + '/notes-loot.yaml'`
+3. `if file does not exist at file_path: return`
+4. `data = load_yaml(file_path) or empty dictionary`
+5. `for each entry in (data['loot_archive'] or empty list):`
+6. `⠀⠀if entry['id'] in loot_archive:`
+7. `⠀⠀⠀⠀raise exception ('Duplicate archive id: ' + entry['id'])`
+8. `⠀⠀loot_archive[entry['id']] = entry`
+
+---
+
 ## SAVE
 
-**Description:** Writes every in-memory owner, loot table, and shop record back to the yaml file it was loaded from. Owners created at runtime (no `source_file` recorded) are written to the base file for their kind: `loot.yaml` for Characters, Party, and Ground Piles; `shops.yaml` for Shops; `loot_tables.yaml` for Loot Tables and Option Lists. Always invoked from a single writer to avoid interleaved writes.
+**Description:** Writes every in-memory owner, loot table, shop record, and loot-archive entry back to the yaml file it was loaded from. Owners created at runtime (no `source_file` recorded) are written to the base file for their kind: `loot.yaml` for Characters, Party, and Ground Piles; `shops.yaml` for Shops; `loot_tables.yaml` for Loot Tables and Option Lists; `notes-loot.yaml` for Loot Archive entries. Always invoked from a single writer to avoid interleaved writes.
 
 **Parameters:**
 - `data_dir`: same as CONSTRUCTOR.
@@ -173,10 +197,12 @@ Two stacks match if and only if all nine fields are equal. The `quantity` and `r
 8. `build shops.yaml content for the base file: include 'state': { 'current_day': current_day } and 'active_generic_shops': active_generic_shops`
 9. `build content for every other shops-*.yaml file: only the specific_shops / generic_shop_templates that originated there`
 10. `write each shop file`
+11. `write data_dir + '/notes-loot.yaml' with content { 'loot_archive': list of loot_archive values in insertion order }`
 
 **Notes:**
 - `active_generic_shops` and `current_day` always live in the base `shops.yaml`, never in glob files. This keeps transient state in one predictable place.
 - `option_lists` follow the `loot_tables` source_file grouping. A list added at runtime is written to `loot_tables.yaml`.
+- `notes-loot.yaml` is written even when `loot_archive` is empty (the file holds a `loot_archive: []` block in that case). The notes module relies on the file's existence.
 - SAVE is idempotent: calling it twice in a row produces identical files.
 
 ---
@@ -1492,3 +1518,106 @@ Resolution rules:
 - Hit points are returned as a formula string (e.g., `"30 * thickness"`). Combat substitutes `thickness` from the same Armor Category Defaults entry — the value is included in the result for convenience.
 - Shields' damage_reduction and resilience both surface as `null` until specific shield rules are defined elsewhere. Callers that must produce a number should treat `null` as "ask the combat module."
 - `effective_hardness` is computed even for Tier 0 armor (where it equals `base_hardness`). Returning the precomputed value keeps callers from re-implementing the formula.
+
+---
+
+## OPEN_LOOT_ARCHIVE
+
+**Description:** Creates a new Archive Entry from an existing Ground Pile and adds it to `loot_archive`. The Ground Pile is left in place in `loot.yaml`. The new entry takes a snapshot of the pile's items, each with `claimed_by: null`. Raises if `archive_id` already exists or the named pile has no inventory.
+
+**Parameters:**
+- `ground_id`: an Owner ID like `"ground:Goblin cave — entrance"`.
+- `archive_id`: a unique string id for the new entry.
+- `label`: a human-readable label string. Optional — defaults to the ground_id.
+
+**Returns:** The created Archive Entry.
+
+1. `if archive_id in loot_archive: raise exception ('Archive id already in use: ' + archive_id)`
+2. `if not ground_id starts with 'ground:': raise exception ('OPEN_LOOT_ARCHIVE expects a ground pile owner id, got: ' + ground_id)`
+3. `inventory = GET_INVENTORY(ground_id)`
+4. `if length(inventory) == 0: raise exception ('Ground pile has no items: ' + ground_id)`
+5. `entry = {`
+6. `⠀⠀'id': archive_id,`
+7. `⠀⠀'ground_id': ground_id,`
+8. `⠀⠀'label': label or ground_id,`
+9. `⠀⠀'notes_ref': null,`
+10. `⠀⠀'closed': false,`
+11. `⠀⠀'items': empty list`
+12. `}`
+13. `for each stack in inventory:`
+14. `⠀⠀entry['items'].append({ 'item': shallow copy of stack, 'claimed_by': null })`
+15. `loot_archive[archive_id] = entry`
+16. `return entry`
+
+**Notes:**
+- Ownership of the snapshot copies is independent of the live ground pile from this point on; modifying the pile via TRANSFER_ITEM (or CLAIM_FROM_LOOT_ARCHIVE) does not mutate the snapshot's `item` field, only its `claimed_by` annotation.
+- The label defaults to the ground_id but DMs typically pass a friendlier description ("Goblin cave entrance loot").
+
+---
+
+## CLAIM_FROM_LOOT_ARCHIVE
+
+**Description:** Marks an item in an Archive Entry as claimed and transfers the matching stack from the corresponding Ground Pile to the claimer's inventory. The pile in `loot.yaml` shrinks by the transferred amount; the archive's `items` list keeps its full snapshot but updates the `claimed_by` field on the affected record. Raises if the archive is closed, the item is already claimed, or the matching stack can't be found in the ground pile.
+
+**Parameters:**
+- `archive_id`: the id of the Archive Entry.
+- `item_index`: the zero-based index of the entry in the archive's `items` list.
+- `claimer_id`: an Owner ID (`"character:<id>"`, `"party"`, etc.).
+
+**Returns:** The amount transferred (matches `actual_quantity` recorded on the archive item).
+
+1. `if archive_id not in loot_archive: raise exception ('Unknown archive id: ' + archive_id)`
+2. `entry = loot_archive[archive_id]`
+3. `if entry['closed']: raise exception ('Archive already closed: ' + archive_id)`
+4. `if item_index < 0 or item_index >= length(entry['items']): raise exception ('item_index out of range')`
+5. `item_record = entry['items'][item_index]`
+6. `if item_record['claimed_by'] is not null: raise exception ('Item already claimed by ' + item_record['claimed_by'])`
+7. `archived_stack = item_record['item']`
+8. `ground_inventory = GET_INVENTORY(entry['ground_id'])`
+9. `match_index = FIND_MATCHING_STACK_INDEX(ground_inventory, archived_stack)`
+10. `if match_index is null: raise exception ('No matching stack in ground pile for archived item ' + item_index + ' in ' + archive_id)`
+11. `requested = archived_stack['quantity'] or 1`
+12. `transferred = TRANSFER_ITEM(entry['ground_id'], claimer_id, match_index, requested)`
+13. `item_record['claimed_by'] = claimer_id`
+14. `if transferred != requested: item_record['actual_quantity'] = transferred`
+15. `return transferred`
+
+**Notes:**
+- Stack identity is the match key (item, tier, properties, durability_damage, name override, value_in_gold, guidance_bonus, equipped). If the ground pile contains a stack with the same identity but a different quantity (e.g., the DM split off some arrows manually), CLAIM transfers what's available and records `actual_quantity`. Authors who care about exact-quantity bookkeeping should avoid manual edits to an open ground pile.
+- A claimed item record never reverts to `claimed_by: null` automatically. If the player reconsiders, the DM unwinds with a separate TRANSFER_ITEM and edits the archive by hand.
+
+---
+
+## CLOSE_LOOT_ARCHIVE
+
+**Description:** Finalizes an Archive Entry. Marks the entry `closed: true` and removes the corresponding Ground Pile from `loot.yaml`. The archive entry remains in `notes-loot.yaml` indefinitely. Items left unclaimed in the archive simply stay marked `claimed_by: null` — the close operation does not redistribute or destroy them; the act of closing means "the DM has resolved this pile and any unclaimed items go to wherever the DM intends." Raises if the archive is already closed.
+
+**Parameters:**
+- `archive_id`: the id of the Archive Entry to close.
+
+**Returns:** None.
+
+1. `if archive_id not in loot_archive: raise exception ('Unknown archive id: ' + archive_id)`
+2. `entry = loot_archive[archive_id]`
+3. `if entry['closed']: raise exception ('Archive already closed: ' + archive_id)`
+4. `entry['closed'] = true`
+5. `if entry['ground_id'] in loot:`
+6. `⠀⠀remove entry['ground_id'] from loot`
+
+**Notes:**
+- The Ground Pile may still hold items at close time — typically it should be empty (everyone has claimed what they want) but the DM can close early to take a pile off the live map. Whatever remains in the pile is dropped from `loot.yaml`; the snapshot in the archive preserves the original list with `claimed_by: null` on the unclaimed entries.
+- After CLOSE, lookups against the ground_id raise (the pile no longer exists). The archive remains queryable via GET_LOOT_ARCHIVE.
+
+---
+
+## GET_LOOT_ARCHIVE
+
+**Description:** Returns the Archive Entry for a given id. Raises if the id is unknown. Read-only convenience wrapper for the notes module.
+
+**Parameters:**
+- `archive_id`: the id of the Archive Entry.
+
+**Returns:** The entry dictionary.
+
+1. `if archive_id not in loot_archive: raise exception ('Unknown archive id: ' + archive_id)`
+2. `return loot_archive[archive_id]`

@@ -170,6 +170,18 @@ The Equipment class exposes three detail-fetcher functions so other modules (com
 
 **Get Armor Details**: Returns the Get Item Details dictionary extended with armor-specific fields: damage reduction, material, base hardness, effective hardness (`base + 2 × Tier`), the hit-points formula string, thickness, resilience increment, and computed resilience (`Tier × increment`, with shield/null guards).
 
+## Loot Archive
+
+**Loot Archive**: A persistent record of every Ground Pile the party has formally encountered, who took what, and what is still on the floor. Stored in `notes-loot.yaml`. The notes module reads this file to surface "who got the magical sword" recaps and to link narrative entries to specific loot events.
+
+**Archive Entry**: One record in the Loot Archive. Carries a unique `id`, the `ground_id` of the corresponding Ground Pile in `loot.yaml`, an optional human-readable `label`, an optional `notes_ref` (set by the notes module), a `closed` boolean, and a list of `items`. Each item record holds the original Item Stack as it appeared at archive-open time and a `claimed_by` field (an Owner ID or `null`).
+
+**Pickup**: A single `claimed_by` transition on an Archive Entry's item record from `null` to a specific Owner ID. Recorded by CLAIM_FROM_LOOT_ARCHIVE, which simultaneously transfers the matching stack out of the Ground Pile in `loot.yaml`.
+
+**Open Loot Archive**: The DM-initiated function that creates a new Archive Entry from an existing Ground Pile. Snapshots the pile's items into the entry (each `claimed_by: null`) and links them via `ground_id`. The pile stays in `loot.yaml`; the entry is added to `notes-loot.yaml`. Both copies coexist until CLOSE_LOOT_ARCHIVE.
+
+**Close Loot Archive**: The DM-initiated function that finalizes an Archive Entry. Marks the entry `closed: true` and removes the corresponding Ground Pile from `loot.yaml`. The Archive Entry persists in `notes-loot.yaml` indefinitely.
+
 ## Time
 
 **Advance Time**: The function the caller invokes to notify the `Equipment` class that game-time has elapsed. Increments the Game Day counter and triggers Active Generic Shop expiry. No other time-sensitive state lives in the Equipment module today; a future shared "time-aware module" interface may generalize this across other systems.

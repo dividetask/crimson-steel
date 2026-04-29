@@ -1,0 +1,105 @@
+# Loot Archive (example)
+#
+# Persistent record of loot piles the party has encountered, who
+# took what, and what is still up for grabs. The notes module reads
+# this file to surface "who got the magical sword" recaps and to
+# link narrative entries to specific loot events.
+#
+# Copy to `notes-loot.yaml` and edit for your campaign.
+#
+# See `equipment_glossary.md` for vocabulary (Loot Archive, Archive
+# Entry, Pickup) and `equipment_pseudocode.md` for the algorithms
+# (OPEN_LOOT_ARCHIVE, CLAIM_FROM_LOOT_ARCHIVE, CLOSE_LOOT_ARCHIVE,
+# GET_LOOT_ARCHIVE).
+#
+# ---------------------------------------------------------------------
+# Lifecycle
+#
+# 1. The party encounters loot. The DM creates a ground pile in
+#    `loot.yaml` (under `ground_piles:`) — manually or by rolling a
+#    Loot Table — and then calls OPEN_LOOT_ARCHIVE to register the
+#    pile here. The archive entry receives a snapshot of the pile's
+#    items, each tagged `claimed_by: null`.
+#
+# 2. The pile now lives in TWO places: the ground pile in
+#    `loot.yaml` (the live, mutable inventory) and the archive
+#    entry here (the immutable record). They stay in sync via
+#    CLAIM_FROM_LOOT_ARCHIVE: when a character claims an item, the
+#    function transfers the matching stack from the ground pile to
+#    the character's inventory AND updates the archive entry's
+#    `claimed_by` field.
+#
+# 3. The DM eventually closes the loot via CLOSE_LOOT_ARCHIVE,
+#    typically once everyone has decided what they want. CLOSE
+#    removes the ground pile from `loot.yaml` and sets
+#    `closed: true` here. The archive entry remains in this file
+#    forever (it is a notes-side record).
+#
+# ---------------------------------------------------------------------
+# Entry fields
+#
+#   id           REQUIRED. Unique string id for this entry. Notes
+#                module references entries by this.
+#   ground_id    REQUIRED. The Owner ID of the corresponding ground
+#                pile (e.g., "ground:Goblin cave — entrance"). The
+#                pile lives in `loot.yaml` until the archive is
+#                closed.
+#   label        Human-readable description. Free-form string.
+#   notes_ref    Optional pointer to a notes entry. Set by the
+#                notes module; the equipment module just stores it.
+#   closed       Boolean. False while the pile is open and
+#                claimable; true after CLOSE_LOOT_ARCHIVE.
+#   items        List of pickup records. Each entry:
+#                - item: { ...full Item Stack as it appeared in the
+#                          ground pile snapshot... }
+#                  claimed_by: <owner_id> | null
+#                Quantity in the snapshot is the original quantity.
+#                If a stack is partially claimed (e.g., a player
+#                takes 8 of 11 arrows), an `actual_quantity` field
+#                may be added by CLAIM_FROM_LOOT_ARCHIVE to record
+#                what was actually transferred. claimed_by uses the
+#                same Owner ID convention as elsewhere ("character:
+#                <id>", "party", etc.).
+
+loot_archive:
+
+  # Open archive — the DM has not yet closed it. The pile still
+  # exists in loot.yaml under the matching ground_id and shrinks
+  # as items are claimed; this archive entry retains the original
+  # snapshot with claimed_by annotations.
+  - id: loot_001
+    ground_id: "ground:Goblin cave — entrance"
+    label: "Goblin cave entrance loot"
+    notes_ref: null
+    closed: false
+    items:
+      - item: { item: Shortbow }
+        claimed_by: "character:char_001"
+      - item: { item: Arrow, quantity: 11 }
+        claimed_by: "character:char_001"
+      - item: { item: Dagger, quantity: 2 }
+        claimed_by: null
+      - item: { item: Gold, quantity: 8 }
+        claimed_by: party
+      - item: { item: Silver, quantity: 23 }
+        claimed_by: null
+
+  # Closed archive — the DM has finalized this pile. The
+  # corresponding ground_id has been removed from loot.yaml; this
+  # entry remains for the notes module's recap.
+  - id: loot_002
+    ground_id: "ground:Abandoned shrine — altar"
+    label: "Altar loot"
+    notes_ref: campaign_session_03_altar
+    closed: true
+    items:
+      - item:
+          item: Mace
+          tier: 1
+          properties:
+            - name: Radiant
+        claimed_by: "character:char_003"
+      - item:
+          item: Leather armor
+          durability_damage: 5
+        claimed_by: party
