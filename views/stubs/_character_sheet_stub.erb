@@ -1,3 +1,4 @@
+<% minimal = (detail == :minimal) %>
 <div class="sheet">
   <div class="header">
     <h1><%= h character.name %></h1>
@@ -7,70 +8,104 @@
     <div class="tier-line">
       Tier <%= h dummy[:tier] %> &nbsp;&nbsp;&nbsp; BAB: <%= h dummy[:bab] %>
     </div>
-    <div class="subtitle">
-      Player: <%= h character.player %> &nbsp;&nbsp;&nbsp; ID: <%= h character.id %>
-    </div>
   </div>
 
-  <div class="top-stats">
-    <div class="stat-box">
-      <span class="label">Combat Pool</span>
-      <span class="value"><%= h dummy[:combat_pool] %></span>
-    </div>
-    <div class="stat-box">
-      <span class="label">Perception</span>
-      <span class="value"><%= h dummy[:perception_dice] %>d (<%= character_sheet_add_plus(dummy[:perception_bonus]) %>)</span>
-    </div>
-    <div class="stat-box">
-      <span class="label">Initiative</span>
-      <span class="value"><%= h dummy[:initiative] %></span>
-    </div>
-  </div>
+  <% temp = dummy[:temporary_hit_points].to_i %>
+  <% mod  = dummy[:moderate_damage].to_i %>
+  <% maj  = dummy[:major_damage].to_i %>
 
-  <div class="top-stats">
-    <div class="stat-box">
-      <span class="label">Damage Reduction</span>
-      <span class="value"><%= h dummy[:damage_reduction] %></span>
+  <% if minimal %>
+    <div class="top-stats">
+      <div class="stat-box">
+        <span class="label">HP</span>
+        <span class="value">
+          <%= h dummy[:current_hp] %>/<%= h dummy[:hp_max] %><%
+          %><% if temp > 0 %> <span class="hp-temp">+<%= temp %> tmp</span><% end %><%
+          %><% if mod  > 0 %> <span class="hp-mod"><%= mod %> mod</span><% end %><%
+          %><% if maj  > 0 %> <span class="hp-major"><%= maj %> maj</span><% end %>
+        </span>
+      </div>
+      <div class="stat-box">
+        <span class="label">Mana</span>
+        <span class="value"><%= h dummy[:current_mana] %>/<%= h dummy[:mana_max] %></span>
+      </div>
+      <div class="stat-box">
+        <span class="label">Speed</span>
+        <span class="value"><%= h dummy[:speed] %></span>
+      </div>
     </div>
-    <div class="stat-box">
-      <span class="label">Damage Resilience</span>
-      <span class="value"><%= h dummy[:damage_resilience] %></span>
+    <div class="top-stats">
+      <div class="stat-box">
+        <span class="label">Initiative</span>
+        <span class="value"><%= h dummy[:initiative] %></span>
+      </div>
+      <div class="stat-box">
+        <span class="label">Perception</span>
+        <span class="value"><%= character_sheet_add_plus(dummy[:perception_bonus]) %></span>
+      </div>
+      <div class="stat-box stat-box-empty"></div>
     </div>
-    <div class="stat-box">
-      <span class="label">Speed</span>
-      <span class="value"><%= h dummy[:speed] %></span>
+  <% else %>
+    <div class="top-stats">
+      <div class="stat-box">
+        <span class="label">Combat Pool</span>
+        <span class="value"><%= h dummy[:combat_pool] %></span>
+      </div>
+      <div class="stat-box">
+        <span class="label">Perception</span>
+        <span class="value"><%= h dummy[:perception_dice] %>d (<%= character_sheet_add_plus(dummy[:perception_bonus]) %>)</span>
+      </div>
+      <div class="stat-box">
+        <span class="label">Initiative</span>
+        <span class="value"><%= h dummy[:initiative] %></span>
+      </div>
     </div>
-  </div>
 
-  <div class="top-stats">
-    <div class="stat-box">
-      <span class="label">HP</span>
-      <span class="value"><%= h dummy[:current_hp] %>/<%= h dummy[:hp_max] %></span>
+    <div class="top-stats">
+      <div class="stat-box">
+        <span class="label">Damage Reduction</span>
+        <span class="value"><%= h dummy[:damage_reduction] %></span>
+      </div>
+      <div class="stat-box">
+        <span class="label">Damage Resilience</span>
+        <span class="value"><%= h dummy[:damage_resilience] %></span>
+      </div>
+      <div class="stat-box">
+        <span class="label">Speed</span>
+        <span class="value"><%= h dummy[:speed] %></span>
+      </div>
     </div>
-    <div class="stat-box">
-      <span class="label">Mana</span>
-      <span class="value"><%= h dummy[:current_mana] %>/<%= h dummy[:mana_max] %></span>
-    </div>
-    <div class="stat-box">
-      <span class="label">Mana Regen</span>
-      <span class="value"><%= h dummy[:mana_regen] %></span>
-    </div>
-  </div>
 
-  <div class="top-stats">
-    <div class="stat-box">
-      <span class="label">Temporary HP</span>
-      <span class="value"><%= h dummy[:temporary_hit_points] %></span>
+    <div class="top-stats">
+      <div class="stat-box">
+        <span class="label">HP</span>
+        <span class="value"><%= h dummy[:current_hp] %>/<%= h dummy[:hp_max] %></span>
+      </div>
+      <div class="stat-box">
+        <span class="label">Mana</span>
+        <span class="value"><%= h dummy[:current_mana] %>/<%= h dummy[:mana_max] %></span>
+      </div>
+      <div class="stat-box">
+        <span class="label">Mana Regen</span>
+        <span class="value"><%= h dummy[:mana_regen] %></span>
+      </div>
     </div>
-    <div class="stat-box">
-      <span class="label">Moderate Damage</span>
-      <span class="value"><%= h dummy[:moderate_damage] %></span>
+
+    <div class="top-stats">
+      <div class="stat-box">
+        <span class="label">Temporary HP</span>
+        <span class="value"><%= h dummy[:temporary_hit_points] %></span>
+      </div>
+      <div class="stat-box">
+        <span class="label">Moderate Damage</span>
+        <span class="value"><%= h dummy[:moderate_damage] %></span>
+      </div>
+      <div class="stat-box">
+        <span class="label">Major Damage</span>
+        <span class="value"><%= h dummy[:major_damage] %></span>
+      </div>
     </div>
-    <div class="stat-box">
-      <span class="label">Major Damage</span>
-      <span class="value"><%= h dummy[:major_damage] %></span>
-    </div>
-  </div>
+  <% end %>
 
   <h2>Combat</h2>
   <table class="combat">
@@ -80,8 +115,10 @@
       <th>Roll</th>
       <th>Attk / Def Bonus</th>
       <th>Dmg Bonus</th>
-      <th>Bleed</th>
-      <th>MT*</th>
+      <% unless minimal %>
+        <th>Bleed</th>
+        <th>MT*</th>
+      <% end %>
       <th>Notes</th>
     </tr>
 
@@ -92,8 +129,10 @@
       <td><%= h weapon['dice'] %>d</td>
       <td><%= character_sheet_add_plus(weapon['attack_bonus']) %></td>
       <td><%= h weapon['damage'] %></td>
-      <td><%= h weapon['bleed'] %></td>
-      <td><%= h weapon['threshold'] %></td>
+      <% unless minimal %>
+        <td><%= h weapon['bleed'] %></td>
+        <td><%= h weapon['threshold'] %></td>
+      <% end %>
       <td></td>
     </tr>
 <% end %>
@@ -104,66 +143,96 @@
       <td><%= h dummy[:bab_dice] %>d</td>
       <td><%= character_sheet_add_plus(dummy[:bab_bonus]) %></td>
       <td>-</td>
-      <td>-</td>
-      <td>-</td>
+      <% unless minimal %>
+        <td>-</td>
+        <td>-</td>
+      <% end %>
       <td></td>
     </tr>
 
   </table>
-  <div class="formula">* MT is the base threshold for major damage.</div>
+  <% unless minimal %>
+    <div class="formula">* MT is the base threshold for major damage.</div>
+  <% end %>
 
   <div class="two-column">
     <div class="left-col">
       <h2>Attributes</h2>
-      <table class="attributes">
-        <tr>
-          <th></th>
-          <th>Score</th>
-          <th>½</th>
-          <th colspan="2">Check</th>
-          <th colspan="2">Saves</th>
-        </tr>
-        <% character_sheet_attribute_names.each do |name, sym| %>
-        <% base = character.attribute(sym) %>
-        <% dmg  = dummy[:attribute_damage][sym].to_i %>
-        <% enh  = dummy[:attribute_enhancement][sym].to_i %>
-        <% effective = base - dmg + enh %>
-        <tr>
-          <td class="attr-name"><%= name %></td>
-          <td>
-            <%= base %><% if dmg > 0 %><span class="ability-damage">-<%= dmg %></span><% end %><% if enh > 0 %><span class="enh-note" title="base <%= base %> +<%= enh %> enhancement">(+<%= enh %>)</span><% end %>
-          </td>
-          <td><%= character_sheet_half_mod(effective) %></td>
-          <td><%= h dummy[:attr_dice][sym] %>d</td>
-          <td><%= character_sheet_add_plus(dummy[:attr_bonus][sym]) %></td>
-          <td><%= h dummy[:save_dice][sym] %>d</td>
-          <td><%= character_sheet_add_plus(dummy[:save_bonus][sym]) %></td>
-        </tr>
+      <% if minimal %>
+        <table class="attributes attributes-minimal">
+          <tr>
+            <th></th>
+            <th>Score</th>
+          </tr>
+          <% character_sheet_attribute_names.each do |name, sym| %>
+          <% base = character.attribute(sym) %>
+          <% dmg  = dummy[:attribute_damage][sym].to_i %>
+          <% enh  = dummy[:attribute_enhancement][sym].to_i %>
+          <tr>
+            <td class="attr-name"><%= name %></td>
+            <td>
+              <%= base %><% if dmg > 0 %><span class="ability-damage">-<%= dmg %></span><% end %><% if enh > 0 %><span class="enh-note" title="base <%= base %> +<%= enh %> enhancement">(+<%= enh %>)</span><% end %>
+            </td>
+          </tr>
+          <% end %>
+        </table>
+      <% else %>
+        <table class="attributes">
+          <tr>
+            <th></th>
+            <th>Score</th>
+            <th>½</th>
+            <th colspan="2">Check</th>
+            <th colspan="2">Saves</th>
+          </tr>
+          <% character_sheet_attribute_names.each do |name, sym| %>
+          <% base = character.attribute(sym) %>
+          <% dmg  = dummy[:attribute_damage][sym].to_i %>
+          <% enh  = dummy[:attribute_enhancement][sym].to_i %>
+          <% effective = base - dmg + enh %>
+          <tr>
+            <td class="attr-name"><%= name %></td>
+            <td>
+              <%= base %><% if dmg > 0 %><span class="ability-damage">-<%= dmg %></span><% end %><% if enh > 0 %><span class="enh-note" title="base <%= base %> +<%= enh %> enhancement">(+<%= enh %>)</span><% end %>
+            </td>
+            <td><%= character_sheet_half_mod(effective) %></td>
+            <td><%= h dummy[:attr_dice][sym] %>d</td>
+            <td><%= character_sheet_add_plus(dummy[:attr_bonus][sym]) %></td>
+            <td><%= h dummy[:save_dice][sym] %>d</td>
+            <td><%= character_sheet_add_plus(dummy[:save_bonus][sym]) %></td>
+          </tr>
+          <% end %>
+        </table>
+        <% if dummy[:save_enhancement].to_i > 0 %>
+          <div class="formula">Saves include +<%= dummy[:save_enhancement] %> enhancement bonus.</div>
         <% end %>
-      </table>
-      <% if dummy[:save_enhancement].to_i > 0 %>
-        <div class="formula">Saves include +<%= dummy[:save_enhancement] %> enhancement bonus.</div>
+        <div class="formula">Formula: 4+½ Attribute Mod, subtract 5 when &gt; 8</div>
       <% end %>
-      <div class="formula">Formula: 4+½ Attribute Mod, subtract 5 when &gt; 8</div>
 
       <h2>Skills</h2>
       <table class="skills">
         <tr>
           <th>Name</th>
-          <th>Ranks</th>
+          <% unless minimal %>
+            <th>Ranks</th>
+          <% end %>
           <th>Dice</th>
           <th>Bonus</th>
         </tr>
         <% dummy[:skills].each do |skill| %>
         <tr>
           <td><%= h skill['name'] %></td>
-          <td><%= h skill['ranks'] %></td>
+          <% unless minimal %>
+            <td><%= h skill['ranks'] %></td>
+          <% end %>
           <td><%= h skill['dice'] %>d</td>
           <td><%= character_sheet_add_plus(skill['bonus']) %></td>
         </tr>
         <% end %>
       </table>
-      <div class="formula">Formula: 6+rank+½ Attribute Mod, subtract 5 when &gt; 10</div>
+      <% unless minimal %>
+        <div class="formula">Formula: 6+rank+½ Attribute Mod, subtract 5 when &gt; 10</div>
+      <% end %>
 
       <h2>Items</h2>
       <div class="items">

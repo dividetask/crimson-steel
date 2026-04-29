@@ -6,9 +6,14 @@
 # the old sheet while the per-feature classes are rebuilt.
 
 helpers do
-  def character_sheet_stub(character:, dummy: {})
+  # detail: :minimal (default) trims the sheet to what a player needs
+  # at a glance — dropping dice columns, weapon threshold/bleed, skill
+  # ranks, and the secondary HP rows. :full renders everything the
+  # before-refactor sheet showed.
+  def character_sheet_stub(character:, detail: :minimal, dummy: {})
     erb :"stubs/_character_sheet_stub", layout: false, locals: {
       character: character,
+      detail:    detail == :full ? :full : :minimal,
       dummy:     character_sheet_dummy_defaults.merge(dummy || {})
     }
   end

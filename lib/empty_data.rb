@@ -18,6 +18,7 @@ class EmptyData
   def self.characters;             [];                 end
   def self.pcs;                    [];                 end
   def self.character_by_id(_id);   nil;                end
+  def self.pc_objects;             [];                 end
   def self.enemy_groups;           [];                 end
   def self.enemy_templates;        [];                 end
   def self.combat_state;           EMPTY_COMBAT_STATE; end

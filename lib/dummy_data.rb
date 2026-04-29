@@ -51,6 +51,26 @@ class DummyData
     characters.find { |c| c['id'].to_i == id.to_i }
   end
 
+  # Character class instances for the /character preview page. Static
+  # data only (id, name, player, race, base attributes); per-feature
+  # state still comes from the dummy block in character_sheet_stub.
+  def self.pc_objects
+    @pc_objects ||= [
+      Character.new(id: 1, name: 'Ash Windmere',  player: 'Sam',     race: 'Human',
+                    attributes: { str: 3, dex: 4, con: 3, int: 3, wis: 4, cha: 5 }),
+      Character.new(id: 2, name: 'Bryn Ironvein', player: 'Mira',    race: 'Dwarf',
+                    attributes: { str: 5, dex: 2, con: 5, int: 2, wis: 3, cha: 2 }),
+      Character.new(id: 3, name: 'Lira Duskmoor', player: 'Jordan',  race: 'Elf',
+                    attributes: { str: 2, dex: 4, con: 2, int: 5, wis: 4, cha: 3 }),
+      Character.new(id: 4, name: 'Kass Thorne',   player: 'Pat',     race: 'Halfling',
+                    attributes: { str: 2, dex: 5, con: 3, int: 3, wis: 3, cha: 4 }),
+      Character.new(id: 5, name: 'Rowan Vale',    player: 'Riley',   race: 'Half-Elf',
+                    attributes: { str: 3, dex: 4, con: 3, int: 3, wis: 4, cha: 3 }),
+      Character.new(id: 6, name: 'Ember Blackoak', player: 'Casey',  race: 'Half-Orc',
+                    attributes: { str: 4, dex: 3, con: 4, int: 2, wis: 4, cha: 3 })
+    ]
+  end
+
   # --- Enemies -------------------------------------------------------------
 
   def self.enemy_groups

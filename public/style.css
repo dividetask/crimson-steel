@@ -1332,3 +1332,78 @@ body {
 @media print {
   .sheet { border: none; }
 }
+
+/* /character page header — prev/next arrows, character counter,
+   minimal/full toggle on the left, player tag on the right. Lives
+   above the sheet so the stub itself stays self-contained. */
+.character-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.character-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.character-controls .nav-arrow {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 14px;
+  text-decoration: none;
+  color: #333;
+  border: 1px solid #999;
+  border-radius: 3px;
+  background: #f5f5f5;
+}
+.character-controls .nav-arrow:hover { background: #ddd; }
+
+.character-controls .character-counter {
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 48px;
+  text-align: center;
+}
+
+.character-controls .detail-toggle {
+  margin-left: 12px;
+  padding: 3px 10px;
+  font-size: 11px;
+  text-decoration: none;
+  color: #fff;
+  background: #1976d2;
+  border-radius: 3px;
+}
+.character-controls .detail-toggle:hover { background: #145ea8; }
+
+.character-player {
+  font-size: 11px;
+  color: #555;
+}
+.character-player strong { color: #000; }
+
+/* Inline HP annotations used in minimal mode when the character
+   has temp HP, or moderate / major damage taken. */
+.sheet .hp-temp   { color: #1976d2; font-size: 0.85em; margin-left: 4px; }
+.sheet .hp-mod    { color: #ef6c00; font-size: 0.85em; margin-left: 4px; }
+.sheet .hp-major  { color: #c62828; font-size: 0.85em; margin-left: 4px; }
+
+/* Empty stat-box keeps flex spacing balanced when a row has fewer
+   than three stats (minimal layout's second row). */
+.sheet .stat-box-empty {
+  visibility: hidden;
+}
+
+/* Minimal attribute table: just name + score, so don't carry the
+   full table's center-aligned columns or borderless 2nd/3rd cells. */
+.sheet .attributes-minimal td:nth-child(2),
+.sheet .attributes-minimal th:nth-child(2) {
+  border-right: 1px solid #000;
+  border-left: 1px solid #000;
+  text-align: center;
+  width: 60px;
+}
