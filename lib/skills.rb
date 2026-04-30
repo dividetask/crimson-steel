@@ -28,8 +28,10 @@
 require 'yaml'
 
 class Skills
-  DEFAULT_ATTRIBUTE_CONTRIBUTION_DIVISOR = 2
-  DEFAULT_VERSATILE_PERFORMANCE_ABILITY  = 'versatile_performance'.freeze
+  # Semantic constants — the bare 'versatile_performance' ability
+  # key (used by the hardcoded special case) and the perform-set
+  # prefix. Adding to either requires code changes.
+  VERSATILE_PERFORMANCE_KEY = 'versatile_performance'.freeze
   PERFORM_SET_KEY = 'perform_'.freeze
 
   attr_reader :skills_config
@@ -39,9 +41,9 @@ class Skills
     @dice_system   = dice_system
     @catalog       = @skills_config['skills'] || {}
     prowess_block  = @skills_config['skill_prowess'] || {}
-    @attribute_contribution_divisor = (prowess_block['attribute_contribution_divisor'] || DEFAULT_ATTRIBUTE_CONTRIBUTION_DIVISOR).to_i
+    @attribute_contribution_divisor = prowess_block['attribute_contribution_divisor'].to_i
     vp_block = @skills_config['versatile_performance'] || {}
-    @vp_ability_name = (vp_block['ability_name'] || DEFAULT_VERSATILE_PERFORMANCE_ABILITY).to_s
+    @vp_ability_name = (vp_block['ability_name'] || VERSATILE_PERFORMANCE_KEY).to_s
     @vp_performances = (vp_block['performances'] || {}).each_with_object({}) do |(perf, skills), h|
       h[perf.to_s] = Array(skills).map(&:to_s)
     end

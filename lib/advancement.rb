@@ -17,14 +17,12 @@
 require 'yaml'
 
 class Advancement
-  DEFAULT_ATTRIBUTE_BONUS_PER_TIER = 1
-  DEFAULT_MIN_LEVEL                = 1
-  DEFAULT_TAGS                     = ['player_character'].freeze
-
-  DEFAULT_HP_ATTRIBUTE   = :con
-  DEFAULT_HP_DIVISOR     = 1
-  DEFAULT_MANA_ATTRIBUTE = :int
-  DEFAULT_MANA_DIVISOR   = 2
+  # Semantic defaults — these aren't config values that mirror
+  # YAML; they're lib-level fallbacks for shape (a missing
+  # min_level on an ability entry means level 1; a character
+  # without tags is treated as a player_character).
+  DEFAULT_MIN_LEVEL = 1
+  DEFAULT_TAGS      = ['player_character'].freeze
 
   Ability = Struct.new(:name, :level, :description, :sub_choices, keyword_init: true) do
     # `level` is nil for non-scaling abilities.
@@ -50,17 +48,17 @@ class Advancement
     class_levels: {},
     class_skill_choices: {},
     tier_attribute_advancement: [],
-    attribute_bonus_per_tier: DEFAULT_ATTRIBUTE_BONUS_PER_TIER,
+    attribute_bonus_per_tier: nil,
     focused_attribute_bonus_per_tier: [],
     focused_attribute_count: 0,
     tier_advancement: {},
     class_definitions: {},
     skill_definitions: {},
     ability_sub_choices: {},
-    hp_attribute: DEFAULT_HP_ATTRIBUTE,
-    hp_divisor: DEFAULT_HP_DIVISOR,
-    mana_attribute: DEFAULT_MANA_ATTRIBUTE,
-    mana_divisor: DEFAULT_MANA_DIVISOR
+    hp_attribute: nil,
+    hp_divisor: nil,
+    mana_attribute: nil,
+    mana_divisor: nil
   )
     @tier_override                    = tier.nil? ? nil : tier.to_i
     @character_tags                   = normalize_tags(tags)
@@ -73,10 +71,10 @@ class Advancement
     @tier_advancement                 = tier_advancement || {}
     @class_definitions                = class_definitions || {}
     @skill_definitions                = skill_definitions || {}
-    @hp_attribute                     = hp_attribute.to_sym
-    @hp_divisor                       = hp_divisor.to_i.nonzero? || DEFAULT_HP_DIVISOR
-    @mana_attribute                   = mana_attribute.to_sym
-    @mana_divisor                     = mana_divisor.to_i.nonzero? || DEFAULT_MANA_DIVISOR
+    @hp_attribute                     = hp_attribute && hp_attribute.to_sym
+    @hp_divisor                       = hp_divisor && hp_divisor.to_i
+    @mana_attribute                   = mana_attribute && mana_attribute.to_sym
+    @mana_divisor                     = mana_divisor && mana_divisor.to_i
     @ability_sub_choices              = normalize_ability_sub_choices(ability_sub_choices)
     validate_archetype_exclusivity!
   end
@@ -93,6 +91,7 @@ class Advancement
   # level. (See validate_archetype_exclusivity! — characters
   # cannot hold both a parent class and its archetype.)
   def max_mana(character)
+    raise ArgumentError, 'mana_attribute / mana_divisor not configured' unless @mana_attribute && @mana_divisor
     attr_score = character.respond_to?(:attribute) ? character.attribute(@mana_attribute).to_i : 0
     tier_term = (character.tier.to_i * attr_score) / @mana_divisor
     class_term = @class_levels.sum do |klass, level|
@@ -304,6 +303,7 @@ class Advancement
   # even if Advancement was constructed without the same value.
   # Formula: floor(character.tier * attribute(hp_attribute) / hp_divisor).
   def max_hit_points(character)
+    raise ArgumentError, 'hp_attribute / hp_divisor not configured' unless @hp_attribute && @hp_divisor
     (character.tier * character.attribute(@hp_attribute)) / @hp_divisor
   end
 
@@ -342,17 +342,17 @@ class Advancement
       class_levels:                     levels,
       class_skill_choices:              skills,
       tier_attribute_advancement:       entry['tier_attribute_advancement'] || [],
-      attribute_bonus_per_tier:         rules.fetch('attribute_bonus_per_tier', DEFAULT_ATTRIBUTE_BONUS_PER_TIER),
+      attribute_bonus_per_tier:         rules['attribute_bonus_per_tier'],
       focused_attribute_bonus_per_tier: rules['focused_attribute_bonus_per_tier'] || [],
       focused_attribute_count:          rules['focused_attribute_count'] || 0,
       tier_advancement:                 rules['tier_advancement'] || {},
       class_definitions:                class_definitions,
       skill_definitions:                skill_definitions,
       ability_sub_choices:              extract_ability_sub_choices(entry),
-      hp_attribute:                     rules.fetch('hp_attribute',   DEFAULT_HP_ATTRIBUTE),
-      hp_divisor:                       rules.fetch('hp_divisor',     DEFAULT_HP_DIVISOR),
-      mana_attribute:                   rules.fetch('mana_attribute', DEFAULT_MANA_ATTRIBUTE),
-      mana_divisor:                     rules.fetch('mana_divisor',   DEFAULT_MANA_DIVISOR)
+      hp_attribute:                     rules['hp_attribute'],
+      hp_divisor:                       rules['hp_divisor'],
+      mana_attribute:                   rules['mana_attribute'],
+      mana_divisor:                     rules['mana_divisor']
     )
   end
 

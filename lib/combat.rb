@@ -46,12 +46,6 @@ require 'fileutils'
 require 'securerandom'
 
 class Combat
-  DEFAULT_INITIATIVE_ATTRIBUTE  = 'wis'
-  DEFAULT_INITIATIVE_DIVISOR    = 2
-  DEFAULT_COMBAT_POOL_ATTRIBUTE = 'wis'
-  DEFAULT_COMBAT_POOL_RANGE     = 10
-  DEFAULT_COMBAT_POOL_MINIMUM   = 11
-
   def initialize(state_path:, rules_path:, dice_system:, character_lookup:,
                  damage_types: nil, conditions_lookup: nil, condition_evaluator: nil)
     @state_path          = state_path
@@ -432,13 +426,21 @@ class Combat
     (@combatants.map { |c| c['id'].to_i }.max || 0) + 1
   end
 
+  REQUIRED_RULES_KEYS = %w[
+    Initiative\ Attribute Initiative\ Divisor
+    Combat\ Pool\ Attribute Combat\ Pool\ Range Combat\ Pool\ Minimum
+  ].map { |k| k.tr('\\', '') }.freeze
+
   def load_rules!
-    data = (@rules_path && File.exist?(@rules_path)) ? (YAML.safe_load_file(@rules_path) || {}) : {}
-    @initiative_attribute  = (data['Initiative Attribute']  || DEFAULT_INITIATIVE_ATTRIBUTE).to_sym
-    @initiative_divisor    = data['Initiative Divisor']     || DEFAULT_INITIATIVE_DIVISOR
-    @combat_pool_attribute = (data['Combat Pool Attribute'] || DEFAULT_COMBAT_POOL_ATTRIBUTE).to_sym
-    @combat_pool_range     = data['Combat Pool Range']      || DEFAULT_COMBAT_POOL_RANGE
-    @combat_pool_minimum   = data['Combat Pool Minimum']    || DEFAULT_COMBAT_POOL_MINIMUM
+    raise ArgumentError, 'rules_path is required' unless @rules_path && File.exist?(@rules_path)
+    data = YAML.safe_load_file(@rules_path) || {}
+    missing = REQUIRED_RULES_KEYS.reject { |k| data.key?(k) }
+    raise ArgumentError, "combat rules YAML missing keys: #{missing.join(', ')}" if missing.any?
+    @initiative_attribute  = data['Initiative Attribute'].to_sym
+    @initiative_divisor    = data['Initiative Divisor']
+    @combat_pool_attribute = data['Combat Pool Attribute'].to_sym
+    @combat_pool_range     = data['Combat Pool Range']
+    @combat_pool_minimum   = data['Combat Pool Minimum']
   end
 
   def save!

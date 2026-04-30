@@ -46,9 +46,11 @@ RSpec.describe Combat do
   end
   let(:lookup) { ->(id) { characters[id] } }
 
-  def make_combat(state_path: nil, rules_path: nil)
+  DEFAULT_RULES_PATH = File.expand_path('../data/combat_rules.yaml', __dir__)
+
+  def make_combat(state_path: nil, rules_path: DEFAULT_RULES_PATH, **opts)
     Combat.new(state_path: state_path, rules_path: rules_path,
-               dice_system: dice_system, character_lookup: lookup)
+               dice_system: dice_system, character_lookup: lookup, **opts)
   end
 
   describe 'rules loading' do
@@ -82,7 +84,10 @@ RSpec.describe Combat do
       Dir.mktmpdir do |dir|
         path = File.join(dir, 'combat_rules.yaml')
         File.write(path, { 'Initiative Attribute' => 'dex',
-                           'Combat Pool Attribute' => 'dex' }.to_yaml)
+                           'Initiative Divisor' => 2,
+                           'Combat Pool Attribute' => 'dex',
+                           'Combat Pool Range' => 10,
+                           'Combat Pool Minimum' => 11 }.to_yaml)
         combat = make_combat(rules_path: path)
         # Ash dex 18 → 9 initiative dice; raw = 5 + 9 = 14;
         # action_dice_max = 14 % 10 + 11 = 15; bonus = 1.
@@ -123,7 +128,10 @@ RSpec.describe Combat do
     it 'honors tuned Combat Pool Range / Minimum from the rules file' do
       Dir.mktmpdir do |dir|
         path = File.join(dir, 'combat_rules.yaml')
-        File.write(path, { 'Combat Pool Range' => 5,
+        File.write(path, { 'Initiative Attribute' => 'wis',
+                           'Initiative Divisor' => 2,
+                           'Combat Pool Attribute' => 'wis',
+                           'Combat Pool Range' => 5,
                            'Combat Pool Minimum' => 1 }.to_yaml)
         combat = make_combat(rules_path: path)
         # Ash raw = 13. 13 % 5 = 3. + 1 = 4. Bonus = 13 / 5 = 2.
@@ -281,15 +289,14 @@ RSpec.describe Combat do
     it 'round-trips state through YAML' do
       Dir.mktmpdir do |dir|
         state_path = File.join(dir, 'combat.yaml')
-        rules_path = File.join(dir, 'combat_rules.yaml')
         dice_values.replace([10, 9, 8, 7, 6, 5, 4, 3])
-        first = Combat.new(state_path: state_path, rules_path: rules_path,
+        first = Combat.new(state_path: state_path, rules_path: DEFAULT_RULES_PATH,
                            dice_system: dice_system, character_lookup: lookup)
         a = first.add_combatant(char_id: 1, name: 'Ash')
         first.reroll_all_initiative
         first.spend_action_dice(a['id'], 2)
 
-        second = Combat.new(state_path: state_path, rules_path: rules_path,
+        second = Combat.new(state_path: state_path, rules_path: DEFAULT_RULES_PATH,
                             dice_system: DiceSystem.new(dice_config_path),
                             character_lookup: lookup)
         expect(second.active?).to eq(true)
@@ -303,12 +310,12 @@ RSpec.describe Combat do
     it 'derives the next combat id from existing combatants after reload' do
       Dir.mktmpdir do |dir|
         state_path = File.join(dir, 'combat.yaml')
-        first = Combat.new(state_path: state_path, rules_path: nil,
+        first = Combat.new(state_path: state_path, rules_path: DEFAULT_RULES_PATH,
                            dice_system: dice_system, character_lookup: lookup)
         first.add_combatant(char_id: 1, name: 'Ash')
         first.add_combatant(char_id: 1, name: 'Ash#2')
 
-        second = Combat.new(state_path: state_path, rules_path: nil,
+        second = Combat.new(state_path: state_path, rules_path: DEFAULT_RULES_PATH,
                             dice_system: dice_system, character_lookup: lookup)
         rec = second.add_combatant(char_id: 2, name: 'Bryn')
         expect(rec['id']).to eq(3)
@@ -352,7 +359,7 @@ RSpec.describe Combat do
 
     let(:combat) do
       Combat.new(
-        state_path: nil, rules_path: nil,
+        state_path: nil, rules_path: DEFAULT_RULES_PATH,
         dice_system: dice_system,
         character_lookup: lookup,
         damage_types: damage_types,
@@ -426,7 +433,7 @@ RSpec.describe Combat do
     let(:damage_types) { DamageTypes.new(damage_types_path) }
     let(:combat) do
       Combat.new(
-        state_path: nil, rules_path: nil,
+        state_path: nil, rules_path: DEFAULT_RULES_PATH,
         dice_system: dice_system,
         character_lookup: lookup,
         damage_types: damage_types
@@ -442,7 +449,7 @@ RSpec.describe Combat do
     end
 
     it 'returns the default when damage_types is not configured' do
-      bare = Combat.new(state_path: nil, rules_path: nil,
+      bare = Combat.new(state_path: nil, rules_path: DEFAULT_RULES_PATH,
                         dice_system: dice_system,
                         character_lookup: lookup)
       expect(bare.critical_modifier_for('emotional')).to eq(DiceSystem::DEFAULT_CRITICAL_MODIFIER)

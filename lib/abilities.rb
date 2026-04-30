@@ -11,9 +11,12 @@ require 'set'
 # Reads return the data shape downstream consumers need without ever
 # rolling dice or applying effects.
 class AbilitySystem
-  RECOGNIZED_AREA_SHAPES = %w[line cone square circle].freeze
+  # Semantic constants tied to abilities-domain logic: the two
+  # save conditions (on_fail / on_fumble) and the casting-time
+  # "<N> rounds" parser. Adding to either requires a code
+  # change, so they live here as constants. Area shapes, in
+  # contrast, are a configurable list and come from the YAML.
   RECOGNIZED_SAVE_CONDITIONS = %w[on_fail on_fumble].freeze
-  ROUND_LENGTH_DEFAULT = 6
   DEFAULT_REACH_FEET_KEY = 'Default Reach Feet'
   ROUND_REGEX = /\A(\d+(?:\.\d+)?)\s+rounds?\z/i
 
@@ -415,7 +418,8 @@ class AbilitySystem
     if entry['area']
       area = entry['area']
       raise ArgumentError, "#{entry_name}: area must be a hash" unless area.is_a?(Hash)
-      shapes = @abilities_config['Area Shapes'] || RECOGNIZED_AREA_SHAPES
+      shapes = @abilities_config['Area Shapes']
+      raise ArgumentError, 'abilities config missing Area Shapes' unless shapes
       shapes = shapes.respond_to?(:keys) ? shapes.keys : shapes
       raise ArgumentError, "#{entry_name}: unrecognized area shape" unless shapes.include?(area['shape'])
       raise ArgumentError, "#{entry_name}: area size must be a non-negative integer" unless area['size'].is_a?(Numeric) && area['size'].to_i >= 0

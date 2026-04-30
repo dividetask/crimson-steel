@@ -2,6 +2,12 @@ require 'sinatra'
 require 'json'
 require 'securerandom'
 require 'socket'
+require_relative 'lib/data_bootstrap'
+
+# Copy any missing example YAMLs into data/ before anything tries
+# to load them. Idempotent — existing files are left alone.
+DataBootstrap.bootstrap!(log: $stdout)
+
 require_relative 'lib/dice_system'
 require_relative 'lib/user'
 require_relative 'lib/notes_state'

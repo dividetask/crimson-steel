@@ -527,20 +527,23 @@ RSpec.describe Advancement do
     end
 
     it "sums per-class mana grants on top of the tier × attribute term" do
-      adv = Advancement.new(class_levels: { 'wizard' => 5 }, class_definitions: wizard_def)
+      adv = Advancement.new(class_levels: { 'wizard' => 5 }, class_definitions: wizard_def,
+                            mana_attribute: :int, mana_divisor: 2)
       # tier_term = floor(1 * 8 / 2) = 4. class_term = 5 * 4 = 20. Total = 24.
       expect(adv.max_mana(char_int_8_tier_1)).to eq(24)
     end
 
     it "uses each class's own mana_per_level for multiclass characters" do
       defs = fighter_def.merge(bard_def)
-      adv = Advancement.new(class_levels: { 'fighter' => 3, 'bard' => 2 }, class_definitions: defs)
+      adv = Advancement.new(class_levels: { 'fighter' => 3, 'bard' => 2 }, class_definitions: defs,
+                            mana_attribute: :int, mana_divisor: 2)
       # tier_term = 4. fighter 3*1 = 3. bard 2*2 = 4. Total = 11.
       expect(adv.max_mana(char_int_8_tier_1)).to eq(11)
     end
 
     it "applies the archetype's mana_per_level to every level (retroactive grant)" do
-      adv = Advancement.new(class_levels: { 'arcane_trickster' => 5 }, class_definitions: archetype_defs)
+      adv = Advancement.new(class_levels: { 'arcane_trickster' => 5 }, class_definitions: archetype_defs,
+                            mana_attribute: :int, mana_divisor: 2)
       # tier_term = 4. class_term = 5 * 2 = 10. Total = 14.
       # If we'd kept rogue 3 / arcane_trickster 2, class_term would be 3+4=7.
       expect(adv.max_mana(char_int_8_tier_1)).to eq(14)
