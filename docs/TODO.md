@@ -30,7 +30,7 @@ handful of routes (`/`, `/view-mode`).
 | Attack resolution (calculate_damage) | `Combat.calculate_damage` | partial (severity routing in combat_design) | ❌ | **schema + lib missing** |
 | Procedural Class/Race Abilities catalog | `rules.json reference.abilities` | ✅ (term defined) | ❌ | **catalog content + lib missing** |
 | Bardic Inspiration / Luck points | `Combat#bardic_inspiration` | ✅ (in Conditions design) | ❌ | **lib missing** |
-| Spell casting flow (mana spend, effects apply) | inlined in routes | partial | ❌ | **lib missing** |
+| Spell casting flow (mana spend, effects apply) | inlined in routes | ✅ | ✅ `lib/casting.rb` | mana_cost field on abilities schema is a follow-up |
 | Rituals | inlined | partial | ❌ | **lib missing** |
 | Store / purchasing | inlined | partial (Equipment shops in docs) | ❌ | **lib missing** |
 | Downtime (cast, rest, services, urgent, quick) | 7 routes + helpers | ❌ | ❌ | **design + lib missing** |
@@ -110,25 +110,29 @@ later phase is blocked.
 
 ### Phase 3 — Spell casting and rituals
 
-- [ ] **Cast spell** flow.
-  When a Character casts a spell: resolve the entry, spend mana,
-  apply magic toxicity, route to the right effect path (damage →
-  attack resolution; heal → cure cascade; named effect →
-  `APPLY_NAMED_EFFECT`; ward → temp HP grant; etc.). Probably lives
-  as a top-level `Casting` service that orchestrates Abilities,
-  Conditions, and Combat.
+- [x] **Cast spell** flow. ✅
+  Implemented in `lib/casting.rb`. Resolves the entry, runs the
+  mana check + saturation gate, spends mana, applies cure /
+  ward / mana effects to the target's Conditions, imposes magic
+  toxicity on the caster, returns deferred damage effects + save
+  specs + concentration block for the caller to handle. Mana
+  cost is currently a caller parameter — adding a `mana_cost`
+  field to the abilities schema is a follow-up.
 
 - [ ] **Cast ritual** flow.
   Same path as cast-spell but with the longer casting time and no
   combat-action constraint. Ritual list is on the Character; the
-  same Ability entry resolves either way.
+  same Ability entry resolves either way. With Casting in place,
+  this is largely a thin wrapper that selects ritual semantics
+  (longer casting time, no combat action, possibly different
+  mana cost rule).
 
-- [ ] **Use item / consume.**
-  Potions, oils, scrolls, wands. Each item form has its own consume
-  path: potions/oils apply the spell to drinker/target with
-  Innately Usable pricing already paid; scrolls evaluate the spell
-  but consume the scroll; wands consume mana from the wand instead
-  of the wielder.
+- [x] **Use item / consume.** ✅
+  Implemented in `lib/item_use.rb` (Phase 3, prior commit). Per-form
+  Magic Toxicity formulas, saturation gate, conventional Effect
+  Hash keys (cure / mana / temp_hp), the improved_healing scroll
+  discount, and item quantity decrement. Wand mana flow is still
+  deferred.
 
 ### Phase 4 — Store and Downtime
 

@@ -130,26 +130,18 @@ relevant change.
 
 ### Workflow D — Spell cast (direct, not via item)
 
-Not implemented. Workflow design:
+Implemented in `lib/casting.rb` as a parallel-shaped orchestration to `ItemUse`.
 
-1. Caller resolves the spell through `AbilitySystem#resolve_entry`
-   at the caster's rank in the chosen casting skill.
-2. **Spend mana**. The caster's character / mana store decrements by
-   the spell's mana cost (today's data model doesn't track this).
-3. **Resolve effects** — same shape as item consumption (cure / ward
-   / damage / named effects), routed to the relevant target's
-   Conditions. Damage routes through `Combat#apply_attack_damage`
-   with the target's threshold/resilience inputs.
-4. **Magic toxicity** is imposed on the **caster** (not the target,
-   like potions). Formula: typically the spell's `saturation` Effect
-   Hash entry, with the same minimum-floor and tier-discount rules.
-5. If the spell has a Concentration Block, the caster enters
-   concentration on the spell. Concentration state lives in
-   Conditions (likely as an Affliction-shaped entry or a hardcoded
-   field — see open questions below).
+1. Caller invokes `Casting#cast(spell_name:, caster_char_id:, target_char_id:, rank:, mana_cost:, ...)`.
+2. **Mana check.** If the caster's `current_mana` is below `mana_cost`, return `error: 'insufficient_mana'` immediately — no effects, no mana spent.
+3. Resolve the spell entry through `AbilitySystem#resolve_entry` at the caller-supplied rank (and tier_index / aspect_index for Variant axes).
+4. **Saturation gate** (caster-side, mirroring ItemUse's target-side gate). When the caller supplies `caster_max_toxicity:` and the caster's `magic_toxicity` is at or above that cap, cure and mana effects refuse to land — return `saturation_blocked: true` with no mana spent and no applications. Ward effects bypass the gate.
+5. **Spend mana** from the caster via `Conditions#apply_mana_cost`.
+6. **Apply effects to the target** by reading the resolved Effect Hash for conventional keys: `minor_damage`/`moderate_damage`/`major_damage` → cure cascade, `mana` → mana restore (capped at caller-supplied `target_max_mana:`), `temp_hp` → ward grant with source id `spell:<caster>:<spell>`.
+7. **Magic toxicity on the caster** (not the target — that's the item flow). Formula: `max(saturation, minimum_saturation)` from the resolved Effect Hash. No "potion overhead" term.
+8. **Return deferred work** — the spell's `effects` list (damage objects with deferred `success`/`critical` evaluation) and `saves` list come back intact for caller-driven save resolution and damage routing through `Combat#apply_attack_damage`. The Concentration Block is returned for the caller to track concentration on the caster.
 
-A `Casting` orchestration class is the natural home for this
-workflow, parallel to `ItemUse`.
+Today's gap: **mana cost isn't on the spell schema yet**. Casting accepts `mana_cost:` as a caller parameter so the caller decides how much to charge (typically a tier-driven formula). Adding a `mana_cost` field to the abilities catalog is a follow-up.
 
 ### Workflow E — Affliction tick
 

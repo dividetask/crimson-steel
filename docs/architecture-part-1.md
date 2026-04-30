@@ -26,6 +26,7 @@ kept in sync.
 | Skills | `docs/skills/` | `lib/skills.rb` | ✅ | catalog + coordinator (Skill Prowess math, Versatile Performance routing) |
 | Combat | `docs/combat/` | `lib/combat.rb` | ✅ | tracker + Severity Calculation pipeline; full attack-resolution composition pending |
 | Item use | (in `equipment_design.md`) | `lib/item_use.rb` | ✅ | orchestration for potions, oils, scrolls; wand mana deferred |
+| Casting | (in `architecture-part-2.md` Workflow D) | `lib/casting.rb` | ✅ | direct spell-cast orchestration; mana cost passed in by caller until the abilities schema carries it |
 | Modifiers | — | (`lib/modifiers.rb` on TentativeAdditions) | — | reads ability `modifiers:` lists and folds always-on bonuses through Character |
 
 Modifiers still lives only on TentativeAdditions (no backing class
@@ -68,6 +69,9 @@ graph TD
   ItemUse --> Eq
   ItemUse --> Abil
   ItemUse --> Conds
+  Casting[Casting]
+  Casting --> Abil
+  Casting --> Conds
   Mod -.TentativeAdditions.-> Adv
   Mod -.TentativeAdditions.-> Char
 ```
@@ -113,6 +117,11 @@ ItemUse
 ├── Equipment                (inventory state and quantity decrement)
 ├── AbilitySystem            (resolve the contained spell at the item's tier)
 └── Conditions (via lookup)  (heal cascade, ward, magic toxicity)
+
+Casting
+├── AbilitySystem            (resolve the spell at the caster's rank)
+└── Conditions (via lookup)  (caster mana spend + caster toxicity;
+                              target heal cascade, ward, mana)
 
 Modifiers   (lives on TentativeAdditions only)
 ├── Advancement              (reads ability `modifiers:` lists)
