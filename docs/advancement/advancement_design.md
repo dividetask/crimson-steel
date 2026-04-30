@@ -86,12 +86,32 @@ This means a 3-fighter / 3-bard contributes to every save from both classes — 
 
 ### HP and mana formulas
 
-Both formulas are `floor(tier * attribute(name) / divisor)`. The Character is passed in so:
+**Max Hit Points**: `floor(tier * attribute(hp_attribute) / hp_divisor)`. The Character is passed in so:
 
 - `tier` reads through the Character (Override wins).
 - `attribute(name)` reads through the Character's `attribute(name)` (so the result already includes Race adjustment and Advancement attribute bonus).
 
 This double-routing keeps the formula consistent regardless of how the Character was constructed. Advancement could call `tier` and `attribute_bonus` on itself, but reading through the Character respects the Override and any future effects-layer wrapping.
+
+**Max Mana** has two terms:
+
+```
+max_mana = floor(tier * attribute(mana_attribute) / mana_divisor) +
+           sum over class_levels of (level * class.mana_per_level)
+```
+
+The first term is the same shape as Max HP. The second term is a **per-class-level grant**. `mana_per_level` is declared on each class definition; standard values are 1 (fighter, barbarian, rogue, ranger), 2 (bard, arcane_trickster), or 4 (cleric, druid, wizard).
+
+The per-class grant is what makes the **retroactive mana** rule work: when a character takes an archetype, all of their previous parent-class levels are reclassified as the archetype (see Archetype Exclusivity below), and the archetype's `mana_per_level` applies to every reclassified level. Archetypes carry their own `mana_per_level` value rather than inheriting from `parent_class`; that's what's needed for the retroactive rule to land.
+
+### Archetype Exclusivity
+
+A character cannot hold levels in both a parent class (e.g. `rogue`) and one of its archetypes (e.g. `arcane_trickster`) simultaneously. The Advancement constructor raises when the loaded `class_levels` violate this rule.
+
+Why: once an archetype is taken, the lore is "all your previous parent-class levels are now archetype levels." The character is `arcane_trickster: 5`, not `rogue: 3 / arcane_trickster: 2`. This matters mechanically because:
+
+- The archetype's `mana_per_level` (e.g. 2 for arcane_trickster) applies to every reclassified level. A multiclass `rogue: 3 / arcane_trickster: 2` would otherwise grant `3*1 + 2*2 = 7` mana; the reclassified `arcane_trickster: 5` grants `5*2 = 10`. The retroactive rule is the difference.
+- Skill, save, and ability resolution doesn't change — `Advancement#abilities` already walks the parent_class chain, so `arcane_trickster: 5` still gets the rogue ability list at level 5. Mana is the field that depends on the per-level integer rather than the chain walk.
 
 ### Class definition normalization
 

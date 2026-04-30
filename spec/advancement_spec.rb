@@ -253,9 +253,14 @@ RSpec.describe Advancement do
         expect(adv.abilities.find { |a| a.name == 'sneak_attack' }.level).to eq(3)
       end
 
-      it "sums parent ability levels when the character has both classes" do
+      it "scales a parent ability by the full archetype level after retroactive reclassification" do
+        # Per the archetype-exclusivity rule, taking arcane_trickster
+        # reclassifies all previous rogue levels as arcane_trickster.
+        # A former 'rogue 2 / arcane_trickster 3' is now
+        # 'arcane_trickster 5' — the chain walk gives sneak_attack at
+        # level 5.
         adv = Advancement.new(
-          class_levels:      { 'rogue' => 2, 'arcane_trickster' => 3 },
+          class_levels:      { 'arcane_trickster' => 5 },
           class_definitions: class_definitions
         )
         expect(adv.abilities.find { |a| a.name == 'sneak_attack' }.level).to eq(5)
@@ -482,6 +487,103 @@ RSpec.describe Advancement do
         'dex' => 6, 'int' => 6,
         'str' => 2, 'con' => 2, 'wis' => 2, 'cha' => 2
       )
+    end
+  end
+
+  describe '#max_mana' do
+    let(:fighter_def) { { 'fighter' => { 'mana_per_level' => 1 } } }
+    let(:bard_def)    { { 'bard' => { 'mana_per_level' => 2 } } }
+    let(:wizard_def)  { { 'wizard' => { 'mana_per_level' => 4 } } }
+    let(:archetype_defs) do
+      {
+        'rogue'            => { 'mana_per_level' => 1 },
+        'arcane_trickster' => { 'mana_per_level' => 2, 'parent_class' => 'rogue' }
+      }
+    end
+
+    let(:char_int_8_tier_1) do
+      Struct.new(:tier, :attrs) do
+        def attribute(key); attrs[key].to_i; end
+      end.new(1, int: 8)
+    end
+
+    it "sums per-class mana grants on top of the tier × attribute term" do
+      adv = Advancement.new(class_levels: { 'wizard' => 5 }, class_definitions: wizard_def)
+      # tier_term = floor(1 * 8 / 2) = 4. class_term = 5 * 4 = 20. Total = 24.
+      expect(adv.max_mana(char_int_8_tier_1)).to eq(24)
+    end
+
+    it "uses each class's own mana_per_level for multiclass characters" do
+      defs = fighter_def.merge(bard_def)
+      adv = Advancement.new(class_levels: { 'fighter' => 3, 'bard' => 2 }, class_definitions: defs)
+      # tier_term = 4. fighter 3*1 = 3. bard 2*2 = 4. Total = 11.
+      expect(adv.max_mana(char_int_8_tier_1)).to eq(11)
+    end
+
+    it "applies the archetype's mana_per_level to every level (retroactive grant)" do
+      adv = Advancement.new(class_levels: { 'arcane_trickster' => 5 }, class_definitions: archetype_defs)
+      # tier_term = 4. class_term = 5 * 2 = 10. Total = 14.
+      # If we'd kept rogue 3 / arcane_trickster 2, class_term would be 3+4=7.
+      expect(adv.max_mana(char_int_8_tier_1)).to eq(14)
+    end
+
+    it "honours the configurable mana_attribute and mana_divisor" do
+      char = Struct.new(:tier, :attrs) do
+        def attribute(key); attrs[key].to_i; end
+      end.new(2, wis: 12)
+      adv = Advancement.new(
+        class_levels: { 'wizard' => 1 },
+        class_definitions: wizard_def,
+        mana_attribute: :wis,
+        mana_divisor: 3
+      )
+      # tier_term = floor(2 * 12 / 3) = 8. class_term = 1 * 4 = 4. Total = 12.
+      expect(adv.max_mana(char)).to eq(12)
+    end
+  end
+
+  describe 'archetype exclusivity' do
+    let(:archetype_defs) do
+      {
+        'rogue'            => { 'mana_per_level' => 1 },
+        'arcane_trickster' => { 'mana_per_level' => 2, 'parent_class' => 'rogue' }
+      }
+    end
+
+    it "raises when both a parent class and its archetype have positive levels" do
+      expect {
+        Advancement.new(
+          class_levels:      { 'rogue' => 3, 'arcane_trickster' => 2 },
+          class_definitions: archetype_defs
+        )
+      }.to raise_error(ArgumentError, /both archetype 'arcane_trickster' and its parent class 'rogue'/)
+    end
+
+    it "allows the archetype alone" do
+      expect {
+        Advancement.new(
+          class_levels:      { 'arcane_trickster' => 5 },
+          class_definitions: archetype_defs
+        )
+      }.not_to raise_error
+    end
+
+    it "allows the parent class alone" do
+      expect {
+        Advancement.new(
+          class_levels:      { 'rogue' => 5 },
+          class_definitions: archetype_defs
+        )
+      }.not_to raise_error
+    end
+
+    it "ignores a parent class entry with zero levels" do
+      expect {
+        Advancement.new(
+          class_levels:      { 'rogue' => 0, 'arcane_trickster' => 5 },
+          class_definitions: archetype_defs
+        )
+      }.not_to raise_error
     end
   end
 

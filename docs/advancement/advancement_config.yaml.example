@@ -81,9 +81,28 @@ mana_divisor:   2
 #                        levels in the archetype also count toward
 #                        the parent class's abilities and grant
 #                        the parent's class skills.
+#                        A character cannot hold levels in both an
+#                        archetype and its parent class — once an
+#                        archetype is taken, all of the character's
+#                        previous parent-class levels are
+#                        reclassified as the archetype. The
+#                        archetype's mana_per_level applies to
+#                        every reclassified level (the
+#                        "retroactive mana grant" rule).
 #       min_parent_level optional, used with parent_class. The
 #                        documented prerequisite level in the
 #                        parent class to take this archetype.
+#       mana_per_level   integer, default 0. Each level in this
+#                        class adds this much to the character's
+#                        max mana. Standard values:
+#                        - 1 for fighter/barbarian/rogue/ranger
+#                        - 2 for bard/arcane_trickster
+#                        - 4 for cleric/druid/wizard
+#                        Archetypes carry their own value rather
+#                        than inheriting from parent_class —
+#                        this is what makes the retroactive mana
+#                        grant work when a character takes an
+#                        archetype.
 #       saves            list of attribute keys (str/dex/con/int/
 #                        wis/cha). The class specializes in these
 #                        saving throws — they advance faster than
@@ -132,6 +151,7 @@ mana_divisor:   2
 
 classes:
   barbarian:
+    mana_per_level: 1
     saves: [str, con]
     bonus_skills: 2
     class_skills:
@@ -160,6 +180,7 @@ classes:
 
   bard:
     name: Bard
+    mana_per_level: 2
     saves: [dex, cha]
     bonus_skills: 3
     non_class_skills:
@@ -198,6 +219,7 @@ classes:
 
   cleric:
     name: Cleric
+    mana_per_level: 4
     saves: [wis, cha]
     bonus_skills: 2
     class_skills:
@@ -231,6 +253,7 @@ classes:
 
   druid:
     name: Druid
+    mana_per_level: 4
     saves: [int, wis]
     bonus_skills: 2
     class_skills:
@@ -248,6 +271,7 @@ classes:
 
   fighter:
     name: Fighter
+    mana_per_level: 1
     saves: [str, con]
     bonus_skills: 2
     class_skills:
@@ -267,12 +291,14 @@ classes:
 
   ranger:
     name: Ranger
+    mana_per_level: 1
     bonus_skills: 3
     saves: [str, dex]
     class_skills: []
     abilities: []
 
   rogue:
+    mana_per_level: 1
     saves: [dex, int]
     bonus_skills: 4
     class_skills:
@@ -309,6 +335,7 @@ classes:
 
   arcane_trickster:
     parent_class: rogue
+    mana_per_level: 2
     min_parent_level: 3
     saves: [dex, int]
     class_skills:
@@ -320,6 +347,7 @@ classes:
       - name: mage_legerdemain
 
   wizard:
+    mana_per_level: 4
     saves: [int, wis]
     class_skills: []
     opposed_skills:

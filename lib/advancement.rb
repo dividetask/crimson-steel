@@ -57,6 +57,9 @@ class Advancement
   attr_reader :character_type, :class_levels, :class_skill_choices, :tier_attribute_advancement,
               :ability_sub_choices
 
+  DEFAULT_MANA_ATTRIBUTE = :int
+  DEFAULT_MANA_DIVISOR   = 2
+
   def initialize(
     tier: nil,
     character_type: DEFAULT_CHARACTER_TYPE,
@@ -69,7 +72,9 @@ class Advancement
     tier_advancement: {},
     class_definitions: {},
     skill_definitions: {},
-    ability_sub_choices: {}
+    ability_sub_choices: {},
+    mana_attribute: DEFAULT_MANA_ATTRIBUTE,
+    mana_divisor: DEFAULT_MANA_DIVISOR
   )
     @tier_override                    = tier.nil? ? nil : tier.to_i
     @character_type                   = character_type.to_s
@@ -82,7 +87,42 @@ class Advancement
     @tier_advancement                 = tier_advancement || {}
     @class_definitions                = class_definitions || {}
     @skill_definitions                = skill_definitions || {}
+    @mana_attribute                   = mana_attribute.to_sym
+    @mana_divisor                     = mana_divisor.to_i.nonzero? || DEFAULT_MANA_DIVISOR
     @ability_sub_choices              = normalize_ability_sub_choices(ability_sub_choices)
+    validate_archetype_exclusivity!
+  end
+
+  # Maximum mana for the character. Combines a tier × intelligence
+  # term with a per-class-level grant: each level in a class adds
+  # the class's `mana_per_level` value to the total. The
+  # configurable mana_attribute defaults to `int`; the divisor
+  # defaults to 2.
+  #
+  # The per-class grant is the "retroactive mana" part of the
+  # archetype rule — taking an archetype reclassifies all of the
+  # character's prior parent-class levels as the archetype, and
+  # the archetype's mana_per_level applies to every reclassified
+  # level. (See validate_archetype_exclusivity! — characters
+  # cannot hold both a parent class and its archetype.)
+  def max_mana(character)
+    attr_score = character.respond_to?(:attribute) ? character.attribute(@mana_attribute).to_i : 0
+    tier_term = (character.tier.to_i * attr_score) / @mana_divisor
+    class_term = @class_levels.sum do |klass, level|
+      next 0 if level.to_i <= 0
+      mana_per_level_for(klass) * level.to_i
+    end
+    tier_term + class_term
+  end
+
+  # Per-class mana_per_level lookup. Reads from the class
+  # definition; falls back to 0 when unset (for classes that
+  # grant no mana). Archetypes carry their own value — no
+  # inheritance from parent_class — because the retroactive
+  # mana-grant rule depends on the archetype's mana being
+  # applied to every reclassified level.
+  def mana_per_level_for(klass)
+    (class_definition(klass)['mana_per_level'] || 0).to_i
   end
 
   # The character's current tier. Returns the explicit override
@@ -260,7 +300,9 @@ class Advancement
       tier_advancement:                 rules['tier_advancement'] || {},
       class_definitions:                class_definitions,
       skill_definitions:                skill_definitions,
-      ability_sub_choices:              extract_ability_sub_choices(entry)
+      ability_sub_choices:              extract_ability_sub_choices(entry),
+      mana_attribute:                   rules.fetch('mana_attribute', DEFAULT_MANA_ATTRIBUTE),
+      mana_divisor:                     rules.fetch('mana_divisor',   DEFAULT_MANA_DIVISOR)
     )
   end
 
@@ -338,6 +380,28 @@ class Advancement
   end
 
   private
+
+  # A character cannot hold levels in both a parent class and one
+  # of its archetypes simultaneously. Once an archetype is taken,
+  # all of the character's previous parent-class levels are
+  # reclassified as the archetype — they don't coexist as
+  # multiclass entries. Raises when the loaded class_levels
+  # violate this rule.
+  def validate_archetype_exclusivity!
+    @class_levels.each do |klass, level|
+      next if level.to_i <= 0
+      definition = class_definition(klass)
+      parent = definition['parent_class'] || definition[:parent_class]
+      next unless parent
+      parent = parent.to_s
+      parent_level = @class_levels[parent].to_i
+      next if parent_level <= 0
+      raise ArgumentError,
+            "Character has levels in both archetype '#{klass}' and its " \
+            "parent class '#{parent}'. Archetypes reclassify all parent-class " \
+            "levels — declare only the archetype with the combined level."
+    end
+  end
 
   def normalize_class_levels(input)
     case input

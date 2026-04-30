@@ -72,7 +72,13 @@
 
 **Max Hit Points**: `floor(tier * attribute(hp_attribute) / hp_divisor)`. Tier comes from the Character (so the Override is authoritative); the attribute is read back through the Character's `attribute(...)` call. Tier 0 yields 0. *(configurable: `hp_attribute`, `hp_divisor`)*
 
-**Max Mana**: Same shape as Max Hit Points but defaults to `int / 2`. *(configurable: `mana_attribute`, `mana_divisor`)*
+**Max Mana**: `floor(tier * attribute(mana_attribute) / mana_divisor) + sum(class_levels[c] * mana_per_level[c])`. The first term is the tier × attribute scaling shared with HP (defaults: `int / 2`). The second term is a **per-class-level grant**: each level in a class adds the class's `mana_per_level` to the total. Standard `mana_per_level` values: `1` for fighter / barbarian / rogue / ranger, `2` for bard / arcane_trickster, `4` for cleric / druid / wizard. *(configurable: `mana_attribute`, `mana_divisor`, and per-class `mana_per_level`)*
+
+**Mana Per Level**: Per-class integer field. Archetypes carry their own value rather than inheriting from `parent_class` — this is what makes the **retroactive mana grant** work when a character takes an archetype.
+
+## Archetype Exclusivity
+
+**Archetype Exclusivity**: A character cannot hold levels in both a parent class and one of its archetypes simultaneously. Once an archetype is taken, all of the character's previous parent-class levels are reclassified as the archetype. The archetype's `mana_per_level` applies to every reclassified level (the *retroactive mana grant* rule). Validation runs in the Advancement constructor and raises when a character entry has both a parent class and an archetype with positive levels.
 
 ## Damage Mitigation
 
