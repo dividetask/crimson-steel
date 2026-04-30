@@ -23,14 +23,13 @@ kept in sync.
 | Race | `docs/race/` | `lib/race.rb` | ✅ | complete |
 | Advancement | `docs/advancement/` | `lib/advancement.rb` | ✅ | complete |
 | Character | `docs/character/` | `lib/character.rb` | ✅ | thin coordinator (delegates to Race + Advancement) |
-| Skills | `docs/skills/` | (config only) | — | catalog data; no class |
+| Skills | `docs/skills/` | `lib/skills.rb` | ✅ | catalog + coordinator (Skill Prowess math, Versatile Performance routing) |
 | Combat | `docs/combat/` | `lib/combat.rb` | ✅ | tracker + Severity Calculation pipeline; full attack-resolution composition pending |
 | Item use | (in `equipment_design.md`) | `lib/item_use.rb` | ✅ | orchestration for potions, oils, scrolls; wand mana deferred |
 | Modifiers | — | (`lib/modifiers.rb` on TentativeAdditions) | — | reads ability `modifiers:` lists and folds always-on bonuses through Character |
 
-The five modules without a backing class today (Skills) or living
-only on TentativeAdditions (Modifiers) are noted so the dependency
-graph stays honest.
+Modifiers still lives only on TentativeAdditions (no backing class
+in this repo) and is noted so the dependency graph stays honest.
 
 ## Dependency graph
 
@@ -48,6 +47,7 @@ graph TD
   Race[Race]
   Adv[Advancement]
   Char[Character]
+  Skills[Skills]
   Combat[Combat]
   ItemUse[ItemUse]
   Mod[Modifiers]
@@ -58,6 +58,9 @@ graph TD
   Race  --> Adv
   Char  --> Race
   Char  --> Adv
+  Skills --> Dice
+  Skills -.lookup-time.-> Char
+  Skills -.lookup-time.-> Adv
   Combat --> Dice
   Combat --> Char
   Combat -.optional.-> DT
@@ -76,10 +79,15 @@ DiceSystem                  (no deps)
 DamageTypes                 (no deps)
 Equipment                   (no deps; equip-time wiring to Conditions
                              happens via callbacks supplied by the caller)
-Skills                      (config only; consumed by Advancement)
+
+Skills
+├── DiceSystem               (compute_check_details for the
+│                             dice/bonus/starting partition)
+├── Character (at lookup)    (Effective Attribute reads)
+└── Advancement (at lookup)  (Skill Ranks, ability sub-choices)
 
 Advancement
-└── (consumes Skills config)
+└── (consumes Skills catalog data)
 
 Race
 └── Advancement              (shares the Ability struct + sticky-min_level helper)
@@ -124,9 +132,11 @@ A few things worth pointing out about the graph:
   `REMOVE_EFFECTS_BY_PREFIX` calls themselves. This keeps the
   individual libraries cycle-free and lets a future orchestration
   layer (or a fresh-cloned test) substitute lighter doubles.
-- **Skills is config-only.** There's no Skills class; the catalog is
-  consumed by Advancement directly. Same shape as the (forthcoming)
-  Procedural Abilities catalog will likely take.
+- **Skills is a thin coordinator.** The Skill catalog is data;
+  the `Skills` class adds three jobs: resolving a Skill (with Set-prefix
+  fallback), computing Skill Prowess (`Ranks + floor(Attribute / divisor)`),
+  and routing Versatile Performance lookups. Per-Character Skill Ranks
+  still live on Advancement; Skills asks for them at lookup time.
 
 ## What each module owns
 
@@ -197,11 +207,19 @@ delegates every derived read to those (effective attributes, Tier,
 abilities merge with first-seen-wins dedup, max HP, max mana,
 damage_resilience tier-base + class contribution, damage_reduction).
 
-**Skills** is configuration data, not a class. Defines each skill's
-attribute, description, optional `set: true` flag (Skill Sets are
-open prefix namespaces), and `mandatory: true` flag (mandatory
-Skills are auto-contributed by every class). Plus the unenforced
-`minimum_skills_trained` directive.
+**Skills** owns the Skill catalog (each Skill's attribute,
+description, optional `set: true` flag for open-prefix Skill Sets,
+and `mandatory: true` flag for the Skills every Class auto-trains)
+plus a thin coordinator class. The class exposes one read,
+`skill_details(skill_name, character, advancement)`, which composes
+`Skill Prowess = Ranks + floor(Attribute / divisor)` and partitions
+it via `DiceSystem#compute_check_details` into a Dice Count, a
+Competency Bonus, and a Starting Value. Versatile Performance is
+routed at lookup time: when the requested Skill is one the
+Character's chosen Performances cover, the highest-Prowess
+candidate wins and its triple replaces the requested Skill's
+(but the requested name is preserved on the way out). Plus the
+unenforced `minimum_skills_trained` directive.
 
 **Combat** owns the round-by-round combat tracker (combatants,
 two-ID scheme, turn order with die-by-die tie-break, initiative
@@ -244,7 +262,7 @@ documentation.
 | `data/abilities_config.yaml` | AbilitySystem | force-added |
 | `data/abilities_data.yaml` | AbilitySystem | force-added |
 | `data/equipment_config.yaml` | Equipment | force-added |
-| `data/skills.yaml` | Advancement (skill metadata) | not yet seeded |
+| `data/skills.yaml` | Skills + Advancement (skill metadata) | force-added |
 | `data/advancement.yaml` | Advancement (rules + classes) | not yet seeded |
 | `data/races.yaml` | Race | not yet seeded |
 | `data/characters.yaml` | Character (roster) | not yet seeded |

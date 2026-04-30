@@ -1,6 +1,6 @@
 # Skills — Glossary
 
-> **Note on conventions**: Defined terms are capitalized throughout this document. The skills "module" is purely **configuration data** — there is no Skills class. The catalog is loaded by the Advancement module (see `advancement_glossary.md`) and consumed by every system that asks "is this a skill?" or "what attribute does this skill use?".
+> **Note on conventions**: Defined terms are capitalized throughout this document. The skills domain is split between **configuration data** (the Skill catalog, `data/skills.yaml`) and a small **`Skills` coordinator class** that turns a Skill lookup into the dice/bonus/starting-value triple a Skill Roll uses. Per-Character Ranks still live on Advancement; the Skills class asks for them at lookup time.
 
 ## Core
 
@@ -30,6 +30,18 @@
 - **`attribute_divisor`**: The divisor applied to the Attribute's value, with the result floored. A Character with Int 16 and divisor 4 trains a minimum of 4 Skills.
 
 The skills system itself does not enforce this minimum — it's a config value other modules (Character creation tools, validation passes) read.
+
+## Skill Roll Inputs
+
+**Attribute Contribution**: A Skill's Effective Attribute divided by `skill_prowess.attribute_contribution_divisor` (default 2), floored.
+
+**Skill Prowess**: `Skill Ranks + Attribute Contribution`. The single integer the skills domain hands to dice resolution. Also called *raw* in informal discussion.
+
+**Skill Details**: The bundle returned by `Skills#skill_details(skill_name, character, advancement)` — `{ name, ranks, prowess, dice_count, starting_value, bonuses }`. The `bonuses` hash is keyed by the standard modifier names DiceSystem's `compute_roll_parameters` accepts (today only `"Competency Bonus"`).
+
+## Versatile Performance
+
+**Versatile Performance**: An ability gained one or more times. Each grant picks one **Performance** from a fixed list (Act, Comedy, Dance, Keyboard, Oratory, Percussion, Sing, String, Wind). When the Character requests Skill Details for a Skill the chosen Performance covers, the higher-Prowess of the requested Skill and the corresponding `perform_<choice>` Skill is returned — keyed by the originally-requested Skill name. Choices are recorded on the Character entry under `advancement.versatile_performance` and surfaced via `Advancement#abilities`'s `Ability#sub_choices`.
 
 ## Module Scope
 

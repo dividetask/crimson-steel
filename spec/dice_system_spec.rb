@@ -45,6 +45,47 @@ RSpec.describe DiceSystem do
     end
   end
 
+  describe '#compute_check_details' do
+    # Min Dice Count = 6, Max Dice Count = 10, Bonus Cap = 3 in the
+    # checked-in config.
+
+    it 'with zero prowess fills the minimum dice and nothing else' do
+      expect(dice_system.compute_check_details(0)).to eq(
+        'dice_count' => 6, 'competency_bonus' => 0, 'starting_value' => 0
+      )
+    end
+
+    it 'spends prowess on dice up to the maximum first' do
+      expect(dice_system.compute_check_details(4)).to eq(
+        'dice_count' => 10, 'competency_bonus' => 0, 'starting_value' => 0
+      )
+    end
+
+    it 'spills prowess past the dice cap into Competency Bonus' do
+      expect(dice_system.compute_check_details(5)).to eq(
+        'dice_count' => 10, 'competency_bonus' => 1, 'starting_value' => 0
+      )
+      expect(dice_system.compute_check_details(7)).to eq(
+        'dice_count' => 10, 'competency_bonus' => 3, 'starting_value' => 0
+      )
+    end
+
+    it 'spills prowess past the bonus cap into Starting Value' do
+      expect(dice_system.compute_check_details(8)).to eq(
+        'dice_count' => 10, 'competency_bonus' => 3, 'starting_value' => 1
+      )
+      expect(dice_system.compute_check_details(12)).to eq(
+        'dice_count' => 10, 'competency_bonus' => 3, 'starting_value' => 5
+      )
+    end
+
+    it 'clamps negative prowess to the minimum dice and routes the deficit to Starting Value' do
+      expect(dice_system.compute_check_details(-2)).to eq(
+        'dice_count' => 6, 'competency_bonus' => 0, 'starting_value' => -2
+      )
+    end
+  end
+
   describe '#compute_roll_parameters' do
     it 'reduces TN by bonus and increases by penalty' do
       params = dice_system.compute_roll_parameters('Competency Bonus' => 2, 'Morale Penalty' => 1)
