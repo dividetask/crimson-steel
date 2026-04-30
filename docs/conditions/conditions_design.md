@@ -8,7 +8,7 @@ The Conditions module owns **per-creature mutable state** that isn't part of the
 
 ### Damage absorption (worst-first with Temporary Hit Points)
 
-`APPLY_HIT_POINT_DAMAGE` walks Severity Categories in `Severity Categories List` order — config lists them **worst to least serious** (Major, Moderate, Minor) so iteration produces worst-first absorption. For each category, Temporary HP absorbs `min(category_amount, temp_pool_remaining)`; the remainder lands on the category's counter.
+`APPLY_HIT_POINT_DAMAGE` walks Severity Categories in **reverse** of the canonical `Severities` order (defined in `damage_types_config.yaml`, listed least-to-most-serious). The reversed iteration produces worst-first absorption: Major, then Moderate, then Minor. For each category, Temporary HP absorbs `min(category_amount, temp_pool_remaining)`; the remainder lands on the category's counter.
 
 Two non-obvious rules:
 
@@ -19,7 +19,7 @@ The incoming amounts are trusted — Damage Reduction, Damage Resilience, runtim
 
 ### Heal cascade (HP and ability damage)
 
-A Heal supplies a per-Severity pool dictionary. Iteration follows `Severity Categories List` order (worst-first):
+A Heal supplies a per-Severity pool dictionary. Iteration follows the canonical `Severities` list in **reverse** (worst-first):
 
 1. Each category's pool plus any leftover from worse categories tries to heal that category's counter.
 2. Whatever is left flows down to the next category.
@@ -69,6 +69,22 @@ The glossary's "highest Bonus and highest Penalty per Bonus Type wins" rule is n
 
 This split keeps `APPLY_EFFECT` cheap and lets the caller compose modifiers by appending freely; it also means removing a stronger Effect doesn't quietly promote a weaker one — the next `GET_MODIFIERS` just picks up whichever is now largest.
 
+### Counter mechanism
+
+Counters are a generic per-creature accumulator distinct from Shock (which has its own consumption model) and from Effects (which are modifier tuples). Operations:
+
+- `APPLY_COUNTER(name, amount)` — increments the named Counter by `amount`. If the Counter is not yet present and `amount > 0`, the entry is created. The Counter's `name` must exist in the `Counters` catalog; unknown names raise.
+- `GET_COUNTER(name)` → integer current value, or 0 if not present.
+- `REMOVE_COUNTER(name)` — clears the entry entirely; no-op if absent.
+- `RESOLVE_COUNTER_TURN_START(name, current_round)` — runs the Counter's `on_turn_start` hooks in declaration order. Returns a dict describing what each hook did (the new Counter value after `scale_self`, the `APPLY_HIT_POINT_DAMAGE` return for `deal_damage`).
+
+Hook semantics:
+
+- **`scale_self`** mutates the Counter value via `floor(value * factor)` or `ceil(value * factor)` depending on `rounding`. A scaled-to-zero value triggers automatic removal.
+- **`deal_damage`** evaluates `amount_formula` against `{self: <current counter value>}` (read *after* any preceding `scale_self`), then routes the integer result through `APPLY_HIT_POINT_DAMAGE` at the named Severity. The Counter itself is unchanged by `deal_damage` — only `scale_self` mutates the value.
+
+The catalog is consulted at resolve time, not at apply time, so editing `Counters` and reloading config picks up new hook definitions. Per-creature Counter values are stored as `{name → integer}` and serialize through `TO_DICT` / `LOAD_STATE` alongside the rest of the state.
+
 ### Named Effect application
 
 `APPLY_NAMED_EFFECT` looks up an entry in the `Named Effects` catalog and applies each of its modifiers via `APPLY_EFFECT`, using `<source_id>:<index>` for each. Two consequences:
@@ -82,7 +98,7 @@ The catalog is consulted at apply time, not stored on the Effect entries — edi
 
 ### Owned by the conditions domain
 
-- Per-creature mutable state: HP damage counters, ability damage, Temporary HP grant, Magic Toxicity counter, Shock counter, ordered list of Active Afflictions, ordered list of Active Effects.
+- Per-creature mutable state: HP damage counters, ability damage, Temporary HP grant, Magic Toxicity counter, Shock counter, generic Counters dictionary, ordered list of Active Afflictions, ordered list of Active Effects.
 - Damage absorption with worst-first Temp HP draining.
 - Heal cascades on both HP damage and Ability Damage, with FIFO ordering of attributes within a category.
 - Single-grant Temp HP replacement rule (strictly higher wins).
@@ -90,6 +106,7 @@ The catalog is consulted at apply time, not stored on the Effect entries — edi
 - Affliction resolution: Severity Save Penalty injection, magnitude formula, Tier substitution, Severity evolution, removal at zero.
 - Inflicter Tier accumulation (`max(existing, new)` while entry lives).
 - Effect storage with source-id replacement; stacking computed at lookup via `GET_MODIFIERS`.
+- Counter application, resolution of `on_turn_start` hooks (`scale_self`, `deal_damage`), and automatic removal when value reaches zero.
 - Named Effect dispatch with per-modifier Source IDs.
 - Expiry sweep (`CLEAR_EXPIRED_EFFECTS`) for Effects and the Temp HP grant.
 - Serialization round-trip (`TO_DICT` / `LOAD_STATE`) with validation of severities, sign values, and known affliction names.
@@ -107,6 +124,5 @@ The catalog is consulted at apply time, not stored on the Effect entries — edi
 
 ### Unassigned (no current owner)
 
-- **Severity Categories List alignment.** The list lives in `conditions_config.yaml` today, and an identical list now lives in `damage_types_config.yaml` (`Severities`). Two configs declaring the same canonical list invites drift; one of them should become the source of truth (likely damage_types) and the other should reference it. The migration is small but not yet done.
-- **Generic Counter mechanism.** The damage_types domain's `counter` Mechanic kind (e.g. acid's per-target counter with a `scale_self` + `deal_damage` turn-start behavior) needs a home in the conditions module. Today only `Shock` exists as a hard-coded specific counter; a generic per-creature counter framework — name, current value, and a turn-start hook list — is unspecified.
-- **Cross-domain validation that Named Effect names referenced by Affliction Rules and by spell/ability `effects` lists actually appear in `Named Effects`.** Conditions validates the catalog when applying an effect, but author-time validation across the abilities and conditions configs is not done by either side.
+- **The named-effects catalog overlap.** Today there are two catalogs serving the "named non-damage effect" role: `Effect Names` in `abilities_config.yaml` (used by abilities to validate Effect strings, with full Condition Mechanics) and `Effect Names` (also called `Named Effects` in older glossary text) in `conditions_config.yaml` (used by `APPLY_NAMED_EFFECT` and by Affliction Rules). The same conceptual entry (e.g. `paralyzed`) needs to exist in both, and nothing keeps them aligned. The deeper question is whether they should be merged into one catalog or whether the boundaries between them should be sharpened.
+- **Counter wiring from damage application.** The conditions module owns the Counter mechanism, but combat is the natural place to inspect a damage type's `counter` Mechanic and call `APPLY_COUNTER` accordingly. That wiring isn't pinned to a class today.
