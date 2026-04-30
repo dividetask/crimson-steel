@@ -4,7 +4,9 @@
 
 ## Scope and Ignorance
 
-The Conditions module tracks every piece of per-creature state that is not part of the creature's base definition: injuries, ongoing afflictions, short-lived buffs and debuffs, temporary hit points, magic toxicity, and shock. It is deliberately ignorant of the spells, abilities, weapons, or creatures that produce those effects. A buff is an opaque tuple of `target_key`, Bonus Type, sign, amount, and an end time; the module never asks what `target_key` means. Affliction rules are data-driven — the module contains generic machinery for resolving an affliction and reads the specific behavior of bleed, poison, or paralysis from `conditions_config.yaml`. New effects and new afflictions are added by editing config, not by editing this module.
+The Conditions module tracks every piece of per-creature state that is not part of the creature's base definition: injuries, ongoing afflictions, short-lived buffs and debuffs, temporary hit points, magic toxicity, shock, and generic Counters (e.g. the Acid Counter). It is deliberately ignorant of the spells, abilities, weapons, or creatures that produce those effects. A buff is an opaque tuple of `target_key`, Bonus Type, sign, amount, and an end time; the module never asks what `target_key` means. Affliction rules and Counter behaviors are data-driven — the module contains generic machinery for resolving them and reads the specific behavior of bleed, poison, paralysis, or acid-counter from `conditions_config.yaml`. New effects, new afflictions, and new counters are added by editing config, not by editing this module.
+
+The canonical list of Severity Categories used by hit-point damage and ability damage is owned by the damage_types domain (see `damage_types_glossary.md`); the conditions module reads the list at startup from `damage_types_config.yaml` rather than redeclaring it.
 
 ## Core Concepts
 
@@ -26,7 +28,7 @@ The Conditions module tracks every piece of per-creature state that is not part 
 
 **Major Damage**: A counter of hit point damage dealt in the Major severity category. Accumulates; never cascades into Minor or Moderate.
 
-**Severity Category**: One of `minor`, `moderate`, or `major`. Used for both hit point damage and ability damage. The names are configurable keys — the module does not hard-code the three values. *(configurable — see Severity Categories List)*
+**Severity Category**: One of `minor`, `moderate`, or `major`. Used for both hit point damage and ability damage. The canonical list lives in `damage_types_config.yaml` under `Severities`; the conditions module reads it at startup and does not hard-code the values.
 
 **Temporary Hit Points**: A pool that absorbs incoming hit point damage before it hits the severity-category counters. Exactly one Temporary Hit Points grant is active at a time: applying a new grant replaces the existing one when the new amount is strictly higher than the current amount, and is rejected otherwise. The new grant's Source ID and Ends on Round replace the existing grant's. Damage absorption proceeds worst-first: Major first, then Moderate, then Minor.
 
@@ -48,7 +50,24 @@ The Conditions module tracks every piece of per-creature state that is not part 
 
 **Shock**: A counter representing battlefield disorientation. Each point of Shock removes one die from the creature's combat pool on the next pool refresh. If the combat pool is exhausted before the Shock counter reaches zero, the remaining Shock persists across rounds and continues to remove dice from subsequent refreshes until it is fully consumed. Shock has no save — it is applied by an effect as a raw amount and consumed only by being spent against dice.
 
+Shock has unique consumption semantics (driven by combat-pool refreshes rather than turn-start hooks), so it lives as a distinct top-level field rather than as one entry in the generic Counter system below.
+
 **Shock Consumption**: The operation in which the caller asks Conditions "how much Shock can I consume against up to N dice", receives the amount consumed, and decrements the internal Shock counter. Conditions does not know how large the combat pool is; the caller computes the available dice count and passes it in.
+
+## Counters
+
+**Counter**: A generic per-creature accumulator with a name, a non-negative integer current value, and a turn-start behavior defined by the `Counters` catalog in `conditions_config.yaml`. Counters are the home for stateful damage-type effects like the Acid Counter — each point of Acid Damage applied to a target adds to the target's `acid` Counter, and at the start of the target's turn the Counter scales itself and deals derived damage. Other domains (notably damage_types) describe *which* Counter to apply; the Counters catalog defines what happens at turn start; the conditions module owns the per-creature value.
+
+**Counter Catalog Entry**: One entry in `Counters`, keyed by the Counter's name. Each entry has an `on_turn_start` list — a sequence of Counter Hooks executed when the resolving caller invokes `RESOLVE_COUNTER_TURN_START` at the start of the affected creature's turn. The catalog defines behavior; it does not define which creatures have which Counters.
+
+**Counter Hook**: One step in a Counter's `on_turn_start` list. A dictionary with a `kind` field. The recognized kinds are:
+
+- **`scale_self`** — multiplies the Counter's current value by `factor` with an explicit rounding rule (`floor` or `ceil`). The mutated value is the new Counter value. Acid uses `{kind: scale_self, factor: 0.5, rounding: floor}`.
+- **`deal_damage`** — invokes `APPLY_HIT_POINT_DAMAGE` against the same creature with a Severity and an `amount_formula` evaluated against `{self: <current counter value>}`. The damage reads the counter *after* any preceding `scale_self` hook in the same list. Acid uses `{kind: deal_damage, amount_formula: "self", severity: minor}`.
+
+The hook list is closed today — adding a new kind requires a code change. The Counters catalog is open: any new Counter that fits the existing hook vocabulary can be added by config.
+
+**Active Counter**: A Counter whose current value is greater than zero. A Counter whose value reaches zero (whether from `scale_self` rounding down or from explicit clearing) is removed from the creature's state.
 
 ## Afflictions
 
@@ -86,11 +105,23 @@ The Conditions module tracks every piece of per-creature state that is not part 
 
 - `hit_point_damage`: deals damage to a specified Severity Category. The Affliction Rule names the category; the underlying damage mechanic lives in the Conditions module, not in the Affliction Rule.
 - `ability_damage`: deals damage to a specified attribute at a specified Severity Category. As above, the Affliction Rule names what to damage; the mechanic is generic.
-- `named_effect`: applies a Named Effect (see below) by name. The Affliction Rule supplies only the effect's name and duration. What the named Effect does — its modifiers, Bonus Type, sign, amount — is defined once in the Named Effects catalog and reused by every source that applies it.
+- `named_effect`: applies an Effect Name (see below) by name. The Affliction Rule supplies only the effect's name and duration. What the effect does — its mechanics — is defined once in the Effect Names catalog and reused by every source that applies it.
 
-The list is closed — new effect kinds require a code change. The set of Afflictions that use these kinds is open, as is the set of Named Effects.
+The list is closed — new effect kinds require a code change. The set of Afflictions that use these kinds is open, as is the set of Effect Names.
 
-**Named Effect**: A reusable buff, debuff, or status defined once in `conditions_config.yaml` under `Named Effects`. Each entry specifies a description and a list of modifiers (each with `target_key`, Bonus Type, sign, and amount). Afflictions, spells, and abilities reference Named Effects by name and supply a duration — they never redefine what the Effect does. Examples: `paralyzed`, `prone`, `eagles_splendor`. The Conditions module exposes `APPLY_NAMED_EFFECT` to apply one by name; the Affliction `named_effect` kind dispatches through the same path.
+**Effect Name**: A reusable named non-damage effect defined once in `conditions_config.yaml` under `Effect Names`. This is the **single source of truth** for the catalog of named effects across the whole project — abilities reference Effect Names by name in their `effects` and `save` outcome strings (without validating against the catalog), and the conditions module raises at apply time when a name does not match. Each entry specifies a `description` and a list of structured Mechanics (see Effect Mechanic below). Examples: `blind`, `dazzled`, `paralyzed`, `prone`, `bleeding`. The Conditions module exposes `APPLY_NAMED_EFFECT` to apply one by name; the Affliction `named_effect` kind dispatches through the same path.
+
+**Effect Mechanic**: One element of an Effect Name's `mechanics` list. A dictionary with a `kind` field and additional fields specific to that kind. The recognized kinds are:
+
+- **`modifier`** — a Target Number modifier whose `modifier_type` is one of the keys in `dice_resolution_config.yaml`'s `Bonus Types List` (Circumstance, Luck, Morale, etc.). Other fields: `sign` (`bonus` or `penalty`), `magnitude` (positive integer), `applies_to` (list of free-form scope tags such as `dex_checks`, `attacks_against`, `verbal_spell_checks`), and an optional `notes` string.
+- **`reroll`** — triggers a Reroll Operation. Field: `scope` (e.g. `successes_and_criticals`); optional `applies_to`, `sign`, `magnitude`, `notes`.
+- **`nudge`** — triggers a Value Adjustment. Fields: `applies_to`, `sign`, `magnitude`; optional `notes`.
+- **`set_value`** — overrides a derived value. Fields: `target` (e.g. `combat_dice`), `value` (integer or formula).
+- **`scale_value`** — multiplies a derived value by a factor. Fields: `target`, `factor`.
+- **`flag`** — sets a boolean state. Field: `flag`.
+- **`display`** — a free-form rule that the program does not encode. Field: `text` — the conditions module surfaces this so the DM can adjudicate.
+
+The conditions module dispatches each Mechanic to the appropriate consumer (dice resolution for modifier/reroll/nudge; itself for set_value/scale_value/flag; the presentation layer for display). The `applies_to` scope tags, `target` names, and `flag` names are intentionally free-form so new categories can be added without a code change.
 
 ## Effects (Buffs and Debuffs)
 
