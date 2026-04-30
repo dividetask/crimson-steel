@@ -16,18 +16,27 @@
 
 **Rank**: The caster's investment in the casting skill used for this Entry. Rank is a context variable supplied by the caller whenever an Entry's Formula is evaluated. The abilities module never computes rank itself.
 
-**Variant**: One of the multiple forms of an Entry whose `tier` field is a list. Each Variant has its own tier, its own optional `prefix` and `suffix` name components, an optional explicit name override, its own tier-indexed values in the Effect Hash, and an optional bag of per-Variant field overrides (`variant_overrides`). The displayed name of a Variant is constructed in two ways:
+**Variant Axis**: The dimension along which an Entry has multiple Variants. An Entry may use **at most one** Variant Axis:
 
-- If the Entry has a `name` list and `name[tier_index]` is a non-null string, that string is used verbatim as the Variant's displayed name.
+- **Tier axis** — the `tier` field is a list of integers. Variants are indexed by tier and Tier 0 is treated as 0.5 in formulas.
+- **Aspect axis** — the `aspects` field is a list of aspect names. Variants are indexed by aspect; the Entry's `tier` is a single integer that applies to every aspect.
+
+An Entry may not declare both `tier` as a list and an `aspects` list. An Entry that declares neither has a single Variant.
+
+**Variant**: One of the multiple forms of an Entry along its Variant Axis. Each Variant has its own optional `prefix` and `suffix` name components, an optional explicit name override, its own axis-indexed values in the Effect Hash, and an optional bag of per-Variant field overrides (`variant_overrides`). The displayed name of a Variant is constructed in two ways:
+
+- If the Entry has a `name` list and `name[axis_index]` is a non-null string, that string is used verbatim as the Variant's displayed name.
 - Otherwise, the displayed name is `<prefix> <Entry name> <suffix>`, omitting any null or empty parts.
 
 The `name` override exists for Variants whose names don't share a clean prefix/suffix structure with the Entry's base name — e.g. a single Entry whose tier-0 form is "Vicious Mockery" and tier-1 form is "Biting Words". When a Variant uses `name`, its `prefix` and `suffix` entries at the same index are ignored.
 
-**Variant Overrides**: An optional `variant_overrides` field on a multi-tier Entry. A list parallel to `tier`. Each element is either `null` (no overrides for that Variant) or a sparse dictionary of fields whose values replace the Entry's base values for that one tier. Use Variant Overrides for fields that need to differ per-tier in ways the parallel-list mechanism (`prefix`/`suffix`/`name`/Effect Hash lists) doesn't already cover — e.g. `attack_roll: true` at tier 1 but not at tier 0, or a different `effects` list at higher tiers.
+**Aspect**: A label on the Aspect axis. Aspect names (`fire`, `acid`, etc.) are free-form labels; the abilities module treats them as opaque and does not cross-validate against any other catalog. The label can be referenced from `description`, `concentration.description`, and any other description-like string via the `{aspect}` substitution token, which is replaced with the current Variant's aspect name at lookup time. The parallel `damage_type` list is what binds an aspect to a Damage Type — the aspect name itself has no automatic semantics.
 
-Override values replace the base value entirely; there is no list-merge or dictionary-merge step. **A `null` override value means "remove this key from the merged entry"** rather than "set the key to null" — useful for tiers that should opt out of an inherited field (e.g. removing the `concentration` block at higher tiers of a spell whose lower tiers required concentration).
+**Variant Overrides**: An optional `variant_overrides` field on a multi-Variant Entry. A list parallel to the Entry's Variant Axis (`tier` list or `aspects` list). Each element is either `null` (no overrides for that Variant) or a sparse dictionary of fields whose values replace the Entry's base values for that one Variant. Use Variant Overrides for fields that need to differ per-Variant in ways the parallel-list mechanism (`prefix`/`suffix`/`name`/Effect Hash lists) doesn't already cover — e.g. `attack_roll: true` at tier 1 but not at tier 0, or a different `effects` list at higher tiers.
 
-A Variant Override may not change `tier`, `prefix`, `suffix`, `name`, or `variant_overrides` itself — those have their own parallel-list mechanisms or are structural. Any other top-level field on the Entry may be overridden.
+Override values replace the base value entirely; there is no list-merge or dictionary-merge step. **A `null` override value means "remove this key from the merged entry"** rather than "set the key to null" — useful for Variants that should opt out of an inherited field (e.g. removing the `concentration` block at higher tiers of a spell whose lower tiers required concentration).
+
+A Variant Override may not change `tier`, `aspects`, `prefix`, `suffix`, `name`, or `variant_overrides` itself — those are structural or have their own parallel-list mechanisms. Any other top-level field on the Entry may be overridden.
 
 ## Casting Time
 
@@ -102,7 +111,13 @@ The abilities module does not track which casters are concentrating on which Ent
 **Effect**: A single effect string. An Effect is one of:
 - The literal `"0"` or `"none"` — no effect.
 - A name from the Effect Names list (e.g. `blind`, `dazzled`, `bleeding`) — a named non-damage effect.
-- A damage expression of the form `"<formula> damage"` — a formula that evaluates to a damage amount.
+- A damage expression of the form `"<formula> damage"` or `"<formula> <severity> damage"` — a formula that evaluates to a damage amount, optionally with an explicit Severity.
+
+A damage Effect must have a determinable Severity. Severity comes from one of two sources:
+- **Explicit per-Effect Severity**, baked into the string between the formula and the word `damage` (e.g. `"3*rank major damage"`). Recognized values are `minor`, `moderate`, and `major`. Wins when present.
+- **Implicit from the Entry's Damage Type**, looked up in `damage_types_config.yaml`. The Severity declared on the Damage Type applies to every damage Effect on the Entry that omits an explicit Severity. The Damage Type `physical` opts into Runtime Bucketing (see `damage_types_glossary.md`) and counts as having a determinable Severity.
+
+A damage Effect on an Entry with neither a `damage_type` nor an explicit Severity is a validation error.
 
 Damage-expression Formulas may reference `rank`, `tier`, any name from the Effect Hash, and two roll-result variables: **`success`** and **`critical`**. Their meaning depends on which roll the caller is reporting back:
 - For an Effect inside a Save Outcome, `success` and `critical` are the **defender's** save results.
@@ -128,7 +143,11 @@ The abilities module performs no condition resolution — it surfaces both field
 
 The abilities module does not validate the values inside a Condition Mechanic beyond requiring a `kind` field; the consuming module (condition / dice resolution / combat) interprets the rest. The `applies_to` scope tags, `target` names, and `flag` names are intentionally free-form so new categories can be added without a config change.
 
-**Damage Type**: An optional `damage_type` field on an Entry. A free-form string (e.g. `fire`, `emotional`, `acid`) attached to every damage-kind Effect produced by the Entry — across `effects`, `save` outcomes, and the Concentration Block. The abilities module does not yet validate damage types against a list; resolution semantics (resistances, vulnerabilities, type-specific properties) live in the damage-types module. An Entry that omits `damage_type` produces damage Effects with `damage_type: null`.
+**Damage Type**: A `damage_type` field on an Entry. A name from the damage_types catalog (see `damage_types_glossary.md`), attached to every damage-kind Effect produced by the Entry across `effects`, `save` outcomes, and the Concentration Block. The abilities module validates the name against the catalog but defers resolution semantics (resistances, vulnerabilities, type-specific mechanics) to the damage_types module and its consumers.
+
+An Entry's `damage_type` may be omitted only when every damage Effect on the Entry declares an explicit Severity in its string form. An Entry whose `damage_type` is `physical` must additionally declare a `threshold`.
+
+**Threshold**: An optional non-negative integer field on an Entry, used by Runtime Bucketing to split Physical Damage points across the Severity pools. Required when `damage_type` is `physical`; rejected on Entries with any other damage type. For weapon-driven attacks, the weapon's Threshold typically takes precedence over the Entry's — that decision lives in combat.
 
 **Unconditional Effect**: An Effect that applies regardless of any save or attack roll. Listed under the Entry's optional top-level `effects` field — a list of Effect strings. Use the `effects` field for outcomes that always happen on a successful cast (e.g. damage that the save does not affect); use the `save` field for outcomes that depend on the defender's save.
 
@@ -160,7 +179,7 @@ The abilities module does not validate the values inside a Condition Mechanic be
 
 ## Effects
 
-**Effect Hash**: The `effect_hash` field — a dictionary of named values used by the Entry's description and its Save Effects. Values may be literal numbers or strings, lists indexed by tier (used when `tier` is a list), or Formula strings. Names in the Effect Hash may be referenced from the `description`, from Save Effect strings, and from other Effect Hash entries that are themselves Formulas.
+**Effect Hash**: The `effect_hash` field — a dictionary of named values used by the Entry's description and its Save Effects. Values may be literal numbers or strings, lists indexed by the Entry's Variant Axis (used when `tier` is a list or `aspects` is present), or Formula strings. Names in the Effect Hash may be referenced from the `description`, from Save Effect strings, and from other Effect Hash entries that are themselves Formulas.
 
 **Formula**: A string that is evaluated against a context dictionary to produce a numeric value. The variable `rank` is always present; when an Entry has a tier assigned, `tier` is also present and carries the tier of the Variant being evaluated (with Tier 0 treated as 0.5). Names from the Effect Hash are added to the context before any Effect or description string is resolved. When a Formula inside an Effect's damage expression is evaluated, three additional variables may be supplied by the caller:
 
@@ -169,7 +188,7 @@ The abilities module does not validate the values inside a Condition Mechanic be
 
 These three variables are only valid inside damage expressions — they must not be referenced from the Effect Hash or from the Range/Target formulas, because those are resolved before any roll is made.
 
-**Description**: The `description` field — a free-form string displayed to the user. The description may contain `{name}` placeholders; names are substituted from the Effect Hash at display time.
+**Description**: The `description` field — a free-form string displayed to the user. The description may contain `{name}` placeholders, substituted from the Effect Hash at display time, and (for Aspect-axis Entries) the `{aspect}` placeholder, replaced with the current Variant's aspect name.
 
 **Duration**: The `duration` field — a free-form string indicating how long the Entry's effect lasts. Common values include `instant`, `concentration`, `"<formula> rounds"`, `"<formula> minutes"`, and `permanent`. The abilities module does not interpret Duration strings; it exposes them verbatim for the caller to apply.
 

@@ -1,0 +1,85 @@
+# Damage Types — Example Config
+#
+# Loaded by the DamageTypesSystem class. Defines the catalog of
+# damage types, their severities, and their mechanics. Consuming
+# modules (combat, conditions, dice resolution, equipment) read
+# these mechanics to implement the actual behavior; the damage
+# types module itself only validates and exposes the data.
+#
+# Severity values: minor, moderate, major. The special type
+# `physical` uses runtime_bucketing instead of a declared severity
+# (see damage_types_glossary.md).
+
+Severities:
+  - temporary
+  - minor
+  - moderate
+  - major
+
+Damage Types:
+
+  physical:
+    runtime_bucketing: true
+    description: "Bludgeoning, piercing, and slashing damage from weapons and physical force. Severity is determined at damage-application time by the combat module from the inflicting source's threshold and the target's damage resilience."
+    mechanics: []
+
+  fire:
+    severity: moderate
+    description: "Burning, scorching, igniting damage."
+    mechanics:
+      - kind: damage_per_dice
+        bonus: 1
+        per: 2
+
+  acid:
+    severity: moderate
+    description: "Corrosive damage that lingers as a counter on the target, dealing residual minor damage at the start of the target's turn."
+    mechanics:
+      - kind: counter
+        counter_name: acid
+        on_turn_start:
+          - kind: scale_self
+            factor: 0.5
+            rounding: floor
+          - kind: deal_damage
+            amount_formula: "self"
+            severity: minor
+
+  electricity:
+    severity: moderate
+    description: "Conductive damage. Doubled against targets with metal armor."
+    mechanics:
+      - kind: damage_multiplier
+        factor: 2
+        condition: target_has_metal_armor
+
+  cold:
+    severity: minor
+    description: "Freezing, slowing damage. Each point inflicts two points of shock."
+    mechanics:
+      - kind: inflict
+        condition_name: shock
+        per_damage: 2
+
+  emotional:
+    severity: minor
+    description: "Mental and morale damage. Crits hit harder than ordinary damage rolls would suggest."
+    mechanics:
+      - kind: critical_value
+        value: 3
+
+  necrotic:
+    severity: major
+    description: "Damage that withers life force itself. No special mechanics — its severity already makes it the most dangerous category."
+    mechanics: []
+
+  radiant:
+    severity: moderate
+    description: "Holy or solar damage. Doubled against undead and against creatures with the shadow subtype."
+    mechanics:
+      - kind: damage_multiplier
+        factor: 2
+        condition: target_has_subtype:undead
+      - kind: damage_multiplier
+        factor: 2
+        condition: target_has_subtype:shadow
