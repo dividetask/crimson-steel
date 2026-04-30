@@ -115,12 +115,15 @@ body {
 .char-card-skills { width: 100%; border-collapse: collapse; }
 .char-card-skills th { text-align: left; font-size: 11px; color: #6b4f24; border-bottom: 1px solid #d4b88a; padding: 2px 4px; }
 .char-card-skills td { padding: 2px 4px; border-bottom: 1px dotted #e6d6b6; }
-/* Spacer column between the two skill halves. The header is transparent
- * (no underline / no background) so the two halves read as separate
- * tables; cells in the column drop their bottom rule for the same
- * reason. */
-.char-card-skills .char-card-skill-spacer { width: 16px; border-bottom: none !important; background: transparent; }
-.char-card-skills th.char-card-skill-spacer { border-bottom: none; }
+/* Spacer column between the two skill halves. No borders at all so
+ * the gap reads as empty space; the two four-column halves keep
+ * their own header underline and per-row dotted rules without those
+ * lines bleeding across the gap. */
+.char-card-skills .char-card-skill-spacer {
+  width: 16px;
+  background: transparent;
+  border: none !important;
+}
 
 .char-card-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 600px) { .char-card-two-col { grid-template-columns: 1fr; } }
