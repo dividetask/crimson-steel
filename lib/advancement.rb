@@ -38,7 +38,6 @@ class Advancement
   DEFAULT_ATTRIBUTE_BONUS_PER_TIER = 1
   DEFAULT_MIN_LEVEL                = 1
   DEFAULT_TAGS                     = ['player_character'].freeze
-  TIER_FALLBACK_TAG                = 'player_character'.freeze
 
   DEFAULT_HP_ATTRIBUTE   = 'con'.freeze
   DEFAULT_HP_DIVISOR     = 1
@@ -91,11 +90,21 @@ class Advancement
   # The character's current tier. Returns the explicit override
   # if one was set; otherwise computes it from total class level
   # by trying every applicable tag's breakpoint list and taking
-  # the highest tier any of them yields.
+  # the highest tier any of them yields. When none of the
+  # character's tags has an entry, falls back to the slowest
+  # progression in the system — the smallest tier any defined
+  # breakpoint list would grant.
   def tier
     return @tier_override if @tier_override
     total = @class_levels.values.sum
-    breakpoint_lists.map { |bp| bp.count { |v| total >= v.to_i } }.max || 0
+    matching = matching_breakpoint_lists
+    if matching.any?
+      matching.map { |bp| bp.count { |v| total >= v.to_i } }.max
+    else
+      all_lists = all_breakpoint_lists
+      return 0 if all_lists.empty?
+      all_lists.map { |bp| bp.count { |v| total >= v.to_i } }.min
+    end
   end
 
   # True iff the tier value came from an explicit override.
@@ -207,17 +216,18 @@ class Advancement
     ranks
   end
 
-  # Maximum hit points for the character. Tier-driven, so it
-  # scales as the character advances; tier 0 returns 0.
-  # Formula: floor(tier * attribute(hp_attribute) / hp_divisor).
+  # Maximum hit points for the character. Tier comes from the
+  # character so a Character-level override stays authoritative
+  # even if Advancement was constructed without the same value.
+  # Formula: floor(character.tier * attribute(hp_attribute) / hp_divisor).
   def max_hit_points(character)
-    (tier * character.attribute(@hp_attribute)) / @hp_divisor
+    (character.tier * character.attribute(@hp_attribute)) / @hp_divisor
   end
 
   # Maximum mana. Same shape as max_hit_points but defaults to
   # the int attribute and a divisor of 2.
   def max_mana(character)
-    (tier * character.attribute(@mana_attribute)) / @mana_divisor
+    (character.tier * character.attribute(@mana_attribute)) / @mana_divisor
   end
 
   # Build an Advancement from a character entry's `advancement`
@@ -328,15 +338,14 @@ class Advancement
     input.each_with_object({}) { |(k, v), h| h[k.to_s] = Array(v).map(&:to_s) }
   end
 
-  # Every breakpoint list a tag on this character can offer. If a
-  # tag isn't keyed in tier_advancement it contributes nothing;
-  # if no tag matches, fall back to the default tag's list (so a
-  # purely descriptive tag set still gets a tier).
-  def breakpoint_lists
+  def matching_breakpoint_lists
     return [] unless @tier_advancement.is_a?(Hash)
-    lists = @character_tags.map { |tag| @tier_advancement[tag] }.compact
-    lists = [@tier_advancement[TIER_FALLBACK_TAG]].compact if lists.empty?
-    lists.map { |list| Array(list) }
+    @character_tags.map { |tag| @tier_advancement[tag] }.compact.map { |list| Array(list) }
+  end
+
+  def all_breakpoint_lists
+    return [] unless @tier_advancement.is_a?(Hash)
+    @tier_advancement.values.compact.map { |list| Array(list) }
   end
 
   def normalize_tags(input)

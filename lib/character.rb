@@ -101,18 +101,6 @@ class Character
     @ritual_list
   end
 
-  # Convenience for callers (Combat, in particular) that ask for
-  # a single skill's rank count by name.
-  def skill_rank(name)
-    @advancement.skill_ranks[name.to_s].to_i
-  end
-
-  # Combat reads martial_skill_ranks today; keep a thin
-  # delegator until Combat is rewritten to use skill_rank.
-  def martial_skill_ranks
-    skill_rank('martial')
-  end
-
   # Load a YAML roster from `path`. Returns [] if the file doesn't
   # exist (production starts empty until the DM drops one in). The
   # file format is documented in docs/characters.yaml.example.

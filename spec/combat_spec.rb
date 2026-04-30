@@ -14,16 +14,19 @@ class ScriptedRandomSource
   end
 end
 
-# Character + martial-rank override for tests. The real Character
-# stub returns 0; the spec needs to drive the action-dice formula
-# with arbitrary martial values.
+# Character + martial-rank override for tests. The real
+# Character pulls skill ranks from Advancement; the spec needs
+# to drive the action-dice formula with arbitrary martial
+# values without standing up a full advancement config.
 class TestCharacter < Character
   def initialize(martial_skill_ranks: 0, **kwargs)
     super(**kwargs)
     @martial_skill_ranks = martial_skill_ranks
   end
 
-  attr_reader :martial_skill_ranks
+  def skill_ranks
+    { 'martial' => @martial_skill_ranks }
+  end
 end
 
 RSpec.describe Combat do

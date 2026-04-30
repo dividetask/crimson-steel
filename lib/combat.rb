@@ -23,7 +23,7 @@
 # Divisor). The attribute used (wisdom by default) is set by
 # `Initiative Attribute` in the rules file.
 # Action dice (combat pool) max:
-#   raw = martial_skill_ranks + (combat_pool_attribute / 2)
+#   raw = martial_skill_rank + (combat_pool_attribute / 2)
 #   action_dice_max = (raw % Combat Pool Range) + Combat Pool Minimum
 #   untyped_bonus   = raw / Combat Pool Range  (deferred — exposed
 #     now so callers can read it, but no combat-roll math consumes
@@ -224,7 +224,7 @@ class Combat
   end
 
   def action_dice_raw(char)
-    char.martial_skill_ranks + (char.attribute(@combat_pool_attribute) / 2)
+    char.skill_ranks['martial'].to_i + (char.attribute(@combat_pool_attribute) / 2)
   end
 
   # Compares dice value-by-value descending so [10, 7] beats [10, 6]
