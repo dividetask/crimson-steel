@@ -14,10 +14,11 @@
 #
 #   * Rules file — tunable values (Initiative Divisor, Combat Pool
 #     Range, Combat Pool Minimum). Hand-edited; loaded once at
-#     boot. Schema documented in docs/combat_rules.yaml.example.
+#     boot. Schema documented in
+#     docs/combat/combat_config.yaml.example.
 #   * State file — round, current turn pointer, combatants list.
 #     Atomically rewritten on every mutation. Schema documented in
-#     docs/combat.yaml.example.
+#     docs/combat/combat_data.yaml.example.
 #
 # Initiative dice count: floor(initiative_attribute / Initiative
 # Divisor). The attribute used (wisdom by default) is set by
@@ -25,7 +26,7 @@
 # Action dice (combat pool) max:
 #   raw = martial_skill_rank + (combat_pool_attribute / 2)
 #   action_dice_max = (raw % Combat Pool Range) + Combat Pool Minimum
-#   untyped_bonus   = raw / Combat Pool Range  (deferred — exposed
+#   unused_bonus   = raw / Combat Pool Range  (deferred — exposed
 #     now so callers can read it, but no combat-roll math consumes
 #     it yet).
 #
@@ -141,10 +142,10 @@ class Combat
     (raw % @combat_pool_range) + @combat_pool_minimum
   end
 
-  # Quotient half of the action-dice formula. Future combat rolls
-  # will apply this as an untyped bonus; for now it's just exposed
-  # so callers can read it.
-  def untyped_bonus(char_id)
+  # Quotient half of the action-dice formula. Per the combat
+  # glossary this is the Unused Bonus — exposed now so callers
+  # can read it; combat-roll math doesn't consume it yet.
+  def unused_bonus(char_id)
     char = require_character(char_id)
     action_dice_raw(char) / @combat_pool_range
   end

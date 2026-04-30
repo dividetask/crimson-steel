@@ -115,7 +115,7 @@ class Character
 
   # Load a YAML roster from `path`. Returns [] if the file doesn't
   # exist (production starts empty until the DM drops one in). The
-  # file format is documented in docs/characters.yaml.example.
+  # file format is documented in docs/character/character_data.yaml.example.
   def self.load_yaml(path, advancement_path: nil, skills_path: nil, races_path: nil)
     return [] unless File.exist?(path)
     config            = Advancement.load_config(advancement_path)

@@ -63,7 +63,7 @@ class DummyData
   # Character class instances + per-character dummy state for the
   # /character preview page. The Character itself only stores static
   # data (id, name, player, race, base attributes); everything else
-  # — current HP, mana, saturation, conditions, weapons, spells,
+  # — current HP, mana, toxicity, conditions, weapons, spells,
   # rituals, abilities, items — lives in the per-entry `:dummy`
   # hash and is merged onto character_sheet_dummy_defaults when the
   # stub renders.
@@ -79,7 +79,7 @@ class DummyData
           klass: 'Bard 3', bab: 4,
           current_hp: 22,
           current_mana: 9,
-          mana_saturation: 3, mana_saturation_max: 7,
+          magic_toxicity: 3, magic_toxicity_max: 7,
           initiative: 4, perception_bonus: 5,
           weapons: [
             { 'name' => 'Rapier',     'speed' => 2, 'arm_speed' => '',
@@ -164,7 +164,7 @@ class DummyData
           klass: 'Wizard 3', bab: 2,
           current_hp: 18,
           current_mana: 16,
-          mana_saturation: 5, mana_saturation_max: 9,
+          magic_toxicity: 5, magic_toxicity_max: 9,
           conditions: { 'poison' => 2 },
           initiative: 3, perception_bonus: 3,
           weapons: [
@@ -268,7 +268,7 @@ class DummyData
           klass: 'Druid 3', bab: 3,
           current_hp: 22,
           current_mana: 10,
-          mana_saturation: 1, mana_saturation_max: 6,
+          magic_toxicity: 1, magic_toxicity_max: 6,
           initiative: 4, perception_bonus: 4,
           weapons: [
             { 'name' => 'Scimitar', 'speed' => 2, 'arm_speed' => '',
@@ -812,9 +812,8 @@ class DummyData
   # The defenses catalog defines the abstract kinds —
   # `defense_options` is responsible for expanding `parry` into one
   # option per equipped weapon, `block` into one per shield, etc.
-  # The shape mirrors `docs/defenses.yaml.example` and
-  # `docs/reactions.yaml.example`; once the real data layer lands
-  # those templates become the authoritative source.
+  # Inlined here for the dummy data; the real catalog will live
+  # alongside combat / equipment configs once those land.
 
   DEFENSES_CATALOG = {
     'nothing' => {
@@ -1062,7 +1061,7 @@ class DummyData
   end
 
   # Advancement built with the rule values from
-  # docs/advancement.yaml.example, so attribute_bonus,
+  # docs/advancement/advancement_config.yaml.example, so attribute_bonus,
   # max_hit_points, max_mana, and abilities all reflect what a
   # character loaded from the real config would compute.
   def self.dummy_advancement(tier:, class_levels:, picks: [])

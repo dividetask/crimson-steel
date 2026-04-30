@@ -2,8 +2,8 @@
   temp = dummy[:temporary_hit_points].to_i
   mod  = dummy[:moderate_damage].to_i
   maj  = dummy[:major_damage].to_i
-  sat = dummy[:mana_saturation].to_i
-  sat_max = dummy[:mana_saturation_max].to_i
+  tox = dummy[:magic_toxicity].to_i
+  tox_max = dummy[:magic_toxicity_max].to_i
   conditions = dummy[:conditions] || {}
   bleed_v  = conditions['bleed'].to_i
   poison_v = conditions['poison'].to_i
@@ -47,7 +47,7 @@
       </div>
       <div class="char-card-line">
         <strong>Mana</strong> <%= h dummy[:current_mana] %>/<%= h character.max_mana %><%
-        %><% if sat_max > 0 || sat > 0 %>, <span class="toxicity">Toxicity <%= sat %>/<%= sat_max %></span><% end %>
+        %><% if tox_max > 0 || tox > 0 %>, <span class="toxicity">Toxicity <%= tox %>/<%= tox_max %></span><% end %>
       </div>
       <% if bleed_v > 0 || poison_v > 0 %>
         <div class="char-card-line">
