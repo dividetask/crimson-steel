@@ -141,20 +141,27 @@
     <table class="char-card-skills">
       <tr>
         <th>Name</th><th>Ranks</th><th>Roll</th><th>Bonus</th>
+        <th class="char-card-skill-spacer"></th>
         <th>Name</th><th>Ranks</th><th>Roll</th><th>Bonus</th>
       </tr>
       <% @character.skill_list.each_slice(2) do |pair| %>
         <tr>
-          <% 2.times do |i|
-               skill_name = pair[i] %>
-            <% if skill_name %>
-              <td><%= h(@character.clean_skill_name(skill_name)) %></td>
-              <td><%= @character.skill_ranks(skill_name) %></td>
-              <td><%= @character.skill_dice(skill_name) %>d</td>
-              <td><%= @character.add_plus(:skill_bonus, skill_name) %></td>
-            <% else %>
-              <td></td><td></td><td></td><td></td>
-            <% end %>
+          <% if pair[0] %>
+            <td><%= h(@character.clean_skill_name(pair[0])) %></td>
+            <td><%= @character.skill_ranks(pair[0]) %></td>
+            <td><%= @character.skill_dice(pair[0]) %>d</td>
+            <td><%= @character.add_plus(:skill_bonus, pair[0]) %></td>
+          <% else %>
+            <td></td><td></td><td></td><td></td>
+          <% end %>
+          <td class="char-card-skill-spacer"></td>
+          <% if pair[1] %>
+            <td><%= h(@character.clean_skill_name(pair[1])) %></td>
+            <td><%= @character.skill_ranks(pair[1]) %></td>
+            <td><%= @character.skill_dice(pair[1]) %>d</td>
+            <td><%= @character.add_plus(:skill_bonus, pair[1]) %></td>
+          <% else %>
+            <td></td><td></td><td></td><td></td>
           <% end %>
         </tr>
       <% end %>
