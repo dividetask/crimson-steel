@@ -62,9 +62,9 @@ RSpec.describe Character do
               name: Hero
               player: P
               race: Human
+              tier: 2
               attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
               advancement:
-                tier: 2
                 classes:
                   rogue: 3
                   wizard: 2

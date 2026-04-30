@@ -37,7 +37,13 @@ require 'yaml'
 class Advancement
   DEFAULT_ATTRIBUTE_BONUS_PER_TIER = 1
   DEFAULT_MIN_LEVEL                = 1
-  DEFAULT_CHARACTER_TYPE           = 'player_character'.freeze
+  DEFAULT_TAGS                     = ['player_character'].freeze
+  TIER_FALLBACK_TAG                = 'player_character'.freeze
+
+  DEFAULT_HP_ATTRIBUTE   = 'con'.freeze
+  DEFAULT_HP_DIVISOR     = 1
+  DEFAULT_MANA_ATTRIBUTE = 'int'.freeze
+  DEFAULT_MANA_DIVISOR   = 2
 
   Ability = Struct.new(:name, :level, keyword_init: true) do
     # `level` is nil for non-scaling abilities.
@@ -46,11 +52,11 @@ class Advancement
     end
   end
 
-  attr_reader :character_type, :class_levels, :class_skill_choices, :tier_attribute_advancement
+  attr_reader :character_tags, :class_levels, :class_skill_choices, :tier_attribute_advancement
 
   def initialize(
     tier: nil,
-    character_type: DEFAULT_CHARACTER_TYPE,
+    tags: nil,
     class_levels: {},
     class_skill_choices: {},
     tier_attribute_advancement: [],
@@ -59,10 +65,14 @@ class Advancement
     focused_attribute_count: 0,
     tier_advancement: {},
     class_definitions: {},
-    skill_definitions: {}
+    skill_definitions: {},
+    hp_attribute: DEFAULT_HP_ATTRIBUTE,
+    hp_divisor: DEFAULT_HP_DIVISOR,
+    mana_attribute: DEFAULT_MANA_ATTRIBUTE,
+    mana_divisor: DEFAULT_MANA_DIVISOR
   )
     @tier_override                    = tier.nil? ? nil : tier.to_i
-    @character_type                   = character_type.to_s
+    @character_tags                   = normalize_tags(tags)
     @class_levels                     = normalize_class_levels(class_levels)
     @class_skill_choices              = normalize_skill_choices(class_skill_choices)
     @tier_attribute_advancement       = Array(tier_attribute_advancement).map(&:to_s)
@@ -72,17 +82,20 @@ class Advancement
     @tier_advancement                 = tier_advancement || {}
     @class_definitions                = class_definitions || {}
     @skill_definitions                = skill_definitions || {}
+    @hp_attribute                     = hp_attribute.to_sym
+    @hp_divisor                       = hp_divisor.to_i.nonzero? || DEFAULT_HP_DIVISOR
+    @mana_attribute                   = mana_attribute.to_sym
+    @mana_divisor                     = mana_divisor.to_i.nonzero? || DEFAULT_MANA_DIVISOR
   end
 
   # The character's current tier. Returns the explicit override
   # if one was set; otherwise computes it from total class level
-  # via the breakpoint list for their character type.
+  # by trying every applicable tag's breakpoint list and taking
+  # the highest tier any of them yields.
   def tier
     return @tier_override if @tier_override
-    breakpoints = tier_breakpoints
-    return 0 if breakpoints.empty?
     total = @class_levels.values.sum
-    breakpoints.count { |bp| total >= bp.to_i }
+    breakpoint_lists.map { |bp| bp.count { |v| total >= v.to_i } }.max || 0
   end
 
   # True iff the tier value came from an explicit override.
@@ -194,19 +207,32 @@ class Advancement
     ranks
   end
 
+  # Maximum hit points for the character. Tier-driven, so it
+  # scales as the character advances; tier 0 returns 0.
+  # Formula: floor(tier * attribute(hp_attribute) / hp_divisor).
+  def max_hit_points(character)
+    (tier * character.attribute(@hp_attribute)) / @hp_divisor
+  end
+
+  # Maximum mana. Same shape as max_hit_points but defaults to
+  # the int attribute and a divisor of 2.
+  def max_mana(character)
+    (tier * character.attribute(@mana_attribute)) / @mana_divisor
+  end
+
   # Build an Advancement from a character entry's `advancement`
   # subhash plus the loaded rules and class definitions. The
-  # character's `type` (selecting which tier-advancement
-  # breakpoint list to use) is passed in separately because it
-  # lives at the character level, not under `advancement:`.
-  def self.from_entry(entry, type: nil, rules: {}, class_definitions: {}, skill_definitions: {})
+  # character's tags (selecting which tier-advancement breakpoint
+  # lists to consult) are passed in separately because they live
+  # at the character level, not under `advancement:`.
+  def self.from_entry(entry, tier: nil, tags: nil, rules: {}, class_definitions: {}, skill_definitions: {})
     entry ||= {}
     rules ||= {}
     classes_block = entry['classes'] || {}
     levels, skills = split_classes_block(classes_block)
     new(
-      tier:                             entry['tier'],
-      character_type:                   type || DEFAULT_CHARACTER_TYPE,
+      tier:                             tier,
+      tags:                             tags,
       class_levels:                     levels,
       class_skill_choices:              skills,
       tier_attribute_advancement:       entry['tier_attribute_advancement'] || [],
@@ -215,7 +241,11 @@ class Advancement
       focused_attribute_count:          rules['focused_attribute_count'] || 0,
       tier_advancement:                 rules['tier_advancement'] || {},
       class_definitions:                class_definitions,
-      skill_definitions:                skill_definitions
+      skill_definitions:                skill_definitions,
+      hp_attribute:                     rules.fetch('hp_attribute',   DEFAULT_HP_ATTRIBUTE),
+      hp_divisor:                       rules.fetch('hp_divisor',     DEFAULT_HP_DIVISOR),
+      mana_attribute:                   rules.fetch('mana_attribute', DEFAULT_MANA_ATTRIBUTE),
+      mana_divisor:                     rules.fetch('mana_divisor',   DEFAULT_MANA_DIVISOR)
     )
   end
 
@@ -298,10 +328,20 @@ class Advancement
     input.each_with_object({}) { |(k, v), h| h[k.to_s] = Array(v).map(&:to_s) }
   end
 
-  def tier_breakpoints
+  # Every breakpoint list a tag on this character can offer. If a
+  # tag isn't keyed in tier_advancement it contributes nothing;
+  # if no tag matches, fall back to the default tag's list (so a
+  # purely descriptive tag set still gets a tier).
+  def breakpoint_lists
     return [] unless @tier_advancement.is_a?(Hash)
-    list = @tier_advancement[@character_type] || @tier_advancement[DEFAULT_CHARACTER_TYPE]
-    Array(list)
+    lists = @character_tags.map { |tag| @tier_advancement[tag] }.compact
+    lists = [@tier_advancement[TIER_FALLBACK_TAG]].compact if lists.empty?
+    lists.map { |list| Array(list) }
+  end
+
+  def normalize_tags(input)
+    list = Array(input).map(&:to_s).reject(&:empty?)
+    list.empty? ? DEFAULT_TAGS.dup : list
   end
 
   def flat_attribute_bonus(tier)

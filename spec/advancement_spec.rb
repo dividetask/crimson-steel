@@ -152,18 +152,37 @@ RSpec.describe Advancement do
       expect(adv.tier_overridden?).to be(true)
     end
 
-    it 'uses the breakpoints for the character_type' do
+    it 'uses the breakpoints for the matching tag' do
       adv = Advancement.new(
-        character_type:   'common',
+        tags:             ['common'],
         class_levels:     { 'fighter' => 8 },
         tier_advancement: { 'player_character' => [1, 4, 8, 16, 32], 'common' => [1, 8, 20, 40, 80] }
       )
       expect(adv.tier).to eq(2) # 8 levels => tier 2 on the common track
     end
 
-    it 'falls back to player_character when the type has no entry' do
+    it 'picks the highest tier when multiple tags have breakpoint lists' do
       adv = Advancement.new(
-        character_type:   'mystery',
+        tags:             %w[noble common],
+        class_levels:     { 'fighter' => 8 },
+        tier_advancement: { 'noble' => [0, 2, 6, 14, 18], 'common' => [0, 8, 12, 20, 40] }
+      )
+      # noble: 8 >= {0,2,6} -> 3; common: 8 >= {0,8} -> 2
+      expect(adv.tier).to eq(3)
+    end
+
+    it 'ignores tags that have no breakpoint entry' do
+      adv = Advancement.new(
+        tags:             %w[player_character ally],
+        class_levels:     { 'fighter' => 4 },
+        tier_advancement: { 'player_character' => [1, 4, 8, 16, 32] }
+      )
+      expect(adv.tier).to eq(2)
+    end
+
+    it 'falls back to player_character when no tag has an entry' do
+      adv = Advancement.new(
+        tags:             ['mystery'],
         class_levels:     { 'fighter' => 4 },
         tier_advancement: { 'player_character' => [1, 4, 8, 16, 32] }
       )

@@ -15,26 +15,30 @@
 #                         races.yaml. Sub-races (hill_dwarf,
 #                         high_elf, …) inherit from their parent
 #                         race automatically.
-#   type        string    optional, default `player_character`.
-#                         Selects the tier-advancement breakpoint
-#                         list (see advancement.yaml's
-#                         `tier_advancement`). Allowed values
-#                         match the keys in that map
-#                         (`player_character`, `boss`, `noble`,
-#                         `common`, …).
+#   tags        list      optional, defaults to
+#                         `[player_character]`. Free-form labels
+#                         that classify the character. Each tag
+#                         that matches a key in advancement.yaml's
+#                         `tier_advancement` contributes a
+#                         breakpoint list; if more than one
+#                         applies, the highest tier wins.
+#                         Descriptive tags (NPC, Ally, Enemy, …)
+#                         have no breakpoint list and don't affect
+#                         tier on their own.
+#   tier        integer   optional. Hardcodes the character's
+#                         tier; when set, Character does not ask
+#                         Advancement to compute one.
+#   ritual_list list      optional. Array of arrays grouped by
+#                         tier — `ritual_list[2]` is the list of
+#                         tier-2 rituals known. Pure data, no
+#                         logic; rendered as-is.
 #   attributes  map       six base ability scores. Keys: str,
 #                         dex, con, int, wis, cha.
 #   advancement map       optional. Tracks the character's
-#                         classes, tier, and tier-up choices.
-#                         Consulted by the Advancement class to
-#                         compute attribute and ability bonuses on
-#                         top of the base values above. Keys:
-#                           tier
-#                             optional integer override. Wins over
-#                             the auto-computed tier (which is
-#                             derived from total class levels via
-#                             advancement.yaml's tier_advancement
-#                             table for this character's `type`).
+#                         classes and tier-up choices. Consulted
+#                         by the Advancement class to compute
+#                         attribute and ability bonuses on top of
+#                         the base values above. Keys:
 #                           tier_attribute_advancement
 #                             optional flat list of attribute keys
 #                             — the focused-bonus picks made at
@@ -111,6 +115,7 @@ characters:
     name: Lira Duskmoor
     player: Jordan
     race: high_elf
+    tier: 3
     attributes:
       str: 8
       dex: 14
@@ -119,7 +124,6 @@ characters:
       wis: 16
       cha: 12
     advancement:
-      tier: 3
       tier_attribute_advancement:
         - dex
         - con

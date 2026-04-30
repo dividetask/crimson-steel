@@ -43,16 +43,30 @@ focused_attribute_count: 2
 # ─── Tier advancement ────────────────────────────────────────
 #
 # Total class levels needed to reach tiers 1 through 5, keyed by
-# character type. The `type` field on a character (default
-# `player_character`) selects which list to use; if a character
-# sets `tier:` explicitly that value wins over the auto-computed
-# one.
+# character tag. The `tags` list on a character (default
+# `[player_character]`) selects which lists to use; if more than
+# one tag matches, the highest tier wins. Descriptive tags
+# without an entry here don't contribute. If a character sets
+# `tier:` explicitly that value wins over the auto-computed one.
 
 tier_advancement:
   player_character: [1, 4, 8, 16, 32]
   boss:             [1, 4, 8, 16, 32]
   noble:            [0, 2, 6, 14, 18]
   common:           [0, 8, 12, 20, 40]
+
+# ─── Hit points and mana ─────────────────────────────────────
+#
+# max_hit_points = floor(tier * attribute(hp_attribute) / hp_divisor)
+# max_mana       = floor(tier * attribute(mana_attribute) / mana_divisor)
+#
+# Tier 0 yields 0 for both. Calculated by Advancement and
+# exposed through Character.
+
+hp_attribute:   con
+hp_divisor:     1
+mana_attribute: int
+mana_divisor:   2
 
 # ─── Class definitions ───────────────────────────────────────
 #
