@@ -41,7 +41,9 @@ The skills system itself does not enforce this minimum — it's a config value o
 
 ## Versatile Performance
 
-**Versatile Performance**: An ability gained one or more times. Each grant picks one **Performance** from a fixed list (Act, Comedy, Dance, Keyboard, Oratory, Percussion, Sing, String, Wind). When the Character requests Skill Details for a Skill the chosen Performance covers, the higher-Prowess of the requested Skill and the corresponding `perform_<choice>` Skill is returned — keyed by the originally-requested Skill name. Choices are recorded on the Character entry under `advancement.versatile_performance` and surfaced via `Advancement#abilities`'s `Ability#sub_choices`.
+**Versatile Performance**: An ability gained one or more times. Each grant picks one **Performance** from a fixed list (Act, Comedy, Dance, Keyboard, Oratory, Percussion, Sing, String, Wind). When the Character requests Skill Details for a Skill the chosen Performance covers, the higher-Prowess of the requested Skill and the corresponding `perform_<choice>` Skill is returned — keyed by the originally-requested Skill name.
+
+Versatile Performance is treated as a hardcoded special case: choices are recorded on the Character entry under `advancement.versatile_performance` (one entry per grant, in order earned), and `Advancement#abilities` expands each grant into a separately-named Ability such as `"Versatile Performance (Wind)"`. The chosen performance is visible directly on the character sheet without a secondary sub-choice list.
 
 ## Module Scope
 

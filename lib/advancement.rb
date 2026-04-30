@@ -127,12 +127,25 @@ class Advancement
     flat_attribute_bonus(current_tier) + focused_attribute_bonus(attr_sym, current_tier)
   end
 
+  VERSATILE_PERFORMANCE_KEY = 'versatile_performance'.freeze
+
   # All abilities the character has earned, as Ability structs.
   # Scaling abilities carry their effective level (the sum of
   # qualifying class levels across every class that grants them);
   # non-scaling abilities carry a nil level.
+  #
+  # `versatile_performance` is a hardcoded special case: each
+  # class-level grant the character qualifies for produces a
+  # separately-named Ability — `Versatile Performance (Wind)`,
+  # `Versatile Performance (Oratory)`, etc. The chosen performance
+  # comes from `advancement.versatile_performance` on the character
+  # entry (one entry per grant, in the order grants are earned).
+  # If the character has fewer choices than grants, extra grants
+  # appear as the bare `Versatile Performance` so the gap is
+  # visible on the sheet.
   def abilities
     granted = {} # name => { level: Integer|nil, scales: Boolean }
+    versatile_grant_count = 0
 
     @class_levels.each do |klass, level|
       next if level <= 0
@@ -142,6 +155,11 @@ class Advancement
           next if name.nil?
           min_level = (ability_def['min_level'] || DEFAULT_MIN_LEVEL).to_i
           next if level < min_level
+
+          if name == VERSATILE_PERFORMANCE_KEY
+            versatile_grant_count += 1
+            next
+          end
 
           scales = ability_def['scales_with_level'] ? true : false
           slot   = granted[name] ||= { level: nil, scales: false }
@@ -153,13 +171,22 @@ class Advancement
       end
     end
 
-    granted.map do |name, info|
+    result = granted.map do |name, info|
       Ability.new(
         name:        name,
         level:       info[:scales] ? info[:level] : nil,
         sub_choices: Array(@ability_sub_choices[name]).dup
       )
     end
+
+    versatile_choices = Array(@ability_sub_choices[VERSATILE_PERFORMANCE_KEY])
+    versatile_grant_count.times do |i|
+      choice = versatile_choices[i]
+      display_name = choice && !choice.empty? ? "Versatile Performance (#{choice.to_s.split('_').map(&:capitalize).join(' ')})" : 'Versatile Performance'
+      result << Ability.new(name: display_name, level: nil, sub_choices: [])
+    end
+
+    result
   end
 
   # Skill name => rank. A skill is contributed to by a class when

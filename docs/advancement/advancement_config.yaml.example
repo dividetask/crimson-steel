@@ -174,13 +174,27 @@ classes:
       - name: jack_of_all_trades
       - name: better_lucky_than_good
       - name: performance_feat
+      - name: versatile_performance
+        description: |
+          Allows the prowess of a performance skill to be used instead of the
+          prowess of linked skills. Each of the following performances has two
+          linked skills: Act, Comedy, Dance, Keyboard Instruments, Oratory,
+          Percussion, Sing, String, and Wind. Each time this ability is gained
+          you must choose one type of performance that can be used with this
+          ability.
       - min_level: 3
       - name: silver_tongue
       - name: unsettling_words
-      - min_level: 4
-      - name: versatile_performance
       - min_level: 5
       - name: competent_performer
+      - min_level: 6
+      - name: versatile_performance
+      - min_level: 10
+      - name: versatile_performance
+      - min_level: 14
+      - name: versatile_performance
+      - min_level: 20
+      - name: versatile_performance
 
   cleric:
     name: Cleric

@@ -261,6 +261,63 @@ RSpec.describe Advancement do
         expect(adv.abilities.find { |a| a.name == 'sneak_attack' }.level).to eq(5)
       end
     end
+
+    describe 'versatile_performance multi-grant expansion' do
+      let(:bard_definition) do
+        {
+          'bard' => {
+            'abilities' => Advancement.normalize_abilities_list([
+              { 'min_level' => 2 },
+              { 'name' => 'versatile_performance' },
+              { 'min_level' => 6 },
+              { 'name' => 'versatile_performance' },
+              { 'min_level' => 10 },
+              { 'name' => 'versatile_performance' },
+            ])
+          }
+        }
+      end
+
+      it "produces one named ability per grant the character qualifies for" do
+        adv = Advancement.new(
+          class_levels:        { 'bard' => 6 },
+          class_definitions:   bard_definition,
+          ability_sub_choices: { 'versatile_performance' => %w[wind oratory] }
+        )
+        names = adv.abilities.map(&:name).select { |n| n.start_with?('Versatile Performance') }
+        expect(names).to eq(['Versatile Performance (Wind)', 'Versatile Performance (Oratory)'])
+      end
+
+      it "leaves unfilled grants as the bare 'Versatile Performance' placeholder" do
+        adv = Advancement.new(
+          class_levels:        { 'bard' => 10 },
+          class_definitions:   bard_definition,
+          ability_sub_choices: { 'versatile_performance' => %w[oratory] }
+        )
+        names = adv.abilities.map(&:name).select { |n| n.start_with?('Versatile Performance') }
+        expect(names).to eq(['Versatile Performance (Oratory)', 'Versatile Performance', 'Versatile Performance'])
+      end
+
+      it "ignores extra choices beyond the grant count" do
+        adv = Advancement.new(
+          class_levels:        { 'bard' => 2 },
+          class_definitions:   bard_definition,
+          ability_sub_choices: { 'versatile_performance' => %w[wind oratory sing] }
+        )
+        names = adv.abilities.map(&:name).select { |n| n.start_with?('Versatile Performance') }
+        expect(names).to eq(['Versatile Performance (Wind)'])
+      end
+
+      it "drops the bare 'versatile_performance' name from the regular abilities list" do
+        adv = Advancement.new(
+          class_levels:        { 'bard' => 2 },
+          class_definitions:   bard_definition,
+          ability_sub_choices: { 'versatile_performance' => %w[wind] }
+        )
+        bare_names = adv.abilities.map(&:name).select { |n| n == 'versatile_performance' }
+        expect(bare_names).to eq([])
+      end
+    end
   end
 
   describe '#skill_ranks' do

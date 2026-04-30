@@ -56,20 +56,24 @@ Versatile Performance maps each performance choice to two ordinary Skills:
 - string → deception, persuasion
 - wind → persuasion, animal_handling
 
-When `skill_details(skill, character, advancement)` is called for one of the listed Skills, Skills inverts the map to find which performances cover it, intersects with the Character's chosen performances (read from `advancement.abilities` — the matching Ability struct's `sub_choices`), and computes a full result for each surviving `perform_<choice>` Skill. The single best Prowess wins, and its triple replaces the requested Skill's. The returned `name` is always the originally requested Skill — a `sense_motive` lookup that resolves through `perform_oratory` still reports `sense_motive` to the caller.
+Versatile Performance is treated as a **hardcoded special case** rather than a generic sub-choice mechanism. Each grant the character earns produces a separately-named Ability — `Versatile Performance (Wind)`, `Versatile Performance (Oratory)`, etc. — so the chosen performance is visible directly on the character sheet without a secondary sub-choice list to render.
 
-The performance map and the ability name are both configurable; today only `versatile_performance` is recognized, but the loader is generic in shape and will extend cleanly when other "use Skill A in place of Skill B" abilities arrive.
+When `skill_details(skill, character, advancement)` is called for one of the listed Skills, Skills scans the Character's abilities list for any name starting with `"Versatile Performance"`, parses the performance from inside the parentheses (or after a space, for the no-parens form), intersects with the inverted skill→performance map, and computes a full result for each matching `perform_<performance>` Skill. The single best Prowess wins; the returned `name` is always the originally requested Skill — a `sense_motive` lookup that resolves through `perform_oratory` still reports `sense_motive` to the caller.
 
-### Sub-choice storage
+The hardcoding lives in `Skills#chosen_performances` (parses the prefix) and `Advancement#abilities` (expands grants into named entries). Other "use Skill A in place of Skill B" abilities, if they arrive, will need their own special case or a generalization pass.
 
-Per-grant choices for abilities like Versatile Performance live on the Character's `advancement:` block as a top-level list, e.g.:
+### Multi-grant choice storage
+
+The character entry records one performance per Versatile Performance grant under `advancement.versatile_performance` as an ordered list:
 
 ```yaml
 advancement:
-  versatile_performance: [oratory, sing]
+  versatile_performance: [wind, oratory]
 ```
 
-Each entry is one grant. `Advancement.from_entry` reads the list and stashes it under `ability_sub_choices['versatile_performance']`; `Advancement#abilities` then attaches the list to the matching `Ability` struct via its `sub_choices` accessor. New ability names with their own sub-choice lists register in `Advancement.extract_ability_sub_choices` without changing the entry shape.
+Each entry corresponds to one grant in the order grants are earned. `Advancement.from_entry` reads the list and stashes it under `ability_sub_choices['versatile_performance']`. `Advancement#abilities` then expands each class-level grant the character qualifies for into one `Ability(name: "Versatile Performance (Performance)")` entry — pairing grants with choices in order. If the character has fewer choices than grants, the extra grants appear as the bare `"Versatile Performance"` so the gap is visible on the sheet; if there are more choices than grants, the extras are ignored.
+
+The `Ability#sub_choices` accessor remains on the struct for any future ability that needs generic sub-choice storage; Versatile Performance no longer uses it.
 
 ## Responsibilities
 

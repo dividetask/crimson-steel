@@ -127,11 +127,20 @@ class Skills
     (performances & chosen).map { |p| "#{PERFORM_SET_KEY}#{p}" }
   end
 
+  # Parses `Versatile Performance (Wind)` / `Versatile Performance
+  # Wind` ability names from the character's ability list and
+  # returns the lowercase performance keys. The hardcoded prefix
+  # match keeps the lookup independent of the abilities catalog.
   def chosen_performances(advancement)
     abilities = advancement.respond_to?(:abilities) ? Array(advancement.abilities) : []
     abilities.each_with_object([]) do |ability, out|
-      next unless ability.respond_to?(:name) && ability.name.to_s == @vp_ability_name
-      Array(ability.sub_choices).each { |c| out << c.to_s }
+      next unless ability.respond_to?(:name)
+      raw = ability.name.to_s
+      next unless raw.start_with?('Versatile Performance')
+      remainder = raw.sub(/\AVersatile Performance/, '').strip
+      next if remainder.empty?
+      key = remainder.gsub(/[()]/, '').strip.downcase.gsub(/\s+/, '_')
+      out << key unless key.empty?
     end
   end
 
