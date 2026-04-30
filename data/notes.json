@@ -32,7 +32,8 @@
     "type": "character",
     "title": "Alric Thorne",
     "tier": -1,
-    "id": "e9ac00a2-b53b-4fc0-a79a-f808058d16c3"
+    "id": "e9ac00a2-b53b-4fc0-a79a-f808058d16c3",
+    "image_path": "/images/scene/1777573482-a0132274-ALdric.webp"
   },
   {
     "owner_id": 0,
@@ -305,7 +306,14 @@
     "tier": 2,
     "id": "93f519dc-4a29-4a79-b3c9-becb6074bd40",
     "in_scene": true,
-    "scene_order": 6
+    "scene_order": 6,
+    "image_path": "/images/scene/1777571926-97f95988-Kael.webp",
+    "scene_visible_to": [
+      1,
+      2,
+      3,
+      4
+    ]
   },
   {
     "owner_id": 0,
@@ -317,7 +325,8 @@
     "tier": 3,
     "id": "cbf03b3f-0c6f-479a-842c-1ba0549a2bc5",
     "in_scene": true,
-    "scene_order": 7
+    "scene_order": 7,
+    "image_path": "/images/scene/1777571828-cc7cdbc5-Theron_Ashfeld.webp"
   },
   {
     "owner_id": 0,
@@ -345,7 +354,8 @@
       2,
       3,
       4
-    ]
+    ],
+    "image_path": "/images/scene/1777571218-0a24931c-LadyHawthorne.webp"
   },
   {
     "owner_id": 0,
@@ -357,7 +367,8 @@
     "tier": 3,
     "id": "bfa6032f-d522-4972-8277-d398f60119b3",
     "in_scene": true,
-    "scene_order": 8
+    "scene_order": 8,
+    "image_path": "/images/scene/1777571432-97150d94-VarenHawthorne.webp"
   },
   {
     "owner_id": 0,
@@ -415,7 +426,8 @@
       2,
       3,
       4
-    ]
+    ],
+    "image_path": "/images/scene/1777572332-630d0cc3-Vrakka.webp"
   },
   {
     "owner_id": 0,
@@ -568,7 +580,8 @@
     "chapter": 3,
     "id": "554a6d31-2169-4360-88ff-719749209f1e",
     "in_scene": true,
-    "scene_order": 9
+    "scene_order": 9,
+    "image_path": "/images/scene/1777572008-522effda-Varen.webp"
   },
   {
     "owner_id": 0,
