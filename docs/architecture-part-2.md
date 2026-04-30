@@ -217,9 +217,8 @@ Whole concepts that aren't represented anywhere.
   home decided.
 - **Encumbrance**. Currency carries a `weight` field; armor and
   weapons don't. No system computes total weight.
-- **Skill-Roll API**. Every caller assembles `dice_count +
-  modifiers` ad hoc; nothing canonicalizes "roll Skill X for
-  Character Y".
+- ~~**Skill-Roll API**~~ — resolved by the new Skills class +
+  `DiceSystem#compute_check_details`.
 - **Equipment deferred items**: loot tables (4 row shapes + Roll
   Variables), magical-item generation, specific/generic shop
   refresh, Game Day counter, atomic Restock, Loot Archive. All
@@ -332,19 +331,33 @@ shape as mana — a counter on Conditions, refilled by
 `apply_per_encounter_recovery` for "uses per encounter"). The
 catalog entry would declare the cap and the cadence.
 
-### Should Skills grow a class?
+### Skills grew a class (decided)
 
-Today Skills is config-only. Advancement reads it for the
-`mandatory` flag and the per-skill attribute lookup. Two operations
-keep coming up that have no home:
+Skills used to be config-only; Advancement read it for the
+`mandatory` flag and the per-skill attribute lookup, and every
+caller assembled its own Check spec ad hoc.
 
-- A `roll_skill(character, skill_name)` API that produces a Check
-  spec (dice count + modifiers).
-- Validation that `class_skills` / `non_class_skills` /
-  `opposed_skills` entries refer to real skills.
+`lib/skills.rb` is now a thin coordinator with three jobs:
 
-A small `Skills` class that exposes lookups and validation would
-absorb both. Not urgent but tractable.
+- **Skill resolution** — looks up the skill catalog entry, with
+  Set-prefix fallback so `perform_dance` / `craft_smith` resolve to
+  their parent set's attribute and metadata.
+- **Skill Prowess computation** — `Ranks + floor(Attribute /
+  divisor)`. Ranks come from Advancement at lookup time; Attribute
+  comes from Character; divisor comes from skills config.
+- **Versatile Performance routing** — when looking up a `perform_*`
+  skill, the highest-prowess perform variant the Character has
+  trained wins, with the requested skill name preserved on the
+  return so callers can attribute the roll correctly.
+
+`DiceSystem#compute_check_details(prowess)` is the dice-resolution
+side of the partition: returns `[Dice Count, Competency Bonus,
+Starting Value]` from a Prowess integer. Skills hands the Prowess;
+DiceSystem partitions it; the caller folds the result into a
+modifier dictionary and rolls.
+
+This kills the "Skill-Roll API" and "validate skill list entries"
+items from the Unassigned cluster.
 
 ### What's the orchestration tier?
 
