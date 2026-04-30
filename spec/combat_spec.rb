@@ -312,4 +312,137 @@ RSpec.describe Combat do
       end
     end
   end
+
+  # Attack-resolution / Severity Calculation pipeline tests use an
+  # extended character that has damage_resilience and a Conditions
+  # instance attached so the pipeline can route damage through to
+  # APPLY_HIT_POINT_DAMAGE on the target's conditions.
+  describe '#apply_attack_damage' do
+    require_relative '../lib/conditions'
+    require_relative '../lib/damage_types'
+
+    let(:damage_types_path) { File.expand_path('../data/damage_types.yaml', __dir__) }
+    let(:conditions_path)   { File.expand_path('../data/conditions.yaml',   __dir__) }
+    let(:damage_types) { DamageTypes.new(damage_types_path) }
+
+    # Each character gets a Conditions instance keyed by id.
+    let(:conditions_by_char) do
+      characters.keys.each_with_object({}) do |id, h|
+        h[id] = Conditions.new(
+          config_path: conditions_path,
+          dice_system: dice_system,
+          severities:  damage_types.severities
+        )
+      end
+    end
+    let(:conditions_lookup) { ->(char_id) { conditions_by_char[char_id] } }
+
+    # A condition_evaluator that recognizes "target_has_metal_armor"
+    # for character 2 only — used to test damage_multiplier.
+    let(:condition_evaluator) do
+      ->(combat_id, tag) {
+        target = combat.combatants.find { |c| c['id'] == combat_id }
+        next false unless target
+        tag == 'target_has_metal_armor' && target['char_id'] == 2
+      }
+    end
+
+    let(:combat) do
+      Combat.new(
+        state_path: nil, rules_path: nil,
+        dice_system: dice_system,
+        character_lookup: lookup,
+        damage_types: damage_types,
+        conditions_lookup: conditions_lookup,
+        condition_evaluator: condition_evaluator
+      )
+    end
+
+    before do
+      combat.add_combatant(char_id: 1, name: 'Ash')   # combat_id 1
+      combat.add_combatant(char_id: 2, name: 'Bryn')  # combat_id 2
+    end
+
+    it 'routes fire damage to the moderate severity bucket on Conditions' do
+      result = combat.apply_attack_damage(2, 5, damage_type: 'fire')
+      expect(result['final_amount']).to eq(5)
+      expect(result['severity_split']).to eq({ 'minor' => 0, 'moderate' => 5, 'major' => 0 })
+      expect(conditions_by_char[2].hit_point_damage['moderate']).to eq(5)
+    end
+
+    it 'applies damage_per_dice when dice_count is supplied (fire +1/2)' do
+      # 4 base damage, 6 dice → +3 from damage_per_dice
+      result = combat.apply_attack_damage(2, 4, damage_type: 'fire', dice_count: 6)
+      expect(result['damage_per_dice_bonus']).to eq(3)
+      expect(result['final_amount']).to eq(7)
+    end
+
+    it 'applies damage_multiplier when the condition_evaluator returns true' do
+      # Electricity vs metal armor → x2 against char 2 (combat_id 2)
+      result = combat.apply_attack_damage(2, 5, damage_type: 'electricity')
+      expect(result['multiplier']).to eq(2.0)
+      expect(result['final_amount']).to eq(10)
+    end
+
+    it 'skips damage_multiplier when the evaluator returns false' do
+      # combat_id 1 is Ash — no metal armor in the evaluator
+      result = combat.apply_attack_damage(1, 5, damage_type: 'electricity')
+      expect(result['multiplier']).to eq(1.0)
+      expect(result['final_amount']).to eq(5)
+    end
+
+    it 'splits Physical damage by Threshold + Damage Resilience' do
+      # Stub damage_resilience on the target character.
+      class << characters[2]
+        def damage_resilience; 2; end
+      end
+      # threshold 3 + resilience 2 = 5-point buckets
+      # 12 damage → 5 minor, 5 moderate, 2 major
+      result = combat.apply_attack_damage(2, 12, damage_type: 'physical', threshold: 3)
+      expect(result['severity_split']).to eq({ 'minor' => 5, 'moderate' => 5, 'major' => 2 })
+    end
+
+    it 'applies the Acid Counter post-damage' do
+      result = combat.apply_attack_damage(2, 4, damage_type: 'acid')
+      expect(result['side_effects'].first).to include('kind' => 'apply_acid_counter')
+      expect(conditions_by_char[2].acid_counter).to eq(4)
+    end
+
+    it 'applies Shock from Cold damage at 2 per damage point' do
+      result = combat.apply_attack_damage(2, 3, damage_type: 'cold')
+      shock_eff = result['side_effects'].find { |s| s['condition_name'] == 'shock' }
+      expect(shock_eff['amount']).to eq(6)
+      expect(conditions_by_char[2].shock).to eq(6)
+    end
+  end
+
+  describe '#critical_modifier_for' do
+    require_relative '../lib/damage_types'
+
+    let(:damage_types_path) { File.expand_path('../data/damage_types.yaml', __dir__) }
+    let(:damage_types) { DamageTypes.new(damage_types_path) }
+    let(:combat) do
+      Combat.new(
+        state_path: nil, rules_path: nil,
+        dice_system: dice_system,
+        character_lookup: lookup,
+        damage_types: damage_types
+      )
+    end
+
+    it 'returns the damage type override for emotional (3 instead of 2)' do
+      expect(combat.critical_modifier_for('emotional')).to eq(3)
+    end
+
+    it 'returns the dice resolution default for types without an override' do
+      expect(combat.critical_modifier_for('fire')).to eq(DiceSystem::DEFAULT_CRITICAL_MODIFIER)
+    end
+
+    it 'returns the default when damage_types is not configured' do
+      bare = Combat.new(state_path: nil, rules_path: nil,
+                        dice_system: dice_system,
+                        character_lookup: lookup)
+      expect(bare.critical_modifier_for('emotional')).to eq(DiceSystem::DEFAULT_CRITICAL_MODIFIER)
+    end
+  end
 end
