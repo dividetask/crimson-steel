@@ -88,6 +88,26 @@ A Save Spec may carry a `condition` field (`on_fail` or `on_fumble`) that gates 
 
 `fumble` outcome dispatch is a separate concern: when a save's Degree of Failure meets or exceeds the Default Fumble Threshold from the dice resolution config, the `fumble` outcome (if defined on the Save Spec) replaces the plain `fail` outcome. This branching also happens in the caller.
 
+### Procedural Ability lookup
+
+Procedural class/racial abilities live in a catalog under `abilities_config.yaml`'s `Procedural Abilities:` section. Each entry maps an ability `name` (matching the name in advancement / race configs) to a list of Trigger Specs. The abilities module exposes one read API: `GET_PROCEDURAL_TRIGGERS(ability_name)` returns the Trigger Specs verbatim, or an empty list if the name is unknown or has no procedural triggers.
+
+A Trigger Spec has three fields:
+
+- **`on`** — the action the trigger fires during. Recognized values today: `attack_check` (Sneak Attack), `healing_check` (Improved Healing), `invoke` (Channel Divinity, Sense Injury — meaning "the Character spends an action to use this ability"). The vocabulary will grow as attack resolution and other action paths are designed.
+- **`condition`** *(optional)* — a free-form scope tag the consumer evaluates. Examples: `target_flatfooted` (Sneak Attack), `target_undead` (Channel Divinity vs undead). Abilities never interprets the tag; the consuming module decides whether the condition holds based on its view of the world.
+- **`effect`** — a structured one-shot outcome with its own `kind` field. Kinds today are minimal because attack resolution isn't designed; expect this to grow. Initial sketch: `bonus_dice` (`amount: "<formula>"`, `damage_type: <name>`), `scale` (`target: heal_amount`, `factor: ...`), `ui_reveal` (`target: hp_breakdown` for Sense Injury), `invoke_named_effect` (delegates to the conditions Effect Names catalog).
+
+Critically, **abilities does not evaluate the trigger** — it returns the Spec, and the consuming module (combat for `attack_check`, healing for `healing_check`, character UI for `invoke` actions) checks the condition and applies the effect. This keeps the abilities module ignorant of action semantics, the same way it's already ignorant of dice rolls.
+
+The Procedural Ability catalog is **partial today** — entries are added as the corresponding action paths get designed. The current hand-off is: if a class lists ability X in `advancement_config.yaml` and X has no Procedural catalog entry, the consuming module gets nothing back from `GET_PROCEDURAL_TRIGGERS` and the ability is effectively a name with no behavior. That's an explicit "not yet implemented" state, not a bug.
+
+### Always-On Modifier read-through
+
+The simpler half of class/racial ability behavior — flat numeric bonuses while the Character has the ability — is already handled by TentativeAdditions's Modifiers class via the `modifiers:` field on each ability entry in `advancement_config.yaml` and `race_config.yaml`. The abilities module exposes a `GET_ABILITY_MODIFIERS(ability_name, source: 'class'|'race')` read that returns the modifier list for a given name, but the actual application (summing across all of a Character's earned abilities, posting to bonus calculations) is the Modifiers/Character path. The abilities module is the lookup layer; Modifiers is the consumer.
+
+Always-On Modifiers and Procedural Trigger Specs are independent — an ability may have either, both, or neither. `fast_movement` has only Always-On Modifiers (`+10` to speed). `sneak_attack` has only Triggers. `magical_performance` (a scaling bardic ability) might have both: an Always-On Modifier raising performance-related rolls plus a Trigger that fires on perform-skill checks.
+
 ## Responsibilities
 
 ### Owned by the abilities domain
@@ -103,6 +123,8 @@ A Save Spec may carry a `condition` field (`on_fail` or `on_fumble`) that gates 
 - Implicitly appending Universal Casting Skills and Universal Item Forms.
 - Resolving `casting_time` to rounds, `range` to feet, and `target` to either `'self'` or a count.
 - Filtering and listing Entries by Type and/or School.
+- **Procedural Ability catalog**: lookup of class/racial ability names to Trigger Specs (`on` / `condition` / `effect`). Abilities returns the Specs verbatim and never evaluates them.
+- **Always-On Modifier read-through**: returning a class or racial ability's `modifiers:` list to whichever consumer (Modifiers, Character) needs it.
 
 ### Explicitly *not* owned here
 

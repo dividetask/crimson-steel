@@ -4,7 +4,7 @@
 
 ## Scope and Ignorance
 
-The Conditions module tracks every piece of per-creature state that is not part of the creature's base definition: injuries, ongoing afflictions, short-lived buffs and debuffs, temporary hit points, magic toxicity, shock, and generic Counters (e.g. the Acid Counter). It is deliberately ignorant of the spells, abilities, weapons, or creatures that produce those effects. A buff is an opaque tuple of `target_key`, Bonus Type, sign, amount, and an end time; the module never asks what `target_key` means. Affliction rules and Counter behaviors are data-driven — the module contains generic machinery for resolving them and reads the specific behavior of bleed, poison, paralysis, or acid-counter from `conditions_config.yaml`. New effects, new afflictions, and new counters are added by editing config, not by editing this module.
+The Conditions module tracks every piece of per-creature state that is not part of the creature's base definition: injuries, ongoing afflictions, short-lived buffs and debuffs, temporary hit points, magic toxicity, Shock, and the Acid Counter. It is deliberately ignorant of the spells, abilities, weapons, or creatures that produce those effects. A buff is an opaque tuple of `target_key`, Bonus Type, sign, amount, and an end time; the module never asks what `target_key` means. Affliction rules are data-driven — the module contains generic machinery for resolving an affliction and reads the specific behavior of bleed, poison, or paralysis from `conditions_config.yaml`. Distinctive damage-type counters like Shock and the Acid Counter are built into the class with hardcoded behavior; new effects and new afflictions are added by editing config, but new counter mechanics require a code change.
 
 The canonical list of Severity Categories used by hit-point damage and ability damage is owned by the damage_types domain (see `damage_types_glossary.md`); the conditions module reads the list at startup from `damage_types_config.yaml` rather than redeclaring it.
 
@@ -19,6 +19,8 @@ The canonical list of Severity Categories used by hit-point damage and ability d
 **Ends on Round**: A signed integer attached to a time-bounded Effect. The Effect remains Active while the Current Round is less than Ends on Round, and is removed the first time `CLEAR_EXPIRED_EFFECTS` is called with a Current Round greater than or equal to this value. An Effect with no Ends on Round is permanent until explicitly removed.
 
 **Source ID**: An opaque identifier supplied by the caller when an Effect or Temporary Hit Point grant is applied. The module treats Source IDs as opaque strings — it only uses them to look up and remove a specific grant later. Typical callers use the spell/ability name, a combat log entry id, or the caster's combat id.
+
+**Source ID Namespace**: A convention where a caller uses a colon-prefixed Source ID (e.g. `equipment:char_42:belt_str:body`, `affliction:bleeding`) so the caller can later operate on **all** of its grants in one call via `REMOVE_EFFECTS_BY_PREFIX`. Conditions does not enforce or interpret namespaces — it only matches against the prefix string the caller supplies. Equipment uses this for equip-time effect cleanup; afflictions already use the deterministic `affliction:<name>` prefix so the same mechanism could clean up affliction-applied effects.
 
 ## Hit Points and Damage
 
@@ -50,24 +52,13 @@ The canonical list of Severity Categories used by hit-point damage and ability d
 
 **Shock**: A counter representing battlefield disorientation. Each point of Shock removes one die from the creature's combat pool on the next pool refresh. If the combat pool is exhausted before the Shock counter reaches zero, the remaining Shock persists across rounds and continues to remove dice from subsequent refreshes until it is fully consumed. Shock has no save — it is applied by an effect as a raw amount and consumed only by being spent against dice.
 
-Shock has unique consumption semantics (driven by combat-pool refreshes rather than turn-start hooks), so it lives as a distinct top-level field rather than as one entry in the generic Counter system below.
-
 **Shock Consumption**: The operation in which the caller asks Conditions "how much Shock can I consume against up to N dice", receives the amount consumed, and decrements the internal Shock counter. Conditions does not know how large the combat pool is; the caller computes the available dice count and passes it in.
 
-## Counters
+## Acid Counter
 
-**Counter**: A generic per-creature accumulator with a name, a non-negative integer current value, and a turn-start behavior defined by the `Counters` catalog in `conditions_config.yaml`. Counters are the home for stateful damage-type effects like the Acid Counter — each point of Acid Damage applied to a target adds to the target's `acid` Counter, and at the start of the target's turn the Counter scales itself and deals derived damage. Other domains (notably damage_types) describe *which* Counter to apply; the Counters catalog defines what happens at turn start; the conditions module owns the per-creature value.
+**Acid Counter**: A non-negative integer counter representing residual corrosive damage on a creature. Combat tells Conditions "this creature took N points of acid damage" via `APPLY_ACID_DAMAGE(amount)`, which adds N to the counter (creating it if absent). At the start of the affected creature's turn, the caller invokes `RESOLVE_ACID_TURN_START` — the counter is **halved (floored)**, and the post-halving value is dealt as **minor** Hit Point Damage to the same creature. A counter that reaches zero (from halving down or explicit clearing) is removed.
 
-**Counter Catalog Entry**: One entry in `Counters`, keyed by the Counter's name. Each entry has an `on_turn_start` list — a sequence of Counter Hooks executed when the resolving caller invokes `RESOLVE_COUNTER_TURN_START` at the start of the affected creature's turn. The catalog defines behavior; it does not define which creatures have which Counters.
-
-**Counter Hook**: One step in a Counter's `on_turn_start` list. A dictionary with a `kind` field. The recognized kinds are:
-
-- **`scale_self`** — multiplies the Counter's current value by `factor` with an explicit rounding rule (`floor` or `ceil`). The mutated value is the new Counter value. Acid uses `{kind: scale_self, factor: 0.5, rounding: floor}`.
-- **`deal_damage`** — invokes `APPLY_HIT_POINT_DAMAGE` against the same creature with a Severity and an `amount_formula` evaluated against `{self: <current counter value>}`. The damage reads the counter *after* any preceding `scale_self` hook in the same list. Acid uses `{kind: deal_damage, amount_formula: "self", severity: minor}`.
-
-The hook list is closed today — adding a new kind requires a code change. The Counters catalog is open: any new Counter that fits the existing hook vocabulary can be added by config.
-
-**Active Counter**: A Counter whose current value is greater than zero. A Counter whose value reaches zero (whether from `scale_self` rounding down or from explicit clearing) is removed from the creature's state.
+Like Shock, the Acid Counter is a built-in top-level field on the Conditions instance with hardcoded behavior. The two have different consumption models — Shock is consumed against the combat pool refresh; the Acid Counter ticks at turn start — but neither uses a generic mechanism. Future damage-type counters with similarly distinctive behavior will be added the same way (a new top-level field plus its own apply / resolve operations).
 
 ## Afflictions
 

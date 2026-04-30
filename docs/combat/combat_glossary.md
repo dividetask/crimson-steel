@@ -48,9 +48,17 @@
 
 **Action Dice Max**: The Character's maximum action dice for one Round, derived as `(action_dice_raw % Combat Pool Range) + Combat Pool Minimum`. Computed on demand — never persisted.
 
-**Untyped Bonus**: The integer-division half of the same formula: `floor(action_dice_raw / Combat Pool Range)`. Exposed for callers but **not yet consumed** by combat-roll math; future passes will apply it as an untyped bonus.
+**Unused Bonus**: The integer-division half of the same formula: `floor(action_dice_raw / Combat Pool Range)`. Exposed for callers but the design has **not yet decided** how to apply it. Stored under this name as a placeholder until that decision lands.
 
 **Action Dice (Remaining)**: The current Combatant's remaining action dice for the Round. Stored on the Combatant record. Decremented by `spend_action_dice`; reset to Action Dice Max by `reset_action_dice` (per-Combatant or all-at-once).
+
+## Damage Severity
+
+**Severity Calculation**: The operation that decides which Severity bucket each point of inflicted damage lands in. Combat owns this. For non-physical damage types the Severity comes from the damage type's catalog entry (`damage_types_glossary.md`). For physical damage Combat performs **Runtime Bucketing**: the first `Threshold + Damage Resilience` points fill Minor, the next `Threshold + Damage Resilience` fill Moderate, everything beyond goes to Major. After Combat splits a damage event into per-Severity counts, it calls `APPLY_HIT_POINT_DAMAGE` on the target's conditions instance with the resulting `{minor, moderate, major}` map.
+
+**Threshold (combat-side)**: The non-negative integer used in Runtime Bucketing. For weapon attacks Combat reads it from the weapon (Equipment); for ability-driven Physical Damage it reads it from the ability's `threshold` field. Combat picks one input — the weapon's value typically wins when both are present.
+
+**Damage Resilience (combat-side)**: The defender's `damage_resilience` value, read through the Character (which sums tier-derived base + Advancement contribution). Combined with Threshold to size each Severity bucket during Runtime Bucketing.
 
 ## State Files
 
@@ -66,11 +74,14 @@ The Combat module:
 - Tracks the active flag, round counter, turn pointer, and combatants list.
 - Computes initiative dice count and action dice max on demand from the looked-up Character.
 - Rolls initiative through the dice resolution module and applies Combat-specific Luck and Insight rules.
+- **Owns Severity Calculation**: routes every damage event through the damage_types catalog (or, for physical damage, through Runtime Bucketing) before passing per-Severity counts to the conditions module. Reads the inputs (damage type, threshold, damage resilience) but does not own them.
+- **Routes damage-type mechanics to consumers**: invokes `APPLY_ACID_DAMAGE`, `APPLY_SHOCK`, etc., when a damage type's mechanics declare those side-effects, applies `damage_multiplier` factors before bucketing, and substitutes the per-roll `critical_modifier` when a damage type carries a `critical_value`.
 - Persists state atomically on every mutation.
 
 It does **not**:
 
-- Resolve attacks or compute damage (combat-roll math is future work).
-- Apply conditions or track HP changes — conditions module.
+- Resolve attacks (combat-roll math is future work).
+- Apply conditions or track HP changes — conditions module owns the storage; combat only routes inputs into it.
+- Define damage type behavior — the catalog lives in `damage_types_config.yaml`; combat reads it.
 - Know about more than one Combat at a time.
 - Read characters directly — every Character read goes through the `character_lookup` callback supplied at construction.

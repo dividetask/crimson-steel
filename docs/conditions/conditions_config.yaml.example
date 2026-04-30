@@ -284,34 +284,10 @@ Effect Names:
       - kind: flag
         flag: cannot_run
 
-# Counters: the catalog of generic per-creature accumulators. Each entry
-# is keyed by the Counter's name and defines what happens when the
-# resolving caller invokes RESOLVE_COUNTER_TURN_START at the start of the
-# affected creature's turn. Hook kinds:
-#
-#   { kind: "scale_self", factor: <number>, rounding: "floor" | "ceil" }
-#       Multiplies the Counter's current value by `factor` and re-rounds.
-#       A scaled-to-zero value triggers automatic Counter removal.
-#
-#   { kind: "deal_damage", amount_formula: "<formula>", severity: "<category>" }
-#       Evaluates `amount_formula` against { self: <current counter value> }
-#       (read after any preceding scale_self in the same list), then
-#       routes the integer result through APPLY_HIT_POINT_DAMAGE at the
-#       named severity.
-#
-# The hook list is closed today — adding a new kind requires a code
-# change. The Counters catalog itself is open: any new counter that fits
-# the existing hook vocabulary can be added here.
-Counters:
-
-  acid:
-    on_turn_start:
-      - kind: scale_self
-        factor: 0.5
-        rounding: floor
-      - kind: deal_damage
-        amount_formula: "self"
-        severity: minor
+# Damage-type counters (Shock, Acid Counter) live as built-in fields on
+# the Conditions class with hardcoded behavior — they are NOT defined in
+# config. New damage-type counters require a code change. See the
+# conditions glossary for Shock and Acid Counter semantics.
 
 Afflictions:
 
