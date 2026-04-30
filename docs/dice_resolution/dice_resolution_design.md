@@ -57,7 +57,7 @@ Implementation walks dice in ascending (positive) or descending (negative) order
 
 A categorical reroll. Encoded as a signed integer constrained to `-1`, `0`, or `+1`:
 
-- `+1` → reroll **every** Failure (every die with value 1).
+- `+1` → reroll **every** die that is not a Success (every die with value < TN — Failures and middling non-result dice alike).
 - `-1` → reroll **every** Success (every die with value ≥ TN, including Critical Successes).
 - `0` → no-op.
 

@@ -98,7 +98,7 @@ Roll Modifiers alter the dice of a Roll rather than its Target Number. The dice 
 
 - **Value Adjustment**: a signed integer applied to a single die's value. Positive values raise a die and are targeted at the die most helpful to the Roll. Negative values lower a die and are targeted at the die most damaging to the Roll. Specific targeting rules depend on whether the Check counts Failures.
 - **Reroll Operation**: a signed integer indicating the number of dice to reroll. Positive values reroll dice that are neither Successes nor Critical Successes (preferring the lowest values, which are typically Failures). Negative values reroll dice that are Successes or Critical Successes (preferring the highest values, which are typically Critical Successes).
-- **Sweep Reroll**: a signed integer constrained to -1, 0, or +1. A value of +1 rerolls every Failure (every die with value 1). A value of -1 rerolls every Success (every die with value ≥ Target Number, including Critical Successes). A value of 0 has no effect. Sweep Reroll is mutually exclusive across directions on a single Roll — at most one direction applies.
+- **Sweep Reroll**: a signed integer constrained to -1, 0, or +1. A value of +1 rerolls every die that is not a Success (every die with value < Target Number, including Failures). A value of -1 rerolls every Success (every die with value ≥ Target Number, including Critical Successes). A value of 0 has no effect. Sweep Reroll is mutually exclusive across directions on a single Roll — at most one direction applies.
 
 No die may be rerolled more than once in a Roll. This rule spans the Reroll Operation and Sweep Reroll: a die rerolled by the Reroll Operation is skipped by Sweep Reroll, and vice versa.
 
