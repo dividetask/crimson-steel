@@ -44,13 +44,29 @@ Magnitudes greater than 1 repeat the operation. The current implementation runs 
 
 ### Action dice formula
 
-Action Dice Max is `(raw % Combat Pool Range) + Combat Pool Minimum`. The `raw` term is `martial_skill_ranks + floor(combat_pool_attribute / 2)`. Why the modulo? It caps the per-round pool at `Combat Pool Range + Combat Pool Minimum - 1` (e.g. defaults: 10 + 11 - 1 = 20), keeping high-rank Characters from dominating any single round. The integer-division half (`floor(raw / Combat Pool Range)`) is exposed as **Untyped Bonus** for future combat-roll math to consume — today it's read-only.
+Action Dice Max is `(raw % Combat Pool Range) + Combat Pool Minimum`. The `raw` term is `martial_skill_ranks + floor(combat_pool_attribute / 2)`. Why the modulo? It caps the per-round pool at `Combat Pool Range + Combat Pool Minimum - 1` (e.g. defaults: 10 + 11 - 1 = 20), keeping high-rank Characters from dominating any single round. The integer-division half (`floor(raw / Combat Pool Range)`) is exposed as **Unused Bonus** as a placeholder — the design hasn't decided what it should do, but the value is preserved so a future consumer can pick it up without a recompute.
 
 Action Dice Max is **never persisted**. It's computed every time it's needed by reading the Character's current stats. This means a temporary buff to martial or wisdom shows up immediately without combat needing to recompute or invalidate caches.
 
 ### Atomic state persistence
 
 `save!` writes the state file atomically on every mutation. Reads at startup are tolerant: missing state file → empty Combat. Adding/removing combatants, rerolling initiative, advancing turns, spending action dice, ending combat — all save immediately. The rules file is loaded only at boot; mid-session changes to combat tunables require a restart.
+
+### Severity Calculation and damage routing
+
+When attack resolution lands a damage event, Combat is the layer that turns *"N points of damage type T inflicted on Combatant C"* into per-Severity Hit Point Damage on C's Conditions instance. The pipeline:
+
+1. **Look up the damage type's catalog entry** in damage_types. Read its declared severity (or `runtime_bucketing: true` for physical) and its mechanics list.
+2. **Apply pre-bucketing mechanics**: `damage_per_dice` adjustments (fire's +1/2dice), `damage_multiplier` factors (electricity vs metal armor, radiant vs undead/shadow). The condition tags (`target_has_metal_armor`, `target_has_subtype:undead`) are interpreted here against equipment / character state.
+3. **Determine Severity**:
+   - Non-physical: every point lands at the catalog's declared severity. The `{minor: 0, moderate: N, major: 0}` shape (or whichever bucket the type names) goes to Conditions.
+   - **Physical (Runtime Bucketing)**: read Threshold (from the weapon, or the ability for direct physical damage from an ability), and Damage Resilience (from the defender's Character). Fill Minor up to `Threshold + Damage Resilience`, then Moderate up to another `Threshold + Damage Resilience`, then everything else into Major.
+4. **Call `APPLY_HIT_POINT_DAMAGE`** on the defender's Conditions instance with the resulting `{minor, moderate, major}` map. Conditions handles Temp HP absorption from there.
+5. **Apply post-damage side-effect mechanics**: `apply_acid_counter` (call `APPLY_ACID_DAMAGE` on Conditions with `damage * per_damage`), `inflict` for shock and similar (call `APPLY_SHOCK`), and any future hardcoded side-effects.
+
+The `critical_value` mechanic is consumed earlier — at the dice-resolution layer when the attack roll is rolled, not in this damage pipeline. Combat is responsible for telling dice resolution which damage type's `critical_value` (if any) applies to the Roll.
+
+Combat does **not** own the catalog itself or any Conditions storage; it just sequences the lookups and the calls. A misconfigured damage type (unrecognized `condition` tag, unknown `condition_name`) surfaces here as a silent fallthrough — the consumer-side validation gap is in the unassigned list across damage_types.
 
 ## Responsibilities
 
@@ -63,19 +79,22 @@ Action Dice Max is **never persisted**. It's computed every time it's needed by 
 - Initiative reroll: rolling through the dice resolution module, then applying combat-specific Luck and Insight rules.
 - Action dice spend / reset.
 - Atomic state persistence and load.
+- **Severity Calculation** for incoming damage events: looking up the damage type's catalog entry, applying pre-bucketing mechanics (`damage_per_dice`, `damage_multiplier`), performing Runtime Bucketing for physical damage from `Threshold + Damage Resilience`, and routing the resulting `{minor, moderate, major}` map to the conditions module's `APPLY_HIT_POINT_DAMAGE`.
+- **Side-effect routing** for damage-type mechanics: invoking `APPLY_ACID_DAMAGE`, `APPLY_SHOCK`, and similar conditions APIs based on the damage type's `apply_acid_counter` / `inflict` mechanics.
+- Telling dice resolution which damage type's `critical_value` (if any) applies to an attack Roll.
 
 ### Explicitly *not* owned here
 
 - **Character attributes and skill ranks** — read through `character_lookup` (the Character class).
 - **Generic Reroll Operation and Value Adjustment semantics** — dice resolution. Combat owns *initiative-specific* variants because initiative has no Target Number.
 - **Hit points, conditions, magic toxicity, shock** — conditions module, indexed per-Character externally.
-- **Attack resolution and damage calculation** — future work; the current module exposes the inputs (initiative, action dice, untyped bonus) but doesn't consume them.
+- **The damage type catalog itself** — lives in `damage_types_config.yaml`. Combat reads it but does not own it.
+- **HP storage, condition tracking, the Acid Counter, Shock, magic toxicity** — conditions module owns the storage; combat invokes the conditions APIs to mutate it.
+- **Attack resolution math (the to-hit roll itself)** — future work; the current module exposes the inputs (initiative, action dice, unused bonus) but doesn't consume them.
 - **Multiple concurrent Combats** — by design, one fight at a time.
 
 ### Unassigned (no current owner)
 
-- **Attack resolution.** Today there's no method that says "Combatant A attacks Combatant B with weapon W"; the combat-roll math is future work.
-- **Untyped Bonus consumption.** The bonus is exposed but no combat-roll consumer exists.
-- **Damage routing.** When attack resolution lands, it'll need to call into the conditions module's `APPLY_HIT_POINT_DAMAGE` with the right Severity per Damage Type. The wiring isn't pinned anywhere.
-- **Counter wiring** (acid, etc.). When physical/elemental damage applies a counter mechanic per `damage_types_glossary.md`, combat is the natural caller — but the connection isn't implemented.
+- **Attack resolution.** Today there's no method that says "Combatant A attacks Combatant B with weapon W"; once it lands, the Severity Calculation pipeline above takes over.
+- **Unused Bonus.** The integer-division half of the action dice formula. The design hasn't decided how (or whether) to apply it; it's stored as a placeholder so a future use doesn't have to recompute.
 - **Initiative reroll edge cases.** The Luck loop reads dice in their pre-Luck order; running multiple iterations of Insight on the same dice list may repeatedly pick the same die unless values change. Both are tractable but unspecified.

@@ -34,15 +34,8 @@ Damage Types:
     severity: moderate
     description: "Corrosive damage that lingers as a counter on the target, dealing residual minor damage at the start of the target's turn."
     mechanics:
-      - kind: counter
-        counter_name: acid
-        on_turn_start:
-          - kind: scale_self
-            factor: 0.5
-            rounding: floor
-          - kind: deal_damage
-            amount_formula: "self"
-            severity: minor
+      - kind: apply_acid_counter
+        per_damage: 1
 
   electricity:
     severity: moderate

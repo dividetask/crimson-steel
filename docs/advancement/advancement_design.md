@@ -129,7 +129,7 @@ The `classes` key is removed from the `rules` view so the rules dict is purely t
 
 ### Unassigned (no current owner)
 
-- **Wiring class abilities into actual mechanical effects.** Today `abilities` returns names and levels; nothing looks up what `rage` or `sneak_attack` actually does. A class-abilities catalog (parallel to the conditions module's Effect Names) would solve this — likely lives somewhere TBD.
+- **Filling out the procedural and stateful ability catalogs.** Class/racial abilities now have a defined home: stateless ones (Sneak Attack, Channel Divinity) live in the abilities module's Procedural Abilities catalog; stateful ones (Rage, Bardic Inspiration) live in the conditions module's Effect Names catalog or as Acid-Counter-style hardcoded fields. Always-on numeric bonuses live on the ability entry's `modifiers:` field. What's still unassigned is the actual content — most class abilities don't yet have entries in either catalog.
 - **Class contributions to `damage_resilience` and `damage_reduction`.** The methods exist as 0-returning placeholders; the actual scaling rules per class haven't been designed.
 - **Validation that `class_skills`, `non_class_skills`, and `opposed_skills` entries refer to real skills** in `skills.yaml`. Today a typo silently changes default-category behavior.
 - **Validation that `parent_class` references a defined Class.** A typo produces a chain that walks a single step then terminates, with the missing parent contributing nothing.

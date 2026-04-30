@@ -53,12 +53,12 @@ This keeps production startup permissive: the DM can drop in a partial config an
 
 - **Tier, class levels, or class abilities** — Advancement.
 - **Identity, base attributes, the Tier Override** — Character.
-- **What a Racial Ability does mechanically.** Today the abilities list returns names and levels only; mechanical effects are looked up wherever the future class/race-abilities catalog lives.
+- **What a Racial Ability does mechanically.** The abilities module's Procedural Abilities catalog covers stateless racial abilities; the conditions module covers stateful ones; always-on numeric bonuses live on the ability entry's `modifiers:` field. Race itself returns names and levels only — mechanical effects are looked up by name in those catalogs.
 - **Per-Character mutable state** (HP, conditions, currency).
 - **Validation that `ability_score_adjustments` keys are real attributes** — typos silently produce a 0 contribution.
 
 ### Unassigned (no current owner)
 
-- **The catalog of what each Racial Ability does.** Just like class abilities, Racial Ability names today resolve to nothing mechanical. The same future "abilities catalog" will need to cover both.
+- **Populating the procedural and stateful catalogs for racial abilities.** The catalogs exist (Abilities' Procedural Abilities, Conditions' Effect Names, the `modifiers:` field on each ability entry); most racial ability names don't yet have entries in any of them.
 - **Cross-domain validation** that a Character's `race:` key exists in `race_config.yaml`. A typo silently produces an empty Race.
 - **Preferred starting attribute distributions per Race.** The example config carries `ability_score_adjustments` but not the standard "+2 to one stat, +1 to another" point-buy steering that some games include — if Crimson Steel ever wants that, it needs a home.

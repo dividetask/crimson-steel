@@ -187,14 +187,29 @@ Both are typically Formula strings of `tier` (e.g. `"tier*2"`, `"tier*5"`). When
 
 Per the project-wide convention, the term **magic toxicity** is preferred over "mana saturation"; the two refer to the same mechanic.
 
+## Procedural Class and Racial Abilities
+
+Some abilities granted by classes and races (named in `advancement_config.yaml` under each class's `abilities:` list and in `race_config.yaml` similarly) are **procedural** — they activate during a specific action and produce a one-shot effect with no per-creature state left behind. Sneak Attack, Channel Divinity, Improved Healing, and Sense Injury all fit. The procedural-ability catalog lives in the abilities module so callers (combat, dice resolution, healing) can look up the trigger spec for a name.
+
+**Procedural Ability**: A class- or race-granted ability whose entire effect resolves during a specific action. The ability has no duration and creates no state on the creature using it. Lookup happens at action-time: combat (or whichever caller is running the action) asks the abilities module "does this Character have ability X, and if so, what's its trigger spec?".
+
+**Trigger Spec**: A structured description of when a Procedural Ability fires and what it does. Each Spec has an `on` field (the action that triggers it — e.g. `attack_check`, `healing_check`, `invoke`), an optional `condition` field (a free-form scope tag the consuming module checks — e.g. `target_flatfooted`, `target_undead`), and an `effect` field describing the one-shot outcome.
+
+**Stateful Counterpart**: Some abilities that *appear* class-granted are actually stateful — Rage (entered for N rounds), Bardic Inspiration (luck-points counter), Trapfinding (concentration). These are **not** in the procedural catalog; they live in the conditions module's Effect Names catalog, the Acid-Counter-style hardcoded counters, or as Affliction-shaped state. The advancement / race ability list still names them so the Character knows they exist; the conditions module owns their behavior and per-creature state.
+
+The split rule: any per-creature mutable state → Conditions; purely procedural lookup → Abilities.
+
+**Always-On Modifier**: A passive numeric bonus an ability grants while the Character has it (e.g. fast_movement's `+10` to speed). Lives directly on the ability entry's `modifiers:` field in `advancement_config.yaml` (or `race_config.yaml`), as a list of `{target, type, descriptors, add}` entries — see those configs for the schema. The Modifiers class consumes this list during Character bonus computation. Always-On Modifiers are simpler than full Trigger Specs: no `on` action, no `condition`, just a constant addition.
+
 ## Module Scope
 
-The abilities module is strictly a **reference**. Given an Entry name, it returns every piece of information needed to resolve a cast: the casting time in rounds, the range in feet, the target count, the list of save specs, the valid casting skills, the valid item forms, the school, the duration string, and the full Effect Hash. It does not:
+The abilities module is strictly a **reference**. Given an Entry name, it returns every piece of information needed to resolve a cast: the casting time in rounds, the range in feet, the target count, the list of save specs, the valid casting skills, the valid item forms, the school, the duration string, and the full Effect Hash. Given a Procedural Ability name, it returns the Trigger Spec. It does not:
 
 - Track which creatures have which abilities or spells prepared.
 - Track which effects are currently active.
 - Roll dice, apply damage, or apply conditions.
 - Resolve saves.
 - Consume spell slots, mana, or item charges.
+- Evaluate Trigger Spec conditions or apply their effects — that's the consuming module's job (combat for `attack_check` triggers, healing for `healing_check`, etc.).
 
-Those responsibilities belong to the character, combat, condition, and item modules respectively. The abilities module's single job is to answer "what does this spell or ability do?" in a form those other modules can consume directly.
+Those responsibilities belong to the character, combat, condition, and item modules respectively. The abilities module's single job is to answer "what does this spell, ability, or class feature do?" in a form those other modules can consume directly.

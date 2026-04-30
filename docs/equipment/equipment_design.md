@@ -135,6 +135,19 @@ The fan-out exists so callers don't have to know how to walk the property catalo
 
 When no Name Override is set, the display name is `<tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>`. The tier prefix is omitted for Tier 0 items and for any category listed in `tier_hidden_for` (e.g. Potion — "Tier 2 Potion of Healing" reads worse than "Potion of Greater Healing"). Property prefix vs. suffix is per-Property and lives in the Property's Display block.
 
+### Equip-time wiring to Conditions
+
+Items that grant ongoing effects when worn (Belt of Strength, Cloak of Resistance, anything with Guidance) post their effects to the conditions module via a **Source ID Namespace owned by equipment**. Pattern:
+
+- Equipment generates a deterministic `source_id` per equipped Item Stack: `equipment:<owner_id>:<stable_stack_key>` — e.g. `equipment:character:42:belt_str:body`. The `<stable_stack_key>` portion is whatever combination of slot + item type + identity-fields uniquely identifies that Stack within the Character's loadout.
+- For each effect the item should grant, equipment calls Conditions' `APPLY_EFFECT` (or `APPLY_NAMED_EFFECT` for catalog entries) with that source_id. Conditions' replacement-by-source-id rule makes the call idempotent — re-applying the same source_id overwrites the slot rather than stacking.
+- On unequip, equipment calls `REMOVE_EFFECTS_BY_PREFIX('equipment:<owner_id>:<stable_stack_key>')` to remove only the effects that came from that Stack.
+- For broad cleanup (loadout swap, Character reset), equipment calls `REMOVE_EFFECTS_BY_PREFIX('equipment:<owner_id>:')` to nuke the entire namespace, then re-applies the current loadout fresh.
+
+The "verify-or-recreate" guarantee is implicit: equipment never queries Conditions to check whether an effect still exists. It just re-applies on every relevant change. If something else (a dispel-magic spell, a config reload, a state corruption) removed the effect, the next equipment-driven re-apply restores it.
+
+The namespace is **equipment-only**. Other modules using Conditions never write into `equipment:*` source_ids, and equipment never writes outside that prefix. This isolation is what makes `REMOVE_EFFECTS_BY_PREFIX` safe — the bulk removal can only affect equipment's own grants.
+
 ## Responsibilities
 
 ### Owned by the equipment domain
@@ -154,6 +167,7 @@ When no Name Override is set, the display name is `<tier_prefix> <property_prefi
 - Loot Archive open / claim / close, kept consistent with `loot.yaml`.
 - Detail-fetchers (`GET_ITEM_DETAILS`, `GET_WEAPON_DETAILS`, `GET_ARMOR_DETAILS`).
 - Generated Display Name composition.
+- **Equip-time wiring to Conditions** via the `equipment:*` Source ID Namespace: posting effects on equip, removing them on unequip, and using `REMOVE_EFFECTS_BY_PREFIX` for bulk loadout cleanup. Equipment is the sole writer to that namespace.
 
 ### Explicitly *not* owned here
 
@@ -167,7 +181,6 @@ When no Name Override is set, the display name is `<tier_prefix> <property_prefi
 
 ### Unassigned (no current owner)
 
-- **Equip-time wiring** — when a Character equips a Belt of Strength, who posts the `+2 str` Effect to the conditions module? The equipment module owns the Equipped flag; the conditions module owns the Effect; the bridge isn't pinned to a class.
 - **Encumbrance computation.** `weight` lives on Currencies; armor and weapons have no weight field today. A future encumbrance system needs both inputs and a home.
 - **Validation that loot table item references resolve.** A typo in an `item:` field of a loot row produces a Stack of an unknown Item Type at roll time. Today the failure surfaces only when display or pricing tries to read the missing definition.
 - **Validation that property references in loot tables exist** in the property catalog. Same shape as the item-typo issue.

@@ -69,21 +69,16 @@ The glossary's "highest Bonus and highest Penalty per Bonus Type wins" rule is n
 
 This split keeps `APPLY_EFFECT` cheap and lets the caller compose modifiers by appending freely; it also means removing a stronger Effect doesn't quietly promote a weaker one — the next `GET_MODIFIERS` just picks up whichever is now largest.
 
-### Counter mechanism
+### Acid Counter (built-in)
 
-Counters are a generic per-creature accumulator distinct from Shock (which has its own consumption model) and from Effects (which are modifier tuples). Operations:
+The Acid Counter is a non-negative integer field on the Conditions instance with hardcoded behavior — no generic counter framework. Two operations:
 
-- `APPLY_COUNTER(name, amount)` — increments the named Counter by `amount`. If the Counter is not yet present and `amount > 0`, the entry is created. The Counter's `name` must exist in the `Counters` catalog; unknown names raise.
-- `GET_COUNTER(name)` → integer current value, or 0 if not present.
-- `REMOVE_COUNTER(name)` — clears the entry entirely; no-op if absent.
-- `RESOLVE_COUNTER_TURN_START(name, current_round)` — runs the Counter's `on_turn_start` hooks in declaration order. Returns a dict describing what each hook did (the new Counter value after `scale_self`, the `APPLY_HIT_POINT_DAMAGE` return for `deal_damage`).
+- **`APPLY_ACID_DAMAGE(amount)`** — adds `amount` to the counter. The counter is created (set to `amount`) if it didn't exist; otherwise the existing value is incremented. Zero or negative is a no-op.
+- **`RESOLVE_ACID_TURN_START`** — at the start of the affected creature's turn, halves the counter (`floor(value / 2)`), then deals the post-halving value as **minor** Hit Point Damage to the same creature via `APPLY_HIT_POINT_DAMAGE`. A counter that drops to zero is removed.
 
-Hook semantics:
+The order matters: halving runs first, the post-halve value is what gets dealt as damage. So a counter at value 7 halves to 3, deals 3 minor damage, and persists at 3 for next turn (halves to 1, deals 1, persists at 1, halves to 0, removed).
 
-- **`scale_self`** mutates the Counter value via `floor(value * factor)` or `ceil(value * factor)` depending on `rounding`. A scaled-to-zero value triggers automatic removal.
-- **`deal_damage`** evaluates `amount_formula` against `{self: <current counter value>}` (read *after* any preceding `scale_self`), then routes the integer result through `APPLY_HIT_POINT_DAMAGE` at the named Severity. The Counter itself is unchanged by `deal_damage` — only `scale_self` mutates the value.
-
-The catalog is consulted at resolve time, not at apply time, so editing `Counters` and reloading config picks up new hook definitions. Per-creature Counter values are stored as `{name → integer}` and serialize through `TO_DICT` / `LOAD_STATE` alongside the rest of the state.
+Like Shock, the Acid Counter has its own consumption model and earns its own top-level field rather than living inside a generic mechanism. Adding a future damage-type counter (cold-burst, lingering-fire, …) means adding another top-level field plus apply / resolve operations — a code change, not a config change.
 
 ### Effect Name application
 
@@ -98,11 +93,21 @@ Two consequences of the per-modifier Source ID convention:
 
 The catalog is consulted at apply time, not stored on the Effect entries — editing the catalog and reloading config picks up new modifier lists, but already-applied entries retain whatever shape they were created with until they expire. Afflictions whose `effect.kind` is `named_effect` dispatch through this same method using the deterministic Source ID `'affliction:<name>'`.
 
+### Bulk removal by Source ID prefix
+
+`REMOVE_EFFECTS_BY_PREFIX(prefix)` removes every Effect whose `source_id` starts with the given prefix string and returns the removed entries. It is the cleanup primitive that lets a caller treat a Source ID Namespace as a unit of ownership.
+
+The motivating use case is equip/unequip in the equipment module: when a Character's equipped set fully changes, equipment calls `REMOVE_EFFECTS_BY_PREFIX('equipment:<char_id>:')` to nuke every effect equipment had previously applied to that Character, then re-applies the current loadout's effects fresh. The "current state matches actual equipped items" guarantee is restored coarsely without equipment having to track which slot maps to which Effect.
+
+`APPLY_EFFECT`'s exact-match-by-source-id replacement rule (idempotent re-application) and `REMOVE_EFFECTS_BY_PREFIX`'s coarse cleanup combine to make Effect application from a stateful caller (like equipment) reliable: every apply is "post the effect, idempotent if already there" and every cleanup is "drop everything in our namespace."
+
+The prefix match is a literal `startswith` — no globbing, no segment awareness. A caller that wants per-segment matches builds prefixes that include the segment delimiter (`equipment:char_42:` rather than `equipment:char_42`).
+
 ## Responsibilities
 
 ### Owned by the conditions domain
 
-- Per-creature mutable state: HP damage counters, ability damage, Temporary HP grant, Magic Toxicity counter, Shock counter, generic Counters dictionary, ordered list of Active Afflictions, ordered list of Active Effects.
+- Per-creature mutable state: HP damage counters, ability damage, Temporary HP grant, Magic Toxicity counter, Shock counter, Acid Counter, ordered list of Active Afflictions, ordered list of Active Effects.
 - Damage absorption with worst-first Temp HP draining.
 - Heal cascades on both HP damage and Ability Damage, with FIFO ordering of attributes within a category.
 - Single-grant Temp HP replacement rule (strictly higher wins).
@@ -110,7 +115,8 @@ The catalog is consulted at apply time, not stored on the Effect entries — edi
 - Affliction resolution: Severity Save Penalty injection, magnitude formula, Tier substitution, Severity evolution, removal at zero.
 - Inflicter Tier accumulation (`max(existing, new)` while entry lives).
 - Effect storage with source-id replacement; stacking computed at lookup via `GET_MODIFIERS`.
-- Counter application, resolution of `on_turn_start` hooks (`scale_self`, `deal_damage`), and automatic removal when value reaches zero.
+- Bulk removal by Source ID prefix (`REMOVE_EFFECTS_BY_PREFIX`) for callers that own a Source ID Namespace.
+- Acid Counter: per-creature accumulation via `APPLY_ACID_DAMAGE`, halve-and-deal-minor-damage at turn start via `RESOLVE_ACID_TURN_START`, automatic removal when the value reaches zero.
 - Named Effect dispatch with per-modifier Source IDs.
 - Expiry sweep (`CLEAR_EXPIRED_EFFECTS`) for Effects and the Temp HP grant.
 - Serialization round-trip (`TO_DICT` / `LOAD_STATE`) with validation of severities, sign values, and known affliction names.
@@ -128,4 +134,4 @@ The catalog is consulted at apply time, not stored on the Effect entries — edi
 
 ### Unassigned (no current owner)
 
-- **Counter wiring from damage application.** The conditions module owns the Counter mechanism, but combat is the natural place to inspect a damage type's `counter` Mechanic and call `APPLY_COUNTER` accordingly. That wiring isn't pinned to a class today.
+- **Acid Counter wiring from damage application.** Conditions owns the Acid Counter, but combat is the natural place to call `APPLY_ACID_DAMAGE` when acid damage lands. That wiring isn't pinned to a class today.
