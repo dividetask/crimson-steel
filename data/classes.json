@@ -57,10 +57,10 @@
 		"advancement": {"bab": 2, "mana": 0, "saves": {"str": 2, "dex": 3, "con": 2, "int": 0, "wis": 1, "cha": 0}},
 		"class_skills": ["acrobatics", "athletics", "climb", "perception", "stealth"]},
 	"commoner": {
-		"advancement": {"bab": 1, "mana": 0, "saves": {"str": 1, "dex": 1, "con": 1, "int": 1, "wis": 1, "cha": 1}},
+		"advancement": {"bab": 1, "mana": 0, "saves": {"str": 3, "dex": 1, "con": 3, "int": 1, "wis": 1, "cha": 1}},
 		"class_skills": ["athletics", "craft_", "perception", "profession_"]},
 	"aberration": {
-		"advancement": {"bab": 2, "mana": 1, "saves": {"str": 2, "dex": 2, "con": 2, "int": 2, "wis": 3, "cha": 3}},
+		"advancement": {"bab": 2, "mana": 1, "saves": {"str": 1, "dex": 1, "con": 1, "int": 1, "wis": 3, "cha": 3}},
 		"class_skills": ["deception", "perception", "sense_motive", "stealth"]}
 }
 
