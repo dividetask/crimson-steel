@@ -210,6 +210,43 @@ class AbilitySystem
     Array((catalog[ability_name.to_s] || {})['triggers'])
   end
 
+  # ---------- Cost lookups ----------------------------------------
+
+  # Default mana cost for a spell at a given tier_index/aspect_index.
+  # Reads the integer tier from the entry (not the 0.5-substituted
+  # formula context) and looks up `Default Mana Cost Per Tier`.
+  # Spells with override costs (per the spell description; not yet
+  # a structured field) are the caller's concern to add on top.
+  def default_mana_cost(spell_name, tier_index: nil, aspect_index: nil)
+    entry = get_entry(spell_name)
+    axis_index = tier_index || aspect_index
+    integer_tier = integer_tier_for(entry, axis_index)
+    table = @abilities_config['Default Mana Cost Per Tier'] || {}
+    (table[integer_tier] || table[integer_tier.to_s] || 0).to_i
+  end
+
+  # Ritual material cost in gold for a spell at a given tier.
+  def ritual_gold_cost(spell_name, tier_index: nil, aspect_index: nil)
+    entry = get_entry(spell_name)
+    axis_index = tier_index || aspect_index
+    integer_tier = integer_tier_for(entry, axis_index)
+    table = (@abilities_config.dig('Ritual Cost', 'gold_per_tier') || {})
+    (table[integer_tier] || table[integer_tier.to_s] || 0).to_i
+  end
+
+  # Total casting time in rounds for casting the spell as a ritual.
+  # Equals max(spell_casting_time_rounds, 1) + the per-tier ritual
+  # additional casting time.
+  def ritual_casting_time_rounds(spell_name, tier_index: nil, aspect_index: nil)
+    entry = get_entry(spell_name)
+    axis_index = tier_index || aspect_index
+    integer_tier = integer_tier_for(entry, axis_index)
+    base_rounds = [resolve_casting_time(entry).to_f, 1.0].max
+    table = (@abilities_config.dig('Ritual Cost', 'casting_time_per_tier') || {})
+    addition = (table[integer_tier] || table[integer_tier.to_s] || 0).to_f
+    base_rounds + addition
+  end
+
   private
 
   def load_entries(path)
@@ -229,6 +266,14 @@ class AbilitySystem
       raw = tier
     end
     raw.to_i == 0 ? 0.5 : raw.to_i
+  end
+
+  # Like tier_value_for but returns the integer tier as declared in
+  # the entry (no 0.5 substitution). Used by cost-table lookups
+  # that key by the integer 0-5.
+  def integer_tier_for(entry, axis_index)
+    tier = entry['tier']
+    return (tier.is_a?(Array) ? tier[axis_index] : tier).to_i
   end
 
   def damage_type_for(entry, axis_index)

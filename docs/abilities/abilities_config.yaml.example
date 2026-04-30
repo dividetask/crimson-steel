@@ -17,6 +17,48 @@
 # are written as minutes or hours into a number of rounds.
 Round Length Seconds: 6
 
+# Default Mana Cost Per Tier — the mana a Character spends to cast
+# a spell of the given Tier. Looked up by AbilitySystem#default_mana_cost
+# and consumed by Casting#cast when the caller doesn't override the
+# value. Tier 0 = 1, ascending. Most spells use the table value;
+# a few (like Recharge) note an additional cost in their description
+# that the human DM applies on top.
+Default Mana Cost Per Tier:
+  0: 1
+  1: 4
+  2: 6
+  3: 8
+  4: 10
+  5: 12
+
+# Ritual Cost — per-tier ritual overhead. A ritual cast resolves
+# exactly like a spell cast except for two adjustments:
+#   * gold_per_tier         — material cost in gold paid by the
+#                             caster's owner (typically the party
+#                             purse). Until material components are
+#                             tracked as items, gold stands in.
+#   * casting_time_per_tier — additional rounds added to the spell's
+#                             normal casting time. Total ritual
+#                             casting time is
+#                             max(spell_casting_time_rounds, 1) +
+#                             casting_time_per_tier[tier].
+# Both tables index by integer tier (0-5).
+Ritual Cost:
+  gold_per_tier:
+    0: 0
+    1: 50
+    2: 200
+    3: 800
+    4: 3000
+    5: 12000
+  casting_time_per_tier:
+    0: 10
+    1: 100
+    2: 600
+    3: 3600
+    4: 14400
+    5: 100800
+
 # Casting Time Aliases — short, human-readable names that translate into
 # a number of rounds. Fractional values represent portions of a single
 # turn. Any Casting Time string that matches a key in this table is

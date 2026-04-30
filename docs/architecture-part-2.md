@@ -141,7 +141,16 @@ Implemented in `lib/casting.rb` as a parallel-shaped orchestration to `ItemUse`.
 7. **Magic toxicity on the caster** (not the target — that's the item flow). Formula: `max(saturation, minimum_saturation)` from the resolved Effect Hash. No "potion overhead" term.
 8. **Return deferred work** — the spell's `effects` list (damage objects with deferred `success`/`critical` evaluation) and `saves` list come back intact for caller-driven save resolution and damage routing through `Combat#apply_attack_damage`. The Concentration Block is returned for the caller to track concentration on the caster.
 
-Today's gap: **mana cost isn't on the spell schema yet**. Casting accepts `mana_cost:` as a caller parameter so the caller decides how much to charge (typically a tier-driven formula). Adding a `mana_cost` field to the abilities catalog is a follow-up.
+Mana cost defaults from the abilities catalog's `Default Mana Cost Per Tier` table (`{0: 1, 1: 4, 2: 6, 3: 8, 4: 10, 5: 12}` by default). The caller can still override via `mana_cost:`. Spells whose description notes an extra cost (Recharge, etc.) are the human DM's responsibility to add on top — the schema doesn't yet carry per-spell overrides as a structured field.
+
+### Workflow D' — Ritual cast
+
+`Casting#cast_ritual` is a thin extension of `cast` for rituals. Same pipeline; two adjustments:
+
+- **Material gold cost.** `AbilitySystem#ritual_gold_cost(spell, tier)` reads `Ritual Cost.gold_per_tier`. The cost is debited from the supplied `gold_owner_id` via `Equipment#debit_wealth`. When the owner can't pay, returns `error: 'insufficient_gold'` with no mana spent and no effects.
+- **Total casting time.** `AbilitySystem#ritual_casting_time_rounds(spell, tier)` returns `max(spell.casting_time_rounds, 1) + Ritual Cost.casting_time_per_tier[tier]`. The result is included in the `cast_ritual` return for the caller to advance the calendar accordingly.
+
+If `cast()` bails on insufficient mana or the saturation gate, `cast_ritual` returns the same bail-out unchanged — gold is **not** debited because the ritual didn't happen. The Equipment dependency is supplied at construction; ritual casts raise without it.
 
 ### Workflow E — Affliction tick
 

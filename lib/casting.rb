@@ -17,9 +17,10 @@ require_relative 'conditions'
 class Casting
   CONCENTRATION_DURATION = nil # caller decides when concentration ends
 
-  def initialize(abilities:, conditions_lookup:)
+  def initialize(abilities:, conditions_lookup:, equipment: nil)
     @abilities = abilities
     @conditions_lookup = conditions_lookup
+    @equipment = equipment
   end
 
   # Required parameters:
@@ -70,7 +71,7 @@ class Casting
   #                          nil. Caller is responsible for
   #                          tracking concentration on the caster.
   def cast(spell_name:, caster_char_id:, target_char_id:,
-           rank:, mana_cost: 0,
+           rank:, mana_cost: nil,
            tier_index: nil, aspect_index: nil,
            caster_max_toxicity: nil, target_max_mana: nil)
     caster_conditions = @conditions_lookup.call(caster_char_id)
@@ -78,12 +79,16 @@ class Casting
     target_conditions = @conditions_lookup.call(target_char_id)
     raise "No conditions instance for #{target_char_id}" unless target_conditions
 
+    # Default mana cost from the abilities catalog when the caller
+    # doesn't override (typical case).
+    mana_cost = mana_cost.nil? ? @abilities.default_mana_cost(spell_name, tier_index: tier_index, aspect_index: aspect_index) : mana_cost.to_i
+
     # Mana check. Failing this returns early — no spell side-effects,
     # no mana spent.
-    if caster_conditions.current_mana < mana_cost.to_i
+    if caster_conditions.current_mana < mana_cost
       return {
         'error'        => 'insufficient_mana',
-        'mana_cost'    => mana_cost.to_i,
+        'mana_cost'    => mana_cost,
         'current_mana' => caster_conditions.current_mana
       }
     end
@@ -116,7 +121,7 @@ class Casting
       }
     end
 
-    spent = caster_conditions.apply_mana_cost(mana_cost.to_i)
+    spent = caster_conditions.apply_mana_cost(mana_cost)
     applications = []
 
     applications.concat(apply_cure(effect_hash, target_conditions))
@@ -135,6 +140,71 @@ class Casting
       'save_specs'      => Array(resolved['saves']),
       'concentration'   => resolved['concentration']
     }
+  end
+
+  # Ritual cast — resolves exactly like cast() except for two
+  # adjustments:
+  #   * material gold cost is debited from `gold_owner_id` via
+  #     Equipment#debit_wealth (set at construction)
+  #   * total casting time is computed from
+  #     AbilitySystem#ritual_casting_time_rounds and returned in
+  #     the result for the caller to advance the calendar
+  #
+  # Required additional parameter:
+  #   gold_owner_id  — the Equipment Owner ID that pays the
+  #                    material cost. Typically 'party' for shared
+  #                    purse, or 'character:<id>' when the caster
+  #                    pays personally.
+  #
+  # Returns the same shape as cast() with two extra keys:
+  #   gold_cost                   — the material cost paid
+  #   total_casting_time_rounds   — total time the ritual takes
+  #
+  # If the gold owner can't afford the cost, returns
+  # error: 'insufficient_gold' with no mana spent and no effects.
+  def cast_ritual(spell_name:, caster_char_id:, target_char_id:,
+                  rank:, gold_owner_id:,
+                  mana_cost: nil, tier_index: nil, aspect_index: nil,
+                  caster_max_toxicity: nil, target_max_mana: nil)
+    raise 'equipment instance required for ritual casts' unless @equipment
+
+    gold_cost = @abilities.ritual_gold_cost(
+      spell_name, tier_index: tier_index, aspect_index: aspect_index
+    )
+    if gold_cost > 0 && !@equipment.can_afford?(gold_owner_id, gold_cost)
+      return {
+        'error'             => 'insufficient_gold',
+        'gold_cost'         => gold_cost,
+        'gold_owner_id'     => gold_owner_id,
+        'total_wealth'      => @equipment.total_wealth_in_gold(gold_owner_id)
+      }
+    end
+
+    result = cast(
+      spell_name:          spell_name,
+      caster_char_id:      caster_char_id,
+      target_char_id:      target_char_id,
+      rank:                rank,
+      mana_cost:           mana_cost,
+      tier_index:          tier_index,
+      aspect_index:        aspect_index,
+      caster_max_toxicity: caster_max_toxicity,
+      target_max_mana:     target_max_mana
+    )
+
+    # If cast() bailed (insufficient mana, saturation gate), don't
+    # debit gold either — the ritual didn't happen.
+    return result if result['error'] || result['saturation_blocked']
+
+    @equipment.debit_wealth(gold_owner_id, gold_cost) if gold_cost > 0
+
+    result.merge(
+      'gold_cost'                 => gold_cost,
+      'gold_owner_id'             => gold_owner_id,
+      'total_casting_time_rounds' => @abilities.ritual_casting_time_rounds(
+        spell_name, tier_index: tier_index, aspect_index: aspect_index
+      )
+    )
   end
 
   private

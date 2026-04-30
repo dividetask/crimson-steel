@@ -3,6 +3,7 @@ require_relative '../lib/abilities'
 require_relative '../lib/conditions'
 require_relative '../lib/dice_system'
 require_relative '../lib/damage_types'
+require_relative '../lib/equipment'
 
 CASTING_ABILITIES_CONFIG = File.expand_path('../data/abilities_config.yaml', __dir__)
 CASTING_ABILITIES_DATA   = File.expand_path('../data/abilities_data.yaml',   __dir__)
@@ -182,6 +183,128 @@ RSpec.describe Casting do
       expect(first_save['attribute']).to eq('dex')
       expect(first_save['fail']['kind']).to eq('damage')
       expect(first_save['fail']['damage_type']).to eq('fire')
+    end
+  end
+
+  describe 'default mana cost from the abilities catalog' do
+    it 'pulls the per-tier value when mana_cost: is omitted' do
+      caster_conditions.set_mana(20, max: 20)
+      result = casting.cast(
+        spell_name:     'Heal',
+        caster_char_id: 1,
+        target_char_id: 2,
+        rank:           2,
+        tier_index:     2  # tier 2 → default cost 6
+      )
+      expect(result['mana_spent']).to eq(6)
+      expect(caster_conditions.current_mana).to eq(14)
+    end
+
+    it 'lets the caller override' do
+      caster_conditions.set_mana(20, max: 20)
+      result = casting.cast(
+        spell_name:     'Heal',
+        caster_char_id: 1,
+        target_char_id: 2,
+        rank:           2,
+        tier_index:     2,
+        mana_cost:      9
+      )
+      expect(result['mana_spent']).to eq(9)
+    end
+  end
+
+  describe '#cast_ritual' do
+    let(:equipment_path) { File.expand_path('../data/equipment_config.yaml', __dir__) }
+    let(:equipment) { Equipment.new(config_path: equipment_path) }
+    let(:ritual_casting) do
+      Casting.new(
+        abilities:         abilities,
+        conditions_lookup: conditions_lookup,
+        equipment:         equipment
+      )
+    end
+
+    before do
+      caster_conditions.set_mana(20, max: 20)
+      target_conditions.apply_hit_point_damage('minor' => 5)
+    end
+
+    it 'debits gold from the supplied owner and returns total casting time' do
+      equipment.add_item('party', { 'item_type' => 'Gold', 'quantity' => 500 })
+      result = ritual_casting.cast_ritual(
+        spell_name:     'Heal',
+        caster_char_id: 1,
+        target_char_id: 2,
+        rank:           2,
+        tier_index:     2,
+        gold_owner_id:  'party'
+      )
+      # Tier 2 ritual: gold_per_tier = 200; casting_time_per_tier = 600.
+      # Heal's casting_time = Main Action = 0.5 rounds, max(0.5, 1) = 1.
+      # Total = 1 + 600 = 601.
+      expect(result['gold_cost']).to eq(200)
+      expect(result['total_casting_time_rounds']).to eq(601)
+      expect(equipment.total_wealth_in_gold('party')).to be_within(0.001).of(300)
+    end
+
+    it 'still spends mana like a normal cast' do
+      equipment.add_item('party', { 'item_type' => 'Gold', 'quantity' => 500 })
+      ritual_casting.cast_ritual(
+        spell_name:     'Heal',
+        caster_char_id: 1,
+        target_char_id: 2,
+        rank:           2,
+        tier_index:     2,
+        gold_owner_id:  'party'
+      )
+      # Tier 2 default mana cost = 6
+      expect(caster_conditions.current_mana).to eq(14)
+    end
+
+    it 'returns insufficient_gold without spending mana when the owner cannot pay' do
+      equipment.add_item('party', { 'item_type' => 'Gold', 'quantity' => 50 })
+      result = ritual_casting.cast_ritual(
+        spell_name:     'Heal',
+        caster_char_id: 1,
+        target_char_id: 2,
+        rank:           2,
+        tier_index:     2,
+        gold_owner_id:  'party'
+      )
+      expect(result['error']).to eq('insufficient_gold')
+      expect(caster_conditions.current_mana).to eq(20)
+      expect(equipment.total_wealth_in_gold('party')).to be_within(0.001).of(50)
+      expect(target_conditions.hit_point_damage['minor']).to eq(5)
+    end
+
+    it "doesn't debit gold when cast() bails on insufficient mana" do
+      caster_conditions.set_mana(2, max: 20)
+      equipment.add_item('party', { 'item_type' => 'Gold', 'quantity' => 500 })
+      result = ritual_casting.cast_ritual(
+        spell_name:     'Heal',
+        caster_char_id: 1,
+        target_char_id: 2,
+        rank:           2,
+        tier_index:     2,
+        gold_owner_id:  'party'
+      )
+      expect(result['error']).to eq('insufficient_mana')
+      expect(equipment.total_wealth_in_gold('party')).to be_within(0.001).of(500)
+    end
+
+    it 'requires an equipment instance at construction' do
+      no_equip = Casting.new(abilities: abilities, conditions_lookup: conditions_lookup)
+      expect {
+        no_equip.cast_ritual(
+          spell_name:     'Heal',
+          caster_char_id: 1,
+          target_char_id: 2,
+          rank:           2,
+          tier_index:     2,
+          gold_owner_id:  'party'
+        )
+      }.to raise_error(/equipment instance required/)
     end
   end
 

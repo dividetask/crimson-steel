@@ -119,13 +119,16 @@ later phase is blocked.
   cost is currently a caller parameter — adding a `mana_cost`
   field to the abilities schema is a follow-up.
 
-- [ ] **Cast ritual** flow.
-  Same path as cast-spell but with the longer casting time and no
-  combat-action constraint. Ritual list is on the Character; the
-  same Ability entry resolves either way. With Casting in place,
-  this is largely a thin wrapper that selects ritual semantics
-  (longer casting time, no combat action, possibly different
-  mana cost rule).
+- [x] **Cast ritual** flow. ✅
+  `Casting#cast_ritual` is a thin extension of `cast`. Reads the
+  per-tier material gold cost from `Ritual Cost.gold_per_tier` and
+  debits it from the supplied gold_owner_id (typically 'party')
+  via Equipment. Reads the per-tier extra rounds from
+  `Ritual Cost.casting_time_per_tier` and returns the total
+  casting time. Mana cost, magic toxicity, and effects are
+  inherited from `cast` unchanged. When the gold owner can't pay,
+  returns `error: 'insufficient_gold'` — no mana spent, no
+  effects.
 
 - [x] **Use item / consume.** ✅
   Implemented in `lib/item_use.rb` (Phase 3, prior commit). Per-form
