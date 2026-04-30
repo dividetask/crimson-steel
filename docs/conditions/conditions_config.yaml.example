@@ -100,8 +100,9 @@ Default Severity Decay: "tier"
 #   description:  free-form human-readable string for display.
 #   mechanics:    a list of Condition Mechanics that describe the
 #                 underlying effect. An empty list means the effect's
-#                 mechanics are owned by another module (bleeding,
-#                 poisoned, diseased — handled by Affliction Resolution).
+#                 mechanics are owned by another module (e.g. a flag
+#                 or display rule the conditions module surfaces but
+#                 does not encode formulaically).
 #
 # Recognized Mechanic Kinds (one entry per mechanic):
 #
@@ -250,18 +251,6 @@ Effect Names:
       - kind: display
         text: "The charmed creature treats the caster as a trusted ally; the DM adjudicates the fiction."
 
-  bleeding:
-    description: "The target takes ongoing bleed damage each round."
-    mechanics: []
-
-  diseased:
-    description: "The target is suffering from a disease."
-    mechanics: []
-
-  poisoned:
-    description: "The target is suffering from a poison effect."
-    mechanics: []
-
   silenced:
     description: "The target cannot speak or cast verbal spells."
     mechanics:
@@ -292,7 +281,7 @@ Effect Names:
 Afflictions:
 
   bleeding:
-    category: "other"
+    category: "bleed"
     # save defaults to "con"
     # save_frequency defaults to "round"
     # severity_decay defaults to "tier"
@@ -303,7 +292,7 @@ Afflictions:
       severity: "minor"
 
   ghoul_paralysis:
-    category: "other"
+    category: "curse"
     save: "wis"
     effect:
       kind: "named_effect"

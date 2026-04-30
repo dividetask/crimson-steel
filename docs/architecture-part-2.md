@@ -1,0 +1,378 @@
+# Architecture — Workflows and Open Questions (Part 2)
+
+Part 1 (`architecture-part-1.md`) covered the static structure: who
+exists, what each module owns, and how they depend on each other.
+This part covers what's *dynamic*: how a typical operation flows
+through the modules, what's still unowned, and the architectural
+questions still open.
+
+## Cross-domain workflows
+
+The walkthroughs below describe the logic of each operation
+end-to-end, in the same language-agnostic style the rest of the
+docs use. Some halves are implemented in Ruby today, some in
+JavaScript, and some are not yet implemented; the workflow itself
+is the spec, regardless of where the code lands.
+
+### Workflow A — Attack
+
+The full attack pipeline runs in two halves. The first half decides
+*what damage lands*; the second half routes it through modules.
+
+1. **Build the attacker's Roll.** Combat asks the attacker's
+   Character for the attribute / skill modifiers, asks Conditions
+   (via `GET_MODIFIERS`) for active buffs and debuffs on the
+   relevant `target_key`, and assembles a modifier dict for
+   dice resolution. The action's dice count comes from
+   `Combat#action_dice_max` minus the attacker's spend.
+2. **Build the defender's Opposed Roll** the same way, against the
+   defender's defense action.
+3. **Roll both Rolls** through `DiceSystem.RAND_ROLL_DICE` /
+   `COMPUTE_ROLL_PARAMETERS` / `COMPUTE_RESULTS`. The damage type's
+   `critical_value` mechanic, if any, supplies `critical_modifier`
+   to the attacker's Roll — `Combat#critical_modifier_for(damage_type)`
+   answers that lookup.
+4. **Compute the Degree of Success** for the Check (attacker DoIS
+   minus defender DoIS). A DoS ≥ Default Success Threshold means the
+   attack lands.
+5. **Compute raw damage.** Either:
+   - the spell's declared damage Effect is evaluated through
+     `AbilitySystem#evaluate_damage` with the attacker's success and
+     critical counts, or
+   - if the attack carries no declared damage Effect (weapon attacks,
+     elemental darts), Combat infers `Tier + Degree of Success +
+     attack bonus`.
+6. **Route damage** via `Combat#apply_attack_damage`:
+   - Look up the damage type in DamageTypes.
+   - Apply pre-bucketing mechanics: `damage_per_dice` and
+     `damage_multiplier` (the latter consults the
+     `condition_evaluator` callback for tags like
+     `target_has_metal_armor`).
+   - Severity decision: declared severity for non-physical;
+     runtime bucketing for physical, where the bucket size is
+     `Threshold + target's Damage Resilience`. Threshold comes from
+     the weapon (Equipment) or ability (Abilities) input; Damage
+     Resilience is read through the `character_lookup` callback.
+   - Call `Conditions#apply_hit_point_damage` on the target.
+   - Apply post-damage side-effects: `apply_acid_counter` →
+     `Conditions#apply_acid_damage`, `inflict` with
+     `condition_name=shock` → `Conditions#apply_shock`. Other
+     `condition_name` values come back tagged `unrouted` until the
+     conditions module exposes the right API.
+
+What's missing today: a single end-to-end entry point that wires
+both halves into one call. Steps 1–5 are done by the caller; step 6
+is `apply_attack_damage`. A future `Combat#perform_attack(attacker,
+target, weapon)` would compose them.
+
+### Workflow B — Item consumption
+
+Already implemented in `lib/item_use.rb`.
+
+1. Caller invokes `ItemUse#consume(owner_id, stack_index, item_form,
+   spell_name, target_char_id, ...)`.
+2. ItemUse reads the stack from Equipment, picks the spell's
+   tier_index from the item's tier, and calls
+   `AbilitySystem#resolve_entry`.
+3. ItemUse inspects the resolved Effect Hash for the conventional
+   keys: `minor_damage` / `moderate_damage` / `major_damage`
+   (cure pools), `mana` (mana restore), `temp_hp` (ward).
+4. **Saturation gate**: if the target's `Conditions#magic_toxicity`
+   is at or above the supplied `target_max_toxicity`, cure and mana
+   refuse to land. Ward bypasses the gate.
+5. Cure pools route through `Conditions#apply_hit_point_heal_cascade`.
+   Ward routes through `Conditions#set_temporary_hit_points` with a
+   source id of `item:<owner>:<spell>`. Mana surfaces back as
+   `unrouted: true` because mana storage isn't yet defined.
+6. Compute Magic Toxicity:
+   - **Potion / Oil**: `max(saturation - target_tier,
+     minimum_saturation) + floor(2 * tier_value(item_tier) *
+     2^max(item_tier - user_tier, 0))`.
+   - **Scroll**: `max(saturation - target_tier - improved_healing
+     reduction, minimum_saturation)`. The user's `improved_healing`
+     ability shaves `2 * user_tier` off cure scrolls.
+   - **Wand**: 0 (deferred).
+7. `Conditions#apply_magic_toxicity` on the target.
+8. **Decrement** the item's quantity by one for consumable forms via
+   `Equipment#adjust_stack_quantity` and `cleanup_zero_quantity`.
+   Wands and persistent magic items keep their quantity.
+
+If the saturation gate fired, ItemUse returns `saturation_blocked:
+true` with no applications and no quantity decrement, leaving the
+caller to surface the failure cleanly.
+
+### Workflow C — Equipping an item
+
+Logic exists in the design docs; no orchestration class today.
+Callers do the steps directly.
+
+1. **Equip**: caller marks the stack as equipped. Stack identity
+   includes `equipped`, so a freshly-equipped item is
+   *not* the same Stack as an unequipped copy of the same type —
+   they don't merge.
+2. **Post effects**: for each effect the item should grant
+   (Belt of Strength: `+2 str` Inherent bonus), the caller picks a
+   deterministic `source_id` in the `equipment:<owner>:<stack_key>`
+   namespace and calls `Conditions#apply_effect`. Apply-by-source-id
+   is idempotent — re-applying the same id overwrites the slot.
+3. **Unequip**: caller calls
+   `Conditions#remove_effects_by_prefix("equipment:<owner>:<stack_key>")`
+   to strip every effect the stack contributed.
+4. **Loadout reset**: caller calls
+   `Conditions#remove_effects_by_prefix("equipment:<owner>:")`
+   to nuke the entire equipment-driven effect list, then re-applies
+   the current loadout fresh. This restores correctness coarsely
+   without the caller tracking which stack maps to which Effect.
+
+The "verify-or-recreate" guarantee is implicit. Equipment never asks
+Conditions whether an effect is present; it just re-applies on every
+relevant change.
+
+### Workflow D — Spell cast (direct, not via item)
+
+Not implemented. Workflow design:
+
+1. Caller resolves the spell through `AbilitySystem#resolve_entry`
+   at the caster's rank in the chosen casting skill.
+2. **Spend mana**. The caster's character / mana store decrements by
+   the spell's mana cost (today's data model doesn't track this).
+3. **Resolve effects** — same shape as item consumption (cure / ward
+   / damage / named effects), routed to the relevant target's
+   Conditions. Damage routes through `Combat#apply_attack_damage`
+   with the target's threshold/resilience inputs.
+4. **Magic toxicity** is imposed on the **caster** (not the target,
+   like potions). Formula: typically the spell's `saturation` Effect
+   Hash entry, with the same minimum-floor and tier-discount rules.
+5. If the spell has a Concentration Block, the caster enters
+   concentration on the spell. Concentration state lives in
+   Conditions (likely as an Affliction-shaped entry or a hardcoded
+   field — see open questions below).
+
+A `Casting` orchestration class is the natural home for this
+workflow, parallel to `ItemUse`.
+
+### Workflow E — Affliction tick
+
+Already implemented.
+
+1. Caller invokes `Conditions#resolve_affliction(name, save_input,
+   creature_tier, current_round)`.
+2. Conditions injects a Severity Save Penalty equal to
+   `floor(severity / divisor)` into the supplied `Competency Penalty`.
+3. Calls `DiceSystem` to roll the save.
+4. Computes magnitude (`1 + floor(severity / divisor)`) and
+   net_magnitude (`max(0, magnitude - successes)`).
+5. Applies the Affliction's effect (`hit_point_damage`,
+   `ability_damage`, or `named_effect`) at net_magnitude.
+6. Evolves severity: `delta = -floor(decay) -
+   floor(successes * per_success) + floor(failures * per_failure)`.
+7. Removes the Affliction if severity reached zero.
+
+## Aggregated unassigned responsibilities
+
+The per-domain Unassigned bullets, grouped by theme.
+
+### Cluster 1 — Catalog content (HIGH PRIORITY)
+
+The schemas and homes are defined; the actual catalog content
+isn't yet populated.
+
+- **Procedural Abilities catalog**: most class/racial stateless
+  abilities (`sneak_attack`, `channel_divinity`, `improved_healing`,
+  `sense_injury`, `trapfinding`'s concentration variant, etc.) have
+  no entries yet. Schema: `name → triggers: [{on, condition,
+  effect}]`.
+- **Effect Names catalog**: stateful class/racial abilities (`rage`,
+  `bardic_inspiration`, etc.) need entries with structured
+  Mechanics. The catalog has the basic conditions (`blind`,
+  `dazzled`, `paralyzed`, `prone`, `flustered`) but not the class-
+  ability content.
+- **Always-On Modifier entries** on each ability's `modifiers:`
+  field in `advancement_config.yaml` and `race_config.yaml`.
+  TentativeAdditions has the schema and a few examples; most
+  entries are still empty.
+
+### Cluster 2 — Cross-domain wiring
+
+Modules exist; the bridges between them aren't pinned to a class.
+
+- **Acid Counter wiring**: `Conditions#apply_acid_damage` exists,
+  but it's `Combat#apply_attack_damage` that decides when to call
+  it (via the `apply_acid_counter` mechanic). Today's wiring lives
+  inline inside `apply_attack_damage`; that's fine but worth
+  re-examining if more counter types arrive.
+- **End-to-end attack-resolution composition**: the to-hit roll +
+  damage routing pieces both exist; a single
+  `Combat#perform_attack(attacker, target, weapon)` doesn't.
+- **Casting orchestration** (Workflow D above) — no class today.
+
+### Cluster 3 — Missing infrastructure
+
+Whole concepts that aren't represented anywhere.
+
+- **Mana tracking**. Character exposes `max_mana` (formula); nothing
+  tracks current mana. ItemUse surfaces mana applications as
+  `unrouted: true`. Decision needed (see open questions).
+- **Per-day usage trackers** (Channel Divinity uses-per-day). No
+  home decided.
+- **Encumbrance**. Currency carries a `weight` field; armor and
+  weapons don't. No system computes total weight.
+- **Skill-Roll API**. Every caller assembles `dice_count +
+  modifiers` ad hoc; nothing canonicalizes "roll Skill X for
+  Character Y".
+- **Equipment deferred items**: loot tables (4 row shapes + Roll
+  Variables), magical-item generation, specific/generic shop
+  refresh, Game Day counter, atomic Restock, Loot Archive. All
+  documented in `equipment_design.md`; none implemented.
+
+### Cluster 4 — Validation gaps (the silent-typo cluster)
+
+A single startup-time linter could knock out the whole list.
+
+- Roster `race:` / class keys → real race / class.
+- `parent_class`, `parent_race` → real chain target.
+- Skill list entries (`class_skills`, `non_class_skills`,
+  `opposed_skills`) → real skills.
+- `tier_attribute_advancement` picks → real attribute keys.
+- `attribute:` in `skills_config.yaml` → one of six real attributes.
+- `damage_type` references in compendium → catalog entry (already
+  validated when AbilitySystem is constructed with DamageTypes).
+- Loot table `item:` / property references → real catalog entries.
+- Material names on Armor → defined Materials.
+- Damage Types `condition` / `condition_name` strings → consumer-
+  recognized concepts.
+- Effect strings declared by abilities → real Effect Names (raised
+  today only at apply-time).
+- Procedural Abilities catalog references → real class/racial
+  ability names (when the catalog has content).
+
+### Cluster 5 — Untracked / unowned state
+
+- **Per-Character narrative state** (DM notes, custom flags). Conditions
+  owns mechanical state, nothing owns narrative.
+- **Persistence of identity mutations** (renames, race changes).
+  Characters are read-only at startup.
+- **Bonus skills enforcement**. `bonus_skills` is a Class field
+  documented but unenforced.
+- **`minimum_skills_trained` enforcement**. Documented but
+  unenforced.
+- **Class contributions to `damage_resilience` / `damage_reduction`**.
+  Methods return 0 placeholders; the actual scaling rules per
+  class haven't been designed.
+
+### Cluster 6 — Edge-case / housekeeping
+
+- **Validating dice count is within Min/Max range**.
+- **Validating `rank` is non-negative**.
+- **Initiative reroll edge cases** with multiple Insight iterations.
+- **The reserved `none` key in `properties_weighted`** for magical-
+  item generation — silently shadowed if a Property is ever named
+  `none`.
+- **Properties registry** distinguishing display-only from
+  mechanically-effective properties.
+- **Preferred starting attribute distributions per Race** (point-buy
+  steering).
+
+## Open architectural questions
+
+The decisions that haven't been made yet, with the trade-offs as I
+understand them. Each one will eventually need an answer.
+
+### Where does mana live?
+
+Magic toxicity lives in Conditions. Should current mana too?
+
+- **(a) Conditions field** — parallel to `magic_toxicity`. Symmetric
+  storage; the conditions module already runs the per-creature state
+  layer, and ItemUse's `unrouted: true` mana applications would
+  cleanly route to `Conditions#apply_mana` /
+  `Conditions#consume_mana`. The cap (`max_mana`) lives on
+  Character; Conditions accepts a clamped value.
+- **(b) Character field** — `current_mana` becomes a per-Character
+  mutable bit alongside identity. Simpler conceptually but breaks
+  Character's "thin coordinator, no mutable state" framing.
+- **(c) Separate `Mana` module** — overkill for one counter.
+
+I'd default to **(a)**. It matches the project's "mechanical
+mutable state lives in Conditions" pattern.
+
+### Where do per-day / per-encounter usage trackers live?
+
+Channel Divinity has X uses per day. Bardic Inspiration has a
+turn-start luck-points reset. Both involve a counter and a clock.
+
+- **(a) Conditions counter, with a "reset" hook** invoked at the
+  appropriate cadence. Per-day resets happen on `Advance Time`;
+  per-turn resets happen on the relevant Combatant's turn start.
+  Conditions stores `{counter_name: int}` with a `reset_cadence`
+  declared in config (`day` / `encounter` / `turn_start`).
+- **(b) A new `UsageTrackers` module** parallel to Conditions.
+- **(c) Inline on the procedural ability entry** with the
+  consuming module reading current uses from somewhere else.
+
+(a) feels right for the same reason mana does. The counter mechanism
+inside Conditions is the existing storage pattern.
+
+### Should Skills grow a class?
+
+Today Skills is config-only. Advancement reads it for the
+`mandatory` flag and the per-skill attribute lookup. Two operations
+keep coming up that have no home:
+
+- A `roll_skill(character, skill_name)` API that produces a Check
+  spec (dice count + modifiers).
+- Validation that `class_skills` / `non_class_skills` /
+  `opposed_skills` entries refer to real skills.
+
+A small `Skills` class that exposes lookups and validation would
+absorb both. Not urgent but tractable.
+
+### What's the orchestration tier?
+
+`ItemUse` is the first orchestration class. `Combat#apply_attack_damage`
+is also orchestration (it sequences DamageTypes lookups, calls
+Conditions APIs, etc.) but lives inside Combat itself.
+
+When more workflows arrive — direct casting, full attack resolution,
+turn-start ticks, downtime services — they need a home. Three
+options:
+
+- **(a) Keep adding orchestration to existing modules.** Combat
+  grows `perform_attack`; Conditions grows turn-start hook
+  invocation; etc. The orchestration is glued to the module that
+  most naturally owns its main side-effects.
+- **(b) Top-level orchestration classes** like `ItemUse` and the
+  hypothetical `Casting`. Each workflow gets its own class that
+  composes the modules it needs.
+- **(c) A single `GameSession` god-class** that holds references to
+  every module and exposes high-level operations.
+
+(b) seems cleanest based on how `ItemUse` shaped up — small
+focused classes with clear participants. (a) is fine for operations
+deeply tied to one module's state. (c) leads to circular dependencies
+fast.
+
+### Implementation language allocation
+
+Today's split puts the dice-rolling half of attack resolution in
+JavaScript and the damage-routing half in Ruby. The docs describe
+the logic regardless of where it runs. Open question: what's the
+test strategy for client-side logic? Today the Ruby spec suite has
+180+ examples; the JS half has none. As the to-hit math evolves,
+this asymmetry will become more uncomfortable.
+
+### Modifiers class boundary
+
+`Modifiers` (TentativeAdditions only) reads each ability's `modifiers:`
+list and folds them into Character reads. Today's reads use the
+list directly. When the Procedural Abilities catalog grows, some
+abilities will have *both* always-on Modifiers (folded by Modifiers)
+and Trigger Specs (used by procedural lookups). Two questions:
+
+- Does Modifiers eventually merge into AbilitySystem (since the
+  data lives in ability entries)?
+- Does it become a peer of Conditions, where "active modifiers"
+  are looked up the same way active Effects are?
+
+No answer yet. The boundary will get clearer as the procedural
+catalog fills in.
