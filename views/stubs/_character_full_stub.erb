@@ -1,8 +1,9 @@
 <div class="sheet">
   <div class="header">
     <h1><%= h character.name %></h1>
+    <div class="player">Player: <strong><%= h character.player %></strong></div>
     <div class="subtitle">
-      <%= h character.race %> <%= h dummy[:klass] %>
+      <%= h character.race.name %> <%= h dummy[:klass] %>
     </div>
     <div class="tier-line">
       Tier <%= h dummy[:tier] %> &nbsp;&nbsp;&nbsp; BAB: <%= h dummy[:bab] %>

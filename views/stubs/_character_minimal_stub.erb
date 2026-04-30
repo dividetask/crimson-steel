@@ -13,9 +13,12 @@
   tier_class = character_sheet_tier_class(dummy[:tier])
 %>
 <div class="char-card">
-  <div class="char-card-name <%= tier_class %>"><%= h character.name %></div>
+  <div class="char-card-name-row">
+    <div class="char-card-name <%= tier_class %>"><%= h character.name %></div>
+    <div class="char-card-player">Player: <strong><%= h character.player %></strong></div>
+  </div>
   <div class="char-card-type">
-    <%= h character.race %> <%= h dummy[:klass] %>,
+    <%= h character.race.name %> <%= h dummy[:klass] %>,
     <span class="<%= tier_class %>">Tier <%= h dummy[:tier] %></span>
   </div>
 
