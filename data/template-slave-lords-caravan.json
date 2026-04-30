@@ -1,0 +1,167 @@
+{
+  "creatures": [
+    {
+      "id": "orc_patrol",
+      "tier": 1,
+      "name": "Orc Patrol",
+      "player": "DM",
+      "race": ["orc"],
+      "ability_scores": {"str": 17, "dex": 11, "con": 14, "int": 7, "wis": 8, "cha": 6},
+      "classes": [{"level": 3, "class": "fighter", "skills": ["intimidate", "athletics"]}],
+      "variants": [
+        {
+          "id": "human",
+          "chance": 0.10,
+          "overrides": {
+            "race": ["human"],
+            "ability_scores": {"cha": "+2", "int": "+2"},
+            "name": "Orc Patrol (Human)"
+          },
+          "gear_patch": {"gold_bonus": "2d6"}
+        },
+        {
+          "id": "barbarian",
+          "chance": 0.10,
+          "classes_add": [{"level": 1, "class": "barbarian", "skills": ["athletics"]}],
+          "name_suffix": " (Barbarian)"
+        }
+      ],
+      "gear": "slaver_loot"
+    },
+    {
+      "id": "patrol_captain",
+      "tier": 2,
+      "name": "Orc Patrol Captain",
+      "player": "DM",
+      "race": ["orc"],
+      "ability_scores": {"str": 25, "dex": 16, "con": 14, "int": 12, "wis": 11, "cha": 9},
+      "classes": [{"level": 8, "class": "fighter", "skills": ["intimidate", "athletics", "perception"]}],
+      "gear": {
+        "rolls": [
+          {"slot": "weapon", "item": {"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0}},
+          {"slot": "armor", "item": {"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 1}}
+        ],
+        "gold": "4d10 + 20"
+      }
+    },
+    {
+      "id": "slaver_merchant",
+      "tier": 2,
+      "name": "Slaver Merchant",
+      "player": "DM",
+      "race": ["human"],
+      "ability_scores": {"str": 12, "dex": 14, "con": 14, "int": 16, "wis": 14, "cha": 16},
+      "classes": [{"level": 6, "class": "rogue", "skills": ["persuasion", "perception", "intimidate", "sense_motive", "deception"]}],
+      "gear": {
+        "rolls": [
+          {"slot": "weapon", "item": {"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0}},
+          {"slot": "armor", "item": {"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 1}}
+        ],
+        "gold": "4d100 + 200"
+      }
+    },
+    {
+      "id": "orc_interpreter",
+      "tier": 0,
+      "name": "Orc Interpreter",
+      "player": "DM",
+      "race": ["orc"],
+      "ability_scores": {"str": 12, "dex": 13, "con": 14, "int": 14, "wis": 8, "cha": 14},
+      "classes": [{"level": 2, "class": "fighter", "skills": ["persuasion", "sense_motive", "intimidate", "athletics"]}],
+      "variants": [
+        {
+          "id": "human",
+          "chance": 0.10,
+          "overrides": {
+            "race": ["human"],
+            "ability_scores": {"cha": "+2", "int": "+2"},
+            "name": "Human Interpreter"
+          },
+          "gear_patch": {"gold_bonus": "2d6"}
+        },
+        {
+          "id": "barbarian",
+          "chance": 0.10,
+          "classes_add": [{"level": 1, "class": "barbarian", "skills": ["athletics"]}],
+          "name_suffix": " (Barbarian)"
+        }
+      ],
+      "gear": "slaver_loot"
+    },
+    {
+      "id": "cleric_slaver_patrol",
+      "tier": 3,
+      "name": "Cleric Slaver",
+      "player": "DM",
+      "race": ["orc"],
+      "ability_scores": {"str": 19, "dex": 14, "con": 14, "int": 14, "wis": 16, "cha": 14},
+      "classes": [{"level": 8, "class": "cleric", "skills": ["healing", "religion", "perception", "sense_motive", "intimidate"]}],
+      "gear": {
+        "rolls": [
+          {"slot": "weapon", "item": {"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0}},
+          {"slot": "armor", "item": {"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 1}}
+        ],
+        "gold": "3d10 + 15"
+      }
+    },
+    {
+      "id": "escaped_slave",
+      "tier": 0,
+      "name": "Escaped Slave",
+      "player": "DM",
+      "race": ["human"],
+      "ability_scores": {"str": 13, "dex": 11, "con": 9, "int": 12, "wis": 8, "cha": 10},
+      "classes": [{"level": 1, "class": "fighter", "skills": ["perception", "athletics"]}],
+      "variants": [
+        {
+          "id": "elf",
+          "chance": 0.10,
+          "overrides": {
+            "race": ["human"],
+            "ability_scores": {"dex": "+2", "int": "+2"},
+            "name": "Escaped Slave (Elf)"
+          }
+        },
+        {
+          "id": "barbarian",
+          "chance": 0.10,
+          "classes_add": [{"level": 1, "class": "barbarian", "skills": ["athletics"]}],
+          "name_suffix": " (Barbarian)"
+        }
+      ],
+      "gear": []
+    },
+    {
+      "id": "wardog",
+      "tier": 2,
+      "name": "Wardog",
+      "player": "DM",
+      "race": ["animal"],
+      "ability_scores": {"str": 17, "dex": 17, "con": 15, "int": 3, "wis": 12, "cha": 6},
+      "classes": [{"level": 3, "class": "animal", "skills": ["nature", "perception"]}],
+      "gear": {}
+    }
+  ],
+  "gear_tables": [
+    {
+      "id": "slaver_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0}},
+        {"slot": "sidearm", "item": {"name": "longbow", "type": "weapon", "subtype": "longbow", "bonus": 0}},
+        {
+          "slot": "armor",
+          "options": [
+            {"chance": 0.90, "item": {"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0}},
+            {"chance": 0.05, "item": {"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 0}},
+            {"chance": 0.05, "item": {"name": "chain shirt +1", "type": "armor", "subtype": "light", "bonus": 1}}
+          ]
+        },
+        {"slot": "potion_t0", "chance": 0.25, "options": "tier_zero_potions_oils"},
+        {"slot": "potion_t1", "chance": 0.35, "options": "tier_one_potions_oils"},
+        {"slot": "potion_t2", "chance": 0.15, "options": "tier_two_potions_oils"},
+        {"slot": "potion_t3", "chance": 0.05, "options": "tier_three_potions_oils"}
+      ],
+      "gold": "2d6 + 5"
+    }
+  ]
+}

@@ -856,10 +856,7 @@
     "title": "An Unexpected Meeting",
     "note": "The next morning, as you recover from your fight at the temple, an elf calling himself Caelian di Soliastres arrives. You are surprised as you were hiding and only Drav knew where you were. He explains that he purchased information about you from Drav, and would like to offer his services in exchange for land and title under Lady Hawthorne. As you offered it to Drav, he expects the offer can be given to him instead.",
     "visible_to": [
-      1,
-      2,
-      3,
-      4
+
     ],
     "created_at": 1777490984.1435974,
     "scene_order": 0
@@ -888,5 +885,13 @@
 
     ],
     "created_at": 1777506647.119296
+  },
+  {
+    "owner_id": 0,
+    "type": "image",
+    "title": "Highport City Map",
+    "image_path": "/images/scene/1777524319-8111ffba-Highport-map-sm.jpg",
+    "chapter": 5,
+    "public": true
   }
 ]
