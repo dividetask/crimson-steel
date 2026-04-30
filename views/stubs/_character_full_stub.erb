@@ -196,6 +196,14 @@
     <div class="right-col">
       <h2>Abilities</h2>
 
+      <% if character.abilities.any? %>
+        <p class="ability-list">
+          <% character.abilities.each_with_index do |ability, i| %><%
+            %><%= ', ' if i.positive? %><span class="ability-tag"><%= h character_sheet_ability_label(ability.name) %><% if ability.scales? %> <span class="ability-level">(<%= ability.level %>)</span><% end %></span><%
+          %><% end %>
+        </p>
+      <% end %>
+
       <% dummy[:abilities].each do |ability| %>
         <p><strong><%= h(ability['name']) %>:</strong> <%= h(ability['description']) %></p>
       <% end %>
@@ -203,7 +211,7 @@
       <% if dummy[:spell_list] && !dummy[:spell_list].empty? %>
         <h2>Spell List</h2>
         <% dummy[:spell_list].each.with_index do |spell_sub_list, index| %>
-          <p><strong><%= index %>:</strong> <%= spell_sub_list.map { |s| h(s) }.join(', ') %></p>
+          <p><strong class="<%= character_sheet_tier_class(index) %>"><%= index %>:</strong> <%= spell_sub_list.map { |s| h(s) }.join(', ') %></p>
         <% end %>
       <% end %>
 
@@ -218,7 +226,7 @@
         <h2>Ritual Spellbook</h2>
         <% character.ritual_list.each_with_index do |ritual_sub_list, index| %>
           <% next unless ritual_sub_list && ritual_sub_list.any? %>
-          <p><strong><%= index %>:</strong> <%= ritual_sub_list.map { |s| h(s) }.join(', ') %></p>
+          <p><strong class="<%= character_sheet_tier_class(index) %>"><%= index %>:</strong> <%= ritual_sub_list.map { |s| h(s) }.join(', ') %></p>
         <% end %>
       <% end %>
     </div>

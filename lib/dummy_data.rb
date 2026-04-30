@@ -71,7 +71,7 @@ class DummyData
     @pc_objects ||= [
       { character: Character.new(
           id: 1, name: 'Ash Windmere', player: 'Sam',
-          race: dummy_race('human'),
+          race: dummy_race('human', character_level: 3),
           tier: 3,
           attributes: { str: 10, dex: 14, con: 12, int: 13, wis: 16, cha: 18 },
           advancement: dummy_advancement(tier: 3, class_levels: { 'bard' => 3 })),
@@ -117,7 +117,7 @@ class DummyData
 
       { character: Character.new(
           id: 2, name: 'Bryn Ironvein', player: 'Mira',
-          race: dummy_race('dwarf'),
+          race: dummy_race('dwarf', character_level: 3),
           tier: 3,
           attributes: { str: 18, dex: 10, con: 17, int: 9, wis: 12, cha: 8 },
           advancement: dummy_advancement(tier: 3, class_levels: { 'fighter' => 3 })),
@@ -151,7 +151,7 @@ class DummyData
 
       { character: Character.new(
           id: 3, name: 'Lira Duskmoor', player: 'Jordan',
-          race: dummy_race('elf'),
+          race: dummy_race('elf', character_level: 3),
           tier: 3,
           attributes: { str: 8, dex: 14, con: 11, int: 20, wis: 16, cha: 12 },
           advancement: dummy_advancement(tier: 3, class_levels: { 'wizard' => 3 }),
@@ -195,7 +195,7 @@ class DummyData
 
       { character: Character.new(
           id: 4, name: 'Kass Thorne', player: 'Pat',
-          race: dummy_race('halfling'),
+          race: dummy_race('halfling', character_level: 3),
           tier: 3,
           attributes: { str: 10, dex: 19, con: 13, int: 14, wis: 12, cha: 11 },
           advancement: dummy_advancement(tier: 3, class_levels: { 'rogue' => 3 })),
@@ -227,7 +227,7 @@ class DummyData
 
       { character: Character.new(
           id: 5, name: 'Rowan Vale', player: 'Riley',
-          race: dummy_race('half_elf'),
+          race: dummy_race('half_elf', character_level: 3),
           tier: 3,
           attributes: { str: 14, dex: 17, con: 13, int: 11, wis: 16, cha: 10 },
           advancement: dummy_advancement(tier: 3, class_levels: { 'ranger' => 3 })),
@@ -259,7 +259,7 @@ class DummyData
 
       { character: Character.new(
           id: 6, name: 'Ember Blackoak', player: 'Casey',
-          race: dummy_race('half_orc'),
+          race: dummy_race('half_orc', character_level: 3),
           tier: 3,
           attributes: { str: 13, dex: 11, con: 15, int: 10, wis: 18, cha: 9 },
           advancement: dummy_advancement(tier: 3, class_levels: { 'druid' => 3 }),
@@ -290,7 +290,7 @@ class DummyData
 
       { character: Character.new(
           id: 7, name: 'Thora Stoneveil', player: 'Avery',
-          race: dummy_race('hill_dwarf'),
+          race: dummy_race('hill_dwarf', character_level: 4),
           tier: 2,
           attributes: { str: 10, dex: 10, con: 13, int: 12, wis: 12, cha: 9 },
           advancement: dummy_advancement(
@@ -335,7 +335,7 @@ class DummyData
 
       { character: Character.new(
           id: 8, name: 'Garroth Vask', player: 'Drew',
-          race: dummy_race('human'),
+          race: dummy_race('human', character_level: 4),
           tier: 2,
           attributes: { str: 14, dex: 12, con: 14, int: 9, wis: 10, cha: 7 },
           advancement: dummy_advancement(
@@ -374,7 +374,7 @@ class DummyData
 
       { character: Character.new(
           id: 9, name: 'Veyl Aetheris', player: 'Quinn',
-          race: dummy_race('high_elf'),
+          race: dummy_race('high_elf', character_level: 4),
           tier: 2,
           attributes: { str: 7, dex: 13, con: 11, int: 11, wis: 11, cha: 11 },
           advancement: dummy_advancement(
@@ -427,7 +427,7 @@ class DummyData
 
       { character: Character.new(
           id: 10, name: 'Pippin Hoofstride', player: 'Morgan',
-          race: dummy_race('satyr'),
+          race: dummy_race('satyr', character_level: 4),
           tier: 2,
           attributes: { str: 9, dex: 12, con: 12, int: 10, wis: 11, cha: 12 },
           advancement: dummy_advancement(
@@ -1022,12 +1022,13 @@ class DummyData
 
   # --- Builders ------------------------------------------------------------
 
-  # Race definitions used by the dummy roster. Pulled from
-  # docs/races.yaml.example so the dev data exercises the same
-  # adjustments and abilities the real config would. Half-Elf
-  # and Half-Orc aren't in the example file yet; defined inline
-  # so existing dummy characters keep their bonuses.
-  RACE_DEFINITIONS_PATH = File.expand_path('../docs/races.yaml.example', __dir__)
+  # Race + advancement definitions used by the dummy roster.
+  # Pulled from docs/*.yaml.example so the dev data exercises the
+  # same rules the real configs would. Half-Elf and Half-Orc
+  # aren't in the example races file yet; defined inline so
+  # existing dummy characters keep their bonuses.
+  RACE_DEFINITIONS_PATH         = File.expand_path('../docs/races.yaml.example',       __dir__)
+  ADVANCEMENT_DEFINITIONS_PATH  = File.expand_path('../docs/advancement.yaml.example',  __dir__)
 
   def self.race_definitions
     @race_definitions ||= Race.load_yaml(RACE_DEFINITIONS_PATH).merge(
@@ -1044,25 +1045,37 @@ class DummyData
     )
   end
 
+  def self.advancement_config
+    @advancement_config ||= Advancement.load_config(ADVANCEMENT_DEFINITIONS_PATH)
+  end
+
   # Race instance keyed against the loaded race_definitions, so
   # name, speed, ability_score_adjustments, and racial abilities
-  # are all populated.
-  def self.dummy_race(key)
-    Race.new(key: key, race_definitions: race_definitions)
+  # are all populated. character_level lets racial abilities with
+  # min_level thresholds appear once the character qualifies.
+  def self.dummy_race(key, character_level: 0)
+    Race.new(
+      key:              key,
+      race_definitions: race_definitions,
+      character_level:  character_level
+    )
   end
 
   # Advancement built with the rule values from
-  # docs/advancement.yaml.example so attribute_bonus, max_hit_points,
-  # and max_mana give the same answers a character loaded from the
-  # real config would.
+  # docs/advancement.yaml.example, so attribute_bonus,
+  # max_hit_points, max_mana, and abilities all reflect what a
+  # character loaded from the real config would compute.
   def self.dummy_advancement(tier:, class_levels:, picks: [])
+    rules = advancement_config['rules']
     Advancement.new(
       tier:                             tier,
       class_levels:                     class_levels,
-      attribute_bonus_per_tier:         [1, 1, 1, 1, 1],
-      focused_attribute_bonus_per_tier: [0, 2, 2, 2, 2],
-      focused_attribute_count:          2,
-      tier_attribute_advancement:       picks.map(&:to_s)
+      tier_attribute_advancement:       picks.map(&:to_s),
+      attribute_bonus_per_tier:         rules.fetch('attribute_bonus_per_tier',         [1, 1, 1, 1, 1]),
+      focused_attribute_bonus_per_tier: rules.fetch('focused_attribute_bonus_per_tier', [0, 2, 2, 2, 2]),
+      focused_attribute_count:          rules.fetch('focused_attribute_count',          2),
+      tier_advancement:                 rules.fetch('tier_advancement',                 {}),
+      class_definitions:                advancement_config['classes']
     )
   end
 

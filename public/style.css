@@ -1800,6 +1800,23 @@ body {
   margin-left: 4px;
 }
 
+/* Comma-separated list of class / race ability names pulled from
+   Character#abilities. Renders before the descriptive blocks so a
+   reader sees the full roster of granted abilities at a glance. */
+.ability-list {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #333;
+}
+.ability-tag {
+  white-space: nowrap;
+}
+.ability-level {
+  color: #555;
+  font-size: 0.9em;
+}
+
 /* Enhancement-bonus annotation shown next to an attribute score when a
    belt / headband / buff spell is boosting the attribute. */
 .sheet .enh-note {

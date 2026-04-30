@@ -56,6 +56,13 @@ helpers do
     key.to_s.tr('_', ' ').split.map(&:capitalize).join(' ')
   end
 
+  # Pretty label for an ability key. Same shape as the condition
+  # label so race / class abilities (`fast_movement`, `bardic_
+  # inspiration`) read as "Fast Movement", "Bardic Inspiration".
+  def character_sheet_ability_label(key)
+    character_sheet_condition_label(key)
+  end
+
   # Default dummy block for fields the Character class doesn't yet
   # cover. Anything passed into `dummy:` overrides these.
   def character_sheet_dummy_defaults

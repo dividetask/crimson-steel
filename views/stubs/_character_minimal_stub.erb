@@ -112,7 +112,7 @@
         <% if has_spells %>
           <% dummy[:spell_list].each_with_index do |sub, idx| %>
             <% next if sub.nil? || sub.empty? %>
-            <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| h(s) }.join(', ') %></p>
+            <p class="char-card-entry"><em class="<%= character_sheet_tier_class(idx) %>">Tier <%= idx %>.</em> <%= sub.map { |s| h(s) }.join(', ') %></p>
           <% end %>
         <% else %>
           <p class="char-card-entry char-card-empty">&mdash;</p>
@@ -123,7 +123,7 @@
         <% if has_rituals %>
           <% character.ritual_list.each_with_index do |sub, idx| %>
             <% next if sub.nil? || sub.empty? %>
-            <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| h(s) }.join(', ') %></p>
+            <p class="char-card-entry"><em class="<%= character_sheet_tier_class(idx) %>">Tier <%= idx %>.</em> <%= sub.map { |s| h(s) }.join(', ') %></p>
           <% end %>
         <% else %>
           <p class="char-card-entry char-card-empty">&mdash;</p>
@@ -171,6 +171,13 @@
       </div>
       <div>
         <div class="char-card-section-title">Abilities</div>
+        <% if character.abilities.any? %>
+          <p class="char-card-entry ability-list">
+            <% character.abilities.each_with_index do |ability, i| %><%
+              %><%= ', ' if i.positive? %><span class="ability-tag"><%= h character_sheet_ability_label(ability.name) %><% if ability.scales? %> <span class="ability-level">(<%= ability.level %>)</span><% end %></span><%
+            %><% end %>
+          </p>
+        <% end %>
         <% if has_abilities %>
           <% dummy[:abilities].each do |ability| %>
             <p class="char-card-entry">
@@ -178,7 +185,7 @@
               <%= h ability['description'] %>
             </p>
           <% end %>
-        <% else %>
+        <% elsif !character.abilities.any? %>
           <p class="char-card-entry char-card-empty">&mdash;</p>
         <% end %>
       </div>
