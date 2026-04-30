@@ -44,7 +44,7 @@ class Advancement
   DEFAULT_MANA_ATTRIBUTE = 'int'.freeze
   DEFAULT_MANA_DIVISOR   = 2
 
-  Ability = Struct.new(:name, :level, keyword_init: true) do
+  Ability = Struct.new(:name, :level, :description, keyword_init: true) do
     # `level` is nil for non-scaling abilities.
     def scales?
       !level.nil?
@@ -141,9 +141,10 @@ class Advancement
   # All abilities the character has earned, as Ability structs.
   # Scaling abilities carry their effective level (the sum of
   # qualifying class levels across every class that grants them);
-  # non-scaling abilities carry a nil level.
+  # non-scaling abilities carry a nil level. The description is
+  # the first non-empty value encountered for an ability name.
   def abilities
-    granted = {} # name => { level: Integer|nil, scales: Boolean }
+    granted = {} # name => { level: Integer|nil, scales: Boolean, description: String|nil }
 
     @class_levels.each do |klass, level|
       next if level <= 0
@@ -155,7 +156,8 @@ class Advancement
           next if level < min_level
 
           scales = ability_def['scales_with_level'] ? true : false
-          slot   = granted[name] ||= { level: nil, scales: false }
+          slot   = granted[name] ||= { level: nil, scales: false, description: nil }
+          slot[:description] ||= ability_def['description']
           if scales
             slot[:scales] = true
             slot[:level]  = (slot[:level] || 0) + level
@@ -164,7 +166,13 @@ class Advancement
       end
     end
 
-    granted.map { |name, info| Ability.new(name: name, level: info[:scales] ? info[:level] : nil) }
+    granted.map do |name, info|
+      Ability.new(
+        name:        name,
+        level:       info[:scales] ? info[:level] : nil,
+        description: info[:description]
+      )
+    end
   end
 
   # Flat list of modifier hashes contributed by every class

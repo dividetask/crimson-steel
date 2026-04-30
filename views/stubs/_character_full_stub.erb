@@ -196,16 +196,15 @@
     <div class="right-col">
       <h2>Abilities</h2>
 
-      <% if character.abilities.any? %>
-        <p class="ability-list">
-          <% character.abilities.each_with_index do |ability, i| %><%
-            %><%= ', ' if i.positive? %><span class="ability-tag"><%= h character_sheet_ability_label(ability.name) %><% if ability.scales? %> <span class="ability-level">(<%= ability.level %>)</span><% end %></span><%
-          %><% end %>
+      <% character.abilities.each do |ability| %>
+        <p>
+          <strong><%= h character_sheet_ability_label(ability.name) %><% if ability.scales? %> <span class="ability-level">(<%= ability.level %>)</span><% end %>:</strong>
+          <% if ability.description && !ability.description.empty? %>
+            <%= h ability.description %>
+          <% else %>
+            <em class="ability-undescribed">No description yet.</em>
+          <% end %>
         </p>
-      <% end %>
-
-      <% dummy[:abilities].each do |ability| %>
-        <p><strong><%= h(ability['name']) %>:</strong> <%= h(ability['description']) %></p>
       <% end %>
 
       <% if dummy[:spell_list] && !dummy[:spell_list].empty? %>

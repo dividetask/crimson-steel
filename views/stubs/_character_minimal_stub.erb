@@ -154,7 +154,7 @@
     item_lines << ['Other', dummy[:other_items].map { |item| h(item['name']) }.join(', ')] if dummy[:other_items].any?
 
     has_items     = item_lines.any?
-    has_abilities = dummy[:abilities].any?
+    has_abilities = character.abilities.any?
   %>
   <% if has_items || has_abilities %>
     <div class="char-card-rule"></div>
@@ -172,20 +172,17 @@
       <div>
         <div class="char-card-section-title">Abilities</div>
         <% if character.abilities.any? %>
-          <p class="char-card-entry ability-list">
-            <% character.abilities.each_with_index do |ability, i| %><%
-              %><%= ', ' if i.positive? %><span class="ability-tag"><%= h character_sheet_ability_label(ability.name) %><% if ability.scales? %> <span class="ability-level">(<%= ability.level %>)</span><% end %></span><%
-            %><% end %>
-          </p>
-        <% end %>
-        <% if has_abilities %>
-          <% dummy[:abilities].each do |ability| %>
+          <% character.abilities.each do |ability| %>
             <p class="char-card-entry">
-              <em><%= h ability['name'] %>.</em>
-              <%= h ability['description'] %>
+              <em><%= h character_sheet_ability_label(ability.name) %><% if ability.scales? %> (<%= ability.level %>)<% end %>.</em>
+              <% if ability.description && !ability.description.empty? %>
+                <%= h ability.description %>
+              <% else %>
+                <span class="ability-undescribed">No description yet.</span>
+              <% end %>
             </p>
           <% end %>
-        <% elsif !character.abilities.any? %>
+        <% else %>
           <p class="char-card-entry char-card-empty">&mdash;</p>
         <% end %>
       </div>
