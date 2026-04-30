@@ -11,7 +11,6 @@
 # (see damage_types_glossary.md).
 
 Severities:
-  - temporary
   - minor
   - moderate
   - major

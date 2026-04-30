@@ -54,12 +54,12 @@ The bucketing formula itself (Threshold + Damage Resilience filling Minor, then 
 
 ### Explicitly *not* owned here
 
-- **Applying damage.** Combat module reads each damage point's Severity (looked up here) and routes it through Temporary HP and the Minor/Moderate/Major pools.
+- **Applying damage.** Combat module reads each damage point's Severity (looked up here) and routes it through whatever buffers and Severity pools the character module exposes.
 - **Runtime Bucketing for Physical.** Lives in combat. The Threshold input comes from the weapon (equipment) or the ability (abilities); Damage Resilience comes from the character module.
 - **Counter state.** Tracking active acid counters per target, applying their turn-start behavior. Lives in the conditions module.
 - **`condition` tag interpretation.** Whether a target "has metal armor" or a "subtype" is determined by the consuming module (combat with help from equipment / character).
 - **Critical value override propagation.** The `critical_value` mechanic is consumed by dice resolution when a Roll resolves a damage check tagged with this Damage Type. The damage types module surfaces the value but never invokes it.
-- **The list of Severity names.** While `temporary`/`minor`/`moderate`/`major` is configurable here, the **HP pool sizes and recovery rules** that give those names meaning live in the character module.
+- **HP pool sizes and recovery rules.** The Severity names (`minor`/`moderate`/`major`) are configurable here, but what each pool's size is and how it refills lives in the character module. Any buffer that absorbs damage before it reaches a Severity pool (e.g. temporary hit points) is also a character/combat concern.
 
 ### Unassigned (no current owner)
 

@@ -4,11 +4,9 @@
 
 ## Severity
 
-**Severity**: A category that determines which Hit Point pool a damage point is applied to. The four severities, from least to most serious, are **temporary**, **minor**, **moderate**, and **major**. *(configurable)*
+**Severity**: A category that determines which Hit Point pool a damage point is applied to. The three severities, from least to most serious, are **minor**, **moderate**, and **major**. *(configurable)*
 
-**Temporary HP Pool**: A buffer of points outside the creature's normal HP. Damage points of any type are absorbed into the Temporary HP Pool first, before flowing into the severity-specific pools. Points absorbed here are categorized as Temporary at application time regardless of the inflicting damage type's Severity.
-
-**Minor / Moderate / Major HP Pools**: The three severity-specific pools. Damage points fill the pool corresponding to the damage's Severity. The pools' sizes and recovery rules live in the character module.
+**Minor / Moderate / Major HP Pools**: The three severity-specific pools. Damage points fill the pool corresponding to the damage's Severity. The pools' sizes and recovery rules — and any buffer (such as temporary hit points) that absorbs damage before it reaches a Severity pool — live in the character module and are not a concern of this domain.
 
 ## Damage Types
 
@@ -16,7 +14,7 @@
 
 **Severity Resolution**: Every Damage Type either declares a Severity (Fire is moderate; Necrotic is major) or is marked for **runtime bucketing**. Today only **Physical** uses runtime bucketing.
 
-**Runtime Bucketing**: The rule used by Physical Damage. The first points of damage past Temporary HP fill the Minor pool until a count equal to **Threshold + Damage Resilience** is reached; the next points fill Moderate up to another Threshold + Damage Resilience; everything beyond goes to Major. The bucketing happens in the combat module; the damage types module only declares that Physical opts into the rule.
+**Runtime Bucketing**: The rule used by Physical Damage. Points of damage fill the Minor pool until a count equal to **Threshold + Damage Resilience** is reached; the next points fill Moderate up to another Threshold + Damage Resilience; everything beyond goes to Major. The bucketing happens in the combat module; the damage types module only declares that Physical opts into the rule.
 
 **Threshold**: A non-negative integer used by Runtime Bucketing. For weapon attacks, comes from the weapon. For abilities that deal Physical Damage directly (without a weapon), the Entry must declare its own Threshold — see `abilities_glossary.md`.
 
