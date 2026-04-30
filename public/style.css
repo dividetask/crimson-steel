@@ -1975,7 +1975,7 @@ body {
 }
 .char-card-quickrow td {
   width: 33.333%;
-  text-align: right;
+  text-align: left;
   border: none;
   padding: 0;
 }
