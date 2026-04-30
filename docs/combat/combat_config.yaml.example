@@ -26,3 +26,21 @@ Initiative Divisor: 2
 Combat Pool Attribute: wis
 Combat Pool Range: 10
 Combat Pool Minimum: 11
+
+# Turn Action menu rendered on the /combat page's Turn Action stub.
+# Order matters: buttons appear top-to-bottom in this order. Each
+# entry must be a key the turn_action_stub helper knows how to
+# render (start_of_turn, attack, move, cast, item, special,
+# end_turn). Removing a key hides that button.
+Turn Action Buttons:
+  - start_of_turn
+  - attack
+  - move
+  - cast
+  - item
+  - special
+  - end_turn
+
+# Action-dice cost paid by a combatant when their turn's Move
+# action is confirmed.
+Move Cost: 4

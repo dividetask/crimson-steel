@@ -2286,3 +2286,78 @@ body {
   font-weight: 600;
 }
 .notes-body-toggle:hover { text-decoration: underline; }
+
+/* ── /combat page ────────────────────────────────────────── */
+
+.combat-page-title {
+  margin: 12px 0 8px 0;
+  font-size: 24px;
+}
+
+/* Reusable confirm-and-post stub. Single message paragraph
+   above a single submit button. */
+.confirm-action-stub {
+  margin: 12px 0;
+  padding: 16px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  background: #fafafa;
+}
+.confirm-action-message {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+}
+.confirm-action-button {
+  padding: 6px 16px;
+  font-size: 13px;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.confirm-action-button:hover { background: #145ea8; }
+
+/* Turn Action stub: vertical button menu on the left, the
+   active panel on the right. All panels are present in the DOM;
+   only the .is-active one is visible. */
+.turn-action-stub {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 16px;
+  margin: 12px 0 24px 0;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  padding: 12px;
+  background: #fff;
+}
+.turn-action-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.turn-action-menu-btn {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 13px;
+  background: #f0f0f0;
+  border: 1px solid #c0c0c0;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: normal;
+}
+.turn-action-menu-btn:hover { background: #e3e3e3; }
+.turn-action-menu-btn.is-active {
+  background: #1976d2;
+  color: #fff;
+  border-color: #145ea8;
+  font-weight: bold;
+}
+.turn-action-panels { min-width: 0; }
+.turn-action-panel { display: none; }
+.turn-action-panel.is-active { display: block; }
+.turn-action-panel h3 { margin: 0 0 8px 0; }
+.dt-note-placeholder {
+  color: #777;
+  font-style: italic;
+}

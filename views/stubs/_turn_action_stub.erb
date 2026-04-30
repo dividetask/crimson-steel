@@ -1,0 +1,88 @@
+<% default_panel = buttons.first %>
+<div class="turn-action-stub" data-stub-id="<%= stub_id %>" data-default-panel="<%= default_panel %>">
+  <div class="turn-action-menu">
+    <% buttons.each do |key| %>
+      <button type="button"
+              class="turn-action-menu-btn<%= ' is-active' if key == default_panel %>"
+              data-panel="<%= key %>">
+        <%= h turn_action_button_label(key) %>
+      </button>
+    <% end %>
+  </div>
+
+  <div class="turn-action-panels">
+    <% buttons.each do |key| %>
+      <div class="turn-action-panel<%= ' is-active' if key == default_panel %>" data-panel="<%= key %>">
+        <% if key == 'start_of_turn' %>
+          <h3>Start of Turn</h3>
+          <p class="dt-note">
+            On confirm, the start-of-turn pipeline runs in this
+            order: reset combat dice, apply shock, apply acid
+            counter, handle each affliction, then remove any
+            conditions or effects that have timed out. Affliction
+            rolls go through the roll stub so the DM can nudge
+            them. Nothing is recorded until <strong>Confirm</strong>
+            is pressed below.
+          </p>
+          <p class="dt-note dt-note-placeholder">
+            <em>Pipeline not yet wired.</em> The Conditions and
+            Effects modules need to land before the real summary
+            renders here. For now, Confirm is a no-op that just
+            refreshes the page.
+          </p>
+          <%= confirm_action_stub(
+                message: 'Apply start-of-turn effects for the current combatant.',
+                action:  '/combat/start_of_turn',
+                label:   'Confirm Start of Turn'
+              ) %>
+
+        <% elsif key == 'attack' %>
+          <%= attack_stub(
+                attacker:       attacker,
+                targets:        targets,
+                ally_reactions: ally_reactions,
+                luck_sources:   luck_sources
+              ) %>
+
+        <% elsif key == 'move' %>
+          <%= confirm_action_stub(
+                message: "This will cost <strong>#{h move_cost}</strong> action dice.",
+                action:  '/combat/move',
+                label:   'Confirm Move'
+              ) %>
+
+        <% elsif key == 'cast' %>
+          <h3>Cast</h3>
+          <p class="dt-note dt-note-placeholder">
+            <em>Cast stub coming later.</em>
+          </p>
+
+        <% elsif key == 'item' %>
+          <h3>Item</h3>
+          <p class="dt-note dt-note-placeholder">
+            <em>Item stub coming later.</em>
+          </p>
+
+        <% elsif key == 'special' %>
+          <h3>Special</h3>
+          <p class="dt-note dt-note-placeholder">
+            <em>Special stub coming later.</em>
+          </p>
+
+        <% elsif key == 'end_turn' %>
+          <%= confirm_action_stub(
+                message: 'This will end the current turn and advance initiative.',
+                action:  '/combat/end_turn',
+                label:   'Confirm End Turn'
+              ) %>
+
+        <% else %>
+          <h3><%= h turn_action_button_label(key) %></h3>
+          <p class="dt-note dt-note-placeholder">
+            <em>No panel registered for <code><%= h key %></code>.</em>
+          </p>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
