@@ -80,13 +80,14 @@ class Character
   end
 
   # Tier 0 is treated as 0.5 in formulas; damage_resilience is
-  # an integer so that floors to 0.
+  # an integer so the tier-derived base floors to 0. Classes can
+  # raise it further through Advancement.
   def damage_resilience
-    [tier, 0].max
+    [tier, 0].max + @advancement.damage_resilience
   end
 
   def damage_reduction
-    0
+    @advancement.damage_reduction
   end
 
   def max_hit_points

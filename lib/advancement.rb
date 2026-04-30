@@ -230,6 +230,22 @@ class Advancement
     (character.tier * character.attribute(@mana_attribute)) / @mana_divisor
   end
 
+  # Class-driven contribution to damage resilience, on top of the
+  # tier-derived base Character provides. Returns 0 until class
+  # definitions describe how classes and class abilities raise
+  # resilience; the method exists now so Character has a stable
+  # query point.
+  def damage_resilience
+    0
+  end
+
+  # Class-driven contribution to damage reduction. Same shape as
+  # damage_resilience: returns 0 until class definitions wire it
+  # up.
+  def damage_reduction
+    0
+  end
+
   # Build an Advancement from a character entry's `advancement`
   # subhash plus the loaded rules and class definitions. The
   # character's tags (selecting which tier-advancement breakpoint
