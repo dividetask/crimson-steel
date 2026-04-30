@@ -1027,8 +1027,8 @@ class DummyData
   # same rules the real configs would. Half-Elf and Half-Orc
   # aren't in the example races file yet; defined inline so
   # existing dummy characters keep their bonuses.
-  RACE_DEFINITIONS_PATH         = File.expand_path('../docs/races.yaml.example',       __dir__)
-  ADVANCEMENT_DEFINITIONS_PATH  = File.expand_path('../docs/advancement.yaml.example',  __dir__)
+  RACE_DEFINITIONS_PATH         = File.expand_path('../docs/race/race_config.yaml.example',                __dir__)
+  ADVANCEMENT_DEFINITIONS_PATH  = File.expand_path('../docs/advancement/advancement_config.yaml.example',  __dir__)
 
   def self.race_definitions
     @race_definitions ||= Race.load_yaml(RACE_DEFINITIONS_PATH).merge(
