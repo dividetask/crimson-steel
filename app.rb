@@ -1768,6 +1768,7 @@ end
 
 get '/character/:index' do
   character_list = Tools.load_json('characters.json').select { |character| character["group"] == "PC" }
+  @character_detail = params[:detail].to_s == 'full' ? :full : :minimal
   load_character_view(character_list, params[:index].to_i, '/character')
 end
 

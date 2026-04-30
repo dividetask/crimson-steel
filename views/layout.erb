@@ -5,6 +5,23 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+<script>
+// Character detail toggle persistence. Runs early on /character/<n> so
+// we redirect before paint. If the URL already has ?detail, save it.
+// Otherwise, if localStorage says "full", redirect once to add it.
+(function() {
+  if (!/^\/character\/\d+\/?$/.test(location.pathname)) return;
+  try {
+    var url = new URL(location.href);
+    if (url.searchParams.has('detail')) {
+      localStorage.setItem('characterDetail', url.searchParams.get('detail'));
+    } else if (localStorage.getItem('characterDetail') === 'full') {
+      url.searchParams.set('detail', 'full');
+      location.replace(url.toString());
+    }
+  } catch (e) { /* ignore */ }
+})();
+</script>
   <div class="menu">
     <a href="/character/0">Character Sheets</a>
     <a href="/store">Store</a>

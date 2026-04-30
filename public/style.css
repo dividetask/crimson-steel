@@ -58,6 +58,58 @@ body {
   font-weight: bold;
 }
 
+.detail-toggle {
+  font-size: 12px;
+  text-decoration: underline;
+  color: #1976d2;
+  cursor: pointer;
+  user-select: none;
+}
+.detail-toggle:hover { color: #0d47a1; }
+.navigation { width: auto; gap: 12px; min-width: 300px; }
+
+/* Compact monster-statblock-style character card. Single-column flow,
+ * red rules between sections. */
+.char-card {
+  max-width: 760px;
+  margin: 0 auto 30px auto;
+  padding: 14px 18px;
+  background: #fdf6e8;
+  border: 1px solid #b58c2a;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.char-card-name-row { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.char-card-name { font-size: 22px; font-weight: bold; }
+.char-card-player { font-size: 12px; color: #555; }
+.char-card-type { margin-top: 2px; font-style: italic; color: #555; }
+.char-card-rule { height: 1px; background: #b71c1c; margin: 8px 0; }
+.char-card-section-title { font-weight: bold; color: #b71c1c; margin: 4px 0 2px 0; font-size: 13px; }
+
+.char-card-top { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.char-card-attrs { display: flex; gap: 6px; flex-wrap: wrap; }
+.char-card-attr { background: #fff; border: 1px solid #d4b88a; border-radius: 3px; padding: 4px 6px; min-width: 48px; text-align: center; }
+.char-card-attr-label { display: block; font-size: 10px; color: #6b4f24; font-weight: bold; }
+.char-card-attr-value { display: block; font-size: 14px; font-weight: bold; }
+.char-card-vitals { flex: 1 1 200px; }
+.char-card-line { padding: 1px 0; }
+.char-card-line .hp-temp { color: #1976d2; font-size: 11px; }
+.char-card-line .hp-mod { color: #ef6c00; font-size: 11px; }
+.char-card-line .hp-major { color: #b71c1c; font-size: 11px; }
+.char-card-line .toxicity { color: #4527a0; font-size: 11px; }
+
+.char-card-quickrow { width: 100%; border-collapse: collapse; }
+.char-card-quickrow td { padding: 2px 6px; }
+.char-card-actions { width: 100%; border-collapse: collapse; }
+.char-card-actions th { text-align: left; font-size: 11px; color: #6b4f24; border-bottom: 1px solid #d4b88a; padding: 2px 4px; }
+.char-card-actions td { padding: 2px 4px; border-bottom: 1px dotted #e6d6b6; }
+
+.char-card-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 600px) { .char-card-two-col { grid-template-columns: 1fr; } }
+.char-card-entry { margin: 2px 0; font-size: 12px; }
+.char-card-empty { color: #888; font-style: italic; }
+
 .sheet {
   border: 2px solid #000;
   padding: 15px;
