@@ -110,7 +110,7 @@ The abilities module does not track which casters are concentrating on which Ent
 
 **Effect**: A single effect string. An Effect is one of:
 - The literal `"0"` or `"none"` — no effect.
-- A name from the Effect Names list (e.g. `blind`, `dazzled`, `bleeding`) — a named non-damage effect.
+- A non-empty string that is not a damage expression — treated as a named non-damage effect (e.g. `blind`, `dazzled`, `bleeding`). The abilities module passes the name through opaquely. Validation against the conditions module's Effect Names catalog happens later when the effect is applied; the abilities module deliberately does not maintain or consult an effect-names list of its own.
 - A damage expression of the form `"<formula> damage"` or `"<formula> <severity> damage"` — a formula that evaluates to a damage amount, optionally with an explicit Severity.
 
 A damage Effect must have a determinable Severity. Severity comes from one of two sources:
@@ -125,23 +125,7 @@ Damage-expression Formulas may reference `rank`, `tier`, any name from the Effec
 
 The abilities module does not roll dice; it returns Formulas in a deferred form so the caller evaluates them once the relevant roll is known.
 
-**Effect Names**: The configurable reference table of named non-damage effects that may appear as an Effect value. Validation rejects any Effect that is not `"0"`, `"none"`, a damage expression, or a name in this table. Each entry is a dictionary with two fields:
-
-- `description`: a free-form human-readable string used for display.
-- `mechanics`: a list of structured Condition Mechanics that the condition module consumes to apply the effect. An empty list means the effect's mechanics are owned by another module (e.g. `bleeding`, `poisoned`, `diseased`); the abilities module exposes only the description.
-
-The abilities module performs no condition resolution — it surfaces both fields verbatim so the condition and dice resolution modules can act on them. *(configurable)*
-
-**Condition Mechanic**: One element of an Effect Name's `mechanics` list. A dictionary with a `kind` field and additional fields specific to that kind. The recognized kinds are:
-
-- **`modifier`** — a Target Number modifier whose `modifier_type` is one of the keys in `dice_resolution_config.yaml`'s `Bonus Types List` (Circumstance, Luck, Morale, etc.). Other fields: `sign` (`bonus` or `penalty`), `magnitude` (positive integer), `applies_to` (list of free-form scope tags such as `dex_checks`, `attacks_against`, `verbal_spell_checks`), and an optional `notes` string for caveats the program does not encode (e.g. "does not apply when the attacker has higher ground").
-- **`reroll`** — rerolls a subset of dice. Field: `scope` (e.g. `successes_and_criticals`); optional `notes`.
-- **`set_value`** — overrides a derived value. Fields: `target` (e.g. `combat_dice`) and `value` (integer or formula string).
-- **`scale_value`** — multiplies a derived value by a factor. Fields: `target` (e.g. `movement`) and `factor` (a number such as `0.5`).
-- **`flag`** — sets a boolean state. Field: `flag` (e.g. `cannot_act`, `cannot_speak`, `cannot_cast_verbal`, `cannot_run`).
-- **`display`** — a free-form rule that the program does not encode formulaically. The condition module shows the `text` to the DM and lets them adjudicate. Used for effects like Confused's "random target selection" that don't reduce cleanly to a formula.
-
-The abilities module does not validate the values inside a Condition Mechanic beyond requiring a `kind` field; the consuming module (condition / dice resolution / combat) interprets the rest. The `applies_to` scope tags, `target` names, and `flag` names are intentionally free-form so new categories can be added without a config change.
+The abilities module does not own the catalog of named effects, their structured Mechanics, or the validation that an Effect string corresponds to a real entry — those all live in the conditions module. See `conditions_glossary.md` for the Effect Name term and the recognized Mechanic kinds.
 
 **Damage Type**: A `damage_type` field on an Entry. A name from the damage_types catalog (see `damage_types_glossary.md`), attached to every damage-kind Effect produced by the Entry across `effects`, `save` outcomes, and the Concentration Block. The abilities module validates the name against the catalog but defers resolution semantics (resistances, vulnerabilities, type-specific mechanics) to the damage_types module and its consumers.
 

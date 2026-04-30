@@ -150,9 +150,11 @@ Default Severity Decay: "tier"
 # Conditions stores active applications of these effects in a unified
 # list. Per-kind queries (GET_MODIFIERS, GET_REROLLS, GET_NUDGES,
 # GET_FLAGS, GET_SET_VALUES, GET_SCALE_VALUES, GET_DISPLAYS) filter that
-# list. The Abilities module references entries here by name in its
-# `effects` and `save` outcome fields and is forbidden from declaring an
-# Effect name not in this catalog.
+# list. This catalog is the project-wide source of truth — abilities
+# reference Effect Names by name in their `effects` and `save` outcome
+# strings and pass them through opaquely; unknown names are not caught
+# at the abilities layer and instead surface here when APPLY_NAMED_EFFECT
+# is called.
 Effect Names:
 
   blind:

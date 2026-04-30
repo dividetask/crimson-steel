@@ -85,11 +85,15 @@ Hook semantics:
 
 The catalog is consulted at resolve time, not at apply time, so editing `Counters` and reloading config picks up new hook definitions. Per-creature Counter values are stored as `{name → integer}` and serialize through `TO_DICT` / `LOAD_STATE` alongside the rest of the state.
 
-### Named Effect application
+### Effect Name application
 
-`APPLY_NAMED_EFFECT` looks up an entry in the `Named Effects` catalog and applies each of its modifiers via `APPLY_EFFECT`, using `<source_id>:<index>` for each. Two consequences:
+`APPLY_NAMED_EFFECT` looks up an entry in the `Effect Names` catalog (the project-wide source of truth for named effects) and applies each of its modifier-kind Mechanics via `APPLY_EFFECT`, using `<source_id>:<index>` for each. Mechanics of other kinds (`flag`, `set_value`, `scale_value`, `display`, `reroll`, `nudge`) are routed to whichever per-kind storage the conditions module exposes for that category.
 
-- Re-applying the same Named Effect with the same `source_id` cleanly overwrites every previous slot (each modifier index lands on its existing slot).
+Unknown names raise here — this is the validation seam for Effect strings declared upstream by abilities. The abilities module passes effect names through opaquely; bad names surface only when something tries to apply them.
+
+Two consequences of the per-modifier Source ID convention:
+
+- Re-applying the same Effect Name with the same `source_id` cleanly overwrites every previous slot (each modifier index lands on its existing slot).
 - Removal requires either iterating each known index or scanning `effects` for the prefix.
 
 The catalog is consulted at apply time, not stored on the Effect entries — editing the catalog and reloading config picks up new modifier lists, but already-applied entries retain whatever shape they were created with until they expire. Afflictions whose `effect.kind` is `named_effect` dispatch through this same method using the deterministic Source ID `'affliction:<name>'`.
@@ -124,5 +128,4 @@ The catalog is consulted at apply time, not stored on the Effect entries — edi
 
 ### Unassigned (no current owner)
 
-- **The named-effects catalog overlap.** Today there are two catalogs serving the "named non-damage effect" role: `Effect Names` in `abilities_config.yaml` (used by abilities to validate Effect strings, with full Condition Mechanics) and `Effect Names` (also called `Named Effects` in older glossary text) in `conditions_config.yaml` (used by `APPLY_NAMED_EFFECT` and by Affliction Rules). The same conceptual entry (e.g. `paralyzed`) needs to exist in both, and nothing keeps them aligned. The deeper question is whether they should be merged into one catalog or whether the boundaries between them should be sharpened.
 - **Counter wiring from damage application.** The conditions module owns the Counter mechanism, but combat is the natural place to inspect a damage type's `counter` Mechanic and call `APPLY_COUNTER` accordingly. That wiring isn't pinned to a class today.

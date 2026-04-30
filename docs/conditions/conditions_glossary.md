@@ -105,11 +105,23 @@ The hook list is closed today — adding a new kind requires a code change. The 
 
 - `hit_point_damage`: deals damage to a specified Severity Category. The Affliction Rule names the category; the underlying damage mechanic lives in the Conditions module, not in the Affliction Rule.
 - `ability_damage`: deals damage to a specified attribute at a specified Severity Category. As above, the Affliction Rule names what to damage; the mechanic is generic.
-- `named_effect`: applies a Named Effect (see below) by name. The Affliction Rule supplies only the effect's name and duration. What the named Effect does — its modifiers, Bonus Type, sign, amount — is defined once in the Named Effects catalog and reused by every source that applies it.
+- `named_effect`: applies an Effect Name (see below) by name. The Affliction Rule supplies only the effect's name and duration. What the effect does — its mechanics — is defined once in the Effect Names catalog and reused by every source that applies it.
 
-The list is closed — new effect kinds require a code change. The set of Afflictions that use these kinds is open, as is the set of Named Effects.
+The list is closed — new effect kinds require a code change. The set of Afflictions that use these kinds is open, as is the set of Effect Names.
 
-**Named Effect**: A reusable buff, debuff, or status defined once in `conditions_config.yaml` under `Named Effects`. Each entry specifies a description and a list of modifiers (each with `target_key`, Bonus Type, sign, and amount). Afflictions, spells, and abilities reference Named Effects by name and supply a duration — they never redefine what the Effect does. Examples: `paralyzed`, `prone`, `eagles_splendor`. The Conditions module exposes `APPLY_NAMED_EFFECT` to apply one by name; the Affliction `named_effect` kind dispatches through the same path.
+**Effect Name**: A reusable named non-damage effect defined once in `conditions_config.yaml` under `Effect Names`. This is the **single source of truth** for the catalog of named effects across the whole project — abilities reference Effect Names by name in their `effects` and `save` outcome strings (without validating against the catalog), and the conditions module raises at apply time when a name does not match. Each entry specifies a `description` and a list of structured Mechanics (see Effect Mechanic below). Examples: `blind`, `dazzled`, `paralyzed`, `prone`, `bleeding`. The Conditions module exposes `APPLY_NAMED_EFFECT` to apply one by name; the Affliction `named_effect` kind dispatches through the same path.
+
+**Effect Mechanic**: One element of an Effect Name's `mechanics` list. A dictionary with a `kind` field and additional fields specific to that kind. The recognized kinds are:
+
+- **`modifier`** — a Target Number modifier whose `modifier_type` is one of the keys in `dice_resolution_config.yaml`'s `Bonus Types List` (Circumstance, Luck, Morale, etc.). Other fields: `sign` (`bonus` or `penalty`), `magnitude` (positive integer), `applies_to` (list of free-form scope tags such as `dex_checks`, `attacks_against`, `verbal_spell_checks`), and an optional `notes` string.
+- **`reroll`** — triggers a Reroll Operation. Field: `scope` (e.g. `successes_and_criticals`); optional `applies_to`, `sign`, `magnitude`, `notes`.
+- **`nudge`** — triggers a Value Adjustment. Fields: `applies_to`, `sign`, `magnitude`; optional `notes`.
+- **`set_value`** — overrides a derived value. Fields: `target` (e.g. `combat_dice`), `value` (integer or formula).
+- **`scale_value`** — multiplies a derived value by a factor. Fields: `target`, `factor`.
+- **`flag`** — sets a boolean state. Field: `flag`.
+- **`display`** — a free-form rule that the program does not encode. Field: `text` — the conditions module surfaces this so the DM can adjudicate.
+
+The conditions module dispatches each Mechanic to the appropriate consumer (dice resolution for modifier/reroll/nudge; itself for set_value/scale_value/flag; the presentation layer for display). The `applies_to` scope tags, `target` names, and `flag` names are intentionally free-form so new categories can be added without a code change.
 
 ## Effects (Buffs and Debuffs)
 

@@ -64,9 +64,9 @@ Every Effect string falls into exactly one of three kinds, determined by string 
 
 - `"0"` or `"none"` → `{ kind: 'none' }`.
 - Matches `"<expression> damage"` or `"<expression> <severity> damage"` (where `<severity>` is `minor`, `moderate`, or `major`) → damage object as above.
-- Otherwise → must be a key in `Effect Names`; returned as `{ kind: 'effect', name: <string> }`.
+- Otherwise → returned as `{ kind: 'effect', name: <string> }`. The abilities module does not check that the name exists in any catalog — that's the conditions module's job, raised at apply time.
 
-Validation rejects any other shape. The same classifier runs on Save Outcome values, Unconditional Effects (`effects` list), and Concentration save outcomes.
+The same classifier runs on Save Outcome values, Unconditional Effects (`effects` list), and Concentration save outcomes.
 
 ### Concentration Block
 
@@ -93,7 +93,7 @@ A Save Spec may carry a `condition` field (`on_fail` or `on_fumble`) that gates 
 ### Owned by the abilities domain
 
 - Loading and validating `abilities_data` and `abilities_config`.
-- Schema validation: rejecting unknown Entry Types, Schools, Casting Skills, Item Forms, Properties, Save Attributes, Save Outcome Keys, Effect Names, Casting Time aliases, Range names, Area Shapes, and Damage Type names; checking Variant parallel-list lengths; rejecting overrides of structural fields; rejecting universal-entry leaks in data files; rejecting Entries that declare both `tier` (as a list) and `aspects`.
+- Schema validation: rejecting unknown Entry Types, Schools, Casting Skills, Item Forms, Properties, Save Attributes, Save Outcome Keys, Casting Time aliases, Range names, Area Shapes, and Damage Type names; checking Variant parallel-list lengths; rejecting overrides of structural fields; rejecting universal-entry leaks in data files; rejecting Entries that declare both `tier` (as a list) and `aspects`. **Not** validated here: Effect string names against any catalog — bad names surface when the conditions module tries to apply them.
 - Validating Severity rules: every damage Effect must have a determinable Severity (explicit per-Effect or via the Entry's `damage_type`); `damage_type: physical` requires `threshold`; `threshold` is rejected on non-physical Entries.
 - Resolving Variants along whichever axis the Entry uses: applying Overrides, constructing displayed names, performing `{name}` and `{aspect}` substitution.
 - Resolving Effect Hash, with axis-indexed picks and cross-reference Formula evaluation.
