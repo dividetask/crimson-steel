@@ -56,30 +56,58 @@ helpers do
     key.to_s.tr('_', ' ').split.map(&:capitalize).join(' ')
   end
 
+  # Pretty label for an ability key. Same shape as the condition
+  # label so race / class abilities (`fast_movement`, `bardic_
+  # inspiration`) read as "Fast Movement", "Bardic Inspiration".
+  def character_sheet_ability_label(key)
+    character_sheet_condition_label(key)
+  end
+
+  # Skill rows the character sheets render. Every character also
+  # carries Martial — it's a mandatory skill that auto-advances
+  # under every class, so it always appears in the row list even
+  # when nothing in the character's chosen-skills list mentions
+  # it. Skills the catalog doesn't recognize (e.g. a typo, or a
+  # skill set with no member chosen) are quietly skipped.
+  def character_skill_rows(character)
+    ranks = character.advancement.skill_ranks
+    names = (ranks.keys + ['martial']).uniq.sort
+    names.filter_map do |name|
+      next if SKILLS.set?(name)
+      detail =
+        begin
+          SKILLS.skill_details(name, character, character.advancement)
+        rescue ArgumentError
+          nil
+        end
+      next unless detail
+      {
+        'name'  => name,
+        'ranks' => detail['ranks'],
+        'dice'  => detail['dice_count'],
+        'bonus' => detail['bonuses']['Competency Bonus']
+      }
+    end
+  end
+
   # Default dummy block for fields the Character class doesn't yet
   # cover. Anything passed into `dummy:` overrides these.
   def character_sheet_dummy_defaults
     {
       klass:               'Bard 3',
-      tier:                3,
       bab:                 4,
       combat_pool:         5,
       perception_dice:     6,
       perception_bonus:    2,
       initiative:          3,
-      damage_reduction:    2,
-      damage_resilience:   2,
-      speed:               30,
       current_hp:          22,
-      hp_max:              28,
       current_mana:        12,
-      mana_max:            14,
       mana_regen:          3,
       temporary_hit_points: 0,
       moderate_damage:     0,
       major_damage:        0,
-      mana_saturation:     0,
-      mana_saturation_max: 0,
+      magic_toxicity:     0,
+      magic_toxicity_max: 0,
       conditions:          {},
       bab_dice:            3,
       bab_bonus:           2,
@@ -114,7 +142,6 @@ helpers do
       ],
       spell_list:  [],
       item_spell_list: nil,
-      ritual_list: [],
       notes:       [{ 'note' => 'Placeholder note for the character.' }]
     }
   end

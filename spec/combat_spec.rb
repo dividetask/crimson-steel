@@ -14,16 +14,19 @@ class ScriptedRandomSource
   end
 end
 
-# Character + martial-rank override for tests. The real Character
-# stub returns 0; the spec needs to drive the action-dice formula
-# with arbitrary martial values.
+# Character + martial-rank override for tests. The real
+# Character pulls skill ranks from Advancement; the spec needs
+# to drive the action-dice formula with arbitrary martial
+# values without standing up a full advancement config.
 class TestCharacter < Character
   def initialize(martial_skill_ranks: 0, **kwargs)
     super(**kwargs)
     @martial_skill_ranks = martial_skill_ranks
   end
 
-  attr_reader :martial_skill_ranks
+  def skill_ranks
+    { 'martial' => @martial_skill_ranks }
+  end
 end
 
 RSpec.describe Combat do
@@ -85,7 +88,7 @@ RSpec.describe Combat do
         # action_dice_max = 14 % 10 + 11 = 15; bonus = 1.
         expect(combat.initiative_dice_count(1)).to eq(9)
         expect(combat.action_dice_max(1)).to eq(15)
-        expect(combat.untyped_bonus(1)).to eq(1)
+        expect(combat.unused_bonus(1)).to eq(1)
       end
     end
   end
@@ -103,18 +106,18 @@ RSpec.describe Combat do
     end
   end
 
-  describe '#action_dice_max and #untyped_bonus' do
-    it 'matches (raw % range) + minimum, with raw / range as the untyped bonus' do
+  describe '#action_dice_max and #unused_bonus' do
+    it 'matches (raw % range) + minimum, with raw / range as the unused bonus' do
       combat = make_combat
       # Ash: martial 5 + wis/2 (8) = 13. 13 % 10 = 3. + 11 = 14. Bonus = 1.
       expect(combat.action_dice_max(1)).to eq(14)
-      expect(combat.untyped_bonus(1)).to eq(1)
+      expect(combat.unused_bonus(1)).to eq(1)
       # Bryn: 3 + 6 = 9. 9 % 10 = 9. + 11 = 20. Bonus = 0.
       expect(combat.action_dice_max(2)).to eq(20)
-      expect(combat.untyped_bonus(2)).to eq(0)
+      expect(combat.unused_bonus(2)).to eq(0)
       # Lira: 0 + 7 = 7. 7 % 10 = 7. + 11 = 18. Bonus = 0.
       expect(combat.action_dice_max(3)).to eq(18)
-      expect(combat.untyped_bonus(3)).to eq(0)
+      expect(combat.unused_bonus(3)).to eq(0)
     end
 
     it 'honors tuned Combat Pool Range / Minimum from the rules file' do
@@ -125,7 +128,7 @@ RSpec.describe Combat do
         combat = make_combat(rules_path: path)
         # Ash raw = 13. 13 % 5 = 3. + 1 = 4. Bonus = 13 / 5 = 2.
         expect(combat.action_dice_max(1)).to eq(4)
-        expect(combat.untyped_bonus(1)).to eq(2)
+        expect(combat.unused_bonus(1)).to eq(2)
       end
     end
   end

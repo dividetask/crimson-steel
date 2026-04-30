@@ -1,0 +1,28 @@
+<h1 class="combat-page-title">Combat Tracker</h1>
+
+<%= initiative_stub(
+      turns:             @turns,
+      current_combat_id: @current_turn,
+      dm_view:           dm_view?
+    ) %>
+
+<% if dm? %>
+  <h2>Turn Action</h2>
+  <%= turn_action_stub(
+        active_combatant: @active_label,
+        attacker:         DATA.attacker_sample,
+        targets:          DATA.target_samples,
+        ally_reactions:   DATA.respond_to?(:ally_reactions) ? DATA.ally_reactions : [],
+        luck_sources:     DATA.respond_to?(:luck_sources)   ? DATA.luck_sources   : []
+      ) %>
+<% end %>
+
+<%
+  show_active_card =
+    @active_character &&
+      (@active_is_pc || dm?)
+%>
+<% if show_active_card %>
+  <h2>Active Combatant</h2>
+  <%= character_minimal_stub(character: @active_character, dummy: @active_dummy) %>
+<% end %>

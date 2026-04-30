@@ -50,6 +50,7 @@ races:
       cha: 1
     abilities:
       - name: bonus_feat
+        description: Choose any 1st-level feat.
 
   dwarf:
     name: Dwarf
@@ -57,10 +58,20 @@ races:
     speed: 25
     abilities:
       - name: low_light_vision
+        description: Treat all light sources as twice as bright for the purpose of sight.
       - name: poison_resistance
+        description: +1 inherent bonus to poison saves, including alcohol.
+        modifiers:
+          - target:      save.con
+            descriptors: [poison]
+            type:        Inherent
+            add:         1
       - name: weapon_familiarity_dwarven
+        description: Proficient with battleaxes, heavy picks, and warhammers, and treat any weapon with "dwarven" in its name as a martial weapon.
       - name: heavy_armor_full_speed
+        description: Your speed is not reduced by wearing heavy armor.
       - name: bonus_dwarven_feat
+        description: Choose any dwarven feat.
 
   hill_dwarf:
     name: Hill Dwarf
@@ -82,9 +93,13 @@ races:
     speed: 30
     abilities:
       - name: far_sight
+        description: All distance penalties for sight-based perception checks are halved.
       - name: elven_resistance
+        description: +1 inherent bonus against being charmed; immune to magical sleep.
       - name: weapon_familiarity_elven
+        description: Proficient with longbows (including composite longbows), longswords, rapiers, and shortbows (including composite shortbows), and treat any weapon with "elven" in its name as a martial weapon.
       - name: bonus_elven_feat
+        description: Choose any elven feat.
 
   high_elf:
     name: High Elf
@@ -106,7 +121,9 @@ races:
     speed: 25
     abilities:
       - name: far_sight
+        description: All distance penalties for sight-based perception checks are halved.
       - name: bonus_gnome_feat
+        description: Choose any gnome feat.
 
   forest_gnome:
     name: Forest Gnome
@@ -116,7 +133,9 @@ races:
       dex: 2
     abilities:
       - name: natural_illusionist
+        description: +1 inherent bonus to all illusion spells.
       - name: speak_with_small_beasts
+        description: Through sound and gestures, communicate simple ideas with Small or smaller beasts.
 
   rock_gnome:
     name: Rock Gnome
@@ -126,7 +145,9 @@ races:
       con: 2
     abilities:
       - name: tinkerer
+        description: You gain Mending and Prestidigitation as spell-like abilities.
       - name: artificers_lore
+        description: Appraisal is a class skill and advances for free each level. You can substitute Appraisal for History on checks involving magical or alchemical items.
 
   halfling:
     name: Halfling
@@ -134,8 +155,11 @@ races:
     speed: 25
     abilities:
       - name: halfling_luck
+        description: Once per check, reroll a single 1.
       - name: brave
+        description: +1 inherent bonus against fear-based checks.
       - name: bonus_halfling_feat
+        description: Choose any halfling feat.
 
   lightfoot_halfling:
     name: Lightfoot Halfling
@@ -160,7 +184,12 @@ races:
       cha: 2
     abilities:
       - name: fey
+        description: You count as a fey creature rather than humanoid. Vulnerable to attacks from cold-iron weapons.
       - name: horns
+        description: Make a natural attack with your head and horns. On a charging attack you use your full Strength modifier (not half).
       - name: fey_resistance
+        description: +1 inherent bonus against being charmed; immune to magical sleep.
       - name: reveler
+        description: Each level, advance Persuasion or one Performance skill for free.
       - name: spell_like_ability
+        description: Choose an enchantment or illusion tier-0 spell from any list and cast it as a spell-like ability.
