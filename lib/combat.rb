@@ -222,12 +222,13 @@ class Combat
 
   # ----- Attack resolution / Severity Calculation pipeline -----------
   #
-  # Takes an already-resolved damage payload (amount + damage_type) and
-  # routes it through the damage_types catalog mechanics, then through
-  # severity decision (declared severity for non-physical, runtime
-  # bucketing for physical), then into the target's Conditions
-  # instance, then through post-damage side-effects (apply_acid_counter,
-  # inflict for shock, etc.).
+  # Takes an already-resolved damage payload — an integer `amount`
+  # paired with a `damage_type` name — and routes it through the
+  # damage_types catalog mechanics, then through severity decision
+  # (declared severity for non-physical, runtime bucketing for
+  # physical), then into the target's Conditions instance, then
+  # through post-damage side-effects (apply_acid_counter, inflict
+  # for shock, etc.).
   #
   # The to-hit roll itself is not performed here — clients (or callers)
   # have already decided that damage lands, and how much. This is the
