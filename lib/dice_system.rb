@@ -74,6 +74,33 @@ class DiceSystem
     { 'tn' => tn, 'starting_value' => starting_value }
   end
 
+  # Partition a Skill Prowess (or any Prowess-shaped integer) into
+  # a Dice Count, a Competency Bonus, and a Starting Value ready to
+  # feed back into compute_roll_parameters / compute_results.
+  #
+  # Excess Prowess fills dice up to the Maximum Dice Count first,
+  # then the Competency Bonus up to its configured cap, then spills
+  # the remainder into Starting Value. Negative Prowess clamps the
+  # Dice Count to the Minimum Dice Count and routes the deficit
+  # straight to Starting Value as a negative (Starting Failures).
+  def compute_check_details(prowess)
+    min_dice  = @dice_resolution_config['Minimum Dice Count']
+    range     = @dice_resolution_config['Dice Count Range']
+    max_dice  = min_dice + range - 1
+    bonus_cap = @dice_resolution_config['Competency Bonus Cap'].to_i
+
+    dice_count       = [[min_dice + prowess, max_dice].min, min_dice].max
+    remaining        = prowess - (dice_count - min_dice)
+    competency_bonus = [[remaining, bonus_cap].min, 0].max
+    starting_value   = remaining - competency_bonus
+
+    {
+      'dice_count'       => dice_count,
+      'competency_bonus' => competency_bonus,
+      'starting_value'   => starting_value
+    }
+  end
+
   def compute_results(dice, tn, starting_value,
                       failure_modifier: DEFAULT_FAILURE_MODIFIER,
                       critical_modifier: DEFAULT_CRITICAL_MODIFIER)

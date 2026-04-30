@@ -44,14 +44,23 @@ class Advancement
   DEFAULT_MANA_ATTRIBUTE = 'int'.freeze
   DEFAULT_MANA_DIVISOR   = 2
 
-  Ability = Struct.new(:name, :level, :description, keyword_init: true) do
+  Ability = Struct.new(:name, :level, :description, :sub_choices, keyword_init: true) do
     # `level` is nil for non-scaling abilities.
     def scales?
       !level.nil?
     end
+
+    # Per-grant choices the player picked for this ability (e.g.
+    # the chosen performances for Versatile Performance). Always
+    # an array — defaults to empty when the character entry has no
+    # choices recorded.
+    def sub_choices
+      self[:sub_choices] || []
+    end
   end
 
-  attr_reader :character_tags, :class_levels, :class_skill_choices, :tier_attribute_advancement
+  attr_reader :character_tags, :class_levels, :class_skill_choices, :tier_attribute_advancement,
+              :ability_sub_choices
 
   def initialize(
     tier: nil,
@@ -68,7 +77,8 @@ class Advancement
     hp_attribute: DEFAULT_HP_ATTRIBUTE,
     hp_divisor: DEFAULT_HP_DIVISOR,
     mana_attribute: DEFAULT_MANA_ATTRIBUTE,
-    mana_divisor: DEFAULT_MANA_DIVISOR
+    mana_divisor: DEFAULT_MANA_DIVISOR,
+    ability_sub_choices: {}
   )
     @tier_override                    = tier.nil? ? nil : tier.to_i
     @character_tags                   = normalize_tags(tags)
@@ -85,6 +95,7 @@ class Advancement
     @hp_divisor                       = hp_divisor.to_i.nonzero? || DEFAULT_HP_DIVISOR
     @mana_attribute                   = mana_attribute.to_sym
     @mana_divisor                     = mana_divisor.to_i.nonzero? || DEFAULT_MANA_DIVISOR
+    @ability_sub_choices              = normalize_ability_sub_choices(ability_sub_choices)
   end
 
   # The character's current tier. Returns the explicit override
@@ -170,7 +181,8 @@ class Advancement
       Ability.new(
         name:        name,
         level:       info[:scales] ? info[:level] : nil,
-        description: info[:description]
+        description: info[:description],
+        sub_choices: Array(@ability_sub_choices[name]).dup
       )
     end
   end
@@ -301,8 +313,21 @@ class Advancement
       hp_attribute:                     rules.fetch('hp_attribute',   DEFAULT_HP_ATTRIBUTE),
       hp_divisor:                       rules.fetch('hp_divisor',     DEFAULT_HP_DIVISOR),
       mana_attribute:                   rules.fetch('mana_attribute', DEFAULT_MANA_ATTRIBUTE),
-      mana_divisor:                     rules.fetch('mana_divisor',   DEFAULT_MANA_DIVISOR)
+      mana_divisor:                     rules.fetch('mana_divisor',   DEFAULT_MANA_DIVISOR),
+      ability_sub_choices:              extract_ability_sub_choices(entry)
     )
+  end
+
+  # Pulls per-ability sub-choices off a character's `advancement`
+  # entry. Today only `versatile_performance` is recognized — the
+  # entry's `versatile_performance:` key is a list of chosen
+  # performance keys (one per grant). Future abilities with their
+  # own sub-choices register here without changing the entry shape.
+  def self.extract_ability_sub_choices(entry)
+    out = {}
+    list = entry['versatile_performance'] || entry[:versatile_performance]
+    out['versatile_performance'] = Array(list).map(&:to_s) if list
+    out
   end
 
   # Loads the combined advancement file. Returns:
@@ -380,6 +405,11 @@ class Advancement
   end
 
   def normalize_skill_choices(input)
+    return {} unless input.is_a?(Hash)
+    input.each_with_object({}) { |(k, v), h| h[k.to_s] = Array(v).map(&:to_s) }
+  end
+
+  def normalize_ability_sub_choices(input)
     return {} unless input.is_a?(Hash)
     input.each_with_object({}) { |(k, v), h| h[k.to_s] = Array(v).map(&:to_s) }
   end

@@ -324,8 +324,8 @@ Items at a named location. Location is a free-form string (e.g., `"Goblin cave �
 
 Outside the scope of the current work, but already referenced by dice resolution. Expected to own:
 
-- **Training Ranks**, **Physical Modifier**, **Total Prowess**, **Prowess Bonus**, **Skill Dice Maximum** (in `unassigned_glossary.md`).
-- **Half Modifier** calculation (divisor stored in character config).
+- **Training Ranks**, **Physical Modifier**, **Total Prowess**, **Prowess Bonus**, **Skill Dice Maximum** (in `unassigned_glossary.md`). *(The Skill Roll slice — Skill Prowess and the Dice Count / Competency Bonus / Starting Value partition — is now owned: Skills computes Prowess and DiceSystem partitions it via `compute_check_details`.)*
+- **Half Modifier** calculation (divisor stored in character config). *(Now lives on Skills as `skill_prowess.attribute_contribution_divisor` for Skill Rolls.)*
 - **Base Prowess Offset** (currently in `unassigned_config.yaml`).
 - Named bonus types (Competency, Circumstance, Morale, Guidance, Inherent, Ascendancy) — definitions live in `unassigned_glossary.md` until the character/magic/combat modules claim them.
 - Character IDs and Group IDs referenced by `loot_routing.yaml`.

@@ -1,0 +1,560 @@
+# Abilities and Spells — Example Data
+#
+# This file illustrates the full schema for ability and spell entries
+# as loaded by the AbilitySystem class. The authoritative data lives in
+# `data/compendium.json` (or another data file chosen by the campaign);
+# this YAML is kept alongside the design docs purely as a reference
+# when authoring or reviewing entries.
+#
+# Every top-level key is an entry name. The entry must have a `type`
+# field of either `spell` or `ability` (see `abilities_config.yaml`).
+# All other fields are documented in `abilities_glossary.md`.
+#
+# Formulas are strings; they may reference `rank` and any name defined
+# in the same entry's `effect_hash`. Formula evaluation and clamping
+# rules are defined in `abilities_pseudocode.md`.
+
+# ---------------------------------------------------------------------
+# Elemental damage darts — a single Entry on the Aspect axis. The four
+# darts share the same mechanical shape (tier-0 ranged attack with a
+# concentration block that throws an additional dart each concentrate
+# turn) and only differ in their element and displayed name. Damage is
+# computed by combat from the attack outcome (Tier + Degree of Success
+# + attack bonus); damage-type behavior (fire +1/2dice, acid counter,
+# electricity vs metal armor, cold inflicts shock) lives in the
+# damage_types module.
+
+Elemental Dart:
+  type: spell
+  tier: 0
+  aspects: [fire, acid, electricity, cold]
+  name: [Fire Dart, Acid Dart, Electricity Dart, Cold Dart]
+  damage_type: [fire, acid, electricity, cold]
+  school: resonance
+  casting_time: Main Action
+  range: Close
+  target: "1"
+  attack_roll: true
+  save: []
+  duration: concentration
+  skills: [arcana]
+  items: []
+  concentration:
+    action: Main Action
+    apply_on_cast: false
+    retarget: true
+    attack_roll: true
+    description: "Throw another {aspect} dart at any valid target within range."
+  description: "A ranged dart of {aspect}. Resolves as a ranged attack. While concentrating, the caster may throw additional darts."
+
+# ---------------------------------------------------------------------
+# Multi-tier spell with per-tier suffixes and tier-indexed effect
+# values. All tier-dependent values are drawn from `effect_hash` and
+# referenced from both the save effects and the description template.
+Heal:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  school: pneumancy
+  casting_time: Main Action
+  range: Touch
+  target: "1"
+  save: []
+  duration: concentration
+  skills: [healing, nature, perform_]
+  items: [potion]
+  suffix:
+    - Petty Wounds
+    - Lesser Wounds
+    - Simple Wounds
+    - Moderate Wounds
+    - Advanced Wounds
+    - Extreme Wounds
+  effect_hash:
+    minor_damage: [1, 4, 8, 16, 32, 64]
+    moderate_damage: [0, 2, 4, 8, 16, 32]
+    major_damage: [0, 0, 0, 1, 2, 4]
+    minimum_saturation: "tier*2"
+    saturation: "tier*5"
+  concentration:
+    action: Main Action
+    apply_on_cast: true
+    description: "Make a casting check; reduce the target's bleeding by tier*2 per success rolled."
+    effect_hash:
+      bleed_reduction: "tier*2*success"
+  description: "Restores up to {minor_damage} minor damage, {moderate_damage} moderate damage, and {major_damage} major damage to the touched ally."
+
+# ---------------------------------------------------------------------
+# Area-of-effect spell. Affects every creature inside a 4-square
+# radius circle centered on the target square; targeting is geometric
+# rather than per-creature, so `target` is "0" (no per-creature
+# target count) and `area` carries the shape and size.
+Fireball:
+  type: spell
+  tier: 3
+  school: resonance
+  casting_time: Main Action
+  range: Medium
+  target: "0"
+  area:
+    shape: circle
+    size: 4
+  damage_type: fire
+  save:
+    - attribute: dex
+      fail: "8*rank damage"
+      success: "4*rank damage"
+  duration: instant
+  skills: [arcana]
+  items: []
+  description: "A burst of flame that scorches every creature inside a 4-square radius centered on the target square."
+
+# ---------------------------------------------------------------------
+# Spell with a non-damage condition effect on both branches of the save.
+Blinding Light:
+  type: spell
+  tier: 2
+  school: resonance
+  casting_time: Bonus Action
+  range: Close
+  target: "1"
+  save:
+    - attribute: wis
+      fail: blind
+      success: dazzled
+  duration: "rank rounds"
+  skills: [arcana, healing]
+  items: []
+  description: "A flash of searing light. On a failed Wisdom save the target is blinded; on a success the target is merely dazzled."
+
+# ---------------------------------------------------------------------
+# Spell with two saves. The second save is only offered under a
+# specific condition — in this case, only when the first save is a
+# fumble.
+Dragon Breath:
+  type: spell
+  tier: 4
+  school: resonance
+  item_only: true
+  casting_time: Main Action
+  range: Self
+  target: "1+rank"
+  damage_type: fire
+  save:
+    - attribute: dex
+      fail: "10*rank damage"
+      success: "5*rank damage"
+    - attribute: con
+      condition: on_fumble
+      fail: stunned
+  duration: instant
+  skills: [arcana]
+  items: [potion]
+  description: "Exhale a cone of dragonfire. Only accessible through a dragonscale talisman or similar magic item."
+
+# ---------------------------------------------------------------------
+# Spell whose damage formula references the defender's save roll:
+# `success` and `critical` are the defender's success count and
+# critical count on the save. The caster rolls the attack, the
+# defender rolls their save, and the save outcome formulas are
+# evaluated with both counts in context.
+Scorching Ray:
+  type: spell
+  tier: 2
+  school: resonance
+  casting_time: Main Action
+  range: Medium
+  target: "1"
+  damage_type: fire
+  save:
+    - attribute: dex
+      fail: "4*rank + 2*success + 3*critical damage"
+      success: "2*rank damage"
+      fumble: "8*rank + 2*success + 3*critical damage"
+  duration: instant
+  skills: [arcana]
+  items: []
+  description: "A ray of searing flame. Damage grows with the caster's rank and with the defender's botched saving throw."
+
+# ---------------------------------------------------------------------
+# Rare case: a spell that has both an attack and a save. Almost always
+# a touch spell — the attack resolves whether contact is made, and the
+# save resolves the magical effect once contact lands.
+Soul Drain:
+  type: spell
+  tier: 3
+  school: pneumancy
+  casting_time: Main Action
+  range: Touch
+  target: "1"
+  attack_roll: true
+  damage_type: necrotic
+  save:
+    - attribute: wis
+      fail: "4*rank damage"
+      success: "rank damage"
+  duration: instant
+  skills: [restricted]
+  items: []
+  description: "A touch that draws on the target's soul. The attack must land before the Wisdom save is offered."
+
+# ---------------------------------------------------------------------
+# Multi-tier spell with a per-variant name override (the tier-1 form
+# is called "Biting Words", not a prefix/suffix construction over
+# "Vicious Mockery"), unconditional damage independent of save, an
+# entry-level damage_type, and a variant_overrides bag that flips the
+# tier-1 form to attack-roll mechanics with a different damage formula.
+#
+# - Tier 0 (Vicious Mockery): no attack roll. Damage scales with the
+#   caster's casting-roll critical count (`3*critical`). Wis save
+#   negates the flustered condition but not the damage.
+# - Tier 1 (Biting Words): attack roll required. Damage is
+#   `attribute/2 + 2`, where `attribute` is the casting attribute
+#   (Cha for `perform_`).
+Vicious Mockery:
+  type: spell
+  tier: [0, 1]
+  name: [Vicious Mockery, Biting Words]
+  school: enchantment
+  casting_time: Main Action
+  range: Close
+  target: "1"
+  save:
+    - attribute: wis
+      fail: flustered
+      success: "0"
+  duration: concentration
+  skills: [perform_]
+  items: []
+  properties: [language_dependent]
+  damage_type: emotional
+  effects:
+    - "3*critical damage"
+  concentration:
+    action: Main Action
+    apply_on_cast: false
+    retarget: true
+    description: "Repeat the spell's effects against any valid target within range."
+  variant_overrides:
+    - null
+    - {attack_roll: true, effects: ["attribute/2 + 2 damage"]}
+  description: "Hurl mocking words at a target, demoralizing them with stinging insults."
+
+# ---------------------------------------------------------------------
+# Spell with an explicit integer range (feet) and an extended casting
+# time expressed as an alias from the config.
+Sending:
+  type: spell
+  tier: 2
+  school: augury
+  casting_time: 10 Minutes
+  range: 1000
+  target: "1"
+  save:
+    - attribute: none
+  duration: instant
+  skills: [arcana, perform_]
+  items: []
+  description: "Deliver a short message to a known target up to 1000 feet away."
+
+# ---------------------------------------------------------------------
+# Multi-tier spell whose tier names don't share a clean prefix/suffix
+# pattern (uses the `name` override list). The illusion's range and
+# the senses it engages both vary by tier. The Effect Hash carries the
+# per-tier `senses` string used by the description; the
+# `variant_overrides` list carries the per-tier range change.
+Create Illusion:
+  type: spell
+  tier: [0, 1, 2, 3]
+  name:
+    - Create Illusionary Sound
+    - Create Illusionary Image
+    - Create Minor Illusion
+    - Minor Figment
+  school: resonance
+  casting_time: Main Action
+  range: Close
+  target: "1"
+  save:
+    - attribute: int
+      fail: "0"
+      success: "0"
+  duration: concentration
+  skills: [arcana, perform_]
+  items: []
+  effect_hash:
+    senses:
+      - sound
+      - visual
+      - sound and visual
+      - sound, visual, and tactile
+  variant_overrides:
+    - null
+    - { range: Medium }
+    - { range: Medium }
+    - { range: Long }
+  concentration:
+    action: Main Action
+    apply_on_cast: false
+    description: "Maintain the illusion or alter what it presents."
+  description: "Create an illusion within range that engages {senses}. Creatures interacting with the illusion may make an Intelligence save to disbelieve it."
+
+# ---------------------------------------------------------------------
+# Tier-0–5 protective ward. Grants temporary hit points whose amount
+# is a tier-indexed list and whose duration grows by an order of
+# magnitude per tier (caster's rank scales the duration, the spell's
+# tier scales the temp-HP amount). No save — beneficial only.
+Ward:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix:
+    - Trivial
+    - Lesser
+    - Simple
+    - Improved
+    - Advanced
+    - Superior
+  school: resonance
+  casting_time: Main Action
+  range: Touch
+  target: "1"
+  save: []
+  duration: "rank rounds"
+  skills: [healing, nature]
+  items: []
+  effect_hash:
+    temp_hp: [3, 5, 8, 12, 16, 20]
+  variant_overrides:
+    - null
+    - { duration: "rank*10 rounds" }
+    - { duration: "rank*10 minutes" }
+    - { duration: "rank hours" }
+    - { duration: "rank days" }
+    - { duration: permanent }
+  description: "Grants the target {temp_hp} temporary hit points for the duration."
+
+# ---------------------------------------------------------------------
+# Tier-0–5 detection spell. Tier names don't follow a clean
+# prefix/suffix pattern, so it uses the name-override list. Per-tier
+# behavior varies enough that each tier carries its own description
+# via variant_overrides. Skills include every non-restricted casting
+# skill (evocation is added implicitly as a universal casting skill).
+# Augury school. Self range, no save, ranks-scaled duration.
+#
+# TBD: the names for tier 4 ("Identify Magic") and tier 5 ("Read
+# Magic") are placeholders — the design doc only specified tier 0-3.
+Detect Magic:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  name:
+    - Detect Overt Magic
+    - Detect Stationary Magic
+    - Detect Magic Signatures
+    - See Magic
+    - Identify Magic
+    - Read Magic
+  school: augury
+  casting_time: 2 rounds
+  range: Self
+  target: self
+  save: []
+  duration: rank minutes
+  skills: [perform_, arcana, healing, nature]
+  items: []
+  variant_overrides:
+    - { description: "Detects magical auras within range, but only after 1 minute of focused concentration on the area." }
+    - { description: "Reveals stationary magical auras instantly. Auras attached to moving creatures or objects remain hidden." }
+    - { description: "Identifies the caster of a spell cast within the last day, and identifies the maker of a magic item." }
+    - { description: "Reveals all magical auras within range including moving auras. Identifies magical signatures up to 1 week after the spell was cast or the item was made." }
+    - { description: "Identifies magic items, spell effects active on creatures, and the nature of any magical phenomenon within range." }
+    - { description: "Sees all magic at once and undetectably; reveals magical traps, illusions, and hidden enchantments without alerting their owners." }
+  description: "Detects magical auras. The information revealed grows with the spell's tier."
+
+# ---------------------------------------------------------------------
+# Tier-0–5 light spell. T0 is a passive glow on a touched object; T5
+# is a directed beam the caster aims at enemies, blinding them on a
+# failed Wisdom save. Tiers in between just grow the radius. T5
+# overrides target, range, save, and description via variant_overrides.
+# Prefixes: Light / Bright Light / Greater Light / Brilliant Light /
+# Radiant Light / Searing Light.
+Light:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix: [null, Bright, Greater, Brilliant, Radiant, Searing]
+  school: resonance
+  casting_time: Main Action
+  range: Touch
+  target: "1"
+  save: []
+  duration: rank hours
+  skills: [arcana, perform_]
+  items: []
+  effect_hash:
+    radius: [20, 30, 40, 50, 60, 80]
+  variant_overrides:
+    - null
+    - null
+    - null
+    - null
+    - null
+    - range: Close
+      target: "1+rank"
+      save:
+        - attribute: wis
+          fail: blind
+          success: dazzled
+      description: "The caster controls the light's direction and intensity, projecting a focused beam at one or more enemies. Targets caught in the beam must make a Wisdom save: failure leaves them blinded; success leaves them dazzled. The light still illuminates a {radius}-foot area around its anchor point."
+  description: "Causes a touched point to glow like a torch, casting bright light in a {radius}-foot radius."
+
+# ---------------------------------------------------------------------
+# Tier-0–3 illusion-of-self spell. T0 and T1 are self-only; T2 lets
+# the caster disguise any one touched creature; T3 disguises multiple
+# creatures and lets the caster alter any target's disguise on a
+# later turn as a main action. Tier names are distinct enough to use
+# the name-override list. School: resonance. No save (perceivers
+# would investigate to see through it; that interaction lives in the
+# perception/illusion module, not here).
+Disguise Self:
+  type: spell
+  tier: [0, 1, 2, 3]
+  name:
+    - Lesser Disguise Self
+    - Disguise Self
+    - Greater Disguise
+    - Mass Disguise
+  school: resonance
+  casting_time: Main Action
+  range: Self
+  target: self
+  save: []
+  duration: rank hours
+  skills: [arcana, perform_]
+  items: []
+  variant_overrides:
+    - null
+    - null
+    - { range: Touch, target: "1" }
+    - range: Touch
+      target: "1+rank/2"
+      description: "Alter the appearance of multiple targets — including their clothing, armor, weapons, and equipment — to look like different people of the same creature type. The caster may spend a main action on any subsequent turn to change any target's disguise."
+  description: "Alter your appearance — including clothing, armor, weapons, and equipment — to look like a different person of the same creature type. You can seem 1 foot shorter or taller, thinner or fatter, and you may add or obscure minor features."
+
+# ---------------------------------------------------------------------
+# Tier-0–5 protective buff. Grants a bonus to all saving throws
+# whose magnitude grows with tier (tier 0 grants +1 even though tier
+# 0 is treated as 0.5 elsewhere — the bonus list is explicit, not
+# formulaic). Duration progression is non-linear: T4 reverts to a
+# fixed 1 day before T5 returns to a rank-scaled value. The
+# enhancement-bonus modifier is exposed via {bonus} in the
+# description; the consuming module applies it as a TN modifier.
+Resistance:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix:
+    - Trivial
+    - Lesser
+    - Simple
+    - Improved
+    - Advanced
+    - Superior
+  school: pneumancy
+  casting_time: Main Action
+  range: Close
+  target: "1"
+  save: []
+  duration: 1 minute
+  skills: [perform_, arcana, healing, nature]
+  items: []
+  effect_hash:
+    bonus: [1, 1, 2, 3, 4, 5]
+  variant_overrides:
+    - null
+    - { duration: rank minutes }
+    - { duration: rank*10 minutes }
+    - { duration: rank hours }
+    - { duration: 1 day }
+    - { duration: rank days }
+  description: "Grants the target a +{bonus} enhancement bonus to all saving throws for the duration."
+
+# ---------------------------------------------------------------------
+# Tier-0–3 armor-conjuring spell from SPELL_REDESIGN.md. Takes
+# ordinary clothing and grants the target the defensive benefits of
+# medium armor for the duration. Tier names use a prefix list with a
+# null at tier 2 so the unprefixed "Magic Vestments" is the canonical
+# form. Bonus action cast, close range, no save, not concentration.
+# Skills are healing/perform_ pending design confirmation.
+Magic Vestments:
+  type: spell
+  tier: [0, 1, 2, 3]
+  prefix: [Fleeting, Temporary, null, Extended]
+  school: resonance
+  casting_time: Bonus Action
+  range: Close
+  target: "1"
+  save: []
+  duration: 1 round
+  skills: [healing, perform_]
+  items: [oil]
+  variant_overrides:
+    - null
+    - { duration: rank rounds }
+    - { duration: rank minutes }
+    - { duration: rank hours }
+  description: "Takes ordinary clothing and grants the target the defensive benefits of medium armor for the duration. No effect on a target already wearing medium or heavy armor. On a target wearing light armor or no armor, grants the benefits of medium armor without the medium-armor penalties to speed and stealth."
+
+# ---------------------------------------------------------------------
+# Tier-0–5 mana restoration. Restores a tier-indexed amount of mana
+# to a touched target; the same spell can also be used aggressively
+# against creatures already saturated with magic, in which case the
+# Charisma save applies. Magic-toxicity is imposed per cast via the
+# `minimum_saturation` and `saturation` Effect Hash conventions.
+Recharge:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix: [Faint, Minor, Basic, Moderate, Improved, Greater]
+  school: universal
+  casting_time: Main Action
+  range: Touch
+  target: "1"
+  save:
+    - attribute: cha
+      fail: "0"
+      success: "0"
+  duration: instant
+  skills: [arcana, perform_]
+  items: []
+  effect_hash:
+    mana: [2, 4, 8, 16, 32, 64]
+    minimum_saturation: tier*4
+    saturation: tier*10
+  description: "Restores {mana} points of mana to the touched target. May be used to charge magic items, or as an attack against creatures already saturated with magic — those targets make a Charisma save."
+
+# ---------------------------------------------------------------------
+# Ability (not a spell) — no school, no items, no skills. Abilities
+# still use the same schema for casting_time, range, target, save, and
+# duration so that the class can expose them uniformly.
+Rage:
+  type: ability
+  tier: 0
+  casting_time: Bonus Action
+  range: Self
+  target: self
+  save: []
+  duration: "rank rounds"
+  description: "The character enters a rage, gaining combat pool and damage reduction for the duration."
+
+# ---------------------------------------------------------------------
+# Ability with a save — the target makes a save against the ability's
+# effect. Abilities use the same save schema as spells.
+Intimidating Shout:
+  type: ability
+  tier: 1
+  casting_time: Main Action
+  range: Close
+  target: "1+rank/2"
+  save:
+    - attribute: wis
+      fail: frightened
+      success: "0"
+  duration: "1 minute"
+  skills: [perform_]
+  description: "A thunderous shout. Targets that fail a Wisdom save are frightened and must flee."

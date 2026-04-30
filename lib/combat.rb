@@ -52,11 +52,15 @@ class Combat
   DEFAULT_COMBAT_POOL_RANGE     = 10
   DEFAULT_COMBAT_POOL_MINIMUM   = 11
 
-  def initialize(state_path:, rules_path:, dice_system:, character_lookup:)
-    @state_path       = state_path
-    @rules_path       = rules_path
-    @dice_system      = dice_system
-    @character_lookup = character_lookup
+  def initialize(state_path:, rules_path:, dice_system:, character_lookup:,
+                 damage_types: nil, conditions_lookup: nil, condition_evaluator: nil)
+    @state_path          = state_path
+    @rules_path          = rules_path
+    @dice_system         = dice_system
+    @character_lookup    = character_lookup
+    @damage_types        = damage_types
+    @conditions_lookup   = conditions_lookup
+    @condition_evaluator = condition_evaluator || ->(_combat_id, _tag) { false }
 
     load_rules!
 
@@ -216,7 +220,146 @@ class Combat
     true
   end
 
+  # ----- Attack resolution / Severity Calculation pipeline -----------
+  #
+  # Takes an already-resolved damage payload (amount + damage_type) and
+  # routes it through the damage_types catalog mechanics, then through
+  # severity decision (declared severity for non-physical, runtime
+  # bucketing for physical), then into the target's Conditions
+  # instance, then through post-damage side-effects (apply_acid_counter,
+  # inflict for shock, etc.).
+  #
+  # The to-hit roll itself is not performed here — clients (or callers)
+  # have already decided that damage lands, and how much. This is the
+  # damage-application half of attack resolution.
+  #
+  # Parameters:
+  #   target_combat_id    — the Combatant on the receiving end
+  #   amount              — base damage points
+  #   damage_type         — name from the damage_types catalog
+  #   dice_count          — optional. Used by damage_per_dice mechanics.
+  #   threshold           — optional. Used by runtime bucketing for
+  #                         Physical Damage. For weapon attacks, the
+  #                         caller looks this up from the weapon; for
+  #                         physical damage from an ability, from the
+  #                         ability's threshold field.
+  #   attacker_combat_id  — optional. Reserved for future logging /
+  #                         attribution; not consumed today.
+  #
+  # Returns a hash describing what happened.
+  def apply_attack_damage(target_combat_id, amount, damage_type:, dice_count: nil, threshold: nil, attacker_combat_id: nil)
+    raise 'damage_types instance required' unless @damage_types
+    raise 'conditions_lookup required'     unless @conditions_lookup
+
+    target = @combatants.find { |c| c['id'] == target_combat_id }
+    raise "Unknown target #{target_combat_id}" unless target
+
+    raise "Unknown damage type: #{damage_type}" unless @damage_types.known?(damage_type)
+    mechanics = @damage_types.mechanics_for(damage_type)
+
+    base_amount = amount.to_i
+    multiplier  = 1.0
+    bonus       = 0
+
+    mechanics.each do |mechanic|
+      case mechanic['kind']
+      when 'damage_per_dice'
+        next unless dice_count
+        bonus += (dice_count.to_i / mechanic['per'].to_i) * mechanic['bonus'].to_i
+      when 'damage_multiplier'
+        next unless @condition_evaluator.call(target_combat_id, mechanic['condition'])
+        multiplier *= mechanic['factor'].to_f
+      end
+    end
+
+    final_amount = ((base_amount + bonus) * multiplier).floor
+    final_amount = 0 if final_amount.negative?
+
+    severity_split = compute_severity_split(damage_type, final_amount, target['char_id'], threshold)
+
+    target_conditions = @conditions_lookup.call(target['char_id'])
+    raise "No conditions instance for #{target['char_id']}" unless target_conditions
+    damage_result = target_conditions.apply_hit_point_damage(severity_split)
+
+    side_effects = mechanics.map do |mechanic|
+      case mechanic['kind']
+      when 'apply_acid_counter'
+        per_damage = (mechanic['per_damage'] || 1).to_i
+        applied = final_amount * per_damage
+        target_conditions.apply_acid_damage(applied)
+        { 'kind' => 'apply_acid_counter', 'amount' => applied }
+      when 'inflict'
+        per_damage = (mechanic['per_damage'] || 1).to_i
+        applied = final_amount * per_damage
+        case mechanic['condition_name']
+        when 'shock'
+          target_conditions.apply_shock(applied)
+          { 'kind' => 'inflict', 'condition_name' => 'shock', 'amount' => applied }
+        else
+          { 'kind' => 'inflict', 'condition_name' => mechanic['condition_name'], 'amount' => applied, 'unrouted' => true }
+        end
+      end
+    end.compact
+
+    {
+      'attacker_combat_id' => attacker_combat_id,
+      'target_combat_id'   => target_combat_id,
+      'damage_type'        => damage_type,
+      'base_amount'        => base_amount,
+      'multiplier'         => multiplier,
+      'damage_per_dice_bonus' => bonus,
+      'final_amount'       => final_amount,
+      'severity_split'     => severity_split,
+      'damage_result'      => damage_result,
+      'side_effects'       => side_effects
+    }
+  end
+
+  # Tells dice resolution which damage type's `critical_value` (if any)
+  # applies to a Roll. Returns the override or the dice resolution
+  # default. The caller passes this as `critical_modifier` to
+  # COMPUTE_RESULTS / APPLY_NUDGE / etc.
+  def critical_modifier_for(damage_type)
+    return DiceSystem::DEFAULT_CRITICAL_MODIFIER unless @damage_types && damage_type
+    return DiceSystem::DEFAULT_CRITICAL_MODIFIER unless @damage_types.known?(damage_type)
+    mechanic = @damage_types.mechanics_for(damage_type).find { |m| m['kind'] == 'critical_value' }
+    return DiceSystem::DEFAULT_CRITICAL_MODIFIER unless mechanic
+    mechanic['value'].to_i
+  end
+
   private
+
+  # Splits final_amount into { minor, moderate, major } per the damage
+  # type's severity rules.
+  def compute_severity_split(damage_type, amount, target_char_id, threshold)
+    return { 'minor' => 0, 'moderate' => 0, 'major' => 0 } if amount <= 0
+    if @damage_types.runtime_bucketing?(damage_type)
+      runtime_bucket(amount, target_char_id, threshold)
+    else
+      severity = @damage_types.severity_for(damage_type)
+      { 'minor' => 0, 'moderate' => 0, 'major' => 0 }.merge(severity => amount)
+    end
+  end
+
+  # Runtime bucketing for Physical Damage:
+  #   first (Threshold + Damage Resilience) points  → minor
+  #   next  (Threshold + Damage Resilience) points  → moderate
+  #   everything beyond                              → major
+  def runtime_bucket(amount, target_char_id, threshold)
+    target_char = @character_lookup.call(target_char_id)
+    resilience = target_char.respond_to?(:damage_resilience) ? target_char.damage_resilience.to_i : 0
+    bucket_size = [(threshold || 0).to_i + resilience, 0].max
+    return { 'minor' => amount, 'moderate' => 0, 'major' => 0 } if bucket_size.zero? && amount > 0 && false
+    if bucket_size.zero?
+      # No threshold and no resilience: every point becomes major.
+      return { 'minor' => 0, 'moderate' => 0, 'major' => amount }
+    end
+    minor    = [amount, bucket_size].min
+    rest     = amount - minor
+    moderate = [rest, bucket_size].min
+    major    = rest - moderate
+    { 'minor' => minor, 'moderate' => moderate, 'major' => major }
+  end
 
   def require_character(char_id)
     char = @character_lookup.call(char_id)

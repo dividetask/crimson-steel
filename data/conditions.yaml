@@ -1,0 +1,342 @@
+# Conditions — Homebrew Configuration
+#
+# This file holds the configurable values used by the conditions and buffs
+# module. Both the Ruby and C# implementations load this same file and
+# translate the keys to their own naming conventions when reading them.
+#
+# Keys are written in human-readable form (capitalized, with spaces) to
+# match the defined terms in the glossary. Inner field names use snake_case.
+
+# The severity categories used by both Hit Point Damage and Ability Damage
+# are defined canonically in `damage_types_config.yaml` under `Severities`.
+# The conditions module reads that list at startup; do not duplicate it
+# here. The order in damage_types_config is significant: Heal Cascades pour
+# from the highest category to the lowest in the order listed there.
+
+# The divisor in the standard Affliction magnitude formula:
+#   magnitude = 1 + floor(severity / Severity Divisor)
+# The same Divisor applies to every Affliction. Affliction Rules may not
+# override this — the field is global by design so all Afflictions scale
+# uniformly. Conditions also injects a Competency Penalty of
+# floor(severity / Severity Divisor) into every Affliction save.
+Severity Divisor: 10
+
+# Default Severity Per Success: the amount by which Severity decreases for
+# each net success on the save. Plain integer or the literal string "tier"
+# (substituted with the creature's Tier at resolve time, Tier 0 = 0.5,
+# floor applied). Per-Affliction overrides are allowed.
+Default Severity Per Success: 1
+
+# Default Severity Per Failure: the amount by which Severity increases for
+# each net failure on the save. Plain integer or "tier". Per-Affliction
+# overrides are allowed.
+Default Severity Per Failure: 1
+
+# Default Severity Decay: the per-resolution Severity reduction that
+# applies independently of save successes. Plain integer or "tier"; the
+# default tracks the creature's Tier so high-Tier creatures shrug off
+# afflictions faster. Per-Affliction overrides are allowed.
+Default Severity Decay: "tier"
+
+# Afflictions are ongoing conditions with a Severity counter and a
+# data-driven resolution rule. Every Affliction has a save. Each entry
+# is keyed by the Affliction name (used as the identifier when inflicting,
+# resolving, or removing it). Fields:
+#
+#   category:        free-form string presented by the combat tracker.
+#                    Conventional values are "poison", "disease", or
+#                    "other". The module does not validate. Defaults to
+#                    "other" when omitted.
+#
+#   save:            optional. The attribute name used for this
+#                    Affliction's save Roll. Defaults to "con". Any of
+#                    the standard six attribute keys may be used.
+#
+#   save_frequency:  optional. A free-form string describing how often
+#                    the Affliction is resolved. Conventional values are
+#                    "round", "minute", "hour", "day", "month", "year".
+#                    The Conditions module stores it but does not act on
+#                    it; the Combat / downtime caller schedules
+#                    RESOLVE_AFFLICTION accordingly. Defaults to "round".
+#
+#   severity_per_success: optional. Overrides Default Severity Per
+#                    Success for this Affliction. Plain integer or "tier".
+#
+#   severity_per_failure: optional. Overrides Default Severity Per
+#                    Failure for this Affliction. Plain integer or "tier".
+#
+#   severity_decay:  optional. Overrides Default Severity Decay for this
+#                    Affliction. Plain integer or "tier".
+#
+#   effect:          required. The Affliction Effect Kind produced on
+#                    resolution. One of:
+#
+#     { kind: "hit_point_damage", severity: "<category>" }
+#         Deals `net_magnitude` points of hit point damage at the named
+#         severity category, where
+#         net_magnitude = max(0, 1 + floor(severity / divisor) − successes).
+#
+#     { kind: "ability_damage", attribute: "<attr>", severity: "<category>" }
+#         Deals `net_magnitude` points of ability damage to the named
+#         attribute at the named severity category.
+#
+#     { kind: "named_effect", name: "<effect_name>", duration_rounds: <int> }
+#         Looks up `<effect_name>` in `Named Effects` and applies every
+#         modifier defined there for `duration_rounds` rounds. The
+#         Affliction does not specify what the named Effect does — only
+#         which one to apply and for how long. Magnitude is binary for
+#         this kind: any net_magnitude > 0 applies the effect; zero
+#         skips it.
+#
+# Conditions automatically merges a Competency Penalty equal to
+# floor(severity / Severity Divisor) into the save's modifier dict before
+# rolling. Inflicter Tier and the creature's own Tier are NOT injected by
+# Conditions — callers that want those modifiers read Inflicter Tier via
+# GET_AFFLICTION and fold both into the modifiers dict they pass in.
+
+# Effect Names: catalog of every named buff, debuff, or status that
+# Afflictions, spells, or abilities can apply. Each entry has:
+#
+#   description:  free-form human-readable string for display.
+#   mechanics:    a list of Condition Mechanics that describe the
+#                 underlying effect. An empty list means the effect's
+#                 mechanics are owned by another module (bleeding,
+#                 poisoned, diseased — handled by Affliction Resolution).
+#
+# Recognized Mechanic Kinds (one entry per mechanic):
+#
+#   { kind: "modifier", modifier_type: "<Bonus Type>",
+#     sign: "bonus" | "penalty", magnitude: <int>,
+#     applies_to: [<scope tag>, ...], notes: "<optional>" }
+#       A Target Number modifier whose modifier_type is one of the keys
+#       in dice_resolution_config.yaml's `Bonus Types List` (Competency,
+#       Circumstance, Morale, Guidance, Inherent, Ascendancy). Capitalized
+#       to match dice_resolution. `applies_to` is a list of free-form
+#       scope tags (e.g. "dex_checks", "attacks_against",
+#       "verbal_spell_checks") that consuming modules match against.
+#
+#   { kind: "reroll", scope: "<scope>",
+#     applies_to: [<scope tag>, ...] (optional),
+#     sign: "bonus" | "penalty" (optional),
+#     magnitude: <int> (optional),
+#     notes: "<optional>" }
+#       A Roll Modifier that triggers the dice resolution Reroll
+#       Operation (the same mechanic as a Luck Bonus or Penalty). `scope`
+#       names the dice subset to reroll (e.g. "successes_and_criticals").
+#       Luck and Insight are not Bonus Types — they live here, not under
+#       `kind: modifier`.
+#
+#   { kind: "nudge", applies_to: [<scope tag>, ...],
+#     sign: "bonus" | "penalty", magnitude: <int>,
+#     notes: "<optional>" }
+#       A Roll Modifier that triggers the dice resolution Value
+#       Adjustment operation (Insight). Same applies_to / sign /
+#       magnitude shape as `modifier`.
+#
+#   { kind: "set_value", target: "<derived value>",
+#     value: <int or formula string> }
+#       Overrides a derived value (e.g. set combat_dice to 0 for stunned).
+#
+#   { kind: "scale_value", target: "<derived value>", factor: <number> }
+#       Multiplies a derived value by a factor (e.g. movement * 0.5).
+#
+#   { kind: "flag", flag: "<flag name>" }
+#       Sets a named boolean state (e.g. cannot_act, cannot_speak).
+#
+#   { kind: "display", text: "<rule for the DM>" }
+#       Free-form rule the program does not encode. The Conditions
+#       module surfaces these so the DM can adjudicate.
+#
+# Conditions stores active applications of these effects in a unified
+# list. Per-kind queries (GET_MODIFIERS, GET_REROLLS, GET_NUDGES,
+# GET_FLAGS, GET_SET_VALUES, GET_SCALE_VALUES, GET_DISPLAYS) filter that
+# list. This catalog is the project-wide source of truth — abilities
+# reference Effect Names by name in their `effects` and `save` outcome
+# strings and pass them through opaquely; unknown names are not caught
+# at the abilities layer and instead surface here when APPLY_NAMED_EFFECT
+# is called.
+Effect Names:
+
+  blind:
+    description: "The target cannot see; all sight-based perception fails."
+    mechanics:
+      - kind: reroll
+        scope: successes_and_criticals
+        notes: "Each die can only be rerolled once. Luck is applied before this effect; dice already affected by luck are immune."
+
+  dazzled:
+    description: "The target suffers a minor penalty to sight-based checks."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: penalty
+        magnitude: 1
+        applies_to: [dex_checks, wis_checks, casting_checks]
+
+  deafened:
+    description: "The target cannot hear; hearing-based perception fails."
+    mechanics:
+      - kind: reroll
+        scope: successes_and_criticals
+        applies_to: [initiative]
+        sign: penalty
+        magnitude: 1
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: penalty
+        magnitude: 2
+        applies_to: [verbal_spell_checks]
+
+  stunned:
+    description: "The target loses its next turn."
+    mechanics:
+      - kind: set_value
+        target: combat_dice
+        value: 0
+
+  paralyzed:
+    description: "The target cannot act until the effect ends."
+    mechanics:
+      - kind: flag
+        flag: cannot_act
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: bonus
+        magnitude: 2
+        applies_to: [attacks_against]
+
+  prone:
+    description: "The target is lying on the ground (whether knocked down, dropped down intentionally, or asleep)."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: penalty
+        magnitude: 2
+        applies_to: [ranged_attacks_against]
+        notes: "Does not apply when the attacker has higher ground than the prone target."
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: bonus
+        magnitude: 2
+        applies_to: [melee_attacks_against]
+
+  frightened:
+    description: "The target must flee from the source of the effect and may take no actions on its turn other than those that help it flee."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: penalty
+        magnitude: 2
+        applies_to: [fear_saves]
+
+  flustered:
+    description: "The target is rattled and distracted, suffering a penalty to its rolls until the condition ends."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: penalty
+        magnitude: 2
+        applies_to: [attack_checks, ability_checks, spell_checks]
+
+  confused:
+    description: "The target acts unpredictably for the duration."
+    mechanics:
+      - kind: display
+        text: "All attacks and abilities the confused creature uses are made against a random eligible target."
+
+  charmed:
+    description: "The target treats the caster as a trusted ally."
+    mechanics:
+      - kind: display
+        text: "The charmed creature treats the caster as a trusted ally; the DM adjudicates the fiction."
+
+  bleeding:
+    description: "The target takes ongoing bleed damage each round."
+    mechanics: []
+
+  diseased:
+    description: "The target is suffering from a disease."
+    mechanics: []
+
+  poisoned:
+    description: "The target is suffering from a poison effect."
+    mechanics: []
+
+  silenced:
+    description: "The target cannot speak or cast verbal spells."
+    mechanics:
+      - kind: flag
+        flag: cannot_speak
+      - kind: flag
+        flag: cannot_cast_verbal
+
+  entangled:
+    description: "The target's movement is slowed and actions restricted."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: penalty
+        magnitude: 2
+        applies_to: [str_checks, dex_checks]
+      - kind: scale_value
+        target: movement
+        factor: 0.5
+      - kind: flag
+        flag: cannot_run
+
+# Damage-type counters (Shock, Acid Counter) live as built-in fields on
+# the Conditions class with hardcoded behavior — they are NOT defined in
+# config. New damage-type counters require a code change. See the
+# conditions glossary for Shock and Acid Counter semantics.
+
+Afflictions:
+
+  bleeding:
+    category: "other"
+    # save defaults to "con"
+    # save_frequency defaults to "round"
+    # severity_decay defaults to "tier"
+    severity_per_success: "tier"   # high-Tier creatures clot faster
+    severity_per_failure: 0        # bleeding does not worsen on failed saves
+    effect:
+      kind: "hit_point_damage"
+      severity: "minor"
+
+  ghoul_paralysis:
+    category: "other"
+    save: "wis"
+    effect:
+      kind: "named_effect"
+      name: "paralyzed"
+      duration_rounds: 1
+
+  krithrak_spider_venom:
+    category: "poison"
+    effect:
+      kind: "ability_damage"
+      attribute: "dex"
+      severity: "minor"
+
+  common_venom:
+    category: "poison"
+    effect:
+      kind: "hit_point_damage"
+      severity: "minor"
+
+  sleep_venom:
+    category: "poison"
+    effect:
+      kind: "ability_damage"
+      attribute: "cha"
+      severity: "minor"
+
+  sleeping_sickness:
+    category: "disease"
+    save_frequency: "day"
+    severity_per_success: 0        # successes do not weaken the sickness
+    # severity_per_failure stays at the default 1
+    # severity_decay stays at the default "tier"
+    effect:
+      kind: "ability_damage"
+      attribute: "cha"
+      severity: "moderate"

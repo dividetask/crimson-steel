@@ -52,9 +52,23 @@ Action Dice Max is **never persisted**. It's computed every time it's needed by 
 
 `save!` writes the state file atomically on every mutation. Reads at startup are tolerant: missing state file → empty Combat. Adding/removing combatants, rerolling initiative, advancing turns, spending action dice, ending combat — all save immediately. The rules file is loaded only at boot; mid-session changes to combat tunables require a restart.
 
-### Severity Calculation and damage routing
+### Attack resolution pipeline
 
-When attack resolution lands a damage event, Combat is the layer that turns *"N points of damage type T inflicted on Combatant C"* into per-Severity Hit Point Damage on C's Conditions instance. The pipeline:
+An attack resolves in two halves. The first half rolls the attack and decides how much raw damage lands; the second half routes that damage through the damage_types catalog into the target's Conditions. Both halves are documented here; either half may be implemented in either language (today the attack roll itself happens client-side and the damage routing happens server-side, but that's an implementation detail — the docs describe the logic regardless of where it runs).
+
+**Attack roll half:**
+
+1. **Build the attacker's Roll**: dice count from `attack_dice` (the Combatant's combat-pool spend on the attack action), Target Number from the attacker's modifiers (Bonus Types collected from Conditions, equipment, abilities) plus the dice resolution rules.
+2. **Build the target's Opposed Roll**: dice count from the target's defense action (combat-pool spend on dodge/parry), with their own modifiers.
+3. **Roll both** through dice resolution's `RAND_ROLL_DICE` and `COMPUTE_ROLL_PARAMETERS` / `COMPUTE_RESULTS`. The damage type's `critical_value` mechanic, if any, becomes the `critical_modifier` for the attacker's Roll (Combat exposes this lookup via `critical_modifier_for(damage_type)`).
+4. **Compute the Degree of Success** for the Check by subtracting the target's Degree of Individual Success from the attacker's. A Degree of Success ≥ the Default Success Threshold means the attack lands.
+5. **Compute raw damage**:
+   - When the Entry declares an explicit damage Effect (e.g. Fireball's `8*rank damage`), that formula is evaluated through abilities' `evaluate_damage` with the attacker's roll's `success` and `critical` counts.
+   - When the Entry has `attack_roll: true` and **no** declared damage Effect (the elemental darts, ordinary weapon attacks), Combat infers `Tier + Degree of Success + attack bonus` as the implicit damage.
+
+**Damage routing half (Severity Calculation):**
+
+Combat takes the raw damage amount + damage type and turns it into per-Severity Hit Point Damage on the defender's Conditions instance. The pipeline:
 
 1. **Look up the damage type's catalog entry** in damage_types. Read its declared severity (or `runtime_bucketing: true` for physical) and its mechanics list.
 2. **Apply pre-bucketing mechanics**: `damage_per_dice` adjustments (fire's +1/2dice), `damage_multiplier` factors (electricity vs metal armor, radiant vs undead/shadow). The condition tags (`target_has_metal_armor`, `target_has_subtype:undead`) are interpreted here against equipment / character state.
@@ -90,11 +104,10 @@ Combat does **not** own the catalog itself or any Conditions storage; it just se
 - **Hit points, conditions, magic toxicity, shock** — conditions module, indexed per-Character externally.
 - **The damage type catalog itself** — lives in `damage_types_config.yaml`. Combat reads it but does not own it.
 - **HP storage, condition tracking, the Acid Counter, Shock, magic toxicity** — conditions module owns the storage; combat invokes the conditions APIs to mutate it.
-- **Attack resolution math (the to-hit roll itself)** — future work; the current module exposes the inputs (initiative, action dice, unused bonus) but doesn't consume them.
 - **Multiple concurrent Combats** — by design, one fight at a time.
 
 ### Unassigned (no current owner)
 
-- **Attack resolution.** Today there's no method that says "Combatant A attacks Combatant B with weapon W"; once it lands, the Severity Calculation pipeline above takes over.
+- **A canonical attack-resolution entry point** that wires both halves end-to-end. The pieces exist (build a Check via dice resolution; route damage via `apply_attack_damage`); a single "Combatant A attacks Combatant B with weapon W" call that produces both the to-hit outcome and the damage application is still a future composition.
 - **Unused Bonus.** The integer-division half of the action dice formula. The design hasn't decided how (or whether) to apply it; it's stored as a placeholder so a future use doesn't have to recompute.
 - **Initiative reroll edge cases.** The Luck loop reads dice in their pre-Luck order; running multiple iterations of Insight on the same dice list may repeatedly pick the same die unless values change. Both are tractable but unspecified.

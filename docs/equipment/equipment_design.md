@@ -148,6 +148,28 @@ The "verify-or-recreate" guarantee is implicit: equipment never queries Conditio
 
 The namespace is **equipment-only**. Other modules using Conditions never write into `equipment:*` source_ids, and equipment never writes outside that prefix. This isolation is what makes `REMOVE_EFFECTS_BY_PREFIX` safe — the bulk removal can only affect equipment's own grants.
 
+### Item consumption
+
+Items that *contain* a spell (potions, oils, scrolls, wands, spell-storing items) invoke that spell when used. Item consumption is the orchestration that:
+
+1. Looks up the item's spell entry through abilities at the item's tier.
+2. Reads the resolved Effect Hash to find the conventional keys that signal the kind of effect:
+   - `minor_damage` / `moderate_damage` / `major_damage` → cure cascade (heal those amounts).
+   - `mana` → mana restoration on the target.
+   - `temp_hp` → ward (Temporary HP grant on the target).
+   - explicit damage Effects in the resolved entry → damage routing through Combat's Severity Calculation.
+3. Applies the effect(s) to the target's Conditions (or to the target's mana through the character module).
+4. Imposes Magic Toxicity on the target per item-form rules:
+   - **Potion**: `effect_saturation - target_tier`, floored at `effect_minimum_saturation`, plus an extra **potion overhead** of `floor(2 * tier_value * 2^max(item_tier - user_tier, 0))` (with tier-0 treated as 0.5). Reflects the toxicity cost of consuming a potion calibrated above the user's tier.
+   - **Oil**: same formula as Potion. Oil is applied to a target object (typically the user's own gear) but the toxicity falls on the user themselves.
+   - **Scroll**: `effect_saturation - target_tier`, floored at `effect_minimum_saturation`. The user's `improved_healing` ability (if present) reduces saturation by `2 * user_tier` for cure scrolls. No potion-overhead bonus.
+   - **Wand**: deferred — wands are reusable and channel mana from the wand itself rather than imposing toxicity per use.
+5. Decrements the item's quantity by one for consumable forms (Potion, Oil, Scroll, single-use Spell Storing). Wands and persistent magic items keep their quantity unchanged.
+
+**Saturation gate**: cure and mana effects refuse to land if the target is at or above their Magic Toxicity cap (typically `target_char.cha`). Ward effects bypass this gate. The cap itself lives on the character module; the consumption operation accepts the cap as input rather than reaching for it.
+
+**Item-only entries**: spells with `item_only: true` (e.g. Dragon Breath) cannot be cast directly. Their only entry point is the consumption flow described here. Validation of "you can only invoke this through an item" is the caller's job — abilities exposes `is_item_only?` for the check.
+
 ## Responsibilities
 
 ### Owned by the equipment domain
@@ -168,6 +190,7 @@ The namespace is **equipment-only**. Other modules using Conditions never write 
 - Detail-fetchers (`GET_ITEM_DETAILS`, `GET_WEAPON_DETAILS`, `GET_ARMOR_DETAILS`).
 - Generated Display Name composition.
 - **Equip-time wiring to Conditions** via the `equipment:*` Source ID Namespace: posting effects on equip, removing them on unequip, and using `REMOVE_EFFECTS_BY_PREFIX` for bulk loadout cleanup. Equipment is the sole writer to that namespace.
+- **Item consumption** for potions, oils, scrolls, and other consumables: looking up the contained spell, reading conventional Effect Hash keys (cure pools, mana, temp_hp), routing the effects to the target's Conditions, computing per-form Magic Toxicity (with the potion overhead formula and the improved-healing reduction for scrolls), enforcing the saturation gate, and decrementing item quantity.
 
 ### Explicitly *not* owned here
 
