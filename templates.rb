@@ -184,15 +184,18 @@ module GearTable
   module_function
 
   # Resolve a gear reference (string id, inline hash, or nil) into a concrete
-  # gear-table hash. Returns an empty table for nil / unknown ids.
+  # gear-table hash. Returns an empty table for nil, unknown ids, or any
+  # other shape that isn't a Hash (e.g. a creature with `"gear": []`).
   def resolve(ref, tables)
     return { 'rolls' => [], 'gold' => nil } if ref.nil?
     if ref.is_a?(String)
       table = tables[ref]
       warn "GearTable: unknown gear table '#{ref}'" unless table
       Templates.deep_dup(table || { 'rolls' => [], 'gold' => nil })
-    else
+    elsif ref.is_a?(Hash)
       Templates.deep_dup(ref)
+    else
+      { 'rolls' => [], 'gold' => nil }
     end
   end
 
