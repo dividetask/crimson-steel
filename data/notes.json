@@ -43,7 +43,8 @@
     "type": "character",
     "title": "Virelle",
     "tier": 2,
-    "id": "1713bd82-78d8-415b-9b14-6ea622461304"
+    "id": "1713bd82-78d8-415b-9b14-6ea622461304",
+    "image_path": "/images/scene/1777591419-96d364db-Virelle.webp"
   },
   {
     "owner_id": 0,
@@ -257,7 +258,8 @@
       2,
       3,
       4
-    ]
+    ],
+    "image_path": "/images/scene/1777591466-f0fbc750-Petey.webp"
   },
   {
     "owner_id": 0,
@@ -398,7 +400,8 @@
     "type": "character",
     "title": "Varen",
     "tier": 2,
-    "id": "54337c0a-cb5d-4196-ab2f-57268e11a4f6"
+    "id": "54337c0a-cb5d-4196-ab2f-57268e11a4f6",
+    "image_path": "/images/scene/1777591489-9c85dd74-Varen.webp"
   },
   {
     "owner_id": 0,
@@ -569,19 +572,6 @@
     "type": "note",
     "title": "A Botched Bribe",
     "chapter": 3
-  },
-  {
-    "owner_id": 0,
-    "note": "Kael's companion, rogue. Understands Thieves' Cant, spoke with Lysander, open to partnership with Olga.",
-    "public": true,
-    "type": "character",
-    "title": "Varen",
-    "tier": 2,
-    "chapter": 3,
-    "id": "554a6d31-2169-4360-88ff-719749209f1e",
-    "in_scene": true,
-    "scene_order": 9,
-    "image_path": "/images/scene/1777572008-522effda-Varen.webp"
   },
   {
     "owner_id": 0,
