@@ -1,0 +1,431 @@
+# Crimson Steel — advancement rules and class definitions.
+#
+# Setup:
+#   1. Copy this file to `data/advancement.yaml`
+#      (the data/ directory is gitignored, so each campaign keeps
+#      its own tuning).
+#   2. Adjust the values below to match the campaign.
+#   3. Restart the server.
+#
+# This file is the single source of truth consulted by the
+# Advancement class. It owns:
+#   * Default tier advancement
+#   * Tier attribute increases
+#   * Class definitions (skills, saves, abilities, etc) 
+#
+
+# ─── Tier rules ──────────────────────────────────────────────
+#
+# Each tier grants two attribute-score adjustments:
+#
+#   * a flat bonus applied to every attribute, and
+#   * a focused bonus applied to a small number of attributes the
+#     player picks at each tier-up.
+#
+# Both bonuses are per-tier increments — the character's
+# cumulative bonus at tier T is the sum of the first T entries.
+# The lists are indexed from tier 1 (index 0). With the defaults
+# below a character at tier 3 has +3 to every attribute (1+1+1)
+# plus +2 to each of the attributes they picked at tier 2 and the
+# attributes they picked at tier 3 (focused tier-1 bonus is 0
+# because the tier-1 starting score already bakes that in).
+
+# Per-tier flat bonus to every attribute.
+attribute_bonus_per_tier: [1, 1, 1, 1, 1]
+
+# Per-tier focused bonus applied to each attribute the player
+# picks at that tier-up.
+focused_attribute_bonus_per_tier: [0, 2, 2, 2, 2]
+
+# Number of attributes the player picks at each tier-up.
+focused_attribute_count: 2
+
+# ─── Tier advancement ────────────────────────────────────────
+#
+# Total class levels needed to reach tiers 1 through 5, keyed by
+# character tag. The `tags` list on a character (default
+# `[player_character]`) selects which lists to use; if more than
+# one tag matches, the highest tier wins. Descriptive tags
+# without an entry here don't contribute. If a character sets
+# `tier:` explicitly that value wins over the auto-computed one.
+
+tier_advancement:
+  player_character: [1, 4, 8, 16, 32]
+  boss:             [1, 4, 8, 16, 32]
+  noble:            [0, 2, 6, 14, 18]
+  common:           [0, 8, 12, 20, 40]
+
+# ─── Hit points and mana ─────────────────────────────────────
+#
+# max_hit_points = floor(tier * attribute(hp_attribute) / hp_divisor)
+# max_mana       = floor(tier * attribute(mana_attribute) / mana_divisor)
+#
+# Tier 0 yields 0 for both. Calculated by Advancement and
+# exposed through Character.
+
+hp_attribute:   con
+hp_divisor:     1
+mana_attribute: int
+mana_divisor:   2
+
+# ─── Class definitions ───────────────────────────────────────
+#
+# Schema:
+#   classes:
+#     <class_key>:
+#       name             optional human-readable class name. The
+#                        class key is used as a fallback wherever
+#                        the name is displayed.
+#       parent_class     optional. Marks the class as an archetype
+#                        of the named class. The character's
+#                        levels in the archetype also count toward
+#                        the parent class's abilities and grant
+#                        the parent's class skills.
+#                        A character cannot hold levels in both an
+#                        archetype and its parent class — once an
+#                        archetype is taken, all of the character's
+#                        previous parent-class levels are
+#                        reclassified as the archetype. The
+#                        archetype's mana_per_level applies to
+#                        every reclassified level (the
+#                        "retroactive mana grant" rule).
+#       min_parent_level optional, used with parent_class. The
+#                        documented prerequisite level in the
+#                        parent class to take this archetype.
+#       mana_per_level   integer, default 0. Each level in this
+#                        class adds this much to the character's
+#                        max mana. Standard values:
+#                        - 1 for fighter/barbarian/rogue/ranger
+#                        - 2 for bard/arcane_trickster
+#                        - 4 for cleric/druid/wizard
+#                        Archetypes carry their own value rather
+#                        than inheriting from parent_class —
+#                        this is what makes the retroactive mana
+#                        grant work when a character takes an
+#                        archetype.
+#       saves            list of attribute keys (str/dex/con/int/
+#                        wis/cha). The class specializes in these
+#                        saving throws — they advance faster than
+#                        the rest.
+#       bonus_skills     optional integer. How many skills the
+#                        character may train beyond the minimum
+#                        granted by their key attribute. Not
+#                        currently enforced.
+#       class_skills     optional, list of skills that advance
+#                        faster. If the field is omitted entirely
+#                        then every skill not listed in
+#                        non_class_skills or opposed_skills is
+#                        treated as a class skill.
+#       non_class_skills optional, list of skills that advance at
+#                        the average rate.
+#       opposed_skills   optional, list of skills the class
+#                        advances slower.
+#       abilities        ordered list defining which abilities the
+#                        class grants and the level threshold for
+#                        each. Two entry shapes are allowed:
+#
+#                        * Ability entry — has a `name`. Inherits
+#                          the rolling `min_level` from any
+#                          preceding context entry. Every other
+#                          field (notably `scales_with_level`) is
+#                          per-entry only — set it on the ability
+#                          itself.
+#                        * Context entry — no `name`. Sets the
+#                          rolling `min_level` that applies to
+#                          every following ability entry until
+#                          the next context entry. No other field
+#                          is sticky.
+#
+#                        Recognized ability keys:
+#                          name              required on ability
+#                                            entries.
+#                          min_level         class level required
+#                                            (default 1).
+#                          scales_with_level if true, the
+#                                            ability's effective
+#                                            level is the sum of
+#                                            class levels across
+#                                            every class that
+#                                            grants it.
+#                          modifiers         optional list of
+#                                            numeric modifiers
+#                                            granted while the
+#                                            ability is in effect
+#                                            (always-on for
+#                                            permanent abilities;
+#                                            condition-gated
+#                                            abilities apply via
+#                                            the condition layer
+#                                            instead). Each entry:
+#                                              target  field key
+#                                                      (speed,
+#                                                      damage_*,
+#                                                      attribute.<a>,
+#                                                      skill.<k>,
+#                                                      save.<a>,
+#                                                      max_hit_points,
+#                                                      max_mana)
+#                                              type    optional
+#                                                      Bonus Type
+#                                                      from
+#                                                      data/dice_resolution.yaml
+#                                              descriptors
+#                                                      optional list
+#                                                      narrowing
+#                                                      when the
+#                                                      modifier
+#                                                      fires (e.g.
+#                                                      [poison] for
+#                                                      "vs poison")
+#                                              add     signed
+#                                                      integer
+#
+
+classes:
+  barbarian:
+    mana_per_level: 1
+    saves: [str, con]
+    bonus_skills: 2
+    class_skills:
+      - animal_handling
+      - athletics
+      - craft_
+      - healing
+      - intimidate
+      - martial
+      - nature
+      - perception
+    abilities:
+      - name: rage
+        scales_with_level: true
+        description: Spend 1 mana to enter a rage for 1 minute (free action; not while surprised). While raging, gain +1 damage reduction (+1 per 3 levels) and +1 damage resilience (+1 per 2 levels), plus rage powers based on level. After your rage ends you are exhausted for 10 minutes; you cannot rage while fatigued.
+      - name: fast_movement
+        description: +10 ft to your base walking speed.
+        modifiers:
+          - target: speed
+            add: 10
+      - name: reckless_attacks
+        scales_with_level: true
+        description: (Rage) If you spend all of your remaining dice on an attack action, gain a number of additional dice on that attack equal to your level.
+      - min_level: 2
+      - name: uncanny_dodge
+        description: You can enter a rage even if surprised, and are always considered to be dodging an attack — even when unaware or out of dice. You must be able to move; some abilities negate this.
+      - name: primal_tenacity
+        description: (Rage) Spend 4 mana as a reaction to gain a +4 circumstance bonus to damage reduction against a single attack.
+      - name: combat_feat
+        description: Choose one combat feat as a bonus feat.
+      - min_level: 3
+      - name: mindless_rage
+        description: While raging you cannot be charmed or frightened. If you enter a rage while charmed or frightened the effect is suspended for the rage's duration.
+      - min_level: 5
+      - name: improved_uncanny_dodge
+        description: Apply your melee proficiency bonus against enemy melee attacks as though you were using a shield or weapon to deflect the attack.
+
+  bard:
+    name: Bard
+    mana_per_level: 2
+    saves: [dex, cha]
+    bonus_skills: 3
+    non_class_skills:
+      - arcana
+      - restricted_magic
+    abilities:
+      - name: magical_performance
+        scales_with_level: true
+        description: Learn a magical variant of any Performance skill, used both for mundane checks and to create a magical performance. Maintaining a performance takes a main action each turn; bardic spells can be cast as part of that action. Only advances on bard levels.
+      - name: bardic_spellcasting
+        description: Cast a number of bardic spells as a main action while performing. Spells need not be prepared each day. Casting outside a performance takes twice as long.
+      - name: bardic_inspiration
+        description: While performing, spend 1 mana (once per turn) to grant a pool of luck. Each point lets you or an ally reroll a single die before the initial check. Successes grant 1 luck (must be used before your next turn); a fumble awards luck to the DM instead.
+      - min_level: 2
+      - name: jack_of_all_trades
+        description: Treat all skills (except restricted skills) as trained, with effective ranks equal to half your level on checks where you have no ranks.
+      - name: better_lucky_than_good
+        description: Spend 3 mana during a round you cannot act (e.g. surprise round). Attacks against you (including spells) are made with half as many dice (min 3). Enemies are unconsciously aware of the penalty.
+      - name: performance_feat
+        description: Gain Familiar, Social Spell, Spell Focus (Enchantment), or Spell Focus (Illusion) as a bonus feat.
+      - name: versatile_performance
+        description: |
+          Allows the prowess of a performance skill to be used instead of the
+          prowess of linked skills. Each of the following performances has two
+          linked skills: Act, Comedy, Dance, Keyboard Instruments, Oratory,
+          Percussion, Sing, String, and Wind. Each time this ability is gained
+          you must choose one type of performance that can be used with this
+          ability.
+      - min_level: 3
+      - name: silver_tongue
+        description: +1 inherent bonus to Persuasion and Deception checks; applies when using versatile performance.
+        modifiers:
+          - target: skill.persuasion
+            type:   Inherent
+            add:    1
+          - target: skill.deception
+            type:   Inherent
+            add:    1
+      - name: unsettling_words
+        description: Spend a luck point from your performance before an enemy rolls; pick one of their dice to reroll.
+      - min_level: 5
+      - name: competent_performer
+        description: Always gain at least 1 point of luck on your performances. Spend it to remove a luck point from the DM after you fumble a performance.
+      - min_level: 6
+      - name: versatile_performance
+      - min_level: 10
+      - name: versatile_performance
+      - min_level: 14
+      - name: versatile_performance
+      - min_level: 20
+      - name: versatile_performance
+
+  cleric:
+    name: Cleric
+    mana_per_level: 4
+    saves: [wis, cha]
+    bonus_skills: 2
+    class_skills:
+      - appraisal
+      - arcana
+      - craft_
+      - healing
+      - history
+      - linguistics
+      - nobility
+      - persuasion
+      - planes
+      - profession_
+      - restricted_magic
+      - religion
+      - sense_motive
+    abilities:
+      - name: see_injury
+        scales_with_level: true
+        description: See injuries, afflictions, magical saturation, and life energy (including undead negative life energy). Range starts at 10 ft and increases by 5 ft every two levels. Creatures can hide their aura via Stealth. Lets you Heal-check to identify afflictions in range. Doesn't work while blinded.
+      - name: improved_healing
+        scales_with_level: true
+        description: Your healing spells and rituals impose less magical saturation. Reduce saturation by spell tier × 2 (cantrips count as ½). Cannot reduce saturation below 1.
+      - name: combat_healing
+        description: Prepare a number of healing spells each day during 1 hour of prayer; cast them as a main action. You can prepare again only after a full day passes.
+      - name: domain
+        scales_with_level: true
+        description: Choose a domain at character creation. Grants additional domain-specific Channel Divinity options and other features.
+      - min_level: 2
+      - name: channel_divinity
+        description: Spend 1 mana to invoke a divine effect. Requires good standing with your god. Grants Turn Undead and a domain-specific option.
+      - name: turn_undead
+        description: (Channel Divinity) All undead within 30 ft must make a Wisdom save or become panicked.
+      - name: casting_feat
+        description: Choose one spellcasting feat as a bonus feat.
+      - min_level: 5
+      - name: destroy_undead
+        description: (Channel Divinity) Undead of a lower tier than you that fail their Wisdom save against Turn Undead are destroyed. Lower-tier undead that succeed take 1 point of radiant damage.
+
+  druid:
+    name: Druid
+    mana_per_level: 4
+    saves: [int, wis]
+    bonus_skills: 2
+    class_skills:
+      - acrobatics
+      - athletics
+      - craft_
+      - escape_artist
+      - intimidate
+      - investigation
+      - perception
+      - profession_
+      - sense_motive
+      - stealth
+    abilities: []
+
+  fighter:
+    name: Fighter
+    mana_per_level: 1
+    saves: [str, con]
+    bonus_skills: 2
+    class_skills:
+      - acrobatics
+      - animal_handling
+      - athletics
+      - history
+      - intimidate
+      - martial
+      - nature
+      - perception
+    abilities:
+      - name: weapon_training
+        scales_with_level: true
+        description: Choose a weapon group; gain proficiency and a competence bonus to attack rolls with weapons in that group, scaling with class level.
+      - name: armor_training
+        scales_with_level: true
+        description: Increase armor proficiency by one step (none → light → medium → heavy). Improves with class level.
+
+  ranger:
+    name: Ranger
+    mana_per_level: 1
+    bonus_skills: 3
+    saves: [str, dex]
+    class_skills: []
+    abilities: []
+
+  rogue:
+    mana_per_level: 1
+    saves: [dex, int]
+    bonus_skills: 4
+    class_skills:
+      - acrobatics
+      - appraisal
+      - athletics
+      - craft_
+      - deception
+      - disguise
+      - dungeoneering
+      - escape_artist
+      - intimidate
+      - investigation
+      - larceny
+      - linguistics
+      - perception
+      - perform_
+      - persuasion
+      - profession_
+      - sense_motive
+      - sleight_of_hand
+      - stealth
+      - evocation
+    abilities:
+      - name: trapfinding
+        scales_with_level: true
+        description: Spend 1 mana to sense magical auras (including hidden magical traps); requires concentration. At level 5 and every 5 levels thereafter, gain a +1 competence bonus to Perception checks when searching for traps even without spending mana.
+      - name: sneak_attack
+        scales_with_level: true
+        description: Weapon attacks deal +1 damage against flat-footed creatures within 30 ft (+1 per 2 levels after 1st). Before rolling, you may impose an additional effect (e.g. extra bleed, halved movement) by raising the success requirement; the target makes a Constitution save with a penalty equal to your sneak-attack bonus.
+      - name: thieves_cant
+        description: You know thieves' cant — a coded mix of dialect, jargon, and signs. Hide messages in normal conversation (twice as long to convey) and read the secret signs that mark danger, loot, or thieves' guild territory.
+      - min_level: 2
+      - name: danger_sense
+        description: Spend 4 mana as a reaction when taking damage (even when unaware) to gain a +4 luck bonus to damage resilience against that damage.
+      - min_level: 5
+      - name: uncanny_dodge
+        description: Always considered to be dodging an attack — even when unaware or out of dice. You must be able to move; some abilities negate this. If you also have rage, you can rage even if surprised.
+
+  arcane_trickster:
+    parent_class: rogue
+    mana_per_level: 2
+    min_parent_level: 3
+    saves: [dex, int]
+    class_skills:
+      - arcana
+    opposed_skills: []
+    abilities:
+      - min_level: 3
+      - name: combat_trickery
+        description: Gain a number of arcane spells from the Trickery list as innate spells. Cast them as a main action without preparation.
+      - name: mage_legerdemain
+        description: When you cast Mage Hand the hand can be invisible. Use it to stow or retrieve an item from a container worn or carried by another creature, or to use thieves' tools to pick locks and disarm traps at range.
+
+  wizard:
+    mana_per_level: 4
+    saves: [int, wis]
+    class_skills: []
+    opposed_skills:
+      - martial
+    abilities: []

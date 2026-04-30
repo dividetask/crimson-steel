@@ -7,15 +7,11 @@
 # Keys are written in human-readable form (capitalized, with spaces) to
 # match the defined terms in the glossary. Inner field names use snake_case.
 
-# The severity categories used by both Hit Point Damage and Ability Damage.
-# The module does not hard-code the names; adding or renaming categories
-# here flows through every method that stores, heals, or applies damage at
-# a severity. The order is significant: Heal Cascades pour from the highest
-# category to the lowest in the order listed here.
-Severity Categories List:
-  - major
-  - moderate
-  - minor
+# The severity categories used by both Hit Point Damage and Ability Damage
+# are defined canonically in `damage_types_config.yaml` under `Severities`.
+# The conditions module reads that list at startup; do not duplicate it
+# here. The order in damage_types_config is significant: Heal Cascades pour
+# from the highest category to the lowest in the order listed there.
 
 # The divisor in the standard Affliction magnitude formula:
 #   magnitude = 1 + floor(severity / Severity Divisor)
@@ -24,6 +20,79 @@ Severity Categories List:
 # uniformly. Conditions also injects a Competency Penalty of
 # floor(severity / Severity Divisor) into every Affliction save.
 Severity Divisor: 10
+
+# Natural Recovery — per-day rules applied by APPLY_NATURAL_RECOVERY
+# when calendar time advances. See conditions_glossary.md.
+#
+# Heal Rate / Ability Heal Rate are tier-indexed tables. Each tier
+# contributes three rows in canonical Severities order
+# (minor, moderate, major). Each row is [low, high, unit]:
+#   - low  is points healed per period in mode: short_rest
+#   - high is points healed per period in mode: long_term_recovery
+#   - unit is the period length in days
+#
+# A 3-day rest with unit 7 produces floor(3/7) = 0 periods at that
+# severity (no heal). A 7-day rest produces 1 period.
+#
+# Mana per day = floor(mana_max / Mana Per Day Divisor).
+# Magic toxicity decay per day = floor(toxicity_attribute_score /
+# Magic Toxicity Per Day Divisor). The toxicity attribute is
+# typically the character module's chosen attribute (default `cha`)
+# and is supplied by the caller as the score value.
+
+Natural Recovery:
+  Mana Per Day Divisor: 4
+  Magic Toxicity Per Day Divisor: 4
+  Heal Rate:
+    # Tier 0
+    - [1, 2, 1]
+    - [0, 1, 1]
+    - [0, 1, 7]
+    # Tier 1
+    - [2, 4, 1]
+    - [1, 2, 1]
+    - [0, 1, 4]
+    # Tier 2
+    - [4, 8, 1]
+    - [2, 4, 1]
+    - [1, 2, 4]
+    # Tier 3
+    - [8, 16, 1]
+    - [4, 8, 1]
+    - [2, 4, 4]
+    # Tier 4
+    - [16, 32, 1]
+    - [8, 16, 1]
+    - [4, 8, 4]
+    # Tier 5
+    - [32, 64, 1]
+    - [16, 32, 1]
+    - [8, 16, 4]
+  Ability Heal Rate:
+    # Tier 0
+    - [0, 1, 1]
+    - [0, 1, 7]
+    - [0, 1, 14]
+    # Tier 1
+    - [1, 1, 1]
+    - [0, 1, 4]
+    - [0, 1, 7]
+    # Tier 2
+    - [1, 2, 1]
+    - [1, 1, 1]
+    - [0, 1, 7]
+    # Tier 3
+    - [2, 4, 1]
+    - [1, 2, 1]
+    - [1, 1, 4]
+    # Tier 4
+    - [4, 8, 1]
+    - [2, 4, 1]
+    - [1, 2, 4]
+    # Tier 5
+    - [8, 16, 1]
+    - [4, 8, 1]
+    - [2, 4, 4]
 
 # Default Severity Per Success: the amount by which Severity decreases for
 # each net success on the save. Plain integer or the literal string "tier"
@@ -104,8 +173,9 @@ Default Severity Decay: "tier"
 #   description:  free-form human-readable string for display.
 #   mechanics:    a list of Condition Mechanics that describe the
 #                 underlying effect. An empty list means the effect's
-#                 mechanics are owned by another module (bleeding,
-#                 poisoned, diseased — handled by Affliction Resolution).
+#                 mechanics are owned by another module (e.g. a flag
+#                 or display rule the conditions module surfaces but
+#                 does not encode formulaically).
 #
 # Recognized Mechanic Kinds (one entry per mechanic):
 #
@@ -154,9 +224,11 @@ Default Severity Decay: "tier"
 # Conditions stores active applications of these effects in a unified
 # list. Per-kind queries (GET_MODIFIERS, GET_REROLLS, GET_NUDGES,
 # GET_FLAGS, GET_SET_VALUES, GET_SCALE_VALUES, GET_DISPLAYS) filter that
-# list. The Abilities module references entries here by name in its
-# `effects` and `save` outcome fields and is forbidden from declaring an
-# Effect name not in this catalog.
+# list. This catalog is the project-wide source of truth — abilities
+# reference Effect Names by name in their `effects` and `save` outcome
+# strings and pass them through opaquely; unknown names are not caught
+# at the abilities layer and instead surface here when APPLY_NAMED_EFFECT
+# is called.
 Effect Names:
 
   blind:
@@ -252,18 +324,6 @@ Effect Names:
       - kind: display
         text: "The charmed creature treats the caster as a trusted ally; the DM adjudicates the fiction."
 
-  bleeding:
-    description: "The target takes ongoing bleed damage each round."
-    mechanics: []
-
-  diseased:
-    description: "The target is suffering from a disease."
-    mechanics: []
-
-  poisoned:
-    description: "The target is suffering from a poison effect."
-    mechanics: []
-
   silenced:
     description: "The target cannot speak or cast verbal spells."
     mechanics:
@@ -286,10 +346,15 @@ Effect Names:
       - kind: flag
         flag: cannot_run
 
+# Damage-type counters (Shock, Acid Counter) live as built-in fields on
+# the Conditions class with hardcoded behavior — they are NOT defined in
+# config. New damage-type counters require a code change. See the
+# conditions glossary for Shock and Acid Counter semantics.
+
 Afflictions:
 
   bleeding:
-    category: "other"
+    category: "bleed"
     # save defaults to "con"
     # save_frequency defaults to "round"
     # severity_decay defaults to "tier"
@@ -300,7 +365,7 @@ Afflictions:
       severity: "minor"
 
   ghoul_paralysis:
-    category: "other"
+    category: "curse"
     save: "wis"
     effect:
       kind: "named_effect"

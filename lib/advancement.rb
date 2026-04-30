@@ -2,55 +2,51 @@
 # and chosen class skills), tier, and tier-up choices, and reports
 # the bonuses those grant.
 #
-# Character holds the *base* attribute scores. When something
-# asks "what's this character's strength?" Character delegates
-# to its Advancement to find out how much the character's tier
-# adds on top. Each tier grants two attribute-side adjustments:
-# a flat bonus applied to every attribute, and a focused bonus
-# applied to a small number of attributes the player picks at
-# each tier-up. Both come from advancement.yaml's tier rules.
-#
-# Tier itself is auto-computed from the character's total class
-# levels via the breakpoint list for their `type`
-# (`player_character`, `boss`, `noble`, `common`, …) — but a
-# character may set an explicit `tier:` override in their YAML
-# and that always wins.
-#
-# Ability granting works per-class. Each class lists abilities
-# with a `min_level` (defaults to 1) and an optional
-# `scales_with_level` flag. When a character qualifies for a
-# scaling ability the ability's effective level is the *sum*
-# of their levels across every class that grants it; non-scaling
-# abilities are simply present or absent.
+# Character holds the *base* attribute scores. 
+# Advancement holds attribute modifiers from race, class, and
+# tier.Both come from advancement.yaml's tier rules.
 #
 # Archetypes are modeled as classes with a `parent_class` field.
-# A character's levels in an archetype also count toward the
-# parent class's abilities and grant the parent's class skills
-# and saves.
 #
-# Skills and saves likewise advance per class via the
-# class-skill / opposed-skill / neither rate scheme. See
-# `skill_ranks` and `save_ranks` for details.
+# Each class categorizes all skills as class skill, opposed skill
+# or neither. This affects the rate at skill ranks are gained but
+# only for skills the character chooses to advance, and skills 
+# that all characters must take including the martial skill and
+# each save.
 
 require 'yaml'
 
 class Advancement
   DEFAULT_ATTRIBUTE_BONUS_PER_TIER = 1
   DEFAULT_MIN_LEVEL                = 1
-  DEFAULT_CHARACTER_TYPE           = 'player_character'.freeze
+  DEFAULT_TAGS                     = ['player_character'].freeze
 
-  Ability = Struct.new(:name, :level, keyword_init: true) do
+  DEFAULT_HP_ATTRIBUTE   = :con
+  DEFAULT_HP_DIVISOR     = 1
+  DEFAULT_MANA_ATTRIBUTE = :int
+  DEFAULT_MANA_DIVISOR   = 2
+
+  Ability = Struct.new(:name, :level, :description, :sub_choices, keyword_init: true) do
     # `level` is nil for non-scaling abilities.
     def scales?
       !level.nil?
     end
+
+    # Per-grant choices the player picked for this ability (e.g.
+    # the chosen performances for Versatile Performance). Always
+    # an array — defaults to empty when the character entry has no
+    # choices recorded.
+    def sub_choices
+      self[:sub_choices] || []
+    end
   end
 
-  attr_reader :character_type, :class_levels, :class_skill_choices, :tier_attribute_advancement
+  attr_reader :character_tags, :class_levels, :class_skill_choices, :tier_attribute_advancement,
+              :ability_sub_choices
 
   def initialize(
     tier: nil,
-    character_type: DEFAULT_CHARACTER_TYPE,
+    tags: nil,
     class_levels: {},
     class_skill_choices: {},
     tier_attribute_advancement: [],
@@ -59,10 +55,15 @@ class Advancement
     focused_attribute_count: 0,
     tier_advancement: {},
     class_definitions: {},
-    skill_definitions: {}
+    skill_definitions: {},
+    ability_sub_choices: {},
+    hp_attribute: DEFAULT_HP_ATTRIBUTE,
+    hp_divisor: DEFAULT_HP_DIVISOR,
+    mana_attribute: DEFAULT_MANA_ATTRIBUTE,
+    mana_divisor: DEFAULT_MANA_DIVISOR
   )
     @tier_override                    = tier.nil? ? nil : tier.to_i
-    @character_type                   = character_type.to_s
+    @character_tags                   = normalize_tags(tags)
     @class_levels                     = normalize_class_levels(class_levels)
     @class_skill_choices              = normalize_skill_choices(class_skill_choices)
     @tier_attribute_advancement       = Array(tier_attribute_advancement).map(&:to_s)
@@ -72,17 +73,63 @@ class Advancement
     @tier_advancement                 = tier_advancement || {}
     @class_definitions                = class_definitions || {}
     @skill_definitions                = skill_definitions || {}
+    @hp_attribute                     = hp_attribute.to_sym
+    @hp_divisor                       = hp_divisor.to_i.nonzero? || DEFAULT_HP_DIVISOR
+    @mana_attribute                   = mana_attribute.to_sym
+    @mana_divisor                     = mana_divisor.to_i.nonzero? || DEFAULT_MANA_DIVISOR
+    @ability_sub_choices              = normalize_ability_sub_choices(ability_sub_choices)
+    validate_archetype_exclusivity!
+  end
+
+  # Maximum mana for the character. Each character has a base
+  # amount of max mana derived from their intelligence and tier
+  # and this is increased each level by an amount determined by
+  # their class
+
+  # The per-class grant is the "retroactive mana" part of the
+  # archetype rule — taking an archetype reclassifies all of the
+  # character's prior parent-class levels as the archetype, and
+  # the archetype's mana_per_level applies to every reclassified
+  # level. (See validate_archetype_exclusivity! — characters
+  # cannot hold both a parent class and its archetype.)
+  def max_mana(character)
+    attr_score = character.respond_to?(:attribute) ? character.attribute(@mana_attribute).to_i : 0
+    tier_term = (character.tier.to_i * attr_score) / @mana_divisor
+    class_term = @class_levels.sum do |klass, level|
+      next 0 if level.to_i <= 0
+      mana_per_level_for(klass) * level.to_i
+    end
+    tier_term + class_term
+  end
+
+  # Per-class mana_per_level lookup. Reads from the class
+  # definition; falls back to 0 when unset (for classes that
+  # grant no mana). Archetypes carry their own value — no
+  # inheritance from parent_class — because the retroactive
+  # mana-grant rule depends on the archetype's mana being
+  # applied to every reclassified level.
+  def mana_per_level_for(klass)
+    (class_definition(klass)['mana_per_level'] || 0).to_i
   end
 
   # The character's current tier. Returns the explicit override
   # if one was set; otherwise computes it from total class level
-  # via the breakpoint list for their character type.
+  # by trying every applicable tag's breakpoint list and taking
+  # the highest tier any of them yields. When none of the
+  # character's tags has an entry, falls back to the slowest
+  # progression in the system — the smallest tier any defined
+  # breakpoint list would grant.
   def tier
     return @tier_override if @tier_override
-    breakpoints = tier_breakpoints
-    return 0 if breakpoints.empty?
     total = @class_levels.values.sum
-    breakpoints.count { |bp| total >= bp.to_i }
+    matching = matching_breakpoint_lists
+    if matching.any?
+      matching.map { |bp| bp.count { |v| total >= v.to_i } }.max
+    else
+      all_lists = all_breakpoint_lists
+      return 0 if all_lists.empty?
+      all_lists.map { |bp| bp.count { |v| total >= v.to_i } }.min
+    end
   end
 
   # True iff the tier value came from an explicit override.
@@ -116,12 +163,26 @@ class Advancement
     flat_attribute_bonus(current_tier) + focused_attribute_bonus(attr_sym, current_tier)
   end
 
+  VERSATILE_PERFORMANCE_KEY = 'versatile_performance'.freeze
+
   # All abilities the character has earned, as Ability structs.
   # Scaling abilities carry their effective level (the sum of
   # qualifying class levels across every class that grants them);
-  # non-scaling abilities carry a nil level.
+  # non-scaling abilities carry a nil level. The description is
+  # the first non-empty value encountered for an ability name.
+  #
+  # `versatile_performance` is a hardcoded special case: each
+  # class-level grant the character qualifies for produces a
+  # separately-named Ability — `Versatile Performance (Wind)`,
+  # `Versatile Performance (Oratory)`, etc. The chosen performance
+  # comes from `advancement.versatile_performance` on the character
+  # entry (one entry per grant, in the order grants are earned).
+  # If the character has fewer choices than grants, extra grants
+  # appear as the bare `Versatile Performance` so the gap is
+  # visible on the sheet.
   def abilities
-    granted = {} # name => { level: Integer|nil, scales: Boolean }
+    granted = {} # name => { level: Integer|nil, scales: Boolean, description: String|nil }
+    versatile_grant_count = 0
 
     @class_levels.each do |klass, level|
       next if level <= 0
@@ -132,8 +193,14 @@ class Advancement
           min_level = (ability_def['min_level'] || DEFAULT_MIN_LEVEL).to_i
           next if level < min_level
 
+          if name == VERSATILE_PERFORMANCE_KEY
+            versatile_grant_count += 1
+            next
+          end
+
           scales = ability_def['scales_with_level'] ? true : false
-          slot   = granted[name] ||= { level: nil, scales: false }
+          slot   = granted[name] ||= { level: nil, scales: false, description: nil }
+          slot[:description] ||= ability_def['description']
           if scales
             slot[:scales] = true
             slot[:level]  = (slot[:level] || 0) + level
@@ -142,7 +209,45 @@ class Advancement
       end
     end
 
-    granted.map { |name, info| Ability.new(name: name, level: info[:scales] ? info[:level] : nil) }
+    result = granted.map do |name, info|
+      Ability.new(
+        name:        name,
+        level:       info[:scales] ? info[:level] : nil,
+        description: info[:description],
+        sub_choices: Array(@ability_sub_choices[name]).dup
+      )
+    end
+
+    versatile_choices = Array(@ability_sub_choices[VERSATILE_PERFORMANCE_KEY])
+    versatile_grant_count.times do |i|
+      choice = versatile_choices[i]
+      display_name = choice && !choice.empty? ? "Versatile Performance (#{choice.to_s.split('_').map(&:capitalize).join(' ')})" : 'Versatile Performance'
+      result << Ability.new(name: display_name, level: nil, sub_choices: [])
+    end
+
+    result
+  end
+
+  # Flat list of modifier hashes contributed by every class
+  # ability the character qualifies for. Pre-Modifier shape so
+  # the consumer (Character) can fold these into a single
+  # Modifiers instance alongside racial contributions.
+  def modifiers
+    result = []
+    @class_levels.each do |klass, level|
+      next if level <= 0
+      classes_in_chain(klass).each do |chain_klass|
+        Array(class_ability_defs(chain_klass)).each do |ability_def|
+          next if ability_def['name'].nil?
+          min_level = (ability_def['min_level'] || DEFAULT_MIN_LEVEL).to_i
+          next if level < min_level
+          Array(ability_def['modifiers']).each do |mod|
+            result << mod
+          end
+        end
+      end
+    end
+    result
   end
 
   # Skill name => rank. A skill is contributed to by a class when
@@ -194,19 +299,46 @@ class Advancement
     ranks
   end
 
+  # Maximum hit points for the character. Tier comes from the
+  # character so a Character-level override stays authoritative
+  # even if Advancement was constructed without the same value.
+  # Formula: floor(character.tier * attribute(hp_attribute) / hp_divisor).
+  def max_hit_points(character)
+    (character.tier * character.attribute(@hp_attribute)) / @hp_divisor
+  end
+
+  # max_mana is defined earlier with the per-class grant term added
+  # on top of the shared tier × attribute shape.
+
+  # Class-driven contribution to damage resilience, on top of the
+  # tier-derived base Character provides. Returns 0 until class
+  # definitions describe how classes and class abilities raise
+  # resilience; the method exists now so Character has a stable
+  # query point.
+  def damage_resilience
+    0
+  end
+
+  # Class-driven contribution to damage reduction. Same shape as
+  # damage_resilience: returns 0 until class definitions wire it
+  # up.
+  def damage_reduction
+    0
+  end
+
   # Build an Advancement from a character entry's `advancement`
   # subhash plus the loaded rules and class definitions. The
-  # character's `type` (selecting which tier-advancement
-  # breakpoint list to use) is passed in separately because it
-  # lives at the character level, not under `advancement:`.
-  def self.from_entry(entry, type: nil, rules: {}, class_definitions: {}, skill_definitions: {})
+  # character's tags (selecting which tier-advancement breakpoint
+  # lists to consult) are passed in separately because they live
+  # at the character level, not under `advancement:`.
+  def self.from_entry(entry, tier: nil, tags: nil, rules: {}, class_definitions: {}, skill_definitions: {})
     entry ||= {}
     rules ||= {}
     classes_block = entry['classes'] || {}
     levels, skills = split_classes_block(classes_block)
     new(
-      tier:                             entry['tier'],
-      character_type:                   type || DEFAULT_CHARACTER_TYPE,
+      tier:                             tier,
+      tags:                             tags,
       class_levels:                     levels,
       class_skill_choices:              skills,
       tier_attribute_advancement:       entry['tier_attribute_advancement'] || [],
@@ -215,8 +347,25 @@ class Advancement
       focused_attribute_count:          rules['focused_attribute_count'] || 0,
       tier_advancement:                 rules['tier_advancement'] || {},
       class_definitions:                class_definitions,
-      skill_definitions:                skill_definitions
+      skill_definitions:                skill_definitions,
+      ability_sub_choices:              extract_ability_sub_choices(entry),
+      hp_attribute:                     rules.fetch('hp_attribute',   DEFAULT_HP_ATTRIBUTE),
+      hp_divisor:                       rules.fetch('hp_divisor',     DEFAULT_HP_DIVISOR),
+      mana_attribute:                   rules.fetch('mana_attribute', DEFAULT_MANA_ATTRIBUTE),
+      mana_divisor:                     rules.fetch('mana_divisor',   DEFAULT_MANA_DIVISOR)
     )
+  end
+
+  # Pulls per-ability sub-choices off a character's `advancement`
+  # entry. Today only `versatile_performance` is recognized — the
+  # entry's `versatile_performance:` key is a list of chosen
+  # performance keys (one per grant). Future abilities with their
+  # own sub-choices register here without changing the entry shape.
+  def self.extract_ability_sub_choices(entry)
+    out = {}
+    list = entry['versatile_performance'] || entry[:versatile_performance]
+    out['versatile_performance'] = Array(list).map(&:to_s) if list
+    out
   end
 
   # Loads the combined advancement file. Returns:
@@ -282,6 +431,28 @@ class Advancement
 
   private
 
+  # A character cannot hold levels in both a parent class and one
+  # of its archetypes simultaneously. Once an archetype is taken,
+  # all of the character's previous parent-class levels are
+  # reclassified as the archetype — they don't coexist as
+  # multiclass entries. Raises when the loaded class_levels
+  # violate this rule.
+  def validate_archetype_exclusivity!
+    @class_levels.each do |klass, level|
+      next if level.to_i <= 0
+      definition = class_definition(klass)
+      parent = definition['parent_class'] || definition[:parent_class]
+      next unless parent
+      parent = parent.to_s
+      parent_level = @class_levels[parent].to_i
+      next if parent_level <= 0
+      raise ArgumentError,
+            "Character has levels in both archetype '#{klass}' and its " \
+            "parent class '#{parent}'. Archetypes reclassify all parent-class " \
+            "levels — declare only the archetype with the combined level."
+    end
+  end
+
   def normalize_class_levels(input)
     case input
     when Hash
@@ -298,10 +469,24 @@ class Advancement
     input.each_with_object({}) { |(k, v), h| h[k.to_s] = Array(v).map(&:to_s) }
   end
 
-  def tier_breakpoints
+  def normalize_ability_sub_choices(input)
+    return {} unless input.is_a?(Hash)
+    input.each_with_object({}) { |(k, v), h| h[k.to_s] = Array(v).map(&:to_s) }
+  end
+
+  def matching_breakpoint_lists
     return [] unless @tier_advancement.is_a?(Hash)
-    list = @tier_advancement[@character_type] || @tier_advancement[DEFAULT_CHARACTER_TYPE]
-    Array(list)
+    @character_tags.map { |tag| @tier_advancement[tag] }.compact.map { |list| Array(list) }
+  end
+
+  def all_breakpoint_lists
+    return [] unless @tier_advancement.is_a?(Hash)
+    @tier_advancement.values.compact.map { |list| Array(list) }
+  end
+
+  def normalize_tags(input)
+    list = Array(input).map(&:to_s).reject(&:empty?)
+    list.empty? ? DEFAULT_TAGS.dup : list
   end
 
   def flat_attribute_bonus(tier)

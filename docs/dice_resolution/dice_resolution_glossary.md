@@ -34,6 +34,10 @@
 
 **Maximum Dice Count**: The maximum permitted Dice Count. Every Roll must have no more then this many dice. *(indirectly configurable)*
 
+**Skill Prowess**: A signed integer summarizing a creature's effective competence at a particular Skill, computed by the skills domain. Prowess is the input to **Compute Check Details** and is the only value the skills domain hands to dice resolution.
+
+**Compute Check Details**: A pure function that partitions a Skill Prowess into a `{Dice Count, Competency Bonus, Competency Penalty}` triple. Excess **positive** Prowess past the Maximum Dice Count becomes a Competency Bonus; excess **negative** Prowess past the Minimum Dice Count becomes a Competency Penalty. Both propagate to Opposed Rolls (with sign inversion on the opposed side); routing the remainder to Starting Value instead would silently strip that opposed-side effect, so the partition deliberately uses Competency modifiers. There is **no cap** on the Bonus or Penalty here — when a Bonus would push the Roll's TN past the Minimum Target Number, the existing overflow rule in **Compute Roll Parameters** converts the excess into Starting Successes downstream.
+
 ## Die Results
 
 **Success**: A die result that meets or exceeds the Target Number. Each Success contributes one point to the Degree of Individual Success.
@@ -78,7 +82,9 @@ Modifiers of the same type do not stack — only the one with the largest magnit
 
 When Target Number Modifiers would push the Target Number outside the range defined by the Minimum Target Number and Maximum Target Number, the overflow is not wasted. Each point of Penalty beyond the Maximum Target Number becomes one additional Starting Failure, and each point of Bonus beyond the Minimum Target Number becomes one additional Starting Success. This conversion is 1:1.
 
-The list of valid bonus and penalty types is defined in `dice_resolution_config.yaml` under `Bonus Types List`. The dice resolution module does not hard-code which types exist; it consults the config to validate modifier keys. Every type in that list may produce a Bonus, a Penalty, and a Starting value (see below).
+The canonical list of valid bonus and penalty types does not currently belong to the dice resolution domain — see `docs/orphans.md`. Dice resolution treats type names as opaque. Every type in the list may produce a Bonus, a Penalty, and a Starting value (see below).
+
+Bonuses and Penalties on a Roll propagate to every other Roll in the same Check by default: same-side Rolls receive them with the same sign, Opposed-side Rolls receive them with the sign inverted. A modifier may opt out of propagation with a "this-Roll-only" flag. Starting contributions do not propagate.
 
 **Target Number Bonuses**: Modifiers that decrease the Target Number of a creature's own Rolls and increase the Target Number of all Opposed Rolls made against them.
 
@@ -92,11 +98,14 @@ The list of valid bonus and penalty types is defined in `dice_resolution_config.
 
 ## Roll Modifiers
 
-Roll Modifiers alter the dice of a Roll rather than its Target Number. The dice resolution module exposes two generic operations that external effects may invoke:
+Roll Modifiers alter the dice of a Roll rather than its Target Number. The dice resolution module exposes three generic operations that external effects may invoke:
 
 - **Value Adjustment**: a signed integer applied to a single die's value. Positive values raise a die and are targeted at the die most helpful to the Roll. Negative values lower a die and are targeted at the die most damaging to the Roll. Specific targeting rules depend on whether the Check counts Failures.
-- **Reroll Operation**: a signed integer indicating the number of dice to reroll. Positive values reroll dice that are neither Successes nor Critical Successes (preferring the lowest values, which are typically Failures). Negative values reroll dice that are Successes or Critical Successes (preferring the highest values, which are typically Critical Successes). No die may be rerolled more than once in a Roll.
+- **Reroll Operation**: a signed integer indicating the number of dice to reroll. Positive values reroll dice that are neither Successes nor Critical Successes (preferring the lowest values, which are typically Failures). Negative values reroll dice that are Successes or Critical Successes (preferring the highest values, which are typically Critical Successes).
+- **Sweep Reroll**: a signed integer constrained to -1, 0, or +1. A value of +1 rerolls every die that is not a Success (every die with value < Target Number, including Failures). A value of -1 rerolls every Success (every die with value ≥ Target Number, including Critical Successes). A value of 0 has no effect. Sweep Reroll is mutually exclusive across directions on a single Roll — at most one direction applies.
 
-The Reroll Operation is applied before the Value Adjustment operation when both are present for the same Roll.
+No die may be rerolled more than once in a Roll. This rule spans the Reroll Operation and Sweep Reroll: a die rerolled by the Reroll Operation is skipped by Sweep Reroll, and vice versa.
+
+When more than one of these operations applies to the same Roll, they execute in a fixed order: **Reroll Operation, then Sweep Reroll, then Value Adjustment.**
 
 Specific named effects (those arising from divine intervention, fortune, magical guidance, and so on) are defined in the modules that introduce those concepts. Each such effect specifies which of the two generic operations it uses and with what magnitude.

@@ -65,7 +65,7 @@ class Race
   # character's total class level; non-scaling abilities carry a
   # nil level. Abilities accumulate up the parent_race chain.
   def abilities
-    granted = {} # name => { level: Integer|nil, scales: Boolean }
+    granted = {} # name => { level: Integer|nil, scales: Boolean, description: String|nil }
 
     chain.each do |race_key|
       Array(race_ability_defs(race_key)).each do |ability_def|
@@ -75,7 +75,8 @@ class Race
         next if @character_level < min_level
 
         scales = ability_def['scales_with_level'] || ability_def[:scales_with_level] ? true : false
-        slot   = granted[name] ||= { level: nil, scales: false }
+        slot   = granted[name] ||= { level: nil, scales: false, description: nil }
+        slot[:description] ||= (ability_def['description'] || ability_def[:description])
         if scales
           slot[:scales] = true
           slot[:level]  = (slot[:level] || 0) + @character_level
@@ -83,7 +84,32 @@ class Race
       end
     end
 
-    granted.map { |name, info| Ability.new(name: name, level: info[:scales] ? info[:level] : nil) }
+    granted.map do |name, info|
+      Ability.new(
+        name:        name,
+        level:       info[:scales] ? info[:level] : nil,
+        description: info[:description]
+      )
+    end
+  end
+
+  # Flat list of modifier hashes contributed by every racial
+  # ability the character qualifies for. Pre-Modifier shape so
+  # the consumer (Character) can fold these into a single
+  # Modifiers instance alongside class-driven contributions.
+  def modifiers
+    result = []
+    chain.each do |race_key|
+      Array(race_ability_defs(race_key)).each do |ability_def|
+        next if ability_def['name'].nil? && ability_def[:name].nil?
+        min_level = (ability_def['min_level'] || ability_def[:min_level] || DEFAULT_MIN_LEVEL).to_i
+        next if @character_level < min_level
+        Array(ability_def['modifiers'] || ability_def[:modifiers]).each do |mod|
+          result << mod
+        end
+      end
+    end
+    result
   end
 
   # Loads the races definition file. Returns a hash keyed by

@@ -47,6 +47,42 @@ minimum_skills_trained:
   attribute: int
   attribute_divisor: 4
 
+# ─── Skill Roll math ─────────────────────────────────────────
+#
+# A Skill Roll's Skill Prowess is `Skill Ranks + Attribute
+# Contribution`. The Attribute Contribution is the character's
+# Effective Attribute divided by `attribute_contribution_divisor`,
+# floored. The resulting Skill Prowess is handed to dice
+# resolution's `compute_check_details` to produce the Dice Count,
+# Competency Bonus, and Starting Value.
+
+skill_prowess:
+  attribute_contribution_divisor: 2
+
+# ─── Versatile Performance ───────────────────────────────────
+#
+# Each entry maps a Perform Skill Set Member key (the part after
+# `perform_`) to the two ordinary Skills that performance can
+# substitute for. When a character with the `versatile_performance`
+# ability has chosen a performance, a `skill_details` lookup for
+# either of the listed Skills compares the requested Skill's
+# Skill Prowess against the chosen Performance's Skill Prowess
+# and returns the better of the two — keeping the requested
+# Skill's name on the way out.
+
+versatile_performance:
+  ability_name: versatile_performance
+  performances:
+    act:        [deception, disguise]
+    comedy:     [deception, intimidate]
+    dance:      [acrobatics, athletics]
+    keyboard:   [persuasion, intimidate]
+    oratory:    [persuasion, sense_motive]
+    percussion: [animal_handling, intimidate]
+    sing:       [deception, sense_motive]
+    string:     [deception, persuasion]
+    wind:       [persuasion, animal_handling]
+
 skills:
   # Strength
   athletics:

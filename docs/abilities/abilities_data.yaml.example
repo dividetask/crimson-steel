@@ -15,18 +15,21 @@
 # rules are defined in `abilities_pseudocode.md`.
 
 # ---------------------------------------------------------------------
-# Elemental damage darts. Each is a separate compendium entry with the
-# same mechanical shape — a tier-0 ranged attack with a concentration
-# block that throws an additional dart each concentrate turn — but a
-# different element baked into the name and description. The initial
-# cast throws the first dart (`apply_on_cast: true`); concentrating
-# throws another. Damage-type properties (fire +1/hit, acid
-# half-carryover, electricity vs. metal armor, cold inflicts shock)
-# live in the damage-types module, not here.
+# Elemental damage darts — a single Entry on the Aspect axis. The four
+# darts share the same mechanical shape (tier-0 ranged attack with a
+# concentration block that throws an additional dart each concentrate
+# turn) and only differ in their element and displayed name. Damage is
+# computed by combat from the attack outcome (Tier + Degree of Success
+# + attack bonus); damage-type behavior (fire +1/2dice, acid counter,
+# electricity vs metal armor, cold inflicts shock) lives in the
+# damage_types module.
 
-Acid Dart:
+Elemental Dart:
   type: spell
   tier: 0
+  aspects: [fire, acid, electricity, cold]
+  name: [Fire Dart, Acid Dart, Electricity Dart, Cold Dart]
+  damage_type: [fire, acid, electricity, cold]
   school: resonance
   casting_time: Main Action
   range: Close
@@ -38,71 +41,11 @@ Acid Dart:
   items: []
   concentration:
     action: Main Action
-    apply_on_cast: true
+    apply_on_cast: false
     retarget: true
     attack_roll: true
-    description: "Throw another acid dart at any valid target within range."
-  description: "A ranged splash of corrosive acid. Resolves as a ranged attack. While concentrating, the caster may throw additional darts"
-
-Fire Dart:
-  type: spell
-  tier: 0
-  school: resonance
-  casting_time: Main Action
-  range: Close
-  target: "1"
-  attack_roll: true
-  save: []
-  duration: concentration
-  skills: [arcana]
-  items: []
-  concentration:
-    action: Main Action
-    apply_on_cast: true
-    retarget: true
-    attack_roll: true
-    description: "Throw another fire dart at any valid target within range."
-  description: "A ranged dart of flame. Resolves as a ranged attack. While concentrating, the caster may throw additional darts"
-
-Cold Dart:
-  type: spell
-  tier: 0
-  school: resonance
-  casting_time: Main Action
-  range: Close
-  target: "1"
-  attack_roll: true
-  save: []
-  duration: concentration
-  skills: [arcana]
-  items: []
-  concentration:
-    action: Main Action
-    apply_on_cast: true
-    retarget: true
-    attack_roll: true
-    description: "Throw another cold dart at any valid target within range."
-  description: "A ranged shard of biting cold. Resolves as a ranged attack. While concentrating, the caster may throw additional darts"
-
-Electric Dart:
-  type: spell
-  tier: 0
-  school: resonance
-  casting_time: Main Action
-  range: Close
-  target: "1"
-  attack_roll: true
-  save: []
-  duration: concentration
-  skills: [arcana]
-  items: []
-  concentration:
-    action: Main Action
-    apply_on_cast: true
-    retarget: true
-    attack_roll: true
-    description: "Throw another electric dart at any valid target within range."
-  description: "A ranged arc of electricity. Resolves as a ranged attack. While concentrating, the caster may throw additional darts"
+    description: "Throw another {aspect} dart at any valid target within range."
+  description: "A ranged dart of {aspect}. Resolves as a ranged attack. While concentrating, the caster may throw additional darts."
 
 # ---------------------------------------------------------------------
 # Multi-tier spell with per-tier suffixes and tier-indexed effect
@@ -155,6 +98,7 @@ Fireball:
   area:
     shape: circle
     size: 4
+  damage_type: fire
   save:
     - attribute: dex
       fail: "8*rank damage"
@@ -194,6 +138,7 @@ Dragon Breath:
   casting_time: Main Action
   range: Self
   target: "1+rank"
+  damage_type: fire
   save:
     - attribute: dex
       fail: "10*rank damage"
@@ -219,6 +164,7 @@ Scorching Ray:
   casting_time: Main Action
   range: Medium
   target: "1"
+  damage_type: fire
   save:
     - attribute: dex
       fail: "4*rank + 2*success + 3*critical damage"
@@ -228,25 +174,6 @@ Scorching Ray:
   skills: [arcana]
   items: []
   description: "A ray of searing flame. Damage grows with the caster's rank and with the defender's botched saving throw."
-
-# ---------------------------------------------------------------------
-# Touch-range spell that resolves as a melee attack rather than a save.
-# Touch spells are typical of harm-application spells where the caster
-# physically lays a hand on the target and the target gets a chance to
-# avoid contact.
-Withering Touch:
-  type: spell
-  tier: 1
-  school: pneumancy
-  casting_time: Main Action
-  range: Touch
-  target: "1"
-  attack_roll: true
-  save: []
-  duration: instant
-  skills: [arcana, restricted]
-  items: []
-  description: "A touch that withers flesh. Resolves as a melee attack."
 
 # ---------------------------------------------------------------------
 # Rare case: a spell that has both an attack and a save. Almost always
@@ -260,6 +187,7 @@ Soul Drain:
   range: Touch
   target: "1"
   attack_roll: true
+  damage_type: necrotic
   save:
     - attribute: wis
       fail: "4*rank damage"

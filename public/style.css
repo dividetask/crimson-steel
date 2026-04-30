@@ -1642,6 +1642,7 @@ body {
 }
 
 .sheet .header {
+  position: relative;
   text-align: center;
   margin-bottom: 15px;
 }
@@ -1650,6 +1651,16 @@ body {
   font-size: 28px;
   margin-bottom: 5px;
 }
+
+.sheet .header .player {
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-size: 12px;
+  color: #555;
+  line-height: 28px;
+}
+.sheet .header .player strong { color: #000; }
 
 .sheet .subtitle {
   font-size: 14px;
@@ -1789,6 +1800,23 @@ body {
   margin-left: 4px;
 }
 
+/* Comma-separated list of class / race ability names pulled from
+   Character#abilities. Renders before the descriptive blocks so a
+   reader sees the full roster of granted abilities at a glance. */
+.ability-list {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #333;
+}
+.ability-tag {
+  white-space: nowrap;
+}
+.ability-level {
+  color: #555;
+  font-size: 0.9em;
+}
+
 /* Enhancement-bonus annotation shown next to an attribute score when a
    belt / headband / buff spell is boosting the attribute. */
 .sheet .enh-note {
@@ -1857,12 +1885,6 @@ body {
 }
 .character-controls .detail-toggle:hover { background: #145ea8; }
 
-.character-player {
-  font-size: 11px;
-  color: #555;
-}
-.character-player strong { color: #000; }
-
 /* Tier-tinted text colors. Used on character names, "Tier N" tags,
    and anywhere else a tier should read at a glance. Matches the
    palette used elsewhere in the app. */
@@ -1889,12 +1911,25 @@ body {
   color: #1a1a1a;
 }
 
+.char-card-name-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .char-card-name {
   font-size: 26px;
   font-weight: bold;
   letter-spacing: 0.5px;
   line-height: 1.1;
 }
+
+.char-card-player {
+  font-size: 12px;
+  color: #555;
+}
+.char-card-player strong { color: #000; }
 
 .char-card-type {
   font-style: italic;
@@ -1950,11 +1985,16 @@ body {
 
 /* Single-row Initiative / Perception / Speed strip. */
 .char-card-quickrow {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  width: 100%;
+  border-collapse: collapse;
   margin: 4px 0;
+  table-layout: fixed;
+}
+.char-card-quickrow td {
+  width: 33.333%;
+  text-align: left;
+  border: none;
+  padding: 0;
 }
 .char-card-quickrow strong { color: #8b1538; }
 
@@ -2002,6 +2042,43 @@ body {
   color: #8b1538;
   border-bottom: 1px solid #8b1538;
   letter-spacing: 0.5px;
+}
+/* Skills table on the minimal card. Visually two side-by-side
+   skill tables in one DOM table: an empty middle column splits
+   the row in half so the rule lines under each half stop short
+   of the divider. */
+.char-card-skills {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0 6px 0;
+  font-size: 13px;
+  table-layout: fixed;
+}
+.char-card-skills th,
+.char-card-skills td {
+  padding: 5px 8px;
+  text-align: left;
+  border-bottom: 1px solid #e0d8c0;
+}
+.char-card-skills tr:last-child td { border-bottom: none; }
+.char-card-skills th {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 11px;
+  color: #8b1538;
+  border-bottom: 1px solid #8b1538;
+  letter-spacing: 0.5px;
+}
+.char-card-skills .char-card-skills-spacer {
+  width: 16px;
+  padding: 0;
+  border-bottom: none;
+  background: transparent;
+}
+.char-card-skills td:nth-child(1),
+.char-card-skills td:nth-child(5) {
+  font-style: italic;
+  color: #4a3a1f;
 }
 
 .char-card .ability-damage { color: #c0392b; font-weight: bold; margin-left: 3px; font-size: 0.9em; }
@@ -2209,3 +2286,78 @@ body {
   font-weight: 600;
 }
 .notes-body-toggle:hover { text-decoration: underline; }
+
+/* ── /combat page ────────────────────────────────────────── */
+
+.combat-page-title {
+  margin: 12px 0 8px 0;
+  font-size: 24px;
+}
+
+/* Reusable confirm-and-post stub. Single message paragraph
+   above a single submit button. */
+.confirm-action-stub {
+  margin: 12px 0;
+  padding: 16px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  background: #fafafa;
+}
+.confirm-action-message {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+}
+.confirm-action-button {
+  padding: 6px 16px;
+  font-size: 13px;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.confirm-action-button:hover { background: #145ea8; }
+
+/* Turn Action stub: vertical button menu on the left, the
+   active panel on the right. All panels are present in the DOM;
+   only the .is-active one is visible. */
+.turn-action-stub {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 16px;
+  margin: 12px 0 24px 0;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  padding: 12px;
+  background: #fff;
+}
+.turn-action-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.turn-action-menu-btn {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 13px;
+  background: #f0f0f0;
+  border: 1px solid #c0c0c0;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: normal;
+}
+.turn-action-menu-btn:hover { background: #e3e3e3; }
+.turn-action-menu-btn.is-active {
+  background: #1976d2;
+  color: #fff;
+  border-color: #145ea8;
+  font-weight: bold;
+}
+.turn-action-panels { min-width: 0; }
+.turn-action-panel { display: none; }
+.turn-action-panel.is-active { display: block; }
+.turn-action-panel h3 { margin: 0 0 8px 0; }
+.dt-note-placeholder {
+  color: #777;
+  font-style: italic;
+}

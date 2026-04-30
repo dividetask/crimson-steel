@@ -4,7 +4,9 @@
 
 ## Scope and Ignorance
 
-The Conditions module tracks every piece of per-creature state that is not part of the creature's base definition: injuries, ongoing afflictions, short-lived buffs and debuffs, temporary hit points, magic toxicity, and shock. It is deliberately ignorant of the spells, abilities, weapons, or creatures that produce those effects. A buff is an opaque tuple of `target_key`, Bonus Type, sign, amount, and an end time; the module never asks what `target_key` means. Affliction rules are data-driven — the module contains generic machinery for resolving an affliction and reads the specific behavior of bleed, poison, or paralysis from `conditions_config.yaml`. New effects and new afflictions are added by editing config, not by editing this module.
+The Conditions module tracks every piece of per-creature state that is not part of the creature's base definition: injuries, ability damage, current mana, ongoing afflictions, short-lived buffs and debuffs, temporary hit points, magic toxicity, Shock, and the Acid Counter. It is deliberately ignorant of the spells, abilities, weapons, or creatures that produce those effects. A buff is an opaque tuple of `target_key`, Bonus Type, sign, amount, and an end time; the module never asks what `target_key` means. Affliction rules are data-driven — the module contains generic machinery for resolving an affliction and reads the specific behavior of bleed, poison, or paralysis from `conditions_config.yaml`. Distinctive damage-type counters like Shock and the Acid Counter are built into the class with hardcoded behavior; new effects and new afflictions are added by editing config, but new counter mechanics require a code change.
+
+The canonical list of Severity Categories used by hit-point damage and ability damage is owned by the damage_types domain (see `damage_types_glossary.md`); the conditions module reads the list at startup from `damage_types_config.yaml` rather than redeclaring it.
 
 ## Core Concepts
 
@@ -18,6 +20,8 @@ The Conditions module tracks every piece of per-creature state that is not part 
 
 **Source ID**: An opaque identifier supplied by the caller when an Effect or Temporary Hit Point grant is applied. The module treats Source IDs as opaque strings — it only uses them to look up and remove a specific grant later. Typical callers use the spell/ability name, a combat log entry id, or the caster's combat id.
 
+**Source ID Namespace**: A convention where a caller uses a colon-prefixed Source ID (e.g. `equipment:char_42:belt_str:body`, `affliction:bleeding`) so the caller can later operate on **all** of its grants in one call via `REMOVE_EFFECTS_BY_PREFIX`. Conditions does not enforce or interpret namespaces — it only matches against the prefix string the caller supplies. Equipment uses this for equip-time effect cleanup; afflictions already use the deterministic `affliction:<name>` prefix so the same mechanism could clean up affliction-applied effects.
+
 ## Hit Points and Damage
 
 **Minor Damage**: A counter of hit point damage dealt in the Minor severity category. Accumulates; never cascades into Moderate or Major.
@@ -26,13 +30,37 @@ The Conditions module tracks every piece of per-creature state that is not part 
 
 **Major Damage**: A counter of hit point damage dealt in the Major severity category. Accumulates; never cascades into Minor or Moderate.
 
-**Severity Category**: One of `minor`, `moderate`, or `major`. Used for both hit point damage and ability damage. The names are configurable keys — the module does not hard-code the three values. *(configurable — see Severity Categories List)*
+**Severity Category**: One of `minor`, `moderate`, or `major`. Used for both hit point damage and ability damage. The canonical list lives in `damage_types_config.yaml` under `Severities`; the conditions module reads it at startup and does not hard-code the values.
 
 **Temporary Hit Points**: A pool that absorbs incoming hit point damage before it hits the severity-category counters. Exactly one Temporary Hit Points grant is active at a time: applying a new grant replaces the existing one when the new amount is strictly higher than the current amount, and is rejected otherwise. The new grant's Source ID and Ends on Round replace the existing grant's. Damage absorption proceeds worst-first: Major first, then Moderate, then Minor.
 
 **Current Hit Points**: The creature's usable hit points after damage and temporary hit points have been accounted for. The Conditions module exposes the three damage counters and the Temporary Hit Points pool; the character module computes `hp_max - minor - moderate - major + temporary_hit_points` and owns the concept of Current Hit Points.
 
 **Heal Cascade**: A worst-first healing operation. A heal specifies three pools (`major`, `moderate`, `minor`). The Major pool heals Major Damage first; any remainder drains into the Moderate pool, which heals Moderate Damage; any remainder drains into the Minor pool, which heals Minor Damage. Excess beyond Minor Damage is wasted.
+
+## Mana
+
+**Current Mana**: A non-negative integer counter for the creature's spendable mana. Stored on the Conditions instance directly (rather than as a "spent" counter that subtracts from a max) because Mana Max is variable and clamping to a moving cap on every read is cleaner than reconstructing the spent quantity. Cap enforcement and Mana Max derivation live on the character module — operations that risk exceeding the cap accept a `max:` parameter.
+
+**Mana Cost**: A non-negative integer spend, applied via `APPLY_MANA_COST(amount)`. Floors at zero — a spend that exceeds the current value clears Mana to zero and returns the actual amount spent.
+
+**Mana Restore**: A non-negative integer gain applied via `RESTORE_MANA(amount, max:)`. Clamped at the supplied `max:` (typically `Character#max_mana`). The caller passes the cap; Conditions does not look it up.
+
+## Natural Recovery
+
+**Natural Recovery**: The accumulated effect of time passing on a creature's mutable state — Hit Point Damage healing back, Ability Damage healing back, Mana refilling, Magic Toxicity decaying, Temporary Hit Points clearing. Applied via `APPLY_NATURAL_RECOVERY(days:, mode:, ...)` on a Conditions instance after the calendar advances. The rates that govern each pool are read from the `Natural Recovery` block in `conditions_config.yaml`.
+
+**Recovery Mode**: One of `short_rest` or `long_term_recovery`. Selects the *low* or *high* column from each Heal Rate row.
+
+**Heal Rate**: A tier-indexed table under `Natural Recovery` defining how Hit Point Damage heals per period at each Severity. Each entry is `[low, high, unit]` — the *low* value is points healed per period in `short_rest` mode, *high* is `long_term_recovery`, and *unit* is the period length in days. A 3-day rest with a unit of 7 produces `floor(3 / 7) = 0` periods (and zero heal); a 7-day rest produces 1 period of healing at that severity.
+
+The table is structured as `tier * 3 + severity_index` rows, where severity_index follows the canonical Severities order (minor, moderate, major). Higher tiers heal faster; minor damage heals fastest at every tier; major damage heals slowest.
+
+**Ability Heal Rate**: A second tier-indexed table under `Natural Recovery` with the same `[low, high, unit]` shape, governing Ability Damage recovery. Each heal point pops one queued Ability Damage point at that severity in FIFO order across attributes.
+
+**Mana Per Day Divisor**: An integer dividing `mana_max` to produce daily mana regeneration. `mana_per_day = floor(mana_max / divisor)`. Default 4. *(configurable)*
+
+**Magic Toxicity Per Day Divisor**: An integer dividing the configured *toxicity attribute* (typically `cha`) to produce daily magic toxicity decay. Default 4. *(configurable)*
 
 ## Ability Damage
 
@@ -49,6 +77,12 @@ The Conditions module tracks every piece of per-creature state that is not part 
 **Shock**: A counter representing battlefield disorientation. Each point of Shock removes one die from the creature's combat pool on the next pool refresh. If the combat pool is exhausted before the Shock counter reaches zero, the remaining Shock persists across rounds and continues to remove dice from subsequent refreshes until it is fully consumed. Shock has no save — it is applied by an effect as a raw amount and consumed only by being spent against dice.
 
 **Shock Consumption**: The operation in which the caller asks Conditions "how much Shock can I consume against up to N dice", receives the amount consumed, and decrements the internal Shock counter. Conditions does not know how large the combat pool is; the caller computes the available dice count and passes it in.
+
+## Acid Counter
+
+**Acid Counter**: A non-negative integer counter representing residual corrosive damage on a creature. Combat tells Conditions "this creature took N points of acid damage" via `APPLY_ACID_DAMAGE(amount)`, which adds N to the counter (creating it if absent). At the start of the affected creature's turn, the caller invokes `RESOLVE_ACID_TURN_START` — the counter is **halved (floored)**, and the post-halving value is dealt as **minor** Hit Point Damage to the same creature. A counter that reaches zero (from halving down or explicit clearing) is removed.
+
+Like Shock, the Acid Counter is a built-in top-level field on the Conditions instance with hardcoded behavior. The two have different consumption models — Shock is consumed against the combat pool refresh; the Acid Counter ticks at turn start — but neither uses a generic mechanism. Future damage-type counters with similarly distinctive behavior will be added the same way (a new top-level field plus its own apply / resolve operations).
 
 ## Afflictions
 
@@ -86,11 +120,23 @@ The Conditions module tracks every piece of per-creature state that is not part 
 
 - `hit_point_damage`: deals damage to a specified Severity Category. The Affliction Rule names the category; the underlying damage mechanic lives in the Conditions module, not in the Affliction Rule.
 - `ability_damage`: deals damage to a specified attribute at a specified Severity Category. As above, the Affliction Rule names what to damage; the mechanic is generic.
-- `named_effect`: applies a Named Effect (see below) by name. The Affliction Rule supplies only the effect's name and duration. What the named Effect does — its modifiers, Bonus Type, sign, amount — is defined once in the Named Effects catalog and reused by every source that applies it.
+- `named_effect`: applies an Effect Name (see below) by name. The Affliction Rule supplies only the effect's name and duration. What the effect does — its mechanics — is defined once in the Effect Names catalog and reused by every source that applies it.
 
-The list is closed — new effect kinds require a code change. The set of Afflictions that use these kinds is open, as is the set of Named Effects.
+The list is closed — new effect kinds require a code change. The set of Afflictions that use these kinds is open, as is the set of Effect Names.
 
-**Named Effect**: A reusable buff, debuff, or status defined once in `conditions_config.yaml` under `Named Effects`. Each entry specifies a description and a list of modifiers (each with `target_key`, Bonus Type, sign, and amount). Afflictions, spells, and abilities reference Named Effects by name and supply a duration — they never redefine what the Effect does. Examples: `paralyzed`, `prone`, `eagles_splendor`. The Conditions module exposes `APPLY_NAMED_EFFECT` to apply one by name; the Affliction `named_effect` kind dispatches through the same path.
+**Effect Name**: A reusable named non-damage effect defined once in `conditions_config.yaml` under `Effect Names`. This is the **single source of truth** for the catalog of named effects across the whole project — abilities reference Effect Names by name in their `effects` and `save` outcome strings (without validating against the catalog), and the conditions module raises at apply time when a name does not match. Each entry specifies a `description` and a list of structured Mechanics (see Effect Mechanic below). Examples: `blind`, `dazzled`, `paralyzed`, `prone`, `bleeding`. The Conditions module exposes `APPLY_NAMED_EFFECT` to apply one by name; the Affliction `named_effect` kind dispatches through the same path.
+
+**Effect Mechanic**: One element of an Effect Name's `mechanics` list. A dictionary with a `kind` field and additional fields specific to that kind. The recognized kinds are:
+
+- **`modifier`** — a Target Number modifier whose `modifier_type` is one of the keys in `dice_resolution_config.yaml`'s `Bonus Types List` (Circumstance, Luck, Morale, etc.). Other fields: `sign` (`bonus` or `penalty`), `magnitude` (positive integer), `applies_to` (list of free-form scope tags such as `dex_checks`, `attacks_against`, `verbal_spell_checks`), and an optional `notes` string.
+- **`reroll`** — triggers a Reroll Operation. Field: `scope` (e.g. `successes_and_criticals`); optional `applies_to`, `sign`, `magnitude`, `notes`.
+- **`nudge`** — triggers a Value Adjustment. Fields: `applies_to`, `sign`, `magnitude`; optional `notes`.
+- **`set_value`** — overrides a derived value. Fields: `target` (e.g. `combat_dice`), `value` (integer or formula).
+- **`scale_value`** — multiplies a derived value by a factor. Fields: `target`, `factor`.
+- **`flag`** — sets a boolean state. Field: `flag`.
+- **`display`** — a free-form rule that the program does not encode. Field: `text` — the conditions module surfaces this so the DM can adjudicate.
+
+The conditions module dispatches each Mechanic to the appropriate consumer (dice resolution for modifier/reroll/nudge; itself for set_value/scale_value/flag; the presentation layer for display). The `applies_to` scope tags, `target` names, and `flag` names are intentionally free-form so new categories can be added without a code change.
 
 ## Effects (Buffs and Debuffs)
 

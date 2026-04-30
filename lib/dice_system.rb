@@ -74,6 +74,41 @@ class DiceSystem
     { 'tn' => tn, 'starting_value' => starting_value }
   end
 
+  # Partition a Skill Prowess (or any Prowess-shaped integer) into
+  # a Dice Count, a Competency Bonus, and a Starting Value ready to
+  # feed back into compute_roll_parameters / compute_results.
+  #
+  # Excess Prowess fills dice up to the Maximum Dice Count first,
+  # then routes the remaining (signed) Prowess to a Competency
+  # modifier. Positive remainder becomes a Competency Bonus;
+  # negative remainder becomes a Competency Penalty. Both
+  # propagate to Opposed Rolls (with the sign inverted on the
+  # opposed side); routing the remainder to Starting Value
+  # instead would silently strip that opposed-side effect.
+  #
+  # No cap on the Bonus or Penalty here. If the Bonus would push
+  # the Roll's TN past the Minimum Target Number,
+  # `compute_roll_parameters`'s overflow rule converts the
+  # excess into Starting Successes downstream — that's where
+  # the floor is enforced, not here.
+  def compute_check_details(prowess)
+    min_dice = @dice_resolution_config['Minimum Dice Count']
+    range    = @dice_resolution_config['Dice Count Range']
+    max_dice = min_dice + range - 1
+
+    dice_count        = [[min_dice + prowess, max_dice].min, min_dice].max
+    remaining         = prowess - (dice_count - min_dice)
+    competency_bonus  = [remaining, 0].max
+    competency_penalty = [-remaining, 0].max
+
+    {
+      'dice_count'         => dice_count,
+      'competency_bonus'   => competency_bonus,
+      'competency_penalty' => competency_penalty,
+      'starting_value'     => 0
+    }
+  end
+
   def compute_results(dice, tn, starting_value,
                       failure_modifier: DEFAULT_FAILURE_MODIFIER,
                       critical_modifier: DEFAULT_CRITICAL_MODIFIER)

@@ -40,7 +40,15 @@ class DummyData
       build_pc(id: 5, name: 'Rowan Vale',     race: 'Half-Elf', klass: 'Ranger',  tier: 3,
                hp: 26, hp_max: 30, mana: 6,  mana_max: 8,  abilities: %w[hunters_mark quick_draw]),
       build_pc(id: 6, name: 'Ember Blackoak', race: 'Half-Orc', klass: 'Druid',   tier: 3,
-               hp: 22, hp_max: 26, mana: 10, mana_max: 12, abilities: %w[wild_shape spore_cloud])
+               hp: 22, hp_max: 26, mana: 10, mana_max: 12, abilities: %w[wild_shape spore_cloud]),
+      build_pc(id: 7, name: 'Thora Stoneveil', race: 'Hill Dwarf', klass: 'Cleric', tier: 2,
+               hp: 24, hp_max: 30, mana: 8, mana_max: 14, abilities: %w[channel_divinity turn_undead]),
+      build_pc(id: 8, name: 'Garroth Vask', race: 'Human', klass: 'Barbarian', tier: 2,
+               hp: 28, hp_max: 32, mana: 0, mana_max: 0, abilities: %w[rage fast_movement]),
+      build_pc(id: 9, name: 'Veyl Aetheris', race: 'High Elf', klass: 'Arcane Trickster', tier: 2,
+               hp: 18, hp_max: 26, mana: 9, mana_max: 13, abilities: %w[sneak_attack mage_legerdemain]),
+      build_pc(id: 10, name: 'Pippin Hoofstride', race: 'Satyr', klass: 'Bard', tier: 2,
+               hp: 22, hp_max: 28, mana: 10, mana_max: 12, abilities: %w[bardic_inspiration magical_performance])
     ]
   end
 
@@ -55,22 +63,24 @@ class DummyData
   # Character class instances + per-character dummy state for the
   # /character preview page. The Character itself only stores static
   # data (id, name, player, race, base attributes); everything else
-  # — current HP, mana, saturation, conditions, weapons, spells,
+  # — current HP, mana, toxicity, conditions, weapons, spells,
   # rituals, abilities, items — lives in the per-entry `:dummy`
   # hash and is merged onto character_sheet_dummy_defaults when the
   # stub renders.
   def self.pc_objects
     @pc_objects ||= [
       { character: Character.new(
-          id: 1, name: 'Ash Windmere', player: 'Sam', race: 'Human',
-          attributes: { str: 10, dex: 14, con: 12, int: 13, wis: 16, cha: 18 }),
+          id: 1, name: 'Ash Windmere', player: 'Sam',
+          race: dummy_race('human', character_level: 3),
+          tier: 3,
+          attributes: { str: 10, dex: 14, con: 12, int: 13, wis: 16, cha: 18 },
+          advancement: dummy_advancement(tier: 3, class_levels: { 'bard' => 3 })),
         dummy: {
-          klass: 'Bard 3', tier: 3, bab: 4,
-          current_hp: 22, hp_max: 28,
-          current_mana: 9, mana_max: 14,
-          mana_saturation: 3, mana_saturation_max: 7,
+          klass: 'Bard 3', bab: 4,
+          current_hp: 22,
+          current_mana: 9,
+          magic_toxicity: 3, magic_toxicity_max: 7,
           initiative: 4, perception_bonus: 5,
-          speed: 30, damage_reduction: 2, damage_resilience: 2,
           weapons: [
             { 'name' => 'Rapier',     'speed' => 2, 'arm_speed' => '',
               'dice' => 4, 'attack_bonus' => 3, 'damage' => '+2',
@@ -106,16 +116,18 @@ class DummyData
         } },
 
       { character: Character.new(
-          id: 2, name: 'Bryn Ironvein', player: 'Mira', race: 'Dwarf',
-          attributes: { str: 18, dex: 10, con: 17, int: 9, wis: 12, cha: 8 }),
+          id: 2, name: 'Bryn Ironvein', player: 'Mira',
+          race: dummy_race('dwarf', character_level: 3),
+          tier: 3,
+          attributes: { str: 18, dex: 10, con: 17, int: 9, wis: 12, cha: 8 },
+          advancement: dummy_advancement(tier: 3, class_levels: { 'fighter' => 3 })),
         dummy: {
-          klass: 'Fighter 3', tier: 3, bab: 6,
-          current_hp: 14, hp_max: 36,
+          klass: 'Fighter 3', bab: 6,
+          current_hp: 14,
           moderate_damage: 8, major_damage: 6,
           conditions: { 'bleed' => 1 },
-          current_mana: 4, mana_max: 6,
+          current_mana: 4,
           initiative: 2, perception_bonus: 2,
-          speed: 25, damage_reduction: 4, damage_resilience: 3,
           weapons: [
             { 'name' => 'Warhammer', 'speed' => 3, 'arm_speed' => '',
               'dice' => 5, 'attack_bonus' => 5, 'damage' => '+4',
@@ -130,7 +142,7 @@ class DummyData
             { 'name' => 'Second Wind',
               'description' => 'Once per scene, recover 1d6 + level HP as a free action.' }
           ],
-          spell_list: [], ritual_list: [],
+          spell_list: [],
           equipped:  ['Warhammer', 'Tower Shield', 'Chain Mail'],
           consumable: [{ 'name' => 'Healing Draught', 'quantity' => 1 }],
           other_items: [{ 'name' => 'Whetstone' }, { 'name' => 'Rations (5)' }],
@@ -138,16 +150,23 @@ class DummyData
         } },
 
       { character: Character.new(
-          id: 3, name: 'Lira Duskmoor', player: 'Jordan', race: 'Elf',
-          attributes: { str: 8, dex: 14, con: 11, int: 20, wis: 16, cha: 12 }),
+          id: 3, name: 'Lira Duskmoor', player: 'Jordan',
+          race: dummy_race('elf', character_level: 3),
+          tier: 3,
+          attributes: { str: 8, dex: 14, con: 11, int: 20, wis: 16, cha: 12 },
+          advancement: dummy_advancement(tier: 3, class_levels: { 'wizard' => 3 }),
+          ritual_list: [
+            ['Light'],
+            ['Comprehend Languages', 'Detect Magic', 'Identify'],
+            ['Locate Object']
+          ]),
         dummy: {
-          klass: 'Wizard 3', tier: 3, bab: 2,
-          current_hp: 18, hp_max: 22,
-          current_mana: 16, mana_max: 18,
-          mana_saturation: 5, mana_saturation_max: 9,
+          klass: 'Wizard 3', bab: 2,
+          current_hp: 18,
+          current_mana: 16,
+          magic_toxicity: 5, magic_toxicity_max: 9,
           conditions: { 'poison' => 2 },
           initiative: 3, perception_bonus: 3,
-          speed: 30, damage_reduction: 1, damage_resilience: 2,
           weapons: [
             { 'name' => 'Quarterstaff', 'speed' => 3, 'arm_speed' => '',
               'dice' => 2, 'attack_bonus' => 1, 'damage' => '+0',
@@ -165,11 +184,6 @@ class DummyData
             ['Misty Step', 'Scorching Ray'],
             ['Counterspell']
           ],
-          ritual_list: [
-            ['Light'],
-            ['Comprehend Languages', 'Detect Magic', 'Identify'],
-            ['Locate Object']
-          ],
           equipped:  ['Quarterstaff', 'Spellbook', 'Robes'],
           consumable: [{ 'name' => 'Antitoxin', 'quantity' => 1 }],
           other_items: [{ 'name' => 'Component Pouch' }, { 'name' => 'Ink and Quill' }],
@@ -180,14 +194,16 @@ class DummyData
         } },
 
       { character: Character.new(
-          id: 4, name: 'Kass Thorne', player: 'Pat', race: 'Halfling',
-          attributes: { str: 10, dex: 19, con: 13, int: 14, wis: 12, cha: 11 }),
+          id: 4, name: 'Kass Thorne', player: 'Pat',
+          race: dummy_race('halfling', character_level: 3),
+          tier: 3,
+          attributes: { str: 10, dex: 19, con: 13, int: 14, wis: 12, cha: 11 },
+          advancement: dummy_advancement(tier: 3, class_levels: { 'rogue' => 3 })),
         dummy: {
-          klass: 'Rogue 3', tier: 3, bab: 4,
-          current_hp: 20, hp_max: 24,
-          current_mana: 5, mana_max: 8,
+          klass: 'Rogue 3', bab: 4,
+          current_hp: 20,
+          current_mana: 5,
           initiative: 5, perception_bonus: 4,
-          speed: 25, damage_reduction: 1, damage_resilience: 2,
           weapons: [
             { 'name' => 'Shortsword', 'speed' => 1, 'arm_speed' => '',
               'dice' => 4, 'attack_bonus' => 5, 'damage' => '+2',
@@ -202,7 +218,7 @@ class DummyData
             { 'name' => 'Evasion',
               'description' => 'On a successful Dexterity save, take no damage from area effects.' }
           ],
-          spell_list: [], ritual_list: [],
+          spell_list: [],
           equipped:  ['Shortsword', 'Dagger', 'Leather Armor'],
           consumable: [{ 'name' => 'Healing Draught', 'quantity' => 3 }],
           other_items: [{ 'name' => 'Thieves’ Tools' }, { 'name' => 'Rope (50 ft)' }],
@@ -210,14 +226,16 @@ class DummyData
         } },
 
       { character: Character.new(
-          id: 5, name: 'Rowan Vale', player: 'Riley', race: 'Half-Elf',
-          attributes: { str: 14, dex: 17, con: 13, int: 11, wis: 16, cha: 10 }),
+          id: 5, name: 'Rowan Vale', player: 'Riley',
+          race: dummy_race('half_elf', character_level: 3),
+          tier: 3,
+          attributes: { str: 14, dex: 17, con: 13, int: 11, wis: 16, cha: 10 },
+          advancement: dummy_advancement(tier: 3, class_levels: { 'ranger' => 3 })),
         dummy: {
-          klass: 'Ranger 3', tier: 3, bab: 4,
-          current_hp: 26, hp_max: 30,
-          current_mana: 6, mana_max: 8,
+          klass: 'Ranger 3', bab: 4,
+          current_hp: 26,
+          current_mana: 6,
           initiative: 4, perception_bonus: 5,
-          speed: 30, damage_reduction: 2, damage_resilience: 2,
           weapons: [
             { 'name' => 'Longbow',   'speed' => 3, 'arm_speed' => '',
               'dice' => 4, 'attack_bonus' => 5, 'damage' => '+3',
@@ -233,7 +251,6 @@ class DummyData
               'description' => 'Draw a weapon as a free action once per turn.' }
           ],
           spell_list: [[], ['Hunter’s Mark', 'Cure Wounds']],
-          ritual_list: [],
           equipped:  ['Longbow', 'Hand Axe', 'Studded Leather'],
           consumable: [],
           other_items: [{ 'name' => 'Quiver (20 arrows)' }, { 'name' => 'Trail Rations' }],
@@ -241,15 +258,18 @@ class DummyData
         } },
 
       { character: Character.new(
-          id: 6, name: 'Ember Blackoak', player: 'Casey', race: 'Half-Orc',
-          attributes: { str: 13, dex: 11, con: 15, int: 10, wis: 18, cha: 9 }),
+          id: 6, name: 'Ember Blackoak', player: 'Casey',
+          race: dummy_race('half_orc', character_level: 3),
+          tier: 3,
+          attributes: { str: 13, dex: 11, con: 15, int: 10, wis: 18, cha: 9 },
+          advancement: dummy_advancement(tier: 3, class_levels: { 'druid' => 3 }),
+          ritual_list: [['Light']]),
         dummy: {
-          klass: 'Druid 3', tier: 3, bab: 3,
-          current_hp: 22, hp_max: 26,
-          current_mana: 10, mana_max: 12,
-          mana_saturation: 1, mana_saturation_max: 6,
+          klass: 'Druid 3', bab: 3,
+          current_hp: 22,
+          current_mana: 10,
+          magic_toxicity: 1, magic_toxicity_max: 6,
           initiative: 4, perception_bonus: 4,
-          speed: 30, damage_reduction: 2, damage_resilience: 3,
           weapons: [
             { 'name' => 'Scimitar', 'speed' => 2, 'arm_speed' => '',
               'dice' => 3, 'attack_bonus' => 3, 'damage' => '+2',
@@ -262,10 +282,195 @@ class DummyData
               'description' => 'Release a cloud that imposes Wisdom saves on adjacent foes.' }
           ],
           spell_list: [['Druidcraft'], ['Entangle', 'Cure Wounds']],
-          ritual_list: [['Light']],
           equipped:  ['Scimitar', 'Hide Armor'],
           consumable: [{ 'name' => 'Healing Draught', 'quantity' => 2 }],
           other_items: [{ 'name' => 'Druidic Focus' }, { 'name' => 'Herbalism Kit' }],
+          defined_items: []
+        } },
+
+      { character: Character.new(
+          id: 7, name: 'Thora Stoneveil', player: 'Avery',
+          race: dummy_race('hill_dwarf', character_level: 4),
+          tier: 2,
+          attributes: { str: 10, dex: 10, con: 13, int: 12, wis: 12, cha: 9 },
+          advancement: dummy_advancement(
+            tier: 2,
+            class_levels: { 'cleric' => 4 },
+            picks: %i[wis dex],
+            chosen_skills: { 'cleric' => %w[healing sense_motive arcana survival intimidate perception] }
+          )),
+        dummy: {
+          klass: 'Cleric 4', bab: 3,
+          current_hp: 24,
+          current_mana: 8,
+          initiative: 3, perception_bonus: 3,
+          weapons: [
+            { 'name' => 'Mace',     'speed' => 3, 'arm_speed' => '',
+              'dice' => 3, 'attack_bonus' => 3, 'damage' => '+2',
+              'bleed' => 0, 'threshold' => 8 }
+          ],
+          skills: [
+            { 'name' => 'Healing',      'ranks' => 6, 'dice' => 8, 'bonus' => 2 },
+            { 'name' => 'Sense Motive', 'ranks' => 6, 'dice' => 8, 'bonus' => 2 },
+            { 'name' => 'Arcana',       'ranks' => 6, 'dice' => 8, 'bonus' => 2 },
+            { 'name' => 'Survival',     'ranks' => 4, 'dice' => 6, 'bonus' => 2 },
+            { 'name' => 'Intimidate',   'ranks' => 6, 'dice' => 8, 'bonus' => 0 },
+            { 'name' => 'Perception',   'ranks' => 6, 'dice' => 8, 'bonus' => 2 }
+          ],
+          abilities: [
+            { 'name' => 'Channel Divinity',
+              'description' => 'Spend mana to invoke a domain effect.' },
+            { 'name' => 'Turn Undead',
+              'description' => 'Drive undead within 30 ft to flee for 1 minute.' }
+          ],
+          spell_list: [
+            ['Stabilize', 'Sacred Flame', 'Magic Vestments'],
+            ['Cure Lesser Wounds', 'Healing Word', 'Command', 'Lesser Ward', 'Divine Favor', 'Shield of Faith'],
+            ['Spiritual Weapon', 'Silence', 'Cure Simple Wounds', 'Standard Ward', 'Standard Surgery']
+          ],
+          equipped:  ['Mace', 'Holy Symbol', 'Chain Mail'],
+          consumable: [{ 'name' => 'Healing Draught', 'quantity' => 3 }],
+          other_items: [{ 'name' => 'Prayer Book' }, { 'name' => 'Rations (5)' }],
+          defined_items: []
+        } },
+
+      { character: Character.new(
+          id: 8, name: 'Garroth Vask', player: 'Drew',
+          race: dummy_race('human', character_level: 4),
+          tier: 2,
+          attributes: { str: 14, dex: 12, con: 14, int: 9, wis: 10, cha: 7 },
+          advancement: dummy_advancement(
+            tier: 2,
+            class_levels: { 'barbarian' => 4 },
+            picks: %i[str dex],
+            chosen_skills: { 'barbarian' => %w[athletics survival sense_motive stealth] }
+          )),
+        dummy: {
+          klass: 'Barbarian 4', bab: 4,
+          current_hp: 28,
+          current_mana: 0,
+          initiative: 2, perception_bonus: 2,
+          weapons: [
+            { 'name' => 'Greataxe', 'speed' => 4, 'arm_speed' => '',
+              'dice' => 4, 'attack_bonus' => 5, 'damage' => '+5',
+              'bleed' => 1, 'threshold' => 9 }
+          ],
+          skills: [
+            { 'name' => 'Athletics',    'ranks' => 6, 'dice' => 9, 'bonus' => 4 },
+            { 'name' => 'Survival',     'ranks' => 6, 'dice' => 8, 'bonus' => 1 },
+            { 'name' => 'Sense Motive', 'ranks' => 6, 'dice' => 8, 'bonus' => 1 },
+            { 'name' => 'Stealth',      'ranks' => 6, 'dice' => 9, 'bonus' => 3 }
+          ],
+          abilities: [
+            { 'name' => 'Rage',
+              'description' => 'Enter rage for bonus damage and damage reduction.' },
+            { 'name' => 'Fast Movement',
+              'description' => '+10 ft speed when not wearing heavy armor.' }
+          ],
+          spell_list: [],
+          equipped:  ['Greataxe', 'Hide Armor'],
+          consumable: [{ 'name' => 'Healing Draught', 'quantity' => 2 }],
+          other_items: [{ 'name' => 'Trail Rations' }, { 'name' => 'Bedroll' }],
+          defined_items: []
+        } },
+
+      { character: Character.new(
+          id: 9, name: 'Veyl Aetheris', player: 'Quinn',
+          race: dummy_race('high_elf', character_level: 4),
+          tier: 2,
+          attributes: { str: 7, dex: 13, con: 11, int: 11, wis: 11, cha: 11 },
+          advancement: dummy_advancement(
+            tier: 2,
+            class_levels: { 'arcane_trickster' => 4 },
+            picks: %i[dex cha],
+            chosen_skills: { 'arcane_trickster' => %w[arcana stealth larceny sleight_of_hand deception persuasion perception game_chess] }
+          ),
+          ritual_list: [
+            ['Guidance', 'Resistance', 'Acid Splash', 'Drench', 'Light', 'Spark', 'Mending'],
+            ['Alarm', 'Endure Elements', 'Mount', 'Charm Person', 'Silent Image', 'Ant Haul', 'Disguise Self']
+          ]),
+        dummy: {
+          klass: 'Arcane Trickster 4', bab: 3,
+          current_hp: 18,
+          current_mana: 9,
+          initiative: 3, perception_bonus: 3,
+          weapons: [
+            { 'name' => 'Rapier', 'speed' => 2, 'arm_speed' => '',
+              'dice' => 4, 'attack_bonus' => 4, 'damage' => '+2',
+              'bleed' => 1, 'threshold' => 8 },
+            { 'name' => 'Dagger', 'speed' => 1, 'arm_speed' => '',
+              'dice' => 3, 'attack_bonus' => 4, 'damage' => '+1',
+              'bleed' => 1, 'threshold' => 6 }
+          ],
+          skills: [
+            { 'name' => 'Arcana',           'ranks' => 6, 'dice' => 8, 'bonus' => 1 },
+            { 'name' => 'Stealth',          'ranks' => 6, 'dice' => 9, 'bonus' => 3 },
+            { 'name' => 'Larceny',          'ranks' => 6, 'dice' => 9, 'bonus' => 3 },
+            { 'name' => 'Sleight of Hand',  'ranks' => 6, 'dice' => 9, 'bonus' => 3 },
+            { 'name' => 'Deception',        'ranks' => 6, 'dice' => 8, 'bonus' => 2 },
+            { 'name' => 'Persuasion',       'ranks' => 6, 'dice' => 8, 'bonus' => 2 },
+            { 'name' => 'Perception',       'ranks' => 6, 'dice' => 8, 'bonus' => 1 },
+            { 'name' => 'Game (Chess)',     'ranks' => 4, 'dice' => 6, 'bonus' => 1 }
+          ],
+          abilities: [
+            { 'name' => 'Sneak Attack',
+              'description' => 'Add bonus damage when you have advantage on the target.' },
+            { 'name' => 'Mage Legerdemain',
+              'description' => 'Cast Mage Hand silently and at extreme range.' }
+          ],
+          spell_list: [
+            ['Fire Dart', 'Message', 'Silent Portal', 'Ghost Sound'],
+            ['Hideous Laughter', 'Illusion of Calm', 'Auditory Hallucination']
+          ],
+          equipped:  ['Rapier', 'Dagger', 'Studded Leather'],
+          consumable: [{ 'name' => 'Healing Draught', 'quantity' => 2 }],
+          other_items: [{ 'name' => 'Thieves’ Tools' }, { 'name' => 'Spellbook' }],
+          defined_items: []
+        } },
+
+      { character: Character.new(
+          id: 10, name: 'Pippin Hoofstride', player: 'Morgan',
+          race: dummy_race('satyr', character_level: 4),
+          tier: 2,
+          attributes: { str: 9, dex: 12, con: 12, int: 10, wis: 11, cha: 12 },
+          advancement: dummy_advancement(
+            tier: 2,
+            class_levels: { 'bard' => 4 },
+            picks: %i[dex cha],
+            chosen_skills: { 'bard' => %w[perform_sing perform_percussion animal_handling persuasion evocation perception nature] }
+          )),
+        dummy: {
+          klass: 'Bard 4', bab: 3,
+          current_hp: 22,
+          current_mana: 10,
+          initiative: 3, perception_bonus: 2,
+          weapons: [
+            { 'name' => 'Rapier',     'speed' => 2, 'arm_speed' => '',
+              'dice' => 4, 'attack_bonus' => 4, 'damage' => '+2',
+              'bleed' => 1, 'threshold' => 8 }
+          ],
+          skills: [
+            { 'name' => 'Perform (Sing)',       'ranks' => 6, 'dice' => 9, 'bonus' => 3 },
+            { 'name' => 'Perform (Percussion)', 'ranks' => 6, 'dice' => 9, 'bonus' => 3 },
+            { 'name' => 'Animal Handling',      'ranks' => 6, 'dice' => 8, 'bonus' => 2 },
+            { 'name' => 'Persuasion',           'ranks' => 6, 'dice' => 9, 'bonus' => 3 },
+            { 'name' => 'Evocation',            'ranks' => 6, 'dice' => 8, 'bonus' => 1 },
+            { 'name' => 'Perception',           'ranks' => 6, 'dice' => 8, 'bonus' => 2 },
+            { 'name' => 'Nature',               'ranks' => 6, 'dice' => 8, 'bonus' => 1 }
+          ],
+          abilities: [
+            { 'name' => 'Bardic Inspiration',
+              'description' => 'Grant a luck bonus to an ally’s next check.' },
+            { 'name' => 'Magical Performance',
+              'description' => 'Spend mana to layer subtle compulsions over a performance.' }
+          ],
+          spell_list: [
+            ['Heal Petty Wounds', 'Minor Detect Magic', 'Ghost Sound', 'Friends', 'Sift', 'Vacuous Vessel', 'Vicious Mockery'],
+            ['Biting Words', 'Ears of the City', 'Silent Image', 'Timely Inspiration']
+          ],
+          equipped:  ['Rapier', 'Lyre', 'Leather Armor'],
+          consumable: [{ 'name' => 'Healing Draught', 'quantity' => 2 }],
+          other_items: [{ 'name' => 'Lyre' }, { 'name' => 'Wineskin' }],
           defined_items: []
         } }
     ]
@@ -611,9 +816,8 @@ class DummyData
   # The defenses catalog defines the abstract kinds —
   # `defense_options` is responsible for expanding `parry` into one
   # option per equipped weapon, `block` into one per shield, etc.
-  # The shape mirrors `docs/defenses.yaml.example` and
-  # `docs/reactions.yaml.example`; once the real data layer lands
-  # those templates become the authoritative source.
+  # Inlined here for the dummy data; the real catalog will live
+  # alongside combat / equipment configs once those land.
 
   DEFENSES_CATALOG = {
     'nothing' => {
@@ -820,6 +1024,70 @@ class DummyData
   end
 
   # --- Builders ------------------------------------------------------------
+
+  # Race + advancement definitions used by the dummy roster.
+  # Pulled from docs/*.yaml.example so the dev data exercises the
+  # same rules the real configs would. Half-Elf and Half-Orc
+  # aren't in the example races file yet; defined inline so
+  # existing dummy characters keep their bonuses.
+  RACE_DEFINITIONS_PATH         = File.expand_path('../docs/race/race_config.yaml.example',                __dir__)
+  ADVANCEMENT_DEFINITIONS_PATH  = File.expand_path('../docs/advancement/advancement_config.yaml.example',  __dir__)
+  SKILL_DEFINITIONS_PATH        = File.expand_path('../data/skills.yaml',                                  __dir__)
+
+  def self.race_definitions
+    @race_definitions ||= Race.load_yaml(RACE_DEFINITIONS_PATH).merge(
+      'half_elf' => {
+        'name' => 'Half-Elf',
+        'speed' => 30,
+        'ability_score_adjustments' => { 'cha' => 2 }
+      },
+      'half_orc' => {
+        'name' => 'Half-Orc',
+        'speed' => 30,
+        'ability_score_adjustments' => { 'str' => 2, 'con' => 1 }
+      }
+    )
+  end
+
+  def self.advancement_config
+    @advancement_config ||= Advancement.load_config(ADVANCEMENT_DEFINITIONS_PATH)
+  end
+
+  def self.skill_definitions
+    @skill_definitions ||= Advancement.load_skills(SKILL_DEFINITIONS_PATH)
+  end
+
+  # Race instance keyed against the loaded race_definitions, so
+  # name, speed, ability_score_adjustments, and racial abilities
+  # are all populated. character_level lets racial abilities with
+  # min_level thresholds appear once the character qualifies.
+  def self.dummy_race(key, character_level: 0)
+    Race.new(
+      key:              key,
+      race_definitions: race_definitions,
+      character_level:  character_level
+    )
+  end
+
+  # Advancement built with the rule values from
+  # docs/advancement/advancement_config.yaml.example, so attribute_bonus,
+  # max_hit_points, max_mana, and abilities all reflect what a
+  # character loaded from the real config would compute.
+  def self.dummy_advancement(tier:, class_levels:, picks: [], chosen_skills: {})
+    rules = advancement_config['rules']
+    Advancement.new(
+      tier:                             tier,
+      class_levels:                     class_levels,
+      class_skill_choices:              chosen_skills,
+      tier_attribute_advancement:       picks.map(&:to_s),
+      attribute_bonus_per_tier:         rules.fetch('attribute_bonus_per_tier',         [1, 1, 1, 1, 1]),
+      focused_attribute_bonus_per_tier: rules.fetch('focused_attribute_bonus_per_tier', [0, 2, 2, 2, 2]),
+      focused_attribute_count:          rules.fetch('focused_attribute_count',          2),
+      tier_advancement:                 rules.fetch('tier_advancement',                 {}),
+      class_definitions:                advancement_config['classes'],
+      skill_definitions:                skill_definitions
+    )
+  end
 
   def self.build_pc(id:, name:, race:, klass:, tier:, hp:, hp_max:, mana:, mana_max:, abilities:)
     {
