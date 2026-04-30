@@ -2043,13 +2043,40 @@ body {
   border-bottom: 1px solid #8b1538;
   letter-spacing: 0.5px;
 }
-/* Skill rows share the actions table; the dashes in Spd/Dmg
-   already cue them as non-combat. A faint top border on the
-   first skill row sets them apart from the dodge line above. */
-.char-card-actions .char-card-skill-row:first-of-type td {
-  border-top: 2px solid #d6c9a3;
+/* Skills table on the minimal card. Visually two side-by-side
+   skill tables in one DOM table: an empty middle column splits
+   the row in half so the rule lines under each half stop short
+   of the divider. */
+.char-card-skills {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0 6px 0;
+  font-size: 13px;
+  table-layout: fixed;
 }
-.char-card-actions .char-card-skill-row td:first-child {
+.char-card-skills th,
+.char-card-skills td {
+  padding: 5px 8px;
+  text-align: left;
+  border-bottom: 1px solid #e0d8c0;
+}
+.char-card-skills tr:last-child td { border-bottom: none; }
+.char-card-skills th {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 11px;
+  color: #8b1538;
+  border-bottom: 1px solid #8b1538;
+  letter-spacing: 0.5px;
+}
+.char-card-skills .char-card-skills-spacer {
+  width: 16px;
+  padding: 0;
+  border-bottom: none;
+  background: transparent;
+}
+.char-card-skills td:nth-child(1),
+.char-card-skills td:nth-child(5) {
   font-style: italic;
   color: #4a3a1f;
 }

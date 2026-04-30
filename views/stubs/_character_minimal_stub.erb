@@ -71,10 +71,10 @@
     </tr>
   </table>
 
-  <% skills = character_skill_rows(character) %>
-  <% if weapons.any? || skills.any? %>
+  <% skills = character_skill_rows(character).sort_by { |s| s['name'] } %>
+  <% if weapons.any? %>
     <div class="char-card-rule"></div>
-    <div class="char-card-section-title">Actions &amp; Skills</div>
+    <div class="char-card-section-title">Actions</div>
     <table class="char-card-actions">
       <tr>
         <th>Name</th>
@@ -94,24 +94,47 @@
           <td></td>
         </tr>
       <% end %>
-      <% if weapons.any? %>
+      <tr>
+        <td>Dodge</td>
+        <td>0</td>
+        <td><%= h dummy[:bab_dice] %>d</td>
+        <td><%= character_sheet_add_plus(dummy[:bab_bonus]) %></td>
+        <td>&mdash;</td>
+        <td></td>
+      </tr>
+    </table>
+  <% end %>
+
+  <% if skills.any? %>
+    <%
+      half = (skills.length + 1) / 2
+      left_skills  = skills[0, half]
+      right_skills = skills[half..] || []
+      row_count    = [left_skills.length, right_skills.length].max
+    %>
+    <div class="char-card-rule"></div>
+    <div class="char-card-section-title">Skills</div>
+    <table class="char-card-skills">
+      <tr>
+        <th>Name</th>
+        <th>Roll</th>
+        <th>Bonus</th>
+        <th class="char-card-skills-spacer"></th>
+        <th>Name</th>
+        <th>Roll</th>
+        <th>Bonus</th>
+      </tr>
+      <% (0...row_count).each do |i| %>
+        <% l = left_skills[i] %>
+        <% r = right_skills[i] %>
         <tr>
-          <td>Dodge</td>
-          <td>0</td>
-          <td><%= h dummy[:bab_dice] %>d</td>
-          <td><%= character_sheet_add_plus(dummy[:bab_bonus]) %></td>
-          <td>&mdash;</td>
-          <td></td>
-        </tr>
-      <% end %>
-      <% skills.each do |s| %>
-        <tr class="char-card-skill-row">
-          <td><%= h character_sheet_ability_label(s['name']) %></td>
-          <td>&mdash;</td>
-          <td><%= h s['dice'] %>d</td>
-          <td><%= character_sheet_add_plus(s['bonus']) %></td>
-          <td>&mdash;</td>
-          <td></td>
+          <td><%= l ? h(character_sheet_ability_label(l['name'])) : '' %></td>
+          <td><%= l ? "#{h l['dice']}d" : '' %></td>
+          <td><%= l ? character_sheet_add_plus(l['bonus']) : '' %></td>
+          <td class="char-card-skills-spacer"></td>
+          <td><%= r ? h(character_sheet_ability_label(r['name'])) : '' %></td>
+          <td><%= r ? "#{h r['dice']}d" : '' %></td>
+          <td><%= r ? character_sheet_add_plus(r['bonus']) : '' %></td>
         </tr>
       <% end %>
     </table>
