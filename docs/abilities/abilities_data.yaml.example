@@ -41,7 +41,7 @@ Elemental Dart:
   items: []
   concentration:
     action: Main Action
-    apply_on_cast: true
+    apply_on_cast: false
     retarget: true
     attack_roll: true
     description: "Throw another {aspect} dart at any valid target within range."
