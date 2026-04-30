@@ -100,7 +100,7 @@
     </tr>
   </table>
 
-  <% if weapons.any? || @character.skill_list.any? %>
+  <% if weapons.any? %>
     <div class="char-card-rule"></div>
     <div class="char-card-section-title">Actions</div>
     <table class="char-card-actions">
@@ -133,23 +133,30 @@
         <td>&mdash;</td>
         <td>&mdash;</td>
       </tr>
-      <% if @character.skill_list.any? %>
-        <tr class="char-card-skill-header">
-          <th>Name</th>
-          <th>Ranks</th>
-          <th>Roll</th>
-          <th>Bonus</th>
-          <th colspan="3">Notes</th>
+    </table>
+  <% end %>
+
+  <% if @character.skill_list.any? %>
+    <div class="char-card-section-title char-card-skill-title">Skills</div>
+    <table class="char-card-skills">
+      <tr>
+        <th>Name</th><th>Ranks</th><th>Roll</th><th>Bonus</th>
+        <th>Name</th><th>Ranks</th><th>Roll</th><th>Bonus</th>
+      </tr>
+      <% @character.skill_list.each_slice(2) do |pair| %>
+        <tr>
+          <% 2.times do |i|
+               skill_name = pair[i] %>
+            <% if skill_name %>
+              <td><%= h(@character.clean_skill_name(skill_name)) %></td>
+              <td><%= @character.skill_ranks(skill_name) %></td>
+              <td><%= @character.skill_dice(skill_name) %>d</td>
+              <td><%= @character.add_plus(:skill_bonus, skill_name) %></td>
+            <% else %>
+              <td></td><td></td><td></td><td></td>
+            <% end %>
+          <% end %>
         </tr>
-        <% @character.skill_list.each do |skill_name| %>
-          <tr>
-            <td><%= h(@character.clean_skill_name(skill_name)) %></td>
-            <td><%= @character.skill_ranks(skill_name) %></td>
-            <td><%= @character.skill_dice(skill_name) %>d</td>
-            <td><%= @character.add_plus(:skill_bonus, skill_name) %></td>
-            <td colspan="3"></td>
-          </tr>
-        <% end %>
       <% end %>
     </table>
   <% end %>

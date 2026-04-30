@@ -111,6 +111,14 @@ body {
 .char-card-actions td { padding: 2px 4px; border-bottom: 1px dotted #e6d6b6; }
 .char-card-actions tr.char-card-skill-header th { padding-top: 8px; border-top: 1px solid #b58c2a; }
 
+.char-card-skill-title { margin-top: 6px; }
+.char-card-skills { width: 100%; border-collapse: collapse; }
+.char-card-skills th { text-align: left; font-size: 11px; color: #6b4f24; border-bottom: 1px solid #d4b88a; padding: 2px 4px; }
+.char-card-skills td { padding: 2px 4px; border-bottom: 1px dotted #e6d6b6; }
+/* Visual separator between the two skill groups (col 5 starts the second pair). */
+.char-card-skills th:nth-child(5),
+.char-card-skills td:nth-child(5) { border-left: 1px solid #d4b88a; padding-left: 10px; }
+
 .char-card-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 600px) { .char-card-two-col { grid-template-columns: 1fr; } }
 .char-card-entry { margin: 2px 0; font-size: 12px; }
