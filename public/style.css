@@ -59,13 +59,18 @@ body {
 }
 
 .detail-toggle {
-  font-size: 12px;
-  text-decoration: underline;
-  color: #1976d2;
+  display: inline-block;
+  font-size: 13px;
+  background: #1976d2;
+  color: #fff;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 3px;
   cursor: pointer;
   user-select: none;
+  border: 1px solid #0d47a1;
 }
-.detail-toggle:hover { color: #0d47a1; }
+.detail-toggle:hover { background: #0d47a1; }
 .navigation { width: auto; gap: 12px; min-width: 300px; }
 
 /* Compact monster-statblock-style character card. Single-column flow,
@@ -104,6 +109,7 @@ body {
 .char-card-actions { width: 100%; border-collapse: collapse; }
 .char-card-actions th { text-align: left; font-size: 11px; color: #6b4f24; border-bottom: 1px solid #d4b88a; padding: 2px 4px; }
 .char-card-actions td { padding: 2px 4px; border-bottom: 1px dotted #e6d6b6; }
+.char-card-actions tr.char-card-skill-header th { padding-top: 8px; border-top: 1px solid #b58c2a; }
 
 .char-card-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 600px) { .char-card-two-col { grid-template-columns: 1fr; } }

@@ -1,10 +1,12 @@
 <%
-  # Detail toggle. Only the /character page exposes the toggle; /scene
-  # embeds character_sheet.erb during combat and always wants the full
-  # layout, so we treat a nil @character_detail as :full.
+  # Detail toggle. /scene embeds character_sheet during combat and
+  # forces minimal via @character_detail = :minimal in the scene route.
+  # /character drives @character_detail off the ?detail= query param.
+  # Anywhere else (no @character_detail), keep the historical full
+  # layout.
   detail = (@character_detail == :minimal) ? :minimal : :full
   is_character_page = @route_prefix == '/character'
-  query_for = ->(level) { level == :full ? '?detail=full' : '' }
+  query_for = ->(level) { level == :full ? '?detail=full' : '?detail=minimal' }
   toggle_target = (detail == :full) ? :minimal : :full
   toggle_label  = (detail == :full) ? 'Show minimal' : 'Show full sheet'
 %>
@@ -19,7 +21,7 @@
 </div>
 <% end %>
 
-<% if detail == :minimal && is_character_page %>
+<% if detail == :minimal %>
 <%
   # Minimal monster-statblock-style card. Uses our existing
   # CharacterSheet methods directly — no dummy data layer needed.
@@ -98,9 +100,9 @@
     </tr>
   </table>
 
-  <% if weapons.any? %>
+  <% if weapons.any? || @character.skill_list.any? %>
     <div class="char-card-rule"></div>
-    <div class="char-card-section-title">Combat</div>
+    <div class="char-card-section-title">Actions</div>
     <table class="char-card-actions">
       <tr>
         <th>Name</th>
@@ -131,6 +133,24 @@
         <td>&mdash;</td>
         <td>&mdash;</td>
       </tr>
+      <% if @character.skill_list.any? %>
+        <tr class="char-card-skill-header">
+          <th>Name</th>
+          <th>Ranks</th>
+          <th>Roll</th>
+          <th>Bonus</th>
+          <th colspan="3">Notes</th>
+        </tr>
+        <% @character.skill_list.each do |skill_name| %>
+          <tr>
+            <td><%= h(@character.clean_skill_name(skill_name)) %></td>
+            <td><%= @character.skill_ranks(skill_name) %></td>
+            <td><%= @character.skill_dice(skill_name) %>d</td>
+            <td><%= @character.add_plus(:skill_bonus, skill_name) %></td>
+            <td colspan="3"></td>
+          </tr>
+        <% end %>
+      <% end %>
     </table>
   <% end %>
 
@@ -142,7 +162,7 @@
         <% if has_spells %>
           <% spell_list.each_with_index do |sub, idx| %>
             <% next if sub.nil? || sub.empty? %>
-            <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| h(s) }.join(', ') %></p>
+            <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| "<a href=\"/spell/#{ERB::Util.url_encode(s)}\" class=\"spell-link\">#{h(s)}</a>" }.join(', ') %></p>
           <% end %>
         <% else %>
           <p class="char-card-entry char-card-empty">&mdash;</p>
@@ -153,13 +173,22 @@
         <% if has_rituals %>
           <% (@character.ritual_list || []).each_with_index do |sub, idx| %>
             <% next if sub.nil? || sub.empty? %>
-            <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| h(s) }.join(', ') %></p>
+            <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| "<a href=\"/spell/#{ERB::Util.url_encode(s)}\" class=\"spell-link\">#{h(s)}</a>" }.join(', ') %></p>
           <% end %>
         <% else %>
           <p class="char-card-entry char-card-empty">&mdash;</p>
         <% end %>
       </div>
     </div>
+  <% end %>
+
+  <% if defined_items.any? %>
+    <div class="char-card-rule"></div>
+    <div class="char-card-section-title">Item Descriptions</div>
+    <% defined_items.each do |item| %>
+      <p class="char-card-entry"><em><%= h(item['name']) %>.</em> <%= h(item['description']) %></p>
+    <% end %>
+    <p class="char-card-entry char-card-empty">The full list of items is below.</p>
   <% end %>
 
   <%
@@ -205,14 +234,6 @@
         <% end %>
       </div>
     </div>
-  <% end %>
-
-  <% if defined_items.any? %>
-    <div class="char-card-rule"></div>
-    <div class="char-card-section-title">Item Descriptions</div>
-    <% defined_items.each do |item| %>
-      <p class="char-card-entry"><em><%= h(item['name']) %>.</em> <%= h(item['description']) %></p>
-    <% end %>
   <% end %>
 </div>
 <% else %>

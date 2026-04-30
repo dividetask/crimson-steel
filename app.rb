@@ -220,6 +220,7 @@ get '/scene/:viewer_id' do
   if current && current.character.data['group'] == 'PC'
     @character = current.character
     @route_prefix = nil # suppress the navigation widget in character_sheet
+    @character_detail = :minimal # /scene always uses the compact card
   else
     @character = nil
   end
