@@ -2,35 +2,17 @@
 # and chosen class skills), tier, and tier-up choices, and reports
 # the bonuses those grant.
 #
-# Character holds the *base* attribute scores. When something
-# asks "what's this character's strength?" Character delegates
-# to its Advancement to find out how much the character's tier
-# adds on top. Each tier grants two attribute-side adjustments:
-# a flat bonus applied to every attribute, and a focused bonus
-# applied to a small number of attributes the player picks at
-# each tier-up. Both come from advancement.yaml's tier rules.
-#
-# Tier itself is auto-computed from the character's total class
-# levels via the breakpoint list for their `type`
-# (`player_character`, `boss`, `noble`, `common`, …) — but a
-# character may set an explicit `tier:` override in their YAML
-# and that always wins.
-#
-# Ability granting works per-class. Each class lists abilities
-# with a `min_level` (defaults to 1) and an optional
-# `scales_with_level` flag. When a character qualifies for a
-# scaling ability the ability's effective level is the *sum*
-# of their levels across every class that grants it; non-scaling
-# abilities are simply present or absent.
+# Character holds the *base* attribute scores. 
+# Advancement holds attribute modifiers from race, class, and
+# tier.Both come from advancement.yaml's tier rules.
 #
 # Archetypes are modeled as classes with a `parent_class` field.
-# A character's levels in an archetype also count toward the
-# parent class's abilities and grant the parent's class skills
-# and saves.
 #
-# Skills and saves likewise advance per class via the
-# class-skill / opposed-skill / neither rate scheme. See
-# `skill_ranks` and `save_ranks` for details.
+# Each class categorizes all skills as class skill, opposed skill
+# or neither. This affects the rate at skill ranks are gained but
+# only for skills the character chooses to advance, and skills 
+# that all characters must take including the martial skill and
+# each save.
 
 require 'yaml'
 
@@ -99,11 +81,10 @@ class Advancement
     validate_archetype_exclusivity!
   end
 
-  # Maximum mana for the character. Combines a tier × intelligence
-  # term with a per-class-level grant: each level in a class adds
-  # the class's `mana_per_level` value to the total. The
-  # configurable mana_attribute defaults to `int`; the divisor
-  # defaults to 2.
+  # Maximum mana for the character. Each character has a base
+  # amount of max mana derived from their intelligence and tier
+  # and this is increased each level by an amount determined by
+  # their class.
   #
   # The per-class grant is the "retroactive mana" part of the
   # archetype rule — taking an archetype reclassifies all of the
