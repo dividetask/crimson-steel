@@ -105,6 +105,74 @@
       }
     },
     {
+      "id": "half_orc_soldier",
+      "tier": 1,
+      "name": "Half-Orc Soldier",
+      "player": "DM",
+      "race": ["half_orc"],
+      "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+      "ability_scores": {"str": 18, "dex": 13, "con": 15, "int": 10, "wis": 10, "cha": 8},
+      "classes": [{"level": 4, "class": "fighter", "skills": ["athletics", "intimidate", "perception"]}],
+      "variants": [
+        {
+          "id": "veteran",
+          "chance": 0.15,
+          "overrides": {
+            "tier": 2,
+            "ability_scores": {"str": "+3", "con": "+2"},
+            "name": "Half-Orc Veteran"
+          },
+          "classes_add": [{"level": 3, "class": "fighter", "skills": ["sense_motive"]}]
+        }
+      ],
+      "gear": "soldier_loot"
+    },
+    {
+      "id": "half_orc_scout",
+      "tier": 1,
+      "name": "Half-Orc Scout",
+      "player": "DM",
+      "race": ["half_orc"],
+      "notes": "Ranges 200-400 ft ahead/behind caravan. Carries signal horn. Runs to warn, does NOT fight. Shadows party to report numbers.",
+      "ability_scores": {"str": 14, "dex": 17, "con": 13, "int": 12, "wis": 14, "cha": 8},
+      "classes": [{"level": 4, "class": "rogue", "skills": ["stealth", "perception", "survival", "athletics"]}],
+      "gear": "scout_loot"
+    },
+    {
+      "id": "half_orc_assassin",
+      "tier": 2,
+      "name": "Half-Orc Assassin",
+      "player": "DM",
+      "race": ["half_orc"],
+      "notes": "Elite caravan guard. Backstab for triple damage. Hides during combat, strikes unarmored or distracted targets.",
+      "ability_scores": {"str": 16, "dex": 19, "con": 14, "int": 13, "wis": 12, "cha": 9},
+      "classes": [{"level": 6, "class": "rogue", "skills": ["stealth", "athletics", "perception", "larceny", "deception"]}],
+      "gear": "assassin_loot"
+    },
+    {
+      "id": "orc_handler",
+      "tier": 1,
+      "name": "Orc Handler",
+      "player": "DM",
+      "race": ["orc"],
+      "notes": "Slave driver. Walks alongside coffle. Bullies, not warriors. Drops whip and runs if soldiers fall. May kill a slave out of spite on the way out.",
+      "ability_scores": {"str": 15, "dex": 12, "con": 13, "int": 8, "wis": 9, "cha": 8},
+      "classes": [{"level": 3, "class": "fighter", "skills": ["intimidate", "animal_handling"]}],
+      "gear": "handler_loot"
+    },
+    {
+      "id": "doppelganger",
+      "tier": 2,
+      "name": "Doppelganger",
+      "player": "DM",
+      "race": ["aberration"],
+      "notes": "Shapeshifter. Immune to sleep and charm. Reads surface thoughts. Saves as level 10. Surprise on 1-4. Fights for whoever is winning. Copies equipment of current form.",
+      "ability_scores": {"str": 18, "dex": 18, "con": 14, "int": 13, "wis": 14, "cha": 14},
+      "classes": [{"level": 8, "class": "monster", "skills": ["deception", "stealth", "perception", "sense_motive"]}],
+      "properties": {"immune": ["sleep", "charm"], "shapeshift": true, "detect_thoughts": true},
+      "gear": {}
+    },
+    {
       "id": "escaped_slave",
       "tier": 0,
       "name": "Escaped Slave",
@@ -117,7 +185,7 @@
           "id": "elf",
           "chance": 0.10,
           "overrides": {
-            "race": ["human"],
+            "race": ["elf"],
             "ability_scores": {"dex": "+2", "int": "+2"},
             "name": "Escaped Slave (Elf)"
           }
@@ -132,11 +200,68 @@
       "gear": {}
     },
     {
+      "id": "slave",
+      "tier": 0,
+      "name": "Slave",
+      "player": "DM",
+      "race": ["human"],
+      "notes": "Chained in coffle. Exhausted, terrified. Ankle manacles, rags, no shoes. Orin can unlock manacles silently.",
+      "ability_scores": {"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10},
+      "classes": [{"level": 0, "class": "commoner", "skills": []}],
+      "variants": [
+        {
+          "id": "sorinsk_farmer",
+          "chance": 0,
+          "overrides": {
+            "name": "Sorinsk Farmer",
+            "notes": "Male, 40s. Recognizes party from Hawthorne's feast. Knows 20 captives left weeks ago. Knows 'important ones' separated immediately. Broken arm, walks slow."
+          }
+        },
+        {
+          "id": "merchants_wife",
+          "chance": 0,
+          "overrides": {
+            "name": "Sorinsk Merchant's Wife",
+            "notes": "Female, 30s. Overheard guards say 'elf woman's workshop' and 'stockade in the mountains.' Knows Doran Svetov moved inland. Physically ok, mentally fragile."
+          }
+        },
+        {
+          "id": "foreign_sailor",
+          "chance": 0,
+          "overrides": {
+            "name": "Foreign Sailor",
+            "ability_scores": {"str": 14, "dex": 13, "con": 13},
+            "notes": "Male, 20s. Southern accent. Knows slaver ships are Ghoul and Reaper. Knows Silver Sturgeon carries intel not slaves. Strong enough to fight if armed."
+          }
+        },
+        {
+          "id": "child",
+          "chance": 0,
+          "overrides": {
+            "name": "Captured Child",
+            "ability_scores": {"str": 6, "dex": 10, "con": 8},
+            "notes": "Girl, 10-12. Captured near Elredd. Doesn't speak much. No useful intel. Malnourished."
+          }
+        },
+        {
+          "id": "old_dockworker",
+          "chance": 0,
+          "overrides": {
+            "name": "Old Dock Worker",
+            "ability_scores": {"str": 9, "con": 8, "wis": 13},
+            "notes": "Male, 60s. Enslaved from Highport for debt. Resigned. Knows temple layout and aspis alliance. Weak, won't flee without convincing."
+          }
+        }
+      ],
+      "gear": {}
+    },
+    {
       "id": "wardog",
       "tier": 2,
       "name": "Wardog",
       "player": "DM",
       "race": ["animal"],
+      "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
       "ability_scores": {"str": 17, "dex": 17, "con": 15, "int": 3, "wis": 12, "cha": 6},
       "classes": [{"level": 3, "class": "animal", "skills": ["nature", "perception"]}],
       "gear": {}
@@ -162,6 +287,69 @@
         {"slot": "potion_t3", "chance": 0.05, "options": "tier_three_potions_oils"}
       ],
       "gold": "2d6 + 5"
+    },
+    {
+      "id": "soldier_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0}},
+        {"slot": "sidearm", "item": {"name": "longbow", "type": "weapon", "subtype": "longbow", "bonus": 0}},
+        {
+          "slot": "armor",
+          "options": [
+            {"chance": 0.70, "item": {"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0}},
+            {"chance": 0.15, "item": {"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 0}},
+            {"chance": 0.10, "item": {"name": "chain shirt +1", "type": "armor", "subtype": "light", "bonus": 1}},
+            {"chance": 0.05, "item": {"name": "breastplate +1", "type": "armor", "subtype": "medium", "bonus": 1}}
+          ]
+        },
+        {"slot": "potion_t0", "chance": 0.30, "options": "tier_zero_potions_oils"},
+        {"slot": "potion_t1", "chance": 0.35, "options": "tier_one_potions_oils"},
+        {"slot": "potion_t2", "chance": 0.15, "options": "tier_two_potions_oils"},
+        {"slot": "potion_t3", "chance": 0.05, "options": "tier_three_potions_oils"}
+      ],
+      "gold": "2d6 + 8"
+    },
+    {
+      "id": "scout_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "short sword", "type": "weapon", "subtype": "short_sword", "bonus": 0}},
+        {"slot": "sidearm", "item": {"name": "shortbow", "type": "weapon", "subtype": "shortbow", "bonus": 0}},
+        {"slot": "armor", "item": {"name": "leather armor", "type": "armor", "subtype": "light", "bonus": 0}},
+        {"slot": "misc", "item": {"name": "signal horn", "type": "item", "subtype": "horn", "bonus": 0}},
+        {"slot": "potion_t1", "chance": 0.30, "options": "tier_one_potions_oils"},
+        {"slot": "potion_t2", "chance": 0.10, "options": "tier_two_potions_oils"}
+      ],
+      "gold": "1d6 + 2"
+    },
+    {
+      "id": "assassin_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "short sword +1", "type": "weapon", "subtype": "short_sword", "bonus": 1}},
+        {"slot": "sidearm", "item": {"name": "hand crossbow", "type": "weapon", "subtype": "hand_crossbow", "bonus": 0}},
+        {"slot": "armor", "item": {"name": "leather armor +1", "type": "armor", "subtype": "light", "bonus": 1}},
+        {"slot": "poison", "chance": 0.50, "item": {"name": "poison vial", "type": "item", "subtype": "poison", "bonus": 0, "quantity": 3, "properties": {"consumable": true, "apply_to_weapon": true}}},
+        {"slot": "potion_t1", "chance": 0.40, "options": "tier_one_potions_oils"},
+        {"slot": "potion_t2", "chance": 0.25, "options": "tier_two_potions_oils"},
+        {"slot": "potion_t3", "chance": 0.10, "options": "tier_three_potions_oils"}
+      ],
+      "gold": "3d6 + 10"
+    },
+    {
+      "id": "handler_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "whip", "type": "weapon", "subtype": "whip", "bonus": 0, "properties": {"reach": true}}},
+        {"slot": "sidearm", "item": {"name": "short sword", "type": "weapon", "subtype": "short_sword", "bonus": 0}},
+        {
+          "slot": "armor",
+          "options": [
+            {"chance": 0.80, "item": {"name": "leather armor", "type": "armor", "subtype": "light", "bonus": 0}},
+            {"chance": 0.20, "item": {"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0}}
+          ]
+        },
+        {"slot": "potion_t0", "chance": 0.20, "options": "tier_zero_potions_oils"},
+        {"slot": "potion_t1", "chance": 0.15, "options": "tier_one_potions_oils"}
+      ],
+      "gold": "1d6 + 2"
     }
   ]
 }
