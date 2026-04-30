@@ -6,7 +6,7 @@
       <%= h character.race.name %> <%= h dummy[:klass] %>
     </div>
     <div class="tier-line">
-      Tier <%= h dummy[:tier] %> &nbsp;&nbsp;&nbsp; BAB: <%= h dummy[:bab] %>
+      Tier <%= h character.tier %> &nbsp;&nbsp;&nbsp; BAB: <%= h dummy[:bab] %>
     </div>
   </div>
 
@@ -28,26 +28,26 @@
   <div class="top-stats">
     <div class="stat-box">
       <span class="label">Damage Reduction</span>
-      <span class="value"><%= h dummy[:damage_reduction] %></span>
+      <span class="value"><%= h character.damage_reduction %></span>
     </div>
     <div class="stat-box">
       <span class="label">Damage Resilience</span>
-      <span class="value"><%= h dummy[:damage_resilience] %></span>
+      <span class="value"><%= h character.damage_resilience %></span>
     </div>
     <div class="stat-box">
       <span class="label">Speed</span>
-      <span class="value"><%= h dummy[:speed] %></span>
+      <span class="value"><%= h character.speed %></span>
     </div>
   </div>
 
   <div class="top-stats">
     <div class="stat-box">
       <span class="label">HP</span>
-      <span class="value"><%= h dummy[:current_hp] %>/<%= h dummy[:hp_max] %></span>
+      <span class="value"><%= h dummy[:current_hp] %>/<%= h character.max_hit_points %></span>
     </div>
     <div class="stat-box">
       <span class="label">Mana</span>
-      <span class="value"><%= h dummy[:current_mana] %>/<%= h dummy[:mana_max] %></span>
+      <span class="value"><%= h dummy[:current_mana] %>/<%= h character.max_mana %></span>
     </div>
     <div class="stat-box">
       <span class="label">Mana Regen</span>
@@ -214,9 +214,9 @@
         <% end %>
       <% end %>
 
-      <% if dummy[:ritual_list] && dummy[:ritual_list].any? { |t| t && t.any? } %>
+      <% if character.ritual_list.any? { |t| t && t.any? } %>
         <h2>Ritual Spellbook</h2>
-        <% dummy[:ritual_list].each_with_index do |ritual_sub_list, index| %>
+        <% character.ritual_list.each_with_index do |ritual_sub_list, index| %>
           <% next unless ritual_sub_list && ritual_sub_list.any? %>
           <p><strong><%= index %>:</strong> <%= ritual_sub_list.map { |s| h(s) }.join(', ') %></p>
         <% end %>

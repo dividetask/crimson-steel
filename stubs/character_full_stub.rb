@@ -61,19 +61,13 @@ helpers do
   def character_sheet_dummy_defaults
     {
       klass:               'Bard 3',
-      tier:                3,
       bab:                 4,
       combat_pool:         5,
       perception_dice:     6,
       perception_bonus:    2,
       initiative:          3,
-      damage_reduction:    2,
-      damage_resilience:   2,
-      speed:               30,
       current_hp:          22,
-      hp_max:              28,
       current_mana:        12,
-      mana_max:            14,
       mana_regen:          3,
       temporary_hit_points: 0,
       moderate_damage:     0,
@@ -114,7 +108,6 @@ helpers do
       ],
       spell_list:  [],
       item_spell_list: nil,
-      ritual_list: [],
       notes:       [{ 'note' => 'Placeholder note for the character.' }]
     }
   end

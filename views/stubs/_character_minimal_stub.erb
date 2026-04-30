@@ -9,8 +9,8 @@
   poison_v = conditions['poison'].to_i
   weapons = dummy[:shields] + dummy[:weapons]
   has_spells  = dummy[:spell_list]  && dummy[:spell_list].any?  { |t| t && t.any? }
-  has_rituals = dummy[:ritual_list] && dummy[:ritual_list].any? { |t| t && t.any? }
-  tier_class = character_sheet_tier_class(dummy[:tier])
+  has_rituals = character.ritual_list.any? { |t| t && t.any? }
+  tier_class = character_sheet_tier_class(character.tier)
 %>
 <div class="char-card">
   <div class="char-card-name-row">
@@ -19,7 +19,7 @@
   </div>
   <div class="char-card-type">
     <%= h character.race.name %> <%= h dummy[:klass] %>,
-    <span class="<%= tier_class %>">Tier <%= h dummy[:tier] %></span>
+    <span class="<%= tier_class %>">Tier <%= h character.tier %></span>
   </div>
 
   <div class="char-card-rule"></div>
@@ -40,13 +40,13 @@
     </div>
     <div class="char-card-vitals">
       <div class="char-card-line">
-        <strong>HP</strong> <%= h dummy[:current_hp] %>/<%= h dummy[:hp_max] %><%
+        <strong>HP</strong> <%= h dummy[:current_hp] %>/<%= h character.max_hit_points %><%
         %><% if temp > 0 %> <span class="hp-temp">+<%= temp %> tmp</span><% end %><%
         %><% if mod  > 0 %> &mdash; <span class="hp-mod">moderate <%= mod %></span><% end %><%
         %><% if maj  > 0 %> &mdash; <span class="hp-major">major <%= maj %></span><% end %>
       </div>
       <div class="char-card-line">
-        <strong>Mana</strong> <%= h dummy[:current_mana] %>/<%= h dummy[:mana_max] %><%
+        <strong>Mana</strong> <%= h dummy[:current_mana] %>/<%= h character.max_mana %><%
         %><% if sat_max > 0 || sat > 0 %>, <span class="toxicity">Toxicity <%= sat %>/<%= sat_max %></span><% end %>
       </div>
       <% if bleed_v > 0 || poison_v > 0 %>
@@ -67,7 +67,7 @@
     <tr>
       <td><strong>Initiative</strong> <%= h dummy[:initiative] %></td>
       <td><strong>Perception</strong> <%= character_sheet_add_plus(dummy[:perception_bonus]) %></td>
-      <td><strong>Speed</strong> <%= h dummy[:speed] %></td>
+      <td><strong>Speed</strong> <%= h character.speed %></td>
     </tr>
   </table>
 
@@ -121,7 +121,7 @@
       <div>
         <div class="char-card-section-title">Rituals</div>
         <% if has_rituals %>
-          <% dummy[:ritual_list].each_with_index do |sub, idx| %>
+          <% character.ritual_list.each_with_index do |sub, idx| %>
             <% next if sub.nil? || sub.empty? %>
             <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| h(s) }.join(', ') %></p>
           <% end %>
