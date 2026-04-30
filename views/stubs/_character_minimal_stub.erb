@@ -63,11 +63,13 @@
 
   <div class="char-card-rule"></div>
 
-  <div class="char-card-quickrow">
-    <div><strong>Initiative</strong> <%= h dummy[:initiative] %></div>
-    <div><strong>Perception</strong> <%= character_sheet_add_plus(dummy[:perception_bonus]) %></div>
-    <div><strong>Speed</strong> <%= h dummy[:speed] %></div>
-  </div>
+  <table class="char-card-quickrow">
+    <tr>
+      <td><strong>Initiative</strong> <%= h dummy[:initiative] %></td>
+      <td><strong>Perception</strong> <%= character_sheet_add_plus(dummy[:perception_bonus]) %></td>
+      <td><strong>Speed</strong> <%= h dummy[:speed] %></td>
+    </tr>
+  </table>
 
   <% if weapons.any? %>
     <div class="char-card-rule"></div>

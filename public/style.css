@@ -1968,11 +1968,16 @@ body {
 
 /* Single-row Initiative / Perception / Speed strip. */
 .char-card-quickrow {
-  display: flex;
-  justify-content: flex-start;
-  gap: 24px;
-  flex-wrap: wrap;
+  width: 100%;
+  border-collapse: collapse;
   margin: 4px 0;
+  table-layout: fixed;
+}
+.char-card-quickrow td {
+  width: 33.333%;
+  text-align: right;
+  border: none;
+  padding: 0;
 }
 .char-card-quickrow strong { color: #8b1538; }
 
