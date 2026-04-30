@@ -79,9 +79,54 @@ end
 
 post '/combat/start_of_turn' do
   halt 403, 'forbidden' unless current_user&.dm?
-  # Placeholder — real start-of-turn pipeline (reset combat dice,
-  # apply shock, acid counter, afflictions, expire conditions)
-  # lands when Conditions / Effects / damage_types are wired.
+
+  combatant = COMBAT.combatants.find { |c| c['id'].to_i == params[:combat_id].to_i }
+  halt 400, 'unknown combatant' unless combatant
+
+  char = CHARACTER_LOOKUP.call(combatant['char_id'])
+  halt 400, 'unknown character' unless char
+
+  conditions = CONDITIONS_REGISTRY&.for_character(combatant['char_id'])
+  halt 500, 'conditions registry unavailable' unless conditions
+
+  # Order matches the pipeline documented in the start-of-turn stub
+  # view and in views/stubs/_turn_action_stub.erb.
+
+  # 1. Reset action dice to action_dice_max for this combatant.
+  COMBAT.reset_action_dice(combatant['id'])
+
+  # 2. Consume Shock against the freshly reset pool.
+  shock_to_consume = conditions.shock
+  if shock_to_consume > 0
+    consumed = conditions.consume_shock(shock_to_consume)
+    COMBAT.spend_action_dice(combatant['id'], consumed)
+  end
+
+  # 3. Resolve the Acid Counter: halve, deal halved value as Minor HP.
+  conditions.resolve_acid_turn_start
+
+  # 4. Resolve afflictions using the rolls the player already made.
+  rolls_raw = params[:rolls].to_s
+  rolls = rolls_raw.empty? ? [] : (JSON.parse(rolls_raw) rescue [])
+  affliction_results = []
+  rolls.each do |r|
+    name = r['affliction'].to_s
+    next unless conditions.afflictions.key?(name)
+    result = conditions.apply_affliction_save_outcome(
+      name,
+      successes:     r['successes'].to_i,
+      failures:      r['failures'].to_i,
+      creature_tier: char.tier,
+      current_round: COMBAT.round
+    )
+    affliction_results << { 'name' => name, 'result' => result }
+  end
+
+  # 5. Clear any effects whose ends_on_round has passed.
+  conditions.clear_expired_effects(COMBAT.round)
+
+  CONDITIONS_REGISTRY.save!
+
   redirect(request.referer || '/combat')
 end
 

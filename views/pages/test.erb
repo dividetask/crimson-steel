@@ -2,6 +2,19 @@
 
 <%# Newest stub previews go at the top — see CLAUDE.md. %>
 
+<h2>Start of Turn Stub</h2>
+
+<p class="dt-note">
+  Walks the active combatant through the start-of-turn pipeline:
+  reset action dice &rarr; consume shock &rarr; halve acid counter
+  &rarr; per-affliction saves (each via the standard roll_stub)
+  &rarr; clear expired effects. One Confirm at the bottom commits
+  every change atomically through the real Combat / Conditions
+  state files in <code>data/</code>.
+</p>
+
+<%= start_of_turn_stub %>
+
 <h2>Attack Stub</h2>
 
 <p class="dt-note">

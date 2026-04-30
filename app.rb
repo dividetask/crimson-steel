@@ -7,6 +7,9 @@ require_relative 'lib/user'
 require_relative 'lib/notes_state'
 require_relative 'lib/character'
 require_relative 'lib/skills'
+require_relative 'lib/damage_types'
+require_relative 'lib/conditions_registry'
+require_relative 'lib/combat'
 
 set :port, 4567
 set :bind, '0.0.0.0'
@@ -29,6 +32,30 @@ NOTES_STATE = NotesState.new(File.join(__dir__, 'data', 'notes_state.json'))
 SKILLS      = Skills.new(config_path: File.join(__dir__, 'data', 'skills.yaml'),
                          dice_system: DICE_SYSTEM)
 
+# Damage types catalog. Falls back to the docs/ example so a fresh
+# checkout boots without a separate setup step; production drops a
+# tuned copy into data/damage_types.yaml.
+DAMAGE_TYPES_PATH = [
+  File.join(__dir__, 'data', 'damage_types.yaml'),
+  File.join(__dir__, 'docs', 'damage_types', 'damage_types_config.yaml.example')
+].find { |p| File.exist?(p) }
+DAMAGE_TYPES = DamageTypes.new(DAMAGE_TYPES_PATH) if DAMAGE_TYPES_PATH
+
+CONDITIONS_CONFIG_PATH = [
+  File.join(__dir__, 'data', 'conditions.yaml'),
+  File.join(__dir__, 'docs', 'conditions', 'conditions_config.yaml.example')
+].find { |p| File.exist?(p) }
+
+CONDITIONS_REGISTRY =
+  if CONDITIONS_CONFIG_PATH && DAMAGE_TYPES
+    ConditionsRegistry.new(
+      state_path:  File.join(__dir__, 'data', 'conditions_state.yaml'),
+      config_path: CONDITIONS_CONFIG_PATH,
+      dice_system: DICE_SYSTEM,
+      severities:  DAMAGE_TYPES.severities
+    )
+  end
+
 if settings.development?
   require_relative 'lib/dummy_data'
   DATA = DummyData
@@ -36,6 +63,35 @@ else
   require_relative 'lib/empty_data'
   DATA = EmptyData
 end
+
+# Character lookup callback used by Combat. Development resolves
+# char_ids out of DummyData.pc_objects (Character instances); production
+# loads a roster from data/characters.yaml when present. A future page
+# may swap in a richer source — Combat only needs Character#attribute,
+# Character#tier, Character#skill_ranks, and Character#damage_resilience.
+CHARACTER_REGISTRY =
+  if settings.development? && DATA.respond_to?(:pc_objects)
+    DATA.pc_objects.each_with_object({}) { |entry, h| h[entry[:character].id.to_i] = entry[:character] }
+  else
+    roster_path = File.join(__dir__, 'data', 'characters.yaml')
+    Character.load_yaml(roster_path).each_with_object({}) { |c, h| h[c.id.to_i] = c }
+  end
+
+CHARACTER_LOOKUP = ->(char_id) { CHARACTER_REGISTRY[char_id.to_i] }
+
+COMBAT_RULES_PATH = [
+  File.join(__dir__, 'data', 'combat_rules.yaml'),
+  File.join(__dir__, 'docs', 'combat', 'combat_config.yaml.example')
+].find { |p| File.exist?(p) }
+
+COMBAT = Combat.new(
+  state_path:          File.join(__dir__, 'data', 'combat.yaml'),
+  rules_path:          COMBAT_RULES_PATH,
+  dice_system:         DICE_SYSTEM,
+  character_lookup:    CHARACTER_LOOKUP,
+  damage_types:        DAMAGE_TYPES,
+  conditions_lookup:   ->(char_id) { CONDITIONS_REGISTRY&.for_character(char_id) }
+)
 
 helpers do
   def h(text)

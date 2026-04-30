@@ -14,27 +14,7 @@
     <% buttons.each do |key| %>
       <div class="turn-action-panel<%= ' is-active' if key == default_panel %>" data-panel="<%= key %>">
         <% if key == 'start_of_turn' %>
-          <h3>Start of Turn</h3>
-          <p class="dt-note">
-            On confirm, the start-of-turn pipeline runs in this
-            order: reset combat dice, apply shock, apply acid
-            counter, handle each affliction, then remove any
-            conditions or effects that have timed out. Affliction
-            rolls go through the roll stub so the DM can nudge
-            them. Nothing is recorded until <strong>Confirm</strong>
-            is pressed below.
-          </p>
-          <p class="dt-note dt-note-placeholder">
-            <em>Pipeline not yet wired.</em> The Conditions and
-            Effects modules need to land before the real summary
-            renders here. For now, Confirm is a no-op that just
-            refreshes the page.
-          </p>
-          <%= confirm_action_stub(
-                message: 'Apply start-of-turn effects for the current combatant.',
-                action:  '/combat/start_of_turn',
-                label:   'Confirm Start of Turn'
-              ) %>
+          <%= start_of_turn_stub %>
 
         <% elsif key == 'attack' %>
           <%= attack_stub(

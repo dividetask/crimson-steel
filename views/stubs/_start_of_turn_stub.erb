@@ -1,0 +1,136 @@
+<div class="start-of-turn-stub" data-stub-id="<%= stub_id %>">
+  <h3>Start of Turn — <%= h(character_name) %> (Round <%= h(round) %>)</h3>
+
+  <div class="start-of-turn-summary">
+    <p class="dt-note">
+      The start-of-turn pipeline runs in this order on Confirm:
+      <strong>reset action dice</strong> &rarr; <strong>consume shock</strong>
+      &rarr; <strong>resolve acid counter</strong> &rarr;
+      <strong>resolve afflictions</strong> &rarr;
+      <strong>expire timed-out effects</strong>.
+      Nothing is written until you press <strong>Confirm Start of Turn</strong>.
+    </p>
+
+    <table class="start-of-turn-pre-table">
+      <tbody>
+        <tr>
+          <th>Action Dice</th>
+          <td>
+            <span><%= h(action_dice_now) %></span> &rarr;
+            <strong><%= h(action_dice_max) %></strong>
+            <% if shock > 0 %>
+              <span class="dt-note">
+                (less <%= h(shock) %> from Shock &rarr;
+                <strong><%= [action_dice_max - shock, 0].max %></strong>)
+              </span>
+            <% end %>
+          </td>
+        </tr>
+        <tr>
+          <th>Shock</th>
+          <td>
+            <%= h(shock) %>
+            <% if shock > 0 %>
+              &rarr; <strong>0</strong>
+              (consumed against pool refresh)
+            <% end %>
+          </td>
+        </tr>
+        <tr>
+          <th>Acid Counter</th>
+          <td>
+            <%= h(acid_counter) %>
+            <% if acid_counter > 0 %>
+              &rarr; <strong><%= h(acid_after_halve) %></strong>
+              <% if acid_after_halve > 0 %>
+                (deals <strong><%= h(acid_after_halve) %></strong> Minor HP damage)
+              <% end %>
+            <% end %>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <% if afflictions.empty? %>
+    <p class="dt-note start-of-turn-no-afflictions">
+      No active afflictions on this combatant.
+    </p>
+  <% else %>
+    <h4>Affliction Saves</h4>
+    <table class="roll-stub-table start-of-turn-affliction-table">
+      <thead>
+        <tr>
+          <th class="col-roll"></th>
+          <th class="col-meta">Affliction</th>
+          <th class="col-mod">Modifier</th>
+          <th class="col-dice">Dice</th>
+          <th class="col-result">Result / Crits</th>
+        </tr>
+      </thead>
+      <% afflictions.each do |a| %>
+        <%
+          child_id = "#{stub_id}-#{a[:name]}"
+          severity_save_penalty = a[:severity] / 10
+        %>
+        <tbody class="start-of-turn-affliction-group" data-affliction="<%= h(a[:name]) %>">
+          <tr class="start-of-turn-affliction-header">
+            <td colspan="5">
+              <strong><%= h(a[:label]) %></strong>
+              <span class="dt-note">
+                Severity <%= h(a[:severity]) %>
+                <% if severity_save_penalty > 0 %>
+                  · Severity Save Penalty <strong>&minus;<%= h(severity_save_penalty) %></strong>
+                <% end %>
+                · category <%= h(a[:category]) %>
+              </span>
+            </td>
+          </tr>
+          <%= roll_stub(
+                stub_id:        child_id,
+                character_name: character_name,
+                check_name:     a[:check_name],
+                dice_count:     a[:dice_count],
+                tn:             a[:tn],
+                starting_value: a[:starting_value],
+                show_confirm:   false,
+                bare_row:       true
+              ) %>
+        </tbody>
+      <% end %>
+    </table>
+  <% end %>
+
+  <div class="start-of-turn-preview">
+    <h4>Preview of changes</h4>
+    <pre id="start-of-turn-preview-<%= stub_id %>" class="start-of-turn-preview-pre">(Roll the saves above, then press Preview to see the resulting changes.)</pre>
+    <button type="button" class="start-of-turn-preview-btn"
+            onclick="startOfTurnPreview('<%= stub_id %>')">Preview</button>
+  </div>
+
+  <form method="post" action="/combat/start_of_turn"
+        class="start-of-turn-confirm-form"
+        id="start-of-turn-form-<%= stub_id %>"
+        onsubmit="return startOfTurnPrepareSubmit('<%= stub_id %>')">
+    <input type="hidden" name="combat_id" value="<%= h(combatant['id']) %>">
+    <input type="hidden" name="char_id"   value="<%= h(combatant['char_id']) %>">
+    <input type="hidden" name="rolls"     id="start-of-turn-rolls-<%= stub_id %>" value="[]">
+    <button type="submit" class="start-of-turn-confirm-btn">
+      Confirm Start of Turn
+    </button>
+  </form>
+</div>
+
+<script>
+(function() {
+  window.startOfTurnConfigs = window.startOfTurnConfigs || {};
+  window.startOfTurnConfigs[<%= stub_id.to_json %>] = {
+    childIds: <%= afflictions.map { |a| "#{stub_id}-#{a[:name]}" }.to_json %>,
+    afflictionNames: <%= afflictions.map { |a| a[:name] }.to_json %>,
+    severities: <%= afflictions.map { |a| a[:severity] }.to_json %>,
+    actionDiceMax: <%= action_dice_max %>,
+    shock: <%= shock %>,
+    acidAfterHalve: <%= acid_after_halve %>
+  };
+})();
+</script>

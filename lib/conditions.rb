@@ -289,7 +289,6 @@ class Conditions
     if !@afflictions.key?(name) || @afflictions[name]['severity'] <= 0
       raise ArgumentError, "Affliction not active: #{name}"
     end
-    rule = affliction_rule(name)
     severity_before = @afflictions[name]['severity']
     divisor = @conditions_config['Severity Divisor'].to_i
     severity_save_penalty = severity_before / divisor
@@ -302,6 +301,31 @@ class Conditions
     dois = result['degree_of_individual_success'].to_i
     successes = [0, dois].max
     failures = [0, -dois].max
+
+    apply_affliction_save_outcome(name,
+                                  successes:     successes,
+                                  failures:      failures,
+                                  creature_tier: creature_tier,
+                                  current_round: current_round)
+  end
+
+  # Apply an affliction save where the dice were rolled by an external
+  # caller (typically the roll_stub UI). Same severity / magnitude math
+  # as resolve_affliction; only the rolling step is skipped. successes
+  # and failures are already net of one another — at most one of them
+  # is non-zero in normal use.
+  def apply_affliction_save_outcome(name, successes:, failures:, creature_tier:, current_round: nil)
+    name = name.to_s
+    if !@afflictions.key?(name) || @afflictions[name]['severity'] <= 0
+      raise ArgumentError, "Affliction not active: #{name}"
+    end
+    rule = affliction_rule(name)
+    severity_before = @afflictions[name]['severity']
+    divisor = @conditions_config['Severity Divisor'].to_i
+    severity_save_penalty = severity_before / divisor
+
+    successes = [0, successes.to_i].max
+    failures  = [0, failures.to_i].max
 
     magnitude = 1 + (severity_before / divisor)
     net_magnitude = [0, magnitude - successes].max
