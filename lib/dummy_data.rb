@@ -1,5 +1,3 @@
-require 'yaml'
-
 # Placeholder data source for the UI rebuild. The real rule engine
 # from before-refactor (character.rb, templates.rb, tools.rb, etc.)
 # is not wired up yet; this class returns hard-coded values shaped
@@ -610,16 +608,59 @@ class DummyData
   # placeholder data shaped the way the stub expects, so the UI flow can
   # be exercised end-to-end before any real rule engine is wired up.
   #
-  # The defenses catalog (`data/defenses.yaml`) defines the abstract kinds
-  # — `defense_options` is responsible for expanding `parry` into
-  # one option per equipped weapon, `block` into one per shield, etc.
+  # The defenses catalog defines the abstract kinds —
+  # `defense_options` is responsible for expanding `parry` into one
+  # option per equipped weapon, `block` into one per shield, etc.
+  # The shape mirrors `docs/defenses.yaml.example` and
+  # `docs/reactions.yaml.example`; once the real data layer lands
+  # those templates become the authoritative source.
+
+  DEFENSES_CATALOG = {
+    'nothing' => {
+      'label' => 'Nothing',
+      'description' => 'Take no defensive action; the attacker rolls flatfooted.',
+      'uses_dice' => false,
+      'uses_implement' => 'none'
+    },
+    'dodge' => {
+      'label' => 'Dodge',
+      'description' => 'Spend dice on a Dexterity-based dodge roll.',
+      'uses_dice' => true,
+      'uses_implement' => 'none'
+    },
+    'parry' => {
+      'label' => 'Parry',
+      'description' => 'Block the attack with a melee weapon. One option per equipped weapon.',
+      'uses_dice' => true,
+      'uses_implement' => 'weapon'
+    },
+    'block' => {
+      'label' => 'Block',
+      'description' => 'Block the attack with a shield. One option per equipped shield.',
+      'uses_dice' => true,
+      'uses_implement' => 'shield'
+    }
+  }.freeze
+
+  REACTIONS_CATALOG = {
+    'danger_sense' => {
+      'label' => 'Danger Sense',
+      'description' => 'Damage resilience +4 against this attack.',
+      'cost' => '4 mana'
+    },
+    'primal_tenacity' => {
+      'label' => 'Primal Tenacity',
+      'description' => 'Damage reduction +4 against this attack.',
+      'cost' => '4 mana'
+    }
+  }.freeze
 
   def self.defenses_catalog
-    @defenses_catalog ||= YAML.load_file(File.join(__dir__, '..', 'data', 'defenses.yaml'))['defenses']
+    DEFENSES_CATALOG
   end
 
   def self.reactions_catalog
-    @reactions_catalog ||= YAML.load_file(File.join(__dir__, '..', 'data', 'reactions.yaml'))['reactions']
+    REACTIONS_CATALOG
   end
 
   def self.attacker_sample

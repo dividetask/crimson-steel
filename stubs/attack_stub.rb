@@ -2,7 +2,7 @@
 # rule-ignorant and used by both melee and ranged flows: callers hand
 # it the attacker's pre-computed weapon stats, the candidate targets
 # (each with its own list of concrete defense options expanded from
-# data/defenses.yaml), and the lists of ally / target reactions. The
+# DummyData::DEFENSES_CATALOG), and the lists of ally / target reactions. The
 # stub walks the DM through:
 #
 #   1. Select Target
