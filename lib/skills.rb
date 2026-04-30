@@ -105,13 +105,17 @@ class Skills
     prowess             = ranks + attribute_contrib
     check_details       = @dice_system.compute_check_details(prowess)
 
+    bonuses = {}
+    bonuses['Competency Bonus']   = check_details['competency_bonus']   if check_details['competency_bonus'].to_i.positive?
+    bonuses['Competency Penalty'] = check_details['competency_penalty'] if check_details['competency_penalty'].to_i.positive?
+
     {
       'name'           => skill_name,
       'ranks'          => ranks,
       'prowess'        => prowess,
       'dice_count'     => check_details['dice_count'],
       'starting_value' => check_details['starting_value'],
-      'bonuses'        => { 'Competency Bonus' => check_details['competency_bonus'] }
+      'bonuses'        => bonuses
     }
   end
 

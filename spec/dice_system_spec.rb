@@ -51,37 +51,30 @@ RSpec.describe DiceSystem do
 
     it 'with zero prowess fills the minimum dice and nothing else' do
       expect(dice_system.compute_check_details(0)).to eq(
-        'dice_count' => 6, 'competency_bonus' => 0, 'starting_value' => 0
+        'dice_count' => 6, 'competency_bonus' => 0, 'competency_penalty' => 0, 'starting_value' => 0
       )
     end
 
     it 'spends prowess on dice up to the maximum first' do
       expect(dice_system.compute_check_details(4)).to eq(
-        'dice_count' => 10, 'competency_bonus' => 0, 'starting_value' => 0
+        'dice_count' => 10, 'competency_bonus' => 0, 'competency_penalty' => 0, 'starting_value' => 0
       )
     end
 
-    it 'spills prowess past the dice cap into Competency Bonus' do
+    it 'spills positive prowess past the dice cap into Competency Bonus (no cap)' do
       expect(dice_system.compute_check_details(5)).to eq(
-        'dice_count' => 10, 'competency_bonus' => 1, 'starting_value' => 0
+        'dice_count' => 10, 'competency_bonus' => 1, 'competency_penalty' => 0, 'starting_value' => 0
       )
-      expect(dice_system.compute_check_details(7)).to eq(
-        'dice_count' => 10, 'competency_bonus' => 3, 'starting_value' => 0
-      )
-    end
-
-    it 'spills prowess past the bonus cap into Starting Value' do
-      expect(dice_system.compute_check_details(8)).to eq(
-        'dice_count' => 10, 'competency_bonus' => 3, 'starting_value' => 1
-      )
+      # 12 prowess = 4 dice (filling 6→10) + 8 leftover Bonus. No cap
+      # at this layer; downstream overflow handles TN-floor breaches.
       expect(dice_system.compute_check_details(12)).to eq(
-        'dice_count' => 10, 'competency_bonus' => 3, 'starting_value' => 5
+        'dice_count' => 10, 'competency_bonus' => 8, 'competency_penalty' => 0, 'starting_value' => 0
       )
     end
 
-    it 'clamps negative prowess to the minimum dice and routes the deficit to Starting Value' do
+    it 'clamps negative prowess to the minimum dice and routes the deficit to Competency Penalty' do
       expect(dice_system.compute_check_details(-2)).to eq(
-        'dice_count' => 6, 'competency_bonus' => 0, 'starting_value' => -2
+        'dice_count' => 6, 'competency_bonus' => 0, 'competency_penalty' => 2, 'starting_value' => 0
       )
     end
   end

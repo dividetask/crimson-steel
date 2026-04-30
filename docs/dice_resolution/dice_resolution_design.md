@@ -8,13 +8,19 @@ Only operations whose behavior isn't obvious from the glossary are described her
 
 ### Compute Check Details — Skill Prowess partition
 
-Callers that have computed a Skill Prowess (skill ranks plus a half-attribute contribution, per the skills domain) hand the integer to `compute_check_details(prowess)` and receive a `[Dice Count, Competency Bonus, Starting Value]` triple. The cascade is:
+Callers that have computed a Skill Prowess (skill ranks plus a half-attribute contribution, per the skills domain) hand the integer to `compute_check_details(prowess)` and receive a `{dice_count, competency_bonus, competency_penalty, starting_value}` hash. The cascade is:
 
 1. **Dice first.** `Dice Count = clamp(Minimum Dice Count + prowess, Minimum Dice Count, Maximum Dice Count)`. A non-negative Prowess raises the dice pool toward the Maximum Dice Count; a negative Prowess clamps to the Minimum Dice Count.
-2. **Bonus next.** Whatever Prowess remains after dice fill the pool spills into the Competency Bonus, capped at the configured **Competency Bonus Cap**. The default cap matches the headroom between the Base Target Number and the Minimum Target Number, so the cap allocates exactly as much Bonus as the TN floor can absorb before `compute_roll_parameters`'s overflow rule would convert it back to Starting Successes anyway.
-3. **Starting last.** Anything still left becomes Starting Value — positive (Starting Successes) when Prowess overflowed past the cap, negative (Starting Failures) when Prowess was negative.
+2. **Competency modifier next.** Whatever (signed) Prowess remains after dice fill the pool becomes a Competency modifier:
+   - **Positive remainder → Competency Bonus.**
+   - **Negative remainder → Competency Penalty.**
+   No cap is applied at this layer. When the resulting Bonus would push the Roll's TN past the Minimum Target Number, the existing overflow rule in `compute_roll_parameters` converts the excess into Starting Successes downstream — that's where the floor is enforced, not here.
 
-The function is pure: no dice are rolled, no modifier dictionary is built. The caller folds the returned Competency Bonus into a `"Competency Bonus"` modifier and the Starting Value into a `"Competency Starting"` (or any compatible type's `Starting`) entry before invoking `compute_roll_parameters`. Dice resolution never asks where the Prowess number came from; ownership of that math belongs to the skills domain.
+   The partition deliberately uses Competency modifiers (which propagate to Opposed Rolls with sign inversion) rather than direct Starting Value emission. Routing excess Prowess into Starting Value would silently strip the opposed-side effect — a high-Prowess attacker should make their target's defense Roll harder, and Starting contributions don't propagate.
+
+3. **Starting Value stays zero from this function.** It's still in the return shape for caller convenience but `compute_check_details` never emits a non-zero value. Starting contributions arrive elsewhere (per-type Starting modifiers, the Bonus/Penalty TN overflow handled by `compute_roll_parameters`).
+
+The function is pure: no dice are rolled, no modifier dictionary is built. The caller folds the returned Competency Bonus or Penalty into the corresponding `"Competency Bonus"` / `"Competency Penalty"` modifier dictionary entry before invoking `compute_roll_parameters`. Dice resolution never asks where the Prowess number came from; ownership of that math belongs to the skills domain.
 
 ### Target Number computation with overflow conversion
 
@@ -92,7 +98,7 @@ This order is observable — for example, a Reroll Operation could turn a Failur
 - Loading and validating `dice_resolution_config.yaml`.
 - Producing random die results.
 - Computing final TN and Starting Value from a modifier dictionary.
-- Partitioning a Skill Prowess into `[Dice Count, Competency Bonus, Starting Value]` via **Compute Check Details**, using the Minimum Dice Count, Dice Count Range, and Competency Bonus Cap from config.
+- Partitioning a Skill Prowess into `{Dice Count, Competency Bonus, Competency Penalty}` via **Compute Check Details**, using the Minimum Dice Count and Dice Count Range from config. No cap; downstream overflow handles TN-floor breaches.
 - Computing Degree of Individual Success and Critical Count for each Roll.
 - Applying Roll Modifiers (Reroll Operation, Sweep Reroll, Value Adjustment) including target selection and rerolled-die bookkeeping.
 - Composing a Check from an ordered list of tagged Rolls: aggregating Degrees of Individual Success into a Degree of Success, applying success thresholds, detecting Fumbles.
