@@ -58,6 +58,28 @@ function toggleNote(btn) {
   }
 }
 
+// Inline character-based truncation toggle for /scene cells. The
+// helper renders the first 200 chars + an ellipsis + a hidden span
+// with the rest. Click flips both the rest span's visibility and
+// the button's label.
+function toggleSceneNote(btn) {
+  var p = btn.parentElement;
+  if (!p) return;
+  var rest = p.querySelector('.note-rest');
+  var ellipsis = p.querySelector('.note-ellipsis');
+  if (!rest) return;
+  var hidden = rest.hasAttribute('hidden');
+  if (hidden) {
+    rest.removeAttribute('hidden');
+    if (ellipsis) ellipsis.style.display = 'none';
+    btn.textContent = 'Show less';
+  } else {
+    rest.setAttribute('hidden', '');
+    if (ellipsis) ellipsis.style.display = '';
+    btn.textContent = 'Show more';
+  }
+}
+
 (function() {
   var lb = document.getElementById('lightbox');
   if (!lb) return;

@@ -212,7 +212,7 @@
                 </div>
               </details>
             <% end %>
-            <p><%= h(panel['note']).gsub("\n", '<br>') %></p>
+            <p><%= truncated_note_html(panel['note']) %></p>
             <% if @is_dm %>
               <div class="scene-grid-actions">
                 <form method="post" action="/scene/panel/promote" style="display:inline;" onsubmit="return confirm('Promote this scene note into the permanent Notes section?');">
@@ -290,7 +290,7 @@
               </div>
             <% end %>
             <% if char['note'] && !char['note'].to_s.empty? %>
-              <p><%= h(char['note']).gsub("\n", '<br>') %></p>
+              <p><%= truncated_note_html(char['note']) %></p>
             <% end %>
           </div>
         <% end %>

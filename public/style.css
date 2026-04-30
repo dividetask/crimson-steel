@@ -769,6 +769,10 @@ table th {
 @media (max-width: 900px) { .scene-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .scene-grid { grid-template-columns: minmax(0, 1fr); } }
 .scene-grid-cell { border: 1px solid #ccc; background: #fafafa; padding: 10px 12px; border-radius: 4px; display: flex; flex-direction: column; gap: 6px; position: relative; min-width: 0; overflow: hidden; }
+
+.note-ellipsis { color: #888; }
+.note-toggle-inline { background: none; border: none; color: #1976d2; cursor: pointer; padding: 0 0 0 4px; font-size: inherit; text-decoration: underline; }
+.note-toggle-inline:hover { color: #0d47a1; }
 .scene-grid-cell h3 { margin: 0; font-size: 18px; }
 .scene-grid-cell p { margin: 0; font-size: 15px; line-height: 1.45; }
 .scene-grid-meta { color: #666; }

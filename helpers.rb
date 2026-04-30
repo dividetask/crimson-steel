@@ -144,6 +144,20 @@ module CharacterHelpers
     Rack::Utils.escape_html(text.to_s)
   end
 
+  # Render a note body that wraps cleanly when long. Up to `limit`
+  # characters always stay visible; anything past that is hidden behind
+  # a "Show more" toggle. Returns HTML-safe markup with newlines as
+  # <br>. Layout-level toggleSceneNote() flips the hidden span and
+  # button label.
+  def truncated_note_html(text, limit: 200)
+    s = text.to_s
+    return h(s).gsub("\n", '<br>') if s.length <= limit
+    head = h(s[0, limit]).gsub("\n", '<br>')
+    rest = h(s[limit..]).gsub("\n", '<br>')
+    %(#{head}<span class="note-ellipsis">…</span><span class="note-rest" hidden>#{rest}</span> ) +
+      %(<button type="button" class="note-toggle-inline" onclick="toggleSceneNote(this)">Show more</button>)
+  end
+
   def format_casting_time(val)
     v = val.to_f
     return "Free" if v == 0
