@@ -39,14 +39,23 @@ class Advancement
   DEFAULT_MIN_LEVEL                = 1
   DEFAULT_CHARACTER_TYPE           = 'player_character'.freeze
 
-  Ability = Struct.new(:name, :level, keyword_init: true) do
+  Ability = Struct.new(:name, :level, :sub_choices, keyword_init: true) do
     # `level` is nil for non-scaling abilities.
     def scales?
       !level.nil?
     end
+
+    # Per-grant choices the player picked for this ability (e.g.
+    # the chosen performances for Versatile Performance). Always
+    # an array — defaults to empty when the character entry has no
+    # choices recorded.
+    def sub_choices
+      self[:sub_choices] || []
+    end
   end
 
-  attr_reader :character_type, :class_levels, :class_skill_choices, :tier_attribute_advancement
+  attr_reader :character_type, :class_levels, :class_skill_choices, :tier_attribute_advancement,
+              :ability_sub_choices
 
   def initialize(
     tier: nil,
@@ -59,7 +68,8 @@ class Advancement
     focused_attribute_count: 0,
     tier_advancement: {},
     class_definitions: {},
-    skill_definitions: {}
+    skill_definitions: {},
+    ability_sub_choices: {}
   )
     @tier_override                    = tier.nil? ? nil : tier.to_i
     @character_type                   = character_type.to_s
@@ -72,6 +82,7 @@ class Advancement
     @tier_advancement                 = tier_advancement || {}
     @class_definitions                = class_definitions || {}
     @skill_definitions                = skill_definitions || {}
+    @ability_sub_choices              = normalize_ability_sub_choices(ability_sub_choices)
   end
 
   # The character's current tier. Returns the explicit override
@@ -142,7 +153,13 @@ class Advancement
       end
     end
 
-    granted.map { |name, info| Ability.new(name: name, level: info[:scales] ? info[:level] : nil) }
+    granted.map do |name, info|
+      Ability.new(
+        name:        name,
+        level:       info[:scales] ? info[:level] : nil,
+        sub_choices: Array(@ability_sub_choices[name]).dup
+      )
+    end
   end
 
   # Skill name => rank. A skill is contributed to by a class when
@@ -215,8 +232,21 @@ class Advancement
       focused_attribute_count:          rules['focused_attribute_count'] || 0,
       tier_advancement:                 rules['tier_advancement'] || {},
       class_definitions:                class_definitions,
-      skill_definitions:                skill_definitions
+      skill_definitions:                skill_definitions,
+      ability_sub_choices:              extract_ability_sub_choices(entry)
     )
+  end
+
+  # Pulls per-ability sub-choices off a character's `advancement`
+  # entry. Today only `versatile_performance` is recognized — the
+  # entry's `versatile_performance:` key is a list of chosen
+  # performance keys (one per grant). Future abilities with their
+  # own sub-choices register here without changing the entry shape.
+  def self.extract_ability_sub_choices(entry)
+    out = {}
+    list = entry['versatile_performance'] || entry[:versatile_performance]
+    out['versatile_performance'] = Array(list).map(&:to_s) if list
+    out
   end
 
   # Loads the combined advancement file. Returns:
@@ -294,6 +324,11 @@ class Advancement
   end
 
   def normalize_skill_choices(input)
+    return {} unless input.is_a?(Hash)
+    input.each_with_object({}) { |(k, v), h| h[k.to_s] = Array(v).map(&:to_s) }
+  end
+
+  def normalize_ability_sub_choices(input)
     return {} unless input.is_a?(Hash)
     input.each_with_object({}) { |(k, v), h| h[k.to_s] = Array(v).map(&:to_s) }
   end

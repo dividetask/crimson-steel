@@ -34,6 +34,12 @@
 
 **Maximum Dice Count**: The maximum permitted Dice Count. Every Roll must have no more then this many dice. *(indirectly configurable)*
 
+**Skill Prowess**: A signed integer summarizing a creature's effective competence at a particular Skill, computed by the skills domain. Prowess is the input to **Compute Check Details** and is the only value the skills domain hands to dice resolution.
+
+**Competency Bonus Cap**: The maximum Competency Bonus that **Compute Check Details** allocates from a positive Skill Prowess before spilling further Prowess into Starting Value. *(configurable)*
+
+**Compute Check Details**: A pure function that partitions a Skill Prowess into a `[Dice Count, Competency Bonus, Starting Value]` triple. Excess Prowess fills the dice pool up to the Maximum Dice Count, then a Competency Bonus up to the Competency Bonus Cap, then spills into Starting Value. A negative Prowess clamps Dice Count to the Minimum Dice Count and routes the deficit to Starting Value as Starting Failures.
+
 ## Die Results
 
 **Success**: A die result that meets or exceeds the Target Number. Each Success contributes one point to the Degree of Individual Success.

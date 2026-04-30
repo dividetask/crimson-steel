@@ -34,6 +34,15 @@ Minimum Dice Count: 6
 # in Prowess-related calculations performed outside this module.
 Dice Count Range: 5
 
+# The maximum Competency Bonus that Compute Check Details will allocate before
+# spilling further Prowess into Starting Value. Excess Prowess past the
+# Maximum Dice Count fills the Competency Bonus up to this cap; anything left
+# becomes Starting Value. The default 3 matches the headroom between the Base
+# Target Number and the Minimum Target Number, so the cap allocates exactly as
+# much Bonus as the TN floor can absorb before overflow conversion would kick
+# in inside compute_roll_parameters.
+Competency Bonus Cap: 3
+
 # The number of Successes required for a typical Check to succeed. Specific
 # Checks may require more, but this is the default.
 Default Success Threshold: 2
