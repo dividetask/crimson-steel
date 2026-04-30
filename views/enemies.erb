@@ -12,7 +12,7 @@
         char_by_id = (@all_characters || Tools.load_json('characters.json')).each_with_object({}) { |c, h| h[c['id']] = c }
       %>
       <% (@enemy_groups || []).each_with_index do |group, gi| %>
-        <div class="enemy-group">
+        <div class="enemy-group collapsed">
           <div class="enemy-group-header" onclick="this.parentElement.classList.toggle('collapsed')" title="Click to expand/collapse">
             <span class="enemy-group-toggle">&#9660;</span>
             <strong><%= group[:label] %></strong>
