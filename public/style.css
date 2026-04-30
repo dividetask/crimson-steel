@@ -2043,6 +2043,16 @@ body {
   border-bottom: 1px solid #8b1538;
   letter-spacing: 0.5px;
 }
+/* Skill rows share the actions table; the dashes in Spd/Dmg
+   already cue them as non-combat. A faint top border on the
+   first skill row sets them apart from the dodge line above. */
+.char-card-actions .char-card-skill-row:first-of-type td {
+  border-top: 2px solid #d6c9a3;
+}
+.char-card-actions .char-card-skill-row td:first-child {
+  font-style: italic;
+  color: #4a3a1f;
+}
 
 .char-card .ability-damage { color: #c0392b; font-weight: bold; margin-left: 3px; font-size: 0.9em; }
 .char-card .enh-note       { color: #2e7d32; font-size: 0.85em; margin-left: 3px; }
