@@ -45,18 +45,6 @@
       "gear": "hobgoblin_loot"
     },
     {
-      "id": "boggle",
-      "tier": 2,
-      "name": "Boggle",
-      "player": "DM",
-      "race": ["aberration"],
-      "notes": "Watchbeast chained to stockade walls. Blue-gray, 3 ft tall, vaguely humanoid. Keen scent detects INVISIBLE creatures up to 40 ft. Sets up keening wail as alarm. Spider climb. Takes -1 damage per die from weapons. Wind covers scent.",
-      "ability_scores": {"str": 16, "dex": 16, "con": 18, "int": 5, "wis": 15, "cha": 5},
-      "classes": [{"level": 6, "class": "monster", "skills": ["perception", "climb"]}],
-      "properties": {"scent": 40, "spider_climb": true, "weapon_resist": true, "counter": "wind"},
-      "gear": {}
-    },
-    {
       "id": "gnoll",
       "tier": 1,
       "name": "Gnoll",
@@ -149,44 +137,6 @@
       "gear": {}
     },
     {
-      "id": "caveling",
-      "tier": 1,
-      "name": "Caveling",
-      "player": "DM",
-      "race": ["humanoid", "modified"],
-      "notes": "Former elf/human surgically modified by Markessa. Gray scaly hide, bulbous eyes, clawed padded feet. 90% hide in shadows, 80% move silently. Surprise on 1-5. Responds only to creator's commands. Cannot speak. Infravision 90 ft.",
-      "ability_scores": {"str": 16, "dex": 18, "con": 15, "int": 4, "wis": 6, "cha": 4},
-      "classes": [{"level": 4, "class": "monster", "skills": ["stealth", "climb", "athletics"]}],
-      "properties": {"infravision": 90, "spider_climb": true, "hide_in_shadows": 0.90, "move_silently": 0.80},
-      "variants": [
-        {
-          "id": "cari",
-          "chance": 0,
-          "overrides": {
-            "tier": 2,
-            "name": "Cari",
-            "ability_scores": {"str": 18, "int": 14, "con": 17, "cha": 5},
-            "notes": "Estelrath's bodyguard. Enlarged hands, tail with poison stinger (save or itch: no spells, -2 hit). Trips opponents at +4. Was once an elf."
-          },
-          "classes_add": [{"level": 2, "class": "monster", "skills": []}],
-          "properties_add": {"tail_sting_poison": true, "trip": 4}
-        },
-        {
-          "id": "filch",
-          "chance": 0,
-          "overrides": {
-            "tier": 2,
-            "name": "Filch",
-            "ability_scores": {"str": 14, "int": 15, "dex": 19, "con": 13, "cha": 4},
-            "notes": "Estelrath's bodyguard. Prehensile gripping tail, long thin fingers. Pickpocket 75%. Leaps on victim's back, locks legs around chest, stabs with two daggers. Was once an elf."
-          },
-          "classes_add": [{"level": 2, "class": "rogue", "skills": ["larceny"]}],
-          "properties_add": {"pickpocket": 0.75, "prehensile_tail": true}
-        }
-      ],
-      "gear": {}
-    },
-    {
       "id": "cloaker",
       "tier": 3,
       "name": "Cloaker",
@@ -194,7 +144,7 @@
       "race": ["aberration"],
       "notes": "Disguised as cloak on wall among real cloaks. Guards Room of Slaves. Subsonic moaning always active. L1: unease -2 hit (80ft). L2: fear spell (30ft, save vs Spells). L3: nausea cone 30ft (save vs Poison or helpless 2-5 rds). L4: hold person single target (5 rds). Cannot bite and moan same round. Stone blocks moaning. Envelops victim — arms pinned, bites 1d4+base AC/rd. Tail AC 1, 16 hp to cut off. Attacks on enveloped victim do half to cloaker, half to victim. Fire does full to both. Creates shadow duplicates (mirror image). If badly hurt: creates doubles, flees into shadows.",
       "ability_scores": {"str": 18, "dex": 18, "con": 19, "int": 14, "wis": 16, "cha": 14},
-      "classes": [{"level": 8, "class": "monster", "skills": ["stealth", "deception", "perception"]}],
+      "classes": [{"level": 8, "class": "aberration", "skills": ["stealth", "deception", "perception"]}],
       "properties": {"envelop": true, "subsonic_moan": true, "shadow_images": true, "fly": true},
       "gear": {}
     },
@@ -235,18 +185,6 @@
       "ability_scores": {"str": 6, "dex": 16, "con": 10, "int": 3, "wis": 12, "cha": 10},
       "classes": [{"level": 1, "class": "animal", "skills": ["perception"]}],
       "properties": {"trip_on_dex_fail": true, "damage": 0},
-      "gear": {}
-    },
-    {
-      "id": "aspis_drone",
-      "tier": 2,
-      "name": "Aspis Drone",
-      "player": "DM",
-      "race": ["aberration"],
-      "notes": "Insect-man. Dual wields swords and shields, carries 12 darts. Immune to cold and electricity, half damage from fire. Guards slave pits (room 18a) — clings to pillars with hind feet, waits for party to be on beams, then attacks. Fanatical in egg/breeding chambers (+2 hit).",
-      "ability_scores": {"str": 19, "dex": 16, "con": 17, "int": 8, "wis": 11, "cha": 6},
-      "classes": [{"level": 7, "class": "monster", "skills": ["perception", "athletics"]}],
-      "properties": {"immune": ["cold", "electricity"], "resist": ["fire"]},
       "gear": {}
     },
     {

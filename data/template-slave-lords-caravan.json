@@ -161,18 +161,6 @@
       "gear": "handler_loot"
     },
     {
-      "id": "doppelganger",
-      "tier": 2,
-      "name": "Doppelganger",
-      "player": "DM",
-      "race": ["aberration"],
-      "notes": "Shapeshifter. Immune to sleep and charm. Reads surface thoughts. Saves as level 10. Surprise on 1-4. Fights for whoever is winning. Copies equipment of current form.",
-      "ability_scores": {"str": 18, "dex": 18, "con": 14, "int": 13, "wis": 14, "cha": 14},
-      "classes": [{"level": 8, "class": "monster", "skills": ["deception", "stealth", "perception", "sense_motive"]}],
-      "properties": {"immune": ["sleep", "charm"], "shapeshift": true, "detect_thoughts": true},
-      "gear": {}
-    },
-    {
       "id": "escaped_slave",
       "tier": 0,
       "name": "Escaped Slave",
