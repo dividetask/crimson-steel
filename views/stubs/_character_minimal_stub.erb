@@ -71,7 +71,7 @@
     </tr>
   </table>
 
-  <% skills = dummy[:skills] || [] %>
+  <% skills = character_skill_rows(character) %>
   <% if weapons.any? || skills.any? %>
     <div class="char-card-rule"></div>
     <div class="char-card-section-title">Actions &amp; Skills</div>
@@ -106,7 +106,7 @@
       <% end %>
       <% skills.each do |s| %>
         <tr class="char-card-skill-row">
-          <td><%= h s['name'] %></td>
+          <td><%= h character_sheet_ability_label(s['name']) %></td>
           <td>&mdash;</td>
           <td><%= h s['dice'] %>d</td>
           <td><%= character_sheet_add_plus(s['bonus']) %></td>

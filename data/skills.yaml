@@ -170,6 +170,9 @@ skills:
   sense_motive:
     attribute: wis
     description: Reading intent, spotting deception, and gauging mood.
+  survival:
+    attribute: wis
+    description: Tracking, foraging, and navigating the wild.
 
   # Charisma
   animal_handling:

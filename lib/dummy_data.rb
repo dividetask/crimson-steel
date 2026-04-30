@@ -296,7 +296,8 @@ class DummyData
           advancement: dummy_advancement(
             tier: 2,
             class_levels: { 'cleric' => 4 },
-            picks: %i[wis dex]
+            picks: %i[wis dex],
+            chosen_skills: { 'cleric' => %w[healing sense_motive arcana survival intimidate perception] }
           )),
         dummy: {
           klass: 'Cleric 4', bab: 3,
@@ -341,7 +342,8 @@ class DummyData
           advancement: dummy_advancement(
             tier: 2,
             class_levels: { 'barbarian' => 4 },
-            picks: %i[str dex]
+            picks: %i[str dex],
+            chosen_skills: { 'barbarian' => %w[athletics survival sense_motive stealth] }
           )),
         dummy: {
           klass: 'Barbarian 4', bab: 4,
@@ -380,7 +382,8 @@ class DummyData
           advancement: dummy_advancement(
             tier: 2,
             class_levels: { 'arcane_trickster' => 4 },
-            picks: %i[dex cha]
+            picks: %i[dex cha],
+            chosen_skills: { 'arcane_trickster' => %w[arcana stealth larceny sleight_of_hand deception persuasion perception game_chess] }
           ),
           ritual_list: [
             ['Guidance', 'Resistance', 'Acid Splash', 'Drench', 'Light', 'Spark', 'Mending'],
@@ -433,7 +436,8 @@ class DummyData
           advancement: dummy_advancement(
             tier: 2,
             class_levels: { 'bard' => 4 },
-            picks: %i[dex cha]
+            picks: %i[dex cha],
+            chosen_skills: { 'bard' => %w[perform_sing perform_percussion animal_handling persuasion evocation perception nature] }
           )),
         dummy: {
           klass: 'Bard 4', bab: 3,
@@ -1028,6 +1032,7 @@ class DummyData
   # existing dummy characters keep their bonuses.
   RACE_DEFINITIONS_PATH         = File.expand_path('../docs/race/race_config.yaml.example',                __dir__)
   ADVANCEMENT_DEFINITIONS_PATH  = File.expand_path('../docs/advancement/advancement_config.yaml.example',  __dir__)
+  SKILL_DEFINITIONS_PATH        = File.expand_path('../data/skills.yaml',                                  __dir__)
 
   def self.race_definitions
     @race_definitions ||= Race.load_yaml(RACE_DEFINITIONS_PATH).merge(
@@ -1048,6 +1053,10 @@ class DummyData
     @advancement_config ||= Advancement.load_config(ADVANCEMENT_DEFINITIONS_PATH)
   end
 
+  def self.skill_definitions
+    @skill_definitions ||= Advancement.load_skills(SKILL_DEFINITIONS_PATH)
+  end
+
   # Race instance keyed against the loaded race_definitions, so
   # name, speed, ability_score_adjustments, and racial abilities
   # are all populated. character_level lets racial abilities with
@@ -1064,17 +1073,19 @@ class DummyData
   # docs/advancement/advancement_config.yaml.example, so attribute_bonus,
   # max_hit_points, max_mana, and abilities all reflect what a
   # character loaded from the real config would compute.
-  def self.dummy_advancement(tier:, class_levels:, picks: [])
+  def self.dummy_advancement(tier:, class_levels:, picks: [], chosen_skills: {})
     rules = advancement_config['rules']
     Advancement.new(
       tier:                             tier,
       class_levels:                     class_levels,
+      class_skill_choices:              chosen_skills,
       tier_attribute_advancement:       picks.map(&:to_s),
       attribute_bonus_per_tier:         rules.fetch('attribute_bonus_per_tier',         [1, 1, 1, 1, 1]),
       focused_attribute_bonus_per_tier: rules.fetch('focused_attribute_bonus_per_tier', [0, 2, 2, 2, 2]),
       focused_attribute_count:          rules.fetch('focused_attribute_count',          2),
       tier_advancement:                 rules.fetch('tier_advancement',                 {}),
-      class_definitions:                advancement_config['classes']
+      class_definitions:                advancement_config['classes'],
+      skill_definitions:                skill_definitions
     )
   end
 

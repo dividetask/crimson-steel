@@ -152,9 +152,9 @@
           <th>Dice</th>
           <th>Bonus</th>
         </tr>
-        <% dummy[:skills].each do |skill| %>
+        <% character_skill_rows(character).each do |skill| %>
         <tr>
-          <td><%= h skill['name'] %></td>
+          <td><%= h character_sheet_ability_label(skill['name']) %></td>
           <td><%= h skill['ranks'] %></td>
           <td><%= h skill['dice'] %>d</td>
           <td><%= character_sheet_add_plus(skill['bonus']) %></td>

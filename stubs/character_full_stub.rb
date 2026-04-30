@@ -63,6 +63,33 @@ helpers do
     character_sheet_condition_label(key)
   end
 
+  # Skill rows the character sheets render. Every character also
+  # carries Martial — it's a mandatory skill that auto-advances
+  # under every class, so it always appears in the row list even
+  # when nothing in the character's chosen-skills list mentions
+  # it. Skills the catalog doesn't recognize (e.g. a typo, or a
+  # skill set with no member chosen) are quietly skipped.
+  def character_skill_rows(character)
+    ranks = character.advancement.skill_ranks
+    names = (ranks.keys + ['martial']).uniq.sort
+    names.filter_map do |name|
+      next if SKILLS.set?(name)
+      detail =
+        begin
+          SKILLS.skill_details(name, character, character.advancement)
+        rescue ArgumentError
+          nil
+        end
+      next unless detail
+      {
+        'name'  => name,
+        'ranks' => detail['ranks'],
+        'dice'  => detail['dice_count'],
+        'bonus' => detail['bonuses']['Competency Bonus']
+      }
+    end
+  end
+
   # Default dummy block for fields the Character class doesn't yet
   # cover. Anything passed into `dummy:` overrides these.
   def character_sheet_dummy_defaults
