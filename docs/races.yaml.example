@@ -58,6 +58,11 @@ races:
     abilities:
       - name: low_light_vision
       - name: poison_resistance
+        modifiers:
+          - target:      save.con
+            descriptors: [poison]
+            type:        Inherent
+            add:         1
       - name: weapon_familiarity_dwarven
       - name: heavy_armor_full_speed
       - name: bonus_dwarven_feat

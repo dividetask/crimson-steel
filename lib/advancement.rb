@@ -167,6 +167,28 @@ class Advancement
     granted.map { |name, info| Ability.new(name: name, level: info[:scales] ? info[:level] : nil) }
   end
 
+  # Flat list of modifier hashes contributed by every class
+  # ability the character qualifies for. Pre-Modifier shape so
+  # the consumer (Character) can fold these into a single
+  # Modifiers instance alongside racial contributions.
+  def modifiers
+    result = []
+    @class_levels.each do |klass, level|
+      next if level <= 0
+      classes_in_chain(klass).each do |chain_klass|
+        Array(class_ability_defs(chain_klass)).each do |ability_def|
+          next if ability_def['name'].nil?
+          min_level = (ability_def['min_level'] || DEFAULT_MIN_LEVEL).to_i
+          next if level < min_level
+          Array(ability_def['modifiers']).each do |mod|
+            result << mod
+          end
+        end
+      end
+    end
+    result
+  end
+
   # Skill name => rank. A skill is contributed to by a class when
   # the character chose it under that class, or when it's flagged
   # `mandatory: true` in the skill definitions (so every class

@@ -128,6 +128,38 @@ mana_divisor:   2
 #                                            class levels across
 #                                            every class that
 #                                            grants it.
+#                          modifiers         optional list of
+#                                            numeric modifiers
+#                                            granted while the
+#                                            ability is in effect
+#                                            (always-on for
+#                                            permanent abilities;
+#                                            condition-gated
+#                                            abilities apply via
+#                                            the condition layer
+#                                            instead). Each entry:
+#                                              target  field key
+#                                                      (speed,
+#                                                      damage_*,
+#                                                      attribute.<a>,
+#                                                      skill.<k>,
+#                                                      save.<a>,
+#                                                      max_hit_points,
+#                                                      max_mana)
+#                                              type    optional
+#                                                      Bonus Type
+#                                                      from
+#                                                      data/dice_resolution.yaml
+#                                              descriptors
+#                                                      optional list
+#                                                      narrowing
+#                                                      when the
+#                                                      modifier
+#                                                      fires (e.g.
+#                                                      [poison] for
+#                                                      "vs poison")
+#                                              add     signed
+#                                                      integer
 #
 
 classes:
@@ -147,6 +179,9 @@ classes:
       - name: rage
         scales_with_level: true
       - name: fast_movement
+        modifiers:
+          - target: speed
+            add: 10
       - name: reckless_attacks
         scales_with_level: true
       - min_level: 2
@@ -176,6 +211,13 @@ classes:
       - name: performance_feat
       - min_level: 3
       - name: silver_tongue
+        modifiers:
+          - target: skill.persuasion
+            type:   Inherent
+            add:    1
+          - target: skill.deception
+            type:   Inherent
+            add:    1
       - name: unsettling_words
       - min_level: 4
       - name: versatile_performance

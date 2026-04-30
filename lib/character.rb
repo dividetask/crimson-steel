@@ -15,6 +15,7 @@
 require 'yaml'
 require_relative 'advancement'
 require_relative 'race'
+require_relative 'modifiers'
 
 class Character
   ATTRIBUTE_KEYS = %i[str dex con int wis cha].freeze
@@ -43,7 +44,16 @@ class Character
 
   def attribute(sym)
     key = sym.to_sym
-    @attributes[key].to_i + @advancement.attribute_bonus(key) + @race.adjustment_for(key)
+    base = @attributes[key].to_i + @advancement.attribute_bonus(key) + @race.adjustment_for(key)
+    base + modifiers.total_for("attribute.#{key}")
+  end
+
+  # Combined modifier set from race + advancement. Memoized
+  # because both inputs are immutable per Character. Once the
+  # EffectsState layer lands, the spell / item / condition
+  # contributions get folded in here.
+  def modifiers
+    @modifiers ||= Modifiers.new(@race.modifiers + @advancement.modifiers)
   end
 
   def tier
@@ -76,26 +86,27 @@ class Character
   end
 
   def speed
-    @race.speed
+    @race.speed.to_i + modifiers.total_for('speed')
   end
 
   # Tier 0 is treated as 0.5 in formulas; damage_resilience is
   # an integer so the tier-derived base floors to 0. Classes can
-  # raise it further through Advancement.
+  # raise it further through Advancement, and abilities (or, later,
+  # spells / items / conditions) layer additional modifiers on top.
   def damage_resilience
-    [tier, 0].max + @advancement.damage_resilience
+    [tier, 0].max + @advancement.damage_resilience + modifiers.total_for('damage_resilience')
   end
 
   def damage_reduction
-    @advancement.damage_reduction
+    @advancement.damage_reduction + modifiers.total_for('damage_reduction')
   end
 
   def max_hit_points
-    @advancement.max_hit_points(self)
+    @advancement.max_hit_points(self) + modifiers.total_for('max_hit_points')
   end
 
   def max_mana
-    @advancement.max_mana(self)
+    @advancement.max_mana(self) + modifiers.total_for('max_mana')
   end
 
   def ritual_list

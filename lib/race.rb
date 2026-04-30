@@ -86,6 +86,25 @@ class Race
     granted.map { |name, info| Ability.new(name: name, level: info[:scales] ? info[:level] : nil) }
   end
 
+  # Flat list of modifier hashes contributed by every racial
+  # ability the character qualifies for. Pre-Modifier shape so
+  # the consumer (Character) can fold these into a single
+  # Modifiers instance alongside class-driven contributions.
+  def modifiers
+    result = []
+    chain.each do |race_key|
+      Array(race_ability_defs(race_key)).each do |ability_def|
+        next if ability_def['name'].nil? && ability_def[:name].nil?
+        min_level = (ability_def['min_level'] || ability_def[:min_level] || DEFAULT_MIN_LEVEL).to_i
+        next if @character_level < min_level
+        Array(ability_def['modifiers'] || ability_def[:modifiers]).each do |mod|
+          result << mod
+        end
+      end
+    end
+    result
+  end
+
   # Loads the races definition file. Returns a hash keyed by
   # race key. Each race's `abilities` list is normalized using
   # the same sticky-min_level rules as classes.
