@@ -264,6 +264,7 @@
       "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
       "ability_scores": {"str": 17, "dex": 17, "con": 15, "int": 3, "wis": 12, "cha": 6},
       "classes": [{"level": 3, "class": "animal", "skills": ["nature", "perception"]}],
+      "abilities": {"natural": ["bite"]},
       "gear": {}
     }
   ],
