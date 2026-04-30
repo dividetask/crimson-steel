@@ -186,7 +186,26 @@ RSpec.describe ItemUse do
       })
     end
 
-    it 'surfaces the mana amount as unrouted (caller applies to mana store)' do
+    it 'restores mana on the target when target_max_mana is supplied' do
+      target_conditions.set_mana(2, max: 100)
+      result = item_use.consume(
+        owner_id:       'character:1',
+        stack_index:    0,
+        item_form:      ItemUse::SCROLL_FORM,
+        spell_name:     'Recharge',
+        target_char_id: 1,
+        rank:           2,
+        user_tier:      2,
+        target_tier:    2,
+        target_max_mana: 100
+      )
+      mana_app = result['applications'].find { |a| a['kind'] == 'mana' }
+      expect(mana_app['amount']).to eq(8)
+      expect(mana_app['gained']).to eq(8)
+      expect(target_conditions.current_mana).to eq(10)
+    end
+
+    it 'still surfaces unrouted when target_max_mana is omitted' do
       result = item_use.consume(
         owner_id:       'character:1',
         stack_index:    0,
@@ -198,7 +217,6 @@ RSpec.describe ItemUse do
         target_tier:    2
       )
       mana_app = result['applications'].find { |a| a['kind'] == 'mana' }
-      expect(mana_app['amount']).to eq(8)
       expect(mana_app['unrouted']).to be true
     end
   end

@@ -80,6 +80,32 @@ The order matters: halving runs first, the post-halve value is what gets dealt a
 
 Like Shock, the Acid Counter has its own consumption model and earns its own top-level field rather than living inside a generic mechanism. Adding a future damage-type counter (cold-burst, lingering-fire, …) means adding another top-level field plus apply / resolve operations — a code change, not a config change.
 
+### Mana
+
+Current Mana is a non-negative integer field on the Conditions instance, parallel to the HP damage counters and magic toxicity. Three operations:
+
+- **`APPLY_MANA_COST(amount)`** — decrements current mana, floored at zero. Returns the actual amount spent (which may be less than requested if mana ran out).
+- **`RESTORE_MANA(amount, max:)`** — increments current mana, clamped at `max:`. The caller supplies the cap (typically `Character#max_mana`) — Conditions does not look it up itself, mirroring how Magic Toxicity caps are passed in.
+- **`SET_MANA(amount, max:)`** — sets current mana to a specific value, clamped to `[0, max]`. Useful for full refills and for serialization round-trips.
+
+Storing current mana directly (rather than tracking "mana spent" subtracted from a max) keeps the field independent of Mana Max, which is variable — a buff that raises max_mana shouldn't suddenly retroactively spend more.
+
+### Natural Recovery
+
+`APPLY_NATURAL_RECOVERY(days:, mode:, character_tier:, mana_max:, magic_toxicity_attribute_score:)` rolls every per-day rule forward by the supplied number of days. Steps:
+
+1. **HP damage healing** — for each Severity, look up the Heal Rate row at `tier * 3 + severity_index`. Compute `periods = floor(days / unit)` and `amount = (mode == 'short_rest' ? low : high) * periods`. Cap healing at the current damage counter and decrement it.
+2. **Ability damage healing** — same shape against the Ability Heal Rate table; pop FIFO across attributes within each severity (the existing `apply_ability_heal_cascade` machinery).
+3. **Mana** — `mana_per_day = floor(mana_max / Mana Per Day Divisor)`. Restore `mana_per_day * days`, clamped at `mana_max`.
+4. **Magic Toxicity** — `tox_per_day = floor(magic_toxicity_attribute_score / Magic Toxicity Per Day Divisor)`. Decay by `tox_per_day * days`, floored at 0.
+5. **Temporary HP** — clears entirely, regardless of `ends_on_round`. Time is the natural enemy of temp HP.
+
+The operation returns a structured summary describing each delta so the caller can render rest-summary lines.
+
+The recovery rates are **tabular** rather than a single divisor because different severities heal at different cadences — minor damage might heal 2 points per day at tier 3, while major damage might heal 1 point per week. The unit field on each row encodes the cadence.
+
+`mode: short_rest` is a one-day-or-less idle interval that uses the *low* values; `mode: long_term_recovery` is the multi-day downtime case that uses the *high* values. The two modes share the same unit values — a major-damage row with unit 7 still requires 7 elapsed days before any major heal lands, even in long-term-recovery mode.
+
 ### Effect Name application
 
 `APPLY_NAMED_EFFECT` looks up an entry in the `Effect Names` catalog (the project-wide source of truth for named effects) and applies each of its modifier-kind Mechanics via `APPLY_EFFECT`, using `<source_id>:<index>` for each. Mechanics of other kinds (`flag`, `set_value`, `scale_value`, `display`, `reroll`, `nudge`) are routed to whichever per-kind storage the conditions module exposes for that category.
@@ -107,7 +133,7 @@ The prefix match is a literal `startswith` — no globbing, no segment awareness
 
 ### Owned by the conditions domain
 
-- Per-creature mutable state: HP damage counters, ability damage, Temporary HP grant, Magic Toxicity counter, Shock counter, Acid Counter, ordered list of Active Afflictions, ordered list of Active Effects.
+- Per-creature mutable state: HP damage counters, ability damage, Temporary HP grant, current Mana, Magic Toxicity counter, Shock counter, Acid Counter, ordered list of Active Afflictions, ordered list of Active Effects.
 - Damage absorption with worst-first Temp HP draining.
 - Heal cascades on both HP damage and Ability Damage, with FIFO ordering of attributes within a category.
 - Single-grant Temp HP replacement rule (strictly higher wins).
@@ -117,6 +143,8 @@ The prefix match is a literal `startswith` — no globbing, no segment awareness
 - Effect storage with source-id replacement; stacking computed at lookup via `GET_MODIFIERS`.
 - Bulk removal by Source ID prefix (`REMOVE_EFFECTS_BY_PREFIX`) for callers that own a Source ID Namespace.
 - Acid Counter: per-creature accumulation via `APPLY_ACID_DAMAGE`, halve-and-deal-minor-damage at turn start via `RESOLVE_ACID_TURN_START`, automatic removal when the value reaches zero.
+- Mana: `APPLY_MANA_COST` (floor at zero), `RESTORE_MANA` (clamp at supplied `max:`), `SET_MANA`.
+- Natural Recovery (per-day rules): `APPLY_NATURAL_RECOVERY` rolls HP damage, ability damage, mana, and magic toxicity forward by N days using the configured tabular Heal Rate / Ability Heal Rate and the divisor-based mana / toxicity rates. Temporary HP clears.
 - Named Effect dispatch with per-modifier Source IDs.
 - Expiry sweep (`CLEAR_EXPIRED_EFFECTS`) for Effects and the Temp HP grant.
 - Serialization round-trip (`TO_DICT` / `LOAD_STATE`) with validation of severities, sign values, and known affliction names.

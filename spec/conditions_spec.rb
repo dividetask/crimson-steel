@@ -247,6 +247,89 @@ RSpec.describe Conditions do
     end
   end
 
+  describe 'mana' do
+    it 'spends and restores against a supplied cap' do
+      conditions.set_mana(10, max: 20)
+      expect(conditions.current_mana).to eq(10)
+      spent = conditions.apply_mana_cost(7)
+      expect(spent).to eq(7)
+      expect(conditions.current_mana).to eq(3)
+      conditions.restore_mana(50, max: 20)
+      expect(conditions.current_mana).to eq(20)
+    end
+
+    it 'floors mana spend at zero' do
+      conditions.set_mana(3, max: 20)
+      spent = conditions.apply_mana_cost(10)
+      expect(spent).to eq(3)
+      expect(conditions.current_mana).to eq(0)
+    end
+  end
+
+  describe '#apply_natural_recovery' do
+    it 'heals HP damage at the tier-appropriate rate over several days' do
+      conditions.apply_hit_point_damage('minor' => 10, 'moderate' => 4)
+      result = conditions.apply_natural_recovery(
+        days: 2, mode: 'short_rest', character_tier: 1,
+        mana_max: 0, magic_toxicity_attribute_score: 0
+      )
+      # Tier 1 short_rest: minor 2/day, moderate 1/day
+      expect(result['hit_point_healed']).to eq({ 'minor' => 4, 'moderate' => 2, 'major' => 0 })
+      expect(conditions.hit_point_damage['minor']).to eq(6)
+      expect(conditions.hit_point_damage['moderate']).to eq(2)
+    end
+
+    it 'uses the high column in long_term_recovery mode' do
+      conditions.apply_hit_point_damage('minor' => 20)
+      result = conditions.apply_natural_recovery(
+        days: 1, mode: 'long_term_recovery', character_tier: 2,
+        mana_max: 0, magic_toxicity_attribute_score: 0
+      )
+      # Tier 2 long_term: minor 8/day
+      expect(result['hit_point_healed']['minor']).to eq(8)
+    end
+
+    it 'restores mana per day clamped at max' do
+      conditions.set_mana(5, max: 100)
+      conditions.apply_natural_recovery(
+        days: 3, mode: 'short_rest', character_tier: 0,
+        mana_max: 40, magic_toxicity_attribute_score: 0
+      )
+      # mana_per_day = 40/4 = 10, 3 days = 30, clamped to 40 → final 35
+      expect(conditions.current_mana).to eq(35)
+    end
+
+    it 'decays magic toxicity per day, floored at zero' do
+      conditions.apply_magic_toxicity(15)
+      conditions.apply_natural_recovery(
+        days: 4, mode: 'short_rest', character_tier: 0,
+        mana_max: 0, magic_toxicity_attribute_score: 12
+      )
+      # tox_per_day = 12/4 = 3, 4 days = 12, 15 - 12 = 3
+      expect(conditions.magic_toxicity).to eq(3)
+    end
+
+    it 'clears Temporary HP regardless of ends_on_round' do
+      conditions.set_temporary_hit_points(5, 'src', 100)
+      conditions.apply_natural_recovery(
+        days: 1, mode: 'short_rest', character_tier: 0,
+        mana_max: 0, magic_toxicity_attribute_score: 0
+      )
+      expect(conditions.temporary_hit_points).to be_nil
+    end
+
+    it 'rejects non-positive days and unknown modes' do
+      expect {
+        conditions.apply_natural_recovery(days: 0, mode: 'short_rest', character_tier: 0,
+                                          mana_max: 0, magic_toxicity_attribute_score: 0)
+      }.to raise_error(ArgumentError)
+      expect {
+        conditions.apply_natural_recovery(days: 1, mode: 'medium', character_tier: 0,
+                                          mana_max: 0, magic_toxicity_attribute_score: 0)
+      }.to raise_error(ArgumentError)
+    end
+  end
+
   describe 'serialization' do
     it 'round-trips through to_dict / load_state' do
       conditions.apply_hit_point_damage('minor' => 3, 'moderate' => 1)

@@ -4,7 +4,7 @@
 
 ## Scope and Ignorance
 
-The Conditions module tracks every piece of per-creature state that is not part of the creature's base definition: injuries, ongoing afflictions, short-lived buffs and debuffs, temporary hit points, magic toxicity, Shock, and the Acid Counter. It is deliberately ignorant of the spells, abilities, weapons, or creatures that produce those effects. A buff is an opaque tuple of `target_key`, Bonus Type, sign, amount, and an end time; the module never asks what `target_key` means. Affliction rules are data-driven — the module contains generic machinery for resolving an affliction and reads the specific behavior of bleed, poison, or paralysis from `conditions_config.yaml`. Distinctive damage-type counters like Shock and the Acid Counter are built into the class with hardcoded behavior; new effects and new afflictions are added by editing config, but new counter mechanics require a code change.
+The Conditions module tracks every piece of per-creature state that is not part of the creature's base definition: injuries, ability damage, current mana, ongoing afflictions, short-lived buffs and debuffs, temporary hit points, magic toxicity, Shock, and the Acid Counter. It is deliberately ignorant of the spells, abilities, weapons, or creatures that produce those effects. A buff is an opaque tuple of `target_key`, Bonus Type, sign, amount, and an end time; the module never asks what `target_key` means. Affliction rules are data-driven — the module contains generic machinery for resolving an affliction and reads the specific behavior of bleed, poison, or paralysis from `conditions_config.yaml`. Distinctive damage-type counters like Shock and the Acid Counter are built into the class with hardcoded behavior; new effects and new afflictions are added by editing config, but new counter mechanics require a code change.
 
 The canonical list of Severity Categories used by hit-point damage and ability damage is owned by the damage_types domain (see `damage_types_glossary.md`); the conditions module reads the list at startup from `damage_types_config.yaml` rather than redeclaring it.
 
@@ -37,6 +37,30 @@ The canonical list of Severity Categories used by hit-point damage and ability d
 **Current Hit Points**: The creature's usable hit points after damage and temporary hit points have been accounted for. The Conditions module exposes the three damage counters and the Temporary Hit Points pool; the character module computes `hp_max - minor - moderate - major + temporary_hit_points` and owns the concept of Current Hit Points.
 
 **Heal Cascade**: A worst-first healing operation. A heal specifies three pools (`major`, `moderate`, `minor`). The Major pool heals Major Damage first; any remainder drains into the Moderate pool, which heals Moderate Damage; any remainder drains into the Minor pool, which heals Minor Damage. Excess beyond Minor Damage is wasted.
+
+## Mana
+
+**Current Mana**: A non-negative integer counter for the creature's spendable mana. Stored on the Conditions instance directly (rather than as a "spent" counter that subtracts from a max) because Mana Max is variable and clamping to a moving cap on every read is cleaner than reconstructing the spent quantity. Cap enforcement and Mana Max derivation live on the character module — operations that risk exceeding the cap accept a `max:` parameter.
+
+**Mana Cost**: A non-negative integer spend, applied via `APPLY_MANA_COST(amount)`. Floors at zero — a spend that exceeds the current value clears Mana to zero and returns the actual amount spent.
+
+**Mana Restore**: A non-negative integer gain applied via `RESTORE_MANA(amount, max:)`. Clamped at the supplied `max:` (typically `Character#max_mana`). The caller passes the cap; Conditions does not look it up.
+
+## Natural Recovery
+
+**Natural Recovery**: The accumulated effect of time passing on a creature's mutable state — Hit Point Damage healing back, Ability Damage healing back, Mana refilling, Magic Toxicity decaying, Temporary Hit Points clearing. Applied via `APPLY_NATURAL_RECOVERY(days:, mode:, ...)` on a Conditions instance after the calendar advances. The rates that govern each pool are read from the `Natural Recovery` block in `conditions_config.yaml`.
+
+**Recovery Mode**: One of `short_rest` or `long_term_recovery`. Selects the *low* or *high* column from each Heal Rate row.
+
+**Heal Rate**: A tier-indexed table under `Natural Recovery` defining how Hit Point Damage heals per period at each Severity. Each entry is `[low, high, unit]` — the *low* value is points healed per period in `short_rest` mode, *high* is `long_term_recovery`, and *unit* is the period length in days. A 3-day rest with a unit of 7 produces `floor(3 / 7) = 0` periods (and zero heal); a 7-day rest produces 1 period of healing at that severity.
+
+The table is structured as `tier * 3 + severity_index` rows, where severity_index follows the canonical Severities order (minor, moderate, major). Higher tiers heal faster; minor damage heals fastest at every tier; major damage heals slowest.
+
+**Ability Heal Rate**: A second tier-indexed table under `Natural Recovery` with the same `[low, high, unit]` shape, governing Ability Damage recovery. Each heal point pops one queued Ability Damage point at that severity in FIFO order across attributes.
+
+**Mana Per Day Divisor**: An integer dividing `mana_max` to produce daily mana regeneration. `mana_per_day = floor(mana_max / divisor)`. Default 4. *(configurable)*
+
+**Magic Toxicity Per Day Divisor**: An integer dividing the configured *toxicity attribute* (typically `cha`) to produce daily magic toxicity decay. Default 4. *(configurable)*
 
 ## Ability Damage
 

@@ -13,7 +13,7 @@ class Conditions
   VALID_SIGNS = %w[bonus penalty].freeze
 
   attr_reader :hit_point_damage, :ability_damage,
-              :temporary_hit_points, :magic_toxicity,
+              :temporary_hit_points, :current_mana, :magic_toxicity,
               :shock, :acid_counter,
               :afflictions, :effects
 
@@ -95,6 +95,52 @@ class Conditions
     { 'accepted' => true, 'replaced_source_id' => previous_source }
   end
 
+  # ---------- Natural recovery -------------------------------------
+
+  # Roll every per-day rule forward by `days` days.
+  # Returns a structured summary of what changed.
+  #
+  # Required parameters:
+  #   days:           positive integer
+  #   mode:           'short_rest' or 'long_term_recovery'
+  #   character_tier: integer, used to index Heal Rate / Ability Heal Rate
+  #   mana_max:       cap for mana restore
+  #   magic_toxicity_attribute_score: integer for the toxicity decay
+  #                   formula (typically Character#cha)
+  def apply_natural_recovery(days:, mode:, character_tier:, mana_max:, magic_toxicity_attribute_score:)
+    raise ArgumentError, 'days must be positive' unless days.to_i.positive?
+    raise ArgumentError, "unknown mode: #{mode}" unless %w[short_rest long_term_recovery].include?(mode.to_s)
+
+    rules = @conditions_config['Natural Recovery'] || {}
+    use_high = mode.to_s == 'long_term_recovery'
+
+    hp_healed = recover_hit_point_damage(rules['Heal Rate'], character_tier, days, use_high)
+    ability_healed = recover_ability_damage(rules['Ability Heal Rate'], character_tier, days, use_high)
+
+    mana_per_day = mana_max.to_i / (rules['Mana Per Day Divisor'] || 4).to_i
+    mana_before = @current_mana
+    restore_mana(mana_per_day * days.to_i, max: mana_max)
+    mana_gained = @current_mana - mana_before
+
+    tox_per_day = magic_toxicity_attribute_score.to_i / (rules['Magic Toxicity Per Day Divisor'] || 4).to_i
+    tox_before = @magic_toxicity
+    clear_magic_toxicity(tox_per_day * days.to_i)
+    tox_lost = tox_before - @magic_toxicity
+
+    temp_cleared = !@temporary_hit_points.nil?
+    @temporary_hit_points = nil
+
+    {
+      'days'                          => days.to_i,
+      'mode'                          => mode.to_s,
+      'hit_point_healed'              => hp_healed,
+      'ability_healed'                => ability_healed,
+      'mana_gained'                   => mana_gained,
+      'magic_toxicity_lost'           => tox_lost,
+      'temporary_hit_points_cleared'  => temp_cleared
+    }
+  end
+
   # ---------- Ability damage ---------------------------------------
 
   def apply_ability_damage(attribute, severity, amount)
@@ -127,6 +173,24 @@ class Conditions
 
     @ability_damage.delete_if { |_, severities| severities.values.all?(&:zero?) }
     healed
+  end
+
+  # ---------- Mana ------------------------------------------------
+
+  def apply_mana_cost(amount)
+    return 0 if amount.to_i <= 0
+    spent = [@current_mana, amount.to_i].min
+    @current_mana -= spent
+    spent
+  end
+
+  def restore_mana(amount, max:)
+    return @current_mana if amount.to_i <= 0
+    @current_mana = [@current_mana + amount.to_i, max.to_i].min
+  end
+
+  def set_mana(amount, max:)
+    @current_mana = [[amount.to_i, 0].max, max.to_i].min
   end
 
   # ---------- Magic toxicity --------------------------------------
@@ -384,6 +448,7 @@ class Conditions
       'hit_point_damage'     => @hit_point_damage.dup,
       'ability_damage'       => deep_copy(@ability_damage),
       'temporary_hit_points' => @temporary_hit_points && @temporary_hit_points.dup,
+      'current_mana'         => @current_mana,
       'magic_toxicity'       => @magic_toxicity,
       'shock'                => @shock,
       'acid_counter'         => @acid_counter,
@@ -418,6 +483,7 @@ class Conditions
     end
 
     @temporary_hit_points = state['temporary_hit_points']
+    @current_mana = state['current_mana'].to_i
     @magic_toxicity = state['magic_toxicity'].to_i
     @shock = state['shock'].to_i
     @acid_counter = state['acid_counter'].to_i
@@ -446,11 +512,49 @@ class Conditions
     @hit_point_damage = empty_severity_map
     @ability_damage = {}
     @temporary_hit_points = nil
+    @current_mana = 0
     @magic_toxicity = 0
     @shock = 0
     @acid_counter = 0
     @afflictions = {}
     @effects = []
+  end
+
+  def recover_hit_point_damage(table, tier, days, use_high)
+    healed = empty_severity_map
+    return healed unless table.is_a?(Array)
+    @severities.each_with_index do |severity, i|
+      row = table[tier.to_i * @severities.length + i]
+      next unless row.is_a?(Array)
+      low, high, unit = row
+      per = (use_high ? high : low).to_i
+      next if per.zero?
+      periods = unit.to_i.zero? ? 0 : days.to_i / unit.to_i
+      amount = per * periods
+      next if amount.zero?
+      available = @hit_point_damage[severity]
+      applied = [amount, available].min
+      healed[severity] = applied
+      @hit_point_damage[severity] = available - applied
+    end
+    healed
+  end
+
+  def recover_ability_damage(table, tier, days, use_high)
+    healed = empty_severity_map
+    return healed unless table.is_a?(Array)
+    pools = empty_severity_map
+    @severities.each_with_index do |severity, i|
+      row = table[tier.to_i * @severities.length + i]
+      next unless row.is_a?(Array)
+      low, high, unit = row
+      per = (use_high ? high : low).to_i
+      next if per.zero?
+      periods = unit.to_i.zero? ? 0 : days.to_i / unit.to_i
+      pools[severity] = per * periods
+    end
+    return healed if pools.values.all?(&:zero?)
+    apply_ability_heal_cascade(pools)
   end
 
   def empty_severity_map

@@ -54,9 +54,14 @@ class ItemUse
   #                        cure / mana effects refuse to land.
   #   user_abilities     — list of class/racial ability names the
   #                        user has (e.g. ['improved_healing']).
+  #   target_max_mana    — cap for mana restoration on the target.
+  #                        Required when the spell has a `mana` Effect
+  #                        Hash entry; cure-only / ward-only items
+  #                        ignore it.
   def consume(owner_id:, stack_index:, item_form:, spell_name:, target_char_id:,
               rank: nil, user_tier: 0, target_tier: 0,
-              target_max_toxicity: nil, user_abilities: [])
+              target_max_toxicity: nil, target_max_mana: nil,
+              user_abilities: [])
     inventory = @equipment.get_inventory(owner_id)
     raw_stack = inventory[stack_index]
     raise ArgumentError, "No stack at index #{stack_index}" unless raw_stack
@@ -86,7 +91,7 @@ class ItemUse
 
     unless saturation_blocked
       applications.concat(apply_cure(effect_hash, target_conditions))
-      applications.concat(apply_mana(effect_hash, target_conditions))
+      applications.concat(apply_mana(effect_hash, target_conditions, target_max_mana))
     end
     applications.concat(apply_ward(effect_hash, target_conditions, spell_name, owner_id))
 
@@ -141,12 +146,16 @@ class ItemUse
     [{ 'kind' => 'heal', 'pools' => pools, 'healed' => healed }]
   end
 
-  def apply_mana(effect_hash, _target_conditions)
+  def apply_mana(effect_hash, target_conditions, target_max_mana)
     return [] unless has_mana?(effect_hash)
-    # Mana isn't tracked in conditions yet; the caller's character
-    # module owns mana storage. We surface the amount so the caller
-    # can apply it externally.
-    [{ 'kind' => 'mana', 'amount' => effect_hash['mana'].to_i, 'unrouted' => true }]
+    amount = effect_hash['mana'].to_i
+    if target_max_mana.nil?
+      # Caller didn't supply a cap; surface for external handling.
+      return [{ 'kind' => 'mana', 'amount' => amount, 'unrouted' => true }]
+    end
+    before = target_conditions.current_mana
+    target_conditions.restore_mana(amount, max: target_max_mana)
+    [{ 'kind' => 'mana', 'amount' => amount, 'gained' => target_conditions.current_mana - before }]
   end
 
   def apply_ward(effect_hash, target_conditions, spell_name, owner_id)

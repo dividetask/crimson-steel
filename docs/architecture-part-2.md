@@ -278,40 +278,59 @@ A single startup-time linter could knock out the whole list.
 The decisions that haven't been made yet, with the trade-offs as I
 understand them. Each one will eventually need an answer.
 
-### Where does mana live?
+### Where does mana live? (decided)
 
-Magic toxicity lives in Conditions. Should current mana too?
+**Mana lives on Conditions** as a `current_mana` field, parallel
+to the HP damage counters and magic toxicity. HP and mana are
+the same kind of thing — recoverable per-creature resource — and
+they recover under the same per-day rules, so they live together.
 
-- **(a) Conditions field** — parallel to `magic_toxicity`. Symmetric
-  storage; the conditions module already runs the per-creature state
-  layer, and ItemUse's `unrouted: true` mana applications would
-  cleanly route to `Conditions#apply_mana` /
-  `Conditions#consume_mana`. The cap (`max_mana`) lives on
-  Character; Conditions accepts a clamped value.
-- **(b) Character field** — `current_mana` becomes a per-Character
-  mutable bit alongside identity. Simpler conceptually but breaks
-  Character's "thin coordinator, no mutable state" framing.
-- **(c) Separate `Mana` module** — overkill for one counter.
+Operations: `apply_mana_cost(amount)` (floor at zero, returns
+amount actually spent), `restore_mana(amount, max:)` (clamp at
+the supplied cap), `set_mana(amount, max:)`. The cap (`max_mana`)
+is supplied by the caller from the Character; Conditions does
+not look it up itself.
 
-I'd default to **(a)**. It matches the project's "mechanical
-mutable state lives in Conditions" pattern.
+ItemUse's mana applications now route through
+`Conditions#restore_mana` when the caller supplies
+`target_max_mana:`. Without the cap, the result is still tagged
+`unrouted: true` so the caller can apply it externally.
 
-### Where do per-day / per-encounter usage trackers live?
+### Natural Recovery (decided)
 
-Channel Divinity has X uses per day. Bardic Inspiration has a
-turn-start luck-points reset. Both involve a counter and a clock.
+The thing I had previously framed as "per-day usage trackers" is
+really **Natural Recovery** — the rules that govern how HP, ability
+damage, mana, magic toxicity, and temp HP change as time passes.
 
-- **(a) Conditions counter, with a "reset" hook** invoked at the
-  appropriate cadence. Per-day resets happen on `Advance Time`;
-  per-turn resets happen on the relevant Combatant's turn start.
-  Conditions stores `{counter_name: int}` with a `reset_cadence`
-  declared in config (`day` / `encounter` / `turn_start`).
-- **(b) A new `UsageTrackers` module** parallel to Conditions.
-- **(c) Inline on the procedural ability entry** with the
-  consuming module reading current uses from somewhere else.
+`Conditions#apply_natural_recovery(days:, mode:, character_tier:,
+mana_max:, magic_toxicity_attribute_score:)` rolls all five rules
+forward. The recovery rates live in `conditions_config.yaml` under
+a `Natural Recovery` block:
 
-(a) feels right for the same reason mana does. The counter mechanism
-inside Conditions is the existing storage pattern.
+- **Heal Rate**: a tier-indexed table of `[low, high, unit]`
+  per severity. Low is the per-period heal in `mode: short_rest`;
+  high is `mode: long_term_recovery`; unit is the period length
+  in days (so a major-damage row with unit 7 only heals once per
+  full week).
+- **Ability Heal Rate**: same shape, governs ability-damage
+  recovery with FIFO popping across attributes.
+- **Mana Per Day Divisor** (default 4): mana per day =
+  `floor(mana_max / divisor)`.
+- **Magic Toxicity Per Day Divisor** (default 4): toxicity decay
+  per day = `floor(toxicity_attribute_score / divisor)` where the
+  toxicity attribute is typically `cha`.
+
+Temporary HP clears on every recovery call regardless of its
+`ends_on_round`. Time is the natural enemy of temp HP.
+
+### What about Channel Divinity-style "uses per day"?
+
+The user pushed back on framing this as a separate concern. For
+now: deferred. When we get there, the natural pattern is the same
+shape as mana — a counter on Conditions, refilled by
+`apply_natural_recovery` (or by a future
+`apply_per_encounter_recovery` for "uses per encounter"). The
+catalog entry would declare the cap and the cadence.
 
 ### Should Skills grow a class?
 

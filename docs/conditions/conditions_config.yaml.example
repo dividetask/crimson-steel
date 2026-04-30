@@ -21,6 +21,79 @@
 # floor(severity / Severity Divisor) into every Affliction save.
 Severity Divisor: 10
 
+# Natural Recovery — per-day rules applied by APPLY_NATURAL_RECOVERY
+# when calendar time advances. See conditions_glossary.md.
+#
+# Heal Rate / Ability Heal Rate are tier-indexed tables. Each tier
+# contributes three rows in canonical Severities order
+# (minor, moderate, major). Each row is [low, high, unit]:
+#   - low  is points healed per period in mode: short_rest
+#   - high is points healed per period in mode: long_term_recovery
+#   - unit is the period length in days
+#
+# A 3-day rest with unit 7 produces floor(3/7) = 0 periods at that
+# severity (no heal). A 7-day rest produces 1 period.
+#
+# Mana per day = floor(mana_max / Mana Per Day Divisor).
+# Magic toxicity decay per day = floor(toxicity_attribute_score /
+# Magic Toxicity Per Day Divisor). The toxicity attribute is
+# typically the character module's chosen attribute (default `cha`)
+# and is supplied by the caller as the score value.
+
+Natural Recovery:
+  Mana Per Day Divisor: 4
+  Magic Toxicity Per Day Divisor: 4
+  Heal Rate:
+    # Tier 0
+    - [1, 2, 1]
+    - [0, 1, 1]
+    - [0, 1, 7]
+    # Tier 1
+    - [2, 4, 1]
+    - [1, 2, 1]
+    - [0, 1, 4]
+    # Tier 2
+    - [4, 8, 1]
+    - [2, 4, 1]
+    - [1, 2, 4]
+    # Tier 3
+    - [8, 16, 1]
+    - [4, 8, 1]
+    - [2, 4, 4]
+    # Tier 4
+    - [16, 32, 1]
+    - [8, 16, 1]
+    - [4, 8, 4]
+    # Tier 5
+    - [32, 64, 1]
+    - [16, 32, 1]
+    - [8, 16, 4]
+  Ability Heal Rate:
+    # Tier 0
+    - [0, 1, 1]
+    - [0, 1, 7]
+    - [0, 1, 14]
+    # Tier 1
+    - [1, 1, 1]
+    - [0, 1, 4]
+    - [0, 1, 7]
+    # Tier 2
+    - [1, 2, 1]
+    - [1, 1, 1]
+    - [0, 1, 7]
+    # Tier 3
+    - [2, 4, 1]
+    - [1, 2, 1]
+    - [1, 1, 4]
+    # Tier 4
+    - [4, 8, 1]
+    - [2, 4, 1]
+    - [1, 2, 4]
+    # Tier 5
+    - [8, 16, 1]
+    - [4, 8, 1]
+    - [2, 4, 4]
+
 # Default Severity Per Success: the amount by which Severity decreases for
 # each net success on the save. Plain integer or the literal string "tier"
 # (substituted with the creature's Tier at resolve time, Tier 0 = 0.5,
