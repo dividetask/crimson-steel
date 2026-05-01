@@ -42,6 +42,7 @@ module Templates
     creatures = (primary['creatures'] || []).each { |c| c['_source'] ||= 'General' }
     gear = primary['gear_tables'] || []
     lists = (primary['option_lists'] || {}).dup
+    encounters = (primary['random_encounters'] || []).each { |e| e['_source'] ||= 'General' }
 
     Dir.glob(File.join(data_dir, GLOB_PATTERN)).sort.each do |path|
       extra = JSON.parse(File.read(path)) rescue next
@@ -51,9 +52,11 @@ module Templates
       creatures += (extra['creatures'] || [])
       gear += (extra['gear_tables'] || [])
       (extra['option_lists'] || {}).each { |k, v| lists[k] = v }
+      (extra['random_encounters'] || []).each { |e| e['_source'] ||= label }
+      encounters += (extra['random_encounters'] || [])
     end
 
-    { 'creatures' => creatures, 'gear_tables' => gear, 'option_lists' => lists }
+    { 'creatures' => creatures, 'gear_tables' => gear, 'option_lists' => lists, 'random_encounters' => encounters }
   end
 
   # Derive a human-readable group label from a template filename.
@@ -79,6 +82,12 @@ module Templates
   # `options: "tier_one_potions"` instead of an inline array; the roller
   # resolves the string via this hash. Useful for DRY loot references.
   def option_lists; load_raw['option_lists'] || {}; end
+
+  def random_encounters; load_raw['random_encounters'] || []; end
+
+  def random_encounter(id)
+    random_encounters.find { |e| e['id'].to_s == id.to_s }
+  end
 
   # Find a creature template by its string id.
   def find(template_id)

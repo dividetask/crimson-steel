@@ -10,6 +10,14 @@
   toggle_target = (detail == :full) ? :minimal : :full
   toggle_label  = (detail == :full) ? 'Show minimal' : 'Show full sheet'
 %>
+<% if @encounter_message && !@encounter_message.to_s.empty? && @route_prefix == '/character' %>
+  <div class="encounter-banner">
+    <span class="encounter-banner-text"><%= h(@encounter_message) %></span>
+    <form method="post" action="/combat/encounter_message/clear" style="display:inline;">
+      <button type="submit" class="encounter-banner-dismiss" title="Dismiss">×</button>
+    </form>
+  </div>
+<% end %>
 <% if @route_prefix %>
 <div class="navigation">
   <a href="<%= @route_prefix %>/<%= @prev_index %><%= query_for.call(detail) %>" class="nav-arrow left">◀</a>

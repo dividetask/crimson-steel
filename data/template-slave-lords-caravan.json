@@ -340,5 +340,36 @@
       ],
       "gold": "1d6 + 2"
     }
+  ],
+  "random_encounters": [
+    {
+      "id": "caravan_random",
+      "name": "Caravan Random Encounter",
+      "outcomes": [
+        {
+          "weight": 1,
+          "description": "Orc patrol",
+          "spawns": [
+            {"creature_id": "orc_patrol", "count": "4-8"}
+          ]
+        },
+        {
+          "weight": 1,
+          "description": "Slaver merchant escort",
+          "spawns": [
+            {"creature_id": "slaver_merchant", "count": 1},
+            {"creature_id": "half_orc_soldier", "count": "3-6"},
+            {"creature_id": "orc_interpreter", "count": 1}
+          ]
+        },
+        {
+          "weight": 1,
+          "description": "Wardog pack",
+          "spawns": [
+            {"creature_id": "wardog", "count": "2-3"}
+          ]
+        }
+      ]
+    }
   ]
 }

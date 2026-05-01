@@ -107,6 +107,9 @@ def load_character_view(character_list, index, route_prefix)
   @current_index = index
   @route_prefix = route_prefix
 
+  combat_data = Tools.load_json('combat.json')
+  @encounter_message = combat_data.is_a?(Hash) ? combat_data['encounter_message'] : nil
+
   erb :character_sheet
 end
 
@@ -1797,33 +1800,30 @@ get '/enemies/:index' do
 
   combat_data = Tools.load_json('combat.json')
   @combat_participants = combat_data['participants']
+  @encounter_message = combat_data['encounter_message']
   characters = Tools.load_json('characters.json')
   @template_instances = characters.select { |c| c['template_id'].to_s == template['id'].to_s }
   @all_characters = characters
+  @random_encounters = Templates.random_encounters
 
   erb :enemies
 end
 
-post '/combat/add_enemy' do
-  redirect '/character/0' unless local_request?
-  template_id = params[:enemy_id].to_s
+# Spawn one enemy from a template, mutating both `characters` and
+# `combat_data` in place. Returns the new participant's combat id.
+# Shared by /combat/add_enemy and /combat/roll_encounter so both
+# paths produce identically shaped records.
+def spawn_enemy_from_template!(template_id, characters, combat_data, rng: Random.new)
   template = Templates.find(template_id)
-  halt 400, "Enemy template not found" unless template
+  halt 400, "Enemy template not found: #{template_id}" unless template
 
-  characters = Tools.load_json('characters.json')
-  combat_data = Tools.load_json('combat.json')
-
-  # Pick a fresh integer id above any existing character record and any
-  # char_id in combat (stale combat rows from before the refactor can
-  # reference enemy ids that were pulled out of characters.json).
   char_ids = characters.map { |c| c['id'].to_i }
   combat_refs = combat_data['participants'].map { |p| (p['char_id'] || p['id']).to_i }
   new_id = ([0] + char_ids + combat_refs).max + 1
 
-  instance = Templates.instantiate(template_id, new_id: new_id)
+  instance = Templates.instantiate(template_id, new_id: new_id, rng: rng)
   instance['template_id'] = template_id
   characters << instance
-  Tools.save_json('characters.json', characters)
 
   max_participant_id = combat_data['participants'].map { |p| p['id'].to_i }.max || 0
   combat_id = max_participant_id + 1
@@ -1841,6 +1841,90 @@ post '/combat/add_enemy' do
     'major_damage' => 0,
     'temporary_hit_points' => 0
   }
+  combat_id
+end
+
+# "4-8" -> integer in 4..8; "3" or 3 -> 3; anything else -> 0.
+def parse_random_count(value, rng = Random.new)
+  s = value.to_s
+  if (m = s.match(/\A(\d+)\s*-\s*(\d+)\z/))
+    lo, hi = m[1].to_i, m[2].to_i
+    lo, hi = hi, lo if lo > hi
+    rng.rand(lo..hi)
+  else
+    [s.to_i, 0].max
+  end
+end
+
+# Pick one outcome from a list with optional integer/float `weight`
+# fields (default 1). Returns the chosen entry, or nil if empty.
+def pick_weighted_outcome(outcomes, rng = Random.new)
+  return nil if outcomes.nil? || outcomes.empty?
+  total = outcomes.sum { |o| (o['weight'] || 1).to_f }
+  return outcomes.first if total <= 0
+  pick = rng.rand * total
+  acc = 0.0
+  outcomes.each do |o|
+    acc += (o['weight'] || 1).to_f
+    return o if pick < acc
+  end
+  outcomes.last
+end
+
+post '/combat/add_enemy' do
+  redirect '/character/0' unless local_request?
+  characters = Tools.load_json('characters.json')
+  combat_data = Tools.load_json('combat.json')
+  spawn_enemy_from_template!(params[:enemy_id].to_s, characters, combat_data)
+  Tools.save_json('characters.json', characters)
+  Tools.save_json('combat.json', combat_data)
+  redirect back
+end
+
+# Roll a random_encounters entry. Removes every non-PC participant from
+# combat (mirroring /combat/clear_enemies), picks one outcome by weight,
+# resolves each spawn's count (single integer or "low-high" range), and
+# spawns the rolled creatures. Stamps a human-readable message on
+# combat.json so the enemy / character pages can banner what was
+# rolled.
+post '/combat/roll_encounter' do
+  redirect '/character/0' unless local_request?
+  encounter = Templates.random_encounter(params[:encounter_id].to_s)
+  halt 404, 'Random encounter not found' unless encounter
+
+  rng = Random.new
+  outcome = pick_weighted_outcome(encounter['outcomes'], rng)
+  halt 400, 'Random encounter has no outcomes' unless outcome
+
+  characters = Tools.load_json('characters.json')
+  combat_data = Tools.load_json('combat.json')
+
+  pc_ids = characters.select { |c| c['group'] == 'PC' }.map { |c| c['id'] }
+  combat_data['participants'].select! { |p| pc_ids.include?(p['char_id'] || p['id']) }
+
+  rolled_lines = []
+  Array(outcome['spawns']).each do |spawn|
+    count = parse_random_count(spawn['count'], rng)
+    next if count <= 0
+    template_id = spawn['creature_id'].to_s
+    template = Templates.find(template_id)
+    creature_name = template ? (template['name'] || template_id) : template_id
+    count.times { spawn_enemy_from_template!(template_id, characters, combat_data, rng: rng) }
+    rolled_lines << "#{count}× #{creature_name}"
+  end
+
+  banner = "#{encounter['name'] || 'Random Encounter'}: #{outcome['description']} — #{rolled_lines.join(', ')}"
+  combat_data['encounter_message'] = banner
+
+  Tools.save_json('characters.json', characters)
+  Tools.save_json('combat.json', combat_data)
+  redirect back
+end
+
+post '/combat/encounter_message/clear' do
+  redirect '/character/0' unless local_request?
+  combat_data = Tools.load_json('combat.json')
+  combat_data.delete('encounter_message')
   Tools.save_json('combat.json', combat_data)
   redirect back
 end
@@ -1858,12 +1942,14 @@ get '/enemies/instance/:id' do
 
   combat_data = Tools.load_json('combat.json')
   @combat_participants = combat_data['participants']
+  @encounter_message = combat_data['encounter_message']
   templates = Templates.creatures
   @enemy_list = templates.each_with_index.map { |t, i| { index: i, id: t['id'], name: t['name'], source: t['_source'] || 'General' } }
   @enemy_groups = Templates.creatures_grouped.map do |label, group_creatures|
     group_ids = group_creatures.map { |c| c['id'].to_s }.to_set
     { label: label, enemies: @enemy_list.select { |e| group_ids.include?(e[:id].to_s) } }
   end
+  @random_encounters = Templates.random_encounters
 
   @all_characters = characters
 
@@ -1934,6 +2020,7 @@ post '/combat/clear_enemies' do
   pc_ids = characters.select { |c| c['group'] == 'PC' }.map { |c| c['id'] }
   combat_data = Tools.load_json('combat.json')
   combat_data['participants'].select! { |p| pc_ids.include?(p['char_id'] || p['id']) }
+  combat_data.delete('encounter_message')
   Tools.save_json('combat.json', combat_data)
   redirect back
 end
