@@ -12,13 +12,19 @@
       <% if lines.any? %>
         <ul class="encounter-banner-list">
           <% lines.each do |line| %>
+            <% gold = line['gold'].to_i %>
+            <% items = Array(line['items']) %>
             <li>
               <span class="encounter-banner-creature"><%= h(line['count']) %>× <%= h(line['name']) %></span>
-              <% loot_parts = [] %>
-              <% loot_parts << "<strong>#{line['gold']}</strong> gp" if line['gold'].to_i > 0 %>
-              <% loot_parts << "items: #{Array(line['items']).map { |i| h(i) }.join(', ')}" if Array(line['items']).any? %>
-              <% if loot_parts.any? %>
-                <div class="encounter-banner-loot"><%= loot_parts.join(' &middot; ') %></div>
+              <% if gold > 0 || items.any? %>
+                <ul class="encounter-banner-loot-list">
+                  <% if gold > 0 %>
+                    <li><strong><%= gold %></strong> gp</li>
+                  <% end %>
+                  <% items.each do |item| %>
+                    <li><%= h(item) %></li>
+                  <% end %>
+                </ul>
               <% end %>
             </li>
           <% end %>

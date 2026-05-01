@@ -481,8 +481,11 @@ table th {
 .encounter-banner-title { font-size: 15px; font-weight: bold; line-height: 1.3; }
 .encounter-banner-outcome { font-size: 13px; font-style: italic; margin-top: 2px; }
 .encounter-banner-list { margin: 6px 0 0 0; padding-left: 22px; list-style: disc; }
-.encounter-banner-list li { font-size: 13px; line-height: 1.4; margin-bottom: 4px; }
+.encounter-banner-list > li { font-size: 13px; line-height: 1.4; margin-bottom: 4px; }
 .encounter-banner-creature { font-weight: bold; }
+.encounter-banner-loot-list { margin: 2px 0 4px 0; padding-left: 18px; list-style: circle; }
+.encounter-banner-loot-list li { font-size: 12px; line-height: 1.35; color: #6b4400; }
+/* Legacy single-line loot rendering (kept for the fallback string format). */
 .encounter-banner-loot { color: #6b4400; font-size: 12px; margin-left: 4px; }
 /* Legacy string-form fallback. */
 .encounter-banner-text { color: #4a2c00; font-weight: bold; font-size: 13px; flex: 1 1 auto; min-width: 0; word-break: break-word; line-height: 1.4; }
