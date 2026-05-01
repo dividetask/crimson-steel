@@ -131,14 +131,6 @@
     r.rollFresh();
     return { dice: r.originalRolls.slice(), tn: tn, count: dice, net: r.finalSuccesses() };
   }
-  // Per-die contribution under the given TN. Mirrors Roll.successesIn
-  // but exposes each die's effect for the tooltip.
-  function dieContribution(d, tn) {
-    if (d === 10) return 2;
-    if (d === 1)  return -1;
-    if (d >= tn)  return 1;
-    return 0;
-  }
 
   function findById(list, id) {
     for (var i = 0; i < list.length; i++) if (String(list[i].id) === String(id)) return list[i];
@@ -216,15 +208,12 @@
   // Pretty-print a signed integer with an explicit sign.
   function signed(n) { return (n >= 0 ? '+' : '') + n; }
 
-  // Dice-color spans + per-die contribution annotation, e.g.
-  // "[3:0, 7:+1, 10:+2, 1:-1]". Reuses Roll.colorizeDie for color
-  // consistency with the combat tracker.
+  // Dice-color spans only; the colors already encode each die's
+  // contribution (red 1 = fumble, blue 10 = crit, green = success,
+  // grey = miss) so adding a per-die +/- value just clutters the
+  // tooltip. The aggregate net is shown after the dice.
   function renderDice(rolled, tn) {
-    return rolled.map(function(d) {
-      var c = dieContribution(d, tn);
-      return Roll.colorizeDie(d, tn) +
-        '<sub style="opacity:0.7;margin-left:1px;">' + signed(c) + '</sub>';
-    }).join(' ');
+    return rolled.map(function(d) { return Roll.colorizeDie(d, tn); }).join(' ');
   }
 
   // Show the entire TN computation: base, self bonuses (negative
