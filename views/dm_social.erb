@@ -1,0 +1,301 @@
+<script src="/roll.js"></script>
+
+<div class="dm-social-layout">
+  <div class="dm-social-sidebar">
+    <h3>Lead PC</h3>
+    <div class="dm-social-list" id="dm-social-pc-list">
+      <% @pcs.each do |pc| %>
+        <label class="dm-social-entry">
+          <input type="radio" name="dm-social-lead" value="<%= pc['id'] %>" data-role="lead">
+          <span><%= pc['name'] %></span>
+        </label>
+      <% end %>
+    </div>
+
+    <h3 style="margin-top: 18px;">DM-NPC</h3>
+    <div class="dm-social-list" id="dm-social-npc-list">
+      <% @npcs_grouped.each do |group, list| %>
+        <div class="dm-social-group">
+          <div class="dm-social-group-header"><strong><%= group %></strong></div>
+          <% list.each do |npc| %>
+            <label class="dm-social-entry">
+              <input type="radio" name="dm-social-npc" value="<%= npc['id'] %>" data-role="npc">
+              <span><%= npc['name'] %></span>
+            </label>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="dm-social-main">
+    <div class="dm-social-header">
+      <h2>Social Skill Checks</h2>
+      <div class="dm-social-current">
+        Lead: <strong id="dm-social-lead-name">—</strong>
+        &nbsp;&nbsp;
+        DM-NPC: <strong id="dm-social-npc-name">—</strong>
+      </div>
+      <button type="button" class="dm-social-roll-all" onclick="dmSocialRollAll()">Roll All</button>
+    </div>
+
+    <table class="dm-social-table" id="dm-social-table">
+      <thead>
+        <tr>
+          <th class="dm-social-skill-col">Check</th>
+          <th class="dm-social-npc-col">DM-NPC</th>
+          <% @pcs.each do |pc| %>
+            <th class="dm-social-pc-col" data-pc-id="<%= pc['id'] %>"><%= pc['name'] %></th>
+          <% end %>
+          <th class="dm-social-bonus-col" title="Bonus/penalty applied to every PC in this row">PC Bonus</th>
+          <th class="dm-social-bonus-col" title="Bonus/penalty applied to the DM-NPC in this row">NPC Bonus</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows = [
+             { key: 'perception',   label: 'Perception',   kind: 'unopposed' },
+             { key: 'sense_motive', label: 'Sense Motive', kind: 'opposed_sense' },
+             { key: 'deception',    label: 'Deception',    kind: 'opposed_deception' },
+             { key: 'persuasion',   label: 'Persuasion',   kind: 'opposed_persuasion' },
+             { key: 'wisdom',       label: 'Wisdom',       kind: 'unopposed' },
+             { key: 'intelligence', label: 'Intelligence', kind: 'unopposed' }
+           ] %>
+        <% rows.each do |row| %>
+          <tr data-row="<%= row[:key] %>" data-kind="<%= row[:kind] %>">
+            <td class="dm-social-skill-name"><%= row[:label] %></td>
+            <td class="dm-social-cell" data-cell="npc"></td>
+            <% @pcs.each do |pc| %>
+              <td class="dm-social-cell" data-cell="pc" data-pc-id="<%= pc['id'] %>"></td>
+            <% end %>
+            <td class="dm-social-bonus-cell">
+              <input type="number" class="dm-social-bonus" data-bonus-side="pc" data-row="<%= row[:key] %>" value="0">
+            </td>
+            <td class="dm-social-bonus-cell">
+              <input type="number" class="dm-social-bonus" data-bonus-side="npc" data-row="<%= row[:key] %>" value="0">
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    <p class="dm-social-legend">
+      Cells show net successes (10s = +2, 1s = −1). Opposed cells show the
+      difference between the cell's character and their opponent.
+      Empty rows indicate no character has been rolled yet — click
+      <strong>Roll All</strong>.
+    </p>
+  </div>
+</div>
+
+<script>
+(function() {
+  // Server-computed dice/bonus for every relevant skill on every
+  // PC and selectable DM-NPC. Persuasion_opp is the higher-aptitude
+  // of (persuasion, sense_motive) for that character — used when the
+  // DM is rolling persuasion and the *opponent* gets to pick which
+  // skill to defend with.
+  var pcStats = <%= @pcs.to_json %>;
+  var npcGrouped = <%= @npcs_grouped.to_json %>;
+  var allNpcStats = [].concat.apply([], npcGrouped.map(function(g) { return g[1]; }));
+
+  var BASE_TN = <%= @base_tn %>;
+  var TN_MIN  = <%= @tn_min %>;
+  var TN_MAX  = <%= @tn_max %>;
+
+  var STORAGE_KEY = 'dmSocial.selection';
+
+  function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+  function tnFor(selfBonus, opponentBonus) {
+    return clamp(BASE_TN - selfBonus + (opponentBonus || 0), TN_MIN, TN_MAX);
+  }
+  // One-shot dice pool: build a Roll without binding to inputs, roll
+  // it, and return the net successes. Lets each row do as many parallel
+  // rolls as the matrix needs without needing per-cell hidden inputs.
+  function rollNet(dice, tn) {
+    var r = new Roll(null, null, dice, tn, true);
+    r.rollFresh();
+    return r.finalSuccesses();
+  }
+
+  function findById(list, id) {
+    for (var i = 0; i < list.length; i++) if (String(list[i].id) === String(id)) return list[i];
+    return null;
+  }
+
+  function loadSelection() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return {};
+      return JSON.parse(raw) || {};
+    } catch (e) { return {}; }
+  }
+  function saveSelection(sel) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(sel)); } catch (e) {}
+  }
+
+  function currentSelection() {
+    var leadEl = document.querySelector('input[name="dm-social-lead"]:checked');
+    var npcEl  = document.querySelector('input[name="dm-social-npc"]:checked');
+    return {
+      lead: leadEl ? leadEl.value : null,
+      npc:  npcEl  ? npcEl.value  : null,
+      bonuses: collectBonuses()
+    };
+  }
+  function collectBonuses() {
+    var out = { pc: {}, npc: {} };
+    document.querySelectorAll('.dm-social-bonus').forEach(function(inp) {
+      var side = inp.getAttribute('data-bonus-side');
+      var row  = inp.getAttribute('data-row');
+      var v = parseInt(inp.value, 10);
+      out[side][row] = isNaN(v) ? 0 : v;
+    });
+    return out;
+  }
+
+  function applyStoredSelection() {
+    var s = loadSelection();
+    if (s.lead) {
+      var leadInput = document.querySelector('input[name="dm-social-lead"][value="' + s.lead + '"]');
+      if (leadInput) leadInput.checked = true;
+    }
+    if (s.npc) {
+      var npcInput = document.querySelector('input[name="dm-social-npc"][value="' + s.npc + '"]');
+      if (npcInput) npcInput.checked = true;
+    }
+    if (s.bonuses) {
+      ['pc','npc'].forEach(function(side) {
+        var byRow = s.bonuses[side] || {};
+        Object.keys(byRow).forEach(function(row) {
+          var inp = document.querySelector('.dm-social-bonus[data-bonus-side="' + side + '"][data-row="' + row + '"]');
+          if (inp) inp.value = byRow[row];
+        });
+      });
+    }
+    refreshHeader();
+  }
+
+  function refreshHeader() {
+    var sel = currentSelection();
+    var lead = findById(pcStats, sel.lead);
+    var npc  = findById(allNpcStats, sel.npc);
+    document.getElementById('dm-social-lead-name').textContent = lead ? lead.name : '—';
+    document.getElementById('dm-social-npc-name').textContent  = npc  ? npc.name  : '—';
+  }
+
+  function clearAllCells() {
+    document.querySelectorAll('.dm-social-cell').forEach(function(td) {
+      td.textContent = '';
+      td.classList.remove('positive', 'negative', 'zero');
+    });
+  }
+
+  function paintCell(td, value) {
+    td.textContent = (value > 0 ? '+' + value : String(value));
+    td.classList.remove('positive', 'negative', 'zero');
+    if (value > 0) td.classList.add('positive');
+    else if (value < 0) td.classList.add('negative');
+    else td.classList.add('zero');
+  }
+
+  // Per-row roll. NPC rolls once against the lead PC; each PC rolls
+  // against the NPC. Cells display the cell-character's net minus
+  // their opponent's net (or just their own net for unopposed).
+  function rollRow(rowKey, kind, sel) {
+    var lead = findById(pcStats, sel.lead);
+    var npc  = findById(allNpcStats, sel.npc);
+    var pcBonus  = (sel.bonuses.pc  || {})[rowKey] || 0;
+    var npcBonus = (sel.bonuses.npc || {})[rowKey] || 0;
+
+    var npcCell = document.querySelector('tr[data-row="' + rowKey + '"] td[data-cell="npc"]');
+    var pcCells = document.querySelectorAll('tr[data-row="' + rowKey + '"] td[data-cell="pc"]');
+
+    if (kind === 'unopposed') {
+      // Each character rolls independently. The DM-NPC cell only
+      // shows when an NPC is selected; PC cells always show.
+      if (npc) {
+        var s = npc[rowKey];
+        paintCell(npcCell, rollNet(s.dice, tnFor(s.bonus + npcBonus, 0)));
+      }
+      pcCells.forEach(function(td) {
+        var pc = findById(pcStats, td.getAttribute('data-pc-id'));
+        if (!pc) return;
+        var st = pc[rowKey];
+        paintCell(td, rollNet(st.dice, tnFor(st.bonus + pcBonus, 0)));
+      });
+      return;
+    }
+
+    if (!lead || !npc) return; // opposed rows need both ends selected
+
+    if (kind === 'opposed_sense' || kind === 'opposed_deception') {
+      // Same-skill opposed roll. NPC rolls once vs lead; each PC
+      // rolls vs NPC. Each cell prints (self_net - opp_net).
+      var skill = (kind === 'opposed_sense') ? 'sense_motive' : 'deception';
+      var npcSkill = npc[skill], leadSkill = lead[skill];
+      var npcNet = rollNet(npcSkill.dice, tnFor(npcSkill.bonus + npcBonus, leadSkill.bonus + pcBonus));
+      var leadNet = rollNet(leadSkill.dice, tnFor(leadSkill.bonus + pcBonus, npcSkill.bonus + npcBonus));
+      paintCell(npcCell, npcNet - leadNet);
+      pcCells.forEach(function(td) {
+        var pc = findById(pcStats, td.getAttribute('data-pc-id'));
+        if (!pc) return;
+        var pcNet;
+        if (String(pc.id) === String(lead.id)) pcNet = leadNet;
+        else pcNet = rollNet(pc[skill].dice, tnFor(pc[skill].bonus + pcBonus, npcSkill.bonus + npcBonus));
+        paintCell(td, pcNet - npcNet);
+      });
+      return;
+    }
+
+    if (kind === 'opposed_persuasion') {
+      // Active side rolls persuasion; the *opposing* side defends
+      // with whichever of (persuasion, sense_motive) they're more
+      // apt at — that pre-resolved skill is on each character as
+      // persuasion_opp. PC[i].persuasion is opposed by NPC's
+      // persuasion_opp; NPC.persuasion is opposed by lead's
+      // persuasion_opp.
+      var npcAct = npc.persuasion;
+      var leadOpp = lead.persuasion_opp;
+      var npcOpp  = npc.persuasion_opp;
+
+      var npcNetP  = rollNet(npcAct.dice,  tnFor(npcAct.bonus  + npcBonus, leadOpp.bonus + pcBonus));
+      var leadOppNet = rollNet(leadOpp.dice, tnFor(leadOpp.bonus + pcBonus, npcAct.bonus + npcBonus));
+      paintCell(npcCell, npcNetP - leadOppNet);
+
+      pcCells.forEach(function(td) {
+        var pc = findById(pcStats, td.getAttribute('data-pc-id'));
+        if (!pc) return;
+        var pcAct = pc.persuasion;
+        var pcNet = rollNet(pcAct.dice, tnFor(pcAct.bonus + pcBonus, npcOpp.bonus + npcBonus));
+        var npcOppNet = rollNet(npcOpp.dice, tnFor(npcOpp.bonus + npcBonus, pcAct.bonus + pcBonus));
+        paintCell(td, pcNet - npcOppNet);
+      });
+      return;
+    }
+  }
+
+  window.dmSocialRollAll = function() {
+    var sel = currentSelection();
+    saveSelection(sel);
+    refreshHeader();
+    clearAllCells();
+    document.querySelectorAll('#dm-social-table tbody tr').forEach(function(tr) {
+      var rowKey = tr.getAttribute('data-row');
+      var kind = tr.getAttribute('data-kind');
+      rollRow(rowKey, kind, sel);
+    });
+  };
+
+  // Persist selection on every change so a refresh restores it.
+  document.addEventListener('change', function(e) {
+    if (!e.target.matches('input[name="dm-social-lead"], input[name="dm-social-npc"]')) return;
+    saveSelection(currentSelection());
+    refreshHeader();
+  });
+  document.addEventListener('input', function(e) {
+    if (!e.target.matches('.dm-social-bonus')) return;
+    saveSelection(currentSelection());
+  });
+
+  applyStoredSelection();
+})();
+</script>

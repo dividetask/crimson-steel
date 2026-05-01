@@ -119,6 +119,58 @@ get '/combat' do
   erb :combat_tracker
 end
 
+# DM-only social skill check screen. Lets the DM roll opposed and
+# unopposed checks (perception / sense motive / deception / persuasion /
+# wisdom / intelligence) for the whole party against one DM-controlled
+# NPC at once, without putting dice in the players' hands. Selections
+# (lead PC, DM-NPC, row bonuses) persist client-side via localStorage;
+# rolls are ephemeral.
+get '/dm_social' do
+  redirect '/character/0' unless local_request?
+  characters = Tools.load_json('characters.json')
+  rules = Tools.load_json('rules.json')
+  dice = rules['dice'] || {}
+
+  pcs   = characters.select { |c| (c['group'] || 'PC') == 'PC' }
+  npcs  = characters.reject { |c| (c['group'] || 'PC') == 'PC' }
+
+  @pcs = pcs.map  { |c| dm_social_stats(c) }
+  @npcs_grouped = npcs.group_by { |c| c['group'] || 'NPC' }
+                      .map { |grp, list| [grp, list.map { |c| dm_social_stats(c) }] }
+  @base_tn = dice['base_target_number'] || 7
+  @tn_min  = dice['tn_minimum'] || 4
+  @tn_max  = dice['tn_maximum'] || 9
+
+  erb :dm_social
+end
+
+# Pre-compute dice/bonus for every skill the DM social screen needs.
+# Persuasion's "opposing skill" (persuasion or sense_motive, whichever
+# the character is more apt at) is resolved server-side using
+# skill_total = ranks + half_attr so the client can just look it up.
+def dm_social_stats(character_data)
+  cs = CharacterSheet.new(character_data)
+  pers_apt = cs.skill_total(:persuasion)
+  sm_apt   = cs.skill_total(:sense_motive)
+  if sm_apt > pers_apt
+    pers_opp = { 'skill' => 'sense_motive', 'dice' => cs.skill_dice(:sense_motive), 'bonus' => cs.skill_bonus(:sense_motive) }
+  else
+    pers_opp = { 'skill' => 'persuasion',   'dice' => cs.skill_dice(:persuasion),   'bonus' => cs.skill_bonus(:persuasion)   }
+  end
+  {
+    'id'   => cs.id,
+    'name' => cs.name,
+    'group' => character_data['group'] || 'PC',
+    'perception'    => { 'dice' => cs.skill_dice(:perception),   'bonus' => cs.skill_bonus(:perception)   },
+    'sense_motive'  => { 'dice' => cs.skill_dice(:sense_motive), 'bonus' => cs.skill_bonus(:sense_motive) },
+    'deception'     => { 'dice' => cs.skill_dice(:deception),    'bonus' => cs.skill_bonus(:deception)    },
+    'persuasion'    => { 'dice' => cs.skill_dice(:persuasion),   'bonus' => cs.skill_bonus(:persuasion)   },
+    'persuasion_opp' => pers_opp,
+    'wisdom'        => { 'dice' => cs.attr_dice(:wis), 'bonus' => cs.attr_bonus(:wis) },
+    'intelligence'  => { 'dice' => cs.attr_dice(:int), 'bonus' => cs.attr_bonus(:int) }
+  }
+end
+
 # Scene: shared player/DM view. During combat, shows a simplified initiative
 # table (names, HP, initiative rolls) with enemy identities masked behind
 # "DM" + a HP color band, plus the current PC's character sheet when it's
