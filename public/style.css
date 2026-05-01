@@ -961,13 +961,42 @@ img.zoomable { cursor: zoom-in; }
 .dm-social-table th, .dm-social-table td { border: 1px solid #ccc; padding: 6px 8px; text-align: center; font-size: 13px; }
 .dm-social-table thead th { background: #eceff1; font-weight: bold; }
 .dm-social-skill-name { text-align: left; font-weight: bold; background: #f5f5f5; }
-.dm-social-cell { font-variant-numeric: tabular-nums; font-weight: bold; min-width: 48px; }
+.dm-social-cell { font-variant-numeric: tabular-nums; font-weight: bold; min-width: 48px; position: relative; }
+.dm-social-cell:not(:empty) { cursor: help; }
 .dm-social-cell.positive { color: #2e7d32; background: #e8f5e9; }
 .dm-social-cell.negative { color: #c62828; background: #ffebee; }
 .dm-social-cell.zero     { color: #555; }
 .dm-social-bonus-cell { background: #fffde7; }
 .dm-social-bonus { width: 56px; text-align: center; font-size: 13px; }
 .dm-social-legend { font-size: 12px; color: #555; margin-top: 10px; }
+
+/* Hover tooltip on rolled cells: shows the full TN computation
+ * (base, self / opp / row bonuses, clamped value) plus the colored
+ * dice that produced the net successes. Sized wide enough that the
+ * dice line wraps cleanly; positioned just below the cell with a
+ * high z-index so it overlays neighboring cells. */
+.dm-social-tooltip {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  z-index: 100;
+  width: 340px;
+  background: #263238;
+  color: #fff;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: normal;
+  text-align: left;
+  line-height: 1.5;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  pointer-events: none;
+  white-space: normal;
+}
+.dm-social-cell:hover .dm-social-tooltip { display: block; }
 
 .lightbox { position: fixed; inset: 0; display: none; z-index: 10000; }
 .lightbox.open { display: block; }

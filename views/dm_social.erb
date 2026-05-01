@@ -80,8 +80,8 @@
     <p class="dm-social-legend">
       Cells show net successes (10s = +2, 1s = −1). Opposed cells show the
       difference between the cell's character and their opponent.
-      Empty rows indicate no character has been rolled yet — click
-      <strong>Roll All</strong>.
+      Hover any cell to see the dice and TN math; click <strong>Roll All</strong>
+      to re-roll the matrix.
     </p>
   </div>
 </div>
@@ -104,16 +104,40 @@
   var STORAGE_KEY = 'dmSocial.selection';
 
   function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
-  function tnFor(selfBonus, opponentBonus) {
-    return clamp(BASE_TN - selfBonus + (opponentBonus || 0), TN_MIN, TN_MAX);
+  // tnInfo is the full TN computation kept around for the hover
+  // tooltip. raw is pre-clamp so the DM can see when an extreme
+  // bonus would have pushed past the 4..9 window.
+  function tnInfo(selfSkillBonus, selfRowBonus, oppSkillBonus, oppRowBonus) {
+    var raw = BASE_TN
+      - (selfSkillBonus || 0)
+      - (selfRowBonus   || 0)
+      + (oppSkillBonus  || 0)
+      + (oppRowBonus    || 0);
+    return {
+      base: BASE_TN,
+      selfSkill: selfSkillBonus || 0,
+      selfRow:   selfRowBonus   || 0,
+      oppSkill:  oppSkillBonus  || 0,
+      oppRow:    oppRowBonus    || 0,
+      raw: raw,
+      tn: clamp(raw, TN_MIN, TN_MAX)
+    };
   }
-  // One-shot dice pool: build a Roll without binding to inputs, roll
-  // it, and return the net successes. Lets each row do as many parallel
-  // rolls as the matrix needs without needing per-cell hidden inputs.
-  function rollNet(dice, tn) {
+  // One-shot dice pool. Returns the rolled dice plus the net so the
+  // hover tooltip can render the original dice with their per-die
+  // breakdown (10 = +2, 1 = -1, otherwise +1 if >= TN, else 0).
+  function rollOnce(dice, tn) {
     var r = new Roll(null, null, dice, tn, true);
     r.rollFresh();
-    return r.finalSuccesses();
+    return { dice: r.originalRolls.slice(), tn: tn, count: dice, net: r.finalSuccesses() };
+  }
+  // Per-die contribution under the given TN. Mirrors Roll.successesIn
+  // but exposes each die's effect for the tooltip.
+  function dieContribution(d, tn) {
+    if (d === 10) return 2;
+    if (d === 1)  return -1;
+    if (d >= tn)  return 1;
+    return 0;
   }
 
   function findById(list, id) {
@@ -184,17 +208,107 @@
 
   function clearAllCells() {
     document.querySelectorAll('.dm-social-cell').forEach(function(td) {
-      td.textContent = '';
+      td.innerHTML = '';
       td.classList.remove('positive', 'negative', 'zero');
     });
   }
 
-  function paintCell(td, value) {
-    td.textContent = (value > 0 ? '+' + value : String(value));
+  // Pretty-print a signed integer with an explicit sign.
+  function signed(n) { return (n >= 0 ? '+' : '') + n; }
+
+  // Dice-color spans + per-die contribution annotation, e.g.
+  // "[3:0, 7:+1, 10:+2, 1:-1]". Reuses Roll.colorizeDie for color
+  // consistency with the combat tracker.
+  function renderDice(rolled, tn) {
+    return rolled.map(function(d) {
+      var c = dieContribution(d, tn);
+      return Roll.colorizeDie(d, tn) +
+        '<sub style="opacity:0.7;margin-left:1px;">' + signed(c) + '</sub>';
+    }).join(' ');
+  }
+
+  // Show the entire TN computation: base, self bonuses (negative
+  // because they reduce TN), opponent bonuses (positive because they
+  // raise TN), then the clamped result.
+  function renderTnLine(info) {
+    var pieces = [String(info.base)];
+    if (info.selfSkill) pieces.push((info.selfSkill > 0 ? '−' : '+') + Math.abs(info.selfSkill) + ' self skill');
+    if (info.selfRow)   pieces.push((info.selfRow   > 0 ? '−' : '+') + Math.abs(info.selfRow)   + ' row bonus');
+    if (info.oppSkill)  pieces.push((info.oppSkill  > 0 ? '+' : '−') + Math.abs(info.oppSkill)  + ' opp skill');
+    if (info.oppRow)    pieces.push((info.oppRow    > 0 ? '+' : '−') + Math.abs(info.oppRow)    + ' opp row');
+    var s = pieces.join(' ');
+    var clampNote = (info.raw === info.tn) ? '' :
+      ' <span style="color:#ffcc80;">(clamped from ' + info.raw + ')</span>';
+    return s + ' = <strong>TN ' + info.tn + '</strong>' + clampNote;
+  }
+
+  // Render a single roll subsection ("Self" or "Opponent"). Carries
+  // the rolled-vs character's name and the skill they used so the DM
+  // can read the matrix without cross-referencing the headers.
+  function renderRollBlock(label, who, skillName, roll, tnInfoObj) {
+    return '<div style="margin-top:6px;"><strong>' + label + '</strong>: ' +
+      who + ' &middot; ' + skillName + ' (' + roll.count + 'd)' +
+      '<div style="margin:2px 0 2px 8px;">' + renderTnLine(tnInfoObj) + '</div>' +
+      '<div style="margin:2px 0 0 8px;">' + renderDice(roll.dice, roll.tn) +
+      ' &nbsp;→&nbsp; net <strong>' + signed(roll.net) + '</strong></div></div>';
+  }
+
+  function buildTooltipHtml(breakdown) {
+    var rows = [];
+    rows.push(renderRollBlock('Self', breakdown.self.who, breakdown.self.skill,
+                              breakdown.self.roll, breakdown.self.tnInfo));
+    if (breakdown.opp) {
+      rows.push(renderRollBlock('Opponent', breakdown.opp.who, breakdown.opp.skill,
+                                breakdown.opp.roll, breakdown.opp.tnInfo));
+      rows.push('<div style="margin-top:6px;border-top:1px solid #555;padding-top:4px;">' +
+        'Result: ' + signed(breakdown.self.roll.net) + ' − ' + signed(breakdown.opp.roll.net) +
+        ' = <strong>' + signed(breakdown.self.roll.net - breakdown.opp.roll.net) + '</strong></div>');
+    }
+    return '<div class="dm-social-tooltip">' + rows.join('') + '</div>';
+  }
+
+  // Paint a cell with its display number plus an inline tooltip
+  // child that shows the full TN math + dice breakdown on hover.
+  function paintCell(td, value, breakdown) {
+    var text = signed(value);
     td.classList.remove('positive', 'negative', 'zero');
     if (value > 0) td.classList.add('positive');
     else if (value < 0) td.classList.add('negative');
     else td.classList.add('zero');
+    td.innerHTML = '<span class="dm-social-cell-value">' + text + '</span>' +
+      buildTooltipHtml(breakdown);
+  }
+
+  // Pretty label for a skill key inside the tooltip.
+  var SKILL_LABELS = {
+    perception: 'Perception', sense_motive: 'Sense Motive',
+    deception: 'Deception', persuasion: 'Persuasion',
+    wisdom: 'Wisdom', intelligence: 'Intelligence'
+  };
+
+  // One unopposed-side breakdown: roll the dice and package up the
+  // TN math + dice for the tooltip.
+  function rollSide(charStats, skillKey, rowBonus) {
+    var stat = charStats[skillKey];
+    var info = tnInfo(stat.bonus, rowBonus, 0, 0);
+    return {
+      who: charStats.name,
+      skill: SKILL_LABELS[skillKey] || skillKey,
+      tnInfo: info,
+      roll: rollOnce(stat.dice, info.tn)
+    };
+  }
+  // One opposed-side breakdown given concrete skill picks for both
+  // sides. Used by sense/deception (same skill on both sides) and
+  // persuasion (active vs persuasion_opp).
+  function rollOpposed(selfChar, selfSkillKey, selfStat, selfRow, oppChar, oppSkillKey, oppStat, oppRow) {
+    var info = tnInfo(selfStat.bonus, selfRow, oppStat.bonus, oppRow);
+    return {
+      who: selfChar.name,
+      skill: SKILL_LABELS[selfSkillKey] || selfSkillKey,
+      tnInfo: info,
+      roll: rollOnce(selfStat.dice, info.tn)
+    };
   }
 
   // Per-row roll. NPC rolls once against the lead PC; each PC rolls
@@ -213,14 +327,14 @@
       // Each character rolls independently. The DM-NPC cell only
       // shows when an NPC is selected; PC cells always show.
       if (npc) {
-        var s = npc[rowKey];
-        paintCell(npcCell, rollNet(s.dice, tnFor(s.bonus + npcBonus, 0)));
+        var npcSide = rollSide(npc, rowKey, npcBonus);
+        paintCell(npcCell, npcSide.roll.net, { self: npcSide });
       }
       pcCells.forEach(function(td) {
         var pc = findById(pcStats, td.getAttribute('data-pc-id'));
         if (!pc) return;
-        var st = pc[rowKey];
-        paintCell(td, rollNet(st.dice, tnFor(st.bonus + pcBonus, 0)));
+        var pcSide = rollSide(pc, rowKey, pcBonus);
+        paintCell(td, pcSide.roll.net, { self: pcSide });
       });
       return;
     }
@@ -231,17 +345,19 @@
       // Same-skill opposed roll. NPC rolls once vs lead; each PC
       // rolls vs NPC. Each cell prints (self_net - opp_net).
       var skill = (kind === 'opposed_sense') ? 'sense_motive' : 'deception';
-      var npcSkill = npc[skill], leadSkill = lead[skill];
-      var npcNet = rollNet(npcSkill.dice, tnFor(npcSkill.bonus + npcBonus, leadSkill.bonus + pcBonus));
-      var leadNet = rollNet(leadSkill.dice, tnFor(leadSkill.bonus + pcBonus, npcSkill.bonus + npcBonus));
-      paintCell(npcCell, npcNet - leadNet);
+      var npcSide  = rollOpposed(npc,  skill, npc[skill],  npcBonus, lead, skill, lead[skill], pcBonus);
+      var leadSide = rollOpposed(lead, skill, lead[skill], pcBonus,  npc,  skill, npc[skill],  npcBonus);
+      paintCell(npcCell, npcSide.roll.net - leadSide.roll.net,
+                { self: npcSide, opp: leadSide });
+
       pcCells.forEach(function(td) {
         var pc = findById(pcStats, td.getAttribute('data-pc-id'));
         if (!pc) return;
-        var pcNet;
-        if (String(pc.id) === String(lead.id)) pcNet = leadNet;
-        else pcNet = rollNet(pc[skill].dice, tnFor(pc[skill].bonus + pcBonus, npcSkill.bonus + npcBonus));
-        paintCell(td, pcNet - npcNet);
+        var pcSide;
+        if (String(pc.id) === String(lead.id)) pcSide = leadSide;
+        else pcSide = rollOpposed(pc, skill, pc[skill], pcBonus, npc, skill, npc[skill], npcBonus);
+        paintCell(td, pcSide.roll.net - npcSide.roll.net,
+                  { self: pcSide, opp: npcSide });
       });
       return;
     }
@@ -253,21 +369,23 @@
       // persuasion_opp. PC[i].persuasion is opposed by NPC's
       // persuasion_opp; NPC.persuasion is opposed by lead's
       // persuasion_opp.
-      var npcAct = npc.persuasion;
+      var npcAct  = npc.persuasion;
       var leadOpp = lead.persuasion_opp;
       var npcOpp  = npc.persuasion_opp;
 
-      var npcNetP  = rollNet(npcAct.dice,  tnFor(npcAct.bonus  + npcBonus, leadOpp.bonus + pcBonus));
-      var leadOppNet = rollNet(leadOpp.dice, tnFor(leadOpp.bonus + pcBonus, npcAct.bonus + npcBonus));
-      paintCell(npcCell, npcNetP - leadOppNet);
+      var npcSide     = rollOpposed(npc,  'persuasion',          npcAct,  npcBonus, lead, leadOpp.skill, leadOpp, pcBonus);
+      var leadOppSide = rollOpposed(lead, leadOpp.skill,         leadOpp, pcBonus,  npc,  'persuasion',  npcAct,  npcBonus);
+      paintCell(npcCell, npcSide.roll.net - leadOppSide.roll.net,
+                { self: npcSide, opp: leadOppSide });
 
       pcCells.forEach(function(td) {
         var pc = findById(pcStats, td.getAttribute('data-pc-id'));
         if (!pc) return;
         var pcAct = pc.persuasion;
-        var pcNet = rollNet(pcAct.dice, tnFor(pcAct.bonus + pcBonus, npcOpp.bonus + npcBonus));
-        var npcOppNet = rollNet(npcOpp.dice, tnFor(npcOpp.bonus + npcBonus, pcAct.bonus + pcBonus));
-        paintCell(td, pcNet - npcOppNet);
+        var pcSide  = rollOpposed(pc,  'persuasion',  pcAct,  pcBonus,  npc, npcOpp.skill, npcOpp, npcBonus);
+        var npcOppSide = rollOpposed(npc, npcOpp.skill, npcOpp, npcBonus, pc, 'persuasion', pcAct,  pcBonus);
+        paintCell(td, pcSide.roll.net - npcOppSide.roll.net,
+                  { self: pcSide, opp: npcOppSide });
       });
       return;
     }
