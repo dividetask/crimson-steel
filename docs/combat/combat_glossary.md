@@ -46,13 +46,13 @@ Combat owns round-by-round state (combatants, initiative, turn pointer, Combat P
 
 **Combat Pool Budget**: `floor((martial_skill_ranks + floor(attribute / Combat Pool Divisor)) / Turns Per Round[tier])`.
 
-**Combat Pool**: Largest P such that purchase cost ≤ Budget. Points 1..Step cost 0; points kStep+1..(k+1)Step cost k. Closed form: with `T = floor(P/Step)`, `R = P mod Step`, cost = `Step·T·(T-1)/2 + R·T`. Leftover Budget is discarded. Computed on demand. *(two sentences — flagged: the cost rule is the meat of the formula and one sentence buried it)*
+**Combat Pool**: Combatant's pool size for one turn — the largest P such that purchase cost ≤ Budget, with cost rising every Step points. Points 1..Step cost 0 each (free tier, guarantees a minimum); points Step+1..2·Step cost 1 each; points 2·Step+1..3·Step cost 2 each; and so on. Closed form: with `T = floor(P/Step)`, `R = P mod Step`, cost = `Step·T·(T-1)/2 + R·T`. Leftover Budget is discarded. Computed on demand.
 
 **Combat Pool (Remaining)**: Per-Combatant remaining pool for the turn. Decremented by `spend_combat_pool`; reset to Combat Pool by `reset_combat_pool`.
 
 ## Damage Severity
 
-**Severity Calculation**: Combat routes each damage point to a Severity bucket. Non-physical types use the catalog's declared severity; physical types use **Runtime Bucketing** (first `Threshold + Damage Resilience` → Minor, next → Moderate, rest → Major). Result is passed to `APPLY_HIT_POINT_DAMAGE`. *(two sentences — flagged: the bucketing rule must be visible at the glossary level)*
+**Severity Calculation**: Combat routes each damage point to a Severity bucket before passing the result to `APPLY_HIT_POINT_DAMAGE`. Non-physical damage types use the catalog's declared severity. Physical damage uses **Runtime Bucketing**: the first `Threshold + Damage Resilience` points fill Minor, the next fill Moderate, everything beyond goes to Major. Threshold comes from the weapon for weapon attacks or from the ability's `threshold` field for ability-driven physical damage; Damage Resilience comes from the defender's Character.
 
 ## State Files
 

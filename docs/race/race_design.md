@@ -1,64 +1,53 @@
 # Race — Design
 
-Companion to `race_glossary.md`. Glossary defines *what* the terms mean; this doc records the non-obvious *how* and locks down ownership.
-
-The Race module is reference data with one twist: every read walks the Race Chain (a Race plus its ancestors via `parent_race`). The chain walk is what makes Sub-Races composable — Hill Dwarf inherits Dwarf's speed, abilities, and any partial adjustments, and stacks its own on top.
+Reference data with one twist: every read walks the Race Chain (a Race plus its ancestors via `parent_race`). The chain walk is what makes Sub-Races composable — Hill Dwarf inherits Dwarf and stacks its own on top.
 
 ## Key Operations
 
 ### Race Chain walk
 
-Every lookup builds the same chain: start at the Race, follow `parent_race` until either the field is absent or a cycle is detected (an already-seen race). The chain is built fresh on each call rather than cached — Race instances are short-lived and racial config rarely changes during a session.
-
-Cycle protection is intentional: a misconfigured `parent_race` that points back to a descendant must not loop forever. A cycle terminates the walk at the first repeat without raising — the chain returned is the prefix up to but not including the second visit.
+Built fresh on each call rather than cached — Race instances are short-lived and racial config rarely changes mid-session. A misconfigured `parent_race` cycle terminates at the first repeat without raising; the chain returned is the prefix up to but not including the second visit.
 
 ### First-in-chain vs accumulate-across-chain
 
-Different fields use different chain semantics, and the rules don't generalize:
+Different fields use different chain semantics; the rules don't generalize because the fields serve different design intents (identity values get more specific deeper; bonuses are additive):
 
-- **First-in-chain** (`name`, `size`, `speed`) — return the first non-nil value walking root-to-tail. The most-specific Race wins; ancestors fill in only when the descendant omits the field.
-- **Accumulate-across-chain** (`ability_score_adjustments`) — sum every ancestor's contribution. A Hill Dwarf's `+2 con` from its own definition adds to any `+2 con` Dwarf might declare. Today only `ability_score_adjustments` accumulates this way.
-- **Concatenate-across-chain** (`abilities`) — every ancestor's Abilities are gathered, then deduplicated by name with scaling-level accumulation (same rule Advancement uses for class abilities).
-
-The split exists because the fields serve different design intents: identity values (name, size) are typically more specific the deeper you go, while bonuses are typically additive.
+- **First-in-chain** (`name`, `size`, `speed`) — first non-nil walking root-to-tail.
+- **Accumulate** (`ability_score_adjustments`) — sum every ancestor's contribution.
+- **Concatenate-with-dedup** (`abilities`) — gather all, dedupe by name with scaling-level accumulation (same rule as Advancement).
 
 ### Racial ability granting
 
-`abilities` produces a list of `Ability` structs (the same struct Advancement uses) for every name granted by the Race Chain whose `min_level` ≤ the Character's level. Two non-obvious points:
+`abilities` filters by `min_level` against the Character's **total class level** (passed in at construction), not the tier or any per-class level. This lets a tier-0 Satyr earn its Tier-3 racial ability at the same milestone as a multiclassed PC.
 
-- **The level compared against `min_level` is the Character's total class level**, passed in at construction time as `character_level`. It is not the tier and not a per-class level. This is what lets a tier-0 Satyr earn its Tier-3 racial ability at the same character milestone as a multiclassed PC.
-- **Scaling abilities accumulate effective levels across the chain.** When both `dwarf` and `hill_dwarf` declare a scaling ability of the same name, the Character's total class level is added to the slot **for each chain ancestor that grants it**, mirroring how `Advancement#abilities` accumulates across `parent_class` entries. Today no built-in race exercises this case, but the rule is consistent with Advancement so future content can rely on it.
+Scaling abilities accumulate effective levels across the chain (mirroring Advancement's parent_class accumulation). No built-in race exercises this today, but the rule is consistent so future content can rely on it.
 
 ### Sticky min_level reuse
 
-`Race.load_yaml` calls `Advancement.normalize_abilities_list` to flatten sticky context entries. The two domains share this helper rather than each implementing its own — racial ability lists support exactly the same `min_level`-only sticky context entries Advancement does. The shared `Ability` struct is also imported from Advancement.
+`Race.load_yaml` calls `Advancement.normalize_abilities_list` to flatten Sticky Min Level context entries — racial ability lists support exactly the same context entries Advancement does. The shared `Ability` struct is also imported from Advancement.
 
 ### Empty-config tolerance
 
-`Race.load_yaml(nil)` and a nonexistent path both return an empty hash. A Character constructed with a race key that doesn't appear in the config produces a Race instance whose every chain lookup falls through — empty adjustments, no abilities, nil speed/size. The Character itself does not raise; the missing race surfaces visually (no name, no speed, no bonuses) rather than as an error.
-
-This keeps production startup permissive: the DM can drop in a partial config and the app still loads.
+A nonexistent path or a Character with an unknown race produces a Race instance whose every chain lookup falls through (empty adjustments, no abilities, nil speed/size). Character does not raise — the missing race surfaces visually rather than as an error, so the DM can drop in a partial config and the app still loads.
 
 ## Responsibilities
 
-### Owned by the race domain
+### Owned
 
-- Loading `race_config.yaml` and normalizing each Race's `abilities` list at load time.
-- Walking the Race Chain on every lookup with cycle protection.
-- Returning Name, Size, Speed using first-in-chain semantics.
-- Returning `ability_score_adjustments` as the accumulated sum across the Race Chain.
-- Returning `abilities` filtered by `min_level` against the Character's total class level, with scaling-level accumulation across chain ancestors.
+- Loading `race_config.yaml`; normalizing abilities lists at load time.
+- Race Chain walking with cycle protection.
+- Name/Size/Speed (first-in-chain), `ability_score_adjustments` (accumulate), `abilities` (concatenate-with-dedup, filtered by Character's total class level, with scaling-level accumulation).
 
-### Explicitly *not* owned here
+### Not owned
 
-- **Tier, class levels, or class abilities** — Advancement.
-- **Identity, base attributes, the Tier Override** — Character.
-- **What a Racial Ability does mechanically.** The abilities module's Procedural Abilities catalog covers stateless racial abilities; the conditions module covers stateful ones; always-on numeric bonuses live on the ability entry's `modifiers:` field. Race itself returns names and levels only — mechanical effects are looked up by name in those catalogs.
-- **Per-Character mutable state** (HP, conditions, currency).
-- **Validation that `ability_score_adjustments` keys are real attributes** — typos silently produce a 0 contribution.
+- **Tier, class levels, class abilities** — Advancement.
+- **Identity, base attributes, Tier Override** — Character.
+- **What a Racial Ability does mechanically** — abilities (procedural), conditions (stateful), or `modifiers:` (always-on).
+- **Per-Character mutable state** — conditions/equipment.
+- **Validation of `ability_score_adjustments` keys** — typos silently produce 0.
 
-### Unassigned (no current owner)
+### Unassigned
 
-- **Populating the procedural and stateful catalogs for racial abilities.** The catalogs exist (Abilities' Procedural Abilities, Conditions' Effect Names, the `modifiers:` field on each ability entry); most racial ability names don't yet have entries in any of them.
-- **Cross-domain validation** that a Character's `race:` key exists in `race_config.yaml`. A typo silently produces an empty Race.
-- **Preferred starting attribute distributions per Race.** The example config carries `ability_score_adjustments` but not the standard "+2 to one stat, +1 to another" point-buy steering that some games include — if Crimson Steel ever wants that, it needs a home.
+- Populating procedural/stateful catalogs and `modifiers:` for racial abilities.
+- Cross-domain validation that a Character's `race:` key exists.
+- Preferred starting attribute distributions per Race (point-buy steering).

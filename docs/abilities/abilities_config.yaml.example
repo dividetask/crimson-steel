@@ -1,28 +1,12 @@
 # Abilities — Homebrew Configuration
 #
-# This file holds the configurable values used by the abilities and
-# spells reference module. Both the Ruby and C# implementations load
-# this same file and translate the keys to their own naming conventions
-# when reading them.
-#
-# Keys are written in human-readable form (capitalized, with spaces) to
-# match the defined terms in the glossary. Values that are formulas are
-# written as strings and evaluated against a context dictionary supplied
-# by the caller. The only variable that is guaranteed to be present in
-# every formula context is `rank`. Other variables (such as `tier` or
-# named values from an entry's Effect Hash) are added by the caller for
-# specific formulas — see the glossary for details.
+# Loaded by AbilitySystem. Keys are human-readable; formulas are strings
+# evaluated against a context dict (always includes `rank`).
 
-# The number of seconds in one round. Used to convert Casting Times that
-# are written as minutes or hours into a number of rounds.
+# Seconds per round; converts minute/hour casting times to rounds.
 Round Length Seconds: 6
 
-# Default Mana Cost Per Tier — the mana a Character spends to cast
-# a spell of the given Tier. Looked up by AbilitySystem#default_mana_cost
-# and consumed by Casting#cast when the caller doesn't override the
-# value. Tier 0 = 1, ascending. Most spells use the table value;
-# a few (like Recharge) note an additional cost in their description
-# that the human DM applies on top.
+# Mana spent to cast a spell of the given Tier (used unless overridden).
 Default Mana Cost Per Tier:
   0: 1
   1: 4
@@ -31,18 +15,8 @@ Default Mana Cost Per Tier:
   4: 10
   5: 12
 
-# Ritual Cost — per-tier ritual overhead. A ritual cast resolves
-# exactly like a spell cast except for two adjustments:
-#   * gold_per_tier         — material cost in gold paid by the
-#                             caster's owner (typically the party
-#                             purse). Until material components are
-#                             tracked as items, gold stands in.
-#   * casting_time_per_tier — additional rounds added to the spell's
-#                             normal casting time. Total ritual
-#                             casting time is
-#                             max(spell_casting_time_rounds, 1) +
-#                             casting_time_per_tier[tier].
-# Both tables index by integer tier (0-5).
+# Ritual overhead per tier. Total ritual time =
+#   max(spell_casting_time_rounds, 1) + casting_time_per_tier[tier].
 Ritual Cost:
   gold_per_tier:
     0: 0
@@ -59,16 +33,7 @@ Ritual Cost:
     4: 14400
     5: 100800
 
-# Casting Time Aliases — short, human-readable names that translate into
-# a number of rounds. Fractional values represent portions of a single
-# turn. Any Casting Time string that matches a key in this table is
-# resolved via the table; any Casting Time string of the form
-# `<N> rounds` is parsed directly as that many rounds. Longer natural
-# language forms (e.g. `1 Hour`) should be entered as aliases here so
-# that data files can use them verbatim.
-#
-# Adding a new alias here lets it flow through the module immediately
-# without a code change.
+# Casting time aliases → rounds. `<N> rounds` is parsed directly.
 Casting Time Aliases:
   Free Action: 0
   Bonus Action: 0.25
@@ -79,22 +44,11 @@ Casting Time Aliases:
   1 Hour: 600
   1 Day: 14400
 
-# Default Reach Feet — the reach of a typical Medium-sized creature.
-# Range Formulas may reference the variable `reach`, which the caller
-# may supply per-cast for larger creatures with a longer reach. When
-# the caller does not supply `reach`, the abilities module substitutes
-# this value.
+# Reach (feet) used when caller doesn't supply `reach` for Touch range.
 Default Reach Feet: 5
 
-# Range Formulas — each named Range is a formula string evaluated
-# against `rank` (and, where useful, `reach`) to produce a distance in
-# feet. The literal `Self` entry is kept here for completeness so that
-# downstream code does not have to special-case it. `Touch` evaluates
-# to the caster's reach — typically 5 feet, but longer for larger
-# creatures.
-#
-# An entry's `range` field may be a string matching one of these keys,
-# or a bare integer indicating an explicit distance in feet.
+# Range formulas evaluated against `rank` (and `reach` for Touch).
+# An entry's `range` may be a key here or a bare integer (feet).
 Range Formulas:
   Self: "0"
   Touch: "reach"
@@ -102,11 +56,7 @@ Range Formulas:
   Medium: "30+10*rank"
   Long: "80+20*rank"
 
-# Casting Skills List — the skills a caster may use when casting a spell
-# or invoking an ability. A spell or ability entry declares a subset of
-# this list as its valid casting skills. Entries whose key ends in an
-# underscore (e.g. `perform_`) represent skill families; see the skills
-# module for how specific sub-skills are resolved.
+# Casting skills. Keys ending in `_` are skill families.
 Casting Skills List:
   perform_: "Bardic performance-based casting."
   arcana: "Learned arcane casting."
@@ -115,19 +65,11 @@ Casting Skills List:
   evocation: "Innate magical casting, and skill in activating magical devices."
   restricted: "Illegal and unethical casting — outlawed by the local authorities of every civilization except the most evil."
 
-# Universal Spell Casting Skills — the subset of the Casting Skills
-# List that can be used to cast any spell, regardless of whether the
-# spell's entry lists them. Universal skills must NOT be written into
-# an entry's `skills` field; the abilities module appends them at
-# lookup time. Abilities are unaffected (they are not spells).
+# Skills appended at lookup time to every spell (not abilities).
 Universal Spell Casting Skills:
   - evocation
 
-# Save Attributes List — the attributes a target may use to make a
-# Saving Throw. The literal value `none` indicates that the entry
-# grants no saving throw; it may appear in an entry's `save` field as
-# shorthand for "no save", or it may be omitted from the field
-# entirely.
+# Attributes valid in a Save Spec. `none` = no save.
 Save Attributes List:
   - none
   - str
@@ -137,46 +79,24 @@ Save Attributes List:
   - wis
   - cha
 
-# Save Outcome Keys — the branches of a Saving Throw that may have
-# different effects. `fail` is required on every Save Spec; the others
-# are optional, and an entry that omits an optional key implies "no
-# additional effect on that branch". `fumble` applies when the
-# defender's Degree of Failure meets or exceeds the Default Fumble
-# Threshold defined in `dice_resolution_config.yaml` — it replaces the
-# plain `fail` effect when triggered.
-#
-# Formulas used inside a Save Effect's damage expression may reference
-# the variables `success` and `critical` in addition to `rank`, `tier`,
-# and any Effect Hash name. `success` is the defender's success count
-# on the save; `critical` is the defender's critical count. This lets
-# damage scale with how badly the defender rolled, e.g.
-# `"2*success + 3*critical damage"`.
+# Save outcome branches. `fail` is required; others optional.
+# `fumble` triggers when defender's Degree of Failure ≥ Default Fumble
+# Threshold (dice_resolution_config.yaml). Damage formulas may reference
+# `success` and `critical` (defender's counts) along with rank/tier.
 Save Outcome Keys:
   - fail
   - success
   - fumble
 
-# Properties — the reference list of property keywords that may appear
-# in an entry's `properties` field. A property is a flag or keyword
-# that modifies how the spell or ability behaves but doesn't carry
-# numeric data of its own. Validation rejects any property name not in
-# this list. Mechanical definitions for each property live wherever
-# the property's effects are implemented (combat, language, etc.).
-#
-# Adding a new keyword here lets it flow through the abilities module
-# immediately without a code change.
+# Allowed `properties` keywords on entries. Mechanical effects live in
+# the consuming module.
 Properties:
   language_dependent: "The spell relies on the target understanding the caster's words; targets that do not share a language with the caster are unaffected."
 
-# The catalog of named non-damage effects (blind, dazzled, paralyzed,
-# bleeding, etc.) and their structured mechanics lives in
-# `conditions_config.yaml` under `Effect Names`. The abilities module
-# does not maintain its own copy and does not validate Effect strings
-# against any catalog — bad names raise when conditions tries to apply
-# them.
+# Effect Names (blind, dazzled, paralyzed, ...) live in
+# conditions_config.yaml under `Effect Names`. Not duplicated here.
 
-# Spell Schools — the magical disciplines an entry may belong to. Only
-# spell entries have a school; ability entries do not.
+# Spell schools (spells only; abilities have no school).
 Spell Schools:
   universal: "Available to every school."
   pneumancy: "Soul magic. Healing, necromancy, and spirit binding."
@@ -186,44 +106,28 @@ Spell Schools:
   convergence: "Dimensional pulling — summoning and translocation, temporary by nature."
   transmutation: "Physical transformation magic."
 
-# Item Forms — the physical objects a spell may be packaged into. The
-# entries below define every valid form and its short description.
-# Forms listed in `Universal Item Forms` are implicitly available to
-# every spell at lookup time; non-universal forms must be listed
-# explicitly in an entry's `items` field.
+# Physical forms a spell may be packaged into.
 Item Forms:
   potion: "Drinkable; consumed on use."
   oil: "Applied to an object or surface; consumed on use."
   scroll: "Read aloud; consumed on use."
   wand: "Reusable; channels the wielder's mana on each use rather than carrying its own charges."
 
-# Universal Item Forms — Item Forms that any spell may be packaged
-# into without being listed in the entry's `items` field. Universal
-# forms must NOT appear in any entry's raw `items` list; the abilities
-# module appends them at lookup time. Item-only entries do not gain
-# universal forms — they may only be invoked through the explicit
-# items their entry lists.
+# Forms appended at lookup time to every spell. Item-only entries do
+# NOT gain universal forms.
 Universal Item Forms:
   - scroll
   - wand
 
-# Area Shapes — the recognized shapes for an Entry's optional `area`
-# field. When `area` is present the Entry's effect covers a region of
-# the named shape and the listed size; when omitted, the spell affects
-# only its declared `target` count of creatures within `range`. The
-# `size` value is always measured in 5-foot squares regardless of
-# shape; the consuming module translates that into the appropriate
-# geometry (length for line, slant length for cone, edge length for
-# square, radius for circle).
+# Recognized shapes for an entry's `area` field. `size` is in 5-foot
+# squares; consuming module maps to geometry per shape.
 Area Shapes:
   line: "A straight line `size` squares long, originating from the caster or target square."
   cone: "A cone with `size` squares of slant length, originating from the caster or target square."
   square: "A square area `size` squares on each side, centered on the target square."
   circle: "A circle with `size` squares of radius, centered on the target square."
 
-# Entry Types — the set of accepted values for an entry's `type` field.
-# Abilities and spells share the same class and storage; the `type`
-# field distinguishes them so callers can filter.
+# Accepted values for an entry's `type` field.
 Entry Types:
   - spell
   - ability
