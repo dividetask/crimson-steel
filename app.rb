@@ -199,6 +199,47 @@ def scene_map_clamp_dim(v, default)
   [[n, 1].max, SCENE_MAP_MAX_DIM].min
 end
 
+# Build the DM's image-token palette. Curated entries from
+# data/map_images.yaml come first (in the listed order); any
+# remaining files in public/images/ matching SCENE_IMAGE_EXTS are
+# appended alphabetically. Each row is { 'src' => '/images/X',
+# 'label' => 'X' }. Adapted from the same-named helper on the main
+# branch's notes_map_stub; behavior matches so the optional YAML
+# format stays portable.
+def scene_map_image_library
+  rows = []
+  seen = {}
+
+  yaml_path = File.join(__dir__, 'data', 'map_images.yaml')
+  if File.exist?(yaml_path)
+    require 'yaml'
+    raw = (YAML.safe_load(File.read(yaml_path)) rescue nil) || []
+    raw.each do |entry|
+      next unless entry.is_a?(Hash)
+      src = entry['src'].to_s.strip
+      next if src.empty? || !src.start_with?('/images/')
+      label = (entry['label'] || File.basename(src, '.*')).to_s
+      next if seen[src]
+      rows << { 'src' => src, 'label' => label }
+      seen[src] = true
+    end
+  end
+
+  dir = File.join(__dir__, 'public', 'images')
+  if File.directory?(dir)
+    Dir.entries(dir).sort.each do |f|
+      next unless File.file?(File.join(dir, f))
+      next unless SCENE_IMAGE_EXTS.include?(File.extname(f).downcase)
+      src = "/images/#{f}"
+      next if seen[src]
+      rows << { 'src' => src, 'label' => File.basename(f, '.*') }
+      seen[src] = true
+    end
+  end
+
+  rows
+end
+
 def scene_sanitize_filename(name)
   base = File.basename(name.to_s)
   base.gsub(/[^A-Za-z0-9._-]/, '_')
@@ -296,6 +337,7 @@ get '/scene/:viewer_id' do
   # target to render against.
   @active_map = @scene_maps.find { |m| m['active'] } || @scene_maps.first
   @inactive_maps = @scene_maps.reject { |m| m == @active_map }
+  @map_image_library = @is_dm ? scene_map_image_library : []
 
   # Characters of Interest are gated by in_scene (DM-only choice for
   # which CoI are staged in this scene) and scene_visible_to (which PCs
@@ -655,6 +697,9 @@ post '/scene/map/update' do
           cell['color'] = val['color'].to_s[0, 20] if val['color'].is_a?(String) && !val['color'].to_s.empty?
           cell['label'] = val['label'].to_s[0, 40] if val['label'].is_a?(String) && !val['label'].to_s.empty?
           cell['icon']  = val['icon'].to_s[0, 20]  if val['icon'].is_a?(String)  && !val['icon'].to_s.empty?
+          if val['image'].is_a?(String) && val['image'].start_with?('/images/')
+            cell['image'] = val['image'][0, 200]
+          end
           cleaned[key] = cell unless cell.empty?
         end
         entry['cells'] = cleaned

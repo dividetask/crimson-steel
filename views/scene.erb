@@ -136,6 +136,9 @@
                 <div class="scene-map-cell<%= ' editable player-editable' unless @is_dm %>"
                      data-r="<%= r %>" data-c="<%= c %>"
                      style="<%= cell['color'] && !cell['color'].empty? ? "background:#{h cell['color']};" : '' %>">
+                  <% if cell['image'] && !cell['image'].to_s.empty? %>
+                    <img class="scene-map-cell-image" src="<%= h(cell['image']) %>" alt="">
+                  <% end %>
                   <% if cell['icon'] && !cell['icon'].to_s.empty? %>
                     <span class="scene-map-icon"><%= h(cell['icon']) %></span>
                   <% end %>
@@ -440,6 +443,20 @@
                   <% end %>
                   <input type="text" class="brush-icon-custom" maxlength="3" placeholder="?" title="Custom icon (1-3 chars)">
                 </div>
+                <% if (@map_image_library || []).any? %>
+                  <div class="palette-group">
+                    <span class="palette-label">Image:</span>
+                    <button type="button" class="brush image-brush" data-brush-type="image" data-image="" title="Clear image">none</button>
+                    <% @map_image_library.each do |row| %>
+                      <button type="button" class="brush image-brush"
+                              data-brush-type="image"
+                              data-image="<%= h(row['src']) %>"
+                              title="<%= h(row['label']) %>">
+                        <img src="<%= h(row['src']) %>" alt="<%= h(row['label']) %>">
+                      </button>
+                    <% end %>
+                  </div>
+                <% end %>
                 <div class="palette-group">
                   <span class="palette-label">Class:</span>
                   <% [['🪓','Axe - barbarian / warrior'],['⚔️','Crossed swords - fighter'],['🛡️','Shield - defender / paladin'],['🗡️','Dagger - rogue / assassin'],['🏹','Bow - archer / ranger / elf'],['🪄','Wand - mage / sorcerer'],['📖','Tome - wizard / scholar'],['⚕️','Medical staff - cleric / healer'],['🎵','Music note - bard'],['🎭','Masks - bard / performer'],['🧝','Elf'],['🧙','Mage / druid'],['🐺','Wolf - druid / ranger companion'],['👑','Crown - noble / leader'],['💀','Skull - fallen / undead']].each do |ic, name| %>
@@ -477,6 +494,9 @@
                     <div class="scene-map-cell editable"
                          data-r="<%= r %>" data-c="<%= c %>"
                          style="<%= cell['color'] && !cell['color'].empty? ? "background:#{h cell['color']};" : '' %>">
+                      <% if cell['image'] && !cell['image'].to_s.empty? %>
+                        <img class="scene-map-cell-image" src="<%= h(cell['image']) %>" alt="">
+                      <% end %>
                       <% if cell['icon'] && !cell['icon'].to_s.empty? %>
                         <span class="scene-map-icon"><%= h(cell['icon']) %></span>
                       <% end %>
@@ -847,8 +867,9 @@
       if (!brush) { status.textContent = 'Pick a palette item'; return; }
       if (brush.type === 'color') status.textContent = brush.color ? ('Paint color ' + brush.color) : 'Clear color';
       else if (brush.type === 'icon') status.textContent = brush.icon ? ('Place icon ' + brush.icon) : 'Clear icon';
+      else if (brush.type === 'image') status.textContent = brush.image ? 'Place image' : 'Clear image';
       else if (brush.type === 'label') status.textContent = 'Click a cell to type a label';
-      else if (brush.type === 'move') status.textContent = 'Drag a cell with an icon/label to a new square';
+      else if (brush.type === 'move') status.textContent = 'Drag a cell with content to a new square';
       else if (brush.type === 'erase') status.textContent = 'Click or drag to clear cells';
     }
 
@@ -862,6 +883,13 @@
     palette.querySelectorAll('.icon-brush').forEach(function(btn) {
       btn.addEventListener('click', function() {
         brush = { type: 'icon', icon: btn.getAttribute('data-icon') || '' };
+        setActiveChip(btn);
+        describe();
+      });
+    });
+    palette.querySelectorAll('.image-brush').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        brush = { type: 'image', image: btn.getAttribute('data-image') || '' };
         setActiveChip(btn);
         describe();
       });
@@ -925,6 +953,18 @@
         } else {
           delete data.icon;
         }
+      } else if (brushAtTime.type === 'image') {
+        cellEl.querySelectorAll('.scene-map-cell-image').forEach(function(n) { n.remove(); });
+        if (brushAtTime.image) {
+          data.image = brushAtTime.image;
+          var img = document.createElement('img');
+          img.className = 'scene-map-cell-image';
+          img.src = brushAtTime.image;
+          img.alt = '';
+          cellEl.insertBefore(img, cellEl.firstChild);
+        } else {
+          delete data.image;
+        }
       } else if (brushAtTime.type === 'label') {
         var existing = data.label || '';
         var v = window.prompt('Label for this cell (blank to clear):', existing);
@@ -941,8 +981,8 @@
         }
       } else if (brushAtTime.type === 'erase') {
         cellEl.style.background = '';
-        cellEl.querySelectorAll('.scene-map-icon, .scene-map-label').forEach(function(n) { n.remove(); });
-        delete data.color; delete data.icon; delete data.label;
+        cellEl.querySelectorAll('.scene-map-icon, .scene-map-label, .scene-map-cell-image').forEach(function(n) { n.remove(); });
+        delete data.color; delete data.icon; delete data.label; delete data.image;
       }
       if (Object.keys(data).length === 0) { delete cells[key]; }
       else { cells[key] = data; }
@@ -1031,20 +1071,28 @@
         var dstKey = destCell.getAttribute('data-r') + ',' + destCell.getAttribute('data-c');
         var srcData = cells[srcKey] || {};
         var dstData = cells[dstKey] || {};
-        if (srcData.icon) { dstData.icon = srcData.icon; delete srcData.icon; }
+        if (srcData.icon)  { dstData.icon  = srcData.icon;  delete srcData.icon; }
         if (srcData.label) { dstData.label = srcData.label; delete srcData.label; }
+        if (srcData.image) { dstData.image = srcData.image; delete srcData.image; }
         if (Object.keys(srcData).length === 0) { delete cells[srcKey]; } else { cells[srcKey] = srcData; }
         if (Object.keys(dstData).length === 0) { delete cells[dstKey]; } else { cells[dstKey] = dstData; }
         // Repaint both cells
         [moveSrc, destCell].forEach(function(cellEl) {
-          cellEl.querySelectorAll('.scene-map-icon, .scene-map-label').forEach(function(n) { n.remove(); });
+          cellEl.querySelectorAll('.scene-map-icon, .scene-map-label, .scene-map-cell-image').forEach(function(n) { n.remove(); });
           var key = cellEl.getAttribute('data-r') + ',' + cellEl.getAttribute('data-c');
           var data = cells[key] || {};
+          if (data.image) {
+            var im = document.createElement('img');
+            im.className = 'scene-map-cell-image';
+            im.src = data.image;
+            im.alt = '';
+            cellEl.insertBefore(im, cellEl.firstChild);
+          }
           if (data.icon) {
             var ic = document.createElement('span');
             ic.className = 'scene-map-icon';
             ic.textContent = data.icon;
-            cellEl.insertBefore(ic, cellEl.firstChild);
+            cellEl.appendChild(ic);
           }
           if (data.label) {
             var lb = document.createElement('span');
@@ -1064,7 +1112,7 @@
       if (!cellEl) return;
       var key = cellEl.getAttribute('data-r') + ',' + cellEl.getAttribute('data-c');
       var data = cells[key];
-      if (!data || (!data.icon && !data.label)) return;
+      if (!data || (!data.icon && !data.label && !data.image)) return;
       e.preventDefault();
       moveSrc = cellEl;
       cellEl.classList.add('move-source');
@@ -1072,6 +1120,13 @@
       ghost.className = 'scene-map-ghost';
       ghost.style.left = e.clientX + 'px';
       ghost.style.top = e.clientY + 'px';
+      if (data.image) {
+        var gim = document.createElement('img');
+        gim.className = 'scene-map-cell-image';
+        gim.src = data.image;
+        gim.alt = '';
+        ghost.appendChild(gim);
+      }
       if (data.icon) {
         var gi = document.createElement('span');
         gi.className = 'scene-map-icon';
