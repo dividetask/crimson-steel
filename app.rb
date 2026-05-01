@@ -227,12 +227,19 @@ def scene_map_image_library
 
   dir = File.join(__dir__, 'public', 'images')
   if File.directory?(dir)
-    Dir.entries(dir).sort.each do |f|
-      next unless File.file?(File.join(dir, f))
-      next unless SCENE_IMAGE_EXTS.include?(File.extname(f).downcase)
-      src = "/images/#{f}"
+    # Walk the whole tree so files dropped under public/images/scene/
+    # (our scene-image upload directory) show up alongside files at
+    # the top level. Sort by relative path so the order is stable.
+    Dir.glob(File.join(dir, '**', '*')).sort.each do |full|
+      next unless File.file?(full)
+      next unless SCENE_IMAGE_EXTS.include?(File.extname(full).downcase)
+      rel = full.sub(/\A#{Regexp.escape(dir)}\/?/, '')
+      src = "/images/#{rel}"
       next if seen[src]
-      rows << { 'src' => src, 'label' => File.basename(f, '.*') }
+      # Scene-image uploads land as "<timestamp>-<hex>-<name>.ext" so
+      # the visible label drops that prefix.
+      base = File.basename(rel, '.*').sub(/\A\d+-[0-9a-f]{4,}-/, '')
+      rows << { 'src' => src, 'label' => base }
       seen[src] = true
     end
   end
