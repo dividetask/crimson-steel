@@ -1,53 +1,25 @@
 # Crimson Steel — advancement rules and class definitions.
-#
-# Setup:
-#   1. Copy this file to `data/advancement.yaml`
-#      (the data/ directory is gitignored, so each campaign keeps
-#      its own tuning).
-#   2. Adjust the values below to match the campaign.
-#   3. Restart the server.
-#
-# This file is the single source of truth consulted by the
-# Advancement class. It owns:
-#   * Default tier advancement
-#   * Tier attribute increases
-#   * Class definitions (skills, saves, abilities, etc) 
-#
+# Single source of truth for the Advancement class: tier rules,
+# tier attribute increases, and class definitions.
 
 # ─── Tier rules ──────────────────────────────────────────────
-#
-# Each tier grants two attribute-score adjustments:
-#
-#   * a flat bonus applied to every attribute, and
-#   * a focused bonus applied to a small number of attributes the
-#     player picks at each tier-up.
-#
-# Both bonuses are per-tier increments — the character's
-# cumulative bonus at tier T is the sum of the first T entries.
-# The lists are indexed from tier 1 (index 0). With the defaults
-# below a character at tier 3 has +3 to every attribute (1+1+1)
-# plus +2 to each of the attributes they picked at tier 2 and the
-# attributes they picked at tier 3 (focused tier-1 bonus is 0
-# because the tier-1 starting score already bakes that in).
+# Each tier grants two attribute adjustments: a flat bonus to every
+# attribute, and a focused bonus to a player-picked subset. Both lists
+# are per-tier increments indexed from tier 1 (index 0).
 
 # Per-tier flat bonus to every attribute.
 attribute_bonus_per_tier: [1, 1, 1, 1, 1]
 
-# Per-tier focused bonus applied to each attribute the player
-# picks at that tier-up.
+# Per-tier focused bonus to each picked attribute.
 focused_attribute_bonus_per_tier: [0, 2, 2, 2, 2]
 
 # Number of attributes the player picks at each tier-up.
 focused_attribute_count: 2
 
 # ─── Tier advancement ────────────────────────────────────────
-#
-# Total class levels needed to reach tiers 1 through 5, keyed by
-# character tag. The `tags` list on a character (default
-# `[player_character]`) selects which lists to use; if more than
-# one tag matches, the highest tier wins. Descriptive tags
-# without an entry here don't contribute. If a character sets
-# `tier:` explicitly that value wins over the auto-computed one.
+# Total class levels needed to reach tiers 1–5, keyed by character tag.
+# A character's `tags` list selects which lists apply; highest tier wins.
+# An explicit `tier:` on a character overrides the auto-computed value.
 
 tier_advancement:
   player_character: [1, 4, 8, 16, 32]
@@ -56,12 +28,9 @@ tier_advancement:
   common:           [0, 8, 12, 20, 40]
 
 # ─── Hit points and mana ─────────────────────────────────────
-#
 # max_hit_points = floor(tier * attribute(hp_attribute) / hp_divisor)
 # max_mana       = floor(tier * attribute(mana_attribute) / mana_divisor)
-#
-# Tier 0 yields 0 for both. Calculated by Advancement and
-# exposed through Character.
+# Tier 0 yields 0 for both.
 
 hp_attribute:   con
 hp_divisor:     1
@@ -69,117 +38,55 @@ mana_attribute: int
 mana_divisor:   2
 
 # ─── Class definitions ───────────────────────────────────────
-#
 # Schema:
 #   classes:
 #     <class_key>:
-#       name             optional human-readable class name. The
-#                        class key is used as a fallback wherever
-#                        the name is displayed.
-#       parent_class     optional. Marks the class as an archetype
-#                        of the named class. The character's
-#                        levels in the archetype also count toward
-#                        the parent class's abilities and grant
-#                        the parent's class skills.
-#                        A character cannot hold levels in both an
-#                        archetype and its parent class — once an
-#                        archetype is taken, all of the character's
-#                        previous parent-class levels are
-#                        reclassified as the archetype. The
-#                        archetype's mana_per_level applies to
-#                        every reclassified level (the
-#                        "retroactive mana grant" rule).
-#       min_parent_level optional, used with parent_class. The
-#                        documented prerequisite level in the
-#                        parent class to take this archetype.
-#       mana_per_level   integer, default 0. Each level in this
-#                        class adds this much to the character's
-#                        max mana. Standard values:
-#                        - 1 for fighter/barbarian/rogue/ranger
-#                        - 2 for bard/arcane_trickster
-#                        - 4 for cleric/druid/wizard
-#                        Archetypes carry their own value rather
-#                        than inheriting from parent_class —
-#                        this is what makes the retroactive mana
-#                        grant work when a character takes an
-#                        archetype.
-#       saves            list of attribute keys (str/dex/con/int/
-#                        wis/cha). The class specializes in these
-#                        saving throws — they advance faster than
-#                        the rest.
-#       bonus_skills     optional integer. How many skills the
-#                        character may train beyond the minimum
-#                        granted by their key attribute. Not
-#                        currently enforced.
-#       class_skills     optional, list of skills that advance
-#                        faster. If the field is omitted entirely
-#                        then every skill not listed in
-#                        non_class_skills or opposed_skills is
-#                        treated as a class skill.
-#       non_class_skills optional, list of skills that advance at
-#                        the average rate.
-#       opposed_skills   optional, list of skills the class
-#                        advances slower.
-#       abilities        ordered list defining which abilities the
-#                        class grants and the level threshold for
-#                        each. Two entry shapes are allowed:
-#
-#                        * Ability entry — has a `name`. Inherits
-#                          the rolling `min_level` from any
-#                          preceding context entry. Every other
-#                          field (notably `scales_with_level`) is
-#                          per-entry only — set it on the ability
-#                          itself.
-#                        * Context entry — no `name`. Sets the
-#                          rolling `min_level` that applies to
-#                          every following ability entry until
-#                          the next context entry. No other field
-#                          is sticky.
-#
-#                        Recognized ability keys:
-#                          name              required on ability
-#                                            entries.
-#                          min_level         class level required
-#                                            (default 1).
-#                          scales_with_level if true, the
-#                                            ability's effective
-#                                            level is the sum of
-#                                            class levels across
-#                                            every class that
-#                                            grants it.
-#                          modifiers         optional list of
-#                                            numeric modifiers
-#                                            granted while the
-#                                            ability is in effect
-#                                            (always-on for
-#                                            permanent abilities;
-#                                            condition-gated
-#                                            abilities apply via
-#                                            the condition layer
-#                                            instead). Each entry:
-#                                              target  field key
-#                                                      (speed,
-#                                                      damage_*,
-#                                                      attribute.<a>,
-#                                                      skill.<k>,
-#                                                      save.<a>,
-#                                                      max_hit_points,
-#                                                      max_mana)
-#                                              type    optional
-#                                                      Bonus Type
-#                                                      from
-#                                                      data/dice_resolution.yaml
-#                                              descriptors
-#                                                      optional list
-#                                                      narrowing
-#                                                      when the
-#                                                      modifier
-#                                                      fires (e.g.
-#                                                      [poison] for
-#                                                      "vs poison")
-#                                              add     signed
-#                                                      integer
-#
+#       name              optional human-readable name (key is fallback).
+#       parent_class      optional. Marks this as an archetype; levels
+#                         count toward the parent. Cannot hold both
+#                         archetype and parent simultaneously — taking
+#                         the archetype reclassifies prior parent levels
+#                         and applies the archetype's mana_per_level
+#                         retroactively.
+#       min_parent_level  optional, used with parent_class.
+#       mana_per_level    integer, default 0. Standard values:
+#                         1 = fighter/barbarian/rogue/ranger,
+#                         2 = bard/arcane_trickster,
+#                         4 = cleric/druid/wizard.
+#       saves             list of attribute keys advancing faster.
+#       bonus_skills      optional integer; not currently enforced.
+#       class_skills      optional list. If omitted, every skill not in
+#                         non_class_skills/opposed_skills is class.
+#       non_class_skills  optional, advance at average rate.
+#       opposed_skills    optional, advance slower.
+#       abilities         ordered list. Two entry shapes:
+#                         * Ability entry — has `name`. Inherits the
+#                           rolling `min_level` from preceding context.
+#                         * Context entry — no `name`. Sets the rolling
+#                           `min_level`. Only `min_level` is sticky.
+#                         Recognized keys on ability entries:
+#                           name              required.
+#                           min_level         default 1.
+#                           scales_with_level effective level sums
+#                                             across classes granting it.
+#                           modifiers         optional list of numeric
+#                                             modifiers (always-on for
+#                                             permanent abilities).
+#                                             Each entry:
+#                                               target  field key
+#                                                       (speed, damage_*,
+#                                                       attribute.<a>,
+#                                                       skill.<k>,
+#                                                       save.<a>,
+#                                                       max_hit_points,
+#                                                       max_mana)
+#                                               type    optional Bonus
+#                                                       Type from
+#                                                       data/dice_resolution.yaml
+#                                               descriptors optional
+#                                                       narrowing list
+#                                                       (e.g. [poison])
+#                                               add     signed integer
 
 classes:
   barbarian:

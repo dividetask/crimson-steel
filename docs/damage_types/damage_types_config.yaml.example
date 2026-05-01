@@ -1,13 +1,8 @@
 # Damage Types — Example Config
-#
-# Loaded by the DamageTypesSystem class. Defines the catalog of
-# damage types, their severities, and their mechanics. Consuming
-# modules (combat, conditions, dice resolution, equipment) read
-# these mechanics to implement the actual behavior; the damage
-# types module itself only validates and exposes the data.
-#
-# Severity values: minor, moderate, major. The special type
-# `physical` uses runtime_bucketing instead of a declared severity
+# Loaded by DamageTypesSystem. Consuming modules (combat, conditions,
+# dice resolution, equipment) read these mechanics; this module only
+# validates and exposes the data.
+# Severities: minor, moderate, major. `physical` uses runtime_bucketing
 # (see damage_types_glossary.md).
 
 Severities:

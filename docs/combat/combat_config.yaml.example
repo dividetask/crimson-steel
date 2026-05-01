@@ -15,17 +15,33 @@
 Initiative Attribute: wis
 Initiative Divisor: 2
 
-# Action dice (combat pool) max per combatant is calculated as
+# Combat Pool size per combatant is calculated as
 #
-#   raw = martial_skill_ranks + (attribute / 2)
-#   action_dice_max = (raw % Combat Pool Range) + Combat Pool Minimum
+#   budget = floor((martial_skill_ranks
+#                   + floor(attribute / Combat Pool Divisor))
+#                  / Turns Per Round[tier])
 #
-# The integer-division part — raw / Combat Pool Range — is an
-# untyped bonus, exposed by the Combat class but not yet consumed
-# by combat-roll math.
+# The budget is then spent to "buy" pool points in tiers of size
+# Combat Pool Step. The first Step points are free; the next Step
+# cost 1 budget each; the next cost 2 each; and so on. Combat Pool
+# is the largest count that fits within the budget. Leftover budget
+# that can't afford the next point is discarded.
+#
+# Every character is guaranteed at least Combat Pool Step points.
 Combat Pool Attribute: wis
-Combat Pool Range: 10
-Combat Pool Minimum: 11
+Combat Pool Divisor: 2
+Combat Pool Step: 4
+
+# Turns per round indexed by Tier (Tier 0 → index 0). A Tier
+# beyond the array length is an error — extend this list rather
+# than relying on a default.
+Turns Per Round:
+  - 1
+  - 1
+  - 1
+  - 2
+  - 4
+  - 8
 
 # Turn Action menu rendered on the /combat page's Turn Action stub.
 # Order matters: buttons appear top-to-bottom in this order. Each

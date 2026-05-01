@@ -1,65 +1,30 @@
 # Crimson Steel — character roster.
-#
-# Setup:
-#   1. Copy this file to `data/characters.yaml`
-#      (the data/ directory is gitignored, so each campaign keeps
-#      its own roster).
-#   2. Edit the entries below to match your party.
-#   3. Restart the server.
-#
 # Schema (one entry per character under `characters:`):
-#   id          integer   unique identifier; never reused.
-#   name        string    character name.
-#   player      string    name of the player running the character.
-#   race        string    race key matching an entry in
-#                         races.yaml. Sub-races (hill_dwarf,
-#                         high_elf, …) inherit from their parent
-#                         race automatically.
-#   tags        list      optional, defaults to
-#                         `[player_character]`. Free-form labels
-#                         that classify the character. Each tag
-#                         that matches a key in advancement.yaml's
-#                         `tier_advancement` contributes a
-#                         breakpoint list; if more than one
-#                         applies, the highest tier wins.
-#                         Descriptive tags (NPC, Ally, Enemy, …)
-#                         have no breakpoint list and don't affect
-#                         tier on their own.
-#   tier        integer   optional. Hardcodes the character's
-#                         tier; when set, Character does not ask
-#                         Advancement to compute one.
-#   ritual_list list      optional. Array of arrays grouped by
-#                         tier — `ritual_list[2]` is the list of
-#                         tier-2 rituals known. Pure data, no
-#                         logic; rendered as-is.
-#   attributes  map       six base ability scores. Keys: str,
-#                         dex, con, int, wis, cha.
-#   advancement map       optional. Tracks the character's
-#                         classes and tier-up choices. Consulted
-#                         by the Advancement class to compute
-#                         attribute and ability bonuses on top of
-#                         the base values above. Keys:
-#                           tier_attribute_advancement
-#                             optional flat list of attribute keys
-#                             — the focused-bonus picks made at
-#                             each tier-up, in order. The first
-#                             `focused_attribute_count` entries
-#                             are the picks for tier 2, the next
-#                             chunk are tier 3's picks, and so on.
-#                             May be filled in ahead of time so
-#                             future tier-ups are pre-allocated.
-#                           classes
-#                             map of class key (matching a key in
-#                             advancement.yaml) to one of:
-#                               * an integer — shorthand for "this
-#                                 many levels, no skills tracked".
-#                               * a map with:
-#                                   level  integer level in the
-#                                          class.
-#                                   skills list of skill keys the
-#                                          character is advancing
-#                                          for this class.
-#
+#   id          integer, unique, never reused.
+#   name        character name.
+#   player      name of the player running the character.
+#   race        race key matching races.yaml. Sub-races (hill_dwarf,
+#               high_elf, …) inherit from their parent race.
+#   tags        optional, default `[player_character]`. Tags matching
+#               keys in advancement.yaml's `tier_advancement` contribute
+#               a breakpoint list; highest tier wins. Descriptive tags
+#               (NPC, Ally, Enemy) have no effect on tier.
+#   tier        optional. Hardcodes the tier; bypasses Advancement.
+#   ritual_list optional. Array of arrays grouped by tier — index 2
+#               is the list of tier-2 rituals. Pure data, rendered as-is.
+#   attributes  six base ability scores (str, dex, con, int, wis, cha).
+#   advancement optional. Tracks classes and tier-up choices. Keys:
+#                 tier_attribute_advancement
+#                   optional flat list of attribute keys — focused-bonus
+#                   picks made at each tier-up, in order. The first
+#                   `focused_attribute_count` are tier 2's, next chunk
+#                   tier 3's, etc. May be pre-filled.
+#                 classes
+#                   map of class key (matching advancement.yaml) to:
+#                     * integer — shorthand for level count, no skills.
+#                     * map with:
+#                         level   integer level in the class.
+#                         skills  list of skill keys advancing.
 
 characters:
   - id: 1

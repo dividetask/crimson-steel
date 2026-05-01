@@ -1,34 +1,28 @@
 # Skills — Design
 
-Companion to `skills_glossary.md`. Glossary defines *what* the terms mean; this doc records the non-obvious *how* and locks down ownership.
-
-The Skills domain owns the Skill catalog (a flat config table keyed by Skill name) **and** the small `Skills` class that turns a Skill Roll request into the dice/bonus/starting-value triple a Roll consumes. Per-Character Skill Ranks and the Versatile Performance choice list still live on Advancement; the Skills class is a coordinator that asks Advancement for ranks and Character for Effective Attributes, runs the math, and routes Versatile Performance lookups.
+The Skills domain owns the Skill catalog and the small `Skills` class that turns a Skill Roll request into the dice/bonus/starting-value triple a Roll consumes. Per-Character Skill Ranks and Versatile Performance choices still live on Advancement; the `Skills` class coordinates: asks Advancement for ranks, Character for Effective Attributes, runs the math, routes Versatile Performance.
 
 ## Key Conventions
 
 ### Skill Sets are open namespaces
 
-A Skill Set (entry with `set: true`, key ending in `_`) is a *prefix*, not a parent record with children. The catalog never lists `craft_smith`, `craft_alchemy`, `perform_dance` as their own entries — the Set's existence is what makes any `craft_<anything>` valid.
+A Skill Set (entry with `set: true`, key ending in `_`) is a *prefix*, not a parent record with children. The catalog never lists `craft_smith`, `craft_alchemy`, `perform_dance` as their own entries — the Set's existence is what makes any `craft_<anything>` valid. Consequences:
 
-This means:
-
-- **Set Members inherit the Attribute from the Set declaration.** No child entry, no override mechanism — the Set is the source of truth.
-- **Adding a new specialty needs no config change.** A character declaring `perform_juggling` in their chosen-skills list is valid as long as `perform_` is a declared Set.
-- **A Character cannot train the bare Set.** `Skills#skill_details` rejects a key that ends with `_`; the Set is a category, not a Skill.
+- **Set Members inherit the Attribute from the Set declaration.** No child entry, no override.
+- **Adding a new specialty needs no config change.** A character declaring `perform_juggling` is valid as long as `perform_` is a declared Set.
+- **A Character cannot train the bare Set.** `Skills#skill_details` rejects a key ending with `_`; the Set is a category, not a Skill.
 
 ### Mandatory Skills bypass chosen-skills
 
-The `mandatory: true` flag on `martial` is the single example today. The behavior is implemented in `Advancement#skill_ranks`: every Class auto-contributes ranks to every Mandatory Skill, regardless of the Character's per-class chosen-skills list. This is *additive* — even if the Character also lists `martial` in a Class's `skills:`, the auto-contribution is the only source.
-
-Authors should leave Mandatory Skills out of chosen-skills lists. The duplicate is harmless today (the per-class iteration unions the chosen list with the mandatory list and dedupes), but listing them is misleading.
+Implemented in `Advancement#skill_ranks`: every Class auto-contributes ranks to every Mandatory Skill, regardless of the Character's per-class chosen-skills list. Authors should leave Mandatory Skills out of chosen-skills lists. The duplicate is harmless today (the per-class iteration unions and dedupes), but listing them is misleading.
 
 ### Attribute keys are not validated
 
-A typo in a Skill's `attribute:` field (e.g. `attribute: dexterity` instead of `attribute: dex`) silently produces a Skill whose Attribute lookup fails downstream. There's no validation seam in the Skills config itself; validation lands in whichever caller actually reads the Attribute.
+A typo in a Skill's `attribute:` field silently produces a Skill whose Attribute lookup fails downstream. There's no validation seam in the Skills config; validation lands in whichever caller actually reads the Attribute.
 
 ### Minimum Skills Trained is informational
 
-`minimum_skills_trained` is a config value with no current enforcement. It documents the rule "every Character trains at least floor(int / 4) Skills" so a Character creation flow can enforce it; today nothing checks. The value is read by future tooling, not by `Skills`.
+`minimum_skills_trained` is unenforced today — it documents the rule "every Character trains at least floor(int / 4) Skills" so a future Character creation flow can enforce it.
 
 ## Key Operations
 
@@ -36,11 +30,11 @@ A typo in a Skill's `attribute:` field (e.g. `attribute: dexterity` instead of `
 
 `skill_details(skill_name, character, advancement)` is the only read API. The pipeline:
 
-1. **Resolve the Attribute.** The Skill's `attribute:` is read from the catalog. Skill Set Members (`perform_oratory`, `craft_smith`) inherit from the parent Set's declaration; the catalog never lists Set Members directly.
-2. **Compose Skill Prowess.** The Effective Attribute is divided by `skill_prowess.attribute_contribution_divisor` (default 2, floored per the project-wide convention) to produce the Attribute Contribution. `Skill Prowess = Skill Ranks + Attribute Contribution`. Ranks come from `Advancement#skill_ranks`; the Effective Attribute comes from `Character#attribute(attribute_key)`.
-3. **Partition the Prowess.** The integer Prowess is handed to `DiceSystem#compute_check_details`, which returns `[Dice Count, Competency Bonus, Starting Value]` per the rules in `dice_resolution_design.md`. The Skills class folds the Competency Bonus into a `bonuses` hash keyed `"Competency Bonus"` so the caller can drop it into `compute_roll_parameters` unchanged.
+1. **Resolve the Attribute** from the catalog (with Skill Set prefix fallback).
+2. **Compose Skill Prowess.** Effective Attribute / `attribute_contribution_divisor` (default 2, floored) gives the Attribute Contribution. `Skill Prowess = Skill Ranks + Attribute Contribution`. Ranks come from `Advancement#skill_ranks`; Effective Attribute from `Character#attribute(attribute_key)`.
+3. **Partition the Prowess** via `DiceSystem#compute_check_details`. The Skills class folds the Competency Bonus into a `bonuses` hash keyed `"Competency Bonus"` so the caller drops it into `compute_roll_parameters` unchanged.
 
-The returned hash (`name`, `ranks`, `prowess`, `dice_count`, `starting_value`, `bonuses`) is verbatim what a Skill-Roll caller hands to dice resolution. Skills does not know about Tier, propagation, or any other modifier type — those are added by upstream effect layers before the Roll runs.
+The returned hash (`name`, `ranks`, `prowess`, `dice_count`, `starting_value`, `bonuses`) is verbatim what a Skill-Roll caller hands to dice resolution. Skills does not know about Tier, propagation, or any other modifier type.
 
 ### Versatile Performance routing
 
@@ -58,9 +52,9 @@ Versatile Performance maps each performance choice to two ordinary Skills:
 
 Versatile Performance is treated as a **hardcoded special case** rather than a generic sub-choice mechanism. Each grant the character earns produces a separately-named Ability — `Versatile Performance (Wind)`, `Versatile Performance (Oratory)`, etc. — so the chosen performance is visible directly on the character sheet without a secondary sub-choice list to render.
 
-When `skill_details(skill, character, advancement)` is called for one of the listed Skills, Skills scans the Character's abilities list for any name starting with `"Versatile Performance"`, parses the performance from inside the parentheses (or after a space, for the no-parens form), intersects with the inverted skill→performance map, and computes a full result for each matching `perform_<performance>` Skill. The single best Prowess wins; the returned `name` is always the originally requested Skill — a `sense_motive` lookup that resolves through `perform_oratory` still reports `sense_motive` to the caller.
+When `skill_details` is called for one of the listed Skills, Skills scans the Character's abilities list for any name starting with `"Versatile Performance"`, parses the performance from the parentheses, intersects with the inverted skill→performance map, and computes a result for each matching `perform_<performance>` Skill. The single best Prowess wins; the returned `name` is always the originally requested Skill — a `sense_motive` lookup that resolves through `perform_oratory` still reports `sense_motive` to the caller.
 
-The hardcoding lives in `Skills#chosen_performances` (parses the prefix) and `Advancement#abilities` (expands grants into named entries). Other "use Skill A in place of Skill B" abilities, if they arrive, will need their own special case or a generalization pass.
+The hardcoding lives in `Skills#chosen_performances` and `Advancement#abilities`. Other "use Skill A in place of Skill B" abilities will need their own special case or a generalization pass.
 
 ### Multi-grant choice storage
 
@@ -71,7 +65,7 @@ advancement:
   versatile_performance: [wind, oratory]
 ```
 
-Each entry corresponds to one grant in the order grants are earned. `Advancement.from_entry` reads the list and stashes it under `ability_sub_choices['versatile_performance']`. `Advancement#abilities` then expands each class-level grant the character qualifies for into one `Ability(name: "Versatile Performance (Performance)")` entry — pairing grants with choices in order. If the character has fewer choices than grants, the extra grants appear as the bare `"Versatile Performance"` so the gap is visible on the sheet; if there are more choices than grants, the extras are ignored.
+Each entry corresponds to one grant in the order grants are earned. `Advancement#abilities` expands each qualifying grant into one `Ability(name: "Versatile Performance (Performance)")`. Fewer choices than grants → extras appear as bare `"Versatile Performance"` so the gap is visible on the sheet; more choices than grants → extras are ignored.
 
 The `Ability#sub_choices` accessor remains on the struct for any future ability that needs generic sub-choice storage; Versatile Performance no longer uses it.
 
@@ -81,8 +75,8 @@ The `Ability#sub_choices` accessor remains on the struct for any future ability 
 
 - The catalog of Skills, their Attributes, descriptions, and the `set` / `mandatory` flags.
 - The `minimum_skills_trained` config block.
-- The `skill_prowess.attribute_contribution_divisor` config value and the `Skill Prowess = Ranks + floor(Attribute / divisor)` formula.
-- The `versatile_performance` performance→skill map and the routing rule "highest Prowess wins; requested name is preserved."
+- The `attribute_contribution_divisor` config and the Skill Prowess formula.
+- The `versatile_performance` performance→skill map and the routing rule.
 - Skill Set Member prefix resolution at lookup time.
 
 ### Explicitly *not* owned here
@@ -92,10 +86,10 @@ The `Ability#sub_choices` accessor remains on the struct for any future ability 
 - **Mandatory-skill auto-contribution logic** — Advancement reads the flag and applies the rule.
 - **Dice/Bonus/Starting partition math** — DiceSystem owns `compute_check_details`; Skills only supplies the Prowess.
 - **Roll mechanics, propagation, Roll Modifiers** — dice resolution.
-- **Per-grant choice storage on the Character entry** — Advancement reads the YAML and exposes the list through `Ability#sub_choices`.
+- **Per-grant choice storage on the Character entry** — Advancement reads the YAML.
 
 ### Unassigned (no current owner)
 
-- **Enforcement of `minimum_skills_trained`.** A Character creation flow or import-time validator could check that every Character has trained at least the minimum.
-- **Validation that `attribute:` values are one of the six recognized Attributes.** Today a typo silently breaks downstream lookups.
-- **Tier / Inherent contributions.** Skills folds Ranks and Attribute into Prowess; whatever else a Skill Roll picks up (Inherent Bonus from Tier, Circumstance modifiers from the situation) is the caller's responsibility.
+- **Enforcement of `minimum_skills_trained`.**
+- **Validation that `attribute:` values are one of the six recognized Attributes.**
+- **Tier / Inherent contributions.** Whatever else a Skill Roll picks up beyond Ranks and Attribute is the caller's responsibility.

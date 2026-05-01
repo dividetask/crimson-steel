@@ -1,19 +1,6 @@
 # Architecture
 
-The structure of the Crimson Steel codebase: which modules exist,
-what each one owns, how they depend on each other, how data flows
-through them during typical operations, what's still unowned, and
-the architectural questions still open.
-
-The first half of the file (module roster, dependency graph,
-ownership summaries) is **static structure**. The second half
-(workflows, aggregated unassigned items, open questions) is
-**dynamic** — what calls what, what's missing, what hasn't been
-decided.
-
-The diagrams and the indented bullet-list below describe the same
-graph in two notations. Pick whichever is easier to read; they're
-kept in sync.
+The structure of the Crimson Steel codebase: modules, ownership, dependencies, cross-domain workflows, unowned items, and open questions.
 
 ## Module roster
 
@@ -26,21 +13,16 @@ kept in sync.
 | Equipment | `docs/equipment/` | `lib/equipment.rb` | ✅ | MVP — loot tables, shops, magical-item gen, Restock, Loot Archive deferred |
 | Race | `docs/race/` | `lib/race.rb` | ✅ | complete |
 | Advancement | `docs/advancement/` | `lib/advancement.rb` | ✅ | complete |
-| Character | `docs/character/` | `lib/character.rb` | ✅ | thin coordinator (delegates to Race + Advancement) |
-| Skills | `docs/skills/` | `lib/skills.rb` | ✅ | catalog + coordinator (Skill Prowess math, Versatile Performance routing) |
-| Combat | `docs/combat/` | `lib/combat.rb` | ✅ | tracker + Severity Calculation pipeline; full attack-resolution composition pending |
-| Item use | (in `equipment_design.md`) | `lib/item_use.rb` | ✅ | orchestration for potions, oils, scrolls; wand mana deferred |
-| Casting | (Workflow D below) | `lib/casting.rb` | ✅ | direct spell-cast orchestration; mana cost from default-per-tier table or caller override |
-| Modifiers | — | (`lib/modifiers.rb` on TentativeAdditions) | — | reads ability `modifiers:` lists and folds always-on bonuses through Character |
-
-Modifiers still lives only on TentativeAdditions (no backing class
-in this repo) and is noted so the dependency graph stays honest.
+| Character | `docs/character/` | `lib/character.rb` | ✅ | thin coordinator |
+| Skills | `docs/skills/` | `lib/skills.rb` | ✅ | catalog + coordinator |
+| Combat | `docs/combat/` | `lib/combat.rb` | ✅ | tracker + Severity Calculation; full attack composition pending |
+| Item use | (in `equipment_design.md`) | `lib/item_use.rb` | ✅ | potions, oils, scrolls; wand mana deferred |
+| Casting | (Workflow D below) | `lib/casting.rb` | ✅ | direct spell-cast orchestration |
+| Modifiers | — | (`lib/modifiers.rb` on TentativeAdditions) | — | folds always-on bonuses through Character |
 
 ## Dependency graph
 
-`A → B` means *A loads or calls into B at runtime*. It does **not**
-include "A's docs reference B's terms" — that's almost every pairing
-and isn't structural.
+`A → B` means *A loads or calls into B at runtime*.
 
 ```mermaid
 graph TD
@@ -85,12 +67,10 @@ graph TD
 ```
 DiceSystem                  (no deps)
 DamageTypes                 (no deps)
-Equipment                   (no deps; equip-time wiring to Conditions
-                             happens via callbacks supplied by the caller)
+Equipment                   (no deps; equip-time wiring via callbacks)
 
 Skills
-├── DiceSystem               (compute_check_details for the
-│                             dice/bonus/starting partition)
+├── DiceSystem               (compute_check_details)
 ├── Character (at lookup)    (Effective Attribute reads)
 └── Advancement (at lookup)  (Skill Ranks, ability sub-choices)
 
@@ -98,174 +78,72 @@ Advancement
 └── (consumes Skills catalog data)
 
 Race
-└── Advancement              (shares the Ability struct + sticky-min_level helper)
+└── Advancement              (Ability struct + sticky-min_level helper)
 
 Character
 ├── Race
 └── Advancement
 
 Conditions
-├── DiceSystem               (for affliction save Rolls)
-└── DamageTypes              (consumes the Severities list at construction)
+├── DiceSystem               (affliction save Rolls)
+└── DamageTypes              (Severities list at construction)
 
 AbilitySystem
-└── DamageTypes              (validates `damage_type:` entries against the catalog)
+└── DamageTypes              (validates `damage_type:` entries)
 
 Combat
-├── DiceSystem               (initiative rolls, action-dice math)
+├── DiceSystem               (initiative rolls, Combat Pool math)
 ├── Character (via lookup)   (attribute reads for derived values)
 ├── DamageTypes (optional)   (Severity Calculation)
 └── Conditions (via lookup)  (damage routing target)
 
 ItemUse
-├── Equipment                (inventory state and quantity decrement)
-├── AbilitySystem            (resolve the contained spell at the item's tier)
+├── Equipment                (inventory state)
+├── AbilitySystem            (resolve contained spell)
 └── Conditions (via lookup)  (heal cascade, ward, magic toxicity)
 
 Casting
-├── AbilitySystem            (resolve the spell at the caster's rank)
-└── Conditions (via lookup)  (caster mana spend + caster toxicity;
-                              target heal cascade, ward, mana)
+├── AbilitySystem            (resolve spell at caster's rank)
+└── Conditions (via lookup)  (caster mana + toxicity; target effects)
 
-Modifiers   (lives on TentativeAdditions only)
+Modifiers   (TentativeAdditions only)
 ├── Advancement              (reads ability `modifiers:` lists)
-└── Character                (folds always-on bonuses into attribute reads)
+└── Character                (folds always-on bonuses)
 ```
 
-A few things worth pointing out about the graph:
-
-- **No cycles.** Every dependency points "up" toward more general
-  modules. Character depends on Race and Advancement; Race depends on
-  Advancement (for shared structs); Advancement depends on nothing.
-  Combat and ItemUse sit at the orchestration tier and pull in
-  whatever they need.
-- **Most cross-domain wiring is callback-shaped.** Combat takes a
-  `character_lookup` and a `conditions_lookup`; ItemUse takes a
-  `conditions_lookup`; Equipment expects callers to do the
-  `REMOVE_EFFECTS_BY_PREFIX` calls themselves. This keeps the
-  individual libraries cycle-free and lets a future orchestration
-  layer (or a fresh-cloned test) substitute lighter doubles.
-- **Skills is a thin coordinator.** The Skill catalog is data;
-  the `Skills` class adds three jobs: resolving a Skill (with Set-prefix
-  fallback), computing Skill Prowess (`Ranks + floor(Attribute / divisor)`),
-  and routing Versatile Performance lookups. Per-Character Skill Ranks
-  still live on Advancement; Skills asks for them at lookup time.
+- **No cycles.** Dependencies always point "up" toward more general modules.
+- **Most cross-domain wiring is callback-shaped.** Combat takes `character_lookup` and `conditions_lookup`; ItemUse takes `conditions_lookup`; Equipment expects callers to do `REMOVE_EFFECTS_BY_PREFIX` themselves. Keeps libraries cycle-free and testable.
+- **Skills is a thin coordinator.** Resolves Skills (with Set-prefix fallback), computes Skill Prowess, routes Versatile Performance. Per-Character Ranks still live on Advancement.
 
 ## What each module owns
 
-One paragraph per module describing the slice of state and behavior
-that's *its* responsibility. The detailed lists live in each module's
-`*_design.md`'s "Owned by the X domain" section; this is the brief.
+**DiceSystem** — die rolling, TN computation with overflow conversion, per-Roll modifiers (Reroll Operation, Sweep Reroll, Value Adjustment in fixed order), Check composition (DoS aggregation, Fumble detection). Configurable: Die Size, Base/Min/Max TN, Bonus Types List, Default Success/Fumble Thresholds.
 
-**DiceSystem** owns die rolling, Target Number computation with
-overflow conversion, the per-Roll modifiers (Reroll Operation, Sweep
-Reroll, Value Adjustment with their fixed application order), and
-Check composition across multiple Rolls (Degree of Success
-aggregation, Fumble detection). Configurable: Die Size, Base/Min/Max
-Target Number, Bonus Types List, Default Success/Fumble Thresholds.
+**DamageTypes** — catalog of damage types (name, severity or runtime-bucketing flag, description, mechanics). Pure reference; no application.
 
-**DamageTypes** owns the catalog of damage types — name, severity (or
-runtime-bucketing flag), description, and structured mechanics. Pure
-reference; no application. Validates that each entry has a recognized
-shape and that mechanic kinds carry the required fields.
+**Conditions** — per-creature mutable state: HP damage counters, ability damage (FIFO per attribute), Temporary HP grant, magic toxicity, shock with overflow, Acid Counter, Affliction list, Effects list. Implements heal cascade, Affliction Resolution pipeline, Effect storage with source-id replacement, lookup-time stacking, `APPLY_NAMED_EFFECT` catalog dispatch, `REMOVE_EFFECTS_BY_PREFIX`.
 
-**Conditions** owns per-creature mutable state that isn't part of the
-creature's base definition: HP damage counters, ability damage
-(FIFO-ordered per attribute), Temporary HP grant, magic toxicity,
-shock with overflow, the Acid Counter, the ordered Affliction list,
-and the unified Effects list. Implements the heal cascade, the
-Affliction Resolution pipeline (Severity Save Penalty injection, Tier
-substitution, Severity evolution), Effect storage with source-id
-replacement, lookup-time bonus/penalty stacking, the `APPLY_NAMED_EFFECT`
-catalog dispatch, and `REMOVE_EFFECTS_BY_PREFIX` for namespaced cleanup.
+**AbilitySystem** — spell/ability compendium and Procedural Abilities catalog. Reference-only: validates entries on load, resolves Variants (tier or aspects axis), classifies Effects, evaluates damage formulas in deferred form. Exposes `GET_PROCEDURAL_TRIGGERS` and the always-on `modifiers:` read.
 
-**AbilitySystem** owns the spell/ability compendium and the
-Procedural Abilities catalog. Reference-only: validates entries on
-load, resolves Variants along whichever axis is in use (tier or
-aspects), classifies Effects (none / named / damage with severity
-parsing), evaluates damage formulas in a deferred-context shape so
-the consumer supplies `success`/`critical`/`attribute` later. Also
-exposes `GET_PROCEDURAL_TRIGGERS` for class/racial procedural
-abilities and the always-on `modifiers:` read.
+**Equipment** — per-Owner inventories, Stack Identity, four Owner kinds, item add/remove/adjust/transfer, per-category Unit Price formulas, Total Wealth, Debit Wealth, three detail-fetchers. Equip-time wiring via `equipment:*` Source ID Namespace. Loot tables, shop refresh, magical-item generation, atomic Restock, Loot Archive documented but deferred — see `docs/TODO.md`.
 
-**Equipment** owns per-Owner inventories and item identity. Stack
-identity matching, merge, cleanup, the four Owner kinds, item
-add/remove/adjust/transfer, the per-category Unit Price formulas
-(Weapon, Armor, Ammunition, Consumable, Guidance, Currency, Gem),
-Total Wealth, Debit Wealth (cheapest-first coins → gems with
-overpayment refund), and the three detail-fetchers. Equip-time
-wiring to Conditions uses the `equipment:*` Source ID Namespace.
-Loot tables, shop refresh, magical-item generation, atomic Restock,
-and the Loot Archive are documented but not yet implemented in the
-library — see `docs/TODO.md`.
+**Race** — race catalog and Race Chain walking. Returns name, size, speed, accumulated `ability_score_adjustments`, abilities filtered by total class level. First-in-chain for scalars; accumulate for adjustments; concatenate-with-dedup for abilities.
 
-**Race** owns the race catalog and Race Chain walking. Returns a
-race's name, size, speed, accumulated `ability_score_adjustments`,
-and `abilities` filtered by the Character's total class level. First-
-in-chain semantics for scalar fields, accumulate-across-chain for
-adjustments, concatenate-with-dedup for abilities.
+**Advancement** — everything that scales with tier and class levels: Tier auto-computation, Flat + Focused attribute bonuses, Class Chain ability granting, skill-rank computation per Class with class/average/opposed rates, save-rank computation, HP and mana formulas. Reads `advancement_config.yaml` and `skills.yaml`.
 
-**Advancement** owns everything that scales with tier and class
-levels: Tier auto-computation from class levels and tag-keyed
-breakpoint lists, Flat + Focused attribute bonuses, Class Chain
-ability granting (with Scaling Ability level accumulation across
-ancestors), skill-rank computation per Class with class/average/
-opposed rates and prefix matching, save-rank computation, HP and
-mana formulas. Reads `advancement_config.yaml` and `skills.yaml`.
+**Character** — thin coordinator. Owns identity, base attributes, Tier Override, Ritual List. Holds one Race and one Advancement instance; delegates derived reads.
 
-**Character** is a thin coordinator. Owns identity (id, name, player,
-tags), base attributes, the Tier Override, and the Ritual List.
-Holds one Race instance and one Advancement instance per Character;
-delegates every derived read to those (effective attributes, Tier,
-abilities merge with first-seen-wins dedup, max HP, max mana,
-damage_resilience tier-base + class contribution, damage_reduction).
+**Skills** — Skill catalog plus a coordinator class exposing `skill_details(skill_name, character, advancement)`. Composes `Skill Prowess = Ranks + floor(Attribute / divisor)` and partitions via `DiceSystem#compute_check_details`. Versatile Performance routed at lookup time. Plus the unenforced `minimum_skills_trained` directive.
 
-**Skills** owns the Skill catalog (each Skill's attribute,
-description, optional `set: true` flag for open-prefix Skill Sets,
-and `mandatory: true` flag for the Skills every Class auto-trains)
-plus a thin coordinator class. The class exposes one read,
-`skill_details(skill_name, character, advancement)`, which composes
-`Skill Prowess = Ranks + floor(Attribute / divisor)` and partitions
-it via `DiceSystem#compute_check_details` into a Dice Count, a
-Competency Bonus, and a Starting Value. Versatile Performance is
-routed at lookup time: when the requested Skill is one the
-Character's chosen Performances cover, the highest-Prowess
-candidate wins and its triple replaces the requested Skill's
-(but the requested name is preserved on the way out). Plus the
-unenforced `minimum_skills_trained` directive.
+**Combat** — round-by-round tracker (combatants, two-ID scheme, turn order via Initiative String lex compare, initiative rolls with Luck/Insight, Combat Pool spend), plus the Severity Calculation half of attack resolution (`apply_attack_damage`). The dice-rolling half is documented and may be implemented anywhere (today client-side); only damage routing is in the lib.
 
-**Combat** owns the round-by-round combat tracker (combatants,
-two-ID scheme, turn order with die-by-die tie-break, initiative
-dice with combat-specific Luck/Insight rules, action dice spend),
-plus the Severity Calculation half of attack resolution
-(`apply_attack_damage`: damage type lookup → pre-bucketing
-mechanics → severity decision → routing to Conditions → post-
-damage side-effects). The dice-rolling half of the attack
-pipeline is documented and may be implemented anywhere (today,
-client-side); only the damage routing is in the lib.
+**ItemUse** — orchestration for consuming an item. Looks up the contained spell, reads conventional Effect Hash keys (cure / mana / ward), applies them to target's Conditions, computes per-form Magic Toxicity, enforces saturation gate, decrements quantity. No state of its own.
 
-**ItemUse** is orchestration for consuming an item. Looks up the
-contained spell through abilities, reads conventional Effect Hash
-keys to detect cure / mana / ward effects, applies them to the
-target's Conditions, computes per-form Magic Toxicity (potion
-overhead formula, scroll improved_healing discount), enforces the
-saturation gate, and decrements item quantity. No state of its
-own — the participants own all the storage.
-
-**Modifiers** (TentativeAdditions only) reads each ability's
-optional `modifiers:` list from `advancement_config.yaml` and
-`race_config.yaml` and folds the always-on bonuses through
-Character's attribute / save / skill / max-HP / max-mana reads.
-Today's source of truth for "fast_movement gives +10 speed" type
-bonuses.
+**Modifiers** (TentativeAdditions only) — reads each ability's `modifiers:` list and folds always-on bonuses through Character reads. Source of truth for "fast_movement gives +10 speed" type bonuses.
 
 ## Configuration files
 
-Each module reads its config from `data/`. The `data/*` directory is
-gitignored at the project level, but the canonical fixtures (which
-the spec suite loads at runtime) are force-added. The example
-versions in `docs/<module>/<module>_*.yaml.example` are the schema
-documentation.
+Each module reads its config from `data/`. The directory is gitignored; canonical fixtures are force-added. The example versions in `docs/<module>/<module>_*.yaml.example` document the schema.
 
 | Config | Loaded by | Tracked? |
 |---|---|---|
@@ -275,420 +153,198 @@ documentation.
 | `data/abilities_config.yaml` | AbilitySystem | force-added |
 | `data/abilities_data.yaml` | AbilitySystem | force-added |
 | `data/equipment_config.yaml` | Equipment | force-added |
-| `data/skills.yaml` | Skills + Advancement (skill metadata) | force-added |
+| `data/skills.yaml` | Skills + Advancement | force-added |
 | `data/advancement.yaml` | Advancement (rules + classes) | not yet seeded |
 | `data/races.yaml` | Race | not yet seeded |
 | `data/characters.yaml` | Character (roster) | not yet seeded |
 | `data/combat.yaml` | Combat (state file) | not yet seeded |
 | `data/combat_rules.yaml` | Combat (tunables) | not yet seeded |
 
-The "not yet seeded" rows are domains whose docs and example configs
-exist but whose runtime fixtures haven't been promoted from the docs
-into `data/` and force-added. Adding them is a small follow-up to
-make the corresponding lib classes loadable end-to-end without
-copying files manually.
-
+"Not yet seeded" rows have docs and examples but no force-added runtime fixture; promoting them is a small follow-up.
 
 ## Cross-domain workflows
 
-The walkthroughs below describe the logic of each operation
-end-to-end, in the same language-agnostic style the rest of the
-docs use. Some halves are implemented in Ruby today, some in
-JavaScript, and some are not yet implemented; the workflow itself
-is the spec, regardless of where the code lands.
-
 ### Workflow A — Attack
 
-The full attack pipeline runs in two halves. The first half decides
-*what damage lands*; the second half routes it through modules.
+Two halves: first decides *what damage lands*; second routes it through modules.
 
-1. **Build the attacker's Roll.** Combat asks the attacker's
-   Character for the attribute / skill modifiers, asks Conditions
-   (via `GET_MODIFIERS`) for active buffs and debuffs on the
-   relevant `target_key`, and assembles a modifier dict for
-   dice resolution. The action's dice count comes from
-   `Combat#action_dice_max` minus the attacker's spend.
-2. **Build the defender's Opposed Roll** the same way, against the
-   defender's defense action.
-3. **Roll both Rolls** through `DiceSystem.RAND_ROLL_DICE` /
-   `COMPUTE_ROLL_PARAMETERS` / `COMPUTE_RESULTS`. The damage type's
-   `critical_value` mechanic, if any, supplies `critical_modifier`
-   to the attacker's Roll — `Combat#critical_modifier_for(damage_type)`
-   answers that lookup.
-4. **Compute the Degree of Success** for the Check (attacker DoIS
-   minus defender DoIS). A DoS ≥ Default Success Threshold means the
-   attack lands.
-5. **Compute raw damage.** Either:
-   - the spell's declared damage Effect is evaluated through
-     `AbilitySystem#evaluate_damage` with the attacker's success and
-     critical counts, or
-   - if the attack carries no declared damage Effect (weapon attacks,
-     elemental darts), Combat infers `Tier + Degree of Success +
-     attack bonus`.
+1. **Build the attacker's Roll.** Combat asks Character for attribute/skill modifiers, asks Conditions (via `GET_MODIFIERS`) for active buffs/debuffs on the relevant `target_key`, assembles a modifier dict. Dice count: `Combat#combat_pool` minus the attacker's spend.
+2. **Build the defender's Opposed Roll** the same way against the defender's defense action.
+3. **Roll both** through `DiceSystem.RAND_ROLL_DICE` / `COMPUTE_ROLL_PARAMETERS` / `COMPUTE_RESULTS`. The damage type's `critical_value` (if any) supplies `critical_modifier` via `Combat#critical_modifier_for(damage_type)`.
+4. **Compute Degree of Success** (attacker DoIS minus defender DoIS). DoS ≥ Default Success Threshold → attack lands.
+5. **Compute raw damage** — either evaluate the spell's declared damage Effect through `AbilitySystem#evaluate_damage`, or for attacks without declared damage, infer `Tier + Degree of Success + attack bonus`.
 6. **Route damage** via `Combat#apply_attack_damage`:
    - Look up the damage type in DamageTypes.
-   - Apply pre-bucketing mechanics: `damage_per_dice` and
-     `damage_multiplier` (the latter consults the
-     `condition_evaluator` callback for tags like
-     `target_has_metal_armor`).
-   - Severity decision: declared severity for non-physical;
-     runtime bucketing for physical, where the bucket size is
-     `Threshold + target's Damage Resilience`. Threshold comes from
-     the weapon (Equipment) or ability (Abilities) input; Damage
-     Resilience is read through the `character_lookup` callback.
-   - Call `Conditions#apply_hit_point_damage` on the target.
-   - Apply post-damage side-effects: `apply_acid_counter` →
-     `Conditions#apply_acid_damage`, `inflict` with
-     `condition_name=shock` → `Conditions#apply_shock`. Other
-     `condition_name` values come back tagged `unrouted` until the
-     conditions module exposes the right API.
+   - Apply pre-bucketing mechanics: `damage_per_dice`, `damage_multiplier` (consults `condition_evaluator` for tags like `target_has_metal_armor`).
+   - Severity decision: declared severity for non-physical; runtime bucketing for physical with bucket size `Threshold + Damage Resilience`.
+   - Call `Conditions#apply_hit_point_damage`.
+   - Post-damage side-effects: `apply_acid_counter` → `Conditions#apply_acid_damage`, `inflict condition_name=shock` → `Conditions#apply_shock`. Other `condition_name` values come back tagged `unrouted`.
 
-What's missing today: a single end-to-end entry point that wires
-both halves into one call. Steps 1–5 are done by the caller; step 6
-is `apply_attack_damage`. A future `Combat#perform_attack(attacker,
-target, weapon)` would compose them.
+Missing: a single end-to-end `Combat#perform_attack(attacker, target, weapon)` that wires steps 1–5 with step 6.
 
 ### Workflow B — Item consumption
 
-Already implemented in `lib/item_use.rb`.
+Implemented in `lib/item_use.rb`.
 
-1. Caller invokes `ItemUse#consume(owner_id, stack_index, item_form,
-   spell_name, target_char_id, ...)`.
-2. ItemUse reads the stack from Equipment, picks the spell's
-   tier_index from the item's tier, and calls
-   `AbilitySystem#resolve_entry`.
-3. ItemUse inspects the resolved Effect Hash for the conventional
-   keys: `minor_damage` / `moderate_damage` / `major_damage`
-   (cure pools), `mana` (mana restore), `temp_hp` (ward).
-4. **Saturation gate**: if the target's `Conditions#magic_toxicity`
-   is at or above the supplied `target_max_toxicity`, cure and mana
-   refuse to land. Ward bypasses the gate.
-5. Cure pools route through `Conditions#apply_hit_point_heal_cascade`.
-   Ward routes through `Conditions#set_temporary_hit_points` with a
-   source id of `item:<owner>:<spell>`. Mana surfaces back as
-   `unrouted: true` because mana storage isn't yet defined.
-6. Compute Magic Toxicity:
-   - **Potion / Oil**: `max(saturation - target_tier,
-     minimum_saturation) + floor(2 * tier_value(item_tier) *
-     2^max(item_tier - user_tier, 0))`.
-   - **Scroll**: `max(saturation - target_tier - improved_healing
-     reduction, minimum_saturation)`. The user's `improved_healing`
-     ability shaves `2 * user_tier` off cure scrolls.
+1. `ItemUse#consume(owner_id, stack_index, item_form, spell_name, target_char_id, ...)`.
+2. Read stack from Equipment, pick spell's tier_index, call `AbilitySystem#resolve_entry`.
+3. Inspect resolved Effect Hash for conventional keys: `minor/moderate/major_damage` (cure pools), `mana`, `temp_hp`.
+4. **Saturation gate**: if target's `magic_toxicity ≥ target_max_toxicity`, cure and mana refuse to land. Ward bypasses.
+5. Cure pools → `apply_hit_point_heal_cascade`. Ward → `set_temporary_hit_points` with source id `item:<owner>:<spell>`. Mana surfaces as `unrouted: true` if no `target_max_mana:` supplied.
+6. Magic Toxicity:
+   - **Potion / Oil**: `max(saturation - target_tier, minimum_saturation) + floor(2 * tier_value(item_tier) * 2^max(item_tier - user_tier, 0))`.
+   - **Scroll**: `max(saturation - target_tier - improved_healing reduction, minimum_saturation)`. `improved_healing` shaves `2 * user_tier` off cure scrolls.
    - **Wand**: 0 (deferred).
-7. `Conditions#apply_magic_toxicity` on the target.
-8. **Decrement** the item's quantity by one for consumable forms via
-   `Equipment#adjust_stack_quantity` and `cleanup_zero_quantity`.
-   Wands and persistent magic items keep their quantity.
+7. `Conditions#apply_magic_toxicity` on target.
+8. Decrement quantity by one for consumable forms.
 
-If the saturation gate fired, ItemUse returns `saturation_blocked:
-true` with no applications and no quantity decrement, leaving the
-caller to surface the failure cleanly.
+Saturation-blocked: returns `saturation_blocked: true` with no applications and no quantity decrement.
 
 ### Workflow C — Equipping an item
 
-Logic exists in the design docs; no orchestration class today.
-Callers do the steps directly.
+No orchestration class today; callers do the steps directly.
 
-1. **Equip**: caller marks the stack as equipped. Stack identity
-   includes `equipped`, so a freshly-equipped item is
-   *not* the same Stack as an unequipped copy of the same type —
-   they don't merge.
-2. **Post effects**: for each effect the item should grant
-   (Belt of Strength: `+2 str` Inherent bonus), the caller picks a
-   deterministic `source_id` in the `equipment:<owner>:<stack_key>`
-   namespace and calls `Conditions#apply_effect`. Apply-by-source-id
-   is idempotent — re-applying the same id overwrites the slot.
-3. **Unequip**: caller calls
-   `Conditions#remove_effects_by_prefix("equipment:<owner>:<stack_key>")`
-   to strip every effect the stack contributed.
-4. **Loadout reset**: caller calls
-   `Conditions#remove_effects_by_prefix("equipment:<owner>:")`
-   to nuke the entire equipment-driven effect list, then re-applies
-   the current loadout fresh. This restores correctness coarsely
-   without the caller tracking which stack maps to which Effect.
+1. Mark the stack as equipped (Stack Identity includes `equipped`).
+2. For each granted effect, pick a deterministic `source_id` in the `equipment:<owner>:<stack_key>` namespace and call `Conditions#apply_effect`. Apply-by-source-id is idempotent.
+3. Unequip: `remove_effects_by_prefix("equipment:<owner>:<stack_key>")`.
+4. Loadout reset: `remove_effects_by_prefix("equipment:<owner>:")`, then re-apply current loadout fresh.
 
-The "verify-or-recreate" guarantee is implicit. Equipment never asks
-Conditions whether an effect is present; it just re-applies on every
-relevant change.
+Equipment never queries Conditions to verify state — re-applies on every relevant change.
 
 ### Workflow D — Spell cast (direct, not via item)
 
-Implemented in `lib/casting.rb` as a parallel-shaped orchestration to `ItemUse`.
+Implemented in `lib/casting.rb`.
 
-1. Caller invokes `Casting#cast(spell_name:, caster_char_id:, target_char_id:, rank:, mana_cost:, ...)`.
-2. **Mana check.** If the caster's `current_mana` is below `mana_cost`, return `error: 'insufficient_mana'` immediately — no effects, no mana spent.
-3. Resolve the spell entry through `AbilitySystem#resolve_entry` at the caller-supplied rank (and tier_index / aspect_index for Variant axes).
-4. **Saturation gate** (caster-side, mirroring ItemUse's target-side gate). When the caller supplies `caster_max_toxicity:` and the caster's `magic_toxicity` is at or above that cap, cure and mana effects refuse to land — return `saturation_blocked: true` with no mana spent and no applications. Ward effects bypass the gate.
-5. **Spend mana** from the caster via `Conditions#apply_mana_cost`.
-6. **Apply effects to the target** by reading the resolved Effect Hash for conventional keys: `minor_damage`/`moderate_damage`/`major_damage` → cure cascade, `mana` → mana restore (capped at caller-supplied `target_max_mana:`), `temp_hp` → ward grant with source id `spell:<caster>:<spell>`.
-7. **Magic toxicity on the caster** (not the target — that's the item flow). Formula: `max(saturation, minimum_saturation)` from the resolved Effect Hash. No "potion overhead" term.
-8. **Return deferred work** — the spell's `effects` list (damage objects with deferred `success`/`critical` evaluation) and `saves` list come back intact for caller-driven save resolution and damage routing through `Combat#apply_attack_damage`. The Concentration Block is returned for the caller to track concentration on the caster.
+1. `Casting#cast(spell_name:, caster_char_id:, target_char_id:, rank:, mana_cost:, ...)`.
+2. **Mana check.** `current_mana < mana_cost` → return `error: 'insufficient_mana'`.
+3. Resolve the spell entry through `AbilitySystem#resolve_entry`.
+4. **Saturation gate** (caster-side). With `caster_max_toxicity:` and caster `magic_toxicity ≥ cap`, cure and mana refuse — return `saturation_blocked: true`. Ward bypasses.
+5. **Spend mana** via `Conditions#apply_mana_cost`.
+6. **Apply effects to target** by reading the resolved Effect Hash (cure cascade, mana restore capped at `target_max_mana:`, ward grant with source id `spell:<caster>:<spell>`).
+7. **Caster magic toxicity**: `max(saturation, minimum_saturation)` from the resolved Effect Hash. No potion-overhead term.
+8. **Return deferred work** — `effects` list (damage objects), `saves` list, Concentration Block — for caller-driven save resolution and damage routing.
 
-Mana cost defaults from the abilities catalog's `Default Mana Cost Per Tier` table (`{0: 1, 1: 4, 2: 6, 3: 8, 4: 10, 5: 12}` by default). The caller can still override via `mana_cost:`. Spells whose description notes an extra cost (Recharge, etc.) are the human DM's responsibility to add on top — the schema doesn't yet carry per-spell overrides as a structured field.
+Mana cost defaults from `Default Mana Cost Per Tier` (`{0: 1, 1: 4, 2: 6, 3: 8, 4: 10, 5: 12}`); caller can override via `mana_cost:`.
 
 ### Workflow D' — Ritual cast
 
-`Casting#cast_ritual` is a thin extension of `cast` for rituals. Same pipeline; two adjustments:
+`Casting#cast_ritual` — same pipeline plus:
 
-- **Material gold cost.** `AbilitySystem#ritual_gold_cost(spell, tier)` reads `Ritual Cost.gold_per_tier`. The cost is debited from the supplied `gold_owner_id` via `Equipment#debit_wealth`. When the owner can't pay, returns `error: 'insufficient_gold'` with no mana spent and no effects.
-- **Total casting time.** `AbilitySystem#ritual_casting_time_rounds(spell, tier)` returns `max(spell.casting_time_rounds, 1) + Ritual Cost.casting_time_per_tier[tier]`. The result is included in the `cast_ritual` return for the caller to advance the calendar accordingly.
+- **Material gold cost.** `AbilitySystem#ritual_gold_cost(spell, tier)` reads `Ritual Cost.gold_per_tier`. Debited via `Equipment#debit_wealth` from `gold_owner_id`. Insufficient gold → `error: 'insufficient_gold'`, no mana spent.
+- **Total casting time.** `max(spell.casting_time_rounds, 1) + Ritual Cost.casting_time_per_tier[tier]`. Returned for the caller to advance the calendar.
 
-If `cast()` bails on insufficient mana or the saturation gate, `cast_ritual` returns the same bail-out unchanged — gold is **not** debited because the ritual didn't happen. The Equipment dependency is supplied at construction; ritual casts raise without it.
+If `cast()` bails on insufficient mana or saturation, gold is **not** debited.
 
 ### Workflow E — Affliction tick
 
-Already implemented.
+Implemented.
 
-1. Caller invokes `Conditions#resolve_affliction(name, save_input,
-   creature_tier, current_round)`.
-2. Conditions injects a Severity Save Penalty equal to
-   `floor(severity / divisor)` into the supplied `Competency Penalty`.
-3. Calls `DiceSystem` to roll the save.
-4. Computes magnitude (`1 + floor(severity / divisor)`) and
-   net_magnitude (`max(0, magnitude - successes)`).
-5. Applies the Affliction's effect (`hit_point_damage`,
-   `ability_damage`, or `named_effect`) at net_magnitude.
-6. Evolves severity: `delta = -floor(decay) -
-   floor(successes * per_success) + floor(failures * per_failure)`.
-7. Removes the Affliction if severity reached zero.
+1. `Conditions#resolve_affliction(name, save_input, creature_tier, current_round)`.
+2. Inject Severity Save Penalty `floor(severity / divisor)` into the supplied `Competency Penalty`.
+3. Roll the save through DiceSystem.
+4. Compute magnitude (`1 + floor(severity / divisor)`) and net_magnitude (`max(0, magnitude - successes)`).
+5. Apply the Affliction's effect (`hit_point_damage`, `ability_damage`, or `named_effect`) at net_magnitude.
+6. Evolve severity: `delta = -floor(decay) - floor(successes * per_success) + floor(failures * per_failure)`.
+7. Remove if severity reached zero.
 
 ## Aggregated unassigned responsibilities
 
-The per-domain Unassigned bullets, grouped by theme.
-
 ### Cluster 1 — Catalog content (HIGH PRIORITY)
 
-The schemas and homes are defined; the actual catalog content
-isn't yet populated.
-
-- **Procedural Abilities catalog**: most class/racial stateless
-  abilities (`sneak_attack`, `channel_divinity`, `improved_healing`,
-  `sense_injury`, `trapfinding`'s concentration variant, etc.) have
-  no entries yet. Schema: `name → triggers: [{on, condition,
-  effect}]`.
-- **Effect Names catalog**: stateful class/racial abilities (`rage`,
-  `bardic_inspiration`, etc.) need entries with structured
-  Mechanics. The catalog has the basic conditions (`blind`,
-  `dazzled`, `paralyzed`, `prone`, `flustered`) but not the class-
-  ability content.
-- **Always-On Modifier entries** on each ability's `modifiers:`
-  field in `advancement_config.yaml` and `race_config.yaml`.
-  TentativeAdditions has the schema and a few examples; most
-  entries are still empty.
+- **Procedural Abilities catalog**: `sneak_attack`, `channel_divinity`, `improved_healing`, `sense_injury`, `trapfinding` etc. Schema: `name → triggers: [{on, condition, effect}]`.
+- **Effect Names catalog**: stateful class/racial abilities (`rage`, `bardic_inspiration`) need entries with structured Mechanics. Basic conditions exist; class-ability content does not.
+- **Always-On Modifier entries** on each ability's `modifiers:` field. Schema and a few examples on TentativeAdditions; most still empty.
 
 ### Cluster 2 — Cross-domain wiring
 
-Modules exist; the bridges between them aren't pinned to a class.
-
-- **Acid Counter wiring**: `Conditions#apply_acid_damage` exists,
-  but it's `Combat#apply_attack_damage` that decides when to call
-  it (via the `apply_acid_counter` mechanic). Today's wiring lives
-  inline inside `apply_attack_damage`; that's fine but worth
-  re-examining if more counter types arrive.
-- **End-to-end attack-resolution composition**: the to-hit roll +
-  damage routing pieces both exist; a single
-  `Combat#perform_attack(attacker, target, weapon)` doesn't.
-- **Casting orchestration** (Workflow D above) — no class today.
+- **Acid Counter wiring**: lives inline inside `apply_attack_damage`; revisit if more counter types arrive.
+- **End-to-end attack-resolution composition**: `Combat#perform_attack(attacker, target, weapon)` doesn't exist.
+- **Casting orchestration** — implemented as Workflow D above.
 
 ### Cluster 3 — Missing infrastructure
 
-Whole concepts that aren't represented anywhere.
+- **Per-day usage trackers** (Channel Divinity uses-per-day). Deferred; natural pattern is the same as mana.
+- **Encumbrance**. Currency carries `weight`; armor and weapons don't.
+- **Equipment deferred items**: loot tables, magical-item generation, shop refresh, Game Day, atomic Restock, Loot Archive.
 
-- **Mana tracking**. Character exposes `max_mana` (formula); nothing
-  tracks current mana. ItemUse surfaces mana applications as
-  `unrouted: true`. Decision needed (see open questions).
-- **Per-day usage trackers** (Channel Divinity uses-per-day). No
-  home decided.
-- **Encumbrance**. Currency carries a `weight` field; armor and
-  weapons don't. No system computes total weight.
-- ~~**Skill-Roll API**~~ — resolved by the new Skills class +
-  `DiceSystem#compute_check_details`.
-- **Equipment deferred items**: loot tables (4 row shapes + Roll
-  Variables), magical-item generation, specific/generic shop
-  refresh, Game Day counter, atomic Restock, Loot Archive. All
-  documented in `equipment_design.md`; none implemented.
-
-### Cluster 4 — Validation gaps (the silent-typo cluster)
+### Cluster 4 — Validation gaps
 
 A single startup-time linter could knock out the whole list.
 
 - Roster `race:` / class keys → real race / class.
 - `parent_class`, `parent_race` → real chain target.
-- Skill list entries (`class_skills`, `non_class_skills`,
-  `opposed_skills`) → real skills.
+- Skill list entries → real skills.
 - `tier_attribute_advancement` picks → real attribute keys.
 - `attribute:` in `skills_config.yaml` → one of six real attributes.
-- `damage_type` references in compendium → catalog entry (already
-  validated when AbilitySystem is constructed with DamageTypes).
 - Loot table `item:` / property references → real catalog entries.
 - Material names on Armor → defined Materials.
-- Damage Types `condition` / `condition_name` strings → consumer-
-  recognized concepts.
-- Effect strings declared by abilities → real Effect Names (raised
-  today only at apply-time).
-- Procedural Abilities catalog references → real class/racial
-  ability names (when the catalog has content).
+- Damage Types `condition` / `condition_name` strings → consumer-recognized concepts.
+- Effect strings declared by abilities → real Effect Names (raised today only at apply-time).
+- Procedural Abilities catalog references → real class/racial ability names.
 
 ### Cluster 5 — Untracked / unowned state
 
-- **Per-Character narrative state** (DM notes, custom flags). Conditions
-  owns mechanical state, nothing owns narrative.
-- **Persistence of identity mutations** (renames, race changes).
-  Characters are read-only at startup.
-- **Bonus skills enforcement**. `bonus_skills` is a Class field
-  documented but unenforced.
-- **`minimum_skills_trained` enforcement**. Documented but
-  unenforced.
-- **Class contributions to `damage_resilience` / `damage_reduction`**.
-  Methods return 0 placeholders; the actual scaling rules per
-  class haven't been designed.
+- **Per-Character narrative state** (DM notes, custom flags).
+- **Persistence of identity mutations** (renames, race changes). Characters are read-only at startup.
+- **Bonus skills enforcement**. `bonus_skills` documented but unenforced.
+- **`minimum_skills_trained` enforcement**. Documented but unenforced.
+- **Class contributions to `damage_resilience` / `damage_reduction`**. Methods return 0 placeholders.
 
 ### Cluster 6 — Edge-case / housekeeping
 
-- **Validating dice count is within Min/Max range**.
-- **Validating `rank` is non-negative**.
-- **Initiative reroll edge cases** with multiple Insight iterations.
-- **The reserved `none` key in `properties_weighted`** for magical-
-  item generation — silently shadowed if a Property is ever named
-  `none`.
-- **Properties registry** distinguishing display-only from
-  mechanically-effective properties.
-- **Preferred starting attribute distributions per Race** (point-buy
-  steering).
+- Validating dice count is within Min/Max range.
+- Validating `rank` is non-negative.
+- Initiative reroll edge cases with multiple Insight iterations.
+- The reserved `none` key in `properties_weighted` — silently shadowed if a Property is ever named `none`.
+- Properties registry distinguishing display-only from mechanically-effective properties.
+- Preferred starting attribute distributions per Race (point-buy steering).
 
 ## Open architectural questions
 
-The decisions that haven't been made yet, with the trade-offs as I
-understand them. Each one will eventually need an answer.
-
 ### Where does mana live? (decided)
 
-**Mana lives on Conditions** as a `current_mana` field, parallel
-to the HP damage counters and magic toxicity. HP and mana are
-the same kind of thing — recoverable per-creature resource — and
-they recover under the same per-day rules, so they live together.
+**Mana lives on Conditions** as `current_mana`, parallel to HP damage counters and magic toxicity. HP and mana are the same kind of thing — recoverable per-creature resource — so they share recovery rules.
 
-Operations: `apply_mana_cost(amount)` (floor at zero, returns
-amount actually spent), `restore_mana(amount, max:)` (clamp at
-the supplied cap), `set_mana(amount, max:)`. The cap (`max_mana`)
-is supplied by the caller from the Character; Conditions does
-not look it up itself.
-
-ItemUse's mana applications now route through
-`Conditions#restore_mana` when the caller supplies
-`target_max_mana:`. Without the cap, the result is still tagged
-`unrouted: true` so the caller can apply it externally.
+Operations: `apply_mana_cost(amount)` (floor at zero), `restore_mana(amount, max:)` (clamp at supplied cap), `set_mana(amount, max:)`. The cap is supplied by the caller; Conditions doesn't look it up.
 
 ### Natural Recovery (decided)
 
-The thing I had previously framed as "per-day usage trackers" is
-really **Natural Recovery** — the rules that govern how HP, ability
-damage, mana, magic toxicity, and temp HP change as time passes.
+`Conditions#apply_natural_recovery(days:, mode:, character_tier:, mana_max:, magic_toxicity_attribute_score:)` rolls all five rules forward. Rates live in `conditions_config.yaml` under `Natural Recovery`:
 
-`Conditions#apply_natural_recovery(days:, mode:, character_tier:,
-mana_max:, magic_toxicity_attribute_score:)` rolls all five rules
-forward. The recovery rates live in `conditions_config.yaml` under
-a `Natural Recovery` block:
+- **Heal Rate**: tier-indexed `[low, high, unit]` per severity. Low = `mode: short_rest`, high = `long_term_recovery`, unit = period length in days.
+- **Ability Heal Rate**: same shape, FIFO popping across attributes.
+- **Mana Per Day Divisor** (default 4): mana per day = `floor(mana_max / divisor)`.
+- **Magic Toxicity Per Day Divisor** (default 4): toxicity decay = `floor(toxicity_attribute_score / divisor)`.
 
-- **Heal Rate**: a tier-indexed table of `[low, high, unit]`
-  per severity. Low is the per-period heal in `mode: short_rest`;
-  high is `mode: long_term_recovery`; unit is the period length
-  in days (so a major-damage row with unit 7 only heals once per
-  full week).
-- **Ability Heal Rate**: same shape, governs ability-damage
-  recovery with FIFO popping across attributes.
-- **Mana Per Day Divisor** (default 4): mana per day =
-  `floor(mana_max / divisor)`.
-- **Magic Toxicity Per Day Divisor** (default 4): toxicity decay
-  per day = `floor(toxicity_attribute_score / divisor)` where the
-  toxicity attribute is typically `cha`.
-
-Temporary HP clears on every recovery call regardless of its
-`ends_on_round`. Time is the natural enemy of temp HP.
+Temporary HP clears on every recovery call regardless of `ends_on_round`.
 
 ### What about Channel Divinity-style "uses per day"?
 
-The user pushed back on framing this as a separate concern. For
-now: deferred. When we get there, the natural pattern is the same
-shape as mana — a counter on Conditions, refilled by
-`apply_natural_recovery` (or by a future
-`apply_per_encounter_recovery` for "uses per encounter"). The
-catalog entry would declare the cap and the cadence.
+Deferred. When we get there, the natural pattern matches mana — counter on Conditions, refilled by `apply_natural_recovery` (or a future per-encounter recovery).
 
 ### Skills grew a class (decided)
 
-Skills used to be config-only; Advancement read it for the
-`mandatory` flag and the per-skill attribute lookup, and every
-caller assembled its own Check spec ad hoc.
-
-`lib/skills.rb` is now a thin coordinator with three jobs:
-
-- **Skill resolution** — looks up the skill catalog entry, with
-  Set-prefix fallback so `perform_dance` / `craft_smith` resolve to
-  their parent set's attribute and metadata.
-- **Skill Prowess computation** — `Ranks + floor(Attribute /
-  divisor)`. Ranks come from Advancement at lookup time; Attribute
-  comes from Character; divisor comes from skills config.
-- **Versatile Performance routing** — when looking up a `perform_*`
-  skill, the highest-prowess perform variant the Character has
-  trained wins, with the requested skill name preserved on the
-  return so callers can attribute the roll correctly.
-
-`DiceSystem#compute_check_details(prowess)` is the dice-resolution
-side of the partition: returns `[Dice Count, Competency Bonus,
-Starting Value]` from a Prowess integer. Skills hands the Prowess;
-DiceSystem partitions it; the caller folds the result into a
-modifier dictionary and rolls.
-
-This kills the "Skill-Roll API" and "validate skill list entries"
-items from the Unassigned cluster.
+`lib/skills.rb` is a thin coordinator with three jobs: Skill resolution (with Set-prefix fallback), Skill Prowess computation, and Versatile Performance routing. `DiceSystem#compute_check_details(prowess)` partitions Prowess into Dice Count + Competency Bonus + Starting Value. Kills the "Skill-Roll API" and "validate skill list entries" Unassigned items.
 
 ### What's the orchestration tier?
 
-`ItemUse` is the first orchestration class. `Combat#apply_attack_damage`
-is also orchestration (it sequences DamageTypes lookups, calls
-Conditions APIs, etc.) but lives inside Combat itself.
+`ItemUse` and `Casting` are top-level orchestration classes; `Combat#apply_attack_damage` is orchestration that lives inside Combat itself. Three options as more workflows arrive:
 
-When more workflows arrive — direct casting, full attack resolution,
-turn-start ticks, downtime services — they need a home. Three
-options:
+- **(a)** Keep adding orchestration to existing modules.
+- **(b)** Top-level orchestration classes per workflow (`ItemUse`, `Casting` style).
+- **(c)** A `GameSession` god-class.
 
-- **(a) Keep adding orchestration to existing modules.** Combat
-  grows `perform_attack`; Conditions grows turn-start hook
-  invocation; etc. The orchestration is glued to the module that
-  most naturally owns its main side-effects.
-- **(b) Top-level orchestration classes** like `ItemUse` and the
-  hypothetical `Casting`. Each workflow gets its own class that
-  composes the modules it needs.
-- **(c) A single `GameSession` god-class** that holds references to
-  every module and exposes high-level operations.
-
-(b) seems cleanest based on how `ItemUse` shaped up — small
-focused classes with clear participants. (a) is fine for operations
-deeply tied to one module's state. (c) leads to circular dependencies
-fast.
+(b) seems cleanest based on `ItemUse`. (a) fits operations deeply tied to one module's state. (c) leads to circular deps fast.
 
 ### Implementation language allocation
 
-Today's split puts the dice-rolling half of attack resolution in
-JavaScript and the damage-routing half in Ruby. The docs describe
-the logic regardless of where it runs. Open question: what's the
-test strategy for client-side logic? Today the Ruby spec suite has
-180+ examples; the JS half has none. As the to-hit math evolves,
-this asymmetry will become more uncomfortable.
+Today's split: dice-rolling half of attack resolution in JavaScript, damage-routing half in Ruby. Open question: test strategy for client-side logic? Ruby has 180+ examples; JS has none. The asymmetry will become uncomfortable as to-hit math evolves.
 
 ### Modifiers class boundary
 
-`Modifiers` (TentativeAdditions only) reads each ability's `modifiers:`
-list and folds them into Character reads. Today's reads use the
-list directly. When the Procedural Abilities catalog grows, some
-abilities will have *both* always-on Modifiers (folded by Modifiers)
-and Trigger Specs (used by procedural lookups). Two questions:
+Today's reads use `modifiers:` lists directly. When the Procedural Abilities catalog grows, some abilities will have *both* always-on Modifiers and Trigger Specs. Two questions:
 
-- Does Modifiers eventually merge into AbilitySystem (since the
-  data lives in ability entries)?
-- Does it become a peer of Conditions, where "active modifiers"
-  are looked up the same way active Effects are?
+- Does Modifiers eventually merge into AbilitySystem (data lives there)?
+- Does it become a peer of Conditions, where active modifiers are looked up like active Effects?
 
-No answer yet. The boundary will get clearer as the procedural
-catalog fills in.
+No answer yet.

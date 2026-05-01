@@ -1,87 +1,79 @@
 # Combat — Glossary
 
-> **Note on conventions**: Defined terms are capitalized throughout this document. Entries marked *(configurable)* have their values defined in `combat_config.yaml`. The Combat module owns round-by-round combat state (combatants, initiative, turn pointer, action dice). It depends on the dice resolution module for die rolls and on the character module via a lookup callback for per-character derived values.
+Combat owns round-by-round state (combatants, initiative, turn pointer, Combat Pool). It depends on dice resolution for rolls and on the character module via a `character_lookup` callback. *(configurable)* values come from `combat_config.yaml`.
 
 ## Core
 
-**Combat**: The round-by-round state machine that tracks who is fighting, the order they act in, and how many resources each has spent. Persists to a state file (`combat_data.yaml.example`) on every mutation; rules tunables live separately (`combat_config.yaml.example`).
+**Combat**: The round-by-round state machine. Persists to `combat_data.yaml` on every mutation; tunables live in `combat_config.yaml`.
 
-**Combatant**: One participant in an active Combat. Identified by two IDs (Combat ID and Character ID — see below) and carrying its own `name`, current `initiative_dice` snapshot, and remaining `action_dice` count.
+**Combatant**: One participant in an active Combat. Carries `id` (Combat ID), `char_id` (Character ID), `name`, `initiative_string`, and `combat_pool`.
 
-**Combat ID**: A per-instance integer unique within the current Combat, allocated at `add_combatant` time. Distinct from Character ID so that two copies of the same monster track separately. Computed on the fly as one past the highest in-use id rather than persisted as a counter — the state file stays describable without bookkeeping.
+**Combat ID**: Per-instance integer unique within the current Combat, allocated at `add_combatant`. Distinct from Character ID so duplicate monsters track separately.
 
-**Character ID**: The underlying creature identity supplied at `add_combatant`. Used to look up the Character's attributes via the supplied `character_lookup` callback whenever a derived value (initiative dice count, action dice max) is needed.
+**Character ID**: The underlying creature identity; used by the `character_lookup` callback to read attributes for derived values.
 
-**Round**: A signed integer counter incremented when the turn pointer wraps past the last combatant. Reset to 1 at the start of every initiative reroll. The current Round is part of the persisted state.
-
-**Active**: A boolean indicating Combat is in progress. Flipped on by `reroll_all_initiative`, off by `end_combat`.
+**Active**: Boolean indicating Combat is in progress. Toggled by `reroll_all_initiative` / `end_combat`.
 
 ## Turn Order
 
-**Turn Order**: Combatants ordered highest-initiative first. Ties are broken **die-by-die descending** — `[10, 7]` beats `[10, 6]` because the second die is larger; final ties are broken by Combat ID for stability. Recomputed on every read rather than cached, since combatants and dice may change between reads.
+**Turn Order**: Combatants sorted by Initiative String, ASCII descending. Final ties break by Combat ID. Recomputed on every read.
 
-**Current Turn Index**: An integer index into the Turn Order pointing at the active Combatant. Modulo'd over the Turn Order length on every read so the index remains valid even after combatants are removed.
+**Current Turn Index**: Integer index into Turn Order. Modulo'd over length on read so it stays valid after removals.
 
-**Current Combatant**: The Combatant at `Current Turn Index`. Returns null when there are no Combatants.
+**Current Combatant**: The Combatant at Current Turn Index. Null when none.
 
 ## Initiative
 
-**Initiative Attribute**: The Character Attribute consulted to determine how many initiative dice the Character rolls. *(configurable, default `wis`)*
+**Initiative Attribute**: Attribute consulted to determine the initiative dice count. *(configurable, default `wis`)*
 
-**Initiative Divisor**: The divisor applied to the Initiative Attribute to produce the dice count. `dice_count = floor(attribute / Initiative Divisor)`. *(configurable, default 2 — a Wis-16 character rolls 8 dice; a divisor of 3 would give 5 dice)*
+**Initiative Divisor**: `dice_count = floor(attribute / Initiative Divisor)`. *(configurable, default 2)*
 
-**Initiative Dice**: The current Combatant's rolled dice, sorted high-to-low. Empty until the first reroll. Compared die-by-die for tie-breaking.
+**Initiative String**: The Combatant's initiative result, encoded per `dice_resolution_glossary.md`'s **Initiative String Encoding**, sorted highest-to-lowest.
 
-**Initiative Luck**: A signed integer effect applied during initiative rerolling that rerolls extreme dice. **Positive** values reroll the lowest non-critical dice (favoring the Combatant); **negative** values reroll the highest non-failure dice (working against). Magnitude rerolls that many dice in priority order. Distinct from the dice resolution module's generic Reroll Operation because initiative has no Target Number, so the generic helpers don't apply.
+**Initiative Luck**: Signed integer rerolling extreme dice during initiative reroll. Positive rerolls the lowest non-Critical dice; negative rerolls the highest non-Failure dice. Magnitude sets count. *(combat-specific because initiative has no Target Number)*
 
-**Initiative Insight**: A signed integer effect applied during initiative rerolling that nudges a single die's value. **Positive** values raise the lowest die that could become a Critical (`value + insight ≥ die_size`); if no die qualifies, raise the highest non-Critical instead. **Negative** values penalize the highest die. Magnitude rerolls repeat the operation that many times.
+**Initiative Insight**: Signed integer nudging a single die's value. Positive raises the lowest die that could become a Critical (or the highest non-Critical if none qualify); negative lowers the highest die. Magnitude repeats the operation.
 
-## Action Dice (Combat Pool)
+## Combat Pool
 
-**Combat Pool Attribute**: The Character Attribute consulted to derive action dice max. *(configurable, default `wis`)*
+**Combat Pool Attribute**: Attribute consulted for the Budget. *(configurable, default `wis`)*
 
-**Combat Pool Range**: The modulus applied to the raw action-dice value. *(configurable, default 10)*
+**Combat Pool Divisor**: Divisor applied to the attribute when computing the Budget. *(configurable, default 2)*
 
-**Combat Pool Minimum**: The floor added to the modulo result. *(configurable, default 11)*
+**Combat Pool Step**: Size of each cost tier and the guaranteed minimum pool size (first tier is free). *(configurable, default 4)*
 
-**Action Dice Raw**: An intermediate `martial_skill_ranks + floor(combat_pool_attribute / 2)`. Both halves are computed at lookup time via the `character_lookup` callback.
+**Turns Per Round**: Integer array indexed by Tier; out-of-range Tier is an error. *(configurable, default `[1, 1, 1, 2, 4, 8]`)*
 
-**Action Dice Max**: The Character's maximum action dice for one Round, derived as `(action_dice_raw % Combat Pool Range) + Combat Pool Minimum`. Computed on demand — never persisted.
+**Combat Pool Budget**: `floor((martial_skill_ranks + floor(attribute / Combat Pool Divisor)) / Turns Per Round[tier])`.
 
-**Unused Bonus**: The integer-division half of the same formula: `floor(action_dice_raw / Combat Pool Range)`. Exposed for callers but the design has **not yet decided** how to apply it. Stored under this name as a placeholder until that decision lands.
+**Combat Pool**: Combatant's pool size for one turn — the largest P such that purchase cost ≤ Budget, with cost rising every Step points. Points 1..Step cost 0 each (free tier, guarantees a minimum); points Step+1..2·Step cost 1 each; points 2·Step+1..3·Step cost 2 each; and so on. Closed form: with `T = floor(P/Step)`, `R = P mod Step`, cost = `Step·T·(T-1)/2 + R·T`. Leftover Budget is discarded. Computed on demand.
 
-**Action Dice (Remaining)**: The current Combatant's remaining action dice for the Round. Stored on the Combatant record. Decremented by `spend_action_dice`; reset to Action Dice Max by `reset_action_dice` (per-Combatant or all-at-once).
+**Combat Pool (Remaining)**: Per-Combatant remaining pool for the turn. Decremented by `spend_combat_pool`; reset to Combat Pool by `reset_combat_pool`.
 
 ## Damage Severity
 
-**Severity Calculation**: The operation that decides which Severity bucket each point of inflicted damage lands in. Combat owns this. For non-physical damage types the Severity comes from the damage type's catalog entry (`damage_types_glossary.md`). For physical damage Combat performs **Runtime Bucketing**: the first `Threshold + Damage Resilience` points fill Minor, the next `Threshold + Damage Resilience` fill Moderate, everything beyond goes to Major. After Combat splits a damage event into per-Severity counts, it calls `APPLY_HIT_POINT_DAMAGE` on the target's conditions instance with the resulting `{minor, moderate, major}` map.
-
-**Threshold (combat-side)**: The non-negative integer used in Runtime Bucketing. For weapon attacks Combat reads it from the weapon (Equipment); for ability-driven Physical Damage it reads it from the ability's `threshold` field. Combat picks one input — the weapon's value typically wins when both are present.
-
-**Damage Resilience (combat-side)**: The defender's `damage_resilience` value, read through the Character (which sums tier-derived base + Advancement contribution). Combined with Threshold to size each Severity bucket during Runtime Bucketing.
+**Severity Calculation**: Combat routes each damage point to a Severity bucket before passing the result to `APPLY_HIT_POINT_DAMAGE`. Non-physical damage types use the catalog's declared severity. Physical damage uses **Runtime Bucketing**: the first `Threshold + Damage Resilience` points fill Minor, the next fill Moderate, everything beyond goes to Major. Threshold comes from the weapon for weapon attacks or from the ability's `threshold` field for ability-driven physical damage; Damage Resilience comes from the defender's Character.
 
 ## State Files
 
-**Rules File**: `combat_config.yaml`. Hand-edited; loaded once at boot. Carries Initiative Attribute, Initiative Divisor, Combat Pool Attribute, Combat Pool Range, and Combat Pool Minimum.
+**Rules File** (`combat_config.yaml`): Initiative Attribute, Initiative Divisor, Combat Pool Attribute, Combat Pool Divisor, Combat Pool Step, Turns Per Round.
 
-**State File**: `combat_data.yaml`. Atomically rewritten on every mutation. Carries `active`, `round`, `current_turn_index`, and the `combatants` list. Allowed fields per Combatant: `id`, `char_id`, `name`, `initiative_dice`, `action_dice`. The state file is the only place these values live across restarts.
+**State File** (`combat_data.yaml`): `active`, `round`, `current_turn_index`, `combatants`. Per-Combatant: `id`, `char_id`, `name`, `initiative_string`, `combat_pool`.
 
 ## Module Scope
 
-The Combat module:
+Owns:
+- One in-memory Combat plus its state file.
+- Combatants list, turn pointer, round counter, active flag.
+- Initiative dice count and Combat Pool derivation via `character_lookup`.
+- Initiative reroll (delegating dice to dice resolution; applying Luck and Insight).
+- Combat Pool spend / reset.
+- Severity Calculation including Runtime Bucketing for physical damage.
+- Damage-type side-effect routing (`APPLY_ACID_DAMAGE`, `APPLY_SHOCK`, etc.) and supplying `critical_modifier` to dice resolution.
 
-- Owns a single in-memory Combat (one party, one fight at a time) plus its persisted state file.
-- Tracks the active flag, round counter, turn pointer, and combatants list.
-- Computes initiative dice count and action dice max on demand from the looked-up Character.
-- Rolls initiative through the dice resolution module and applies Combat-specific Luck and Insight rules.
-- **Owns Severity Calculation**: routes every damage event through the damage_types catalog (or, for physical damage, through Runtime Bucketing) before passing per-Severity counts to the conditions module. Reads the inputs (damage type, threshold, damage resilience) but does not own them.
-- **Routes damage-type mechanics to consumers**: invokes `APPLY_ACID_DAMAGE`, `APPLY_SHOCK`, etc., when a damage type's mechanics declare those side-effects, applies `damage_multiplier` factors before bucketing, and substitutes the per-roll `critical_modifier` when a damage type carries a `critical_value`.
-- Persists state atomically on every mutation.
-
-It does **not**:
-
-- Resolve attacks (combat-roll math is future work).
-- Apply conditions or track HP changes — conditions module owns the storage; combat only routes inputs into it.
-- Define damage type behavior — the catalog lives in `damage_types_config.yaml`; combat reads it.
-- Know about more than one Combat at a time.
-- Read characters directly — every Character read goes through the `character_lookup` callback supplied at construction.
+Does not:
+- Resolve full attacks end-to-end (future work).
+- Store HP or conditions (conditions module).
+- Own the damage type catalog (damage_types module).
+- Track multiple concurrent Combats.
+- Read Characters directly (always via `character_lookup`).

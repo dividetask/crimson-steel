@@ -1,215 +1,149 @@
 # Abilities and Spells — Glossary
 
-> **Note on conventions**: Defined terms are capitalized throughout this document. Entries marked *(configurable)* have their values defined in `abilities_config.yaml`. The abilities module is a **reference** module: it exposes data about spells and abilities for other modules to consume, but does not track which effects are currently active on any creature. Active-effect bookkeeping lives in the condition and combat modules.
+Reference module: exposes data about spells and abilities for other modules to consume. Does not track active effects on creatures — that lives in conditions and combat. *(configurable)* values come from `abilities_config.yaml`.
 
 ## Core Concepts
 
-**Entry**: A single spell or ability definition. Entries are loaded from the campaign's data file (typically `data/compendium.json`) and keyed by the entry's display name.
+**Entry**: A single spell or ability definition. Loaded from the campaign data file (typically `data/compendium.json`), keyed by display name.
 
-**Entry Type**: Each Entry has a Type of either `spell` or `ability`. Spells and abilities share the same schema so the module can expose them uniformly; the Entry Type lets callers filter. *(configurable — the accepted values are defined under `Entry Types`.)*
+**Entry Type**: Each Entry has Type `spell` or `ability`. Spells and abilities share the same schema; the Type lets callers filter. *(configurable)*
 
-**Spell**: An Entry with Type `spell`. Spells belong to a Spell School and may be packaged into items (potions, oils, scrolls, wands). Spells are cast using one of a list of skills.
+**Spell**: An Entry with Type `spell`. Belongs to a Spell School, may be packaged into items, cast using one of a list of skills.
 
-**Ability**: An Entry with Type `ability`. Abilities do not have a Spell School and are not packaged into items. An Ability may still declare a list of casting skills (for example, a performance-based Ability that uses `perform_`), but the field is optional.
+**Ability**: An Entry with Type `ability`. Has no Spell School and is not packaged into items; may declare a casting skills list (optional).
 
-**Tier**: The magical density of an Entry. Tier 0 is treated as **0.5** in all formulas, per the project-wide tier convention. An Entry's `tier` field is either a single integer or a list of integers; a list indicates that the Entry has multiple Variants.
+**Tier**: The magical density of an Entry. Tier 0 is treated as 0.5 in formulas (see common glossary). An Entry's `tier` is either an integer or a list of integers; a list indicates Variants.
 
-**Rank**: The caster's investment in the casting skill used for this Entry. Rank is a context variable supplied by the caller whenever an Entry's Formula is evaluated. The abilities module never computes rank itself.
+**Rank**: The caster's investment in the casting skill used for this Entry. Supplied by the caller whenever a Formula is evaluated; the abilities module never computes rank itself.
 
-**Variant Axis**: The dimension along which an Entry has multiple Variants. An Entry may use **at most one** Variant Axis:
+**Variant Axis**: The dimension along which an Entry has multiple Variants. An Entry may use **at most one**: **Tier axis** (the `tier` field is a list of integers), or **Aspect axis** (the `aspects` field is a list of aspect names; `tier` remains a single integer). An Entry that declares neither has a single Variant.
 
-- **Tier axis** — the `tier` field is a list of integers. Variants are indexed by tier and Tier 0 is treated as 0.5 in formulas.
-- **Aspect axis** — the `aspects` field is a list of aspect names. Variants are indexed by aspect; the Entry's `tier` is a single integer that applies to every aspect.
+**Variant**: One form of an Entry along its Variant Axis. Each Variant has its own optional `prefix`/`suffix` name parts, optional `name` override, axis-indexed values in the Effect Hash, and an optional `variant_overrides` bag. Displayed name: if `name[axis_index]` is non-null, used verbatim; otherwise `<prefix> <Entry name> <suffix>` with empties omitted. When a Variant uses `name`, its `prefix` and `suffix` at the same index are ignored.
 
-An Entry may not declare both `tier` as a list and an `aspects` list. An Entry that declares neither has a single Variant.
+**Aspect**: A label on the Aspect axis (`fire`, `acid`, etc.). Free-form and opaque to the abilities module; referenced from description-like strings via the `{aspect}` substitution token. The parallel `damage_type` list is what binds an aspect to a Damage Type.
 
-**Variant**: One of the multiple forms of an Entry along its Variant Axis. Each Variant has its own optional `prefix` and `suffix` name components, an optional explicit name override, its own axis-indexed values in the Effect Hash, and an optional bag of per-Variant field overrides (`variant_overrides`). The displayed name of a Variant is constructed in two ways:
-
-- If the Entry has a `name` list and `name[axis_index]` is a non-null string, that string is used verbatim as the Variant's displayed name.
-- Otherwise, the displayed name is `<prefix> <Entry name> <suffix>`, omitting any null or empty parts.
-
-The `name` override exists for Variants whose names don't share a clean prefix/suffix structure with the Entry's base name — e.g. a single Entry whose tier-0 form is "Vicious Mockery" and tier-1 form is "Biting Words". When a Variant uses `name`, its `prefix` and `suffix` entries at the same index are ignored.
-
-**Aspect**: A label on the Aspect axis. Aspect names (`fire`, `acid`, etc.) are free-form labels; the abilities module treats them as opaque and does not cross-validate against any other catalog. The label can be referenced from `description`, `concentration.description`, and any other description-like string via the `{aspect}` substitution token, which is replaced with the current Variant's aspect name at lookup time. The parallel `damage_type` list is what binds an aspect to a Damage Type — the aspect name itself has no automatic semantics.
-
-**Variant Overrides**: An optional `variant_overrides` field on a multi-Variant Entry. A list parallel to the Entry's Variant Axis (`tier` list or `aspects` list). Each element is either `null` (no overrides for that Variant) or a sparse dictionary of fields whose values replace the Entry's base values for that one Variant. Use Variant Overrides for fields that need to differ per-Variant in ways the parallel-list mechanism (`prefix`/`suffix`/`name`/Effect Hash lists) doesn't already cover — e.g. `attack_roll: true` at tier 1 but not at tier 0, or a different `effects` list at higher tiers.
-
-Override values replace the base value entirely; there is no list-merge or dictionary-merge step. **A `null` override value means "remove this key from the merged entry"** rather than "set the key to null" — useful for Variants that should opt out of an inherited field (e.g. removing the `concentration` block at higher tiers of a spell whose lower tiers required concentration).
-
-A Variant Override may not change `tier`, `aspects`, `prefix`, `suffix`, `name`, or `variant_overrides` itself — those are structural or have their own parallel-list mechanisms. Any other top-level field on the Entry may be overridden.
+**Variant Overrides**: An optional `variant_overrides` field on a multi-Variant Entry — a list parallel to the Variant Axis. Each element is `null` or a sparse dictionary of fields whose values replace the Entry's base values for that one Variant. A `null` override **value** removes the key from the merged entry. May not change `tier`, `aspects`, `prefix`, `suffix`, `name`, or `variant_overrides` itself. *(3 sentences — flagged: the null-removal semantics and the structural exclusion list are both load-bearing constraints)*
 
 ## Casting Time
 
-**Casting Time**: How long it takes to cast or invoke an Entry. The `casting_time` field is a string for ease of reading. It may be either an alias defined in `Casting Time Aliases` (e.g. `"Bonus Action"`, `"1 Hour"`) or a string of the form `"<N> rounds"` for any positive integer `N`. *(alias list is configurable.)*
+**Casting Time**: How long to cast or invoke. The `casting_time` field is a string — either an alias from `Casting Time Aliases` or `"<N> rounds"` for any positive integer N. *(alias list configurable)*
 
-**Round Length Seconds**: The number of seconds in one round. Used to convert Casting Time aliases that describe minutes or hours into a number of rounds. *(configurable)*
+**Round Length Seconds**: Number of seconds in one round. Used to convert minute / hour aliases into rounds. *(configurable)*
 
-**Casting Time Aliases**: The table of named Casting Time values and the number of rounds each represents. *(configurable.)* The default aliases are `Free Action` (0), `Bonus Action` (0.25), `Main Action` (0.5), `Full Turn` (1), `1 Minute` (10), `10 Minutes` (100), `1 Hour` (600), and `1 Day` (14400).
+**Casting Time Aliases**: The named values and their round counts. Defaults: `Free Action` (0), `Bonus Action` (0.25), `Main Action` (0.5), `Full Turn` (1), `1 Minute` (10), `10 Minutes` (100), `1 Hour` (600), `1 Day` (14400). *(configurable)*
 
 ## Target
 
-**Target**: Who or what the Entry affects. The `target` field is either the literal string `"self"`, an integer written as a string (e.g. `"1"`, `"3"`), or a Formula string that evaluates to a non-negative integer count (e.g. `"1+rank/2"`).
-
-When the resolved target count is zero, the Entry has no valid targets and cannot be cast. When the Target is `"self"`, the Entry always affects exactly the caster regardless of the caster's rank.
+**Target**: Who or what the Entry affects. Either the literal `"self"`, an integer string, or a Formula evaluating to a non-negative integer count. Zero means the Entry has no valid targets and cannot be cast; `"self"` always means the caster regardless of rank.
 
 ## Range
 
-**Range**: How far the Entry can reach. The `range` field is either a string matching a key in `Range Formulas`, or a bare integer indicating an explicit distance in feet. *(named Range values are configurable.)*
+**Range**: Either a string matching a key in `Range Formulas` or a bare integer (feet). *(named values configurable)*
 
-**Range Formulas**: The mapping from named Ranges (`Self`, `Touch`, `Close`, `Medium`, `Long`) to Formula strings evaluated against `rank` and `reach` to produce a distance in feet. The default formulas are `Self: "0"`, `Touch: "reach"`, `Close: "5+5*rank"`, `Medium: "30+10*rank"`, `Long: "80+20*rank"`. *(configurable)*
+**Range Formulas**: Mapping from named Ranges to Formula strings of `rank` and `reach`. Defaults: `Self: "0"`, `Touch: "reach"`, `Close: "5+5*rank"`, `Medium: "30+10*rank"`, `Long: "80+20*rank"`. *(configurable)*
 
-**Reach**: The distance, in feet, that a creature can touch without moving. The caller may supply a per-cast `reach` value to `RESOLVE_RANGE` to handle larger creatures with a longer reach. When the caller omits it, the abilities module substitutes `Default Reach Feet` from the config. *(default value is configurable)*
+**Reach**: Distance in feet a creature can touch without moving. Caller may supply a per-cast `reach` to `RESOLVE_RANGE`; otherwise `Default Reach Feet` is used. *(default configurable)*
 
 ## Area
 
-**Area**: An optional `area` field on an Entry that turns the Entry from a single-target effect into an area-of-effect. When present, `area` is a dictionary with two fields:
-
-- `shape`: one of `line`, `cone`, `square`, or `circle`.
-- `size`: a non-negative integer measured in 5-foot squares — never in feet, regardless of shape.
-
-The shape interpretation is documented under `Area Shapes` in the config: a line is `size` squares long; a cone has `size` squares of slant length; a square is `size` squares on each side; a circle has `size` squares of radius. The abilities module validates the shape against the config and exposes the `{shape, size}` pair to the caller; the combat module figures out which creatures are in the area. An Entry without an `area` field affects only its declared `target` count of creatures within `range`. *(shapes are configurable.)*
+**Area**: An optional `area` field turning the Entry into AOE. A dict with `shape` (one of `line`, `cone`, `square`, `circle`) and `size` (non-negative integer in 5-foot squares — never feet). The combat module figures out which creatures are in the area; this module only validates and exposes the pair. *(shapes configurable)*
 
 ## Attack
 
-**Attack Roll**: An optional `attack_roll` boolean. When `true`, the Entry resolves as an attack roll against its target. When omitted, the default is `false`. The abilities module exposes this flag but does not perform the roll — attack resolution lives in the combat module.
+**Attack Roll**: An optional `attack_roll` boolean. When `true` the Entry resolves as an attack roll against its target; default `false`. The abilities module does not perform the roll.
 
-The attack's nature (melee vs. ranged) is implied by the Entry's `range`: a `Touch` Entry with `attack_roll: true` is a melee attack; an Entry at any greater range with `attack_roll: true` is a ranged attack. The schema does not carry a separate melee/ranged value.
+**Melee vs. Ranged**: Implied by `range`: `Touch` + `attack_roll` is melee; any greater range with `attack_roll` is ranged. The schema carries no separate value.
 
-**Attack vs. Save Convention**: Most Entries fall into one of three categories:
-- **Save only** — the target rolls a Saving Throw. The Entry has a non-empty `save` list and no `attack_roll` (or `attack_roll: false`).
-- **Attack only** — the caster rolls an attack. The Entry has an empty `save` list and `attack_roll: true`.
-- **Helpful, no roll** — the Entry is purely beneficial (e.g. Heal). Both `save` and `attack_roll` are absent or false.
-
-A small number of Entries have both `attack_roll: true` and a `save`; these are almost always touch spells, where the attack resolves whether contact is made and the save resolves the magical effect after contact lands.
+**Attack vs. Save Convention**: Most Entries fit one of three: **Save only** (non-empty `save`, no attack), **Attack only** (empty `save`, `attack_roll: true`), **Helpful, no roll** (both absent or false). A few touch spells have both — attack lands the contact, save resolves the magical effect.
 
 ## Concentration
 
-**Concentration Block**: An optional `concentration` field on an Entry. The presence of this block is what marks an Entry as a concentration Entry — it both flags the Entry as concentration and defines what the concentrate action does. The block is a dictionary with the following fields:
-
-- **`action`**: The action cost the caster spends each turn to keep concentrating. A Casting Time string (e.g. `Bonus Action`, `Main Action`).
-- **`apply_on_cast`** *(optional, default false)*: When `true`, the concentration effect also fires once on the initial cast — useful when the cast and the concentrate action share an effect (e.g. Heal's bleed-reduction triggers on cast and on every concentrate action).
-- **`retarget`** *(optional, default false)*: When `true`, the caster picks a new target each concentrate turn. When `false`, the concentrate action operates on the original target chosen at cast time. Heal stays on its target (`false`); Vicious Mockery and the elemental darts let the caster mock or hurl at any valid target each turn (`true`).
-- **`description`** *(optional)*: A free-form string describing what the concentrate action does. The same `{name}` substitution rules as the Entry's main description apply.
-- **`attack_roll`** *(optional, default false)*: Whether the concentrate action requires its own attack roll. Independent of the Entry's top-level `attack_roll`; some concentration effects (Fire Dart's repeated darts) involve attacks while others (Heal's bleed reduction) do not.
-- **`save`** *(optional)*: A list of Save Specs governing the concentrate action, with the same schema as the Entry's top-level `save`.
-- **`effect_hash`** *(optional)*: A dictionary of named values used by the concentration `description` and any Save Effects in `save`. Resolved with the same rules as the Entry's main Effect Hash.
-
-The abilities module does not track which casters are concentrating on which Entries, nor does it apply the concentration effect — both responsibilities live in the combat module. The module simply exposes the Concentration Block so callers know what the concentrate action is supposed to do.
+**Concentration Block**: An optional `concentration` field. Its presence both flags the Entry as concentration and defines the concentrate action. Fields: `action` (a Casting Time string), `apply_on_cast` (bool, default false), `retarget` (bool, default false), `description` (free-form), `attack_roll` (bool, default false), `save` (list of Save Specs), `effect_hash` (dict). The abilities module exposes the block; it does not track who is concentrating on what — that's combat. *(3 sentences — flagged: the field list is the schema spec)*
 
 ## Saves
 
-**Saving Throw**: A Dice Resolution Check made by the target of an Entry to resist or reduce its effect. Abbreviated **Save**. The abilities module does not perform saves; it only declares which saves an Entry grants.
+**Saving Throw**: A Dice Resolution Check made by the target to resist or reduce an Entry's effect. Abbreviated **Save**.
 
-**Save Spec**: One element of the Entry's `save` list. A Save Spec is a dictionary with an `attribute` field (one of the Save Attributes) and one entry per relevant Save Outcome Key. A Save Spec may also include a `condition` field (see Conditional Saves below).
+**Save Spec**: One element of the Entry's `save` list. A dict with an `attribute` field, one entry per relevant Save Outcome Key, and an optional `condition` field.
 
-**Save Attribute**: The attribute the target uses to make the Save. One of `none`, `str`, `dex`, `con`, `int`, `wis`, `cha`. The value `none` indicates the Entry grants no save and appears only as shorthand for "no save" on an Entry whose `save` list contains a single Save Spec. An Entry may also omit the `save` field entirely or use an empty list to indicate no save. *(configurable)*
+**Save Attribute**: One of `none`, `str`, `dex`, `con`, `int`, `wis`, `cha`. `none` is shorthand for "no save". *(configurable)*
 
-**Save Outcome Key**: The name of a branch of a Save's result. Every Save Spec must define `fail`; `success` and `fumble` are optional. A Save Spec that omits an optional outcome has no additional effect on that branch. `fumble` applies when the defender's Degree of Failure meets or exceeds the Default Fumble Threshold defined in `dice_resolution_config.yaml`, and when present replaces the plain `fail` effect. *(configurable)*
+**Save Outcome Key**: A branch of a Save's result. Every Save Spec must define `fail`; `success` and `fumble` are optional. `fumble` applies when the defender's Degree of Failure meets or exceeds the Default Fumble Threshold and replaces the plain `fail` effect when present. *(configurable)*
 
-**Save Effect**: An Effect (see below) that appears as the value of a Save Outcome Key. The same shape as any other Effect.
+**Save Effect**: An Effect (see common glossary) appearing as the value of a Save Outcome Key.
 
-**Effect**: A single effect string. An Effect is one of:
-- The literal `"0"` or `"none"` — no effect.
-- A non-empty string that is not a damage expression — treated as a named non-damage effect (e.g. `blind`, `dazzled`, `bleeding`). The abilities module passes the name through opaquely. Validation against the conditions module's Effect Names catalog happens later when the effect is applied; the abilities module deliberately does not maintain or consult an effect-names list of its own.
-- A damage expression of the form `"<formula> damage"` or `"<formula> <severity> damage"` — a formula that evaluates to a damage amount, optionally with an explicit Severity.
+**Damage Effect Severity**: A damage Effect must have a determinable Severity from one of two sources: **explicit per-Effect Severity** baked into the string (e.g. `"3*rank major damage"`), or **implicit from the Entry's Damage Type**. Explicit wins when present. The Damage Type `physical` opts into Runtime Bucketing and counts as having a determinable Severity. A damage Effect on an Entry with neither a `damage_type` nor an explicit Severity is a validation error. *(4 sentences — flagged: each carries an independent rule the validator enforces)*
 
-A damage Effect must have a determinable Severity. Severity comes from one of two sources:
-- **Explicit per-Effect Severity**, baked into the string between the formula and the word `damage` (e.g. `"3*rank major damage"`). Recognized values are `minor`, `moderate`, and `major`. Wins when present.
-- **Implicit from the Entry's Damage Type**, looked up in `damage_types_config.yaml`. The Severity declared on the Damage Type applies to every damage Effect on the Entry that omits an explicit Severity. The Damage Type `physical` opts into Runtime Bucketing (see `damage_types_glossary.md`) and counts as having a determinable Severity.
+**Damage Effect Variables**: Damage-expression Formulas may reference `rank`, `tier`, any name from the Effect Hash, and roll-result variables `success` and `critical`. Inside a Save Outcome these are the **defender's** save results; inside a top-level `effects` list (Unconditional Effect) they are the **caster's** casting-roll results. The abilities module returns Formulas in deferred form; the caller evaluates them once the relevant roll is known.
 
-A damage Effect on an Entry with neither a `damage_type` nor an explicit Severity is a validation error.
+**Damage Type**: A `damage_type` field on the Entry, naming an entry in the damage_types catalog (see `damage_types_glossary.md`). Attached to every damage-kind Effect on the Entry. May be omitted only when every damage Effect declares an explicit Severity in its string form. An Entry whose `damage_type` is `physical` must additionally declare a `threshold`.
 
-Damage-expression Formulas may reference `rank`, `tier`, any name from the Effect Hash, and two roll-result variables: **`success`** and **`critical`**. Their meaning depends on which roll the caller is reporting back:
-- For an Effect inside a Save Outcome, `success` and `critical` are the **defender's** save results.
-- For an Effect inside a top-level `effects` list (an Unconditional Effect), `success` and `critical` are the **caster's** casting-roll results.
+**Threshold**: Optional non-negative integer field on an Entry. Required when `damage_type` is `physical`; rejected on Entries with any other damage type. For weapon-driven attacks the weapon's Threshold typically takes precedence — that decision lives in combat. (See common glossary.)
 
-The abilities module does not roll dice; it returns Formulas in a deferred form so the caller evaluates them once the relevant roll is known.
+**Unconditional Effect**: An Effect that applies regardless of save or attack roll. Listed under the Entry's optional top-level `effects` field — a list of Effect strings. Use `effects` for outcomes that always happen on a successful cast; use `save` for outcomes that depend on the defender's save.
 
-The abilities module does not own the catalog of named effects, their structured Mechanics, or the validation that an Effect string corresponds to a real entry — those all live in the conditions module. See `conditions_glossary.md` for the Effect Name term and the recognized Mechanic kinds.
+**Multiple Saves**: An Entry may list more than one Save Spec. Every Spec is offered to the target unless its `condition` restricts it.
 
-**Damage Type**: A `damage_type` field on an Entry. A name from the damage_types catalog (see `damage_types_glossary.md`), attached to every damage-kind Effect produced by the Entry across `effects`, `save` outcomes, and the Concentration Block. The abilities module validates the name against the catalog but defers resolution semantics (resistances, vulnerabilities, type-specific mechanics) to the damage_types module and its consumers.
-
-An Entry's `damage_type` may be omitted only when every damage Effect on the Entry declares an explicit Severity in its string form. An Entry whose `damage_type` is `physical` must additionally declare a `threshold`.
-
-**Threshold**: An optional non-negative integer field on an Entry, used by Runtime Bucketing to split Physical Damage points across the Severity pools. Required when `damage_type` is `physical`; rejected on Entries with any other damage type. For weapon-driven attacks, the weapon's Threshold typically takes precedence over the Entry's — that decision lives in combat.
-
-**Unconditional Effect**: An Effect that applies regardless of any save or attack roll. Listed under the Entry's optional top-level `effects` field — a list of Effect strings. Use the `effects` field for outcomes that always happen on a successful cast (e.g. damage that the save does not affect); use the `save` field for outcomes that depend on the defender's save.
-
-**Multiple Saves**: An Entry may list more than one Save Spec. Every Save Spec is offered to the target unless it has a `condition` that restricts when it applies.
-
-**Conditional Save**: A Save Spec with a `condition` field that restricts when the save is granted. Recognized conditions are `on_fail` (only offered if the first Save Spec was a failure) and `on_fumble` (only offered if the first Save Spec was a fumble). The abilities module reports conditional saves verbatim; the caller is responsible for checking the condition and applying the save only when appropriate.
+**Conditional Save**: A Save Spec with a `condition` field. Recognized values: `on_fail` (only if the first Save Spec was a failure) and `on_fumble` (only if the first was a fumble). The abilities module reports them verbatim; the caller checks the condition.
 
 ## Properties
 
-**Property**: A keyword flag that modifies how an Entry behaves but carries no numeric data of its own. The `properties` field on an Entry is an optional list of property keywords from the configurable `Properties` table. Mechanical definitions for each property live in whichever module implements its effect — the abilities module only validates that property names are recognized and exposes the list to callers.
+**Property**: A keyword flag that modifies how an Entry behaves. The `properties` field is an optional list of keywords from the configurable `Properties` table. Mechanical definitions live in the implementing module — abilities only validates names.
 
 ## Schools and Skills
 
-**Spell School**: The magical discipline an Entry belongs to. The `school` field is a string matching a key in `Spell Schools`. Only Entries with Type `spell` have a School; Entries with Type `ability` do not. *(configurable)*
+**Spell School**: The magical discipline an Entry belongs to. The `school` field matches a key in `Spell Schools`. Only spell-Type Entries have a School. *(configurable)*
 
-**Casting Skill**: A skill that may be used to cast the Entry. The `skills` field is a list of skill keys from `Casting Skills List`. The caster picks one of the listed skills at casting time; that skill's ranks determine the caster's `rank` when the Entry's Formulas are evaluated. *(list is configurable)*
+**Casting Skill**: A skill that may cast the Entry. The `skills` field lists keys from `Casting Skills List`. The caster picks one at casting time; that skill's ranks become `rank`. *(configurable)*
 
-**Universal Spell Casting Skill**: A Casting Skill that can be used to cast any spell, regardless of whether the spell's entry lists it. The configurable `Universal Spell Casting Skills` list names these skills — `evocation` is the standard example. The abilities module implicitly appends the universal skills to every spell's effective skill list at lookup time; data files must not list universal skills in an entry's `skills` field. Abilities (Entries with `type: ability`) are unaffected because they are not spells. *(configurable)*
+**Universal Spell Casting Skill**: A Casting Skill usable for any spell regardless of the entry's `skills` list (e.g. `evocation`). The configurable `Universal Spell Casting Skills` list is appended implicitly at lookup time; data files must not list universal skills explicitly. Abilities (Type `ability`) are unaffected.
 
 ## Items and Packaging
 
-**Item Form**: A physical object form in which a Spell may be packaged. The `items` field is a list of keys from `Item Forms`. An empty list means the Spell cannot be packaged into any non-universal item form.
+**Item Form**: A physical form a Spell may be packaged in. The `items` field lists keys from `Item Forms`. Empty means the Spell cannot be packaged in any non-universal form.
 
-**Universal Item Form**: An Item Form that any Spell may be packaged into without being listed in the Entry's `items` field. The configurable `Universal Item Forms` list names them — the standard entries are `scroll` and `wand`. The abilities module implicitly appends the universal forms to every Spell's Valid Item Forms at lookup time; data files must not list universal forms in an entry's `items` field. *(configurable)*
+**Universal Item Form**: An Item Form any Spell may be packaged into without listing it (defaults: `scroll`, `wand`). Appended implicitly; data files must not list universal forms. *(configurable)*
 
-**Valid Item Forms**: The list of Item Forms an Entry is eligible for, including the universal forms added by the module at lookup time. The abilities module exposes this list; the caller decides which form to produce. Item-only Entries do not gain universal forms — they may only be invoked through the explicit Item Forms their entry lists.
+**Valid Item Forms**: The list of Item Forms an Entry is eligible for, including universal forms added at lookup time. Item-Only Entries do **not** gain universal forms.
 
-**Item-Only Entry**: An Entry whose `item_only` field is `true`. An Item-Only Entry cannot be cast directly by a caster; it can only be invoked through a magic item that contains it. An Item-Only Entry still declares a full set of casting fields (skills, range, save, etc.) so that the magic item can resolve them when the item is used.
+**Item-Only Entry**: An Entry whose `item_only` field is `true`. Cannot be cast directly — only invoked through a magic item that contains it. Still declares full casting fields so the item can resolve them.
 
 ## Effects
 
-**Effect Hash**: The `effect_hash` field — a dictionary of named values used by the Entry's description and its Save Effects. Values may be literal numbers or strings, lists indexed by the Entry's Variant Axis (used when `tier` is a list or `aspects` is present), or Formula strings. Names in the Effect Hash may be referenced from the `description`, from Save Effect strings, and from other Effect Hash entries that are themselves Formulas.
+**Effect Hash**: The `effect_hash` field — a dictionary of named values used by the Entry's description and Save Effects. Values may be literal numbers/strings, lists indexed by the Variant Axis, or Formula strings. Names may be referenced from `description`, Save Effect strings, and other Effect Hash entries.
 
-**Formula**: A string that is evaluated against a context dictionary to produce a numeric value. The variable `rank` is always present; when an Entry has a tier assigned, `tier` is also present and carries the tier of the Variant being evaluated (with Tier 0 treated as 0.5). Names from the Effect Hash are added to the context before any Effect or description string is resolved. When a Formula inside an Effect's damage expression is evaluated, three additional variables may be supplied by the caller:
+**Formula**: A string evaluated against a context dictionary. `rank` is always present; `tier` is present when the Entry has one assigned (Tier 0 → 0.5). Effect Hash names are added to the context first. Inside a damage expression, three additional caller-supplied variables may appear: **`success`** and **`critical`** (defender's save results for a Save Effect; caster's casting-roll results for an Unconditional Effect), and **`attribute`** (the casting skill's associated attribute value). These three are valid only inside damage expressions. *(4 sentences — flagged: the variable set and where each is valid is mechanical spec)*
 
-- **`success`** and **`critical`** — roll-result counts. Their meaning depends on context: for a Save Effect they are the defender's save results; for an Unconditional Effect they are the caster's casting-roll results.
-- **`attribute`** — the value of the casting skill's associated attribute (e.g. Cha for `perform_`, Int for `arcana`). Useful for spells whose damage scales with the caster's stats, such as a `attribute/2 + 2` formula.
+**Description**: The `description` field — a free-form string with `{name}` placeholders substituted from the Effect Hash, and (for Aspect-axis Entries) `{aspect}`.
 
-These three variables are only valid inside damage expressions — they must not be referenced from the Effect Hash or from the Range/Target formulas, because those are resolved before any roll is made.
+**Duration**: The `duration` field — a free-form string. Common values: `instant`, `concentration`, `"<formula> rounds"`, `"<formula> minutes"`, `permanent`. The abilities module exposes verbatim; the caller applies it.
 
-**Description**: The `description` field — a free-form string displayed to the user. The description may contain `{name}` placeholders, substituted from the Effect Hash at display time, and (for Aspect-axis Entries) the `{aspect}` placeholder, replaced with the current Variant's aspect name.
-
-**Duration**: The `duration` field — a free-form string indicating how long the Entry's effect lasts. Common values include `instant`, `concentration`, `"<formula> rounds"`, `"<formula> minutes"`, and `permanent`. The abilities module does not interpret Duration strings; it exposes them verbatim for the caller to apply.
+(Effect: see common glossary. The catalog of named effects and their Mechanics lives in conditions — see `conditions_glossary.md`.)
 
 ## Magic Toxicity
 
-**Magic Toxicity**: A measure of a creature's accumulated exposure to magical effects, also called magic saturation. The condition itself is owned by the condition module; the abilities module's only role is to expose how much toxicity a spell imposes on its target via two conventional names in the Effect Hash:
+(Magic Toxicity: see common glossary.)
 
-- `minimum_saturation` — the minimum amount of magic toxicity the spell imposes per cast.
-- `saturation` — the default amount the spell imposes per cast.
-
-Both are typically Formula strings of `tier` (e.g. `"tier*2"`, `"tier*5"`). When a spell does not apply magic toxicity, both keys are absent from its Effect Hash. The abilities module performs no validation on whether these keys are present; it surfaces the resolved values through the standard Effect Hash so the condition module can read and apply them.
-
-Per the project-wide convention, the term **magic toxicity** is preferred over "mana saturation"; the two refer to the same mechanic.
+**Magic Toxicity Effect Hash Keys**: Spells imposing toxicity expose two conventional Effect Hash names: `minimum_saturation` (minimum imposed per cast) and `saturation` (default imposed per cast). Typically Formula strings of `tier` (e.g. `"tier*2"`). Absent when the spell does not apply toxicity. The abilities module performs no validation; conditions reads and applies the resolved values.
 
 ## Procedural Class and Racial Abilities
 
-Some abilities granted by classes and races (named in `advancement_config.yaml` under each class's `abilities:` list and in `race_config.yaml` similarly) are **procedural** — they activate during a specific action and produce a one-shot effect with no per-creature state left behind. Sneak Attack, Channel Divinity, Improved Healing, and Sense Injury all fit. The procedural-ability catalog lives in the abilities module so callers (combat, dice resolution, healing) can look up the trigger spec for a name.
+Some abilities are **procedural**: they activate during a specific action and produce a one-shot effect with no per-creature state left behind (Sneak Attack, Channel Divinity, Improved Healing, Sense Injury). The procedural-ability catalog lives in the abilities module so callers can look up the trigger spec.
 
-**Procedural Ability**: A class- or race-granted ability whose entire effect resolves during a specific action. The ability has no duration and creates no state on the creature using it. Lookup happens at action-time: combat (or whichever caller is running the action) asks the abilities module "does this Character have ability X, and if so, what's its trigger spec?".
+**Procedural Ability**: A class- or race-granted ability whose entire effect resolves during a specific action — no duration, no creature state. Callers ask the abilities module "does this Character have ability X, and if so, what's its trigger spec?".
 
-**Trigger Spec**: A structured description of when a Procedural Ability fires and what it does. Each Spec has an `on` field (the action that triggers it — e.g. `attack_check`, `healing_check`, `invoke`), an optional `condition` field (a free-form scope tag the consuming module checks — e.g. `target_flatfooted`, `target_undead`), and an `effect` field describing the one-shot outcome.
+**Trigger Spec**: A structured description of when a Procedural Ability fires and what it does. Has `on` (the triggering action — e.g. `attack_check`, `healing_check`, `invoke`), an optional `condition` (free-form scope tag the consuming module checks), and `effect` (the one-shot outcome).
 
-**Stateful Counterpart**: Some abilities that *appear* class-granted are actually stateful — Rage (entered for N rounds), Bardic Inspiration (luck-points counter), Trapfinding (concentration). These are **not** in the procedural catalog; they live in the conditions module's Effect Names catalog, the Acid-Counter-style hardcoded counters, or as Affliction-shaped state. The advancement / race ability list still names them so the Character knows they exist; the conditions module owns their behavior and per-creature state.
+**Stateful Counterpart**: Some abilities that *appear* class-granted are stateful (Rage, Bardic Inspiration, Trapfinding) — they live in the conditions module's Effect Names catalog or as Affliction-shaped state, not in the procedural catalog. Advancement / race ability lists still name them so the Character knows they exist; conditions owns their behavior. **Split rule: per-creature mutable state → Conditions; purely procedural lookup → Abilities.**
 
-The split rule: any per-creature mutable state → Conditions; purely procedural lookup → Abilities.
-
-**Always-On Modifier**: A passive numeric bonus an ability grants while the Character has it (e.g. fast_movement's `+10` to speed). Lives directly on the ability entry's `modifiers:` field in `advancement_config.yaml` (or `race_config.yaml`), as a list of `{target, type, descriptors, add}` entries — see those configs for the schema. The Modifiers class consumes this list during Character bonus computation. Always-On Modifiers are simpler than full Trigger Specs: no `on` action, no `condition`, just a constant addition.
+**Always-On Modifier**: A passive numeric bonus an ability grants while the Character has it (e.g. fast_movement's `+10` to speed). Lives on the ability's `modifiers:` field as a list of `{target, type, descriptors, add}` entries; consumed by the Modifiers class during bonus computation.
 
 ## Module Scope
 
-The abilities module is strictly a **reference**. Given an Entry name, it returns every piece of information needed to resolve a cast: the casting time in rounds, the range in feet, the target count, the list of save specs, the valid casting skills, the valid item forms, the school, the duration string, and the full Effect Hash. Given a Procedural Ability name, it returns the Trigger Spec. It does not:
+The abilities module is a **reference**. Given an Entry name, it returns everything needed to resolve a cast (casting time, range, target count, save specs, casting skills, item forms, school, duration, full Effect Hash). Given a Procedural Ability name, it returns the Trigger Spec.
 
-- Track which creatures have which abilities or spells prepared.
-- Track which effects are currently active.
-- Roll dice, apply damage, or apply conditions.
-- Resolve saves.
+Does not:
+- Track which creatures have which abilities prepared, or which effects are currently active.
+- Roll dice, apply damage, resolve saves, or apply conditions.
 - Consume spell slots, mana, or item charges.
-- Evaluate Trigger Spec conditions or apply their effects — that's the consuming module's job (combat for `attack_check` triggers, healing for `healing_check`, etc.).
-
-Those responsibilities belong to the character, combat, condition, and item modules respectively. The abilities module's single job is to answer "what does this spell, ability, or class feature do?" in a form those other modules can consume directly.
+- Evaluate Trigger Spec conditions or apply their effects (the consuming module's job).
