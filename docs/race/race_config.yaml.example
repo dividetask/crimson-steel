@@ -1,40 +1,22 @@
 # Crimson Steel — races.
-#
-# Setup:
-#   1. Copy this file to `data/races.yaml`.
-#   2. Edit the entries to match the rules of your campaign.
-#   3. Restart the server.
-#
 # Schema:
 #   races:
 #     <race_key>:
-#       name        optional human-readable race name. The race
-#                   key is used as a fallback wherever the name
-#                   is displayed.
-#       parent_race optional. Marks the race as a sub-race of
-#                   another. The sub-race inherits the parent's
-#                   speed, ability_score_adjustments, and
-#                   abilities; its own values stack on top.
+#       name        optional human-readable name (key is fallback).
+#       parent_race optional. Marks as a sub-race; inherits speed,
+#                   ability_score_adjustments, and abilities. Own
+#                   values stack on top.
 #       size        optional, e.g. "Small" or "Medium".
-#       speed       optional integer. Base walking speed in feet.
-#                   Inherited from a parent_race when omitted.
+#       speed       optional integer (feet). Inherited if omitted.
 #       ability_score_adjustments
-#                   optional map of attribute key (str/dex/con/
-#                   int/wis/cha) to integer. Stacks across the
-#                   parent_race chain — a Hill Dwarf's +2 con
-#                   inherited from Dwarf plus its own +2 wis
-#                   accumulates correctly.
-#       abilities   optional, list of ability entries shaped
-#                   exactly like a class's abilities list (see
-#                   advancement.yaml). Sticky context entries are
-#                   limited to `min_level`; per-ability fields
-#                   include `name`, `min_level`, and
-#                   `scales_with_level`. The level a racial
-#                   ability scales against is the character's
-#                   total class level.
-#
-# Characters reference a race by its key in the `race:` field of
-# their entry in characters.yaml.
+#                   optional map of attribute key to integer. Stacks
+#                   across the parent_race chain.
+#       abilities   optional, list shaped like a class's abilities
+#                   list (see advancement.yaml). Sticky context
+#                   entries limited to `min_level`. Per-ability
+#                   fields: `name`, `min_level`, `scales_with_level`.
+#                   Scales against the character's total class level.
+# Characters reference a race by key in their `race:` field.
 
 races:
   human:

@@ -1,75 +1,38 @@
 # Crimson Steel — skills.
-#
-# Setup:
-#   1. Copy this file to `data/skills.yaml`.
-#   2. Edit the entries to match the rules of your campaign.
-#   3. Restart the server.
-#
 # Schema:
 #   skills:
 #     <skill_key>:
-#       attribute   one of str/dex/con/int/wis/cha. The attribute
-#                   modifier added when rolling this skill.
-#       description short, human-readable summary of what the
-#                   skill covers.
-#       set         optional, default false. Marks the entry as
-#                   a *skill set* rather than a single skill. By
-#                   convention a skill set's key ends in `_`; its
-#                   children share the parent's attribute and are
-#                   spelled `<set>_<specialty>` (e.g. craft_smith,
-#                   perform_dance). Characters cannot take ranks
-#                   in the parent set itself, only in specific
-#                   children — so a class skill of `craft_` allows
-#                   any `craft_<specialty>` to be advanced. The
-#                   children themselves do not need to be listed
-#                   here.
-#       mandatory   optional, default false. Marks a skill that
-#                   every character advances automatically: every
-#                   character treats it as if they had listed it
-#                   under every class. Characters should not list
-#                   mandatory skills in their chosen-skills lists.
-#
-# Each class lists its own class skills and (optionally) opposed
-# skills in advancement.yaml. A character then chooses, per class,
-# which of those skills they advance.
+#       attribute   one of str/dex/con/int/wis/cha.
+#       description short, human-readable summary.
+#       set         optional, default false. Marks a *skill set*.
+#                   Convention: key ends in `_`; children share the
+#                   parent's attribute and are spelled
+#                   `<set>_<specialty>` (e.g. craft_smith). Characters
+#                   take ranks only in children — class skill `craft_`
+#                   allows any `craft_<specialty>` to advance. Children
+#                   need not be listed here.
+#       mandatory   optional, default false. Every character advances
+#                   it automatically (don't list under chosen skills).
+# Each class lists its class/opposed skills in advancement.yaml; the
+# character chooses, per class, which to advance.
 
-
-# ─── Tier advancement ────────────────────────────────────────
-#
-# Every creature gains a minimum number of skills based upon 
-# one of their attributes (default: Intelligence).
-# They gain a number of skills equal to their attribute divided
-# by the attribute_divisor rounded down. These skills advance
-# each level based upon the class. Additional skills are granted
-# by the class. 
-
+# Every creature gains a minimum number of skills based on an attribute
+# (default Intelligence): floor(attribute / attribute_divisor).
 minimum_skills_trained:
   attribute: int
   attribute_divisor: 4
 
-# ─── Skill Roll math ─────────────────────────────────────────
-#
-# A Skill Roll's Skill Prowess is `Skill Ranks + Attribute
-# Contribution`. The Attribute Contribution is the character's
-# Effective Attribute divided by `attribute_contribution_divisor`,
-# floored. The resulting Skill Prowess is handed to dice
-# resolution's `compute_check_details` to produce the Dice Count,
-# Competency Bonus, and Starting Value.
-
+# Skill Roll math. Skill Prowess = Skill Ranks + floor(Effective Attribute /
+# attribute_contribution_divisor). Passed to dice resolution's
+# compute_check_details for Dice Count, Competency Bonus, Starting Value.
 skill_prowess:
   attribute_contribution_divisor: 2
 
-# ─── Versatile Performance ───────────────────────────────────
-#
-# Each entry maps a Perform Skill Set Member key (the part after
-# `perform_`) to the two ordinary Skills that performance can
-# substitute for. When a character with the `versatile_performance`
-# ability has chosen a performance, a `skill_details` lookup for
-# either of the listed Skills compares the requested Skill's
-# Skill Prowess against the chosen Performance's Skill Prowess
-# and returns the better of the two — keeping the requested
-# Skill's name on the way out.
-
+# Versatile Performance. Maps a Perform Skill Set Member key (after
+# `perform_`) to two ordinary Skills it can substitute for. With the
+# `versatile_performance` ability, a `skill_details` lookup for either
+# listed Skill returns max(requested prowess, chosen performance prowess),
+# keeping the requested skill's name.
 versatile_performance:
   ability_name: versatile_performance
   performances:
