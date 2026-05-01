@@ -707,7 +707,35 @@ table th {
 .scene-maps { display: flex; flex-direction: column; gap: 16px; margin: 20px 0; }
 .scene-map { border: 1px solid #ccc; background: #fff; padding: 10px 12px; border-radius: 4px; }
 .scene-map h2 { margin: 0 0 8px 0; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
-.scene-map-grid-wrap { position: relative; display: inline-block; }
+/* Outer container that takes the scaled bounding box so the rest of
+ * the page reflows correctly when the DM/players zoom. JS sets its
+ * width/height after each zoom click. */
+.scene-map-zoom-wrap { display: inline-block; vertical-align: top; overflow: visible; }
+.scene-map-grid-wrap { position: relative; display: inline-block; transform-origin: top left; }
+.scene-map-spell-dot {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 60%; height: 60%;
+  margin: -30% 0 0 -30%;
+  background: radial-gradient(circle at 30% 30%, #b388ff, #4527a0 70%, #311b92);
+  border: 1.5px solid #311b92;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(98, 0, 234, 0.6);
+  pointer-events: none;
+  z-index: 3;
+}
+.scene-map-spell-dot.mine { border-color: #1565c0; box-shadow: 0 0 4px rgba(21,101,192,0.7); }
+.scene-map-player-palette .spell-brush {
+  background: #ede7f6; border: 1px solid #4527a0; color: #311b92; padding: 0 8px; font-size: 11px;
+}
+.scene-map-player-palette .spell-brush.active { background: #4527a0; color: #fff; }
+.scene-map-player-palette .map-zoom-btn {
+  background: #fff; border: 1px solid #999; color: #333;
+  width: 32px; height: 28px; padding: 0; font-size: 13px; cursor: pointer;
+}
+.scene-map-player-palette .map-zoom-btn:hover { background: #f0f0f0; }
+.map-save-btn { background: #1976d2; color: #fff; border: none; padding: 4px 10px; font-size: 12px; border-radius: 3px; cursor: pointer; margin-left: 6px; }
+.map-save-btn:hover { background: #0d47a1; }
 /* SVG overlay sits exactly on top of the cell grid. pointer-events:
  * none lets cell clicks (and cursor hovers) pass through; the
  * arrow-remove handles override pointer-events: auto for their own

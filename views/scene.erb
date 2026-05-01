@@ -114,12 +114,67 @@
           <% if m['title'] && !m['title'].to_s.empty? %>
             <h2><%= h(m['title']) %></h2>
           <% end %>
+          <% if @is_dm %>
+            <%# DM editor palette inline on /scene. Same brush set as
+                /maps; the form wraps the grid below so the existing
+                editor JS (data-editor="1") hooks into the cells. %>
+            <form method="post" action="/scene/map/update" class="notes-form scene-map-editor" data-editor="1">
+              <input type="hidden" name="id" value="<%= h(m['id']) %>">
+              <input type="hidden" name="cells_json" value='<%= h(cells.to_json) %>'>
+              <input type="hidden" name="title" value="<%= h(m['title']) %>">
+              <input type="hidden" name="rows" value="<%= rows %>">
+              <input type="hidden" name="cols" value="<%= cols %>">
+              <% Array(m['visible_to']).each do |pid| %>
+                <input type="hidden" name="visible_to[]" value="<%= pid %>">
+              <% end %>
+              <div class="scene-map-palette" data-palette="1">
+                <div class="palette-group">
+                  <span class="palette-label">Color:</span>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="" title="Clear color">none</button>
+                  <% [['#3a3a3a','Wall'],['#8a8a8a','Stone'],['#d7c79a','Floor'],['#f0f0f0','Web'],['#ffb74d','Hazard'],['#ef5350','Fire / danger'],['#4fc3f7','Water'],['#81c784','Poison / grass'],['#ba68c8','Magic']].each do |hex, name| %>
+                    <button type="button" class="brush color-brush" data-brush-type="color" data-color="<%= hex %>" style="background:<%= hex %>;" title="<%= name %>"></button>
+                  <% end %>
+                  <input type="color" class="brush-color-picker" title="Pick a custom color">
+                </div>
+                <div class="palette-group">
+                  <span class="palette-label">Icon:</span>
+                  <button type="button" class="brush icon-brush" data-brush-type="icon" data-icon="" title="Clear icon">none</button>
+                  <% [['🕸','Web'],['🔥','Fire'],['💧','Water'],['☠','Death / skull'],['🪤','Trap'],['🚪','Door'],['⛏','Rubble / mining'],['⭐','Objective / star'],['⬆','Up'],['⬇','Down'],['⬅','Left'],['➡','Right'],['❓','Unknown'],['❗','Alert']].each do |ic, name| %>
+                    <button type="button" class="brush icon-brush" data-brush-type="icon" data-icon="<%= ic %>" title="<%= name %>"><%= ic %></button>
+                  <% end %>
+                  <input type="text" class="brush-icon-custom" maxlength="3" placeholder="?" title="Custom icon (1-3 chars)">
+                </div>
+                <% if (@map_image_library || []).any? %>
+                  <div class="palette-group">
+                    <span class="palette-label">Image:</span>
+                    <button type="button" class="brush image-brush" data-brush-type="image" data-image="" title="Clear image">none</button>
+                    <% @map_image_library.each do |row| %>
+                      <button type="button" class="brush image-brush" data-brush-type="image" data-image="<%= h(row['src']) %>" title="<%= h(row['label']) %>"><img src="<%= h(row['src']) %>" alt="<%= h(row['label']) %>"></button>
+                    <% end %>
+                  </div>
+                <% end %>
+                <div class="palette-group">
+                  <span class="palette-label">Tools:</span>
+                  <button type="button" class="brush label-brush" data-brush-type="label" title="Prompt for a label">Label</button>
+                  <button type="button" class="brush move-brush" data-brush-type="move" title="Drag a cell's contents to a new square">Move</button>
+                  <button type="button" class="brush erase-brush" data-brush-type="erase" title="Clear cells (drag for a rectangle)">Clear cell</button>
+                  <button type="submit" class="map-save-btn" title="Save the map edits">Save map</button>
+                </div>
+                <div class="palette-group palette-status">
+                  <span class="palette-label">Brush:</span>
+                  <span class="active-brush-desc">Pick a palette item</span>
+                </div>
+              </div>
+            </form>
+          <% end %>
+
           <div class="scene-map-player-palette" data-player-palette="1">
             <% unless @is_dm %>
               <span class="palette-label">Your marks:</span>
               <% [['🔥','Fire'],['⚔️','Sword'],['🏹','Arrow'],['🕸','Web'],['⬆','Move here']].each do |ic, name| %>
                 <button type="button" class="brush player-brush" data-player-brush="place" data-icon="<%= ic %>" title="<%= name %>"><%= ic %></button>
               <% end %>
+              <button type="button" class="brush player-brush spell-brush" data-player-brush="spell" title="Mark a square as the target of a Spell">● Spell</button>
               <button type="button" class="brush player-brush" data-player-brush="erase" title="Click a cell to clear its mark">Erase</button>
               <button type="button" class="brush player-clear-mine" title="Remove all of your marks on this map">Clear mine</button>
             <% end %>
@@ -128,13 +183,18 @@
               <button type="button" class="brush player-brush arrow-brush" data-player-brush="arrow" data-arrow-type="<%= type %>" title="<%= name %> arrow — click start cell, then end cell" style="--arrow-color: <%= color %>;">→ <%= name %></button>
             <% end %>
             <% if @is_dm %>
-              <form method="post" action="/scene/map/arrows/clear" style="display:inline;">
+              <form method="post" action="/scene/map/player_actions/clear" style="display:inline;">
                 <input type="hidden" name="id" value="<%= h(m['id']) %>">
-                <button type="submit" class="brush player-clear-mine" title="Remove every player arrow on this map">Clear all arrows</button>
+                <button type="submit" class="brush player-clear-mine" title="Remove every player arrow, mark, and spell dot on this map">Clear player actions</button>
               </form>
             <% end %>
+            <span class="palette-label" style="margin-left: 8px;">Zoom:</span>
+            <button type="button" class="brush map-zoom-btn" data-map-zoom="out" title="Zoom out">−</button>
+            <button type="button" class="brush map-zoom-btn" data-map-zoom="reset" title="Reset zoom">100%</button>
+            <button type="button" class="brush map-zoom-btn" data-map-zoom="in" title="Zoom in">+</button>
             <span class="palette-status"><span class="active-brush-desc"><%= @is_dm ? 'Pick an arrow type to draw' : 'Pick an icon to place' %></span></span>
           </div>
+          <div class="scene-map-zoom-wrap">
           <div class="scene-map-grid-wrap">
             <div class="scene-map-grid"
                  data-map-id="<%= h(m['id']) %>"
@@ -142,7 +202,7 @@
                  data-rows="<%= rows %>"
                  data-cols="<%= cols %>"
                  <%= 'data-player-grid="1"' unless @is_dm %>
-                 <%= 'data-dm-grid="1"' if @is_dm %>
+                 <%= 'data-dm-grid="1" data-grid="1"' if @is_dm %>
                  style="grid-template-columns: repeat(<%= cols %>, var(--scene-cell-size));">
               <% rows.times do |r| %>
                 <% cols.times do |c| %>
@@ -160,8 +220,12 @@
                     <% if cell['label'] && !cell['label'].to_s.empty? %>
                       <span class="scene-map-label"><%= h(cell['label']) %></span>
                     <% end %>
-                    <% if pmark.is_a?(Hash) && pmark['icon'] %>
-                      <span class="scene-map-player-mark<%= ' mine' if pmark['by'] == @viewer_id %>" data-by="<%= pmark['by'] %>"><%= h(pmark['icon']) %></span>
+                    <% if pmark.is_a?(Hash) %>
+                      <% if pmark['kind'] == 'spell' %>
+                        <span class="scene-map-spell-dot<%= ' mine' if pmark['by'] == @viewer_id %>" data-by="<%= pmark['by'] %>" title="Spell"></span>
+                      <% elsif pmark['icon'] %>
+                        <span class="scene-map-player-mark<%= ' mine' if pmark['by'] == @viewer_id %>" data-by="<%= pmark['by'] %>"><%= h(pmark['icon']) %></span>
+                      <% end %>
                     <% end %>
                   </div>
                 <% end %>
@@ -225,6 +289,7 @@
                 </g>
               <% end %>
             </svg>
+          </div>
           </div>
         </div>
       <% end %>
@@ -627,7 +692,8 @@
   grids.forEach(function(grid) {
     var mapId = grid.getAttribute('data-map-id');
     var viewerId = grid.getAttribute('data-viewer-id');
-    var panel = grid.parentElement.querySelector('[data-player-palette="1"]');
+    var mapEl = grid.closest('.scene-map');
+    var panel = mapEl ? mapEl.querySelector('[data-player-palette="1"]') : null;
     if (!panel) return;
     var status = panel.querySelector('.active-brush-desc');
     var brush = null;
@@ -635,6 +701,7 @@
     function describe() {
       if (!brush) { status.textContent = 'Pick an icon to place'; return; }
       if (brush.kind === 'erase') status.textContent = 'Click a cell to clear its mark';
+      else if (brush.kind === 'spell') status.textContent = 'Click a cell to mark it as a Spell target';
       else status.textContent = 'Click a cell to place ' + brush.icon;
     }
 
@@ -647,6 +714,8 @@
       btn.addEventListener('click', function() {
         var kind = btn.getAttribute('data-player-brush');
         if (kind === 'erase') brush = { kind: 'erase' };
+        else if (kind === 'spell') brush = { kind: 'spell' };
+        else if (kind === 'arrow') return; // arrows handled by their own script
         else brush = { kind: 'place', icon: btn.getAttribute('data-icon') };
         setActiveChip(btn);
         describe();
@@ -654,18 +723,26 @@
     });
 
     function repaint(playerCells) {
-      grid.querySelectorAll('.scene-map-player-mark').forEach(function(el) { el.remove(); });
+      grid.querySelectorAll('.scene-map-player-mark, .scene-map-spell-dot').forEach(function(el) { el.remove(); });
       Object.keys(playerCells || {}).forEach(function(key) {
         var p = playerCells[key];
-        if (!p || !p.icon) return;
+        if (!p) return;
         var parts = key.split(',');
         var cell = grid.querySelector('.scene-map-cell[data-r="' + parts[0] + '"][data-c="' + parts[1] + '"]');
         if (!cell) return;
-        var span = document.createElement('span');
-        span.className = 'scene-map-player-mark' + (String(p.by) === String(viewerId) ? ' mine' : '');
-        span.setAttribute('data-by', p.by || '');
-        span.textContent = p.icon;
-        cell.appendChild(span);
+        if (p.kind === 'spell') {
+          var dot = document.createElement('span');
+          dot.className = 'scene-map-spell-dot' + (String(p.by) === String(viewerId) ? ' mine' : '');
+          dot.setAttribute('data-by', p.by || '');
+          dot.title = 'Spell';
+          cell.appendChild(dot);
+        } else if (p.icon) {
+          var span = document.createElement('span');
+          span.className = 'scene-map-player-mark' + (String(p.by) === String(viewerId) ? ' mine' : '');
+          span.setAttribute('data-by', p.by || '');
+          span.textContent = p.icon;
+          cell.appendChild(span);
+        }
       });
     }
 
@@ -690,6 +767,10 @@
       if (brush.kind === 'erase') {
         p.set('action', 'clear');
         p.set('r', r); p.set('c', c);
+      } else if (brush.kind === 'spell') {
+        p.set('action', 'place');
+        p.set('r', r); p.set('c', c);
+        p.set('kind', 'spell');
       } else {
         p.set('action', 'place');
         p.set('r', r); p.set('c', c);
@@ -721,7 +802,8 @@
   grids.forEach(function(grid) {
     var mapId = grid.getAttribute('data-map-id');
     var viewerId = grid.getAttribute('data-viewer-id');
-    var panel = grid.parentElement.parentElement.querySelector('[data-player-palette="1"]');
+    var mapEl = grid.closest('.scene-map');
+    var panel = mapEl ? mapEl.querySelector('[data-player-palette="1"]') : null;
     if (!panel) return;
     var status = panel.querySelector('.active-brush-desc');
     var svg = grid.parentElement.querySelector('.scene-map-arrows');
@@ -883,7 +965,13 @@
   var editors = document.querySelectorAll('.scene-map-editor[data-editor="1"]');
   editors.forEach(function(form) {
     var hidden = form.querySelector('input[name="cells_json"]');
-    var grid = form.querySelector('[data-grid="1"]');
+    // The grid may live INSIDE the form (maps.erb) or as a sibling
+    // outside the form within the same .scene-map (scene.erb DM
+    // view, where the grid is shared with the player view's
+    // arrow-overlay and zoom wrap). Look in both places.
+    var mapEl = form.closest('.scene-map');
+    var grid = form.querySelector('[data-grid="1"]') ||
+               (mapEl && mapEl.querySelector('[data-grid="1"]'));
     var palette = form.querySelector('[data-palette="1"]');
     if (!hidden || !grid || !palette) return;
     var status = palette.querySelector('.active-brush-desc');
@@ -1185,6 +1273,65 @@
 
     form.addEventListener('submit', function() {
       hidden.value = JSON.stringify(cells);
+    });
+  });
+})();
+</script>
+
+<script>
+(function() {
+  // Map zoom. The .scene-map-grid-wrap gets transform: scale(N); the
+  // outer .scene-map-zoom-wrap takes the scaled bounding box so the
+  // page reflows around the zoomed grid. State persists per map id
+  // via localStorage so the zoom sticks across navigation.
+  var STORAGE_KEY = 'sceneMapZoom';
+  function readState() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; }
+    catch (e) { return {}; }
+  }
+  function writeState(state) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch (e) {}
+  }
+  var state = readState();
+
+  document.querySelectorAll('.scene-map').forEach(function(mapEl) {
+    var grid = mapEl.querySelector('.scene-map-grid');
+    if (!grid) return;
+    var mapId = grid.getAttribute('data-map-id');
+    var inner = mapEl.querySelector('.scene-map-grid-wrap');
+    var outer = mapEl.querySelector('.scene-map-zoom-wrap');
+    var palette = mapEl.querySelector('[data-player-palette="1"]');
+    if (!inner || !outer || !palette) return;
+
+    // Cache the pre-transform natural size on the outer container.
+    var natW = inner.offsetWidth;
+    var natH = inner.offsetHeight;
+
+    function clampScale(s) { return Math.max(0.5, Math.min(3.0, s)); }
+
+    function apply(scale) {
+      scale = clampScale(scale);
+      inner.style.transform = scale === 1 ? '' : 'scale(' + scale + ')';
+      outer.style.width  = (natW * scale) + 'px';
+      outer.style.height = (natH * scale) + 'px';
+      state[mapId] = scale;
+      writeState(state);
+    }
+
+    // Restore saved zoom (or 1.0).
+    var initial = parseFloat(state[mapId]);
+    if (!initial || isNaN(initial)) initial = 1.0;
+    apply(initial);
+
+    palette.querySelectorAll('.map-zoom-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var current = parseFloat(state[mapId]) || 1.0;
+        var act = btn.getAttribute('data-map-zoom');
+        if (act === 'in') apply(current + 0.25);
+        else if (act === 'out') apply(current - 0.25);
+        else apply(1.0);
+      });
     });
   });
 })();

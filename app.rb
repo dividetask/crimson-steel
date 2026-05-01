@@ -817,12 +817,16 @@ post '/scene/map/player_mark' do
 
   case action
   when 'place'
-    icon = params[:icon].to_s
-    halt 400, '{}' unless SCENE_MAP_PLAYER_ICONS.include?(icon)
     r = params[:r].to_i
     c = params[:c].to_i
     halt 400, '{}' if r < 0 || c < 0 || r >= rows || c >= cols
-    entry['player_cells']["#{r},#{c}"] = { 'icon' => icon, 'by' => viewer_id }
+    if params[:kind].to_s == 'spell'
+      entry['player_cells']["#{r},#{c}"] = { 'kind' => 'spell', 'by' => viewer_id }
+    else
+      icon = params[:icon].to_s
+      halt 400, '{}' unless SCENE_MAP_PLAYER_ICONS.include?(icon)
+      entry['player_cells']["#{r},#{c}"] = { 'icon' => icon, 'by' => viewer_id }
+    end
   when 'clear'
     r = params[:r].to_i
     c = params[:c].to_i
@@ -893,14 +897,28 @@ post '/scene/map/arrow' do
   { 'player_arrows' => entry['player_arrows'] }.to_json
 end
 
-# Form-post variant for the DM "Clear all arrows" button — redirects
-# back to the referer page (typically /scene) instead of returning JSON.
+# Form-post variant for the DM "Clear player actions" button —
+# wipes both arrows and the per-cell player marks (icons + spell
+# dots), then redirects back to the referer.
+post '/scene/map/player_actions/clear' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'scene_map'
+  entry['player_arrows'] = []
+  entry['player_cells'] = {}
+  scene_save_notes(notes)
+  redirect back
+end
+
+# Backwards-compat alias for any pre-rename clients.
 post '/scene/map/arrows/clear' do
   scene_require_dm!
   notes = scene_load_notes
   entry, _ = scene_find_note(notes, params[:id])
   halt 404 unless entry && entry['type'] == 'scene_map'
   entry['player_arrows'] = []
+  entry['player_cells'] = {}
   scene_save_notes(notes)
   redirect back
 end
