@@ -918,6 +918,38 @@ form button.danger:hover { background: #b71c1c; }
 
 img.zoomable { cursor: zoom-in; }
 
+/* DM-only social skill-check screen. Sidebar mirrors /enemies for the
+ * lead-PC and DM-NPC pickers; the table on the right is the live roll
+ * matrix (one row per check, one column per character + per-side row
+ * bonuses). */
+.dm-social-layout { display: grid; grid-template-columns: 220px 1fr; gap: 15px; }
+.dm-social-sidebar { border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: #f9f9f9; position: sticky; top: 10px; align-self: start; max-height: 90vh; overflow-y: auto; }
+.dm-social-sidebar h3 { margin: 0 0 8px 0; font-size: 14px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+.dm-social-list { display: flex; flex-direction: column; gap: 2px; }
+.dm-social-group-header { font-size: 11px; color: #555; margin: 6px 0 2px 0; }
+.dm-social-entry { display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 12px; cursor: pointer; }
+.dm-social-entry input[type="radio"] { margin: 0; }
+.dm-social-entry:has(input:checked) span { font-weight: bold; color: #1976d2; }
+
+.dm-social-main { min-width: 0; }
+.dm-social-header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px; margin-bottom: 10px; }
+.dm-social-header h2 { margin: 0; }
+.dm-social-current { font-size: 13px; color: #333; }
+.dm-social-roll-all { margin-left: auto; padding: 8px 16px; background: #1976d2; color: #fff; border: none; border-radius: 3px; cursor: pointer; font-size: 14px; }
+.dm-social-roll-all:hover { background: #1565c0; }
+
+.dm-social-table { border-collapse: collapse; width: 100%; background: #fff; }
+.dm-social-table th, .dm-social-table td { border: 1px solid #ccc; padding: 6px 8px; text-align: center; font-size: 13px; }
+.dm-social-table thead th { background: #eceff1; font-weight: bold; }
+.dm-social-skill-name { text-align: left; font-weight: bold; background: #f5f5f5; }
+.dm-social-cell { font-variant-numeric: tabular-nums; font-weight: bold; min-width: 48px; }
+.dm-social-cell.positive { color: #2e7d32; background: #e8f5e9; }
+.dm-social-cell.negative { color: #c62828; background: #ffebee; }
+.dm-social-cell.zero     { color: #555; }
+.dm-social-bonus-cell { background: #fffde7; }
+.dm-social-bonus { width: 56px; text-align: center; font-size: 13px; }
+.dm-social-legend { font-size: 12px; color: #555; margin-top: 10px; }
+
 .lightbox { position: fixed; inset: 0; display: none; z-index: 10000; }
 .lightbox.open { display: block; }
 .lightbox-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.9); }

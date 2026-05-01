@@ -119,6 +119,58 @@ get '/combat' do
   erb :combat_tracker
 end
 
+# DM-only social skill check screen. Lets the DM roll opposed and
+# unopposed checks (perception / sense motive / deception / persuasion /
+# wisdom / intelligence) for the whole party against one DM-controlled
+# NPC at once, without putting dice in the players' hands. Selections
+# (lead PC, DM-NPC, row bonuses) persist client-side via localStorage;
+# rolls are ephemeral.
+get '/dm_social' do
+  redirect '/character/0' unless local_request?
+  characters = Tools.load_json('characters.json')
+  rules = Tools.load_json('rules.json')
+  dice = rules['dice'] || {}
+
+  pcs   = characters.select { |c| (c['group'] || 'PC') == 'PC' }
+  npcs  = characters.reject { |c| (c['group'] || 'PC') == 'PC' }
+
+  @pcs = pcs.map  { |c| dm_social_stats(c) }
+  @npcs_grouped = npcs.group_by { |c| c['group'] || 'NPC' }
+                      .map { |grp, list| [grp, list.map { |c| dm_social_stats(c) }] }
+  @base_tn = dice['base_target_number'] || 7
+  @tn_min  = dice['tn_minimum'] || 4
+  @tn_max  = dice['tn_maximum'] || 9
+
+  erb :dm_social
+end
+
+# Pre-compute dice/bonus for every skill the DM social screen needs.
+# Persuasion's "opposing skill" (persuasion or sense_motive, whichever
+# the character is more apt at) is resolved server-side using
+# skill_total = ranks + half_attr so the client can just look it up.
+def dm_social_stats(character_data)
+  cs = CharacterSheet.new(character_data)
+  pers_apt = cs.skill_total(:persuasion)
+  sm_apt   = cs.skill_total(:sense_motive)
+  if sm_apt > pers_apt
+    pers_opp = { 'skill' => 'sense_motive', 'dice' => cs.skill_dice(:sense_motive), 'bonus' => cs.skill_bonus(:sense_motive) }
+  else
+    pers_opp = { 'skill' => 'persuasion',   'dice' => cs.skill_dice(:persuasion),   'bonus' => cs.skill_bonus(:persuasion)   }
+  end
+  {
+    'id'   => cs.id,
+    'name' => cs.name,
+    'group' => character_data['group'] || 'PC',
+    'perception'    => { 'dice' => cs.skill_dice(:perception),   'bonus' => cs.skill_bonus(:perception)   },
+    'sense_motive'  => { 'dice' => cs.skill_dice(:sense_motive), 'bonus' => cs.skill_bonus(:sense_motive) },
+    'deception'     => { 'dice' => cs.skill_dice(:deception),    'bonus' => cs.skill_bonus(:deception)    },
+    'persuasion'    => { 'dice' => cs.skill_dice(:persuasion),   'bonus' => cs.skill_bonus(:persuasion)   },
+    'persuasion_opp' => pers_opp,
+    'wisdom'        => { 'dice' => cs.attr_dice(:wis), 'bonus' => cs.attr_bonus(:wis) },
+    'intelligence'  => { 'dice' => cs.attr_dice(:int), 'bonus' => cs.attr_bonus(:int) }
+  }
+end
+
 # Scene: shared player/DM view. During combat, shows a simplified initiative
 # table (names, HP, initiative rolls) with enemy identities masked behind
 # "DM" + a HP color band, plus the current PC's character sheet when it's
@@ -909,148 +961,6 @@ post '/scene/image/promote' do
   notes[idx] = promoted
   scene_save_notes(notes)
   redirect '/scene/0'
-end
-
-# --- Scene maps (grid-based maps the DM paints with colors, labels, icons;
-# shared per-player like scene panels). Cells are stored in a sparse hash
-# keyed "row,col" so empty cells carry no weight in the JSON. ---
-SCENE_MAP_MAX_DIM = 40
-
-def scene_map_clamp_dim(v, default)
-  n = v.to_i
-  n = default if n <= 0
-  [[n, 1].max, SCENE_MAP_MAX_DIM].min
-end
-
-post '/scene/map' do
-  scene_require_dm!
-  notes = scene_load_notes
-  notes << {
-    'id' => SecureRandom.uuid,
-    'owner_id' => 0,
-    'draft' => true,
-    'type' => 'scene_map',
-    'title' => params[:title].to_s,
-    'rows' => scene_map_clamp_dim(params[:rows], 8),
-    'cols' => scene_map_clamp_dim(params[:cols], 8),
-    'cells' => {},
-    'shared' => false,
-    'visible_to' => scene_parse_visible_to(params[:visible_to])
-  }
-  scene_save_notes(notes)
-  redirect '/scene/0'
-end
-
-post '/scene/map/update' do
-  scene_require_dm!
-  notes = scene_load_notes
-  entry, _ = scene_find_note(notes, params[:id])
-  halt 404 unless entry && entry['type'] == 'scene_map'
-
-  entry['title'] = params[:title].to_s
-  entry['visible_to'] = scene_parse_visible_to(params[:visible_to])
-
-  new_rows = scene_map_clamp_dim(params[:rows], entry['rows'].to_i)
-  new_cols = scene_map_clamp_dim(params[:cols], entry['cols'].to_i)
-  entry['rows'] = new_rows
-  entry['cols'] = new_cols
-
-  # The editor posts the cell map as a JSON blob so we can round-trip the
-  # sparse structure without inventing per-cell form field names.
-  raw = params[:cells_json].to_s
-  unless raw.empty?
-    begin
-      parsed = JSON.parse(raw)
-      if parsed.is_a?(Hash)
-        cleaned = {}
-        parsed.each do |key, val|
-          next unless key.is_a?(String) && key =~ /\A(\d+),(\d+)\z/
-          r = Regexp.last_match(1).to_i
-          c = Regexp.last_match(2).to_i
-          next if r >= new_rows || c >= new_cols
-          next unless val.is_a?(Hash)
-          cell = {}
-          cell['color'] = val['color'].to_s[0, 20] if val['color'].is_a?(String) && !val['color'].to_s.empty?
-          cell['label'] = val['label'].to_s[0, 40] if val['label'].is_a?(String) && !val['label'].to_s.empty?
-          cell['icon']  = val['icon'].to_s[0, 20]  if val['icon'].is_a?(String)  && !val['icon'].to_s.empty?
-          cleaned[key] = cell unless cell.empty?
-        end
-        entry['cells'] = cleaned
-      end
-    rescue JSON::ParserError
-      # Leave cells as-is on a bad payload; the UI will re-send on next save.
-    end
-  end
-
-  # A DM edit supersedes any player "where I want to move" marks; wipe the
-  # overlay so stale intents don't linger after the situation changes.
-  entry['player_cells'] = {}
-
-  scene_save_notes(notes)
-  redirect '/scene/0'
-end
-
-post '/scene/map/share' do
-  scene_require_dm!
-  notes = scene_load_notes
-  entry, _ = scene_find_note(notes, params[:id])
-  halt 404 unless entry && entry['type'] == 'scene_map'
-  entry['shared'] = !entry['shared']
-  scene_save_notes(notes)
-  redirect '/scene/0'
-end
-
-post '/scene/map/delete' do
-  scene_require_dm!
-  notes = scene_load_notes
-  _, idx = scene_find_note(notes, params[:id])
-  halt 404 unless idx
-  notes.delete_at(idx)
-  scene_save_notes(notes)
-  redirect '/scene/0'
-end
-
-# --- Player marks on scene maps ---
-# Players can drop a restricted set of icons onto a shared map to signal
-# intent (e.g. "I want to move here"). All player marks on a map are wiped
-# whenever the DM next saves an edit via /scene/map/update, so they act as
-# an ephemeral overlay rather than persistent content.
-SCENE_MAP_PLAYER_ICONS = %w[🔥 ⚔️ 🏹 🕸 ⬆].freeze
-
-post '/scene/map/player_mark' do
-  content_type :json
-  viewer_id = params[:viewer_id].to_i
-  halt 403, '{}' if viewer_id <= 0
-  notes = scene_load_notes
-  entry, _ = scene_find_note(notes, params[:id])
-  halt 404, '{}' unless entry && entry['type'] == 'scene_map'
-  halt 403, '{}' unless entry['shared'] && Array(entry['visible_to']).include?(viewer_id)
-
-  entry['player_cells'] ||= {}
-  action = params[:action].to_s
-  rows = entry['rows'].to_i
-  cols = entry['cols'].to_i
-
-  case action
-  when 'place'
-    icon = params[:icon].to_s
-    halt 400, '{}' unless SCENE_MAP_PLAYER_ICONS.include?(icon)
-    r = params[:r].to_i
-    c = params[:c].to_i
-    halt 400, '{}' if r < 0 || c < 0 || r >= rows || c >= cols
-    entry['player_cells']["#{r},#{c}"] = { 'icon' => icon, 'by' => viewer_id }
-  when 'clear'
-    r = params[:r].to_i
-    c = params[:c].to_i
-    entry['player_cells'].delete("#{r},#{c}")
-  when 'clear_mine'
-    entry['player_cells'].reject! { |_k, v| v.is_a?(Hash) && v['by'] == viewer_id }
-  else
-    halt 400, '{}'
-  end
-
-  scene_save_notes(notes)
-  { 'player_cells' => entry['player_cells'] }.to_json
 end
 
 post '/combat/update/:id' do
