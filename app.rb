@@ -1810,9 +1810,10 @@ get '/enemies/:index' do
 end
 
 # Spawn one enemy from a template, mutating both `characters` and
-# `combat_data` in place. Returns the new participant's combat id.
-# Shared by /combat/add_enemy and /combat/roll_encounter so both
-# paths produce identically shaped records.
+# `combat_data` in place. Returns a hash with `combat_id`, `items`
+# (array rolled by GearTable), and `gold` (integer). Shared by
+# /combat/add_enemy and /combat/roll_encounter so both paths produce
+# identically shaped records.
 def spawn_enemy_from_template!(template_id, characters, combat_data, rng: Random.new)
   template = Templates.find(template_id)
   halt 400, "Enemy template not found: #{template_id}" unless template
@@ -1841,7 +1842,7 @@ def spawn_enemy_from_template!(template_id, characters, combat_data, rng: Random
     'major_damage' => 0,
     'temporary_hit_points' => 0
   }
-  combat_id
+  { combat_id: combat_id, items: instance['items'] || [], gold: instance['gold'].to_i }
 end
 
 # "4-8" -> integer in 4..8; "3" or 3 -> 3; anything else -> 0.
@@ -1881,6 +1882,20 @@ post '/combat/add_enemy' do
   redirect back
 end
 
+# Build a "5gp, chain shirt ×2, falcion" loot summary from a list of
+# spawn-result hashes for a single creature type. Returns nil if the
+# creature rolled nothing.
+def encounter_loot_summary(results)
+  total_gold = results.sum { |r| r[:gold] }
+  item_names = results.flat_map { |r| r[:items].map { |i| i['name'].to_s } }.reject(&:empty?)
+  parts = []
+  parts << "#{total_gold}gp" if total_gold > 0
+  unless item_names.empty?
+    parts.concat(item_names.tally.map { |name, n| n > 1 ? "#{name} ×#{n}" : name })
+  end
+  parts.empty? ? nil : parts.join(', ')
+end
+
 # Roll a random_encounters entry. Removes every non-PC participant from
 # combat (mirroring /combat/clear_enemies), picks one outcome by weight,
 # resolves each spawn's count (single integer or "low-high" range), and
@@ -1909,11 +1924,16 @@ post '/combat/roll_encounter' do
     template_id = spawn['creature_id'].to_s
     template = Templates.find(template_id)
     creature_name = template ? (template['name'] || template_id) : template_id
-    count.times { spawn_enemy_from_template!(template_id, characters, combat_data, rng: rng) }
-    rolled_lines << "#{count}× #{creature_name}"
+    spawn_results = count.times.map do
+      spawn_enemy_from_template!(template_id, characters, combat_data, rng: rng)
+    end
+    line = "#{count}× #{creature_name}"
+    loot = encounter_loot_summary(spawn_results)
+    line += " [#{loot}]" if loot
+    rolled_lines << line
   end
 
-  banner = "#{encounter['name'] || 'Random Encounter'}: #{outcome['description']} — #{rolled_lines.join(', ')}"
+  banner = "#{encounter['name'] || 'Random Encounter'}: #{outcome['description']} — #{rolled_lines.join('; ')}"
   combat_data['encounter_message'] = banner
 
   Tools.save_json('characters.json', characters)
