@@ -1,82 +1,48 @@
 # Loot Tables (example)
-#
 # Weighted, rollable definitions of what items a creature, chest, or
-# shop carries. Other modules (creature templates, scene scripts, the
-# Equipment class's shop refresh) roll against these tables by id.
-#
-# Copy to `loot_tables.yaml` and edit for your campaign.
-#
-# See `equipment_glossary.md` for vocabulary (Loot Table, Roll Row,
-# Option List, Dice Expression, Inline Magical Row) and
-# `equipment_pseudocode.md` for the roll algorithms
+# shop carries. Other modules roll against these tables by id.
+# See `equipment_glossary.md` and `equipment_pseudocode.md`
 # (ROLL_LOOT_TABLE, ROLL_ROW, ROLL_WEIGHTED, RESOLVE_ITEM_SPEC).
+
+# Multi-file loading: reads `loot_tables.yaml` then every
+# `loot_tables-*.yaml`. Duplicate IDs across files are an error.
+# Runtime ADD_LOOT_TABLE persists to this base file.
+
+# Row shapes (under a table's `rolls:`):
 #
-# ---------------------------------------------------------------------
-# Multi-file loading
-#
-# The loader reads `loot_tables.yaml` first, then every file matching
-# `loot_tables-*.yaml` in the same directory. All tables and option
-# lists merge into one registry; duplicate IDs across files are an
-# error. Tables added at runtime (via ADD_LOOT_TABLE) persist back to
-# `loot_tables.yaml`.
-#
-# ---------------------------------------------------------------------
-# Row shapes
-#
-# Each entry under a table's `rolls:` list takes one of four shapes:
-#
-# 1. Guaranteed — always drops.
-#      - item:
-#          item: <name>       # key in equipment_config.yaml
-#          quantity: <number or dice expression>
-#          # ...any identity fields...
+# 1. Guaranteed
+#      - item: { item: <name>, quantity: <number|dice> }
 #
 # 2. Independent Chance — drops with probability `chance` ∈ [0, 1].
 #      - chance: 0.5
-#        item:
-#          item: <name>
+#        item: { item: <name> }
 #
-# 3. Weighted Choice — picks exactly one option by cumulative
-#    probability. If sum(chance) < 1, the remainder means "nothing."
-#    `options` may be an inline list OR the name of an Option List.
+# 3. Weighted Choice — picks one option by cumulative probability.
+#    If sum < 1, remainder = nothing. `options` may be inline or a
+#    named Option List.
 #      - options:
 #          - chance: 0.3
 #            item: {item: <name>}
-#          - chance: 0.2
-#            item: {item: <other>}
-#          # remainder 0.5 = nothing
+#      - options: tier_one_magical_melee
 #
-#      - options: tier_one_magical_melee   # pull from option_lists
+# 4. Gated Weighted Choice — first roll `chance` to enter; on success,
+#    do a Weighted Choice.
+#      - chance: 0.1
+#        options: [...]
 #
-# 4. Gated Weighted Choice — first roll `chance` to decide whether to
-#    enter the table at all; on success, do a Weighted Choice.
-#      - chance: 0.1                       # 10% chance to drop anything
-#        options: [...]                    # weighted choice inside
-#
-# Any row's `item:` (and any option's `item:` inside a Weighted
-# Choice) may be replaced with `items: [...]` to produce multiple
-# Stacks at once — for example, an archer's bow + arrows, or a
-# magical sword + its scabbard. The two forms are mutually
-# exclusive on the same row or option.
+# Either `item:` or `items: [...]` may appear (mutually exclusive on
+# the same row/option). `items:` produces multiple Stacks at once.
 #
 #      - chance: 0.30
 #        items:
 #          - {item: Shortbow}
 #          - {item: Arrow, quantity: "1d10 + 5"}
 #
-# Any row may also declare `equipped: true` at the row level. When
-# present, every Item Stack produced by that row is marked as
-# equipped (e.g., a guard rolls with their weapon, armor, and
-# arrows already on). For multi-item rows the flag applies to all
-# produced stacks uniformly.
-#
-# ---------------------------------------------------------------------
-# Roll variables (cross-row gating)
-#
-# A row can publish its outcome as a named variable, and later rows
-# can gate themselves on that variable. Use this to express row
-# dependencies — e.g., "only roll for a shield when the chosen
-# weapon was one-handed."
+# `equipped: true` at the row level marks every produced Stack as
+# equipped (applies uniformly for multi-item rows).
+
+# Roll variables (cross-row gating). A row publishes its outcome as
+# a named variable; later rows gate on it.
 #
 #     - as: hand
 #       options:
@@ -91,79 +57,46 @@
 #       chance: 0.40
 #       item: {item: Light wooden shield}
 #
-# `as: <name>` records the row's outcome under the variable. The
-# value stored is the `key:` of whichever option won (for a
-# Weighted Choice) or the row's own `key:` (for the other shapes).
-# A row that drops nothing records `null`.
-#
-# `when: { <name>: <value> }` gates the row. If the variable
-# doesn't equal the expected value, the row is skipped entirely
-# (no items drop, no variable is updated). Multiple key/value
-# pairs in one `when:` are AND-ed. An unset variable counts as
-# `null`.
-#
-# Variables are scoped to a single ROLL_LOOT_TABLE call.
-#
-# ---------------------------------------------------------------------
-# Dice expressions
-#
-# Any `quantity` field may be a dice expression string like
-# "2d6 + 3". NdM dice terms, integer constants, and +/- joiners are
-# supported. Evaluation is per-roll, so two guards rolled from the
-# same table can produce different gold totals.
-#
-# ---------------------------------------------------------------------
-# Currency and gems in loot tables
-#
-# Gold (and Silver, Copper) appear as ordinary item stacks with
-# `item: Gold` (or Silver / Copper) and a numeric or dice-expression
-# quantity. There is no separate `gold:` field on a table.
-#
-# Gems are item stacks with `item: Gem`, `value_in_gold: <number>`,
-# and an optional `name`.
-#
-# ---------------------------------------------------------------------
-# Inline magical rows
-#
-# Any row's `item` may specify a magical-item constraint instead of
-# a literal stack. The constraint is rolled through
-# GENERATE_MAGICAL_ITEM at roll time; exactly one property is applied
-# per generated item.
+# `as: <name>` records the outcome (option's `key:` for Weighted Choice,
+# row's own `key:` otherwise; null = nothing dropped). `when: {<n>: <v>}`
+# skips the row if the variable doesn't match (multiple pairs AND-ed;
+# unset = null). Variables are scoped to one ROLL_LOOT_TABLE call.
+
+# Dice expressions: any `quantity` may be "2d6 + 3". NdM, integers, +/-.
+# Evaluated per roll.
+
+# Currency in tables: ordinary stacks (`item: Gold`/`Silver`/`Copper`).
+# Gems: `item: Gem`, `value_in_gold: <n>`, optional `name`.
+
+# Inline magical rows: `item.magical` is a constraint rolled through
+# GENERATE_MAGICAL_ITEM at roll time (exactly one property applied).
 #
 #     item:
 #       magical:
 #         category: melee                 # or ranged, ammo, all_armor, all_body
-#         tier: [1, 2]                    # list of allowed tiers
+#         tier: [1, 2]
 #         tier_weights: {1: 3, 2: 1}      # optional; uniform if absent
 #         properties_weighted:
 #           Elemental: 3
 #           Subdual: 1
-#         items_weighted:                 # optional; uniform over
-#           Long sword: 2                 # eligible items if absent
+#         items_weighted:                 # optional; uniform if absent
+#           Long sword: 2
 #           Mace: 1
-#
-# ---------------------------------------------------------------------
-# Option lists and recursion
-#
-# `option_lists:` holds named, reusable Weighted Choice lists. Any row
-# with `options: "<list_name>"` pulls its options from here. An option
-# whose body is `{chance, from: "<other_list>"}` recurses into another
-# option list when picked — useful for cross-tier overflow (e.g., 5%
-# of a tier-1 roll actually grabs from tier-2).
+
+# Option lists & recursion: `option_lists:` holds named, reusable
+# Weighted Choice lists. Rows reference them via `options: <name>`.
+# An option `{chance, from: "<other_list>"}` recurses into another
+# option list when picked — useful for cross-tier overflow.
 
 loot_tables:
 
   # --- Town guards --------------------------------------------------
-  #
-  # Standard city watch loadout. Weapon and armor are picked
-  # weighted; mundane gold pouch is guaranteed.
+  # Standard city watch loadout. Spear is two-handed, others one-handed;
+  # shield row gates on hand.
 
   town_guard_equipment:
     rolls:
 
-      # Weapon row publishes the chosen handedness as `hand`. The
-      # spear is two-handed, so a spear-wielding guard's hand will
-      # be `two_handed`; the others are `one_handed`.
       - equipped: true
         as: hand
         options:
@@ -188,8 +121,6 @@ loot_tables:
             item: {item: Leather armor}
           # 10% nothing
 
-      # Shield row only fires for one-handed wielders. Spear-
-      # wielding guards skip this row entirely.
       - equipped: true
         when: { hand: one_handed }
         chance: 0.40
@@ -200,16 +131,12 @@ loot_tables:
           quantity: "2d6 + 5"
 
   # --- Bandits ------------------------------------------------------
-  #
-  # Less uniform than guards. Weapons span the cheap end; armor is a
-  # coin flip; a rare bandit has a stolen magical trinket.
+  # Archers (Shortbow option) get arrows in the same row, so we never
+  # produce arrows without a bow.
 
   bandit_equipment:
     rolls:
 
-      # Archers (the Shortbow option) get a quiver of arrows in the
-      # same row, so we never produce arrows without a bow to fire
-      # them.
       - equipped: true
         options:
           - chance: 0.25
@@ -234,8 +161,7 @@ loot_tables:
           item: Gold
           quantity: "1d6 + 1"
 
-      # 5% of bandits have a stolen magical trinket — either a weapon
-      # or a piece of armor, worn or wielded.
+      # 5% chance of a stolen magical trinket (weapon or armor).
       - equipped: true
         chance: 0.05
         options:
@@ -258,10 +184,8 @@ loot_tables:
                   Spell Storing 1: 1
 
   # --- Dragon hoard -------------------------------------------------
-  #
-  # A large, magic-dense cache. Big pile of gold, several gems, a
-  # guaranteed magical weapon, and an independent chance of magical
-  # armor. Uses an option list for the gem value distribution.
+  # Big pile of gold, several gems, guaranteed magical weapon, chance
+  # of magical armor. Gem distribution is a shared option list.
 
   dragon_hoard:
     rolls:
@@ -274,9 +198,7 @@ loot_tables:
           item: Silver
           quantity: "5d100"
 
-      # A fistful of gems, rolled from a shared distribution. Each
-      # of these three rolls is independent — the dragon is likely
-      # to hoard more than one gem.
+      # Three independent gem rolls.
       - options: dragon_hoard_gems
       - options: dragon_hoard_gems
       - chance: 0.60
@@ -320,11 +242,7 @@ loot_tables:
               Radiant: 1
 
   # --- Shop stock templates ----------------------------------------
-  #
-  # These tables are referenced from `shops.yaml.example` as the
-  # initial stock for specific shops and the per-day stock for
-  # generic shops. Quantities use dice expressions so each refresh
-  # produces a slightly different mix.
+  # Referenced from `shops.yaml.example`. Dice expressions vary the mix.
 
   blacksmith_stock:
     rolls:
@@ -398,17 +316,12 @@ loot_tables:
               Emotional: 1
       - item: {item: Gold, quantity: "1d10 + 5"}
 
-# ---------------------------------------------------------------------
-# Option lists
-# ---------------------------------------------------------------------
-#
-# Named, reusable Weighted Choice lists. Rows reference them by name
-# via `options: <list_name>`.
+# Option lists — named, reusable Weighted Choice lists.
 
 option_lists:
 
-  # Gem-value distribution used by the dragon hoard. Small chance of
-  # overflow into the larger-value list.
+  # Gem-value distribution for the dragon hoard. 10% recurses into
+  # the rare list via `from:`.
   dragon_hoard_gems:
     - chance: 0.30
       item:
@@ -430,10 +343,8 @@ option_lists:
         item: Gem
         name: Ruby
         value_in_gold: 1000
-    # 10% overflow into the rarer list — recursion via `from:`.
     - chance: 0.10
       from: dragon_hoard_rare_gems
-    # (sum is 1.0 — no "nothing" remainder.)
 
   dragon_hoard_rare_gems:
     - chance: 0.50
@@ -452,14 +363,9 @@ option_lists:
         name: Star Diamond
         value_in_gold: 10000
 
-  # Example reusable pool of tier-1 magical melee drops. Any table
-  # that wants "a random tier-1 magical melee weapon" can reference
-  # this list instead of duplicating the weights.
-  #
-  # The second magical option includes the reserved `none` weight
-  # in properties_weighted, so 1/3 of the items rolled from that
-  # branch come out as a plain tier-1 magical weapon with no
-  # property applied at all.
+  # Reusable pool of tier-1 magical melee. Second branch's `none`
+  # weight in properties_weighted means 1/3 of those rolls produce
+  # a plain tier-1 weapon with no property applied.
   tier_one_magical_melee:
     - chance: 0.50
       item:
@@ -478,4 +384,4 @@ option_lists:
             Emotional: 1
             Radiant: 1
             none: 1
-    # 20% nothing — the loot bag sometimes comes up empty.
+    # 20% nothing.

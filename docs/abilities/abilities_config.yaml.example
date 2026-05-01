@@ -1,7 +1,6 @@
 # Abilities — Homebrew Configuration
-#
-# Loaded by AbilitySystem. Keys are human-readable; formulas are strings
-# evaluated against a context dict (always includes `rank`).
+# Loaded by AbilitySystem. Formulas are strings evaluated against a
+# context dict (always includes `rank`).
 
 # Seconds per round; converts minute/hour casting times to rounds.
 Round Length Seconds: 6
@@ -48,7 +47,6 @@ Casting Time Aliases:
 Default Reach Feet: 5
 
 # Range formulas evaluated against `rank` (and `reach` for Touch).
-# An entry's `range` may be a key here or a bare integer (feet).
 Range Formulas:
   Self: "0"
   Touch: "reach"
@@ -81,20 +79,15 @@ Save Attributes List:
 
 # Save outcome branches. `fail` is required; others optional.
 # `fumble` triggers when defender's Degree of Failure ≥ Default Fumble
-# Threshold (dice_resolution_config.yaml). Damage formulas may reference
-# `success` and `critical` (defender's counts) along with rank/tier.
+# Threshold (dice_resolution_config.yaml).
 Save Outcome Keys:
   - fail
   - success
   - fumble
 
-# Allowed `properties` keywords on entries. Mechanical effects live in
-# the consuming module.
+# Allowed `properties` keywords on entries.
 Properties:
   language_dependent: "The spell relies on the target understanding the caster's words; targets that do not share a language with the caster are unaffected."
-
-# Effect Names (blind, dazzled, paralyzed, ...) live in
-# conditions_config.yaml under `Effect Names`. Not duplicated here.
 
 # Spell schools (spells only; abilities have no school).
 Spell Schools:
@@ -119,8 +112,7 @@ Universal Item Forms:
   - scroll
   - wand
 
-# Recognized shapes for an entry's `area` field. `size` is in 5-foot
-# squares; consuming module maps to geometry per shape.
+# Recognized shapes for `area`. `size` is in 5-foot squares.
 Area Shapes:
   line: "A straight line `size` squares long, originating from the caster or target square."
   cone: "A cone with `size` squares of slant length, originating from the caster or target square."

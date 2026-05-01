@@ -1,27 +1,14 @@
 # Equipment Configuration (example)
-#
 # Defines what items CAN exist: weapons, armor, ammunition, currencies,
-# gems, magical properties, tier surcharges, and the naming rules used
-# to generate display names. Copy this file to `equipment_config.yaml`
-# and edit for your campaign.
-#
-# ---------------------------------------------------------------------
-# Pricing
-#
-# All prices are in gold pieces (gp) as real numbers. Currency exchange
-# is 1 gp = 10 sp = 100 cp. Prices may be fractional. Comparisons should 
-# use a tolerance rather than strict equality.
+# gems, magical properties, tier surcharges, and naming rules.
+# Prices in gp as real numbers. 1 gp = 10 sp = 100 cp.
 
 # =====================================================================
 # CURRENCY
 # =====================================================================
-#
-# Currencies are Item Types that carry a fixed `value_in_gold`. They
-# appear in inventory as ordinary Item Stacks and merge by Item Type 
-# alone. 
-#
-# Optional fields:
-#   weight  — pounds per unit
+# Currencies are Item Types with a fixed `value_in_gold`. They appear
+# in inventory as ordinary Item Stacks; merge by Item Type alone.
+# Optional field: `weight` (pounds per unit).
 
 Currency:
   Gold:
@@ -38,53 +25,29 @@ Currency:
     weight: 0.02
 
 # =====================================================================
-# (Gems are not configured here)
+# Gems are a fixed Item Type built into Equipment — rules live in
+# `equipment_glossary.md`. No entry needed here.
 # =====================================================================
-#
-# `Gem` is a fixed Item Type built into the Equipment module — its
-# rules (per-stack value_in_gold, optional name, identity-by-value,
-# spend-last in Debit Wealth) are not homebrew-tunable and live in
-# `equipment_glossary.md` instead. Gem stacks appear in inventories
-# and loot tables without any matching entry in this file.
 
 # =====================================================================
 # TIER PRICING (shared)
 # =====================================================================
-#
-# Per-tier costs and the divisors / multipliers that adjust them.
-#
-#   default_tier_surcharges
-#     The default flat additional cost in gp added to an item's base
-#     price when it is made magical. Tier 0 is non-magical and has no
-#     surcharge. This default applies to every Item Type unless that
-#     type defines its own `tier_surcharge` block, in which case the
-#     per-item map replaces this one for that type's pricing.
-#
-#   default_bonus_surcharges
-#     The default flat additional cost in gp added to an item's base
-#     price per point of bonus applied. 
-#
-#   ammunition_divisor
-#     The number of units of magical ammunition whose combined
-#     magical cost equals the magical surcharge of one equivalent
-#     magical item. Per-unit magical ammo cost is
-#       (tier_surcharge + sum property costs) / ammunition_divisor
-#     A higher divisor means cheaper magical ammunition; a lower
-#     divisor means more expensive. Defaults to 100 if absent.
-#
-#   consumable_divisor
-#     Like ammunition_divisor but for non-ammo Consumables (potions,
-#     oils, scrolls, etc.). The magical surcharge for one consumable
-#     unit is `(tier_surcharge + property costs) / consumable_divisor`.
-#     Magical ammunition uses `ammunition_divisor` instead — the two
-#     are independent. Defaults to 10 if absent.
-#
-#   innately_usable_price_multiplier
-#     Items that an untrained user can activate without magical
-#     knowledge (most notably potions and oils — anyone can drink a
-#     potion) carry a usage premium. When an item is flagged
-#     `innately_usable: true`, its computed Unit Price is multiplied
-#     by this number. Defaults to 2.0 if absent.
+# default_tier_surcharges     Default flat gp added when an item is
+#                             made magical. Tier 0 has no surcharge.
+#                             Per-item-type `tier_surcharge` blocks
+#                             override this.
+# default_bonus_surcharges    Default flat gp per point of bonus.
+# ammunition_divisor          Units of magical ammo whose combined
+#                             magical cost equals one full magical
+#                             surcharge. Per-unit cost =
+#                             (tier_surcharge + properties)/divisor.
+#                             Default 100.
+# consumable_divisor          Same idea, for non-ammo consumables
+#                             (potions, oils, scrolls). Default 10.
+# innately_usable_price_multiplier
+#                             Items usable without magical knowledge
+#                             (potions, oils) carry this multiplier
+#                             on their Unit Price. Default 2.0.
 
 Tier Pricing:
   default_tier_surcharges:
@@ -110,22 +73,11 @@ Tier Pricing:
 # =====================================================================
 # NAMING CONVENTION
 # =====================================================================
-#
-# How a magical item's display name is constructed when no explicit
-# `name` override is set on the item instance.
-#
 # Format: <tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>
-#
-# - `tier_prefix` is `tier_prefix_format` with `{tier}` substituted.
-#   Shown for any item with `tier >= 1`, except items in a category
-#   listed under `tier_hidden_for`.
-# - `property_prefixes` and `property_suffixes` come from the `display`
-#   block on each property (see Weapon Properties and Armor Properties).
-#   Each display block specifies a `word` and an optional `position`
-#   (`prefix` or `suffix`; default taken from
-#   `default_property_position`). For subtyped properties, `display`
-#   is keyed by subtype. Properties apply in the order they appear on
-#   the item; prefixes accumulate in that order, suffixes likewise.
+# tier_prefix uses tier_prefix_format with {tier} substituted; shown when
+# tier >= 1, except for items in tier_hidden_for. property_prefixes/suffixes
+# come from each property's `display` block (word + optional position;
+# default = default_property_position). Properties apply in order.
 
 Naming Convention:
   tier_prefix_format: "+{tier}"
@@ -136,12 +88,9 @@ Naming Convention:
 # =====================================================================
 # SLOTS
 # =====================================================================
-#
-# The body slots an equippable item may occupy. Items in the `Items`
-# section below specify a `slot` from this list. Worn armor and held
-# weapons use their own implicit slots (body / hand) and do not list
-# a slot here. The character module enforces "one item per slot"
-# rules at equip time; this module just stores the slot string.
+# Body slots an equippable item may occupy. Worn armor and held weapons
+# use implicit slots (body / hand) and are not listed here. Character
+# module enforces "one item per slot" at equip time.
 
 Slots:
   - back
@@ -160,13 +109,8 @@ Slots:
 # WEAPONS
 # =====================================================================
 
-# ---------------------------------------------------------------------
-# Weapon Categories
-#
-# Each category specifies the default damage formula for weapons in it.
-# `str` refers to the attacker's Strength score and is resolved by the
-# character module. Formula evaluation is the combat module's concern;
-# this module just stores the string.
+# Weapon Categories — `damage` is the default formula; `str` resolves
+# from the attacker. Combat module evaluates the formula.
 
 Weapon Categories:
   Ranged:
@@ -176,60 +120,35 @@ Weapon Categories:
   Two Handed:
     damage: "str / 2"
 
-# ---------------------------------------------------------------------
-# Weapon Tags
-#
-# Mundane structural tags attached to a weapon definition (NOT to be
-# confused with magical Weapon Properties below — those go in a
-# separate catalog and live on inventory stacks). A weapon's `tags`
-# list pulls from this catalog.
-#
-# Each tag may declare:
-#   damage_formula   — overrides the weapon category's default damage
-#                      formula. The first tag with a damage_formula
-#                      wins (multiple are not stacked).
-#   description      — free-form prose for humans.
-#
-# The combat module is the consumer; this module just stores the
-# definitions. Tags whose mechanical effect is still being designed
-# may declare only a description.
+# Weapon Tags — mundane structural tags (NOT magical Weapon Properties).
+# `damage_formula` overrides the category default; first tag with one wins.
+# Combat module is the consumer.
 
 Weapon Tags:
 
   thrown:
     damage_formula: "str / 4 - 2"
-    description: >
-      A weapon balanced for throwing.
+    description: A weapon balanced for throwing.
 
   light:
     damage_formula: "str / 4 - 2"
-    description: >
-      A light one-handed weapon.
+    description: A light one-handed weapon.
 
   heavy:
     damage_formula: "str / 2 + 2"
-    description: >
-      A heavy weapon typically requiring both hands to wield.
+    description: A heavy weapon typically requiring both hands to wield.
 
   exotic:
-    description: >
-      A weapon requiring specialized training.
+    description: A weapon requiring specialized training.
 
   double_weapon:
-    description: >
-      A weapon that can use both ends to attack with.
+    description: A weapon that can use both ends to attack with.
 
   lesslethal:
-    description: >
-      On a successful hit, the weapon inflicts a non-lethal stunning effect.
+    description: On a successful hit, the weapon inflicts a non-lethal stunning effect.
 
-# ---------------------------------------------------------------------
-# Damage Type Defaults
-#
-# Each damage type specifies the default bleed and threshold values for
-# weapons dealing that type. When a weapon has multiple damage types,
-# the attack uses the highest bleed and the lowest threshold across
-# those types.
+# Damage Type Defaults — bleed/threshold per type. Multi-type weapons
+# use highest bleed and lowest threshold across types.
 
 Damage Type Defaults:
   Slashing:
@@ -242,17 +161,10 @@ Damage Type Defaults:
     bleed: 3
     threshold: 4
 
-# ---------------------------------------------------------------------
-# Weapons
-#
-# A Ranged weapon with an `ammo_type` field is a projectile weapon; a
-# Ranged weapon without one is typically thrown and carries the
-# `thrown` tag (which overrides the Ranged damage formula).
-#
-# A weapon may carry zero or more `tags` from the Weapon Tags
-# catalog. Tags differ from the magical-property Weapon Properties
-# catalog used by inventory stacks: tags are intrinsic to the weapon
-# definition; properties are runtime per-instance enchantments.
+# Weapons. A Ranged weapon with `ammo_type` is a projectile weapon;
+# without one it's typically thrown (carries the `thrown` tag).
+# Tags differ from magical Weapon Properties: tags are intrinsic;
+# properties are runtime per-instance enchantments.
 
 Weapons:
 
@@ -440,24 +352,11 @@ Weapons:
     tags: [double_weapon]
     base_price: 40
 
-# ---------------------------------------------------------------------
-# Weapon Magical Properties
-#
-# Properties that can be applied to a weapon when it is made magical.
-# Each property lists the minimum tier required, the cost in gp, which
-# weapon categories it applies to, whether it accepts a subtype, and a
-# `display` block describing how it contributes to the item's name.
-#
-# `applies_to` vocabulary for weapon properties: `melee`, `ranged`,
-# `ammo`. These tags also appear in the Magical Item Constraints used
-# by loot tables and the magical-item generator.
-#
-# `display` fields:
-#   word     — the word the property contributes to the name.
-#   position — 'prefix' or 'suffix'. Optional; defaults to the
-#              Naming Convention's `default_property_position`.
-# For properties with subtypes, `display` is a map of subtype to
-# `{word, position}` instead.
+# Weapon Magical Properties. Each entry: min_tier, cost, applies_to,
+# subtype flag, and `display` (word + optional position; for subtyped
+# properties, display is keyed by subtype).
+# `applies_to` vocabulary: `melee`, `ranged`, `ammo`. These tags also
+# appear in Magical Item Constraints.
 
 Weapon Properties:
 
@@ -520,20 +419,11 @@ Weapon Properties:
 # =====================================================================
 # AMMUNITION
 # =====================================================================
-#
-# Ammunition is sold in bundles of `bundle_size`. `base_price` is the
-# price of a full mundane bundle. Per-unit price (as reported by
-# ITEM_UNIT_PRICE):
-#
-#   (base_price / bundle_size) + (tier_surcharge + sum property costs) / 100
-#
-# Example: a Tier 1 Flaming Arrow. Magical surcharge = 250 (Tier 1)
-# + 500 (Elemental Fire) = 750 gp. Per-unit magical cost = 7.5 gp.
-# Mundane Arrow per-unit = 5 / 20 = 0.25 gp. Total = 7.75 gp.
-#
-# Magical ammunition draws its properties from Weapon Properties with
-# `applies_to: [..., ammo]` — there is no separate ammo property
-# catalog.
+# Sold in bundles of `bundle_size`. `base_price` is a full mundane bundle.
+# Per-unit price = (base_price/bundle_size) +
+#                  (tier_surcharge + sum properties)/100
+# Magical ammunition draws from Weapon Properties with `ammo` in
+# applies_to — no separate ammo property catalog.
 
 Ammunition:
 
@@ -561,7 +451,6 @@ Ammunition:
 # ARMOR
 # =====================================================================
 
-# ---------------------------------------------------------------------
 # Armor Category Defaults
 
 Armor Category Defaults:
@@ -582,21 +471,9 @@ Armor Category Defaults:
     resilience_increment: null
     thickness: 1
 
-# ---------------------------------------------------------------------
-# Materials
-#
-# Each material specifies its baseline hardness and a hit-point
-# formula. There is no per-armor override for these — armor entries
-# pick a material by name and inherit its values.
-#
-# Effective hardness scales with Tier:
-#
-#   effective_hardness = base_hardness + (2 * tier)
-#
-# A non-magical (Tier 0) leather armor has hardness 2; a Tier 3
-# leather armor has hardness 8. Hit points come from the formula
-# string and are evaluated by the combat module (`armor_level`
-# resolves from the armor's Armor Category Defaults entry).
+# Materials. Effective hardness = base_hardness + 2*tier.
+# Hit points come from the formula string (combat module evaluates;
+# `armor_level` resolves from Armor Category Defaults).
 
 Materials:
   Leather:
@@ -609,11 +486,8 @@ Materials:
     hardness: 5
     hit_points: "10 * thickness"
 
-# ---------------------------------------------------------------------
-# Armor
-#
-# Non-magical armor has no resilience. Magical armor has resilience
-# equal to the armor's Tier multiplied by its `resilience_increment`.
+# Armor. Non-magical armor has no resilience; magical armor has
+# resilience = tier * resilience_increment.
 
 Armor:
 
@@ -665,12 +539,8 @@ Armor:
     material: Metal
     base_price: 30
 
-# ---------------------------------------------------------------------
-# Armor Magical Properties
-#
-# `applies_to` vocabulary for armor properties: `all_armor` (any armor
-# including shields), `all_body` (any armor except shields). These
-# tags also appear in Magical Item Constraints.
+# Armor Magical Properties. `applies_to`: `all_armor` (any incl. shields)
+# or `all_body` (any except shields).
 
 Armor Properties:
 
@@ -749,44 +619,18 @@ Armor Properties:
 # =====================================================================
 # MAGIC ITEMS
 # =====================================================================
-#
-# Magic items that aren't Weapons or Armor. Each entry specifies:
-#
-#   slot                One of the Slots listed above.
-#   guidance_attribute  The attribute that receives the item's
-#                       Guidance Bonus. Free-form string interpreted
-#                       by the character module (e.g., `saves`, `str`,
-#                       `dex`, `con`, `int`, `wis`, `cha`).
-#   guidance_bonus      A list of the Guidance Bonus values this
-#                       item type can come in, in ascending order
-#                       (e.g., `[1, 2, 3, 4, 5]` for Cloak of
-#                       Resistance, `[1, 2, 3, 4, 5, 6, 7, 8, 9]`
-#                       for stat-boosting Belts and Headbands).
-#   tier                A list of Tiers, one per entry in
-#                       `guidance_bonus`, indicating the Tier of the
-#                       version with that bonus. Tier is capped at 5.
-#                       The cloak's bonuses scale 1:1 with Tier
-#                       (`[1, 2, 3, 4, 5]`), while the belts and
-#                       headbands fit two bonus values into each of
-#                       Tiers 1–4 and a single value at Tier 5
-#                       (`[1, 1, 2, 2, 3, 3, 4, 4, 5]`).
-#   description         Free-form prose for humans / the UI.
-#
-# Pricing for these items is computed from `Tier Pricing` directly:
-# the Unit Price of a specific +N version is
-#   default_tier_surcharges[tier_for_N] + default_bonus_surcharges[N]
-# where `tier_for_N` is the Tier paired with bonus N in the parallel
-# arrays above. No per-item `tier_surcharge` map is needed.
-#
-# A specific instance of one of these items in inventory carries
-# `tier` and `guidance_bonus` as identity fields on the stack, so
-# a +3 Belt of Strength and a +5 Belt of Strength remain separate
-# stacks even though they share the same Item Type and slot.
-#
-# Items in this section do not currently accept magical Properties
-# from the Weapon or Armor catalogs — their magical effect is the
-# inherent Guidance Bonus. The combat / character modules read the
-# effect off the Item Type by name.
+# Non-Weapon/Armor magic items. Each entry:
+#   slot                 One of the Slots above.
+#   guidance_attribute   The attribute receiving the Guidance Bonus
+#                        (e.g. `saves`, `str`, `dex`, …).
+#   guidance_bonus       Ascending list of available bonus values.
+#   tier                 Parallel list — Tier paired with each bonus
+#                        (capped at 5).
+# Unit Price = default_tier_surcharges[tier_for_N] +
+#              default_bonus_surcharges[N]. Per-instance `tier` and
+# `guidance_bonus` are identity fields on the Stack — a +3 and +5
+# Belt of Strength remain separate stacks.
+# Items here do not currently accept Weapon/Armor Properties.
 
 Items:
 

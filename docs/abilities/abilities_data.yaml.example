@@ -1,29 +1,11 @@
 # Abilities and Spells — Example Data
-#
-# This file illustrates the full schema for ability and spell entries
-# as loaded by the AbilitySystem class. The authoritative data lives in
-# `data/compendium.json` (or another data file chosen by the campaign);
-# this YAML is kept alongside the design docs purely as a reference
-# when authoring or reviewing entries.
-#
-# Every top-level key is an entry name. The entry must have a `type`
-# field of either `spell` or `ability` (see `abilities_config.yaml`).
-# All other fields are documented in `abilities_glossary.md`.
-#
-# Formulas are strings; they may reference `rank` and any name defined
-# in the same entry's `effect_hash`. Formula evaluation and clamping
-# rules are defined in `abilities_pseudocode.md`.
+# Reference schema for ability and spell entries loaded by AbilitySystem.
+# Authoritative data lives in `data/compendium.json`. Field docs in
+# `abilities_glossary.md`. Formulas may reference `rank` and `effect_hash` keys.
 
-# ---------------------------------------------------------------------
-# Elemental damage darts — a single Entry on the Aspect axis. The four
-# darts share the same mechanical shape (tier-0 ranged attack with a
-# concentration block that throws an additional dart each concentrate
-# turn) and only differ in their element and displayed name. Damage is
-# computed by combat from the attack outcome (Tier + Degree of Success
-# + attack bonus); damage-type behavior (fire +1/2dice, acid counter,
-# electricity vs metal armor, cold inflicts shock) lives in the
-# damage_types module.
-
+# Tier-0 elemental darts. Four aspects share one Entry; differ only by
+# element and name. Damage computed by combat; damage-type behavior lives
+# in damage_types module.
 Elemental Dart:
   type: spell
   tier: 0
@@ -47,10 +29,7 @@ Elemental Dart:
     description: "Throw another {aspect} dart at any valid target within range."
   description: "A ranged dart of {aspect}. Resolves as a ranged attack. While concentrating, the caster may throw additional darts."
 
-# ---------------------------------------------------------------------
-# Multi-tier spell with per-tier suffixes and tier-indexed effect
-# values. All tier-dependent values are drawn from `effect_hash` and
-# referenced from both the save effects and the description template.
+# Multi-tier spell with per-tier suffixes and tier-indexed effect values.
 Heal:
   type: spell
   tier: [0, 1, 2, 3, 4, 5]
@@ -83,11 +62,7 @@ Heal:
       bleed_reduction: "tier*2*success"
   description: "Restores up to {minor_damage} minor damage, {moderate_damage} moderate damage, and {major_damage} major damage to the touched ally."
 
-# ---------------------------------------------------------------------
-# Area-of-effect spell. Affects every creature inside a 4-square
-# radius circle centered on the target square; targeting is geometric
-# rather than per-creature, so `target` is "0" (no per-creature
-# target count) and `area` carries the shape and size.
+# AoE spell. Geometric targeting via `area`; `target: "0"` (no per-creature count).
 Fireball:
   type: spell
   tier: 3
@@ -108,8 +83,7 @@ Fireball:
   items: []
   description: "A burst of flame that scorches every creature inside a 4-square radius centered on the target square."
 
-# ---------------------------------------------------------------------
-# Spell with a non-damage condition effect on both branches of the save.
+# Non-damage condition effect on both branches of the save.
 Blinding Light:
   type: spell
   tier: 2
@@ -126,10 +100,7 @@ Blinding Light:
   items: []
   description: "A flash of searing light. On a failed Wisdom save the target is blinded; on a success the target is merely dazzled."
 
-# ---------------------------------------------------------------------
-# Spell with two saves. The second save is only offered under a
-# specific condition — in this case, only when the first save is a
-# fumble.
+# Two saves; second is conditional (only on fumble of the first).
 Dragon Breath:
   type: spell
   tier: 4
@@ -151,12 +122,7 @@ Dragon Breath:
   items: [potion]
   description: "Exhale a cone of dragonfire. Only accessible through a dragonscale talisman or similar magic item."
 
-# ---------------------------------------------------------------------
-# Spell whose damage formula references the defender's save roll:
-# `success` and `critical` are the defender's success count and
-# critical count on the save. The caster rolls the attack, the
-# defender rolls their save, and the save outcome formulas are
-# evaluated with both counts in context.
+# Damage formula references defender's save outcome (`success`, `critical`).
 Scorching Ray:
   type: spell
   tier: 2
@@ -175,10 +141,7 @@ Scorching Ray:
   items: []
   description: "A ray of searing flame. Damage grows with the caster's rank and with the defender's botched saving throw."
 
-# ---------------------------------------------------------------------
-# Rare case: a spell that has both an attack and a save. Almost always
-# a touch spell — the attack resolves whether contact is made, and the
-# save resolves the magical effect once contact lands.
+# Both attack and save (touch attack must land before save resolves).
 Soul Drain:
   type: spell
   tier: 3
@@ -197,19 +160,8 @@ Soul Drain:
   items: []
   description: "A touch that draws on the target's soul. The attack must land before the Wisdom save is offered."
 
-# ---------------------------------------------------------------------
-# Multi-tier spell with a per-variant name override (the tier-1 form
-# is called "Biting Words", not a prefix/suffix construction over
-# "Vicious Mockery"), unconditional damage independent of save, an
-# entry-level damage_type, and a variant_overrides bag that flips the
-# tier-1 form to attack-roll mechanics with a different damage formula.
-#
-# - Tier 0 (Vicious Mockery): no attack roll. Damage scales with the
-#   caster's casting-roll critical count (`3*critical`). Wis save
-#   negates the flustered condition but not the damage.
-# - Tier 1 (Biting Words): attack roll required. Damage is
-#   `attribute/2 + 2`, where `attribute` is the casting attribute
-#   (Cha for `perform_`).
+# Per-variant name override and variant_overrides flipping mechanics by tier.
+# T0: no attack roll; damage scales with caster crits. T1: attack roll required.
 Vicious Mockery:
   type: spell
   tier: [0, 1]
@@ -239,9 +191,7 @@ Vicious Mockery:
     - {attack_roll: true, effects: ["attribute/2 + 2 damage"]}
   description: "Hurl mocking words at a target, demoralizing them with stinging insults."
 
-# ---------------------------------------------------------------------
-# Spell with an explicit integer range (feet) and an extended casting
-# time expressed as an alias from the config.
+# Explicit integer range (feet) and aliased extended casting time.
 Sending:
   type: spell
   tier: 2
@@ -256,12 +206,8 @@ Sending:
   items: []
   description: "Deliver a short message to a known target up to 1000 feet away."
 
-# ---------------------------------------------------------------------
-# Multi-tier spell whose tier names don't share a clean prefix/suffix
-# pattern (uses the `name` override list). The illusion's range and
-# the senses it engages both vary by tier. The Effect Hash carries the
-# per-tier `senses` string used by the description; the
-# `variant_overrides` list carries the per-tier range change.
+# Multi-tier; tier names lack a clean prefix/suffix pattern. Per-tier
+# senses via effect_hash; per-tier range via variant_overrides.
 Create Illusion:
   type: spell
   tier: [0, 1, 2, 3]
@@ -298,11 +244,8 @@ Create Illusion:
     description: "Maintain the illusion or alter what it presents."
   description: "Create an illusion within range that engages {senses}. Creatures interacting with the illusion may make an Intelligence save to disbelieve it."
 
-# ---------------------------------------------------------------------
-# Tier-0–5 protective ward. Grants temporary hit points whose amount
-# is a tier-indexed list and whose duration grows by an order of
-# magnitude per tier (caster's rank scales the duration, the spell's
-# tier scales the temp-HP amount). No save — beneficial only.
+# Tier-0–5 ward. Temp HP scales with tier; duration grows by ~order
+# of magnitude per tier via variant_overrides. No save.
 Ward:
   type: spell
   tier: [0, 1, 2, 3, 4, 5]
@@ -332,16 +275,8 @@ Ward:
     - { duration: permanent }
   description: "Grants the target {temp_hp} temporary hit points for the duration."
 
-# ---------------------------------------------------------------------
-# Tier-0–5 detection spell. Tier names don't follow a clean
-# prefix/suffix pattern, so it uses the name-override list. Per-tier
-# behavior varies enough that each tier carries its own description
-# via variant_overrides. Skills include every non-restricted casting
-# skill (evocation is added implicitly as a universal casting skill).
-# Augury school. Self range, no save, ranks-scaled duration.
-#
-# TBD: the names for tier 4 ("Identify Magic") and tier 5 ("Read
-# Magic") are placeholders — the design doc only specified tier 0-3.
+# Tier-0–5 detection. Tier 4 and tier 5 names are placeholders.
+# Per-tier description via variant_overrides.
 Detect Magic:
   type: spell
   tier: [0, 1, 2, 3, 4, 5]
@@ -369,13 +304,7 @@ Detect Magic:
     - { description: "Sees all magic at once and undetectably; reveals magical traps, illusions, and hidden enchantments without alerting their owners." }
   description: "Detects magical auras. The information revealed grows with the spell's tier."
 
-# ---------------------------------------------------------------------
-# Tier-0–5 light spell. T0 is a passive glow on a touched object; T5
-# is a directed beam the caster aims at enemies, blinding them on a
-# failed Wisdom save. Tiers in between just grow the radius. T5
-# overrides target, range, save, and description via variant_overrides.
-# Prefixes: Light / Bright Light / Greater Light / Brilliant Light /
-# Radiant Light / Searing Light.
+# Tier-0–5 light. T0 passive glow; T5 directed beam (overrides target/range/save).
 Light:
   type: spell
   tier: [0, 1, 2, 3, 4, 5]
@@ -405,14 +334,7 @@ Light:
       description: "The caster controls the light's direction and intensity, projecting a focused beam at one or more enemies. Targets caught in the beam must make a Wisdom save: failure leaves them blinded; success leaves them dazzled. The light still illuminates a {radius}-foot area around its anchor point."
   description: "Causes a touched point to glow like a torch, casting bright light in a {radius}-foot radius."
 
-# ---------------------------------------------------------------------
-# Tier-0–3 illusion-of-self spell. T0 and T1 are self-only; T2 lets
-# the caster disguise any one touched creature; T3 disguises multiple
-# creatures and lets the caster alter any target's disguise on a
-# later turn as a main action. Tier names are distinct enough to use
-# the name-override list. School: resonance. No save (perceivers
-# would investigate to see through it; that interaction lives in the
-# perception/illusion module, not here).
+# Tier-0–3 disguise. T0/T1 self-only; T2 touched ally; T3 multiple targets.
 Disguise Self:
   type: spell
   tier: [0, 1, 2, 3]
@@ -438,14 +360,8 @@ Disguise Self:
       description: "Alter the appearance of multiple targets — including their clothing, armor, weapons, and equipment — to look like different people of the same creature type. The caster may spend a main action on any subsequent turn to change any target's disguise."
   description: "Alter your appearance — including clothing, armor, weapons, and equipment — to look like a different person of the same creature type. You can seem 1 foot shorter or taller, thinner or fatter, and you may add or obscure minor features."
 
-# ---------------------------------------------------------------------
-# Tier-0–5 protective buff. Grants a bonus to all saving throws
-# whose magnitude grows with tier (tier 0 grants +1 even though tier
-# 0 is treated as 0.5 elsewhere — the bonus list is explicit, not
-# formulaic). Duration progression is non-linear: T4 reverts to a
-# fixed 1 day before T5 returns to a rank-scaled value. The
-# enhancement-bonus modifier is exposed via {bonus} in the
-# description; the consuming module applies it as a TN modifier.
+# Tier-0–5 save bonus. Bonus list is explicit, not formulaic.
+# Duration progression non-linear (T4 is fixed 1 day).
 Resistance:
   type: spell
   tier: [0, 1, 2, 3, 4, 5]
@@ -475,13 +391,7 @@ Resistance:
     - { duration: rank days }
   description: "Grants the target a +{bonus} enhancement bonus to all saving throws for the duration."
 
-# ---------------------------------------------------------------------
-# Tier-0–3 armor-conjuring spell from SPELL_REDESIGN.md. Takes
-# ordinary clothing and grants the target the defensive benefits of
-# medium armor for the duration. Tier names use a prefix list with a
-# null at tier 2 so the unprefixed "Magic Vestments" is the canonical
-# form. Bonus action cast, close range, no save, not concentration.
-# Skills are healing/perform_ pending design confirmation.
+# Tier-0–3 conjured armor. Grants medium-armor benefits to ordinary clothing.
 Magic Vestments:
   type: spell
   tier: [0, 1, 2, 3]
@@ -501,12 +411,7 @@ Magic Vestments:
     - { duration: rank hours }
   description: "Takes ordinary clothing and grants the target the defensive benefits of medium armor for the duration. No effect on a target already wearing medium or heavy armor. On a target wearing light armor or no armor, grants the benefits of medium armor without the medium-armor penalties to speed and stealth."
 
-# ---------------------------------------------------------------------
-# Tier-0–5 mana restoration. Restores a tier-indexed amount of mana
-# to a touched target; the same spell can also be used aggressively
-# against creatures already saturated with magic, in which case the
-# Charisma save applies. Magic-toxicity is imposed per cast via the
-# `minimum_saturation` and `saturation` Effect Hash conventions.
+# Tier-0–5 mana restoration. Doubles as attack vs magic-saturated targets (Cha save).
 Recharge:
   type: spell
   tier: [0, 1, 2, 3, 4, 5]
@@ -528,10 +433,7 @@ Recharge:
     saturation: tier*10
   description: "Restores {mana} points of mana to the touched target. May be used to charge magic items, or as an attack against creatures already saturated with magic — those targets make a Charisma save."
 
-# ---------------------------------------------------------------------
-# Ability (not a spell) — no school, no items, no skills. Abilities
-# still use the same schema for casting_time, range, target, save, and
-# duration so that the class can expose them uniformly.
+# Ability (not a spell) — no school, no items, no skills.
 Rage:
   type: ability
   tier: 0
@@ -542,9 +444,7 @@ Rage:
   duration: "rank rounds"
   description: "The character enters a rage, gaining combat pool and damage reduction for the duration."
 
-# ---------------------------------------------------------------------
-# Ability with a save — the target makes a save against the ability's
-# effect. Abilities use the same save schema as spells.
+# Ability with a save.
 Intimidating Shout:
   type: ability
   tier: 1
