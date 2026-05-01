@@ -109,48 +109,122 @@
         <% cols = m['cols'].to_i %>
         <% cells = m['cells'].is_a?(Hash) ? m['cells'] : {} %>
         <% player_cells = m['player_cells'].is_a?(Hash) ? m['player_cells'] : {} %>
+        <% player_arrows = Array(m['player_arrows']) %>
         <div class="scene-map">
           <% if m['title'] && !m['title'].to_s.empty? %>
             <h2><%= h(m['title']) %></h2>
           <% end %>
-          <% unless @is_dm %>
-            <div class="scene-map-player-palette" data-player-palette="1">
+          <div class="scene-map-player-palette" data-player-palette="1">
+            <% unless @is_dm %>
               <span class="palette-label">Your marks:</span>
               <% [['🔥','Fire'],['⚔️','Sword'],['🏹','Arrow'],['🕸','Web'],['⬆','Move here']].each do |ic, name| %>
                 <button type="button" class="brush player-brush" data-player-brush="place" data-icon="<%= ic %>" title="<%= name %>"><%= ic %></button>
               <% end %>
               <button type="button" class="brush player-brush" data-player-brush="erase" title="Click a cell to clear its mark">Erase</button>
               <button type="button" class="brush player-clear-mine" title="Remove all of your marks on this map">Clear mine</button>
-              <span class="palette-status"><span class="active-brush-desc">Pick an icon to place</span></span>
-            </div>
-          <% end %>
-          <div class="scene-map-grid"
-               data-map-id="<%= h(m['id']) %>"
-               data-viewer-id="<%= @viewer_id %>"
-               <%= 'data-player-grid="1"' unless @is_dm %>
-               style="grid-template-columns: repeat(<%= cols %>, var(--scene-cell-size));">
-            <% rows.times do |r| %>
-              <% cols.times do |c| %>
-                <% cell = cells["#{r},#{c}"] || {} %>
-                <% pmark = player_cells["#{r},#{c}"] %>
-                <div class="scene-map-cell<%= ' editable player-editable' unless @is_dm %>"
-                     data-r="<%= r %>" data-c="<%= c %>"
-                     style="<%= cell['color'] && !cell['color'].empty? ? "background:#{h cell['color']};" : '' %>">
-                  <% if cell['image'] && !cell['image'].to_s.empty? %>
-                    <img class="scene-map-cell-image" src="<%= h(cell['image']) %>" alt="">
-                  <% end %>
-                  <% if cell['icon'] && !cell['icon'].to_s.empty? %>
-                    <span class="scene-map-icon"><%= h(cell['icon']) %></span>
-                  <% end %>
-                  <% if cell['label'] && !cell['label'].to_s.empty? %>
-                    <span class="scene-map-label"><%= h(cell['label']) %></span>
-                  <% end %>
-                  <% if pmark.is_a?(Hash) && pmark['icon'] %>
-                    <span class="scene-map-player-mark<%= ' mine' if pmark['by'] == @viewer_id %>" data-by="<%= pmark['by'] %>"><%= h(pmark['icon']) %></span>
-                  <% end %>
-                </div>
-              <% end %>
             <% end %>
+            <span class="palette-label" style="margin-left: 8px;">Arrows:</span>
+            <% [['attack','Attack','#c62828'],['move-hurry','Hurry','#ef6c00'],['move-sneak','Sneak','#6a1b9a'],['move-carefully','Careful','#2e7d32']].each do |type, name, color| %>
+              <button type="button" class="brush player-brush arrow-brush" data-player-brush="arrow" data-arrow-type="<%= type %>" title="<%= name %> arrow — click start cell, then end cell" style="--arrow-color: <%= color %>;">→ <%= name %></button>
+            <% end %>
+            <% if @is_dm %>
+              <form method="post" action="/scene/map/arrows/clear" style="display:inline;">
+                <input type="hidden" name="id" value="<%= h(m['id']) %>">
+                <button type="submit" class="brush player-clear-mine" title="Remove every player arrow on this map">Clear all arrows</button>
+              </form>
+            <% end %>
+            <span class="palette-status"><span class="active-brush-desc"><%= @is_dm ? 'Pick an arrow type to draw' : 'Pick an icon to place' %></span></span>
+          </div>
+          <div class="scene-map-grid-wrap">
+            <div class="scene-map-grid"
+                 data-map-id="<%= h(m['id']) %>"
+                 data-viewer-id="<%= @viewer_id %>"
+                 data-rows="<%= rows %>"
+                 data-cols="<%= cols %>"
+                 <%= 'data-player-grid="1"' unless @is_dm %>
+                 <%= 'data-dm-grid="1"' if @is_dm %>
+                 style="grid-template-columns: repeat(<%= cols %>, var(--scene-cell-size));">
+              <% rows.times do |r| %>
+                <% cols.times do |c| %>
+                  <% cell = cells["#{r},#{c}"] || {} %>
+                  <% pmark = player_cells["#{r},#{c}"] %>
+                  <div class="scene-map-cell<%= ' editable player-editable' unless @is_dm %><%= ' editable' if @is_dm %>"
+                       data-r="<%= r %>" data-c="<%= c %>"
+                       style="<%= cell['color'] && !cell['color'].empty? ? "background:#{h cell['color']};" : '' %>">
+                    <% if cell['image'] && !cell['image'].to_s.empty? %>
+                      <img class="scene-map-cell-image" src="<%= h(cell['image']) %>" alt="">
+                    <% end %>
+                    <% if cell['icon'] && !cell['icon'].to_s.empty? %>
+                      <span class="scene-map-icon"><%= h(cell['icon']) %></span>
+                    <% end %>
+                    <% if cell['label'] && !cell['label'].to_s.empty? %>
+                      <span class="scene-map-label"><%= h(cell['label']) %></span>
+                    <% end %>
+                    <% if pmark.is_a?(Hash) && pmark['icon'] %>
+                      <span class="scene-map-player-mark<%= ' mine' if pmark['by'] == @viewer_id %>" data-by="<%= pmark['by'] %>"><%= h(pmark['icon']) %></span>
+                    <% end %>
+                  </div>
+                <% end %>
+              <% end %>
+            </div>
+            <%# SVG arrow overlay. viewBox is in pixel units matching the
+                grid (1px border + 1px padding + cellsize-px cells with 1px
+                gaps). pointer-events: none so the SVG doesn't swallow cell
+                clicks; the arrow-remove handles override pointer-events to
+                receive their own click. JS repaints after each /arrow POST
+                using the same coordinate math. %>
+            <%
+              cell_px = 32 # scene-cell-size
+              stride = cell_px + 1
+              total_w = 1 + 1 + cols * stride
+              total_h = 1 + 1 + rows * stride
+              center = ->(r, c) { [2 + c * stride + cell_px / 2.0, 2 + r * stride + cell_px / 2.0] }
+            %>
+            <svg class="scene-map-arrows"
+                 viewBox="0 0 <%= total_w %> <%= total_h %>"
+                 width="<%= total_w %>" height="<%= total_h %>"
+                 preserveAspectRatio="xMidYMid meet"
+                 xmlns="http://www.w3.org/2000/svg"
+                 data-map-id="<%= h(m['id']) %>"
+                 data-stride="<%= stride %>"
+                 data-cell-size="<%= cell_px %>">
+              <defs>
+                <% SCENE_MAP_ARROW_STYLES.each do |type, style| %>
+                  <marker id="arrowhead-<%= h(m['id']) %>-<%= type %>"
+                          viewBox="0 0 10 10" refX="8" refY="5"
+                          markerWidth="5" markerHeight="5"
+                          orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="<%= style[:color] %>"/>
+                  </marker>
+                <% end %>
+              </defs>
+              <% player_arrows.each do |a| %>
+                <% style = SCENE_MAP_ARROW_STYLES[a['type']] %>
+                <% next unless style %>
+                <% fx, fy = center.call(a['from_r'].to_i, a['from_c'].to_i) %>
+                <% tx, ty = center.call(a['to_r'].to_i, a['to_c'].to_i) %>
+                <% own = !@is_dm && a['by'].to_i == @viewer_id %>
+                <% can_remove = @is_dm || own %>
+                <g class="scene-map-arrow-group" data-arrow-id="<%= h(a['id']) %>">
+                  <line x1="<%= '%.1f' % fx %>" y1="<%= '%.1f' % fy %>"
+                        x2="<%= '%.1f' % tx %>" y2="<%= '%.1f' % ty %>"
+                        stroke="<%= style[:color] %>" stroke-width="<%= style[:width] %>"
+                        <%= "stroke-dasharray=\"#{style[:dash]}\"" if style[:dash] %>
+                        marker-end="url(#arrowhead-<%= h(m['id']) %>-<%= a['type'] %>)"/>
+                  <% if can_remove %>
+                    <% mid_x = (fx + tx) / 2.0; mid_y = (fy + ty) / 2.0 %>
+                    <g class="scene-map-arrow-remove"
+                       transform="translate(<%= '%.1f' % mid_x %>,<%= '%.1f' % mid_y %>)"
+                       data-arrow-id="<%= h(a['id']) %>">
+                      <circle r="6" fill="#fff" stroke="<%= style[:color] %>" stroke-width="1.5"/>
+                      <text x="0" y="3" text-anchor="middle"
+                            font-family="Arial,sans-serif" font-size="9"
+                            fill="<%= style[:color] %>" pointer-events="none">&#x2715;</text>
+                    </g>
+                  <% end %>
+                </g>
+              <% end %>
+            </svg>
           </div>
         </div>
       <% end %>
@@ -377,205 +451,6 @@
             <% end %>
           </div>
         <% end %>
-      </div>
-
-      <div class="section">
-        <h3>Maps</h3>
-        <p class="dt-note" style="color:#888;">Only the active map is editable; activate a different map to switch which one the editor and player view target. Toggling "Visible to players" controls whether the active map shows on /scene for the players checked below.</p>
-
-        <% if @active_map %>
-          <% m = @active_map %>
-          <% map_id = m['id'] %>
-          <% rows = m['rows'].to_i %>
-          <% cols = m['cols'].to_i %>
-          <% cells = m['cells'].is_a?(Hash) ? m['cells'] : {} %>
-          <div class="staging-map staging-map-active" data-map-id="<%= h(map_id) %>">
-            <div class="staging-map-active-header">
-              <span class="staging-map-active-label">Active map</span>
-              <form method="post" action="/scene/map/share" style="display:inline;">
-                <input type="hidden" name="id" value="<%= h(map_id) %>">
-                <button type="submit" class="<%= m['shared'] ? 'staging-map-vis-on' : 'staging-map-vis-off' %>"><%= m['shared'] ? 'Visible to players (click to hide)' : 'Hidden from players (click to show)' %></button>
-              </form>
-              <form method="post" action="/scene/map/delete" style="display:inline;">
-                <input type="hidden" name="id" value="<%= h(map_id) %>">
-                <button type="submit" class="danger" onclick="return confirm('Delete this map?');">Delete</button>
-              </form>
-            </div>
-
-            <form method="post" action="/scene/map/update" class="notes-form scene-map-editor" data-editor="1">
-              <input type="hidden" name="id" value="<%= h(map_id) %>">
-              <input type="hidden" name="cells_json" value='<%= h(cells.to_json) %>'>
-              <div class="form-row">
-                <div>
-                  <label>Title:</label>
-                  <input type="text" name="title" value="<%= h(m['title']) %>" placeholder="Untitled map">
-                </div>
-                <div>
-                  <label>Rows:</label>
-                  <input type="number" name="rows" value="<%= rows %>" min="1" max="40">
-                </div>
-                <div>
-                  <label>Cols:</label>
-                  <input type="number" name="cols" value="<%= cols %>" min="1" max="40">
-                </div>
-              </div>
-
-              <div class="scene-map-palette" data-palette="1">
-                <div class="palette-group">
-                  <span class="palette-label">Color:</span>
-                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="" title="Clear color">none</button>
-                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#3a3a3a" style="background:#3a3a3a;" title="Wall"></button>
-                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#8a8a8a" style="background:#8a8a8a;" title="Stone"></button>
-                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#d7c79a" style="background:#d7c79a;" title="Floor"></button>
-                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#f0f0f0" style="background:#f0f0f0;" title="Web"></button>
-                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#ffb74d" style="background:#ffb74d;" title="Hazard"></button>
-                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#ef5350" style="background:#ef5350;" title="Fire / danger"></button>
-                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#4fc3f7" style="background:#4fc3f7;" title="Water"></button>
-                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#81c784" style="background:#81c784;" title="Poison / grass"></button>
-                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#ba68c8" style="background:#ba68c8;" title="Magic"></button>
-                  <input type="color" class="brush-color-picker" title="Pick a custom color">
-                </div>
-                <div class="palette-group">
-                  <span class="palette-label">Icon:</span>
-                  <button type="button" class="brush icon-brush" data-brush-type="icon" data-icon="" title="Clear icon">none</button>
-                  <% [['🕸','Web'],['🔥','Fire'],['💧','Water'],['☠','Death / skull'],['🪤','Trap'],['🚪','Door'],['⛏','Rubble / mining'],['⭐','Objective / star'],['⬆','Up / north'],['⬇','Down / south'],['⬅','Left / west'],['➡','Right / east'],['❓','Unknown'],['❗','Alert']].each do |ic, name| %>
-                    <button type="button" class="brush icon-brush" data-brush-type="icon" data-icon="<%= ic %>" title="<%= name %>"><%= ic %></button>
-                  <% end %>
-                  <input type="text" class="brush-icon-custom" maxlength="3" placeholder="?" title="Custom icon (1-3 chars)">
-                </div>
-                <% if (@map_image_library || []).any? %>
-                  <div class="palette-group">
-                    <span class="palette-label">Image:</span>
-                    <button type="button" class="brush image-brush" data-brush-type="image" data-image="" title="Clear image">none</button>
-                    <% @map_image_library.each do |row| %>
-                      <button type="button" class="brush image-brush"
-                              data-brush-type="image"
-                              data-image="<%= h(row['src']) %>"
-                              title="<%= h(row['label']) %>">
-                        <img src="<%= h(row['src']) %>" alt="<%= h(row['label']) %>">
-                      </button>
-                    <% end %>
-                  </div>
-                <% end %>
-                <div class="palette-group">
-                  <span class="palette-label">Class:</span>
-                  <% [['🪓','Axe - barbarian / warrior'],['⚔️','Crossed swords - fighter'],['🛡️','Shield - defender / paladin'],['🗡️','Dagger - rogue / assassin'],['🏹','Bow - archer / ranger / elf'],['🪄','Wand - mage / sorcerer'],['📖','Tome - wizard / scholar'],['⚕️','Medical staff - cleric / healer'],['🎵','Music note - bard'],['🎭','Masks - bard / performer'],['🧝','Elf'],['🧙','Mage / druid'],['🐺','Wolf - druid / ranger companion'],['👑','Crown - noble / leader'],['💀','Skull - fallen / undead']].each do |ic, name| %>
-                    <button type="button" class="brush icon-brush" data-brush-type="icon" data-icon="<%= ic %>" title="<%= name %>"><%= ic %></button>
-                  <% end %>
-                </div>
-                <div class="palette-group">
-                  <span class="palette-label">Text:</span>
-                  <button type="button" class="brush label-brush" data-brush-type="label" title="Prompt for a label on click">Label</button>
-                </div>
-                <div class="palette-group">
-                  <span class="palette-label">Move:</span>
-                  <button type="button" class="brush move-brush" data-brush-type="move" title="Drag a cell's icon+label to a new square">Move</button>
-                </div>
-                <div class="palette-group">
-                  <span class="palette-label">Erase:</span>
-                  <button type="button" class="brush erase-brush" data-brush-type="erase" title="Clear cells (drag for a rectangle)">Clear cell</button>
-                </div>
-                <div class="palette-group palette-status">
-                  <span class="palette-label">Brush:</span>
-                  <span class="active-brush-desc">Pick a palette item</span>
-                </div>
-              </div>
-
-              <% player_cells_dm = m['player_cells'].is_a?(Hash) ? m['player_cells'] : {} %>
-              <% if player_cells_dm.any? %>
-                <p class="dt-note" style="color:#666;">Player marks show with a green ring. They're cleared the next time you save this map.</p>
-              <% end %>
-              <div class="scene-map-editor-grid" data-grid="1"
-                   style="grid-template-columns: repeat(<%= cols %>, var(--scene-cell-size));">
-                <% rows.times do |r| %>
-                  <% cols.times do |c| %>
-                    <% cell = cells["#{r},#{c}"] || {} %>
-                    <% pmark = player_cells_dm["#{r},#{c}"] %>
-                    <div class="scene-map-cell editable"
-                         data-r="<%= r %>" data-c="<%= c %>"
-                         style="<%= cell['color'] && !cell['color'].empty? ? "background:#{h cell['color']};" : '' %>">
-                      <% if cell['image'] && !cell['image'].to_s.empty? %>
-                        <img class="scene-map-cell-image" src="<%= h(cell['image']) %>" alt="">
-                      <% end %>
-                      <% if cell['icon'] && !cell['icon'].to_s.empty? %>
-                        <span class="scene-map-icon"><%= h(cell['icon']) %></span>
-                      <% end %>
-                      <% if cell['label'] && !cell['label'].to_s.empty? %>
-                        <span class="scene-map-label"><%= h(cell['label']) %></span>
-                      <% end %>
-                      <% if pmark.is_a?(Hash) && pmark['icon'] %>
-                        <% by_pc = @pc_characters.find { |pc| pc['id'] == pmark['by'] } %>
-                        <span class="scene-map-player-mark" data-by="<%= pmark['by'] %>" title="By <%= by_pc ? h(by_pc['name']) : "player ##{pmark['by']}" %>"><%= h(pmark['icon']) %></span>
-                      <% end %>
-                    </div>
-                  <% end %>
-                <% end %>
-              </div>
-
-              <div class="panel-visibility">
-                <span class="palette-label" style="margin-right: 6px;">Players who can see when visible:</span>
-                <% @pc_characters.each do |pc| %>
-                  <label>
-                    <input type="checkbox" name="visible_to[]" value="<%= pc['id'] %>" <%= 'checked' if Array(m['visible_to']).include?(pc['id']) %>>
-                    <%= h(pc['name']) %>
-                  </label>
-                <% end %>
-              </div>
-
-              <div class="form-row">
-                <button type="submit">Save map</button>
-              </div>
-            </form>
-          </div>
-        <% end %>
-
-        <% if @inactive_maps.any? %>
-          <h4 class="staging-map-list-heading">Other maps</h4>
-          <ul class="staging-map-list">
-            <% @inactive_maps.each do |m| %>
-              <li class="staging-map-list-item">
-                <span class="staging-map-list-title"><%= m['title'].to_s.empty? ? '(untitled)' : h(m['title']) %></span>
-                <span class="staging-map-list-meta"><%= m['rows'].to_i %>×<%= m['cols'].to_i %><%= ' · shared' if m['shared'] %></span>
-                <form method="post" action="/scene/map/activate" style="display:inline;">
-                  <input type="hidden" name="id" value="<%= h(m['id']) %>">
-                  <button type="submit">Activate</button>
-                </form>
-                <form method="post" action="/scene/map/delete" style="display:inline;">
-                  <input type="hidden" name="id" value="<%= h(m['id']) %>">
-                  <button type="submit" class="danger" onclick="return confirm('Delete this map?');">Delete</button>
-                </form>
-              </li>
-            <% end %>
-          </ul>
-        <% end %>
-
-        <form method="post" action="/scene/map" class="notes-form">
-          <h4>New Map</h4>
-          <p class="dt-note" style="color:#888;">Creating a new map activates it (the previous active map drops to "Other maps").</p>
-          <div class="form-row">
-            <div>
-              <label>Title:</label>
-              <input type="text" name="title" placeholder="Goblin Cave">
-            </div>
-            <div>
-              <label>Rows:</label>
-              <input type="number" name="rows" value="8" min="1" max="40">
-            </div>
-            <div>
-              <label>Cols:</label>
-              <input type="number" name="cols" value="8" min="1" max="40">
-            </div>
-          </div>
-          <div class="panel-visibility">
-            <% @pc_characters.each do |pc| %>
-              <label>
-                <input type="checkbox" name="visible_to[]" value="<%= pc['id'] %>" checked>
-                <%= h(pc['name']) %>
-              </label>
-            <% end %>
-          </div>
-          <button type="submit">Create map</button>
-        </form>
       </div>
 
       <div class="section">
@@ -831,6 +706,170 @@
         send(p);
       });
     }
+  });
+})();
+</script>
+
+<script>
+(function() {
+  // Player + DM arrow drawing on the active map. Two-click flow:
+  // pick an arrow type, click the start cell (gets a halo), click
+  // the end cell to commit. Works on data-player-grid and
+  // data-dm-grid. The X handle on each arrow removes it (owner or
+  // DM); removal is owner-checked server-side.
+  var grids = document.querySelectorAll('.scene-map-grid[data-map-id]');
+  grids.forEach(function(grid) {
+    var mapId = grid.getAttribute('data-map-id');
+    var viewerId = grid.getAttribute('data-viewer-id');
+    var panel = grid.parentElement.parentElement.querySelector('[data-player-palette="1"]');
+    if (!panel) return;
+    var status = panel.querySelector('.active-brush-desc');
+    var svg = grid.parentElement.querySelector('.scene-map-arrows');
+    if (!svg) return;
+    var stride = parseFloat(svg.getAttribute('data-stride')) || 33;
+    var cellPx = parseFloat(svg.getAttribute('data-cell-size')) || 32;
+    function center(r, c) { return [2 + c * stride + cellPx / 2, 2 + r * stride + cellPx / 2]; }
+
+    var arrowBrush = null; // 'attack' | 'move-hurry' | ...
+    var pendingFrom = null; // {r,c}
+
+    function clearStartHalo() {
+      grid.querySelectorAll('.arrow-start-halo').forEach(function(el) { el.classList.remove('arrow-start-halo'); });
+    }
+    function setBrushFromBtn(btn) {
+      panel.querySelectorAll('.arrow-brush.active').forEach(function(b) { b.classList.remove('active'); });
+      if (btn) btn.classList.add('active');
+    }
+    function describeArrow() {
+      if (!arrowBrush) return;
+      if (pendingFrom) status.textContent = 'Click the end cell for the ' + arrowBrush + ' arrow';
+      else status.textContent = 'Click the start cell for the ' + arrowBrush + ' arrow';
+    }
+
+    panel.querySelectorAll('.arrow-brush').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        arrowBrush = btn.getAttribute('data-arrow-type');
+        pendingFrom = null;
+        clearStartHalo();
+        setBrushFromBtn(btn);
+        describeArrow();
+      });
+    });
+
+    function send(params) {
+      params.set('id', mapId);
+      if (viewerId && viewerId !== '0') params.set('viewer_id', viewerId);
+      return fetch('/scene/map/arrow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+      }).then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(body) { if (body && body.player_arrows) repaint(body.player_arrows); });
+    }
+
+    var ARROW_STYLES = {
+      'attack':         { color: '#c62828', dash: null,    width: 2.5 },
+      'move-hurry':     { color: '#ef6c00', dash: '6 4',   width: 2 },
+      'move-sneak':     { color: '#6a1b9a', dash: '2 3',   width: 1.5 },
+      'move-carefully': { color: '#2e7d32', dash: null,    width: 2 }
+    };
+    var SVG_NS = 'http://www.w3.org/2000/svg';
+
+    function repaint(arrows) {
+      // Wipe every arrow group and rebuild from the server's payload.
+      svg.querySelectorAll('.scene-map-arrow-group').forEach(function(g) { g.remove(); });
+      arrows.forEach(function(a) {
+        var style = ARROW_STYLES[a.type];
+        if (!style) return;
+        var f = center(a.from_r, a.from_c);
+        var t = center(a.to_r, a.to_c);
+        var g = document.createElementNS(SVG_NS, 'g');
+        g.setAttribute('class', 'scene-map-arrow-group');
+        g.setAttribute('data-arrow-id', a.id);
+        var line = document.createElementNS(SVG_NS, 'line');
+        line.setAttribute('x1', f[0].toFixed(1));
+        line.setAttribute('y1', f[1].toFixed(1));
+        line.setAttribute('x2', t[0].toFixed(1));
+        line.setAttribute('y2', t[1].toFixed(1));
+        line.setAttribute('stroke', style.color);
+        line.setAttribute('stroke-width', style.width);
+        if (style.dash) line.setAttribute('stroke-dasharray', style.dash);
+        line.setAttribute('marker-end', 'url(#arrowhead-' + mapId + '-' + a.type + ')');
+        g.appendChild(line);
+        var isDM = grid.hasAttribute('data-dm-grid');
+        var canRemove = isDM || String(a.by) === String(viewerId);
+        if (canRemove) {
+          var rg = document.createElementNS(SVG_NS, 'g');
+          rg.setAttribute('class', 'scene-map-arrow-remove');
+          rg.setAttribute('data-arrow-id', a.id);
+          var mx = (f[0] + t[0]) / 2;
+          var my = (f[1] + t[1]) / 2;
+          rg.setAttribute('transform', 'translate(' + mx.toFixed(1) + ',' + my.toFixed(1) + ')');
+          var circle = document.createElementNS(SVG_NS, 'circle');
+          circle.setAttribute('r', '6');
+          circle.setAttribute('fill', '#fff');
+          circle.setAttribute('stroke', style.color);
+          circle.setAttribute('stroke-width', '1.5');
+          rg.appendChild(circle);
+          var text = document.createElementNS(SVG_NS, 'text');
+          text.setAttribute('x', '0');
+          text.setAttribute('y', '3');
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('font-family', 'Arial,sans-serif');
+          text.setAttribute('font-size', '9');
+          text.setAttribute('fill', style.color);
+          text.setAttribute('pointer-events', 'none');
+          text.textContent = '✕';
+          rg.appendChild(text);
+          g.appendChild(rg);
+        }
+        svg.appendChild(g);
+      });
+    }
+
+    grid.addEventListener('click', function(e) {
+      if (!arrowBrush) return;
+      var cell = e.target.closest('.scene-map-cell');
+      if (!cell || !grid.contains(cell)) return;
+      var r = parseInt(cell.getAttribute('data-r'), 10);
+      var c = parseInt(cell.getAttribute('data-c'), 10);
+      if (pendingFrom == null) {
+        pendingFrom = { r: r, c: c };
+        clearStartHalo();
+        cell.classList.add('arrow-start-halo');
+        describeArrow();
+        return;
+      }
+      if (pendingFrom.r === r && pendingFrom.c === c) {
+        // Same cell — cancel the pending start.
+        pendingFrom = null;
+        clearStartHalo();
+        describeArrow();
+        return;
+      }
+      var p = new URLSearchParams();
+      p.set('action', 'place');
+      p.set('type', arrowBrush);
+      p.set('from_r', pendingFrom.r);
+      p.set('from_c', pendingFrom.c);
+      p.set('to_r', r);
+      p.set('to_c', c);
+      send(p);
+      pendingFrom = null;
+      clearStartHalo();
+      describeArrow();
+    });
+
+    svg.addEventListener('click', function(e) {
+      var rg = e.target.closest('.scene-map-arrow-remove');
+      if (!rg) return;
+      var arrowId = rg.getAttribute('data-arrow-id');
+      if (!arrowId) return;
+      var p = new URLSearchParams();
+      p.set('action', 'delete');
+      p.set('arrow_id', arrowId);
+      send(p);
+    });
   });
 })();
 </script>

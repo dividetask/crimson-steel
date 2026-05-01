@@ -182,6 +182,22 @@ get '/scene' do
   redirect "/scene/#{@is_local ? 0 : 1}"
 end
 
+# DM-only map workshop. The /scene render now shows only the active
+# map (read-only chrome for both DM and players); editing, palette,
+# image picker, dimensions, share toggles, and the inactive-map list
+# all live here.
+get '/maps' do
+  scene_require_dm!
+  notes = scene_load_notes
+  @scene_maps = notes.select { |n| n['draft'] && n['type'] == 'scene_map' }
+  @active_map = @scene_maps.find { |m| m['active'] } || @scene_maps.first
+  @inactive_maps = @scene_maps.reject { |m| m == @active_map }
+  @map_image_library = scene_map_image_library
+  characters = Tools.load_json('characters.json')
+  @pc_characters = characters.select { |c| (c['group'] || 'PC') == 'PC' }
+  erb :maps
+end
+
 SCENE_IMAGE_DIR = File.join(__dir__, 'public', 'images', 'scene')
 SCENE_IMAGE_EXTS = %w[.png .jpg .jpeg .gif .webp].freeze
 SCENE_IMAGE_MAX_BYTES = 10 * 1024 * 1024
@@ -192,6 +208,17 @@ SCENE_IMAGE_MAX_BYTES = 10 * 1024 * 1024
 # entry['player_cells'] and are wiped on every DM save.
 SCENE_MAP_MAX_DIM = 40
 SCENE_MAP_PLAYER_ICONS = %w[🔥 ⚔️ 🏹 🕸 ⬆].freeze
+
+# Arrow types players can drop on the active map for combat/movement
+# planning. Adapted from main's NOTES_MAP_ARROW_STYLES — same colors,
+# same dash patterns, same labels.
+SCENE_MAP_ARROW_STYLES = {
+  'attack'         => { color: '#c62828', dash: nil,    width: 2.5 },
+  'move-hurry'     => { color: '#ef6c00', dash: '6 4',  width: 2 },
+  'move-sneak'     => { color: '#6a1b9a', dash: '2 3',  width: 1.5 },
+  'move-carefully' => { color: '#2e7d32', dash: nil,    width: 2 }
+}.freeze
+SCENE_MAP_ARROW_TYPES = SCENE_MAP_ARROW_STYLES.keys.freeze
 
 def scene_map_clamp_dim(v, default)
   n = v.to_i
@@ -669,7 +696,7 @@ post '/scene/map' do
     'visible_to' => scene_parse_visible_to(params[:visible_to])
   }
   scene_save_notes(notes)
-  redirect '/scene/0'
+  redirect back
 end
 
 post '/scene/map/update' do
@@ -718,10 +745,12 @@ post '/scene/map/update' do
 
   # A DM edit supersedes any player "where I want to move" marks; wipe the
   # overlay so stale intents don't linger after the situation changes.
+  # Player arrows persist — they're a planning aid, not ephemeral intent
+  # marks; the DM clears them explicitly via /scene/map/arrows/clear.
   entry['player_cells'] = {}
 
   scene_save_notes(notes)
-  redirect '/scene/0'
+  redirect back
 end
 
 # Visibility toggle on the active map only. shared and active are
@@ -741,12 +770,12 @@ post '/scene/map/share' do
     entry['shared'] = true
   end
   scene_save_notes(notes)
-  redirect '/scene/0'
+  redirect back
 end
 
 # Mark a map as the DM's active editing target. Only one map is
-# active at a time, so the DM staging block can show its editor
-# without drowning in editors for every map ever made.
+# active at a time so /maps shows a single editor, and only the
+# active map is rendered on /scene.
 post '/scene/map/activate' do
   scene_require_dm!
   notes = scene_load_notes
@@ -755,7 +784,7 @@ post '/scene/map/activate' do
   notes.each { |n| n['active'] = false if n['type'] == 'scene_map' }
   entry['active'] = true
   scene_save_notes(notes)
-  redirect '/scene/0'
+  redirect back
 end
 
 post '/scene/map/delete' do
@@ -765,7 +794,7 @@ post '/scene/map/delete' do
   halt 404 unless idx
   notes.delete_at(idx)
   scene_save_notes(notes)
-  redirect '/scene/0'
+  redirect back
 end
 
 # Players drop a restricted set of icons onto a shared map to signal
@@ -806,6 +835,74 @@ post '/scene/map/player_mark' do
 
   scene_save_notes(notes)
   { 'player_cells' => entry['player_cells'] }.to_json
+end
+
+# Player arrows. Two-cell strokes drawn on the active map for
+# combat/movement planning. action='place' adds an arrow keyed by
+# from_r,from_c,to_r,to_c,type with the player's viewer_id as 'by'.
+# 'delete' removes one by id (owner or DM). 'clear_mine' wipes the
+# caller's arrows. 'clear_all' is DM-only.
+post '/scene/map/arrow' do
+  content_type :json
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404, '{}' unless entry && entry['type'] == 'scene_map'
+
+  is_dm = local_request?
+  viewer_id = params[:viewer_id].to_i
+  unless is_dm
+    halt 403, '{}' if viewer_id <= 0
+    halt 403, '{}' unless entry['shared'] && Array(entry['visible_to']).include?(viewer_id)
+  end
+
+  entry['player_arrows'] ||= []
+  rows = entry['rows'].to_i
+  cols = entry['cols'].to_i
+
+  case params[:action].to_s
+  when 'place'
+    type = params[:type].to_s
+    halt 400, '{}' unless SCENE_MAP_ARROW_TYPES.include?(type)
+    fr = params[:from_r].to_i; fc = params[:from_c].to_i
+    tr = params[:to_r].to_i;   tc = params[:to_c].to_i
+    halt 400, '{}' if [fr, fc, tr, tc].any? { |v| v < 0 }
+    halt 400, '{}' if fr >= rows || tr >= rows || fc >= cols || tc >= cols
+    halt 400, '{}' if fr == tr && fc == tc
+    entry['player_arrows'] << {
+      'id'     => SecureRandom.hex(6),
+      'type'   => type,
+      'from_r' => fr, 'from_c' => fc,
+      'to_r'   => tr, 'to_c'   => tc,
+      'by'     => is_dm ? 0 : viewer_id
+    }
+  when 'delete'
+    arrow_id = params[:arrow_id].to_s
+    entry['player_arrows'].reject! do |a|
+      a['id'] == arrow_id && (is_dm || a['by'] == viewer_id)
+    end
+  when 'clear_mine'
+    entry['player_arrows'].reject! { |a| a['by'] == viewer_id }
+  when 'clear_all'
+    halt 403, '{}' unless is_dm
+    entry['player_arrows'] = []
+  else
+    halt 400, '{}'
+  end
+
+  scene_save_notes(notes)
+  { 'player_arrows' => entry['player_arrows'] }.to_json
+end
+
+# Form-post variant for the DM "Clear all arrows" button — redirects
+# back to the referer page (typically /scene) instead of returning JSON.
+post '/scene/map/arrows/clear' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'scene_map'
+  entry['player_arrows'] = []
+  scene_save_notes(notes)
+  redirect back
 end
 
 post '/notes/character/toggle_public' do

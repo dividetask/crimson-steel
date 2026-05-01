@@ -1,0 +1,201 @@
+<h1>Maps</h1>
+<p class="dt-note" style="color:#666;">DM-only. The active map is the one rendered on /scene for everyone with visibility. Activate a different map to swap. Editing happens here; players see the result on /scene.</p>
+
+      <div class="section">
+        <h3>Maps</h3>
+        <p class="dt-note" style="color:#888;">Only the active map is editable; activate a different map to switch which one the editor and player view target. Toggling "Visible to players" controls whether the active map shows on /scene for the players checked below.</p>
+
+        <% if @active_map %>
+          <% m = @active_map %>
+          <% map_id = m['id'] %>
+          <% rows = m['rows'].to_i %>
+          <% cols = m['cols'].to_i %>
+          <% cells = m['cells'].is_a?(Hash) ? m['cells'] : {} %>
+          <div class="staging-map staging-map-active" data-map-id="<%= h(map_id) %>">
+            <div class="staging-map-active-header">
+              <span class="staging-map-active-label">Active map</span>
+              <form method="post" action="/scene/map/share" style="display:inline;">
+                <input type="hidden" name="id" value="<%= h(map_id) %>">
+                <button type="submit" class="<%= m['shared'] ? 'staging-map-vis-on' : 'staging-map-vis-off' %>"><%= m['shared'] ? 'Visible to players (click to hide)' : 'Hidden from players (click to show)' %></button>
+              </form>
+              <form method="post" action="/scene/map/delete" style="display:inline;">
+                <input type="hidden" name="id" value="<%= h(map_id) %>">
+                <button type="submit" class="danger" onclick="return confirm('Delete this map?');">Delete</button>
+              </form>
+            </div>
+
+            <form method="post" action="/scene/map/update" class="notes-form scene-map-editor" data-editor="1">
+              <input type="hidden" name="id" value="<%= h(map_id) %>">
+              <input type="hidden" name="cells_json" value='<%= h(cells.to_json) %>'>
+              <div class="form-row">
+                <div>
+                  <label>Title:</label>
+                  <input type="text" name="title" value="<%= h(m['title']) %>" placeholder="Untitled map">
+                </div>
+                <div>
+                  <label>Rows:</label>
+                  <input type="number" name="rows" value="<%= rows %>" min="1" max="40">
+                </div>
+                <div>
+                  <label>Cols:</label>
+                  <input type="number" name="cols" value="<%= cols %>" min="1" max="40">
+                </div>
+              </div>
+
+              <div class="scene-map-palette" data-palette="1">
+                <div class="palette-group">
+                  <span class="palette-label">Color:</span>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="" title="Clear color">none</button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#3a3a3a" style="background:#3a3a3a;" title="Wall"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#8a8a8a" style="background:#8a8a8a;" title="Stone"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#d7c79a" style="background:#d7c79a;" title="Floor"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#f0f0f0" style="background:#f0f0f0;" title="Web"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#ffb74d" style="background:#ffb74d;" title="Hazard"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#ef5350" style="background:#ef5350;" title="Fire / danger"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#4fc3f7" style="background:#4fc3f7;" title="Water"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#81c784" style="background:#81c784;" title="Poison / grass"></button>
+                  <button type="button" class="brush color-brush" data-brush-type="color" data-color="#ba68c8" style="background:#ba68c8;" title="Magic"></button>
+                  <input type="color" class="brush-color-picker" title="Pick a custom color">
+                </div>
+                <div class="palette-group">
+                  <span class="palette-label">Icon:</span>
+                  <button type="button" class="brush icon-brush" data-brush-type="icon" data-icon="" title="Clear icon">none</button>
+                  <% [['🕸','Web'],['🔥','Fire'],['💧','Water'],['☠','Death / skull'],['🪤','Trap'],['🚪','Door'],['⛏','Rubble / mining'],['⭐','Objective / star'],['⬆','Up / north'],['⬇','Down / south'],['⬅','Left / west'],['➡','Right / east'],['❓','Unknown'],['❗','Alert']].each do |ic, name| %>
+                    <button type="button" class="brush icon-brush" data-brush-type="icon" data-icon="<%= ic %>" title="<%= name %>"><%= ic %></button>
+                  <% end %>
+                  <input type="text" class="brush-icon-custom" maxlength="3" placeholder="?" title="Custom icon (1-3 chars)">
+                </div>
+                <% if (@map_image_library || []).any? %>
+                  <div class="palette-group">
+                    <span class="palette-label">Image:</span>
+                    <button type="button" class="brush image-brush" data-brush-type="image" data-image="" title="Clear image">none</button>
+                    <% @map_image_library.each do |row| %>
+                      <button type="button" class="brush image-brush"
+                              data-brush-type="image"
+                              data-image="<%= h(row['src']) %>"
+                              title="<%= h(row['label']) %>">
+                        <img src="<%= h(row['src']) %>" alt="<%= h(row['label']) %>">
+                      </button>
+                    <% end %>
+                  </div>
+                <% end %>
+                <div class="palette-group">
+                  <span class="palette-label">Class:</span>
+                  <% [['🪓','Axe - barbarian / warrior'],['⚔️','Crossed swords - fighter'],['🛡️','Shield - defender / paladin'],['🗡️','Dagger - rogue / assassin'],['🏹','Bow - archer / ranger / elf'],['🪄','Wand - mage / sorcerer'],['📖','Tome - wizard / scholar'],['⚕️','Medical staff - cleric / healer'],['🎵','Music note - bard'],['🎭','Masks - bard / performer'],['🧝','Elf'],['🧙','Mage / druid'],['🐺','Wolf - druid / ranger companion'],['👑','Crown - noble / leader'],['💀','Skull - fallen / undead']].each do |ic, name| %>
+                    <button type="button" class="brush icon-brush" data-brush-type="icon" data-icon="<%= ic %>" title="<%= name %>"><%= ic %></button>
+                  <% end %>
+                </div>
+                <div class="palette-group">
+                  <span class="palette-label">Text:</span>
+                  <button type="button" class="brush label-brush" data-brush-type="label" title="Prompt for a label on click">Label</button>
+                </div>
+                <div class="palette-group">
+                  <span class="palette-label">Move:</span>
+                  <button type="button" class="brush move-brush" data-brush-type="move" title="Drag a cell's icon+label to a new square">Move</button>
+                </div>
+                <div class="palette-group">
+                  <span class="palette-label">Erase:</span>
+                  <button type="button" class="brush erase-brush" data-brush-type="erase" title="Clear cells (drag for a rectangle)">Clear cell</button>
+                </div>
+                <div class="palette-group palette-status">
+                  <span class="palette-label">Brush:</span>
+                  <span class="active-brush-desc">Pick a palette item</span>
+                </div>
+              </div>
+
+              <% player_cells_dm = m['player_cells'].is_a?(Hash) ? m['player_cells'] : {} %>
+              <% if player_cells_dm.any? %>
+                <p class="dt-note" style="color:#666;">Player marks show with a green ring. They're cleared the next time you save this map.</p>
+              <% end %>
+              <div class="scene-map-editor-grid" data-grid="1"
+                   style="grid-template-columns: repeat(<%= cols %>, var(--scene-cell-size));">
+                <% rows.times do |r| %>
+                  <% cols.times do |c| %>
+                    <% cell = cells["#{r},#{c}"] || {} %>
+                    <% pmark = player_cells_dm["#{r},#{c}"] %>
+                    <div class="scene-map-cell editable"
+                         data-r="<%= r %>" data-c="<%= c %>"
+                         style="<%= cell['color'] && !cell['color'].empty? ? "background:#{h cell['color']};" : '' %>">
+                      <% if cell['image'] && !cell['image'].to_s.empty? %>
+                        <img class="scene-map-cell-image" src="<%= h(cell['image']) %>" alt="">
+                      <% end %>
+                      <% if cell['icon'] && !cell['icon'].to_s.empty? %>
+                        <span class="scene-map-icon"><%= h(cell['icon']) %></span>
+                      <% end %>
+                      <% if cell['label'] && !cell['label'].to_s.empty? %>
+                        <span class="scene-map-label"><%= h(cell['label']) %></span>
+                      <% end %>
+                      <% if pmark.is_a?(Hash) && pmark['icon'] %>
+                        <% by_pc = @pc_characters.find { |pc| pc['id'] == pmark['by'] } %>
+                        <span class="scene-map-player-mark" data-by="<%= pmark['by'] %>" title="By <%= by_pc ? h(by_pc['name']) : "player ##{pmark['by']}" %>"><%= h(pmark['icon']) %></span>
+                      <% end %>
+                    </div>
+                  <% end %>
+                <% end %>
+              </div>
+
+              <div class="panel-visibility">
+                <span class="palette-label" style="margin-right: 6px;">Players who can see when visible:</span>
+                <% @pc_characters.each do |pc| %>
+                  <label>
+                    <input type="checkbox" name="visible_to[]" value="<%= pc['id'] %>" <%= 'checked' if Array(m['visible_to']).include?(pc['id']) %>>
+                    <%= h(pc['name']) %>
+                  </label>
+                <% end %>
+              </div>
+
+              <div class="form-row">
+                <button type="submit">Save map</button>
+              </div>
+            </form>
+          </div>
+        <% end %>
+
+        <% if @inactive_maps.any? %>
+          <h4 class="staging-map-list-heading">Other maps</h4>
+          <ul class="staging-map-list">
+            <% @inactive_maps.each do |m| %>
+              <li class="staging-map-list-item">
+                <span class="staging-map-list-title"><%= m['title'].to_s.empty? ? '(untitled)' : h(m['title']) %></span>
+                <span class="staging-map-list-meta"><%= m['rows'].to_i %>×<%= m['cols'].to_i %><%= ' · shared' if m['shared'] %></span>
+                <form method="post" action="/scene/map/activate" style="display:inline;">
+                  <input type="hidden" name="id" value="<%= h(m['id']) %>">
+                  <button type="submit">Activate</button>
+                </form>
+                <form method="post" action="/scene/map/delete" style="display:inline;">
+                  <input type="hidden" name="id" value="<%= h(m['id']) %>">
+                  <button type="submit" class="danger" onclick="return confirm('Delete this map?');">Delete</button>
+                </form>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+
+        <form method="post" action="/scene/map" class="notes-form">
+          <h4>New Map</h4>
+          <p class="dt-note" style="color:#888;">Creating a new map activates it (the previous active map drops to "Other maps").</p>
+          <div class="form-row">
+            <div>
+              <label>Title:</label>
+              <input type="text" name="title" placeholder="Goblin Cave">
+            </div>
+            <div>
+              <label>Rows:</label>
+              <input type="number" name="rows" value="8" min="1" max="40">
+            </div>
+            <div>
+              <label>Cols:</label>
+              <input type="number" name="cols" value="8" min="1" max="40">
+            </div>
+          </div>
+          <div class="panel-visibility">
+            <% @pc_characters.each do |pc| %>
+              <label>
+                <input type="checkbox" name="visible_to[]" value="<%= pc['id'] %>" checked>
+                <%= h(pc['name']) %>
+              </label>
+            <% end %>
+          </div>
+          <button type="submit">Create map</button>
+        </form>
+      </div>

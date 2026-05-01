@@ -707,6 +707,30 @@ table th {
 .scene-maps { display: flex; flex-direction: column; gap: 16px; margin: 20px 0; }
 .scene-map { border: 1px solid #ccc; background: #fff; padding: 10px 12px; border-radius: 4px; }
 .scene-map h2 { margin: 0 0 8px 0; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+.scene-map-grid-wrap { position: relative; display: inline-block; }
+/* SVG overlay sits exactly on top of the cell grid. pointer-events:
+ * none lets cell clicks (and cursor hovers) pass through; the
+ * arrow-remove handles override pointer-events: auto for their own
+ * click target. */
+.scene-map-arrows { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 5; }
+.scene-map-arrows .scene-map-arrow-remove { pointer-events: auto; cursor: pointer; opacity: 0.7; }
+.scene-map-arrows .scene-map-arrow-remove:hover { opacity: 1; }
+/* Halo on the cell that's been picked as an arrow's start. */
+.scene-map-cell.arrow-start-halo { box-shadow: inset 0 0 0 2px #1976d2; z-index: 2; }
+
+.scene-map-player-palette .arrow-brush {
+  border: 1px solid var(--arrow-color, #999);
+  color: var(--arrow-color, #444);
+  background: #fff;
+  padding: 0 8px;
+  font-size: 11px;
+}
+.scene-map-player-palette .arrow-brush:hover { background: #f5f5f5; }
+.scene-map-player-palette .arrow-brush.active {
+  background: var(--arrow-color, #1976d2);
+  color: #fff;
+}
+
 .scene-map-grid, .scene-map-editor-grid {
   display: grid;
   gap: 1px;
