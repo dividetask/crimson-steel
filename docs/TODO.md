@@ -21,7 +21,7 @@ handful of routes (`/`, `/view-mode`).
 | Race | inside character.rb | ✅ | ✅ `race.rb` | done |
 | Advancement (tier, classes, skills, saves) | `SingleKlassProgress` | ✅ | ✅ `advancement.rb` | done |
 | Always-On Modifiers | inlined | ✅ | ✅ `modifiers.rb` | done |
-| Combat tracker (initiative, action dice) | `Combat` class | ✅ | ✅ `combat.rb` | partial — no attack resolution |
+| Combat tracker (initiative, Combat Pool) | `Combat` class | ✅ | ✅ `combat.rb` | partial — no attack resolution |
 | Conditions (HP, Temp HP, magic toxicity, shock, acid, afflictions, effects) | inlined per-CombatTurn | ✅ | ❌ | **lib missing** |
 | Damage Types catalog | hardcoded in rules.json | ✅ | ❌ | **lib missing** |
 | Abilities / Spells reference (compendium) | `Compendium` class | ✅ | ❌ | **lib missing** |
@@ -167,7 +167,7 @@ These depend on Equipment + Spells.
   Partially exists today as stubs. Wire to the full Character API.
 
 - [ ] **Combat tracker** view.
-  Initiative order, current turn highlight, action dice budget,
+  Initiative order, current turn highlight, Combat Pool remaining,
   conditions display, luck-points indicator for bards. Needs every
   Phase 1-2 module in place.
 

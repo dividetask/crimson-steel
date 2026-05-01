@@ -11,6 +11,17 @@
 # value.
 Die Size: 10
 
+# Single-character labels for die values 10 and above when encoding an
+# Initiative String. Values 1-9 always use the digit characters '1'-'9';
+# this string supplies the label for value 10, then 11, then 12, and so on.
+# Default 'X' covers a Die Size of 10.
+#
+# When Die Size exceeds the length of this string, the encoding extends
+# automatically with letters A, B, C, ... Z, skipping any letter already
+# present here so there are no duplicates. Boot will error if the encoding
+# is not monotonic in ASCII order or cannot cover the configured Die Size.
+Initiative String Encoding: "X"
+
 # The default Target Number before any Target Number Modifiers are applied.
 # This is the threshold a die must meet or exceed to count as a Success under
 # neutral conditions.

@@ -112,7 +112,7 @@ AbilitySystem
 └── DamageTypes              (validates `damage_type:` entries against the catalog)
 
 Combat
-├── DiceSystem               (initiative rolls, action-dice math)
+├── DiceSystem               (initiative rolls, Combat Pool math)
 ├── Character (via lookup)   (attribute reads for derived values)
 ├── DamageTypes (optional)   (Severity Calculation)
 └── Conditions (via lookup)  (damage routing target)
@@ -235,8 +235,9 @@ candidate wins and its triple replaces the requested Skill's
 unenforced `minimum_skills_trained` directive.
 
 **Combat** owns the round-by-round combat tracker (combatants,
-two-ID scheme, turn order with die-by-die tie-break, initiative
-dice with combat-specific Luck/Insight rules, action dice spend),
+two-ID scheme, turn order via Initiative String lex compare,
+initiative rolls with combat-specific Luck/Insight rules, Combat
+Pool spend),
 plus the Severity Calculation half of attack resolution
 (`apply_attack_damage`: damage type lookup → pre-bucketing
 mechanics → severity decision → routing to Conditions → post-
@@ -307,7 +308,7 @@ The full attack pipeline runs in two halves. The first half decides
    (via `GET_MODIFIERS`) for active buffs and debuffs on the
    relevant `target_key`, and assembles a modifier dict for
    dice resolution. The action's dice count comes from
-   `Combat#action_dice_max` minus the attacker's spend.
+   `Combat#combat_pool` minus the attacker's spend.
 2. **Build the defender's Opposed Roll** the same way, against the
    defender's defense action.
 3. **Roll both Rolls** through `DiceSystem.RAND_ROLL_DICE` /

@@ -9,8 +9,9 @@
 #      the schema is documented.
 #   3. Restart the server.
 #
-# Tunable rule values (Initiative Divisor, Combat Pool Range,
-# Combat Pool Minimum) live in `data/combat_rules.yaml`, not here.
+# Tunable rule values (Initiative Divisor, Combat Pool Divisor,
+# Combat Pool Step, Turns Per Round) live in
+# `data/combat_rules.yaml`, not here.
 #
 # Schema:
 #   active             — true while combat is in progress
@@ -19,15 +20,17 @@
 #   current_turn_index — index into turn_order for the active
 #                        combatant
 #   combatants         — list of combatants. Per-entry fields:
-#     id              — per-instance combat id (unique within
-#                       this combat, distinct from char_id)
-#     char_id         — underlying character/template id
-#     name            — display name
-#     initiative_dice — dice values rolled for initiative, sorted
-#                       high-to-low. Empty until the first
-#                       reroll. Tie-break is die-by-die descending.
-#     action_dice     — current action dice remaining (max is
-#                       calculated on demand, not stored)
+#     id                — per-instance combat id (unique within
+#                         this combat, distinct from char_id)
+#     char_id           — underlying character/template id
+#     name              — display name
+#     initiative_string — initiative result encoded as a single
+#                         string per dice resolution's Initiative
+#                         String Encoding, sorted high-to-low.
+#                         Empty until the first reroll. Tie-break
+#                         is ASCII descending lex compare.
+#     combat_pool       — current Combat Pool remaining (size is
+#                         calculated on demand, not stored)
 
 active: false
 round: 0

@@ -91,6 +91,27 @@ The "no die rerolled more than once" rule spans steps 1 and 2: dice already rero
 
 This order is observable — for example, a Reroll Operation could turn a Failure into a near-Success that the Nudge then promotes; conversely, a Sweep Reroll on Failures will skip dice that the Reroll Operation already replaced.
 
+### Initiative String Encoding and ordering
+
+Initiative rolls are a degenerate case for the Check machinery — no Target Number, no Successes, no propagation — so they get their own pair of helpers (`Roll Initiative For Group`, `Order Initiative`) and a string representation that consumers can compare without decoding.
+
+**Why a string?** A Combatant's initiative result is just an ordered multiset of die values, used only for relative ordering. A string encoding lets consumers (combat) store it as opaque data, sort it with the same lex compare the standard library already provides, and avoid re-implementing die-by-die tie-breaks. The encoding's monotonicity invariant — higher die value → higher ASCII character — is what makes lex compare equivalent to the underlying numeric comparison.
+
+**Encoding construction.** At boot, the dice resolution module builds a `value → char` table covering 1 through Die Size:
+
+1. Values 1–9 always use digit characters `'1'` through `'9'`.
+2. For values 10 and above, consume characters from the configured `Initiative String Encoding` (default `"X"`).
+3. If the configured string runs out before reaching Die Size, fall back to letters `A, B, C, …, Z` in order, **skipping any letter already used in the configured string** so the table has no duplicates.
+4. Validate: all chars unique, all chars distinct from the digit chars, and the table is monotonic in ASCII (each value's char has a strictly higher codepoint than the previous value's char). Boot errors on any failure.
+
+The auto-fill rule preserves monotonicity by construction only when the user string is itself monotonic and slots into the alphabet without forcing a non-monotonic gap. The validator catches misconfigurations: e.g., `"ZX"` would fail because `'X' < 'Z'`, breaking monotonicity at value 11.
+
+**`Roll Initiative For Group`.** Takes a list of dice counts aligned to the caller's Combatant list. For each entry: roll N dice, sort the values descending, map each value through the encoding table, and concatenate to produce that Combatant's Initiative String. Then run the strings through the same comparator as `Order Initiative` to compute each entry's `order_position`. Returns an aligned list — index `i` of the output corresponds to index `i` of the input — so the caller never has to thread Combatant identities through the dice domain.
+
+**`Order Initiative`.** Pure: sort the inputs by ASCII descending lex compare, breaking ties by original index (lowest first), and return the permutation as a list of indices. Used by combat after applying Initiative Luck or Initiative Insight (which mutate the underlying string), or to re-derive turn order from persisted Initiative Strings on load.
+
+The dice domain owns the encoding and the ordering helpers but does **not** own initiative-specific roll modifications (Luck, Insight) — those are combat-specific Reroll / Value Adjustment variants documented in `combat_design.md`. The dice domain does not know what an Initiative is for; it just rolls dice and provides a string-based representation that's convenient for consumers who only need ordering.
+
 ## Responsibilities
 
 ### Owned by the dice resolution domain
@@ -103,6 +124,7 @@ This order is observable — for example, a Reroll Operation could turn a Failur
 - Applying Roll Modifiers (Reroll Operation, Sweep Reroll, Value Adjustment) including target selection and rerolled-die bookkeeping.
 - Composing a Check from an ordered list of tagged Rolls: aggregating Degrees of Individual Success into a Degree of Success, applying success thresholds, detecting Fumbles.
 - Propagating same-Check Bonuses and Penalties across Rolls (with sign inversion across sides) and honoring the per-modifier "this-Roll-only" opt-out.
+- Building and validating the Initiative String Encoding at boot, rolling initiative for a group of Combatants (`Roll Initiative For Group`), and ordering Initiative Strings into a turn order (`Order Initiative`).
 
 ### Explicitly *not* owned here
 

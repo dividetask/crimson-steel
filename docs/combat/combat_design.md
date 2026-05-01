@@ -12,11 +12,13 @@ Each Combatant has a Combat ID (per-instance, unique within this Combat) and a C
 
 `next_combat_id!` returns one past the highest in-use Combat ID. Computed rather than persisted — the state file describes only the values that matter to combat itself, not bookkeeping.
 
-### Turn order with die-by-die tie-break
+### Turn order via Initiative String compare
 
-`turn_order` recomputes on every read. The sort key for each Combatant is the dice list sorted descending and negated (so Ruby's ascending sort places the highest values first), with the Combat ID as the final tie-break.
+`turn_order` recomputes on every read. The sort key for each Combatant is the Initiative String compared in ASCII descending order, with the Combat ID as the final tie-break.
 
-The die-by-die tie-break is what makes `[10, 7]` beat `[10, 6]`: the comparator runs left-to-right through the sorted-descending dice. This is observable: a Combatant who rolled `[10, 9, 1]` outranks a Combatant who rolled `[10, 8, 8]` despite having a worse second die because of when comparison stops? No — the comparator continues until one side wins, so `[10, 9]` wins on the second die regardless of what comes after. The full dice list participates in the key.
+The Initiative String Encoding (defined in `dice_resolution_glossary.md`) is monotonic — higher die values map to higher ASCII characters — so plain lex compare on the strings reproduces a die-by-die comparison without combat needing to interpret the encoding. `XX95` beats `XX88` because position 2 differs (`9 > 8`). `X775` beats `X77` because, with the prefix matching, the longer string is greater than the shorter under lex compare. `XX9` beats `X991` because the difference at position 1 (`X > 9`) decides regardless of what follows.
+
+A Combatant who rolled an 8 on a single die (`"8"`) outranks one whose three dice all rolled 7-or-lower (`"775"` or similar) — first character `8 > 7` decides. Combat does not need to special-case mismatched dice counts; the encoding handles it.
 
 ### Current Turn Index modulo
 
@@ -42,15 +44,34 @@ Insight nudges a single die's value:
 
 Magnitudes greater than 1 repeat the operation. The current implementation runs the same selection rules on each iteration — the chosen die may differ between iterations as values change.
 
-### Action dice formula
+### Combat Pool formula
 
-Action Dice Max is `(raw % Combat Pool Range) + Combat Pool Minimum`. The `raw` term is `martial_skill_ranks + floor(combat_pool_attribute / 2)`. Why the modulo? It caps the per-round pool at `Combat Pool Range + Combat Pool Minimum - 1` (e.g. defaults: 10 + 11 - 1 = 20), keeping high-rank Characters from dominating any single round. The integer-division half (`floor(raw / Combat Pool Range)`) is exposed as **Unused Bonus** as a placeholder — the design hasn't decided what it should do, but the value is preserved so a future consumer can pick it up without a recompute.
+Combat Pool is derived in two stages.
 
-Action Dice Max is **never persisted**. It's computed every time it's needed by reading the Character's current stats. This means a temporary buff to martial or wisdom shows up immediately without combat needing to recompute or invalidate caches.
+**Stage 1 — Budget.** The Combatant's per-turn Budget is
+
+```
+budget = floor((martial_skill_ranks
+                + floor(combat_pool_attribute / Combat Pool Divisor))
+               / Turns Per Round[tier])
+```
+
+Both martial skill ranks and the attribute value are read via the `character_lookup` callback. `Turns Per Round` is an array indexed by Tier (Tier 0 → index 0); a Tier beyond the array length is an error rather than a clamp — the campaign config must extend the list before high-Tier Combatants enter combat.
+
+**Stage 2 — Buy Combat Pool.** The Budget is spent to "buy" pool points in tiers of size `Combat Pool Step`:
+
+- Points 1 through Step are **free** (cost 0 each). Every Combatant is therefore guaranteed at least `Combat Pool Step` points regardless of Budget.
+- Points Step+1 through 2·Step cost 1 Budget each.
+- Points 2·Step+1 through 3·Step cost 2 each.
+- Points (k·Step)+1 through (k+1)·Step cost k each.
+
+Combat Pool is the largest count P that fits within the Budget. Closed form: with `T = floor(P / Step)` and `R = P mod Step`, total cost = `Step · T·(T-1)/2 + R · T`. Walk P upward until adding the next point would exceed Budget; leftover Budget is discarded.
+
+Combat Pool is **never persisted**. It's computed every time it's needed by reading the Character's current stats, so a temporary buff to martial ranks or the Combat Pool Attribute shows up immediately without combat needing to recompute or invalidate caches.
 
 ### Atomic state persistence
 
-`save!` writes the state file atomically on every mutation. Reads at startup are tolerant: missing state file → empty Combat. Adding/removing combatants, rerolling initiative, advancing turns, spending action dice, ending combat — all save immediately. The rules file is loaded only at boot; mid-session changes to combat tunables require a restart.
+`save!` writes the state file atomically on every mutation. Reads at startup are tolerant: missing state file → empty Combat. Adding/removing combatants, rerolling initiative, advancing turns, spending Combat Pool, ending combat — all save immediately. The rules file is loaded only at boot; mid-session changes to combat tunables require a restart.
 
 ### Attack resolution pipeline
 
@@ -89,9 +110,9 @@ Combat does **not** own the catalog itself or any Conditions storage; it just se
 - The single in-memory Combat: combatants list, turn pointer, round counter, active flag.
 - Combat ID allocation and Combatant identity (Combat ID + Character ID).
 - Turn Order computation with die-by-die tie-break.
-- Initiative dice count and Action Dice Max derivation (via the supplied `character_lookup`).
-- Initiative reroll: rolling through the dice resolution module, then applying combat-specific Luck and Insight rules.
-- Action dice spend / reset.
+- Initiative dice count and Combat Pool derivation (via the supplied `character_lookup`).
+- Initiative reroll: rolling through the dice resolution module (which returns the Initiative String), then applying combat-specific Luck and Insight rules.
+- Combat Pool spend / reset.
 - Atomic state persistence and load.
 - **Severity Calculation** for incoming damage events: looking up the damage type's catalog entry, applying pre-bucketing mechanics (`damage_per_dice`, `damage_multiplier`), performing Runtime Bucketing for physical damage from `Threshold + Damage Resilience`, and routing the resulting `{minor, moderate, major}` map to the conditions module's `APPLY_HIT_POINT_DAMAGE`.
 - **Side-effect routing** for damage-type mechanics: invoking `APPLY_ACID_DAMAGE`, `APPLY_SHOCK`, and similar conditions APIs based on the damage type's `apply_acid_counter` / `inflict` mechanics.
@@ -109,5 +130,4 @@ Combat does **not** own the catalog itself or any Conditions storage; it just se
 ### Unassigned (no current owner)
 
 - **A canonical attack-resolution entry point** that wires both halves end-to-end. The pieces exist (build a Check via dice resolution; route damage via `apply_attack_damage`); a single "Combatant A attacks Combatant B with weapon W" call that produces both the to-hit outcome and the damage application is still a future composition.
-- **Unused Bonus.** The integer-division half of the action dice formula. The design hasn't decided how (or whether) to apply it; it's stored as a placeholder so a future use doesn't have to recompute.
 - **Initiative reroll edge cases.** The Luck loop reads dice in their pre-Luck order; running multiple iterations of Insight on the same dice list may repeatedly pick the same die unless values change. Both are tractable but unspecified.

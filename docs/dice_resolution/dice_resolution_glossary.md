@@ -96,6 +96,24 @@ Bonuses and Penalties on a Roll propagate to every other Roll in the same Check 
 
 **Starting Value**: A signed integer Starting contribution associated with a specific modifier type. Positive values represent Starting Successes for that type; negative values represent Starting Failures. Any type in the Bonus Types List may have a Starting value — in practice, the Circumstance type is the primary source, but the mechanism is generic. The overall Starting Value for a Roll is the sum of every type's Starting value plus any Target Number overflow.
 
+## Initiative
+
+Initiative rolls are a specialized form of roll: there is no Target Number, no Success/Failure counting, and the only output that matters is the relative ordering between rolls. Dice resolution exposes a dedicated representation and helpers for them.
+
+**Initiative String**: A single string encoding one Combatant's initiative roll, sorted highest-to-lowest with one character per die. The encoding is fixed by the **Initiative String Encoding** so that ASCII-descending lex compare on two Initiative Strings reproduces the underlying die-by-die comparison. Combat consumers store the string as opaque data — they never decode individual characters.
+
+**Initiative String Encoding**: A configuration string giving the labels for die values 10 and above. Values 1–9 are always represented by their digit characters (`"1"`–`"9"`). The user-supplied string supplies labels for value 10, 11, 12, … in order; the default `"X"` covers value 10 only. When the configured Die Size exceeds what the user-supplied string covers, the encoding extends with `A, B, C, …, Z`, **skipping any letter already present in the user string** to avoid duplicates. Validated at boot:
+
+- Every character must be unique across the full encoding (1–9 digits + user string + auto-fill).
+- The encoding must be **monotonic**: each successive value's character must have a strictly greater ASCII codepoint than the previous value's. (`'9' < 'A' < 'X' < 'Z'`, so the default and the natural extensions are monotonic.)
+- The encoding must cover the full range 1 through Die Size; if it cannot (the user used too many letters, exhausting the A–Z slack), boot errors.
+
+*(configurable, default `"X"`)*
+
+**Roll Initiative For Group**: A function that takes an ordered list of dice counts (one per Combatant) and returns an aligned list of `{initiative_string, order_position}` entries. `order_position` is a 0-indexed turn-order rank (0 = first to act). Internally rolls each Combatant's dice, encodes the sorted result into an Initiative String, and computes the order via the same comparator as **Order Initiative**. Rolls are independent — there is no propagation, modifiers, or rerolls at this layer; effects like Initiative Luck and Initiative Insight are applied by the calling module after the roll.
+
+**Order Initiative**: A pure function that takes an ordered list of Initiative Strings and returns a list of indices into the input giving the resulting turn order. Comparison is ASCII-descending lex compare; ties (identical strings) are broken by the original index (lowest first).
+
 ## Roll Modifiers
 
 Roll Modifiers alter the dice of a Roll rather than its Target Number. The dice resolution module exposes three generic operations that external effects may invoke:
