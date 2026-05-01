@@ -1882,18 +1882,13 @@ post '/combat/add_enemy' do
   redirect back
 end
 
-# Build a "5gp, chain shirt ×2, falcion" loot summary from a list of
-# spawn-result hashes for a single creature type. Returns nil if the
-# creature rolled nothing.
+# Aggregate the gold + items rolled for a single creature group.
+# Returns a hash { gold: Int, items: ["chain shirt ×2", "falcion"] }.
 def encounter_loot_summary(results)
-  total_gold = results.sum { |r| r[:gold] }
+  gold = results.sum { |r| r[:gold] }
   item_names = results.flat_map { |r| r[:items].map { |i| i['name'].to_s } }.reject(&:empty?)
-  parts = []
-  parts << "#{total_gold}gp" if total_gold > 0
-  unless item_names.empty?
-    parts.concat(item_names.tally.map { |name, n| n > 1 ? "#{name} ×#{n}" : name })
-  end
-  parts.empty? ? nil : parts.join(', ')
+  items = item_names.tally.map { |name, n| n > 1 ? "#{name} ×#{n}" : name }
+  { 'gold' => gold, 'items' => items }
 end
 
 # Roll a random_encounters entry. Removes every non-PC participant from
@@ -1927,14 +1922,16 @@ post '/combat/roll_encounter' do
     spawn_results = count.times.map do
       spawn_enemy_from_template!(template_id, characters, combat_data, rng: rng)
     end
-    line = "#{count}× #{creature_name}"
     loot = encounter_loot_summary(spawn_results)
-    line += " [#{loot}]" if loot
-    rolled_lines << line
+    rolled_lines << { 'count' => count, 'name' => creature_name,
+                      'gold' => loot['gold'], 'items' => loot['items'] }
   end
 
-  banner = "#{encounter['name'] || 'Random Encounter'}: #{outcome['description']} — #{rolled_lines.join('; ')}"
-  combat_data['encounter_message'] = banner
+  combat_data['encounter_message'] = {
+    'encounter_name' => encounter['name'] || 'Random Encounter',
+    'outcome_description' => outcome['description'].to_s,
+    'lines' => rolled_lines
+  }
 
   Tools.save_json('characters.json', characters)
   Tools.save_json('combat.json', combat_data)

@@ -1,0 +1,40 @@
+<%
+  msg = @encounter_message
+%>
+<% if msg.is_a?(Hash) %>
+  <div class="encounter-banner">
+    <div class="encounter-banner-body">
+      <div class="encounter-banner-title"><%= h(msg['encounter_name']) %></div>
+      <% unless msg['outcome_description'].to_s.empty? %>
+        <div class="encounter-banner-outcome"><%= h(msg['outcome_description']) %></div>
+      <% end %>
+      <% lines = Array(msg['lines']) %>
+      <% if lines.any? %>
+        <ul class="encounter-banner-list">
+          <% lines.each do |line| %>
+            <li>
+              <span class="encounter-banner-creature"><%= h(line['count']) %>× <%= h(line['name']) %></span>
+              <% loot_parts = [] %>
+              <% loot_parts << "<strong>#{line['gold']}</strong> gp" if line['gold'].to_i > 0 %>
+              <% loot_parts << "items: #{Array(line['items']).map { |i| h(i) }.join(', ')}" if Array(line['items']).any? %>
+              <% if loot_parts.any? %>
+                <div class="encounter-banner-loot"><%= loot_parts.join(' &middot; ') %></div>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </div>
+    <form method="post" action="/combat/encounter_message/clear" style="display:inline;">
+      <button type="submit" class="encounter-banner-dismiss" title="Dismiss">×</button>
+    </form>
+  </div>
+<% elsif msg.is_a?(String) && !msg.empty? %>
+  <%# Fallback for the pre-structured string format. %>
+  <div class="encounter-banner">
+    <span class="encounter-banner-text"><%= h(msg) %></span>
+    <form method="post" action="/combat/encounter_message/clear" style="display:inline;">
+      <button type="submit" class="encounter-banner-dismiss" title="Dismiss">×</button>
+    </form>
+  </div>
+<% end %>

@@ -75,14 +75,7 @@
   </div>
 
   <div class="enemy-sheet">
-    <% if @encounter_message && !@encounter_message.to_s.empty? %>
-      <div class="encounter-banner">
-        <span class="encounter-banner-text"><%= h(@encounter_message) %></span>
-        <form method="post" action="/combat/encounter_message/clear" style="display:inline;">
-          <button type="submit" class="encounter-banner-dismiss" title="Dismiss">×</button>
-        </form>
-      </div>
-    <% end %>
+    <%= erb :_encounter_banner, layout: false %>
     <div class="sheet">
       <div class="header">
         <h1><%= @character.name %></h1>

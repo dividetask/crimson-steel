@@ -466,9 +466,27 @@ table th {
 .enemy-encounter-btn { width: 100%; padding: 6px; font-size: 11px; background: #5e35b1; color: white; border: none; cursor: pointer; border-radius: 3px; text-align: left; }
 .enemy-encounter-btn:hover { background: #4527a0; }
 
-.encounter-banner { background: #fff3e0; border: 1px solid #ef6c00; border-radius: 4px; padding: 8px 12px; margin: 0 0 12px 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.encounter-banner {
+  background: #fff3e0;
+  border: 1px solid #ef6c00;
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.encounter-banner-body { flex: 1 1 auto; min-width: 0; color: #4a2c00; }
+.encounter-banner-title { font-size: 15px; font-weight: bold; line-height: 1.3; }
+.encounter-banner-outcome { font-size: 13px; font-style: italic; margin-top: 2px; }
+.encounter-banner-list { margin: 6px 0 0 0; padding-left: 22px; list-style: disc; }
+.encounter-banner-list li { font-size: 13px; line-height: 1.4; margin-bottom: 4px; }
+.encounter-banner-creature { font-weight: bold; }
+.encounter-banner-loot { color: #6b4400; font-size: 12px; margin-left: 4px; }
+/* Legacy string-form fallback. */
 .encounter-banner-text { color: #4a2c00; font-weight: bold; font-size: 13px; flex: 1 1 auto; min-width: 0; word-break: break-word; line-height: 1.4; }
-.encounter-banner-dismiss { background: transparent; border: none; color: #4a2c00; font-size: 18px; line-height: 1; padding: 0 4px; cursor: pointer; }
+.encounter-banner-dismiss { background: transparent; border: none; color: #4a2c00; font-size: 18px; line-height: 1; padding: 0 4px; cursor: pointer; flex-shrink: 0; }
 .encounter-banner-dismiss:hover { color: #b71c1c; }
 .enemy-group { margin-bottom: 6px; }
 .enemy-group-header { display: flex; align-items: center; gap: 4px; padding: 4px 2px; cursor: pointer; user-select: none; font-size: 12px; border-bottom: 1px solid #ddd; }
