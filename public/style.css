@@ -460,9 +460,8 @@ table th {
 .enemy-clear-btn { width: 100%; padding: 6px; font-size: 11px; background: #d32f2f; color: white; border: none; cursor: pointer; border-radius: 3px; }
 .enemy-clear-btn:hover { background: #b71c1c; }
 
-.enemy-encounter-section { margin-top: 14px; padding-top: 10px; border-top: 1px solid #ddd; }
-.enemy-encounter-section h3 { font-size: 12px; margin: 0 0 4px 0; }
-.enemy-encounter-hint { font-size: 10px; color: #888; margin: 0 0 6px 0; }
+.enemy-encounter-group { margin: 4px 0 8px 0; padding-bottom: 6px; border-bottom: 1px dashed #d0c0e6; }
+.enemy-encounter-hint { font-size: 10px; color: #888; margin: 0 0 4px 0; }
 .enemy-encounter-btn { width: 100%; padding: 6px; font-size: 11px; background: #5e35b1; color: white; border: none; cursor: pointer; border-radius: 3px; text-align: left; }
 .enemy-encounter-btn:hover { background: #4527a0; }
 

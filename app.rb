@@ -1805,6 +1805,7 @@ get '/enemies/:index' do
   @template_instances = characters.select { |c| c['template_id'].to_s == template['id'].to_s }
   @all_characters = characters
   @random_encounters = Templates.random_encounters
+  @encounters_by_source = @random_encounters.group_by { |e| e['_source'] || 'General' }
 
   erb :enemies
 end

@@ -19,6 +19,18 @@
             <span class="enemy-group-count">(<%= group[:enemies].length %>)</span>
           </div>
           <div class="enemy-group-body">
+            <% encounters_here = (@encounters_by_source || {})[group[:label]] || [] %>
+            <% if encounters_here.any? %>
+              <div class="enemy-encounter-group">
+                <p class="enemy-encounter-hint">Random encounter: clears every enemy and rolls one outcome.</p>
+                <% encounters_here.each do |enc| %>
+                  <form method="post" action="/combat/roll_encounter" style="margin-bottom: 4px;">
+                    <input type="hidden" name="encounter_id" value="<%= h(enc['id']) %>">
+                    <button type="submit" class="enemy-encounter-btn"><%= h(enc['name'] || enc['id']) %></button>
+                  </form>
+                <% end %>
+              </div>
+            <% end %>
             <% group[:enemies].each do |enemy| %>
               <%
                 copies = @combat_participants.select do |p|
@@ -58,20 +70,6 @@
     <form method="post" action="/combat/clear_enemies" style="margin-top: 10px;">
       <button type="submit" class="enemy-clear-btn">Clear All Enemies</button>
     </form>
-
-    <% if (@random_encounters || []).any? %>
-      <div class="enemy-encounter-section">
-        <h3>Random Encounters</h3>
-        <p class="enemy-encounter-hint">Clears all enemies and rolls one of the listed outcomes.</p>
-        <% @random_encounters.each do |enc| %>
-          <form method="post" action="/combat/roll_encounter" style="margin-bottom: 4px;"
-                onsubmit="return confirm('Clear all enemies and roll a random encounter?');">
-            <input type="hidden" name="encounter_id" value="<%= h(enc['id']) %>">
-            <button type="submit" class="enemy-encounter-btn"><%= h(enc['name'] || enc['id']) %></button>
-          </form>
-        <% end %>
-      </div>
-    <% end %>
   </div>
 
   <div class="enemy-sheet">
