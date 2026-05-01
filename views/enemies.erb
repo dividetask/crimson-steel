@@ -12,8 +12,8 @@
         char_by_id = (@all_characters || Tools.load_json('characters.json')).each_with_object({}) { |c, h| h[c['id']] = c }
       %>
       <% (@enemy_groups || []).each_with_index do |group, gi| %>
-        <div class="enemy-group">
-          <div class="enemy-group-header" onclick="this.parentElement.classList.toggle('collapsed')" title="Click to expand/collapse">
+        <div class="enemy-group collapsed" data-group-key="<%= h(group[:label]) %>">
+          <div class="enemy-group-header" onclick="toggleEnemyGroup(this.parentElement)" title="Click to expand/collapse">
             <span class="enemy-group-toggle">&#9660;</span>
             <strong><%= group[:label] %></strong>
             <span class="enemy-group-count">(<%= group[:enemies].length %>)</span>
@@ -58,9 +58,31 @@
     <form method="post" action="/combat/clear_enemies" style="margin-top: 10px;">
       <button type="submit" class="enemy-clear-btn">Clear All Enemies</button>
     </form>
+
+    <% if (@random_encounters || []).any? %>
+      <div class="enemy-encounter-section">
+        <h3>Random Encounters</h3>
+        <p class="enemy-encounter-hint">Clears all enemies and rolls one of the listed outcomes.</p>
+        <% @random_encounters.each do |enc| %>
+          <form method="post" action="/combat/roll_encounter" style="margin-bottom: 4px;"
+                onsubmit="return confirm('Clear all enemies and roll a random encounter?');">
+            <input type="hidden" name="encounter_id" value="<%= h(enc['id']) %>">
+            <button type="submit" class="enemy-encounter-btn"><%= h(enc['name'] || enc['id']) %></button>
+          </form>
+        <% end %>
+      </div>
+    <% end %>
   </div>
 
   <div class="enemy-sheet">
+    <% if @encounter_message && !@encounter_message.to_s.empty? %>
+      <div class="encounter-banner">
+        <span class="encounter-banner-text"><%= h(@encounter_message) %></span>
+        <form method="post" action="/combat/encounter_message/clear" style="display:inline;">
+          <button type="submit" class="encounter-banner-dismiss" title="Dismiss">×</button>
+        </form>
+      </div>
+    <% end %>
     <div class="sheet">
       <div class="header">
         <h1><%= @character.name %></h1>
@@ -296,3 +318,40 @@
     </div>
   </div>
 </div>
+
+<script>
+// Persist enemy-sidebar collapse state across page reloads (every Add /
+// Remove submits a POST and re-renders, which would otherwise reset
+// every group to its default-collapsed state). The keyed flag is
+// "open" — present means the group is expanded; absent means
+// collapsed (the default the server renders).
+(function() {
+  var STORAGE_KEY = 'enemyGroupOpen';
+  function readState() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) || {} : {};
+    } catch (e) { return {}; }
+  }
+  function writeState(state) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch (e) {}
+  }
+  var state = readState();
+
+  document.querySelectorAll('.enemy-group[data-group-key]').forEach(function(el) {
+    var key = el.getAttribute('data-group-key');
+    if (state[key]) el.classList.remove('collapsed');
+  });
+
+  window.toggleEnemyGroup = function(el) {
+    el.classList.toggle('collapsed');
+    var key = el.getAttribute('data-group-key');
+    if (!key) return;
+    var s = readState();
+    if (el.classList.contains('collapsed')) delete s[key];
+    else s[key] = true;
+    writeState(s);
+  };
+})();
+</script>

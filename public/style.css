@@ -58,6 +58,78 @@ body {
   font-weight: bold;
 }
 
+.detail-toggle {
+  display: inline-block;
+  font-size: 13px;
+  background: #1976d2;
+  color: #fff;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid #0d47a1;
+}
+.detail-toggle:hover { background: #0d47a1; }
+.navigation { width: auto; gap: 12px; min-width: 300px; }
+
+/* Compact monster-statblock-style character card. Single-column flow,
+ * red rules between sections. */
+.char-card {
+  max-width: 760px;
+  margin: 0 auto 30px auto;
+  padding: 14px 18px;
+  background: #fdf6e8;
+  border: 1px solid #b58c2a;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.char-card-name-row { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.char-card-name { font-size: 22px; font-weight: bold; }
+.char-card-player { font-size: 12px; color: #555; }
+.char-card-type { margin-top: 2px; font-style: italic; color: #555; }
+.char-card-rule { height: 1px; background: #b71c1c; margin: 8px 0; }
+.char-card-section-title { font-weight: bold; color: #b71c1c; margin: 4px 0 2px 0; font-size: 13px; }
+
+.char-card-top { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.char-card-attrs { display: flex; gap: 6px; flex-wrap: wrap; }
+.char-card-attr { background: #fff; border: 1px solid #d4b88a; border-radius: 3px; padding: 4px 6px; min-width: 48px; text-align: center; }
+.char-card-attr-label { display: block; font-size: 10px; color: #6b4f24; font-weight: bold; }
+.char-card-attr-value { display: block; font-size: 14px; font-weight: bold; }
+.char-card-vitals { flex: 1 1 200px; }
+.char-card-line { padding: 1px 0; }
+.char-card-line .hp-temp { color: #1976d2; font-size: 11px; }
+.char-card-line .hp-mod { color: #ef6c00; font-size: 11px; }
+.char-card-line .hp-major { color: #b71c1c; font-size: 11px; }
+.char-card-line .toxicity { color: #4527a0; font-size: 11px; }
+
+.char-card-quickrow { width: 100%; border-collapse: collapse; }
+.char-card-quickrow td { padding: 2px 6px; }
+.char-card-actions { width: 100%; border-collapse: collapse; }
+.char-card-actions th { text-align: left; font-size: 11px; color: #6b4f24; border-bottom: 1px solid #d4b88a; padding: 2px 4px; }
+.char-card-actions td { padding: 2px 4px; border-bottom: 1px dotted #e6d6b6; }
+.char-card-actions tr.char-card-skill-header th { padding-top: 8px; border-top: 1px solid #b58c2a; }
+
+.char-card-skill-title { margin-top: 6px; }
+.char-card-skills { width: 100%; border-collapse: collapse; }
+.char-card-skills th { text-align: left; font-size: 11px; color: #6b4f24; border-bottom: 1px solid #d4b88a; padding: 2px 4px; }
+.char-card-skills td { padding: 2px 4px; border-bottom: 1px dotted #e6d6b6; }
+/* Spacer column between the two skill halves. No borders at all so
+ * the gap reads as empty space; the two four-column halves keep
+ * their own header underline and per-row dotted rules without those
+ * lines bleeding across the gap. */
+.char-card-skills .char-card-skill-spacer {
+  width: 16px;
+  background: transparent;
+  border: none !important;
+}
+
+.char-card-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 600px) { .char-card-two-col { grid-template-columns: 1fr; } }
+.char-card-entry { margin: 2px 0; font-size: 12px; }
+.char-card-empty { color: #888; font-style: italic; }
+
 .sheet {
   border: 2px solid #000;
   padding: 15px;
@@ -342,8 +414,11 @@ table th {
 
 /* Scene page: simplified initiative table for player-facing display.
  * Enemy HP is masked behind a colored bar instead of a number. */
-.scene-init { width: 100%; max-width: 600px; margin-bottom: 20px; }
-.scene-init th, .scene-init td { padding: 6px 10px; }
+.scene-init { width: auto; max-width: 100%; margin-bottom: 20px; border-collapse: collapse; }
+.scene-init th, .scene-init td { padding: 4px 8px; }
+.scene-init th:first-child, .scene-init td:first-child { width: 1%; white-space: nowrap; }
+.scene-init th:nth-child(2), .scene-init td:nth-child(2) { max-width: 240px; word-break: break-word; }
+.scene-init th:last-child, .scene-init td:last-child { width: 1%; white-space: nowrap; }
 .scene-init tr.current-turn { background: #fff4c2; font-weight: bold; }
 .scene-hp-bar { display: inline-block; width: 70px; height: 14px; border-radius: 3px; vertical-align: middle; }
 .scene-hp-good   { background: #4caf50; }
@@ -384,6 +459,17 @@ table th {
 .enemy-copy-label { flex: 1; }
 .enemy-clear-btn { width: 100%; padding: 6px; font-size: 11px; background: #d32f2f; color: white; border: none; cursor: pointer; border-radius: 3px; }
 .enemy-clear-btn:hover { background: #b71c1c; }
+
+.enemy-encounter-section { margin-top: 14px; padding-top: 10px; border-top: 1px solid #ddd; }
+.enemy-encounter-section h3 { font-size: 12px; margin: 0 0 4px 0; }
+.enemy-encounter-hint { font-size: 10px; color: #888; margin: 0 0 6px 0; }
+.enemy-encounter-btn { width: 100%; padding: 6px; font-size: 11px; background: #5e35b1; color: white; border: none; cursor: pointer; border-radius: 3px; text-align: left; }
+.enemy-encounter-btn:hover { background: #4527a0; }
+
+.encounter-banner { background: #fff3e0; border: 1px solid #ef6c00; border-radius: 4px; padding: 8px 12px; margin: 0 0 12px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.encounter-banner-text { color: #4a2c00; font-weight: bold; font-size: 13px; }
+.encounter-banner-dismiss { background: transparent; border: none; color: #4a2c00; font-size: 18px; line-height: 1; padding: 0 4px; cursor: pointer; }
+.encounter-banner-dismiss:hover { color: #b71c1c; }
 .enemy-group { margin-bottom: 6px; }
 .enemy-group-header { display: flex; align-items: center; gap: 4px; padding: 4px 2px; cursor: pointer; user-select: none; font-size: 12px; border-bottom: 1px solid #ddd; }
 .enemy-group-header:hover { background: #eee; }
@@ -583,8 +669,20 @@ table th {
 .staging-name-label { font-weight: bold; }
 
 .staging-draft-note, .staging-panel, .staging-image, .staging-map { border: 1px solid #ddd; padding: 10px; margin: 10px 0; background: #fafafa; border-radius: 4px; }
+.staging-map-active { border-color: #1976d2; background: #f5fbff; }
+.staging-map-active-header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #cfd8dc; }
+.staging-map-active-label { font-weight: bold; color: #0d47a1; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+.staging-map-active-header button.staging-map-vis-on  { background: #c8e6c9; border: 1px solid #66bb6a; color: #1b5e20; padding: 4px 10px; }
+.staging-map-active-header button.staging-map-vis-off { background: #fff;    border: 1px solid #bbb;    color: #555;    padding: 4px 10px; }
 
-/* Scene grid maps */
+.staging-map-list-heading { margin: 14px 0 6px 0; font-size: 13px; color: #555; }
+.staging-map-list { list-style: none; padding: 0; margin: 0 0 14px 0; }
+.staging-map-list-item { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 3px; background: #fff; margin-bottom: 4px; }
+.staging-map-list-title { font-weight: bold; flex: 1 1 auto; }
+.staging-map-list-meta { color: #888; font-size: 12px; }
+
+/* Scene grid maps. Cells are CSS-grid squares painted with color, an
+ * emoji icon, and/or a small label; player marks float in the corner. */
 :root { --scene-cell-size: 32px; }
 .scene-maps { display: flex; flex-direction: column; gap: 16px; margin: 20px 0; }
 .scene-map { border: 1px solid #ccc; background: #fff; padding: 10px 12px; border-radius: 4px; }
@@ -663,9 +761,9 @@ table th {
 .scene-map-cell.move-source { opacity: 0.4; }
 .scene-map-cell.move-target { outline: 2px dashed #388e3c; outline-offset: -2px; z-index: 3; }
 
-/* Player overlay marks -- ephemeral "I want to move here" icons players can
- * drop on shared maps. Pinned to the top-right of the cell so they sit above
- * the DM's own icon/label without fully obscuring it. */
+/* Player overlay marks -- ephemeral "I want to move here" icons players
+ * can drop on shared maps. Pinned to the top-right of the cell so they
+ * sit above the DM's own icon/label without fully obscuring it. */
 .scene-map-player-mark {
   position: absolute;
   top: 0;
@@ -716,11 +814,96 @@ table th {
 .scene-map-player-palette .brush.active { outline: 2px solid #1976d2; outline-offset: 1px; }
 .scene-map-player-palette .player-clear-mine { background: #fff3e0; border-color: #e65100; color: #b71c1c; font-size: 12px; }
 
+.staging-note-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.staging-note-grid .staging-panel { margin: 0; }
+@media (max-width: 900px) { .staging-note-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .staging-note-grid { grid-template-columns: 1fr; } }
+
+.scene-note-add { background: #fff; border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 4px; }
+
 .panel-visibility { display: flex; flex-wrap: wrap; gap: 10px; padding: 6px 0; }
 .panel-visibility label { font-weight: normal; }
 
 .staging-image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .staging-image img { max-width: 100%; max-height: 180px; display: block; border: 1px solid #ccc; }
+
+.scene-reminder { margin: 10px 0; padding: 6px 12px; background: #e3f2fd; border: 1px solid #64b5f6; border-radius: 4px; }
+.scene-reminder summary { cursor: pointer; font-weight: bold; color: #0d47a1; font-size: 14px; padding: 2px 0; list-style: none; }
+.scene-reminder summary::-webkit-details-marker { display: none; }
+.scene-reminder summary::before { content: '▸ '; display: inline-block; transition: transform 0.15s; }
+.scene-reminder[open] summary::before { content: '▾ '; }
+.scene-reminder p { margin: 8px 0 4px 0; font-size: 13px; color: #1a237e; line-height: 1.45; }
+
+/* The SVG covers the whole bar via absolute positioning so the date
+   floats on top of the sky. The bar's own background color matches the
+   sky for any letterbox space when the SVG (viewBox 200x80) doesn't
+   fill the bar's aspect ratio. */
+.scene-datetime { position: relative; min-height: 80px; padding: 16px 20px; border: 1px solid #b58c2a; border-radius: 4px; margin: 14px 0 10px 0; overflow: hidden; }
+.scene-datetime-day   { background: #bcdcff; border-color: #5a8fc4; }
+.scene-datetime-night { background: #1c2240; border-color: #4a4f6b; }
+.scene-sky { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.scene-datetime-value { position: relative; z-index: 1; font-size: 22px; font-weight: bold; color: #1a237e; padding: 4px 12px; background: rgba(255, 255, 255, 0.7); border-radius: 4px; display: inline-block; }
+.scene-datetime-night .scene-datetime-value { color: #e8ecf5; background: rgba(28, 34, 64, 0.6); }
+.scene-datetime-controls { margin: 0 0 16px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px; }
+.scene-datetime-controls-label { font-size: 13px; color: #555; margin-right: 4px; }
+.scene-datetime-controls button { padding: 4px 10px; }
+
+/* Mixed grid on /scene: each cell is either a Scene Note or a CoI. */
+.scene-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0 18px 0; }
+@media (max-width: 900px) { .scene-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .scene-grid { grid-template-columns: minmax(0, 1fr); } }
+.scene-grid-cell { border: 1px solid #ccc; background: #fafafa; padding: 10px 12px; border-radius: 4px; display: flex; flex-direction: column; gap: 6px; position: relative; min-width: 0; overflow: hidden; }
+
+.note-ellipsis { color: #888; }
+.note-toggle-inline { background: none; border: none; color: #1976d2; cursor: pointer; padding: 0 0 0 4px; font-size: inherit; text-decoration: underline; }
+.note-toggle-inline:hover { color: #0d47a1; }
+.scene-grid-cell h3 { margin: 0; font-size: 18px; }
+.scene-grid-cell p { margin: 0; font-size: 15px; line-height: 1.45; }
+.scene-grid-meta { color: #666; }
+.scene-grid-character { background: #fbf8ff; border-color: #c0b3e6; }
+.scene-grid-character-header { display: flex; align-items: flex-start; gap: 8px; }
+.scene-grid-character-name { font-size: 19px; font-weight: bold; }
+.scene-grid-character-x { background: #fff; border: 1px solid #c62828; color: #b71c1c; border-radius: 50%; width: 24px; height: 24px; line-height: 1; padding: 0; cursor: pointer; font-size: 16px; flex-shrink: 0; }
+.scene-grid-character-x:hover { background: #ffe0e0; }
+/* Don't crop portraits — fit the full image, just bound by the cell. */
+.scene-grid-character-img { display: block; max-width: 100%; max-height: 140px; width: auto; height: auto; margin: 0 auto; border: 1px solid #ddd; border-radius: 3px; background: #fff; }
+.scene-grid-character-img-placeholder { display: flex; align-items: center; justify-content: center; width: 100%; height: 90px; background: #f0eef5; border: 1px dashed #b8aed6; }
+.scene-grid-character-img-placeholder svg { width: 48px; height: 48px; }
+
+.scene-grid-vis-collapse { margin-top: 6px; padding-top: 6px; border-top: 1px dotted #ddd; }
+.scene-grid-vis-status { cursor: pointer; font-size: 12px; font-weight: bold; padding: 2px 8px; border-radius: 10px; display: inline-block; list-style: none; }
+.scene-grid-vis-status::-webkit-details-marker { display: none; }
+.scene-grid-vis-status.visible { background: #c8e6c9; color: #1b5e20; }
+.scene-grid-vis-status.hidden  { background: #eeeeee; color: #555; }
+.scene-grid-vis { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 6px; }
+.scene-grid-vis-label { font-size: 12px; color: #555; margin-right: 2px; }
+.scene-grid-vis-btn { padding: 2px 8px; font-size: 12px; border: 1px solid #999; border-radius: 12px; cursor: pointer; }
+.scene-grid-vis-btn.on { background: #c8e6c9; border-color: #66bb6a; color: #1b5e20; }
+.scene-grid-vis-btn.off { background: #fff; border-color: #bbb; color: #777; }
+.scene-grid-vis-btn.bulk { background: #e3f2fd; border-color: #64b5f6; color: #0d47a1; }
+.scene-grid-vis-btn.on:hover { background: #a5d6a7; }
+.scene-grid-vis-btn.off:hover { background: #f0f0f0; }
+.scene-grid-vis-btn.bulk:hover { background: #bbdefb; }
+
+/* Stack the per-cell DM forms vertically so they don't overflow the
+ * (narrow) grid cell. Each form takes one row; the file input and
+ * its submit button each take their own line inside the form. */
+.scene-grid-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; align-items: stretch; }
+.scene-grid-actions button { padding: 4px 10px; font-size: 13px; }
+.scene-grid-actions form { display: flex; flex-direction: column; gap: 4px; }
+.scene-grid-img-form input[type=file] { font-size: 12px; max-width: 100%; }
+
+/* Drag-and-drop visuals. */
+.scene-grid[data-dm] .scene-grid-cell { cursor: grab; }
+.scene-grid-dragging { opacity: 0.4; }
+.scene-grid-drop-before { box-shadow: 0 -3px 0 0 #1976d2 inset, 0 0 0 1px #1976d2; }
+.scene-grid-drop-after  { box-shadow: 0  3px 0 0 #1976d2 inset, 0 0 0 1px #1976d2; }
+
+.character-card-img { display: block; max-width: 100%; max-height: 200px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 3px; }
+.character-card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.character-card-actions button { padding: 4px 10px; font-size: 13px; }
+.character-card-img-form { display: inline-flex; gap: 4px; align-items: center; }
+.character-card-img-form input[type=file] { font-size: 12px; }
 
 .notes-form button.danger { background: #c62828; }
 .notes-form button.danger:hover { background: #b71c1c; }

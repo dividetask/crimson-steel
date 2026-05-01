@@ -1,88 +1,661 @@
 [
-	{
-		"id": 1,
-		"group": "PC",
-		"name": "Stumpy",
-		"player": "Jarett",
-		"race": ["dwarf", "hill" ],
-		"deity": "Gorum",
-		"ability_scores": {
-			"str": 12,
-			"dex": 14,
-			"con": 17,
-			"int": 14,
-			"wis": 18,
-			"cha": 11
-		},
-		"classes": [{"level": 4, "class": "cleric", "skills": ["healing", "sense_motive", "arcana", "nature", "intimidate", "perception"] }],
-		"feats": { "race": ["armor_training"]},
-		"spells": [
-			["Stabilize", "Sacred Flame", "Magic Vestments"],
-			["Cure Lesser Wounds", "Healing Word", "Command", "Lesser Ward", "Divine Favor", "Shield of Faith"],
-			["Magic Weapon", "Spiritual Weapon", "Hold Person", "Silence", "Blindness/Deafness", "Commune", "Cure Simple Wounds", "Simple Ward", "Locate Object", "Protection from Poison", "Standard Surgery"]]
-	},
-	{
-		"id": 2,
-		"group": "PC",
-		"name": "Olga",
-		"player": "Candace",
-		"race": ["human"],
-		"ability_scores": {
-			"str": 19,
-			"dex": 17,
-			"con": 17,
-			"int": 11,
-			"wis": 13,
-			"cha": 10
-		},
-		"classes": [{"level": 4, "class": "barbarian", "skills": ["athletics", "nature", "sense_motive", "stealth" ] }],
-		"feats": {"class": ["cleave"]}
-	},
-	{
-		"id": 3,
-		"group": "PC",
-		"name": "Lysander",
-		"player": "Zack",
-		"race": ["elf", "high"],
-		"ability_scores": {
-			"str": 9,
-			"dex": 19,
-			"con": 13,
-			"int": 13,
-			"wis": 15,
-			"cha": 15
-		},
-		"classes": [{"level": 4, "class": "arcane_trickster",
-			"skills": ["arcana", "stealth", "larceny", "slight_of_hand", "deception", "persuasion", "perception", "game_chess" ] }],
-		"feats": { "race": ["elven_magic", "firebolt"]},
-		"spells": [
-			["Fire Bolt", "Message", "Silent Portal", "Ghost Sound", "Mage Hand"],
-			["Hideous Laughter", "Illusion of Calm", "Auditory Hallucination"]],
-		"rituals": [
-			["Guidance", "Resistance", "Acid Splash", "Drench", "Light", "Spark", "Mending", "Detect Magic"],
-			["Alarm", "Endure Elements", "Mount", "Charm Person", "Ant Haul", "Disguise Self", "Obscuring Mist", "Minor Recharge"],
-			["Silent Image", "Disguise Other", "Invisibility", "Basic Recharge"]]
-	},
-	{
-		"id": 4,
-		"group": "PC",
-		"name": "Cottonballs",
-		"player": "Dave",
-		"race": ["satyr"],
-		"ability_scores": {
-			"str": 11,
-			"dex": 18,
-			"con": 14,
-			"int": 12,
-			"wis": 13,
-			"cha": 18
-		},
-		"classes": [{"level": 4, "class": "bard", "choices": {"versatile_performance": ["sing"]},
-			"skills": ["perform_sing", "perform_percussion", "animal_handling", "persuasion", "perception", "use_magic_device", "nature" ],
-			"spells": [ ["detect_magic", "ghost_sound", "sift", "stabilize", "vacuous_vessel", "vicious_mockery" ] ] }],
-		"feats": { "race": ["fey_magic", "friends"], "class": ["social_spell"]},
-		"spells": [
-			["Detect Magic", "Friends", "Ghost Sound", "Sift", "Stabilize", "Vacuous Vessel", "Vicious Mockery"],
-			["Biting Words", "Ears of the City", "Silent Image", "Timely Inspiration"]]
-	}
+  {
+    "id": 1,
+    "group": "PC",
+    "name": "Stumpy",
+    "player": "Jarett",
+    "race": [
+      "dwarf",
+      "hill"
+    ],
+    "deity": "Gorum",
+    "ability_scores": {
+      "str": 12,
+      "dex": 14,
+      "con": 17,
+      "int": 14,
+      "wis": 18,
+      "cha": 11
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "cleric",
+        "skills": [
+          "healing",
+          "sense_motive",
+          "arcana",
+          "nature",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "feats": {
+      "race": [
+        "armor_training"
+      ]
+    },
+    "spells": [
+      [
+        "Stabilize",
+        "Sacred Flame",
+        "Magic Vestments"
+      ],
+      [
+        "Cure Lesser Wounds",
+        "Healing Word",
+        "Command",
+        "Lesser Ward",
+        "Divine Favor",
+        "Shield of Faith"
+      ],
+      [
+        "Magic Weapon",
+        "Spiritual Weapon",
+        "Hold Person",
+        "Silence",
+        "Blindness/Deafness",
+        "Commune",
+        "Cure Simple Wounds",
+        "Simple Ward",
+        "Locate Object",
+        "Protection from Poison",
+        "Standard Surgery"
+      ]
+    ]
+  },
+  {
+    "id": 2,
+    "group": "PC",
+    "name": "Olga",
+    "player": "Candace",
+    "race": [
+      "human"
+    ],
+    "ability_scores": {
+      "str": 19,
+      "dex": 17,
+      "con": 17,
+      "int": 11,
+      "wis": 13,
+      "cha": 10
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "barbarian",
+        "skills": [
+          "athletics",
+          "nature",
+          "sense_motive",
+          "stealth"
+        ]
+      }
+    ],
+    "feats": {
+      "class": [
+        "cleave"
+      ]
+    }
+  },
+  {
+    "id": 3,
+    "group": "PC",
+    "name": "Lysander",
+    "player": "Zack",
+    "race": [
+      "elf",
+      "high"
+    ],
+    "ability_scores": {
+      "str": 9,
+      "dex": 19,
+      "con": 13,
+      "int": 13,
+      "wis": 15,
+      "cha": 15
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "arcane_trickster",
+        "skills": [
+          "arcana",
+          "stealth",
+          "larceny",
+          "slight_of_hand",
+          "deception",
+          "persuasion",
+          "perception",
+          "game_chess"
+        ]
+      }
+    ],
+    "feats": {
+      "race": [
+        "elven_magic",
+        "firebolt"
+      ]
+    },
+    "spells": [
+      [
+        "Fire Bolt",
+        "Message",
+        "Silent Portal",
+        "Ghost Sound",
+        "Mage Hand"
+      ],
+      [
+        "Hideous Laughter",
+        "Illusion of Calm",
+        "Auditory Hallucination"
+      ]
+    ],
+    "rituals": [
+      [
+        "Guidance",
+        "Resistance",
+        "Acid Splash",
+        "Drench",
+        "Light",
+        "Spark",
+        "Mending",
+        "Detect Magic"
+      ],
+      [
+        "Alarm",
+        "Endure Elements",
+        "Mount",
+        "Charm Person",
+        "Ant Haul",
+        "Disguise Self",
+        "Obscuring Mist",
+        "Minor Recharge"
+      ],
+      [
+        "Silent Image",
+        "Disguise Other",
+        "Invisibility",
+        "Basic Recharge"
+      ]
+    ]
+  },
+  {
+    "id": 4,
+    "group": "PC",
+    "name": "Cottonballs",
+    "player": "Dave",
+    "race": [
+      "satyr"
+    ],
+    "ability_scores": {
+      "str": 11,
+      "dex": 18,
+      "con": 14,
+      "int": 12,
+      "wis": 13,
+      "cha": 18
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "bard",
+        "choices": {
+          "versatile_performance": [
+            "sing"
+          ]
+        },
+        "skills": [
+          "perform_sing",
+          "perform_percussion",
+          "animal_handling",
+          "persuasion",
+          "perception",
+          "use_magic_device",
+          "nature"
+        ],
+        "spells": [
+          [
+            "detect_magic",
+            "ghost_sound",
+            "sift",
+            "stabilize",
+            "vacuous_vessel",
+            "vicious_mockery"
+          ]
+        ]
+      }
+    ],
+    "feats": {
+      "race": [
+        "fey_magic",
+        "friends"
+      ],
+      "class": [
+        "social_spell"
+      ]
+    },
+    "spells": [
+      [
+        "Detect Magic",
+        "Friends",
+        "Ghost Sound",
+        "Sift",
+        "Stabilize",
+        "Vacuous Vessel",
+        "Vicious Mockery"
+      ],
+      [
+        "Biting Words",
+        "Ears of the City",
+        "Silent Image",
+        "Timely Inspiration"
+      ]
+    ]
+  },
+  {
+    "id": 5,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 12,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 6,
+    "tier": 2,
+    "name": "Orc Patrol Captain",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 25,
+      "dex": 16,
+      "con": 14,
+      "int": 12,
+      "wis": 11,
+      "cha": 9
+    },
+    "classes": [
+      {
+        "level": 8,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 1
+      }
+    ],
+    "gold": 41,
+    "template_id": "patrol_captain"
+  },
+  {
+    "id": 7,
+    "tier": 2,
+    "name": "Slaver Merchant",
+    "player": "DM",
+    "race": [
+      "human"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 14,
+      "con": 14,
+      "int": 16,
+      "wis": 14,
+      "cha": 16
+    },
+    "classes": [
+      {
+        "level": 6,
+        "class": "rogue",
+        "skills": [
+          "persuasion",
+          "perception",
+          "intimidate",
+          "sense_motive",
+          "deception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 1
+      }
+    ],
+    "gold": 369,
+    "template_id": "slaver_merchant"
+  },
+  {
+    "id": 8,
+    "tier": 0,
+    "name": "Orc Interpreter",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 13,
+      "con": 14,
+      "int": 14,
+      "wis": 8,
+      "cha": 14
+    },
+    "classes": [
+      {
+        "level": 2,
+        "class": "fighter",
+        "skills": [
+          "persuasion",
+          "sense_motive",
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Invigorate",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "invigorate"
+        }
+      }
+    ],
+    "gold": 11,
+    "template_id": "orc_interpreter"
+  },
+  {
+    "id": 9,
+    "tier": 0,
+    "name": "Orc Interpreter",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 13,
+      "con": 14,
+      "int": 14,
+      "wis": 8,
+      "cha": 14
+    },
+    "classes": [
+      {
+        "level": 2,
+        "class": "fighter",
+        "skills": [
+          "persuasion",
+          "sense_motive",
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Light",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "light"
+        }
+      }
+    ],
+    "gold": 13,
+    "template_id": "orc_interpreter"
+  },
+  {
+    "id": 10,
+    "tier": 3,
+    "name": "Cleric Slaver",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 19,
+      "dex": 14,
+      "con": 14,
+      "int": 14,
+      "wis": 16,
+      "cha": 14
+    },
+    "classes": [
+      {
+        "level": 8,
+        "class": "cleric",
+        "skills": [
+          "healing",
+          "religion",
+          "perception",
+          "sense_motive",
+          "intimidate"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 1
+      }
+    ],
+    "gold": 26,
+    "template_id": "cleric_slaver"
+  },
+  {
+    "id": 11,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 12,
+    "tier": 3,
+    "name": "Cleric Slaver",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 19,
+      "dex": 14,
+      "con": 14,
+      "int": 14,
+      "wis": 16,
+      "cha": 14
+    },
+    "classes": [
+      {
+        "level": 8,
+        "class": "cleric",
+        "skills": [
+          "healing",
+          "religion",
+          "perception",
+          "sense_motive",
+          "intimidate"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 1
+      }
+    ],
+    "gold": 33,
+    "template_id": "cleric_slaver"
+  }
 ]

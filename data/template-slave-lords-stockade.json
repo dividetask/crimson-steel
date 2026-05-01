@@ -1,0 +1,337 @@
+{
+  "creatures": [
+    {
+      "id": "hobgoblin_guard",
+      "tier": 1,
+      "name": "Hobgoblin Guard",
+      "player": "DM",
+      "race": ["hobgoblin"],
+      "notes": "Disciplined. Patrols in pairs at 60 ft intervals. Rotate every 30 min. Composite bows + swords. Infravision. Shout alarm if they see intruders, ask to surrender first.",
+      "ability_scores": {"str": 16, "dex": 14, "con": 15, "int": 10, "wis": 11, "cha": 8},
+      "classes": [{"level": 4, "class": "fighter", "skills": ["athletics", "perception"]}],
+      "gear": "hobgoblin_loot"
+    },
+    {
+      "id": "hobgoblin_sergeant",
+      "tier": 2,
+      "name": "Hobgoblin Sergeant",
+      "player": "DM",
+      "race": ["hobgoblin"],
+      "notes": "Commands patrols and guardrooms. Will yell to party to surrender, then call for help. Fights defensively until reinforcements arrive.",
+      "ability_scores": {"str": 18, "dex": 15, "con": 16, "int": 12, "wis": 12, "cha": 10},
+      "classes": [{"level": 6, "class": "fighter", "skills": ["athletics", "perception", "intimidate", "sense_motive"]}],
+      "gear": "hobgoblin_sergeant_loot"
+    },
+    {
+      "id": "hobgoblin_patrol",
+      "tier": 1,
+      "name": "Hobgoblin Patrol",
+      "player": "DM",
+      "race": ["hobgoblin"],
+      "notes": "Wandering patrol of 12 + sergeant. Checks guard posts. Encountered 1-in-6 per 2 turns on the walls. Don't want to split reward for capturing runaways — won't call for help.",
+      "ability_scores": {"str": 16, "dex": 14, "con": 15, "int": 10, "wis": 11, "cha": 8},
+      "classes": [{"level": 4, "class": "fighter", "skills": ["athletics", "perception"]}],
+      "gear": "hobgoblin_loot"
+    },
+    {
+      "id": "hobgoblin_ballista_crew",
+      "tier": 1,
+      "name": "Hobgoblin Ballista Crew",
+      "player": "DM",
+      "race": ["hobgoblin"],
+      "notes": "Gatehouse tower rooftop. 4 per tower. 2 man the ballista (2d12 damage, every other round), 2 fire bows. Crack squad on tower A, young overconfident squad on tower B. Tower B has tin-cup alarm on trapdoor and box-topple trap.",
+      "ability_scores": {"str": 16, "dex": 15, "con": 15, "int": 10, "wis": 11, "cha": 8},
+      "classes": [{"level": 4, "class": "fighter", "skills": ["athletics", "perception"]}],
+      "gear": "hobgoblin_loot"
+    },
+    {
+      "id": "gnoll",
+      "tier": 1,
+      "name": "Gnoll",
+      "player": "DM",
+      "race": ["gnoll"],
+      "notes": "Temporary allies of hobgoblins. Eager to prove themselves. Try to capture or kill party WITHOUT calling for help — pride is their weakness.",
+      "ability_scores": {"str": 17, "dex": 11, "con": 14, "int": 8, "wis": 11, "cha": 7},
+      "classes": [{"level": 4, "class": "fighter", "skills": ["athletics", "perception"]}],
+      "variants": [
+        {
+          "id": "leader",
+          "chance": 0.10,
+          "overrides": {
+            "tier": 2,
+            "ability_scores": {"str": "+3", "con": "+3"},
+            "name": "Gnoll Leader"
+          },
+          "classes_add": [{"level": 2, "class": "fighter", "skills": ["intimidate"]}]
+        }
+      ],
+      "gear": "gnoll_loot"
+    },
+    {
+      "id": "carnivorous_ape",
+      "tier": 2,
+      "name": "Carnivorous Ape",
+      "player": "DM",
+      "race": ["animal"],
+      "notes": "Roams fort freely hunting humans. 3 attacks per round. Intelligent enough to avoid fort monsters. 1-3 encountered at a time.",
+      "ability_scores": {"str": 20, "dex": 16, "con": 16, "int": 5, "wis": 12, "cha": 7},
+      "classes": [{"level": 6, "class": "animal", "skills": ["athletics", "perception", "stealth"]}],
+      "properties": {"attacks_per_round": 3},
+      "gear": {}
+    },
+    {
+      "id": "wardog_stockade",
+      "tier": 1,
+      "name": "War Dog",
+      "player": "DM",
+      "race": ["animal"],
+      "notes": "Attacks any creature that doesn't smell like fort garrison. 2-8 encountered at a time.",
+      "ability_scores": {"str": 17, "dex": 17, "con": 15, "int": 3, "wis": 12, "cha": 6},
+      "classes": [{"level": 4, "class": "animal", "skills": ["perception", "athletics", "survival"]}],
+      "gear": {}
+    },
+    {
+      "id": "goblin_elite",
+      "tier": 1,
+      "name": "Goblin Elite Guard",
+      "player": "DM",
+      "race": ["goblin"],
+      "notes": "Markessa's personal guard. 13 total in her lab (6 floor, 7 balcony). Trained to fire at anyone who talks in combat (targeting spellcasters). Fire bows twice then melee with short swords. Never surrender.",
+      "ability_scores": {"str": 12, "dex": 18, "con": 14, "int": 11, "wis": 10, "cha": 7},
+      "classes": [{"level": 4, "class": "fighter", "skills": ["stealth", "perception", "athletics"]}],
+      "gear": "goblin_elite_loot"
+    },
+    {
+      "id": "owlbear",
+      "tier": 2,
+      "name": "Owlbear",
+      "player": "DM",
+      "race": ["animal"],
+      "notes": "2 caged in Markessa's lab. Released round 2 via lever above south door. Attack closest target or most powerful fighter. Hug attack for bonus damage. Never surrender.",
+      "ability_scores": {"str": 22, "dex": 12, "con": 18, "int": 2, "wis": 12, "cha": 10},
+      "classes": [{"level": 7, "class": "animal", "skills": ["perception", "athletics"]}],
+      "properties": {"hug": true},
+      "gear": {}
+    },
+    {
+      "id": "worg",
+      "tier": 2,
+      "name": "Worg",
+      "player": "DM",
+      "race": ["animal"],
+      "notes": "Icar's watchbeasts. Guard secret passages. Howl warning to Markessa's lab if intruders detected. Leap for throat.",
+      "ability_scores": {"str": 19, "dex": 14, "con": 17, "int": 6, "wis": 15, "cha": 8},
+      "classes": [{"level": 5, "class": "animal", "skills": ["perception", "stealth", "survival"]}],
+      "gear": {}
+    },
+    {
+      "id": "winter_wolf",
+      "tier": 3,
+      "name": "Winter Wolf",
+      "player": "DM",
+      "race": ["animal"],
+      "notes": "Guliyet's companion. Summoned by silent whistle in 1-2 rounds. Frost breath weapon.",
+      "ability_scores": {"str": 20, "dex": 14, "con": 18, "int": 9, "wis": 13, "cha": 10},
+      "classes": [{"level": 7, "class": "animal", "skills": ["perception", "stealth", "survival"]}],
+      "properties": {"frost_breath": true},
+      "gear": {}
+    },
+    {
+      "id": "cloaker",
+      "tier": 3,
+      "name": "Cloaker",
+      "player": "DM",
+      "race": ["aberration"],
+      "notes": "Disguised as cloak on wall among real cloaks. Guards Room of Slaves. Subsonic moaning always active. L1: unease -2 hit (80ft). L2: fear spell (30ft, save vs Spells). L3: nausea cone 30ft (save vs Poison or helpless 2-5 rds). L4: hold person single target (5 rds). Cannot bite and moan same round. Stone blocks moaning. Envelops victim — arms pinned, bites 1d4+base AC/rd. Tail AC 1, 16 hp to cut off. Attacks on enveloped victim do half to cloaker, half to victim. Fire does full to both. Creates shadow duplicates (mirror image). If badly hurt: creates doubles, flees into shadows.",
+      "ability_scores": {"str": 18, "dex": 18, "con": 19, "int": 14, "wis": 16, "cha": 14},
+      "classes": [{"level": 8, "class": "aberration", "skills": ["stealth", "deception", "perception"]}],
+      "properties": {"envelop": true, "subsonic_moan": true, "shadow_images": true, "fly": true},
+      "gear": {}
+    },
+    {
+      "id": "haunt",
+      "tier": 2,
+      "name": "Haunt",
+      "player": "DM",
+      "race": ["undead"],
+      "notes": "Spirit of slave killed in Markessa's experiments. Haunts the curtain wall second floor. Must remain near place of death. Drains 2 CHA per touch; possesses victim at 0 CHA. If party offers to help kill Markessa: becomes ally, guides through fort. If party fights it: tries to possess someone, then uses body to charge Markessa's lab, attracting every guard. Hobgoblins refuse to enter haunted area. WIS 15+ characters feel uneasy in its presence. WIS 14+ feel watched.",
+      "ability_scores": {"str": 0, "dex": 16, "con": 0, "int": 11, "wis": 15, "cha": 18},
+      "classes": [{"level": 6, "class": "undead", "skills": ["stealth", "intimidate"]}],
+      "properties": {"incorporeal": true, "possession": true, "cha_drain": 2},
+      "gear": {}
+    },
+    {
+      "id": "escaped_slave_stockade",
+      "tier": 0,
+      "name": "Lady Morwin Elissar",
+      "player": "DM",
+      "race": ["human"],
+      "notes": "Claims to be a lady of quality — actually a penniless maid-servant. Escaped from stockade. Armed with stolen short sword. Hysterical 50% of the time when threatened (may cry out, alerting guards). Intense hatred for slavers — will kill them given a chance. Wandering encounter (roll 6) inside the fort.",
+      "ability_scores": {"str": 11, "dex": 12, "con": 10, "int": 12, "wis": 9, "cha": 14},
+      "classes": [{"level": 1, "class": "fighter", "skills": ["deception", "persuasion"]}],
+      "gear": {
+        "rolls": [
+          {"slot": "weapon", "item": {"name": "short sword", "type": "weapon", "subtype": "short_sword", "bonus": 0}}
+        ]
+      }
+    },
+    {
+      "id": "wolf_cub",
+      "tier": 0,
+      "name": "Wolf Cub",
+      "player": "DM",
+      "race": ["animal"],
+      "notes": "Pet of eastern guardhouse hobgoblins. Nuisance in combat — weaves between legs, nips ankles. Each round attacked, target rolls DEX or falls and is stunned 1 round. Does no actual damage.",
+      "ability_scores": {"str": 6, "dex": 16, "con": 10, "int": 3, "wis": 12, "cha": 10},
+      "classes": [{"level": 1, "class": "animal", "skills": ["perception"]}],
+      "properties": {"trip_on_dex_fail": true, "damage": 0},
+      "gear": {}
+    },
+    {
+      "id": "orc_dungeon",
+      "tier": 1,
+      "name": "Orc Dungeon Guard",
+      "player": "DM",
+      "race": ["orc"],
+      "notes": "Guards in the dungeon slave processing areas. Armed with crossbows and swords. Led by orc sergeants.",
+      "ability_scores": {"str": 17, "dex": 11, "con": 14, "int": 7, "wis": 8, "cha": 6},
+      "classes": [{"level": 3, "class": "fighter", "skills": ["intimidate", "athletics"]}],
+      "gear": "slaver_loot"
+    },
+    {
+      "id": "slave_mindnumbed",
+      "tier": 0,
+      "name": "Mind-Numbed Slave",
+      "player": "DM",
+      "race": ["human"],
+      "notes": "Chained by neck to wall in Room of Slaves. Blank-eyed, unresponsive. Will not react to anything. Must be physically carried. Only neutralize poison cures immediately, otherwise 1 week recovery. Some are Sorinsk captives.",
+      "ability_scores": {"str": 8, "dex": 8, "con": 8, "int": 10, "wis": 3, "cha": 3},
+      "classes": [{"level": 0, "class": "commoner", "skills": []}],
+      "gear": {}
+    },
+    {
+      "id": "maintenance_slave",
+      "tier": 0,
+      "name": "Maintenance Slave",
+      "player": "DM",
+      "race": ["human"],
+      "notes": "5 slaves operating trapdoor machinery in room 19c. Desperate for freedom. Will HELP party fight the aspis drone. Cannot fight well but will grapple, distract, throw tools.",
+      "ability_scores": {"str": 12, "dex": 10, "con": 11, "int": 10, "wis": 10, "cha": 10},
+      "classes": [{"level": 1, "class": "fighter", "skills": ["athletics"]}],
+      "gear": {}
+    },
+    {
+      "id": "prisoner_fighter",
+      "tier": 1,
+      "name": "Imprisoned Fighter",
+      "player": "DM",
+      "race": ["human"],
+      "notes": "Among the 13 prisoners in room 19a. Joins party if equipped with weapons and armor. Competent combatant.",
+      "ability_scores": {"str": 17, "dex": 14, "con": 15, "int": 10, "wis": 11, "cha": 10},
+      "classes": [{"level": 4, "class": "fighter", "skills": ["athletics", "perception"]}],
+      "gear": {}
+    }
+  ],
+  "gear_tables": [
+    {
+      "id": "hobgoblin_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "long sword", "type": "weapon", "subtype": "long_sword", "bonus": 0}},
+        {"slot": "sidearm", "item": {"name": "composite bow", "type": "weapon", "subtype": "composite_bow", "bonus": 0}},
+        {
+          "slot": "armor",
+          "options": [
+            {"chance": 0.80, "item": {"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0}},
+            {"chance": 0.15, "item": {"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 0}},
+            {"chance": 0.05, "item": {"name": "chain shirt +1", "type": "armor", "subtype": "light", "bonus": 1}}
+          ]
+        },
+        {"slot": "potion_t0", "chance": 0.15, "options": "tier_zero_potions_oils"},
+        {"slot": "potion_t1", "chance": 0.20, "options": "tier_one_potions_oils"},
+        {"slot": "potion_t2", "chance": 0.05, "options": "tier_two_potions_oils"}
+      ],
+      "gold": "2d6 sp"
+    },
+    {
+      "id": "hobgoblin_sergeant_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "long sword", "type": "weapon", "subtype": "long_sword", "bonus": 0}},
+        {"slot": "sidearm", "item": {"name": "composite bow", "type": "weapon", "subtype": "composite_bow", "bonus": 0}},
+        {
+          "slot": "armor",
+          "options": [
+            {"chance": 0.50, "item": {"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 0}},
+            {"chance": 0.30, "item": {"name": "chain shirt +1", "type": "armor", "subtype": "light", "bonus": 1}},
+            {"chance": 0.20, "item": {"name": "breastplate +1", "type": "armor", "subtype": "medium", "bonus": 1}}
+          ]
+        },
+        {"slot": "potion_t0", "chance": 0.20, "options": "tier_zero_potions_oils"},
+        {"slot": "potion_t1", "chance": 0.30, "options": "tier_one_potions_oils"},
+        {"slot": "potion_t2", "chance": 0.15, "options": "tier_two_potions_oils"},
+        {"slot": "potion_t3", "chance": 0.05, "options": "tier_three_potions_oils"}
+      ],
+      "gold": "2d6 + 5"
+    },
+    {
+      "id": "gnoll_loot",
+      "rolls": [
+        {
+          "slot": "weapon",
+          "options": [
+            {"chance": 0.60, "item": {"name": "battle axe", "type": "weapon", "subtype": "battle_axe", "bonus": 0}},
+            {"chance": 0.40, "item": {"name": "morning star", "type": "weapon", "subtype": "morning_star", "bonus": 0}}
+          ]
+        },
+        {
+          "slot": "armor",
+          "options": [
+            {"chance": 0.70, "item": {"name": "hide armor", "type": "armor", "subtype": "medium", "bonus": 0}},
+            {"chance": 0.20, "item": {"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0}},
+            {"chance": 0.10, "item": {"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 0}}
+          ]
+        },
+        {"slot": "potion_t0", "chance": 0.15, "options": "tier_zero_potions_oils"},
+        {"slot": "potion_t1", "chance": 0.15, "options": "tier_one_potions_oils"}
+      ],
+      "gold": "1d6"
+    },
+    {
+      "id": "goblin_elite_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "short sword", "type": "weapon", "subtype": "short_sword", "bonus": 0}},
+        {"slot": "sidearm", "item": {"name": "short bow", "type": "weapon", "subtype": "short_bow", "bonus": 0}},
+        {
+          "slot": "armor",
+          "options": [
+            {"chance": 0.80, "item": {"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0}},
+            {"chance": 0.20, "item": {"name": "chain shirt +1", "type": "armor", "subtype": "light", "bonus": 1}}
+          ]
+        },
+        {"slot": "potion_t0", "chance": 0.20, "options": "tier_zero_potions_oils"},
+        {"slot": "potion_t1", "chance": 0.25, "options": "tier_one_potions_oils"},
+        {"slot": "potion_t2", "chance": 0.10, "options": "tier_two_potions_oils"}
+      ],
+      "gold": "1d6"
+    },
+    {
+      "id": "slaver_loot",
+      "rolls": [
+        {"slot": "weapon", "item": {"name": "falcion", "type": "weapon", "subtype": "falcion", "bonus": 0}},
+        {"slot": "sidearm", "item": {"name": "longbow", "type": "weapon", "subtype": "longbow", "bonus": 0}},
+        {
+          "slot": "armor",
+          "options": [
+            {"chance": 0.90, "item": {"name": "chain shirt", "type": "armor", "subtype": "light", "bonus": 0}},
+            {"chance": 0.05, "item": {"name": "breastplate", "type": "armor", "subtype": "medium", "bonus": 0}},
+            {"chance": 0.05, "item": {"name": "chain shirt +1", "type": "armor", "subtype": "light", "bonus": 1}}
+          ]
+        },
+        {"slot": "potion_t0", "chance": 0.25, "options": "tier_zero_potions_oils"},
+        {"slot": "potion_t1", "chance": 0.35, "options": "tier_one_potions_oils"},
+        {"slot": "potion_t2", "chance": 0.15, "options": "tier_two_potions_oils"},
+        {"slot": "potion_t3", "chance": 0.05, "options": "tier_three_potions_oils"}
+      ],
+      "gold": "2d6 + 5"
+    }
+  ]
+}
