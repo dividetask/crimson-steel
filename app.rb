@@ -199,13 +199,12 @@ def scene_map_clamp_dim(v, default)
   [[n, 1].max, SCENE_MAP_MAX_DIM].min
 end
 
-# Build the DM's image-token palette. Curated entries from
-# data/map_images.yaml come first (in the listed order); any
-# remaining files in public/images/ matching SCENE_IMAGE_EXTS are
-# appended alphabetically. Each row is { 'src' => '/images/X',
-# 'label' => 'X' }. Adapted from the same-named helper on the main
-# branch's notes_map_stub; behavior matches so the optional YAML
-# format stays portable.
+# Build the DM's image-token palette. If data/map_images.yaml exists,
+# it defines the full list (auto-discovery is skipped) — drop entries
+# in or out of the YAML to control exactly what's in the palette.
+# When the YAML is absent, fall back to walking public/images/
+# recursively for any supported file. Each row is { 'src' =>
+# '/images/X', 'label' => 'X' }.
 def scene_map_image_library
   rows = []
   seen = {}
@@ -223,6 +222,7 @@ def scene_map_image_library
       rows << { 'src' => src, 'label' => label }
       seen[src] = true
     end
+    return rows
   end
 
   dir = File.join(__dir__, 'public', 'images')

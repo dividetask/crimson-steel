@@ -1,0 +1,18 @@
+# Map Images — DM Palette Curation
+#
+# When this file exists, it defines the complete map-image palette
+# (no auto-discovery from public/images/ is added). Drop additional
+# entries here to expand the list; remove entries to shrink it.
+#
+# Each entry has:
+#   src   — path under /images/, served from public/images/
+#   label — name shown on hover
+
+- src: /images/Lysander.webp
+  label: Lysander
+- src: /images/Stumpy.webp
+  label: Stumpy
+- src: /images/Cottonballs.webp
+  label: Cottonballs
+- src: /images/Olga.webp
+  label: Olga
