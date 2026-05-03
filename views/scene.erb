@@ -1349,16 +1349,17 @@
       apply();
     }, { passive: false });
 
-    // Mouse drag pan. Skip if the press lands on an interactive
-    // element (button / input / arrow remove handle). We listen for
-    // move/up at the document level so we don't need pointer capture
-    // (which on some browsers swallows the subsequent click event,
-    // breaking cell brush / arrow / spell handlers).
+    // Mouse drag pan. Only kick off when the press lands on empty
+    // viewport background — never on a cell, button, arrow handle,
+    // form control, etc. That way left-click on cells goes straight
+    // to the brush / arrow / spell handlers without any pan
+    // tracking interfering.
     var dragging = false, didPan = false;
     var startX, startY, startTx, startTy;
     viewport.addEventListener('mousedown', function(e) {
-      if (e.target.closest('button, input, select, textarea, a, label, .scene-map-arrow-remove')) return;
+      if (e.target.closest('.scene-map-cell, button, input, select, textarea, a, label, .scene-map-arrow-remove, svg')) return;
       if (e.button !== 0) return;
+      e.preventDefault();
       dragging = true; didPan = false;
       startX = e.clientX; startY = e.clientY;
       startTx = tx; startTy = ty;

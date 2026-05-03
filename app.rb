@@ -249,14 +249,30 @@ def scene_map_image_library
       rows << { 'src' => src, 'label' => label }
       seen[src] = true
     end
+    # public/images/icons/ is always appended to the palette (even when
+    # the YAML whitelist is in effect) — it's the bulk-add bucket for
+    # tokens you want available without curating each one in YAML.
+    icons_dir = File.join(__dir__, 'public', 'images', 'icons')
+    if File.directory?(icons_dir)
+      Dir.glob(File.join(icons_dir, '**', '*')).sort.each do |full|
+        next unless File.file?(full)
+        next unless SCENE_IMAGE_EXTS.include?(File.extname(full).downcase)
+        rel = full.sub(/\A#{Regexp.escape(File.join(__dir__, 'public', 'images'))}\/?/, '')
+        src = "/images/#{rel}"
+        next if seen[src]
+        base = File.basename(rel, '.*').sub(/\A\d+-[0-9a-f]{4,}-/, '')
+        rows << { 'src' => src, 'label' => base }
+        seen[src] = true
+      end
+    end
     return rows
   end
 
   dir = File.join(__dir__, 'public', 'images')
   if File.directory?(dir)
-    # Walk the whole tree so files dropped under public/images/scene/
-    # (our scene-image upload directory) show up alongside files at
-    # the top level. Sort by relative path so the order is stable.
+    # No YAML — auto-discover every supported file under
+    # public/images/ recursively. Files in scene/ (uploads) and
+    # icons/ both surface here.
     Dir.glob(File.join(dir, '**', '*')).sort.each do |full|
       next unless File.file?(full)
       next unless SCENE_IMAGE_EXTS.include?(File.extname(full).downcase)
