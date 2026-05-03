@@ -3,27 +3,22 @@
   "round": 0,
   "current_turn": 0,
   "current_turn_id": 0,
-  "active_effects": [
-
-  ],
+  "active_effects": [],
   "participants": [
     {
       "id": 1,
       "char_id": 1,
       "initiative": "X98765432",
-      "mana": 6,
+      "mana": 8,
       "combat_pool": 17,
       "minor_damage": 12,
-      "moderate_damage": 9,
-      "major_damage": 1,
-      "saturation": 2,
+      "moderate_damage": 11,
+      "major_damage": 0,
+      "saturation": 8,
       "temporary_hit_points": 0,
-      "conditions": {
-      },
-      "condition_meta": {
-      },
-      "ability_damage": {
-      }
+      "conditions": {},
+      "condition_meta": {},
+      "ability_damage": {}
     },
     {
       "id": 3,
@@ -36,12 +31,9 @@
       "major_damage": 0,
       "saturation": 2,
       "temporary_hit_points": 0,
-      "conditions": {
-      },
-      "condition_meta": {
-      },
-      "ability_damage": {
-      }
+      "conditions": {},
+      "condition_meta": {},
+      "ability_damage": {}
     },
     {
       "id": 2,
@@ -54,12 +46,9 @@
       "major_damage": 0,
       "saturation": 2,
       "temporary_hit_points": 0,
-      "conditions": {
-      },
-      "condition_meta": {
-      },
-      "ability_damage": {
-      }
+      "conditions": {},
+      "condition_meta": {},
+      "ability_damage": {}
     },
     {
       "id": 4,
@@ -72,12 +61,9 @@
       "major_damage": 0,
       "saturation": 2,
       "temporary_hit_points": 0,
-      "conditions": {
-      },
-      "condition_meta": {
-      },
-      "ability_damage": {
-      }
+      "conditions": {},
+      "condition_meta": {},
+      "ability_damage": {}
     }
   ],
   "hide_initiative": true

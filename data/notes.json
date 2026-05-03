@@ -253,7 +253,7 @@
     "title": "Petey",
     "tier": -1,
     "id": "ab74ed63-68c8-4cee-be1a-ed3c11f0340b",
-    "in_scene": false,
+    "in_scene": true,
     "scene_visible_to": [
       1,
       2,
@@ -859,9 +859,7 @@
     "type": "scene_panel",
     "title": "An Unexpected Meeting",
     "note": "The next morning, as you recover from your fight at the temple, an elf calling himself Caelian di Soliastres arrives. You are surprised as you were hiding and only Drav knew where you were. He explains that he purchased information about you from Drav, and would like to offer his services in exchange for land and title under Lady Hawthorne. As you offered it to Drav, he expects the offer can be given to him instead.",
-    "visible_to": [
-
-    ],
+    "visible_to": [],
     "created_at": 1777490984.1435974,
     "scene_order": 0
   },
@@ -872,9 +870,7 @@
     "type": "scene_panel",
     "title": "Random Encounters",
     "note": "Encounter check: Roll 1d6 each 2 hours on the trail. Encounter on a 1.\r\n1-2: Orc Patrol (local tribe, toll arrangement with slavers)\r\n\r\n4-8 orcs\r\nBehavior: Part of the toll system. If the party looks like slavers or travelers with purpose, the patrol watches from a distance and lets them pass. If the party looks weak, wounded, or lost — which they ARE right now — the orcs get bold. They step onto the trail and demand a toll. 20 gp per head, weapons accepted at inflated value. They don't want a fight but they smell blood. Caelian can talk them down with a good bluff (\"we're expected at the stockade, delay us and Markessa hears about it\") or the party can pay and move on. Fighting wastes time and mana they don't have.\r\n\r\n3: Slaver Merchant Party (heading TO Highport, unaware of the raid)\r\n\r\n1 human merchant \r\n3-6 guards: half-orc fighters \r\n1 half-orc interpreter\r\n2 mules carrying trade goods \r\nNo slaves — they're heading to buy, not sell\r\nBehavior: Friendly if the party looks like fellow slavers. Suspicious if the party looks like adventurers. The merchant wants to gossip — \"How's business at the temple? I heard Sturm got promoted.\" This is a social encounter. The party can bluff past, rob them for supplies and gold, or pump them for information. The merchant knows the trail, the toll rates, the stockade's reputation, and that \"the elf woman doesn't like surprises.\" He does NOT know the temple was just raided.\r\n\r\n4: Escaped Slave (fled during the temple raid chaos)\r\n\r\n1 human, barefoot, half-naked, terrified\r\nRunning blindly south on the trail because that's the only direction away from the temple\r\nBehavior: Sees the party and freezes. If they look armed, he assumes they're slavers and begs not to be taken back. If they convince him they're friendly, he tells them: the temple is in chaos, guards are searching the city, a caravan of slaves left \"a few hours ago\" heading south with \"maybe ten soldiers and some orcs with whips.\" He saw them loading the coffle from a hiding spot near the gate. He can confirm direction and rough timing but not exact numbers. He's too weak to travel with the party — they need to point him toward shelter or leave him.\r\n\r\n5: Stray War Dogs (escaped from the temple compound during the raid)\r\n\r\n2-3 war dogs\r\nAnimal 2. No equipment (they're dogs)\r\nBehavior: Trained to attack anyone who doesn't smell like the temple garrison. The party does NOT smell right. The dogs are confused, hungry, and aggressive. They attack on sight, going for the smallest or most wounded party member. Quick fight but it costs hit points the party can't afford to lose right now. Caelian can cast Sleep to drop them instantly — a clean, efficient demonstration of his usefulness.\r\n\r\n6: Nothing — but tracks\r\n\r\nNo encounter, but the party finds fresh tracks on the trail. Shuffling feet in a line (the coffle), boot prints flanking, mule hooves, deeper prints at the rear (armored soldiers). They're close. Theron would read this instantly but Theron isn't here. Caelian can read it if the party asks — \"fifteen, maybe twenty people chained together, moving slowly. Half a day ahead at most. We can catch them by nightfall.\" This confirms the caravan's composition without a fight and builds tension.",
-    "visible_to": [
-
-    ],
+    "visible_to": [],
     "created_at": 1777506412.7700555,
     "scene_order": 2
   },
@@ -885,9 +881,7 @@
     "type": "scene_panel",
     "title": "Ambush",
     "note": "Half-Orc Caravan Boss [Tier 3]\r\nHalf-orc. STR 16, DEX 12, CON 15, INT 10, WIS 14, CHA 9\r\nFighter 4 / Cleric 3. Spells: Bless, Command, Cure Light Wounds,\r\nDarkness, Hold Person, Spiritual Weapon. Long sword, chain mail,\r\nshield. 15 gp.\r\nBehavior: Fights defensively. Threatens to kill slaves as hostages.\r\n\r\nHALF-ORC SOLDIERS (4-6)\r\nFighter 2. Short sword, light crossbow (20 bolts), chain shirt.\r\n1d6+2 gp each. 15% chance of 1 tier_one potion each.\r\nOne veteran among them: Tier 1, STR 17, CON 14, Fighter 4,\r\nlong sword, chain mail. 2d6+5 gp.\r\nBehavior: Fight in pairs. 3+ dead = consider surrender.\r\n\r\nHALF-ORC SCOUTS (2)\r\nRogue 2. Short sword, short bow (20 arrows), leather armor,\r\nsignal horn. 1d4 gp each.\r\nBehavior: 200-400 ft ahead/behind column. Run to warn, don't fight.\r\nORC HANDLERS (2-3)\r\nFighter 1. Whip (1d3, reach), short sword (backup), no armor.\r\n1d4 gp each.\r\nBehavior: Drop whips and run if soldiers fall. One might kill a\r\nslave out of spite.\r\n\r\nSLAVES (15-20)\r\nChained in coffle — single chain through manacles, 3 ft apart,\r\n45-60 ft total length.\r\nNotable slaves (pick 3-4):\r\nSorinsk Farmer (male, 40s): recognizes party from feast. Knows\r\n20 captives left weeks ago, \"important ones\" separated.\r\nMerchant's Wife (female, 30s): overheard \"elf woman's workshop\"\r\nand \"stockade in mountains.\" Knows Doran Svetov moved inland.\r\nForeign Sailor (male, 20s): knows slaver ships are Ghoul and\r\nReaper. Strong enough to fight if armed.\r\nChild (girl, 10-12): captured near Elredd. No useful intel.\r\nOld Dock Worker (male, 60s): knows temple layout and aspis\r\nalliance from time as labor slave.\r\n\r\nNIGHT CAMP (if party catches them at night)\r\nSingle fire, banked low. Slaves chained to picket stakes.\r\n2 guards on watch (rotating 4-hr shifts).\r\nScouts pulled in, camped 50 ft out.\r\nBest window: pre-dawn third watch (groggy guards).\r\nMules snort if strangers approach upwind.\r\nCARAVAN LOOT\r\nStrongbox on lead mule:\r\n800 gp, 3 gems (100 gp each), 2 gems (200 gp each)\r\nCaravan route map (landmarks to stockade)\r\nGuard roster copy with agent abbreviations\r\nSupplies on mules:\r\nRations (2 weeks/25 people), water (3 days), rope (100 ft),\r\nspare manacles (6), branding irons (3), whips (2), tarps (2)",
-    "visible_to": [
-
-    ],
+    "visible_to": [],
     "created_at": 1777506647.119296
   },
   {
