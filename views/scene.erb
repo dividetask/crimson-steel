@@ -188,8 +188,6 @@
             <button type="button" class="brush map-zoom-btn" data-map-zoom="in" title="Zoom in">+</button>
             <span class="palette-status"><span class="active-brush-desc"><%= @is_dm ? 'Pick an arrow type to draw' : 'Pick an icon to place' %></span></span>
           </div>
-          <div class="scene-map-viewport">
-          <div class="scene-map-pan">
           <div class="scene-map-grid-wrap">
             <div class="scene-map-grid"
                  data-map-id="<%= h(m['id']) %>"
@@ -284,8 +282,6 @@
                 </g>
               <% end %>
             </svg>
-          </div>
-          </div>
           </div>
         </div>
       <% end %>
@@ -1276,15 +1272,11 @@
 
 <script>
 (function() {
-  // Pan-and-zoom on a fixed-size viewport. .scene-map-pan carries
-  // transform: translate(tx, ty) scale(s); .scene-map-viewport clips
-  // it. Mouse drag on empty grid space pans; wheel zooms toward the
-  // cursor. The +/-/100% buttons still work (zoom around viewport
-  // center). State (scale + pan) persists per map id in localStorage.
-  // Drag-vs-click discrimination: a click that moved >4px is treated
-  // as a pan and the post-up click is suppressed so cell brush
-  // handlers don't fire.
-  var STORAGE_KEY = 'sceneMapView';
+  // Map zoom only — pan/drag is intentionally not wired up so cell
+  // brush / arrow / spell clicks aren't blocked. The grid wrap gets
+  // transform: scale(N); zoom state persists per map id via
+  // localStorage. The +/- buttons step the scale; '100%' resets.
+  var STORAGE_KEY = 'sceneMapZoom';
   function readState() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; }
     catch (e) { return {}; }
@@ -1299,20 +1291,16 @@
     var grid = mapEl.querySelector('.scene-map-grid');
     if (!grid) return;
     var mapId = grid.getAttribute('data-map-id');
-    var pan = mapEl.querySelector('.scene-map-pan');
-    var viewport = mapEl.querySelector('.scene-map-viewport');
+    var wrap = mapEl.querySelector('.scene-map-grid-wrap');
     var palette = mapEl.querySelector('[data-player-palette="1"]');
-    if (!pan || !viewport || !palette) return;
+    if (!wrap || !palette) return;
 
-    var saved = state[mapId] || {};
-    var tx = parseFloat(saved.tx) || 0;
-    var ty = parseFloat(saved.ty) || 0;
-    var scale = parseFloat(saved.scale) || 1.0;
-
+    var scale = parseFloat(state[mapId]) || 1.0;
     function clamp(s) { return Math.max(0.25, Math.min(4.0, s)); }
     function apply() {
-      pan.style.transform = 'translate(' + tx + 'px, ' + ty + 'px) scale(' + scale + ')';
-      state[mapId] = { tx: tx, ty: ty, scale: scale };
+      wrap.style.transform = scale === 1 ? '' : 'scale(' + scale + ')';
+      wrap.style.transformOrigin = '0 0';
+      state[mapId] = scale;
       writeState(state);
     }
     apply();
@@ -1320,70 +1308,12 @@
     palette.querySelectorAll('.map-zoom-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var act = btn.getAttribute('data-map-zoom');
-        var rect = viewport.getBoundingClientRect();
-        var px = rect.width / 2, py = rect.height / 2;
-        var newScale = scale;
-        if (act === 'in')       newScale = clamp(scale * 1.25);
-        else if (act === 'out') newScale = clamp(scale * 0.8);
-        else { tx = 0; ty = 0; scale = 1.0; apply(); return; }
-        tx = px - (px - tx) * (newScale / scale);
-        ty = py - (py - ty) * (newScale / scale);
-        scale = newScale;
+        if (act === 'in')       scale = clamp(scale * 1.25);
+        else if (act === 'out') scale = clamp(scale * 0.8);
+        else                    scale = 1.0;
         apply();
       });
     });
-
-    // Wheel zoom toward cursor. preventDefault so the page itself
-    // doesn't scroll while the cursor is over the map.
-    viewport.addEventListener('wheel', function(e) {
-      e.preventDefault();
-      var rect = viewport.getBoundingClientRect();
-      var px = e.clientX - rect.left;
-      var py = e.clientY - rect.top;
-      var factor = e.deltaY < 0 ? 1.1 : 0.9;
-      var newScale = clamp(scale * factor);
-      if (newScale === scale) return;
-      tx = px - (px - tx) * (newScale / scale);
-      ty = py - (py - ty) * (newScale / scale);
-      scale = newScale;
-      apply();
-    }, { passive: false });
-
-    // Mouse drag pan. Only kick off when the press lands on empty
-    // viewport background — never on a cell, button, arrow handle,
-    // form control, etc. That way left-click on cells goes straight
-    // to the brush / arrow / spell handlers without any pan
-    // tracking interfering.
-    var dragging = false, didPan = false;
-    var startX, startY, startTx, startTy;
-    viewport.addEventListener('mousedown', function(e) {
-      if (e.target.closest('.scene-map-cell, button, input, select, textarea, a, label, .scene-map-arrow-remove, svg')) return;
-      if (e.button !== 0) return;
-      e.preventDefault();
-      dragging = true; didPan = false;
-      startX = e.clientX; startY = e.clientY;
-      startTx = tx; startTy = ty;
-    });
-    document.addEventListener('mousemove', function(e) {
-      if (!dragging) return;
-      var dx = e.clientX - startX, dy = e.clientY - startY;
-      if (!didPan && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) didPan = true;
-      if (didPan) {
-        tx = startTx + dx;
-        ty = startTy + dy;
-        apply();
-      }
-    });
-    document.addEventListener('mouseup', function() { dragging = false; });
-    // Suppress the click event that follows a real drag so cell
-    // handlers (brush paint, arrow start, spell drop) don't see it.
-    viewport.addEventListener('click', function(e) {
-      if (didPan) {
-        e.stopPropagation();
-        e.preventDefault();
-        didPan = false;
-      }
-    }, true);
   });
 
   // AJAX "Clear player actions" — wipes server-side player_arrows +
