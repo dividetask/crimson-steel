@@ -707,11 +707,33 @@ table th {
 .scene-maps { display: flex; flex-direction: column; gap: 16px; margin: 20px 0; }
 .scene-map { border: 1px solid #ccc; background: #fff; padding: 10px 12px; border-radius: 4px; }
 .scene-map h2 { margin: 0 0 8px 0; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
-/* Outer container that takes the scaled bounding box so the rest of
- * the page reflows correctly when the DM/players zoom. JS sets its
- * width/height after each zoom click. */
-.scene-map-zoom-wrap { display: inline-block; vertical-align: top; overflow: visible; }
-.scene-map-grid-wrap { position: relative; display: inline-block; transform-origin: top left; }
+/* Fixed-size viewport that clips the map. The inner .scene-map-pan
+ * carries the transform (translate + scale) so dragging pans the
+ * grid and the wheel zooms toward the cursor. The grid wrap sits
+ * inside the pan layer at its natural size; nothing outside the
+ * viewport is visible. */
+.scene-map-viewport {
+  position: relative;
+  width: 100%;
+  max-width: 1000px;
+  height: 600px;
+  overflow: hidden;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.scene-map-viewport:active { cursor: grabbing; }
+.scene-map-pan {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.scene-map-grid-wrap { position: relative; display: inline-block; }
 .scene-map-spell-dot {
   position: absolute;
   top: 50%; left: 50%;

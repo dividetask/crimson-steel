@@ -170,12 +170,9 @@
 
           <div class="scene-map-player-palette" data-player-palette="1">
             <% unless @is_dm %>
-              <span class="palette-label">Your marks:</span>
-              <% [['🔥','Fire'],['⚔️','Sword'],['🏹','Arrow'],['🕸','Web'],['⬆','Move here']].each do |ic, name| %>
-                <button type="button" class="brush player-brush" data-player-brush="place" data-icon="<%= ic %>" title="<%= name %>"><%= ic %></button>
-              <% end %>
+              <span class="palette-label">Action:</span>
               <button type="button" class="brush player-brush spell-brush" data-player-brush="spell" title="Mark a square as the target of a Spell">● Spell</button>
-              <button type="button" class="brush player-brush" data-player-brush="erase" title="Click a cell to clear its mark">Erase</button>
+              <button type="button" class="brush player-brush" data-player-brush="erase" title="Click a cell to clear your spell dot there">Erase</button>
               <button type="button" class="brush player-clear-mine" title="Remove all of your marks on this map">Clear mine</button>
             <% end %>
             <span class="palette-label" style="margin-left: 8px;">Arrows:</span>
@@ -183,10 +180,7 @@
               <button type="button" class="brush player-brush arrow-brush" data-player-brush="arrow" data-arrow-type="<%= type %>" title="<%= name %> arrow — click start cell, then end cell" style="--arrow-color: <%= color %>;">→ <%= name %></button>
             <% end %>
             <% if @is_dm %>
-              <form method="post" action="/scene/map/player_actions/clear" style="display:inline;">
-                <input type="hidden" name="id" value="<%= h(m['id']) %>">
-                <button type="submit" class="brush player-clear-mine" title="Remove every player arrow, mark, and spell dot on this map">Clear player actions</button>
-              </form>
+              <button type="button" class="brush player-clear-mine clear-player-actions-btn" data-clear-player-actions="<%= h(m['id']) %>" title="Remove every player arrow, mark, and spell dot on this map">Clear player actions</button>
             <% end %>
             <span class="palette-label" style="margin-left: 8px;">Zoom:</span>
             <button type="button" class="brush map-zoom-btn" data-map-zoom="out" title="Zoom out">−</button>
@@ -194,7 +188,8 @@
             <button type="button" class="brush map-zoom-btn" data-map-zoom="in" title="Zoom in">+</button>
             <span class="palette-status"><span class="active-brush-desc"><%= @is_dm ? 'Pick an arrow type to draw' : 'Pick an icon to place' %></span></span>
           </div>
-          <div class="scene-map-zoom-wrap">
+          <div class="scene-map-viewport">
+          <div class="scene-map-pan">
           <div class="scene-map-grid-wrap">
             <div class="scene-map-grid"
                  data-map-id="<%= h(m['id']) %>"
@@ -289,6 +284,7 @@
                 </g>
               <% end %>
             </svg>
+          </div>
           </div>
           </div>
         </div>
@@ -1280,11 +1276,15 @@
 
 <script>
 (function() {
-  // Map zoom. The .scene-map-grid-wrap gets transform: scale(N); the
-  // outer .scene-map-zoom-wrap takes the scaled bounding box so the
-  // page reflows around the zoomed grid. State persists per map id
-  // via localStorage so the zoom sticks across navigation.
-  var STORAGE_KEY = 'sceneMapZoom';
+  // Pan-and-zoom on a fixed-size viewport. .scene-map-pan carries
+  // transform: translate(tx, ty) scale(s); .scene-map-viewport clips
+  // it. Mouse drag on empty grid space pans; wheel zooms toward the
+  // cursor. The +/-/100% buttons still work (zoom around viewport
+  // center). State (scale + pan) persists per map id in localStorage.
+  // Drag-vs-click discrimination: a click that moved >4px is treated
+  // as a pan and the post-up click is suppressed so cell brush
+  // handlers don't fire.
+  var STORAGE_KEY = 'sceneMapView';
   function readState() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; }
     catch (e) { return {}; }
@@ -1299,39 +1299,114 @@
     var grid = mapEl.querySelector('.scene-map-grid');
     if (!grid) return;
     var mapId = grid.getAttribute('data-map-id');
-    var inner = mapEl.querySelector('.scene-map-grid-wrap');
-    var outer = mapEl.querySelector('.scene-map-zoom-wrap');
+    var pan = mapEl.querySelector('.scene-map-pan');
+    var viewport = mapEl.querySelector('.scene-map-viewport');
     var palette = mapEl.querySelector('[data-player-palette="1"]');
-    if (!inner || !outer || !palette) return;
+    if (!pan || !viewport || !palette) return;
 
-    // Cache the pre-transform natural size on the outer container.
-    var natW = inner.offsetWidth;
-    var natH = inner.offsetHeight;
+    var saved = state[mapId] || {};
+    var tx = parseFloat(saved.tx) || 0;
+    var ty = parseFloat(saved.ty) || 0;
+    var scale = parseFloat(saved.scale) || 1.0;
 
-    function clampScale(s) { return Math.max(0.5, Math.min(3.0, s)); }
-
-    function apply(scale) {
-      scale = clampScale(scale);
-      inner.style.transform = scale === 1 ? '' : 'scale(' + scale + ')';
-      outer.style.width  = (natW * scale) + 'px';
-      outer.style.height = (natH * scale) + 'px';
-      state[mapId] = scale;
+    function clamp(s) { return Math.max(0.25, Math.min(4.0, s)); }
+    function apply() {
+      pan.style.transform = 'translate(' + tx + 'px, ' + ty + 'px) scale(' + scale + ')';
+      state[mapId] = { tx: tx, ty: ty, scale: scale };
       writeState(state);
     }
-
-    // Restore saved zoom (or 1.0).
-    var initial = parseFloat(state[mapId]);
-    if (!initial || isNaN(initial)) initial = 1.0;
-    apply(initial);
+    apply();
 
     palette.querySelectorAll('.map-zoom-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
-        var current = parseFloat(state[mapId]) || 1.0;
         var act = btn.getAttribute('data-map-zoom');
-        if (act === 'in') apply(current + 0.25);
-        else if (act === 'out') apply(current - 0.25);
-        else apply(1.0);
+        var rect = viewport.getBoundingClientRect();
+        var px = rect.width / 2, py = rect.height / 2;
+        var newScale = scale;
+        if (act === 'in')       newScale = clamp(scale * 1.25);
+        else if (act === 'out') newScale = clamp(scale * 0.8);
+        else { tx = 0; ty = 0; scale = 1.0; apply(); return; }
+        tx = px - (px - tx) * (newScale / scale);
+        ty = py - (py - ty) * (newScale / scale);
+        scale = newScale;
+        apply();
       });
+    });
+
+    // Wheel zoom toward cursor. preventDefault so the page itself
+    // doesn't scroll while the cursor is over the map.
+    viewport.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      var rect = viewport.getBoundingClientRect();
+      var px = e.clientX - rect.left;
+      var py = e.clientY - rect.top;
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var newScale = clamp(scale * factor);
+      if (newScale === scale) return;
+      tx = px - (px - tx) * (newScale / scale);
+      ty = py - (py - ty) * (newScale / scale);
+      scale = newScale;
+      apply();
+    }, { passive: false });
+
+    // Mouse drag pan. Skip if the press lands on an interactive
+    // element (button / input / arrow remove handle). Use pointer
+    // events for clean capture on touch + mouse.
+    var dragging = false, didPan = false;
+    var startX, startY, startTx, startTy;
+    viewport.addEventListener('pointerdown', function(e) {
+      if (e.target.closest('button, input, select, textarea, a, label, .scene-map-arrow-remove')) return;
+      if (e.button !== 0) return;
+      dragging = true; didPan = false;
+      startX = e.clientX; startY = e.clientY;
+      startTx = tx; startTy = ty;
+      viewport.setPointerCapture(e.pointerId);
+    });
+    viewport.addEventListener('pointermove', function(e) {
+      if (!dragging) return;
+      var dx = e.clientX - startX, dy = e.clientY - startY;
+      if (!didPan && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) didPan = true;
+      if (didPan) {
+        tx = startTx + dx;
+        ty = startTy + dy;
+        apply();
+      }
+    });
+    function endDrag(e) {
+      if (!dragging) return;
+      dragging = false;
+      try { viewport.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+    viewport.addEventListener('pointerup', endDrag);
+    viewport.addEventListener('pointercancel', endDrag);
+    // Suppress the click event that follows a drag so cell handlers
+    // (brush paint, arrow start, spell drop) don't see it.
+    viewport.addEventListener('click', function(e) {
+      if (didPan) {
+        e.stopPropagation();
+        e.preventDefault();
+        didPan = false;
+      }
+    }, true);
+  });
+
+  // AJAX "Clear player actions" — wipes server-side player_arrows +
+  // player_cells without reloading the page, so unsaved DM cell
+  // edits don't get reset.
+  document.querySelectorAll('.clear-player-actions-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var mapId = btn.getAttribute('data-clear-player-actions');
+      if (!mapId) return;
+      var fd = new FormData();
+      fd.append('id', mapId);
+      fetch('/scene/map/player_actions/clear?ajax=1', { method: 'POST', body: fd })
+        .then(function() {
+          // Strip arrows + player marks from this map's DOM.
+          var mapEl = btn.closest('.scene-map');
+          if (!mapEl) return;
+          mapEl.querySelectorAll('.scene-map-arrows .scene-map-arrow-group').forEach(function(g) { g.remove(); });
+          mapEl.querySelectorAll('.scene-map-player-mark, .scene-map-spell-dot').forEach(function(el) { el.remove(); });
+        });
     });
   });
 })();
