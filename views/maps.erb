@@ -521,3 +521,13 @@
         ghost.appendChild(gl);
       }
       document.body.appendChild(ghost);
+      window.addEventListener('mousemove', moveGhost);
+      window.addEventListener('mouseup', drop);
+    });
+
+    form.addEventListener('submit', function() {
+      hidden.value = JSON.stringify(cells);
+    });
+  });
+})();
+</script>
