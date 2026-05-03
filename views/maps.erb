@@ -199,3 +199,325 @@
           <button type="submit">Create map</button>
         </form>
       </div>
+
+<script>
+(function() {
+  // DM-side map editor: pick a brush, click cells to paint, drag for
+  // rectangle selection on color/erase, or use Move to pick up a cell's
+  // icon+label and drop it on another. Cells round-trip via a hidden
+  // cells_json input on form submit.
+  var editors = document.querySelectorAll('.scene-map-editor[data-editor="1"]');
+  console.log('[map editor] forms found:', editors.length);
+  editors.forEach(function(form) {
+    var hidden = form.querySelector('input[name="cells_json"]');
+    var mapEl = form.closest('.scene-map');
+    var grid = form.querySelector('[data-grid="1"]') ||
+               (mapEl && mapEl.querySelector('[data-grid="1"]'));
+    var palette = form.querySelector('[data-palette="1"]');
+    console.log('[map editor] hidden:', !!hidden, 'grid:', !!grid, 'palette:', !!palette);
+    if (!hidden || !grid || !palette) return;
+    var status = palette.querySelector('.active-brush-desc');
+    var colorPicker = palette.querySelector('.brush-color-picker');
+    var iconCustom = palette.querySelector('.brush-icon-custom');
+
+    var cells = {};
+    try { cells = JSON.parse(hidden.value || '{}') || {}; }
+    catch (e) { cells = {}; }
+
+    var brush = null;
+
+    function setActiveChip(btn) {
+      palette.querySelectorAll('.brush.active').forEach(function(b) { b.classList.remove('active'); });
+      if (btn) btn.classList.add('active');
+    }
+
+    function describe() {
+      if (!status) return;
+      if (!brush) { status.textContent = 'Pick a palette item'; return; }
+      if (brush.type === 'color') status.textContent = brush.color ? ('Paint color ' + brush.color) : 'Clear color';
+      else if (brush.type === 'icon') status.textContent = brush.icon ? ('Place icon ' + brush.icon) : 'Clear icon';
+      else if (brush.type === 'image') status.textContent = brush.image ? 'Place image' : 'Clear image';
+      else if (brush.type === 'label') status.textContent = 'Click a cell to type a label';
+      else if (brush.type === 'move') status.textContent = 'Drag a cell with content to a new square';
+      else if (brush.type === 'erase') status.textContent = 'Click or drag to clear cells';
+    }
+
+    palette.querySelectorAll('.color-brush').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        brush = { type: 'color', color: btn.getAttribute('data-color') || '' };
+        setActiveChip(btn);
+        describe();
+        console.log('[map editor] brush set:', brush);
+      });
+    });
+    palette.querySelectorAll('.icon-brush').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        brush = { type: 'icon', icon: btn.getAttribute('data-icon') || '' };
+        setActiveChip(btn);
+        describe();
+        console.log('[map editor] brush set:', brush);
+      });
+    });
+    palette.querySelectorAll('.image-brush').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        brush = { type: 'image', image: btn.getAttribute('data-image') || '' };
+        setActiveChip(btn);
+        describe();
+      });
+    });
+    var labelBrush = palette.querySelector('.label-brush');
+    if (labelBrush) labelBrush.addEventListener('click', function() {
+      brush = { type: 'label' };
+      setActiveChip(labelBrush);
+      describe();
+    });
+    var moveBrush = palette.querySelector('.move-brush');
+    if (moveBrush) moveBrush.addEventListener('click', function() {
+      brush = { type: 'move' };
+      setActiveChip(moveBrush);
+      describe();
+    });
+    var eraseBrush = palette.querySelector('.erase-brush');
+    if (eraseBrush) eraseBrush.addEventListener('click', function() {
+      brush = { type: 'erase' };
+      setActiveChip(eraseBrush);
+      describe();
+    });
+
+    if (colorPicker) {
+      colorPicker.addEventListener('change', function() {
+        brush = { type: 'color', color: colorPicker.value };
+        setActiveChip(null);
+        describe();
+      });
+    }
+    if (iconCustom) {
+      iconCustom.addEventListener('change', function() {
+        brush = { type: 'icon', icon: iconCustom.value };
+        setActiveChip(null);
+        describe();
+      });
+      iconCustom.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); iconCustom.dispatchEvent(new Event('change')); }
+      });
+    }
+
+    function applyToCell(cellEl, brushAtTime) {
+      if (!cellEl || !brushAtTime) return;
+      var r = cellEl.getAttribute('data-r');
+      var c = cellEl.getAttribute('data-c');
+      var key = r + ',' + c;
+      var data = cells[key] || {};
+      if (brushAtTime.type === 'color') {
+        if (brushAtTime.color) { data.color = brushAtTime.color; cellEl.style.background = brushAtTime.color; }
+        else { delete data.color; cellEl.style.background = ''; }
+      } else if (brushAtTime.type === 'icon') {
+        Array.prototype.slice.call(cellEl.querySelectorAll('.scene-map-icon, .scene-map-label')).forEach(function(n) {
+          if (n.classList.contains('scene-map-icon')) n.remove();
+        });
+        if (brushAtTime.icon) {
+          data.icon = brushAtTime.icon;
+          var i = document.createElement('span');
+          i.className = 'scene-map-icon';
+          i.textContent = brushAtTime.icon;
+          cellEl.insertBefore(i, cellEl.firstChild);
+        } else {
+          delete data.icon;
+        }
+      } else if (brushAtTime.type === 'image') {
+        cellEl.querySelectorAll('.scene-map-cell-image').forEach(function(n) { n.remove(); });
+        if (brushAtTime.image) {
+          data.image = brushAtTime.image;
+          var img = document.createElement('img');
+          img.className = 'scene-map-cell-image';
+          img.src = brushAtTime.image;
+          img.alt = '';
+          cellEl.insertBefore(img, cellEl.firstChild);
+        } else {
+          delete data.image;
+        }
+      } else if (brushAtTime.type === 'label') {
+        var existing = data.label || '';
+        var v = window.prompt('Label for this cell (blank to clear):', existing);
+        if (v === null) return;
+        cellEl.querySelectorAll('.scene-map-label').forEach(function(n) { n.remove(); });
+        if (v) {
+          data.label = v;
+          var l = document.createElement('span');
+          l.className = 'scene-map-label';
+          l.textContent = v;
+          cellEl.appendChild(l);
+        } else {
+          delete data.label;
+        }
+      } else if (brushAtTime.type === 'erase') {
+        cellEl.style.background = '';
+        cellEl.querySelectorAll('.scene-map-icon, .scene-map-label, .scene-map-cell-image').forEach(function(n) { n.remove(); });
+        delete data.color; delete data.icon; delete data.label; delete data.image;
+      }
+      if (Object.keys(data).length === 0) { delete cells[key]; }
+      else { cells[key] = data; }
+    }
+
+    function cellAt(r, c) {
+      return grid.querySelector('.scene-map-cell.editable[data-r="' + r + '"][data-c="' + c + '"]');
+    }
+
+    var rectAnchor = null;
+    var rectPreview = [];
+
+    grid.addEventListener('mousedown', function(e) {
+      console.log('[map editor] grid mousedown, brush:', brush, 'target:', e.target);
+      if (!brush) return;
+      if (brush.type === 'move') return;
+      var cellEl = e.target.closest('.scene-map-cell.editable');
+      if (!cellEl || !grid.contains(cellEl)) {
+        console.log('[map editor] mousedown: no editable cell in target chain');
+        return;
+      }
+      if (brush.type === 'color' || brush.type === 'erase') {
+        e.preventDefault();
+        rectAnchor = { r: parseInt(cellEl.getAttribute('data-r'), 10), c: parseInt(cellEl.getAttribute('data-c'), 10) };
+        rectPreview = [cellEl];
+        cellEl.classList.add('rect-preview');
+        console.log('[map editor] rect started at', rectAnchor);
+      }
+    });
+    grid.addEventListener('mousemove', function(e) {
+      if (!rectAnchor) return;
+      var cellEl = e.target.closest('.scene-map-cell.editable');
+      if (!cellEl || !grid.contains(cellEl)) return;
+      var r2 = parseInt(cellEl.getAttribute('data-r'), 10);
+      var c2 = parseInt(cellEl.getAttribute('data-c'), 10);
+      var rmin = Math.min(rectAnchor.r, r2), rmax = Math.max(rectAnchor.r, r2);
+      var cmin = Math.min(rectAnchor.c, c2), cmax = Math.max(rectAnchor.c, c2);
+      rectPreview.forEach(function(el) { el.classList.remove('rect-preview'); });
+      rectPreview = [];
+      for (var rr = rmin; rr <= rmax; rr++) {
+        for (var cc = cmin; cc <= cmax; cc++) {
+          var el = cellAt(rr, cc);
+          if (el) { el.classList.add('rect-preview'); rectPreview.push(el); }
+        }
+      }
+    });
+    function commitRect() {
+      if (!rectAnchor) return;
+      rectPreview.forEach(function(el) {
+        el.classList.remove('rect-preview');
+        applyToCell(el, brush);
+      });
+      rectAnchor = null;
+      rectPreview = [];
+    }
+    grid.addEventListener('mouseup', commitRect);
+    grid.addEventListener('mouseleave', commitRect);
+
+    grid.addEventListener('click', function(e) {
+      console.log('[map editor] grid click, brush:', brush, 'target:', e.target);
+      if (!brush) return;
+      if (brush.type === 'color' || brush.type === 'erase') return;
+      if (brush.type === 'move') return;
+      var cellEl = e.target.closest('.scene-map-cell.editable');
+      if (!cellEl || !grid.contains(cellEl)) {
+        console.log('[map editor] click: no editable cell in target chain');
+        return;
+      }
+      console.log('[map editor] applying brush to cell', cellEl.dataset.r, cellEl.dataset.c);
+      applyToCell(cellEl, brush);
+    });
+
+    // Move brush: drag a cell's icon+label to another cell.
+    var moveSrc = null;
+    var ghost = null;
+    function clearMoveTargets() {
+      grid.querySelectorAll('.move-target').forEach(function(el) { el.classList.remove('move-target'); });
+    }
+    function moveGhost(e) {
+      if (!ghost) return;
+      ghost.style.left = e.clientX + 'px';
+      ghost.style.top = e.clientY + 'px';
+      var el = document.elementFromPoint(e.clientX, e.clientY);
+      var target = el && el.closest ? el.closest('.scene-map-cell.editable') : null;
+      clearMoveTargets();
+      if (target && grid.contains(target) && target !== moveSrc) target.classList.add('move-target');
+    }
+    function drop(e) {
+      window.removeEventListener('mousemove', moveGhost);
+      window.removeEventListener('mouseup', drop);
+      if (ghost) { ghost.remove(); ghost = null; }
+      var el = document.elementFromPoint(e.clientX, e.clientY);
+      var destCell = el && el.closest ? el.closest('.scene-map-cell.editable') : null;
+      if (moveSrc && destCell && grid.contains(destCell) && destCell !== moveSrc) {
+        var srcKey = moveSrc.getAttribute('data-r') + ',' + moveSrc.getAttribute('data-c');
+        var dstKey = destCell.getAttribute('data-r') + ',' + destCell.getAttribute('data-c');
+        var srcData = cells[srcKey] || {};
+        var dstData = cells[dstKey] || {};
+        if (srcData.icon)  { dstData.icon  = srcData.icon;  delete srcData.icon; }
+        if (srcData.label) { dstData.label = srcData.label; delete srcData.label; }
+        if (srcData.image) { dstData.image = srcData.image; delete srcData.image; }
+        if (Object.keys(srcData).length === 0) { delete cells[srcKey]; } else { cells[srcKey] = srcData; }
+        if (Object.keys(dstData).length === 0) { delete cells[dstKey]; } else { cells[dstKey] = dstData; }
+        // Repaint both cells
+        [moveSrc, destCell].forEach(function(cellEl) {
+          cellEl.querySelectorAll('.scene-map-icon, .scene-map-label, .scene-map-cell-image').forEach(function(n) { n.remove(); });
+          var key = cellEl.getAttribute('data-r') + ',' + cellEl.getAttribute('data-c');
+          var data = cells[key] || {};
+          if (data.image) {
+            var im = document.createElement('img');
+            im.className = 'scene-map-cell-image';
+            im.src = data.image;
+            im.alt = '';
+            cellEl.insertBefore(im, cellEl.firstChild);
+          }
+          if (data.icon) {
+            var ic = document.createElement('span');
+            ic.className = 'scene-map-icon';
+            ic.textContent = data.icon;
+            cellEl.appendChild(ic);
+          }
+          if (data.label) {
+            var lb = document.createElement('span');
+            lb.className = 'scene-map-label';
+            lb.textContent = data.label;
+            cellEl.appendChild(lb);
+          }
+        });
+      }
+      if (moveSrc) moveSrc.classList.remove('move-source');
+      moveSrc = null;
+      clearMoveTargets();
+    }
+    grid.addEventListener('mousedown', function(e) {
+      if (!brush || brush.type !== 'move') return;
+      var cellEl = e.target.closest('.scene-map-cell.editable');
+      if (!cellEl) return;
+      var key = cellEl.getAttribute('data-r') + ',' + cellEl.getAttribute('data-c');
+      var data = cells[key];
+      if (!data || (!data.icon && !data.label && !data.image)) return;
+      e.preventDefault();
+      moveSrc = cellEl;
+      cellEl.classList.add('move-source');
+      ghost = document.createElement('div');
+      ghost.className = 'scene-map-ghost';
+      ghost.style.left = e.clientX + 'px';
+      ghost.style.top = e.clientY + 'px';
+      if (data.image) {
+        var gim = document.createElement('img');
+        gim.className = 'scene-map-cell-image';
+        gim.src = data.image;
+        gim.alt = '';
+        ghost.appendChild(gim);
+      }
+      if (data.icon) {
+        var gi = document.createElement('span');
+        gi.className = 'scene-map-icon';
+        gi.textContent = data.icon;
+        ghost.appendChild(gi);
+      }
+      if (data.label) {
+        var gl = document.createElement('span');
+        gl.className = 'scene-map-label';
+        gl.textContent = data.label;
+        ghost.appendChild(gl);
+      }
+      document.body.appendChild(ghost);
