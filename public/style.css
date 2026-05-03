@@ -722,7 +722,6 @@ table th {
   border: 1px solid #444;
   border-radius: 4px;
   cursor: grab;
-  touch-action: none;
   user-select: none;
 }
 .scene-map-viewport:active { cursor: grabbing; }

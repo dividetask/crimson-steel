@@ -1350,19 +1350,20 @@
     }, { passive: false });
 
     // Mouse drag pan. Skip if the press lands on an interactive
-    // element (button / input / arrow remove handle). Use pointer
-    // events for clean capture on touch + mouse.
+    // element (button / input / arrow remove handle). We listen for
+    // move/up at the document level so we don't need pointer capture
+    // (which on some browsers swallows the subsequent click event,
+    // breaking cell brush / arrow / spell handlers).
     var dragging = false, didPan = false;
     var startX, startY, startTx, startTy;
-    viewport.addEventListener('pointerdown', function(e) {
+    viewport.addEventListener('mousedown', function(e) {
       if (e.target.closest('button, input, select, textarea, a, label, .scene-map-arrow-remove')) return;
       if (e.button !== 0) return;
       dragging = true; didPan = false;
       startX = e.clientX; startY = e.clientY;
       startTx = tx; startTy = ty;
-      viewport.setPointerCapture(e.pointerId);
     });
-    viewport.addEventListener('pointermove', function(e) {
+    document.addEventListener('mousemove', function(e) {
       if (!dragging) return;
       var dx = e.clientX - startX, dy = e.clientY - startY;
       if (!didPan && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) didPan = true;
@@ -1372,15 +1373,9 @@
         apply();
       }
     });
-    function endDrag(e) {
-      if (!dragging) return;
-      dragging = false;
-      try { viewport.releasePointerCapture(e.pointerId); } catch (_) {}
-    }
-    viewport.addEventListener('pointerup', endDrag);
-    viewport.addEventListener('pointercancel', endDrag);
-    // Suppress the click event that follows a drag so cell handlers
-    // (brush paint, arrow start, spell drop) don't see it.
+    document.addEventListener('mouseup', function() { dragging = false; });
+    // Suppress the click event that follows a real drag so cell
+    // handlers (brush paint, arrow start, spell drop) don't see it.
     viewport.addEventListener('click', function(e) {
       if (didPan) {
         e.stopPropagation();
