@@ -955,16 +955,14 @@
   // icon+label and drop it on another. Cells round-trip via a hidden
   // cells_json input on form submit.
   var editors = document.querySelectorAll('.scene-map-editor[data-editor="1"]');
+  console.log('[map editor] forms found:', editors.length);
   editors.forEach(function(form) {
     var hidden = form.querySelector('input[name="cells_json"]');
-    // The grid may live INSIDE the form (maps.erb) or as a sibling
-    // outside the form within the same .scene-map (scene.erb DM
-    // view, where the grid is shared with the player view's
-    // arrow-overlay and zoom wrap). Look in both places.
     var mapEl = form.closest('.scene-map');
     var grid = form.querySelector('[data-grid="1"]') ||
                (mapEl && mapEl.querySelector('[data-grid="1"]'));
     var palette = form.querySelector('[data-palette="1"]');
+    console.log('[map editor] hidden:', !!hidden, 'grid:', !!grid, 'palette:', !!palette);
     if (!hidden || !grid || !palette) return;
     var status = palette.querySelector('.active-brush-desc');
     var colorPicker = palette.querySelector('.brush-color-picker');
@@ -997,6 +995,7 @@
         brush = { type: 'color', color: btn.getAttribute('data-color') || '' };
         setActiveChip(btn);
         describe();
+        console.log('[map editor] brush set:', brush);
       });
     });
     palette.querySelectorAll('.icon-brush').forEach(function(btn) {
@@ -1004,6 +1003,7 @@
         brush = { type: 'icon', icon: btn.getAttribute('data-icon') || '' };
         setActiveChip(btn);
         describe();
+        console.log('[map editor] brush set:', brush);
       });
     });
     palette.querySelectorAll('.image-brush').forEach(function(btn) {
@@ -1115,15 +1115,20 @@
     var rectPreview = [];
 
     grid.addEventListener('mousedown', function(e) {
+      console.log('[map editor] grid mousedown, brush:', brush, 'target:', e.target);
       if (!brush) return;
       if (brush.type === 'move') return;
       var cellEl = e.target.closest('.scene-map-cell.editable');
-      if (!cellEl || !grid.contains(cellEl)) return;
+      if (!cellEl || !grid.contains(cellEl)) {
+        console.log('[map editor] mousedown: no editable cell in target chain');
+        return;
+      }
       if (brush.type === 'color' || brush.type === 'erase') {
         e.preventDefault();
         rectAnchor = { r: parseInt(cellEl.getAttribute('data-r'), 10), c: parseInt(cellEl.getAttribute('data-c'), 10) };
         rectPreview = [cellEl];
         cellEl.classList.add('rect-preview');
+        console.log('[map editor] rect started at', rectAnchor);
       }
     });
     grid.addEventListener('mousemove', function(e) {
@@ -1156,11 +1161,16 @@
     grid.addEventListener('mouseleave', commitRect);
 
     grid.addEventListener('click', function(e) {
+      console.log('[map editor] grid click, brush:', brush, 'target:', e.target);
       if (!brush) return;
       if (brush.type === 'color' || brush.type === 'erase') return;
       if (brush.type === 'move') return;
       var cellEl = e.target.closest('.scene-map-cell.editable');
-      if (!cellEl || !grid.contains(cellEl)) return;
+      if (!cellEl || !grid.contains(cellEl)) {
+        console.log('[map editor] click: no editable cell in target chain');
+        return;
+      }
+      console.log('[map editor] applying brush to cell', cellEl.dataset.r, cellEl.dataset.c);
       applyToCell(cellEl, brush);
     });
 
