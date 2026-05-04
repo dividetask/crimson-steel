@@ -1,10 +1,259 @@
+<%
+  # Detail toggle. /scene embeds character_sheet during combat and
+  # forces minimal via @character_detail = :minimal in the scene route.
+  # /character drives @character_detail off the ?detail= query param.
+  # Anywhere else (no @character_detail), keep the historical full
+  # layout.
+  detail = (@character_detail == :minimal) ? :minimal : :full
+  is_character_page = @route_prefix == '/character'
+  query_for = ->(level) { level == :full ? '?detail=full' : '?detail=minimal' }
+  toggle_target = (detail == :full) ? :minimal : :full
+  toggle_label  = (detail == :full) ? 'Show minimal' : 'Show full sheet'
+%>
+<% if @encounter_message && @route_prefix == '/character' && @is_local %>
+  <%= erb :_encounter_banner, layout: false %>
+<% end %>
 <% if @route_prefix %>
 <div class="navigation">
-  <a href="<%= @route_prefix %>/<%= @prev_index %>" class="nav-arrow left">◀</a>
+  <a href="<%= @route_prefix %>/<%= @prev_index %><%= query_for.call(detail) %>" class="nav-arrow left">◀</a>
   <span class="character-counter"><%= @current_index + 1 %> / <%= @total_characters %></span>
-  <a href="<%= @route_prefix %>/<%= @next_index %>" class="nav-arrow right">▶</a>
+  <a href="<%= @route_prefix %>/<%= @next_index %><%= query_for.call(detail) %>" class="nav-arrow right">▶</a>
+  <% if is_character_page %>
+    <a href="<%= @route_prefix %>/<%= @current_index %><%= query_for.call(toggle_target) %>" class="detail-toggle"><%= toggle_label %></a>
+  <% end %>
 </div>
 <% end %>
+
+<% if detail == :minimal %>
+<%
+  # Minimal monster-statblock-style card. Uses our existing
+  # CharacterSheet methods directly — no dummy data layer needed.
+  weapons = @character.shield_list + @character.weapon_list
+  spell_list = @character.spell_list || []
+  has_spells  = spell_list.any? { |t| t && t.any? }
+  has_rituals = (@character.ritual_list || []).any? { |t| t && t.any? }
+  has_abilities = @character.ability_list.any?
+  defined_items = @character.defined_items
+  consumables = @character.consumable
+  ammunition = @character.ammunition
+  other_items = @character.other_items
+  equipped_names = @character.equip_search('equipped' => true).map { |i| i['name'] }
+  attribute_short = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' }
+  tier_class = @character.tier && @character.tier >= 0 ? "tier-#{@character.tier}" : 'tier-unknown'
+%>
+<div class="char-card">
+  <div class="char-card-name-row">
+    <div class="char-card-name <%= tier_class %>"><%= h @character.name %></div>
+    <% if @character.player %>
+      <div class="char-card-player">Player: <strong><%= h @character.player %></strong></div>
+    <% end %>
+  </div>
+  <div class="char-card-type">
+    <%= h @character.race %> <%= h @character.full_klass %>,
+    <span class="<%= tier_class %>">Tier <%= h @character.tier %></span>
+  </div>
+
+  <div class="char-card-rule"></div>
+
+  <div class="char-card-top">
+    <div class="char-card-attrs">
+      <% attribute_short.each do |sym, label| %>
+        <% base = @character.ability_score_base(sym) %>
+        <% dmg  = @character.ability_damage_total(sym) %>
+        <% enh  = @character.attribute_enhancement(sym) %>
+        <div class="char-card-attr">
+          <span class="char-card-attr-label"><%= label %></span>
+          <span class="char-card-attr-value">
+            <%= base %><% if dmg > 0 %><span class="ability-damage">-<%= dmg %></span><% end %><% if enh > 0 %><span class="enh-note">(+<%= enh %>)</span><% end %>
+          </span>
+        </div>
+      <% end %>
+    </div>
+    <div class="char-card-vitals">
+      <%
+        cur_hp = @character.current_hp
+        temp = @character.temporary_hit_points.to_i
+        mod = @character.moderate_damage.to_i
+        maj = @character.major_damage.to_i
+        cur_mana = @character.current_mana
+        sat = @character.saturation.to_i rescue 0
+      %>
+      <div class="char-card-line">
+        <strong>HP</strong> <%= cur_hp %>/<%= @character.hp_max %><%
+        %><% if temp > 0 %> <span class="hp-temp">+<%= temp %> tmp</span><% end %><%
+        %><% if mod  > 0 %> &mdash; <span class="hp-mod">moderate <%= mod %></span><% end %><%
+        %><% if maj  > 0 %> &mdash; <span class="hp-major">major <%= maj %></span><% end %>
+      </div>
+      <div class="char-card-line">
+        <strong>Mana</strong> <%= cur_mana %>/<%= @character.mana_max %><%
+        %><% if sat > 0 %>, <span class="toxicity">Toxicity <%= sat %></span><% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="char-card-rule"></div>
+
+  <table class="char-card-quickrow">
+    <tr>
+      <td><strong>Initiative</strong> <%= h @character.initiative %></td>
+      <td><strong>Perception</strong> <%= @character.skill_dice(:perception) %>d (<%= @character.add_plus(:skill_bonus, :perception) %>)</td>
+      <td><strong>Speed</strong> <%= @character.speed %></td>
+      <td><strong>DR</strong> <%= @character.damage_reduction %></td>
+      <td><strong>Resilience</strong> <%= @character.damage_resilience %></td>
+    </tr>
+  </table>
+
+  <% if weapons.any? %>
+    <div class="char-card-rule"></div>
+    <div class="char-card-section-title">Actions</div>
+    <table class="char-card-actions">
+      <tr>
+        <th>Name</th>
+        <th>Spd</th>
+        <th>Roll</th>
+        <th>Bonus</th>
+        <th>Dmg</th>
+        <th>Bleed</th>
+        <th>MT</th>
+      </tr>
+      <% weapons.each do |w| %>
+        <tr>
+          <td><%= h w['name'] %></td>
+          <td><%= @character.weapon_speed(w) %><%= @character.weapon_arm_speed(w) %></td>
+          <td><%= @character.weapon_dice(w) %>d</td>
+          <td><%= @character.add_plus(:weapon_attack_bonus, w) %></td>
+          <td><%= @character.weapon_dmg(w) %></td>
+          <td><%= @character.weapon_bleed(w) %></td>
+          <td><%= @character.weapon_threshold(w) %></td>
+        </tr>
+      <% end %>
+      <tr>
+        <td>Dodge</td>
+        <td>0</td>
+        <td><%= @character.bab_dice %>d</td>
+        <td><%= @character.add_plus(:bab_bonus) %></td>
+        <td>&mdash;</td>
+        <td>&mdash;</td>
+        <td>&mdash;</td>
+      </tr>
+    </table>
+  <% end %>
+
+  <% if @character.skill_list.any? %>
+    <div class="char-card-section-title char-card-skill-title">Skills</div>
+    <table class="char-card-skills">
+      <tr>
+        <th>Name</th><th>Ranks</th><th>Roll</th><th>Bonus</th>
+        <th class="char-card-skill-spacer"></th>
+        <th>Name</th><th>Ranks</th><th>Roll</th><th>Bonus</th>
+      </tr>
+      <% @character.skill_list.each_slice(2) do |pair| %>
+        <tr>
+          <% if pair[0] %>
+            <td><%= h(@character.clean_skill_name(pair[0])) %></td>
+            <td><%= @character.skill_ranks(pair[0]) %></td>
+            <td><%= @character.skill_dice(pair[0]) %>d</td>
+            <td><%= @character.add_plus(:skill_bonus, pair[0]) %></td>
+          <% else %>
+            <td></td><td></td><td></td><td></td>
+          <% end %>
+          <td class="char-card-skill-spacer"></td>
+          <% if pair[1] %>
+            <td><%= h(@character.clean_skill_name(pair[1])) %></td>
+            <td><%= @character.skill_ranks(pair[1]) %></td>
+            <td><%= @character.skill_dice(pair[1]) %>d</td>
+            <td><%= @character.add_plus(:skill_bonus, pair[1]) %></td>
+          <% else %>
+            <td></td><td></td><td></td><td></td>
+          <% end %>
+        </tr>
+      <% end %>
+    </table>
+  <% end %>
+
+  <% if has_spells || has_rituals %>
+    <div class="char-card-rule"></div>
+    <div class="char-card-two-col">
+      <div>
+        <div class="char-card-section-title">Spells</div>
+        <% if has_spells %>
+          <% spell_list.each_with_index do |sub, idx| %>
+            <% next if sub.nil? || sub.empty? %>
+            <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| "<a href=\"/spell/#{ERB::Util.url_encode(s)}\" class=\"spell-link\">#{h(s)}</a>" }.join(', ') %></p>
+          <% end %>
+        <% else %>
+          <p class="char-card-entry char-card-empty">&mdash;</p>
+        <% end %>
+      </div>
+      <div>
+        <div class="char-card-section-title">Rituals</div>
+        <% if has_rituals %>
+          <% (@character.ritual_list || []).each_with_index do |sub, idx| %>
+            <% next if sub.nil? || sub.empty? %>
+            <p class="char-card-entry"><em>Tier <%= idx %>.</em> <%= sub.map { |s| "<a href=\"/spell/#{ERB::Util.url_encode(s)}\" class=\"spell-link\">#{h(s)}</a>" }.join(', ') %></p>
+          <% end %>
+        <% else %>
+          <p class="char-card-entry char-card-empty">&mdash;</p>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <% if defined_items.any? %>
+    <div class="char-card-rule"></div>
+    <div class="char-card-section-title">Item Descriptions</div>
+    <% defined_items.each do |item| %>
+      <p class="char-card-entry"><em><%= h(item['name']) %>.</em> <%= h(item['description']) %></p>
+    <% end %>
+    <p class="char-card-entry char-card-empty">The full list of items is below.</p>
+  <% end %>
+
+  <%
+    item_lines = []
+    item_lines << ['Equipped', equipped_names.map { |n| h(n) }.join(', ')] if equipped_names.any?
+    if consumables.any?
+      consumable_str = consumables.map do |item|
+        if item['quantity'] && item['quantity'] > 1
+          "(#{h(item['quantity'])}) #{h(item['name'])}"
+        else
+          h(item['name'])
+        end
+      end.join(', ')
+      item_lines << ['Consumable', consumable_str]
+    end
+    if ammunition.any?
+      ammo_str = ammunition.map { |i| "(#{h(i['quantity'] || 1)}) #{h(i['name'])}" }.join(', ')
+      item_lines << ['Ammunition', ammo_str]
+    end
+    item_lines << ['Other', other_items.map { |i| h(i['name']) }.join(', ')] if other_items.any?
+  %>
+  <% if item_lines.any? || has_abilities %>
+    <div class="char-card-rule"></div>
+    <div class="char-card-two-col">
+      <div>
+        <div class="char-card-section-title">Items</div>
+        <% if item_lines.any? %>
+          <% item_lines.each do |label, body| %>
+            <p class="char-card-entry"><em><%= label %>.</em> <%= body %></p>
+          <% end %>
+        <% else %>
+          <p class="char-card-entry char-card-empty">&mdash;</p>
+        <% end %>
+      </div>
+      <div>
+        <div class="char-card-section-title">Abilities</div>
+        <% if has_abilities %>
+          <% @character.ability_list.each do |ability_name| %>
+            <p class="char-card-entry"><em><%= h(@compendium.format_name(ability_name)) %>.</em> <%= h(@compendium.ability(ability_name)) %></p>
+          <% end %>
+        <% else %>
+          <p class="char-card-entry char-card-empty">&mdash;</p>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>
+<% else %>
 
 <div class="sheet">
   <div class="header">
@@ -255,3 +504,4 @@
 	</div>
 
 </div>
+<% end %>

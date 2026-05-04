@@ -42,6 +42,7 @@ module Templates
     creatures = (primary['creatures'] || []).each { |c| c['_source'] ||= 'General' }
     gear = primary['gear_tables'] || []
     lists = (primary['option_lists'] || {}).dup
+    encounters = (primary['random_encounters'] || []).each { |e| e['_source'] ||= 'General' }
 
     Dir.glob(File.join(data_dir, GLOB_PATTERN)).sort.each do |path|
       extra = JSON.parse(File.read(path)) rescue next
@@ -51,9 +52,11 @@ module Templates
       creatures += (extra['creatures'] || [])
       gear += (extra['gear_tables'] || [])
       (extra['option_lists'] || {}).each { |k, v| lists[k] = v }
+      (extra['random_encounters'] || []).each { |e| e['_source'] ||= label }
+      encounters += (extra['random_encounters'] || [])
     end
 
-    { 'creatures' => creatures, 'gear_tables' => gear, 'option_lists' => lists }
+    { 'creatures' => creatures, 'gear_tables' => gear, 'option_lists' => lists, 'random_encounters' => encounters }
   end
 
   # Derive a human-readable group label from a template filename.
@@ -79,6 +82,12 @@ module Templates
   # `options: "tier_one_potions"` instead of an inline array; the roller
   # resolves the string via this hash. Useful for DRY loot references.
   def option_lists; load_raw['option_lists'] || {}; end
+
+  def random_encounters; load_raw['random_encounters'] || []; end
+
+  def random_encounter(id)
+    random_encounters.find { |e| e['id'].to_s == id.to_s }
+  end
 
   # Find a creature template by its string id.
   def find(template_id)
@@ -184,15 +193,18 @@ module GearTable
   module_function
 
   # Resolve a gear reference (string id, inline hash, or nil) into a concrete
-  # gear-table hash. Returns an empty table for nil / unknown ids.
+  # gear-table hash. Returns an empty table for nil, unknown ids, or any
+  # other shape that isn't a Hash (e.g. a creature with `"gear": []`).
   def resolve(ref, tables)
     return { 'rolls' => [], 'gold' => nil } if ref.nil?
     if ref.is_a?(String)
       table = tables[ref]
       warn "GearTable: unknown gear table '#{ref}'" unless table
       Templates.deep_dup(table || { 'rolls' => [], 'gold' => nil })
-    else
+    elsif ref.is_a?(Hash)
       Templates.deep_dup(ref)
+    else
+      { 'rolls' => [], 'gold' => nil }
     end
   end
 

@@ -1,0 +1,35 @@
+# Map Images — DM Palette Curation
+#
+# This file is OPTIONAL but, when present, defines the COMPLETE map-
+# image palette. Auto-discovery from public/images/ is skipped while
+# this file exists, so add/remove entries here to control exactly
+# what shows up in the editor.
+#
+# When the file is absent, the editor auto-discovers every supported
+# image file under public/images/ (recursively) and shows them
+# alphabetically with the filename (minus extension) as the label.
+#
+# To activate, copy this file to data/map_images.yaml and edit:
+#
+#   cp docs/map_images_config.yaml.example data/map_images.yaml
+#
+# Each entry has:
+#   src   — Path under /images/, served from public/images/. Must
+#           start with /images/ (other paths are ignored — drop the
+#           file into public/images/ and reference it from there).
+#   label — What the DM sees as the tooltip in the palette. Defaults
+#           to the filename without extension when omitted.
+#
+# Supported extensions: .png .jpg .jpeg .gif .webp
+
+- label: Lysander
+  src:   /images/Lysander.webp
+
+- label: Olga
+  src:   /images/Olga.webp
+
+- label: Stumpy
+  src:   /images/Stumpy.webp
+
+- label: Cottonballs
+  src:   /images/Cottonballs.webp

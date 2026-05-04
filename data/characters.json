@@ -1,127 +1,5107 @@
 [
-	{
-		"id": 1,
-		"group": "PC",
-		"name": "Stumpy",
-		"player": "Jarett",
-		"race": ["dwarf", "hill" ],
-		"deity": "Gorum",
-		"ability_scores": {
-			"str": 12,
-			"dex": 14,
-			"con": 17,
-			"int": 14,
-			"wis": 18,
-			"cha": 11
-		},
-		"classes": [{"level": 4, "class": "cleric", "skills": ["healing", "sense_motive", "arcana", "nature", "intimidate", "perception"] }],
-		"feats": { "race": ["armor_training"]},
-		"spells": [
-			["Stabilize", "Sacred Flame", "Magic Vestments"],
-			["Cure Lesser Wounds", "Healing Word", "Command", "Lesser Ward", "Divine Favor", "Shield of Faith"],
-			["Magic Weapon", "Spiritual Weapon", "Hold Person", "Silence", "Blindness/Deafness", "Commune", "Cure Simple Wounds", "Simple Ward", "Locate Object", "Protection from Poison", "Standard Surgery"]]
-	},
-	{
-		"id": 2,
-		"group": "PC",
-		"name": "Olga",
-		"player": "Candace",
-		"race": ["human"],
-		"ability_scores": {
-			"str": 19,
-			"dex": 17,
-			"con": 17,
-			"int": 11,
-			"wis": 13,
-			"cha": 10
-		},
-		"classes": [{"level": 4, "class": "barbarian", "skills": ["athletics", "nature", "sense_motive", "stealth" ] }],
-		"feats": {"class": ["cleave"]}
-	},
-	{
-		"id": 3,
-		"group": "PC",
-		"name": "Lysander",
-		"player": "Zack",
-		"race": ["elf", "high"],
-		"ability_scores": {
-			"str": 9,
-			"dex": 19,
-			"con": 13,
-			"int": 13,
-			"wis": 15,
-			"cha": 15
-		},
-		"classes": [{"level": 4, "class": "arcane_trickster",
-			"skills": ["arcana", "stealth", "larceny", "slight_of_hand", "deception", "persuasion", "perception", "game_chess" ] }],
-		"feats": { "race": ["elven_magic", "firebolt"]},
-		"spells": [
-			["Fire Bolt", "Message", "Silent Portal", "Ghost Sound", "Mage Hand"],
-			["Hideous Laughter", "Illusion of Calm", "Auditory Hallucination"]],
-		"rituals": [
-			["Guidance", "Resistance", "Acid Splash", "Drench", "Light", "Spark", "Mending", "Detect Magic"],
-			["Alarm", "Endure Elements", "Mount", "Charm Person", "Ant Haul", "Disguise Self", "Obscuring Mist", "Minor Recharge"],
-			["Silent Image", "Disguise Other", "Invisibility", "Basic Recharge"]]
-	},
-	{
-		"id": 4,
-		"group": "PC",
-		"name": "Cottonballs",
-		"player": "Dave",
-		"race": ["satyr"],
-		"ability_scores": {
-			"str": 11,
-			"dex": 18,
-			"con": 14,
-			"int": 12,
-			"wis": 13,
-			"cha": 18
-		},
-		"classes": [{"level": 4, "class": "bard", "choices": {"versatile_performance": ["sing"]},
-			"skills": ["perform_sing", "perform_percussion", "animal_handling", "persuasion", "perception", "use_magic_device", "nature" ],
-			"spells": [ ["detect_magic", "ghost_sound", "sift", "stabilize", "vacuous_vessel", "vicious_mockery" ] ] }],
-		"feats": { "race": ["fey_magic", "friends"], "class": ["social_spell"]},
-		"spells": [
-			["Detect Magic", "Friends", "Ghost Sound", "Sift", "Stabilize", "Vacuous Vessel", "Vicious Mockery"],
-			["Biting Words", "Ears of the City", "Silent Image", "Timely Inspiration"]]
-	},
-	{
-		"id": 5,
-		"tier": 3,
-		"group": "PC",
-		"name": "Caelian di Soliastres",
-		"player": "DM",
-		"race": ["aberration"],
-		"ability_scores": {
-			"str": 14,
-			"dex": 16,
-			"con": 14,
-			"int": 18,
-			"wis": 14,
-			"cha": 16
-		},
-		"classes": [{"level": 4, "class": "wizard", "skills": ["arcana", "deception", "persuasion", "sense_motive", "perception", "stealth", "linguistics"] }],
-		"spells": [
-			["Detect Magic", "Mage Hand", "Message", "Ghost Sound", "Sift", "Silent Portal"],
-			["Mage Armor", "Minor Disguise", "Grease", "Obscuring Mist", "Hideous Laughter", "Silent Image"],
-			["Invisibility", "Web"]],
-		"rituals": [
-			["Arcane Mark", "Detect Magic", "Light", "Mage Hand", "Mending", "Message"],
-			["Disguise Self", "Expeditious Retreat", "Grease", "Mage Armor", "Obscuring Mist"],
-			["Darkness", "Invisibility", "Silent Image", "Web"]],
-		"items": [
-			{"name": "Traveling Robes", "type": "armor", "subtype": "light", "bonus": 1, "equipped": true, "properties": {"details": ["natural"]}, "description": "Finely tailored dark-grey robes embroidered with silver thread. Lightweight and well-made; comfortable enough to sleep in."},
-			{"name": "Silver-Capped Walking Staff", "type": "weapon", "subtype": "staff", "bonus": 0, "equipped": true, "properties": {"details": ["medium", "bludgeoning"]}, "description": "An ornate walking staff with a silver cap shaped like a crescent. Doubles as an arcane focus."},
-			{"name": "Dagger", "type": "weapon", "subtype": "dagger", "bonus": 0, "equipped": false, "properties": {"details": ["light", "piercing"]}, "description": "Plain steel dagger carried in a concealed sleeve sheath."},
-			{"name": "Ring of Protection +1", "type": "item", "subtype": "ring", "bonus": 1, "equipped": true, "properties": {"enhancement": {"type": "save", "amount": 1}}, "description": "A thin silver band set with a chip of obsidian. Grants a +1 enhancement bonus to all saves."},
-			{"name": "Circlet of Intellect +2", "type": "item", "subtype": "head", "bonus": 2, "equipped": true, "properties": {"enhancement": {"type": "attribute", "attribute": "int", "amount": 2}}, "description": "A slender platinum circlet with inlaid sapphire runes. Grants a +2 enhancement bonus to Intelligence."},
-			{"name": "Wand of Disguise Self", "type": "item", "subtype": "wand", "bonus": 1, "quantity": 15, "equipped": false, "properties": {"spell": "disguise_self"}, "description": "A slim ivory wand with 15 charges of Disguise Self."},
-			{"name": "Potion of Invisibility", "type": "item", "subtype": "vial", "bonus": 2, "quantity": 1, "equipped": false, "properties": {"consumable": true, "spell": "invisibility"}},
-			{"name": "Potion of Cure Lesser Wounds", "type": "item", "subtype": "vial", "bonus": 1, "quantity": 2, "equipped": false, "properties": {"consumable": true, "spell": "cure"}},
-			{"name": "Spellbook", "type": "item", "subtype": "hands", "bonus": 0, "equipped": false, "properties": {}, "description": "A leather-bound travel spellbook, edges scuffed from long use. The handwriting changes style every few pages."},
-			{"name": "Component Pouch", "type": "item", "subtype": "belt", "bonus": 0, "equipped": true, "properties": {}, "description": "A belt-slung pouch of spell components. Replenished at any town with an apothecary."},
-			{"name": "Doppelganger Traits", "type": "item", "subtype": "body", "bonus": 0, "equipped": false, "properties": {}, "description": "DM-only. Immune to sleep and charm. Reads surface thoughts. Shapeshifts into any humanoid. Surprise on 1-4. Saves as level 10. Currently wearing the face of Caelian di Soliastres, minor Soliastres cousin -- a cover that holds up to a casual inquiry but not a determined investigation."}
-		],
-		"notes": "Currently traveling with the party as a helpful arcane ally. Presents as a soft-spoken Soliastres minor cousin who was disinherited and turned to the adventuring life for coin and connections. In truth a doppelganger with his own agenda -- still being determined by the DM, but likely involves identifying which party member is most isolated and useful to replace later. Plays the quiet scholar. Offers spells, information, and the occasional clever plan; never volunteers for the front rank."
-	}
+  {
+    "id": 1,
+    "group": "PC",
+    "name": "Stumpy",
+    "player": "Jarett",
+    "race": [
+      "dwarf",
+      "hill"
+    ],
+    "deity": "Gorum",
+    "ability_scores": {
+      "str": 12,
+      "dex": 14,
+      "con": 17,
+      "int": 14,
+      "wis": 18,
+      "cha": 11
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "cleric",
+        "skills": [
+          "healing",
+          "sense_motive",
+          "arcana",
+          "nature",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "feats": {
+      "race": [
+        "armor_training"
+      ]
+    },
+    "spells": [
+      [
+        "Stabilize",
+        "Sacred Flame",
+        "Magic Vestments"
+      ],
+      [
+        "Cure Lesser Wounds",
+        "Healing Word",
+        "Command",
+        "Lesser Ward",
+        "Divine Favor",
+        "Shield of Faith"
+      ],
+      [
+        "Magic Weapon",
+        "Spiritual Weapon",
+        "Hold Person",
+        "Silence",
+        "Blindness/Deafness",
+        "Commune",
+        "Cure Simple Wounds",
+        "Simple Ward",
+        "Locate Object",
+        "Protection from Poison",
+        "Standard Surgery"
+      ]
+    ]
+  },
+  {
+    "id": 2,
+    "group": "PC",
+    "name": "Olga",
+    "player": "Candace",
+    "race": [
+      "human"
+    ],
+    "ability_scores": {
+      "str": 19,
+      "dex": 17,
+      "con": 17,
+      "int": 11,
+      "wis": 13,
+      "cha": 10
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "barbarian",
+        "skills": [
+          "athletics",
+          "nature",
+          "sense_motive",
+          "stealth"
+        ]
+      }
+    ],
+    "feats": {
+      "class": [
+        "cleave"
+      ]
+    }
+  },
+  {
+    "id": 3,
+    "group": "PC",
+    "name": "Lysander",
+    "player": "Zack",
+    "race": [
+      "elf",
+      "high"
+    ],
+    "ability_scores": {
+      "str": 9,
+      "dex": 19,
+      "con": 13,
+      "int": 13,
+      "wis": 15,
+      "cha": 15
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "arcane_trickster",
+        "skills": [
+          "arcana",
+          "stealth",
+          "larceny",
+          "slight_of_hand",
+          "deception",
+          "persuasion",
+          "perception",
+          "game_chess"
+        ]
+      }
+    ],
+    "feats": {
+      "race": [
+        "elven_magic",
+        "firebolt"
+      ]
+    },
+    "spells": [
+      [
+        "Fire Bolt",
+        "Message",
+        "Silent Portal",
+        "Ghost Sound",
+        "Mage Hand"
+      ],
+      [
+        "Hideous Laughter",
+        "Illusion of Calm",
+        "Auditory Hallucination"
+      ]
+    ],
+    "rituals": [
+      [
+        "Guidance",
+        "Resistance",
+        "Acid Splash",
+        "Drench",
+        "Light",
+        "Spark",
+        "Mending",
+        "Detect Magic"
+      ],
+      [
+        "Alarm",
+        "Endure Elements",
+        "Mount",
+        "Charm Person",
+        "Ant Haul",
+        "Disguise Self",
+        "Obscuring Mist",
+        "Minor Recharge"
+      ],
+      [
+        "Silent Image",
+        "Disguise Other",
+        "Invisibility",
+        "Basic Recharge"
+      ]
+    ]
+  },
+  {
+    "id": 4,
+    "group": "PC",
+    "name": "Cottonballs",
+    "player": "Dave",
+    "race": [
+      "satyr"
+    ],
+    "ability_scores": {
+      "str": 11,
+      "dex": 18,
+      "con": 14,
+      "int": 12,
+      "wis": 13,
+      "cha": 18
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "bard",
+        "choices": {
+          "versatile_performance": [
+            "sing"
+          ]
+        },
+        "skills": [
+          "perform_sing",
+          "perform_percussion",
+          "animal_handling",
+          "persuasion",
+          "perception",
+          "use_magic_device",
+          "nature"
+        ],
+        "spells": [
+          [
+            "detect_magic",
+            "ghost_sound",
+            "sift",
+            "stabilize",
+            "vacuous_vessel",
+            "vicious_mockery"
+          ]
+        ]
+      }
+    ],
+    "feats": {
+      "race": [
+        "fey_magic",
+        "friends"
+      ],
+      "class": [
+        "social_spell"
+      ]
+    },
+    "spells": [
+      [
+        "Detect Magic",
+        "Friends",
+        "Ghost Sound",
+        "Sift",
+        "Stabilize",
+        "Vacuous Vessel",
+        "Vicious Mockery"
+      ],
+      [
+        "Biting Words",
+        "Ears of the City",
+        "Silent Image",
+        "Timely Inspiration"
+      ]
+    ]
+  },
+  {
+    "id": 40,
+    "group": "PC",
+    "name": "Kael",
+    "player": "DM",
+    "race": [
+      "human"
+    ],
+    "ability_scores": {
+      "str": 16,
+      "dex": 14,
+      "con": 18,
+      "int": 10,
+      "wis": 11,
+      "cha": 10
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "barbarian",
+        "skills": [
+          "athletics",
+          "nature",
+          "sense_motive",
+          "stealth"
+        ]
+      }
+    ],
+    "feats": {
+      "class": [
+        "cleave"
+      ]
+    }
+  },
+  {
+    "id": 5,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 12,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 6,
+    "tier": 2,
+    "name": "Orc Patrol Captain",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 25,
+      "dex": 16,
+      "con": 14,
+      "int": 12,
+      "wis": 11,
+      "cha": 9
+    },
+    "classes": [
+      {
+        "level": 8,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 1
+      }
+    ],
+    "gold": 41,
+    "template_id": "patrol_captain"
+  },
+  {
+    "id": 7,
+    "tier": 2,
+    "name": "Slaver Merchant",
+    "player": "DM",
+    "race": [
+      "human"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 14,
+      "con": 14,
+      "int": 16,
+      "wis": 14,
+      "cha": 16
+    },
+    "classes": [
+      {
+        "level": 6,
+        "class": "rogue",
+        "skills": [
+          "persuasion",
+          "perception",
+          "intimidate",
+          "sense_motive",
+          "deception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 1
+      }
+    ],
+    "gold": 369,
+    "template_id": "slaver_merchant"
+  },
+  {
+    "id": 8,
+    "tier": 0,
+    "name": "Orc Interpreter",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 13,
+      "con": 14,
+      "int": 14,
+      "wis": 8,
+      "cha": 14
+    },
+    "classes": [
+      {
+        "level": 2,
+        "class": "fighter",
+        "skills": [
+          "persuasion",
+          "sense_motive",
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Invigorate",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "invigorate"
+        }
+      }
+    ],
+    "gold": 11,
+    "template_id": "orc_interpreter"
+  },
+  {
+    "id": 9,
+    "tier": 0,
+    "name": "Orc Interpreter",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 13,
+      "con": 14,
+      "int": 14,
+      "wis": 8,
+      "cha": 14
+    },
+    "classes": [
+      {
+        "level": 2,
+        "class": "fighter",
+        "skills": [
+          "persuasion",
+          "sense_motive",
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Light",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "light"
+        }
+      }
+    ],
+    "gold": 13,
+    "template_id": "orc_interpreter"
+  },
+  {
+    "id": 10,
+    "tier": 3,
+    "name": "Cleric Slaver",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 19,
+      "dex": 14,
+      "con": 14,
+      "int": 14,
+      "wis": 16,
+      "cha": 14
+    },
+    "classes": [
+      {
+        "level": 8,
+        "class": "cleric",
+        "skills": [
+          "healing",
+          "religion",
+          "perception",
+          "sense_motive",
+          "intimidate"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 1
+      }
+    ],
+    "gold": 26,
+    "template_id": "cleric_slaver"
+  },
+  {
+    "id": 11,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 12,
+    "tier": 3,
+    "name": "Cleric Slaver",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 19,
+      "dex": 14,
+      "con": 14,
+      "int": 14,
+      "wis": 16,
+      "cha": 14
+    },
+    "classes": [
+      {
+        "level": 8,
+        "class": "cleric",
+        "skills": [
+          "healing",
+          "religion",
+          "perception",
+          "sense_motive",
+          "intimidate"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 1
+      }
+    ],
+    "gold": 33,
+    "template_id": "cleric_slaver"
+  },
+  {
+    "id": 41,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 0
+      }
+    ],
+    "gold": 17,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 42,
+    "tier": 1,
+    "name": "Orc Patrol (Barbarian)",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      },
+      {
+        "level": 1,
+        "class": "barbarian",
+        "skills": [
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 14,
+    "applied_variants": [
+      "barbarian"
+    ],
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 43,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Levitate",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 2,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "levitate"
+        }
+      }
+    ],
+    "gold": 10,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 44,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Pass Without Trace",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "pass_without_trace"
+        }
+      }
+    ],
+    "gold": 11,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 45,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Shillelagh",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "shillelagh"
+        }
+      }
+    ],
+    "gold": 11,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 46,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Enlarge Person",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "enlarge_person"
+        }
+      }
+    ],
+    "gold": 8,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 47,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 12,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 48,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "abilities": {
+      "natural": [
+        "bite"
+      ]
+    },
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 49,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "abilities": {
+      "natural": [
+        "bite"
+      ]
+    },
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 50,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Endure Elements",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "endure_elements"
+        }
+      }
+    ],
+    "gold": 10,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 51,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 11,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 52,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Light",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "light"
+        }
+      }
+    ],
+    "gold": 10,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 53,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 8,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 54,
+    "tier": 2,
+    "name": "Slaver Merchant",
+    "player": "DM",
+    "race": [
+      "human"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 14,
+      "con": 14,
+      "int": 16,
+      "wis": 14,
+      "cha": 16
+    },
+    "classes": [
+      {
+        "level": 6,
+        "class": "rogue",
+        "skills": [
+          "persuasion",
+          "perception",
+          "intimidate",
+          "sense_motive",
+          "deception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 1
+      }
+    ],
+    "gold": 383,
+    "template_id": "slaver_merchant"
+  },
+  {
+    "id": 55,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Arcane Mark",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "arcane_mark"
+        }
+      },
+      {
+        "name": "Potion of Reduce Person",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "reduce_person"
+        }
+      }
+    ],
+    "gold": 16,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 56,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Light",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "light"
+        }
+      }
+    ],
+    "gold": 12,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 57,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt +1",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 1
+      },
+      {
+        "name": "Oil of Light",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "light"
+        }
+      }
+    ],
+    "gold": 15,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 58,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt +1",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 1
+      },
+      {
+        "name": "Oil of Light",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "light"
+        }
+      }
+    ],
+    "gold": 15,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 59,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 16,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 60,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt +1",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 1
+      },
+      {
+        "name": "Potion of Stabilize",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "stabilize"
+        }
+      },
+      {
+        "name": "Potion of Remove Fear",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "remove_fear"
+        }
+      },
+      {
+        "name": "Potion of Invisibility",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 2,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "invisibility"
+        }
+      }
+    ],
+    "gold": 14,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 61,
+    "tier": 0,
+    "name": "Orc Interpreter (Barbarian)",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 13,
+      "con": 14,
+      "int": 14,
+      "wis": 8,
+      "cha": 14
+    },
+    "classes": [
+      {
+        "level": 2,
+        "class": "fighter",
+        "skills": [
+          "persuasion",
+          "sense_motive",
+          "intimidate",
+          "athletics"
+        ]
+      },
+      {
+        "level": 1,
+        "class": "barbarian",
+        "skills": [
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Arcane Mark",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "arcane_mark"
+        }
+      },
+      {
+        "name": "Potion of Neutralize Poison",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 3,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "neutralize_poison"
+        }
+      }
+    ],
+    "gold": 15,
+    "applied_variants": [
+      "barbarian"
+    ],
+    "template_id": "orc_interpreter"
+  },
+  {
+    "id": 62,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "abilities": {
+      "natural": [
+        "bite"
+      ]
+    },
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 63,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "abilities": {
+      "natural": [
+        "bite"
+      ]
+    },
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 64,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "abilities": {
+      "natural": [
+        "bite"
+      ]
+    },
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 65,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "abilities": {
+      "natural": [
+        "bite"
+      ]
+    },
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 66,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "abilities": {
+      "natural": [
+        "bite"
+      ]
+    },
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 67,
+    "tier": 2,
+    "name": "Slaver Merchant",
+    "player": "DM",
+    "race": [
+      "human"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 14,
+      "con": 14,
+      "int": 16,
+      "wis": 14,
+      "cha": 16
+    },
+    "classes": [
+      {
+        "level": 6,
+        "class": "rogue",
+        "skills": [
+          "persuasion",
+          "perception",
+          "intimidate",
+          "sense_motive",
+          "deception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 1
+      }
+    ],
+    "gold": 426,
+    "template_id": "slaver_merchant"
+  },
+  {
+    "id": 68,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Light",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "light"
+        }
+      }
+    ],
+    "gold": 16,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 69,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate +1",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 1
+      },
+      {
+        "name": "Oil of Light",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "light"
+        }
+      }
+    ],
+    "gold": 12,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 70,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 0
+      }
+    ],
+    "gold": 15,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 71,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Cure Lesser Wounds",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "cure"
+        }
+      }
+    ],
+    "gold": 19,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 72,
+    "tier": 0,
+    "name": "Orc Interpreter",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 13,
+      "con": 14,
+      "int": 14,
+      "wis": 8,
+      "cha": 14
+    },
+    "classes": [
+      {
+        "level": 2,
+        "class": "fighter",
+        "skills": [
+          "persuasion",
+          "sense_motive",
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 14,
+    "template_id": "orc_interpreter"
+  },
+  {
+    "id": 73,
+    "tier": 2,
+    "name": "Slaver Merchant",
+    "player": "DM",
+    "race": [
+      "human"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 14,
+      "con": 14,
+      "int": 16,
+      "wis": 14,
+      "cha": 16
+    },
+    "classes": [
+      {
+        "level": 6,
+        "class": "rogue",
+        "skills": [
+          "persuasion",
+          "perception",
+          "intimidate",
+          "sense_motive",
+          "deception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 1
+      }
+    ],
+    "gold": 341,
+    "template_id": "slaver_merchant"
+  },
+  {
+    "id": 74,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 11,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 75,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Invigorate",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "invigorate"
+        }
+      }
+    ],
+    "gold": 11,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 76,
+    "tier": 2,
+    "name": "Half-Orc Veteran",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 21,
+      "dex": 13,
+      "con": 17,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      },
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "sense_motive"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 0
+      }
+    ],
+    "gold": 17,
+    "applied_variants": [
+      "veteran"
+    ],
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 77,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Light",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "light"
+        }
+      },
+      {
+        "name": "Potion of Bear's Endurance",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 2,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "bear's_endurance"
+        }
+      }
+    ],
+    "gold": 17,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 78,
+    "tier": 1,
+    "name": "Half-Orc Soldier",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 13,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 79,
+    "tier": 2,
+    "name": "Half-Orc Veteran",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 21,
+      "dex": 13,
+      "con": 17,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      },
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "sense_motive"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Light",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "light"
+        }
+      },
+      {
+        "name": "Potion of Barkskin",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 2,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "barkskin"
+        }
+      }
+    ],
+    "gold": 10,
+    "applied_variants": [
+      "veteran"
+    ],
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 80,
+    "tier": 0,
+    "name": "Orc Interpreter",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 13,
+      "con": 14,
+      "int": 14,
+      "wis": 8,
+      "cha": 14
+    },
+    "classes": [
+      {
+        "level": 2,
+        "class": "fighter",
+        "skills": [
+          "persuasion",
+          "sense_motive",
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Undetectable Alignment",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 2,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "undetectable_alignment"
+        }
+      },
+      {
+        "name": "Potion of Countless Eyes",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 3,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "countless_eyes"
+        }
+      }
+    ],
+    "gold": 17,
+    "template_id": "orc_interpreter"
+  },
+  {
+    "id": 81,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Endure Elements",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "endure_elements"
+        }
+      }
+    ],
+    "gold": 14,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 82,
+    "tier": 1,
+    "name": "Orc Patrol (Human)",
+    "player": "DM",
+    "race": [
+      "human"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 9,
+      "wis": 8,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Pass Without Trace",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "pass_without_trace"
+        }
+      },
+      {
+        "name": "Potion of Aid",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 2,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "aid"
+        }
+      }
+    ],
+    "gold": 10,
+    "applied_variants": [
+      "human"
+    ],
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 83,
+    "tier": 1,
+    "name": "Orc Patrol (Barbarian)",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      },
+      {
+        "level": 1,
+        "class": "barbarian",
+        "skills": [
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Bless Weapon",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "bless_weapon"
+        }
+      }
+    ],
+    "gold": 12,
+    "applied_variants": [
+      "barbarian"
+    ],
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 84,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Light",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "light"
+        }
+      }
+    ],
+    "gold": 11,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 85,
+    "tier": 1,
+    "name": "Orc Patrol (Barbarian)",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      },
+      {
+        "level": 1,
+        "class": "barbarian",
+        "skills": [
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Light",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "light"
+        }
+      }
+    ],
+    "gold": 7,
+    "applied_variants": [
+      "barbarian"
+    ],
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 86,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 15,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 87,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Pass Without Trace",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "pass_without_trace"
+        }
+      }
+    ],
+    "gold": 10,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 88,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 9,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 89,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 11,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 90,
+    "tier": 1,
+    "name": "Orc Patrol",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 17,
+      "dex": 11,
+      "con": 14,
+      "int": 7,
+      "wis": 8,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 11,
+    "template_id": "orc_patrol"
+  },
+  {
+    "id": 91,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "abilities": {
+      "natural": [
+        "bite"
+      ]
+    },
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 92,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "abilities": {
+      "natural": [
+        "bite"
+      ]
+    },
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 93,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "abilities": {
+      "natural": [
+        "bite"
+      ]
+    },
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 94,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "abilities": {
+      "natural": [
+        "bite"
+      ]
+    },
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 95,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "abilities": {
+      "natural": [
+        "bite"
+      ]
+    },
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 96,
+    "tier": 2,
+    "name": "Wardog",
+    "player": "DM",
+    "race": [
+      "animal"
+    ],
+    "notes": "Stray from temple. Attacks anyone who doesn't smell like garrison.",
+    "ability_scores": {
+      "str": 17,
+      "dex": 17,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "animal",
+        "skills": [
+          "nature",
+          "perception"
+        ]
+      }
+    ],
+    "abilities": {
+      "natural": [
+        "bite"
+      ]
+    },
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "wardog"
+  },
+  {
+    "id": 97,
+    "tier": 2,
+    "name": "Slaver Merchant",
+    "player": "DM",
+    "race": [
+      "human"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 14,
+      "con": 14,
+      "int": 16,
+      "wis": 14,
+      "cha": 16
+    },
+    "classes": [
+      {
+        "level": 6,
+        "class": "rogue",
+        "skills": [
+          "persuasion",
+          "perception",
+          "intimidate",
+          "sense_motive",
+          "deception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 1
+      }
+    ],
+    "gold": 270,
+    "template_id": "slaver_merchant"
+  },
+  {
+    "id": 98,
+    "tier": 1,
+    "name": "Half-Orc Soldier 5",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 11,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 99,
+    "tier": 1,
+    "name": "Half-Orc Soldier 7",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Cure Lesser Wounds",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "cure"
+        }
+      },
+      {
+        "name": "Potion of Ablative Barrier",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 2,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "ablative_barrier"
+        }
+      }
+    ],
+    "gold": 16,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 100,
+    "tier": 2,
+    "name": "Half-Orc Veteran",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 21,
+      "dex": 13,
+      "con": 17,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      },
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "sense_motive"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Arcane Mark",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "arcane_mark"
+        }
+      }
+    ],
+    "gold": 15,
+    "applied_variants": [
+      "veteran"
+    ],
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 101,
+    "tier": 0,
+    "name": "Orc Interpreter",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 12,
+      "dex": 13,
+      "con": 14,
+      "int": 14,
+      "wis": 8,
+      "cha": 14
+    },
+    "classes": [
+      {
+        "level": 2,
+        "class": "fighter",
+        "skills": [
+          "persuasion",
+          "sense_motive",
+          "intimidate",
+          "athletics"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt +1",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 1
+      },
+      {
+        "name": "Potion of Delay Poison",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 2,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "delay_poison"
+        }
+      }
+    ],
+    "gold": 7,
+    "template_id": "orc_interpreter"
+  },
+  {
+    "id": 102,
+    "tier": 1,
+    "name": "Half-Orc Soldier e",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 16,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 103,
+    "tier": 1,
+    "name": "Half-Orc Soldier 1",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Jump",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "jump"
+        }
+      }
+    ],
+    "gold": 18,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 104,
+    "tier": 1,
+    "name": "Half-Orc Soldier b",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Arcane Mark",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "arcane_mark"
+        }
+      },
+      {
+        "name": "Potion of Invigorate",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "invigorate"
+        }
+      }
+    ],
+    "gold": 12,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 105,
+    "tier": 1,
+    "name": "Half-Orc Soldier c",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Spider Climb",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 2,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "spider_climb"
+        }
+      }
+    ],
+    "gold": 17,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 106,
+    "tier": 2,
+    "name": "Half-Orc Veteran",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 21,
+      "dex": 13,
+      "con": 17,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      },
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "sense_motive"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 15,
+    "applied_variants": [
+      "veteran"
+    ],
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 107,
+    "tier": 0,
+    "name": "Slave",
+    "player": "DM",
+    "race": [
+      "human"
+    ],
+    "notes": "Chained in coffle. Exhausted, terrified. Ankle manacles, rags, no shoes. Orin can unlock manacles silently.",
+    "ability_scores": {
+      "str": 10,
+      "dex": 10,
+      "con": 10,
+      "int": 10,
+      "wis": 10,
+      "cha": 10
+    },
+    "classes": [
+      {
+        "level": 0,
+        "class": "commoner",
+        "skills": [
+
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "slave"
+  },
+  {
+    "id": 108,
+    "tier": 1,
+    "name": "Orc Handler",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "notes": "Slave driver. Walks alongside coffle. Bullies, not warriors. Drops whip and runs if soldiers fall. May kill a slave out of spite on the way out.",
+    "ability_scores": {
+      "str": 15,
+      "dex": 12,
+      "con": 13,
+      "int": 8,
+      "wis": 9,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "animal_handling"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "whip",
+        "type": "weapon",
+        "subtype": "whip",
+        "bonus": 0,
+        "properties": {
+          "reach": true
+        }
+      },
+      {
+        "name": "short sword",
+        "type": "weapon",
+        "subtype": "short_sword",
+        "bonus": 0
+      },
+      {
+        "name": "leather armor",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 5,
+    "template_id": "orc_handler"
+  },
+  {
+    "id": 109,
+    "tier": 1,
+    "name": "Orc Handler",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "notes": "Slave driver. Walks alongside coffle. Bullies, not warriors. Drops whip and runs if soldiers fall. May kill a slave out of spite on the way out.",
+    "ability_scores": {
+      "str": 15,
+      "dex": 12,
+      "con": 13,
+      "int": 8,
+      "wis": 9,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 3,
+        "class": "fighter",
+        "skills": [
+          "intimidate",
+          "animal_handling"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "whip",
+        "type": "weapon",
+        "subtype": "whip",
+        "bonus": 0,
+        "properties": {
+          "reach": true
+        }
+      },
+      {
+        "name": "short sword",
+        "type": "weapon",
+        "subtype": "short_sword",
+        "bonus": 0
+      },
+      {
+        "name": "leather armor",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      }
+    ],
+    "gold": 5,
+    "template_id": "orc_handler"
+  },
+  {
+    "id": 110,
+    "tier": 3,
+    "name": "Cleric Slaver",
+    "player": "DM",
+    "race": [
+      "orc"
+    ],
+    "ability_scores": {
+      "str": 19,
+      "dex": 14,
+      "con": 14,
+      "int": 14,
+      "wis": 16,
+      "cha": 14
+    },
+    "classes": [
+      {
+        "level": 8,
+        "class": "cleric",
+        "skills": [
+          "healing",
+          "religion",
+          "perception",
+          "sense_motive",
+          "intimidate"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "breastplate",
+        "type": "armor",
+        "subtype": "medium",
+        "bonus": 1
+      }
+    ],
+    "gold": 25,
+    "template_id": "cleric_slaver_patrol"
+  },
+  {
+    "id": 111,
+    "tier": 0,
+    "name": "Slave",
+    "player": "DM",
+    "race": [
+      "human"
+    ],
+    "notes": "Chained in coffle. Exhausted, terrified. Ankle manacles, rags, no shoes. Orin can unlock manacles silently.",
+    "ability_scores": {
+      "str": 10,
+      "dex": 10,
+      "con": 10,
+      "int": 10,
+      "wis": 10,
+      "cha": 10
+    },
+    "classes": [
+      {
+        "level": 0,
+        "class": "commoner",
+        "skills": [
+
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+
+    ],
+    "template_id": "slave"
+  },
+  {
+    "id": 112,
+    "tier": 1,
+    "name": "Half-Orc Soldier d",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Oil of Light",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 0,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "light"
+        }
+      },
+      {
+        "name": "Oil of Goodberry",
+        "type": "item",
+        "subtype": "oil",
+        "bonus": 1,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "goodberry"
+        }
+      }
+    ],
+    "gold": 15,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 113,
+    "tier": 1,
+    "name": "Half-Orc Soldier a",
+    "player": "DM",
+    "race": [
+      "half_orc"
+    ],
+    "notes": "Caravan escort. Fight in pairs. If 3+ die, survivors consider surrender.",
+    "ability_scores": {
+      "str": 18,
+      "dex": 13,
+      "con": 15,
+      "int": 10,
+      "wis": 10,
+      "cha": 8
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "fighter",
+        "skills": [
+          "athletics",
+          "intimidate",
+          "perception"
+        ]
+      }
+    ],
+    "_source": "Slave Lords Caravan",
+    "group": "Enemies",
+    "items": [
+      {
+        "name": "falcion",
+        "type": "weapon",
+        "subtype": "falcion",
+        "bonus": 0
+      },
+      {
+        "name": "longbow",
+        "type": "weapon",
+        "subtype": "longbow",
+        "bonus": 0
+      },
+      {
+        "name": "chain shirt",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 0
+      },
+      {
+        "name": "Potion of Cure Simple Wounds",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 2,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "cure"
+        }
+      }
+    ],
+    "gold": 14,
+    "template_id": "half_orc_soldier"
+  },
+  {
+    "id": 114,
+    "tier": 3,
+    "group": "PC",
+    "name": "Caelian di Soliastres",
+    "player": "DM",
+    "race": [
+      "aberration"
+    ],
+    "ability_scores": {
+      "str": 14,
+      "dex": 16,
+      "con": 14,
+      "int": 18,
+      "wis": 14,
+      "cha": 16
+    },
+    "classes": [
+      {
+        "level": 4,
+        "class": "wizard",
+        "skills": [
+          "arcana",
+          "deception",
+          "persuasion",
+          "sense_motive",
+          "perception",
+          "stealth",
+          "linguistics"
+        ]
+      }
+    ],
+    "spells": [
+      [
+        "Detect Magic",
+        "Mage Hand",
+        "Message",
+        "Ghost Sound",
+        "Sift",
+        "Silent Portal"
+      ],
+      [
+        "Mage Armor",
+        "Minor Disguise",
+        "Grease",
+        "Obscuring Mist",
+        "Hideous Laughter",
+        "Silent Image"
+      ],
+      [
+        "Invisibility",
+        "Web"
+      ]
+    ],
+    "rituals": [
+      [
+        "Arcane Mark",
+        "Detect Magic",
+        "Light",
+        "Mage Hand",
+        "Mending",
+        "Message"
+      ],
+      [
+        "Disguise Self",
+        "Expeditious Retreat",
+        "Grease",
+        "Mage Armor",
+        "Obscuring Mist"
+      ],
+      [
+        "Darkness",
+        "Invisibility",
+        "Silent Image",
+        "Web"
+      ]
+    ],
+    "items": [
+      {
+        "name": "Traveling Robes",
+        "type": "armor",
+        "subtype": "light",
+        "bonus": 1,
+        "equipped": true,
+        "properties": {
+          "details": [
+            "natural"
+          ]
+        },
+        "description": "Finely tailored dark-grey robes embroidered with silver thread. Lightweight and well-made; comfortable enough to sleep in."
+      },
+      {
+        "name": "Silver-Capped Walking Staff",
+        "type": "weapon",
+        "subtype": "staff",
+        "bonus": 0,
+        "equipped": true,
+        "properties": {
+          "details": [
+            "medium",
+            "bludgeoning"
+          ]
+        },
+        "description": "An ornate walking staff with a silver cap shaped like a crescent. Doubles as an arcane focus."
+      },
+      {
+        "name": "Dagger",
+        "type": "weapon",
+        "subtype": "dagger",
+        "bonus": 0,
+        "equipped": false,
+        "properties": {
+          "details": [
+            "light",
+            "piercing"
+          ]
+        },
+        "description": "Plain steel dagger carried in a concealed sleeve sheath."
+      },
+      {
+        "name": "Ring of Protection +1",
+        "type": "item",
+        "subtype": "ring",
+        "bonus": 1,
+        "equipped": true,
+        "properties": {
+          "enhancement": {
+            "type": "save",
+            "amount": 1
+          }
+        },
+        "description": "A thin silver band set with a chip of obsidian. Grants a +1 enhancement bonus to all saves."
+      },
+      {
+        "name": "Circlet of Intellect +2",
+        "type": "item",
+        "subtype": "head",
+        "bonus": 2,
+        "equipped": true,
+        "properties": {
+          "enhancement": {
+            "type": "attribute",
+            "attribute": "int",
+            "amount": 2
+          }
+        },
+        "description": "A slender platinum circlet with inlaid sapphire runes. Grants a +2 enhancement bonus to Intelligence."
+      },
+      {
+        "name": "Wand of Disguise Self",
+        "type": "item",
+        "subtype": "wand",
+        "bonus": 1,
+        "quantity": 15,
+        "equipped": false,
+        "properties": {
+          "spell": "disguise_self"
+        },
+        "description": "A slim ivory wand with 15 charges of Disguise Self."
+      },
+      {
+        "name": "Potion of Invisibility",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 2,
+        "quantity": 1,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "invisibility"
+        }
+      },
+      {
+        "name": "Potion of Cure Lesser Wounds",
+        "type": "item",
+        "subtype": "vial",
+        "bonus": 1,
+        "quantity": 2,
+        "equipped": false,
+        "properties": {
+          "consumable": true,
+          "spell": "cure"
+        }
+      },
+      {
+        "name": "Spellbook",
+        "type": "item",
+        "subtype": "hands",
+        "bonus": 0,
+        "equipped": false,
+        "properties": {
+        },
+        "description": "A leather-bound travel spellbook, edges scuffed from long use. The handwriting changes style every few pages."
+      },
+      {
+        "name": "Component Pouch",
+        "type": "item",
+        "subtype": "belt",
+        "bonus": 0,
+        "equipped": true,
+        "properties": {
+        },
+        "description": "A belt-slung pouch of spell components. Replenished at any town with an apothecary."
+      },
+      {
+        "name": "Doppelganger Traits",
+        "type": "item",
+        "subtype": "body",
+        "bonus": 0,
+        "equipped": false,
+        "properties": {
+        },
+        "description": "DM-only. Immune to sleep and charm. Reads surface thoughts. Shapeshifts into any humanoid. Surprise on 1-4. Saves as level 10. Currently wearing the face of Caelian di Soliastres, minor Soliastres cousin -- a cover that holds up to a casual inquiry but not a determined investigation."
+      }
+    ],
+    "notes": "Currently traveling with the party as a helpful arcane ally. Presents as a soft-spoken Soliastres minor cousin who was disinherited and turned to the adventuring life for coin and connections. In truth a doppelganger with his own agenda -- still being determined by the DM, but likely involves identifying which party member is most isolated and useful to replace later. Plays the quiet scholar. Offers spells, information, and the occasional clever plan; never volunteers for the front rank."
+  }
 ]

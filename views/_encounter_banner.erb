@@ -1,0 +1,46 @@
+<%
+  msg = @encounter_message
+%>
+<% if msg.is_a?(Hash) %>
+  <div class="encounter-banner">
+    <div class="encounter-banner-body">
+      <div class="encounter-banner-title"><%= h(msg['encounter_name']) %></div>
+      <% unless msg['outcome_description'].to_s.empty? %>
+        <div class="encounter-banner-outcome"><%= h(msg['outcome_description']) %></div>
+      <% end %>
+      <% lines = Array(msg['lines']) %>
+      <% if lines.any? %>
+        <ul class="encounter-banner-list">
+          <% lines.each do |line| %>
+            <% gold = line['gold'].to_i %>
+            <% items = Array(line['items']) %>
+            <li>
+              <span class="encounter-banner-creature"><%= h(line['count']) %>× <%= h(line['name']) %></span>
+              <% if gold > 0 || items.any? %>
+                <ul class="encounter-banner-loot-list">
+                  <% if gold > 0 %>
+                    <li><strong><%= gold %></strong> gp</li>
+                  <% end %>
+                  <% items.each do |item| %>
+                    <li><%= h(item) %></li>
+                  <% end %>
+                </ul>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </div>
+    <form method="post" action="/combat/encounter_message/clear" style="display:inline;">
+      <button type="submit" class="encounter-banner-dismiss" title="Dismiss">×</button>
+    </form>
+  </div>
+<% elsif msg.is_a?(String) && !msg.empty? %>
+  <%# Fallback for the pre-structured string format. %>
+  <div class="encounter-banner">
+    <span class="encounter-banner-text"><%= h(msg) %></span>
+    <form method="post" action="/combat/encounter_message/clear" style="display:inline;">
+      <button type="submit" class="encounter-banner-dismiss" title="Dismiss">×</button>
+    </form>
+  </div>
+<% end %>

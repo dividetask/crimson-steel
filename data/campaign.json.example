@@ -3,5 +3,12 @@
   "start_year": 0,
   "start_day": 0,
   "days_elapsed": 0,
-  "rounds_elapsed": 0
+  "rounds_elapsed": 0,
+  "datetime": {
+    "year": 4710,
+    "month": 1,
+    "day": 1,
+    "hour": 8,
+    "minute": 0
+  }
 }

@@ -100,6 +100,9 @@
     <div class="character-list">
       <% filtered_notes.select { |n| n['type'] == 'character' && (@is_dm || n['public']) }.each do |char| %>
         <div class="character-card">
+          <% if char['image_path'] && !char['image_path'].to_s.empty? %>
+            <img src="<%= h(char['image_path']) %>" alt="<%= h(char['title']) %>" class="character-card-img zoomable">
+          <% end %>
           <div class="character-name tier-<%= char['tier'] && char['tier'] >= 0 ? char['tier'] : 'unknown' %>">
             <%= h(char['title']) %>
             <% if char['tier'] && char['tier'] >= 0 %>
@@ -114,7 +117,39 @@
               <%= char['public'] ? '(Public)' : '(DM Only)' %>
               <%= "Ch.#{char['chapter']}" if char['chapter'] %>
               <%= '(Active)' if char['active'] %>
+              · <%= char['in_scene'] ? 'In scene' : 'Not in scene' %>
+              · <% svt = Array(char['scene_visible_to']) %>
+              <%= svt.any? ? "Players see in scene (#{svt.length})" : 'Hidden from players in scene' %>
             </small>
+            <div class="character-card-actions">
+              <form method="post" action="/notes/character/toggle_in_scene" style="display:inline;">
+                <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                <button type="submit"><%= char['in_scene'] ? 'Remove from scene' : 'Add to scene' %></button>
+              </form>
+              <form method="post" action="/notes/character/toggle_scene_visible" style="display:inline;">
+                <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                <button type="submit"><%= svt.any? ? 'Hide from all players in scene' : 'Show to all players in scene' %></button>
+              </form>
+              <form method="post" action="/notes/character/toggle_public" style="display:inline;">
+                <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                <button type="submit"><%= char['public'] ? 'Make DM-only on notes' : 'Make public on notes' %></button>
+              </form>
+              <form method="post" action="/notes/character/image" enctype="multipart/form-data" class="character-card-img-form">
+                <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                <input type="file" name="image" accept="image/*" required>
+                <button type="submit"><%= char['image_path'] ? 'Replace image' : 'Attach image' %></button>
+              </form>
+              <% if char['image_path'] %>
+                <form method="post" action="/notes/character/image/clear" style="display:inline;">
+                  <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                  <button type="submit">Remove image</button>
+                </form>
+              <% end %>
+              <form method="post" action="/notes/character/delete" style="display:inline;">
+                <input type="hidden" name="id" value="<%= h(char['id']) %>">
+                <button type="submit" class="danger" onclick="return confirm('Delete this character?');">Delete</button>
+              </form>
+            </div>
           <% end %>
         </div>
       <% end %>

@@ -5,6 +5,23 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+<script>
+// Character detail toggle persistence. Runs early on /character/<n> so
+// we redirect before paint. If the URL already has ?detail, save it.
+// Otherwise, if localStorage says "full", redirect once to add it.
+(function() {
+  if (!/^\/character\/\d+\/?$/.test(location.pathname)) return;
+  try {
+    var url = new URL(location.href);
+    if (url.searchParams.has('detail')) {
+      localStorage.setItem('characterDetail', url.searchParams.get('detail'));
+    } else if (localStorage.getItem('characterDetail') === 'full') {
+      url.searchParams.set('detail', 'full');
+      location.replace(url.toString());
+    }
+  } catch (e) { /* ignore */ }
+})();
+</script>
   <div class="menu">
     <a href="/character/0">Character Sheets</a>
     <a href="/store">Store</a>
@@ -15,6 +32,8 @@
     <% if @is_local %>
       <a href="/enemies/0">Enemies</a>
       <a href="/combat">Combat</a>
+      <a href="/dm_social">Social</a>
+      <a href="/maps">Maps</a>
     <% end %>
     <% if @is_local || @view_as_player %>
       <% if @view_as_player %>
@@ -47,36 +66,6 @@ window.addEventListener('popstate', function() {
   history.pushState(null, '', location.href);
 });
 
-(function() {
-  // Persist the enemies sidebar's per-group collapsed state across page
-  // loads. Stores only the labels of groups the DM has explicitly
-  // collapsed; absent labels stay expanded (matches existing default).
-  var KEY = 'enemies.collapsed';
-  function load() {
-    try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; }
-    catch (e) { return {}; }
-  }
-  function save(state) {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
-  }
-  var groups = document.querySelectorAll('.enemy-group[data-group-label]');
-  if (!groups.length) return;
-  var state = load();
-  groups.forEach(function(g) {
-    var label = g.getAttribute('data-group-label');
-    if (state[label]) g.classList.add('collapsed');
-    var header = g.querySelector('.enemy-group-header');
-    if (!header) return;
-    header.addEventListener('click', function() {
-      g.classList.toggle('collapsed');
-      var cur = load();
-      if (g.classList.contains('collapsed')) cur[label] = true;
-      else delete cur[label];
-      save(cur);
-    });
-  });
-})();
-
 function toggleNote(btn) {
   var text = btn.previousElementSibling;
   if (text.classList.contains('collapsed')) {
@@ -84,6 +73,28 @@ function toggleNote(btn) {
     btn.textContent = 'Show less';
   } else {
     text.classList.add('collapsed');
+    btn.textContent = 'Show more';
+  }
+}
+
+// Inline character-based truncation toggle for /scene cells. The
+// helper renders the first 200 chars + an ellipsis + a hidden span
+// with the rest. Click flips both the rest span's visibility and
+// the button's label.
+function toggleSceneNote(btn) {
+  var p = btn.parentElement;
+  if (!p) return;
+  var rest = p.querySelector('.note-rest');
+  var ellipsis = p.querySelector('.note-ellipsis');
+  if (!rest) return;
+  var hidden = rest.hasAttribute('hidden');
+  if (hidden) {
+    rest.removeAttribute('hidden');
+    if (ellipsis) ellipsis.style.display = 'none';
+    btn.textContent = 'Show less';
+  } else {
+    rest.setAttribute('hidden', '');
+    if (ellipsis) ellipsis.style.display = '';
     btn.textContent = 'Show more';
   }
 }

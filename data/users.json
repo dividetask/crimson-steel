@@ -1,0 +1,97 @@
+[
+  {
+    "device_id": "demo-phone-alice",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:21-07:00"
+  },
+  {
+    "device_id": "demo-tablet-bob",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:21-07:00"
+  },
+  {
+    "device_id": "bc633ead-12ce-4e1c-bc61-c1b091951437",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:24-07:00"
+  },
+  {
+    "device_id": "4490c62a-ce27-46c8-a70f-594bc924ad37",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:24-07:00"
+  },
+  {
+    "device_id": "e15ed0c6-6503-4aca-96e9-719540abdb10",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:25-07:00"
+  },
+  {
+    "device_id": "e4173cc9-7cf4-48dc-a5d0-64f2a2ed7674",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:25-07:00"
+  },
+  {
+    "device_id": "69333e09-11ab-4381-8952-3435f20eddf1",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:25-07:00"
+  },
+  {
+    "device_id": "389e1a6d-1a6b-468e-a163-7f8ee0d39777",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:25-07:00"
+  },
+  {
+    "device_id": "0276b278-1158-4de1-acc2-f7b313507a79",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:43-07:00"
+  },
+  {
+    "device_id": "e90fe2b0-20de-4da8-861e-fa7059c04387",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:43-07:00"
+  },
+  {
+    "device_id": "3acb2666-10f8-4067-a2e0-36e139dcd3ea",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:43-07:00"
+  },
+  {
+    "device_id": "c800a632-464d-47ad-bcc4-2825bf4b4c79",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:43-07:00"
+  },
+  {
+    "device_id": "02566897-0bd1-4316-aa9a-fa5c67f15219",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:44-07:00"
+  },
+  {
+    "device_id": "42b2af9d-83c5-4231-a60f-ce7c5506f06d",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:30:44-07:00"
+  },
+  {
+    "device_id": "fdc73e56-19ac-4a27-a242-6149dff537e0",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:31:21-07:00"
+  },
+  {
+    "device_id": "784bd9fe-980f-45b4-975f-5ba64a18307b",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:31:22-07:00"
+  },
+  {
+    "device_id": "96946545-60f4-475d-b870-187c863a8e33",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:31:22-07:00"
+  },
+  {
+    "device_id": "4863cd11-ddfb-41e4-86cd-e620b9863273",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:36:37-07:00"
+  },
+  {
+    "device_id": "f459d949-8f7f-4abc-84ab-002a57584ed1",
+    "character_id": null,
+    "last_seen": "2026-04-29T16:36:38-07:00"
+  }
+]

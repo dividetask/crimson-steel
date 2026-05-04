@@ -107,6 +107,9 @@ def load_character_view(character_list, index, route_prefix)
   @current_index = index
   @route_prefix = route_prefix
 
+  combat_data = Tools.load_json('combat.json')
+  @encounter_message = combat_data.is_a?(Hash) ? combat_data['encounter_message'] : nil
+
   erb :character_sheet
 end
 
@@ -114,6 +117,58 @@ get '/combat' do
   redirect '/character/0' unless local_request?
   @combat = Combat.new()
   erb :combat_tracker
+end
+
+# DM-only social skill check screen. Lets the DM roll opposed and
+# unopposed checks (perception / sense motive / deception / persuasion /
+# wisdom / intelligence) for the whole party against one DM-controlled
+# NPC at once, without putting dice in the players' hands. Selections
+# (lead PC, DM-NPC, row bonuses) persist client-side via localStorage;
+# rolls are ephemeral.
+get '/dm_social' do
+  redirect '/character/0' unless local_request?
+  characters = Tools.load_json('characters.json')
+  rules = Tools.load_json('rules.json')
+  dice = rules['dice'] || {}
+
+  pcs   = characters.select { |c| (c['group'] || 'PC') == 'PC' }
+  npcs  = characters.reject { |c| (c['group'] || 'PC') == 'PC' }
+
+  @pcs = pcs.map  { |c| dm_social_stats(c) }
+  @npcs_grouped = npcs.group_by { |c| c['group'] || 'NPC' }
+                      .map { |grp, list| [grp, list.map { |c| dm_social_stats(c) }] }
+  @base_tn = dice['base_target_number'] || 7
+  @tn_min  = dice['tn_minimum'] || 4
+  @tn_max  = dice['tn_maximum'] || 9
+
+  erb :dm_social
+end
+
+# Pre-compute dice/bonus for every skill the DM social screen needs.
+# Persuasion's "opposing skill" (persuasion or sense_motive, whichever
+# the character is more apt at) is resolved server-side using
+# skill_total = ranks + half_attr so the client can just look it up.
+def dm_social_stats(character_data)
+  cs = CharacterSheet.new(character_data)
+  pers_apt = cs.skill_total(:persuasion)
+  sm_apt   = cs.skill_total(:sense_motive)
+  if sm_apt > pers_apt
+    pers_opp = { 'skill' => 'sense_motive', 'dice' => cs.skill_dice(:sense_motive), 'bonus' => cs.skill_bonus(:sense_motive) }
+  else
+    pers_opp = { 'skill' => 'persuasion',   'dice' => cs.skill_dice(:persuasion),   'bonus' => cs.skill_bonus(:persuasion)   }
+  end
+  {
+    'id'   => cs.id,
+    'name' => cs.name,
+    'group' => character_data['group'] || 'PC',
+    'perception'    => { 'dice' => cs.skill_dice(:perception),   'bonus' => cs.skill_bonus(:perception)   },
+    'sense_motive'  => { 'dice' => cs.skill_dice(:sense_motive), 'bonus' => cs.skill_bonus(:sense_motive) },
+    'deception'     => { 'dice' => cs.skill_dice(:deception),    'bonus' => cs.skill_bonus(:deception)    },
+    'persuasion'    => { 'dice' => cs.skill_dice(:persuasion),   'bonus' => cs.skill_bonus(:persuasion)   },
+    'persuasion_opp' => pers_opp,
+    'wisdom'        => { 'dice' => cs.attr_dice(:wis), 'bonus' => cs.attr_bonus(:wis) },
+    'intelligence'  => { 'dice' => cs.attr_dice(:int), 'bonus' => cs.attr_bonus(:int) }
+  }
 end
 
 # Scene: shared player/DM view. During combat, shows a simplified initiative
@@ -127,9 +182,113 @@ get '/scene' do
   redirect "/scene/#{@is_local ? 0 : 1}"
 end
 
+# DM-only map workshop. The /scene render now shows only the active
+# map (read-only chrome for both DM and players); editing, palette,
+# image picker, dimensions, share toggles, and the inactive-map list
+# all live here.
+get '/maps' do
+  scene_require_dm!
+  notes = scene_load_notes
+  @scene_maps = notes.select { |n| n['draft'] && n['type'] == 'scene_map' }
+  @active_map = @scene_maps.find { |m| m['active'] } || @scene_maps.first
+  @inactive_maps = @scene_maps.reject { |m| m == @active_map }
+  @map_image_library = scene_map_image_library
+  characters = Tools.load_json('characters.json')
+  @pc_characters = characters.select { |c| (c['group'] || 'PC') == 'PC' }
+  erb :maps
+end
+
 SCENE_IMAGE_DIR = File.join(__dir__, 'public', 'images', 'scene')
 SCENE_IMAGE_EXTS = %w[.png .jpg .jpeg .gif .webp].freeze
 SCENE_IMAGE_MAX_BYTES = 10 * 1024 * 1024
+
+# Scene maps: grid-based, painted in the DM staging block, shared one-at-
+# a-time with players. Cells are stored sparsely under entry['cells'] as
+# "row,col" => { color, icon, label }; player overlay marks live under
+# entry['player_cells'] and are wiped on every DM save.
+SCENE_MAP_MAX_DIM = 40
+SCENE_MAP_PLAYER_ICONS = %w[🔥 ⚔️ 🏹 🕸 ⬆].freeze
+
+# Arrow types players can drop on the active map for combat/movement
+# planning. Adapted from main's NOTES_MAP_ARROW_STYLES — same colors,
+# same dash patterns, same labels.
+SCENE_MAP_ARROW_STYLES = {
+  'attack'         => { color: '#c62828', dash: nil,    width: 2.5 },
+  'move-hurry'     => { color: '#ef6c00', dash: '6 4',  width: 2 },
+  'move-sneak'     => { color: '#6a1b9a', dash: '2 3',  width: 1.5 },
+  'move-carefully' => { color: '#2e7d32', dash: nil,    width: 2 }
+}.freeze
+SCENE_MAP_ARROW_TYPES = SCENE_MAP_ARROW_STYLES.keys.freeze
+
+def scene_map_clamp_dim(v, default)
+  n = v.to_i
+  n = default if n <= 0
+  [[n, 1].max, SCENE_MAP_MAX_DIM].min
+end
+
+# Build the DM's image-token palette. If data/map_images.yaml exists,
+# it defines the full list (auto-discovery is skipped) — drop entries
+# in or out of the YAML to control exactly what's in the palette.
+# When the YAML is absent, fall back to walking public/images/
+# recursively for any supported file. Each row is { 'src' =>
+# '/images/X', 'label' => 'X' }.
+def scene_map_image_library
+  rows = []
+  seen = {}
+
+  yaml_path = File.join(__dir__, 'data', 'map_images.yaml')
+  if File.exist?(yaml_path)
+    require 'yaml'
+    raw = (YAML.safe_load(File.read(yaml_path)) rescue nil) || []
+    raw.each do |entry|
+      next unless entry.is_a?(Hash)
+      src = entry['src'].to_s.strip
+      next if src.empty? || !src.start_with?('/images/')
+      label = (entry['label'] || File.basename(src, '.*')).to_s
+      next if seen[src]
+      rows << { 'src' => src, 'label' => label }
+      seen[src] = true
+    end
+    # public/images/icons/ is always appended to the palette (even when
+    # the YAML whitelist is in effect) — it's the bulk-add bucket for
+    # tokens you want available without curating each one in YAML.
+    icons_dir = File.join(__dir__, 'public', 'images', 'icons')
+    if File.directory?(icons_dir)
+      Dir.glob(File.join(icons_dir, '**', '*')).sort.each do |full|
+        next unless File.file?(full)
+        next unless SCENE_IMAGE_EXTS.include?(File.extname(full).downcase)
+        rel = full.sub(/\A#{Regexp.escape(File.join(__dir__, 'public', 'images'))}\/?/, '')
+        src = "/images/#{rel}"
+        next if seen[src]
+        base = File.basename(rel, '.*').sub(/\A\d+-[0-9a-f]{4,}-/, '')
+        rows << { 'src' => src, 'label' => base }
+        seen[src] = true
+      end
+    end
+    return rows
+  end
+
+  dir = File.join(__dir__, 'public', 'images')
+  if File.directory?(dir)
+    # No YAML — auto-discover every supported file under
+    # public/images/ recursively. Files in scene/ (uploads) and
+    # icons/ both surface here.
+    Dir.glob(File.join(dir, '**', '*')).sort.each do |full|
+      next unless File.file?(full)
+      next unless SCENE_IMAGE_EXTS.include?(File.extname(full).downcase)
+      rel = full.sub(/\A#{Regexp.escape(dir)}\/?/, '')
+      src = "/images/#{rel}"
+      next if seen[src]
+      # Scene-image uploads land as "<timestamp>-<hex>-<name>.ext" so
+      # the visible label drops that prefix.
+      base = File.basename(rel, '.*').sub(/\A\d+-[0-9a-f]{4,}-/, '')
+      rows << { 'src' => src, 'label' => base }
+      seen[src] = true
+    end
+  end
+
+  rows
+end
 
 def scene_sanitize_filename(name)
   base = File.basename(name.to_s)
@@ -163,6 +322,31 @@ def scene_parse_visible_to(raw)
   Array(raw).map { |v| v.to_i }.reject { |v| v <= 0 }.uniq
 end
 
+# Promoted Characters of Interest used to be written without an id, so
+# the toggle/delete/image routes had nothing to address. Backfill once
+# on the next read; the writes below stamp ids on new entries. Also
+# convert the legacy boolean scene_visible flag into a per-PC
+# scene_visible_to array so /scene cells can toggle visibility per PC.
+def notes_ensure_character_ids!(notes)
+  changed = false
+  pc_ids = nil
+  notes.each do |n|
+    next unless n['type'] == 'character'
+    if n['id'].nil? || n['id'].to_s.empty?
+      n['id'] = SecureRandom.uuid
+      changed = true
+    end
+    if !n.key?('scene_visible_to') && n.key?('scene_visible')
+      pc_ids ||= Tools.load_json('characters.json').select { |c| (c['group'] || 'PC') == 'PC' }.map { |c| c['id'] }
+      n['scene_visible_to'] = n['scene_visible'] ? pc_ids.dup : []
+      n.delete('scene_visible')
+      changed = true
+    end
+  end
+  Tools.save_json('notes.json', notes) if changed
+  notes
+end
+
 get '/scene/:viewer_id' do
   viewer_id = params[:viewer_id].to_i
   redirect '/scene/1' if viewer_id == 0 && !@is_local
@@ -182,25 +366,59 @@ get '/scene/:viewer_id' do
   if current && current.character.data['group'] == 'PC'
     @character = current.character
     @route_prefix = nil # suppress the navigation widget in character_sheet
+    @character_detail = :minimal # /scene always uses the compact card
   else
     @character = nil
   end
 
-  @notes = scene_load_notes
+  @notes = notes_ensure_character_ids!(scene_load_notes)
   @max_chapter = scene_max_chapter(@notes)
 
+  # Scene Notes are the unified successor of draft_note + scene_panel:
+  # both legacy types are read here so existing data keeps showing up.
+  # New writes use the scene_panel shape (visible_to per-PC).
   @draft_names = @notes.select { |n| n['draft'] && n['type'] == 'draft_name' }
-  @draft_notes = @notes.select { |n| n['draft'] && n['type'] == 'draft_note' }
+  @scene_notes = @notes.select { |n| n['draft'] && (n['type'] == 'scene_panel' || n['type'] == 'draft_note') }
+  @scene_notes = @scene_notes.sort_by { |n| -n['created_at'].to_f }
   @draft_images = @notes.select { |n| n['draft'] && n['type'] == 'draft_image' }
-  @scene_panels = @notes.select { |n| n['draft'] && n['type'] == 'scene_panel' }
+  @scene_maps   = @notes.select { |n| n['draft'] && n['type'] == 'scene_map' }
+  # If nothing is flagged active yet (legacy data, or all activations
+  # have been cleared), promote the first map so the editor has a
+  # target to render against.
+  @active_map = @scene_maps.find { |m| m['active'] } || @scene_maps.first
+  @inactive_maps = @scene_maps.reject { |m| m == @active_map }
+  @map_image_library = @is_dm ? scene_map_image_library : []
+
+  # Characters of Interest are gated by in_scene (DM-only choice for
+  # which CoI are staged in this scene) and scene_visible_to (which PCs
+  # see them on /scene). public is a separate flag for the Notes page.
+  # All default empty/false on existing data so a CoI doesn't surface
+  # until the DM toggles it on.
+  in_scene_chars = @notes.select { |n| !n['draft'] && n['type'] == 'character' && n['in_scene'] }
+  @visible_characters_of_interest =
+    if @is_dm
+      in_scene_chars
+    else
+      in_scene_chars.select { |c| Array(c['scene_visible_to']).include?(@viewer_id) }
+    end
 
   @visible_images = @draft_images.select { |i| i['shared'] }
+  @visible_maps =
+    if @is_dm
+      @scene_maps.select { |m| m['shared'] }
+    else
+      @scene_maps.select { |m| m['shared'] && Array(m['visible_to']).include?(@viewer_id) }
+    end
   @visible_panels =
     if @is_dm
-      @scene_panels
+      @scene_notes
     else
-      @scene_panels.select { |p| Array(p['visible_to']).include?(@viewer_id) }
+      @scene_notes.select { |p| Array(p['visible_to']).include?(@viewer_id) }
     end
+
+  campaign = Tools.load_json('campaign.json')
+  @datetime = GameDate.from_h(campaign.is_a?(Hash) ? campaign['datetime'] : nil)
+  @sun_moon = GameDate.sun_moon_view(@datetime)
 
   characters = Tools.load_json('characters.json')
   @pc_characters = characters.select { |c| (c['group'] || 'PC') == 'PC' }
@@ -232,6 +450,26 @@ get '/scene/:viewer_id' do
   @loot['active_player_id'] = @active_player['id'] if @active_player
 
   erb :scene
+end
+
+# DM-only: bump the in-game calendar. unit is 'minute', 'ten_minutes',
+# 'hour', or 'day'. The day button snaps to 8:00 AM the next calendar
+# day regardless of current time.
+post '/scene/datetime/advance' do
+  scene_require_dm!
+  campaign = Tools.load_json('campaign.json')
+  campaign = {} unless campaign.is_a?(Hash)
+  current = GameDate.from_h(campaign['datetime'])
+  next_dt = case params[:unit].to_s
+            when 'minute'      then GameDate.add_minutes(current, 1)
+            when 'ten_minutes' then GameDate.add_minutes(current, 10)
+            when 'hour'        then GameDate.add_minutes(current, 60)
+            when 'day'         then GameDate.next_day_morning(current)
+            else                    current
+            end
+  campaign['datetime'] = next_dt
+  Tools.save_json('campaign.json', campaign)
+  redirect '/scene/0'
 end
 
 # --- Initiative visibility toggle ---
@@ -446,6 +684,7 @@ post '/scene/draft_name/promote' do
   tier = params[:tier] ? params[:tier].to_i : -1
   public_flag = params[:public] == 'true'
   promoted = {
+    'id' => entry['id'] || SecureRandom.uuid,
     'owner_id' => 0,
     'type' => 'character',
     'title' => entry['title'],
@@ -453,72 +692,493 @@ post '/scene/draft_name/promote' do
     'tier' => tier,
     'chapter' => scene_max_chapter(notes),
     'public' => public_flag,
-    'active' => true
+    'active' => true,
+    'in_scene' => false,
+    'scene_visible_to' => []
   }
   notes[idx] = promoted
   scene_save_notes(notes)
   redirect '/scene/0'
 end
 
-# --- Draft notes (prep scratchpad; never shown on /scene) ---
-post '/scene/draft_note' do
+# --- Characters of Interest (managed from /notes). Edits land here so
+# the DM can stage which CoI appear in /scene without leaving the Notes
+# page. in_scene gates whether the CoI shows on the scene at all;
+# scene_visible gates whether players see it on the scene; public gates
+# whether the CoI shows on /notes to players. All three are independent.
+def notes_find_character!(id)
+  notes = Tools.load_json('notes.json')
+  entry, idx = nil, nil
+  notes.each_with_index do |n, i|
+    if n['id'] == id
+      entry, idx = n, i
+      break
+    end
+  end
+  halt 404 unless entry && entry['type'] == 'character'
+  [notes, entry, idx]
+end
+
+post '/notes/character/toggle_in_scene' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  entry['in_scene'] = !entry['in_scene']
+  Tools.save_json('notes.json', notes)
+  redirect '/notes/0'
+end
+
+post '/notes/character/toggle_scene_visible' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  current = Array(entry['scene_visible_to'])
+  if current.any?
+    entry['scene_visible_to'] = []
+  else
+    pc_ids = Tools.load_json('characters.json').select { |c| (c['group'] || 'PC') == 'PC' }.map { |c| c['id'] }
+    entry['scene_visible_to'] = pc_ids
+  end
+  Tools.save_json('notes.json', notes)
+  redirect '/notes/0'
+end
+
+# Per-cell toggles invoked from the /scene grid. Flip a single PC's
+# inclusion on the relevant visibility array.
+post '/scene/panel/toggle_visible_to' do
   scene_require_dm!
   notes = scene_load_notes
-  entry = {
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && SCENE_NOTE_TYPES.include?(entry['type'])
+  pc_id = params[:pc_id].to_i
+  current = Array(entry['visible_to'])
+  entry['visible_to'] = current.include?(pc_id) ? current - [pc_id] : current + [pc_id]
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/character/toggle_scene_visible_to' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  pc_id = params[:pc_id].to_i
+  current = Array(entry['scene_visible_to'])
+  entry['scene_visible_to'] = current.include?(pc_id) ? current - [pc_id] : current + [pc_id]
+  Tools.save_json('notes.json', notes)
+  redirect '/scene/0'
+end
+
+post '/scene/character/remove_from_scene' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  entry['in_scene'] = false
+  Tools.save_json('notes.json', notes)
+  redirect '/scene/0'
+end
+
+post '/scene/character/scene_visible_all' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  pc_ids = Tools.load_json('characters.json').select { |c| (c['group'] || 'PC') == 'PC' }.map { |c| c['id'] }
+  entry['scene_visible_to'] = pc_ids
+  Tools.save_json('notes.json', notes)
+  redirect '/scene/0'
+end
+
+post '/scene/character/scene_visible_none' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  entry['scene_visible_to'] = []
+  Tools.save_json('notes.json', notes)
+  redirect '/scene/0'
+end
+
+post '/scene/panel/visible_to_all' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && SCENE_NOTE_TYPES.include?(entry['type'])
+  pc_ids = Tools.load_json('characters.json').select { |c| (c['group'] || 'PC') == 'PC' }.map { |c| c['id'] }
+  entry['visible_to'] = pc_ids
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+post '/scene/panel/visible_to_none' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && SCENE_NOTE_TYPES.include?(entry['type'])
+  entry['visible_to'] = []
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+# Same as /notes/character/image but redirects back to /scene so the DM
+# can attach a portrait without leaving the scene view.
+post '/scene/character/image' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  upload = params[:image]
+  halt 400, 'image required' unless upload.is_a?(Hash) && upload[:tempfile]
+  orig = upload[:filename] || 'upload'
+  ext = File.extname(orig).downcase
+  halt 400, 'unsupported file type' unless SCENE_IMAGE_EXTS.include?(ext)
+  halt 400, 'file too large' if upload[:tempfile].size > SCENE_IMAGE_MAX_BYTES
+
+  FileUtils.mkdir_p(SCENE_IMAGE_DIR)
+  safe_base = scene_sanitize_filename(File.basename(orig, ext))
+  filename = "#{Time.now.to_i}-#{SecureRandom.hex(4)}-#{safe_base}#{ext}"
+  dest = File.join(SCENE_IMAGE_DIR, filename)
+  FileUtils.cp(upload[:tempfile].path, dest)
+
+  prev = entry['image_path'].to_s
+  if prev.start_with?('/images/scene/')
+    disk = File.join(__dir__, 'public', prev)
+    File.unlink(disk) if File.file?(disk)
+  end
+  entry['image_path'] = "/images/scene/#{filename}"
+  Tools.save_json('notes.json', notes)
+  redirect '/scene/0'
+end
+
+post '/scene/character/image/clear' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  prev = entry['image_path'].to_s
+  if prev.start_with?('/images/scene/')
+    disk = File.join(__dir__, 'public', prev)
+    File.unlink(disk) if File.file?(disk)
+  end
+  entry.delete('image_path')
+  Tools.save_json('notes.json', notes)
+  redirect '/scene/0'
+end
+
+# DM-only reorder of the /scene grid. Accepts ids[]= in the order the
+# user dragged them and stamps an integer scene_order on each entry.
+# Entries not in the payload keep whatever scene_order they had.
+post '/scene/reorder' do
+  scene_require_dm!
+  ids = Array(params['ids'])
+  notes = scene_load_notes
+  ids.each_with_index do |id, idx|
+    entry, _ = scene_find_note(notes, id)
+    next unless entry
+    entry['scene_order'] = idx
+  end
+  scene_save_notes(notes)
+  status 204
+end
+
+# --- Scene maps ---
+# A newly-created map auto-activates so the editor for it surfaces
+# immediately; any previously-active map drops back to the inactive
+# list.
+post '/scene/map' do
+  scene_require_dm!
+  notes = scene_load_notes
+  notes.each { |n| n['active'] = false if n['type'] == 'scene_map' }
+  notes << {
     'id' => SecureRandom.uuid,
     'owner_id' => 0,
     'draft' => true,
-    'type' => 'draft_note',
+    'type' => 'scene_map',
     'title' => params[:title].to_s,
-    'note' => params[:note].to_s,
-    'public' => params[:public] == 'true'
+    'rows' => scene_map_clamp_dim(params[:rows], 8),
+    'cols' => scene_map_clamp_dim(params[:cols], 8),
+    'cells' => {},
+    'shared' => false,
+    'active' => true,
+    'visible_to' => scene_parse_visible_to(params[:visible_to])
   }
-  notes << entry
   scene_save_notes(notes)
-  redirect '/scene/0'
+  redirect back
 end
 
-post '/scene/draft_note/update' do
+post '/scene/map/update' do
   scene_require_dm!
   notes = scene_load_notes
-  entry, idx = scene_find_note(notes, params[:id])
-  halt 404 unless entry && entry['type'] == 'draft_note'
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'scene_map'
+
   entry['title'] = params[:title].to_s
-  entry['note'] = params[:note].to_s
-  entry['public'] = params[:public] == 'true'
+  entry['visible_to'] = scene_parse_visible_to(params[:visible_to])
+
+  new_rows = scene_map_clamp_dim(params[:rows], entry['rows'].to_i)
+  new_cols = scene_map_clamp_dim(params[:cols], entry['cols'].to_i)
+  entry['rows'] = new_rows
+  entry['cols'] = new_cols
+
+  # The editor posts the cell map as a JSON blob so the sparse structure
+  # round-trips without inventing per-cell form field names.
+  raw = params[:cells_json].to_s
+  unless raw.empty?
+    begin
+      parsed = JSON.parse(raw)
+      if parsed.is_a?(Hash)
+        cleaned = {}
+        parsed.each do |key, val|
+          next unless key.is_a?(String) && key =~ /\A(\d+),(\d+)\z/
+          r = Regexp.last_match(1).to_i
+          c = Regexp.last_match(2).to_i
+          next if r >= new_rows || c >= new_cols
+          next unless val.is_a?(Hash)
+          cell = {}
+          cell['color'] = val['color'].to_s[0, 20] if val['color'].is_a?(String) && !val['color'].to_s.empty?
+          cell['label'] = val['label'].to_s[0, 40] if val['label'].is_a?(String) && !val['label'].to_s.empty?
+          cell['icon']  = val['icon'].to_s[0, 20]  if val['icon'].is_a?(String)  && !val['icon'].to_s.empty?
+          if val['image'].is_a?(String) && val['image'].start_with?('/images/')
+            cell['image'] = val['image'][0, 200]
+          end
+          cleaned[key] = cell unless cell.empty?
+        end
+        entry['cells'] = cleaned
+      end
+    rescue JSON::ParserError
+      # Leave cells as-is on a bad payload; the UI will re-send on next save.
+    end
+  end
+
+  # A DM edit supersedes any player "where I want to move" marks; wipe the
+  # overlay so stale intents don't linger after the situation changes.
+  # Player arrows persist — they're a planning aid, not ephemeral intent
+  # marks; the DM clears them explicitly via /scene/map/arrows/clear.
+  entry['player_cells'] = {}
+
   scene_save_notes(notes)
-  redirect '/scene/0'
+  redirect back
 end
 
-post '/scene/draft_note/delete' do
+# Visibility toggle on the active map only. shared and active are
+# independent flags: shared is "players can see it", active is "DM is
+# editing it". Only one map at a time is shared (toggling Share ON
+# clears it on every other map) so players never see two competing
+# maps.
+post '/scene/map/share' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'scene_map'
+  if entry['shared']
+    entry['shared'] = false
+  else
+    notes.each { |n| n['shared'] = false if n['type'] == 'scene_map' }
+    entry['shared'] = true
+  end
+  scene_save_notes(notes)
+  redirect back
+end
+
+# Mark a map as the DM's active editing target. Only one map is
+# active at a time so /maps shows a single editor, and only the
+# active map is rendered on /scene.
+post '/scene/map/activate' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'scene_map'
+  notes.each { |n| n['active'] = false if n['type'] == 'scene_map' }
+  entry['active'] = true
+  scene_save_notes(notes)
+  redirect back
+end
+
+post '/scene/map/delete' do
   scene_require_dm!
   notes = scene_load_notes
   _, idx = scene_find_note(notes, params[:id])
   halt 404 unless idx
   notes.delete_at(idx)
   scene_save_notes(notes)
-  redirect '/scene/0'
+  redirect back
 end
 
-post '/scene/draft_note/promote' do
+# Players drop a restricted set of icons onto a shared map to signal
+# intent (e.g. "I want to move here"). All player marks on a map are
+# wiped whenever the DM next saves an edit via /scene/map/update, so they
+# act as an ephemeral overlay rather than persistent content.
+post '/scene/map/player_mark' do
+  content_type :json
+  viewer_id = params[:viewer_id].to_i
+  halt 403, '{}' if viewer_id <= 0
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404, '{}' unless entry && entry['type'] == 'scene_map'
+  halt 403, '{}' unless entry['shared'] && Array(entry['visible_to']).include?(viewer_id)
+
+  entry['player_cells'] ||= {}
+  action = params[:action].to_s
+  rows = entry['rows'].to_i
+  cols = entry['cols'].to_i
+
+  case action
+  when 'place'
+    r = params[:r].to_i
+    c = params[:c].to_i
+    halt 400, '{}' if r < 0 || c < 0 || r >= rows || c >= cols
+    if params[:kind].to_s == 'spell'
+      entry['player_cells']["#{r},#{c}"] = { 'kind' => 'spell', 'by' => viewer_id }
+    else
+      icon = params[:icon].to_s
+      halt 400, '{}' unless SCENE_MAP_PLAYER_ICONS.include?(icon)
+      entry['player_cells']["#{r},#{c}"] = { 'icon' => icon, 'by' => viewer_id }
+    end
+  when 'clear'
+    r = params[:r].to_i
+    c = params[:c].to_i
+    entry['player_cells'].delete("#{r},#{c}")
+  when 'clear_mine'
+    entry['player_cells'].reject! { |_k, v| v.is_a?(Hash) && v['by'] == viewer_id }
+  else
+    halt 400, '{}'
+  end
+
+  scene_save_notes(notes)
+  { 'player_cells' => entry['player_cells'] }.to_json
+end
+
+# Player arrows. Two-cell strokes drawn on the active map for
+# combat/movement planning. action='place' adds an arrow keyed by
+# from_r,from_c,to_r,to_c,type with the player's viewer_id as 'by'.
+# 'delete' removes one by id (owner or DM). 'clear_mine' wipes the
+# caller's arrows. 'clear_all' is DM-only.
+post '/scene/map/arrow' do
+  content_type :json
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404, '{}' unless entry && entry['type'] == 'scene_map'
+
+  is_dm = local_request?
+  viewer_id = params[:viewer_id].to_i
+  unless is_dm
+    halt 403, '{}' if viewer_id <= 0
+    halt 403, '{}' unless entry['shared'] && Array(entry['visible_to']).include?(viewer_id)
+  end
+
+  entry['player_arrows'] ||= []
+  rows = entry['rows'].to_i
+  cols = entry['cols'].to_i
+
+  case params[:action].to_s
+  when 'place'
+    type = params[:type].to_s
+    halt 400, '{}' unless SCENE_MAP_ARROW_TYPES.include?(type)
+    fr = params[:from_r].to_i; fc = params[:from_c].to_i
+    tr = params[:to_r].to_i;   tc = params[:to_c].to_i
+    halt 400, '{}' if [fr, fc, tr, tc].any? { |v| v < 0 }
+    halt 400, '{}' if fr >= rows || tr >= rows || fc >= cols || tc >= cols
+    halt 400, '{}' if fr == tr && fc == tc
+    entry['player_arrows'] << {
+      'id'     => SecureRandom.hex(6),
+      'type'   => type,
+      'from_r' => fr, 'from_c' => fc,
+      'to_r'   => tr, 'to_c'   => tc,
+      'by'     => is_dm ? 0 : viewer_id
+    }
+  when 'delete'
+    arrow_id = params[:arrow_id].to_s
+    entry['player_arrows'].reject! do |a|
+      a['id'] == arrow_id && (is_dm || a['by'] == viewer_id)
+    end
+  when 'clear_mine'
+    entry['player_arrows'].reject! { |a| a['by'] == viewer_id }
+  when 'clear_all'
+    halt 403, '{}' unless is_dm
+    entry['player_arrows'] = []
+  else
+    halt 400, '{}'
+  end
+
+  scene_save_notes(notes)
+  { 'player_arrows' => entry['player_arrows'] }.to_json
+end
+
+# Form-post variant for the DM "Clear player actions" button —
+# wipes both arrows and the per-cell player marks (icons + spell
+# dots), then redirects back to the referer.
+post '/scene/map/player_actions/clear' do
   scene_require_dm!
   notes = scene_load_notes
-  entry, idx = scene_find_note(notes, params[:id])
-  halt 404 unless entry && entry['type'] == 'draft_note'
-  promoted = {
-    'owner_id' => 0,
-    'type' => 'note',
-    'title' => entry['title'].to_s,
-    'note' => entry['note'].to_s,
-    'chapter' => scene_max_chapter(notes),
-    'public' => entry['public'] ? true : false
-  }
-  notes[idx] = promoted
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'scene_map'
+  entry['player_arrows'] = []
+  entry['player_cells'] = {}
   scene_save_notes(notes)
-  redirect '/scene/0'
+  redirect back
 end
 
-# --- Scene panels (per-player visibility; shown on /scene) ---
+# Backwards-compat alias for any pre-rename clients.
+post '/scene/map/arrows/clear' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, _ = scene_find_note(notes, params[:id])
+  halt 404 unless entry && entry['type'] == 'scene_map'
+  entry['player_arrows'] = []
+  entry['player_cells'] = {}
+  scene_save_notes(notes)
+  redirect back
+end
+
+post '/notes/character/toggle_public' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  entry['public'] = !entry['public']
+  Tools.save_json('notes.json', notes)
+  redirect '/notes/0'
+end
+
+post '/notes/character/delete' do
+  scene_require_dm!
+  notes, _, idx = notes_find_character!(params[:id])
+  notes.delete_at(idx)
+  Tools.save_json('notes.json', notes)
+  redirect '/notes/0'
+end
+
+post '/notes/character/image' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  upload = params[:image]
+  halt 400, 'image required' unless upload.is_a?(Hash) && upload[:tempfile]
+  orig = upload[:filename] || 'upload'
+  ext = File.extname(orig).downcase
+  halt 400, 'unsupported file type' unless SCENE_IMAGE_EXTS.include?(ext)
+  halt 400, 'file too large' if upload[:tempfile].size > SCENE_IMAGE_MAX_BYTES
+
+  FileUtils.mkdir_p(SCENE_IMAGE_DIR)
+  safe_base = scene_sanitize_filename(File.basename(orig, ext))
+  filename = "#{Time.now.to_i}-#{SecureRandom.hex(4)}-#{safe_base}#{ext}"
+  dest = File.join(SCENE_IMAGE_DIR, filename)
+  FileUtils.cp(upload[:tempfile].path, dest)
+
+  # Clean up any previous image for this CoI so we don't accumulate orphans.
+  prev = entry['image_path'].to_s
+  if prev.start_with?('/images/scene/')
+    disk = File.join(__dir__, 'public', prev)
+    File.unlink(disk) if File.file?(disk)
+  end
+  entry['image_path'] = "/images/scene/#{filename}"
+  Tools.save_json('notes.json', notes)
+  redirect '/notes/0'
+end
+
+post '/notes/character/image/clear' do
+  scene_require_dm!
+  notes, entry, _ = notes_find_character!(params[:id])
+  prev = entry['image_path'].to_s
+  if prev.start_with?('/images/scene/')
+    disk = File.join(__dir__, 'public', prev)
+    File.unlink(disk) if File.file?(disk)
+  end
+  entry.delete('image_path')
+  Tools.save_json('notes.json', notes)
+  redirect '/notes/0'
+end
+
+# --- Scene Notes (unified scene_panel; subsumes the old draft_note shape).
+# Scene Notes show on /scene per-PC visible_to. Legacy entries written as
+# 'draft_note' are still accepted by update/delete/promote and migrated
+# to 'scene_panel' on first edit.
+SCENE_NOTE_TYPES = %w[scene_panel draft_note].freeze
+
 post '/scene/panel' do
   scene_require_dm!
   notes = scene_load_notes
@@ -529,7 +1189,8 @@ post '/scene/panel' do
     'type' => 'scene_panel',
     'title' => params[:title].to_s,
     'note' => params[:note].to_s,
-    'visible_to' => scene_parse_visible_to(params[:visible_to])
+    'visible_to' => scene_parse_visible_to(params[:visible_to]),
+    'created_at' => Time.now.to_f
   }
   scene_save_notes(notes)
   redirect '/scene/0'
@@ -539,10 +1200,12 @@ post '/scene/panel/update' do
   scene_require_dm!
   notes = scene_load_notes
   entry, _ = scene_find_note(notes, params[:id])
-  halt 404 unless entry && entry['type'] == 'scene_panel'
+  halt 404 unless entry && SCENE_NOTE_TYPES.include?(entry['type'])
+  entry['type'] = 'scene_panel'
   entry['title'] = params[:title].to_s
   entry['note'] = params[:note].to_s
   entry['visible_to'] = scene_parse_visible_to(params[:visible_to])
+  entry['created_at'] ||= Time.now.to_f
   scene_save_notes(notes)
   redirect '/scene/0'
 end
@@ -550,9 +1213,30 @@ end
 post '/scene/panel/delete' do
   scene_require_dm!
   notes = scene_load_notes
-  _, idx = scene_find_note(notes, params[:id])
-  halt 404 unless idx
+  entry, idx = scene_find_note(notes, params[:id])
+  halt 404 unless entry && SCENE_NOTE_TYPES.include?(entry['type'])
   notes.delete_at(idx)
+  scene_save_notes(notes)
+  redirect '/scene/0'
+end
+
+# Move a Scene Note out of staging into the permanent Notes section.
+# Public if any PC could see it; DM-only otherwise.
+post '/scene/panel/promote' do
+  scene_require_dm!
+  notes = scene_load_notes
+  entry, idx = scene_find_note(notes, params[:id])
+  halt 404 unless entry && SCENE_NOTE_TYPES.include?(entry['type'])
+  is_public = Array(entry['visible_to']).any?
+  promoted = {
+    'owner_id' => 0,
+    'type' => 'note',
+    'title' => entry['title'].to_s,
+    'note' => entry['note'].to_s,
+    'chapter' => scene_max_chapter(notes),
+    'public' => is_public
+  }
+  notes[idx] = promoted
   scene_save_notes(notes)
   redirect '/scene/0'
 end
@@ -1448,12 +2132,100 @@ post '/combat/roll_init/:id' do
   redirect '/combat'
 end
 
+# Bardic inspiration. Bard's Perform action: deduct 1 mana, apply a
+# signed net (successes - failures). Positive net adds to the bard's
+# luck_points. Negative net drains the bard's pool first; any overflow
+# goes to Combat#dm_luck_points (the DM's separate pool). Gated to once
+# per turn via performed_this_turn.
+post '/combat/bardic_inspiration/:id' do
+  redirect '/character/0' unless local_request?
+  combat = Combat.new
+  bard = combat.combat_turn_list.find { |ct| ct.combat_id == params[:id].to_i }
+  halt 400, 'Bard not found' unless bard
+  halt 400, 'Character lacks bardic_inspiration' unless bard.has_ability?('bardic_inspiration')
+  halt 400, 'Already performed this turn' if bard.performed_this_turn
+  halt 400, 'Not enough mana' if bard.mana < 1
+
+  net = params[:net].to_i
+  skill = params[:skill].to_s
+
+  combat_data = Tools.load_json('combat.json')
+  participant = combat_data['participants'].find { |p| p['id'] == bard.combat_id }
+  halt 400, 'Participant row missing' unless participant
+
+  bard_pool_before = bard.luck_points
+  dm_pool_before = combat.dm_luck_points
+  if net >= 0
+    bard_pool_after = bard_pool_before + net
+    dm_gain = 0
+  else
+    bard_pool_after = [bard_pool_before + net, 0].max
+    dm_gain = [-net - bard_pool_before, 0].max
+  end
+  dm_pool_after = dm_pool_before + dm_gain
+
+  participant['mana'] = bard.mana - 1
+  participant['luck_points'] = bard_pool_after
+  participant['performed_this_turn'] = true
+  combat_data['dm_luck_points'] = dm_pool_after
+  Tools.save_json('combat.json', combat_data)
+
+  name = combat.display_name(bard)
+  sign = net >= 0 ? '+' : ''
+  parts = []
+  parts << "Luck #{bard_pool_after}" if bard_pool_after != bard_pool_before || net > 0
+  parts << "DM Luck #{dm_pool_after}" if dm_gain > 0
+  skill_label = skill.empty? ? 'performance' : skill.tr('_', ' ')
+  Combat.add_log("#{name} performs #{skill_label} (#{sign}#{net}; #{parts.join(', ')}).")
+  redirect '/combat'
+end
+
+# Spend luck from a named source on a roll. source_id is either a bard's
+# combat_id or the literal 'dm' for the DM's separate pool. The actual
+# die rerolls happen client-side; this endpoint validates the amount is
+# available, debits the source, and logs the spend so combat_log
+# reflects every luck movement.
+post '/combat/spend_luck/:source_id' do
+  redirect '/character/0' unless local_request?
+  combat = Combat.new
+  source_id = params[:source_id].to_s
+  amount = params[:amount].to_i
+  ability = params[:ability].to_s
+  target_name = params[:target_name].to_s.strip
+
+  halt 400, 'Amount must be positive' unless amount > 0
+  halt 400, 'Invalid ability' unless %w[inspiration unsettling_words].include?(ability)
+
+  combat_data = Tools.load_json('combat.json')
+
+  if source_id == 'dm'
+    halt 400, 'Not enough DM luck' if combat.dm_luck_points < amount
+    combat_data['dm_luck_points'] = combat.dm_luck_points - amount
+    source_label = 'DM'
+  else
+    bard = combat.combat_turn_list.find { |ct| ct.combat_id == source_id.to_i }
+    halt 400, 'Source bard not found' unless bard
+    halt 400, 'Not enough luck' if bard.luck_points < amount
+    participant = combat_data['participants'].find { |p| p['id'] == bard.combat_id }
+    halt 400, 'Participant row missing' unless participant
+    participant['luck_points'] = bard.luck_points - amount
+    source_label = combat.display_name(bard)
+  end
+  Tools.save_json('combat.json', combat_data)
+
+  ability_label = ability == 'inspiration' ? 'Inspiration' : 'Unsettling Words'
+  target_clause = target_name.empty? ? '' : " on #{target_name}"
+  Combat.add_log("#{source_label} spends #{amount} luck — #{ability_label}#{target_clause}.")
+  redirect '/combat'
+end
+
 get '/' do
   redirect '/character/0'
 end
 
 get '/character/:index' do
   character_list = Tools.load_json('characters.json').select { |character| character["group"] == "PC" }
+  @character_detail = params[:detail].to_s == 'full' ? :full : :minimal
   load_character_view(character_list, params[:index].to_i, '/character')
 end
 
@@ -1481,33 +2253,32 @@ get '/enemies/:index' do
 
   combat_data = Tools.load_json('combat.json')
   @combat_participants = combat_data['participants']
+  @encounter_message = combat_data['encounter_message']
   characters = Tools.load_json('characters.json')
   @template_instances = characters.select { |c| c['template_id'].to_s == template['id'].to_s }
   @all_characters = characters
+  @random_encounters = Templates.random_encounters
+  @encounters_by_source = @random_encounters.group_by { |e| e['_source'] || 'General' }
 
   erb :enemies
 end
 
-post '/combat/add_enemy' do
-  redirect '/character/0' unless local_request?
-  template_id = params[:enemy_id].to_s
+# Spawn one enemy from a template, mutating both `characters` and
+# `combat_data` in place. Returns a hash with `combat_id`, `items`
+# (array rolled by GearTable), and `gold` (integer). Shared by
+# /combat/add_enemy and /combat/roll_encounter so both paths produce
+# identically shaped records.
+def spawn_enemy_from_template!(template_id, characters, combat_data, rng: Random.new)
   template = Templates.find(template_id)
-  halt 400, "Enemy template not found" unless template
+  halt 400, "Enemy template not found: #{template_id}" unless template
 
-  characters = Tools.load_json('characters.json')
-  combat_data = Tools.load_json('combat.json')
-
-  # Pick a fresh integer id above any existing character record and any
-  # char_id in combat (stale combat rows from before the refactor can
-  # reference enemy ids that were pulled out of characters.json).
   char_ids = characters.map { |c| c['id'].to_i }
   combat_refs = combat_data['participants'].map { |p| (p['char_id'] || p['id']).to_i }
   new_id = ([0] + char_ids + combat_refs).max + 1
 
-  instance = Templates.instantiate(template_id, new_id: new_id)
+  instance = Templates.instantiate(template_id, new_id: new_id, rng: rng)
   instance['template_id'] = template_id
   characters << instance
-  Tools.save_json('characters.json', characters)
 
   max_participant_id = combat_data['participants'].map { |p| p['id'].to_i }.max || 0
   combat_id = max_participant_id + 1
@@ -1525,6 +2296,106 @@ post '/combat/add_enemy' do
     'major_damage' => 0,
     'temporary_hit_points' => 0
   }
+  { combat_id: combat_id, items: instance['items'] || [], gold: instance['gold'].to_i }
+end
+
+# "4-8" -> integer in 4..8; "3" or 3 -> 3; anything else -> 0.
+def parse_random_count(value, rng = Random.new)
+  s = value.to_s
+  if (m = s.match(/\A(\d+)\s*-\s*(\d+)\z/))
+    lo, hi = m[1].to_i, m[2].to_i
+    lo, hi = hi, lo if lo > hi
+    rng.rand(lo..hi)
+  else
+    [s.to_i, 0].max
+  end
+end
+
+# Pick one outcome from a list with optional integer/float `weight`
+# fields (default 1). Returns the chosen entry, or nil if empty.
+def pick_weighted_outcome(outcomes, rng = Random.new)
+  return nil if outcomes.nil? || outcomes.empty?
+  total = outcomes.sum { |o| (o['weight'] || 1).to_f }
+  return outcomes.first if total <= 0
+  pick = rng.rand * total
+  acc = 0.0
+  outcomes.each do |o|
+    acc += (o['weight'] || 1).to_f
+    return o if pick < acc
+  end
+  outcomes.last
+end
+
+post '/combat/add_enemy' do
+  redirect '/character/0' unless local_request?
+  characters = Tools.load_json('characters.json')
+  combat_data = Tools.load_json('combat.json')
+  spawn_enemy_from_template!(params[:enemy_id].to_s, characters, combat_data)
+  Tools.save_json('characters.json', characters)
+  Tools.save_json('combat.json', combat_data)
+  redirect back
+end
+
+# Aggregate the gold + items rolled for a single creature group.
+# Returns a hash { gold: Int, items: ["chain shirt ×2", "falcion"] }.
+def encounter_loot_summary(results)
+  gold = results.sum { |r| r[:gold] }
+  item_names = results.flat_map { |r| r[:items].map { |i| i['name'].to_s } }.reject(&:empty?)
+  items = item_names.tally.map { |name, n| n > 1 ? "#{name} ×#{n}" : name }
+  { 'gold' => gold, 'items' => items }
+end
+
+# Roll a random_encounters entry. Removes every non-PC participant from
+# combat (mirroring /combat/clear_enemies), picks one outcome by weight,
+# resolves each spawn's count (single integer or "low-high" range), and
+# spawns the rolled creatures. Stamps a human-readable message on
+# combat.json so the enemy / character pages can banner what was
+# rolled.
+post '/combat/roll_encounter' do
+  redirect '/character/0' unless local_request?
+  encounter = Templates.random_encounter(params[:encounter_id].to_s)
+  halt 404, 'Random encounter not found' unless encounter
+
+  rng = Random.new
+  outcome = pick_weighted_outcome(encounter['outcomes'], rng)
+  halt 400, 'Random encounter has no outcomes' unless outcome
+
+  characters = Tools.load_json('characters.json')
+  combat_data = Tools.load_json('combat.json')
+
+  pc_ids = characters.select { |c| c['group'] == 'PC' }.map { |c| c['id'] }
+  combat_data['participants'].select! { |p| pc_ids.include?(p['char_id'] || p['id']) }
+
+  rolled_lines = []
+  Array(outcome['spawns']).each do |spawn|
+    count = parse_random_count(spawn['count'], rng)
+    next if count <= 0
+    template_id = spawn['creature_id'].to_s
+    template = Templates.find(template_id)
+    creature_name = template ? (template['name'] || template_id) : template_id
+    spawn_results = count.times.map do
+      spawn_enemy_from_template!(template_id, characters, combat_data, rng: rng)
+    end
+    loot = encounter_loot_summary(spawn_results)
+    rolled_lines << { 'count' => count, 'name' => creature_name,
+                      'gold' => loot['gold'], 'items' => loot['items'] }
+  end
+
+  combat_data['encounter_message'] = {
+    'encounter_name' => encounter['name'] || 'Random Encounter',
+    'outcome_description' => outcome['description'].to_s,
+    'lines' => rolled_lines
+  }
+
+  Tools.save_json('characters.json', characters)
+  Tools.save_json('combat.json', combat_data)
+  redirect back
+end
+
+post '/combat/encounter_message/clear' do
+  redirect '/character/0' unless local_request?
+  combat_data = Tools.load_json('combat.json')
+  combat_data.delete('encounter_message')
   Tools.save_json('combat.json', combat_data)
   redirect back
 end
@@ -1542,12 +2413,14 @@ get '/enemies/instance/:id' do
 
   combat_data = Tools.load_json('combat.json')
   @combat_participants = combat_data['participants']
+  @encounter_message = combat_data['encounter_message']
   templates = Templates.creatures
   @enemy_list = templates.each_with_index.map { |t, i| { index: i, id: t['id'], name: t['name'], source: t['_source'] || 'General' } }
   @enemy_groups = Templates.creatures_grouped.map do |label, group_creatures|
     group_ids = group_creatures.map { |c| c['id'].to_s }.to_set
     { label: label, enemies: @enemy_list.select { |e| group_ids.include?(e[:id].to_s) } }
   end
+  @random_encounters = Templates.random_encounters
 
   @all_characters = characters
 
@@ -1618,6 +2491,7 @@ post '/combat/clear_enemies' do
   pc_ids = characters.select { |c| c['group'] == 'PC' }.map { |c| c['id'] }
   combat_data = Tools.load_json('combat.json')
   combat_data['participants'].select! { |p| pc_ids.include?(p['char_id'] || p['id']) }
+  combat_data.delete('encounter_message')
   Tools.save_json('combat.json', combat_data)
   redirect back
 end
@@ -1682,7 +2556,7 @@ get '/notes/:viewer_id' do
 
   @viewer_id = viewer_id
   @is_dm = viewer_id == 0 && @is_local
-  @notes = Tools.load_json('notes.json')
+  @notes = notes_ensure_character_ids!(Tools.load_json('notes.json'))
   @characters = Tools.load_json('characters.json')
   @current_chapter = params[:chapter] ? params[:chapter].to_i : nil
 
@@ -1703,6 +2577,7 @@ post '/add_note_entry' do
   new_note["tier"] = params[:tier].to_i if params[:tier] && !params[:tier].empty?
   new_note["chapter"] = params[:chapter].to_i if params[:chapter] && !params[:chapter].empty?
   new_note["active"] = true if params[:active] == "true"
+  new_note["id"] = SecureRandom.uuid if new_note["type"] == 'character'
 
   notes << new_note
   Tools.save_json('notes.json', notes)

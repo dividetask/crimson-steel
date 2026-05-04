@@ -1906,7 +1906,7 @@
     "turn_undead": "All undead within 30 feet must make a wisdom saving throw or become panicked.",
     "uncanny_dodge": "You are always considered to be dodging an attack even if you are unaware of it or do not have any dice to spend. You must be capable of moving and some abilities negate this ability. If you gain the rage ability then you can enter a rage even if surprised.",
     "unsettling_words": "You can use points of luck from your performance to affect the checks of your enemies. You must decide to use your luck point before they roll and afterwards you can choose one of their dice to reroll.",
-    "versatile_performance": "You can use points of luck from your performance to affect the checks of your enemies. You must decide to use your luck point before they roll and afterwards you can choose one of their dice to reroll.",
+    "versatile_performance": "You can use points of luck from your performance to aid your allies. You must decide to use your luck point before they roll and afterwards you can choose one of their dice to reroll.",
     "weapon_training": "Increases attack bonus for weapons in chosen weapon group by 1 plus an additional point for every 4 levels.",
     "armor_training": "Increases damage reduction and damage resilience by 1 while wearing armor. This increases by an additional point every 4 levels.",
     "bite": "Natural bite attack. Deals str/4 damage.",

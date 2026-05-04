@@ -13,7 +13,8 @@
     "public": true,
     "type": "character",
     "title": "Orman Harrington",
-    "tier": 2
+    "tier": 2,
+    "id": "6992b6c1-f596-48aa-897a-66881461121a"
   },
   {
     "owner_id": 0,
@@ -30,7 +31,9 @@
     "public": true,
     "type": "character",
     "title": "Alric Thorne",
-    "tier": -1
+    "tier": -1,
+    "id": "e9ac00a2-b53b-4fc0-a79a-f808058d16c3",
+    "image_path": "/images/scene/1777573482-a0132274-ALdric.webp"
   },
   {
     "owner_id": 0,
@@ -39,7 +42,9 @@
     "public": true,
     "type": "character",
     "title": "Virelle",
-    "tier": 2
+    "tier": 2,
+    "id": "1713bd82-78d8-415b-9b14-6ea622461304",
+    "image_path": "/images/scene/1777591419-96d364db-Virelle.webp"
   },
   {
     "owner_id": 0,
@@ -48,7 +53,9 @@
     "public": true,
     "type": "character",
     "title": "Sylwen",
-    "tier": 2
+    "tier": 2,
+    "id": "e965d25c-f305-47bb-a694-fdde892ee549",
+    "image_path": "/images/scene/1777606231-58937c6b-Sylwen.webp"
   },
   {
     "owner_id": 0,
@@ -104,7 +111,8 @@
     "public": true,
     "type": "character",
     "title": "Dala Nyssira",
-    "tier": -1
+    "tier": -1,
+    "id": "1922600f-b36e-4231-a1a2-de9822119b1e"
   },
   {
     "owner_id": 0,
@@ -169,7 +177,11 @@
     "public": true,
     "type": "character",
     "title": "Harkon of the Hollow Antler, Master of the Tally",
-    "tier": 4
+    "tier": 4,
+    "id": "ccda3e2f-d434-4024-8ec4-af1ba9219bdd",
+    "in_scene": true,
+    "image_path": "/images/scene/1777490469-29bd66ec-Harkon.webp",
+    "scene_order": 10
   },
   {
     "owner_id": 0,
@@ -178,7 +190,8 @@
     "public": true,
     "type": "character",
     "title": "Athach",
-    "tier": 2
+    "tier": 2,
+    "id": "75e18bae-3880-472e-b502-bebbc6e69ae1"
   },
   {
     "owner_id": 0,
@@ -211,7 +224,8 @@
     "public": true,
     "type": "character",
     "title": "Severus",
-    "tier": 2
+    "tier": 2,
+    "id": "8e8610ea-3e38-439d-8e7f-bfc0f82dc4d0"
   },
   {
     "owner_id": 0,
@@ -237,7 +251,14 @@
     "public": true,
     "type": "character",
     "title": "Petey",
-    "tier": -1
+    "tier": -1,
+    "id": "ab74ed63-68c8-4cee-be1a-ed3c11f0340b",
+    "in_scene": true,
+    "scene_visible_to": [
+
+    ],
+    "image_path": "/images/scene/1777591466-f0fbc750-Petey.webp",
+    "scene_order": 12
   },
   {
     "owner_id": 0,
@@ -283,7 +304,14 @@
     "public": true,
     "type": "character",
     "title": "Kael",
-    "tier": 2
+    "tier": 2,
+    "id": "93f519dc-4a29-4a79-b3c9-becb6074bd40",
+    "in_scene": true,
+    "scene_order": 7,
+    "image_path": "/images/scene/1777571926-97f95988-Kael.webp",
+    "scene_visible_to": [
+
+    ]
   },
   {
     "owner_id": 0,
@@ -292,7 +320,11 @@
     "public": true,
     "type": "character",
     "title": "Theron Ashfeld",
-    "tier": 3
+    "tier": 3,
+    "id": "cbf03b3f-0c6f-479a-842c-1ba0549a2bc5",
+    "in_scene": true,
+    "scene_order": 8,
+    "image_path": "/images/scene/1777571828-cc7cdbc5-Theron_Ashfeld.webp"
   },
   {
     "owner_id": 0,
@@ -301,7 +333,8 @@
     "public": true,
     "type": "character",
     "title": "Sable",
-    "tier": 3
+    "tier": 3,
+    "id": "d273ddaf-35fe-4757-accf-55f894ac8706"
   },
   {
     "owner_id": 0,
@@ -310,7 +343,14 @@
     "public": true,
     "type": "character",
     "title": "Lady Selara Hawthorne",
-    "tier": 3
+    "tier": 3,
+    "id": "31b2dc12-4517-4ad1-a89f-9aa7ee702b23",
+    "in_scene": true,
+    "scene_order": 5,
+    "scene_visible_to": [
+
+    ],
+    "image_path": "/images/scene/1777571218-0a24931c-LadyHawthorne.webp"
   },
   {
     "owner_id": 0,
@@ -319,7 +359,11 @@
     "public": true,
     "type": "character",
     "title": "Lord Varen Hawthorne",
-    "tier": 3
+    "tier": 3,
+    "id": "bfa6032f-d522-4972-8277-d398f60119b3",
+    "in_scene": true,
+    "scene_order": 9,
+    "image_path": "/images/scene/1777571432-97150d94-VarenHawthorne.webp"
   },
   {
     "owner_id": 0,
@@ -328,7 +372,8 @@
     "public": true,
     "type": "character",
     "title": "Silovan Kreshholm",
-    "tier": 3
+    "tier": 3,
+    "id": "21870984-5473-4f63-8085-4d2a956ecfb1"
   },
   {
     "owner_id": 0,
@@ -337,7 +382,8 @@
     "public": false,
     "type": "character",
     "title": "Aleks Ashfeld",
-    "tier": 0
+    "tier": 0,
+    "id": "f23de8b9-f76f-4d56-b615-ef5ff9b696aa"
   },
   {
     "owner_id": 0,
@@ -346,7 +392,9 @@
     "public": true,
     "type": "character",
     "title": "Varen",
-    "tier": 2
+    "tier": 2,
+    "id": "54337c0a-cb5d-4196-ab2f-57268e11a4f6",
+    "image_path": "/images/scene/1777591489-9c85dd74-Varen.webp"
   },
   {
     "owner_id": 0,
@@ -355,7 +403,8 @@
     "public": true,
     "type": "character",
     "title": "Lev 'The Moth' Rybar",
-    "tier": 0
+    "tier": 0,
+    "id": "ce979d5a-393d-4478-94e9-ad54648b177c"
   },
   {
     "owner_id": 0,
@@ -364,7 +413,14 @@
     "public": true,
     "type": "character",
     "title": "Vrakka Bloodfang",
-    "tier": 4
+    "tier": 4,
+    "id": "af50de47-79f3-4ab7-b5cb-61d178d83417",
+    "in_scene": true,
+    "scene_order": 6,
+    "scene_visible_to": [
+
+    ],
+    "image_path": "/images/scene/1777572332-630d0cc3-Vrakka.webp"
   },
   {
     "owner_id": 0,
@@ -398,7 +454,8 @@
     "title": "Mayor Tamsin Holt",
     "tier": 1,
     "chapter": 3,
-    "active": true
+    "active": true,
+    "id": "538c0983-3fc9-401a-b208-39074decfca8"
   },
   {
     "owner_id": 0,
@@ -487,7 +544,8 @@
     "type": "character",
     "title": "Lev \"The Moth\" Rybar",
     "tier": 1,
-    "chapter": 3
+    "chapter": 3,
+    "id": "0bea871a-3edc-4087-b7e6-6d7f7f100f22"
   },
   {
     "owner_id": 0,
@@ -503,15 +561,6 @@
     "public": true,
     "type": "note",
     "title": "A Botched Bribe",
-    "chapter": 3
-  },
-  {
-    "owner_id": 0,
-    "note": "Kael's companion, rogue. Understands Thieves' Cant, spoke with Lysander, open to partnership with Olga.",
-    "public": true,
-    "type": "character",
-    "title": "Varen",
-    "tier": 2,
     "chapter": 3
   },
   {
@@ -538,7 +587,8 @@
     "title": "Silovan Kreshholm",
     "tier": 2,
     "chapter": 4,
-    "active": true
+    "active": true,
+    "id": "3d6c0458-229e-41e6-ba95-e97d8d9a8c06"
   },
   {
     "owner_id": 0,
@@ -677,9 +727,17 @@
   {
     "id": "ca513530-886a-4c53-8b68-8de21b90de48",
     "owner_id": 0,
-    "draft": true,
-    "type": "draft_name",
-    "title": "Vasco Ruiz"
+    "type": "character",
+    "title": "Vasco Ruiz",
+    "note": "Captured slave",
+    "tier": -1,
+    "chapter": 5,
+    "public": true,
+    "active": true,
+    "in_scene": false,
+    "scene_visible_to": [
+
+    ]
   },
   {
     "id": "b7b44ca1-bacc-45c8-87e8-848420b2a4f3",
@@ -761,118 +819,1234 @@
     "chapter": 5
   },
   {
-    "id": "57db957d-0188-428e-bb33-d1ebdb82e2d1",
     "owner_id": 0,
-    "draft": true,
-    "type": "draft_image",
-    "title": "Highport Map",
-    "image_path": "/images/scene/1776453073-90aca715-Highport-map-sm.jpg",
-    "shared": false
-  },
-  {
-    "owner_id": 0,
+    "note": "Mercenary sellsword from the eastern provinces. Met at the slaver's temple where he agreed to help you escape in exchange for his life. He sheltered you in the city while you recovered from your injuries.",
+    "public": true,
     "type": "character",
     "title": "Drav Kovin",
-    "note": "Mercenary Guard that helped the party escape",
     "tier": 1,
     "chapter": 5,
-    "public": true,
-    "active": true
+    "active": true,
+    "id": "90f18d74-6ade-4506-b6a8-9da64e4031a9",
+    "in_scene": true,
+    "image_path": "/images/scene/1777490163-e4878a18-Drav.webp",
+    "scene_visible_to": [
+
+    ],
+    "scene_order": 2
   },
   {
     "owner_id": 0,
+    "note": "Elven noble with some magical training. Drav informed him of you and where you were hiding. He offered to help you in exchange for land and a title under Lady Hawthorne.",
+    "public": false,
     "type": "character",
     "title": "Caelian di Soliastres",
-    "note": "Caelian di Soliastres, third son of the di Soliastres family\r\nApparent age: Late 20s by mortal reckoning (so actually ~90 in elf years)\r\nAppearance: Tall, slender, olive-warm complexion, dark wavy hair pulled back, amber eyes. Fine travel clothes that have seen recent hard riding.",
     "tier": 3,
     "chapter": 5,
-    "public": true,
-    "active": true
+    "active": true,
+    "id": "e2becdf2-dd74-4d82-8083-9a2c305a89f6",
+    "image_path": "/images/scene/1777490391-331dd9fb-Caelian_di_Soliastres.webp",
+    "in_scene": true,
+    "scene_order": 4,
+    "scene_visible_to": [
+
+    ]
   },
   {
-    "id": "bf1ff568-70cc-4531-909e-251fe56872f8",
+    "id": "9d62d847-1a03-4aae-ad2a-c91e716f8c98",
     "owner_id": 0,
     "draft": true,
     "type": "scene_panel",
-    "title": "Safehouse",
-    "note": "Drav led you here last night, through a back alley in the city's merchant quarter that smelled of fish brine and old rain. The building is a disused tannery — the ground floor still reeks faintly of lye and hide-scrapings. The living quarters are above, reached by a narrow stair behind a false cabinet in the rear workroom.\r\n\r\n\r\n\r\nThe upper floor is cramped but surprisingly well-appointed for a hideaway. Two small rooms and a common space, low-ceilinged with exposed beams dark from decades of smoke. A squat iron stove in the corner gives off more heat than light, and a single shuttered window faces an interior courtyard — no street view, no sightlines for anyone watching from outside. The floorboards have been carefully muffled with layered rugs of faded southern weave, the kind of detail that suggests whoever set this place up has done it many times before.\r\n\r\n\r\n\r\nThere's a cellar, too, with a second exit through the tannery's old drainage tunnel. Drav showed it to you without comment, the way one might show a guest where the chamber pot is kept.",
+    "title": "An Unexpected Meeting",
+    "note": "The next morning, as you recover from your fight at the temple, an elf calling himself Caelian di Soliastres arrives. You are surprised as you were hiding and only Drav knew where you were. He explains that he purchased information about you from Drav, and would like to offer his services in exchange for land and title under Lady Hawthorne. As you offered it to Drav, he expects the offer can be given to him instead.",
+    "visible_to": [
+
+    ],
+    "created_at": 1777490984.1435974,
+    "scene_order": 1
+  },
+  {
+    "id": "3bf9e1a7-ba4f-4af0-9069-623a1769c27e",
+    "owner_id": 0,
+    "draft": true,
+    "type": "scene_panel",
+    "title": "Random Encounters",
+    "note": "Encounter check: Roll 1d6 each 2 hours on the trail. Encounter on a 1.\r\n1-2: Orc Patrol (local tribe, toll arrangement with slavers)\r\n\r\n4-8 orcs\r\nBehavior: Part of the toll system. If the party looks like slavers or travelers with purpose, the patrol watches from a distance and lets them pass. If the party looks weak, wounded, or lost — which they ARE right now — the orcs get bold. They step onto the trail and demand a toll. 20 gp per head, weapons accepted at inflated value. They don't want a fight but they smell blood. Caelian can talk them down with a good bluff (\"we're expected at the stockade, delay us and Markessa hears about it\") or the party can pay and move on. Fighting wastes time and mana they don't have.\r\n\r\n3: Slaver Merchant Party (heading TO Highport, unaware of the raid)\r\n\r\n1 human merchant \r\n3-6 guards: half-orc fighters \r\n1 half-orc interpreter\r\n2 mules carrying trade goods \r\nNo slaves — they're heading to buy, not sell\r\nBehavior: Friendly if the party looks like fellow slavers. Suspicious if the party looks like adventurers. The merchant wants to gossip — \"How's business at the temple? I heard Sturm got promoted.\" This is a social encounter. The party can bluff past, rob them for supplies and gold, or pump them for information. The merchant knows the trail, the toll rates, the stockade's reputation, and that \"the elf woman doesn't like surprises.\" He does NOT know the temple was just raided.\r\n\r\n4: Escaped Slave (fled during the temple raid chaos)\r\n\r\n1 human, barefoot, half-naked, terrified\r\nRunning blindly south on the trail because that's the only direction away from the temple\r\nBehavior: Sees the party and freezes. If they look armed, he assumes they're slavers and begs not to be taken back. If they convince him they're friendly, he tells them: the temple is in chaos, guards are searching the city, a caravan of slaves left \"a few hours ago\" heading south with \"maybe ten soldiers and some orcs with whips.\" He saw them loading the coffle from a hiding spot near the gate. He can confirm direction and rough timing but not exact numbers. He's too weak to travel with the party — they need to point him toward shelter or leave him.\r\n\r\n5: Stray War Dogs (escaped from the temple compound during the raid)\r\n\r\n2-3 war dogs\r\nAnimal 2. No equipment (they're dogs)\r\nBehavior: Trained to attack anyone who doesn't smell like the temple garrison. The party does NOT smell right. The dogs are confused, hungry, and aggressive. They attack on sight, going for the smallest or most wounded party member. Quick fight but it costs hit points the party can't afford to lose right now. Caelian can cast Sleep to drop them instantly — a clean, efficient demonstration of his usefulness.\r\n\r\n6: Nothing — but tracks\r\n\r\nNo encounter, but the party finds fresh tracks on the trail. Shuffling feet in a line (the coffle), boot prints flanking, mule hooves, deeper prints at the rear (armored soldiers). They're close. Theron would read this instantly but Theron isn't here. Caelian can read it if the party asks — \"fifteen, maybe twenty people chained together, moving slowly. Half a day ahead at most. We can catch them by nightfall.\" This confirms the caravan's composition without a fight and builds tension.",
+    "visible_to": [
+
+    ],
+    "created_at": 1777506412.7700555,
+    "scene_order": 3
+  },
+  {
+    "id": "44553785-96e1-4b83-98a3-77f4176f876f",
+    "owner_id": 0,
+    "draft": true,
+    "type": "scene_panel",
+    "title": "Ambush",
+    "note": "Half-Orc Caravan Boss [Tier 3]\r\nHalf-orc. STR 16, DEX 12, CON 15, INT 10, WIS 14, CHA 9\r\nFighter 4 / Cleric 3. Spells: Bless, Command, Cure Light Wounds,\r\nDarkness, Hold Person, Spiritual Weapon. Long sword, chain mail,\r\nshield. 15 gp.\r\nBehavior: Fights defensively. Threatens to kill slaves as hostages.\r\n\r\nHALF-ORC SOLDIERS (4-6)\r\nFighter 2. Short sword, light crossbow (20 bolts), chain shirt.\r\n1d6+2 gp each. 15% chance of 1 tier_one potion each.\r\nOne veteran among them: Tier 1, STR 17, CON 14, Fighter 4,\r\nlong sword, chain mail. 2d6+5 gp.\r\nBehavior: Fight in pairs. 3+ dead = consider surrender.\r\n\r\nHALF-ORC SCOUTS (2)\r\nRogue 2. Short sword, short bow (20 arrows), leather armor,\r\nsignal horn. 1d4 gp each.\r\nBehavior: 200-400 ft ahead/behind column. Run to warn, don't fight.\r\nORC HANDLERS (2-3)\r\nFighter 1. Whip (1d3, reach), short sword (backup), no armor.\r\n1d4 gp each.\r\nBehavior: Drop whips and run if soldiers fall. One might kill a\r\nslave out of spite.\r\n\r\nSLAVES (15-20)\r\nChained in coffle — single chain through manacles, 3 ft apart,\r\n45-60 ft total length.\r\nNotable slaves (pick 3-4):\r\nSorinsk Farmer (male, 40s): recognizes party from feast. Knows\r\n20 captives left weeks ago, \"important ones\" separated.\r\nMerchant's Wife (female, 30s): overheard \"elf woman's workshop\"\r\nand \"stockade in mountains.\" Knows Doran Svetov moved inland.\r\nForeign Sailor (male, 20s): knows slaver ships are Ghoul and\r\nReaper. Strong enough to fight if armed.\r\nChild (girl, 10-12): captured near Elredd. No useful intel.\r\nOld Dock Worker (male, 60s): knows temple layout and aspis\r\nalliance from time as labor slave.\r\n\r\nNIGHT CAMP (if party catches them at night)\r\nSingle fire, banked low. Slaves chained to picket stakes.\r\n2 guards on watch (rotating 4-hr shifts).\r\nScouts pulled in, camped 50 ft out.\r\nBest window: pre-dawn third watch (groggy guards).\r\nMules snort if strangers approach upwind.\r\nCARAVAN LOOT\r\nStrongbox on lead mule:\r\n800 gp, 3 gems (100 gp each), 2 gems (200 gp each)\r\nCaravan route map (landmarks to stockade)\r\nGuard roster copy with agent abbreviations\r\nSupplies on mules:\r\nRations (2 weeks/25 people), water (3 days), rope (100 ft),\r\nspare manacles (6), branding irons (3), whips (2), tarps (2)",
+    "visible_to": [
+
+    ],
+    "created_at": 1777506647.119296,
+    "scene_order": 11
+  },
+  {
+    "owner_id": 0,
+    "type": "image",
+    "title": "Highport City Map",
+    "image_path": "/images/scene/1777524319-8111ffba-Highport-map-sm.jpg",
+    "chapter": 5,
+    "public": true
+  },
+  {
+    "id": "5ac8de83-e0d7-44f9-af24-1b07ccb3a123",
+    "owner_id": 0,
+    "draft": true,
+    "type": "scene_panel",
+    "title": "Purchases",
+    "note": "4 Heart Seeker arrows 80 each\r\n4 Shield of faith 25 each",
+    "visible_to": [
+
+    ],
+    "created_at": 1777785113.0967982,
+    "scene_order": 0
+  },
+  {
+    "id": "8255f72f-a0ec-4957-9178-646ad597a5db",
+    "owner_id": 0,
+    "draft": true,
+    "type": "scene_map",
+    "title": "Desert Scene",
+    "rows": 40,
+    "cols": 40,
+    "cells": {
+      "8,2": {
+        "color": "#8a8a8a"
+      },
+      "8,3": {
+        "color": "#8a8a8a"
+      },
+      "8,4": {
+        "color": "#8a8a8a"
+      },
+      "8,5": {
+        "color": "#8a8a8a"
+      },
+      "8,6": {
+        "color": "#8a8a8a"
+      },
+      "8,7": {
+        "color": "#8a8a8a"
+      },
+      "8,8": {
+        "color": "#8a8a8a"
+      },
+      "8,9": {
+        "color": "#8a8a8a"
+      },
+      "9,2": {
+        "color": "#8a8a8a"
+      },
+      "9,3": {
+        "color": "#8a8a8a"
+      },
+      "9,4": {
+        "color": "#8a8a8a"
+      },
+      "9,5": {
+        "color": "#8a8a8a"
+      },
+      "9,6": {
+        "color": "#8a8a8a"
+      },
+      "9,7": {
+        "color": "#8a8a8a"
+      },
+      "9,8": {
+        "color": "#8a8a8a"
+      },
+      "9,9": {
+        "color": "#8a8a8a"
+      },
+      "10,2": {
+        "color": "#8a8a8a"
+      },
+      "10,3": {
+        "color": "#8a8a8a"
+      },
+      "10,4": {
+        "color": "#8a8a8a"
+      },
+      "10,5": {
+        "color": "#8a8a8a"
+      },
+      "10,6": {
+        "color": "#8a8a8a"
+      },
+      "10,7": {
+        "color": "#8a8a8a",
+        "image": "/images/Cottonballs.webp"
+      },
+      "10,8": {
+        "color": "#8a8a8a"
+      },
+      "10,9": {
+        "color": "#8a8a8a"
+      },
+      "11,2": {
+        "color": "#8a8a8a"
+      },
+      "11,3": {
+        "color": "#8a8a8a"
+      },
+      "11,4": {
+        "color": "#8a8a8a"
+      },
+      "11,5": {
+        "color": "#8a8a8a"
+      },
+      "11,6": {
+        "color": "#8a8a8a"
+      },
+      "11,7": {
+        "color": "#8a8a8a"
+      },
+      "11,8": {
+        "color": "#8a8a8a"
+      },
+      "11,9": {
+        "color": "#8a8a8a"
+      },
+      "12,2": {
+        "color": "#8a8a8a"
+      },
+      "12,3": {
+        "color": "#8a8a8a"
+      },
+      "12,4": {
+        "color": "#8a8a8a"
+      },
+      "12,5": {
+        "color": "#8a8a8a"
+      },
+      "12,6": {
+        "color": "#8a8a8a"
+      },
+      "12,7": {
+        "color": "#8a8a8a"
+      },
+      "12,8": {
+        "color": "#8a8a8a"
+      },
+      "12,9": {
+        "color": "#8a8a8a"
+      },
+      "10,21": {
+        "color": "#8a8a8a"
+      },
+      "10,22": {
+        "color": "#8a8a8a"
+      },
+      "10,23": {
+        "color": "#8a8a8a"
+      },
+      "10,24": {
+        "color": "#8a8a8a"
+      },
+      "10,25": {
+        "color": "#8a8a8a"
+      },
+      "10,26": {
+        "color": "#8a8a8a"
+      },
+      "10,27": {
+        "color": "#8a8a8a"
+      },
+      "10,28": {
+        "color": "#8a8a8a"
+      },
+      "10,29": {
+        "color": "#8a8a8a"
+      },
+      "10,30": {
+        "color": "#8a8a8a"
+      },
+      "10,31": {
+        "color": "#8a8a8a"
+      },
+      "10,32": {
+        "color": "#8a8a8a"
+      },
+      "11,21": {
+        "color": "#8a8a8a"
+      },
+      "11,22": {
+        "color": "#8a8a8a"
+      },
+      "11,23": {
+        "color": "#8a8a8a"
+      },
+      "11,24": {
+        "color": "#8a8a8a"
+      },
+      "11,25": {
+        "color": "#8a8a8a"
+      },
+      "11,26": {
+        "color": "#8a8a8a"
+      },
+      "11,27": {
+        "color": "#8a8a8a"
+      },
+      "11,28": {
+        "color": "#8a8a8a"
+      },
+      "11,29": {
+        "color": "#8a8a8a"
+      },
+      "11,30": {
+        "color": "#8a8a8a"
+      },
+      "11,31": {
+        "color": "#8a8a8a"
+      },
+      "11,32": {
+        "color": "#8a8a8a"
+      },
+      "12,21": {
+        "color": "#8a8a8a"
+      },
+      "12,22": {
+        "color": "#8a8a8a"
+      },
+      "12,23": {
+        "color": "#8a8a8a"
+      },
+      "12,24": {
+        "color": "#8a8a8a"
+      },
+      "12,25": {
+        "color": "#8a8a8a"
+      },
+      "12,26": {
+        "color": "#8a8a8a"
+      },
+      "12,27": {
+        "color": "#8a8a8a"
+      },
+      "12,28": {
+        "color": "#8a8a8a"
+      },
+      "12,29": {
+        "color": "#8a8a8a"
+      },
+      "12,30": {
+        "color": "#8a8a8a"
+      },
+      "12,31": {
+        "color": "#8a8a8a"
+      },
+      "12,32": {
+        "color": "#8a8a8a"
+      },
+      "13,21": {
+        "color": "#8a8a8a",
+        "image": "/images/icons/Orc token.webp"
+      },
+      "13,22": {
+        "color": "#8a8a8a",
+        "icon": "☠"
+      },
+      "13,23": {
+        "color": "#8a8a8a"
+      },
+      "13,24": {
+        "color": "#8a8a8a"
+      },
+      "13,25": {
+        "color": "#8a8a8a"
+      },
+      "13,26": {
+        "color": "#8a8a8a"
+      },
+      "13,27": {
+        "color": "#8a8a8a"
+      },
+      "13,28": {
+        "color": "#8a8a8a"
+      },
+      "13,29": {
+        "color": "#8a8a8a"
+      },
+      "13,30": {
+        "color": "#8a8a8a"
+      },
+      "13,31": {
+        "color": "#8a8a8a"
+      },
+      "13,32": {
+        "color": "#8a8a8a"
+      },
+      "14,21": {
+        "color": "#8a8a8a"
+      },
+      "14,22": {
+        "color": "#8a8a8a"
+      },
+      "14,23": {
+        "color": "#8a8a8a"
+      },
+      "14,24": {
+        "color": "#8a8a8a"
+      },
+      "14,25": {
+        "color": "#8a8a8a"
+      },
+      "14,26": {
+        "color": "#8a8a8a"
+      },
+      "14,27": {
+        "color": "#8a8a8a"
+      },
+      "14,28": {
+        "color": "#8a8a8a"
+      },
+      "14,29": {
+        "color": "#8a8a8a"
+      },
+      "14,30": {
+        "color": "#8a8a8a"
+      },
+      "14,31": {
+        "color": "#8a8a8a"
+      },
+      "14,32": {
+        "color": "#8a8a8a"
+      },
+      "9,36": {
+        "color": "#8a8a8a"
+      },
+      "9,37": {
+        "color": "#8a8a8a"
+      },
+      "9,38": {
+        "color": "#8a8a8a"
+      },
+      "9,39": {
+        "color": "#8a8a8a"
+      },
+      "10,36": {
+        "color": "#8a8a8a"
+      },
+      "10,37": {
+        "color": "#8a8a8a"
+      },
+      "10,38": {
+        "color": "#8a8a8a"
+      },
+      "10,39": {
+        "color": "#8a8a8a"
+      },
+      "11,36": {
+        "color": "#8a8a8a"
+      },
+      "11,37": {
+        "color": "#8a8a8a"
+      },
+      "11,38": {
+        "color": "#8a8a8a"
+      },
+      "11,39": {
+        "color": "#8a8a8a"
+      },
+      "8,36": {
+        "color": "#8a8a8a"
+      },
+      "8,37": {
+        "color": "#8a8a8a"
+      },
+      "8,38": {
+        "color": "#8a8a8a"
+      },
+      "8,39": {
+        "color": "#8a8a8a"
+      },
+      "27,3": {
+        "color": "#8a8a8a"
+      },
+      "27,4": {
+        "color": "#8a8a8a"
+      },
+      "27,5": {
+        "color": "#8a8a8a"
+      },
+      "27,6": {
+        "color": "#8a8a8a"
+      },
+      "27,7": {
+        "color": "#8a8a8a"
+      },
+      "27,8": {
+        "color": "#8a8a8a"
+      },
+      "27,9": {
+        "color": "#8a8a8a"
+      },
+      "27,10": {
+        "color": "#8a8a8a"
+      },
+      "27,11": {
+        "color": "#8a8a8a"
+      },
+      "27,12": {
+        "color": "#8a8a8a"
+      },
+      "27,13": {
+        "color": "#8a8a8a"
+      },
+      "27,14": {
+        "color": "#8a8a8a"
+      },
+      "28,3": {
+        "color": "#8a8a8a"
+      },
+      "28,4": {
+        "color": "#8a8a8a"
+      },
+      "28,5": {
+        "color": "#8a8a8a"
+      },
+      "28,6": {
+        "color": "#8a8a8a"
+      },
+      "28,7": {
+        "color": "#8a8a8a"
+      },
+      "28,8": {
+        "color": "#8a8a8a"
+      },
+      "28,9": {
+        "color": "#8a8a8a"
+      },
+      "28,10": {
+        "color": "#8a8a8a"
+      },
+      "28,11": {
+        "color": "#8a8a8a"
+      },
+      "28,12": {
+        "color": "#8a8a8a"
+      },
+      "28,13": {
+        "color": "#8a8a8a"
+      },
+      "28,14": {
+        "color": "#8a8a8a"
+      },
+      "29,3": {
+        "color": "#8a8a8a"
+      },
+      "29,4": {
+        "color": "#8a8a8a"
+      },
+      "29,5": {
+        "color": "#8a8a8a"
+      },
+      "29,6": {
+        "color": "#8a8a8a"
+      },
+      "29,7": {
+        "color": "#8a8a8a"
+      },
+      "29,8": {
+        "color": "#8a8a8a"
+      },
+      "29,9": {
+        "color": "#8a8a8a",
+        "image": "/images/icons/Orc token.webp"
+      },
+      "29,10": {
+        "color": "#8a8a8a"
+      },
+      "29,11": {
+        "color": "#8a8a8a"
+      },
+      "29,12": {
+        "color": "#8a8a8a"
+      },
+      "29,13": {
+        "color": "#8a8a8a"
+      },
+      "29,14": {
+        "color": "#8a8a8a"
+      },
+      "30,3": {
+        "color": "#8a8a8a"
+      },
+      "30,4": {
+        "color": "#8a8a8a"
+      },
+      "30,5": {
+        "color": "#8a8a8a"
+      },
+      "30,6": {
+        "color": "#8a8a8a"
+      },
+      "30,7": {
+        "color": "#8a8a8a"
+      },
+      "30,8": {
+        "color": "#8a8a8a"
+      },
+      "30,9": {
+        "color": "#8a8a8a"
+      },
+      "30,10": {
+        "color": "#8a8a8a"
+      },
+      "30,11": {
+        "color": "#8a8a8a"
+      },
+      "30,12": {
+        "color": "#8a8a8a"
+      },
+      "30,13": {
+        "color": "#8a8a8a"
+      },
+      "30,14": {
+        "color": "#8a8a8a"
+      },
+      "31,3": {
+        "color": "#8a8a8a"
+      },
+      "31,4": {
+        "color": "#8a8a8a"
+      },
+      "31,5": {
+        "color": "#8a8a8a"
+      },
+      "31,6": {
+        "color": "#8a8a8a"
+      },
+      "31,7": {
+        "color": "#8a8a8a"
+      },
+      "31,8": {
+        "color": "#8a8a8a"
+      },
+      "31,9": {
+        "color": "#8a8a8a"
+      },
+      "31,10": {
+        "color": "#8a8a8a"
+      },
+      "31,11": {
+        "color": "#8a8a8a"
+      },
+      "31,12": {
+        "color": "#8a8a8a"
+      },
+      "31,13": {
+        "color": "#8a8a8a"
+      },
+      "31,14": {
+        "color": "#8a8a8a"
+      },
+      "29,20": {
+        "color": "#8a8a8a"
+      },
+      "29,21": {
+        "color": "#8a8a8a"
+      },
+      "29,22": {
+        "color": "#8a8a8a"
+      },
+      "29,23": {
+        "color": "#8a8a8a"
+      },
+      "29,24": {
+        "color": "#8a8a8a"
+      },
+      "29,25": {
+        "color": "#8a8a8a"
+      },
+      "29,26": {
+        "color": "#8a8a8a"
+      },
+      "29,27": {
+        "color": "#8a8a8a"
+      },
+      "29,28": {
+        "color": "#8a8a8a"
+      },
+      "29,29": {
+        "color": "#8a8a8a"
+      },
+      "29,30": {
+        "color": "#8a8a8a"
+      },
+      "30,20": {
+        "color": "#8a8a8a"
+      },
+      "30,21": {
+        "color": "#8a8a8a"
+      },
+      "30,22": {
+        "color": "#8a8a8a"
+      },
+      "30,23": {
+        "color": "#8a8a8a"
+      },
+      "30,24": {
+        "color": "#8a8a8a"
+      },
+      "30,25": {
+        "color": "#8a8a8a"
+      },
+      "30,26": {
+        "color": "#8a8a8a"
+      },
+      "30,27": {
+        "color": "#8a8a8a"
+      },
+      "30,28": {
+        "color": "#8a8a8a"
+      },
+      "30,29": {
+        "color": "#8a8a8a"
+      },
+      "30,30": {
+        "color": "#8a8a8a",
+        "image": "/images/icons/Orc token.webp"
+      },
+      "31,20": {
+        "color": "#8a8a8a"
+      },
+      "31,21": {
+        "color": "#8a8a8a"
+      },
+      "31,22": {
+        "color": "#8a8a8a"
+      },
+      "31,23": {
+        "color": "#8a8a8a"
+      },
+      "31,24": {
+        "color": "#8a8a8a"
+      },
+      "31,25": {
+        "color": "#8a8a8a"
+      },
+      "31,26": {
+        "color": "#8a8a8a"
+      },
+      "31,27": {
+        "color": "#8a8a8a"
+      },
+      "31,28": {
+        "color": "#8a8a8a"
+      },
+      "31,29": {
+        "color": "#8a8a8a"
+      },
+      "31,30": {
+        "color": "#8a8a8a"
+      },
+      "32,20": {
+        "color": "#8a8a8a"
+      },
+      "32,21": {
+        "color": "#8a8a8a"
+      },
+      "32,22": {
+        "color": "#8a8a8a"
+      },
+      "32,23": {
+        "color": "#8a8a8a"
+      },
+      "32,24": {
+        "color": "#8a8a8a"
+      },
+      "32,25": {
+        "color": "#8a8a8a"
+      },
+      "32,26": {
+        "color": "#8a8a8a"
+      },
+      "32,27": {
+        "color": "#8a8a8a"
+      },
+      "32,28": {
+        "color": "#8a8a8a"
+      },
+      "32,29": {
+        "color": "#8a8a8a"
+      },
+      "32,30": {
+        "color": "#8a8a8a"
+      },
+      "28,36": {
+        "color": "#8a8a8a"
+      },
+      "28,37": {
+        "color": "#8a8a8a"
+      },
+      "28,38": {
+        "color": "#8a8a8a"
+      },
+      "28,39": {
+        "color": "#8a8a8a"
+      },
+      "29,36": {
+        "color": "#8a8a8a"
+      },
+      "29,37": {
+        "color": "#8a8a8a"
+      },
+      "29,38": {
+        "color": "#8a8a8a"
+      },
+      "29,39": {
+        "color": "#8a8a8a"
+      },
+      "36,34": {
+        "color": "#8a8a8a"
+      },
+      "36,35": {
+        "color": "#8a8a8a"
+      },
+      "36,36": {
+        "color": "#8a8a8a"
+      },
+      "36,37": {
+        "color": "#8a8a8a"
+      },
+      "36,38": {
+        "color": "#8a8a8a"
+      },
+      "36,39": {
+        "color": "#8a8a8a"
+      },
+      "37,34": {
+        "color": "#8a8a8a"
+      },
+      "37,35": {
+        "color": "#8a8a8a"
+      },
+      "37,36": {
+        "color": "#8a8a8a"
+      },
+      "37,37": {
+        "color": "#8a8a8a"
+      },
+      "37,38": {
+        "color": "#8a8a8a"
+      },
+      "37,39": {
+        "color": "#8a8a8a"
+      },
+      "38,34": {
+        "color": "#8a8a8a"
+      },
+      "38,35": {
+        "color": "#8a8a8a"
+      },
+      "38,36": {
+        "color": "#8a8a8a"
+      },
+      "38,37": {
+        "color": "#8a8a8a"
+      },
+      "38,38": {
+        "color": "#8a8a8a"
+      },
+      "38,39": {
+        "color": "#8a8a8a"
+      },
+      "36,3": {
+        "color": "#8a8a8a"
+      },
+      "36,4": {
+        "color": "#8a8a8a"
+      },
+      "36,5": {
+        "color": "#8a8a8a"
+      },
+      "36,6": {
+        "color": "#8a8a8a"
+      },
+      "36,7": {
+        "color": "#8a8a8a"
+      },
+      "36,8": {
+        "color": "#8a8a8a"
+      },
+      "37,3": {
+        "color": "#8a8a8a"
+      },
+      "37,4": {
+        "color": "#8a8a8a"
+      },
+      "37,5": {
+        "color": "#8a8a8a"
+      },
+      "37,6": {
+        "color": "#8a8a8a"
+      },
+      "37,7": {
+        "color": "#8a8a8a"
+      },
+      "37,8": {
+        "color": "#8a8a8a"
+      },
+      "38,3": {
+        "color": "#8a8a8a"
+      },
+      "38,4": {
+        "color": "#8a8a8a"
+      },
+      "38,5": {
+        "color": "#8a8a8a"
+      },
+      "38,6": {
+        "color": "#8a8a8a"
+      },
+      "38,7": {
+        "color": "#8a8a8a"
+      },
+      "38,8": {
+        "color": "#8a8a8a"
+      },
+      "39,3": {
+        "color": "#8a8a8a"
+      },
+      "39,4": {
+        "color": "#8a8a8a"
+      },
+      "39,5": {
+        "color": "#8a8a8a"
+      },
+      "39,6": {
+        "color": "#8a8a8a"
+      },
+      "39,7": {
+        "color": "#8a8a8a"
+      },
+      "39,8": {
+        "color": "#8a8a8a"
+      },
+      "24,10": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "25,12": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "21,13": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "24,8": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "22,6": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "22,7": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "24,6": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "22,10": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "22,15": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "20,11": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "26,14": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "19,7": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "16,5": {
+        "image": "/images/icons/orc token.webp"
+      },
+      "24,14": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "25,8": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "25,10": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "25,11": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "25,4": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "22,12": {
+        "image": "/images/icons/slave token 2.webp"
+      },
+      "16,16": {
+        "image": "/images/icons/orc token.webp"
+      },
+      "21,25": {
+        "color": "#ffb74d"
+      },
+      "21,26": {
+        "color": "#ffb74d"
+      },
+      "21,27": {
+        "color": "#ffb74d"
+      },
+      "22,25": {
+        "color": "#ffb74d"
+      },
+      "22,26": {
+        "color": "#ffb74d"
+      },
+      "22,27": {
+        "color": "#ffb74d"
+      },
+      "23,25": {
+        "color": "#ffb74d"
+      },
+      "23,26": {
+        "color": "#ffb74d"
+      },
+      "23,27": {
+        "color": "#ffb74d"
+      },
+      "16,37": {
+        "image": "/images/icons/human token.webp"
+      },
+      "18,37": {
+        "image": "/images/icons/orc token.webp"
+      },
+      "25,34": {
+        "image": "/images/icons/Orc token.webp"
+      },
+      "16,18": {
+        "color": "#ffb74d"
+      },
+      "16,19": {
+        "color": "#ffb74d"
+      },
+      "17,18": {
+        "color": "#ffb74d"
+      },
+      "17,19": {
+        "color": "#ffb74d"
+      },
+      "25,17": {
+        "color": "#ffb74d"
+      },
+      "25,18": {
+        "color": "#ffb74d"
+      },
+      "26,17": {
+        "color": "#ffb74d"
+      },
+      "26,18": {
+        "color": "#ffb74d"
+      },
+      "16,32": {
+        "color": "#ffb74d"
+      },
+      "16,33": {
+        "color": "#ffb74d"
+      },
+      "17,32": {
+        "color": "#ffb74d"
+      },
+      "17,33": {
+        "color": "#ffb74d"
+      },
+      "14,35": {
+        "color": "#4fc3f7"
+      },
+      "15,35": {
+        "color": "#4fc3f7"
+      },
+      "16,35": {
+        "color": "#4fc3f7"
+      },
+      "17,35": {
+        "color": "#4fc3f7"
+      },
+      "18,35": {
+        "color": "#4fc3f7"
+      },
+      "19,35": {
+        "color": "#4fc3f7"
+      },
+      "20,35": {
+        "color": "#4fc3f7"
+      },
+      "21,35": {
+        "color": "#4fc3f7"
+      },
+      "21,36": {
+        "color": "#4fc3f7"
+      },
+      "22,35": {
+        "color": "#4fc3f7"
+      },
+      "22,36": {
+        "color": "#4fc3f7"
+      },
+      "22,37": {
+        "color": "#4fc3f7"
+      },
+      "22,38": {
+        "color": "#4fc3f7"
+      },
+      "22,39": {
+        "color": "#4fc3f7"
+      },
+      "14,36": {
+        "color": "#4fc3f7"
+      },
+      "14,37": {
+        "color": "#4fc3f7"
+      },
+      "14,38": {
+        "color": "#4fc3f7"
+      },
+      "14,39": {
+        "color": "#4fc3f7"
+      },
+      "21,18": {
+        "icon": "🔥"
+      },
+      "25,19": {
+        "image": "/images/Lysander.webp"
+      },
+      "34,26": {
+        "image": "/images/icons/Orc token.webp"
+      },
+      "15,5": {
+        "icon": "⭐"
+      },
+      "25,22": {
+        "image": "/images/icons/orc rogue.webp"
+      },
+      "19,2": {
+        "image": "/images/icons/Orc token.webp"
+      },
+      "24,22": {
+        "image": "/images/Olga.webp"
+      },
+      "26,19": {
+        "image": "/images/icons/Orc token.webp"
+      },
+      "15,16": {
+        "icon": "☠"
+      },
+      "20,20": {
+        "image": "/images/icons/Orc token.webp"
+      },
+      "22,19": {
+        "image": "/images/Stumpy.webp"
+      },
+      "24,19": {
+        "icon": "⚔️"
+      },
+      "16,25": {
+        "icon": "🧙"
+      }
+    },
+    "shared": true,
+    "active": true,
     "visible_to": [
       1,
       2,
       3,
-      4
+      4,
+      40
+    ],
+    "player_cells": {
+    },
+    "player_arrows": [
+
     ]
   },
   {
-    "id": "9e89617a-3915-4456-a496-68d987865294",
+    "id": "5f2ff7f7-c26e-4829-a0bd-71ba82af8aa7",
     "owner_id": 0,
     "draft": true,
     "type": "draft_note",
     "title": "Caravan Prep: Overview",
-    "note": "Emergency evacuation after party's temple raid. Panicked, moving fast, fewer guards than normal but the survivors are the toughest.\n\nCreature templates live under the \"Slave Lords\" group on the enemies page: pick the caravan master that fits the surviving temple NPCs, then scale soldier / scout / handler counts to party.",
+    "note": "Emergency evacuation after party's temple raid. Panicked, moving fast, fewer guards than normal but the survivors are the toughest.",
     "public": false
   },
   {
-    "id": "1f0c894b-6065-4e31-a68b-058299246ca7",
+    "id": "1cde9b57-4a7e-4331-a8e9-ceddf004d1b6",
     "owner_id": 0,
     "draft": true,
     "type": "draft_note",
     "title": "Caravan Prep: Masters (pick 1)",
-    "note": "Pick ONE based on who survived the temple raid.\n\nOPTION A — Sturm Colasso [Tier 1, Human Rogue 5]\nSTR 12, DEX 16, CON 13, INT 14, WIS 11, CHA 10\nSkills: stealth, deception, perception, larceny, intimidate, sense_motive\nGear: short sword, leather armor, Ring of Protection +2, Potion of Invisibility, 50 gp\nBehavior: Coward. Drinks invisibility and runs at first sign of losing. Abandons caravan, slaves, everything. Runs toward Highport.\n\nOPTION B — Temple Cleric [Tier 2, Human Cleric 6, female]\nSTR 12, DEX 16, CON 13, INT 12, WIS 17, CHA 11\nSkills: religion, intimidate, perception, deception, sense_motive\nSpells prepared:\n  Cantrips: Guidance, Resistance\n  L1: Command x2, Cure Light Wounds x2, Protection from Good\n  L2: Hold Person x2, Resist Fire, Silence, Spiritual Hammer\n  L3: Bestow Curse, Blindness, Prayer\nGear: mace +1, plate mail, Potion of Haste, 30 gp\nBehavior: Opens with Prayer on self and guards, Silence on party casters, Hold Person on biggest threat. Surrenders if losing. Betrays everyone to save herself.\n\nOPTION C — Half-Orc Caravan Boss [Tier 1, Fighter 4 / Cleric 3]\nSTR 16, DEX 12, CON 15, INT 10, WIS 14, CHA 9\nSkills: athletics, intimidate, perception, religion\nSpells prepared:\n  Cantrips: Guidance\n  L1: Bless, Command, Cure Light Wounds, Darkness\n  L2: Hold Person, Spiritual Weapon\nGear: long sword, chain mail, shield, wooden holy symbol, 15 gp\nBehavior: Professional. Fights defensively. Threatens to kill slaves as hostages if cornered. Does not flee.",
+    "note": "See the Ambush scene panel for full stats; option summary: Sturm Colasso (rogue 5, coward), Temple Cleric (cleric 6, betrays everyone), Half-Orc Caravan Boss (Fighter 4 / Cleric 3, professional).",
     "public": false
   },
   {
-    "id": "c68645a0-f173-4f82-a971-e33854039425",
+    "id": "adfccf91-fc73-4cf2-b207-dbb6ebdf6a82",
     "owner_id": 0,
     "draft": true,
     "type": "draft_note",
     "title": "Caravan Prep: Soldiers, Scouts & Handlers",
-    "note": "HALF-ORC SOLDIERS (4-6)\nTier 0, Half-Orc Fighter 2\nSTR 15, DEX 12, CON 13, INT 10, WIS 10, CHA 8\nSkills: athletics, intimidate, perception\nGear: short sword, light crossbow (20 bolts), chain shirt, 1d6+2 gp\nPotion: 15% chance each of 1 random potion from tier_one_potions_oils\nBehavior: Fight in pairs. If 3+ soldiers die, survivors consider surrender. Disciplined but scared.\n\nHALF-ORC VETERAN (1, among the soldiers)\nTier 1, Half-Orc Fighter 4\nSTR 17, DEX 12, CON 14, INT 10, WIS 10, CHA 8\nGear: long sword, chain mail (instead of chain shirt), 2d6+5 gp\nBehavior: Last to break. Rallies others for one more round.\n\nHALF-ORC SCOUTS (2)\nTier 0, Half-Orc Rogue 2\nSTR 13, DEX 15, CON 12, INT 11, WIS 12, CHA 8\nSkills: stealth, perception, survival, athletics\nGear: short sword, short bow (20 arrows), leather armor, signal horn, 1d4 gp\nBehavior: Range 200-400 ft ahead and behind column. Watching for pursuit from Highport. If they spot the party, one warns the caravan while the other shadows to report numbers. They do NOT fight — they run.\n\nORC HANDLERS (2-3)\nTier 0, Orc Fighter 1\nSTR 13, DEX 11, CON 12, INT 8, WIS 9, CHA 7\nSkills: intimidate, animal_handling\nGear: whip (1d3, reach), short sword (backup), no armor, 1d4 gp\nBehavior: Bullies, not fighters. Drop whips and run if soldiers fall. One might kill a slave out of spite on the way out.",
+    "note": "Soldiers: half-orc Fighter 2, short sword + light crossbow + chain shirt, 1d6+2 gp, 15% potion. Veteran: Fighter 4, long sword + chain mail, 2d6+5 gp. Scouts: half-orc Rogue 2, short bow + signal horn. Handlers: orc Fighter 1, whip + short sword backup.",
     "public": false
   },
   {
-    "id": "d2ea3a1d-7f75-4186-92ed-00e6f287e578",
+    "id": "103d2827-ef16-4427-acf6-7ca52690f6ec",
     "owner_id": 0,
     "draft": true,
     "type": "draft_note",
     "title": "Caravan Prep: Doppelganger (optional)",
-    "note": "DOPPELGANGER (1, optional — from temple stable loft)\nTier 2, Aberration (shapeshifter), Monster 4\nSTR 18, DEX 18, CON 14, INT 13, WIS 14, CHA 14\nSkills: deception, stealth, perception, sense_motive\nTraits: immune to sleep and charm, reads surface thoughts, shapeshifts into any humanoid, surprise on 1-4, saves as level 10.\nGear: copies whatever form it's wearing (currently a half-orc soldier: short sword, chain shirt, crossbow), 2d6 gp (stolen).\nBehavior: Fights for whoever is winning. If party wins, it surrenders and claims to be a captured merchant. Wants to join the party, isolate a member, kill and replace them.\nTells: fights too well for a regular soldier; doesn't know slaver passwords, names, or procedures a real soldier would.",
+    "note": "Tier 2 aberration shapeshifter. STR 18 DEX 18. Currently a half-orc soldier. Surrenders if winning party arrives, then plays the captive merchant. Tells: doesn't know slaver passwords.",
     "public": false
   },
   {
-    "id": "c2838078-d437-4232-8058-05df96fd0b0f",
+    "id": "0cd7d0fc-66ba-4b04-a6a7-b29564eafdb7",
     "owner_id": 0,
     "draft": true,
     "type": "draft_note",
     "title": "Caravan Prep: Slaves",
-    "note": "SLAVES (15-20)\nTier 0, Human commoner (mixed origins, some from Sorinsk)\nSTR/DEX/CON/INT/WIS/CHA all 10\nGear: rags, ankle manacles, nothing else.\nCondition: exhausted, dehydrated, beaten, terrified.\nChained in a coffle — single long chain through all ankle manacles, 3 ft apart. Total length 45-60 ft. Padlocked to iron stakes when camped.\n\nNOTABLE SLAVES (pick 3-4)\n\nSorinsk Farmer (male, 40s)\nRecognizes the party from the feast. Knows 20 captives left weeks ago on an earlier caravan. Knows \"important ones\" (Hawthorne, Varen) were separated immediately. Broken arm, walks slow.\n\nSorinsk Merchant's Wife (female, 30s)\nOverheard guards mention \"the elf woman's workshop\" and \"the stockade in the mountains.\" Knows Doran Svetov was moved inland a week ago. Physically ok, mentally fragile.\n\nForeign Sailor (male, 20s)\nCaptured from a merchant ship. Southern accent. Knows the slaver ships are the Ghoul and Reaper. Knows Casimir Rybar's Silver Sturgeon carries intel, not slaves. Strong enough to fight if armed. Eager.\n\nChild (girl, 10-12)\nCaptured near Elredd. Doesn't speak much. No useful intel. Malnourished, scared.\n\nOld Dock Worker (male, 60s)\nEnslaved from Highport for debt. Resigned. Knows temple layout from time as a labor slave. Knows about the aspis alliance (\"bug things in the sewers\"). Weak. Won't flee without convincing.",
+    "note": "15-20 chained in coffle. Notable: Sorinsk Farmer (recognizes party), Merchant's Wife (overheard the elf-woman's workshop), Foreign Sailor (knows ship names), Child (no intel), Old Dock Worker (knows temple).",
     "public": false
   },
   {
-    "id": "8d473ceb-fd2a-4adc-a2fe-f61b485c10d4",
+    "id": "a49e95bb-ff62-404a-9afc-4c570ff9309e",
     "owner_id": 0,
     "draft": true,
     "type": "draft_note",
     "title": "Caravan Prep: March Order & Night Camp",
-    "note": "MARCH ORDER (on the trail)\n  [Scout — 200 ft ahead]\n  [2 soldiers — point]\n  [Mules + 1 handler]\n  [Coffle of 15-20 slaves, 45-60 ft long]\n  [2 handlers flanking the coffle]\n  [Caravan master + 1-2 soldiers — rear]\n  [Scout — 200 ft behind, watching for pursuit]\nTotal column length roughly 120-150 ft, gate to gate.\n\nNIGHT CAMP LAYOUT (if the party ambushes at night)\nSingle fire, banked low. Slaves chained to a picket line (iron stakes). 2 guards on watch, rotating 4-hour shifts. Caravan master sleeps near the strongbox mule. Soldiers cluster near the fire. Handlers sleep furthest from the slaves. Scouts pulled in, camped 50 ft out as early warning. Mules hobbled.\nBest ambush window: pre-dawn third watch (guards groggy).\n\nDETECTION\nWatch guards make perception checks each turn.\nScouts wake on loud noise.\nMules snort if strangers approach upwind.\nDoppelganger doesn't really sleep — notices party 50% of the time but may choose not to alert anyone (waiting to see who wins).",
+    "note": "March: scout / 2 soldiers / mule + handler / coffle / 2 handlers / master + 1-2 soldiers / scout. Night: single low fire, slaves on picket line, scouts 50 ft out. Best ambush window: pre-dawn third watch.",
     "public": false
   },
   {
-    "id": "38faa626-e64b-49f3-93a3-c3f5d51f6680",
+    "id": "3ecffd25-0435-480b-bdb2-f55daddd733c",
     "owner_id": 0,
     "draft": true,
     "type": "draft_note",
     "title": "Caravan Prep: Random Encounter (Orc Patrol)",
-    "note": "ORC PATROL (only if the party delays 1+ days)\nChance: 1-in-6 per day\nNumber: 4-16 orcs\nTier 0, Orc Fighter 1\nSTR 15, DEX 10, CON 12, INT 7, WIS 8, CHA 6\nGear: short sword or hand axe (50/50), 50% have light crossbow, hide armor, 1d6 gp each\nBehavior: Part of a toll arrangement with slavers. If the party looks like slavers, the patrol ignores them. If not, they shadow and report. Don't attack unprovoked.",
+    "note": "1-in-6 per day. 4-16 orc Fighter 1, short sword or hand axe + 50% crossbow + hide armor, 1d6 gp each. Toll arrangement; ignore slavers, shadow others.",
     "public": false
   },
   {
-    "id": "fa253e4f-8009-48ac-b120-ebb2e2c9eaf8",
+    "id": "84a43fb3-fea6-4262-955f-05a14fccb568",
     "owner_id": 0,
     "draft": true,
     "type": "draft_note",
     "title": "Caravan Prep: Caravan Loot (mules)",
-    "note": "CARAVAN LOOT (on the mules)\n\nStrongbox (locked, iron):\n  800 gp\n  3 gems worth 100 gp each (goblin tribe toll)\n  2 gems worth 200 gp each (gnoll tribe toll)\n  Caravan route map (landmarks to stockade, no distances)\n  Guard roster copy with agent abbreviations (Ag., Haz., MO, Tar.)\n\nSupplies:\n  Rations (2 weeks for 25 people)\n  Water skins (3 days)\n  Rope (100 ft)\n  Spare manacles (6 sets), branding irons (3), whips (2)\n  Canvas tarps (2), basic tools",
+    "note": "Strongbox: 800 gp, 3 gems @ 100, 2 gems @ 200, route map, guard roster. Supplies: rations (2wk/25 ppl), water (3d), rope, manacles, branding irons, whips, tarps, tools.",
     "public": false
   }
 ]
