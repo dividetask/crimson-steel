@@ -10,7 +10,7 @@
   toggle_target = (detail == :full) ? :minimal : :full
   toggle_label  = (detail == :full) ? 'Show minimal' : 'Show full sheet'
 %>
-<% if @encounter_message && @route_prefix == '/character' %>
+<% if @encounter_message && @route_prefix == '/character' && @is_local %>
   <%= erb :_encounter_banner, layout: false %>
 <% end %>
 <% if @route_prefix %>
