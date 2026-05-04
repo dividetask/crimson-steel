@@ -2,69 +2,384 @@
   "active": false,
   "round": 0,
   "current_turn": 0,
-  "current_turn_id": 0,
-  "active_effects": [],
-  "participants": [
+  "current_turn_id": 5,
+  "active_effects": [
     {
-      "id": 1,
-      "char_id": 1,
-      "initiative": "X98765432",
-      "mana": 8,
-      "combat_pool": 17,
-      "minor_damage": 12,
-      "moderate_damage": 11,
-      "major_damage": 0,
-      "saturation": 8,
-      "temporary_hit_points": 0,
-      "conditions": {},
-      "condition_meta": {},
-      "ability_damage": {}
+      "caster_id": 1,
+      "caster_name": "Stumpy",
+      "spell_name": "Shield of Faith",
+      "spell_tier": 1,
+      "round_cast": 0,
+      "target_combat_ids": [
+        40
+      ],
+      "target_names": [
+        "Kael"
+      ]
     },
+    {
+      "caster_id": 1,
+      "caster_name": "Stumpy",
+      "spell_name": "Spiritual Weapon",
+      "spell_tier": 2,
+      "round_cast": 0,
+      "target_combat_ids": [
+        44
+      ],
+      "target_names": [
+        "Half-Orc Veteran"
+      ]
+    }
+  ],
+  "participants": [
     {
       "id": 3,
       "char_id": 3,
-      "initiative": "X976541",
-      "mana": 12,
+      "initiative": "X987654",
+      "mana": 22,
       "combat_pool": 19,
-      "minor_damage": 0,
+      "minor_damage": 3,
       "moderate_damage": 0,
       "major_damage": 0,
-      "saturation": 2,
+      "saturation": 4,
       "temporary_hit_points": 0,
-      "conditions": {},
+      "conditions": {
+        "bleed": 11
+      },
       "condition_meta": {},
-      "ability_damage": {}
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 53,
+      "char_id": 110,
+      "initiative": "X9876321",
+      "mana": 60,
+      "combat_pool": 9,
+      "minor_damage": 27,
+      "moderate_damage": 11,
+      "major_damage": 0,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {
+        "bleed": 67
+      },
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 52,
+      "char_id": 109,
+      "initiative": "X953",
+      "mana": 7,
+      "combat_pool": 14,
+      "minor_damage": 7,
+      "moderate_damage": 7,
+      "major_damage": 5,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {
+        "bleed": 26
+      },
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 45,
+      "char_id": 101,
+      "initiative": "X943",
+      "mana": 5,
+      "combat_pool": 11,
+      "minor_damage": 6,
+      "moderate_damage": 1,
+      "major_damage": 0,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {
+        "bleed": 3
+      },
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
     },
     {
       "id": 2,
       "char_id": 2,
-      "initiative": "X96432",
-      "mana": 14,
-      "combat_pool": 18,
-      "minor_damage": 28,
-      "moderate_damage": 0,
+      "initiative": "X86541",
+      "mana": 15,
+      "combat_pool": 5,
+      "minor_damage": 11,
+      "moderate_damage": 4,
       "major_damage": 0,
-      "saturation": 2,
+      "saturation": 8,
       "temporary_hit_points": 0,
-      "conditions": {},
+      "conditions": {
+        "bleed": 9
+      },
       "condition_meta": {},
-      "ability_damage": {}
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
     },
     {
       "id": 4,
       "char_id": 4,
-      "initiative": "987531",
-      "mana": 9,
+      "initiative": "X85432",
+      "mana": 19,
       "combat_pool": 19,
-      "minor_damage": 4,
-      "moderate_damage": 1,
+      "minor_damage": 0,
+      "moderate_damage": 0,
       "major_damage": 0,
-      "saturation": 2,
+      "saturation": 0,
       "temporary_hit_points": 0,
       "conditions": {},
       "condition_meta": {},
-      "ability_damage": {}
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": true
+    },
+    {
+      "id": 47,
+      "char_id": 103,
+      "initiative": "X8421",
+      "mana": 9,
+      "combat_pool": 16,
+      "minor_damage": 9,
+      "moderate_damage": 4,
+      "major_damage": 2,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {
+        "bleed": 9
+      },
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 48,
+      "char_id": 104,
+      "initiative": "X8321",
+      "mana": 9,
+      "combat_pool": 16,
+      "minor_damage": 10,
+      "moderate_damage": 4,
+      "major_damage": 1,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {
+        "bleed": 7
+      },
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 46,
+      "char_id": 102,
+      "initiative": "X8321",
+      "mana": 9,
+      "combat_pool": 7,
+      "minor_damage": 6,
+      "moderate_damage": 4,
+      "major_damage": 1,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {
+        "bleed": 11
+      },
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 43,
+      "char_id": 99,
+      "initiative": "X7531",
+      "mana": 9,
+      "combat_pool": 16,
+      "minor_damage": 5,
+      "moderate_damage": 5,
+      "major_damage": 6,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {
+        "bleed": 23
+      },
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 1,
+      "char_id": 1,
+      "initiative": "987654321",
+      "mana": 19,
+      "combat_pool": 17,
+      "minor_damage": 0,
+      "moderate_damage": 5,
+      "major_damage": 0,
+      "saturation": 9,
+      "temporary_hit_points": 0,
+      "conditions": {},
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 50,
+      "char_id": 106,
+      "initiative": "98754",
+      "mana": 17,
+      "combat_pool": 10,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {},
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 49,
+      "char_id": 105,
+      "initiative": "98752",
+      "mana": 9,
+      "combat_pool": 16,
+      "minor_damage": 6,
+      "moderate_damage": 5,
+      "major_damage": 7,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {
+        "bleed": 21
+      },
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 55,
+      "char_id": 112,
+      "initiative": "98631",
+      "mana": 9,
+      "combat_pool": 16,
+      "minor_damage": 23,
+      "moderate_damage": 4,
+      "major_damage": 3,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {
+        "bleed": 9
+      },
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 54,
+      "char_id": 111,
+      "initiative": "98521",
+      "mana": 2,
+      "combat_pool": 6,
+      "minor_damage": 12,
+      "moderate_damage": 0,
+      "major_damage": 0,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {},
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 51,
+      "char_id": 108,
+      "initiative": "9541",
+      "mana": 7,
+      "combat_pool": 14,
+      "minor_damage": 7,
+      "moderate_damage": 5,
+      "major_damage": 0,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {
+        "bleed": 10
+      },
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 40,
+      "char_id": 40,
+      "initiative": "87621",
+      "mana": 14,
+      "combat_pool": 5,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {},
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 44,
+      "char_id": 100,
+      "initiative": "87421",
+      "mana": 17,
+      "combat_pool": 21,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {},
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
+    },
+    {
+      "id": 41,
+      "char_id": 97,
+      "initiative": "8654321",
+      "mana": 22,
+      "combat_pool": 21,
+      "minor_damage": 0,
+      "moderate_damage": 0,
+      "major_damage": 0,
+      "saturation": 0,
+      "temporary_hit_points": 0,
+      "conditions": {},
+      "condition_meta": {},
+      "ability_damage": {},
+      "luck_points": 0,
+      "performed_this_turn": false
     }
   ],
-  "hide_initiative": true
+  "hide_initiative": true,
+  "dm_luck_points": 0
 }

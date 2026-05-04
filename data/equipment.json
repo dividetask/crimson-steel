@@ -5,8 +5,7 @@
     "type": "armor",
     "subtype": "heavy",
     "bonus": 0,
-    "properties": {
-    },
+    "properties": {},
     "equipped": true
   },
   {
@@ -15,8 +14,7 @@
     "type": "shield",
     "subtype": "light",
     "bonus": 1,
-    "properties": {
-    },
+    "properties": {},
     "description": "A shining mental shield. It’s magic reduces TN to block and increases TN to attack you. Ranged magic attacks can be reflected",
     "equipped": true
   },
@@ -74,8 +72,7 @@
     "type": "item",
     "subtype": "bottle",
     "bonus": 0,
-    "properties": {
-    },
+    "properties": {},
     "description": "Unknown properties. Elegant glass bottle with a crystal stopper shaped like a blooming thistle. Magically refills.",
     "equipped": false
   },
@@ -85,8 +82,7 @@
     "type": "item",
     "subtype": "wrist",
     "bonus": 0,
-    "properties": {
-    },
+    "properties": {},
     "description": "Unknown properties. Forged from dull red iron and wrapped in worn leather stamped with crude battle scenes, this child-sized armband resizes to fit its wearer.",
     "equipped": false
   },
@@ -148,8 +144,7 @@
     "type": "armor",
     "subtype": "light",
     "bonus": 1,
-    "properties": {
-    },
+    "properties": {},
     "equipped": true
   },
   {
@@ -173,8 +168,7 @@
     "type": "shoes",
     "subtype": "footwraps",
     "bonus": 0,
-    "properties": {
-    },
+    "properties": {},
     "description": "Unknown properties. Footwraps. You have felt a great amount of emotion coming from these wraps. After taking damage in combat you gain one point of luck that can be used to reroll one of your attack dice. Only one point can be granted per round from this item.",
     "equipped": true
   },
@@ -184,8 +178,7 @@
     "type": "item",
     "subtype": "ring",
     "bonus": 1,
-    "properties": {
-    },
+    "properties": {},
     "description": "Allows a single free parry once per day",
     "equipped": true
   },
@@ -320,8 +313,7 @@
     "type": "armor",
     "subtype": "light",
     "bonus": 1,
-    "properties": {
-    },
+    "properties": {},
     "equipped": true
   },
   {
@@ -354,7 +346,7 @@
         "piercing"
       ]
     },
-    "equipped": false
+    "equipped": true
   },
   {
     "owner_id": 3,
@@ -377,8 +369,7 @@
     "subtype": "circlet",
     "slot": "head",
     "bonus": 1,
-    "properties": {
-    },
+    "properties": {},
     "equipped": true
   },
   {
@@ -387,8 +378,7 @@
     "type": "item",
     "subtype": "key",
     "bonus": 0,
-    "properties": {
-    },
+    "properties": {},
     "description": "Unknown properties. A small, tarnished silver key, the kind that might open a simple padlock or shackle. The name 'Orin' is crudely scratched into the bow (handle) as if carved by an unsteady hand. The key is unexpectedly warm to the touch and occasionally pulses with a faint, gentle golden light.",
     "equipped": false
   },
@@ -398,8 +388,7 @@
     "type": "item",
     "subtype": "ring",
     "bonus": 0,
-    "properties": {
-    },
+    "properties": {},
     "description": "A simple brass ring shaped like a curled ribbon, slightly tarnished with age. Inside is etched the name 'Petey' in childish scrawl. Sentient, dimensional storage, and can steal items from 10’. It may have additional properties.",
     "equipped": true
   },
@@ -409,8 +398,7 @@
     "type": "item",
     "subtype": "ring",
     "bonus": 2,
-    "properties": {
-    },
+    "properties": {},
     "description": "Allows you to animate an inanimate object once per day for 5 minutes.",
     "equipped": true
   },
@@ -420,8 +408,7 @@
     "type": "item",
     "subtype": "coin",
     "bonus": 0,
-    "properties": {
-    },
+    "properties": {},
     "description": "Anyone who sees the coin feels compelled to possess it. Mind effecting, range 30 feet, and effect lasts 1 minute.",
     "equipped": false
   },
@@ -575,8 +562,7 @@
     "subtype": "misc",
     "bonus": 0,
     "quantity": 1,
-    "properties": {
-    },
+    "properties": {},
     "description": "Glass eye, poisoner's chalice, chess board",
     "equipped": false
   },
@@ -586,13 +572,12 @@
     "type": "armor",
     "subtype": "light",
     "bonus": 1,
-    "properties": {
-    },
+    "properties": {},
     "equipped": true
   },
   {
     "owner_id": 4,
-    "name": "+1 Shortbow",
+    "name": "+1 acid Shortbow",
     "type": "weapon",
     "subtype": "shortbow",
     "bonus": 1,
@@ -612,7 +597,11 @@
     "subtype": "instrument",
     "bonus": 1,
     "properties": {
-      "enhancement": {"type": "skill", "skill": "perform_percussion", "amount": 1}
+      "enhancement": {
+        "type": "skill",
+        "skill": "perform_percussion",
+        "amount": 1
+      }
     },
     "equipped": true
   },
@@ -658,8 +647,7 @@
     "type": "item",
     "subtype": "bag",
     "bonus": 0,
-    "properties": {
-    },
+    "properties": {},
     "description": "A seemingly unremarkable leather pouch of trail rations. It contains an assortment of nuts, berries, and sweets sufficient to feed five people. Every night it is magically refilled.",
     "equipped": false
   },
@@ -670,8 +658,7 @@
     "subtype": "amulet",
     "slot": "neck",
     "bonus": 0,
-    "properties": {
-    },
+    "properties": {},
     "description": "An ordinary looking silver locket",
     "equipped": true
   },
@@ -759,8 +746,7 @@
     "type": "weapon",
     "subtype": "dagger",
     "bonus": 1,
-    "properties": {
-    },
+    "properties": {},
     "description": "Sacrificing a helpless victim destroys its soul and casts cure light wounds without any magical saturation. The victim must be your magical density or more. May have additional effects.",
     "equipped": false
   },
@@ -814,7 +800,7 @@
       "spell": "cure"
     },
     "equipped": false,
-    "quantity": 2
+    "quantity": 1
   },
   {
     "owner_id": 1,
@@ -905,7 +891,7 @@
       "spell": "spiritual_weapon"
     },
     "equipped": false,
-    "quantity": 1
+    "quantity": 4
   },
   {
     "owner_id": 3,
@@ -996,7 +982,7 @@
       "spell": "create_pit"
     },
     "equipped": false,
-    "quantity": 1
+    "quantity": 3
   },
   {
     "owner_id": 4,
@@ -1004,9 +990,240 @@
     "type": "item",
     "subtype": "ring",
     "bonus": 3,
-    "properties": {
-    },
+    "properties": {},
     "description": "Unknown Properties. Can be activated as a reaction to another's check with unpredictable results.",
     "equipped": true
+  },
+  {
+    "owner_id": 4,
+    "name": "Create Pit Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "create_pit"
+    },
+    "equipped": false,
+    "description": "You create a 10-foot-by-10-foot extra-dimensional hole with a depth of 10 feet per two caster ranks (maximum 30 feet). You must create the pit on a horizontal surface of sufficient size. Since it extends into another dimension, the pit has no weight and does not otherwise displace the original underlying material. You can create the pit in the deck of a ship as easily as in a dungeon floor or the ground of a forest. Any creature standing in the area where you first conjured the pit must make a Reflex saving throw to jump to safety in the nearest open space. In addition, the edges of the pit are sloped, and any creature ending its turn on a square adjacent to the pit must make a Reflex saving throw with a +1 bonus to avoid falling into it. Creatures subjected to an effect intended to push them into the pit (such as bull rush) do not get a saving throw to avoid falling in if they are affected by the pushing effect. Creatures who fall into the pit take falling damage as normal. The pit’s coarse stone walls increase the Athletic check difficulty by 2. When the duration of the spell ends, creatures within the hole rise up with the bottom of the pit until they are standing on the surface over the course of a single round.",
+    "quantity": 2
+  },
+  {
+    "owner_id": 2,
+    "name": "+1 Belt of Strength",
+    "type": "item",
+    "subtype": "belt",
+    "bonus": 1,
+    "properties": {
+      "enhancement": {
+        "type": "attribute",
+        "attribute": "str",
+        "amount": 1
+      }
+    },
+    "equipped": true,
+    "description": "Increases the wearer's enhancement bonus for a single attribute."
+  },
+  {
+    "owner_id": 3,
+    "name": "Blur Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "blur"
+    },
+    "equipped": false,
+    "description": "Attacks miss subject 20% of the time due to blurred outline.",
+    "quantity": 1
+  },
+  {
+    "owner_id": 4,
+    "name": "Blur Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "blur"
+    },
+    "equipped": false,
+    "description": "Attacks miss subject 20% of the time due to blurred outline.",
+    "quantity": 2
+  },
+  {
+    "owner_id": 1,
+    "name": "Simple Ward Scroll",
+    "type": "consumable",
+    "subtype": "scroll",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "ward"
+    },
+    "equipped": false,
+    "description": "Target gains 8.0 temporary hit points, and any bleeding is reduced based upon spell tier and success roll. Can resuscitate dying characters if cast within 2 rounds.",
+    "quantity": 4
+  },
+  {
+    "owner_id": 40,
+    "name": "+1 Leather Armor",
+    "type": "armor",
+    "subtype": "light",
+    "bonus": 1,
+    "properties": {},
+    "equipped": true
+  },
+  {
+    "owner_id": 40,
+    "name": "+1 Acid Falcion",
+    "type": "weapon",
+    "subtype": "falcion",
+    "bonus": 1,
+    "properties": {
+      "details": [
+        "heavy",
+        "slashing"
+      ]
+    },
+    "description": "",
+    "equipped": true
+  },
+  {
+    "owner_id": 1,
+    "name": "Hat of Disguise",
+    "type": "equipment",
+    "subtype": "head",
+    "bonus": 1,
+    "properties": {},
+    "equipped": false,
+    "description": "This allows the wearer to benefit from the effects of Disguise Self. The appearance of the hat may be changed within the bounds of the spell but cannot be hidden."
+  },
+  {
+    "owner_id": 1,
+    "name": "Darkvision Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "darkvision"
+    },
+    "equipped": false,
+    "description": "Subject sees 60 ft. in total darkness.",
+    "quantity": 1
+  },
+  {
+    "owner_id": 2,
+    "name": "Darkvision Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "darkvision"
+    },
+    "equipped": false,
+    "description": "Subject sees 60 ft. in total darkness.",
+    "quantity": 1
+  },
+  {
+    "owner_id": 3,
+    "name": "Darkvision Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "darkvision"
+    },
+    "equipped": false,
+    "description": "Subject sees 60 ft. in total darkness.",
+    "quantity": 1
+  },
+  {
+    "owner_id": 4,
+    "name": "Darkvision Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "darkvision"
+    },
+    "equipped": false,
+    "description": "Subject sees 60 ft. in total darkness.",
+    "quantity": 1
+  },
+  {
+    "owner_id": 2,
+    "name": "Enlarge Person Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 1,
+    "properties": {
+      "consumable": true,
+      "spell": "enlarge_person"
+    },
+    "equipped": false,
+    "description": "Humanoid creature doubles in size for 1 round per rank.",
+    "quantity": 3
+  },
+  {
+    "owner_id": 2,
+    "name": "Resist Energy Acid Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "resist_energy_acid"
+    },
+    "equipped": false,
+    "description": "Ignores 10 or more points of damage per attack from acid.",
+    "quantity": 1
+  },
+  {
+    "owner_id": 2,
+    "name": "Resist Energy Cold Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "resist_energy_cold"
+    },
+    "equipped": false,
+    "description": "Ignores 10 or more points of damage per attack from cold.",
+    "quantity": 1
+  },
+  {
+    "owner_id": 2,
+    "name": "Resist Energy Electricity Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "resist_energy_electricity"
+    },
+    "equipped": false,
+    "description": "Ignores 10 or more points of damage per attack from electricity.",
+    "quantity": 1
+  },
+  {
+    "owner_id": 2,
+    "name": "Resist Energy Fire Potion",
+    "type": "consumable",
+    "subtype": "potion",
+    "bonus": 2,
+    "properties": {
+      "consumable": true,
+      "spell": "resist_energy_fire"
+    },
+    "equipped": false,
+    "description": "Ignores 10 or more points of damage per attack from fire.",
+    "quantity": 1
   }
 ]
