@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [[ -z "$REPO_ROOT" ]]; then
+  echo "Error: not inside a git repository" >&2
+  exit 1
+fi
+
+BRANCHES_FILE="$REPO_ROOT/.branches.local"
+if [[ ! -f "$BRANCHES_FILE" ]]; then
+  echo "Error: $BRANCHES_FILE not found" >&2
+  exit 1
+fi
+
+# Load non-empty, non-comment lines into an array
+mapfile -t G_BRANCHES < <(grep -vE '^\s*(#|$)' "$BRANCHES_FILE")
+
+cmd="${1:-?}"
+
+# List branches
+if [[ "$cmd" == "?" ]]; then
+  echo "Available branches:"
+  echo "  m: main"
+  echo "  p: PRODUCTION"
+  for i in "${!G_BRANCHES[@]}"; do
+    echo "  $i: ${G_BRANCHES[$i]}"
+  done
+  exit 0
+fi
+
+# Sync git's fetch refspecs to match the branches file
+if [[ "$cmd" == "sync" ]]; then
+  git config --unset-all remote.origin.fetch || true
+  git config --add remote.origin.fetch '+refs/heads/main:refs/remotes/origin/main'
+  git config --add remote.origin.fetch '+refs/heads/PRODUCTION:refs/remotes/origin/PRODUCTION'
+  for b in "${G_BRANCHES[@]}"; do
+    git config --add remote.origin.fetch "+refs/heads/$b:refs/remotes/origin/$b"
+  done
+  echo "Refspecs updated. Run 'git fetch --prune' to apply."
+  exit 0
+fi
+
+# Resolve target branch
+case "$cmd" in
+  m) branch="main" ;;
+  p) branch="PRODUCTION" ;;
+  *) branch="${G_BRANCHES[$cmd]:-}" ;;
+esac
+
+if [[ -z "$branch" ]]; then
+  echo "Error: no branch at index '$cmd'. Run 'bin/g ?' to list." >&2
+  exit 1
+fi
+
+# Guard against losing uncommitted work
+if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+  echo "Warning: uncommitted changes will be discarded by 'git restore .'"
+  read -r -p "Proceed? [y/N] " confirm
+  [[ "$confirm" =~ ^[yY]$ ]] || exit 1
+fi
+
+git restore .
+git checkout "$branch"
+git pull
+ruby app.rb

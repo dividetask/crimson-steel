@@ -1,3 +1,7 @@
 .*.swp
 .*.swo
-.*
+data/*
+local.rb
+public/uploads/
+node_modules/
+.branches.local
