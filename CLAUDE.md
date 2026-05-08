@@ -34,6 +34,11 @@ Crimson Steel DM Tools is a local server that allows other players to connect to
 
 - Whenever you have a question, or multiple questions, stop immediatly after asking them.
 
+### Never use the AskUserQuestion tool
+
+- Never use the `AskUserQuestion` tool / multiple-choice prompt UI.
+- If you have questions, just write them out as plain text and wait for a response.
+
 ### Design document conventions
 
 - All formulas use `floor()` for division (round down) unless explicitly stated otherwise.
