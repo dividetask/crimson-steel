@@ -1,0 +1,57 @@
+# Spells added or shaped on the implement-roll-class-gbLWb branch.
+#
+# `target` drives the cast UI: `single` shows a target dropdown,
+# `multi` shows a checkbox list, `no` auto-casts.
+#
+# `casting_time` is stored as a token; the view layer renders it as a
+# human-readable label (e.g. `1_round` -> "1 round").
+
+spells:
+  cure:
+    tier: 1
+    target: single
+    casting_time: 1_round
+    cost: {mana: 2}
+    effect:
+      heal: "tier*con/2"
+      ability_cure_cascade: true        # minor -> moderate -> major
+    notes: |
+      Heals damage and lifts ability damage on a target via cure cascade.
+
+  ward:
+    tier: 1
+    target: single
+    casting_time: 1_round
+    cost: {mana: 2}
+    effect:
+      grant_temp_hp: "tier*con/2"
+    notes: |
+      Adds temporary hit points to the target's CombatTurn. Damage
+      absorbs into temp HP first; current HP includes temp HP in the
+      displayed value.
+
+  obscuring_mist:
+    tier: 1
+    target: no
+    casting_time: 1_round
+    cost: {mana: 2}
+    effect:
+      area_obscuring: true
+    notes: |
+      No target picker; creates an obscuring area around the caster.
+
+  # Pre-existing examples shaped by this branch's casting refactor.
+  mending:
+    tier: 0
+    target: single
+    casting_time: 1_minute
+
+  charm_person:
+    tier: 1
+    target: single
+    casting_time: 1_round
+
+  healing_word:
+    tier: 1
+    target: single
+    casting_time: 1_round

@@ -1,0 +1,18 @@
+# Shield definitions. Drive the Shield Block defense action, which
+# mirrors Parry but uses these stats.
+
+shields:
+  light:
+    block_dice: 1
+    block_bonus: 1
+    speed_penalty: 0
+
+  medium:
+    block_dice: 2
+    block_bonus: 2
+    speed_penalty: 0
+
+  tower:
+    block_dice: 3
+    block_bonus: 3
+    speed_penalty: 1

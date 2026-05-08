@@ -1,0 +1,27 @@
+# Class templates added or shaped by the implement-roll-class-gbLWb branch.
+#
+# `commoner` and `aberration` are generic NPC archetypes; `wardog` is an
+# animal template that ships with a declared natural bite weapon.
+
+classes:
+  commoner:
+    saves: [str, con]
+    abilities: []
+    notes: |
+      Generic NPC class. Drops the monster-only placeholder fields some
+      earlier templates inherited.
+
+  aberration:
+    saves: [wis, cha]
+    abilities: []
+    notes: |
+      Creature class for unusual NPCs. Drops monster-only placeholder
+      fields.
+
+  wardog:
+    saves: [str, con]
+    natural_weapons: [bite]
+    abilities: []
+    notes: |
+      Animal template. Declares a natural bite weapon so it has an
+      attack to use by default.

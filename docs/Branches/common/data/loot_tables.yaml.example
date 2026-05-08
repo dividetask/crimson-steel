@@ -1,0 +1,39 @@
+# Wandering encounter loot tables.
+#
+# Random encounters roll one entry per spawned creature. Each creature
+# rolls gold and items independently and the encounter banner emits
+# one bullet per item per creature.
+
+loot_tables:
+  bandit:
+    gold: "2d10"
+    items:
+      - {name: "shortsword",     weight: 4}
+      - {name: "leather_armor",  weight: 2}
+      - {name: "healing_potion", weight: 1}
+
+  goblin_warband:
+    gold: "1d6"
+    items:
+      - {name: "rusty_dagger",  weight: 5}
+      - {name: "shortbow",      weight: 2}
+      - {name: "scroll_charm",  weight: 1}
+
+  ghoul:
+    gold: "0"
+    items:
+      - {name: "bone_dust",     weight: 3}
+      - {name: "tarnished_ring", weight: 1}
+
+# Encounter tables map source category -> list of entries.
+encounter_tables:
+  forest_road:
+    entries:
+      - {creature: bandit,         quantity: "1d4",   weight: 3, loot: bandit}
+      - {creature: goblin_warband, quantity: "2d4",   weight: 2, loot: goblin_warband}
+      - {creature: wardog,         quantity: "1d2",   weight: 1, loot: bandit}
+
+  graveyard:
+    entries:
+      - {creature: ghoul,    quantity: "1d3",   weight: 2, loot: ghoul}
+      - {creature: skeleton, quantity: "2d4",   weight: 3, loot: ghoul}

@@ -1,0 +1,92 @@
+# Race definitions.
+#
+# Each entry declares a race family. Variants are sub-types under a family
+# (e.g. `hill` and `mountain` for dwarf). Racial adjustments grant starting
+# attribute bonuses; speed sets base speed in feet; tier_progression lists
+# abilities granted at or above the named tier (Tier 0 == 0.5 in formulas).
+
+races:
+  human:
+    variants: [base]
+    racial_adjustments:
+      base: {all: 1}
+    speed: 30
+
+  dwarf:
+    variants: [hill, mountain]
+    racial_adjustments:
+      hill:     {con: 2, wis: 2}
+      mountain: {str: 2, con: 2}
+    speed: 20
+    speed_modifier: -10
+
+  orc:
+    variants: [base]
+    racial_adjustments:
+      base: {str: 2, con: 2}
+    speed: 30
+    tier_progression:
+      0: [ferocity]
+
+  elf:
+    variants: [high, wood]
+    racial_adjustments:
+      high: {dex: 2, int: 2}
+      wood: {dex: 2, wis: 2}
+    speed: 30
+
+  gnome:
+    variants: [forest, rock]
+    racial_adjustments:
+      forest: {dex: 2, int: 2}
+      rock:   {con: 2, int: 2}
+    speed: 30
+
+  satyr:
+    variants: [base]
+    racial_adjustments:
+      base: {dex: 2, cha: 2}
+    speed: 35
+    speed_modifier: 5
+
+  # Undead and creature races used by enemy templates.
+  zombie:
+    variants: [base]
+    speed: 30
+    tags: [undead]
+    tier_progression:
+      0: [staggered, slam]
+
+  skeleton:
+    variants: [base]
+    speed: 30
+    tags: [undead]
+    tier_progression:
+      0: [improved_initiative, claws]
+
+  ghoul:
+    variants: [base]
+    speed: 30
+    tags: [undead]
+    tier_progression:
+      1: [ghoul_fever, ghoul_paralysis, bite, claws]
+      2: [ghoul_stench]
+
+  wight:
+    variants: [base]
+    speed: 30
+    tags: [undead]
+    tier_progression:
+      0: [ferocity, slam, energy_drain, create_spawn, resurrection_vulnerability]
+
+  troll:
+    variants: [base]
+    speed: 30
+    tier_progression:
+      0: [regeneration, claws, bite, rend, natural_armor]
+
+  giant_spider:
+    variants: [base]
+    speed: 30
+    tier_progression:
+      0: [poison_bite, bite]
