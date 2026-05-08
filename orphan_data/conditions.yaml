@@ -1,0 +1,44 @@
+# Conditions orphan data
+#
+# Per-Creature mutable state — current resource values and damage
+# tracking. Will migrate to the Conditions domain when it is designed.
+# Keyed by Creature ID.
+
+creatures:
+  1:
+    current_hp: 22
+    temporary_hp: 0
+    moderate_damage: 0
+    major_damage: 0
+    current_mana: 9
+    magic_toxicity: 3
+    conditions: {}
+
+  2:
+    current_hp: 14
+    temporary_hp: 0
+    moderate_damage: 8
+    major_damage: 6
+    current_mana: 4
+    magic_toxicity: 0
+    conditions:
+      bleed: 1
+
+  3:
+    current_hp: 18
+    temporary_hp: 0
+    moderate_damage: 0
+    major_damage: 0
+    current_mana: 16
+    magic_toxicity: 5
+    conditions:
+      poison: 2
+
+  9:
+    current_hp: 18
+    temporary_hp: 0
+    moderate_damage: 0
+    major_damage: 0
+    current_mana: 9
+    magic_toxicity: 0
+    conditions: {}

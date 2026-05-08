@@ -1,0 +1,19 @@
+# Modifiers orphan data
+#
+# The enumerated list of valid Bonus / Penalty / Starting modifier
+# types. Will migrate to the Modifiers domain when it is designed.
+#
+# Modifier keys are valid if they have the form `<Type> Bonus`,
+# `<Type> Penalty`, or `<Type> Starting` for some Type listed here.
+# This list does NOT police which Types may appear as Bonuses vs
+# Penalties vs Starting — those restrictions live in consuming
+# modules. Adding a new Type here lets it flow through immediately;
+# removing one fails validation for callers passing it.
+
+Bonus Types List:
+  Competency: "A modifier reflecting a creature's prowess and physical ability."
+  Circumstance: "A modifier reflecting environmental conditions or other external factors. Typical source of direct Starting values."
+  Morale: "A modifier reflecting the creature's emotional state, the effects of alchemical substances, or natural body chemistry."
+  Guidance: "A modifier reflecting the most common magical effects."
+  Inherent: "A modifier equal to a creature's Tier. Used for the natural bonus that comes with becoming more magical. Only ever appears as a Bonus."
+  Ascendancy: "A modifier applied when a creature contends with a creature of a different Tier."
