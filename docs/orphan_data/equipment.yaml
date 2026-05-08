@@ -1,0 +1,77 @@
+# Equipment orphan data
+#
+# Per-Creature item lists, prepared spells, rituals, and per-item
+# descriptive text. Will migrate to the Equipment domain when it is
+# designed. Keyed by Creature ID.
+
+creatures:
+  1:
+    equipped:
+      - rapier
+      - hand_crossbow
+      - studded_leather
+      - cloak_of_resistance_plus_1
+      - lute_of_the_wandering_bard
+    consumable:
+      - { name: healing_draught, quantity: 2 }
+    other:
+      - lute
+      - { name: rations, quantity: 5 }
+      - bedroll
+    spells:
+      "0": [mending]
+      "1": [charm_person, healing_word]
+      "2": [suggestion]
+    rituals: []
+    item_descriptions:
+      cloak_of_resistance_plus_1: "Adds +1 to all saves; does not stack with other resistance items."
+      lute_of_the_wandering_bard: "Once per scene, grant Bardic Inspiration without spending the action."
+
+  2:
+    equipped:
+      - warhammer
+      - tower_shield
+      - chain_mail
+    consumable:
+      - { name: healing_draught, quantity: 1 }
+    other:
+      - whetstone
+      - { name: rations, quantity: 5 }
+    spells: {}
+    rituals: []
+    item_descriptions: {}
+
+  3:
+    equipped:
+      - quarterstaff
+      - robes
+    consumable:
+      - { name: healing_draught, quantity: 2 }
+    other:
+      - spellbook
+      - { name: rations, quantity: 5 }
+    spells:
+      "0": [mage_hand, minor_illusion, prestidigitation]
+      "1": [magic_missile, shield]
+    rituals:
+      "0": [light]
+      "1": [comprehend_languages, detect_magic, identify]
+    item_descriptions: {}
+
+  9:
+    equipped:
+      - rapier
+      - dagger
+      - studded_leather
+    consumable:
+      - { name: healing_draught, quantity: 2 }
+    other:
+      - thieves_tools
+      - spellbook
+    spells:
+      "0": [fire_dart, message, silent_portal, ghost_sound]
+      "1": [hideous_laughter, illusion_of_calm, auditory_hallucination]
+    rituals:
+      "0": [guidance, resistance, acid_splash, drench, light, spark, mending]
+      "1": [alarm, endure_elements, mount, charm_person, silent_image, ant_haul, disguise_self]
+    item_descriptions: {}
