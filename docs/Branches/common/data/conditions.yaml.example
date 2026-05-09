@@ -1,0 +1,43 @@
+# Combat conditions tracked on a CombatTurn.
+#
+# Each condition has a counter on the combatant (number of stacks /
+# remaining rounds) and a `tick` policy that determines what happens
+# at the start of the affected combatant's turn.
+
+conditions:
+  bleed:
+    counter: stacks                     # stacks reduce HP each turn
+    tick: "deal <stacks> hp damage"
+    applied_by: any_attack              # melee AND ranged attacks both apply
+    weapon_bleed_table: bludgeoning_5_slashing_7_piercing_3
+    notes: |
+      Originally only melee attacks applied bleed. The branch broadens
+      this so ranged attacks also apply weapon_bleed.
+
+  ghoul_paralysis:
+    counter: rounds_remaining
+    tick: "skip turn while > 0; decrement at end of turn"
+    applied_by: [bite, claw]            # ghoul natural-weapon attacks
+    save: cha                           # save vs cha
+    duration: 1                         # rounds, configurable
+    notes: |
+      Tracked as a numeric counter on the CombatTurn. Decremented per
+      round; the affected combatant skips their turn while > 0.
+
+  paralysis:
+    counter: rounds_remaining
+    tick: "skip turn while > 0"
+    notes: |
+      Generic paralysis (used by ghoul_paralysis and others).
+
+  ghoul_fever:
+    counter: stacks
+    tick: "lose <stacks> hp at start of turn (disease)"
+    applied_by: [bite]
+    frequency: day
+    save: cha
+
+  energy_drain:
+    counter: stacks
+    notes: |
+      Wight ability. Applied via slam attack.
