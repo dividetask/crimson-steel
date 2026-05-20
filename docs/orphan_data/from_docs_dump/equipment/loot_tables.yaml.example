@@ -1,0 +1,387 @@
+# Loot Tables (example)
+# Weighted, rollable definitions of what items a creature, chest, or
+# shop carries. Other modules roll against these tables by id.
+# See `equipment_glossary.md` and `equipment_pseudocode.md`
+# (ROLL_LOOT_TABLE, ROLL_ROW, ROLL_WEIGHTED, RESOLVE_ITEM_SPEC).
+
+# Multi-file loading: reads `loot_tables.yaml` then every
+# `loot_tables-*.yaml`. Duplicate IDs across files are an error.
+# Runtime ADD_LOOT_TABLE persists to this base file.
+
+# Row shapes (under a table's `rolls:`):
+#
+# 1. Guaranteed
+#      - item: { item: <name>, quantity: <number|dice> }
+#
+# 2. Independent Chance — drops with probability `chance` ∈ [0, 1].
+#      - chance: 0.5
+#        item: { item: <name> }
+#
+# 3. Weighted Choice — picks one option by cumulative probability.
+#    If sum < 1, remainder = nothing. `options` may be inline or a
+#    named Option List.
+#      - options:
+#          - chance: 0.3
+#            item: {item: <name>}
+#      - options: tier_one_magical_melee
+#
+# 4. Gated Weighted Choice — first roll `chance` to enter; on success,
+#    do a Weighted Choice.
+#      - chance: 0.1
+#        options: [...]
+#
+# Either `item:` or `items: [...]` may appear (mutually exclusive on
+# the same row/option). `items:` produces multiple Stacks at once.
+#
+#      - chance: 0.30
+#        items:
+#          - {item: Shortbow}
+#          - {item: Arrow, quantity: "1d10 + 5"}
+#
+# `equipped: true` at the row level marks every produced Stack as
+# equipped (applies uniformly for multi-item rows).
+
+# Roll variables (cross-row gating). A row publishes its outcome as
+# a named variable; later rows gate on it.
+#
+#     - as: hand
+#       options:
+#         - chance: 0.40
+#           key: one_handed
+#           item: {item: Short sword}
+#         - chance: 0.30
+#           key: two_handed
+#           item: {item: Spear}
+#
+#     - when: { hand: one_handed }
+#       chance: 0.40
+#       item: {item: Light wooden shield}
+#
+# `as: <name>` records the outcome (option's `key:` for Weighted Choice,
+# row's own `key:` otherwise; null = nothing dropped). `when: {<n>: <v>}`
+# skips the row if the variable doesn't match (multiple pairs AND-ed;
+# unset = null). Variables are scoped to one ROLL_LOOT_TABLE call.
+
+# Dice expressions: any `quantity` may be "2d6 + 3". NdM, integers, +/-.
+# Evaluated per roll.
+
+# Currency in tables: ordinary stacks (`item: Gold`/`Silver`/`Copper`).
+# Gems: `item: Gem`, `value_in_gold: <n>`, optional `name`.
+
+# Inline magical rows: `item.magical` is a constraint rolled through
+# GENERATE_MAGICAL_ITEM at roll time (exactly one property applied).
+#
+#     item:
+#       magical:
+#         category: melee                 # or ranged, ammo, all_armor, all_body
+#         tier: [1, 2]
+#         tier_weights: {1: 3, 2: 1}      # optional; uniform if absent
+#         properties_weighted:
+#           Elemental: 3
+#           Subdual: 1
+#         items_weighted:                 # optional; uniform if absent
+#           Long sword: 2
+#           Mace: 1
+
+# Option lists & recursion: `option_lists:` holds named, reusable
+# Weighted Choice lists. Rows reference them via `options: <name>`.
+# An option `{chance, from: "<other_list>"}` recurses into another
+# option list when picked — useful for cross-tier overflow.
+
+loot_tables:
+
+  # --- Town guards --------------------------------------------------
+  # Standard city watch loadout. Spear is two-handed, others one-handed;
+  # shield row gates on hand.
+
+  town_guard_equipment:
+    rolls:
+
+      - equipped: true
+        as: hand
+        options:
+          - chance: 0.40
+            key: one_handed
+            item: {item: Short sword}
+          - chance: 0.30
+            key: two_handed
+            item: {item: Spear}
+          - chance: 0.20
+            key: one_handed
+            item: {item: Mace}
+          - chance: 0.10
+            key: one_handed
+            item: {item: Hatchet}
+
+      - equipped: true
+        options:
+          - chance: 0.60
+            item: {item: Chain shirt}
+          - chance: 0.30
+            item: {item: Leather armor}
+          # 10% nothing
+
+      - equipped: true
+        when: { hand: one_handed }
+        chance: 0.40
+        item: {item: Light wooden shield}
+
+      - item:
+          item: Gold
+          quantity: "2d6 + 5"
+
+  # --- Bandits ------------------------------------------------------
+  # Archers (Shortbow option) get arrows in the same row, so we never
+  # produce arrows without a bow.
+
+  bandit_equipment:
+    rolls:
+
+      - equipped: true
+        options:
+          - chance: 0.25
+            item: {item: Dagger}
+          - chance: 0.20
+            item: {item: Short sword}
+          - chance: 0.20
+            item: {item: Hatchet}
+          - chance: 0.15
+            items:
+              - {item: Shortbow}
+              - {item: Arrow, quantity: "1d10 + 10"}
+          - chance: 0.10
+            item: {item: Rapier}
+          # 10% nothing
+
+      - equipped: true
+        chance: 0.50
+        item: {item: Leather armor}
+
+      - item:
+          item: Gold
+          quantity: "1d6 + 1"
+
+      # 5% chance of a stolen magical trinket (weapon or armor).
+      - equipped: true
+        chance: 0.05
+        options:
+          - chance: 0.50
+            item:
+              magical:
+                category: melee
+                tier: [1]
+                properties_weighted:
+                  Elemental: 3
+                  Subdual: 1
+                  Emotional: 1
+          - chance: 0.50
+            item:
+              magical:
+                category: all_body
+                tier: [1]
+                properties_weighted:
+                  Fortification: 2
+                  Spell Storing 1: 1
+
+  # --- Dragon hoard -------------------------------------------------
+  # Big pile of gold, several gems, guaranteed magical weapon, chance
+  # of magical armor. Gem distribution is a shared option list.
+
+  dragon_hoard:
+    rolls:
+
+      - item:
+          item: Gold
+          quantity: "4d100 + 500"
+
+      - item:
+          item: Silver
+          quantity: "5d100"
+
+      # Three independent gem rolls.
+      - options: dragon_hoard_gems
+      - options: dragon_hoard_gems
+      - chance: 0.60
+        options: dragon_hoard_gems
+
+      - item:
+          magical:
+            category: melee
+            tier: [2, 3]
+            tier_weights: {2: 3, 3: 1}
+            properties_weighted:
+              Elemental: 3
+              Vicious: 2
+              Necrotic: 2
+              Radiant: 1
+            items_weighted:
+              Great sword: 3
+              Great Axe: 2
+              Long sword: 2
+              Halberd: 1
+
+      - chance: 0.50
+        item:
+          magical:
+            category: all_body
+            tier: [2]
+            properties_weighted:
+              Fortification: 3
+              Spell Storing 2: 1
+              Elemental Resistance: 2
+
+      - chance: 0.40
+        item:
+          magical:
+            category: ammo
+            tier: [1, 2]
+            tier_weights: {1: 3, 2: 1}
+            properties_weighted:
+              Elemental: 4
+              Subdual: 1
+              Radiant: 1
+
+  # --- Shop stock templates ----------------------------------------
+  # Referenced from `shops.yaml.example`. Dice expressions vary the mix.
+
+  blacksmith_stock:
+    rolls:
+      - chance: 0.80
+        item: {item: Long sword, quantity: "1d3"}
+      - item: {item: Hatchet, quantity: "1d4 + 2"}
+      - item: {item: Spear, quantity: "1d6 + 2"}
+      - chance: 0.70
+        item: {item: Mace, quantity: "1d4 + 1"}
+      - item: {item: Dagger, quantity: "1d6"}
+      - chance: 0.80
+        item: {item: Leather armor, quantity: "1d3"}
+      - chance: 0.50
+        item: {item: Chain shirt, quantity: "1d2"}
+      - item: {item: Light wooden shield, quantity: "1d4"}
+      - item: {item: Arrow, quantity: "2d10 + 20"}
+      - chance: 0.50
+        item: {item: Bolt, quantity: "1d10 + 10"}
+      - item: {item: Gold, quantity: "3d20 + 100"}
+
+  alchemist_stock:
+    rolls:
+      # Potion entries elided until the Potion category lands.
+      - item: {item: Gold, quantity: "2d20 + 50"}
+      - chance: 0.40
+        item:
+          item: Gem
+          name: Quartz
+          value_in_gold: 50
+          quantity: "1d4"
+
+  random_market_stall_stock:
+    rolls:
+      - chance: 0.50
+        options:
+          - chance: 0.40
+            item: {item: Dagger, quantity: "1d3"}
+          - chance: 0.30
+            item: {item: Hatchet}
+          - chance: 0.30
+            item: {item: Short sword}
+      - chance: 0.30
+        item: {item: Leather armor}
+      - chance: 0.50
+        item: {item: Arrow, quantity: "1d20 + 5"}
+      - item: {item: Gold, quantity: "2d10 + 10"}
+
+  traveling_peddler_stock:
+    rolls:
+      - options:
+          - chance: 0.20
+            item: {item: Dagger}
+          - chance: 0.20
+            item: {item: Throwing dart, quantity: "1d4 + 1"}
+          - chance: 0.20
+            item: {item: Shuriken, quantity: "1d6"}
+          - chance: 0.10
+            item:
+              item: Gem
+              name: Polished Pebble
+              value_in_gold: 10
+              quantity: "1d4"
+          # 30% nothing
+      - chance: 0.05
+        item:
+          magical:
+            category: melee
+            tier: [1]
+            properties_weighted:
+              Subdual: 2
+              Emotional: 1
+      - item: {item: Gold, quantity: "1d10 + 5"}
+
+# Option lists — named, reusable Weighted Choice lists.
+
+option_lists:
+
+  # Gem-value distribution for the dragon hoard. 10% recurses into
+  # the rare list via `from:`.
+  dragon_hoard_gems:
+    - chance: 0.30
+      item:
+        item: Gem
+        name: Amber
+        value_in_gold: 100
+    - chance: 0.25
+      item:
+        item: Gem
+        name: Moonstone
+        value_in_gold: 250
+    - chance: 0.20
+      item:
+        item: Gem
+        name: Emerald
+        value_in_gold: 500
+    - chance: 0.15
+      item:
+        item: Gem
+        name: Ruby
+        value_in_gold: 1000
+    - chance: 0.10
+      from: dragon_hoard_rare_gems
+
+  dragon_hoard_rare_gems:
+    - chance: 0.50
+      item:
+        item: Gem
+        name: Sapphire
+        value_in_gold: 2500
+    - chance: 0.30
+      item:
+        item: Gem
+        name: Black Opal
+        value_in_gold: 5000
+    - chance: 0.20
+      item:
+        item: Gem
+        name: Star Diamond
+        value_in_gold: 10000
+
+  # Reusable pool of tier-1 magical melee. Second branch's `none`
+  # weight in properties_weighted means 1/3 of those rolls produce
+  # a plain tier-1 weapon with no property applied.
+  tier_one_magical_melee:
+    - chance: 0.50
+      item:
+        magical:
+          category: melee
+          tier: [1]
+          properties_weighted:
+            Elemental: 3
+            Subdual: 1
+    - chance: 0.30
+      item:
+        magical:
+          category: melee
+          tier: [1]
+          properties_weighted:
+            Emotional: 1
+            Radiant: 1
+            none: 1
+    # 20% nothing.

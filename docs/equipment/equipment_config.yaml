@@ -1,0 +1,548 @@
+# Equipment Configuration
+#
+# Tunable values plus the catalogs of Item Types and Magical
+# Properties referenced by every other domain. Loot Tables live in
+# `loot_tables.yaml` (plus any `loot_tables-*.yaml`), Ground Piles
+# in `loot.yaml`, Shops in `shops.yaml`, and the Loot Archive in
+# `notes_loot.yaml`.
+#
+# Rule keys use Title Case and are referenced from the design /
+# glossary / tests by exactly these names. Catalog keys (Item Types,
+# Property names, Material names, Slot names, Tag names) are
+# lowercase / Title Case as authored; they are opaque strings to
+# Equipment and are only compared for equality.
+#
+# Prices are in Gold (gp) as real numbers. 1 gp = 10 sp = 100 cp.
+
+# =====================================================================
+# TIER PRICING
+# =====================================================================
+
+# Flat per-Tier Gold surcharge added when an Item is made magical.
+# Tier 0 has no surcharge. Per-Item-Type `tier_surcharge` blocks
+# override this map.
+Default Tier Surcharge:
+  1: 250
+  2: 1000
+  3: 4000
+  4: 16000
+  5: 80000
+
+# Flat per-Bonus Gold surcharge for Guidance Items, keyed by Bonus
+# value. Used together with Default Tier Surcharge to price Guidance
+# Items: `Default Tier Surcharge[tier] + Default Bonus Surcharge[bonus]`.
+Default Bonus Surcharge:
+  1: 500
+  2: 1000
+  3: 2000
+  4: 4000
+  5: 6500
+  6: 9000
+  7: 13500
+  8: 18000
+  9: 27000
+
+# Divisor applied to a magical Ammunition Stack's magical cost.
+# Per-unit magical cost = (Tier Surcharge + sum(Property cost)) /
+# Magical Ammunition Divisor.
+Magical Ammunition Divisor: 100
+
+# Same idea for non-ammo Consumables (potions, oils, scrolls).
+Consumable Surcharge Divisor: 10
+
+# Multiplier applied to any Item Type flagged `innately_usable: true`
+# (potions, oils — anything anyone can activate).
+Innately Usable Price Multiplier: 2.0
+
+# =====================================================================
+# DISPLAY NAME
+# =====================================================================
+
+# Substituted into the Tier prefix with `{tier}`. Tier 0 omits the
+# prefix entirely; Item Types whose Category appears in Tier Hidden
+# For also omit it.
+Tier Prefix Format: "+{tier}"
+
+# Item Categories whose Generated Display Name suppresses the Tier
+# prefix. Potions, for example, conventionally read "Potion of X"
+# without a +N prefix.
+Tier Hidden For:
+  - Consumable
+
+# When a Property's Display block does not declare a `position`,
+# this is used. One of `prefix` or `suffix`.
+Default Property Position: prefix
+
+# =====================================================================
+# ITEM CONSUMPTION
+# =====================================================================
+# Saturation imposed by *Consume Item* on Potions and Oils. Scrolls
+# and Wands impose no saturation through Equipment.
+#
+# Both lists are indexed by Item Tier (0..5). Base is the saturation
+# imposed when the target Creature's Tier is greater than or equal
+# to the item's Tier; Minimum is the floor any caller-supplied
+# reducer cannot push the final value below. When the target's Tier
+# is strictly lower than the item's Tier, both Base and Minimum are
+# multiplied by Lower Tier Multiplier.
+#
+# Example: a Tier 2 Potion on a target of Tier 2+ imposes 6
+# saturation, reducible to 3. The same Potion on a target of Tier 1
+# imposes 12 saturation, reducible to 6.
+Consumable Saturation:
+  Minimum: [1, 2, 3, 4, 5, 6]
+  Base:    [2, 4, 6, 8, 10, 12]
+  Lower Tier Multiplier: 2
+
+# =====================================================================
+# SLOTS
+# =====================================================================
+# Body slot strings an equippable Item or piece of Armor may occupy.
+# Worn armor and held weapons use implicit slots (`body`, `hand`)
+# and are not listed here. The Creatures domain enforces "one Item
+# per Slot" at equip time.
+
+Slots:
+  - back
+  - bag
+  - belt
+  - body
+  - chest
+  - feet
+  - hands
+  - head
+  - neck
+  - shoulders
+  - wrists
+
+# =====================================================================
+# WEAPONS
+# =====================================================================
+
+# Weapon Categories. `base_damage` is the default damage formula
+# evaluated by Combat (Equipment only stores the string).
+Weapon Categories:
+  Ranged:
+    base_damage: "str / 4"
+  One Handed:
+    base_damage: "str / 4 - 2"
+  Two Handed:
+    base_damage: "str / 2"
+
+# Weapon Tags — mundane structural tags, distinct from magical
+# Weapon Properties. `damage_formula` overrides the Category
+# default; the first Tag carrying one wins when a Weapon has
+# multiple Tags.
+Weapon Tags:
+  thrown:
+    damage_formula: "str / 4 - 2"
+    description: A weapon balanced for throwing.
+  light:
+    damage_formula: "str / 4 - 2"
+    description: A light one-handed weapon.
+  heavy:
+    damage_formula: "str / 2 + 2"
+    description: A heavy weapon typically requiring both hands to wield.
+  exotic:
+    description: A weapon requiring specialized training.
+  double_weapon:
+    description: A weapon that can attack with both ends.
+  lesslethal:
+    description: On a successful hit, inflicts a non-lethal stunning effect.
+
+# Damage Type defaults. Multi-Type Weapons use the highest Bleed
+# and the lowest Threshold across their Damage Types.
+Damage Type Defaults:
+  Slashing:
+    bleed: 7
+    threshold: 5
+  Bludgeoning:
+    bleed: 5
+    threshold: 3
+  Piercing:
+    bleed: 3
+    threshold: 4
+
+# Reference Weapon catalog. The list is open — consuming projects
+# add entries via override files.
+Weapons:
+  Longbow:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Arrow
+    base_price: 50
+  Crossbow:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Bolt
+    base_price: 35
+  Sling:
+    category: Ranged
+    damage_type: Bludgeoning
+    ammo_type: Stone
+    base_price: 1
+  Javelin:
+    category: Ranged
+    damage_type: Piercing
+    tags: [thrown]
+    base_price: 4
+  Mace:
+    category: One Handed
+    damage_type: Bludgeoning
+    base_price: 10
+  Warhammer:
+    category: One Handed
+    damage_type: Bludgeoning
+    base_price: 15
+  Long sword:
+    category: One Handed
+    damage_type: [Slashing, Piercing]
+    base_price: 35
+  Short sword:
+    category: One Handed
+    damage_type: [Slashing, Piercing]
+    tags: [light]
+    base_price: 8
+  Rapier:
+    category: One Handed
+    damage_type: Piercing
+    base_price: 25
+  Dagger:
+    category: One Handed
+    damage_type: [Slashing, Piercing]
+    tags: [light]
+    base_price: 2
+  Hand crossbow:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Bolt
+    tags: [light]
+    base_price: 25
+  Whip:
+    category: One Handed
+    damage_type: Slashing
+    base_damage: 0
+    tags: [lesslethal]
+    threshold: null
+    base_price: 4
+  Spear:
+    category: Two Handed
+    damage_type: Piercing
+    base_price: 5
+  Great sword:
+    category: Two Handed
+    damage_type: Slashing
+    tags: [heavy]
+    base_price: 60
+  Quarterstaff:
+    category: Two Handed
+    damage_type: Bludgeoning
+    tags: [double_weapon]
+    base_price: 2
+
+# Magical Weapon Properties. `applies_to` keys: `melee`, `ranged`,
+# `ammo`. A Property with `has_subtype: true` has a Display block
+# keyed by Subtype.
+#
+# `effects:` is an optional list of Active Effects the Property
+# posts to Conditions when the carrier Stack is equipped. Each entry
+# matches Conditions' Active Effect shape (target_key, bonus_type,
+# amount, optional ends_on_round, optional metadata).
+Weapon Properties:
+  Elemental:
+    min_tier: 1
+    cost: 500
+    applies_to: [melee, ranged, ammo]
+    has_subtype: true
+    subtypes: [Fire, Acid, Electricity, Cold]
+    display:
+      Fire: { word: Flaming }
+      Acid: { word: Corrosive }
+      Electricity: { word: Shocking }
+      Cold: { word: Freezing }
+  Subdual:
+    min_tier: 1
+    cost: 250
+    applies_to: [melee, ranged, ammo]
+    has_subtype: false
+    display:
+      word: Merciful
+  Keen:
+    min_tier: 1
+    cost: 500
+    applies_to: [melee, ranged, ammo]
+    has_subtype: false
+    display:
+      word: Keen
+  Vicious:
+    min_tier: 2
+    cost: 2000
+    applies_to: [melee]
+    has_subtype: false
+    display:
+      word: Vicious
+  Radiant:
+    min_tier: 1
+    cost: 500
+    applies_to: [melee, ranged, ammo]
+    has_subtype: false
+    display:
+      word: Radiant
+
+# =====================================================================
+# AMMUNITION
+# =====================================================================
+# Sold in bundles of `bundle_size`. Per-unit price =
+#   (base_price / bundle_size) +
+#   (Tier Surcharge + sum(Property cost)) / Magical Ammunition Divisor
+
+Ammunition:
+  Arrow:
+    base_price: 5
+    bundle_size: 20
+    used_by: [Longbow]
+  Bolt:
+    base_price: 5
+    bundle_size: 20
+    used_by: [Crossbow, Hand crossbow]
+  Stone:
+    base_price: 1
+    bundle_size: 20
+    used_by: [Sling]
+
+# =====================================================================
+# ARMOR
+# =====================================================================
+
+# Per-Category defaults. Shields carry null Damage Reduction and
+# null Resilience Increment — Combat reads these specifically.
+Armor Category Defaults:
+  Light:
+    damage_reduction: 1
+    resilience_increment: 1
+    thickness: 1
+  Medium:
+    damage_reduction: 3
+    resilience_increment: 2
+    thickness: 2
+  Heavy:
+    damage_reduction: 6
+    resilience_increment: 3
+    thickness: 3
+  Shield:
+    damage_reduction: null
+    resilience_increment: null
+    thickness: 1
+
+# Materials. Effective Hardness = base_hardness + 2 * tier. The
+# `hit_points` string is a formula Combat evaluates; `thickness`
+# substitutes from the wearing Armor's Category Defaults.
+Materials:
+  Leather:
+    hardness: 2
+    hit_points: "5 * thickness"
+  Metal:
+    hardness: 10
+    hit_points: "30 * thickness"
+  Wood:
+    hardness: 5
+    hit_points: "10 * thickness"
+
+# Reference Armor catalog. Per-Item `metal: true` marks an Armor
+# whose wearer counts as wearing Metal Armor for Damage Type
+# interactions (notably Electricity per `combat_config.yaml`).
+# Default false when omitted.
+Armor:
+  Leather armor:
+    category: Light
+    material: Leather
+    base_price: 10
+  Studded leather:
+    category: Light
+    material: Leather
+    base_price: 25
+  Chain shirt:
+    category: Light
+    material: Metal
+    metal: true
+    base_price: 100
+  Hide armor:
+    category: Medium
+    material: Leather
+    base_price: 15
+  Chain mail:
+    category: Medium
+    material: Metal
+    metal: true
+    base_price: 150
+  Plate mail:
+    category: Heavy
+    material: Metal
+    metal: true
+    base_price: 500
+  Light wooden shield:
+    category: Shield
+    material: Wood
+    base_price: 3
+  Tower shield:
+    category: Shield
+    material: Metal
+    metal: true
+    base_price: 30
+  Robes:
+    category: Light
+    material: Leather
+    base_price: 1
+
+# Magical Armor Properties. `applies_to` keys: `all_armor` (any
+# armor including shields) or `all_body` (any armor except shields).
+Armor Properties:
+  Fortification:
+    min_tier: 1
+    cost: 500
+    applies_to: [all_body]
+    has_subtype: false
+    display:
+      word: Fortified
+  Elemental Affinity:
+    min_tier: 1
+    cost: 500
+    applies_to: [all_armor]
+    has_subtype: true
+    subtypes: [Fire, Acid, Electricity, Cold]
+    display:
+      Fire: { word: Smoldering }
+      Acid: { word: Caustic }
+      Electricity: { word: Storm-kissed }
+      Cold: { word: Frostbound }
+  Elemental Resistance:
+    min_tier: 2
+    cost: 2000
+    applies_to: [all_armor]
+    has_subtype: true
+    subtypes: [Fire, Acid, Electricity, Cold]
+    display:
+      Fire: { word: Fireproof }
+      Acid: { word: Acidproof }
+      Electricity: { word: Grounded }
+      Cold: { word: Coldproof }
+
+# =====================================================================
+# GUIDANCE ITEMS
+# =====================================================================
+# Each entry lists parallel `guidance_bonus` and `tier` arrays — the
+# same Tier may correspond to multiple Bonus values. Unit Price uses
+# `Default Tier Surcharge[tier] + Default Bonus Surcharge[bonus]`.
+
+Items:
+  Cloak of Resistance:
+    slot: back
+    guidance_attribute: saves
+    guidance_bonus: [1, 2, 3, 4, 5]
+    tier: [1, 2, 3, 4, 5]
+    description: Grants a Guidance Bonus to the wearer's saving throws.
+  Belt of Strength:
+    slot: belt
+    guidance_attribute: str
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    description: Grants a Guidance Bonus to the wearer's Strength.
+  Belt of Dexterity:
+    slot: belt
+    guidance_attribute: dex
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    description: Grants a Guidance Bonus to the wearer's Dexterity.
+  Headband of Intelligence:
+    slot: head
+    guidance_attribute: int
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    description: Grants a Guidance Bonus to the wearer's Intelligence.
+
+# =====================================================================
+# CURRENCY
+# =====================================================================
+# Currencies appear in Inventory as ordinary Item Stacks; merge by
+# Item Type alone (every Currency Stack of the same type shares
+# identity). `weight` is stored but not acted on.
+
+Currency:
+  Gold:
+    symbol: gp
+    value_in_gold: 1.0
+    weight: 0.02
+  Silver:
+    symbol: sp
+    value_in_gold: 0.1
+    weight: 0.02
+  Copper:
+    symbol: cp
+    value_in_gold: 0.01
+    weight: 0.02
+
+# =====================================================================
+# CONSUMABLES AND BOOKS
+# =====================================================================
+# Consumable Items decrement Quantity by one when *Consume Item* is
+# called against them. `inscribable: true` marks an Item Type as a
+# Ritual book — its Stacks carry an Inscribed Spells list.
+#
+# Potions, oils, and scrolls are not enumerated here — the catalog
+# is open and consuming projects add Potion / Oil / Scroll variants
+# via override files. The entries below are the special-case
+# consumables that do not follow the "Potion of X" naming.
+
+Consumables:
+  Alchemist's fire:
+    category: Consumable
+    base_price: 25
+    innately_usable: true
+  Acid jar:
+    category: Consumable
+    base_price: 25
+    innately_usable: true
+
+Books:
+  Ritual book:
+    category: Item
+    slot: bag
+    base_price: 15
+    inscribable: true
+
+# =====================================================================
+# GENERIC GEAR
+# =====================================================================
+# Plain non-magical items with no Category-specific behavior. They
+# stack by Item Type alone.
+
+Misc Items:
+  Rations:
+    category: Item
+    base_price: 0.5
+  Bedroll:
+    category: Item
+    base_price: 1
+  Whetstone:
+    category: Item
+    base_price: 0.2
+  Thieves' tools:
+    category: Item
+    slot: bag
+    base_price: 30
+  Lute:
+    category: Item
+    slot: bag
+    base_price: 40
+  Drums:
+    category: Item
+    slot: bag
+    base_price: 30
+  Flute:
+    category: Item
+    slot: bag
+    base_price: 20
+  Harp:
+    category: Item
+    slot: bag
+    base_price: 60

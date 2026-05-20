@@ -1,0 +1,141 @@
+# Effect Names catalog.
+#
+# Single source of truth for named non-damage effects across the
+# project. Abilities, Afflictions (kind: "named_effect"), and other
+# upstream callers reference Effect Names by name; Conditions raises
+# at APPLY_NAMED_EFFECT time when a name is not in this catalog.
+#
+# Each entry has:
+#   description: free-form text for display.
+#   mechanics:   list of Effect Mechanics. Empty = mechanics owned by
+#                another module, only the name applies.
+#
+# Recognized Mechanic kinds:
+#   { kind: "modifier", modifier_type: <Bonus Type>,
+#     amount: <signed int>, applies_to: [<scope tags>], notes: "..." }
+#       Stored as an Active Effect; surfaced by GET_MODIFIERS. A
+#       positive `amount` is a Bonus, a negative `amount` is a Penalty.
+#   { kind: "reroll", scope: "<scope>", applies_to: [<scope tags>],
+#     amount: <signed int>, notes: "..." }
+#       Reroll Operation. Luck/Insight effects live here, not under
+#       `modifier`. `amount` carries direction (positive = advantageous,
+#       negative = disadvantageous); both fields are optional.
+#   { kind: "nudge", applies_to: [<scope tags>],
+#     amount: <signed int>, notes: "..." }
+#       Value Adjustment (Insight). Sign on `amount` carries direction.
+#   { kind: "set_value", target: "<derived>", value: <int|formula> }
+#   { kind: "scale_value", target: "<derived>", factor: <number> }
+#   { kind: "flag", flag: "<name>" }
+#   { kind: "display", text: "<rule for the DM>" }
+#
+# `modifier_type` values are drawn from the Modifiers domain's Bonus
+# Types List. Scope tags, target names, and flag names are
+# intentionally free-form — Conditions does not validate them.
+
+Effect Names:
+
+  blind:
+    description: "The target cannot see; all sight-based perception fails."
+    mechanics:
+      - kind: reroll
+        scope: successes_and_criticals
+        notes: "Each die can only be rerolled once. Luck is applied before this effect; dice already affected by luck are immune."
+
+  dazzled:
+    description: "The target suffers a minor penalty to sight-based checks."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -1
+        applies_to: [dex_checks, wis_checks, casting_checks]
+
+  deafened:
+    description: "The target cannot hear; hearing-based perception fails."
+    mechanics:
+      - kind: reroll
+        scope: successes_and_criticals
+        applies_to: [initiative]
+        amount: -1
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -2
+        applies_to: [verbal_spell_checks]
+
+  stunned:
+    description: "The target loses its next turn."
+    mechanics:
+      - kind: set_value
+        target: combat_dice
+        value: 0
+
+  paralyzed:
+    description: "The target cannot act until the effect ends."
+    mechanics:
+      - kind: flag
+        flag: cannot_act
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: 2
+        applies_to: [attacks_against]
+
+  prone:
+    description: "The target is lying on the ground (whether knocked down, dropped down intentionally, or asleep)."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -2
+        applies_to: [ranged_attacks_against]
+        notes: "Does not apply when the attacker has higher ground than the prone target."
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: 2
+        applies_to: [melee_attacks_against]
+
+  frightened:
+    description: "The target must flee from the source of the effect and may take no actions on its turn other than those that help it flee."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -2
+        applies_to: [fear_saves]
+
+  flustered:
+    description: "The target is rattled and distracted, suffering a penalty to its rolls until the condition ends."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -2
+        applies_to: [attack_checks, ability_checks, spell_checks]
+
+  confused:
+    description: "The target acts unpredictably for the duration."
+    mechanics:
+      - kind: display
+        text: "All attacks and abilities the confused creature uses are made against a random eligible target."
+
+  charmed:
+    description: "The target treats the caster as a trusted ally."
+    mechanics:
+      - kind: display
+        text: "The charmed creature treats the caster as a trusted ally; the DM adjudicates the fiction."
+
+  silenced:
+    description: "The target cannot speak or cast verbal spells."
+    mechanics:
+      - kind: flag
+        flag: cannot_speak
+      - kind: flag
+        flag: cannot_cast_verbal
+
+  entangled:
+    description: "The target's movement is slowed and actions restricted."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -2
+        applies_to: [str_checks, dex_checks]
+      - kind: scale_value
+        target: movement
+        factor: 0.5
+      - kind: flag
+        flag: cannot_run

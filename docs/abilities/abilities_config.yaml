@@ -1,0 +1,154 @@
+# Abilities — Configuration
+# Tunable values for the Abilities domain. See abilities_glossary.md for the
+# meaning of each key. Override via data/overrides*.yaml.
+
+# Mana spent to cast a Spell of the given Tier.
+Mana Cost Per Tier:
+  0: 1
+  1: 4
+  2: 6
+  3: 8
+  4: 10
+  5: 12
+
+# Ritual time in minutes and gold cost per tier. Creating a ritual allows
+# a Creature to cast the spell once using the spell's normal activation
+# time, mana cost, and any additional costs associated with the spell.
+Ritual:
+  gold:
+    0: 25
+    1: 50
+    2: 200
+    3: 800
+    4: 3000
+    5: 12000
+  cast_time:
+    0: 1
+    1: 10
+    2: 60
+    3: 360
+    4: 1440
+    5: 10080
+
+Action Aliases:
+  - free
+  - bonus
+  - reaction
+  - main
+  - full turn
+
+# Real-Time Aliases. Used for activations measured in wall-clock time.
+# Values are the duration in minutes.
+Real-Time Aliases:
+  1 minute: 1
+  10 minutes: 10
+  1 hour: 60
+  1 day: 1440
+
+# Reach (feet) used when a caller doesn't supply `reach` for Touch range.
+Default Reach Feet: 5
+
+# Range Formulas evaluated against `rank` (and `reach` for Touch).
+Range Formulas:
+  Self: "0"
+  Touch: "reach"
+  Close: "5+5*rank"
+  Medium: "30+10*rank"
+  Long: "80+20*rank"
+
+# Casting Skills. Keys ending in `_` are skill families.
+Casting Skills List:
+  perform_: "Bardic performance-based casting."
+  arcana: "Learned arcane casting."
+  healing: "Restorative casting."
+  nature: "Natural or primal casting."
+  evocation: "Innate magical casting, and skill in activating magical devices."
+  invocation: "Divine casting — channeling spells through a deity."
+  restricted: "Unethical casting — outlawed by the local authorities of every civilization except the most evil."
+
+# Skills appended at lookup time to every Spell (not Talents).
+Universal Spell Casting Skills:
+  - evocation
+
+# Attributes valid in a Save Spec. `none` = no save.
+Save Attributes List:
+  - none
+  - str
+  - dex
+  - con
+  - int
+  - wis
+  - cha
+
+# Save Outcome branches. `fail` is required; others optional.
+# `fumble` triggers when defender's Degree of Failure ≥ Default Fumble
+# Threshold (dice_resolution_config.yaml).
+Save Outcome Keys:
+  - fail
+  - success
+  - fumble
+
+# Allowed `properties` keywords on Catalog Abilities.
+Properties:
+  language_dependent: "The Ability relies on the target understanding the caster's words; targets that do not share a language with the caster are unaffected."
+
+# Spell Schools (Spells only; Talents have no school).
+Spell Schools:
+  universal: "Available to every school."
+  pneumancy: "Soul magic. Healing, necromancy, and spirit binding."
+  resonance: "Creation magic. Illusions, warding, and evocation."
+  enchantment: "Mind-affecting magic."
+  augury: "Fate reading, detection, foresight, and communing."
+  convergence: "Dimensional pulling — summoning and translocation, temporary by nature."
+  transmutation: "Physical transformation magic."
+
+# Physical forms a Spell may be packaged into.
+Item Forms:
+  potion: "Drinkable; consumed on use."
+  oil: "Applied to an object or surface; consumed on use."
+  scroll: "Read aloud; consumed on use."
+  wand: "Reusable; channels the wielder's mana on each use rather than carrying its own charges."
+
+# Forms appended at lookup time to every Spell. Item-only Spells do
+# NOT gain universal forms.
+Universal Item Forms:
+  - scroll
+  - wand
+
+# Recognized shapes for `area`. `size` is in 5-foot squares.
+Area Shapes:
+  line: "A straight line `size` squares long, originating from the caster or target square."
+  cone: "A cone with `size` squares of slant length, originating from the caster or target square."
+  square: "A square area `size` squares on each side, centered on the target square."
+  circle: "A circle with `size` squares of radius, centered on the target square."
+
+# Accepted values for an Ability's `type` field.
+Catalog Ability Types:
+  - spell
+  - talent
+
+# Accepted values for a Trigger's `on` field. Action-name events
+# (attack_check, attack_action, on_hit) fire during a Combatant's
+# own action of that name or class of action. Event-name triggers
+# (on_kill, etc.) fire on a specific occurrence; add new ones here
+# as Combat / Conditions introduce the events.
+Trigger Events:
+  - attack_check
+  - attack_action
+  - on_hit
+  - on_kill
+
+# Bonus Types List. The canonical set of valid modifier type names. A
+# Modifier Entry's `type` field must name one of these. Modifier keys
+# have the form `<Type> Bonus`, `<Type> Penalty`, or `<Type> Starting`.
+# This list does NOT police which Types may appear as Bonuses vs
+# Penalties vs Starting — those restrictions live in the consuming
+# domain (Combat, Equipment, etc.).
+Bonus Types List:
+  Competency: "A creature's prowess and physical ability."
+  Circumstance: "Environmental conditions or other external factors. The mundane portion of worn armor produces a Circumstance bonus to damage reduction; the magical enhancement on top of it is Guidance (see below)."
+  Morale: "A creature's emotional state, effects from alchemical substances, or natural body chemistry."
+  Guidance: "Magical assistance directing a creature's actions or providing additional force. The magical enhancement on a +N item produces a Guidance bonus of magnitude N, on top of any Circumstance bonus from the mundane item itself."
+  Inherent: "A creature's natural advantage from its own elevated Tier."
+  Ascendancy: "A creature's natural advantage or disadvantage from fighting a creature of a different tier."
+  Racial: "A bonus granted by a creature's race or natural physiology (e.g. base speed from heritage, natural armor, racial resilience)."

@@ -1,0 +1,667 @@
+# Spells — Catalog
+# Catalog Abilities with type: spell. Loaded by the Abilities module.
+# Schema in abilities_design.md (Catalog Ability common type) and
+# field glossary in abilities_glossary.md.
+#
+# Defaults (omit the field when it matches):
+#   activation_time: main
+#   skills: [arcana]
+#   items: []
+#   requires_willing: false (true when target: self)
+
+Elemental Dart:
+  type: spell
+  tier: 0
+  aspects: [fire, acid, electricity, cold]
+  name: [Fire Dart, Acid Dart, Electricity Dart, Cold Dart]
+  damage_type: [fire, acid, electricity, cold]
+  school: resonance
+  range: Close
+  target: "1"
+  attack_roll: true
+  duration: rank turns
+  channel:
+    mode: fire
+    apply_on_cast: true
+    retarget: true
+    attack_roll: true
+    description: "Throw {aspect} dart at any valid target within range."
+  description: "A ranged dart of {aspect}. Resolves as a ranged attack. While channeled, the caster may throw additional darts."
+
+Heal:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  school: pneumancy
+  range: Touch
+  target: "1"
+  save:
+    - attribute: wis
+      fail: "0"
+      success: halved
+  duration: rank turns
+  skills: [healing, nature, perform_]
+  items: [potion, oil]
+  suffix:
+    - Petty Wounds
+    - Lesser Wounds
+    - Simple Wounds
+    - Moderate Wounds
+    - Advanced Wounds
+    - Extreme Wounds
+  effect_hash:
+    minor_damage: [1, 4, 8, 16, 32, 64]
+    moderate_damage: [0, 2, 4, 8, 16, 32]
+    major_damage: [0, 0, 0, 1, 2, 4]
+    minimum_saturation: "tier*2"
+    saturation: "tier*5"
+  channel:
+    mode: fire
+    apply_on_cast: true
+    description: "Make a casting check; reduce the target's bleeding by tier*2 per success rolled."
+    effect_hash:
+      bleed_reduction: "tier*2*success"
+  description: "Restores up to {minor_damage} minor damage, {moderate_damage} moderate damage, and {major_damage} major damage to the touched ally."
+
+Vicious Mockery:
+  type: spell
+  tier: [0, 1]
+  name: [Vicious Mockery, Biting Words]
+  school: enchantment
+  range: Close
+  target: "1"
+  save:
+    - attribute: wis
+      fail: flustered
+      success: "0"
+  duration: rank turns
+  skills: [perform_]
+  properties: [language_dependent]
+  damage_type: emotional
+  channel:
+    mode: fire
+    apply_on_cast: true
+    retarget: true
+    description: "Repeat the spell's effects against any valid target within range."
+  variant_overrides:
+    - null
+    - {attack_roll: true, effects: ["attribute/2 + 2 damage"]}
+  description: "Hurl mocking words at a target, demoralizing them with stinging insults."
+
+Create Illusion:
+  type: spell
+  tier: [0, 1, 2, 3]
+  name:
+    - Create Illusionary Sound
+    - Create Illusionary Image
+    - Create Minor Illusion
+    - Minor Figment
+  school: resonance
+  range: Close
+  target: "1"
+  save:
+    - attribute: int
+      fail: believes_illusion
+      success: "0"
+  duration: rank turns
+  skills: [arcana, perform_]
+  effect_hash:
+    senses:
+      - sound
+      - visual
+      - sound and visual
+      - sound, visual, and tactile
+  variant_overrides:
+    - null
+    - { range: Medium }
+    - { range: Medium }
+    - { range: Long }
+  channel:
+    mode: fire
+    apply_on_cast: false
+    description: "Maintain the illusion or alter what it presents."
+  description: "Create an illusion within range that engages {senses}. Creatures interacting with the illusion may make an Intelligence save to disbelieve it."
+
+Ward:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix:
+    - Trivial
+    - Lesser
+    - Simple
+    - Improved
+    - Advanced
+    - Superior
+  school: resonance
+  range: Touch
+  target: "1"
+  duration: "rank turns"
+  skills: [healing, nature]
+  effect_hash:
+    temp_hp: [3, 5, 8, 12, 16, 20]
+  variant_overrides:
+    - null
+    - { duration: "rank*10 turns" }
+    - { duration: "rank*10 minutes" }
+    - { duration: "rank hours" }
+    - { duration: "rank days" }
+    - { duration: permanent }
+  description: "Grants the target {temp_hp} temporary hit points for the duration."
+
+Detect Magic:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  name:
+    - Detect Overt Magic
+    - Detect Stationary Magic
+    - Detect Magic Signatures
+    - See Magic
+    - Identify Magic
+    - Read Magic
+  school: augury
+  activation_time: 2 turns
+  range: Self
+  target: self
+  duration: rank minutes
+  skills: [perform_, arcana]
+  variant_overrides:
+    - { description: "Detects magical auras within range, but only after 1 minute of focused concentration on the area." }
+    - { description: "Reveals stationary magical auras instantly. Auras attached to moving creatures or objects remain hidden." }
+    - { description: "Identifies the caster of a spell cast within the last day, and identifies the maker of a magic item." }
+    - { description: "Reveals all magical auras within range including moving auras. Identifies magical signatures up to 1 week after the spell was cast or the item was made." }
+    - { description: "Identifies magic items, spell effects active on creatures, and the nature of any magical phenomenon within range." }
+    - { description: "Sees all magic at once and undetectably; reveals magical traps, illusions, and hidden enchantments without alerting their owners." }
+  description: "Detects magical auras. The information revealed grows with the spell's tier."
+
+Light:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix: [null, Bright, Greater, Brilliant, Radiant, Searing]
+  school: resonance
+  range: Touch
+  target: "1"
+  duration: rank hours
+  skills: [arcana, perform_]
+  effect_hash:
+    radius: [20, 30, 40, 50, 60, 80]
+  variant_overrides:
+    - null
+    - null
+    - null
+    - null
+    - null
+    - range: Close
+      target: "1+rank"
+      save:
+        - attribute: wis
+          fail: blind
+          success: dazzled
+      description: "The caster controls the light's direction and intensity, projecting a focused beam at one or more enemies. Targets caught in the beam must make a Wisdom save: failure leaves them blinded; success leaves them dazzled. The light still illuminates a {radius}-foot area around its anchor point."
+  description: "Causes a touched point to glow like a torch, casting bright light in a {radius}-foot radius."
+
+Disguise Self:
+  type: spell
+  tier: [0, 1, 2, 3]
+  name:
+    - Lesser Disguise Self
+    - Disguise Self
+    - Greater Disguise
+    - Mass Disguise
+  school: resonance
+  range: Self
+  target: self
+  duration: rank hours
+  skills: [arcana, perform_]
+  variant_overrides:
+    - null
+    - null
+    - { range: Touch, target: "1" }
+    - range: Touch
+      target: "1+rank/2"
+      description: "Alter the appearance of multiple targets — including their clothing, armor, weapons, and equipment — to look like different people of the same creature type. The caster may spend a main action on any subsequent turn to change any target's disguise."
+  description: "Alter your appearance — including clothing, armor, weapons, and equipment — to look like a different person of the same creature type. You can seem 1 foot shorter or taller, thinner or fatter, and you may add or obscure minor features."
+
+Resistance:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix:
+    - Trivial
+    - Lesser
+    - Simple
+    - Improved
+    - Advanced
+    - Superior
+  school: pneumancy
+  range: Close
+  target: "1"
+  duration: 1 minute
+  skills: [perform_, arcana, healing, nature]
+  modifiers:
+    - target: save
+      type: Guidance
+      descriptors: [all]
+      add: 1
+  variant_overrides:
+    - null
+    - { duration: rank minutes }
+    - { duration: rank*10 minutes }
+    - { duration: rank hours }
+    - { duration: 1 day }
+    - { duration: rank days }
+  description: "Grants the target a +1 Guidance bonus to all saving throws for the duration."
+
+Magic Vestments:
+  type: spell
+  tier: [0, 1, 2, 3]
+  prefix: [Fleeting, Temporary, null, Extended]
+  school: resonance
+  activation_time: bonus
+  range: Close
+  target: "1"
+  duration: 1 turn
+  items: [oil]
+  modifiers:
+    - target: damage_reduction
+      type: Guidance
+      add: 3
+  variant_overrides:
+    - null
+    - { duration: rank turns }
+    - { duration: rank minutes }
+    - { duration: rank hours }
+  description: "Grants the target a +3 damage reduction for the duration."
+
+Recharge:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix: [Faint, Minor, Basic, Moderate, Improved, Greater]
+  school: universal
+  range: Touch
+  target: "1"
+  save:
+    - attribute: cha
+      fail: "0"
+      success: "0"
+  duration: instant
+  skills: [arcana, perform_]
+  effect_hash:
+    mana: [2, 4, 8, 16, 32, 64]
+    minimum_saturation: tier*4
+    saturation: tier*10
+  description: "Restores {mana} points of mana to the touched target. May be used to charge magic items, or as an attack against creatures already saturated with magic — those targets make a Charisma save."
+
+Sacred Flame:
+  type: spell
+  tier: 0
+  school: pneumancy
+  range: Close
+  target: "1"
+  attack_roll: true
+  damage_type: radiant
+  duration: rank turns
+  channel:
+    mode: fire
+    apply_on_cast: true
+    retarget: true
+    attack_roll: true
+    description: "Make another ranged radiant attack against any valid target within range."
+  description: "Make a ranged attack that does radiant damage to the target."
+
+Command:
+  type: spell
+  tier: 1
+  school: enchantment
+  range: Close
+  target: "1"
+  save:
+    - attribute: wis
+      fail: commanded
+      success: "0"
+  duration: "1 turn"
+  skills: [arcana, perform_]
+  properties: [language_dependent]
+  description: "You can give the target a simple command: Approach, Drop, Fall, Flee, or Halt."
+
+Divine Favor:
+  type: spell
+  tier: 1
+  school: pneumancy
+  activation_time: bonus
+  range: Touch
+  target: object
+  duration: "1 turn"
+  description: "Adds the Radiant weapon enchantment to the touched weapon until the end of the turn. Radiant is an Equipment weapon enchantment analogous to Flaming; it adds radiant damage to attacks made with the weapon."
+
+Shield of Faith:
+  type: spell
+  tier: 1
+  school: convergence
+  activation_time: bonus
+  range: Close
+  target: "1"
+  duration: rank turns
+  channel:
+    mode: reservoir
+    retarget: true
+    activation:
+      action: reaction
+      description: "When an attack is made against the target, spend a Reservoir die to block it."
+  description: "Conjures a floating magical shield next to the target. While channeled, the caster may spend Reservoir dice as reactions to block attacks made against the target."
+
+Spiritual Weapon:
+  type: spell
+  tier: 2
+  school: convergence
+  range: Medium
+  target: "1"
+  attack_roll: true
+  damage_type: force
+  duration: "rank turns"
+  channel:
+    mode: auto
+    reservoir_ratio: 2
+    description: "Each turn on the caster's turn, the weapon makes one attack against its current target using a number of dice equal to its Reservoir. The Reservoir is not spent. The caster may spend a Main Action on a later turn to redirect the weapon to a new target."
+  description: "Conjures a floating magical weapon that strikes the designated opponent. The weapon takes the form of the weapon you are holding or one favored by your deity. Each turn the weapon makes one attack against its target automatically, using the caster's spell check. If the weapon goes beyond the spell's range or out of the caster's sight, it returns to the caster and hovers."
+
+Hold Person:
+  type: spell
+  tier: 2
+  school: enchantment
+  range: Close
+  target: "1"
+  save:
+    - attribute: wis
+      fail: paralyzed
+      success: "0"
+  target_escape_save:
+    action: full turn
+    attribute: wis
+  duration: "rank turns"
+  description: "Paralyzes a single creature on a failed Wisdom save."
+
+Silence:
+  type: spell
+  tier: 2
+  school: resonance
+  range: Medium
+  target: "1"
+  area: { shape: circle, size: 4, anchor: target }
+  save:
+    - attribute: wis
+      fail: silenced_area
+      success: "0"
+  duration: "rank turns"
+  skills: [perform_]
+  description: "Complete silence prevails in a 20-foot radius sphere centered on the target. The area moves with the target. No sound issues from, enters, or passes through the area; verbal-component spells cannot be cast. An unwilling creature target attempts a Wisdom save to negate the spell. Items in a creature's possession or magic items that emit sound receive the benefit of the target's save."
+
+Standard Surgery:
+  type: spell
+  tier: 1
+  school: pneumancy
+  activation_time: "360 minutes"
+  range: Touch
+  target: "1"
+  duration: instant
+  skills: [healing]
+  effect_hash:
+    saturation_per_major_cured: 10
+    minimum_saturation_per_major_cured: 5
+  description: "Target helpless or willing creature immediately loses all temporary hitpoints and takes an amount of moderate damage equal to double its major damage. Any attempt to prevent this damage causes the spell to fail. At the end of casting a spell check is rolled and each success cures 1 point of major damage. This spell causes 10 points of magic toxicity per major point cured, with a minimum of 5 points of magic toxicity per point cured."
+
+Message:
+  type: spell
+  tier: 0
+  school: resonance
+  range: Medium
+  target: "rank"
+  duration: "rank*10 minutes"
+  description: "You can whisper messages and hear whispered replies while targets are within range."
+
+Silent Portal:
+  type: spell
+  tier: 0
+  school: resonance
+  range: Close
+  target: object
+  duration: "rank turns"
+  description: "Target door or window makes no sound when opened or closed. This does not prevent other sounds such as objects falling from the door frame."
+
+Hideous Laughter:
+  type: spell
+  tier: 1
+  school: enchantment
+  range: Medium
+  target: "1"
+  save:
+    - attribute: wis
+      fail: prone_laughing
+      success: "0"
+  target_escape_save:
+    action: full turn
+    attribute: wis
+  duration: "rank turns"
+  description: "Target creature falls prone in gales of laughter on a failed Wisdom save."
+
+Illusion of Calm:
+  type: spell
+  tier: 1
+  school: resonance
+  range: Self
+  target: self
+  save:
+    - attribute: int
+      save_target: observers
+      fail: believes_illusion
+      success: "0"
+  duration: "rank minutes"
+  description: "Create an illusion of yourself that hides your real actions. You can control the apparent actions of your illusion but it must remain exactly where you are. Can be used as a reaction in combat to evade attacks."
+
+Speak with Plants:
+  type: spell
+  tier: 1
+  school: augury
+  range: Close
+  target: self
+  duration: "rank minutes"
+  skills: [nature]
+  description: "Surrounding vegetation gains temporary sentience and can recall the events of the last 24 hours. They still retain any other limitations such as lack of sight, but can remember touch, temperature, and the feeling of light. As temporarily sentient plants they can make small movements of their leaves and branches but are not compelled to."
+
+Auditory Hallucination:
+  type: spell
+  tier: 1
+  school: enchantment
+  range: Medium
+  target: "rank"
+  save:
+    - attribute: wis
+      fail: believes_illusion
+      success: "0"
+  duration: "rank turns"
+  skills: [arcana, perform_]
+  channel:
+    mode: fire
+    apply_on_cast: false
+    description: "Adjust the sounds the targets hear."
+  description: "Targets will hear any sound you can imagine. The sounds the creature hears will be based upon their knowledge not yours such as the sound of their chieftain's voice. All targets hear the same hallucination."
+
+Entangle:
+  type: spell
+  tier: 1
+  school: transmutation
+  range: Long
+  area: { shape: circle, size: 8 }
+  save:
+    - attribute: str
+      fail: restrained
+      success: "0"
+  duration: "rank minutes"
+  skills: [nature]
+  description: "Plant life grows and animates creating difficult terrain in a 40-foot spread. Spent dice are used each turn on your turn to make athletics checks against targets in effect."
+
+Mage Hand:
+  type: spell
+  tier: 0
+  school: transmutation
+  range: Close
+  target: object
+  duration: rank turns
+  channel:
+    mode: maintain
+  description: "You point your finger at an object and can lift it and move it at will from a distance. As a move action, you can propel the object as far as 15 feet in any direction, though the spell ends if the distance between you and the object ever exceeds the spell's range."
+
+Summon Mount:
+  type: spell
+  tier: 1
+  school: convergence
+  activation_time: full turn
+  range: Close
+  duration: "rank hours"
+  description: "You summon a light horse or a pony (your choice) to serve you as a mount. The steed serves willingly and well. The mount comes with a bit and bridle and a riding saddle."
+
+Friends:
+  type: spell
+  tier: 0
+  school: enchantment
+  range: Close
+  target: "1"
+  save:
+    - attribute: wis
+      fail: friends_penalty
+      success: "0"
+  duration: rank turns
+  skills: [arcana, perform_]
+  channel:
+    mode: fire
+    apply_on_cast: true
+    retarget: true
+    description: "Maintain the Friends effect against the targeted creatures."
+  description: "Designated creatures must make a Wisdom save. Targets that fail suffer a penalty to their effective save against Charisma-based skill checks made by the caster and the caster's allies, for the duration. Identifying the spell automatically counts as making the save."
+
+Grasp:
+  type: spell
+  tier: 1
+  school: transmutation
+  activation_time: reaction
+  range: Close
+  target: "1"
+  duration: rank turns
+  skills: [perform_]
+  channel:
+    mode: reservoir
+    apply_on_cast: true
+    activation:
+      action: reaction
+      description: "When the target makes a climb check, spend a Reservoir die to add the caster's successes to the target's check."
+  description: "The caster becomes a supporting roll on the target's climb check, adding their successes to the target's check. The initial cast resolves as a reaction to a climb check and applies the boost immediately; subsequent channels fill the Reservoir for additional boosts."
+
+Ears of the City:
+  type: spell
+  tier: 2
+  school: augury
+  activation_time: full turn
+  range: Self
+  target: self
+  duration: "1 turn"
+  skills: [arcana, perform_]
+  description: "The caster sees and hears a stream of past scenes and pieces of conversations from lower-tier creatures within the building they occupy, maximum 100 feet. The caster gains the benefit of a 'gather information' check in a single turn rather than hours using the caster's spell check instead of persuasion."
+
+Timely Inspiration:
+  type: spell
+  tier: 1
+  school: enchantment
+  activation_time: reaction
+  range: Close
+  target: "1"
+  duration: instant
+  skills: [perform_]
+  description: "The caster becomes a supporting roll on the target's attack or skill check, adding their successes to the target's check."
+
+Web:
+  type: spell
+  tier: 2
+  school: transmutation
+  range: Long
+  area: { shape: circle, size: 4 }
+  save:
+    - attribute: dex
+      fail: grappled
+      success: "0"
+  duration: "rank minutes"
+  description: "Web creates a many-layered mass of strong, sticky strands. These strands trap those caught in them. The strands are similar to spiderwebs but far larger and tougher. These masses must be anchored to two or more solid and diametrically opposed points or else the web collapses upon itself and disappears. Creatures caught within a web become grappled by the sticky fibers. Attacking a creature in a web doesn't cause you to become grappled."
+
+Create Pit:
+  type: spell
+  tier: 2
+  school: convergence
+  range: Close
+  area: { shape: square, size: 2 }
+  save:
+    - attribute: dex
+      fail: in_pit
+      success: "0"
+  duration: "rank turns"
+  description: "You create a 10-foot-by-10-foot extra-dimensional hole with a depth of 10 feet per two caster levels (maximum 30 feet). You must create the pit on a horizontal surface of sufficient size. Since it extends into another dimension, the pit has no weight and does not otherwise displace the original underlying material. You can create the pit in the deck of a ship as easily as in a dungeon floor or the ground of a forest. Any creature standing in the area where you first conjured the pit must make a Reflex saving throw to jump to safety in the nearest open space. In addition, the edges of the pit are sloped, and any creature ending its turn on a square adjacent to the pit must make a Reflex saving throw with a +2 bonus to avoid falling into it. Creatures subjected to an effect intended to push them into the pit (such as bull rush) do not get a saving throw to avoid falling in if they are affected by the pushing effect. Creatures who fall into the pit take falling damage as normal. The pit's coarse stone walls have a Climb DC of 25. When the duration of the spell ends, creatures within the hole rise up with the bottom of the pit until they are standing on the surface over the course of a single turn."
+
+Sift:
+  type: spell
+  tier: 0
+  school: augury
+  range: Close
+  area: { shape: square, size: 2 }
+  duration: rank turns
+  skills: [arcana, perform_]
+  channel:
+    mode: fire
+    apply_on_cast: true
+    description: "Continue sifting the area."
+  description: "Instantly search a 10-foot cubic area."
+
+Vacuous Vessel:
+  type: spell
+  tier: 1
+  school: enchantment
+  range: Touch
+  target: object
+  save:
+    - attribute: wis
+      save_target: observers
+      fail: appears_empty
+      success: "0"
+  duration: "rank turns"
+  skills: [arcana, perform_]
+  description: "This spell makes a single bag, chest, sack, or other container look and feel empty. It cannot be larger than 1 cubic foot per rank. Anyone examining it gets a Wisdom save to resist this enchantment."
+
+Grease:
+  type: spell
+  tier: 1
+  school: transmutation
+  range: Close
+  area: { shape: square, size: 2 }
+  save:
+    - attribute: dex
+      fail: prone
+      success: "0"
+  duration: "rank turns"
+  skills: [arcana, perform_]
+  items: [oil]
+  description: "One creature or 10-foot square becomes covered in grease. Covered creatures suffer a -2 situational penalty on athletics checks and gain a +2 situational bonus on escape artist checks. Creatures in the area when the spell is cast, ending their turn in grease, or moving through grease must save or fall prone."
+
+Darkvision:
+  type: spell
+  tier: 2
+  school: transmutation
+  range: Touch
+  target: "1"
+  requires_willing: true
+  duration: "rank*10 minutes"
+  items: [potion]
+  description: "Target creature can see in non-magical darkness as though there were bright light covering an area 5 feet per rank around them. This new sight is limited to black and white shapes and is unable to read flat text. Bright lights within the range of this spell can blind anyone using this spell."
+
+Benign Transposition:
+  type: spell
+  tier: 1
+  school: convergence
+  range: Medium
+  target: "2"
+  requires_willing: true
+  duration: instant
+  description: "Two target creatures, of which you can be one, instantly swap positions. Both subjects must be within range. Objects carried by the creatures (up to the creatures' maximum loads) go with them, but other creatures do not, even if they are carried. The movement is instantaneous and does not provoke attacks of opportunity."

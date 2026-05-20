@@ -1,0 +1,71 @@
+# Loot Archive (example)
+# Persistent record of loot piles encountered, who took what, and
+# what is still up for grabs. Notes module reads this file for recaps
+# and to link narrative entries to loot events.
+# See `equipment_glossary.md` and `equipment_pseudocode.md`
+# (OPEN_LOOT_ARCHIVE, CLAIM_FROM_LOOT_ARCHIVE, CLOSE_LOOT_ARCHIVE,
+# GET_LOOT_ARCHIVE).
+
+# Lifecycle:
+# 1. DM creates ground pile in `loot.yaml` (manually or rolled), then
+#    OPEN_LOOT_ARCHIVE registers it here with a snapshot of items
+#    each tagged `claimed_by: null`.
+# 2. The pile lives in two places: `loot.yaml` (live, mutable) and
+#    here (immutable record). CLAIM_FROM_LOOT_ARCHIVE transfers the
+#    Stack and updates `claimed_by`.
+# 3. CLOSE_LOOT_ARCHIVE removes the ground pile from `loot.yaml` and
+#    sets `closed: true` here. Archive entry persists forever.
+
+# Entry fields:
+#   id           REQUIRED. Unique string id.
+#   ground_id    REQUIRED. Owner ID of the matching ground pile
+#                (e.g., "ground:Goblin cave — entrance").
+#   label        Free-form description.
+#   notes_ref    Optional pointer to a notes entry.
+#   closed       false while open & claimable; true after CLOSE.
+#   items        List of pickup records:
+#                - item: { ...full Item Stack snapshot... }
+#                  claimed_by: <owner_id> | null
+#                CLAIM_FROM_LOOT_ARCHIVE may add `actual_quantity`
+#                for partial claims. claimed_by uses the same Owner
+#                ID convention ("character:<id>", "party", etc.).
+
+loot_archive:
+
+  # Open archive — DM has not closed it. Pile still in loot.yaml under
+  # the matching ground_id; this entry retains the snapshot.
+  - id: loot_001
+    ground_id: "ground:Goblin cave — entrance"
+    label: "Goblin cave entrance loot"
+    notes_ref: null
+    closed: false
+    items:
+      - item: { item: Shortbow }
+        claimed_by: "character:char_001"
+      - item: { item: Arrow, quantity: 11 }
+        claimed_by: "character:char_001"
+      - item: { item: Dagger, quantity: 2 }
+        claimed_by: null
+      - item: { item: Gold, quantity: 8 }
+        claimed_by: party
+      - item: { item: Silver, quantity: 23 }
+        claimed_by: null
+
+  # Closed archive — ground_id removed from loot.yaml; entry remains
+  # for the notes recap.
+  - id: loot_002
+    ground_id: "ground:Abandoned shrine — altar"
+    label: "Altar loot"
+    notes_ref: campaign_session_03_altar
+    closed: true
+    items:
+      - item:
+          item: Mace
+          tier: 1
+          properties:
+            - name: Radiant
+        claimed_by: "character:char_003"
+      - item:
+          item: Leather armor
+          durability_damage: 5
+        claimed_by: party

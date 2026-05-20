@@ -84,5 +84,5 @@ When adding Days to a Timestamp, no further carry is needed — `day_index` is u
 ## Cross-domain interactions
 
 - Timekeeping does not own state. The current Timestamp is held by some caller; Timekeeping translates the values it receives.
-- Timekeeping does not know about combat, ticks, or any sub-Round subdivision. Domains that need finer granularity than a Round handle it themselves and pass whole-Round counts to Timekeeping.
+- Timekeeping does not know about Combat's Time Ticks, or any sub-Round subdivision. Domains that need finer granularity than a Round handle it themselves and pass whole-Round counts to Timekeeping.
 - Configuration is loaded from `timekeeping_config.yaml` at boot.

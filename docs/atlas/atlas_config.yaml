@@ -1,0 +1,40 @@
+# Crimson Steel — Atlas tunables.
+#
+# State (maps, tokens, active_map_id) lives in `atlas_data.json`,
+# not here. This file is rules-only.
+#
+# All keys use Title Case as referenced from the design / glossary
+# / tests. Override files in `data/` follow the convention in
+# `file_conventions.md`.
+
+# ---- Tokens ----
+
+# Token Size in Map Units when *Place Token* is called without an
+# explicit size. Tokens are square; this is the side length.
+Default Token Size: 1
+
+# ---- Grid ----
+#
+# Defaults applied to new Maps when no Grid is supplied. A Map may
+# still override per-map via *Add Map* / *Edit Map*, or set
+# `grid = null` to render with no overlay.
+
+# Grid Type for new Maps: one of `none`, `square`, `hex`.
+Default Grid Type: square
+
+# ---- Map size ----
+#
+# There is no enforced upper bound on Map Width or Map Height. These
+# values control display-side hints only — the UI may use them as a
+# starting zoom estimate or to size minimaps. Atlas itself never
+# clamps to them.
+
+# Initial zoom level (Map Units per CSS pixel) the UI should pick
+# when opening a Map for the first time. Pure suggestion — the UI
+# is free to ignore it.
+Suggested Initial Zoom: 1
+
+# Lower and upper bounds on UI zoom level. The UI clamps user zoom
+# input to this range; values are Map Units per CSS pixel.
+Minimum Zoom: 0.1
+Maximum Zoom: 32

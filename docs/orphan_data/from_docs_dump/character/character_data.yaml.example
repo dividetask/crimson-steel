@@ -1,0 +1,98 @@
+# Crimson Steel — character roster.
+# Schema (one entry per character under `characters:`):
+#   id          integer, unique, never reused.
+#   name        character name.
+#   player      name of the player running the character.
+#   race        race key matching races.yaml. Sub-races (hill_dwarf,
+#               high_elf, …) inherit from their parent race.
+#   tags        optional, default `[player_character]`. Tags matching
+#               keys in advancement.yaml's `tier_advancement` contribute
+#               a breakpoint list; highest tier wins. Descriptive tags
+#               (NPC, Ally, Enemy) have no effect on tier.
+#   tier        optional. Hardcodes the tier; bypasses Advancement.
+#   ritual_list optional. Array of arrays grouped by tier — index 2
+#               is the list of tier-2 rituals. Pure data, rendered as-is.
+#   attributes  six base ability scores (str, dex, con, int, wis, cha).
+#   advancement optional. Tracks classes and tier-up choices. Keys:
+#                 tier_attribute_advancement
+#                   optional flat list of attribute keys — focused-bonus
+#                   picks made at each tier-up, in order. The first
+#                   `focused_attribute_count` are tier 2's, next chunk
+#                   tier 3's, etc. May be pre-filled.
+#                 classes
+#                   map of class key (matching advancement.yaml) to:
+#                     * integer — shorthand for level count, no skills.
+#                     * map with:
+#                         level   integer level in the class.
+#                         skills  list of skill keys advancing.
+
+characters:
+  - id: 1
+    name: Ash Windmere
+    player: Sam
+    race: human
+    attributes:
+      str: 10
+      dex: 14
+      con: 12
+      int: 13
+      wis: 16
+      cha: 18
+    advancement:
+      classes:
+        bard:
+          level: 3
+          skills:
+            - perform_dance
+            - persuasion
+            - perception
+            - arcana
+
+  - id: 2
+    name: Bryn Ironvein
+    player: Mira
+    race: hill_dwarf
+    attributes:
+      str: 18
+      dex: 10
+      con: 17
+      int: 9
+      wis: 12
+      cha: 8
+    advancement:
+      tier_attribute_advancement:
+        - str
+        - con
+      classes:
+        fighter:
+          level: 4
+          skills:
+            - athletics
+            - intimidate
+            - perception
+        barbarian:
+          level: 2
+          skills:
+            - athletics
+            - intimidate
+
+  - id: 3
+    name: Lira Duskmoor
+    player: Jordan
+    race: high_elf
+    tier: 3
+    attributes:
+      str: 8
+      dex: 14
+      con: 11
+      int: 20
+      wis: 16
+      cha: 12
+    advancement:
+      tier_attribute_advancement:
+        - dex
+        - con
+        - con
+        - str
+      classes:
+        wizard: 3

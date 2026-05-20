@@ -1,0 +1,247 @@
+# Talents — Catalog
+# Catalog Abilities with type: talent. Loaded by the Abilities module.
+# Schema in abilities_design.md (Catalog Ability common type); vocabulary
+# in abilities_glossary.md.
+#
+# Talents typically omit `tier` — the using Creature's Tier supplies the
+# value at evaluation time. Carry an explicit `tier` only when the Talent
+# has its own Tier independent of the Creature, or when it uses a Tier-
+# axis Variant.
+#
+# Two shapes appear here:
+#   - Active talents with a normal activation pipeline (activation_time, range, target).
+#   - Trigger talents with a `trigger:` field and no activation pipeline;
+#     these fire automatically during another action (sneak_attack,
+#     halfling_luck, monster trigger riders, etc.).
+#
+# Some talents have a Stateful counterpart whose per-Creature state lives
+# in Conditions (rage timer, bardic luck pool). The talent here is the
+# activation; the Stateful Ability entry in stateful_abilities.yaml
+# carries the description of the persistent state.
+
+# --- Active talents -----------------------------------------------------
+
+Rage:
+  type: talent
+  activation_time: bonus
+  range: Self
+  target: self
+  save: []
+  duration: "rank turns"
+  description: "Enter a rage, gaining combat pool and damage reduction for the duration. State (rage timer, exhaustion on end) lives in Conditions."
+
+Channel Divinity:
+  type: talent
+  activation_time: main
+  range: Close
+  target: "1+rank/2"
+  duration: instant
+  description: "Spend mana to invoke a divine effect from your domain."
+
+Turn Undead:
+  type: talent
+  activation_time: main
+  range: Medium
+  target: "1+rank"
+  save:
+    - attribute: wis
+      fail: frightened
+      success: "0"
+  duration: rank turns
+  description: "Channel divinity to drive away undead within range."
+
+Sneak Attack:
+  type: talent
+  trigger:
+    on: on_hit
+    condition: target_flatfooted
+    effect:
+      kind: bonus_dice
+      dice: "1 + (level - 1) / 2"
+  description: "Weapon attacks deal extra damage against flat-footed creatures within 30 ft (+1 per 2 levels after 1st). Before rolling, you may impose an additional effect (e.g. extra bleed, halved movement) by raising the success requirement; the target then makes a Constitution save with a penalty equal to your sneak-attack bonus."
+
+Reckless Attacks:
+  type: talent
+  trigger:
+    on: attack_action
+    condition: spends_all_remaining_dice
+    effect:
+      kind: bonus_dice
+      dice: "level"
+  description: "If you use all of your remaining dice on an attack action you gain an additional number of dice for that attack action equal to your level."
+
+Primal Tenacity:
+  type: talent
+  activation_time: reaction
+  range: Self
+  target: self
+  duration: "1 attack"
+  description: "Spend 4 mana to gain a +4 circumstance bonus to damage reduction against a single attack."
+
+Trapfinding:
+  type: talent
+  description: "Passively sense certain magical auras from traps and illusions. At level 5 and every 5 levels thereafter, gain a +1 competence bonus to Perception checks against traps and illusions."
+  modifiers:
+    - target: skill
+      type: competence
+      descriptors: [perception, traps, illusions]
+      add: "level / 5"
+
+Danger Sense:
+  type: talent
+  activation_time: reaction
+  range: Self
+  target: self
+  duration: "1 attack"
+  description: "Spend 4 mana as a reaction when taking damage (even when unaware) to gain a +4 luck bonus to damage resilience against that damage."
+
+Better Lucky Than Good:
+  type: talent
+  activation_time: free
+  range: Self
+  target: self
+  duration: "1 turn"
+  description: "Spend 3 mana. Can be activated while unaware. Attacks against you (including spells) are made with half as many dice (min 3). Enemies are unconsciously aware of the penalty."
+
+Magical Performance:
+  type: talent
+  activation_time: main
+  range: Self
+  target: self
+  duration: concentration
+  skills: [perform_]
+  description: "Learn a magical variant of any Performance skill, used both for mundane checks and to create a magical performance. Maintaining a performance takes a main action each turn; bardic spells can be cast as part of that action. Only advances on bard levels."
+
+Bardic Spellcasting:
+  type: talent
+  description: "Cast a number of bardic spells as a main action while performing. Spells need not be prepared each day. Casting outside a performance takes twice as long."
+
+Bardic Inspiration:
+  type: talent
+  activation_time: bonus
+  range: Close
+  target: "1+rank"
+  duration: "1 turn"
+  skills: [perform_]
+  description: "While performing, spend 1 mana (once per turn) to grant a pool of luck. Each point lets you or an ally reroll a single die before the initial check. Successes grant 1 luck (must be used before your next turn); a fumble awards luck to the DM instead. The luck pool itself is Stateful and lives in Conditions."
+
+Unsettling Words:
+  type: talent
+  activation_time: reaction
+  range: Close
+  target: "1"
+  skills: [perform_]
+  description: "Spend a luck point from your performance before an enemy rolls; pick one of their dice to reroll."
+
+Combat Trickery:
+  type: talent
+  description: "Gain a number of arcane spells from the Trickery list as innate spells. Cast them as a main action without preparation."
+
+Mage Hand Legermain:
+  type: talent
+  description: "When you cast Mage Hand the hand can be invisible. Use it to stow or retrieve an item from a container worn or carried by another creature, or to use thieves' tools to pick locks and disarm traps at range."
+
+Thieves Cant:
+  type: talent
+  description: "You know thieves' cant — a coded mix of dialect, jargon, and signs. Hide messages in normal conversation (twice as long to convey) and read the secret signs that mark danger, loot, or thieves' guild territory."
+
+Spell-Like Ability (Enchantment/Illusion):
+  type: talent
+  description: "Choose an enchantment or illusion tier 0 spell from any list and cast it as a spell-like ability."
+
+# --- Trigger talents: reroll, luck ---------------------------------------
+
+Halfling Luck:
+  type: talent
+  trigger:
+    on: attack_check
+    condition: rolled_a_one
+    effect:
+      kind: scale
+      scale: reroll_one_die
+  description: "Once per check, reroll a single 1 rolled."
+
+# --- Natural attacks -----------------------------------------------------
+
+# Slam, Claws, Bite, Horns and similar natural weapons are Equipment, not
+# Talents. The Natural Attack Talent is what grants a Creature access to
+# them; the weapon stat blocks live in the Equipment domain (currently
+# pending — names referenced from creature stubs and race configs will
+# resolve to Equipment entries once that domain ships).
+Natural Attack:
+  type: talent
+  description: "Grants one or more natural weapons (slam, claw, bite, horn, etc.). The weapons themselves are Equipment entries; this Talent is how a Creature gains access to them. The granting Class or Race specifies which natural weapons via grants_equipment."
+  grants_equipment: []   # filled in by the granting Class or Race; Equipment owns the weapon stat blocks.
+
+Rend:
+  type: talent
+  trigger:
+    on: on_hit
+    condition: second_natural_attack_same_target
+    effect:
+      kind: bonus_dice
+      dice: "tier"
+  description: "On a successful hit with two natural attacks against the same target, deal additional damage."
+
+# --- Trigger talents tied to monster bites/slams -----------------------
+
+Poison Bite:
+  type: talent
+  trigger:
+    on: on_hit
+    condition: bite
+    effect:
+      kind: invoke_named_effect
+      name: poison
+  save:
+    - attribute: con
+      fail: poison
+      success: "0"
+  description: "Bite injects poison; target must save or take poison damage."
+
+Ghoul Fever:
+  type: talent
+  trigger:
+    on: on_hit
+    condition: bite
+    effect:
+      kind: invoke_named_effect
+      name: ghoul_fever_disease
+  save:
+    - attribute: con
+      fail: ghoul_fever
+      success: "0"
+  description: "Disease inflicted on bite. Targets must save against contraction."
+
+Ghoul Paralysis:
+  type: talent
+  trigger:
+    on: on_hit
+    condition: bite_or_claw
+    effect:
+      kind: invoke_named_effect
+      name: paralyzed
+  save:
+    - attribute: con
+      fail: paralyzed
+      success: "0"
+  description: "Bite or claw can paralyze the target on a failed save."
+
+Energy Drain:
+  type: talent
+  trigger:
+    on: on_hit
+    condition: slam
+    effect:
+      kind: invoke_named_effect
+      name: energy_drain
+  description: "Drains life force from a target on a successful slam attack."
+
+Create Spawn:
+  type: talent
+  trigger:
+    on: on_kill
+    effect:
+      kind: invoke_named_effect
+      name: rise_as_undead
+  description: "Creatures killed by this creature rise as undead under its control."

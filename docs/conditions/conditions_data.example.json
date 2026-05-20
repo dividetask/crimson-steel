@@ -1,0 +1,34 @@
+{
+  "creatures": {
+    "1": {
+      "mana_spent": 1,
+      "magic_toxicity": 3
+    },
+    "2": {
+      "hp_damage": { "moderate": 8, "major": 6 },
+      "mana_spent": 6,
+      "afflictions": {
+        "bleeding": { "potency": 1, "inflicting_tier": 1 }
+      }
+    },
+    "3": {
+      "temporary_hit_points": {
+        "amount": 6,
+        "source_id": "spell:aid:42"
+      },
+      "magic_toxicity": 5,
+      "afflictions": {
+        "common_venom": { "potency": 2, "inflicting_tier": 2 }
+      },
+      "effects": [
+        {
+          "target_key": "str",
+          "bonus_type": "Enhancement",
+          "amount": 2,
+          "source_id": "equipment:char_3:belt_of_str:body"
+        }
+      ]
+    },
+    "9": {}
+  }
+}

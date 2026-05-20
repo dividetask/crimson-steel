@@ -1,0 +1,10 @@
+{
+  "time_ticks_per_round": null,
+  "time_tick": null,
+  "combat_anchor": null,
+  "elapsed_time_ticks": 0,
+  "acting_combatant_id": null,
+  "combatants": [],
+  "granted_actions": [],
+  "dm_luck_points": 0
+}

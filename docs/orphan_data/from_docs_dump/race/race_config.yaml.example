@@ -1,0 +1,177 @@
+# Crimson Steel — races.
+# Schema:
+#   races:
+#     <race_key>:
+#       name        optional human-readable name (key is fallback).
+#       parent_race optional. Marks as a sub-race; inherits speed,
+#                   ability_score_adjustments, and abilities. Own
+#                   values stack on top.
+#       size        optional, e.g. "Small" or "Medium".
+#       speed       optional integer (feet). Inherited if omitted.
+#       ability_score_adjustments
+#                   optional map of attribute key to integer. Stacks
+#                   across the parent_race chain.
+#       abilities   optional, list shaped like a class's abilities
+#                   list (see advancement.yaml). Sticky context
+#                   entries limited to `min_level`. Per-ability
+#                   fields: `name`, `min_level`, `scales_with_level`.
+#                   Scales against the character's total class level.
+# Characters reference a race by key in their `race:` field.
+
+races:
+  human:
+    name: Human
+    size: Medium
+    speed: 30
+    ability_score_adjustments:
+      str: 1
+      dex: 1
+      con: 1
+      int: 1
+      wis: 1
+      cha: 1
+    abilities:
+      - name: bonus_feat
+        description: Choose any 1st-level feat.
+
+  dwarf:
+    name: Dwarf
+    size: Medium
+    speed: 25
+    abilities:
+      - name: low_light_vision
+        description: Treat all light sources as twice as bright for the purpose of sight.
+      - name: poison_resistance
+        description: +1 inherent bonus to poison saves, including alcohol.
+        modifiers:
+          - target:      save.con
+            descriptors: [poison]
+            type:        Inherent
+            add:         1
+      - name: weapon_familiarity_dwarven
+        description: Proficient with battleaxes, heavy picks, and warhammers, and treat any weapon with "dwarven" in its name as a martial weapon.
+      - name: heavy_armor_full_speed
+        description: Your speed is not reduced by wearing heavy armor.
+      - name: bonus_dwarven_feat
+        description: Choose any dwarven feat.
+
+  hill_dwarf:
+    name: Hill Dwarf
+    parent_race: dwarf
+    ability_score_adjustments:
+      con: 2
+      wis: 2
+
+  mountain_dwarf:
+    name: Mountain Dwarf
+    parent_race: dwarf
+    ability_score_adjustments:
+      con: 2
+      str: 2
+
+  elf:
+    name: Elf
+    size: Medium
+    speed: 30
+    abilities:
+      - name: far_sight
+        description: All distance penalties for sight-based perception checks are halved.
+      - name: elven_resistance
+        description: +1 inherent bonus against being charmed; immune to magical sleep.
+      - name: weapon_familiarity_elven
+        description: Proficient with longbows (including composite longbows), longswords, rapiers, and shortbows (including composite shortbows), and treat any weapon with "elven" in its name as a martial weapon.
+      - name: bonus_elven_feat
+        description: Choose any elven feat.
+
+  high_elf:
+    name: High Elf
+    parent_race: elf
+    ability_score_adjustments:
+      dex: 2
+      int: 2
+
+  wood_elf:
+    name: Wood Elf
+    parent_race: elf
+    ability_score_adjustments:
+      dex: 2
+      wis: 2
+
+  gnome:
+    name: Gnome
+    size: Small
+    speed: 25
+    abilities:
+      - name: far_sight
+        description: All distance penalties for sight-based perception checks are halved.
+      - name: bonus_gnome_feat
+        description: Choose any gnome feat.
+
+  forest_gnome:
+    name: Forest Gnome
+    parent_race: gnome
+    ability_score_adjustments:
+      int: 2
+      dex: 2
+    abilities:
+      - name: natural_illusionist
+        description: +1 inherent bonus to all illusion spells.
+      - name: speak_with_small_beasts
+        description: Through sound and gestures, communicate simple ideas with Small or smaller beasts.
+
+  rock_gnome:
+    name: Rock Gnome
+    parent_race: gnome
+    ability_score_adjustments:
+      int: 2
+      con: 2
+    abilities:
+      - name: tinkerer
+        description: You gain Mending and Prestidigitation as spell-like abilities.
+      - name: artificers_lore
+        description: Appraisal is a class skill and advances for free each level. You can substitute Appraisal for History on checks involving magical or alchemical items.
+
+  halfling:
+    name: Halfling
+    size: Small
+    speed: 25
+    abilities:
+      - name: halfling_luck
+        description: Once per check, reroll a single 1.
+      - name: brave
+        description: +1 inherent bonus against fear-based checks.
+      - name: bonus_halfling_feat
+        description: Choose any halfling feat.
+
+  lightfoot_halfling:
+    name: Lightfoot Halfling
+    parent_race: halfling
+    ability_score_adjustments:
+      dex: 2
+      cha: 2
+
+  stout_halfling:
+    name: Stout Halfling
+    parent_race: halfling
+    ability_score_adjustments:
+      dex: 2
+      con: 2
+
+  satyr:
+    name: Satyr
+    size: Medium
+    speed: 35
+    ability_score_adjustments:
+      dex: 2
+      cha: 2
+    abilities:
+      - name: fey
+        description: You count as a fey creature rather than humanoid. Vulnerable to attacks from cold-iron weapons.
+      - name: horns
+        description: Make a natural attack with your head and horns. On a charging attack you use your full Strength modifier (not half).
+      - name: fey_resistance
+        description: +1 inherent bonus against being charmed; immune to magical sleep.
+      - name: reveler
+        description: Each level, advance Persuasion or one Performance skill for free.
+      - name: spell_like_ability
+        description: Choose an enchantment or illusion tier-0 spell from any list and cast it as a spell-like ability.

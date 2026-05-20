@@ -1,6 +1,6 @@
 # Chronicle — Design
 
-Owns the Campaign's mutable state: the Campaign Name, the current Timestamp, the Chapter list, and the Entry collection. State is loaded from `data/chronicle_data.json` (or the example file in development mode) at startup and persisted on every mutation.
+Owns the Campaign's mutable state: the Campaign Name, the current Timestamp, the Current Chapter, the Chapter list, and the Entry collection. State is loaded from `data/chronicle_data.json` (or the example file in development mode) at startup and persisted on every mutation.
 
 Chronicle delegates calendar arithmetic to the Timekeeping domain and creature data to the Creatures domain. It does not perform calculations itself beyond the bookkeeping needed to manage its own state.
 
@@ -22,7 +22,7 @@ Shared fields (all Entries):
 | `title` | string | The Entry's heading. For Notes, this is the note title. For Creature References, this is an optional suffix appended to the creature's name (typically blank). |
 | `public_description` | string | Body text shown to players. May be empty. |
 | `dm_description` | string | Body text shown only to the Game Master. May be empty. |
-| `image` | string or null | Path or URL of an image to display with the Entry. |
+| `image` | string or null | An image identifier (path, URL, or other reference) the consuming project resolves. Chronicle stores the string opaquely; image storage and retrieval are out of scope here — each consuming project defines its own rules for where images live and how the identifier resolves. |
 | `public` | boolean | When true, players may see this Entry. When false, only the Game Master may see it. |
 | `hidden_from` | list of Creature IDs | Players controlling any Creature in this list cannot see the Entry. |
 | `owner_id` | Creature ID or null | When set, the Entry is visible only to this Creature's controller (plus the Game Master). |
@@ -49,6 +49,7 @@ Creature-Reference-specific fields (when `entry_type = creature`):
 |---|---|---|
 | `campaign_name` | string | The Campaign Name. |
 | `timestamp` | Timestamp (per Timekeeping domain) | The current in-game time. |
+| `current_chapter` | integer | The Current Chapter number. Defaults to 1 on a new Chronicle. |
 | `chapters` | list of Chapter | All Chapters that exist. |
 | `entries` | list of Entry | All Entries. |
 | `next_id` | integer | Next ID to assign when creating an Entry. |
@@ -75,6 +76,9 @@ Returns: the new Timestamp.
 - **Add Chapter** — creates a new Chapter with a given number and name.
 - **Rename Chapter** — changes a Chapter's name.
 - **Remove Chapter** — deletes a Chapter. Entries belonging to the removed Chapter are not deleted; they retain their `chapter` field, which now references a non-existent Chapter. Callers may reassign or delete those Entries separately.
+- **Get Current Chapter** — returns the Current Chapter number.
+- **Advance Chapter** — increments the Current Chapter by one. Intended for normal story progression. Does not move existing Entries; new Entries created without an explicit `chapter` land in the new Current Chapter.
+- **Set Current Chapter** — sets the Current Chapter to a given number. Intended for correcting user error; the GM normally only moves Current Chapter forward via *Advance Chapter*.
 
 ### Manage Entries
 

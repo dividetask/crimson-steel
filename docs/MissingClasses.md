@@ -10,6 +10,10 @@ The file is appended to during refactor work and reviewed each time a new
 domain design lands upstream. When a domain ships, its entry here is
 deleted and the work it was blocking is unblocked.
 
+Open design questions *within* domains that already have a file set —
+e.g. mechanics still to be specified inside Combat or Chronicle — live
+in `PendingDesign.md`, not here.
+
 ## How to use this file
 
 For every entry:
@@ -74,157 +78,6 @@ For every entry:
     user, so the `tags` filter for `player_character` in the minimal stub
     spec is trivially true today.
 
-### Proficiencies
-
-- **Status:** Planned. No files in `docs/`.
-- **Existing code:**
-  - `lib/skills.rb`
-  - `data/skills.yaml`
-  - `spec/skills_spec.rb`
-- **What's needed from the domain:**
-  - The contract for "proficiency prowess" (the single integer dice
-    resolution consumes), the mandatory-proficiency rules (`martial`,
-    saves), the prefix-match rules referenced from
-    `docs/common_glossary.md`.
-  - Where proficiency ranks live (on the Creature? on the Class?), and
-    how `floor(attribute / attribute_contribution_divisor)` is sourced.
-- **Deferred work:**
-  - Moving the prowess-to-roll-input translation into the Proficiencies
-    layer. Today the prowess number flows directly into dice resolution
-    via the Creature's skills.
-- **Notes:**
-  - `docs/common_glossary.md` already names several Proficiencies terms
-    (`Proficiency Prowess`, `Mandatory Proficiency`, `Prefix Match`); the
-    full domain is still pending.
-
-### Equipment
-
-- **Status:** Planned. No files in `docs/`.
-- **Existing code:**
-  - `lib/equipment.rb`
-  - `lib/item_use.rb`
-  - `data/equipment_config.yaml` (catalog: weapons, armor, currency,
-    magical properties, naming rules)
-  - `spec/equipment_spec.rb`, `spec/item_use_spec.rb`
-- **Orphan-data counterpart:** `docs/orphan_data/equipment.yaml` holds
-  per-creature equipped/consumable/other lists, prepared spells, rituals,
-  and item descriptions. The catalog of *what items can exist* is project
-  config and not in orphan data.
-- **What's needed from the domain:**
-  - Public entry points for looking up an item, evaluating its bonuses /
-    penalties / starting modifiers, computing damage type / threshold,
-    and applying conditions on hit. The Combat / item_use code calls
-    these today through `lib/equipment.rb`.
-  - A canonical config for the catalog so `data/equipment_config.yaml`
-    can become an override file or move upstream.
-- **Deferred work:**
-  - Migrating `data/equipment_config.yaml` to the new `data/` overrides
-    convention. The catalog has no canonical doc home yet, so it stays
-    in `data/` checked in via a gitignore exception.
-  - Replacing the orphan-data instance lists with calls to the Equipment
-    domain.
-
-### Conditions
-
-- **Status:** Planned. No files in `docs/`.
-- **Existing code:**
-  - `lib/conditions.rb`
-  - `data/conditions.yaml` (catalog: severities, affliction rules)
-  - `spec/conditions_spec.rb`
-- **Orphan-data counterpart:** `docs/orphan_data/conditions.yaml` holds
-  per-creature current HP / mana / toxicity / damage tracking and active
-  condition flags. The catalog of *what conditions exist* is project
-  config and not in orphan data.
-- **What's needed from the domain:**
-  - Public entry points for the Acceptance Check, Magic Toxicity, Magic
-    Poisoning, and Affliction lifecycle named in `docs/common_glossary.md`.
-  - Storage rules for the per-creature state currently living in
-    `orphan_data/conditions.yaml` and `lib/dummy_data.rb`.
-- **Deferred work:**
-  - Migrating `data/conditions.yaml` to the new `data/` overrides
-    convention. Stays checked in until a canonical config exists.
-
-### Combat
-
-- **Status:** Planned. No files in `docs/`.
-- **Existing code:**
-  - `lib/combat.rb`
-  - `pages/combat.rb` + `views/pages/combat.erb`
-  - `stubs/attack_stub.rb` + `views/stubs/_attack_stub.erb`
-  - `stubs/initiative_stub.rb` + `views/stubs/_initiative_stub.erb`
-  - `stubs/turn_action_stub.rb` + `views/stubs/_turn_action_stub.erb`
-  - `spec/combat_spec.rb`
-- **What's needed from the domain:**
-  - Turn order rules, action economy, combat-specific Roll modifications.
-  - How attacks compose Rolls into Checks (Initiating Roll = attacker,
-    Defending Roll = defender). The `attack_stub` currently builds a
-    multi-Roll panel directly; under the new check_resolution contract
-    it would call `resolve_check`.
-- **Deferred work:**
-  - Re-platforming `attack_stub` on top of `check_resolution`. The
-    combat-level decisions about which Rolls comprise an attack belong
-    to Combat, not to check_resolution itself, so this waits for the
-    Combat domain to land.
-
-### Abilities
-
-- **Status:** Planned. No files in `docs/`.
-- **Existing code:**
-  - `lib/abilities.rb`
-  - `data/abilities_config.yaml` + `data/abilities_data.yaml`
-  - `spec/abilities_spec.rb`
-- **Orphan-data counterpart:** `docs/orphan_data/abilities.yaml` holds
-  ability description text used by the creature stubs.
-- **What's needed from the domain:**
-  - Public entry points for the three flavors named in
-    `docs/common_glossary.md` (Procedural, Stateful, Always-On
-    Modifier), and for the Effect string parsing rules.
-- **Deferred work:**
-  - Migrating `data/abilities_*.yaml` to the new convention. Stays
-    checked in.
-
-### Damage Types
-
-- **Status:** Tentative. May be merged with another domain.
-- **Existing code:**
-  - `lib/damage_types.rb`
-  - `data/damage_types.yaml`
-  - `spec/damage_types_spec.rb`
-- **What's needed from the domain:**
-  - Confirmation of whether Damage Types stays standalone or merges into
-    Equipment / Combat. Several terms (`Severity`, `Threshold`, `Damage
-    Resilience`) already live in `docs/common_glossary.md`.
-- **Deferred work:**
-  - None active; the existing code's contract is small and stable.
-
-### Modifiers
-
-- **Status:** Tentative. May end up part of another domain.
-- **Existing code:**
-  - `lib/modifiers.rb`
-  - `spec/modifiers_spec.rb`
-- **Upstream data:** `docs/orphan_data/modifiers.yaml` holds the canonical
-  `Bonus Types List`.
-- **What's needed from the domain:**
-  - Confirmation of where modifier-key validation lives (in a Modifiers
-    library, at the dice resolution boundary, or upstream). Today
-    `lib/dice_system.rb` validates modifier keys against the list it
-    finds in `data/dice_resolution.yaml`; the new dice resolution design
-    explicitly does not validate.
-  - The workflow for registering a new modifier type when a class /
-    ability / item / condition introduces one (open question in
-    `docs/orphan_data/orphans.md`).
-- **Deferred work:**
-  - Moving the Bonus Types validation out of dice resolution. Awaiting
-    the Modifiers contract before deciding the validation entry point.
-
-### Atlas
-
-- **Status:** Planned. No files in `docs/`. No existing project code.
-- **Existing code:** none.
-- **What's needed from the domain:** TBD.
-- **Deferred work:** none.
-
 ## Migration triggers
 
 Quick reference for what to do once a domain lands:
@@ -232,12 +85,3 @@ Quick reference for what to do once a domain lands:
 - **Creatures** — rename Character→Creature, fold Race + Advancement
   callers into the unified API, split per-creature state out of
   `lib/dummy_data.rb`.
-- **Proficiencies** — move prowess translation up out of dice resolution.
-- **Equipment** — move `data/equipment_config.yaml` to the canonical home
-  (override file or upstream); replace orphan_data per-creature lists.
-- **Conditions** — same pattern as Equipment for `data/conditions.yaml`
-  and the orphan_data instance state.
-- **Combat** — re-platform `attack_stub` on `check_resolution`.
-- **Abilities** — same pattern as Equipment for `data/abilities_*.yaml`.
-- **Modifiers** — pick a validation home; remove the deferred validation
-  in dice resolution.

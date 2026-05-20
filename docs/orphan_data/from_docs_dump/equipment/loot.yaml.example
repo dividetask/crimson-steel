@@ -1,0 +1,169 @@
+# Loot — Inventory and Item Tracking (example)
+# Tracks who owns what. Item type definitions live in
+# `equipment_config.yaml`. This file holds quantities and per-instance
+# identity fields (tier, properties, stored spell, durability, name
+# override, restock target).
+# See `equipment_glossary.md` and `equipment_pseudocode.md`.
+
+# Multi-file loading: loader reads `loot.yaml` first, then every
+# `loot-*.yaml` in the directory and merges. Duplicate owner IDs across
+# files are an error. Writes go back to whichever file the owner came
+# from; runtime-created owners go to this base file.
+
+# Owner IDs:
+#   Character:    "character:<id>"
+#   Party:        "party"
+#   Ground pile:  "ground:<location>"
+#   Shop:         "shop:<id>"  (lives in shops.yaml)
+# Character IDs are immutable (assigned by character module — NOT names).
+# In this file, characters appear under `characters:` keyed by ID; the
+# loader prepends "character:". Party uses the top-level `party:` key;
+# ground piles go under `ground_piles:`.
+
+# Stack identity & merging: two Stacks merge when item, tier, properties
+# (in order), stored_spell, durability_damage, name override, and
+# value_in_gold (for Gems) are all equal. Quantity and restock_target
+# are NOT identity fields. Zero-quantity stacks persist until cleanup,
+# except those carrying a restock_target.
+
+# Item Stack fields:
+#   item               REQUIRED. Key from equipment_config.yaml.
+#   quantity           Default 1. Fractional allowed for Currency.
+#   tier               Default 0 (non-magical).
+#   properties         List. String (non-subtyped) or {name, subtype}.
+#   stored_spell       Spell held in Spell Storing/Crystal. Blank = expended.
+#   durability_damage  Default 0.
+#   name               Display-name override. Default = generated.
+#   restock_target     Top-up target for Restock; paid from owner wealth.
+#                      Skip on Currency/Gem stacks.
+#   value_in_gold      Required on Gem stacks; absent elsewhere.
+
+# =====================================================================
+# Characters
+# =====================================================================
+
+characters:
+
+  # Keys are character IDs (opaque, immutable) — not names.
+
+  char_001:
+    inventory:
+
+      - item: Long sword
+        tier: 1
+        properties:
+          - name: Elemental
+            subtype: Fire
+        # Generated display name: "+1 Flaming Long sword"
+
+      - item: Chain shirt
+
+      - item: Shortbow
+
+      - item: Arrow
+        quantity: 18
+        restock_target: 40
+
+      - item: Arrow
+        quantity: 3
+        tier: 1
+        properties:
+          - name: Elemental
+            subtype: Fire
+        # Separate stack — tier and properties differ.
+
+      - item: Gold
+        quantity: 147.5
+
+  char_002:
+    inventory:
+
+      - item: Great Axe
+        tier: 2
+        properties:
+          - name: Vicious
+        name: "Skullsplitter"
+        # Explicit name override wins over the generated name.
+
+      - item: Plate mail
+        tier: 1
+        properties:
+          - name: Fortification
+        durability_damage: 12
+
+      - item: Gold
+        quantity: 34
+
+      # Gem identity = item + value_in_gold + name; Ruby-500 and
+      # Emerald-500 do not merge.
+      - item: Gem
+        name: Ruby
+        value_in_gold: 500
+        quantity: 2
+
+  char_003:
+    inventory:
+
+      - item: Mace
+        tier: 1
+        properties:
+          - name: Radiant
+
+      - item: Chain mail
+        tier: 1
+        properties:
+          - name: Spell Storing 1
+        stored_spell: "Cure Light Wounds"
+
+      - item: Light wooden shield
+
+      - item: Gold
+        quantity: 52
+      - item: Silver
+        quantity: 8
+
+# =====================================================================
+# Party — Owner ID "party". Group-shared items.
+# =====================================================================
+
+party:
+  inventory:
+
+    - item: Gold
+      quantity: 400
+
+    - item: Bolt
+      quantity: 60
+      restock_target: 120
+
+    - item: Gem
+      name: Uncut Sapphire
+      value_in_gold: 200
+      quantity: 1
+
+# =====================================================================
+# Ground piles — Owner ID "ground:<location>". Free-form locations.
+# =====================================================================
+
+ground_piles:
+
+  - location: "Goblin cave — entrance"
+    inventory:
+      - item: Shortbow
+      - item: Arrow
+        quantity: 11
+      - item: Dagger
+        quantity: 2
+      - item: Gold
+        quantity: 8
+      - item: Silver
+        quantity: 23
+
+  - location: "Abandoned shrine — altar"
+    inventory:
+      - item: Mace
+        tier: 1
+        properties:
+          - name: Radiant
+      - item: Leather armor
+        durability_damage: 5

@@ -24,14 +24,14 @@ Timekeeping is a pure-calculation domain. It holds no state — callers pass tim
 
 ## Timestamps
 
-**Day Index**: A signed integer counting Days elapsed since the start of the Default Starting Year. Day Index 0 is the first Day of the Default Starting Year. Negative values represent Days before the Default Starting Year.
+**Day Index**: The number of Days elapsed since the start of the Default Starting Year. The first Day of the Default Starting Year has Day Index zero; Days before that are negative.
 
-**Round Of Day**: An integer counting Rounds elapsed since the current Day started. Always non-negative and less than Rounds Per Day.
+**Round Of Day**: The number of Rounds elapsed since the current Day started. Less than Rounds Per Day.
 
-**Time Of Day**: A `HH:MM:SS` representation of the current Round Of Day's position within a Day.
+**Time Of Day**: An hours-minutes-seconds representation of the current Round Of Day's position within a Day.
 
 ## Derived Values
 
-**Rounds Per Day**: `floor(86400 / Round Length)` — the number of Rounds in a Day. *(indirectly configurable)*
+**Rounds Per Day**: The number of Rounds in a Day, derived by dividing the real-world seconds in a day (86,400) by the Round Length and rounding down. *(indirectly configurable)*
 
-**Days Per Year**: The sum of Month lengths plus one if the Year is a Leap Year. *(indirectly configurable)*
+**Days Per Year**: The sum of Month lengths, plus one when the Year is a Leap Year. *(indirectly configurable)*

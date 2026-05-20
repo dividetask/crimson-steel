@@ -1,0 +1,25 @@
+# Map Images — DM Palette Curation
+# Optional. Map's "Add image" tool auto-discovers every supported image
+# under public/images/ and shows them alphabetically.
+# Use this file to pin specific images to the top in chosen order
+# (curated entries first; auto-discovered files appended) and/or
+# override displayed labels.
+# To activate: cp docs/map_images_config.yaml.example data/map_images.yaml
+#
+# Each entry:
+#   src   — Path under /images/ (must start with /images/).
+#   label — Tooltip shown to DM. Defaults to filename without extension.
+# Supported: .png .jpg .jpeg .gif .webp. Each token renders at one grid
+# square (50 viewBox units), snapping to the clicked square's center.
+
+- label: Lysander
+  src:   /images/Lysander.webp
+
+- label: Olga
+  src:   /images/Olga.webp
+
+- label: Stumpy
+  src:   /images/Stumpy.webp
+
+- label: Cottonballs
+  src:   /images/Cottonballs.webp

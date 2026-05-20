@@ -1,0 +1,8 @@
+# Timekeeping — boot config.
+
+# Real-world seconds per in-game Round. Default 6 means Rounds Per
+# Day = floor(86400 / 6) = 14400.
+Round Length Seconds: 6
+
+# Initial Day at campaign start.
+Initial Day: 1

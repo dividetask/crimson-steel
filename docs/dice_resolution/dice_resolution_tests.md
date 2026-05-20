@@ -113,6 +113,24 @@ Tests that depend on randomness (the actual values dice land on) state the *roll
 
 ---
 
+## Preroll
+
+**Positive Preroll appends Critical dice.** Roll with `dice_count = 3`, rolled dice `[8, 4, 2]`, `preroll = +2`, TN = 6, `failure_modifier = -1`, `critical_modifier = 2`. After Preroll: `final_dice = [8, 4, 2, 10, 10]` (rolled dice followed by appended Criticals). DoIS contributions: 8 (Success: +1), 4 (neutral: 0), 2 (neutral: 0), 10 (Critical: +2), 10 (Critical: +2). DoIS = 5. `critical_count = 2`.
+
+**Negative Preroll appends Failure dice.** Roll with `dice_count = 2`, rolled dice `[7, 5]`, `preroll = -3`, TN = 6, `failure_modifier = -1`. `final_dice = [7, 5, 1, 1, 1]`. DoIS contributions: 7 (+1), 5 (0), and three 1s (-1 each). DoIS = -2.
+
+**Preroll = 0 is a no-op.** Identical to omitting the field — `final_dice` contains only the rolled dice.
+
+**Preroll dice are immune to Rerolls.** Roll with `dice_count = 1`, rolled die `[3]`, TN = 6, `positive_reroll = (max, true)` (would reroll non-Successes), `preroll = +1`. The reroll slot eligibility runs only on the rolled dice; the `[3]` is rerolled. The prerolled `10` is appended afterward, untouched. Resulting `final_dice` is the post-reroll rolled value plus the 10.
+
+**Preroll dice are immune to Nudges.** Roll with `dice_count = 1`, rolled die `[5]`, `value_adjustment = (-2, false)` (would lower a die), `preroll = +1`. The Nudge picks the highest non-targeted-against die — only the rolled `5` is in scope. After Nudge: rolled die = `3`. Then the prerolled `10` is appended. `final_dice = [3, 10]`.
+
+**`dice_count = 0` with non-zero Preroll.** Roll with `dice_count = 0`, `preroll = +4`, TN = 6, `critical_modifier = 2`. No random roll. `final_dice = [10, 10, 10, 10]`. DoIS = `4 × 2 = 8` (plus Starting Value, if any). `critical_count = 4`. Outcome = `success` for any sane Default Success Threshold.
+
+**Preroll appears in Dice Result String.** Without-TN Roll with `dice_count = 2`, rolled dice `[9, 4]`, `preroll = +1`. After Preroll: `final_dice = [9, 4, 10]`, sorted descending for the Dice Result String → encoding starts with the character for 10 (e.g. `'X'`) followed by `'9'`, `'4'`.
+
+---
+
 ## Edge cases
 
 **Empty `bonus_penalty_list`.** A Roll with no entries produces TN = Base Target Number and Starting Value = `starting_contribution`. No per-Type stacking, no Net Modifier, no overflow.

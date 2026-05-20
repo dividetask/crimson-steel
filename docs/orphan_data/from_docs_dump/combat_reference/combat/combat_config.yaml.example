@@ -1,0 +1,71 @@
+# Crimson Steel — combat rules.
+#
+# Setup:
+#   1. Copy this file to `data/combat_rules.yaml`
+#      (the data/ directory is gitignored, so each campaign keeps
+#      its own tuned values).
+#   2. Adjust values to taste. The defaults match the values
+#      assumed by the rest of the game design.
+#   3. Restart the server.
+
+# Initiative dice count for a character is
+# floor(Attribute / Initiative Divisor). Attribute is Wisdom by
+# default. 2 means a Wis-16 character rolls 8 initiative dice
+# 3 means they roll 5.
+Initiative Attribute: wis
+Initiative Divisor: 2
+
+# Combat Pool size per combatant is calculated as
+#
+#   budget = floor((martial_skill_ranks
+#                   + floor(attribute / Combat Pool Divisor))
+#                  / Turns Per Round[tier])
+#
+# The budget is then spent to "buy" pool points in tiers of size
+# Combat Pool Step. The first Step points are free; the next Step
+# cost 1 budget each; the next cost 2 each; and so on. Combat Pool
+# is the largest count that fits within the budget. Leftover budget
+# that can't afford the next point is discarded.
+#
+# Every character is guaranteed at least Combat Pool Step points.
+Combat Pool Attribute: wis
+Combat Pool Divisor: 2
+Combat Pool Step: 4
+
+# Turns per round indexed by Tier (Tier 0 → index 0). A Tier
+# beyond the array length is an error — extend this list rather
+# than relying on a default.
+Turns Per Round:
+  - 1
+  - 1
+  - 1
+  - 2
+  - 4
+  - 8
+
+# Turn Action menu rendered on the /combat page's Turn Action stub.
+# Order matters: buttons appear top-to-bottom in this order. Each
+# entry must be a key the turn_action_stub helper knows how to
+# render (start_of_turn, attack, move, cast, item, special,
+# end_turn). Removing a key hides that button.
+Turn Action Buttons:
+  - start_of_turn
+  - attack
+  - move
+  - cast
+  - item
+  - special
+  - end_turn
+
+# Action-dice cost paid by a combatant when their turn's Move
+# action is confirmed.
+Move Cost: 4
+
+# Bonus the attacker picks up when their target takes no defensive
+# action (i.e. is flatfooted). Parry, Block, and Dodge are defense
+# actions that cancel flatfoot — the bonus only applies when none of
+# them are taken. The `type` must be a Bonus Type from
+# data/dice_resolution.yaml.
+Flatfooted Bonus:
+  type: Circumstance
+  amount: 1

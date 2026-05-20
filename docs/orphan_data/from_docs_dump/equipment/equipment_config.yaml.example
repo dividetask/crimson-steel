@@ -1,0 +1,692 @@
+# Equipment Configuration (example)
+# Defines what items CAN exist: weapons, armor, ammunition, currencies,
+# gems, magical properties, tier surcharges, and naming rules.
+# Prices in gp as real numbers. 1 gp = 10 sp = 100 cp.
+
+# =====================================================================
+# CURRENCY
+# =====================================================================
+# Currencies are Item Types with a fixed `value_in_gold`. They appear
+# in inventory as ordinary Item Stacks; merge by Item Type alone.
+# Optional field: `weight` (pounds per unit).
+
+Currency:
+  Gold:
+    symbol: gp
+    value_in_gold: 1.0
+    weight: 0.02
+  Silver:
+    symbol: sp
+    value_in_gold: 0.1
+    weight: 0.02
+  Copper:
+    symbol: cp
+    value_in_gold: 0.01
+    weight: 0.02
+
+# =====================================================================
+# Gems are a fixed Item Type built into Equipment — rules live in
+# `equipment_glossary.md`. No entry needed here.
+# =====================================================================
+
+# =====================================================================
+# TIER PRICING (shared)
+# =====================================================================
+# default_tier_surcharges     Default flat gp added when an item is
+#                             made magical. Tier 0 has no surcharge.
+#                             Per-item-type `tier_surcharge` blocks
+#                             override this.
+# default_bonus_surcharges    Default flat gp per point of bonus.
+# ammunition_divisor          Units of magical ammo whose combined
+#                             magical cost equals one full magical
+#                             surcharge. Per-unit cost =
+#                             (tier_surcharge + properties)/divisor.
+#                             Default 100.
+# consumable_divisor          Same idea, for non-ammo consumables
+#                             (potions, oils, scrolls). Default 10.
+# innately_usable_price_multiplier
+#                             Items usable without magical knowledge
+#                             (potions, oils) carry this multiplier
+#                             on their Unit Price. Default 2.0.
+
+Tier Pricing:
+  default_tier_surcharges:
+    1: 250
+    2: 1000
+    3: 4000
+    4: 16000
+    5: 80000
+  default_bonus_surcharges:
+    1: 500
+    2: 1000
+    3: 2000
+    4: 4000
+    5: 6500
+    6: 9000
+    7: 13500
+    8: 18000
+    9: 27000
+  ammunition_divisor: 100
+  consumable_divisor: 10
+  innately_usable_price_multiplier: 2.0
+
+# =====================================================================
+# NAMING CONVENTION
+# =====================================================================
+# Format: <tier_prefix> <property_prefixes...> <item_name> <property_suffixes...>
+# tier_prefix uses tier_prefix_format with {tier} substituted; shown when
+# tier >= 1, except for items in tier_hidden_for. property_prefixes/suffixes
+# come from each property's `display` block (word + optional position;
+# default = default_property_position). Properties apply in order.
+
+Naming Convention:
+  tier_prefix_format: "+{tier}"
+  tier_hidden_for:
+    - Potion
+  default_property_position: prefix
+
+# =====================================================================
+# SLOTS
+# =====================================================================
+# Body slots an equippable item may occupy. Worn armor and held weapons
+# use implicit slots (body / hand) and are not listed here. Character
+# module enforces "one item per slot" at equip time.
+
+Slots:
+  - back
+  - bag
+  - belt
+  - body
+  - chest
+  - feet
+  - hands
+  - head
+  - neck
+  - shoulders
+  - wrists
+
+# =====================================================================
+# WEAPONS
+# =====================================================================
+
+# Weapon Categories — `base_damage` is the default formula evaluated
+# by Combat. Final damage = base + Tier + Degree of Success + bonuses;
+# the value here is just the static base, not the listed total.
+
+Weapon Categories:
+  Ranged:
+    base_damage: "str / 4"
+  One Handed:
+    base_damage: "str / 4 - 2"
+  Two Handed:
+    base_damage: "str / 2"
+
+# Weapon Tags — mundane structural tags (NOT magical Weapon Properties).
+# `damage_formula` overrides the category default; first tag with one wins.
+# Combat module is the consumer.
+
+Weapon Tags:
+
+  thrown:
+    damage_formula: "str / 4 - 2"
+    description: A weapon balanced for throwing.
+
+  light:
+    damage_formula: "str / 4 - 2"
+    description: A light one-handed weapon.
+
+  heavy:
+    damage_formula: "str / 2 + 2"
+    description: A heavy weapon typically requiring both hands to wield.
+
+  exotic:
+    description: A weapon requiring specialized training.
+
+  double_weapon:
+    description: A weapon that can use both ends to attack with.
+
+  lesslethal:
+    description: On a successful hit, the weapon inflicts a non-lethal stunning effect.
+
+# Damage Type Defaults — bleed/threshold per type. Multi-type weapons
+# use highest bleed and lowest threshold across types.
+
+Damage Type Defaults:
+  Slashing:
+    bleed: 7
+    threshold: 5
+  Bludgeoning:
+    bleed: 5
+    threshold: 3
+  Piercing:
+    bleed: 3
+    threshold: 4
+
+# Weapons. A Ranged weapon with `ammo_type` is a projectile weapon;
+# without one it's typically thrown (carries the `thrown` tag).
+# Tags differ from magical Weapon Properties: tags are intrinsic;
+# properties are runtime per-instance enchantments.
+
+Weapons:
+
+  # --- Ranged (projectile) ---
+
+  Longbow:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Arrow
+    base_price: 50
+
+  Shortbow:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Arrow
+    base_price: 15
+
+  Crossbow:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Bolt
+    base_price: 35
+
+  Blowgun:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Blowgun dart
+    base_price: 2
+
+  Sling:
+    category: Ranged
+    damage_type: Bludgeoning
+    ammo_type: Stone
+    base_price: 1
+
+  # --- Ranged (thrown) ---
+
+  Tomahawk:
+    category: Ranged
+    damage_type: Slashing
+    tags: [thrown]
+    base_price: 8
+
+  Javelin:
+    category: Ranged
+    damage_type: Piercing
+    tags: [thrown]
+    base_price: 4
+
+  Shuriken:
+    category: Ranged
+    damage_type: Piercing
+    tags: [thrown, light]
+    base_price: 1
+
+  Throwing dart:
+    category: Ranged
+    damage_type: Piercing
+    tags: [thrown, light]
+    base_price: 1
+
+  # --- One Handed ---
+
+  Mace:
+    category: One Handed
+    damage_type: Bludgeoning
+    base_price: 10
+
+  Flail:
+    category: One Handed
+    damage_type: Bludgeoning
+    base_price: 15
+
+  Morningstar:
+    category: One Handed
+    damage_type: Piercing
+    base_price: 15
+
+  Hatchet:
+    category: One Handed
+    damage_type: Slashing
+    tags: [light]
+    base_price: 8
+
+  Warhammer:
+    category: One Handed
+    damage_type: Bludgeoning
+    base_price: 15
+
+  Long sword:
+    category: One Handed
+    damage_type:
+      - Slashing
+      - Piercing
+    base_price: 35
+
+  Broad sword:
+    category: One Handed
+    damage_type: Slashing
+    base_price: 30
+
+  Short sword:
+    category: One Handed
+    damage_type:
+      - Slashing
+      - Piercing
+    tags: [light]
+    base_price: 8
+
+  Rapier:
+    category: One Handed
+    damage_type: Piercing
+    base_price: 25
+
+  Dagger:
+    category: One Handed
+    damage_type:
+      - Slashing
+      - Piercing
+    tags: [light]
+    base_price: 2
+
+  Whip:
+    category: One Handed
+    damage_type: Slashing
+    base_damage: 0
+    tags: [lesslethal]
+    threshold: null
+    base_price: 4
+
+  # --- Two Handed ---
+
+  Spear:
+    category: Two Handed
+    damage_type: Piercing
+    base_price: 5
+
+  Halberd:
+    category: Two Handed
+    damage_type: Slashing
+    tags: [heavy]
+    base_price: 25
+
+  Poleaxe:
+    category: Two Handed
+    damage_type: Slashing
+    tags: [heavy]
+    base_price: 25
+
+  Bardiche:
+    category: Two Handed
+    damage_type: Slashing
+    tags: [heavy]
+    base_price: 20
+
+  Glaive:
+    category: Two Handed
+    damage_type: Slashing
+    tags: [heavy]
+    base_price: 20
+
+  Great sword:
+    category: Two Handed
+    damage_type: Slashing
+    tags: [heavy]
+    base_price: 60
+
+  Great Axe:
+    category: Two Handed
+    damage_type: Slashing
+    tags: [heavy]
+    base_price: 40
+
+  Quarterstaff:
+    category: Two Handed
+    damage_type: Bludgeoning
+    tags: [double_weapon]
+    base_price: 2
+
+  Twinblade:
+    category: Two Handed
+    damage_type:
+      - Slashing
+      - Piercing
+    tags: [double_weapon]
+    base_price: 40
+
+# Weapon Magical Properties. Each entry: min_tier, cost, applies_to,
+# subtype flag, and `display` (word + optional position; for subtyped
+# properties, display is keyed by subtype).
+# `applies_to` vocabulary: `melee`, `ranged`, `ammo`. These tags also
+# appear in Magical Item Constraints.
+
+Weapon Properties:
+
+  Elemental:
+    min_tier: 1
+    cost: 500
+    applies_to: [melee, ranged, ammo]
+    has_subtype: true
+    subtypes: [Fire, Acid, Electricity, Cold]
+    display:
+      Fire:
+        word: Flaming
+      Acid:
+        word: Corrosive
+      Electricity:
+        word: Shocking
+      Cold:
+        word: Freezing
+
+  Subdual:
+    min_tier: 1
+    cost: 250
+    applies_to: [melee, ranged, ammo]
+    has_subtype: false
+    display:
+      word: Merciful
+
+  Emotional:
+    min_tier: 1
+    cost: 500
+    applies_to: [melee, ranged, ammo]
+    has_subtype: false
+    display:
+      word: Laughing
+
+  Radiant:
+    min_tier: 1
+    cost: 500
+    applies_to: [melee, ranged, ammo]
+    has_subtype: false
+    display:
+      word: Radiant
+
+  Necrotic:
+    min_tier: 2
+    cost: 2000
+    applies_to: [melee, ranged, ammo]
+    has_subtype: false
+    display:
+      word: Withering
+
+  Vicious:
+    min_tier: 2
+    cost: 2000
+    applies_to: [melee]
+    has_subtype: false
+    display:
+      word: Vicious
+
+# =====================================================================
+# AMMUNITION
+# =====================================================================
+# Sold in bundles of `bundle_size`. `base_price` is a full mundane bundle.
+# Per-unit price = (base_price/bundle_size) +
+#                  (tier_surcharge + sum properties)/100
+# Magical ammunition draws from Weapon Properties with `ammo` in
+# applies_to — no separate ammo property catalog.
+
+Ammunition:
+
+  Arrow:
+    base_price: 5
+    bundle_size: 20
+    used_by: [Longbow, Shortbow]
+
+  Bolt:
+    base_price: 5
+    bundle_size: 20
+    used_by: [Crossbow]
+
+  Blowgun dart:
+    base_price: 2
+    bundle_size: 20
+    used_by: [Blowgun]
+
+  Stone:
+    base_price: 1
+    bundle_size: 20
+    used_by: [Sling]
+
+# =====================================================================
+# ARMOR
+# =====================================================================
+
+# Armor Category Defaults
+
+Armor Category Defaults:
+  Light:
+    damage_reduction: 1
+    resilience_increment: 1
+    thickness: 1
+  Medium:
+    damage_reduction: 3
+    resilience_increment: 2
+    thickness: 2
+  Heavy:
+    damage_reduction: 6
+    resilience_increment: 3
+    thickness: 3
+  Shield:
+    damage_reduction: null
+    resilience_increment: null
+    thickness: 1
+
+# Materials. Effective hardness = base_hardness + 2*tier.
+# Hit points come from the formula string (combat module evaluates;
+# `armor_level` resolves from Armor Category Defaults).
+
+Materials:
+  Leather:
+    hardness: 2
+    hit_points: "5 * thickness"
+  Metal:
+    hardness: 10
+    hit_points: "30 * thickness"
+  Wood:
+    hardness: 5
+    hit_points: "10 * thickness"
+
+# Armor. Non-magical armor has no resilience; magical armor has
+# resilience = tier * resilience_increment.
+
+Armor:
+
+  # --- Light ---
+
+  Leather armor:
+    category: Light
+    material: Leather
+    base_price: 10
+
+  Chain shirt:
+    category: Light
+    material: Metal
+    base_price: 100
+
+  # --- Medium ---
+
+  Hide armor:
+    category: Medium
+    material: Leather
+    base_price: 15
+
+  Chain mail:
+    category: Medium
+    material: Metal
+    base_price: 150
+
+  # --- Heavy ---
+
+  Plate mail:
+    category: Heavy
+    material: Metal
+    base_price: 500
+
+  # --- Shield ---
+
+  Light wooden shield:
+    category: Shield
+    material: Wood
+    base_price: 3
+
+  Light shield:
+    category: Shield
+    material: Metal
+    base_price: 8
+
+  Tower shield:
+    category: Shield
+    material: Metal
+    base_price: 30
+
+# Armor Magical Properties. `applies_to`: `all_armor` (any incl. shields)
+# or `all_body` (any except shields).
+
+Armor Properties:
+
+  Fortification:
+    min_tier: 1
+    cost: 500
+    applies_to: [all_body]
+    has_subtype: false
+    display:
+      word: Fortified
+
+  Spell Storing 1:
+    min_tier: 1
+    cost: 500
+    applies_to: [all_armor]
+    has_subtype: false
+    display:
+      word: Warded
+
+  Spell Crystal 0:
+    min_tier: 1
+    cost: 1000
+    applies_to: [all_armor]
+    has_subtype: false
+    display:
+      word: Crystalline
+
+  Elemental Affinity:
+    min_tier: 1
+    cost: 500
+    applies_to: [all_armor]
+    has_subtype: true
+    subtypes: [Fire, Acid, Electricity, Cold]
+    display:
+      Fire:
+        word: Smoldering
+      Acid:
+        word: Caustic
+      Electricity:
+        word: Storm-kissed
+      Cold:
+        word: Frostbound
+
+  Spell Storing 2:
+    min_tier: 2
+    cost: 2000
+    applies_to: [all_armor]
+    has_subtype: false
+    display:
+      word: Greater Warded
+
+  Spell Crystal 1:
+    min_tier: 2
+    cost: 4000
+    applies_to: [all_armor]
+    has_subtype: false
+    display:
+      word: Prismatic
+
+  Elemental Resistance:
+    min_tier: 2
+    cost: 2000
+    applies_to: [all_armor]
+    has_subtype: true
+    subtypes: [Fire, Acid, Electricity, Cold]
+    display:
+      Fire:
+        word: Fireproof
+      Acid:
+        word: Acidproof
+      Electricity:
+        word: Grounded
+      Cold:
+        word: Coldproof
+
+# =====================================================================
+# MAGIC ITEMS
+# =====================================================================
+# Non-Weapon/Armor magic items. Each entry:
+#   slot                 One of the Slots above.
+#   guidance_attribute   The attribute receiving the Guidance Bonus
+#                        (e.g. `saves`, `str`, `dex`, …).
+#   guidance_bonus       Ascending list of available bonus values.
+#   tier                 Parallel list — Tier paired with each bonus
+#                        (capped at 5).
+# Unit Price = default_tier_surcharges[tier_for_N] +
+#              default_bonus_surcharges[N]. Per-instance `tier` and
+# `guidance_bonus` are identity fields on the Stack — a +3 and +5
+# Belt of Strength remain separate stacks.
+# Items here do not currently accept Weapon/Armor Properties.
+
+Items:
+
+  Cloak of Resistance:
+    slot: back
+    guidance_attribute: saves
+    guidance_bonus: [1, 2, 3, 4, 5]
+    tier: [1, 2, 3, 4, 5]
+    description: >
+      Grants a guidance bonus to wearer's saving throws
+
+  Belt of Strength:
+    slot: belt
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    guidance_attribute: str
+    description: >
+      Grants a guidance bonus to wearer's Strength
+
+  Belt of Dexterity:
+    slot: belt
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    guidance_attribute: dex
+    description: >
+      Grants a guidance bonus to wearer's Dexterity
+
+  Belt of Constitution:
+    slot: belt
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    guidance_attribute: con
+    description: >
+      Grants a guidance bonus to wearer's Constitution
+
+  Headband of Intelligence:
+    slot: head
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    guidance_attribute: int
+    description: >
+      Grants a guidance bonus to wearer's Intelligence
+
+  Headband of Wisdom:
+    slot: head
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    guidance_attribute: wis
+    description: >
+      Grants a guidance bonus to wearer's Wisdom
+
+  Headband of Charisma:
+    slot: head
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    guidance_attribute: cha
+    description: >
+      Grants a guidance bonus to wearer's Charisma

@@ -13,6 +13,7 @@ A domain named `<domain>` has these files:
 | `<domain>_config.yaml` | Tunable values for the domain (numeric thresholds, labels, etc.). |
 | `<domain>_tests.md` | Defines the expected behavior of the public entry points as test cases. |
 | `<domain>_data.example.json` | Starting-state seed data for state-storing domains. Loaded by the consuming project at startup in development mode. Calculation-only domains do not have this file. |
+| `<entity>.yaml` (zero or more) | Reference catalog files alongside config. Used when a domain ships a sizeable list of entities (Skills, Items, Conditions, Damage Types, etc.) that callers consume as data. Filename matches the entity name in plural lowercase (e.g., `skills.yaml`); placed in the domain folder, not prefixed with the domain name. |
 
 A domain may omit `<domain>_config.yaml` if it has no configurable values. A calculation-only domain (one that holds no state — e.g., Roll Resolution, Check Resolution, Timekeeping) does not have `<domain>_data.example.json`.
 
@@ -31,7 +32,7 @@ A domain may omit `<domain>_config.yaml` if it has no configurable values. A cal
 
 - Each term is a heading or a bolded word followed by a definition.
 - Definitions are concise — one or two sentences. If a term needs more, it likely belongs in the design file's "common types" instead.
-- Glossary entries describe terms in domain language, not implementation language. Field names, type signatures, and code-like references belong in the design file.
+- Glossary entries describe terms in domain language only. **No implementation details.** Field names (`casting_time`, `effect_hash`, etc.), specific YAML keys, function names, type signatures, schema layouts, default-value lists, and similar code-shaped references do not appear in the glossary. They belong in the design file's Common Types section. A glossary entry may say "the structure is defined in `<domain>_design.md`" but does not enumerate fields.
 - `*(configurable)*` after a definition signals that the value lives in the domain's config file.
 - `*(indirectly configurable)*` signals that the value is derived from other configurable values.
 - The glossary is grouped into sections by topic. Section headings use `##`.

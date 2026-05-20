@@ -1,0 +1,46 @@
+# Proficiencies Configuration
+
+# Divisor applied to attribute values before they fold into Prowess.
+# Same divisor for every Skill.
+Attribute Contribution Divisor: 2
+
+# Penalty applied to Prowess when Effective Ranks is zero.
+Non-Proficiency Penalty Value: -2
+
+# Skills that the Floor Ability cannot apply to. Keys must match
+# Skill catalog entries.
+Restricted Skills:
+  - restricted_magic
+
+# Name of the ability that, when present on a Creature, provides a
+# minimum Direct Prowess ranks of floor(granting class level / 2)
+# on every non-Restricted Skill. Default value matches the
+# Pathfinder "Jack of All Trades" ability; rename or replace as
+# needed.
+Floor Ability: jack_of_all_trades
+
+# Name of the ability that, when present on a Creature, lets the
+# Prowess of a source key substitute for the Prowess of the target
+# keys listed in the Substitution Map. Default value matches the
+# Pathfinder "Versatile Performance" ability; rename or replace as
+# needed.
+Substitution Ability: versatile_performance
+
+# Map from a source key to the keys its Prowess may substitute for.
+# Source keys are full skill keys; the default uses perform_<type>
+# Set Instances but any catalog Skill is valid as a source.
+# When the Creature has the Substitution Ability and the queried
+# key appears in any source's target list, the source's full
+# Prowess (its ranks AND its driving attribute) is computed as a
+# candidate alongside the queried key's Direct Prowess. The higher
+# Prowess wins.
+Substitution Map:
+  perform_act:        [deception, disguise]
+  perform_comedy:     [deception, intimidate]
+  perform_dance:      [acrobatics, athletics]
+  perform_keyboard:   [persuasion, intimidate]
+  perform_oratory:    [persuasion, sense_motive]
+  perform_percussion: [animal_handling, intimidate]
+  perform_sing:       [deception, sense_motive]
+  perform_string:     [deception, persuasion]
+  perform_wind:       [persuasion, animal_handling]

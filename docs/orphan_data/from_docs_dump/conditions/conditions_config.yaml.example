@@ -1,0 +1,319 @@
+# Conditions — Homebrew Configuration
+# Loaded by both Ruby and C# implementations. Keys are human-readable;
+# inner field names are snake_case.
+# Severity categories live in damage_types_config.yaml under `Severities`
+# (order significant — Heal Cascades pour highest → lowest).
+
+# Affliction magnitude formula:
+#   magnitude = 1 + floor(severity / Severity Divisor)
+# Also supplies the Competency Penalty injected into every Affliction save.
+# Global by design — Affliction Rules cannot override.
+Severity Divisor: 10
+
+# Death triggers when total damage on a track reaches:
+#   HP        ≥ Death Multiplier × max_hit_points
+#   Attribute ≥ Death Multiplier × attribute_score (any single attribute)
+#   Toxicity  ≥ Death Multiplier × Toxicity Threshold
+# A higher multiplier = harder to kill; a lower one = more lethal.
+Death Multiplier: 2
+
+# Natural Recovery — per-day rules applied by APPLY_NATURAL_RECOVERY.
+# Heal Rate / Ability Heal Rate are tier-indexed. Each tier contributes
+# three rows in canonical Severities order (minor, moderate, major).
+# Each row is [low, high, unit]:
+#   low  = points healed per period in mode: short_rest
+#   high = points healed per period in mode: long_term_recovery
+#   unit = period length in days
+# A 3-day rest with unit 7 → floor(3/7) = 0 periods (no heal).
+# Mana per day = floor(mana_max / Mana Per Day Divisor).
+# Toxicity decay per day = floor(toxicity_attribute / Magic Toxicity Per Day Divisor).
+
+Natural Recovery:
+  Mana Per Day Divisor: 4
+  Magic Toxicity Per Day Divisor: 4
+  Heal Rate:
+    # Tier 0
+    - [1, 2, 1]
+    - [0, 1, 1]
+    - [0, 1, 7]
+    # Tier 1
+    - [2, 4, 1]
+    - [1, 2, 1]
+    - [0, 1, 4]
+    # Tier 2
+    - [4, 8, 1]
+    - [2, 4, 1]
+    - [1, 2, 4]
+    # Tier 3
+    - [8, 16, 1]
+    - [4, 8, 1]
+    - [2, 4, 4]
+    # Tier 4
+    - [16, 32, 1]
+    - [8, 16, 1]
+    - [4, 8, 4]
+    # Tier 5
+    - [32, 64, 1]
+    - [16, 32, 1]
+    - [8, 16, 4]
+  Ability Heal Rate:
+    # Tier 0
+    - [0, 1, 1]
+    - [0, 1, 7]
+    - [0, 1, 14]
+    # Tier 1
+    - [1, 1, 1]
+    - [0, 1, 4]
+    - [0, 1, 7]
+    # Tier 2
+    - [1, 2, 1]
+    - [1, 1, 1]
+    - [0, 1, 7]
+    # Tier 3
+    - [2, 4, 1]
+    - [1, 2, 1]
+    - [1, 1, 4]
+    # Tier 4
+    - [4, 8, 1]
+    - [2, 4, 1]
+    - [1, 2, 4]
+    # Tier 5
+    - [8, 16, 1]
+    - [4, 8, 1]
+    - [2, 4, 4]
+
+# Severity decrease per net success on the save. Integer or "tier"
+# (Tier 0 = 0.5, floored). Per-Affliction overrides allowed.
+Default Severity Per Success: 1
+
+# Severity increase per net failure. Integer or "tier".
+Default Severity Per Failure: 1
+
+# Per-resolution Severity reduction independent of save successes.
+# Default tracks Tier so high-Tier creatures shrug afflictions faster.
+Default Severity Decay: "tier"
+
+# Afflictions are ongoing conditions with a Severity counter and a
+# data-driven resolution rule. Every Affliction has a save. Fields:
+#   category:        free-form string. Conventional: "poison",
+#                    "disease", "other". Default "other".
+#   save:            optional, default "con". Any of the six attribute keys.
+#   save_frequency:  optional, default "round". Free-form
+#                    ("round","minute","hour","day","month","year").
+#                    Stored but not acted on; caller schedules
+#                    RESOLVE_AFFLICTION accordingly.
+#   severity_per_success: optional override. Integer or "tier".
+#   severity_per_failure: optional override. Integer or "tier".
+#   severity_decay:  optional override. Integer or "tier".
+#   effect:          required. One of:
+#     { kind: "hit_point_damage", severity: "<category>" }
+#         net_magnitude = max(0, 1 + floor(severity/divisor) − successes)
+#         points of HP damage at the named severity.
+#     { kind: "ability_damage", attribute: "<attr>", severity: "<category>" }
+#         Same magnitude formula, applied as ability damage.
+#     { kind: "named_effect", name: "<effect_name>", duration_rounds: <int> }
+#         Looks up `<effect_name>` in `Effect Names` and applies its
+#         modifiers for `duration_rounds`. Magnitude is binary.
+# A Competency Penalty equal to floor(severity/Severity Divisor) is
+# auto-merged into the save. Inflicter Tier and creature Tier are NOT
+# auto-injected — callers fold those into their own modifier dict.
+
+# Effect Names: catalog of buffs/debuffs/statuses applied by Afflictions,
+# spells, or abilities. Each entry has:
+#   description: free-form text for display.
+#   mechanics:   list of Condition Mechanics. Empty = mechanics owned
+#                by another module.
+# Recognized Mechanic Kinds:
+#   { kind: "modifier", modifier_type: <Bonus Type from
+#     dice_resolution_config>, sign: "bonus"|"penalty",
+#     magnitude: <int>, applies_to: [<scope tags>], notes: "..." }
+#   { kind: "reroll", scope: "<scope>", applies_to: [<scope tags>],
+#     sign, magnitude, notes (all optional except scope) }
+#       Reroll Operation. Luck/Insight live here, not under `modifier`.
+#   { kind: "nudge", applies_to, sign, magnitude, notes }
+#       Value Adjustment (Insight).
+#   { kind: "set_value", target: "<derived>", value: <int|formula> }
+#   { kind: "scale_value", target: "<derived>", factor: <number> }
+#   { kind: "flag", flag: "<name>" }
+#   { kind: "display", text: "<rule for the DM>" }
+# Conditions stores active applications in a unified list. Per-kind
+# queries (GET_MODIFIERS, GET_REROLLS, …) filter that list. This
+# catalog is the project-wide source of truth for Effect Names —
+# unknown names surface at APPLY_NAMED_EFFECT, not at the abilities layer.
+Effect Names:
+
+  blind:
+    description: "The target cannot see; all sight-based perception fails."
+    mechanics:
+      - kind: reroll
+        scope: successes_and_criticals
+        notes: "Each die can only be rerolled once. Luck is applied before this effect; dice already affected by luck are immune."
+
+  dazzled:
+    description: "The target suffers a minor penalty to sight-based checks."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: penalty
+        magnitude: 1
+        applies_to: [dex_checks, wis_checks, casting_checks]
+
+  deafened:
+    description: "The target cannot hear; hearing-based perception fails."
+    mechanics:
+      - kind: reroll
+        scope: successes_and_criticals
+        applies_to: [initiative]
+        sign: penalty
+        magnitude: 1
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: penalty
+        magnitude: 2
+        applies_to: [verbal_spell_checks]
+
+  stunned:
+    description: "The target loses its next turn."
+    mechanics:
+      - kind: set_value
+        target: combat_dice
+        value: 0
+
+  paralyzed:
+    description: "The target cannot act until the effect ends."
+    mechanics:
+      - kind: flag
+        flag: cannot_act
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: bonus
+        magnitude: 2
+        applies_to: [attacks_against]
+
+  prone:
+    description: "The target is lying on the ground (whether knocked down, dropped down intentionally, or asleep)."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: penalty
+        magnitude: 2
+        applies_to: [ranged_attacks_against]
+        notes: "Does not apply when the attacker has higher ground than the prone target."
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: bonus
+        magnitude: 2
+        applies_to: [melee_attacks_against]
+
+  frightened:
+    description: "The target must flee from the source of the effect and may take no actions on its turn other than those that help it flee."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: penalty
+        magnitude: 2
+        applies_to: [fear_saves]
+
+  flustered:
+    description: "The target is rattled and distracted, suffering a penalty to its rolls until the condition ends."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: penalty
+        magnitude: 2
+        applies_to: [attack_checks, ability_checks, spell_checks]
+
+  confused:
+    description: "The target acts unpredictably for the duration."
+    mechanics:
+      - kind: display
+        text: "All attacks and abilities the confused creature uses are made against a random eligible target."
+
+  charmed:
+    description: "The target treats the caster as a trusted ally."
+    mechanics:
+      - kind: display
+        text: "The charmed creature treats the caster as a trusted ally; the DM adjudicates the fiction."
+
+  silenced:
+    description: "The target cannot speak or cast verbal spells."
+    mechanics:
+      - kind: flag
+        flag: cannot_speak
+      - kind: flag
+        flag: cannot_cast_verbal
+
+  entangled:
+    description: "The target's movement is slowed and actions restricted."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        sign: penalty
+        magnitude: 2
+        applies_to: [str_checks, dex_checks]
+      - kind: scale_value
+        target: movement
+        factor: 0.5
+      - kind: flag
+        flag: cannot_run
+
+# Damage-type counters (Shock, Acid Counter) are hardcoded built-ins on
+# the Conditions class. New damage-type counters require a code change.
+
+Afflictions:
+
+  bleeding:
+    category: "bleed"
+    severity_per_success: "tier"   # high-Tier creatures clot faster
+    severity_per_failure: 0        # bleeding does not worsen on failed saves
+    effect:
+      kind: "hit_point_damage"
+      severity: "minor"
+
+  ghoul_paralysis:
+    category: "curse"
+    save: "wis"
+    effect:
+      kind: "named_effect"
+      name: "paralyzed"
+      duration_rounds: 1
+
+  krithrak_spider_venom:
+    category: "poison"
+    effect:
+      kind: "ability_damage"
+      attribute: "dex"
+      severity: "minor"
+
+  common_venom:
+    category: "poison"
+    effect:
+      kind: "hit_point_damage"
+      severity: "minor"
+
+  sleep_venom:
+    category: "poison"
+    effect:
+      kind: "ability_damage"
+      attribute: "cha"
+      severity: "minor"
+
+  sleeping_sickness:
+    category: "disease"
+    save_frequency: "day"
+    severity_per_success: 0        # successes do not weaken the sickness
+    effect:
+      kind: "ability_damage"
+      attribute: "cha"
+      severity: "moderate"
+
+  toxicity_poisoning:
+    category: "magical"
+    save: "cha"
+    # Inflicted automatically when a magical healing, ward, or
+    # potion/scroll consumption is attempted while current Magic
+    # Toxicity is at or above the creature's Toxicity Threshold.
+    effect:
+      kind: "ability_damage"
+      attribute: "cha"
+      severity: "major"

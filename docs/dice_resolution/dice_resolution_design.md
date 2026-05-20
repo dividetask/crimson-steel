@@ -18,6 +18,7 @@ The structure consumed by every public entry point. Constructed by the caller fr
 | `negative_reroll` | `(count, max)` pair or null | null | Rerolls Successes from highest first. `max = true` replaces `count` with Maximum Dice Count. |
 | `failure_modifier` | signed integer | -1 | Each Failure's contribution to DoIS. Set to 0 for Rolls that ignore Failures. |
 | `critical_modifier` | signed integer | 2 | Each Critical Success's contribution to DoIS. Replaces (does not stack with) the +1 a regular Success would contribute. |
+| `preroll` | signed integer | 0 | Adds caller-chosen extreme dice without rolling them. Positive `N` adds `N` Critical Successes (each scored at `critical_modifier`); negative `N` adds `|N|` Failures (each scored at `failure_modifier`). Prerolled dice are not eligible for Rerolls or Nudges. |
 
 ### Per-die contribution to DoIS
 
@@ -47,7 +48,8 @@ The full pipeline for a single Check participant. Input: a Roll. The pipeline:
 2. Roll `dice_count` dice using the configured Die Size.
 3. Apply the Roll's Reroll modifiers. See **Reroll** below.
 4. Apply the Roll's Nudge. See **Nudge** below.
-5. Score each die's contribution to DoIS, count Crits, classify the Outcome. See **Scoring** below.
+5. Append `preroll` dice to the dice list at extreme values. See **Preroll** below.
+6. Score each die's contribution to DoIS, count Crits, classify the Outcome. See **Scoring** below.
 
 Returns:
 
@@ -74,7 +76,8 @@ The pipeline matches the with-TN case but with TN-dependent steps removed:
 1. Roll `dice_count` dice.
 2. Apply Rerolls. Eligibility uses fixed quartile thresholds rather than a TN: positive rerolls dice with `value < floor(Die Size / 4) + 1`, negative rerolls dice with `value ≥ Die Size - floor(Die Size / 4)`.
 3. Apply the Nudge. Standard-mode targeting differs: the target is the die whose post-shift value lands closest to Die Size (positive nudge) or closest to 1 (negative nudge); among dice that tie on closeness, the one that started furthest from that extreme wins. Max mode behaves the same as in the with-TN case.
-4. Compute the Dice Result String for the final dice.
+4. Append `preroll` dice. See **Preroll** below.
+5. Compute the Dice Result String for the final dice (including any prerolled dice).
 
 Returns:
 
@@ -90,13 +93,15 @@ Returns:
 
 Pure conversion. Input: a signed integer `prowess`.
 
-Returns `{dice_count, bonus_penalty}`:
+Returns `{dice_cap, bonus_penalty}`:
 
 - `bonus_penalty = floor(prowess / Dice Count Range)` (floor toward negative infinity)
 - `remainder = prowess - (bonus_penalty * Dice Count Range)`
-- `dice_count = Minimum Dice Count + remainder`
+- `dice_cap = Minimum Dice Count + remainder`
 
-Each full Dice Count Range of `prowess` produces one point of `bonus_penalty`; the leftover fills `dice_count` above the Minimum. Negative `prowess` wraps the other direction — `prowess = -1` produces `bonus_penalty = -1` and `dice_count` at the Maximum.
+Each full Dice Count Range of `prowess` produces one point of `bonus_penalty`; the leftover fills `dice_cap` above the Minimum. Negative `prowess` wraps the other direction — `prowess = -1` produces `bonus_penalty = -1` and `dice_cap` at the Maximum.
+
+`dice_cap` is the maximum number of dice the Creature may spend on a Roll for this Proficiency. The caller assigns it to the Roll's `dice_count` field, or a smaller value if the Creature chooses to spend fewer dice.
 
 `bonus_penalty` is a single signed integer:
 - Positive when `prowess` exceeded Dice Count Range — the magnitude becomes a Bonus.
@@ -156,9 +161,9 @@ Starting Value = `starting_contribution` + the Net Modifier overflow past the TN
 
 ### Scoring
 
-Reads final dice, TN, Starting Value, `failure_modifier`, `critical_modifier`. Produces `degree_of_individual_success`, `critical_count`, and `outcome`.
+Reads final dice (rolled dice after Reroll and Nudge, plus any Preroll dice), TN, Starting Value, `failure_modifier`, `critical_modifier`. Produces `degree_of_individual_success`, `critical_count`, and `outcome`.
 
-DoIS = Starting Value + sum of per-die contributions (see common types).
+DoIS = Starting Value + sum of per-die contributions across all dice in `final_dice` (see common types).
 
 `critical_count` = number of dice in `final_dice` equal to Die Size.
 
@@ -188,14 +193,27 @@ Two modes, selected by the `max` flag in `value_adjustment`.
 
 **Max mode** (`max = true`). Every die is shifted by `value`. Each post-shift value is independently clamped to `[1, Die Size]`. No targeting, no TN involved.
 
+### Preroll
+
+Reads `preroll` from the Roll. Appends caller-chosen dice to the dice list at extreme values:
+
+- `preroll > 0`: append `preroll` dice with value `Die Size` (Criticals).
+- `preroll < 0`: append `|preroll|` dice with value `1` (Failures).
+- `preroll == 0`: no-op.
+
+Prerolled dice are not eligible for Rerolls or Nudges (those steps run before Preroll). They are included in `final_dice`, in `critical_count`, and in the Dice Result String. Total dice in the Roll considered for Scoring is `dice_count + |preroll|`.
+
+`dice_count == 0` with a non-zero `preroll` is allowed: no random roll happens; only the prerolled dice are scored.
+
 ### Order of operations
 
 Modifiers apply in this fixed order on each Roll:
 
 1. Reroll (positive and negative slots, in a single pass).
 2. Nudge.
+3. Preroll (append).
 
-The Nudge sees post-reroll values. The order is observable — a reroll could turn a Failure into a near-Success that the Nudge then promotes.
+Reroll and Nudge see only the rolled dice. Preroll dice land in the dice list after Nudge has run, so they are immune to both steps.
 
 ## Cross-domain interactions
 

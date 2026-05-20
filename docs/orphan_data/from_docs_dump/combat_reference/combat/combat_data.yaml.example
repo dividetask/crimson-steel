@@ -1,0 +1,30 @@
+# Crimson Steel — combat state.
+#
+# Tunable rule values (Initiative Divisor, Combat Pool Divisor,
+# Combat Pool Step, Turns Per Round) live in
+# `data/combat_rules.yaml`, not here.
+#
+# Schema:
+#   active      — true while combat is in progress
+#   combatants  — list of combatants. Per-entry fields:
+#     id                — per-instance combat id (unique within
+#                         this combat, distinct from char_id)
+#     char_id           — underlying character/template id
+#     name              — display name
+#     initiative_string — initiative result encoded per dice
+#                         resolution's Initiative String Encoding,
+#                         sorted high-to-low. Empty until the
+#                         first reroll. Tie-break is ASCII
+#                         descending lex compare.
+#     combat_pool       — current Combat Pool remaining (size is
+#                         calculated on demand, not stored)
+#     tick_schedule     — precomputed ticks within a Round when
+#                         this combatant acts; recomputed when
+#                         Ticks Per Round changes
+#
+# Round and Tick counters live in Timekeeping (`data/timekeeping.yaml`),
+# not here. Combat asks Timekeeping for the current Tick and notifies
+# Timekeeping on tick advances.
+
+active: false
+combatants: []

@@ -1,0 +1,82 @@
+{
+  "owners": {
+    "party": {
+      "source_file": "equipment_data.example.json",
+      "inventory": [
+        { "item_type": "Gold", "quantity": 42, "value_in_gold": 1.0 }
+      ]
+    },
+    "creature:1": {
+      "source_file": "equipment_data.example.json",
+      "inventory": [
+        { "item_type": "Rapier", "quantity": 1, "tier": 0, "equipped": true },
+        { "item_type": "Hand crossbow", "quantity": 1, "tier": 0, "equipped": true },
+        { "item_type": "Studded leather", "quantity": 1, "tier": 0, "equipped": true },
+        { "item_type": "Cloak of Resistance", "quantity": 1, "tier": 1, "guidance_bonus": 1, "equipped": true },
+        { "item_type": "Lute", "quantity": 1, "tier": 1, "name_override": "Lute of the Wandering Bard", "equipped": true, "metadata": { "description": "Once per scene, grant Bardic Inspiration without spending the action." } },
+        { "item_type": "Alchemist's fire", "quantity": 2, "tier": 0, "innately_usable": true },
+        { "item_type": "Lute", "quantity": 1, "tier": 0 },
+        { "item_type": "Rations", "quantity": 5, "tier": 0 },
+        { "item_type": "Bedroll", "quantity": 1, "tier": 0 }
+      ]
+    },
+    "creature:2": {
+      "source_file": "equipment_data.example.json",
+      "inventory": [
+        { "item_type": "Warhammer", "quantity": 1, "tier": 0, "equipped": true },
+        { "item_type": "Tower shield", "quantity": 1, "tier": 0, "equipped": true },
+        { "item_type": "Chain mail", "quantity": 1, "tier": 0, "equipped": true },
+        { "item_type": "Acid jar", "quantity": 1, "tier": 0, "innately_usable": true },
+        { "item_type": "Whetstone", "quantity": 1, "tier": 0 },
+        { "item_type": "Rations", "quantity": 5, "tier": 0 }
+      ]
+    },
+    "creature:3": {
+      "source_file": "equipment_data.example.json",
+      "inventory": [
+        { "item_type": "Quarterstaff", "quantity": 1, "tier": 0, "equipped": true },
+        { "item_type": "Robes", "quantity": 1, "tier": 0, "equipped": true },
+        { "item_type": "Belt of Strength", "quantity": 1, "tier": 1, "guidance_bonus": 2, "equipped": true },
+        { "item_type": "Alchemist's fire", "quantity": 2, "tier": 0, "innately_usable": true },
+        {
+          "item_type": "Ritual book",
+          "quantity": 1,
+          "tier": 0,
+          "inscribed_spells": [
+            "mage_hand", "minor_illusion", "prestidigitation",
+            "magic_missile", "shield",
+            "light", "comprehend_languages", "detect_magic", "identify"
+          ]
+        },
+        { "item_type": "Rations", "quantity": 5, "tier": 0 }
+      ]
+    },
+    "creature:9": {
+      "source_file": "equipment_data.example.json",
+      "inventory": [
+        { "item_type": "Rapier", "quantity": 1, "tier": 0, "equipped": true },
+        { "item_type": "Dagger", "quantity": 1, "tier": 0, "equipped": true },
+        { "item_type": "Studded leather", "quantity": 1, "tier": 0, "equipped": true },
+        { "item_type": "Alchemist's fire", "quantity": 2, "tier": 0, "innately_usable": true },
+        { "item_type": "Thieves' tools", "quantity": 1, "tier": 0 },
+        {
+          "item_type": "Ritual book",
+          "quantity": 1,
+          "tier": 0,
+          "inscribed_spells": [
+            "fire_dart", "message", "silent_portal", "ghost_sound",
+            "hideous_laughter", "illusion_of_calm", "auditory_hallucination",
+            "guidance", "resistance", "acid_splash", "drench", "light", "spark", "mending",
+            "alarm", "endure_elements", "mount", "charm_person", "silent_image", "ant_haul", "disguise_self"
+          ]
+        }
+      ]
+    }
+  },
+  "ground_piles": {},
+  "shops": {},
+  "active_generic_shops": {},
+  "state": {
+    "current_day": 0
+  }
+}

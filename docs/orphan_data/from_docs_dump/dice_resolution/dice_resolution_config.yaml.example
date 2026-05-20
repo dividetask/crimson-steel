@@ -1,0 +1,51 @@
+# Dice Resolution — Homebrew Configuration
+# Loaded by both Ruby and C# implementations. Keys are human-readable
+# (capitalized with spaces) to match glossary terms.
+
+# Number of sides on each die. All dice in the system use this value.
+Die Size: 10
+
+# Single-character labels for die values 10+ in an Initiative String.
+# Values 1-9 use '1'-'9'. Default 'X' covers Die Size 10. When Die Size
+# exceeds this string's length, encoding extends with A,B,C,…,Z, skipping
+# any letter already present. Boot errors if encoding is non-monotonic
+# in ASCII order or cannot cover Die Size.
+Initiative String Encoding: "X"
+
+# Default Target Number before any modifiers.
+Base Target Number: 6
+
+# Lowest Target Number after modifiers. Bonuses below this become
+# Starting Successes (1 per overflow point).
+Minimum Target Number: 3
+
+# Highest Target Number after modifiers. Penalties above this become
+# Starting Failures (1 per overflow point).
+Maximum Target Number: 9
+
+# Lowest permitted Dice Count. Every Roll uses at least this many.
+Minimum Dice Count: 6
+
+# Maximum Dice Count = Minimum Dice Count + Dice Count Range − 1.
+# Also used in Prowess calculations outside this module.
+Dice Count Range: 5
+
+# Default Successes required for a typical Check.
+Default Success Threshold: 2
+
+# Default excess of Failures over Successes for a Fumble.
+Default Fumble Threshold: 2
+
+# Accepted Target Number Modifier types. Modifier keys are valid if
+# they have the form `<Type> Bonus`, `<Type> Penalty`, or `<Type> Starting`
+# for some Type listed here. The list does NOT police which types may
+# appear as Bonuses vs Penalties vs Starting; restrictions live in
+# consuming modules. Adding a new type here lets it flow through
+# immediately; removing one fails validation for callers passing it.
+Bonus Types List:
+  Competency: "A modifier reflecting a creature's prowess and physical ability."
+  Circumstance: "A modifier reflecting environmental conditions or other external factors. Typical source of direct Starting values."
+  Morale: "A modifier reflecting the creature's emotional state, the effects of alchemical substances, or natural body chemistry."
+  Guidance: "A modifier reflecting the most common magical effects."
+  Inherent: "A modifier equal to a creature's Tier. Used for the natural bonus that comes with becoming more magical. Only ever appears as a Bonus."
+  Ascendancy: "A modifier applied when a creature contends with a creature of a different Tier."

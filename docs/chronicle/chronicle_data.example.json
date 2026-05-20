@@ -4,6 +4,7 @@
     "day_index": 0,
     "round_of_day": 0
   },
+  "current_chapter": 5,
   "chapters": [
     { "number": 1, "name": "The Heist" },
     { "number": 2, "name": "Fey Wilds" },

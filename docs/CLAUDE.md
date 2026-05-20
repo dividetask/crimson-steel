@@ -29,3 +29,9 @@
 ### Never use question prompts
 
 - Never use the `AskUserQuestion` tool or any other interactive question/choice prompt. Ask your questions in plain text, then stop until you get a response.
+
+### Number your questions
+
+- When asking more than one question in a single message, number them so I can refer to each one by number when answering. Use plain numerals (`1.`, `2.`, …) rather than letters or other markers.
+- Do **not** number anything else. Lists, sections, headings, summaries, and step-by-step recaps in user-facing messages should use letters (`A.`, `B.`, …) when ordering is genuinely useful, or bullets when it isn't. Numbers are reserved for questions so I can answer "1: …" without ambiguity.
+- When a single question offers multiple possible answers or interpretations, label the options with letters (`A`, `B`, …), not numbers. The question itself is the only thing numbered.

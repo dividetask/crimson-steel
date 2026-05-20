@@ -4,51 +4,32 @@ Terms defined in two or more module glossaries are consolidated here, organized 
 
 ## Advancement
 
-**Tier**: Non-negative integer representing the Character's overall progression. Drives an Inherent bonus, Ascendancy bonus/penalty for Opposed Checks, and the HP/mana formulas. Tier 0 is treated as **0.5** in formulas and **0** for array indexes (project-wide convention). Computed by Advancement from total class levels and tag-keyed breakpoints unless a Tier Override is set.
+**Tier**: A Creature's overall progression. Drives an Inherent bonus, Ascendancy bonus or penalty in Opposed Checks, and the HP and mana formulas. Tier 0 counts as one half in formulas and as zero when indexing tier-keyed tables (project-wide convention). Computed by Advancement from total class levels and tag-keyed breakpoints unless a Tier Override is set.
 
-**Tier Override**: Optional integer on the Character entry that bypasses Advancement's auto-computation. Forwarded to Advancement at construction; when present, every Tier query returns it directly.
+**Tier Override**: An override that bypasses Advancement's auto-computed Tier. When set, every Tier query returns the override.
 
-**Save Attribute**: One of the six attribute keys (`str`, `dex`, `con`, `int`, `wis`, `cha`). Classes and Entries reference saves by attribute key.
+**Save Attribute**: One of the six attributes (Strength, Dexterity, Constitution, Intelligence, Wisdom, Charisma). Classes and Entries reference saves by the attribute that drives them.
 
 ## Damage Types
 
-**Damage Type**: A category of damage with a name, an associated Severity (or runtime-bucketing rule), and a list of Mechanics. Defined in the damage_types catalog; consumed by abilities, combat, conditions, dice_resolution, and equipment.
-
-**Severity**: A category that determines which Hit Point pool a damage point fills. Three values, least to most serious: **minor**, **moderate**, **major**. *(configurable)*
-
-**Threshold**: Non-negative integer used by Runtime Bucketing for physical damage. For weapon attacks comes from the weapon; for ability-driven physical damage comes from the ability's `threshold` field. Combat picks the input.
-
-**Damage Resilience**: A per-Character integer added to the Threshold during Runtime Bucketing. Sum of contributions from multiple sources: a tier-derived base (Character), a class contribution (Advancement), worn armor and magical-item bonuses (Equipment), and active abilities or conditions (Conditions).
+(See `combat/combat_glossary.md`.) Combat owns **Damage Type**, **Severity**, **Threshold**, **Damage Resilience**, and the Damage Type catalog (including the Damage Type Mechanics for Radiant, Fire, Acid, Electricity, Cold, and the physical types). Other domains reference these terms by name without redefining.
 
 ## Proficiency
 
-**Proficiency**: Umbrella term for the trainable tracks every Character has ranks in.
-
-**Proficiency Prowess**: `Proficiency Ranks + floor(attribute / attribute_contribution_divisor)`. The single integer the proficiency domain hands to dice resolution
-
-**Mandatory Proficiency**: A Proficiency every Class contributes ranks to regardless of the Character's chosen-skills list. The standard mandatory Skill is `martial` (flagged `mandatory: true` in `skills.yaml`); every Save Attribute is also mandatory (every Class trains every save).
-
-**Prefix Match**: A list entry ending with `_` matches any skill that starts with that prefix and has more after the underscore. Example: `perform_` matches `perform_dance` but not `perform` itself. Used by Advancement when resolving a Skill against a Class's skill lists.
+Proficiencies-owned terms (Skill, Proficiency Ranks, Direct/Substituted/Proficiency Prowess, Prefix Match, Dice Cap, Competency Modifier, etc.) are defined in `proficiencies/proficiencies_glossary.md`. The "every Class trains every save" rule is a Creatures/Advancement concern and lives in that domain's glossary when written.
 
 ## Conditions
 
-**Magic Toxicity**: A creature's accumulated exposure to magical effects. Non-negative integer counter on the conditions instance with no hard maximum.
+**Magic Toxicity**: A Creature's accumulated exposure to magical effects. Increases over time and has no hard maximum.
 
-**Toxicity Threshold**: Per-Character derived value gating non-harmful effects that would impose Magic Toxicity (see Acceptance Check). Default formula: `charisma × tier` (Tier 0 = 0.5 per project convention). Configurable.
+**Toxicity Threshold**: A per-Creature derived value that gates positive effects which would impose Magic Toxicity. Computed from the Creature's Charisma and Tier per the Conditions design. *(configurable)*
 
-**Acceptance Check**: Before any **non-harmful** effect that would impose Magic Toxicity on a creature lands, compare current Magic Toxicity to the Toxicity Threshold. If `current < threshold`, the effect applies (and may push toxicity above the threshold). If `current ≥ threshold`, the effect **fails** and inflicts the **Magic Poisoning** affliction instead.
+**Toxicity Block**: The rule that an effect imposing Magic Toxicity is rejected outright when current Magic Toxicity exceeds the Toxicity Threshold and the effect is classified as positive (magical healing, buffs, etc.). Natural healing is not blocked.
 
-**Magic Poisoning**: Affliction inflicted by a failed Acceptance Check. See Conditions
+**Toxicity Damage**: Ability Damage to Charisma inflicted when Magic Toxicity rises further past the Toxicity Threshold from any non-positive source. See Conditions for the magnitude rule.
 
 ## Abilities
 
-**Ability**: A named class- or race-granted feature the Character earns at a configured level threshold. Stored under a Class's or Race's `abilities:` list. An Ability has one or more **flavors**:
-- **Procedural** — triggers during a specific action (attack, heal, save, etc.) and resolves immediately; may inflict effects on targets but leaves no per-creature state on the user.
-- **Stateful** — maintains per-creature state on the user (Rage timer, Bardic Inspiration counter). Lives in conditions.
-- **Always-On Modifier** — passive numeric bonus while the user has the ability. Lives in `modifiers:`.
+(See `abilities/abilities_glossary.md`.) Abilities owns **Ability** (the umbrella for anything a Class or Race grants), **Catalog Ability**, **Spell**, **Talent**, **Stateful Ability**, **Always-On Modifier Ability**, **Granted Ability**, **Effect** (the per-Ability effect string), **Trigger Spec**, and the Variant / Effect Hash / Channeling / Reservoir vocabulary. Other domains reference these terms by name without redefining.
 
-Most abilities have a single flavor; some combine (e.g., a passive bonus plus a triggered effect on certain actions).
-
-**Effect**: A single effect string in an Entry. One of: the literal `"none"` (no effect); a non-empty string interpreted as a named non-damage effect (passed through opaquely; conditions validates at apply time); or a damage expression of the form `"<formula> damage"` or `"<formula> <severity> damage"`. Damage Effects must have a determinable Severity (explicit in the string, or implicit from the Entry's Damage Type).
-
-> Note: the conditions module previously used "Effect" for an active modifier instance; that concept is now called **Active Effect** in `conditions_glossary.md`.
+Note: the Conditions domain owns **Active Effect** — an instance of an Effect currently applied to a Creature — which is distinct from the Abilities **Effect** above.
