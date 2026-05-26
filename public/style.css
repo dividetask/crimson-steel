@@ -532,7 +532,8 @@ body {
    One step is active at a time; pending steps are hidden so the
    header always presents a single Roll-All-sized button row. */
 
-.step-controls[data-state="pending"] { display: none; }
+.step-controls[data-state="pending"],
+.step-controls[data-state="complete"] { display: none; }
 
 .step-controls {
   display: flex;
