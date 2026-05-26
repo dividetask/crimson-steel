@@ -211,16 +211,21 @@ body {
 }
 
 /* Within a single Roll, the reroll / mass-reroll / nudge rows hug
-   their initial-roll row — only the boundary between Rolls keeps the
-   normal padding. */
+   their initial-roll row. Padding is applied to <td> (table-cell) —
+   setting it on <tr> (table-row) would have no effect — and the
+   line-height is dropped so the dice line-box stops adding empty
+   vertical space inside each cell. Only the boundary between Rolls
+   keeps the normal padding. */
 .stub-table tbody.roll-group tr.modifier-row td {
-  padding-top: 1px;
-  padding-bottom: 1px;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1;
   border-bottom: none;
 }
 
 .stub-table tbody.roll-group tr.row-initial td {
-  padding-bottom: 1px;
+  padding-bottom: 0;
+  line-height: 1;
 }
 
 .stub-table tbody.roll-group + tbody.roll-group tr.row-initial td {
@@ -309,7 +314,7 @@ body {
 .dice-cell {
   font-family: monospace;
   white-space: nowrap;
-  line-height: 1.9;
+  line-height: 1;
 }
 
 .dice-placeholder {
@@ -566,6 +571,14 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.step-kind-label {
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #444;
 }
 
 .step-src-tag {

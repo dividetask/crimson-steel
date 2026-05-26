@@ -160,7 +160,7 @@ module DummyData
                       potency: 25, inflicter_tier: 3 },
         save_dice: 7, save_tn: 8, die_size: 10,
         potency_divisor: catalog.potency_divisor,
-        reroll_sources: [ash_luck],
+        reroll_sources: [ash_luck], reroll_label: 'Luck',
         mass_reroll_sources: nil, nudge_sources: nil,
         stub_id: 'save-bleed-t3'
       },
@@ -170,7 +170,7 @@ module DummyData
                       potency: 12, inflicter_tier: 1 },
         save_dice: 5, save_tn: 6, die_size: 10,
         potency_divisor: catalog.potency_divisor,
-        reroll_sources: [ash_luck],
+        reroll_sources: [ash_luck], reroll_label: 'Luck',
         mass_reroll_sources: nil, nudge_sources: nil,
         stub_id: 'save-poison-t1'
       },
@@ -190,9 +190,9 @@ module DummyData
                       potency: 15, inflicter_tier: 2 },
         save_dice: 7, save_tn: 7, die_size: 10,
         potency_divisor: catalog.potency_divisor,
-        reroll_sources: [ash_luck],
+        reroll_sources: [ash_luck], reroll_label: 'Luck',
         mass_reroll_sources: nil,
-        nudge_sources: [selka_blessing],
+        nudge_sources: [selka_blessing], nudge_label: 'Blessing',
         stub_id: 'save-bleed-t2-blessing'
       }
     ]

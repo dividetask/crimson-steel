@@ -62,6 +62,12 @@
     dice:        'Result'
   }
 
+  step_kind_label = {
+    reroll:      s[:reroll_label]      || 'Reroll',
+    mass_reroll: s[:mass_reroll_label] || 'Mass Reroll',
+    nudge:       s[:nudge_label]       || 'Nudge'
+  }
+
   base_roll = {
     creature_name: c[:name],
     roll_name:     "#{category_label} Save",
@@ -120,6 +126,7 @@
       <% interactive_steps.each do |kind| %>
         <div class="step-controls" data-step="<%= kind %>"
              data-state="<%= first_active == kind ? 'active' : 'pending' %>">
+          <span class="step-kind-label"><%= step_kind_label[kind] %></span>
           <button type="button" class="cr-step-none" data-step="<%= kind %>">None</button>
         </div>
       <% end %>
