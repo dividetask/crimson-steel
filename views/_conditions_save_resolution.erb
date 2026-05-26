@@ -1,16 +1,23 @@
 <%#
   Conditions Save Resolution Stub.
 
-  Renders as a single Rolls wrapper (matching the Roll Resolution stub
-  shell) with the Builder's step controls living inside the header's
-  Rolls Actions slot — the same place Roll All / Confirm All live on
-  the underlying Check Resolution Stub. One step is active at a time:
-  Rerolls → Nudges → (Roll All / Confirm All) → effect preview. The
-  dice table and preview stay hidden until every interactive step has
-  been resolved or skipped via None.
+  Renders as a single Rolls wrapper. Each save walks four steps:
+  Rerolls → Nudges → Dice → Result. Steps without inputs collapse
+  silently (a save with no reroll sources starts on Dice).
+
+  Lifecycle per step:
+    - active   — body visible, controls render in .rolls-actions
+    - pending  — body + controls hidden
+    - complete — body + controls hidden, a thin summary row appears
+                 ABOVE the header (Change button to rewind)
+
+  Header layout: title left, .rolls-actions right. The active step's
+  controls own that slot, identical placement to Roll All / Confirm
+  All on the Check Resolution Stub. Buttons share the .btn-roll-all
+  sizing so the header never resizes between steps.
 
   Locals:
-    save  — required. See conditions_save_resolution_stub.md.
+    save  — see conditions_save_resolution_stub.md
 %>
 <%
   require 'json'
@@ -41,19 +48,23 @@
   has_mass_reroll = !s[:mass_reroll_sources].nil? && !s[:mass_reroll_sources].empty?
   has_nudge       = !s[:nudge_sources].nil? && !s[:nudge_sources].empty?
 
-  steps = []
-  steps << :reroll      if has_reroll
-  steps << :mass_reroll if has_mass_reroll
-  steps << :nudge       if has_nudge
+  interactive_steps = []
+  interactive_steps << :reroll      if has_reroll
+  interactive_steps << :mass_reroll if has_mass_reroll
+  interactive_steps << :nudge       if has_nudge
 
-  initial_active = steps.first || :check
-  check_state = steps.empty? ? 'active' : 'pending'
+  first_active = interactive_steps.first || :dice
 
-  step_label = { reroll: 'Rerolls', mass_reroll: 'Mass Rerolls', nudge: 'Nudges' }
+  step_label = {
+    reroll:      'Rerolls',
+    mass_reroll: 'Mass Rerolls',
+    nudge:       'Nudges',
+    dice:        'Result'
+  }
 
   base_roll = {
     creature_name: c[:name],
-    roll_name:     "Save vs #{a[:name]}",
+    roll_name:     "#{category_label} Save",
     dice_count:    s[:save_dice],
     tn:            s[:save_tn],
     die_size:      s[:die_size],
@@ -61,99 +72,124 @@
     reroll: nil, mass_reroll: nil, nudge: nil,
     dois: 0, critical_count: 0
   }
+  rolls = [base_roll]
 
-  render_step_controls = lambda do |kind, sources|
-    out = +''
+  render_mod_step_body = lambda do |kind, sources|
+    out = +%(<table class="step-mod-table"><thead><tr><th>Roll</th>)
     sources.each do |src|
-      out << %(<span class="step-src-tag">#{src[:source_name]}:</span>)
-      if kind == :mass_reroll
-        sign_ch = src[:direction] == 'neg' ? '-' : '+'
-        out << %(<button type="button" class="cr-mod-btn" )
-        out << %(data-kind="mass_reroll" data-roll-idx="0" )
-        out << %(data-sign="#{src[:direction]}" data-label="#{src[:source_name]}">#{sign_ch}*</button>)
-      else
-        (1..src[:pool].to_i).each do |n|
+      out << %(<th><span class="step-mod-src">#{src[:source_name]}</span>)
+      out << %( <span class="step-mod-actor">(#{src[:creature_name]})</span></th>)
+    end
+    out << '</tr></thead><tbody>'
+    rolls.each_with_index do |r, idx|
+      out << %(<tr><td class="step-mod-rollname">#{r[:roll_name]}</td>)
+      sources.each do |src|
+        out << '<td class="step-mod-buttons">'
+        if kind == :mass_reroll
           sign_ch = src[:direction] == 'neg' ? '-' : '+'
           out << %(<button type="button" class="cr-mod-btn" )
-          out << %(data-kind="#{kind}" data-roll-idx="0" )
-          out << %(data-sign="#{src[:direction]}" data-count="#{n}" )
-          out << %(data-label="#{src[:source_name]}">#{sign_ch}#{n}</button>)
+          out << %(data-kind="mass_reroll" data-roll-idx="#{idx}" )
+          out << %(data-sign="#{src[:direction]}" data-label="#{src[:source_name]}">#{sign_ch}*</button>)
+        else
+          (1..src[:pool].to_i).each do |n|
+            sign_ch = src[:direction] == 'neg' ? '-' : '+'
+            out << %(<button type="button" class="cr-mod-btn" )
+            out << %(data-kind="#{kind}" data-roll-idx="#{idx}" )
+            out << %(data-sign="#{src[:direction]}" data-count="#{n}" )
+            out << %(data-label="#{src[:source_name]}">#{sign_ch}#{n}</button>)
+          end
         end
+        out << '</td>'
       end
+      out << '</tr>'
     end
-    out << %(<button type="button" class="cr-step-none" data-step="#{kind}">None</button>)
+    out << '</tbody></table>'
     out
   end
 %>
 
 <div class="rolls-wrapper save-resolution" data-stub-id="<%= stub_id %>"
      data-preview='<%= preview_data.to_json %>'>
+
+  <div class="step-summaries">
+    <% (interactive_steps + [:dice]).each do |kind| %>
+      <div class="step-summary" data-step="<%= kind %>" hidden>
+        <span class="step-summary-label"><%= step_label[kind] %>:</span>
+        <span class="step-summary-value"></span>
+        <button type="button" class="cr-step-change" data-step="<%= kind %>">Change</button>
+      </div>
+    <% end %>
+  </div>
+
   <div class="rolls-header">
     <span class="rolls-title"><%= category_label %> Save - <%= c[:name] %></span>
     <div class="rolls-actions">
-      <% if has_reroll %>
-        <div class="step-controls" data-step="reroll"
-             data-state="<%= initial_active == :reroll ? 'active' : 'pending' %>">
-          <%= render_step_controls.call(:reroll, s[:reroll_sources]) %>
+      <% interactive_steps.each do |kind| %>
+        <div class="step-controls" data-step="<%= kind %>"
+             data-state="<%= first_active == kind ? 'active' : 'pending' %>">
+          <button type="button" class="cr-step-none" data-step="<%= kind %>">None</button>
         </div>
       <% end %>
-      <% if has_mass_reroll %>
-        <div class="step-controls" data-step="mass_reroll"
-             data-state="<%= initial_active == :mass_reroll ? 'active' : 'pending' %>">
-          <%= render_step_controls.call(:mass_reroll, s[:mass_reroll_sources]) %>
-        </div>
-      <% end %>
-      <% if has_nudge %>
-        <div class="step-controls" data-step="nudge"
-             data-state="<%= initial_active == :nudge ? 'active' : 'pending' %>">
-          <%= render_step_controls.call(:nudge, s[:nudge_sources]) %>
-        </div>
-      <% end %>
-      <div class="step-controls" data-step="check" data-state="<%= check_state %>">
+      <div class="step-controls" data-step="dice"
+           data-state="<%= first_active == :dice ? 'active' : 'pending' %>">
         <button type="button" class="btn-roll-all">Roll All</button>
         <button type="button" class="btn-confirm-all">Confirm All</button>
+      </div>
+      <div class="step-controls" data-step="result" data-state="pending">
+        <button type="button" class="btn-save-confirm">Confirm</button>
       </div>
     </div>
   </div>
 
-  <% if steps.any? %>
-    <div class="step-summaries">
-      <% steps.each do |kind| %>
-        <div class="step-summary" data-step="<%= kind %>" hidden>
-          <span class="step-summary-label"><%= step_label[kind] %>:</span>
-          <span class="step-summary-value"></span>
-          <button type="button" class="cr-step-change" data-step="<%= kind %>">Change</button>
-        </div>
-      <% end %>
+  <% if has_reroll %>
+    <div class="step-body" data-step="reroll"
+         data-state="<%= first_active == :reroll ? 'active' : 'pending' %>">
+      <%= render_mod_step_body.call(:reroll, s[:reroll_sources]) %>
     </div>
   <% end %>
 
-  <table class="stub-table roll-table save-roll-table"
-         data-roll-state="<%= check_state %>">
-    <colgroup>
-      <col class="col-character">
-      <col class="col-mod">
-      <col class="col-mod">
-      <col class="col-dice">
-      <col class="col-result">
-      <col class="col-result">
-      <col class="col-lock">
-    </colgroup>
-    <thead>
-      <tr>
-        <th>Character</th>
-        <th>Reroll</th>
-        <th>Nudge</th>
-        <th>Dice</th>
-        <th>Result</th>
-        <th>Crits</th>
-        <th></th>
-      </tr>
-    </thead>
-    <%= erb :_roll_stub, locals: { roll: base_roll, rows_only: true } %>
-  </table>
+  <% if has_mass_reroll %>
+    <div class="step-body" data-step="mass_reroll"
+         data-state="<%= first_active == :mass_reroll ? 'active' : 'pending' %>">
+      <%= render_mod_step_body.call(:mass_reroll, s[:mass_reroll_sources]) %>
+    </div>
+  <% end %>
 
-  <div class="save-preview" hidden>
+  <% if has_nudge %>
+    <div class="step-body" data-step="nudge"
+         data-state="<%= first_active == :nudge ? 'active' : 'pending' %>">
+      <%= render_mod_step_body.call(:nudge, s[:nudge_sources]) %>
+    </div>
+  <% end %>
+
+  <div class="step-body step-body-dice" data-step="dice"
+       data-state="<%= first_active == :dice ? 'active' : 'pending' %>">
+    <table class="stub-table roll-table">
+      <colgroup>
+        <col class="col-character">
+        <col class="col-mod">
+        <col class="col-mod">
+        <col class="col-dice">
+        <col class="col-result">
+        <col class="col-result">
+        <col class="col-lock">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Character</th>
+          <th>Reroll</th>
+          <th>Nudge</th>
+          <th>Dice</th>
+          <th>Result</th>
+          <th>Crits</th>
+          <th></th>
+        </tr>
+      </thead>
+      <%= erb :_roll_stub, locals: { roll: base_roll, rows_only: true } %>
+    </table>
+  </div>
+
+  <div class="step-body step-body-result" data-step="result" data-state="pending">
     <div class="save-preview-fields">
       <label>DoIS <input type="number" class="sp-dois" value="0"></label>
       <label>Net Magnitude <input type="number" class="sp-net-mag" value="0"></label>
@@ -172,7 +208,6 @@
       <% end %>
       <label>New Potency <input type="number" class="sp-new-potency" value="<%= a[:potency] %>"></label>
     </div>
-    <button type="button" class="btn-save-confirm" disabled>Confirm</button>
     <span class="save-confirm-msg"></span>
   </div>
 </div>

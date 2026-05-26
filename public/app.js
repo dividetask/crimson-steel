@@ -144,7 +144,10 @@
     }
 
     if (e.target.closest('.btn-confirm-all')) {
-      // No-op: parent stubs capture the output.
+      var save = e.target.closest('.save-resolution');
+      if (save) {
+        handleConfirmAllInSave(save);
+      }
       return;
     }
 
@@ -275,6 +278,9 @@
     var kind = stepEl.dataset.step;
 
     stepEl.dataset.state = 'complete';
+    var body = save.querySelector('.step-body[data-step="' + kind + '"]');
+    if (body) body.dataset.state = 'complete';
+
     var summary = save.querySelector('.step-summary[data-step="' + kind + '"]');
     if (summary) {
       var v = summary.querySelector('.step-summary-value');
@@ -282,6 +288,22 @@
       summary.hidden = false;
     }
     activateNextStep(save);
+  }
+
+  function handleConfirmAllInSave(save) {
+    var diceCtrl = save.querySelector('.step-controls[data-step="dice"]');
+    if (!diceCtrl || diceCtrl.dataset.state !== 'active') return;
+    // Capture the dice table's Result + Crits as the dice step
+    // summary, then advance to the result step (which reveals the
+    // effect preview and recomputes it from the captured DoIS).
+    var resultInput = save.querySelector('.save-roll-table .result-input, .step-body-dice .result-input');
+    var inputs = save.querySelectorAll('.step-body-dice .result-input');
+    var dois = inputs.length > 0 ? inputs[0].value : '0';
+    var crits = inputs.length > 1 ? inputs[1].value : '0';
+    var spDois = save.querySelector('.sp-dois');
+    if (spDois) spDois.value = dois;
+    completeStep(diceCtrl, 'Successes: ' + dois + '   Crits: ' + crits);
+    recomputePreview(save);
   }
 
   function handleStepNone(btn) {
@@ -300,35 +322,33 @@
     if (!save) return;
     var kind = btn.dataset.step;
 
-    // Rewind: clear this step's effect, hide its summary, re-show its
-    // controls. Every later step (including the check step / dice
-    // table) goes back to pending; later summaries hide; the preview
-    // re-hides.
     if (kind === 'reroll' || kind === 'mass_reroll' || kind === 'nudge') {
       clearRollModifier(save, kind);
     }
-    var thisStep   = save.querySelector('.step-controls[data-step="' + kind + '"]');
-    var thisSumm   = save.querySelector('.step-summary[data-step="' + kind + '"]');
+
+    var thisCtrl = save.querySelector('.step-controls[data-step="' + kind + '"]');
+    var thisBody = save.querySelector('.step-body[data-step="' + kind + '"]');
+    var thisSumm = save.querySelector('.step-summary[data-step="' + kind + '"]');
     if (thisSumm) thisSumm.hidden = true;
-    if (thisStep) thisStep.dataset.state = 'active';
+    if (thisCtrl) thisCtrl.dataset.state = 'active';
+    if (thisBody) thisBody.dataset.state = 'active';
 
     var chain = save.querySelectorAll('.step-controls');
     var rewind = false;
     chain.forEach(function (el) {
       if (rewind) {
-        el.dataset.state = 'pending';
         var sk = el.dataset.step;
-        if (sk !== 'check') {
-          var su = save.querySelector('.step-summary[data-step="' + sk + '"]');
-          if (su) su.hidden = true;
+        el.dataset.state = 'pending';
+        var body = save.querySelector('.step-body[data-step="' + sk + '"]');
+        if (body) body.dataset.state = 'pending';
+        var summ = save.querySelector('.step-summary[data-step="' + sk + '"]');
+        if (summ) summ.hidden = true;
+        if (sk === 'reroll' || sk === 'mass_reroll' || sk === 'nudge') {
           clearRollModifier(save, sk);
         }
       }
-      if (el === thisStep) rewind = true;
+      if (el === thisCtrl) rewind = true;
     });
-    setTableState(save, 'pending');
-    var preview = save.querySelector('.save-preview');
-    if (preview) preview.hidden = true;
   }
 
   function activateNextStep(save) {
@@ -338,15 +358,12 @@
       var el = chain[i];
       if (el.dataset.state === 'pending') {
         el.dataset.state = 'active';
-        if (el.dataset.step === 'check') setTableState(save, 'visible');
+        var kind = el.dataset.step;
+        var body = save.querySelector('.step-body[data-step="' + kind + '"]');
+        if (body) body.dataset.state = 'active';
         return;
       }
     }
-  }
-
-  function setTableState(save, state) {
-    var table = save.querySelector('.save-roll-table');
-    if (table) table.dataset.rollState = state;
   }
 
   function reflowRowspan(group) {
@@ -421,18 +438,6 @@
     recomputePreview(save);
   });
 
-  // Reveal the Save Resolution preview the first time the dice are
-  // rolled inside it (Roll All triggers .roll-group population which
-  // we observe by tracking initial-row dice changes).
-  document.addEventListener('click', function (e) {
-    var btn = e.target.closest('.btn-roll-all');
-    if (!btn) return;
-    var save = btn.closest('.save-resolution');
-    if (!save) return;
-    var preview = save.querySelector('.save-preview');
-    if (preview) preview.hidden = false;
-    setTimeout(function () { recomputePreview(save); }, 0);
-  });
 
   function handleSaveConfirm(btn) {
     var save = btn.closest('.save-resolution');

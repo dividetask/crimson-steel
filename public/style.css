@@ -605,6 +605,56 @@ body {
 
 .save-roll-table[data-roll-state="pending"] { display: none; }
 
+/* Step bodies — one per step, only the active step's body renders. */
+.step-body { padding: 8px 10px; background: #fff; }
+.step-body[data-state="pending"],
+.step-body[data-state="complete"] { display: none; }
+
+.step-body-dice { padding: 0; }
+
+.step-body-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  font-size: 11px;
+}
+
+.step-mod-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.step-mod-table th,
+.step-mod-table td {
+  padding: 4px 8px;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+}
+
+.step-mod-table th {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #555;
+  text-align: left;
+  font-weight: bold;
+  background: #fafafa;
+}
+
+.step-mod-rollname { font-weight: bold; }
+
+.step-mod-actor {
+  font-weight: normal;
+  color: #888;
+  font-size: 10px;
+  text-transform: none;
+}
+
+.step-mod-buttons { white-space: nowrap; }
+.step-mod-buttons .cr-mod-btn { margin-right: 2px; }
+
 .cr-action-row {
   display: flex;
   align-items: center;
