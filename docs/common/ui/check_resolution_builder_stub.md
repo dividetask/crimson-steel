@@ -1,12 +1,12 @@
 # Check Resolution Builder Stub
 
-A DM-driven setup wizard that gathers everything Check Resolution needs to compose a Check, then embeds the Check Resolution Stub (`check_resolution_stub.md`) below itself with the resulting Rolls. Owned by Check Resolution; the Builder knows nothing about Conditions, Combat, or any other domain — it just produces Rolls.
+A reusable pattern for stubs that need to compose a Check from DM-driven choices before rolling. Not a standalone widget — it's integrated into the parent stub (e.g., `conditions_save_resolution_stub.md`) so the resulting shell looks like a single Rolls wrapper. Owned by Check Resolution; the Builder pattern knows nothing about Conditions, Combat, or any other domain.
 
 See `ui_conventions.md` for shared rules.
 
 ## Parameters
 
-Every list parameter is a set of DM-pickable options. A parameter that is null or empty causes its panel to be omitted entirely.
+Every list parameter is a set of DM-pickable options. A parameter that is null or empty causes its step to be omitted.
 
 | Parameter | Shape | Purpose |
 |---|---|---|
@@ -17,42 +17,48 @@ Every list parameter is a set of DM-pickable options. A parameter that is null o
 | `defender_pool` | integer | Caps the defender's dice spend. |
 | `supporting_actions` | array of `{creature_ref, action_name, min_dice, max_dice, pool}` | Reactions on the actor's side (allies). |
 | `opposing_actions` | array of `{creature_ref, action_name, min_dice, max_dice, pool}` | Reactions on the defender's side. |
-| `reroll_sources` | array of `{creature_ref, creature_name, source_name, direction, pool}` or null | One column in the Rerolls / Nudges panel per entry. Buttons render `+1..+pool` or `-1..-pool` per `direction`. |
-| `mass_reroll_sources` | array of `{creature_ref, creature_name, source_name, direction}` or null | One column per entry. Single `+*` / `-*` button (no magnitude). |
-| `nudge_sources` | array of `{creature_ref, creature_name, source_name, direction, pool}` or null | One column per entry. Buttons render `+1..+pool` or `-1..-pool`. |
-| `rolls` | array of `{creature_name, roll_name, dice_count, tn, die_size, starting_value, side}` | The Rolls that will be composed into the embedded Check. `side` is `:supporting` or `:opposing`. The Builder seeds the Check Resolution Stub with these. |
-| `stub_id` | string | Unique identifier for this Builder instance on the page. |
+| `reroll_sources` | array of `{creature_ref, creature_name, source_name, direction, pool}` or null | Each source becomes a labelled group of magnitude buttons in the Rerolls step. |
+| `mass_reroll_sources` | array of `{creature_ref, creature_name, source_name, direction}` or null | Each source becomes a single ± button in the Mass Rerolls step. |
+| `nudge_sources` | array of `{creature_ref, creature_name, source_name, direction, pool}` or null | Each source becomes a labelled group of magnitude buttons in the Nudges step. |
+| `rolls` | array of `{creature_name, roll_name, dice_count, tn, die_size, starting_value, side}` | The Rolls that will appear in the embedded dice table. `side` is `:supporting` or `:opposing`. |
 
-## Layout
+## Shell
 
-A vertical stack of steps. Each step has a thin header row with the step **Title** on the left and a **None** button on the right. The interactive body sits below the header. Once the DM picks a button (or presses None), the step collapses to a one-line **summary** showing the chosen value and a **Change** button that re-opens it. Pressing Change also rewinds every later step (including the embedded Check Resolution Stub) back to pending so the DM can re-walk the chain.
+The Builder shares one Rolls wrapper with whatever stub embeds it. The wrapper's `.rolls-header` carries the title (left) and a single `.rolls-actions` slot (right). Only the currently active step's controls live in the slot at any given moment — they sit where Roll All / Confirm All sit on the underlying Check Resolution Stub. None and Change buttons match Roll All in size so the header never resizes when a step changes.
 
-The Check Resolution Stub seeded with `rolls` lives at the bottom of the chain and is hidden until every interactive step is resolved (or there are no interactive steps).
+Once every interactive step is resolved, the slot swaps to the Check Resolution Stub's own Roll All + Confirm All buttons and the dice table (until then hidden) appears.
 
-Step order, each rendered only when its parameter is populated:
+## Step model
+
+Steps are walked in this order; each step whose parameter list is null/empty is skipped silently.
 
 - **Target**
-- **Action** — for each action option, a row with name + speed + dice picker. An Action step with a single locked entry (`min_dice == max_dice`) is *omitted* entirely because there is nothing for the DM to choose; the caller treats the action as decided.
+- **Action** — an Action step with a single locked entry (`min_dice == max_dice`) is *omitted* entirely because there is nothing for the DM to choose; the caller treats the action as decided.
 - **Defense**
 - **Supporting Actions**
 - **Opposing Actions**
-- **Rerolls** — own table. One column per Reroll Source (positive sources in green, negative in red); rows are the Rolls. Each cell holds `+1..+pool` or `-1..-pool` magnitude buttons.
-- **Mass Rerolls** — own table. One column per Mass Reroll Source. Single `+*` / `-*` button per cell (no magnitude).
-- **Nudges** — own table. Same shape as Rerolls; columns rendered in the Nudge palette (blue).
+- **Rerolls** — one labelled magnitude-button group per source (positive sources show `+1..+pool`, negative sources show `-1..-pool`). A single `None` button covers the whole step.
+- **Mass Rerolls** — single `+*` or `-*` button per source; `None` covers the step.
+- **Nudges** — same shape as Rerolls.
 
-Reroll / Mass Reroll / Nudge selections mutate the embedded Rolls' configs so the next Roll All applies them. Pressing **None** on a Reroll / Mass Reroll / Nudge step clears any pick on that step for every Roll before completing it. Pressing Change re-opens the step and clears its picks.
+Each pick mutates the dice table's roll-group config so the next Roll All applies it. `None` clears any pick on that step before completing it.
 
-## Single-option auto-select
+## Step lifecycle
 
-- **Reroll Source, Mass Reroll Source, Nudge Source** — when a category has exactly one source the source column is rendered but the DM still picks magnitude. (No actor pick step is needed when the actor is implied.)
-- **All other parameters** — single-option entries still render their panel for confirmation. The DM may keep the default selection (Target / Defense / Action) without clicking.
+Each step is in one of three states:
 
-## Composition
+- **pending** — hidden. The Roll All / Confirm All buttons are themselves a pending "check" step until every interactive step ahead of them resolves.
+- **active** — the step's controls (None + the per-source buttons) occupy `.rolls-actions`.
+- **complete** — the controls vanish from the header; a single-line summary row (`<Step Label>: <choice> [Change]`) appears in the step-summary stack between the header and the dice table.
 
-The Builder composes upward: a parent stub (e.g. `conditions_save_resolution_stub.md`) embeds the Builder and listens for changes to the embedded Check Resolution Stub's result inputs. The Builder itself does not emit Continue / Confirm events — it just maintains the constructed Rolls; the parent decides what to do with the rolled result.
+Pressing Change on a completed step's summary re-opens that step, clears its modifier on every Roll, and rewinds every later step (and the dice table) back to pending. The host stub is responsible for re-hiding any post-roll surfaces it owns (e.g., the effect preview in `conditions_save_resolution_stub.md`).
 
-## What this stub does not do
+## Reroll palette
 
-- It does not apply any effect. Dice rolled here do not change any creature's state.
+Magnitude buttons use the Roll Resolution stub's modifier palette: warm amber for Reroll + Mass Reroll, green for Nudge. Direction (`+` / `−`) is carried on the button label's sign only.
+
+## Out of scope
+
+- This pattern does not pick *which* Roll is being composed; the host stub provides the seed Rolls.
 - It does not validate that selections are legal (e.g. that the actor has the dice in their pool). Validation is the caller's responsibility before the parameters reach the Builder.
-- It does not understand saves, attacks, or any domain-specific concept. The same Builder serves Affliction saves, Combat attacks, and any other Check the project introduces.
+- It does not understand saves, attacks, or any domain-specific concept. The same pattern serves Affliction saves, Combat attacks, and any other Check the project introduces.

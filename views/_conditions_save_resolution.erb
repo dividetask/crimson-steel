@@ -1,25 +1,16 @@
 <%#
   Conditions Save Resolution Stub.
 
-  Wraps the Check Resolution Builder for an Affliction save. After the
-  embedded Check resolves, computes the effect preview (Net Magnitude,
-  HP / Ability Damage, new Potency) in editable input fields. A
-  Confirm button finally applies the resolution. Everything between
-  Roll and Confirm is JS-side; no state mutates until Confirm is
-  pressed.
+  Renders as a single Rolls wrapper (matching the Roll Resolution stub
+  shell) with the Builder's step controls living inside the header's
+  Rolls Actions slot — the same place Roll All / Confirm All live on
+  the underlying Check Resolution Stub. One step is active at a time:
+  Rerolls → Nudges → (Roll All / Confirm All) → effect preview. The
+  dice table and preview stay hidden until every interactive step has
+  been resolved or skipped via None.
 
   Locals:
-    save  — required. Hash describing the save to resolve:
-      {
-        creature: { id, name, tier, ... },
-        affliction: { name, rule (catalog entry), potency, inflicter_tier },
-        save_dice: int, save_tn: int, die_size: int,
-        potency_divisor: int,
-        reroll_sources: [...],     # optional
-        mass_reroll_sources: [...],
-        nudge_sources: [...],
-        stub_id: string
-      }
+    save  — required. See conditions_save_resolution_stub.md.
 %>
 <%
   require 'json'
@@ -46,6 +37,20 @@
     creature_tier:   c[:tier]
   }
 
+  has_reroll      = !s[:reroll_sources].nil? && !s[:reroll_sources].empty?
+  has_mass_reroll = !s[:mass_reroll_sources].nil? && !s[:mass_reroll_sources].empty?
+  has_nudge       = !s[:nudge_sources].nil? && !s[:nudge_sources].empty?
+
+  steps = []
+  steps << :reroll      if has_reroll
+  steps << :mass_reroll if has_mass_reroll
+  steps << :nudge       if has_nudge
+
+  initial_active = steps.first || :check
+  check_state = steps.empty? ? 'active' : 'pending'
+
+  step_label = { reroll: 'Rerolls', mass_reroll: 'Mass Rerolls', nudge: 'Nudges' }
+
   base_roll = {
     creature_name: c[:name],
     roll_name:     "Save vs #{a[:name]}",
@@ -53,37 +58,100 @@
     tn:            s[:save_tn],
     die_size:      s[:die_size],
     starting_value: 0,
-    reroll:      nil,
-    mass_reroll: nil,
-    nudge:       nil,
-    dois:        0,
-    critical_count: 0,
-    side: :supporting
+    reroll: nil, mass_reroll: nil, nudge: nil,
+    dois: 0, critical_count: 0
   }
 
-  builder_config = {
-    target_options:  nil,
-    action_options:  [{ name: "Save vs #{a[:name]}", min_dice: s[:save_dice], max_dice: s[:save_dice] }],
-    actor_pool:      s[:save_dice],
-    defense_options: nil,
-    defender_pool:   0,
-    supporting_actions: [],
-    opposing_actions:   [],
-    reroll_sources:      s[:reroll_sources],
-    mass_reroll_sources: s[:mass_reroll_sources],
-    nudge_sources:       s[:nudge_sources],
-    rolls:               [base_roll],
-    stub_id:             stub_id
-  }
+  render_step_controls = lambda do |kind, sources|
+    out = +''
+    sources.each do |src|
+      out << %(<span class="step-src-tag">#{src[:source_name]}:</span>)
+      if kind == :mass_reroll
+        sign_ch = src[:direction] == 'neg' ? '-' : '+'
+        out << %(<button type="button" class="cr-mod-btn" )
+        out << %(data-kind="mass_reroll" data-roll-idx="0" )
+        out << %(data-sign="#{src[:direction]}" data-label="#{src[:source_name]}">#{sign_ch}*</button>)
+      else
+        (1..src[:pool].to_i).each do |n|
+          sign_ch = src[:direction] == 'neg' ? '-' : '+'
+          out << %(<button type="button" class="cr-mod-btn" )
+          out << %(data-kind="#{kind}" data-roll-idx="0" )
+          out << %(data-sign="#{src[:direction]}" data-count="#{n}" )
+          out << %(data-label="#{src[:source_name]}">#{sign_ch}#{n}</button>)
+        end
+      end
+    end
+    out << %(<button type="button" class="cr-step-none" data-step="#{kind}">None</button>)
+    out
+  end
 %>
 
-<div class="save-resolution" data-stub-id="<%= stub_id %>"
+<div class="rolls-wrapper save-resolution" data-stub-id="<%= stub_id %>"
      data-preview='<%= preview_data.to_json %>'>
-  <header class="save-header">
-    <h3><%= category_label %> Save - <%= c[:name] %></h3>
-  </header>
+  <div class="rolls-header">
+    <span class="rolls-title"><%= category_label %> Save - <%= c[:name] %></span>
+    <div class="rolls-actions">
+      <% if has_reroll %>
+        <div class="step-controls" data-step="reroll"
+             data-state="<%= initial_active == :reroll ? 'active' : 'pending' %>">
+          <%= render_step_controls.call(:reroll, s[:reroll_sources]) %>
+        </div>
+      <% end %>
+      <% if has_mass_reroll %>
+        <div class="step-controls" data-step="mass_reroll"
+             data-state="<%= initial_active == :mass_reroll ? 'active' : 'pending' %>">
+          <%= render_step_controls.call(:mass_reroll, s[:mass_reroll_sources]) %>
+        </div>
+      <% end %>
+      <% if has_nudge %>
+        <div class="step-controls" data-step="nudge"
+             data-state="<%= initial_active == :nudge ? 'active' : 'pending' %>">
+          <%= render_step_controls.call(:nudge, s[:nudge_sources]) %>
+        </div>
+      <% end %>
+      <div class="step-controls" data-step="check" data-state="<%= check_state %>">
+        <button type="button" class="btn-roll-all">Roll All</button>
+        <button type="button" class="btn-confirm-all">Confirm All</button>
+      </div>
+    </div>
+  </div>
 
-  <%= erb :_check_resolution_builder, locals: { builder_config: builder_config } %>
+  <% if steps.any? %>
+    <div class="step-summaries">
+      <% steps.each do |kind| %>
+        <div class="step-summary" data-step="<%= kind %>" hidden>
+          <span class="step-summary-label"><%= step_label[kind] %>:</span>
+          <span class="step-summary-value"></span>
+          <button type="button" class="cr-step-change" data-step="<%= kind %>">Change</button>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <table class="stub-table roll-table save-roll-table"
+         data-roll-state="<%= check_state %>">
+    <colgroup>
+      <col class="col-character">
+      <col class="col-mod">
+      <col class="col-mod">
+      <col class="col-dice">
+      <col class="col-result">
+      <col class="col-result">
+      <col class="col-lock">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Character</th>
+        <th>Reroll</th>
+        <th>Nudge</th>
+        <th>Dice</th>
+        <th>Result</th>
+        <th>Crits</th>
+        <th></th>
+      </tr>
+    </thead>
+    <%= erb :_roll_stub, locals: { roll: base_roll, rows_only: true } %>
+  </table>
 
   <div class="save-preview" hidden>
     <div class="save-preview-fields">

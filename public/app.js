@@ -179,15 +179,24 @@
     }
   });
 
+  // === Save Resolution / Builder step machine ===
+
+  // The save-resolution wrapper hosts a chain of step-controls inside
+  // `.rolls-actions`. One step is active at a time. Below the header
+  // sits a stack of step-summaries (one per non-check step) and the
+  // dice table. The table stays hidden via [data-roll-state="pending"]
+  // until the check step becomes active.
+
   function handleModClick(btn) {
-    var kind = btn.dataset.kind;
+    var stepEl = btn.closest('.step-controls');
+    if (!stepEl) return;
+    var kind = stepEl.dataset.step;
     if (kind === 'reroll' || kind === 'mass_reroll' || kind === 'nudge') {
       applyRollModifier(btn);
     }
-    // Picks for target / action / defense / supporting / opposing
-    // just complete the step with the button's label (no side effects
-    // on roll-group configs in the current slice).
-    completeStep(btn.closest('.cr-step'), btn.dataset.label || btn.textContent.trim());
+    var label = btn.dataset.label || '';
+    var signLabel = btn.textContent.trim();
+    completeStep(stepEl, signLabel + (label ? ' ' + label : ''));
   }
 
   function applyRollModifier(btn) {
@@ -197,9 +206,9 @@
     var count   = btn.dataset.count ? parseInt(btn.dataset.count, 10) : null;
     var label   = btn.dataset.label;
 
-    var builder = btn.closest('.cr-builder');
-    if (!builder) return;
-    var groups = builder.querySelectorAll('tbody.roll-group');
+    var save = btn.closest('.save-resolution');
+    if (!save) return;
+    var groups = save.querySelectorAll('tbody.roll-group');
     var group = groups[rollIdx];
     if (!group) return;
 
@@ -213,8 +222,8 @@
     updateModBadge(group, kind, cfg[kind], label);
   }
 
-  function clearRollModifier(builder, kind) {
-    builder.querySelectorAll('tbody.roll-group').forEach(function (group) {
+  function clearRollModifier(save, kind) {
+    save.querySelectorAll('tbody.roll-group').forEach(function (group) {
       var cfg = JSON.parse(group.dataset.config);
       cfg[kind] = null;
       group.dataset.config = JSON.stringify(cfg);
@@ -261,68 +270,83 @@
 
   function completeStep(stepEl, summaryText) {
     if (!stepEl) return;
+    var save = stepEl.closest('.save-resolution');
+    if (!save) return;
+    var kind = stepEl.dataset.step;
+
     stepEl.dataset.state = 'complete';
-    var s = stepEl.querySelector('.cr-step-summary');
-    var st = stepEl.querySelector('.cr-step-summary-text');
-    if (st) st.textContent = summaryText;
-    if (s) s.hidden = false;
-    activateNextStep(stepEl.closest('.cr-builder'));
+    var summary = save.querySelector('.step-summary[data-step="' + kind + '"]');
+    if (summary) {
+      var v = summary.querySelector('.step-summary-value');
+      if (v) v.textContent = summaryText;
+      summary.hidden = false;
+    }
+    activateNextStep(save);
   }
 
   function handleStepNone(btn) {
-    var step = btn.closest('.cr-step');
-    if (!step) return;
-    var kind = step.dataset.step;
-    if (kind === 'reroll' || kind === 'mass_reroll' || kind === 'nudge') {
-      clearRollModifier(step.closest('.cr-builder'), kind);
+    var stepEl = btn.closest('.step-controls');
+    if (!stepEl) return;
+    var save = stepEl.closest('.save-resolution');
+    var kind = stepEl.dataset.step;
+    if (save && (kind === 'reroll' || kind === 'mass_reroll' || kind === 'nudge')) {
+      clearRollModifier(save, kind);
     }
-    completeStep(step, '(none)');
+    completeStep(stepEl, '(none)');
   }
 
   function handleStepChange(btn) {
-    var step = btn.closest('.cr-step');
-    if (!step) return;
-    var builder = step.closest('.cr-builder');
-    if (!builder) return;
-    var kind = step.dataset.step;
+    var save = btn.closest('.save-resolution');
+    if (!save) return;
+    var kind = btn.dataset.step;
+
+    // Rewind: clear this step's effect, hide its summary, re-show its
+    // controls. Every later step (including the check step / dice
+    // table) goes back to pending; later summaries hide; the preview
+    // re-hides.
     if (kind === 'reroll' || kind === 'mass_reroll' || kind === 'nudge') {
-      clearRollModifier(builder, kind);
+      clearRollModifier(save, kind);
     }
-    step.dataset.state = 'active';
-    var s = step.querySelector('.cr-step-summary');
-    if (s) s.hidden = true;
-    // Move every step (and the result) after this one back to pending.
+    var thisStep   = save.querySelector('.step-controls[data-step="' + kind + '"]');
+    var thisSumm   = save.querySelector('.step-summary[data-step="' + kind + '"]');
+    if (thisSumm) thisSumm.hidden = true;
+    if (thisStep) thisStep.dataset.state = 'active';
+
+    var chain = save.querySelectorAll('.step-controls');
     var rewind = false;
-    builder.querySelectorAll('.cr-step, .cr-builder-result').forEach(function (el) {
+    chain.forEach(function (el) {
       if (rewind) {
-        if (el.classList.contains('cr-builder-result')) {
-          el.dataset.state = 'pending';
-        } else {
-          el.dataset.state = 'pending';
-          var sum = el.querySelector('.cr-step-summary');
-          if (sum) sum.hidden = true;
+        el.dataset.state = 'pending';
+        var sk = el.dataset.step;
+        if (sk !== 'check') {
+          var su = save.querySelector('.step-summary[data-step="' + sk + '"]');
+          if (su) su.hidden = true;
+          clearRollModifier(save, sk);
         }
       }
-      if (el === step) rewind = true;
+      if (el === thisStep) rewind = true;
     });
-    // Also re-hide the Save Resolution preview.
-    var save = builder.closest('.save-resolution');
-    if (save) {
-      var preview = save.querySelector('.save-preview');
-      if (preview) preview.hidden = true;
-    }
+    setTableState(save, 'pending');
+    var preview = save.querySelector('.save-preview');
+    if (preview) preview.hidden = true;
   }
 
-  function activateNextStep(builder) {
-    if (!builder) return;
-    var chain = builder.querySelectorAll('.cr-step, .cr-builder-result');
+  function activateNextStep(save) {
+    if (!save) return;
+    var chain = save.querySelectorAll('.step-controls');
     for (var i = 0; i < chain.length; i++) {
       var el = chain[i];
       if (el.dataset.state === 'pending') {
         el.dataset.state = 'active';
+        if (el.dataset.step === 'check') setTableState(save, 'visible');
         return;
       }
     }
+  }
+
+  function setTableState(save, state) {
+    var table = save.querySelector('.save-roll-table');
+    if (table) table.dataset.rollState = state;
   }
 
   function reflowRowspan(group) {

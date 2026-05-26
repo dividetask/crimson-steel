@@ -1,8 +1,8 @@
 # Conditions Save Resolution Stub
 
-Resolves one Affliction save end-to-end: composes the save Roll, rolls it, previews what *Resolve Affliction* would do, and applies the result on Confirm. The only Conditions-owned UI in the Check-Resolution pipeline; everything earlier in the stack (the Builder and the Check Resolution Stub) is domain-agnostic. Nothing is mutated server-side until the DM presses Confirm.
+Resolves one Affliction save end-to-end: composes the save Roll, walks the DM through any Reroll / Mass Reroll / Nudge picks, rolls the dice, previews what *Resolve Affliction* would do, and applies the result on Confirm. Renders as a single Rolls wrapper that visually matches the Roll Resolution / Check Resolution stub shell. Nothing is mutated server-side until the DM presses Confirm.
 
-See `ui_conventions.md` for shared rules. Cross-domain terms (Magic Toxicity, Toxicity Threshold, Tier) live in `../common_glossary.md`.
+See `ui_conventions.md` for shared rules. Cross-domain terms (Magic Toxicity, Toxicity Threshold, Tier) live in `../common_glossary.md`. The Check Resolution Builder pattern that drives the step-by-step disclosure is documented in `check_resolution_builder_stub.md`; for the save case the Builder is integrated directly into this stub rather than rendered as a child.
 
 ## Parameters
 
@@ -14,42 +14,34 @@ See `ui_conventions.md` for shared rules. Cross-domain terms (Magic Toxicity, To
 | `save_tn` | integer | Target Number for the save. |
 | `die_size` | integer | |
 | `potency_divisor` | integer | The configured Potency Divisor (used for Magnitude preview). |
-| `reroll_sources` | array of source records or null | Forwarded to the Check Resolution Builder. |
-| `mass_reroll_sources` | array of source records or null | Forwarded to the Check Resolution Builder. |
-| `nudge_sources` | array of source records or null | Forwarded to the Check Resolution Builder. |
+| `reroll_sources` | array of `{creature_ref, creature_name, source_name, direction, pool}` or null | Each entry becomes a labelled group of magnitude buttons in the Rerolls step. |
+| `mass_reroll_sources` | array of `{creature_ref, creature_name, source_name, direction}` or null | Each entry becomes a single ± button in the Mass Rerolls step. |
+| `nudge_sources` | array of `{creature_ref, creature_name, source_name, direction, pool}` or null | Each entry becomes a labelled group of magnitude buttons in the Nudges step. |
 | `stub_id` | string | Unique identifier. |
 
 ## Layout
 
-1. **Header** — a single thin bar showing `<Category> Save - <Creature Name>` (e.g. `Bleed Save - Wisp Trueheart`). The category is the Affliction Rule's `category` field, title-cased. The dice count, TN, and current Potency are not repeated here — the dice / TN appear inside the embedded Check Resolution Stub, and the Potency is editable in the effect preview.
-2. **Embedded Check Resolution Builder** — built by this stub with `target_options`, `defense_options`, `supporting_actions`, `opposing_actions` all null, and a single locked `action_options` entry representing the save (`min_dice = max_dice = save_dice`). The Action step is suppressed by the Builder because the dice are locked. The save Roll is passed to the Builder via `rolls`. The Reroll / Mass Reroll / Nudge steps appear only when the corresponding source lists are populated; each renders progressively (only one interactive step visible at a time, with a `None` button to skip and a `Change` button on the completed summary). The embedded Check Resolution Stub stays hidden until every interactive Builder step is resolved.
-3. **Effect preview** — hidden until the first Roll All; a row of editable inputs the DM can adjust before Confirm:
-   - **DoIS** — mirrored from the embedded Check Resolution Stub's Result cell.
+The stub is a single `.rolls-wrapper`. The shell mirrors the Roll Resolution / Check Resolution stubs (light-grey `.rolls-header`, same border treatment) so the family reads consistently.
+
+1. **Header** — `.rolls-header`. Title (left): `<Category> Save - <Creature Name>` (e.g. `Bleed Save - Wisp Trueheart`). Category is the Affliction Rule's `category` field, title-cased. The right side (`.rolls-actions`) hosts whichever step is currently active: during Rerolls / Mass Rerolls / Nudges the active step's `None` button + the per-source magnitude buttons live there; once every interactive step is resolved the slot swaps to `Roll All` + `Confirm All` (identical to the Check Resolution Stub's own actions). None and the magnitude buttons share the same vertical sizing as Roll All so the header height never jumps.
+
+2. **Step summaries** — a thin stack between the header and the dice table. One row appears per completed non-check step in DOM order: `<Step Label>: <choice> [Change]`. Pressing Change re-opens that step in the header, rewinds every later step (and the dice table / preview) back to pending, and clears the corresponding modifier on the Roll.
+
+3. **Dice table** — the standard Roll Resolution body (Roll / Reroll / Mass Reroll / Nudge rows, Result + Crits + Lock columns). Hidden via `data-roll-state="pending"` until the check step becomes active.
+
+4. **Effect preview** — hidden until the first Roll All; surfaces editable inputs the DM can adjust before Confirm:
+   - **DoIS** — mirrored from the dice table's Result cell.
    - **Net Magnitude** — auto-computed from `magnitude = 1 + floor(potency / potency_divisor)` and `successes = max(0, DoIS)`. `net_magnitude = max(0, magnitude - successes)`.
-   - **Effect amount field** — shape depends on the Affliction rule's effect kind:
-     - `hit_point_damage` → integer (Minor / Moderate / Major HP Damage at the rule's severity).
-     - `ability_damage` → integer (Severity + attribute from the rule).
-     - `named_effect` → text (the Effect Name, or `(none)` when Net Magnitude is zero).
-   - **New Potency** — auto-computed from the default evolution formula `−floor(decay) − floor(successes × per_success) + floor(failures × per_failure)`. Per-Affliction overrides in the rule are not applied to the preview; the DM may override the value directly.
-4. **Confirm** button — disabled until at least one Roll All has populated the DoIS. On press, applies the displayed values via Conditions' *Resolve Affliction* (or in the demo Status page, just records "Recorded — no state mutated" as a confirmation).
+   - **Effect amount field** — shape depends on the Affliction rule's effect kind (`hit_point_damage`, `ability_damage`, `named_effect`).
+   - **New Potency** — auto-computed from the default evolution formula `−floor(decay) − floor(successes × per_success) + floor(failures × per_failure)`. Per-Affliction overrides in the rule are not threaded into the JS preview; the DM may override the value directly.
 
-Everything between Roll All and Confirm is client-side: the DM can change reroll picks, re-roll, override DoIS, and the preview recomputes live. Server state changes only when Confirm is pressed.
+The Confirm button is disabled until at least one Roll All has fired. On press, applies the displayed values via Conditions' *Resolve Affliction* (or, in the Status demo, records "Recorded — no state mutated").
 
-## Composition
-
-The DM-facing flow:
-
-1. Pick Reroll / Nudge magnitudes if any source is offered.
-2. Press Roll All on the embedded Check Resolution Stub.
-3. Inspect the dice, adjust DoIS if the DM is overriding.
-4. Inspect the auto-computed effect preview; edit any field as needed.
-5. Press Confirm.
-
-The stub is intended for the Conditions Downtime page (between Combats) but composes anywhere a single Affliction save needs to be resolved.
+Everything between Roll All and Confirm is client-side: the DM can change reroll picks (via Change), re-roll, override DoIS, and the preview recomputes live.
 
 ## What this stub does not do
 
 - It does not pick which Affliction to resolve. The caller decides which Affliction is due and constructs the parameters.
 - It does not advance time. Rescheduling of `next_resolution_round` is the *Resolve Affliction* side-effect, not this stub's; the stub just calls it.
 - It does not enumerate all of a Creature's pending Afflictions. One stub instance handles one save.
-- It does not understand combat reactions. Defense / Supporting / Opposing panels are forwarded to the Builder if the caller supplies them, but Affliction saves never need them.
+- It does not understand combat reactions. Target / Defense / Supporting / Opposing inputs are out of scope for an Affliction save; the Builder pattern handles those for other check kinds.

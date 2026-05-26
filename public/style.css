@@ -524,70 +524,84 @@ body {
 
 .consumable-list li { font-weight: bold; }
 
-/* === Check Resolution Builder === */
+/* === Check Resolution step machine === */
 
-.cr-builder {
-  background: #fff;
-}
+/* Step controls live inside the Rolls Header's .rolls-actions slot.
+   One step is active at a time; pending steps are hidden so the
+   header always presents a single Roll-All-sized button row. */
 
-.cr-step,
-.cr-builder-result {
-  border-top: 1px solid #eee;
-}
+.step-controls[data-state="pending"] { display: none; }
 
-.cr-step:first-child { border-top: none; }
-
-.cr-step[data-state="pending"],
-.cr-builder-result[data-state="pending"] { display: none; }
-
-.cr-step[data-state="active"]   > .cr-step-summary { display: none; }
-.cr-step[data-state="complete"] > .cr-step-body    { display: none; }
-
-.cr-step-head {
+.step-controls {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
+}
+
+.step-src-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: #555;
+  letter-spacing: 0.5px;
+}
+
+/* None / Change match the .btn-roll-all sizing. */
+.cr-step-none {
+  background: #1f1f1f;
+  color: #fff;
+  border: none;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.cr-step-none:hover { background: #000; }
+
+.cr-step-change {
+  background: #fff;
+  border: 1px solid #999;
+  color: #333;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.cr-step-change:hover { background: #f0f0f0; }
+
+/* Step summaries — one thin row per completed step, stacked between
+   the header and the dice table. */
+
+.step-summaries { background: #fafafa; }
+
+.step-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 4px 10px;
   font-size: 11px;
-  background: #f6f6f6;
   border-bottom: 1px solid #eee;
 }
 
-.cr-step[data-state="complete"] > .cr-step-head { display: none; }
-
-.cr-step-title {
+.step-summary-label {
   text-transform: uppercase;
   font-weight: bold;
-  color: #444;
+  color: #555;
   font-size: 10px;
+  min-width: 100px;
 }
 
-.cr-step-none,
-.cr-step-change {
-  background: #fff;
-  border: 1px solid #bbb;
-  color: #444;
-  padding: 1px 8px;
-  font-size: 10px;
-  cursor: pointer;
-  border-radius: 3px;
+.step-summary-value {
+  font-weight: bold;
+  color: #333;
+  flex: 1;
 }
 
-.cr-step-none:hover,
-.cr-step-change:hover { background: #f0f0f0; }
-
-.cr-step-body { padding: 6px 10px; font-size: 11px; }
-
-.cr-step-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 10px;
-  font-size: 11px;
-  background: #fafafa;
-}
-
-.cr-step-summary-text { font-weight: bold; color: #333; }
+.save-roll-table[data-roll-state="pending"] { display: none; }
 
 .cr-action-row {
   display: flex;
@@ -646,12 +660,11 @@ body {
   background: #fff;
   border: 1px solid #bbb;
   color: #333;
-  padding: 1px 6px;
+  padding: 4px 10px;
   font-size: 11px;
   font-weight: bold;
   cursor: pointer;
   border-radius: 3px;
-  margin: 0 1px;
 }
 
 .cr-mod-btn:hover { background: #f0f0f0; }
@@ -685,17 +698,7 @@ body {
   margin-bottom: 18px;
 }
 
-.save-header {
-  padding: 4px 10px;
-  background: #1f1f1f;
-  color: #fff;
-}
-
-.save-header h3 {
-  font-size: 12px;
-  margin: 0;
-  letter-spacing: 0.5px;
-}
+.save-resolution { margin-bottom: 18px; }
 
 .save-preview {
   padding: 6px 10px;
