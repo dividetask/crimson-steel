@@ -89,6 +89,7 @@
 <% end %>
 
 <% all_rolls.each_with_index do |roll, roll_idx| %>
+  <% DiceResolution::Roll.validate!(roll) %>
   <%
     starting_text =
       if roll[:starting_value].to_i.positive?
