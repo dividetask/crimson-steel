@@ -1,9 +1,9 @@
-require 'kramdown'
-
-# Read + render the canonical test markdown files that ship under
-# docs/common/. Surfaced on the Status page underneath each
-# corresponding stub so the DM can see, in plain prose, what the
-# stub-driven domain is supposed to do.
+# Surface the canonical test markdown files that ship under
+# docs/common/ on the Status page below the matching stub. The
+# content is meant to *describe* what the stub-driven domain does
+# — it doesn't need fancy markdown rendering; we just escape the
+# source and let a styled <pre> block preserve its formatting.
+# This keeps the project free of any markdown-rendering gem.
 module TestDocs
   PATHS = {
     'dice'       => File.expand_path('../docs/common/dice_resolution/dice_resolution_tests.md', __dir__),
@@ -22,10 +22,15 @@ module TestDocs
   def render_for(view_key)
     path = PATHS[view_key]
     return nil unless path && File.exist?(path)
-    Kramdown::Document.new(File.read(path, encoding: 'UTF-8')).to_html
+    text = File.read(path, encoding: 'UTF-8')
+    %(<pre class="tests-doc-pre">#{escape(text)}</pre>)
   end
 
   def title_for(view_key)
     TITLES[view_key]
+  end
+
+  def escape(s)
+    s.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;')
   end
 end

@@ -916,78 +916,32 @@ body {
 
 .btn-save-confirm:not([disabled]):hover { background: #1d4ed8; }
 
-/* === Tests doc rendered below the stubs === */
+/* === Tests doc rendered below the stubs ===
+   Just the canonical markdown source displayed verbatim in a
+   styled <pre> — readable as-is, no markdown-rendering gem
+   required. */
 
 .tests-doc {
   margin-top: 32px;
-  padding-top: 16px;
+  padding-top: 12px;
   border-top: 2px solid #ddd;
+}
+
+.tests-doc h2 {
+  font-size: 14px;
+  margin: 0 0 8px 0;
   color: #222;
 }
 
-.tests-doc h1, .tests-doc h2, .tests-doc h3 {
-  margin-top: 14px;
-  margin-bottom: 6px;
-  color: #222;
-}
-
-.tests-doc h1 { font-size: 16px; }
-.tests-doc h2 { font-size: 14px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
-.tests-doc h3 { font-size: 12px; color: #444; }
-
-.tests-doc p, .tests-doc ul, .tests-doc ol {
+.tests-doc-pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Menlo', 'Consolas', monospace;
   font-size: 11px;
   line-height: 1.5;
-  margin: 6px 0;
-}
-
-.tests-doc ul, .tests-doc ol { padding-left: 22px; }
-.tests-doc li { margin: 2px 0; }
-
-.tests-doc strong { color: #111; }
-.tests-doc em     { color: #444; }
-
-.tests-doc code {
-  font-family: monospace;
-  background: #f3f3f3;
-  padding: 0 3px;
-  border-radius: 2px;
-  font-size: 11px;
-}
-
-.tests-doc pre {
-  background: #f3f3f3;
-  padding: 6px 8px;
+  background: #fafafa;
   border: 1px solid #e0e0e0;
-  border-radius: 2px;
-  font-size: 11px;
-  overflow-x: auto;
-}
-
-.tests-doc table {
-  border-collapse: collapse;
-  margin: 8px 0;
-  font-size: 11px;
-}
-
-.tests-doc th, .tests-doc td {
-  border: 1px solid #ddd;
-  padding: 3px 6px;
-  text-align: left;
-}
-
-.tests-doc th { background: #fafafa; font-weight: bold; }
-
-.tests-doc hr {
-  border: 0;
-  border-top: 1px dashed #ddd;
-  margin: 12px 0;
-}
-
-.tests-doc blockquote {
-  border-left: 3px solid #ddd;
-  margin: 6px 0;
-  padding-left: 10px;
-  color: #555;
-  font-size: 11px;
+  border-radius: 3px;
+  padding: 10px 12px;
+  color: #222;
 }
