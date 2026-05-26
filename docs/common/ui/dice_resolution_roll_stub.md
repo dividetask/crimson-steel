@@ -52,7 +52,7 @@ Stub-level options:
 ## Identity (Character) column lines
 
 1. **Creature Name** — verbatim, bold.
-2. **Parameters line** — `<Dice Count> dice @ TN <TN>` followed by Starting Value when nonzero. Positive Starting Value renders as `, R+<n>`; negative renders as `, R-<n>`. The shorthand keeps the line compact enough to fit in a narrow column; the long-form phrasing ("starting success/failure") belongs in a tooltip if one is shown.
+2. **Parameters line** — `<Dice Count>d<Die Size> @ TN <TN>` followed by Starting Value when nonzero. Positive Starting Value renders as `, R+<n>`; negative renders as `, R-<n>`. Listing the die size explicitly here is how a DM tells apart a `7` on a `d8` (crit) from a `7` on a `d10` (success).
 3. **Roll Name** — italic, parenthesized.
 
 ## Modifier columns (Reroll, Nudge)
@@ -73,13 +73,15 @@ The Reroll badge sits on the post-reroll row; the Mass Reroll badge sits on the 
 
 ## Dice column
 
-Each row displays the dice for that step. Individual dice are highlighted per `ui_conventions.md`. The initial-dice row starts empty (`[ — ]` placeholder) until the parent's Roll All is invoked, at which point the stub populates the row from the dice resolution domain. Modifier rows show only the positions that changed at that step; unchanged positions render as empty placeholders so dice line up across rows.
+Each row displays the dice for that step. Individual dice are highlighted per `ui_conventions.md`. The initial-dice row starts empty (`[ — ]` placeholder) until the parent's Roll All is invoked, at which point the stub populates the row from the dice resolution domain.
+
+Modifier rows show the dice state **after** the modifier ran. Positions whose value the modifier actually changed render in full styling (Failure / Critical / Success / Neutral). Positions the modifier did not touch render muted so the DM can see at a glance which dice were affected — and when a modifier finds no eligible dice (a `+N` reroll on a row of all successes, say) every die in the row renders muted.
 
 ## Result and Crits columns
 
 Each contains an input field. After Roll All, the stub auto-fills both from the final post-modifier dice:
 
-- **Result** (DoIS) = (count of dice ≥ TN) − (count of natural-1 failures). A crit (rolled value equals Die Size) counts as **two** successes.
+- **Result** (DoIS) = Starting Value + (count of dice ≥ TN) − (count of natural-1 failures). A crit (rolled value equals Die Size) counts as **two** successes.
 - **Crits** = count of dice whose final value equals Die Size.
 
 Both are editable so the DM can override either value at any time. Whatever the inputs hold is what the parent wrapper consumes on Confirm — the stub never re-derives them after the DM has touched them.

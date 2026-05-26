@@ -78,10 +78,31 @@
     return '[ ' + inner + ' ]';
   }
 
+  // Modifier rows show the dice state AFTER the modifier ran. Dice
+  // whose value the modifier actually changed render full-colored;
+  // dice the modifier did not touch render muted so the DM can see
+  // at a glance which dice were affected (and which weren't). When
+  // a modifier finds no eligible dice every position renders muted.
+  function renderModifierRow(values, changes, tn, dieSize) {
+    if (!values || values.length === 0) {
+      return '<span class="dice-placeholder">[ &mdash; ]</span>';
+    }
+    var inner = values.map(function (v, i) {
+      if (v === null || v === undefined) {
+        return '<span class="die empty">&nbsp;</span>';
+      }
+      var changed = changes[i] !== null && changes[i] !== undefined;
+      var cls = dieClass(v, tn, dieSize) + (changed ? '' : ' unchanged');
+      return '<span class="die ' + cls + '">' + v + '</span>';
+    }).join(', ');
+    return '[ ' + inner + ' ]';
+  }
+
   function rollGroup(group) {
     var config = JSON.parse(group.dataset.config);
     var dieSize = config.die_size;
     var tn = config.tn;
+    var startingValue = parseInt(config.starting_value, 10) || 0;
 
     var initial = rollDice(config.dice_count, dieSize);
     var current = initial.slice();
@@ -97,7 +118,7 @@
       );
       current = mergeChanges(current, rerollChanges);
       var rerollCell = group.querySelector('.row-reroll .dice-cell');
-      if (rerollCell) rerollCell.innerHTML = renderDice(rerollChanges, tn, dieSize);
+      if (rerollCell) rerollCell.innerHTML = renderModifierRow(current, rerollChanges, tn, dieSize);
     }
     if (config.mass_reroll) {
       var massChanges = applyReroll(
@@ -105,7 +126,7 @@
       );
       current = mergeChanges(current, massChanges);
       var massCell = group.querySelector('.row-mass-reroll .dice-cell');
-      if (massCell) massCell.innerHTML = renderDice(massChanges, tn, dieSize);
+      if (massCell) massCell.innerHTML = renderModifierRow(current, massChanges, tn, dieSize);
     }
     if (config.nudge) {
       var nudgeChanges = applyNudge(
@@ -114,13 +135,13 @@
       );
       current = mergeChanges(current, nudgeChanges);
       var nudgeCell = group.querySelector('.row-nudge .dice-cell');
-      if (nudgeCell) nudgeCell.innerHTML = renderDice(nudgeChanges, tn, dieSize);
+      if (nudgeCell) nudgeCell.innerHTML = renderModifierRow(current, nudgeChanges, tn, dieSize);
     }
 
-    // DoIS = (successes ≥ TN) − (failures = 1). A crit (rolled value
-    // equals die size) counts as TWO successes. The DM can override
-    // either input afterwards.
-    var dois = 0;
+    // DoIS = starting_value + (successes ≥ TN) − (failures = 1). A
+    // crit (rolled value equals die size) counts as TWO successes.
+    // The DM can override either input afterwards.
+    var dois = startingValue;
     var crits = 0;
     current.forEach(function (v) {
       if (v == null) return;

@@ -108,12 +108,13 @@
     row_count        = 1 + (has_reroll ? 1 : 0) + (has_mass_reroll ? 1 : 0) + (has_nudge ? 1 : 0)
 
     group_config = {
-      dice_count:  roll[:dice_count],
-      tn:          roll[:tn],
-      die_size:    roll[:die_size],
-      reroll:      serialize_amount.call(roll[:reroll]),
-      mass_reroll: serialize_mass.call(roll[:mass_reroll]),
-      nudge:       serialize_amount.call(roll[:nudge])
+      dice_count:     roll[:dice_count],
+      tn:             roll[:tn],
+      die_size:       roll[:die_size],
+      starting_value: roll[:starting_value].to_i,
+      reroll:         serialize_amount.call(roll[:reroll]),
+      mass_reroll:    serialize_mass.call(roll[:mass_reroll]),
+      nudge:          serialize_amount.call(roll[:nudge])
     }
   %>
 
@@ -121,7 +122,7 @@
     <tr class="roll-row row-initial">
       <td rowspan="<%= row_count %>" class="character-cell">
         <span class="stub-line creature-name"><%= roll[:creature_name] %></span>
-        <span class="stub-line params"><%= roll[:dice_count] %> dice @ TN <%= roll[:tn] %><%= starting_text %></span>
+        <span class="stub-line params"><%= roll[:dice_count] %>d<%= roll[:die_size] %> @ TN <%= roll[:tn] %><%= starting_text %></span>
         <span class="stub-line roll-name"><em>(<%= roll[:roll_name] %>)</em></span>
       </td>
       <td class="mod-cell"></td>
