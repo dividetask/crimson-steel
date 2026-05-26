@@ -191,7 +191,11 @@
   // until the check step becomes active.
 
   function handleModClick(btn) {
-    var stepEl = btn.closest('.step-controls');
+    var save = btn.closest('.save-resolution');
+    if (!save) return;
+    // Magnitude buttons now live in the active step's body, not the
+    // header's step-controls slot. The body carries data-step too.
+    var stepEl = btn.closest('.step-body') || btn.closest('.step-controls');
     if (!stepEl) return;
     var kind = stepEl.dataset.step;
     if (kind === 'reroll' || kind === 'mass_reroll' || kind === 'nudge') {
@@ -199,7 +203,7 @@
     }
     var label = btn.dataset.label || '';
     var signLabel = btn.textContent.trim();
-    completeStep(stepEl, signLabel + (label ? ' ' + label : ''));
+    completeStep(save, kind, signLabel + (label ? ' ' + label : ''));
   }
 
   function applyRollModifier(btn) {
@@ -271,13 +275,11 @@
     reflowRowspan(group);
   }
 
-  function completeStep(stepEl, summaryText) {
-    if (!stepEl) return;
-    var save = stepEl.closest('.save-resolution');
-    if (!save) return;
-    var kind = stepEl.dataset.step;
+  function completeStep(save, kind, summaryText) {
+    if (!save || !kind) return;
 
-    stepEl.dataset.state = 'complete';
+    var ctrl = save.querySelector('.step-controls[data-step="' + kind + '"]');
+    if (ctrl) ctrl.dataset.state = 'complete';
     var body = save.querySelector('.step-body[data-step="' + kind + '"]');
     if (body) body.dataset.state = 'complete';
 
@@ -293,28 +295,23 @@
   function handleConfirmAllInSave(save) {
     var diceCtrl = save.querySelector('.step-controls[data-step="dice"]');
     if (!diceCtrl || diceCtrl.dataset.state !== 'active') return;
-    // Capture the dice table's Result + Crits as the dice step
-    // summary, then advance to the result step (which reveals the
-    // effect preview and recomputes it from the captured DoIS).
-    var resultInput = save.querySelector('.save-roll-table .result-input, .step-body-dice .result-input');
     var inputs = save.querySelectorAll('.step-body-dice .result-input');
     var dois = inputs.length > 0 ? inputs[0].value : '0';
     var crits = inputs.length > 1 ? inputs[1].value : '0';
     var spDois = save.querySelector('.sp-dois');
     if (spDois) spDois.value = dois;
-    completeStep(diceCtrl, 'Successes: ' + dois + '   Crits: ' + crits);
+    completeStep(save, 'dice', 'Successes: ' + dois + '   Crits: ' + crits);
     recomputePreview(save);
   }
 
   function handleStepNone(btn) {
-    var stepEl = btn.closest('.step-controls');
-    if (!stepEl) return;
-    var save = stepEl.closest('.save-resolution');
-    var kind = stepEl.dataset.step;
-    if (save && (kind === 'reroll' || kind === 'mass_reroll' || kind === 'nudge')) {
+    var save = btn.closest('.save-resolution');
+    if (!save) return;
+    var kind = btn.dataset.step;
+    if (kind === 'reroll' || kind === 'mass_reroll' || kind === 'nudge') {
       clearRollModifier(save, kind);
     }
-    completeStep(stepEl, '(none)');
+    completeStep(save, kind, '(none)');
   }
 
   function handleStepChange(btn) {
