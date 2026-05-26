@@ -75,7 +75,7 @@ The Reroll badge sits on the post-reroll row; the Mass Reroll badge sits on the 
 
 Each row displays the dice for that step. Individual dice are highlighted per `ui_conventions.md`. The initial-dice row starts empty (`[ — ]` placeholder) until the parent's Roll All is invoked, at which point the stub populates the row from the dice resolution domain.
 
-Modifier rows show only the positions the modifier actually touched — a rerolled or nudged die renders with its new value in full styling, and every other position renders as an empty placeholder so dice line up across rows. A modifier that found no eligible dice (a `+N` reroll on a row of all successes, say) leaves its row fully blank.
+Modifier rows show only the positions the modifier actually touched — a rerolled or nudged die renders with its new value in full styling, and every other position renders as an empty placeholder so dice line up across rows. A Reroll that finds no eligible dice (a `+N` reroll on a row of all Successes, say) leaves its row fully blank. A Nudge row stays populated in all but the most extreme cases: a positive Nudge always picks one die unless every die is already at Die Size, and a negative Nudge always picks one unless every die is already at 1 — see *Nudge* in `dice_resolution_design.md` for the targeting rule.
 
 ## Result and Crits columns
 

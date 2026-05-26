@@ -30,22 +30,45 @@
     return changes;
   }
 
+  // A Nudge always picks a die unless every die is already at the
+  // extreme for its sign (all Die Size for a positive nudge, all 1
+  // for a negative nudge). Primary targeting: a positive nudge picks
+  // the highest die still below TN (closest to flipping into a
+  // Success); a negative nudge picks the lowest die at or above TN
+  // (closest to falling out of Success). When no primary candidate
+  // exists, the fallback fires: positive nudge picks the lowest die
+  // < Die Size, negative nudge picks the highest die > 1. Ties go
+  // to the lowest index in either case (filter order preserves it).
   function applyNudge(current, sign, count, max, tn, dieSize) {
     var changes = new Array(current.length).fill(null);
     var indexed = current.map(function (v, i) { return { v: v, i: i }; });
+
+    function nudgeUp(target) {
+      changes[target.i] = Math.min(dieSize, target.v + count);
+    }
+    function nudgeDown(target) {
+      changes[target.i] = Math.max(1, target.v - count);
+    }
+
     if (sign === 'pos') {
-      var below = indexed.filter(function (d) { return d.v < tn; })
-                         .sort(function (a, b) { return b.v - a.v; });
-      if (below.length > 0) {
-        var t = below[0];
-        changes[t.i] = Math.min(dieSize, t.v + count);
+      var primary = indexed.filter(function (d) { return d.v < tn; })
+                           .sort(function (a, b) { return b.v - a.v; });
+      if (primary.length > 0) {
+        nudgeUp(primary[0]);
+      } else {
+        var fallback = indexed.filter(function (d) { return d.v < dieSize; })
+                              .sort(function (a, b) { return a.v - b.v; });
+        if (fallback.length > 0) nudgeUp(fallback[0]);
       }
     } else {
-      var above = indexed.filter(function (d) { return d.v >= tn && d.v !== dieSize; })
-                         .sort(function (a, b) { return a.v - b.v; });
-      if (above.length > 0) {
-        var u = above[0];
-        changes[u.i] = Math.max(1, u.v - count);
+      var primary2 = indexed.filter(function (d) { return d.v >= tn; })
+                            .sort(function (a, b) { return a.v - b.v; });
+      if (primary2.length > 0) {
+        nudgeDown(primary2[0]);
+      } else {
+        var fallback2 = indexed.filter(function (d) { return d.v > 1; })
+                               .sort(function (a, b) { return b.v - a.v; });
+        if (fallback2.length > 0) nudgeDown(fallback2[0]);
       }
     }
     return changes;
