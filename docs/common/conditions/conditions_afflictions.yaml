@@ -1,0 +1,96 @@
+# Afflictions catalog.
+#
+# Each entry is an Affliction Rule. Fields:
+#   category:        free-form string. Conventional values:
+#                    "poison", "disease", "curse", "bleed", "other".
+#                    Default "other".
+#   save:            attribute key (str/dex/con/int/wis/cha). The
+#                    save Roll uses this attribute. Default "con".
+#   save_frequency:  one of "round","minute","hour","day","month",
+#                    "year". Determines how often this Affliction
+#                    resolves on its own. Conditions uses this to
+#                    schedule each Active Affliction's Next
+#                    Resolution Round when it is inflicted (and
+#                    after each resolution). Default "round".
+#   potency_per_success: optional override. Integer or "tier".
+#   potency_per_failure: optional override. Integer or "tier".
+#   potency_decay:       optional override. Integer or "tier".
+#   effect:              required. One of:
+#     { kind: "hit_point_damage", severity: "<category>" }
+#         net_magnitude = max(0, 1 + floor(potency / Potency Divisor) − successes)
+#         points of HP damage at the named Damage Severity.
+#     { kind: "ability_damage", attribute: "<attr>", severity: "<category>" }
+#         Same magnitude formula, applied as Ability Damage.
+#     { kind: "named_effect", name: "<effect_name>", duration_rounds: <int> }
+#         Looks up `<effect_name>` in `effect_names.yaml` and applies
+#         its Mechanics for `duration_rounds`. Magnitude is binary
+#         (net_magnitude > 0 applies; 0 does not).
+#
+# "Potency" is the Affliction's strength counter — named distinctly
+# from Damage Severity (Minor/Moderate/Major) to avoid confusion.
+# The `severity` key inside an `effect` block refers to the Damage
+# Severity Category owned by Combat, not to Potency.
+#
+# A Competency Penalty equal to floor(potency / Potency Divisor) is
+# auto-merged into the save. Inflicter Tier and Creature Tier are NOT
+# auto-injected — callers fold those into their own modifier dict.
+#
+# Toxicity Damage (the Charisma Ability Damage inflicted when Magic
+# Toxicity rises further past the Toxicity Threshold) is NOT an
+# Affliction. It is applied directly by APPLY_MAGIC_TOXICITY.
+
+Afflictions:
+
+  bleeding:
+    category: "bleed"
+    potency_per_success: "tier"    # high-Tier creatures clot faster
+    potency_per_failure: 0         # bleeding does not worsen on failed saves
+    effect:
+      kind: "hit_point_damage"
+      severity: "minor"
+
+  ghoul_paralysis:
+    category: "curse"
+    save: "wis"
+    effect:
+      kind: "named_effect"
+      name: "paralyzed"
+      duration_rounds: 1
+
+  krithrak_spider_venom:
+    category: "poison"
+    effect:
+      kind: "ability_damage"
+      attribute: "dex"
+      severity: "minor"
+
+  common_venom:
+    category: "poison"
+    effect:
+      kind: "hit_point_damage"
+      severity: "minor"
+
+  sleep_venom:
+    category: "poison"
+    effect:
+      kind: "ability_damage"
+      attribute: "cha"
+      severity: "minor"
+
+  sleeping_sickness:
+    category: "disease"
+    save_frequency: "day"
+    potency_per_success: 0         # successes do not weaken the sickness
+    effect:
+      kind: "ability_damage"
+      attribute: "cha"
+      severity: "moderate"
+
+  ghoul_fever:
+    category: "disease"
+    save: "con"
+    save_frequency: "day"
+    effect:
+      kind: "ability_damage"
+      attribute: "con"
+      severity: "moderate"

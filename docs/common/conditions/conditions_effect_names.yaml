@@ -1,0 +1,206 @@
+# Effect Names catalog.
+#
+# Single source of truth for named non-damage effects across the
+# project. Abilities, Afflictions (kind: "named_effect"), and other
+# upstream callers reference Effect Names by name; Conditions raises
+# at APPLY_NAMED_EFFECT time when a name is not in this catalog.
+#
+# Each entry has:
+#   description: free-form text for display.
+#   mechanics:   list of Effect Mechanics. Empty = mechanics owned by
+#                another module, only the name applies.
+#
+# Recognized Mechanic kinds:
+#   { kind: "modifier", modifier_type: <Bonus Type>,
+#     amount: <signed int | formula>, applies_to: [<scope tags>], notes: "..." }
+#       Stored as an Active Effect; surfaced by GET_MODIFIERS. A
+#       positive `amount` is a Bonus, a negative `amount` is a Penalty.
+#       `amount` may be a formula string referencing fields of the
+#       applied Active Effect's `metadata` (e.g. `"1 + level / 3"`
+#       reads metadata.level). The consuming domain evaluates.
+#   { kind: "reroll", scope: "<scope>", applies_to: [<scope tags>],
+#     amount: <signed int>, notes: "..." }
+#       Reroll Operation. Luck/Insight effects live here, not under
+#       `modifier`. `amount` carries direction (positive = advantageous,
+#       negative = disadvantageous); both fields are optional.
+#   { kind: "nudge", applies_to: [<scope tags>],
+#     amount: <signed int>, notes: "..." }
+#       Value Adjustment (Insight). Sign on `amount` carries direction.
+#   { kind: "set_value", target: "<derived>", value: <int|formula> }
+#   { kind: "scale_value", target: "<derived>", factor: <number> }
+#   { kind: "flag", flag: "<name>" }
+#   { kind: "display", text: "<rule for the DM>" }
+#
+# `modifier_type` values are drawn from the Modifiers domain's Bonus
+# Types List. Scope tags, target names, and flag names are
+# intentionally free-form — Conditions does not validate them.
+
+Effect Names:
+
+  blind:
+    description: "The target cannot see; all sight-based perception fails."
+    mechanics:
+      - kind: reroll
+        scope: successes_and_criticals
+
+  dazzled:
+    description: "The target suffers a minor penalty to sight-based checks."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -1
+        applies_to: [dex_checks, wis_checks, casting_checks]
+
+  deafened:
+    mechanics:
+      - kind: reroll
+        scope: successes_and_criticals
+        applies_to: [initiative]
+        amount: -1
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -2
+        applies_to: [verbal_spell_checks]
+
+  stunned:
+    description: "The target loses its next turn."
+    mechanics:
+      - kind: set_value
+        target: combat_dice
+        value: 0
+
+  paralyzed:
+    mechanics:
+      - kind: flag
+        flag: cannot_act
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: 2
+        applies_to: [attacks_against]
+
+  prone:
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -2
+        applies_to: [ranged_attacks_against]
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: 2
+        applies_to: [melee_attacks_against]
+
+  frightened:
+    description: "The target must flee from the source of the effect and may take no actions on its turn other than those that help it flee."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -2
+        applies_to: [fear_saves]
+
+  flustered:
+    description: "The target is rattled and distracted, suffering a penalty to its rolls until the condition ends."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -2
+        applies_to: [attack_checks, ability_checks, spell_checks]
+
+  confused:
+    description: "The target acts unpredictably for the duration."
+    mechanics:
+      - kind: display
+        text: "All attacks and abilities the confused creature uses are made against a random eligible target."
+
+  charmed:
+    description: "The target treats the caster as a trusted ally."
+    mechanics:
+      - kind: display
+
+  silenced:
+    mechanics:
+      - kind: flag
+        flag: cannot_speak
+      - kind: flag
+        flag: cannot_cast_verbal
+
+  entangled:
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -2
+        applies_to: [str_checks, dex_checks]
+      - kind: scale_value
+        target: movement
+        factor: 0.5
+      - kind: flag
+        flag: cannot_run
+
+  restrained:
+    mechanics:
+      - kind: set_value
+        target: movement
+        value: 0
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -2
+        applies_to: [str_checks, dex_checks]
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: 2
+        applies_to: [melee_attacks_against, ranged_attacks_against]
+      - kind: flag
+        flag: cannot_run
+
+  believes_illusion:
+    description: "The target perceives the illusion as real."
+    mechanics:
+      - kind: display
+
+  compelled:
+    mechanics:
+      - kind: display
+
+  laughing_fit:
+    description: "The target convulses with helpless laughter — prone and unable to act on their next turn."
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: -2
+        applies_to: [ranged_attacks_against]
+        notes: "Does not apply when the attacker has higher ground than the prone target."
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: 2
+        applies_to: [melee_attacks_against]
+      - kind: set_value
+        target: combat_dice
+        value: 0
+
+  in_pit:
+    mechanics:
+      - kind: display
+        text: "Escape: Main Action Athletics check. Each Success moves the target one 5-foot square up the pit wall. Each Fumble drops the target to the bottom and triggers Combat's *Apply Falling Damage* against the pit's `depth × 5` feet, using the metadata's `falling_modifier`. The check carries a Guidance Penalty (the metadata's `penalty`, typically the spell's tier). On entry, the target also takes falling damage for the full depth. Metadata: `depth` (in 5-foot squares), `penalty` (Athletics Guidance Penalty), `falling_modifier` (per-10-feet damage adjustment — 0 for a normal pit, 1 for spiked, etc.)."
+
+  trapfinding:
+    mechanics:
+      - kind: flag
+        flag: detects_magical_traps_and_illusions
+
+  rage:
+    mechanics:
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: "1 + level / 3"
+        applies_to: [damage_reduction]
+      - kind: modifier
+        modifier_type: Circumstance
+        amount: "1 + level / 2"
+        applies_to: [damage_resilience]
+      - kind: flag
+        flag: raging
+
+  unaware:
+    description: "The target has yet to act in combat."
+    mechanics:
+      - kind: flag
+        flag: unaware
