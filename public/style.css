@@ -505,6 +505,8 @@ body {
   padding: 2px 4px;
 }
 
+.affliction-table th:nth-child(2) { text-align: center; }
+
 .affliction-table td {
   padding: 2px 4px;
   border-bottom: 1px dotted #eee;
@@ -513,7 +515,7 @@ body {
 .affliction-table td.potency {
   font-weight: bold;
   font-family: monospace;
-  text-align: right;
+  text-align: center;
 }
 
 .consumable-list {
