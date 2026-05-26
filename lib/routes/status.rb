@@ -20,5 +20,8 @@ get '/status' do
                               .select { |s| s[:stub_id] == 'save-bleed-t2-blessing' }
   end
 
+  @tests_html  = TestDocs.render_for(@view)
+  @tests_title = TestDocs.title_for(@view)
+
   erb :status
 end

@@ -58,6 +58,13 @@
       <h1>Status</h1>
       <p class="lead">Pick a stub from the menu on the left.</p>
     <% end %>
+
+    <% if @tests_html %>
+      <section class="tests-doc">
+        <h2><%= @tests_title %></h2>
+        <%= @tests_html %>
+      </section>
+    <% end %>
   </section>
 </div>
 

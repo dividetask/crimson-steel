@@ -12,6 +12,7 @@ $LOAD_PATH.unshift(File.join(__dir__, 'lib'))
 require 'conditions'
 require 'dice_resolution'
 require_relative 'lib/dummy_data'
+require_relative 'lib/test_docs'
 require_relative 'lib/helpers'
 
 %w[home character_sheets scene store notes social status view_as].each do |name|
