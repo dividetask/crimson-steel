@@ -347,6 +347,20 @@ body {
 .die.neutral  { background: transparent; color: #111; }
 .die.empty    { background: transparent; color: transparent; min-width: 20px; }
 
+/* Starting Successes / Failures: rendered as small filled squares
+   without a value before the rolled dice on the initial row. Green
+   for positive starting_value, red for negative. */
+.die.starting-die {
+  min-width: 10px;
+  width: 10px;
+  height: 10px;
+  line-height: 10px;
+  padding: 0;
+  border-radius: 2px;
+  margin-right: 2px;
+  vertical-align: middle;
+}
+
 .result-cell {
   text-align: center;
   white-space: nowrap;

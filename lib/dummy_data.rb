@@ -22,7 +22,7 @@ module DummyData
       {
         creature_name: 'Bryn Ironvein',
         roll_name: 'Attack (Longsword)',
-        dice_count: 8, tn: 1, starting_value: 0,
+        dice_count: 8, tn: 3, starting_value: 2,
         reroll: { amount: 2, max: false, sign: :neg, label: 'Unsettling Words' },
         nudge:  nil,
         initial_dice: [8, 6, 10, 1, 10, 4, 8, 10],
@@ -76,7 +76,7 @@ module DummyData
         {
           creature_name: 'Bryn Ironvein',
           roll_name: 'Attack (Longsword)',
-          dice_count: 8, tn: 2, starting_value: 0,
+          dice_count: 8, tn: 3, starting_value: 1,
           reroll: { amount: 2, max: false, sign: :neg, label: 'Unsettling Words' },
           nudge: nil,
           initial_dice: [10, 8, 7, 4, 8, 4, 6, 9],

@@ -88,9 +88,23 @@
     return 'neutral';
   }
 
-  function renderDice(values, tn, dieSize) {
+  function renderStartingSquares(startingValue) {
+    if (!startingValue) return '';
+    var abs = Math.abs(startingValue);
+    var cls = startingValue > 0 ? 'success' : 'fail';
+    var out = '';
+    for (var i = 0; i < abs; i++) {
+      out += '<span class="die ' + cls + ' starting-die">&nbsp;</span>';
+    }
+    return out + ' ';
+  }
+
+  // `startingValue` is optional; pass a non-zero value only on the
+  // initial-dice row. Modifier rows omit it.
+  function renderDice(values, tn, dieSize, startingValue) {
+    var starting = renderStartingSquares(startingValue);
     if (!values || values.length === 0) {
-      return '<span class="dice-placeholder">[ &mdash; ]</span>';
+      return '<span class="dice-placeholder">[ ' + starting + '&mdash; ]</span>';
     }
     var inner = values.map(function (v) {
       if (v === null || v === undefined) {
@@ -98,7 +112,7 @@
       }
       return '<span class="die ' + dieClass(v, tn, dieSize) + '">' + v + '</span>';
     }).join(', ');
-    return '[ ' + inner + ' ]';
+    return '[ ' + starting + inner + ' ]';
   }
 
   function rollGroup(group) {
@@ -112,7 +126,7 @@
     var rerolledMask = new Array(initial.length).fill(false);
 
     var initialCell = group.querySelector('.row-initial .dice-cell');
-    if (initialCell) initialCell.innerHTML = renderDice(initial, tn, dieSize);
+    if (initialCell) initialCell.innerHTML = renderDice(initial, tn, dieSize, startingValue);
 
     if (config.reroll) {
       var rerollChanges = applyReroll(

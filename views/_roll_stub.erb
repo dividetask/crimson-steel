@@ -116,6 +116,16 @@
       mass_reroll:    serialize_mass.call(roll[:mass_reroll]),
       nudge:          serialize_amount.call(roll[:nudge])
     }
+
+    starting_value = roll[:starting_value].to_i
+    starting_squares_html = +''
+    if starting_value != 0
+      cls = starting_value.positive? ? 'success' : 'fail'
+      starting_value.abs.times do
+        starting_squares_html << %(<span class="die #{cls} starting-die">&nbsp;</span>)
+      end
+      starting_squares_html << ' '
+    end
   %>
 
   <tbody class="roll-group" data-roll-idx="<%= roll_idx %>" data-config='<%= group_config.to_json %>'>
@@ -128,7 +138,7 @@
       <td class="mod-cell"></td>
       <td class="mod-cell"></td>
       <td class="dice-cell">
-        <span class="dice-placeholder">[ &mdash; ]</span>
+        <span class="dice-placeholder">[ <%= starting_squares_html %>&mdash; ]</span>
       </td>
       <td rowspan="<%= row_count %>" class="result-cell">
         <input class="result-input" type="text" value="<%= roll[:dois] %>">
