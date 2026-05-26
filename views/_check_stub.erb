@@ -1,0 +1,43 @@
+<%#
+  Check Resolution Stub. Renders the Rolls wrapper with shared headers
+  and calls _roll_stub for each child Roll in rows_only mode.
+
+  Supporting Rolls are listed first, then Opposing — no labelled divider
+  rows; the order is the convention and the rendering is left to read.
+
+  Local: check — hash with :supporting and :opposing arrays of Rolls.
+%>
+<div class="rolls-wrapper" data-stub="check">
+  <div class="rolls-header">
+    <span class="rolls-title">Rolls</span>
+    <div class="rolls-actions">
+      <button type="button" class="btn-roll-all">Roll All</button>
+      <button type="button" class="btn-confirm-all">Confirm All</button>
+    </div>
+  </div>
+  <table class="stub-table roll-table">
+    <colgroup>
+      <col class="col-character">
+      <col class="col-mod">
+      <col class="col-mod">
+      <col class="col-dice">
+      <col class="col-result">
+      <col class="col-result">
+      <col class="col-lock">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Character</th>
+        <th>Reroll</th>
+        <th>Nudge</th>
+        <th>Dice</th>
+        <th>Result</th>
+        <th>Crits</th>
+        <th></th>
+      </tr>
+    </thead>
+    <% (check[:supporting] + check[:opposing]).each do |r| %>
+      <%= erb :_roll_stub, locals: { roll: r, rows_only: true } %>
+    <% end %>
+  </table>
+</div>
