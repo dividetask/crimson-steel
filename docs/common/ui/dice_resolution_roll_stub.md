@@ -52,7 +52,7 @@ Stub-level options:
 ## Identity (Character) column lines
 
 1. **Creature Name** — verbatim, bold.
-2. **Parameters line** — `<Dice Count>d<Die Size> @ TN <TN>` followed by Starting Value when nonzero. Positive Starting Value renders as `, R+<n>`; negative renders as `, R-<n>`. Listing the die size explicitly here is how a DM tells apart a `7` on a `d8` (crit) from a `7` on a `d10` (success).
+2. **Parameters line** — `<Dice Count> dice @ TN <TN>` followed by Starting Value when nonzero. Positive Starting Value renders as `, R+<n>`; negative renders as `, R-<n>`. Die Size is a project-wide constant from `dice_resolution_config.yaml` (`Die Size: 10` for Crimson Steel) and is not repeated on every line.
 3. **Roll Name** — italic, parenthesized.
 
 ## Modifier columns (Reroll, Nudge)

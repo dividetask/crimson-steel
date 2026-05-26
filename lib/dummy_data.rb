@@ -39,7 +39,7 @@ module DummyData
         initial_dice: [1, 3, 5, 8],
         post_reroll_dice: [1, 5, 5, 8],
         post_nudge_dice: [1, 5, 6, 9],
-        dois: 4, critical_count: 0, die_size: 8
+        dois: 4, critical_count: 0, die_size: 10
       },
       {
         creature_name: 'Cleric of Ruin',
