@@ -5,9 +5,27 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="menu">
-    <a href="/test">Test</a>
-  </div>
-  <%= yield %>
+  <nav class="menu">
+    <ul class="menu-items">
+      <% menu_items.each do |item| %>
+        <% next if item[:dm_only] && !dm_view? %>
+        <li><a href="<%= item[:href] %>"><%= item[:label] %></a></li>
+      <% end %>
+    </ul>
+
+    <% if dm_host? %>
+      <form class="view-as-form" method="post" action="/view-as/toggle">
+        <button type="submit" class="view-as-btn">
+          <%= viewing_as_player? ? 'View As DM' : 'View As Player' %>
+        </button>
+      </form>
+    <% end %>
+
+    <span class="server-addr"><%= server_address %>:<%= request.port %></span>
+  </nav>
+
+  <main class="page">
+    <%= yield %>
+  </main>
 </body>
 </html>

@@ -6,71 +6,97 @@ See `ui_conventions.md` for shared rules (dice highlighting, modifier presentati
 
 ## Layout
 
-A table row (or a small table when standalone) with five columns:
+The stub renders one to three table rows for a single Roll, with seven columns:
 
 | Column | Content |
 |---|---|
-| Action | A Roll button. Optionally a Confirm button alongside. |
-| Identity | Three lines: Creature Name, parameters line, Roll Name. |
-| Modifier | Three lines: blank, Reroll modifier, Nudge modifier. |
-| Dice | Three lines: initial dice, post-reroll dice, post-nudge dice. |
-| Result | Two manual-override fields: DoIS and Critical Count. |
+| Character | Three lines: Creature Name, parameters line, Roll Name. Spans every row of the Roll. |
+| Reroll | The Reroll modifier value as a small badge (see **Modifier columns**). Empty on the initial-dice row and the nudge row. |
+| Nudge | The Nudge modifier value as a small badge. Empty on the initial-dice row and the reroll row. |
+| Dice | The dice for this step (initial, post-reroll, or post-nudge). One step per row. |
+| Result | A manual-override DoIS input. Spans every row of the Roll. |
+| Crits | A manual-override Critical Count input. Spans every row of the Roll. |
+| Lock | A lock toggle (closed/open padlock icon) that freezes the Roll's result from further changes. Spans every row of the Roll. |
 
-Modifier and Dice rows are only shown when the corresponding modifier is configured for the Roll. A Roll with no Reroll and no Nudge has only the initial-dice row; a Roll with only a Nudge has the initial-dice row and the nudge row, and so on.
+There is **no** per-Roll action button column. Roll All and Confirm All are owned by the parent wrapper (see **Composition**) — never duplicated per Roll.
+
+The Reroll row is omitted when the Roll has no Reroll. The Nudge row is omitted when the Roll has no Nudge. A Roll with neither has only the initial-dice row.
+
+The stub must fit within its container; the parent wrapper sets the available width and the stub does not overflow it. Long dice rows wrap inside the Dice cell.
 
 ## Parameters
 
 Required:
-- Creature Name — string. The Roll's owning creature.
-- Roll Name — string. A short label (e.g., the Check the Roll is part of).
+- Creature Name — string.
+- Roll Name — string.
 - Dice Count — integer.
 - TN — integer.
 - Starting Value — signed integer.
 
 Optional:
-- Reroll amount and label — signed integer plus a human-readable name. Positive rerolls non-Successes; negative rerolls Successes. Zero suppresses the Reroll row entirely.
-- Nudge amount and label — signed integer plus a human-readable name. Zero suppresses the Nudge row entirely.
-- Wrapper toggle — boolean. When true, the stub renders its own table; when false, it emits only the inner row(s) for embedding in a parent table.
-- Confirm toggle — boolean. When true, a Confirm button is shown alongside Roll. When false, the Confirm button is suppressed (the parent typically owns a batched Confirm).
-- Stub identifier — string. Supplied by a parent that needs to address this child instance.
+- Reroll — `(sign, count, max)`. `sign` is `+` (reroll non-Successes) or `-` (reroll Successes). `count` is the magnitude. `max = true` means "Maximum Dice Count" and is displayed as `*`. Omitting the Reroll suppresses the row.
+- Nudge — `(sign, count, max)`. `sign` is `+` or `-`. `max = true` is displayed as `*`. Omitting the Nudge suppresses the row.
+- Rows-only toggle — boolean. When true, the stub emits only its table row(s) and no surrounding `<table>` / `<colgroup>` / `<thead>`. The parent supplies the table. When false (default), the stub emits a complete standalone table for the single Roll. Either way, the parent supplies the Rolls wrapper and Roll All / Confirm All controls; see **Composition**.
+- Stub identifier — string supplied by the parent so per-Roll events can be addressed.
 
-## Identity column lines
+## Identity (Character) column lines
 
-1. **Creature Name** — verbatim.
-2. **Parameters line** — `<Dice Count> dice @ TN <TN>` followed by Starting Value when nonzero. Positive Starting Value renders as `, <n> starting success(es)`; negative renders as `, <n> starting failure(s)`. Pluralization adjusts for `n = 1`.
-3. **Roll Name** — wrapped in parentheses.
+1. **Creature Name** — verbatim, bold.
+2. **Parameters line** — `<Dice Count> dice @ TN <TN>` followed by Starting Value when nonzero. Positive Starting Value renders as `, R+<n>`; negative renders as `, R-<n>`. The shorthand keeps the line compact enough to fit in a narrow column; the long-form phrasing ("starting success/failure") belongs in a tooltip if one is shown.
+3. **Roll Name** — italic, parenthesized.
 
-## Modifier column lines
+## Modifier columns (Reroll, Nudge)
 
-The first line of the Modifier column is blank — it sits next to the initial-dice row and never has content.
+Each modifier column displays a small pill-shaped badge containing one of exactly four values:
 
-When a Reroll is configured, the second line shows the modifier text (e.g., `+2 Bardic Inspiration`). When the Reroll is rerunable on demand (a positive reroll with an active source), this line is rendered as a button that triggers a reroll. Otherwise it's a static label.
+- `+x` — positive modifier of magnitude `x` (a non-negative integer).
+- `-x` — negative modifier of magnitude `x`.
+- `+*` — positive modifier covering the Maximum Dice Count.
+- `-*` — negative modifier covering the Maximum Dice Count.
 
-When a Nudge is configured, the third line shows the modifier text as a static label.
+No source label (e.g., "Bardic Inspiration") is shown inside the cell. Source attribution surfaces as a tooltip:
 
-## Dice column lines
+- **Hover** the badge — the source name appears above the badge for as long as the pointer remains over it.
+- **Click** the badge — the same tooltip is shown for three seconds and then dismissed. The click is a momentary affordance for keyboard/touch use; it does not trigger a reroll on its own.
 
-Each line displays the dice for that step. Individual dice are colored per `ui_conventions.md`. Empty until the Roll is performed; the `Roll` button populates the initial dice and any subsequent steps.
+The Reroll badge sits on the post-reroll row only. The Nudge badge sits on the post-nudge row only. Both badges may be color-coded (e.g., Reroll = warm/amber, Nudge = cool/green) for quick visual distinction.
 
-## Result column
+## Dice column
 
-Two manual input fields for the user to enter final values:
-- DoIS input.
-- Critical Count input.
+Each row displays the dice for that step. Individual dice are highlighted per `ui_conventions.md`. The initial-dice row starts empty (`[ — ]` placeholder) until the parent's Roll All is invoked, at which point the stub populates the row from the dice resolution domain. Modifier rows show only the positions that changed at that step; unchanged positions render as empty placeholders so dice line up across rows.
 
-These are independent of the Roll button — the user types the final values regardless of what the dice landed on. The dice display is informational; the inputs are authoritative for whatever resolution the application performs after Confirm.
+## Result and Crits columns
 
-## Behavior
+Each contains a single manual-override input field. These are the authoritative values used by whatever the parent wrapper does on Confirm — the stub does not derive them from the dice.
 
-When the Roll button is pressed: the stub generates the initial dice via the dice resolution domain's roll-with-TN entry point, then renders the dice in their respective rows. If the Roll has a Reroll modifier configured, the Reroll button (if any) becomes active and may be pressed to apply the reroll. The Nudge applies similarly.
+## Lock column
 
-The order in which Reroll and Nudge can be applied matches the dice resolution domain's order of operations: the Reroll's result feeds the Nudge's input. Pressing the Reroll button after a Nudge has been applied invalidates the Nudge result — the Nudge must be re-applied if still desired.
+A small padlock icon, clickable as a toggle. **Unlocked (open padlock) is the default state**; clicking flips it to the locked (closed padlock) state, and clicking again returns to unlocked. The locked icon is visually prominent (gold/dark) while the unlocked icon is muted (gray).
 
-The Confirm button signals the application that the user has accepted the values in the Result column. The stub itself does not know what Confirm means; it raises an application-level event.
+The Lock controls whether the row participates in the parent wrapper's Roll All:
+
+- **Unlocked** — the Roll is included in Roll All; pressing Roll All rerolls this Roll's dice (and re-applies its Reroll and Nudge) every time.
+- **Locked** — the Roll is skipped by Roll All; its current dice and Result/Crits inputs are preserved untouched.
+
+The stub itself takes no further action when the lock is toggled — it just exposes the state to the parent wrapper.
 
 ## Composition
 
-When embedded in a parent stub (e.g., a check resolution stub rendering one row per Roll in a Check):
-- Wrapper toggle is set to false. The parent supplies its own table and column headers.
-- Confirm toggle is typically set to false. The parent owns a batched Confirm.
-- The parent supplies a unique stub identifier to each child instance.
+The Roll Resolution Stub does not render its own Rolls wrapper, Roll All, or Confirm All in production usage — it is always embedded inside a parent stub that owns those affordances. The parent stub:
+
+- Provides the `<div>` wrapper labelled "Rolls" with the Roll All and Confirm All buttons in its header.
+- Provides the surrounding `<table>` / `<colgroup>` / `<thead>` when invoking the Roll Resolution Stub with the rows-only toggle set.
+- Owns the batched Confirm semantics; the Roll Resolution Stub itself never raises an "I am confirmed" event.
+- Assigns a unique stub identifier to each embedded Roll so events can be routed.
+
+The Check Resolution Stub is one such parent; other parents (e.g., a single-roll Save panel) follow the same contract.
+
+The standalone (non rows-only) mode is provided for inspection and demos — for example, the Status page's Dice Resolution view renders each example Roll inside its own one-row Rolls wrapper. It is not intended for production composition.
+
+## Behavior
+
+Roll All on the parent wrapper triggers all embedded Roll Resolution Stubs in sequence: the dice resolution domain produces fresh dice for each Roll's initial row, then applies Reroll and Nudge (in that order) to populate the corresponding rows. **Roll All re-rolls dice that have already been rolled** — each press generates new random values for every unlocked Roll. A Roll whose Lock is closed is skipped entirely, preserving its current dice and inputs.
+
+Confirm All on the parent wrapper signals the application that the user has accepted the current Result and Crits inputs across every embedded Roll. The Roll Resolution Stub itself does nothing on Confirm All beyond contributing its current input values — the wrapper aggregates and emits the event.
+
+The Reroll's output feeds the Nudge's input, matching the dice resolution domain's order of operations. Re-running the Reroll invalidates any prior Nudge result on that Roll; the Nudge must be re-applied if still desired.

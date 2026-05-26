@@ -6,9 +6,11 @@ See `ui_conventions.md` for shared rules and `dice_resolution_roll_stub.md` for 
 
 ## Layout
 
-A single table with shared column headers, then one Roll Resolution Stub row per Roll in the Check. Rolls render in the order they appear in the Check, with Supporting Rolls first followed by Opposing Rolls. A visual separator (a row, a divider line, or distinct row styling) distinguishes the two sides.
+A "Rolls" wrapper (a bordered container with a header bar) holds a single table with shared column headers, then one Roll Resolution Stub row group per Roll in the Check. The header bar shows the title "Rolls" on the left and the two batched action buttons (Roll All, Confirm All) on the right. Rolls render in the order they appear in the Check, with Supporting Rolls first followed by Opposing Rolls.
 
-A single Confirm button sits below or beside the table, batching all Rolls into one confirmation event. Each child Roll Resolution Stub suppresses its own Confirm button.
+No labelled side-divider row is drawn between Supporting and Opposing Rolls — the ordering itself is the convention, and additional rows would only add visual noise to a single composite table. Callers that want a visual separation are free to add their own framing outside the stub.
+
+The Roll All and Confirm All buttons sit in the wrapper header — no per-Roll Roll or Confirm button is rendered, since the Roll Resolution Stub has no action column.
 
 ## Parameters
 
@@ -24,17 +26,15 @@ Optional:
 
 The Check Resolution Stub is itself a parent stub for Roll Resolution Stubs:
 
-- It renders the table wrapper and column headers.
-- For each Roll, it calls the Roll Resolution Stub with `wrapper = false` and `confirm = false`.
-- It assigns each child a unique stub identifier so per-Roll events (Roll button presses, Reroll button presses, etc.) address the correct child.
-- It owns the batched Confirm.
+- It renders the Rolls wrapper (header bar + bordered container) and the surrounding table with column headers.
+- For each Roll, it invokes the Roll Resolution Stub with the rows-only toggle set so the child emits only its table rows.
+- It assigns each child a unique stub identifier so per-Roll events address the correct child.
+- It owns the batched Roll All and Confirm All in the wrapper header.
 
 A higher-level stub may in turn embed a Check Resolution Stub. In that case the Check stub's wrapper toggle is set to false and the higher-level stub supplies its own framing.
 
 ## Behavior
 
-When the user presses Roll on an individual child, only that Roll's dice are generated. Each child manages its own Roll/Reroll/Nudge sequence independently.
+There is no per-Roll Roll button. Pressing Roll All in the wrapper header generates dice for every child Roll Resolution Stub in sequence; each child applies its own Reroll and Nudge after its initial dice are produced. Rolls whose Lock is closed are skipped.
 
-When the user presses the batched Confirm, the stub raises a single application-level event with the per-Roll results from all children plus the manual override values from each child's Result column. Aggregation into a Degree of Success and Check-level Outcome is the application's responsibility — typically by calling check resolution's full-resolution entry point with the user's overrides applied.
-
-A Roll All button rolls every child Roll Resolution Stub in sequence with a single click. The button sits alongside Confirm and is required — Checks with multiple Rolls are common, and rolling each child individually is tedious. The exact placement and label is an implementation choice, but the affordance must exist.
+When the user presses Confirm All, the stub raises a single application-level event with the per-Roll results from all children plus the manual override values from each child's Result and Crits columns. Aggregation into a Degree of Success and Check-level Outcome is the application's responsibility — typically by calling check resolution's full-resolution entry point with the user's overrides applied.

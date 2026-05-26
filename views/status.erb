@@ -1,0 +1,38 @@
+<%
+  nav_items = [
+    { key: 'status', label: 'Status',           href: '/status' },
+    { key: 'dice',   label: 'Dice Resolution',  href: '/status?view=dice' },
+    { key: 'check',  label: 'Check Resolution', href: '/status?view=check' }
+  ]
+%>
+
+<div class="status-layout">
+  <aside class="status-nav">
+    <ul>
+      <% nav_items.each do |item| %>
+        <li class="<%= 'active' if @view == item[:key] %>">
+          <a href="<%= item[:href] %>"><%= item[:label] %></a>
+        </li>
+      <% end %>
+    </ul>
+  </aside>
+
+  <section class="status-content">
+    <% if @view == 'dice' %>
+      <h1>Dice Resolution</h1>
+      <p class="lead">Roll Resolution Stubs &mdash; one per Roll, each in its own Rolls wrapper.</p>
+      <% @rolls.each do |r| %>
+        <%= erb :_roll_stub, locals: { roll: r } %>
+      <% end %>
+    <% elsif @view == 'check' %>
+      <h1>Check Resolution</h1>
+      <p class="lead">Check Resolution Stub &mdash; one Rolls wrapper containing multiple Rolls.</p>
+      <%= erb :_check_stub, locals: { check: @check } %>
+    <% else %>
+      <h1>Status</h1>
+      <p class="lead">Pick a stub from the menu on the left.</p>
+    <% end %>
+  </section>
+</div>
+
+<script src="/app.js"></script>
