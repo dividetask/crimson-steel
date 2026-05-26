@@ -228,6 +228,13 @@ body {
   line-height: 1;
 }
 
+/* The leftmost (Character) cell spans every row of the Roll, so a
+   1px bottom pad here just keeps a hair of breathing room under the
+   Roll Name italic before the next Roll's separator border. */
+.stub-table tbody.roll-group td.character-cell {
+  padding-bottom: 1px;
+}
+
 .stub-table tbody.roll-group + tbody.roll-group tr.row-initial td {
   border-top: 1px solid #eee;
   padding-top: 6px;
