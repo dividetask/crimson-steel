@@ -563,18 +563,30 @@ body {
 
 .cr-step-none:hover { background: #000; }
 
-.cr-step-change {
-  background: #fff;
-  border: 1px solid #999;
-  color: #333;
-  padding: 4px 12px;
+/* Change buttons use the warm-amber reroll palette so they read as
+   "go back / edit" rather than competing with the dark Roll All /
+   blue Confirm action buttons. */
+.cr-step-change,
+.btn-rolls-change {
+  background: #fff7e0;
+  border: 1px solid #d6a700;
+  color: #8a5d00;
+  padding: 2px 8px;
   font-size: 11px;
   font-weight: bold;
   border-radius: 3px;
   cursor: pointer;
 }
 
-.cr-step-change:hover { background: #f0f0f0; }
+.cr-step-change:hover,
+.btn-rolls-change:hover { background: #fff1c5; }
+
+.cr-change-icon {
+  display: inline-block;
+  margin-right: 2px;
+  font-size: 12px;
+  line-height: 1;
+}
 
 /* Step summaries — one thin row per completed step, stacked between
    the header and the dice table. */
@@ -635,21 +647,11 @@ body {
   color: #444;
 }
 
-.btn-rolls-change {
+.rolls-results .btn-rolls-change {
   position: absolute;
   top: 4px;
   right: 10px;
-  background: #fff;
-  border: 1px solid #999;
-  color: #333;
-  padding: 4px 12px;
-  font-size: 11px;
-  font-weight: bold;
-  border-radius: 3px;
-  cursor: pointer;
 }
-
-.btn-rolls-change:hover { background: #f0f0f0; }
 
 /* Step bodies — one per step, only the active step's body renders. */
 .step-body { padding: 8px 10px; background: #fff; }
@@ -848,15 +850,3 @@ body {
 }
 
 .btn-save-confirm:not([disabled]):hover { background: #1d4ed8; }
-
-.save-confirm-msg {
-  margin-left: 10px;
-  font-size: 11px;
-  color: #2563eb;
-  font-weight: bold;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.save-confirm-msg.shown { opacity: 1; }
-

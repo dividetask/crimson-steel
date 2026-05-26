@@ -5,16 +5,16 @@
   Rerolls → Nudges → Dice → Result. Steps without inputs collapse
   silently (a save with no reroll sources starts on Dice).
 
+  Layout (top → bottom inside the wrapper):
+    - .rolls-header     (title + active step's controls)
+    - .step-summaries   (one row per completed step, below the header)
+    - per-step .step-body blocks (only the active step's body renders)
+
   Lifecycle per step:
     - active   — body visible, controls render in .rolls-actions
     - pending  — body + controls hidden
     - complete — body + controls hidden, a thin summary row appears
-                 ABOVE the header (Change button to rewind)
-
-  Header layout: title left, .rolls-actions right. The active step's
-  controls own that slot, identical placement to Roll All / Confirm
-  All on the Check Resolution Stub. Buttons share the .btn-roll-all
-  sizing so the header never resizes between steps.
+                 in .step-summaries (with a Change button to re-open)
 
   Locals:
     save  — see conditions_save_resolution_stub.md
@@ -111,16 +111,6 @@
 <div class="rolls-wrapper save-resolution" data-stub-id="<%= stub_id %>"
      data-preview='<%= preview_data.to_json %>'>
 
-  <div class="step-summaries">
-    <% (interactive_steps + [:dice]).each do |kind| %>
-      <div class="step-summary" data-step="<%= kind %>" hidden>
-        <span class="step-summary-label"><%= step_label[kind] %>:</span>
-        <span class="step-summary-value"></span>
-        <button type="button" class="cr-step-change" data-step="<%= kind %>">Change</button>
-      </div>
-    <% end %>
-  </div>
-
   <div class="rolls-header">
     <span class="rolls-title"><%= category_label %> Save - <%= c[:name] %></span>
     <div class="rolls-actions">
@@ -132,13 +122,23 @@
       <% end %>
       <div class="step-controls" data-step="dice"
            data-state="<%= first_active == :dice ? 'active' : 'pending' %>">
-        <button type="button" class="btn-roll-all">Roll All</button>
-        <button type="button" class="btn-confirm-all">Confirm All</button>
+        <button type="button" class="btn-roll-all">Roll</button>
+        <button type="button" class="btn-confirm-all">Confirm</button>
       </div>
       <div class="step-controls" data-step="result" data-state="pending">
         <button type="button" class="btn-save-confirm">Confirm</button>
       </div>
     </div>
+  </div>
+
+  <div class="step-summaries">
+    <% (interactive_steps + [:dice]).each do |kind| %>
+      <div class="step-summary" data-step="<%= kind %>" hidden>
+        <span class="step-summary-label"><%= step_label[kind] %>:</span>
+        <span class="step-summary-value"></span>
+        <button type="button" class="cr-step-change" data-step="<%= kind %>"><span class="cr-change-icon">↶</span> Change</button>
+      </div>
+    <% end %>
   </div>
 
   <% if has_reroll %>
@@ -190,9 +190,9 @@
   </div>
 
   <div class="step-body step-body-result" data-step="result" data-state="pending">
+    <input type="hidden" class="sp-dois" value="0">
+    <input type="hidden" class="sp-net-mag" value="0">
     <div class="save-preview-fields">
-      <label>DoIS <input type="number" class="sp-dois" value="0"></label>
-      <label>Net Magnitude <input type="number" class="sp-net-mag" value="0"></label>
       <% if effect_kind == 'hit_point_damage' %>
         <label><%= effect_severity.to_s.capitalize %> HP Damage
           <input type="number" class="sp-effect-amount" data-kind="hit_point_damage" data-severity="<%= effect_severity %>" value="0">
@@ -206,8 +206,7 @@
           <input type="text" class="sp-effect-amount" data-kind="named_effect" data-name="<%= effect_named %>" value="(none)" readonly>
         </label>
       <% end %>
-      <label>New Potency <input type="number" class="sp-new-potency" value="<%= a[:potency] %>"></label>
+      <label>Adjusted Potency <input type="number" class="sp-new-potency" value="<%= a[:potency] %>"></label>
     </div>
-    <span class="save-confirm-msg"></span>
   </div>
 </div>

@@ -116,6 +116,28 @@
       var nudgeCell = group.querySelector('.row-nudge .dice-cell');
       if (nudgeCell) nudgeCell.innerHTML = renderDice(nudgeChanges, tn, dieSize);
     }
+
+    // DoIS = successes − failures; crits = count of natural-die-size
+    // dice (and crits also count as a success). 1s are failures.
+    var dois = 0;
+    var crits = 0;
+    current.forEach(function (v) {
+      if (v == null) return;
+      if (v === 1) {
+        dois -= 1;
+      } else if (v === dieSize) {
+        dois += 1;
+        crits += 1;
+      } else if (v >= tn) {
+        dois += 1;
+      }
+    });
+    var inputs = group.querySelectorAll('.result-input');
+    if (inputs[0]) {
+      inputs[0].value = dois;
+      inputs[0].dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    if (inputs[1]) inputs[1].value = crits;
   }
 
   function rollAll(wrapper) {
@@ -487,11 +509,6 @@
   function handleSaveConfirm(btn) {
     var save = btn.closest('.save-resolution');
     if (!save) return;
-    var msg = save.querySelector('.save-confirm-msg');
-    if (msg) {
-      msg.textContent = 'Recorded (demo: no state mutated).';
-      msg.classList.add('shown');
-    }
     btn.disabled = true;
   }
 })();
