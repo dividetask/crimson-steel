@@ -30,47 +30,70 @@
     return changes;
   }
 
-  // A Nudge always picks a die unless every die is already at the
-  // extreme for its sign (all Die Size for a positive nudge, all 1
-  // for a negative nudge). Primary targeting: a positive nudge picks
-  // the highest die still below TN (closest to flipping into a
-  // Success); a negative nudge picks the lowest die at or above TN
-  // (closest to falling out of Success). When no primary candidate
-  // exists, the fallback fires: positive nudge picks the lowest die
-  // < Die Size, negative nudge picks the highest die > 1. Ties go
-  // to the lowest index in either case (filter order preserves it).
+  // Nudge targeting (Standard mode).
+  //
+  // Score every die by the contribution change the nudge would
+  // produce — post-shift values clamp to [1, Die Size] — then pick
+  // the highest-value candidate in this priority order:
+  //
+  //   1. Largest absolute change in DoIS contribution (Fail → non-
+  //      Fail, Neutral → Success / Crit, Success → Crit; or the
+  //      reverse for a negative nudge).
+  //   2. Tiebreak: largest absolute change in critical_count.
+  //      This makes "Success → Crit" win over "Neutral → Success"
+  //      when their DoIS deltas tie (both +1 on the standard scoring,
+  //      but Success → Crit also adds to critical_count). Negative
+  //      nudges prefer removing a Crit on the same tiebreak.
+  //   3. Tiebreak: the die that started lowest (positive nudge) or
+  //      highest (negative nudge) wins — per the standard-mode rule
+  //      in dice_resolution_design.md.
+  //   4. Tiebreak: lowest index.
+  //
+  // Rerolled dice are normal candidates (the rerolled value is just
+  // the current value). The only no-op is when every die is already
+  // at the sign's extreme — Die Size for positive, 1 for negative.
   function applyNudge(current, sign, count, max, tn, dieSize) {
     var changes = new Array(current.length).fill(null);
-    var indexed = current.map(function (v, i) { return { v: v, i: i }; });
 
-    function nudgeUp(target) {
-      changes[target.i] = Math.min(dieSize, target.v + count);
+    function contribution(v) {
+      if (v === 1) return -1;
+      if (v === dieSize) return 2;
+      if (v >= tn) return 1;
+      return 0;
     }
-    function nudgeDown(target) {
-      changes[target.i] = Math.max(1, target.v - count);
+
+    var shift = sign === 'pos' ? count : -count;
+    var extreme = sign === 'pos' ? dieSize : 1;
+
+    if (current.every(function (v) { return v === extreme; })) {
+      return changes;
     }
+
+    var candidates = current.map(function (v, i) {
+      var newV = Math.max(1, Math.min(dieSize, v + shift));
+      var doisDelta = contribution(newV) - contribution(v);
+      var critDelta = (newV === dieSize ? 1 : 0) - (v === dieSize ? 1 : 0);
+      return { v: v, i: i, newV: newV, doisDelta: doisDelta, critDelta: critDelta };
+    });
 
     if (sign === 'pos') {
-      var primary = indexed.filter(function (d) { return d.v < tn; })
-                           .sort(function (a, b) { return b.v - a.v; });
-      if (primary.length > 0) {
-        nudgeUp(primary[0]);
-      } else {
-        var fallback = indexed.filter(function (d) { return d.v < dieSize; })
-                              .sort(function (a, b) { return a.v - b.v; });
-        if (fallback.length > 0) nudgeUp(fallback[0]);
-      }
+      candidates.sort(function (a, b) {
+        if (b.doisDelta !== a.doisDelta) return b.doisDelta - a.doisDelta;
+        if (b.critDelta !== a.critDelta) return b.critDelta - a.critDelta;
+        if (a.v !== b.v) return a.v - b.v;
+        return a.i - b.i;
+      });
     } else {
-      var primary2 = indexed.filter(function (d) { return d.v >= tn; })
-                            .sort(function (a, b) { return a.v - b.v; });
-      if (primary2.length > 0) {
-        nudgeDown(primary2[0]);
-      } else {
-        var fallback2 = indexed.filter(function (d) { return d.v > 1; })
-                               .sort(function (a, b) { return b.v - a.v; });
-        if (fallback2.length > 0) nudgeDown(fallback2[0]);
-      }
+      candidates.sort(function (a, b) {
+        if (a.doisDelta !== b.doisDelta) return a.doisDelta - b.doisDelta;
+        if (a.critDelta !== b.critDelta) return a.critDelta - b.critDelta;
+        if (a.v !== b.v) return b.v - a.v;
+        return a.i - b.i;
+      });
     }
+
+    var target = candidates[0];
+    changes[target.i] = target.newV;
     return changes;
   }
 
