@@ -117,8 +117,9 @@
       if (nudgeCell) nudgeCell.innerHTML = renderDice(nudgeChanges, tn, dieSize);
     }
 
-    // DoIS = successes − failures; crits = count of natural-die-size
-    // dice (and crits also count as a success). 1s are failures.
+    // DoIS = (successes ≥ TN) − (failures = 1). A crit (rolled value
+    // equals die size) counts as TWO successes. The DM can override
+    // either input afterwards.
     var dois = 0;
     var crits = 0;
     current.forEach(function (v) {
@@ -126,7 +127,7 @@
       if (v === 1) {
         dois -= 1;
       } else if (v === dieSize) {
-        dois += 1;
+        dois += 2;
         crits += 1;
       } else if (v >= tn) {
         dois += 1;

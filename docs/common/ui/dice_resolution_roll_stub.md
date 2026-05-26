@@ -77,7 +77,12 @@ Each row displays the dice for that step. Individual dice are highlighted per `u
 
 ## Result and Crits columns
 
-Each contains a single manual-override input field. These are the authoritative values used by whatever the parent wrapper does on Confirm — the stub does not derive them from the dice.
+Each contains an input field. After Roll All, the stub auto-fills both from the final post-modifier dice:
+
+- **Result** (DoIS) = (count of dice ≥ TN) − (count of natural-1 failures). A crit (rolled value equals Die Size) counts as **two** successes.
+- **Crits** = count of dice whose final value equals Die Size.
+
+Both are editable so the DM can override either value at any time. Whatever the inputs hold is what the parent wrapper consumes on Confirm — the stub never re-derives them after the DM has touched them.
 
 ## Lock column
 
