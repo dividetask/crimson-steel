@@ -917,9 +917,9 @@ body {
 .btn-save-confirm:not([disabled]):hover { background: #1d4ed8; }
 
 /* === Tests doc rendered below the stubs ===
-   Just the canonical markdown source displayed verbatim in a
-   styled <pre> — readable as-is, no markdown-rendering gem
-   required. */
+   Each test is parsed into a card matching the stub family's
+   look: light-grey section header, white card body, dice rendered
+   as colored .die boxes, code in subtle pill background. */
 
 .tests-doc {
   margin-top: 32px;
@@ -927,21 +927,83 @@ body {
   border-top: 2px solid #ddd;
 }
 
-.tests-doc h2 {
+.tests-doc > h2 {
   font-size: 14px;
-  margin: 0 0 8px 0;
+  margin: 0 0 10px 0;
   color: #222;
 }
 
-.tests-doc-pre {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  font-family: 'Menlo', 'Consolas', monospace;
+.test-section {
+  margin-bottom: 18px;
+}
+
+.test-section-h {
   font-size: 11px;
-  line-height: 1.5;
-  background: #fafafa;
-  border: 1px solid #e0e0e0;
-  border-radius: 3px;
-  padding: 10px 12px;
-  color: #222;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: bold;
+  background: #ececec;
+  color: #333;
+  padding: 5px 10px;
+  margin: 0 0 6px 0;
+  border: 1px solid #c8c8c8;
+}
+
+.test-card {
+  background: #fff;
+  border: 1px solid #d8d8d8;
+  border-left: 3px solid #2c5fa0;
+  padding: 5px 10px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.test-card-title {
+  font-weight: bold;
+  color: #1a3d6d;
+  margin-bottom: 2px;
+}
+
+.test-card-body { color: #333; }
+
+.test-card-bullets {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 3px 0 0 0;
+  color: #444;
+}
+
+.test-card-bullets li { margin: 1px 0; }
+
+.test-card code,
+.test-card-bullets code {
+  font-family: monospace;
+  background: #f1f1f1;
+  padding: 0 4px;
+  border-radius: 2px;
+  font-size: 10px;
+  color: #333;
+}
+
+.test-card strong { color: #111; }
+.test-card em     { color: #555; font-style: italic; }
+
+/* Inline dice in test cards: small filled boxes matching the
+   .die styles already in use by the stubs (fail = red, crit =
+   blue, others = neutral). */
+.test-card .die,
+.test-card-bullets .die {
+  display: inline-block;
+  min-width: 16px;
+  padding: 0 3px;
+  height: 14px;
+  line-height: 14px;
+  text-align: center;
+  border-radius: 2px;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  margin: 0 1px;
+  vertical-align: baseline;
 }
