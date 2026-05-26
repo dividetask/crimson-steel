@@ -348,25 +348,19 @@ body {
 
 .pc-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
 }
 
 .pc-card {
   border: 1px solid #c8c8c8;
   background: #fff;
-  padding: 12px;
+  padding: 10px 12px;
 }
 
 .pc-card-bare {
   border: none;
   padding: 0;
-}
-
-.pc-header {
-  border-bottom: 1px solid #eee;
-  padding-bottom: 6px;
-  margin-bottom: 8px;
 }
 
 .pc-name {
@@ -381,85 +375,53 @@ body {
 .pc-name.tier-4 { color: #2980b9; }
 .pc-name.tier-5 { color: #8e44ad; }
 
-.pc-summary {
+.pc-subtitle {
   color: #666;
   font-size: 11px;
-  margin-top: 2px;
+  margin: 2px 0 6px 0;
 }
 
-.pc-bar-row {
+.pc-stats {
   display: grid;
-  grid-template-columns: 50px 1fr auto;
-  align-items: center;
-  gap: 8px;
-  margin: 4px 0;
-}
-
-.pc-bar-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  color: #666;
-}
-
-.bar {
-  display: flex;
-  height: 12px;
-  background: #eee;
-  border: 1px solid #ccc;
-  overflow: hidden;
-}
-
-.bar-seg {
-  display: inline-block;
-  height: 100%;
-}
-
-.seg-hp          { background: #2ecc71; }
-.seg-hp-minor    { background: #f5b7b1; }
-.seg-hp-moderate { background: #e74c3c; }
-.seg-hp-major    { background: #922b21; }
-
-.seg-mana { background: #3498db; }
-
-.bar-tox { background: #ddd; }
-.seg-tox {
-  background: linear-gradient(to right, #2ecc71, #f1c40f, #e74c3c);
-}
-.bar-tox-blocked { outline: 1px solid #c0392b; }
-
-.tox-blocked-tag {
-  color: #c0392b;
-  font-size: 10px;
-  margin-left: 4px;
-}
-
-.pc-bar-value {
-  font-family: monospace;
-  font-size: 11px;
-}
-
-.temp-hp {
-  color: #2980b9;
-  margin-left: 4px;
-}
-
-.pc-block {
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px dotted #ddd;
-}
-
-.pc-block h3 {
-  font-size: 11px;
-  text-transform: uppercase;
-  color: #555;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 8px;
   margin-bottom: 4px;
 }
 
-.pc-block .empty {
-  color: #aaa;
-  font-style: italic;
+.pc-stats > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 1px 4px;
   font-size: 11px;
+  border-radius: 2px;
+}
+
+.pc-stats .label { color: #555; }
+.pc-stats .value { font-weight: bold; font-family: monospace; }
+
+.pc-dmg { grid-column: span 2; }
+
+/* HP / Mana / Toxicity ramp colors.
+   Higher saturation = worse; HP/Mana use the high-is-good ramp,
+   Toxicity reverses (low is good). */
+.stat-good   { background: #d4f5dc; }
+.stat-warn   { background: #fdf3c1; }
+.stat-orange { background: #fce0c2; }
+.stat-bad    { background: #f8c8c0; }
+
+.tox-blocked { outline: 1px solid #c0392b; }
+
+.pc-section {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px dotted #ddd;
+}
+
+.pc-section h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #555;
+  margin: 0 0 3px 0;
 }
 
 .effect-badges {
@@ -479,40 +441,17 @@ body {
   font-weight: bold;
 }
 
-.ability-chips {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+.affliction-list,
+.consumable-list {
+  list-style: disc;
+  padding-left: 18px;
+  font-size: 11px;
 }
 
-.ability-chip {
-  background: #f5f5f5;
-  border: 1px solid #ccc;
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-size: 11px;
+.aff-meta {
+  color: #777;
   font-family: monospace;
-}
-
-.affliction-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-}
-
-.affliction-table th {
-  text-align: left;
-  color: #666;
-  font-weight: bold;
-  font-size: 10px;
-  border-bottom: 1px solid #ddd;
-  padding: 2px 4px;
-}
-
-.affliction-table td {
-  padding: 2px 4px;
-  border-bottom: 1px dotted #eee;
+  margin-left: 4px;
 }
 
 /* === Urgent Actions === */

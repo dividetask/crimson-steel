@@ -1,6 +1,6 @@
 # Conditions — Glossary
 
-Defines the vocabulary used by `conditions_design.md` and `conditions_tests.md`. Conditions tracks each Creature's mutable state — HP damage, Ability Damage, Temporary Hit Points, Mana Spent, Magic Toxicity, Shock, the Acid Counter, ongoing Afflictions, and Active Effects. *(configurable)* values come from `conditions_config.yaml`. The Affliction catalog lives in `conditions_afflictions.yaml`; the Effect Name catalog lives in `conditions_effect_names.yaml`.
+Defines the Conditions-specific vocabulary used by `conditions_design.md` and `conditions_tests.md`. Cross-domain terms (Magic Toxicity, Toxicity Threshold, Tier, Zone Effect) live in `../common_glossary.md` and are referenced from here rather than redefined. Conditions tracks each Creature's mutable state — HP damage, Ability Damage, Temporary Hit Points, Mana Spent, Magic Toxicity, Shock, the acid damage counter, ongoing Afflictions, and Active Effects. *(configurable)* values come from `conditions_config.yaml`. The Affliction catalog lives in `conditions_afflictions.yaml`; the Effect Name catalog lives in `conditions_effect_names.yaml`.
 
 ## Hit Points and Damage
 

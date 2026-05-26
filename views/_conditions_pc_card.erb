@@ -6,12 +6,17 @@
   Locals:
     creature  — required. Hash with :id, :name, :race, :klass, :tier,
                 :max_hp, :mana_max, :charisma, :attributes (hash),
-                :state (Conditions::State).
+                :consumables (array), :state (Conditions::State).
     catalog   — required. Conditions::Catalog instance.
-    viewer    — :dm or :player. Affects nothing in this stub (parent
-                page is responsible for filtering by viewer).
-    chrome    — optional boolean (default true). When false, the outer
+    viewer    — :dm or :player. Affects nothing in this stub; the parent
+                page filters visible cards by viewer role.
+    chrome    — optional boolean (default true). When false the outer
                 card framing is suppressed.
+
+  Layout: compact label/value pairs in a two-column grid. Rows for
+  Minor / Moderate / Major HP Damage, Ability Damage chips, Active
+  Effect badges, Active Afflictions, and Consumables only render when
+  the corresponding state is non-empty.
 %>
 <%
   inst = Conditions::Instance.new(state: creature[:state], catalog: catalog)
@@ -27,10 +32,29 @@
   threshold = inst.toxicity_threshold(creature[:charisma], creature[:tier])
   tox = creature[:state].magic_toxicity
   tox_blocked = tox > threshold
-  tox_pct = threshold.positive? ? [(tox.to_f / threshold * 100).round, 200].min : 0
 
-  hp_total_for_bar = [creature[:max_hp], 1].max
-  pct = ->(n) { (n.to_f / hp_total_for_bar * 100).round(2) }
+  temp_hp = creature[:state].temporary_hit_points ? creature[:state].temporary_hit_points[:amount] : 0
+
+  # Stat color ramps. HP / Mana use "high-is-good"; Toxicity reverses.
+  good_ramp = lambda do |cur, max|
+    return ''  if max <= 0 || cur >= max
+    pct = cur.to_f / max * 100
+    return 'stat-good'   if pct >= 75
+    return 'stat-warn'   if pct >= 50
+    return 'stat-orange' if pct >= 25
+    'stat-bad'
+  end
+  bad_ramp = lambda do |cur, max|
+    return ''  if max <= 0 || cur <= 0
+    pct = cur.to_f / max * 100
+    return 'stat-good'   if pct <= 25
+    return 'stat-warn'   if pct <= 50
+    return 'stat-orange' if pct <= 75
+    'stat-bad'
+  end
+  hp_class   = good_ramp.call(current_hp,   creature[:max_hp])
+  mana_class = good_ramp.call(current_mana, creature[:mana_max])
+  tox_class  = bad_ramp.call(tox, [threshold, 1].max)
 
   ability_chips = []
   Conditions::SEVERITIES.each do |sev|
@@ -39,105 +63,73 @@
     end
   end
 
+  named_mechanics = inst.active_named_effect_mechanics.uniq { |m| m[:effect_name] }
+
   chrome_on = defined?(chrome) ? chrome : true
 %>
 
 <div class="pc-card<%= chrome_on ? '' : ' pc-card-bare' %>" data-creature-id="<%= creature[:id] %>">
-  <header class="pc-header">
-    <h2 class="pc-name tier-<%= creature[:tier] %>"><%= creature[:name] %></h2>
-    <p class="pc-summary">
-      <%= creature[:race] %> · <%= creature[:klass] %> · Tier <%= creature[:tier] %>
-    </p>
-  </header>
+  <h3 class="pc-name tier-<%= creature[:tier] %>"><%= creature[:name] %></h3>
+  <div class="pc-subtitle">
+    <%= creature[:race] %> <%= creature[:klass] %> &middot; Tier <%= creature[:tier] %>
+  </div>
 
-  <section class="pc-bar-row">
-    <label class="pc-bar-label">HP</label>
-    <div class="bar bar-hp">
-      <span class="bar-seg seg-hp"        style="width: <%= pct.call(current_hp) %>%"></span>
-      <span class="bar-seg seg-hp-minor"  style="width: <%= pct.call(minor_dmg) %>%"></span>
-      <span class="bar-seg seg-hp-moderate" style="width: <%= pct.call(moderate_dmg) %>%"></span>
-      <span class="bar-seg seg-hp-major"  style="width: <%= pct.call(major_dmg) %>%"></span>
-    </div>
-    <div class="pc-bar-value">
-      <%= current_hp %> / <%= creature[:max_hp] %>
-      <% if creature[:state].temporary_hit_points %>
-        <span class="temp-hp">+<%= creature[:state].temporary_hit_points[:amount] %> temp HP</span>
+  <div class="pc-stats">
+    <div class="<%= hp_class %>"><span class="label">HP</span><span class="value"><%= current_hp %>/<%= creature[:max_hp] %></span></div>
+    <div class="<%= mana_class %>"><span class="label">Mana</span><span class="value"><%= current_mana %>/<%= creature[:mana_max] %></span></div>
+    <div class="<%= tox_class %><%= ' tox-blocked' if tox_blocked %>"><span class="label">Toxicity</span><span class="value"><%= tox %>/<%= threshold %></span></div>
+    <div><span class="label">Temp HP</span><span class="value"><%= temp_hp %></span></div>
+    <% if minor_dmg.positive?    %><div class="stat-warn pc-dmg"><span class="label">Minor Dmg</span><span class="value"><%= minor_dmg %></span></div><% end %>
+    <% if moderate_dmg.positive? %><div class="stat-orange pc-dmg"><span class="label">Moderate Dmg</span><span class="value"><%= moderate_dmg %></span></div><% end %>
+    <% if major_dmg.positive?    %><div class="stat-bad pc-dmg"><span class="label">Major Dmg</span><span class="value"><%= major_dmg %></span></div><% end %>
+  </div>
+
+  <% if ability_chips.any? %>
+    <div class="pc-stats pc-ability-damage">
+      <% ability_chips.each do |chip|
+           sev_class = case chip[:sev]
+                       when :major    then 'stat-bad'
+                       when :moderate then 'stat-orange'
+                       else 'stat-warn'
+                       end %>
+        <div class="<%= sev_class %>"><span class="label"><%= chip[:sev].to_s.capitalize %> <%= chip[:attr].to_s.upcase %> Damage</span><span class="value"><%= chip[:count] %></span></div>
       <% end %>
     </div>
-  </section>
+  <% end %>
 
-  <section class="pc-bar-row">
-    <label class="pc-bar-label">Mana</label>
-    <div class="bar bar-mana">
-      <span class="bar-seg seg-mana"
-            style="width: <%= creature[:mana_max].positive? ? (current_mana.to_f / creature[:mana_max] * 100).round(2) : 0 %>%"></span>
-    </div>
-    <div class="pc-bar-value"><%= current_mana %> / <%= creature[:mana_max] %></div>
-  </section>
-
-  <section class="pc-bar-row">
-    <label class="pc-bar-label">Toxicity</label>
-    <div class="bar bar-tox <%= 'bar-tox-blocked' if tox_blocked %>">
-      <span class="bar-seg seg-tox" style="width: <%= [tox_pct, 100].min %>%"></span>
-    </div>
-    <div class="pc-bar-value">
-      <%= tox %> / <%= threshold %>
-      <% if tox_blocked %><span class="tox-blocked-tag">positive sources blocked</span><% end %>
-    </div>
-  </section>
-
-  <section class="pc-block">
-    <h3>Active Effects</h3>
-    <% mechs = inst.active_named_effect_mechanics %>
-    <% if mechs.any? %>
+  <% if named_mechanics.any? %>
+    <div class="pc-section">
+      <h4>Active effects</h4>
       <ul class="effect-badges">
-        <% mechs.uniq { |m| m[:effect_name] }.each do |m| %>
+        <% named_mechanics.each do |m| %>
           <li class="effect-badge"><%= m[:effect_name] %></li>
         <% end %>
       </ul>
-    <% else %>
-      <p class="empty">None.</p>
-    <% end %>
-  </section>
+    </div>
+  <% end %>
 
-  <section class="pc-block">
-    <h3>Ability Damage</h3>
-    <% if ability_chips.any? %>
-      <ul class="ability-chips">
-        <% ability_chips.each do |chip| %>
-          <li class="ability-chip"><%= chip[:attr] %> · <%= chip[:sev] %> · <%= chip[:count] %></li>
+  <% if creature[:state].afflictions.any? %>
+    <div class="pc-section">
+      <h4>Afflictions</h4>
+      <ul class="affliction-list">
+        <% creature[:state].afflictions.each do |name, a| %>
+          <li>
+            <%= name %>
+            <span class="aff-meta">P<%= a[:potency] %> · T<%= a[:inflicting_tier] %><% if a[:next_resolution_round] %> · R<%= a[:next_resolution_round] %><% end %></span>
+          </li>
         <% end %>
       </ul>
-    <% else %>
-      <p class="empty">None.</p>
-    <% end %>
-  </section>
+    </div>
+  <% end %>
 
-  <section class="pc-block">
-    <h3>Active Afflictions</h3>
-    <% if creature[:state].afflictions.any? %>
-      <table class="affliction-table">
-        <thead>
-          <tr><th>Name</th><th>Potency</th><th>Inflicter Tier</th><th>Next</th></tr>
-        </thead>
-        <tbody>
-          <% creature[:state].afflictions.each do |name, a| %>
-            <tr>
-              <td><%= name %></td>
-              <td><%= a[:potency] %></td>
-              <td><%= a[:inflicting_tier] %></td>
-              <td><%= a[:next_resolution_round] ? "R#{a[:next_resolution_round]}" : '—' %></td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    <% else %>
-      <p class="empty">None.</p>
-    <% end %>
-  </section>
-
-  <section class="pc-block">
-    <h3>Consumables</h3>
-    <p class="empty">Inventory wiring not yet implemented.</p>
-  </section>
+  <% if creature[:consumables] && creature[:consumables].any? %>
+    <div class="pc-section">
+      <h4>Healing items</h4>
+      <ul class="consumable-list">
+        <% creature[:consumables].each do |item| %>
+          <li><%= item[:name] %><% if item[:quantity].to_i > 1 %> ×<%= item[:quantity] %><% end %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
 </div>
