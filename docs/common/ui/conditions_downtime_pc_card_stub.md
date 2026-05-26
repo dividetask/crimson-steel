@@ -9,21 +9,24 @@ See `ui_conventions.md` for shared rules. Cross-domain terms (Magic Toxicity, To
 A compact card. Cards arrange in a grid three across; each card holds approximately a third of the page's content width. The card's blocks stack top to bottom:
 
 1. **Header** — Creature name styled in the Tier Color per `ui_conventions.md`, then a small subtitle line of `Race Class · Tier N`.
-2. **Stat grid** — a two-column grid of `label / value` pairs in this order: HP `current/max`, Mana `current/max`, Toxicity `current/threshold`, Temp HP. Toxicity Threshold is computed by the parent page from the Creature's Charisma and Tier per the *Toxicity Threshold* formula in `conditions_design.md`. When current Magic Toxicity is strictly above the Threshold, the Toxicity row carries a visual cue indicating that `positive`-kind Toxicity sources will be blocked.
 
-   Each of HP, Mana, and Toxicity tints the row's background through a color ramp keyed off the ratio. HP and Mana use the "high is good" ramp: full = no tint, then green / yellow / orange / red as the current value falls further below the maximum. Toxicity uses the reverse — zero = no tint, then green / yellow / orange / red as the current value rises above zero toward the threshold.
+2. **HP bar** — a four-segment bar: a green Current-HP segment plus three damage segments for Minor / Moderate / Major HP Damage (light red, red, crimson). The bar is followed by `<current> / <max>`.
 
-   **Damage rows** — `Minor Dmg`, `Moderate Dmg`, `Major Dmg` rows appear only when their counter is positive. They span both grid columns and tint the row by Severity (Minor = yellow, Moderate = orange, Major = red).
+3. **Mana bar** — a single-segment bar showing `current / max` Mana (Current Mana derived per `conditions_design.md` as `mana_max - mana_spent`).
 
-3. **Ability Damage** — a labelled stat row per non-zero entry in `ability_damage` (`<Severity> <ATTR> Damage`). The block is omitted entirely when there is no Ability Damage. Each row tints by Severity.
+4. **Toxicity bar** — current Magic Toxicity relative to the Creature's Toxicity Threshold, with a green-to-red rainbow color ramp (green → yellow → orange → red). Threshold is computed by the parent page from the Creature's Charisma and Tier per the *Toxicity Threshold* formula in `conditions_design.md`. When current Magic Toxicity is strictly above the Threshold, the bar carries a visual cue indicating that `positive`-kind Toxicity sources will be blocked.
 
-4. **Active effects** — colored badges, one per distinct non-Modifier Active Effect targeting the Creature. Each badge shows the effect name (e.g. `paralyzed`, `frightened`). Modifier-shaped Active Effects are not surfaced here; they roll into the numeric attribute / derived-stat displays elsewhere on the card. The block is omitted when there are no non-Modifier Effects.
+5. **Inline numeric rows** — `Temp HP`, `Moderate Dmg`, `Major Dmg`. Each row appears only when its value is positive. The Moderate Dmg row is tinted red; the Major Dmg row is tinted crimson. Minor HP Damage is **not** surfaced as a row — it is already visible as the light-red segment of the HP bar.
 
-5. **Afflictions** — a short bulleted list, one entry per Active Affliction. Each entry shows the Affliction name and a compact metadata tag: `P<potency> · T<inflicter_tier> · R<next_resolution_round>` (the round suffix is omitted when scheduling is null). The list runs in insertion order. The block is omitted when there are no Afflictions.
+6. **Ability Damage** — a tinted row per non-zero entry in `ability_damage` (`<Severity> <ATTR> Damage`). Tinted by Severity (Minor = yellow, Moderate = red, Major = crimson). The block is omitted when there is no Ability Damage.
 
-6. **Healing items** — a bulleted list of Equipment Stacks in the Creature's Inventory whose Item Type Category is `Consumable` (per `equipment_design.md`). Each row shows the Generated Display Name (or `name_override`) and Quantity. Clicking a row opens the Use-Item form (see below). The block is omitted when the Creature carries no Consumables.
+7. **Active effects** — colored badges, one per distinct non-Modifier Active Effect targeting the Creature. Each badge shows the effect name (e.g. `paralyzed`, `frightened`). Modifier-shaped Active Effects are not surfaced here. The block is omitted when there are no non-Modifier Effects.
 
-Empty blocks are not rendered — a Creature at full health with no Afflictions, no Effects, and no Consumables shows only the header and the stat grid.
+8. **Afflictions** — a small table with the header row `Affliction | Potency`. One row per Active Affliction in insertion order. The Affliction name is plain text; the Potency cell is styled in the Tier Color of the Inflicter Tier (Tier Color mapping per `ui_conventions.md`). The Inflicter Tier number itself is not written out — the Potency cell's color carries it. The block is omitted when the Creature carries no Afflictions.
+
+9. **Healing items** — a bulleted list of Equipment Stacks in the Creature's Inventory whose Item Type Category is `Consumable` (per `equipment_design.md`). Each row shows the Generated Display Name (or `name_override`) and Quantity; the item text is styled in the Tier Color of the item's Tier. Clicking a row opens the Use-Item form (see below). The block is omitted when the Creature carries no Consumables.
+
+Empty blocks are not rendered — a Creature at full health with no Afflictions, no Effects, and no Consumables shows only the header and the three bars.
 
 ## Parameters
 
@@ -55,4 +58,4 @@ The downtime page embeds one card per player-character Creature in a three-colum
 
 - It does not apply or remove Effects. Use-Item, dismiss, and recovery flows are resolved by the parent page through Equipment and Conditions.
 - It does not advance time. Natural Recovery is the parent page's responsibility via Conditions' *Apply Natural Recovery*; this card displays the post-recovery state.
-- It does not roll Affliction saves. Per-Affliction resolution is surfaced by `conditions_urgent_actions_stub.md`.
+- It does not roll Affliction saves. Pending Affliction resolution is owned by the parent page; this card displays the current Conditions state only.

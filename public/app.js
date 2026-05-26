@@ -143,17 +143,5 @@
       lockBtn.classList.toggle('locked');
       return;
     }
-
-    var rollSaveBtn = e.target.closest('.btn-roll-save');
-    if (rollSaveBtn) {
-      // Stub: surface a placeholder DoIS in the Successes override.
-      // A real wiring would call the server to roll via Dice Resolution.
-      var row = rollSaveBtn.closest('.affliction-save-row');
-      if (row) {
-        var input = row.querySelector('.successes-input');
-        if (input) input.value = Math.max(0, Math.floor(Math.random() * 4));
-      }
-      return;
-    }
   });
 })();

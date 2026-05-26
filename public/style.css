@@ -368,12 +368,14 @@ body {
   margin: 0;
 }
 
-.pc-name.tier-0 { color: #c0392b; }
-.pc-name.tier-1 { color: #d35400; }
-.pc-name.tier-2 { color: #b8860b; }
-.pc-name.tier-3 { color: #27ae60; }
-.pc-name.tier-4 { color: #2980b9; }
-.pc-name.tier-5 { color: #8e44ad; }
+/* Tier color palette: applies to .pc-name (header), affliction
+   potency cells, and consumable list items. */
+.tier-0 { color: #c0392b; }
+.tier-1 { color: #d35400; }
+.tier-2 { color: #b8860b; }
+.tier-3 { color: #27ae60; }
+.tier-4 { color: #2980b9; }
+.tier-5 { color: #8e44ad; }
 
 .pc-subtitle {
   color: #666;
@@ -381,35 +383,65 @@ body {
   margin: 2px 0 6px 0;
 }
 
-.pc-stats {
+.pc-bar-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px 8px;
-  margin-bottom: 4px;
+  grid-template-columns: 60px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0;
+  font-size: 11px;
 }
 
-.pc-stats > div {
+.pc-bar-label {
+  text-transform: uppercase;
+  color: #666;
+}
+
+.bar {
+  display: flex;
+  height: 12px;
+  background: #eee;
+  border: 1px solid #ccc;
+  overflow: hidden;
+}
+
+.bar-seg { display: inline-block; height: 100%; }
+
+.seg-hp          { background: #2ecc71; }
+.seg-hp-minor    { background: #f5b7b1; }
+.seg-hp-moderate { background: #e74c3c; }
+.seg-hp-major    { background: #922b21; }
+
+.seg-mana { background: #3498db; }
+
+.bar-tox { background: #ddd; }
+.seg-tox {
+  background: linear-gradient(to right, #2ecc71, #f1c40f, #e67e22, #e74c3c);
+}
+.bar-tox-blocked { outline: 1px solid #c0392b; }
+
+.pc-bar-value {
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.pc-line {
   display: flex;
   justify-content: space-between;
   padding: 1px 4px;
   font-size: 11px;
+  margin: 1px 0;
   border-radius: 2px;
 }
 
-.pc-stats .label { color: #555; }
-.pc-stats .value { font-weight: bold; font-family: monospace; }
+.pc-line .label { color: #555; }
+.pc-line .value { font-weight: bold; font-family: monospace; }
 
-.pc-dmg { grid-column: span 2; }
-
-/* HP / Mana / Toxicity ramp colors.
-   Higher saturation = worse; HP/Mana use the high-is-good ramp,
-   Toxicity reverses (low is good). */
-.stat-good   { background: #d4f5dc; }
-.stat-warn   { background: #fdf3c1; }
-.stat-orange { background: #fce0c2; }
-.stat-bad    { background: #f8c8c0; }
-
-.tox-blocked { outline: 1px solid #c0392b; }
+.pc-dmg-minor    { background: #fdf3c1; }
+.pc-dmg-moderate { background: #e74c3c; color: #fff; }
+.pc-dmg-major    { background: #922b21; color: #fff; }
+.pc-dmg-moderate .label,
+.pc-dmg-major    .label { color: #fff; }
 
 .pc-section {
   margin-top: 6px;
@@ -441,122 +473,37 @@ body {
   font-weight: bold;
 }
 
-.affliction-list,
+.affliction-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.affliction-table th {
+  text-align: left;
+  font-size: 10px;
+  color: #666;
+  font-weight: bold;
+  border-bottom: 1px solid #ddd;
+  padding: 2px 4px;
+}
+
+.affliction-table td {
+  padding: 2px 4px;
+  border-bottom: 1px dotted #eee;
+}
+
+.affliction-table td.potency {
+  font-weight: bold;
+  font-family: monospace;
+  text-align: right;
+}
+
 .consumable-list {
   list-style: disc;
   padding-left: 18px;
   font-size: 11px;
 }
 
-.aff-meta {
-  color: #777;
-  font-family: monospace;
-  margin-left: 4px;
-}
-
-/* === Urgent Actions === */
-
-.urgent-section {
-  border: 1px solid #c8c8c8;
-  background: #fff;
-  margin-bottom: 12px;
-  padding: 10px;
-}
-
-.urgent-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-
-.urgent-header h2 {
-  font-size: 13px;
-  margin: 0;
-}
-
-.urgent-stats {
-  font-family: monospace;
-  font-size: 11px;
-  color: #444;
-}
-
-.affliction-save-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-  margin-bottom: 8px;
-}
-
-.affliction-save-table th {
-  text-align: left;
-  font-size: 10px;
-  color: #666;
-  border-bottom: 1px solid #ddd;
-  padding: 4px;
-}
-
-.affliction-save-table td {
-  padding: 4px;
-  border-bottom: 1px dotted #eee;
-  vertical-align: middle;
-}
-
-.aff-name { font-weight: bold; }
-.aff-potency { color: #666; margin-left: 4px; }
-
-.successes-input {
-  width: 50px;
-  text-align: center;
-  padding: 2px;
-  border: 1px solid #bbb;
-}
-
-.btn-roll-save {
-  background: #1f1f1f;
-  color: #fff;
-  border: none;
-  padding: 3px 10px;
-  font-size: 11px;
-  font-weight: bold;
-  cursor: pointer;
-  border-radius: 3px;
-}
-
-.btn-roll-save:hover { background: #000; }
-
-.queued-action {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  background: #fafafa;
-  padding: 6px 8px;
-  border: 1px solid #eee;
-  font-size: 11px;
-}
-
-.queued-action select {
-  font-size: 11px;
-  padding: 2px;
-}
-
-.urgent-submit-row {
-  margin-top: 12px;
-}
-
-.btn-urgent-submit {
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  padding: 6px 18px;
-  font-size: 12px;
-  font-weight: bold;
-  border-radius: 3px;
-  cursor: pointer;
-}
-
-.btn-urgent-submit:hover { background: #1d4ed8; }
+.consumable-list li { font-weight: bold; }
 

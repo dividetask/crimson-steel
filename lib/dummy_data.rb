@@ -116,37 +116,21 @@ module DummyData
     [
       { id: '1',  name: 'Bryn Ironvein',  race: 'Dwarf',  klass: 'Fighter',  tier: 3, max_hp: 24, mana_max: 8,  charisma: 8,  attributes: { str: 14, dex: 10, con: 14, int: 9,  wis: 11, cha: 8  },
         consumables: [
-          { name: 'Cure Simple Wounds Potion', quantity: 2 },
-          { name: 'Minor Recharge Potion',     quantity: 1 }
+          { name: 'Cure Simple Wounds Potion', tier: 1, quantity: 2 },
+          { name: 'Minor Recharge Potion',     tier: 0, quantity: 1 }
         ] },
       { id: '2',  name: 'Wisp Trueheart', race: 'Human',  klass: 'Cleric',   tier: 2, max_hp: 30, mana_max: 12, charisma: 14, attributes: { str: 10, dex: 11, con: 12, int: 11, wis: 16, cha: 14 },
         consumables: [
-          { name: 'Cure Lesser Wounds Scroll', quantity: 8 },
-          { name: 'Cure Simple Wounds Scroll', quantity: 1 }
+          { name: 'Cure Lesser Wounds Scroll', tier: 2, quantity: 8 },
+          { name: 'Cure Simple Wounds Scroll', tier: 1, quantity: 1 }
         ] },
       { id: '3',  name: 'Tana Quickfoot', race: 'Halfling', klass: 'Rogue',  tier: 2, max_hp: 18, mana_max: 6,  charisma: 12, attributes: { str: 9,  dex: 16, con: 11, int: 13, wis: 12, cha: 12 },
         consumables: [
-          { name: 'Cure Simple Wounds Potion', quantity: 1 },
-          { name: 'Cure Lesser Wounds Potion', quantity: 4 }
+          { name: 'Cure Simple Wounds Potion', tier: 1, quantity: 1 },
+          { name: 'Cure Lesser Wounds Potion', tier: 2, quantity: 4 }
         ] },
       { id: '4',  name: 'Selka Embermane', race: 'Tiefling', klass: 'Sorcerer', tier: 1, max_hp: 14, mana_max: 14, charisma: 16, attributes: { str: 8, dex: 12, con: 11, int: 12, wis: 11, cha: 16 },
         consumables: [] }
     ].map { |c| c.merge(state: Conditions::State.load(states[c[:id]])) }
-  end
-
-  # Sample creatures with urgent business (afflictions due or actions
-  # queued). Reuses the player Creatures plus a couple of extras seeded
-  # with pending Afflictions.
-  def urgent_creatures
-    list = creatures.select { |c| c[:state].afflictions.any? }
-    # The example JSON marks Wisp (id 2) and Tana (id 3) as carrying
-    # Afflictions. Force their next_resolution_round to "now" (round 100)
-    # so they surface as pending in the example.
-    list.each do |c|
-      c[:state].afflictions.each_value do |a|
-        a[:next_resolution_round] = 100 if a[:next_resolution_round].nil?
-      end
-    end
-    list
   end
 end

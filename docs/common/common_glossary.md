@@ -14,4 +14,4 @@ Cross-domain vocabulary used by more than one domain. Definitions in this file t
 
 ## Zones
 
-**Zone Effect**: A magical effect that occupies an area on a Map, applying to anything that enters or remains within it. Examples include Web's grappling area, Grease's slick patch, and Silence's noise-suppressed sphere.
+**Zone Effect**: A magical effect that occupies an area on a Map.

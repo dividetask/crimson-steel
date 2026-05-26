@@ -9,8 +9,6 @@ get '/status' do
   if @view == 'conditions'
     @catalog = Conditions::Catalog.load
     @creatures = DummyData.creatures
-    @urgent_creatures = DummyData.urgent_creatures
-    @current_round = 100
   end
 
   erb :status
