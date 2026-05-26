@@ -185,7 +185,7 @@
           <th></th>
         </tr>
       </thead>
-      <%= erb :_roll_stub, locals: { roll: base_roll, rows_only: true } %>
+      <%= erb :_roll_stub, locals: { rolls: [base_roll], wrapper: false } %>
     </table>
   </div>
 

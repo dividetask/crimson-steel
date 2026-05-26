@@ -18,7 +18,14 @@ The stub renders one to four table rows for a single Roll, with seven columns:
 | Crits | A manual-override Critical Count input. Spans every row of the Roll. |
 | Lock | A lock toggle (closed/open padlock icon) that freezes the Roll's result from further changes. Spans every row of the Roll. |
 
-There is **no** per-Roll action button column. Roll All and Confirm All are owned by the parent wrapper (see **Composition**) — never duplicated per Roll.
+There is **no** per-Roll action button column. The header action buttons (Roll / Roll All / Confirm) live on the Rolls wrapper itself and apply to every Roll inside — never duplicated per Roll.
+
+When `wrapper: true` the stub renders the Rolls wrapper and its two header buttons:
+
+- First button: `Roll` when the stub was given a single Roll, `Roll All` when given more than one. CSS class stays `.btn-roll-all`. Clicking re-rolls every unlocked Roll's dice.
+- Second button: `Confirm`. Clicking it captures each Roll's Result + Crits, hides the table and the header buttons, and reveals a `.rolls-results` block with one row per Roll (`<Roll Name>: Successes <n>, Crits <n>`) plus a single **Change** button at the right edge. Change un-collapses the wrapper; it does not reset anything — the dice and input values stay as the DM left them.
+
+When `wrapper: false` the stub renders only the per-Roll `<tbody>` blocks. The parent supplies the wrapper, the buttons, and any collapse UI.
 
 A modifier row is omitted when the Roll has no modifier of that kind. A Roll with no Reroll, no Mass Reroll, and no Nudge has only the initial-dice row. Each die can be rerolled at most once across the Reroll + Mass Reroll combination — the Mass Reroll skips any die already touched by the Reroll.
 
@@ -26,19 +33,21 @@ The stub must fit within its container; the parent wrapper sets the available wi
 
 ## Parameters
 
-Required:
+The stub accepts an array of Rolls — single-Roll callers pass a one-element array. Each Roll carries:
+
 - Creature Name — string.
 - Roll Name — string.
 - Dice Count — integer.
 - TN — integer.
 - Starting Value — signed integer.
+- Reroll — optional `(sign, count)`. `sign` is `+` (reroll non-Successes) or `-` (reroll Successes). `count` is the magnitude (positive integer). Omitting the Reroll suppresses the row.
+- Mass Reroll — optional `(sign)`. `sign` is `+` (rerolls every non-Success that the Reroll did not already touch) or `-` (every Success). No magnitude; the badge always reads `+*` or `-*`. Omitting the Mass Reroll suppresses the row.
+- Nudge — optional `(sign, count)`. `sign` is `+` or `-`. Omitting the Nudge suppresses the row.
 
-Optional:
-- Reroll — `(sign, count)`. `sign` is `+` (reroll non-Successes) or `-` (reroll Successes). `count` is the magnitude (positive integer). Omitting the Reroll suppresses the row.
-- Mass Reroll — `(sign)`. `sign` is `+` (rerolls every non-Success that the Reroll did not already touch) or `-` (every Success). No magnitude; the badge always reads `+*` or `-*`. Omitting the Mass Reroll suppresses the row.
-- Nudge — `(sign, count)`. `sign` is `+` or `-`. Omitting the Nudge suppresses the row.
-- Rows-only toggle — boolean. When true, the stub emits only its table row(s) and no surrounding `<table>` / `<colgroup>` / `<thead>`. The parent supplies the table. When false (default), the stub emits a complete standalone table for the single Roll. Either way, the parent supplies the Rolls wrapper and Roll All / Confirm All controls; see **Composition**.
-- Stub identifier — string supplied by the parent so per-Roll events can be addressed.
+Stub-level options:
+
+- `wrapper` — boolean, default true. When true the stub emits a full standalone shell (`.rolls-wrapper` + header + `<table>` with `<colgroup>` + `<thead>` + per-Roll `<tbody>` blocks + a hidden `.rolls-results` collapsed-state section). When false the stub emits only the per-Roll `<tbody>` blocks; the parent supplies the wrapper, the table, and any collapse UI it wants.
+- Stub identifier — optional string supplied by the parent so per-Roll events can be addressed.
 
 ## Identity (Character) column lines
 

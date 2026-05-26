@@ -151,6 +151,20 @@
       return;
     }
 
+    var confirmBtn = e.target.closest('.btn-confirm');
+    if (confirmBtn) {
+      var wrap = confirmBtn.closest('.rolls-wrapper');
+      if (wrap) collapseRollsWrapper(wrap);
+      return;
+    }
+
+    var changeBtn = e.target.closest('.btn-rolls-change');
+    if (changeBtn) {
+      var wrap2 = changeBtn.closest('.rolls-wrapper');
+      if (wrap2) expandRollsWrapper(wrap2);
+      return;
+    }
+
     var lockBtn = e.target.closest('.lock-btn');
     if (lockBtn) {
       lockBtn.classList.toggle('locked');
@@ -290,6 +304,40 @@
       summary.hidden = false;
     }
     activateNextStep(save);
+  }
+
+  // === Roll Resolution collapse / expand ===
+
+  function collapseRollsWrapper(wrapper) {
+    var table = wrapper.querySelector(':scope > .roll-table') || wrapper.querySelector('.roll-table');
+    if (!table) return;
+    var groups = table.querySelectorAll('tbody.roll-group');
+    groups.forEach(function (group, idx) {
+      var inputs = group.querySelectorAll('.result-input');
+      var dois = inputs[0] ? inputs[0].value : '0';
+      var crits = inputs[1] ? inputs[1].value : '0';
+      var row = wrapper.querySelector('.rolls-result-row[data-roll-idx="' + idx + '"]');
+      if (row) {
+        var v = row.querySelector('.rolls-result-value');
+        if (v) v.textContent = 'Successes ' + dois + ', Crits ' + crits;
+      }
+    });
+    wrapper.dataset.state = 'collapsed';
+    table.hidden = true;
+    var actions = wrapper.querySelector('.rolls-actions');
+    if (actions) actions.hidden = true;
+    var results = wrapper.querySelector('.rolls-results');
+    if (results) results.hidden = false;
+  }
+
+  function expandRollsWrapper(wrapper) {
+    wrapper.dataset.state = 'active';
+    var table = wrapper.querySelector('.roll-table');
+    if (table) table.hidden = false;
+    var actions = wrapper.querySelector('.rolls-actions');
+    if (actions) actions.hidden = false;
+    var results = wrapper.querySelector('.rolls-results');
+    if (results) results.hidden = true;
   }
 
   function handleConfirmAllInSave(save) {

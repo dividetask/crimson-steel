@@ -2,31 +2,33 @@
   Roll Resolution Stub.
 
   Locals:
-    roll       — required, the Roll data hash.
-    rows_only  — optional boolean. When true, emit only the roll group
-                 <tbody> (so a parent stub can place it inside its own
-                 table). When false/absent, emit the full Rolls wrapper.
+    rolls    — required Array of Roll hashes. Single-Roll callers pass [roll].
+    wrapper  — Bool, default true. true = full standalone shell
+               (.rolls-wrapper + header + <table> + .rolls-results);
+               false = only the per-Roll <tbody> blocks (the parent
+               supplies the wrapper, the table, and any collapse UI).
+    stub_id  — optional String for JS targeting.
 
-  Roll modifier slots:
-    reroll       — regular reroll of `amount` dice in `sign` direction.
-    mass_reroll  — rerolls every die matching `sign` direction (no
-                   amount; each die can be rerolled at most once across
-                   reroll + mass_reroll combined).
-    nudge        — value adjustment of `amount` dice in `sign` direction.
+  Standalone shell:
+    - Header: title "Rolls" + first button + Confirm.
+        First button label: "Roll" when rolls.length == 1, "Roll All"
+        when > 1. CSS class stays .btn-roll-all so existing handlers
+        bind.
+    - Confirm collapses the table: every per-Roll Result + Crits is
+      written into a row in .rolls-results, the table + header
+      buttons hide, and the .rolls-results section reveals (with a
+      single Change button at the right edge).
+    - Change un-collapses without resetting anything. The dice and
+      input values stay as the DM left them; the section simply
+      hides and the table + buttons return.
 %>
 <%
   require 'json'
 
-  rows_only = defined?(rows_only) ? rows_only : false
-
-  starting_text =
-    if roll[:starting_value].to_i.positive?
-      ", R+#{roll[:starting_value]}"
-    elsif roll[:starting_value].to_i.negative?
-      ", R-#{roll[:starting_value].abs}"
-    else
-      ''
-    end
+  all_rolls   = defined?(rolls) ? rolls : []
+  wrapper_on  = defined?(wrapper) ? wrapper : true
+  sid         = defined?(stub_id) ? stub_id : nil
+  roll_label  = all_rolls.length > 1 ? 'Roll All' : 'Roll'
 
   fmt_amount = lambda do |mod|
     next nil if mod.nil?
@@ -52,32 +54,15 @@
     next nil if mod.nil?
     { sign: mod[:sign].to_s }
   end
-
-  reroll_text       = fmt_amount.call(roll[:reroll])
-  mass_reroll_text  = fmt_mass.call(roll[:mass_reroll])
-  nudge_text        = fmt_amount.call(roll[:nudge])
-  has_reroll        = !reroll_text.nil?
-  has_mass_reroll   = !mass_reroll_text.nil?
-  has_nudge         = !nudge_text.nil?
-  row_count         = 1 + (has_reroll ? 1 : 0) + (has_mass_reroll ? 1 : 0) + (has_nudge ? 1 : 0)
-
-  group_config = {
-    dice_count:  roll[:dice_count],
-    tn:          roll[:tn],
-    die_size:    roll[:die_size],
-    reroll:      serialize_amount.call(roll[:reroll]),
-    mass_reroll: serialize_mass.call(roll[:mass_reroll]),
-    nudge:       serialize_amount.call(roll[:nudge])
-  }
 %>
 
-<% unless rows_only %>
-<div class="rolls-wrapper" data-stub="roll">
+<% if wrapper_on %>
+<div class="rolls-wrapper" data-stub="roll" data-state="active"<%= sid ? %( data-stub-id="#{sid}") : '' %>>
   <div class="rolls-header">
     <span class="rolls-title">Rolls</span>
     <div class="rolls-actions">
-      <button type="button" class="btn-roll-all">Roll All</button>
-      <button type="button" class="btn-confirm-all">Confirm All</button>
+      <button type="button" class="btn-roll-all"><%= roll_label %></button>
+      <button type="button" class="btn-confirm">Confirm</button>
     </div>
   </div>
   <table class="stub-table roll-table">
@@ -103,61 +88,100 @@
     </thead>
 <% end %>
 
-<tbody class="roll-group" data-config='<%= group_config.to_json %>'>
-  <tr class="roll-row row-initial">
-    <td rowspan="<%= row_count %>" class="character-cell">
-      <span class="stub-line creature-name"><%= roll[:creature_name] %></span>
-      <span class="stub-line params"><%= roll[:dice_count] %> dice @ TN <%= roll[:tn] %><%= starting_text %></span>
-      <span class="stub-line roll-name"><em>(<%= roll[:roll_name] %>)</em></span>
-    </td>
-    <td class="mod-cell"></td>
-    <td class="mod-cell"></td>
-    <td class="dice-cell">
-      <span class="dice-placeholder">[ &mdash; ]</span>
-    </td>
-    <td rowspan="<%= row_count %>" class="result-cell">
-      <input class="result-input" type="text" value="<%= roll[:dois] %>">
-    </td>
-    <td rowspan="<%= row_count %>" class="result-cell">
-      <input class="result-input" type="text" value="<%= roll[:critical_count] %>">
-    </td>
-    <td rowspan="<%= row_count %>" class="lock-cell">
-      <button type="button" class="lock-btn" aria-label="Toggle lock"></button>
-    </td>
-  </tr>
+<% all_rolls.each_with_index do |roll, roll_idx| %>
+  <%
+    starting_text =
+      if roll[:starting_value].to_i.positive?
+        ", R+#{roll[:starting_value]}"
+      elsif roll[:starting_value].to_i.negative?
+        ", R-#{roll[:starting_value].abs}"
+      else
+        ''
+      end
 
-  <% if has_reroll %>
-    <tr class="modifier-row row-reroll">
-      <td class="mod-cell">
-        <span class="mod-badge mod-reroll" data-tooltip="<%= roll[:reroll][:label] %>"><%= reroll_text %></span>
+    reroll_text      = fmt_amount.call(roll[:reroll])
+    mass_reroll_text = fmt_mass.call(roll[:mass_reroll])
+    nudge_text       = fmt_amount.call(roll[:nudge])
+    has_reroll       = !reroll_text.nil?
+    has_mass_reroll  = !mass_reroll_text.nil?
+    has_nudge        = !nudge_text.nil?
+    row_count        = 1 + (has_reroll ? 1 : 0) + (has_mass_reroll ? 1 : 0) + (has_nudge ? 1 : 0)
+
+    group_config = {
+      dice_count:  roll[:dice_count],
+      tn:          roll[:tn],
+      die_size:    roll[:die_size],
+      reroll:      serialize_amount.call(roll[:reroll]),
+      mass_reroll: serialize_mass.call(roll[:mass_reroll]),
+      nudge:       serialize_amount.call(roll[:nudge])
+    }
+  %>
+
+  <tbody class="roll-group" data-roll-idx="<%= roll_idx %>" data-config='<%= group_config.to_json %>'>
+    <tr class="roll-row row-initial">
+      <td rowspan="<%= row_count %>" class="character-cell">
+        <span class="stub-line creature-name"><%= roll[:creature_name] %></span>
+        <span class="stub-line params"><%= roll[:dice_count] %> dice @ TN <%= roll[:tn] %><%= starting_text %></span>
+        <span class="stub-line roll-name"><em>(<%= roll[:roll_name] %>)</em></span>
       </td>
       <td class="mod-cell"></td>
-      <td class="dice-cell"></td>
-    </tr>
-  <% end %>
-
-  <% if has_mass_reroll %>
-    <tr class="modifier-row row-mass-reroll">
-      <td class="mod-cell">
-        <span class="mod-badge mod-reroll" data-tooltip="<%= roll[:mass_reroll][:label] %>"><%= mass_reroll_text %></span>
-      </td>
       <td class="mod-cell"></td>
-      <td class="dice-cell"></td>
-    </tr>
-  <% end %>
-
-  <% if has_nudge %>
-    <tr class="modifier-row row-nudge">
-      <td class="mod-cell"></td>
-      <td class="mod-cell">
-        <span class="mod-badge mod-nudge" data-tooltip="<%= roll[:nudge][:label] %>"><%= nudge_text %></span>
+      <td class="dice-cell">
+        <span class="dice-placeholder">[ &mdash; ]</span>
       </td>
-      <td class="dice-cell"></td>
+      <td rowspan="<%= row_count %>" class="result-cell">
+        <input class="result-input" type="text" value="<%= roll[:dois] %>">
+      </td>
+      <td rowspan="<%= row_count %>" class="result-cell">
+        <input class="result-input" type="text" value="<%= roll[:critical_count] %>">
+      </td>
+      <td rowspan="<%= row_count %>" class="lock-cell">
+        <button type="button" class="lock-btn" aria-label="Toggle lock"></button>
+      </td>
     </tr>
-  <% end %>
-</tbody>
 
-<% unless rows_only %>
+    <% if has_reroll %>
+      <tr class="modifier-row row-reroll">
+        <td class="mod-cell">
+          <span class="mod-badge mod-reroll" data-tooltip="<%= roll[:reroll][:label] %>"><%= reroll_text %></span>
+        </td>
+        <td class="mod-cell"></td>
+        <td class="dice-cell"></td>
+      </tr>
+    <% end %>
+
+    <% if has_mass_reroll %>
+      <tr class="modifier-row row-mass-reroll">
+        <td class="mod-cell">
+          <span class="mod-badge mod-reroll" data-tooltip="<%= roll[:mass_reroll][:label] %>"><%= mass_reroll_text %></span>
+        </td>
+        <td class="mod-cell"></td>
+        <td class="dice-cell"></td>
+      </tr>
+    <% end %>
+
+    <% if has_nudge %>
+      <tr class="modifier-row row-nudge">
+        <td class="mod-cell"></td>
+        <td class="mod-cell">
+          <span class="mod-badge mod-nudge" data-tooltip="<%= roll[:nudge][:label] %>"><%= nudge_text %></span>
+        </td>
+        <td class="dice-cell"></td>
+      </tr>
+    <% end %>
+  </tbody>
+<% end %>
+
+<% if wrapper_on %>
   </table>
+  <div class="rolls-results" hidden>
+    <% all_rolls.each_with_index do |roll, roll_idx| %>
+      <div class="rolls-result-row" data-roll-idx="<%= roll_idx %>">
+        <span class="rolls-result-name"><%= roll[:roll_name] %>:</span>
+        <span class="rolls-result-value"></span>
+      </div>
+    <% end %>
+    <button type="button" class="btn-rolls-change">Change</button>
+  </div>
 </div>
 <% end %>

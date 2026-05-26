@@ -606,6 +606,51 @@ body {
 
 .save-roll-table[data-roll-state="pending"] { display: none; }
 
+/* === Roll Resolution collapsed results === */
+
+.rolls-results {
+  padding: 6px 10px;
+  background: #fafafa;
+  border-top: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  position: relative;
+}
+
+.rolls-result-row {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.rolls-result-name {
+  font-weight: bold;
+  color: #333;
+}
+
+.rolls-result-value {
+  font-family: monospace;
+  color: #444;
+}
+
+.btn-rolls-change {
+  position: absolute;
+  top: 4px;
+  right: 10px;
+  background: #fff;
+  border: 1px solid #999;
+  color: #333;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.btn-rolls-change:hover { background: #f0f0f0; }
+
 /* Step bodies — one per step, only the active step's body renders. */
 .step-body { padding: 8px 10px; background: #fff; }
 .step-body[data-state="pending"],

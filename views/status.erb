@@ -24,7 +24,7 @@
       <h1>Dice Resolution</h1>
       <p class="lead">Roll Resolution Stubs &mdash; one per Roll, each in its own Rolls wrapper.</p>
       <% @rolls.each do |r| %>
-        <%= erb :_roll_stub, locals: { roll: r } %>
+        <%= erb :_roll_stub, locals: { rolls: [r] } %>
       <% end %>
 
     <% when 'check' %>
