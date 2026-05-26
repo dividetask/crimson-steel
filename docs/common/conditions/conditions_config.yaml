@@ -1,8 +1,8 @@
 # Conditions Configuration
 #
 # Tunable values for the Conditions domain. Catalogs live alongside
-# this file: `afflictions.yaml` (Affliction Rules) and
-# `effect_names.yaml` (Effect Name definitions).
+# this file: `conditions_afflictions.yaml` (Affliction Rules) and
+# `conditions_effect_names.yaml` (Effect Name definitions).
 #
 # Severity Categories themselves are owned by Combat (Minor, Moderate,
 # Major, ordered least to most serious — see `combat_glossary.md`).
@@ -59,7 +59,7 @@ Death Multiplier: 2.0
 #   delta = −floor(decay)
 #           − floor(successes × per_success)
 #           + floor(failures × per_failure)
-# Per-Affliction overrides allowed in `afflictions.yaml`.
+# Per-Affliction overrides allowed in `conditions_afflictions.yaml`.
 # Values are integer or the literal "tier" (Tier 0 → 0.5, floored).
 
 # Potency decrease per net save success.

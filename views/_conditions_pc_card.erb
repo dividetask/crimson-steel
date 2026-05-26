@@ -1,0 +1,143 @@
+<%#
+  Conditions Downtime PC Card Stub.
+
+  See docs/common/ui/conditions_downtime_pc_card_stub.md.
+
+  Locals:
+    creature  — required. Hash with :id, :name, :race, :klass, :tier,
+                :max_hp, :mana_max, :charisma, :attributes (hash),
+                :state (Conditions::State).
+    catalog   — required. Conditions::Catalog instance.
+    viewer    — :dm or :player. Affects nothing in this stub (parent
+                page is responsible for filtering by viewer).
+    chrome    — optional boolean (default true). When false, the outer
+                card framing is suppressed.
+%>
+<%
+  inst = Conditions::Instance.new(state: creature[:state], catalog: catalog)
+
+  total_hp_damage = creature[:state].hp_damage.values.sum
+  current_hp = [creature[:max_hp] - total_hp_damage, 0].max
+  minor_dmg    = creature[:state].hp_damage_at(:minor)
+  moderate_dmg = creature[:state].hp_damage_at(:moderate)
+  major_dmg    = creature[:state].hp_damage_at(:major)
+
+  current_mana = creature[:mana_max] - creature[:state].mana_spent
+
+  threshold = inst.toxicity_threshold(creature[:charisma], creature[:tier])
+  tox = creature[:state].magic_toxicity
+  tox_blocked = tox > threshold
+  tox_pct = threshold.positive? ? [(tox.to_f / threshold * 100).round, 200].min : 0
+
+  hp_total_for_bar = [creature[:max_hp], 1].max
+  pct = ->(n) { (n.to_f / hp_total_for_bar * 100).round(2) }
+
+  ability_chips = []
+  Conditions::SEVERITIES.each do |sev|
+    (creature[:state].ability_damage[sev] || {}).each do |attr, n|
+      ability_chips << { attr: attr, sev: sev, count: n } if n.positive?
+    end
+  end
+
+  chrome_on = defined?(chrome) ? chrome : true
+%>
+
+<div class="pc-card<%= chrome_on ? '' : ' pc-card-bare' %>" data-creature-id="<%= creature[:id] %>">
+  <header class="pc-header">
+    <h2 class="pc-name tier-<%= creature[:tier] %>"><%= creature[:name] %></h2>
+    <p class="pc-summary">
+      <%= creature[:race] %> · <%= creature[:klass] %> · Tier <%= creature[:tier] %>
+    </p>
+  </header>
+
+  <section class="pc-bar-row">
+    <label class="pc-bar-label">HP</label>
+    <div class="bar bar-hp">
+      <span class="bar-seg seg-hp"        style="width: <%= pct.call(current_hp) %>%"></span>
+      <span class="bar-seg seg-hp-minor"  style="width: <%= pct.call(minor_dmg) %>%"></span>
+      <span class="bar-seg seg-hp-moderate" style="width: <%= pct.call(moderate_dmg) %>%"></span>
+      <span class="bar-seg seg-hp-major"  style="width: <%= pct.call(major_dmg) %>%"></span>
+    </div>
+    <div class="pc-bar-value">
+      <%= current_hp %> / <%= creature[:max_hp] %>
+      <% if creature[:state].temporary_hit_points %>
+        <span class="temp-hp">+<%= creature[:state].temporary_hit_points[:amount] %> temp HP</span>
+      <% end %>
+    </div>
+  </section>
+
+  <section class="pc-bar-row">
+    <label class="pc-bar-label">Mana</label>
+    <div class="bar bar-mana">
+      <span class="bar-seg seg-mana"
+            style="width: <%= creature[:mana_max].positive? ? (current_mana.to_f / creature[:mana_max] * 100).round(2) : 0 %>%"></span>
+    </div>
+    <div class="pc-bar-value"><%= current_mana %> / <%= creature[:mana_max] %></div>
+  </section>
+
+  <section class="pc-bar-row">
+    <label class="pc-bar-label">Toxicity</label>
+    <div class="bar bar-tox <%= 'bar-tox-blocked' if tox_blocked %>">
+      <span class="bar-seg seg-tox" style="width: <%= [tox_pct, 100].min %>%"></span>
+    </div>
+    <div class="pc-bar-value">
+      <%= tox %> / <%= threshold %>
+      <% if tox_blocked %><span class="tox-blocked-tag">positive sources blocked</span><% end %>
+    </div>
+  </section>
+
+  <section class="pc-block">
+    <h3>Active Effects</h3>
+    <% mechs = inst.active_named_effect_mechanics %>
+    <% if mechs.any? %>
+      <ul class="effect-badges">
+        <% mechs.uniq { |m| m[:effect_name] }.each do |m| %>
+          <li class="effect-badge"><%= m[:effect_name] %></li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="empty">None.</p>
+    <% end %>
+  </section>
+
+  <section class="pc-block">
+    <h3>Ability Damage</h3>
+    <% if ability_chips.any? %>
+      <ul class="ability-chips">
+        <% ability_chips.each do |chip| %>
+          <li class="ability-chip"><%= chip[:attr] %> · <%= chip[:sev] %> · <%= chip[:count] %></li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="empty">None.</p>
+    <% end %>
+  </section>
+
+  <section class="pc-block">
+    <h3>Active Afflictions</h3>
+    <% if creature[:state].afflictions.any? %>
+      <table class="affliction-table">
+        <thead>
+          <tr><th>Name</th><th>Potency</th><th>Inflicter Tier</th><th>Next</th></tr>
+        </thead>
+        <tbody>
+          <% creature[:state].afflictions.each do |name, a| %>
+            <tr>
+              <td><%= name %></td>
+              <td><%= a[:potency] %></td>
+              <td><%= a[:inflicting_tier] %></td>
+              <td><%= a[:next_resolution_round] ? "R#{a[:next_resolution_round]}" : '—' %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <p class="empty">None.</p>
+    <% end %>
+  </section>
+
+  <section class="pc-block">
+    <h3>Consumables</h3>
+    <p class="empty">Inventory wiring not yet implemented.</p>
+  </section>
+</div>

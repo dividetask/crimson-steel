@@ -1,0 +1,628 @@
+module Conditions
+  # Pairs a Catalog and a State and exposes the public entry points
+  # documented in conditions_design.md. Operations mutate the State
+  # in place; reads do not.
+  class Instance
+    attr_reader :state, :catalog
+
+    def initialize(state: State.new, catalog: Catalog.new)
+      @state = state
+      @catalog = catalog
+    end
+
+    # ===== Apply Hit Point Damage =====
+    def apply_hit_point_damage(severity_map)
+      sev_map = sym_severity_map(severity_map)
+      absorbed_by_temp = sev_zero_map
+      to_counters = sev_zero_map
+      displaced_source_id = nil
+
+      pool = @state.temporary_hit_points
+      pool_remaining = pool ? pool[:amount] : 0
+
+      REVERSE_SEVERITIES.each do |sev|
+        amount = sev_map[sev]
+        next if amount.zero?
+        absorbed = [amount, pool_remaining].min
+        pool_remaining -= absorbed
+        absorbed_by_temp[sev] = absorbed
+        landed = amount - absorbed
+        next if landed.zero?
+        @state.hp_damage[sev] = (@state.hp_damage[sev] || 0) + landed
+        to_counters[sev] = landed
+      end
+
+      if pool && pool_remaining <= 0
+        displaced_source_id = pool[:source_id]
+        @state.temporary_hit_points = nil
+      elsif pool
+        pool[:amount] = pool_remaining
+      end
+
+      {
+        absorbed_by_temp: absorbed_by_temp,
+        to_counters: to_counters,
+        displaced_source_id: displaced_source_id
+      }
+    end
+
+    # ===== Apply Heal =====
+    def apply_heal(severity_map)
+      sev_map = sym_severity_map(severity_map)
+      healed = sev_zero_map
+      leftover = 0
+
+      REVERSE_SEVERITIES.each do |sev|
+        pool = sev_map[sev] + leftover
+        counter = @state.hp_damage[sev] || 0
+        h = [pool, counter].min
+        healed[sev] = h
+        new_counter = counter - h
+        if new_counter.zero?
+          @state.hp_damage.delete(sev)
+        else
+          @state.hp_damage[sev] = new_counter
+        end
+        leftover = pool - h
+      end
+
+      healed
+    end
+
+    # ===== Apply Ability Damage =====
+    def apply_ability_damage(attribute, severity_map)
+      attribute = attribute.to_sym
+      sev_map = sym_severity_map(severity_map)
+      sev_map.each do |sev, amount|
+        next if amount <= 0
+        bucket = (@state.ability_damage[sev] ||= {})
+        if bucket.key?(attribute)
+          bucket[attribute] += amount
+        else
+          bucket[attribute] = amount
+        end
+      end
+      nil
+    end
+
+    # ===== Apply Ability Heal =====
+    def apply_ability_heal(severity_map)
+      sev_map = sym_severity_map(severity_map)
+      healed = sev_zero_map
+      leftover = 0
+
+      REVERSE_SEVERITIES.each do |sev|
+        pool = sev_map[sev] + leftover
+        h_at_sev = 0
+        bucket = @state.ability_damage[sev]
+
+        if bucket
+          bucket.keys.each do |attr|
+            break if pool.zero?
+            n = bucket[attr]
+            take = [pool, n].min
+            bucket[attr] -= take
+            pool -= take
+            h_at_sev += take
+          end
+          bucket.reject! { |_, v| v.zero? }
+          @state.ability_damage.delete(sev) if bucket.empty?
+        end
+
+        healed[sev] = h_at_sev
+        leftover = pool
+      end
+
+      healed
+    end
+
+    # ===== Apply Temporary Hit Points =====
+    def apply_temporary_hit_points(amount:, source_id:, ends_on_round: nil)
+      current = @state.temporary_hit_points
+
+      if amount <= 0
+        if current
+          displaced = current[:source_id]
+          @state.temporary_hit_points = nil
+          return { accepted: true, displaced_source_id: displaced }
+        else
+          return { accepted: true, displaced_source_id: nil }
+        end
+      end
+
+      current_amount = current ? current[:amount] : 0
+      if amount > current_amount
+        displaced = current ? current[:source_id] : nil
+        @state.temporary_hit_points = {
+          amount: amount, source_id: source_id.to_s, ends_on_round: ends_on_round
+        }
+        { accepted: true, displaced_source_id: displaced }
+      else
+        { accepted: false, displaced_source_id: nil }
+      end
+    end
+
+    # ===== Consume Shock =====
+    def consume_shock(max_consume)
+      consumed = [@state.shock, max_consume].min
+      @state.shock -= consumed
+      consumed
+    end
+
+    # ===== Apply Magic Toxicity =====
+    def apply_magic_toxicity(amount:, kind:, charisma:, tier:)
+      kind = kind.to_sym
+      threshold = toxicity_threshold(charisma, tier)
+
+      if kind == :positive && @state.magic_toxicity > threshold
+        return { accepted: false, charisma_damage: 0 }
+      end
+
+      pre = @state.magic_toxicity
+      @state.magic_toxicity += amount
+
+      charisma_damage =
+        [0, @state.magic_toxicity - threshold].max - [0, pre - threshold].max
+
+      if charisma_damage > 0
+        apply_ability_damage(:cha, @catalog.toxicity_damage_severity => charisma_damage)
+      end
+
+      { accepted: true, charisma_damage: charisma_damage }
+    end
+
+    def toxicity_threshold(charisma, tier)
+      if @catalog.toxicity_threshold_tier_scaled?
+        tier_value = [0.5, tier].max
+        (charisma * tier_value).floor
+      else
+        charisma.floor
+      end
+    end
+
+    # ===== Inflict Affliction =====
+    def inflict_affliction(name, inflicter_tier:, delta: 1, current_round: nil)
+      name = name.to_s
+      rule = @catalog.affliction(name)
+      existing = @state.afflictions[name]
+
+      if existing
+        new_potency = [1, existing[:potency] + delta].max
+        existing[:potency] = new_potency
+        existing[:inflicting_tier] = [existing[:inflicting_tier], inflicter_tier].max
+        # next_resolution_round untouched
+        existing.dup
+      else
+        next_round = current_round ? current_round + @catalog.frequency_rounds(save_frequency(rule)) : nil
+        entry = {
+          potency: [1, delta].max,
+          inflicting_tier: inflicter_tier,
+          next_resolution_round: next_round
+        }
+        @state.afflictions[name] = entry
+        entry.dup
+      end
+    end
+
+    # ===== Resolve Affliction =====
+    #
+    # The save Roll happens in the caller (Dice Resolution). Pass the
+    # rolled DoIS in via `dois:`. The Potency Save Penalty is appended
+    # to `save_input[:modifiers]` and surfaced on the result as
+    # `:modified_input` so callers can confirm the value used.
+    def resolve_affliction(name, save_input, dois:, current_round: nil, creature_tier: 0)
+      name = name.to_s
+      rule = @catalog.affliction(name)
+      entry = @state.afflictions[name] or raise ArgumentError, "no active affliction: #{name}"
+
+      potency_before = entry[:potency]
+      divisor = @catalog.potency_divisor
+
+      # 1. Potency Save Penalty (appended, not merged).
+      modifiers = (save_input[:modifiers] || save_input['modifiers'] || []).dup
+      modifiers << ['Competency', -(potency_before / divisor)]
+      modified_input = save_input.merge(modifiers: modifiers)
+
+      successes = [0, dois].max
+      failures = [0, -dois].max
+
+      # 3. Magnitude.
+      magnitude = 1 + (potency_before / divisor)
+      net_magnitude = [0, magnitude - successes].max
+
+      # 4. Apply effect.
+      applied = nil
+      if net_magnitude > 0 && rule['effect']
+        applied = dispatch_affliction_effect(rule['effect'], net_magnitude, name, current_round)
+      end
+
+      # 5. Evolve Potency.
+      per_success_raw = rule['potency_per_success'] || @catalog.default_potency_per_success
+      per_failure_raw = rule['potency_per_failure'] || @catalog.default_potency_per_failure
+      decay_raw       = rule['potency_decay']       || @catalog.default_potency_decay
+
+      per_success = tier_substitute(per_success_raw, creature_tier)
+      per_failure = tier_substitute(per_failure_raw, creature_tier)
+      decay       = tier_substitute(decay_raw,       creature_tier)
+
+      delta = -(decay.floor) - (successes * per_success).floor + (failures * per_failure).floor
+      new_potency = [0, potency_before + delta].max
+
+      next_round = nil
+      if new_potency.zero?
+        @state.afflictions.delete(name)
+      else
+        entry[:potency] = new_potency
+        if current_round
+          next_round = current_round + @catalog.frequency_rounds(save_frequency(rule))
+          entry[:next_resolution_round] = next_round
+        else
+          next_round = entry[:next_resolution_round]
+        end
+      end
+
+      {
+        dois: dois,
+        successes: successes,
+        failures: failures,
+        magnitude: magnitude,
+        net_magnitude: net_magnitude,
+        applied: applied,
+        new_potency: new_potency,
+        next_resolution_round: next_round,
+        modified_input: modified_input
+      }
+    end
+
+    # ===== List Pending Afflictions =====
+    def list_pending_afflictions(current_round)
+      @state.afflictions.each_with_object([]) do |(name, entry), out|
+        next_round = entry[:next_resolution_round]
+        out << name if next_round && next_round <= current_round
+      end
+    end
+
+    # ===== Resolve Due Afflictions =====
+    #
+    # The block is called with each pending Affliction name and must
+    # return a hash with `:save_input` and `:dois` keys.
+    def resolve_due_afflictions(current_round:, creature_tier: 0)
+      raise ArgumentError, "block required" unless block_given?
+      results = []
+      loop do
+        pending = list_pending_afflictions(current_round)
+        break if pending.empty?
+        name = pending.first
+        provided = yield(name)
+        results << resolve_affliction(
+          name, provided.fetch(:save_input),
+          dois: provided.fetch(:dois),
+          current_round: current_round, creature_tier: creature_tier
+        )
+      end
+      results
+    end
+
+    # ===== Apply Effect =====
+    def apply_effect(effect)
+      e = State.normalize_effect(effect)
+      existing_index = @state.effects.find_index { |x| x[:source_id] == e[:source_id] }
+      if existing_index
+        @state.effects[existing_index] = e
+      else
+        @state.effects << e
+      end
+      nil
+    end
+
+    # ===== Remove Effects by Prefix =====
+    def remove_effects_by_prefix(prefix)
+      kept = []
+      removed = []
+      @state.effects.each do |e|
+        if e[:source_id].start_with?(prefix)
+          removed << e
+        else
+          kept << e
+        end
+      end
+      @state.effects = kept
+      removed
+    end
+
+    # ===== Get Modifiers =====
+    def get_modifiers(target_key, current_round: nil)
+      relevant = @state.effects.select do |e|
+        next false unless effect_targets?(e[:target_key], target_key)
+        next false if current_round && e[:ends_on_round] && e[:ends_on_round] <= current_round
+        next false unless e[:amount].is_a?(Integer)
+        true
+      end
+
+      by_type = relevant.group_by { |e| e[:bonus_type] }
+      out = []
+      by_type.each do |bonus_type, list|
+        amounts = list.map { |e| e[:amount] }
+        pos = amounts.select(&:positive?).max
+        neg = amounts.select(&:negative?).min
+        out << [bonus_type, pos] if pos
+        out << [bonus_type, neg] if neg
+      end
+      out
+    end
+
+    # ===== Apply Acid Damage =====
+    def apply_acid_damage(amount)
+      return @state.acid_counter if amount <= 0
+      @state.acid_counter += amount
+      @state.acid_counter
+    end
+
+    # ===== Resolve Acid Turn Start =====
+    def resolve_acid_turn_start
+      @state.acid_counter = (@state.acid_counter / 2)
+      damage = @state.acid_counter
+      apply_hit_point_damage(minor: damage) if damage > 0
+      damage
+    end
+
+    # ===== Apply Mana Cost =====
+    def apply_mana_cost(amount:, mana_max:)
+      available = mana_max - @state.mana_spent
+      spent = [amount, available].min
+      spent = 0 if spent < 0
+      @state.mana_spent += spent
+      spent
+    end
+
+    # ===== Restore Mana =====
+    def restore_mana(amount)
+      restored = [amount, @state.mana_spent].min
+      restored = 0 if restored < 0
+      @state.mana_spent -= restored
+      restored
+    end
+
+    # ===== Set Mana Spent =====
+    def set_mana_spent(amount:, mana_max:)
+      @state.mana_spent = [[amount, 0].max, mana_max].min
+    end
+
+    # ===== Apply Natural Recovery =====
+    def apply_natural_recovery(recovery_ticks:, mode:, character_tier:, mana_max:, magic_toxicity_attribute_score:)
+      mode = mode.to_sym
+      summary = { hp_healed: sev_zero_map, ability_healed: sev_zero_map,
+                  mana_restored: 0, toxicity_decayed: 0, temp_hp_cleared: false }
+
+      # 1. HP healing per Severity. Each Severity's heal pool applies
+      # only to that Severity's counter (no cascading across severities
+      # — Natural Recovery's rate table is the cap, not a Heal Cascade
+      # input).
+      hp_healed = sev_zero_map
+      SEVERITIES.each do |sev|
+        amount, tick_length = @catalog.heal_rate(sev, character_tier, mode)
+        pool = (amount * recovery_ticks) / tick_length
+        counter = @state.hp_damage[sev] || 0
+        h = [pool, counter].min
+        hp_healed[sev] = h
+        new_counter = counter - h
+        if new_counter.zero?
+          @state.hp_damage.delete(sev)
+        else
+          @state.hp_damage[sev] = new_counter
+        end
+      end
+      summary[:hp_healed] = hp_healed
+
+      # 2. Ability Damage healing per Severity. Same per-Severity cap
+      # rule as HP; within each Severity, attributes pop FIFO.
+      ability_healed = sev_zero_map
+      SEVERITIES.each do |sev|
+        amount, tick_length = @catalog.ability_heal_rate(sev, character_tier, mode)
+        pool = (amount * recovery_ticks) / tick_length
+        next if pool.zero?
+        bucket = @state.ability_damage[sev]
+        next unless bucket
+        h_at_sev = 0
+        bucket.keys.each do |attr|
+          break if pool.zero?
+          n = bucket[attr]
+          take = [pool, n].min
+          bucket[attr] -= take
+          pool -= take
+          h_at_sev += take
+        end
+        bucket.reject! { |_, v| v.zero? }
+        @state.ability_damage.delete(sev) if bucket.empty?
+        ability_healed[sev] = h_at_sev
+      end
+      summary[:ability_healed] = ability_healed
+
+      # 3. Mana.
+      per_tick = mana_max / @catalog.mana_per_recovery_tick_divisor
+      summary[:mana_restored] = restore_mana(per_tick * recovery_ticks)
+
+      # 4. Magic Toxicity decay.
+      tox_per_tick = magic_toxicity_attribute_score / @catalog.magic_toxicity_per_recovery_tick_divisor
+      decay = [tox_per_tick * recovery_ticks, @state.magic_toxicity].min
+      decay = 0 if decay < 0
+      @state.magic_toxicity -= decay
+      summary[:toxicity_decayed] = decay
+
+      # 5. Temporary HP clears regardless of ends_on_round.
+      if @state.temporary_hit_points
+        summary[:temp_hp_cleared] = true
+        @state.temporary_hit_points = nil
+      end
+
+      summary
+    end
+
+    # ===== Apply Named Effect =====
+    def apply_named_effect(name, source_id:, ends_on_round: nil, metadata: {})
+      entry = @catalog.effect_name(name)
+      mechanics = entry['mechanics'] || []
+      applied_ids = []
+
+      mechanics.each_with_index do |mech, idx|
+        mech_source_id = "#{source_id}:#{idx}"
+        applied_ids << mech_source_id
+
+        case mech['kind']
+        when 'modifier'
+          amount = mech['amount']
+          amount = 0 unless amount.is_a?(Integer)  # formula not yet evaluated
+          apply_effect(
+            target_key: mech['applies_to'] || [],
+            bonus_type: mech['modifier_type'].to_s,
+            amount: amount,
+            source_id: mech_source_id,
+            ends_on_round: ends_on_round,
+            metadata: metadata.merge('formula' => mech['amount'].is_a?(String) ? mech['amount'] : nil).compact
+          )
+        else
+          # Non-modifier Mechanics (reroll, nudge, set_value, scale_value,
+          # flag, display) are recorded on a sidecar list with the same
+          # replace-by-source_id contract.
+          replace_named_effect_mechanic(
+            source_id: mech_source_id,
+            kind: mech['kind'],
+            data: mech,
+            ends_on_round: ends_on_round,
+            effect_name: name.to_s
+          )
+        end
+      end
+
+      applied_ids
+    end
+
+    # ===== Clear Expired Effects =====
+    def clear_expired_effects(current_round)
+      removed = []
+      kept = []
+      @state.effects.each do |e|
+        if e[:ends_on_round] && e[:ends_on_round] <= current_round
+          removed << e
+        else
+          kept << e
+        end
+      end
+      @state.effects = kept
+
+      if @state.temporary_hit_points && @state.temporary_hit_points[:ends_on_round] &&
+         @state.temporary_hit_points[:ends_on_round] <= current_round
+        removed << @state.temporary_hit_points.merge(kind: :temp_hp)
+        @state.temporary_hit_points = nil
+      end
+
+      kept_mechs = []
+      @state.named_effect_mechanics.each do |m|
+        if m[:ends_on_round] && m[:ends_on_round] <= current_round
+          removed << m
+        else
+          kept_mechs << m
+        end
+      end
+      @state.named_effect_mechanics = kept_mechs
+
+      removed
+    end
+
+    # ===== Dead? =====
+    def dead?(max_hit_points:, attribute_scores:, toxicity_threshold:)
+      mult = @catalog.death_multiplier
+      hp_total = @state.hp_damage.values.sum
+      return true if hp_total >= (mult * max_hit_points).floor
+
+      attribute_scores.each do |attr, score|
+        total = SEVERITIES.sum { |sev| @state.ability_damage[sev]&.[](attr.to_sym) || 0 }
+        return true if total >= (mult * score).floor
+      end
+
+      return true if @state.magic_toxicity >= (mult * toxicity_threshold).floor
+      false
+    end
+
+    # ===== Active Effect display helpers =====
+    #
+    # The downtime PC card surfaces "Active Effects" as colored badges
+    # for non-Modifier Active Effects only. Non-modifier mechanics
+    # applied via Apply Named Effect live on a sidecar list — this
+    # accessor lets a UI layer read them without poking at internals.
+    def active_named_effect_mechanics
+      @state.named_effect_mechanics
+    end
+
+    private
+
+    def replace_named_effect_mechanic(source_id:, kind:, data:, ends_on_round:, effect_name:)
+      list = @state.named_effect_mechanics
+      existing = list.find_index { |m| m[:source_id] == source_id }
+      entry = {
+        source_id: source_id,
+        kind: kind,
+        data: data,
+        ends_on_round: ends_on_round,
+        effect_name: effect_name
+      }
+      if existing
+        list[existing] = entry
+      else
+        list << entry
+      end
+    end
+
+    def sym_severity_map(input)
+      out = sev_zero_map
+      input.each do |k, v|
+        sev = k.to_sym
+        next unless SEVERITIES.include?(sev)
+        out[sev] = v.to_i
+      end
+      out
+    end
+
+    def sev_zero_map
+      SEVERITIES.each_with_object({}) { |s, h| h[s] = 0 }
+    end
+
+    def effect_targets?(entry_target, query)
+      return true if entry_target == query
+      return entry_target.include?(query) if entry_target.is_a?(Array)
+      false
+    end
+
+    def save_frequency(rule)
+      (rule['save_frequency'] || 'round').to_s
+    end
+
+    # Substitute "tier" with the Creature's Tier (Tier 0 → 0.5).
+    # Returns a Numeric (Integer or Float).
+    def tier_substitute(value, creature_tier)
+      if value.is_a?(String) && value.downcase == 'tier'
+        creature_tier <= 0 ? 0.5 : creature_tier
+      else
+        value
+      end
+    end
+
+    def dispatch_affliction_effect(effect, net_magnitude, name, current_round)
+      case effect['kind']
+      when 'hit_point_damage'
+        result = apply_hit_point_damage(effect['severity'] => net_magnitude)
+        { kind: 'hit_point_damage', severity: effect['severity'], amount: net_magnitude, result: result }
+      when 'ability_damage'
+        apply_ability_damage(effect['attribute'], effect['severity'] => net_magnitude)
+        { kind: 'ability_damage', attribute: effect['attribute'], severity: effect['severity'], amount: net_magnitude }
+      when 'named_effect'
+        duration = effect['duration_rounds']
+        ends = (current_round && duration) ? current_round + duration : nil
+        ids = apply_named_effect(effect['name'], source_id: "affliction:#{name}", ends_on_round: ends)
+        { kind: 'named_effect', name: effect['name'], applied: ids, ends_on_round: ends }
+      else
+        raise ArgumentError, "unknown affliction effect kind: #{effect['kind']}"
+      end
+    end
+  end
+end

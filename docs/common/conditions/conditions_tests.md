@@ -14,7 +14,7 @@ Unless a test specifies otherwise, all tests use the values in `conditions_confi
 - Recovery Tick: 14400 rounds (one Day)
 - Natural Recovery rates as configured (Slow/Fast tables for HP Heal Rate and Ability Heal Rate)
 
-And the catalogs in `afflictions.yaml` and `effect_names.yaml` as shipped.
+And the catalogs in `conditions_afflictions.yaml` and `conditions_effect_names.yaml` as shipped.
 
 Severities follow the canonical order defined in `combat_glossary.md`: `[minor, moderate, major]`. Heal Cascades pour worst-first (Major → Moderate → Minor).
 
@@ -250,13 +250,13 @@ Tests that depend on save Rolls state the resolved Roll's `dois` (Degree of Indi
 
 **Temporary HP clears regardless of duration.** Given `temporary_hit_points = {amount: 8, source_id: "s", ends_on_round: null}`. *Apply Natural Recovery* with any positive `recovery_ticks`: the grant is cleared to null. Permanent grants are not immune to natural-recovery clearing.
 
-**Ability Damage heals FIFO across attributes.** Given Tier-1, `ability_damage[minor] = [("str", 2), ("dex", 1)]`. Ability Heal Rate Tier 1 Minor slow `[1, 7]`. *Apply Natural Recovery* with `recovery_ticks = 7, mode = slow`: `floor((1 × 7) / 7) = 1` Minor heal point. `str` (FIFO) absorbs it. Result: `[("str", 1), ("dex", 1)]`.
+**Ability Damage heals FIFO across attributes.** Given Tier-0, `ability_damage[minor] = [("str", 2), ("dex", 1)]`. Ability Heal Rate Tier 0 Minor slow `[1, 7]`. *Apply Natural Recovery* with `recovery_ticks = 7, mode = slow`: `floor((1 × 7) / 7) = 1` Minor heal point. `str` (FIFO) absorbs it. Result: `[("str", 1), ("dex", 1)]`.
 
 ---
 
 ## Apply Named Effect
 
-**Modifier mechanics are stored as Active Effects with per-mechanic Source IDs.** *Apply Named Effect* with `name = "dazzled", source_id = "spell:glitterdust:7", ends_on_round = 12`: looks up `dazzled` in `effect_names.yaml`, finds one `modifier` Mechanic (Circumstance Bonus Type, amount −1, applies to `[dex_checks, wis_checks, casting_checks]`). One Active Effect is appended (or replaced) with `bonus_type = "Circumstance"`, `amount = −1`, `source_id = "spell:glitterdust:7:0"`. The `applies_to` tag list is stored on the entry as the Target Key context.
+**Modifier mechanics are stored as Active Effects with per-mechanic Source IDs.** *Apply Named Effect* with `name = "dazzled", source_id = "spell:glitterdust:7", ends_on_round = 12`: looks up `dazzled` in `conditions_effect_names.yaml`, finds one `modifier` Mechanic (Circumstance Bonus Type, amount −1, applies to `[dex_checks, wis_checks, casting_checks]`). One Active Effect is appended (or replaced) with `bonus_type = "Circumstance"`, `amount = −1`, `source_id = "spell:glitterdust:7:0"`. The `applies_to` tag list is stored on the entry as the Target Key context.
 
 **Unknown Effect Names raise.** *Apply Named Effect* with `name = "not_a_real_effect"`: raises an error. No Active Effects are added.
 

@@ -1,8 +1,9 @@
 <%
   nav_items = [
-    { key: 'status', label: 'Status',           href: '/status' },
-    { key: 'dice',   label: 'Dice Resolution',  href: '/status?view=dice' },
-    { key: 'check',  label: 'Check Resolution', href: '/status?view=check' }
+    { key: 'status',     label: 'Status',           href: '/status' },
+    { key: 'dice',       label: 'Dice Resolution',  href: '/status?view=dice' },
+    { key: 'check',      label: 'Check Resolution', href: '/status?view=check' },
+    { key: 'conditions', label: 'Conditions',       href: '/status?view=conditions' }
   ]
 %>
 
@@ -18,16 +19,35 @@
   </aside>
 
   <section class="status-content">
-    <% if @view == 'dice' %>
+    <% case @view
+       when 'dice' %>
       <h1>Dice Resolution</h1>
       <p class="lead">Roll Resolution Stubs &mdash; one per Roll, each in its own Rolls wrapper.</p>
       <% @rolls.each do |r| %>
         <%= erb :_roll_stub, locals: { roll: r } %>
       <% end %>
-    <% elsif @view == 'check' %>
+
+    <% when 'check' %>
       <h1>Check Resolution</h1>
       <p class="lead">Check Resolution Stub &mdash; one Rolls wrapper containing multiple Rolls.</p>
       <%= erb :_check_stub, locals: { check: @check } %>
+
+    <% when 'conditions' %>
+      <h1>Conditions &mdash; Downtime</h1>
+      <p class="lead">Per-Creature downtime cards plus the DM urgent-actions panel for pending Affliction saves and queued actions.</p>
+
+      <h2>PC Cards</h2>
+      <div class="pc-card-grid">
+        <% @creatures.each do |creature| %>
+          <%= erb :_conditions_pc_card,
+                  locals: { creature: creature, catalog: @catalog, viewer: :dm } %>
+        <% end %>
+      </div>
+
+      <h2>Urgent Actions</h2>
+      <%= erb :_conditions_urgent_actions,
+              locals: { creatures: @urgent_creatures, catalog: @catalog, current_round: @current_round } %>
+
     <% else %>
       <h1>Status</h1>
       <p class="lead">Pick a stub from the menu on the left.</p>
