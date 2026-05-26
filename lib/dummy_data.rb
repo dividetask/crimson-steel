@@ -138,12 +138,19 @@ module DummyData
     ].map { |c| c.merge(state: Conditions::State.load(states[c[:id]])) }
   end
 
-  # Three example Conditions Save Resolution scenarios for the
-  # Check Resolution Status sub-view.
+  # Four example Conditions Save Resolution scenarios. The first
+  # three live on the Conditions sub-view; the fourth (with both a
+  # Reroll source and a Blessing Nudge source) is shared between the
+  # Conditions and Check Resolution sub-views as a demo of the
+  # multi-step Save Resolution Stub.
   def save_resolution_examples(catalog)
     ash_luck = {
       creature_ref: nil, creature_name: 'Ash Windmere',
       source_name: 'Bardic Inspiration', direction: 'pos', pool: 5
+    }
+    selka_blessing = {
+      creature_ref: nil, creature_name: 'Selka Embermane',
+      source_name: 'Blessing', direction: 'pos', pool: 4
     }
 
     [
@@ -176,6 +183,17 @@ module DummyData
         reroll_sources: nil,
         mass_reroll_sources: nil, nudge_sources: nil,
         stub_id: 'save-bleed-t2-noluck'
+      },
+      {
+        creature:   { id: '2', name: 'Wisp Trueheart', tier: 2 },
+        affliction: { name: 'bleeding', rule: catalog.affliction('bleeding'),
+                      potency: 15, inflicter_tier: 2 },
+        save_dice: 7, save_tn: 7, die_size: 10,
+        potency_divisor: catalog.potency_divisor,
+        reroll_sources: [ash_luck],
+        mass_reroll_sources: nil,
+        nudge_sources: [selka_blessing],
+        stub_id: 'save-bleed-t2-blessing'
       }
     ]
   end

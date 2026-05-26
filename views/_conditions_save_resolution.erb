@@ -112,7 +112,10 @@
      data-preview='<%= preview_data.to_json %>'>
 
   <div class="rolls-header">
-    <span class="rolls-title"><%= category_label %> Save (Potency <%= a[:potency] %>) - <%= c[:name] %></span>
+    <span class="rolls-title">
+      <span class="rolls-title-main"><%= category_label %> Save</span>
+      <span class="rolls-title-sub">(Potency <%= a[:potency] %>) - <%= c[:name] %></span>
+    </span>
     <div class="rolls-actions">
       <% interactive_steps.each do |kind| %>
         <div class="step-controls" data-step="<%= kind %>"
