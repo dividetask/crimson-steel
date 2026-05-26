@@ -78,26 +78,6 @@
     return '[ ' + inner + ' ]';
   }
 
-  // Modifier rows show the dice state AFTER the modifier ran. Dice
-  // whose value the modifier actually changed render full-colored;
-  // dice the modifier did not touch render muted so the DM can see
-  // at a glance which dice were affected (and which weren't). When
-  // a modifier finds no eligible dice every position renders muted.
-  function renderModifierRow(values, changes, tn, dieSize) {
-    if (!values || values.length === 0) {
-      return '<span class="dice-placeholder">[ &mdash; ]</span>';
-    }
-    var inner = values.map(function (v, i) {
-      if (v === null || v === undefined) {
-        return '<span class="die empty">&nbsp;</span>';
-      }
-      var changed = changes[i] !== null && changes[i] !== undefined;
-      var cls = dieClass(v, tn, dieSize) + (changed ? '' : ' unchanged');
-      return '<span class="die ' + cls + '">' + v + '</span>';
-    }).join(', ');
-    return '[ ' + inner + ' ]';
-  }
-
   function rollGroup(group) {
     var config = JSON.parse(group.dataset.config);
     var dieSize = config.die_size;
@@ -118,7 +98,7 @@
       );
       current = mergeChanges(current, rerollChanges);
       var rerollCell = group.querySelector('.row-reroll .dice-cell');
-      if (rerollCell) rerollCell.innerHTML = renderModifierRow(current, rerollChanges, tn, dieSize);
+      if (rerollCell) rerollCell.innerHTML = renderDice(rerollChanges, tn, dieSize);
     }
     if (config.mass_reroll) {
       var massChanges = applyReroll(
@@ -126,7 +106,7 @@
       );
       current = mergeChanges(current, massChanges);
       var massCell = group.querySelector('.row-mass-reroll .dice-cell');
-      if (massCell) massCell.innerHTML = renderModifierRow(current, massChanges, tn, dieSize);
+      if (massCell) massCell.innerHTML = renderDice(massChanges, tn, dieSize);
     }
     if (config.nudge) {
       var nudgeChanges = applyNudge(
@@ -135,7 +115,7 @@
       );
       current = mergeChanges(current, nudgeChanges);
       var nudgeCell = group.querySelector('.row-nudge .dice-cell');
-      if (nudgeCell) nudgeCell.innerHTML = renderModifierRow(current, nudgeChanges, tn, dieSize);
+      if (nudgeCell) nudgeCell.innerHTML = renderDice(nudgeChanges, tn, dieSize);
     }
 
     // DoIS = starting_value + (successes ≥ TN) − (failures = 1). A

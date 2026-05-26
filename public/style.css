@@ -347,10 +347,6 @@ body {
 .die.neutral  { background: transparent; color: #111; }
 .die.empty    { background: transparent; color: transparent; min-width: 20px; }
 
-/* Modifier rows: dice the modifier didn't touch render muted so the
-   DM can see which dice were affected (and which weren't). */
-.die.unchanged { opacity: 0.35; }
-
 .result-cell {
   text-align: center;
   white-space: nowrap;
