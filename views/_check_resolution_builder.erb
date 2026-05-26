@@ -1,37 +1,36 @@
 <%#
   Check Resolution Builder Stub.
 
-  Walks the DM through the inputs needed to construct a Check before
-  rolling: target choice, action + dice, defense, reactions, and reroll
-  / nudge / mass-reroll source assignments. Owned by Check Resolution;
-  knows nothing about Conditions or any other domain. Emits the
-  composed Rolls to the parent.
+  Walks the DM through the inputs needed to compose a Check, then
+  reveals the embedded Check Resolution Stub once every interactive
+  step is resolved. Owned by Check Resolution; knows nothing about
+  Conditions or any other domain.
+
+  Each interactive panel is one "step":
+    - Title (top-left), "None" button (top-right).
+    - Interactive body (buttons, table, etc.).
+    - On pick (or None), the step collapses to a one-line summary
+      with a "Change" button that re-opens it.
+
+  Step order: target → action → defense → supporting → opposing →
+  reroll → mass_reroll → nudge → (embedded Check Resolution Stub).
+  Any step whose parameter list is null/empty is omitted; an Action
+  step with a single locked entry (`min_dice == max_dice`) is also
+  omitted because there's nothing to decide.
 
   Locals (`builder_config` hash):
-    target_options     — array of {creature_ref, name} or nil
-    action_options     — array of {name, min_dice, max_dice, speed?, damage?} or nil
-    actor_pool         — integer (gates dice spend when min_dice < max_dice)
-    defense_options    — array of {name, min_dice, max_dice, speed?} or nil
-    defender_pool      — integer
-    supporting_actions — array of {creature_ref, action_name, min_dice, max_dice, pool}
-    opposing_actions   — same shape
-    reroll_sources     — array of {creature_ref, creature_name, source_name, direction, pool} or nil
-    mass_reroll_sources — same shape (no pool)
-    nudge_sources      — same shape as reroll_sources
-    rolls              — array of {creature_name, roll_name, dice_count, tn, die_size,
-                         starting_value, side ∈ :supporting | :opposing}. The actual
-                         Rolls the Check will resolve once selections are made. For
-                         saves this is the single save Roll; the caller passes it
-                         pre-built because action_options here is informational
-                         (locked dice).
-    stub_id            — string, unique per builder instance on the page
-
-  The Builder renders panels for every populated section, hides those
-  that are null/empty, and below the panels embeds the existing Check
-  Resolution Stub seeded with the supplied Rolls. Reroll / Nudge / Mass
-  Reroll buttons live on the per-Roll table that appears at the bottom;
-  picking a magnitude there mutates the corresponding Roll's data-config
-  so the next Roll All applies it.
+    target_options       — array of {creature_ref, name} or nil
+    action_options       — array of {name, min_dice, max_dice, speed?, damage?} or nil
+    actor_pool           — integer
+    defense_options      — array of {name, min_dice, max_dice, speed?} or nil
+    defender_pool        — integer
+    supporting_actions   — array of {creature_ref, action_name, min_dice, max_dice, pool}
+    opposing_actions     — same shape
+    reroll_sources       — array of {creature_ref, creature_name, source_name, direction, pool} or nil
+    mass_reroll_sources  — same (no pool)
+    nudge_sources        — same shape as reroll_sources
+    rolls                — array of seed Roll hashes for the Check Resolution Stub
+    stub_id              — string, unique per builder instance
 %>
 <%
   require 'json'
@@ -39,176 +38,253 @@
   cfg = builder_config
   stub_id = cfg[:stub_id]
 
-  has_target  = !cfg[:target_options].nil? && !cfg[:target_options].empty?
-  has_action  = !cfg[:action_options].nil? && !cfg[:action_options].empty?
-  has_defense = !cfg[:defense_options].nil? && !cfg[:defense_options].empty?
-  has_supporting = !cfg[:supporting_actions].nil? && !cfg[:supporting_actions].empty?
-  has_opposing   = !cfg[:opposing_actions].nil? && !cfg[:opposing_actions].empty?
+  has_target          = !cfg[:target_options].nil? && !cfg[:target_options].empty?
+  has_action_panel    = !cfg[:action_options].nil? && !cfg[:action_options].empty? &&
+                        !(cfg[:action_options].size == 1 &&
+                          cfg[:action_options].first[:min_dice] == cfg[:action_options].first[:max_dice])
+  has_defense         = !cfg[:defense_options].nil? && !cfg[:defense_options].empty?
+  has_supporting      = !cfg[:supporting_actions].nil? && !cfg[:supporting_actions].empty?
+  has_opposing        = !cfg[:opposing_actions].nil? && !cfg[:opposing_actions].empty?
   has_reroll_sources      = !cfg[:reroll_sources].nil? && !cfg[:reroll_sources].empty?
   has_mass_reroll_sources = !cfg[:mass_reroll_sources].nil? && !cfg[:mass_reroll_sources].empty?
   has_nudge_sources       = !cfg[:nudge_sources].nil? && !cfg[:nudge_sources].empty?
 
+  step_order = []
+  step_order << :target      if has_target
+  step_order << :action      if has_action_panel
+  step_order << :defense     if has_defense
+  step_order << :supporting  if has_supporting
+  step_order << :opposing    if has_opposing
+  step_order << :reroll      if has_reroll_sources
+  step_order << :mass_reroll if has_mass_reroll_sources
+  step_order << :nudge       if has_nudge_sources
+
+  active_step = step_order.first
+  check_state = step_order.empty? ? 'active' : 'pending'
+
   rolls = cfg[:rolls] || []
   supporting_rolls = rolls.select { |r| (r[:side] || :supporting) == :supporting }
   opposing_rolls   = rolls.select { |r| r[:side] == :opposing }
+
+  source_columns = lambda do |sources, kind|
+    sources.each_with_index.map do |src, src_idx|
+      {
+        kind:           kind,
+        src_idx:        src_idx,
+        source_name:    src[:source_name],
+        creature_name:  src[:creature_name],
+        direction:      src[:direction],
+        pool:           src[:pool]
+      }
+    end
+  end
+
+  reroll_cols      = has_reroll_sources      ? source_columns.call(cfg[:reroll_sources], 'reroll')           : []
+  mass_reroll_cols = has_mass_reroll_sources ? source_columns.call(cfg[:mass_reroll_sources], 'mass_reroll') : []
+  nudge_cols       = has_nudge_sources       ? source_columns.call(cfg[:nudge_sources], 'nudge')             : []
+
+  render_mod_table = lambda do |cols|
+    out = +'<table class="cr-mod-table"><thead><tr>'
+    out << '<th class="cr-mod-rollname">Roll</th>'
+    cols.each do |c|
+      dir_class = c[:direction] == 'neg' ? 'cr-mod-neg' : 'cr-mod-pos'
+      dir_class = 'cr-mod-nudge' if c[:kind] == 'nudge'
+      out << %(<th class="cr-mod-col #{dir_class}">)
+      out << %(<span class="cr-src-name">#{c[:source_name]}</span>)
+      out << %(<span class="cr-src-actor">#{c[:creature_name]}</span>)
+      out << '</th>'
+    end
+    out << '</tr></thead><tbody>'
+    rolls.each_with_index do |r, roll_idx|
+      out << %(<tr data-roll-idx="#{roll_idx}">)
+      out << %(<td class="cr-mod-rollname">#{r[:roll_name]}</td>)
+      cols.each do |c|
+        dir_class = c[:direction] == 'neg' ? 'cr-mod-neg' : 'cr-mod-pos'
+        dir_class = 'cr-mod-nudge' if c[:kind] == 'nudge'
+        out << %(<td class="cr-mod-col #{dir_class}">)
+        if c[:kind] == 'mass_reroll'
+          sign_ch = c[:direction] == 'neg' ? '-' : '+'
+          out << %(<button type="button" class="cr-mod-btn" )
+          out << %(data-kind="mass_reroll" data-roll-idx="#{roll_idx}" )
+          out << %(data-sign="#{c[:direction]}" data-label="#{c[:source_name]}">#{sign_ch}*</button>)
+        else
+          (1..c[:pool].to_i).each do |n|
+            sign_ch = c[:direction] == 'neg' ? '-' : '+'
+            out << %(<button type="button" class="cr-mod-btn" )
+            out << %(data-kind="#{c[:kind]}" data-roll-idx="#{roll_idx}" )
+            out << %(data-sign="#{c[:direction]}" data-count="#{n}" )
+            out << %(data-label="#{c[:source_name]}">#{sign_ch}#{n}</button>)
+          end
+        end
+        out << '</td>'
+      end
+      out << '</tr>'
+    end
+    out << '</tbody></table>'
+    out
+  end
 %>
 
 <div class="cr-builder" data-stub-id="<%= stub_id %>">
 
   <% if has_target %>
-    <div class="cr-step cr-step-target">
-      <div class="cr-step-label">Select Target</div>
+    <div class="cr-step" data-step="target" data-state="<%= active_step == :target ? 'active' : 'pending' %>">
+      <div class="cr-step-head">
+        <span class="cr-step-title">Target</span>
+        <button type="button" class="cr-step-none">None</button>
+      </div>
       <div class="cr-step-body">
         <% cfg[:target_options].each do |t| %>
-          <button type="button" class="cr-opt cr-opt-target"
+          <button type="button" class="cr-mod-btn cr-pick" data-step="target"
+                  data-label="<%= t[:name] %>"
                   data-creature-ref="<%= t[:creature_ref] %>"><%= t[:name] %></button>
         <% end %>
+      </div>
+      <div class="cr-step-summary" hidden>
+        <span class="cr-step-summary-text"></span>
+        <button type="button" class="cr-step-change">Change</button>
       </div>
     </div>
   <% end %>
 
-  <% if has_action %>
-    <div class="cr-step cr-step-action">
-      <div class="cr-step-label">Action</div>
+  <% if has_action_panel %>
+    <div class="cr-step" data-step="action" data-state="<%= active_step == :action ? 'active' : 'pending' %>">
+      <div class="cr-step-head">
+        <span class="cr-step-title">Action</span>
+        <button type="button" class="cr-step-none">None</button>
+      </div>
       <div class="cr-step-body">
-        <% cfg[:action_options].each do |a|
-             locked = (a[:min_dice] == a[:max_dice]) %>
-          <div class="cr-action-row<%= ' cr-locked' if locked %>">
+        <% cfg[:action_options].each do |a| %>
+          <div class="cr-action-row">
             <span class="cr-action-name"><%= a[:name] %></span>
             <% if a[:speed] %><span class="cr-action-meta">Speed <%= a[:speed] %></span><% end %>
-            <% if locked %>
-              <span class="cr-action-dice">dice <%= a[:min_dice] %> <em>(locked)</em></span>
-            <% else %>
-              <span class="cr-action-meta">Max <%= a[:max_dice] %></span>
-              <span class="cr-dice-picker">
-                <% (a[:min_dice]..[a[:max_dice], cfg[:actor_pool].to_i].min).each do |n| %>
-                  <button type="button" class="cr-opt cr-opt-dice"
-                          data-dice="<%= n %>"><%= n %></button>
-                <% end %>
-              </span>
-            <% end %>
+            <span class="cr-action-meta">Max <%= a[:max_dice] %></span>
+            <span class="cr-dice-picker">
+              <% (a[:min_dice]..[a[:max_dice], cfg[:actor_pool].to_i].min).each do |n| %>
+                <button type="button" class="cr-mod-btn cr-pick" data-step="action"
+                        data-label="<%= a[:name] %>, <%= n %> dice"
+                        data-dice="<%= n %>"><%= n %></button>
+              <% end %>
+            </span>
           </div>
         <% end %>
         <% if cfg[:actor_pool] && cfg[:actor_pool].to_i.positive? %>
           <div class="cr-pool-line">Combat Pool: <strong><%= cfg[:actor_pool] %></strong></div>
         <% end %>
       </div>
+      <div class="cr-step-summary" hidden>
+        <span class="cr-step-summary-text"></span>
+        <button type="button" class="cr-step-change">Change</button>
+      </div>
     </div>
   <% end %>
 
   <% if has_defense %>
-    <div class="cr-step cr-step-defense">
-      <div class="cr-step-label">Defense</div>
+    <div class="cr-step" data-step="defense" data-state="<%= active_step == :defense ? 'active' : 'pending' %>">
+      <div class="cr-step-head">
+        <span class="cr-step-title">Defense</span>
+        <button type="button" class="cr-step-none">None</button>
+      </div>
       <div class="cr-step-body">
         <% cfg[:defense_options].each do |d| %>
-          <button type="button" class="cr-opt cr-opt-defense"><%= d[:name] %><% if d[:speed] %> <em>(Speed <%= d[:speed] %>)</em><% end %></button>
+          <button type="button" class="cr-mod-btn cr-pick" data-step="defense"
+                  data-label="<%= d[:name] %>"><%= d[:name] %><% if d[:speed] %> <em>(Speed <%= d[:speed] %>)</em><% end %></button>
         <% end %>
+      </div>
+      <div class="cr-step-summary" hidden>
+        <span class="cr-step-summary-text"></span>
+        <button type="button" class="cr-step-change">Change</button>
       </div>
     </div>
   <% end %>
 
   <% if has_supporting %>
-    <div class="cr-step cr-step-supporting">
-      <div class="cr-step-label">Supporting Actions</div>
+    <div class="cr-step" data-step="supporting" data-state="<%= active_step == :supporting ? 'active' : 'pending' %>">
+      <div class="cr-step-head">
+        <span class="cr-step-title">Supporting Actions</span>
+        <button type="button" class="cr-step-none">None</button>
+      </div>
       <div class="cr-step-body">
         <% cfg[:supporting_actions].each do |s| %>
-          <div class="cr-react-row"><%= s[:action_name] %> <em>(<%= s[:max_dice] %> dice max)</em></div>
+          <button type="button" class="cr-mod-btn cr-pick" data-step="supporting"
+                  data-label="<%= s[:action_name] %>"><%= s[:action_name] %> <em>(<%= s[:max_dice] %> dice max)</em></button>
         <% end %>
+      </div>
+      <div class="cr-step-summary" hidden>
+        <span class="cr-step-summary-text"></span>
+        <button type="button" class="cr-step-change">Change</button>
       </div>
     </div>
   <% end %>
 
   <% if has_opposing %>
-    <div class="cr-step cr-step-opposing">
-      <div class="cr-step-label">Opposing Actions</div>
+    <div class="cr-step" data-step="opposing" data-state="<%= active_step == :opposing ? 'active' : 'pending' %>">
+      <div class="cr-step-head">
+        <span class="cr-step-title">Opposing Actions</span>
+        <button type="button" class="cr-step-none">None</button>
+      </div>
       <div class="cr-step-body">
         <% cfg[:opposing_actions].each do |o| %>
-          <div class="cr-react-row"><%= o[:action_name] %> <em>(<%= o[:max_dice] %> dice max)</em></div>
+          <button type="button" class="cr-mod-btn cr-pick" data-step="opposing"
+                  data-label="<%= o[:action_name] %>"><%= o[:action_name] %> <em>(<%= o[:max_dice] %> dice max)</em></button>
         <% end %>
       </div>
-    </div>
-  <% end %>
-
-  <% if has_reroll_sources || has_mass_reroll_sources || has_nudge_sources %>
-    <div class="cr-step cr-step-luck">
-      <div class="cr-step-label">Rerolls / Nudges</div>
-      <div class="cr-step-body">
-        <table class="cr-luck-table">
-          <thead>
-            <tr>
-              <th>Roll</th>
-              <% cfg[:reroll_sources]&.each do |src| %>
-                <th class="cr-luck-col<%= src[:direction] == 'neg' ? ' cr-luck-neg' : ' cr-luck-pos' %>">
-                  <span class="cr-src-name"><%= src[:source_name] %></span>
-                  <span class="cr-src-actor"><%= src[:creature_name] %> · pool <%= src[:pool] %></span>
-                </th>
-              <% end %>
-              <% cfg[:mass_reroll_sources]&.each do |src| %>
-                <th class="cr-luck-col<%= src[:direction] == 'neg' ? ' cr-luck-neg' : ' cr-luck-pos' %>">
-                  <span class="cr-src-name"><%= src[:source_name] %> (mass)</span>
-                  <span class="cr-src-actor"><%= src[:creature_name] %></span>
-                </th>
-              <% end %>
-              <% cfg[:nudge_sources]&.each do |src| %>
-                <th class="cr-luck-col cr-luck-nudge">
-                  <span class="cr-src-name"><%= src[:source_name] %> (nudge)</span>
-                  <span class="cr-src-actor"><%= src[:creature_name] %> · pool <%= src[:pool] %></span>
-                </th>
-              <% end %>
-            </tr>
-          </thead>
-          <tbody>
-            <% rolls.each_with_index do |r, idx| %>
-              <tr data-roll-idx="<%= idx %>">
-                <td class="cr-luck-rollname"><%= r[:roll_name] %></td>
-                <% cfg[:reroll_sources]&.each_with_index do |src, src_idx| %>
-                  <td class="cr-luck-col<%= src[:direction] == 'neg' ? ' cr-luck-neg' : ' cr-luck-pos' %>">
-                    <% (1..src[:pool].to_i).each do |n|
-                         sign = src[:direction] == 'neg' ? '-' : '+' %>
-                      <button type="button" class="cr-luck-btn"
-                              data-kind="reroll"
-                              data-roll-idx="<%= idx %>"
-                              data-src-idx="<%= src_idx %>"
-                              data-sign="<%= src[:direction] %>"
-                              data-count="<%= n %>"
-                              data-label="<%= src[:source_name] %>"><%= sign %><%= n %></button>
-                    <% end %>
-                  </td>
-                <% end %>
-                <% cfg[:mass_reroll_sources]&.each_with_index do |src, src_idx| %>
-                  <td class="cr-luck-col<%= src[:direction] == 'neg' ? ' cr-luck-neg' : ' cr-luck-pos' %>">
-                    <% sign = src[:direction] == 'neg' ? '-' : '+' %>
-                    <button type="button" class="cr-luck-btn"
-                            data-kind="mass_reroll"
-                            data-roll-idx="<%= idx %>"
-                            data-src-idx="<%= src_idx %>"
-                            data-sign="<%= src[:direction] %>"
-                            data-label="<%= src[:source_name] %>"><%= sign %>*</button>
-                  </td>
-                <% end %>
-                <% cfg[:nudge_sources]&.each_with_index do |src, src_idx| %>
-                  <td class="cr-luck-col cr-luck-nudge">
-                    <% (1..src[:pool].to_i).each do |n|
-                         sign = src[:direction] == 'neg' ? '-' : '+' %>
-                      <button type="button" class="cr-luck-btn"
-                              data-kind="nudge"
-                              data-roll-idx="<%= idx %>"
-                              data-src-idx="<%= src_idx %>"
-                              data-sign="<%= src[:direction] %>"
-                              data-count="<%= n %>"
-                              data-label="<%= src[:source_name] %>"><%= sign %><%= n %></button>
-                    <% end %>
-                  </td>
-                <% end %>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
+      <div class="cr-step-summary" hidden>
+        <span class="cr-step-summary-text"></span>
+        <button type="button" class="cr-step-change">Change</button>
       </div>
     </div>
   <% end %>
 
-  <div class="cr-builder-result">
+  <% if has_reroll_sources %>
+    <div class="cr-step" data-step="reroll" data-state="<%= active_step == :reroll ? 'active' : 'pending' %>">
+      <div class="cr-step-head">
+        <span class="cr-step-title">Rerolls</span>
+        <button type="button" class="cr-step-none">None</button>
+      </div>
+      <div class="cr-step-body">
+        <%= render_mod_table.call(reroll_cols) %>
+      </div>
+      <div class="cr-step-summary" hidden>
+        <span class="cr-step-summary-text"></span>
+        <button type="button" class="cr-step-change">Change</button>
+      </div>
+    </div>
+  <% end %>
+
+  <% if has_mass_reroll_sources %>
+    <div class="cr-step" data-step="mass_reroll" data-state="<%= active_step == :mass_reroll ? 'active' : 'pending' %>">
+      <div class="cr-step-head">
+        <span class="cr-step-title">Mass Rerolls</span>
+        <button type="button" class="cr-step-none">None</button>
+      </div>
+      <div class="cr-step-body">
+        <%= render_mod_table.call(mass_reroll_cols) %>
+      </div>
+      <div class="cr-step-summary" hidden>
+        <span class="cr-step-summary-text"></span>
+        <button type="button" class="cr-step-change">Change</button>
+      </div>
+    </div>
+  <% end %>
+
+  <% if has_nudge_sources %>
+    <div class="cr-step" data-step="nudge" data-state="<%= active_step == :nudge ? 'active' : 'pending' %>">
+      <div class="cr-step-head">
+        <span class="cr-step-title">Nudges</span>
+        <button type="button" class="cr-step-none">None</button>
+      </div>
+      <div class="cr-step-body">
+        <%= render_mod_table.call(nudge_cols) %>
+      </div>
+      <div class="cr-step-summary" hidden>
+        <span class="cr-step-summary-text"></span>
+        <button type="button" class="cr-step-change">Change</button>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="cr-builder-result" data-state="<%= check_state %>">
     <%= erb :_check_stub, locals: { check: { supporting: supporting_rolls, opposing: opposing_rolls } } %>
   </div>
 </div>

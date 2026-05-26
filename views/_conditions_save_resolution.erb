@@ -34,6 +34,11 @@
   effect_attribute = a[:rule]['effect']['attribute']
   effect_named = a[:rule]['effect']['name']
 
+  category_label = (a[:rule]['category'] || a[:name]).to_s
+                                                     .split('_')
+                                                     .map(&:capitalize)
+                                                     .join(' ')
+
   preview_data = {
     potency_before:  a[:potency],
     potency_divisor: s[:potency_divisor],
@@ -75,20 +80,12 @@
 <div class="save-resolution" data-stub-id="<%= stub_id %>"
      data-preview='<%= preview_data.to_json %>'>
   <header class="save-header">
-    <h3><%= c[:name] %></h3>
-    <div class="save-summary">
-      Save vs <strong><%= a[:name] %></strong>
-      &middot; Potency <%= a[:potency] %>
-      &middot; Inflicter <span class="tier-<%= a[:inflicter_tier] %>">Tier <%= a[:inflicter_tier] %></span>
-      &middot; <%= s[:save_dice] %> dice @ TN <%= s[:save_tn] %>
-    </div>
+    <h3><%= category_label %> Save - <%= c[:name] %></h3>
   </header>
 
   <%= erb :_check_resolution_builder, locals: { builder_config: builder_config } %>
 
-  <div class="save-preview">
-    <h4>Effect preview</h4>
-    <p class="save-preview-hint">Press <strong>Roll All</strong> above to populate; edit any field before <strong>Confirm</strong>.</p>
+  <div class="save-preview" hidden>
     <div class="save-preview-fields">
       <label>DoIS <input type="number" class="sp-dois" value="0"></label>
       <label>Net Magnitude <input type="number" class="sp-net-mag" value="0"></label>

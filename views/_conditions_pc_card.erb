@@ -90,11 +90,15 @@
     <div class="pc-line"><span class="label">Temp HP</span><span class="value"><%= temp_hp %></span></div>
   <% end %>
 
-  <% if moderate_dmg.positive? %>
-    <div class="pc-line pc-dmg-moderate"><span class="label">Moderate Dmg</span><span class="value"><%= moderate_dmg %></span></div>
-  <% end %>
-  <% if major_dmg.positive? %>
-    <div class="pc-line pc-dmg-major"><span class="label">Major Dmg</span><span class="value"><%= major_dmg %></span></div>
+  <% if moderate_dmg.positive? || major_dmg.positive? %>
+    <div class="pc-dmg-row">
+      <% if moderate_dmg.positive? %>
+        <span class="pc-dmg-pill pc-dmg-moderate">Mod <%= moderate_dmg %></span>
+      <% end %>
+      <% if major_dmg.positive? %>
+        <span class="pc-dmg-pill pc-dmg-major">Maj <%= major_dmg %></span>
+      <% end %>
+    </div>
   <% end %>
 
   <% if ability_chips.any? %>

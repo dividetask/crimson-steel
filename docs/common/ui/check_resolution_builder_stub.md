@@ -25,16 +25,22 @@ Every list parameter is a set of DM-pickable options. A parameter that is null o
 
 ## Layout
 
-A vertical stack of panels in this order, each rendered only when its corresponding parameter is populated:
+A vertical stack of steps. Each step has a thin header row with the step **Title** on the left and a **None** button on the right. The interactive body sits below the header. Once the DM picks a button (or presses None), the step collapses to a one-line **summary** showing the chosen value and a **Change** button that re-opens it. Pressing Change also rewinds every later step (including the embedded Check Resolution Stub) back to pending so the DM can re-walk the chain.
 
-1. **Select Target**
-2. **Action** — for each action option, a row with name + speed + dice picker. Locked actions show `dice N (locked)` instead of buttons.
-3. **Defense**
-4. **Supporting Actions**
-5. **Opposing Actions**
-6. **Rerolls / Nudges** — a single table. The header row has one column per source; each row is one Roll. Cells contain magnitude buttons. The DM picks at most one button per cell (per source per Roll); the active button is highlighted in the source's color (positive = green, negative = red, nudge = blue). Pressing an active button toggles it off.
+The Check Resolution Stub seeded with `rolls` lives at the bottom of the chain and is hidden until every interactive step is resolved (or there are no interactive steps).
 
-Below the panels the Builder embeds the Check Resolution Stub seeded with `rolls`. Reroll / Mass Reroll / Nudge selections mutate the embedded Rolls' configs so the next Roll All applies them.
+Step order, each rendered only when its parameter is populated:
+
+- **Target**
+- **Action** — for each action option, a row with name + speed + dice picker. An Action step with a single locked entry (`min_dice == max_dice`) is *omitted* entirely because there is nothing for the DM to choose; the caller treats the action as decided.
+- **Defense**
+- **Supporting Actions**
+- **Opposing Actions**
+- **Rerolls** — own table. One column per Reroll Source (positive sources in green, negative in red); rows are the Rolls. Each cell holds `+1..+pool` or `-1..-pool` magnitude buttons.
+- **Mass Rerolls** — own table. One column per Mass Reroll Source. Single `+*` / `-*` button per cell (no magnitude).
+- **Nudges** — own table. Same shape as Rerolls; columns rendered in the Nudge palette (blue).
+
+Reroll / Mass Reroll / Nudge selections mutate the embedded Rolls' configs so the next Roll All applies them. Pressing **None** on a Reroll / Mass Reroll / Nudge step clears any pick on that step for every Roll before completing it. Pressing Change re-opens the step and clears its picks.
 
 ## Single-option auto-select
 

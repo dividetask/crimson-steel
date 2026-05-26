@@ -21,9 +21,9 @@ See `ui_conventions.md` for shared rules. Cross-domain terms (Magic Toxicity, To
 
 ## Layout
 
-1. **Header** — Creature name, Affliction name, current Potency, Inflicter Tier (rendered in the Tier Color), dice / TN summary.
-2. **Embedded Check Resolution Builder** — built by this stub with `target_options`, `defense_options`, `supporting_actions`, `opposing_actions` all null, and a single locked `action_options` entry representing the save (`min_dice = max_dice = save_dice`). The save Roll is passed to the Builder via `rolls`. The Reroll / Mass Reroll / Nudge panels appear only when the corresponding source lists are populated.
-3. **Effect preview** — a row of editable inputs the DM can adjust before Confirm:
+1. **Header** — a single thin bar showing `<Category> Save - <Creature Name>` (e.g. `Bleed Save - Wisp Trueheart`). The category is the Affliction Rule's `category` field, title-cased. The dice count, TN, and current Potency are not repeated here — the dice / TN appear inside the embedded Check Resolution Stub, and the Potency is editable in the effect preview.
+2. **Embedded Check Resolution Builder** — built by this stub with `target_options`, `defense_options`, `supporting_actions`, `opposing_actions` all null, and a single locked `action_options` entry representing the save (`min_dice = max_dice = save_dice`). The Action step is suppressed by the Builder because the dice are locked. The save Roll is passed to the Builder via `rolls`. The Reroll / Mass Reroll / Nudge steps appear only when the corresponding source lists are populated; each renders progressively (only one interactive step visible at a time, with a `None` button to skip and a `Change` button on the completed summary). The embedded Check Resolution Stub stays hidden until every interactive Builder step is resolved.
+3. **Effect preview** — hidden until the first Roll All; a row of editable inputs the DM can adjust before Confirm:
    - **DoIS** — mirrored from the embedded Check Resolution Stub's Result cell.
    - **Net Magnitude** — auto-computed from `magnitude = 1 + floor(potency / potency_divisor)` and `successes = max(0, DoIS)`. `net_magnitude = max(0, magnitude - successes)`.
    - **Effect amount field** — shape depends on the Affliction rule's effect kind:

@@ -154,9 +154,21 @@
       return;
     }
 
-    var luckBtn = e.target.closest('.cr-luck-btn');
-    if (luckBtn) {
-      handleLuckClick(luckBtn);
+    var modBtn = e.target.closest('.cr-mod-btn');
+    if (modBtn) {
+      handleModClick(modBtn);
+      return;
+    }
+
+    var stepNone = e.target.closest('.cr-step-none');
+    if (stepNone) {
+      handleStepNone(stepNone);
+      return;
+    }
+
+    var stepChange = e.target.closest('.cr-step-change');
+    if (stepChange) {
+      handleStepChange(stepChange);
       return;
     }
 
@@ -167,7 +179,18 @@
     }
   });
 
-  function handleLuckClick(btn) {
+  function handleModClick(btn) {
+    var kind = btn.dataset.kind;
+    if (kind === 'reroll' || kind === 'mass_reroll' || kind === 'nudge') {
+      applyRollModifier(btn);
+    }
+    // Picks for target / action / defense / supporting / opposing
+    // just complete the step with the button's label (no side effects
+    // on roll-group configs in the current slice).
+    completeStep(btn.closest('.cr-step'), btn.dataset.label || btn.textContent.trim());
+  }
+
+  function applyRollModifier(btn) {
     var rollIdx = parseInt(btn.dataset.rollIdx, 10);
     var kind    = btn.dataset.kind;
     var sign    = btn.dataset.sign;
@@ -181,30 +204,25 @@
     if (!group) return;
 
     var cfg = JSON.parse(group.dataset.config);
-    var isActive = btn.classList.contains('cr-luck-active');
-
-    // Deactivate any sibling buttons in the same cell.
-    var cell = btn.parentElement;
-    if (cell) cell.querySelectorAll('.cr-luck-btn').forEach(function (b) {
-      b.classList.remove('cr-luck-active');
-    });
-
-    if (isActive) {
-      // Toggle off.
-      cfg[kind] = null;
+    if (kind === 'mass_reroll') {
+      cfg.mass_reroll = { sign: sign };
     } else {
-      btn.classList.add('cr-luck-active');
-      if (kind === 'mass_reroll') {
-        cfg.mass_reroll = { sign: sign };
-      } else {
-        cfg[kind] = { sign: sign, count: count, max: false };
-      }
+      cfg[kind] = { sign: sign, count: count, max: false };
     }
     group.dataset.config = JSON.stringify(cfg);
-    updateLuckBadge(group, kind, cfg[kind], label);
+    updateModBadge(group, kind, cfg[kind], label);
   }
 
-  function updateLuckBadge(group, kind, mod, label) {
+  function clearRollModifier(builder, kind) {
+    builder.querySelectorAll('tbody.roll-group').forEach(function (group) {
+      var cfg = JSON.parse(group.dataset.config);
+      cfg[kind] = null;
+      group.dataset.config = JSON.stringify(cfg);
+      updateModBadge(group, kind, null, '');
+    });
+  }
+
+  function updateModBadge(group, kind, mod, label) {
     var rowClass = kind === 'reroll' ? '.row-reroll' :
                    kind === 'mass_reroll' ? '.row-mass-reroll' : '.row-nudge';
     var existingRow = group.querySelector(rowClass);
@@ -239,6 +257,72 @@
       group.appendChild(tr);
     }
     reflowRowspan(group);
+  }
+
+  function completeStep(stepEl, summaryText) {
+    if (!stepEl) return;
+    stepEl.dataset.state = 'complete';
+    var s = stepEl.querySelector('.cr-step-summary');
+    var st = stepEl.querySelector('.cr-step-summary-text');
+    if (st) st.textContent = summaryText;
+    if (s) s.hidden = false;
+    activateNextStep(stepEl.closest('.cr-builder'));
+  }
+
+  function handleStepNone(btn) {
+    var step = btn.closest('.cr-step');
+    if (!step) return;
+    var kind = step.dataset.step;
+    if (kind === 'reroll' || kind === 'mass_reroll' || kind === 'nudge') {
+      clearRollModifier(step.closest('.cr-builder'), kind);
+    }
+    completeStep(step, '(none)');
+  }
+
+  function handleStepChange(btn) {
+    var step = btn.closest('.cr-step');
+    if (!step) return;
+    var builder = step.closest('.cr-builder');
+    if (!builder) return;
+    var kind = step.dataset.step;
+    if (kind === 'reroll' || kind === 'mass_reroll' || kind === 'nudge') {
+      clearRollModifier(builder, kind);
+    }
+    step.dataset.state = 'active';
+    var s = step.querySelector('.cr-step-summary');
+    if (s) s.hidden = true;
+    // Move every step (and the result) after this one back to pending.
+    var rewind = false;
+    builder.querySelectorAll('.cr-step, .cr-builder-result').forEach(function (el) {
+      if (rewind) {
+        if (el.classList.contains('cr-builder-result')) {
+          el.dataset.state = 'pending';
+        } else {
+          el.dataset.state = 'pending';
+          var sum = el.querySelector('.cr-step-summary');
+          if (sum) sum.hidden = true;
+        }
+      }
+      if (el === step) rewind = true;
+    });
+    // Also re-hide the Save Resolution preview.
+    var save = builder.closest('.save-resolution');
+    if (save) {
+      var preview = save.querySelector('.save-preview');
+      if (preview) preview.hidden = true;
+    }
+  }
+
+  function activateNextStep(builder) {
+    if (!builder) return;
+    var chain = builder.querySelectorAll('.cr-step, .cr-builder-result');
+    for (var i = 0; i < chain.length; i++) {
+      var el = chain[i];
+      if (el.dataset.state === 'pending') {
+        el.dataset.state = 'active';
+        return;
+      }
+    }
   }
 
   function reflowRowspan(group) {
@@ -308,10 +392,22 @@
     if (!resultInput) return;
     var save = e.target.closest('.save-resolution');
     if (!save) return;
-    // Mirror the first roll's DoIS into the save preview's input.
     var first = save.querySelector('.result-input');
     if (first) save.querySelector('.sp-dois').value = first.value;
     recomputePreview(save);
+  });
+
+  // Reveal the Save Resolution preview the first time the dice are
+  // rolled inside it (Roll All triggers .roll-group population which
+  // we observe by tracking initial-row dice changes).
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.btn-roll-all');
+    if (!btn) return;
+    var save = btn.closest('.save-resolution');
+    if (!save) return;
+    var preview = save.querySelector('.save-preview');
+    if (preview) preview.hidden = false;
+    setTimeout(function () { recomputePreview(save); }, 0);
   });
 
   function handleSaveConfirm(btn) {
