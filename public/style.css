@@ -361,6 +361,10 @@ body {
   vertical-align: middle;
 }
 
+/* Spacer variant: takes width so modifier-row dice line up with
+   the initial row, but doesn't render visibly. */
+.die.starting-spacer { visibility: hidden; }
+
 .result-cell {
   text-align: center;
   white-space: nowrap;

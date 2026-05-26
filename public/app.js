@@ -88,21 +88,31 @@
     return 'neutral';
   }
 
-  function renderStartingSquares(startingValue) {
+  // Starting Successes / Failures render as small filled squares
+  // before the rolled dice on the *initial* row. Modifier rows
+  // (reroll / mass_reroll / nudge) reserve the same horizontal
+  // space via invisible spacers so each die column stays aligned
+  // with the initial row above it — without the spacers, position N
+  // in a modifier row would land under position N − |starting_value|
+  // of the initial row.
+  function renderStartingSquares(startingValue, mode) {
     if (!startingValue) return '';
     var abs = Math.abs(startingValue);
     var cls = startingValue > 0 ? 'success' : 'fail';
+    var spacer = mode === 'spacer' ? ' starting-spacer' : '';
     var out = '';
     for (var i = 0; i < abs; i++) {
-      out += '<span class="die ' + cls + ' starting-die">&nbsp;</span>';
+      out += '<span class="die ' + cls + ' starting-die' + spacer + '">&nbsp;</span>';
     }
     return out + ' ';
   }
 
-  // `startingValue` is optional; pass a non-zero value only on the
-  // initial-dice row. Modifier rows omit it.
-  function renderDice(values, tn, dieSize, startingValue) {
-    var starting = renderStartingSquares(startingValue);
+  // `startingValue` is optional; pass a non-zero value on every row
+  // of a Roll that carries one. `mode` is 'shown' on the initial row
+  // (squares render in color) and 'spacer' on modifier rows (squares
+  // take width but are invisible).
+  function renderDice(values, tn, dieSize, startingValue, mode) {
+    var starting = renderStartingSquares(startingValue, mode || 'shown');
     if (!values || values.length === 0) {
       return '<span class="dice-placeholder">[ ' + starting + '&mdash; ]</span>';
     }
@@ -135,7 +145,7 @@
       );
       current = mergeChanges(current, rerollChanges);
       var rerollCell = group.querySelector('.row-reroll .dice-cell');
-      if (rerollCell) rerollCell.innerHTML = renderDice(rerollChanges, tn, dieSize);
+      if (rerollCell) rerollCell.innerHTML = renderDice(rerollChanges, tn, dieSize, startingValue, 'spacer');
     }
     if (config.mass_reroll) {
       var massChanges = applyReroll(
@@ -143,7 +153,7 @@
       );
       current = mergeChanges(current, massChanges);
       var massCell = group.querySelector('.row-mass-reroll .dice-cell');
-      if (massCell) massCell.innerHTML = renderDice(massChanges, tn, dieSize);
+      if (massCell) massCell.innerHTML = renderDice(massChanges, tn, dieSize, startingValue, 'spacer');
     }
     if (config.nudge) {
       var nudgeChanges = applyNudge(
@@ -152,7 +162,7 @@
       );
       current = mergeChanges(current, nudgeChanges);
       var nudgeCell = group.querySelector('.row-nudge .dice-cell');
-      if (nudgeCell) nudgeCell.innerHTML = renderDice(nudgeChanges, tn, dieSize);
+      if (nudgeCell) nudgeCell.innerHTML = renderDice(nudgeChanges, tn, dieSize, startingValue, 'spacer');
     }
 
     // DoIS = starting_value + (successes ≥ TN) − (failures = 1). A
