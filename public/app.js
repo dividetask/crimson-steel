@@ -11,20 +11,21 @@
     return out;
   }
 
-  function applyReroll(current, sign, count, max, tn, dieSize) {
+  function applyReroll(current, sign, count, max, tn, dieSize, rerolledMask) {
     var changes = new Array(current.length).fill(null);
     var indexed = current.map(function (v, i) { return { v: v, i: i }; });
     var candidates;
     if (sign === 'pos') {
-      candidates = indexed.filter(function (d) { return d.v < tn; })
+      candidates = indexed.filter(function (d) { return d.v < tn && !(rerolledMask && rerolledMask[d.i]); })
                           .sort(function (a, b) { return a.v - b.v; });
     } else {
-      candidates = indexed.filter(function (d) { return d.v >= tn; })
+      candidates = indexed.filter(function (d) { return d.v >= tn && !(rerolledMask && rerolledMask[d.i]); })
                           .sort(function (a, b) { return b.v - a.v; });
     }
     var n = max ? candidates.length : count;
     candidates.slice(0, n).forEach(function (d) {
       changes[d.i] = rollDie(dieSize);
+      if (rerolledMask) rerolledMask[d.i] = true;
     });
     return changes;
   }
@@ -84,6 +85,7 @@
 
     var initial = rollDice(config.dice_count, dieSize);
     var current = initial.slice();
+    var rerolledMask = new Array(initial.length).fill(false);
 
     var initialCell = group.querySelector('.row-initial .dice-cell');
     if (initialCell) initialCell.innerHTML = renderDice(initial, tn, dieSize);
@@ -91,11 +93,19 @@
     if (config.reroll) {
       var rerollChanges = applyReroll(
         current, config.reroll.sign, config.reroll.count,
-        config.reroll.max, tn, dieSize
+        config.reroll.max, tn, dieSize, rerolledMask
       );
       current = mergeChanges(current, rerollChanges);
       var rerollCell = group.querySelector('.row-reroll .dice-cell');
       if (rerollCell) rerollCell.innerHTML = renderDice(rerollChanges, tn, dieSize);
+    }
+    if (config.mass_reroll) {
+      var massChanges = applyReroll(
+        current, config.mass_reroll.sign, 0, true, tn, dieSize, rerolledMask
+      );
+      current = mergeChanges(current, massChanges);
+      var massCell = group.querySelector('.row-mass-reroll .dice-cell');
+      if (massCell) massCell.innerHTML = renderDice(massChanges, tn, dieSize);
     }
     if (config.nudge) {
       var nudgeChanges = applyNudge(
@@ -143,5 +153,175 @@
       lockBtn.classList.toggle('locked');
       return;
     }
+
+    var luckBtn = e.target.closest('.cr-luck-btn');
+    if (luckBtn) {
+      handleLuckClick(luckBtn);
+      return;
+    }
+
+    var saveConfirm = e.target.closest('.btn-save-confirm');
+    if (saveConfirm) {
+      handleSaveConfirm(saveConfirm);
+      return;
+    }
   });
+
+  function handleLuckClick(btn) {
+    var rollIdx = parseInt(btn.dataset.rollIdx, 10);
+    var kind    = btn.dataset.kind;
+    var sign    = btn.dataset.sign;
+    var count   = btn.dataset.count ? parseInt(btn.dataset.count, 10) : null;
+    var label   = btn.dataset.label;
+
+    var builder = btn.closest('.cr-builder');
+    if (!builder) return;
+    var groups = builder.querySelectorAll('tbody.roll-group');
+    var group = groups[rollIdx];
+    if (!group) return;
+
+    var cfg = JSON.parse(group.dataset.config);
+    var isActive = btn.classList.contains('cr-luck-active');
+
+    // Deactivate any sibling buttons in the same cell.
+    var cell = btn.parentElement;
+    if (cell) cell.querySelectorAll('.cr-luck-btn').forEach(function (b) {
+      b.classList.remove('cr-luck-active');
+    });
+
+    if (isActive) {
+      // Toggle off.
+      cfg[kind] = null;
+    } else {
+      btn.classList.add('cr-luck-active');
+      if (kind === 'mass_reroll') {
+        cfg.mass_reroll = { sign: sign };
+      } else {
+        cfg[kind] = { sign: sign, count: count, max: false };
+      }
+    }
+    group.dataset.config = JSON.stringify(cfg);
+    updateLuckBadge(group, kind, cfg[kind], label);
+  }
+
+  function updateLuckBadge(group, kind, mod, label) {
+    var rowClass = kind === 'reroll' ? '.row-reroll' :
+                   kind === 'mass_reroll' ? '.row-mass-reroll' : '.row-nudge';
+    var existingRow = group.querySelector(rowClass);
+    if (!mod) {
+      if (existingRow) existingRow.remove();
+      reflowRowspan(group);
+      return;
+    }
+
+    var badgeText;
+    var badgeClass = kind === 'nudge' ? 'mod-nudge' : 'mod-reroll';
+    var modColIdx  = kind === 'nudge' ? 1 : 0;
+    var signCh = mod.sign === 'neg' ? '-' : '+';
+    if (kind === 'mass_reroll') {
+      badgeText = signCh + '*';
+    } else {
+      badgeText = signCh + mod.count;
+    }
+
+    if (existingRow) {
+      var badge = existingRow.querySelector('.mod-badge');
+      if (badge) {
+        badge.textContent = badgeText;
+        badge.setAttribute('data-tooltip', label || '');
+      }
+    } else {
+      var tr = document.createElement('tr');
+      tr.className = 'modifier-row ' + rowClass.slice(1);
+      var modCellA = '<td class="mod-cell">' + (modColIdx === 0 ? '<span class="mod-badge ' + badgeClass + '" data-tooltip="' + (label || '') + '">' + badgeText + '</span>' : '') + '</td>';
+      var modCellB = '<td class="mod-cell">' + (modColIdx === 1 ? '<span class="mod-badge ' + badgeClass + '" data-tooltip="' + (label || '') + '">' + badgeText + '</span>' : '') + '</td>';
+      tr.innerHTML = modCellA + modCellB + '<td class="dice-cell"></td>';
+      group.appendChild(tr);
+    }
+    reflowRowspan(group);
+  }
+
+  function reflowRowspan(group) {
+    var rows = group.querySelectorAll('tr');
+    var n = rows.length;
+    var initial = group.querySelector('.row-initial');
+    if (!initial) return;
+    initial.querySelectorAll('td[rowspan]').forEach(function (td) {
+      td.setAttribute('rowspan', n);
+    });
+  }
+
+  // Recompute the Conditions Save Resolution preview after Roll All
+  // populates the dice. Listens for changes to the result-input (DoIS)
+  // and recomputes Net Magnitude + effect amount + Potency delta.
+  function recomputePreview(save) {
+    var data = JSON.parse(save.dataset.preview);
+    var disp = parseInt(save.querySelector('.sp-dois').value, 10) || 0;
+    var successes = Math.max(0, disp);
+    var failures  = Math.max(0, -disp);
+
+    var divisor = data.potency_divisor;
+    var potencyBefore = data.potency_before;
+    var magnitude = 1 + Math.floor(potencyBefore / divisor);
+    var netMagnitude = Math.max(0, magnitude - successes);
+
+    save.querySelector('.sp-net-mag').value = netMagnitude;
+
+    var amtInput = save.querySelector('.sp-effect-amount');
+    if (amtInput) {
+      if (data.effect.kind === 'named_effect') {
+        amtInput.value = netMagnitude > 0 ? data.effect.name : '(none)';
+      } else {
+        amtInput.value = netMagnitude;
+      }
+    }
+
+    // Potency evolution: -floor(decay) - floor(successes*per_success)
+    //                    + floor(failures*per_failure)
+    var rule = data.effect;
+    var tier = data.creature_tier;
+    function subTier(v) {
+      if (v === 'tier' || v === '"tier"') return tier <= 0 ? 0.5 : tier;
+      return Number(v);
+    }
+    // Affliction rule overrides aren't part of preview_data; this is a
+    // rough preview using defaults (1, 1, "tier"). The DM can override
+    // the New Potency input directly.
+    var decay    = subTier('tier');
+    var perS     = 1;
+    var perF     = 1;
+    var delta    = -Math.floor(decay) - Math.floor(successes * perS) + Math.floor(failures * perF);
+    var newPot   = Math.max(0, potencyBefore + delta);
+    save.querySelector('.sp-new-potency').value = newPot;
+
+    var btn = save.querySelector('.btn-save-confirm');
+    if (btn) btn.disabled = false;
+  }
+
+  // Wire each Save Resolution stub to recompute when its DoIS input
+  // changes (which Roll All updates indirectly: it populates dice, the
+  // DM types DoIS or accepts the dummy default). The result-input
+  // inside the embedded Check Resolution Stub is the DoIS cell. We
+  // listen to changes on the table inside the Save's builder.
+  document.addEventListener('change', function (e) {
+    var resultInput = e.target.closest('.result-input');
+    if (!resultInput) return;
+    var save = e.target.closest('.save-resolution');
+    if (!save) return;
+    // Mirror the first roll's DoIS into the save preview's input.
+    var first = save.querySelector('.result-input');
+    if (first) save.querySelector('.sp-dois').value = first.value;
+    recomputePreview(save);
+  });
+
+  function handleSaveConfirm(btn) {
+    var save = btn.closest('.save-resolution');
+    if (!save) return;
+    var msg = save.querySelector('.save-confirm-msg');
+    if (msg) {
+      msg.textContent = 'Recorded (demo: no state mutated).';
+      msg.classList.add('shown');
+    }
+    btn.disabled = true;
+  }
 })();

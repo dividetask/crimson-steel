@@ -1,0 +1,113 @@
+<%#
+  Conditions Save Resolution Stub.
+
+  Wraps the Check Resolution Builder for an Affliction save. After the
+  embedded Check resolves, computes the effect preview (Net Magnitude,
+  HP / Ability Damage, new Potency) in editable input fields. A
+  Confirm button finally applies the resolution. Everything between
+  Roll and Confirm is JS-side; no state mutates until Confirm is
+  pressed.
+
+  Locals:
+    save  — required. Hash describing the save to resolve:
+      {
+        creature: { id, name, tier, ... },
+        affliction: { name, rule (catalog entry), potency, inflicter_tier },
+        save_dice: int, save_tn: int, die_size: int,
+        potency_divisor: int,
+        reroll_sources: [...],     # optional
+        mass_reroll_sources: [...],
+        nudge_sources: [...],
+        stub_id: string
+      }
+%>
+<%
+  require 'json'
+
+  s = save
+  c = s[:creature]
+  a = s[:affliction]
+  stub_id = s[:stub_id]
+
+  effect_kind = a[:rule]['effect']['kind']
+  effect_severity = a[:rule]['effect']['severity']
+  effect_attribute = a[:rule]['effect']['attribute']
+  effect_named = a[:rule]['effect']['name']
+
+  preview_data = {
+    potency_before:  a[:potency],
+    potency_divisor: s[:potency_divisor],
+    effect: a[:rule]['effect'],
+    creature_tier:   c[:tier]
+  }
+
+  base_roll = {
+    creature_name: c[:name],
+    roll_name:     "Save vs #{a[:name]}",
+    dice_count:    s[:save_dice],
+    tn:            s[:save_tn],
+    die_size:      s[:die_size],
+    starting_value: 0,
+    reroll:      nil,
+    mass_reroll: nil,
+    nudge:       nil,
+    dois:        0,
+    critical_count: 0,
+    side: :supporting
+  }
+
+  builder_config = {
+    target_options:  nil,
+    action_options:  [{ name: "Save vs #{a[:name]}", min_dice: s[:save_dice], max_dice: s[:save_dice] }],
+    actor_pool:      s[:save_dice],
+    defense_options: nil,
+    defender_pool:   0,
+    supporting_actions: [],
+    opposing_actions:   [],
+    reroll_sources:      s[:reroll_sources],
+    mass_reroll_sources: s[:mass_reroll_sources],
+    nudge_sources:       s[:nudge_sources],
+    rolls:               [base_roll],
+    stub_id:             stub_id
+  }
+%>
+
+<div class="save-resolution" data-stub-id="<%= stub_id %>"
+     data-preview='<%= preview_data.to_json %>'>
+  <header class="save-header">
+    <h3><%= c[:name] %></h3>
+    <div class="save-summary">
+      Save vs <strong><%= a[:name] %></strong>
+      &middot; Potency <%= a[:potency] %>
+      &middot; Inflicter <span class="tier-<%= a[:inflicter_tier] %>">Tier <%= a[:inflicter_tier] %></span>
+      &middot; <%= s[:save_dice] %> dice @ TN <%= s[:save_tn] %>
+    </div>
+  </header>
+
+  <%= erb :_check_resolution_builder, locals: { builder_config: builder_config } %>
+
+  <div class="save-preview">
+    <h4>Effect preview</h4>
+    <p class="save-preview-hint">Press <strong>Roll All</strong> above to populate; edit any field before <strong>Confirm</strong>.</p>
+    <div class="save-preview-fields">
+      <label>DoIS <input type="number" class="sp-dois" value="0"></label>
+      <label>Net Magnitude <input type="number" class="sp-net-mag" value="0"></label>
+      <% if effect_kind == 'hit_point_damage' %>
+        <label><%= effect_severity.to_s.capitalize %> HP Damage
+          <input type="number" class="sp-effect-amount" data-kind="hit_point_damage" data-severity="<%= effect_severity %>" value="0">
+        </label>
+      <% elsif effect_kind == 'ability_damage' %>
+        <label><%= effect_severity.to_s.capitalize %> <%= effect_attribute.to_s.upcase %> Damage
+          <input type="number" class="sp-effect-amount" data-kind="ability_damage" data-severity="<%= effect_severity %>" data-attribute="<%= effect_attribute %>" value="0">
+        </label>
+      <% elsif effect_kind == 'named_effect' %>
+        <label>Apply effect
+          <input type="text" class="sp-effect-amount" data-kind="named_effect" data-name="<%= effect_named %>" value="(none)" readonly>
+        </label>
+      <% end %>
+      <label>New Potency <input type="number" class="sp-new-potency" value="<%= a[:potency] %>"></label>
+    </div>
+    <button type="button" class="btn-save-confirm" disabled>Confirm</button>
+    <span class="save-confirm-msg"></span>
+  </div>
+</div>

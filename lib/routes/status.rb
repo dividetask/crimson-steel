@@ -9,6 +9,9 @@ get '/status' do
   if @view == 'conditions'
     @catalog = Conditions::Catalog.load
     @creatures = DummyData.creatures
+  elsif @view == 'check'
+    @catalog = Conditions::Catalog.load
+    @save_examples = DummyData.save_resolution_examples(@catalog)
   end
 
   erb :status

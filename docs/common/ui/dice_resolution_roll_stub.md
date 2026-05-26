@@ -6,21 +6,21 @@ See `ui_conventions.md` for shared rules (dice highlighting, modifier presentati
 
 ## Layout
 
-The stub renders one to three table rows for a single Roll, with seven columns:
+The stub renders one to four table rows for a single Roll, with seven columns:
 
 | Column | Content |
 |---|---|
 | Character | Three lines: Creature Name, parameters line, Roll Name. Spans every row of the Roll. |
-| Reroll | The Reroll modifier value as a small badge (see **Modifier columns**). Empty on the initial-dice row and the nudge row. |
-| Nudge | The Nudge modifier value as a small badge. Empty on the initial-dice row and the reroll row. |
-| Dice | The dice for this step (initial, post-reroll, or post-nudge). One step per row. |
+| Reroll | The Reroll or Mass Reroll modifier value as a small badge (see **Modifier columns**). Empty on the initial-dice row and the nudge row. A Roll that carries both a Reroll and a Mass Reroll renders one row per modifier; the badge sits in this column on each. |
+| Nudge | The Nudge modifier value as a small badge. Empty on the other modifier rows. |
+| Dice | The dice for this step (initial, post-reroll, post-mass-reroll, or post-nudge). One step per row. |
 | Result | A manual-override DoIS input. Spans every row of the Roll. |
 | Crits | A manual-override Critical Count input. Spans every row of the Roll. |
 | Lock | A lock toggle (closed/open padlock icon) that freezes the Roll's result from further changes. Spans every row of the Roll. |
 
 There is **no** per-Roll action button column. Roll All and Confirm All are owned by the parent wrapper (see **Composition**) — never duplicated per Roll.
 
-The Reroll row is omitted when the Roll has no Reroll. The Nudge row is omitted when the Roll has no Nudge. A Roll with neither has only the initial-dice row.
+A modifier row is omitted when the Roll has no modifier of that kind. A Roll with no Reroll, no Mass Reroll, and no Nudge has only the initial-dice row. Each die can be rerolled at most once across the Reroll + Mass Reroll combination — the Mass Reroll skips any die already touched by the Reroll.
 
 The stub must fit within its container; the parent wrapper sets the available width and the stub does not overflow it. Long dice rows wrap inside the Dice cell.
 
@@ -34,8 +34,9 @@ Required:
 - Starting Value — signed integer.
 
 Optional:
-- Reroll — `(sign, count, max)`. `sign` is `+` (reroll non-Successes) or `-` (reroll Successes). `count` is the magnitude. `max = true` means "Maximum Dice Count" and is displayed as `*`. Omitting the Reroll suppresses the row.
-- Nudge — `(sign, count, max)`. `sign` is `+` or `-`. `max = true` is displayed as `*`. Omitting the Nudge suppresses the row.
+- Reroll — `(sign, count)`. `sign` is `+` (reroll non-Successes) or `-` (reroll Successes). `count` is the magnitude (positive integer). Omitting the Reroll suppresses the row.
+- Mass Reroll — `(sign)`. `sign` is `+` (rerolls every non-Success that the Reroll did not already touch) or `-` (every Success). No magnitude; the badge always reads `+*` or `-*`. Omitting the Mass Reroll suppresses the row.
+- Nudge — `(sign, count)`. `sign` is `+` or `-`. Omitting the Nudge suppresses the row.
 - Rows-only toggle — boolean. When true, the stub emits only its table row(s) and no surrounding `<table>` / `<colgroup>` / `<thead>`. The parent supplies the table. When false (default), the stub emits a complete standalone table for the single Roll. Either way, the parent supplies the Rolls wrapper and Roll All / Confirm All controls; see **Composition**.
 - Stub identifier — string supplied by the parent so per-Roll events can be addressed.
 
@@ -59,7 +60,7 @@ No source label (e.g., "Bardic Inspiration") is shown inside the cell. Source at
 - **Hover** the badge — the source name appears above the badge for as long as the pointer remains over it.
 - **Click** the badge — the same tooltip is shown for three seconds and then dismissed. The click is a momentary affordance for keyboard/touch use; it does not trigger a reroll on its own.
 
-The Reroll badge sits on the post-reroll row only. The Nudge badge sits on the post-nudge row only. Both badges may be color-coded (e.g., Reroll = warm/amber, Nudge = cool/green) for quick visual distinction.
+The Reroll badge sits on the post-reroll row; the Mass Reroll badge sits on the post-mass-reroll row (same column). The Nudge badge sits on the post-nudge row only. Reroll-class badges may be color-coded one color, Nudge another (e.g., Reroll/Mass Reroll = warm/amber, Nudge = cool/green) for quick visual distinction.
 
 ## Dice column
 
@@ -95,8 +96,8 @@ The standalone (non rows-only) mode is provided for inspection and demos — for
 
 ## Behavior
 
-Roll All on the parent wrapper triggers all embedded Roll Resolution Stubs in sequence: the dice resolution domain produces fresh dice for each Roll's initial row, then applies Reroll and Nudge (in that order) to populate the corresponding rows. **Roll All re-rolls dice that have already been rolled** — each press generates new random values for every unlocked Roll. A Roll whose Lock is closed is skipped entirely, preserving its current dice and inputs.
+Roll All on the parent wrapper triggers all embedded Roll Resolution Stubs in sequence: the dice resolution domain produces fresh dice for each Roll's initial row, then applies Reroll, Mass Reroll, and Nudge (in that order) to populate the corresponding rows. **Roll All re-rolls dice that have already been rolled** — each press generates new random values for every unlocked Roll. A Roll whose Lock is closed is skipped entirely, preserving its current dice and inputs.
 
 Confirm All on the parent wrapper signals the application that the user has accepted the current Result and Crits inputs across every embedded Roll. The Roll Resolution Stub itself does nothing on Confirm All beyond contributing its current input values — the wrapper aggregates and emits the event.
 
-The Reroll's output feeds the Nudge's input, matching the dice resolution domain's order of operations. Re-running the Reroll invalidates any prior Nudge result on that Roll; the Nudge must be re-applied if still desired.
+Each modifier's output feeds the next step's input, matching the dice resolution domain's order of operations (Reroll → Mass Reroll → Nudge). The Mass Reroll skips any die index already rerolled by the Reroll (each die may be rerolled at most once). Re-running an earlier step invalidates downstream results on that Roll; later modifiers must be re-applied if still desired.

@@ -6,6 +6,13 @@
     rows_only  — optional boolean. When true, emit only the roll group
                  <tbody> (so a parent stub can place it inside its own
                  table). When false/absent, emit the full Rolls wrapper.
+
+  Roll modifier slots:
+    reroll       — regular reroll of `amount` dice in `sign` direction.
+    mass_reroll  — rerolls every die matching `sign` direction (no
+                   amount; each die can be rerolled at most once across
+                   reroll + mass_reroll combined).
+    nudge        — value adjustment of `amount` dice in `sign` direction.
 %>
 <%
   require 'json'
@@ -21,7 +28,7 @@
       ''
     end
 
-  fmt_mod = lambda do |mod|
+  fmt_amount = lambda do |mod|
     next nil if mod.nil?
     sign = (mod[:sign] || (mod[:amount].to_i.negative? ? :neg : :pos))
     sign_ch = sign == :neg ? '-' : '+'
@@ -29,24 +36,38 @@
     "#{sign_ch}#{magnitude}"
   end
 
-  serialize_mod = lambda do |mod|
+  fmt_mass = lambda do |mod|
+    next nil if mod.nil?
+    sign_ch = mod[:sign] == :neg ? '-' : '+'
+    "#{sign_ch}*"
+  end
+
+  serialize_amount = lambda do |mod|
     next nil if mod.nil?
     sign = (mod[:sign] || (mod[:amount].to_i.negative? ? :neg : :pos))
     { sign: sign.to_s, count: mod[:amount].to_i.abs, max: mod[:max] ? true : false }
   end
 
-  reroll_text = fmt_mod.call(roll[:reroll])
-  nudge_text  = fmt_mod.call(roll[:nudge])
-  has_reroll  = !reroll_text.nil?
-  has_nudge   = !nudge_text.nil?
-  row_count   = 1 + (has_reroll ? 1 : 0) + (has_nudge ? 1 : 0)
+  serialize_mass = lambda do |mod|
+    next nil if mod.nil?
+    { sign: mod[:sign].to_s }
+  end
+
+  reroll_text       = fmt_amount.call(roll[:reroll])
+  mass_reroll_text  = fmt_mass.call(roll[:mass_reroll])
+  nudge_text        = fmt_amount.call(roll[:nudge])
+  has_reroll        = !reroll_text.nil?
+  has_mass_reroll   = !mass_reroll_text.nil?
+  has_nudge         = !nudge_text.nil?
+  row_count         = 1 + (has_reroll ? 1 : 0) + (has_mass_reroll ? 1 : 0) + (has_nudge ? 1 : 0)
 
   group_config = {
-    dice_count: roll[:dice_count],
-    tn:         roll[:tn],
-    die_size:   roll[:die_size],
-    reroll:     serialize_mod.call(roll[:reroll]),
-    nudge:      serialize_mod.call(roll[:nudge])
+    dice_count:  roll[:dice_count],
+    tn:          roll[:tn],
+    die_size:    roll[:die_size],
+    reroll:      serialize_amount.call(roll[:reroll]),
+    mass_reroll: serialize_mass.call(roll[:mass_reroll]),
+    nudge:       serialize_amount.call(roll[:nudge])
   }
 %>
 
@@ -109,6 +130,16 @@
     <tr class="modifier-row row-reroll">
       <td class="mod-cell">
         <span class="mod-badge mod-reroll" data-tooltip="<%= roll[:reroll][:label] %>"><%= reroll_text %></span>
+      </td>
+      <td class="mod-cell"></td>
+      <td class="dice-cell"></td>
+    </tr>
+  <% end %>
+
+  <% if has_mass_reroll %>
+    <tr class="modifier-row row-mass-reroll">
+      <td class="mod-cell">
+        <span class="mod-badge mod-reroll" data-tooltip="<%= roll[:mass_reroll][:label] %>"><%= mass_reroll_text %></span>
       </td>
       <td class="mod-cell"></td>
       <td class="dice-cell"></td>

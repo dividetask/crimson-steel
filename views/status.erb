@@ -32,6 +32,12 @@
       <p class="lead">Check Resolution Stub &mdash; one Rolls wrapper containing multiple Rolls.</p>
       <%= erb :_check_stub, locals: { check: @check } %>
 
+      <h2>Builder &mdash; Conditions Save Resolution</h2>
+      <p class="lead">The Check Resolution Builder Stub wrapped by a Conditions Save Resolution Stub. Three example saves.</p>
+      <% @save_examples.each do |s| %>
+        <%= erb :_conditions_save_resolution, locals: { save: s } %>
+      <% end %>
+
     <% when 'conditions' %>
       <h1>Conditions &mdash; Downtime PC Cards</h1>
       <p class="lead">One card per player-character Creature: current Conditions State plus carried Consumables.</p>

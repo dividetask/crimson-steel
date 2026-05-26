@@ -507,3 +507,232 @@ body {
 
 .consumable-list li { font-weight: bold; }
 
+/* === Check Resolution Builder === */
+
+.cr-builder {
+  border: 1px solid #c8c8c8;
+  margin-bottom: 12px;
+  background: #fff;
+}
+
+.cr-step {
+  border-bottom: 1px solid #eee;
+  padding: 8px 12px;
+}
+
+.cr-step-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: #444;
+  margin-bottom: 4px;
+}
+
+.cr-step-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.cr-action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  padding: 2px 0;
+}
+
+.cr-action-name { font-weight: bold; }
+.cr-action-meta { color: #777; font-style: italic; }
+.cr-action-dice { font-family: monospace; }
+
+.cr-dice-picker { display: inline-flex; gap: 3px; }
+
+.cr-pool-line {
+  width: 100%;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #555;
+}
+
+.cr-opt {
+  background: #fff;
+  border: 1px solid #c5a14b;
+  color: #5d3a00;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.cr-opt:hover { background: #fff7e0; }
+
+.cr-react-row {
+  font-size: 11px;
+  padding: 1px 0;
+}
+
+.cr-luck-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.cr-luck-table th,
+.cr-luck-table td {
+  border-bottom: 1px solid #eee;
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+
+.cr-luck-table th {
+  background: #fafafa;
+  color: #444;
+}
+
+.cr-luck-col {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.cr-luck-col .cr-src-name {
+  display: block;
+  font-weight: bold;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.cr-luck-col .cr-src-actor {
+  display: block;
+  font-weight: normal;
+  font-size: 10px;
+  color: #888;
+}
+
+.cr-luck-rollname { font-weight: bold; }
+
+.cr-luck-btn {
+  background: #fff;
+  border: 1px solid #c5a14b;
+  color: #5d3a00;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 3px;
+  margin: 0 1px;
+}
+
+.cr-luck-pos .cr-luck-btn { border-color: #2c8a2c; color: #1a5d1a; }
+.cr-luck-pos .cr-luck-btn:hover { background: #e6f7e6; }
+.cr-luck-pos .cr-luck-btn.cr-luck-active { background: #2c8a2c; color: #fff; }
+
+.cr-luck-neg .cr-luck-btn { border-color: #c0392b; color: #922b21; }
+.cr-luck-neg .cr-luck-btn:hover { background: #fde8e6; }
+.cr-luck-neg .cr-luck-btn.cr-luck-active { background: #c0392b; color: #fff; }
+
+.cr-luck-nudge .cr-luck-btn { border-color: #2c5fa0; color: #1a3d6d; }
+.cr-luck-nudge .cr-luck-btn:hover { background: #e6efff; }
+.cr-luck-nudge .cr-luck-btn.cr-luck-active { background: #2c5fa0; color: #fff; }
+
+.cr-builder-result {
+  padding: 8px 12px;
+  background: #fdfdfd;
+}
+
+/* === Conditions Save Resolution === */
+
+.save-resolution {
+  border: 1px solid #c8c8c8;
+  background: #fff;
+  margin-bottom: 18px;
+}
+
+.save-header {
+  padding: 8px 12px;
+  background: #f6f6f6;
+  border-bottom: 1px solid #ddd;
+}
+
+.save-header h3 {
+  font-size: 13px;
+  margin: 0;
+}
+
+.save-summary {
+  font-size: 11px;
+  color: #444;
+  margin-top: 2px;
+}
+
+.save-preview {
+  padding: 10px 12px;
+  border-top: 1px solid #ddd;
+  background: #fafafa;
+}
+
+.save-preview h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #555;
+  margin: 0 0 4px 0;
+}
+
+.save-preview-hint { font-size: 11px; color: #777; margin-bottom: 6px; }
+
+.save-preview-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+
+.save-preview-fields label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.save-preview-fields input {
+  width: 60px;
+  padding: 2px 4px;
+  font-size: 11px;
+  text-align: center;
+  border: 1px solid #bbb;
+}
+
+.save-preview-fields input[type="text"] { width: 110px; text-align: left; }
+
+.btn-save-confirm {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 5px 16px;
+  font-weight: bold;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.btn-save-confirm[disabled] {
+  background: #aaa;
+  cursor: not-allowed;
+}
+
+.btn-save-confirm:not([disabled]):hover { background: #1d4ed8; }
+
+.save-confirm-msg {
+  margin-left: 10px;
+  font-size: 11px;
+  color: #2563eb;
+  font-weight: bold;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.save-confirm-msg.shown { opacity: 1; }
+

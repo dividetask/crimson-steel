@@ -52,7 +52,7 @@ The Status page has its own internal left-hand navigation that switches the righ
 
 1. **Status** — the default landing pane for `/status`. Shows a brief description and acts as a hub.
 2. **Dice Resolution** — the right pane renders the Roll Resolution Stub (see `docs/common/ui/dice_resolution_roll_stub.md`) for each example Roll, with each Roll inside its own demo Rolls wrapper.
-3. **Check Resolution** — the right pane renders the Check Resolution Stub (see `docs/common/ui/check_resolution_stub.md`) with one shared Rolls wrapper containing multiple example Rolls (Supporting and Opposing sides separated by a divider).
+3. **Check Resolution** — the right pane renders the Check Resolution Stub (see `docs/common/ui/check_resolution_stub.md`) with one shared Rolls wrapper containing multiple example Rolls (Supporting and Opposing sides separated by a divider), followed by three example Conditions Save Resolution Stubs (see `docs/common/ui/conditions_save_resolution_stub.md`) — each wrapping the Check Resolution Builder Stub (see `docs/common/ui/check_resolution_builder_stub.md`) over a sample Affliction save (Bleed vs Tier 3 with Bardic Inspiration, Poison vs Tier 1 with Bardic Inspiration, Bleed vs Tier 2 with no Reroll).
 4. **Conditions** — the right pane renders the Conditions Downtime PC Card Stub (see `docs/common/ui/conditions_downtime_pc_card_stub.md`) for each example player Creature. The stub runs on example data; the panel emits no real state changes.
 
 The currently-selected nav entry is visually highlighted.

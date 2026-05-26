@@ -45,10 +45,12 @@ module DummyData
         creature_name: 'Cleric of Ruin',
         roll_name: 'Smite (Curse of Doubt)',
         dice_count: 6, tn: 4, starting_value: 0,
-        reroll: { amount: 0, max: true, sign: :neg, label: 'Curse of Doubt' },
+        reroll: nil,
+        mass_reroll: { sign: :neg, label: 'Curse of Doubt' },
         nudge:  nil,
         initial_dice: [5, 8, 2, 6, 9, 3],
-        post_reroll_dice: [3, 7, nil, 2, 4, nil],
+        post_reroll_dice: nil,
+        post_mass_reroll_dice: [3, 7, nil, 2, 4, nil],
         post_nudge_dice: nil,
         dois: 1, critical_count: 0, die_size: 10
       },
@@ -56,10 +58,12 @@ module DummyData
         creature_name: 'Frenzied Berserker',
         roll_name: 'Attack (Reckless)',
         dice_count: 10, tn: 5, starting_value: -1,
-        reroll: { amount: 0, max: true, sign: :pos, label: 'Reckless' },
+        reroll: nil,
+        mass_reroll: { sign: :pos, label: 'Reckless' },
         nudge:  nil,
         initial_dice: [1, 2, 4, 5, 7, 3, 6, 1, 8, 4],
-        post_reroll_dice: [nil, nil, nil, 5, 7, nil, 6, nil, 8, nil],
+        post_reroll_dice: nil,
+        post_mass_reroll_dice: [nil, nil, nil, 5, 7, nil, 6, nil, 8, nil],
         post_nudge_dice: nil,
         dois: 4, critical_count: 0, die_size: 10
       }
@@ -132,5 +136,47 @@ module DummyData
       { id: '4',  name: 'Selka Embermane', race: 'Tiefling', klass: 'Sorcerer', tier: 1, max_hp: 14, mana_max: 14, charisma: 16, attributes: { str: 8, dex: 12, con: 11, int: 12, wis: 11, cha: 16 },
         consumables: [] }
     ].map { |c| c.merge(state: Conditions::State.load(states[c[:id]])) }
+  end
+
+  # Three example Conditions Save Resolution scenarios for the
+  # Check Resolution Status sub-view.
+  def save_resolution_examples(catalog)
+    ash_luck = {
+      creature_ref: nil, creature_name: 'Ash Windmere',
+      source_name: 'Bardic Inspiration', direction: 'pos', pool: 5
+    }
+
+    [
+      {
+        creature:   { id: '2', name: 'Wisp Trueheart', tier: 2 },
+        affliction: { name: 'bleeding', rule: catalog.affliction('bleeding'),
+                      potency: 25, inflicter_tier: 3 },
+        save_dice: 7, save_tn: 8, die_size: 10,
+        potency_divisor: catalog.potency_divisor,
+        reroll_sources: [ash_luck],
+        mass_reroll_sources: nil, nudge_sources: nil,
+        stub_id: 'save-bleed-t3'
+      },
+      {
+        creature:   { id: '3', name: 'Tana Quickfoot', tier: 2 },
+        affliction: { name: 'common_venom', rule: catalog.affliction('common_venom'),
+                      potency: 12, inflicter_tier: 1 },
+        save_dice: 5, save_tn: 6, die_size: 10,
+        potency_divisor: catalog.potency_divisor,
+        reroll_sources: [ash_luck],
+        mass_reroll_sources: nil, nudge_sources: nil,
+        stub_id: 'save-poison-t1'
+      },
+      {
+        creature:   { id: '2', name: 'Wisp Trueheart', tier: 2 },
+        affliction: { name: 'bleeding', rule: catalog.affliction('bleeding'),
+                      potency: 8, inflicter_tier: 2 },
+        save_dice: 7, save_tn: 7, die_size: 10,
+        potency_divisor: catalog.potency_divisor,
+        reroll_sources: nil,
+        mass_reroll_sources: nil, nudge_sources: nil,
+        stub_id: 'save-bleed-t2-noluck'
+      }
+    ]
   end
 end
