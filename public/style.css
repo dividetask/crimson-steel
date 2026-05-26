@@ -4,6 +4,8 @@
   box-sizing: border-box;
 }
 
+[hidden] { display: none !important; }
+
 body {
   font-family: Arial, sans-serif;
   background: #fff;
@@ -642,8 +644,8 @@ body {
 
 .cr-mod-btn {
   background: #fff;
-  border: 1px solid #c5a14b;
-  color: #5d3a00;
+  border: 1px solid #bbb;
+  color: #333;
   padding: 1px 6px;
   font-size: 11px;
   font-weight: bold;
@@ -652,14 +654,26 @@ body {
   margin: 0 1px;
 }
 
-.cr-mod-pos .cr-mod-btn { border-color: #2c8a2c; color: #1a5d1a; }
-.cr-mod-pos .cr-mod-btn:hover { background: #e6f7e6; }
+.cr-mod-btn:hover { background: #f0f0f0; }
 
-.cr-mod-neg .cr-mod-btn { border-color: #c0392b; color: #922b21; }
-.cr-mod-neg .cr-mod-btn:hover { background: #fde8e6; }
+/* Reroll / Mass Reroll buttons borrow the Roll Resolution stub's
+   reroll palette (warm amber). Nudge buttons borrow the nudge palette
+   (green). Direction (+/-) lives on the button text only. */
+.cr-mod-btn[data-kind="reroll"],
+.cr-mod-btn[data-kind="mass_reroll"] {
+  border-color: #d6a700;
+  color: #8a5d00;
+}
 
-.cr-mod-nudge .cr-mod-btn { border-color: #2c5fa0; color: #1a3d6d; }
-.cr-mod-nudge .cr-mod-btn:hover { background: #e6efff; }
+.cr-mod-btn[data-kind="reroll"]:hover,
+.cr-mod-btn[data-kind="mass_reroll"]:hover { background: #fff7e0; }
+
+.cr-mod-btn[data-kind="nudge"] {
+  border-color: #2c8a2c;
+  color: #1a5d1a;
+}
+
+.cr-mod-btn[data-kind="nudge"]:hover { background: #e6f7e6; }
 
 .cr-builder-result { padding: 6px 10px; background: #fdfdfd; }
 
