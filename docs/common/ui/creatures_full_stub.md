@@ -32,7 +32,7 @@ Required:
 Optional:
 - Viewing Player ID.
 - Prev / Next navigation context — when set, the header renders left and right arrow affordances that navigate to the previous and next Creature in the parent's list. The parent supplies the route prefix (e.g. the Creatures index it is iterating) and the current position; the stub emits the arrow targets but does not own the routing.
-- Detail-mode toggle target — the route the toggle button posts to in order to switch between this stub and `creatures_minimal_stub.md`. The toggle reads `Show minimal` while the full sheet is active. The application may persist the last-picked mode in `localStorage` keyed by Creature ID (see `ui_conventions.md`); the stored value is a hint only, not authoritative.
+- Detail-mode toggle target — the route the toggle button posts to in order to switch between this stub and `creatures_minimal_stub.md`. The toggle reads `Show minimal` while the full sheet is active, is rendered at the **bottom-left** of the sheet, and visually sits below every other section. The application may persist the last-picked mode in `localStorage` keyed by Creature ID (see `ui_conventions.md`); the stored value is a hint only, not authoritative.
 
 ## Visibility
 

@@ -1,0 +1,206 @@
+<%
+  # Creature Minimal Stub — docs/common/ui/creatures_minimal_stub.md
+  #
+  # Locals:
+  #   demo            — required. Sample data; see lib/status/sample_creatures.rb.
+  #   toggle_target   — optional. The route the toggle button posts to.
+  #                     When omitted the toggle is rendered as a no-op label.
+  #   chrome          — optional boolean (default true). When false suppress
+  #                     the outer card framing.
+  chrome_on     = defined?(chrome)        ? chrome        : true
+  toggle_href   = defined?(toggle_target) ? toggle_target : nil
+
+  h  = demo[:header]
+  v  = demo[:vitals]
+  it = demo[:items]
+
+  attr_order = %i[str dex con int wis cha]
+  attr_label = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' }
+%>
+
+<article class="cs-card cs-minimal tier-<%= h[:tier] %><%= ' cs-bare' unless chrome_on %>" data-creature-id="<%= demo[:id] %>">
+
+  <header class="cs-header">
+    <h2 class="cs-name"><%= h[:name] %></h2>
+    <% if h[:player] %>
+      <span class="cs-player">Player: <strong><%= h[:player] %></strong></span>
+    <% end %>
+  </header>
+  <div class="cs-subtitle"><em><%= h[:summary] %>, Tier <span class="cs-tier-num"><%= h[:tier] %></span></em></div>
+
+  <section class="cs-vitals-block">
+    <div class="cs-attr-grid">
+      <% attr_order.each do |a| %>
+        <div class="cs-attr-cell">
+          <span class="cs-attr-key"><%= attr_label[a] %></span>
+          <span class="cs-attr-value"><%= demo[:attributes][a] %></span>
+        </div>
+      <% end %>
+    </div>
+    <div class="cs-hp-mana">
+      <div class="cs-hp-line"><span class="cs-hp-label">HP</span> <%= v[:hp][:current] %>/<%= v[:hp][:max] %></div>
+      <div class="cs-mana-line">
+        <span class="cs-mana-label">Mana</span> <%= v[:mana][:current] %>/<%= v[:mana][:max] %>,
+        <span class="cs-tox">Toxicity <%= v[:toxicity][:current] %>/<%= v[:toxicity][:threshold] %></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="cs-ips-row">
+    <div class="cs-ips-cell"><strong>Initiative</strong> <%= demo[:initiative][:dice_count] %></div>
+    <div class="cs-ips-cell"><strong>Perception</strong> <%= sprintf('%+d', demo[:perception][:bonus]) %></div>
+    <div class="cs-ips-cell"><strong>Speed</strong> <%= demo[:speed] %></div>
+  </section>
+
+  <section class="cs-section cs-actions">
+    <h3 class="cs-section-h">Actions</h3>
+    <table class="cs-action-table">
+      <thead>
+        <tr><th>Name</th><th>Spd</th><th>Roll</th><th>Bonus</th><th>Dmg</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <% demo[:actions].each do |act| %>
+          <tr>
+            <td><%= act[:name] %></td>
+            <td class="cs-num"><%= act[:speed] %></td>
+            <td class="cs-num"><%= act[:roll] %></td>
+            <td class="cs-num"><%= sprintf('%+d', act[:attack_bonus]) %></td>
+            <td class="cs-num"><%= act[:dmg_bonus] ? sprintf('%+d', act[:dmg_bonus]) : '&mdash;' %></td>
+            <td><%= act[:notes] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+
+  <% has_spells  = demo[:spells].any?
+     has_rituals = demo[:rituals].any?
+     if has_spells || has_rituals %>
+    <section class="cs-section cs-spells-rituals">
+      <div class="cs-two-col">
+        <div class="cs-col">
+          <h3 class="cs-section-h">Spells</h3>
+          <% if has_spells %>
+            <% demo[:spells].each do |grp| %>
+              <div class="cs-spell-line">
+                <em class="cs-tier-label tier-<%= grp[:tier] %>">Tier <%= grp[:tier] %>.</em>
+                <%= grp[:names].join(', ') %>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="cs-empty-placeholder">&mdash;</div>
+          <% end %>
+        </div>
+        <div class="cs-col">
+          <h3 class="cs-section-h">Rituals</h3>
+          <% if has_rituals %>
+            <% demo[:rituals].each do |grp| %>
+              <div class="cs-spell-line">
+                <em class="cs-tier-label tier-<%= grp[:tier] %>">Tier <%= grp[:tier] %>.</em>
+                <%= grp[:names].join(', ') %>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="cs-empty-placeholder">&mdash;</div>
+          <% end %>
+        </div>
+      </div>
+    </section>
+  <% end %>
+
+  <% items_have_content   = it[:equipped].any? || it[:consumable].any? || it[:other].any?
+     abilities_have_content = demo[:abilities].any?
+     if items_have_content || abilities_have_content %>
+    <section class="cs-section cs-items-abilities">
+      <div class="cs-two-col">
+        <div class="cs-col">
+          <h3 class="cs-section-h">Items</h3>
+          <% if items_have_content %>
+            <% if it[:equipped].any? %>
+              <div class="cs-item-line"><em>Equipped.</em> <%= it[:equipped].map { |i| i[:name] }.join(', ') %></div>
+            <% end %>
+            <% if it[:consumable].any? %>
+              <div class="cs-item-line"><em>Consumable.</em>
+                <%= it[:consumable].map { |i| i[:quantity].to_i > 1 ? "(#{i[:quantity]}) #{i[:name]}" : i[:name] }.join(', ') %>
+              </div>
+            <% end %>
+            <% if it[:other].any? %>
+              <div class="cs-item-line"><em>Other.</em>
+                <%= it[:other].map { |i| i[:quantity].to_i > 1 ? "#{i[:name]} (#{i[:quantity]})" : i[:name] }.join(', ') %>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="cs-empty-placeholder">&mdash;</div>
+          <% end %>
+        </div>
+        <div class="cs-col">
+          <h3 class="cs-section-h">Abilities</h3>
+          <% if abilities_have_content %>
+            <% demo[:abilities].each do |ab| %>
+              <details class="cs-ability-row">
+                <summary><em><%= ab[:name] %></em></summary>
+                <div class="cs-ability-body"><%= ab[:description] %></div>
+              </details>
+            <% end %>
+          <% else %>
+            <div class="cs-empty-placeholder">&mdash;</div>
+          <% end %>
+        </div>
+      </div>
+    </section>
+  <% end %>
+
+  <% if demo[:item_descriptions].any? %>
+    <section class="cs-section cs-item-desc">
+      <h3 class="cs-section-h">Item Descriptions</h3>
+      <% demo[:item_descriptions].each do |idesc| %>
+        <div class="cs-item-desc-row"><em><%= idesc[:name] %>.</em> <%= idesc[:description] %></div>
+      <% end %>
+    </section>
+  <% end %>
+
+  <% if demo[:active_effects].any? %>
+    <section class="cs-section cs-active-effects">
+      <h3 class="cs-section-h">Active Effects</h3>
+      <table class="cs-effects-table">
+        <thead><tr><th>Caster</th><th>Source</th><th>Rounds left</th></tr></thead>
+        <tbody>
+          <% demo[:active_effects].each do |eff| %>
+            <tr>
+              <td><%= eff[:caster] || '&mdash;' %></td>
+              <td><%= eff[:source] %></td>
+              <td class="cs-num"><%= eff[:rounds_left] %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  <% end %>
+
+  <% if demo[:usable_spells].any? %>
+    <section class="cs-section cs-usable-spells">
+      <h3 class="cs-section-h">Usable Spells</h3>
+      <table class="cs-usable-table">
+        <thead><tr><th>Name</th><th>Casting Time</th><th>Mana</th><th>Save TN</th></tr></thead>
+        <tbody>
+          <% demo[:usable_spells].each do |sp| %>
+            <tr>
+              <td><%= sp[:name] %></td>
+              <td><%= sp[:casting_time] %></td>
+              <td class="cs-num"><%= sp[:mana_cost] %></td>
+              <td class="cs-num"><%= sp[:save_tn] || '&mdash;' %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  <% end %>
+
+  <div class="cs-toggle">
+    <% if toggle_href %>
+      <a class="cs-toggle-btn" href="<%= toggle_href %>">Show full sheet</a>
+    <% else %>
+      <span class="cs-toggle-btn cs-toggle-static">Show full sheet</span>
+    <% end %>
+  </div>
+</article>

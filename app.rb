@@ -22,7 +22,6 @@ require_relative 'lib/status/sample_rolls'
 require_relative 'lib/status/sample_check'
 require_relative 'lib/status/sample_conditions'
 require_relative 'lib/status/sample_creatures'
-require_relative 'lib/status/sample_proficiencies'
 require_relative 'lib/status/sample_timekeeping'
 require_relative 'lib/status/sample_chronicle'
 

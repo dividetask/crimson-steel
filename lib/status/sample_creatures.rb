@@ -1,352 +1,343 @@
 module Status
-  # Sample Creatures for the Creatures sub-view of the Status page.
-  # Hand-built (not loaded through the live Creatures domain) so the
-  # sub-view stays scoped to Status's own dummy data per the project's
-  # per-page-data rule. Each entry has the full set of derived values
-  # the Creature Card Stub displays — base attributes, racial chain
-  # adjustments, per-tier inherent bonus, chosen bonus, effective
-  # attributes, speed, max HP, max mana, granted abilities, trained
-  # skills with rate badges, and saves.
+  # Sample Creatures for the Status > Creatures sub-view. The sub-view
+  # renders each demo through both the Minimal Sheet stub and the Full
+  # Sheet stub (see docs/common/ui/creatures_minimal_stub.md and
+  # docs/common/ui/creatures_full_stub.md) so the layouts can be
+  # compared side-by-side.
   #
-  # The roster is curated to exercise every variant of the stub:
+  # The data shape mirrors what the live Creatures, Conditions,
+  # Equipment, Abilities, and Proficiencies domains will eventually
+  # produce when composed together. Until those domains land, the
+  # values are hand-curated to match the reference screenshots
+  # supplied with the design.
   #
-  #   1. Single-class PC, no race chain ancestors past humanoid (Brenna,
-  #      Human Barbarian 4) — exercises the `all: +1` racial.
-  #   2. Single-class PC with multi-link race chain (Korth, Hill Dwarf
-  #      Cleric 4) — exercises chain walk + deity/domain spells.
-  #   3. Archetype PC (Vex, High Elf Arcane Trickster 4) —
-  #      exercises Archetype merge.
-  #   4. Multi-class PC (Rook, Half-Orc Fighter 3 / Rogue 2) —
-  #      exercises per-Class rank summation.
-  #   5. Tier 0 untrained NPC (Pidge, Halfling Commoner 1) — exercises
-  #      the bottom of the Tier table.
-  #   6. Tier-override creature (Pale Lantern, undead, Tier 4 with
-  #      no classes) — exercises the override path.
+  # Tier numbers track docs/common/ui/ui_conventions.md (Tier Color
+  # mapping 0..5 → red/orange/yellow/green/blue/purple).
   module SampleCreatures
     module_function
 
-    def creatures
-      [stumpy, olga, lysander, rook, pidge, pale_lantern]
+    def demos
+      [ash_windmere, bryn_ironvein, veyl_aetheris]
     end
 
-    # ---- 1. Single-class with race chain --------------------------------
+    def by_index(i)
+      demos[i]
+    end
 
-    def stumpy
-      base = { str: 12, dex: 14, con: 17, int: 14, wis: 18, cha: 11 }
-      racial = { con: 2, wis: 2 } # hill_dwarf adjustments (illustrative)
-      per_tier = 2                # Tier Minimum Inherent Bonus[2]
-      chosen = { con: 2, wis: 2 } # tier_attribute_advancement[0..1] = [con, wis]
-      effective = combine(base, racial, per_tier, chosen)
+    # ---- 1. Ash Windmere — full Bard with spells, rituals, items, abilities
+
+    def ash_windmere
       {
-        id: 1001, label: 'Single-class + multi-link Race chain',
-        name: 'Korth', player: 'Mira',
-        race_chain: %w[humanoid dwarf hill_dwarf],
-        tags: %w[player_character],
-        tier: 2, tier_source: 'computed (player_character breakpoints)',
-        classes: [{ key: 'cleric', label: 'Cleric 4',
-                    level: 4, choices: { deity: 'Grull', domain: 'War',
-                                         spellcasting: %w[magic_vestments] } }],
-        total_level: 4,
-        attributes_table: attribute_rows(base, racial, per_tier, chosen, effective),
-        speed: { value: 20, source: 'dwarf.speed = 20 (chain leaf wins)' },
-        max_hp: { value: 46, formula: '2 * con', con: effective[:con] },
-        max_mana: { value: 32,
-                    base_formula: 'int', base_value: effective[:int],
-                    class_contributions: [{ class: 'cleric', amount: 16, breakdown: '4 mana_per_level × 4 level' }] },
-        granted_abilities: [
-          { source: 'race', name: 'darkvision' },
-          { source: 'race', name: 'dwarven_resilience' },
-          { source: 'race', name: 'healing_attunement' },
-          { source: 'class:cleric', name: 'see_injury' },
-          { source: 'class:cleric', name: 'improved_healing' },
-          { source: 'class:cleric', name: 'combat_healing' },
-          { source: 'class:cleric', name: 'domain' },
-          { source: 'class:cleric', name: 'channel_divinity' },
-          { source: 'class:cleric', name: 'turn_undead' },
-          { source: 'class:cleric', name: 'casting_feat' },
-          { source: 'class:cleric', name: 'Heal' },
-          { source: 'class:cleric', name: 'Ward' },
-          { source: 'class:cleric', name: 'Standard Surgery' },
-          { source: 'class:cleric', name: 'magic_vestments' },
-          { source: 'class:cleric', name: 'Divine Favor' },
-          { source: 'class:cleric', name: 'Shield of Faith' },
-          { source: 'class:cleric', name: 'Spiritual Hammer' },
-          { source: 'class:cleric', name: 'Silence' }
+        id: 1,
+        label: 'Ash Windmere — Tier 3 Bard with full kit',
+
+        header: {
+          name: 'Ash Windmere',
+          player: 'Sam',
+          summary: 'Human Bard 3',
+          tier: 3,
+          bab: 4
+        },
+
+        attributes: { str: 14, dex: 18, con: 16, int: 17, wis: 20, cha: 22 },
+
+        vitals: {
+          hp:   { current: 22, max: 48 },
+          mana: { current: 9,  max: 31, regen: 3 },
+          toxicity: { current: 0, threshold: 11 },
+          temp_hp: 0,
+          moderate_damage: 0,
+          major_damage: 0,
+          combat_pool: 5,
+          damage_reduction: 0,
+          damage_resilience: 3
+        },
+
+        initiative: { dice_count: 4 },
+        perception: { dice: 6, bonus: 5 },
+        speed: 30,
+
+        actions: [
+          { name: 'Rapier',        speed: 2, roll: '4d', attack_bonus: 3, dmg_bonus: 2, bleed: 1, mt: 8, notes: '' },
+          { name: 'Hand Crossbow', speed: 3, roll: '3d', attack_bonus: 4, dmg_bonus: 1, bleed: 0, mt: 7, notes: '' },
+          { name: 'Dodge',         speed: 0, roll: '3d', attack_bonus: 2, dmg_bonus: nil, bleed: nil, mt: nil, notes: '' }
         ],
-        trained_skills: [
-          { key: 'healing',    rate: 'aligned',   ranks: 6, class: 'cleric' },
-          { key: 'arcana',     rate: 'aligned',   ranks: 6, class: 'cleric' },
-          { key: 'intimidate', rate: 'unaligned', ranks: 4, class: 'cleric' },
-          { key: 'sense_motive', rate: 'aligned', ranks: 6, class: 'cleric' }
+
+        # Full-sheet Attributes table: one row per attribute with
+        # Score, Half (modifier), Check (dice + bonus), Save (dice + bonus).
+        attributes_table: [
+          { attr: 'Strength',     score: 14, half: 7,  check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } },
+          { attr: 'Dexterity',    score: 18, half: 9,  check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } },
+          { attr: 'Constitution', score: 16, half: 8,  check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } },
+          { attr: 'Intelligence', score: 17, half: 8,  check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } },
+          { attr: 'Wisdom',       score: 20, half: 10, check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } },
+          { attr: 'Charisma',     score: 22, half: 11, check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } }
         ],
-        saves: [
-          { attr: 'str', rate: 'opposed', ranks: 2 },
-          { attr: 'dex', rate: 'opposed', ranks: 2 },
-          { attr: 'con', rate: 'opposed', ranks: 2 },
-          { attr: 'int', rate: 'opposed', ranks: 2 },
-          { attr: 'wis', rate: 'aligned', ranks: 6 },
-          { attr: 'cha', rate: 'aligned', ranks: 6 }
+
+        attribute_formula: '4+½ Attribute Mod, subtract 5 when > 8',
+        skill_formula:     '6+rank+½ Attribute Mod, subtract 5 when > 10',
+
+        skills: [],  # full sheet Skills table — empty here per the reference
+
+        items: {
+          equipped: [
+            { name: 'Rapier' },
+            { name: 'Hand Crossbow' },
+            { name: 'Studded Leather' }
+          ],
+          consumable: [
+            { quantity: 2, name: 'Healing Draught' }
+          ],
+          ammunition: [
+            { quantity: 20, name: 'Bolt' }
+          ],
+          other: [
+            { quantity: 1, name: 'Lute' },
+            { quantity: 5, name: 'Rations' },
+            { quantity: 1, name: 'Bedroll' }
+          ]
+        },
+
+        item_descriptions: [
+          { name: 'Cloak of Resistance +1', description: 'Adds +1 to all saves; does not stack with other resistance items.' },
+          { name: 'Lute of the Wandering Bard', description: 'Once per scene, grant Bardic Inspiration without spending the action.' }
         ],
-        martial: { rate: 'unaligned', ranks: 4 }
+
+        abilities: [
+          { name: 'Bonus Feat',             description: 'Choose any 1st-level feat.' },
+          { name: 'Magical Performance (3)', description: "Learn a magical variant of any Performance skill, used both for mundane checks and to create a magical performance. Maintaining a performance takes a main action each turn; bardic spells can be cast as part of that action. Only advances on bard levels." },
+          { name: 'Bardic Spellcasting',    description: 'Cast a number of bardic spells as a main action while performing. Spells need not be prepared each day. Casting outside a performance takes twice as long.' },
+          { name: 'Bardic Inspiration',     description: 'While performing, spend 1 mana (once per turn) to grant a pool of luck. Each point lets you or an ally reroll a single die before the initial check. Successes grant 1 luck (must be used before your next turn); a fumble awards luck to the DM instead.' },
+          { name: 'Jack Of All Trades',     description: 'Treat all skills (except restricted skills) as trained, with effective ranks equal to half your level on checks where you have no ranks.' },
+          { name: 'Better Lucky Than Good', description: 'Spend 3 mana during a round you cannot act (e.g. surprise round). Attacks against you (including spells) are made with half as many dice (min 3). Enemies are unconsciously aware of the penalty.' },
+          { name: 'Performance Feat',       description: 'Gain Familiar, Social Spell, Spell Focus (Enchantment), or Spell Focus (Illusion) as a bonus feat.' },
+          { name: 'Silver Tongue',          description: '+1 inherent bonus to Persuasion and Deception checks; applies when using versatile performance.' },
+          { name: 'Unsettling Words',       description: 'Spend a luck point from your performance before an enemy rolls; pick one of their dice to reroll.' },
+          { name: 'Versatile Performance', description: 'No description yet.' }
+        ],
+
+        spells: [
+          { tier: 0, names: ['Mending'] },
+          { tier: 1, names: ['Charm Person', 'Healing Word'] },
+          { tier: 2, names: ['Suggestion'] }
+        ],
+
+        rituals: [
+          { tier: 1, names: ['Comprehend Languages', 'Detect Magic'] }
+        ],
+
+        item_spells: [],
+
+        active_effects: [],
+        usable_spells:  [],
+
+        notes: [
+          { body: 'Placeholder note for the character.' }
+        ]
       }
     end
 
-    # ---- 2. Single-class, no race chain past humanoid -------------------
+    # ---- 2. Bryn Ironvein — minimal-sheet reference, martial Dwarf Fighter
 
-    def olga
-      base = { str: 19, dex: 17, con: 17, int: 11, wis: 13, cha: 10 }
-      racial = Hash.new(1).tap { |h| %i[str dex con int wis cha].each { |k| h[k] = 1 } } # human all: +1
-      per_tier = 2
-      chosen = { str: 2, con: 2 } # tier_attribute_advancement = [str, con]
-      effective = combine(base, racial, per_tier, chosen)
+    def bryn_ironvein
       {
-        id: 1002, label: 'Single-class, `all: +1` racial',
-        name: 'Brenna', player: 'Drew',
-        race_chain: %w[humanoid human],
-        tags: %w[player_character],
-        tier: 2, tier_source: 'computed (player_character breakpoints)',
-        classes: [{ key: 'barbarian', label: 'Barbarian 4', level: 4, choices: {} }],
-        total_level: 4,
-        attributes_table: attribute_rows(base, racial, per_tier, chosen, effective),
-        speed: { value: 30, source: 'humanoid.speed = 30 (no chain override)' },
-        max_hp: { value: 44, formula: '2 * con', con: effective[:con] },
-        max_mana: { value: 18,
-                    base_formula: 'int', base_value: effective[:int],
-                    class_contributions: [{ class: 'barbarian', amount: 4, breakdown: '1 mana_per_level × 4 level' }] },
-        granted_abilities: [
-          { source: 'race', name: 'versatile' },
-          { source: 'class:barbarian', name: 'rage' },
-          { source: 'class:barbarian', name: 'fast_movement' },
-          { source: 'class:barbarian', name: 'reckless_attacks' },
-          { source: 'class:barbarian', name: 'uncanny_dodge' },
-          { source: 'class:barbarian', name: 'primal_tenacity' },
-          { source: 'class:barbarian', name: 'combat_feat' }
+        id: 2,
+        label: 'Bryn Ironvein — Tier 1 Fighter, pure martial',
+
+        header: {
+          name: 'Bryn Ironvein',
+          player: 'Mira',
+          summary: 'Dwarf Fighter 3',
+          tier: 1,
+          bab: 5
+        },
+
+        attributes: { str: 19, dex: 11, con: 20, int: 10, wis: 13, cha: 7 },
+
+        vitals: {
+          hp:   { current: 0,  max: 20 },
+          mana: { current: 8,  max: 8,  regen: 1 },
+          toxicity: { current: 0, threshold: 7 },
+          temp_hp: 0,
+          moderate_damage: 0,
+          major_damage: 0,
+          combat_pool: 8,
+          damage_reduction: 2,
+          damage_resilience: 5
+        },
+
+        initiative: { dice_count: 6 },
+        perception: { dice: 4, bonus: 2 },
+        speed: 25,
+
+        actions: [
+          { name: 'Warhammer', speed: 3, roll: '6d', attack_bonus: 2,  dmg_bonus: 1, bleed: 0, mt: 7, notes: '' },
+          { name: 'Dodge',     speed: 0, roll: '3d', attack_bonus: 0,  dmg_bonus: nil, bleed: nil, mt: nil, notes: '' }
         ],
-        trained_skills: [
-          { key: 'athletics',    rate: 'aligned',   ranks: 6, class: 'barbarian' },
-          { key: 'intimidate',   rate: 'aligned',   ranks: 6, class: 'barbarian' },
-          { key: 'survival',     rate: 'unaligned', ranks: 4, class: 'barbarian' },
-          { key: 'sense_motive', rate: 'unaligned', ranks: 4, class: 'barbarian' }
+
+        attributes_table: [
+          { attr: 'Strength',     score: 19, half: 9,  check: { dice: 4, bonus: 0 }, save: { dice: 4, bonus: 0 } },
+          { attr: 'Dexterity',    score: 11, half: 5,  check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 0 } },
+          { attr: 'Constitution', score: 20, half: 10, check: { dice: 4, bonus: 0 }, save: { dice: 4, bonus: 0 } },
+          { attr: 'Intelligence', score: 10, half: 5,  check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 0 } },
+          { attr: 'Wisdom',       score: 13, half: 6,  check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 0 } },
+          { attr: 'Charisma',     score: 7,  half: 3,  check: { dice: 3, bonus: 0 }, save: { dice: 3, bonus: 0 } }
         ],
-        saves: [
-          { attr: 'str', rate: 'aligned', ranks: 6 },
-          { attr: 'dex', rate: 'opposed', ranks: 2 },
-          { attr: 'con', rate: 'aligned', ranks: 6 },
-          { attr: 'int', rate: 'opposed', ranks: 2 },
-          { attr: 'wis', rate: 'opposed', ranks: 2 },
-          { attr: 'cha', rate: 'opposed', ranks: 2 }
+
+        attribute_formula: '4+½ Attribute Mod, subtract 5 when > 8',
+        skill_formula:     '6+rank+½ Attribute Mod, subtract 5 when > 10',
+
+        skills: [
+          { name: 'Athletics',  ranks: 3, dice: 6, bonus: 1 },
+          { name: 'Intimidate', ranks: 3, dice: 3, bonus: 0 },
+          { name: 'Perception', ranks: 3, dice: 4, bonus: 2 }
         ],
-        martial: { rate: 'aligned', ranks: 6 }
+
+        items: {
+          equipped: [
+            { name: 'Warhammer' },
+            { name: 'Tower shield' },
+            { name: 'Chain mail' }
+          ],
+          consumable: [
+            { quantity: 1, name: 'Healing Draught' }
+          ],
+          ammunition: [],
+          other: [
+            { quantity: 3, name: 'Javelin' },
+            { quantity: 1, name: 'Whetstone' },
+            { quantity: 5, name: 'Rations' },
+            { quantity: 28, name: 'Gold' }
+          ]
+        },
+
+        item_descriptions: [],
+
+        abilities: [
+          { name: 'Darkvision',         description: 'See in dim light as if in bright light, and in darkness as if in dim light, out to 60 feet.' },
+          { name: 'Dwarven Resilience', description: 'Advantage on saves against poison; resistance to poison damage.' },
+          { name: 'Stonecunning',       description: 'Add proficiency to Intelligence (History) checks related to the origin of stonework.' },
+          { name: 'Weapon Training',    description: 'Gain proficiency with all martial weapons.' },
+          { name: 'Armor Training',     description: 'Gain proficiency with all armor and shields.' }
+        ],
+
+        spells: [],
+        rituals: [],
+        item_spells: [],
+        active_effects: [],
+        usable_spells: [],
+        notes: []
       }
     end
 
-    # ---- 3. Archetype with race chain -----------------------------------
+    # ---- 3. Veyl Aetheris — Archetype demo, no Player line (DM-run)
 
-    def lysander
-      base = { str: 9, dex: 19, con: 13, int: 14, wis: 15, cha: 15 }
-      racial = { dex: 2, int: 2 } # high_elf adjustments (illustrative)
-      per_tier = 2
-      chosen = { dex: 2, int: 2 } # tier_attribute_advancement = [dex, int]
-      effective = combine(base, racial, per_tier, chosen)
+    def veyl_aetheris
       {
-        id: 1003, label: 'Archetype (Arcane Trickster, parent: rogue)',
-        name: 'Vex', player: 'Quinn',
-        race_chain: %w[humanoid elf high_elf],
-        tags: %w[player_character],
-        tier: 2, tier_source: 'computed (player_character breakpoints)',
-        classes: [{ key: 'arcane_trickster', label: 'Arcane Trickster 4 (replaced Rogue)',
-                    level: 4, choices: { spellcasting: %w[elemental_dart] } }],
-        total_level: 4,
-        attributes_table: attribute_rows(base, racial, per_tier, chosen, effective),
-        speed: { value: 30, source: 'elf.speed = 30 (chain ancestor wins)' },
-        max_hp: { value: 30, formula: '2 * con', con: effective[:con] },
-        max_mana: { value: 28,
-                    base_formula: 'int', base_value: effective[:int],
-                    class_contributions: [{ class: 'arcane_trickster', amount: 8, breakdown: '2 mana_per_level (archetype override) × 4 level' }] },
-        granted_abilities: [
-          { source: 'race', name: 'low_light_vision' },
-          { source: 'race', name: 'keen_senses' },
-          { source: 'race', name: 'elven_magic' },
-          { source: 'class:arcane_trickster', name: 'trapfinding' },
-          { source: 'class:arcane_trickster', name: 'sneak_attack' },
-          { source: 'class:arcane_trickster', name: 'thieves_cant' },
-          { source: 'class:arcane_trickster', name: 'arcane_spellcasting' },
-          { source: 'class:arcane_trickster', name: 'danger_sense' },
-          { source: 'class:arcane_trickster', name: 'combat_trickery' },
-          { source: 'class:arcane_trickster', name: 'mage_hand_legerdemain' },
-          { source: 'class:arcane_trickster', name: 'elemental_dart' }
+        id: 9,
+        label: 'Veyl Aetheris — Tier 2 Arcane Trickster (Archetype demo)',
+
+        header: {
+          name: 'Veyl Aetheris',
+          player: nil,
+          summary: 'High Elf Arcane Trickster 4',
+          tier: 2,
+          bab: 4
+        },
+
+        attributes: { str: 7, dex: 17, con: 11, int: 17, wis: 11, cha: 13 },
+
+        vitals: {
+          hp:   { current: 18, max: 22 },
+          mana: { current: 12, max: 16, regen: 2 },
+          toxicity: { current: 0, threshold: 7 },
+          temp_hp: 0,
+          moderate_damage: 0,
+          major_damage: 0,
+          combat_pool: 6,
+          damage_reduction: 1,
+          damage_resilience: 3
+        },
+
+        initiative: { dice_count: 5 },
+        perception: { dice: 4, bonus: 0 },
+        speed: 30,
+
+        actions: [
+          { name: 'Shortbow', speed: 2, roll: '4d', attack_bonus: 3, dmg_bonus: 0, bleed: 0, mt: 7, notes: '' },
+          { name: 'Dagger',   speed: 1, roll: '3d', attack_bonus: 2, dmg_bonus: 0, bleed: 0, mt: 6, notes: 'Sneak Attack: +1d on flanked target' },
+          { name: 'Dodge',    speed: 0, roll: '3d', attack_bonus: 1, dmg_bonus: nil, bleed: nil, mt: nil, notes: '' }
         ],
-        trained_skills: [
-          { key: 'arcana',          rate: 'aligned',   ranks: 6, class: 'arcane_trickster', note: 'added by archetype' },
-          { key: 'stealth',         rate: 'unaligned', ranks: 4, class: 'arcane_trickster' },
-          { key: 'sleight_of_hand', rate: 'unaligned', ranks: 4, class: 'arcane_trickster' },
-          { key: 'larceny',         rate: 'unaligned', ranks: 4, class: 'arcane_trickster' },
-          { key: 'deception',       rate: 'unaligned', ranks: 4, class: 'arcane_trickster' },
-          { key: 'game_chess',      rate: 'unaligned', ranks: 4, class: 'arcane_trickster' }
+
+        attributes_table: [
+          { attr: 'Strength',     score: 7,  half: 3, check: { dice: 3, bonus: 0 }, save: { dice: 3, bonus: 0 } },
+          { attr: 'Dexterity',    score: 17, half: 8, check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } },
+          { attr: 'Constitution', score: 11, half: 5, check: { dice: 3, bonus: 1 }, save: { dice: 3, bonus: 0 } },
+          { attr: 'Intelligence', score: 17, half: 8, check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } },
+          { attr: 'Wisdom',       score: 11, half: 5, check: { dice: 3, bonus: 1 }, save: { dice: 3, bonus: 0 } },
+          { attr: 'Charisma',     score: 13, half: 6, check: { dice: 3, bonus: 1 }, save: { dice: 3, bonus: 0 } }
         ],
-        saves: [
-          { attr: 'str', rate: 'opposed', ranks: 2 },
-          { attr: 'dex', rate: 'aligned', ranks: 6 },
-          { attr: 'con', rate: 'opposed', ranks: 2 },
-          { attr: 'int', rate: 'aligned', ranks: 6 },
-          { attr: 'wis', rate: 'opposed', ranks: 2 },
-          { attr: 'cha', rate: 'opposed', ranks: 2 }
+
+        attribute_formula: '4+½ Attribute Mod, subtract 5 when > 8',
+        skill_formula:     '6+rank+½ Attribute Mod, subtract 5 when > 10',
+
+        skills: [
+          { name: 'Arcana',          ranks: 6, dice: 8, bonus: 2 },
+          { name: 'Stealth',         ranks: 4, dice: 6, bonus: 2 },
+          { name: 'Larceny',         ranks: 4, dice: 6, bonus: 2 },
+          { name: 'Sleight of Hand', ranks: 4, dice: 6, bonus: 2 },
+          { name: 'Game (Chess)',    ranks: 4, dice: 6, bonus: 2 }
         ],
-        martial: { rate: 'unaligned', ranks: 4 }
+
+        items: {
+          equipped: [
+            { name: 'Shortbow' },
+            { name: 'Dagger' },
+            { name: 'Studded Leather' }
+          ],
+          consumable: [],
+          ammunition: [
+            { quantity: 18, name: 'Arrow' }
+          ],
+          other: [
+            { quantity: 1, name: 'Thieves Tools' },
+            { quantity: 1, name: 'Component Pouch' }
+          ]
+        },
+
+        item_descriptions: [],
+
+        abilities: [
+          { name: 'Low-Light Vision', description: 'See in dim light as if in bright light.' },
+          { name: 'Keen Senses',      description: 'Trained in Perception.' },
+          { name: 'Elven Magic',      description: 'Detect Magic at will.' },
+          { name: 'Trapfinding',      description: 'Locate traps with a Perception check; disable them with Larceny.' },
+          { name: 'Sneak Attack',     description: 'Bonus damage dice on flanked or unaware targets.' },
+          { name: "Thieves' Cant",    description: 'A secret language used by rogues.' },
+          { name: 'Arcane Spellcasting', description: 'Cast arcane spells using Intelligence.' },
+          { name: 'Danger Sense',     description: 'Cannot be surprised while conscious.' },
+          { name: 'Combat Trickery',  description: 'Make a Sleight of Hand check as part of an attack.' },
+          { name: 'Mage Hand Legerdemain', description: 'Use Mage Hand to perform delicate sleight-of-hand at range.' },
+          { name: 'Elemental Dart',   description: 'Spend mana to fire a dart of elemental energy.' }
+        ],
+
+        spells: [
+          { tier: 0, names: ['Light', 'Message'] },
+          { tier: 1, names: ['Fire Dart', 'Silent Portal'] },
+          { tier: 2, names: ['Hideous Laughter'] }
+        ],
+        rituals: [],
+        item_spells: [],
+        active_effects: [
+          { caster: 'Ash Windmere', source: 'Bardic Inspiration', rounds_left: 3 }
+        ],
+        usable_spells: [
+          { name: 'Fire Dart', casting_time: '1 action', mana_cost: 1, save_tn: nil },
+          { name: 'Silent Portal', casting_time: '1 action', mana_cost: 2, save_tn: 7 },
+          { name: 'Hideous Laughter', casting_time: '1 action', mana_cost: 3, save_tn: 7 }
+        ],
+        notes: []
       }
-    end
-
-    # ---- 4. Multi-class -------------------------------------------------
-
-    def rook
-      base = { str: 16, dex: 13, con: 14, int: 10, wis: 11, cha: 9 }
-      racial = {} # half_orc placeholder (config has no adjustments yet)
-      per_tier = 2
-      chosen = { str: 2, con: 2 }
-      effective = combine(base, racial, per_tier, chosen)
-      {
-        id: 1004, label: 'Multi-class (Fighter 3 / Rogue 2)',
-        name: 'Rook', player: 'Avery',
-        race_chain: %w[humanoid half_orc],
-        tags: %w[player_character],
-        tier: 2, tier_source: 'computed (Total Level 5 ≥ breakpoint 4)',
-        classes: [
-          { key: 'fighter', label: 'Fighter 3', level: 3, choices: {} },
-          { key: 'rogue',   label: 'Rogue 2',   level: 2, choices: {} }
-        ],
-        total_level: 5,
-        attributes_table: attribute_rows(base, racial, per_tier, chosen, effective),
-        speed: { value: 30, source: 'humanoid.speed = 30' },
-        max_hp: { value: 32, formula: '2 * con', con: effective[:con] },
-        max_mana: { value: 15,
-                    base_formula: 'int', base_value: effective[:int],
-                    class_contributions: [
-                      { class: 'fighter', amount: 3, breakdown: '1 × 3' },
-                      { class: 'rogue',   amount: 2, breakdown: '1 × 2' }
-                    ] },
-        granted_abilities: [
-          { source: 'class:fighter', name: 'weapon_training' },
-          { source: 'class:fighter', name: 'armor_training' },
-          { source: 'class:rogue',   name: 'trapfinding' },
-          { source: 'class:rogue',   name: 'sneak_attack' },
-          { source: 'class:rogue',   name: 'thieves_cant' },
-          { source: 'class:rogue',   name: 'danger_sense' }
-        ],
-        trained_skills: [
-          { key: 'athletics',  rate: 'aligned',   ranks: 5, class: 'fighter' },
-          { key: 'athletics',  rate: 'unaligned', ranks: 2, class: 'rogue',  note: 'rogue: athletics is not in its aligned list' },
-          { key: 'intimidate', rate: 'aligned',   ranks: 5, class: 'fighter' },
-          { key: 'stealth',    rate: 'unaligned', ranks: 2, class: 'rogue' },
-          { key: 'larceny',    rate: 'unaligned', ranks: 2, class: 'rogue' }
-        ],
-        saves: [
-          { attr: 'str', rate: 'aligned',  ranks: 8, breakdown: 'fighter 5 + rogue 3 (rogue str is opposed: 1)... — illustrative' },
-          { attr: 'dex', rate: 'mixed',    ranks: 5, breakdown: 'fighter 2 (opposed) + rogue 3 (aligned)' },
-          { attr: 'con', rate: 'mixed',    ranks: 6, breakdown: 'fighter 5 (aligned) + rogue 1 (opposed)' },
-          { attr: 'int', rate: 'mixed',    ranks: 5, breakdown: 'fighter 2 (opposed) + rogue 3 (aligned)' },
-          { attr: 'wis', rate: 'opposed',  ranks: 3, breakdown: 'fighter 2 + rogue 1' },
-          { attr: 'cha', rate: 'opposed',  ranks: 3, breakdown: 'fighter 2 + rogue 1' }
-        ],
-        martial: { rate: 'mixed', ranks: 7, breakdown: 'fighter 5 (aligned) + rogue 2 (unaligned)' }
-      }
-    end
-
-    # ---- 5. Tier 0 untrained NPC ----------------------------------------
-
-    def pidge
-      base = { str: 9, dex: 12, con: 10, int: 10, wis: 10, cha: 11 }
-      racial = {}
-      per_tier = 0 # Tier Minimum Inherent Bonus[0]
-      chosen = {}
-      effective = combine(base, racial, per_tier, chosen)
-      {
-        id: 1005, label: 'Tier 0 NPC (bottom of the Tier table)',
-        name: 'Pidge', player: nil,
-        race_chain: %w[humanoid halfling],
-        tags: %w[commoner],
-        tier: 0, tier_source: 'computed (commoner breakpoints; level 1 < 4)',
-        classes: [{ key: 'commoner', label: 'Commoner 1', level: 1, choices: {} }],
-        total_level: 1,
-        attributes_table: attribute_rows(base, racial, per_tier, chosen, effective),
-        speed: { value: 25, source: 'halfling.speed = 25' },
-        max_hp: { value: 5, formula: 'con / 2', con: effective[:con] },
-        max_mana: { value: 2,
-                    base_formula: 'int / 4', base_value: effective[:int],
-                    class_contributions: [{ class: 'commoner', amount: 0, breakdown: '0 mana_per_level × 1 level' }] },
-        granted_abilities: [],
-        trained_skills: [
-          { key: 'profession_innkeeper', rate: 'aligned',   ranks: 1, class: 'commoner' },
-          { key: 'perception',           rate: 'aligned',   ranks: 1, class: 'commoner' }
-        ],
-        saves: [
-          { attr: 'str', rate: 'aligned', ranks: 1 },
-          { attr: 'dex', rate: 'opposed', ranks: 0 },
-          { attr: 'con', rate: 'aligned', ranks: 1 },
-          { attr: 'int', rate: 'opposed', ranks: 0 },
-          { attr: 'wis', rate: 'opposed', ranks: 0 },
-          { attr: 'cha', rate: 'opposed', ranks: 0 }
-        ],
-        martial: { rate: 'opposed', ranks: 0 }
-      }
-    end
-
-    # ---- 6. Tier-override creature, no classes --------------------------
-
-    def pale_lantern
-      base = { str: 10, dex: 14, con: 10, int: 12, wis: 14, cha: 16 }
-      racial = {}
-      per_tier = 4 # Tier Minimum Inherent Bonus[4]
-      chosen = {}
-      effective = combine(base, racial, per_tier, chosen)
-      {
-        id: 2002, label: 'Tier Override, no classes',
-        name: 'The Pale Lantern', player: nil,
-        race_chain: %w[undead],
-        tags: [],
-        tier: 4, tier_source: 'override (tier: 4 on the record)',
-        classes: [],
-        total_level: 0,
-        attributes_table: attribute_rows(base, racial, per_tier, chosen, effective),
-        speed: { value: 30, source: 'undead.speed = 30' },
-        max_hp: { value: 56, formula: '4 * con', con: effective[:con] },
-        max_mana: { value: 48,
-                    base_formula: '3 * int', base_value: effective[:int],
-                    class_contributions: [] },
-        granted_abilities: [
-          { source: 'race', name: 'undead_traits' }
-        ],
-        trained_skills: [],
-        saves: [
-          { attr: 'str', rate: '—', ranks: 0 },
-          { attr: 'dex', rate: '—', ranks: 0 },
-          { attr: 'con', rate: '—', ranks: 0 },
-          { attr: 'int', rate: '—', ranks: 0 },
-          { attr: 'wis', rate: '—', ranks: 0 },
-          { attr: 'cha', rate: '—', ranks: 0 }
-        ],
-        martial: { rate: '—', ranks: 0 }
-      }
-    end
-
-    # ---- helpers --------------------------------------------------------
-
-    def combine(base, racial, per_tier, chosen)
-      %i[str dex con int wis cha].each_with_object({}) do |a, h|
-        h[a] = base[a] + (racial[a] || 0) + per_tier + (chosen[a] || 0)
-      end
-    end
-
-    def attribute_rows(base, racial, per_tier, chosen, effective)
-      %i[str dex con int wis cha].map do |a|
-        {
-          attr: a,
-          base: base[a],
-          racial: racial[a] || 0,
-          per_tier: per_tier,
-          chosen: chosen[a] || 0,
-          effective: effective[a]
-        }
-      end
     end
   end
 end

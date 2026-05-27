@@ -63,7 +63,7 @@ Required:
 Optional:
 - Viewing Player ID. Used by the application to determine the player's identity for visibility filtering done at the parent level.
 - `chrome` — boolean, default true. When false, the outer card framing (parchment background, top Tier-Color border, section rules) is suppressed and the stub renders as a bare block suitable for embedding inside a parent stub's wrapper. Parents that compose multiple creature blocks under a shared header pass `chrome = false` to avoid stacked card chrome.
-- Detail-mode toggle target — the route the toggle button posts to in order to switch between this stub and `creatures_full_stub.md`. The toggle reads `Show full sheet` while the minimal view is active. The application may persist the last-picked mode in `localStorage` keyed by Creature ID (see `ui_conventions.md`); a `?detail=full` or `?detail=minimal` query parameter on the page URL overrides the stored value when present.
+- Detail-mode toggle target — the route the toggle button posts to in order to switch between this stub and `creatures_full_stub.md`. The toggle reads `Show full sheet` while the minimal view is active, is rendered at the **bottom-left** of the card, and visually sits below every other section. The application may persist the last-picked mode in `localStorage` keyed by Creature ID (see `ui_conventions.md`); a `?detail=full` or `?detail=minimal` query parameter on the page URL overrides the stored value when present.
 
 ## Visibility
 

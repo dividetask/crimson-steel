@@ -5,7 +5,6 @@
     { key: 'check',         label: 'Check Resolution', href: '/status?view=check' },
     { key: 'conditions',    label: 'Conditions',       href: '/status?view=conditions' },
     { key: 'creatures',     label: 'Creatures',        href: '/status?view=creatures' },
-    { key: 'proficiencies', label: 'Proficiencies',    href: '/status?view=proficiencies' },
     { key: 'timekeeping',   label: 'Timekeeping',      href: '/status?view=timekeeping' },
     { key: 'chronicle',     label: 'Chronicle',        href: '/status?view=chronicle' }
   ]
@@ -59,17 +58,12 @@
       <% end %>
 
     <% when 'creatures' %>
-      <h1>Creatures</h1>
-      <p class="lead">Creature Card Stub &mdash; one card per demo Creature, exercising the full variety of the Creatures domain (race chains, archetypes, multi-class, Tier 0, Tier override).</p>
+      <h1>Creatures &mdash; Character Sheet Stubs</h1>
+      <p class="lead">Each sample Creature is rendered twice: first through the Minimal Sheet stub (<code>docs/common/ui/creatures_minimal_stub.md</code>), then through the Full Sheet stub (<code>docs/common/ui/creatures_full_stub.md</code>). Use this page to compare the two layouts side-by-side; the live <code>/character-sheets</code> page picks one or the other via the detail-mode toggle.</p>
       <% @creature_demos.each do |demo| %>
-        <%= erb :_creature_card, locals: { demo: demo } %>
-      <% end %>
-
-    <% when 'proficiencies' %>
-      <h1>Proficiencies</h1>
-      <p class="lead">Proficiency Table Stub &mdash; one table per scenario, covering Direct Prowess, the Floor Ability, Substitution, and their interaction.</p>
-      <% @proficiency_demos.each do |demo| %>
-        <%= erb :_proficiency_table, locals: { demo: demo } %>
+        <h2 class="cs-demo-label"><%= demo[:label] %></h2>
+        <%= erb :_creature_minimal, locals: { demo: demo } %>
+        <%= erb :_creature_full,    locals: { demo: demo } %>
       <% end %>
 
     <% when 'timekeeping' %>

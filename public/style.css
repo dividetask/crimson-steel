@@ -1670,364 +1670,353 @@ body {
 }
 
 /* =====================================================================
-   Status > Creatures sub-view — Creature Card Stub
+   Character Sheet stubs (creatures_minimal_stub, creatures_full_stub)
    ===================================================================== */
 
-.creature-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 16px 18px;
-  margin-bottom: 18px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-.creature-card .cc-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 4px;
-}
-.creature-card .cc-name {
-  font-size: 22px;
-  font-weight: bold;
-  margin: 0;
-  color: inherit;
-}
-.creature-card .cc-tier-badge {
-  background: #111827;
-  color: #fff;
-  font-size: 12px;
-  font-weight: bold;
-  padding: 3px 8px;
+.cs-card {
+  background: #fdf6e3;            /* parchment */
+  color: #2b1a13;
+  font-family: Georgia, 'Times New Roman', serif;
+  border: 1px solid #e8d6b0;
+  border-top-width: 6px;
   border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  padding: 18px 22px 16px;
+  margin: 0 0 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  position: relative;
 }
-.creature-card .cc-subtitle {
-  color: #4b5563;
-  font-size: 14px;
-  margin-bottom: 6px;
-}
-.creature-card .cc-subtitle .cc-class { font-weight: 600; }
-.creature-card .cc-subtitle .cc-class-empty { font-style: italic; color: #9ca3af; }
-.creature-card .cc-subtitle .cc-class-choice { color: #6b7280; margin-left: 4px; }
-.creature-card .cc-subtitle .cc-sep { color: #d1d5db; margin: 0 6px; }
-.creature-card .cc-subtitle .cc-player { color: #6b7280; font-style: italic; }
-.creature-card .cc-tier-source {
-  color: #6b7280;
-  font-size: 12px;
-  margin-bottom: 6px;
-}
-.creature-card .cc-demo-label {
-  background: #f3f4f6;
-  border-left: 3px solid #6b7280;
-  padding: 4px 10px;
-  font-size: 13px;
-  color: #374151;
-  margin-bottom: 14px;
-  border-radius: 0 4px 4px 0;
-}
-
-.creature-card .cc-section {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid #f3f4f6;
-}
-.creature-card .cc-section h4 {
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #6b7280;
-  margin: 0 0 8px 0;
-}
-.creature-card .cc-empty-msg {
-  color: #9ca3af;
-  font-style: italic;
-  font-size: 13px;
-}
-.creature-card .cc-empty .cc-empty-msg { padding: 4px 0; }
-
-.creature-card .cc-attr-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-.creature-card .cc-attr-table th,
-.creature-card .cc-attr-table td {
-  text-align: center;
-  padding: 4px 8px;
-}
-.creature-card .cc-attr-table thead th {
-  background: #f9fafb;
-  color: #6b7280;
-  font-weight: 600;
-  font-size: 11px;
-  text-transform: uppercase;
-}
-.creature-card .cc-attr-table tbody th {
-  text-align: left;
-  font-weight: 700;
-  color: #111827;
-}
-.creature-card .cc-attr-table td.cc-effective {
-  font-weight: 700;
-  color: #111827;
-  background: #f0fdf4;
-}
-
-.creature-card .cc-derived-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 3px 0;
-  font-size: 13px;
-}
-.creature-card .cc-derived-label {
-  font-weight: 600;
-  color: #374151;
-  min-width: 90px;
-}
-.creature-card .cc-derived-value {
-  font-weight: 700;
-  color: #111827;
-}
-.creature-card .cc-derived-source {
-  color: #6b7280;
-  font-size: 12px;
-}
-
-.creature-card .cc-ability-list {
-  list-style: none;
+.cs-card.cs-bare {
+  background: transparent;
+  border: none;
   padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 4px 12px;
-}
-.creature-card .cc-ability-list li {
-  display: flex;
-  gap: 6px;
-  font-size: 12px;
-  align-items: baseline;
-}
-.creature-card .cc-ability-source {
-  color: #6b7280;
-  font-size: 11px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  min-width: 110px;
-}
-.creature-card .cc-ability-name {
-  color: #111827;
-  font-weight: 500;
+  box-shadow: none;
 }
 
-.creature-card .cc-skill-table,
-.creature-card .cc-save-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-.creature-card .cc-skill-table th,
-.creature-card .cc-skill-table td,
-.creature-card .cc-save-table th,
-.creature-card .cc-save-table td {
-  padding: 4px 8px;
-  text-align: left;
-  border-bottom: 1px solid #f3f4f6;
-}
-.creature-card .cc-skill-table thead th,
-.creature-card .cc-save-table thead th {
-  font-size: 11px;
-  text-transform: uppercase;
-  color: #6b7280;
-  background: #f9fafb;
-}
-.creature-card td.cc-ranks {
-  font-weight: 700;
-  text-align: center;
-  width: 60px;
-}
-.creature-card .cc-skill-note {
-  color: #6b7280;
-  font-size: 11px;
-  font-style: italic;
-}
-.creature-card .cc-martial-row {
-  background: #f9fafb;
-  font-weight: 600;
-}
+/* Tier-color top border + name tint. ui_conventions.md mapping:
+   0 red, 1 orange, 2 yellow, 3 green, 4 blue, 5 purple. */
+.cs-card.tier-0 { border-top-color: #c0392b; }
+.cs-card.tier-1 { border-top-color: #d35400; }
+.cs-card.tier-2 { border-top-color: #b8860b; }
+.cs-card.tier-3 { border-top-color: #27ae60; }
+.cs-card.tier-4 { border-top-color: #2980b9; }
+.cs-card.tier-5 { border-top-color: #8e44ad; }
 
-.creature-card .cc-rate {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 2px 6px;
-  border-radius: 3px;
-}
-.creature-card .cc-rate-aligned   { background: #dcfce7; color: #166534; }
-.creature-card .cc-rate-unaligned { background: #fef3c7; color: #92400e; }
-.creature-card .cc-rate-opposed   { background: #fee2e2; color: #991b1b; }
-.creature-card .cc-rate-mixed     { background: #e0e7ff; color: #3730a3; }
+.cs-card.tier-0 .cs-name, .cs-card.tier-0 .cs-tier-num { color: #c0392b; }
+.cs-card.tier-1 .cs-name, .cs-card.tier-1 .cs-tier-num { color: #d35400; }
+.cs-card.tier-2 .cs-name, .cs-card.tier-2 .cs-tier-num { color: #b8860b; }
+.cs-card.tier-3 .cs-name, .cs-card.tier-3 .cs-tier-num { color: #27ae60; }
+.cs-card.tier-4 .cs-name, .cs-card.tier-4 .cs-tier-num { color: #2980b9; }
+.cs-card.tier-5 .cs-name, .cs-card.tier-5 .cs-tier-num { color: #8e44ad; }
 
-/* =====================================================================
-   Status > Proficiencies sub-view — Proficiency Table Stub
-   ===================================================================== */
+.cs-card .cs-tier-label.tier-0 { color: #c0392b; }
+.cs-card .cs-tier-label.tier-1 { color: #d35400; }
+.cs-card .cs-tier-label.tier-2 { color: #b8860b; }
+.cs-card .cs-tier-label.tier-3 { color: #27ae60; }
+.cs-card .cs-tier-label.tier-4 { color: #2980b9; }
+.cs-card .cs-tier-label.tier-5 { color: #8e44ad; }
 
-.prof-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 16px 18px;
-  margin-bottom: 18px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-.prof-header {
+/* Header */
+.cs-card .cs-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 4px;
+  gap: 12px;
 }
-.prof-name {
-  font-size: 20px;
+.cs-card .cs-name {
+  font-family: Georgia, serif;
+  font-size: 30px;
   font-weight: bold;
   margin: 0;
+  line-height: 1.1;
 }
-.prof-tier-badge {
-  background: #111827;
-  color: #fff;
-  font-size: 11px;
-  padding: 2px 7px;
-  border-radius: 3px;
-  font-weight: bold;
-  letter-spacing: 0.5px;
-}
-.prof-subtitle {
-  color: #4b5563;
+.cs-card .cs-player {
+  color: #4d2e1e;
   font-size: 13px;
-  margin-bottom: 6px;
 }
-.prof-subtitle .prof-sep {
-  color: #d1d5db;
-  margin: 0 6px;
+.cs-card .cs-subtitle {
+  color: #6b4a30;
+  font-size: 14px;
+  margin: 2px 0 14px;
 }
-.prof-abilities-none {
-  color: #9ca3af;
-  font-style: italic;
-}
-.prof-demo-label {
-  background: #f3f4f6;
-  border-left: 3px solid #2563eb;
-  padding: 4px 10px;
-  font-size: 13px;
-  color: #1e3a8a;
-  margin: 8px 0 12px 0;
-  border-radius: 0 4px 4px 0;
-}
-.prof-attrs {
-  color: #6b7280;
-  font-size: 12px;
-  margin-bottom: 12px;
-}
-.prof-attrs code {
-  background: #f3f4f6;
-  padding: 1px 5px;
-  border-radius: 3px;
-  margin-right: 3px;
+.cs-card .cs-subtitle-full {
+  margin-bottom: 16px;
 }
 
-.prof-table {
+/* Section headings — small-caps maroon with underline rule. */
+.cs-card .cs-section {
+  border-top: 1px solid #b9472c;
+  padding-top: 10px;
+  margin-top: 14px;
+}
+.cs-card .cs-section-h {
+  font-variant: small-caps;
+  font-size: 13px;
+  font-weight: bold;
+  color: #882f1f;
+  margin: 0 0 6px;
+  letter-spacing: 0.4px;
+}
+.cs-card .cs-subsection-h {
+  font-size: 12px;
+  font-variant: small-caps;
+  color: #6b3320;
+  margin: 8px 0 4px;
+}
+
+/* Two-column wrap for paired sections (Spells|Rituals, Items|Abilities). */
+.cs-card .cs-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.cs-card .cs-col {}
+
+/* Minimal-sheet attribute + vitals block. */
+.cs-card.cs-minimal .cs-vitals-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  border-top: 1px solid #b9472c;
+  padding-top: 10px;
+  margin-top: 8px;
+}
+.cs-card.cs-minimal .cs-attr-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px 12px;
+  font-size: 15px;
+}
+.cs-card.cs-minimal .cs-attr-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.cs-card.cs-minimal .cs-attr-key {
+  font-variant: small-caps;
+  color: #882f1f;
+  font-weight: bold;
+  font-size: 13px;
+  min-width: 32px;
+}
+.cs-card.cs-minimal .cs-attr-value {
+  color: #2b1a13;
+  font-weight: bold;
+}
+.cs-card.cs-minimal .cs-hp-mana {
+  font-size: 15px;
+  line-height: 1.6;
+}
+.cs-card.cs-minimal .cs-hp-label,
+.cs-card.cs-minimal .cs-mana-label {
+  font-variant: small-caps;
+  color: #882f1f;
+  font-weight: bold;
+}
+.cs-card.cs-minimal .cs-tox {
+  color: #8a6a52;
+  font-size: 13px;
+}
+
+/* Initiative / Perception / Speed row. */
+.cs-card .cs-ips-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid #b9472c;
+  padding: 8px 0 4px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+.cs-card .cs-ips-cell strong {
+  color: #882f1f;
+  font-variant: small-caps;
+  margin-right: 6px;
+}
+
+/* Tables — actions, combat, attributes, skills, effects. */
+.cs-card table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13px;
+  margin: 0;
 }
-.prof-table th,
-.prof-table td {
-  padding: 5px 7px;
-  border-bottom: 1px solid #f3f4f6;
-  vertical-align: top;
+.cs-card thead th {
+  color: #882f1f;
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 11px;
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid #d9a98a;
 }
-.prof-table thead th {
-  background: #f9fafb;
-  color: #6b7280;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.cs-card tbody td,
+.cs-card tbody th {
+  padding: 4px 8px;
+  border-bottom: 1px solid #ecd6b6;
+}
+.cs-card tbody th {
   text-align: left;
   font-weight: 600;
 }
-.prof-table td.prof-num,
-.prof-table th.prof-num {
-  text-align: center;
-  font-variant-numeric: tabular-nums;
+.cs-card td.cs-num,
+.cs-card th.cs-num { text-align: center; font-variant-numeric: tabular-nums; }
+
+/* Spells / Rituals lines. */
+.cs-card .cs-spell-line {
+  font-size: 13px;
+  margin: 3px 0;
 }
-.prof-table td.prof-attr-cell {
-  text-transform: uppercase;
-  font-weight: 600;
-  font-size: 10px;
-  color: #4b5563;
-  text-align: center;
-}
-.prof-direct { color: #1f2937; }
-.prof-prowess {
-  font-weight: 700;
-  background: #f0fdf4;
-}
-.prof-dice {
-  font-weight: 700;
-  color: #1e3a8a;
-}
-.prof-competency {
-  background: #dbeafe;
-  color: #1e3a8a;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 11px;
-  font-weight: 600;
-}
-.prof-na {
-  color: #9ca3af;
-}
-.prof-row-note {
-  color: #6b7280;
-  font-size: 10px;
+.cs-card .cs-empty-placeholder {
+  color: #b09175;
   font-style: italic;
-  margin-top: 2px;
 }
-.prof-floor {
-  text-align: center;
-  font-variant-numeric: tabular-nums;
+.cs-card .cs-tier-label {
+  margin-right: 4px;
 }
-.prof-sub {
+
+/* Items lines (minimal + full share). */
+.cs-card .cs-item-line {
+  font-size: 13px;
+  margin: 3px 0;
+}
+
+/* Collapsible Abilities (minimal). */
+.cs-card .cs-ability-row {
+  font-size: 13px;
+  margin: 3px 0;
+}
+.cs-card .cs-ability-row > summary {
+  cursor: pointer;
+  list-style: revert;
+  color: #2b1a13;
+}
+.cs-card .cs-ability-body {
+  margin: 4px 0 6px 18px;
+  color: #4d2e1e;
+  font-size: 12px;
+}
+
+/* Item descriptions row. */
+.cs-card .cs-item-desc-row {
+  font-size: 13px;
+  margin: 4px 0;
+}
+
+/* Active Effects / Usable Spells / Notes / Item Descriptions tables. */
+.cs-card .cs-effects-table th,
+.cs-card .cs-usable-table th { font-size: 11px; }
+.cs-card .cs-note-row {
+  font-size: 13px;
+  margin: 4px 0;
+}
+
+/* Full-sheet vitals strip (4 rows × 3 columns). */
+.cs-card.cs-full .cs-vitals-strip { border-top: 1px solid #b9472c; padding-top: 10px; }
+.cs-card.cs-full .cs-vitals-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  font-size: 13px;
+  padding: 3px 0;
+}
+.cs-card.cs-full .cs-vital {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cs-card.cs-full .cs-vital-label {
+  color: #882f1f;
+  font-variant: small-caps;
+  font-weight: bold;
   font-size: 11px;
 }
-.prof-sub code {
-  background: #f3f4f6;
-  padding: 1px 4px;
-  border-radius: 2px;
+.cs-card.cs-full .cs-vital-value {
+  font-weight: bold;
+  color: #2b1a13;
 }
-.prof-row-restricted {
-  background: #fef2f2;
+
+/* Combat / Attributes / Skills footnote + formula text. */
+.cs-card .cs-combat-footer,
+.cs-card .cs-formula-footer {
+  color: #8a6a52;
+  font-size: 11px;
+  font-style: italic;
+  margin-top: 4px;
 }
-.prof-tag {
+
+/* Attributes table (full sheet). */
+.cs-card .cs-attributes-table th.cs-attr-name {
+  font-weight: 600;
+  text-align: left;
+}
+
+/* Full-sheet Abilities (always expanded). */
+.cs-card .cs-ability-full {
+  font-size: 13px;
+  margin: 6px 0;
+}
+.cs-card .cs-ability-full-name { color: #2b1a13; }
+.cs-card .cs-ability-full-body { color: #4d2e1e; }
+
+/* Pager (full sheet). */
+.cs-card .cs-pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+.cs-card .cs-pager-arrow {
   display: inline-block;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 1px 5px;
-  border-radius: 2px;
-  margin-left: 4px;
-  vertical-align: middle;
+  padding: 2px 10px;
+  border: 1px solid #d9a98a;
+  border-radius: 3px;
+  color: #4d2e1e;
+  text-decoration: none;
+  background: #f4e5c4;
 }
-.prof-tag-restricted { background: #fee2e2; color: #991b1b; }
-.prof-tag-override   { background: #e0e7ff; color: #3730a3; }
-.prof-note-row td {
-  color: #4b5563;
-  font-size: 11px;
-  background: #fafafa;
+.cs-card .cs-pager-arrow:hover { background: #ecd5a8; }
+.cs-card .cs-pager-disabled { color: #b09175; background: #f9f2dc; cursor: default; }
+.cs-card .cs-pager-label { color: #4d2e1e; font-weight: 600; }
+
+/* Toggle (bottom-left). */
+.cs-card .cs-toggle {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px solid #b9472c;
+  text-align: left;
+}
+.cs-card .cs-toggle-btn {
+  display: inline-block;
+  padding: 4px 12px;
+  border: 1px solid #d9a98a;
+  border-radius: 3px;
+  background: #f4e5c4;
+  color: #4d2e1e;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.cs-card .cs-toggle-btn:hover { background: #ecd5a8; }
+.cs-card .cs-toggle-static { opacity: 0.6; cursor: default; }
+
+/* Status > Creatures sub-view labels above each demo. */
+.cs-demo-label {
+  font-size: 14px;
+  color: #4d2e1e;
+  margin-top: 18px;
+  padding: 6px 10px;
+  background: #fff8e8;
+  border-left: 4px solid #b9472c;
   font-style: italic;
-  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Character Sheet page outer pager (when in minimal mode, the page
+   shows pager above the card; full sheet's pager lives inside the card). */
+.cs-page-pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+  font-size: 14px;
 }
