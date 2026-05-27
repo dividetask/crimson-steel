@@ -1,0 +1,178 @@
+<%#
+  Chronicle Entry Stub. See docs/common/ui/chronicle_entry_stub.md.
+
+  Locals:
+    entry            — required. Normalized Entry hash.
+    viewer           — :dm or :player.
+    viewing_id       — for player viewers, the viewing Creature ID.
+    player_creatures — required when viewer == :dm; list of {id:, name:}
+%>
+<%
+  is_creature = entry['entry_type'] == 'creature'
+  resolved    = is_creature ? resolve_creature_for(entry) : nil
+  title       = is_creature ? resolved[:full_title] : entry['title'].to_s
+  tier        = is_creature ? resolved[:tier] : nil
+  is_dm       = viewer == :dm
+  can_edit    = is_dm || (viewer == :player && entry['owner_id'] && entry['owner_id'] == viewing_id)
+  pub         = entry['public_description'].to_s
+  dm_text     = entry['dm_description'].to_s
+  has_image   = !entry['image'].nil? && !entry['image'].empty?
+%>
+<article class="ce-card <%= entry['active'] ? 'ce-active' : 'ce-inactive' %> <%= is_creature ? 'ce-creature' : 'ce-note' %>" data-entry-id="<%= entry['id'] %>">
+  <header class="ce-head">
+    <div class="ce-title <%= tier ? "tier-#{tier}" : '' %>">
+      <%= title.empty? ? '<em class="ce-no-title">(untitled)</em>' : Rack::Utils.escape_html(title) %>
+    </div>
+
+    <% if is_dm %>
+      <div class="ce-tag-row">
+        <span class="ce-tag <%= entry['shared'] ? 'ce-tag-public' : 'ce-tag-private' %>">
+          <%= entry['shared'] ? 'Public' : 'Private' %>
+        </span>
+        <% if entry['active'] %>
+          <span class="ce-tag ce-tag-active">Active</span>
+        <% end %>
+      </div>
+    <% end %>
+  </header>
+
+  <div class="ce-content <%= has_image ? 'ce-has-image' : '' %>">
+    <% if has_image %>
+      <div class="ce-image">
+        <img src="<%= Rack::Utils.escape_html(entry['image']) %>" alt="" data-lightbox="1">
+      </div>
+    <% end %>
+
+    <% if (!pub.empty?) || (is_dm && !dm_text.empty?) %>
+      <div class="ce-body" data-text-modal="1" tabindex="0" role="button" aria-label="Open full text">
+        <% unless pub.empty? %>
+          <div class="ce-body-block ce-body-public"><%= Rack::Utils.escape_html(pub).gsub("\n", '<br>') %></div>
+        <% end %>
+        <% if is_dm && !dm_text.empty? %>
+          <div class="ce-body-block ce-body-gm"><%= Rack::Utils.escape_html(dm_text).gsub("\n", '<br>') %></div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if can_edit %>
+    <footer class="ce-foot">
+      <details class="ce-edit">
+        <summary class="ce-edit-summary">
+          <span class="ce-edit-tri" aria-hidden="true">▶</span><span class="ce-edit-label">Edit</span>
+        </summary>
+
+        <div class="ce-edit-panel">
+          <form method="post" action="/chronicle/entries/<%= entry['id'] %>" class="ce-edit-form">
+            <% if is_dm && player_creatures && !player_creatures.empty? %>
+              <input type="hidden" name="visibility_form" value="1">
+            <% end %>
+
+            <div class="ce-edit-row">
+              <label class="ce-field ce-field-grow">
+                <span>Title</span>
+                <input type="text" name="title" value="<%= Rack::Utils.escape_html(entry['title'] || '') %>">
+              </label>
+              <% if is_dm %>
+                <label class="ce-field">
+                  <span>Chapter</span>
+                  <select name="chapter">
+                    <% (@chapters || chronicle_store.list_chapters).each do |c| %>
+                      <option value="<%= c[:number] %>" <%= entry['chapter'] == c[:number] ? 'selected' : '' %>>
+                        <%= c[:number] %>. <%= Rack::Utils.escape_html(c[:name]) %>
+                      </option>
+                    <% end %>
+                  </select>
+                </label>
+                <% if is_creature %>
+                  <label class="ce-field ce-field-narrow">
+                    <span>Tier</span>
+                    <input type="number" name="tier" value="<%= entry['tier'] %>" min="0" max="5" placeholder="—">
+                  </label>
+                <% end %>
+              <% end %>
+            </div>
+
+            <label class="ce-field">
+              <span>Public</span>
+              <textarea name="public_description" rows="2"><%= Rack::Utils.escape_html(entry['public_description'] || '') %></textarea>
+            </label>
+
+            <% if is_dm %>
+              <label class="ce-field">
+                <span>GM only</span>
+                <textarea name="dm_description" rows="2"><%= Rack::Utils.escape_html(entry['dm_description'] || '') %></textarea>
+              </label>
+
+              <% if player_creatures && !player_creatures.empty? %>
+                <div class="ce-edit-row ce-edit-inline">
+                  <span class="ce-inline-label">Hidden from</span>
+                  <% player_creatures.each do |pc| %>
+                    <% visible_to_pc = !(entry['hidden_from'] || []).include?(pc[:id]) %>
+                    <label class="ce-checkbox">
+                      <input type="hidden" name="all_pc_ids[]" value="<%= pc[:id] %>">
+                      <input type="checkbox" name="visible_to[]" value="<%= pc[:id] %>" <%= visible_to_pc ? 'checked' : '' %>>
+                      <span><%= Rack::Utils.escape_html(pc[:name]) %></span>
+                    </label>
+                  <% end %>
+                </div>
+              <% end %>
+
+              <div class="ce-edit-row ce-edit-inline ce-edit-row-save">
+                <label class="ce-checkbox">
+                  <input type="checkbox" name="shared" value="true" <%= entry['shared'] ? 'checked' : '' %>>
+                  <span>Shared</span>
+                </label>
+                <label class="ce-checkbox">
+                  <input type="checkbox" name="active" value="true" <%= entry['active'] ? 'checked' : '' %>>
+                  <span>Active</span>
+                </label>
+                <button type="submit" class="ce-btn ce-btn-primary ce-btn-tight">Save</button>
+              </div>
+            <% else %>
+              <div class="ce-edit-row ce-edit-inline ce-edit-row-save">
+                <button type="submit" class="ce-btn ce-btn-primary ce-btn-tight">Save</button>
+              </div>
+            <% end %>
+          </form>
+
+          <% if is_dm %>
+            <div class="ce-edit-row ce-edit-inline ce-image-controls">
+              <span class="ce-inline-label">Image</span>
+              <form method="post" action="/chronicle/entries/<%= entry['id'] %>/image" enctype="multipart/form-data" class="ce-edit-inline-form">
+                <input type="hidden" name="field" value="image">
+                <input type="file" name="file" class="ce-file-tight" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml">
+                <button type="submit" class="ce-btn ce-btn-tight">Upload</button>
+              </form>
+              <% if entry['image'] %>
+                <form method="post" action="/chronicle/entries/<%= entry['id'] %>/image" class="ce-edit-inline-form">
+                  <input type="hidden" name="field" value="image">
+                  <input type="hidden" name="clear" value="true">
+                  <button type="submit" class="ce-btn ce-btn-tight">Clear</button>
+                </form>
+              <% end %>
+              <% if is_creature %>
+                <span class="ce-inline-label">Token</span>
+                <form method="post" action="/chronicle/entries/<%= entry['id'] %>/image" enctype="multipart/form-data" class="ce-edit-inline-form">
+                  <input type="hidden" name="field" value="creature_token">
+                  <input type="file" name="file" class="ce-file-tight" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml">
+                  <button type="submit" class="ce-btn ce-btn-tight">Upload</button>
+                </form>
+                <% if entry['creature_token'] %>
+                  <form method="post" action="/chronicle/entries/<%= entry['id'] %>/image" class="ce-edit-inline-form">
+                    <input type="hidden" name="field" value="creature_token">
+                    <input type="hidden" name="clear" value="true">
+                    <button type="submit" class="ce-btn ce-btn-tight">Clear</button>
+                  </form>
+                <% end %>
+              <% end %>
+              <form method="post" action="/chronicle/entries/<%= entry['id'] %>/delete" class="ce-edit-inline-form ce-delete" onsubmit="return confirm('Delete this entry?');">
+                <button type="submit" class="ce-btn ce-btn-delete ce-btn-tight">Delete</button>
+              </form>
+            </div>
+          <% end %>
+        </div>
+      </details>
+    </footer>
+  <% end %>
+</article>

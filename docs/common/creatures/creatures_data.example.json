@@ -1,0 +1,11 @@
+{
+  "creatures": [
+    { "id": 1,    "name": "Bryn Ironvein",    "tier": 3, "player_controlled": true },
+    { "id": 2,    "name": "Wisp Trueheart",   "tier": 2, "player_controlled": true },
+    { "id": 3,    "name": "Tana Quickfoot",   "tier": 2, "player_controlled": true },
+    { "id": 4,    "name": "Selka Embermane",  "tier": 1, "player_controlled": true },
+
+    { "id": 1001, "name": "Daven Korr",       "tier": 1, "player_controlled": false },
+    { "id": 1003, "name": "The Pale Lantern", "tier": 4, "player_controlled": false }
+  ]
+}

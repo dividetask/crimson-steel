@@ -1007,3 +1007,664 @@ body {
   margin: 0 1px;
   vertical-align: baseline;
 }
+
+/* === Timekeeping Stub === */
+
+.tk-stub {
+  position: relative;
+  height: 130px;
+  border: 1px solid #cfd6df;
+  border-radius: 4px;
+  margin: 14px 0;
+  overflow: hidden;
+}
+
+.tk-stub.tk-day {
+  background: linear-gradient(to bottom, #cfe9ff 0%, #f1f8ff 100%);
+  color: #1f2937;
+}
+.tk-stub.tk-night {
+  background: linear-gradient(to bottom, #0b1d3a 0%, #1d2b53 100%);
+  color: #e5e7eb;
+}
+
+.tk-sky {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.tk-horizon {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  border-top: 1px dashed currentColor;
+  opacity: 0.4;
+}
+
+.tk-arc {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 85%;
+  border: 1px dashed currentColor;
+  border-bottom: none;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  opacity: 0.25;
+}
+
+.tk-icon {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  transform: translate(-50%, 50%);
+  pointer-events: none;
+  z-index: 1;
+}
+.tk-icon svg { width: 100%; height: 100%; display: block; }
+
+.tk-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #fff;
+  border-radius: 50%;
+  opacity: 0.7;
+}
+
+.tk-date {
+  position: absolute;
+  top: 8px;
+  left: 14px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.tk-date-primary {
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 0.3px;
+}
+.tk-date-secondary {
+  font-size: 11px;
+  opacity: 0.78;
+  margin-top: 1px;
+}
+.tk-date-secondary.tk-time {
+  font-family: monospace;
+  letter-spacing: 1px;
+}
+
+.tk-advance {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0 0 16px 0;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+  font-size: 11px;
+}
+.tk-advance-label { font-weight: bold; margin-right: 4px; }
+
+.tk-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tk-stack-row {
+  position: relative;
+}
+.tk-stack-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: #666;
+  letter-spacing: 0.5px;
+  margin: 6px 0 -8px 4px;
+}
+
+/* === Chronicle Entry Stub === */
+
+.ce-card {
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 11px;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+}
+
+.ce-card.ce-inactive {
+  background: #fafafa;
+  border-style: dashed;
+  color: #555;
+}
+
+.ce-card.ce-creature {
+  border-left: 4px solid #6b7280;
+}
+
+.ce-head {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #f6f7f9;
+  border-bottom: 1px solid #e5e7eb;
+  min-height: 22px;
+}
+
+.ce-inactive .ce-head { background: #f0f0f0; }
+
+.ce-title {
+  font-weight: bold;
+  font-size: 12px;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ce-no-title { color: #999; }
+
+.ce-tag-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ce-tag {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+.ce-tag-public   { background: #dcfce7; border-color: #86efac; color: #166534; }
+.ce-tag-private  { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+.ce-tag-active   { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+
+/* Body region: image on the left (when present) + text on the right.
+   Card has a fixed body height so excess text is clipped via
+   overflow:hidden. Clicking the text opens a scrollable modal with
+   the full content; clicking the image opens a pan/zoom lightbox. */
+
+.ce-content {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.ce-content.ce-has-image .ce-image {
+  flex: 0 0 100px;
+  width: 100px;
+  height: 100px;
+  background: #f0f0f0;
+  border-right: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+.ce-content.ce-has-image .ce-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  cursor: zoom-in;
+}
+
+.ce-body {
+  flex: 1 1 auto;
+  height: 56px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  background: #fff;
+}
+.ce-content.ce-has-image .ce-body {
+  height: 100px;
+}
+.ce-inactive .ce-body { background: transparent; }
+
+.ce-body:hover { background: #f9fafb; }
+.ce-inactive .ce-body:hover { background: #f4f4f4; }
+
+.ce-body-block {
+  padding: 4px 10px 6px;
+}
+.ce-body-block:first-child {
+  padding-top: 8px;
+}
+.ce-body-public + .ce-body-gm,
+.ce-body-gm + .ce-body-public {
+  border-top: 1px solid #fde68a;
+}
+.ce-body-gm {
+  background: #fffbea;
+  border-left: 2px solid #eab308;
+}
+.ce-inactive .ce-body-gm { background: #fdf6d9; }
+
+/* Body fade-out at the bottom so clipped text doesn't look like an
+   abrupt cutoff. Suppressed when the modal is open. */
+.ce-body::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 18px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.95));
+}
+.ce-body-gm:last-child::after { /* fade should still apply over GM tint */
+  /* handled by ::after on .ce-body, GM background bleeds through */
+}
+
+.ce-foot {
+  padding: 6px 12px 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.ce-edit { display: block; }
+
+.ce-edit-summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #2563eb;
+  font-weight: bold;
+  list-style: none;
+  user-select: none;
+  padding: 2px 4px;
+}
+.ce-edit-summary::-webkit-details-marker { display: none; }
+.ce-edit-summary:hover { text-decoration: underline; }
+
+.ce-edit-tri {
+  display: inline-block;
+  transition: transform 120ms ease-out;
+  font-size: 9px;
+  line-height: 1;
+}
+.ce-edit[open] .ce-edit-tri { transform: rotate(90deg); }
+
+.ce-edit-panel {
+  margin-top: 4px;
+  padding: 6px 8px;
+  background: #fafbfc;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+}
+
+.ce-edit-form {
+  display: block;
+  margin: 0;
+}
+
+.ce-edit-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 4px;
+}
+.ce-edit-row.ce-edit-inline {
+  align-items: center;
+  gap: 8px;
+}
+.ce-edit-row-save { justify-content: flex-end; }
+
+.ce-image-controls {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.ce-edit-inline-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}
+.ce-edit-inline-form.ce-delete { margin-left: auto; }
+
+.ce-inline-label {
+  font-size: 9px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #6b7280;
+}
+
+.ce-file-tight {
+  font-size: 10px;
+  max-width: 130px;
+}
+.ce-file-tight::file-selector-button {
+  padding: 2px 6px;
+  font-size: 10px;
+  border: 1px solid #cbd5e1;
+  background: #f3f4f6;
+  border-radius: 2px;
+  margin-right: 4px;
+  cursor: pointer;
+}
+
+.ce-btn-tight { padding: 2px 8px; font-size: 10px; }
+
+.ce-btn-delete {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+.ce-btn-delete:hover { background: #fecaca; }
+
+.ce-field {
+  display: block;
+  margin: 0;
+  font-size: 10px;
+  color: #475569;
+  flex: 1 1 100%;
+}
+.ce-field-grow { flex: 1 1 200px; }
+.ce-field-narrow { flex: 0 0 70px; }
+
+.ce-field > span {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 1px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #6b7280;
+}
+.ce-field input[type="text"],
+.ce-field input[type="number"],
+.ce-field select,
+.ce-field textarea {
+  width: 100%;
+  padding: 2px 5px;
+  border: 1px solid #cbd5e1;
+  border-radius: 2px;
+  font-size: 11px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.ce-field textarea { resize: vertical; }
+
+.ce-btn {
+  background: #f3f4f6;
+  border: 1px solid #cbd5e1;
+  padding: 3px 8px;
+  font-size: 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.ce-btn:hover { background: #e2e8f0; }
+.ce-btn-primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #1d4ed8;
+}
+.ce-btn-primary:hover { background: #1d4ed8; }
+
+.ce-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+}
+
+/* === Add-entry forms === */
+
+.ce-add-form {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 12px 14px;
+  border-radius: 4px;
+  margin: 10px 0 24px;
+}
+.ce-add-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ce-add-row .ce-field { flex: 1 1 140px; }
+
+.ce-add-flags { margin: 6px 0; gap: 16px; }
+.ce-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.ce-add-hidden {
+  border: 1px dashed #cbd5e1;
+  padding: 4px 8px;
+  margin: 6px 0;
+}
+.ce-add-hidden legend {
+  font-size: 10px;
+  font-weight: bold;
+  color: #6b7280;
+  padding: 0 4px;
+}
+
+/* === Scene & Notes layouts === */
+
+.scene-section, .notes-section {
+  margin-top: 8px;
+}
+
+.dm-staging {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 2px solid #ddd;
+}
+
+.dm-staging h3 {
+  font-size: 12px;
+  margin: 14px 0 4px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #475569;
+}
+
+.notes-chapter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 10px 0 16px;
+  border-bottom: 1px solid #d1d5db;
+  padding-bottom: 6px;
+}
+.notes-chapter-tabs a {
+  padding: 4px 10px;
+  text-decoration: none;
+  color: #374151;
+  font-size: 11px;
+  border: 1px solid transparent;
+  border-radius: 3px 3px 0 0;
+}
+.notes-chapter-tabs a:hover { background: #f3f4f6; }
+.notes-chapter-tabs a.active {
+  background: #fff;
+  border-color: #d1d5db;
+  border-bottom-color: #fff;
+  font-weight: bold;
+  color: #111;
+}
+
+.dm-chapters {
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 2px solid #ddd;
+}
+.dm-chapters-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+.dm-chapters-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+.dm-chapters-list li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px dashed #e5e7eb;
+}
+.dm-chapter-rename {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex: 1;
+}
+.dm-chapter-rename input[type="text"] {
+  flex: 1;
+  padding: 3px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 2px;
+  font-size: 11px;
+}
+
+/* Status sub-view: row label above each Chronicle Entry Stub example */
+.ce-example-row { margin-bottom: 18px; }
+.ce-example-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: #666;
+  letter-spacing: 0.5px;
+  margin: 6px 0 4px 4px;
+}
+
+/* === Notes/Scene layouts ===
+   Notes page stacks full-width cards in a single column;
+   Scene page uses a two-column grid so cards take half the
+   screen and the scene reads as a denser overview. */
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.scene-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.notes-list .ce-card,
+.scene-list .ce-card { margin: 0; }
+
+/* === Image lightbox & text modal === */
+
+.ce-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 20, 0.88);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ce-modal-close {
+  position: fixed;
+  top: 14px;
+  right: 18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 1001;
+  line-height: 1;
+}
+.ce-modal-close:hover { background: rgba(0,0,0,0.8); }
+
+/* Image lightbox stage */
+.ce-modal-image-stage {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  touch-action: none;
+  cursor: grab;
+}
+.ce-modal-image-stage:active { cursor: grabbing; }
+.ce-modal-image {
+  max-width: none;
+  max-height: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  transform-origin: center center;
+  pointer-events: none;
+}
+.ce-modal-image-hint {
+  position: fixed;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.55);
+  color: #cbd5e1;
+  padding: 4px 12px;
+  font-size: 10px;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+/* Text modal */
+.ce-modal-text-stage {
+  background: #fff;
+  width: min(780px, 92vw);
+  max-height: 84vh;
+  overflow-y: auto;
+  padding: 28px 32px;
+  border-radius: 6px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+  font-size: 16px;
+  line-height: 1.7;
+}
+.ce-modal-text-stage .ce-body-block {
+  padding: 12px 14px;
+  margin: 0;
+}
+.ce-modal-text-stage .ce-body-gm {
+  background: #fffbea;
+  border-left: 3px solid #eab308;
+  margin-top: 12px;
+}
+.ce-modal-text-title {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}

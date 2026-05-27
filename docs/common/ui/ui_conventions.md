@@ -41,7 +41,7 @@ Any spec that displays a free-form text body uses the show-more pattern: text up
 
 ### Lightbox
 
-Specs that display images may declare them as lightbox-eligible. A lightbox-eligible image opens in a centered zoom modal when clicked: the image fills the modal at its natural aspect ratio, the modal accepts mouse-wheel zoom and click-drag pan, and a double click resets the view. The modal is a page-level concern — specs only mark which images participate; the host page renders the modal.
+Specs that display images may declare them as lightbox-eligible. A lightbox-eligible image opens in a full-screen zoom modal when clicked: the image fills the modal at its natural aspect ratio, the modal accepts mouse-wheel zoom, click-drag pan, two-finger pinch zoom on touch devices, and a double-click reset. The modal closes on its close button, on a click outside the image, or on `Esc`. The modal is a page-level concern — specs only mark which images participate; the host page renders the modal.
 
 ### LocalStorage persistence
 

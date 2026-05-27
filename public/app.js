@@ -584,3 +584,185 @@
     btn.disabled = true;
   }
 })();
+
+/* === Chronicle Entry — image lightbox & text modal ===
+   Image lightbox: pan with mouse drag or single-finger touch, zoom
+   with the mouse wheel or two-finger pinch, double-click resets.
+   Text modal: shows the full untruncated body of the clicked card,
+   scrollable, mirroring the GM-only background tint from the card. */
+(function () {
+  function makeOverlay(extraClass) {
+    var overlay = document.createElement('div');
+    overlay.className = 'ce-modal ' + extraClass;
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'ce-modal-close';
+    close.setAttribute('aria-label', 'Close');
+    close.innerHTML = '&times;';
+    overlay.appendChild(close);
+
+    function dismiss() {
+      overlay.remove();
+      document.removeEventListener('keydown', escHandler);
+      document.body.classList.remove('ce-modal-open');
+    }
+    function escHandler(e) { if (e.key === 'Escape') dismiss(); }
+
+    close.addEventListener('click', dismiss);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) dismiss();
+    });
+    document.addEventListener('keydown', escHandler);
+    document.body.classList.add('ce-modal-open');
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function openImageLightbox(src) {
+    var overlay = makeOverlay('ce-modal-image-modal');
+    var stage = document.createElement('div');
+    stage.className = 'ce-modal-image-stage';
+    var img = document.createElement('img');
+    img.src = src;
+    img.alt = '';
+    img.className = 'ce-modal-image';
+    img.draggable = false;
+    stage.appendChild(img);
+
+    var hint = document.createElement('div');
+    hint.className = 'ce-modal-image-hint';
+    hint.textContent = 'Scroll or pinch to zoom · drag to pan · double-click to reset · Esc to close';
+    overlay.appendChild(hint);
+
+    overlay.insertBefore(stage, overlay.firstChild);
+
+    var scale = 1, tx = 0, ty = 0;
+    var pointers = new Map();
+    var dragStart = null;
+    var pinchStart = null;
+
+    function apply() {
+      img.style.transform =
+        'translate(' + tx.toFixed(2) + 'px, ' + ty.toFixed(2) + 'px) scale(' + scale.toFixed(4) + ')';
+    }
+    apply();
+
+    function reset() { scale = 1; tx = 0; ty = 0; apply(); }
+
+    stage.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      var delta = -e.deltaY * 0.0015;
+      var next = Math.max(0.1, Math.min(20, scale * (1 + delta)));
+      var rect = img.getBoundingClientRect();
+      var cx = e.clientX - (rect.left + rect.width / 2);
+      var cy = e.clientY - (rect.top + rect.height / 2);
+      tx -= cx * (next / scale - 1);
+      ty -= cy * (next / scale - 1);
+      scale = next;
+      apply();
+    }, { passive: false });
+
+    stage.addEventListener('dblclick', reset);
+
+    stage.addEventListener('pointerdown', function (e) {
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      stage.setPointerCapture(e.pointerId);
+
+      if (pointers.size === 1) {
+        dragStart = { x: e.clientX, y: e.clientY, tx: tx, ty: ty };
+      } else if (pointers.size === 2) {
+        var pts = Array.from(pointers.values());
+        var dx = pts[0].x - pts[1].x;
+        var dy = pts[0].y - pts[1].y;
+        pinchStart = {
+          dist: Math.hypot(dx, dy),
+          scale: scale,
+          midX: (pts[0].x + pts[1].x) / 2,
+          midY: (pts[0].y + pts[1].y) / 2,
+          tx: tx, ty: ty
+        };
+        dragStart = null;
+      }
+    });
+
+    stage.addEventListener('pointermove', function (e) {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pointers.size === 1 && dragStart) {
+        tx = dragStart.tx + (e.clientX - dragStart.x);
+        ty = dragStart.ty + (e.clientY - dragStart.y);
+        apply();
+      } else if (pointers.size === 2 && pinchStart) {
+        var pts = Array.from(pointers.values());
+        var dx = pts[0].x - pts[1].x;
+        var dy = pts[0].y - pts[1].y;
+        var dist = Math.hypot(dx, dy);
+        scale = Math.max(0.1, Math.min(20, pinchStart.scale * (dist / pinchStart.dist)));
+        apply();
+      }
+    });
+
+    function release(e) {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) pinchStart = null;
+      if (pointers.size === 0) dragStart = null;
+    }
+    stage.addEventListener('pointerup', release);
+    stage.addEventListener('pointercancel', release);
+  }
+
+  function openTextModal(card) {
+    var overlay = makeOverlay('ce-modal-text-modal');
+    var stage = document.createElement('div');
+    stage.className = 'ce-modal-text-stage';
+
+    var titleEl = card.querySelector('.ce-title');
+    if (titleEl) {
+      var title = document.createElement('div');
+      title.className = 'ce-modal-text-title ' + (titleEl.className || '');
+      title.innerHTML = titleEl.innerHTML;
+      stage.appendChild(title);
+    }
+    var bodySrc = card.querySelector('.ce-body');
+    if (bodySrc) {
+      var clone = bodySrc.cloneNode(true);
+      clone.removeAttribute('data-text-modal');
+      clone.removeAttribute('tabindex');
+      clone.removeAttribute('role');
+      clone.style.height = 'auto';
+      clone.style.overflow = 'visible';
+      clone.style.cursor = 'auto';
+      clone.style.background = 'transparent';
+      stage.appendChild(clone);
+    }
+    overlay.insertBefore(stage, overlay.firstChild);
+  }
+
+  document.addEventListener('click', function (e) {
+    var img = e.target.closest('[data-lightbox="1"]');
+    if (img) {
+      e.preventDefault();
+      var src = img.tagName === 'IMG' ? img.getAttribute('src') : img.getAttribute('href');
+      openImageLightbox(src);
+      return;
+    }
+    var body = e.target.closest('[data-text-modal="1"]');
+    if (body) {
+      var card = body.closest('.ce-card');
+      if (card) {
+        e.preventDefault();
+        openTextModal(card);
+      }
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var body = e.target.closest && e.target.closest('[data-text-modal="1"]');
+    if (!body) return;
+    e.preventDefault();
+    var card = body.closest('.ce-card');
+    if (card) openTextModal(card);
+  });
+})();
