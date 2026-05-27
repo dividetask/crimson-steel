@@ -71,7 +71,7 @@ Tests that depend on randomness (the actual values dice land on) state the *roll
 
 **A nudge promotes a near-Success.** Given a Roll with `failure_modifier = 0`, `value_adjustment = (+1, false)`, and dice `[5, 5, 5, 5, 5, 1]`: the nudge targets a 5 (which becomes a Success at +1), not the 1 (which would still be 2 — a Neutral Result, no contribution change). Because Failures are ignored on this Roll, the 1→2 shift produces a delta of 0 (0 → 0); only the 5→6 shifts produce a positive delta (+1). Tie among the 5s → lowest index wins.
 
-**Tied delta with a Failure prefers the lower-starting die.** Given a Roll with default `failure_modifier = -1`, `value_adjustment = (+1, false)`, and dice `[5, 5, 5, 5, 5, 1]`: the 1→2 shift moves contribution from -1 (Failure) to 0 (Neutral), a delta of +1. The 5→6 shifts each have delta +1 as well (0 → +1). Per the design's tie-break rule, the die that started lowest wins for a positive nudge; the nudge targets the 1.
+**Tied delta with a Failure prefers the lower-starting die.** Given a Roll with default `failure_modifier = -1`, `value_adjustment = (+1, false)`, TN 6, and dice `[5, 5, 5, 5, 5, 1]`: the 1→2 shift moves contribution from -1 (Failure) to 0 (Neutral), a delta of +1. The 5→6 shifts each have delta +1 as well (0 → +1). Per the design's tie-break rule, the die that started lowest wins for a positive nudge; the nudge targets the 1.
 
 **Max-mode nudge shifts every die.** Given a Roll with `value_adjustment = (+1, true)` and dice `[3, 5, 9, 10]`: `final_dice = [4, 6, 10, 10]`. Every die shifts; the 10 clamps in place.
 
