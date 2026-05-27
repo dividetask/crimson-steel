@@ -1955,7 +1955,8 @@ body {
   font-size: 13px;
   margin: 6px 0;
 }
-.cs-card .cs-ability-full-name { color: #2b1a13; }
+.cs-card .cs-ability-full-name { color: #2b1a13; font-weight: bold; }
+.cs-card .cs-ability-full-name em { font-style: normal; }
 .cs-card .cs-ability-full-body { color: #4d2e1e; }
 
 /* Pager (full sheet). */

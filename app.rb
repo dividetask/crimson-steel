@@ -14,6 +14,8 @@ require 'dice_resolution'
 require 'timekeeping'
 require 'chronicle'
 require 'creatures'
+require 'creatures/advancement'
+require 'proficiencies'
 require 'uploads'
 
 # Status page sample data — one module per sub-view so each page's
