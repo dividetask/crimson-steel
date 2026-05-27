@@ -29,12 +29,12 @@ All groups start **collapsed**. The open/closed state of each group persists in 
 
 ### Creature Template rows (within themed categories)
 
-Each template row has, in order:
+Each template row has, in left-to-right order:
 
-- **`+` button** — emits an `add_combatant` event carrying the Creature ID. For a Creature Template the parent first calls Creatures' *Spawn Creature From Template* to produce a fresh Creature record, then *Add Combatant* on the new ID. Followed by Combat's *Reroll Initiative* with `missing_only = true`. **Rendered but inert** until the Combat UI lands.
+- **`−` button** — emits a `remove_combatant` event for the most recently added Combatant with this Creature ID. Inert in this stub.
 - **Creature name link** — clicking navigates to `/character-sheets?i=<sheet_index>` for the template.
-- **`−` button** — emits a `remove_combatant` event for the most recently added Combatant with this Creature ID. Hidden when copy count is zero. Inert in this stub.
-- **Copy count badge** — when at least one Combatant in the active Combat references this Creature ID. Suppressed when zero.
+- **Copy count badge** — when at least one Combatant in the active Combat references this Creature ID. Suppressed when zero. Renders to the left of the `+` button.
+- **`+` button** — emits an `add_combatant` event carrying the Creature ID. For a Creature Template the parent first calls Creatures' *Spawn Creature From Template* to produce a fresh Creature record, then *Add Combatant* on the new ID. Followed by Combat's *Reroll Initiative* with `missing_only = true`. **Rendered but inert** until the Combat UI lands.
 
 ### Encounter Table rows (within themed categories)
 

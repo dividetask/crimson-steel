@@ -84,12 +84,12 @@
           <% templates.each do |row| %>
             <li class="cs-roster-row<%= ' cs-roster-current' if current_row.call(row) %>"
                 data-creature-id="<%= row[:id] %>">
-              <button type="button" class="cs-roster-btn cs-roster-add" title="Add to combat" aria-label="Add to combat" disabled>+</button>
+              <button type="button" class="cs-roster-btn cs-roster-remove" title="Remove from combat" aria-label="Remove from combat" disabled>&minus;</button>
               <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= row[:name] %></a>
               <% if row[:copy_count].to_i > 0 %>
                 <span class="cs-roster-count"><%= row[:copy_count] %></span>
               <% end %>
-              <button type="button" class="cs-roster-btn cs-roster-remove" title="Remove from combat" aria-label="Remove from combat" disabled>&minus;</button>
+              <button type="button" class="cs-roster-btn cs-roster-add" title="Add to combat" aria-label="Add to combat" disabled>+</button>
             </li>
           <% end %>
 
