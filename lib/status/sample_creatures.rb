@@ -46,9 +46,11 @@ module Status
     def roster
       grouped = { players: [], npcs: [], enemies: [], templates: [] }
       demos.each_with_index do |demo, idx|
+        group = demo[:roster_group] || :players
         row = { id: demo[:id], name: demo[:header][:name],
                 copy_count: 0, sheet_index: idx }
-        grouped[demo[:roster_group] || :players] << row
+        row[:active] = true if group == :players
+        grouped[group] << row
       end
       grouped[:encounter_tables] = sample_encounter_tables
       grouped
@@ -60,6 +62,95 @@ module Status
         { table_id: 'general_pirate_raid', name: 'Generic pirate raid' },
         { table_id: 'stockade_patrol',     name: 'Slave Lords — stockade patrol' }
       ]
+    end
+
+    # Sample roll-result fixtures keyed by encounter table id. Used
+    # by /encounters/roll/<table_id> on the Character Sheets page —
+    # the Combat / enemy-data-file side effects of a roll aren't
+    # wired yet, so the panel pulls from this curated set instead of
+    # calling Creatures.roll_encounter. The shape matches the
+    # creatures_encounter_roll_result_stub.md `result` parameter.
+    def sample_roll_results
+      {
+        'slave_lords_caravan' => [
+          {
+            table_name: 'Slave Lords — caravan ambush',
+            subtitle: 'Slaver merchant escort',
+            rolls: [
+              { count: 1, name: 'Slaver Merchant', gold: 369,
+                items: [{ name: 'falcion', count: 1 }, { name: 'chain shirt', count: 1 }] },
+              { count: 5, name: 'Half-Orc Soldier', gold: 73,
+                items: [{ name: 'falcion', count: 5 }, { name: 'longbow', count: 5 },
+                        { name: 'chain shirt +1', count: 2 },
+                        { name: 'Potion of Sanctuary', count: 1 },
+                        { name: 'Potion of Stabilize', count: 1 },
+                        { name: 'chain shirt', count: 3 },
+                        { name: 'Potion of Cure Lesser Wounds', count: 1 }] },
+              { count: 1, name: 'Orc Interpreter', gold: 13,
+                items: [{ name: 'falcion', count: 1 }, { name: 'longbow', count: 1 }, { name: 'chain shirt', count: 1 }] }
+            ]
+          },
+          {
+            table_name: 'Slave Lords — caravan ambush',
+            subtitle: 'Lone slaver patrol',
+            rolls: [
+              { count: 2, name: 'Orc Patrol', gold: 22,
+                items: [{ name: 'falcion', count: 2 }, { name: 'leather armor', count: 2 }] },
+              { count: 1, name: 'Slaver Lieutenant', gold: 84,
+                items: [{ name: 'longsword', count: 1 }, { name: 'chain shirt', count: 1 },
+                        { name: 'Potion of Cure Lesser Wounds', count: 1 }] }
+            ]
+          }
+        ],
+        'general_pirate_raid' => [
+          {
+            table_name: 'Generic pirate raid',
+            subtitle: 'Boarding party',
+            rolls: [
+              { count: 6, name: 'Pirate', gold: 41,
+                items: [{ name: 'cutlass', count: 6 }, { name: 'buckler', count: 4 },
+                        { name: 'Potion of Cure Lesser Wounds', count: 2 }] }
+            ]
+          },
+          {
+            table_name: 'Generic pirate raid',
+            subtitle: 'Skeleton crew',
+            rolls: [
+              { count: 3, name: 'Pirate', gold: 18,
+                items: [{ name: 'cutlass', count: 3 }, { name: 'shortbow', count: 1 }] }
+            ]
+          }
+        ],
+        'stockade_patrol' => [
+          {
+            table_name: 'Slave Lords — stockade patrol',
+            subtitle: 'Standard patrol',
+            rolls: [
+              { count: 3, name: 'Stockade Guard', gold: 28,
+                items: [{ name: 'longsword', count: 3 }, { name: 'chain shirt', count: 3 },
+                        { name: 'lantern', count: 1 }] }
+            ]
+          }
+        ]
+      }
+    end
+
+    # Pick a sample roll result for the given table. Returns a
+    # different variant each call (so successive clicks of the Roll
+    # button visibly reroll). Falls back to a generic placeholder
+    # for tables not in the sample map.
+    def random_roll_result(table_id, rng = Random.new)
+      variants = sample_roll_results[table_id.to_s]
+      if variants.nil? || variants.empty?
+        return {
+          table_id: table_id.to_s,
+          table_name: table_id.to_s,
+          subtitle: 'No sample loot data for this table yet.',
+          rolls: []
+        }
+      end
+      pick = variants[rng.rand(variants.length)]
+      pick.merge(table_id: table_id.to_s)
     end
 
     # ---- 1. Ash Windmere ------------------------------------------------

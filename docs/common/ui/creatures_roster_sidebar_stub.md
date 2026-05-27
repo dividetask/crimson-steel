@@ -10,7 +10,7 @@ See `ui_conventions.md` for shared rules.
 
 A vertical sidebar, top to bottom:
 
-1. **Players** — `<details>`-style collapsible group titled `Players`. One row per Creature whose `tags` include `player_character`. Starting state is **collapsed**; open/closed state persists in `localStorage` keyed by group label (per `ui_conventions.md`).
+1. **Players** — `<details>`-style collapsible group titled `Players`. One row per Creature whose `tags` include `player_character`. Starting state is **collapsed**; open/closed state persists in `localStorage` keyed by group label (per `ui_conventions.md`). Player rows render a **single Active / Absent toggle** in place of the `+ / −` buttons used by the other groups — a Player can't appear in Combat more than once, so the binary state (in the party, or sitting out) is what the DM tracks. Default is **Active**.
 
 2. **NPCs** — `<details>`-style group titled `NPCs`. One row per Creature whose `group` is `npc` and whose `tags` do not include `enemy_template`. Starting state is **collapsed**.
 
@@ -18,14 +18,21 @@ A vertical sidebar, top to bottom:
 
 4. **Creature Templates** — `<details>`-style group titled `Creature Templates`. One row per Creature whose `tags` include `enemy_template`. Starting state is **open**. The `+` button on a template row first spawns a fresh Creature from the template (via Creatures' *Spawn Creature From Template*) and then adds the result to Combat.
 
-5. **Encounter Tables** — `<details>`-style group titled `Encounter Tables`. One row per entry in `encounter_tables.yaml`. Each row shows the table's display name and a single `Roll` button. Clicking the name navigates to the encounter table's detail view (not yet implemented — placeholder destination); clicking `Roll` emits a `roll_encounter` event the parent resolves by calling Creatures' *Roll Encounter*, then *Add Combatant* for each returned id. Starting state is **open**.
+5. **Encounter Tables** — `<details>`-style group titled `Encounter Tables`. One row per entry in `encounter_tables.yaml`. Each row shows the table's display name (clickable — navigates to the Encounter Template Stub `creatures_encounter_template_stub.md` rendered in the page's main panel) and a `Roll` button. Clicking `Roll` emits a `roll_encounter` event the parent resolves by fetching a fresh roll and rendering an Encounter Roll Result panel (`creatures_encounter_roll_result_stub.md`) **above** the main panel. The roll-result panel commits the result to Combat on render; further clicks on its own internal `Roll` button replace the result (each click = a re-roll that supersedes the previous). Starting state is **open**.
 
-## Per-row controls (sections 1-4)
+## Per-row controls
 
-Each Creature row has, in order:
+### Players (section 1)
 
-- **`+` button** — emits an `add_combatant` event carrying the Creature ID. For a Creature Template the parent first calls Creatures' *Spawn Creature From Template* to produce a fresh Creature record, then *Add Combatant* on the new ID. For a non-template Creature (Player, NPC, or already-spawned Enemy) the parent calls *Add Combatant* directly. Either path is followed by Combat's *Reroll Initiative* with `missing_only = true`. **The button is rendered but does not yet mutate state in this stub — Combat UI wiring is future work.**
-- **Creature name link** — clicking navigates to `/character-sheets?i=<index>` for that Creature. The link is the row's primary affordance.
+- **Active / Absent toggle** — a single button that flips between `Active` (default) and `Absent`. Visually distinct in the two states (e.g., outlined when Active, muted with strikethrough on the row text when Absent). The button is rendered but the state is purely client-side in this stub; persistence wiring lands later.
+- **Creature name link** — clicking navigates to `/character-sheets?i=<sheet_index>` for that Player.
+
+### NPCs / Enemies / Creature Templates (sections 2-4)
+
+Each row has, in order:
+
+- **`+` button** — emits an `add_combatant` event carrying the Creature ID. For a Creature Template the parent first calls Creatures' *Spawn Creature From Template* to produce a fresh Creature record, then *Add Combatant* on the new ID. For a non-template Creature (NPC, or already-spawned Enemy) the parent calls *Add Combatant* directly. Either path is followed by Combat's *Reroll Initiative* with `missing_only = true`. **The button is rendered but does not yet mutate state in this stub — Combat UI wiring is future work.**
+- **Creature name link** — clicking navigates to `/character-sheets?i=<sheet_index>` for that Creature.
 - **`−` button** — emits a `remove_combatant` event for the most recently added Combatant with this Creature ID. Hidden when the copy count is zero. Same "rendered but inert" note applies.
 - **Copy count badge** — when the Creature has at least one Combatant in the active Combat referencing it, a small numeric badge renders beside the row. Suppressed when zero. Sourced from Combat State's `combatants` list (filtered by `creature_id`).
 

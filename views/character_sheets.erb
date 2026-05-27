@@ -10,7 +10,13 @@
             locals: { roster: @roster, current_index: @i, detail: @detail } %>
   <% end %>
   <div class="cs-main">
-    <% if @detail == 'minimal' %>
+    <div id="encounter-roll-result"></div>
+    <% if @encounter_template_id %>
+      <%= erb :_encounter_template,
+              locals: { table_id: @encounter_template_id,
+                        table: @encounter_template,
+                        name_for: @encounter_name_for } %>
+    <% elsif @detail == 'minimal' %>
       <%= erb :_creature_minimal, locals: { demo: @demo, toggle_target: toggle_href } %>
     <% else %>
       <%= erb :_creature_full, locals: { demo: @demo, toggle_target: toggle_href } %>
