@@ -1,0 +1,25 @@
+<%
+  nav_items = [
+    { key: 'glossary', label: 'Glossary', href: '/compendium?view=glossary' }
+  ]
+%>
+
+<div class="compendium-layout">
+  <aside class="compendium-nav">
+    <ul>
+      <% nav_items.each do |item| %>
+        <li class="<%= 'active' if @view == item[:key] %>">
+          <a href="<%= item[:href] %>"><%= item[:label] %></a>
+        </li>
+      <% end %>
+    </ul>
+  </aside>
+
+  <section class="compendium-content">
+    <% if @view == 'glossary' %>
+      <h1>Glossary</h1>
+      <p class="lead">Vocabulary used throughout the Crimson Steel rules. Common terms take precedence over per-domain definitions.</p>
+      <%= @glossary_html %>
+    <% end %>
+  </section>
+</div>

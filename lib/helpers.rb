@@ -29,6 +29,7 @@ helpers do
       { label: 'Store',            href: '/store',            dm_only: false },
       { label: 'Notes',            href: '/notes',            dm_only: false },
       { label: 'Social',           href: '/social',           dm_only: false },
+      { label: 'Compendium',       href: '/compendium',       dm_only: false },
       { label: 'Status',           href: '/status',           dm_only: true  }
     ]
   end
