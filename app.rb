@@ -15,7 +15,17 @@ require 'timekeeping'
 require 'chronicle'
 require 'creatures'
 require 'uploads'
-require_relative 'lib/dummy_data'
+
+# Status page sample data — one module per sub-view so each page's
+# dummy data stays scoped to that page.
+require_relative 'lib/status/sample_rolls'
+require_relative 'lib/status/sample_check'
+require_relative 'lib/status/sample_conditions'
+require_relative 'lib/status/sample_creatures'
+require_relative 'lib/status/sample_proficiencies'
+require_relative 'lib/status/sample_timekeeping'
+require_relative 'lib/status/sample_chronicle'
+
 require_relative 'lib/test_docs'
 require_relative 'lib/helpers'
 

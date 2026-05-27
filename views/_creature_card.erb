@@ -1,0 +1,150 @@
+<%
+  # Creature Card Stub — Status page Creatures sub-view.
+  #
+  # Locals:
+  #   demo — required. One entry from Status::SampleCreatures.creatures.
+  attr_names = %w[str dex con int wis cha]
+%>
+
+<article class="creature-card tier-<%= demo[:tier] %>" data-creature-id="<%= demo[:id] %>">
+  <header class="cc-header">
+    <h3 class="cc-name"><%= demo[:name] %></h3>
+    <span class="cc-tier-badge">Tier <%= demo[:tier] %></span>
+  </header>
+
+  <div class="cc-subtitle">
+    <span class="cc-race"><%= demo[:race_chain].join(' → ') %></span>
+    <% if demo[:classes].any? %>
+      <span class="cc-sep">·</span>
+      <% demo[:classes].each_with_index do |c, i| %>
+        <span class="cc-class"><%= c[:label] %></span>
+        <% if c[:choices] && c[:choices][:deity] %>
+          <span class="cc-class-choice">(<%= c[:choices][:deity] %> / <%= c[:choices][:domain] %>)</span>
+        <% end %>
+        <span class="cc-sep" <%= 'style="display:none"' if i == demo[:classes].length - 1 %>>/</span>
+      <% end %>
+    <% else %>
+      <span class="cc-sep">·</span>
+      <span class="cc-class cc-class-empty">no classes</span>
+    <% end %>
+    <% if demo[:player] %>
+      <span class="cc-sep">·</span>
+      <span class="cc-player">player: <%= demo[:player] %></span>
+    <% end %>
+  </div>
+
+  <div class="cc-tier-source">Tier source: <%= demo[:tier_source] %></div>
+
+  <% if demo[:label] %>
+    <div class="cc-demo-label"><%= demo[:label] %></div>
+  <% end %>
+
+  <section class="cc-section cc-attrs">
+    <h4>Effective Attributes</h4>
+    <table class="cc-attr-table">
+      <thead>
+        <tr>
+          <th>Attr</th><th>Base</th><th>Racial</th><th>Per-Tier</th><th>Chosen</th><th>Effective</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% demo[:attributes_table].each do |row| %>
+          <tr>
+            <th><%= row[:attr].to_s.upcase %></th>
+            <td><%= row[:base] %></td>
+            <td><%= row[:racial].zero? ? '—' : sprintf('%+d', row[:racial]) %></td>
+            <td><%= sprintf('%+d', row[:per_tier]) %></td>
+            <td><%= row[:chosen].zero? ? '—' : sprintf('%+d', row[:chosen]) %></td>
+            <td class="cc-effective"><%= row[:effective] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="cc-section cc-derived">
+    <div class="cc-derived-row">
+      <span class="cc-derived-label">Speed</span>
+      <span class="cc-derived-value"><%= demo[:speed][:value] %> ft</span>
+      <span class="cc-derived-source"><%= demo[:speed][:source] %></span>
+    </div>
+    <div class="cc-derived-row">
+      <span class="cc-derived-label">Max HP</span>
+      <span class="cc-derived-value"><%= demo[:max_hp][:value] %></span>
+      <span class="cc-derived-source"><code><%= demo[:max_hp][:formula] %></code> with con = <%= demo[:max_hp][:con] %></span>
+    </div>
+    <div class="cc-derived-row">
+      <span class="cc-derived-label">Max Mana</span>
+      <span class="cc-derived-value"><%= demo[:max_mana][:value] %></span>
+      <span class="cc-derived-source">
+        base <code><%= demo[:max_mana][:base_formula] %></code> with int = <%= demo[:max_mana][:base_value] %>
+        <% demo[:max_mana][:class_contributions].each do |c| %>
+          + <%= c[:class] %> <%= sprintf('%+d', c[:amount]) %> (<%= c[:breakdown] %>)
+        <% end %>
+      </span>
+    </div>
+  </section>
+
+  <% if demo[:granted_abilities].any? %>
+    <section class="cc-section cc-abilities">
+      <h4>Granted Abilities</h4>
+      <ul class="cc-ability-list">
+        <% demo[:granted_abilities].each do |ga| %>
+          <li><span class="cc-ability-source"><%= ga[:source] %></span><span class="cc-ability-name"><%= ga[:name] %></span></li>
+        <% end %>
+      </ul>
+    </section>
+  <% else %>
+    <section class="cc-section cc-abilities cc-empty">
+      <h4>Granted Abilities</h4>
+      <div class="cc-empty-msg">— none —</div>
+    </section>
+  <% end %>
+
+  <section class="cc-section cc-skills">
+    <h4>Trained Skills</h4>
+    <% if demo[:trained_skills].any? %>
+      <table class="cc-skill-table">
+        <thead>
+          <tr><th>Skill</th><th>Class</th><th>Rate</th><th>Ranks</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <% demo[:trained_skills].each do |s| %>
+            <tr>
+              <td><code><%= s[:key] %></code></td>
+              <td><%= s[:class] %></td>
+              <td><span class="cc-rate cc-rate-<%= s[:rate] %>"><%= s[:rate] %></span></td>
+              <td class="cc-ranks"><%= s[:ranks] %></td>
+              <td class="cc-skill-note"><%= s[:note] %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="cc-empty-msg">— none —</div>
+    <% end %>
+  </section>
+
+  <section class="cc-section cc-saves">
+    <h4>Saves</h4>
+    <table class="cc-save-table">
+      <thead><tr><th>Save</th><th>Rate</th><th>Ranks</th><th>Notes</th></tr></thead>
+      <tbody>
+        <% demo[:saves].each do |sv| %>
+          <tr>
+            <th><%= sv[:attr].upcase %></th>
+            <td><span class="cc-rate cc-rate-<%= sv[:rate] %>"><%= sv[:rate] %></span></td>
+            <td class="cc-ranks"><%= sv[:ranks] %></td>
+            <td class="cc-skill-note"><%= sv[:breakdown] %></td>
+          </tr>
+        <% end %>
+        <tr class="cc-martial-row">
+          <th>Martial</th>
+          <td><span class="cc-rate cc-rate-<%= demo[:martial][:rate] %>"><%= demo[:martial][:rate] %></span></td>
+          <td class="cc-ranks"><%= demo[:martial][:ranks] %></td>
+          <td class="cc-skill-note"><%= demo[:martial][:breakdown] %></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</article>

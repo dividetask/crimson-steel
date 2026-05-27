@@ -1668,3 +1668,366 @@ body {
   padding-bottom: 10px;
   border-bottom: 1px solid #e5e7eb;
 }
+
+/* =====================================================================
+   Status > Creatures sub-view — Creature Card Stub
+   ===================================================================== */
+
+.creature-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.creature-card .cc-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.creature-card .cc-name {
+  font-size: 22px;
+  font-weight: bold;
+  margin: 0;
+  color: inherit;
+}
+.creature-card .cc-tier-badge {
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.creature-card .cc-subtitle {
+  color: #4b5563;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+.creature-card .cc-subtitle .cc-class { font-weight: 600; }
+.creature-card .cc-subtitle .cc-class-empty { font-style: italic; color: #9ca3af; }
+.creature-card .cc-subtitle .cc-class-choice { color: #6b7280; margin-left: 4px; }
+.creature-card .cc-subtitle .cc-sep { color: #d1d5db; margin: 0 6px; }
+.creature-card .cc-subtitle .cc-player { color: #6b7280; font-style: italic; }
+.creature-card .cc-tier-source {
+  color: #6b7280;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.creature-card .cc-demo-label {
+  background: #f3f4f6;
+  border-left: 3px solid #6b7280;
+  padding: 4px 10px;
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 14px;
+  border-radius: 0 4px 4px 0;
+}
+
+.creature-card .cc-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+}
+.creature-card .cc-section h4 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  margin: 0 0 8px 0;
+}
+.creature-card .cc-empty-msg {
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 13px;
+}
+.creature-card .cc-empty .cc-empty-msg { padding: 4px 0; }
+
+.creature-card .cc-attr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.creature-card .cc-attr-table th,
+.creature-card .cc-attr-table td {
+  text-align: center;
+  padding: 4px 8px;
+}
+.creature-card .cc-attr-table thead th {
+  background: #f9fafb;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.creature-card .cc-attr-table tbody th {
+  text-align: left;
+  font-weight: 700;
+  color: #111827;
+}
+.creature-card .cc-attr-table td.cc-effective {
+  font-weight: 700;
+  color: #111827;
+  background: #f0fdf4;
+}
+
+.creature-card .cc-derived-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: 13px;
+}
+.creature-card .cc-derived-label {
+  font-weight: 600;
+  color: #374151;
+  min-width: 90px;
+}
+.creature-card .cc-derived-value {
+  font-weight: 700;
+  color: #111827;
+}
+.creature-card .cc-derived-source {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.creature-card .cc-ability-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 4px 12px;
+}
+.creature-card .cc-ability-list li {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  align-items: baseline;
+}
+.creature-card .cc-ability-source {
+  color: #6b7280;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  min-width: 110px;
+}
+.creature-card .cc-ability-name {
+  color: #111827;
+  font-weight: 500;
+}
+
+.creature-card .cc-skill-table,
+.creature-card .cc-save-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.creature-card .cc-skill-table th,
+.creature-card .cc-skill-table td,
+.creature-card .cc-save-table th,
+.creature-card .cc-save-table td {
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: 1px solid #f3f4f6;
+}
+.creature-card .cc-skill-table thead th,
+.creature-card .cc-save-table thead th {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #6b7280;
+  background: #f9fafb;
+}
+.creature-card td.cc-ranks {
+  font-weight: 700;
+  text-align: center;
+  width: 60px;
+}
+.creature-card .cc-skill-note {
+  color: #6b7280;
+  font-size: 11px;
+  font-style: italic;
+}
+.creature-card .cc-martial-row {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+.creature-card .cc-rate {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.creature-card .cc-rate-aligned   { background: #dcfce7; color: #166534; }
+.creature-card .cc-rate-unaligned { background: #fef3c7; color: #92400e; }
+.creature-card .cc-rate-opposed   { background: #fee2e2; color: #991b1b; }
+.creature-card .cc-rate-mixed     { background: #e0e7ff; color: #3730a3; }
+
+/* =====================================================================
+   Status > Proficiencies sub-view — Proficiency Table Stub
+   ===================================================================== */
+
+.prof-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.prof-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.prof-name {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 0;
+}
+.prof-tier-badge {
+  background: #111827;
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+.prof-subtitle {
+  color: #4b5563;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.prof-subtitle .prof-sep {
+  color: #d1d5db;
+  margin: 0 6px;
+}
+.prof-abilities-none {
+  color: #9ca3af;
+  font-style: italic;
+}
+.prof-demo-label {
+  background: #f3f4f6;
+  border-left: 3px solid #2563eb;
+  padding: 4px 10px;
+  font-size: 13px;
+  color: #1e3a8a;
+  margin: 8px 0 12px 0;
+  border-radius: 0 4px 4px 0;
+}
+.prof-attrs {
+  color: #6b7280;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+.prof-attrs code {
+  background: #f3f4f6;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-right: 3px;
+}
+
+.prof-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.prof-table th,
+.prof-table td {
+  padding: 5px 7px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: top;
+}
+.prof-table thead th {
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
+  font-weight: 600;
+}
+.prof-table td.prof-num,
+.prof-table th.prof-num {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.prof-table td.prof-attr-cell {
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 10px;
+  color: #4b5563;
+  text-align: center;
+}
+.prof-direct { color: #1f2937; }
+.prof-prowess {
+  font-weight: 700;
+  background: #f0fdf4;
+}
+.prof-dice {
+  font-weight: 700;
+  color: #1e3a8a;
+}
+.prof-competency {
+  background: #dbeafe;
+  color: #1e3a8a;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.prof-na {
+  color: #9ca3af;
+}
+.prof-row-note {
+  color: #6b7280;
+  font-size: 10px;
+  font-style: italic;
+  margin-top: 2px;
+}
+.prof-floor {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.prof-sub {
+  font-size: 11px;
+}
+.prof-sub code {
+  background: #f3f4f6;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.prof-row-restricted {
+  background: #fef2f2;
+}
+.prof-tag {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.prof-tag-restricted { background: #fee2e2; color: #991b1b; }
+.prof-tag-override   { background: #e0e7ff; color: #3730a3; }
+.prof-note-row td {
+  color: #4b5563;
+  font-size: 11px;
+  background: #fafafa;
+  font-style: italic;
+  border-bottom: 1px solid #e5e7eb;
+}

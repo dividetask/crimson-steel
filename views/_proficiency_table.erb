@@ -1,0 +1,134 @@
+<%
+  # Proficiency Table Stub — Status page Proficiencies sub-view.
+  #
+  # Locals:
+  #   demo — required. One entry from Status::SampleProficiencies.scenarios.
+  cs = demo[:creature_summary]
+%>
+
+<article class="prof-card">
+  <header class="prof-header">
+    <h3 class="prof-name"><%= cs[:name] %></h3>
+    <span class="prof-tier-badge">Tier <%= cs[:tier] %></span>
+  </header>
+
+  <div class="prof-subtitle">
+    <%= cs[:klass] %>
+    <% if cs[:abilities].any? %>
+      <span class="prof-sep">·</span>
+      <span class="prof-abilities">
+        Abilities:
+        <% cs[:abilities].each_with_index do |a, i| %>
+          <code><%= a[:name] %></code><%= ' @ ' %><%= a[:level_for_ability] %><%= ',' unless i == cs[:abilities].length - 1 %>
+        <% end %>
+      </span>
+    <% else %>
+      <span class="prof-sep">·</span>
+      <span class="prof-abilities prof-abilities-none">no Floor / Substitution abilities</span>
+    <% end %>
+  </div>
+
+  <% if demo[:label] %>
+    <div class="prof-demo-label"><%= demo[:label] %></div>
+  <% end %>
+
+  <div class="prof-attrs">
+    Attribute values:
+    <% cs[:attributes].each_with_index do |(k, v), i| %>
+      <code><%= k %>=<%= v %></code><%= ',' unless i == cs[:attributes].length - 1 %>
+    <% end %>
+  </div>
+
+  <table class="prof-table">
+    <thead>
+      <tr>
+        <th>Skill</th>
+        <th>Attr</th>
+        <th>Ranks</th>
+        <th>Floor</th>
+        <th>Eff. Ranks</th>
+        <th>Attr Contrib</th>
+        <th>NP Penalty</th>
+        <th>Direct Prowess</th>
+        <th>Substituted</th>
+        <th>Proficiency</th>
+        <th>Dice Cap</th>
+        <th>Competency</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% demo[:rows].each do |r| %>
+        <tr class="<%= 'prof-row-restricted' if r[:restricted] %>">
+          <td>
+            <code><%= r[:display_key] %></code>
+            <% if r[:restricted] %>
+              <span class="prof-tag prof-tag-restricted">restricted</span>
+            <% end %>
+            <% if r[:no_catalog] %>
+              <span class="prof-tag prof-tag-override">no catalog</span>
+            <% end %>
+            <% if r[:prefix_match] %>
+              <div class="prof-row-note">prefix match → <code><%= r[:prefix_match] %></code></div>
+            <% end %>
+            <% if r[:attribute_override] %>
+              <div class="prof-row-note">attribute_override = <code><%= r[:attribute_override] %></code></div>
+            <% end %>
+          </td>
+          <td class="prof-attr-cell"><%= r[:attribute] %></td>
+          <td class="prof-num"><%= r[:ranks] %></td>
+          <td class="prof-floor">
+            <% if r[:floor_lift] && r[:floor_lift] > 0 %>
+              <%= sprintf('+%d', r[:floor_lift]) %>
+              <% if r[:floor_source] %>
+                <div class="prof-row-note"><%= r[:floor_source] %></div>
+              <% end %>
+            <% elsif r[:floor_source] %>
+              <span class="prof-na">N/A</span>
+              <div class="prof-row-note"><%= r[:floor_source] %></div>
+            <% else %>
+              <span class="prof-na">—</span>
+            <% end %>
+          </td>
+          <td class="prof-num"><%= r[:effective_ranks] %></td>
+          <td class="prof-num"><%= sprintf('%+d', r[:attr_contrib]) %><div class="prof-row-note">floor(<%= r[:attr_value] %> / 2)</div></td>
+          <td class="prof-num">
+            <% if r[:non_proficiency_penalty].zero? %>
+              <span class="prof-na">—</span>
+            <% else %>
+              <%= sprintf('%+d', r[:non_proficiency_penalty]) %>
+            <% end %>
+          </td>
+          <td class="prof-num prof-direct"><%= sprintf('%+d', r[:direct_prowess]) %></td>
+          <td class="prof-sub">
+            <% if r[:substitution] %>
+              <code><%= r[:substitution][:source] %></code> →
+              <%= sprintf('%+d', r[:substitution][:source_prowess]) %>
+              <div class="prof-row-note">
+                <%= r[:substitution][:source_ranks] %> ranks + floor(<%= r[:substitution][:source_attr_value] %> / 2) on <code><%= r[:substitution][:source_attr] %></code>
+                <% if r[:substitution][:no_floor] %>
+                  <em>(Floor does not lift source ranks)</em>
+                <% end %>
+              </div>
+            <% else %>
+              <span class="prof-na">—</span>
+            <% end %>
+          </td>
+          <td class="prof-num prof-prowess"><%= sprintf('%+d', r[:proficiency_prowess]) %></td>
+          <td class="prof-num prof-dice"><%= r[:dice_cap] %></td>
+          <td class="prof-num">
+            <% if r[:competency_modifier].zero? %>
+              <span class="prof-na">— (null)</span>
+            <% else %>
+              <span class="prof-competency">Competency <%= sprintf('%+d', r[:competency_modifier]) %></span>
+            <% end %>
+          </td>
+        </tr>
+        <% if r[:note] %>
+          <tr class="prof-note-row">
+            <td colspan="12"><%= r[:note] %></td>
+          </tr>
+        <% end %>
+      <% end %>
+    </tbody>
+  </table>
+</article>
