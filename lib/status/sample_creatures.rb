@@ -10,11 +10,11 @@ module Status
   #
   # The roster is curated to exercise every variant of the stub:
   #
-  #   1. Single-class PC, no race chain ancestors past humanoid (Olga,
+  #   1. Single-class PC, no race chain ancestors past humanoid (Brenna,
   #      Human Barbarian 4) — exercises the `all: +1` racial.
-  #   2. Single-class PC with multi-link race chain (Stumpy, Hill Dwarf
+  #   2. Single-class PC with multi-link race chain (Korth, Hill Dwarf
   #      Cleric 4) — exercises chain walk + deity/domain spells.
-  #   3. Archetype PC (Lysander, High Elf Arcane Trickster 4) —
+  #   3. Archetype PC (Vex, High Elf Arcane Trickster 4) —
   #      exercises Archetype merge.
   #   4. Multi-class PC (Rook, Half-Orc Fighter 3 / Rogue 2) —
   #      exercises per-Class rank summation.
@@ -39,7 +39,7 @@ module Status
       effective = combine(base, racial, per_tier, chosen)
       {
         id: 1001, label: 'Single-class + multi-link Race chain',
-        name: 'Stumpy', player: 'Mira',
+        name: 'Korth', player: 'Mira',
         race_chain: %w[humanoid dwarf hill_dwarf],
         tags: %w[player_character],
         tier: 2, tier_source: 'computed (player_character breakpoints)',
@@ -101,7 +101,7 @@ module Status
       effective = combine(base, racial, per_tier, chosen)
       {
         id: 1002, label: 'Single-class, `all: +1` racial',
-        name: 'Olga', player: 'Drew',
+        name: 'Brenna', player: 'Drew',
         race_chain: %w[humanoid human],
         tags: %w[player_character],
         tier: 2, tier_source: 'computed (player_character breakpoints)',
@@ -150,7 +150,7 @@ module Status
       effective = combine(base, racial, per_tier, chosen)
       {
         id: 1003, label: 'Archetype (Arcane Trickster, parent: rogue)',
-        name: 'Lysander', player: 'Quinn',
+        name: 'Vex', player: 'Quinn',
         race_chain: %w[humanoid elf high_elf],
         tags: %w[player_character],
         tier: 2, tier_source: 'computed (player_character breakpoints)',
