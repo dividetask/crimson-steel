@@ -1,0 +1,99 @@
+{
+  "campaign_name": "The Heist of Alric's Locket",
+  "timestamp": {
+    "day_index": 0,
+    "round_of_day": 0
+  },
+  "current_chapter": 5,
+  "chapters": [
+    { "number": 1, "name": "The Heist" },
+    { "number": 2, "name": "Fey Wilds" },
+    { "number": 3, "name": "Rescuing Farmer Jon" },
+    { "number": 4, "name": "Discrete Acquisition" },
+    { "number": 5, "name": "Rescuing Hawthorne" }
+  ],
+  "entries": [
+    {
+      "id": 1001,
+      "entry_type": "creature",
+      "chapter": 1,
+      "notes_position": 1,
+      "scene_position": 1,
+      "title": "",
+      "public_description": "Middle-aged man who hired your party in Ashwood. He hired you to steal Alric's Locket.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 1001,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 1002,
+      "entry_type": "note",
+      "chapter": 1,
+      "notes_position": 2,
+      "scene_position": 2,
+      "title": "Orman Harrington Request",
+      "public_description": "My brother passed several years ago. He was a crafter. He made jewelry. This is all I have left of his. This was stolen by an influential elf, a powerful mage I suspect. The guards do not help when it involves mages or the connected. His name is Alric. He has gifted the locket to someone of far less means — her name is Gilda. I suspect his wife would not like to know about her.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 1003,
+      "entry_type": "creature",
+      "chapter": 1,
+      "notes_position": 3,
+      "scene_position": 3,
+      "title": "",
+      "public_description": "Slender, with sharp elven features. Dresses in elegant green and gold finery embroidered with thorn motifs. Speaks in rhymes; constantly amused.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 1003,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 1006,
+      "entry_type": "note",
+      "chapter": 1,
+      "notes_position": 4,
+      "scene_position": 4,
+      "title": "The Theft",
+      "public_description": "Stumpy pretended to lose his balance, tripping into a waitress and pulling her blouse down. Olga spat her drink over a flame. Lysander tried to lift the necklace, failed, and ended up ripping it off her neck. Guards and a priestess noticed. Lysander ran, but not before getting a firebolt to his ass.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 1009,
+      "entry_type": "note",
+      "chapter": 1,
+      "notes_position": 5,
+      "scene_position": 1,
+      "title": "Caught",
+      "public_description": "The party fled town and made it to a village several days away. They awoke the next day to three people in their room: Alric, Virelle, and Sylwen. Virelle demanded they be executed but Alric thought that was too dull. He sent them to his sisters as he put it — banishment to the fey wilds. Stumpy was given a bottle of ale that Alric never asked to be returned.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [],
+      "owner_id": null,
+      "active": true
+    }
+  ],
+  "next_id": 1010
+}
