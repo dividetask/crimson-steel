@@ -87,7 +87,7 @@
         <% @chronicle_examples.each do |ex| %>
           <div class="ce-example-row">
             <div class="ce-example-label"><%= ex[:label] %></div>
-            <%= erb :_chronicle_entry, locals: { entry: ex[:entry], viewer: :player, viewing_id: 1, player_creatures: Creatures.player_controlled } %>
+            <%= erb :_chronicle_entry, locals: { entry: ex[:entry], viewer: :player, viewing_id: 2, player_creatures: Creatures.player_controlled } %>
           </div>
         <% end %>
       </div>

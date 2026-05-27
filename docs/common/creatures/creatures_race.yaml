@@ -1,12 +1,9 @@
-# Creature Race Aspect Configuration
+# Creature Race Configuration
 #
-# Each entry is an Aspect Entry for the `race` Aspect category. A
-# Creature references one entry by name under `aspects.race`. Race
-# Entries form a chain via `parent:` — a sub-race inherits and
-# extends its parent.
-#
-# Field rules during chain walk:
-#   first-in-chain: size, speed
+# Each entry is a Race Entry. A Creature's `race:` field names one entry;
+# the catalog walks the entry's `parent:` chain (leaf → root) to resolve
+# the effective Race. Field rules during chain walk:
+#   first-in-chain wins: size, speed
 #   accumulate: attribute_adjustments
 #   concatenate-with-dedup (child wins on duplicate name): abilities
 #
@@ -14,16 +11,76 @@
 # becomes the rolling default `min_level` for following ability
 # entries until the next context entry. Context entries are
 # flattened at config-load time.
+#
+# The shipped entries below are placeholders — sizes and speeds are
+# set where tests or example data depend on them; attribute_adjustments
+# and abilities are left empty for the campaign to fill in.
+
+# --- Roots -------------------------------------------------------------
 
 humanoid:
   size: medium
   speed: 30
 
 undead:
+  size: medium
+  speed: 30
   abilities:
-    - undead_traits
+    - name: undead_traits
+      min_level: 0
 
 animal:
   abilities: []
 
-# Humanoid races.
+# --- Humanoid races ----------------------------------------------------
+human:
+  parent: humanoid
+  abilities: []
+
+dwarf:
+  parent: humanoid
+  speed: 20
+  abilities: []
+
+hill_dwarf:
+  parent: dwarf
+  abilities: []
+
+elf:
+  parent: humanoid
+  abilities: []
+
+high_elf:
+  parent: elf
+  abilities: []
+
+wood_elf:
+  parent: elf
+  speed: 35
+  abilities: []
+
+half_elf:
+  parent: humanoid
+  abilities: []
+
+half_orc:
+  parent: humanoid
+  abilities: []
+
+halfling:
+  parent: humanoid
+  speed: 25
+  abilities: []
+
+satyr:
+  parent: humanoid
+  speed: 35
+  abilities: []
+
+# --- Animal races ------------------------------------------------------
+
+beast:
+  parent: animal
+  size: medium
+  speed: 30
+  abilities: []

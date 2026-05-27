@@ -65,7 +65,7 @@ module DummyData
       dm_description: '',
       image: '/example_images/pale_lantern.svg',
       shared: true, hidden_from: [], owner_id: nil, active: true,
-      creature_id: 1003, creature_token: nil, tier: 4
+      creature_id: 2002, creature_token: nil, tier: 4
     }
     bryn_journal = {
       id: 9005, entry_type: 'note', chapter: 1,
@@ -73,7 +73,7 @@ module DummyData
       title: "Bryn's Field Journal",
       public_description: "Day Seven on the coast. The wind off the water tastes like iron and old kelp. I have started counting my own pulses while I sleep — Tana's idea. She says it keeps the cold from getting inside you. I cannot tell if she is right or if I am just sleeping badly.\n\nWisp has been quieter than usual. She watched the watchroom door for two hours last night without speaking, then asked me whether I trust the harbormaster. I told her the truth, which is that I do not, but I trust the work. She nodded and went back to looking at the door.\n\nSelka's water-skin froze on the stair on Day Four. She has not let any of us touch it since. I think she is keeping it as a reminder, but a reminder of what I cannot say.\n\nTomorrow we climb again. I have written this in case I do not come back, and I have left it in the dry-box at the foot of the stair. If you are reading it and I am not present, tell Daven I asked after his daughter.",
       dm_description: '',
-      image: nil, shared: true, hidden_from: [], owner_id: 1, active: false
+      image: nil, shared: true, hidden_from: [], owner_id: 2, active: false
     }
 
     [
