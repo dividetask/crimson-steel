@@ -52,89 +52,59 @@
     <div class="cs-ips-cell"><strong>Speed</strong> <%= demo[:speed] %></div>
   </section>
 
-  <section class="cs-section cs-actions">
-    <h3 class="cs-section-h">Actions</h3>
-    <table class="cs-action-table">
-      <thead>
-        <tr><th>Name</th><th class="cs-num">Spd</th><th class="cs-num">Roll</th><th class="cs-num">Bonus</th><th class="cs-num">Dmg</th><th>Notes</th></tr>
-      </thead>
-      <tbody>
-        <% demo[:actions].each do |act| %>
-          <tr>
-            <td><%= act[:name] %></td>
-            <td class="cs-num"><%= act[:speed] %></td>
-            <td class="cs-num"><%= act[:roll] %></td>
-            <td class="cs-num"><%= sprintf('%+d', act[:attack_bonus]) %></td>
-            <td class="cs-num"><%= act[:dmg_bonus] ? sprintf('%+d', act[:dmg_bonus]) : '&mdash;' %></td>
-            <td><%= act[:notes] %></td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-  </section>
+  <%
+    items_have_content = it[:equipped].any? || it[:consumable].any? || it[:other].any?
+    right_has_content  = items_have_content || demo[:spells].any? || demo[:rituals].any?
+  %>
 
-  <% if demo[:skills].any? %>
-    <section class="cs-section cs-skills-min">
-      <h3 class="cs-section-h">Skills</h3>
-      <table class="cs-skills-table">
-        <thead><tr><th>Name</th><th class="cs-num">Ranks</th><th class="cs-num">Dice</th><th class="cs-num">Bonus</th></tr></thead>
-        <tbody>
-          <% demo[:skills].each do |s| %>
-            <tr>
-              <td><%= s[:name] %></td>
-              <td class="cs-num"><%= s[:ranks] %></td>
-              <td class="cs-num"><%= s[:dice] %>d</td>
-              <td class="cs-num"><%= sprintf('%+d', s[:bonus]) %></td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </section>
-  <% end %>
-
-  <% has_spells  = demo[:spells].any?
-     has_rituals = demo[:rituals].any?
-     if has_spells || has_rituals %>
-    <section class="cs-section cs-spells-rituals">
-      <div class="cs-two-col">
-        <div class="cs-col">
-          <h3 class="cs-section-h">Spells</h3>
-          <% if has_spells %>
-            <% demo[:spells].each do |grp| %>
-              <div class="cs-spell-line">
-                <em class="cs-tier-label tier-<%= grp[:tier] %>">Tier <%= grp[:tier] %>.</em>
-                <%= grp[:names].join(', ') %>
-              </div>
+  <div class="cs-minimal-body<%= ' cs-no-right' unless right_has_content %>">
+    <div class="cs-col cs-col-left">
+      <section class="cs-section cs-actions">
+        <h3 class="cs-section-h">Actions</h3>
+        <table class="cs-action-table">
+          <thead>
+            <tr><th>Name</th><th class="cs-num">Spd</th><th class="cs-num">Roll</th><th class="cs-num">Bonus</th><th class="cs-num">Dmg</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <% demo[:actions].each do |act| %>
+              <tr>
+                <td><%= act[:name] %></td>
+                <td class="cs-num"><%= act[:speed] %></td>
+                <td class="cs-num"><%= act[:roll] %></td>
+                <td class="cs-num"><%= sprintf('%+d', act[:attack_bonus]) %></td>
+                <td class="cs-num"><%= act[:dmg_bonus] ? sprintf('%+d', act[:dmg_bonus]) : '&mdash;' %></td>
+                <td><%= act[:notes] %></td>
+              </tr>
             <% end %>
-          <% else %>
-            <div class="cs-empty-placeholder">&mdash;</div>
-          <% end %>
-        </div>
-        <div class="cs-col">
-          <h3 class="cs-section-h">Rituals</h3>
-          <% if has_rituals %>
-            <% demo[:rituals].each do |grp| %>
-              <div class="cs-spell-line">
-                <em class="cs-tier-label tier-<%= grp[:tier] %>">Tier <%= grp[:tier] %>.</em>
-                <%= grp[:names].join(', ') %>
-              </div>
-            <% end %>
-          <% else %>
-            <div class="cs-empty-placeholder">&mdash;</div>
-          <% end %>
-        </div>
-      </div>
-    </section>
-  <% end %>
+          </tbody>
+        </table>
+      </section>
 
-  <% items_have_content   = it[:equipped].any? || it[:consumable].any? || it[:other].any?
-     abilities_have_content = demo[:abilities].any?
-     if items_have_content || abilities_have_content %>
-    <section class="cs-section cs-items-abilities">
-      <div class="cs-two-col">
-        <div class="cs-col">
-          <h3 class="cs-section-h">Items</h3>
-          <% if items_have_content %>
+      <% if demo[:skills].any? %>
+        <section class="cs-section cs-skills-min">
+          <h3 class="cs-section-h">Skills</h3>
+          <table class="cs-skills-table">
+            <thead><tr><th>Name</th><th class="cs-num">Ranks</th><th class="cs-num">Dice</th><th class="cs-num">Bonus</th></tr></thead>
+            <tbody>
+              <% demo[:skills].each do |s| %>
+                <tr>
+                  <td><%= s[:name] %></td>
+                  <td class="cs-num"><%= s[:ranks] %></td>
+                  <td class="cs-num"><%= s[:dice] %>d</td>
+                  <td class="cs-num"><%= sprintf('%+d', s[:bonus]) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </section>
+      <% end %>
+    </div>
+
+    <% if right_has_content %>
+      <div class="cs-col cs-col-right">
+        <% if items_have_content %>
+          <section class="cs-section cs-items-min">
+            <h3 class="cs-section-h">Items</h3>
             <% if it[:equipped].any? %>
               <div class="cs-item-line"><em>Equipped.</em> <%= it[:equipped].map { |i| i[:name] }.join(', ') %></div>
             <% end %>
@@ -148,24 +118,45 @@
                 <%= it[:other].map { |i| i[:quantity].to_i > 1 ? "#{i[:name]} (#{i[:quantity]})" : i[:name] }.join(', ') %>
               </div>
             <% end %>
-          <% else %>
-            <div class="cs-empty-placeholder">&mdash;</div>
-          <% end %>
-        </div>
-        <div class="cs-col">
-          <h3 class="cs-section-h">Abilities</h3>
-          <% if abilities_have_content %>
-            <% demo[:abilities].each do |ab| %>
-              <details class="cs-ability-row">
-                <summary><em><%= ab[:name] %></em></summary>
-                <div class="cs-ability-body"><%= ab[:description] %></div>
-              </details>
+          </section>
+        <% end %>
+
+        <% if demo[:spells].any? %>
+          <section class="cs-section cs-spells-min">
+            <h3 class="cs-section-h">Spells</h3>
+            <% demo[:spells].each do |grp| %>
+              <div class="cs-spell-line">
+                <em class="cs-tier-label tier-<%= grp[:tier] %>">Tier <%= grp[:tier] %>.</em>
+                <%= grp[:names].join(', ') %>
+              </div>
             <% end %>
-          <% else %>
-            <div class="cs-empty-placeholder">&mdash;</div>
-          <% end %>
-        </div>
+          </section>
+        <% end %>
+
+        <% if demo[:rituals].any? %>
+          <section class="cs-section cs-rituals-min">
+            <h3 class="cs-section-h">Rituals</h3>
+            <% demo[:rituals].each do |grp| %>
+              <div class="cs-spell-line">
+                <em class="cs-tier-label tier-<%= grp[:tier] %>">Tier <%= grp[:tier] %>.</em>
+                <%= grp[:names].join(', ') %>
+              </div>
+            <% end %>
+          </section>
+        <% end %>
       </div>
+    <% end %>
+  </div>
+
+  <% if demo[:abilities].any? %>
+    <section class="cs-section cs-abilities-min">
+      <h3 class="cs-section-h">Abilities</h3>
+      <% demo[:abilities].each do |ab| %>
+        <details class="cs-ability-row">
+          <summary><em><%= ab[:name] %></em></summary>
+          <div class="cs-ability-body"><%= ab[:description] %></div>
+        </details>
+      <% end %>
     </section>
   <% end %>
 
@@ -175,43 +166,6 @@
       <% demo[:item_descriptions].each do |idesc| %>
         <div class="cs-item-desc-row"><em><%= idesc[:name] %>.</em> <%= idesc[:description] %></div>
       <% end %>
-    </section>
-  <% end %>
-
-  <% if demo[:active_effects].any? %>
-    <section class="cs-section cs-active-effects">
-      <h3 class="cs-section-h">Active Effects</h3>
-      <table class="cs-effects-table">
-        <thead><tr><th>Caster</th><th>Source</th><th class="cs-num">Rounds left</th></tr></thead>
-        <tbody>
-          <% demo[:active_effects].each do |eff| %>
-            <tr>
-              <td><%= eff[:caster] || '&mdash;' %></td>
-              <td><%= eff[:source] %></td>
-              <td class="cs-num"><%= eff[:rounds_left] %></td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </section>
-  <% end %>
-
-  <% if demo[:usable_spells].any? %>
-    <section class="cs-section cs-usable-spells">
-      <h3 class="cs-section-h">Usable Spells</h3>
-      <table class="cs-usable-table">
-        <thead><tr><th>Name</th><th>Casting Time</th><th class="cs-num">Mana</th><th class="cs-num">Save TN</th></tr></thead>
-        <tbody>
-          <% demo[:usable_spells].each do |sp| %>
-            <tr>
-              <td><%= sp[:name] %></td>
-              <td><%= sp[:casting_time] %></td>
-              <td class="cs-num"><%= sp[:mana_cost] %></td>
-              <td class="cs-num"><%= sp[:save_tn] || '&mdash;' %></td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
     </section>
   <% end %>
 

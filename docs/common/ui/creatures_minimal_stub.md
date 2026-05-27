@@ -13,49 +13,45 @@ See `ui_conventions.md` for shared rules.
 
 ## Layout
 
-Top to bottom:
+The card has full-width regions at the top, a two-column body in the middle, and full-width regions at the bottom.
 
-1. **Header**
+1. **Header** (full width)
    - Creature name, large, bold, in the Creature's Tier Color. Left-aligned.
    - `Player: <name>` right-aligned on the same baseline. Omitted when the Creature has no Player.
    - Subtitle line below: `Human Bard 3, Tier 3` — italic, small, muted color. The Tier number in the subtitle picks up the Creature's Tier Color.
 
-2. **Attribute + vital block** (two columns side by side)
-   - **Left column**: 3×2 grid of attributes. Each cell shows the attribute key in small-caps maroon (`STR`, `DEX`, ...) followed by the Effective Attribute value. Order is the project's `Attributes` config order — typically str, dex, con on the first row; int, wis, cha on the second.
-   - **Right column**: two lines.
+2. **Attribute + vital block** (full width, two halves side by side)
+   - **Left half**: 3×2 grid of attributes. Each cell shows the attribute key in small-caps maroon (`STR`, `DEX`, ...) followed by the Effective Attribute value. Order is the project's `Attributes` config order — typically str, dex, con on the first row; int, wis, cha on the second.
+   - **Right half**: two lines.
      - Line 1: `HP <current>/<max>`. `HP` label maroon, bold.
      - Line 2: `Mana <current>/<max>, Toxicity <current>/<threshold>`. The Toxicity portion uses a muted color (it's secondary information).
 
-3. **Initiative · Perception · Speed row** (three columns, equal width)
+3. **Initiative · Perception · Speed row** (full width, three equal columns)
    - `Initiative <dice_count>` — the dice count Combat would roll on a fresh initiative roll. No `d` suffix.
    - `Perception +<modifier>` — the Competency Modifier returned by Proficiencies for the `perception` key. Show the sign explicitly.
    - `Speed <feet>` — Effective Speed in feet, no unit suffix beyond the integer.
 
-4. **Actions** — section heading `ACTIONS`. A table with columns `Name`, `Spd`, `Roll`, `Bonus`, `Dmg`, `Notes`. One row per usable action. The four numeric columns are center-aligned; `Bonus` shows an explicit sign on positive values; `Dmg` shows `—` when the action deals no damage. Always rendered — empty actions table is still allowed; the stub renders a single default `Dodge` row when no equipped weapons are found.
+Below the Initiative · Perception · Speed row the sheet splits into two columns. The split runs from here down through the Spells/Rituals/Items sections; Abilities and Item Descriptions return to full-width below the split.
 
-5. **Skills** — section heading `SKILLS`. A table with columns `Name`, `Ranks`, `Dice`, `Bonus`. One row per Skill the Creature has trained. The `Bonus` column shows an explicit sign on positive values. Omitted when the Creature has no trained Skills. The number of trained Skills a Creature is expected to have is derived from the `Skill Pick Formula` in `creatures_config.yaml` against the Creature's Effective Intelligence and the Class's `bonus_skills` field; the section reflects whatever Skills the Creature actually trains.
+4. **Actions** (left column) — section heading `ACTIONS`. A table with columns `Name`, `Spd`, `Roll`, `Bonus`, `Dmg`, `Notes`. One row per usable action. The four numeric columns are center-aligned; `Bonus` shows an explicit sign on positive values; `Dmg` shows `—` when the action deals no damage. Always rendered — empty actions table is still allowed; the stub renders a single default `Dodge` row when no equipped weapons are found.
 
-6. **Spells | Rituals** (two columns)
-   - `SPELLS` lists each tier that has at least one spell, one line per tier: `Tier <n>. <names, comma-separated>`. The `Tier <n>.` label is italic and uses the Tier Color **of that spell tier** (not the Creature's Tier).
-   - `RITUALS` follows the same line format. When the Creature has no rituals, the section still renders with a single `—` placeholder so the column structure is preserved.
+5. **Skills** (left column) — section heading `SKILLS`. A table with columns `Name`, `Ranks`, `Dice`, `Bonus`. One row per Skill the Creature has trained. The `Bonus` column shows an explicit sign on positive values. Omitted when the Creature has no trained Skills. The number of trained Skills a Creature is expected to have is derived from the `Skill Pick Formula` in `creatures_config.yaml` against the Creature's Effective Intelligence and the Class's `bonus_skills` field; the section reflects whatever Skills the Creature actually trains.
 
-7. **Items | Abilities** (two columns)
-   - `ITEMS` shows three lines, in order: `Equipped. <names>`, `Consumable. <names>`, `Other. <names>`. The category label is italic. Each line is omitted only when the category has zero items. Consumables prefix the quantity: `(2) Healing Draught`. Other items suffix the quantity in parens: `Rations (5)`. Equipped items never show a quantity (they're always exactly one). Names use `name_override` when set, otherwise `item_type`.
-   - `ABILITIES` lists each granted Ability as a collapsible row. By default each row shows only the Ability name (italic, with a trailing affordance such as a chevron or `▸` marker indicating expandability). Clicking the row reveals the description; clicking again hides it. The starting state is **collapsed** for every Ability — the abilities list otherwise crowds out the rest of the card. State is per-Ability, not section-wide; expanding one row leaves the others alone. The list runs in the order Creatures returns from `get_granted_abilities` (Race → Race Aspect → Classes → free abilities). Implementations should use semantic HTML (e.g. `<details>/<summary>`) so the behavior works without JavaScript and is accessible to screen readers.
+6. **Items** (right column) — `ITEMS`. Shows three lines, in order: `Equipped. <names>`, `Consumable. <names>`, `Other. <names>`. The category label is italic. Each line is omitted only when the category has zero items. Consumables prefix the quantity: `(2) Healing Draught`. Other items suffix the quantity in parens: `Rations (5)`. Equipped items never show a quantity (they're always exactly one). Names use `name_override` when set, otherwise `item_type`.
 
-8. **Item Descriptions** — full-width section. Lists named magic items the Creature carries that have a `metadata.description` set. Format mirrors Abilities: `<Item Name>. <description>` with the item name italic.
+7. **Spells** (right column) — `SPELLS`. One line per spell tier the Creature has at least one spell in: `Tier <n>. <names, comma-separated>`. The `Tier <n>.` label is italic and uses the Tier Color **of that spell tier** (not the Creature's Tier). Omitted when the Creature has no spells.
 
-9. **Active Effects** — full-width section listing Active Effects from Conditions that target this Creature. One row per Effect: the caster's name (looked up from the Creatures domain by `caster_id`; falls back to `—` when the caster is unknown), the spell or source name, and the remaining rounds. Omitted entirely when no Active Effect targets the Creature.
+8. **Rituals** (right column) — `RITUALS`. Same line format as Spells. Omitted when the Creature has no rituals.
 
-10. **Usable Spells** — full-width section listing spells the Creature can cast on the current turn (filtered by mana cost vs. current Mana). One row per spell: name, casting time, mana cost, and Save TN when the spell offers a save (blank otherwise). The list is grouped by spell tier in the same order as the Spells column. Omitted when the Creature has no spells. This section overlaps with the Spells column above; the Spells column gives a names-only at-a-glance read, while Usable Spells gives the action-economy details the player needs at the moment of choosing a spell to cast.
+9. **Abilities** (full width, below the two-column body) — `ABILITIES`. Each granted Ability renders as a collapsible row. By default each row shows only the Ability name (italic, with a trailing affordance such as a chevron or `▸` marker indicating expandability). Clicking the row reveals the description; clicking again hides it. The starting state is **collapsed** for every Ability — the abilities list otherwise crowds out the rest of the card. State is per-Ability, not section-wide; expanding one row leaves the others alone. The list runs in the order Creatures returns from `get_granted_abilities` (Race → Classes → free abilities). Implementations should use semantic HTML (e.g. `<details>/<summary>`) so the behavior works without JavaScript and is accessible to screen readers.
+
+10. **Item Descriptions** (full width, below Abilities) — lists named magic items the Creature carries that have a `metadata.description` set. Format mirrors Abilities: `<Item Name>. <description>` with the item name italic. Omitted when no inventory item carries a `metadata.description`.
 
 ## Section visibility
 
-- Skills is omitted when the Creature has no trained Skills.
-- Spells and Rituals are paired: when at least one of them has content, both render with their column structure intact (the empty one shows `—`). When both are empty, both columns are omitted.
-- Items and Abilities use the same pairing: if either has content, both render in their column structure (the empty one is blank or shows `—`).
+- Skills, Items, Spells, Rituals, Abilities, and Item Descriptions are each omitted when they have no content.
 - Actions always renders (a single Dodge row at minimum).
-- Item Descriptions is omitted when no inventory item carries a `metadata.description`.
+- When the right column is empty (no Items, no Spells, no Rituals) the two-column body collapses to single-column for Actions + Skills; the layout never leaves a visibly blank half.
 
 ## Parameters
 

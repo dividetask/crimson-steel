@@ -1,27 +1,19 @@
 <%
-  base_url = '/character-sheets'
+  base_url      = '/character-sheets'
   toggle_detail = @detail == 'full' ? 'minimal' : 'full'
   toggle_href   = "#{base_url}?i=#{@i}&detail=#{toggle_detail}"
-  prev_href     = @prev_i ? "#{base_url}?i=#{@prev_i}&detail=#{@detail}" : nil
-  next_href     = @next_i ? "#{base_url}?i=#{@next_i}&detail=#{@detail}" : nil
+  prev_href     = "#{base_url}?i=#{@prev_i}&detail=#{@detail}"
+  next_href     = "#{base_url}?i=#{@next_i}&detail=#{@detail}"
   pager_label   = "#{@i + 1} / #{@total}"
 %>
 
 <div class="cs-page">
   <% if @detail == 'minimal' %>
-    <div class="cs-page-pager">
-      <% if prev_href %>
-        <a class="cs-pager-arrow" href="<%= prev_href %>">&#9664;</a>
-      <% else %>
-        <span class="cs-pager-arrow cs-pager-disabled">&#9664;</span>
-      <% end %>
+    <nav class="cs-pager">
+      <a class="cs-pager-arrow" href="<%= prev_href %>">&#9664;</a>
       <span class="cs-pager-label"><%= pager_label %></span>
-      <% if next_href %>
-        <a class="cs-pager-arrow" href="<%= next_href %>">&#9654;</a>
-      <% else %>
-        <span class="cs-pager-arrow cs-pager-disabled">&#9654;</span>
-      <% end %>
-    </div>
+      <a class="cs-pager-arrow" href="<%= next_href %>">&#9654;</a>
+    </nav>
     <%= erb :_creature_minimal, locals: { demo: @demo, toggle_target: toggle_href } %>
   <% else %>
     <%= erb :_creature_full,

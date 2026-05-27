@@ -22,21 +22,11 @@
 <article class="cs-card cs-full tier-<%= h[:tier] %><%= ' cs-bare' unless chrome_on %>" data-creature-id="<%= demo[:id] %>">
 
   <% if prev_href || pager_label || next_href %>
-    <div class="cs-pager">
-      <% if prev_href %>
-        <a class="cs-pager-arrow" href="<%= prev_href %>">&#9664;</a>
-      <% else %>
-        <span class="cs-pager-arrow cs-pager-disabled">&#9664;</span>
-      <% end %>
-      <% if pager_label %>
-        <span class="cs-pager-label"><%= pager_label %></span>
-      <% end %>
-      <% if next_href %>
-        <a class="cs-pager-arrow" href="<%= next_href %>">&#9654;</a>
-      <% else %>
-        <span class="cs-pager-arrow cs-pager-disabled">&#9654;</span>
-      <% end %>
-    </div>
+    <nav class="cs-pager">
+      <% if prev_href %><a class="cs-pager-arrow" href="<%= prev_href %>">&#9664;</a><% end %>
+      <% if pager_label %><span class="cs-pager-label"><%= pager_label %></span><% end %>
+      <% if next_href %><a class="cs-pager-arrow" href="<%= next_href %>">&#9654;</a><% end %>
+    </nav>
   <% end %>
 
   <header class="cs-header cs-header-full">
