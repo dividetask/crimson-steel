@@ -4,6 +4,8 @@
   box-sizing: border-box;
 }
 
+[hidden] { display: none !important; }
+
 body {
   font-family: Arial, sans-serif;
   background: #fff;
@@ -18,6 +20,8 @@ body {
   align-items: center;
   padding: 0 16px;
   height: 36px;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .menu-items {
@@ -149,6 +153,15 @@ body {
   font-size: 12px;
 }
 
+.rolls-title-main { font-weight: bold; font-size: 12px; }
+
+.rolls-title-sub {
+  font-size: 10px;
+  font-weight: normal;
+  color: #555;
+  margin-left: 4px;
+}
+
 .rolls-actions {
   margin-left: auto;
   display: flex;
@@ -195,6 +208,36 @@ body {
   padding: 6px 8px;
   vertical-align: middle;
   text-align: left;
+}
+
+/* Within a single Roll, the reroll / mass-reroll / nudge rows hug
+   their initial-roll row. Padding is applied to <td> (table-cell) —
+   setting it on <tr> (table-row) would have no effect — and the
+   line-height is dropped so the dice line-box stops adding empty
+   vertical space inside each cell. Only the boundary between Rolls
+   keeps the normal padding. */
+.stub-table tbody.roll-group tr.modifier-row td {
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1;
+  border-bottom: none;
+}
+
+.stub-table tbody.roll-group tr.row-initial td {
+  padding-bottom: 0;
+  line-height: 1;
+}
+
+/* The leftmost (Character) cell spans every row of the Roll, so a
+   1px bottom pad here just keeps a hair of breathing room under the
+   Roll Name italic before the next Roll's separator border. */
+.stub-table tbody.roll-group td.character-cell {
+  padding-bottom: 1px;
+}
+
+.stub-table tbody.roll-group + tbody.roll-group tr.row-initial td {
+  border-top: 1px solid #eee;
+  padding-top: 6px;
 }
 
 .stub-table thead th {
@@ -278,7 +321,7 @@ body {
 .dice-cell {
   font-family: monospace;
   white-space: nowrap;
-  line-height: 1.9;
+  line-height: 1;
 }
 
 .dice-placeholder {
@@ -303,6 +346,24 @@ body {
 .die.success  { background: #22c55e; color: #fff; }
 .die.neutral  { background: transparent; color: #111; }
 .die.empty    { background: transparent; color: transparent; min-width: 20px; }
+
+/* Starting Successes / Failures: rendered as small filled squares
+   without a value before the rolled dice on the initial row. Green
+   for positive starting_value, red for negative. */
+.die.starting-die {
+  min-width: 10px;
+  width: 10px;
+  height: 10px;
+  line-height: 10px;
+  padding: 0;
+  border-radius: 2px;
+  margin-right: 2px;
+  vertical-align: middle;
+}
+
+/* Spacer variant: takes width so modifier-row dice line up with
+   the initial row, but doesn't render visibly. */
+.die.starting-spacer { visibility: hidden; }
 
 .result-cell {
   text-align: center;
@@ -342,3 +403,607 @@ body {
   opacity: 1;
 }
 
+/* === Conditions PC card === */
+
+.pc-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.pc-card {
+  border: 1px solid #c8c8c8;
+  background: #fff;
+  padding: 10px 12px;
+}
+
+.pc-card-bare {
+  border: none;
+  padding: 0;
+}
+
+.pc-name {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Tier color palette: applies to .pc-name (header), affliction
+   potency cells, and consumable list items. */
+.tier-0 { color: #c0392b; }
+.tier-1 { color: #d35400; }
+.tier-2 { color: #b8860b; }
+.tier-3 { color: #27ae60; }
+.tier-4 { color: #2980b9; }
+.tier-5 { color: #8e44ad; }
+
+.pc-subtitle {
+  color: #666;
+  font-size: 11px;
+  margin: 2px 0 6px 0;
+}
+
+.pc-bar-row {
+  display: grid;
+  grid-template-columns: 60px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0;
+  font-size: 11px;
+}
+
+.pc-bar-label {
+  text-transform: uppercase;
+  color: #666;
+}
+
+.bar {
+  display: flex;
+  height: 12px;
+  background: #eee;
+  border: 1px solid #ccc;
+  overflow: hidden;
+}
+
+.bar-seg { display: inline-block; height: 100%; }
+
+.seg-hp          { background: #2ecc71; }
+.seg-hp-minor    { background: #f5b7b1; }
+.seg-hp-moderate { background: #e74c3c; }
+.seg-hp-major    { background: #922b21; }
+
+.seg-mana { background: #3498db; }
+
+.bar-tox { background: #ddd; }
+.seg-tox {
+  background: linear-gradient(to right, #2ecc71, #f1c40f, #e67e22, #e74c3c);
+}
+.bar-tox-blocked { outline: 1px solid #c0392b; }
+
+.pc-bar-value {
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.pc-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 1px 4px;
+  font-size: 11px;
+  margin: 1px 0;
+  border-radius: 2px;
+}
+
+.pc-line .label { color: #555; }
+.pc-line .value { font-weight: bold; font-family: monospace; }
+
+.pc-dmg-minor    { background: #fdf3c1; }
+.pc-dmg-moderate { background: #e74c3c; color: #fff; }
+.pc-dmg-major    { background: #922b21; color: #fff; }
+.pc-dmg-moderate .label,
+.pc-dmg-major    .label { color: #fff; }
+
+.pc-dmg-row {
+  display: flex;
+  gap: 4px;
+  margin: 2px 0;
+  flex-wrap: wrap;
+}
+
+.pc-dmg-pill {
+  font-size: 11px;
+  font-weight: bold;
+  font-family: monospace;
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+
+.pc-section {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px dotted #ddd;
+}
+
+.pc-section h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #555;
+  margin: 0 0 3px 0;
+}
+
+.effect-badges {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.effect-badge {
+  background: #fef2cd;
+  border: 1px solid #d6a700;
+  color: #8a5d00;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.affliction-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.affliction-table th {
+  text-align: left;
+  font-size: 10px;
+  color: #666;
+  font-weight: bold;
+  border-bottom: 1px solid #ddd;
+  padding: 2px 4px;
+}
+
+.affliction-table th:nth-child(2) { text-align: center; }
+
+.affliction-table td {
+  padding: 2px 4px;
+  border-bottom: 1px dotted #eee;
+}
+
+.affliction-table td.potency {
+  font-weight: bold;
+  font-family: monospace;
+  text-align: center;
+}
+
+.consumable-list {
+  list-style: disc;
+  padding-left: 18px;
+  font-size: 11px;
+}
+
+.consumable-list li { font-weight: bold; }
+
+/* === Check Resolution step machine === */
+
+/* Step controls live inside the Rolls Header's .rolls-actions slot.
+   One step is active at a time; pending steps are hidden so the
+   header always presents a single Roll-All-sized button row. */
+
+.step-controls[data-state="pending"],
+.step-controls[data-state="complete"] { display: none; }
+
+.step-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-kind-label {
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #444;
+}
+
+.step-src-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: #555;
+  letter-spacing: 0.5px;
+}
+
+/* None / Change match the .btn-roll-all sizing. */
+.cr-step-none {
+  background: #1f1f1f;
+  color: #fff;
+  border: none;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.cr-step-none:hover { background: #000; }
+
+/* Change buttons use the warm-amber reroll palette so they read as
+   "go back / edit" rather than competing with the dark Roll All /
+   blue Confirm action buttons. */
+.cr-step-change,
+.btn-rolls-change {
+  background: #fff7e0;
+  border: 1px solid #d6a700;
+  color: #8a5d00;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.cr-step-change:hover,
+.btn-rolls-change:hover { background: #fff1c5; }
+
+.cr-change-icon {
+  display: inline-block;
+  margin-right: 2px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* Step summaries — one thin row per completed step, stacked between
+   the header and the dice table. */
+
+.step-summaries { background: #fafafa; }
+
+.step-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px;
+  font-size: 11px;
+  border-bottom: 1px solid #eee;
+}
+
+.step-summary-label {
+  text-transform: uppercase;
+  font-weight: bold;
+  color: #555;
+  font-size: 10px;
+  min-width: 100px;
+}
+
+.step-summary-value {
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+}
+
+.save-roll-table[data-roll-state="pending"] { display: none; }
+
+/* === Roll Resolution collapsed results === */
+
+.rolls-results {
+  padding: 6px 10px;
+  background: #fafafa;
+  border-top: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  position: relative;
+}
+
+.rolls-result-row {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.rolls-result-name {
+  font-weight: bold;
+  color: #333;
+}
+
+.rolls-result-value {
+  font-family: monospace;
+  color: #444;
+}
+
+.rolls-results .btn-rolls-change {
+  position: absolute;
+  top: 4px;
+  right: 10px;
+}
+
+/* Step bodies — one per step, only the active step's body renders. */
+.step-body { padding: 8px 10px; background: #fff; }
+.step-body[data-state="pending"],
+.step-body[data-state="complete"] { display: none; }
+
+.step-body-dice { padding: 0; }
+
+.step-body-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  font-size: 11px;
+}
+
+.step-mod-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.step-mod-table th,
+.step-mod-table td {
+  padding: 4px 8px;
+  vertical-align: middle;
+  border-bottom: 1px solid #eee;
+}
+
+.step-mod-table th {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #555;
+  text-align: left;
+  font-weight: bold;
+  background: #fafafa;
+}
+
+.step-mod-rollname { font-weight: bold; }
+
+.step-mod-actor {
+  font-weight: normal;
+  color: #888;
+  font-size: 10px;
+  text-transform: none;
+}
+
+.step-mod-buttons { white-space: nowrap; }
+.step-mod-buttons .cr-mod-btn { margin-right: 2px; }
+
+.cr-action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  padding: 1px 0;
+}
+
+.cr-action-name { font-weight: bold; }
+.cr-action-meta { color: #777; font-style: italic; }
+.cr-dice-picker { display: inline-flex; gap: 3px; }
+
+.cr-pool-line {
+  width: 100%;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #555;
+}
+
+.cr-mod-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.cr-mod-table th,
+.cr-mod-table td {
+  padding: 3px 6px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.cr-mod-rollname { font-weight: bold; }
+
+.cr-mod-col {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.cr-mod-col .cr-src-name {
+  display: block;
+  font-weight: bold;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.cr-mod-col .cr-src-actor {
+  display: block;
+  font-weight: normal;
+  font-size: 10px;
+  color: #888;
+}
+
+.cr-mod-btn {
+  background: #fff;
+  border: 1px solid #bbb;
+  color: #333;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.cr-mod-btn:hover { background: #f0f0f0; }
+
+/* Reroll / Mass Reroll buttons borrow the Roll Resolution stub's
+   reroll palette (warm amber). Nudge buttons borrow the nudge palette
+   (green). Direction (+/-) lives on the button text only. */
+.cr-mod-btn[data-kind="reroll"],
+.cr-mod-btn[data-kind="mass_reroll"] {
+  border-color: #d6a700;
+  color: #8a5d00;
+}
+
+.cr-mod-btn[data-kind="reroll"]:hover,
+.cr-mod-btn[data-kind="mass_reroll"]:hover { background: #fff7e0; }
+
+.cr-mod-btn[data-kind="nudge"] {
+  border-color: #2c8a2c;
+  color: #1a5d1a;
+}
+
+.cr-mod-btn[data-kind="nudge"]:hover { background: #e6f7e6; }
+
+.cr-builder-result { padding: 6px 10px; background: #fdfdfd; }
+
+/* === Conditions Save Resolution === */
+
+.save-resolution {
+  border: 1px solid #c8c8c8;
+  background: #fff;
+  margin-bottom: 18px;
+}
+
+.save-resolution { margin-bottom: 18px; }
+
+.save-preview {
+  padding: 6px 10px;
+  border-top: 1px solid #ddd;
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.save-preview-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+}
+
+.save-preview-fields label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.save-preview-fields input {
+  width: 60px;
+  padding: 2px 4px;
+  font-size: 11px;
+  text-align: center;
+  border: 1px solid #bbb;
+}
+
+.save-preview-fields input[type="text"] { width: 110px; text-align: left; }
+
+.btn-save-confirm {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 5px 16px;
+  font-weight: bold;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.btn-save-confirm[disabled] {
+  background: #aaa;
+  cursor: not-allowed;
+}
+
+.btn-save-confirm:not([disabled]):hover { background: #1d4ed8; }
+
+/* === Tests doc rendered below the stubs ===
+   Each test is parsed into a card matching the stub family's
+   look: light-grey section header, white card body, dice rendered
+   as colored .die boxes, code in subtle pill background. */
+
+.tests-doc {
+  margin-top: 32px;
+  padding-top: 12px;
+  border-top: 2px solid #ddd;
+}
+
+.tests-doc > h2 {
+  font-size: 14px;
+  margin: 0 0 10px 0;
+  color: #222;
+}
+
+.test-section {
+  margin-bottom: 18px;
+}
+
+.test-section-h {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: bold;
+  background: #ececec;
+  color: #333;
+  padding: 5px 10px;
+  margin: 0 0 6px 0;
+  border: 1px solid #c8c8c8;
+}
+
+.test-card {
+  background: #fff;
+  border: 1px solid #d8d8d8;
+  border-left: 3px solid #2c5fa0;
+  padding: 5px 10px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.test-card-title {
+  font-weight: bold;
+  color: #1a3d6d;
+  margin-bottom: 2px;
+}
+
+.test-card-body { color: #333; }
+
+.test-card-bullets {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 3px 0 0 0;
+  color: #444;
+}
+
+.test-card-bullets li { margin: 1px 0; }
+
+.test-card code,
+.test-card-bullets code {
+  font-family: monospace;
+  background: #f1f1f1;
+  padding: 0 4px;
+  border-radius: 2px;
+  font-size: 10px;
+  color: #333;
+}
+
+.test-card strong { color: #111; }
+.test-card em     { color: #555; font-style: italic; }
+
+/* Inline dice in test cards: small filled boxes matching the
+   .die styles already in use by the stubs (fail = red, crit =
+   blue, others = neutral). */
+.test-card .die,
+.test-card-bullets .die {
+  display: inline-block;
+  min-width: 16px;
+  padding: 0 3px;
+  height: 14px;
+  line-height: 14px;
+  text-align: center;
+  border-radius: 2px;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  margin: 0 1px;
+  vertical-align: baseline;
+}

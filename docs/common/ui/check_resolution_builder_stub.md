@@ -1,0 +1,64 @@
+# Check Resolution Builder Stub
+
+A reusable pattern for stubs that need to compose a Check from DM-driven choices before rolling. Not a standalone widget — it's integrated into the parent stub (e.g., `conditions_save_resolution_stub.md`) so the resulting shell looks like a single Rolls wrapper. Owned by Check Resolution; the Builder pattern knows nothing about Conditions, Combat, or any other domain.
+
+See `ui_conventions.md` for shared rules.
+
+## Parameters
+
+Every list parameter is a set of DM-pickable options. A parameter that is null or empty causes its step to be omitted.
+
+| Parameter | Shape | Purpose |
+|---|---|---|
+| `target_options` | array of `{creature_ref, name}` or null | Target picker. |
+| `action_options` | array of `{name, min_dice, max_dice, speed?, damage?}` or null | The acting Creature's action. `min_dice == max_dice` locks the dice spend (used for save-style actions); otherwise the panel shows dice-count buttons bounded by `actor_pool` and `max_dice`. |
+| `actor_pool` | integer | Caps the dice the actor can spend on a non-locked Action. |
+| `defense_options` | array of `{name, min_dice, max_dice, speed?}` or null | The defending Creature's reaction. |
+| `defender_pool` | integer | Caps the defender's dice spend. |
+| `supporting_actions` | array of `{creature_ref, action_name, min_dice, max_dice, pool}` | Reactions on the actor's side (allies). |
+| `opposing_actions` | array of `{creature_ref, action_name, min_dice, max_dice, pool}` | Reactions on the defender's side. |
+| `reroll_sources` | array of `{creature_ref, creature_name, source_name, direction, pool}` or null | Each source becomes a labelled group of magnitude buttons in the Rerolls step. |
+| `mass_reroll_sources` | array of `{creature_ref, creature_name, source_name, direction}` or null | Each source becomes a single ± button in the Mass Rerolls step. |
+| `nudge_sources` | array of `{creature_ref, creature_name, source_name, direction, pool}` or null | Each source becomes a labelled group of magnitude buttons in the Nudges step. |
+| `rolls` | array of `{creature_name, roll_name, dice_count, tn, die_size, starting_value, side}` | The Rolls that will appear in the embedded dice table. `side` is `:supporting` or `:opposing`. |
+
+## Shell
+
+The Builder shares one Rolls wrapper with whatever stub embeds it. The wrapper's `.rolls-header` carries the title (left) and a single `.rolls-actions` slot (right). Only the currently active step's controls live in the slot at any given moment — they sit where Roll All / Confirm All sit on the underlying Check Resolution Stub. None and Change buttons match Roll All in size so the header never resizes when a step changes.
+
+Once every interactive step is resolved, the slot swaps to the Check Resolution Stub's own Roll All + Confirm All buttons and the dice table (until then hidden) appears.
+
+## Step model
+
+Steps are walked in this order; each step whose parameter list is null/empty is skipped silently.
+
+- **Target**
+- **Action** — an Action step with a single locked entry (`min_dice == max_dice`) is *omitted* entirely because there is nothing for the DM to choose; the caller treats the action as decided.
+- **Defense**
+- **Supporting Actions**
+- **Opposing Actions**
+- **Rerolls** — one labelled magnitude-button group per source (positive sources show `+1..+pool`, negative sources show `-1..-pool`). A single `None` button covers the whole step.
+- **Mass Rerolls** — single `+*` or `-*` button per source; `None` covers the step.
+- **Nudges** — same shape as Rerolls.
+
+Each pick mutates the dice table's roll-group config so the next Roll All applies it. `None` clears any pick on that step before completing it.
+
+## Step lifecycle
+
+Each step is in one of three states:
+
+- **pending** — hidden. The Roll All / Confirm All buttons are themselves a pending "check" step until every interactive step ahead of them resolves.
+- **active** — the step's controls (None + the per-source buttons) occupy `.rolls-actions`.
+- **complete** — the controls vanish from the header; a single-line summary row (`<Step Label>: <choice> [Change]`) appears in the step-summary stack between the header and the dice table.
+
+Pressing Change on a completed step's summary re-opens that step, clears its modifier on every Roll, and rewinds every later step (and the dice table) back to pending. The host stub is responsible for re-hiding any post-roll surfaces it owns (e.g., the effect preview in `conditions_save_resolution_stub.md`).
+
+## Reroll palette
+
+Magnitude buttons use the Roll Resolution stub's modifier palette: warm amber for Reroll + Mass Reroll, green for Nudge. Direction (`+` / `−`) is carried on the button label's sign only.
+
+## Out of scope
+
+- This pattern does not pick *which* Roll is being composed; the host stub provides the seed Rolls.
+- It does not validate that selections are legal (e.g. that the actor has the dice in their pool). Validation is the caller's responsibility before the parameters reach the Builder.
+- It does not understand saves, attacks, or any domain-specific concept. The same pattern serves Affliction saves, Combat attacks, and any other Check the project introduces.

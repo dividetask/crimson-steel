@@ -22,7 +22,7 @@
 #     { kind: "ability_damage", attribute: "<attr>", severity: "<category>" }
 #         Same magnitude formula, applied as Ability Damage.
 #     { kind: "named_effect", name: "<effect_name>", duration_rounds: <int> }
-#         Looks up `<effect_name>` in `effect_names.yaml` and applies
+#         Looks up `<effect_name>` in `conditions_effect_names.yaml` and applies
 #         its Mechanics for `duration_rounds`. Magnitude is binary
 #         (net_magnitude > 0 applies; 0 does not).
 #

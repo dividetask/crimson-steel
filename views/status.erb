@@ -1,8 +1,9 @@
 <%
   nav_items = [
-    { key: 'status', label: 'Status',           href: '/status' },
-    { key: 'dice',   label: 'Dice Resolution',  href: '/status?view=dice' },
-    { key: 'check',  label: 'Check Resolution', href: '/status?view=check' }
+    { key: 'status',     label: 'Status',           href: '/status' },
+    { key: 'dice',       label: 'Dice Resolution',  href: '/status?view=dice' },
+    { key: 'check',      label: 'Check Resolution', href: '/status?view=check' },
+    { key: 'conditions', label: 'Conditions',       href: '/status?view=conditions' }
   ]
 %>
 
@@ -18,19 +19,51 @@
   </aside>
 
   <section class="status-content">
-    <% if @view == 'dice' %>
+    <% case @view
+       when 'dice' %>
       <h1>Dice Resolution</h1>
       <p class="lead">Roll Resolution Stubs &mdash; one per Roll, each in its own Rolls wrapper.</p>
       <% @rolls.each do |r| %>
-        <%= erb :_roll_stub, locals: { roll: r } %>
+        <%= erb :_roll_stub, locals: { rolls: [r] } %>
       <% end %>
-    <% elsif @view == 'check' %>
+
+    <% when 'check' %>
       <h1>Check Resolution</h1>
       <p class="lead">Check Resolution Stub &mdash; one Rolls wrapper containing multiple Rolls.</p>
       <%= erb :_check_stub, locals: { check: @check } %>
+
+      <h2>Save Resolution Demo</h2>
+      <p class="lead">One example Save Resolution Stub (a Bleed save with both a Reroll source and a Blessing Nudge source). The Conditions-tied examples live on the Conditions sub-view.</p>
+      <% @save_examples.each do |s| %>
+        <%= erb :_conditions_save_resolution, locals: { save: s } %>
+      <% end %>
+
+    <% when 'conditions' %>
+      <h1>Conditions &mdash; Downtime PC Cards</h1>
+      <p class="lead">One card per player-character Creature: current Conditions State plus carried Consumables.</p>
+      <div class="pc-card-grid">
+        <% @creatures.each do |creature| %>
+          <%= erb :_conditions_pc_card,
+                  locals: { creature: creature, catalog: @catalog, viewer: :dm } %>
+        <% end %>
+      </div>
+
+      <h2>Save Resolution</h2>
+      <p class="lead">Conditions Save Resolution Stub examples &mdash; one per Affliction save scenario.</p>
+      <% @save_examples.each do |s| %>
+        <%= erb :_conditions_save_resolution, locals: { save: s } %>
+      <% end %>
+
     <% else %>
       <h1>Status</h1>
       <p class="lead">Pick a stub from the menu on the left.</p>
+    <% end %>
+
+    <% if @tests_html %>
+      <section class="tests-doc">
+        <h2><%= @tests_title %></h2>
+        <%= @tests_html %>
+      </section>
     <% end %>
   </section>
 </div>

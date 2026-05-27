@@ -179,7 +179,7 @@ Inputs: Affliction name, inflicter Tier (integer), optional Potency delta (defau
 
 Behavior:
 
-1. Validate that the Affliction name exists in `afflictions.yaml`. Unknown names raise.
+1. Validate that the Affliction name exists in `conditions_afflictions.yaml`. Unknown names raise.
 2. If no entry exists for this name, create one at `potency = max(1, delta)` with `inflicting_tier = inflicter_tier` and append at the end of the order. When `current_round` is supplied, schedule the new entry's `next_resolution_round` to `current_round + Frequency Rounds[save_frequency]`. When omitted, leave `next_resolution_round = null` and the caller is responsible for any scheduling.
 3. Otherwise (entry exists), add `delta` to `potency` (clamped at ≥ 1) and raise `inflicting_tier` to `max(existing, inflicter_tier)`. `next_resolution_round` is left untouched — re-inflicting does not reset the schedule.
 
@@ -342,7 +342,7 @@ Returns: a summary of what changed (per-Severity HP healed, per-attribute Abilit
 
 Inputs: Effect Name, `source_id` (string), optional `ends_on_round` (integer).
 
-Behavior: Look up `name` in `effect_names.yaml`. Unknown names raise. For each Mechanic in the entry's `mechanics` list:
+Behavior: Look up `name` in `conditions_effect_names.yaml`. Unknown names raise. For each Mechanic in the entry's `mechanics` list:
 
 - `modifier` kinds dispatch through *Apply Effect*, with a per-Mechanic Source ID built as `<source_id>:<index>`.
 - Other kinds (`reroll`, `nudge`, `set_value`, `scale_value`, `flag`, `display`) route to whichever per-kind storage the implementation exposes, using the same `<source_id>:<index>` scheme.
@@ -356,7 +356,7 @@ Two consequences of the per-Mechanic Source ID convention:
 - Re-applying the same Effect Name with the same `source_id` cleanly overwrites every previous slot.
 - Removal requires either iterating each known index or using *Remove Effects by Prefix*.
 
-The catalog is consulted at apply time, not stored on the resulting entries — editing `effect_names.yaml` and reloading config picks up new Mechanic lists for *future* applications, but already-applied entries keep whatever shape they were created with until they expire or are removed.
+The catalog is consulted at apply time, not stored on the resulting entries — editing `conditions_effect_names.yaml` and reloading config picks up new Mechanic lists for *future* applications, but already-applied entries keep whatever shape they were created with until they expire or are removed.
 
 ### Clear Expired Effects (`CLEAR_EXPIRED_EFFECTS`)
 

@@ -35,6 +35,7 @@ There is no login, password, or account selection. Identity is purely based on w
 ### Ask questions often
 
 - Ask questions often especially when there is ambiguity or you believe I have made a mistake
+- Ask questions in plain chat text, not via the `AskUserQuestion` / multiple-choice prompt tool. Do not use that tool in this project — write the question(s) as normal prose and wait for a reply.
 
 ### Stop after asking questions
 

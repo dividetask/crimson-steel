@@ -1,18 +1,24 @@
 <%#
-  Check Resolution Stub. Renders the Rolls wrapper with shared headers
-  and calls _roll_stub for each child Roll in rows_only mode.
-
-  Supporting Rolls are listed first, then Opposing — no labelled divider
-  rows; the order is the convention and the rendering is left to read.
+  Check Resolution Stub. Renders one .rolls-wrapper containing every
+  Supporting and Opposing Roll (in that order, with no visible
+  divider — order is the convention).
 
   Local: check — hash with :supporting and :opposing arrays of Rolls.
+
+  Confirm collapses the wrapper to the .rolls-results section just
+  like the standalone Roll Resolution Stub does; Change un-collapses
+  without resetting any values.
 %>
-<div class="rolls-wrapper" data-stub="check">
+<%
+  all_rolls = check[:supporting] + check[:opposing]
+  roll_label = all_rolls.length > 1 ? 'Roll All' : 'Roll'
+%>
+<div class="rolls-wrapper" data-stub="check" data-state="active">
   <div class="rolls-header">
     <span class="rolls-title">Rolls</span>
     <div class="rolls-actions">
-      <button type="button" class="btn-roll-all">Roll All</button>
-      <button type="button" class="btn-confirm-all">Confirm All</button>
+      <button type="button" class="btn-roll-all"><%= roll_label %></button>
+      <button type="button" class="btn-confirm">Confirm</button>
     </div>
   </div>
   <table class="stub-table roll-table">
@@ -36,8 +42,15 @@
         <th></th>
       </tr>
     </thead>
-    <% (check[:supporting] + check[:opposing]).each do |r| %>
-      <%= erb :_roll_stub, locals: { roll: r, rows_only: true } %>
-    <% end %>
+    <%= erb :_roll_stub, locals: { rolls: all_rolls, wrapper: false } %>
   </table>
+  <div class="rolls-results" hidden>
+    <% all_rolls.each_with_index do |roll, idx| %>
+      <div class="rolls-result-row" data-roll-idx="<%= idx %>">
+        <span class="rolls-result-name"><%= roll[:roll_name] %>:</span>
+        <span class="rolls-result-value"></span>
+      </div>
+    <% end %>
+    <button type="button" class="btn-rolls-change"><span class="cr-change-icon">↶</span> Change</button>
+  </div>
 </div>
