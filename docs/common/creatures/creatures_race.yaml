@@ -77,6 +77,43 @@ satyr:
   speed: 35
   abilities: []
 
+goblin:
+  parent: humanoid
+  size: small
+  speed: 25
+  abilities: []
+
+# --- Fey races ---------------------------------------------------------
+
+fey:
+  size: small
+  speed: 30
+  abilities: []
+
+sprite:
+  parent: fey
+  size: tiny
+  speed: 20
+  abilities: []
+
+pixie:
+  parent: fey
+  size: tiny
+  speed: 20
+  abilities: []
+
+dryad:
+  parent: fey
+  size: medium
+  speed: 30
+  abilities: []
+
+brownie:
+  parent: fey
+  size: small
+  speed: 25
+  abilities: []
+
 # --- Animal races ------------------------------------------------------
 
 beast:

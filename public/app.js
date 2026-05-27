@@ -766,6 +766,45 @@
     if (card) openTextModal(card);
   });
 
+  // -- Roster Sidebar: <details> open/closed persistence ---------------
+  //
+  // Each group's open state lives in localStorage under
+  // `cs-roster-group:<data-group-key>`. We restore on load and write
+  // on toggle.
+  var ROSTER_STORAGE_PREFIX = 'cs-roster-group:';
+
+  function restoreRosterGroups() {
+    var groups = document.querySelectorAll('.cs-roster-sidebar .cs-roster-group');
+    groups.forEach(function (g) {
+      var key = g.getAttribute('data-group-key');
+      if (!key) return;
+      var stored = null;
+      try { stored = localStorage.getItem(ROSTER_STORAGE_PREFIX + key); } catch (e) {}
+      if (stored === 'open') {
+        g.setAttribute('open', '');
+      } else if (stored === 'closed') {
+        g.removeAttribute('open');
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', restoreRosterGroups);
+  // Also run immediately in case the script tag is at the bottom and
+  // DOMContentLoaded already fired.
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    restoreRosterGroups();
+  }
+
+  document.addEventListener('toggle', function (e) {
+    var g = e.target;
+    if (!g.classList || !g.classList.contains('cs-roster-group')) return;
+    var key = g.getAttribute('data-group-key');
+    if (!key) return;
+    try {
+      localStorage.setItem(ROSTER_STORAGE_PREFIX + key, g.open ? 'open' : 'closed');
+    } catch (e2) { /* localStorage unavailable */ }
+  }, true);
+
   // -- Roster Sidebar: Player Active/Absent toggle ---------------------
   //
   // creatures_roster_sidebar_stub.md: Players have a single toggle

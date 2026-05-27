@@ -24,16 +24,17 @@ module Status
   module SampleCreatures
     module_function
 
-    # The full list of sheet-renderable demos, in display order:
-    # players first, then NPCs, then enemies, then enemy templates.
+    # The full list of sheet-renderable demos, in display order.
     # /character-sheets pages between these via ?i=<index>; the
-    # Roster Sidebar groups them by `roster_group`.
+    # Roster Sidebar groups them by `roster_group` (and, for
+    # templates, by `category`).
     def demos
       [
         ash_windmere, bryn_ironvein, veyl_aetheris,
         daven_korr_npc,
-        orc_patrol_spawn,
-        pirate_template, orc_patrol_template
+        *general_red_tier_demos,
+        *rise_of_the_slavelords_demos,
+        *fey_favors_demos
       ]
     end
 
@@ -41,26 +42,63 @@ module Status
       demos[i]
     end
 
+    # Categories the Roster Sidebar renders below Players and NPCs.
+    # The display order is the order in this list.
+    CATEGORIES = [
+      { key: 'general_red_tier',         name: 'General Red Tier' },
+      { key: 'rise_of_the_slavelords',   name: 'Rise of the Slavelords' },
+      { key: 'fey_favors',               name: 'Fey Favors' }
+    ].freeze
+
     # Grouped roster for the Roster Sidebar
-    # (docs/common/ui/creatures_roster_sidebar_stub.md).
+    # (docs/common/ui/creatures_roster_sidebar_stub.md). New shape:
+    # players + npcs are top-level lists; each themed category mixes
+    # creature templates and encounter tables under one heading.
     def roster
-      grouped = { players: [], npcs: [], enemies: [], templates: [] }
+      players = []
+      npcs    = []
+      by_category = Hash.new { |h, k| h[k] = { templates: [], encounter_tables: [] } }
+
       demos.each_with_index do |demo, idx|
         group = demo[:roster_group] || :players
         row = { id: demo[:id], name: demo[:header][:name],
                 copy_count: 0, sheet_index: idx }
-        row[:active] = true if group == :players
-        grouped[group] << row
+        case group
+        when :players
+          row[:active] = true # default Active
+          players << row
+        when :npcs
+          row[:active] = false # default Inactive per design
+          npcs << row
+        when :template
+          cat = demo[:category]
+          by_category[cat][:templates] << row if cat
+        end
       end
-      grouped[:encounter_tables] = sample_encounter_tables
-      grouped
+
+      Status::SampleCreatures.sample_encounter_tables.each do |t|
+        by_category[t[:category]][:encounter_tables] << t
+      end
+
+      categories = CATEGORIES.map do |c|
+        bucket = by_category[c[:key]]
+        c.merge(templates: bucket[:templates], encounter_tables: bucket[:encounter_tables])
+      end
+
+      { players: players, npcs: npcs, categories: categories }
     end
 
+    # Encounter Tables surfaced to the Roster Sidebar. Each entry is
+    # filed under one of the CATEGORIES above via its `category` key.
     def sample_encounter_tables
       [
-        { table_id: 'slave_lords_caravan', name: 'Slave Lords — caravan ambush' },
-        { table_id: 'general_pirate_raid', name: 'Generic pirate raid' },
-        { table_id: 'stockade_patrol',     name: 'Slave Lords — stockade patrol' }
+        { table_id: 'slave_lords_caravan', name: 'Caravan ambush',           category: 'rise_of_the_slavelords' },
+        { table_id: 'stockade_patrol',     name: 'Stockade patrol',          category: 'rise_of_the_slavelords' },
+        { table_id: 'general_pirate_raid', name: 'Generic pirate raid',      category: 'general_red_tier' },
+        { table_id: 'general_wolf_pack',   name: 'Wolf pack',                category: 'general_red_tier' },
+        { table_id: 'general_goblin_ambush', name: 'Goblin ambush',          category: 'general_red_tier' },
+        { table_id: 'fey_pixie_mischief',  name: 'Pixie mischief',           category: 'fey_favors' },
+        { table_id: 'fey_dryad_grove',     name: "Dryad's grove",            category: 'fey_favors' }
       ]
     end
 
@@ -368,52 +406,106 @@ module Status
       )
     end
 
-    # ---- 5. Orc Patrol — already-spawned enemy --------------------------
+    # ---- Themed Creature Template demos ---------------------------------
+    #
+    # One simple_demo per template declared in the
+    # creatures_data_<theme>.example.yaml files. Each carries the
+    # `category` field used by SampleCreatures.roster to group rows
+    # in the Roster Sidebar.
 
-    def orc_patrol_spawn
-      attrs = { str: 16, dex: 12, con: 14, int: 8, wis: 10, cha: 8 }
-      classes = [{ key: 'fighter', level: 1, trained_skills: %w[athletics intimidate] }]
-      simple_demo(
-        id: 1500, label: 'Orc Patrol — spawned enemy',
-        roster_group: :enemies,
-        header: { name: 'Orc Patrol', player: nil, summary: 'Human Fighter 1', tier: 1, bab: 1 },
-        attributes: attrs, classes: classes,
-        speed: 30,
-        actions: [
-          { name: 'Greataxe', speed: 3, roll: '4d', attack_bonus: 3, dmg_bonus: 3, bleed: 1, mt: 7, notes: '' },
-          { name: 'Dodge',    speed: 0, roll: '3d', attack_bonus: 1, dmg_bonus: nil, bleed: nil, mt: nil, notes: '' }
-        ],
-        items: { equipped: [{ name: 'Greataxe' }, { name: 'Hide armor' }], consumable: [], ammunition: [], other: [] }
-      )
+    def general_red_tier_demos
+      [
+        template_demo(id: 300, name: 'Medium Spider', race: 'beast', tier: 1,
+                       attrs: { str: 9, dex: 14, con: 11, int: 1, wis: 10, cha: 2 },
+                       classes: [{ key: 'commoner', level: 1, trained_skills: [] }],
+                       category: 'general_red_tier'),
+        template_demo(id: 301, name: 'Wolf', race: 'beast', tier: 1,
+                       attrs: { str: 12, dex: 15, con: 13, int: 3, wis: 12, cha: 6 },
+                       classes: [{ key: 'commoner', level: 1, trained_skills: [] }],
+                       category: 'general_red_tier'),
+        template_demo(id: 302, name: 'Goblin', race: 'goblin', tier: 1,
+                       attrs: { str: 8, dex: 14, con: 10, int: 9, wis: 8, cha: 8 },
+                       classes: [{ key: 'rogue', level: 1, trained_skills: %w[stealth larceny] }],
+                       category: 'general_red_tier'),
+        template_demo(id: 303, name: 'Goblin Archer', race: 'goblin', tier: 1,
+                       attrs: { str: 8, dex: 16, con: 10, int: 9, wis: 10, cha: 8 },
+                       classes: [{ key: 'rogue', level: 1, trained_skills: %w[stealth perception] }],
+                       category: 'general_red_tier'),
+        template_demo(id: 304, name: 'Cultist', race: 'human', tier: 1,
+                       attrs: { str: 10, dex: 11, con: 12, int: 11, wis: 13, cha: 12 },
+                       classes: [{ key: 'cleric', level: 1, trained_skills: %w[religion intimidate] }],
+                       category: 'general_red_tier'),
+        template_demo(id: 305, name: 'Cult Fanatic', race: 'human', tier: 1,
+                       attrs: { str: 10, dex: 12, con: 13, int: 12, wis: 14, cha: 14 },
+                       classes: [{ key: 'cleric', level: 2, trained_skills: %w[religion intimidate persuasion] }],
+                       category: 'general_red_tier')
+      ]
     end
 
-    # ---- 6. Pirate — enemy template -------------------------------------
-
-    def pirate_template
-      attrs = { str: 13, dex: 14, con: 13, int: 12, wis: 10, cha: 8 }
-      classes = [{ key: 'rogue', level: 1, trained_skills: %w[acrobatics athletics deception intimidate perception sense_motive] }]
-      simple_demo(
-        id: 100, label: 'Pirate — template (enemy_template)',
-        roster_group: :templates,
-        header: { name: 'Pirate', player: nil, summary: 'Human Rogue 1 (template)', tier: 1, bab: 1 },
-        attributes: attrs, classes: classes,
-        speed: 30,
-        items: { equipped: [{ name: 'Cutlass' }, { name: 'Buckler' }], consumable: [], ammunition: [], other: [] }
-      )
+    def rise_of_the_slavelords_demos
+      [
+        template_demo(id: 350, name: 'Slaver Merchant', race: 'human', tier: 1,
+                       attrs: { str: 12, dex: 12, con: 12, int: 13, wis: 11, cha: 14 },
+                       classes: [{ key: 'rogue', level: 2, trained_skills: %w[appraisal persuasion deception] }],
+                       category: 'rise_of_the_slavelords'),
+        template_demo(id: 351, name: 'Slaver Lieutenant', race: 'human', tier: 1,
+                       attrs: { str: 15, dex: 13, con: 14, int: 11, wis: 11, cha: 12 },
+                       classes: [{ key: 'fighter', level: 3, trained_skills: %w[athletics intimidate perception] }],
+                       category: 'rise_of_the_slavelords'),
+        template_demo(id: 352, name: 'Half-Orc Soldier', race: 'half_orc', tier: 1,
+                       attrs: { str: 15, dex: 12, con: 14, int: 9, wis: 10, cha: 8 },
+                       classes: [{ key: 'fighter', level: 1, trained_skills: %w[athletics intimidate] }],
+                       category: 'rise_of_the_slavelords'),
+        template_demo(id: 353, name: 'Orc Interpreter', race: 'half_orc', tier: 1,
+                       attrs: { str: 12, dex: 12, con: 12, int: 12, wis: 10, cha: 10 },
+                       classes: [{ key: 'rogue', level: 1, trained_skills: %w[linguistics persuasion] }],
+                       category: 'rise_of_the_slavelords'),
+        template_demo(id: 354, name: 'Stockade Guard', race: 'human', tier: 1,
+                       attrs: { str: 14, dex: 12, con: 14, int: 10, wis: 12, cha: 10 },
+                       classes: [{ key: 'fighter', level: 2, trained_skills: %w[perception intimidate] }],
+                       category: 'rise_of_the_slavelords')
+      ]
     end
 
-    # ---- 7. Orc Patrol Template ----------------------------------------
+    def fey_favors_demos
+      [
+        template_demo(id: 400, name: 'Sprite', race: 'sprite', tier: 1,
+                       attrs: { str: 3, dex: 18, con: 10, int: 14, wis: 13, cha: 11 },
+                       classes: [{ key: 'rogue', level: 1, trained_skills: %w[stealth perception] }],
+                       category: 'fey_favors'),
+        template_demo(id: 401, name: 'Pixie', race: 'pixie', tier: 1,
+                       attrs: { str: 2, dex: 20, con: 8, int: 10, wis: 14, cha: 15 },
+                       classes: [{ key: 'bard', level: 1, trained_skills: %w[perform_dance deception] }],
+                       category: 'fey_favors'),
+        template_demo(id: 402, name: 'Dryad', race: 'dryad', tier: 1,
+                       attrs: { str: 10, dex: 12, con: 11, int: 14, wis: 15, cha: 18 },
+                       classes: [{ key: 'druid', level: 2, trained_skills: %w[nature persuasion] }],
+                       category: 'fey_favors'),
+        template_demo(id: 403, name: 'Brownie', race: 'brownie', tier: 1,
+                       attrs: { str: 6, dex: 14, con: 10, int: 12, wis: 13, cha: 11 },
+                       classes: [{ key: 'rogue', level: 1, trained_skills: %w[stealth sleight_of_hand] }],
+                       category: 'fey_favors'),
+        template_demo(id: 404, name: "Will-o'-Wisp Spark", race: 'fey', tier: 1,
+                       attrs: { str: 1, dex: 17, con: 10, int: 13, wis: 14, cha: 11 },
+                       classes: [{ key: 'commoner', level: 2, trained_skills: [] }],
+                       category: 'fey_favors')
+      ]
+    end
 
-    def orc_patrol_template
-      attrs = { str: 16, dex: 12, con: 14, int: 8, wis: 10, cha: 8 }
-      classes = [{ key: 'fighter', level: 1, trained_skills: %w[athletics intimidate] }]
+    # Build a simple_demo for one themed template entry.
+    def template_demo(id:, name:, race:, tier:, attrs:, classes:, category:)
+      summary_parts = []
+      summary_parts << race.split('_').map(&:capitalize).join(' ')
+      classes.each { |c| summary_parts << "#{c[:key].split('_').map(&:capitalize).join(' ')} #{c[:level]}" }
       simple_demo(
-        id: 101, label: 'Orc Patrol — template (enemy_template)',
-        roster_group: :templates,
-        header: { name: 'Orc Patrol (template)', player: nil, summary: 'Human Fighter 1 (template)', tier: 1, bab: 1 },
+        id: id, label: "#{name} — template (#{category})",
+        roster_group: :template,
+        category: category,
+        header: { name: name, player: nil, summary: summary_parts.join(' '),
+                  tier: tier, bab: 0 },
         attributes: attrs, classes: classes,
         speed: 30,
-        items: { equipped: [{ name: 'Greataxe' }], consumable: [], ammunition: [], other: [] }
+        items: { equipped: [], consumable: [], ammunition: [], other: [] }
       )
     end
 
@@ -421,7 +513,7 @@ module Status
     # sensible empty defaults for all sections so the partial doesn't
     # have to guard each one.
     def simple_demo(id:, label:, roster_group:, header:, attributes:, classes:,
-                    speed:, items:, actions: nil)
+                    speed:, items:, actions: nil, category: nil)
       half = ->(a) { a / 2 }
       attrs_table = %i[Strength Dexterity Constitution Intelligence Wisdom Charisma]
                     .zip(%i[str dex con int wis cha]).map do |label_name, k|
@@ -431,6 +523,7 @@ module Status
       base_data(
         id: id, label: label,
         roster_group: roster_group,
+        category: category,
         header: header,
         attributes: attributes,
         classes: classes,

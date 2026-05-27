@@ -1,8 +1,6 @@
 # Creatures Roster Sidebar Stub
 
-A DM-only sidebar listing every Creature record in the dataset plus every Encounter Table, grouped, with per-row affordances for adding the Creature to the active Combat or removing it. Embedded by the Character Sheets page on the left of the main panel; the row name is a link to that Creature's character sheet, which replaces the navigation arrows the page used to carry.
-
-This stub is similar in shape to `creatures_enemy_sidebar_stub.md` but has a wider scope: it also lists Players, NPCs, and Encounter Tables, and its primary role is navigation between character sheets rather than combat operations.
+A DM-only sidebar listing the campaign roster — Players, NPCs, and one section per themed Creature Template file under `docs/common/creatures/`. Each themed section mixes that file's creature templates with the encounter tables filed under the same `category` key (`encounter_tables.yaml`'s `category:` field), so the DM sees both together. Embedded by the Character Sheets page on the left of the main panel; each row's name is a link to the matching sheet, which replaces the navigation arrows the page used to carry.
 
 See `ui_conventions.md` for shared rules.
 
@@ -10,31 +8,40 @@ See `ui_conventions.md` for shared rules.
 
 A vertical sidebar, top to bottom:
 
-1. **Players** — `<details>`-style collapsible group titled `Players`. One row per Creature whose `tags` include `player_character`. Starting state is **collapsed**; open/closed state persists in `localStorage` keyed by group label (per `ui_conventions.md`). Player rows render a **single Active / Absent toggle** in place of the `+ / −` buttons used by the other groups — a Player can't appear in Combat more than once, so the binary state (in the party, or sitting out) is what the DM tracks. Default is **Active**.
+1. **Players** — `<details>`-style collapsible group titled `Players`. One row per Creature whose `tags` include `player_character`. Player rows render a **single Active / Absent toggle** in place of the `+ / −` buttons — a Player can't appear in Combat more than once, so the binary state (in the party, or sitting out) is what the DM tracks. Default is **Active**.
 
-2. **NPCs** — `<details>`-style group titled `NPCs`. One row per Creature whose `group` is `npc` and whose `tags` do not include `enemy_template`. Starting state is **collapsed**.
+2. **NPCs** — `<details>`-style group titled `NPCs`. One row per Creature whose `group` is `npc`. NPC rows render the same Active / Absent toggle as Player rows, but default to **Inactive** — an NPC is in the world but not in the active scene until the DM flips them.
 
-3. **Enemies** — `<details>`-style group titled `Enemies`. One row per Creature whose `group` is `enemy` and whose `tags` do not include `enemy_template` (i.e. spawned enemies, not templates). Starting state is **open**.
+3. **Themed categories** — one `<details>`-style group per entry in the project's themed Creature Template files (`docs/common/creatures/creatures_data_<theme>.example.yaml`). The display order is the order the categories appear in the page configuration. Each section's body mixes:
+   - **Creature template rows** — every template whose `tags` include `category:<theme_key>` (and `enemy_template`).
+   - **Encounter table rows** — every entry in `encounter_tables.yaml` whose `category:` field equals the same `<theme_key>`.
 
-4. **Creature Templates** — `<details>`-style group titled `Creature Templates`. One row per Creature whose `tags` include `enemy_template`. Starting state is **open**. The `+` button on a template row first spawns a fresh Creature from the template (via Creatures' *Spawn Creature From Template*) and then adds the result to Combat.
+   The two row kinds are intermixed; the project's display ordering puts templates first, then encounter tables. Encounter Tables therefore **do not have a dedicated group** — they live with the templates from their theme.
 
-5. **Encounter Tables** — `<details>`-style group titled `Encounter Tables`. One row per entry in `encounter_tables.yaml`. Each row shows the table's display name (clickable — navigates to the Encounter Template Stub `creatures_encounter_template_stub.md` rendered in the page's main panel) and a `Roll` button. Clicking `Roll` emits a `roll_encounter` event the parent resolves by fetching a fresh roll and rendering an Encounter Roll Result panel (`creatures_encounter_roll_result_stub.md`) **above** the main panel. The roll-result panel commits the result to Combat on render; further clicks on its own internal `Roll` button replace the result (each click = a re-roll that supersedes the previous). Starting state is **open**.
+All groups start **collapsed**. The open/closed state of each group persists in `localStorage` keyed by the group's `data-group-key` (e.g. `cs-roster-group:players`, `cs-roster-group:general_red_tier`). A page refresh restores whatever the DM had open last.
 
 ## Per-row controls
 
-### Players (section 1)
+### Players + NPCs
 
-- **Active / Absent toggle** — a single button that flips between `Active` (default) and `Absent`. Visually distinct in the two states (e.g., outlined when Active, muted with strikethrough on the row text when Absent). The button is rendered but the state is purely client-side in this stub; persistence wiring lands later.
-- **Creature name link** — clicking navigates to `/character-sheets?i=<sheet_index>` for that Player.
-
-### NPCs / Enemies / Creature Templates (sections 2-4)
-
-Each row has, in order:
-
-- **`+` button** — emits an `add_combatant` event carrying the Creature ID. For a Creature Template the parent first calls Creatures' *Spawn Creature From Template* to produce a fresh Creature record, then *Add Combatant* on the new ID. For a non-template Creature (NPC, or already-spawned Enemy) the parent calls *Add Combatant* directly. Either path is followed by Combat's *Reroll Initiative* with `missing_only = true`. **The button is rendered but does not yet mutate state in this stub — Combat UI wiring is future work.**
 - **Creature name link** — clicking navigates to `/character-sheets?i=<sheet_index>` for that Creature.
-- **`−` button** — emits a `remove_combatant` event for the most recently added Combatant with this Creature ID. Hidden when the copy count is zero. Same "rendered but inert" note applies.
-- **Copy count badge** — when the Creature has at least one Combatant in the active Combat referencing it, a small numeric badge renders beside the row. Suppressed when zero. Sourced from Combat State's `combatants` list (filtered by `creature_id`).
+- **Active / Absent toggle** (right side of the row) — single button that flips between `Active` and `Absent`. Visually distinct in the two states (e.g., outlined when Active, muted with strikethrough on the row text when Absent). Players default to Active; NPCs default to Absent. The button is rendered but the state is purely client-side in this stub; persistence wiring lands later. The toggle is sized identically to the Encounter row's `Roll` button so the two line up vertically across the sidebar.
+
+### Creature Template rows (within themed categories)
+
+Each template row has, in order:
+
+- **`+` button** — emits an `add_combatant` event carrying the Creature ID. For a Creature Template the parent first calls Creatures' *Spawn Creature From Template* to produce a fresh Creature record, then *Add Combatant* on the new ID. Followed by Combat's *Reroll Initiative* with `missing_only = true`. **Rendered but inert** until the Combat UI lands.
+- **Creature name link** — clicking navigates to `/character-sheets?i=<sheet_index>` for the template.
+- **`−` button** — emits a `remove_combatant` event for the most recently added Combatant with this Creature ID. Hidden when copy count is zero. Inert in this stub.
+- **Copy count badge** — when at least one Combatant in the active Combat references this Creature ID. Suppressed when zero.
+
+### Encounter Table rows (within themed categories)
+
+Each encounter row has:
+
+- **Table name link** — clicking navigates to `/character-sheets?encounter_template=<table_id>`, which renders the Encounter Template Stub (`creatures_encounter_template_stub.md`) in the main panel.
+- **`Roll` button** — emits a `roll_encounter` event. The parent resolves it by fetching a fresh roll and rendering an Encounter Roll Result panel (`creatures_encounter_roll_result_stub.md`) above the main panel. The roll-result panel commits the result to Combat on render; further clicks on its own internal `Roll` button replace the result (each click = a re-roll that supersedes the previous). Same size as the Active / Absent toggle on Player rows so the controls all line up at the right edge.
 
 ## DM-only
 
@@ -43,21 +50,27 @@ The entire sidebar is DM-only. Player viewers do not see the sidebar at all; the
 ## Parameters
 
 Required:
-
-- A `roster` structure with keyed groups: `players`, `npcs`, `enemies`, `templates`, `encounter_tables`. Each value is a list of rows. Creature rows carry `{ id, name, copy_count, sheet_index }`; encounter rows carry `{ table_id, name }`. The parent supplies this — Creatures' *List Creatures* with the appropriate filters produces the four creature lists; Encounter Tables come from `Creatures::Encounter.tables`.
+- A `roster` structure:
+  - `players` — list of `{ id, name, sheet_index, active }` (`active` defaults to true).
+  - `npcs` — list of `{ id, name, sheet_index, active }` (`active` defaults to false).
+  - `categories` — list of `{ key, name, templates, encounter_tables }`. Each `templates` entry is `{ id, name, sheet_index, copy_count }`; each `encounter_tables` entry is `{ table_id, name }`.
 - The viewer role — must be `dm`. The stub renders nothing for player viewers.
 
 Optional:
-
 - Current `sheet_index` — when the sidebar is rendered next to a specific Creature's sheet, the matching row is highlighted.
 
 ## Composition
 
-Embedded by the Character Sheets page (`/character-sheets`) to the left of the main sheet panel. The host page renders the sidebar plus the chosen creature's `creatures_minimal_stub` or `creatures_full_stub`. The sidebar's name links point at `/character-sheets?i=<index>&detail=<minimal|full>`; the parent preserves the current `detail` mode across navigations.
+Embedded by the Character Sheets page (`/character-sheets`) to the left of the main sheet panel. The host page renders the sidebar plus the chosen creature's `creatures_minimal_stub` or `creatures_full_stub`. The sidebar's name links point at `/character-sheets?i=<sheet_index>&detail=<minimal|full>`; the parent preserves the current `detail` mode across navigations.
+
+## LocalStorage persistence
+
+The sidebar stores one boolean per group under a key of the form `cs-roster-group:<data-group-key>`. The handler is `toggle` on each `<details>` element: when an open event fires, the value `"open"` is stored; when a close event fires, the key is removed. On page load the sidebar's bootstrap script reads each known group key and sets the matching `<details>` `open` attribute accordingly. Missing keys leave the default (collapsed) intact.
 
 ## What this stub does not do
 
-- The `+` and `−` buttons do not yet mutate Combat State. They render as visible affordances but are inert. The full wiring will land alongside the Combat domain UI; per `creatures_enemy_sidebar_stub.md` the parent resolves these events by calling Combat's *Add Combatant* / *Remove Combatant* and Combat's *Reroll Initiative*.
-- Encounter Table rows render with a `Roll` button and a name link, but neither is functional yet. The Encounter Table detail view is a separate page that has not been designed.
+- The `+` and `−` buttons do not yet mutate Combat State.
+- The Active / Absent toggle does not persist beyond the current page load — every refresh resets the toggle to its default for that row kind.
+- Encounter Table rows render with a `Roll` button and a name link; both render correctly but the roll result panel's "add to Combat" / "append to enemy data file" side effects are not yet wired.
 - The sidebar does not delete Creature records. The post-combat cleanup flow in `equipment_post_combat_creatures_stub.md` is the conventional caller for that.
-- The sidebar does not edit Creature records. Editing is the responsibility of dedicated Creatures-domain UIs.
+- The sidebar does not edit Creature records.
