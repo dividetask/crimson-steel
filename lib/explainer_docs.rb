@@ -18,6 +18,10 @@ module ExplainerDocs
     'checks' => {
       title: 'Check Resolution',
       path:  File.expand_path('../docs/common/check_resolution/check_resolution_explainer.md', __dir__)
+    },
+    'conditions' => {
+      title: 'Conditions',
+      path:  File.expand_path('../docs/common/conditions/conditions_explainer.md', __dir__)
     }
   }.freeze
 
