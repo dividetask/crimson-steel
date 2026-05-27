@@ -37,6 +37,7 @@ module GlossaryDocs
   def render_source(src)
     return '' unless File.exist?(src[:path])
     sections = parse(File.read(src[:path], encoding: 'UTF-8'))
+    return '' if sections.empty?
 
     out = +%(<section class="glossary-source" id="glossary-#{src[:key]}">)
     out << %(<h2 class="glossary-source-title">#{escape(src[:title])}</h2>)
