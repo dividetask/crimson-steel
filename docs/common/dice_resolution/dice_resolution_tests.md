@@ -40,26 +40,26 @@ Tests that depend on randomness (the actual values dice land on) state the *roll
 - Starting Value = 0.
 - DoIS = (+1) + (+1) + 0 + (-1) + 0 + (+1) = +2.
 - Critical Count = 0.
-- Outcome = `success` (DoIS ≥ Default Success Threshold of 2).
+- Roll Outcome = `success` (DoIS ≥ Default Success Threshold of 2).
 
 **Bonus and Penalty stacking.** Given a Roll with `bonus_penalty_list = [('A', +3), ('A', +1), ('A', -2), ('B', +2)]`:
 - Per-Type stacking for Type A: highest positive is +3, lowest negative is -2. Both contribute. Type B contributes +2.
-- Net Modifier = +3 − 2 + 2 = +3.
+- TN Net Modifier = +3 − 2 + 2 = +3.
 - TN = 6 − 3 = 3 (clamps at Minimum, no overflow).
 - Starting Value contribution from this list = 0 (TN clamped exactly at the boundary).
 
 **Bonus overflow into Starting Successes.** Given a Roll with `bonus_penalty_list = [('A', +5)]` and `starting_contribution = 1`:
-- Net Modifier = +5.
+- TN Net Modifier = +5.
 - Candidate TN = 6 − 5 = 1, below Minimum of 3. Clamped to 3, with 2 points of overflow.
 - Starting Value = 1 + 2 = 3.
 
 **Penalty overflow into Starting Failures.** Given a Roll with `bonus_penalty_list = [('A', -5)]` and `starting_contribution = 0`:
-- Net Modifier = −5.
+- TN Net Modifier = −5.
 - Candidate TN = 6 − (−5) = 11, above Maximum of 9. Clamped to 9, with 2 points of overflow.
 - Starting Value = 0 − 2 = −2.
 
 **Bonus and Penalty cancel out.** Given a Roll with `bonus_penalty_list = [('A', +20), ('B', -20)]`:
-- Net Modifier = +20 − 20 = 0.
+- TN Net Modifier = +20 − 20 = 0.
 - TN = 6 (unchanged from Base).
 - Starting Value contribution = 0. No overflow despite the large individual values.
 
@@ -113,27 +113,9 @@ Tests that depend on randomness (the actual values dice land on) state the *roll
 
 ---
 
-## Preroll
-
-**Positive Preroll appends Critical dice.** Roll with `dice_count = 3`, rolled dice `[8, 4, 2]`, `preroll = +2`, TN = 6, `failure_modifier = -1`, `critical_modifier = 2`. After Preroll: `final_dice = [8, 4, 2, 10, 10]` (rolled dice followed by appended Criticals). DoIS contributions: 8 (Success: +1), 4 (neutral: 0), 2 (neutral: 0), 10 (Critical: +2), 10 (Critical: +2). DoIS = 5. `critical_count = 2`.
-
-**Negative Preroll appends Failure dice.** Roll with `dice_count = 2`, rolled dice `[7, 5]`, `preroll = -3`, TN = 6, `failure_modifier = -1`. `final_dice = [7, 5, 1, 1, 1]`. DoIS contributions: 7 (+1), 5 (0), and three 1s (-1 each). DoIS = -2.
-
-**Preroll = 0 is a no-op.** Identical to omitting the field — `final_dice` contains only the rolled dice.
-
-**Preroll dice are immune to Rerolls.** Roll with `dice_count = 1`, rolled die `[3]`, TN = 6, `positive_reroll = (max, true)` (would reroll non-Successes), `preroll = +1`. The reroll slot eligibility runs only on the rolled dice; the `[3]` is rerolled. The prerolled `10` is appended afterward, untouched. Resulting `final_dice` is the post-reroll rolled value plus the 10.
-
-**Preroll dice are immune to Nudges.** Roll with `dice_count = 1`, rolled die `[5]`, `value_adjustment = (-2, false)` (would lower a die), `preroll = +1`. The Nudge picks the highest non-targeted-against die — only the rolled `5` is in scope. After Nudge: rolled die = `3`. Then the prerolled `10` is appended. `final_dice = [3, 10]`.
-
-**`dice_count = 0` with non-zero Preroll.** Roll with `dice_count = 0`, `preroll = +4`, TN = 6, `critical_modifier = 2`. No random roll. `final_dice = [10, 10, 10, 10]`. DoIS = `4 × 2 = 8` (plus Starting Value, if any). `critical_count = 4`. Outcome = `success` for any sane Default Success Threshold.
-
-**Preroll appears in Dice Result String.** Without-TN Roll with `dice_count = 2`, rolled dice `[9, 4]`, `preroll = +1`. After Preroll: `final_dice = [9, 4, 10]`, sorted descending for the Dice Result String → encoding starts with the character for 10 (e.g. `'X'`) followed by `'9'`, `'4'`.
-
----
-
 ## Edge cases
 
-**Empty `bonus_penalty_list`.** A Roll with no entries produces TN = Base Target Number and Starting Value = `starting_contribution`. No per-Type stacking, no Net Modifier, no overflow.
+**Empty `bonus_penalty_list`.** A Roll with no entries produces TN = Base Target Number and Starting Value = `starting_contribution`. No per-Type stacking, no TN Net Modifier, no overflow.
 
 **Reroll count exceeds eligible dice.** Given `dice_count = 6`, all dice are Successes, and `positive_reroll = (5, false)`: no dice are rerolled. The positive slot only targets non-Successes; with none present, the slot does nothing regardless of count.
 

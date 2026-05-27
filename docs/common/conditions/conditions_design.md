@@ -193,7 +193,7 @@ Inputs: Affliction name, a Save Input, optional `current_round` (integer).
 
 Behavior: Run the *Affliction Resolution* pipeline — see Operations. When `current_round` is supplied and the Affliction survives the resolution, reschedule its `next_resolution_round` to `current_round + Frequency Rounds[save_frequency]`. When `current_round` is omitted, leave `next_resolution_round` untouched.
 
-Returns: a struct with the resolved save's Outcome, the realized Net Magnitude, the applied effect's payload (if any), the new Potency (or zero / removed if the entry was deleted), and the rescheduled `next_resolution_round` (when applicable).
+Returns: a struct with the resolved save's Roll Outcome, the realized Net Magnitude, the applied effect's payload (if any), the new Potency (or zero / removed if the entry was deleted), and the rescheduled `next_resolution_round` (when applicable).
 
 ### List Pending Afflictions (`LIST_PENDING_AFFLICTIONS`)
 
