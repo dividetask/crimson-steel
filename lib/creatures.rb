@@ -1,51 +1,125 @@
 require 'json'
 
-# Thin Creatures domain stub. Chronicle's Creature Reference Entries
-# look up name and tier via this module. A full Creatures domain
-# isn't part of this project yet — until then, creatures are read
-# from a small example file under docs/common/creatures/ and merged
-# with the player Creatures already in lib/dummy_data.rb.
-module Creatures
-  DATA_PATH    = File.expand_path('../data/creatures_data.json', __dir__)
-  EXAMPLE_PATH = File.expand_path('../docs/common/creatures/creatures_data.example.json', __dir__)
+require_relative 'creatures/config'
+require_relative 'creatures/advancement'
+require_relative 'creatures/races'
+require_relative 'creatures/deities'
+require_relative 'creatures/formula'
+require_relative 'creatures/record'
+require_relative 'creatures/dataset'
+require_relative 'creatures/accessor'
 
+# Top-level Creatures module surface. Exposes the public entry
+# points listed in creatures_design.md against the multi-file
+# dataset loaded by Creatures::Dataset.
+#
+# Not yet implemented: Spawn Creature From Template, Delete
+# Creature, Roll Encounter, and the Encounter Tables load/save
+# entry points. These will land in a follow-up.
+module Creatures
   module_function
 
-  def all
-    @all ||= load_all
+  # ---- look-up entry points -------------------------------------------
+
+  def lookup(id)
+    rec = Dataset.get(id)
+    rec && Accessor.new(rec)
   end
 
-  def reset!
-    @all = nil
+  def list(group: nil, tags: nil)
+    Dataset.ids_in_load_order.filter_map do |id|
+      rec = Dataset.get(id)
+      next unless rec
+      next if group && rec[:group] != group.to_s
+      next if tags && !Array(tags).all? { |t| rec[:tags].include?(t.to_s) }
+      [rec[:id], rec[:name]]
+    end
   end
 
+  def find_by_name(name)
+    Dataset.ids_in_load_order.each do |id|
+      rec = Dataset.get(id)
+      return Accessor.new(rec) if rec && rec[:name] == name
+    end
+    nil
+  end
+
+  # ---- chronicle / status compat shims --------------------------------
+
+  # Old shape: { id:, name:, tier:, player_controlled: bool }. The
+  # Chronicle Creature Reference Entry resolver and the
+  # player-Creatures dropdowns read this directly. Lookup goes
+  # through the live Dataset / Accessor now.
   def get(id)
-    return nil unless id
-    all.find { |c| c[:id] == Integer(id) }
-  end
-
-  def name(id, fallback: nil)
-    get(id)&.dig(:name) || fallback || "Creature ##{id}"
-  end
-
-  def tier(id, fallback: nil)
-    get(id)&.dig(:tier) || fallback
+    a = lookup(id)
+    return nil unless a
+    { id: a.id, name: a.name, tier: a.tier,
+      player_controlled: a.group == 'pc' || a.tags.include?('player_character') }
   end
 
   def player_controlled
-    all.select { |c| c[:player_controlled] }
+    list(tags: ['player_character']).map { |(id, name)| { id: id, name: name } }
   end
 
-  def load_all
-    path = File.exist?(DATA_PATH) ? DATA_PATH : EXAMPLE_PATH
-    raw = JSON.parse(File.read(path))
-    (raw['creatures'] || []).map do |c|
-      {
-        id:                Integer(c['id']),
-        name:              c['name'].to_s,
-        tier:              c['tier'].nil? ? nil : Integer(c['tier']),
-        player_controlled: c['player_controlled'] ? true : false
-      }
+  # ---- update entry points --------------------------------------------
+
+  def set_tier_override(id, tier_value)
+    rec = Dataset.get(id) or raise ArgumentError, "no Creature with id #{id}"
+    rec[:tier] = tier_value.nil? ? nil : Integer(tier_value)
+    nil
+  end
+
+  def set_tier_attribute_advancement(id, list)
+    rec = Dataset.get(id) or raise ArgumentError, "no Creature with id #{id}"
+    list.each do |a|
+      unless Config.attribute_keys.include?(a.to_sym)
+        raise ArgumentError, "unknown attribute key #{a.inspect}"
+      end
     end
+    rec[:tier_attribute_advancement] = list.map(&:to_sym)
+    nil
+  end
+
+  def set_class_level(id, class_key, level)
+    rec = Dataset.get(id) or raise ArgumentError, "no Creature with id #{id}"
+    class_key = class_key.to_s
+    unless Advancement.classes.key?(class_key)
+      raise ArgumentError, "unknown class #{class_key.inspect}"
+    end
+    rec[:classes][class_key] ||= { level: 0, skills: [], choices: {} }
+    rec[:classes][class_key][:level] = Integer(level)
+    Record.send(:validate_archetype_exclusivity!, rec[:classes], rec[:id], nil)
+    nil
+  end
+
+  def set_trained_skills(id, class_key, skills)
+    rec = Dataset.get(id) or raise ArgumentError, "no Creature with id #{id}"
+    key = class_key.to_s
+    raise ArgumentError, "Creature does not have class #{key.inspect}" unless rec[:classes].key?(key)
+    skills = skills.map(&:to_s)
+    skills.each do |s|
+      raise ArgumentError, "bare Set Skill key #{s.inspect} not allowed" if s.end_with?('_')
+    end
+    rec[:classes][key][:skills] = skills
+    nil
+  end
+
+  def set_class_choices(id, class_key, choices)
+    rec = Dataset.get(id) or raise ArgumentError, "no Creature with id #{id}"
+    key = class_key.to_s
+    raise ArgumentError, "Creature does not have class #{key.inspect}" unless rec[:classes].key?(key)
+    raise ArgumentError, '`choices` must be a Hash' unless choices.is_a?(Hash)
+    rec[:classes][key][:choices] = choices.transform_keys(&:to_s)
+    nil
+  end
+
+  # ---- meta -----------------------------------------------------------
+
+  def reset!
+    Dataset.reset!
+    Advancement.reset!
+    Races.reset!
+    Deities.reset!
+    Config.reset!
   end
 end

@@ -53,4 +53,6 @@ module Proficiencies
   end
 end
 
+require_relative 'proficiencies/config'
 require_relative 'proficiencies/ranks'
+require_relative 'proficiencies/compute'
