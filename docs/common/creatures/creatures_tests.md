@@ -13,7 +13,7 @@ Unless a test specifies otherwise, all tests use the values shipped in `creature
 - Default Save Rate: `opposed`. Default Skill Rate: `unaligned`.
 - HP Formula / Mana Base Formula: as shipped
 
-Test scenarios refer to named hypothetical creatures (Korth the dwarven cleric, Brenna the human barbarian, Vex the elven arcane trickster, Cottonballs the satyr bard, Ghoul, Brown Bear) by name and supply the data each scenario needs inline. These names do not have to match the records shipped in the example data files (`creatures_data_pcs.example.yaml`, `creatures_data_enemies.example.yaml`, `creatures_data_npcs.example.yaml`) — they are fixtures local to the test cases, chosen for narrative continuity within the suite.
+Test scenarios refer to named hypothetical creatures (Korth the dwarven cleric, Brenna the human barbarian, Vex the elven arcane trickster, Birch the satyr bard, Ghoul, Brown Bear) by name and supply the data each scenario needs inline. These names do not have to match the records shipped in the example data files (`creatures_data_pcs.example.yaml`, `creatures_data_enemies.example.yaml`, `creatures_data_npcs.example.yaml`) — they are fixtures local to the test cases, chosen for narrative continuity within the suite.
 
 When a scenario refers to one of these named fixtures, the relevant attributes, classes, levels, and tags are described in the scenario itself. The four hypothetical PCs are tagged `player_character` and at Total Class Level 4 (Tier 2). The Ghoul is tagged `hero` at Total Level 2 (Tier 1). The Brown Bear is tagged `animal` at Total Level 6 (Tier 1 — `breakpoints[1] = 4` is the highest entry ≤ 6).
 
@@ -31,7 +31,7 @@ When a scenario refers to one of these named fixtures, the relevant attributes, 
 
 ## List Creatures
 
-**No filter returns every Creature in load order.** Returns six pairs: `(1, "Korth")`, `(2, "Brenna")`, `(3, "Vex")`, `(4, "Cottonballs")`, `(100, "Ghoul")`, `(101, "Brown Bear")`.
+**No filter returns every Creature in load order.** Returns six pairs: `(1, "Korth")`, `(2, "Brenna")`, `(3, "Vex")`, `(4, "Birch")`, `(100, "Ghoul")`, `(101, "Brown Bear")`.
 
 **Group filter narrows to matching Creatures.** With `group = "pc"`: returns the four PCs. `group = "enemy"`: returns Ghoul and Brown Bear.
 
@@ -99,7 +99,7 @@ Expected Effective Attributes (Korth is `race: hill_dwarf`, whose chain is `huma
 - `wis = 15 + 0 + 0 + 2 + 0 = 17`
 - `cha = 15 + 0 + 0 + 2 + 0 = 17`
 
-**A single-link Race chain resolves with just that entry's adjustment.** Cottonballs (race `satyr`, chain `humanoid → satyr`, Bard 4, Tier 2, `tier_attribute_advancement = [dex, cha]`):
+**A single-link Race chain resolves with just that entry's adjustment.** Birch (race `satyr`, chain `humanoid → satyr`, Bard 4, Tier 2, `tier_attribute_advancement = [dex, cha]`):
 - `dex = 18 + 2 (satyr) + 2 + 2 (chosen) = 24`
 - `cha = 18 + 2 (satyr) + 2 + 2 (chosen) = 24`
 
@@ -121,7 +121,7 @@ Expected Effective Attributes (Korth is `race: hill_dwarf`, whose chain is `huma
 
 **Race-only Speed when no Granted Ability targets `speed`.** Brenna (race `human`): human's `speed: 30` is the only contributor → Speed = 30. (The Barbarian's Fast Movement Ability supplies the +10 in the consuming project once Abilities ships it as a `modifiers:` entry; until then the baseline is 30.)
 
-**Direct-leaf Race Speed.** Cottonballs (race `satyr`, chain `humanoid → satyr` with `satyr.speed = 35`): Speed = 35.
+**Direct-leaf Race Speed.** Birch (race `satyr`, chain `humanoid → satyr` with `satyr.speed = 35`): Speed = 35.
 
 **Speed-targeted Aggregated Modifier folds in last.** Hypothetical Creature with a Granted Ability whose `modifiers:` declares `{ target: speed, type: Enhancement, add: 10 }`: Speed = base + 10. With a second Enhancement-typed entry of `+5`, only the larger Enhancement Bonus survives per-type stacking → still +10, not +15.
 
@@ -212,11 +212,11 @@ Returned list (in encounter order, deduplicated): `darkvision`, `dwarven_resilie
 
 **An untrained Skill returns zero ranks.** Korth does not train `stealth`. *Get ranks* returns 0, regardless of how cleric categorizes the Skill.
 
-**The inverse `unaligned_proficiencies` form flips the default.** Cottonballs (Bard 4) trains `perform_sing`. Bard declares `unaligned_proficiencies: [restricted_magic, survival]` (inverse form). `perform_sing` (and its `perform_` prefix) is not in that list, so under the inverse default it advances at the `aligned` rate. Ranks = `floor(4 × 5 / 3) = 6`.
+**The inverse `unaligned_proficiencies` form flips the default.** Birch (Bard 4) trains `perform_sing`. Bard declares `unaligned_proficiencies: [restricted_magic, survival]` (inverse form). `perform_sing` (and its `perform_` prefix) is not in that list, so under the inverse default it advances at the `aligned` rate. Ranks = `floor(4 × 5 / 3) = 6`.
 
 **A Skill in `unaligned_proficiencies` advances at the `unaligned` rate.** A hypothetical Bard who trains `survival`: Bard's `unaligned_proficiencies` includes `survival`, so the Skill advances at the `unaligned` rate. Ranks at Class Level 4 = `floor(4 × 1) = 4`.
 
-**Set Instances inherit categorization from their Set Skill prefix.** Cottonballs's `perform_sing` resolves through the `perform_` prefix when checking the Bard's `unaligned_proficiencies` list — neither `perform_sing` nor `perform_` appears there, so the default-aligned rate of the inverse form applies. A hypothetical Cleric who trains `craft_blacksmith` resolves through `craft_` (in cleric's `aligned_proficiencies`) → `aligned` rate.
+**Set Instances inherit categorization from their Set Skill prefix.** Birch's `perform_sing` resolves through the `perform_` prefix when checking the Bard's `unaligned_proficiencies` list — neither `perform_sing` nor `perform_` appears there, so the default-aligned rate of the inverse form applies. A hypothetical Cleric who trains `craft_blacksmith` resolves through `craft_` (in cleric's `aligned_proficiencies`) → `aligned` rate.
 
 **Archetype extension to `aligned_proficiencies` lifts ranks.** Vex (Arcane Trickster 4) trains `arcana`. The merged Arcane Trickster effective aligned-rate skills include `arcana` (added by the Archetype). Rate = `aligned`. Ranks = `floor(4 × 5 / 3) = 6`.
 
