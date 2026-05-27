@@ -50,11 +50,14 @@ A player who attempts to navigate to a DM-only URL is treated as if the page did
 
 ## Compendium page layout
 
-The Compendium page has its own internal left-hand navigation that switches the right-hand content pane. The left nav sits flush against the left edge of the page content (below the global top menu bar) and currently lists a single entry:
+The Compendium page has its own internal left-hand navigation that switches the right-hand content pane. The left nav sits flush against the left edge of the page content (below the global top menu bar) and currently lists:
 
 1. **Glossary** — the default landing pane for `/compendium`. The right pane renders the union of every glossary in `docs/common/` (`common_glossary.md`, `dice_resolution/dice_resolution_glossary.md`, `check_resolution/check_resolution_glossary.md`, `conditions/conditions_glossary.md`). Each source becomes its own group with the common glossary listed first; within a group, the source's `##` headings become subsections and each `**Term**: definition` paragraph becomes a definition-list entry.
+2. **Dice Resolution** — a player-facing chapter explaining how a single Roll works (Dice Count, TN, Bonuses/Penalties, Reroll/Nudge, DoIS, Roll Outcome). Sourced from `docs/common/dice_resolution/dice_resolution_explainer.md` and rendered through kramdown. Embedded Mermaid (```` ```mermaid ```` fenced blocks) and inline `.die` spans render the resolution-pipeline diagram and dice examples respectively.
 
-More sub-views will be added later; the layout follows the same convention as the Status page (highlighted active entry, sub-views addressed by an implementation-chosen mechanism, global URL stays under `/compendium`).
+Additional chapters (Check Resolution, Conditions, etc.) follow the same explainer pattern: a `*_explainer.md` next to the existing design/test docs, registered in `lib/explainer_docs.rb`, automatically appearing in the Compendium left-nav.
+
+The layout follows the same convention as the Status page (highlighted active entry, sub-views addressed by an implementation-chosen mechanism, global URL stays under `/compendium`). The Mermaid client-side renderer is loaded only on pages that contain a Mermaid block.
 
 The Compendium is visible to both DMs and players.
 

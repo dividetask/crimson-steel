@@ -5,6 +5,8 @@ ruby '~> 3.3'
 gem 'sinatra'
 gem 'puma'
 gem 'rackup'
+gem 'kramdown'
+gem 'kramdown-parser-gfm'
 
 group :test do
   gem 'rspec'
