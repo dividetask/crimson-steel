@@ -78,8 +78,8 @@
     <table class="cs-combat-table">
       <thead>
         <tr>
-          <th>Name</th><th>Speed</th><th>Roll</th><th>Attk / Def Bonus</th>
-          <th>Dmg Bonus</th><th>Bleed</th><th>MT</th><th>Notes</th>
+          <th>Name</th><th class="cs-num">Speed</th><th class="cs-num">Roll</th><th class="cs-num">Attk / Def Bonus</th>
+          <th class="cs-num">Dmg Bonus</th><th class="cs-num">Bleed</th><th class="cs-num">MT</th><th>Notes</th>
         </tr>
       </thead>
       <tbody>
@@ -106,7 +106,7 @@
         <h3 class="cs-section-h">Attributes</h3>
         <table class="cs-attributes-table">
           <thead>
-            <tr><th></th><th>Score</th><th>½</th><th colspan="2">Check</th><th colspan="2">Saves</th></tr>
+            <tr><th></th><th class="cs-num">Score</th><th class="cs-num">½</th><th class="cs-num" colspan="2">Check</th><th class="cs-num" colspan="2">Saves</th></tr>
           </thead>
           <tbody>
             <% demo[:attributes_table].each do |r| %>
@@ -128,7 +128,7 @@
         <section class="cs-section cs-skills">
           <h3 class="cs-section-h">Skills</h3>
           <table class="cs-skills-table">
-            <thead><tr><th>Name</th><th>Ranks</th><th>Dice</th><th>Bonus</th></tr></thead>
+            <thead><tr><th>Name</th><th class="cs-num">Ranks</th><th class="cs-num">Dice</th><th class="cs-num">Bonus</th></tr></thead>
             <tbody>
               <% demo[:skills].each do |s| %>
                 <tr>
