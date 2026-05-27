@@ -14,6 +14,10 @@ module ExplainerDocs
     'dice' => {
       title: 'Dice Resolution',
       path:  File.expand_path('../docs/common/dice_resolution/dice_resolution_explainer.md', __dir__)
+    },
+    'checks' => {
+      title: 'Check Resolution',
+      path:  File.expand_path('../docs/common/check_resolution/check_resolution_explainer.md', __dir__)
     }
   }.freeze
 
