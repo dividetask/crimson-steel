@@ -2131,12 +2131,15 @@ body {
 }
 .cs-roster-btn:hover:not(:disabled) { background: #ecd5a8; }
 .cs-roster-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.cs-roster-roll {
-  width: auto;
+.cs-roster-roll,
+.cs-player-toggle {
+  width: 64px;
+  flex-shrink: 0;
   padding: 0 8px;
   font-size: 11px;
   font-variant: small-caps;
   letter-spacing: 0.5px;
+  text-align: center;
 }
 .cs-roster-name {
   flex: 1;
@@ -2171,15 +2174,9 @@ body {
 
 /* Roster Sidebar — Player rows. The toggle replaces the +/- buttons
    used by other groups (a Player can't appear in Combat more than
-   once). Active = outlined dark; Absent = muted with strikethrough
-   on the row name. */
-.cs-player-toggle {
-  width: auto;
-  padding: 0 8px;
-  font-size: 11px;
-  font-variant: small-caps;
-  letter-spacing: 0.5px;
-}
+   once). Shares dimensions with .cs-roster-roll so the two buttons
+   line up across the sidebar. Active = outlined dark; Absent =
+   muted with strikethrough on the row name. */
 .cs-player-toggle.cs-player-active {
   background: #f4e5c4;
   border-color: #6b4a30;

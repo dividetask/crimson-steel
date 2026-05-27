@@ -29,13 +29,13 @@
           %>
           <li class="cs-roster-row cs-roster-player<%= ' cs-roster-current' if current_index && row[:sheet_index] == current_index %><%= ' cs-player-absent' unless active %>"
               data-creature-id="<%= row[:id] %>">
+            <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= row[:name] %></a>
             <button type="button"
                     class="cs-roster-btn cs-player-toggle <%= active ? 'cs-player-active' : 'cs-player-absent' %>"
                     aria-pressed="<%= active %>"
                     title="<%= active ? 'Mark absent' : 'Mark active' %>">
               <%= active ? 'Active' : 'Absent' %>
             </button>
-            <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= row[:name] %></a>
           </li>
         <% end %>
       </ul>
