@@ -1,0 +1,59 @@
+require 'spec_helper'
+require 'creatures'
+
+RSpec.describe 'Creatures encounter operations', type: :model do
+  before(:each) { Creatures::Dataset.load! }
+
+  describe 'spawn_from_template' do
+    it 'returns a fresh id one past the dataset max' do
+      max_before = Creatures::Dataset.all.keys.max
+      new_id = Creatures.spawn_from_template(101)
+      expect(new_id).to eq(max_before + 1)
+    end
+
+    it 'applies name_override on the spawn only' do
+      original = Creatures.lookup(101).name
+      new_id = Creatures.spawn_from_template(101, name_override: 'Skullsplitter')
+      expect(Creatures.lookup(new_id).name).to eq('Skullsplitter')
+      expect(Creatures.lookup(101).name).to eq(original)
+    end
+
+    it 'applies loot_table override on the spawn only' do
+      new_id = Creatures.spawn_from_template(101, loot_table: 'captain_loot')
+      expect(Creatures.lookup(new_id).record[:loot_table]).to eq('captain_loot')
+    end
+
+    it 'rejects an unknown template id' do
+      expect { Creatures.spawn_from_template(9999) }.to raise_error(ArgumentError, /no template/)
+    end
+  end
+
+  describe 'delete' do
+    it 'removes the record idempotently' do
+      new_id = Creatures.spawn_from_template(101)
+      expect(Creatures.delete(new_id)).to be true
+      expect(Creatures.lookup(new_id)).to be_nil
+      expect(Creatures.delete(new_id)).to be false # second delete is a no-op
+    end
+  end
+
+  describe 'roll_encounter' do
+    it 'deterministic with a seed' do
+      a = Creatures.roll_encounter('slave_lords_caravan', seed: 42)
+      Creatures::Dataset.load!
+      b = Creatures.roll_encounter('slave_lords_caravan', seed: 42)
+      # Same number of spawns; ids reset to the same starting point.
+      expect(a.length).to eq(b.length)
+    end
+
+    it 'rejects unknown table id' do
+      expect { Creatures.roll_encounter('no_such_table') }.to raise_error(ArgumentError, /no Encounter Table/)
+    end
+
+    it 'each spawn is a fresh Creature record' do
+      ids = Creatures.roll_encounter('general_pirate_raid', seed: 7)
+      expect(ids).to all be_an(Integer)
+      ids.each { |id| expect(Creatures.lookup(id)).not_to be_nil }
+    end
+  end
+end

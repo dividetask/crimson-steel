@@ -45,6 +45,7 @@ module Creatures
     # additive adjustments; ability_progression appends per level.
     def merge_archetype(archetype, parent)
       merged = parent.dup
+      merged['parent_class'] = archetype['parent_class']
 
       %w[martial_advancement saves bonus_skills mana_per_level granted_spells].each do |f|
         merged[f] = archetype[f] if archetype.key?(f)
