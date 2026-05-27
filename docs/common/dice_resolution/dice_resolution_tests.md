@@ -77,7 +77,7 @@ Tests that depend on randomness (the actual values dice land on) state the *roll
 
 **Reroll changes report per-position rerolled values.** Given a Roll with `dice_count = 4`, `positive_reroll = (1, false)`, dice `[1, 4, 6, 7]`, and the rerolled die landing on `8`: `reroll_changes = [8, null, null, null]`. The position of the rerolled die is preserved; unchanged dice are null.
 
-**Nudge changes report only the affected position.** Given a Roll with `value_adjustment = (+1, false)` and dice `[5, 5, 5, 1]` at TN 6: the nudge targets index 0 (the first 5 promoted to a Success). `nudge_changes = [6, null, null, null]`. Other positions stay null.
+**Nudge changes report only the affected position.** Given a Roll with default `failure_modifier = -1`, `value_adjustment = (+1, false)`, and dice `[5, 5, 5, 1]` at TN 6: the nudge targets index 3 (the 1). The 1→2 shift moves contribution from -1 (Failure) to 0 (Neutral) — a +1 delta, the same as the 5→6 shifts (0 → +1). Per the design's tie-break rule, the die that started lowest wins for a positive nudge. `nudge_changes = [null, null, null, 2]`. Other positions stay null.
 
 ---
 
