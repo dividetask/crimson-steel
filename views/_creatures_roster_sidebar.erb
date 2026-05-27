@@ -1,0 +1,63 @@
+<%
+  # Creatures Roster Sidebar Stub —
+  # docs/common/ui/creatures_roster_sidebar_stub.md
+  #
+  # Locals:
+  #   roster        — required. { players:, npcs:, enemies:,
+  #                   templates:, encounter_tables: }. Creature rows
+  #                   carry { id, name, copy_count, sheet_index };
+  #                   encounter rows carry { table_id, name }.
+  #   current_index — optional. The sheet_index currently being shown;
+  #                   the matching row is marked .cs-roster-current.
+  #   detail        — optional. 'minimal' or 'full' (default minimal);
+  #                   passed through on the row's href.
+  current_index = defined?(current_index) ? current_index : nil
+  detail_mode   = defined?(detail)        ? detail        : 'minimal'
+
+  groups = [
+    { key: :players,   label: 'Players',           open: false, rows: roster[:players]   || [] },
+    { key: :npcs,      label: 'NPCs',              open: false, rows: roster[:npcs]      || [] },
+    { key: :enemies,   label: 'Enemies',           open: true,  rows: roster[:enemies]   || [] },
+    { key: :templates, label: 'Creature Templates', open: true,  rows: roster[:templates] || [] }
+  ]
+%>
+
+<aside class="cs-roster-sidebar">
+  <% groups.each do |g| %>
+    <details class="cs-roster-group" <%= 'open' if g[:open] %> data-group-key="<%= g[:key] %>">
+      <summary class="cs-roster-summary"><%= g[:label] %></summary>
+      <% if g[:rows].empty? %>
+        <div class="cs-roster-empty">—</div>
+      <% else %>
+        <ul class="cs-roster-list">
+          <% g[:rows].each do |row| %>
+            <li class="cs-roster-row<%= ' cs-roster-current' if current_index && row[:sheet_index] == current_index %>">
+              <button type="button" class="cs-roster-btn cs-roster-add" title="Add to combat" aria-label="Add to combat" disabled>+</button>
+              <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= row[:name] %></a>
+              <% if row[:copy_count].to_i > 0 %>
+                <span class="cs-roster-count"><%= row[:copy_count] %></span>
+              <% end %>
+              <button type="button" class="cs-roster-btn cs-roster-remove" title="Remove from combat" aria-label="Remove from combat" disabled>&minus;</button>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </details>
+  <% end %>
+
+  <details class="cs-roster-group" open data-group-key="encounter_tables">
+    <summary class="cs-roster-summary">Encounter Tables</summary>
+    <% if (roster[:encounter_tables] || []).empty? %>
+      <div class="cs-roster-empty">—</div>
+    <% else %>
+      <ul class="cs-roster-list">
+        <% (roster[:encounter_tables] || []).each do |row| %>
+          <li class="cs-roster-row cs-roster-encounter">
+            <a class="cs-roster-name" href="#" data-table-id="<%= row[:table_id] %>"><%= row[:name] %></a>
+            <button type="button" class="cs-roster-btn cs-roster-roll" title="Roll encounter" aria-label="Roll encounter" disabled>Roll</button>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </details>
+</aside>

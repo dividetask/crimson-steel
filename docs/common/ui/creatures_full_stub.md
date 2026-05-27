@@ -20,7 +20,6 @@ Below Combat the sheet splits into two side-by-side columns. The left column car
 7. **Item Descriptions** (left column) — descriptions of named magic items.
 8. **Abilities** (right column) — granted abilities with full descriptions.
 9. **Spell List** (right column) — spells grouped by tier. Two follow-on subsections render beneath the main spell list when their lists are non-empty: **Rituals** (spells the Creature knows as rituals — same per-row format as the spell list, with the ritual's casting time and component cost shown in place of mana cost) and **Item Spells** (spells the Creature can cast from carried items such as scrolls or wands — each row names the source item alongside the spell). Both subsections share the spell list's column layout.
-10. **Notes** (full width, below the two-column body) — free-form per-Creature notes. Each note body uses the Show-more truncation pattern (see `ui_conventions.md`); notes whose body is shorter than the threshold render without the affordance. Below the list, an **Add note** form is available to the GM viewer and to the Player viewer whose Viewing Player ID owns this Creature; for any other viewer the form is hidden. The form's owner is locked to this Creature — the parent owns the POST endpoint.
 
 Sections with no content are omitted. When one side of the two-column body is much taller than the other, the shorter column simply ends earlier — sections do not flow across the split.
 
@@ -46,6 +45,4 @@ Same rule as the minimal stub: the parent page handles visibility. Player viewer
 In addition to everything used by the minimal stub:
 
 - **Combat-derived values** (Combat Pool, attack rolls and bonuses, damage and bleed) — computed by the Combat domain via Creatures' Accessor (`attribute_value`, `ranks_for("martial")`) plus Equipment's Weapon Details. BAB is `ranks_for("martial")` directly.
-- **Per-Creature notes** — owner-keyed Chronicle Entries (the Chronicle domain's `owner_id` field stores the Creature ID); rendered through `chronicle_entry_stub.md` filtered by owner.
-
 The expanded vitals (Damage Reduction, Damage Resilience, Mana Regen, etc.) come from formulas applied to Creature attributes and Tier. The Attributes table's Check and Save columns derive from Effective Attributes plus the displayed formulas.

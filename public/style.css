@@ -2061,3 +2061,110 @@ body {
   margin-top: 12px;
 }
 .cs-card.cs-minimal .cs-skills-table { width: 100%; }
+
+/* Character Sheets page outer layout when a Roster Sidebar is rendered. */
+.cs-page-with-sidebar {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 22px;
+  align-items: start;
+}
+.cs-page-with-sidebar .cs-main { min-width: 0; }
+
+/* Roster Sidebar (creatures_roster_sidebar_stub.md). */
+.cs-roster-sidebar {
+  background: #fdf6e3;
+  border: 1px solid #d9a98a;
+  border-radius: 6px;
+  padding: 8px 10px 10px;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #2b1a13;
+}
+.cs-roster-group { margin: 4px 0; }
+.cs-roster-group + .cs-roster-group { border-top: 1px solid #ecd6b6; padding-top: 4px; }
+.cs-roster-summary {
+  cursor: pointer;
+  list-style: revert;
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 13px;
+  color: #882f1f;
+  padding: 4px 0;
+  letter-spacing: 0.4px;
+}
+.cs-roster-empty {
+  color: #b09175;
+  font-size: 12px;
+  font-style: italic;
+  padding: 2px 4px 6px 16px;
+}
+.cs-roster-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 4px;
+}
+.cs-roster-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+.cs-roster-row:hover { background: #f4e5c4; }
+.cs-roster-current {
+  background: #f0e0bc;
+  outline: 1px solid #b9472c;
+}
+.cs-roster-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  background: #f4e5c4;
+  border: 1px solid #d9a98a;
+  border-radius: 3px;
+  color: #4d2e1e;
+  cursor: pointer;
+  font-family: inherit;
+}
+.cs-roster-btn:hover:not(:disabled) { background: #ecd5a8; }
+.cs-roster-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cs-roster-roll {
+  width: auto;
+  padding: 0 8px;
+  font-size: 11px;
+  font-variant: small-caps;
+  letter-spacing: 0.5px;
+}
+.cs-roster-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #000;
+  text-decoration: none;
+}
+.cs-roster-name:hover { text-decoration: underline; }
+.cs-roster-count {
+  display: inline-block;
+  background: #b9472c;
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 10px;
+  padding: 1px 6px;
+  min-width: 16px;
+  text-align: center;
+}
+.cs-roster-encounter .cs-roster-name { font-style: italic; }
+
+/* Minimal sheet lower row — Abilities + Item Descriptions side by side. */
+.cs-card.cs-minimal .cs-minimal-lower {
+  margin-top: 0;
+}
+.cs-card.cs-minimal .cs-minimal-lower.cs-one-sided {
+  grid-template-columns: 1fr;
+}

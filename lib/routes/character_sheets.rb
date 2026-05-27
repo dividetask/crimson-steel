@@ -10,10 +10,10 @@ get '/character-sheets' do
   @total  = total
   @detail = params[:detail] == 'full' ? 'full' : 'minimal'
 
-  # Pager wraps at both ends: prev from index 0 jumps to the last
-  # index, next from the last index jumps to 0.
-  @prev_i = (i - 1) % total
-  @next_i = (i + 1) % total
+  # Roster Sidebar (DM only).
+  if dm_view?
+    @roster = Status::SampleCreatures.roster
+  end
 
   erb :character_sheets
 end

@@ -24,12 +24,42 @@ module Status
   module SampleCreatures
     module_function
 
+    # The full list of sheet-renderable demos, in display order:
+    # players first, then NPCs, then enemies, then enemy templates.
+    # /character-sheets pages between these via ?i=<index>; the
+    # Roster Sidebar groups them by `roster_group`.
     def demos
-      [ash_windmere, bryn_ironvein, veyl_aetheris]
+      [
+        ash_windmere, bryn_ironvein, veyl_aetheris,
+        daven_korr_npc,
+        orc_patrol_spawn,
+        pirate_template, orc_patrol_template
+      ]
     end
 
     def by_index(i)
       demos[i]
+    end
+
+    # Grouped roster for the Roster Sidebar
+    # (docs/common/ui/creatures_roster_sidebar_stub.md).
+    def roster
+      grouped = { players: [], npcs: [], enemies: [], templates: [] }
+      demos.each_with_index do |demo, idx|
+        row = { id: demo[:id], name: demo[:header][:name],
+                copy_count: 0, sheet_index: idx }
+        grouped[demo[:roster_group] || :players] << row
+      end
+      grouped[:encounter_tables] = sample_encounter_tables
+      grouped
+    end
+
+    def sample_encounter_tables
+      [
+        { table_id: 'slave_lords_caravan', name: 'Slave Lords — caravan ambush' },
+        { table_id: 'general_pirate_raid', name: 'Generic pirate raid' },
+        { table_id: 'stockade_patrol',     name: 'Slave Lords — stockade patrol' }
+      ]
     end
 
     # ---- 1. Ash Windmere ------------------------------------------------
@@ -232,15 +262,118 @@ module Status
       )
     end
 
+    # ---- 4. Daven Korr — NPC quest-giver --------------------------------
+
+    def daven_korr_npc
+      attrs = { str: 10, dex: 10, con: 11, int: 12, wis: 13, cha: 14 }
+      classes = [{ key: 'commoner', level: 1, trained_skills: %w[perception persuasion] }]
+      simple_demo(
+        id: 2001, label: 'Daven Korr — NPC quest-giver',
+        roster_group: :npcs,
+        header: { name: 'Daven Korr', player: nil, summary: 'Human Commoner 1', tier: 1, bab: 0 },
+        attributes: attrs, classes: classes,
+        speed: 30,
+        items: { equipped: [{ name: 'Robes' }], consumable: [], ammunition: [], other: [] }
+      )
+    end
+
+    # ---- 5. Orc Patrol — already-spawned enemy --------------------------
+
+    def orc_patrol_spawn
+      attrs = { str: 16, dex: 12, con: 14, int: 8, wis: 10, cha: 8 }
+      classes = [{ key: 'fighter', level: 1, trained_skills: %w[athletics intimidate] }]
+      simple_demo(
+        id: 1500, label: 'Orc Patrol — spawned enemy',
+        roster_group: :enemies,
+        header: { name: 'Orc Patrol', player: nil, summary: 'Human Fighter 1', tier: 1, bab: 1 },
+        attributes: attrs, classes: classes,
+        speed: 30,
+        actions: [
+          { name: 'Greataxe', speed: 3, roll: '4d', attack_bonus: 3, dmg_bonus: 3, bleed: 1, mt: 7, notes: '' },
+          { name: 'Dodge',    speed: 0, roll: '3d', attack_bonus: 1, dmg_bonus: nil, bleed: nil, mt: nil, notes: '' }
+        ],
+        items: { equipped: [{ name: 'Greataxe' }, { name: 'Hide armor' }], consumable: [], ammunition: [], other: [] }
+      )
+    end
+
+    # ---- 6. Pirate — enemy template -------------------------------------
+
+    def pirate_template
+      attrs = { str: 13, dex: 14, con: 13, int: 12, wis: 10, cha: 8 }
+      classes = [{ key: 'rogue', level: 1, trained_skills: %w[acrobatics athletics deception intimidate perception sense_motive] }]
+      simple_demo(
+        id: 100, label: 'Pirate — template (enemy_template)',
+        roster_group: :templates,
+        header: { name: 'Pirate', player: nil, summary: 'Human Rogue 1 (template)', tier: 1, bab: 1 },
+        attributes: attrs, classes: classes,
+        speed: 30,
+        items: { equipped: [{ name: 'Cutlass' }, { name: 'Buckler' }], consumable: [], ammunition: [], other: [] }
+      )
+    end
+
+    # ---- 7. Orc Patrol Template ----------------------------------------
+
+    def orc_patrol_template
+      attrs = { str: 16, dex: 12, con: 14, int: 8, wis: 10, cha: 8 }
+      classes = [{ key: 'fighter', level: 1, trained_skills: %w[athletics intimidate] }]
+      simple_demo(
+        id: 101, label: 'Orc Patrol — template (enemy_template)',
+        roster_group: :templates,
+        header: { name: 'Orc Patrol (template)', player: nil, summary: 'Human Fighter 1 (template)', tier: 1, bab: 1 },
+        attributes: attrs, classes: classes,
+        speed: 30,
+        items: { equipped: [{ name: 'Greataxe' }], consumable: [], ammunition: [], other: [] }
+      )
+    end
+
+    # Convenience builder for the lightweight non-PC demos. Fills in
+    # sensible empty defaults for all sections so the partial doesn't
+    # have to guard each one.
+    def simple_demo(id:, label:, roster_group:, header:, attributes:, classes:,
+                    speed:, items:, actions: nil)
+      half = ->(a) { a / 2 }
+      attrs_table = %i[Strength Dexterity Constitution Intelligence Wisdom Charisma]
+                    .zip(%i[str dex con int wis cha]).map do |label_name, k|
+        { attr: label_name.to_s, score: attributes[k], half: half.call(attributes[k]),
+          check: { dice: 4, bonus: 0 }, save: { dice: 3, bonus: 0 } }
+      end
+      base_data(
+        id: id, label: label,
+        roster_group: roster_group,
+        header: header,
+        attributes: attributes,
+        classes: classes,
+        vitals: {
+          hp: { current: 0, max: 0 }, mana: { current: 0, max: 0, regen: 0 },
+          toxicity: { current: 0, threshold: 0 },
+          temp_hp: 0, moderate_damage: 0, major_damage: 0,
+          combat_pool: 0, damage_reduction: 0, damage_resilience: 0
+        },
+        initiative: { dice_count: 3 },
+        perception: { dice: 3, bonus: 0 },
+        speed: speed,
+        actions: actions || [
+          { name: 'Dodge', speed: 0, roll: '3d', attack_bonus: 0, dmg_bonus: nil, bleed: nil, mt: nil, notes: '' }
+        ],
+        attributes_table: attrs_table,
+        items: items,
+        item_descriptions: [],
+        abilities: [],
+        spells: [], rituals: [], item_spells: [],
+        active_effects: [], usable_spells: [], notes: []
+      )
+    end
+
     # --------------------------------------------------------------------
 
     # Build the demo Hash. Adds `skills` derived from `classes` +
     # `attributes` via Proficiencies + DiceResolution, so ranks /
     # dice / bonus are never hand-set.
     def base_data(classes:, attributes:, **rest)
-      rest[:attributes] = attributes
-      rest[:classes]    = classes
-      rest[:skills]     = compute_skills(classes, attributes)
+      rest[:attributes]    = attributes
+      rest[:classes]       = classes
+      rest[:skills]        = compute_skills(classes, attributes)
+      rest[:roster_group] ||= :players
       rest
     end
 

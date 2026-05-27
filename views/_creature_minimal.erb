@@ -102,25 +102,6 @@
 
     <% if right_has_content %>
       <div class="cs-col cs-col-right">
-        <% if items_have_content %>
-          <section class="cs-section cs-items-min">
-            <h3 class="cs-section-h">Items</h3>
-            <% if it[:equipped].any? %>
-              <div class="cs-item-line"><em>Equipped.</em> <%= it[:equipped].map { |i| i[:name] }.join(', ') %></div>
-            <% end %>
-            <% if it[:consumable].any? %>
-              <div class="cs-item-line"><em>Consumable.</em>
-                <%= it[:consumable].map { |i| i[:quantity].to_i > 1 ? "(#{i[:quantity]}) #{i[:name]}" : i[:name] }.join(', ') %>
-              </div>
-            <% end %>
-            <% if it[:other].any? %>
-              <div class="cs-item-line"><em>Other.</em>
-                <%= it[:other].map { |i| i[:quantity].to_i > 1 ? "#{i[:name]} (#{i[:quantity]})" : i[:name] }.join(', ') %>
-              </div>
-            <% end %>
-          </section>
-        <% end %>
-
         <% if demo[:spells].any? %>
           <section class="cs-section cs-spells-min">
             <h3 class="cs-section-h">Spells</h3>
@@ -144,29 +125,62 @@
             <% end %>
           </section>
         <% end %>
+
+        <% if items_have_content %>
+          <section class="cs-section cs-items-min">
+            <h3 class="cs-section-h">Items</h3>
+            <% if it[:equipped].any? %>
+              <div class="cs-item-line"><em>Equipped.</em> <%= it[:equipped].map { |i| i[:name] }.join(', ') %></div>
+            <% end %>
+            <% if it[:consumable].any? %>
+              <div class="cs-item-line"><em>Consumable.</em>
+                <%= it[:consumable].map { |i| i[:quantity].to_i > 1 ? "(#{i[:quantity]}) #{i[:name]}" : i[:name] }.join(', ') %>
+              </div>
+            <% end %>
+            <% if it[:other].any? %>
+              <div class="cs-item-line"><em>Other.</em>
+                <%= it[:other].map { |i| i[:quantity].to_i > 1 ? "#{i[:name]} (#{i[:quantity]})" : i[:name] }.join(', ') %>
+              </div>
+            <% end %>
+          </section>
+        <% end %>
       </div>
     <% end %>
   </div>
 
-  <% if demo[:abilities].any? %>
-    <section class="cs-section cs-abilities-min">
-      <h3 class="cs-section-h">Abilities</h3>
-      <% demo[:abilities].each do |ab| %>
-        <details class="cs-ability-row">
-          <summary><em><%= ab[:name] %></em></summary>
-          <div class="cs-ability-body"><%= ab[:description] %></div>
-        </details>
-      <% end %>
-    </section>
-  <% end %>
+  <%
+    abilities_have_content        = demo[:abilities].any?
+    item_descriptions_have_content = demo[:item_descriptions].any?
+    lower_row_has_content          = abilities_have_content || item_descriptions_have_content
+    lower_one_sided                = abilities_have_content ^ item_descriptions_have_content
+  %>
 
-  <% if demo[:item_descriptions].any? %>
-    <section class="cs-section cs-item-desc">
-      <h3 class="cs-section-h">Item Descriptions</h3>
-      <% demo[:item_descriptions].each do |idesc| %>
-        <div class="cs-item-desc-row"><em><%= idesc[:name] %>.</em> <%= idesc[:description] %></div>
+  <% if lower_row_has_content %>
+    <div class="cs-minimal-body cs-minimal-lower<%= ' cs-one-sided' if lower_one_sided %>">
+      <% if abilities_have_content %>
+        <div class="cs-col cs-col-left">
+          <section class="cs-section cs-abilities-min">
+            <h3 class="cs-section-h">Abilities</h3>
+            <% demo[:abilities].each do |ab| %>
+              <details class="cs-ability-row">
+                <summary><em><%= ab[:name] %></em></summary>
+                <div class="cs-ability-body"><%= ab[:description] %></div>
+              </details>
+            <% end %>
+          </section>
+        </div>
       <% end %>
-    </section>
+      <% if item_descriptions_have_content %>
+        <div class="cs-col cs-col-right">
+          <section class="cs-section cs-item-desc">
+            <h3 class="cs-section-h">Item Descriptions</h3>
+            <% demo[:item_descriptions].each do |idesc| %>
+              <div class="cs-item-desc-row"><em><%= idesc[:name] %>.</em> <%= idesc[:description] %></div>
+            <% end %>
+          </section>
+        </div>
+      <% end %>
+    </div>
   <% end %>
 
   <div class="cs-toggle">

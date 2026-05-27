@@ -2,17 +2,11 @@
   # Creature Full Stub — docs/common/ui/creatures_full_stub.md
   #
   # Locals:
-  #   demo            — required. Sample data; see lib/status/sample_creatures.rb.
-  #   toggle_target   — optional. Route the toggle button posts to.
-  #   prev_target     — optional. Route the previous-arrow links to.
-  #   next_target     — optional. Route the next-arrow links to.
-  #   page_label      — optional. Pager label, e.g. "1 / 10".
-  #   chrome          — optional boolean (default true).
+  #   demo          — required. Sample data; see lib/status/sample_creatures.rb.
+  #   toggle_target — optional. Route the toggle button posts to.
+  #   chrome        — optional boolean (default true).
   chrome_on   = defined?(chrome)        ? chrome        : true
   toggle_href = defined?(toggle_target) ? toggle_target : nil
-  prev_href   = defined?(prev_target)   ? prev_target   : nil
-  next_href   = defined?(next_target)   ? next_target   : nil
-  pager_label = defined?(page_label)    ? page_label    : nil
 
   h  = demo[:header]
   v  = demo[:vitals]
@@ -20,14 +14,6 @@
 %>
 
 <article class="cs-card cs-full tier-<%= h[:tier] %><%= ' cs-bare' unless chrome_on %>" data-creature-id="<%= demo[:id] %>">
-
-  <% if prev_href || pager_label || next_href %>
-    <nav class="cs-pager">
-      <% if prev_href %><a class="cs-pager-arrow" href="<%= prev_href %>">&#9664;</a><% end %>
-      <% if pager_label %><span class="cs-pager-label"><%= pager_label %></span><% end %>
-      <% if next_href %><a class="cs-pager-arrow" href="<%= next_href %>">&#9654;</a><% end %>
-    </nav>
-  <% end %>
 
   <header class="cs-header cs-header-full">
     <h2 class="cs-name"><%= h[:name] %></h2>
@@ -206,14 +192,6 @@
     </div>
   </div>
 
-  <% if demo[:notes].any? %>
-    <section class="cs-section cs-notes">
-      <h3 class="cs-section-h">Notes</h3>
-      <% demo[:notes].each do |n| %>
-        <div class="cs-note-row"><%= n[:body] %></div>
-      <% end %>
-    </section>
-  <% end %>
 
   <div class="cs-toggle">
     <% if toggle_href %>
