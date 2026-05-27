@@ -2020,3 +2020,20 @@ body {
   margin: 0 0 12px;
   font-size: 14px;
 }
+
+/* Full sheet body: two side-by-side columns under the Combat section.
+   Left column carries Attributes / Skills / Items / Item Descriptions.
+   Right column carries Abilities / Spell List. Notes (rendered after
+   this grid) is full-width. */
+.cs-card.cs-full .cs-full-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.cs-card.cs-full .cs-full-body .cs-col {}
+.cs-card.cs-full .cs-full-body .cs-col > .cs-section:first-child {
+  margin-top: 12px;
+}
+
+/* Minimal-sheet Skills section reuses the table styling. */
+.cs-card.cs-minimal .cs-skills-min .cs-skills-table { width: 100%; }

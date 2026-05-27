@@ -79,7 +79,7 @@
       <thead>
         <tr>
           <th>Name</th><th>Speed</th><th>Roll</th><th>Attk / Def Bonus</th>
-          <th>Dmg Bonus</th><th>Bleed</th><th>MT*</th><th>Notes</th>
+          <th>Dmg Bonus</th><th>Bleed</th><th>MT</th><th>Notes</th>
         </tr>
       </thead>
       <tbody>
@@ -97,122 +97,124 @@
         <% end %>
       </tbody>
     </table>
-    <div class="cs-combat-footer">* MT is the base threshold for major damage.</div>
   </section>
 
-  <section class="cs-section cs-attributes-full">
-    <h3 class="cs-section-h">Attributes</h3>
-    <table class="cs-attributes-table">
-      <thead>
-        <tr><th></th><th>Score</th><th>½</th><th colspan="2">Check</th><th colspan="2">Saves</th></tr>
-      </thead>
-      <tbody>
-        <% demo[:attributes_table].each do |r| %>
-          <tr>
-            <th class="cs-attr-name"><%= r[:attr] %></th>
-            <td class="cs-num"><%= r[:score] %></td>
-            <td class="cs-num"><%= r[:half] %></td>
-            <td class="cs-num"><%= r[:check][:dice] %>d</td>
-            <td class="cs-num"><%= sprintf('%+d', r[:check][:bonus]) %></td>
-            <td class="cs-num"><%= r[:save][:dice] %>d</td>
-            <td class="cs-num"><%= sprintf('%+d', r[:save][:bonus]) %></td>
-          </tr>
+  <div class="cs-full-body">
+    <div class="cs-col cs-col-left">
+
+      <section class="cs-section cs-attributes-full">
+        <h3 class="cs-section-h">Attributes</h3>
+        <table class="cs-attributes-table">
+          <thead>
+            <tr><th></th><th>Score</th><th>½</th><th colspan="2">Check</th><th colspan="2">Saves</th></tr>
+          </thead>
+          <tbody>
+            <% demo[:attributes_table].each do |r| %>
+              <tr>
+                <th class="cs-attr-name"><%= r[:attr] %></th>
+                <td class="cs-num"><%= r[:score] %></td>
+                <td class="cs-num"><%= r[:half] %></td>
+                <td class="cs-num"><%= r[:check][:dice] %>d</td>
+                <td class="cs-num"><%= sprintf('%+d', r[:check][:bonus]) %></td>
+                <td class="cs-num"><%= r[:save][:dice] %>d</td>
+                <td class="cs-num"><%= sprintf('%+d', r[:save][:bonus]) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </section>
+
+      <% if demo[:skills].any? %>
+        <section class="cs-section cs-skills">
+          <h3 class="cs-section-h">Skills</h3>
+          <table class="cs-skills-table">
+            <thead><tr><th>Name</th><th>Ranks</th><th>Dice</th><th>Bonus</th></tr></thead>
+            <tbody>
+              <% demo[:skills].each do |s| %>
+                <tr>
+                  <td><%= s[:name] %></td>
+                  <td class="cs-num"><%= s[:ranks] %></td>
+                  <td class="cs-num"><%= s[:dice] %>d</td>
+                  <td class="cs-num"><%= sprintf('%+d', s[:bonus]) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </section>
+      <% end %>
+
+      <section class="cs-section cs-items-full">
+        <h3 class="cs-section-h">Items</h3>
+        <% if it[:equipped].any? %>
+          <div class="cs-item-line"><em>Equipped:</em> <%= it[:equipped].map { |i| i[:name] }.join(', ') %></div>
         <% end %>
-      </tbody>
-    </table>
-    <div class="cs-formula-footer">Formula: <%= demo[:attribute_formula] %></div>
-  </section>
+        <% if it[:consumable].any? %>
+          <div class="cs-item-line"><em>Consumable:</em>
+            <%= it[:consumable].map { |i| i[:quantity].to_i > 1 ? "(#{i[:quantity]}) #{i[:name]}" : i[:name] }.join(', ') %>
+          </div>
+        <% end %>
+        <% if it[:ammunition] && it[:ammunition].any? %>
+          <div class="cs-item-line"><em>Ammunition:</em>
+            <%= it[:ammunition].map { |i| i[:quantity].to_i > 1 ? "(#{i[:quantity]}) #{i[:name]}" : i[:name] }.join(', ') %>
+          </div>
+        <% end %>
+        <% if it[:other].any? %>
+          <div class="cs-item-line"><em>Other:</em>
+            <%= it[:other].map { |i| i[:quantity].to_i > 1 ? "#{i[:name]} (#{i[:quantity]})" : i[:name] }.join(', ') %>
+          </div>
+        <% end %>
+      </section>
 
-  <% if demo[:skills].any? %>
-    <section class="cs-section cs-skills">
-      <h3 class="cs-section-h">Skills</h3>
-      <table class="cs-skills-table">
-        <thead><tr><th>Name</th><th>Ranks</th><th>Dice</th><th>Bonus</th></tr></thead>
-        <tbody>
-          <% demo[:skills].each do |s| %>
-            <tr>
-              <td><%= s[:name] %></td>
-              <td class="cs-num"><%= s[:ranks] %></td>
-              <td class="cs-num"><%= s[:dice] %>d</td>
-              <td class="cs-num"><%= sprintf('%+d', s[:bonus]) %></td>
-            </tr>
+      <% if demo[:item_descriptions].any? %>
+        <section class="cs-section cs-item-desc">
+          <h3 class="cs-section-h">Item Descriptions</h3>
+          <% demo[:item_descriptions].each do |idesc| %>
+            <div class="cs-item-desc-row"><em><%= idesc[:name] %>:</em> <%= idesc[:description] %></div>
           <% end %>
-        </tbody>
-      </table>
-      <div class="cs-formula-footer">Formula: <%= demo[:skill_formula] %></div>
-    </section>
-  <% else %>
-    <section class="cs-section cs-skills cs-skills-empty">
-      <h3 class="cs-section-h">Skills</h3>
-      <div class="cs-formula-footer">Formula: <%= demo[:skill_formula] %></div>
-    </section>
-  <% end %>
-
-  <section class="cs-section cs-items-full">
-    <h3 class="cs-section-h">Items</h3>
-    <% if it[:equipped].any? %>
-      <div class="cs-item-line"><em>Equipped:</em> <%= it[:equipped].map { |i| i[:name] }.join(', ') %></div>
-    <% end %>
-    <% if it[:consumable].any? %>
-      <div class="cs-item-line"><em>Consumable:</em>
-        <%= it[:consumable].map { |i| i[:quantity].to_i > 1 ? "(#{i[:quantity]}) #{i[:name]}" : i[:name] }.join(', ') %>
-      </div>
-    <% end %>
-    <% if it[:ammunition] && it[:ammunition].any? %>
-      <div class="cs-item-line"><em>Ammunition:</em>
-        <%= it[:ammunition].map { |i| i[:quantity].to_i > 1 ? "(#{i[:quantity]}) #{i[:name]}" : i[:name] }.join(', ') %>
-      </div>
-    <% end %>
-    <% if it[:other].any? %>
-      <div class="cs-item-line"><em>Other:</em>
-        <%= it[:other].map { |i| i[:quantity].to_i > 1 ? "#{i[:name]} (#{i[:quantity]})" : i[:name] }.join(', ') %>
-      </div>
-    <% end %>
-  </section>
-
-  <% if demo[:item_descriptions].any? %>
-    <section class="cs-section cs-item-desc">
-      <h3 class="cs-section-h">Item Descriptions</h3>
-      <% demo[:item_descriptions].each do |idesc| %>
-        <div class="cs-item-desc-row"><em><%= idesc[:name] %>:</em> <%= idesc[:description] %></div>
-      <% end %>
-    </section>
-  <% end %>
-
-  <% if demo[:abilities].any? %>
-    <section class="cs-section cs-abilities-full">
-      <h3 class="cs-section-h">Abilities</h3>
-      <% demo[:abilities].each do |ab| %>
-        <div class="cs-ability-full">
-          <div class="cs-ability-full-name"><em><%= ab[:name] %>:</em></div>
-          <div class="cs-ability-full-body"><%= ab[:description] %></div>
-        </div>
-      <% end %>
-    </section>
-  <% end %>
-
-  <% if demo[:spells].any? || demo[:rituals].any? || demo[:item_spells].any? %>
-    <section class="cs-section cs-spell-list">
-      <h3 class="cs-section-h">Spell List</h3>
-      <% demo[:spells].each do |grp| %>
-        <div class="cs-spell-line"><em class="cs-tier-label tier-<%= grp[:tier] %>"><%= grp[:tier] %>:</em> <%= grp[:names].join(', ') %></div>
+        </section>
       <% end %>
 
-      <% if demo[:rituals].any? %>
-        <h4 class="cs-subsection-h">Rituals</h4>
-        <% demo[:rituals].each do |grp| %>
-          <div class="cs-spell-line"><em class="cs-tier-label tier-<%= grp[:tier] %>"><%= grp[:tier] %>:</em> <%= grp[:names].join(', ') %></div>
-        <% end %>
+    </div>
+
+    <div class="cs-col cs-col-right">
+
+      <% if demo[:abilities].any? %>
+        <section class="cs-section cs-abilities-full">
+          <h3 class="cs-section-h">Abilities</h3>
+          <% demo[:abilities].each do |ab| %>
+            <div class="cs-ability-full">
+              <div class="cs-ability-full-name"><em><%= ab[:name] %>:</em></div>
+              <div class="cs-ability-full-body"><%= ab[:description] %></div>
+            </div>
+          <% end %>
+        </section>
       <% end %>
 
-      <% if demo[:item_spells].any? %>
-        <h4 class="cs-subsection-h">Item Spells</h4>
-        <% demo[:item_spells].each do |grp| %>
-          <div class="cs-spell-line"><em class="cs-tier-label tier-<%= grp[:tier] %>"><%= grp[:tier] %>:</em> <%= grp[:names].join(', ') %></div>
-        <% end %>
+      <% if demo[:spells].any? || demo[:rituals].any? || demo[:item_spells].any? %>
+        <section class="cs-section cs-spell-list">
+          <h3 class="cs-section-h">Spell List</h3>
+          <% demo[:spells].each do |grp| %>
+            <div class="cs-spell-line"><em class="cs-tier-label tier-<%= grp[:tier] %>"><%= grp[:tier] %>:</em> <%= grp[:names].join(', ') %></div>
+          <% end %>
+
+          <% if demo[:rituals].any? %>
+            <h4 class="cs-subsection-h">Rituals</h4>
+            <% demo[:rituals].each do |grp| %>
+              <div class="cs-spell-line"><em class="cs-tier-label tier-<%= grp[:tier] %>"><%= grp[:tier] %>:</em> <%= grp[:names].join(', ') %></div>
+            <% end %>
+          <% end %>
+
+          <% if demo[:item_spells].any? %>
+            <h4 class="cs-subsection-h">Item Spells</h4>
+            <% demo[:item_spells].each do |grp| %>
+              <div class="cs-spell-line"><em class="cs-tier-label tier-<%= grp[:tier] %>"><%= grp[:tier] %>:</em> <%= grp[:names].join(', ') %></div>
+            <% end %>
+          <% end %>
+        </section>
       <% end %>
-    </section>
-  <% end %>
+
+    </div>
+  </div>
 
   <% if demo[:notes].any? %>
     <section class="cs-section cs-notes">

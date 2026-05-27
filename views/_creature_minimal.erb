@@ -73,6 +73,25 @@
     </table>
   </section>
 
+  <% if demo[:skills].any? %>
+    <section class="cs-section cs-skills-min">
+      <h3 class="cs-section-h">Skills</h3>
+      <table class="cs-skills-table">
+        <thead><tr><th>Name</th><th>Ranks</th><th>Dice</th><th>Bonus</th></tr></thead>
+        <tbody>
+          <% demo[:skills].each do |s| %>
+            <tr>
+              <td><%= s[:name] %></td>
+              <td class="cs-num"><%= s[:ranks] %></td>
+              <td class="cs-num"><%= s[:dice] %>d</td>
+              <td class="cs-num"><%= sprintf('%+d', s[:bonus]) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  <% end %>
+
   <% has_spells  = demo[:spells].any?
      has_rituals = demo[:rituals].any?
      if has_spells || has_rituals %>

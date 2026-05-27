@@ -33,22 +33,25 @@ Top to bottom:
 
 4. **Actions** — section heading `ACTIONS`. A table with columns `Name`, `Spd`, `Roll`, `Bonus`, `Dmg`, `Notes`. One row per usable action. The four numeric columns are center-aligned; `Bonus` shows an explicit sign on positive values; `Dmg` shows `—` when the action deals no damage. Always rendered — empty actions table is still allowed; the stub renders a single default `Dodge` row when no equipped weapons are found.
 
-5. **Spells | Rituals** (two columns)
+5. **Skills** — section heading `SKILLS`. A table with columns `Name`, `Ranks`, `Dice`, `Bonus`. One row per Skill the Creature has trained. The `Bonus` column shows an explicit sign on positive values. Omitted when the Creature has no trained Skills. The number of trained Skills a Creature is expected to have is derived from the `Skill Pick Formula` in `creatures_config.yaml` against the Creature's Effective Intelligence and the Class's `bonus_skills` field; the section reflects whatever Skills the Creature actually trains.
+
+6. **Spells | Rituals** (two columns)
    - `SPELLS` lists each tier that has at least one spell, one line per tier: `Tier <n>. <names, comma-separated>`. The `Tier <n>.` label is italic and uses the Tier Color **of that spell tier** (not the Creature's Tier).
    - `RITUALS` follows the same line format. When the Creature has no rituals, the section still renders with a single `—` placeholder so the column structure is preserved.
 
-6. **Items | Abilities** (two columns)
+7. **Items | Abilities** (two columns)
    - `ITEMS` shows three lines, in order: `Equipped. <names>`, `Consumable. <names>`, `Other. <names>`. The category label is italic. Each line is omitted only when the category has zero items. Consumables prefix the quantity: `(2) Healing Draught`. Other items suffix the quantity in parens: `Rations (5)`. Equipped items never show a quantity (they're always exactly one). Names use `name_override` when set, otherwise `item_type`.
    - `ABILITIES` lists each granted Ability as a collapsible row. By default each row shows only the Ability name (italic, with a trailing affordance such as a chevron or `▸` marker indicating expandability). Clicking the row reveals the description; clicking again hides it. The starting state is **collapsed** for every Ability — the abilities list otherwise crowds out the rest of the card. State is per-Ability, not section-wide; expanding one row leaves the others alone. The list runs in the order Creatures returns from `get_granted_abilities` (Race → Race Aspect → Classes → free abilities). Implementations should use semantic HTML (e.g. `<details>/<summary>`) so the behavior works without JavaScript and is accessible to screen readers.
 
-7. **Item Descriptions** — full-width section. Lists named magic items the Creature carries that have a `metadata.description` set. Format mirrors Abilities: `<Item Name>. <description>` with the item name italic.
+8. **Item Descriptions** — full-width section. Lists named magic items the Creature carries that have a `metadata.description` set. Format mirrors Abilities: `<Item Name>. <description>` with the item name italic.
 
-8. **Active Effects** — full-width section listing Active Effects from Conditions that target this Creature. One row per Effect: the caster's name (looked up from the Creatures domain by `caster_id`; falls back to `—` when the caster is unknown), the spell or source name, and the remaining rounds. Omitted entirely when no Active Effect targets the Creature.
+9. **Active Effects** — full-width section listing Active Effects from Conditions that target this Creature. One row per Effect: the caster's name (looked up from the Creatures domain by `caster_id`; falls back to `—` when the caster is unknown), the spell or source name, and the remaining rounds. Omitted entirely when no Active Effect targets the Creature.
 
-9. **Usable Spells** — full-width section listing spells the Creature can cast on the current turn (filtered by mana cost vs. current Mana). One row per spell: name, casting time, mana cost, and Save TN when the spell offers a save (blank otherwise). The list is grouped by spell tier in the same order as the Spells column. Omitted when the Creature has no spells. This section overlaps with the Spells column above; the Spells column gives a names-only at-a-glance read, while Usable Spells gives the action-economy details the player needs at the moment of choosing a spell to cast.
+10. **Usable Spells** — full-width section listing spells the Creature can cast on the current turn (filtered by mana cost vs. current Mana). One row per spell: name, casting time, mana cost, and Save TN when the spell offers a save (blank otherwise). The list is grouped by spell tier in the same order as the Spells column. Omitted when the Creature has no spells. This section overlaps with the Spells column above; the Spells column gives a names-only at-a-glance read, while Usable Spells gives the action-economy details the player needs at the moment of choosing a spell to cast.
 
 ## Section visibility
 
+- Skills is omitted when the Creature has no trained Skills.
 - Spells and Rituals are paired: when at least one of them has content, both render with their column structure intact (the empty one shows `—`). When both are empty, both columns are omitted.
 - Items and Abilities use the same pairing: if either has content, both render in their column structure (the empty one is blank or shows `—`).
 - Actions always renders (a single Dodge row at minimum).

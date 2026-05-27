@@ -74,10 +74,12 @@ module Status
           { attr: 'Charisma',     score: 22, half: 11, check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } }
         ],
 
-        attribute_formula: '4+½ Attribute Mod, subtract 5 when > 8',
-        skill_formula:     '6+rank+½ Attribute Mod, subtract 5 when > 10',
-
-        skills: [],  # full sheet Skills table — empty here per the reference
+        skills: [
+          { name: 'Perform (Dance)', ranks: 5, dice: 8, bonus: 3 },
+          { name: 'Persuasion',      ranks: 5, dice: 8, bonus: 3 },
+          { name: 'Perception',      ranks: 5, dice: 7, bonus: 3 },
+          { name: 'Arcana',          ranks: 5, dice: 7, bonus: 3 }
+        ],
 
         items: {
           equipped: [
@@ -184,9 +186,6 @@ module Status
           { attr: 'Charisma',     score: 7,  half: 3,  check: { dice: 3, bonus: 0 }, save: { dice: 3, bonus: 0 } }
         ],
 
-        attribute_formula: '4+½ Attribute Mod, subtract 5 when > 8',
-        skill_formula:     '6+rank+½ Attribute Mod, subtract 5 when > 10',
-
         skills: [
           { name: 'Athletics',  ranks: 3, dice: 6, bonus: 1 },
           { name: 'Intimidate', ranks: 3, dice: 3, bonus: 0 },
@@ -277,9 +276,6 @@ module Status
           { attr: 'Wisdom',       score: 11, half: 5, check: { dice: 3, bonus: 1 }, save: { dice: 3, bonus: 0 } },
           { attr: 'Charisma',     score: 13, half: 6, check: { dice: 3, bonus: 1 }, save: { dice: 3, bonus: 0 } }
         ],
-
-        attribute_formula: '4+½ Attribute Mod, subtract 5 when > 8',
-        skill_formula:     '6+rank+½ Attribute Mod, subtract 5 when > 10',
 
         skills: [
           { name: 'Arcana',          ranks: 6, dice: 8, bonus: 2 },
