@@ -8,14 +8,16 @@ require_relative 'creatures/formula'
 require_relative 'creatures/record'
 require_relative 'creatures/dataset'
 require_relative 'creatures/accessor'
+require_relative 'creatures/encounter'
 
 # Top-level Creatures module surface. Exposes the public entry
 # points listed in creatures_design.md against the multi-file
 # dataset loaded by Creatures::Dataset.
 #
-# Not yet implemented: Spawn Creature From Template, Delete
-# Creature, Roll Encounter, and the Encounter Tables load/save
-# entry points. These will land in a follow-up.
+# Still stubbed: aggregated_modifiers (returns [] until the
+# Abilities domain lands), Weighted Choice / Gated Weighted Choice
+# encounter row variants (mirror Equipment's Loot Roll Row, which
+# hasn't been designed yet).
 module Creatures
   module_function
 
@@ -113,6 +115,20 @@ module Creatures
     nil
   end
 
+  # ---- encounter / spawn / delete -------------------------------------
+
+  def spawn_from_template(template_id, name_override: nil, loot_table: nil)
+    Encounter.spawn_from_template(template_id, name_override: name_override, loot_table: loot_table)
+  end
+
+  def delete(id)
+    Encounter.delete_creature(id)
+  end
+
+  def roll_encounter(table_id, seed: nil)
+    Encounter.roll_encounter(table_id, seed: seed)
+  end
+
   # ---- meta -----------------------------------------------------------
 
   def reset!
@@ -121,5 +137,6 @@ module Creatures
     Races.reset!
     Deities.reset!
     Config.reset!
+    Encounter.reset!
   end
 end
