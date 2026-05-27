@@ -1,0 +1,29 @@
+# Creature Race Aspect Configuration
+#
+# Each entry is an Aspect Entry for the `race` Aspect category. A
+# Creature references one entry by name under `aspects.race`. Race
+# Entries form a chain via `parent:` — a sub-race inherits and
+# extends its parent.
+#
+# Field rules during chain walk:
+#   first-in-chain: size, speed
+#   accumulate: attribute_adjustments
+#   concatenate-with-dedup (child wins on duplicate name): abilities
+#
+# `abilities` lists support context entries — a bare `{min_level: N}`
+# becomes the rolling default `min_level` for following ability
+# entries until the next context entry. Context entries are
+# flattened at config-load time.
+
+humanoid:
+  size: medium
+  speed: 30
+
+undead:
+  abilities:
+    - undead_traits
+
+animal:
+  abilities: []
+
+# Humanoid races.

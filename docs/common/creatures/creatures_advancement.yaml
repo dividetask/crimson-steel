@@ -1,0 +1,269 @@
+# Creature Advancement Configuration
+
+# Tier breakpoint lists keyed by Tag. Index 0 is the Total Class
+# Level required to reach Tier 0 (always 0); index 1 is the level
+# required for Tier 1, etc. A Creature with multiple matching Tags
+# takes the MAXIMUM Tier across them. A Creature with no Tag that
+# matches any list here takes the MINIMUM Tier across every list
+# (the cautious fallback for an unclassified Creature).
+Tier Breakpoints:
+  player_character: [0, 1, 4, 8, 16, 30]
+  hero:             [0, 1, 4, 8, 16, 30]
+  boss:             [0, 1, 4, 8, 16, 30]
+  noble:            [0, 2, 5, 9, 12, 20]
+  commoner:         [0, 4, 12, 16, 25, 40]
+  animal:           [0, 4, 8, 12, 16, 20]
+
+# Class definitions. Each Class declares its progression rules
+# (bonus_skills, mana_per_level), Save Attribute categorization,
+# proficiency lists, and ability_progression.
+#
+# Proficiency lists use the project's three Proficiency Categories:
+#   - Aligned (the fast rate, formula in creatures_config.yaml)
+#   - Unaligned (the medium rate)
+#   - Opposed (the slow rate)
+#
+# A Class declares EXACTLY ONE of `aligned_proficiencies` or
+# `unaligned_proficiencies` at the root — that declaration sets the
+# default rule for unmentioned Skills. `opposed_proficiencies` is
+# always an explicit override list.
+#
+# Saves declare their Aligned and Opposed lists explicitly. Every
+# Save Attribute that doesn't appear in either list is Unaligned by
+# the default rule that applies when `aligned` (or `opposed`) is
+# named — but the project convention is to enumerate all six.
+#
+# Archetypes (a Class with `parent_class:`) inherit absent fields
+# from their parent and override or extend the per-category lists.
+# A Creature cannot hold levels in both a parent Class and one of
+# its Archetypes simultaneously — see Archetype Exclusivity in the
+# design.
+#
+# Martial is a Skill (catalog entry in proficiencies/skills.yaml).
+# Each Class categorizes it like any other Skill — there is no
+# separate `martial_advancement` field. Per-weapon and per-armor
+# bonuses come from Abilities (Weapon Training, Armor Training,
+# etc.) as Modifier entries on the Granted Ability.
+#
+# Skill lists may name bare Set Skill keys (ending `_`); a Set
+# Instance whose prefix matches the list is treated the same way.
+
+Classes:
+
+  barbarian:
+    martial_advancement: aligned
+    bonus_skills: 2
+    mana_per_level: 1
+    saves:
+      aligned: [str, con]
+      opposed: [dex, int, wis, cha]
+    ability_progression:
+      "1": [rage, fast_movement, reckless_attacks]
+      "2": [uncanny_dodge, primal_tenacity, combat_feat]
+      "3": [mindless_rage]
+    aligned_proficiencies:
+      - animal_handling
+      - athletics
+      - craft_
+      - healing
+      - intimidate
+      - nature
+      - perception
+
+  bard:
+    martial_advancement: unaligned
+    bonus_skills: 4
+    mana_per_level: 2
+    saves:
+      aligned: [dex, cha]
+      opposed: [str, con, int, wis]
+    ability_progression:
+      "1": [magical_performance, bardic_spellcasting, bardic_inspiration]
+      "2": [jack_of_all_trades, better_lucky_than_good, performance_feat]
+      "3": [silver_tongue, unsettling_words]
+      "4": [versatile_performance]
+    unaligned_proficiencies:
+      - restricted_magic
+      - survival
+
+  cleric:
+    martial_advancement: unaligned
+    bonus_skills: 2
+    mana_per_level: 4
+    saves:
+      aligned: [wis, cha]
+      opposed: [str, dex, con, int]
+    ability_progression:
+      "1": [see_injury, improved_healing, combat_healing, domain]
+      "2": [channel_divinity, turn_undead, casting_feat]
+    granted_spells:
+      # Every Cleric gains these regardless of deity / domain.
+      - Heal
+      - Ward
+      - Standard Surgery
+    # Domain-specific spells are looked up via the Creature's `choices.deity`
+    # and `choices.domain` keys against `creatures/deities.yaml`.
+    aligned_proficiencies:
+      - appraisal
+      - arcana
+      - craft_
+      - healing
+      - history
+      - linguistics
+      - nobility
+      - persuasion
+      - planes
+      - profession_
+      - restricted_magic
+      - religion
+      - sense_motive
+
+  druid:
+    martial_advancement: unaligned
+    bonus_skills: 4
+    mana_per_level: 4
+    saves:
+      aligned: [int, wis]
+      opposed: [str, dex, con, cha]
+    ability_progression:
+      "1": [druidic_spellcasting]
+    aligned_proficiencies:
+      - animal_handling
+      - healing
+      - nature
+      - perception
+      - religion
+      - survival
+
+  fighter:
+    martial_advancement: aligned
+    bonus_skills: 2
+    mana_per_level: 1
+    saves:
+      aligned: [str, con]
+      opposed: [dex, int, wis, cha]
+    ability_progression:
+      "1": [weapon_training, armor_training]
+    aligned_proficiencies:
+      - acrobatics
+      - animal_handling
+      - athletics
+      - history
+      - intimidate
+      - nature
+      - perception
+
+  ranger:
+    martial_advancement: aligned
+    bonus_skills: 4
+    mana_per_level: 2
+    saves:
+      aligned: [str, dex]
+      opposed: [con, int, wis, cha]
+    ability_progression:
+      "1": [ranger_spellcasting]
+    aligned_proficiencies:
+      - animal_handling
+      - athletics
+      - healing
+      - nature
+      - perception
+      - stealth
+      - survival
+
+  rogue:
+    martial_advancement: unaligned
+    bonus_skills: 4
+    mana_per_level: 1
+    saves:
+      aligned: [dex, int]
+      opposed: [str, con, wis, cha]
+    ability_progression:
+      "1": [trapfinding, sneak_attack, thieves_cant]
+      "2": [danger_sense]
+    unaligned_proficiencies:
+      - arcana
+      - healing
+      - nature
+      - religion
+      - restricted_magic
+      - survival
+
+  arcane_trickster:
+    parent_class: rogue
+    bonus_skills: 4
+    mana_per_level: 2
+    ability_progression:
+      "1": [arcane_spellcasting]
+      "2": [combat_trickery, mage_hand_legerdemain]
+    aligned_proficiencies:
+      - arcana
+
+  monk:
+    martial_advancement: aligned
+    bonus_skills: 4
+    mana_per_level: 2
+    saves:
+      aligned: [dex, wis]
+      opposed: [str, con, int, cha]
+    ability_progression:
+      "1": [stunning_strike, ki_pool]
+    aligned_proficiencies:
+      - acrobatics
+      - athletics
+      - perception
+      - sense_motive
+      - stealth
+
+  wizard:
+    martial_advancement: opposed
+    bonus_skills: 2
+    mana_per_level: 4
+    saves:
+      aligned: [int, wis]
+      opposed: [str, dex, con, cha]
+    ability_progression:
+      "1": [arcane_spellcasting]
+    aligned_proficiencies:
+      - arcana
+      - history
+      - investigation
+      - linguistics
+      - planes
+      - religion
+
+  commoner:
+    martial_advancement: opposed
+    bonus_skills: 2
+    mana_per_level: 0
+    saves:
+      aligned: [str, con]
+      opposed: [dex, int, wis, cha]
+    aligned_proficiencies:
+      - athletics
+      - craft_
+      - perception
+      - profession_
+
+# HP and Mana formulas, indexed by Tier. The string is evaluated
+# against the Creature's Effective Attributes (`str`, `dex`, ...);
+# `tier` follows the project-wide Tier 0 → 0.5 convention. Result
+# is floored.
+#
+# `mana_per_level` on each Class contributes additively on top of
+# the per-Tier Mana base formula.
+HP Formula:
+  - "con / 2"   # Tier 0
+  - "con"       # Tier 1
+  - "2 * con"   # Tier 2
+  - "3 * con"   # Tier 3
+  - "4 * con"   # Tier 4
+  - "5 * con"   # Tier 5
+
+Mana Base Formula:
+  - "int / 4"   # Tier 0
+  - "int / 2"   # Tier 1
+  - "int"       # Tier 2
+  - "2 * int"   # Tier 3
+  - "3 * int"   # Tier 4
+  - "4 * int"   # Tier 5

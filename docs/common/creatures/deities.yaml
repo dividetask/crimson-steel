@@ -1,0 +1,23 @@
+# Deities catalog.
+#
+# Each entry: deity name -> { domains: [list], domain_spells: { domain: [spells] } }
+#
+# A Cleric Creature's `choices.deity` names a deity here; their
+# `choices.domain` names one of that deity's domains. The Creature
+# gains the domain's spell list in addition to the Class-level
+# `granted_spells` (see `creatures_advancement.yaml`).
+#
+# A domain listed under `domains` but absent from `domain_spells`
+# has not yet been mechanically defined — its spell list is empty
+# until designed.
+
+Deities:
+
+  Grull:
+    domains: [Chaos, Destruction, Glory, Strength, War]
+    domain_spells:
+      War:
+        - Divine Favor
+        - Shield of Faith
+        - Spiritual Hammer
+        - Silence

@@ -1,0 +1,52 @@
+# Encounter Tables — Catalog
+#
+# Loaded by the Creatures domain. Each entry: encounter table ID
+# (snake_case) -> { name, rolls }. See `creatures_design.md` for the
+# Encounter Table / Encounter Row / Spawn Ref schemas; row shapes
+# (Guaranteed / Independent Chance / Weighted Choice / Gated Weighted
+# Choice with `when` / `as`) mirror Equipment's Loot Roll Row.
+#
+# Rolling a table calls Roll Encounter, which calls Spawn Creature From
+# Template once per concrete spawn. The new Creature IDs are returned
+# to the caller, which is then expected to add each as a Combatant via
+# Combat's Add Combatant.
+
+slave_lords_caravan:
+  name: "Slave Lords — caravan ambush"
+  rolls:
+    # Always two grunts.
+    - spawn:
+        - template_id: "101"
+          count: 2
+
+    # 60% chance of a captain leading them.
+    - chance: 0.6
+      as: has_captain
+      spawn:
+        - template_id: "102"
+          count: 1
+
+    # If a captain showed up, also add a war-dog at his heels.
+    - when: { has_captain: true }
+      spawn:
+        - template_id: "105"
+          count: 1
+
+    # Always a few slaves in tow — noncombatants.
+    - spawn:
+        - template_id: "104"
+          count: "1d4 + 1"
+
+general_pirate_raid:
+  name: "Generic pirate raid"
+  rolls:
+    - spawn:
+        - template_id: "100"
+          count: "2d4"
+
+stockade_patrol:
+  name: "Slave Lords — stockade patrol"
+  rolls:
+    - spawn:
+        - template_id: "106"
+          count: 3

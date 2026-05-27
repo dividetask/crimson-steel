@@ -21,13 +21,13 @@ The domains that will have file sets per `file_conventions.md`. This list will e
 This is the planned order domains will be written
 
 Roll Resolution - Complete
-Check Resolution - Complete
-Timekeeping - In Progress
-Chronicle - In Progress
-Conditions - Complete
+Check Resolution - First Pass Complete
+Timekeeping - Complete
+Chronicle - First Pass Complete
+Conditions - First Pass Complete
 Abilities - Planned
-Creature - Planned
-Proficiencies - Planned
+Creature - In Progress
+Proficiencies - In Progress
 Equipment - Planned
 Combat - Planned
 Atlas - Planned

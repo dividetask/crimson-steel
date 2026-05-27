@@ -1,0 +1,10 @@
+# Crimson Steel — NPC roster (example data).
+#
+# Long-lived non-player, non-enemy creatures: shopkeepers, quest-givers,
+# hirelings, etc. Same schema as the PC and enemy data files; shares the
+# integer ID space. Conventionally id 2000+. Starts empty; the consuming
+# project populates it as the campaign produces NPCs worth tracking.
+#
+# See `creatures_data_pcs.example.yaml` for the full Creature schema.
+
+characters: []
