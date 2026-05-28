@@ -20,7 +20,7 @@ Severities follow the canonical order defined in `combat_glossary.md`: `[minor, 
 
 Test creatures are described by their starting Conditions State. A baseline Creature has all damage counters at zero, no Temporary HP, no Afflictions, no Active Effects, `mana_spent = 0`, `magic_toxicity = 0`, `shock = 0`, `acid_counter = 0` — except where a test overrides specific fields. Mana Max is supplied by the caller per API call; the tests state it explicitly when it matters.
 
-Tests that depend on save Rolls state the resolved Roll's `dois` (Degree of Individual Success) directly rather than driving Dice Resolution end-to-end. The save's Outcome and `successes` / `failures` derive from `dois` as defined in `dice_resolution_design.md`.
+Tests that depend on save Rolls state the resolved Roll's `dois` (Degree of Individual Success) directly rather than driving Dice Resolution end-to-end. The save's Roll Outcome and `successes` / `failures` derive from `dois` as defined in `dice_resolution_design.md`.
 
 ---
 
@@ -165,7 +165,7 @@ Tests that depend on save Rolls state the resolved Roll's `dois` (Degree of Indi
 
 **Resolve Due Afflictions dispatches per-Affliction Save Inputs.** Given two due Afflictions `[bleeding, common_venom]` and a `save_input_provider` callable. *Resolve Due Afflictions* with `current_round = 100`: calls `save_input_provider("bleeding")`, resolves bleeding, then calls `save_input_provider("common_venom")`, resolves common_venom. Both survivors are rescheduled to `next_resolution_round = 101`. The returned list contains the two *Resolve Affliction* result structs in order.
 
-**Resolve Due Afflictions sees Afflictions inflicted mid-call.** Given one due Affliction `bleeding`, whose effect dispatches to a callback that inflicts `common_venom` with `current_round = 100`. *Resolve Due Afflictions* with `current_round = 100`: resolves `bleeding`, then sees the newly-due `common_venom` and resolves it as well in the same call. Behavior matches a manual one-by-one loop that re-reads the pending list each iteration.
+**Resolve Due Afflictions sees Afflictions inflicted mid-call.** Given one due Affliction `bleeding`, whose effect dispatches to a callback that inflicts `common_venom` with `current_round = 99` (a round-frequency Affliction, so it schedules to `next_resolution_round = 100` and is immediately due). *Resolve Due Afflictions* with `current_round = 100`: resolves `bleeding`, then sees the newly-due `common_venom` and resolves it as well in the same call. Behavior matches a manual one-by-one loop that re-reads the pending list each iteration.
 
 **Pending list is empty when nothing is due.** Given a Conditions Instance with two Active Afflictions, both scheduled in the future. *List Pending Afflictions* with `current_round` before both: returns `[]`. *Resolve Due Afflictions* returns `[]`.
 

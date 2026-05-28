@@ -37,4 +37,4 @@ A higher-level stub may in turn embed a Check Resolution Stub. In that case the 
 
 There is no per-Roll Roll button. Pressing Roll All in the wrapper header generates dice for every child Roll Resolution Stub in sequence; each child applies its own Reroll and Nudge after its initial dice are produced. Rolls whose Lock is closed are skipped.
 
-When the user presses Confirm All, the stub raises a single application-level event with the per-Roll results from all children plus the manual override values from each child's Result and Crits columns. Aggregation into a Degree of Success and Check-level Outcome is the application's responsibility — typically by calling check resolution's full-resolution entry point with the user's overrides applied.
+When the user presses Confirm All, the stub raises a single application-level event with the per-Roll results from all children plus the manual override values from each child's Result and Crits columns. Aggregation into a Degree of Success and Check Outcome is the application's responsibility — typically by calling check resolution's full-resolution entry point with the user's overrides applied.

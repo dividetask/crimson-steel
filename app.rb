@@ -1,3 +1,4 @@
+require 'bundler/setup'
 require 'sinatra'
 
 set :port, 4567
@@ -11,6 +12,10 @@ $LOAD_PATH.unshift(File.join(__dir__, 'lib'))
 
 require 'conditions'
 require 'dice_resolution'
+require_relative 'lib/dice_resolution/config_js_generator'
+# Regenerate the JS config from the YAML so the browser modules always
+# reflect the current dice_resolution_config.yaml.
+DiceResolution::ConfigJsGenerator.generate
 require 'timekeeping'
 require 'chronicle'
 require 'creatures'
@@ -28,8 +33,10 @@ require_relative 'lib/status/sample_timekeeping'
 require_relative 'lib/status/sample_chronicle'
 
 require_relative 'lib/test_docs'
+require_relative 'lib/glossary_docs'
+require_relative 'lib/explainer_docs'
 require_relative 'lib/helpers'
 
-%w[home character_sheets scene store notes social status view_as chronicle].each do |name|
+%w[home character_sheets scene store notes social compendium status view_as chronicle].each do |name|
   require_relative "lib/routes/#{name}"
 end

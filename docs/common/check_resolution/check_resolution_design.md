@@ -39,7 +39,7 @@ Pipeline:
 1. Apply cross-side propagation to produce a propagated copy of each Roll. See **Cross-side propagation** below.
 2. For each propagated Roll, invoke the roll-with-TN entry point in dice resolution.
 3. Sum DoIS from Supporting results minus DoIS from Opposing results to produce `degree_of_success`.
-4. Classify `degree_of_success` against the outcome thresholds via the dice resolution classifier. See **Outcome classification** below.
+4. Classify `degree_of_success` against the outcome thresholds via the dice resolution classifier. See **Check Outcome classification** below.
 
 Returns:
 
@@ -48,7 +48,7 @@ Returns:
 | `supporting_results` | list of Per-Roll Result | Aligned with `supporting_roll_list`. |
 | `opposing_results` | list of Per-Roll Result | Aligned with `opposing_roll_list`. May be empty. |
 | `degree_of_success` | signed integer | Sum of Supporting DoIS minus sum of Opposing DoIS. |
-| `outcome` | Outcome (success, failure, or fumble) | Derived from `degree_of_success`. |
+| `outcome` | Check Outcome (success, failure, or fumble) | Derived from `degree_of_success`. |
 
 Callers that walk the resolution step-by-step (e.g., a UI that lets the GM fudge dice between Rolls) can call dice resolution's per-Roll entry point directly and aggregate themselves; this entry point is the convenience bundle for "resolve everything at once."
 
@@ -67,7 +67,7 @@ Returns:
 
 Tie-breaking is by original list index — the Roll appearing earlier in the input list wins ties. Callers needing a different tie-breaker reorder `results` themselves after this returns.
 
-This entry point does not apply cross-side propagation, does not aggregate, and does not classify an Outcome. It is a self-contained helper for ordering use cases.
+This entry point does not apply cross-side propagation, does not aggregate, and does not classify a Check Outcome. It is a self-contained helper for ordering use cases.
 
 ## Operations
 
@@ -86,9 +86,9 @@ The propagation is structural — every entry in a Roll's `bonus_penalty_list` p
 
 When `opposing_roll_list` is empty, no Opposing Roll exists to propagate from, and the Initiating Roll receives no inverted entries. Other Supporting Rolls also receive no inverted entries (they would have received them from a non-existent Defending Roll). The Check resolves with Supporting-side DoIS only.
 
-### Outcome classification
+### Check Outcome classification
 
-Once `degree_of_success` is computed, the Check's Outcome is derived by calling dice resolution's "classify a value against outcome thresholds" entry point with `can_fumble = true`. The Default Success and Default Fumble Thresholds applied are the dice resolution config values.
+Once `degree_of_success` is computed, the Check Outcome is derived by calling dice resolution's "classify a value against outcome thresholds" entry point with `can_fumble = true`. The Default Success and Default Fumble Thresholds applied are the dice resolution config values.
 
 A Check can always Fumble — the Roll-level "failure_modifier == 0 suppresses Fumble" rule does not apply at the Check level.
 
@@ -96,4 +96,4 @@ A Check can always Fumble — the Roll-level "failure_modifier == 0 suppresses F
 
 - Callers in higher-level domains construct a Check from per-creature Rolls and invoke either the parameters-only or full-resolution entry point.
 - Cross-side propagation is a Check Resolution operation; the dice domain has no awareness of Check sides or propagation.
-- Outcome classification is delegated to the dice resolution classifier so Default Success and Default Fumble Thresholds remain owned by dice resolution.
+- Check Outcome classification is delegated to the dice resolution classifier so Default Success and Default Fumble Thresholds remain owned by dice resolution.

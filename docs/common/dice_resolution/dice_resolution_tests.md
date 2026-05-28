@@ -17,19 +17,19 @@ Tests that depend on randomness (the actual values dice land on) state the *roll
 
 ## Translate Skill Prowess into Roll inputs
 
-**Prowess of zero gives the minimum.** When `prowess = 0`, the function returns `dice_count = 6` and `bonus_penalty = 0`. Nothing about Prowess of zero contributes a Bonus or Penalty.
+**Prowess of zero gives the minimum.** When `prowess = 0`, the function returns `dice_cap = 6` and `bonus_penalty = 0`. Nothing about Prowess of zero contributes a Bonus or Penalty.
 
-**Prowess fitting within a single Range cycle.** When `prowess = 3`, the function returns `dice_count = 9` and `bonus_penalty = 0`. Three points of Prowess raise Dice Count by 3 above the Minimum.
+**Prowess fitting within a single Range cycle.** When `prowess = 3`, the function returns `dice_cap = 9` and `bonus_penalty = 0`. Three points of Prowess raise Dice Count by 3 above the Minimum.
 
-**Prowess at exactly one full cycle.** When `prowess = 5`, the function returns `dice_count = 6` and `bonus_penalty = 1`. One full Range of Prowess produces one point of Bonus and resets Dice Count to the Minimum.
+**Prowess at exactly one full cycle.** When `prowess = 5`, the function returns `dice_cap = 6` and `bonus_penalty = 1`. One full Range of Prowess produces one point of Bonus and resets Dice Count to the Minimum.
 
-**Prowess overflowing into a Bonus with leftover.** When `prowess = 7`, the function returns `dice_count = 8` and `bonus_penalty = 1`. The first 5 Prowess complete one cycle (+1 Bonus, dice reset to Minimum); the remaining 2 raise Dice Count to 8.
+**Prowess overflowing into a Bonus with leftover.** When `prowess = 7`, the function returns `dice_cap = 8` and `bonus_penalty = 1`. The first 5 Prowess complete one cycle (+1 Bonus, dice reset to Minimum); the remaining 2 raise Dice Count to 8.
 
-**Prowess at two full cycles.** When `prowess = 10`, the function returns `dice_count = 6` and `bonus_penalty = 2`. Two full Ranges produce +2 Bonus.
+**Prowess at two full cycles.** When `prowess = 10`, the function returns `dice_cap = 6` and `bonus_penalty = 2`. Two full Ranges produce +2 Bonus.
 
-**Negative Prowess wraps to maximum dice.** When `prowess = -1`, the function returns `dice_count = 10` and `bonus_penalty = -1`. One full cycle backward produces a Penalty and wraps Dice Count to the Maximum.
+**Negative Prowess wraps to maximum dice.** When `prowess = -1`, the function returns `dice_cap = 10` and `bonus_penalty = -1`. One full cycle backward produces a Penalty and wraps Dice Count to the Maximum.
 
-**Negative Prowess with leftover.** When `prowess = -2`, the function returns `dice_count = 9` and `bonus_penalty = -1`. The negative wrap produces -1 Bonus; the remainder lands at 9.
+**Negative Prowess with leftover.** When `prowess = -2`, the function returns `dice_cap = 9` and `bonus_penalty = -1`. The negative wrap produces -1 Bonus; the remainder lands at 9.
 
 ---
 
@@ -40,44 +40,48 @@ Tests that depend on randomness (the actual values dice land on) state the *roll
 - Starting Value = 0.
 - DoIS = (+1) + (+1) + 0 + (-1) + 0 + (+1) = +2.
 - Critical Count = 0.
-- Outcome = `success` (DoIS ≥ Default Success Threshold of 2).
+- Roll Outcome = `success` (DoIS ≥ Default Success Threshold of 2).
 
 **Bonus and Penalty stacking.** Given a Roll with `bonus_penalty_list = [('A', +3), ('A', +1), ('A', -2), ('B', +2)]`:
 - Per-Type stacking for Type A: highest positive is +3, lowest negative is -2. Both contribute. Type B contributes +2.
-- Net Modifier = +3 − 2 + 2 = +3.
+- TN Net Modifier = +3 − 2 + 2 = +3.
 - TN = 6 − 3 = 3 (clamps at Minimum, no overflow).
 - Starting Value contribution from this list = 0 (TN clamped exactly at the boundary).
 
 **Bonus overflow into Starting Successes.** Given a Roll with `bonus_penalty_list = [('A', +5)]` and `starting_contribution = 1`:
-- Net Modifier = +5.
+- TN Net Modifier = +5.
 - Candidate TN = 6 − 5 = 1, below Minimum of 3. Clamped to 3, with 2 points of overflow.
 - Starting Value = 1 + 2 = 3.
 
 **Penalty overflow into Starting Failures.** Given a Roll with `bonus_penalty_list = [('A', -5)]` and `starting_contribution = 0`:
-- Net Modifier = −5.
+- TN Net Modifier = −5.
 - Candidate TN = 6 − (−5) = 11, above Maximum of 9. Clamped to 9, with 2 points of overflow.
 - Starting Value = 0 − 2 = −2.
 
 **Bonus and Penalty cancel out.** Given a Roll with `bonus_penalty_list = [('A', +20), ('B', -20)]`:
-- Net Modifier = +20 − 20 = 0.
+- TN Net Modifier = +20 − 20 = 0.
 - TN = 6 (unchanged from Base).
 - Starting Value contribution = 0. No overflow despite the large individual values.
 
 **A Critical Success replaces the regular Success.** Given a Roll with one die landing on Die Size (10) and `critical_modifier = 2`: the die contributes +2 (the Critical contribution), not +3 (which would be Critical + regular Success stacking). Critical Count = 1.
 
-**A Roll that ignores Failures cannot Fumble.** Given a Roll with `failure_modifier = 0` and dice that produce DoIS = −5: outcome is `failure`, not `fumble`. The Fumble check is suppressed when `failure_modifier == 0`.
+**A Roll that ignores Failures cannot Fumble.** Given a Roll with `failure_modifier = 0` and dice that would Fumble at the default failure modifier — for example six 1s, worth −6 at `failure_modifier = -1`: with `failure_modifier = 0` each 1 contributes 0, so DoIS = 0 and the outcome is `failure`, never `fumble`. With Failures ignored, dice can never drive DoIS below the Starting Value, so a Fumble is unreachable from dice alone. (This is a guard for a state that shouldn't arise.)
+
+**A negative Starting Value cannot Fumble a Roll that ignores Failures.** Given a Roll with `failure_modifier = 0`, a Starting Value of −5 (e.g. from Penalty overflow), and neutral dice: DoIS = −5, but the outcome is `failure`, not `fumble`. The Fumble check is suppressed whenever `failure_modifier == 0`, no matter how the negative DoIS arose.
 
 **A reroll changes a Failure into a Success.** Given a Roll with `dice_count = 6`, `positive_reroll = (1, false)`, dice that land as `[1, 4, 5, 5, 5, 5]`, and the rerolled die landing on `8`: `final_dice = [8, 4, 5, 5, 5, 5]`. The Failure was the lowest non-Success and was selected.
 
 **A nudge promotes a near-Success.** Given a Roll with `failure_modifier = 0`, `value_adjustment = (+1, false)`, and dice `[5, 5, 5, 5, 5, 1]`: the nudge targets a 5 (which becomes a Success at +1), not the 1 (which would still be 2 — a Neutral Result, no contribution change). Because Failures are ignored on this Roll, the 1→2 shift produces a delta of 0 (0 → 0); only the 5→6 shifts produce a positive delta (+1). Tie among the 5s → lowest index wins.
 
-**Tied delta with a Failure prefers the lower-starting die.** Given a Roll with default `failure_modifier = -1`, `value_adjustment = (+1, false)`, and dice `[5, 5, 5, 5, 5, 1]`: the 1→2 shift moves contribution from -1 (Failure) to 0 (Neutral), a delta of +1. The 5→6 shifts each have delta +1 as well (0 → +1). Per the design's tie-break rule, the die that started lowest wins for a positive nudge; the nudge targets the 1.
+**Tied delta with a Failure prefers the lower-starting die.** Given a Roll with default `failure_modifier = -1`, `value_adjustment = (+1, false)`, TN 6, and dice `[5, 5, 5, 5, 5, 1]`: the 1→2 shift moves contribution from -1 (Failure) to 0 (Neutral), a delta of +1. The 5→6 shifts each have delta +1 as well (0 → +1). Per the design's tie-break rule, the die that started lowest wins for a positive nudge; the nudge targets the 1.
 
-**Max-mode nudge shifts every die.** Given a Roll with `value_adjustment = (+1, true)` and dice `[3, 5, 9, 10]`: `final_dice = [4, 6, 10, 10]`. Every die shifts; the 10 clamps in place.
+**A tied nudge prefers creating a Critical Success.** Given a Roll with default modifiers, `value_adjustment = (+1, false)`, TN 6, and dice `[9, 5]`: both shifts raise DoIS by +1 — the 9→10 turns a Success into a Critical Success, the 5→6 turns a Neutral Result into a Success. The Critical wins the tie even though the 5 started lower. `nudge_changes = [10, null]`.
+
+**Max-mode nudge shifts every die.** Given a Roll with `value_adjustment = (+1, true)` and dice `[3, 5, 9, 10]`: `final_dice = [4, 6, 10, 10]` and `nudge_changes = [4, 6, 10, 10]`. Every position records its post-shift value, including the 10 that clamps in place — max mode has no null entries.
 
 **Reroll changes report per-position rerolled values.** Given a Roll with `dice_count = 4`, `positive_reroll = (1, false)`, dice `[1, 4, 6, 7]`, and the rerolled die landing on `8`: `reroll_changes = [8, null, null, null]`. The position of the rerolled die is preserved; unchanged dice are null.
 
-**Nudge changes report only the affected position.** Given a Roll with `value_adjustment = (+1, false)` and dice `[5, 5, 5, 1]` at TN 6: the nudge targets index 0 (the first 5 promoted to a Success). `nudge_changes = [6, null, null, null]`. Other positions stay null.
+**Nudge changes report only the affected position.** Given a Roll with default `failure_modifier = -1`, `value_adjustment = (+1, false)`, and dice `[5, 5, 5, 1]` at TN 6: the nudge targets index 3 (the 1). The 1→2 shift moves contribution from -1 (Failure) to 0 (Neutral) — a +1 delta, the same as the 5→6 shifts (0 → +1). Per the design's tie-break rule, the die that started lowest wins for a positive nudge. `nudge_changes = [null, null, null, 2]`. Other positions stay null.
 
 ---
 
@@ -113,30 +117,12 @@ Tests that depend on randomness (the actual values dice land on) state the *roll
 
 ---
 
-## Preroll
-
-**Positive Preroll appends Critical dice.** Roll with `dice_count = 3`, rolled dice `[8, 4, 2]`, `preroll = +2`, TN = 6, `failure_modifier = -1`, `critical_modifier = 2`. After Preroll: `final_dice = [8, 4, 2, 10, 10]` (rolled dice followed by appended Criticals). DoIS contributions: 8 (Success: +1), 4 (neutral: 0), 2 (neutral: 0), 10 (Critical: +2), 10 (Critical: +2). DoIS = 5. `critical_count = 2`.
-
-**Negative Preroll appends Failure dice.** Roll with `dice_count = 2`, rolled dice `[7, 5]`, `preroll = -3`, TN = 6, `failure_modifier = -1`. `final_dice = [7, 5, 1, 1, 1]`. DoIS contributions: 7 (+1), 5 (0), and three 1s (-1 each). DoIS = -2.
-
-**Preroll = 0 is a no-op.** Identical to omitting the field — `final_dice` contains only the rolled dice.
-
-**Preroll dice are immune to Rerolls.** Roll with `dice_count = 1`, rolled die `[3]`, TN = 6, `positive_reroll = (max, true)` (would reroll non-Successes), `preroll = +1`. The reroll slot eligibility runs only on the rolled dice; the `[3]` is rerolled. The prerolled `10` is appended afterward, untouched. Resulting `final_dice` is the post-reroll rolled value plus the 10.
-
-**Preroll dice are immune to Nudges.** Roll with `dice_count = 1`, rolled die `[5]`, `value_adjustment = (-2, false)` (would lower a die), `preroll = +1`. The Nudge picks the highest non-targeted-against die — only the rolled `5` is in scope. After Nudge: rolled die = `3`. Then the prerolled `10` is appended. `final_dice = [3, 10]`.
-
-**`dice_count = 0` with non-zero Preroll.** Roll with `dice_count = 0`, `preroll = +4`, TN = 6, `critical_modifier = 2`. No random roll. `final_dice = [10, 10, 10, 10]`. DoIS = `4 × 2 = 8` (plus Starting Value, if any). `critical_count = 4`. Outcome = `success` for any sane Default Success Threshold.
-
-**Preroll appears in Dice Result String.** Without-TN Roll with `dice_count = 2`, rolled dice `[9, 4]`, `preroll = +1`. After Preroll: `final_dice = [9, 4, 10]`, sorted descending for the Dice Result String → encoding starts with the character for 10 (e.g. `'X'`) followed by `'9'`, `'4'`.
-
----
-
 ## Edge cases
 
-**Empty `bonus_penalty_list`.** A Roll with no entries produces TN = Base Target Number and Starting Value = `starting_contribution`. No per-Type stacking, no Net Modifier, no overflow.
+**Empty `bonus_penalty_list`.** A Roll with no entries produces TN = Base Target Number and Starting Value = `starting_contribution`. No per-Type stacking, no TN Net Modifier, no overflow.
 
 **Reroll count exceeds eligible dice.** Given `dice_count = 6`, all dice are Successes, and `positive_reroll = (5, false)`: no dice are rerolled. The positive slot only targets non-Successes; with none present, the slot does nothing regardless of count.
 
-**Nudge at boundary.** Given a Roll with `value_adjustment = (+1, false)` and dice `[10]`: clamping prevents change. The single 10 is already at Die Size; +1 clamps back to 10. The targeting picks this die anyway (it's the only candidate), but the change is a no-op.
+**Nudge at boundary.** Given a Roll with `value_adjustment = (+1, false)` and dice `[10]`: the single 10 is the only candidate, so the targeting picks it. +1 clamps back to 10, but the targeted die still records its post-shift value: `nudge_changes = [10]`.
 
-**Standalone nudge with no eligible improvement.** Given dice `[10, 10, 10]` and `value_adjustment = (+1, false)`: every die clamps. No die's value changes. The function reports an all-null `nudge_changes` list.
+**Standalone nudge with no eligible improvement.** Given dice `[10, 10, 10]` and `value_adjustment = (+1, false)`: the targeting picks one die (tied on every criterion → lowest index). It clamps in place but still records its value, while the untargeted dice stay null: `nudge_changes = [10, null, null]`.
