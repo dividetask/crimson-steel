@@ -29,7 +29,7 @@ RSpec.describe 'Encounter::State combat mode' do
     Encounter::State.new({}, data_path: data_path,
                          creature_lookup: ->(id) { creatures[id.to_s] },
                          conditions_for: ->(id) { cond[id.to_s] },
-                         current_round_fn: -> { 0 })
+                         current_timestamp_fn: -> { { day_index: 0, round_of_day: 0 } })
   end
 
   describe 'Combat Pool' do

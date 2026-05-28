@@ -35,21 +35,20 @@ module Encounter
     @creature_lookup = callable
   end
 
-  # Chronicle's current Round-of-day, used as the Combat Anchor and by
-  # Is Stale?. Overridable for tests.
-  def current_round
-    @current_round_fn ||= -> { (Chronicle.store.timestamp[:round_of_day] rescue 0) }
-    @current_round_fn.call
+  # Chronicle's current Timestamp ({day_index:, round_of_day:}), used
+  # as the Combat Anchor and by Is Stale?. Overridable for tests.
+  def current_timestamp
+    (Chronicle.store.timestamp rescue { day_index: 0, round_of_day: 0 })
   end
 
-  def current_round_fn=(callable)
-    @current_round_fn = callable
+  # Calendar length for the absolute-round comparison in Is Stale?.
+  def rounds_per_day
+    (Timekeeping.rounds_per_day rescue 10_000)
   end
 
   def reset!
     @state = nil
     @creature_lookup = nil
-    @current_round_fn = nil
     Config.reset!
   end
 end

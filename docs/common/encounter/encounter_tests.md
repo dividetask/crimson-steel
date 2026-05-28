@@ -38,7 +38,7 @@ Every test assumes Chronicle is present and `creature_lookup` resolves each Comb
 
 ## Add / Remove Combatant
 
-**Add Combatant raising Time Ticks Per Round triggers Time Tick Schedule recompute.** Active Combat with Tiers `[0, 0]` (Time Ticks Per Round = 1). Adding a Tier-3 Combatant raises Time Ticks Per Round to 2. After the call: the new Combatant's Time Tick Schedule is `[1]`; the existing Combatants' Time Tick Schedules are `[1]` (recomputed for the new R = 2).
+**Add Combatant raising Time Ticks Per Round triggers Time Tick Schedule recompute.** Active Combat with Tiers `[0, 0]` (Time Ticks Per Round = 1). Adding a Tier-3 Combatant raises Time Ticks Per Round to 2. After the call: the two Tier-0 Combatants' Time Tick Schedules recompute to `[1]` (T = 1 at R = 2), and the Tier-3 Combatant (T = Turns Per Round\[3\] = 2) gets `[1, 2]` per the floored-midpoint formula.
 
 **Add Combatant rolls Initiative for the new Combatant only.** Existing Combatants' `initiative_string` values are unchanged.
 
@@ -146,7 +146,7 @@ Cases:
 
 ## Get / Spend / Reset Combat Pool
 
-**Get Combat Pool runs the buy formula.** Combatant has Tier 0, `martial_proficiency_ranks = 4`, attribute = 12. Budget = `floor((4 + floor(12/2)) / 1) = 10`. Buy formula: 4 free; 4 more cost `1·4 = 4` (running total 8); the next 4 cost `2·4 = 8` (running total 16, exceeds 10). So P=8 is the largest fit. Result: 8.
+**Get Combat Pool runs the buy formula.** Combatant has Tier 0, `martial_proficiency_ranks = 4`, attribute = 12. Budget = `floor((4 + floor(12/2)) / 1) = 10`. The tiered Buy cost function (per *Combat Pool computation*: `Step·T(T-1)/2 + R·T` with `T = floor(P/Step)`, `R = P mod Step`) gives `cost(11) = 4·1 + 3·2 = 10 ≤ 10 < cost(12) = 4·3 = 12`. So P = 11 is the largest fit. Result: 11.
 
 **Get Combat Pool guarantees at least Combat Pool Step.** Combatant with Budget = 0 still gets Combat Pool = 4 (Step's free tier).
 

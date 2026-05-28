@@ -5,10 +5,10 @@ require 'tmpdir'
 RSpec.describe Encounter::State do
   let(:tmpdir) { Dir.mktmpdir('encounter-state') }
   let(:data_path) { File.join(tmpdir, 'encounter_data.json') }
-  # A creature_lookup stub returning a fixed Tier so combat-mode
-  # computations (Time Ticks, schedules) are deterministic without the
-  # live Creatures domain.
-  let(:fake_creature) { Struct.new(:tier).new(0) }
+  # A creature_lookup stub responding to tier + tags (player_character)
+  # so combat-mode computations and PC-exclusion validation run without
+  # the live Creatures domain.
+  let(:fake_creature) { Struct.new(:tier, :tags).new(0, ['player_character']) }
   let(:state) do
     described_class.new({}, data_path: data_path,
                         creature_lookup: ->(_id) { fake_creature })

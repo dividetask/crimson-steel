@@ -23,14 +23,18 @@ module Encounter
     end
 
     # creature_lookup / conditions_for default to the live domains but
-    # are injectable for tests. current_round_fn returns Chronicle's
-    # current Round-of-day.
+    # are injectable for tests. current_timestamp_fn returns Chronicle's
+    # current Timestamp ({day_index:, round_of_day:}); rounds_per_day
+    # and round_elapsed_fn likewise default to the live domains.
     def initialize(raw = {}, data_path: DATA_PATH,
-                   creature_lookup: nil, conditions_for: nil, current_round_fn: nil)
+                   creature_lookup: nil, conditions_for: nil,
+                   current_timestamp_fn: nil, rounds_per_day: nil, round_elapsed_fn: nil)
       @data_path           = data_path
       @creature_lookup     = creature_lookup
       @conditions_for      = conditions_for
-      @current_round_fn    = current_round_fn
+      @current_timestamp_fn = current_timestamp_fn
+      @rounds_per_day      = rounds_per_day
+      @round_elapsed_fn    = round_elapsed_fn
       @combatants          = (raw['combatants'] || []).map { |c| normalize_combatant(c) }
       @next_combatant_id   = Integer(raw['next_combatant_id'] || ((@combatants.map { |c| c[:id] }.max || 0) + 1))
       @excluded_pcs        = (raw['excluded_pcs'] || []).map(&:to_s)
@@ -133,9 +137,19 @@ module Encounter
 
     # ---------- PC exclusions ----------
 
+    # Replace the exclusion list wholesale. Every supplied ID must
+    # resolve to a Player Character (tags include player_character) via
+    # creature_lookup; the call is rejected (state unchanged) otherwise.
     def set_pc_exclusions(creature_ids)
-      @excluded_pcs = Array(creature_ids).map(&:to_s)
-      @excluded_pcs.each { |cid| remove_all_combatants_by_creature_id(cid) }
+      ids = Array(creature_ids).map(&:to_s)
+      ids.each do |cid|
+        creature = lookup!(cid)
+        unless creature && Array(creature.tags).include?('player_character')
+          raise ArgumentError, "creature #{cid.inspect} is not a Player Character"
+        end
+      end
+      @excluded_pcs = ids
+      ids.each { |cid| remove_all_combatants_by_creature_id(cid) }
       persist!
       @excluded_pcs.dup
     end
@@ -178,7 +192,8 @@ module Encounter
       @time_tick = 1
       @elapsed_time_ticks = 0
       @acting_combatant_id = nil
-      @combat_anchor = { 'round_of_day' => current_round }
+      ts = current_timestamp
+      @combat_anchor = { 'day_index' => ts[:day_index], 'round_of_day' => ts[:round_of_day] }
       @dm_luck_points = 0
       @combatants.each do |c|
         c[:combat_pool_spent]   = 0
@@ -201,6 +216,7 @@ module Encounter
       @elapsed_time_ticks = 0
       @acting_combatant_id = nil
       @granted_actions = []
+      @dm_luck_points = 0
       persist!
       self
     end
@@ -304,8 +320,19 @@ module Encounter
         @acting_combatant_id = nxt[:id]
         break if creature_can_act?(nxt[:id])
       end
+      apply_per_turn_setup(@acting_combatant_id) if @acting_combatant_id
       persist!
       @acting_combatant_id
+    end
+
+    # Apply Per-Turn Setup to the incoming Combatant: reset per-turn
+    # Concentration Reservoirs to 0 (persistent reservoirs untouched).
+    def apply_per_turn_setup(combatant_id)
+      c = combatant_for(combatant_id)
+      return unless c
+      c[:concentration].each do |e|
+        e[:reservoir] = 0 if e[:reservoir_reset] == 'per_turn'
+      end
     end
 
     def advance_time_tick
@@ -322,11 +349,19 @@ module Encounter
 
     # ---------- Drift / Round label ----------
 
+    # True iff the elapsed-Time-Tick-implied Round disagrees with
+    # Chronicle's current Round. Compared as absolute rounds
+    # (day_index × Rounds Per Day + round_of_day) so a Day rollover
+    # between Combat ticks does not spuriously read as stale.
     def stale?
       return false if @combat_anchor.nil?
-      anchor = Integer(@combat_anchor['round_of_day'] || @combat_anchor[:round_of_day] || 0)
-      expected = anchor + (@elapsed_time_ticks / (@time_ticks_per_round || 1))
-      expected != current_round
+      rpd = rounds_per_day
+      anchor_day = Integer(@combat_anchor['day_index'] || @combat_anchor[:day_index] || 0)
+      anchor_rod = Integer(@combat_anchor['round_of_day'] || @combat_anchor[:round_of_day] || 0)
+      expected_abs = (anchor_day * rpd) + anchor_rod + (@elapsed_time_ticks / (@time_ticks_per_round || 1))
+      ts = current_timestamp
+      current_abs = (ts[:day_index] * rpd) + ts[:round_of_day]
+      expected_abs != current_abs
     end
 
     # 1-based cumulative tick = elapsed + 1. Round / sub-tick per
@@ -393,6 +428,45 @@ module Encounter
       raw = (fall_distance / 10) * per10
       raw = [raw - acrobatics_successes, 0].max
       apply_damage(combatant_id, raw, 'physical', threshold: Config.falling_damage_threshold)
+    end
+
+    # ---------- Resolve Attack payload ----------
+
+    # Consume the turn-flow payload (turn_action_stub.md → Confirm
+    # payload): spend Combat Pool for every participant (dice × Speed),
+    # sum Supporting DoIS minus Opposing DoIS, and apply damage when the
+    # net DoS is positive. Successes are pre-rolled by the client and
+    # carried in the payload. Returns { damage:, severity_map:, net_dos: }.
+    #
+    # Payload (symbol or string keys):
+    #   target_id, damage_bonus,
+    #   attacker: { id, dice, speed, successes },
+    #   defense:  { choice, id, dice, speed, successes },  # choice "none" skips
+    #   allies:   [ { id, dice, speed, successes }, ... ]
+    def resolve_attack_payload(payload)
+      p = deep_symbolize(payload)
+      attacker = p[:attacker] || {}
+      defense  = p[:defense]  || {}
+      allies   = Array(p[:allies])
+
+      spend_combat_pool(attacker[:id], attacker[:dice].to_i * attacker[:speed].to_i) if attacker[:id]
+      allies.each { |a| spend_combat_pool(a[:id], a[:dice].to_i * a[:speed].to_i) if a[:id] }
+
+      opposing = 0
+      unless defense[:choice].to_s == 'none' || defense.empty?
+        spend_combat_pool(defense[:id], defense[:dice].to_i * defense[:speed].to_i) if defense[:id]
+        opposing = defense[:successes].to_i
+      end
+
+      supporting = attacker[:successes].to_i + allies.sum { |a| a[:successes].to_i }
+      net = supporting - opposing
+      if net.positive?
+        damage = p[:damage_bonus].to_i + net
+        out = apply_damage(p[:target_id], damage, 'physical')
+        { damage: damage, severity_map: out[:severity_map], net_dos: net }
+      else
+        { damage: 0, severity_map: {}, net_dos: net }
+      end
     end
 
     # ---------- Granted Actions ----------
@@ -640,15 +714,30 @@ module Encounter
       creature ? (creature.tier rescue 0) : 0
     end
 
-    def current_round
-      fn = @current_round_fn || -> { Encounter.current_round }
-      fn.call
+    def current_timestamp
+      fn = @current_timestamp_fn || -> { Encounter.current_timestamp }
+      ts = fn.call || {}
+      ts = ts.transform_keys(&:to_sym) if ts.respond_to?(:transform_keys)
+      { day_index: Integer(ts[:day_index] || 0), round_of_day: Integer(ts[:round_of_day] || 0) }
+    end
+
+    def rounds_per_day
+      @rounds_per_day || Encounter.rounds_per_day
     end
 
     def notify_round_elapsed
+      return @round_elapsed_fn.call if @round_elapsed_fn
       Chronicle.store.advance_time(rounds: 1) if defined?(Chronicle) && Chronicle.respond_to?(:store)
     rescue StandardError
       nil
+    end
+
+    def deep_symbolize(obj)
+      case obj
+      when Hash  then obj.each_with_object({}) { |(k, v), h| h[k.to_sym] = deep_symbolize(v) }
+      when Array then obj.map { |v| deep_symbolize(v) }
+      else obj
+      end
     end
 
     def attr_scores(creature)
