@@ -9,6 +9,7 @@ enable :sessions
 
 $LOAD_PATH.unshift(File.join(__dir__, 'lib'))
 
+require 'abilities'
 require 'conditions'
 require 'dice_resolution'
 require 'timekeeping'

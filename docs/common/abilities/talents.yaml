@@ -36,7 +36,7 @@ Rage:
 
 Channel Divinity:
   type: talent
-  skills: [invoke]
+  skills: [invocation]
   mana_cost: 1
   description: "Spend mana to invoke a divine effect from your domain. Channel Divinity has no effect on its own — specific Channel Divinity abilities (like Turn Undead) inherit from this Talent and supply the actual mechanics."
 

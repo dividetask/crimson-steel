@@ -30,12 +30,16 @@ Ritual:
     4: 1440
     5: 10080
 
+# Action Aliases. Used for activations tied to the Combat action economy.
+# The value is a categorical label (fraction-of-turn weight), NOT a
+# duration — Combat maps it to an action category. Resolved activation
+# results carry this value verbatim.
 Action Aliases:
-  - free
-  - bonus
-  - reaction
-  - main
-  - full turn
+  free: 0
+  bonus: 0.25
+  reaction: 0.1
+  main: 0.5
+  full turn: 1
 
 # Real-Time Aliases. Used for activations measured in wall-clock time.
 # Values are the duration in minutes.
@@ -62,6 +66,7 @@ Casting Skills List:
   arcana: "Learned arcane casting."
   healing: "Restorative casting."
   nature: "Natural or primal casting."
+  craft_: "Crafting-skill family — used when a Spell channels through a mundane crafting discipline."
   evocation: "Innate magical casting, and skill in activating magical devices."
   invocation: "Divine casting — channeling spells through a deity."
   restricted: "Unethical casting — outlawed by the local authorities of every civilization except the most evil."
