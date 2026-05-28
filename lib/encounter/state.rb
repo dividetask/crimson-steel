@@ -439,33 +439,52 @@ module Encounter
     # carried in the payload. Returns { damage:, severity_map:, net_dos: }.
     #
     # Payload (symbol or string keys):
-    #   target_id, damage_bonus,
+    #   target_id, attack_kind ('melee'|'ranged'|'spell', default melee),
+    #   weapon:   { damage_types:, threshold:, base_damage: } (optional;
+    #             falls back to damage_bonus + 'physical'),
+    #   damage_bonus,
     #   attacker: { id, dice, speed, successes },
-    #   defense:  { choice, id, dice, speed, successes },  # choice "none" skips
+    #   defense:  { choice, id, dice, speed, successes },  # "none" skips;
+    #             Dodge costs no Combat Pool; ineligible defenses reject,
     #   allies:   [ { id, dice, speed, successes }, ... ]
     def resolve_attack_payload(payload)
       p = deep_symbolize(payload)
       attacker = p[:attacker] || {}
       defense  = p[:defense]  || {}
       allies   = Array(p[:allies])
+      attack_kind = (p[:attack_kind] || 'melee').to_s
+      weapon = p[:weapon] || {}
+
+      # Reject an ineligible Defensive Action before spending anything.
+      choice = defense[:choice].to_s
+      declared = !(choice.empty? || choice == 'none' || defense.empty?)
+      if declared && !Attack.defense_eligible?(choice, attack_kind)
+        return { ok: false, error: "#{choice} is not eligible against a #{attack_kind} attack",
+                 damage: 0, severity_map: {}, net_dos: 0 }
+      end
 
       spend_combat_pool(attacker[:id], attacker[:dice].to_i * attacker[:speed].to_i) if attacker[:id]
       allies.each { |a| spend_combat_pool(a[:id], a[:dice].to_i * a[:speed].to_i) if a[:id] }
 
       opposing = 0
-      unless defense[:choice].to_s == 'none' || defense.empty?
-        spend_combat_pool(defense[:id], defense[:dice].to_i * defense[:speed].to_i) if defense[:id]
+      if declared
+        # Parry / Block spend Combat Pool; Dodge (a Saving Throw) does not.
+        if Attack.defense_spec(choice)[:pool_cost] && defense[:id]
+          spend_combat_pool(defense[:id], defense[:dice].to_i * defense[:speed].to_i)
+        end
         opposing = defense[:successes].to_i
       end
 
       supporting = attacker[:successes].to_i + allies.sum { |a| a[:successes].to_i }
       net = supporting - opposing
       if net.positive?
-        damage = p[:damage_bonus].to_i + net
-        out = apply_damage(p[:target_id], damage, 'physical')
-        { damage: damage, severity_map: out[:severity_map], net_dos: net }
+        base = weapon[:base_damage] ? weapon[:base_damage].to_i : p[:damage_bonus].to_i
+        damage = base + net
+        dtype = (Array(weapon[:damage_types]).first || weapon[:damage_type] || 'physical').to_s
+        out = apply_damage(p[:target_id], damage, dtype, threshold: weapon[:threshold].to_i)
+        { ok: true, damage: damage, severity_map: out[:severity_map], net_dos: net, damage_type: dtype }
       else
-        { damage: 0, severity_map: {}, net_dos: net }
+        { ok: true, damage: 0, severity_map: {}, net_dos: net }
       end
     end
 

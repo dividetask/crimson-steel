@@ -3,6 +3,7 @@ require_relative 'encounter/combat_pool'
 require_relative 'encounter/time_ticks'
 require_relative 'encounter/initiative'
 require_relative 'encounter/severity'
+require_relative 'encounter/attack'
 require_relative 'encounter/state'
 
 # Encounter domain. See docs/common/encounter/encounter_design.md.
