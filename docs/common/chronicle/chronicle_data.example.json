@@ -27,7 +27,7 @@
       "hidden_from": [],
       "owner_id": null,
       "active": false,
-      "creature_id": 1001,
+      "creature_id": 2001,
       "creature_token": null,
       "tier": null
     },
@@ -60,7 +60,7 @@
       "hidden_from": [],
       "owner_id": null,
       "active": true,
-      "creature_id": 1003,
+      "creature_id": 2002,
       "creature_token": null,
       "tier": null
     },

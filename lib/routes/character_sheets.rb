@@ -3,13 +3,17 @@ get '/character-sheets' do
 
   # The sheet is rendered exclusively from the live Creatures domain
   # (docs/common/creatures + data/) via the CreatureSheet bridge —
-  # never from Status sample data. ?creature_id selects directly;
-  # ?i pages through the live roster in load order.
-  ids = LiveRoster.ordered_ids
+  # never from Status sample data. Players only see Player Character
+  # sheets (and page through them with arrows); the DM sees every
+  # creature and navigates via the roster sidebar.
+  @player_view = !dm_view?
+  ids = @player_view ? LiveRoster.creatures_with_tag('player_character').map { |r| r[:id] }
+                     : LiveRoster.ordered_ids
   @total = ids.length
+  requested = params[:creature_id] && (Creatures.lookup(params[:creature_id]) rescue nil)
   @creature_id =
-    if params[:creature_id] && (acc = (Creatures.lookup(params[:creature_id]) rescue nil))
-      acc.id
+    if requested && ids.include?(requested.id)
+      requested.id
     elsif !ids.empty?
       i = params[:i].to_i
       i = 0 if i < 0
@@ -20,9 +24,15 @@ get '/character-sheets' do
   accessor = @creature_id && (Creatures.lookup(@creature_id) rescue nil)
   @demo = accessor ? CreatureSheet.build(accessor) : nil
 
-  # Random Encounter Template viewer (replaces the sheet in the main
-  # panel when ?random_encounter_template=<table_id> is set).
-  @random_encounter_template_id = params[:random_encounter_template]
+  # Paging arrows — players only (the DM navigates via the sidebar).
+  if @player_view && @i >= 0 && ids.length > 1
+    @prev_creature_id = ids[(@i - 1) % ids.length]
+    @next_creature_id = ids[(@i + 1) % ids.length]
+  end
+
+  # Random Encounter Template viewer (DM only) — replaces the sheet in
+  # the main panel when ?random_encounter_template=<table_id> is set.
+  @random_encounter_template_id = params[:random_encounter_template] if dm_view?
   if @random_encounter_template_id && Creatures::RandomEncounter.tables.key?(@random_encounter_template_id)
     @random_encounter_template = Creatures::RandomEncounter.tables[@random_encounter_template_id]
     @random_encounter_name_for = ->(template_id) do

@@ -10,6 +10,12 @@
   <% end %>
   <div class="cs-main">
     <div id="random-encounter-roll-result"></div>
+    <% if @prev_creature_id || @next_creature_id %>
+      <nav class="cs-sheet-nav">
+        <a class="cs-sheet-arrow" href="/character-sheets?creature_id=<%= @prev_creature_id %>&detail=<%= @detail %>" aria-label="Previous sheet">‹ Prev</a>
+        <a class="cs-sheet-arrow" href="/character-sheets?creature_id=<%= @next_creature_id %>&detail=<%= @detail %>" aria-label="Next sheet">Next ›</a>
+      </nav>
+    <% end %>
     <% if @random_encounter_template_id %>
       <%= erb :_random_encounter_template,
               locals: { table_id: @random_encounter_template_id,
