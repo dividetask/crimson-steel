@@ -41,7 +41,7 @@ Tests that depend on randomness state the *rolled* dice as input; an implementat
 
 **A Check with strongly negative Degree of Success Fumbles.** Given Supporting DoIS = -3 and no Opposing Rolls: `degree_of_success = -3`. Check Outcome = `fumble` (≤ −Default Fumble Threshold of 2).
 
-**Check-level Fumble fires regardless of per-Roll `failure_modifier`.** Given a single Supporting Roll with `failure_modifier = 0` (the Roll's own outcome is `failure`, never `fumble`) and dice that produce DoIS = -3: the Check's `degree_of_success = -3` and Check Outcome = `fumble`. The Roll-level Fumble suppression rule does not propagate to the Check level.
+**Check-level Fumble fires regardless of per-Roll `failure_modifier`.** Given a single Supporting Roll with `failure_modifier = 0` (so the Roll's own outcome is `failure`, never `fumble`) and a Starting Value of −3 (e.g. from Penalty overflow — dice cannot drive DoIS negative when `failure_modifier = 0`): the Check's `degree_of_success = -3` and Check Outcome = `fumble`. The Roll-level Fumble suppression rule does not propagate to the Check level.
 
 **An opposed Check that nets to zero is a failure.** Given Supporting DoIS = +3 and Opposing DoIS = +3: `degree_of_success = 0`. Check Outcome = `failure` (below Success Threshold, above Fumble Threshold).
 
