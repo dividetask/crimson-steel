@@ -11,6 +11,7 @@ module Equipment
     include Magical
     include LootRolling
     include CombatLoot
+    include Archive
 
     attr_reader :catalog, :store, :rng
 
@@ -24,6 +25,12 @@ module Equipment
       @abilities = abilities
       @loot = loot
       @rng = rng
+      @archives = {}
+      @archive_seq = 0
+    end
+
+    def loot_archive(id)
+      @archives[id]
     end
 
     def loot
