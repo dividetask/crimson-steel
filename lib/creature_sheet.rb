@@ -86,7 +86,8 @@ module CreatureSheet
     defense  = defensive_totals(accessor)
     {
       hp:   { current: [max_hp - hp_dmg, 0].max, max: max_hp },
-      mana: { current: (st ? [max_mana - st.mana_spent, 0].max : max_mana), max: max_mana },
+      mana: { current: (st ? [max_mana - st.mana_spent, 0].max : max_mana), max: max_mana,
+              regen: mana_regen_per_day(max_mana) },
       toxicity: { current: (st ? st.magic_toxicity : 0),
                   threshold: (cond ? (cond.toxicity_threshold(cha, tier) rescue 0) : 0) },
       temp_hp: (st&.temporary_hit_points ? st.temporary_hit_points[:amount] : 0),
@@ -95,6 +96,17 @@ module CreatureSheet
       combat_pool: (Encounter::CombatPool.size_for(accessor) rescue 0),
       damage_reduction: defense[:damage_reduction], damage_resilience: defense[:damage_resilience]
     }
+  end
+
+  # Mana regained per Day of Natural Recovery: floor(Max Mana / Mana
+  # Per Recovery Tick Divisor), where one Recovery Tick is one Day (see
+  # conditions_config.yaml → Natural Recovery).
+  def mana_regen_per_day(max_mana)
+    div = (Conditions.store.catalog.mana_per_recovery_tick_divisor rescue nil).to_i
+    div = 4 if div.zero?
+    max_mana / div
+  rescue StandardError
+    0
   end
 
   # Sum equipped Armor + Shield mitigation via Equipment.

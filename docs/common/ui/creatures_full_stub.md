@@ -9,7 +9,7 @@ See `ui_conventions.md` for shared rules.
 The sheet has a mix of full-width sections and a two-column body:
 
 1. **Header** (full width) — Creature name, race + class summary, Tier, BAB, Player line. Tier is colored per the Tier Colors mapping in `ui_conventions.md`.
-2. **Vitals strip (expanded)** (full width) — Combat Pool, Perception (with dice and bonus), Initiative, Damage Reduction, Damage Resilience, Speed, HP, Mana, Temporary HP, Moderate Damage, Major Damage.
+2. **Vitals strip (expanded)** (full width) — Combat Pool, Perception (with dice and bonus), Initiative, Damage Reduction, Damage Resilience, Speed, HP, Mana, Mana Regen, Temporary HP, Moderate Damage, Major Damage.
 3. **Combat** (full width) — table of usable actions: Name, Speed, Roll, Attack/Defense Bonus, Damage Bonus, Bleed, MT, Notes.
 
 Below Combat the sheet splits into two side-by-side columns. The left column carries the per-Creature mechanical detail (Attributes through Item Descriptions); the right column carries the narrative / casting detail (Abilities and Spell List). The split keeps the sheet from running too tall when both halves are populated.
@@ -46,4 +46,4 @@ In addition to everything used by the minimal stub:
 
 - **Combat-derived values** (Combat Pool, attack rolls and bonuses, damage and bleed) — computed by the Encounter domain via Creatures' Accessor (`attribute_value`, `ranks_for("martial")`) plus Equipment's Weapon Details. BAB is `ranks_for("martial")` directly.
 
-The expanded vitals (Damage Reduction, Damage Resilience, etc.) come from formulas applied to Creature attributes, Tier, and equipped Armor. The Attributes table's Check and Save columns derive from Effective Attributes plus the displayed formulas.
+The expanded vitals (Damage Reduction, Damage Resilience, Mana Regen, etc.) come from formulas applied to Creature attributes, Tier, equipped Armor, and Conditions tunables (Mana Regen is `floor(Max Mana / Mana Per Recovery Tick Divisor)` per Day). The Attributes table's Check and Save columns derive from Effective Attributes plus the displayed formulas.
