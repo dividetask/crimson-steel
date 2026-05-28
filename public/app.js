@@ -765,4 +765,98 @@
     var card = body.closest('.ce-card');
     if (card) openTextModal(card);
   });
+
+  // -- Roster Sidebar: <details> open/closed persistence ---------------
+  //
+  // Each group's open state lives in localStorage under
+  // `cs-roster-group:<data-group-key>`. We restore on load and write
+  // on toggle.
+  var ROSTER_STORAGE_PREFIX = 'cs-roster-group:';
+
+  function restoreRosterGroups() {
+    var groups = document.querySelectorAll('.cs-roster-sidebar .cs-roster-group');
+    groups.forEach(function (g) {
+      var key = g.getAttribute('data-group-key');
+      if (!key) return;
+      var stored = null;
+      try { stored = localStorage.getItem(ROSTER_STORAGE_PREFIX + key); } catch (e) {}
+      if (stored === 'open') {
+        g.setAttribute('open', '');
+      } else if (stored === 'closed') {
+        g.removeAttribute('open');
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', restoreRosterGroups);
+  // Also run immediately in case the script tag is at the bottom and
+  // DOMContentLoaded already fired.
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    restoreRosterGroups();
+  }
+
+  document.addEventListener('toggle', function (e) {
+    var g = e.target;
+    if (!g.classList || !g.classList.contains('cs-roster-group')) return;
+    var key = g.getAttribute('data-group-key');
+    if (!key) return;
+    try {
+      localStorage.setItem(ROSTER_STORAGE_PREFIX + key, g.open ? 'open' : 'closed');
+    } catch (e2) { /* localStorage unavailable */ }
+  }, true);
+
+  // -- Roster Sidebar: Player Active/Absent toggle ---------------------
+  //
+  // creatures_roster_sidebar_stub.md: Players have a single toggle
+  // instead of +/- buttons. Click flips the state visually; persistence
+  // wiring is out of scope until the Combat / Players-domain UI lands.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('.cs-player-toggle');
+    if (!btn) return;
+    var nowActive = btn.classList.contains('cs-player-active');
+    if (nowActive) {
+      btn.classList.remove('cs-player-active');
+      btn.classList.add('cs-player-absent');
+      btn.textContent = 'Absent';
+      btn.setAttribute('aria-pressed', 'false');
+      btn.title = 'Mark active';
+      var row = btn.closest('.cs-roster-row');
+      if (row) row.classList.add('cs-player-absent');
+    } else {
+      btn.classList.remove('cs-player-absent');
+      btn.classList.add('cs-player-active');
+      btn.textContent = 'Active';
+      btn.setAttribute('aria-pressed', 'true');
+      btn.title = 'Mark absent';
+      var row2 = btn.closest('.cs-roster-row');
+      if (row2) row2.classList.remove('cs-player-absent');
+    }
+  });
+
+  // -- Encounter Roll Result panel -------------------------------------
+  //
+  // creatures_encounter_roll_result_stub.md: clicking the Roll button
+  // on a sidebar Encounter Table row OR on the result panel itself
+  // fetches a fresh roll and replaces the panel above the main sheet.
+  // Combat / enemy-data-file side effects are not yet wired — the
+  // server returns sample roll data and the panel just renders it.
+  function fetchEncounterRoll(tableId) {
+    var slot = document.getElementById('encounter-roll-result');
+    if (!slot) return;
+    fetch('/encounters/roll/' + encodeURIComponent(tableId), {
+      headers: { 'Accept': 'text/html' }
+    })
+      .then(function (r) { return r.text(); })
+      .then(function (html) { slot.innerHTML = html; })
+      .catch(function () { /* leave previous panel in place */ });
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('.cs-encounter-roll-btn');
+    if (!btn) return;
+    e.preventDefault();
+    var tableId = btn.getAttribute('data-table-id');
+    if (!tableId) return;
+    fetchEncounterRoll(tableId);
+  });
 })();

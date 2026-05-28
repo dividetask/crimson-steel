@@ -16,8 +16,6 @@
 #               a breakpoint list; highest tier wins. Descriptive tags
 #               (NPC, Ally, Enemy) have no effect on tier.
 #   tier        optional. Hardcodes the tier; bypasses Advancement.
-#   ritual_list optional. Array of arrays grouped by tier — index 2
-#               is the list of tier-2 rituals. Pure data, rendered as-is.
 #   attributes  six base ability scores (str, dex, con, int, wis, cha).
 #   advancement optional. Tracks classes and tier-up choices. Keys:
 #                 tier_attribute_advancement
@@ -52,9 +50,6 @@ characters:
       int: 13
       wis: 16
       cha: 18
-    ritual_list:
-      - []
-      - [Comprehend Languages, Detect Magic]
     advancement:
       classes:
         bard:
@@ -95,10 +90,6 @@ characters:
     name: Lira Duskmoor
     player: Jordan
     race: elf
-    ritual_list:
-      - []
-      - [Comprehend Languages, Detect Magic, Identify]
-      - [Locate Object]
     attributes:
       str: 8
       dex: 14
@@ -179,8 +170,6 @@ characters:
     name: Ember Blackoak
     player: Casey
     race: half_orc
-    ritual_list:
-      - [Light]
     attributes:
       str: 13
       dex: 11
@@ -201,7 +190,7 @@ characters:
             - survival
             - perception
             - animal_handling
-            - medicine
+            - healing
 
   - id: 7
     name: Thora Stoneveil
@@ -274,9 +263,6 @@ characters:
     player: Quinn
     race: high_elf
     tier: 2
-    ritual_list:
-      - [Guidance, Resistance, Acid Splash, Drench, Light, Spark, Mending]
-      - [Alarm, Endure Elements, Mount, Charm Person, Silent Image, Ant Haul, Disguise Self]
     attributes:
       str: 7
       dex: 13

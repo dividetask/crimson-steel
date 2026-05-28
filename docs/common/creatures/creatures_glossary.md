@@ -20,15 +20,15 @@ Defines the vocabulary used by the Creatures design and tests. Creatures owns id
 
 **Save Attribute**: One of the six Attributes, used when a Creature rolls to resist an effect targeting that Attribute. Every Attribute has a corresponding Saving Throw.
 
-## Aspects
+## Race
 
-**Aspect**: A category of inherited or chosen attributes that contributes adjustments and Granted Abilities. Race is the prototypical Aspect category; the consuming project may add more.
+**Race**: A Creature's biological or metaphysical heritage. Stored as a single key on the Creature; the catalog resolves the key through a `parent:` chain to assemble the effective Race.
 
-**Aspect Entry**: A single named entry within an Aspect category. A Creature references one Aspect Entry per category.
+**Race Entry**: A single named entry in `creatures_race.yaml`. May have a `parent:` reference to another Race Entry. The chain ends at an entry whose `parent` is null.
 
-**Aspect Chain**: The ordered sequence of Aspect Entries reached by following an entry's parent reference back to the root. A child Aspect Entry inherits and extends its parent's contributions.
+**Race Chain**: The ordered sequence of Race Entries reached by following an entry's `parent:` reference back to the root. A child Race inherits and extends its parent's contributions.
 
-**Race**: A Creature's biological or metaphysical heritage. The default Aspect category shipped with Creatures.
+**Race Chain Walk**: The resolution that consumes a Race Chain to produce the effective Race — first-in-chain wins for `size` and `speed`, accumulated for `attribute_adjustments`, concatenated with child-wins dedup for `abilities`.
 
 ## Advancement and Tier
 
@@ -38,7 +38,7 @@ Defines the vocabulary used by the Creatures design and tests. Creatures owns id
 
 **Inherent Bonus**: A bonus that stacks into the Effective Attribute.
 
-**Tier-Up Choice**: The per-Creature record of which Attributes received the Tier Inherent Chosen Bonus at each Tier.
+**Tier Attribute Advancement**: The per-Creature flat list of which Attributes received the Tier Inherent Chosen Bonus, in pick order across Tiers. Chunked by `Tier Inherent Chosen Bonus Count` to recover each Tier's picks.
 
 ## Classes
 
@@ -48,17 +48,17 @@ Defines the vocabulary used by the Creatures design and tests. Creatures owns id
 
 **Total Class Level**: The sum of a Creature's levels across every Class.
 
-**Class Chain**: The ordered sequence of Class definitions reached by following a Class's Parent Class reference back to the root. A child Class inherits absent fields from its ancestors and may override or extend proficiency categorizations.
+**Archetype**: A Class that is taken in place of its Parent Class once the Creature has reached the eligibility level. When a Creature adopts an Archetype, all of their levels in the Parent Class convert to levels in the Archetype, and they cannot subsequently hold levels in the Parent Class. Archetypes inherit absent fields from their Parent Class and additively adjust proficiency categorizations.
 
-**Archetype**: A Class that is can be taken after reaching a certain level in it's Parent Class. All levels from the Parent Class are converted to The Archtype Class when the Archtype is taken. 
+**Parent Class**: A Class that offers one or more Archetypes. The Archetype's `parent_class:` field names this Class.
 
-**Parent Classs**: A Class that offers one or more Archtype Classes upon reaching a specific level.
+**Archetype Exclusivity**: The rule that a Creature's `advancement.classes` map must not contain both a Parent Class and one of its Archetypes, nor two Archetypes of the same Parent Class.
 
 **Class Ability Progression**: A per-Class map from Class Level to the Abilities granted at that Level.
 
-**Trained Skill**: A Skill the Creature has chosen to invest in under a given Class.
+**Trained Skill**: A Skill the Creature has chosen to invest in under a given Class. Stored in that Class Entry's `skills:` list.
 
-**Skill Pick Budget**: The number of Skill choices a Creature is *expected* to have per Class Level of the choosen Class.
+**Skill Pick Budget**: The number of Skill choices a Creature is *expected* to have per Class Level of the chosen Class. Computed from `Skill Pick Formula` against the Creature's Effective Intelligence and the Class's `bonus_skills` field. Advisory — Creatures does not enforce the count.
 
 ## Random Encounter Tables and Spawns
 

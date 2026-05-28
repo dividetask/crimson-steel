@@ -1,6 +1,6 @@
 # Creatures — Design
 
-Owns the Creature record: identity, Race + Aspect, Classes + Levels + Trained Skills + per-Class Choices, Tier Override, Tier-Up Choices, Group, Tags. Computes Tier, Effective Attributes, Speed, ranks for any proficiency key, Granted Abilities, and aggregated `modifiers:` from those Abilities. Produces a Creature Accessor that other domains read through.
+Owns the Creature record: identity, Race + Aspect, Classes + Levels + Trained Skills + per-Class Choices, Tier Override, Tier Attribute Advancements, Group, Tags. Computes Tier, Effective Attributes, Speed, ranks for any proficiency key, Granted Abilities, and aggregated `modifiers:` from those Abilities. Produces a Creature Accessor that other domains read through.
 
 Sibling domains:
 
@@ -18,85 +18,108 @@ The on-disk shape persisted in the `creatures_data_*.example.{json,yaml}` files 
 
 | Field | Type | Default on load | Description |
 |---|---|---|---|
-| `id` | string | required | Creature ID. Unique across the dataset. |
+| `id` | integer | required | Creature ID. Unique across the dataset. |
 | `name` | string | required | Display name. |
+| `player` | string or null | null | Name of the player running this Creature. Empty for Creatures the DM runs. Stored as metadata; Creatures does not interpret. |
 | `group` | string | `""` | Group classification (`pc`, `npc`, `enemy`, etc.). |
-| `tags` | list of string | `[]` | Free-form tags. |
-| `race` | string | required | Key into `races.yaml`. |
-| `race_aspect` | string or null | null | Key into the Race's `aspects` map. Required when the Race declares Aspects; rejected otherwise. |
-| `base_attributes` | map of attribute key → integer | required | The six raw scores (`str`, `dex`, `con`, `int`, `wis`, `cha`). Every key is required; default zero is *not* assumed. |
-| `classes` | list of Class Entry | `[]` | One entry per Class the Creature has levels in. |
-| `advancement_track` | string | `"default"` | Key into `Tier Breakpoints`. |
-| `tier_override` | integer or null | null | When set, *Get Tier* returns this verbatim and Tier Breakpoints are ignored. |
-| `tier_up_choices` | map of integer (Tier) → list of attribute keys | `{}` | Per-Tier-Up Inherent Chosen Bonus picks. Validated against `Per-Tier Inherent Chosen Bonus Count`. Missing Tiers default to no picks (the Creature simply forgoes the chosen bonus at those Tiers). |
+| `tags` | list of string | `[]` | Free-form tags. Tags drive Tier auto-computation via `Tier Breakpoints` and may be referenced by other domains. |
+| `race` | string | required | Key into `creatures_race.yaml`. Names a single Race entry. Multi-level inheritance is expressed through that entry's `parent:` chain — there is no separate `race_aspect` field. |
+| `attributes` | map of attribute key → integer | required | The six raw scores (`str`, `dex`, `con`, `int`, `wis`, `cha`). Every key is required; default zero is *not* assumed. |
+| `tier` | integer or null | null | Tier Override. When non-null, *Get Tier* returns this verbatim and Tier Breakpoints are ignored. When null, Tier is auto-computed from Total Class Level against the breakpoint list selected by the Creature's `tags`. |
+| `advancement` | Advancement Block | `{}` | Holds the Creature's classes and tier attribute advancement picks. See *Advancement Block* below. |
 | `loot_table` | string or null | null | Optional Loot Table ID (defined in Equipment). When set, Equipment's *Collect Combat Loot* rolls this table for the Creature on top of moving its Inventory. |
-| `metadata` | dict | `{}` | Caller-supplied free-form data. Creatures does not interpret. Used by consuming projects for player attribution, portrait paths, etc. |
+| `metadata` | dict | `{}` | Caller-supplied free-form data. Creatures does not interpret. Used by consuming projects for portrait paths, custom flags, etc. |
 
 `mana_spent`, `hp_damage`, equipped items, active Conditions, and similar runtime state are **not** stored on the Creature record — they live in Conditions, Equipment, and elsewhere, keyed by Creature ID.
 
-The persisted dataset is split across multiple files using the pattern `creatures_data_<suffix>.example.{json,yaml}` — by project convention, one each for PCs, enemies (templates plus spawns), and NPCs. The loader concatenates every matching file into one dataset; the `id` field must be unique across every file. Creatures itself is indifferent to which file a record lives in.
+The persisted dataset is split across multiple files using the pattern `creatures_data_<suffix>.example.{json,yaml}` — by project convention, one each for PCs (ids 1..99), enemies and templates (100..1999), and NPCs (2000+). The loader concatenates every matching file into one dataset; the `id` field must be unique across every file. Creatures itself is indifferent to which file a record lives in.
+
+### Advancement Block
+
+The `advancement` field of a Creature Record.
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `classes` | map of class key → Class Entry-or-int | `{}` | One key per Class the Creature has levels in. The value is either an integer (shorthand for `{ level: N }` with no trained skills and no choices) or a full Class Entry (see below). |
+| `tier_attribute_advancement` | list of attribute keys | `[]` | Flat list of focused-bonus picks made at each Tier-Up, in order. The list is chunked by `Tier Inherent Chosen Bonus Count[tier]`: the first `count[2]` entries are Tier 2's picks, the next `count[3]` entries are Tier 3's picks, etc. A list shorter than the cumulative count up to the Creature's current Tier means the trailing Tiers' chosen bonuses simply don't apply (the Creature has forgone those picks). |
 
 ### Class Entry
 
+The value under a key in `advancement.classes`.
+
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `class` | string | required | Key into `classes.yaml`. May name a Sub-Class. |
 | `level` | integer | required | Class Level (≥ 0). |
-| `trained_skills` | list of string | `[]` | Skill keys the Creature has chosen to train in this Class. Set Instances are valid (e.g. `perform_dance`); bare Set Skill keys (ending in `_`) are not. |
+| `skills` | list of string | `[]` | Skill keys the Creature has chosen to train in this Class. Set Instances are valid (e.g. `perform_dance`); bare Set Skill keys (ending in `_`) are not. |
 | `choices` | dict | `{}` | Per-Class catalog choices. Free-form keys; the consuming Class entry interprets each one. Common keys include `spellcasting: [<spell_name>, ...]` (the spells chosen for the Class's Spellcasting-type ability — Bardic Spellcasting, Arcane Spellcasting, Druidic Spellcasting, Ranger Spellcasting, or the Cleric's `domain` resolution), `deity: <name>` and `domain: <name>` (Cleric), Bard's Versatile Performance subject, etc. Creatures stores and round-trips the dict opaquely; spells listed under `choices.spellcasting` are surfaced as Granted Abilities by *Get Granted Abilities*. |
+
+A bare integer in place of a Class Entry is shorthand: `fighter: 1` is equivalent to `fighter: { level: 1 }`.
 
 ### Race Entry (catalog)
 
-The schema for entries in `races.yaml`. Looked up by the `race` key.
+The schema for entries in `creatures_race.yaml`. Looked up by the `race` key. Race entries form a chain via `parent:` — a child race inherits and extends its parent. A `race:` field on a Creature names a single (typically leaf) entry; *Look up Race* walks the chain to assemble the effective Race.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `base_speed` | integer | `Default Base Speed` config | Race's Base Speed before Aspect and Class adjustments. |
-| `racial_adjustment` | map of attribute key → integer | `{}` | Additions to Base Attributes. `all: N` is shorthand for `+N` to every attribute and is mutually exclusive with per-attribute entries on the same Race / Aspect. |
-| `granted_abilities` | map of integer (Tier) → list of string | `{}` | Race Granted Ability Table. |
-| `aspects` | map of aspect key → Race Aspect | `{}` | When non-empty, a Creature with this Race must pick exactly one Aspect. |
+| `parent` | string or null | null | Key of the parent Race entry. The chain ends at an entry whose `parent` is null. |
+| `size` | string | from parent (first-in-chain wins) | Creature size category (`small`, `medium`, etc.). |
+| `speed` | integer | `Default Base Speed` config (first-in-chain wins) | Base speed in feet. |
+| `attribute_adjustments` | map of attribute key → integer | `{}` | Adjustments to attributes contributed by this Race entry. `all: N` is shorthand for `+N` to every attribute and is mutually exclusive with per-attribute entries on the same entry. Adjustments accumulate down the chain (root + intermediate + leaf). |
+| `abilities` | list of Race Ability Entry | `[]` | Race Granted Abilities. Concatenates down the chain with child-wins dedup on ability name. |
 
-### Race Aspect (catalog)
+#### Race Ability Entry
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `racial_adjustment` | map of attribute key → integer | `{}` | Adjustments stacking on top of the Race's. |
-| `speed_delta` | integer | 0 | Added to Base Speed. |
-| `granted_abilities` | map of integer (Tier) → list of string | `{}` | Race Aspect Granted Ability Table. Stacks with the Race's. |
+| `name` | string | required (unless context entry) | Ability name. |
+| `min_level` | integer | rolling default | Minimum Tier at which the ability becomes active. |
+
+A bare `{ min_level: N }` (no `name`) entry inside `abilities` is a **context entry** — it becomes the rolling default `min_level` for following ability entries until the next context entry. Context entries are flattened at config-load time; the runtime catalog contains only resolved ability entries with explicit `min_level`.
+
+#### Race Chain Walk
+
+When resolving a Race key:
+
+1. Start at the named entry.
+2. Walk `parent` chain to the root, collecting entries in leaf-first order.
+3. **Size and Speed**: take the first non-null value encountered (leaf wins).
+4. **Attribute Adjustments**: accumulate per-attribute amounts across the entire chain.
+5. **Abilities**: concatenate from root to leaf; when a leaf ability shares a `name` with an ancestor's, the leaf entry overrides the ancestor's (child wins).
 
 ### Class Catalog Entry
 
-The schema for entries in `classes.yaml`. Looked up by the `class` key (including Sub-Class keys).
+The schema for entries in `creatures_advancement.yaml`'s `Classes:` map. Looked up by class key.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `martial_advancement` | enum | required | One of `aligned`, `unaligned`, `opposed`. The rate at which each Class Level adds Martial ranks. |
+| `parent_class` | string or null | null | When non-null, this Class is an **Archetype** of the named parent Class. See *Archetype* below. |
+| `martial_advancement` | enum | required | One of `aligned`, `unaligned`, `opposed`. The rate at which each Class Level adds Martial ranks. (Martial is computed from this field, not from any proficiency list.) |
+| `bonus_skills` | integer | 0 | Bonus Skill picks per Class Level used by the `Skill Pick Formula`. Advisory — Creatures does not enforce trained-skill counts. |
+| `mana_per_level` | integer | 0 | Mana per Class Level contributed by this Class. Folds into Max Mana on top of the per-Tier `Mana Base Formula`. |
 | `saves` | map | required | Save Attribute categorization. Has two sub-keys: `aligned` (the Save Attributes that advance at the `aligned` rate; project convention is exactly two) and `opposed` (Save Attributes that advance at the `opposed` rate explicitly; redundant with the default but available for clarity). Save Attributes in neither list default to the `Default Save Rate` (`opposed`). The two lists must be disjoint. |
-| `aligned_proficiencies` | list of string | none | Skills that advance at the `aligned` rate. Mutually exclusive with `unaligned_proficiencies`. Set Skill keys (ending `_`) are valid; any Set Instance whose prefix appears here is treated the same way. |
-| `unaligned_proficiencies` | list of string | none | Inverse form. Skills that advance at the `unaligned` rate; every Skill *not* listed advances at the `aligned` rate. Use when most Skills are aligned (e.g. Bard). Mutually exclusive with `aligned_proficiencies`. |
+| `aligned_proficiencies` | list of string | none | Skills that advance at the `aligned` rate. Mutually exclusive with `unaligned_proficiencies` *at the top level of a non-Archetype Class*. Set Skill keys (ending `_`) are valid; any Set Instance whose prefix appears here is treated the same way. |
+| `unaligned_proficiencies` | list of string | none | Inverse form. Skills that advance at the `unaligned` rate; every Skill *not* listed advances at the `aligned` rate. Use when most Skills are aligned (e.g. Bard). Mutually exclusive with `aligned_proficiencies` at the top level of a non-Archetype Class. |
 | `opposed_proficiencies` | list of string | `[]` | Skills that advance at the `opposed` rate. Combines with either `aligned_proficiencies` or `unaligned_proficiencies`; takes precedence over the default for the Skills listed here. |
 | `ability_progression` | map of integer (Class Level) → list of string | `{}` | Class Ability Progression. |
 | `granted_spells` | list of Catalog Ability name | `[]` | Spells every Creature of this Class learns regardless of their `choices`. Domain-specific or otherwise choice-dependent spells live elsewhere (e.g. the Cleric Class resolves additional spells from `deities.yaml` via the Creature's `choices.deity` and `choices.domain`). |
-| `sub_class` | map of sub-class key → Sub-Class Entry | `{}` | Inherits the parent's tables; the Sub-Class Entry's keys shallow-override or extend. |
 
-A Class that declares neither `aligned_proficiencies` nor `unaligned_proficiencies` has no inclusion / exclusion declaration: every trained Skill advances at the `Default Skill Rate` (`unaligned`) unless it appears in `opposed_proficiencies`. Declaring both `aligned_proficiencies` and `unaligned_proficiencies` is a configuration error.
+A non-Archetype Class that declares neither `aligned_proficiencies` nor `unaligned_proficiencies` has no inclusion / exclusion declaration: every trained Skill advances at the `Default Skill Rate` (`unaligned`) unless it appears in `opposed_proficiencies`. Declaring both `aligned_proficiencies` and `unaligned_proficiencies` on a non-Archetype Class is a configuration error.
 
-A Class entry that omits `mana_advancement` is treated as `mana_advancement: 0`. The Class's contribution to Mana Max is `mana_advancement × Class Level`. *(configurable shape; Mana Max formula composition is in Operations.)*
+A Class entry that omits `mana_per_level` is treated as `mana_per_level: 0`.
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `mana_advancement` | integer | 0 | Mana per Class Level contributed by this Class. |
+### Archetype
 
-### Sub-Class Entry
+A Class with a non-null `parent_class` is an **Archetype** of that parent. Archetypes do not extend their parent's skill / save / ability rules transparently the way Sub-Classes would — they form a separate progression that *replaces* the parent's at the Creature level.
 
-A Sub-Class is referenced by its own key but inherits its parent's schema. The Sub-Class Entry's fields shallow-override or extend the parent:
+Rules:
 
-- `martial_advancement`, `saves`, `mana_advancement`: when present, replace the parent's wholesale.
-- `aligned_proficiencies`: any Skills listed are added to the merged Class's set of Aligned-rate Skills.
-- `unaligned_proficiencies`: any Skills listed are added to the merged Class's set of Unaligned-rate Skills (removed from the Aligned-rate set if the parent placed them there).
-- `opposed_proficiencies`: any Skills listed are added to the merged Class's set of Opposed-rate Skills.
-- A Sub-Class may declare any combination of the three proficiency lists; each acts as an additive adjustment to the parent's effective categorization.
-- `ability_progression`: merged key-by-key — at each Class Level, the Sub-Class's list is appended to the parent's. The parent and Sub-Class never share an Ability name at the same Level (validator rejects).
+- A Creature cannot hold levels in both a Class and one of its Archetypes simultaneously. The validator rejects records that violate this rule.
+- A Creature may multi-class across unrelated Classes (e.g. Rogue + Fighter), and may multi-class across an Archetype and any Class that is *not* its parent (e.g. Arcane Trickster + Fighter, Arcane Trickster + Cleric).
+- An Archetype Class Entry inherits absent top-level fields from its parent: `martial_advancement`, `saves`, `bonus_skills`, `mana_per_level`, `granted_spells`, `aligned_proficiencies`, `unaligned_proficiencies`, `opposed_proficiencies`. When the Archetype declares one of those fields, it replaces the parent's.
+- An Archetype's `ability_progression` extends the parent's: at each Class Level, the Archetype's list is appended to the parent's. The parent and Archetype must not name the same Ability at the same Level (validator rejects).
+- For proficiency-list inheritance: the parent's lists are taken verbatim. The Archetype's lists, if present, are *additive adjustments* — `aligned_proficiencies` entries are added to the Aligned-rate set, `unaligned_proficiencies` entries are added to the Unaligned-rate set (and removed from Aligned if present there), `opposed_proficiencies` entries are added to the Opposed-rate set.
+
+This means a Creature with `arcane_trickster: 4` (and no explicit rogue entry) gets the merged level-1 / level-2 progressions of both Rogue and Arcane Trickster at Class Level 1 and 2 respectively — the Archetype's level count is what drives the lookup, not the parent's.
 
 ### Effective Attribute Map
 
@@ -133,7 +156,7 @@ One instruction inside an Random Encounter Row payload. Each Spawn Ref expands i
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `template_id` | string | required | Creature ID of an existing Creature record (typically tagged `enemy_template`) to clone. |
+| `template_id` | integer | required | Creature ID of an existing Creature record (typically tagged `enemy_template`) to clone. |
 | `count` | string or integer | `1` | Number of spawns to produce. May be a dice expression (e.g. `2d4`) evaluated at roll time. |
 | `name_override` | string | optional | Display name applied to every spawn produced by this Ref. When omitted, spawns inherit the template's `name`. |
 | `loot_table` | string | optional | Loot Table ID stored on each spawn's Creature record, overriding the template's `loot_table`. |
@@ -174,9 +197,11 @@ Input: Creature ID (or Accessor).
 
 Behavior:
 
-1. If `tier_override` is non-null, return it.
-2. Otherwise look up the Creature's `advancement_track` in `Tier Breakpoints`. Unknown track is an error.
-3. Tier = the largest index `i` such that `breakpoints[i] ≤ Total Level`. Index 0 of every track must be 0, so a Total Level of zero produces Tier 0.
+1. If the Creature's `tier` field is non-null, return it (the Tier Override).
+2. Otherwise resolve Tier from `tags`:
+   - For each tag that matches a key in `Tier Breakpoints`, compute the largest index `i` such that `breakpoints[i] ≤ Total Class Level`. Index 0 of every list must be 0, so a Total Level of zero produces Tier 0 on that list.
+   - If at least one tag matched, the Tier is the **maximum** across those per-list Tiers.
+   - If no tag matched, the Tier is the **minimum** Tier across every list in `Tier Breakpoints` — the cautious fallback for an unclassified Creature.
 
 Returns: integer ≥ 0.
 
@@ -194,9 +219,8 @@ Input: Creature ID (or Accessor).
 
 Behavior:
 
-1. Start with the Race's `base_speed` (or `Default Base Speed` when the Race omits it).
-2. Add the picked Race Aspect's `speed_delta` if any.
-3. Add aggregated Speed-targeted Modifier amounts — see *Aggregated Modifier Application to Speed* in Operations.
+1. Walk the Creature's Race chain. The Speed is the first non-null `speed` value encountered (leaf wins), or `Default Base Speed` if no entry in the chain declares one.
+2. Add aggregated Speed-targeted Modifier amounts — see *Aggregated Modifier Application to Speed* in Operations.
 
 Returns: integer Speed in feet.
 
@@ -210,30 +234,31 @@ Input: Creature ID (or Accessor), optional `source` filter (`race`, `class`, or 
 
 Behavior: Concatenate:
 
-- Race's `granted_abilities[t]` for every Tier `t` ≤ the Creature's current Tier.
-- Race Aspect's `granted_abilities[t]` (if any), same rule.
-- For each Class Entry, the Class's (and Sub-Class's) `ability_progression[l]` for every Class Level `l` ≤ the Creature's Class Level. Sub-Class entries appear after their parent's at the same Level.
-- For each Class Entry, the Class's `granted_spells` (always-granted spells declared on the Class Catalog Entry).
+- Race chain Abilities whose `min_level` is ≤ the Creature's current Tier. Chain order is root → leaf; child entries override ancestors on name (see *Race Chain Walk*).
+- For each Class Entry the Creature holds: when the Class is an Archetype, the merged `ability_progression` is the parent's progression with the Archetype's appended at each Class Level. For non-Archetype Classes, the Class's own progression. Take entries whose Class Level ≤ the Creature's Class Level in that entry.
+- For each Class Entry, the resolved Class's `granted_spells` (the parent's, when the Class is an Archetype that does not override; the Archetype's, when it declares its own).
 - For each Class Entry, every entry in `choices.spellcasting` (the spells the player picked for the Class's Spellcasting-type ability). Only counted when the Class's progression actually granted a Spellcasting-type ability at or before the Creature's Class Level.
 - For each Class Entry, choice-driven spells looked up through external catalogs (e.g. a Cleric's `choices.deity` + `choices.domain` resolves additional spells via `deities.yaml`).
 
 Deduplicate while preserving first-encounter order. Filter by `source` when supplied.
 
-Returns: a list of `{ name, source }` records. `source` is one of `race`, `race_aspect`, or `class:<class_key>`. The Class source carries the Class key so consumers (e.g. Floor Ability's `level_for_ability`) can recover the granting Class. Spells contributed via `choices.spellcasting` (and via deity/domain) report the granting Class as their source.
+Returns: a list of `{ name, source }` records. `source` is one of `race` or `class:<class_key>`. The Class source carries the Class key so consumers (e.g. Floor Ability's `level_for_ability`) can recover the granting Class. Spells contributed via `choices.spellcasting` (and via deity/domain) report the granting Class as their source.
 
 ### Look up Class
 
-Input: a Class key (or Sub-Class key).
+Input: a Class key.
 
-Behavior: Resolve through `classes.yaml`. For a Sub-Class key, apply the inheritance rules (see Common types) and return the merged entry.
+Behavior: Resolve through `creatures_advancement.yaml`'s `Classes:` map. When the entry has `parent_class`, apply the Archetype merge rules described above and return the resolved entry. The resolved entry retains the looked-up key (so `arcane_trickster` is reported as `arcane_trickster`, not `rogue`).
 
-Returns: a Class Catalog Entry (post-merge for Sub-Classes), or null when the key matches nothing.
+Returns: a Class Catalog Entry (post-merge for Archetypes), or null when the key matches nothing.
 
 ### Look up Race
 
 Input: a Race key.
 
-Returns: the Race Entry from `races.yaml`, or null. Race Aspects are accessed via the returned entry's `aspects` map.
+Behavior: Walk the `parent:` chain from the named entry. Apply the *Race Chain Walk* rules to produce a single resolved Race description.
+
+Returns: a resolved Race Entry containing `size`, `speed`, `attribute_adjustments` (the per-attribute accumulated map), and `abilities` (the chain-resolved list, with context entries flattened), plus the original `race_key` that was queried. Returns null when the key matches nothing.
 
 ### Get Aggregated Modifiers
 
@@ -257,7 +282,7 @@ Returns: integer ≥ 0.
 
 Input: Creature ID (or Accessor).
 
-Behavior: Evaluate `Mana Formula[tier]` from `creatures_config.yaml` against the Creature's Effective Intelligence. Add per-Class Mana contributions: each Class Entry contributes `class.mana_advancement × class.level`. Add `mana_bonus` Aggregated Modifier amounts.
+Behavior: Evaluate `Mana Base Formula[tier]` from `creatures_advancement.yaml` against the Creature's Effective Intelligence. Add per-Class Mana contributions: each Class Entry contributes `class.mana_per_level × class.level`. Add `mana_bonus` Aggregated Modifier amounts.
 
 Returns: integer ≥ 0.
 
@@ -274,26 +299,27 @@ The interface returned by *Look up Creature*. Every method reads fresh from the 
 
 | Method | Returns | Description |
 |---|---|---|
-| `id` | string | Creature ID. |
+| `id` | integer | Creature ID. |
 | `name` | string | Display name. |
+| `player` | string or null | The Player Name field from the record (null for DM-run Creatures). |
 | `group` | string | Group classification. |
 | `tags` | list of string | Tags. |
-| `race` | `(race_key, aspect_key or null)` | Race and picked Aspect. |
+| `race` | string | The Race key stored on the record. The resolved Race chain is accessible via `record` or *Look up Race*. |
 | `tier` | integer | Equivalent to *Get Tier*. |
-| `total_level` | integer | Sum of Class Levels. |
-| `class_summary` | list of `(class_key, level)` | One per Class Entry, in stored order. Sub-Class keys are reported as themselves, not their parent's. |
-| `level_for_class(class_key)` | integer | The Class Level the Creature has in the named Class (or Sub-Class). Zero when the Class is absent. |
+| `total_level` | integer | Sum of Class Levels across the `advancement.classes` map. |
+| `class_summary` | list of `(class_key, level)` | One per Class Entry, in stored order. Archetype keys are reported as themselves, not the parent's. |
+| `level_for_class(class_key)` | integer | The Class Level the Creature has in the named Class. Zero when the Class is absent. |
 | `attribute_value(attr)` | integer | Equivalent to *Get Effective Attributes*`[attr]`. The value Proficiencies and Combat read. |
 | `base_attribute_value(attr)` | integer | The raw Base Attribute before Racial Adjustment and Inherent bonuses. UI surfaces consult this for display. |
 | `ranks_for(key)` | integer | The Creature's ranks in the given concrete proficiency key. See *Ranks Computation* in Operations. The key must not end in `_`. |
 | `has_ability(name)` | boolean | True iff `name` appears in the Granted Abilities list. |
-| `level_for_ability(name)` | integer | The level relevant to the granting source — Class Level when granted by a Class or Sub-Class (including spells contributed via that Class's `choices.spellcasting` or `choices.deity`/`choices.domain`), the Creature's current Tier when granted by Race or Race Aspect. Used by Proficiencies' Floor Ability and similar formulas. Zero when the Creature lacks the Ability. |
+| `level_for_ability(name)` | integer | The level relevant to the granting source — Class Level when granted by a Class (including spells contributed via that Class's `choices.spellcasting` or `choices.deity`/`choices.domain`), the Creature's current Tier when granted by Race. Used by Proficiencies' Floor Ability and similar formulas. Zero when the Creature lacks the Ability. |
 | `speed` | integer | Equivalent to *Get Speed*. |
 | `max_hit_points` | integer | Equivalent to *Get Max Hit Points*. |
 | `max_mana` | integer | Equivalent to *Get Max Mana*. |
 | `granted_abilities(source = null)` | list of `{name, source}` | Equivalent to *Get Granted Abilities*. |
 | `aggregated_modifiers(target = null)` | list of Aggregated Modifier Entry | Equivalent to *Get Aggregated Modifiers*. |
-| `tier_up_choices` | map of integer → list of attribute keys | The stored choices. |
+| `tier_attribute_advancement` | list of attribute keys | The stored flat list of focused-bonus picks. The chunking by Tier is internal to *Effective Attribute Computation*. |
 | `record` | Creature Record | Read-only view of the raw record. Stubs use this for display fields Creatures has no opinion on. |
 
 The Accessor never mutates the record. Mutations go through the *Update* entry points below.
@@ -302,17 +328,17 @@ The Accessor never mutates the record. Mutations go through the *Update* entry p
 
 These mutate the underlying Creature Record and persist on Save Creatures.
 
-- **Set Tier-Up Choices** — `(creature_id, tier, [attribute keys])`. Validates the list length against `Per-Tier Inherent Chosen Bonus Count`, that every entry is a recognized attribute key, and that the Creature has reached the given Tier. Replaces any existing entry for that Tier.
-- **Set Tier Override** — `(creature_id, integer or null)`.
-- **Set Class Level** — `(creature_id, class_key, level)`. Adds the Class Entry when absent. Removing a Class is `level = 0` with a follow-up *Prune Empty Classes*.
-- **Set Trained Skills** — `(creature_id, class_key, [skill_keys])`. Replaces the list.
+- **Set Tier Attribute Advancement** — `(creature_id, [attribute keys])`. Replaces the entire flat list wholesale. Validates that every entry is a recognized attribute key. The validator does *not* enforce that the list length matches the Creature's current Tier — a list shorter than that is treated as forgoing trailing picks.
+- **Set Tier Override** — `(creature_id, integer or null)`. Writes the Creature's `tier` field.
+- **Set Class Level** — `(creature_id, class_key, level)`. Adds the Class Entry to `advancement.classes` when absent. Removing a Class is `level = 0` with a follow-up *Prune Empty Classes*. Rejects when adding a Class would violate Archetype Exclusivity (the Creature already has the parent or one of the named Class's siblings).
+- **Set Trained Skills** — `(creature_id, class_key, [skill_keys])`. Replaces the list under that Class Entry's `skills` field.
 - **Set Class Choices** — `(creature_id, class_key, choices_dict)`. Replaces the named Class Entry's `choices` map wholesale. Cleric's `{deity: "...", domain: "..."}`, a spellcaster's `{spellcasting: [<spell_name>, ...]}`, Bard's Versatile Performance choice, etc., all route through this. The dict is stored opaquely; Creatures does not validate the keys or values beyond confirming they're a string-keyed dict.
 
-Tier-up triggered by Class Level changes does not auto-fill `tier_up_choices` — that's a UI flow. Until the Creature's user sets the choices for a newly-reached Tier, those Tier's chosen bonuses simply don't apply.
+Tier-up triggered by Class Level changes does not auto-fill `tier_attribute_advancement` — that's a UI flow. Until the Creature's user appends entries to the list, the newly-reached Tier's chosen bonuses simply don't apply.
 
 ### Spawn Creature From Template
 
-Inputs: `template_id` (Creature ID of an existing record), optional `name_override`, optional `loot_table` override.
+Inputs: `template_id` (integer Creature ID of an existing record), optional `name_override`, optional `loot_table` override.
 
 Behavior:
 1. Read the template's Creature Record. Refuse if not found.
@@ -366,93 +392,106 @@ Returns: the list of new Creature IDs.
 
 Reads the Creature Record. For each attribute `a`:
 
-1. `base = base_attributes[a]`.
-2. `racial = racial_adjustment_for(race, race_aspect)[a]` — see *Racial Adjustment Resolution*.
-3. `per_tier = floor(tier × Per-Tier Inherent Bonus)` — Tier uses the project-wide Tier 0 → 0.5 convention.
-4. `chosen = Per-Tier Inherent Chosen Bonus Amount × count of Tier-Up Choice entries from Tier 2..tier (inclusive) that include attribute key a`. Tier 1 grants only the Per-Tier Inherent Bonus, not the Chosen Bonus — the Chosen Bonus begins at Tier 2.
+1. `base = attributes[a]`.
+2. `racial = racial_adjustment_for(race)[a]` — see *Racial Adjustment Resolution*.
+3. `per_tier = Tier Minimum Inherent Bonus[tier]` — read directly from `creatures_config.yaml`'s per-Tier list.
+4. `chosen = Per-Tier Inherent Chosen Bonus Amount × count of attribute key a in the slice of `tier_attribute_advancement` consumed by Tiers 2..tier`. The slice is built by walking the Tiers in order, taking `Tier Inherent Chosen Bonus Count[t]` entries from the head of the list for each Tier `t`. Tier 1 grants only the Per-Tier Inherent Bonus, not the Chosen Bonus — the Chosen Bonus begins at Tier 2.
 5. `effective = base + racial + per_tier + chosen`.
 
-With the default Per-Tier Inherent Bonus of 1, step 3 produces +0 at Tier 0 (`floor(0.5 × 1) = 0`), +1 at Tier 1, +2 at Tier 2, and so on — the documented "each Tier the Creature has reached past Tier 0 adds one." Tier 1 is the first Tier with a non-zero Per-Tier Inherent Bonus; Tier 2 is the first Tier with Tier-Up Choices.
+With the default `Tier Minimum Inherent Bonus: [0, 1, 2, 3, 4, 5]`, step 3 produces +0 at Tier 0, +1 at Tier 1, +2 at Tier 2, and so on. Tier 1 is the first Tier with a non-zero Per-Tier Inherent Bonus; Tier 2 is the first Tier with chosen bonus picks (per `Tier Inherent Chosen Bonus Count: [0, 0, 2, 2, 2, 2]`).
+
+### Tier Attribute Advancement Chunking
+
+The `tier_attribute_advancement` list is interpreted Tier-by-Tier. Walking Tiers `t = 2, 3, …, Creature's current Tier`, take `Tier Inherent Chosen Bonus Count[t]` entries from the head of the unconsumed portion of the list. The entries taken on Tier `t` are that Tier's picks.
+
+A list shorter than the cumulative count is allowed and means the trailing Tiers' picks are forgone. A list longer than the cumulative count is also allowed (storing future picks ahead of time); only the chunks up to the Creature's current Tier apply.
 
 ### Racial Adjustment Resolution
 
-The Race's `racial_adjustment` and the picked Race Aspect's `racial_adjustment` stack additively per attribute. The `all: N` shorthand expands to `+N` on every attribute key the project defines; mixing `all` with per-attribute entries on the same Race / Aspect is rejected at load time.
+Resolve the Race chain (root → leaf). Per attribute, sum the contributing entry's `attribute_adjustments[a]` (when present) across every entry in the chain. The `all: N` shorthand on any single entry expands to `+N` on every attribute key the project defines; mixing `all` with per-attribute entries on the same entry is rejected at load time.
 
 ### Ranks Computation
 
 Given a proficiency key:
 
-1. **Save key** (`<attr>_save` where `<attr>` is a recognized attribute key, by convention used by callers that build save Rolls): for each Class Entry, the rate is `aligned` if `<attr>` is in the Class's `saves.aligned`, else `opposed` (the `Default Save Rate`). `saves.opposed` entries declared explicitly take the `opposed` rate the same way. `ranks = sum over Classes of round_down(Class Level × Proficiency Advancement Rates[rate])`. Every Class contributes to every Save Attribute — "every Class trains every Save."
-2. **Martial** (literal key `"martial"`): `ranks = sum over Classes of round_down(Class Level × Proficiency Advancement Rates[class.martial_advancement])`. Martial is not categorized via Aligned / Unaligned / Opposed proficiency lists — it has its own per-Class rate field.
-3. **Skill key** (any other key): for each Class Entry, run *Skill Rate Resolution* (see below) to obtain a rate of `aligned`, `unaligned`, or null. A null rate means the Creature gains no ranks for that Skill from that Class (untrained-and-not-opposed); the Skill is treated as zero contribution from that Class. `ranks = sum over Classes of round_down(Class Level × Proficiency Advancement Rates[rate])` summing only Classes that produced a non-null rate.
+1. **Save key** (`<attr>_save` where `<attr>` is a recognized attribute key, by convention used by callers that build save Rolls): for each Class Entry, the rate is `aligned` if `<attr>` is in the resolved Class's `saves.aligned`, else `opposed` (the `Default Save Rate`). `saves.opposed` entries declared explicitly take the `opposed` rate the same way. `ranks = sum over Classes of floor(Class Level × Proficiency Advancement Rates[rate])`. Every Class contributes to every Save Attribute — "every Class trains every Save."
+2. **Martial** (literal key `"martial"`): `ranks = sum over Classes of floor(Class Level × Proficiency Advancement Rates[resolved_class.martial_advancement])`. Martial is computed from the Class's `martial_advancement` field, never from `aligned_proficiencies`/`unaligned_proficiencies`/`opposed_proficiencies` — those lists never name `martial`. The `martial` entry in `skills.yaml` exists only to supply the driving attribute (`dex`) for Proficiency Prowess.
+3. **Skill key** (any other key): for each Class Entry, run *Skill Rate Resolution* (see below) to obtain a rate of `aligned`, `unaligned`, `opposed`, or null. A null rate means the Creature gains no ranks for that Skill from that Class (untrained-and-not-opposed); the Skill is treated as zero contribution from that Class. `ranks = sum over Classes of floor(Class Level × Proficiency Advancement Rates[rate])` summing only Classes that produced a non-null rate.
 4. **Granted-Ability ranks** are not produced here; Abilities don't add ranks, they add Modifiers via `modifiers:`.
 
 The Floor Ability lift is *not* applied here — Proficiencies handles that on top of the ranks Creatures returns. Creatures returns ranks; Proficiencies layers the Floor Ability.
 
 ### Skill Rate Resolution
 
-Given a queried Skill key `k` and a merged Class entry, the rate is determined in this order. A null rate means the Creature gains no ranks from that Class for this Skill.
+Given a queried Skill key `k` and a resolved Class entry (Archetype-merged when applicable), the rate is determined in this order. A null rate means the Creature gains no ranks from that Class for this Skill.
 
-1. If `k` is not in the Creature's `trained_skills` for this Class, the rate is null. Untrained Skills accrue no ranks regardless of how the Class categorizes them.
-2. Otherwise, if `k` (or `k`'s longest matching Set Skill prefix) appears in the Class's `opposed_proficiencies`, the rate is `opposed`.
-3. Otherwise, if the Class declares `aligned_proficiencies` (inclusion form): if `k` (or its prefix) appears in the list, the rate is `aligned`; otherwise `unaligned` (the `Default Skill Rate`).
-4. Otherwise, if the Class declares `unaligned_proficiencies` (inverse form): if `k` (or its prefix) appears in the list, the rate is `unaligned`; otherwise `aligned` (the inverse-form default).
-5. Otherwise (the Class declares neither inclusion nor inverse form): the rate is `unaligned`.
+1. If `k` is not in the Creature's `skills` list for this Class Entry, the rate is null. Untrained Skills accrue no ranks regardless of how the Class categorizes them.
+2. Otherwise, if `k` (or `k`'s longest matching Set Skill prefix) appears in the resolved Class's `opposed_proficiencies`, the rate is `opposed`.
+3. Otherwise, if the resolved Class effectively declares `aligned_proficiencies` (inclusion form): if `k` (or its prefix) appears in the list, the rate is `aligned`; otherwise `unaligned` (the `Default Skill Rate`).
+4. Otherwise, if the resolved Class effectively declares `unaligned_proficiencies` (inverse form): if `k` (or its prefix) appears in the list, the rate is `unaligned`; otherwise `aligned` (the inverse-form default).
+5. Otherwise (the resolved Class declares neither inclusion nor inverse form): the rate is `unaligned`.
+
+For an Archetype, the effective proficiency lists are computed per *Archetype* in Common Types: the parent's lists are taken as the baseline and the Archetype's additive adjustments are applied. A Skill the Archetype adds to `aligned_proficiencies` is treated as Aligned even if the parent did not categorize it.
 
 The Set Skill prefix resolution reuses Proficiencies' *Prefix Match* rule: a bare Set Skill key (e.g. `perform_`) in any of the three lists matches every Set Instance (`perform_sing`) the Creature could train.
 
 ### Aggregated Modifier Application to Speed
 
-After step 3 of *Get Speed*, the Creature's Aggregated Modifiers with `target = "speed"` apply with per-Bonus-Type stacking: within each Bonus Type, the largest positive amount and the most-negative amount (each appearing only if at least one entry of that sign exists) survive; sum the survivors.
+After step 2 of *Get Speed*, the Creature's Aggregated Modifiers with `target = "speed"` apply with per-Bonus-Type stacking: within each Bonus Type, the largest positive amount and the most-negative amount (each appearing only if at least one entry of that sign exists) survive; sum the survivors.
 
 This mirrors Conditions' *Get Modifiers* shape so the consuming project's Modifier handling is uniform across "always-on from Granted Abilities" (Creatures) and "active per-Creature Effects" (Conditions). Combat is the natural consumer when both are needed.
 
 ### Max Hit Points and Max Mana Formula Composition
 
-`Max HP = floor(HP Formula[tier])` where `HP Formula` is a per-Tier list of expressions in `creatures_config.yaml`. The expressions reference `con` — substituted with the Creature's Effective Constitution at evaluation time. Project convention: Tier 0 → 0.5 in formulas; integer Tiers stay integer. The resulting integer is added to the per-Tier-Bonus-Type aggregated `hp_bonus` amount.
+`Max HP = floor(HP Formula[tier])` where `HP Formula` is a per-Tier list of expressions in `creatures_advancement.yaml`. The expressions reference `con` — substituted with the Creature's Effective Constitution at evaluation time. The resulting integer is added to the per-Bonus-Type aggregated `hp_bonus` amount.
 
-`Max Mana = floor(Mana Formula[tier]) + sum over Classes of (class.mana_advancement × class.level) + aggregated mana_bonus`.
+`Max Mana = floor(Mana Base Formula[tier]) + sum over Classes of (resolved_class.mana_per_level × class.level) + aggregated mana_bonus`. `Mana Base Formula` is a per-Tier list of expressions in `creatures_advancement.yaml`.
 
 Both formulas accept `+`, `-`, `*`, `/`, `()`, integer literals, and the attribute symbols `str` / `dex` / `con` / `int` / `wis` / `cha` (resolved to the Creature's Effective Attribute). Other symbols are a configuration error.
 
-A Tier beyond the configured `HP Formula` or `Mana Formula` array is an error rather than a clamp.
+A Tier beyond the configured `HP Formula` or `Mana Base Formula` array is an error rather than a clamp.
 
-### Tier-Up Choice Validation
+### Tier Attribute Advancement Validation
 
-When *Set Tier-Up Choices* is called with Tier `T` and choices `C`:
+When *Set Tier Attribute Advancement* is called with list `L`:
 
-- `|C|` must equal `Per-Tier Inherent Chosen Bonus Count`. Sized lists strictly — a Creature that wants to forgo a chosen bonus at a particular Tier omits the entry from `tier_up_choices` entirely.
-- Every entry of `C` must be a recognized attribute key.
-- The Creature must have `tier ≥ T`. A Tier in the future cannot be pre-set.
-- `T` must be ≥ 2. Tier 0 and Tier 1 have no Tier-Up Chosen Bonus — Tier 1 grants only the flat Per-Tier Inherent Bonus. The first Tier-Up that produces Chosen-Bonus picks is the transition from Tier 1 to Tier 2.
+- Every entry of `L` must be a recognized attribute key.
+- The list length is not strictly bounded — entries beyond the cumulative `Tier Inherent Chosen Bonus Count` summed up to the Creature's current Tier are allowed (they store future picks). Entries past the current Tier's reach simply don't apply yet.
 
-Duplicates within `C` are allowed — picking the same attribute twice doubles the bonus at that Tier.
+Duplicates within `L` are allowed — picking the same attribute twice doubles the bonus on that Tier-Up.
 
-### Class Resolution (Sub-Class merge)
+### Archetype Resolution
 
-Resolve a Class Entry's `class` key against `classes.yaml`:
+Resolve a Class Entry's key against `creatures_advancement.yaml`'s `Classes:` map:
 
-1. If the key matches a top-level Class entry directly, return it.
-2. Otherwise scan top-level Class entries for one whose `sub_class` map contains the key. Apply the Sub-Class Entry's overrides to the parent (per Common types). Return the merged entry.
-3. If neither matches, raise a configuration error at load time. Lookups at runtime treat the unknown key as zero contribution and emit a warning.
+1. If the key matches an entry whose `parent_class` is null, return it verbatim.
+2. If the key matches an entry whose `parent_class` is non-null, apply the Archetype merge rules (see *Archetype* in Common Types) against the parent and return the merged entry. The resolved entry retains the looked-up Archetype key.
+3. If the key matches nothing, raise a configuration error at load time. Lookups at runtime treat the unknown key as zero contribution and emit a warning.
 
-The Class Entry on the Creature always carries the resolved key — whether top-level or Sub-Class — so reverse lookups (Granted Ability source attribution) name the Sub-Class when the Creature took the Sub-Class.
+The Class Entry on the Creature always carries the resolved key — whether top-level Class or Archetype — so reverse lookups (Granted Ability source attribution) name the Archetype when the Creature took the Archetype.
+
+### Archetype Exclusivity
+
+A Creature's `advancement.classes` map must not contain both a Class and one of its Archetypes. The loader inspects every entry: for each key with `parent_class: X`, the map must not also contain key `X`; conversely, for each top-level Class `X` present in the map, the map must not contain any key whose `parent_class` is `X`. Violations are rejected with an Archetype Exclusivity error naming both keys.
+
+Two Archetypes of the same parent may not coexist either — a Creature cannot be both an Arcane Trickster and any other Rogue Archetype simultaneously. The same rule covers that case (the second Archetype's `parent_class` is `rogue`, which collides with the first's parent chain).
 
 ### Validation
 
 Every Creature Record is validated at load time:
 
-- `id` is unique across the dataset.
-- `race` resolves in `races.yaml`. If the Race declares Aspects, `race_aspect` is non-null and matches one of them. If the Race does not declare Aspects, `race_aspect` is null.
-- Each `classes[i].class` resolves through *Class Resolution*. `level ≥ 0`. `trained_skills` entries do not end in `_`. Set Instances are accepted; the Set-Skill prefix is resolved when computing ranks.
-- A Class Catalog Entry does not declare both `aligned_proficiencies` and `unaligned_proficiencies` (mutually exclusive). A Sub-Class may declare any combination — each is an additive adjustment to the parent's categorization.
-- Every Class Catalog Entry declares `saves.aligned` as a list of recognized attribute keys. Project convention has exactly two entries per Class; the loader does not enforce the count.
-- `base_attributes` has every required attribute key.
-- `tier_up_choices` Tiers are integers ≥ 2. Each entry's list length matches `Per-Tier Inherent Chosen Bonus Count`. Tier 1 (and Tier 0) entries are rejected — those Tiers do not grant Chosen Bonus picks. Tiers beyond the Creature's current Tier are flagged but not rejected (a Creature's Tier may decrease via override; the picks become inactive when Tier is below the entry's key).
+- `id` is a positive integer, unique across every loaded `creatures_data_*` file.
+- `race` resolves to a Race entry in `creatures_race.yaml`. The chain walk terminates (no cycles, root has null `parent`).
+- Each `advancement.classes[key]` resolves through *Archetype Resolution*. `level ≥ 0`. `skills` entries do not end in `_`. Set Instances are accepted; the Set Skill prefix is resolved when computing ranks.
+- The `advancement.classes` map satisfies *Archetype Exclusivity*.
+- A non-Archetype Class Catalog Entry does not declare both `aligned_proficiencies` and `unaligned_proficiencies`. An Archetype Class Catalog Entry may declare any combination — each is an additive adjustment to the parent's effective categorization.
+- Every Class Catalog Entry (or its parent, for an Archetype that omits the field) declares `saves.aligned` as a list of recognized attribute keys. Project convention has exactly two entries per Class; the loader does not enforce the count.
+- `attributes` has every required attribute key (`str`, `dex`, `con`, `int`, `wis`, `cha`).
+- `tier_attribute_advancement` entries are recognized attribute keys. Length is not bounded.
+- `tier`, when non-null, is a non-negative integer.
 - `choices` entries (notably `choices.spellcasting`) are stored opaquely. Validation that the spell names within resolve in Abilities is deferred to Abilities (warning at load, ignored at runtime).
-- `advancement_track` resolves in `Tier Breakpoints`.
 
-Malformed records are rejected with a descriptive error; one malformed record does not silently drop other valid records (the loader rejects the whole file).
+Malformed records are rejected with a descriptive error naming the file and id; one malformed record does not silently drop other valid records — the loader rejects the whole file.
 
 ## Cross-domain interactions
 
@@ -467,18 +506,18 @@ Malformed records are rejected with a descriptive error; one malformed record do
 ### Owned by the Creatures domain
 
 - The Creature Record and its persistence shape.
-- Tier computation: Total Level → Tier Breakpoints → Tier (with Tier Override).
-- Effective Attribute computation: Base + Racial Adjustment + Per-Tier Inherent Bonus + Per-Tier Inherent Chosen Bonus.
-- Tier-Up Choice storage and validation.
-- Race / Race Aspect resolution and Granted Ability roll-up.
-- Class / Sub-Class resolution and Granted Ability roll-up.
+- Tier computation: Total Class Level → tags → Tier Breakpoints → Tier (with the `tier` field as Tier Override).
+- Effective Attribute computation: Base + Racial Adjustment chain + Per-Tier Inherent Bonus + Per-Tier Inherent Chosen Bonus (chunked from `tier_attribute_advancement`).
+- Tier Attribute Advancement storage and validation.
+- Race chain resolution and Granted Ability roll-up.
+- Class / Archetype resolution and Granted Ability roll-up, including Archetype Exclusivity enforcement.
 - Per-Class `choices` storage (Spellcasting picks, deity/domain, Versatile Performance subject, etc.).
-- Ranks Computation for skill, save, and Martial keys.
-- Speed computation: Race + Aspect base + aggregated Speed Modifiers (Class-driven Speed bonuses come through Granted Ability `modifiers:` entries, not a Class table).
+- Ranks Computation for Skill, Save, and Martial keys.
+- Speed computation: Race chain base + aggregated Speed Modifiers (Class-driven Speed bonuses come through Granted Ability `modifiers:` entries, not a Class table).
 - Max HP and Max Mana formula composition.
 - Modifier aggregation: walking Granted Abilities, evaluating `add` Formulas, returning Aggregated Modifier Entries.
 - Producing the Creature Accessor consumed by other domains.
-- `classes.yaml` and `races.yaml` catalogs.
+- `creatures_advancement.yaml`, `creatures_race.yaml`, `deities.yaml`, and `encounter_tables.yaml` catalogs.
 - Load-time validation of Creature Records.
 
 ### Explicitly *not* owned here
@@ -499,4 +538,4 @@ Malformed records are rejected with a descriptive error; one malformed record do
 - **Aging.** Tier and Level capture mechanical progression; biological aging (chronological age, lifespan) has no design.
 - **Heritage events / story facts.** Background narrative belongs in Chronicle when it lands as a richer entity model; Creatures' `metadata` is the temporary home.
 - **Companions and minions.** Creatures linked to one another (familiar, animal companion, summoned creature) currently use independent Creature records; a "controlling Creature" relationship is not modeled.
-- **Attribute substitution.** Some Races (notably Undead) classically substitute one attribute for another in derived formulas (e.g. Charisma stands in for Constitution in HP calculations). The Race Entry schema does not yet carry a substitution map; until it does, such Creatures must either store the substituted value directly in `base_attributes` or be handled by a consumer-level shim. A future Race Entry field (e.g. `attribute_substitution: { con: cha }`) would route through *Effective Attribute Computation*.
+- **Attribute substitution.** Some Races (notably Undead) classically substitute one attribute for another in derived formulas (e.g. Charisma stands in for Constitution in HP calculations). The Race Entry schema does not yet carry a substitution map; until it does, such Creatures must either store the substituted value directly in `attributes` or be handled by a consumer-level shim. A future Race Entry field (e.g. `attribute_substitution: { con: cha }`) would route through *Effective Attribute Computation*.

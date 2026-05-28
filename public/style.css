@@ -1668,3 +1668,686 @@ body {
   padding-bottom: 10px;
   border-bottom: 1px solid #e5e7eb;
 }
+
+/* =====================================================================
+   Character Sheet stubs (creatures_minimal_stub, creatures_full_stub)
+   ===================================================================== */
+
+.cs-card {
+  background: #fdf6e3;            /* parchment */
+  color: #2b1a13;
+  font-family: Georgia, 'Times New Roman', serif;
+  border: 1px solid #e8d6b0;
+  border-top-width: 6px;
+  border-radius: 4px;
+  padding: 18px 22px 16px;
+  margin: 0 0 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  position: relative;
+}
+.cs-card.cs-bare {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+/* Tier-color top border + name tint. ui_conventions.md mapping:
+   0 red, 1 orange, 2 yellow, 3 green, 4 blue, 5 purple. */
+.cs-card.tier-0 { border-top-color: #c0392b; }
+.cs-card.tier-1 { border-top-color: #d35400; }
+.cs-card.tier-2 { border-top-color: #b8860b; }
+.cs-card.tier-3 { border-top-color: #27ae60; }
+.cs-card.tier-4 { border-top-color: #2980b9; }
+.cs-card.tier-5 { border-top-color: #8e44ad; }
+
+.cs-card.tier-0 .cs-name, .cs-card.tier-0 .cs-tier-num { color: #c0392b; }
+.cs-card.tier-1 .cs-name, .cs-card.tier-1 .cs-tier-num { color: #d35400; }
+.cs-card.tier-2 .cs-name, .cs-card.tier-2 .cs-tier-num { color: #b8860b; }
+.cs-card.tier-3 .cs-name, .cs-card.tier-3 .cs-tier-num { color: #27ae60; }
+.cs-card.tier-4 .cs-name, .cs-card.tier-4 .cs-tier-num { color: #2980b9; }
+.cs-card.tier-5 .cs-name, .cs-card.tier-5 .cs-tier-num { color: #8e44ad; }
+
+.cs-card .cs-tier-label.tier-0 { color: #c0392b; }
+.cs-card .cs-tier-label.tier-1 { color: #d35400; }
+.cs-card .cs-tier-label.tier-2 { color: #b8860b; }
+.cs-card .cs-tier-label.tier-3 { color: #27ae60; }
+.cs-card .cs-tier-label.tier-4 { color: #2980b9; }
+.cs-card .cs-tier-label.tier-5 { color: #8e44ad; }
+
+/* Header */
+.cs-card .cs-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cs-card .cs-name {
+  font-family: Georgia, serif;
+  font-size: 30px;
+  font-weight: bold;
+  margin: 0;
+  line-height: 1.1;
+}
+.cs-card .cs-player {
+  color: #4d2e1e;
+  font-size: 13px;
+}
+.cs-card .cs-subtitle {
+  color: #6b4a30;
+  font-size: 14px;
+  margin: 2px 0 14px;
+}
+.cs-card .cs-subtitle-full {
+  margin-bottom: 16px;
+}
+
+/* Section headings — small-caps maroon with underline rule. */
+.cs-card .cs-section {
+  border-top: 1px solid #b9472c;
+  padding-top: 10px;
+  margin-top: 14px;
+}
+.cs-card .cs-section-h {
+  font-variant: small-caps;
+  font-size: 13px;
+  font-weight: bold;
+  color: #882f1f;
+  margin: 0 0 6px;
+  letter-spacing: 0.4px;
+}
+.cs-card .cs-subsection-h {
+  font-size: 12px;
+  font-variant: small-caps;
+  color: #6b3320;
+  margin: 8px 0 4px;
+}
+
+/* Two-column wrap for paired sections (Spells|Rituals, Items|Abilities). */
+.cs-card .cs-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.cs-card .cs-col {}
+
+/* Minimal-sheet attribute + vitals block. */
+.cs-card.cs-minimal .cs-vitals-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  border-top: 1px solid #b9472c;
+  padding-top: 10px;
+  margin-top: 8px;
+}
+.cs-card.cs-minimal .cs-attr-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px 12px;
+  font-size: 15px;
+}
+.cs-card.cs-minimal .cs-attr-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.cs-card.cs-minimal .cs-attr-key {
+  font-variant: small-caps;
+  color: #882f1f;
+  font-weight: bold;
+  font-size: 13px;
+  min-width: 32px;
+}
+.cs-card.cs-minimal .cs-attr-value {
+  color: #2b1a13;
+  font-weight: bold;
+}
+.cs-card.cs-minimal .cs-hp-mana {
+  font-size: 15px;
+  line-height: 1.6;
+}
+.cs-card.cs-minimal .cs-hp-label,
+.cs-card.cs-minimal .cs-mana-label {
+  font-variant: small-caps;
+  color: #882f1f;
+  font-weight: bold;
+}
+.cs-card.cs-minimal .cs-tox {
+  color: #8a6a52;
+  font-size: 13px;
+}
+
+/* Initiative / Perception / Speed row. */
+.cs-card .cs-ips-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid #b9472c;
+  padding: 8px 0 4px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+.cs-card .cs-ips-cell strong {
+  color: #882f1f;
+  font-variant: small-caps;
+  margin-right: 6px;
+}
+
+/* Tables — actions, combat, attributes, skills, effects. */
+.cs-card table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin: 0;
+}
+.cs-card thead th {
+  color: #882f1f;
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 11px;
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid #d9a98a;
+}
+.cs-card tbody td,
+.cs-card tbody th {
+  padding: 4px 8px;
+  border-bottom: 1px solid #ecd6b6;
+}
+.cs-card tbody th {
+  text-align: left;
+  font-weight: 600;
+}
+.cs-card td.cs-num,
+.cs-card th.cs-num { text-align: center; font-variant-numeric: tabular-nums; }
+
+/* Spells / Rituals lines. */
+.cs-card .cs-spell-line {
+  font-size: 13px;
+  margin: 3px 0;
+}
+.cs-card .cs-empty-placeholder {
+  color: #b09175;
+  font-style: italic;
+}
+.cs-card .cs-tier-label {
+  margin-right: 4px;
+}
+
+/* Items lines (minimal + full share). */
+.cs-card .cs-item-line {
+  font-size: 13px;
+  margin: 3px 0;
+}
+
+/* Collapsible Abilities (minimal). */
+.cs-card .cs-ability-row {
+  font-size: 13px;
+  margin: 3px 0;
+}
+.cs-card .cs-ability-row > summary {
+  cursor: pointer;
+  list-style: revert;
+  color: #2b1a13;
+}
+.cs-card .cs-ability-body {
+  margin: 4px 0 6px 18px;
+  color: #4d2e1e;
+  font-size: 12px;
+}
+
+/* Item descriptions row. */
+.cs-card .cs-item-desc-row {
+  font-size: 13px;
+  margin: 4px 0;
+}
+
+/* Active Effects / Usable Spells / Notes / Item Descriptions tables. */
+.cs-card .cs-effects-table th,
+.cs-card .cs-usable-table th { font-size: 11px; }
+.cs-card .cs-note-row {
+  font-size: 13px;
+  margin: 4px 0;
+}
+
+/* Full-sheet vitals strip (4 rows × 3 columns). */
+.cs-card.cs-full .cs-vitals-strip { border-top: 1px solid #b9472c; padding-top: 10px; }
+.cs-card.cs-full .cs-vitals-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  font-size: 13px;
+  padding: 3px 0;
+}
+.cs-card.cs-full .cs-vital {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cs-card.cs-full .cs-vital-label {
+  color: #882f1f;
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 11px;
+}
+.cs-card.cs-full .cs-vital-value {
+  font-weight: bold;
+  color: #2b1a13;
+}
+
+/* Combat / Attributes / Skills footnote + formula text. */
+.cs-card .cs-combat-footer,
+.cs-card .cs-formula-footer {
+  color: #8a6a52;
+  font-size: 11px;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+/* Attributes table (full sheet). */
+.cs-card .cs-attributes-table th.cs-attr-name {
+  font-weight: 600;
+  text-align: left;
+}
+
+/* Full-sheet Abilities (always expanded). */
+.cs-card .cs-ability-full {
+  font-size: 13px;
+  margin: 6px 0;
+}
+.cs-card .cs-ability-full-name { color: #2b1a13; font-weight: bold; }
+.cs-card .cs-ability-full-name em { font-style: normal; }
+.cs-card .cs-ability-full-body { color: #4d2e1e; }
+
+/* Pager — single container holding both arrows and the page label.
+   Arrows are always enabled (the route wraps at the ends); they
+   stay black regardless of hover / visited state. */
+.cs-pager {
+  display: inline-flex;
+  align-items: stretch;
+  margin-bottom: 12px;
+  background: #f4e5c4;
+  border: 1px solid #6b4a30;
+  border-radius: 4px;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1;
+}
+.cs-pager .cs-pager-arrow,
+.cs-pager .cs-pager-arrow:link,
+.cs-pager .cs-pager-arrow:visited,
+.cs-pager .cs-pager-arrow:hover,
+.cs-pager .cs-pager-arrow:active,
+.cs-pager .cs-pager-arrow:focus {
+  color: #000;
+  text-decoration: none;
+}
+.cs-pager .cs-pager-arrow {
+  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.cs-pager .cs-pager-arrow:hover { background: #ecd5a8; }
+.cs-pager .cs-pager-label {
+  padding: 6px 14px;
+  color: #000;
+  font-weight: 600;
+  border-left: 1px solid #6b4a30;
+  border-right: 1px solid #6b4a30;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Toggle (bottom-left). */
+.cs-card .cs-toggle {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px solid #b9472c;
+  text-align: left;
+}
+.cs-card .cs-toggle-btn {
+  display: inline-block;
+  padding: 4px 12px;
+  border: 1px solid #d9a98a;
+  border-radius: 3px;
+  background: #f4e5c4;
+  color: #4d2e1e;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.cs-card .cs-toggle-btn:hover { background: #ecd5a8; }
+.cs-card .cs-toggle-static { opacity: 0.6; cursor: default; }
+
+/* Status > Creatures sub-view labels above each demo. */
+.cs-demo-label {
+  font-size: 14px;
+  color: #4d2e1e;
+  margin-top: 18px;
+  padding: 6px 10px;
+  background: #fff8e8;
+  border-left: 4px solid #b9472c;
+  font-style: italic;
+}
+
+
+/* Full sheet body: two side-by-side columns under the Combat section.
+   Left column carries Attributes / Skills / Items / Item Descriptions.
+   Right column carries Abilities / Spell List. Notes (rendered after
+   this grid) is full-width. */
+.cs-card.cs-full .cs-full-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.cs-card.cs-full .cs-full-body .cs-col > .cs-section:first-child {
+  margin-top: 12px;
+}
+
+/* Minimal sheet body: two side-by-side columns under the
+   Initiative · Perception · Speed row. Left column carries Actions
+   and Skills; right column carries Items, Spells, and Rituals.
+   Abilities + Item Descriptions render full-width below this grid. */
+.cs-card.cs-minimal .cs-minimal-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.cs-card.cs-minimal .cs-minimal-body.cs-no-right {
+  grid-template-columns: 1fr;
+}
+.cs-card.cs-minimal .cs-minimal-body .cs-col > .cs-section:first-child {
+  margin-top: 12px;
+}
+.cs-card.cs-minimal .cs-skills-table { width: 100%; }
+
+/* Character Sheets page outer layout when a Roster Sidebar is rendered. */
+.cs-page-with-sidebar {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 22px;
+  align-items: start;
+}
+.cs-page-with-sidebar .cs-main { min-width: 0; }
+
+/* Roster Sidebar (creatures_roster_sidebar_stub.md). */
+.cs-roster-sidebar {
+  background: #fdf6e3;
+  border: 1px solid #d9a98a;
+  border-radius: 6px;
+  padding: 8px 10px 10px;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #2b1a13;
+}
+.cs-roster-group { margin: 4px 0; }
+.cs-roster-group + .cs-roster-group { border-top: 1px solid #ecd6b6; padding-top: 4px; }
+.cs-roster-summary {
+  cursor: pointer;
+  list-style: revert;
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 13px;
+  color: #882f1f;
+  padding: 4px 0;
+  letter-spacing: 0.4px;
+}
+.cs-roster-empty {
+  color: #b09175;
+  font-size: 12px;
+  font-style: italic;
+  padding: 2px 4px 6px 16px;
+}
+.cs-roster-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 4px;
+}
+.cs-roster-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+.cs-roster-row:hover { background: #f4e5c4; }
+.cs-roster-current {
+  background: #f0e0bc;
+  outline: 1px solid #b9472c;
+}
+.cs-roster-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  background: #f4e5c4;
+  border: 1px solid #d9a98a;
+  border-radius: 3px;
+  color: #4d2e1e;
+  cursor: pointer;
+  font-family: inherit;
+}
+.cs-roster-btn:hover:not(:disabled) { background: #ecd5a8; }
+.cs-roster-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cs-roster-roll,
+.cs-player-toggle {
+  width: 64px;
+  flex-shrink: 0;
+  padding: 0 8px;
+  font-size: 11px;
+  font-variant: small-caps;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+.cs-roster-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #000;
+  text-decoration: none;
+}
+.cs-roster-name:hover { text-decoration: underline; }
+.cs-roster-count {
+  display: inline-block;
+  background: #b9472c;
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 10px;
+  padding: 1px 6px;
+  min-width: 16px;
+  text-align: center;
+}
+.cs-roster-encounter .cs-roster-name { font-style: italic; }
+
+/* Minimal sheet lower row — Abilities + Item Descriptions side by side. */
+.cs-card.cs-minimal .cs-minimal-lower {
+  margin-top: 0;
+}
+.cs-card.cs-minimal .cs-minimal-lower.cs-one-sided {
+  grid-template-columns: 1fr;
+}
+
+/* Roster Sidebar — Player rows. The toggle replaces the +/- buttons
+   used by other groups (a Player can't appear in Combat more than
+   once). Shares dimensions with .cs-roster-roll so the two buttons
+   line up across the sidebar. Active = outlined dark; Absent =
+   muted with strikethrough on the row name. */
+.cs-player-toggle.cs-player-active {
+  background: #f4e5c4;
+  border-color: #6b4a30;
+  color: #2b1a13;
+  font-weight: bold;
+}
+.cs-player-toggle.cs-player-absent {
+  background: #f9f2dc;
+  border-color: #c9b08e;
+  color: #8a6a52;
+}
+.cs-roster-row.cs-player-absent .cs-roster-name {
+  text-decoration: line-through;
+  color: #8a6a52;
+}
+
+/* Encounter Template Stub —
+   creatures_encounter_template_stub.md */
+.cs-encounter-template {
+  background: #fdf6e3;
+  border: 1px solid #d9a98a;
+  border-radius: 6px;
+  padding: 16px 18px;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #2b1a13;
+  margin-bottom: 18px;
+}
+.cs-encounter-template .cs-enc-header { margin-bottom: 12px; }
+.cs-encounter-template .cs-enc-name {
+  font-size: 22px;
+  font-weight: bold;
+  color: #b9472c;
+  margin: 0;
+}
+.cs-encounter-template .cs-enc-subtitle {
+  font-size: 12px;
+  color: #8a6a52;
+  margin-top: 2px;
+}
+.cs-encounter-template .cs-enc-subtitle code {
+  background: #f4e5c4;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.cs-encounter-template .cs-enc-row {
+  border-top: 1px solid #ecd6b6;
+  padding: 8px 0;
+}
+.cs-encounter-template .cs-enc-row-head {
+  font-variant: small-caps;
+  color: #882f1f;
+  font-weight: bold;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cs-encounter-template .cs-enc-row-chance { color: #882f1f; }
+.cs-encounter-template .cs-enc-row-when,
+.cs-encounter-template .cs-enc-row-as {
+  font-variant: normal;
+  font-weight: normal;
+  color: #4d2e1e;
+  text-transform: none;
+}
+.cs-encounter-template .cs-enc-row-when code,
+.cs-encounter-template .cs-enc-row-as code {
+  background: #f4e5c4;
+  padding: 0 4px;
+  border-radius: 2px;
+}
+.cs-encounter-template .cs-enc-spawn-list {
+  list-style: none;
+  padding-left: 12px;
+  margin: 0;
+}
+.cs-encounter-template .cs-enc-spawn {
+  font-size: 13px;
+  padding: 2px 0;
+}
+.cs-encounter-template .cs-enc-spawn-count {
+  font-weight: bold;
+  color: #b9472c;
+  margin-right: 6px;
+}
+.cs-encounter-template .cs-enc-template-src {
+  color: #8a6a52;
+  font-size: 11px;
+  margin-left: 4px;
+}
+.cs-encounter-template .cs-enc-loot-tag {
+  color: #8a6a52;
+  font-size: 11px;
+  margin-left: 6px;
+}
+.cs-encounter-template .cs-enc-footer {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #b9472c;
+}
+.cs-encounter-template .cs-enc-roll-btn,
+.cs-roll-result .cs-rr-roll-btn {
+  padding: 6px 18px;
+  font-size: 13px;
+  font-variant: small-caps;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  background: #b9472c;
+  color: #fff;
+  border: 1px solid #882f1f;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: Georgia, serif;
+}
+.cs-encounter-template .cs-enc-roll-btn:hover,
+.cs-roll-result .cs-rr-roll-btn:hover {
+  background: #882f1f;
+}
+
+/* Encounter Roll Result Stub —
+   creatures_encounter_roll_result_stub.md.
+   Rendered above the main panel via #encounter-roll-result. */
+.cs-roll-result {
+  background: #fdf6e3;
+  border: 1px solid #b9472c;
+  border-top-width: 4px;
+  border-radius: 4px;
+  padding: 14px 18px;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #2b1a13;
+  margin-bottom: 18px;
+}
+.cs-roll-result .cs-rr-header { margin-bottom: 8px; }
+.cs-roll-result .cs-rr-name {
+  font-size: 20px;
+  font-weight: bold;
+  color: #b9472c;
+  margin: 0;
+}
+.cs-roll-result .cs-rr-subtitle {
+  color: #6b4a30;
+  font-size: 13px;
+}
+.cs-roll-result .cs-rr-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.cs-roll-result .cs-rr-spawn {
+  margin: 6px 0 4px;
+}
+.cs-roll-result .cs-rr-spawn-head {
+  font-weight: bold;
+  font-size: 14px;
+}
+.cs-roll-result .cs-rr-loot {
+  list-style: none;
+  padding-left: 18px;
+  margin: 0;
+  font-size: 13px;
+  color: #4d2e1e;
+}
+.cs-roll-result .cs-rr-loot-gold {
+  color: #8a5d00;
+  font-variant: small-caps;
+  letter-spacing: 0.3px;
+}
+.cs-roll-result .cs-rr-footer {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #b9472c;
+}

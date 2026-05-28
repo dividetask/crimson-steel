@@ -1,10 +1,17 @@
 # Random Encounter Tables — Catalog
 #
-# Loaded by the Creatures domain. Each entry: random encounter table ID
-# (snake_case) -> { name, rolls }. See `creatures_design.md` for the
-# Random Encounter Table / Random Encounter Row / Spawn Ref schemas; row shapes
-# (Guaranteed / Independent Chance / Weighted Choice / Gated Weighted
-# Choice with `when` / `as`) mirror Equipment's Loot Roll Row.
+# Loaded by the Creatures domain. Each entry: random encounter table
+# ID (snake_case) -> { name, category, rolls }. See `creatures_design.md`
+# for the Random Encounter Table / Random Encounter Row / Spawn Ref
+# schemas; row shapes (Guaranteed / Independent Chance / Weighted
+# Choice / Gated Weighted Choice with `when` / `as`) mirror Equipment's
+# Loot Roll Row.
+#
+# The `category` field associates each table with one of the
+# template categories declared in the creatures_data_*.example.yaml
+# files (e.g. `category:general_red_tier`). The Character Sheets
+# page's Roster Sidebar groups templates and Random Encounter Tables
+# by this category — both surface under the same heading.
 #
 # Rolling a table calls Roll Random Encounter, which calls Spawn Creature From
 # Template once per concrete spawn. The new Creature IDs are returned
@@ -12,7 +19,8 @@
 # Combat's Add Combatant.
 
 slave_lords_caravan:
-  name: "Slave Lords — caravan ambush"
+  name: "Caravan ambush"
+  category: rise_of_the_slavelords
   rolls:
     # Always two grunts.
     - spawn:
@@ -37,16 +45,58 @@ slave_lords_caravan:
         - template_id: "104"
           count: "1d4 + 1"
 
+stockade_patrol:
+  name: "Stockade patrol"
+  category: rise_of_the_slavelords
+  rolls:
+    - spawn:
+        - template_id: "106"
+          count: 3
+
 general_pirate_raid:
   name: "Generic pirate raid"
+  category: general_red_tier
   rolls:
     - spawn:
         - template_id: "100"
           count: "2d4"
 
-stockade_patrol:
-  name: "Slave Lords — stockade patrol"
+general_wolf_pack:
+  name: "Wolf pack"
+  category: general_red_tier
   rolls:
     - spawn:
-        - template_id: "106"
-          count: 3
+        - template_id: "301"
+          count: "1d4 + 1"
+
+general_goblin_ambush:
+  name: "Goblin ambush"
+  category: general_red_tier
+  rolls:
+    - spawn:
+        - template_id: "302"
+          count: "2d4"
+    - chance: 0.5
+      spawn:
+        - template_id: "303"
+          count: 2
+
+fey_pixie_mischief:
+  name: "Pixie mischief"
+  category: fey_favors
+  rolls:
+    - spawn:
+        - template_id: "401"
+          count: "1d4"
+
+fey_dryad_grove:
+  name: "Dryad's grove"
+  category: fey_favors
+  rolls:
+    - spawn:
+        - template_id: "402"
+          count: 1
+    - chance: 0.7
+      spawn:
+        - template_id: "400"
+          count: "1d4"
