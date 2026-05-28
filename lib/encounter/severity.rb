@@ -84,6 +84,16 @@ module Encounter
       { minor: minor, moderate: moderate, major: major }
     end
 
+    # Critical Modifier For a Damage Type — the integer to set as the
+    # attacker Roll's `critical_modifier`. Reads the Type's
+    # `critical_value` Mechanic (resolving the parent chain); falls back
+    # to the Roll struct default of 2 when absent.
+    def critical_modifier_for(type)
+      mechanics = Array(resolve_type(type)[:mechanics])
+      cv = mechanics.find { |m| m['kind'] == 'critical_value' }
+      cv ? Integer(cv['amount']) : 2
+    end
+
     def condition_met?(condition, target_tags)
       return false if condition.nil?
       tags = Array(target_tags).map(&:to_s)

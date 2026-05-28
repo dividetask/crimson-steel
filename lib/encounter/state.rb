@@ -342,9 +342,16 @@ module Encounter
 
     # ---------- Damage ----------
 
-    # Apply Damage → Severity Calculation → Conditions. Returns the
-    # per-Severity map and the side effects dispatched.
-    def apply_damage(combatant_id, raw, type, threshold: 0)
+    # Apply Damage → Severity Calculation → Conditions, then trigger one
+    # Concentration Save per held Concentration / Casting entry.
+    #
+    # `save_resolver` is a proc called once per entry with
+    # { spell_name:, cast_skill:, penalty:, kind: } and returning a
+    # truthy value when the save passes. The default passes every save
+    # (no breakage) until a Check Resolution engine is wired in. On a
+    # failed save the matching Concentration ends / Long Cast cancels
+    # with reason: damage; those notifications are returned for dispatch.
+    def apply_damage(combatant_id, raw, type, threshold: 0, save_resolver: ->(_) { true })
       c = find!(combatant_id)
       creature = lookup!(c[:creature_id])
       resilience = (creature && (creature.respond_to?(:damage_resilience) ? creature.damage_resilience : 0)) || 0
@@ -356,14 +363,28 @@ module Encounter
       inst.apply_hit_point_damage(result[:severity_map]) unless result[:severity_map].empty?
       result[:side_effects].each do |fx|
         case fx[:kind]
-        when 'acid'    then inst.apply_acid_damage(fx[:amount])
-        when 'inflict'
-          if fx[:effect] == 'shock'
-            inst.state.shock += fx[:amount]
-          end
+        when 'acid' then inst.apply_acid_damage(fx[:amount])
+        when 'inflict' then inst.state.shock += fx[:amount] if fx[:effect] == 'shock'
         end
       end
-      { severity_map: result[:severity_map], side_effects: result[:side_effects] }
+
+      damage_dealt = result[:severity_map].values.sum
+      notifications = trigger_concentration_saves(c, damage_dealt, save_resolver)
+
+      { severity_map: result[:severity_map], side_effects: result[:side_effects],
+        concentration_notifications: notifications }
+    end
+
+    # Set-Value Spend translation (encounter_design.md → Operations).
+    # Prerolling N dice on a Roll with Dice Cap D spends N × Set Value
+    # Spend Ratio extra dice from the pool and builds a Roll with
+    # dice_count = D - N and preroll = +N. Refuses N > Dice Cap or an
+    # overdraw. Returns { dice_count:, preroll: } or nil on refusal.
+    def set_value_spend(combatant_id, dice_cap:, preroll_count:)
+      return nil if preroll_count.negative? || preroll_count > dice_cap
+      cost = preroll_count * Config.set_value_spend_ratio
+      return nil if spend_combat_pool(combatant_id, cost).nil?
+      { dice_count: dice_cap - preroll_count, preroll: preroll_count }
     end
 
     # Apply Falling Damage per encounter_design.md.
@@ -541,6 +562,33 @@ module Encounter
     # ---------- Internal ----------
 
     private
+
+    # One Concentration Save per Concentration + Casting entry. Penalty
+    # magnitude = spell_tier + damage_dealt (Circumstance). On failure
+    # the entry is torn down (End Concentration / Cancel Long Cast,
+    # reason: damage). Returns the source-domain notifications.
+    def trigger_concentration_saves(combatant, damage_dealt, save_resolver)
+      notes = []
+      combatant[:concentration].dup.each do |e|
+        penalty = e[:spell_tier] + damage_dealt
+        passed = save_resolver.call(spell_name: e[:spell_name], cast_skill: e[:cast_skill],
+                                    penalty: penalty, kind: :concentration)
+        unless passed
+          ended = end_concentration(combatant[:id], e[:spell_name])
+          notes << ended.merge(kind: :concentration_ended) if ended
+        end
+      end
+      combatant[:casting].dup.each do |e|
+        penalty = e[:spell_tier] + damage_dealt
+        passed = save_resolver.call(spell_name: e[:spell_name], cast_skill: e[:cast_skill],
+                                    penalty: penalty, kind: :casting)
+        unless passed
+          cancelled = cancel_long_cast(combatant[:id], e[:spell_name], reason: 'damage')
+          notes << cancelled.merge(kind: :cast_cancelled) if cancelled
+        end
+      end
+      notes
+    end
 
     def blank_combatant(id, creature_id, name)
       { id: id, creature_id: creature_id, name: name,
