@@ -17,7 +17,9 @@ module CreatureSheet
   # accessor — a Creatures::Accessor. Returns the demo-shaped Hash.
   def build(accessor)
     rec     = accessor.record
-    attrs   = Creatures::Config.attribute_keys.each_with_object({}) { |k, h| h[k] = accessor.base_attribute_value(k) }
+    # Sheets display Effective Attributes (base + racial + inherent +
+    # chosen) — the same values the HP / Mana / skill formulas use.
+    attrs   = Creatures::Config.attribute_keys.each_with_object({}) { |k, h| h[k] = accessor.attribute_value(k) }
     classes = rec[:classes].map { |key, e| { key: key, level: e[:level], trained_skills: Array(e[:skills]) } }
     tier    = (accessor.tier rescue 0)
 
