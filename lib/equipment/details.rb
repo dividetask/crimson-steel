@@ -81,6 +81,21 @@ module Equipment
       )
     end
 
+    # Sum a Creature's defensive mitigation across its equipped Armor
+    # and Shield Stacks (both live in the 'Armor' Item Category). Null
+    # Damage Reduction (Shields) and null Resilience Increment count as
+    # zero. See equipment_design.md → Get Armor Details. Returns
+    # { damage_reduction:, damage_resilience: }.
+    def defensive_totals(stacks, catalog)
+      Array(stacks)
+        .select { |s| s.equipped && (it = catalog.item_type(s.item_type)) && it[:category] == 'Armor' }
+        .each_with_object(damage_reduction: 0, damage_resilience: 0) do |s, acc|
+          ad = armor_details(s, catalog)
+          acc[:damage_reduction]  += ad[:damage_reduction].to_i
+          acc[:damage_resilience] += ad[:resilience].to_i
+        end
+    end
+
     # ---- weapon field resolution ---------------------------------------
 
     # Per-weapon `base_damage` override → first Tag carrying a

@@ -3,6 +3,9 @@ require 'proficiencies'
 require 'proficiencies/compute'
 require 'conditions'
 require 'encounter'
+require 'equipment'
+require 'abilities'
+require 'dice_resolution'
 
 # Builds the sheet hash the character-sheet partials
 # (_creature_minimal / _creature_full) consume, sourced exclusively
@@ -80,17 +83,27 @@ module CreatureSheet
     st       = cond&.state
     cha      = (accessor.attribute_value(:cha) rescue 0)
     hp_dmg   = st ? st.hp_damage.values.sum : 0
+    defense  = defensive_totals(accessor)
     {
       hp:   { current: [max_hp - hp_dmg, 0].max, max: max_hp },
-      mana: { current: (st ? [max_mana - st.mana_spent, 0].max : max_mana), max: max_mana, regen: 0 },
+      mana: { current: (st ? [max_mana - st.mana_spent, 0].max : max_mana), max: max_mana },
       toxicity: { current: (st ? st.magic_toxicity : 0),
                   threshold: (cond ? (cond.toxicity_threshold(cha, tier) rescue 0) : 0) },
       temp_hp: (st&.temporary_hit_points ? st.temporary_hit_points[:amount] : 0),
       moderate_damage: (st ? st.hp_damage[:moderate] || 0 : 0),
       major_damage:    (st ? st.hp_damage[:major] || 0 : 0),
       combat_pool: (Encounter::CombatPool.size_for(accessor) rescue 0),
-      damage_reduction: 0, damage_resilience: 0
+      damage_reduction: defense[:damage_reduction], damage_resilience: defense[:damage_resilience]
     }
+  end
+
+  # Sum equipped Armor + Shield mitigation via Equipment.
+  def defensive_totals(accessor)
+    cat    = Equipment.catalog
+    stacks = Equipment.instance.get_inventory("creature:#{accessor.id}")
+    Equipment::Details.defensive_totals(stacks, cat)
+  rescue StandardError
+    { damage_reduction: 0, damage_resilience: 0 }
   end
 
   def perception(accessor)
@@ -102,15 +115,51 @@ module CreatureSheet
   end
 
   # Equipped weapons become the Combat action rows (Equipment is the
-  # source). Always offers Dodge.
+  # source). Each row carries the real attack Roll Dice Cap + Competency
+  # (Proficiencies Martial, driven by Strength for melee / Dexterity for
+  # ranged) and the damage bonus from the weapon's damage formula
+  # evaluated against the wielder. Always offers Dodge (a Dexterity Save).
   def actions(accessor)
     rows = equipped_weapons(accessor).map do |w|
-      { name: w[:display_name], speed: w[:speed], roll: '—',
-        attack_bonus: 0, dmg_bonus: nil, bleed: w[:bleed], mt: w[:threshold],
-        notes: Array(w[:damage_types]).join('/') }
+      attack_attr = ranged_weapon?(w) ? :dex : :str
+      ri  = roll_inputs(accessor, 'martial', attack_attr)
+      { name: w[:display_name], speed: w[:speed], roll: "#{ri[:dice_cap]}d",
+        attack_bonus: competency_bonus(ri), dmg_bonus: weapon_damage(w, accessor),
+        bleed: w[:bleed], mt: w[:threshold], notes: Array(w[:damage_types]).join('/') }
     end
-    rows << { name: 'Dodge', speed: 0, roll: '—', attack_bonus: 0, dmg_bonus: nil, bleed: nil, mt: nil, notes: '' }
+    dodge = roll_inputs(accessor, 'dex_save', :dex)
+    rows << { name: 'Dodge', speed: 0, roll: "#{dodge[:dice_cap]}d",
+              attack_bonus: competency_bonus(dodge), dmg_bonus: nil, bleed: nil, mt: nil, notes: '' }
     rows
+  end
+
+  def ranged_weapon?(weapon)
+    defn = weapon[:definition]
+    defn.is_a?(Hash) && defn['category'] == 'Ranged'
+  end
+
+  # Proficiencies *Compute Roll inputs*, tolerant of a creature with no
+  # resolvable record (mirrors the Encounter route helper).
+  def roll_inputs(accessor, key, attribute_override = nil)
+    Proficiencies::Compute.roll_inputs(key: key, creature: accessor, attribute_override: attribute_override)
+  rescue StandardError
+    { dice_cap: 0, competency_modifier: nil }
+  end
+
+  def competency_bonus(inputs)
+    inputs[:competency_modifier] ? inputs[:competency_modifier][1] : 0
+  end
+
+  # Evaluate a weapon's damage formula against the wielder's Effective
+  # Attributes (Combat owns this evaluation per equipment_design.md).
+  # Clamped at zero; nil when the weapon carries no formula.
+  def weapon_damage(weapon, accessor)
+    formula = weapon[:damage_formula]
+    return nil if formula.nil? || formula.to_s.strip.empty?
+    binds = Creatures::Config.attribute_keys.each_with_object({}) { |a, h| h[a] = (accessor.attribute_value(a) rescue 0) }
+    [(Abilities::Formula.evaluate(formula, binds).to_i rescue 0), 0].max
+  rescue StandardError
+    nil
   end
 
   def items(accessor)
@@ -138,17 +187,43 @@ module CreatureSheet
 
   def abilities(accessor)
     (accessor.granted_abilities rescue []).map do |g|
-      desc = (Abilities.lookup(g[:name])&.dig('description') rescue nil)
-      { name: g[:name], description: desc || 'No description yet.' }
+      { name: titleize_ability(g[:name]), description: ability_description(g[:name]) }
     end
+  end
+
+  # Resolve a granted Ability's description across the Ability catalogs.
+  # Granted names arrive as snake_case keys; Catalog Abilities (talents)
+  # are keyed by display name while Modifier / Stateful abilities are
+  # keyed snake_case, so we try the key both verbatim and Title-Cased.
+  # Returns '' (blank) when no description is on file — never a
+  # placeholder string.
+  def ability_description(key)
+    [key.to_s, titleize_ability(key)].uniq.each do |name|
+      entry = (Abilities.lookup(name)&.dig('description') rescue nil)
+      return entry if entry && !entry.to_s.empty?
+      mod = (Abilities.lookup_modifier_ability(name) rescue nil)
+      return mod[:description] if mod && !mod[:description].to_s.empty?
+      st = (Abilities.lookup_stateful(name) rescue nil)
+      return st[:description] if st && !st[:description].to_s.empty?
+    end
+    ''
+  rescue StandardError
+    ''
+  end
+
+  def titleize_ability(key)
+    key.to_s.split(/[_\s]+/).reject(&:empty?).map { |w| w[0].upcase + w[1..] }.join(' ')
   end
 
   def attributes_table(accessor, attrs)
     %i[Strength Dexterity Constitution Intelligence Wisdom Charisma]
       .zip(%i[str dex con int wis cha]).map do |label, k|
       save = (Proficiencies::Compute.roll_inputs(key: "#{k}_save", creature: accessor, attribute_override: k) rescue nil)
+      # Attribute Check Prowess is floor(Effective Attribute / 2),
+      # translated through Dice Resolution into a Dice Cap + bonus.
+      check_dice, check_bonus = DiceResolution.translate_prowess(attrs[k] / 2)
       { attr: label.to_s, score: attrs[k], half: attrs[k] / 2,
-        check: { dice: (accessor.attribute_value(k) rescue attrs[k]) / 2, bonus: 0 },
+        check: { dice: check_dice, bonus: check_bonus },
         save:  { dice: (save ? save[:dice_cap] : 0), bonus: (save && save[:competency_modifier] ? save[:competency_modifier][1] : 0) } }
     end
   end

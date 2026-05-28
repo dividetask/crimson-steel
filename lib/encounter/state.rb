@@ -402,7 +402,7 @@ module Encounter
     def apply_damage(combatant_id, raw, type, threshold: 0, save_resolver: ->(_) { true })
       c = find!(combatant_id)
       creature = lookup!(c[:creature_id])
-      resilience = (creature && (creature.respond_to?(:damage_resilience) ? creature.damage_resilience : 0)) || 0
+      resilience = defender_damage_resilience(creature)
       tags = creature ? Array(creature.tags) : []
 
       result = Severity.compute(raw: raw, type: type, threshold: threshold,
@@ -739,6 +739,20 @@ module Encounter
     def conditions_for(creature_id)
       cf = @conditions_for || ->(id) { Conditions.store.instance_for(id) }
       cf.call(creature_id)
+    end
+
+    # The defender's Damage Resilience for Runtime Bucketing. Honors a
+    # creature that exposes it directly (test doubles); otherwise sums
+    # the resilience of its equipped Armor via Equipment. Defaults to 0
+    # when neither source is available.
+    def defender_damage_resilience(creature)
+      return 0 unless creature
+      return creature.damage_resilience.to_i if creature.respond_to?(:damage_resilience)
+      return 0 unless creature.respond_to?(:id)
+      stacks = Equipment.instance.get_inventory("creature:#{creature.id}")
+      Equipment::Details.defensive_totals(stacks, Equipment.catalog)[:damage_resilience]
+    rescue StandardError
+      0
     end
 
     def tier_of(creature_id)
