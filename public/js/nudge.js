@@ -12,8 +12,10 @@ import { DiceConfig } from './config.js';
 // same length as `dice`.
 export class Nudge {
   // With a TN: standard targeting picks the die whose DoIS contribution
-  // changes most. Tie → die that started lowest (positive) / highest
-  // (negative); still tied → lowest index.
+  // changes most. Tie → the die with the larger change in Critical Count
+  // (a positive nudge prefers creating a Crit, a negative one prefers
+  // removing a Crit); then the die that started lowest (positive) /
+  // highest (negative); still tied → lowest index.
   static applyWithTn(dice, valueAdjustment, { tn, failureModifier = -1, criticalModifier = 2 } = {}, config = DiceConfig.default()) {
     if (!valueAdjustment) return new Array(dice.length).fill(null);
     const { value, max } = valueAdjustment;
@@ -25,15 +27,23 @@ export class Nudge {
       if (v >= tn) return 1;
       return 0;
     };
+    const critOf = (v) => (v === config.dieSize ? 1 : 0);
 
     const positive = value > 0;
     const scored = dice.map((v, i) => {
       const newV = Nudge._clamp(v + value, config);
-      return { v, i, newV, delta: contribution(newV) - contribution(v) };
+      return {
+        v,
+        i,
+        newV,
+        delta: contribution(newV) - contribution(v),
+        critDelta: critOf(newV) - critOf(v),
+      };
     });
 
     scored.sort((a, b) => {
       if (a.delta !== b.delta) return positive ? b.delta - a.delta : a.delta - b.delta;
+      if (a.critDelta !== b.critDelta) return positive ? b.critDelta - a.critDelta : a.critDelta - b.critDelta;
       if (a.v !== b.v) return positive ? a.v - b.v : b.v - a.v;
       return a.i - b.i;
     });

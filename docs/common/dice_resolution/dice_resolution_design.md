@@ -184,7 +184,7 @@ For Rolls without a TN, eligibility is restricted to the bottom and top quartile
 Two modes, selected by the `max` flag in `value_adjustment`.
 
 **Standard mode** (`max = false`). One die is shifted by `value`. Targeting:
-- With a TN: the die whose nudged DoIS contribution differs most from its current contribution. Largest positive delta for a positive nudge; largest negative delta for a negative nudge. Tied deltas → the die that started lowest (positive nudge) or highest (negative nudge) wins. Still tied → lowest index wins.
+- With a TN: the die whose nudged DoIS contribution differs most from its current contribution. Largest positive delta for a positive nudge; largest negative delta for a negative nudge. Tied deltas → the die with the larger change in Critical Count wins: a positive nudge prefers the die that becomes a Critical Success (e.g. a Success → Critical over a Neutral → Success when both raise DoIS by 1), and a negative nudge prefers the die that stops being a Critical Success. Still tied → the die that started lowest (positive nudge) or highest (negative nudge) wins. Still tied → lowest index wins.
 - Without a TN: the die whose post-shift value lands closest to Die Size (positive nudge) or closest to 1 (negative nudge). Tied closeness → the die that started furthest from that extreme wins. Still tied → lowest index wins.
 - Post-shift value is clamped to `[1, Die Size]`. A nudge that produces no change is a no-op.
 

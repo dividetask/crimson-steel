@@ -104,6 +104,14 @@ test('Tied delta with a Failure prefers the lower-starting die', () => {
   assert.deepEqual(r.nudgeChanges, [null, null, null, null, null, 2]);
 });
 
+test('A tied nudge prefers creating a Critical Success', () => {
+  // 9->10 (Success->Crit) and 5->6 (Neutral->Success) both add +1 to DoIS;
+  // the Crit wins the tie even though the 5 started lower.
+  const rng = new SequenceRng([9, 5]);
+  const r = Roll.resolveWithTn({ diceCount: 2, valueAdjustment: { value: 1, max: false } }, rng);
+  assert.deepEqual(r.nudgeChanges, [10, null]);
+});
+
 test('Max-mode nudge shifts every die', () => {
   const rng = new SequenceRng([3, 5, 9, 10]);
   const r = Roll.resolveWithTn({ diceCount: 4, valueAdjustment: { value: 1, max: true } }, rng);
