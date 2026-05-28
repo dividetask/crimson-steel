@@ -10,6 +10,7 @@ module Equipment
   class Instance
     include Magical
     include LootRolling
+    include CombatLoot
 
     attr_reader :catalog, :store, :rng
 
