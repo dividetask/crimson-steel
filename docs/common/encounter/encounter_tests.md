@@ -90,7 +90,7 @@ Every test assumes Chronicle is present and `creature_lookup` resolves each Comb
 
 ## Round label for the Combat Tracker UI
 
-`combat_initiative_stub.md` shows a `Round N` label (with an `s/TPR` sub-tick suffix when Time Ticks Per Round > 1). The label is derived from `time_ticks_per_round` and a cumulative tick count `cumulative = elapsed_time_ticks + 1` (1-based — `cumulative = 1` is the very first tick of Round 1).
+`encounter_initiative_stub.md` shows a `Round N` label (with an `s/TPR` sub-tick suffix when Time Ticks Per Round > 1). The label is derived from `time_ticks_per_round` and a cumulative tick count `cumulative = elapsed_time_ticks + 1` (1-based — `cumulative = 1` is the very first tick of Round 1).
 
 Formula:
 

@@ -1,6 +1,6 @@
 # Combat DM Social Cell Tooltip
 
-A read-only popup that shows one cell's full Roll inputs and dice values for `combat_dm_social_stub.md`. Surfaces on hover.
+A read-only popup that shows one cell's full Roll inputs and dice values for `encounter_dm_social_stub.md`. Surfaces on hover.
 
 See `ui_conventions.md` for shared rules.
 

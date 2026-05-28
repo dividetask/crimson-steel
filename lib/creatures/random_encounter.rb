@@ -33,6 +33,9 @@ module Creatures
       copy[:id] = new_id
       copy[:name] = name_override if name_override
       copy[:loot_table] = loot_table if loot_table
+      # Record the template this instance was cloned from so the
+      # Roster Sidebar can group spawned Creatures under their source.
+      copy[:spawned_from] = Integer(template_id)
 
       Dataset.insert!(copy)
       new_id

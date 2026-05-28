@@ -52,7 +52,7 @@ Persuasion's **Persuasion Counter** is the higher-DoIS Skill between Persuasion 
 
 - Selecting a PC or Opponent saves the choice to `localStorage` keyed per the conventions in `ui_conventions.md`. Row bonus / penalty inputs also persist.
 - `Roll All` walks every cell, building each Roll through Combat's Saving Throw construction (Saves) or Proficiencies' *Compute Roll inputs for a Proficiency* (Skills), then resolving via Dice Resolution. The cell's display switches to the net-successes view.
-- Hovering any cell surfaces a tooltip; see `combat_dm_social_cell_tooltip.md`.
+- Hovering any cell surfaces a tooltip; see `encounter_dm_social_cell_tooltip.md`.
 - Each cell carries a manual override input (per the *Manual override fields* convention in `ui_conventions.md`) so the DM can type the final net successes regardless of the rolled dice. The override is authoritative for any downstream resolution.
 
 ## DM-only
@@ -61,7 +61,7 @@ The entire stub is DM-only. The parent page does not invoke this stub for player
 
 ## Composition
 
-Self-contained scene-level stub. Not embedded inside other stubs. The tooltip child (`combat_dm_social_cell_tooltip.md`) appears on hover.
+Self-contained scene-level stub. Not embedded inside other stubs. The tooltip child (`encounter_dm_social_cell_tooltip.md`) appears on hover.
 
 ## What this stub does not do
 
