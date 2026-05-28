@@ -6,7 +6,7 @@
   #   roster        — required. {
   #     players:    [{ id, name, sheet_index, active }, …],
   #     npcs:       [{ id, name, sheet_index, active }, …],
-  #     categories: [{ key, name, templates: [...], encounter_tables: [...] }, …]
+  #     categories: [{ key, name, templates: [...], random_encounter_tables: [...] }, …]
   #   }
   #   current_index — optional. The sheet_index currently being shown.
   #   detail        — optional. 'minimal' or 'full' (default minimal);
@@ -75,7 +75,7 @@
       <summary class="cs-roster-summary"><%= cat[:name] %></summary>
       <%
         templates  = cat[:templates]        || []
-        encounters = cat[:encounter_tables] || []
+        encounters = cat[:random_encounter_tables] || []
       %>
       <% if templates.empty? && encounters.empty? %>
         <div class="cs-roster-empty">—</div>
@@ -94,12 +94,12 @@
           <% end %>
 
           <% encounters.each do |row| %>
-            <li class="cs-roster-row cs-roster-encounter">
-              <a class="cs-roster-name cs-encounter-link"
-                 href="/character-sheets?encounter_template=<%= row[:table_id] %>&i=<%= current_index || 0 %>&detail=<%= detail_mode %>"
+            <li class="cs-roster-row cs-roster-random-encounter">
+              <a class="cs-roster-name cs-random-encounter-link"
+                 href="/character-sheets?random_encounter_template=<%= row[:table_id] %>&i=<%= current_index || 0 %>&detail=<%= detail_mode %>"
                  data-table-id="<%= row[:table_id] %>"><%= row[:name] %></a>
               <button type="button"
-                      class="cs-roster-btn cs-roster-roll cs-encounter-roll-btn"
+                      class="cs-roster-btn cs-roster-roll cs-random-encounter-roll-btn"
                       data-table-id="<%= row[:table_id] %>"
                       data-table-name="<%= row[:name] %>"
                       title="Roll encounter"

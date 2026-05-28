@@ -517,7 +517,7 @@ Malformed records are rejected with a descriptive error naming the file and id; 
 - Max HP and Max Mana formula composition.
 - Modifier aggregation: walking Granted Abilities, evaluating `add` Formulas, returning Aggregated Modifier Entries.
 - Producing the Creature Accessor consumed by other domains.
-- `creatures_advancement.yaml`, `creatures_race.yaml`, `deities.yaml`, and `encounter_tables.yaml` catalogs.
+- `creatures_advancement.yaml`, `creatures_race.yaml`, `deities.yaml`, and `random_encounter_tables.yaml` catalogs.
 - Load-time validation of Creature Records.
 
 ### Explicitly *not* owned here

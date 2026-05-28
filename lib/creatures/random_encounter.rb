@@ -3,21 +3,21 @@ require_relative 'dataset'
 require_relative 'dice_expression'
 
 module Creatures
-  # Spawn Creature From Template + Delete Creature + Encounter
-  # Table loading + Roll Encounter.
+  # Spawn Creature From Template + Delete Creature + Random
+  # Encounter Table loading + Roll Random Encounter.
   #
-  # Encounter Row shapes recognized:
+  # Random Encounter Row shapes recognized:
   #   Guaranteed             — { spawn: [SpawnRef, ...] }
   #   Independent Chance     — { chance: 0..1, spawn: [...], as: var }
   #   Gated Independent Chance — { when: {...}, chance: 0..1, spawn: [...], as: var }
   #
   # Weighted Choice / Gated Weighted Choice rows are not yet
-  # implemented — none of the shipped encounter_tables.yaml entries
+  # implemented — none of the shipped random_encounter_tables.yaml entries
   # use them. They mirror Equipment's Loot Roll Row shape; the
   # Equipment domain hasn't landed yet.
-  module Encounter
+  module RandomEncounter
     TABLES_PATH = File.expand_path(
-      '../../docs/common/creatures/encounter_tables.yaml', __dir__
+      '../../docs/common/creatures/random_encounter_tables.yaml', __dir__
     )
 
     module_function
@@ -42,7 +42,7 @@ module Creatures
       Dataset.delete!(id)
     end
 
-    # ---- Encounter Tables -----------------------------------------------
+    # ---- Random Encounter Tables -----------------------------------------------
 
     def tables
       @tables ||= (YAML.safe_load_file(TABLES_PATH) || {})
@@ -61,7 +61,7 @@ module Creatures
           (row['spawn'] || []).each do |spawn|
             tid = Integer(spawn['template_id'])
             unless Dataset.get(tid)
-              raise ArgumentError, "Encounter Table #{table_id.inspect} row references missing template_id #{tid}"
+              raise ArgumentError, "Random Encounter Table #{table_id.inspect} row references missing template_id #{tid}"
             end
           end
         end
@@ -69,12 +69,12 @@ module Creatures
       true
     end
 
-    # Roll Encounter. Returns the list of newly-spawned Creature IDs
+    # Roll Random Encounter. Returns the list of newly-spawned Creature IDs
     # in roll order. The optional `seed` makes the result
     # reproducible (used by tests and replayable encounter rolls).
-    def roll_encounter(table_id, seed: nil)
+    def roll_random_encounter(table_id, seed: nil)
       table = tables[table_id.to_s]
-      raise ArgumentError, "no Encounter Table #{table_id.inspect}" unless table
+      raise ArgumentError, "no Random Encounter Table #{table_id.inspect}" unless table
 
       rng = seed.nil? ? Random.new : Random.new(seed)
       vars = {}

@@ -1,15 +1,15 @@
 <%
   # Creatures Encounter Template Stub —
-  # docs/common/ui/creatures_encounter_template_stub.md
+  # docs/common/ui/creatures_random_encounter_template_stub.md
   #
   # Locals:
-  #   table_id — string, the snake_case Encounter Table key.
-  #   table    — Hash from encounter_tables.yaml ({'name', 'rolls'}).
+  #   table_id — string, the snake_case Random Encounter Table key.
+  #   table    — Hash from random_encounter_tables.yaml ({'name', 'rolls'}).
   #   name_for — callable: template_id (Integer) → String. Resolves
   #              the Creature template name.
 %>
 
-<article class="cs-encounter-template">
+<article class="cs-random-encounter-template">
   <header class="cs-enc-header">
     <h2 class="cs-enc-name"><%= table['name'] || table_id %></h2>
     <div class="cs-enc-subtitle"><code><%= table_id %></code></div>
@@ -63,7 +63,7 @@
 
   <footer class="cs-enc-footer">
     <button type="button"
-            class="cs-enc-roll-btn cs-encounter-roll-btn"
+            class="cs-enc-roll-btn cs-random-encounter-roll-btn"
             data-table-id="<%= table_id %>"
             data-table-name="<%= table['name'] || table_id %>">Roll</button>
   </footer>

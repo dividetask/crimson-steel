@@ -37,21 +37,21 @@ RSpec.describe 'Creatures encounter operations', type: :model do
     end
   end
 
-  describe 'roll_encounter' do
+  describe 'roll_random_encounter' do
     it 'deterministic with a seed' do
-      a = Creatures.roll_encounter('slave_lords_caravan', seed: 42)
+      a = Creatures.roll_random_encounter('slave_lords_caravan', seed: 42)
       Creatures::Dataset.load!
-      b = Creatures.roll_encounter('slave_lords_caravan', seed: 42)
+      b = Creatures.roll_random_encounter('slave_lords_caravan', seed: 42)
       # Same number of spawns; ids reset to the same starting point.
       expect(a.length).to eq(b.length)
     end
 
     it 'rejects unknown table id' do
-      expect { Creatures.roll_encounter('no_such_table') }.to raise_error(ArgumentError, /no Encounter Table/)
+      expect { Creatures.roll_random_encounter('no_such_table') }.to raise_error(ArgumentError, /no Random Encounter Table/)
     end
 
     it 'each spawn is a fresh Creature record' do
-      ids = Creatures.roll_encounter('general_pirate_raid', seed: 7)
+      ids = Creatures.roll_random_encounter('general_pirate_raid', seed: 7)
       expect(ids).to all be_an(Integer)
       ids.each { |id| expect(Creatures.lookup(id)).not_to be_nil }
     end

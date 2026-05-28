@@ -53,11 +53,11 @@ module Status
     # Grouped roster for the Roster Sidebar
     # (docs/common/ui/creatures_roster_sidebar_stub.md). New shape:
     # players + npcs are top-level lists; each themed category mixes
-    # creature templates and encounter tables under one heading.
+    # creature templates and random encounter tables under one heading.
     def roster
       players = []
       npcs    = []
-      by_category = Hash.new { |h, k| h[k] = { templates: [], encounter_tables: [] } }
+      by_category = Hash.new { |h, k| h[k] = { templates: [], random_encounter_tables: [] } }
 
       demos.each_with_index do |demo, idx|
         group = demo[:roster_group] || :players
@@ -77,18 +77,18 @@ module Status
       end
 
       Status::SampleCreatures.sample_encounter_tables.each do |t|
-        by_category[t[:category]][:encounter_tables] << t
+        by_category[t[:category]][:random_encounter_tables] << t
       end
 
       categories = CATEGORIES.map do |c|
         bucket = by_category[c[:key]]
-        c.merge(templates: bucket[:templates], encounter_tables: bucket[:encounter_tables])
+        c.merge(templates: bucket[:templates], random_encounter_tables: bucket[:random_encounter_tables])
       end
 
       { players: players, npcs: npcs, categories: categories }
     end
 
-    # Encounter Tables surfaced to the Roster Sidebar. Each entry is
+    # Random Encounter Tables surfaced to the Roster Sidebar. Each entry is
     # filed under one of the CATEGORIES above via its `category` key.
     def sample_encounter_tables
       [
@@ -103,11 +103,11 @@ module Status
     end
 
     # Sample roll-result fixtures keyed by encounter table id. Used
-    # by /encounters/roll/<table_id> on the Character Sheets page —
+    # by /random_encounters/roll/<table_id> on the Character Sheets page —
     # the Combat / enemy-data-file side effects of a roll aren't
     # wired yet, so the panel pulls from this curated set instead of
-    # calling Creatures.roll_encounter. The shape matches the
-    # creatures_encounter_roll_result_stub.md `result` parameter.
+    # calling Creatures.roll_random_encounter. The shape matches the
+    # creatures_random_encounter_roll_result_stub.md `result` parameter.
     def sample_roll_results
       {
         'slave_lords_caravan' => [

@@ -1,6 +1,6 @@
 module Creatures
   # Tiny dice-expression evaluator for the `count` field on
-  # Encounter Row Spawn Refs. Supports integer literals and
+  # Random Encounter Row Spawn Refs. Supports integer literals and
   # XdY-style expressions with an optional ±N modifier:
   #   "3"        → 3
   #   "2d4"      → 2..8

@@ -2162,7 +2162,7 @@ body {
   min-width: 16px;
   text-align: center;
 }
-.cs-roster-encounter .cs-roster-name { font-style: italic; }
+.cs-roster-random-encounter .cs-roster-name { font-style: italic; }
 
 /* Minimal sheet lower row — Abilities + Item Descriptions side by side. */
 .cs-card.cs-minimal .cs-minimal-lower {
@@ -2194,8 +2194,8 @@ body {
 }
 
 /* Encounter Template Stub —
-   creatures_encounter_template_stub.md */
-.cs-encounter-template {
+   creatures_random_encounter_template_stub.md */
+.cs-random-encounter-template {
   background: #fdf6e3;
   border: 1px solid #d9a98a;
   border-radius: 6px;
@@ -2204,28 +2204,28 @@ body {
   color: #2b1a13;
   margin-bottom: 18px;
 }
-.cs-encounter-template .cs-enc-header { margin-bottom: 12px; }
-.cs-encounter-template .cs-enc-name {
+.cs-random-encounter-template .cs-enc-header { margin-bottom: 12px; }
+.cs-random-encounter-template .cs-enc-name {
   font-size: 22px;
   font-weight: bold;
   color: #b9472c;
   margin: 0;
 }
-.cs-encounter-template .cs-enc-subtitle {
+.cs-random-encounter-template .cs-enc-subtitle {
   font-size: 12px;
   color: #8a6a52;
   margin-top: 2px;
 }
-.cs-encounter-template .cs-enc-subtitle code {
+.cs-random-encounter-template .cs-enc-subtitle code {
   background: #f4e5c4;
   padding: 1px 5px;
   border-radius: 3px;
 }
-.cs-encounter-template .cs-enc-row {
+.cs-random-encounter-template .cs-enc-row {
   border-top: 1px solid #ecd6b6;
   padding: 8px 0;
 }
-.cs-encounter-template .cs-enc-row-head {
+.cs-random-encounter-template .cs-enc-row-head {
   font-variant: small-caps;
   color: #882f1f;
   font-weight: bold;
@@ -2236,50 +2236,50 @@ body {
   gap: 10px;
   flex-wrap: wrap;
 }
-.cs-encounter-template .cs-enc-row-chance { color: #882f1f; }
-.cs-encounter-template .cs-enc-row-when,
-.cs-encounter-template .cs-enc-row-as {
+.cs-random-encounter-template .cs-enc-row-chance { color: #882f1f; }
+.cs-random-encounter-template .cs-enc-row-when,
+.cs-random-encounter-template .cs-enc-row-as {
   font-variant: normal;
   font-weight: normal;
   color: #4d2e1e;
   text-transform: none;
 }
-.cs-encounter-template .cs-enc-row-when code,
-.cs-encounter-template .cs-enc-row-as code {
+.cs-random-encounter-template .cs-enc-row-when code,
+.cs-random-encounter-template .cs-enc-row-as code {
   background: #f4e5c4;
   padding: 0 4px;
   border-radius: 2px;
 }
-.cs-encounter-template .cs-enc-spawn-list {
+.cs-random-encounter-template .cs-enc-spawn-list {
   list-style: none;
   padding-left: 12px;
   margin: 0;
 }
-.cs-encounter-template .cs-enc-spawn {
+.cs-random-encounter-template .cs-enc-spawn {
   font-size: 13px;
   padding: 2px 0;
 }
-.cs-encounter-template .cs-enc-spawn-count {
+.cs-random-encounter-template .cs-enc-spawn-count {
   font-weight: bold;
   color: #b9472c;
   margin-right: 6px;
 }
-.cs-encounter-template .cs-enc-template-src {
+.cs-random-encounter-template .cs-enc-template-src {
   color: #8a6a52;
   font-size: 11px;
   margin-left: 4px;
 }
-.cs-encounter-template .cs-enc-loot-tag {
+.cs-random-encounter-template .cs-enc-loot-tag {
   color: #8a6a52;
   font-size: 11px;
   margin-left: 6px;
 }
-.cs-encounter-template .cs-enc-footer {
+.cs-random-encounter-template .cs-enc-footer {
   margin-top: 14px;
   padding-top: 10px;
   border-top: 1px solid #b9472c;
 }
-.cs-encounter-template .cs-enc-roll-btn,
+.cs-random-encounter-template .cs-enc-roll-btn,
 .cs-roll-result .cs-rr-roll-btn {
   padding: 6px 18px;
   font-size: 13px;
@@ -2293,14 +2293,14 @@ body {
   cursor: pointer;
   font-family: Georgia, serif;
 }
-.cs-encounter-template .cs-enc-roll-btn:hover,
+.cs-random-encounter-template .cs-enc-roll-btn:hover,
 .cs-roll-result .cs-rr-roll-btn:hover {
   background: #882f1f;
 }
 
 /* Encounter Roll Result Stub —
-   creatures_encounter_roll_result_stub.md.
-   Rendered above the main panel via #encounter-roll-result. */
+   creatures_random_encounter_roll_result_stub.md.
+   Rendered above the main panel via #random-encounter-roll-result. */
 .cs-roll-result {
   background: #fdf6e3;
   border: 1px solid #b9472c;

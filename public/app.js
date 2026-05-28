@@ -835,15 +835,15 @@
 
   // -- Encounter Roll Result panel -------------------------------------
   //
-  // creatures_encounter_roll_result_stub.md: clicking the Roll button
-  // on a sidebar Encounter Table row OR on the result panel itself
+  // creatures_random_encounter_roll_result_stub.md: clicking the Roll button
+  // on a sidebar Random Encounter Table row OR on the result panel itself
   // fetches a fresh roll and replaces the panel above the main sheet.
   // Combat / enemy-data-file side effects are not yet wired — the
   // server returns sample roll data and the panel just renders it.
   function fetchEncounterRoll(tableId) {
-    var slot = document.getElementById('encounter-roll-result');
+    var slot = document.getElementById('random-encounter-roll-result');
     if (!slot) return;
-    fetch('/encounters/roll/' + encodeURIComponent(tableId), {
+    fetch('/random_encounters/roll/' + encodeURIComponent(tableId), {
       headers: { 'Accept': 'text/html' }
     })
       .then(function (r) { return r.text(); })
@@ -852,7 +852,7 @@
   }
 
   document.addEventListener('click', function (e) {
-    var btn = e.target.closest && e.target.closest('.cs-encounter-roll-btn');
+    var btn = e.target.closest && e.target.closest('.cs-random-encounter-roll-btn');
     if (!btn) return;
     e.preventDefault();
     var tableId = btn.getAttribute('data-table-id');
