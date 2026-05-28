@@ -1,29 +1,27 @@
 get '/character-sheets' do
-  demos = Status::SampleCreatures.demos
-  total = demos.length
   @detail = params[:detail] == 'full' ? 'full' : 'minimal'
 
-  # Live spawned Creature view: ?creature_id=<id> renders a creature
-  # from the live Dataset (e.g. an enemy spawned from a template) via
-  # the Accessor->demo bridge. These are not in the hand-curated demos,
-  # so they have no paging index.
-  @live_creature_id = params[:creature_id]
-  if @live_creature_id && (accessor = (Creatures.lookup(@live_creature_id) rescue nil))
-    @demo  = Status::SampleCreatures.live_demo(accessor)
-    @i     = -1
-    @total = total
-  else
-    @live_creature_id = nil
-    i = params[:i].to_i
-    i = 0 if i < 0
-    i = total - 1 if i >= total
-    @demo  = demos[i]
-    @i     = i
-    @total = total
-  end
+  # The sheet is rendered exclusively from the live Creatures domain
+  # (docs/common/creatures + data/) via the CreatureSheet bridge —
+  # never from Status sample data. ?creature_id selects directly;
+  # ?i pages through the live roster in load order.
+  ids = LiveRoster.ordered_ids
+  @total = ids.length
+  @creature_id =
+    if params[:creature_id] && (acc = (Creatures.lookup(params[:creature_id]) rescue nil))
+      acc.id
+    elsif !ids.empty?
+      i = params[:i].to_i
+      i = 0 if i < 0
+      i = ids.length - 1 if i >= ids.length
+      ids[i]
+    end
+  @i = @creature_id ? (ids.index(@creature_id) || 0) : -1
+  accessor = @creature_id && (Creatures.lookup(@creature_id) rescue nil)
+  @demo = accessor ? CreatureSheet.build(accessor) : nil
 
-  # Encounter template viewer (replaces the character sheet in the
-  # main panel when ?random_encounter_template=<table_id> is set).
+  # Random Encounter Template viewer (replaces the sheet in the main
+  # panel when ?random_encounter_template=<table_id> is set).
   @random_encounter_template_id = params[:random_encounter_template]
   if @random_encounter_template_id && Creatures::RandomEncounter.tables.key?(@random_encounter_template_id)
     @random_encounter_template = Creatures::RandomEncounter.tables[@random_encounter_template_id]
@@ -38,7 +36,7 @@ get '/character-sheets' do
   # Roster Sidebar (DM only). Reconcile PCs first so they always show.
   if dm_view?
     reconcile_player_combatants!
-    @roster = Status::SampleCreatures.roster
+    @roster = LiveRoster.build
   end
 
   erb :character_sheets

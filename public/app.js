@@ -319,16 +319,16 @@ document.addEventListener('change', function (e) {
 
   function currentSheetParams() {
     var qs = new URLSearchParams(window.location.search);
-    var i = qs.get('i') || '0';
+    var creatureId = qs.get('creature_id') || '';
     var detail = qs.get('detail') === 'full' ? 'full' : 'minimal';
-    return { i: i, detail: detail };
+    return { creatureId: creatureId, detail: detail };
   }
 
   function refreshSidebar() {
     var sidebar = document.querySelector('.cs-roster-sidebar');
     if (!sidebar) return Promise.resolve();
     var p = currentSheetParams();
-    return fetch('/encounter/roster_sidebar?i=' + encodeURIComponent(p.i) + '&detail=' + p.detail, {
+    return fetch('/encounter/roster_sidebar?creature_id=' + encodeURIComponent(p.creatureId) + '&detail=' + p.detail, {
       headers: { 'Accept': 'text/html' }
     })
       .then(function (r) { return r.text(); })

@@ -321,10 +321,9 @@ end
 get '/encounter/roster_sidebar' do
   halt 404 unless dm_view?
   reconcile_player_combatants!
-  i = params[:i].to_i
   detail = params[:detail] == 'full' ? 'full' : 'minimal'
   erb :_creatures_roster_sidebar, layout: false,
-      locals: { roster: Status::SampleCreatures.roster, current_index: i, detail: detail }
+      locals: { roster: LiveRoster.build, current_creature_id: params[:creature_id], detail: detail }
 end
 
 post '/encounter/start_combat' do

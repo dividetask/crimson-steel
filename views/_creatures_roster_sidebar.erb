@@ -2,19 +2,22 @@
   # Creatures Roster Sidebar Stub —
   # docs/common/ui/creatures_roster_sidebar_stub.md
   #
+  # Sourced from the live Creatures domain (LiveRoster), never Status
+  # sample data. Links/highlighting key off Creature ID.
+  #
   # Locals:
-  #   roster        — required. {
-  #     players:    [{ id, name, sheet_index, active }, …],
-  #     npcs:       [{ id, name, sheet_index, active }, …],
+  #   roster              — required. {
+  #     players:    [{ id, name, active, copy_count }, …],
+  #     npcs:       [{ id, name, active, copy_count }, …],
   #     categories: [{ key, name, templates: [...], random_encounter_tables: [...] }, …]
   #   }
-  #   current_index — optional. The sheet_index currently being shown.
-  #   detail        — optional. 'minimal' or 'full' (default minimal);
-  #                   passed through on row hrefs.
-  current_index = defined?(current_index) ? current_index : nil
-  detail_mode   = defined?(detail)        ? detail        : 'minimal'
+  #   current_creature_id — optional. The Creature ID currently shown.
+  #   detail              — optional. 'minimal' or 'full' (default minimal).
+  current_creature_id = defined?(current_creature_id) ? current_creature_id : nil
+  detail_mode         = defined?(detail) ? detail : 'minimal'
 
-  current_row = ->(row) { current_index && row[:sheet_index] == current_index }
+  current_row = ->(row) { current_creature_id && row[:id].to_s == current_creature_id.to_s }
+  sheet_href  = ->(id) { "/character-sheets?creature_id=#{id}&detail=#{detail_mode}" }
 %>
 
 <aside class="cs-roster-sidebar">
@@ -32,7 +35,7 @@
           <li class="cs-roster-row cs-roster-player<%= ' cs-roster-current' if current_row.call(row) %><%= ' cs-player-absent' unless active %>"
               data-creature-id="<%= row[:id] %>"
               data-roster-kind="pc">
-            <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= row[:name] %></a>
+            <a class="cs-roster-name" href="<%= sheet_href.call(row[:id]) %>"><%= row[:name] %></a>
             <button type="button"
                     class="cs-roster-btn cs-player-toggle cs-active-toggle <%= active ? 'cs-player-active' : 'cs-player-absent' %>"
                     aria-pressed="<%= active %>"
@@ -60,7 +63,7 @@
           <li class="cs-roster-row cs-roster-npc<%= ' cs-roster-current' if current_row.call(row) %><%= ' cs-player-absent' unless active %>"
               data-creature-id="<%= row[:id] %>"
               data-roster-kind="npc">
-            <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= row[:name] %></a>
+            <a class="cs-roster-name" href="<%= sheet_href.call(row[:id]) %>"><%= row[:name] %></a>
             <button type="button"
                     class="cs-roster-btn cs-player-toggle cs-active-toggle <%= active ? 'cs-player-active' : 'cs-player-absent' %>"
                     aria-pressed="<%= active %>"
@@ -80,7 +83,7 @@
     <details class="cs-roster-group" data-group-key="<%= cat[:key] %>">
       <summary class="cs-roster-summary"><%= cat[:name] %></summary>
       <%
-        templates  = cat[:templates]        || []
+        templates  = cat[:templates]               || []
         encounters = cat[:random_encounter_tables] || []
       %>
       <% if templates.empty? && encounters.empty? %>
@@ -95,7 +98,7 @@
             <li class="cs-roster-row cs-roster-template<%= ' cs-roster-current' if current_row.call(row) %>"
                 data-creature-id="<%= row[:id] %>"
                 data-roster-kind="template">
-              <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= display_name %></a>
+              <a class="cs-roster-name" href="<%= sheet_href.call(row[:id]) %>"><%= display_name %></a>
               <button type="button"
                       class="cs-roster-btn cs-roster-add"
                       data-template-id="<%= row[:id] %>"
@@ -107,7 +110,7 @@
               <li class="cs-roster-row cs-roster-spawned"
                   data-creature-id="<%= child[:creature_id] %>"
                   data-roster-kind="spawned">
-                <a class="cs-roster-name" href="/character-sheets?creature_id=<%= child[:creature_id] %>&detail=<%= detail_mode %>"><%= child[:name] %></a>
+                <a class="cs-roster-name" href="<%= sheet_href.call(child[:creature_id]) %>"><%= child[:name] %></a>
                 <button type="button"
                         class="cs-roster-btn cs-roster-delete"
                         data-creature-id="<%= child[:creature_id] %>"
@@ -120,7 +123,7 @@
           <% encounters.each do |row| %>
             <li class="cs-roster-row cs-roster-random-encounter">
               <a class="cs-roster-name cs-random-encounter-link"
-                 href="/character-sheets?random_encounter_template=<%= row[:table_id] %>&i=<%= current_index || 0 %>&detail=<%= detail_mode %>"
+                 href="/character-sheets?random_encounter_template=<%= row[:table_id] %>&detail=<%= detail_mode %>"
                  data-table-id="<%= row[:table_id] %>"><%= row[:name] %></a>
               <button type="button"
                       class="cs-roster-btn cs-roster-roll cs-random-encounter-roll-btn"

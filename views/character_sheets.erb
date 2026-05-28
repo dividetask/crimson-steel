@@ -1,13 +1,12 @@
 <%
-  base_url      = '/character-sheets'
   toggle_detail = @detail == 'full' ? 'minimal' : 'full'
-  toggle_href   = "#{base_url}?i=#{@i}&detail=#{toggle_detail}"
+  toggle_href   = "/character-sheets?creature_id=#{@creature_id}&detail=#{toggle_detail}"
 %>
 
 <div class="cs-page<%= ' cs-page-with-sidebar' if @roster %>">
   <% if @roster %>
     <%= erb :_creatures_roster_sidebar,
-            locals: { roster: @roster, current_index: @i, detail: @detail } %>
+            locals: { roster: @roster, current_creature_id: @creature_id, detail: @detail } %>
   <% end %>
   <div class="cs-main">
     <div id="random-encounter-roll-result"></div>
@@ -16,6 +15,8 @@
               locals: { table_id: @random_encounter_template_id,
                         table: @random_encounter_template,
                         name_for: @random_encounter_name_for } %>
+    <% elsif @demo.nil? %>
+      <p class="lead">No creatures in the roster.</p>
     <% elsif @detail == 'minimal' %>
       <%= erb :_creature_minimal, locals: { demo: @demo, toggle_target: toggle_href } %>
     <% else %>
