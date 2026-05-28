@@ -40,9 +40,22 @@ module Equipment
         damage_types: types,
         bleed: bleed(defn, types, catalog),
         threshold: threshold(defn, types, catalog),
+        speed: speed(defn, catalog),
         tags: defn['tags'] || [],
         ammo_type: defn['ammo_type']
       )
+    end
+
+    # Combat-Pool cost multiplier for an attack with this weapon:
+    # per-weapon `speed` → first Tag carrying `speed` → Weapon Category.
+    def speed(defn, catalog)
+      return defn['speed'] if defn.key?('speed')
+      Array(defn['tags']).each do |tag|
+        tag_def = catalog.weapon_tags[tag] || {}
+        return tag_def['speed'] if tag_def.key?('speed')
+      end
+      cat = catalog.weapon_categories[defn['category']] || {}
+      cat['speed']
     end
 
     def armor_details(stack, catalog)

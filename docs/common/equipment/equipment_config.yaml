@@ -120,28 +120,36 @@ Slots:
 # =====================================================================
 
 # Weapon Categories. `base_damage` is the default damage formula
-# evaluated by Combat (Equipment only stores the string).
+# evaluated by Combat (Equipment only stores the string). `speed` is
+# the default Combat-Pool cost multiplier for an attack with the
+# weapon (dice spent × speed); a per-weapon `speed` or a Weapon Tag
+# `speed` overrides it (per-weapon → first Tag with `speed` → Category).
 Weapon Categories:
   Ranged:
     base_damage: "str / 4"
+    speed: 2
   One Handed:
     base_damage: "str / 4 - 2"
+    speed: 2
   Two Handed:
     base_damage: "str / 2"
+    speed: 3
 
 # Weapon Tags — mundane structural tags, distinct from magical
 # Weapon Properties. `damage_formula` overrides the Category
 # default; the first Tag carrying one wins when a Weapon has
-# multiple Tags.
+# multiple Tags. `speed` overrides the Category speed the same way.
 Weapon Tags:
   thrown:
     damage_formula: "str / 4 - 2"
     description: A weapon balanced for throwing.
   light:
     damage_formula: "str / 4 - 2"
+    speed: 1
     description: A light one-handed weapon.
   heavy:
     damage_formula: "str / 2 + 2"
+    speed: 3
     description: A heavy weapon typically requiring both hands to wield.
   exotic:
     description: A weapon requiring specialized training.
