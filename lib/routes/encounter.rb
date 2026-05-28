@@ -182,6 +182,52 @@ helpers do
   def invert_init(str)
     str.bytes.map { |b| (255 - b).chr }.join
   end
+
+  # ---- Attack pipeline glue (gather live domain data) ----------------
+
+  # Display name for a Combatant: stored override → live Creature name
+  # → "Creature #<id>".
+  def tracker_name(combatant)
+    return combatant[:name] unless combatant[:name].to_s.empty?
+    creature = Creatures.lookup(combatant[:creature_id]) rescue nil
+    creature ? creature.name : "Creature ##{combatant[:creature_id]}"
+  end
+
+  def equipment_owner(creature_id) = "creature:#{creature_id}"
+
+  # Equipped weapons for a Creature, with the details the attack
+  # pipeline needs (resolved from Equipment, damage formula left as a
+  # string — evaluated per-attacker in build_attack).
+  def equipped_weapons(creature_id)
+    cat = Equipment.catalog
+    inv = (Equipment.instance.get_inventory(equipment_owner(creature_id)) rescue [])
+    inv.select { |s| s.equipped && (it = cat.item_type(s.item_type)) && it[:category] == 'Weapon' }
+       .map do |s|
+      wd = Equipment::Details.weapon_details(s, cat)
+      ranged = (wd[:definition] && wd[:definition]['category'] == 'Ranged')
+      { item_type: s.item_type, display_name: wd[:display_name], ranged: ranged,
+        speed: wd[:speed], damage_types: wd[:damage_types], threshold: wd[:threshold],
+        bleed: wd[:bleed], damage_formula: wd[:damage_formula] }
+    end
+  end
+
+  # Evaluate a weapon damage formula (e.g. "str / 4 - 2") against the
+  # attacker's Effective Attributes. Combat owns this evaluation per
+  # equipment_design.md. Clamped at zero.
+  def evaluate_weapon_damage(formula, accessor)
+    return 0 if formula.nil? || formula.to_s.strip.empty?
+    binds = %i[str dex con int wis cha].each_with_object({}) { |a, h| h[a] = (accessor.attribute_value(a) rescue 0) }
+    [(Abilities::Formula.evaluate(formula, binds).to_i rescue 0), 0].max
+  end
+
+  # Proficiencies *Compute Roll inputs* for an attack/defense
+  # proficiency, tolerant of a creature with no live record.
+  def roll_inputs_for(accessor, key, attribute_override: nil)
+    return { dice_cap: 0, competency_modifier: nil } unless accessor
+    Proficiencies::Compute.roll_inputs(key: key, creature: accessor, attribute_override: attribute_override)
+  rescue StandardError
+    { dice_cap: 0, competency_modifier: nil }
+  end
 end
 
 post '/encounter/add' do
@@ -286,6 +332,10 @@ post '/encounter/start_combat' do
   reconcile_player_combatants!
   encounter_state.start_combat
   encounter_state.reroll_initiative # roll initiative for everyone on start
+  # Point the turn at the top of the initiative order so the Combat
+  # Tracker shows the ▶ marker on the acting Combatant immediately.
+  first = encounter_state.acting_combatants.first
+  encounter_state.set_acting_combatant(first[:id]) if first
   redirect back || '/encounter'
 end
 
@@ -307,4 +357,83 @@ post '/encounter/set_acting' do
   require_dm!
   encounter_state.set_acting_combatant(params[:combatant_id].to_i)
   redirect back || '/encounter'
+end
+
+# ---- Attack pipeline endpoints (turn_action_stub.md) -----------------
+#
+# build_attack and resolve_attack implement the client-resolved attack
+# flow: build_attack gathers the live weapon (Equipment) + Dice Cap
+# (Proficiencies) + Attacker Bonuses and returns the Roll specs the JS
+# Check engine resolves; resolve_attack consumes the resolved successes,
+# spends Combat Pool, and applies damage.
+
+# Options for the turn-action panel: the attacker's equipped weapons and
+# the available targets.
+get '/encounter/attack_options' do
+  require_dm!
+  attacker = encounter_state.combatant(params[:attacker_id].to_i)
+  return encounter_error(404, 'unknown attacker') unless attacker
+  targets = encounter_state.combatants.reject { |c| c[:id] == attacker[:id] }
+                           .map { |c| { combatant_id: c[:id], name: tracker_name(c) } }
+  encounter_response(
+    ok: true,
+    attacker: { combatant_id: attacker[:id], name: tracker_name(attacker) },
+    weapons:  equipped_weapons(attacker[:creature_id]),
+    targets:  targets
+  )
+end
+
+post '/encounter/build_attack' do
+  require_dm!
+  attacker = encounter_state.combatant(params[:attacker_id].to_i)
+  target   = encounter_state.combatant(params[:target_id].to_i)
+  return encounter_error(404, 'unknown attacker or target') unless attacker && target
+
+  acc_atk = Creatures.lookup(attacker[:creature_id]) rescue nil
+  weapon  = equipped_weapons(attacker[:creature_id]).find { |w| w[:item_type] == params[:weapon] }
+  return encounter_error(404, 'attacker has no such equipped weapon') unless weapon
+
+  attack_kind = weapon[:ranged] ? 'ranged' : 'melee'
+  attack_attr = weapon[:ranged] ? :dex : :str
+  base_damage = evaluate_weapon_damage(weapon[:damage_formula], acc_atk)
+  atk_inputs  = roll_inputs_for(acc_atk, 'martial', attribute_override: attack_attr)
+  unaware     = !target[:performed_this_turn] || params[:hidden].to_s == 'true'
+
+  declared = params[:defense].to_s.empty? || params[:defense] == 'none' ? nil : params[:defense]
+  defender_inputs = {}
+  if declared
+    acc_def = Creatures.lookup(target[:creature_id]) rescue nil
+    di = if declared == 'dodge'
+           roll_inputs_for(acc_def, 'dex_save', attribute_override: :dex)
+         else
+           roll_inputs_for(acc_def, 'martial', attribute_override: :str)
+         end
+    defender_inputs = {
+      dice_cap: di[:dice_cap], competency: di[:competency_modifier],
+      pool_remaining: encounter_state.combat_pool_remaining(target[:id])
+    }
+  end
+
+  begin
+    spec = Encounter::Attack.build_spec(
+      attacker: attacker, target: target, attack_kind: attack_kind,
+      weapon: weapon.merge(base_damage: base_damage),
+      attacker_dice_cap: atk_inputs[:dice_cap], attacker_competency: atk_inputs[:competency_modifier],
+      unaware: unaware, declared_defense: declared, defender_inputs: defender_inputs
+    )
+  rescue ArgumentError => e
+    return encounter_error(422, e.message)
+  end
+  # Echo the weapon damage info the resolve step needs.
+  spec[:weapon] = { damage_types: weapon[:damage_types], threshold: weapon[:threshold], base_damage: base_damage }
+  spec[:attack_kind] = attack_kind
+  encounter_response(spec.merge(ok: true))
+end
+
+post '/encounter/resolve_attack' do
+  require_dm!
+  payload = JSON.parse(request.body.read) rescue nil
+  return encounter_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
+  result = encounter_state.resolve_attack_payload(payload)
+  encounter_response(result)
 end
