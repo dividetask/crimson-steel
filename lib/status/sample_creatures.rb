@@ -277,7 +277,7 @@ module Status
           { name: 'Versatile Performance',   description: 'No description yet.' }
         ],
         spells: [
-          { tier: 0, names: ['Mending'] },
+          { tier: 0, names: ['Repair'] },
           { tier: 1, names: ['Charm Person', 'Healing Word'] },
           { tier: 2, names: ['Suggestion'] }
         ],

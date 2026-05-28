@@ -61,6 +61,10 @@ characters:
         tier: 0
         quantity: 2
       - item: Lute
+      - item: Ritual book
+        equipped: true
+        inscribed_spells:
+          - detect_magic
       - item: Rations
         quantity: 5
       - item: Bedroll
