@@ -88,16 +88,14 @@
       <% else %>
         <ul class="cs-roster-list">
           <% templates.each do |row| %>
-            <li class="cs-roster-row<%= ' cs-roster-current' if current_row.call(row) %>"
+            <%
+              count = row[:copy_count].to_i
+              display_name = count > 0 ? "#{row[:name]} (#{count})" : row[:name]
+            %>
+            <li class="cs-roster-row cs-roster-template<%= ' cs-roster-current' if current_row.call(row) %>"
                 data-creature-id="<%= row[:id] %>"
                 data-roster-kind="template">
-              <button type="button"
-                      class="cs-roster-btn cs-roster-remove"
-                      data-creature-id="<%= row[:id] %>"
-                      title="Remove from combat"
-                      aria-label="Remove from combat">&minus;</button>
-              <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= row[:name] %></a>
-              <span class="cs-roster-count" data-copy-count-for="<%= row[:id] %>" <%= 'hidden' unless row[:copy_count].to_i > 0 %>><%= row[:copy_count] %></span>
+              <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= display_name %></a>
               <button type="button"
                       class="cs-roster-btn cs-roster-add"
                       data-template-id="<%= row[:id] %>"
@@ -105,6 +103,18 @@
                       title="Add to combat"
                       aria-label="Add to combat">+</button>
             </li>
+            <% Array(row[:spawned]).each do |child| %>
+              <li class="cs-roster-row cs-roster-spawned"
+                  data-creature-id="<%= child[:creature_id] %>"
+                  data-roster-kind="spawned">
+                <a class="cs-roster-name" href="/character-sheets?creature_id=<%= child[:creature_id] %>&detail=<%= detail_mode %>"><%= child[:name] %></a>
+                <button type="button"
+                        class="cs-roster-btn cs-roster-delete"
+                        data-creature-id="<%= child[:creature_id] %>"
+                        title="Delete creature"
+                        aria-label="Delete creature">&minus;</button>
+              </li>
+            <% end %>
           <% end %>
 
           <% encounters.each do |row| %>

@@ -2268,18 +2268,24 @@ body {
   text-decoration: none;
 }
 .cs-roster-name:hover { text-decoration: underline; }
-.cs-roster-count {
-  display: inline-block;
-  background: #b9472c;
-  color: #fff;
-  font-size: 10px;
-  font-weight: bold;
-  border-radius: 10px;
-  padding: 1px 6px;
-  min-width: 16px;
-  text-align: center;
-}
 .cs-roster-random-encounter .cs-roster-name { font-style: italic; }
+
+/* Spawned-instance rows render indented beneath their template. */
+.cs-roster-spawned {
+  padding-left: 18px;
+  font-size: 12px;
+}
+.cs-roster-spawned .cs-roster-name { color: #4d2e1e; }
+.cs-roster-spawned::before {
+  content: "↳";
+  color: #9c7a5c;
+  flex-shrink: 0;
+}
+.cs-roster-delete {
+  color: #7f1d1d;
+  border-color: #d9a98a;
+}
+.cs-roster-delete:hover:not(:disabled) { background: #fecaca; }
 
 /* Minimal sheet lower row — Abilities + Item Descriptions side by side. */
 .cs-card.cs-minimal .cs-minimal-lower {

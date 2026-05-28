@@ -31,10 +31,17 @@ All groups start **collapsed**. The open/closed state of each group persists in 
 
 Each template row has, in left-to-right order:
 
-- **`−` button** — emits a `remove_combatant` event for the most recently added Combatant with this Creature ID. Inert in this stub.
-- **Creature name link** — clicking navigates to `/character-sheets?i=<sheet_index>` for the template.
-- **Copy count badge** — when at least one Combatant in the active Combat references this Creature ID. Suppressed when zero. Renders to the left of the `+` button.
-- **`+` button** — emits an `add_combatant` event carrying the Creature ID. For a Creature Template the parent first calls Creatures' *Spawn Creature From Template* to produce a fresh Creature record, then *Add Combatant* on the new ID. Followed by Combat's *Reroll Initiative* with `missing_only = true`. **Rendered but inert** until the Combat UI lands.
+- **Creature name link** — clicking navigates to `/character-sheets?i=<sheet_index>` for the template. When at least one instance has been spawned from this template, the name carries an inline count suffix — `Giant Spider (3)`. With no instances it reads just `Giant Spider`.
+- **`+` button** — POSTs to `/encounter/spawn_and_add`. The server calls Creatures' *Spawn Creature From Template* to produce a fresh Creature record (stamping its `spawned_from` field), then *Add Combatant* on the new ID. After the POST the client re-fetches the sidebar fragment so the new instance row and the inline count appear.
+
+There is no `−` button on the template row itself; removal happens per-instance on the spawned rows below.
+
+### Spawned-instance rows (beneath their template)
+
+Each Creature spawned from a template renders as an indented row directly beneath that template, in roster order:
+
+- **Creature name link** — navigates to `/character-sheets?creature_id=<id>`, which renders the live spawned Creature's sheet (computed attributes / vitals / skills / abilities; Equipment stays empty until that domain lands). This lets the GM inspect the individual instance, including any per-instance rolled data.
+- **`−` button** — POSTs to `/encounter/delete_creature`, which removes the Combatant(s) referencing this Creature and deletes the Creature record outright. The sidebar fragment is re-fetched afterward.
 
 ### Random Encounter Table rows (within themed categories)
 
@@ -53,7 +60,7 @@ Required:
 - A `roster` structure:
   - `players` — list of `{ id, name, sheet_index, active }` (`active` defaults to true).
   - `npcs` — list of `{ id, name, sheet_index, active }` (`active` defaults to false).
-  - `categories` — list of `{ key, name, templates, random_encounter_tables }`. Each `templates` entry is `{ id, name, sheet_index, copy_count }`; each `random_encounter_tables` entry is `{ table_id, name }`.
+  - `categories` — list of `{ key, name, templates, random_encounter_tables }`. Each `templates` entry is `{ id, name, sheet_index, copy_count, spawned }`, where `spawned` is the list of instance rows `{ creature_id, combatant_id, name }` cloned from that template; each `random_encounter_tables` entry is `{ table_id, name }`.
 - The viewer role — must be `dm`. The stub renders nothing for player viewers.
 
 Optional:
@@ -69,8 +76,5 @@ The sidebar stores one boolean per group under a key of the form `cs-roster-grou
 
 ## What this stub does not do
 
-- The `+` and `−` buttons do not yet mutate Combat State.
-- The Active / Absent toggle does not persist beyond the current page load — every refresh resets the toggle to its default for that row kind.
-- Random Encounter Table rows render with a `Roll` button and a name link; both render correctly but the roll result panel's "add to Combat" / "append to enemy data file" side effects are not yet wired.
-- The sidebar does not delete Creature records. The post-combat cleanup flow in `equipment_post_combat_creatures_stub.md` is the conventional caller for that.
 - The sidebar does not edit Creature records.
+- It does not roll loot. Random Encounter Table `Roll` spawns Creatures and adds them to the roster, but per-Creature loot is not rolled until the Equipment domain lands.

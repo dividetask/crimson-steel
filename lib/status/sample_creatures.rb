@@ -61,6 +61,7 @@ module Status
       npcs    = []
       by_category = Hash.new { |h, k| h[k] = { templates: [], random_encounter_tables: [] } }
       enc_state = Encounter.state
+      spawned   = spawned_by_template(enc_state)
 
       demos.each_with_index do |demo, idx|
         group = demo[:roster_group] || :players
@@ -75,6 +76,10 @@ module Status
           npcs << row
         when :template
           cat = demo[:category]
+          # Spawned instances cloned from this template, in roster order.
+          children = spawned[demo[:id].to_s] || []
+          row[:spawned]    = children
+          row[:copy_count] = children.length
           by_category[cat][:templates] << row if cat
         end
       end
@@ -89,6 +94,25 @@ module Status
       end
 
       { players: players, npcs: npcs, categories: categories }
+    end
+
+    # Map of template id (string) => list of spawned-instance rows
+    # currently in the Encounter roster, in roster order. A spawned
+    # Creature records the template it was cloned from in its
+    # `spawned_from` field (see Creatures::RandomEncounter.spawn_from_template).
+    def spawned_by_template(enc_state)
+      out = Hash.new { |h, k| h[k] = [] }
+      enc_state.combatants.each do |c|
+        rec = (Creatures::Dataset.get(c[:creature_id]) rescue nil)
+        next unless rec && rec[:spawned_from]
+        name = c[:name].to_s.empty? ? rec[:name] : c[:name]
+        out[rec[:spawned_from].to_s] << {
+          creature_id:  c[:creature_id],
+          combatant_id: c[:id],
+          name:         name
+        }
+      end
+      out
     end
 
     # Random Encounter Tables surfaced to the Roster Sidebar. Each entry is
@@ -493,6 +517,72 @@ module Status
                        classes: [{ key: 'commoner', level: 2, trained_skills: [] }],
                        category: 'fey_favors')
       ]
+    end
+
+    # Bridge a live Creatures::Accessor to the demo Hash the sheet
+    # partials consume. Used to render spawned Creatures (instances
+    # cloned from a template) that aren't in the hand-curated `demos`.
+    # Vitals (HP / Mana / Speed), attributes, and skills are computed
+    # from the Accessor; abilities come from granted_abilities. Items
+    # stay empty until the Equipment domain lands.
+    def live_demo(accessor)
+      rec = accessor.record
+      attrs = Creatures::Config.attribute_keys.each_with_object({}) do |k, h|
+        h[k] = accessor.base_attribute_value(k)
+      end
+      classes = rec[:classes].map do |key, entry|
+        { key: key, level: entry[:level], trained_skills: Array(entry[:skills]) }
+      end
+
+      race_label  = (rec[:race] || '').to_s.split('_').map(&:capitalize).join(' ')
+      class_label = classes.map { |c| "#{c[:key].split('_').map(&:capitalize).join(' ')} #{c[:level]}" }.join(' / ')
+      summary     = [race_label, class_label].reject(&:empty?).join(' ')
+
+      tier    = (accessor.tier rescue 0)
+      max_hp  = (accessor.max_hit_points rescue 0)
+      max_mana = (accessor.max_mana rescue 0)
+      bab     = (accessor.ranks_for('martial') rescue 0)
+      init    = (accessor.attribute_value(:wis) rescue 0) / 2
+
+      abilities = (accessor.granted_abilities rescue []).map do |g|
+        { name: g[:name], description: 'No description yet.' }
+      end
+
+      base_data(
+        id: accessor.id,
+        label: accessor.name,
+        roster_group: :template,
+        header: { name: accessor.name, player: accessor.player, summary: summary, tier: tier, bab: bab },
+        attributes: attrs,
+        classes: classes,
+        vitals: {
+          hp:   { current: max_hp, max: max_hp },
+          mana: { current: max_mana, max: max_mana, regen: 0 },
+          toxicity: { current: 0, threshold: 0 },
+          temp_hp: 0, moderate_damage: 0, major_damage: 0,
+          combat_pool: 0, damage_reduction: 0, damage_resilience: 0
+        },
+        initiative: { dice_count: init },
+        perception: { dice: 3, bonus: 0 },
+        speed: (accessor.speed rescue 30),
+        actions: [
+          { name: 'Dodge', speed: 0, roll: '3d', attack_bonus: 0, dmg_bonus: nil, bleed: nil, mt: nil, notes: '' }
+        ],
+        attributes_table: live_attributes_table(attrs),
+        items: { equipped: [], consumable: [], ammunition: [], other: [] },
+        item_descriptions: [],
+        abilities: abilities,
+        spells: [], rituals: [], item_spells: [],
+        active_effects: [], usable_spells: [], notes: []
+      )
+    end
+
+    def live_attributes_table(attrs)
+      %i[Strength Dexterity Constitution Intelligence Wisdom Charisma]
+        .zip(%i[str dex con int wis cha]).map do |label_name, k|
+        { attr: label_name.to_s, score: attrs[k], half: attrs[k] / 2,
+          check: { dice: 3, bonus: 0 }, save: { dice: 3, bonus: 0 } }
+      end
     end
 
     # Build a simple_demo for one themed template entry.

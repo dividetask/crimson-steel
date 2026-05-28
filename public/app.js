@@ -809,15 +809,16 @@
   //
   // creatures_roster_sidebar_stub.md / encounter_design.md.
   //
-  //  Active/Absent toggle (Players + NPCs) — POSTs to
-  //   /encounter/set_pc_active or /encounter/set_npc_active, then
-  //   flips the button's visual state to match the new value.
-  //  + button (Creature Template row) — POSTs to /encounter/spawn_and_add
-  //   to spawn a fresh Creature from the template and add it as a
-  //   Combatant. Updates the row's copy count badge.
-  //  − button (Creature Template row) — POSTs to /encounter/remove_by_creature
-  //   to drop the most recently added Combatant matching that
-  //   template id. Updates the row's copy count badge.
+  //  Active/Absent toggle (Players + NPCs) — POST /encounter/set_pc_active
+  //   or /encounter/set_npc_active.
+  //  + button (Creature Template row) — POST /encounter/spawn_and_add;
+  //   spawns a fresh Creature from the template and adds it as a Combatant.
+  //  − button (spawned-instance row) — POST /encounter/delete_creature;
+  //   removes the Combatant(s) and deletes the Creature record.
+  //
+  // After any mutation we re-fetch the server-rendered sidebar fragment
+  // so the inline "(N)" count and the spawned-instance rows update from
+  // the source of truth, then restore the collapse state.
 
   function postForm(url, body) {
     var fd = new FormData();
@@ -826,34 +827,29 @@
       .then(function (r) { return r.json().catch(function () { return {}; }); });
   }
 
-  function applyActiveToggle(btn, active) {
-    if (active) {
-      btn.classList.remove('cs-player-absent');
-      btn.classList.add('cs-player-active');
-      btn.textContent = 'Active';
-      btn.setAttribute('aria-pressed', 'true');
-      btn.title = 'Mark absent';
-    } else {
-      btn.classList.remove('cs-player-active');
-      btn.classList.add('cs-player-absent');
-      btn.textContent = 'Absent';
-      btn.setAttribute('aria-pressed', 'false');
-      btn.title = 'Mark active';
-    }
-    var row = btn.closest('.cs-roster-row');
-    if (row) row.classList.toggle('cs-player-absent', !active);
+  function currentSheetParams() {
+    var qs = new URLSearchParams(window.location.search);
+    var i = qs.get('i') || '0';
+    var detail = qs.get('detail') === 'full' ? 'full' : 'minimal';
+    return { i: i, detail: detail };
   }
 
-  function updateCopyCount(creatureId, count) {
-    if (creatureId == null) return;
-    var badge = document.querySelector('[data-copy-count-for="' + creatureId + '"]');
-    if (!badge) return;
-    badge.textContent = count;
-    if (count > 0) {
-      badge.removeAttribute('hidden');
-    } else {
-      badge.setAttribute('hidden', '');
-    }
+  function refreshSidebar() {
+    var sidebar = document.querySelector('.cs-roster-sidebar');
+    if (!sidebar) return Promise.resolve();
+    var p = currentSheetParams();
+    return fetch('/encounter/roster_sidebar?i=' + encodeURIComponent(p.i) + '&detail=' + p.detail, {
+      headers: { 'Accept': 'text/html' }
+    })
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        var current = document.querySelector('.cs-roster-sidebar');
+        if (current) {
+          current.outerHTML = html;
+          restoreRosterGroups();
+        }
+      })
+      .catch(function () { /* leave the sidebar as-is on failure */ });
   }
 
   document.addEventListener('click', function (e) {
@@ -863,15 +859,10 @@
     var creatureId = btn.getAttribute('data-creature-id');
     var kind       = btn.getAttribute('data-roster-kind');
     if (!creatureId || (kind !== 'pc' && kind !== 'npc')) return;
-    var nowActive  = btn.classList.contains('cs-player-active');
-    var nextActive = !nowActive;
+    var nextActive = !btn.classList.contains('cs-player-active');
     var path = kind === 'pc' ? '/encounter/set_pc_active' : '/encounter/set_npc_active';
     postForm(path, { creature_id: creatureId, active: nextActive ? 'true' : 'false' })
-      .then(function (resp) {
-        if (resp && resp.ok) {
-          applyActiveToggle(btn, resp.active === true);
-        }
-      });
+      .then(refreshSidebar);
   });
 
   document.addEventListener('click', function (e) {
@@ -880,35 +871,25 @@
     e.preventDefault();
     var templateId = btn.getAttribute('data-template-id') || btn.getAttribute('data-creature-id');
     if (!templateId) return;
-    postForm('/encounter/spawn_and_add', { template_id: templateId })
-      .then(function (resp) {
-        if (resp && resp.ok && resp.row) {
-          updateCopyCount(resp.row.creature_id, resp.row.copy_count);
-        }
-      });
+    postForm('/encounter/spawn_and_add', { template_id: templateId }).then(refreshSidebar);
   });
 
   document.addEventListener('click', function (e) {
-    var btn = e.target.closest && e.target.closest('.cs-roster-remove');
+    var btn = e.target.closest && e.target.closest('.cs-roster-delete');
     if (!btn) return;
     e.preventDefault();
     var creatureId = btn.getAttribute('data-creature-id');
     if (!creatureId) return;
-    postForm('/encounter/remove_by_creature', { creature_id: creatureId })
-      .then(function (resp) {
-        if (resp && resp.row) {
-          updateCopyCount(resp.row.creature_id, resp.row.copy_count);
-        }
-      });
+    postForm('/encounter/delete_creature', { creature_id: creatureId }).then(refreshSidebar);
   });
 
   // -- Encounter Roll Result panel -------------------------------------
   //
   // creatures_random_encounter_roll_result_stub.md: clicking the Roll button
   // on a sidebar Random Encounter Table row OR on the result panel itself
-  // fetches a fresh roll and replaces the panel above the main sheet.
-  // Combat / enemy-data-file side effects are not yet wired — the
-  // server returns sample roll data and the panel just renders it.
+  // rolls the table, spawns the Creatures, adds them to the roster, and
+  // renders the result panel above the main sheet. The sidebar is then
+  // refreshed so the new spawned-instance rows appear under their templates.
   function fetchEncounterRoll(tableId) {
     var slot = document.getElementById('random-encounter-roll-result');
     if (!slot) return;
@@ -916,7 +897,7 @@
       headers: { 'Accept': 'text/html' }
     })
       .then(function (r) { return r.text(); })
-      .then(function (html) { slot.innerHTML = html; })
+      .then(function (html) { slot.innerHTML = html; return refreshSidebar(); })
       .catch(function () { /* leave previous panel in place */ });
   }
 

@@ -1,14 +1,26 @@
 get '/character-sheets' do
   demos = Status::SampleCreatures.demos
   total = demos.length
-  i = params[:i].to_i
-  i = 0 if i < 0
-  i = total - 1 if i >= total
-
-  @demo   = demos[i]
-  @i      = i
-  @total  = total
   @detail = params[:detail] == 'full' ? 'full' : 'minimal'
+
+  # Live spawned Creature view: ?creature_id=<id> renders a creature
+  # from the live Dataset (e.g. an enemy spawned from a template) via
+  # the Accessor->demo bridge. These are not in the hand-curated demos,
+  # so they have no paging index.
+  @live_creature_id = params[:creature_id]
+  if @live_creature_id && (accessor = (Creatures.lookup(@live_creature_id) rescue nil))
+    @demo  = Status::SampleCreatures.live_demo(accessor)
+    @i     = -1
+    @total = total
+  else
+    @live_creature_id = nil
+    i = params[:i].to_i
+    i = 0 if i < 0
+    i = total - 1 if i >= total
+    @demo  = demos[i]
+    @i     = i
+    @total = total
+  end
 
   # Encounter template viewer (replaces the character sheet in the
   # main panel when ?random_encounter_template=<table_id> is set).

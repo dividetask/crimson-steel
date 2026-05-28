@@ -234,6 +234,30 @@ post '/encounter/set_npc_active' do
   encounter_response(ok: true, active: active, row: encounter_row_snapshot(creature_id))
 end
 
+# Delete a spawned Creature: drop every Combatant referencing it and
+# delete the underlying Creature record (the sidebar's spawned-row
+# `−` button). Used for instances cloned from a template.
+post '/encounter/delete_creature' do
+  require_dm!
+  creature_id = params[:creature_id]
+  return encounter_error(400, 'creature_id is required') if creature_id.nil? || creature_id.to_s.empty?
+
+  encounter_state.remove_all_combatants_by_creature_id(creature_id)
+  deleted = (Creatures.delete(Integer(creature_id)) rescue false)
+  encounter_response(ok: true, deleted: deleted, creature_id: creature_id.to_s)
+end
+
+# Re-rendered Roster Sidebar fragment. The client fetches this after a
+# mutation so spawned-creature rows and counts update without a full
+# page reload.
+get '/encounter/roster_sidebar' do
+  halt 404 unless dm_view?
+  i = params[:i].to_i
+  detail = params[:detail] == 'full' ? 'full' : 'minimal'
+  erb :_creatures_roster_sidebar, layout: false,
+      locals: { roster: Status::SampleCreatures.roster, current_index: i, detail: detail }
+end
+
 post '/encounter/start_combat' do
   require_dm!
   encounter_state.start_combat
