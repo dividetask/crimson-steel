@@ -6,6 +6,9 @@ import { RollController } from './js/ui/rollController.js';
 import { RollsWrapper } from './js/ui/rollsWrapper.js';
 import { StepMachine } from './js/ui/stepMachine.js';
 import { SavePreview } from './js/ui/savePreview.js';
+// Standalone page interactions (image lightbox, text modal, creature
+// roster groups, encounter rolls). Imported for its side effects.
+import './js/ui/pageInteractions.js';
 
 document.addEventListener('click', function (e) {
   const badge = e.target.closest('.mod-badge');

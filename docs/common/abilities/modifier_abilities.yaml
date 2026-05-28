@@ -1,0 +1,150 @@
+# Always-On Modifier Abilities — Temporary catalog
+#
+# Granted Abilities whose mechanical behavior is purely an Always-On
+# Modifier: a passive numeric bonus (or a passive flag that gates a
+# conditional bonus). When the Modifiers domain exists this data migrates
+# there and this file is deleted.
+#
+# Each entry shape:
+#   <name>:
+#     description: string
+#     modifiers:
+#       - target: string         # what the bonus applies to
+#         type: string           # Bonus Type Name
+#         descriptors: [...]     # optional scope tags
+#         add: number | formula  # value; may reference `level`, `tier`
+#
+# Entries marked "modifiers-pending" have no clean numeric/Modifier-shape
+# yet and only carry a description. They still belong to the Always-On
+# Modifier flavor — the data shape just needs the Modifiers domain to
+# land before it can be specified.
+
+# --- Speed modifiers ----------------------------------------------------
+
+fast_movement:
+  description: "Increases base walking speed by 10 feet."
+  modifiers:
+    - target: speed
+      type: Morale
+      add: 10
+
+fleet_of_foot:
+  description: "Base walking speed increases by 5 feet."
+  modifiers:
+    - target: speed
+      type: Racial
+      add: 5
+
+# --- Combat numeric bonuses --------------------------------------------
+
+weapon_training:
+  description: "+1 attack bonus with all weapons in a chosen category, increasing by +1 every 4 levels."
+  modifiers:
+    - target: attack
+      type: Competency
+      descriptors: [chosen_weapon_category]
+      add: "1 + level / 4"
+
+armor_training:
+  description: "+1 to damage reduction and resilience while wearing armor, increasing by +1 every 4 levels."
+  modifiers:
+    - target: damage_reduction
+      type: Competency
+      descriptors: [wearing_armor]
+      add: "1 + level / 4"
+    - target: damage_resilience
+      type: Competency
+      descriptors: [wearing_armor]
+      add: "1 + level / 4"
+
+natural_armor:
+  description: "Grants a variable bonus to damage reduction. The exact amount is set by the granting Class or Race."
+  modifiers:
+    - target: damage_reduction
+      type: Racial
+      add: 0   # overridden by the granting Class or Race
+
+ferocity:
+  description: "+3 damage resilience."
+  modifiers:
+    - target: damage_resilience
+      type: Racial
+      add: 3
+
+# --- Skill / save modifiers --------------------------------------------
+
+silver_tongue:
+  description: "+1 inherent bonus to Persuasion and Deception checks; applies when using versatile performance."
+  modifiers:
+    - target: skill
+      type: Inherent
+      descriptors: [persuasion, deception]
+      add: 1
+
+fey_resistance:
+  description: "+1 inherent bonus to being charmed; immune to magical sleep."
+  modifiers:
+    - target: save
+      type: Inherent
+      descriptors: [charm]
+      add: 1
+    - target: immunity
+      type: Inherent
+      descriptors: [magical_sleep]
+      add: 1
+
+far_sight:
+  description: "All distance penalties for sight-based perception checks are halved."
+  modifiers:
+    - target: skill_penalty
+      type: Inherent
+      descriptors: [perception, distance]
+      add: -0.5
+
+# --- Passive sensory / flag-style (modifiers-pending) -------------------
+
+darkvision:
+  description: "See in darkness as if it were dim light, up to 60 feet."
+
+low_light_vision:
+  description: "See twice as far as a human in dim light."
+
+uncanny_dodge:
+  description: "Lets the Creature enter a Rage even if Surprised. Cannot be caught Flatfooted or Unaware unless Paralyzed or Unconscious. Certain abilities can negate this protection."
+
+mindless_rage:
+  description: "While raging, immune to charmed and frightened conditions."
+
+fey:
+  description: "Counts as a fey creature rather than humanoid. Vulnerable to attacks from cold iron weapons."
+
+ghoul_stench:
+  description: "Aura of stench imposing penalties on adjacent creatures. The penalty target and value are pending the Modifiers domain."
+
+# --- Skill substitution / training rules (modifiers-pending) ------------
+
+jack_of_all_trades:
+  description: "Treat all skills (except restricted skills) as trained, with effective ranks equal to half your level on checks where you have no ranks."
+
+versatile_performance:
+  description: "Treat a chosen Performance skill as a substitute for selected mundane skills; activates Silver Tongue's bonus when used to persuade or deceive."
+
+armor_proficiency_light:
+  description: "Gain proficiency with light armor."
+
+# --- Feat slot grants (modifiers-pending) -------------------------------
+
+bonus_feat:
+  description: "Choose any 1st-level feat."
+
+bonus_racial_feat_halfling:
+  description: "Choose any halfling feat."
+
+bonus_racial_feat_gnome:
+  description: "Choose any gnome feat."
+
+performance_feat:
+  description: "Gain Familiar, Social Spell, Spell Focus (Enchantment), or Spell Focus (Illusion) as a bonus feat."
+
+combat_feat:
+  description: "Gain a combat feat as a bonus."

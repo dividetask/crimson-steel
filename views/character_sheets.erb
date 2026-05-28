@@ -1,2 +1,27 @@
-<h1>Character Sheets</h1>
-<p>Not yet implemented.</p>
+<%
+  base_url      = '/character-sheets'
+  toggle_detail = @detail == 'full' ? 'minimal' : 'full'
+  toggle_href   = "#{base_url}?i=#{@i}&detail=#{toggle_detail}"
+%>
+
+<div class="cs-page<%= ' cs-page-with-sidebar' if @roster %>">
+  <% if @roster %>
+    <%= erb :_creatures_roster_sidebar,
+            locals: { roster: @roster, current_index: @i, detail: @detail } %>
+  <% end %>
+  <div class="cs-main">
+    <div id="encounter-roll-result"></div>
+    <% if @encounter_template_id %>
+      <%= erb :_encounter_template,
+              locals: { table_id: @encounter_template_id,
+                        table: @encounter_template,
+                        name_for: @encounter_name_for } %>
+    <% elsif @detail == 'minimal' %>
+      <%= erb :_creature_minimal, locals: { demo: @demo, toggle_target: toggle_href } %>
+    <% else %>
+      <%= erb :_creature_full, locals: { demo: @demo, toggle_target: toggle_href } %>
+    <% end %>
+  </div>
+</div>
+
+<script src="/app.js"></script>

@@ -1,9 +1,12 @@
 <%
   nav_items = [
-    { key: 'status',     label: 'Status',           href: '/status' },
-    { key: 'dice',       label: 'Dice Resolution',  href: '/status?view=dice' },
-    { key: 'check',      label: 'Check Resolution', href: '/status?view=check' },
-    { key: 'conditions', label: 'Conditions',       href: '/status?view=conditions' }
+    { key: 'status',        label: 'Status',           href: '/status' },
+    { key: 'dice',          label: 'Dice Resolution',  href: '/status?view=dice' },
+    { key: 'check',         label: 'Check Resolution', href: '/status?view=check' },
+    { key: 'conditions',    label: 'Conditions',       href: '/status?view=conditions' },
+    { key: 'creatures',     label: 'Creatures',        href: '/status?view=creatures' },
+    { key: 'timekeeping',   label: 'Timekeeping',      href: '/status?view=timekeeping' },
+    { key: 'chronicle',     label: 'Chronicle',        href: '/status?view=chronicle' }
   ]
 %>
 
@@ -53,6 +56,51 @@
       <% @save_examples.each do |s| %>
         <%= erb :_conditions_save_resolution, locals: { save: s } %>
       <% end %>
+
+    <% when 'creatures' %>
+      <h1>Creatures &mdash; Character Sheet Stubs</h1>
+      <p class="lead">Each sample Creature is rendered twice: first through the Minimal Sheet stub (<code>docs/common/ui/creatures_minimal_stub.md</code>), then through the Full Sheet stub (<code>docs/common/ui/creatures_full_stub.md</code>). Use this page to compare the two layouts side-by-side; the live <code>/character-sheets</code> page picks one or the other via the detail-mode toggle.</p>
+      <% @creature_demos.each do |demo| %>
+        <h2 class="cs-demo-label"><%= demo[:label] %></h2>
+        <%= erb :_creature_minimal, locals: { demo: demo } %>
+        <%= erb :_creature_full,    locals: { demo: demo } %>
+      <% end %>
+
+    <% when 'timekeeping' %>
+      <h1>Timekeeping</h1>
+      <p class="lead">Timekeeping Stub &mdash; one banner per example Timestamp, varying the Time of Day to show how the sun and moon trace across the sky and how the day/night background transitions.</p>
+      <div class="tk-stack">
+        <% @timekeeping_examples.each do |ex| %>
+          <div class="tk-stack-row">
+            <div class="tk-stack-label"><%= ex[:label] %></div>
+            <%= erb :_timekeeping_stub, locals: { timestamp: ex[:timestamp] } %>
+          </div>
+        <% end %>
+      </div>
+
+    <% when 'chronicle' %>
+      <h1>Chronicle</h1>
+      <p class="lead">Five example Entries, rendered first under the DM viewer role and then under a player viewer (Bryn). Status tags and the Edit affordance only appear when the viewer is allowed to see or change them.</p>
+
+      <h2>DM View</h2>
+      <div class="notes-list">
+        <% @chronicle_examples.each do |ex| %>
+          <div class="ce-example-row">
+            <div class="ce-example-label"><%= ex[:label] %></div>
+            <%= erb :_chronicle_entry, locals: { entry: ex[:entry], viewer: :dm, viewing_id: nil, player_creatures: Creatures.player_controlled } %>
+          </div>
+        <% end %>
+      </div>
+
+      <h2>Player View</h2>
+      <div class="notes-list">
+        <% @chronicle_examples.each do |ex| %>
+          <div class="ce-example-row">
+            <div class="ce-example-label"><%= ex[:label] %></div>
+            <%= erb :_chronicle_entry, locals: { entry: ex[:entry], viewer: :player, viewing_id: 2, player_creatures: Creatures.player_controlled } %>
+          </div>
+        <% end %>
+      </div>
 
     <% else %>
       <h1>Status</h1>

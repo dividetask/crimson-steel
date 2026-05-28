@@ -1,0 +1,31 @@
+# Crimson Steel — NPC roster (example data).
+#
+# Long-lived non-player, non-enemy creatures: shopkeepers, quest-givers,
+# hirelings, etc. Same schema as the PC and enemy data files; shares the
+# integer ID space. Conventionally id 2000+. The Chronicle examples reference
+# the IDs here for Creature Reference Entries.
+#
+# See `creatures_data_pcs.example.yaml` for the full Creature schema.
+
+characters:
+
+  - id: 2001
+    name: Daven Korr
+    group: npc
+    tags: [noble]
+    race: human
+    tier: 1
+    attributes: { str: 10, dex: 10, con: 10, int: 12, wis: 13, cha: 14 }
+    advancement:
+      classes:
+        commoner: 1
+
+  - id: 2002
+    name: The Pale Lantern
+    group: npc
+    tags: []
+    race: undead
+    tier: 4
+    attributes: { str: 10, dex: 14, con: 10, int: 12, wis: 14, cha: 16 }
+    advancement:
+      classes: {}

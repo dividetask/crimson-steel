@@ -1,0 +1,17 @@
+# Stateful Abilities — Temporary catalog
+#
+# Granted Abilities whose mechanical behavior is Stateful: they carry
+# per-Creature mutable state (counters, timers, pools, persistent flags)
+# that the Conditions domain will own once it's designed. Until then,
+# this file holds the canonical name and display description so creature
+# stubs have something to render.
+#
+# Each entry: name → { description }. When Conditions designs its catalog,
+# these move into that catalog as Conditions Effect Names (or whatever
+# Conditions chooses as the canonical home) and this file is deleted.
+
+regeneration:
+  description: "Heal damage each turn as though a day had passed. When all minor damage is healed, one point of moderate or major damage can be converted to minor damage based on the number of days it would take to heal that damage. This healing is paused for 1 minute after any fire or acid damage is taken."
+
+undead_traits:
+  description: "Placeholder grouping for undead-typical immunities and weaknesses. Will be split into the proper Conditions / damage-type entries when those domains are written."

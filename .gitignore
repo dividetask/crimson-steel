@@ -1,5 +1,7 @@
 .*.swp
 .*.swo
+.bundle/
+docs/.gitignore
 data/*
 local.rb
 public/uploads/

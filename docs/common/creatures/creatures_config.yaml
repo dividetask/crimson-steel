@@ -1,0 +1,51 @@
+# Creatures Configuration
+
+# The Attributes a Creature owns directly. Every Creature has a base
+# value for each. Saves track 1:1 with Attributes (every Attribute
+# is a Save Attribute in some context).
+Attributes:
+  - str
+  - dex
+  - con
+  - int
+  - wis
+  - cha
+
+# Tiers a Creature can occupy, lowest to highest. Tier numbers
+# correspond to indices in this list. UI Tier Colors live in
+# ui_conventions.md.
+Tiers: [0, 1, 2, 3, 4, 5]
+
+# Rate formulas for the three Proficiency Categories. Each formula
+# takes a Class Level (`level`) and returns the ranks contributed by
+# that Class Level. The category names are the canonical vocabulary
+# (Aligned / Unaligned / Opposed) used everywhere in this domain.
+Proficiency Advancement Rates:
+  Aligned:   "floor(5 * level / 3)"
+  Unaligned: "level"
+  Opposed:   "floor(2 * level / 3)"
+
+# Formula for the per-Class-Level Skill Pick budget. `bonus_skills`
+# is the per-Class integer declared in `creatures_advancement.yaml`.
+# Other tokens refer to the Creature's Effective Attribute values.
+# The system advertises this budget but does not enforce that a
+# Creature's actual `skills` choices match it — enforcement is the
+# concern of the future Creature-creation flow.
+Skill Pick Formula: "floor(int / 4) + bonus_skills"
+
+# Each creature gains an inherent bonus to all of their stats
+# equal to Tier Minimum Inherent Bonus based upon their tier
+# with index 0 indicating tier 0
+Tier Minimum Inherent Bonus: [0, 1, 2, 3, 4, 5]
+
+# Each creature is allowed to choose stats to gain additional
+# increases to their inherent bonus at certain tiers. This
+# indicates the number of stats they can choose at each tier.
+# They cannot choose the same stat twice at the same tier but
+# at each tier they can choose a stat that has been selected
+# previously
+Tier Inherent Chosen Bonus Count: [0, 0, 2, 2, 2, 2]
+
+# This is the amount that a stat is increased each time it is
+# chosen
+Per-Tier Inherent Chosen Bonus Amount: 2
