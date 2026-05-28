@@ -231,6 +231,11 @@ damage_types:
     mechanics:
       - { kind: critical_value, amount: 3 }
 
+  # Divine / magical force. Conjured-weapon spells (Spiritual Weapon,
+  # Spiritual Hammer) deal force damage. No special mechanics.
+  force:
+    severity: moderate
+
 # Armor keys whose wearers count as wearing Metal Armor for Damage
 # Type interactions (notably Electricity). Placeholder until the
 # Equipment domain owns this classification per-armor-entry.
