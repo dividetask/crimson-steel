@@ -290,6 +290,16 @@ module Encounter
         .sort_by { |c| [invert_string(c[:initiative_string].to_s), c[:id]] }
     end
 
+    # Set one Combatant's Initiative String from a raw value (parsed to
+    # valid die-result characters, sorted descending). Returns the
+    # normalized string, or nil if the Combatant doesn't exist.
+    def set_initiative(combatant_id, raw)
+      c = combatant_for(combatant_id) or return nil
+      c[:initiative_string] = Initiative.normalize_string(raw)
+      persist!
+      c[:initiative_string]
+    end
+
     def set_acting_combatant(combatant_id)
       return nil unless @combatants.any? { |c| c[:id] == combatant_id }
       @acting_combatant_id = combatant_id

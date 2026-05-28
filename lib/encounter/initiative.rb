@@ -12,6 +12,24 @@ module Encounter
       DiceResolution.config.die_size
     end
 
+    # Valid Dice Result String characters for the current die: '1'..'9'
+    # plus the encoding chars for values 10..Die Size (monotonic, so a
+    # plain descending sort orders them high-to-low).
+    def valid_chars
+      cfg = DiceResolution.config
+      enc = cfg.dice_result_string_encoding.to_s
+      enc = ('A'..'Z').to_a.join if enc.length < (cfg.die_size - 9)
+      highs = (10..cfg.die_size).map { |v| enc[v - 10] }.compact
+      ('1'..'9').to_a + highs
+    end
+
+    # Parse a raw user-typed Initiative String: drop every character
+    # that isn't a valid die value, then sort the survivors descending.
+    def normalize_string(raw)
+      allowed = valid_chars
+      raw.to_s.upcase.chars.select { |c| allowed.include?(c) }.sort.reverse.join
+    end
+
     # Dice count = floor(Initiative Attribute / Initiative Divisor).
     def dice_count_for(creature)
       attr = creature.attribute_value(Config.initiative_attribute)

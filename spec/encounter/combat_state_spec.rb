@@ -130,6 +130,32 @@ RSpec.describe 'Encounter::State combat mode' do
     end
   end
 
+  describe 'set_initiative (DM inline edit)' do
+    it 'parses invalid characters out and sorts the survivors descending' do
+      s = state
+      c = s.add_combatant('101')
+      expect(s.set_initiative(c[:id], '5 9 1 q')).to eq('951')
+      expect(s.combatant(c[:id])[:initiative_string]).to eq('951')
+    end
+
+    it 'keeps the Critical label X and drops zeros / lowercase noise' do
+      s = state
+      c = s.add_combatant('101')
+      expect(s.set_initiative(c[:id], 'x0 9 7')).to eq('X97')
+    end
+  end
+
+  describe 'reroll_initiative missing_only' do
+    it 'rolls only the un-rolled combatants when missing_only is true' do
+      s = state
+      a = s.add_combatant('1'); b = s.add_combatant('2')
+      s.send(:combatant_for, a[:id])[:initiative_string] = 'X8'
+      s.reroll_initiative(missing_only: true, roller: ->(_n) { [4, 4, 4, 4] })
+      expect(s.combatant(a[:id])[:initiative_string]).to eq('X8')      # untouched
+      expect(s.combatant(b[:id])[:initiative_string]).to eq('4444')    # rolled
+    end
+  end
+
   describe 'Critical Modifier For' do
     it 'reads the Damage Type critical_value, else the default 2' do
       expect(Encounter::Severity.critical_modifier_for('emotional')).to eq(3)

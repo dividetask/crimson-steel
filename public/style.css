@@ -1751,6 +1751,8 @@ body {
 }
 
 .initiative-col-init { width: 56px; }
+.initiative-init-editable { cursor: pointer; }
+.initiative-init-input { width: 44px; font-family: inherit; }
 
 .initiative-row-acting {
   background: #fef9c3;

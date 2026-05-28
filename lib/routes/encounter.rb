@@ -41,17 +41,14 @@ get '/encounter' do
   @current_chapter = @store.current_chapter
   @player_creatures = player_creatures
 
-  # Build the Combat Tracker rows from the live Combatant roster.
-  # Each row carries everything `_initiative_stub.erb` needs to render.
+  # Build the Combat Tracker rows from the live Combatant roster, always
+  # sorted by Initiative (descending; un-rolled combatants last, then by
+  # Combat ID) — whether or not Combat is active.
   acting_id = @encounter_state.acting_combatant_id
   @round_label = @encounter_state.round_label
   rows = @encounter_state.combatants.map { |c| build_tracker_row(c, acting_id) }
-  # Initiative order when Combat is active and strings are populated;
-  # otherwise roster order.
-  @tracker_rows = if @combat_active
-    rows.sort_by { |r| [r[:initiative].to_s.empty? ? 1 : 0, invert_init(r[:initiative].to_s), r[:combatant_id]] }
-  else
-    rows
+  @tracker_rows = rows.sort_by do |r|
+    [r[:initiative].to_s.empty? ? 1 : 0, invert_init(r[:initiative].to_s), r[:combatant_id]]
   end
 
   erb :encounter
@@ -346,7 +343,22 @@ end
 
 post '/encounter/reroll_initiative' do
   require_dm!
-  encounter_state.reroll_initiative
+  st = encounter_state
+  # If anyone still lacks an Initiative String, this only rolls the
+  # missing ones (leaving rolled Combatants untouched). Only once every
+  # Combatant has rolled does Roll Init reroll the whole field.
+  any_missing = st.combatants.any? { |c| c[:initiative_string].to_s.empty? }
+  st.reroll_initiative(missing_only: any_missing)
+  redirect back || '/encounter'
+end
+
+# Set one Combatant's Initiative String directly (DM double-click
+# inline editor). The raw value is parsed down to valid die-result
+# characters, sorted descending; re-sorting on render moves the
+# Combatant to its new initiative slot.
+post '/encounter/set_initiative' do
+  require_dm!
+  encounter_state.set_initiative(params[:combatant_id].to_i, params[:value].to_s)
   redirect back || '/encounter'
 end
 

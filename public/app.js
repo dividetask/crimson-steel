@@ -399,4 +399,45 @@ document.addEventListener('change', function (e) {
     if (!tableId) return;
     fetchEncounterRoll(tableId);
   });
+
+  // -- Combat Tracker: double-click to edit Initiative (DM only) -------
+  //
+  // encounter_initiative_stub.md. Double-clicking an Initiative cell
+  // swaps it for a text input with Set / Cancel. The server parses the
+  // value (dropping invalid characters, sorting the rest) and the
+  // reload re-sorts the tracker, moving the Combatant to its new slot.
+  document.addEventListener('dblclick', function (e) {
+    var cell = e.target.closest && e.target.closest('.initiative-init-editable');
+    if (!cell || cell.querySelector('input')) return;
+    var combatantId = cell.getAttribute('data-combatant-id');
+    if (!combatantId) return;
+    var original = cell.innerHTML;
+    var current  = cell.getAttribute('data-init') || '';
+
+    cell.innerHTML = '';
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'initiative-init-input';
+    input.value = current;
+    input.size = 5;
+    var set = document.createElement('button');
+    set.type = 'button'; set.className = 'ce-btn ce-btn-tight'; set.textContent = 'Set';
+    var cancel = document.createElement('button');
+    cancel.type = 'button'; cancel.className = 'ce-btn ce-btn-tight'; cancel.textContent = 'Cancel';
+    cell.appendChild(input); cell.appendChild(set); cell.appendChild(cancel);
+    input.focus(); input.select();
+
+    function restore() { cell.innerHTML = original; }
+    function commit() {
+      postForm('/encounter/set_initiative', { combatant_id: combatantId, value: input.value })
+        .then(function () { window.location.reload(); })
+        .catch(restore);
+    }
+    cancel.addEventListener('click', restore);
+    set.addEventListener('click', commit);
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); restore(); }
+    });
+  });
 })();

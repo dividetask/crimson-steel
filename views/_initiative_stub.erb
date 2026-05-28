@@ -75,7 +75,8 @@
               </td>
             <% end %>
 
-            <td class="initiative-col-init"><%= row[:initiative] || dash %></td>
+            <td class="initiative-col-init<%= ' initiative-init-editable' if viewer == :dm %>"
+                <%= "data-combatant-id=\"#{row[:combatant_id]}\" data-init=\"#{row[:initiative]}\" title=\"Double-click to set initiative\"" if viewer == :dm %>><%= row[:initiative] || dash %></td>
             <td class="initiative-col-name"><%= row[:name] %></td>
 
             <td class="initiative-col-hp">
