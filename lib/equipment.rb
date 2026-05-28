@@ -26,8 +26,26 @@ module Equipment
     @catalog ||= Catalog.load
   end
 
+  # The app-wide Equipment instance, backed by the persistence Dataset
+  # (data/equipment_data.yaml overlay) and the on-disk catalogs.
+  def instance
+    @instance ||= begin
+      ds = Dataset.load
+      shop_catalog = ShopCatalog.load
+      Instance.new(
+        catalog: catalog,
+        store: Dataset::StoreAdapter.new(ds),
+        creature_accessor: Dataset::CreatureAdapter.new(ds),
+        loot: LootTables.load,
+        generic_shops: shop_catalog.generic_shops,
+        game_day: shop_catalog.current_day
+      )
+    end
+  end
+
   def reset!
     @catalog = nil
+    @instance = nil
   end
 end
 
@@ -38,6 +56,7 @@ require_relative 'equipment/pricing'
 require_relative 'equipment/display_name'
 require_relative 'equipment/details'
 require_relative 'equipment/store'
+require_relative 'equipment/dataset'
 require_relative 'equipment/loot_tables'
 require_relative 'equipment/shop_catalog'
 require_relative 'equipment/magical'

@@ -16,6 +16,7 @@ require 'chronicle'
 require 'creatures'
 require 'creatures/advancement'
 require 'proficiencies'
+require 'equipment'
 require 'uploads'
 
 # Status page sample data — one module per sub-view so each page's
