@@ -1,6 +1,6 @@
-# Combat — Glossary
+# Encounter — Glossary
 
-Defines the vocabulary used by `combat_design.md` and `combat_tests.md`. Covers the in-progress fight, its Combatants, Initiative, the Time Tick subdivision of a Round, the Action Economy, Combat Pool, Attacker Bonuses, Concentration, Damage Types and Severity Calculation. *(configurable)* values come from `combat_config.yaml`.
+Defines the vocabulary used by `encounter_design.md` and `encounter_tests.md`. Currently covers Combat — the in-progress fight, its Combatants, Initiative, the Time Tick subdivision of a Round, the Action Economy, Combat Pool, Attacker Bonuses, Concentration, Damage Types and Severity Calculation. *(configurable)* values come from `encounter_config.yaml`. Downtime and Travel vocabulary will be added when those modes are designed.
 
 ## Combat
 

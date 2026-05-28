@@ -2,7 +2,7 @@ require 'json'
 
 # Dummy data for the Status page sub-views. The page is fed example
 # Rolls / Checks / Creatures so the stubs can render without a real
-# Combat or Creatures domain wired in.
+# Encounter or Creatures domain wired in.
 module DummyData
   module_function
 

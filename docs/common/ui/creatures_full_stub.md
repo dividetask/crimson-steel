@@ -42,7 +42,7 @@ Same rule as the minimal stub: the parent page handles visibility. Player viewer
 
 In addition to everything used by the minimal stub:
 
-- **Combat-derived values** (Combat Pool, attack rolls and bonuses, damage and bleed) — computed by the Combat domain via Creatures' Accessor (`attribute_value`, `ranks_for("martial")`) plus Equipment's Weapon Details. BAB is `ranks_for("martial")` directly.
+- **Combat-derived values** (Combat Pool, attack rolls and bonuses, damage and bleed) — computed by the Encounter domain via Creatures' Accessor (`attribute_value`, `ranks_for("martial")`) plus Equipment's Weapon Details. BAB is `ranks_for("martial")` directly.
 - **Per-Creature notes** — owner-keyed Chronicle Entries (the Chronicle domain's `owner_id` field stores the Creature ID); rendered through `chronicle_entry_stub.md` filtered by owner.
 
 The expanded vitals (Damage Reduction, Damage Resilience, Mana Regen, etc.) come from formulas applied to Creature attributes and Tier. The Attributes table's Check and Save columns derive from Effective Attributes plus the displayed formulas.

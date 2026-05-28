@@ -60,12 +60,12 @@ Defines the vocabulary used by the Creatures design and tests. Creatures owns id
 
 **Skill Pick Budget**: The number of Skill choices a Creature is *expected* to have per Class Level of the choosen Class.
 
-## Encounter Tables and Spawns
+## Random Encounter Tables and Spawns
 
-**Encounter Table**: A named table the DM rolls to populate an upcoming Combat. Reuses Equipment's Loot Roll Row shape — Guaranteed / Independent Chance / Weighted Choice / Gated Weighted Choice rows with `when` and `as` semantics — but resolves each row to Spawn Refs rather than Item Stacks.
+**Random Encounter Table**: A named table the DM rolls to populate an upcoming Combat. Reuses Equipment's Loot Roll Row shape — Guaranteed / Independent Chance / Weighted Choice / Gated Weighted Choice rows with `when` and `as` semantics — but resolves each row to Spawn Refs rather than Item Stacks.
 
-**Spawn Ref**: One instruction inside an Encounter Row payload. Names a template Creature and a count; each evaluation produces that many fresh Creature records via Spawn Creature From Template.
+**Spawn Ref**: One instruction inside a Random Encounter Row payload. Names a template Creature and a count; each evaluation produces that many fresh Creature records via Spawn Creature From Template.
 
-**Spawned Creature**: A Creature record created by Spawn Creature From Template or Roll Encounter. Persistent — round-tripped by Save Creatures — but typically deleted after combat resolves, via Equipment's post-combat loot stub.
+**Spawned Creature**: A Creature record created by Spawn Creature From Template or Roll Random Encounter. Persistent — round-tripped by Save Creatures — but typically deleted after combat resolves, via Equipment's post-combat loot stub.
 
 **Enemy Template**: A long-lived Creature record tagged `enemy_template`, kept as a source-of-truth for cloning. Templates are never themselves added to a Combat; Spawned Creatures (instances cloned from a template) are.

@@ -1,13 +1,13 @@
-# Combat — Design
+# Encounter — Design
 
-Combat is a state machine over the lifetime of one fight. It owns the persisted state of the active Combat (Combatants, Initiative, per-Combatant Time Tick Schedule, Concentration entries, Luck Points), reads canonical time from Chronicle, and computes per-Combatant derived values on demand by looking up the Creature through a `creature_lookup` callback.
+Encounter governs what is happening in the present moment of play — combat, downtime, travel, and any other mode that wants a single owner for "what is going on right now." Today the only mode designed is **Combat**, a state machine over the lifetime of one fight; Downtime and Travel are planned but not yet specified. The Encounter domain owns the persisted state of the active Combat (Combatants, Initiative, per-Combatant Time Tick Schedule, Concentration entries, Luck Points), reads canonical time from Chronicle, and computes per-Combatant derived values on demand by looking up the Creature through a `creature_lookup` callback.
 
 Sibling domains:
-- **Chronicle** owns the canonical Timestamp. Combat reads it and notifies Chronicle when a Round elapses.
-- **Conditions** owns per-Creature mutable state (HP damage, ability damage, Active Effects, Acid Counter, Shock, Magic Toxicity, etc.) plus the module-level Zone Effects list. Combat tells Conditions what damage / side-effect to apply but never stores any of it.
-- **Atlas** owns spatial state (Tokens and Zones). Combat receives Atlas Movement Notifications when Combatant Tokens enter or exit Zones and surfaces them to the GM as event options.
-- **Dice Resolution** owns Roll mechanics. Combat builds Rolls and invokes Dice Resolution; Combat-specific Roll variants for Initiative (no Target Number) live here.
-- **Damage Types** is folded into Combat — the catalog is part of `combat_config.yaml` and the Severity Calculation pipeline is owned here.
+- **Chronicle** owns the canonical Timestamp. Encounter reads it and notifies Chronicle when a Round elapses.
+- **Conditions** owns per-Creature mutable state (HP damage, ability damage, Active Effects, Acid Counter, Shock, Magic Toxicity, etc.) plus the module-level Zone Effects list. Encounter tells Conditions what damage / side-effect to apply but never stores any of it.
+- **Atlas** owns spatial state (Tokens and Zones). Encounter receives Atlas Movement Notifications when Combatant Tokens enter or exit Zones and surfaces them to the GM as event options.
+- **Dice Resolution** owns Roll mechanics. Encounter builds Rolls and invokes Dice Resolution; Combat-specific Roll variants for Initiative (no Target Number) live here.
+- **Damage Types** is folded into Encounter — the catalog is part of `encounter_config.yaml` and the Severity Calculation pipeline is owned here.
 
 ## Common types
 
@@ -98,7 +98,7 @@ Behavior:
 
 #### Player Characters always belong in active Combat
 
-Player Characters — Creatures whose `tags` include `player_character` — are part of every active Combat by rule, **except** PCs whose Creature ID appears in `excluded_pcs`. The consuming project enforces this at Combat-page render time: any PC missing from the Combatant roster and absent from `excluded_pcs` is added via *Add Combatant* before the page renders. The DM does not have to add PCs manually; the only PCs left out are those the DM has explicitly excluded (typically because the player is sitting out the session). This means the Combat domain itself doesn't gate or filter PCs at *Start Combat* time; the rule lives in the consuming page layer so the Combat module stays group-agnostic.
+Player Characters — Creatures whose `tags` include `player_character` — are part of every active Combat by rule, **except** PCs whose Creature ID appears in `excluded_pcs`. The consuming project enforces this at Combat-page render time: any PC missing from the Combatant roster and absent from `excluded_pcs` is added via *Add Combatant* before the page renders. The DM does not have to add PCs manually; the only PCs left out are those the DM has explicitly excluded (typically because the player is sitting out the session). This means the Encounter domain itself doesn't gate or filter PCs at *Start Combat* time; the rule lives in the consuming page layer so the Encounter module stays group-agnostic.
 
 `excluded_pcs` persists across End/Start cycles — a player sitting out one fight is presumed to be sitting out the next fight as well, until the DM toggles them back on. Mutate the list with *Set PC Exclusions*.
 
@@ -330,7 +330,7 @@ Input: Combat ID. Returns: boolean. Delegates to Conditions.
 
 Input: Damage Type name.
 
-Returns: the integer `critical_modifier` to put on the attacker's Roll for a Roll resolving an attack of that Damage Type. Reads the Type's `critical_value` Mechanic from `combat_config.yaml`. When the Type has no `critical_value` Mechanic, returns the Roll struct default (`critical_modifier = 2`). Used at Roll-construction time, not in the damage pipeline.
+Returns: the integer `critical_modifier` to put on the attacker's Roll for a Roll resolving an attack of that Damage Type. Reads the Type's `critical_value` Mechanic from `encounter_config.yaml`. When the Type has no `critical_value` Mechanic, returns the Roll struct default (`critical_modifier = 2`). Used at Roll-construction time, not in the damage pipeline.
 
 ### Attack / Cast / Use Item *(declared, future work)*
 
@@ -358,7 +358,7 @@ Weapon-specific bonuses (e.g. Weapon Training for a particular weapon family) ap
 
 **Outcome:** Defensive Actions are Opposing Rolls within the single attack Check. The Check's resolution uses Check Resolution's standard machinery — Supporting Roll successes (attacker, ally Reactions) minus Opposing Roll successes (defender's defense + ally Defensive Reactions) yields net DoIS. The attack succeeds iff net DoIS clears the Default Success Threshold. There is no special damage-reduction step keyed off the defense type.
 
-**Flatfooted interaction:** Declaring an accepted Defensive Action removes the defender's Flatfooted status against this attack regardless of how the Roll resolves — zero or even negative successes still count as "declared a defense." Conditions that force or prevent Flatfooted (Paralyzed forces it; Uncanny Dodge prevents it; Paralyzed overrides Uncanny Dodge) are evaluated first. See the Flatfooted entry in `combat_glossary.md`.
+**Flatfooted interaction:** Declaring an accepted Defensive Action removes the defender's Flatfooted status against this attack regardless of how the Roll resolves — zero or even negative successes still count as "declared a defense." Conditions that force or prevent Flatfooted (Paralyzed forces it; Uncanny Dodge prevents it; Paralyzed overrides Uncanny Dodge) are evaluated first. See the Flatfooted entry in `encounter_glossary.md`.
 
 **Zero-dice Defensive Reactions like Better Lucky Than Good** are *not* Defensive Actions in this sense — they don't go through the Opposed-Roll machinery and don't remove Flatfooted. They are Reaction-triggered Talents that modify the attacker's Roll dice before any roll is made (e.g. halving the attacker's dice count). See the Abilities domain for individual Talent specs.
 
@@ -496,11 +496,11 @@ DM Luck Points are **not** cleared by either cleanup; they clear only at *End Co
 
 ## Atomic state persistence
 
-Mutations write `combat_data.json` atomically. Reads at startup are tolerant: missing state file → empty Combat (`time_ticks_per_round = null`). The rules file is loaded only at boot; mid-session changes to combat tunables require a restart.
+Mutations write `encounter_data.json` atomically. Reads at startup are tolerant: missing state file → empty Combat (`time_ticks_per_round = null`). The rules file is loaded only at boot; mid-session changes to combat tunables require a restart.
 
 ## Responsibilities
 
-### Owned by the combat domain
+### Owned by the encounter domain
 
 - The single in-memory Combat: combatants, per-Combatant Time Tick Schedule, Time Tick, Time Ticks Per Round, Combat Anchor, Acting Combatant ID.
 - Combat ID allocation and the two-ID identity scheme.
@@ -518,7 +518,7 @@ Mutations write `combat_data.json` atomically. Reads at startup are tolerant: mi
 - Concentration: per-Combatant Concentration entries, Reservoir tracking, per-turn channeling enforcement, damage-triggered saves, end-of-spell notification to the source domain.
 - Long Cast: per-Combatant Casting entries, per-turn commit tracking, completion at zero turns_remaining, damage-triggered saves, cancellation notification to the source domain.
 - Severity Calculation including Runtime Bucketing, pre-bucketing Damage Type Mechanics, and routing the result to Conditions.
-- Damage Type catalog (`combat_config.yaml`).
+- Damage Type catalog (`encounter_config.yaml`).
 - Damage Type side-effect routing (`APPLY_ACID_DAMAGE`, Shock apply, etc.).
 - Telling Dice Resolution which Damage Type's `critical_value` applies via *Critical Modifier For*.
 - Luck Points (per-Combatant; per-turn clear).
@@ -535,7 +535,7 @@ Mutations write `combat_data.json` atomically. Reads at startup are tolerant: mi
 - **Spell mechanics** — Spells own how a spell works. Combat presents Granted Actions for spells that surface a combat action; Combat does not interpret what the spell does on resolution.
 - **Bonus Type names** — Abilities owns the canonical list. **Per-Bonus-Type stacking** — owned here (Combat).
 - **Multiple concurrent Combats** — by design, one fight at a time.
-- **Validation of Damage Type names against any external catalog** — the catalog *is* `combat_config.yaml`'s damage_types section.
+- **Validation of Damage Type names against any external catalog** — the catalog *is* `encounter_config.yaml`'s damage_types section.
 
 ### Unassigned (no current owner)
 
@@ -544,5 +544,5 @@ Mutations write `combat_data.json` atomically. Reads at startup are tolerant: mi
 - **Non-divisible Turns Per Round mixes.** When a Combatant's `Turns Per Round[tier]` does not divide cleanly into the active Time Ticks Per Round (e.g., 3 vs 5), the floor-midpoint formula produces unevenly-spaced time ticks. Needs explicit LCM-based handling.
 - **Initiative reroll edge cases.** Multiple iterations of Insight on the same dice list may repeatedly pick the same die unless values change.
 - **Reserved Defense Dice / ally-block flow** (e.g. Shield of Faith). Combat's Granted Action registry can carry such an action, but the exact integration with the attack pipeline depends on the pipeline landing first.
-- **Metal Armor classification.** Listed as a configurable list in `combat_config.yaml` for now; will likely move to Equipment when that domain is designed.
+- **Metal Armor classification.** Listed as a configurable list in `encounter_config.yaml` for now; will likely move to Equipment when that domain is designed.
 

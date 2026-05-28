@@ -1,7 +1,7 @@
-# Crimson Steel — Combat tunables.
+# Crimson Steel — Encounter tunables (currently Combat mode only).
 #
 # State (combatants, initiative, time tick, etc.) lives in
-# `combat_data.json`, not here. This file is rules only.
+# `encounter_data.json`, not here. This file is rules only.
 #
 # All keys use Title Case as referenced from the design / glossary
 # / tests. Override files in `data/` follow the convention in

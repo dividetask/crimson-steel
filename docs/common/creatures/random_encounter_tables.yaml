@@ -1,12 +1,12 @@
-# Encounter Tables — Catalog
+# Random Encounter Tables — Catalog
 #
-# Loaded by the Creatures domain. Each entry: encounter table ID
+# Loaded by the Creatures domain. Each entry: random encounter table ID
 # (snake_case) -> { name, rolls }. See `creatures_design.md` for the
-# Encounter Table / Encounter Row / Spawn Ref schemas; row shapes
+# Random Encounter Table / Random Encounter Row / Spawn Ref schemas; row shapes
 # (Guaranteed / Independent Chance / Weighted Choice / Gated Weighted
 # Choice with `when` / `as`) mirror Equipment's Loot Roll Row.
 #
-# Rolling a table calls Roll Encounter, which calls Spawn Creature From
+# Rolling a table calls Roll Random Encounter, which calls Spawn Creature From
 # Template once per concrete spawn. The new Creature IDs are returned
 # to the caller, which is then expected to add each as a Combatant via
 # Combat's Add Combatant.

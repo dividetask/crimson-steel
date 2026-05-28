@@ -35,7 +35,7 @@ Rows — the social Skills, in this order:
 - Wisdom Saving Throw (unopposed).
 - Intelligence Saving Throw (unopposed).
 
-The Skill keys match the proficiency keys in `proficiencies/skills.yaml`; Saves use the `<attr>_save` proficiency keys per `combat_design.md`'s *Saving Throws* construction.
+The Skill keys match the proficiency keys in `proficiencies/skills.yaml`; Saves use the `<attr>_save` proficiency keys per `encounter_design.md`'s *Saving Throws* construction.
 
 Columns:
 

@@ -1,10 +1,10 @@
-# Combat — Tests
+# Encounter — Tests
 
-Externally-observable behavior of Combat's public entry points. Each section is a public entry point or a closely related cluster.
+Externally-observable behavior of the Encounter domain's public entry points. Each section is a public entry point or a closely related cluster. Today every entry point is part of the Combat mode; Downtime and Travel tests will be added when those modes are designed.
 
 ## Test config
 
-Tests use the defaults from `combat_config.yaml` unless noted:
+Tests use the defaults from `encounter_config.yaml` unless noted:
 
 - Initiative Attribute = `wis`, Initiative Divisor = 2.
 - Combat Pool Attribute = `wis`, Combat Pool Divisor = 2, Combat Pool Step = 4.

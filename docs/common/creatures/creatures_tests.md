@@ -346,11 +346,11 @@ Returned list (in encounter order, deduplicated): `darkvision`, `dwarven_resilie
 
 ---
 
-## Roll Encounter
+## Roll Random Encounter
 
-**Each Encounter Row resolves and produces fresh spawns.** Encounter Table `caravan_ambush` has one Guaranteed row with payload `[{template_id: "101", count: 2}]`. *Roll Encounter* on `"caravan_ambush"` returns a 2-element list of fresh Creature IDs. The Creatures dataset gains two new records, each a deep-copy of template `"101"`.
+**Each Random Encounter Row resolves and produces fresh spawns.** Random Encounter Table `caravan_ambush` has one Guaranteed row with payload `[{template_id: "101", count: 2}]`. *Roll Random Encounter* on `"caravan_ambush"` returns a 2-element list of fresh Creature IDs. The Creatures dataset gains two new records, each a deep-copy of template `"101"`.
 
-**`count` accepts dice expressions evaluated at roll time.** Encounter Row payload `[{template_id: "104", count: "1d4 + 1"}]`. Each *Roll Encounter* call rolls 1d4+1 and produces that many spawns; two successive calls may produce different counts.
+**`count` accepts dice expressions evaluated at roll time.** Random Encounter Row payload `[{template_id: "104", count: "1d4 + 1"}]`. Each *Roll Random Encounter* call rolls 1d4+1 and produces that many spawns; two successive calls may produce different counts.
 
 **Loot Row vocabulary applies — `chance`, `when`, `as`.** Table has three rows: (1) guaranteed `[{template_id: "101", count: 2}]`, (2) Independent Chance `0.6` publishing `as: has_captain` with `[{template_id: "102", count: 1}]`, (3) Gated `when: {has_captain: true}` with `[{template_id: "105", count: 1}]`. When row 2's `chance` succeeds, row 3 fires. When row 2's `chance` fails, row 3 is skipped (no `has_captain` Variable was published).
 
@@ -358,17 +358,17 @@ Returned list (in encounter order, deduplicated): `darkvision`, `dwarven_resilie
 
 **Returned list is in roll order.** With the three-row table above and a successful captain roll: returned IDs are `[<orc1>, <orc2>, <captain>, <wardog>]` in that order.
 
-**Spawn Refs with `loot_table` override stamp every spawn.** Encounter Row payload `[{template_id: "100", count: 2, loot_table: "captain_loot"}]`. *Roll Encounter* produces two new records, both with `loot_table = "captain_loot"` regardless of the template's own `loot_table`.
+**Spawn Refs with `loot_table` override stamp every spawn.** Random Encounter Row payload `[{template_id: "100", count: 2, loot_table: "captain_loot"}]`. *Roll Random Encounter* produces two new records, both with `loot_table = "captain_loot"` regardless of the template's own `loot_table`.
 
 **`name_override` stamps every spawn.** Payload `[{template_id: "100", count: 3, name_override: "Skullsplitter"}]`. All three resulting records carry `name = "Skullsplitter"`.
 
-**Roll Encounter does NOT touch Combat.** Combat State is unchanged after *Roll Encounter*. The caller adds each returned Creature ID via Combat's *Add Combatant*.
+**Roll Random Encounter does NOT touch Combat.** Combat State is unchanged after *Roll Random Encounter*. The caller adds each returned Creature ID via Combat's *Add Combatant*.
 
-**Random Seed reproduces the result.** *Roll Encounter* on `"caravan_ambush"` with `seed = 42` twice yields the same Creature IDs and same Roll Variable outcomes both times.
+**Random Seed reproduces the result.** *Roll Random Encounter* on `"caravan_ambush"` with `seed = 42` twice yields the same Creature IDs and same Roll Variable outcomes both times.
 
-**Unknown table ID rejects.** *Roll Encounter* on `"no_such_table"`: rejected with a missing-table error. No spawns are produced.
+**Unknown table ID rejects.** *Roll Random Encounter* on `"no_such_table"`: rejected with a missing-table error. No spawns are produced.
 
-**Spawn Ref pointing at a deleted template rejects.** Encounter Table `bad_ref` has a row `[{template_id: "9999"}]` (no such record). *Roll Encounter* on `"bad_ref"`: rejected. Validation catches this at *Load Encounter Tables* time; runtime call is a fallback check.
+**Spawn Ref pointing at a deleted template rejects.** Random Encounter Table `bad_ref` has a row `[{template_id: "9999"}]` (no such record). *Roll Random Encounter* on `"bad_ref"`: rejected. Validation catches this at *Load Random Encounter Tables* time; runtime call is a fallback check.
 
 ---
 

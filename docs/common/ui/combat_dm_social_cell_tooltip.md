@@ -28,7 +28,7 @@ Required:
 The tooltip composes pre-computed values from:
 
 - **Proficiencies** — `compute_roll_inputs_for_a_proficiency` supplies the dice count, Competency Modifier, and the per-Skill attribute. The parent matrix calls this and passes the result in.
-- **Combat** — the Saving Throw construction (per `combat_design.md`) for Wisdom Save and Intelligence Save rows.
+- **Combat** — the Saving Throw construction (per `encounter_design.md`) for Wisdom Save and Intelligence Save rows.
 - **Dice Resolution** — the rolled dice values and Degree of Success. Computed when the user presses Roll on the matrix; never persisted.
 - **Row bonus / penalty inputs** — read from the parent matrix's controls.
 
