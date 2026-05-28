@@ -1,17 +1,67 @@
-# Encounter mutation endpoints — DM only. Drives the Roster Sidebar
-# (creatures_roster_sidebar_stub.md) buttons:
+# Encounter page + mutation endpoints.
 #
+# Page (DM + Player):
+#   GET  /encounter — shows the active scene of play: timekeeping,
+#                     the Combat Tracker (when Combat is active or the
+#                     viewer is the DM), and Chronicle notes (hidden
+#                     from players once Combat starts).
+#
+# Mutation endpoints (DM only; JSON-in, JSON-out):
 #   POST /encounter/add                — Add Combatant by Creature ID
 #   POST /encounter/spawn_and_add      — Spawn from template + Add Combatant
 #   POST /encounter/remove_by_creature — Remove the most recently added
 #                                        Combatant whose creature_id matches
 #   POST /encounter/set_pc_active      — Toggle a PC's `excluded_pcs` membership
 #   POST /encounter/set_npc_active     — Toggle an NPC's roster presence
+#   POST /encounter/start_combat       — Enter Combat mode
+#   POST /encounter/end_combat         — Leave Combat mode
 #   POST /random_encounters/roll/:id   — Roll a Random Encounter and add the
 #                                        spawned Creatures to the roster
 #
-# Every endpoint returns JSON: `{ ok: true, ... }` on success,
+# Mutation endpoints return `{ ok: true, ... }` on success,
 # `{ ok: false, error: "..." }` on failure.
+
+get '/encounter' do
+  @store      = Chronicle.store
+  @viewer     = viewer_role
+  @viewing_id = viewing_creature_id
+  @timestamp  = @store.timestamp
+  @encounter_state = Encounter.state
+  @combat_active   = @encounter_state.combat_active?
+
+  if @viewer == :dm
+    @active_entries = @store.list_entries(active_only: true)
+  else
+    @active_entries = @store.list_entries(active_only: true, visible_to: @viewing_id)
+  end
+
+  @active_entries = @active_entries.sort_by { |e| e['scene_position'] || 9999 }
+  @chapters       = @store.list_chapters
+  @current_chapter = @store.current_chapter
+  @player_creatures = player_creatures
+
+  # Build the Combat Tracker rows from the live Combatant roster.
+  # Each row carries everything `_initiative_stub.erb` needs to render.
+  @tracker_rows = @encounter_state.combatants.map do |c|
+    creature = Creatures.lookup(c[:creature_id]) rescue nil
+    display_name = if !c[:name].to_s.empty?
+      c[:name]
+    elsif creature
+      creature.name
+    else
+      "Creature ##{c[:creature_id]}"
+    end
+    {
+      combatant_id:    c[:id],
+      creature_id:     c[:creature_id],
+      name:            display_name,
+      initiative:      '—',  # Initiative rolling lands in a later pass.
+      acting:          (c[:id] == @encounter_state.to_h['acting_combatant_id'])
+    }
+  end
+
+  erb :encounter
+end
 
 helpers do
   def encounter_state
@@ -111,4 +161,16 @@ post '/encounter/set_npc_active' do
     encounter_state.remove_all_combatants_by_creature_id(creature_id)
   end
   encounter_response(ok: true, active: active, row: encounter_row_snapshot(creature_id))
+end
+
+post '/encounter/start_combat' do
+  require_dm!
+  encounter_state.start_combat
+  redirect back || '/encounter'
+end
+
+post '/encounter/end_combat' do
+  require_dm!
+  encounter_state.end_combat
+  redirect back || '/encounter'
 end

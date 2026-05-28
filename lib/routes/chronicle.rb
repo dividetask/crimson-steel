@@ -1,4 +1,4 @@
-# Chronicle mutation endpoints — DM only. Used by the Scene and
+# Chronicle mutation endpoints — DM only. Used by the Encounter and
 # Notes pages to add/edit/delete Entries, manage Chapters, advance
 # time, and upload images. Each route persists through Chronicle's
 # Store and redirects the DM back to the calling page.
@@ -66,7 +66,7 @@ post '/chronicle/advance-time' do
   rounds = params[:rounds].to_i
   days   = params[:days].to_i
   chronicle_store.advance_time(rounds: rounds, days: days)
-  redirect(request.referer || '/scene')
+  redirect(request.referer || '/encounter')
 end
 
 # ---------- Campaign name ----------
@@ -158,7 +158,7 @@ end
 
 post '/chronicle/entries/:id/scene-position' do
   chronicle_store.set_scene_position(params[:id].to_i, params[:position].to_i)
-  redirect(request.referer || '/scene')
+  redirect(request.referer || '/encounter')
 end
 
 post '/chronicle/entries/:id/notes-position' do

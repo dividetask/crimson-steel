@@ -23,7 +23,7 @@ Listed in display order. Each item links to the page named in the next section.
 |---|-------------------|--------------------|------------|
 | 1 | Home              | `/`                | DM + Player |
 | 2 | Character Sheets  | `/character-sheets`| DM + Player |
-| 3 | Scene             | `/scene`           | DM + Player |
+| 3 | Encounter         | `/encounter`       | DM + Player |
 | 4 | Store             | `/store`           | DM + Player |
 | 5 | Notes             | `/notes`           | DM + Player |
 | 6 | Social            | `/social`          | DM + Player |
@@ -38,7 +38,7 @@ Each page is listed with a short description and its access rule. Detailed page 
 | Page              | URL                | Description                                                                 | Access     |
 |-------------------|--------------------|-----------------------------------------------------------------------------|------------|
 | Character Sheets  | `/character-sheets`| Per-character sheets for the party. The default landing page.               | DM + Player |
-| Scene             | `/scene`           | The current scene the party is in — environment, present creatures, etc.    | DM + Player |
+| Encounter         | `/encounter`       | What is happening right now — timekeeping, the Combat Tracker (initiative), and the active scene's notes. The Combat Tracker is hidden from players until Combat starts; the notes are hidden from players once Combat starts. | DM + Player |
 | Store             | `/store`           | Items currently for sale.                                                   | DM + Player |
 | Notes             | `/notes`           | Shared and per-character game notes.                                        | DM + Player |
 | Social            | `/social`          | Social-encounter information.                                               | DM + Player |

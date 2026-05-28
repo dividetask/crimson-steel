@@ -1468,6 +1468,70 @@ body {
   margin-top: 8px;
 }
 
+/* Encounter Initiative Stub — docs/common/ui/encounter_initiative_stub.md */
+.initiative-stub {
+  margin-top: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 10px 12px;
+}
+
+.initiative-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.initiative-title {
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #334155;
+  margin: 0;
+}
+
+.initiative-combat-toggle { margin: 0; }
+
+.initiative-start-combat { background: #fee2e2; border-color: #b91c1c; color: #7f1d1d; }
+.initiative-start-combat:hover { background: #fecaca; }
+.initiative-end-combat { background: #e2e8f0; }
+
+.initiative-empty {
+  color: #64748b;
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.initiative-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.initiative-table th,
+.initiative-table td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.initiative-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+}
+
+.initiative-col-init { width: 90px; }
+
+.initiative-row-acting {
+  background: #fef9c3;
+  font-weight: bold;
+}
+
 .dm-staging {
   margin-top: 24px;
   padding-top: 16px;

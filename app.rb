@@ -31,6 +31,6 @@ require_relative 'lib/status/sample_chronicle'
 require_relative 'lib/test_docs'
 require_relative 'lib/helpers'
 
-%w[home character_sheets scene store notes social status view_as chronicle encounter].each do |name|
+%w[home character_sheets store notes social status view_as chronicle encounter].each do |name|
   require_relative "lib/routes/#{name}"
 end

@@ -12,17 +12,30 @@
   </form>
 <% end %>
 
-<section class="scene-section">
-  <% if @active_entries.any? %>
-    <div class="scene-list">
-      <% @active_entries.each do |e| %>
-        <%= erb :_chronicle_entry, locals: { entry: e, viewer: @viewer, viewing_id: @viewing_id, player_creatures: @player_creatures } %>
-      <% end %>
-    </div>
-  <% else %>
-    <p class="lead">No active scene entries.</p>
-  <% end %>
-</section>
+<%# Initiative stub: rendered for the DM at all times, and for players
+    only when Combat is active. %>
+<% if @viewer == :dm || @combat_active %>
+  <%= erb :_initiative_stub, locals: {
+        rows: @tracker_rows,
+        combat_active: @combat_active,
+        viewer: @viewer
+      } %>
+<% end %>
+
+<%# Notes / Chronicle Entries: hidden from players once Combat starts. %>
+<% if @viewer == :dm || !@combat_active %>
+  <section class="scene-section">
+    <% if @active_entries.any? %>
+      <div class="scene-list">
+        <% @active_entries.each do |e| %>
+          <%= erb :_chronicle_entry, locals: { entry: e, viewer: @viewer, viewing_id: @viewing_id, player_creatures: @player_creatures } %>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="lead">No active scene entries.</p>
+    <% end %>
+  </section>
+<% end %>
 
 <% if @viewer == :dm %>
   <section class="dm-staging">

@@ -1,0 +1,60 @@
+<%#
+  Encounter Initiative Stub —
+  docs/common/ui/encounter_initiative_stub.md
+
+  First-pass version of the Combat Tracker (see
+  combat_initiative_stub.md for the eventual full design). Renders
+  the live Combatant roster from Encounter.state — Initiative,
+  Name. The HP / Mana / Combat Pool / Conditions columns land
+  when the Conditions, Creatures, and Combat-mode domains expose
+  the needed accessors.
+
+  Locals:
+    rows           — list of { combatant_id, creature_id, name,
+                     initiative, acting }
+    combat_active  — boolean. When false, the table is rendered with
+                     a "Combat not started" header so the GM can tell
+                     the difference between an empty roster and an
+                     inactive Encounter.
+    viewer         — :dm or :player. Toggle controls render for DM only.
+%>
+
+<section class="initiative-stub" data-combat-active="<%= combat_active %>">
+  <header class="initiative-header">
+    <h3 class="initiative-title">Combat Tracker</h3>
+    <% if viewer == :dm %>
+      <% if combat_active %>
+        <form method="post" action="/encounter/end_combat" class="initiative-combat-toggle">
+          <button type="submit" class="ce-btn initiative-end-combat">End Combat</button>
+        </form>
+      <% else %>
+        <form method="post" action="/encounter/start_combat" class="initiative-combat-toggle">
+          <button type="submit" class="ce-btn initiative-start-combat">Start Combat</button>
+        </form>
+      <% end %>
+    <% end %>
+  </header>
+
+  <% if rows.empty? %>
+    <p class="initiative-empty">No combatants in the encounter yet.</p>
+  <% else %>
+    <table class="initiative-table">
+      <thead>
+        <tr>
+          <th class="initiative-col-init">Initiative</th>
+          <th class="initiative-col-name">Name</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.each do |row| %>
+          <tr class="initiative-row<%= ' initiative-row-acting' if row[:acting] %>"
+              data-combatant-id="<%= row[:combatant_id] %>"
+              data-creature-id="<%= row[:creature_id] %>">
+            <td class="initiative-col-init"><%= row[:initiative] %></td>
+            <td class="initiative-col-name"><%= row[:name] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</section>
