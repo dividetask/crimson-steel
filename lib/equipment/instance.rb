@@ -13,12 +13,15 @@ module Equipment
     include CombatLoot
     include Archive
     include Consumption
+    include Shops
 
     attr_reader :catalog, :store, :rng
 
+    attr_reader :game_day
+
     def initialize(catalog: Catalog.load, store: Store.new, creature_accessor: nil,
                    conditions: nil, combat: nil, abilities: nil, creatures: nil,
-                   loot: nil, rng: Random.new)
+                   loot: nil, shops: {}, game_day: 0, rng: Random.new)
       @catalog = catalog
       @store = store
       @creature_accessor = creature_accessor
@@ -27,9 +30,12 @@ module Equipment
       @abilities = abilities
       @creatures = creatures
       @loot = loot
+      @shops = shops
+      @game_day = game_day
       @rng = rng
       @archives = {}
       @archive_seq = 0
+      @active_generic = {}
     end
 
     # ===== Restock =====
@@ -181,6 +187,7 @@ module Equipment
 
     # ===== Total Wealth / Debit Wealth =====
     def get_total_wealth(owner_id)
+      return Float::INFINITY if owner_id.start_with?('generic_shop:')
       from_r(total_wealth_r(owner_id))
     end
 
