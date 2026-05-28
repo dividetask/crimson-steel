@@ -22,10 +22,13 @@ test('Reroll count exceeds eligible dice', () => {
 test('Nudge at boundary', () => {
   const rng = new SequenceRng([10]);
   const r = Roll.resolveWithTn({ diceCount: 1, valueAdjustment: { value: 1, max: false } }, rng);
-  assert.deepEqual(r.nudgeChanges, [null]); // 10 + 1 clamps to 10 — no-op
+  // 10 + 1 clamps to 10, but the targeted die still records its value.
+  assert.deepEqual(r.nudgeChanges, [10]);
 });
 
 test('Standalone nudge with no eligible improvement', () => {
+  // One die is targeted (lowest index on a full tie) and records its
+  // clamped value; the untargeted dice stay null.
   const changes = Nudge.applyWithoutTn([10, 10, 10], { value: 1, max: false });
-  assert.deepEqual(changes, [null, null, null]);
+  assert.deepEqual(changes, [10, null, null]);
 });

@@ -78,7 +78,10 @@ export class Nudge {
 
   static _single(dice, target) {
     const changes = new Array(dice.length).fill(null);
-    if (target && target.newV !== target.v) changes[target.i] = target.newV;
+    // The targeted die always reports its post-shift value, even when
+    // clamping leaves it unchanged (a +1 on a die already at Die Size
+    // still records that die at Die Size). Non-targeted dice stay null.
+    if (target) changes[target.i] = target.newV;
     return changes;
   }
 

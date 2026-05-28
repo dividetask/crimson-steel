@@ -123,6 +123,6 @@ Tests that depend on randomness (the actual values dice land on) state the *roll
 
 **Reroll count exceeds eligible dice.** Given `dice_count = 6`, all dice are Successes, and `positive_reroll = (5, false)`: no dice are rerolled. The positive slot only targets non-Successes; with none present, the slot does nothing regardless of count.
 
-**Nudge at boundary.** Given a Roll with `value_adjustment = (+1, false)` and dice `[10]`: clamping prevents change. The single 10 is already at Die Size; +1 clamps back to 10. The targeting picks this die anyway (it's the only candidate), but the change is a no-op.
+**Nudge at boundary.** Given a Roll with `value_adjustment = (+1, false)` and dice `[10]`: the single 10 is the only candidate, so the targeting picks it. +1 clamps back to 10, but the targeted die still records its post-shift value: `nudge_changes = [10]`.
 
-**Standalone nudge with no eligible improvement.** Given dice `[10, 10, 10]` and `value_adjustment = (+1, false)`: every die clamps. No die's value changes. The function reports an all-null `nudge_changes` list.
+**Standalone nudge with no eligible improvement.** Given dice `[10, 10, 10]` and `value_adjustment = (+1, false)`: the targeting picks one die (tied on every criterion → lowest index). It clamps in place but still records its value, while the untargeted dice stay null: `nudge_changes = [10, null, null]`.
