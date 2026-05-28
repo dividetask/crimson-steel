@@ -1,18 +1,12 @@
 {
-  "time_ticks_per_round": 4,
-  "time_tick": 1,
-  "combat_anchor": { "day_index": 0, "round_of_day": 10 },
+  "combatants": [],
+  "next_combatant_id": 1,
+  "excluded_pcs": [],
+  "time_ticks_per_round": null,
+  "time_tick": null,
+  "combat_anchor": null,
   "elapsed_time_ticks": 0,
-  "acting_combatant_id": 1,
-  "combatants": [
-    { "id": 1, "creature_id": "1",   "name": "Ash Windmere",     "initiative_string": "X97", "combat_pool_spent": 0, "time_tick_schedule": [1, 3], "luck_points": 0, "performed_this_turn": false, "concentration": [], "casting": [] },
-    { "id": 2, "creature_id": "2",   "name": "Bryn Ironvein",    "initiative_string": "X87", "combat_pool_spent": 0, "time_tick_schedule": [1, 3], "luck_points": 0, "performed_this_turn": false, "concentration": [], "casting": [] },
-    { "id": 3, "creature_id": "3",   "name": "Lira Duskmoor",    "initiative_string": "742", "combat_pool_spent": 0, "time_tick_schedule": [1, 3], "luck_points": 0, "performed_this_turn": false, "concentration": [], "casting": [] },
-    { "id": 4, "creature_id": "101", "name": "Orc Patrol",       "initiative_string": "X4",  "combat_pool_spent": 0, "time_tick_schedule": [2], "luck_points": 0, "performed_this_turn": false, "concentration": [], "casting": [] },
-    { "id": 5, "creature_id": "103", "name": "Half-Orc Soldier", "initiative_string": "951", "combat_pool_spent": 0, "time_tick_schedule": [2], "luck_points": 0, "performed_this_turn": false, "concentration": [], "casting": [] },
-    { "id": 6, "creature_id": "100", "name": "Pirate",           "initiative_string": "8",   "combat_pool_spent": 0, "time_tick_schedule": [4], "luck_points": 0, "performed_this_turn": false, "concentration": [], "casting": [] }
-  ],
+  "acting_combatant_id": null,
   "granted_actions": [],
-  "dm_luck_points": 0,
-  "excluded_pcs": ["10"]
+  "dm_luck_points": 0
 }

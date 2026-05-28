@@ -31,17 +31,34 @@ end
 
 # JS-driven encounter roll fetch (creatures_random_encounter_roll_result_stub.md).
 # Returns an HTML fragment that the client inserts above the main panel.
-# The fragment includes its own Roll button; further clicks fire the
-# same endpoint and replace the panel's content with a fresh roll.
-#
-# Combat / enemy-data-file side effects of the roll are NOT wired
-# yet — the stub spec calls those out as future work. For now the
-# server picks a sample roll result and returns it.
+# Each roll calls Creatures.roll_random_encounter to spawn fresh
+# Creatures, then adds each as a Combatant to the active Encounter
+# roster. Loot is not yet rolled — that lands when the Equipment
+# domain ships.
 get '/random_encounters/roll/:table_id' do
   halt 404 unless dm_view?
   table_id = params[:table_id]
   halt 404 unless Creatures::RandomEncounter.tables.key?(table_id)
 
-  result = Status::SampleCreatures.random_roll_result(table_id)
+  spawn_ids = Creatures.roll_random_encounter(table_id)
+  spawn_ids.each { |id| Encounter.state.add_combatant(id) }
+
+  table = Creatures::RandomEncounter.tables[table_id]
+
+  # Group spawns by name for a compact "3× Goblin" display.
+  grouped = spawn_ids.each_with_object({}) do |id, acc|
+    a = Creatures.lookup(id)
+    name = a ? a.name : "Creature ##{id}"
+    acc[name] ||= 0
+    acc[name] += 1
+  end
+
+  result = {
+    table_id:   table_id,
+    table_name: table['name'] || table_id,
+    subtitle:   nil,
+    rolls:      grouped.map { |name, count| { count: count, name: name, gold: 0, items: [] } }
+  }
+
   erb :_random_encounter_roll_result, layout: false, locals: { result: result }
 end

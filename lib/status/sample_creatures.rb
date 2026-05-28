@@ -54,21 +54,24 @@ module Status
     # (docs/common/ui/creatures_roster_sidebar_stub.md). New shape:
     # players + npcs are top-level lists; each themed category mixes
     # creature templates and random encounter tables under one heading.
+    # Per-row state (Player Active/Absent, NPC Active/Absent,
+    # template copy_count) is pulled from the live Encounter roster.
     def roster
       players = []
       npcs    = []
       by_category = Hash.new { |h, k| h[k] = { templates: [], random_encounter_tables: [] } }
+      enc_state = Encounter.state
 
       demos.each_with_index do |demo, idx|
         group = demo[:roster_group] || :players
         row = { id: demo[:id], name: demo[:header][:name],
-                copy_count: 0, sheet_index: idx }
+                copy_count: enc_state.copy_count(demo[:id]), sheet_index: idx }
         case group
         when :players
-          row[:active] = true # default Active
+          row[:active] = !enc_state.pc_excluded?(demo[:id])
           players << row
         when :npcs
-          row[:active] = false # default Inactive per design
+          row[:active] = enc_state.includes_creature?(demo[:id])
           npcs << row
         when :template
           cat = demo[:category]

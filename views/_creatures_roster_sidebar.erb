@@ -30,11 +30,14 @@
         <% players.each do |row| %>
           <% active = row[:active] != false %>
           <li class="cs-roster-row cs-roster-player<%= ' cs-roster-current' if current_row.call(row) %><%= ' cs-player-absent' unless active %>"
-              data-creature-id="<%= row[:id] %>">
+              data-creature-id="<%= row[:id] %>"
+              data-roster-kind="pc">
             <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= row[:name] %></a>
             <button type="button"
-                    class="cs-roster-btn cs-player-toggle <%= active ? 'cs-player-active' : 'cs-player-absent' %>"
+                    class="cs-roster-btn cs-player-toggle cs-active-toggle <%= active ? 'cs-player-active' : 'cs-player-absent' %>"
                     aria-pressed="<%= active %>"
+                    data-creature-id="<%= row[:id] %>"
+                    data-roster-kind="pc"
                     title="<%= active ? 'Mark absent' : 'Mark active' %>">
               <%= active ? 'Active' : 'Absent' %>
             </button>
@@ -55,11 +58,14 @@
         <% npcs.each do |row| %>
           <% active = row[:active] == true %>
           <li class="cs-roster-row cs-roster-npc<%= ' cs-roster-current' if current_row.call(row) %><%= ' cs-player-absent' unless active %>"
-              data-creature-id="<%= row[:id] %>">
+              data-creature-id="<%= row[:id] %>"
+              data-roster-kind="npc">
             <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= row[:name] %></a>
             <button type="button"
-                    class="cs-roster-btn cs-player-toggle <%= active ? 'cs-player-active' : 'cs-player-absent' %>"
+                    class="cs-roster-btn cs-player-toggle cs-active-toggle <%= active ? 'cs-player-active' : 'cs-player-absent' %>"
                     aria-pressed="<%= active %>"
+                    data-creature-id="<%= row[:id] %>"
+                    data-roster-kind="npc"
                     title="<%= active ? 'Mark absent' : 'Mark active' %>">
               <%= active ? 'Active' : 'Absent' %>
             </button>
@@ -83,13 +89,21 @@
         <ul class="cs-roster-list">
           <% templates.each do |row| %>
             <li class="cs-roster-row<%= ' cs-roster-current' if current_row.call(row) %>"
-                data-creature-id="<%= row[:id] %>">
-              <button type="button" class="cs-roster-btn cs-roster-remove" title="Remove from combat" aria-label="Remove from combat" disabled>&minus;</button>
+                data-creature-id="<%= row[:id] %>"
+                data-roster-kind="template">
+              <button type="button"
+                      class="cs-roster-btn cs-roster-remove"
+                      data-creature-id="<%= row[:id] %>"
+                      title="Remove from combat"
+                      aria-label="Remove from combat">&minus;</button>
               <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= row[:name] %></a>
-              <% if row[:copy_count].to_i > 0 %>
-                <span class="cs-roster-count"><%= row[:copy_count] %></span>
-              <% end %>
-              <button type="button" class="cs-roster-btn cs-roster-add" title="Add to combat" aria-label="Add to combat" disabled>+</button>
+              <span class="cs-roster-count" data-copy-count-for="<%= row[:id] %>" <%= 'hidden' unless row[:copy_count].to_i > 0 %>><%= row[:copy_count] %></span>
+              <button type="button"
+                      class="cs-roster-btn cs-roster-add"
+                      data-template-id="<%= row[:id] %>"
+                      data-creature-id="<%= row[:id] %>"
+                      title="Add to combat"
+                      aria-label="Add to combat">+</button>
             </li>
           <% end %>
 
