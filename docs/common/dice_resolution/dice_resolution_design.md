@@ -57,7 +57,7 @@ Returns:
 | `starting_value` | signed integer | The Starting Value used for resolution. |
 | `initial_dice` | list of integers | The dice as rolled, before any modifier. |
 | `reroll_changes` | list (same length as dice) | Per-position rerolled values, or null where unchanged. |
-| `nudge_changes` | list (same length as dice) | In standard mode, the targeted die's post-shift value (recorded even when clamping left it unchanged); in max mode, each die whose value changed. Null elsewhere. |
+| `nudge_changes` | list (same length as dice) | In standard mode, the targeted die's post-shift value (recorded even when clamping left it unchanged), null elsewhere; in max mode, every die's post-shift value (no nulls). |
 | `final_dice` | list of integers | The dice after rerolls and nudges have been applied. |
 | `dois` | signed integer | Degree of Individual Success. |
 | `critical_count` | integer | Number of dice equal to Die Size in `final_dice`. |
@@ -82,7 +82,7 @@ Returns:
 |---|---|---|
 | `initial_dice` | list of integers | As rolled. |
 | `reroll_changes` | list | Per-position rerolled values or null. |
-| `nudge_changes` | list | In standard mode, the targeted die's post-shift value (recorded even when clamping left it unchanged); in max mode, each die whose value changed. Null elsewhere. |
+| `nudge_changes` | list | In standard mode, the targeted die's post-shift value (recorded even when clamping left it unchanged), null elsewhere; in max mode, every die's post-shift value (no nulls). |
 | `final_dice` | list of integers | After modifiers. |
 | `dice_result_string` | string | ASCII encoding of `final_dice`, sorted descending. See **Dice Result String** below. |
 
@@ -188,7 +188,7 @@ Two modes, selected by the `max` flag in `value_adjustment`.
 - Without a TN: the die whose post-shift value lands closest to Die Size (positive nudge) or closest to 1 (negative nudge). Tied closeness → the die that started furthest from that extreme wins. Still tied → lowest index wins.
 - Post-shift value is clamped to `[1, Die Size]`. The targeting always selects a die and records its post-shift value — even when clamping leaves the value unchanged (a `+1` on a die already at Die Size still records that die at Die Size). Non-targeted dice are null.
 
-**Max mode** (`max = true`). Every die is shifted by `value`. Each post-shift value is independently clamped to `[1, Die Size]`. No targeting, no TN involved.
+**Max mode** (`max = true`). Every die is shifted by `value`. Each post-shift value is independently clamped to `[1, Die Size]`. No targeting, no TN involved. Every position records its post-shift value — there are no nulls, even for dice that clamp in place.
 
 ### Order of operations
 

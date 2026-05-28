@@ -86,10 +86,9 @@ export class Nudge {
   }
 
   static _applyMax(dice, value, config) {
-    return dice.map((v) => {
-      const newV = Nudge._clamp(v + value, config);
-      return newV === v ? null : newV;
-    });
+    // Max mode nudges every die, so every position records its post-shift
+    // value — including dice that clamp in place. No nulls.
+    return dice.map((v) => Nudge._clamp(v + value, config));
   }
 
   static _clamp(v, config) {
