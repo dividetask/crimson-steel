@@ -12,21 +12,38 @@ module Equipment
     include LootRolling
     include CombatLoot
     include Archive
+    include Consumption
 
     attr_reader :catalog, :store, :rng
 
     def initialize(catalog: Catalog.load, store: Store.new, creature_accessor: nil,
-                   conditions: nil, combat: nil, abilities: nil, loot: nil, rng: Random.new)
+                   conditions: nil, combat: nil, abilities: nil, creatures: nil,
+                   loot: nil, rng: Random.new)
       @catalog = catalog
       @store = store
       @creature_accessor = creature_accessor
       @conditions = conditions
       @combat = combat
       @abilities = abilities
+      @creatures = creatures
       @loot = loot
       @rng = rng
       @archives = {}
       @archive_seq = 0
+    end
+
+    # ===== Restock =====
+    def restock(owner_id)
+      inv = read_inventory(owner_id)
+      understocked = inv.select { |s| s.restock_target && s.quantity < s.restock_target }
+      cost = understocked.sum { |s| (s.restock_target - s.quantity) * Pricing.unit_price(s, @catalog) }
+      return ERROR if to_r(cost) > total_wealth_r(owner_id)
+
+      debit_wealth(owner_id, cost) if cost > 0
+      inv = read_inventory(owner_id)
+      inv.each { |s| s.quantity = s.restock_target if s.restock_target && s.quantity < s.restock_target }
+      write_inventory(owner_id, inv)
+      cost
     end
 
     def loot_archive(id)

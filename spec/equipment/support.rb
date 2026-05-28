@@ -75,10 +75,11 @@ class RecordingAbilities
 
   def item_only?(name) ; @item_only.include?(name.to_s) ; end
 
-  # Returns the resolved Effects for a spell at a tier, or [].
-  def spell_effects(name, tier:)
-    entry = @spells[name.to_s]
-    return [] unless entry
-    entry.is_a?(Proc) ? entry.call(tier) : entry
+  # Returns { effects: [...], polarity: :positive | :forced } for a
+  # spell resolved at a tier.
+  def resolve_spell(name, tier:)
+    entry = @spells[name.to_s] || {}
+    entry = entry.call(tier) if entry.is_a?(Proc)
+    { effects: (entry[:effects] || []), polarity: (entry[:polarity] || :positive) }
   end
 end
