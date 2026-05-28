@@ -13,13 +13,19 @@ module Equipment
       '../../docs/common/equipment/equipment_config.yaml', __dir__
     )
 
-    # Catalog block name => Item Category for entries that do not
-    # declare their own `category:`.
-    BLOCK_CATEGORY = {
+    # "Closed" blocks have a fixed Item Category; an entry's own
+    # `category:` field there is a sub-category (Weapon Category, Armor
+    # Category) and must not be read as the Item Category.
+    CLOSED_BLOCKS = {
       'Weapons'    => 'Weapon',
       'Armor'      => 'Armor',
       'Ammunition' => 'Ammunition',
-      'Currency'   => 'Currency',
+      'Currency'   => 'Currency'
+    }.freeze
+
+    # "Open" blocks let each entry declare its own Item Category via
+    # `category:`, defaulting to the value below when absent.
+    OPEN_BLOCKS = {
       'Items'      => 'Item',
       'Consumables'=> 'Consumable',
       'Books'      => 'Item',
@@ -105,12 +111,16 @@ module Equipment
       name = name.to_s
       return { definition: {}, category: 'Gem' } if name == 'Gem'
 
-      BLOCK_CATEGORY.each do |block, default_category|
+      CLOSED_BLOCKS.each do |block, category|
+        entries = @data[block]
+        next unless entries.is_a?(Hash) && entries.key?(name)
+        return { definition: entries[name] || {}, category: category }
+      end
+      OPEN_BLOCKS.each do |block, default_category|
         entries = @data[block]
         next unless entries.is_a?(Hash) && entries.key?(name)
         defn = entries[name] || {}
-        category = (defn['category'] || default_category).to_s
-        return { definition: defn, category: category }
+        return { definition: defn, category: (defn['category'] || default_category).to_s }
       end
       nil
     end
@@ -129,13 +139,16 @@ module Equipment
     # given category string. Used by Magical Item generation.
     def item_types_in_category(category)
       out = []
-      BLOCK_CATEGORY.each do |block, default_category|
+      CLOSED_BLOCKS.each do |block, cat|
+        entries = @data[block]
+        out.concat(entries.keys) if entries.is_a?(Hash) && cat == category
+      end
+      OPEN_BLOCKS.each do |block, default_category|
         entries = @data[block]
         next unless entries.is_a?(Hash)
         entries.each do |name, defn|
           defn ||= {}
-          cat = (defn['category'] || default_category).to_s
-          out << name if cat == category
+          out << name if (defn['category'] || default_category).to_s == category
         end
       end
       out
