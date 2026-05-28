@@ -1,0 +1,10 @@
+{
+  "name": "crimson-steel-dice",
+  "version": "1.0.0",
+  "description": "Dice and Check Resolution domain logic for Crimson Steel DM Tools",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}
