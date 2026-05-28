@@ -27,6 +27,7 @@ get '/encounter' do
   @viewing_id = viewing_creature_id
   @timestamp  = @store.timestamp
   @encounter_state = Encounter.state
+  reconcile_player_combatants!
   @combat_active   = @encounter_state.combat_active?
 
   if @viewer == :dm
@@ -42,8 +43,16 @@ get '/encounter' do
 
   # Build the Combat Tracker rows from the live Combatant roster.
   # Each row carries everything `_initiative_stub.erb` needs to render.
-  acting_id = @encounter_state.to_h['acting_combatant_id']
-  @tracker_rows = @encounter_state.combatants.map { |c| build_tracker_row(c, acting_id) }
+  acting_id = @encounter_state.acting_combatant_id
+  @round_label = @encounter_state.round_label
+  rows = @encounter_state.combatants.map { |c| build_tracker_row(c, acting_id) }
+  # Initiative order when Combat is active and strings are populated;
+  # otherwise roster order.
+  @tracker_rows = if @combat_active
+    rows.sort_by { |r| [r[:initiative].to_s.empty? ? 1 : 0, invert_init(r[:initiative].to_s), r[:combatant_id]] }
+  else
+    rows
+  end
 
   erb :encounter
 end
@@ -51,6 +60,15 @@ end
 helpers do
   def encounter_state
     Encounter.state
+  end
+
+  # Render-time reconciliation: every non-excluded Player Character
+  # belongs in the active Combat, so make sure each is a Combatant
+  # before we render the roster or tracker. Players therefore always
+  # appear unless explicitly marked Absent.
+  def reconcile_player_combatants!
+    pc_ids = Creatures.player_controlled.map { |pc| pc[:id] }
+    encounter_state.reconcile_pcs(pc_ids)
   end
 
   def require_dm!
@@ -90,18 +108,24 @@ helpers do
              "Creature ##{combatant[:creature_id]}"
            end
 
+    init = combatant[:initiative_string].to_s
     row = {
       combatant_id: combatant[:id],
       creature_id:  combatant[:creature_id],
       name:         name,
-      initiative:   nil,   # Reroll Initiative not yet built.
-      combat_pool:  nil,   # Get Combat Pool not yet built.
+      initiative:   init.empty? ? nil : init,
+      combat_pool:  nil,
       acting:       (combatant[:id] == acting_id),
       can_act:      true,
       hp:           nil, mana: nil, toxicity: nil,
-      badges:       [], ability_damage: []
+      badges:       []
     }
     return row unless creature
+
+    pool_max = (encounter_state.get_combat_pool(combatant[:id]) rescue nil)
+    if pool_max
+      row[:combat_pool] = { remaining: [pool_max - combatant[:combat_pool_spent], 0].max, max: pool_max }
+    end
 
     inst  = Conditions.store.instance_for(combatant[:creature_id])
     state = inst.state
@@ -136,14 +160,6 @@ helpers do
     badges << { kind: 'major', label: "Major: #{state.hp_damage[:major]}" } if (state.hp_damage[:major] || 0).positive?
     row[:badges] = badges
 
-    chips = []
-    Conditions::SEVERITIES.each do |sev|
-      (state.ability_damage[sev] || {}).each do |attr, n|
-        chips << { label: "#{attr.to_s.capitalize} #{sev.to_s.capitalize} #{n}" }
-      end
-    end
-    row[:ability_damage] = chips
-
     if max_hp
       row[:can_act] = inst.can_act?(
         max_hit_points: max_hp,
@@ -159,6 +175,12 @@ helpers do
     %i[str dex con int wis cha].each_with_object({}) do |a, h|
       h[a] = (creature.attribute_value(a) rescue 0)
     end
+  end
+
+  # Invert a Dice Result String so an ascending sort orders highest
+  # initiative first (mirrors the State's internal comparator).
+  def invert_init(str)
+    str.bytes.map { |b| (255 - b).chr }.join
   end
 end
 
@@ -252,6 +274,7 @@ end
 # page reload.
 get '/encounter/roster_sidebar' do
   halt 404 unless dm_view?
+  reconcile_player_combatants!
   i = params[:i].to_i
   detail = params[:detail] == 'full' ? 'full' : 'minimal'
   erb :_creatures_roster_sidebar, layout: false,
@@ -260,12 +283,28 @@ end
 
 post '/encounter/start_combat' do
   require_dm!
+  reconcile_player_combatants!
   encounter_state.start_combat
+  encounter_state.reroll_initiative # roll initiative for everyone on start
   redirect back || '/encounter'
 end
 
 post '/encounter/end_combat' do
   require_dm!
   encounter_state.end_combat
+  redirect back || '/encounter'
+end
+
+post '/encounter/reroll_initiative' do
+  require_dm!
+  encounter_state.reroll_initiative
+  redirect back || '/encounter'
+end
+
+# Set the Acting Combatant directly (the per-row "Set" button — the
+# GM override for whose turn it is).
+post '/encounter/set_acting' do
+  require_dm!
+  encounter_state.set_acting_combatant(params[:combatant_id].to_i)
   redirect back || '/encounter'
 end

@@ -654,39 +654,52 @@ module Status
       rest
     end
 
-    # For each (class_key, level, trained_skill) triple, compute the
-    # rate, the rank contribution, the driving attribute, the
-    # Direct Prowess (ranks + floor(attribute/2)), and the
-    # translated dice / bonus. Aggregates across class entries when
-    # a Creature multi-classes the same trained skill — each class
-    # contributes its own rate × level via Ranks.ranks_for_skill,
-    # and the totals are summed.
+    # For each trained skill across the Creature's classes, request
+    # the Roll inputs (Dice Cap + Competency Modifier) from
+    # Proficiencies' *Compute Roll inputs* entry point rather than
+    # recomputing Prowess here. Ranks are summed across classes by the
+    # same Proficiencies entry point via the shim's `ranks_for`.
     def compute_skills(classes, attributes)
-      acc = {}
-      classes.each do |entry|
-        class_key = entry[:key]
-        level     = entry[:level]
-        entry[:trained_skills].each do |skill_key|
-          ranks = Proficiencies::Ranks.ranks_for_skill(class_key, level, skill_key, trained: true)
-          attr_key = Proficiencies.attribute_for(skill_key)
-          next unless attr_key
-          slot = acc[skill_key] ||= { ranks: 0, attr_key: attr_key }
-          slot[:ranks] += ranks
-        end
-      end
-      acc.map do |skill_key, slot|
-        attr_val = attributes[slot[:attr_key]] || 0
-        # Direct Prowess (no floor lift, no substitution — we don't
-        # have the Floor / Substitution abilities wired in yet).
-        prowess  = slot[:ranks] + (attr_val / 2)
-        dice, bonus = DiceResolution.translate_prowess(prowess)
+      shim = SkillShim.new(classes, attributes)
+      trained = classes.flat_map { |e| Array(e[:trained_skills]) }.uniq
+      trained.filter_map do |skill_key|
+        next unless Proficiencies.attribute_for(skill_key) # skip unknown keys
+        inputs = Proficiencies::Compute.roll_inputs(key: skill_key, creature: shim)
+        bonus  = inputs[:competency_modifier] ? inputs[:competency_modifier][1] : 0
         {
-          name: pretty_skill_name(skill_key),
-          ranks: slot[:ranks],
-          dice: dice,
+          name:  pretty_skill_name(skill_key),
+          ranks: shim.ranks_for(skill_key),
+          dice:  inputs[:dice_cap],
           bonus: bonus
         }
       end
+    end
+
+    # Minimal Creature-like adapter over sample (classes, attributes)
+    # data so Proficiencies::Compute can resolve Roll inputs. Mirrors
+    # the subset of the Creatures Accessor that Compute touches. Floor
+    # / Substitution abilities aren't modeled for sample data, so the
+    # ability predicates return their empty answers.
+    class SkillShim
+      def initialize(classes, attributes)
+        @classes    = classes
+        @attributes = attributes
+      end
+
+      def ranks_for(key)
+        key = key.to_s
+        @classes.sum do |entry|
+          trained = Array(entry[:trained_skills]).include?(key)
+          Proficiencies::Ranks.ranks_for_skill(entry[:key], entry[:level], key, trained: trained)
+        end
+      end
+
+      def attribute_value(attr)
+        @attributes[attr.to_sym] || 0
+      end
+
+      def has_ability(_name) = false
+      def level_for_ability(_name) = 0
     end
 
     # Render `perform_dance` as `Perform (Dance)`, `sleight_of_hand`

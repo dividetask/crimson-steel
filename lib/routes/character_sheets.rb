@@ -35,8 +35,11 @@ get '/character-sheets' do
     @random_encounter_template_id = nil
   end
 
-  # Roster Sidebar (DM only).
-  @roster = Status::SampleCreatures.roster if dm_view?
+  # Roster Sidebar (DM only). Reconcile PCs first so they always show.
+  if dm_view?
+    reconcile_player_combatants!
+    @roster = Status::SampleCreatures.roster
+  end
 
   erb :character_sheets
 end

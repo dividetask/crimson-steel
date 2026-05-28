@@ -24,7 +24,11 @@ module Creatures
       out[:name]   = require_string(r, 'name', source: source)
       out[:player] = r['player']
       out[:group]  = (r['group'] || '').to_s
-      out[:tags]   = Array(r['tags']).map(&:to_s)
+      # Per creatures_data_pcs.example.yaml: tags are optional and
+      # default to [player_character] when the key is absent. Every
+      # non-PC data file declares tags explicitly, so only Player
+      # Characters pick up this default.
+      out[:tags]   = r.key?('tags') ? Array(r['tags']).map(&:to_s) : ['player_character']
       out[:race]   = require_string(r, 'race', source: source)
       unless Races.known?(out[:race])
         raise ArgumentError, "Creature #{out[:id]}: unknown race #{out[:race].inspect}" \

@@ -5,7 +5,14 @@ require 'tmpdir'
 RSpec.describe Encounter::State do
   let(:tmpdir) { Dir.mktmpdir('encounter-state') }
   let(:data_path) { File.join(tmpdir, 'encounter_data.json') }
-  let(:state) { described_class.new({}, data_path: data_path) }
+  # A creature_lookup stub returning a fixed Tier so combat-mode
+  # computations (Time Ticks, schedules) are deterministic without the
+  # live Creatures domain.
+  let(:fake_creature) { Struct.new(:tier).new(0) }
+  let(:state) do
+    described_class.new({}, data_path: data_path,
+                        creature_lookup: ->(_id) { fake_creature })
+  end
 
   after { FileUtils.remove_entry(tmpdir) if File.exist?(tmpdir) }
 
@@ -112,7 +119,8 @@ RSpec.describe Encounter::State do
 
   describe 'combat-mode toggles' do
     it 'start_combat flags Combat as active' do
-      state.start_combat(time_ticks_per_round: 4)
+      state.add_combatant(101)
+      state.start_combat
       expect(state.combat_active?).to be true
     end
 
