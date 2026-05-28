@@ -544,6 +544,57 @@ module Conditions
       false
     end
 
+    # ===== Dying? =====
+    #
+    # A Creature whose accumulated HP damage has reached its Max HP but
+    # not the death threshold is Dying — down but not dead. First-pass
+    # interpretation pending a formal Dying spec in conditions_design.md.
+    def dying?(max_hit_points:)
+      hp_total = @state.hp_damage.values.sum
+      hp_total >= max_hit_points &&
+        hp_total < (@catalog.death_multiplier * max_hit_points).floor
+    end
+
+    # ===== Has a "cannot act" Active Effect? =====
+    #
+    # Named Effects (e.g. paralyzed, stunned, unconscious) record a
+    # `flag: cannot_act` mechanic on the sidecar list. True when any
+    # such flag is active.
+    def cannot_act_effect?
+      @state.named_effect_mechanics.any? do |m|
+        m[:kind].to_s == 'flag' && (m[:data] && (m[:data]['flag'] || m[:data][:flag])) == 'cannot_act'
+      end
+    end
+
+    # ===== Creature Can Act? =====
+    #
+    # Delegated target for Encounter's *Creature Can Act?*. False when
+    # the Creature is Dead, Dying, or carries a "cannot act" effect.
+    def can_act?(max_hit_points:, attribute_scores: {}, toxicity_threshold: 0)
+      # dead?'s toxicity check is `toxicity >= mult * threshold`, which a
+      # zero threshold turns into `0 >= 0` (everyone "dead"). When the
+      # caller has no real threshold, neutralize that arm with a sentinel.
+      tox = toxicity_threshold.to_i > 0 ? toxicity_threshold : 10**9
+      return false if dead?(max_hit_points: max_hit_points,
+                            attribute_scores: attribute_scores,
+                            toxicity_threshold: tox)
+      return false if dying?(max_hit_points: max_hit_points)
+      return false if cannot_act_effect?
+      true
+    end
+
+    # ===== Affliction badges =====
+    #
+    # Display-facing summary of active Afflictions: name, the catalog
+    # `category` (bleed / poison / disease / curse / other) for badge
+    # coloring, and current Potency. Used by the Combat Tracker.
+    def affliction_badges
+      @state.afflictions.map do |name, entry|
+        rule = (@catalog.affliction(name) rescue nil) || {}
+        { name: name, category: (rule['category'] || 'other').to_s, potency: entry[:potency] }
+      end
+    end
+
     # ===== Active Effect display helpers =====
     #
     # The downtime PC card surfaces "Active Effects" as colored badges

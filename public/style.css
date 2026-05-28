@@ -1525,11 +1525,64 @@ body {
   color: #64748b;
 }
 
-.initiative-col-init { width: 90px; }
+.initiative-col-init { width: 56px; }
 
 .initiative-row-acting {
   background: #fef9c3;
   font-weight: bold;
+}
+
+.initiative-row-cannot-act { background: #fee2e2; }
+.initiative-row-cannot-act.initiative-row-acting { background: #fde68a; }
+
+.initiative-dash { color: #94a3b8; }
+
+/* HP bar */
+.hp-bar {
+  display: flex;
+  width: 100%;
+  min-width: 64px;
+  height: 9px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+.hp-seg { display: block; height: 100%; }
+.hp-cur   { background: #16a34a; }
+.hp-minor { background: #fca5a5; }
+.hp-mod   { background: #ef4444; }
+.hp-maj   { background: #7f1d1d; }
+.hp-num { font-size: 11px; color: #475569; margin-top: 2px; white-space: nowrap; }
+
+/* Condition badges */
+.cond-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 9px;
+  margin: 1px 2px 1px 0;
+  color: #fff;
+  white-space: nowrap;
+}
+.cond-shock   { background: #2563eb; }
+.cond-pain    { background: #dc2626; }
+.cond-bleed   { background: #db2777; }
+.cond-poison  { background: #16a34a; }
+.cond-disease { background: #a16207; }
+.cond-curse   { background: #7c3aed; }
+.cond-major   { background: #7f1d1d; }
+.cond-other   { background: #64748b; }
+
+/* Ability damage chips */
+.abil-chip {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin: 1px 2px 1px 0;
+  background: #e2e8f0;
+  color: #475569;
+  white-space: nowrap;
 }
 
 .dm-staging {

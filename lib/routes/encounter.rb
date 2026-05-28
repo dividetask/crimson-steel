@@ -42,23 +42,8 @@ get '/encounter' do
 
   # Build the Combat Tracker rows from the live Combatant roster.
   # Each row carries everything `_initiative_stub.erb` needs to render.
-  @tracker_rows = @encounter_state.combatants.map do |c|
-    creature = Creatures.lookup(c[:creature_id]) rescue nil
-    display_name = if !c[:name].to_s.empty?
-      c[:name]
-    elsif creature
-      creature.name
-    else
-      "Creature ##{c[:creature_id]}"
-    end
-    {
-      combatant_id:    c[:id],
-      creature_id:     c[:creature_id],
-      name:            display_name,
-      initiative:      '—',  # Initiative rolling lands in a later pass.
-      acting:          (c[:id] == @encounter_state.to_h['acting_combatant_id'])
-    }
-  end
+  acting_id = @encounter_state.to_h['acting_combatant_id']
+  @tracker_rows = @encounter_state.combatants.map { |c| build_tracker_row(c, acting_id) }
 
   erb :encounter
 end
@@ -88,6 +73,92 @@ helpers do
       in_combat:   encounter_state.includes_creature?(creature_id),
       pc_excluded: encounter_state.pc_excluded?(creature_id)
     }
+  end
+
+  # Assemble one Combat Tracker row for a Combatant, pulling vitals
+  # from the Creatures Accessor and live state from the Conditions
+  # store. Columns whose owning domain is not wired yet (Initiative,
+  # Combat Pool) carry nil and render as a dash. Resilient to a
+  # dangling creature_id (e.g. a spawned Creature lost on restart).
+  def build_tracker_row(combatant, acting_id)
+    creature = Creatures.lookup(combatant[:creature_id]) rescue nil
+    name = if !combatant[:name].to_s.empty?
+             combatant[:name]
+           elsif creature
+             creature.name
+           else
+             "Creature ##{combatant[:creature_id]}"
+           end
+
+    row = {
+      combatant_id: combatant[:id],
+      creature_id:  combatant[:creature_id],
+      name:         name,
+      initiative:   nil,   # Reroll Initiative not yet built.
+      combat_pool:  nil,   # Get Combat Pool not yet built.
+      acting:       (combatant[:id] == acting_id),
+      can_act:      true,
+      hp:           nil, mana: nil, toxicity: nil,
+      badges:       [], ability_damage: []
+    }
+    return row unless creature
+
+    inst  = Conditions.store.instance_for(combatant[:creature_id])
+    state = inst.state
+
+    max_hp = (creature.max_hit_points rescue nil)
+    if max_hp
+      dmg = state.hp_damage
+      row[:hp] = {
+        max:      max_hp,
+        minor:    dmg[:minor] || 0,
+        moderate: dmg[:moderate] || 0,
+        major:    dmg[:major] || 0,
+        current:  [max_hp - dmg.values.sum, 0].max
+      }
+    end
+
+    max_mana = (creature.max_mana rescue nil)
+    row[:mana] = { remaining: [max_mana - state.mana_spent, 0].max, max: max_mana } if max_mana
+
+    cha = (creature.attribute_value(:cha) rescue nil)
+    tier = (creature.tier rescue nil)
+    if cha && tier
+      row[:toxicity] = { value: state.magic_toxicity, threshold: inst.toxicity_threshold(cha, tier) }
+    end
+
+    badges = []
+    badges << { kind: 'shock', label: "#{state.shock} Shock" } if state.shock.positive?
+    badges << { kind: 'pain',  label: "#{state.acid_counter} Pain" } if state.acid_counter.positive?
+    inst.affliction_badges.each do |a|
+      badges << { kind: a[:category], label: "#{a[:name].to_s.capitalize}: #{a[:potency]}" }
+    end
+    badges << { kind: 'major', label: "Major: #{state.hp_damage[:major]}" } if (state.hp_damage[:major] || 0).positive?
+    row[:badges] = badges
+
+    chips = []
+    Conditions::SEVERITIES.each do |sev|
+      (state.ability_damage[sev] || {}).each do |attr, n|
+        chips << { label: "#{attr.to_s.capitalize} #{sev.to_s.capitalize} #{n}" }
+      end
+    end
+    row[:ability_damage] = chips
+
+    if max_hp
+      row[:can_act] = inst.can_act?(
+        max_hit_points: max_hp,
+        attribute_scores: creature_attribute_scores(creature),
+        toxicity_threshold: (row.dig(:toxicity, :threshold) || 0)
+      )
+    end
+
+    row
+  end
+
+  def creature_attribute_scores(creature)
+    %i[str dex con int wis cha].each_with_object({}) do |a, h|
+      h[a] = (creature.attribute_value(a) rescue 0)
+    end
   end
 end
 

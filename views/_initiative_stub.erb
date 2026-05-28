@@ -1,22 +1,20 @@
 <%#
-  Encounter Initiative Stub —
-  docs/common/ui/encounter_initiative_stub.md
-
-  First-pass version of the Combat Tracker (see
-  encounter_initiative_stub.md for the eventual full design). Renders
-  the live Combatant roster from Encounter.state — Initiative,
-  Name. The HP / Mana / Combat Pool / Conditions columns land
-  when the Conditions, Creatures, and Combat-mode domains expose
-  the needed accessors.
+  Encounter Initiative Stub — docs/common/ui/encounter_initiative_stub.md
+  (the Combat Tracker). Full column layout per the design; columns
+  whose owning domain is not wired yet render a dash:
+    - Initiative   — pending Encounter *Reroll Initiative*
+    - Combat Pool  — pending Encounter *Get Combat Pool*
+  HP / Mana / Toxicity / Conditions / Ability Damage are live from the
+  Creatures Accessor + Conditions store.
 
   Locals:
-    rows           — list of { combatant_id, creature_id, name,
-                     initiative, acting }
-    combat_active  — boolean. When false, the table is rendered with
-                     a "Combat not started" header so the GM can tell
-                     the difference between an empty roster and an
-                     inactive Encounter.
-    viewer         — :dm or :player. Toggle controls render for DM only.
+    rows           — list of tracker rows (see build_tracker_row).
+    combat_active  — boolean.
+    viewer         — :dm or :player.
+%>
+<%
+  dash = '—'
+  pct = ->(part, whole) { whole.to_i > 0 ? [[100.0 * part / whole, 0].max, 100].min.round(2) : 0 }
 %>
 
 <section class="initiative-stub" data-combat-active="<%= combat_active %>">
@@ -41,17 +39,90 @@
     <table class="initiative-table">
       <thead>
         <tr>
-          <th class="initiative-col-init">Initiative</th>
+          <th class="initiative-col-init">Init</th>
           <th class="initiative-col-name">Name</th>
+          <th class="initiative-col-hp">HP</th>
+          <th class="initiative-col-mana">Mana</th>
+          <th class="initiative-col-pool">Pool</th>
+          <th class="initiative-col-tox">Tox</th>
+          <th class="initiative-col-cond">Conditions</th>
+          <th class="initiative-col-abil">Ability Dmg</th>
         </tr>
       </thead>
       <tbody>
         <% rows.each do |row| %>
-          <tr class="initiative-row<%= ' initiative-row-acting' if row[:acting] %>"
+          <tr class="initiative-row<%= ' initiative-row-acting' if row[:acting] %><%= ' initiative-row-cannot-act' unless row[:can_act] %>"
               data-combatant-id="<%= row[:combatant_id] %>"
               data-creature-id="<%= row[:creature_id] %>">
-            <td class="initiative-col-init"><%= row[:initiative] %></td>
+
+            <td class="initiative-col-init">
+              <% if row[:acting] %>▶ <% end %><%= row[:initiative] || dash %>
+            </td>
+
             <td class="initiative-col-name"><%= row[:name] %></td>
+
+            <td class="initiative-col-hp">
+              <% if row[:hp] %>
+                <% hp = row[:hp] %>
+                <div class="hp-bar" title="<%= hp[:current] %>/<%= hp[:max] %>">
+                  <span class="hp-seg hp-cur"  style="width: <%= pct.call(hp[:current], hp[:max]) %>%"></span>
+                  <span class="hp-seg hp-minor" style="width: <%= pct.call(hp[:minor], hp[:max]) %>%"></span>
+                  <span class="hp-seg hp-mod"   style="width: <%= pct.call(hp[:moderate], hp[:max]) %>%"></span>
+                  <span class="hp-seg hp-maj"   style="width: <%= pct.call(hp[:major], hp[:max]) %>%"></span>
+                </div>
+                <div class="hp-num">
+                  <%= hp[:current] %>/<%= hp[:max] %><%
+                    %><% if hp[:moderate].to_i > 0 %> · <%= hp[:moderate] %> Mod<% end %><%
+                    %><% if hp[:major].to_i > 0 %> · <%= hp[:major] %> Maj<% end %>
+                </div>
+              <% else %>
+                <span class="initiative-dash"><%= dash %></span>
+              <% end %>
+            </td>
+
+            <td class="initiative-col-mana">
+              <% if row[:mana] %>
+                <%= row[:mana][:remaining] %>/<%= row[:mana][:max] %>
+              <% else %>
+                <span class="initiative-dash"><%= dash %></span>
+              <% end %>
+            </td>
+
+            <td class="initiative-col-pool">
+              <% if row[:combat_pool] %>
+                <%= row[:combat_pool][:remaining] %>/<%= row[:combat_pool][:max] %>
+              <% else %>
+                <span class="initiative-dash"><%= dash %></span>
+              <% end %>
+            </td>
+
+            <td class="initiative-col-tox">
+              <% if row[:toxicity] %>
+                <%= row[:toxicity][:value] %>/<%= row[:toxicity][:threshold] %>
+              <% else %>
+                <span class="initiative-dash"><%= dash %></span>
+              <% end %>
+            </td>
+
+            <td class="initiative-col-cond">
+              <% if row[:badges].any? %>
+                <% row[:badges].each do |b| %>
+                  <span class="cond-badge cond-<%= b[:kind] %>"><%= b[:label] %></span>
+                <% end %>
+              <% else %>
+                <span class="initiative-dash"><%= dash %></span>
+              <% end %>
+            </td>
+
+            <td class="initiative-col-abil">
+              <% if row[:ability_damage].any? %>
+                <% row[:ability_damage].each do |chip| %>
+                  <span class="abil-chip"><%= chip[:label] %></span>
+                <% end %>
+              <% else %>
+                <span class="initiative-dash"><%= dash %></span>
+              <% end %>
+            </td>
           </tr>
         <% end %>
       </tbody>
