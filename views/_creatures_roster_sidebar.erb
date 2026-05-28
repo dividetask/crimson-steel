@@ -1,0 +1,113 @@
+<%
+  # Creatures Roster Sidebar Stub —
+  # docs/common/ui/creatures_roster_sidebar_stub.md
+  #
+  # Locals:
+  #   roster        — required. {
+  #     players:    [{ id, name, sheet_index, active }, …],
+  #     npcs:       [{ id, name, sheet_index, active }, …],
+  #     categories: [{ key, name, templates: [...], encounter_tables: [...] }, …]
+  #   }
+  #   current_index — optional. The sheet_index currently being shown.
+  #   detail        — optional. 'minimal' or 'full' (default minimal);
+  #                   passed through on row hrefs.
+  current_index = defined?(current_index) ? current_index : nil
+  detail_mode   = defined?(detail)        ? detail        : 'minimal'
+
+  current_row = ->(row) { current_index && row[:sheet_index] == current_index }
+%>
+
+<aside class="cs-roster-sidebar">
+
+  <% # ---- Players ------------------------------------------------------- %>
+  <details class="cs-roster-group" data-group-key="players">
+    <summary class="cs-roster-summary">Players</summary>
+    <% players = roster[:players] || [] %>
+    <% if players.empty? %>
+      <div class="cs-roster-empty">—</div>
+    <% else %>
+      <ul class="cs-roster-list">
+        <% players.each do |row| %>
+          <% active = row[:active] != false %>
+          <li class="cs-roster-row cs-roster-player<%= ' cs-roster-current' if current_row.call(row) %><%= ' cs-player-absent' unless active %>"
+              data-creature-id="<%= row[:id] %>">
+            <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= row[:name] %></a>
+            <button type="button"
+                    class="cs-roster-btn cs-player-toggle <%= active ? 'cs-player-active' : 'cs-player-absent' %>"
+                    aria-pressed="<%= active %>"
+                    title="<%= active ? 'Mark absent' : 'Mark active' %>">
+              <%= active ? 'Active' : 'Absent' %>
+            </button>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </details>
+
+  <% # ---- NPCs ---------------------------------------------------------- %>
+  <details class="cs-roster-group" data-group-key="npcs">
+    <summary class="cs-roster-summary">NPCs</summary>
+    <% npcs = roster[:npcs] || [] %>
+    <% if npcs.empty? %>
+      <div class="cs-roster-empty">—</div>
+    <% else %>
+      <ul class="cs-roster-list">
+        <% npcs.each do |row| %>
+          <% active = row[:active] == true %>
+          <li class="cs-roster-row cs-roster-npc<%= ' cs-roster-current' if current_row.call(row) %><%= ' cs-player-absent' unless active %>"
+              data-creature-id="<%= row[:id] %>">
+            <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= row[:name] %></a>
+            <button type="button"
+                    class="cs-roster-btn cs-player-toggle <%= active ? 'cs-player-active' : 'cs-player-absent' %>"
+                    aria-pressed="<%= active %>"
+                    title="<%= active ? 'Mark absent' : 'Mark active' %>">
+              <%= active ? 'Active' : 'Absent' %>
+            </button>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </details>
+
+  <% # ---- One section per themed category ------------------------------ %>
+  <% Array(roster[:categories]).each do |cat| %>
+    <details class="cs-roster-group" data-group-key="<%= cat[:key] %>">
+      <summary class="cs-roster-summary"><%= cat[:name] %></summary>
+      <%
+        templates  = cat[:templates]        || []
+        encounters = cat[:encounter_tables] || []
+      %>
+      <% if templates.empty? && encounters.empty? %>
+        <div class="cs-roster-empty">—</div>
+      <% else %>
+        <ul class="cs-roster-list">
+          <% templates.each do |row| %>
+            <li class="cs-roster-row<%= ' cs-roster-current' if current_row.call(row) %>"
+                data-creature-id="<%= row[:id] %>">
+              <button type="button" class="cs-roster-btn cs-roster-remove" title="Remove from combat" aria-label="Remove from combat" disabled>&minus;</button>
+              <a class="cs-roster-name" href="/character-sheets?i=<%= row[:sheet_index] %>&detail=<%= detail_mode %>"><%= row[:name] %></a>
+              <% if row[:copy_count].to_i > 0 %>
+                <span class="cs-roster-count"><%= row[:copy_count] %></span>
+              <% end %>
+              <button type="button" class="cs-roster-btn cs-roster-add" title="Add to combat" aria-label="Add to combat" disabled>+</button>
+            </li>
+          <% end %>
+
+          <% encounters.each do |row| %>
+            <li class="cs-roster-row cs-roster-encounter">
+              <a class="cs-roster-name cs-encounter-link"
+                 href="/character-sheets?encounter_template=<%= row[:table_id] %>&i=<%= current_index || 0 %>&detail=<%= detail_mode %>"
+                 data-table-id="<%= row[:table_id] %>"><%= row[:name] %></a>
+              <button type="button"
+                      class="cs-roster-btn cs-roster-roll cs-encounter-roll-btn"
+                      data-table-id="<%= row[:table_id] %>"
+                      data-table-name="<%= row[:name] %>"
+                      title="Roll encounter"
+                      aria-label="Roll encounter">Roll</button>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </details>
+  <% end %>
+</aside>

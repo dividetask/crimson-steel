@@ -15,3 +15,4 @@ end
 
 require_relative 'dice_resolution/config'
 require_relative 'dice_resolution/roll'
+require_relative 'dice_resolution/translate'

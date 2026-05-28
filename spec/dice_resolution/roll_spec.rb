@@ -158,21 +158,21 @@ RSpec.describe DiceResolution::Roll do
   end
 
   describe 'every Roll the project actually feeds to the stub' do
-    it 'passes validation for every DummyData.rolls entry' do
-      require_relative '../../lib/dummy_data'
-      DummyData.rolls.each do |roll|
+    it 'passes validation for every Status::SampleRolls.rolls entry' do
+      require_relative '../../lib/status/sample_rolls'
+      Status::SampleRolls.rolls.each do |roll|
         expect { described_class.validate!(roll, config) }
           .not_to raise_error,
-            "Expected DummyData rolls entry #{roll[:roll_name].inspect} to validate"
+            "Expected SampleRolls entry #{roll[:roll_name].inspect} to validate"
       end
     end
 
-    it 'passes validation for every roll in DummyData.check (supporting + opposing)' do
-      require_relative '../../lib/dummy_data'
-      (DummyData.check[:supporting] + DummyData.check[:opposing]).each do |roll|
+    it 'passes validation for every roll in Status::SampleCheck.check (supporting + opposing)' do
+      require_relative '../../lib/status/sample_check'
+      (Status::SampleCheck.check[:supporting] + Status::SampleCheck.check[:opposing]).each do |roll|
         expect { described_class.validate!(roll, config) }
           .not_to raise_error,
-            "Expected DummyData check roll #{roll[:roll_name].inspect} to validate"
+            "Expected SampleCheck roll #{roll[:roll_name].inspect} to validate"
       end
     end
   end

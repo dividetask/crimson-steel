@@ -1,0 +1,64 @@
+# Rise of the Slavelords — Creature Templates
+#
+# Crimson Steel's Rise-of-the-Slavelords campaign cast: slaver
+# captains, lieutenants, merchant escorts, and the orc / half-orc
+# soldiers they travel with. Pairs with the Caravan Ambush and
+# Stockade Patrol encounter tables in encounter_tables.yaml.
+#
+# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
+# Each template's `tags` include `enemy_template` plus
+# `category:rise_of_the_slavelords`.
+
+name: Rise of the Slavelords
+
+characters:
+
+  - id: 350
+    name: Slaver Merchant
+    group: enemy
+    tags: [enemy_template, category:rise_of_the_slavelords]
+    race: human
+    attributes: { str: 12, dex: 12, con: 12, int: 13, wis: 11, cha: 14 }
+    advancement:
+      classes:
+        rogue: 2
+
+  - id: 351
+    name: Slaver Lieutenant
+    group: enemy
+    tags: [enemy_template, category:rise_of_the_slavelords]
+    race: human
+    attributes: { str: 15, dex: 13, con: 14, int: 11, wis: 11, cha: 12 }
+    advancement:
+      classes:
+        fighter: 3
+
+  - id: 352
+    name: Half-Orc Soldier
+    group: enemy
+    tags: [enemy_template, category:rise_of_the_slavelords]
+    race: half_orc
+    attributes: { str: 15, dex: 12, con: 14, int: 9, wis: 10, cha: 8 }
+    advancement:
+      classes:
+        fighter: 1
+
+  - id: 353
+    name: Orc Interpreter
+    group: enemy
+    tags: [enemy_template, category:rise_of_the_slavelords]
+    race: half_orc
+    attributes: { str: 12, dex: 12, con: 12, int: 12, wis: 10, cha: 10 }
+    advancement:
+      classes:
+        rogue: 1
+
+  - id: 354
+    name: Stockade Guard
+    group: enemy
+    tags: [enemy_template, category:rise_of_the_slavelords]
+    race: human
+    attributes: { str: 14, dex: 12, con: 14, int: 10, wis: 12, cha: 10 }
+    advancement:
+      classes:
+        fighter: 2
