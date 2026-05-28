@@ -132,6 +132,224 @@ body {
   min-width: 0;
 }
 
+/* === Compendium sub-layout === */
+
+.compendium-layout {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.compendium-nav ul {
+  list-style: none;
+  border: 1px solid #ccc;
+  background: #f6f6f6;
+}
+
+.compendium-nav li {
+  border-bottom: 1px solid #ddd;
+}
+
+.compendium-nav li:last-child {
+  border-bottom: none;
+}
+
+.compendium-nav a {
+  display: block;
+  padding: 8px 12px;
+  color: #222;
+  text-decoration: none;
+}
+
+.compendium-nav a:hover {
+  background: #ececec;
+}
+
+.compendium-nav li.active a {
+  background: #2563eb;
+  color: #fff;
+  font-weight: bold;
+}
+
+.compendium-content {
+  min-width: 0;
+}
+
+.glossary-source {
+  margin-bottom: 24px;
+}
+
+.glossary-source-title {
+  font-size: 14px;
+  margin: 16px 0 8px 0;
+  padding: 5px 10px;
+  background: #ececec;
+  border: 1px solid #c8c8c8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #222;
+}
+
+.glossary-section {
+  margin: 10px 0 14px 0;
+}
+
+.glossary-section-h {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: bold;
+  color: #555;
+  margin: 0 0 4px 0;
+  padding-bottom: 2px;
+  border-bottom: 1px dotted #ccc;
+}
+
+.glossary-list {
+  margin: 0;
+  padding: 0;
+}
+
+.glossary-term {
+  font-weight: bold;
+  color: #1a3d6d;
+  margin-top: 6px;
+}
+
+.glossary-def {
+  margin: 1px 0 0 16px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.glossary-def code {
+  font-family: monospace;
+  background: #f1f1f1;
+  padding: 0 4px;
+  border-radius: 2px;
+  font-size: 10px;
+  color: #333;
+}
+
+.glossary-def em { color: #555; font-style: italic; }
+.glossary-def strong { color: #111; }
+
+/* === Compendium explainer (player-handbook style) === */
+
+.explainer {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #222;
+  max-width: 760px;
+}
+
+.explainer h1 {
+  font-size: 22px;
+  margin: 4px 0 14px 0;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #2c5fa0;
+  color: #1a3d6d;
+}
+
+.explainer h2 {
+  font-size: 16px;
+  margin: 24px 0 6px 0;
+  color: #1a3d6d;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 3px;
+}
+
+.explainer h3 {
+  font-size: 13px;
+  margin: 16px 0 4px 0;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.explainer p {
+  margin: 0 0 10px 0;
+}
+
+.explainer ul,
+.explainer ol {
+  margin: 0 0 10px 22px;
+}
+
+.explainer li {
+  margin: 3px 0;
+}
+
+.explainer strong { color: #111; }
+.explainer em     { color: #444; }
+
+.explainer code {
+  font-family: monospace;
+  background: #f1f1f1;
+  padding: 0 4px;
+  border-radius: 2px;
+  font-size: 11px;
+  color: #333;
+}
+
+.explainer blockquote {
+  margin: 12px 0;
+  padding: 8px 12px;
+  border-left: 3px solid #d6a700;
+  background: #fff7e0;
+  color: #5a3d00;
+  font-size: 11px;
+}
+
+.explainer blockquote p { margin: 0; }
+.explainer blockquote strong { color: #5a3d00; }
+
+.explainer table {
+  border-collapse: collapse;
+  margin: 8px 0 14px 0;
+  font-size: 11px;
+}
+
+.explainer th,
+.explainer td {
+  border: 1px solid #ddd;
+  padding: 4px 10px;
+  text-align: left;
+}
+
+.explainer thead th {
+  background: #fafafa;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #555;
+}
+
+.explainer .die {
+  vertical-align: middle;
+  margin: 0 1px;
+}
+
+/* Mermaid diagram container — give it air and center it. */
+.explainer .mermaid {
+  margin: 14px 0 18px 0;
+  padding: 10px;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  text-align: center;
+  overflow-x: auto;
+}
+
+/* Inline anchor offset for any future intra-page links. */
+.explainer a {
+  color: #2c5fa0;
+  text-decoration: none;
+}
+
+.explainer a:hover { text-decoration: underline; }
+
 /* === Rolls wrapper === */
 
 .rolls-wrapper {

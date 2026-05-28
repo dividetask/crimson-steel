@@ -27,7 +27,8 @@ Listed in display order. Each item links to the page named in the next section.
 | 4 | Store             | `/store`           | DM + Player |
 | 5 | Notes             | `/notes`           | DM + Player |
 | 6 | Social            | `/social`          | DM + Player |
-| 7 | Status            | `/status`          | DM only    |
+| 7 | Compendium        | `/compendium`      | DM + Player |
+| 8 | Status            | `/status`          | DM only    |
 
 `Home` always points at the website root (`/`). The root is not a page in its own right — it immediately redirects to `/character-sheets`, which is the default landing page. Clicking `Home` therefore lands the viewer on Character Sheets.
 
@@ -42,9 +43,23 @@ Each page is listed with a short description and its access rule. Detailed page 
 | Store             | `/store`           | Items currently for sale.                                                   | DM + Player |
 | Notes             | `/notes`           | Shared and per-character game notes.                                        | DM + Player |
 | Social            | `/social`          | Social-encounter information.                                               | DM + Player |
+| Compendium        | `/compendium`      | Reference material drawn from the rules documents — currently the Glossary. | DM + Player |
 | Status            | `/status`          | DM operations surface — currently hosts the Check Resolution Stub and the Dice Resolution Roll Stub for inspection, fed with dummy data. | DM only |
 
 A player who attempts to navigate to a DM-only URL is treated as if the page did not exist for them; the application is free to redirect them to the default landing page or render a not-available response. A DM viewing as a player is, for access purposes, a player.
+
+## Compendium page layout
+
+The Compendium page has its own internal left-hand navigation that switches the right-hand content pane. The left nav sits flush against the left edge of the page content (below the global top menu bar) and currently lists:
+
+1. **Glossary** — the default landing pane for `/compendium`. The right pane renders the union of every glossary in `docs/common/` (`common_glossary.md`, `dice_resolution/dice_resolution_glossary.md`, `check_resolution/check_resolution_glossary.md`, `conditions/conditions_glossary.md`). Each source becomes its own group with the common glossary listed first; within a group, the source's `##` headings become subsections and each `**Term**: definition` paragraph becomes a definition-list entry.
+2. **Dice Resolution** — a player-facing chapter explaining how a single Roll works (Dice Count, TN, Bonuses/Penalties, Reroll/Nudge, DoIS, Roll Outcome). Sourced from `docs/common/dice_resolution/dice_resolution_explainer.md` and rendered through kramdown. Embedded Mermaid (```` ```mermaid ```` fenced blocks) and inline `.die` spans render the resolution-pipeline diagram and dice examples respectively.
+
+Additional chapters (Check Resolution, Conditions, etc.) follow the same explainer pattern: a `*_explainer.md` next to the existing design/test docs, registered in `lib/explainer_docs.rb`, automatically appearing in the Compendium left-nav.
+
+The layout follows the same convention as the Status page (highlighted active entry, sub-views addressed by an implementation-chosen mechanism, global URL stays under `/compendium`). The Mermaid client-side renderer is loaded only on pages that contain a Mermaid block.
+
+The Compendium is visible to both DMs and players.
 
 ## Status page layout
 
