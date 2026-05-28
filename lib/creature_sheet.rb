@@ -43,7 +43,7 @@ module CreatureSheet
       items:        items(accessor),
       item_descriptions: [],
       abilities:    abilities(accessor),
-      spells:       [], rituals: [], item_spells: [],
+      spells:       spells(accessor), rituals: rituals(accessor), item_spells: item_spells(accessor),
       active_effects: [], usable_spells: [], notes: []
     }
   end
@@ -225,6 +225,73 @@ module CreatureSheet
 
   def titleize_ability(key)
     key.to_s.split(/[_\s]+/).reject(&:empty?).map { |w| w[0].upcase + w[1..] }.join(' ')
+  end
+
+  # Spells the Creature knows from Class spellcasting — the spell-typed
+  # entries among its Granted Abilities, grouped by Tier.
+  def spells(accessor)
+    keys = (accessor.granted_abilities rescue []).map { |g| g[:name] }
+    spell_groups(keys)
+  end
+
+  # Rituals — the spells inscribed in the Creature's carried Ritual
+  # books (Equipment Stacks whose Item Type is `inscribable`).
+  def rituals(accessor)
+    cat = Equipment.catalog
+    inventory(accessor).select { |s| inscribable?(s, cat) }
+                       .flat_map { |s| Array(s.inscribed_spells) }
+                       .then { |keys| spell_groups(keys) }
+  rescue StandardError
+    []
+  end
+
+  # Item Spells — spells stored in carried scrolls / wands (Stacks with
+  # a `stored_spell`).
+  def item_spells(accessor)
+    inventory(accessor).filter_map { |s| s.stored_spell unless s.stored_spell.to_s.empty? }
+                       .then { |keys| spell_groups(keys) }
+  rescue StandardError
+    []
+  end
+
+  # Group a list of spell keys into [{ tier:, names: }] ordered by Tier.
+  # Non-spell keys (e.g. talents in the granted-abilities list) are
+  # dropped. Tier-variant spells fall back to their lowest Tier.
+  def spell_groups(keys)
+    by_tier = Hash.new { |h, t| h[t] = [] }
+    Array(keys).each do |key|
+      info = spell_info(key)
+      next unless info
+      by_tier[info[:tier]] << info[:name] unless by_tier[info[:tier]].include?(info[:name])
+    end
+    by_tier.keys.sort.map { |t| { tier: t, names: by_tier[t] } }
+  rescue StandardError
+    []
+  end
+
+  # Resolve a spell key to { tier:, name: }, or nil when it is not a
+  # Catalog spell. Granted keys arrive snake_case; the spell catalog is
+  # keyed by display name, so we try the Title-Cased form too.
+  def spell_info(key)
+    title = titleize_ability(key)
+    entry = (Abilities.catalog.ability(title) || Abilities.catalog.ability(key.to_s) rescue nil)
+    return nil unless entry && entry['type'] == 'spell'
+    tier = entry['tier']
+    tier = Array(tier).map(&:to_i).min if tier.is_a?(Array)
+    { tier: tier.to_i, name: title }
+  rescue StandardError
+    nil
+  end
+
+  def inventory(accessor)
+    Equipment.instance.get_inventory("creature:#{accessor.id}")
+  rescue StandardError
+    []
+  end
+
+  def inscribable?(stack, catalog)
+    it = catalog.item_type(stack.item_type)
+    it && it[:definition].is_a?(Hash) && it[:definition]['inscribable']
   end
 
   def attributes_table(accessor, attrs)
