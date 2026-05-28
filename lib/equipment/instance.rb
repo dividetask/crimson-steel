@@ -21,7 +21,7 @@ module Equipment
 
     def initialize(catalog: Catalog.load, store: Store.new, creature_accessor: nil,
                    conditions: nil, combat: nil, abilities: nil, creatures: nil,
-                   loot: nil, shops: {}, game_day: 0, rng: Random.new)
+                   loot: nil, shops: {}, generic_shops: nil, game_day: 0, rng: Random.new)
       @catalog = catalog
       @store = store
       @creature_accessor = creature_accessor
@@ -31,6 +31,7 @@ module Equipment
       @creatures = creatures
       @loot = loot
       @shops = shops
+      @generic_shops = generic_shops
       @game_day = game_day
       @rng = rng
       @archives = {}
@@ -187,7 +188,6 @@ module Equipment
 
     # ===== Total Wealth / Debit Wealth =====
     def get_total_wealth(owner_id)
-      return Float::INFINITY if owner_id.start_with?('generic_shop:')
       from_r(total_wealth_r(owner_id))
     end
 
