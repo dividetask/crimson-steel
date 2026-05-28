@@ -217,6 +217,9 @@ module Encounter
       @acting_combatant_id = nil
       @granted_actions = []
       @dm_luck_points = 0
+      # Initiative is per-fight — clear every Combatant's roll so the
+      # next combat starts fresh (and Roll Init rolls everyone).
+      @combatants.each { |c| c[:initiative_string] = '' }
       persist!
       self
     end
