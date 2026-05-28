@@ -44,6 +44,29 @@ class RecordingCombat
   def apply_damage(**kw) ; @damages << kw ; nil ; end
 end
 
+# Deterministic RNG: yields queued floats for `rand` (no-arg, [0,1)),
+# and derives integer / range draws from the same queue so dice and
+# weighted picks are reproducible. Falls back to a seeded Random once
+# the queue drains.
+class SequenceRng
+  def initialize(floats = [])
+    @floats = floats.dup
+    @fallback = Random.new(20260528)
+  end
+
+  def rand(arg = nil)
+    f = @floats.empty? ? @fallback.rand : @floats.shift
+    if arg.nil?
+      f
+    elsif arg.is_a?(Range)
+      span = arg.last - arg.first + 1
+      arg.first + (f * span).floor.clamp(0, span - 1)
+    else
+      (f * arg).floor
+    end
+  end
+end
+
 class RecordingAbilities
   def initialize(spells: {}, item_only: [])
     @spells = spells

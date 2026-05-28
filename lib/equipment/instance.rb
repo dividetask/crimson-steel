@@ -8,17 +8,25 @@ module Equipment
   # Collaborators are optional; when absent the cross-domain calls are
   # skipped (inventory-only behavior). Tests inject recorded-call stubs.
   class Instance
+    include Magical
+    include LootRolling
+
     attr_reader :catalog, :store, :rng
 
     def initialize(catalog: Catalog.load, store: Store.new, creature_accessor: nil,
-                   conditions: nil, combat: nil, abilities: nil, rng: Random.new)
+                   conditions: nil, combat: nil, abilities: nil, loot: nil, rng: Random.new)
       @catalog = catalog
       @store = store
       @creature_accessor = creature_accessor
       @conditions = conditions
       @combat = combat
       @abilities = abilities
+      @loot = loot
       @rng = rng
+    end
+
+    def loot
+      @loot ||= LootTables.load
     end
 
     # ===== Get Inventory =====

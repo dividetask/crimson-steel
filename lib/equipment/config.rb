@@ -95,6 +95,9 @@ module Equipment
     # ---- structural catalogs -------------------------------------------
 
     def slots         ; @data['Slots'] || []                 ; end
+    def weapons       ; @data['Weapons'] || {}                ; end
+    def armor         ; @data['Armor'] || {}                  ; end
+    def ammunition_block ; @data['Ammunition'] || {}          ; end
     def weapon_categories ; @data['Weapon Categories'] || {}  ; end
     def weapon_tags   ; @data['Weapon Tags'] || {}            ; end
     def damage_type_defaults ; @data['Damage Type Defaults'] || {} ; end
