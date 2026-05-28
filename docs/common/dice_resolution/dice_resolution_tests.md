@@ -17,19 +17,19 @@ Tests that depend on randomness (the actual values dice land on) state the *roll
 
 ## Translate Skill Prowess into Roll inputs
 
-**Prowess of zero gives the minimum.** When `prowess = 0`, the function returns `dice_count = 6` and `bonus_penalty = 0`. Nothing about Prowess of zero contributes a Bonus or Penalty.
+**Prowess of zero gives the minimum.** When `prowess = 0`, the function returns `dice_cap = 6` and `bonus_penalty = 0`. Nothing about Prowess of zero contributes a Bonus or Penalty.
 
-**Prowess fitting within a single Range cycle.** When `prowess = 3`, the function returns `dice_count = 9` and `bonus_penalty = 0`. Three points of Prowess raise Dice Count by 3 above the Minimum.
+**Prowess fitting within a single Range cycle.** When `prowess = 3`, the function returns `dice_cap = 9` and `bonus_penalty = 0`. Three points of Prowess raise Dice Count by 3 above the Minimum.
 
-**Prowess at exactly one full cycle.** When `prowess = 5`, the function returns `dice_count = 6` and `bonus_penalty = 1`. One full Range of Prowess produces one point of Bonus and resets Dice Count to the Minimum.
+**Prowess at exactly one full cycle.** When `prowess = 5`, the function returns `dice_cap = 6` and `bonus_penalty = 1`. One full Range of Prowess produces one point of Bonus and resets Dice Count to the Minimum.
 
-**Prowess overflowing into a Bonus with leftover.** When `prowess = 7`, the function returns `dice_count = 8` and `bonus_penalty = 1`. The first 5 Prowess complete one cycle (+1 Bonus, dice reset to Minimum); the remaining 2 raise Dice Count to 8.
+**Prowess overflowing into a Bonus with leftover.** When `prowess = 7`, the function returns `dice_cap = 8` and `bonus_penalty = 1`. The first 5 Prowess complete one cycle (+1 Bonus, dice reset to Minimum); the remaining 2 raise Dice Count to 8.
 
-**Prowess at two full cycles.** When `prowess = 10`, the function returns `dice_count = 6` and `bonus_penalty = 2`. Two full Ranges produce +2 Bonus.
+**Prowess at two full cycles.** When `prowess = 10`, the function returns `dice_cap = 6` and `bonus_penalty = 2`. Two full Ranges produce +2 Bonus.
 
-**Negative Prowess wraps to maximum dice.** When `prowess = -1`, the function returns `dice_count = 10` and `bonus_penalty = -1`. One full cycle backward produces a Penalty and wraps Dice Count to the Maximum.
+**Negative Prowess wraps to maximum dice.** When `prowess = -1`, the function returns `dice_cap = 10` and `bonus_penalty = -1`. One full cycle backward produces a Penalty and wraps Dice Count to the Maximum.
 
-**Negative Prowess with leftover.** When `prowess = -2`, the function returns `dice_count = 9` and `bonus_penalty = -1`. The negative wrap produces -1 Bonus; the remainder lands at 9.
+**Negative Prowess with leftover.** When `prowess = -2`, the function returns `dice_cap = 9` and `bonus_penalty = -1`. The negative wrap produces -1 Bonus; the remainder lands at 9.
 
 ---
 
@@ -65,7 +65,9 @@ Tests that depend on randomness (the actual values dice land on) state the *roll
 
 **A Critical Success replaces the regular Success.** Given a Roll with one die landing on Die Size (10) and `critical_modifier = 2`: the die contributes +2 (the Critical contribution), not +3 (which would be Critical + regular Success stacking). Critical Count = 1.
 
-**A Roll that ignores Failures cannot Fumble.** Given a Roll with `failure_modifier = 0` and dice that produce DoIS = −5: outcome is `failure`, not `fumble`. The Fumble check is suppressed when `failure_modifier == 0`.
+**A Roll that ignores Failures cannot Fumble.** Given a Roll with `failure_modifier = 0` and dice that would Fumble at the default failure modifier — for example six 1s, worth −6 at `failure_modifier = -1`: with `failure_modifier = 0` each 1 contributes 0, so DoIS = 0 and the outcome is `failure`, never `fumble`. With Failures ignored, dice can never drive DoIS below the Starting Value, so a Fumble is unreachable from dice alone. (This is a guard for a state that shouldn't arise.)
+
+**A negative Starting Value cannot Fumble a Roll that ignores Failures.** Given a Roll with `failure_modifier = 0`, a Starting Value of −5 (e.g. from Penalty overflow), and neutral dice: DoIS = −5, but the outcome is `failure`, not `fumble`. The Fumble check is suppressed whenever `failure_modifier == 0`, no matter how the negative DoIS arose.
 
 **A reroll changes a Failure into a Success.** Given a Roll with `dice_count = 6`, `positive_reroll = (1, false)`, dice that land as `[1, 4, 5, 5, 5, 5]`, and the rerolled die landing on `8`: `final_dice = [8, 4, 5, 5, 5, 5]`. The Failure was the lowest non-Success and was selected.
 

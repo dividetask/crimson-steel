@@ -1,21 +1,17 @@
+import { CONFIG_DATA } from './configData.js';
+
 // Dice Resolution configuration.
 //
-// Mirrors docs/common/dice_resolution/dice_resolution_config.yaml — that
-// file is the source of truth. These defaults are duplicated here because
-// the browser has no YAML loader; keep them in sync with the YAML by hand.
-// Tests construct DiceConfig with overrides to exercise other values.
+// The values from dice_resolution_config.yaml arrive via configData.js, a
+// file generated from that YAML at server startup (see
+// lib/dice_resolution/config_js_generator.rb) — the YAML stays the single
+// source of truth. failure_modifier / critical_modifier are per-Roll
+// design defaults, not config values, so they live here. Tests construct
+// DiceConfig with overrides to exercise other values.
 export class DiceConfig {
   constructor(overrides = {}) {
     const base = {
-      dieSize: 10,
-      diceResultStringEncoding: 'X',
-      baseTargetNumber: 6,
-      minimumTargetNumber: 3,
-      maximumTargetNumber: 9,
-      minimumDiceCount: 6,
-      diceCountRange: 5,
-      defaultSuccessThreshold: 2,
-      defaultFumbleThreshold: 2,
+      ...CONFIG_DATA,
       defaultFailureModifier: -1,
       defaultCriticalModifier: 2,
     };

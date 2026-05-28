@@ -61,12 +61,18 @@ test('A Critical Success replaces the regular Success', () => {
   assert.equal(r.criticalCount, 1);
 });
 
-// NOTE: the test doc says "dice that produce DoIS = -5" with
-// failure_modifier = 0. With failure_modifier = 0 a 1 contributes 0, so
-// dice alone cannot produce a negative DoIS — the negative value must come
-// from Starting Value. We model that here. The rule under test (a Roll
-// that ignores Failures cannot Fumble) holds regardless of the source.
 test('A Roll that ignores Failures cannot Fumble', () => {
+  // Six 1s are worth -6 at the default failure_modifier (a Fumble); with
+  // failure_modifier = 0 they contribute nothing, so DoIS stays at 0.
+  const rng = new SequenceRng([1, 1, 1, 1, 1, 1]);
+  const r = Roll.resolveWithTn({ diceCount: 6, failureModifier: 0 }, rng);
+  assert.equal(r.dois, 0);
+  assert.equal(r.outcome, 'failure'); // not 'fumble'
+});
+
+test('A negative Starting Value cannot Fumble a Roll that ignores Failures', () => {
+  // The only way DoIS goes negative when failure_modifier = 0 is via a
+  // negative Starting Value. The Fumble check is still suppressed.
   const rng = new SequenceRng([3, 3, 3]); // neutral dice, contribute 0
   const r = Roll.resolveWithTn({ diceCount: 3, failureModifier: 0, startingContribution: -5 }, rng);
   assert.equal(r.dois, -5);

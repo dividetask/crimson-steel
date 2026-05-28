@@ -12,6 +12,10 @@ $LOAD_PATH.unshift(File.join(__dir__, 'lib'))
 
 require 'conditions'
 require 'dice_resolution'
+require_relative 'lib/dice_resolution/config_js_generator'
+# Regenerate the JS config from the YAML so the browser modules always
+# reflect the current dice_resolution_config.yaml.
+DiceResolution::ConfigJsGenerator.generate
 require_relative 'lib/dummy_data'
 require_relative 'lib/test_docs'
 require_relative 'lib/glossary_docs'
