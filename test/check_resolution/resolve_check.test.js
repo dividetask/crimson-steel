@@ -53,12 +53,11 @@ test('A Check with strongly negative Degree of Success Fumbles', () => {
   assert.equal(r.outcome, 'fumble');
 });
 
-// NOTE: the test doc says "dice that produce DoIS = -3" alongside
-// failure_modifier = 0. With failure_modifier = 0 the dice cannot go
-// negative, so the -3 comes from Starting Value. The rule under test —
-// the Check Fumbles even though the Roll itself cannot — still holds.
 test('Check-level Fumble fires regardless of per-Roll failure_modifier', () => {
-  const rng = new SequenceRng([3, 3, 3]); // neutral
+  // failure_modifier = 0 means dice can't go negative, so the -3 comes from
+  // a negative Starting Value. The Roll itself is a failure (never a
+  // fumble), but the Check still Fumbles.
+  const rng = new SequenceRng([3, 3, 3]); // neutral dice
   const r = CheckResolution.resolveCheck(
     { supporting: [{ diceCount: 3, failureModifier: 0, startingContribution: -3 }], opposing: [] },
     rng

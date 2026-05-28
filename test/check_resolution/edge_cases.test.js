@@ -23,6 +23,17 @@ test('Single Supporting Roll, single Opposing Roll, both with no modifiers', () 
   assert.equal(params.opposing[0].tn, 6);
 });
 
+test('Same Roll in both lists', () => {
+  // Design: behavior unspecified, validation unassigned. We document that
+  // a Roll does not invert against itself (the lead-role propagation skips
+  // the source Roll when it is the Roll being extended), so its TN reflects
+  // its own bonus_penalty_list with no self-cancellation.
+  const shared = { diceCount: 1, bonusPenaltyList: [['A', 2]] };
+  const params = CheckResolution.computeParameters({ supporting: [shared], opposing: [shared] });
+  assert.equal(params.supporting[0].tn, 4); // +2 Bonus -> TN 4, not self-inverted to 6
+  assert.equal(params.opposing[0].tn, 4);
+});
+
 test('A value_adjustment on the Supporting side nudges that Roll only', () => {
   const rng = new SequenceRng([5, 5, /* opposing */ 5, 5]);
   const r = CheckResolution.resolveCheck(
