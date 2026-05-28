@@ -1,0 +1,99 @@
+# Loot Tables
+#
+# Named, rollable definitions of what Items a creature, chest, or
+# Shop carries. The Equipment domain reads this file plus every
+# `loot_tables-*.yaml` at boot. Duplicate IDs across files are an
+# error. `Add Loot Table` persists to this base file.
+#
+# Row shapes (per `equipment_glossary.md`):
+#   Guaranteed              { item }              | { items: [...] }
+#   Independent Chance      { chance, item }      | { chance, items: [...] }
+#   Weighted Choice         { options: [...] }    — `options:` may also name an Option List
+#   Gated Weighted Choice   { chance, options: [...] }
+#
+# Roll Variables: `as: <var>` publishes, `when: { <var>: <expected> }`
+# gates. Variables are scoped to one Loot Table Roll.
+#
+# Inline Magical Rows pass a Magical Item Constraint as `item.magical`.
+# `item_only` spells are flagged in the Abilities catalog.
+
+option_lists:
+
+  tier_one_magical_melee:
+    - chance: 0.5
+      item:
+        magical:
+          category: melee
+          tier: [1]
+          properties_weighted:
+            Elemental: 3
+            Subdual: 1
+            none: 2
+    - chance: 0.3
+      item:
+        magical:
+          category: melee
+          tier: [1]
+          properties_weighted:
+            Vicious: 1
+            Subdual: 1
+            Radiant: 1
+
+loot_tables:
+
+  # Standard goblin pocket change. No equipment — that ships with
+  # the goblin's own Inventory; this table is rolled alongside.
+  goblin_pocket_change:
+    rolls:
+      - chance: 0.8
+        item: { item: Copper, quantity: "2d6" }
+      - chance: 0.3
+        item: { item: Silver, quantity: "1d4" }
+
+  # Town guard equipment loadout. Spear is two-handed (no shield);
+  # shield row gates on the hand variable.
+  town_guard_equipment:
+    rolls:
+
+      - equipped: true
+        as: hand
+        options:
+          - chance: 0.4
+            key: one_handed
+            item: { item: Short sword }
+          - chance: 0.5
+            key: two_handed
+            item: { item: Spear }
+          - chance: 0.1
+            key: one_handed
+            item: { item: Mace }
+
+      - equipped: true
+        when: { hand: one_handed }
+        chance: 0.5
+        item: { item: Light wooden shield }
+
+      - equipped: true
+        item: { item: Chain shirt }
+
+  # Hidden chest in a tier-1 magical dungeon.
+  tier_one_dungeon_chest:
+    rolls:
+
+      - item: { item: Gold, quantity: "3d10 + 10" }
+
+      - chance: 0.4
+        item: { item: Gem, quantity: 1, value_in_gold: 50 }
+
+      - chance: 0.3
+        options: tier_one_magical_melee
+
+      - chance: 0.2
+        item:
+          magical:
+            category: all_body
+            tier: [1]
+            properties_weighted:
+              Fortification: 1
+              Elemental Resistance: 2
+              none: 1

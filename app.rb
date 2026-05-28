@@ -19,6 +19,7 @@ require 'creatures'
 require 'creatures/advancement'
 require 'proficiencies'
 require 'encounter'
+require 'equipment'
 require 'uploads'
 
 require_relative 'lib/dice_resolution/config_js_generator'
