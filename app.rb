@@ -35,6 +35,7 @@ require_relative 'lib/status/sample_conditions'
 require_relative 'lib/status/sample_creatures'
 require_relative 'lib/status/sample_timekeeping'
 require_relative 'lib/status/sample_chronicle'
+require_relative 'lib/status/sample_encounter'
 
 require_relative 'lib/creature_sheet'
 require_relative 'lib/live_roster'
