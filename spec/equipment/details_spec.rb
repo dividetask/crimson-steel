@@ -20,6 +20,24 @@ RSpec.describe Equipment::Details do
       expect(d[:durability_damage]).to eq(0)
       expect(d[:slot]).to be_nil
     end
+
+    it 'resolves the Item Type catalog description for a generic item' do
+      d = described_class.item_details(stack(item_type: 'Cloak of Resistance', tier: 1), catalog)
+      expect(d[:description]).to eq("Grants a Guidance Bonus to the wearer's saving throws.")
+    end
+
+    it 'lets a Stack description override the catalog description' do
+      d = described_class.item_details(
+        stack(item_type: 'Lute', tier: 1, name: 'Lute of the Wandering Bard',
+              description: 'Once per scene, grant Bardic Inspiration without spending the action.'),
+        catalog
+      )
+      expect(d[:description]).to eq('Once per scene, grant Bardic Inspiration without spending the action.')
+    end
+
+    it 'is nil when neither the Stack nor the Item Type carries a description' do
+      expect(described_class.item_details(stack(item_type: 'Lute'), catalog)[:description]).to be_nil
+    end
   end
 
   describe 'Get Weapon Details' do

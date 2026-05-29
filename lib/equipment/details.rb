@@ -19,6 +19,11 @@ module Equipment
         equipped: stack.equipped,
         durability_damage: stack.durability_damage,
         display_name: DisplayName.call(stack, catalog),
+        # A Stack `description` override (unique items, e.g. a named
+        # magic Lute) wins over the Item Type's catalog description
+        # (the authoritative source for generic items). See
+        # equipment_design.md → Item fields.
+        description: (stack.description || defn['description']),
         unit_price: Pricing.unit_price(stack, catalog),
         slot: defn['slot'],
         value_in_gold: (stack.value_in_gold if %w[Gem Currency].include?(category)),

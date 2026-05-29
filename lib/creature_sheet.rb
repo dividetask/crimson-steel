@@ -41,7 +41,7 @@ module CreatureSheet
       actions:      actions(accessor),
       attributes_table: attributes_table(accessor, attrs),
       items:        items(accessor),
-      item_descriptions: [],
+      item_descriptions: item_descriptions(accessor),
       abilities:    abilities(accessor),
       spells:       spells(accessor), rituals: rituals(accessor), item_spells: item_spells(accessor),
       active_effects: [], usable_spells: [], notes: []
@@ -195,6 +195,24 @@ module CreatureSheet
     grouped
   rescue StandardError
     { equipped: [], consumable: [], ammunition: [], other: [] }
+  end
+
+  # Descriptions of the named magic items the Creature carries, for the
+  # sheet's Item Descriptions section (creatures_full_stub.md). The text
+  # is each Stack's resolved description — a unique-item override, or the
+  # generic Item Type's catalog description — supplied by Equipment's
+  # Get Item Details. Items with no description on file are skipped, and
+  # identical rows are collapsed.
+  def item_descriptions(accessor)
+    cat = Equipment.catalog
+    inventory(accessor).filter_map do |s|
+      d = Equipment::Details.item_details(s, cat)
+      desc = d[:description]
+      next if desc.nil? || desc.to_s.strip.empty?
+      { name: d[:display_name], description: desc }
+    end.uniq
+  rescue StandardError
+    []
   end
 
   def abilities(accessor)
