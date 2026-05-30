@@ -129,7 +129,7 @@ Cases:
 
 ## Resolve Attack payload
 
-`Combat.resolve_attack_payload(payload)` consumes the JSON the JS turn flow emits to `/combat/resolve_attack` (shape in `docs/ui/turn_action_stub.md` under *Confirm payload*). The handler spends Combat Pool for every participant, sums Supporting DoIS minus Opposing DoIS (per *Check Resolution*), and applies damage when the net DoS is positive.
+`Combat.resolve_attack_payload(payload)` consumes the JSON the JS turn flow emits to `/combat/resolve_attack` (shape in `../ui/turn_action_stub.md` under *Confirm payload*). The handler spends Combat Pool for every participant, sums Supporting DoIS minus Opposing DoIS (per *Check Resolution*), and applies damage when the net DoS is positive.
 
 **Spend reaches every participant.** Payload picks attacker dice = 4 with weapon Speed 2, defender dice = 3 with defense Speed 1, two ally reactions of 2 dice each (Reaction Speed 1). After resolve:
 - Attacker's `combat_pool_spent` increments by `4 × 2 = 8`.
