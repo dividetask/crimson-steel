@@ -1,23 +1,19 @@
-import { CheckResolution } from '../check.js';
-import { DiceConfig } from '../config.js';
-import { RandomRng } from '../rng.js';
-import { DiceRenderer } from './diceRenderer.js';
-
 // Turn Action panel — Attack flow (turn_action_stub.md → Attack).
 //
-// Drives the multi-step attack against the live Encounter pipeline:
-//   GET  /encounter/attack_options  — attacker's weapons + targets
-//   POST /encounter/build_attack    — Roll specs (Dice Caps, bonuses,
-//                                     eligible defenses) for the chosen
-//                                     target / weapon / defense
-//   POST /encounter/resolve_attack  — spends Combat Pool, nets Successes,
-//                                     applies damage
+// A progressive-disclosure wizard: one decision is shown at a time, and
+// each completed decision collapses to a thin "<Label>: <value> [change]"
+// row. The actual dice are resolved by the shared Check Resolution stub —
+// this controller fetches that stub as a server fragment (so combat reuses
+// the exact same Roll UI and engine the Dice/Check stubs use), lets the
+// DM roll it, then reads the resolved Successes back out to resolve the
+// attack. No dice math lives here.
 //
-// The dice are resolved client-side by the shared Check engine
-// (CheckResolution), the same math the Dice / Check Resolution stubs use.
-// Stages: select (target/weapon/defense) → dice → roll → done.
+// Backing endpoints (all server-side):
+//   GET  /encounter/attack_options  — weapons + targets
+//   POST /encounter/build_attack    — Dice Caps / Speed / eligible defenses
+//   POST /encounter/attack_check    — renders the Check stub for the Roll
+//   POST /encounter/resolve_attack  — spends Combat Pool, applies damage
 export class TurnAttack {
-  // Lazy-load the options the first time the Attack pane is opened.
   static ensureLoaded(container) {
     if (!container || container.dataset.taLoaded) return;
     container.dataset.taLoaded = '1';
@@ -37,10 +33,7 @@ export class TurnAttack {
         if (!data.weapons.length) return fail(container, 'This Combatant has no equipped weapons.');
         if (!data.targets.length) return fail(container, 'No other Combatants to target.');
         st.options = data;
-        st.targetId = data.targets[0].combatant_id;
-        st.weapon = data.weapons[0];
-        st.defense = 'none';
-        st.stage = 'select';
+        st.stage = 'target';
         TurnAttack._render(container);
       })
       .catch(() => fail(container, 'Could not load attack options.'));
@@ -51,70 +44,83 @@ export class TurnAttack {
       const btn = e.target.closest && e.target.closest('button');
       if (!btn || !container.contains(btn)) return;
       const st = container._ta;
-      if (btn.classList.contains('ta-opt-target')) { st.targetId = num(btn.dataset.id); TurnAttack._render(container); }
-      else if (btn.classList.contains('ta-opt-weapon')) { st.weapon = st.options.weapons.find((w) => w.item_type === btn.dataset.weapon); st.defense = 'none'; TurnAttack._render(container); }
-      else if (btn.classList.contains('ta-opt-defense')) { st.defense = btn.dataset.defense; TurnAttack._render(container); }
-      else if (btn.classList.contains('ta-build')) { TurnAttack._build(container); }
-      else if (btn.classList.contains('ta-opt-atkdice')) { st.attackerDice = num(btn.dataset.dice); TurnAttack._render(container); }
-      else if (btn.classList.contains('ta-opt-defdice')) { st.defenseDice = num(btn.dataset.dice); TurnAttack._render(container); }
-      else if (btn.classList.contains('ta-roll')) { TurnAttack._roll(container); }
+      if (btn.dataset.taChange) return TurnAttack._change(container, btn.dataset.taChange);
+      if (btn.classList.contains('ta-opt-target')) { st.targetId = num(btn.dataset.id); TurnAttack._advance(container, 'weapon'); }
+      else if (btn.classList.contains('ta-opt-weapon')) { st.weaponType = btn.dataset.weapon; TurnAttack._advance(container, 'defense'); }
+      else if (btn.classList.contains('ta-opt-defense')) { st.defense = btn.dataset.defense; TurnAttack._afterDefense(container); }
+      else if (btn.classList.contains('ta-opt-atkdice')) { st.attackerDice = num(btn.dataset.dice); TurnAttack._enterRoll(container); }
       else if (btn.classList.contains('ta-resolve')) { TurnAttack._resolve(container); }
-      else if (btn.classList.contains('ta-back')) { st.stage = 'select'; TurnAttack._render(container); }
       else if (btn.classList.contains('ta-continue')) { window.location.reload(); }
     });
   }
 
-  // ----- stage transitions -----
+  // ----- step flow -----
 
-  static _build(container) {
+  static _advance(container, stage) { container._ta.stage = stage; TurnAttack._render(container); }
+
+  // "change" on a completed row: jump back to that step and invalidate
+  // every later decision so the DM re-walks the wizard from there.
+  static _change(container, step) {
     const st = container._ta;
-    const kind = st.weapon.ranged ? 'ranged' : 'melee';
+    const order = ['target', 'weapon', 'defense', 'dice'];
+    const i = order.indexOf(step);
+    if (i <= 0) { st.weaponType = null; }
+    if (i <= 1) { st.defense = null; st.spec = null; }
+    if (i <= 2) { st.attackerDice = null; st.spec = null; }
+    st.result = null;
+    st.stage = step;
+    TurnAttack._render(container);
+  }
+
+  // Defense chosen → fetch the Roll spec (Dice Caps, Speed, eligible
+  // defenses) so the Dice step knows the attacker's bounds.
+  static _afterDefense(container) {
+    const st = container._ta;
+    const weapon = TurnAttack._weapon(st);
     postForm('/encounter/build_attack', {
       attacker_id: st.attackerId, target_id: st.targetId,
-      weapon: st.weapon.item_type, defense: st.defense, hidden: 'false'
+      weapon: st.weaponType, defense: st.defense, hidden: 'false'
     }).then((spec) => {
       if (!spec || !spec.ok) return fail(container, (spec && spec.error) || 'Could not build the attack.');
       st.spec = spec;
-      st.kind = spec.attack_kind || kind;
       st.declared = st.defense !== 'none';
-      // Default the attacker to the largest affordable dice count.
-      const atk = TurnAttack._attackerDiceBounds(st);
-      st.attackerDice = atk.max >= atk.min ? atk.max : 0;
-      if (st.declared && spec.defense) st.defenseDice = spec.defense.max_dice;
+      // Default the defender to its largest roll (the DM can still adjust
+      // the resulting Successes in the Check stub).
+      if (st.declared && spec.defense) st.defenseDice = spec.defense.pool_cost ? spec.defense.max_dice : spec.defense.dice_cap;
+      const b = TurnAttack._attackerDiceBounds(st);
+      st.attackerDice = b.max >= b.min ? b.max : 0;
       st.stage = 'dice';
       TurnAttack._render(container);
     }).catch(() => fail(container, 'Could not build the attack.'));
   }
 
-  static _roll(container) {
+  // Dice chosen → fetch the Check Resolution stub fragment and inject it.
+  static _enterRoll(container) {
     const st = container._ta;
-    const config = DiceConfig.default();
-    const supporting = [{
-      diceCount: st.attackerDice,
-      bonusPenaltyList: (st.spec.attacker && st.spec.attacker.bonus_penalty_list) || [],
-      criticalModifier: st.spec.attacker && st.spec.attacker.critical_modifier
-    }];
-    const opposing = st.declared ? [{
-      diceCount: st.defenseDice,
-      bonusPenaltyList: (st.spec.defense && st.spec.defense.bonus_penalty_list) || []
-    }] : [];
-
-    const res = CheckResolution.resolveCheck({ supporting, opposing }, new RandomRng(), config);
-    st.roll = res;
-    st.attackerSuccesses = res.supportingResults[0].dois;
-    st.defenseSuccesses = st.declared ? res.opposingResults[0].dois : 0;
     st.stage = 'roll';
-    TurnAttack._render(container);
+    container.innerHTML = TurnAttack._doneRows(st, 'roll') +
+      `<div class="ta-step"><div class="ta-step-label">Roll</div><div class="ta-check-slot"><p class="ta-attack-loading">Building roll…</p></div></div>` +
+      `<div class="ta-actions"><button type="button" class="ce-btn ta-resolve">Resolve attack</button></div>`;
+    postText('/encounter/attack_check', {
+      attacker_id: st.attackerId, target_id: st.targetId, weapon: st.weaponType,
+      defense: st.defense, dice: st.attackerDice, def_dice: st.declared ? st.defenseDice : ''
+    }).then((html) => {
+      const slot = container.querySelector('.ta-check-slot');
+      if (slot) slot.innerHTML = html;
+    }).catch(() => {
+      const slot = container.querySelector('.ta-check-slot');
+      if (slot) slot.innerHTML = '<p class="ta-warn">Could not build the roll.</p>';
+    });
   }
 
   static _resolve(container) {
     const st = container._ta;
-    const atkSucc = num(valOf(container, '.ta-succ-atk', st.attackerSuccesses));
-    const defSucc = st.declared ? num(valOf(container, '.ta-succ-def', st.defenseSuccesses)) : 0;
-    const weapon = st.spec.weapon || st.spec.attacker.weapon || {};
+    const atkSucc = TurnAttack._successesAt(container, 0);
+    const defSucc = st.declared ? TurnAttack._successesAt(container, 1) : 0;
+    const weapon = st.spec.weapon || (st.spec.attacker && st.spec.attacker.weapon) || {};
     const payload = {
       target_id: st.targetId,
-      attack_kind: st.kind,
+      attack_kind: st.spec.attack_kind,
       weapon: { damage_types: weapon.damage_types, threshold: weapon.threshold, base_damage: weapon.base_damage },
       attacker: { id: st.attackerId, dice: st.attackerDice, speed: st.spec.attacker.speed, successes: atkSucc },
       defense: st.declared
@@ -129,87 +135,80 @@ export class TurnAttack {
     }).catch(() => fail(container, 'Could not resolve the attack.'));
   }
 
-  static _reset() { /* reserved */ }
+  // Read the resolved Successes (DoIS) out of the injected Check stub —
+  // roll-group 0 is the attacker, 1 is the declared defender. The value
+  // reflects any manual override the DM typed into the result field.
+  static _successesAt(container, idx) {
+    const input = container.querySelector('.roll-group[data-roll-idx="' + idx + '"] .result-input');
+    return input ? num(input.value) : 0;
+  }
 
-  // Attacker dice are capped by the weapon's Dice Cap and by what the
-  // Combat Pool can afford (dice × Speed ≤ remaining pool).
   static _attackerDiceBounds(st) {
     const speed = Math.max(1, (st.spec.attacker && st.spec.attacker.speed) || 1);
     const cap = (st.spec.attacker && st.spec.attacker.dice_cap) || 0;
-    const max = Math.min(cap, Math.floor(st.poolRemaining / speed));
-    return { min: 1, max, speed };
+    return { min: 1, max: Math.min(cap, Math.floor(st.poolRemaining / speed)), speed };
   }
+
+  static _weapon(st) { return st.options.weapons.find((w) => w.item_type === st.weaponType); }
 
   // ----- rendering -----
 
   static _render(container) {
     const st = container._ta;
-    if (st.stage === 'select') container.innerHTML = TurnAttack._renderSelect(st);
-    else if (st.stage === 'dice') container.innerHTML = TurnAttack._renderDice(st);
-    else if (st.stage === 'roll') container.innerHTML = TurnAttack._renderRoll(st);
-    else if (st.stage === 'done') container.innerHTML = TurnAttack._renderDone(st);
+    if (st.stage === 'done') { container.innerHTML = TurnAttack._doneRows(st, 'done') + TurnAttack._renderResult(st); return; }
+    if (st.stage === 'roll') { TurnAttack._enterRoll(container); return; }
+    container.innerHTML = TurnAttack._doneRows(st, st.stage) + TurnAttack._renderStep(container, st);
   }
 
-  static _renderSelect(st) {
-    const targets = st.options.targets.map((t) =>
-      optBtn('ta-opt-target', { id: t.combatant_id }, t.name, t.combatant_id === st.targetId)).join('');
-    const weapons = st.options.weapons.map((w) =>
-      optBtn('ta-opt-weapon', { weapon: w.item_type }, `${w.display_name} <span class="ta-dim">(Spd ${w.speed}${w.ranged ? ', ranged' : ''})</span>`,
-        w.item_type === st.weapon.item_type)).join('');
-    const defenses = ['none', 'dodge', 'block'].concat(st.weapon.ranged ? [] : ['parry'])
-      .map((d) => optBtn('ta-opt-defense', { defense: d }, cap(d), d === st.defense)).join('');
-    return (
-      group('Target', targets) +
-      group('Weapon', weapons) +
-      group('Target&rsquo;s defense', defenses) +
-      `<div class="ta-actions"><button type="button" class="ce-btn ta-build">Build attack →</button></div>`
-    );
-  }
-
-  static _renderDice(st) {
-    const b = TurnAttack._attackerDiceBounds(st);
-    if (b.max < b.min) {
-      return summary(st) + `<p class="ta-warn">Not enough Combat Pool to attack with this weapon.</p>` +
-        `<div class="ta-actions"><button type="button" class="ce-btn ta-back">← Back</button></div>`;
+  // Thin summary rows for every step completed before `current`, each
+  // with a Change affordance.
+  static _doneRows(st, current) {
+    const order = ['target', 'weapon', 'defense', 'dice'];
+    const values = {
+      target: () => TurnAttack._targetName(st),
+      weapon: () => { const w = TurnAttack._weapon(st); return w ? w.display_name : ''; },
+      defense: () => st.defense === 'none' ? 'No defense' : cap(st.defense),
+      dice: () => st.attackerDice + 'd'
+    };
+    const labels = { target: 'Target', weapon: 'Weapon', defense: 'Defense', dice: 'Dice' };
+    const stop = current === 'done' || current === 'roll' ? order.length : order.indexOf(current);
+    let out = '';
+    for (let i = 0; i < stop; i++) {
+      const k = order[i];
+      out += `<div class="ta-done-row"><span class="ta-done-label">${labels[k]}</span>` +
+        `<span class="ta-done-val">${values[k]()}</span>` +
+        `<button type="button" class="ta-change" data-ta-change="${k}">change</button></div>`;
     }
-    const atkStrip = strip('ta-opt-atkdice', b.min, b.max, st.attackerDice);
-    let defBlock = '';
-    if (st.declared && st.spec.defense) {
-      const d = st.spec.defense;
-      if (d.pool_cost) {
-        defBlock = group(`${cap(st.defense)} dice`, strip('ta-opt-defdice', d.min_dice, d.max_dice, st.defenseDice));
-      } else {
-        defBlock = group(`${cap(st.defense)}`, `<span class="ta-dim">Saving throw — full Dice Cap (${d.dice_cap}d), no Combat Pool.</span>`);
-      }
-    }
-    return (
-      summary(st) +
-      group(`Attacker dice <span class="ta-dim">(Cap ${st.spec.attacker.dice_cap}d, Speed ${b.speed})</span>`, atkStrip) +
-      defBlock +
-      `<div class="ta-actions"><button type="button" class="ce-btn ta-back">← Back</button> <button type="button" class="ce-btn ta-roll">Roll →</button></div>`
-    );
-  }
-
-  static _renderRoll(st) {
-    const config = DiceConfig.default();
-    const ar = st.roll.supportingResults[0];
-    let out = summary(st) +
-      `<div class="ta-roll-row"><span class="ta-roll-label">Attacker</span> ` +
-      DiceRenderer.renderDice(ar.finalDice, ar.tn, config.dieSize, ar.startingValue, 'shown') +
-      ` <span class="ta-dim">DoIS ${ar.dois}</span></div>` +
-      `<label class="ta-succ">Successes <input type="number" class="ta-succ-atk" value="${st.attackerSuccesses}"></label>`;
-    if (st.declared) {
-      const dr = st.roll.opposingResults[0];
-      out += `<div class="ta-roll-row"><span class="ta-roll-label">${cap(st.defense)}</span> ` +
-        DiceRenderer.renderDice(dr.finalDice, dr.tn, config.dieSize, dr.startingValue, 'shown') +
-        ` <span class="ta-dim">DoIS ${dr.dois}</span></div>` +
-        `<label class="ta-succ">Successes <input type="number" class="ta-succ-def" value="${st.defenseSuccesses}"></label>`;
-    }
-    out += `<div class="ta-actions"><button type="button" class="ce-btn ta-back">← Back</button> <button type="button" class="ce-btn ta-resolve">Resolve attack</button></div>`;
     return out;
   }
 
-  static _renderDone(st) {
+  static _renderStep(container, st) {
+    if (st.stage === 'target') {
+      return group('Target', st.options.targets.map((t) =>
+        optBtn('ta-opt-target', { id: t.combatant_id }, t.name)).join(''));
+    }
+    if (st.stage === 'weapon') {
+      return group('Weapon', st.options.weapons.map((w) =>
+        optBtn('ta-opt-weapon', { weapon: w.item_type }, `${w.display_name} <span class="ta-dim">(Spd ${w.speed}${w.ranged ? ', ranged' : ''})</span>`)).join(''));
+    }
+    if (st.stage === 'defense') {
+      const w = TurnAttack._weapon(st);
+      const choices = ['none', 'dodge', 'block'].concat(w && w.ranged ? [] : ['parry']);
+      return group('Target&rsquo;s defense', choices.map((d) =>
+        optBtn('ta-opt-defense', { defense: d }, d === 'none' ? 'No defense' : cap(d))).join(''));
+    }
+    if (st.stage === 'dice') {
+      const b = TurnAttack._attackerDiceBounds(st);
+      if (b.max < b.min) {
+        return `<p class="ta-warn">Not enough Combat Pool to attack with this weapon.</p>`;
+      }
+      return group(`Attacker dice <span class="ta-dim">(Cap ${st.spec.attacker.dice_cap}d, Speed ${b.speed})</span>`,
+        strip('ta-opt-atkdice', b.min, b.max));
+    }
+    return '';
+  }
+
+  static _renderResult(st) {
     const r = st.result;
     let body;
     if (r.damage > 0) {
@@ -221,39 +220,31 @@ export class TurnAttack {
     } else {
       body = `<p class="ta-miss">No damage — net Degree of Success ${r.net_dos}.</p>`;
     }
-    return summary(st) + body +
-      `<div class="ta-actions"><button type="button" class="ce-btn ta-continue">Continue</button></div>`;
+    return body + `<div class="ta-actions"><button type="button" class="ce-btn ta-continue">Continue</button></div>`;
+  }
+
+  static _targetName(st) {
+    const t = st.options.targets.find((x) => x.combatant_id === st.targetId);
+    return t ? t.name : '';
   }
 }
 
 // ----- helpers -----
 
-function summary(st) {
-  const target = st.options.targets.find((t) => t.combatant_id === st.targetId);
-  const def = st.defense === 'none' ? 'no defense' : cap(st.defense);
-  return `<p class="ta-summary"><strong>${st.weapon.display_name}</strong> → <strong>${target ? target.name : 'target'}</strong> <span class="ta-dim">(${def})</span></p>`;
-}
-
 function group(label, inner) {
   return `<div class="ta-step"><div class="ta-step-label">${label}</div><div class="ta-step-opts">${inner}</div></div>`;
 }
-
-function optBtn(cls, data, label, selected) {
+function optBtn(cls, data, label) {
   const attrs = Object.keys(data).map((k) => `data-${k}="${data[k]}"`).join(' ');
-  return `<button type="button" class="ta-opt ${cls}${selected ? ' ta-opt-on' : ''}" ${attrs}>${label}</button>`;
+  return `<button type="button" class="ta-opt ${cls}" ${attrs}>${label}</button>`;
 }
-
-function strip(cls, min, max, current) {
+function strip(cls, min, max) {
   let out = '';
-  for (let n = min; n <= max; n++) {
-    out += `<button type="button" class="ta-opt ${cls}${n === current ? ' ta-opt-on' : ''}" data-dice="${n}">${n}d</button>`;
-  }
+  for (let n = min; n <= max; n++) out += `<button type="button" class="ta-opt ${cls}" data-dice="${n}">${n}d</button>`;
   return out || '<span class="ta-dim">—</span>';
 }
-
 function cap(s) { return String(s).charAt(0).toUpperCase() + String(s).slice(1); }
 function num(v) { const n = parseInt(v, 10); return Number.isNaN(n) ? 0 : n; }
-function valOf(container, sel, fallback) { const el = container.querySelector(sel); return el ? el.value : fallback; }
 function fail(container, msg) { container.innerHTML = `<p class="ta-warn">${msg}</p>`; }
 
 function fetchJSON(url) {
@@ -261,6 +252,9 @@ function fetchJSON(url) {
 }
 function postForm(url, params) {
   return fetch(url, { method: 'POST', body: new URLSearchParams(params) }).then((r) => r.json().catch(() => null));
+}
+function postText(url, params) {
+  return fetch(url, { method: 'POST', body: new URLSearchParams(params) }).then((r) => r.text());
 }
 function postJSON(url, payload) {
   return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })

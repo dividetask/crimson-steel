@@ -76,7 +76,7 @@
             <div class="tk-stack-label"><%= sc[:label] %></div>
             <%= erb :_initiative_stub, locals: {
                   rows: sc[:rows], combat_active: sc[:combat_active],
-                  viewer: sc[:viewer], round_label: sc[:round_label] } %>
+                  viewer: sc[:viewer], round_label: sc[:round_label], static: true } %>
           </div>
         <% end %>
       </div>

@@ -457,6 +457,62 @@ post '/encounter/build_attack' do
   encounter_response(spec.merge(ok: true))
 end
 
+# Render the attack's Roll(s) as a Check Resolution Stub fragment
+# (turn_action_stub.md → Attack, step "Roll"). Builds the attacker's Roll
+# (and the declared defender's Opposing Roll) in the shape _check_stub
+# consumes — Dice Cap, Competency + Attacker Bonuses folded into a TN /
+# Starting Value via DiceResolution.compute_target_number — then hands off
+# to the shared Check engine (RollController / RollsWrapper) to resolve.
+# The dice counts are the DM's picks (Combat-Pool-bounded on the client).
+post '/encounter/attack_check' do
+  require_dm!
+  attacker = encounter_state.combatant(params[:attacker_id].to_i)
+  target   = encounter_state.combatant(params[:target_id].to_i)
+  return encounter_error(404, 'unknown attacker or target') unless attacker && target
+
+  weapon = equipped_weapons(attacker[:creature_id]).find { |w| w[:item_type] == params[:weapon] }
+  return encounter_error(404, 'attacker has no such equipped weapon') unless weapon
+
+  acc_atk     = Creatures.lookup(attacker[:creature_id]) rescue nil
+  attack_attr = weapon[:ranged] ? :dex : :str
+  atk         = roll_inputs_for(acc_atk, 'martial', attribute_override: attack_attr)
+  declared    = !(params[:defense].to_s.empty? || params[:defense] == 'none')
+  unaware     = !target[:performed_this_turn]
+  die         = DiceResolution.config.die_size
+
+  atk_bpl = []
+  atk_bpl << atk[:competency_modifier] if atk[:competency_modifier]
+  atk_bpl.concat(Encounter::Attack.attacker_bonuses(no_defense: !declared, unaware: unaware))
+  atk_tn = DiceResolution.compute_target_number(atk_bpl)
+
+  supporting = [{
+    creature_name: tracker_name(attacker),
+    roll_name: "Attack (#{weapon[:display_name]})",
+    dice_count: [params[:dice].to_i, 0].max, tn: atk_tn[:tn], starting_value: atk_tn[:starting_value],
+    reroll: nil, nudge: nil, die_size: die, dois: nil, critical_count: nil
+  }]
+
+  opposing = []
+  if declared
+    choice  = params[:defense]
+    acc_def = Creatures.lookup(target[:creature_id]) rescue nil
+    di = choice == 'dodge' ? roll_inputs_for(acc_def, 'dex_save', attribute_override: :dex)
+                           : roll_inputs_for(acc_def, 'martial', attribute_override: :str)
+    def_bpl = []
+    def_bpl << di[:competency_modifier] if di[:competency_modifier]
+    def_tn  = DiceResolution.compute_target_number(def_bpl)
+    opposing << {
+      creature_name: tracker_name(target),
+      roll_name: choice.to_s.capitalize,
+      dice_count: [(params[:def_dice] ? params[:def_dice].to_i : di[:dice_cap]).to_i, 0].max,
+      tn: def_tn[:tn], starting_value: def_tn[:starting_value],
+      reroll: nil, nudge: nil, die_size: die, dois: nil, critical_count: nil
+    }
+  end
+
+  erb :_check_stub, layout: false, locals: { check: { supporting: supporting, opposing: opposing } }
+end
+
 post '/encounter/resolve_attack' do
   require_dm!
   payload = JSON.parse(request.body.read) rescue nil

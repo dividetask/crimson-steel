@@ -25,6 +25,42 @@ module DiceResolution
       v.between?(1, 9) ? v.to_s : encoding[v - 10]
     end.join
   end
+
+  # Compute a Roll's Target Number and Starting Value from a Bonus /
+  # Penalty list — the Ruby twin of the JS `TnComputation` the Check
+  # stub uses. Per-Type stacking: for each Bonus/Penalty Type only the
+  # highest positive and the lowest negative entry contribute. The TN
+  # candidate is `Base TN - Net Modifier`, clamped to [Minimum, Maximum];
+  # whatever the clamp discards becomes Starting Value (Bonuses below the
+  # Minimum become Starting Successes, Penalties above the Maximum become
+  # Starting Failures). `list` is an Array of `[type, amount]` pairs.
+  # Returns `{ tn:, starting_value: }`.
+  def compute_target_number(list, cfg = config)
+    candidate = cfg.base_target_number - net_modifier(list)
+    min = cfg.minimum_target_number
+    max = cfg.maximum_target_number
+    if candidate < min
+      { tn: min, starting_value: min - candidate }
+    elsif candidate > max
+      { tn: max, starting_value: -(candidate - max) }
+    else
+      { tn: candidate, starting_value: 0 }
+    end
+  end
+
+  def net_modifier(list)
+    highest = {}
+    lowest  = {}
+    Array(list).each do |type, amount|
+      next if amount.nil? || amount.zero?
+      if amount.positive?
+        highest[type] = amount if !highest.key?(type) || amount > highest[type]
+      else
+        lowest[type] = amount if !lowest.key?(type) || amount < lowest[type]
+      end
+    end
+    highest.values.sum + lowest.values.sum
+  end
 end
 
 require_relative 'dice_resolution/config'
