@@ -404,11 +404,13 @@ body {
   background: #000;
 }
 
-.btn-confirm-all {
+.btn-confirm-all,
+.btn-confirm {
   background: #2563eb;
 }
 
-.btn-confirm-all:hover {
+.btn-confirm-all:hover,
+.btn-confirm:hover {
   background: #1d4ed8;
 }
 

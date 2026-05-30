@@ -244,7 +244,6 @@ helpers do
     acc      = Creatures.lookup(attacker[:creature_id]) rescue nil
     die      = DiceResolution.config.die_size
     base_tn  = DiceResolution.config.base_target_number
-    atk_pool = (encounter_state.combat_pool_remaining(attacker[:id]) rescue 0) || 0
 
     weapons = equipped_weapons(attacker[:creature_id]).map do |w|
       attr = w[:ranged] ? :dex : :str
@@ -273,18 +272,17 @@ helpers do
 
     action_opts = []
     weapons.each do |w|
-      speed   = [w[:speed].to_i, 1].max
-      cap     = w[:dice_cap]
-      aff_max = [cap, atk_pool / speed].min
-      disp    = w[:display_name]
-      grp     = w[:item_type]
-      # One button per weapon (max affordable dice), then one per die choice.
-      action_opts << { value: "#{w[:item_type]}|#{aff_max}", key: w[:item_type], group: grp,
-                       label: disp, summary: "#{disp} — #{aff_max}d", disabled: aff_max < 2,
-                       patch: { set_dice: [{ id: 'attacker', count: aff_max }] } }
+      cap  = w[:dice_cap]
+      disp = w[:display_name]
+      grp  = w[:item_type]
+      # One button per weapon (= its full Dice Cap), then one per die choice
+      # (just the number). Combat Pool is spent server-side at resolve time.
+      action_opts << { value: "#{w[:item_type]}|#{cap}", key: w[:item_type], group: grp,
+                       label: disp, summary: "#{disp} — #{cap} dice", disabled: cap < 2,
+                       patch: { set_dice: [{ id: 'attacker', count: cap }] } }
       (2..cap).each do |n|
         action_opts << { value: "#{w[:item_type]}|#{n}", key: w[:item_type], group: grp,
-                         label: "#{n}d", summary: "#{disp} — #{n}d", disabled: n * speed > atk_pool,
+                         label: n.to_s, summary: "#{disp} — #{n} dice",
                          patch: { set_dice: [{ id: 'attacker', count: n }] } }
       end
     end
@@ -296,6 +294,8 @@ helpers do
         comp = w[:competency] ? [w[:competency]] : []
         tn_none     = DiceResolution.compute_target_number(comp + Encounter::Attack.attacker_bonuses(no_defense: true,  unaware: t[:unaware]))
         tn_declared = DiceResolution.compute_target_number(comp + Encounter::Attack.attacker_bonuses(no_defense: false, unaware: t[:unaware]))
+        # No defense first, then one group per Defensive Action: a name
+        # button (= full Dice Cap) followed by a button per die choice.
         opts = [{ value: 'none', group: 'none', label: 'No defense', summary: 'No defense',
                   patch: { set_tn: [{ id: 'attacker', tn: tn_none[:tn], starting_value: tn_none[:starting_value] }],
                            set_excluded: [{ id: 'defender', excluded: true }] } }]
@@ -312,13 +312,8 @@ helpers do
                        set_name: [{ id: 'defender', roll_name: d.capitalize }],
                        set_excluded: [{ id: 'defender', excluded: false }] } }
           end
-          if d == 'dodge'
-            opts << mk.call(cap, 'Dodge', "Dodge — #{cap}d")            # full Dice Cap, no pool
-          else
-            aff = [cap, t[:pool]].min
-            opts << mk.call(aff, d.capitalize, "#{d.capitalize} — #{aff}d")  # name = max affordable
-            (2..aff).each { |n| opts << mk.call(n, "#{n}d", "#{d.capitalize} — #{n}d") }
-          end
+          opts << mk.call(cap, d.capitalize, "#{d.capitalize} — #{cap} dice")
+          (2..cap).each { |n| opts << mk.call(n, n.to_s, "#{d.capitalize} — #{n} dice") }
         end
         defense_map["#{t[:id]}|#{w[:item_type]}"] = opts
       end
