@@ -273,11 +273,19 @@ helpers do
 
     action_opts = []
     weapons.each do |w|
-      speed = [w[:speed].to_i, 1].max
-      group = "#{w[:display_name]} (Spd #{w[:speed]}, Cap #{w[:dice_cap]}d)"
-      (2..w[:dice_cap]).each do |n|
-        action_opts << { value: "#{w[:item_type]}|#{n}", key: w[:item_type], label: "#{n}d", group: group,
-                         disabled: n * speed > atk_pool, patch: { set_dice: [{ id: 'attacker', count: n }] } }
+      speed   = [w[:speed].to_i, 1].max
+      cap     = w[:dice_cap]
+      aff_max = [cap, atk_pool / speed].min
+      disp    = w[:display_name]
+      grp     = w[:item_type]
+      # One button per weapon (max affordable dice), then one per die choice.
+      action_opts << { value: "#{w[:item_type]}|#{aff_max}", key: w[:item_type], group: grp,
+                       label: disp, summary: "#{disp} — #{aff_max}d", disabled: aff_max < 2,
+                       patch: { set_dice: [{ id: 'attacker', count: aff_max }] } }
+      (2..cap).each do |n|
+        action_opts << { value: "#{w[:item_type]}|#{n}", key: w[:item_type], group: grp,
+                         label: "#{n}d", summary: "#{disp} — #{n}d", disabled: n * speed > atk_pool,
+                         patch: { set_dice: [{ id: 'attacker', count: n }] } }
       end
     end
     action_step = { key: 'action', label: 'Weapon & dice', options: action_opts }
@@ -288,20 +296,29 @@ helpers do
         comp = w[:competency] ? [w[:competency]] : []
         tn_none     = DiceResolution.compute_target_number(comp + Encounter::Attack.attacker_bonuses(no_defense: true,  unaware: t[:unaware]))
         tn_declared = DiceResolution.compute_target_number(comp + Encounter::Attack.attacker_bonuses(no_defense: false, unaware: t[:unaware]))
-        opts = [{ value: 'none', label: 'No defense',
+        opts = [{ value: 'none', group: 'none', label: 'No defense', summary: 'No defense',
                   patch: { set_tn: [{ id: 'attacker', tn: tn_none[:tn], starting_value: tn_none[:starting_value] }],
                            set_excluded: [{ id: 'defender', excluded: true }] } }]
         (w[:ranged] ? %w[dodge block] : %w[dodge block parry]).each do |d|
           di   = d == 'dodge' ? t[:dodge] : t[:martial]
           dcmp = di[:competency_modifier] ? [di[:competency_modifier]] : []
           dtn  = DiceResolution.compute_target_number(dcmp)
-          ddc  = d == 'dodge' ? di[:dice_cap].to_i : [di[:dice_cap].to_i, t[:pool]].min
-          opts << { value: d, label: d.capitalize,
-                    patch: { set_tn: [{ id: 'attacker', tn: tn_declared[:tn], starting_value: tn_declared[:starting_value] },
-                                      { id: 'defender', tn: dtn[:tn], starting_value: dtn[:starting_value] }],
-                             set_dice: [{ id: 'defender', count: ddc }],
-                             set_name: [{ id: 'defender', roll_name: d.capitalize }],
-                             set_excluded: [{ id: 'defender', excluded: false }] } }
+          cap  = di[:dice_cap].to_i
+          mk = lambda do |dice, label, summary|
+            { value: "#{d}|#{dice}", group: d, label: label, summary: summary,
+              patch: { set_tn: [{ id: 'attacker', tn: tn_declared[:tn], starting_value: tn_declared[:starting_value] },
+                                { id: 'defender', tn: dtn[:tn], starting_value: dtn[:starting_value] }],
+                       set_dice: [{ id: 'defender', count: dice }],
+                       set_name: [{ id: 'defender', roll_name: d.capitalize }],
+                       set_excluded: [{ id: 'defender', excluded: false }] } }
+          end
+          if d == 'dodge'
+            opts << mk.call(cap, 'Dodge', "Dodge — #{cap}d")            # full Dice Cap, no pool
+          else
+            aff = [cap, t[:pool]].min
+            opts << mk.call(aff, d.capitalize, "#{d.capitalize} — #{aff}d")  # name = max affordable
+            (2..aff).each { |n| opts << mk.call(n, "#{n}d", "#{d.capitalize} — #{n}d") }
+          end
         end
         defense_map["#{t[:id]}|#{w[:item_type]}"] = opts
       end

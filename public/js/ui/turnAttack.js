@@ -34,16 +34,17 @@ export class TurnAttack {
     const choices = detail.choices || {};
     const rolls = detail.rolls || [];
     const weaponType = String(choices.action || '').split('|')[0];
+    const defenseName = String(choices.defense || 'none').split('|')[0];
     const atk = rolls.find((r) => r.id === 'attacker') || {};
     const def = rolls.find((r) => r.id === 'defender');
-    const declared = def && choices.defense && choices.defense !== 'none';
+    const declared = def && defenseName !== 'none';
 
     const payload = {
       target_id: choices.target,
       weapon_type: weaponType,
       attacker: { id: parseInt(attackerId, 10), dice: atk.dice_count, successes: atk.successes },
       defense: declared
-        ? { choice: choices.defense, id: choices.target, dice: def.dice_count, speed: 1, successes: def.successes }
+        ? { choice: defenseName, id: choices.target, dice: def.dice_count, speed: 1, successes: def.successes }
         : { choice: 'none' }
     };
 

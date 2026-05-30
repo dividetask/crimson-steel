@@ -2777,72 +2777,15 @@ body {
 .ta-pane-lead { margin: 0 0 12px; color: #334155; }
 .ta-pane-lead.ta-staged { color: #64748b; font-style: italic; }
 
-/* Attack flow */
+/* Attack result (turn_action_stub.md → Attack) */
 .ta-attack-loading { color: #64748b; font-style: italic; }
-.ta-step { margin-bottom: 12px; }
-.ta-step-label { font-size: 0.82rem; color: #475569; margin-bottom: 4px; }
-.ta-step-opts { display: flex; flex-wrap: wrap; gap: 6px; }
-.ta-opt {
-  padding: 5px 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #f8fafc;
-  font: inherit;
-  cursor: pointer;
-}
-.ta-opt:hover { background: #eef2f7; }
-.ta-opt.ta-opt-on { background: #2563eb; border-color: #2563eb; color: #fff; }
-.ta-opt.ta-opt-on .ta-dim { color: #dbeafe; }
-.ta-opt:disabled { opacity: 0.4; cursor: not-allowed; }
-.ta-opt:disabled:hover { background: #f8fafc; }
-/* Weapon + dice step: weapon name on the left, dice strip on the right */
-.ta-weapon-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
-.ta-wname { text-align: left; }
-.ta-wdice-strip { display: flex; flex-wrap: wrap; gap: 4px; }
-
-/* ---- Check Resolution Builder (check_resolution_builder_stub.md) ---- */
-.check-builder .rolls-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.cb-step-label { font-weight: 600; color: #334155; margin-right: 4px; }
-.cb-opts, .cb-group-opts { display: inline-flex; flex-wrap: wrap; gap: 4px; }
-.cb-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 2px 0; }
-.cb-group-label { color: #475569; }
-.cb-summaries { padding: 4px 12px; }
-.cb-summary {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 3px 0;
-  border-bottom: 1px solid #eef2f7;
-  font-size: 0.92rem;
-}
-.cb-summary-label { min-width: 64px; color: #64748b; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
-.cb-summary-value { font-weight: 600; flex: 1; }
-.cb-change { border: none; background: none; color: #2563eb; cursor: pointer; font: inherit; font-size: 0.85rem; text-decoration: underline; padding: 0; }
-.roll-group-excluded { display: none; }
 .ta-dim { color: #94a3b8; font-size: 0.85em; }
 .ta-actions { margin-top: 12px; display: flex; gap: 8px; }
-/* Completed-step summary rows (progressive disclosure) */
-.ta-done-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 4px 0;
-  border-bottom: 1px solid #eef2f7;
-  font-size: 0.92rem;
-}
-.ta-done-label { min-width: 64px; color: #64748b; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
-.ta-done-val { font-weight: 600; flex: 1; }
-.ta-change {
-  border: none;
-  background: none;
-  color: #2563eb;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.85rem;
-  text-decoration: underline;
-  padding: 0;
-}
-.ta-check-slot { margin-top: 4px; }
 .ta-warn { color: #b45309; }
 .ta-hit strong { color: #7f1d1d; }
 .ta-miss { color: #475569; }
+
+/* Check Resolution Builder option lines — reuse the .cr-mod-btn palette */
+.cb-line { padding: 2px 0; }
+.cb-line .cr-mod-btn { margin-right: 4px; }
+.roll-group-excluded { display: none; }
