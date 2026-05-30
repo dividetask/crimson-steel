@@ -41,14 +41,18 @@ module Encounter
     end
 
     # Attacker Bonuses (encounter_config.yaml). Flatfooted applies when
-    # the defender declares no Defensive Action against this attack;
-    # Unaware applies when the defender has not yet acted (or the
-    # attacker is Hidden from them). Both can apply at once. Returns a
-    # bonus_penalty_list of [type, amount] pairs.
+    # the defender declares no Defensive Action against this attack.
+    # Unaware applies when the defender has not yet acted in the Combat —
+    # but declaring a Defensive Action proves awareness, so a declared
+    # defence (no_defense: false) suppresses Unaware too. Both bonuses
+    # therefore require no_defense; when present they can apply together.
+    # Returns a bonus_penalty_list of [type, amount] pairs.
     def attacker_bonuses(no_defense:, unaware:)
       list = []
-      list << bonus_pair(Config.data['Flatfooted Bonus']) if no_defense
-      list << bonus_pair(Config.data['Unaware Bonus'])     if unaware
+      if no_defense
+        list << bonus_pair(Config.data['Flatfooted Bonus'])
+        list << bonus_pair(Config.data['Unaware Bonus']) if unaware
+      end
       list.compact
     end
 

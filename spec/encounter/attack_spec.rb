@@ -30,6 +30,12 @@ RSpec.describe Encounter::Attack do
       expect(described_class.attacker_bonuses(no_defense: true, unaware: true))
         .to eq([['Circumstance', 1], ['Circumstance', 2]])
     end
+
+    it 'suppresses Unaware when a defense is declared (declaring proves awareness)' do
+      # The defender has not acted, but declaring a Defensive Action makes
+      # them Aware — so neither Flatfooted nor Unaware applies.
+      expect(described_class.attacker_bonuses(no_defense: false, unaware: true)).to eq([])
+    end
   end
 
   describe '.build_spec' do
