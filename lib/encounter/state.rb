@@ -446,7 +446,8 @@ module Encounter
     # ---------- Resolve Attack payload ----------
 
     # Consume the turn-flow payload (turn_action_stub.md → Confirm
-    # payload): spend Combat Pool for every participant (dice × Speed),
+    # payload): spend Combat Pool for every participant — the weapon's flat
+    # Speed cost plus one per die rolled (Speed + dice, not Speed × dice) —
     # sum Supporting DoIS minus Opposing DoIS, and apply damage when the
     # net DoS is positive. Successes are pre-rolled by the client and
     # carried in the payload. Returns { damage:, severity_map:, net_dos: }.
@@ -476,14 +477,14 @@ module Encounter
                  damage: 0, severity_map: {}, net_dos: 0 }
       end
 
-      spend_combat_pool(attacker[:id], attacker[:dice].to_i * attacker[:speed].to_i) if attacker[:id]
-      allies.each { |a| spend_combat_pool(a[:id], a[:dice].to_i * a[:speed].to_i) if a[:id] }
+      spend_combat_pool(attacker[:id], pool_cost(attacker)) if attacker[:id]
+      allies.each { |a| spend_combat_pool(a[:id], pool_cost(a)) if a[:id] }
 
       opposing = 0
       if declared
         # Parry / Block spend Combat Pool; Dodge (a Saving Throw) does not.
         if Attack.defense_spec(choice)[:pool_cost] && defense[:id]
-          spend_combat_pool(defense[:id], defense[:dice].to_i * defense[:speed].to_i)
+          spend_combat_pool(defense[:id], pool_cost(defense))
         end
         opposing = defense[:successes].to_i
       end
@@ -499,6 +500,13 @@ module Encounter
       else
         { ok: true, damage: 0, severity_map: {}, net_dos: net }
       end
+    end
+
+    # Combat Pool a Roll spends: the action's flat Speed cost plus one per
+    # die rolled (Speed + dice). Speed is a flat surcharge, not a per-die
+    # multiplier.
+    def pool_cost(part)
+      part[:speed].to_i + part[:dice].to_i
     end
 
     # ---------- Granted Actions ----------

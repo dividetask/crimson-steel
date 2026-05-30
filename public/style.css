@@ -1054,6 +1054,16 @@ body {
 
 .cr-mod-btn:hover { background: #f0f0f0; }
 
+/* Dice / option choices the Combat Pool can't afford (Speed + dice >
+   remaining) are greyed out and unclickable. */
+.cr-mod-btn:disabled,
+.cr-mod-btn:disabled:hover {
+  opacity: 0.4;
+  background: #f3f3f3;
+  color: #999;
+  cursor: not-allowed;
+}
+
 /* Reroll / Mass Reroll buttons borrow the Roll Resolution stub's
    reroll palette (warm amber). Nudge buttons borrow the nudge palette
    (green). Direction (+/-) lives on the button text only. */

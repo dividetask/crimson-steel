@@ -127,6 +127,31 @@ RSpec.describe 'Encounter::State#resolve_attack_payload (weapon-aware)' do
     expect(out[:severity_map]).to eq(moderate: 10) # fire +1 per hit
   end
 
+  it 'spends Combat Pool as the flat Speed cost plus one per die (Speed + dice)' do
+    s = state
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee',
+      weapon: { damage_types: ['physical'], threshold: 0, base_damage: 0 },
+      attacker: { id: atk[:id], dice: 4, speed: 3, successes: 1 },
+      defense:  { choice: 'none' }, allies: []
+    )
+    # Speed 3 + 4 dice = 7 (not 3 × 4 = 12).
+    expect(s.combatant(atk[:id])[:combat_pool_spent]).to eq(7)
+  end
+
+  it 'Parry spends the defender pool as Speed + dice' do
+    s = state
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee',
+      weapon: { damage_types: ['physical'], threshold: 0, base_damage: 0 },
+      attacker: { id: atk[:id], dice: 2, speed: 1, successes: 1 },
+      defense:  { choice: 'parry', id: tgt[:id], dice: 3, speed: 2, successes: 0 }, allies: []
+    )
+    expect(s.combatant(tgt[:id])[:combat_pool_spent]).to eq(5) # 2 + 3
+  end
+
   it 'Dodge contributes opposing successes but spends no Combat Pool' do
     s = state
     atk = s.add_combatant('1'); tgt = s.add_combatant('2')

@@ -40,7 +40,7 @@ A `Roll All` button (client-side) auto-fills the Success inputs with sampled val
 The Attack pane mounts the **Check Resolution Builder** (`check_resolution_builder_stub.md`) — Combat owns none of the wizard. Combat precomputes the full builder blob server-side (`GET /encounter/attack_builder`) and listens for the builder's `check:confirmed` event, then POSTs the choices to `/encounter/resolve_attack`. The builder walks one decision at a time, each collapsing to a thin `<Label>: <value> [change]` row:
 
 1. **Target** — every other Combatant. The attack kind (`melee` / `ranged` / `spell`) follows the chosen weapon's category.
-2. **Weapon & dice** — each equipped weapon is a row: the weapon name (= largest affordable roll, `min(Dice Cap, floor(Combat Pool Remaining / Speed))`) plus a strip of dice buttons `2…Dice Cap`; counts the pool can't afford (`dice × Speed > remaining`) are disabled.
+2. **Weapon & dice** — each equipped weapon is a row: the weapon name (= largest affordable roll) plus a strip of dice buttons `2…Dice Cap`. The Combat Pool cost to roll `n` dice is the flat weapon Speed plus one per die — `Speed + n` (Speed is a flat surcharge, not a per-die multiplier); counts the pool can't afford (`Speed + n > remaining`) are greyed out.
 3. **Target's defense** — `No defense`, or a Defensive Action eligible against this attack kind (`encounter_design.md` → *Defensive Actions*): `Dodge` (a **Dexterity save**, any kind, no Combat Pool), `Block` (Martial, any kind), `Parry` (Martial, **melee only**).
 
 Each option carries a **patch** that mutates the seed Rolls: the Competency + Unaware + Flatfooted Bonus/Penalties fold into each Roll's TN / Starting Value server-side (`DiceResolution.compute_target_number`); picking a target/defense sets the opposing (defender) Roll's name, dice, and TN (Dodge = full Dice Cap, Parry/Block = pool-bounded), and `No defense` keeps the defender Roll excluded and restores the attacker's Flatfooted Bonus.
@@ -97,7 +97,7 @@ Optional:
 
 - Each action pane is client-side until Submit. State accumulates in the browser; only Submit POSTs back.
 - Per-Combatant `luck_points` are debited per reroll; a reroll re-rolls a single die client-side. Saving Throws (including Dodge) never cost Combat Pool.
-- The Combat Pool is decremented on submit by the chosen dice count × the action's Speed (the weapon's Speed cost for Attack; the spell's casting time for Cast).
+- The Combat Pool is decremented on submit by the action's flat Speed cost plus one per die rolled — `Speed + dice` (the weapon's Speed for Attack; the spell's casting time for Cast). Speed is a flat surcharge, not a per-die multiplier.
 - **DM Luck Points** (`dm_luck_points`) are a Combat-level pool shown read-only to the DM; they persist across turns and rounds and clear only at *End Combat*. The Initiative Stub also surfaces this total.
 
 ## DM-only

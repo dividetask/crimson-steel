@@ -244,6 +244,12 @@ helpers do
     acc      = Creatures.lookup(attacker[:creature_id]) rescue nil
     die      = DiceResolution.config.die_size
     base_tn  = DiceResolution.config.base_target_number
+    atk_pool = (encounter_state.combat_pool_remaining(attacker[:id]) rescue 0) || 0
+    # A Parry / Block costs the defender a flat Reaction Speed plus dice
+    # (Speed + dice), the same shape as a weapon attack. Until per-weapon
+    # defender data is wired, the Reaction Speed is a flat 1; the client
+    # sends the same value so the spend matches the greying here.
+    def_speed = 1
 
     weapons = equipped_weapons(attacker[:creature_id]).map do |w|
       attr = w[:ranged] ? :dex : :str
@@ -272,17 +278,20 @@ helpers do
 
     action_opts = []
     weapons.each do |w|
-      cap  = w[:dice_cap]
-      disp = w[:display_name]
-      grp  = w[:item_type]
-      # One button per weapon (= its full Dice Cap), then one per die choice
-      # (just the number). Combat Pool is spent server-side at resolve time.
-      action_opts << { value: "#{w[:item_type]}|#{cap}", key: w[:item_type], group: grp,
-                       label: disp, summary: "#{disp} — #{cap} dice", disabled: cap < 2,
-                       patch: { set_dice: [{ id: 'attacker', count: cap }] } }
+      cap   = w[:dice_cap]
+      speed = [w[:speed].to_i, 0].max
+      disp  = w[:display_name]
+      grp   = w[:item_type]
+      # Cost to roll n dice = flat weapon Speed + n. Grey out any choice the
+      # attacker's Combat Pool can't afford. The weapon-name button picks the
+      # largest affordable roll (its Dice Cap when it fits the pool).
+      aff_max = (2..cap).select { |n| speed + n <= atk_pool }.max
+      action_opts << { value: "#{w[:item_type]}|#{aff_max || cap}", key: w[:item_type], group: grp,
+                       label: disp, summary: "#{disp} — #{aff_max || cap} dice", disabled: aff_max.nil?,
+                       patch: { set_dice: [{ id: 'attacker', count: aff_max || cap }] } }
       (2..cap).each do |n|
         action_opts << { value: "#{w[:item_type]}|#{n}", key: w[:item_type], group: grp,
-                         label: n.to_s, summary: "#{disp} — #{n} dice",
+                         label: n.to_s, summary: "#{disp} — #{n} dice", disabled: speed + n > atk_pool,
                          patch: { set_dice: [{ id: 'attacker', count: n }] } }
       end
     end
@@ -304,16 +313,26 @@ helpers do
           dcmp = di[:competency_modifier] ? [di[:competency_modifier]] : []
           dtn  = DiceResolution.compute_target_number(dcmp)
           cap  = di[:dice_cap].to_i
-          mk = lambda do |dice, label, summary|
-            { value: "#{d}|#{dice}", group: d, label: label, summary: summary,
+          mk = lambda do |dice, label, disabled|
+            { value: "#{d}|#{dice}", group: d, label: label,
+              summary: "#{d.capitalize} — #{dice} dice", disabled: disabled,
               patch: { set_tn: [{ id: 'attacker', tn: tn_declared[:tn], starting_value: tn_declared[:starting_value] },
                                 { id: 'defender', tn: dtn[:tn], starting_value: dtn[:starting_value] }],
                        set_dice: [{ id: 'defender', count: dice }],
                        set_name: [{ id: 'defender', roll_name: d.capitalize }],
                        set_excluded: [{ id: 'defender', excluded: false }] } }
           end
-          opts << mk.call(cap, d.capitalize, "#{d.capitalize} — #{cap} dice")
-          (2..cap).each { |n| opts << mk.call(n, n.to_s, "#{d.capitalize} — #{n} dice") }
+          # Dodge is a Saving Throw — full Dice Cap, no Combat Pool. Parry /
+          # Block cost the defender def_speed + dice, so grey out the choices
+          # the defender's Combat Pool can't afford.
+          if d == 'dodge'
+            opts << mk.call(cap, d.capitalize, false)
+            (2..cap).each { |n| opts << mk.call(n, n.to_s, false) }
+          else
+            aff_max = (2..cap).select { |n| def_speed + n <= t[:pool] }.max
+            opts << mk.call(aff_max || cap, d.capitalize, aff_max.nil?)
+            (2..cap).each { |n| opts << mk.call(n, n.to_s, def_speed + n > t[:pool]) }
+          end
         end
         defense_map["#{t[:id]}|#{w[:item_type]}"] = opts
       end

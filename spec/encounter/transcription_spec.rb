@@ -201,9 +201,9 @@ RSpec.describe 'Encounter — encounter_tests.md transcription' do
       defense:  { choice: 'parry', id: dfn[:id], dice: 3, speed: 1, successes: 3 },
       allies:   [{ id: a1[:id], dice: 2, speed: 1, successes: 1 }, { id: a2[:id], dice: 2, speed: 1, successes: 0 }]
     )
-    expect(s.combatant(atk[:id])[:combat_pool_spent]).to eq(8)
-    expect(s.combatant(dfn[:id])[:combat_pool_spent]).to eq(3)
-    expect(s.combatant(a1[:id])[:combat_pool_spent]).to eq(2)
+    expect(s.combatant(atk[:id])[:combat_pool_spent]).to eq(6) # Speed 2 + 4 dice
+    expect(s.combatant(dfn[:id])[:combat_pool_spent]).to eq(4) # Speed 1 + 3 dice
+    expect(s.combatant(a1[:id])[:combat_pool_spent]).to eq(3)  # Speed 1 + 2 dice
     expect(out[:net_dos]).to eq(3) # 5 + 1 + 0 - 3
     expect(out[:damage]).to eq(3)
   end

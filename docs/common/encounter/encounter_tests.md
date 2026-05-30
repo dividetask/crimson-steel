@@ -131,10 +131,10 @@ Cases:
 
 `Combat.resolve_attack_payload(payload)` consumes the JSON the JS turn flow emits to `/combat/resolve_attack` (shape in `../ui/turn_action_stub.md` under *Confirm payload*). The handler spends Combat Pool for every participant, sums Supporting DoIS minus Opposing DoIS (per *Check Resolution*), and applies damage when the net DoS is positive.
 
-**Spend reaches every participant.** Payload picks attacker dice = 4 with weapon Speed 2, defender dice = 3 with defense Speed 1, two ally reactions of 2 dice each (Reaction Speed 1). After resolve:
-- Attacker's `combat_pool_spent` increments by `4 × 2 = 8`.
-- Defender's `combat_pool_spent` increments by `3 × 1 = 3`.
-- Each ally's `combat_pool_spent` increments by `2 × 1 = 2`.
+**Spend reaches every participant.** Payload picks attacker dice = 4 with weapon Speed 2, defender dice = 3 with defense Speed 1, two ally reactions of 2 dice each (Reaction Speed 1). The Combat Pool cost of a Roll is the flat Speed surcharge plus one per die rolled — `Speed + dice`, not `Speed × dice`. After resolve:
+- Attacker's `combat_pool_spent` increments by `2 + 4 = 6`.
+- Defender's `combat_pool_spent` increments by `1 + 3 = 4`.
+- Each ally's `combat_pool_spent` increments by `1 + 2 = 3`.
 
 **Defense `choice: "none"` skips the defender's Combat Pool.** Payload defense = `{"choice": "none"}`. The defender's `combat_pool_spent` is unchanged; no Opposing Roll is summed.
 
