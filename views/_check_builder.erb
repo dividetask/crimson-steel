@@ -1,0 +1,59 @@
+<%#
+  Check Resolution Builder (check_resolution_builder_stub.md).
+
+  A domain-agnostic, parameter-driven wizard. The host precomputes a full
+  `builder` blob and renders this partial; public/js/ui/checkBuilder.js drives
+  the steps entirely client-side and emits a `check:confirmed` event with the
+  picked choices and resolved per-Roll Successes. The builder never calls back
+  into the host.
+
+  Local:
+    builder — the blob. See checkBuilder.js for the shape. `rolls` seeds the
+              shared dice table (a Check Resolution Stub); `steps` drive the
+              wizard above it. Rolls flagged `excluded` start hidden.
+%>
+<%
+  require 'json'
+  require 'cgi'
+  b     = builder
+  rolls = b[:rolls] || []
+%>
+<div class="rolls-wrapper check-builder" data-state="building"
+     data-stub-id="<%= b[:stub_id] %>"
+     data-builder="<%= CGI.escapeHTML(b.to_json) %>">
+  <div class="rolls-header">
+    <span class="rolls-title"><%= b[:title] %></span>
+    <div class="rolls-actions"></div>
+  </div>
+
+  <div class="cb-summaries"></div>
+
+  <table class="stub-table roll-table" hidden>
+    <colgroup>
+      <col class="col-character">
+      <col class="col-mod">
+      <col class="col-mod">
+      <col class="col-dice">
+      <col class="col-result">
+      <col class="col-result">
+      <col class="col-lock">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Character</th><th>Reroll</th><th>Nudge</th><th>Dice</th>
+        <th>Result</th><th>Crits</th><th></th>
+      </tr>
+    </thead>
+    <%= erb :_roll_stub, locals: { rolls: rolls, wrapper: false } %>
+  </table>
+
+  <div class="rolls-results" hidden>
+    <% rolls.each_with_index do |roll, idx| %>
+      <div class="rolls-result-row" data-roll-idx="<%= idx %>">
+        <span class="rolls-result-name"><%= roll[:roll_name] %>:</span>
+        <span class="rolls-result-value"></span>
+      </div>
+    <% end %>
+    <button type="button" class="btn-rolls-change"><span class="cr-change-icon">↶</span> Change</button>
+  </div>
+</div>

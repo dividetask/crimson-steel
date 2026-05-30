@@ -129,7 +129,7 @@
     end
   %>
 
-  <tbody class="roll-group" data-roll-idx="<%= roll_idx %>" data-config='<%= group_config.to_json %>'>
+  <tbody class="roll-group<%= ' roll-group-excluded' if roll[:excluded] %>" data-roll-idx="<%= roll_idx %>"<%= roll[:id] ? %( data-roll-id="#{roll[:id]}") : '' %><%= roll[:side] ? %( data-side="#{roll[:side]}") : '' %> data-config='<%= group_config.to_json %>'<%= ' hidden' if roll[:excluded] %>>
     <tr class="roll-row row-initial">
       <td rowspan="<%= row_count %>" class="character-cell">
         <span class="stub-line creature-name"><%= roll[:creature_name] %></span>
