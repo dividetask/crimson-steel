@@ -35,8 +35,13 @@
     end
     order.map do |g|
       buttons = groups[g].map do |o|
-        %(<button type="button" class="cr-mod-btn cb-opt" data-step="#{step[:key]}" ) +
-          %(data-value="#{CGI.escapeHTML(o[:value].to_s)}"#{o[:disabled] ? ' disabled' : ''}>#{o[:label]}</button>)
+        if o[:kind] == 'info'
+          # Non-interactive descriptive text (TN Bonus/Penalty breakdown).
+          %(<span class="cb-bonus-note">#{o[:label]}</span>)
+        else
+          %(<button type="button" class="cr-mod-btn cb-opt" data-step="#{step[:key]}" ) +
+            %(data-value="#{CGI.escapeHTML(o[:value].to_s)}"#{o[:disabled] ? ' disabled' : ''}>#{o[:label]}</button>)
+        end
       end.join(' ')
       %(<div class="cb-line">#{buttons}</div>)
     end.join

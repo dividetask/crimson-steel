@@ -42,9 +42,12 @@ export class TurnAttack {
     const payload = {
       target_id: choices.target,
       weapon_type: weaponType,
-      attacker: { id: parseInt(attackerId, 10), dice: atk.dice_count, successes: atk.successes },
+      // Speeds come from the builder's roll configs (defence Speed: Dodge /
+      // Block 0, Parry = weapon Speed); the server still recomputes the
+      // attacker weapon Speed authoritatively from weapon_type.
+      attacker: { id: parseInt(attackerId, 10), dice: atk.dice_count, speed: atk.speed, successes: atk.successes },
       defense: declared
-        ? { choice: defenseName, id: choices.target, dice: def.dice_count, speed: 1, successes: def.successes }
+        ? { choice: defenseName, id: choices.target, dice: def.dice_count, speed: def.speed || 0, successes: def.successes }
         : { choice: 'none' }
     };
 

@@ -127,7 +127,10 @@ export class CheckBuilder {
     opts.forEach((o) => { const g = o.group || ''; if (!(g in groups)) { groups[g] = []; order.push(g); } groups[g].push(o); });
     return order.map((g) => '<div class="cb-line">' + groups[g].map((o) => CheckBuilder._btn(stepKey, o)).join(' ') + '</div>').join('');
   }
+  // An `info` option is non-interactive descriptive text (e.g. the TN
+  // Bonus/Penalty breakdown shown after a group's buttons), not a choice.
   static _btn(stepKey, o) {
+    if (o.kind === 'info') return '<span class="cb-bonus-note">' + o.label + '</span>';
     return '<button type="button" class="cr-mod-btn cb-opt" data-step="' + stepKey + '" data-value="' +
       esc(String(o.value)) + '"' + (o.disabled ? ' disabled' : '') + '>' + o.label + '</button>';
   }
@@ -137,7 +140,13 @@ export class CheckBuilder {
   static _applyPatch(root, patch) {
     if (!patch) return;
     (patch.set_dice || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.dice_count = p.count; }));
-    (patch.set_tn || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.tn = p.tn; if (p.starting_value != null) c.starting_value = p.starting_value; }));
+    (patch.set_speed || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.speed = p.speed; }));
+    (patch.set_tn || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => {
+      c.tn = p.tn;
+      if (p.starting_value != null) c.starting_value = p.starting_value;
+      if (p.base_tn != null) c.base_tn = p.base_tn;
+      if (p.bonus_penalty_list != null) c.bonus_penalty_list = p.bonus_penalty_list;
+    }));
     (patch.set_reroll || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.reroll = p.clear ? null : { sign: p.sign, count: p.count, max: !!p.max }; }));
     (patch.set_nudge || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.nudge = p.clear ? null : { sign: p.sign, count: p.count, max: !!p.max }; }));
     (patch.set_name || []).forEach((p) => CheckBuilder._setName(root, p));
@@ -155,6 +164,20 @@ export class CheckBuilder {
     const params = g.querySelector('.params');
     if (params) params.textContent = cfg.dice_count + ' dice @ TN ' + cfg.tn +
       (cfg.starting_value > 0 ? ', R+' + cfg.starting_value : cfg.starting_value < 0 ? ', R-' + Math.abs(cfg.starting_value) : '');
+    // Keep the character-cell TN tooltip in sync with the new Bonuses/TN.
+    if (cfg.base_tn != null) {
+      const terms = (cfg.bonus_penalty_list || []).map((m) => (m[1] >= 0 ? '+' : '') + m[1] + ' ' + m[0]);
+      const txt = cfg.base_tn + (terms.length ? ' ' + terms.join(' ') : '') + ' = TN ' + cfg.tn;
+      const name = g.querySelector('.creature-name');
+      if (name) {
+        name.classList.add('has-tn-tip');
+        name.setAttribute('tabindex', '0');
+        name.setAttribute('data-tn-tip', txt);
+        let tip = name.querySelector('.tn-tip');
+        if (!tip) { tip = document.createElement('span'); tip.className = 'tn-tip'; name.appendChild(tip); }
+        tip.textContent = txt;
+      }
+    }
   }
 
   static _setName(root, p) {
@@ -185,7 +208,8 @@ export class CheckBuilder {
         side: g.dataset.side,
         successes: inputs[0] ? parseInt(inputs[0].value, 10) || 0 : 0,
         crits: inputs[1] ? parseInt(inputs[1].value, 10) || 0 : 0,
-        dice_count: cfg.dice_count
+        dice_count: cfg.dice_count,
+        speed: cfg.speed
       });
     });
     const choices = {};

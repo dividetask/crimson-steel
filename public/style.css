@@ -2798,6 +2798,31 @@ body {
 .ta-miss { color: #475569; }
 
 /* Check Resolution Builder option lines — reuse the .cr-mod-btn palette */
-.cb-line { padding: 2px 0; }
-.cb-line .cr-mod-btn { margin-right: 4px; }
+.cb-line { padding: 2px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.cb-line .cr-mod-btn { margin-right: 0; }
+/* TN Bonus/Penalty breakdown shown after a group's dice buttons. */
+.cb-bonus-note { font-size: 11px; color: #555; font-style: italic; margin-left: 4px; }
 .roll-group-excluded { display: none; }
+
+/* Character-cell TN tooltip (dice_resolution_roll_tooltip.md computation
+   line) — shows how the Base TN plus Bonuses/Penalties formed the final TN
+   on hover/focus of the Roll's creature name. */
+.creature-name.has-tn-tip { position: relative; cursor: help; border-bottom: 1px dotted #999; }
+.creature-name .tn-tip {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 20;
+  white-space: nowrap;
+  background: #1f1f1f;
+  color: #fff;
+  font-size: 11px;
+  font-weight: normal;
+  font-style: normal;
+  padding: 4px 8px;
+  border-radius: 3px;
+  margin-top: 2px;
+}
+.creature-name.has-tn-tip:hover .tn-tip,
+.creature-name.has-tn-tip:focus .tn-tip { display: block; }
