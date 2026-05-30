@@ -75,6 +75,11 @@
             <form method="post" action="/encounter/advance_turn">
               <button type="submit" class="ce-btn ta-confirm">End Turn</button>
             </form>
+          <% elsif a[:key] == 'attack' %>
+            <div class="ta-attack" data-attacker-id="<%= acting[:combatant_id] %>"
+                 data-pool-remaining="<%= pool ? pool[:remaining] : 0 %>">
+              <p class="ta-attack-loading">Loading attack options…</p>
+            </div>
           <% else %>
             <p class="ta-pane-lead ta-staged"><%= staged[a[:key]] %></p>
           <% end %>

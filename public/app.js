@@ -6,6 +6,7 @@ import { RollController } from './js/ui/rollController.js';
 import { RollsWrapper } from './js/ui/rollsWrapper.js';
 import { StepMachine } from './js/ui/stepMachine.js';
 import { SavePreview } from './js/ui/savePreview.js';
+import { TurnAttack } from './js/ui/turnAttack.js';
 
 document.addEventListener('click', function (e) {
   const badge = e.target.closest('.mod-badge');
@@ -417,6 +418,11 @@ document.addEventListener('change', function (e) {
     panel.querySelectorAll('.ta-pane').forEach(function (p) {
       p.classList.toggle('ta-pane-active', p.getAttribute('data-ta-pane') === key);
     });
+    // Lazily build the Attack flow the first time its pane is opened.
+    if (key === 'attack') {
+      var container = panel.querySelector('.ta-attack');
+      if (container) TurnAttack.ensureLoaded(container);
+    }
   });
 
   // -- Combat Tracker: double-click to edit Initiative (DM only) -------
