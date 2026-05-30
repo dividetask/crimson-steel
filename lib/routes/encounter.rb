@@ -388,73 +388,34 @@ end
 
 # ---- Attack pipeline endpoints (turn_action_stub.md) -----------------
 #
-# build_attack and resolve_attack implement the client-resolved attack
-# flow: build_attack gathers the live weapon (Equipment) + Dice Cap
-# (Proficiencies) + Attacker Bonuses and returns the Roll specs the JS
-# Check engine resolves; resolve_attack consumes the resolved successes,
-# spends Combat Pool, and applies damage.
+# attack_options + attack_check build the attack's Roll data; the client
+# resolves it through the Check Resolution stub and posts the result to
+# resolve_attack, which spends Combat Pool and applies damage.
 
-# Options for the turn-action panel: the attacker's equipped weapons and
-# the available targets.
+# Options for the turn-action panel: the attacker's equipped weapons —
+# each carrying its martial Dice Cap (Strength for melee, Dexterity for
+# ranged) and evaluated base damage so the panel can offer a per-weapon
+# dice strip — plus the available targets.
 get '/encounter/attack_options' do
   require_dm!
   attacker = encounter_state.combatant(params[:attacker_id].to_i)
   return encounter_error(404, 'unknown attacker') unless attacker
+  acc = Creatures.lookup(attacker[:creature_id]) rescue nil
+  weapons = equipped_weapons(attacker[:creature_id]).map do |w|
+    attr = w[:ranged] ? :dex : :str
+    w.merge(
+      dice_cap:    roll_inputs_for(acc, 'martial', attribute_override: attr)[:dice_cap],
+      base_damage: evaluate_weapon_damage(w[:damage_formula], acc)
+    )
+  end
   targets = encounter_state.combatants.reject { |c| c[:id] == attacker[:id] }
                            .map { |c| { combatant_id: c[:id], name: tracker_name(c) } }
   encounter_response(
     ok: true,
     attacker: { combatant_id: attacker[:id], name: tracker_name(attacker) },
-    weapons:  equipped_weapons(attacker[:creature_id]),
+    weapons:  weapons,
     targets:  targets
   )
-end
-
-post '/encounter/build_attack' do
-  require_dm!
-  attacker = encounter_state.combatant(params[:attacker_id].to_i)
-  target   = encounter_state.combatant(params[:target_id].to_i)
-  return encounter_error(404, 'unknown attacker or target') unless attacker && target
-
-  acc_atk = Creatures.lookup(attacker[:creature_id]) rescue nil
-  weapon  = equipped_weapons(attacker[:creature_id]).find { |w| w[:item_type] == params[:weapon] }
-  return encounter_error(404, 'attacker has no such equipped weapon') unless weapon
-
-  attack_kind = weapon[:ranged] ? 'ranged' : 'melee'
-  attack_attr = weapon[:ranged] ? :dex : :str
-  base_damage = evaluate_weapon_damage(weapon[:damage_formula], acc_atk)
-  atk_inputs  = roll_inputs_for(acc_atk, 'martial', attribute_override: attack_attr)
-  unaware     = !target[:performed_this_turn] || params[:hidden].to_s == 'true'
-
-  declared = params[:defense].to_s.empty? || params[:defense] == 'none' ? nil : params[:defense]
-  defender_inputs = {}
-  if declared
-    acc_def = Creatures.lookup(target[:creature_id]) rescue nil
-    di = if declared == 'dodge'
-           roll_inputs_for(acc_def, 'dex_save', attribute_override: :dex)
-         else
-           roll_inputs_for(acc_def, 'martial', attribute_override: :str)
-         end
-    defender_inputs = {
-      dice_cap: di[:dice_cap], competency: di[:competency_modifier],
-      pool_remaining: encounter_state.combat_pool_remaining(target[:id])
-    }
-  end
-
-  begin
-    spec = Encounter::Attack.build_spec(
-      attacker: attacker, target: target, attack_kind: attack_kind,
-      weapon: weapon.merge(base_damage: base_damage),
-      attacker_dice_cap: atk_inputs[:dice_cap], attacker_competency: atk_inputs[:competency_modifier],
-      unaware: unaware, declared_defense: declared, defender_inputs: defender_inputs
-    )
-  rescue ArgumentError => e
-    return encounter_error(422, e.message)
-  end
-  # Echo the weapon damage info the resolve step needs.
-  spec[:weapon] = { damage_types: weapon[:damage_types], threshold: weapon[:threshold], base_damage: base_damage }
-  spec[:attack_kind] = attack_kind
-  encounter_response(spec.merge(ok: true))
 end
 
 # Render the attack's Roll(s) as a Check Resolution Stub fragment
@@ -501,10 +462,20 @@ post '/encounter/attack_check' do
     def_bpl = []
     def_bpl << di[:competency_modifier] if di[:competency_modifier]
     def_tn  = DiceResolution.compute_target_number(def_bpl)
+    # Dodge rolls the full Dice Cap (a Saving Throw, no pool); Parry / Block
+    # default to the largest roll the defender's Combat Pool can afford.
+    def_default =
+      if choice == 'dodge'
+        di[:dice_cap]
+      else
+        pool = (encounter_state.combat_pool_remaining(target[:id]) rescue nil)
+        pool ? [di[:dice_cap], pool].min : di[:dice_cap]
+      end
+    def_dice = params[:def_dice] ? params[:def_dice].to_i : def_default
     opposing << {
       creature_name: tracker_name(target),
       roll_name: choice.to_s.capitalize,
-      dice_count: [(params[:def_dice] ? params[:def_dice].to_i : di[:dice_cap]).to_i, 0].max,
+      dice_count: [def_dice.to_i, 0].max,
       tn: def_tn[:tn], starting_value: def_tn[:starting_value],
       reroll: nil, nudge: nil, die_size: die, dois: nil, critical_count: nil
     }

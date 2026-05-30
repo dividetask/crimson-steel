@@ -2793,6 +2793,12 @@ body {
 .ta-opt:hover { background: #eef2f7; }
 .ta-opt.ta-opt-on { background: #2563eb; border-color: #2563eb; color: #fff; }
 .ta-opt.ta-opt-on .ta-dim { color: #dbeafe; }
+.ta-opt:disabled { opacity: 0.4; cursor: not-allowed; }
+.ta-opt:disabled:hover { background: #f8fafc; }
+/* Weapon + dice step: weapon name on the left, dice strip on the right */
+.ta-weapon-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ta-wname { text-align: left; }
+.ta-wdice-strip { display: flex; flex-wrap: wrap; gap: 4px; }
 .ta-dim { color: #94a3b8; font-size: 0.85em; }
 .ta-actions { margin-top: 12px; display: flex; gap: 8px; }
 /* Completed-step summary rows (progressive disclosure) */
