@@ -400,6 +400,25 @@ document.addEventListener('change', function (e) {
     fetchEncounterRoll(tableId);
   });
 
+  // -- Turn Action panel: left-menu action switching ------------------
+  //
+  // turn_action_stub.md. Clicking an action in the left menu selects it
+  // and shows that action's pane on the right. Pure client-side view
+  // switching; each pane POSTs on its own Submit.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('.ta-menu-btn');
+    if (!btn) return;
+    var panel = btn.closest('.turn-action');
+    if (!panel) return;
+    var key = btn.getAttribute('data-ta-action');
+    panel.querySelectorAll('.ta-menu-btn').forEach(function (b) {
+      b.classList.toggle('ta-selected', b === btn);
+    });
+    panel.querySelectorAll('.ta-pane').forEach(function (p) {
+      p.classList.toggle('ta-pane-active', p.getAttribute('data-ta-pane') === key);
+    });
+  });
+
   // -- Combat Tracker: double-click to edit Initiative (DM only) -------
   //
   // encounter_initiative_stub.md. Double-clicking an Initiative cell

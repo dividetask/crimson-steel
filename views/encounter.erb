@@ -23,6 +23,12 @@
       } %>
 <% end %>
 
+<%# Turn Action panel (turn_action_stub.md): DM-only, acts on the Acting
+    Combatant. Rendered only when a Combatant currently holds the turn. %>
+<% if @viewer == :dm && @acting_row %>
+  <%= erb :_turn_action, locals: { acting: @acting_row, dead: @acting_dead } %>
+<% end %>
+
 <%# Notes / Chronicle Entries: hidden from players once Combat starts. %>
 <% if @viewer == :dm || !@combat_active %>
   <section class="scene-section">

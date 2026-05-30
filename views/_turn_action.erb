@@ -1,0 +1,85 @@
+<%#
+  Turn Action Stub — docs/common/ui/turn_action_stub.md
+  The Acting Combatant's turn panel, rendered below the Combat Tracker
+  on the Encounter page. DM-only.
+
+  Locals:
+    acting — the Acting Combatant's tracker row (see build_tracker_row):
+             { combatant_id, name, can_act, mana:{remaining,max}|nil,
+               combat_pool:{remaining,max}|nil, ... }.
+    dead   — boolean (Conditions' Dead?).
+
+  First-pass implementation status (see the stub doc): the action menu
+  and pane switching render, and End Turn is wired to
+  /encounter/advance_turn. The remaining panes are staged — their routes
+  and client flows land in later passes — and show a short note describing
+  what they will do.
+%>
+<%
+  incapacitated = !acting[:can_act]
+  state_suffix  = dead ? 'Dead' : (incapacitated ? 'Incapacitated' : nil)
+
+  actions = [
+    { key: 'start_of_turn', label: 'Start of Turn' },
+    { key: 'attack',        label: 'Attack' },
+    { key: 'move',          label: 'Move' },
+    { key: 'cast',          label: 'Cast' },
+    { key: 'item',          label: 'Item' },
+    { key: 'special',       label: 'Special' },
+    { key: 'end_turn',      label: 'End Turn' }
+  ]
+  # An incapacitated Combatant can only start or end its turn.
+  always  = %w[start_of_turn end_turn]
+  visible = incapacitated ? actions.select { |a| always.include?(a[:key]) } : actions
+  selected = visible.first[:key]
+
+  staged = {
+    'start_of_turn' => 'Enter the Successes rolled on each due Affliction save; Submit resolves them (Conditions’ Resolve Due Afflictions) and clears expired effects. Pane wiring lands next.',
+    'attack'        => 'Pick a target, weapon, and dice, declare a defense, then resolve the roll. Backed server-side by /encounter/attack_options, build_attack, and resolve_attack — the client flow lands next.',
+    'move'          => 'Log a movement description (no mechanical effect). Needs the combat scene-log sink.',
+    'cast'          => 'Cast a known spell at a target. The Encounter Cast entry point is declared future work.',
+    'item'          => 'Use a carried consumable on a target via Equipment’s Consume Item. Route lands next.',
+    'special'       => 'Log a one-off action ("breath weapon", "improvise"). Shares the Move log sink.'
+  }
+
+  mana = acting[:mana]
+  pool = acting[:combat_pool]
+  dash = '—'
+%>
+<section class="turn-action" data-combatant-id="<%= acting[:combatant_id] %>">
+  <header class="ta-header">
+    <h3 class="ta-title">
+      <%= acting[:name] %>&rsquo;s Turn<%
+        %><% if state_suffix %> <span class="ta-state ta-state-<%= state_suffix.downcase %>">(<%= state_suffix %>)</span><% end %>
+    </h3>
+    <div class="ta-resources">
+      <span class="ta-res"><span class="ta-res-label">Mana</span> <%= mana ? "#{mana[:remaining]}/#{mana[:max]}" : dash %></span>
+      <span class="ta-res"><span class="ta-res-label">Combat Pool</span> <%= pool ? "#{pool[:remaining]}/#{pool[:max]}" : dash %></span>
+    </div>
+  </header>
+
+  <div class="ta-body">
+    <nav class="ta-menu">
+      <% visible.each do |a| %>
+        <button type="button" class="ta-menu-btn<%= ' ta-selected' if a[:key] == selected %>"
+                data-ta-action="<%= a[:key] %>"><%= a[:label] %></button>
+      <% end %>
+    </nav>
+
+    <div class="ta-panes">
+      <% visible.each do |a| %>
+        <div class="ta-pane<%= ' ta-pane-active' if a[:key] == selected %>" data-ta-pane="<%= a[:key] %>">
+          <h4 class="ta-pane-h"><%= a[:label] %></h4>
+          <% if a[:key] == 'end_turn' %>
+            <p class="ta-pane-lead">Advance to the next Combatant in initiative order. Resets this Combatant&rsquo;s Combat Pool and clears its luck points; a Round wrap advances the Timestamp.</p>
+            <form method="post" action="/encounter/advance_turn">
+              <button type="submit" class="ce-btn ta-confirm">End Turn</button>
+            </form>
+          <% else %>
+            <p class="ta-pane-lead ta-staged"><%= staged[a[:key]] %></p>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</section>

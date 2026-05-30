@@ -51,6 +51,12 @@ get '/encounter' do
     [r[:initiative].to_s.empty? ? 1 : 0, invert_init(r[:initiative].to_s), r[:combatant_id]]
   end
 
+  # Turn Action panel context (turn_action_stub.md): the Acting
+  # Combatant's tracker row plus its Dead? state, for the DM-only panel
+  # below the tracker.
+  @acting_row  = @tracker_rows.find { |r| r[:acting] }
+  @acting_dead = @acting_row ? @encounter_state.creature_dead?(@acting_row[:combatant_id]) : false
+
   erb :encounter
 end
 
@@ -367,6 +373,16 @@ end
 post '/encounter/set_acting' do
   require_dm!
   encounter_state.set_acting_combatant(params[:combatant_id].to_i)
+  redirect back || '/encounter'
+end
+
+# End Turn (turn_action_stub.md → End Turn): advance to the next Acting
+# Combatant. Encounter's Advance Turn runs Per-Turn Cleanup on the
+# outgoing Combatant, skips Combatants who cannot act, and advances the
+# Time Tick / Round on wrap.
+post '/encounter/advance_turn' do
+  require_dm!
+  encounter_state.advance_turn
   redirect back || '/encounter'
 end
 
