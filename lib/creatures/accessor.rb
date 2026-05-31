@@ -12,7 +12,7 @@ module Creatures
   class Accessor
     SPELLCASTING_ABILITIES = %w[
       bardic_spellcasting arcane_spellcasting druidic_spellcasting
-      ranger_spellcasting domain
+      ranger_spellcasting evocation_spellcasting domain
     ].freeze
 
     def initialize(record)
@@ -117,6 +117,11 @@ module Creatures
         seen[name] = true
       end
 
+      # Universal Granted Abilities — every Creature has these.
+      Creatures::Advancement.universal_abilities.each do |name|
+        push.call(name, 'universal')
+      end
+
       # Race chain abilities filtered by min_level <= Tier.
       race = Creatures::Races.look_up(@record[:race])
       (race && race[:abilities] || []).each do |ab|
@@ -161,9 +166,10 @@ module Creatures
     def filter_by_source(list, source)
       return list unless source
       case source.to_s
-      when 'race'  then list.select { |g| g[:source] == 'race' }
-      when 'class' then list.select { |g| g[:source].start_with?('class:') }
-      else              list.select { |g| g[:source] == source }
+      when 'race'      then list.select { |g| g[:source] == 'race' }
+      when 'class'     then list.select { |g| g[:source].start_with?('class:') }
+      when 'universal' then list.select { |g| g[:source] == 'universal' }
+      else                  list.select { |g| g[:source] == source }
       end
     end
 
@@ -174,7 +180,7 @@ module Creatures
     def level_for_ability(name)
       g = granted_abilities.find { |x| x[:name] == name }
       return 0 unless g
-      if g[:source] == 'race'
+      if g[:source] == 'race' || g[:source] == 'universal'
         tier
       elsif g[:source].start_with?('class:')
         class_key = g[:source].sub(/\Aclass:/, '')

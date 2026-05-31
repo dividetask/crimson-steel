@@ -35,6 +35,13 @@ fleet_of_foot:
       type: Racial
       add: 5
 
+unarmored_movement:
+  description: "+5 feet base walking speed, increasing by +5 every 2 levels after L1 (+5 at L1, +10 at L3, +15 at L5, ...). Competency-typed, distinct from the Barbarian's Morale-typed fast_movement."
+  modifiers:
+    - target: speed
+      type: Competency
+      add: "5 + 5 * ((level - 1) / 2)"
+
 # --- Combat numeric bonuses --------------------------------------------
 
 weapon_training:

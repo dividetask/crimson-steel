@@ -422,11 +422,11 @@ module Status
 
     def daven_korr_npc
       attrs = { str: 10, dex: 10, con: 11, int: 12, wis: 13, cha: 14 }
-      classes = [{ key: 'commoner', level: 1, trained_skills: %w[perception persuasion] }]
+      classes = [{ key: 'serf', level: 1, trained_skills: %w[perception persuasion] }]
       simple_demo(
         id: 2001, label: 'Daven Korr — NPC quest-giver',
         roster_group: :npcs,
-        header: { name: 'Daven Korr', player: nil, summary: 'Human Commoner 1', tier: 1, bab: 0 },
+        header: { name: 'Daven Korr', player: nil, summary: 'Human Serf 1', tier: 1, bab: 0 },
         attributes: attrs, classes: classes,
         speed: 30,
         items: { equipped: [{ name: 'Robes' }], consumable: [], ammunition: [], other: [] }
@@ -444,11 +444,11 @@ module Status
       [
         template_demo(id: 300, name: 'Medium Spider', race: 'beast', tier: 1,
                        attrs: { str: 9, dex: 14, con: 11, int: 1, wis: 10, cha: 2 },
-                       classes: [{ key: 'commoner', level: 1, trained_skills: [] }],
+                       classes: [{ key: 'serf', level: 1, trained_skills: [] }],
                        category: 'general_red_tier'),
         template_demo(id: 301, name: 'Wolf', race: 'beast', tier: 1,
                        attrs: { str: 12, dex: 15, con: 13, int: 3, wis: 12, cha: 6 },
-                       classes: [{ key: 'commoner', level: 1, trained_skills: [] }],
+                       classes: [{ key: 'serf', level: 1, trained_skills: [] }],
                        category: 'general_red_tier'),
         template_demo(id: 302, name: 'Goblin', race: 'goblin', tier: 1,
                        attrs: { str: 8, dex: 14, con: 10, int: 9, wis: 8, cha: 8 },
@@ -514,7 +514,7 @@ module Status
                        category: 'fey_favors'),
         template_demo(id: 404, name: "Will-o'-Wisp Spark", race: 'fey', tier: 1,
                        attrs: { str: 1, dex: 17, con: 10, int: 13, wis: 14, cha: 11 },
-                       classes: [{ key: 'commoner', level: 2, trained_skills: [] }],
+                       classes: [{ key: 'serf', level: 2, trained_skills: [] }],
                        category: 'fey_favors')
       ]
     end

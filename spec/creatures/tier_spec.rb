@@ -20,7 +20,7 @@ RSpec.describe 'Creatures Get Tier', type: :model do
   it 'animal tag at total level 6 → Tier 1' do
     a = Creatures::Accessor.new(record(
       race: 'beast', tags: ['animal'],
-      classes: { commoner: { level: 6 } }, tier: nil
+      classes: { serf: { level: 6 } }, tier: nil
     ))
     # animal breakpoints [0,4,8,12,16,20]; level 6, highest ≤ 6 is index 1 (=4).
     expect(a.tier).to eq(1)
@@ -39,7 +39,7 @@ RSpec.describe 'Creatures Get Tier', type: :model do
 
   it 'no matching tag falls back to the minimum tier across every list' do
     a = Creatures::Accessor.new(record(
-      tags: ['unrelated'], classes: { commoner: { level: 1 } }, tier: nil
+      tags: ['unrelated'], classes: { serf: { level: 1 } }, tier: nil
     ))
     # Every list gets some Tier at level 1; the lowest list (commoner) gives 0.
     expect(a.tier).to eq(0)

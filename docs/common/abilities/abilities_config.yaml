@@ -142,6 +142,7 @@ Trigger Events:
   - attack_action
   - on_hit
   - on_kill
+  - on_parry
 
 # Bonus Types List. The canonical set of valid modifier type names. A
 # Modifier Entry's `type` field must name one of these. Modifier keys

@@ -217,7 +217,7 @@ Given a Damage Object from a Spell `Scorching Ray` with:
 
 ## Stateful Ability lookup
 
-**A Stateful Ability returns name and description only.** `GET_STATEFUL("ki_pool")` returns `{ name: "ki_pool", description: "A pool of ki points usable for various monk abilities. ..." }`. No schema fields are exposed; behavior lives in Conditions.
+**A Stateful Ability returns name and description only.** `GET_STATEFUL("mystic_strike")` returns `{ name: "mystic_strike", description: "Tracks the Monk's Mystic Strike: ..." }`. No schema fields are exposed; behavior lives in Conditions.
 
 **Looking up a name that isn't in `stateful_abilities.yaml` returns null.**
 

@@ -15,3 +15,9 @@ regeneration:
 
 undead_traits:
   description: "Placeholder grouping for undead-typical immunities and weaknesses. Will be split into the proper Conditions / damage-type entries when those domains are written."
+
+ignore_pain:
+  description: "Tracks the 4 points of Major Hit Point Damage hidden by the Fighter's Ignore Pain Talent, plus the remaining duration. While active, the hidden Major is excluded from Pain (Combat Pool penalty) and from the Death Threshold; the damage returns when the effect ends (Ignore Pain does not heal)."
+
+mystic_strike:
+  description: "Tracks the Monk's Mystic Strike: the remaining duration during which unarmed strikes are magical and gain a Guidance bonus equal to the Monk's Tier. The Imbued Strike upgrade also records the chosen weapon property."

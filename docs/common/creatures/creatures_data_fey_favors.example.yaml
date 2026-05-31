@@ -61,4 +61,4 @@ characters:
     attributes: { str: 1, dex: 17, con: 10, int: 13, wis: 14, cha: 11 }
     advancement:
       classes:
-        commoner: 2
+        serf: 2

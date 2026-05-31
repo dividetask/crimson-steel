@@ -187,6 +187,131 @@ Spell-Like Ability (Enchantment/Illusion):
   type: talent
   description: "Choose an enchantment or illusion tier 0 spell from any list and cast it as a spell-like ability."
 
+# --- Universal Granted Ability ------------------------------------------
+
+Power Strike:
+  type: talent
+  activation_time: free
+  range: Self
+  target: self
+  mana_cost: 1
+  description: "Universal Granted Ability — every Creature has it. Spend 1 mana as a free action when making a weapon attack to add +1 damage to that attack."
+
+# --- Druid: Wild Kinship family -----------------------------------------
+
+Wild Kinship:
+  type: talent
+  activation_time: main
+  range: Self
+  target: self
+  mana_cost: 4
+  description: "The umbrella ability for the Druid's animal-bond system. Passive: each picked animal grants a +1 Racial bonus to a stat, a +1 Racial bonus to a skill (or save, for horse), an affinity tag (consumed by Speak with Animals / Animal Eyes saves), and — only if native to the Druid's Favored Terrain — the animal's 'halfway-to-animal' granted_abilities perk package. Active: spend 4 mana to shift into a previously unlocked animal form, replacing racial bonuses with the animal's wild_shape_racial_adjustment (shifting does NOT re-grant the perk package — it is already in effect from picking). Cast time starts at 1 turn + 1 turn per size difference; each later Animal Pick advances unlocked animals one step (multiple turns → 1 full → 1 main → 1 bonus). Newly picked animals unlock at the next Animal Pick (or the one after, if off Favored Terrain). Reverting takes 1 full turn at no mana cost. The animal catalog lives in creatures/druid_animals.yaml (provided separately)."
+
+Animal Pick:
+  type: talent
+  description: "Triggers one application of Wild Kinship. The Druid picks one animal from creatures/druid_animals.yaml; the key is appended to choices.wild_shape_animals (order matters — unlock cadence and speed advancement walk the list). Druids pick at Class Levels 1, 2, 4, 8, and 16. The level-1 pick also fixes the Druid's Favored Terrain from the chosen animal's terrain."
+
+Favored Terrain:
+  type: talent
+  description: "Set by the Druid's first Animal Pick at Class Level 1; names a terrain from the druid_animals catalog. Picked animals native to this terrain confer their full granted_abilities perk package and unlock for wild-shape on the next Animal Pick. Off-Favored-Terrain picks suppress the perk package and delay the wild-shape unlock by one extra pick."
+
+Animal Companion:
+  type: talent
+  description: "Granted to Domain Druids. A separate Creature record is spawned for the companion, with a stat block derived from a chosen entry in creatures/druid_animals.yaml. The companion's key is stored under choices.animal_companion (single animal key). The companion is a standalone Creature the Druid controls; level scaling, lifecycle, and command rules are handled by the consuming project."
+
+Hybrid Form:
+  type: talent
+  inherits_from: Wild Kinship
+  description: "WereDruid extension to Wild Kinship. The WereDruid may shift into a humanoid-animal hybrid of any form they can already shift into. The hybrid uses the same wild_shape_racial_adjustment as the full form; cast-time treats the hybrid as Medium regardless of source size. Natural attacks in hybrid or full form gain a Guidance bonus equal to the WereDruid's Fast-track Spell Tier."
+
+# --- Spellcasting (Sorcerer) --------------------------------------------
+
+Evocation Spellcasting:
+  type: talent
+  description: "Cast spells via the evocation skill. Sorcerers know 4 × (count of accessible Tiers) spells, living under choices.spellcasting on the granting Class Entry. Cannot cast via arcana; the lower-tier-prerequisite rule that applies to arcana casters does not apply."
+
+# --- Monk -----------------------------------------------------------------
+
+Unarmed Parry:
+  type: talent
+  description: "The Monk may use the Parry Defensive Action while unarmed, treating their unarmed strikes as the parrying weapon. Without this Talent, Parry requires a held weapon."
+
+Flurry of Blows:
+  type: talent
+  description: "On the Monk's turn, each strike may be followed by additional strikes at reduced dice. From L1 each strike gains one follow-up at half the dice; at L8 a third strike at quarter dice; at L16 a fourth strike at eighth dice. The Monk may add dice from their Combat Pool to any follow-up strike."
+
+Mystic Strike:
+  type: talent
+  activation_time: bonus
+  range: Self
+  target: self
+  mana_cost: 1
+  duration: "level turns"
+  effects:
+    - "mystic_strike"
+  description: "Spend 1 mana as a bonus action to make the Monk's unarmed strikes magical for a number of turns equal to their Monk level. While active, unarmed strikes gain a Guidance bonus equal to the Monk's Tier (Fast-track rate). Carries the mystic_strike stateful effect."
+
+Imbued Strike:
+  type: talent
+  inherits_from: Mystic Strike
+  mana_cost: 4
+  duration: "level / 2 turns"
+  description: "Enhanced Mystic Strike. Inherits from Mystic Strike, overriding the mana cost and duration. Adds one chosen weapon property to unarmed strikes in addition to the Guidance bonus."
+
+Counter Strike:
+  type: talent
+  trigger:
+    on: on_parry
+    effect:
+      kind: ui_reveal
+  description: "After a successful Parry (including Unarmed Parry), Combat offers the Monk the option to immediately make one unarmed strike against the parried attacker as part of that same reaction."
+
+Evasion:
+  type: talent
+  description: "When the Monk succeeds on a Dexterity saving throw against an effect that would deal half damage on a success, they instead take no damage. A failed save still deals normal damage."
+
+# --- Fighter --------------------------------------------------------------
+
+Ignore Pain:
+  type: talent
+  activation_time: bonus
+  range: Self
+  target: self
+  mana_cost: 2
+  duration: "1 minute + level turns"
+  effects:
+    - "ignore_pain"
+  description: "Spend 2 mana as a bonus action to ignore 4 points of Major Hit Point Damage for the duration (1 minute + 1 round per Fighter Class Level). Hides those 4 Major from Pain (Combat Pool penalty) and from the Death Threshold. The damage remains when the effect ends — Ignore Pain does not heal. Carries the ignore_pain stateful effect."
+
+# --- Healer ---------------------------------------------------------------
+
+Healer's Satchel:
+  type: talent
+  description: "When the Creature personally applies a healing Oil to a target, the Equipment-side Consumable Saturation imposed by the Oil is waived. The spell-side saturation (the Heal spell's own saturation/minimum_saturation) still applies. Does not extend to Potions or to Oils applied by another Creature."
+
+# --- Artificer ------------------------------------------------------------
+
+Temp Scroll Creation:
+  type: talent
+  activation_time: 15 minutes
+  description: "Inscribe a temporary scroll in 15 minutes (vs. the usual ritual cast time). The scroll loses its magic 2 days after creation. Creating the scroll expends Mana as though casting the spell, AND costs money equal to half the scroll's normal purchase cost. The scroll itself costs no Mana to read."
+
+Ritual Gold Waiver:
+  type: talent
+  description: "Waives the gold-cost portion of Ritual for spells whose Tier the Artificer can access on the Fast track. Cast time and spell-side mana are unaffected. Tier 0 and Tier 1 are waived at Artificer Class Level 1; higher Tiers waive as the track unlocks them."
+
+# --- Domain Channel Divinity ----------------------------------------------
+
+Martial Devotion:
+  type: talent
+  inherits_from: Channel Divinity
+  activation_time: bonus
+  range: Self
+  target: self
+  mana_cost: 1
+  duration: "1 turn"
+  description: "War-domain Channel Divinity. Spend 1 mana as a bonus action to gain Weapon Training and Armor Training for 1 turn, restricted to weapons in the deity's Favored Weapon Group. Effects scale off the Cleric's Class Level — a Cleric N counts as a Fighter N for the duration of the channel."
+
 # --- Trigger talents: reroll, luck ---------------------------------------
 
 Halfling Luck:

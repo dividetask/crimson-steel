@@ -14,6 +14,26 @@ Tier Breakpoints:
   commoner:         [0, 4, 12, 16, 25, 40]
   animal:           [0, 4, 8, 12, 16, 20]
 
+# Spell Tier Tracks. Class Level required to access Spells of each
+# Tier, indexed Tier 0..5. A Class names its track via
+# `spell_tier_track`; a single-class caster's accessible Spell Tier is
+# the highest index whose breakpoint is ≤ its Class Level on that
+# track. `null` means the Tier is never accessible on that track.
+# The Fast track is identical to the `hero` Tier Breakpoints, so a
+# single-class Fast caster's track-Tier equals its Creature Tier.
+# Consumption (gating which Spells a caster may cast) is deferred —
+# this is documented reference data only for now.
+Spell Tier Tracks:
+  fast:   [0, 1, 4, 8, 16, 30]
+  medium: [0, 1, 6, 11, 19, 33]
+  slow:   [3, 5, 9, 16, 33, null]
+
+# Universal Granted Abilities. Every Creature gains these regardless
+# of Race or Class. Surfaced by *Get Granted Abilities* with
+# `source = universal`.
+Universal Granted Abilities:
+  - Power Strike
+
 # Class definitions. Each Class declares its progression rules
 # (bonus_skills, mana_per_level), Save Attribute categorization,
 # proficiency lists, and ability_progression.
@@ -74,6 +94,7 @@ Classes:
     martial_advancement: unaligned
     bonus_skills: 4
     mana_per_level: 2
+    spell_tier_track: medium
     saves:
       aligned: [dex, cha]
       opposed: [str, con, int, wis]
@@ -90,6 +111,7 @@ Classes:
     martial_advancement: unaligned
     bonus_skills: 2
     mana_per_level: 4
+    spell_tier_track: fast
     saves:
       aligned: [wis, cha]
       opposed: [str, dex, con, int]
@@ -121,12 +143,30 @@ Classes:
   druid:
     martial_advancement: unaligned
     bonus_skills: 4
-    mana_per_level: 4
+    mana_per_level: 2
+    spell_tier_track: fast
     saves:
       aligned: [int, wis]
       opposed: [str, dex, con, cha]
     ability_progression:
-      "1": [druidic_spellcasting]
+      "1": [druidic_spellcasting, wild_kinship, animal_pick, favored_terrain]
+      "2": [animal_pick]
+      "4": [animal_pick]
+      "8": [animal_pick]
+      "16": [animal_pick]
+    # The Druid picks an animal at Class Levels 1, 2, 4, 8, and 16 (each
+    # `animal_pick` is one application of Wild Kinship). Order matters —
+    # see the `animal_pick` Talent. The animal catalog itself
+    # (`creatures/druid_animals.yaml`) is provided separately.
+    granted_spells:
+      - Speak with Plants
+      - Speak with Animals
+      - Command Animal
+      - Call Animal
+      - Animal Eyes
+      - Bark Skin
+      - Regeneration
+      - Entangle
     aligned_proficiencies:
       - animal_handling
       - healing
@@ -134,6 +174,27 @@ Classes:
       - perception
       - religion
       - survival
+
+  # Archetype of Druid. Inherits the Druid's progression and adds an
+  # Animal Companion at Class Level 4; overrides mana_per_level up to 4.
+  # Picks a single Cleric domain via `choices.domain` from this
+  # restricted list: Light, Darkness, Life, Death, Chaos, Healing,
+  # Plague, Nature, Tempest, Travel, Strength, Peace, Protection,
+  # Vengeance, Truth, Trickery, Madness, Ruin.
+  domain_druid:
+    parent_class: druid
+    mana_per_level: 4
+    ability_progression:
+      "4": [animal_companion]
+
+  # Archetype of Druid. Inherits the Druid's progression and adds the
+  # Hybrid Form extension to Wild Kinship at Class Level 4; overrides
+  # martial_advancement to aligned.
+  weredruid:
+    parent_class: druid
+    martial_advancement: aligned
+    ability_progression:
+      "4": [hybrid_form]
 
   fighter:
     martial_advancement: aligned
@@ -144,6 +205,7 @@ Classes:
       opposed: [dex, int, wis, cha]
     ability_progression:
       "1": [weapon_training, armor_training]
+      "2": [ignore_pain]
     aligned_proficiencies:
       - acrobatics
       - animal_handling
@@ -157,6 +219,7 @@ Classes:
     martial_advancement: aligned
     bonus_skills: 4
     mana_per_level: 2
+    spell_tier_track: slow
     saves:
       aligned: [str, dex]
       opposed: [con, int, wis, cha]
@@ -204,10 +267,12 @@ Classes:
     bonus_skills: 4
     mana_per_level: 2
     saves:
-      aligned: [dex, wis]
-      opposed: [str, con, int, cha]
+      aligned: [dex, str]
+      opposed: [con, int, wis, cha]
     ability_progression:
-      "1": [stunning_strike, ki_pool]
+      "1": [unarmored_movement, unarmed_parry, flurry_of_blows, mystic_strike]
+      "2": [counter_strike, evasion, danger_sense]
+      "4": [imbued_strike]
     aligned_proficiencies:
       - acrobatics
       - athletics
@@ -219,6 +284,7 @@ Classes:
     martial_advancement: opposed
     bonus_skills: 2
     mana_per_level: 4
+    spell_tier_track: fast
     saves:
       aligned: [int, wis]
       opposed: [str, dex, con, cha]
@@ -232,18 +298,120 @@ Classes:
       - planes
       - religion
 
-  commoner:
+  healer:
+    martial_advancement: unaligned
+    bonus_skills: 2
+    mana_per_level: 4
+    spell_tier_track: fast
+    saves:
+      aligned: [wis, int]
+      opposed: [str, dex, con, cha]
+    ability_progression:
+      "1": [see_injury, improved_healing, healers_satchel]
+    granted_spells:
+      # Plus future healing-tagged Spells.
+      - Heal
+      - Standard Surgery
+    aligned_proficiencies:
+      - craft_
+      - healing
+      - history
+      - nature
+      - religion
+      - sense_motive
+
+  sorcerer:
     martial_advancement: opposed
     bonus_skills: 2
-    mana_per_level: 0
+    mana_per_level: 4
+    spell_tier_track: fast
+    saves:
+      aligned: [con, cha]
+      opposed: [str, dex, int, wis]
+    ability_progression:
+      "1": [evocation_spellcasting]
+    # Casts via the `evocation` skill only (not arcana); knows 4 Spells
+    # per accessible Tier. Picks live under `choices.spellcasting`.
+    aligned_proficiencies:
+      - arcana
+      - evocation
+      - history
+      - linguistics
+      - persuasion
+      - planes
+
+  artificer:
+    martial_advancement: unaligned
+    bonus_skills: 2
+    mana_per_level: 4
+    spell_tier_track: fast
+    saves:
+      aligned: [int, wis]
+      opposed: [str, dex, con, cha]
+    ability_progression:
+      "1": [temp_scroll_creation, ritual_gold_waiver]
+    # Casts via inscribed temporary scrolls; does not learn normal
+    # arcane_spellcasting.
+    aligned_proficiencies:
+      - appraisal
+      - arcana
+      - craft_
+      - history
+      - investigation
+      - linguistics
+      - planes
+      - profession_
+
+  # NPC-only Class. No ability_progression.
+  noble:
+    martial_advancement: unaligned
+    bonus_skills: 4
+    mana_per_level: 2
+    saves:
+      aligned: [wis, cha]
+      opposed: [str, dex, con, int]
+    aligned_proficiencies:
+      - appraisal
+      - deception
+      - history
+      - linguistics
+      - nobility
+      - perform_
+      - persuasion
+      - restricted_magic
+      - ride
+      - sense_motive
+
+  # NPC-only Class. No ability_progression.
+  serf:
+    martial_advancement: opposed
+    bonus_skills: 2
+    mana_per_level: 1
     saves:
       aligned: [str, con]
       opposed: [dex, int, wis, cha]
     aligned_proficiencies:
       - athletics
       - craft_
+      - profession_
+
+  # NPC-only Class. No ability_progression.
+  expert:
+    martial_advancement: unaligned
+    bonus_skills: 6
+    mana_per_level: 2
+    saves:
+      aligned: [int, cha]
+      opposed: [str, dex, con, wis]
+    aligned_proficiencies:
+      - appraisal
+      - craft_
+      - healing
+      - investigation
+      - linguistics
       - perception
       - profession_
+      - sense_motive
 
 # HP and Mana formulas, indexed by Tier. The string is evaluated
 # against the Creature's Effective Attributes (`str`, `dex`, ...);

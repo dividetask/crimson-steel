@@ -25,6 +25,18 @@ module Creatures
       data['Tier Breakpoints'] || {}
     end
 
+    # Spell Tier Tracks: track key -> per-Tier Class Level breakpoints.
+    def spell_tier_tracks
+      data['Spell Tier Tracks'] || {}
+    end
+
+    # Universal Granted Abilities — granted to every Creature regardless
+    # of Race or Class. Surfaced by *Get Granted Abilities* with
+    # `source = universal`.
+    def universal_abilities
+      data['Universal Granted Abilities'] || []
+    end
+
     # Look up a Class key. Returns the resolved Class Catalog Entry,
     # applying Archetype merge when the entry declares `parent_class`.
     # Returns nil when the key is absent.
@@ -47,7 +59,7 @@ module Creatures
       merged = parent.dup
       merged['parent_class'] = archetype['parent_class']
 
-      %w[martial_advancement saves bonus_skills mana_per_level granted_spells].each do |f|
+      %w[martial_advancement saves bonus_skills mana_per_level granted_spells spell_tier_track].each do |f|
         merged[f] = archetype[f] if archetype.key?(f)
       end
 

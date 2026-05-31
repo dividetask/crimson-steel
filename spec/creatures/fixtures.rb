@@ -107,7 +107,7 @@ module CreaturesFixtures
       id: 101, name: 'Brown Bear', race: 'beast',
       tags: ['animal'],
       attributes: { str: 19, dex: 10, con: 16, int: 2, wis: 13, cha: 7 },
-      classes: { commoner: { level: 6 } }
+      classes: { serf: { level: 6 } }
     )
   end
 end

@@ -839,6 +839,116 @@ Healing Word:
   reaction_trigger: "ally about to take damage from a resolved attack"
   description: "Spoken as a reaction when an ally is about to take damage. Reduces the damage dealt by 1 per success on the Heal check."
 
+Speak with Animals:
+  type: spell
+  tier: 0
+  school: augury
+  range: Close
+  target: self
+  duration: "rank minutes"
+  skills: [nature]
+  description: "Converse with natural animals for the duration. An animal's willingness to answer is gated by the caster's affinity with that animal (the affinity tags from Wild Kinship feed the relevant save)."
+
+Command Animal:
+  type: spell
+  tier: 1
+  school: enchantment
+  range: Close
+  target: "1"
+  save:
+    - attribute: wis
+      fail: compelled
+      success: "0"
+  duration: "1 turn"
+  skills: [nature]
+  description: "Issue a single-sentence command to one animal within range. On a failed Wisdom save the animal carries out the command. Affinity from Wild Kinship gates the save."
+
+Call Animal:
+  type: spell
+  tier: 1
+  school: convergence
+  activation_time: full turn
+  range: Close
+  duration: "rank hours"
+  skills: [nature]
+  description: "Summon a wild animal native to the local terrain. The animal arrives over the casting time and serves for the duration; the DM picks an appropriate creature for the terrain."
+
+Animal Eyes:
+  type: spell
+  tier: 1
+  school: augury
+  range: Touch
+  target: "1"
+  requires_willing: true
+  duration: concentration
+  skills: [nature]
+  description: "While concentrating, see and hear through a willing beast you touch. Affinity from Wild Kinship gates the save when the beast is not already bonded."
+
+Bark Skin:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  school: transmutation
+  range: Touch
+  target: "1"
+  duration: "rank*10 minutes"
+  skills: [nature]
+  modifiers:
+    - target: damage_reduction
+      type: Competency
+      add: "1 + tier"
+  description: "The target's skin hardens like bark, granting a Competency bonus to damage reduction for rank*10 minutes."
+
+Regeneration:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  school: pneumancy
+  range: Touch
+  target: "1"
+  duration: "rank hours"
+  skills: [healing, nature]
+  effects:
+    - "regeneration"
+  description: "Grants the target the regeneration effect: slow healing over hours. At Tier 2+ a point of moderate damage converts to minor (once minor is zero); at Tier 3+ a point of major converts to moderate (once moderate is zero)."
+
+Fortify:
+  type: spell
+  tier: [1, 2, 3]
+  name: [Fortify, Stalwart Body, Sanctify]
+  school: pneumancy
+  range: Touch
+  target: "1"
+  duration: "rank*10 minutes"
+  skills: [healing, nature]
+  modifiers:
+    - target: save
+      type: Guidance
+      descriptors: [poison]
+      add: "tier"
+  variant_overrides:
+    - null
+    - modifiers:
+        - target: save
+          type: Guidance
+          descriptors: [poison, disease]
+          add: "tier"
+    - modifiers:
+        - target: save
+          type: Guidance
+          descriptors: [poison, disease, curse]
+          add: "tier"
+  description: "Grants the target a Guidance bonus equal to the spell's Tier on saves against the listed afflictions for rank*10 minutes. Fortify guards against poison; Stalwart Body adds disease; Sanctify adds curses."
+
+Purify:
+  type: spell
+  tier: [0, 2, 3, 4, 5]
+  name: [Stabilize, Purify Poison, Purify Natural Afflictions, Purify, Cleanse]
+  school: pneumancy
+  range: Touch
+  target: "1"
+  duration: instant
+  skills: [healing, nature]
+  description: "Make a Healing or Nature check; each Success reduces the target's Affliction Potency by 2. Stabilize (T0) staves off a dying creature; the higher Tiers purge progressively broader afflictions. Cleanse (T5) fully cures the affliction on a successful check."
+
 Suggestion:
   type: spell
   tier: 2

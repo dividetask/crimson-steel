@@ -96,7 +96,8 @@ The schema for entries in `creatures_advancement.yaml`'s `Classes:` map. Looked 
 | `martial_advancement` | enum | required | One of `aligned`, `unaligned`, `opposed`. The rate at which each Class Level adds Martial ranks. (Martial is computed from this field, not from any proficiency list.) |
 | `bonus_skills` | integer | 0 | Bonus Skill picks per Class Level used by the `Skill Pick Formula`. Advisory — Creatures does not enforce trained-skill counts. |
 | `mana_per_level` | integer | 0 | Mana per Class Level contributed by this Class. Folds into Max Mana on top of the per-Tier `Mana Base Formula`. |
-| `saves` | map | required | Save Attribute categorization. Has two sub-keys: `aligned` (the Save Attributes that advance at the `aligned` rate; project convention is exactly two) and `opposed` (Save Attributes that advance at the `opposed` rate explicitly; redundant with the default but available for clarity). Save Attributes in neither list default to the `Default Save Rate` (`opposed`). The two lists must be disjoint. |
+| `saves` | map | required | Save Attribute categorization. Has two sub-keys: `aligned` (the Save Attributes that advance at the `aligned` rate; project convention is exactly two) and `opposed` (Save Attributes that advance at the `opposed` rate explicitly; redundant with the default but available for clarity). Save Attributes in neither list default to the `Default Save Rate` (`opposed`). The two lists must be disjoint. **Save constraint:** a Class declares **at most one** of `dex`, `con`, or `wis` in `saves.aligned` — granting two of these three would unbalance the Class. (Documented convention; the loader does not enforce it.) |
+| `spell_tier_track` | enum or null | null | One of `fast`, `medium`, `slow`, naming a key in `Spell Tier Tracks`. Sets the Class Level breakpoints at which the Class's spellcasting accesses each Spell Tier. Omitted by non-casting Classes. Consumption (gating which Spells a caster may cast) is deferred — currently documented reference data only. |
 | `aligned_proficiencies` | list of string | none | Skills that advance at the `aligned` rate. Mutually exclusive with `unaligned_proficiencies` *at the top level of a non-Archetype Class*. Set Skill keys (ending `_`) are valid; any Set Instance whose prefix appears here is treated the same way. |
 | `unaligned_proficiencies` | list of string | none | Inverse form. Skills that advance at the `unaligned` rate; every Skill *not* listed advances at the `aligned` rate. Use when most Skills are aligned (e.g. Bard). Mutually exclusive with `aligned_proficiencies` at the top level of a non-Archetype Class. |
 | `opposed_proficiencies` | list of string | `[]` | Skills that advance at the `opposed` rate. Combines with either `aligned_proficiencies` or `unaligned_proficiencies`; takes precedence over the default for the Skills listed here. |
@@ -115,7 +116,7 @@ Rules:
 
 - A Creature cannot hold levels in both a Class and one of its Archetypes simultaneously. The validator rejects records that violate this rule.
 - A Creature may multi-class across unrelated Classes (e.g. Rogue + Fighter), and may multi-class across an Archetype and any Class that is *not* its parent (e.g. Arcane Trickster + Fighter, Arcane Trickster + Cleric).
-- An Archetype Class Entry inherits absent top-level fields from its parent: `martial_advancement`, `saves`, `bonus_skills`, `mana_per_level`, `granted_spells`, `aligned_proficiencies`, `unaligned_proficiencies`, `opposed_proficiencies`. When the Archetype declares one of those fields, it replaces the parent's.
+- An Archetype Class Entry inherits absent top-level fields from its parent: `martial_advancement`, `saves`, `bonus_skills`, `mana_per_level`, `granted_spells`, `spell_tier_track`, `aligned_proficiencies`, `unaligned_proficiencies`, `opposed_proficiencies`. When the Archetype declares one of those fields, it replaces the parent's.
 - An Archetype's `ability_progression` extends the parent's: at each Class Level, the Archetype's list is appended to the parent's. The parent and Archetype must not name the same Ability at the same Level (validator rejects).
 - For proficiency-list inheritance: the parent's lists are taken verbatim. The Archetype's lists, if present, are *additive adjustments* — `aligned_proficiencies` entries are added to the Aligned-rate set, `unaligned_proficiencies` entries are added to the Unaligned-rate set (and removed from Aligned if present there), `opposed_proficiencies` entries are added to the Opposed-rate set.
 
@@ -230,10 +231,11 @@ Class-level Speed bonuses (Barbarian's Fast Movement, Monk's Unarmored Movement,
 
 ### Get Granted Abilities
 
-Input: Creature ID (or Accessor), optional `source` filter (`race`, `class`, or absent for all).
+Input: Creature ID (or Accessor), optional `source` filter (`universal`, `race`, `class`, or absent for all).
 
 Behavior: Concatenate:
 
+- The `Universal Granted Abilities` listed in `creatures_advancement.yaml` — granted to every Creature regardless of Race or Class (e.g. Power Strike). Reported with `source = universal`.
 - Race chain Abilities whose `min_level` is ≤ the Creature's current Tier. Chain order is root → leaf; child entries override ancestors on name (see *Race Chain Walk*).
 - For each Class Entry the Creature holds: when the Class is an Archetype, the merged `ability_progression` is the parent's progression with the Archetype's appended at each Class Level. For non-Archetype Classes, the Class's own progression. Take entries whose Class Level ≤ the Creature's Class Level in that entry.
 - For each Class Entry, the resolved Class's `granted_spells` (the parent's, when the Class is an Archetype that does not override; the Archetype's, when it declares its own).
@@ -242,7 +244,7 @@ Behavior: Concatenate:
 
 Deduplicate while preserving first-encounter order. Filter by `source` when supplied.
 
-Returns: a list of `{ name, source }` records. `source` is one of `race` or `class:<class_key>`. The Class source carries the Class key so consumers (e.g. Floor Ability's `level_for_ability`) can recover the granting Class. Spells contributed via `choices.spellcasting` (and via deity/domain) report the granting Class as their source.
+Returns: a list of `{ name, source }` records. `source` is one of `universal`, `race`, or `class:<class_key>`. The Class source carries the Class key so consumers (e.g. Floor Ability's `level_for_ability`) can recover the granting Class. Spells contributed via `choices.spellcasting` (and via deity/domain) report the granting Class as their source.
 
 ### Look up Class
 
@@ -313,7 +315,7 @@ The interface returned by *Look up Creature*. Every method reads fresh from the 
 | `base_attribute_value(attr)` | integer | The raw Base Attribute before Racial Adjustment and Inherent bonuses. UI surfaces consult this for display. |
 | `ranks_for(key)` | integer | The Creature's ranks in the given concrete proficiency key. See *Ranks Computation* in Operations. The key must not end in `_`. |
 | `has_ability(name)` | boolean | True iff `name` appears in the Granted Abilities list. |
-| `level_for_ability(name)` | integer | The level relevant to the granting source — Class Level when granted by a Class (including spells contributed via that Class's `choices.spellcasting` or `choices.deity`/`choices.domain`), the Creature's current Tier when granted by Race. Used by Proficiencies' Floor Ability and similar formulas. Zero when the Creature lacks the Ability. |
+| `level_for_ability(name)` | integer | The level relevant to the granting source — Class Level when granted by a Class (including spells contributed via that Class's `choices.spellcasting` or `choices.deity`/`choices.domain`), the Creature's current Tier when granted by Race or as a Universal Granted Ability. Used by Proficiencies' Floor Ability and similar formulas. Zero when the Creature lacks the Ability. |
 | `speed` | integer | Equivalent to *Get Speed*. |
 | `max_hit_points` | integer | Equivalent to *Get Max Hit Points*. |
 | `max_mana` | integer | Equivalent to *Get Max Mana*. |
