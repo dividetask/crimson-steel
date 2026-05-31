@@ -16,6 +16,7 @@ module DiceResolution
     end
 
     def die_size;               @data.fetch('Die Size', 10);              end
+    def dice_result_string_encoding; @data.fetch('Dice Result String Encoding', 'X'); end
     def base_target_number;     @data.fetch('Base Target Number', 6);    end
     def minimum_target_number;  @data.fetch('Minimum Target Number', 3); end
     def maximum_target_number;  @data.fetch('Maximum Target Number', 9); end

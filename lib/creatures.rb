@@ -8,7 +8,7 @@ require_relative 'creatures/formula'
 require_relative 'creatures/record'
 require_relative 'creatures/dataset'
 require_relative 'creatures/accessor'
-require_relative 'creatures/encounter'
+require_relative 'creatures/random_encounter'
 
 # Top-level Creatures module surface. Exposes the public entry
 # points listed in creatures_design.md against the multi-file
@@ -16,7 +16,7 @@ require_relative 'creatures/encounter'
 #
 # Still stubbed: aggregated_modifiers (returns [] until the
 # Abilities domain lands), Weighted Choice / Gated Weighted Choice
-# encounter row variants (mirror Equipment's Loot Roll Row, which
+# random encounter row variants (mirror Equipment's Loot Roll Row, which
 # hasn't been designed yet).
 module Creatures
   module_function
@@ -115,18 +115,18 @@ module Creatures
     nil
   end
 
-  # ---- encounter / spawn / delete -------------------------------------
+  # ---- random encounter / spawn / delete ------------------------------
 
   def spawn_from_template(template_id, name_override: nil, loot_table: nil)
-    Encounter.spawn_from_template(template_id, name_override: name_override, loot_table: loot_table)
+    RandomEncounter.spawn_from_template(template_id, name_override: name_override, loot_table: loot_table)
   end
 
   def delete(id)
-    Encounter.delete_creature(id)
+    RandomEncounter.delete_creature(id)
   end
 
-  def roll_encounter(table_id, seed: nil)
-    Encounter.roll_encounter(table_id, seed: seed)
+  def roll_random_encounter(table_id, seed: nil)
+    RandomEncounter.roll_random_encounter(table_id, seed: seed)
   end
 
   # ---- meta -----------------------------------------------------------
@@ -137,6 +137,6 @@ module Creatures
     Races.reset!
     Deities.reset!
     Config.reset!
-    Encounter.reset!
+    RandomEncounter.reset!
   end
 end

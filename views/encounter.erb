@@ -1,0 +1,63 @@
+<%= erb :_timekeeping_stub, locals: { timestamp: @timestamp } %>
+
+<% if @viewer == :dm %>
+  <form method="post" action="/chronicle/advance-time" class="tk-advance">
+    <span class="tk-advance-label">Advance time:</span>
+    <button type="submit" name="rounds" value="10" class="ce-btn">+1 min</button>
+    <button type="submit" name="rounds" value="100" class="ce-btn">+10 min</button>
+    <button type="submit" name="rounds" value="600" class="ce-btn">+1 hour</button>
+    <button type="submit" name="rounds" value="2400" class="ce-btn">+4 hours</button>
+    <button type="submit" name="days"   value="1"    class="ce-btn">+1 day</button>
+    <button type="submit" name="rounds" value="-600" class="ce-btn">−1 hour</button>
+  </form>
+<% end %>
+
+<%# Initiative stub: rendered for the DM at all times, and for players
+    only when Combat is active. %>
+<% if @viewer == :dm || @combat_active %>
+  <%= erb :_initiative_stub, locals: {
+        rows: @tracker_rows,
+        combat_active: @combat_active,
+        viewer: @viewer,
+        round_label: @round_label
+      } %>
+<% end %>
+
+<%# Turn Action panel (turn_action_stub.md): DM-only, acts on the Acting
+    Combatant. Rendered only when a Combatant currently holds the turn. %>
+<% if @viewer == :dm && @acting_row %>
+  <%= erb :_turn_action, locals: { acting: @acting_row, dead: @acting_dead } %>
+<% end %>
+
+<%# Notes / Chronicle Entries: hidden from players once Combat starts. %>
+<% if @viewer == :dm || !@combat_active %>
+  <section class="scene-section">
+    <% if @active_entries.any? %>
+      <div class="scene-list">
+        <% @active_entries.each do |e| %>
+          <%= erb :_chronicle_entry, locals: { entry: e, viewer: @viewer, viewing_id: @viewing_id, player_creatures: @player_creatures } %>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="lead">No active scene entries.</p>
+    <% end %>
+  </section>
+<% end %>
+
+<% if @viewer == :dm %>
+  <section class="dm-staging">
+    <h3>Add Note</h3>
+    <%= erb :_chronicle_add_form, locals: {
+          kind: :note, chapters: @chapters, current_chapter: @current_chapter,
+          player_creatures: @player_creatures, default_active: true
+        } %>
+
+    <h3>Add Creature Reference</h3>
+    <%= erb :_chronicle_add_form, locals: {
+          kind: :creature, chapters: @chapters, current_chapter: @current_chapter,
+          player_creatures: @player_creatures, default_active: true
+        } %>
+  </section>
+<% end %>
+
+<script type="module" src="/app.js"></script>

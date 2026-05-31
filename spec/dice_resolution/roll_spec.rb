@@ -62,6 +62,17 @@ RSpec.describe DiceResolution::Roll do
         .to raise_error(ArgumentError, /die_size=8/)
     end
 
+    it 'rejects a dice_count above the Maximum Dice Count' do
+      bad = valid_roll.merge(dice_count: config.maximum_dice_count + 1)
+      expect { described_class.validate!(bad, config) }
+        .to raise_error(ArgumentError, /exceeds the Maximum Dice Count/)
+    end
+
+    it 'accepts a dice_count exactly at the Maximum Dice Count' do
+      good = valid_roll.merge(dice_count: config.maximum_dice_count)
+      expect { described_class.validate!(good, config) }.not_to raise_error
+    end
+
     it 'rejects a missing die_size' do
       bad = valid_roll.reject { |k, _| k == :die_size }
       expect { described_class.validate!(bad, config) }

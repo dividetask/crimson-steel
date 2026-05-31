@@ -5,7 +5,7 @@
 # `conditions_effect_names.yaml` (Effect Name definitions).
 #
 # Severity Categories themselves are owned by Combat (Minor, Moderate,
-# Major, ordered least to most serious — see `combat_glossary.md`).
+# Major, ordered least to most serious — see `encounter_glossary.md`).
 # Heal Cascades and Damage Absorption pour worst → best.
 #
 # Keys are Title Case and are referenced from the design / glossary

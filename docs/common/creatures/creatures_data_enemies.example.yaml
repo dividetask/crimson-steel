@@ -2,11 +2,11 @@
 #
 # Holds two kinds of entries (both share the same schema):
 #
-#   * Enemy templates — long-lived catalog entries that Encounter Tables
+#   * Enemy templates — long-lived catalog entries that Random Encounter Tables
 #     and the DM enemy sidebar reference. Tagged `enemy_template` plus
 #     one or more `category:<bucket>` tags. Conventionally id 100..999.
 #
-#   * Spawned enemies — instance records created when an Encounter Table
+#   * Spawned enemies — instance records created when an Random Encounter Table
 #     resolves or the DM adds a creature from a template. Each spawn is
 #     a distinct Creature with its own ID (no two Combatants share a
 #     Creature record). Spawns are typically deleted by the post-combat

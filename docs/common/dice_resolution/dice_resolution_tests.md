@@ -77,6 +77,8 @@ Tests that depend on randomness (the actual values dice land on) state the *roll
 
 **A tied nudge prefers creating a Critical Success.** Given a Roll with default modifiers, `value_adjustment = (+1, false)`, TN 6, and dice `[9, 5]`: both shifts raise DoIS by +1 — the 9→10 turns a Success into a Critical Success, the 5→6 turns a Neutral Result into a Success. The Critical wins the tie even though the 5 started lower. `nudge_changes = [10, null]`.
 
+**A tied nudge prefers creating a Critical Success.** Given a Roll with default modifiers, `value_adjustment = (+1, false)`, TN 6, and dice `[9, 5]`: both shifts raise DoIS by +1 — the 9→10 turns a Success into a Critical Success, the 5→6 turns a Neutral Result into a Success. The Critical wins the tie even though the 5 started lower. `nudge_changes = [10, null]`.
+
 **Max-mode nudge shifts every die.** Given a Roll with `value_adjustment = (+1, true)` and dice `[3, 5, 9, 10]`: `final_dice = [4, 6, 10, 10]` and `nudge_changes = [4, 6, 10, 10]`. Every position records its post-shift value, including the 10 that clamps in place — max mode has no null entries.
 
 **Reroll changes report per-position rerolled values.** Given a Roll with `dice_count = 4`, `positive_reroll = (1, false)`, dice `[1, 4, 6, 7]`, and the rerolled die landing on `8`: `reroll_changes = [8, null, null, null]`. The position of the rerolled die is preserved; unchanged dice are null.

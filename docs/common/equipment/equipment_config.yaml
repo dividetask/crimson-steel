@@ -119,29 +119,39 @@ Slots:
 # WEAPONS
 # =====================================================================
 
-# Weapon Categories. `base_damage` is the default damage formula
-# evaluated by Combat (Equipment only stores the string).
+# Weapon Categories — the weapon's weight class, which sets its default
+# `speed` and `base_damage`. `base_damage` is the default damage formula
+# evaluated by Combat (Equipment only stores the string). `speed` is the
+# weapon's flat Combat-Pool surcharge for an attack: the cost to roll N
+# dice is `speed + N` (a flat per-action surcharge, NOT a per-die
+# multiplier). Resolution: a per-weapon `speed` → first Weapon Tag with
+# `speed` → this Category default.
 Weapon Categories:
   Ranged:
     base_damage: "str / 4"
+    speed: 2
   One Handed:
     base_damage: "str / 4 - 2"
+    speed: 2
   Two Handed:
     base_damage: "str / 2"
+    speed: 3
 
 # Weapon Tags — mundane structural tags, distinct from magical
 # Weapon Properties. `damage_formula` overrides the Category
 # default; the first Tag carrying one wins when a Weapon has
-# multiple Tags.
+# multiple Tags. `speed` overrides the Category speed the same way.
 Weapon Tags:
   thrown:
     damage_formula: "str / 4 - 2"
     description: A weapon balanced for throwing.
   light:
     damage_formula: "str / 4 - 2"
+    speed: 1
     description: A light one-handed weapon.
   heavy:
     damage_formula: "str / 2 + 2"
+    speed: 3
     description: A heavy weapon typically requiring both hands to wield.
   exotic:
     description: A weapon requiring specialized training.
@@ -150,8 +160,14 @@ Weapon Tags:
   lesslethal:
     description: On a successful hit, inflicts a non-lethal stunning effect.
 
-# Damage Type defaults. Multi-Type Weapons use the highest Bleed
-# and the lowest Threshold across their Damage Types.
+# Damage Type defaults — a weapon's default `bleed` and `threshold` come
+# from its Damage Type(s). Multi-Type Weapons use the highest Bleed and
+# the lowest Threshold across their Damage Types. A per-weapon `bleed` /
+# `threshold` overrides the Damage-Type default (an explicit `threshold:`
+# wins even when null). On a hit, the Bleed actually inflicted is this
+# value plus the damage dealt (see encounter_config.yaml → "actual bleed
+# = Bleed Constant + damage dealt"), so a 0-Bleed weapon still bleeds for
+# the damage it deals.
 Damage Type Defaults:
   Slashing:
     bleed: 7
@@ -163,9 +179,27 @@ Damage Type Defaults:
     bleed: 3
     threshold: 4
 
-# Reference Weapon catalog. The list is open — consuming projects
-# add entries via override files.
+# Reference Weapon catalog. The list is open — consuming projects add
+# entries via override files. A weapon's defaults are derived, not
+# repeated per entry: `speed` + `base_damage` from its `category` (weight
+# class), and `bleed` + `threshold` from its `damage_type`. An entry only
+# needs `category` and `damage_type`; it may additionally set any of
+# `speed`, `base_damage`, `bleed`, or `threshold` to override the derived
+# default for that one weapon.
 Weapons:
+  # Unarmed — every Creature can make this attack with no weapon equipped.
+  # Speed 0, damage `str / 4 - 4`, Threshold 8 (overrides the Bludgeoning
+  # default). Combat offers it implicitly; it is never carried as inventory.
+  # `natural: true` marks it (and other natural attacks like claws/bite) as
+  # unable to Parry without a special ability — see `natural` in the design.
+  Unarmed:
+    category: One Handed
+    damage_type: Bludgeoning
+    base_damage: "str / 4 - 4"
+    speed: 0
+    threshold: 8
+    natural: true
+    base_price: 0
   Longbow:
     category: Ranged
     damage_type: Piercing

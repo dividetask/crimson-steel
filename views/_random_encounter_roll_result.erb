@@ -1,0 +1,49 @@
+<%
+  # Creatures Encounter Roll Result Stub —
+  # docs/common/ui/creatures_random_encounter_roll_result_stub.md
+  #
+  # Locals:
+  #   result — Hash:
+  #     :table_id   — String
+  #     :table_name — String
+  #     :subtitle   — optional String
+  #     :rolls      — list of { count, name, gold, items: [{name, count}] }
+%>
+
+<article class="cs-roll-result" data-table-id="<%= result[:table_id] %>">
+  <header class="cs-rr-header">
+    <h2 class="cs-rr-name"><%= result[:table_name] %></h2>
+    <% if result[:subtitle] %>
+      <div class="cs-rr-subtitle"><em><%= result[:subtitle] %></em></div>
+    <% end %>
+  </header>
+
+  <ul class="cs-rr-list">
+    <% Array(result[:rolls]).each do |spawn| %>
+      <li class="cs-rr-spawn">
+        <div class="cs-rr-spawn-head"><%= spawn[:count] %>× <%= spawn[:name] %></div>
+        <ul class="cs-rr-loot">
+          <% if spawn[:gold].to_i > 0 %>
+            <li class="cs-rr-loot-gold"><%= spawn[:gold] %> gp</li>
+          <% end %>
+          <% Array(spawn[:items]).each do |item| %>
+            <li class="cs-rr-loot-item">
+              <%= item[:name] %><%
+                if item[:count].to_i > 1
+                %> ×<%= item[:count] %><%
+                end
+              %>
+            </li>
+          <% end %>
+        </ul>
+      </li>
+    <% end %>
+  </ul>
+
+  <footer class="cs-rr-footer">
+    <button type="button"
+            class="cs-rr-roll-btn cs-random-encounter-roll-btn"
+            data-table-id="<%= result[:table_id] %>"
+            data-table-name="<%= result[:table_name] %>">Roll</button>
+  </footer>
+</article>

@@ -44,5 +44,6 @@ Same rule as the minimal stub: the parent page handles visibility. Player viewer
 
 In addition to everything used by the minimal stub:
 
-- **Combat-derived values** (Combat Pool, attack rolls and bonuses, damage and bleed) — computed by the Combat domain via Creatures' Accessor (`attribute_value`, `ranks_for("martial")`) plus Equipment's Weapon Details. BAB is `ranks_for("martial")` directly.
-The expanded vitals (Damage Reduction, Damage Resilience, Mana Regen, etc.) come from formulas applied to Creature attributes and Tier. The Attributes table's Check and Save columns derive from Effective Attributes plus the displayed formulas.
+- **Combat-derived values** (Combat Pool, attack rolls and bonuses, damage and bleed) — computed by the Encounter domain via Creatures' Accessor (`attribute_value`, `ranks_for("martial")`) plus Equipment's Weapon Details. BAB is `ranks_for("martial")` directly.
+
+The expanded vitals (Damage Reduction, Damage Resilience, Mana Regen, etc.) come from formulas applied to Creature attributes, Tier, equipped Armor, and Conditions tunables (Mana Regen is `floor(Max Mana / Mana Per Recovery Tick Divisor)` per Day). The Attributes table's Check and Save columns derive from Effective Attributes plus the displayed formulas.

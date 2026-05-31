@@ -62,3 +62,7 @@ Magnitude buttons use the Roll Resolution stub's modifier palette: warm amber fo
 - This pattern does not pick *which* Roll is being composed; the host stub provides the seed Rolls.
 - It does not validate that selections are legal (e.g. that the actor has the dice in their pool). Validation is the caller's responsibility before the parameters reach the Builder.
 - It does not understand saves, attacks, or any domain-specific concept. The same pattern serves Affliction saves, Combat attacks, and any other Check the project introduces.
+
+## Implementation
+
+The reusable, domain-agnostic implementation is `views/_check_builder.erb` + `public/js/ui/checkBuilder.js`. The host precomputes the full blob (`rolls` + ordered `steps`, each option carrying a `patch` that mutates the seed Rolls — `set_dice` / `set_tn` / `set_name` / `set_excluded` / `set_reroll` / `set_nudge` — and steps may be choice-dependent via `options_by` + `options_map`). The builder runs entirely client-side and emits a single `check:confirmed` `CustomEvent` (`{ choices, rolls: [{ id, side, successes, crits, dice_count }] }`); the host acts on it. Combat is the first consumer (`GET /encounter/attack_builder` builds the blob; `public/js/ui/turnAttack.js` mounts the builder and resolves on confirm). The Save Resolution stub still uses its own `StepMachine` pending convergence onto this component.

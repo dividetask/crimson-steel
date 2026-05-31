@@ -1,4 +1,4 @@
-STATUS_VIEWS = %w[status dice check conditions creatures timekeeping chronicle].freeze
+STATUS_VIEWS = %w[status dice check conditions creatures timekeeping chronicle encounter].freeze
 
 get '/status' do
   redirect '/character-sheets' unless dm_view?
@@ -20,6 +20,8 @@ get '/status' do
                                               .select { |s| s[:stub_id] == 'save-bleed-t2-blessing' }
   elsif @view == 'creatures'
     @creature_demos = Status::SampleCreatures.demos
+  elsif @view == 'encounter'
+    @encounter_scenarios = Status::SampleEncounter.scenarios
   elsif @view == 'timekeeping'
     @timekeeping_examples = Status::SampleTimekeeping.timekeeping_examples
   elsif @view == 'chronicle'

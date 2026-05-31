@@ -16,7 +16,7 @@ Unless a test specifies otherwise, all tests use the values in `conditions_confi
 
 And the catalogs in `conditions_afflictions.yaml` and `conditions_effect_names.yaml` as shipped.
 
-Severities follow the canonical order defined in `combat_glossary.md`: `[minor, moderate, major]`. Heal Cascades pour worst-first (Major → Moderate → Minor).
+Severities follow the canonical order defined in `encounter_glossary.md`: `[minor, moderate, major]`. Heal Cascades pour worst-first (Major → Moderate → Minor).
 
 Test creatures are described by their starting Conditions State. A baseline Creature has all damage counters at zero, no Temporary HP, no Afflictions, no Active Effects, `mana_spent = 0`, `magic_toxicity = 0`, `shock = 0`, `acid_counter = 0` — except where a test overrides specific fields. Mana Max is supplied by the caller per API call; the tests state it explicitly when it matters.
 

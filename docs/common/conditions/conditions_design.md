@@ -17,7 +17,7 @@ The full per-Creature state, sufficient to round-trip through serialization.
 
 | Field | Type | Default on load | Description |
 |---|---|---|---|
-| `hp_damage` | map of Severity → integer | empty (all zeros) | Accumulated HP damage per Severity. Each counter ≥ 0. Severity keys match the canonical Severity list owned by Combat (see `combat_glossary.md`). Missing Severity keys default to 0. |
+| `hp_damage` | map of Severity → integer | empty (all zeros) | Accumulated HP damage per Severity. Each counter ≥ 0. Severity keys match the canonical Severity list owned by Combat (see `encounter_glossary.md`). Missing Severity keys default to 0. |
 | `ability_damage` | map of Severity → ordered map of attribute → integer | empty | Ability Damage per attribute per Severity. Insertion order across attributes is preserved so the Heal Cascade can pop FIFO. Entries with zero damage are pruned. |
 | `temporary_hit_points` | Temporary HP Grant or null | null | At most one grant. Null when no grant is active. |
 | `mana_spent` | integer | 0 | Mana the Creature has consumed since last at full. Non-negative; never exceeds the Creature's Mana Max (supplied by the caller). Current Mana is derived as `mana_max − mana_spent`. |
@@ -111,7 +111,7 @@ Toxicity Damage is computed identically regardless of Source Kind; only Toxicity
 
 ## Public entry points
 
-Function names below are conceptual labels for cross-domain reference; implementations choose the actual symbols. Where another domain's documentation already cites a name (e.g. `APPLY_HIT_POINT_DAMAGE` in `combat_design.md`), the parenthetical here matches that name for traceability.
+Function names below are conceptual labels for cross-domain reference; implementations choose the actual symbols. Where another domain's documentation already cites a name (e.g. `APPLY_HIT_POINT_DAMAGE` in `encounter_design.md`), the parenthetical here matches that name for traceability.
 
 ### Apply Hit Point Damage (`APPLY_HIT_POINT_DAMAGE`)
 
@@ -539,5 +539,5 @@ A Creature is Dead when **any** of these is reached:
 
 ### Unassigned (no current owner)
 
-- **Acid Counter wiring from damage application.** Conditions owns the Acid Counter, but Combat is the natural place to call *Apply Acid Damage* when acid damage lands. The wiring point is documented in `combat_design.md` but the Damage Type Mechanic catalog entry is the contract.
+- **Acid Counter wiring from damage application.** Conditions owns the Acid Counter, but Combat is the natural place to call *Apply Acid Damage* when acid damage lands. The wiring point is documented in `encounter_design.md` but the Damage Type Mechanic catalog entry is the contract.
 - **Toxicity Source Kind classification at the spell / item layer.** Conditions takes a `positive` / `forced` flag from the caller; assigning that flag to each Magic-Toxicity-imposing source is the responsibility of whichever upstream domain (Abilities, Equipment, Combat) constructs the call. The classification rule is not pinned to a domain today.

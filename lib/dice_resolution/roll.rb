@@ -42,8 +42,13 @@ module DiceResolution
     def validate_dice_count!(roll, config)
       dc = fetch(roll, :dice_count)
       raise ArgumentError, 'Roll missing dice_count' if dc.nil?
+      max = config.maximum_dice_count
       unless dc.is_a?(Integer) && dc >= 0
         raise ArgumentError, "Roll dice_count=#{dc.inspect} must be a non-negative Integer"
+      end
+      if dc > max
+        raise ArgumentError,
+              "Roll dice_count=#{dc} exceeds the Maximum Dice Count #{max}"
       end
     end
 

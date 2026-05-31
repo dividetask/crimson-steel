@@ -167,17 +167,17 @@ Given a Damage Object from a Spell `Scorching Ray` with:
 
 ---
 
-## Resolve the Concentration Block
+## Resolve the Channel Block
 
-**The Concentration Block has its own Effect Hash, namespaced separately.** Given a Spell with top-level `effect_hash: { damage: "3*rank" }` and `concentration.effect_hash: { bleed: "2*rank" }`:
+**The Channel Block has its own Effect Hash, namespaced separately.** Given a Spell with top-level `effect_hash: { damage: "3*rank" }` and `channel.effect_hash: { bleed: "2*rank" }`:
 - The top-level damage Formula evaluates with `{ rank, tier, damage }` in scope.
-- The concentration block's Formulas evaluate with `{ rank, tier, bleed }` — `damage` is **not** in scope inside the block, and `bleed` is **not** in scope at the top level.
+- The channel block's Formulas evaluate with `{ rank, tier, bleed }` — `damage` is **not** in scope inside the block, and `bleed` is **not** in scope at the top level.
 
-**Concentration `attack_roll` and `save` are independent of the top-level.** A Spell with top-level `attack_roll: false` may still have `concentration.attack_roll: true` (the concentrate action requires its own attack roll).
+**Channel `attack_roll` and `save` are independent of the top-level.** A Spell with top-level `attack_roll: false` may still have `channel.attack_roll: true` (the channel action requires its own attack roll).
 
-**Variant Overrides can replace or remove the entire Concentration Block.** A variant override of `concentration: null` removes the block from that Variant.
+**Variant Overrides can replace or remove the entire Channel Block.** A variant override of `channel: null` removes the block from that Variant.
 
-**`{name}` and `{aspect}` substitution applies inside the Concentration Block's `description`.** Same substitution rules as the top-level description.
+**`{name}` and `{aspect}` substitution applies inside the Channel Block's `description`.** Same substitution rules as the top-level description.
 
 ---
 

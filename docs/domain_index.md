@@ -12,7 +12,7 @@ The domains that will have file sets per `file_conventions.md`. This list will e
 | Conditions | Per-Creature mutable state: HP damage, Ability Damage, Temporary HP, Mana, Magic Toxicity, Shock, Acid Counter, Active Afflictions, Active Effects. |
 | Chronicle | Campaign-level state. Holds the current time, chapters, notes, and creature references. |
 | Timekeeping | Calendar and clock calculations. Pure calculation; the current time is owned by Chronicle. |
-| Combat | Combatants, initiative, Time Ticks within a Round, action economy (Main / Bonus / Free actions and Reactions), Combat Pool, defensive bonuses (Flatfooted, Unaware, Hidden), Set-Value Spend, Concentration maintenance, Damage Types and Severity Calculation. |
+| Encounter | What is happening in the present moment of play. Today covers Combat — Combatants, initiative, Time Ticks within a Round, action economy (Main / Bonus / Free actions and Reactions), Combat Pool, defensive bonuses (Flatfooted, Unaware, Hidden), Set-Value Spend, Concentration maintenance, Damage Types and Severity Calculation — and will grow to cover Downtime and Travel. |
 | Abilities | Reference catalog of Spells, Talents, and granted features (Stateful and Always-On Modifier). Owns Variant resolution, Effect Hash evaluation, Effect classification, Concentration Block resolution, Trigger Spec lookup, and the canonical Bonus Types List for Modifiers. Does not roll dice or track active state. |
 | Atlas | Maps and the Tokens placed on them. Owns the Active Map pointer and Map archive state. |
 
@@ -29,12 +29,12 @@ Abilities - Planned
 Creature - In Progress
 Proficiencies - In Progress
 Equipment - Planned
-Combat - Planned
+Encounter - Planned
 Atlas - Planned
 
 Second Pass
 
-Combat - Planned
+Encounter - Planned
 Chronicle - Planned
 Conditions - Planned
 Abilities - Planned
@@ -49,9 +49,9 @@ A rough sketch of which domains depend on which. The arrow points from caller to
 
 - Check Resolution → Roll Resolution
 - Proficiencies → Roll Resolution
-- Combat → Check Resolution, Creatures, Conditions, Abilities, Chronicle
-- Abilities → Roll Resolution, Conditions, Combat
-- Equipment → Abilities (Bonus Types List), Conditions, Combat
+- Encounter → Check Resolution, Creatures, Conditions, Abilities, Chronicle
+- Abilities → Roll Resolution, Conditions, Encounter
+- Equipment → Abilities (Bonus Types List), Conditions, Encounter
 - Conditions → Abilities, Creatures
 - Creatures → Proficiencies, Equipment, Abilities, Conditions
 - Chronicle → Timekeeping, Creatures

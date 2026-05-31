@@ -1,6 +1,6 @@
 # Creatures Roster Sidebar Stub
 
-A DM-only sidebar listing the campaign roster — Players, NPCs, and one section per themed Creature Template file under `docs/common/creatures/`. Each themed section mixes that file's creature templates with the encounter tables filed under the same `category` key (`encounter_tables.yaml`'s `category:` field), so the DM sees both together. Embedded by the Character Sheets page on the left of the main panel; each row's name is a link to the matching sheet, which replaces the navigation arrows the page used to carry.
+A DM-only sidebar listing the campaign roster — Players, NPCs, and one section per themed Creature Template file under `docs/common/creatures/`. Each themed section mixes that file's creature templates with the random encounter tables filed under the same `category` key (`random_encounter_tables.yaml`'s `category:` field), so the DM sees both together. Embedded by the Character Sheets page on the left of the main panel; each row's name is a link to the matching sheet, which replaces the navigation arrows the page used to carry.
 
 See `ui_conventions.md` for shared rules.
 
@@ -14,9 +14,9 @@ A vertical sidebar, top to bottom:
 
 3. **Themed categories** — one `<details>`-style group per entry in the project's themed Creature Template files (`docs/common/creatures/creatures_data_<theme>.example.yaml`). The display order is the order the categories appear in the page configuration. Each section's body mixes:
    - **Creature template rows** — every template whose `tags` include `category:<theme_key>` (and `enemy_template`).
-   - **Encounter table rows** — every entry in `encounter_tables.yaml` whose `category:` field equals the same `<theme_key>`.
+   - **Encounter table rows** — every entry in `random_encounter_tables.yaml` whose `category:` field equals the same `<theme_key>`.
 
-   The two row kinds are intermixed; the project's display ordering puts templates first, then encounter tables. Encounter Tables therefore **do not have a dedicated group** — they live with the templates from their theme.
+   The two row kinds are intermixed; the project's display ordering puts templates first, then random encounter tables. Random Encounter Tables therefore **do not have a dedicated group** — they live with the templates from their theme.
 
 All groups start **collapsed**. The open/closed state of each group persists in `localStorage` keyed by the group's `data-group-key` (e.g. `cs-roster-group:players`, `cs-roster-group:general_red_tier`). A page refresh restores whatever the DM had open last.
 
@@ -31,17 +31,24 @@ All groups start **collapsed**. The open/closed state of each group persists in 
 
 Each template row has, in left-to-right order:
 
-- **`−` button** — emits a `remove_combatant` event for the most recently added Combatant with this Creature ID. Inert in this stub.
-- **Creature name link** — clicking navigates to `/character-sheets?i=<sheet_index>` for the template.
-- **Copy count badge** — when at least one Combatant in the active Combat references this Creature ID. Suppressed when zero. Renders to the left of the `+` button.
-- **`+` button** — emits an `add_combatant` event carrying the Creature ID. For a Creature Template the parent first calls Creatures' *Spawn Creature From Template* to produce a fresh Creature record, then *Add Combatant* on the new ID. Followed by Combat's *Reroll Initiative* with `missing_only = true`. **Rendered but inert** until the Combat UI lands.
+- **Creature name link** — clicking navigates to `/character-sheets?i=<sheet_index>` for the template. When at least one instance has been spawned from this template, the name carries an inline count suffix — `Giant Spider (3)`. With no instances it reads just `Giant Spider`.
+- **`+` button** — POSTs to `/encounter/spawn_and_add`. The server calls Creatures' *Spawn Creature From Template* to produce a fresh Creature record (stamping its `spawned_from` field), then *Add Combatant* on the new ID. After the POST the client re-fetches the sidebar fragment so the new instance row and the inline count appear.
 
-### Encounter Table rows (within themed categories)
+There is no `−` button on the template row itself; removal happens per-instance on the spawned rows below.
+
+### Spawned-instance rows (beneath their template)
+
+Each Creature spawned from a template renders as an indented row directly beneath that template, in roster order:
+
+- **Creature name link** — navigates to `/character-sheets?creature_id=<id>`, which renders the live spawned Creature's sheet (computed attributes / vitals / skills / abilities; Equipment stays empty until that domain lands). This lets the GM inspect the individual instance, including any per-instance rolled data.
+- **`−` button** — POSTs to `/encounter/delete_creature`, which removes the Combatant(s) referencing this Creature and deletes the Creature record outright. The sidebar fragment is re-fetched afterward.
+
+### Random Encounter Table rows (within themed categories)
 
 Each encounter row has:
 
-- **Table name link** — clicking navigates to `/character-sheets?encounter_template=<table_id>`, which renders the Encounter Template Stub (`creatures_encounter_template_stub.md`) in the main panel.
-- **`Roll` button** — emits a `roll_encounter` event. The parent resolves it by fetching a fresh roll and rendering an Encounter Roll Result panel (`creatures_encounter_roll_result_stub.md`) above the main panel. The roll-result panel commits the result to Combat on render; further clicks on its own internal `Roll` button replace the result (each click = a re-roll that supersedes the previous). Same size as the Active / Absent toggle on Player rows so the controls all line up at the right edge.
+- **Table name link** — clicking navigates to `/character-sheets?random_encounter_template=<table_id>`, which renders the Encounter Template Stub (`creatures_random_encounter_template_stub.md`) in the main panel.
+- **`Roll` button** — emits a `roll_random_encounter` event. The parent resolves it by fetching a fresh roll and rendering an Encounter Roll Result panel (`creatures_random_encounter_roll_result_stub.md`) above the main panel. The roll-result panel commits the result to Combat on render; further clicks on its own internal `Roll` button replace the result (each click = a re-roll that supersedes the previous). Same size as the Active / Absent toggle on Player rows so the controls all line up at the right edge.
 
 ## DM-only
 
@@ -53,7 +60,7 @@ Required:
 - A `roster` structure:
   - `players` — list of `{ id, name, sheet_index, active }` (`active` defaults to true).
   - `npcs` — list of `{ id, name, sheet_index, active }` (`active` defaults to false).
-  - `categories` — list of `{ key, name, templates, encounter_tables }`. Each `templates` entry is `{ id, name, sheet_index, copy_count }`; each `encounter_tables` entry is `{ table_id, name }`.
+  - `categories` — list of `{ key, name, templates, random_encounter_tables }`. Each `templates` entry is `{ id, name, sheet_index, copy_count, spawned }`, where `spawned` is the list of instance rows `{ creature_id, combatant_id, name }` cloned from that template; each `random_encounter_tables` entry is `{ table_id, name }`.
 - The viewer role — must be `dm`. The stub renders nothing for player viewers.
 
 Optional:
@@ -69,8 +76,5 @@ The sidebar stores one boolean per group under a key of the form `cs-roster-grou
 
 ## What this stub does not do
 
-- The `+` and `−` buttons do not yet mutate Combat State.
-- The Active / Absent toggle does not persist beyond the current page load — every refresh resets the toggle to its default for that row kind.
-- Encounter Table rows render with a `Roll` button and a name link; both render correctly but the roll result panel's "add to Combat" / "append to enemy data file" side effects are not yet wired.
-- The sidebar does not delete Creature records. The post-combat cleanup flow in `equipment_post_combat_creatures_stub.md` is the conventional caller for that.
 - The sidebar does not edit Creature records.
+- It does not roll loot. Random Encounter Table `Roll` spawns Creatures and adds them to the roster, but per-Creature loot is not rolled until the Equipment domain lands.

@@ -337,13 +337,17 @@ Conditions, Combat, and Abilities are mocked as recorded-call stubs. A test asse
 
 ## Shops
 
-### Visit Generic Shop
+### Visit Generic Shop (population model)
 
-**First Visit rolls the Shop Template.** A Generic Shop visited on Game Day 5 produces an Active Generic Shop Owner with `generated_at_day: 5` and an Inventory rolled from the template.
+**First Visit scales stock by population.** A Generic Shop visited on Game Day 5 with `population: 1000` produces an Active Generic Shop Owner with `generated_at_day: 5`. A stock entry `{qty_base: 2, qty_per_kpop: 4}` materializes at Quantity `2 + floor(4 * 1000 / 1000) = 6`.
 
-**Same-day re-Visit returns the existing Active Generic Shop.** A second Visit on Day 5 reads the same Active Generic Shop without rolling.
+**Items below their `min_pop` are omitted.** At `population: 100`, an entry with `min_pop: 200` is not stocked.
 
-**Advance Time expires yesterday's Active Generic Shop.** *Advance Time* on Day 5 → Day 6 removes every Active Generic Shop with `generated_at_day < 6`. A subsequent Visit on Day 6 rolls a fresh stock.
+**Budget scales with population.** *Get Total Wealth* on the Active Generic Shop equals `base_gold + floor(gold_per_sqrt_pop * sqrt(population))` (e.g. `80 + floor(18 * sqrt(1000)) = 649`), held as a Gold Stack in its materialized stock.
+
+**Same-day re-Visit returns the existing Active Generic Shop.** A second Visit on Day 5 reads the same Active Generic Shop without re-materializing — the first visit's population stands for the day.
+
+**Advance Time expires yesterday's Active Generic Shop.** *Advance Time* on Day 5 → Day 6 removes every Active Generic Shop with `generated_at_day < 6`. A subsequent Visit on Day 6 materializes fresh stock.
 
 ### Refresh Specific Shop
 
@@ -359,7 +363,7 @@ Conditions, Combat, and Abilities are mocked as recorded-call stubs. A test asse
 
 **Specific Shop with insufficient Wealth refuses to buy.** A Shop with Total Wealth 5 asked to buy a Stack worth 10 returns an error sentinel.
 
-**Generic Shop has unlimited Wealth.** *Get Total Wealth* on a Generic Shop returns +∞ (or the implementation's sentinel); a Generic Shop accepts every buy offer.
+**Generic Shop refuses a buy beyond its budget.** A Generic Shop's Wealth is its finite population-scaled budget; *Shop Purchase* of a Stack priced above that budget is refused, and one within it is accepted.
 
 ---
 

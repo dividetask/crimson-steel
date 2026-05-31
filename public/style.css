@@ -404,11 +404,13 @@ body {
   background: #000;
 }
 
-.btn-confirm-all {
+.btn-confirm-all,
+.btn-confirm {
   background: #2563eb;
 }
 
-.btn-confirm-all:hover {
+.btn-confirm-all:hover,
+.btn-confirm:hover {
   background: #1d4ed8;
 }
 
@@ -1052,6 +1054,16 @@ body {
 
 .cr-mod-btn:hover { background: #f0f0f0; }
 
+/* Dice / option choices the Combat Pool can't afford (Speed + dice >
+   remaining) are greyed out and unclickable. */
+.cr-mod-btn:disabled,
+.cr-mod-btn:disabled:hover {
+  opacity: 0.4;
+  background: #f3f3f3;
+  color: #999;
+  cursor: not-allowed;
+}
+
 /* Reroll / Mass Reroll buttons borrow the Roll Resolution stub's
    reroll palette (warm amber). Nudge buttons borrow the nudge palette
    (green). Direction (+/-) lives on the button text only. */
@@ -1686,6 +1698,132 @@ body {
   margin-top: 8px;
 }
 
+/* Encounter Initiative Stub — docs/common/ui/encounter_initiative_stub.md */
+.initiative-stub {
+  margin-top: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 10px 12px;
+}
+
+.initiative-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.initiative-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #1e293b;
+  margin: 0;
+}
+.initiative-round { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+.initiative-controls { display: flex; gap: 6px; }
+.initiative-controls .initiative-ctl { margin: 0; }
+
+.initiative-col-turn { width: 40px; }
+.initiative-set-form { margin: 0; }
+.initiative-acting-marker { color: #b45309; font-weight: bold; }
+.hp-inline { display: flex; align-items: center; gap: 6px; }
+.hp-inline .hp-bar { width: 90px; }
+.hp-inline .hp-num { margin-top: 0; }
+
+.initiative-start-combat { background: #fee2e2; border-color: #b91c1c; color: #7f1d1d; }
+.initiative-start-combat:hover { background: #fecaca; }
+.initiative-end-combat { background: #e2e8f0; }
+
+.initiative-empty {
+  color: #64748b;
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.initiative-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.initiative-table th,
+.initiative-table td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.initiative-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+}
+
+.initiative-col-init { width: 56px; }
+.initiative-init-editable { cursor: pointer; }
+.initiative-init-input { width: 44px; font-family: inherit; }
+
+.initiative-row-acting {
+  background: #fef9c3;
+  font-weight: bold;
+}
+
+.initiative-row-cannot-act { background: #fee2e2; }
+.initiative-row-cannot-act.initiative-row-acting { background: #fde68a; }
+
+.initiative-dash { color: #94a3b8; }
+
+/* HP bar */
+.hp-bar {
+  display: flex;
+  width: 100%;
+  min-width: 64px;
+  height: 9px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+.hp-seg { display: block; height: 100%; }
+.hp-cur   { background: #16a34a; }
+.hp-minor { background: #fca5a5; }
+.hp-mod   { background: #ef4444; }
+.hp-maj   { background: #7f1d1d; }
+.hp-num { font-size: 11px; color: #475569; margin-top: 2px; white-space: nowrap; }
+
+/* Condition badges */
+.cond-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 9px;
+  margin: 1px 2px 1px 0;
+  color: #fff;
+  white-space: nowrap;
+}
+.cond-shock   { background: #2563eb; }
+.cond-pain    { background: #dc2626; }
+.cond-bleed   { background: #db2777; }
+.cond-poison  { background: #16a34a; }
+.cond-disease { background: #a16207; }
+.cond-curse   { background: #7c3aed; }
+.cond-major   { background: #7f1d1d; }
+.cond-other   { background: #64748b; }
+
+/* Ability damage chips */
+.abil-chip {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin: 1px 2px 1px 0;
+  background: #e2e8f0;
+  color: #475569;
+  white-space: nowrap;
+}
+
 .dm-staging {
   margin-top: 24px;
   padding-top: 16px;
@@ -2289,6 +2427,23 @@ body {
 }
 .cs-page-with-sidebar .cs-main { min-width: 0; }
 
+/* Player sheet paging arrows (hidden for the DM, who uses the sidebar). */
+.cs-sheet-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.cs-sheet-arrow {
+  font-weight: bold;
+  text-decoration: none;
+  color: #4d2e1e;
+  background: #f4e5c4;
+  border: 1px solid #d9a98a;
+  border-radius: 4px;
+  padding: 4px 12px;
+}
+.cs-sheet-arrow:hover { background: #ecd5a8; }
+
 /* Roster Sidebar (creatures_roster_sidebar_stub.md). */
 .cs-roster-sidebar {
   background: #fdf6e3;
@@ -2369,18 +2524,24 @@ body {
   text-decoration: none;
 }
 .cs-roster-name:hover { text-decoration: underline; }
-.cs-roster-count {
-  display: inline-block;
-  background: #b9472c;
-  color: #fff;
-  font-size: 10px;
-  font-weight: bold;
-  border-radius: 10px;
-  padding: 1px 6px;
-  min-width: 16px;
-  text-align: center;
+.cs-roster-random-encounter .cs-roster-name { font-style: italic; }
+
+/* Spawned-instance rows render indented beneath their template. */
+.cs-roster-spawned {
+  padding-left: 18px;
+  font-size: 12px;
 }
-.cs-roster-encounter .cs-roster-name { font-style: italic; }
+.cs-roster-spawned .cs-roster-name { color: #4d2e1e; }
+.cs-roster-spawned::before {
+  content: "↳";
+  color: #9c7a5c;
+  flex-shrink: 0;
+}
+.cs-roster-delete {
+  color: #7f1d1d;
+  border-color: #d9a98a;
+}
+.cs-roster-delete:hover:not(:disabled) { background: #fecaca; }
 
 /* Minimal sheet lower row — Abilities + Item Descriptions side by side. */
 .cs-card.cs-minimal .cs-minimal-lower {
@@ -2412,8 +2573,8 @@ body {
 }
 
 /* Encounter Template Stub —
-   creatures_encounter_template_stub.md */
-.cs-encounter-template {
+   creatures_random_encounter_template_stub.md */
+.cs-random-encounter-template {
   background: #fdf6e3;
   border: 1px solid #d9a98a;
   border-radius: 6px;
@@ -2422,28 +2583,28 @@ body {
   color: #2b1a13;
   margin-bottom: 18px;
 }
-.cs-encounter-template .cs-enc-header { margin-bottom: 12px; }
-.cs-encounter-template .cs-enc-name {
+.cs-random-encounter-template .cs-enc-header { margin-bottom: 12px; }
+.cs-random-encounter-template .cs-enc-name {
   font-size: 22px;
   font-weight: bold;
   color: #b9472c;
   margin: 0;
 }
-.cs-encounter-template .cs-enc-subtitle {
+.cs-random-encounter-template .cs-enc-subtitle {
   font-size: 12px;
   color: #8a6a52;
   margin-top: 2px;
 }
-.cs-encounter-template .cs-enc-subtitle code {
+.cs-random-encounter-template .cs-enc-subtitle code {
   background: #f4e5c4;
   padding: 1px 5px;
   border-radius: 3px;
 }
-.cs-encounter-template .cs-enc-row {
+.cs-random-encounter-template .cs-enc-row {
   border-top: 1px solid #ecd6b6;
   padding: 8px 0;
 }
-.cs-encounter-template .cs-enc-row-head {
+.cs-random-encounter-template .cs-enc-row-head {
   font-variant: small-caps;
   color: #882f1f;
   font-weight: bold;
@@ -2454,50 +2615,50 @@ body {
   gap: 10px;
   flex-wrap: wrap;
 }
-.cs-encounter-template .cs-enc-row-chance { color: #882f1f; }
-.cs-encounter-template .cs-enc-row-when,
-.cs-encounter-template .cs-enc-row-as {
+.cs-random-encounter-template .cs-enc-row-chance { color: #882f1f; }
+.cs-random-encounter-template .cs-enc-row-when,
+.cs-random-encounter-template .cs-enc-row-as {
   font-variant: normal;
   font-weight: normal;
   color: #4d2e1e;
   text-transform: none;
 }
-.cs-encounter-template .cs-enc-row-when code,
-.cs-encounter-template .cs-enc-row-as code {
+.cs-random-encounter-template .cs-enc-row-when code,
+.cs-random-encounter-template .cs-enc-row-as code {
   background: #f4e5c4;
   padding: 0 4px;
   border-radius: 2px;
 }
-.cs-encounter-template .cs-enc-spawn-list {
+.cs-random-encounter-template .cs-enc-spawn-list {
   list-style: none;
   padding-left: 12px;
   margin: 0;
 }
-.cs-encounter-template .cs-enc-spawn {
+.cs-random-encounter-template .cs-enc-spawn {
   font-size: 13px;
   padding: 2px 0;
 }
-.cs-encounter-template .cs-enc-spawn-count {
+.cs-random-encounter-template .cs-enc-spawn-count {
   font-weight: bold;
   color: #b9472c;
   margin-right: 6px;
 }
-.cs-encounter-template .cs-enc-template-src {
+.cs-random-encounter-template .cs-enc-template-src {
   color: #8a6a52;
   font-size: 11px;
   margin-left: 4px;
 }
-.cs-encounter-template .cs-enc-loot-tag {
+.cs-random-encounter-template .cs-enc-loot-tag {
   color: #8a6a52;
   font-size: 11px;
   margin-left: 6px;
 }
-.cs-encounter-template .cs-enc-footer {
+.cs-random-encounter-template .cs-enc-footer {
   margin-top: 14px;
   padding-top: 10px;
   border-top: 1px solid #b9472c;
 }
-.cs-encounter-template .cs-enc-roll-btn,
+.cs-random-encounter-template .cs-enc-roll-btn,
 .cs-roll-result .cs-rr-roll-btn {
   padding: 6px 18px;
   font-size: 13px;
@@ -2511,14 +2672,14 @@ body {
   cursor: pointer;
   font-family: Georgia, serif;
 }
-.cs-encounter-template .cs-enc-roll-btn:hover,
+.cs-random-encounter-template .cs-enc-roll-btn:hover,
 .cs-roll-result .cs-rr-roll-btn:hover {
   background: #882f1f;
 }
 
 /* Encounter Roll Result Stub —
-   creatures_encounter_roll_result_stub.md.
-   Rendered above the main panel via #encounter-roll-result. */
+   creatures_random_encounter_roll_result_stub.md.
+   Rendered above the main panel via #random-encounter-roll-result. */
 .cs-roll-result {
   background: #fdf6e3;
   border: 1px solid #b9472c;
@@ -2569,3 +2730,136 @@ body {
   padding-top: 8px;
   border-top: 1px solid #b9472c;
 }
+
+/* ---- Turn Action Stub (turn_action_stub.md) ---- */
+.turn-action {
+  margin-top: 16px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+.ta-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.ta-title { margin: 0; font-size: 1.05rem; }
+.ta-state { font-weight: 600; }
+.ta-state-incapacitated { color: #b45309; }
+.ta-state-dead { color: #7f1d1d; }
+.ta-resources { display: flex; gap: 16px; font-variant-numeric: tabular-nums; }
+.ta-res-label {
+  color: #64748b;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.ta-body { display: flex; }
+.ta-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 150px;
+  padding: 12px;
+  border-right: 1px solid #e2e8f0;
+}
+.ta-menu-btn {
+  text-align: left;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  font: inherit;
+  cursor: pointer;
+}
+.ta-menu-btn:hover { background: #eef2f7; }
+.ta-menu-btn.ta-selected {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+.ta-panes { flex: 1; padding: 14px; }
+.ta-pane { display: none; }
+.ta-pane.ta-pane-active { display: block; }
+.ta-pane-h { margin: 0 0 8px; }
+.ta-pane-lead { margin: 0 0 12px; color: #334155; }
+.ta-pane-lead.ta-staged { color: #64748b; font-style: italic; }
+
+/* Attack result (turn_action_stub.md → Attack) */
+.ta-attack-loading { color: #64748b; font-style: italic; }
+.ta-dim { color: #94a3b8; font-size: 0.85em; }
+.ta-actions { margin-top: 12px; display: flex; gap: 8px; }
+.ta-warn { color: #b45309; }
+.ta-hit strong { color: #7f1d1d; }
+.ta-miss { color: #475569; }
+
+/* Check Resolution Builder option lines — reuse the .cr-mod-btn palette */
+.cb-line { padding: 2px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.cb-line .cr-mod-btn { margin-right: 0; }
+/* TN Bonus/Penalty breakdown shown after a group's dice buttons. */
+.cb-bonus-note { font-size: 11px; color: #555; font-style: italic; margin-left: 4px; }
+.roll-group-excluded { display: none; }
+
+/* Header quick-pick buttons (one per weapon = max dice), top-right of the
+   Weapon & dice step's controls. */
+/* Header quick-pick buttons (one per weapon = max dice), top-right of the
+   Weapon & dice step's controls. The generic `.rolls-actions button` rule
+   forces white text / no border, so re-assert the .cr-mod-btn palette here
+   (scoped under .rolls-actions to win on specificity) — matching the body
+   dice buttons. */
+.rolls-actions .cb-quick {
+  margin-left: 6px;
+  background: #fff;
+  color: #333;
+  border: 1px solid #bbb;
+}
+.rolls-actions .cb-quick:hover { background: #f0f0f0; }
+.rolls-actions .cb-quick:disabled { opacity: 0.4; background: #f3f3f3; color: #999; cursor: not-allowed; }
+
+/* Attack result block: shown beneath the (still-present) builder after the
+   first Confirm as a non-mutating preview, then again after committing. */
+.ta-result {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-top: 2px solid #c8c8c8;
+  background: #fafafa;
+  font-size: 12px;
+}
+.ta-result p { margin: 2px 0; }
+.ta-field { margin: 4px 0; display: flex; align-items: center; gap: 6px; }
+.ta-field label { font-weight: bold; color: #444; display: flex; align-items: center; gap: 4px; }
+.ta-field input { width: 56px; padding: 2px 4px; font-size: 12px; }
+.ta-split { color: #7f1d1d; }
+.ta-result-label { font-size: 11px; font-weight: bold; color: #8a5d00; margin-bottom: 4px; }
+.ta-result-committed { background: #eef7ee; border-top-color: #2c8a2c; }
+.ta-hit strong { color: #7f1d1d; }
+.ta-bleed strong { color: #b91c4c; }
+.ta-pool { color: #444; }
+.ta-builder-locked { opacity: 0.7; }
+
+/* Character-cell TN tooltip (dice_resolution_roll_tooltip.md computation
+   line) — shows how the Base TN plus Bonuses/Penalties formed the final TN
+   on hover/focus of the Roll's creature name. */
+.creature-name.has-tn-tip { position: relative; cursor: help; border-bottom: 1px dotted #999; }
+.creature-name .tn-tip {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 20;
+  white-space: nowrap;
+  background: #1f1f1f;
+  color: #fff;
+  font-size: 11px;
+  font-weight: normal;
+  font-style: normal;
+  padding: 4px 8px;
+  border-radius: 3px;
+  margin-top: 2px;
+}
+.creature-name.has-tn-tip:hover .tn-tip,
+.creature-name.has-tn-tip:focus .tn-tip { display: block; }

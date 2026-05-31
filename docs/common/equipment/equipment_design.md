@@ -362,13 +362,24 @@ Returns: the resulting Inventory.
 
 ### Visit Generic Shop
 
-Inputs: `shop_id`.
+Inputs: `shop_id`, `population`.
 
 Behavior:
-1. Look up the Active Generic Shop for `shop_id` and the current Game Day. If one exists, return it.
-2. Otherwise, *Roll Loot Table* against the Shop's `shop_template`. Persist the result as an Active Generic Shop with `generated_at_day = current_day`.
+1. Look up the Active Generic Shop for `shop_id` and the current Game Day. If one exists, return it (the first visit's `population` stands for the rest of the day).
+2. Otherwise, materialize fresh stock from the Generic Shop's population-scaled stocking rules (see *Generic Shop stocking*) and persist it as an Active Generic Shop with `generated_at_day = current_day`.
 
 Returns: the Active Generic Shop Owner ID.
+
+### Generic Shop stocking
+
+A Generic Shop in `shops.yaml` is **not** backed by a Loot Table. It declares a `name`, a purchasing-budget formula (`base_gold`, `gold_per_sqrt_pop`), and a `stock` list. Each stock entry carries `item`, `min_pop`, `qty_base`, `qty_per_kpop`, and an optional `tier` (selecting the variant for tier-array Item Types). Given a `population`:
+
+- **Budget** — the Shop's purchasing Gold, materialized as a Gold Stack in its Inventory:
+  `base_gold + floor(gold_per_sqrt_pop * sqrt(population))`.
+- **Per-item Quantity** — an entry is stocked only when `population >= min_pop`; its Quantity is
+  `qty_base + floor(qty_per_kpop * population / 1000)`.
+
+Population is the load-bearing variable: larger settlements stock deeper and carry more buying Gold. The result is a fully materialized Inventory (Gold Stack first, then one Stack per stockable entry).
 
 ### Advance Time
 

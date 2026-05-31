@@ -1,0 +1,68 @@
+require 'yaml'
+
+# Equipment domain. Sole owner of inventory data — Items a Creature
+# carries or wears, plus the Currency, Gem, Shop, Loot Table, Ground
+# Pile, and Loot Archive state that surround inventory mutation. See
+# docs/common/equipment/equipment_design.md.
+#
+# Other domains read or mutate items through the Equipment::Instance
+# public entry points rather than touching the YAML files directly.
+module Equipment
+  # Returned by entry points that refuse an operation (out-of-range
+  # reference, insufficient wealth, unknown owner, etc.). A dedicated
+  # object so it never collides with a legitimate return value.
+  ERROR = Object.new
+  def ERROR.to_s ; 'Equipment::ERROR' ; end
+  def ERROR.inspect ; 'Equipment::ERROR' ; end
+  ERROR.freeze
+
+  module_function
+
+  def error?(value)
+    value.equal?(ERROR)
+  end
+
+  def catalog
+    @catalog ||= Catalog.load
+  end
+
+  # The app-wide Equipment instance, backed by the persistence Dataset
+  # (data/equipment_data.yaml overlay) and the on-disk catalogs.
+  def instance
+    @instance ||= begin
+      ds = Dataset.load
+      shop_catalog = ShopCatalog.load
+      Instance.new(
+        catalog: catalog,
+        store: Dataset::StoreAdapter.new(ds),
+        creature_accessor: Dataset::CreatureAdapter.new(ds),
+        loot: LootTables.load,
+        generic_shops: shop_catalog.generic_shops,
+        game_day: shop_catalog.current_day
+      )
+    end
+  end
+
+  def reset!
+    @catalog = nil
+    @instance = nil
+  end
+end
+
+require_relative 'equipment/config'
+require_relative 'equipment/stack'
+require_relative 'equipment/dice_expression'
+require_relative 'equipment/pricing'
+require_relative 'equipment/display_name'
+require_relative 'equipment/details'
+require_relative 'equipment/store'
+require_relative 'equipment/dataset'
+require_relative 'equipment/loot_tables'
+require_relative 'equipment/shop_catalog'
+require_relative 'equipment/magical'
+require_relative 'equipment/loot'
+require_relative 'equipment/combat_loot'
+require_relative 'equipment/archive'
+require_relative 'equipment/consumption'
+require_relative 'equipment/shops'
+require_relative 'equipment/instance'

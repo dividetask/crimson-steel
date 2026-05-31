@@ -137,22 +137,22 @@ The output of *Get Effective Attributes*. A map from attribute key to integer. A
 
 The output of *Get Aggregated Modifiers* is a list of these entries. Per-Bonus-Type stacking is the consumer's responsibility — Creatures does not collapse entries.
 
-### Encounter Table Entry
+### Random Encounter Table Entry
 
-The schema for entries in `encounter_tables.yaml`. Looked up by table key (the YAML map key — typically a snake_case identifier like `slave_lords_caravan`).
+The schema for entries in `random_encounter_tables.yaml`. Looked up by table key (the YAML map key — typically a snake_case identifier like `slave_lords_caravan`).
 
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `name` | string | the table key | Display name. |
-| `rolls` | list of Encounter Row | required | Rows evaluated in order at *Roll Encounter* time. |
+| `rolls` | list of Random Encounter Row | required | Rows evaluated in order at *Roll Random Encounter* time. |
 
-### Encounter Row
+### Random Encounter Row
 
-Shares Equipment's Loot Roll Row shape — the same Guaranteed / Independent Chance / Weighted Choice / Gated Weighted Choice variants, the same `when` filter, the same `as` publishing of a Roll Variable. The only difference is the row payload: an Encounter Row produces a list of Spawn Refs instead of Item Stacks. A Roll Variable published by an Encounter Row may be referenced in later rows' `when` filters identically to Equipment's behavior.
+Shares Equipment's Loot Roll Row shape — the same Guaranteed / Independent Chance / Weighted Choice / Gated Weighted Choice variants, the same `when` filter, the same `as` publishing of a Roll Variable. The only difference is the row payload: an Random Encounter Row produces a list of Spawn Refs instead of Item Stacks. A Roll Variable published by an Random Encounter Row may be referenced in later rows' `when` filters identically to Equipment's behavior.
 
 ### Spawn Ref
 
-One instruction inside an Encounter Row payload. Each Spawn Ref expands into one or more new Creature records via *Spawn Creature From Template*.
+One instruction inside an Random Encounter Row payload. Each Spawn Ref expands into one or more new Creature records via *Spawn Creature From Template*.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
@@ -360,13 +360,13 @@ Returns: nothing.
 
 Creatures does **not** cascade the delete into other domains. Callers are expected to clean up Conditions state, Equipment inventory owned by `creature:<id>`, and any Combat Combatant pointing at the deleted ID — typically via Equipment's post-combat loot stub, which composes *Collect Combat Loot* + Combat's *Remove Combatant* + *Delete Creature* in sequence.
 
-### Roll Encounter
+### Roll Random Encounter
 
-Inputs: Encounter Table ID, optional Random Seed (for deterministic testing).
+Inputs: Random Encounter Table ID, optional Random Seed (for deterministic testing).
 
 Behavior:
-1. Read the Encounter Table by ID.
-2. Iterate the table's `rolls` in order. For each Encounter Row:
+1. Read the Random Encounter Table by ID.
+2. Iterate the table's `rolls` in order. For each Random Encounter Row:
    - Evaluate `when` against the current Roll Variables; skip if any pair mismatches.
    - Resolve the Row by its shape (Guaranteed / Independent Chance / Weighted Choice / Gated Weighted Choice).
    - If the Row publishes via `as`, store the resulting `key` in Roll Variables. A skipped Row does not publish.
@@ -374,17 +374,17 @@ Behavior:
 
 Returns: the list of new Creature IDs.
 
-*Roll Encounter* does not add the new Creatures to any Combat. The caller follows up with Combat's *Add Combatant* per ID.
+*Roll Random Encounter* does not add the new Creatures to any Combat. The caller follows up with Combat's *Add Combatant* per ID.
 
-### Load Encounter Tables / Save Encounter Tables
+### Load Random Encounter Tables / Save Random Encounter Tables
 
-- **Load Encounter Tables** — accept a dict of `table_id → Encounter Table Entry`. Validate every entry (rows reference real template IDs; `count` parses; `loot_table` overrides reference real tables in Equipment). Replace the loaded set.
-- **Save Encounter Tables** — produce the same shape.
+- **Load Random Encounter Tables** — accept a dict of `table_id → Random Encounter Table Entry`. Validate every entry (rows reference real template IDs; `count` parses; `loot_table` overrides reference real tables in Equipment). Replace the loaded set.
+- **Save Random Encounter Tables** — produce the same shape.
 
-### Add Encounter Table / Remove Encounter Table
+### Add Random Encounter Table / Remove Random Encounter Table
 
-- **Add Encounter Table** — `(table_id, Encounter Table Entry)`. Validates and inserts; refuses on duplicate ID.
-- **Remove Encounter Table** — `(table_id)`. No-op when absent.
+- **Add Random Encounter Table** — `(table_id, Random Encounter Table Entry)`. Validates and inserts; refuses on duplicate ID.
+- **Remove Random Encounter Table** — `(table_id)`. No-op when absent.
 
 ## Operations
 
@@ -517,7 +517,7 @@ Malformed records are rejected with a descriptive error naming the file and id; 
 - Max HP and Max Mana formula composition.
 - Modifier aggregation: walking Granted Abilities, evaluating `add` Formulas, returning Aggregated Modifier Entries.
 - Producing the Creature Accessor consumed by other domains.
-- `creatures_advancement.yaml`, `creatures_race.yaml`, `deities.yaml`, and `encounter_tables.yaml` catalogs.
+- `creatures_advancement.yaml`, `creatures_race.yaml`, `deities.yaml`, and `random_encounter_tables.yaml` catalogs.
 - Load-time validation of Creature Records.
 
 ### Explicitly *not* owned here

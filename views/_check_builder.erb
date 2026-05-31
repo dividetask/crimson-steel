@@ -1,0 +1,115 @@
+<%#
+  Check Resolution Builder (check_resolution_builder_stub.md).
+
+  A domain-agnostic, parameter-driven wizard that reuses the Save Resolution
+  stub's look: one "Rolls" wrapper whose header shows the active step's
+  controls, a stack of thin step-summary rows (each with a ↶ Change), the
+  active step's body, and the shared dice table. public/js/ui/checkBuilder.js
+  drives the steps from the data-builder blob and emits `check:confirmed`; the
+  builder never calls back into the host.
+
+  Local:
+    builder — the blob. See checkBuilder.js for the shape. Static steps render
+              their option buttons here; choice-dependent steps (options_by)
+              render their body in JS when reached. `rolls` seeds the table;
+              rolls flagged `excluded` start hidden.
+%>
+<%
+  require 'json'
+  require 'cgi'
+  b     = builder
+  rolls = b[:rolls] || []
+  steps = b[:steps] || []
+
+  # Server-render the option buttons for a static step (grouped, in order),
+  # using the same .cr-mod-btn palette the Save Resolution builder uses.
+  render_opts = lambda do |step|
+    opts = step[:options]
+    return '' unless opts && !opts.empty?
+    groups = {}
+    order  = []
+    opts.each do |o|
+      g = o[:group] || ''
+      (order << g) unless groups.key?(g)
+      (groups[g] ||= []) << o
+    end
+    order.map do |g|
+      buttons = groups[g].map do |o|
+        if o[:kind] == 'info'
+          # Non-interactive descriptive text (TN Bonus/Penalty breakdown).
+          %(<span class="cb-bonus-note">#{o[:label]}</span>)
+        else
+          %(<button type="button" class="cr-mod-btn cb-opt" data-step="#{step[:key]}" ) +
+            %(data-value="#{CGI.escapeHTML(o[:value].to_s)}"#{o[:disabled] ? ' disabled' : ''}>#{o[:label]}</button>)
+        end
+      end.join(' ')
+      %(<div class="cb-line">#{buttons}</div>)
+    end.join
+  end
+%>
+<div class="rolls-wrapper check-builder" data-state="building"
+     data-stub-id="<%= b[:stub_id] %>"
+     data-builder="<%= CGI.escapeHTML(b.to_json) %>">
+  <div class="rolls-header">
+    <span class="rolls-title"><span class="rolls-title-main"><%= b[:title] %></span></span>
+    <div class="rolls-actions">
+      <% steps.each_with_index do |st, i| %>
+        <div class="step-controls" data-step="<%= st[:key] %>" data-state="<%= i.zero? ? 'active' : 'pending' %>">
+          <span class="step-kind-label"><%= st[:label] %></span>
+          <%# Optional quick-pick buttons in the header (e.g. one per weapon = %>
+          <%# max dice). They are normal options resolved by value. %>
+          <% Array(st[:header_options]).each do |o| %>
+            <button type="button" class="cr-mod-btn cb-opt cb-quick" data-step="<%= st[:key] %>"
+                    data-value="<%= CGI.escapeHTML(o[:value].to_s) %>"<%= o[:disabled] ? ' disabled' : '' %>><%= o[:label] %></button>
+          <% end %>
+        </div>
+      <% end %>
+      <div class="step-controls" data-step="__dice" data-state="pending">
+        <button type="button" class="btn-roll-all">Roll All</button>
+        <button type="button" class="btn-confirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-summaries">
+    <% steps.each do |st| %>
+      <div class="step-summary" data-step="<%= st[:key] %>" hidden>
+        <span class="step-summary-label"><%= st[:label] %>:</span>
+        <span class="step-summary-value"></span>
+        <button type="button" class="cr-step-change" data-step="<%= st[:key] %>"><span class="cr-change-icon">↶</span> Change</button>
+      </div>
+    <% end %>
+  </div>
+
+  <% steps.each_with_index do |st, i| %>
+    <div class="step-body" data-step="<%= st[:key] %>" data-state="<%= i.zero? ? 'active' : 'pending' %>"><%= render_opts.call(st) %></div>
+  <% end %>
+
+  <div class="step-body step-body-dice" data-step="__dice" data-state="pending">
+    <table class="stub-table roll-table">
+      <colgroup>
+        <col class="col-character">
+        <col class="col-mod">
+        <col class="col-mod">
+        <col class="col-dice">
+        <col class="col-result">
+        <col class="col-result">
+        <col class="col-lock">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Character</th><th>Reroll</th><th>Nudge</th><th>Dice</th>
+          <th>Result</th><th>Crits</th><th></th>
+        </tr>
+      </thead>
+      <%= erb :_roll_stub, locals: { rolls: rolls, wrapper: false } %>
+    </table>
+  </div>
+
+  <%# On Confirm the builder collapses to a single net Degree of Success line
+      (Supporting Successes − Opposing Successes), filled by checkBuilder.js. %>
+  <div class="rolls-results" hidden>
+    <div class="cb-net"></div>
+    <button type="button" class="btn-rolls-change"><span class="cr-change-icon">↶</span> Change</button>
+  </div>
+</div>

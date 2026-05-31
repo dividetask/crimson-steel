@@ -10,9 +10,9 @@ A vertical sidebar. The top has a `Clear all enemies` button that emits a `clear
 
 Below the button, two stacked sections:
 
-### Encounter Tables
+### Random Encounter Tables
 
-A collapsible group titled `Encounter Tables`, listing every entry from `encounter_tables.yaml`. One row per Encounter Table. Each row shows the table's display name and a single `Roll` button. Clicking `Roll` emits a `roll_encounter` event carrying the table ID; the parent resolves it through Creatures' *Roll Encounter*, then iterates the returned new Creature IDs and calls Combat's *Add Combatant* for each, followed by Combat's *Reroll Initiative* with `missing_only = true`. The newly-spawned Creatures appear in the Creatures section below on the next render (under whichever `group` their template carried).
+A collapsible group titled `Random Encounter Tables`, listing every entry from `random_encounter_tables.yaml`. One row per Random Encounter Table. Each row shows the table's display name and a single `Roll` button. Clicking `Roll` emits a `roll_random_encounter` event carrying the table ID; the parent resolves it through Creatures' *Roll Random Encounter*, then iterates the returned new Creature IDs and calls Combat's *Add Combatant* for each, followed by Combat's *Reroll Initiative* with `missing_only = true`. The newly-spawned Creatures appear in the Creatures section below on the next render (under whichever `group` their template carried).
 
 ### Creatures
 
@@ -49,6 +49,6 @@ When the host page is showing a specific Creature, the sidebar highlights that C
 
 ## What this stub does not do
 
-- It does not roll Initiative directly. The parent page calls *Reroll Initiative* with `missing_only = true` after each *Add Combatant* (the standard pattern from `combat_design.md`).
+- It does not roll Initiative directly. The parent page calls *Reroll Initiative* with `missing_only = true` after each *Add Combatant* (the standard pattern from `encounter_design.md`).
 - It does not delete Creature records. The post-combat cleanup flow in `equipment_post_combat_creatures_stub.md` handles that — typically with both `Loot` and `Delete` toggled on for spawned enemies.
 - It does not edit Creature records. Editing is the responsibility of dedicated Creatures-domain UIs.

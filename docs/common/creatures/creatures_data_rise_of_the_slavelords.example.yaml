@@ -3,7 +3,7 @@
 # Crimson Steel's Rise-of-the-Slavelords campaign cast: slaver
 # captains, lieutenants, merchant escorts, and the orc / half-orc
 # soldiers they travel with. Pairs with the Caravan Ambush and
-# Stockade Patrol encounter tables in encounter_tables.yaml.
+# Stockade Patrol random encounter tables in random_encounter_tables.yaml.
 #
 # Loaded via the standard creatures_data_*.example.{yaml,json} glob.
 # Each template's `tags` include `enemy_template` plus

@@ -25,7 +25,7 @@ helpers do
     [
       { label: 'Home',             href: '/',                 dm_only: false },
       { label: 'Character Sheets', href: '/character-sheets', dm_only: false },
-      { label: 'Scene',            href: '/scene',            dm_only: false },
+      { label: 'Encounter',        href: '/encounter',        dm_only: false },
       { label: 'Store',            href: '/store',            dm_only: false },
       { label: 'Notes',            href: '/notes',            dm_only: false },
       { label: 'Social',           href: '/social',           dm_only: false },

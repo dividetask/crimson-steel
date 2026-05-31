@@ -22,3 +22,4 @@ end
 require_relative 'conditions/catalog'
 require_relative 'conditions/state'
 require_relative 'conditions/instance'
+require_relative 'conditions/store'

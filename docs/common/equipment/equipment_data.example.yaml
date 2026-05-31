@@ -61,6 +61,10 @@ characters:
         tier: 0
         quantity: 2
       - item: Lute
+      - item: Ritual book
+        equipped: true
+        inscribed_spells:
+          - detect_magic
       - item: Rations
         quantity: 5
       - item: Bedroll
@@ -268,6 +272,121 @@ characters:
       - item: Mace
         equipped: true
       - item: Robes
+        equipped: true
+
+  # General Red Tier templates (creatures_data_general_red_tier) — give the
+  # goblins a real weapon so the combat tracker has weapon dice to work with.
+  302:  # Goblin — short sword + light shield (can Parry and Block)
+    inventory:
+      - item: Short sword
+        equipped: true
+      - item: Light wooden shield
+        equipped: true
+      - item: Leather armor
+        equipped: true
+  303:  # Goblin Archer — hand crossbow + dagger sidearm
+    inventory:
+      - item: Hand crossbow
+        equipped: true
+      - item: Bolt
+        quantity: 20
+      - item: Dagger
+        equipped: true
+      - item: Leather armor
+        equipped: true
+  304:  # Cultist — dagger + robes
+    inventory:
+      - item: Dagger
+        equipped: true
+      - item: Robes
+        equipped: true
+  305:  # Cult Fanatic — mace + leather
+    inventory:
+      - item: Mace
+        equipped: true
+      - item: Leather armor
+        equipped: true
+
+  # Rise of the Slavelords templates (creatures_data_rise_of_the_slavelords).
+  350:  # Slaver Merchant — dagger
+    inventory:
+      - item: Dagger
+        equipped: true
+      - item: Studded leather
+        equipped: true
+  351:  # Slaver Lieutenant — long sword + chain shirt
+    inventory:
+      - item: Long sword
+        equipped: true
+      - item: Chain shirt
+        equipped: true
+  352:  # Half-Orc Soldier — spear + hide armor
+    inventory:
+      - item: Spear
+        equipped: true
+      - item: Hide armor
+        equipped: true
+  353:  # Orc Interpreter — short sword
+    inventory:
+      - item: Short sword
+        equipped: true
+      - item: Leather armor
+        equipped: true
+  354:  # Stockade Guard — mace + light shield
+    inventory:
+      - item: Mace
+        equipped: true
+      - item: Light wooden shield
+        equipped: true
+      - item: Chain shirt
+        equipped: true
+
+  # Fey Favors templates (creatures_data_fey_favors) — fey, not animals, so
+  # they carry a weapon (mostly light/improvised blades).
+  400:  # Sprite — dagger
+    inventory:
+      - item: Dagger
+        equipped: true
+  401:  # Pixie — dagger
+    inventory:
+      - item: Dagger
+        equipped: true
+  402:  # Dryad — quarterstaff
+    inventory:
+      - item: Quarterstaff
+        equipped: true
+  403:  # Brownie — dagger
+    inventory:
+      - item: Dagger
+        equipped: true
+  404:  # Will-o'-Wisp Spark — dagger (token sidearm; fights mainly by other means)
+    inventory:
+      - item: Dagger
+        equipped: true
+
+  # NPC quest-giver (creatures_data_npcs).
+  2001:  # Daven Korr — dagger (a townsman's belt knife)
+    inventory:
+      - item: Dagger
+        equipped: true
+
+  # Shipped in-progress-combat instances (creatures_data_combat_example):
+  # the two Goblins carry the same gear as their 302 template.
+  2004:  # Goblin A — short sword + light shield
+    inventory:
+      - item: Short sword
+        equipped: true
+      - item: Light wooden shield
+        equipped: true
+      - item: Leather armor
+        equipped: true
+  2005:  # Goblin B — short sword + light shield
+    inventory:
+      - item: Short sword
+        equipped: true
+      - item: Light wooden shield
+        equipped: true
+      - item: Leather armor
         equipped: true
 
 # =====================================================================

@@ -29,3 +29,184 @@ characters:
     attributes: { str: 10, dex: 14, con: 10, int: 12, wis: 14, cha: 16 }
     advancement:
       classes: {}
+
+  # ---- Former adventuring companions, now NPCs. Keep their original
+  # ids so Equipment loadouts (keyed creature:<id>) stay valid. ----
+
+  - id: 2
+    name: Bryn Ironvein
+    group: npc
+    tags: []
+    race: dwarf
+    attributes:
+      str: 18
+      dex: 10
+      con: 17
+      int: 9
+      wis: 12
+      cha: 8
+    advancement:
+      classes:
+        fighter:
+          level: 3
+          skills:
+            - athletics
+            - intimidate
+            - perception
+
+  - id: 4
+    name: Kass Thorne
+    group: npc
+    tags: []
+    race: halfling
+    attributes:
+      str: 10
+      dex: 19
+      con: 13
+      int: 14
+      wis: 12
+      cha: 11
+    advancement:
+      classes:
+        rogue:
+          level: 3
+          skills:
+            - stealth
+            - larceny
+            - sleight_of_hand
+            - perception
+            - acrobatics
+            - deception
+
+  - id: 5
+    name: Rowan Vale
+    group: npc
+    tags: []
+    race: half_elf
+    attributes:
+      str: 14
+      dex: 17
+      con: 13
+      int: 11
+      wis: 16
+      cha: 10
+    advancement:
+      classes:
+        ranger:
+          level: 3
+          choices:
+            spellcasting:
+              - heal_lesser_wounds
+          skills:
+            - survival
+            - perception
+            - stealth
+            - nature
+            - animal_handling
+
+  - id: 6
+    name: Ember Blackoak
+    group: npc
+    tags: []
+    race: half_orc
+    attributes:
+      str: 13
+      dex: 11
+      con: 15
+      int: 10
+      wis: 18
+      cha: 9
+    advancement:
+      classes:
+        druid:
+          level: 3
+          choices:
+            spellcasting:
+              - entangle
+              - heal_lesser_wounds
+          skills:
+            - nature
+            - survival
+            - perception
+            - animal_handling
+            - healing
+
+  - id: 9
+    name: Veyl Aetheris
+    group: npc
+    tags: []
+    race: high_elf
+    tier: 2
+    attributes:
+      str: 7
+      dex: 13
+      con: 11
+      int: 11
+      wis: 11
+      cha: 11
+    advancement:
+      tier_attribute_advancement:
+        - dex
+        - cha
+      classes:
+        arcane_trickster:
+          level: 4
+          choices:
+            spellcasting:
+              - fire_dart
+              - message
+              - silent_portal
+              - create_illusionary_sound
+              - hideous_laughter
+              - illusion_of_calm
+              - auditory_hallucination
+          skills:
+            - arcana
+            - stealth
+            - larceny
+            - sleight_of_hand
+            - deception
+            - persuasion
+            - perception
+            - game_chess
+
+  - id: 10
+    name: Pippin Hoofstride
+    group: npc
+    tags: []
+    race: satyr
+    tier: 2
+    attributes:
+      str: 9
+      dex: 12
+      con: 12
+      int: 10
+      wis: 11
+      cha: 12
+    advancement:
+      tier_attribute_advancement:
+        - dex
+        - cha
+      classes:
+        bard:
+          level: 4
+          choices:
+            spellcasting:
+              - heal_petty_wounds
+              - detect_overt_magic
+              - create_illusionary_sound
+              - friends
+              - sift
+              - vacuous_vessel
+              - vicious_mockery
+              - biting_words
+              - ears_of_the_city
+              - create_illusionary_image
+              - timely_inspiration
+          skills:
+            - perform_sing
+            - perform_percussion
+            - animal_handling
+            - persuasion
+            - evocation
+            - perception

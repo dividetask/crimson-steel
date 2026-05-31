@@ -5,6 +5,7 @@
     { key: 'check',         label: 'Check Resolution', href: '/status?view=check' },
     { key: 'conditions',    label: 'Conditions',       href: '/status?view=conditions' },
     { key: 'creatures',     label: 'Creatures',        href: '/status?view=creatures' },
+    { key: 'encounter',     label: 'Encounter',        href: '/status?view=encounter' },
     { key: 'timekeeping',   label: 'Timekeeping',      href: '/status?view=timekeeping' },
     { key: 'chronicle',     label: 'Chronicle',        href: '/status?view=chronicle' }
   ]
@@ -65,6 +66,20 @@
         <%= erb :_creature_minimal, locals: { demo: demo } %>
         <%= erb :_creature_full,    locals: { demo: demo } %>
       <% end %>
+
+    <% when 'encounter' %>
+      <h1>Encounter &mdash; Combat Tracker Stub</h1>
+      <p class="lead">The Encounter Initiative Stub (<code>docs/common/ui/encounter_initiative_stub.md</code>), rendered once per scenario to compare how it looks across viewer roles and Combat state. The live tracker lives on <code>/encounter</code> and is fed from the Encounter, Creatures, and Conditions domains; these examples use hand-curated rows.</p>
+      <div class="tk-stack">
+        <% @encounter_scenarios.each do |sc| %>
+          <div class="tk-stack-row">
+            <div class="tk-stack-label"><%= sc[:label] %></div>
+            <%= erb :_initiative_stub, locals: {
+                  rows: sc[:rows], combat_active: sc[:combat_active],
+                  viewer: sc[:viewer], round_label: sc[:round_label], static: true } %>
+          </div>
+        <% end %>
+      </div>
 
     <% when 'timekeeping' %>
       <h1>Timekeeping</h1>

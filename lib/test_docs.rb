@@ -17,26 +17,33 @@ module TestDocs
   PATHS = {
     'dice'       => File.expand_path('../docs/common/dice_resolution/dice_resolution_tests.md', __dir__),
     'check'      => File.expand_path('../docs/common/check_resolution/check_resolution_tests.md', __dir__),
-    'conditions' => File.expand_path('../docs/common/conditions/conditions_tests.md', __dir__)
+    'conditions' => File.expand_path('../docs/common/conditions/conditions_tests.md', __dir__),
+    'encounter'  => File.expand_path('../docs/common/encounter/encounter_tests.md', __dir__)
   }.freeze
 
   TITLES = {
     'dice'       => 'Dice Resolution — Tests',
     'check'      => 'Check Resolution — Tests',
-    'conditions' => 'Conditions — Tests'
+    'conditions' => 'Conditions — Tests',
+    'encounter'  => 'Encounter — Tests'
   }.freeze
+
+  # Views whose test files use bracketed integer lists for non-dice
+  # purposes (config rates, Turns Per Round, Time Tick Schedules), so
+  # TN-based Success coloring is disabled to avoid mis-coloring them.
+  # Genuine dice arrays still render with 1s red and the Die Size blue.
+  NO_TN_VIEWS = %w[conditions encounter].freeze
 
   module_function
 
   def render_for(view_key)
     path = PATHS[view_key]
     return nil unless path && File.exist?(path)
-    # The 'conditions' test file uses [amount, tick_length] config
-    # pairs (e.g. `[1, 7]` for Heal Rate) that the dice regex would
-    # otherwise misread as dice rolls. Disable TN-based Success
-    # coloring there; 1s still render red, Die Size still renders
-    # blue.
-    apply_tn = view_key != 'conditions'
+    # Some test files use [amount, tick_length]-style config pairs that
+    # the dice regex would otherwise misread as dice rolls (see
+    # NO_TN_VIEWS). Disable TN-based Success coloring there; 1s still
+    # render red, Die Size still renders blue.
+    apply_tn = !NO_TN_VIEWS.include?(view_key)
     parse_to_html(File.read(path, encoding: 'UTF-8'), apply_tn)
   end
 

@@ -1,0 +1,42 @@
+# Spawned-instance Creatures for the shipped in-progress-combat example
+# (encounter_data.example.json): a Wolf and two Goblins cloned from their
+# General Red Tier templates (301 / 302). Each carries `spawned_from` so the
+# Roster Sidebar / Character Sheets group them under their template, and each
+# is a distinct Creature with its own id — so damaging one does not affect the
+# others. In live play these records are created by Spawn Creature From
+# Template and written to data/; they are shipped here only so the example
+# encounter has real Creatures to reference on a fresh checkout.
+
+characters:
+  - id: 2003
+    name: Wolf
+    group: enemy
+    tags: [category:general_red_tier]
+    race: beast
+    attributes: { str: 12, dex: 15, con: 13, int: 3, wis: 12, cha: 6 }
+    advancement:
+      classes:
+        commoner: 1
+    spawned_from: 301
+
+  - id: 2004
+    name: Goblin A
+    group: enemy
+    tags: [category:general_red_tier]
+    race: goblin
+    attributes: { str: 8, dex: 14, con: 10, int: 9, wis: 8, cha: 8 }
+    advancement:
+      classes:
+        rogue: 1
+    spawned_from: 302
+
+  - id: 2005
+    name: Goblin B
+    group: enemy
+    tags: [category:general_red_tier]
+    race: goblin
+    attributes: { str: 8, dex: 14, con: 10, int: 9, wis: 8, cha: 8 }
+    advancement:
+      classes:
+        rogue: 1
+    spawned_from: 302

@@ -34,6 +34,27 @@ test('Defending receives inversions from every Supporting Roll', () => {
   assert.equal(params.opposing[0].tn, 7);
 });
 
+test('Equal opposing bonuses cancel: +2 attacker vs +2 defender both land at TN 6', () => {
+  // The combat scenario: each side has a +2 Competency. Propagation inverts
+  // the opponent's +2 onto each roll, so each nets to 0 and stays at Base TN 6.
+  const params = CheckResolution.computeParameters({
+    supporting: [{ bonusPenaltyList: [['Competency', 2]] }],
+    opposing: [{ bonusPenaltyList: [['Competency', 2]] }],
+  });
+  assert.equal(params.supporting[0].tn, 6);
+  assert.equal(params.opposing[0].tn, 6);
+});
+
+test('previewParameters returns the propagated bonusPenaltyList for display', () => {
+  const params = CheckResolution.previewParameters({
+    supporting: [{ bonusPenaltyList: [['Competency', 2]] }],
+    opposing: [{ bonusPenaltyList: [['Competency', 2]] }],
+  });
+  // Attacker roll: own +2, plus the inverted defender +2 => -2.
+  assert.deepEqual(params.supporting[0].bonusPenaltyList, [['Competency', 2], ['Competency', -2]]);
+  assert.equal(params.supporting[0].tn, 6);
+});
+
 test('Non-lead Supporting Rolls receive only the Defender inversion', () => {
   const params = CheckResolution.computeParameters({
     supporting: [{ bonusPenaltyList: [['A', 5]] }, { bonusPenaltyList: [] }],

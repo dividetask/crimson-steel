@@ -117,6 +117,24 @@
       mass_reroll:    serialize_mass.call(roll[:mass_reroll]),
       nudge:          serialize_amount.call(roll[:nudge])
     }
+    # Optional TN-breakdown fields (used by the Check Resolution Builder to
+    # show how Bonuses/Penalties formed the TN — dice_resolution_roll_tooltip.md).
+    group_config[:base_tn]            = roll[:base_tn]            if roll[:base_tn]
+    group_config[:bonus_penalty_list] = roll[:bonus_penalty_list] if roll[:bonus_penalty_list]
+    group_config[:speed]              = roll[:speed]             if roll.key?(:speed)
+
+    # Computation line for the character-cell TN tooltip: "Base ±mods = TN n".
+    # A Bonus lowers the TN, so it shows as a negative term ("−2 Competency");
+    # a Penalty raises it, shown as positive. (This is the pre-JS fallback; the
+    # Check Builder re-renders it via Check Resolution after propagation.)
+    tn_breakdown =
+      if roll[:base_tn]
+        terms = Array(roll[:bonus_penalty_list]).map do |type, amt|
+          infl = -amt
+          "#{infl >= 0 ? '+' : '−'}#{infl.abs} #{type}"
+        end
+        "#{roll[:base_tn]}#{terms.empty? ? '' : ' ' + terms.join(' ')} = TN #{roll[:tn]}"
+      end
 
     starting_value = roll[:starting_value].to_i
     starting_squares_html = +''
@@ -129,10 +147,10 @@
     end
   %>
 
-  <tbody class="roll-group" data-roll-idx="<%= roll_idx %>" data-config='<%= group_config.to_json %>'>
+  <tbody class="roll-group<%= ' roll-group-excluded' if roll[:excluded] %>" data-roll-idx="<%= roll_idx %>"<%= roll[:id] ? %( data-roll-id="#{roll[:id]}") : '' %><%= roll[:side] ? %( data-side="#{roll[:side]}") : '' %> data-config='<%= group_config.to_json %>'<%= ' hidden' if roll[:excluded] %>>
     <tr class="roll-row row-initial">
       <td rowspan="<%= row_count %>" class="character-cell">
-        <span class="stub-line creature-name"><%= roll[:creature_name] %></span>
+        <span class="stub-line creature-name<%= ' has-tn-tip' if tn_breakdown %>"<%= tn_breakdown ? %( tabindex="0" data-tn-tip="#{tn_breakdown}") : '' %>><%= roll[:creature_name] %><% if tn_breakdown %><span class="tn-tip"><%= tn_breakdown %></span><% end %></span>
         <span class="stub-line params"><%= roll[:dice_count] %> dice @ TN <%= roll[:tn] %><%= starting_text %></span>
         <span class="stub-line roll-name"><em>(<%= roll[:roll_name] %>)</em></span>
       </td>

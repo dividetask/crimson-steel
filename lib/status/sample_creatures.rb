@@ -53,42 +53,69 @@ module Status
     # Grouped roster for the Roster Sidebar
     # (docs/common/ui/creatures_roster_sidebar_stub.md). New shape:
     # players + npcs are top-level lists; each themed category mixes
-    # creature templates and encounter tables under one heading.
+    # creature templates and random encounter tables under one heading.
+    # Per-row state (Player Active/Absent, NPC Active/Absent,
+    # template copy_count) is pulled from the live Encounter roster.
     def roster
       players = []
       npcs    = []
-      by_category = Hash.new { |h, k| h[k] = { templates: [], encounter_tables: [] } }
+      by_category = Hash.new { |h, k| h[k] = { templates: [], random_encounter_tables: [] } }
+      enc_state = Encounter.state
+      spawned   = spawned_by_template(enc_state)
 
       demos.each_with_index do |demo, idx|
         group = demo[:roster_group] || :players
         row = { id: demo[:id], name: demo[:header][:name],
-                copy_count: 0, sheet_index: idx }
+                copy_count: enc_state.copy_count(demo[:id]), sheet_index: idx }
         case group
         when :players
-          row[:active] = true # default Active
+          row[:active] = !enc_state.pc_excluded?(demo[:id])
           players << row
         when :npcs
-          row[:active] = false # default Inactive per design
+          row[:active] = enc_state.includes_creature?(demo[:id])
           npcs << row
         when :template
           cat = demo[:category]
+          # Spawned instances cloned from this template, in roster order.
+          children = spawned[demo[:id].to_s] || []
+          row[:spawned]    = children
+          row[:copy_count] = children.length
           by_category[cat][:templates] << row if cat
         end
       end
 
       Status::SampleCreatures.sample_encounter_tables.each do |t|
-        by_category[t[:category]][:encounter_tables] << t
+        by_category[t[:category]][:random_encounter_tables] << t
       end
 
       categories = CATEGORIES.map do |c|
         bucket = by_category[c[:key]]
-        c.merge(templates: bucket[:templates], encounter_tables: bucket[:encounter_tables])
+        c.merge(templates: bucket[:templates], random_encounter_tables: bucket[:random_encounter_tables])
       end
 
       { players: players, npcs: npcs, categories: categories }
     end
 
-    # Encounter Tables surfaced to the Roster Sidebar. Each entry is
+    # Map of template id (string) => list of spawned-instance rows
+    # currently in the Encounter roster, in roster order. A spawned
+    # Creature records the template it was cloned from in its
+    # `spawned_from` field (see Creatures::RandomEncounter.spawn_from_template).
+    def spawned_by_template(enc_state)
+      out = Hash.new { |h, k| h[k] = [] }
+      enc_state.combatants.each do |c|
+        rec = (Creatures::Dataset.get(c[:creature_id]) rescue nil)
+        next unless rec && rec[:spawned_from]
+        name = c[:name].to_s.empty? ? rec[:name] : c[:name]
+        out[rec[:spawned_from].to_s] << {
+          creature_id:  c[:creature_id],
+          combatant_id: c[:id],
+          name:         name
+        }
+      end
+      out
+    end
+
+    # Random Encounter Tables surfaced to the Roster Sidebar. Each entry is
     # filed under one of the CATEGORIES above via its `category` key.
     def sample_encounter_tables
       [
@@ -103,11 +130,11 @@ module Status
     end
 
     # Sample roll-result fixtures keyed by encounter table id. Used
-    # by /encounters/roll/<table_id> on the Character Sheets page —
+    # by /random_encounters/roll/<table_id> on the Character Sheets page —
     # the Combat / enemy-data-file side effects of a roll aren't
     # wired yet, so the panel pulls from this curated set instead of
-    # calling Creatures.roll_encounter. The shape matches the
-    # creatures_encounter_roll_result_stub.md `result` parameter.
+    # calling Creatures.roll_random_encounter. The shape matches the
+    # creatures_random_encounter_roll_result_stub.md `result` parameter.
     def sample_roll_results
       {
         'slave_lords_caravan' => [
@@ -250,7 +277,7 @@ module Status
           { name: 'Versatile Performance',   description: 'No description yet.' }
         ],
         spells: [
-          { tier: 0, names: ['Mending'] },
+          { tier: 0, names: ['Repair'] },
           { tier: 1, names: ['Charm Person', 'Healing Word'] },
           { tier: 2, names: ['Suggestion'] }
         ],
@@ -492,6 +519,72 @@ module Status
       ]
     end
 
+    # Bridge a live Creatures::Accessor to the demo Hash the sheet
+    # partials consume. Used to render spawned Creatures (instances
+    # cloned from a template) that aren't in the hand-curated `demos`.
+    # Vitals (HP / Mana / Speed), attributes, and skills are computed
+    # from the Accessor; abilities come from granted_abilities. Items
+    # stay empty until the Equipment domain lands.
+    def live_demo(accessor)
+      rec = accessor.record
+      attrs = Creatures::Config.attribute_keys.each_with_object({}) do |k, h|
+        h[k] = accessor.base_attribute_value(k)
+      end
+      classes = rec[:classes].map do |key, entry|
+        { key: key, level: entry[:level], trained_skills: Array(entry[:skills]) }
+      end
+
+      race_label  = (rec[:race] || '').to_s.split('_').map(&:capitalize).join(' ')
+      class_label = classes.map { |c| "#{c[:key].split('_').map(&:capitalize).join(' ')} #{c[:level]}" }.join(' / ')
+      summary     = [race_label, class_label].reject(&:empty?).join(' ')
+
+      tier    = (accessor.tier rescue 0)
+      max_hp  = (accessor.max_hit_points rescue 0)
+      max_mana = (accessor.max_mana rescue 0)
+      bab     = (accessor.ranks_for('martial') rescue 0)
+      init    = (accessor.attribute_value(:wis) rescue 0) / 2
+
+      abilities = (accessor.granted_abilities rescue []).map do |g|
+        { name: g[:name], description: 'No description yet.' }
+      end
+
+      base_data(
+        id: accessor.id,
+        label: accessor.name,
+        roster_group: :template,
+        header: { name: accessor.name, player: accessor.player, summary: summary, tier: tier, bab: bab },
+        attributes: attrs,
+        classes: classes,
+        vitals: {
+          hp:   { current: max_hp, max: max_hp },
+          mana: { current: max_mana, max: max_mana, regen: 0 },
+          toxicity: { current: 0, threshold: 0 },
+          temp_hp: 0, moderate_damage: 0, major_damage: 0,
+          combat_pool: 0, damage_reduction: 0, damage_resilience: 0
+        },
+        initiative: { dice_count: init },
+        perception: { dice: 3, bonus: 0 },
+        speed: (accessor.speed rescue 30),
+        actions: [
+          { name: 'Dodge', speed: 0, roll: '3d', attack_bonus: 0, dmg_bonus: nil, bleed: nil, mt: nil, notes: '' }
+        ],
+        attributes_table: live_attributes_table(attrs),
+        items: { equipped: [], consumable: [], ammunition: [], other: [] },
+        item_descriptions: [],
+        abilities: abilities,
+        spells: [], rituals: [], item_spells: [],
+        active_effects: [], usable_spells: [], notes: []
+      )
+    end
+
+    def live_attributes_table(attrs)
+      %i[Strength Dexterity Constitution Intelligence Wisdom Charisma]
+        .zip(%i[str dex con int wis cha]).map do |label_name, k|
+        { attr: label_name.to_s, score: attrs[k], half: attrs[k] / 2,
+          check: { dice: 3, bonus: 0 }, save: { dice: 3, bonus: 0 } }
+      end
+    end
+
     # Build a simple_demo for one themed template entry.
     def template_demo(id:, name:, race:, tier:, attrs:, classes:, category:)
       summary_parts = []
@@ -561,39 +654,52 @@ module Status
       rest
     end
 
-    # For each (class_key, level, trained_skill) triple, compute the
-    # rate, the rank contribution, the driving attribute, the
-    # Direct Prowess (ranks + floor(attribute/2)), and the
-    # translated dice / bonus. Aggregates across class entries when
-    # a Creature multi-classes the same trained skill — each class
-    # contributes its own rate × level via Ranks.ranks_for_skill,
-    # and the totals are summed.
+    # For each trained skill across the Creature's classes, request
+    # the Roll inputs (Dice Cap + Competency Modifier) from
+    # Proficiencies' *Compute Roll inputs* entry point rather than
+    # recomputing Prowess here. Ranks are summed across classes by the
+    # same Proficiencies entry point via the shim's `ranks_for`.
     def compute_skills(classes, attributes)
-      acc = {}
-      classes.each do |entry|
-        class_key = entry[:key]
-        level     = entry[:level]
-        entry[:trained_skills].each do |skill_key|
-          ranks = Proficiencies::Ranks.ranks_for_skill(class_key, level, skill_key, trained: true)
-          attr_key = Proficiencies.attribute_for(skill_key)
-          next unless attr_key
-          slot = acc[skill_key] ||= { ranks: 0, attr_key: attr_key }
-          slot[:ranks] += ranks
-        end
-      end
-      acc.map do |skill_key, slot|
-        attr_val = attributes[slot[:attr_key]] || 0
-        # Direct Prowess (no floor lift, no substitution — we don't
-        # have the Floor / Substitution abilities wired in yet).
-        prowess  = slot[:ranks] + (attr_val / 2)
-        dice, bonus = DiceResolution.translate_prowess(prowess)
+      shim = SkillShim.new(classes, attributes)
+      trained = classes.flat_map { |e| Array(e[:trained_skills]) }.uniq
+      trained.filter_map do |skill_key|
+        next unless Proficiencies.attribute_for(skill_key) # skip unknown keys
+        inputs = Proficiencies::Compute.roll_inputs(key: skill_key, creature: shim)
+        bonus  = inputs[:competency_modifier] ? inputs[:competency_modifier][1] : 0
         {
-          name: pretty_skill_name(skill_key),
-          ranks: slot[:ranks],
-          dice: dice,
+          name:  pretty_skill_name(skill_key),
+          ranks: shim.ranks_for(skill_key),
+          dice:  inputs[:dice_cap],
           bonus: bonus
         }
       end
+    end
+
+    # Minimal Creature-like adapter over sample (classes, attributes)
+    # data so Proficiencies::Compute can resolve Roll inputs. Mirrors
+    # the subset of the Creatures Accessor that Compute touches. Floor
+    # / Substitution abilities aren't modeled for sample data, so the
+    # ability predicates return their empty answers.
+    class SkillShim
+      def initialize(classes, attributes)
+        @classes    = classes
+        @attributes = attributes
+      end
+
+      def ranks_for(key)
+        key = key.to_s
+        @classes.sum do |entry|
+          trained = Array(entry[:trained_skills]).include?(key)
+          Proficiencies::Ranks.ranks_for_skill(entry[:key], entry[:level], key, trained: trained)
+        end
+      end
+
+      def attribute_value(attr)
+        @attributes[attr.to_sym] || 0
+      end
+
+      def has_ability(_name) = false
+      def level_for_ability(_name) = 0
     end
 
     # Render `perform_dance` as `Perform (Dance)`, `sleight_of_hand`
