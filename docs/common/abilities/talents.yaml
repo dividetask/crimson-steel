@@ -205,15 +205,11 @@ Wild Kinship:
   range: Self
   target: self
   mana_cost: 4
-  description: "The umbrella ability for the Druid's animal-bond system. Passive: each picked animal grants a +1 Racial bonus to a stat, a +1 Racial bonus to a skill (or save, for horse), an affinity tag (consumed by Speak with Animals / Animal Eyes saves), and — only if native to the Druid's Favored Terrain — the animal's 'halfway-to-animal' granted_abilities perk package. Active: spend 4 mana to shift into a previously unlocked animal form, replacing racial bonuses with the animal's wild_shape_racial_adjustment (shifting does NOT re-grant the perk package — it is already in effect from picking). Cast time starts at 1 turn + 1 turn per size difference; each later Animal Pick advances unlocked animals one step (multiple turns → 1 full → 1 main → 1 bonus). Newly picked animals unlock at the next Animal Pick (or the one after, if off Favored Terrain). Reverting takes 1 full turn at no mana cost. The animal catalog lives in creatures/druid_animals.yaml (provided separately)."
-
-Animal Pick:
-  type: talent
-  description: "Triggers one application of Wild Kinship. The Druid picks one animal from creatures/druid_animals.yaml; the key is appended to choices.wild_shape_animals (order matters — unlock cadence and speed advancement walk the list). Druids pick at Class Levels 1, 2, 4, 8, and 16. The level-1 pick also fixes the Druid's Favored Terrain from the chosen animal's terrain."
+  description: "The umbrella ability for the Druid's animal-bond system. The Druid picks one animal at Class Levels 1, 2, 4, 8, and 16; each picked key is appended to choices.wild_shape_animals (order matters — unlock cadence and speed advancement walk the list). The level-1 pick also fixes the Druid's Favored Terrain from the chosen animal's terrain. Passive: each picked animal grants a +1 Racial bonus to a stat, a +1 Racial bonus to a skill (or save, for horse), an affinity tag (consumed by Speak with Animals / Animal Eyes saves), and — only if native to the Druid's Favored Terrain — the animal's 'halfway-to-animal' granted_abilities perk package. Active: spend 4 mana to shift into a previously unlocked animal form, replacing racial bonuses with the animal's wild_shape_racial_adjustment (shifting does NOT re-grant the perk package — it is already in effect from picking). Cast time starts at 1 turn + 1 turn per size difference; each later pick advances unlocked animals one step (multiple turns → 1 full → 1 main → 1 bonus). Newly picked animals unlock at the next pick (or the one after, if off Favored Terrain). Reverting takes 1 full turn at no mana cost. The animal catalog lives in creatures/druid_animals.yaml (provided separately)."
 
 Favored Terrain:
   type: talent
-  description: "Set by the Druid's first Animal Pick at Class Level 1; names a terrain from the druid_animals catalog. Picked animals native to this terrain confer their full granted_abilities perk package and unlock for wild-shape on the next Animal Pick. Off-Favored-Terrain picks suppress the perk package and delay the wild-shape unlock by one extra pick."
+  description: "Set by the Druid's first Wild Kinship pick at Class Level 1; names a terrain from the druid_animals catalog. Picked animals native to this terrain confer their full granted_abilities perk package and unlock for wild-shape on the next pick. Off-Favored-Terrain picks suppress the perk package and delay the wild-shape unlock by one extra pick."
 
 Animal Companion:
   type: talent

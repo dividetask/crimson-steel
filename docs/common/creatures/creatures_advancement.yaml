@@ -149,14 +149,10 @@ Classes:
       aligned: [int, wis]
       opposed: [str, dex, con, cha]
     ability_progression:
-      "1": [druidic_spellcasting, wild_kinship, animal_pick, favored_terrain]
-      "2": [animal_pick]
-      "4": [animal_pick]
-      "8": [animal_pick]
-      "16": [animal_pick]
-    # The Druid picks an animal at Class Levels 1, 2, 4, 8, and 16 (each
-    # `animal_pick` is one application of Wild Kinship). Order matters —
-    # see the `animal_pick` Talent. The animal catalog itself
+      "1": [druidic_spellcasting, wild_kinship, favored_terrain]
+    # Wild Kinship is the umbrella animal-bond system: the Druid picks an
+    # animal at Class Levels 1, 2, 4, 8, and 16 (order matters — unlock
+    # cadence and speed advancement walk the list). The animal catalog
     # (`creatures/druid_animals.yaml`) is provided separately.
     granted_spells:
       - Speak with Plants
