@@ -19,6 +19,11 @@ module Creatures
       data['Deities'] || {}
     end
 
+    # Domain catalog: domain name -> definition string.
+    def domains
+      data['Domains'] || {}
+    end
+
     def domain_spells(deity_name, domain_name)
       d = deities[deity_name.to_s]
       return [] unless d

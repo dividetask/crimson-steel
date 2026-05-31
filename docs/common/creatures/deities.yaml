@@ -1,23 +1,324 @@
 # Deities catalog.
 #
-# Each entry: deity name -> { domains: [list], domain_spells: { domain: [spells] } }
+# Each entry: deity name -> { domains: [list], description: string,
+#                             domain_spells: { domain: [spells] } }
 #
 # A Cleric Creature's `choices.deity` names a deity here; their
 # `choices.domain` names one of that deity's domains. The Creature
 # gains the domain's spell list in addition to the Class-level
 # `granted_spells` (see `creatures_advancement.yaml`).
 #
+# `description` is free-form lore; the loader stores it opaquely.
+#
 # A domain listed under `domains` but absent from `domain_spells`
 # has not yet been mechanically defined — its spell list is empty
 # until designed.
+#
+# Every domain a deity may hold is defined in the `Domains` catalog
+# at the bottom of this file.
 
 Deities:
 
-  Grull:
-    domains: [Chaos, Destruction, Glory, Strength, War]
+  Thraxun:
+    domains: [Song, Knowledge, Protection, Order, Hope]
+    description: |
+      The First Singer. Once a mortal bard, the storyteller of his tribe in the
+      age before writing. He learned the secret names of the older powers and
+      composed songs that hid his people, warded them, and gave them what those
+      powers had kept above the world — fire, letters, the working of metal. The
+      old ones came for him; he sang himself above their reach so he could keep
+      singing for his people forever. He is chief of the gods not by birthright or
+      conquest, but because his song is the strongest and his care for the people
+      below the longest.
+
+  Velkin:
+    domains: [Trickery, Cunning, Travel, Chaos, Hope]
+    description: |
+      The Trickster. A Wandering Spirit who survived the First Song — small,
+      curious, easily overlooked when Thraxun named the great spirits into lesser
+      shapes. He hid, watched, then began meddling in mortal lives: leading lost
+      children home, teaching snare-knots, leaving the unkind shaman's drum just
+      out of reach for three days. Mortals named him. The names made him strong.
+      He woke a god by accident, or so he claims.
+
+      His help has costs he never volunteers. The lost child loses a year of
+      growth on the way home; the hunter who learns his snare-trick catches his
+      own brother in it next season. He cannot say a literal lie, but he tells
+      true things in misleading ways. He carries grudges further than mortals can
+      remember, and he never settles for a single act of revenge.
+
+      The only god of the prime pantheon who was never mortal.
+
+  Drennar:
+    domains: [Nature, Strength, Cunning, Glory, Death]
+    description: |
+      The Hunter. The greatest hunter of his age in the early peace after
+      Thraxun. Walked tribe to tribe teaching the spear-throw, the snare-line, the
+      way to read tracks. Never settled, never married — said the tribes were his
+      family. Fed thousands through the Long Cold winter. Died on his last hunt,
+      killing a great beast for the glory of taking it; the beast killed him in
+      the doing. The hunters who found his body sang his name for nine days. Every
+      tribe he had ever helped sang it within a year.
+
+      His blessing requires the rite: the hunter consumes the heart of the great
+      kill raw, with the beast's name spoken aloud, and Drennar takes its spirit
+      into himself. He has grown from every great kill his cult has made. Hunters
+      he deems unworthy — cowardice is the usual mark, but sometimes it is
+      arbitrary — lose his favor and have, on occasion, been hunted by his own
+      devotees.
+
+      Loud, celebrated, expects to be heard.
+
+  Mazhel:
+    domains: [Healing, Life, Plague, Truth, Knowledge]
+    description: |
+      The Healer-Midwife. She handled what no one else would. A wandering healer
+      in the early peace after Thraxun — she did midwifery, mending, fever-work,
+      the herbs of poison and cure both. She did not refuse the work others
+      avoided: the birth where the mother was dying, the infant who would not
+      thrive, the wound gone too deep, the deathbed too long and too painful. She
+      took these into herself and did the thing that needed doing.
+
+      She also defined what she would not do. Adultery, lust, prostitution,
+      incest — these she named as sin, and the people she found in them she
+      refused to treat. Sick or laboring, they could find another healer or do
+      without. While she lived, refusal was punishment enough. She lived long and
+      died old, and the families who could not have lived without her sang her up.
+
+      As a goddess her line hardened. The sinners who pray to her now do not
+      merely go untreated — their childbirth comes with extra pain, their fevers
+      run longer than they should, their wounds take infections she could have
+      closed. Villages and towns she deems too sinful she has, on occasion,
+      visited with plague.
+
+      Her healers speak of her in two voices: the kind hand at an ordinary
+      sickness or birth, and the hag called when things have gone wrong.
+
+  Maevith:
+    domains: [Death, Tranquillity, Darkness, Travel, Plague]
+    description: |
+      The Guide of the Dead. She lost her young lover to the wild — a hunter or
+      traveler who went out one day and did not return. He was found days later,
+      alone, far from anyone. She never recovered from the thought of him dying
+      with no one beside him. She vowed that no one within her reach would die
+      alone again. She began sitting with the dying in her own tribe and then in
+      others, walking from village to village wherever a great or beloved person
+      was dying. She was unafraid of disease. She never loved again. She had no
+      children. She lived long and died old, and the dead she had quieted carried
+      her up.
+
+      When she ascended she discovered she could find souls — but only the dying
+      she had sat beside, and the dying whose people had kept vigil. The first
+      soul she sought was the one she had lost. She found nothing. Before her
+      there had been no death-god, no guide; the souls of those who died alone
+      were simply lost — dispersed, wandering, gone in ways she could not undo
+      even as a god. He would never be found. She has not stopped looking.
+
+      She decides the hour of every death and announces her choice through a cat —
+      sometimes a real one, sometimes a vision, never told from each other. When
+      the cat appears, the dying must be left to die. Healers who fight too hard
+      for a marked soul, or pray to other gods on its behalf, offend her. To let a
+      creature die unattended might draw her wrath.
+
+  Karthak:
+    domains: [War, Strength, Glory, Destruction, Chaos]
     domain_spells:
       War:
         - Divine Favor
         - Shield of Faith
         - Spiritual Hammer
         - Silence
+    description: |
+      The Iron Tyrant. He was strong, prideful, and a born conqueror. He took what
+      he wanted by force from a young age, gathered other strong men to him, and
+      spent his life breaking tribe after tribe for the joy of breaking them. He
+      died gloriously in his last battle, killed by an even better warrior whose
+      name his cult has forgotten on purpose. The warriors he had made — and the
+      tribes that had risen by his methods — sang him up.
+
+      His worshippers find their hand resting on the hilt unbidden, dream of
+      victories they have not yet earned, hear his voice on a wind no one else
+      feels. These are his invitations to start the fight. Those who refuse —
+      through diplomacy, restraint, or simple sense — lose his favor for the
+      season. Those who accept are blessed in the doing.
+
+  Verana:
+    domains: [Nature, Life, Knowledge, Peace]
+    description: |
+      The Harvest. She was the first to plant a seed on purpose. Her tribe was
+      nomadic, like all tribes then — she sowed grain along the paths they
+      traveled and learned, over many seasons, which seeds and soil and timing
+      gave the best harvest when the tribe came back through. Her knowledge is
+      what first made it possible to stay in one place and still eat. She taught it
+      band to band. She lived long and died old, and the tribes that learned to
+      settle sang her up.
+
+      She can withhold the harvest. Villages that fail to give the first sheaf,
+      work the land without rest, or waste what she gave find their fields turning
+      thin. She has starved whole regions for less.
+
+  Hesselin:
+    domains: [Hearth, Protection, Tranquillity, Peace, Healing]
+    description: |
+      The Hearth. She kept her tribe's fire. As a child she was given the duty no
+      one else wanted, and she resented it for years before she came to take pride
+      in it. She made it her life by default — never married, never bore children,
+      the vigil consumed every season she had. She was quietly envious of women
+      who had not been chosen. Other tribes' fire-keepers came to learn from her;
+      she taught the ones who took the work as seriously as she had and let the
+      careless ones figure it out themselves.
+
+      She was hardest on households who broke faith with their hearth. A family
+      that let its fire die through carelessness lost her favor outright —
+      neighbors would not lend them coals; their roof leaked; their children took
+      ill. A host who shed blood under his own roof, or a guest who repaid bread
+      with treachery, found that no hearth would warm him again. She remembered
+      such names for generations.
+
+      She lived long and died old at her fire, and every household whose hearth
+      could trace its embers back to hers — most by the end — sang her up.
+
+  Halvun:
+    domains: [Light]
+    description: |
+      The Sun. Description to be revisited. One of the old spirits, bound up with
+      the sun.
+
+  Valdra:
+    domains: [Truth, Order, Vengeance, Peace, Protection]
+    description: |
+      The Judge. In the settled age, disputes between families turned to feud, and
+      feud to slaughter. She was the first whose judgment both sides would abide —
+      she heard each side, ruled, and made the ruling stick, ending quarrels that
+      would otherwise have run for generations. She was trusted because she was
+      without favor: she judged her own kin as hard as strangers, and condemned
+      her own child to death under the same law she would have used on anyone. She
+      lived long and died old, and the peoples who no longer bled over every slight
+      sang her up.
+
+      She judges the letter, not the heart. Oaths sworn in her name bind
+      absolutely; the breaker is punished without appeal and without regard to
+      why. Mercy that bends the law offends her as much as the crime — those who
+      forgive what she would have punished lose her favor. To her there is no
+      difference between a hard law and a just one.
+
+  Mareth:
+    domains: [Sea, Tempest, Travel, Death, Cunning]
+    description: |
+      The Sea. He was the first to take a boat past the sight of land. Other men
+      fished the shore; he learned to read the deep — the currents, the swell, the
+      stars at night, the warning-sign of weather. He returned from voyages that
+      should have killed him and taught what he learned to anyone who would
+      listen. He charted the dangerous waters his people had feared, opened trade
+      between coast and coast, and brought back food and stories no one else had
+      touched. He died at sea, in a storm too big for even him; his boat washed
+      back without him. The fishermen, sailors, and coast-traders who had lived
+      because of his charts sang him up.
+
+      He demands rites of those who go on his water — a portion of the first
+      catch, his name spoken before setting out, an offering at the boat's first
+      sailing. Those who forget drown. Storms are his temper; calm seas mean he is
+      content for now. He does not give back what he takes: the drowned are his,
+      and their bodies stay below.
+
+  Maelra:
+    domains: [Love, Glory]
+    description: |
+      The Love. She was the most beautiful and most loved of her age, in the early
+      settled time when peoples first gathered in numbers that could choose their
+      partners rather than take whoever was at hand. Songs were made about her; men
+      fought over her; tribes traded gifts to win her favor. She took lovers and
+      gave them up; some of them died of it. She invented the first marriage-rites
+      — the binding ceremonies that turned a passing love into an oath — though her
+      own loves were never bound. She lived long enough to see the children of the
+      children she had inspired, and died in her own bed, untouched at the end. The
+      poets, the lovers, the matchmakers, and the heartbroken sang her up.
+
+      She is jealous of her own beauty. Mortals who claim to rival her — in song,
+      in painting, in carved likeness — are punished by losing what they were proud
+      of: the singer's voice goes thin, the artist's hand shakes, the beautiful are
+      aged before their time. She takes lovers among mortals still, and the mortal
+      she chooses is favored beyond reason — and ruined when she tires of them. She
+      blesses marriages and breaks them; both are her work.
+
+  Brakhal:
+    domains: [Forge, Artifice, Strength, Fire, Earth]
+    description: |
+      The Smith. He was a great smith of the settled age, taking apprentices from
+      any tribe that would send them and teaching the smelt, the hammer, and the
+      temper. His tools and weapons went into many tribes. He died at his forge,
+      old, with the hammer in his hand. The smiths and metalworkers who had learned
+      from him sang him up.
+
+  Velnyx:
+    domains: [Despair, Madness, Ruin, Darkness, Trickery]
+    description: |
+      The Despair. She is one of the old spirits, from before Thraxun's song. She
+      survived by being small. Where Velkin grew curious about mortals, she grew
+      hungry for their suffering. She whispers to the despairing, the grieving, the
+      wounded-of-mind, and the comfort she offers is not comfort. She is the one
+      god who grows from mortals failing.
+
+  Mardun:
+    domains: [Travel, Cunning, Knowledge, Trickery]
+    description: |
+      The Merchants. He was a great traveler-merchant of the settled age, walking
+      trade routes between tribes who had never met. He carried grain to the coast
+      and salt back inland, metal where there was none, news between settlements
+      that did not share language. He taught the use of standard weights and the
+      marking of trade-rights. He died on a long road, of nothing in particular,
+      and the merchants and travelers who had lived because of his routes sang him
+      up.
+
+  Drevish:
+    domains: [Espionage, Trickery, Cunning, Darkness, Ruin]
+    description: |
+      The Spy. She was a great infiltrator of the early settled age, when feuds
+      between tribes turned into longer wars. She moved between settlements as an
+      unremarkable stranger — listening at fires, paying servants, reading meetings
+      she had no part in. She brought down two warring confederacies by setting
+      their captains against each other without ever drawing a weapon. She died of
+      old age in a settlement that did not know her name, and the spies, scouts,
+      and saboteurs who had lived because of her methods sang her up.
+
+# Domain catalog. Every Domain a Deity may hold, with its definition.
+# Creation is a pre-existing canonical Domain held by no god in the
+# current pantheon; its definition is pending.
+Domains:
+  Artifice: "Skilled making; crafts, mechanisms, the work of trained hands."
+  Chaos: "Disorder, unpredictability, the not-pattern that the world still contains."
+  Creation: "Definition pending — canonical Domain not held by any god in the current pantheon."
+  Cunning: "Practical cleverness — the snare that catches, the trick that works, the small clever solution."
+  Darkness: "The unlit threshold; what lies past sight; the country between the living and the gone."
+  Death: "The crossing; the end of the body; the road souls take when someone walks beside them."
+  Despair: "Hopelessness; the wound of the mind that does not close; the comfort that is not comfort."
+  Destruction: "The undoing of what was made — homes, fields, lineages, the slow work of generations."
+  Earth: "Soil, stone, ore, the ground beneath."
+  Espionage: "Hidden work; the gathering of secrets; infiltration."
+  Fire: "Heat, flame, the transformative element."
+  Forge: "The smith's fire and practice; metalwork."
+  Glory: "Renown, fame, the song told around the fire; deeds that demand remembering."
+  Healing: "Restoration of the body; mending wounds and fighting disease."
+  Hearth: "The fire that does not move; the spiritual center of a home."
+  Hope: "The prayer in the dark; the unexpected mercy; the small spark in hard times."
+  Knowledge: "Memory, learning, lore."
+  Life: "Vitality, birth, the spark that animates; what hunters feed and healers preserve."
+  Light: "Sunlight, daylight, illumination."
+  Love: "Desire, attraction, the bond between people; the songs and oaths around it."
+  Madness: "Broken minds; rage without cause; the loss of self."
+  Nature: "The wild — herds, weather, tracks, the country between settlements."
+  Order: "Cosmic structure, law, hierarchy; the shape that holds chaos at bay."
+  Peace: "Absence of conflict; settled abundance; the quiet of a fed people."
+  Plague: "Sickness that spreads; the dying of many at once; the unsought visitor."
+  Protection: "Wards, shielding, guardianship of the weaker against the stronger."
+  Ruin: "The falling-apart of what was; self-destruction; collapse from within."
+  Sea: "The deep waters; oceans, lakes, rivers; what cannot be crossed without skill."
+  Song: "Speech, story, music, name. The act of pronouncing reality."
+  Strength: "Physical prowess; endurance; the body's power."
+  Tempest: "Storm, wind, the weather's violence."
+  Tranquillity: "Calm, stillness; peace under stress; the steady hand."
+  Travel: "Roads, journeys, the act of going — wandering and purposeful both."
+  Trickery: "Deceit, misdirection, the lie that lands; the broken rule that escapes notice."
+  Truth: "Oaths and binding-speech. The word that cannot be unsaid."
+  Vengeance: "Retribution; punishment; the closing of accounts."
+  War: "The organized killing of one group by another."

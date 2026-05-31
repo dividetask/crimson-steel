@@ -121,7 +121,7 @@ characters:
         cleric:
           level: 4
           choices:
-            deity: Grull
+            deity: Karthak
             domain: War
             spellcasting:
               - heal_petty_wounds
