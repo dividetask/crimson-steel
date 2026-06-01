@@ -28,6 +28,15 @@
     <% else %>
       <%= erb :_creature_full, locals: { demo: @demo, toggle_target: toggle_href } %>
     <% end %>
+
+    <% if !@random_encounter_template_id && @inventory_stub %>
+      <%= erb :_creature_inventory_stub, locals: {
+            creature_id: @inventory_stub[:creature_id],
+            detail:      @detail,
+            equipped:    @inventory_stub[:equipped],
+            inventory:   @inventory_stub[:inventory],
+            sell:        @inventory_stub[:sell] } %>
+    <% end %>
   </div>
 </div>
 

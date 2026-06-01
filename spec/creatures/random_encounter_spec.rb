@@ -1,7 +1,19 @@
 require 'spec_helper'
 require 'creatures'
+require 'tmpdir'
 
 RSpec.describe 'Creatures encounter operations', type: :model do
+  # Spawn / Delete persist to the writable overlay dir; point it at a
+  # tmpdir so tests never touch the live data/ directory.
+  around(:each) do |ex|
+    Dir.mktmpdir('creatures-data') do |dir|
+      Creatures::Dataset.data_dir = dir
+      ex.run
+    ensure
+      Creatures::Dataset.reset!
+    end
+  end
+
   before(:each) { Creatures::Dataset.load! }
 
   describe 'spawn_from_template' do
@@ -34,6 +46,31 @@ RSpec.describe 'Creatures encounter operations', type: :model do
       expect(Creatures.delete(new_id)).to be true
       expect(Creatures.lookup(new_id)).to be_nil
       expect(Creatures.delete(new_id)).to be false # second delete is a no-op
+    end
+  end
+
+  describe 'persistence' do
+    it 'writes the spawn to the template source file under data/ and it survives a reload' do
+      # Template 101 lives in creatures_data_enemies(.example).yaml, so its
+      # spawned instance routes to data/creatures_data_enemies.yaml.
+      new_id = Creatures.spawn_from_template(101, name_override: 'Skullsplitter')
+      overlay = File.join(Creatures::Dataset.data_dir, 'creatures_data_enemies.yaml')
+      expect(File.exist?(overlay)).to be true
+
+      # A fresh load (simulating a server restart) still has the spawn.
+      Creatures::Dataset.load!
+      rec = Creatures::Dataset.get(new_id)
+      expect(rec).not_to be_nil
+      expect(rec[:name]).to eq('Skullsplitter')
+      expect(rec[:spawned_from]).to eq(101)
+      expect(rec[:source]).to eq('creatures_data_enemies.yaml')
+    end
+
+    it 'persists a delete so the record is gone after a reload' do
+      new_id = Creatures.spawn_from_template(101)
+      Creatures.delete(new_id)
+      Creatures::Dataset.load!
+      expect(Creatures::Dataset.get(new_id)).to be_nil
     end
   end
 

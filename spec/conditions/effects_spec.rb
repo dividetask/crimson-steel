@@ -53,4 +53,15 @@ RSpec.describe 'Apply Effect / Get Modifiers' do
     inst.remove_effects_by_prefix('big')
     expect(inst.get_modifiers('str')).to eq([['Enhancement', 2]])
   end
+
+  it 'promotes a survivor when the stronger is re-applied at amount 0' do
+    inst = build_instance
+    inst.apply_effect(target_key: 'str', bonus_type: 'Enhancement', amount: 4, source_id: 'big')
+    inst.apply_effect(target_key: 'str', bonus_type: 'Enhancement', amount: 2, source_id: 'small')
+    expect(inst.get_modifiers('str')).to eq([['Enhancement', 4]])
+    # Re-applying the same Source ID at amount 0 overwrites in place; an
+    # amount of 0 is neither positive nor negative, so it stops contributing.
+    inst.apply_effect(target_key: 'str', bonus_type: 'Enhancement', amount: 0, source_id: 'big')
+    expect(inst.get_modifiers('str')).to eq([['Enhancement', 2]])
+  end
 end

@@ -1,5 +1,7 @@
 require 'spec_helper'
 require 'encounter'
+require 'conditions'
+require 'tmpdir'
 
 RSpec.describe 'Encounter combat-mode operations' do
   describe Encounter::CombatPool do
@@ -95,6 +97,62 @@ RSpec.describe 'Encounter combat-mode operations' do
     it 'upgrades radiant severity against undead' do
       expect(described_class.compute(raw: 5, type: 'radiant', target_tags: ['undead'])[:severity_map]).to eq(major: 5)
       expect(described_class.compute(raw: 5, type: 'radiant')[:severity_map]).to eq(moderate: 5)
+    end
+  end
+
+  describe 'Unaware (inferred from Round + initiative order)' do
+    let(:tmpdir) { Dir.mktmpdir('enc-unaware') }
+    after { FileUtils.remove_entry(tmpdir) if File.exist?(tmpdir) }
+
+    def creature
+      Struct.new(:tier, :tags, :max_hit_points, :max_mana).new(0, [], 30, 8)
+    end
+
+    def state
+      Encounter::State.new({}, data_path: File.join(tmpdir, 'e.json'),
+                           creature_lookup: ->(_id) { creature },
+                           conditions_for: ->(_id) { Conditions::Instance.new })
+    end
+
+    it 'is true in Round 1 for Combatants below the Acting Combatant in initiative' do
+      s = state
+      a = s.add_combatant('1'); b = s.add_combatant('2'); c = s.add_combatant('3')
+      s.start_combat
+      s.set_initiative(a[:id], '9'); s.set_initiative(b[:id], '7'); s.set_initiative(c[:id], '5')
+      s.set_acting_combatant(a[:id]) # top of initiative acts first
+
+      expect(s.round_number).to eq(1)
+      expect(s.unaware?(a[:id])).to be false # acting — at the front, has acted
+      expect(s.unaware?(b[:id])).to be true  # below in initiative, not yet acted
+      expect(s.unaware?(c[:id])).to be true
+
+      s.set_acting_combatant(b[:id]) # turn passes to the second
+      expect(s.unaware?(a[:id])).to be false # already acted
+      expect(s.unaware?(b[:id])).to be false # acting now
+      expect(s.unaware?(c[:id])).to be true  # still below, hasn't acted
+    end
+
+    it 'is false for everyone before Initiative is seated (no Acting Combatant)' do
+      # No one can have acted yet, but Combat is not the "Round 1 unaware"
+      # window until the order is seated; with no Acting Combatant we treat
+      # everyone as Unaware (nothing has acted).
+      s = state
+      a = s.add_combatant('1'); b = s.add_combatant('2')
+      s.start_combat
+      expect(s.unaware?(a[:id])).to be true
+      expect(s.unaware?(b[:id])).to be true
+    end
+
+    it 'is false for everyone from Round 2 on' do
+      s = state
+      a = s.add_combatant('1'); b = s.add_combatant('2')
+      s.start_combat
+      s.set_initiative(a[:id], '9'); s.set_initiative(b[:id], '7')
+      s.set_acting_combatant(a[:id])
+      s.advance_turn # tpr 1 → wraps the tick and bumps the Round
+      expect(s.round_number).to be >= 2
+      expect(s.unaware?(a[:id])).to be false
+      expect(s.unaware?(b[:id])).to be false
     end
   end
 end

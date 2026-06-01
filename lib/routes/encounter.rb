@@ -136,12 +136,14 @@ helpers do
     max_hp = (creature.max_hit_points rescue nil)
     if max_hp
       dmg = state.hp_damage
+      # Current HP may go negative (damage beyond Max) — show the real value;
+      # the bar widths clamp at zero in the stub, but the number does not.
       row[:hp] = {
         max:      max_hp,
         minor:    dmg[:minor] || 0,
         moderate: dmg[:moderate] || 0,
         major:    dmg[:major] || 0,
-        current:  [max_hp - dmg.values.sum, 0].max
+        current:  max_hp - dmg.values.sum
       }
     end
 
@@ -204,14 +206,38 @@ helpers do
   def equipped_weapons(creature_id)
     cat = Equipment.catalog
     inv = (Equipment.instance.get_inventory(equipment_owner(creature_id)) rescue [])
-    inv.select { |s| s.equipped && (it = cat.item_type(s.item_type)) && it[:category] == 'Weapon' }
-       .map do |s|
-      wd = Equipment::Details.weapon_details(s, cat)
-      ranged = (wd[:definition] && wd[:definition]['category'] == 'Ranged')
-      { item_type: s.item_type, display_name: wd[:display_name], ranged: ranged,
-        speed: wd[:speed], damage_types: wd[:damage_types], threshold: wd[:threshold],
-        bleed: wd[:bleed], damage_formula: wd[:damage_formula] }
+    rows = inv.select { |s| s.equipped && (it = cat.item_type(s.item_type)) && it[:category] == 'Weapon' }
+              .map { |s| weapon_row(Equipment::Details.weapon_details(s, cat), s.item_type) }
+    # Everyone can attack Unarmed (Speed 0) — always offered, never carried.
+    rows + [weapon_row(Equipment::Details.weapon_details(Equipment::Stack.normalize('item' => 'Unarmed'), cat), 'Unarmed')]
+  end
+
+  def weapon_row(wd, item_type)
+    ranged = (wd[:definition] && wd[:definition]['category'] == 'Ranged')
+    natural = !!(wd[:definition] && wd[:definition]['natural'])
+    { item_type: item_type, display_name: wd[:display_name], ranged: ranged, natural: natural,
+      speed: wd[:speed], damage_types: wd[:damage_types], threshold: wd[:threshold],
+      bleed: wd[:bleed], damage_formula: wd[:damage_formula] }
+  end
+
+  # The defender's weapons usable to Parry: equipped melee weapons, excluding
+  # natural attacks (Unarmed, claws, bite, …). You cannot Parry with a natural
+  # attack without a special ability — and no such ability is wired yet, so
+  # natural weapons are simply never offered as a Parry option.
+  def equipped_melee_weapons(creature_id)
+    equipped_weapons(creature_id).reject { |w| w[:ranged] || w[:natural] }
+  end
+
+  def equipped_shield?(creature_id)
+    cat = Equipment.catalog
+    inv = (Equipment.instance.get_inventory(equipment_owner(creature_id)) rescue [])
+    inv.any? do |s|
+      next false unless s.equipped
+      it = cat.item_type(s.item_type)
+      it && it[:category] == 'Armor' && (it[:definition] || {})['category'] == 'Shield'
     end
+  rescue StandardError
+    false
   end
 
   # Evaluate a weapon damage formula (e.g. "str / 4 - 2") against the
@@ -246,9 +272,10 @@ helpers do
     base_tn  = DiceResolution.config.base_target_number
     atk_pool = (encounter_state.combat_pool_remaining(attacker[:id]) rescue 0) || 0
 
-    # Format a Bonus/Penalty list for display, and its net TN influence.
+    # Display the character's own Bonus/Penalty list (natural signs). TNs are
+    # NOT computed here — the builder hands raw Bonus lists to Check Resolution,
+    # which applies cross-side propagation and computes every TN itself.
     fmt_mods = ->(list) { list.map { |type, amt| "#{amt >= 0 ? '+' : ''}#{amt} #{type}" }.join(' ') }
-    net_mods = ->(list) { DiceResolution.net_modifier(list) }
 
     weapons = equipped_weapons(attacker[:creature_id]).map do |w|
       attr = w[:ranged] ? :dex : :str
@@ -258,19 +285,25 @@ helpers do
 
     targets = encounter_state.combatants.reject { |c| c[:id] == attacker[:id] }.map do |c|
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
-      { id: c[:id], name: tracker_name(c), unaware: !c[:performed_this_turn],
+      { id: c[:id], name: tracker_name(c), unaware: encounter_state.unaware?(c[:id]),
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
         martial: roll_inputs_for(tacc, 'martial',   attribute_override: :str),
-        dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex) }
+        dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex),
+        # Parry uses one of the defender's melee weapons; Block needs a shield.
+        parry_weapons: equipped_melee_weapons(c[:creature_id]),
+        has_shield:    equipped_shield?(c[:creature_id]) }
     end
 
+    # Seed Rolls carry raw inputs (base TN + each side's own Bonus list + dice).
+    # `tn`/`starting_value` start at the base for the initial render; Check
+    # Resolution recomputes them (with cross-side propagation) as steps resolve.
     rolls = [
       { id: 'attacker', side: 'supporting', creature_name: tracker_name(attacker),
-        roll_name: 'Attack', die_size: die, tn: base_tn, base_tn: base_tn, bonus_penalty_list: [],
-        starting_value: 0, dice_count: 2, speed: 0, excluded: false },
+        roll_name: 'Attack', die_size: die, tn: base_tn, starting_value: 0,
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false },
       { id: 'defender', side: 'opposing', creature_name: '—',
-        roll_name: 'Defense', die_size: die, tn: base_tn, base_tn: base_tn, bonus_penalty_list: [],
-        starting_value: 0, dice_count: 0, speed: 0, excluded: true }
+        roll_name: 'Defense', die_size: die, tn: base_tn, starting_value: 0,
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true }
     ]
 
     target_step = { key: 'target', label: 'Target',
@@ -278,80 +311,91 @@ helpers do
                                                  patch: { set_name: [{ id: 'defender', creature_name: t[:name] }] } } } }
 
     action_opts = []
+    action_quick = []
     weapons.each do |w|
       cap   = w[:dice_cap]
       speed = [w[:speed].to_i, 0].max
       disp  = w[:display_name]
       grp   = w[:item_type]
-      # The weapon's intrinsic attack Bonuses (Competency etc.) — what this
-      # weapon contributes to the attacker's TN, shown after the dice row.
+      # The weapon's intrinsic attack Bonuses (Competency etc.). These are
+      # handed to Check Resolution raw — the builder does not compute the TN.
       bpl   = w[:competency] ? [w[:competency]] : []
-      tn    = DiceResolution.compute_target_number(bpl)
-      net   = net_mods.call(bpl)
       set_atk = lambda do |dice|
         { set_dice: [{ id: 'attacker', count: dice }], set_speed: [{ id: 'attacker', speed: speed }],
-          set_tn: [{ id: 'attacker', tn: tn[:tn], starting_value: tn[:starting_value],
-                     base_tn: base_tn, bonus_penalty_list: bpl }] }
+          set_bpl: [{ id: 'attacker', bonus_penalty_list: bpl }] }
       end
-      net_txt = net.zero? ? '' : " — #{net >= 0 ? '+' : ''}#{net}"
       # Cost to roll n dice = flat weapon Speed + n; grey out unaffordable.
       aff_max = (2..cap).select { |n| speed + n <= atk_pool }.max
-      action_opts << { value: "#{w[:item_type]}|#{aff_max || cap}", key: w[:item_type], group: grp,
-                       label: "#{disp} (speed #{speed})", summary: "#{disp} — #{aff_max || cap} dice#{net_txt}",
-                       disabled: aff_max.nil?, patch: set_atk.call(aff_max || cap) }
+      max_opt = { value: "#{w[:item_type]}|#{aff_max || cap}", key: w[:item_type], group: grp,
+                  label: "#{disp} (speed #{speed})", summary: "#{disp} — #{aff_max || cap} dice",
+                  disabled: aff_max.nil?, patch: set_atk.call(aff_max || cap) }
+      action_opts << max_opt
       (2..cap).each do |n|
         action_opts << { value: "#{w[:item_type]}|#{n}", key: w[:item_type], group: grp,
-                         label: n.to_s, summary: "#{disp} — #{n} dice#{net_txt}",
+                         label: n.to_s, summary: "#{disp} — #{n} dice",
                          disabled: speed + n > atk_pool, patch: set_atk.call(n) }
       end
       action_opts << { kind: 'info', group: grp, value: "#{grp}|info",
                        label: (bpl.empty? ? 'no bonuses' : fmt_mods.call(bpl)) }
+      # Header quick-pick: one button per weapon that selects it at max dice.
+      action_quick << { value: max_opt[:value], label: disp, disabled: aff_max.nil? }
     end
-    action_step = { key: 'action', label: 'Weapon & dice', options: action_opts }
+    action_step = { key: 'action', label: 'Weapon & dice', options: action_opts, header_options: action_quick }
 
     defense_map = {}
     targets.each do |t|
       weapons.each do |w|
-        wspeed = [w[:speed].to_i, 0].max
         comp = w[:competency] ? [w[:competency]] : []
+        # Raw attacker Bonus lists for each branch (no TN math here): with no
+        # defence the attacker keeps Flatfooted (+ Unaware if applicable); a
+        # declared defence suppresses both.
         atk_none_bpl     = comp + Encounter::Attack.attacker_bonuses(no_defense: true,  unaware: t[:unaware])
         atk_declared_bpl = comp + Encounter::Attack.attacker_bonuses(no_defense: false, unaware: t[:unaware])
-        tn_none     = DiceResolution.compute_target_number(atk_none_bpl)
-        tn_declared = DiceResolution.compute_target_number(atk_declared_bpl)
-        none_net = net_mods.call(atk_none_bpl)
-        # No defense first (the attacker keeps its Flatfooted Bonus), then one
-        # group per Defensive Action: a name button carrying the defence Speed
-        # (Dodge / Block = 0, Parry = weapon Speed), a button per die choice,
-        # and a trailing line showing the defender's TN Bonuses.
-        opts = [{ value: 'none', group: 'none', label: 'No defense',
-                  summary: "No defense#{none_net.zero? ? '' : " — attacker #{none_net >= 0 ? '+' : ''}#{none_net}"}",
-                  patch: { set_tn: [{ id: 'attacker', tn: tn_none[:tn], starting_value: tn_none[:starting_value],
-                                      base_tn: base_tn, bonus_penalty_list: atk_none_bpl }],
+        # No defense first (attacker keeps Flatfooted), then one group per
+        # Defensive Action: a name button carrying the defence Speed (Dodge /
+        # Block = 0, Parry = weapon Speed), a button per die choice, and a
+        # trailing line showing the defender's own Bonuses. Check Resolution
+        # propagates the attacker's Bonuses onto the defender Roll (and vice
+        # versa) and computes both TNs.
+        opts = [{ value: 'none', group: 'none', label: 'No defense', summary: 'No defense',
+                  patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_none_bpl }],
                            set_excluded: [{ id: 'defender', excluded: true }] } }]
-        (w[:ranged] ? %w[dodge block] : %w[dodge block parry]).each do |d|
-          di    = d == 'dodge' ? t[:dodge] : t[:martial]
+        # Eligible Defensive Action branches against this attack:
+        #   Dodge — always (a Dexterity Save; full Dice Cap, no Combat Pool).
+        #   Block — only when the defender has a Shield equipped; any attack.
+        #   Parry — melee attacks only, one branch per equipped melee weapon
+        #           ("Parry with <weapon>"); costs that weapon's Speed + dice.
+        branches = []
+        branches << { key: 'dodge', group: 'dodge', name: 'Dodge', inputs: t[:dodge], speed: 0, save: true }
+        if t[:has_shield]
+          branches << { key: 'block', group: 'block', name: 'Block', inputs: t[:martial], speed: 0, save: false }
+        end
+        unless w[:ranged]
+          t[:parry_weapons].each do |pw|
+            branches << { key: "parry:#{pw[:item_type]}", group: "parry:#{pw[:item_type]}",
+                          name: "Parry with #{pw[:display_name]}", inputs: t[:martial],
+                          speed: [pw[:speed].to_i, 0].max, save: false }
+          end
+        end
+
+        branches.each do |b|
+          di    = b[:inputs]
           dcmp  = di[:competency_modifier] ? [di[:competency_modifier]] : []
-          dtn   = DiceResolution.compute_target_number(dcmp)
-          dnet  = net_mods.call(dcmp)
           cap   = di[:dice_cap].to_i
-          dspd  = d == 'parry' ? wspeed : 0
-          net_txt = dnet.zero? ? '' : " — #{dnet >= 0 ? '+' : ''}#{dnet}"
+          dspd  = b[:speed]
           mk = lambda do |dice, label, disabled|
-            { value: "#{d}|#{dice}", group: d, label: label,
-              summary: "#{d.capitalize} — #{dice} dice#{net_txt}", disabled: disabled,
-              patch: { set_tn: [{ id: 'attacker', tn: tn_declared[:tn], starting_value: tn_declared[:starting_value],
-                                  base_tn: base_tn, bonus_penalty_list: atk_declared_bpl },
-                                { id: 'defender', tn: dtn[:tn], starting_value: dtn[:starting_value],
-                                  base_tn: base_tn, bonus_penalty_list: dcmp }],
+            { value: "#{b[:key]}|#{dice}", group: b[:group], label: label,
+              summary: "#{b[:name]} — #{dice} dice", disabled: disabled,
+              patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_declared_bpl },
+                                 { id: 'defender', bonus_penalty_list: dcmp }],
                        set_dice:  [{ id: 'defender', count: dice }],
                        set_speed: [{ id: 'defender', speed: dspd }],
-                       set_name:  [{ id: 'defender', roll_name: d.capitalize }],
+                       set_name:  [{ id: 'defender', roll_name: b[:name] }],
                        set_excluded: [{ id: 'defender', excluded: false }] } }
           end
-          name_label = "#{d.capitalize} (speed #{dspd})"
-          # Dodge is a Saving Throw — full Dice Cap, no Combat Pool. Parry /
-          # Block cost the defender dspd + dice; grey out unaffordable.
-          if d == 'dodge'
+          name_label = "#{b[:name]} (speed #{dspd})"
+          if b[:save]
+            # Dodge: full Dice Cap, no Combat Pool — every count enabled.
             opts << mk.call(cap, name_label, false)
             (2..cap).each { |n| opts << mk.call(n, n.to_s, false) }
           else
@@ -359,7 +403,7 @@ helpers do
             opts << mk.call(aff_max || cap, name_label, aff_max.nil?)
             (2..cap).each { |n| opts << mk.call(n, n.to_s, dspd + n > t[:pool]) }
           end
-          opts << { kind: 'info', group: d, value: "#{d}|info",
+          opts << { kind: 'info', group: b[:group], value: "#{b[:group]}|info",
                     label: (dcmp.empty? ? 'no bonuses' : fmt_mods.call(dcmp)) }
         end
         defense_map["#{t[:id]}|#{w[:item_type]}"] = opts
@@ -385,7 +429,7 @@ helpers do
     atk['speed'] = w[:speed]
     payload['attacker'] = atk
     payload['weapon'] = { 'damage_types' => w[:damage_types], 'threshold' => w[:threshold],
-                          'base_damage' => evaluate_weapon_damage(w[:damage_formula], acc) }
+                          'bleed' => w[:bleed], 'base_damage' => evaluate_weapon_damage(w[:damage_formula], acc) }
   end
 end
 
@@ -565,5 +609,9 @@ post '/encounter/resolve_attack' do
   return encounter_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
   enrich_attack_payload!(payload)
   result = encounter_state.resolve_attack_payload(payload)
+  # A committed attack mutated the target's Conditions (HP damage, bleed) —
+  # persist the Conditions store so the damage survives a restart. A preview
+  # (commit:false) mutates nothing, so there's nothing to write.
+  Conditions.store.persist! if result[:committed]
   encounter_response(result)
 end

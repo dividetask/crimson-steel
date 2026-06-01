@@ -22,7 +22,6 @@ Sibling domains:
 | `combat_pool_spent` | integer | Combat Pool dice spent so far in this turn. Reset to 0 at the start of this Combatant's turn. Remaining is derived as `Get Combat Pool − combat_pool_spent`. |
 | `time_tick_schedule` | list of integer | Time Ticks within a Round on which this Combatant acts. Recomputed when Time Ticks Per Round changes. |
 | `luck_points` | integer | Per-Combatant Luck Points. Cleared at the start of this Combatant's turn. |
-| `performed_this_turn` | boolean | Whether this Combatant has acted yet in the active Combat. Drives the Unaware Bonus eligibility. Set true at first turn end; never reset back to false within the Combat. |
 | `concentration` | list of Concentration Entry | Channeled spells the Combatant is currently holding. |
 | `casting` | list of Casting Entry | Long Casts the Combatant is currently performing. |
 
@@ -93,7 +92,7 @@ Behavior:
 2. Allocate Combat IDs and create one Combatant per input. Each Combatant starts with empty `initiative_string`.
 3. Compute Time Ticks Per Round = `max(Turns Per Round[tier])` across the Combatants (read each Tier through `creature_lookup`).
 4. Compute each Combatant's Time Tick Schedule.
-5. Reset `time_tick` to 1; `elapsed_time_ticks` to 0; `acting_combatant_id` to null; `dm_luck_points` to 0; per-Combatant `performed_this_turn` to false, `luck_points` to 0, `concentration` to empty, `casting` to empty.
+5. Reset `time_tick` to 1; `elapsed_time_ticks` to 0; `acting_combatant_id` to null; `dm_luck_points` to 0; per-Combatant `luck_points` to 0, `concentration` to empty, `casting` to empty.
 6. Persist.
 
 #### Player Characters always belong in active Combat
@@ -479,7 +478,6 @@ The expected Round at any moment during Combat is `combat_anchor.round_of_day + 
 **Apply Per-Turn Cleanup** (called as part of *Advance Turn* on the outgoing Combatant):
 - Reset `combat_pool_spent` to 0 (so the next turn starts with the Combatant's full Combat Pool available).
 - Clear `luck_points` (per the Luck Points clear rule).
-- Set `performed_this_turn = true`.
 - Run the End-of-turn channel check.
 - Run the End-of-turn cast check.
 - Reset `channeled_this_turn` to false on each of the Combatant's Concentration Entries (ready for next turn).
@@ -513,7 +511,7 @@ Mutations write `encounter_data.json` atomically. Reads at startup are tolerant:
 - Combat Pool computation, Spend, Reset.
 - Action Economy rules: Main / Bonus / Free / Reaction categories, minimum costs, Reaction allowances and scoping.
 - Granted Action registry and dispatch.
-- Attacker Bonus eligibility: Flatfooted, Unaware. Hidden is resolved per attacker-defender pair and grants the Unaware Bonus on that attack.
+- Attacker Bonus eligibility: Flatfooted, Unaware. Unaware ("has not yet acted") is inferred from the Round and initiative order — a Combatant is Unaware only in Round 1, before its turn comes up (it sits later in the Round's turn order than the Acting Combatant); from Round 2 on everyone has acted. It is not a stored flag. Hidden is resolved per attacker-defender pair and grants the Unaware Bonus on that attack.
 - Set-Value Spend translation to Dice Resolution's Preroll.
 - Concentration: per-Combatant Concentration entries, Reservoir tracking, per-turn channeling enforcement, damage-triggered saves, end-of-spell notification to the source domain.
 - Long Cast: per-Combatant Casting entries, per-turn commit tracking, completion at zero turns_remaining, damage-triggered saves, cancellation notification to the source domain.

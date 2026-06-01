@@ -1,3 +1,5 @@
+import { CheckResolution } from '../check.js';
+
 // Check Resolution Builder (check_resolution_builder_stub.md).
 //
 // A domain-agnostic, parameter-driven wizard. It reuses the Save Resolution
@@ -99,6 +101,8 @@ export class CheckBuilder {
       return;
     }
     CheckBuilder._setState(root, '__dice', 'active');
+    // All steps resolved — show the final propagated TNs before the DM rolls.
+    CheckBuilder._previewTns(root);
   }
 
   // Re-open a completed step; rewind every later step (clear choices, hide
@@ -141,16 +145,16 @@ export class CheckBuilder {
     if (!patch) return;
     (patch.set_dice || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.dice_count = p.count; }));
     (patch.set_speed || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.speed = p.speed; }));
-    (patch.set_tn || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => {
-      c.tn = p.tn;
-      if (p.starting_value != null) c.starting_value = p.starting_value;
-      if (p.base_tn != null) c.base_tn = p.base_tn;
-      if (p.bonus_penalty_list != null) c.bonus_penalty_list = p.bonus_penalty_list;
-    }));
+    // Set a Roll's own Bonus/Penalty list. The TN is NOT set here — it is
+    // computed by Check Resolution at roll time (after cross-side propagation).
+    (patch.set_bpl || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.bonus_penalty_list = p.bonus_penalty_list || []; }));
     (patch.set_reroll || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.reroll = p.clear ? null : { sign: p.sign, count: p.count, max: !!p.max }; }));
     (patch.set_nudge || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.nudge = p.clear ? null : { sign: p.sign, count: p.count, max: !!p.max }; }));
     (patch.set_name || []).forEach((p) => CheckBuilder._setName(root, p));
     (patch.set_excluded || []).forEach((p) => CheckBuilder._setExcluded(root, p.id, p.excluded));
+    // Re-preview every Roll's TN through Check Resolution so each row reflects
+    // the propagated math after any change.
+    CheckBuilder._previewTns(root);
   }
 
   static _group(root, id) { return root.querySelector('.roll-group[data-roll-id="' + id + '"]'); }
@@ -161,23 +165,58 @@ export class CheckBuilder {
     let cfg; try { cfg = JSON.parse(g.dataset.config); } catch (e) { return; }
     fn(cfg);
     g.dataset.config = JSON.stringify(cfg);
+  }
+
+  // Ask Check Resolution to compute each Roll's TN (after cross-side
+  // propagation) and reflect it in the params line + the character-cell TN
+  // tooltip. The builder never computes a TN itself.
+  static _previewTns(root) {
+    const groups = Array.from(root.querySelectorAll('.roll-group'))
+      .filter((g) => !g.classList.contains('roll-group-excluded'));
+    const rollFor = (g) => {
+      let c; try { c = JSON.parse(g.dataset.config); } catch (e) { return null; }
+      return { _g: g, side: g.dataset.side, baseTn: c.base_tn,
+               bonusPenaltyList: c.bonus_penalty_list || [], startingContribution: 0 };
+    };
+    const supporting = groups.filter((g) => g.dataset.side === 'supporting').map(rollFor);
+    const opposing   = groups.filter((g) => g.dataset.side === 'opposing').map(rollFor);
+    // baseTn isn't a TnComputation input (it uses the config's Base TN); our
+    // rolls all share the configured Base TN, so previewParameters is correct.
+    const preview = CheckResolution.previewParameters({ supporting, opposing });
+    const applyOne = (roll, res) => {
+      if (!roll || !res) return;
+      CheckBuilder._renderTn(roll._g, roll.baseTn, res);
+      let c; try { c = JSON.parse(roll._g.dataset.config); } catch (e) { return; }
+      c.tn = res.tn; c.starting_value = res.startingValue;
+      roll._g.dataset.config = JSON.stringify(c);
+    };
+    supporting.forEach((r, i) => applyOne(r, preview.supporting[i]));
+    opposing.forEach((r, i) => applyOne(r, preview.opposing[i]));
+  }
+
+  // Render the params line and the TN computation tooltip for one Roll.
+  // Display convention: a Bonus lowers the TN, so it shows as a negative term
+  // ("−2 Competency"); a Penalty raises it, shown as positive ("+1 …").
+  static _renderTn(g, baseTn, res) {
+    const cfg = (() => { try { return JSON.parse(g.dataset.config); } catch (e) { return {}; } })();
     const params = g.querySelector('.params');
-    if (params) params.textContent = cfg.dice_count + ' dice @ TN ' + cfg.tn +
-      (cfg.starting_value > 0 ? ', R+' + cfg.starting_value : cfg.starting_value < 0 ? ', R-' + Math.abs(cfg.starting_value) : '');
-    // Keep the character-cell TN tooltip in sync with the new Bonuses/TN.
-    if (cfg.base_tn != null) {
-      const terms = (cfg.bonus_penalty_list || []).map((m) => (m[1] >= 0 ? '+' : '') + m[1] + ' ' + m[0]);
-      const txt = cfg.base_tn + (terms.length ? ' ' + terms.join(' ') : '') + ' = TN ' + cfg.tn;
-      const name = g.querySelector('.creature-name');
-      if (name) {
-        name.classList.add('has-tn-tip');
-        name.setAttribute('tabindex', '0');
-        name.setAttribute('data-tn-tip', txt);
-        let tip = name.querySelector('.tn-tip');
-        if (!tip) { tip = document.createElement('span'); tip.className = 'tn-tip'; name.appendChild(tip); }
-        tip.textContent = txt;
-      }
-    }
+    if (params) params.textContent = cfg.dice_count + ' dice @ TN ' + res.tn +
+      (res.startingValue > 0 ? ', R+' + res.startingValue : res.startingValue < 0 ? ', R-' + Math.abs(res.startingValue) : '');
+    if (baseTn == null) return;
+    // Each entry's TN influence is the negation of its magnitude.
+    const terms = (res.bonusPenaltyList || []).map((m) => {
+      const infl = -m[1];
+      return (infl >= 0 ? '+' : '−') + Math.abs(infl) + ' ' + m[0];
+    });
+    const txt = baseTn + (terms.length ? ' ' + terms.join(' ') : '') + ' = TN ' + res.tn;
+    const name = g.querySelector('.creature-name');
+    if (!name) return;
+    name.classList.add('has-tn-tip');
+    name.setAttribute('tabindex', '0');
+    name.setAttribute('data-tn-tip', txt);
+    let tip = name.querySelector('.tn-tip');
+    if (!tip) { tip = document.createElement('span'); tip.className = 'tn-tip'; name.appendChild(tip); }
+    tip.textContent = txt;
   }
 
   static _setName(root, p) {
@@ -214,6 +253,11 @@ export class CheckBuilder {
     });
     const choices = {};
     Object.keys(cb.choices).forEach((k) => { choices[k] = cb.choices[k].value; });
+    // Net Degree of Success = Supporting Successes − Opposing Successes —
+    // shown in the collapsed results in place of per-Roll Successes/Crits.
+    const net = rolls.reduce((acc, r) => acc + (r.side === 'opposing' ? -r.successes : r.successes), 0);
+    const netEl = root.querySelector('.cb-net');
+    if (netEl) netEl.textContent = 'Net Degree of Success ' + net + '.';
     root.dispatchEvent(new CustomEvent('check:confirmed', { bubbles: true, detail: { choices, rolls } }));
   }
 }

@@ -39,6 +39,9 @@ module Creatures
       out[:tier]        = normalize_tier(r['tier'], out[:id], source)
       out[:loot_table]  = r['loot_table']
       out[:metadata]    = r['metadata'] || {}
+      # Persisted spawned-instance marker (Spawn Creature From Template);
+      # round-tripped so a reloaded spawn still groups under its template.
+      out[:spawned_from] = r['spawned_from'] ? Integer(r['spawned_from']) : nil
 
       adv = r['advancement'] || {}
       out[:classes] = normalize_classes(adv['classes'] || {}, out[:id], source)
@@ -48,6 +51,44 @@ module Creatures
 
       validate_archetype_exclusivity!(out[:classes], out[:id], source)
 
+      out
+    end
+
+    # Inverse of `normalize`: turn a normalized in-memory record back into
+    # the loose on-disk YAML shape (string keys) for persistence. Only
+    # writes keys that carry meaning, so a round-trip stays close to the
+    # hand-authored files. `:source` / `:spawned_from` are persistence
+    # bookkeeping — `spawned_from` is written so a reloaded spawn still
+    # groups under its template; `source` is the file routing key and is
+    # not part of the record body.
+    def serialize(rec)
+      classes = {}
+      rec[:classes].each do |key, e|
+        entry = { 'level' => e[:level] }
+        entry['skills']  = e[:skills]  unless Array(e[:skills]).empty?
+        entry['choices'] = e[:choices] unless (e[:choices] || {}).empty?
+        classes[key.to_s] = entry
+      end
+
+      adv = { 'classes' => classes }
+      unless Array(rec[:tier_attribute_advancement]).empty?
+        adv['tier_attribute_advancement'] = rec[:tier_attribute_advancement].map(&:to_s)
+      end
+
+      out = {
+        'id'    => rec[:id],
+        'name'  => rec[:name],
+        'race'  => rec[:race],
+        'attributes' => rec[:attributes].transform_keys(&:to_s),
+        'advancement' => adv
+      }
+      out['player']       = rec[:player]                       unless rec[:player].nil?
+      out['group']        = rec[:group]                        unless rec[:group].to_s.empty?
+      out['tags']         = rec[:tags]                         unless Array(rec[:tags]).empty?
+      out['tier']         = rec[:tier]                         unless rec[:tier].nil?
+      out['loot_table']   = rec[:loot_table]                   unless rec[:loot_table].nil?
+      out['metadata']     = rec[:metadata]                     unless (rec[:metadata] || {}).empty?
+      out['spawned_from'] = rec[:spawned_from]                 unless rec[:spawned_from].nil?
       out
     end
 

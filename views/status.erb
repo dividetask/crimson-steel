@@ -7,7 +7,8 @@
     { key: 'creatures',     label: 'Creatures',        href: '/status?view=creatures' },
     { key: 'encounter',     label: 'Encounter',        href: '/status?view=encounter' },
     { key: 'timekeeping',   label: 'Timekeeping',      href: '/status?view=timekeeping' },
-    { key: 'chronicle',     label: 'Chronicle',        href: '/status?view=chronicle' }
+    { key: 'chronicle',     label: 'Chronicle',        href: '/status?view=chronicle' },
+    { key: 'equipment',     label: 'Equipment',        href: '/status?view=equipment' }
   ]
 %>
 
@@ -116,6 +117,11 @@
           </div>
         <% end %>
       </div>
+
+    <% when 'equipment' %>
+      <h1>Equipment &mdash; Store Stub</h1>
+      <p class="lead">The Equipment Store Stub (<code>docs/common/ui/equipment_store_stub.md</code>) rendered on hand-curated sample stock. The live, purchasable version is at <code>/store</code>; here the shop/buyer selectors and Buy buttons are inert preview affordances.</p>
+      <%= erb :_equipment_store_stub, locals: @store_demo %>
 
     <% else %>
       <h1>Status</h1>

@@ -61,14 +61,15 @@ module Status
             badges: [badge('shock', '2 Shock'), badge('pain', '1 Pain'),
                      badge('major', 'Major: 4')]),
 
-        # Downed Combatant: at 0 HP and cannot act (red row), Major +
-        # Poison badges.
+        # Downed Combatant: overkilled past 0 (current HP is negative) and
+        # cannot act (red row), Major + Poison badges. Demonstrates the
+        # tracker showing a negative current-HP value.
         row(4, 102, 'Bryn Ironvein', '6310', can_act: false,
-            hp: hp(20, current: 0, major: 20),
+            hp: hp(20, current: -5, major: 25),
             mana: { remaining: 8, max: 8 },
             toxicity: { value: 0, threshold: 7 },
             combat_pool: { remaining: 0, max: 8 },
-            badges: [badge('major', 'Major: 20'), badge('poison', 'Poison: 2')]),
+            badges: [badge('major', 'Major: 25'), badge('poison', 'Poison: 2')]),
 
         # Freshly spawned: Initiative not yet rolled and vitals not yet
         # wired, so every numeric column falls back to a dash.

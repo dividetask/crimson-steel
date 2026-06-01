@@ -117,6 +117,37 @@ RSpec.describe 'Encounter::State#resolve_attack_payload (weapon-aware)' do
                          conditions_for: ->(_id) { cond })
   end
 
+  it 'buckets damage into Minor/Moderate/Major by the weapon Threshold' do
+    s = state
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee',
+      weapon: { damage_types: ['physical'], threshold: 3, base_damage: 0 },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 5 },
+      defense:  { choice: 'none' }, allies: []
+    )
+    expect(out[:damage]).to eq(5)
+    expect(out[:threshold]).to eq(3)
+    expect(out[:severity_map]).to eq(minor: 3, moderate: 2) # threshold 3: 3 minor, 2 moderate
+  end
+
+  it 'honors DM overrides (damage / bleed / pool) on commit, re-bucketing damage' do
+    cond = build_instance
+    s = state(cond)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee',
+      weapon: { damage_types: ['physical'], threshold: 3, base_damage: 0, bleed: 0 },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 2 },
+      defense:  { choice: 'none' }, allies: [],
+      override: { damage: 8, bleed: 1, pool_spends: [{ id: atk[:id], amount: 9 }] }
+    )
+    expect(out[:damage]).to eq(8)
+    expect(out[:severity_map]).to eq(minor: 3, moderate: 3, major: 2) # 8 @ threshold 3
+    expect(out[:bleed]).to eq(1)
+    expect(s.combatant(atk[:id])[:combat_pool_spent]).to eq(9) # overridden pool
+  end
+
   it 'routes weapon damage through the weapon damage type' do
     cond = Conditions::Instance.new
     s = state(cond)
@@ -131,6 +162,58 @@ RSpec.describe 'Encounter::State#resolve_attack_payload (weapon-aware)' do
     expect(out[:damage]).to eq(9)               # base 4 + net 5
     expect(out[:damage_type]).to eq('fire')
     expect(out[:severity_map]).to eq(moderate: 10) # fire +1 per hit
+  end
+
+  it 'reports weapon Bleed and Combat-Pool spends, and applies Bleed on a hit' do
+    cond = build_instance # catalog-backed, so the Bleeding Affliction resolves
+    s = state(cond)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee',
+      weapon: { damage_types: ['physical'], threshold: 0, base_damage: 2, bleed: 3 },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 3 },
+      defense:  { choice: 'none' }, allies: []
+    )
+    # Bleed = weapon Bleed (3) + damage dealt (base 2 + net 3 = 5) = 8.
+    expect(out[:bleed]).to eq(8)
+    expect(out[:pool_spends]).to include(a_hash_including(id: atk[:id], amount: 6)) # 2 + 4
+    expect(cond.state.afflictions).to have_key('bleeding')
+    expect(cond.state.afflictions['bleeding'][:potency]).to eq(8)
+  end
+
+  it 'a 0-Bleed weapon still bleeds for the damage dealt' do
+    cond = build_instance
+    s = state(cond)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee',
+      weapon: { damage_types: ['physical'], threshold: 0, base_damage: 0, bleed: 0 },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 4 },
+      defense:  { choice: 'none' }, allies: []
+    )
+    expect(out[:damage]).to eq(4)            # base 0 + net 4
+    expect(out[:bleed]).to eq(4)             # 0 + damage 4
+    expect(cond.state.afflictions['bleeding'][:potency]).to eq(4)
+  end
+
+  it 'preview (commit: false) reports the same numbers but mutates nothing' do
+    cond = Conditions::Instance.new
+    s = state(cond)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee', commit: false,
+      weapon: { damage_types: ['physical'], threshold: 0, base_damage: 2, bleed: 3 },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 3 },
+      defense:  { choice: 'none' }, allies: []
+    )
+    expect(out[:committed]).to be false
+    expect(out[:damage]).to eq(5)        # base 2 + net 3 — same as commit
+    expect(out[:bleed]).to eq(8)         # weapon 3 + damage 5
+    expect(out[:pool_spends]).to include(a_hash_including(id: atk[:id], amount: 6))
+    # ...but nothing was applied:
+    expect(s.combatant(atk[:id])[:combat_pool_spent]).to eq(0)
+    expect(cond.state.afflictions).to be_empty
+    expect(cond.state.hp_damage.values.sum).to eq(0)
   end
 
   it 'spends Combat Pool as the flat Speed cost plus one per die (Speed + dice)' do

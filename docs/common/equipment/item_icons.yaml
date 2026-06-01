@@ -1,0 +1,65 @@
+# Item Icon Map
+#
+# Maps an Equipment Item Type (the catalog name) to its icon file under
+# public/item_images/. Used by the Store and Inventory stubs to show art
+# next to each item.
+#
+# Keys are the exact Item Type names from equipment_config.yaml. Values
+# are filenames relative to public/item_images/. An Item Type with no
+# entry here falls back to the slug convention (lowercased name, runs of
+# non-alphanumerics collapsed to "_", e.g. "Long sword" -> long_sword.svg);
+# if neither the mapped file nor the slug file exists, the stub shows an
+# empty placeholder. Add an entry to override the slug default or to point
+# several Item Types at one shared icon.
+#
+# Icons are from "D&D Item Icons by Gwill" (CC BY 3.0); see
+# public/item_images/CREDITS.md.
+
+icons:
+  Acid jar: acid_jar.svg
+  "Alchemist's fire": alchemist_s_fire.svg
+  Arrow: arrow.svg
+  Bedroll: bedroll.svg
+  Belt of Dexterity: belt_of_dexterity.svg
+  Belt of Strength: belt_of_strength.svg
+  Bolt: bolt.svg
+  Chain mail: chain_mail.svg
+  Chain shirt: chain_shirt.svg
+  Cloak of Resistance: cloak_of_resistance.svg
+  Copper: copper.svg
+  Crossbow: crossbow.svg
+  Dagger: dagger.svg
+  Drums: drums.svg
+  Flute: flute.svg
+  Gem: gem.svg
+  Gold: gold.svg
+  Great sword: great_sword.svg
+  Hand crossbow: hand_crossbow.svg
+  Harp: harp.svg
+  Headband of Intelligence: headband_of_intelligence.svg
+  Healing Potion: healing_potion.svg
+  Hide armor: hide_armor.svg
+  Javelin: javelin.svg
+  Leather armor: leather_armor.svg
+  Light wooden shield: light_wooden_shield.svg
+  Long sword: long_sword.svg
+  Longbow: longbow.svg
+  Lute: lute.svg
+  Mace: mace.svg
+  Plate mail: plate_mail.svg
+  Quarterstaff: quarterstaff.svg
+  Rapier: rapier.svg
+  Rations: rations.svg
+  Ritual book: ritual_book.svg
+  Robes: robes.svg
+  Short sword: short_sword.svg
+  Silver: silver.svg
+  Sling: sling.svg
+  Spear: spear.svg
+  Stone: stone.svg
+  Studded leather: studded_leather.svg
+  "Thieves' tools": thieves_tools.svg
+  Tower shield: tower_shield.svg
+  Warhammer: warhammer.svg
+  Whetstone: whetstone.svg
+  Whip: whip.svg

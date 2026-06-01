@@ -2731,6 +2731,294 @@ body {
   border-top: 1px solid #b9472c;
 }
 
+/* =====================================================================
+   Equipment Store (views/_equipment_store_stub.erb)
+   ===================================================================== */
+.store-banner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 2px solid #b9472c;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+.store-banner h1 { margin: 0; }
+.store-shopname { margin: 2px 0 0; color: #64748b; font-size: 14px; }
+.store-banner-wealth { text-align: right; white-space: nowrap; }
+.store-wealth-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+.store-wealth-amount { font-size: 22px; font-weight: 700; color: #b9472c; }
+
+.store-flash {
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+.store-flash-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.store-flash-error   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+.store-controls {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.store-control { display: flex; flex-direction: column; font-size: 12px; color: #475569; }
+.store-control select { margin-top: 4px; padding: 4px 6px; }
+
+.store-layout { display: flex; gap: 24px; align-items: flex-start; }
+.store-filters {
+  flex: 0 0 180px;
+  position: sticky;
+  top: 12px;
+}
+.store-filters h2 { font-size: 14px; margin: 0 0 8px; }
+.store-filter-group { border: 1px solid #e2e8f0; border-radius: 6px; margin: 0 0 12px; padding: 8px 10px; }
+.store-filter-group legend { font-size: 12px; font-weight: 600; color: #475569; padding: 0 4px; }
+.store-filter-group label { display: block; font-size: 13px; padding: 2px 0; }
+.store-filter-empty { margin: 0; color: #94a3b8; }
+
+.store-grid {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.store-empty { grid-column: 1 / -1; color: #64748b; }
+.store-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #fff;
+}
+.store-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.store-card-name { margin: 0; font-size: 15px; }
+.store-tier-badge {
+  background: #b9472c;
+  color: #fff;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.store-card-cat { margin: 0; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em; }
+.store-card-props { margin: 0; font-size: 13px; color: #7c3aed; }
+.store-card-desc { margin: 0; font-size: 13px; color: #475569; font-style: italic; }
+.store-card-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 6px;
+}
+.store-card-price { font-weight: 700; }
+.store-card-stock { font-size: 12px; color: #64748b; }
+.store-buy { display: flex; gap: 8px; }
+.store-qty { width: 64px; padding: 4px 6px; }
+.store-buy-btn { flex: 1 1 auto; }
+.store-buy-disabled { opacity: 0.6; }
+
+/* =====================================================================
+   Equipment Provisioning (views/_equipment_provision_stub.erb)
+   ===================================================================== */
+.provision > h1 { border-bottom: 2px solid #b9472c; padding-bottom: 8px; }
+
+/* The page splits into the provisioning sections (left) and the
+   Shopping Cart rail (right). The cart collapses out when empty, so the
+   main column reflows to full width. */
+.provision-body { display: flex; align-items: flex-start; gap: 24px; }
+.provision-main { flex: 1 1 auto; min-width: 0; }
+
+.provision-section { margin-bottom: 32px; }
+.provision-section > h2 {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+}
+.provision-recipient { margin-bottom: 14px; font-size: 13px; color: #475569; }
+.provision-recipient select { margin-left: 6px; padding: 4px 6px; }
+
+.provision-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.provision-card {
+  display: flex;
+  gap: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  height: 100%;
+  box-sizing: border-box;
+}
+.provision-pic {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 3px;
+  box-sizing: border-box;
+}
+.provision-pic img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.provision-pic-empty { border-style: dashed; border-color: #cbd5e1; }
+
+/* Belt of Strength and Belt of Dexterity share one gold belt icon (the
+   only belt in the set). Tint them apart with a hue rotation off the
+   base gold (~35°): Strength runs warm/red (martial), Dexterity cool/
+   green (agile). */
+.provision-card[data-item="Belt of Strength"] .provision-pic img { filter: hue-rotate(-55deg) saturate(1.15); }
+.provision-card[data-item="Belt of Dexterity"] .provision-pic img { filter: hue-rotate(75deg) saturate(1.05); }
+.provision-card-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.provision-card-name { font-weight: 600; }
+.provision-card-price { color: #64748b; font-size: 13px; }
+.provision-card-buy { display: flex; gap: 6px; margin-top: auto; }
+.provision-qty { width: 56px; padding: 3px 5px; }
+
+/* Alchemy cards stack their per-recipient boxes vertically — one
+   labelled input per line. */
+.provision-alch-boxes { display: flex; flex-direction: column; gap: 4px; margin: 4px 0; }
+.provision-box { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.provision-box .provision-qty { width: 48px; }
+.provision-alch-buy { align-self: flex-start; margin-top: auto; }
+
+/* Magical-item cards add a +N Bonus selector above the recipient boxes. */
+.provision-bonus { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #475569; margin: 2px 0 4px; }
+.provision-bonus select { padding: 2px 4px; }
+
+.provision-note { color: #64748b; }
+.provision-disabled > h2 { color: #94a3b8; }
+
+/* ---- Shopping Cart rail ---- */
+.provision-cart {
+  flex: 0 0 280px;
+  position: sticky;
+  top: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+.provision-cart[hidden] { display: none; }
+.provision-cart-head { background: #b9472c; }
+.provision-cart-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  padding: 10px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.provision-cart-caret { transition: transform 0.15s ease; }
+.provision-cart-collapsed .provision-cart-caret { transform: rotate(-90deg); }
+.provision-cart-title { flex: 1 1 auto; text-align: left; }
+.provision-cart-count {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  padding: 1px 9px;
+  font-size: 13px;
+}
+.provision-cart-body[hidden] { display: none; }
+.provision-cart-lines { list-style: none; margin: 0; padding: 8px 12px; max-height: 50vh; overflow-y: auto; }
+.provision-cart-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+}
+.provision-cart-line:last-child { border-bottom: 0; }
+.provision-cart-line-desc { flex: 1 1 auto; }
+.provision-cart-remove {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #b9472c;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.provision-cart-total {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-top: 1px solid #e2e8f0;
+}
+.provision-cart-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+.provision-cart-clear { flex: 0 0 auto; }
+.provision-cart-purchase { flex: 1 1 auto; }
+
+/* =====================================================================
+   Creature Inventory stub (views/_creature_inventory_stub.erb)
+   ===================================================================== */
+.inv { margin-top: 28px; border-top: 2px solid #b9472c; padding-top: 12px; }
+.inv-title { margin: 0 0 12px; }
+.inv-section-title {
+  font-size: 15px;
+  margin: 18px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.inv-empty { color: #94a3b8; font-size: 13px; grid-column: 1 / -1; }
+
+/* All three sections reuse the Store's provision-card / provision-grid
+   look. The action row sits at the card foot and wraps its forms. */
+.inv .provision-grid { margin-bottom: 6px; }
+.provision-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+}
+.inv-action { display: flex; align-items: center; gap: 6px; margin: 0; }
+.inv-qty { width: 52px; padding: 3px 5px; }
+
+/* Ritual book card: "(N rituals)" opens a scrollable modal (app.js). */
+.inv-ritual-open {
+  display: inline-block;
+  align-self: flex-start;
+  margin: 0 0 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: #2563eb;
+  cursor: pointer;
+}
+.inv-ritual-open:hover { text-decoration: underline; }
+.inv-ritual-modal-title { font-weight: 700; margin-bottom: 10px; }
+.inv-ritual-list { list-style: disc; margin: 0; padding-left: 20px; }
+.inv-ritual-list li { padding: 2px 0; }
+.inv-ritual-empty { color: #94a3b8; list-style: none; margin-left: -16px; }
 /* ---- Turn Action Stub (turn_action_stub.md) ---- */
 .turn-action {
   margin-top: 16px;
@@ -2803,6 +3091,43 @@ body {
 /* TN Bonus/Penalty breakdown shown after a group's dice buttons. */
 .cb-bonus-note { font-size: 11px; color: #555; font-style: italic; margin-left: 4px; }
 .roll-group-excluded { display: none; }
+
+/* Header quick-pick buttons (one per weapon = max dice), top-right of the
+   Weapon & dice step's controls. */
+/* Header quick-pick buttons (one per weapon = max dice), top-right of the
+   Weapon & dice step's controls. The generic `.rolls-actions button` rule
+   forces white text / no border, so re-assert the .cr-mod-btn palette here
+   (scoped under .rolls-actions to win on specificity) — matching the body
+   dice buttons. */
+.rolls-actions .cb-quick {
+  margin-left: 6px;
+  background: #fff;
+  color: #333;
+  border: 1px solid #bbb;
+}
+.rolls-actions .cb-quick:hover { background: #f0f0f0; }
+.rolls-actions .cb-quick:disabled { opacity: 0.4; background: #f3f3f3; color: #999; cursor: not-allowed; }
+
+/* Attack result block: shown beneath the (still-present) builder after the
+   first Confirm as a non-mutating preview, then again after committing. */
+.ta-result {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-top: 2px solid #c8c8c8;
+  background: #fafafa;
+  font-size: 12px;
+}
+.ta-result p { margin: 2px 0; }
+.ta-field { margin: 4px 0; display: flex; align-items: center; gap: 6px; }
+.ta-field label { font-weight: bold; color: #444; display: flex; align-items: center; gap: 4px; }
+.ta-field input { width: 56px; padding: 2px 4px; font-size: 12px; }
+.ta-split { color: #7f1d1d; }
+.ta-result-label { font-size: 11px; font-weight: bold; color: #8a5d00; margin-bottom: 4px; }
+.ta-result-committed { background: #eef7ee; border-top-color: #2c8a2c; }
+.ta-hit strong { color: #7f1d1d; }
+.ta-bleed strong { color: #b91c4c; }
+.ta-pool { color: #444; }
+.ta-builder-locked { opacity: 0.7; }
 
 /* Character-cell TN tooltip (dice_resolution_roll_tooltip.md computation
    line) — shows how the Base TN plus Bonuses/Penalties formed the final TN

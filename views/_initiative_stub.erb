@@ -107,11 +107,9 @@
                     <span class="hp-seg hp-mod"   style="width: <%= pct.call(hp[:moderate], hp[:max]) %>%"></span>
                     <span class="hp-seg hp-maj"   style="width: <%= pct.call(hp[:major], hp[:max]) %>%"></span>
                   </div>
-                  <span class="hp-num">
-                    <%= hp[:current] %>/<%= hp[:max] %><%
-                      %><% if hp[:moderate].to_i > 0 %> <%= hp[:moderate] %>M<% end %><%
-                      %><% if hp[:major].to_i > 0 %> <%= hp[:major] %>Maj<% end %>
-                  </span>
+                  <%# Just current / max — the Minor / Moderate / Major split
+                      is conveyed by the bar's colored segments. %>
+                  <span class="hp-num"><%= hp[:current] %>/<%= hp[:max] %></span>
                 </div>
               <% else %>
                 <span class="initiative-dash"><%= dash %></span>

@@ -33,9 +33,12 @@ module Creatures
       copy[:id] = new_id
       copy[:name] = name_override if name_override
       copy[:loot_table] = loot_table if loot_table
-      # Record the template this instance was cloned from so the
-      # Roster Sidebar can group spawned Creatures under their source.
+      # Record the template this instance was cloned from so the Roster
+      # Sidebar / Character Sheets can group spawned Creatures under their
+      # source. A spawned instance is NOT itself a template — drop the
+      # `enemy_template` tag so it isn't listed as a selectable template.
       copy[:spawned_from] = Integer(template_id)
+      copy[:tags] = Array(copy[:tags]).reject { |t| t == 'enemy_template' }
 
       Dataset.insert!(copy)
       new_id

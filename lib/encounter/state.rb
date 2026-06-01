@@ -198,7 +198,6 @@ module Encounter
       @combatants.each do |c|
         c[:combat_pool_spent]   = 0
         c[:luck_points]         = 0
-        c[:performed_this_turn] = false
         c[:concentration]       = []
         c[:casting]             = []
       end
@@ -388,6 +387,37 @@ module Encounter
       tpr == 1 ? "Round #{round}" : "Round #{round} #{sub}/#{tpr}"
     end
 
+    # Current Round number (1-based), inferred from elapsed Time Ticks.
+    def round_number
+      return 0 unless combat_active?
+      (@elapsed_time_ticks / (@time_ticks_per_round || 1)) + 1
+    end
+
+    # The Round's turn order: every Combatant once, by their first scheduled
+    # Time Tick, then Initiative String (descending), then Combat ID.
+    def round_turn_order
+      @combatants.sort_by do |c|
+        first_tick = Array(c[:time_tick_schedule]).min || 9_999
+        [first_tick, invert_string(c[:initiative_string].to_s), c[:id]]
+      end
+    end
+
+    # Is this Combatant Unaware (has not yet acted in the Combat)? Inferred,
+    # not stored: a Combatant is Unaware only in Round 1, before its first
+    # turn comes up — i.e. it falls later in the Round's turn order than the
+    # Acting Combatant. From Round 2 on everyone has acted at least once;
+    # before Initiative is seated (no Acting Combatant) no one has acted.
+    def unaware?(combatant_id)
+      return false unless combat_active?
+      return false unless round_number == 1
+      return true if @acting_combatant_id.nil?
+      order = round_turn_order.map { |c| c[:id] }
+      ai = order.index(@acting_combatant_id)
+      ti = order.index(combatant_id)
+      return false if ai.nil? || ti.nil?
+      ti > ai
+    end
+
     # ---------- Damage ----------
 
     # Apply Damage → Severity Calculation → Conditions, then trigger one
@@ -468,38 +498,114 @@ module Encounter
       allies   = Array(p[:allies])
       attack_kind = (p[:attack_kind] || 'melee').to_s
       weapon = p[:weapon] || {}
+      # commit:false runs a non-mutating preview — same numbers, but no Combat
+      # Pool spent and no damage / bleed applied. The turn-action panel uses it
+      # to show the result before the DM commits (a second Confirm).
+      commit = p.fetch(:commit, true) != false
 
       # Reject an ineligible Defensive Action before spending anything.
       choice = defense[:choice].to_s
       declared = !(choice.empty? || choice == 'none' || defense.empty?)
       if declared && !Attack.defense_eligible?(choice, attack_kind)
         return { ok: false, error: "#{choice} is not eligible against a #{attack_kind} attack",
-                 damage: 0, severity_map: {}, net_dos: 0 }
+                 damage: 0, severity_map: {}, net_dos: 0, bleed: 0, pool_spends: [] }
       end
 
-      spend_combat_pool(attacker[:id], pool_cost(attacker)) if attacker[:id]
-      allies.each { |a| spend_combat_pool(a[:id], pool_cost(a)) if a[:id] }
+      # Combat Pool each participant spends (Speed + dice). Dodge (a Saving
+      # Throw) spends none. Reported either way; only applied on commit.
+      # DM overrides from the result panel's editable fields (commit only).
+      over = p[:override] || {}
 
+      pool_spends = []
+      pool_spends << { id: attacker[:id], amount: pool_cost(attacker) } if attacker[:id]
+      allies.each { |a| pool_spends << { id: a[:id], amount: pool_cost(a) } if a[:id] }
       opposing = 0
       if declared
-        # Parry / Block spend Combat Pool; Dodge (a Saving Throw) does not.
         if Attack.defense_spec(choice)[:pool_cost] && defense[:id]
-          spend_combat_pool(defense[:id], pool_cost(defense))
+          pool_spends << { id: defense[:id], amount: pool_cost(defense) }
         end
         opposing = defense[:successes].to_i
       end
+      pool_spends = apply_pool_override(pool_spends, over[:pool_spends])
+      pool_spends.each { |s| spend_combat_pool(s[:id], s[:amount].to_i) } if commit
 
       supporting = attacker[:successes].to_i + allies.sum { |a| a[:successes].to_i }
       net = supporting - opposing
+      threshold = weapon[:threshold].to_i
+      resil = defender_resilience(p[:target_id])
+      dtype = (Array(weapon[:damage_types]).first || weapon[:damage_type] || 'physical').to_s
+
       if net.positive?
         base = weapon[:base_damage] ? weapon[:base_damage].to_i : p[:damage_bonus].to_i
-        damage = base + net
-        dtype = (Array(weapon[:damage_types]).first || weapon[:damage_type] || 'physical').to_s
-        out = apply_damage(p[:target_id], damage, dtype, threshold: weapon[:threshold].to_i)
-        { ok: true, damage: damage, severity_map: out[:severity_map], net_dos: net, damage_type: dtype }
+        # Computed damage / bleed, each replaceable by a DM override. Bleed is
+        # the weapon's Bleed plus the damage dealt (encounter_design.md →
+        # "actual bleed = Bleed Constant + damage dealt"), so a 0-Bleed weapon
+        # still bleeds for its damage.
+        damage = over.key?(:damage) ? over[:damage].to_i : base + net
+        bleed  = over.key?(:bleed)  ? over[:bleed].to_i  : weapon[:bleed].to_i + damage
+        if commit
+          out = apply_damage(p[:target_id], damage, dtype, threshold: threshold)
+          apply_weapon_bleed(p[:target_id], attacker[:id], bleed) if bleed.positive?
+          sev = out[:severity_map]
+        else
+          sev = preview_severity(p[:target_id], damage, dtype, threshold)
+        end
+        { ok: true, damage: damage, severity_map: sev, net_dos: net, damage_type: dtype,
+          threshold: threshold, damage_resilience: resil, bleed: bleed,
+          pool_spends: pool_spends, committed: commit }
       else
-        { ok: true, damage: 0, severity_map: {}, net_dos: net }
+        { ok: true, damage: 0, severity_map: {}, net_dos: net, damage_type: dtype,
+          threshold: threshold, damage_resilience: resil, bleed: 0,
+          pool_spends: pool_spends, committed: commit }
       end
+    end
+
+    # The target's Damage Resilience (so the panel can re-bucket a DM-adjusted
+    # damage into Minor/Moderate/Major exactly as Apply Damage would).
+    def defender_resilience(combatant_id)
+      c = combatant_for(combatant_id) or return 0
+      defender_damage_resilience(lookup!(c[:creature_id]))
+    rescue StandardError
+      0
+    end
+
+    # Merge DM pool-spend overrides ([{id, amount}]) onto the computed spends,
+    # matching by Combatant id.
+    def apply_pool_override(spends, overrides)
+      return spends unless overrides
+      by_id = Array(overrides).each_with_object({}) { |o, h| h[o[:id]] = o[:amount].to_i }
+      spends.map { |s| by_id.key?(s[:id]) ? s.merge(amount: by_id[s[:id]]) : s }
+    end
+
+    # Severity bucketing for a hypothetical hit, without applying it — mirrors
+    # the front of apply_damage so the preview shows the same Minor/Moderate/
+    # Major split the commit will produce.
+    def preview_severity(combatant_id, raw, type, threshold)
+      c = combatant_for(combatant_id) or return {}
+      creature = lookup!(c[:creature_id])
+      Severity.compute(raw: raw, type: type, threshold: threshold,
+                       damage_resilience: defender_damage_resilience(creature),
+                       target_tags: creature ? Array(creature.tags) : [])[:severity_map]
+    rescue StandardError
+      {}
+    end
+
+    # Inflict the weapon's Bleed on the target as the Bleeding Affliction,
+    # scaled to the attacker's Tier (mirrors the Falling-Damage bleed channel).
+    def apply_weapon_bleed(target_id, attacker_id, amount)
+      tc = combatant_creature(attacker_id)
+      tier = (tc&.tier rescue 0) || 0
+      conditions_for(combatant_for(target_id)[:creature_id])
+        .inflict_affliction('bleeding', inflicter_tier: tier, delta: amount, current_round: current_abs_round)
+    rescue StandardError
+      nil
+    end
+
+    def current_abs_round
+      ts = current_timestamp
+      (ts[:day_index] * rounds_per_day) + ts[:round_of_day]
+    rescue StandardError
+      nil
     end
 
     # Combat Pool a Roll spends: the action's flat Speed cost plus one per
@@ -640,7 +746,6 @@ module Encounter
 
       c[:combat_pool_spent] = 0
       c[:luck_points] = 0
-      c[:performed_this_turn] = true
 
       # End-of-turn channel check.
       c[:concentration].reject! do |e|
@@ -707,7 +812,7 @@ module Encounter
     def blank_combatant(id, creature_id, name)
       { id: id, creature_id: creature_id, name: name,
         initiative_string: '', combat_pool_spent: 0, time_tick_schedule: [],
-        luck_points: 0, performed_this_turn: false, concentration: [], casting: [] }
+        luck_points: 0, concentration: [], casting: [] }
     end
 
     def recompute_schedules!
@@ -823,7 +928,6 @@ module Encounter
         combat_pool_spent:   Integer(c['combat_pool_spent'] || 0),
         time_tick_schedule:  Array(c['time_tick_schedule']).map { |n| Integer(n) },
         luck_points:         Integer(c['luck_points'] || 0),
-        performed_this_turn: c['performed_this_turn'] || false,
         concentration:       (c['concentration'] || []).map { |e| symbolize(e) },
         casting:             (c['casting'] || []).map { |e| symbolize(e) }
       }
@@ -834,7 +938,6 @@ module Encounter
         'id' => c[:id], 'creature_id' => c[:creature_id], 'name' => c[:name],
         'initiative_string' => c[:initiative_string], 'combat_pool_spent' => c[:combat_pool_spent],
         'time_tick_schedule' => c[:time_tick_schedule], 'luck_points' => c[:luck_points],
-        'performed_this_turn' => c[:performed_this_turn],
         'concentration' => c[:concentration].map { |e| stringify(e) },
         'casting' => c[:casting].map { |e| stringify(e) }
       }

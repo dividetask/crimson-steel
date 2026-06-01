@@ -1,12 +1,71 @@
 {
-  "combatants": [],
-  "next_combatant_id": 1,
-  "excluded_pcs": [],
-  "time_ticks_per_round": null,
-  "time_tick": null,
-  "combat_anchor": null,
+  "combatants": [
+    {
+      "id": 1,
+      "creature_id": "2003",
+      "name": "",
+      "initiative_string": "999886",
+      "combat_pool_spent": 0,
+      "time_tick_schedule": [
+        1
+      ],
+      "luck_points": 0,
+      "concentration": [
+
+      ],
+      "casting": [
+
+      ]
+    },
+    {
+      "id": 2,
+      "creature_id": "2004",
+      "name": "",
+      "initiative_string": "X732",
+      "combat_pool_spent": 0,
+      "time_tick_schedule": [
+        1
+      ],
+      "luck_points": 0,
+      "concentration": [
+
+      ],
+      "casting": [
+
+      ]
+    },
+    {
+      "id": 3,
+      "creature_id": "2005",
+      "name": "",
+      "initiative_string": "XX94",
+      "combat_pool_spent": 0,
+      "time_tick_schedule": [
+        1
+      ],
+      "luck_points": 0,
+      "concentration": [
+
+      ],
+      "casting": [
+
+      ]
+    }
+  ],
+  "next_combatant_id": 4,
+  "excluded_pcs": [
+
+  ],
+  "time_ticks_per_round": 1,
+  "time_tick": 1,
+  "combat_anchor": {
+    "day_index": 0,
+    "round_of_day": 0
+  },
   "elapsed_time_ticks": 0,
-  "acting_combatant_id": null,
-  "granted_actions": [],
+  "acting_combatant_id": 1,
+  "granted_actions": [
+
+  ],
   "dm_luck_points": 0
 }

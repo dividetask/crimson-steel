@@ -111,7 +111,7 @@ Cases:
 
 **Advance Turn moves to the next Acting Combatant.** Time Tick has three Acting Combatants sorted A, B, C by Initiative; `acting_combatant_id` = A. After one Advance Turn: `acting_combatant_id` = B. After two more Advance Turns: pointer falls off the end → Combat calls Advance Time Tick → `acting_combatant_id` = the first Acting Combatant of the new Time Tick.
 
-**Advance Turn applies Per-Turn Cleanup to the outgoing Combatant.** The outgoing Combatant's `combat_pool_spent` resets to 0, `luck_points` clears to 0, `performed_this_turn` becomes true.
+**Advance Turn applies Per-Turn Cleanup to the outgoing Combatant.** The outgoing Combatant's `combat_pool_spent` resets to 0 and `luck_points` clears to 0.
 
 **Initiative ties break by Combat ID.** Acting Combatants at the current Time Tick include two Combatants with `initiative_string = "97"`, IDs 5 and 12. The sorted order is `[5, 12]` — ascending Combat ID breaks the tie. Advance Turn from `acting_combatant_id = 5` moves to `acting_combatant_id = 12`.
 

@@ -56,6 +56,12 @@
       <% steps.each_with_index do |st, i| %>
         <div class="step-controls" data-step="<%= st[:key] %>" data-state="<%= i.zero? ? 'active' : 'pending' %>">
           <span class="step-kind-label"><%= st[:label] %></span>
+          <%# Optional quick-pick buttons in the header (e.g. one per weapon = %>
+          <%# max dice). They are normal options resolved by value. %>
+          <% Array(st[:header_options]).each do |o| %>
+            <button type="button" class="cr-mod-btn cb-opt cb-quick" data-step="<%= st[:key] %>"
+                    data-value="<%= CGI.escapeHTML(o[:value].to_s) %>"<%= o[:disabled] ? ' disabled' : '' %>><%= o[:label] %></button>
+          <% end %>
         </div>
       <% end %>
       <div class="step-controls" data-step="__dice" data-state="pending">
@@ -100,13 +106,10 @@
     </table>
   </div>
 
+  <%# On Confirm the builder collapses to a single net Degree of Success line
+      (Supporting Successes − Opposing Successes), filled by checkBuilder.js. %>
   <div class="rolls-results" hidden>
-    <% rolls.each_with_index do |roll, idx| %>
-      <div class="rolls-result-row" data-roll-idx="<%= idx %>">
-        <span class="rolls-result-name"><%= roll[:roll_name] %>:</span>
-        <span class="rolls-result-value"></span>
-      </div>
-    <% end %>
+    <div class="cb-net"></div>
     <button type="button" class="btn-rolls-change"><span class="cr-change-icon">↶</span> Change</button>
   </div>
 </div>

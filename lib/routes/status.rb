@@ -1,4 +1,4 @@
-STATUS_VIEWS = %w[status dice check conditions creatures timekeeping chronicle encounter].freeze
+STATUS_VIEWS = %w[status dice check conditions creatures timekeeping chronicle encounter equipment].freeze
 
 get '/status' do
   redirect '/character-sheets' unless dm_view?
@@ -22,6 +22,8 @@ get '/status' do
     @creature_demos = Status::SampleCreatures.demos
   elsif @view == 'encounter'
     @encounter_scenarios = Status::SampleEncounter.scenarios
+  elsif @view == 'equipment'
+    @store_demo = Status::SampleEquipment.store
   elsif @view == 'timekeeping'
     @timekeeping_examples = Status::SampleTimekeeping.timekeeping_examples
   elsif @view == 'chronicle'

@@ -45,4 +45,24 @@ RSpec.describe Equipment::DisplayName do
     n = name(catalog, item_type: 'Lute', tier: 1, name: 'Lute of the Wandering Bard')
     expect(n).to eq('Lute of the Wandering Bard')
   end
+
+  context 'Guidance Items' do
+    it 'uses the Guidance Bonus (not the Tier) for the +N prefix' do
+      # A +2 Belt of Strength is Tier 1 per the catalog array, but the
+      # player-facing prefix is the Bonus.
+      expect(name(catalog, item_type: 'Belt of Strength', tier: 1, guidance_bonus: 2))
+        .to eq('+2 Belt of Strength')
+    end
+
+    it 'shows the Bonus prefix even when it differs from the Tier' do
+      # +6 Belt of Strength is Tier 3; the name still reads +6.
+      expect(name(catalog, item_type: 'Belt of Strength', tier: 3, guidance_bonus: 6))
+        .to eq('+6 Belt of Strength')
+    end
+
+    it 'matches Bonus and Tier for a one-to-one Guidance Item' do
+      expect(name(catalog, item_type: 'Cloak of Resistance', tier: 5, guidance_bonus: 5))
+        .to eq('+5 Cloak of Resistance')
+    end
+  end
 end

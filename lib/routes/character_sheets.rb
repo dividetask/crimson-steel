@@ -24,6 +24,11 @@ get '/character-sheets' do
   accessor = @creature_id && (Creatures.lookup(@creature_id) rescue nil)
   @demo = accessor ? CreatureSheet.build(accessor) : nil
 
+  # Inventory-management stub — shown below the sheet for a real Creature
+  # (never an enemy_template). Keyed to the Creature shown above.
+  @inventory_stub =
+    (@creature_id && manageable_creature?(@creature_id)) ? inventory_stub_data(@creature_id) : nil
+
   # Paging arrows — players only (the DM navigates via the sidebar).
   if @player_view && @i >= 0 && ids.length > 1
     @prev_creature_id = ids[(@i - 1) % ids.length]

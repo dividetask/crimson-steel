@@ -124,9 +124,15 @@
     group_config[:speed]              = roll[:speed]             if roll.key?(:speed)
 
     # Computation line for the character-cell TN tooltip: "Base ±mods = TN n".
+    # A Bonus lowers the TN, so it shows as a negative term ("−2 Competency");
+    # a Penalty raises it, shown as positive. (This is the pre-JS fallback; the
+    # Check Builder re-renders it via Check Resolution after propagation.)
     tn_breakdown =
       if roll[:base_tn]
-        terms = Array(roll[:bonus_penalty_list]).map { |type, amt| "#{amt >= 0 ? '+' : ''}#{amt} #{type}" }
+        terms = Array(roll[:bonus_penalty_list]).map do |type, amt|
+          infl = -amt
+          "#{infl >= 0 ? '+' : '−'}#{infl.abs} #{type}"
+        end
         "#{roll[:base_tn]}#{terms.empty? ? '' : ' ' + terms.join(' ')} = TN #{roll[:tn]}"
       end
 

@@ -116,6 +116,8 @@ test('Max-mode nudge shifts every die', () => {
   const rng = new SequenceRng([3, 5, 9, 10]);
   const r = Roll.resolveWithTn({ diceCount: 4, valueAdjustment: { value: 1, max: true } }, rng);
   assert.deepEqual(r.finalDice, [4, 6, 10, 10]);
+  // Max mode records every die, including the clamped 10 — no nulls.
+  assert.deepEqual(r.nudgeChanges, [4, 6, 10, 10]);
 });
 
 test('Reroll changes report per-position rerolled values', () => {

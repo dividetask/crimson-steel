@@ -81,7 +81,7 @@ A free-form text input for a one-off action ("breath weapon", "improvise"). Subm
 
 ### End Turn
 
-A single confirm-and-submit button that invokes Encounter's *Advance Turn*, which skips Combatants who cannot act and applies *Apply Per-Turn Cleanup* to the outgoing Combatant — resetting `combat_pool_spent` to 0, clearing per-Combatant `luck_points`, and marking `performed_this_turn`. A Round wrap additionally triggers *Apply Per-Round Cleanup* and Chronicle's *Advance current Timestamp*.
+A single confirm-and-submit button that invokes Encounter's *Advance Turn*, which skips Combatants who cannot act and applies *Apply Per-Turn Cleanup* to the outgoing Combatant — resetting `combat_pool_spent` to 0 and clearing per-Combatant `luck_points`. A Round wrap additionally triggers *Apply Per-Round Cleanup* and Chronicle's *Advance current Timestamp*.
 
 ## Parameters
 

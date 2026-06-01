@@ -72,9 +72,15 @@ RSpec.describe Status::SampleEncounter do
 
     it 'partitions each HP value so current + damage segments equal max' do
       rows.map { |r| r[:hp] }.compact.each do |hp|
+        # current may be negative (overkilled past 0); the segments still
+        # sum back to Max.
         expect(hp[:current] + hp[:minor] + hp[:moderate] + hp[:major]).to eq(hp[:max])
-        expect(hp[:current]).to be >= 0
       end
+    end
+
+    it 'includes an overkilled Combatant with negative current HP' do
+      negs = rows.map { |r| r[:hp] }.compact.select { |hp| hp[:current].negative? }
+      expect(negs).not_to be_empty
     end
   end
 end

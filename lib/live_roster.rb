@@ -64,8 +64,11 @@ module LiveRoster
     players   = recs.select { |r| Array(r[:tags]).include?('player_character') }
     npcs      = recs.select { |r| r[:group] == 'npc' }
     templates = recs.select { |r| Array(r[:tags]).include?('enemy_template') }
+    # Spawned instances (cloned from a template) are real Creatures with
+    # their own sheet — page through them too, after the templates.
+    spawned   = recs.select { |r| r[:spawned_from] }
     seen = {}
-    (players + npcs + templates).filter_map { |r| next if seen[r[:id]]; seen[r[:id]] = true; r[:id] }
+    (players + npcs + templates + spawned).filter_map { |r| next if seen[r[:id]]; seen[r[:id]] = true; r[:id] }
   end
 
   def creatures_with_tag(tag)

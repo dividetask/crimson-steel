@@ -141,8 +141,13 @@ RSpec.describe Encounter::State do
         data_path: data_path,
         example_path: File.expand_path('../../docs/common/encounter/encounter_data.example.json', __dir__)
       )
-      expect(reloaded.combatants).to eq([])
-      expect(reloaded.combat_active?).to be false
+      # The shipped example is an in-progress combat — a Wolf + two Goblins
+      # spawned as distinct instances (2003/2004/2005), initiative seated —
+      # so the Encounter page has something to show and damaging one Goblin
+      # does not affect the other.
+      expect(reloaded.combat_active?).to be true
+      expect(reloaded.combatants.map { |c| c[:creature_id] }).to eq(%w[2003 2004 2005])
+      expect(reloaded.acting_combatant_id).to eq(1)
     end
   end
 end

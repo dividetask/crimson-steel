@@ -72,11 +72,11 @@ Modifiers granted to the attacker based on the defender's state. Despite the def
 
 **Flatfooted**: The condition a Creature is in when they are unable to respond to an attack.
 
-**Unaware**: The condition a Creature is in when they are stationary and not engaged in combat.
+**Unaware**: A combatant that has yet to act in combat.
 
 **Flatfooted Bonus**: An Attacker Bonus that applies when the defender is Flatfooted against the incoming attack. *(configurable)*
 
-**Unaware Bonus**: An Attacker Bonus that applies when the defender has not yet acted in the active Combat. *(configurable)*
+**Unaware Bonus**: An Attacker Bonus that applies when the defender is Unaware against the incoming attack. *(configurable)*
 
 **Hidden**: A relationship between an attacker and a defender that exists when the defender cannot perceive the attacker.
 

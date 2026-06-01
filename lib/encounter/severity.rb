@@ -16,7 +16,9 @@ module Encounter
       catalog = Config.damage_types
       sev = nil
       mechanics = nil
-      key = name.to_s
+      # Damage Type catalog keys are lowercase; callers (e.g. Equipment weapon
+      # Damage Types like "Bludgeoning") may pass capitalized names.
+      key = name.to_s.downcase
       seen = {}
       while key && catalog.key?(key) && !seen[key]
         seen[key] = true
