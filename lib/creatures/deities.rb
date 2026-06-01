@@ -30,6 +30,13 @@ module Creatures
       (d['domain_spells'] || {}).fetch(domain_name.to_s, [])
     end
 
+    # Domains a deity opposes.
+    def anathema(deity_name)
+      d = deities[deity_name.to_s]
+      return [] unless d
+      d['anathema'] || []
+    end
+
     def reset!
       @data = nil
     end

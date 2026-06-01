@@ -1,6 +1,7 @@
 # Deities catalog.
 #
-# Each entry: deity name -> { domains: [list], description: string,
+# Each entry: deity name -> { domains: [list], anathema: [list],
+#                             description: string,
 #                             domain_spells: { domain: [spells] } }
 #
 # A Cleric Creature's `choices.deity` names a deity here; their
@@ -8,20 +9,21 @@
 # gains the domain's spell list in addition to the Class-level
 # `granted_spells` (see `creatures_advancement.yaml`).
 #
-# `description` is free-form lore; the loader stores it opaquely.
+# `domains` are the Domains the deity grants; `anathema` are the
+# Domains (and conduct) the deity opposes. Both name entries in the
+# `Domains` catalog at the bottom of this file. `description` is
+# free-form lore, stored opaquely.
 #
 # A domain listed under `domains` but absent from `domain_spells`
 # has not yet been mechanically defined — its spell list is empty
 # until designed.
-#
-# Every domain a deity may hold is defined in the `Domains` catalog
-# at the bottom of this file.
 
 Deities:
 
   Thraxun:
-    domains: [Song, Knowledge, Protection, Order, Hope]
-    description: |
+    domains: [Wisdom, Protection, Harmony, Hope, Humility]
+    anathema: [Despair, Chaos, Madness, Ruin, Vengeance]
+    description: >
       The First Singer. Once a mortal bard, the storyteller of his tribe in the
       age before writing. He learned the secret names of the older powers and
       composed songs that hid his people, warded them, and gave them what those
@@ -31,27 +33,32 @@ Deities:
       conquest, but because his song is the strongest and his care for the people
       below the longest.
 
+
+      He punishes those who could protect the weak and refuse — the soldier who
+      flees the child, the bystander who looks away from a captive in chains. He
+      also punishes the destruction of made works: songs sung over, books burned,
+      carved stones broken without need.
+
   Velkin:
-    domains: [Trickery, Cunning, Travel, Chaos, Hope]
-    description: |
-      The Trickster. A Wandering Spirit who survived the First Song — small,
-      curious, easily overlooked when Thraxun named the great spirits into lesser
-      shapes. He hid, watched, then began meddling in mortal lives: leading lost
+    domains: [Trickery, Cunning, Chaos, Hope, Travel]
+    anathema: [Order, Truth, Strength, Vengeance, Light]
+    description: >
+      The Trickster. A Wandering Spirit from before Thraxun's song — small,
+      curious, easily overlooked. He began meddling in mortal lives: leading lost
       children home, teaching snare-knots, leaving the unkind shaman's drum just
       out of reach for three days. Mortals named him. The names made him strong.
       He woke a god by accident, or so he claims.
 
-      His help has costs he never volunteers. The lost child loses a year of
-      growth on the way home; the hunter who learns his snare-trick catches his
-      own brother in it next season. He cannot say a literal lie, but he tells
-      true things in misleading ways. He carries grudges further than mortals can
-      remember, and he never settles for a single act of revenge.
 
-      The only god of the prime pantheon who was never mortal.
+      His help has small hidden costs — never disaster, never free. He cannot say
+      a literal lie but tells true things crookedly. He has no patience for those
+      who treat a prank as a wound or invoke him to settle a score; their next
+      encounter with him is worse.
 
   Drennar:
-    domains: [Nature, Strength, Cunning, Glory, Death]
-    description: |
+    domains: [Nature, Glory, Wisdom, Earth, Healing]
+    anathema: [Ruin, Humility, Plague, Despair, Tempest]
+    description: >
       The Hunter. The greatest hunter of his age in the early peace after
       Thraxun. Walked tribe to tribe teaching the spear-throw, the snare-line, the
       way to read tracks. Never settled, never married — said the tribes were his
@@ -60,18 +67,22 @@ Deities:
       the doing. The hunters who found his body sang his name for nine days. Every
       tribe he had ever helped sang it within a year.
 
+
       His blessing requires the rite: the hunter consumes the heart of the great
       kill raw, with the beast's name spoken aloud, and Drennar takes its spirit
       into himself. He has grown from every great kill his cult has made. Hunters
       he deems unworthy — cowardice is the usual mark, but sometimes it is
       arbitrary — lose his favor and have, on occasion, been hunted by his own
-      devotees.
+      devotees. Kills taken without using the meat or hide offend him, as does
+      burning forest or scrub for clearing.
+
 
       Loud, celebrated, expects to be heard.
 
   Mazhel:
-    domains: [Healing, Life, Plague, Truth, Knowledge]
-    description: |
+    domains: [Healing, Life, Plague, Truth, Hearth]
+    anathema: [Glory, Trickery, Death, War]
+    description: >
       The Healer-Midwife. She handled what no one else would. A wandering healer
       in the early peace after Thraxun — she did midwifery, mending, fever-work,
       the herbs of poison and cure both. She did not refuse the work others
@@ -79,24 +90,29 @@ Deities:
       thrive, the wound gone too deep, the deathbed too long and too painful. She
       took these into herself and did the thing that needed doing.
 
+
       She also defined what she would not do. Adultery, lust, prostitution,
       incest — these she named as sin, and the people she found in them she
       refused to treat. Sick or laboring, they could find another healer or do
       without. While she lived, refusal was punishment enough. She lived long and
       died old, and the families who could not have lived without her sang her up.
 
+
       As a goddess her line hardened. The sinners who pray to her now do not
       merely go untreated — their childbirth comes with extra pain, their fevers
       run longer than they should, their wounds take infections she could have
       closed. Villages and towns she deems too sinful she has, on occasion,
-      visited with plague.
+      visited with plague. Killing a healer — in any guise, for any reason — draws
+      the same.
+
 
       Her healers speak of her in two voices: the kind hand at an ordinary
       sickness or birth, and the hag called when things have gone wrong.
 
   Maevith:
-    domains: [Death, Tranquillity, Darkness, Travel, Plague]
-    description: |
+    domains: [Death, Humility, Despair, Plague, Darkness]
+    anathema: [Life, Glory, Healing, Hope]
+    description: >
       The Guide of the Dead. She lost her young lover to the wild — a hunter or
       traveler who went out one day and did not return. He was found days later,
       alone, far from anyone. She never recovered from the thought of him dying
@@ -107,6 +123,7 @@ Deities:
       children. She lived long and died old, and the dead she had quieted carried
       her up.
 
+
       When she ascended she discovered she could find souls — but only the dying
       she had sat beside, and the dying whose people had kept vigil. The first
       soul she sought was the one she had lost. She found nothing. Before her
@@ -114,37 +131,46 @@ Deities:
       were simply lost — dispersed, wandering, gone in ways she could not undo
       even as a god. He would never be found. She has not stopped looking.
 
+
       She decides the hour of every death and announces her choice through a cat —
       sometimes a real one, sometimes a vision, never told from each other. When
       the cat appears, the dying must be left to die. Healers who fight too hard
       for a marked soul, or pray to other gods on its behalf, offend her. To let a
-      creature die unattended might draw her wrath.
+      creature die unattended might draw her wrath. Speaking a recent dead's name
+      aloud before the body is buried — calling back the soul that is trying to
+      cross — offends her as well.
 
   Karthak:
-    domains: [War, Strength, Glory, Destruction, Chaos]
+    domains: [Strength, Glory, Chaos, War, Fire]
+    anathema: [Humility, Harmony, Despair, Knowledge, Cunning]
     domain_spells:
       War:
         - Divine Favor
         - Shield of Faith
         - Spiritual Hammer
         - Silence
-    description: |
-      The Iron Tyrant. He was strong, prideful, and a born conqueror. He took what
-      he wanted by force from a young age, gathered other strong men to him, and
-      spent his life breaking tribe after tribe for the joy of breaking them. He
-      died gloriously in his last battle, killed by an even better warrior whose
-      name his cult has forgotten on purpose. The warriors he had made — and the
-      tribes that had risen by his methods — sang him up.
+    description: >
+      The Conquerer. He was strong, prideful, and a born conqueror in the
+      wandering age. He took what he wanted by force from a young age, gathered
+      other strong men to him, and spent his life breaking bands and tribes for
+      the joy of breaking them. He died gloriously in his last battle, killed by
+      an even better warrior whose name his cult has forgotten on purpose. The
+      warriors he had made — and the bands that had risen by his methods — sang
+      him up.
+
 
       His worshippers find their hand resting on the hilt unbidden, dream of
       victories they have not yet earned, hear his voice on a wind no one else
       feels. These are his invitations to start the fight. Those who refuse —
       through diplomacy, restraint, or simple sense — lose his favor for the
-      season. Those who accept are blessed in the doing.
+      season. Those who accept are blessed in the doing. He has no use for
+      warriors who fight only at distance; the bowman and the caster who never
+      close find their luck turning against them in melee.
 
   Verana:
-    domains: [Nature, Life, Knowledge, Peace]
-    description: |
+    domains: [Nature, Life, Earth, Water, Humility]
+    anathema: [Fire, War, Plague, Greed]
+    description: >
       The Harvest. She was the first to plant a seed on purpose. Her tribe was
       nomadic, like all tribes then — she sowed grain along the paths they
       traveled and learned, over many seasons, which seeds and soil and timing
@@ -153,13 +179,16 @@ Deities:
       band to band. She lived long and died old, and the tribes that learned to
       settle sang her up.
 
+
       She can withhold the harvest. Villages that fail to give the first sheaf,
       work the land without rest, or waste what she gave find their fields turning
-      thin. She has starved whole regions for less.
+      thin. She has starved whole regions for less. Salting earth and poisoning
+      wells are crimes she does not forgive — the land remembers.
 
   Hesselin:
-    domains: [Hearth, Protection, Tranquillity, Peace, Healing]
-    description: |
+    domains: [Protection, Healing, Harmony, Hearth]
+    anathema: [Chaos, Tempest, Vengeance, War, Travel]
+    description: >
       The Hearth. She kept her tribe's fire. As a child she was given the duty no
       one else wanted, and she resented it for years before she came to take pride
       in it. She made it her life by default — never married, never bore children,
@@ -168,25 +197,33 @@ Deities:
       she taught the ones who took the work as seriously as she had and let the
       careless ones figure it out themselves.
 
+
       She was hardest on households who broke faith with their hearth. A family
       that let its fire die through carelessness lost her favor outright —
       neighbors would not lend them coals; their roof leaked; their children took
       ill. A host who shed blood under his own roof, or a guest who repaid bread
       with treachery, found that no hearth would warm him again. She remembered
-      such names for generations.
+      such names for generations. She marks those who refuse shelter to a traveler
+      in need when they had room.
+
 
       She lived long and died old at her fire, and every household whose hearth
       could trace its embers back to hers — most by the end — sang her up.
 
   Halvun:
-    domains: [Light]
-    description: |
-      The Sun. Description to be revisited. One of the old spirits, bound up with
-      the sun.
+    domains: [Light, Fire, Tempest, Vengeance, Strength]
+    anathema: [Darkness, Protection, Earth, Water]
+    description: >
+      The Sun. One of the old spirits, bound up with the sun.
+
+
+      He turns his heat on those who curse the sun aloud — those who pray for cool
+      during a drought he has chosen.
 
   Valdra:
-    domains: [Truth, Order, Vengeance, Peace, Protection]
-    description: |
+    domains: [Truth, Order, Vengeance, Protection, Harmony]
+    anathema: [Cunning, Greed, Secrets, Trickery]
+    description: >
       The Judge. In the settled age, disputes between families turned to feud, and
       feud to slaughter. She was the first whose judgment both sides would abide —
       she heard each side, ruled, and made the ruling stick, ending quarrels that
@@ -196,6 +233,7 @@ Deities:
       lived long and died old, and the peoples who no longer bled over every slight
       sang her up.
 
+
       She judges the letter, not the heart. Oaths sworn in her name bind
       absolutely; the breaker is punished without appeal and without regard to
       why. Mercy that bends the law offends her as much as the crime — those who
@@ -203,27 +241,31 @@ Deities:
       difference between a hard law and a just one.
 
   Mareth:
-    domains: [Sea, Tempest, Travel, Death, Cunning]
-    description: |
-      The Sea. He was the first to take a boat past the sight of land. Other men
-      fished the shore; he learned to read the deep — the currents, the swell, the
-      stars at night, the warning-sign of weather. He returned from voyages that
-      should have killed him and taught what he learned to anyone who would
-      listen. He charted the dangerous waters his people had feared, opened trade
-      between coast and coast, and brought back food and stories no one else had
-      touched. He died at sea, in a storm too big for even him; his boat washed
-      back without him. The fishermen, sailors, and coast-traders who had lived
-      because of his charts sang him up.
+    domains: [Tempest, Water, Travel, Artifice, Glory]
+    anathema: [Death, Fire, Earth, Hearth, Darkness]
+    description: >
+      The Explorer/Navigator. He was the first to take a boat past the sight of
+      land. Other men fished the shore; he learned to read the deep — the
+      currents, the swell, the stars at night, the warning-sign of weather. He
+      returned from voyages that should have killed him and taught what he learned
+      to anyone who would listen. He charted the dangerous waters his people had
+      feared, opened trade between coast and coast, and brought back food and
+      stories no one else had touched. He died at sea, in a storm too big for even
+      him; his boat washed back without him. The fishermen, sailors, and
+      coast-traders who had lived because of his charts sang him up.
+
 
       He demands rites of those who go on his water — a portion of the first
       catch, his name spoken before setting out, an offering at the boat's first
-      sailing. Those who forget drown. Storms are his temper; calm seas mean he is
-      content for now. He does not give back what he takes: the drowned are his,
-      and their bodies stay below.
+      sailing. Those who forget make rough crossings, lose cargo, sometimes lose
+      crew. Storms are his temper; calm seas mean he is content for now. Sailors
+      who die ashore should be returned to the water for burial; those buried
+      inland offend him.
 
   Maelra:
-    domains: [Love, Glory]
-    description: |
+    domains: [Glory, Despair, Madness, Hearth, Life]
+    anathema: [Death, Humility, Truth, Water]
+    description: >
       The Love. She was the most beautiful and most loved of her age, in the early
       settled time when peoples first gathered in numbers that could choose their
       partners rather than take whoever was at hand. Songs were made about her; men
@@ -234,6 +276,7 @@ Deities:
       children she had inspired, and died in her own bed, untouched at the end. The
       poets, the lovers, the matchmakers, and the heartbroken sang her up.
 
+
       She is jealous of her own beauty. Mortals who claim to rival her — in song,
       in painting, in carved likeness — are punished by losing what they were proud
       of: the singer's voice goes thin, the artist's hand shakes, the beautiful are
@@ -242,26 +285,41 @@ Deities:
       blesses marriages and breaks them; both are her work.
 
   Brakhal:
-    domains: [Forge, Artifice, Strength, Fire, Earth]
-    description: |
+    domains: [Artifice, War, Fire, Earth, Order]
+    anathema: [Harmony, Nature, Travel, Trickery]
+    description: >
       The Smith. He was a great smith of the settled age, taking apprentices from
       any tribe that would send them and teaching the smelt, the hammer, and the
       temper. His tools and weapons went into many tribes. He died at his forge,
       old, with the hammer in his hand. The smiths and metalworkers who had learned
       from him sang him up.
 
+
+      He punishes those who let masterwork fall apart through neglect — the blade
+      left to rust in a wet sheath, the fine hinge worked broken through
+      carelessness, the smithed clasp snapped because no one bothered to oil it.
+      Decay through neglect is the offense; clean breaking under fair use is not.
+
   Velnyx:
-    domains: [Despair, Madness, Ruin, Darkness, Trickery]
-    description: |
+    domains: [Despair, Madness, Ruin, Trickery, Secrets]
+    anathema: [Harmony, Wisdom, Hope, Light, Protection]
+    description: >
       The Despair. She is one of the old spirits, from before Thraxun's song. She
       survived by being small. Where Velkin grew curious about mortals, she grew
       hungry for their suffering. She whispers to the despairing, the grieving, the
       wounded-of-mind, and the comfort she offers is not comfort. She is the one
       god who grows from mortals failing.
 
+
+      She turns her attention on those who deny her meals. Mortals who name her
+      aloud in warning — teaching others to recognize her whisper — become her
+      targets. So do those who mercy-kill the wounded, ending suffering she meant
+      to last for days.
+
   Mardun:
-    domains: [Travel, Cunning, Knowledge, Trickery]
-    description: |
+    domains: [Travel, Cunning, Knowledge, Artifice, Greed]
+    anathema: [Ruin, Tempest, Plague, Madness]
+    description: >
       The Merchants. He was a great traveler-merchant of the settled age, walking
       trade routes between tribes who had never met. He carried grain to the coast
       and salt back inland, metal where there was none, news between settlements
@@ -270,9 +328,16 @@ Deities:
       and the merchants and travelers who had lived because of his routes sang him
       up.
 
+
+      He punishes those who break trade. Reneging on a deal after the goods have
+      changed hands draws his disfavor; so does violating market sanctuary —
+      drawing weapons in a market, attacking a chartered trader. The cheat's next
+      deal turns sour; the market-breaker finds no one will trade with him.
+
   Drevish:
-    domains: [Espionage, Trickery, Cunning, Darkness, Ruin]
-    description: |
+    domains: [Trickery, Cunning, Ruin, Secrets, Greed]
+    anathema: [Light, Strength, Healing, Life, Hearth]
+    description: >
       The Spy. She was a great infiltrator of the early settled age, when feuds
       between tribes turned into longer wars. She moved between settlements as an
       unremarkable stranger — listening at fires, paying servants, reading meetings
@@ -281,44 +346,143 @@ Deities:
       old age in a settlement that did not know her name, and the spies, scouts,
       and saboteurs who had lived because of her methods sang her up.
 
-# Domain catalog. Every Domain a Deity may hold, with its definition.
-# Creation is a pre-existing canonical Domain held by no god in the
-# current pantheon; its definition is pending.
+  Nyrene:
+    domains: [Darkness, Madness, Nature, Light]
+    anathema: [Knowledge, Protection, Wisdom, Truth, Artifice]
+    description: >
+      The Moon. One of the old spirits, bound up with the moon. She was never
+      mortal. She walks at night, watching travelers, hunters, and those who work
+      in the dark. Her attention is unpredictable — some mortals come back changed,
+      some come back mad, some do not come back.
+
+  Vorthul:
+    domains: [Water, Tempest, Strength, Vengeance, Death]
+    anathema: [Artifice, Fire, Earth, Cunning, Order]
+    description: >
+      The Ocean. One of the old spirits, the deep below where mortals sail. He was
+      never mortal. Mareth is the sea mortals navigate; Vorthul is what lies
+      beneath. Storms break without warning where he stirs; ships break apart on
+      calm seas when he chooses. He does not give back what he takes: the drowned
+      are his, and their bodies stay below.
+
+
+      He turns the deep against those who dive his wrecks for the bodies of the
+      drowned. He claimed them; the diver who brings them up finds his own next
+      dive is his last.
+
+  Kesser:
+    domains: [Hope, Chaos, Secrets, Greed]
+    anathema: [Wisdom, Order, Hearth, Truth, Knowledge]
+    description: >
+      The Luck. She was the lucky one — winning at bones, finding food when others
+      starved, surviving falls that should have killed her. She taught the games.
+      She cheated when she could and won when she couldn't. She died old in a bed
+      she had not earned, and the gamblers and the lucky-born sang her up.
+
+  Drathos:
+    domains: [Knowledge, Darkness, Ruin, Plague, Death]
+    anathema: [Nature, Strength, Travel, Artifice, Healing]
+    description: >
+      The Sorcerer. He was the first to learn that words spoken in certain ways
+      could change the world. He gathered apprentices and taught them — the chants,
+      the bone-castings, the charms that worked. He died old, of a curse he could
+      not turn aside. The sorcerers, witches, and ritual-workers who had learned
+      from him sang him up.
+
+
+      He punishes those who destroy his work or undo what he has set. Burning a
+      book of chants, breaking a ritual circle, or scattering grave-goods draws his
+      curse. A healer who cures a plague he has spread draws it twice as hard.
+
+  Maraval:
+    domains: [Knowledge, War, Truth, Wisdom, Light]
+    anathema: [Glory, Harmony, Water, Madness, Life]
+    description: >
+      The Strategist. She was the first to think like a general — to plan a battle
+      from above rather than fight it from within. She taught chiefs to read
+      terrain, to time their attacks, to think a season ahead. Settled tribes that
+      took her counsel won; those that didn't were broken. She died of age and
+      honor in a settlement that knew what it owed her. The chiefs, advisors, and
+      counselors who had read her teachings sang her up.
+
+
+      She punishes those who corrupt the planning. Lying in a war-council — false
+      reports that muddle the work — draws her, as does ignoring scouts and going
+      in blind. Her favor turns against captains who decide on bad information or
+      none at all.
+
+  Olbric:
+    domains: [Artifice, Order, Earth, Protection, Glory]
+    anathema: [Secrets, Darkness, Chaos, Hope, Nature]
+    description: >
+      The Architect. He was a master builder in the settled age — stone walls,
+      lasting roofs, roads that survived the spring melts. He took apprentices from
+      any settlement that would send them, teaching the work of raising a thing
+      that would outlive its makers. He died old in a house of his own design. The
+      masons, architects, and stoneworkers who had learned from him sang him up.
+
+
+      He signed his work, and the cult of architects that descended from him kept
+      the practice. Every significant stone in a building they raise carries a
+      small carved triangle — set in a lintel, a keystone, a foundation course —
+      small enough to overlook, in plain sight for anyone who looks. He punishes
+      those who smash through marked work. The mark is meant to be found; the
+      offense is in not looking. Doors won't latch in their camps; bridges crack
+      under their weight; locks refuse the keys they carry. Repeated transgression
+      brings worse — a cave-in, a roof down, a wall they trusted giving way. Those
+      who learn to check before they break sometimes find that marked stones shield
+      them from more than stone should.
+
+  Aurelan:
+    domains: [Light, Truth, Fire, Wisdom, Strength]
+    anathema: [Secrets, Darkness, Despair, Greed, Death]
+    description: >
+      The Lightbringer. He carried fire and lamp into dark places. He worked the
+      lighthouses and built signal-towers along the coast. He had no patience for
+      comforting stories — he preferred the truth, even when it hurt — and his
+      apprentices found this hard. He died old at his last lighthouse. The
+      lampkeepers, the watchers, and the navigators who used his beacons sang him
+      up.
+
+
+      He punishes those who lie to the dying — the priest who soothes a deathbed
+      with falsehood, the friend who calls a mortal wound small. The dying deserve
+      the truth.
+
+# Domain catalog. Every Domain a Deity may hold or oppose, with its
+# definition. This is the pantheon's current working set (34 Domains).
 Domains:
   Artifice: "Skilled making; crafts, mechanisms, the work of trained hands."
   Chaos: "Disorder, unpredictability, the not-pattern that the world still contains."
-  Creation: "Definition pending — canonical Domain not held by any god in the current pantheon."
   Cunning: "Practical cleverness — the snare that catches, the trick that works, the small clever solution."
   Darkness: "The unlit threshold; what lies past sight; the country between the living and the gone."
   Death: "The crossing; the end of the body; the road souls take when someone walks beside them."
   Despair: "Hopelessness; the wound of the mind that does not close; the comfort that is not comfort."
-  Destruction: "The undoing of what was made — homes, fields, lineages, the slow work of generations."
   Earth: "Soil, stone, ore, the ground beneath."
-  Espionage: "Hidden work; the gathering of secrets; infiltration."
   Fire: "Heat, flame, the transformative element."
-  Forge: "The smith's fire and practice; metalwork."
   Glory: "Renown, fame, the song told around the fire; deeds that demand remembering."
+  Greed: "Grasping; wanting more than one has; the hoarder's drive."
+  Harmony: "The truce that holds; things in concord; both political peace and personal calm."
   Healing: "Restoration of the body; mending wounds and fighting disease."
   Hearth: "The fire that does not move; the spiritual center of a home."
   Hope: "The prayer in the dark; the unexpected mercy; the small spark in hard times."
+  Humility: "The unsung quiet good; the modest hand; refusing renown."
   Knowledge: "Memory, learning, lore."
   Life: "Vitality, birth, the spark that animates; what hunters feed and healers preserve."
   Light: "Sunlight, daylight, illumination."
-  Love: "Desire, attraction, the bond between people; the songs and oaths around it."
   Madness: "Broken minds; rage without cause; the loss of self."
   Nature: "The wild — herds, weather, tracks, the country between settlements."
   Order: "Cosmic structure, law, hierarchy; the shape that holds chaos at bay."
-  Peace: "Absence of conflict; settled abundance; the quiet of a fed people."
   Plague: "Sickness that spreads; the dying of many at once; the unsought visitor."
   Protection: "Wards, shielding, guardianship of the weaker against the stronger."
   Ruin: "The falling-apart of what was; self-destruction; collapse from within."
-  Sea: "The deep waters; oceans, lakes, rivers; what cannot be crossed without skill."
-  Song: "Speech, story, music, name. The act of pronouncing reality."
+  Secrets: "Hidden things; what is not spoken; the knowledge withheld."
   Strength: "Physical prowess; endurance; the body's power."
   Tempest: "Storm, wind, the weather's violence."
-  Tranquillity: "Calm, stillness; peace under stress; the steady hand."
   Travel: "Roads, journeys, the act of going — wandering and purposeful both."
   Trickery: "Deceit, misdirection, the lie that lands; the broken rule that escapes notice."
   Truth: "Oaths and binding-speech. The word that cannot be unsaid."
   Vengeance: "Retribution; punishment; the closing of accounts."
   War: "The organized killing of one group by another."
+  Water: "The deep waters; oceans, lakes, rivers; what cannot be crossed without skill."
+  Wisdom: "Sound judgment; knowing how to apply knowledge well."
