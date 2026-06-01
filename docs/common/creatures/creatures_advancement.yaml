@@ -175,7 +175,7 @@ Classes:
   # Animal Companion at Class Level 4; overrides mana_per_level up to 4.
   # Picks a single Cleric domain via `choices.domain` from this
   # restricted list: Light, Darkness, Life, Death, Chaos, Healing,
-  # Plague, Nature, Tempest, Travel, Strength, Peace, Protection,
+  # Plague, Nature, Tempest, Travel, Strength, Harmony, Protection,
   # Vengeance, Truth, Trickery, Madness, Ruin.
   domain_druid:
     parent_class: druid
