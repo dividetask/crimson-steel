@@ -50,77 +50,9 @@
       "casting": [
 
       ]
-    },
-    {
-      "id": 4,
-      "creature_id": "1",
-      "name": "",
-      "initiative_string": "XX998421",
-      "combat_pool_spent": 0,
-      "time_tick_schedule": [
-        1
-      ],
-      "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ]
-    },
-    {
-      "id": 5,
-      "creature_id": "3",
-      "name": "",
-      "initiative_string": "X9887431",
-      "combat_pool_spent": 0,
-      "time_tick_schedule": [
-        1
-      ],
-      "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ]
-    },
-    {
-      "id": 6,
-      "creature_id": "7",
-      "name": "",
-      "initiative_string": "XXXX9886",
-      "combat_pool_spent": 8,
-      "time_tick_schedule": [
-        1
-      ],
-      "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ]
-    },
-    {
-      "id": 7,
-      "creature_id": "8",
-      "name": "",
-      "initiative_string": "X96433",
-      "combat_pool_spent": 0,
-      "time_tick_schedule": [
-        1
-      ],
-      "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ]
     }
   ],
-  "next_combatant_id": 8,
+  "next_combatant_id": 4,
   "excluded_pcs": [
 
   ],
@@ -131,7 +63,7 @@
     "round_of_day": 0
   },
   "elapsed_time_ticks": 0,
-  "acting_combatant_id": 6,
+  "acting_combatant_id": 1,
   "granted_actions": [
 
   ],

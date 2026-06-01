@@ -230,12 +230,32 @@ document.addEventListener('change', function (e) {
     overlay.insertBefore(stage, overlay.firstChild);
   }
 
+  // Inventory ritual book: clicking "(N rituals)" opens a scrollable
+  // modal listing the inscribed rituals. The list markup lives in a
+  // hidden .inv-ritual-source div on the same card.
+  function openRitualModal(trigger) {
+    var source = trigger.parentElement &&
+      trigger.parentElement.querySelector('.inv-ritual-source');
+    if (!source) return;
+    var overlay = makeOverlay('ce-modal-text-modal');
+    var stage = document.createElement('div');
+    stage.className = 'ce-modal-text-stage';
+    stage.innerHTML = source.innerHTML;
+    overlay.insertBefore(stage, overlay.firstChild);
+  }
+
   document.addEventListener('click', function (e) {
     var img = e.target.closest('[data-lightbox="1"]');
     if (img) {
       e.preventDefault();
       var src = img.tagName === 'IMG' ? img.getAttribute('src') : img.getAttribute('href');
       openImageLightbox(src);
+      return;
+    }
+    var ritual = e.target.closest('[data-ritual-modal="1"]');
+    if (ritual) {
+      e.preventDefault();
+      openRitualModal(ritual);
       return;
     }
     var body = e.target.closest('[data-text-modal="1"]');

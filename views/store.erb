@@ -1,2 +1,8 @@
-<h1>Store</h1>
-<p>Not yet implemented.</p>
+<%= erb :_equipment_provision_stub, locals: {
+      viewer:    @viewer,
+      creatures: @creatures,
+      players:   @players,
+      weapons:   @weapons,
+      armor:     @armor,
+      alchemy:   @alchemy,
+      magical:   @magical } %>

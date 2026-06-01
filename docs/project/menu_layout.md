@@ -40,7 +40,7 @@ Each page is listed with a short description and its access rule. Detailed page 
 |-------------------|--------------------|-----------------------------------------------------------------------------|------------|
 | Character Sheets  | `/character-sheets`| Per-character sheets for the party. The default landing page.               | DM + Player |
 | Encounter         | `/encounter`       | What is happening right now — timekeeping, the Combat Tracker (initiative), and the active scene's notes. The Combat Tracker is hidden from players until Combat starts; the notes are hidden from players once Combat starts. | DM + Player |
-| Store             | `/store`           | Items currently for sale.                                                   | DM + Player |
+| Store             | `/store`           | Provision Creatures with gear — the Equipment Provision Stub (Weapons, Armor, Alchemy). A recipient that is a Player Character is charged (its own wealth first, then the Party); non-PCs are provisioned free. Enemies are hidden from players. | DM + Player |
 | Notes             | `/notes`           | Shared and per-character game notes.                                        | DM + Player |
 | Social            | `/social`          | Social-encounter information.                                               | DM + Player |
 | Compendium        | `/compendium`      | Reference material drawn from the rules documents — currently the Glossary. | DM + Player |
@@ -71,6 +71,7 @@ The Status page has its own internal left-hand navigation that switches the righ
 4. **Conditions** — the right pane renders the Conditions Downtime PC Card Stub (see `docs/common/ui/conditions_downtime_pc_card_stub.md`) for each example player Creature. The stub runs on example data; the panel emits no real state changes.
 5. **Timekeeping** — the right pane renders the Timekeeping Stub (see `docs/common/ui/timekeeping_stub.md`) once per example Timestamp, stacked vertically. The examples vary the Time of Day across early morning, dawn, midday, dusk, midnight, and a Leap Day to show the sky's day/night transitions and the sun/moon's arc across the full width of the stub.
 6. **Chronicle** — the right pane renders the Chronicle Entry Stub (see `docs/common/ui/chronicle_entry_stub.md`). Five example Entries are rendered twice: first under a **DM View** heading, then again under a **Player View** heading using a player viewer (Bryn, Creature id 1). The five Entries cover a shared Note with a long public description, a private GM Note with a long DM-only description, a shared Note with long content in both descriptions, a Creature Reference with an image, and a player-owned shared Note (whose owner can edit it under both views). Each example is labeled above the card so reviewers can compare what does and does not render for each viewer role.
+7. **Equipment** — the right pane renders the Equipment Store Stub (see `docs/common/ui/equipment_store_stub.md`) on hand-curated sample stock. The selectors and Buy buttons are inert here (`purchasable: false`); the live, purchasable version of the same stub is the `/store` page.
 
 The currently-selected nav entry is visually highlighted.
 
