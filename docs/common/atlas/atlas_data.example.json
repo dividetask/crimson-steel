@@ -1,0 +1,118 @@
+{
+  "maps": [
+    {
+      "id": 1,
+      "name": "Orman's Workshop",
+      "image": "/maps/ormans_workshop.png",
+      "width": 40,
+      "height": 30,
+      "grid": {
+        "type": "square",
+        "origin": [0, 0]
+      },
+      "archived": false,
+      "notes": "Cluttered crafting den. Workbench along the east wall; two doors (north to street, south to cellar)."
+    },
+    {
+      "id": 2,
+      "name": "Alric's Estate — Great Hall",
+      "image": "/maps/alric_great_hall.png",
+      "width": 80,
+      "height": 60,
+      "grid": {
+        "type": "square",
+        "origin": [0, 0]
+      },
+      "archived": false,
+      "notes": ""
+    },
+    {
+      "id": 3,
+      "name": "Ashwood Tavern",
+      "image": "/maps/ashwood_tavern.png",
+      "width": 25,
+      "height": 25,
+      "grid": {
+        "type": "square",
+        "origin": [0, 0]
+      },
+      "archived": true,
+      "notes": "Used during Chapter 1; archived once the party left town."
+    },
+    {
+      "id": 4,
+      "name": "Fey Wilds Overworld",
+      "image": "/maps/fey_wilds_region.png",
+      "width": 2000,
+      "height": 2000,
+      "grid": null,
+      "archived": false,
+      "notes": "Region map. No combat grid; positions are travel distances at exploration scale."
+    }
+  ],
+  "tokens": [
+    {
+      "id": 1,
+      "map_id": 2,
+      "creature_id": 1003,
+      "x": 60,
+      "y": 30,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 2,
+      "map_id": 2,
+      "creature_id": 2001,
+      "x": 10,
+      "y": 30,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": 2001,
+      "hidden": false
+    },
+    {
+      "id": 3,
+      "map_id": 2,
+      "creature_id": 2002,
+      "x": 12,
+      "y": 32,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": 2002,
+      "hidden": false
+    },
+    {
+      "id": 4,
+      "map_id": 2,
+      "creature_id": 9001,
+      "x": 50,
+      "y": 35,
+      "size": 1,
+      "label": "Guard A",
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 5,
+      "map_id": 2,
+      "creature_id": 9001,
+      "x": 52,
+      "y": 30,
+      "size": 1,
+      "label": "Guard B",
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    }
+  ],
+  "active_map_id": 2,
+  "next_map_id": 5,
+  "next_token_id": 6
+}
