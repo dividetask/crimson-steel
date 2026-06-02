@@ -56,6 +56,14 @@ Defines the vocabulary used by `atlas_design.md` and `atlas_tests.md`. Atlas own
 
 **Movement Notification**: A message Atlas emits when a Token's movement changes its set of Zones — listing the Zones entered and the Zones exited. The consuming domain (typically Combat) decides what to do.
 
+## Annotation
+
+**Annotation**: A free-form drawing placed on a Map — an Arrow, a Shape, or Text. Carries no mechanical meaning (unlike a Zone); it is a visual aid the table draws to communicate.
+
+**Annotation Kind**: An Annotation's form — `arrow` (a tail-to-head line), `shape` (a rectangle or ellipse), or `text` (a placed label).
+
+**Annotation Author**: Who drew an Annotation — the DM or a player. The DM may draw any Kind; players may draw Arrows only. Atlas records the Author; enforcing who may draw what is the consumer's concern.
+
 ## Viewport (UI-side)
 
 **Viewport**: The visible portion of a Map presented to a viewer. The Viewport's pan and zoom are UI state — Atlas does not store them.

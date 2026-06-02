@@ -1,0 +1,153 @@
+<%#
+  Atlas Stub — docs/common/ui/atlas_stub.md
+  A two-region card: a Toolbar across the top and a pan/zoom Canvas that
+  renders the Active Map's Image (or a blank canvas) with Token icons
+  overlaid at their stored positions.
+
+  Toolbar (DM): Map picker (Active marked, Archived grouped), Add / Edit /
+  Archive / Unarchive / Delete Map, zoom in / out / reset / Recenter, Place
+  Token (drops a Combatant's icon on the Active Map), and Clear Tokens.
+  Players get the title and the zoom / Recenter controls only.
+
+  Canvas: drag empty space to pan, scroll to zoom (clamped to the config's
+  Minimum/Maximum Zoom). Tokens render as Tier-colored icons; Combatants
+  carry a ring and the Acting Combatant an animated one. DM drags a Token to
+  move it, or clicks it (while the Attack pane is open) to target it.
+
+  Locals: snapshot, maps, active_id, viewer, placeable.
+
+  Deferred (later passes): per-player ownership gating of Move Token, Zones,
+  and touch pinch-zoom.
+%>
+<%
+  require 'json'
+  require 'cgi'
+  map     = snapshot[:map]
+  dm      = (viewer == :dm)
+  archived_view = map && map[:archived]
+  open_maps     = maps.reject { |m| m[:archived] }
+  archived_maps = maps.select { |m| m[:archived] }
+%>
+<section class="atlas-stub" data-viewer="<%= viewer %>"
+         data-min-zoom="<%= Atlas::Config.minimum_zoom %>"
+         data-max-zoom="<%= Atlas::Config.maximum_zoom %>"
+         data-initial-zoom="<%= Atlas::Config.suggested_initial_zoom %>">
+  <header class="atlas-toolbar">
+    <h3 class="atlas-title">Map<% if map %> &mdash; <%= map[:name] %><% if archived_view %> <em>(archived)</em><% end %><% end %></h3>
+
+    <% if dm %>
+      <div class="atlas-tool-group">
+        <select class="atlas-map-picker" aria-label="Active Map" title="Switch map">
+          <% if open_maps.empty? %><option value="">— No maps —</option><% end %>
+          <% unless open_maps.empty? %>
+            <optgroup label="Maps">
+              <% open_maps.each do |m| %>
+                <option value="<%= m[:id] %>"<%= ' selected' if map && m[:id] == map[:id] %>><%= m[:id] == active_id ? '● ' : '' %><%= m[:name] %></option>
+              <% end %>
+            </optgroup>
+          <% end %>
+          <% unless archived_maps.empty? %>
+            <optgroup label="Archived">
+              <% archived_maps.each do |m| %>
+                <option value="<%= m[:id] %>" data-archived="1"<%= ' selected' if map && m[:id] == map[:id] %>><%= m[:name] %></option>
+              <% end %>
+            </optgroup>
+          <% end %>
+        </select>
+        <button type="button" class="atlas-tool-btn atlas-add-map" title="Add a new map">+ Map</button>
+        <% if map %>
+          <button type="button" class="atlas-tool-btn atlas-edit-map" data-map-id="<%= map[:id] %>" title="Rename this map">Edit</button>
+          <% if archived_view %>
+            <button type="button" class="atlas-tool-btn atlas-unarchive-map" data-map-id="<%= map[:id] %>" title="Unarchive and make active">Unarchive</button>
+          <% else %>
+            <button type="button" class="atlas-tool-btn atlas-archive-map" data-map-id="<%= map[:id] %>" title="Archive this map">Archive</button>
+          <% end %>
+          <button type="button" class="atlas-tool-btn atlas-danger atlas-delete-map" data-map-id="<%= map[:id] %>" title="Delete this map">Delete</button>
+        <% end %>
+      </div>
+      <div class="atlas-tool-sep"></div>
+    <% end %>
+
+    <div class="atlas-tool-group">
+      <button type="button" class="atlas-tool-btn atlas-zoom atlas-zoom-out" title="Zoom out">&minus;</button>
+      <span class="atlas-zoom-label">100%</span>
+      <button type="button" class="atlas-tool-btn atlas-zoom atlas-zoom-in" title="Zoom in">+</button>
+      <button type="button" class="atlas-tool-btn atlas-reset-view" title="Reset zoom and pan">Reset</button>
+      <button type="button" class="atlas-tool-btn atlas-recenter" title="Recenter the map">Recenter</button>
+    </div>
+
+    <%# Drawing tools (atlas_stub.md → Drawing tools). The DM gets Arrow (with
+        a color picker), Shape (rect/ellipse), and Text. Players get four
+        fixed-color arrow buttons (Attack/Move/Sneak/Careful). %>
+    <div class="atlas-tool-sep"></div>
+    <div class="atlas-tool-group atlas-draw-tools">
+      <button type="button" class="atlas-tool-btn atlas-tool atlas-tool-active" data-tool="select" title="Select / pan">Select</button>
+      <% if dm %>
+        <button type="button" class="atlas-tool-btn atlas-tool" data-tool="arrow"<%= ' disabled' unless map %> title="Draw an arrow">Arrow</button>
+        <button type="button" class="atlas-tool-btn atlas-tool" data-tool="rect"<%= ' disabled' unless map %> title="Draw a rectangle">Rect</button>
+        <button type="button" class="atlas-tool-btn atlas-tool" data-tool="ellipse"<%= ' disabled' unless map %> title="Draw an ellipse">Circle</button>
+        <button type="button" class="atlas-tool-btn atlas-tool" data-tool="text"<%= ' disabled' unless map %> title="Place a text label">Text</button>
+        <input type="color" class="atlas-color" value="#4aa3ff" title="Drawing color">
+      <% else %>
+        <button type="button" class="atlas-tool-btn atlas-tool atlas-arrow-attack" data-tool="arrow" data-color="#e74c3c"<%= ' disabled' unless map %> title="Red arrow">Attack</button>
+        <button type="button" class="atlas-tool-btn atlas-tool atlas-arrow-move" data-tool="arrow" data-color="#4aa3ff"<%= ' disabled' unless map %> title="Blue arrow">Move</button>
+        <button type="button" class="atlas-tool-btn atlas-tool atlas-arrow-sneak" data-tool="arrow" data-color="#9b59b6"<%= ' disabled' unless map %> title="Purple arrow">Sneak</button>
+        <button type="button" class="atlas-tool-btn atlas-tool atlas-arrow-careful" data-tool="arrow" data-color="#f1c40f"<%= ' disabled' unless map %> title="Yellow arrow">Careful</button>
+      <% end %>
+      <button type="button" class="atlas-tool-btn atlas-clear-drawings"<%= ' disabled' unless map %> title="Clear drawings"><%= dm ? 'Clear Drawings' : 'Clear My Arrows' %></button>
+    </div>
+
+    <% if dm %>
+      <div class="atlas-spacer"></div>
+      <div class="atlas-tool-group">
+        <button type="button" class="atlas-tool-btn atlas-place-toggle"<%= ' disabled' if archived_view || map.nil? %> title="Place a combatant's icon on the map">Place Token</button>
+        <button type="button" class="atlas-tool-btn atlas-clear-btn"<%= ' disabled' if archived_view || map.nil? %> title="Remove every token on this map">Clear Tokens</button>
+      </div>
+    <% end %>
+  </header>
+
+  <% if dm %>
+    <%# Add Map — inline form (no browser prompt). %>
+    <div class="atlas-form-panel atlas-add-panel" hidden>
+      <h4 class="atlas-form-title">New map</h4>
+      <label class="atlas-field">Name <input type="text" class="atlas-f-name" placeholder="Map name"></label>
+      <label class="atlas-field">Width <input type="number" class="atlas-f-width" min="1" placeholder="cells (blank = unbounded)"></label>
+      <label class="atlas-field">Height <input type="number" class="atlas-f-height" min="1" placeholder="cells (blank = unbounded)"></label>
+      <div class="atlas-form-actions">
+        <button type="button" class="atlas-tool-btn atlas-add-submit">Create</button>
+        <button type="button" class="atlas-tool-btn atlas-form-cancel">Cancel</button>
+      </div>
+    </div>
+
+    <% if map %>
+      <%# Edit Map — inline form, prefilled from the current map. %>
+      <div class="atlas-form-panel atlas-edit-panel" hidden>
+        <h4 class="atlas-form-title">Edit map</h4>
+        <label class="atlas-field">Name <input type="text" class="atlas-f-name" value="<%= map[:name] %>"></label>
+        <label class="atlas-field">Width <input type="number" class="atlas-f-width" min="1" value="<%= map[:width] %>" placeholder="blank = unbounded"></label>
+        <label class="atlas-field">Height <input type="number" class="atlas-f-height" min="1" value="<%= map[:height] %>" placeholder="blank = unbounded"></label>
+        <div class="atlas-form-actions">
+          <button type="button" class="atlas-tool-btn atlas-edit-submit" data-map-id="<%= map[:id] %>">Save</button>
+          <button type="button" class="atlas-tool-btn atlas-form-cancel">Cancel</button>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="atlas-place-panel" hidden>
+      <% if placeable.empty? %>
+        <p class="atlas-place-empty">No combatants in the encounter to place. Add combatants from the roster first.</p>
+      <% else %>
+        <p class="atlas-place-hint">Pick a combatant to drop on the map:</p>
+        <div class="atlas-place-list">
+          <% placeable.each do |c| %>
+            <button type="button" class="atlas-place-chip" data-creature-id="<%= c[:creature_id] %>"><%= c[:name] %></button>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="atlas-viewport" data-snapshot="<%= CGI.escapeHTML(snapshot.to_json) %>">
+    <% unless map %><p class="atlas-empty">No active map</p><% end %>
+  </div>
+</section>

@@ -52,6 +52,10 @@ export class TurnAttack {
       target_id: choices.target,
       weapon_type: weaponType,
       commit: commit,
+      // Luck spent on this attack (one entry per source; source_id null = DM).
+      // The rerolls are already on the chosen Rolls; the server only debits
+      // each source's Reservoir / DM pool on commit.
+      luck: CheckBuilder.luckSpends(choices),
       attacker: { id: parseInt(container._attackerId, 10), dice: atk.dice_count, speed: atk.speed, successes: atk.successes },
       defense: declared
         ? { choice: defenseName, id: choices.target, dice: def.dice_count, speed: def.speed || 0, successes: def.successes }

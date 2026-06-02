@@ -15,6 +15,8 @@ characters:
 
   - id: 400
     name: Sprite
+    metadata:
+      creature_token: "/images/icons/Collection/Faeries/faerie 1.png"
     group: enemy
     tags: [enemy_template, category:fey_favors]
     race: sprite
@@ -25,6 +27,8 @@ characters:
 
   - id: 401
     name: Pixie
+    metadata:
+      creature_token: "/images/icons/Collection/Faeries/faerie blue wings.png"
     group: enemy
     tags: [enemy_template, category:fey_favors]
     race: pixie
@@ -35,6 +39,8 @@ characters:
 
   - id: 402
     name: Dryad
+    metadata:
+      creature_token: "/images/icons/Collection/Fey/Dryads/dryad healer.png"
     group: enemy
     tags: [enemy_template, category:fey_favors]
     race: dryad
@@ -45,6 +51,8 @@ characters:
 
   - id: 403
     name: Brownie
+    metadata:
+      creature_token: "/images/icons/Collection/Faeries/faerie helpful.png"
     group: enemy
     tags: [enemy_template, category:fey_favors]
     race: brownie
@@ -55,6 +63,8 @@ characters:
 
   - id: 404
     name: Will-o'-Wisp Spark
+    metadata:
+      creature_token: "/images/icons/Collection/Faeries/faerie aether glider.png"
     group: enemy
     tags: [enemy_template, category:fey_favors]
     race: fey

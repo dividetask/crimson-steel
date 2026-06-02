@@ -15,6 +15,8 @@ characters:
 
   - id: 350
     name: Slaver Merchant
+    metadata:
+      creature_token: "/images/icons/human token.webp"
     group: enemy
     tags: [enemy_template, category:rise_of_the_slavelords]
     race: human
@@ -25,6 +27,8 @@ characters:
 
   - id: 351
     name: Slaver Lieutenant
+    metadata:
+      creature_token: "/images/icons/human token.webp"
     group: enemy
     tags: [enemy_template, category:rise_of_the_slavelords]
     race: human
@@ -35,6 +39,8 @@ characters:
 
   - id: 352
     name: Half-Orc Soldier
+    metadata:
+      creature_token: "/images/icons/orc rogue.webp"
     group: enemy
     tags: [enemy_template, category:rise_of_the_slavelords]
     race: half_orc
@@ -45,6 +51,8 @@ characters:
 
   - id: 353
     name: Orc Interpreter
+    metadata:
+      creature_token: "/images/icons/orc rogue.webp"
     group: enemy
     tags: [enemy_template, category:rise_of_the_slavelords]
     race: half_orc
@@ -55,6 +63,8 @@ characters:
 
   - id: 354
     name: Stockade Guard
+    metadata:
+      creature_token: "/images/icons/human token.webp"
     group: enemy
     tags: [enemy_template, category:rise_of_the_slavelords]
     race: human

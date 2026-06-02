@@ -89,7 +89,109 @@ module Abilities
       end
     end
 
+    # ---- Spell consumption view ----------------------------------------
+
+    # Resolve a Spell into the shape Equipment's Consume Item routes:
+    # a flat list of Effect Hashes plus the Spell's Toxicity polarity.
+    # Returns nil for an unknown name.
+    #
+    #   { effects: [ { <effect-key> => value }, ... ],
+    #     polarity: :positive | :forced }
+    #
+    # `tier` is the consumed Item's Tier; on a Tier-axis Spell it picks
+    # the matching Variant, otherwise it is ignored. Each Effect Hash
+    # carries one of the keys Consume Item understands: the Severity keys
+    # `minor_damage` / `moderate_damage` / `major_damage` (signed —
+    # negative for a cure, positive for an attack), `temp_hp`, `mana`, or
+    # `damage` (an explicit `{ amount:, type: }` from a damage Effect
+    # string).
+    def resolve_spell(name, tier: nil)
+      raw = @catalog.ability(name)
+      return nil unless raw
+      resolved = resolve(name, axis_index: tier_axis_index(raw, tier))
+      { effects: consumption_effects(resolved), polarity: spell_polarity(resolved) }
+    end
+
+    # The Spell's polarity: an explicit `polarity:` field when present,
+    # otherwise inferred — a Spell that rolls an attack, carries a Damage
+    # Type, or declares a damage Effect string is `forced`; everything
+    # else (cures, buffs, utility) is `positive`.
+    def spell_polarity(resolved)
+      declared = resolved['polarity']
+      return declared.to_sym if declared
+      forced = resolved['attack_roll'] ||
+               !Array(resolved['damage_type']).compact.empty? ||
+               damage_effect_string?(resolved)
+      forced ? :forced : :positive
+    end
+
     private
+
+    CONSUMPTION_SEVERITIES = %w[minor_damage moderate_damage major_damage].freeze
+
+    # A Tier-axis Spell exposes one Variant per Tier; pick the Variant
+    # whose Tier matches the Item, falling back to the nearest in-range
+    # index. Non-Tier-axis Spells have a single Variant at index 0.
+    def tier_axis_index(raw, tier)
+      tiers = raw['tier']
+      return 0 unless tiers.is_a?(Array)
+      return 0 if tier.nil?
+      tiers.index(tier) || tier.to_i.clamp(0, tiers.length - 1)
+    end
+
+    def damage_effect_string?(resolved)
+      Array(resolved['effects']).any? { |s| Effect.classify(s.to_s)[:kind] == :damage }
+    end
+
+    def consumption_effects(resolved)
+      eh = resolved['effect_hash'] || {}
+      sign = spell_polarity(resolved) == :positive ? -1 : 1
+      effects = []
+
+      severities = {}
+      CONSUMPTION_SEVERITIES.each do |key|
+        v = eh[key]
+        severities[key] = sign * v.to_i if v.is_a?(Numeric) && !v.zero?
+      end
+      effects << severities unless severities.empty?
+
+      temp_hp = eh['temp_hp']
+      effects << { 'temp_hp' => temp_hp.to_i } if temp_hp.is_a?(Numeric) && !temp_hp.zero?
+
+      mana = eh['mana']
+      effects << { 'mana' => mana.to_i } if mana.is_a?(Numeric) && !mana.zero?
+
+      effects.concat(damage_effects(resolved, eh))
+      effects
+    end
+
+    # Explicit damage Effect strings evaluated to a flat amount. The
+    # damage-only variables (success / critical / attribute) default to 0
+    # for a consumed Item — there is no casting Roll. A formula that
+    # still references an unbound name (e.g. a per-cast `rank` scaling) is
+    # skipped rather than raising.
+    def damage_effects(resolved, eh)
+      damage_type = Array(resolved['damage_type']).compact.first
+      ctx = { 'rank' => 0, 'tier' => formula_tier(resolved) }.merge(eh)
+      Array(resolved['effects']).filter_map do |str|
+        obj = Effect.classify(str, context: ctx, damage_type: damage_type)
+        next unless obj[:kind] == :damage
+        amount = begin
+          Effect.evaluate_damage(obj)
+        rescue Formula::UnresolvedName, ArgumentError
+          nil
+        end
+        next if amount.nil?
+        dmg = { 'amount' => amount }
+        dmg['type'] = obj[:damage_type] if obj[:damage_type]
+        { 'damage' => dmg }
+      end
+    end
+
+    def formula_tier(resolved)
+      t = resolved['tier']
+      t == 0 ? 0.5 : t
+    end
 
     def resolve_variant(key, raw, axis_index, bindings)
       a = raw

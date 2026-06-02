@@ -27,8 +27,11 @@ export class CheckResolution {
     const propagated = Propagation.apply(check);
     const compute = (roll) => {
       if (!roll) return null;
+      const list = roll.bonusPenaltyList || [];
       const { tn, startingValue } = TnComputation.compute(roll, config);
-      return { tn, startingValue, bonusPenaltyList: roll.bonusPenaltyList || [] };
+      // `contributions` carries each contributing entry's signed TN influence,
+      // so a UI can render the breakdown without doing any TN math itself.
+      return { tn, startingValue, bonusPenaltyList: list, contributions: TnComputation.contributions(list) };
     };
     return {
       supporting: propagated.supporting.map(compute),
@@ -46,10 +49,21 @@ export class CheckResolution {
     const supportingResults = propagated.supporting.map(resolve);
     const opposingResults = propagated.opposing.map(resolve);
 
-    const sum = (results) => results.reduce((acc, r) => acc + (r ? r.dois : 0), 0);
-    const degreeOfSuccess = sum(supportingResults) - sum(opposingResults);
+    const degreeOfSuccess = CheckResolution.degreeOfSuccess({
+      supporting: supportingResults.map((r) => (r ? r.dois : 0)),
+      opposing: opposingResults.map((r) => (r ? r.dois : 0)),
+    });
     const outcome = Classifier.classify(degreeOfSuccess, true, config);
 
     return { supportingResults, opposingResults, degreeOfSuccess, outcome };
+  }
+
+  // Net Degree of Success for a Check from already-known per-Roll DoIS:
+  // sum of Supporting minus sum of Opposing. Used when the DoIS were rolled or
+  // entered outside resolveCheck (e.g. the Check Builder reads them from the
+  // dice table); resolveCheck uses it too.
+  static degreeOfSuccess({ supporting = [], opposing = [] } = {}) {
+    const sum = (xs) => xs.reduce((acc, n) => acc + (Number(n) || 0), 0);
+    return sum(supporting) - sum(opposing);
   }
 }

@@ -37,8 +37,14 @@ export class RollController {
 
     RollController._render(group, '.row-initial', DiceRenderer.renderDice(initial, tn, dieSize, startingValue));
 
-    if (cfg.reroll) {
-      const changes = Reroll.applyWithTn(current, RollController._slots(cfg.reroll), tn, rng, config, skip);
+    // Reroll: the Roll's positive (low-die) and negative (high-die) slots,
+    // applied in a single domain pass (no die rerolled twice). The legacy
+    // single-slot `reroll` (StepMachine / manual) and the two-slot
+    // `positive_reroll` / `negative_reroll` (composed upstream, e.g. Luck) both
+    // feed the same Reroll primitive — Roll Resolution owns the application.
+    const rerollSlots = RollController._rerollSlots(cfg);
+    if (rerollSlots.positiveReroll || rerollSlots.negativeReroll) {
+      const changes = Reroll.applyWithTn(current, rerollSlots, tn, rng, config, skip);
       RollController._markRerolled(skip, changes);
       current = merge(current, changes);
       RollController._render(group, '.row-reroll', DiceRenderer.renderDice(changes, tn, dieSize, startingValue, 'spacer'));
@@ -93,6 +99,20 @@ export class RollController {
       positiveReroll: mod.sign === 'pos' ? slot : null,
       negativeReroll: mod.sign === 'neg' ? slot : null,
     };
+  }
+
+  // The Roll's reroll slots for the domain Reroll primitive, reading the
+  // two-slot `positive_reroll` / `negative_reroll` config (composed upstream)
+  // and the legacy single-slot `reroll` (StepMachine / manual).
+  static _rerollSlots(cfg) {
+    let pos = cfg.positive_reroll ? { count: cfg.positive_reroll.count, max: !!cfg.positive_reroll.max } : null;
+    let neg = cfg.negative_reroll ? { count: cfg.negative_reroll.count, max: !!cfg.negative_reroll.max } : null;
+    if (cfg.reroll) {
+      const s = RollController._slots(cfg.reroll);
+      if (s.positiveReroll) pos = s.positiveReroll;
+      if (s.negativeReroll) neg = s.negativeReroll;
+    }
+    return { positiveReroll: pos, negativeReroll: neg };
   }
 
   static _markRerolled(skip, changes) {

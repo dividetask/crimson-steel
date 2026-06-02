@@ -110,7 +110,19 @@
         "bleeding": {
           "potency": 11,
           "inflicting_tier": 2,
-          "next_resolution_round": 1
+          "next_resolution_round": 0
+        }
+      }
+    },
+    "2005": {
+      "hp_damage": {
+        "minor": 4
+      },
+      "afflictions": {
+        "bleeding": {
+          "potency": 6,
+          "inflicting_tier": 2,
+          "next_resolution_round": 0
         }
       }
     }

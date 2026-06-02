@@ -1,8 +1,9 @@
 module Encounter
   # Weapon Attack + Defensive Action assembly (encounter_design.md →
-  # Attack / Cast / Use Item, Defensive Actions). Cast / Use Item are
-  # deferred (need Abilities-spell + Equipment-consumable wiring); this
-  # covers weapon Attacks.
+  # Attack / Cast / Use Item, Defensive Actions). This covers weapon
+  # Attacks; the Cast counterpart lives in Encounter::Cast +
+  # Encounter::State#resolve_cast_payload. Use Item is still deferred
+  # (needs the Equipment-consumable wiring).
   #
   # Resolution is client-side (the JS Dice/Check engine): this module
   # builds the *Roll specs* — dice caps, critical_modifier, the
@@ -14,12 +15,13 @@ module Encounter
     # Defensive Action eligibility + cost, per the design's table.
     #   parry — Martial; melee only; costs a Reaction + Combat-Pool dice.
     #   block — Martial; melee/ranged/spell; costs a Reaction + dice.
-    #   dodge — Dexterity Save; any; costs a Reaction, no Combat-Pool dice
-    #           (rolled at the full Dice Cap).
+    #   dodge — uses the `dex_save` proficiency for its Dice Cap + Modifiers,
+    #           but is NOT a Saving Throw: it is a Defensive Action that costs
+    #           a Reaction + Combat-Pool dice (Speed 0), like Parry/Block.
     DEFENSES = {
       'parry' => { proficiency: 'martial',   attribute_override: nil,  applies: %w[melee],              pool_cost: true  },
       'block' => { proficiency: 'martial',   attribute_override: nil,  applies: %w[melee ranged spell], pool_cost: true  },
-      'dodge' => { proficiency: 'dex_save',  attribute_override: :dex, applies: %w[melee ranged spell], pool_cost: false }
+      'dodge' => { proficiency: 'dex_save',  attribute_override: :dex, applies: %w[melee ranged spell], pool_cost: true  }
     }.freeze
 
     ATTACK_KINDS = %w[melee ranged spell].freeze
@@ -123,9 +125,9 @@ module Encounter
           proficiency:        d[:proficiency],
           attribute_override: d[:attribute_override],
           pool_cost:          d[:pool_cost],
-          # Parry/Block: the defender chooses dice from Reaction minimum
-          # up to remaining pool (Dice Cap still caps the roll). Dodge:
-          # always the full Dice Cap, no pool spend.
+          # Parry/Block/Dodge all cost pool: the defender chooses dice from the
+          # Reaction Action Minimum up to remaining pool (Dice Cap still caps
+          # the roll). A true Saving Throw (a Save spell) is handled elsewhere.
           min_dice:           d[:pool_cost] ? Config.reaction_action_minimum : defender_inputs[:dice_cap],
           max_dice:           d[:pool_cost] ? [defender_inputs[:dice_cap], defender_inputs[:pool_remaining]].compact.min : defender_inputs[:dice_cap],
           dice_cap:           defender_inputs[:dice_cap],

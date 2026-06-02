@@ -4,17 +4,26 @@
   on the Encounter page. DM-only.
 
   Locals:
-    acting — the Acting Combatant's tracker row (see build_tracker_row):
-             { combatant_id, name, can_act, mana:{remaining,max}|nil,
-               combat_pool:{remaining,max}|nil, ... }.
-    dead   — boolean (Conditions' Dead?).
+    acting      — the Acting Combatant's tracker row (see build_tracker_row):
+                  { combatant_id, name, can_act, mana:{remaining,max}|nil,
+                    combat_pool:{remaining,max}|nil, ... }.
+    dead        — boolean (Conditions' Dead?).
+    saves            — one Conditions Save Resolution Stub `save` blob per
+                       Affliction due this Round for the Acting Combatant
+                       (see start_of_turn_saves). Defaults to [].
+    expiring_effects — Active Effects the finalize step will clear this Round
+                       (see expiring_effects_for): [{ label:, ends_on_round: }].
+                       Defaults to [].
 
-  First-pass implementation status (see the stub doc): the action menu
-  and pane switching render, and End Turn is wired to
-  /encounter/advance_turn. The remaining panes are staged — their routes
-  and client flows land in later passes — and show a short note describing
-  what they will do.
+  First-pass implementation status (see the stub doc): the action menu and
+  pane switching render; Start of Turn mounts one Conditions Save Resolution
+  Stub per due Affliction (each Confirm POSTs to /encounter/resolve_affliction)
+  and a finalize button that refills the Combat Pool + clears expired effects
+  (/encounter/start_of_turn); End Turn posts to /encounter/advance_turn. The
+  remaining panes are staged.
 %>
+<% saves ||= [] %>
+<% expiring_effects ||= [] %>
 <%
   incapacitated = !acting[:can_act]
   state_suffix  = dead ? 'Dead' : (incapacitated ? 'Incapacitated' : nil)
@@ -34,13 +43,11 @@
   selected = visible.first[:key]
 
   staged = {
-    'start_of_turn' => 'Enter the Successes rolled on each due Affliction save; Submit resolves them (Conditions’ Resolve Due Afflictions) and clears expired effects. Pane wiring lands next.',
     'attack'        => 'Pick a target, weapon, and dice, declare a defense, then resolve the roll. Backed server-side by /encounter/attack_options, build_attack, and resolve_attack — the client flow lands next.',
-    'move'          => 'Log a movement description (no mechanical effect). Needs the combat scene-log sink.',
-    'cast'          => 'Cast a known spell at a target. The Encounter Cast entry point is declared future work.',
-    'item'          => 'Use a carried consumable on a target via Equipment’s Consume Item. Route lands next.',
-    'special'       => 'Log a one-off action ("breath weapon", "improvise"). Shares the Move log sink.'
+    'item'          => 'Use a carried consumable on a target via Equipment’s Consume Item. Route lands next.'
   }
+  move_cost = Encounter::Config.move_cost
+  special_options = (defined?(@acting_special) && @acting_special) || []
 
   mana = acting[:mana]
   pool = acting[:combat_pool]
@@ -71,14 +78,83 @@
         <div class="ta-pane<%= ' ta-pane-active' if a[:key] == selected %>" data-ta-pane="<%= a[:key] %>">
           <h4 class="ta-pane-h"><%= a[:label] %></h4>
           <% if a[:key] == 'end_turn' %>
-            <p class="ta-pane-lead">Advance to the next Combatant in initiative order. Resets this Combatant&rsquo;s Combat Pool and clears its luck points; a Round wrap advances the Timestamp.</p>
+            <p class="ta-pane-lead">Advance to the next Combatant in initiative order. Clears this Combatant&rsquo;s luck points; a Round wrap advances the Timestamp. (Combat Pools refill at the start of each turn, not here.)</p>
             <form method="post" action="/encounter/advance_turn">
               <button type="submit" class="ce-btn ta-confirm">End Turn</button>
+            </form>
+          <% elsif a[:key] == 'start_of_turn' %>
+            <% if saves.any? %>
+              <div class="ta-sot-section">
+                <h5 class="ta-sot-h">Afflictions due this Round</h5>
+                <% saves.each do |s| %>
+                  <%= erb :_conditions_save_resolution, locals: { save: s } %>
+                <% end %>
+              </div>
+            <% end %>
+
+            <form method="post" action="/encounter/start_of_turn" class="ta-sot">
+              <input type="hidden" name="combatant_id" value="<%= acting[:combatant_id] %>">
+              <% if expiring_effects.any? %>
+                <div class="ta-sot-section">
+                  <h5 class="ta-sot-h">Active Effects to clear this Round</h5>
+                  <ul class="ta-sot-clear-list">
+                    <% expiring_effects.each do |fx| %>
+                      <li class="ta-sot-clear"><%= fx[:label] %></li>
+                    <% end %>
+                  </ul>
+                </div>
+              <% end %>
+              <p class="ta-pane-lead">Refill Combat Pool<% if expiring_effects.any? %> &amp; clear the effects above<% end %></p>
+              <button type="submit" class="ce-btn ta-confirm">Submit</button>
             </form>
           <% elsif a[:key] == 'attack' %>
             <div class="ta-attack" data-attacker-id="<%= acting[:combatant_id] %>"
                  data-pool-remaining="<%= pool ? pool[:remaining] : 0 %>">
               <p class="ta-attack-loading">Loading attack options…</p>
+            </div>
+          <% elsif a[:key] == 'move' %>
+            <%# Move (turn_action_stub.md → Move): a Main Action that spends a
+                flat Move Cost in Combat Pool dice and confirms. %>
+            <% can_move = pool && pool[:remaining] >= move_cost %>
+            <p class="ta-pane-lead">Move spends <strong><%= move_cost %></strong> Combat Pool dice (no other effect). Confirm to spend them.</p>
+            <% unless can_move %>
+              <p class="ta-warn">Not enough Combat Pool (<%= pool ? pool[:remaining] : 0 %>/<%= move_cost %>).</p>
+            <% end %>
+            <form method="post" action="/encounter/move">
+              <input type="hidden" name="combatant_id" value="<%= acting[:combatant_id] %>">
+              <button type="submit" class="ce-btn ta-confirm"<%= ' disabled' unless can_move %>>Confirm Move</button>
+            </form>
+          <% elsif a[:key] == 'cast' %>
+            <div class="ta-cast" data-caster-id="<%= acting[:combatant_id] %>"
+                 data-pool-remaining="<%= pool ? pool[:remaining] : 0 %>">
+              <p class="ta-attack-loading">Loading spells…</p>
+            </div>
+          <% elsif a[:key] == 'special' %>
+            <%# Special (turn_action_stub.md → Special): use a non-Spell,
+                non-Reaction Ability — a Bard's Bardic Performance et al.
+                One button per Ability, mirroring the Attack builder's
+                option buttons (.cr-mod-btn). %>
+            <div class="ta-special" data-combatant-id="<%= acting[:combatant_id] %>">
+              <% if special_options.empty? %>
+                <p class="ta-pane-lead ta-staged">No special actions available.</p>
+              <% else %>
+                <% [['free', 'Free Actions'], ['bonus', 'Bonus Actions'], ['main', 'Main Actions']].each do |cat, heading| %>
+                  <% in_cat = special_options.select { |o| o[:activation] == cat } %>
+                  <% next if in_cat.empty? %>
+                  <div class="ta-special-group">
+                    <h5 class="ta-special-cat"><%= heading %></h5>
+                    <div class="cb-line">
+                      <% in_cat.each do |opt| %>
+                        <button type="button" class="cr-mod-btn cb-opt ta-special-opt"
+                                data-ability="<%= opt[:name] %>"
+                                data-performance="<%= opt[:performance] ? '1' : '' %>"
+                                data-summary="<%= opt[:summary] %>"<%= ' disabled' if opt[:disabled] %>><%= opt[:label] %></button>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+                <div class="ta-special-result" hidden></div>
+              <% end %>
             </div>
           <% else %>
             <p class="ta-pane-lead ta-staged"><%= staged[a[:key]] %></p>

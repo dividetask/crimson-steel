@@ -53,6 +53,9 @@ Reaction Action Minimum: 2
 Bonus Action Minimum: 2
 Main Action Minimum: 4
 
+# Move spends this many Combat Pool dice (no other mechanical effect).
+Move Cost: 4
+
 # ---- Attacker Bonuses ----
 #
 # Bonuses on the *attacker's* to-hit Roll triggered by the defender's

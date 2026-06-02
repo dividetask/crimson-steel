@@ -28,6 +28,13 @@ module Creatures
     def race      ; @record[:race]   ; end
     def record    ; @record          ; end
 
+    # Per-Creature token image (a web path), stored under `metadata`
+    # (the design's portrait-path slot). Nil when unset — the Atlas
+    # token then falls back to a `?` marker. See atlas_stub.md.
+    def creature_token
+      (@record[:metadata] || {})['creature_token']
+    end
+
     # ---- attributes ----
     def base_attribute_value(attr)
       @record[:attributes][attr.to_sym]

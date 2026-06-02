@@ -30,8 +30,12 @@ export class TnComputation {
     return { tn: candidate, startingValue: startingContribution };
   }
 
-  // Sum, per Type, the highest positive and lowest negative entries.
-  static netModifier(list) {
+  // The entries that actually contribute to the TN: per Type, the highest
+  // positive and the lowest negative entry (the rest are ignored). Each carries
+  // its signed influence on the TN — a Bonus (positive value) LOWERS the TN
+  // (TN = Base − Net Modifier), so its influence is negative. Callers that want
+  // to display the breakdown read this rather than re-deriving the sign.
+  static contributions(list) {
     const highestPositive = new Map();
     const lowestNegative = new Map();
 
@@ -47,9 +51,14 @@ export class TnComputation {
       }
     }
 
-    let net = 0;
-    for (const v of highestPositive.values()) net += v;
-    for (const v of lowestNegative.values()) net += v;
-    return net;
+    const out = [];
+    for (const [type, value] of highestPositive) out.push({ type, value, influence: -value });
+    for (const [type, value] of lowestNegative) out.push({ type, value, influence: -value });
+    return out;
+  }
+
+  // Sum, per Type, the highest positive and lowest negative entries.
+  static netModifier(list) {
+    return TnComputation.contributions(list).reduce((net, c) => net + c.value, 0);
   }
 }

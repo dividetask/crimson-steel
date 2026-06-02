@@ -1810,7 +1810,18 @@ body {
 .cond-disease { background: #a16207; }
 .cond-curse   { background: #7c3aed; }
 .cond-major   { background: #7f1d1d; }
+.cond-effect  { background: #ea580c; }
+.cond-luck    { background: #0891b2; }
 .cond-other   { background: #64748b; }
+
+/* Bardic Inspiration discharge panel (turn_action_stub.md → Special) */
+.inspiration-panel { margin: 12px 0; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; }
+.inspiration-h { margin: 0 0 8px; font-size: 1em; }
+.inspiration-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+.insp-name { font-weight: 600; }
+.insp-reservoir { color: #0891b2; font-size: 0.9em; }
+.insp-field { font-size: 0.9em; color: #334155; }
+.insp-field input[type="number"] { width: 3.5em; }
 
 /* Ability damage chips */
 .abil-chip {
@@ -3077,6 +3088,21 @@ body {
 .ta-pane-lead { margin: 0 0 12px; color: #334155; }
 .ta-pane-lead.ta-staged { color: #64748b; font-style: italic; }
 
+/* Next Turn control — page chrome between the Combat Tracker and the
+   Turn Action stub (encounter_initiative_stub.md). */
+.encounter-next-turn { margin: 10px 0; display: flex; justify-content: flex-end; }
+.encounter-next-turn-btn { font-weight: 600; }
+
+/* Start of Turn pane (turn_action_stub.md → Start of Turn) */
+.ta-sot-section { margin: 0 0 14px; }
+.ta-sot-h { margin: 0 0 6px; font-size: 0.9em; color: #334155; }
+.ta-sot-clear-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.ta-sot-clear {
+  padding: 3px 8px; border: 1px solid #e2e8f0; border-radius: 999px;
+  background: #f1f5f9; color: #475569; font-size: 0.85em;
+}
+.save-resolution.save-resolved { opacity: 0.55; }
+
 /* Attack result (turn_action_stub.md → Attack) */
 .ta-attack-loading { color: #64748b; font-style: italic; }
 .ta-dim { color: #94a3b8; font-size: 0.85em; }
@@ -3085,12 +3111,47 @@ body {
 .ta-hit strong { color: #7f1d1d; }
 .ta-miss { color: #475569; }
 
+/* Special pane (turn_action_stub.md → Special): one .cr-mod-btn per
+   Ability, grouped under its action category, matching the Attack
+   builder's option buttons. */
+.ta-special-group { margin-bottom: 10px; }
+.ta-special-cat { margin: 0 0 4px; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
+.ta-special-opt.cr-mod-selected { border-color: #2563eb; background: #eff6ff; }
+.ta-special-result { margin-top: 12px; }
+.ta-special-commit { margin-top: 12px; }
+.ta-special-summary { margin: 0 0 8px; color: #334155; }
+
 /* Check Resolution Builder option lines — reuse the .cr-mod-btn palette */
 .cb-line { padding: 2px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .cb-line .cr-mod-btn { margin-right: 0; }
 /* TN Bonus/Penalty breakdown shown after a group's dice buttons. */
 .cb-bonus-note { font-size: 11px; color: #555; font-style: italic; margin-left: 4px; }
 .roll-group-excluded { display: none; }
+
+/* Luck step (turn_action_stub.md → Luck): one table per source (a Bard's
+   Reservoir or the DM's pool). The source's name is a heading above the
+   dice buttons; rows are the in-play Rolls, columns Bardic Inspiration
+   (bonus) and, when allowed, Unsettling Words (penalty). */
+.cb-luck-heading { font-weight: 600; margin: 2px 0 6px; }
+.cb-luck-table { border-collapse: collapse; width: 100%; }
+.cb-luck-table th {
+  text-align: left; font-size: 10px; letter-spacing: 0.04em; color: #666;
+  text-transform: uppercase; font-weight: 600; padding: 2px 10px 4px 0;
+}
+.cb-luck-table td { padding: 3px 10px 3px 0; vertical-align: middle; }
+.cb-luck-roll { font-weight: 600; white-space: nowrap; }
+.cb-luck-cell { white-space: nowrap; }
+.cb-luck-cell .cr-mod-btn { margin-right: 4px; min-width: 30px; }
+.cb-luck-opt.cr-mod-selected { border-color: #2563eb; background: #eff6ff; }
+/* Positive Luck (Bardic Inspiration) reads green; negative Luck (Unsettling
+   Words) reads red. Kept on the selected state too. */
+.cb-luck-pos, .cb-luck-pos.cr-mod-selected { color: #1a7f37; }
+.cb-luck-neg, .cb-luck-neg.cr-mod-selected { color: #c0362c; }
+/* Unsettling Words (penalty) column: right-aligned so its buttons sit against
+   the Bardic Inspiration column, forming a continuous −…+ number line. */
+.cb-luck-table th.cb-luck-penalty,
+.cb-luck-table td.cb-luck-penalty { text-align: right; }
+.cb-luck-cell.cb-luck-penalty .cr-mod-btn { margin-right: 0; margin-left: 4px; }
 
 /* Header quick-pick buttons (one per weapon = max dice), top-right of the
    Weapon & dice step's controls. */
@@ -3151,3 +3212,288 @@ body {
 }
 .creature-name.has-tn-tip:hover .tn-tip,
 .creature-name.has-tn-tip:focus .tn-tip { display: block; }
+
+
+/* ===== Atlas map (atlas_stub.md) ===================================== */
+
+.atlas-stub {
+  margin-top: 16px;
+  border: 1px solid #2c2c2c;
+  border-radius: 6px;
+  background: #1b1b1b;
+  overflow: hidden;
+}
+
+/* --- Toolbar (thin strip across the top) --- */
+.atlas-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #2c2c2c;
+  background: #151515;
+}
+.atlas-title { margin: 0 8px 0 0; font-size: 14px; font-weight: 600; }
+.atlas-tool-group { display: flex; align-items: center; gap: 4px; }
+.atlas-tool-sep { width: 1px; align-self: stretch; background: #303030; margin: 2px 4px; }
+.atlas-spacer { flex: 1 1 auto; }
+.atlas-map-picker {
+  background: #111;
+  color: #ddd;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 12px;
+  max-width: 220px;
+}
+.atlas-tool-btn {
+  background: #222;
+  color: #ddd;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.atlas-tool-btn:hover { background: #2c2c2c; }
+.atlas-tool-btn:disabled { opacity: 0.4; cursor: default; }
+.atlas-tool-btn.atlas-zoom { font-weight: 700; min-width: 26px; }
+.atlas-tool-btn.atlas-danger:hover { background: #4a1d1d; border-color: #7a2a2a; }
+.atlas-zoom-label { font-size: 11px; color: #999; min-width: 42px; text-align: center; }
+
+/* --- Place Token picker (popover under the toolbar) --- */
+.atlas-place-panel {
+  border-bottom: 1px solid #2c2c2c;
+  background: #181818;
+  padding: 8px 10px;
+}
+.atlas-place-panel[hidden] { display: none; }
+.atlas-place-hint { margin: 0 0 6px; font-size: 12px; color: #999; }
+.atlas-place-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.atlas-place-chip {
+  background: #222;
+  color: #eee;
+  border: 1px solid #3a3a3a;
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.atlas-place-chip:hover { background: #2f2f2f; }
+.atlas-place-empty { font-size: 12px; color: #777; font-style: italic; }
+
+/* --- Canvas (viewport clips; world is panned/zoomed via transform) --- */
+.atlas-viewport {
+  position: relative;
+  height: 520px;
+  overflow: hidden;
+  background: #101010;
+  cursor: grab;
+  touch-action: none;
+}
+.atlas-viewport.atlas-panning { cursor: grabbing; }
+.atlas-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+.atlas-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+.atlas-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.atlas-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #888;
+  font-style: italic;
+  font-size: 14px;
+}
+
+/* --- Token icons --- */
+.atlas-token {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  user-select: none;
+}
+.atlas-token:active { cursor: grabbing; }
+.atlas-token-hidden { opacity: 0.55; border-style: dashed; }
+.atlas-token-img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+
+/* Combatant ring (in the active Combat roster); thicker animated ring for
+   the Acting Combatant. */
+.atlas-token-combatant { box-shadow: 0 0 0 2px #f1c40f, 0 1px 3px rgba(0, 0, 0, 0.6); }
+.atlas-token-acting {
+  box-shadow: 0 0 0 3px #fff, 0 0 10px 2px #f1c40f;
+  animation: atlas-acting-pulse 1.2s ease-in-out infinite;
+}
+@keyframes atlas-acting-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px #fff, 0 0 6px 1px #f1c40f; }
+  50%      { box-shadow: 0 0 0 3px #fff, 0 0 14px 4px #f1c40f; }
+}
+
+/* Tier Color fills (ui_conventions.md). */
+.atlas-token.atlas-tier-0 { background: #e74c3c; }
+.atlas-token.atlas-tier-1 { background: #e67e22; }
+.atlas-token.atlas-tier-2 { background: #f1c40f; }
+.atlas-token.atlas-tier-3 { background: #2ecc71; }
+.atlas-token.atlas-tier-4 { background: #3498db; }
+.atlas-token.atlas-tier-5 { background: #9b59b6; }
+.atlas-token.atlas-tier-unknown { background: #7f8c8d; }
+
+/* --- Hover tooltip (atlas_token_tooltip.md) --- */
+.atlas-tooltip {
+  position: fixed;
+  z-index: 50;
+  min-width: 120px;
+  max-width: 240px;
+  background: #0d0d0d;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  padding: 6px 9px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  font-size: 12px;
+}
+.atlas-tooltip[hidden] { display: none; }
+.atlas-tt-name { font-weight: 700; font-size: 13px; }
+.atlas-tt-sub { color: #aaa; margin-top: 1px; }
+.atlas-tt-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: #f1c40f;
+  color: #111;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Inline Add / Edit Map forms (replace browser prompts). */
+.atlas-form-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  border-bottom: 1px solid #2c2c2c;
+  background: #181818;
+  padding: 8px 10px;
+}
+.atlas-form-panel[hidden] { display: none; }
+.atlas-form-title { margin: 0; font-size: 13px; align-self: center; color: #ccc; }
+.atlas-field { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: #999; }
+.atlas-field input {
+  background: #111;
+  color: #ddd;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 12px;
+  min-width: 130px;
+}
+.atlas-field input[type="number"] { min-width: 90px; }
+.atlas-form-actions { display: flex; gap: 6px; }
+
+/* Tooltip Combat status row. */
+.atlas-tt-status { margin-top: 4px; color: #ccc; font-size: 11px; }
+
+/* --- Drawing tools (atlas_stub.md → Drawing tools) --- */
+.atlas-color {
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  background: #111;
+  cursor: pointer;
+}
+.atlas-tool.atlas-tool-active {
+  background: #3a5a8c;
+  border-color: #4aa3ff;
+  color: #fff;
+}
+.atlas-viewport.atlas-drawing { cursor: crosshair; }
+.atlas-annotations {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;            /* drawings never intercept canvas gestures */
+}
+.atlas-annotation-text {
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.65);
+  stroke-width: 3px;
+}
+.atlas-text-input {
+  position: absolute;
+  z-index: 30;
+  min-width: 120px;
+  background: rgba(13, 13, 13, 0.92);
+  border: 1px solid #4aa3ff;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* Player arrow buttons carry their preset color as a left chip. */
+.atlas-tool.atlas-arrow-attack  { border-left: 4px solid #e74c3c; }
+.atlas-tool.atlas-arrow-move    { border-left: 4px solid #4aa3ff; }
+.atlas-tool.atlas-arrow-sneak   { border-left: 4px solid #9b59b6; }
+.atlas-tool.atlas-arrow-careful { border-left: 4px solid #f1c40f; }
+
+/* No-icon token marker: a `?` (atlas_stub.md). */
+.atlas-token-qmark {
+  font-size: 15px;
+  font-weight: 800;
+  color: #111;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+.atlas-token.atlas-tier-unknown .atlas-token-qmark { color: #eee; text-shadow: none; }
+
+/* Placing a Combatant's token (Place Token → click/drag on the map). */
+.atlas-viewport.atlas-placing { cursor: copy; }
+.atlas-token-ghost {
+  opacity: 0.6;
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+.atlas-place-armed {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  background: rgba(13, 13, 13, 0.92);
+  border: 1px solid #4aa3ff;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #eee;
+  pointer-events: none;
+}
+.atlas-place-armed[hidden] { display: none; }

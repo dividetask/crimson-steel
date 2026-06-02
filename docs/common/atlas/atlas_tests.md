@@ -121,6 +121,24 @@ The baseline state for each test (unless overridden) is: no Maps, no Tokens, `ac
 
 ---
 
+## Annotations
+
+**Add Annotation stores geometry and assigns an ID.** Add Annotation with `type = arrow`, `points = [(1, 2), (8, 9)]`, `author = player`: returns an integer ID; Get Annotation returns the record with those points and `author = player`.
+
+**Add Annotation carries shape and text payloads.** A `shape` Annotation with `shape_kind = rect` stores the kind; a `text` Annotation with `text = "Ambush!"` stores the string.
+
+**Add Annotation on an unknown Map returns the sentinel.** With no Map 99: Add Annotation with `map_id = 99` returns the error sentinel; nothing is created.
+
+**List Annotations filters conjunctively.** Filters by `map_id`, `type`, and `author` combine — e.g. `map_id = 1, author = dm` returns only that Map's DM-drawn Annotations.
+
+**Remove Annotation deletes by ID.** Get Annotation then returns nothing.
+
+**Clear Annotations On Map can scope to an author.** A Map with one `player` arrow and one `dm` shape: Clear Annotations On Map with `author = player` removes one and leaves the DM shape; calling it again with no author clears the rest.
+
+**Annotations persist across reload.** An Annotation written and reloaded from disk round-trips its points and author.
+
+**Annotations are independent of Delete Map's Token cascade.** Deleting a *different* Map does not touch Annotations on the surviving Map; clearing a Map's Annotations is done via *Clear Annotations On Map*, not *Delete Map*.
+
 ## Edge cases
 
 **Token referencing a deleted Creature is still returned.** The Creatures domain removes Creature 1001 after a Token was placed for it. Get Token on that Token still returns the Token record with `creature_id = 1001` intact. The UI is responsible for rendering a placeholder; Atlas does not validate.

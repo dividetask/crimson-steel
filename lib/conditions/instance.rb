@@ -1,3 +1,5 @@
+require 'creatures/formula'
+
 module Conditions
   # Pairs a Catalog and a State and exposes the public entry points
   # documented in conditions_design.md. Operations mutate the State
@@ -254,7 +256,14 @@ module Conditions
       else
         entry[:potency] = new_potency
         if current_round
-          next_round = current_round + @catalog.frequency_rounds(save_frequency(rule))
+          freq = @catalog.frequency_rounds(save_frequency(rule))
+          # Advance from the PREVIOUS scheduled round, not the current
+          # round — so when time jumps forward (e.g. +1 minute = 10 rounds)
+          # the Affliction stays due and owes one save per missed interval
+          # instead of skipping straight to "now". Falls back to the current
+          # round only when there was no prior schedule.
+          prev = entry[:next_resolution_round]
+          next_round = (prev || current_round) + freq
           entry[:next_resolution_round] = next_round
         else
           next_round = entry[:next_resolution_round]
@@ -459,7 +468,14 @@ module Conditions
     end
 
     # ===== Apply Named Effect =====
-    def apply_named_effect(name, source_id:, ends_on_round: nil, metadata: {})
+    # Apply a named Effect's Mechanics. `metadata` rides along on each
+    # resulting Active Effect (and the formula string, for later read-through).
+    # `bindings` supplies values (e.g. `level`) for any Modifier `amount`
+    # expressed as a Formula: when given, the Formula is evaluated now and the
+    # concrete amount stored, so Get Modifiers surfaces it. Combat / Creatures
+    # own deciding the bindings (per the design); Conditions just does the
+    # arithmetic. Without `bindings`, a Formula amount stays 0 as before.
+    def apply_named_effect(name, source_id:, ends_on_round: nil, metadata: {}, bindings: {})
       entry = @catalog.effect_name(name)
       mechanics = entry['mechanics'] || []
       applied_ids = []
@@ -471,14 +487,15 @@ module Conditions
         case mech['kind']
         when 'modifier'
           amount = mech['amount']
-          amount = 0 unless amount.is_a?(Integer)  # formula not yet evaluated
+          amount = evaluate_modifier_amount(amount, bindings) unless amount.is_a?(Integer)
           apply_effect(
             target_key: mech['applies_to'] || [],
             bonus_type: mech['modifier_type'].to_s,
             amount: amount,
             source_id: mech_source_id,
             ends_on_round: ends_on_round,
-            metadata: metadata.merge('formula' => mech['amount'].is_a?(String) ? mech['amount'] : nil).compact
+            metadata: metadata.merge('formula' => mech['amount'].is_a?(String) ? mech['amount'] : nil,
+                                     'effect_name' => name.to_s).compact
           )
         else
           # Non-modifier Mechanics (reroll, nudge, set_value, scale_value,
@@ -495,6 +512,16 @@ module Conditions
       end
 
       applied_ids
+    end
+
+    # Evaluate a Modifier `amount` Formula (e.g. "1 + level / 3") against the
+    # caller-supplied bindings. Falls back to 0 when there are no bindings or
+    # the Formula references an unbound name.
+    def evaluate_modifier_amount(expr, bindings)
+      return 0 unless expr.is_a?(String) && !bindings.empty?
+      Creatures::Formula.eval(expr, bindings)
+    rescue StandardError
+      0
     end
 
     # ===== Clear Expired Effects =====
@@ -603,6 +630,25 @@ module Conditions
     # accessor lets a UI layer read them without poking at internals.
     def active_named_effect_mechanics
       @state.named_effect_mechanics
+    end
+
+    # The distinct names of the Conditions (named Effects) currently active
+    # on the Creature — e.g. `rage`, `dazzled` — gathered across both the
+    # Modifier Active Effects (`effects`) and the non-Modifier sidecar
+    # (`named_effect_mechanics`), each tagged with its source Effect Name.
+    # Expired entries are dropped when `current_round` is given. For display
+    # (character sheet, Combat Tracker badges).
+    def active_effect_names(current_round: nil)
+      live = ->(ends) { !(current_round && ends && ends <= current_round) }
+      names = []
+      @state.named_effect_mechanics.each do |m|
+        names << m[:effect_name] if m[:effect_name] && live.call(m[:ends_on_round])
+      end
+      @state.effects.each do |e|
+        nm = e[:metadata] && (e[:metadata]['effect_name'] || e[:metadata][:effect_name])
+        names << nm if nm && live.call(e[:ends_on_round])
+      end
+      names.compact.uniq
     end
 
     private

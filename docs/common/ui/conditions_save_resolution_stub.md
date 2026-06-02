@@ -11,13 +11,24 @@ See `ui_conventions.md` for shared rules. Cross-domain terms (Magic Toxicity, To
 | `creature` | `{id, name, tier}` | The Creature taking the save. |
 | `affliction` | `{name, rule, potency, inflicter_tier}` | The Affliction being resolved. `rule` is the entry from `conditions_afflictions.yaml`. |
 | `save_dice` | integer | Dice count for the save Roll (caller-computed from Creature stats + Affliction). |
-| `save_tn` | integer | Target Number for the save. |
+| `save_modifiers` | array of `[type, amount]` or null | The Creature's own save Bonuses/Penalties (e.g. a save Competency). The stub folds these together with the auto-derived penalties below to form the save Roll's Bonus/Penalty list. |
 | `die_size` | integer | |
-| `potency_divisor` | integer | The configured Potency Divisor (used for Magnitude preview). |
+| `potency_divisor` | integer | The configured Potency Divisor (used for both the Magnitude preview and the Potency Save Penalty). |
 | `reroll_sources` | array of `{creature_ref, creature_name, source_name, direction, pool}` or null | Each entry becomes a labelled group of magnitude buttons in the Rerolls step. |
 | `mass_reroll_sources` | array of `{creature_ref, creature_name, source_name, direction}` or null | Each entry becomes a single ± button in the Mass Rerolls step. |
 | `nudge_sources` | array of `{creature_ref, creature_name, source_name, direction, pool}` or null | Each entry becomes a labelled group of magnitude buttons in the Nudges step. |
 | `stub_id` | string | Unique identifier. |
+| `resolve` | `{url, combatant_id, affliction}` or absent | Optional. When present, Confirm POSTs the rolled net DoIS to `url` to apply *Resolve Affliction* server-side. Absent → display-only (Status demo). |
+
+## Save Roll Target Number
+
+The save Roll carries a Bonus/Penalty list and renders the same TN-breakdown tooltip the Check Resolution stub uses (`dice_resolution_roll_tooltip.md`) — hover the Creature name to see `Base ±mods = TN n`. The stub composes the list from, in order:
+
+- the caller's `save_modifiers` (the Creature's own save Competency / Bonuses);
+- the **Potency Save Penalty** — a `Competency` Penalty of `floor(potency / potency_divisor)` (the same penalty Conditions' *Resolve Affliction* injects when it scores the save);
+- the **Inflicter Tier Penalty** — a `Circumstance` Penalty equal to the Affliction's `inflicter_tier`: a wound dealt by a higher-Tier creature is harder to shake off.
+
+The TN is then `DiceResolution.compute_target_number(list)` (Base TN − Net Modifier, clamped to the configured bounds; overflow past the bounds becomes Starting Successes / Failures, shown as `R+`/`R-` on the params line). The stub computes the TN itself, so callers no longer pass a `save_tn`.
 
 ## Layout
 
@@ -36,6 +47,8 @@ The stub is a single `.rolls-wrapper`. The shell mirrors the Roll Resolution / C
    - **New Potency** — auto-computed from the default evolution formula `−floor(decay) − floor(successes × per_success) + floor(failures × per_failure)`. Per-Affliction overrides in the rule are not threaded into the JS preview; the DM may override the value directly.
 
 The Confirm button is disabled until at least one Roll All has fired. On press, applies the displayed values via Conditions' *Resolve Affliction* (or, in the Status demo, records "Recorded — no state mutated").
+
+**Live vs. demo Confirm.** When the caller includes an optional `resolve` reference on the `save` blob (`{ url, combatant_id, affliction }`), the stub renders it as `data-resolve-*` attributes on the wrapper and Confirm POSTs the rolled net DoIS there — the consuming route runs *Resolve Affliction* server-side and persists (this is how the Encounter Start of Turn pane drives real resolution). With no `resolve` reference — the Status demo — Confirm only disables the button and mutates nothing.
 
 Everything between Roll All and Confirm is client-side: the DM can change reroll picks (via Change), re-roll, override DoIS, and the preview recomputes live.
 

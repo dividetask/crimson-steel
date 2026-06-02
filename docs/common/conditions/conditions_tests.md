@@ -146,6 +146,8 @@ Tests that depend on save Rolls state the resolved Roll's `dois` (Degree of Indi
 
 **Resolution does not reschedule when current_round is omitted.** Same Creature. *Resolve Affliction* with no `current_round`: potency evolves as above but `next_resolution_round` stays at 100.
 
+**Resolution advances one interval at a time after a time jump.** Given a surviving `bleeding = {potency: 5, next_resolution_round: 100}` (round frequency) and `current_round = 110` (time jumped +10). *Resolve Affliction* sets `next_resolution_round = 100 + 1 = 101` (advancing the previous value, not jumping to 111), so the Affliction is still due at round 110. Catching up to the jump takes one resolution per missed Round — eleven resolutions in total move the schedule past 110.
+
 **A removed Affliction discards its scheduling.** Given `bleeding = {potency: 1, next_resolution_round: 47}` and a Tier-3 save resolving to `dois = 0`. Potency decays to 0; the entry is removed. The `next_resolution_round` is discarded along with it.
 
 **Tier substitution applies floor to Tier 0.** Given a Tier-0 Creature with `bleeding = {potency: 1}` and a save resolving to `dois = 1`. Per Success `"tier"` substitutes 0.5; `floor(1 × 0.5) = 0`. Decay `"tier"` substitutes 0.5; `floor(0.5) = 0`. Net delta = 0. New `potency = 1`. The entry survives despite a successful save.

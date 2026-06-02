@@ -155,4 +155,95 @@ RSpec.describe 'Encounter combat-mode operations' do
       expect(s.unaware?(b[:id])).to be false
     end
   end
+
+  describe 'Turn order with un-rolled Combatants' do
+    let(:tmpdir) { Dir.mktmpdir('enc-order') }
+    after { FileUtils.remove_entry(tmpdir) if File.exist?(tmpdir) }
+
+    # A Creature double that can actually act (non-zero attributes, so the
+    # death check doesn't trip), so advance_turn moves rather than skipping.
+    def creature
+      obj = Object.new
+      obj.define_singleton_method(:tier) { 0 }
+      obj.define_singleton_method(:tags) { [] }
+      obj.define_singleton_method(:max_hit_points) { 30 }
+      obj.define_singleton_method(:max_mana) { 8 }
+      obj.define_singleton_method(:attribute_value) { |_a| 10 }
+      obj.define_singleton_method(:ranks_for) { |_k| 4 }
+      obj.define_singleton_method(:name) { 'Mob' }
+      obj
+    end
+
+    def state
+      Encounter::State.new({}, data_path: File.join(tmpdir, 'e.json'),
+                           creature_lookup: ->(_id) { creature },
+                           conditions_for: ->(_id) { Conditions::Instance.new })
+    end
+
+    # Combatants who have not rolled Initiative (empty string) sort LAST in
+    # the turn order, matching the Combat Tracker's display. Regression: they
+    # used to sort first, so ending the bottom row's turn jumped mid-list
+    # instead of rolling the Round over.
+    it 'sorts un-rolled Combatants last and rolls the Round from the bottom row' do
+      s = state
+      rolled = s.add_combatant('1'); unrolled = s.add_combatant('2')
+      s.start_combat
+      s.set_initiative(rolled[:id], '9') # unrolled keeps empty Initiative
+
+      expect(s.acting_combatants.map { |c| c[:id] }).to eq([rolled[:id], unrolled[:id]])
+
+      s.set_acting_combatant(rolled[:id])
+      s.advance_turn
+      expect(s.acting_combatant_id).to eq(unrolled[:id]) # next, same Round
+      expect(s.round_number).to eq(1)
+
+      s.advance_turn # ending the last (bottom) row rolls the Round over
+      expect(s.acting_combatant_id).to eq(rolled[:id])
+      expect(s.round_number).to eq(2)
+    end
+  end
+
+  describe '#apply_move' do
+    let(:tmpdir) { Dir.mktmpdir('enc-move') }
+    after { FileUtils.remove_entry(tmpdir) if File.exist?(tmpdir) }
+
+    def creature
+      obj = Object.new
+      obj.define_singleton_method(:tier) { 1 }
+      obj.define_singleton_method(:tags) { [] }
+      obj.define_singleton_method(:max_hit_points) { 30 }
+      obj.define_singleton_method(:max_mana) { 8 }
+      obj.define_singleton_method(:attribute_value) { |_a| 16 }
+      obj.define_singleton_method(:ranks_for) { |_k| 4 }
+      obj
+    end
+
+    def state
+      Encounter::State.new({}, data_path: File.join(tmpdir, 'e.json'),
+                           creature_lookup: ->(_id) { creature },
+                           conditions_for: ->(_id) { Conditions::Instance.new })
+    end
+
+    it 'spends the Move Cost in Combat Pool dice' do
+      s = state
+      c = s.add_combatant('1')
+      before = s.combat_pool_remaining(c[:id])
+      out = s.apply_move(c[:id])
+      expect(out[:ok]).to be true
+      expect(out[:pool_spent]).to eq(Encounter::Config.move_cost)
+      expect(s.combat_pool_remaining(c[:id])).to eq(before - Encounter::Config.move_cost)
+    end
+
+    it 'refuses when the Combat Pool cannot afford the cost, spending nothing' do
+      s = state
+      c = s.add_combatant('1')
+      leave = Encounter::Config.move_cost - 1
+      pool  = s.combat_pool_remaining(c[:id])
+      s.spend_combat_pool(c[:id], pool - leave) # drain to just below the cost
+      out = s.apply_move(c[:id])
+      expect(out[:ok]).to be false
+      expect(out[:error]).to match(/Combat Pool/)
+      expect(s.combat_pool_remaining(c[:id])).to eq(leave)
+    end
+  end
 end

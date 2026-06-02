@@ -111,7 +111,7 @@ Cases:
 
 **Advance Turn moves to the next Acting Combatant.** Time Tick has three Acting Combatants sorted A, B, C by Initiative; `acting_combatant_id` = A. After one Advance Turn: `acting_combatant_id` = B. After two more Advance Turns: pointer falls off the end → Combat calls Advance Time Tick → `acting_combatant_id` = the first Acting Combatant of the new Time Tick.
 
-**Advance Turn applies Per-Turn Cleanup to the outgoing Combatant.** The outgoing Combatant's `combat_pool_spent` resets to 0 and `luck_points` clears to 0.
+**Advance Turn applies Per-Turn Cleanup to the outgoing Combatant.** The outgoing Combatant's `luck_points` clears to 0. The Combat Pool is **not** refilled by cleanup — `combat_pool_spent` is left untouched (the pool refills at the start of a turn, not the end).
 
 **Initiative ties break by Combat ID.** Acting Combatants at the current Time Tick include two Combatants with `initiative_string = "97"`, IDs 5 and 12. The sorted order is `[5, 12]` — ascending Combat ID breaks the tie. Advance Turn from `acting_combatant_id = 5` moves to `acting_combatant_id = 12`.
 
@@ -156,7 +156,11 @@ Cases:
 
 **Reset Combat Pool zeros combat_pool_spent.** A Combatant whose `combat_pool_spent` was 7 after spending; Reset Combat Pool sets `combat_pool_spent` to 0. Subsequent *Get Combat Pool* − `combat_pool_spent` queries return the full Combat Pool value (e.g. 8).
 
-**Apply Per-Turn Cleanup zeros combat_pool_spent.** Outgoing Combatant had `combat_pool_spent` = 5. After cleanup, `combat_pool_spent` = 0 — the Combatant starts their next turn with full Combat Pool.
+**Start Combat empties every Combatant's Combat Pool.** After *Start Combat*, each Combatant's `combat_pool_spent` equals its full *Get Combat Pool* size, so derived remaining is 0. The pool refills at the start of the Combatant's turn.
+
+**Start of Turn refills the Combat Pool.** A Combatant whose pool was emptied at *Start Combat* (derived remaining 0): the *Start of Turn* action sets `combat_pool_spent` to 0, so derived remaining returns to the full Combat Pool value.
+
+**Apply Per-Turn Cleanup leaves combat_pool_spent untouched.** Outgoing Combatant had `combat_pool_spent` = 5. After cleanup, `combat_pool_spent` is still 5 — the pool is not refilled at end of turn; it refills at the start of the Combatant's next turn.
 
 ## Apply Damage / Severity Calculation
 

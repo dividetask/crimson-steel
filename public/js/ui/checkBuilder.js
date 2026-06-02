@@ -1,4 +1,5 @@
 import { CheckResolution } from '../check.js';
+import { RollRows } from './rollRows.js';
 
 // Check Resolution Builder (check_resolution_builder_stub.md).
 //
@@ -52,12 +53,153 @@ export class CheckBuilder {
   static _index(root, key) { return root._cb.steps.findIndex((s) => s.key === key); }
 
   static _optionsFor(root, step) {
+    if (step.dynamic === 'luck') return []; // luck steps render their own table
     if (step.options) return step.options;
     if (step.options_by && step.options_map) {
       const k = step.options_by.map((s) => (root._cb.choices[s] ? root._cb.choices[s].key : '')).join('|');
       return step.options_map[k] || [];
     }
     return [];
+  }
+
+  // ----- Luck steps (one per source: a Bard's Reservoir or the DM's pool) -----
+  //
+  // Each Luck step is a table: rows are the in-play Rolls, columns are Bardic
+  // Inspiration (a bonus — reroll low dice) and, when the source may impose
+  // one, Unsettling Words (a penalty — reroll high dice). Per Roll the source
+  // can spend up to min(its Luck, that Roll's dice). Picks across all Luck
+  // steps are aggregated per Roll: bonuses/penalties do not stack (only the
+  // highest of each takes effect), matching the dice engine's reroll slots.
+
+  // Build the active Luck step's body. Returns { html, any } where `any` is
+  // false when no in-play Roll can take this source's Luck (the step is then
+  // skipped).
+  static _luckBody(root, step) {
+    const src = (step.luck || {}).source || {};
+    const targets = (step.luck || {}).targets || [];
+    const diceOf = (id) => {
+      const g = CheckBuilder._group(root, id);
+      if (!g || g.classList.contains('roll-group-excluded') || g.hidden) return 0;
+      try { return JSON.parse(g.dataset.config).dice_count || 0; } catch (e) { return 0; }
+    };
+    let any = false;
+    const rows = [];
+    targets.forEach((t) => {
+      const cap = Math.min(src.amount || 0, diceOf(t.roll_id));
+      if (cap <= 0) return;
+      any = true;
+      const rl = CheckBuilder._rollLabel(root, t.roll_id) || t.label || t.roll_id;
+      // Unsettling Words (penalty) column first, right-aligned and descending
+      // (−cap … −1) so the smallest penalty sits next to the smallest bonus —
+      // a continuous number line. Bardic Inspiration (bonus) column second.
+      let penCell = '';
+      if (src.penalty) {
+        const pen = [];
+        for (let n = cap; n >= 1; n--) pen.push(CheckBuilder._luckBtn(step.key, src.sid, 'neg', n, t.roll_id));
+        penCell = '<td class="cb-luck-cell cb-luck-penalty">' + pen.join(' ') + '</td>';
+      }
+      const bonus = [];
+      for (let n = 1; n <= cap; n++) bonus.push(CheckBuilder._luckBtn(step.key, src.sid, 'pos', n, t.roll_id));
+      rows.push('<tr><td class="cb-luck-roll">' + esc(rl) + '</td>' + penCell +
+                '<td class="cb-luck-cell">' + bonus.join(' ') + '</td></tr>');
+    });
+    const head = '<tr><th>ROLL</th>' +
+                 (src.penalty ? '<th class="cb-luck-penalty">UNSETTLING WORDS</th>' : '') +
+                 '<th>BARDIC INSPIRATION</th></tr>';
+    const html = '<div class="cb-luck-heading">' + esc(src.label || '') + '</div>' +
+                 '<table class="cb-luck-table"><thead>' + head + '</thead><tbody>' + rows.join('') + '</tbody></table>';
+    return { html: html, any: any };
+  }
+
+  static _luckBtn(stepKey, sid, sign, n, rollId) {
+    const v = sid + '|' + sign + '|' + n + '|' + rollId;
+    const cls = sign === 'pos' ? 'cb-luck-pos' : 'cb-luck-neg';
+    return '<button type="button" class="cr-mod-btn cb-opt cb-luck-opt ' + cls + '" data-step="' + esc(stepKey) +
+      '" data-value="' + esc(v) + '">' + (sign === 'pos' ? '+' : '−') + n + '</button>';
+  }
+
+  // Resolve a Roll's display label from its group (the roll-name, else the
+  // creature name) for the Luck table's ROLL column.
+  static _rollLabel(root, rollId) {
+    const g = CheckBuilder._group(root, rollId);
+    if (!g) return null;
+    const rn = g.querySelector('.roll-name');
+    if (rn) { const t = rn.textContent.replace(/[()]/g, '').trim(); if (t) return t; }
+    const cn = g.querySelector('.creature-name');
+    return cn ? nameOnly(cn) : null;
+  }
+
+  // Record this Luck step's pick (a cell button, or the "No luck" header
+  // quick-pick), re-aggregate every Roll's Luck, and advance.
+  static _pickLuck(root, step, optEl) {
+    const cb = root._cb;
+    const key = step.key;
+    const value = optEl.dataset.value;          // "sid|none" | "sid|sign|count|roll"
+    const parts = String(value).split('|');
+    let summary, label, choice = null;
+    if (parts[1] === 'none' || parts.length < 4) {
+      label = 'No luck';
+      summary = (step.heading || 'Luck') + ': No luck';
+    } else {
+      choice = { roll_id: parts[3], sign: parts[1], count: parseInt(parts[2], 10) || 0 };
+      const rl = CheckBuilder._rollLabel(root, choice.roll_id) || choice.roll_id;
+      label = (choice.sign === 'pos' ? '+' : '−') + choice.count + ' ' + rl;
+      summary = (step.heading || 'Luck') + ': ' + label;
+    }
+    (cb.luck || (cb.luck = {}))[key] = choice;
+    cb.choices[key] = { value: value, label: label, key: value };
+    CheckBuilder._recomputeLuck(root);
+    const body = CheckBuilder._body(root, key);
+    if (body) body.querySelectorAll('.cb-luck-opt').forEach((b) => b.classList.toggle('cr-mod-selected', b.dataset.value === value));
+    CheckBuilder._setState(root, key, 'complete');
+    const sum = CheckBuilder._sumRow(root, key);
+    if (sum) { const v = sum.querySelector('.step-summary-value'); if (v) v.textContent = summary; sum.hidden = false; }
+    CheckBuilder._activateFrom(root, CheckBuilder._index(root, key) + 1);
+  }
+
+  // Compose all Luck picks into each Roll's reroll modifiers (data only — the
+  // application is Roll Resolution's job). Per Roll: positive_reroll = max
+  // bonus, negative_reroll = max penalty (no stacking, per the TN per-Type
+  // rule). The Dice Resolution engine applies both slots in one pass, rerolling
+  // each die at most once.
+  static _recomputeLuck(root) {
+    const agg = {};
+    Object.keys(root._cb.luck || {}).forEach((k) => {
+      const ch = root._cb.luck[k];
+      if (!ch) return;
+      const a = agg[ch.roll_id] || (agg[ch.roll_id] = { pos: 0, neg: 0 });
+      if (ch.sign === 'pos') a.pos = Math.max(a.pos, ch.count);
+      else a.neg = Math.max(a.neg, ch.count);
+    });
+    root.querySelectorAll('.roll-group').forEach((g) => {
+      const id = g.dataset.rollId;
+      let c; try { c = JSON.parse(g.dataset.config); } catch (e) { return; }
+      const a = agg[id];
+      if (a && a.pos) c.positive_reroll = { count: a.pos, max: false }; else delete c.positive_reroll;
+      if (a && a.neg) c.negative_reroll = { count: a.neg, max: false }; else delete c.negative_reroll;
+      g.dataset.config = JSON.stringify(c);
+      // Show the composed Luck reroll as a modifier badge row (the same
+      // dynamic mechanism the Save stub uses); Roll Resolution fills its dice
+      // cell on Roll All. "−2 +3" reads penalty then bonus.
+      const parts = [];
+      if (a && a.neg) parts.push('−' + a.neg);
+      if (a && a.pos) parts.push('+' + a.pos);
+      RollRows.setModRow(g, '.row-reroll', 0, parts.join(' '), 'Luck');
+    });
+  }
+
+  // The confirmed Luck spends, for a host's resolve payload: one entry per
+  // source that picked a Roll. source_id is null for the DM.
+  static luckSpends(choices) {
+    const out = [];
+    Object.keys(choices || {}).forEach((k) => {
+      if (k.indexOf('luck:') !== 0) return;
+      const parts = String(choices[k]).split('|');
+      if (parts[1] === 'none' || parts.length < 4) return;
+      out.push({ source_id: parts[0] === 'dm' ? null : parseInt(parts[0], 10),
+                 sign: parts[1], amount: parseInt(parts[2], 10) || 0, roll_id: parts[3] });
+    });
+    return out;
   }
 
   static _ctrl(root, key) { return root.querySelector('.step-controls[data-step="' + key + '"]'); }
@@ -73,6 +215,7 @@ export class CheckBuilder {
     const key = optEl.dataset.step;
     const step = cb.steps[CheckBuilder._index(root, key)];
     if (!step) return;
+    if (step.dynamic === 'luck') return CheckBuilder._pickLuck(root, step, optEl);
     const opt = CheckBuilder._optionsFor(root, step).find((o) => String(o.value) === optEl.dataset.value);
     if (!opt) return;
     cb.choices[key] = { value: opt.value, label: opt.label, key: opt.key != null ? opt.key : opt.value };
@@ -87,6 +230,23 @@ export class CheckBuilder {
     CheckBuilder._activateFrom(root, CheckBuilder._index(root, key) + 1);
   }
 
+  // Apply a forced (`auto`) option without a click: record the choice + its
+  // summary and run its patch, exactly as _pick would, but driven by the step
+  // having nothing to ask (e.g. a Saving Throw at full Dice Cap).
+  static _applyAuto(root, step, opt) {
+    const cb = root._cb;
+    const key = step.key;
+    cb.choices[key] = { value: opt.value, label: opt.label, key: opt.key != null ? opt.key : opt.value };
+    CheckBuilder._applyPatch(root, opt.patch);
+    CheckBuilder._setState(root, key, 'complete');
+    const sum = CheckBuilder._sumRow(root, key);
+    if (sum) {
+      const v = sum.querySelector('.step-summary-value');
+      if (v) v.textContent = opt.summary || stripTags(opt.label);
+      sum.hidden = false;
+    }
+  }
+
   // Show the first not-yet-complete step from `idx` that has options (rendering
   // a choice-dependent body in JS); if none remain, reveal the dice table.
   static _activateFrom(root, idx) {
@@ -94,15 +254,53 @@ export class CheckBuilder {
     let i = idx;
     while (i < cb.steps.length) {
       const step = cb.steps[i];
+      if (step.dynamic === 'luck') {
+        // One Luck step per source: render its table. If no in-play Roll can
+        // take this source's Luck, there is nothing to ask — skip it.
+        const lb = CheckBuilder._luckBody(root, step);
+        if (!lb.any) { CheckBuilder._setState(root, step.key, 'complete'); i++; continue; }
+        const b = CheckBuilder._body(root, step.key); if (b) b.innerHTML = lb.html;
+        CheckBuilder._setState(root, step.key, 'active');
+        return;
+      }
       const opts = CheckBuilder._optionsFor(root, step);
-      if (opts.length === 0) { CheckBuilder._setState(root, step.key, 'complete'); i++; continue; }
+      const interactive = opts.filter((o) => !o.header_only && o.kind !== 'info');
+      if (interactive.length === 0) { CheckBuilder._setState(root, step.key, 'complete'); i++; continue; }
+      // A single `auto` option has nothing to ask (e.g. a Saving Throw is always
+      // full Dice Cap) — apply it and move on without rendering a button.
+      if (interactive.length === 1 && interactive[0].auto) {
+        CheckBuilder._applyAuto(root, step, interactive[0]); i++; continue;
+      }
       if (!step.options) { const b = CheckBuilder._body(root, step.key); if (b) b.innerHTML = CheckBuilder._optsHtml(step.key, opts); }
+      CheckBuilder._renderDynHeader(root, step);
       CheckBuilder._setState(root, step.key, 'active');
       return;
     }
     CheckBuilder._setState(root, '__dice', 'active');
     // All steps resolved — show the final propagated TNs before the DM rolls.
     CheckBuilder._previewTns(root);
+  }
+
+  // Choice-dependent header quick-picks (e.g. one button per Defensive Action),
+  // rendered into the step's header when it activates. Mirrors the static
+  // `header_options` the server renders for choice-independent steps, but keyed
+  // by prior choices like `options_map`. Rebuilt on each activation.
+  static _renderDynHeader(root, step) {
+    if (!step.header_options_by || !step.header_options_map) return;
+    const ctrl = CheckBuilder._ctrl(root, step.key);
+    if (!ctrl) return;
+    ctrl.querySelectorAll('.cb-dyn').forEach((b) => b.remove());
+    const k = step.header_options_by.map((s) => (root._cb.choices[s] ? root._cb.choices[s].key : '')).join('|');
+    (step.header_options_map[k] || []).forEach((o) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cr-mod-btn cb-opt cb-quick cb-dyn';
+      btn.dataset.step = step.key;
+      btn.dataset.value = String(o.value);
+      if (o.disabled) btn.disabled = true;
+      btn.textContent = o.label;
+      ctrl.appendChild(btn);
+    });
   }
 
   // Re-open a completed step; rewind every later step (clear choices, hide
@@ -114,11 +312,13 @@ export class CheckBuilder {
     for (let i = ti; i < cb.steps.length; i++) {
       const sk = cb.steps[i].key;
       delete cb.choices[sk];
+      if (cb.luck) delete cb.luck[sk];
       const sum = CheckBuilder._sumRow(root, sk);
       if (sum) { sum.hidden = true; const v = sum.querySelector('.step-summary-value'); if (v) v.textContent = ''; }
       CheckBuilder._setState(root, sk, 'pending');
       if (i > ti && !cb.steps[i].options) { const b = CheckBuilder._body(root, sk); if (b) b.innerHTML = ''; }
     }
+    CheckBuilder._recomputeLuck(root);
     CheckBuilder._setState(root, '__dice', 'pending');
     const results = root.querySelector('.rolls-results'); if (results) results.hidden = true;
     root.dataset.state = 'building';
@@ -128,7 +328,7 @@ export class CheckBuilder {
   static _optsHtml(stepKey, opts) {
     const groups = {};
     const order = [];
-    opts.forEach((o) => { const g = o.group || ''; if (!(g in groups)) { groups[g] = []; order.push(g); } groups[g].push(o); });
+    opts.forEach((o) => { if (o.header_only) return; const g = o.group || ''; if (!(g in groups)) { groups[g] = []; order.push(g); } groups[g].push(o); });
     return order.map((g) => '<div class="cb-line">' + groups[g].map((o) => CheckBuilder._btn(stepKey, o)).join(' ') + '</div>').join('');
   }
   // An `info` option is non-interactive descriptive text (e.g. the TN
@@ -194,20 +394,18 @@ export class CheckBuilder {
     opposing.forEach((r, i) => applyOne(r, preview.opposing[i]));
   }
 
-  // Render the params line and the TN computation tooltip for one Roll.
-  // Display convention: a Bonus lowers the TN, so it shows as a negative term
-  // ("−2 Competency"); a Penalty raises it, shown as positive ("+1 …").
+  // Render the params line and the TN computation tooltip for one Roll. The
+  // per-entry TN influence (a Bonus lowers the TN, a Penalty raises it) is
+  // supplied by Dice Resolution via `res.contributions`; the builder only
+  // formats it.
   static _renderTn(g, baseTn, res) {
     const cfg = (() => { try { return JSON.parse(g.dataset.config); } catch (e) { return {}; } })();
     const params = g.querySelector('.params');
     if (params) params.textContent = cfg.dice_count + ' dice @ TN ' + res.tn +
       (res.startingValue > 0 ? ', R+' + res.startingValue : res.startingValue < 0 ? ', R-' + Math.abs(res.startingValue) : '');
     if (baseTn == null) return;
-    // Each entry's TN influence is the negation of its magnitude.
-    const terms = (res.bonusPenaltyList || []).map((m) => {
-      const infl = -m[1];
-      return (infl >= 0 ? '+' : '−') + Math.abs(infl) + ' ' + m[0];
-    });
+    const terms = (res.contributions || []).map((c) =>
+      (c.influence >= 0 ? '+' : '−') + Math.abs(c.influence) + ' ' + c.type);
     const txt = baseTn + (terms.length ? ' ' + terms.join(' ') : '') + ' = TN ' + res.tn;
     const name = g.querySelector('.creature-name');
     if (!name) return;
@@ -253,14 +451,25 @@ export class CheckBuilder {
     });
     const choices = {};
     Object.keys(cb.choices).forEach((k) => { choices[k] = cb.choices[k].value; });
-    // Net Degree of Success = Supporting Successes − Opposing Successes —
-    // shown in the collapsed results in place of per-Roll Successes/Crits.
-    const net = rolls.reduce((acc, r) => acc + (r.side === 'opposing' ? -r.successes : r.successes), 0);
+    // Net Degree of Success — Check Resolution owns the Supporting − Opposing
+    // math; the builder only reads each Roll's DoIS from the table.
+    const net = CheckResolution.degreeOfSuccess({
+      supporting: rolls.filter((r) => r.side !== 'opposing').map((r) => r.successes),
+      opposing: rolls.filter((r) => r.side === 'opposing').map((r) => r.successes),
+    });
     const netEl = root.querySelector('.cb-net');
     if (netEl) netEl.textContent = 'Net Degree of Success ' + net + '.';
     root.dispatchEvent(new CustomEvent('check:confirmed', { bubbles: true, detail: { choices, rolls } }));
   }
 }
 
-function esc(s) { return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 function stripTags(s) { return String(s).replace(/<[^>]*>/g, '').trim(); }
+
+// The creature-name cell may contain a `.tn-tip` child span; read only its
+// own text nodes so the TN tooltip text doesn't leak into the Luck label.
+function nameOnly(el) {
+  let t = '';
+  el.childNodes.forEach((n) => { if (n.nodeType === 3) t += n.textContent; });
+  return (t.trim() || el.textContent.trim());
+}

@@ -68,13 +68,32 @@
     nudge:       s[:nudge_label]       || 'Nudge'
   }
 
+  base_tn = DiceResolution.config.base_target_number
+
+  # The save Roll's Bonus/Penalty list, rendered into the same TN-breakdown
+  # tooltip the Check Resolution stub uses (dice_resolution_roll_tooltip.md).
+  # A Penalty (negative amount) raises the TN.
+  #   - Potency Save Penalty: floor(potency / Potency Divisor) (Conditions'
+  #     Resolve Affliction injects the same penalty when it scores the save).
+  #   - Inflicter Tier Penalty: the Tier of the creature that inflicted the
+  #     Affliction — a higher-Tier wound is harder to shake off.
+  #   - Any caller-supplied save modifiers (the Creature's own save Competency).
+  potency_penalty = a[:potency].to_i / s[:potency_divisor].to_i
+  inflicter_tier  = a[:inflicter_tier].to_i
+  bonus_penalty_list = Array(s[:save_modifiers]).map { |m| m.is_a?(Array) ? m : [m[:type] || m['type'], m[:amount] || m['amount']] }
+  bonus_penalty_list << ['Competency', -potency_penalty] if potency_penalty.positive?
+  bonus_penalty_list << ['Circumstance', -inflicter_tier] if inflicter_tier.positive?
+  tn_calc = DiceResolution.compute_target_number(bonus_penalty_list)
+
   base_roll = {
     creature_name: c[:name],
     roll_name:     "#{category_label} Save",
     dice_count:    s[:save_dice],
-    tn:            s[:save_tn],
+    tn:            tn_calc[:tn],
+    base_tn:       base_tn,
+    bonus_penalty_list: bonus_penalty_list,
     die_size:      s[:die_size],
-    starting_value: 0,
+    starting_value: tn_calc[:starting_value],
     reroll: nil, mass_reroll: nil, nudge: nil,
     dois: 0, critical_count: 0
   }
@@ -114,8 +133,14 @@
   end
 %>
 
+<%# When `save[:resolve]` is present the stub is live: its Confirm POSTs the
+    rolled DoIS to the given URL (Conditions' Resolve Affliction). Absent —
+    e.g. the Status demo — Confirm only disables the button (no mutation). %>
 <div class="rolls-wrapper save-resolution" data-stub-id="<%= stub_id %>"
-     data-preview='<%= preview_data.to_json %>'>
+     data-preview='<%= preview_data.to_json %>'<% if s[:resolve] %>
+     data-resolve-url="<%= s[:resolve][:url] %>"
+     data-resolve-combatant="<%= s[:resolve][:combatant_id] %>"
+     data-resolve-affliction="<%= s[:resolve][:affliction] %>"<% end %>>
 
   <div class="rolls-header">
     <span class="rolls-title">

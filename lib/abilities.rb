@@ -56,6 +56,23 @@ module Abilities
     resolver.resolve_target(ability, rank: rank, bindings: stringify(bindings))
   end
 
+  # Resolve a Spell into the consumption view Equipment routes at
+  # Consume Item time: `{ effects: [...], polarity: :positive | :forced }`.
+  # `tier` selects the Variant on a Tier-axis Spell. Returns nil for an
+  # unknown name. See abilities_design.md "Resolve a Spell for item
+  # consumption".
+  def resolve_spell(name, tier: nil)
+    resolver.resolve_spell(name, tier: tier)
+  end
+
+  # Whether a Spell suppresses non-item invocation paths (its `item_only`
+  # flag). Exposed for Equipment's Is Item-Only?. False for an unknown
+  # name or a Spell without the flag.
+  def item_only?(name)
+    entry = catalog.ability(name)
+    !!(entry && entry['item_only'])
+  end
+
   # Trigger Spec verbatim, or nil if the Ability has none (or isn't a
   # Catalog Ability).
   def get_trigger(name)

@@ -8,7 +8,7 @@ See `ui_conventions.md` for shared rules, including the Tier Color mapping used 
 
 A two-region card:
 
-1. **Toolbar** — a thin strip across the top with: a Map picker dropdown (Active Map highlighted, archived Maps grouped under a collapsible *Archived* section), zoom in / zoom out / reset-view buttons, and a *Recenter* affordance. DM-only affordances: *Add Map*, *Edit Map*, *Archive Map*, *Unarchive Map*, *Delete Map*, *Place Token*, *Clear Tokens*. The toolbar is hidden when the parent passes `chrome = false` (e.g. to embed the stub inside a tooltip preview).
+1. **Toolbar** — a thin strip across the top with: a Map picker dropdown (Active Map highlighted, archived Maps grouped under a collapsible *Archived* section), zoom in / zoom out / reset-view buttons, a *Recenter* affordance, and the **Drawing tools** (see below). DM-only affordances: *Add Map*, *Edit Map*, *Archive Map*, *Unarchive Map*, *Delete Map*, *Place Token*, *Clear Tokens*. The toolbar is hidden when the parent passes `chrome = false` (e.g. to embed the stub inside a tooltip preview).
 2. **Canvas** — the main region. Renders the Map Image (or a blank canvas) and overlays Token icons at their stored positions. Fills the available width and height of the parent container.
 
 ## Parameters
@@ -39,14 +39,12 @@ For every Token on the rendered Map (filtered per *Visibility filtering* below),
 
 Icon precedence:
 1. The Token's `image` field, when set.
-2. The Creature Reference Entry's `creature_token`, looked up via the Creatures domain.
-3. A default square icon filled with the Creature's Tier Color (per `ui_conventions.md`).
-
-The default icon shows the Creature's name initials when the icon is large enough to read them; otherwise just the colored square.
+2. The Creature's token image, looked up via the Creatures domain (stored under the Creature's `metadata.creature_token`).
+3. A `?` marker on a Tier-colored square (per `ui_conventions.md`) — Creatures with no icon show a `?` rather than initials.
 
 When the parent supplies a Combat roster, Tokens whose `creature_id` is in the roster are outlined with a Combatant ring. Tokens whose `creature_id` matches the active Combat's `acting_combatant_id` (the parent supplies this separately) get a thicker, animated ring.
 
-When a Token's referenced Creature does not exist (deleted from the Creatures domain), the icon falls back to a neutral placeholder marked with a question mark.
+When a Token's referenced Creature does not exist (deleted from the Creatures domain), the icon falls back to a neutral `?` marker. (If a Creature's `creature_token` path fails to load, the icon also falls back to the `?` marker.)
 
 ## Hover behavior
 
@@ -62,6 +60,35 @@ A Token may be dragged to a new position. The drag updates the Token's visual po
 - Player viewer: may drag only Tokens whose `owner_id` matches the Viewing Creature ID.
 
 Dragging is suppressed entirely when `chrome = false`.
+
+### Placing a Token
+
+The DM-only *Place Token* affordance opens a picker of the active Combatants. Choosing one **arms placement**: the next press on the canvas drops the Token at that cell, and the DM may drag before releasing to position it (a ghost follows the cursor, snapped to Grid cells; release commits *Place Token* at that cell). `Esc` cancels an armed placement. This replaces dropping the Token at a fixed default position — it lands where the DM puts it.
+
+## Drawing tools
+
+The toolbar carries a group of drawing tools that create Atlas **Annotations** (see `atlas_design.md` → *Manage Annotations*). A tool is a mode: while one is active, pointer gestures on the canvas draw instead of panning. Selecting *Select* mode returns to pan/drag.
+
+- **Arrow** — drag from tail to head; commits an `arrow` Annotation on release. Arrows are drawn freely (no snapping).
+- **Shape** — drag a bounding box; commits a `shape` Annotation. The DM picks the shape kind (`rect` or `ellipse`). Shape corners **snap to Grid corners** (whole Map Units, offset by the Grid Origin) so rectangles and ellipses align to cells, and shapes render with a **solid fill**.
+- **Text** — click to place an anchor, type into an inline field, and commit a `text` Annotation. (No browser prompt — the field is inline, per the project's UI conventions.)
+
+Each tool commits through Atlas's *Add Annotation* with the current viewer's role as the Annotation's `author`; the canvas then renders every Annotation on the Map beneath the Token layer. Snapping is applied client-side before the call — Atlas itself stores the supplied points verbatim (it neither snaps nor clamps).
+
+A **Clear Drawings** affordance removes Annotations via *Clear Annotations On Map*. For the DM it clears every Annotation on the Map; for a player it clears only their own (scoped by `author`).
+
+### Role gating
+
+The drawing tools obey the viewer role:
+
+- **DM** — the **Arrow** tool (with a color swatch that sets the new Annotation's color), the **Shape** tool (rect / ellipse), and the **Text** tool; plus *Clear Drawings* (clears all).
+- **Player** — four fixed-color **arrow** buttons instead of a generic Arrow tool, each drawing an `arrow` of a preset color: **Attack** (red), **Move** (blue), **Sneak** (purple), **Careful** (yellow). Players also get *Clear Drawings* scoped to their own arrows. The Shape and Text tools (and the color swatch) are not offered to players.
+
+Atlas itself does not enforce this (it records whatever `author`/`type` it is given); the stub is the gate, refusing to surface the Shape and Text tools to a player and tagging every player-drawn Annotation with `author = player`.
+
+### Player arrows are transient
+
+Player arrows are momentary tactical suggestions, not durable map state. **Whenever the DM makes any change to the Map** — moving or placing a Token, drawing, switching or editing the Map, clearing Tokens, and so on — every player-drawn Annotation on the Active Map is removed (the host calls *Clear Annotations On Map* scoped to `author = player` on each DM mutation). DM-drawn Annotations persist until the DM clears them. This keeps the map readable: a player points somewhere, the DM acts, and the suggestion clears itself.
 
 ## Visibility filtering
 

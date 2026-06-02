@@ -141,13 +141,18 @@ RSpec.describe Encounter::State do
         data_path: data_path,
         example_path: File.expand_path('../../docs/common/encounter/encounter_data.example.json', __dir__)
       )
-      # The shipped example is an in-progress combat — a Wolf + two Goblins
-      # spawned as distinct instances (2003/2004/2005), initiative seated —
-      # so the Encounter page has something to show and damaging one Goblin
-      # does not affect the other.
+      # The shipped example is an in-progress combat: a Wolf + two Goblins
+      # spawned as distinct instances (2003/2004/2005) plus the four player
+      # characters (1/3/7/8), with every Combatant's Initiative seated — so
+      # the Encounter page opens on a live fight with a full initiative
+      # order and nothing left to roll. The Bard PC Ash (creature 1) holds a
+      # Bardic Inspiration Reservoir, so the Encounter page can demo Luck.
       expect(reloaded.combat_active?).to be true
-      expect(reloaded.combatants.map { |c| c[:creature_id] }).to eq(%w[2003 2004 2005])
-      expect(reloaded.acting_combatant_id).to eq(1)
+      expect(reloaded.combatants.map { |c| c[:creature_id] }).to eq(%w[2003 2004 2005 1 3 7 8])
+      expect(reloaded.combatants).to all(satisfy { |c| !c[:initiative_string].to_s.empty? })
+      expect(reloaded.acting_combatant_id).to eq(3)
+      bard = reloaded.combatants.find { |c| c[:creature_id] == '1' }
+      expect(bard[:concentration].first).to include(spell_name: 'Bardic Inspiration', reservoir: 6)
     end
   end
 end

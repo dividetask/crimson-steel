@@ -61,6 +61,24 @@ RSpec.describe 'Resolve Affliction' do
     expect(inst.state.afflictions['common_venom'][:next_resolution_round]).to eq(100)
   end
 
+  it 'advances one interval per resolve so a time jump owes one save per missed interval' do
+    # Scheduled for Round 100, but time jumped to Round 110 (e.g. +1 minute
+    # = 10 Rounds). Resolving advances the schedule by a single Round
+    # (frequency 1), not straight to "now" — so the Affliction is still due
+    # and the other missed saves are not skipped.
+    state = build_state(afflictions: { 'bleeding' => { potency: 5, inflicting_tier: 1, next_resolution_round: 100 } })
+    inst  = build_instance(state: state)
+    r = inst.resolve_affliction('bleeding', {}, dois: 0, creature_tier: 0, current_round: 110)
+    expect(r[:next_resolution_round]).to eq(101)
+    expect(inst.list_pending_afflictions(110)).to eq(['bleeding']) # still due
+
+    # Catching up the full jump takes one resolve per missed Round.
+    9.times { inst.resolve_affliction('bleeding', {}, dois: 0, creature_tier: 0, current_round: 110) }
+    expect(inst.state.afflictions['bleeding'][:next_resolution_round]).to eq(110)
+    inst.resolve_affliction('bleeding', {}, dois: 0, creature_tier: 0, current_round: 110)
+    expect(inst.list_pending_afflictions(110)).to eq([]) # finally caught up
+  end
+
   it 'discards scheduling on a removed Affliction' do
     state = build_state(afflictions: { 'bleeding' => { potency: 1, inflicting_tier: 0, next_resolution_round: 47 } })
     inst  = build_instance(state: state)

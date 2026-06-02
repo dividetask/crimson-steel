@@ -44,8 +44,18 @@ module CreatureSheet
       item_descriptions: item_descriptions(accessor),
       abilities:    abilities(accessor),
       spells:       spells(accessor), rituals: rituals(accessor), item_spells: item_spells(accessor),
-      active_effects: [], usable_spells: [], notes: []
+      active_effects: active_effects(accessor), usable_spells: [], notes: []
     }
+  end
+
+  # Conditions (named Active Effects) currently on the Creature — e.g. Rage —
+  # for the sheet's Active Effects section. Names are titleized for display.
+  def active_effects(accessor)
+    cond = conditions_for(accessor.id)
+    return [] unless cond
+    cond.active_effect_names.map { |name| { name: titleize_ability(name) } }
+  rescue StandardError
+    []
   end
 
   def roster_group(rec)
@@ -84,6 +94,11 @@ module CreatureSheet
     cha      = (accessor.attribute_value(:cha) rescue 0)
     hp_dmg   = st ? st.hp_damage.values.sum : 0
     defense  = defensive_totals(accessor)
+    # Damage Reduction / Resilience = equipped Armor + active-effect Modifiers
+    # (e.g. Rage's Circumstance bonuses), so a Condition the Creature is under
+    # shows up in these totals.
+    dr  = defense[:damage_reduction]  + condition_modifier_total(cond, 'damage_reduction')
+    res = defense[:damage_resilience] + condition_modifier_total(cond, 'damage_resilience')
     {
       hp:   { current: [max_hp - hp_dmg, 0].max, max: max_hp },
       mana: { current: (st ? [max_mana - st.mana_spent, 0].max : max_mana), max: max_mana,
@@ -94,8 +109,17 @@ module CreatureSheet
       moderate_damage: (st ? st.hp_damage[:moderate] || 0 : 0),
       major_damage:    (st ? st.hp_damage[:major] || 0 : 0),
       combat_pool: (Encounter::CombatPool.size_for(accessor) rescue 0),
-      damage_reduction: defense[:damage_reduction], damage_resilience: defense[:damage_resilience]
+      damage_reduction: dr, damage_resilience: res
     }
+  end
+
+  # Sum of the active-effect Modifiers targeting a key (e.g. damage_reduction),
+  # after Conditions' per-Bonus-Type stacking. Zero when no Conditions record.
+  def condition_modifier_total(cond, key)
+    return 0 unless cond
+    cond.get_modifiers(key).sum { |_type, amount| amount.to_i }
+  rescue StandardError
+    0
   end
 
   # Mana regained per Day of Natural Recovery: floor(Max Mana / Mana

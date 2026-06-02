@@ -42,6 +42,7 @@ The schema for entries in `spells.yaml` and `talents.yaml`. Looked up by display
 | `skills` | list of string | no | Keys into `Casting Skills List`. **Default `[arcana]`** when omitted. |
 | `items` | list of string | spell only | Keys into `Item Forms`. **Default `[]`** when omitted. Rejected on Talents. Universal forms appended at lookup unless `item_only`. |
 | `item_only` | bool | spell only | Default `false`. Suppresses universal item form appending. Rejected on Talents. |
+| `polarity` | enum | spell only | One of `positive` or `forced` — the Spell's Toxicity Source Kind (see `conditions/conditions_design.md`). `positive` marks a beneficial Spell (cure, buff, voluntary attunement) whose Magic Toxicity is subject to the Toxicity Block; `forced` marks a harmful or involuntary Spell whose Toxicity always applies. **Optional** — when omitted it is inferred at resolution time (`forced` when the Spell has `attack_roll: true`, a `damage_type`, or a damage Effect string; `positive` otherwise). Rejected on Talents. |
 | `area` | Area | no | Turns the Ability into AOE. |
 | `properties` | list of string | no | Keys into `Properties`. |
 | `prefix`, `suffix`, `name` | list of string \| null | no | Per-Variant name parts. Parallel to the Variant Axis. |
@@ -263,6 +264,32 @@ The `value` field on an Action result is a categorical label, not a duration. Co
 
 Returns `'self'` or a non-negative integer count. Formula strings evaluate against `rank` and the Effect Hash. A target count of zero means the Ability has no valid targets and cannot be cast.
 
+### Resolve a Spell for item consumption
+
+Input: a Spell name and the consumed Item's `tier`.
+
+Returns the consumption view the Equipment domain routes at *Consume Item* time, or null for an unknown name:
+
+```
+{ effects: [ { <effect-key> => value }, ... ],
+  polarity: 'positive' | 'forced' }
+```
+
+`tier` selects the Variant on a Tier-axis Spell (the Variant whose Tier matches the Item, falling back to the nearest in-range index); it is ignored on a single-Variant or Aspect-axis Spell. The Spell is resolved to that Variant, then its consumption-relevant outputs are flattened into the `effects` list. Each entry carries one of these keys:
+
+- `minor_damage` / `moderate_damage` / `major_damage` — Severity-keyed magnitudes drawn from the resolved Effect Hash. The sign follows polarity: a `positive` (cure) Spell emits **negative** magnitudes (Equipment routes them to *Apply Heal*); a `forced` Spell emits **positive** magnitudes (routed to *Apply Damage*). All Severity keys present on one Variant share a single Effect Hash entry.
+- `temp_hp` — a Ward magnitude from the Effect Hash.
+- `mana` — a Mana-restore magnitude from the Effect Hash.
+- `damage` — `{ amount, type }` from an explicit damage Effect string. The amount is the Effect's Formula evaluated with the Effect Hash plus `rank = 0` and the Variant's Tier; the damage-only variables `success` / `critical` / `attribute` default to `0` (a consumed Item rolls no casting check). An Effect string whose Formula still references an unbound name is skipped rather than raising. `type` is the Spell's Damage Type, omitted when it has none.
+
+`polarity` is the Spell's `polarity` field when declared, otherwise the inferred value (see the field table). A Spell with no consumption-relevant Effects — e.g. a pure attack Spell whose damage is computed implicitly by Combat — returns an empty `effects` list and still reports its polarity.
+
+This entry point is a convenience view layered on the standard lookup pipeline; it adds no new resolution rules beyond selecting the Variant and projecting its Effects into the Equipment-facing shape.
+
+### Is a Spell Item-Only?
+
+Input: a Spell name. Returns the Spell's `item_only` flag as a boolean — `false` for an unknown name or a Spell that does not declare it. Equipment's *Is Item-Only?* delegates here so UI surfaces can suppress non-item invocation paths without depending on Abilities directly.
+
 ### Get an Ability's Trigger
 
 Input: ability name. Returns the Trigger Spec verbatim, or null if the Ability has no `trigger` field (or isn't a Catalog Ability). The Abilities module does not evaluate the Trigger.
@@ -369,7 +396,7 @@ Flat numeric bonuses while the Creature has the Ability are handled by Modifiers
 ### Owned by the Abilities domain
 
 - Loading and validating `spells.yaml`, `talents.yaml`, `stateful_abilities.yaml`, `modifier_abilities.yaml`, and `abilities_config.yaml`.
-- Schema validation: rejecting unknown Types, Schools, Casting Skills, Item Forms, Properties, Save Attributes, Save Outcome Keys, Action Aliases, Real-Time Aliases, Range names, Area Shapes, Damage Type names, Trigger Event names, Bonus Type names; checking Variant parallel-list lengths; rejecting overrides of structural fields; rejecting universal-entry leaks; rejecting Abilities that declare both `tier` (as a list) and `aspects`; rejecting `school`/`items`/`item_only` on Talents.
+- Schema validation: rejecting unknown Types, Schools, Casting Skills, Item Forms, Properties, Save Attributes, Save Outcome Keys, Action Aliases, Real-Time Aliases, Range names, Area Shapes, Damage Type names, Trigger Event names, Bonus Type names, Polarity values; checking Variant parallel-list lengths; rejecting overrides of structural fields; rejecting universal-entry leaks; rejecting Abilities that declare both `tier` (as a list) and `aspects`; rejecting `school`/`items`/`item_only`/`polarity` on Talents.
 - Validating Severity rules: every damage Effect has a determinable Severity; `damage_type: physical` requires `threshold`; `threshold` rejected on non-physical Abilities.
 - Resolving Variants: applying Overrides, constructing names, performing `{name}` and `{aspect}` substitution.
 - Resolving Effect Hash with axis-indexed picks and cross-reference Formula evaluation.
@@ -378,6 +405,7 @@ Flat numeric bonuses while the Creature has the Ability are handled by Modifiers
 - Resolving the Channel Block.
 - Implicitly appending Universal Casting Skills and Universal Item Forms.
 - Resolving `activation_time` to a structured action / real-time / turns result, `range` to feet, `target` to either `'self'` or a count.
+- Resolving a Spell to its Equipment-facing consumption view (routed `effects` list + `polarity`), and reporting a Spell's `item_only` flag.
 - Filtering and listing Catalog Abilities by Type and/or School.
 - Returning Trigger Specs verbatim from `GET_TRIGGER`.
 - Returning `modifiers:` lists verbatim from `GET_ABILITY_MODIFIERS`.

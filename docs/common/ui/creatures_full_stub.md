@@ -9,7 +9,7 @@ See `ui_conventions.md` for shared rules.
 The sheet has a mix of full-width sections and a two-column body:
 
 1. **Header** (full width) — Creature name, race + class summary, Tier, BAB, Player line. Tier is colored per the Tier Colors mapping in `ui_conventions.md`.
-2. **Vitals strip (expanded)** (full width) — Combat Pool, Perception (with dice and bonus), Initiative, Damage Reduction, Damage Resilience, Speed, HP, Mana, Mana Regen, Temporary HP, Moderate Damage, Major Damage.
+2. **Vitals strip (expanded)** (full width) — Combat Pool, Perception (with dice and bonus), Initiative, Damage Reduction, Damage Resilience, Speed, HP, Mana, Mana Regen, Temporary HP, Moderate Damage, Major Damage. Damage Reduction and Damage Resilience are equipped-Armor mitigation **plus** the Creature's active-effect Modifiers (e.g. a raging Creature's Circumstance bonuses), so a Condition the Creature is under is reflected in these totals.
 3. **Combat** (full width) — table of usable actions: Name, Speed, Roll, Attack/Defense Bonus, Damage Bonus, Bleed, MT, Notes.
 
 Below Combat the sheet splits into two side-by-side columns. The left column carries the per-Creature mechanical detail (Attributes through Item Descriptions); the right column carries the narrative / casting detail (Abilities and Spell List). The split keeps the sheet from running too tall when both halves are populated.
@@ -18,8 +18,9 @@ Below Combat the sheet splits into two side-by-side columns. The left column car
 5. **Skills** (left column) — table of Skills the Creature has trained: Name, Ranks, Dice, Bonus. Omitted when the Creature has no trained Skills.
 6. **Items** (left column) — Equipped, Consumable, Ammunition, Other. Ammunition is a separate category from Consumable because arrows, bolts, and similar quantity-tracked stacks are consumed by Combat actions rather than used as standalone consumables; the parent looks them up via the same Equipment-domain accessor as Consumable but reads from the `ammunition` slot.
 7. **Item Descriptions** (left column) — descriptions of named magic items.
-8. **Abilities** (right column) — granted abilities with full descriptions.
-9. **Spell List** (right column) — spells grouped by tier. Two follow-on subsections render beneath the main spell list when their lists are non-empty: **Rituals** (spells the Creature knows as rituals — same per-row format as the spell list, with the ritual's casting time and component cost shown in place of mana cost) and **Item Spells** (spells the Creature can cast from carried items such as scrolls or wands — each row names the source item alongside the spell). Both subsections share the spell list's column layout.
+8. **Active Effects** (right column) — the named Conditions currently on the Creature (e.g. Rage), shown as badges. Sourced from Conditions' active named Effects. Omitted when none are active.
+9. **Abilities** (right column) — granted abilities with full descriptions.
+10. **Spell List** (right column) — spells grouped by tier. Two follow-on subsections render beneath the main spell list when their lists are non-empty: **Rituals** (spells the Creature knows as rituals — same per-row format as the spell list, with the ritual's casting time and component cost shown in place of mana cost) and **Item Spells** (spells the Creature can cast from carried items such as scrolls or wands — each row names the source item alongside the spell). Both subsections share the spell list's column layout.
 
 Sections with no content are omitted. When one side of the two-column body is much taller than the other, the shorter column simply ends earlier — sections do not flow across the split.
 

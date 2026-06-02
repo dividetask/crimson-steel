@@ -11,6 +11,8 @@ characters:
 
   - id: 2001
     name: Daven Korr
+    metadata:
+      creature_token: "/images/icons/human token.webp"
     group: npc
     tags: [noble]
     race: human
@@ -22,6 +24,8 @@ characters:
 
   - id: 2002
     name: The Pale Lantern
+    metadata:
+      creature_token: "/images/icons/Collection/Undead misc/Ghosts, Specters, Nightmares, etc/crypt ghost.png"
     group: npc
     tags: []
     race: undead
@@ -35,6 +39,8 @@ characters:
 
   - id: 2
     name: Bryn Ironvein
+    metadata:
+      creature_token: "/images/icons/Collection/Dwarves/dwarf 2.png"
     group: npc
     tags: []
     race: dwarf
@@ -56,6 +62,8 @@ characters:
 
   - id: 4
     name: Kass Thorne
+    metadata:
+      creature_token: "/images/icons/Collection/Halflings/halfling explorer.png"
     group: npc
     tags: []
     race: halfling
@@ -80,6 +88,8 @@ characters:
 
   - id: 5
     name: Rowan Vale
+    metadata:
+      creature_token: "/images/icons/Collection/Elves and Half-Elves/elf bard.png"
     group: npc
     tags: []
     race: half_elf
@@ -106,6 +116,8 @@ characters:
 
   - id: 6
     name: Ember Blackoak
+    metadata:
+      creature_token: "/images/icons/orc rogue.webp"
     group: npc
     tags: []
     race: half_orc
@@ -133,6 +145,8 @@ characters:
 
   - id: 9
     name: Veyl Aetheris
+    metadata:
+      creature_token: "/images/icons/Collection/Elves and Half-Elves/elf archer.png"
     group: npc
     tags: []
     race: high_elf
@@ -172,6 +186,8 @@ characters:
 
   - id: 10
     name: Pippin Hoofstride
+    metadata:
+      creature_token: "/images/icons/Collection/Fey/Satyrs/satyr joyful.png"
     group: npc
     tags: []
     race: satyr

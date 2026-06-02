@@ -50,6 +50,27 @@ export class SavePreview {
     const save = btn.closest('.save-resolution');
     if (!save) return;
     btn.disabled = true;
+
+    // Live stub (Start of Turn): POST the rolled DoIS to Conditions'
+    // Resolve Affliction. Absent data-resolve-url (e.g. the Status demo):
+    // no server mutation — just leave the button disabled.
+    const url = save.getAttribute('data-resolve-url');
+    if (!url) return;
+
+    const dois = parseInt(save.querySelector('.sp-dois').value, 10) || 0;
+    const body = new FormData();
+    body.append('combatant_id', save.getAttribute('data-resolve-combatant'));
+    body.append('affliction', save.getAttribute('data-resolve-affliction'));
+    body.append('dois', String(dois));
+    fetch(url, { method: 'POST', body })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function () {
+        // Reload so the resolution shows: the Combat Tracker's HP / badges
+        // update and the now-resolved (or rescheduled) Affliction drops off
+        // the Start of Turn pane.
+        window.location.reload();
+      })
+      .catch(function () { btn.disabled = false; });
   }
 
   // Wire a change on a Save's DoIS input to recompute the preview. Roll

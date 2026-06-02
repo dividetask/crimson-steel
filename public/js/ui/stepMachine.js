@@ -2,6 +2,8 @@
 // hosts a chain of step-controls; one step is active at a time. Selecting
 // a modifier magnitude, "(none)", or "Change" advances/rewinds the chain
 // and keeps each Roll's data-config and modifier badge rows in sync.
+import { RollRows } from './rollRows.js';
+
 export class StepMachine {
   static handleModClick(btn) {
     const save = btn.closest('.save-resolution');
@@ -52,48 +54,13 @@ export class StepMachine {
   static updateModBadge(group, kind, mod, label) {
     const rowClass =
       kind === 'reroll' ? '.row-reroll' : kind === 'mass_reroll' ? '.row-mass-reroll' : '.row-nudge';
-    const existingRow = group.querySelector(rowClass);
-    if (!mod) {
-      if (existingRow) existingRow.remove();
-      StepMachine.reflowRowspan(group);
-      return;
+    const col = kind === 'nudge' ? 1 : 0;
+    let badgeText = '';
+    if (mod) {
+      const signCh = mod.sign === 'neg' ? '-' : '+';
+      badgeText = kind === 'mass_reroll' ? signCh + '*' : signCh + mod.count;
     }
-
-    let badgeText;
-    const badgeClass = kind === 'nudge' ? 'mod-nudge' : 'mod-reroll';
-    const modColIdx = kind === 'nudge' ? 1 : 0;
-    const signCh = mod.sign === 'neg' ? '-' : '+';
-    if (kind === 'mass_reroll') {
-      badgeText = signCh + '*';
-    } else {
-      badgeText = signCh + mod.count;
-    }
-
-    if (existingRow) {
-      const badge = existingRow.querySelector('.mod-badge');
-      if (badge) {
-        badge.textContent = badgeText;
-        badge.setAttribute('data-tooltip', label || '');
-      }
-    } else {
-      const tr = document.createElement('tr');
-      tr.className = 'modifier-row ' + rowClass.slice(1);
-      const modCellA =
-        '<td class="mod-cell">' +
-        (modColIdx === 0
-          ? '<span class="mod-badge ' + badgeClass + '" data-tooltip="' + (label || '') + '">' + badgeText + '</span>'
-          : '') +
-        '</td>';
-      const modCellB =
-        '<td class="mod-cell">' +
-        (modColIdx === 1
-          ? '<span class="mod-badge ' + badgeClass + '" data-tooltip="' + (label || '') + '">' + badgeText + '</span>'
-          : '') +
-        '</td>';
-      tr.innerHTML = modCellA + modCellB + '<td class="dice-cell"></td>';
-      group.appendChild(tr);
-    }
-    StepMachine.reflowRowspan(group);
+    RollRows.setModRow(group, rowClass, col, badgeText, label);
   }
 
   static completeStep(save, kind, summaryText) {
@@ -170,15 +137,5 @@ export class StepMachine {
         return;
       }
     }
-  }
-
-  static reflowRowspan(group) {
-    const rows = group.querySelectorAll('tr');
-    const n = rows.length;
-    const initial = group.querySelector('.row-initial');
-    if (!initial) return;
-    initial.querySelectorAll('td[rowspan]').forEach((td) => {
-      td.setAttribute('rowspan', n);
-    });
   }
 }

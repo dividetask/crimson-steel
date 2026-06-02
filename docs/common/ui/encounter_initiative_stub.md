@@ -41,7 +41,7 @@ A second table titled **Killed Combatants** renders directly beneath the main tr
 
 The page that hosts this stub places these controls below the table (they are page chrome, not part of the stub):
 
-- **Advance Turn** — POSTs to `/encounter/advance_turn`.
+- **Next Turn** — POSTs to `/encounter/advance_turn` (Combat's *Advance Turn*). Shown to the GM during Combat, rendered at the bottom of the Combat Tracker, directly above the turn-action panel. Advances to the next Combatant in turn order, rolling the Round over when the last (bottom-row) Combatant ends their turn.
 - **Reroll Initiative** — POSTs to `/encounter/reroll_initiative`.
 - **Start Combat** — POSTs to `/encounter/start_combat`. Shown only when Combat is not active.
 - **End Combat** — POSTs to `/encounter/end_combat`. Shown only when Combat is active.
@@ -92,7 +92,7 @@ The full layout above is the target. The shipped `views/_initiative_stub.erb` re
 
 - **Rendered now:** the **Combat Tracker** title; the **Name** column (resolved via `Creatures.lookup`, falling back to the Combatant's stored `name`, then `Creature #<id>`); the Acting Combatant row highlight; the DM-only **Start Combat** / **End Combat** control in the header; and the empty-roster message.
 - **Placeholder now:** the **Initiative** column renders `—` until Encounter's *Reroll Initiative* entry point lands.
-- **Deferred:** the **Turn control** `Set`/`▶` buttons, **HP** / **Mana** / **Combat Pool** / **Magic Toxicity** / **Conditions** / **Ability Damage** columns, the **Killed Combatants** table, the **PC roster panel**, the page-level **Advance Turn** / **Reroll Initiative** controls, and **DM Luck Points**. Each ships when its owning domain (Conditions vitals, Creatures Combat Pool, Encounter combat-mode turn tracking) exposes the needed reads.
+- **Deferred:** the **Killed Combatants** table, the **PC roster panel**, and **DM Luck Points**. Each ships when its owning domain (Conditions vitals, Creatures Combat Pool, Encounter combat-mode turn tracking) exposes the needed reads. (The page-level **Next Turn** control and the **Set**/**▶** turn controls now ship; the HP / Mana / Combat Pool / Toxicity / Conditions columns render when their reads are available.)
 
 ## Mutations and the roster
 

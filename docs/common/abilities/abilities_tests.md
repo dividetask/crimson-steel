@@ -228,3 +228,33 @@ Given a Damage Object from a Spell `Scorching Ray` with:
 **Returns name, description, and modifiers.** `GET_MODIFIER_ABILITY("fast_movement")` returns the full entry from `modifier_abilities.yaml`.
 
 **Entries with no `modifiers:` field (modifiers-pending) return an empty `modifiers` list.** The description is still available; consumers that need the numeric data wait for the Modifiers domain to specify the shape.
+
+---
+
+## Resolve a Spell for item consumption
+
+**A cure Spell emits negative Severity magnitudes.** A Spell with `polarity: positive` and `effect_hash.minor_damage: [1, 4, 8, ...]` / `moderate_damage: [0, 2, 4, ...]` resolved at the Variant where `minor_damage = 8`, `moderate_damage = 4` returns `effects: [{ minor_damage: -8, moderate_damage: -4 }]` and `polarity: 'positive'`. All Severity keys present share one Effect entry; zero-valued Severities are dropped.
+
+**A Ward Spell emits `temp_hp`.** A `positive` Spell with `effect_hash.temp_hp = 8` returns `effects: [{ temp_hp: 8 }]`.
+
+**A Recharge Spell emits `mana`.** A `positive` Spell with `effect_hash.mana = 16` returns `effects: [{ mana: 16 }]`.
+
+**A damage Spell emits explicit `damage`.** A Spell with `damage_type: emotional` and `effects: ["attribute/2 + 2 damage"]` returns `effects: [{ damage: { amount: 2, type: 'emotional' } }]` (the damage-only variable `attribute` defaults to 0 for a consumed Item) and `polarity: 'forced'`.
+
+**A pure attack Spell returns no consumption Effects but still reports polarity.** A Spell with `attack_roll: true` and no declared damage Effect (Combat computes implicit damage) returns `effects: []` and `polarity: 'forced'`.
+
+**`tier` selects the Variant on a Tier-axis Spell.** Resolving at `tier: 2` picks the Variant whose Tier is 2; a `tier` not present in the list clamps to the nearest in-range index. `tier` is ignored on a single-Variant Spell.
+
+**An unknown Spell name returns null.**
+
+**Polarity defaults by inference when undeclared.** A Spell with no `polarity` field is `forced` when it has `attack_roll: true`, a `damage_type`, or a damage Effect string; otherwise `positive`. An explicit `polarity` field wins over inference.
+
+**An unknown `polarity` value is a validation error at load time, and `polarity` on a Talent is rejected.**
+
+---
+
+## Is a Spell Item-Only?
+
+**Returns the `item_only` flag.** `ITEM_ONLY?("Dragon Breath")` returns true for a Spell with `item_only: true`; a Spell without the flag returns false.
+
+**An unknown name returns false** (not null).

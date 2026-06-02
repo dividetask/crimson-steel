@@ -154,6 +154,15 @@
 
     <div class="cs-col cs-col-right">
 
+      <% if demo[:active_effects] && demo[:active_effects].any? %>
+        <section class="cs-section cs-active-effects">
+          <h3 class="cs-section-h">Active Effects</h3>
+          <% demo[:active_effects].each do |fx| %>
+            <span class="cond-badge cond-effect"><%= fx[:name] %></span>
+          <% end %>
+        </section>
+      <% end %>
+
       <% if demo[:abilities].any? %>
         <section class="cs-section cs-abilities-full">
           <h3 class="cs-section-h">Abilities</h3>

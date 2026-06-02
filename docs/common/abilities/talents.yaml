@@ -114,7 +114,7 @@ Danger Sense:
 
 Better Lucky Than Good:
   type: talent
-  activation_time: free
+  activation_time: reaction
   range: Self
   target: self
   duration: "1 turn"
@@ -122,7 +122,6 @@ Better Lucky Than Good:
 
 Magical Performance:
   type: talent
-  activation_time: main
   range: Self
   target: self
   duration: concentration

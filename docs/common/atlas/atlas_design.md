@@ -44,7 +44,7 @@ One Map Unit is one Grid cell — there is no separate cell-size field.
 | `y` | number | Token Position Y in Map Units. |
 | `size` | number | Token Size (side length, square) in Map Units. Defaults to `Default Token Size`. |
 | `label` | string or null | Token Label override. Null defers to the Creature's name. |
-| `image` | string or null | Token Image override. Null defers to the Creature Reference Entry's `creature_token`, then the Tier-colored default. |
+| `image` | string or null | Token Image override. Null defers to the Creature's token image (`metadata.creature_token`), then a `?` marker. |
 | `owner_id` | Creature ID or null | Token Owner ID. Atlas stores it; enforcement is the consumer's concern. |
 | `hidden` | boolean | When true, players should not see the Token. Atlas stores the flag; filtering is the consumer's concern. |
 
@@ -67,6 +67,23 @@ One Map Unit is one Grid cell — there is no separate cell-size field.
 | `x`, `y` | number | Stored center, in Map Units. Always present; for `target` / `caster` anchors Atlas updates these whenever the anchor Creature's Token moves. |
 | `creature_id` | Creature ID or null | Required for `target` / `caster`. Null for `point`. |
 
+### Annotation
+
+A free-form drawing placed on a Map by a viewer — distinct from a Zone (which is the spatial half of a rules-driven Zone Effect). Annotations carry no mechanical meaning; they are visual aids the table draws to communicate (movement arrows, area markers, labels).
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | integer | Annotation ID. Assigned by Atlas. |
+| `map_id` | Map ID | The Map the Annotation is drawn on. |
+| `type` | `arrow` \| `shape` \| `text` | Annotation Kind. |
+| `points` | list of `(number, number)` | Geometry in Map Units. Two points for an `arrow` (tail → head) or a `shape` (opposite corners of its bounding box); one point for `text` (its anchor). |
+| `shape_kind` | `rect` \| `ellipse` or null | For `shape` Annotations only. Null otherwise. *(catalog configurable)* |
+| `text` | string or null | For `text` Annotations only. The string to render. Null otherwise. |
+| `color` | string or null | Stroke / fill color hint. Null defers to a viewer-default. |
+| `author` | `dm` \| `player` | Who drew the Annotation. Atlas stores it; permission enforcement is the consumer's concern. |
+
+Atlas treats `points` as opaque Map Units (no clamping or snapping), exactly as it does Token positions.
+
 ### Atlas State
 
 | Field | Type | Description |
@@ -74,10 +91,12 @@ One Map Unit is one Grid cell — there is no separate cell-size field.
 | `maps` | list of Map | All Maps that exist, archived or not. |
 | `tokens` | list of Token | All Tokens that exist. |
 | `zones` | list of Zone | All Zones currently placed. |
+| `annotations` | list of Annotation | All Annotations currently drawn. |
 | `active_map_id` | Map ID or null | The Active Map, or null when no Map is active. |
 | `next_map_id` | integer | Next ID to assign when creating a Map. |
 | `next_token_id` | integer | Next ID to assign when creating a Token. |
 | `next_zone_id` | integer | Next ID to assign when creating a Zone. |
+| `next_annotation_id` | integer | Next ID to assign when creating an Annotation. |
 
 ## Public entry points
 
@@ -117,6 +136,16 @@ One Map Unit is one Grid cell — there is no separate cell-size field.
 - **Get Zone** — returns a single Zone by ID.
 - **List Zones** — returns Zones filtered by `map_id` (optional) and `source_id` (optional). Filters combine conjunctively.
 - **Zones In Position** — given `(map_id, x, y, size)`, returns the IDs of every Zone on that Map whose footprint overlaps the supplied footprint. Used by Movement Notification (below) and by callers that want to know what a creature is currently standing in.
+
+### Manage Annotations
+
+- **Add Annotation** — creates an Annotation on a Map. Inputs: `map_id`, `type`, `points`, and the optional `shape_kind`, `text`, `color`, `author`. The Map must exist. Atlas assigns the Annotation ID. Returns the assigned ID. Atlas does not validate that `author` is permitted to draw `type` — that gate is the consumer's (e.g. the UI restricts players to `arrow`).
+- **Remove Annotation** — deletes an Annotation by ID. Quiet no-op when already gone.
+- **Get Annotation** — returns a single Annotation by ID.
+- **List Annotations** — returns Annotations filtered by `map_id`, `type`, and `author` (all optional). Filters combine conjunctively.
+- **Clear Annotations On Map** — removes Annotations on a Map. With an optional `author` filter, removes only that author's Annotations (e.g. a player clearing only their own arrows); without it, clears every Annotation on the Map.
+
+Annotations are independent of Tokens and Zones: *Delete Map* cascades to Tokens only, so a consumer that wants a Map's Annotations gone calls *Clear Annotations On Map* (mirroring *Clear Zones On Map*).
 
 ### Bulk operations
 

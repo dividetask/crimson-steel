@@ -191,7 +191,7 @@ A Potency that decays to zero in a later resolution removes the entry; re-inflic
 
 Inputs: Affliction name, a Save Input, optional `current_round` (integer).
 
-Behavior: Run the *Affliction Resolution* pipeline — see Operations. When `current_round` is supplied and the Affliction survives the resolution, reschedule its `next_resolution_round` to `current_round + Frequency Rounds[save_frequency]`. When `current_round` is omitted, leave `next_resolution_round` untouched.
+Behavior: Run the *Affliction Resolution* pipeline — see Operations. When `current_round` is supplied and the Affliction survives the resolution, reschedule its `next_resolution_round` by advancing the **previous** `next_resolution_round` by `Frequency Rounds[save_frequency]` (falling back to `current_round + Frequency Rounds[save_frequency]` only when there was no prior schedule). Advancing from the previous due round rather than from "now" means a time jump leaves the Affliction owing one resolution per missed interval — it stays due until each is resolved — instead of skipping straight to the current round. When `current_round` is omitted, leave `next_resolution_round` untouched.
 
 Returns: a struct with the resolved save's Roll Outcome, the realized Net Magnitude, the applied effect's payload (if any), the new Potency (or zero / removed if the entry was deleted), and the rescheduled `next_resolution_round` (when applicable).
 
@@ -452,7 +452,7 @@ Toxicity Block is the only kind-discriminating step. Toxicity Damage is computed
    - `ability_damage` → call *Apply Ability Damage* with the named attribute and `{severity: net_magnitude}`.
    - `named_effect` → call *Apply Named Effect* with `source_id = "affliction:<name>"` and `ends_on_round = current_round + duration_rounds` (where supplied). Magnitude is binary — `net_magnitude > 0` applies the effect; `net_magnitude == 0` does not.
 5. **Evolve Potency.** `potency_delta = −floor(potency_decay) − floor(successes × potency_per_success) + floor(failures × potency_per_failure)`. New `potency = potency_before + potency_delta`, clamped at zero. If the new Potency is zero, delete the Affliction entry entirely (Inflicter Tier and `next_resolution_round` are discarded along with it).
-6. **Reschedule.** When the caller supplied `current_round` and the Affliction survived, set `next_resolution_round = current_round + Frequency Rounds[save_frequency]`. The lookup uses the Affliction Rule's `save_frequency`; an Affliction Rule without an explicit value defaults to `"round"`.
+6. **Reschedule.** When the caller supplied `current_round` and the Affliction survived, advance `next_resolution_round` by `Frequency Rounds[save_frequency]` from its **previous** value (`next_resolution_round = previous_next_resolution_round + Frequency Rounds[save_frequency]`), falling back to `current_round + Frequency Rounds[save_frequency]` only when there was no prior schedule. This makes missed intervals accumulate: after a time jump the Affliction stays due (its new `next_resolution_round` may still be ≤ `current_round`) until one resolution has been applied for each elapsed interval, rather than skipping straight to "now". The lookup uses the Affliction Rule's `save_frequency`; an Affliction Rule without an explicit value defaults to `"round"`.
 
 Inflicter Tier and Creature Tier modifiers are **caller-supplied** in the Save Input's `modifiers` list. Conditions only injects the Potency Save Penalty.
 

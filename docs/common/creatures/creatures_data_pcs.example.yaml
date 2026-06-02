@@ -44,6 +44,8 @@
 characters:
   - id: 1
     name: Ash Windmere
+    metadata:
+      creature_token: "/images/icons/human token.webp"
     player: Sam
     race: human
     attributes:
@@ -71,6 +73,8 @@ characters:
 
   - id: 3
     name: Lira Duskmoor
+    metadata:
+      creature_token: "/images/icons/Collection/Elves and Half-Elves/elf archer.png"
     player: Jordan
     race: elf
     attributes:
@@ -103,6 +107,8 @@ characters:
 
   - id: 7
     name: Thora Stoneveil
+    metadata:
+      creature_token: "/images/icons/Collection/Dwarves/dwarf 1.png"
     player: Avery
     race: hill_dwarf
     tier: 2
@@ -144,6 +150,8 @@ characters:
 
   - id: 8
     name: Garroth Vask
+    metadata:
+      creature_token: "/images/icons/human token.webp"
     player: Drew
     race: human
     tier: 2

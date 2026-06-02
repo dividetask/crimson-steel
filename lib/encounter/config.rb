@@ -44,6 +44,9 @@ module Encounter
     def reaction_action_minimum = Integer(data['Reaction Action Minimum'] || 2)
     def free_action_minimum     = Integer(data['Free Action Minimum'] || 0)
 
+    # Move (turn_action_stub.md → Move): a flat Combat Pool cost, no other effect.
+    def move_cost               = Integer(data['Move Cost'] || 4)
+
     # ---- Set-Value Spend ----
     def set_value_spend_ratio = Integer(data['Set Value Spend Ratio'] || 1)
 

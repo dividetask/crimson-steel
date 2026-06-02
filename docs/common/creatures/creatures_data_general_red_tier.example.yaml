@@ -16,6 +16,8 @@ characters:
 
   - id: 300
     name: Medium Spider
+    metadata:
+      creature_token: "/images/icons/Collection/Beasts/Aranae and other Arthropods/giant spider.png"
     group: enemy
     tags: [enemy_template, category:general_red_tier]
     race: beast
@@ -26,6 +28,8 @@ characters:
 
   - id: 301
     name: Wolf
+    metadata:
+      creature_token: "/images/icons/Collection/Werewolves, Wolves/armored wolf companion.png"
     group: enemy
     tags: [enemy_template, category:general_red_tier]
     race: beast
@@ -36,6 +40,8 @@ characters:
 
   - id: 302
     name: Goblin
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin 1.png"
     group: enemy
     tags: [enemy_template, category:general_red_tier]
     race: goblin
@@ -46,6 +52,8 @@ characters:
 
   - id: 303
     name: Goblin Archer
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin archer.png"
     group: enemy
     tags: [enemy_template, category:general_red_tier]
     race: goblin
@@ -56,6 +64,8 @@ characters:
 
   - id: 304
     name: Cultist
+    metadata:
+      creature_token: "/images/icons/Collection/Spellcasters varied/Cultists/cultist leader.png"
     group: enemy
     tags: [enemy_template, category:general_red_tier]
     race: human
@@ -66,6 +76,8 @@ characters:
 
   - id: 305
     name: Cult Fanatic
+    metadata:
+      creature_token: "/images/icons/Collection/Spellcasters varied/Cultists/arch-cultist.png"
     group: enemy
     tags: [enemy_template, category:general_red_tier]
     race: human

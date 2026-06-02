@@ -10,6 +10,20 @@ RSpec.describe 'Apply Named Effect' do
     expect(effect[:target_key]).to include('dex_checks')
   end
 
+  it 'evaluates a Modifier amount Formula against supplied bindings' do
+    inst = build_instance
+    inst.apply_named_effect('rage', source_id: 'special:rage', bindings: { 'level' => 5 })
+    # rage: damage_reduction = 1 + floor(5/3) = 2; damage_resilience = 1 + floor(5/2) = 3.
+    expect(inst.get_modifiers('damage_reduction')).to eq([['Circumstance', 2]])
+    expect(inst.get_modifiers('damage_resilience')).to eq([['Circumstance', 3]])
+  end
+
+  it 'lists the names of active Conditions across Modifier and sidecar mechanics' do
+    inst = build_instance
+    inst.apply_named_effect('rage', source_id: 'special:rage', bindings: { 'level' => 5 })
+    expect(inst.active_effect_names).to eq(['rage'])
+  end
+
   it 'raises on unknown Effect Names' do
     inst = build_instance
     expect { inst.apply_named_effect('not_a_real', source_id: 'x') }.to raise_error(ArgumentError)

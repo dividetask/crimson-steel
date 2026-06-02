@@ -16,6 +16,9 @@ module Abilities
     # Fields that may be parallel lists indexed by the Variant Axis.
     PARALLEL_FIELDS = %w[name prefix suffix damage_type target area].freeze
     STRUCTURAL_OVERRIDE_FIELDS = %w[tier aspects prefix suffix name variant_overrides].freeze
+    # Toxicity Source Kinds a Spell's polarity may name (owned by
+    # Conditions; see conditions_design.md "Toxicity Source Kind").
+    POLARITIES = %w[positive forced].freeze
 
     attr_reader :config, :catalog, :stateful, :modifier_abilities
 
@@ -97,6 +100,7 @@ module Abilities
       validate_axis!(name, a)
       validate_inheritance!(name, a)
       validate_school!(name, a, talent)
+      validate_polarity!(name, a, talent)
       validate_skills!(name, a)
       validate_items!(name, a, talent)
       validate_properties!(name, a)
@@ -137,6 +141,13 @@ module Abilities
       end
       return unless school
       err(name, "unknown school #{school.inspect}") unless @config.spell_schools.key?(school)
+    end
+
+    def validate_polarity!(name, a, talent)
+      p = a['polarity']
+      return if p.nil?
+      err(name, 'polarity is not allowed on a Talent') if talent
+      err(name, "unknown polarity #{p.inspect}") unless POLARITIES.include?(p)
     end
 
     def validate_skills!(name, a)

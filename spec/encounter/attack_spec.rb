@@ -59,7 +59,7 @@ RSpec.describe Encounter::Attack do
       expect(spec).not_to have_key(:defense)
     end
 
-    it 'builds a Dodge defense spec at full Dice Cap with no pool cost, and drops Flatfooted' do
+    it 'builds a Dodge defense spec that costs pool (Reaction min .. remaining pool), and drops Flatfooted' do
       spec = described_class.build_spec(
         attacker: attacker, target: target, attack_kind: 'ranged', weapon: weapon,
         attacker_dice_cap: 6, declared_defense: 'dodge',
@@ -68,9 +68,10 @@ RSpec.describe Encounter::Attack do
       expect(spec[:target][:flatfooted]).to be false
       d = spec[:defense]
       expect(d[:choice]).to eq('dodge')
-      expect(d[:pool_cost]).to be false
-      expect(d[:min_dice]).to eq(5)
-      expect(d[:max_dice]).to eq(5)
+      # Dodge borrows dex_save inputs but is a pool-costed Defensive Action.
+      expect(d[:pool_cost]).to be true
+      expect(d[:min_dice]).to eq(Encounter::Config.reaction_action_minimum)
+      expect(d[:max_dice]).to eq(5) # min(dice_cap 5, pool_remaining 8)
     end
 
     it 'builds a Parry defense spec bounded by Reaction minimum and remaining pool' do
@@ -241,17 +242,87 @@ RSpec.describe 'Encounter::State#resolve_attack_payload (weapon-aware)' do
     expect(s.combatant(tgt[:id])[:combat_pool_spent]).to eq(5) # 2 + 3
   end
 
-  it 'Dodge contributes opposing successes but spends no Combat Pool' do
+  it 'Dodge contributes opposing successes and spends Combat Pool (Speed 0 + dice)' do
     s = state
     atk = s.add_combatant('1'); tgt = s.add_combatant('2')
     out = s.resolve_attack_payload(
       target_id: tgt[:id], attack_kind: 'ranged',
       weapon: { damage_types: ['piercing'], threshold: 2, base_damage: 3 },
       attacker: { id: atk[:id], dice: 4, speed: 1, successes: 5 },
-      defense:  { choice: 'dodge', id: tgt[:id], dice: 5, speed: 1, successes: 2 }, allies: []
+      defense:  { choice: 'dodge', id: tgt[:id], dice: 5, speed: 0, successes: 2 }, allies: []
     )
-    expect(s.combatant(tgt[:id])[:combat_pool_spent]).to eq(0) # Dodge costs no pool
+    expect(s.combatant(tgt[:id])[:combat_pool_spent]).to eq(5) # Speed 0 + 5 dice
     expect(out[:net_dos]).to eq(3)
+  end
+
+  it 'spends the attacker’s own Luck on commit (one per reroll), not on preview' do
+    raw = { 'combatants' => [
+      { 'id' => 1, 'creature_id' => '1', 'luck_points' => 3 },
+      { 'id' => 2, 'creature_id' => '2', 'luck_points' => 0 }
+    ], 'next_combatant_id' => 3 }
+    s = Encounter::State.new(raw, data_path: data_path,
+                             creature_lookup: ->(_id) { creature },
+                             conditions_for: ->(_id) { Conditions::Instance.new })
+    args = { target_id: 2, attack_kind: 'melee',
+             weapon: { damage_types: ['physical'], threshold: 0, base_damage: 0 },
+             attacker: { id: 1, dice: 2, speed: 1, successes: 1, luck: { source_id: 'self', amount: 2 } },
+             defense: { choice: 'none' } }
+
+    s.resolve_attack_payload(args.merge(commit: false)) # preview spends nothing
+    expect(s.combatant(1)[:luck_points]).to eq(3)
+
+    s.resolve_attack_payload(args.merge(commit: true))   # commit debits 2 Luck
+    expect(s.combatant(1)[:luck_points]).to eq(1)
+  end
+
+  it 'discharges an ally Bard’s Reservoir when their Luck is applied to the attack' do
+    raw = { 'combatants' => [
+      { 'id' => 1, 'creature_id' => '1', 'luck_points' => 0 }, # attacker
+      { 'id' => 2, 'creature_id' => '2', 'luck_points' => 0 }, # target
+      { 'id' => 3, 'creature_id' => '3', 'luck_points' => 0,   # ally bard
+        'concentration' => [{ 'spell_name' => 'Bardic Inspiration', 'mode' => 'reservoir',
+                              'reservoir' => 5, 'reservoir_reset' => 'per_turn', 'source' => 'x',
+                              'spell_tier' => 1, 'cast_skill' => 'perform_', 'channeled_this_turn' => true }] }
+    ], 'next_combatant_id' => 4 }
+    s = Encounter::State.new(raw, data_path: data_path,
+                             creature_lookup: ->(_id) { creature },
+                             conditions_for: ->(_id) { Conditions::Instance.new })
+    s.resolve_attack_payload(
+      target_id: 2, attack_kind: 'melee', commit: true,
+      weapon: { damage_types: ['physical'], threshold: 0, base_damage: 0 },
+      attacker: { id: 1, dice: 2, speed: 1, successes: 1, luck: { source_id: 3, amount: 2 } },
+      defense: { choice: 'none' }
+    )
+    # The Bard's Reservoir is debited; the attacker gains no lingering Luck.
+    expect(s.combatant(3)[:concentration].first[:reservoir]).to eq(3) # 5 − 2
+    expect(s.combatant(1)[:luck_points]).to eq(0)
+  end
+
+  it 'debits each Luck source (ally Reservoir + the DM) from the luck list on commit' do
+    raw = { 'combatants' => [
+      { 'id' => 1, 'creature_id' => '1' }, # attacker
+      { 'id' => 2, 'creature_id' => '2' }, # target
+      { 'id' => 3, 'creature_id' => '3',   # ally bard
+        'concentration' => [{ 'spell_name' => 'Bardic Inspiration', 'mode' => 'reservoir',
+                              'reservoir' => 5, 'reservoir_reset' => 'per_turn', 'source' => 'x',
+                              'spell_tier' => 1, 'cast_skill' => 'perform_', 'channeled_this_turn' => true }] }
+    ], 'next_combatant_id' => 4, 'dm_luck_points' => 4 }
+    s = Encounter::State.new(raw, data_path: data_path,
+                             creature_lookup: ->(_id) { creature },
+                             conditions_for: ->(_id) { Conditions::Instance.new })
+    args = {
+      target_id: 2, attack_kind: 'melee',
+      weapon: { damage_types: ['physical'], threshold: 0, base_damage: 0 },
+      attacker: { id: 1, dice: 2, speed: 1, successes: 1 }, defense: { choice: 'none' },
+      luck: [{ source_id: 3, amount: 2 }, { source_id: nil, amount: 3 }] # Bard +2, DM +3
+    }
+    s.resolve_attack_payload(args.merge(commit: false)) # preview spends nothing
+    expect(s.combatant(3)[:concentration].first[:reservoir]).to eq(5)
+    expect(s.dm_luck_points).to eq(4)
+
+    s.resolve_attack_payload(args.merge(commit: true))
+    expect(s.combatant(3)[:concentration].first[:reservoir]).to eq(3) # 5 − 2
+    expect(s.dm_luck_points).to eq(1) # 4 − 3
   end
 
   it 'rejects an ineligible defense (Parry vs ranged) before spending' do

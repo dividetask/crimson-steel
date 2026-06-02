@@ -50,9 +50,86 @@
       "casting": [
 
       ]
+    },
+    {
+      "id": 4,
+      "creature_id": "1",
+      "name": "",
+      "initiative_string": "X865",
+      "combat_pool_spent": 0,
+      "time_tick_schedule": [
+        1
+      ],
+      "luck_points": 0,
+      "concentration": [
+        {
+          "spell_name": "Bardic Inspiration",
+          "source": "special:4:Bardic Inspiration",
+          "spell_tier": 1,
+          "cast_skill": "perform_dance",
+          "mode": "reservoir",
+          "reservoir": 6,
+          "reservoir_reset": "per_turn",
+          "channeled_this_turn": true
+        }
+      ],
+      "casting": [
+
+      ]
+    },
+    {
+      "id": 5,
+      "creature_id": "3",
+      "name": "",
+      "initiative_string": "97532",
+      "combat_pool_spent": 0,
+      "time_tick_schedule": [
+        1
+      ],
+      "luck_points": 0,
+      "concentration": [
+
+      ],
+      "casting": [
+
+      ]
+    },
+    {
+      "id": 6,
+      "creature_id": "7",
+      "name": "",
+      "initiative_string": "8642",
+      "combat_pool_spent": 0,
+      "time_tick_schedule": [
+        1
+      ],
+      "luck_points": 0,
+      "concentration": [
+
+      ],
+      "casting": [
+
+      ]
+    },
+    {
+      "id": 7,
+      "creature_id": "8",
+      "name": "",
+      "initiative_string": "X742",
+      "combat_pool_spent": 0,
+      "time_tick_schedule": [
+        1
+      ],
+      "luck_points": 0,
+      "concentration": [
+
+      ],
+      "casting": [
+
+      ]
     }
   ],
-  "next_combatant_id": 4,
+  "next_combatant_id": 8,
   "excluded_pcs": [
 
   ],
@@ -63,7 +140,7 @@
     "round_of_day": 0
   },
   "elapsed_time_ticks": 0,
-  "acting_combatant_id": 1,
+  "acting_combatant_id": 3,
   "granted_actions": [
 
   ],

@@ -32,6 +32,7 @@ Heal:
   type: spell
   tier: [0, 1, 2, 3, 4, 5]
   school: pneumancy
+  polarity: positive
   range: Touch
   target: "1"
   save:
@@ -153,6 +154,7 @@ Ward:
     - Advanced
     - Superior
   school: resonance
+  polarity: positive
   range: Touch
   target: "1"
   duration: "rank turns"
@@ -296,6 +298,7 @@ Recharge:
   tier: [0, 1, 2, 3, 4, 5]
   prefix: [Faint, Minor, Basic, Moderate, Improved, Greater]
   school: universal
+  polarity: positive
   range: Touch
   target: "1"
   save:
@@ -831,6 +834,7 @@ Healing Word:
   type: spell
   tier: 1
   school: pneumancy
+  polarity: positive
   activation_time: reaction
   range: Close
   target: "1"

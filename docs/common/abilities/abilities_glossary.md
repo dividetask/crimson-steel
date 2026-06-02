@@ -80,6 +80,8 @@ Defines the vocabulary used by `abilities_design.md` and `abilities_tests.md`. T
 
 **Unconditional Effect**: An Effect that applies regardless of the results of a save or attack roll.
 
+**Polarity**: A Spell's Toxicity Source Kind — `positive` (a beneficial Spell, subject to the Toxicity Block) or `forced` (a harmful or involuntary Spell, whose Magic Toxicity always applies). Reported to Equipment at item-consumption time and used to sign the Spell's restorative vs. damaging Effects. See the Conditions glossary for Toxicity Source Kind.
+
 (Damage Type: see combat glossary.)
 
 ## Triggers

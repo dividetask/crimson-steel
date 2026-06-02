@@ -7,6 +7,9 @@ import { RollsWrapper } from './js/ui/rollsWrapper.js';
 import { StepMachine } from './js/ui/stepMachine.js';
 import { SavePreview } from './js/ui/savePreview.js';
 import { TurnAttack } from './js/ui/turnAttack.js';
+import { AtlasMap } from './js/ui/atlasMap.js';
+import { TurnCast } from './js/ui/turnCast.js';
+import { TurnSpecial } from './js/ui/turnSpecial.js';
 
 document.addEventListener('click', function (e) {
   const badge = e.target.closest('.mod-badge');
@@ -300,10 +303,12 @@ document.addEventListener('change', function (e) {
   }
 
   document.addEventListener('DOMContentLoaded', restoreRosterGroups);
+  document.addEventListener('DOMContentLoaded', AtlasMap.initAll);
   // Also run immediately in case the script tag is at the bottom and
   // DOMContentLoaded already fired.
   if (document.readyState === 'interactive' || document.readyState === 'complete') {
     restoreRosterGroups();
+    AtlasMap.initAll();
   }
 
   document.addEventListener('toggle', function (e) {
@@ -442,6 +447,16 @@ document.addEventListener('change', function (e) {
     if (key === 'attack') {
       var container = panel.querySelector('.ta-attack');
       if (container) TurnAttack.ensureLoaded(container);
+    }
+    // Lazily build the Cast flow the first time its pane is opened.
+    if (key === 'cast') {
+      var castContainer = panel.querySelector('.ta-cast');
+      if (castContainer) TurnCast.ensureLoaded(castContainer);
+    }
+    // Wire the Special pane (use a non-Spell, non-Reaction Ability).
+    if (key === 'special') {
+      var special = panel.querySelector('.ta-special');
+      if (special) TurnSpecial.ensureLoaded(special);
     }
   });
 

@@ -19,7 +19,7 @@ Sibling domains:
 | `creature_id` | string | Identity passed to `creature_lookup`. |
 | `name` | string | Display name. |
 | `initiative_string` | string | Per *Initiative String* in the glossary. Empty until first Reroll Initiative. |
-| `combat_pool_spent` | integer | Combat Pool dice spent so far in this turn. Reset to 0 at the start of this Combatant's turn. Remaining is derived as `Get Combat Pool − combat_pool_spent`. |
+| `combat_pool_spent` | integer | Combat Pool dice spent so far in this turn. At *Start Combat* it is set to the full pool size so every Combatant begins with an **empty** pool; the pool refills (reset to 0) at the start of the Combatant's turn (the *Start of Turn* action), **not** at end of turn. Remaining is derived as `Get Combat Pool − combat_pool_spent`. |
 | `time_tick_schedule` | list of integer | Time Ticks within a Round on which this Combatant acts. Recomputed when Time Ticks Per Round changes. |
 | `luck_points` | integer | Per-Combatant Luck Points. Cleared at the start of this Combatant's turn. |
 | `concentration` | list of Concentration Entry | Channeled spells the Combatant is currently holding. |
@@ -92,7 +92,7 @@ Behavior:
 2. Allocate Combat IDs and create one Combatant per input. Each Combatant starts with empty `initiative_string`.
 3. Compute Time Ticks Per Round = `max(Turns Per Round[tier])` across the Combatants (read each Tier through `creature_lookup`).
 4. Compute each Combatant's Time Tick Schedule.
-5. Reset `time_tick` to 1; `elapsed_time_ticks` to 0; `acting_combatant_id` to null; `dm_luck_points` to 0; per-Combatant `luck_points` to 0, `concentration` to empty, `casting` to empty.
+5. Reset `time_tick` to 1; `elapsed_time_ticks` to 0; `acting_combatant_id` to null; `dm_luck_points` to 0; per-Combatant `luck_points` to 0, `concentration` to empty, `casting` to empty. Each Combatant's Combat Pool starts **empty** (`combat_pool_spent` is set to the full pool size); the pool refills at the start of the Combatant's turn.
 6. Persist.
 
 #### Player Characters always belong in active Combat
@@ -172,7 +172,7 @@ Inputs: none.
 
 Behavior:
 1. Apply Per-Turn Cleanup to the Combatant identified by `acting_combatant_id` (the Combatant whose turn just ended).
-2. Compute the Acting Combatants for the current Time Tick — every Combatant whose `time_tick_schedule` contains the current Time Tick, sorted by `initiative_string` ASCII-descending then by Combat ID.
+2. Compute the Acting Combatants for the current Time Tick — every Combatant whose `time_tick_schedule` contains the current Time Tick, sorted by `initiative_string` ASCII-descending then by Combat ID. Combatants who have not rolled Initiative (empty `initiative_string`) sort **last**, so the turn order matches the Combat Tracker's display order — the bottom row is the last to act, and ending its turn rolls the Round over.
 3. Find the outgoing Acting Combatant's position in that list and pick the next entry as the new `acting_combatant_id`. If the move falls off the end of the list, call *Advance Time Tick* and pick the first Acting Combatant of the new Time Tick.
 4. **Skip Combatants who cannot act.** Before settling on a new `acting_combatant_id`, query *Creature Can Act?*. If it returns false, repeat steps 2–3 to find the next Combatant. Combatants whose turn is skipped remain in the Combat's roster so the Game Master can see them and intervene on their behalf.
 5. Persist.
@@ -209,7 +209,7 @@ Returns: the new remaining value, or an error sentinel.
 
 Input: Combat ID.
 
-Behavior: Set the Combatant's `combat_pool_spent` to 0. Called as part of *Apply Per-Turn Cleanup*; also exposed for explicit calls. Implementations that need to report the resulting "remaining" value compute it as *Get Combat Pool*.
+Behavior: Set the Combatant's `combat_pool_spent` to 0 — refilling the pool. Invoked at the start of a Combatant's turn (the *Start of Turn* action); also exposed for explicit calls. Implementations that need to report the resulting "remaining" value compute it as *Get Combat Pool*.
 
 ### Apply Damage
 
@@ -331,11 +331,18 @@ Input: Damage Type name.
 
 Returns: the integer `critical_modifier` to put on the attacker's Roll for a Roll resolving an attack of that Damage Type. Reads the Type's `critical_value` Mechanic from `encounter_config.yaml`. When the Type has no `critical_value` Mechanic, returns the Roll struct default (`critical_modifier = 2`). Used at Roll-construction time, not in the damage pipeline.
 
-### Attack / Cast / Use Item *(declared, future work)*
+### Attack / Cast / Use Item *(partially implemented)*
 
 Inputs: actor Combat ID, target spec, the action data (weapon, spell name, item, etc.).
 
-Behavior: **The full multi-step attack-resolution pipeline is not implemented yet.** These entry points are declared so other domains can target them, and so they appear in `granted_actions` dispatch without callers needing to invent an interface. The pipeline will include: building the attacker's Roll (with `preroll` for Set-Value Spend, `critical_modifier` from *Critical Modifier For*, the Flatfooted Bonus when the defender takes no Defensive Action, and the Unaware Bonus when the defender has not yet acted or when the attacker is Hidden from the defender), assembling any Defensive Actions the defender declares (see *Defensive Actions* below) and any ally Reactions (e.g. Shield of Faith block via a Granted Action) as Opposing Rolls within the same Check, invoking Check Resolution, and routing the result through *Apply Damage*. Pinned in *Module Scope → Unassigned* until designed.
+Behavior: resolution is client-side (the JS Dice/Check engine) and comes back to Combat as a *resolved payload* that Combat applies. **Attack** is implemented via `resolve_attack_payload`; **Cast** via `resolve_cast_payload` (with the pure helpers in `Encounter::Cast`) — it spends Combat Pool (`Speed + dice`), debits Mana, applies Magic Toxicity (gated over threshold), nets the casting check against each target's Save, routes the resolved Effects (damage through *Apply Damage*; heal / mana / Temporary HP / Active Effect through Conditions), and registers a Concentration / Long Cast Entry for a sustained spell. The spell's Effects are produced by the Abilities domain (`Abilities.resolve_spell`); Combat never reads spell data, it only routes the resolved Effects, exactly as the Attack flow routes an already-evaluated weapon. **Use Item** is still future work (it needs the Equipment-consumable wiring).
+
+**Spell Tier and damage.** A Spell's Tier adds an inherent Bonus to the casting-check Roll. A damage-dealing Spell that states no damage formula of its own deals the **default Spell damage**: `floor(casting stat / 4) + Spell Tier + Successes rolled`, where the casting stat is the attribute backing the Spell's casting skill (Tier 0 counts as 0.5, floored total). Combat computes this default in `resolve_cast_payload` (`Encounter::Cast.default_spell_damage`). The target usually either rolls a **Save for half** (the Cast path's `on_success: halved`) or takes a Defensive Action — **Dodge / Block**:
+
+- **Save-based Spells** net the casting check against the target's Save; on a successful Save the `on_success` directive (`halved` / `none`) reduces or negates the Effects.
+- **Attack-roll Spells** (`attack_roll: true`, e.g. Elemental Dart) resolve as a spell attack: `resolve_cast_payload` nets the casting check against the target's Defensive Action (Block / Dodge, eligibility + Combat-Pool cost reused from `Encounter::Attack`) and computes damage from the *net* Successes. The cast still debits Mana / Magic Toxicity and registers any sustain, so a spell attack is one unified action rather than a separate Attack.
+
+A Spell that declares its own damage formula overrides the default (the Abilities engine evaluates it).
 
 ### Defensive Actions
 
@@ -345,13 +352,13 @@ A Defensive Action is a Reaction the defender declares on the attacker's turn ag
 |---|---|---|
 | Parry | Martial | Melee attack rolls only. Not usable against ranged attacks or against spells. |
 | Block | Martial | Melee, ranged, and spell attack rolls. |
-| Dodge | Dexterity Save | Melee, ranged, and spell attack rolls. |
+| Dodge | `dex_save` proficiency (Dice Cap + Modifiers only) | Melee, ranged, and spell attack rolls. |
 
 Weapon-specific bonuses (e.g. Weapon Training for a particular weapon family) apply on top of Martial when the defender is using that weapon for Parry, or that shield for Block. Such bonuses are surfaced via the Abilities domain's Modifier system; Combat does not enumerate them.
 
-**Cost:**
-- Parry and Block each consume one Reaction allowance plus dice from the defender's Combat Pool. The defender chooses the dice count from Reaction Action Minimum up to Combat Pool Remaining (Dice Cap still applies as a per-Roll cap).
-- Dodge uses a Saving Throw (see *Saving Throws* below). It consumes one Reaction allowance but costs **no** Combat Pool dice. The Roll uses the defender's full Dice Cap for `dex_save`.
+**Cost:** All three Defensive Actions consume one Reaction allowance plus dice from the defender's Combat Pool. The defender chooses the dice count from Reaction Action Minimum up to Combat Pool Remaining (Dice Cap still applies as a per-Roll cap).
+- Parry costs that weapon's Speed + dice; Block and Dodge are Speed 0 + dice.
+- Dodge is **not** a Saving Throw: it merely borrows the `dex_save` proficiency to compute its Dice Cap and Competency Modifier. Mechanically it is a pool-costed Defensive Action like Block, so the defender picks how many dice to spend (it does **not** automatically spend the full Dice Cap, and it is **not** exempt from the Combat Pool cost).
 
 **Eligibility:** Combat refuses ineligible Defensive Action declarations up front — e.g., a Parry declared against a ranged attack is rejected before the Reaction allowance or dice are committed. The defender cannot "spend" a Reaction on an ineligible defense.
 
@@ -363,7 +370,7 @@ Weapon-specific bonuses (e.g. Weapon Training for a particular weapon family) ap
 
 ### Saving Throws
 
-A Saving Throw is the defender's response to an effect that targets a Save Attribute (a spell with a `save:` block, a Defensive Action of Dodge, an environmental hazard, etc.). Construction:
+A Saving Throw is the defender's response to an effect that targets a Save Attribute (a spell with a `save:` block, an environmental hazard, etc.). Construction:
 
 1. Resolve the Save Attribute (`str`, `dex`, `con`, `int`, `wis`, `cha`) named by the triggering effect.
 2. Call Proficiencies' *Compute Roll inputs for a Proficiency* with `key = "<attr>_save"`, `attribute_override = "<attr>"`. Creatures supplies the per-key ranks (every Class trains every Save per `creatures/creatures_design.md`).
@@ -455,6 +462,12 @@ When a Combatant chooses to preroll N dice on a Roll with Dice Cap D:
 
 Combat does not store Die Size — it queries Dice Resolution's config at the point of use. There is no combat-side Set Value override.
 
+### Affliction scheduling (combat)
+
+An Affliction resolves at the start of the afflicted Creature's turn, and a freshly-inflicted Affliction is due on that Creature's **next turn**. Because turns run in initiative order within a Round, "next turn" is **this Round** when the victim still has a turn coming (it sits later in the Round's turn order than the Acting Combatant — *Turn Pending This Round?*) and **next Round** when the victim has already acted (or is the one acting).
+
+Combat owns this timing decision (it is a function of turn order, which Conditions does not know) and hands Conditions' *Inflict Affliction* the `current_round` that lands the first resolution on the right turn. For a Round-frequency Affliction such as weapon Bleed — where *Inflict Affliction* schedules the first resolution at `current_round + 1` — Combat passes `next-turn Round − 1`: when the victim's turn is still pending the next-turn Round is the current Round, otherwise it is the next Round. After the first resolution, *Resolve Affliction* reschedules survivors by the Affliction's own frequency, so a Bleed then ticks on every subsequent turn of the victim.
+
 ### Concentration enforcement
 
 Three enforcement points.
@@ -476,8 +489,8 @@ The expected Round at any moment during Combat is `combat_anchor.round_of_day + 
 ## Per-turn / per-round cleanup
 
 **Apply Per-Turn Cleanup** (called as part of *Advance Turn* on the outgoing Combatant):
-- Reset `combat_pool_spent` to 0 (so the next turn starts with the Combatant's full Combat Pool available).
 - Clear `luck_points` (per the Luck Points clear rule).
+- The Combat Pool is **not** refilled here. It refills at the *start* of a Combatant's turn (the *Start of Turn* action), so a spent pool stays spent until then. (Combat itself starts every Combatant's pool empty — see *Start Combat*.)
 - Run the End-of-turn channel check.
 - Run the End-of-turn cast check.
 - Reset `channeled_this_turn` to false on each of the Combatant's Concentration Entries (ready for next turn).

@@ -10,6 +10,8 @@
 characters:
   - id: 2003
     name: Wolf
+    metadata:
+      creature_token: "/images/icons/Collection/Werewolves, Wolves/armored wolf companion.png"
     group: enemy
     tags: [category:general_red_tier]
     race: beast
@@ -21,6 +23,8 @@ characters:
 
   - id: 2004
     name: Goblin A
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin 1.png"
     group: enemy
     tags: [category:general_red_tier]
     race: goblin
@@ -32,6 +36,8 @@ characters:
 
   - id: 2005
     name: Goblin B
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin 2.png"
     group: enemy
     tags: [category:general_red_tier]
     race: goblin
