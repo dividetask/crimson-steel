@@ -16,7 +16,23 @@ fi
 # Load non-empty, non-comment lines into an array
 mapfile -t G_BRANCHES < <(grep -vE '^\s*(#|$)' "$BRANCHES_FILE")
 
-cmd="${1:-?}"
+# Parse args: one branch selector plus an optional --no-run/-n flag (any order)
+run_ruby=1
+cmd=""
+for arg in "$@"; do
+  case "$arg" in
+    -n|--no-run) run_ruby=0 ;;
+    *)
+      if [[ -z "$cmd" ]]; then
+        cmd="$arg"
+      else
+        echo "Error: unexpected argument '$arg'" >&2
+        exit 1
+      fi
+      ;;
+  esac
+done
+cmd="${cmd:-?}"
 
 # List branches
 if [[ "$cmd" == "?" ]]; then
@@ -26,18 +42,6 @@ if [[ "$cmd" == "?" ]]; then
   for i in "${!G_BRANCHES[@]}"; do
     echo "  $i: ${G_BRANCHES[$i]}"
   done
-  exit 0
-fi
-
-# Sync git's fetch refspecs to match the branches file
-if [[ "$cmd" == "sync" ]]; then
-  git config --unset-all remote.origin.fetch || true
-  git config --add remote.origin.fetch '+refs/heads/main:refs/remotes/origin/main'
-  git config --add remote.origin.fetch '+refs/heads/PRODUCTION:refs/remotes/origin/PRODUCTION'
-  for b in "${G_BRANCHES[@]}"; do
-    git config --add remote.origin.fetch "+refs/heads/$b:refs/remotes/origin/$b"
-  done
-  echo "Refspecs updated. Run 'git fetch --prune' to apply."
   exit 0
 fi
 
@@ -63,4 +67,7 @@ fi
 git restore .
 git checkout "$branch"
 git pull
-ruby app.rb
+
+if [[ "$run_ruby" -eq 1 ]]; then
+  ruby app.rb
+fi
