@@ -331,6 +331,17 @@ Input: Damage Type name.
 
 Returns: the integer `critical_modifier` to put on the attacker's Roll for a Roll resolving an attack of that Damage Type. Reads the Type's `critical_value` Mechanic from `encounter_config.yaml`. When the Type has no `critical_value` Mechanic, returns the Roll struct default (`critical_modifier = 2`). Used at Roll-construction time, not in the damage pipeline.
 
+### Tier Mismatch modifiers
+
+When two Creatures of different Tiers oppose each other, the higher-Tier Creature gains advantages scaled by the Tier difference `Δ = higher.tier − lower.tier` (Tier 0 counts as 0.5). The two Bonus Types involved — **Inherent** and **Ascendancy** — are defined in `abilities/abilities_config.yaml`'s `Bonus Types List`.
+
+- **Inherent damage reduction.** Against the lower-Tier Creature's attacks, the higher-Tier Creature gains `5 × Δ` damage reduction — an Inherent Bonus reflecting its own elevated Tier.
+- **Ascendancy on checks.** On any opposed check between the two (attack Rolls, opposed skill Checks, etc.), the higher-Tier Creature gains a `+2 × Δ` Ascendancy Bonus and the lower-Tier Creature takes a `−2 × Δ` Ascendancy Penalty. It is one signed modifier per Tier step, read as a Bonus for the higher Creature and a Penalty for the lower.
+
+These modifiers are computed from the two Combatants' Tiers at resolution time; they are not stored on the Creature.
+
+**Effective Tier overrides.** An Ability may raise a Creature's *effective* Tier for a single resolution, shrinking `Δ`. The Glory domain Channel Divinity **Glorious Charge** (`abilities/talents.yaml`) raises the channeler's effective Tier by 1 for one attack: against a foe exactly one Tier higher this drives `Δ` to 0 — fully negating both that attack's Ascendancy Penalty and the foe's Inherent damage reduction against it — and against a foe more than one Tier higher it reduces both by one step.
+
 ### Attack / Cast / Use Item *(partially implemented)*
 
 Inputs: actor Combat ID, target spec, the action data (weapon, spell name, item, etc.).
