@@ -730,6 +730,10 @@ module Encounter
     #   { kind: 'mana',    amount: }
     #   { kind: 'temp_hp', amount:, ends_on_round: }
     #   { kind: 'effect',  name:, ends_on_round: }
+    #   { kind: 'modifiers', modifiers: [{ target:, type:, add:, descriptors? }],
+    #            duration: }  # buff Spells; amounts evaluated against the caster
+    #            and applied as timed Active Effects (Magic Weapon, Magic
+    #            Vestments, Expeditious Retreat, Resistance, Protection from Poison).
     def resolve_cast_payload(payload)
       p = deep_symbolize(payload)
       caster  = p[:caster] || {}
@@ -793,6 +797,20 @@ module Encounter
           e[:kind].to_s == 'damage' ? e.merge(amount: [e[:amount].to_i - dr, 0].max, inherent_dr: dr) : e
         end
         t.merge(effects: reduced)
+      end
+
+      # Buff modifiers: evaluate each spell modifier's amount against the caster
+      # (so Magic Weapon's `caster_tier` etc. become concrete) and compute its
+      # expiry, once, so both preview and commit apply the same Active Effects.
+      caster_level = (caster_creature.total_level rescue nil) || tier
+      mod_binds = { 'caster_tier' => tier, 'tier' => (spell[:tier] || 0),
+                    'level' => caster_level, 'rank' => caster_level }
+      resolved = resolved.map do |t|
+        next t if Array(t[:effects]).none? { |e| e[:kind].to_s == 'modifiers' }
+        fx = Array(t[:effects]).map do |e|
+          e[:kind].to_s == 'modifiers' ? resolve_modifier_effect(e, mod_binds) : e
+        end
+        t.merge(effects: fx)
       end
 
       # Combat Pool: the caster's casting-time Speed + dice, plus any pool-costed
@@ -1356,9 +1374,57 @@ module Encounter
         inst.apply_named_effect(eff[:name].to_s, source_id: cast_source_id(spell),
                                 ends_on_round: eff[:ends_on_round])
         { kind: 'effect', name: eff[:name].to_s }
+      when 'modifiers'
+        Array(eff[:modifiers]).each do |m|
+          inst.apply_effect('target_key' => m[:target_key], 'bonus_type' => m[:bonus_type],
+                            'amount' => m[:amount], 'ends_on_round' => m[:ends_on_round],
+                            'source_id' => "#{cast_source_id(spell)}:#{Array(m[:target_key]).join('+')}")
+        end
+        { kind: 'modifiers', modifiers: eff[:modifiers] }
       end
     rescue StandardError => e
       { kind: eff[:kind].to_s, error: e.message }
+    end
+
+    # Turn one spell `modifiers` Effect into concrete Active-Effect data: each
+    # modifier's `add` is evaluated against the caster bindings (literals pass
+    # through; formulas like Magic Weapon's `caster_tier` resolve), a non-`all`
+    # descriptor narrows the target_key, and a turns-based duration sets expiry.
+    def resolve_modifier_effect(eff, binds)
+      ends = modifier_ends_on_round(eff[:duration], binds)
+      mods = Array(eff[:modifiers]).filter_map do |raw|
+        m = (raw.transform_keys(&:to_s) rescue raw)
+        target = m['target'] or next
+        btype  = m['type'] or next
+        amount = eval_modifier_amount(m['add'], binds)
+        next if amount.nil?
+        descriptors = Array(m['descriptors']).map(&:to_s).reject { |d| d == 'all' }
+        tkey = descriptors.empty? ? target.to_s : descriptors
+        { target_key: tkey, bonus_type: btype.to_s, amount: amount, ends_on_round: ends }
+      end
+      { kind: 'modifiers', modifiers: mods }
+    end
+
+    # A modifier `add` resolved to an integer: a literal as-is, a Formula
+    # evaluated against the caster bindings, nil when it cannot resolve.
+    def eval_modifier_amount(add, binds)
+      return add if add.is_a?(Integer)
+      return nil if add.nil?
+      return add.to_i if add.to_s.match?(/\A-?\d+\z/)
+      return nil unless defined?(Abilities::Formula)
+      Abilities::Formula.evaluate(add.to_s, binds).to_i
+    rescue StandardError
+      nil
+    end
+
+    # The absolute Round a buff expires on, when its `duration` is in turns
+    # (e.g. "1 turn", "rank turns"). Minute/hour/open-ended durations return
+    # nil — the DM clears them — matching the self-buff (Special) convention.
+    def modifier_ends_on_round(duration, binds)
+      return nil if duration.nil?
+      m = duration.to_s.strip.match(/\A(.+?)\s+turns?\z/) or return nil
+      turns = (Abilities::Formula.evaluate(m[1], binds).to_i rescue nil)
+      turns ? current_abs_round + turns : nil
     end
 
     # Preview a target's resolved Effects without mutating (damage is bucketed
@@ -1374,6 +1440,7 @@ module Encounter
         when 'mana'    then { kind: 'mana', amount: eff[:amount].to_i }
         when 'temp_hp' then { kind: 'temp_hp', amount: eff[:amount].to_i }
         when 'effect'  then { kind: 'effect', name: eff[:name].to_s }
+        when 'modifiers' then { kind: 'modifiers', modifiers: eff[:modifiers] }
         end
       end.compact
       { id: t[:id], outcome: t[:outcome], applied: applied }

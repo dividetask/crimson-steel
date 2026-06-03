@@ -901,6 +901,14 @@ helpers do
     spell['cast_skill'] ||= (Array(variant && variant['skills']).first || Encounter::Cast::DEFAULT_CAST_SKILL)
 
     effects = cast_effects_from_consumption(r['effects'])
+    # Buff Spells carry a `modifiers:` list (Magic Weapon, Magic Vestments,
+    # Expeditious Retreat, Resistance, Protection from Poison, …). Carry it
+    # through as a `modifiers` cast Effect; resolve_cast_payload evaluates the
+    # amounts against the caster and applies them as timed Active Effects.
+    if variant && Array(variant['modifiers']).any?
+      effects += [{ 'kind' => 'modifiers', 'modifiers' => variant['modifiers'],
+                    'duration' => variant['duration'] }]
+    end
     Array(payload['targets']).each { |t| t['effects'] = effects }
 
     # Damage routing for the Cast path. An attack-roll Spell resolves as a spell
