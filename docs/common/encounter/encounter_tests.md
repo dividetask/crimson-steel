@@ -273,3 +273,15 @@ Cases:
 
 **Damage Type without critical_value.** Returns the Roll struct default of 2 (per `dice_resolution_design.md`).
 
+## Tier Mismatch
+
+**Ascendancy modifier scales with the Tier difference.** `ascendancy_modifier(actor, opponent)` returns `['Ascendancy', 2 × Δ]` — a Bonus when the actor out-Tiers the opponent (`(3, 1) → +4`), a Penalty when out-Tiered (`(1, 3) → −4`), and nil at equal Tier. Tier 0 counts as 0.5 and the magnitude is floored (`(1, 0) → +1`).
+
+**Inherent damage reduction scales with the Tier difference.** `inherent_damage_reduction(defender, attacker)` returns `5 × Δ` when the defender out-Tiers the attacker (`(3, 1) → 10`), and 0 when the defender is equal or lower (`(1, 1)`, `(1, 3) → 0`). Tier 0 counts as 0.5 and the result is floored (`(1, 0) → 2`).
+
+**Ascendancy enters the attack via the Roll spec.** `build_spec` with `attacker_tier: 3, target_tier: 1` adds `['Ascendancy', +4]` to the attacker's `bonus_penalty_list` and `['Ascendancy', −4]` to a declared defense's. Equal Tiers, or omitting the tiers, add no Ascendancy.
+
+**Inherent DR is subtracted in resolve_attack_payload.** A Tier-3 defender struck by a Tier-1 attacker for net 12 takes `12 − (5 × 2) = 2`; the result reports `inherent_dr: 10`. No reduction applies when the attacker is equal or higher Tier.
+
+**Effective-Tier override shrinks the gap.** Passing `attacker_tier_bonus` to `build_spec` (or `attacker.tier_bonus` to the attack payload) raises the attacker's effective Tier for that attack — Glorious Charge's +1 against a one-Tier-higher foe drives Δ to 0, dropping both the Ascendancy Penalty and the Inherent DR (`inherent_dr: 0`).
+

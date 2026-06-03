@@ -663,13 +663,22 @@ module Encounter
       resil = defender_resilience(p[:target_id])
       dtype = (Array(weapon[:damage_types]).first || weapon[:damage_type] || 'physical').to_s
 
+      # Tier Mismatch Inherent damage reduction: a higher-Tier defender
+      # shrugs off 5 per Tier it stands above the attacker. The attacker's
+      # effective Tier may be raised for this attack (Glorious Charge) via
+      # the payload's `attacker.tier_bonus`.
+      atk_tier = combatant_tier(attacker[:id]) + attacker[:tier_bonus].to_i
+      inherent_dr = TierMismatch.inherent_damage_reduction(combatant_tier(p[:target_id]), atk_tier)
+
       if net.positive?
         base = weapon[:base_damage] ? weapon[:base_damage].to_i : p[:damage_bonus].to_i
         # Computed damage / bleed, each replaceable by a DM override. Bleed is
         # the weapon's Bleed plus the damage dealt (encounter_design.md →
         # "actual bleed = Bleed Constant + damage dealt"), so a 0-Bleed weapon
-        # still bleeds for its damage.
-        damage = over.key?(:damage) ? over[:damage].to_i : base + net
+        # still bleeds for its damage. Inherent DR is subtracted before the
+        # severity split (floored at 0).
+        computed = [base + net - inherent_dr, 0].max
+        damage = over.key?(:damage) ? over[:damage].to_i : computed
         bleed  = over.key?(:bleed)  ? over[:bleed].to_i  : weapon[:bleed].to_i + damage
         if commit
           out = apply_damage(p[:target_id], damage, dtype, threshold: threshold)
@@ -679,11 +688,11 @@ module Encounter
           sev = preview_severity(p[:target_id], damage, dtype, threshold)
         end
         { ok: true, damage: damage, severity_map: sev, net_dos: net, damage_type: dtype,
-          threshold: threshold, damage_resilience: resil, bleed: bleed,
+          threshold: threshold, damage_resilience: resil, inherent_dr: inherent_dr, bleed: bleed,
           pool_spends: pool_spends, committed: commit }
       else
         { ok: true, damage: 0, severity_map: {}, net_dos: net, damage_type: dtype,
-          threshold: threshold, damage_resilience: resil, bleed: 0,
+          threshold: threshold, damage_resilience: resil, inherent_dr: inherent_dr, bleed: 0,
           pool_spends: pool_spends, committed: commit }
       end
     end
@@ -1629,6 +1638,14 @@ module Encounter
     def tier_of(creature_id)
       creature = lookup!(creature_id)
       creature ? (creature.tier rescue 0) : 0
+    end
+
+    # Tier of the Creature behind a Combatant ID (0 when unknown). Used by
+    # the Tier Mismatch damage-reduction path in resolve_attack_payload.
+    def combatant_tier(combatant_id)
+      return 0 unless combatant_id
+      c = @combatants.find { |x| x[:id] == combatant_id }
+      c ? tier_of(c[:creature_id]) : 0
     end
 
     def current_timestamp
