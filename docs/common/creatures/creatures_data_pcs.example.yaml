@@ -65,6 +65,16 @@ characters:
               - charm_person
               - healing_word
               - suggestion
+              - detect_magic
+              - friends
+              - create_illusionary_sound
+              - sift
+              - vacuous_vessel
+              - vicious_mockery
+              - biting_words
+              - ears_of_the_city
+              - create_illusionary_image
+              - timely_inspiration
           skills:
             - perform_dance
             - persuasion
@@ -99,6 +109,19 @@ characters:
               - create_illusionary_image
               - disguise_self
               - sift
+              - message
+              - silent_portal
+              - mage_hand
+              - hideous_laughter
+              - illusion_of_calm
+              - auditory_hallucination
+              - obscuring_mist
+              - grease
+              - expeditious_retreat
+              - blindspot
+              - darkness
+              - web
+              - create_pit
           skills:
             - arcana
             - perception
@@ -137,8 +160,15 @@ characters:
               - healing_word
               - command
               - lesser_ward
+              - divine_favor
+              - shield_of_faith
+              - spiritual_weapon
+              - hold_person
+              - silence
+              - blind
               - heal_simple_wounds
               - standard_ward
+              - protection_from_poison
               - standard_surgery
           skills:
             - healing
