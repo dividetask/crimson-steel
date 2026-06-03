@@ -93,35 +93,6 @@ RSpec.describe Encounter::Attack do
       end.to raise_error(ArgumentError, /not eligible/)
     end
 
-    it 'adds Ascendancy to the attacker Roll and a Penalty to the defender by Tier difference' do
-      spec = described_class.build_spec(
-        attacker: attacker, target: target, attack_kind: 'melee', weapon: weapon,
-        attacker_dice_cap: 6, declared_defense: 'parry',
-        defender_inputs: { dice_cap: 5, pool_remaining: 5 },
-        attacker_tier: 3, target_tier: 1
-      )
-      expect(spec[:attacker][:bonus_penalty_list]).to include(['Ascendancy', 4])
-      expect(spec[:defense][:bonus_penalty_list]).to include(['Ascendancy', -4])
-    end
-
-    it 'omits Ascendancy at equal Tier and when tiers are not supplied' do
-      same = described_class.build_spec(attacker: attacker, target: target, attack_kind: 'melee',
-                                        weapon: weapon, attacker_dice_cap: 6,
-                                        attacker_tier: 2, target_tier: 2)
-      none = described_class.build_spec(attacker: attacker, target: target, attack_kind: 'melee',
-                                        weapon: weapon, attacker_dice_cap: 6)
-      expect(same[:attacker][:bonus_penalty_list].any? { |b| b.first == 'Ascendancy' }).to be false
-      expect(none[:attacker][:bonus_penalty_list].any? { |b| b.first == 'Ascendancy' }).to be false
-    end
-
-    it 'folds the attacker tier bonus (Glorious Charge) into the Ascendancy' do
-      # Effective attacker Tier 2 equals the target's Tier 2 -> no Ascendancy.
-      spec = described_class.build_spec(
-        attacker: attacker, target: target, attack_kind: 'melee', weapon: weapon,
-        attacker_dice_cap: 6, attacker_tier: 1, target_tier: 2, attacker_tier_bonus: 1
-      )
-      expect(spec[:attacker][:bonus_penalty_list].any? { |b| b.first == 'Ascendancy' }).to be false
-    end
   end
 end
 

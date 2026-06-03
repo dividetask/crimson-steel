@@ -80,28 +80,17 @@ module Encounter
     #                         pool_remaining: } for the declared defense.
     def build_spec(attacker:, target:, attack_kind:, weapon:,
                    attacker_dice_cap:, attacker_competency: nil, attacker_modifiers: [],
-                   unaware: false, declared_defense: nil, defender_inputs: {},
-                   attacker_tier: nil, target_tier: nil, attacker_tier_bonus: 0)
+                   unaware: false, declared_defense: nil, defender_inputs: {})
       raise ArgumentError, "unknown attack kind #{attack_kind.inspect}" unless ATTACK_KINDS.include?(attack_kind.to_s)
       if declared_defense && !defense_eligible?(declared_defense, attack_kind)
         raise ArgumentError, "#{declared_defense} is not eligible against a #{attack_kind} attack"
       end
-
-      # Effective attacker Tier for Tier Mismatch — Glorious Charge and
-      # similar effects raise it by `attacker_tier_bonus` for this attack.
-      eff_attacker_tier = attacker_tier ? attacker_tier + attacker_tier_bonus : nil
 
       crit = Severity.critical_modifier_for(Array(weapon[:damage_types]).first || 'physical')
       bonuses = []
       bonuses << attacker_competency if attacker_competency
       bonuses.concat(Array(attacker_modifiers))
       bonuses.concat(attacker_bonuses(no_defense: declared_defense.nil?, unaware: unaware))
-      # Ascendancy on the attack Roll (Tier Mismatch): a Bonus when the
-      # attacker out-Tiers the defender, a Penalty when out-Tiered.
-      if eff_attacker_tier && target_tier
-        asc = TierMismatch.ascendancy_modifier(eff_attacker_tier, target_tier)
-        bonuses << asc if asc
-      end
 
       spec = {
         attacker: {
@@ -130,12 +119,6 @@ module Encounter
         dbonus = []
         dbonus << defender_inputs[:competency] if defender_inputs[:competency]
         dbonus.concat(Array(defender_inputs[:modifiers]))
-        # Ascendancy on the defender's Defensive Action Roll (Tier
-        # Mismatch), measured against the attacker's effective Tier.
-        if eff_attacker_tier && target_tier
-          dasc = TierMismatch.ascendancy_modifier(target_tier, eff_attacker_tier)
-          dbonus << dasc if dasc
-        end
         spec[:defense] = {
           combatant_id:       target[:id],
           choice:             declared_defense.to_s,

@@ -430,10 +430,13 @@ helpers do
       w.merge(dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier])
     end
 
+    atk_tier = (acc&.tier rescue nil)
+
     targets = encounter_state.combatants.reject { |c| c[:id] == attacker[:id] }.map do |c|
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
       { id: c[:id], name: tracker_name(c), unaware: encounter_state.unaware?(c[:id]),
         is_pc: creature_is_pc?(c[:creature_id]),
+        tier: (tacc&.tier rescue nil),
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
         martial: roll_inputs_for(tacc, 'martial',   attribute_override: :str),
         dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex),
@@ -448,10 +451,12 @@ helpers do
     rolls = [
       { id: 'attacker', side: 'supporting', creature_name: tracker_name(attacker),
         roll_name: 'Attack', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false },
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false,
+        tier: atk_tier },
       { id: 'defender', side: 'opposing', creature_name: '—',
         roll_name: 'Defense', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true }
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
+        tier: nil }
     ]
 
     # Header quick-picks (next to "Target"): one button per enemy of the
@@ -463,7 +468,8 @@ helpers do
     target_step = { key: 'target', label: 'Target',
                     header_options: enemy_targets.map { |t| { value: t[:id], label: t[:name] } },
                     options: targets.map { |t| { value: t[:id], key: t[:id], label: t[:name],
-                                                 patch: { set_name: [{ id: 'defender', creature_name: t[:name] }] } } } }
+                                                 patch: { set_name: [{ id: 'defender', creature_name: t[:name] }],
+                                                          set_tier: [{ id: 'defender', tier: t[:tier] }] } } } }
 
     action_opts = []
     action_quick = []

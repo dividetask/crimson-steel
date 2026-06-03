@@ -122,6 +122,8 @@
     group_config[:base_tn]            = roll[:base_tn]            if roll[:base_tn]
     group_config[:bonus_penalty_list] = roll[:bonus_penalty_list] if roll[:bonus_penalty_list]
     group_config[:speed]              = roll[:speed]             if roll.key?(:speed)
+    # Creature Tier for the Check Resolution Tier Mismatch (Ascendancy).
+    group_config[:tier]               = roll[:tier]              if roll.key?(:tier)
 
     # Computation line for the character-cell TN tooltip: "Base ±mods = TN n".
     # A Bonus lowers the TN, so it shows as a negative term ("−2 Competency");

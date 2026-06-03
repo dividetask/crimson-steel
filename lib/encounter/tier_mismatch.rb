@@ -14,10 +14,13 @@ module Encounter
   # An ability may raise a Creature's *effective* Tier for a single
   # resolution (the Glory Channel Divinity Glorious Charge adds +1);
   # callers fold that into the tier they pass.
+  #
+  # This Ruby module owns the *Inherent damage reduction* half, applied
+  # server-side when damage is resolved. The *Ascendancy* check modifier
+  # is computed client-side in the JS Check Resolution engine
+  # (public/js/tierMismatch.js), since Rolls resolve there.
   module TierMismatch
     INHERENT_DR_PER_TIER = 5
-    ASCENDANCY_PER_TIER  = 2
-    ASCENDANCY_TYPE      = 'Ascendancy'.freeze
 
     module_function
 
@@ -30,23 +33,6 @@ module Encounter
     # Signed Tier difference actor - opponent (using the 0 -> 0.5 rule).
     def delta(actor_tier, opponent_tier)
       effective_tier(actor_tier) - effective_tier(opponent_tier)
-    end
-
-    # `per_tier * |delta|`, floored, carrying delta's sign.
-    def scaled(per_tier, actor_tier, opponent_tier)
-      d = delta(actor_tier, opponent_tier)
-      mag = (per_tier * d.abs).floor
-      d.negative? ? -mag : mag
-    end
-
-    # Ascendancy modifier for an opposed check the actor makes against the
-    # opponent: a Bonus when the actor is higher Tier, a Penalty when
-    # lower, nil when equal (or when the floored magnitude is 0). Returns
-    # a [type, amount] bonus_penalty pair.
-    def ascendancy_modifier(actor_tier, opponent_tier)
-      amount = scaled(ASCENDANCY_PER_TIER, actor_tier, opponent_tier)
-      return nil if amount.zero?
-      [ASCENDANCY_TYPE, amount]
     end
 
     # Inherent damage reduction the defender gets against a lower-Tier
