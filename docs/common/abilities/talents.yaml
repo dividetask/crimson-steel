@@ -63,8 +63,8 @@ Martial Devotion:
   activation_time: bonus
   range: Self
   target: self
-  duration: "1 round"
-  description: "War domain Channel Divinity. As a bonus action, gain the benefits of Weapon Training (see `weapon_training` in modifier_abilities.yaml) for one round."
+  duration: "1 turn"
+  description: "War domain Channel Divinity. As a bonus action, gain the benefits of Weapon Training (see `weapon_training` in modifier_abilities.yaml) for one turn."
 
 Flame Devotion:
   type: talent
@@ -72,8 +72,8 @@ Flame Devotion:
   activation_time: reaction
   range: 15
   target: object
-  duration: "1 round"
-  description: "Fire domain Channel Divinity. As a reaction, a target weapon within 15 feet gains the Flaming property for one round (Flaming is an Equipment weapon enchantment analogous to the Radiant enchantment granted by Divine Favor; it adds fire damage to attacks made with the weapon)."
+  duration: "1 turn"
+  description: "Fire domain Channel Divinity. As a reaction, a target weapon within 15 feet gains the Flaming property for one turn (Flaming is an Equipment weapon enchantment analogous to the Radiant enchantment granted by Divine Favor; it adds fire damage to attacks made with the weapon)."
 
 Touch of Chaos:
   type: talent
@@ -124,12 +124,12 @@ Karthak's Resolve:
   activation_time: reaction
   range: Self
   target: self
-  duration: "1 round"
+  duration: "1 turn"
   modifiers:
     - target: damage_resilience
       type: Morale
       add: 5
-  description: "Karthak's deity Channel Divinity, gained at Cleric level 4. As a reaction, gain a +5 Morale bonus to damage resilience for one round. Usable only when fighting a higher-Tier creature, or when surrounded by multiple enemies with no allies within 15 feet (DM-adjudicated)."
+  description: "Karthak's deity Channel Divinity, gained at Cleric level 4. As a reaction, gain a +5 Morale bonus to damage resilience for one turn. Usable only when fighting a higher-Tier creature, or when surrounded by multiple enemies with no allies within 15 feet (DM-adjudicated)."
 
 Sneak Attack:
   type: talent
