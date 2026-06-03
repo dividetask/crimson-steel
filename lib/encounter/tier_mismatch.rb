@@ -42,25 +42,5 @@ module Encounter
       return 0 unless d.positive?
       (INHERENT_DR_PER_TIER * d).floor
     end
-
-    # --- Combat builder seam ---------------------------------------------
-    # How the combat builders (attack + cast) pass each Roll its Creature's
-    # Tier down to Check Resolution, where the JS engine applies Ascendancy.
-    # Centralized here so the attack and cast builders wire it identically;
-    # skill-check builders simply never call this, which is what scopes
-    # Ascendancy to combat.
-
-    # The Tier a seed / actor Roll should carry, or nil when unknown.
-    def roll_tier(accessor)
-      accessor.tier
-    rescue StandardError
-      nil
-    end
-
-    # The builder-step patch that stamps a Roll's Tier when its Creature is
-    # chosen (the defender/target Roll, resolved at Target-selection time).
-    def set_tier_patch(roll_id, tier)
-      { set_tier: [{ id: roll_id, tier: tier }] }
-    end
   end
 end

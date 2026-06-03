@@ -20,16 +20,4 @@ RSpec.describe Encounter::TierMismatch do
       expect(described_class.inherent_damage_reduction(1, 0)).to eq(2)
     end
   end
-
-  describe 'combat builder seam' do
-    it 'roll_tier reads the accessor Tier, nil when unavailable' do
-      acc = Object.new.tap { |o| o.define_singleton_method(:tier) { 3 } }
-      expect(described_class.roll_tier(acc)).to eq(3)
-      expect(described_class.roll_tier(nil)).to be_nil
-    end
-
-    it 'set_tier_patch builds the Roll Tier patch the builders apply' do
-      expect(described_class.set_tier_patch('defender', 2)).to eq(set_tier: [{ id: 'defender', tier: 2 }])
-    end
-  end
 end
