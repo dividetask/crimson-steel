@@ -707,6 +707,7 @@ helpers do
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
       { id: c[:id], name: tracker_name(c) + (c[:id] == caster[:id] ? ' (self)' : ''),
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
+        tier: (tacc&.tier rescue nil),
         dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex),
         martial: roll_inputs_for(tacc, 'martial',  attribute_override: :str),
         has_shield: equipped_shield?(c[:creature_id]),
@@ -716,10 +717,12 @@ helpers do
     rolls = [
       { id: 'caster', side: 'supporting', creature_name: tracker_name(caster),
         roll_name: 'Cast', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false },
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false,
+        tier: (acc&.tier rescue nil) },
       { id: 'target', side: 'opposing', creature_name: '—',
         roll_name: 'Defense', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true }
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
+        tier: nil }
     ]
 
     # Step 1 — Spell, grouped by Tier ("Tier 0 (red)" header, then that Tier's
@@ -763,7 +766,8 @@ helpers do
     # Step 3 — Target (a save / defense cannot be rolled without one).
     target_step = { key: 'target', label: 'Target',
                     options: targets.map { |t| { value: t[:id], key: t[:id], label: t[:name],
-                                                 patch: { set_name: [{ id: 'target', creature_name: t[:name] }] } } } }
+                                                 patch: { set_name: [{ id: 'target', creature_name: t[:name] }],
+                                                          set_tier: [{ id: 'target', tier: t[:tier] }] } } } }
 
     # Step 4 — the target's Defense, choice-dependent on (target, spell): the
     # target's Saving Throw for a Save spell, Dodge / Block for an attack-roll
