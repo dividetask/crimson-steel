@@ -1,20 +1,68 @@
 # Deities catalog.
 #
-# Each entry: deity name -> { domains: [list], domain_spells: { domain: [spells] } }
+# Each entry: deity name -> { domains: [list], anathema: [list],
+#                             domain_spells: { domain: [spells] } }
 #
 # A Cleric Creature's `choices.deity` names a deity here; their
 # `choices.domain` names one of that deity's domains. The Creature
 # gains the domain's spell list in addition to the Class-level
 # `granted_spells` (see `creatures_advancement.yaml`).
 #
+# `domains` are the deity's favored domains; `anathema` are the
+# domains opposed to the deity, which its Clerics may not choose.
+#
 # A domain listed under `domains` but absent from `domain_spells`
 # has not yet been mechanically defined — its spell list is empty
 # until designed.
+#
+# NOTE: the expanded Cleric domain rules (a Cleric choosing three
+# domains; god-domain vs. non-god-domain grants; the per-domain and
+# per-deity Channel Divinity abilities) are still being designed and
+# are NOT yet wired into the resolution logic. See the open questions
+# tracked with the team before relying on those fields.
+
+# The full set of domains a Cleric may draw from, independent of deity.
+Domains:
+  - Artifice
+  - Chaos
+  - Cunning
+  - Darkness
+  - Death
+  - Despair
+  - Earth
+  - Fire
+  - Glory
+  - Greed
+  - Healing
+  - Hearth
+  - Hope
+  - Humility
+  - Knowledge
+  - Life
+  - Light
+  - Madness
+  - Nature
+  - Order
+  - Harmony
+  - Plague
+  - Protection
+  - Ruin
+  - Secrets
+  - Strength
+  - Tempest
+  - Travel
+  - Trickery
+  - Truth
+  - Vengeance
+  - War
+  - Water
+  - Wisdom
 
 Deities:
 
-  Grull:
-    domains: [Chaos, Destruction, Glory, Strength, War]
+  Karthak:
+    domains: [Strength, Glory, Chaos, War, Fire]
+    anathema: [Humility, Harmony, Despair, Knowledge, Cunning]
     domain_spells:
       War:
         - Divine Favor

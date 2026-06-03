@@ -23,7 +23,7 @@ RSpec.describe 'Creatures granted_abilities', type: :model do
   it 'cleric deity+domain resolves through deities.yaml' do
     a = Creatures::Accessor.new(korth)
     names = a.granted_abilities.map { |g| g[:name] }
-    # Grull / War: Divine Favor, Shield of Faith, Spiritual Hammer, Silence
+    # Karthak / War: Divine Favor, Shield of Faith, Spiritual Hammer, Silence
     expect(names).to include('Divine Favor', 'Shield of Faith', 'Spiritual Hammer', 'Silence')
   end
 

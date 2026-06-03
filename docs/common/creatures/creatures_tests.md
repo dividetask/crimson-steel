@@ -131,11 +131,11 @@ Expected Effective Attributes (Korth is `race: hill_dwarf`, whose chain is `huma
 
 ## Get Granted Abilities
 
-**Race and Class Granted Abilities accumulate up to current Tier / Class Level.** Korth (Tier 2, Cleric 4, race `hill_dwarf`, `choices: {deity: Grull, domain: War, spellcasting: [magic_vestments]}`):
+**Race and Class Granted Abilities accumulate up to current Tier / Class Level.** Korth (Tier 2, Cleric 4, race `hill_dwarf`, `choices: {deity: Karthak, domain: War, spellcasting: [magic_vestments]}`):
 - From the Race chain `humanoid → dwarf → hill_dwarf`: `dwarf`'s `darkvision`, `dwarven_resilience` (each with `min_level: 0`) and `hill_dwarf`'s `healing_attunement` (`min_level: 1`, qualifies because Tier 2 ≥ 1).
 - From `cleric` Class at level 4: level-1 `see_injury`, `improved_healing`, `combat_healing`, `domain`; level-2 `channel_divinity`, `turn_undead`, `casting_feat`. Class-level `granted_spells`: `Heal`, `Ward`, `Standard Surgery`.
 - From `choices.spellcasting` under cleric: `magic_vestments`.
-- From `choices.deity` + `choices.domain` via `deities.yaml` (Grull / War): `Divine Favor`, `Shield of Faith`, `Spiritual Hammer`, `Silence`.
+- From `choices.deity` + `choices.domain` via `deities.yaml` (Karthak / War): `Divine Favor`, `Shield of Faith`, `Spiritual Hammer`, `Silence`.
 
 Returned list (in encounter order, deduplicated): `darkvision`, `dwarven_resilience`, `healing_attunement`, `see_injury`, `improved_healing`, `combat_healing`, `domain`, `channel_divinity`, `turn_undead`, `casting_feat`, `Heal`, `Ward`, `Standard Surgery`, `magic_vestments`, `Divine Favor`, `Shield of Faith`, `Spiritual Hammer`, `Silence`.
 
@@ -298,7 +298,7 @@ Returned list (in encounter order, deduplicated): `darkvision`, `dwarven_resilie
 
 **Setting `choices.spellcasting` adds the listed spells to Granted Abilities.** *Set Class Choices* on Vex: `(class="arcane_trickster", {spellcasting: ["elemental_dart"]})`. *Get Granted Abilities* now includes `elemental_dart` with `source = "class:arcane_trickster"`.
 
-**Setting `choices` wholesale replaces the previous map.** Korth starts with `cleric.choices = {deity: "Grull", domain: "War", spellcasting: ["magic_vestments"]}`. *Set Class Choices* on Korth: `(class="cleric", {deity: "Grull", domain: "War"})`: the `spellcasting` key is gone — `magic_vestments` no longer appears in *Get Granted Abilities*.
+**Setting `choices` wholesale replaces the previous map.** Korth starts with `cleric.choices = {deity: "Karthak", domain: "War", spellcasting: ["magic_vestments"]}`. *Set Class Choices* on Korth: `(class="cleric", {deity: "Karthak", domain: "War"})`: the `spellcasting` key is gone — `magic_vestments` no longer appears in *Get Granted Abilities*.
 
 **Setting `choices` on a Class the Creature does not have rejects.** *Set Class Choices* on Brenna (who has no `wizard` Class Entry): `(class="wizard", {spellcasting: ["elemental_dart"]})`: rejected. The Creature's record is unchanged.
 
