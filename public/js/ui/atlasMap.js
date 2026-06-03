@@ -95,6 +95,9 @@ class AtlasCanvas {
       this.world.appendChild(this.buildGridLayer(w, h, map));
     }
 
+    // Zones (spell areas / hazards) sit above the grid but below tokens.
+    this.world.appendChild(this.buildZoneLayer(w, h));
+
     this.annLayer = this.buildAnnotationLayer(w, h);
     this.world.appendChild(this.annLayer);
 
@@ -135,6 +138,45 @@ class AtlasCanvas {
   // units paints as a single pixel after that scale — independent of zoom.
   updateGridStroke() {
     if (this.gridPath) this.gridPath.setAttribute('stroke-width', String(1 / this.zoom));
+  }
+
+  // SVG layer of Zones (spell areas / hazards). A circle's `size` is its radius
+  // in Map Units; a square's `size` is its side. Both center on the anchor cell.
+  buildZoneLayer(w, h) {
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'atlas-zones');
+    svg.setAttribute('width', w);
+    svg.setAttribute('height', h);
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    (this.snapshot.zones || []).forEach((z) => {
+      const el = this.zoneEl(z);
+      if (el) svg.appendChild(el);
+    });
+    return svg;
+  }
+
+  zoneEl(z) {
+    const a = z.anchor || {};
+    const cx = ((a.x || 0) + 0.5) * BASE_CELL;
+    const cy = ((a.y || 0) + 0.5) * BASE_CELL;
+    const size = (z.size || 0) * BASE_CELL;
+    let el;
+    if (z.shape === 'square') {
+      el = document.createElementNS(SVG_NS, 'rect');
+      el.setAttribute('x', cx - size / 2);
+      el.setAttribute('y', cy - size / 2);
+      el.setAttribute('width', size);
+      el.setAttribute('height', size);
+    } else {
+      // circle (default); line / cone rendering is deferred.
+      el = document.createElementNS(SVG_NS, 'circle');
+      el.setAttribute('cx', cx);
+      el.setAttribute('cy', cy);
+      el.setAttribute('r', size);
+    }
+    el.setAttribute('class', 'atlas-zone');
+    if (z.id != null) el.dataset.zoneId = z.id;
+    return el;
   }
 
   buildAnnotationLayer(w, h) {

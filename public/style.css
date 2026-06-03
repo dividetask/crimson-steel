@@ -3313,6 +3313,18 @@ body {
   left: 0;
   pointer-events: none;
 }
+/* --- Zones (spell areas / hazards) --- */
+.atlas-zones {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.atlas-zone {
+  fill: rgba(108, 122, 224, 0.22);
+  stroke: rgba(108, 122, 224, 0.85);
+  stroke-width: 2;
+}
 .atlas-empty {
   position: absolute;
   top: 50%;

@@ -911,6 +911,11 @@ helpers do
     end
     Array(payload['targets']).each { |t| t['effects'] = effects }
 
+    # Area Spells (Obscuring Mist, Darkness, Web, Create Pit, Silence) carry an
+    # `area` footprint placed on the map at commit time. (Aspect-list areas like
+    # Grease are not auto-placed yet.)
+    spell['area'] = variant['area'] if variant && variant['area'].is_a?(Hash)
+
     # Damage routing for the Cast path. An attack-roll Spell resolves as a spell
     # attack — net the casting check against the target's Block / Dodge, damage
     # from the net Successes. A Save-based damage Spell with no explicit damage
@@ -948,6 +953,34 @@ helpers do
   #   { 'temp_hp' => n } / { 'mana' => n }             -> { kind: temp_hp/mana }
   #   { minor/moderate/major_damage: ... } (signed)    -> heal (cures are
   #     negated by resolve_spell) or, if positive, summed damage.
+  # Drop an area Spell's footprint on the active Map as a Zone, paired with a
+  # Conditions Zone Effect. Anchored at the (first) target's Token. Returns the
+  # placement, or nil when there's no active Map / Token / area — it is skipped
+  # silently so the cast still succeeds. Atlas.place_zone persists the Map; the
+  # Zone Effect carries the area's triggers for later on-enter resolution.
+  def place_spell_area_zone!(payload)
+    spell = payload['spell'] || {}
+    area  = spell['area']
+    return nil unless area.is_a?(Hash)
+    map_id = Atlas.state.active_map_id
+    return nil unless map_id
+    target = Array(payload['targets']).first or return nil
+    combatant = encounter_state.combatant(target['id'].to_i) or return nil
+    caster = payload['caster'] || {}
+    source_id = "encounter:zone:#{spell['name']}:#{caster['id']}"
+    zone_id = Atlas.state.place_zone(map_id: map_id, source_id: source_id,
+                                     shape: area['shape'], size: area['size'],
+                                     anchor: { 'type' => 'target', 'creature_id' => combatant[:creature_id] })
+    return nil unless zone_id.is_a?(Integer)
+    Conditions.store.create_zone_effect(
+      source_id: source_id, atlas_zone_id: zone_id,
+      triggers: { on_create: area['on_create'], on_enter: area['on_enter'],
+                  on_end_of_turn: area['on_end_of_turn'] }
+    )
+    { source_id: source_id, atlas_zone_id: zone_id, map_id: map_id,
+      shape: area['shape'], size: area['size'] }
+  end
+
   def cast_effects_from_consumption(effects)
     Array(effects).flat_map do |raw|
       e = (raw.transform_keys(&:to_s) rescue raw)
@@ -1280,8 +1313,12 @@ post '/encounter/resolve_cast' do
   result = encounter_state.resolve_cast_payload(payload)
   # A committed cast mutated Conditions (HP / mana / toxicity / temp HP /
   # active effects) — persist so it survives a restart. A preview mutates
-  # nothing.
-  Conditions.store.persist! if result[:committed]
+  # nothing. An area Spell also drops a Zone on the active Map.
+  if result[:committed]
+    zone = (place_spell_area_zone!(payload) rescue nil)
+    result = result.merge(zone: zone) if zone
+    Conditions.store.persist!
+  end
   encounter_response(result)
 end
 
