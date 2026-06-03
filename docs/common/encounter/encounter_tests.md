@@ -281,6 +281,8 @@ The Ascendancy (Check) half is tested in the JavaScript suite (`test/check_resol
 
 **Inherent DR is subtracted in resolve_attack_payload.** A Tier-3 defender struck by a Tier-1 attacker for net 12 takes `12 − (5 × 2) = 2`; the result reports `inherent_dr: 10`. No reduction applies when the attacker is equal or higher Tier.
 
+**Inherent DR also applies to spell damage (resolve_cast_payload).** A Tier-3 target hit by a Tier-1 caster's 14-damage spell takes `14 − (5 × 2) = 4`; it is subtracted from each resolved damage Effect (after Save halving) so preview and commit agree. None applies when the caster is equal or higher Tier; `caster.tier_bonus` (Glorious Charge) shrinks the gap.
+
 **Effective-Tier override shrinks the gap.** Passing `attacker.tier_bonus` to the attack payload raises the attacker's effective Tier for that attack — Glorious Charge's +1 against a one-Tier-higher foe drives Δ to 0, dropping the Inherent DR to `inherent_dr: 0`.
 
 **Ascendancy on the Check (JS).** `TierMismatch.ascendancyModifier(actor, opponent)` returns `['Ascendancy', 2 × Δ]` — a Bonus when the actor out-Tiers the opponent (`(3, 1) → +4`), a Penalty when out-Tiered (`(1, 3) → −4`), and null at equal Tier or when a Tier is absent. Tier 0 counts as 0.5 and the magnitude is floored (`(1, 0) → +1`). `CheckResolution` runs it after Propagation, so a Tier-2 attacker vs a Tier-1 defender resolves to attacker TN 4 / defender TN 8 (the defender's Penalty is not inverted back onto the attacker).

@@ -68,4 +68,43 @@ RSpec.describe 'Encounter — Tier Mismatch in combat' do
     expect(out[:inherent_dr]).to eq(0)
     expect(out[:damage]).to eq(5)
   end
+
+  describe 'spell damage' do
+    def dmg_of(out, tid)
+      out[:targets].find { |t| t[:id] == tid }[:applied].find { |e| e[:kind] == 'damage' }
+    end
+
+    it 'a higher-Tier target shrugs off Inherent DR from spell damage' do
+      s = build('1' => 1, '3' => 3)
+      caster = s.add_combatant('1'); tgt = s.add_combatant('3')
+      out = s.resolve_cast_payload(
+        caster: { id: caster[:id], dice: 3, speed: 0, successes: 3 },
+        spell:  { name: 'Bolt', tier: 1, mana_cost: 0 },
+        targets: [{ id: tgt[:id], effects: [{ kind: 'damage', amount: 14, damage_type: 'fire', threshold: 0 }] }],
+        commit: false)
+      expect(dmg_of(out, tgt[:id])[:amount]).to eq(4) # 14 - 5*(3-1)
+    end
+
+    it 'Glorious Charge (caster tier_bonus) shrinks the spell Inherent DR' do
+      s = build('1' => 1, '2' => 2)
+      caster = s.add_combatant('1'); tgt = s.add_combatant('2')
+      out = s.resolve_cast_payload(
+        caster: { id: caster[:id], dice: 3, speed: 0, successes: 3, tier_bonus: 1 },
+        spell:  { name: 'Bolt', tier: 1, mana_cost: 0 },
+        targets: [{ id: tgt[:id], effects: [{ kind: 'damage', amount: 9, damage_type: 'fire', threshold: 0 }] }],
+        commit: false)
+      expect(dmg_of(out, tgt[:id])[:amount]).to eq(9) # effective caster Tier 2 == target Tier 2
+    end
+
+    it 'no spell DR when the caster is equal or higher Tier than the target' do
+      s = build('3' => 3, '1' => 1)
+      caster = s.add_combatant('3'); tgt = s.add_combatant('1')
+      out = s.resolve_cast_payload(
+        caster: { id: caster[:id], dice: 3, speed: 0, successes: 3 },
+        spell:  { name: 'Bolt', tier: 1, mana_cost: 0 },
+        targets: [{ id: tgt[:id], effects: [{ kind: 'damage', amount: 7, damage_type: 'fire', threshold: 0 }] }],
+        commit: false)
+      expect(dmg_of(out, tgt[:id])[:amount]).to eq(7)
+    end
+  end
 end

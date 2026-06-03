@@ -781,6 +781,20 @@ module Encounter
         attack_roll ? cast_attack_target(t, spell, caster, casting_stat) : cast_save_target(t, caster)
       end
 
+      # Tier Mismatch Inherent damage reduction: a higher-Tier target shrugs
+      # off 5 damage per Tier it stands above the caster. Subtracted from each
+      # resolved damage Effect (after Save halving) so preview and commit agree.
+      # The caster's effective Tier may be raised via caster.tier_bonus.
+      caster_eff_tier = combatant_tier(caster[:id]) + caster[:tier_bonus].to_i
+      resolved = resolved.map do |t|
+        dr = TierMismatch.inherent_damage_reduction(combatant_tier(t[:id]), caster_eff_tier)
+        next t if dr.zero? || Array(t[:effects]).empty?
+        reduced = Array(t[:effects]).map do |e|
+          e[:kind].to_s == 'damage' ? e.merge(amount: [e[:amount].to_i - dr, 0].max, inherent_dr: dr) : e
+        end
+        t.merge(effects: reduced)
+      end
+
       # Combat Pool: the caster's casting-time Speed + dice, plus any pool-costed
       # Defensive Action (Dodge / Block) the defender spent. A Save spell's
       # Saving Throw costs none. DM may override the spends.
