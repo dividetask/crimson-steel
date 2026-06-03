@@ -74,7 +74,7 @@ Field on a Catalog Ability or on an entry in `modifier_abilities.yaml`. Shape:
 | `target` | string | What the bonus applies to (`speed`, `attack`, `perception`, etc.). The target vocabulary is owned by the consuming domain (Combat, Equipment, etc.) — Abilities does not police it. |
 | `type` | string | Bonus Type Name — must name an entry in the `Bonus Types List` config. Validated by Abilities at load time. |
 | `descriptors` | list of string | Optional scope tags. Free-form. |
-| `add` | signed number or Formula | Value to apply. May be a Formula of `level` / `tier`. Abilities returns Formulas verbatim; consumers evaluate. |
+| `add` | signed number or Formula | Value to apply. May be a Formula of `level` / `tier` / `caster_tier`. Abilities returns Formulas verbatim; consumers evaluate. |
 
 The Abilities module validates `type` against the `Bonus Types List` and returns the Modifier Entry verbatim. Aggregation across Abilities, type-stacking rules, and Formula evaluation against the Creature's level happen in Creatures and Combat.
 
@@ -343,7 +343,7 @@ The Effect Hash is a flat dictionary, but its values cross-reference each other 
 - A string-valued entry is treated as a Formula and evaluated.
 - Any other value is taken verbatim.
 
-`tier` is always present (Tier 0 → 0.5 per project convention). `rank` is always present. Names from the Effect Hash become available as soon as they're resolved, so a later entry's Formula may reference an earlier entry's value.
+`tier` is always present (Tier 0 → 0.5 per project convention). `rank` is always present. `caster_tier` — the casting Creature's Tier — is supplied by the casting pipeline at cast time; it differs from `tier` (the Ability's own Tier) and lets an Effect scale with whoever cast it rather than with the affected Creature. An Ability whose `modifiers` must resolve against the caster (e.g. Magic Weapon, whose bonus follows the *caster's* Tier even when the weapon's wielder is someone else) plumbs `caster_tier` into the Active Effect's `metadata` through an Effect Hash entry, the same way `rage` plumbs `level`. Names from the Effect Hash become available as soon as they're resolved, so a later entry's Formula may reference an earlier entry's value.
 
 Damage-expression-only variables (`success`, `critical`, `attribute`) must **not** appear in Effect Hash Formulas, Range Formulas, or Target Formulas — those are resolved before any roll. The validator does not catch this; it surfaces as an unresolved-name error at evaluation time.
 

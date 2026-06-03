@@ -122,6 +122,7 @@ characters:
               - darkness
               - web
               - create_pit
+              - blur
           skills:
             - arcana
             - perception
@@ -162,6 +163,7 @@ characters:
               - lesser_ward
               - divine_favor
               - shield_of_faith
+              - magic_weapon
               - spiritual_weapon
               - hold_person
               - silence

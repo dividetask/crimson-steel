@@ -942,3 +942,33 @@ Darkness:
   duration: "rank minutes"
   resolution: dm
   description: "A 20-foot-radius area centered on a point within range is shrouded in magical gloom, lowering the light level there by two steps for the duration. The DM adjudicates the effects of the reduced light. The darkened area is placed on the map as an area shape."
+
+Magic Weapon:
+  type: spell
+  tier: 2
+  school: transmutation
+  range: Touch
+  target: object
+  duration: "rank minutes"
+  modifiers:
+    - target: attack
+      type: Guidance
+      add: caster_tier
+    - target: damage
+      type: Guidance
+      add: caster_tier
+  effect_hash:
+    caster_tier: caster_tier    # the casting Creature's Tier; plumbed into the Active Effect metadata so the modifiers resolve against the caster, not the wielder
+  description: "Imbues the touched weapon with a Guidance enhancement bonus equal to the caster's Tier. Like an enhanced weapon, the bonus applies to both attack rolls and damage rolls made with the weapon. Lasts 1 minute per rank."
+
+Blur:
+  type: spell
+  tier: 2
+  school: resonance
+  range: Touch
+  target: "1"
+  requires_willing: true
+  duration: "rank minutes"
+  effects:
+    - "blurred"
+  description: "The touched creature's outline blurs and wavers. For the duration the creature gains the blurred effect: every Critical Success rolled on an attack against it is rerolled, blunting decisive blows."
