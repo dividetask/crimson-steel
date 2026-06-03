@@ -101,8 +101,11 @@ Classes:
       - Heal
       - Ward
       - Standard Surgery
-    # Domain-specific spells are looked up via the Creature's `choices.deity`
-    # and `choices.domain` keys against `creatures/deities.yaml`.
+    # Domain-specific spells and Channel Divinity abilities are looked up
+    # via the Creature's `choices.deity` and `choices.domains` keys against
+    # `creatures/deities.yaml` (each chosen domain's spells; the Channel
+    # Divinity of each chosen domain that is one of the deity's own; and the
+    # deity's Channel Divinity at Cleric level 4).
     aligned_proficiencies:
       - appraisal
       - arcana

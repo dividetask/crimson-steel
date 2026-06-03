@@ -37,9 +37,11 @@
 #                                 spells the player picked for the class's
 #                                 Spellcasting-type ability — Bardic
 #                                 Spellcasting, Arcane Spellcasting, etc.),
-#                                 `deity` + `domain` (Cleric), Bard's
-#                                 Versatile Performance subject. Free-form
-#                                 — the granting Class interprets each key.
+#                                 `deity` + `domains: [a, b, c]` (Cleric —
+#                                 up to three; legacy single `domain` still
+#                                 accepted), Bard's Versatile Performance
+#                                 subject. Free-form — the granting Class
+#                                 interprets each key.
 
 characters:
   - id: 1
@@ -152,7 +154,7 @@ characters:
           level: 4
           choices:
             deity: Karthak
-            domain: War
+            domains: [War, Strength, Fire]
             spellcasting:
               - heal_petty_wounds
               - sacred_flame

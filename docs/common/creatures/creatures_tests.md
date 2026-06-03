@@ -135,9 +135,9 @@ Expected Effective Attributes (Korth is `race: hill_dwarf`, whose chain is `huma
 - From the Race chain `humanoid → dwarf → hill_dwarf`: `dwarf`'s `darkvision`, `dwarven_resilience` (each with `min_level: 0`) and `hill_dwarf`'s `healing_attunement` (`min_level: 1`, qualifies because Tier 2 ≥ 1).
 - From `cleric` Class at level 4: level-1 `see_injury`, `improved_healing`, `combat_healing`, `domain`; level-2 `channel_divinity`, `turn_undead`, `casting_feat`. Class-level `granted_spells`: `Heal`, `Ward`, `Standard Surgery`.
 - From `choices.spellcasting` under cleric: `magic_vestments`.
-- From `choices.deity` + `choices.domain` via `deities.yaml` (Karthak / War): `Divine Favor`, `Shield of Faith`, `Spiritual Hammer`, `Silence`.
+- From `choices.deity` + `choices.domain(s)` via `deities.yaml` (Karthak / War): the War domain spells `Divine Favor`, `Shield of Faith`, `Spiritual Hammer`, `Silence`; the War domain Channel Divinity `Martial Devotion` (War is one of Karthak's domains); and Karthak's deity Channel Divinity `Karthak's Resolve` (granted at Cleric Level ≥ 4).
 
-Returned list (in encounter order, deduplicated): `darkvision`, `dwarven_resilience`, `healing_attunement`, `see_injury`, `improved_healing`, `combat_healing`, `domain`, `channel_divinity`, `turn_undead`, `casting_feat`, `Heal`, `Ward`, `Standard Surgery`, `magic_vestments`, `Divine Favor`, `Shield of Faith`, `Spiritual Hammer`, `Silence`.
+Returned list (in encounter order, deduplicated): `darkvision`, `dwarven_resilience`, `healing_attunement`, `see_injury`, `improved_healing`, `combat_healing`, `domain`, `channel_divinity`, `turn_undead`, `casting_feat`, `Heal`, `Ward`, `Standard Surgery`, `Divine Favor`, `Shield of Faith`, `Spiritual Hammer`, `Silence`, `Martial Devotion`, `Karthak's Resolve`, `magic_vestments`.
 
 **Archetype abilities extend the parent's at each Class Level.** Vex (Tier 2, Arcane Trickster 4, race `high_elf`, `choices.spellcasting: [elemental_dart]`): the resolved class's `ability_progression` is rogue's extended by arcane_trickster's. At level 1 the merged list is `[trapfinding, sneak_attack, thieves_cant, arcane_spellcasting]`. At level 2 the merged list is `[danger_sense, combat_trickery, mage_hand_legerdemain]`. The full Granted list across Race + Class + choice-driven spells (Race chain `humanoid → elf → high_elf`):
 

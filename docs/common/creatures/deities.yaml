@@ -1,71 +1,87 @@
-# Deities catalog.
+# Deities and Domains catalog.
 #
-# Each entry: deity name -> { domains: [list], anathema: [list],
-#                             domain_spells: { domain: [spells] } }
+# Two top-level catalogs:
 #
-# A Cleric Creature's `choices.deity` names a deity here; their
-# `choices.domain` names one of that deity's domains. The Creature
-# gains the domain's spell list in addition to the Class-level
-# `granted_spells` (see `creatures_advancement.yaml`).
+#   Domains: domain name -> { spells: [list], channel_divinity: <name> }
+#     The full set of domains a Cleric may draw from, independent of
+#     deity. `spells` are the domain's bonus spells (granted to any
+#     Cleric who picks the domain). `channel_divinity` names the
+#     domain's 1st-level Channel Divinity Talent (see talents.yaml);
+#     it is granted ONLY when the domain is one of the Cleric's own
+#     deity's `domains`. A domain with no `spells`/`channel_divinity`
+#     has not been mechanically defined yet.
 #
-# `domains` are the deity's favored domains; `anathema` are the
-# domains opposed to the deity, which its Clerics may not choose.
+#   Deities: deity name -> { domains: [list], anathema: [list],
+#                            channel_divinity: <name> }
+#     `domains` are the deity's favored domains; `anathema` are the
+#     domains opposed to the deity, which its Clerics may NOT choose.
+#     `channel_divinity` names the deity's 4th-level Channel Divinity
+#     Talent, granted at Cleric level 4.
 #
-# A domain listed under `domains` but absent from `domain_spells`
-# has not yet been mechanically defined — its spell list is empty
-# until designed.
+# Cleric domain rules:
+#   - A Cleric chooses three domains (`choices.domains: [a, b, c]`;
+#     the legacy single `choices.domain: a` is still accepted).
+#   - Every chosen domain grants its `spells`.
+#   - A chosen domain that is one of the deity's `domains` ALSO grants
+#     that domain's `channel_divinity` Talent.
+#   - A chosen domain that is NOT one of the deity's `domains` grants
+#     spells only (no Channel Divinity).
+#   - A Cleric may not choose a domain in the deity's `anathema`.
+#   - At Cleric level 4 the Cleric gains the deity's `channel_divinity`.
 #
-# NOTE: the expanded Cleric domain rules (a Cleric choosing three
-# domains; god-domain vs. non-god-domain grants; the per-domain and
-# per-deity Channel Divinity abilities) are still being designed and
-# are NOT yet wired into the resolution logic. See the open questions
-# tracked with the team before relying on those fields.
+# Channel Divinity mana: every Channel Divinity Talent costs 1 mana
+# (inherited from the base Channel Divinity Talent) except a deity's
+# 4th-level Channel Divinity, which costs 4.
 
-# The full set of domains a Cleric may draw from, independent of deity.
 Domains:
-  - Artifice
-  - Chaos
-  - Cunning
-  - Darkness
-  - Death
-  - Despair
-  - Earth
-  - Fire
-  - Glory
-  - Greed
-  - Healing
-  - Hearth
-  - Hope
-  - Humility
-  - Knowledge
-  - Life
-  - Light
-  - Madness
-  - Nature
-  - Order
-  - Harmony
-  - Plague
-  - Protection
-  - Ruin
-  - Secrets
-  - Strength
-  - Tempest
-  - Travel
-  - Trickery
-  - Truth
-  - Vengeance
-  - War
-  - Water
-  - Wisdom
+  Artifice: {}
+  Chaos:
+    channel_divinity: Touch of Chaos
+  Cunning: {}
+  Darkness: {}
+  Death: {}
+  Despair: {}
+  Earth: {}
+  Fire:
+    channel_divinity: Flame Devotion
+  Glory:
+    channel_divinity: Glorious Charge
+  Greed: {}
+  Healing: {}
+  Hearth: {}
+  Hope: {}
+  Humility: {}
+  Knowledge: {}
+  Life: {}
+  Light: {}
+  Madness: {}
+  Nature: {}
+  Order: {}
+  Harmony: {}
+  Plague: {}
+  Protection: {}
+  Ruin: {}
+  Secrets: {}
+  Strength:
+    channel_divinity: Strength Devotion
+  Tempest: {}
+  Travel: {}
+  Trickery: {}
+  Truth: {}
+  Vengeance: {}
+  War:
+    spells:
+      - Divine Favor
+      - Shield of Faith
+      - Spiritual Hammer
+      - Silence
+    channel_divinity: Martial Devotion
+  Water: {}
+  Wisdom: {}
 
 Deities:
 
   Karthak:
     domains: [Strength, Glory, Chaos, War, Fire]
     anathema: [Humility, Harmony, Despair, Knowledge, Cunning]
-    domain_spells:
-      War:
-        - Divine Favor
-        - Shield of Faith
-        - Spiritual Hammer
-        - Silence
+    channel_divinity: Karthak's Resolve

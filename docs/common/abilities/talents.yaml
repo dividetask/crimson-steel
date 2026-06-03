@@ -53,6 +53,84 @@ Turn Undead:
   duration: rank turns
   description: "A Channel Divinity ability. Drive undead within range to flee — each affected undead must make a Wisdom save or be Frightened for the duration."
 
+# --- Domain Channel Divinity (1st-level; 1 mana, inherited) -------------
+# Granted to a Cleric when the matching domain is one of their deity's
+# own domains. The domain -> Talent mapping lives in deities.yaml.
+
+Martial Devotion:
+  type: talent
+  inherits_from: Channel Divinity
+  activation_time: bonus
+  range: Self
+  target: self
+  duration: "1 round"
+  description: "War domain Channel Divinity. As a bonus action, gain the benefits of Weapon Training (see `weapon_training` in modifier_abilities.yaml) for one round."
+
+Flame Devotion:
+  type: talent
+  inherits_from: Channel Divinity
+  activation_time: reaction
+  range: 15
+  target: object
+  duration: "1 round"
+  description: "Fire domain Channel Divinity. As a reaction, a target weapon within 15 feet gains the Flaming property for one round (Flaming is an Equipment weapon enchantment analogous to the Radiant enchantment granted by Divine Favor; it adds fire damage to attacks made with the weapon)."
+
+Touch of Chaos:
+  type: talent
+  inherits_from: Channel Divinity
+  activation_time: reaction
+  range: Close
+  target: "1"
+  save:
+    - attribute: cha
+      fail: confused
+      success: "0"
+  duration: "1 attack"
+  description: "Chaos domain Channel Divinity. As a reaction when the target makes an attack, the target must make a Charisma save or its attack targets a random creature in range instead."
+
+Strength Devotion:
+  type: talent
+  inherits_from: Channel Divinity
+  activation_time: main
+  range: Self
+  target: self
+  duration: "1 minute"
+  modifiers:
+    - target: str
+      type: Morale
+      add: 2
+    - target: con
+      type: Morale
+      add: 2
+  description: "Strength domain Channel Divinity. As a main action, gain a +2 Morale bonus to Strength and Constitution for 1 minute."
+
+Glorious Charge:
+  type: talent
+  inherits_from: Channel Divinity
+  activation_time: bonus
+  range: Self
+  target: self
+  duration: "1 attack"
+  description: "Glory domain Channel Divinity. As a bonus action, treat your Tier as 1 higher for a single attack. This raises the effective Tier used for Tier Mismatch modifiers (see encounter_design.md) — negating the Ascendancy penalty when striking a creature one Tier above you, and reducing it against foes more than one Tier higher."
+
+# --- Deity Channel Divinity (4th-level; 4 mana) ------------------------
+# Granted at Cleric level 4. The deity -> Talent mapping lives in
+# deities.yaml.
+
+Karthak's Resolve:
+  type: talent
+  inherits_from: Channel Divinity
+  mana_cost: 4
+  activation_time: reaction
+  range: Self
+  target: self
+  duration: "1 round"
+  modifiers:
+    - target: damage_resilience
+      type: Morale
+      add: 5
+  description: "Karthak's deity Channel Divinity, gained at Cleric level 4. As a reaction, gain a +5 Morale bonus to damage resilience for one round. Usable only when fighting a higher-Tier creature, or when surrounded by multiple enemies with no allies within 15 feet (DM-adjudicated)."
+
 Sneak Attack:
   type: talent
   trigger:
