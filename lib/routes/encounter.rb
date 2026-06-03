@@ -430,13 +430,13 @@ helpers do
       w.merge(dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier])
     end
 
-    atk_tier = (acc&.tier rescue nil)
+    atk_tier = Encounter::TierMismatch.roll_tier(acc)
 
     targets = encounter_state.combatants.reject { |c| c[:id] == attacker[:id] }.map do |c|
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
       { id: c[:id], name: tracker_name(c), unaware: encounter_state.unaware?(c[:id]),
         is_pc: creature_is_pc?(c[:creature_id]),
-        tier: (tacc&.tier rescue nil),
+        tier: Encounter::TierMismatch.roll_tier(tacc),
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
         martial: roll_inputs_for(tacc, 'martial',   attribute_override: :str),
         dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex),
@@ -468,8 +468,8 @@ helpers do
     target_step = { key: 'target', label: 'Target',
                     header_options: enemy_targets.map { |t| { value: t[:id], label: t[:name] } },
                     options: targets.map { |t| { value: t[:id], key: t[:id], label: t[:name],
-                                                 patch: { set_name: [{ id: 'defender', creature_name: t[:name] }],
-                                                          set_tier: [{ id: 'defender', tier: t[:tier] }] } } } }
+                                                 patch: { set_name: [{ id: 'defender', creature_name: t[:name] }] }
+                                                          .merge(Encounter::TierMismatch.set_tier_patch('defender', t[:tier])) } } }
 
     action_opts = []
     action_quick = []
@@ -707,7 +707,7 @@ helpers do
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
       { id: c[:id], name: tracker_name(c) + (c[:id] == caster[:id] ? ' (self)' : ''),
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
-        tier: (tacc&.tier rescue nil),
+        tier: Encounter::TierMismatch.roll_tier(tacc),
         dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex),
         martial: roll_inputs_for(tacc, 'martial',  attribute_override: :str),
         has_shield: equipped_shield?(c[:creature_id]),
@@ -718,7 +718,7 @@ helpers do
       { id: 'caster', side: 'supporting', creature_name: tracker_name(caster),
         roll_name: 'Cast', die_size: die, tn: base_tn, starting_value: 0,
         base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false,
-        tier: (acc&.tier rescue nil) },
+        tier: Encounter::TierMismatch.roll_tier(acc) },
       { id: 'target', side: 'opposing', creature_name: '—',
         roll_name: 'Defense', die_size: die, tn: base_tn, starting_value: 0,
         base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
@@ -766,8 +766,8 @@ helpers do
     # Step 3 — Target (a save / defense cannot be rolled without one).
     target_step = { key: 'target', label: 'Target',
                     options: targets.map { |t| { value: t[:id], key: t[:id], label: t[:name],
-                                                 patch: { set_name: [{ id: 'target', creature_name: t[:name] }],
-                                                          set_tier: [{ id: 'target', tier: t[:tier] }] } } } }
+                                                 patch: { set_name: [{ id: 'target', creature_name: t[:name] }] }
+                                                          .merge(Encounter::TierMismatch.set_tier_patch('target', t[:tier])) } } }
 
     # Step 4 — the target's Defense, choice-dependent on (target, spell): the
     # target's Saving Throw for a Save spell, Dodge / Block for an attack-roll
