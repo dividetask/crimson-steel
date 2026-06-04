@@ -102,7 +102,7 @@ characters:
       cha: 10
     advancement:
       classes:
-        ranger:
+        druid:
           level: 3
           choices:
             spellcasting:

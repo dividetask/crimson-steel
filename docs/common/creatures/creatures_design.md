@@ -115,7 +115,7 @@ Rules:
 
 - A Creature cannot hold levels in both a Class and one of its Archetypes simultaneously. The validator rejects records that violate this rule.
 - A Creature may multi-class across unrelated Classes (e.g. Rogue + Fighter), and may multi-class across an Archetype and any Class that is *not* its parent (e.g. Arcane Trickster + Fighter, Arcane Trickster + Cleric).
-- An Archetype Class Entry inherits absent top-level fields from its parent: `martial_advancement`, `saves`, `bonus_skills`, `mana_per_level`, `granted_spells`, `aligned_proficiencies`, `unaligned_proficiencies`, `opposed_proficiencies`. When the Archetype declares one of those fields, it replaces the parent's.
+- An Archetype Class Entry inherits absent top-level fields from its parent: `martial_advancement`, `saves`, `bonus_skills`, `mana_per_level`, `granted_spells`, `spell_selection`, `aligned_proficiencies`, `unaligned_proficiencies`, `opposed_proficiencies`. When the Archetype declares one of those fields, it replaces the parent's.
 - An Archetype's `ability_progression` extends the parent's: at each Class Level, the Archetype's list is appended to the parent's. The parent and Archetype must not name the same Ability at the same Level (validator rejects).
 - For proficiency-list inheritance: the parent's lists are taken verbatim. The Archetype's lists, if present, are *additive adjustments* — `aligned_proficiencies` entries are added to the Aligned-rate set, `unaligned_proficiencies` entries are added to the Unaligned-rate set (and removed from Aligned if present there), `opposed_proficiencies` entries are added to the Opposed-rate set.
 

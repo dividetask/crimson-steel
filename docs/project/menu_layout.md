@@ -38,7 +38,7 @@ Each page is listed with a short description and its access rule. Detailed page 
 
 | Page              | URL                | Description                                                                 | Access     |
 |-------------------|--------------------|-----------------------------------------------------------------------------|------------|
-| Character Sheets  | `/character-sheets`| Per-character sheets for the party. The default landing page.               | DM + Player |
+| Character Sheets  | `/character-sheets`| Per-character sheets for the party. The default landing page. The DM's roster sidebar carries a **New Character** button linking to the Character Creation Stub (`/character-creation`, see `docs/common/ui/character_creation_stub.md`). | DM + Player |
 | Encounter         | `/encounter`       | What is happening right now — timekeeping, the Combat Tracker (initiative), and the active scene's notes. The Combat Tracker is hidden from players until Combat starts; the notes are hidden from players once Combat starts. | DM + Player |
 | Store             | `/store`           | Provision Creatures with gear — the Equipment Provision Stub (Weapons, Armor, Alchemy). A recipient that is a Player Character is charged (its own wealth first, then the Party); non-PCs are provisioned free. Enemies are hidden from players. | DM + Player |
 | Notes             | `/notes`           | Shared and per-character game notes.                                        | DM + Player |

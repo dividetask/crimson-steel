@@ -1,0 +1,33 @@
+# Character Creation Configuration
+#
+# Drives the Character Creation flow reached from the DM's "New
+# Character" button on the Character Sheets roster. A freshly created
+# Creature is a level-1 (Tier 0) Player Character.
+#
+# Per-Class Spell Selection rules live on each Class in
+# `creatures_advancement.yaml` (the `spell_selection` block), not here.
+
+# Attribute Allocation (Point Buy).
+#
+# Every attribute starts at `starting_value`. The DM raises or lowers
+# each attribute between `minimum` and `maximum`, spending from a shared
+# `point_buy` pool. `cost` is the CUMULATIVE Point Buy cost of setting an
+# attribute to a given value (so the marginal cost of moving from value
+# V to V+1 is `cost[V+1] - cost[V]`). Remaining Point Buy is
+# `point_buy` minus the sum of every attribute's cumulative cost.
+Attribute Allocation:
+  starting_value: 10
+  point_buy: 15
+  minimum: 7
+  maximum: 16
+  cost:
+    7: -3
+    8: -2
+    9: -1
+    10: 0
+    11: 1
+    12: 2
+    13: 4
+    14: 6
+    15: 9
+    16: 12

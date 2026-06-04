@@ -47,7 +47,7 @@ module Creatures
       merged = parent.dup
       merged['parent_class'] = archetype['parent_class']
 
-      %w[martial_advancement saves bonus_skills mana_per_level granted_spells].each do |f|
+      %w[martial_advancement saves bonus_skills mana_per_level granted_spells spell_selection].each do |f|
         merged[f] = archetype[f] if archetype.key?(f)
       end
 
