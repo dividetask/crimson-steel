@@ -372,6 +372,7 @@ Shield of Faith:
       ratio: 1
     discharge:
       action: reaction
+      defends: target
       amount: "2..dice_cap"
       description: "When an attack is made against the target, spend {amount} Reservoir dice to fuel a block Roll against the attack."
   description: "Conjures a floating magical shield next to the target. While channeled, the caster may discharge Reservoir dice as reactions to block attacks made against the target."

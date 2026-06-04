@@ -456,8 +456,27 @@ helpers do
       { id: 'defender', side: 'opposing', creature_name: '—',
         roll_name: 'Defense', die_size: die, tn: base_tn, starting_value: 0,
         base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
+        tier: nil },
+      # A Shield of Faith caster defending the target — a second Opposing Roll,
+      # hidden until the defender chooses it (fueled by Reservoir dice).
+      { id: 'shield', side: 'opposing', creature_name: '—',
+        roll_name: 'Shield of Faith', die_size: die, tn: base_tn, starting_value: 0,
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
         tier: nil }
     ]
+
+    # Map of defender Combatant id -> the caster shielding them (Shield of Faith)
+    # and their available Reservoir dice, so the defense step can offer the
+    # caster's block as an Opposing Roll.
+    shields = {}
+    encounter_state.granted_actions.select { |g| g[:source].to_s == 'Shield of Faith' && g[:defends] }.each do |g|
+      cc = encounter_state.combatant(g[:combatant_id]) or next
+      res = Array(cc[:concentration]).find { |e| e[:mode] == 'reservoir' && e[:spell_name].to_s == 'Shield of Faith' }
+      next unless res && res[:reservoir].to_i >= 2
+      cacc = Creatures.lookup(cc[:creature_id]) rescue nil
+      shields[g[:defends]] = { caster_id: g[:combatant_id], caster_name: tracker_name(cc),
+                               reservoir: res[:reservoir].to_i, tier: (cacc&.tier rescue nil) }
+    end
 
     # Header quick-picks (next to "Target"): one button per enemy of the
     # attacker. Enemies are the Combatants on the opposite side of the
@@ -579,6 +598,26 @@ helpers do
           end
           opts << { kind: 'info', group: b[:group], value: "#{b[:group]}|info",
                     label: (dcmp.empty? ? 'no bonuses' : fmt_mods.call(dcmp)) }
+        end
+        # Shield of Faith: a caster shielding this target blocks the attack as a
+        # separate Opposing Roll, spending Reservoir dice (no Combat Pool, and
+        # the target's own Defense Roll stays excluded).
+        sh = shields[t[:id]]
+        if sh
+          cap = sh[:reservoir]
+          mk_sh = lambda do |dice|
+            { value: "shield:#{sh[:caster_id]}|#{dice}", group: 'shield', label: dice.to_s,
+              summary: "Shield of Faith — #{dice} dice",
+              patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_declared_bpl }],
+                       set_dice: [{ id: 'shield', count: dice }],
+                       set_tier: [{ id: 'shield', tier: sh[:tier] }],
+                       set_name: [{ id: 'shield', roll_name: "Shield of Faith (#{sh[:caster_name]})" }],
+                       set_excluded: [{ id: 'defender', excluded: true }, { id: 'shield', excluded: false }] } }
+          end
+          (2..cap).each { |n| opts << mk_sh.call(n) }
+          headers << { value: "shield:#{sh[:caster_id]}|2", label: "Shield (#{sh[:caster_name]})", disabled: cap < 2 }
+          opts << { kind: 'info', group: 'shield', value: 'shield|info',
+                    label: "Shield of Faith by #{sh[:caster_name]} — up to #{cap} Reservoir dice" }
         end
         defense_map["#{t[:id]}|#{w[:item_type]}"] = opts
         defense_header_map["#{t[:id]}|#{w[:item_type]}"] = headers
@@ -1089,6 +1128,22 @@ helpers do
     removed.map { |z| z[:source_id] }
   end
 
+  # A Spell whose Reservoir discharge `defends: target` (Shield of Faith) hangs
+  # a shield over the chosen ally: grant the caster a reaction tied to that
+  # Combatant, so attacks against the ally can surface the caster's block as an
+  # opposing Roll. The Reservoir itself is registered by the cast's sustain.
+  def grant_defend_reaction!(payload)
+    spell = payload['spell'] || {}
+    v = (Abilities.lookup(spell['name'].to_s) rescue nil) || {}
+    return unless v.dig('reservoir', 'discharge', 'defends').to_s == 'target'
+    caster = payload['caster'] || {}
+    ally = Array(payload['targets']).first or return
+    # Replace any prior shield from the same caster+spell on a new cast.
+    encounter_state.revoke_action { |g| g[:source] == spell['name'].to_s && g[:combatant_id] == caster['id'] }
+    encounter_state.grant_action({ combatant_id: caster['id'], name: spell['name'], source: spell['name'],
+                                   spell_name: spell['name'], defends: ally['id'] })
+  end
+
   def cast_effects_from_consumption(effects)
     Array(effects).flat_map do |raw|
       e = (raw.transform_keys(&:to_s) rescue raw)
@@ -1455,6 +1510,7 @@ post '/encounter/resolve_cast' do
   if result[:committed]
     zone = (place_spell_area_zone!(payload) rescue nil)
     result = result.merge(zone: zone) if zone
+    grant_defend_reaction!(payload) rescue nil
     Conditions.store.persist!
   end
   encounter_response(result)

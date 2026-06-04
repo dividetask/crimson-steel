@@ -42,13 +42,13 @@ export class TurnAttack {
     const choices = detail.choices || {};
     const rolls = detail.rolls || [];
     const weaponType = String(choices.action || '').split('|')[0];
-    // Defence values are "<type>|<dice>" where <type> may be "parry:<weapon>";
-    // the server's defence kind is the base type before any ':'.
-    const defenseName = String(choices.defense || 'none').split('|')[0].split(':')[0];
+    // Defence values are "<type>|<dice>" where <type> may be "parry:<weapon>"
+    // or "shield:<casterId>"; the server's defence kind is the base before ':'.
+    const defFull = String(choices.defense || 'none');
+    const defType = defFull.split('|')[0];
+    const defenseName = defType.split(':')[0];
     const atk = rolls.find((r) => r.id === 'attacker') || {};
-    const def = rolls.find((r) => r.id === 'defender');
-    const declared = def && defenseName !== 'none';
-    return {
+    const base = {
       target_id: choices.target,
       weapon_type: weaponType,
       commit: commit,
@@ -56,11 +56,27 @@ export class TurnAttack {
       // The rerolls are already on the chosen Rolls; the server only debits
       // each source's Reservoir / DM pool on commit.
       luck: CheckBuilder.luckSpends(choices),
-      attacker: { id: parseInt(container._attackerId, 10), dice: atk.dice_count, speed: atk.speed, successes: atk.successes },
+      attacker: { id: parseInt(container._attackerId, 10), dice: atk.dice_count, speed: atk.speed, successes: atk.successes }
+    };
+
+    // Shield of Faith: the shielding caster blocks as a separate Opposing Roll,
+    // spending Reservoir dice (the target's own Defense stays out).
+    if (defenseName === 'shield') {
+      const sh = rolls.find((r) => r.id === 'shield') || {};
+      return Object.assign(base, {
+        defense: { choice: 'none' },
+        shield: { id: parseInt(defType.split(':')[1], 10), dice: parseInt(defFull.split('|')[1], 10) || 0,
+                  successes: sh.successes || 0, spell_name: 'Shield of Faith' }
+      });
+    }
+
+    const def = rolls.find((r) => r.id === 'defender');
+    const declared = def && defenseName !== 'none';
+    return Object.assign(base, {
       defense: declared
         ? { choice: defenseName, id: choices.target, dice: def.dice_count, speed: def.speed || 0, successes: def.successes }
         : { choice: 'none' }
-    };
+    });
   }
 
   // First Confirm: non-mutating preview. Keep the builder; show the editable

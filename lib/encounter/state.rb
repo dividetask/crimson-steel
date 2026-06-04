@@ -652,8 +652,17 @@ module Encounter
         end
         opposing = defense[:successes].to_i
       end
+      # Shield of Faith: a third Combatant (the caster) defends the target as an
+      # extra Opposing Roll, fueled by spending Reservoir dice. Its Successes
+      # subtract from the attack like any defense; the dice come from the
+      # caster's reservoir (discharged on commit), not the Combat Pool.
+      shield = p[:shield] || {}
+      opposing += shield[:successes].to_i if shield[:id]
       pool_spends = apply_pool_override(pool_spends, over[:pool_spends])
       pool_spends.each { |s| spend_combat_pool(s[:id], s[:amount].to_i) } if commit
+      if commit && shield[:id] && shield[:dice].to_i.positive?
+        discharge_reservoir(shield[:id], (shield[:spell_name] || 'Shield of Faith').to_s, shield[:dice].to_i)
+      end
       # Debit the Luck applied to this attack. Each Luck is one reroll (applied
       # client-side already); here we only spend the source: an ally Bard's
       # Reservoir (a Reaction discharge) or the attacker's own Luck Points.
