@@ -725,7 +725,7 @@ helpers do
         tier: nil }
     ]
 
-    # Step 1 — Spell, grouped by Tier ("Tier 0 (red)" header, then that Tier's
+    # Step 1 — Spell, grouped by Tier (a Tier-colored "Tier N" header, then that Tier's
     # spells underneath). Tiers with no known spell are skipped. Picking a spell
     # sets the caster Roll's Bonuses (casting-skill Competency + the Tier's
     # inherent Bonus); the dice count is the next step.
@@ -733,7 +733,7 @@ helpers do
     spells.group_by { |sp| sp[:tier].to_i }.sort_by { |tier, _| tier }.each do |tier, group_spells|
       hdr = "tier-#{tier}-h"
       grp = "tier-#{tier}"
-      spell_opts << { kind: 'info', group: hdr, value: "#{hdr}|label", label: "Tier #{tier} (#{tier_color(tier)})" }
+      spell_opts << { kind: 'info', group: hdr, value: "#{hdr}|label", label: %(<span class="tier-#{tier}">Tier #{tier}</span>) }
       group_spells.each do |sp|
         bpl = []
         bpl << sp[:competency] if sp[:competency]
