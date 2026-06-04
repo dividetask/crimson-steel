@@ -17,6 +17,18 @@ RSpec.describe CharacterCreation, type: :model do
     end
   end
 
+  describe '.races' do
+    it 'offers only the configured playable races, in order' do
+      keys = CharacterCreation.races.map { |r| r[:key] }
+      expect(keys).to eq(%w[human elf dwarf satyr halfling])
+    end
+
+    it 'never offers abstract parent races or the half-races' do
+      keys = CharacterCreation.races.map { |r| r[:key] }
+      expect(keys).not_to include('humanoid', 'fey', 'animal', 'half_orc', 'half_elf', 'high_elf')
+    end
+  end
+
   describe '.blob classes' do
     let(:by_key) { CharacterCreation.classes.each_with_object({}) { |c, h| h[c[:key]] = c } }
 
@@ -45,7 +57,9 @@ RSpec.describe CharacterCreation, type: :model do
       expect(sel[:mode]).to eq('points')
       expect(sel[:budget]).to eq(6) # 5 + 1*1 at level 1
       tier0 = sel[:spells].find { |s| s[:tier].zero? }
-      expect(tier0[:cost]).to eq(1.5) # 1 + tier, Tier 0 -> 0.5
+      expect(tier0[:cost]).to eq(1) # 1 + tier, floored: a Tier 0 spell costs 1
+      tier1 = sel[:spells].find { |s| s[:tier] == 1 }
+      expect(tier1[:cost]).to eq(2) if tier1
     end
 
     it 'gives Sorcerers 4 * level spells of any kind' do
@@ -129,6 +143,14 @@ RSpec.describe CharacterCreation, type: :model do
       expect do
         CharacterCreation.create!('race' => 'human', 'class' => 'fighter', 'attributes' => {})
       end.to raise_error(ArgumentError, /name is required/)
+    end
+
+    it 'rejects a non-playable race (e.g. an abstract parent)' do
+      expect do
+        CharacterCreation.create!(
+          'name' => 'Y', 'race' => 'humanoid', 'class' => 'fighter', 'attributes' => {}
+        )
+      end.to raise_error(ArgumentError, /not a playable race/)
     end
 
     it 'rejects a bare Set Skill key (instance suffix required)' do

@@ -30,8 +30,10 @@ is disabled until the current step is valid.
    `cost[V+1] - cost[V]`. A badge shows Remaining Point Buy
    (`point_buy` minus the sum of every attribute's cumulative cost);
    raising past the pool or outside `[minimum, maximum]` is blocked.
-2. **Race Selection.** A card per Race (key, chain, size, speed, stat
-   adjustments, abilities). A bar shows the chosen attributes adjusted by
+2. **Race Selection.** A card per playable Race (the `Playable Races`
+   whitelist in `character_creation.yaml` — abstract parent/root races
+   are never offered). Each card shows chain, size, speed, stat
+   adjustments, and abilities. A bar shows the chosen attributes adjusted by
    the selected Race's `attribute_adjustments`, updating live on
    selection. Back returns to Attribute Allocation.
 3. **Class Selection.** A card per Class (bonus skills, mana/level,
@@ -50,7 +52,8 @@ is disabled until the current step is valid.
    - **count** — pick up to `budget` spells from the (skill-filtered)
      catalog, grouped by Tier.
    - **points** — spend a `budget` point pool; each spell costs `cost`
-     (a formula in `tier`, Tier 0 → 0.5). Unaffordable spells disable.
+     (a formula in `tier`, floored — a Tier 0 spell costs 1).
+     Unaffordable spells disable.
    - **domain** (Cleric) — pick a deity and one of its domains instead of
      individual spells; the chosen domain's spells are shown.
    Classes with `mode: auto` (Druid) or no block (non-casters) skip this

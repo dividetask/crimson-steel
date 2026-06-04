@@ -86,8 +86,19 @@ module CharacterCreation
 
   # ---- Races ----------------------------------------------------------
 
+  # The playable races offered at creation (config order). Abstract
+  # parent/root races are never selectable — they only carry shared
+  # attributes down their chains.
+  def playable_race_keys
+    Array(config['Playable Races']).map(&:to_s).select { |k| Creatures::Races.known?(k) }
+  end
+
+  def playable_race?(key)
+    playable_race_keys.include?(key.to_s)
+  end
+
   def races
-    Creatures::Races.data.keys.sort.map { |key| race_entry(key) }
+    playable_race_keys.map { |key| race_entry(key) }
   end
 
   def race_entry(key)
@@ -191,7 +202,8 @@ module CharacterCreation
 
       tier = base_tier(entry['tier'])
       item = { key: name, label: name, tier: tier }
-      item[:cost] = Creatures::Formula.eval(cost_expr, tier: formula_tier(tier)) if cost_expr
+      # Cost is floored to an integer: a Tier 0 spell costs 1, not 1.5.
+      item[:cost] = Creatures::Formula.eval(cost_expr, tier: formula_tier(tier)).floor if cost_expr
       pool << item
     end
     pool.sort_by { |s| [s[:tier], s[:label]] }
@@ -248,6 +260,11 @@ module CharacterCreation
     name = params['name'].to_s.strip
     raise ArgumentError, 'a character name is required' if name.empty?
 
+    race = params['race'].to_s
+    unless playable_race?(race)
+      raise ArgumentError, "#{race.inspect} is not a playable race"
+    end
+
     class_key = params['class'].to_s
     unless Creatures::Advancement.classes.key?(class_key)
       raise ArgumentError, "unknown class #{class_key.inspect}"
@@ -261,7 +278,7 @@ module CharacterCreation
     loose = {
       'id'         => Creatures::Dataset.next_id,
       'name'       => name,
-      'race'       => params['race'].to_s,
+      'race'       => race,
       'attributes' => build_attributes(params['attributes']),
       'tags'       => ['player_character'],
       'advancement' => {

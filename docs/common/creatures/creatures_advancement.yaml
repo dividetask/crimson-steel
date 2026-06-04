@@ -63,7 +63,8 @@ Tier Breakpoints:
 #   budget  — formula in `level` giving the point pool (points) or the
 #             number of spells (count). Evaluated at the Creature's level.
 #   cost    — points mode only: formula in `tier` for one spell's cost.
-#             Tier 0 is treated as 0.5 per the project-wide convention.
+#             The result is floored to an integer, so a Tier 0 spell
+#             costs 1 (not 1.5).
 #   filter  — which Catalog spells are selectable. `any` allows every
 #             spell; otherwise the value is a casting-skill key and a
 #             spell qualifies when one of its `skills` starts with it
