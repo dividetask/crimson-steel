@@ -75,6 +75,19 @@ module Conditions
       expired
     end
 
+    # Remove a caster's Zone Effects that have expired as of current_round —
+    # the start-of-turn auto-expiry. A caster owns a Zone Effect when its
+    # metadata `caster_id` matches. Returns the removed records so the caller
+    # can drop the paired Atlas Zones.
+    def expire_zone_effects_for(caster_id, current_round)
+      removable = @zone_effects.select do |z|
+        owner = z[:metadata] && (z[:metadata]['caster_id'] || z[:metadata][:caster_id])
+        owner.to_s == caster_id.to_s && z[:ends_on_round] && z[:ends_on_round] <= current_round
+      end
+      @zone_effects -= removable
+      removable
+    end
+
     # ---------- Reads ----------
 
     # The stored State for a Creature, or a fresh empty State when the

@@ -70,4 +70,32 @@ RSpec.describe 'Conditions::Store zone effects' do
   it 'omits zone_effects from the serialized form when there are none' do
     expect(store.to_h).not_to have_key('zone_effects')
   end
+
+  describe 'expire_zone_effects_for (start-of-turn auto-expiry)' do
+    it "removes only the caster's expired Zones as of the current round" do
+      s = store
+      s.create_zone_effect(source_id: 'mine:expired', atlas_zone_id: 1, ends_on_round: 5,
+                           metadata: { 'caster_id' => 7 })
+      s.create_zone_effect(source_id: 'mine:live', atlas_zone_id: 2, ends_on_round: 9,
+                           metadata: { 'caster_id' => 7 })
+      s.create_zone_effect(source_id: 'mine:open', atlas_zone_id: 3, ends_on_round: nil,
+                           metadata: { 'caster_id' => 7 })
+      s.create_zone_effect(source_id: 'other:expired', atlas_zone_id: 4, ends_on_round: 5,
+                           metadata: { 'caster_id' => 8 })
+
+      removed = s.expire_zone_effects_for(7, 5)
+      expect(removed.map { |z| z[:source_id] }).to eq(['mine:expired'])
+      # The live one, the open-ended one, and the other caster's all remain.
+      expect(s.list_zone_effects.map { |z| z[:source_id] })
+        .to contain_exactly('mine:live', 'mine:open', 'other:expired')
+    end
+
+    it 'matches the caster_id across string/int and survives a reload' do
+      s = store
+      s.create_zone_effect(source_id: 'z', atlas_zone_id: 1, ends_on_round: 3,
+                           metadata: { 'caster_id' => 7 })
+      reloaded = store(JSON.parse(JSON.generate(s.to_h)))
+      expect(reloaded.expire_zone_effects_for('7', 3).map { |z| z[:atlas_zone_id] }).to eq([1])
+    end
+  end
 end

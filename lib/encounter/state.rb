@@ -77,6 +77,9 @@ module Encounter
     def combatant(id)            = @combatants.find { |c| c[:id] == id }&.dup
     def excluded_pcs             = @excluded_pcs.dup
     def acting_combatant_id      = @acting_combatant_id
+    # Absolute Round number (day_index * rounds_per_day + round_of_day), or nil
+    # outside any timeline. Public so the route can expire timed Zones.
+    def current_round            = current_abs_round
     def time_ticks_per_round     = @time_ticks_per_round
     def time_tick                = @time_tick
     def elapsed_time_ticks       = @elapsed_time_ticks

@@ -914,7 +914,10 @@ helpers do
     # Area Spells (Obscuring Mist, Darkness, Web, Create Pit, Silence) carry an
     # `area` footprint placed on the map at commit time. (Aspect-list areas like
     # Grease are not auto-placed yet.)
-    spell['area'] = variant['area'] if variant && variant['area'].is_a?(Hash)
+    if variant && variant['area'].is_a?(Hash)
+      spell['area'] = variant['area']
+      spell['duration'] = variant['duration']
+    end
 
     # Damage routing for the Cast path. An attack-roll Spell resolves as a spell
     # attack — net the casting check against the target's Block / Dodge, damage
@@ -972,13 +975,55 @@ helpers do
                                      shape: area['shape'], size: area['size'],
                                      anchor: { 'type' => 'target', 'creature_id' => combatant[:creature_id] })
     return nil unless zone_id.is_a?(Integer)
+    # Expiry: the caster's casting-skill rank drives `rank`-based durations;
+    # the Zone auto-expires at the caster's start of turn once this Round passes.
+    cacc  = (Creatures.lookup(combatant_for_id_creature(caster['id'])) rescue nil)
+    rank  = (cacc&.ranks_for(spell['cast_skill']) rescue 0) || 0
+    rounds = duration_in_rounds(spell['duration'], rank)
+    ends   = rounds && encounter_state.current_round ? encounter_state.current_round + rounds : nil
     Conditions.store.create_zone_effect(
-      source_id: source_id, atlas_zone_id: zone_id,
+      source_id: source_id, atlas_zone_id: zone_id, ends_on_round: ends,
       triggers: { on_create: area['on_create'], on_enter: area['on_enter'],
-                  on_end_of_turn: area['on_end_of_turn'] }
+                  on_end_of_turn: area['on_end_of_turn'] },
+      metadata: { 'caster_id' => caster['id'] }
     )
     { source_id: source_id, atlas_zone_id: zone_id, map_id: map_id,
-      shape: area['shape'], size: area['size'] }
+      shape: area['shape'], size: area['size'], ends_on_round: ends }
+  end
+
+  # The Creature ID behind a Combatant ID (for caster lookups).
+  def combatant_for_id_creature(combatant_id)
+    c = encounter_state.combatant(combatant_id.to_i)
+    c && c[:creature_id]
+  end
+
+  # A Spell `duration` expressed in absolute Rounds, or nil when it does not
+  # convert (permanent / concentration / instant). Turns count as Rounds;
+  # minutes/hours convert via Timekeeping's Round Length (seconds per Round).
+  def duration_in_rounds(duration, rank)
+    return nil if duration.nil?
+    s = duration.to_s.strip
+    binds = { 'rank' => rank.to_i }
+    rl = (Timekeeping.config.round_length.to_f rescue 6.0)
+    rl = 6.0 if rl <= 0
+    if (m = s.match(/\A(.+?)\s+turns?\z/))
+      (Abilities::Formula.evaluate(m[1], binds).to_i rescue nil)
+    elsif (m = s.match(/\A(.+?)\s+minutes?\z/))
+      n = (Abilities::Formula.evaluate(m[1], binds).to_f rescue nil)
+      n && (n * 60 / rl).ceil
+    elsif (m = s.match(/\A(.+?)\s+hours?\z/))
+      n = (Abilities::Formula.evaluate(m[1], binds).to_f rescue nil)
+      n && (n * 3600 / rl).ceil
+    end
+  end
+
+  # Remove a caster's expired Zones at their start of turn — drop the
+  # Conditions Zone Effect and the paired Atlas Zone. Returns removed source_ids.
+  def expire_caster_zones!(combatant_id)
+    round = encounter_state.current_round or return []
+    removed = Conditions.store.expire_zone_effects_for(combatant_id, round)
+    removed.each { |z| Atlas.state.remove_zone(z[:atlas_zone_id]) if z[:atlas_zone_id] }
+    removed.map { |z| z[:source_id] }
   end
 
   def cast_effects_from_consumption(effects)
@@ -1223,6 +1268,8 @@ end
 post '/encounter/start_of_turn' do
   require_dm!
   encounter_state.resolve_start_of_turn(params[:combatant_id].to_i)
+  # Auto-expire the caster's timed Zones (spell areas) at their start of turn.
+  expire_caster_zones!(params[:combatant_id].to_i)
   Conditions.store.persist!
   redirect back || '/encounter'
 end
