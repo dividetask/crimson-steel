@@ -225,6 +225,11 @@ class CharacterCreator {
     this.renderSteps();
     this.stageEl.innerHTML = '';
     const step = this.currentStep();
+    // The running attribute totals (point-buy + racial) stay visible from
+    // the Race step onward. On the Attributes step the editable grid is
+    // the display, so the bar is omitted there to avoid duplication.
+    this._attrBarEl = null;
+    if (step !== 'attributes') this.stageEl.appendChild(this.buildAttributeBar());
     const builder = {
       attributes: () => this.buildAttributes(),
       race: () => this.buildRace(),
@@ -235,6 +240,36 @@ class CharacterCreator {
     }[step];
     this.stageEl.appendChild(builder());
     this.refreshNav();
+  }
+
+  // Persistent attribute readout shown above every step after Attributes.
+  // Values reflect the point-buy choices plus the selected Race's
+  // modifiers; the per-attribute racial delta is shown as a chip.
+  buildAttributeBar() {
+    const bar = el('div', { class: 'cc-attr-bar' });
+    this._attrBarEl = bar;
+    this.refreshAttrBar();
+    return bar;
+  }
+
+  refreshAttrBar() {
+    const bar = this._attrBarEl;
+    if (!bar) return;
+    bar.innerHTML = '';
+    bar.appendChild(el('span', { class: 'cc-attr-bar-label', text: 'Attributes' }));
+    this.blob.attributes.forEach((attr) => {
+      const adj = this.raceAdj(attr);
+      const cell = el('span', { class: 'cc-attr-cell' },
+        el('span', { class: 'cc-attr-cell-name', text: attr.toUpperCase() }),
+        el('span', { class: 'cc-attr-cell-val', text: String(this.shownAttr(attr)) }));
+      if (adj) {
+        cell.appendChild(el('span', {
+          class: 'cc-attr-cell-adj ' + (adj > 0 ? 'cc-pos' : 'cc-neg'),
+          text: (adj > 0 ? '+' : '') + adj
+        }));
+      }
+      bar.appendChild(cell);
+    });
   }
 
   renderSteps() {
@@ -341,27 +376,6 @@ class CharacterCreator {
   buildRace() {
     const wrap = el('div', { class: 'cc-section cc-race' });
 
-    const attrBar = el('div', { class: 'cc-attr-bar' });
-    const renderBar = () => {
-      attrBar.innerHTML = '';
-      attrBar.appendChild(el('span', { class: 'cc-attr-bar-label', text: 'Attributes' }));
-      this.blob.attributes.forEach((attr) => {
-        const adj = this.raceAdj(attr);
-        const cell = el('span', { class: 'cc-attr-cell' },
-          el('span', { class: 'cc-attr-cell-name', text: attr.toUpperCase() }),
-          el('span', { class: 'cc-attr-cell-val', text: String(this.shownAttr(attr)) }));
-        if (adj) {
-          cell.appendChild(el('span', {
-            class: 'cc-attr-cell-adj ' + (adj > 0 ? 'cc-pos' : 'cc-neg'),
-            text: (adj > 0 ? '+' : '') + adj
-          }));
-        }
-        attrBar.appendChild(cell);
-      });
-    };
-    renderBar();
-    wrap.appendChild(attrBar);
-
     const list = el('div', { class: 'cc-cards' });
     this.blob.races.forEach((race) => {
       const card = el('button', {
@@ -371,7 +385,7 @@ class CharacterCreator {
           this.state.raceKey = race.key;
           list.querySelectorAll('.cc-card').forEach((c) => c.classList.remove('cc-selected'));
           card.classList.add('cc-selected');
-          renderBar();
+          this.refreshAttrBar();
           this.refreshNav();
         }
       });
