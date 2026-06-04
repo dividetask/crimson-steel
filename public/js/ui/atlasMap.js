@@ -14,7 +14,26 @@
 
 const BASE_CELL = 28;          // CSS px per Map Unit at zoom factor 1.0.
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const XLINK_NS = 'http://www.w3.org/1999/xlink';
 const ENC = (s) => encodeURIComponent(s);
+
+// An SVG <pattern> wrapping one image sized to a shape's bounding box, so a
+// Zone shape filled with url(#id) shows the image clipped to the shape.
+function zonePattern(id, x, y, w, h, href) {
+  const pat = document.createElementNS(SVG_NS, 'pattern');
+  pat.setAttribute('id', id);
+  pat.setAttribute('patternUnits', 'userSpaceOnUse');
+  pat.setAttribute('x', x); pat.setAttribute('y', y);
+  pat.setAttribute('width', w); pat.setAttribute('height', h);
+  const img = document.createElementNS(SVG_NS, 'image');
+  img.setAttribute('x', x); img.setAttribute('y', y);
+  img.setAttribute('width', w); img.setAttribute('height', h);
+  img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+  img.setAttributeNS(XLINK_NS, 'href', href);
+  img.setAttribute('href', href);
+  pat.appendChild(img);
+  return pat;
+}
 
 export const AtlasMap = {
   initAll() {
@@ -148,34 +167,43 @@ class AtlasCanvas {
     svg.setAttribute('width', w);
     svg.setAttribute('height', h);
     svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    const defs = document.createElementNS(SVG_NS, 'defs');
+    svg.appendChild(defs);
     (this.snapshot.zones || []).forEach((z) => {
-      const el = this.zoneEl(z);
+      const el = this.zoneEl(z, defs);
       if (el) svg.appendChild(el);
     });
     return svg;
   }
 
-  zoneEl(z) {
+  // A Zone shape. A `texture` fills it with /images/zones/<texture>.png clipped
+  // to the shape (via an SVG pattern); without one it falls back to the solid
+  // purple fill from CSS. The image fill is set inline so it wins over the CSS.
+  zoneEl(z, defs) {
     const a = z.anchor || {};
     const cx = ((a.x || 0) + 0.5) * BASE_CELL;
     const cy = ((a.y || 0) + 0.5) * BASE_CELL;
     const size = (z.size || 0) * BASE_CELL;
-    let el;
+    let el, bx, by, bw, bh;
     if (z.shape === 'square') {
+      bx = cx - size / 2; by = cy - size / 2; bw = bh = size;
       el = document.createElementNS(SVG_NS, 'rect');
-      el.setAttribute('x', cx - size / 2);
-      el.setAttribute('y', cy - size / 2);
-      el.setAttribute('width', size);
-      el.setAttribute('height', size);
+      el.setAttribute('x', bx); el.setAttribute('y', by);
+      el.setAttribute('width', bw); el.setAttribute('height', bh);
     } else {
       // circle (default); line / cone rendering is deferred.
+      bx = cx - size; by = cy - size; bw = bh = size * 2;
       el = document.createElementNS(SVG_NS, 'circle');
-      el.setAttribute('cx', cx);
-      el.setAttribute('cy', cy);
-      el.setAttribute('r', size);
+      el.setAttribute('cx', cx); el.setAttribute('cy', cy); el.setAttribute('r', size);
     }
     el.setAttribute('class', 'atlas-zone');
     if (z.id != null) el.dataset.zoneId = z.id;
+    if (z.texture && defs) {
+      const pid = 'zone-tex-' + (z.id != null ? z.id : Math.random().toString(36).slice(2));
+      defs.appendChild(zonePattern(pid, bx, by, bw, bh, '/images/zones/' + z.texture + '.png'));
+      el.classList.add('atlas-zone-textured');
+      el.style.fill = 'url(#' + pid + ')';
+    }
     return el;
   }
 

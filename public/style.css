@@ -3321,9 +3321,13 @@ body {
   pointer-events: none;
 }
 .atlas-zone {
-  fill: rgba(108, 122, 224, 0.22);
-  stroke: rgba(108, 122, 224, 0.85);
+  fill: rgba(128, 90, 213, 0.30);          /* default: solid purple */
+  stroke: rgba(128, 90, 213, 0.85);
   stroke-width: 2;
+}
+.atlas-zone-textured {
+  /* Image fill is set inline (wins over this); keep the purple outline. */
+  stroke: rgba(128, 90, 213, 0.85);
 }
 .atlas-empty {
   position: absolute;

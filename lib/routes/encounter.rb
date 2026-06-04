@@ -973,7 +973,8 @@ helpers do
     source_id = "encounter:zone:#{spell['name']}:#{caster['id']}"
     zone_id = Atlas.state.place_zone(map_id: map_id, source_id: source_id,
                                      shape: area['shape'], size: area['size'],
-                                     anchor: { 'type' => 'target', 'creature_id' => combatant[:creature_id] })
+                                     anchor: { 'type' => 'target', 'creature_id' => combatant[:creature_id] },
+                                     texture: area['texture'])
     return nil unless zone_id.is_a?(Integer)
     # Expiry: the caster's casting-skill rank drives `rank`-based durations;
     # the Zone auto-expires at the caster's start of turn once this Round passes.
