@@ -33,13 +33,19 @@ Attribute Allocation:
     16: 12
 
 # Races a player may choose at creation, in display order. Only these
-# playable races are offered: the abstract parent/root races (humanoid,
-# fey, animal, …) exist solely to carry shared attributes down their
-# chains and are never directly selectable. (Half-Orc / Half-Elf are
-# omitted — they are slated for removal from the race catalog.)
+# playable leaf races are offered: the abstract parent/root races
+# (humanoid, dwarf, elf, gnome, …) exist solely to carry shared
+# attributes down their chains and are never directly selectable — the
+# player picks a specific sub-race (Hill Dwarf, High Elf, …) that adds
+# its own racial attribute modifiers. (Half-Orc / Half-Elf are omitted —
+# they are slated for removal from the race catalog.)
 Playable Races:
   - human
-  - elf
-  - dwarf
-  - satyr
+  - hill_dwarf
+  - mountain_dwarf
+  - high_elf
+  - wood_elf
+  - forest_gnome
+  - rock_gnome
   - halfling
+  - satyr

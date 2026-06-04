@@ -18,14 +18,31 @@ RSpec.describe CharacterCreation, type: :model do
   end
 
   describe '.races' do
-    it 'offers only the configured playable races, in order' do
+    it 'offers only the configured playable sub-races, in order' do
       keys = CharacterCreation.races.map { |r| r[:key] }
-      expect(keys).to eq(%w[human elf dwarf satyr halfling])
+      expect(keys).to eq(%w[human hill_dwarf mountain_dwarf high_elf wood_elf
+                            forest_gnome rock_gnome halfling satyr])
     end
 
     it 'never offers abstract parent races or the half-races' do
       keys = CharacterCreation.races.map { |r| r[:key] }
-      expect(keys).not_to include('humanoid', 'fey', 'animal', 'half_orc', 'half_elf', 'high_elf')
+      expect(keys).not_to include('humanoid', 'fey', 'animal', 'dwarf', 'elf', 'gnome',
+                                  'half_orc', 'half_elf')
+    end
+
+    it 'resolves each race’s accumulated attribute modifiers' do
+      by_key = CharacterCreation.races.each_with_object({}) { |r, h| h[r[:key]] = r }
+      expect(by_key['human'][:adjustments]).to eq(
+        'str' => 1, 'dex' => 1, 'con' => 1, 'int' => 1, 'wis' => 1, 'cha' => 1
+      )
+      expect(by_key['hill_dwarf'][:adjustments].select { |_, v| v != 0 }).to eq('con' => 2, 'wis' => 2)
+      expect(by_key['mountain_dwarf'][:adjustments].select { |_, v| v != 0 }).to eq('str' => 2, 'con' => 2)
+      expect(by_key['high_elf'][:adjustments].select { |_, v| v != 0 }).to eq('dex' => 2, 'int' => 2)
+      expect(by_key['wood_elf'][:adjustments].select { |_, v| v != 0 }).to eq('dex' => 2, 'wis' => 2)
+      expect(by_key['forest_gnome'][:adjustments].select { |_, v| v != 0 }).to eq('dex' => 2, 'int' => 2)
+      expect(by_key['rock_gnome'][:adjustments].select { |_, v| v != 0 }).to eq('con' => 2, 'int' => 2)
+      expect(by_key['halfling'][:adjustments].select { |_, v| v != 0 }).to eq('cha' => 2, 'dex' => 2)
+      expect(by_key['satyr'][:adjustments].select { |_, v| v != 0 }).to eq('dex' => 2, 'cha' => 2)
     end
   end
 
@@ -124,13 +141,15 @@ RSpec.describe CharacterCreation, type: :model do
       expect(a.tags).to include('player_character')
       expect(a.class_summary).to eq([['wizard', 1]])
       expect(a.base_attribute_value(:int)).to eq(16)
+      # Effective Int = base 16 + Human all:+1 racial + Tier-1 inherent +1.
+      expect(a.attribute_value(:int)).to eq(18)
       names = a.granted_abilities.map { |g| g[:name] }
       expect(names).to include('Mage Hand', 'Charm Person')
     end
 
     it 'records a deity / domain for the Cleric domain flow' do
       id = CharacterCreation.create!(
-        'name' => 'Brother Vael', 'race' => 'dwarf', 'class' => 'cleric',
+        'name' => 'Brother Vael', 'race' => 'hill_dwarf', 'class' => 'cleric',
         'attributes' => { 'str' => 12, 'dex' => 10, 'con' => 14, 'int' => 10, 'wis' => 15, 'cha' => 13 },
         'skills' => %w[healing religion], 'deity' => 'Grull', 'domain' => 'War'
       )
