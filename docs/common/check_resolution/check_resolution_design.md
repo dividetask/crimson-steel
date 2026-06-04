@@ -88,18 +88,18 @@ When `opposing_roll_list` is empty, no Opposing Roll exists to propagate from, a
 
 ### Tier Mismatch (Ascendancy)
 
-After cross-side propagation, each Roll that carries a `tier` gains its **Ascendancy** modifier — `±2 × Δ` against the opposing primary Roll's `tier` (Bonus when higher-Tier, Penalty when lower; Tier 0 counts as 0.5, floored) — appended to its `bonus_penalty_list`. This runs *after* propagation precisely so the Ascendancy entry is not inverted back onto the other side: each side derives its own modifier directly from the two Tiers. A Roll without a `tier`, or with no opposing Tier, gets nothing — this is the opt-in seam that scopes Ascendancy to **combat**: only the attack and cast builders stamp `tier` on their Rolls, so opposed *skill* checks (whose builders leave `tier` unset) get no Ascendancy. This is the Check-side half of the Tier Mismatch rule defined in `../encounter/encounter_design.md`; the Inherent damage-reduction half is applied server-side at damage time.
+After cross-side propagation, each Roll that carries a `tier` gains its **Ascendancy** modifier — `±2 × Δ` against the opposing `tier` (Bonus when higher-Tier, Penalty when lower; Tier 0 counts as 0.5, floored) — appended to its `bonus_penalty_list`. The **initiating** Roll (the attacker / caster) takes its Ascendancy against **every** Opposing Roll, so an area cast picks up the Bonus against each lower-Tier creature it catches (per-Type stacking then surfaces the strongest); supporting allies and each Opposer pair with the primary Roll on the far side. This runs *after* propagation precisely so the Ascendancy entry is not inverted back onto the other side: each side derives its own modifier directly from the two Tiers. A Roll without a `tier`, or with no opposing Tier, gets nothing — this is the opt-in seam that scopes Ascendancy to **combat**: only the attack and cast builders stamp `tier` on their Rolls, so opposed *skill* checks (whose builders leave `tier` unset) get no Ascendancy. This is the Check-side half of the Tier Mismatch rule defined in `../encounter/encounter_design.md`; the Inherent damage-reduction half is applied server-side at damage time.
 
 ### Spread Check (area effects)
 
 A Check flagged `spread: true` models an **area effect**: one Supporting side (the caster, plus any supports) opposed by *N independent* Opposing Rolls — every creature caught in the spell's footprint makes its own Save. **None of the Opposers is the singular Target / Defending Roll**; they are peers, each opposed only to the caster.
 
-Spread changes both composition and aggregation:
+A Spread Check **prepares exactly like any other** (the standard bidirectional cross-side propagation, then Tier Mismatch) — it only **aggregates differently**:
 
-- **Propagation is one-directional.** Every Supporting Roll's `bonus_penalty_list` inverts onto **each** Opposing Roll (the casting check opposes every Save), but the Opposers never propagate back onto the caster — the caster Rolls once and is then compared to each Opposer. Each Opposing Roll also gains its own **Tier Mismatch Ascendancy** versus the caster; the caster's Roll, being shared, takes none.
+- **Preparation is bidirectional**, so the caster and every Opposer exchange bonuses: the caster's casting bonuses (Competency, the Spell's Inherent, …) invert onto **each** caught creature's Save, and every Opposer's bonuses invert back onto the caster. The **initiating Roll takes its Tier Mismatch Ascendancy against every Opposer** (per-Type stacking later surfaces the strongest), and each Opposer takes its Ascendancy against the caster — so a caster who out-Tiers a caught creature gets the Bonus against it while that creature takes the Penalty, both ways.
 - **Resolution is per-Opposer.** The Supporting side resolves once into a single Supporting DoIS total; each Opposing Roll then resolves and nets independently: `degree_of_success_i = Σ Supporting DoIS − Opposer_i DoIS`, classified into its own Outcome. There is **no single Check-level Degree of Success** — the result is one Outcome per caught creature.
 
-A non-spread Check is unchanged (bidirectional propagation, pooled `Σ Supporting − Σ Opposing`).
+A non-spread Check uses the same preparation but the pooled aggregation `Σ Supporting − Σ Opposing`.
 
 ### Check Outcome classification
 

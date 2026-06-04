@@ -12,38 +12,12 @@ import { Roll } from './roll.js';
 export class CheckResolution {
   // Cross-side Propagation followed by the Tier Mismatch Ascendancy
   // modifier. Tier Mismatch runs AFTER Propagation so its Ascendancy entry
-  // is not itself inverted onto the other side.
+  // is not itself inverted onto the other side. A Spread (area) Check uses
+  // the same bidirectional preparation — the caster and every Opposer
+  // exchange bonuses, and the caster takes its Ascendancy against each — and
+  // differs only in how `resolveCheck` aggregates (per-Opposer, below).
   static prepare(check) {
-    if (check.spread) return CheckResolution.prepareSpread(check);
     return TierMismatch.apply(Propagation.apply(check));
-  }
-
-  // Spread (area effect): one Supporting side (the caster + any supports)
-  // opposed by N *independent* Opposing Rolls — every creature caught in the
-  // area, each making its own Save. None is the singular Target/Defending
-  // Roll. Propagation is one-directional: every Supporting Roll's bonuses
-  // invert onto EACH Opposing Roll (the casting check opposes every Save), but
-  // the Opposers never pool back onto the caster (the caster Rolls once, then
-  // is compared to each Opposer). Each Opposer also gets its Tier Mismatch
-  // Ascendancy versus the caster.
-  static prepareSpread(check) {
-    const supporting = check.supporting || [];
-    const opposing = check.opposing || [];
-    const caster = supporting[0] || null;
-    const opposingResults = opposing.map((roll) => {
-      if (!roll) return roll;
-      const bpl = (roll.bonusPenaltyList || []).slice();
-      for (const s of supporting) {
-        if (!s) continue;
-        for (const [type, value] of s.bonusPenaltyList || []) bpl.push([type, -value]);
-      }
-      const asc = caster ? TierMismatch.ascendancyModifier(roll.tier, caster.tier) : null;
-      if (asc) bpl.push(asc);
-      return { ...roll, bonusPenaltyList: bpl };
-    });
-    // Supporting Rolls are untouched (the area's Opposers do not modify the
-    // caster). They keep their own bonuses verbatim.
-    return { supporting: supporting.map((r) => (r ? { ...r } : r)), opposing: opposingResults };
   }
   // Pure preview: per-Roll { tn, startingValue } after propagation. No
   // dice rolled. Lists align with the input lists.

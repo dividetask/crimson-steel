@@ -42,7 +42,11 @@ export class TierMismatch {
 
   // Append each Roll's Ascendancy entry, measured against the opposing
   // side's primary (initiating / defending) Roll's tier — mirroring the
-  // pairing used by Propagation. Returns a copy; input is not mutated.
+  // pairing used by Propagation. The **initiating** Roll (the attacker /
+  // caster) opposes *every* Opposer, so an area cast picks up its Ascendancy
+  // against each creature it catches (per-Type stacking later surfaces the
+  // strongest). Supporting allies pair with the primary defender. Returns a
+  // copy; input is not mutated.
   static apply(check) {
     const supporting = check.supporting || [];
     const opposing = check.opposing || [];
@@ -50,14 +54,24 @@ export class TierMismatch {
     const defending = opposing[0] || null;
 
     const extend = (roll, opponent) => {
+      if (!roll || !opponent) return roll;
+      const mod = TierMismatch.ascendancyModifier(roll.tier, opponent.tier);
+      return mod ? { ...roll, bonusPenaltyList: (roll.bonusPenaltyList || []).concat([mod]) } : roll;
+    };
+    const extendEach = (roll, opponents) => {
       if (!roll) return roll;
-      const mod = opponent ? TierMismatch.ascendancyModifier(roll.tier, opponent.tier) : null;
-      if (!mod) return roll;
-      return { ...roll, bonusPenaltyList: (roll.bonusPenaltyList || []).concat([mod]) };
+      let bpl = roll.bonusPenaltyList || [];
+      let added = false;
+      opponents.forEach((o) => {
+        if (!o) return;
+        const mod = TierMismatch.ascendancyModifier(roll.tier, o.tier);
+        if (mod) { bpl = bpl.concat([mod]); added = true; }
+      });
+      return added ? { ...roll, bonusPenaltyList: bpl } : roll;
     };
 
     return {
-      supporting: supporting.map((roll) => extend(roll, defending)),
+      supporting: supporting.map((roll, i) => (i === 0 ? extendEach(roll, opposing) : extend(roll, defending))),
       opposing: opposing.map((roll) => extend(roll, initiating)),
     };
   }
