@@ -14,6 +14,12 @@ module Encounter
     DATA_PATH    = File.expand_path('../../data/encounter_data.json', __dir__)
     EXAMPLE_PATH = File.expand_path('../../docs/common/encounter/encounter_data.example.json', __dir__)
 
+    # The Encounter Phases the DM picks between from the menu dropdown.
+    # Purely a view selector for the Encounter page (see encounter route /
+    # encounter.erb) — it does not start or stop Combat mechanics.
+    PHASES         = %i[combat looting traveling social downtime].freeze
+    DEFAULT_PHASE  = :downtime
+
     attr_reader :data_path
 
     def self.load(data_path: DATA_PATH, example_path: EXAMPLE_PATH, **opts)
@@ -45,6 +51,10 @@ module Encounter
       @acting_combatant_id = raw['acting_combatant_id']
       @granted_actions     = (raw['granted_actions'] || []).map { |g| symbolize(g) }
       @dm_luck_points      = Integer(raw['dm_luck_points'] || 0)
+      # The Encounter Phase: a pure DM-set view selector (it does not drive
+      # Combat mechanics) that decides which stubs the Encounter page shows.
+      # See PHASES. Defaults to :downtime.
+      @phase               = normalize_phase(raw['phase'])
     end
 
     # ---------- Snapshot / persistence ----------
@@ -60,7 +70,8 @@ module Encounter
         'elapsed_time_ticks'   => @elapsed_time_ticks,
         'acting_combatant_id'  => @acting_combatant_id,
         'granted_actions'      => @granted_actions.map { |g| stringify(g) },
-        'dm_luck_points'       => @dm_luck_points
+        'dm_luck_points'       => @dm_luck_points,
+        'phase'                => @phase.to_s
       }
     end
 
@@ -82,6 +93,7 @@ module Encounter
     def elapsed_time_ticks       = @elapsed_time_ticks
     def dm_luck_points           = @dm_luck_points
     def granted_actions          = @granted_actions.map(&:dup)
+    def phase                    = @phase
 
     def combatant_ids_for_creature(creature_id)
       cid = creature_id.to_s
@@ -179,6 +191,20 @@ module Encounter
         added << cid
       end
       added
+    end
+
+    # ---------- Encounter Phase ----------
+
+    # Set the Encounter Phase (the DM's menu dropdown). Ignores an
+    # unrecognized value, leaving the current Phase in place. Returns the
+    # Phase in effect after the call.
+    def set_phase(value)
+      p = value.to_s.to_sym
+      if PHASES.include?(p)
+        @phase = p
+        persist!
+      end
+      @phase
     end
 
     # ---------- Combat lifecycle ----------
@@ -1711,6 +1737,13 @@ module Encounter
 
     def symbolize(h)
       h.respond_to?(:transform_keys) ? h.transform_keys(&:to_sym) : h
+    end
+
+    # Coerce a persisted / supplied Phase to a known symbol, falling back
+    # to the default when absent or unrecognized.
+    def normalize_phase(value)
+      p = value.to_s.to_sym
+      PHASES.include?(p) ? p : DEFAULT_PHASE
     end
 
     def stringify(h)

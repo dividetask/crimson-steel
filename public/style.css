@@ -40,8 +40,34 @@ body {
   text-decoration: underline;
 }
 
-.view-as-form {
+/* Encounter Phase selector (nav, DM-only). Sits just before View As and
+ * pushes the right-hand controls over. */
+.phase-form {
   margin-left: auto;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.phase-label {
+  color: #ccc;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.phase-select {
+  background: #222;
+  color: #fff;
+  border: 1px solid #555;
+  padding: 3px 6px;
+  font-size: 11px;
+}
+
+.phase-set { margin-left: 6px; }
+
+.view-as-form {
   margin-right: 12px;
 }
 
@@ -3497,3 +3523,90 @@ body {
   pointer-events: none;
 }
 .atlas-place-armed[hidden] { display: none; }
+
+/* ===== Post-Combat Cleanup + Loot Pile stubs ======================== *
+ * equipment_post_combat_creatures_stub.md / equipment_loot_pile_stub.md.
+ * The post-combat panel loots and clears a fight's enemies; the loot pile
+ * (styled like the Inventory stub's card grid) distributes the gear. */
+.pcc-stub {
+  margin-top: 28px;
+  border-top: 2px solid #b9472c;
+  padding-top: 12px;
+}
+.pcc-title { margin: 0 0 12px; }
+.pcc-empty { color: #94a3b8; font-size: 13px; }
+
+/* Post-Combat Cleanup: a list — Name + Loot/Ignore + Delete/Keep toggle
+ * buttons per row — beside a single combined preview of the loot the
+ * current selection will gather. */
+.pcc-body { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 12px; max-width: 620px; }
+.pcc-list { list-style: none; margin: 0; padding: 0; flex: 1 1 auto; }
+.pcc-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.pcc-name { font-weight: 700; min-width: 110px; }
+
+/* Single toggle button: a hidden checkbox with the label drawn via CSS.
+ * Sized to match the note cards' Public / Active tags. Default (unchecked)
+ * is the crimson Loot / Delete action; checked flips to the muted Ignore /
+ * Keep. */
+.pcc-btn {
+  display: inline-block;
+  min-width: 54px;
+  text-align: center;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border: 1px solid #9a3a23;
+  background: #b9472c;
+  color: #fff;
+  border-radius: 9999px;
+  cursor: pointer;
+  user-select: none;
+}
+.pcc-btn input { position: absolute; opacity: 0; pointer-events: none; }
+.pcc-btn:has(input:checked) { background: #e2e8f0; color: #475569; border-color: #cbd5e1; }
+.pcc-btn:has(input:focus-visible) { outline: 2px solid #2563eb; }
+.pcc-loot-btn::after { content: "Loot"; }
+.pcc-loot-btn:has(input:checked)::after { content: "Ignore"; }
+.pcc-del-btn::after  { content: "Delete"; }
+.pcc-del-btn:has(input:checked)::after { content: "Keep"; }
+
+/* Combined loot preview (right side). */
+.pcc-loot { flex: 0 0 auto; text-align: right; font-size: 13px; }
+.pcc-loot-list { list-style: none; margin: 0; padding: 0; color: #2563eb; }
+.pcc-loot-none { color: #94a3b8; }
+.pcc-loot-random { color: #94a3b8; font-style: italic; }
+
+/* Loot pile: Inventory-style cards. The Sell Pile/Discard flag sits on the
+ * name line (right-aligned) so the quantity + Claim + Give fit on one row. */
+.loot-name-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.loot-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.loot-actions { flex-wrap: nowrap; }
+.loot-give-select { padding: 3px 5px; font-size: 12px; min-width: 0; max-width: 130px; }
+.loot-controls { display: flex; gap: 8px; margin-top: 14px; }
+
+/* Sell Pile / Discard flag — a hidden checkbox drawn as a pill toggle
+ * (matching the note cards' tags). Default (unchecked) is Sell Pile;
+ * checked flips to Discard. */
+.loot-flag-btn {
+  display: inline-block;
+  min-width: 70px;
+  text-align: center;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-radius: 9999px;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid #93c5fd;
+  background: #dbeafe;
+  color: #1e40af;
+}
+.loot-flag-btn input { position: absolute; opacity: 0; pointer-events: none; }
+.loot-flag-btn::after { content: "Sell Pile"; }
+.loot-flag-btn:has(input:checked) { border-color: #fca5a5; background: #fee2e2; color: #991b1b; }
+.loot-flag-btn:has(input:checked)::after { content: "Discard"; }
+.loot-flag-btn:has(input:focus-visible) { outline: 2px solid #2563eb; }

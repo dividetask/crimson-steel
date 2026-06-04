@@ -203,7 +203,7 @@ Conditions, Combat, and Abilities are mocked as recorded-call stubs. A test asse
 - `creature:goblin_a` Inventory: `[{Short sword, quantity: 1, equipped: true}, {Gold, quantity: 3}]`.
 - `creature:goblin_b` Inventory: `[{Dagger, quantity: 1, equipped: true}, {Silver, quantity: 10}]`.
 
-*Collect Combat Loot* produces Ground Pile Owner `ground:combat_<id>` with Inventory `[{Short sword, quantity: 1}, {Gold, quantity: 3}, {Dagger, quantity: 1}, {Silver, quantity: 10}]`. The two goblin Inventories are emptied (Stacks moved are removed via *Remove Item* and *Cleanup* ed). The player character is untouched.
+*Collect Combat Loot* with `location: map_7` produces Ground Pile Owner `ground:map_7` with Inventory `[{Short sword, quantity: 1}, {Gold, quantity: 3}, {Dagger, quantity: 1}, {Silver, quantity: 10}]`. The two goblin Inventories are emptied (Stacks moved are removed via *Remove Item* and *Cleanup* ed). The player character is untouched.
 
 **Ally entries are skipped entirely.** With the same hand-off, *Collect Combat Loot* never reads `creature:pc_1`'s Inventory and never calls the player character's Loot Table.
 

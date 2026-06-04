@@ -91,6 +91,27 @@ get '/encounter' do
   @atlas_active_id = Atlas.state.active_map_id
   @atlas_placeable = atlas_placeable_combatants
 
+  # Encounter Phase (the DM's menu dropdown) — the view selector that
+  # decides which stubs render below. See encounter.erb.
+  @phase = @encounter_state.phase
+
+  # Post-combat cleanup (equipment_post_combat_creatures_stub.md): DM-only,
+  # shown in the Looting Phase whenever non-PC Combatants are still on the
+  # roster (the just-ended fight's enemies). Loots + clears them on Confirm.
+  @post_combat_rows = (@viewer == :dm && @phase == :looting) ? post_combat_rows : []
+
+  # Loot pile (equipment_loot_pile_stub.md): both viewers, in the Looting
+  # Phase, against the active Map's Ground Pile. Players get a Claim button
+  # (to their own Creature); everyone gets a Give dropdown over the combat
+  # participants. The DM has no viewing Creature, so no Claim.
+  if @phase == :looting
+    @loot_pile              = loot_pile_view(combat_pile_owner)
+    @loot_give_options      = combat_creature_options
+    @loot_claim_creature_id = viewing_creature_id
+  else
+    @loot_pile = nil
+  end
+
   erb :encounter
 end
 
@@ -124,6 +145,107 @@ helpers do
 
   def encounter_error(status, msg)
     [status, { 'Content-Type' => 'application/json' }, JSON.generate(ok: false, error: msg)]
+  end
+
+  # ---- Looting (post-combat creatures + loot pile stubs) -------------
+  #
+  # equipment_post_combat_creatures_stub.md / equipment_loot_pile_stub.md.
+  # Both stubs are shown only in the Looting Phase. The post-combat stub
+  # (DM-only) loots and clears the non-PC Combatants into the active Map's
+  # Ground Pile; the loot-pile stub (DM + players) distributes that pile.
+
+  # The Ground Pile location for the active Map (e.g. "map_3"), or nil
+  # when no Map is active. The pile is named after the Map, so loot left
+  # unlooted when the party changes Maps is no longer surfaced.
+  def loot_pile_location
+    id = Atlas.state.active_map_id
+    id.nil? ? nil : "map_#{id}"
+  end
+
+  # The Ground Pile Owner ID for the active Map's loot pile, or nil when
+  # no Map is active.
+  def combat_pile_owner
+    loc = loot_pile_location
+    loc.nil? ? nil : "ground:#{loc}"
+  end
+
+  # The non-PC Combatants of the current roster — every Combatant whose
+  # Creature is not tagged player_character. These are the rows the
+  # post-combat cleanup stub offers to loot and delete, each carrying a
+  # preview of the gear it would hand over (its current Inventory; a
+  # loot_table adds random items on top). A dangling creature_id (record
+  # lost on restart) is skipped.
+  def post_combat_rows
+    cat  = Equipment.catalog
+    inst = Equipment.instance
+    encounter_state.combatants.filter_map do |c|
+      acc = Creatures.lookup(c[:creature_id]) rescue nil
+      next unless acc
+      next if Array(acc.tags).include?('player_character')
+      inv = inst.get_inventory("creature:#{c[:creature_id]}")
+      { combatant_id: c[:id],
+        creature_id:  c[:creature_id],
+        name:         tracker_name(c),
+        loot_table:   acc.record[:loot_table],
+        loot:         inv.map { |s| { name: Equipment::DisplayName.call(s, cat), quantity: s.quantity } } }
+    end
+  end
+
+  # Aggregate the loot every row would contribute into one list (quantities
+  # summed by name, first-seen order), plus whether any contributor rolls a
+  # Loot Table. The stub server-renders this for the default (all rows set
+  # to Loot); postCombatLoot.js refines it live as the toggles change.
+  def combine_loot(rows)
+    totals = {}
+    order  = []
+    rows.each do |r|
+      r[:loot].each do |it|
+        order << it[:name] unless totals.key?(it[:name])
+        totals[it[:name]] = totals.fetch(it[:name], 0) + it[:quantity]
+      end
+    end
+    { items:  order.map { |n| { name: n, quantity: totals[n] } },
+      random: rows.any? { |r| r[:loot_table] } }
+  end
+
+  # The loot-pile view model for a Ground Pile, or nil when the pile has
+  # nothing to show (nothing looted yet, or it was fully distributed —
+  # Equipment's Cleanup deletes a pile the moment it empties, so an empty
+  # Inventory means the pile is gone). One card per Stack, styled like the
+  # Inventory stub: index (the action ref), display name, icon, quantity.
+  def loot_pile_view(pile_owner_id)
+    return nil if pile_owner_id.nil?
+    inst  = Equipment.instance
+    stacks = inst.get_inventory(pile_owner_id)
+    return nil if stacks.nil? || stacks.empty?
+    cat = Equipment.catalog
+    rows = stacks.each_with_index.map do |stack, i|
+      { ref:      i,
+        name:     Equipment::DisplayName.call(stack, cat),
+        icon:     item_icon_web_path(stack.item_type),
+        quantity: stack.quantity }
+    end
+    { owner_id: pile_owner_id, rows: rows }
+  end
+
+  # The Creatures that were involved in this combat — the current Combatant
+  # roster, deduped by Creature ID — used to populate the loot "Give"
+  # dropdown. A dangling creature_id (record lost on restart) is skipped.
+  def combat_creature_options
+    seen = {}
+    encounter_state.combatants.each do |c|
+      next if seen.key?(c[:creature_id])
+      acc = Creatures.lookup(c[:creature_id]) rescue nil
+      next unless acc
+      seen[c[:creature_id]] = acc.name
+    end
+    seen.map { |id, name| { id: id, name: name } }
+  end
+
+  # Whether a Creature ID is one of the combat participants (a valid "Give"
+  # target). Never trust a posted creature id without this check.
+  def combat_creature?(creature_id)
+    combat_creature_options.any? { |c| c[:id].to_s == creature_id.to_s }
   end
 
   # Build the JSON snapshot the JS uses to update the sidebar row.
@@ -1123,6 +1245,109 @@ end
 post '/encounter/end_combat' do
   require_dm!
   encounter_state.end_combat
+  redirect back || '/encounter'
+end
+
+# Set the Encounter Phase (the DM's menu dropdown). A pure view selector —
+# it changes which stubs the Encounter page shows and nothing else (it does
+# not start or stop Combat mechanics). DM-only.
+post '/encounter/set_phase' do
+  require_dm!
+  encounter_state.set_phase(params[:phase])
+  redirect back || '/encounter'
+end
+
+# Post-Combat Cleanup (equipment_post_combat_creatures_stub.md). DM-only.
+# For each non-PC Combatant the DM left on "Loot", move its Inventory (and
+# any rolled Loot Table) into the combat Ground Pile via Equipment's
+# *Collect Combat Loot*; for each left on "Delete", remove the Combatant
+# and delete the Creature record. Rows toggled to Ignore / Keep are
+# untouched. The pile that results is rendered by the loot-pile stub.
+post '/encounter/post_combat_cleanup' do
+  require_dm!
+  rows     = post_combat_rows
+  location = loot_pile_location
+
+  loot_entries = rows.filter_map do |row|
+    next unless params["loot_#{row[:combatant_id]}"].to_s != 'ignore'
+    entry = { combatant_id: row[:combatant_id], creature_id: row[:creature_id], ally: false }
+    entry[:loot_table] = row[:loot_table] if row[:loot_table]
+    entry
+  end
+
+  # Collect first (reads the Creatures' Inventories), then delete — so a
+  # looted-and-deleted Creature still hands over its gear. Loot is gathered
+  # into the active Map's Ground Pile; without an active Map there is
+  # nowhere to pile it, so we only delete.
+  Equipment.instance.collect_combat_loot(loot_entries, location: location) if location && !loot_entries.empty?
+
+  rows.each do |row|
+    next if params["delete_#{row[:combatant_id]}"].to_s == 'keep'
+    encounter_state.remove_combatant(row[:combatant_id])
+    Creatures.delete(row[:creature_id]) rescue nil
+  end
+
+  redirect back || '/encounter'
+end
+
+# Loot (equipment_loot_pile_stub.md → the bottom "Loot" button). DM and
+# players. Each pile Stack carries a `flag_<ref>` checkbox: when set to
+# "discard" the Stack stays on the pile; otherwise it goes to the Party's
+# Sell Pile. Runs Equipment's *Distribute Loot Pile* (party / skip), which
+# transfers the Sell-Pile Stacks and cleans the pile up if it empties.
+post '/encounter/loot_pile/loot' do
+  pile = params[:pile_owner_id].to_s
+  inst = Equipment.instance
+  stacks = inst.get_inventory(pile)
+  unless pile.empty? || stacks.nil? || stacks.empty?
+    assignments = stacks.each_index.map do |i|
+      keep = params["flag_#{i}"].to_s == 'discard'
+      { stack_ref: i, target_owner_id: keep ? 'skip' : 'party' }
+    end
+    inst.distribute_loot_pile(pile, assignments)
+  end
+  redirect back || '/encounter'
+end
+
+# Claim (equipment_loot_pile_stub.md → per-item Claim, players only). Move
+# the quantity in that Stack's box from the pile to the viewing player's
+# own Creature. The DM has no viewing Creature, so this is a no-op for them.
+post '/encounter/loot_pile/claim' do
+  cid  = viewing_creature_id
+  pile = params[:pile_owner_id].to_s
+  idx  = params[:index].to_i
+  inst = Equipment.instance
+  stack = inst.get_inventory(pile)[idx]
+  if cid && stack
+    qty = inventory_quantity(params["qty_#{idx}"], stack.quantity)
+    inst.transfer_stack(pile, "creature:#{cid}", idx, quantity: qty)
+    inst.cleanup(pile)
+  end
+  redirect back || '/encounter'
+end
+
+# Give (equipment_loot_pile_stub.md → per-item Give). Move the quantity in
+# that Stack's box from the pile to the combat Creature chosen in that
+# Stack's dropdown. The target must be a combat participant.
+post '/encounter/loot_pile/give' do
+  pile   = params[:pile_owner_id].to_s
+  idx    = params[:index].to_i
+  target = params["give_#{idx}"].to_s
+  inst   = Equipment.instance
+  stack  = inst.get_inventory(pile)[idx]
+  if stack && combat_creature?(target)
+    qty = inventory_quantity(params["qty_#{idx}"], stack.quantity)
+    inst.transfer_stack(pile, "creature:#{target}", idx, quantity: qty)
+    inst.cleanup(pile)
+  end
+  redirect back || '/encounter'
+end
+
+# Delete Pile (equipment_loot_pile_stub.md → Delete Pile). DM-only.
+# Discards the pile and any remaining (e.g. Skipped) Stacks wholesale.
+post '/encounter/loot_pile/delete' do
+  require_dm!
+  Equipment.instance.delete_ground_pile(params[:pile_owner_id].to_s)
   redirect back || '/encounter'
 end
 

@@ -277,20 +277,20 @@ Returns: the generated Item Stack.
 
 ### Collect Combat Loot
 
-Inputs: a list of Combat Loot Entries — `{combatant_id, creature_id, ally}`.
+Inputs: a list of Combat Loot Entries — `{combatant_id, creature_id, ally}` — plus a `location` (the Ground Pile location to gather into).
 
 Behavior:
 1. For each entry with `ally: false`:
    a. Read the Combatant's Inventory via *Get Inventory* against `creature:<creature_id>`.
    b. If the Creature Reference declares a `loot_table`, *Roll Loot Table* against it and collect the resulting Stacks.
-   c. Move every Stack from the Combatant's Inventory plus the rolled Stacks into a Ground Pile Owner with `owner_id = "ground:combat_<id>"`. Stack Identity governs merging on the destination side. Currency Stacks are moved too.
+   c. Move every Stack from the Combatant's Inventory plus the rolled Stacks into a Ground Pile Owner with `owner_id = "ground:<location>"`. Stack Identity governs merging on the destination side. Currency Stacks are moved too.
    d. Empty the source Inventory of every moved Stack (via *Remove Item*).
 2. Persist the Ground Pile to `loot.yaml`.
 3. Entries with `ally: true` are skipped entirely — no Inventory read, no Loot Table roll.
 
 Returns: the Ground Pile Owner ID. When no non-ally entries exist, no Ground Pile is created and the result is `null`.
 
-The Combatant ID supplied here is opaque — Equipment uses it only to construct the Ground Pile's location key.
+The `location` is supplied by the caller — Crimson Steel's Encounter passes the active Map (`map_<map_id>`), so loot the party leaves behind when it moves to a new Map is no longer surfaced (the next Map has its own pile).
 
 ### Drop Stack
 

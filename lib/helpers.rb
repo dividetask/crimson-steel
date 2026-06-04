@@ -21,6 +21,21 @@ helpers do
           &.ip_address || '127.0.0.1'
   end
 
+  # The Encounter Phase options for the DM's menu dropdown, as
+  # [symbol, label] pairs in the order they appear.
+  def encounter_phases
+    [[:combat,    'Combat'],
+     [:looting,   'Looting'],
+     [:traveling, 'Traveling'],
+     [:social,    'Social Encounter'],
+     [:downtime,  'Downtime']]
+  end
+
+  # The Phase currently in effect (drives which Encounter stubs show).
+  def current_encounter_phase
+    Encounter.state.phase
+  end
+
   def menu_items
     [
       { label: 'Home',             href: '/',                 dm_only: false },

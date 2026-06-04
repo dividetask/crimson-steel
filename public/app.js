@@ -10,6 +10,13 @@ import { TurnAttack } from './js/ui/turnAttack.js';
 import { AtlasMap } from './js/ui/atlasMap.js';
 import { TurnCast } from './js/ui/turnCast.js';
 import { TurnSpecial } from './js/ui/turnSpecial.js';
+import { LootPile } from './js/ui/lootPile.js';
+import { PostCombatLoot } from './js/ui/postCombatLoot.js';
+
+// Loot Pile: confirm the DM's Delete Pile before it submits.
+document.addEventListener('submit', function (e) {
+  LootPile.handleConfirmSubmit(e);
+});
 
 document.addEventListener('click', function (e) {
   const badge = e.target.closest('.mod-badge');
@@ -304,11 +311,15 @@ document.addEventListener('change', function (e) {
 
   document.addEventListener('DOMContentLoaded', restoreRosterGroups);
   document.addEventListener('DOMContentLoaded', AtlasMap.initAll);
+  document.addEventListener('DOMContentLoaded', LootPile.initAll);
+  document.addEventListener('DOMContentLoaded', PostCombatLoot.initAll);
   // Also run immediately in case the script tag is at the bottom and
   // DOMContentLoaded already fired.
   if (document.readyState === 'interactive' || document.readyState === 'complete') {
     restoreRosterGroups();
     AtlasMap.initAll();
+    LootPile.initAll();
+    PostCombatLoot.initAll();
   }
 
   document.addEventListener('toggle', function (e) {

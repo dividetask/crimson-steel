@@ -10,6 +10,7 @@ The bar has two regions:
 
 1. **Menu items** (left) — the links listed in the next section, in the listed order.
 2. **Right-aligned group** — pushed to the far right of the bar, in this order:
+   - **Encounter Phase selector** (DM only) — a dropdown, immediately to the left of the View-As toggle, that sets the Encounter Phase: `Combat`, `Looting`, `Traveling`, `Social Encounter`, or `Downtime`. It is a pure view selector — it only changes which stubs the Encounter page shows (see the Encounter page entry below) and does **not** start or stop Combat mechanics. Changing it takes effect immediately. The Phase persists with the Encounter and defaults to `Downtime`. Players never see this dropdown.
    - **View-As toggle** (DM only) — When the DM is currently viewing the site as a DM, the button reads `View As Player`; pressing it switches the session to the player view and the button label flips to `View As DM`. Pressing it again returns to the DM view. Players never see this button.
    - **Server address** — the server's IP address (and port, if non-default), shown as plain text at the far-right edge of the bar, immediately to the right of the View-As toggle.
 
@@ -39,7 +40,7 @@ Each page is listed with a short description and its access rule. Detailed page 
 | Page              | URL                | Description                                                                 | Access     |
 |-------------------|--------------------|-----------------------------------------------------------------------------|------------|
 | Character Sheets  | `/character-sheets`| Per-character sheets for the party. The default landing page.               | DM + Player |
-| Encounter         | `/encounter`       | What is happening right now — timekeeping, the Combat Tracker (initiative), and the active scene's notes. The Combat Tracker is hidden from players until Combat starts; the notes are hidden from players once Combat starts. | DM + Player |
+| Encounter         | `/encounter`       | What is happening right now. Which stubs are shown is driven by the DM's Encounter Phase selector (see the menu bar above): **Combat** hides the Advance Time control and shows the Combat Tracker (initiative) + Atlas map (both to players too), with the scene notes shown to the DM only; **Looting** shows only the loot stubs (the DM also sees the notes underneath); **Traveling / Social Encounter / Downtime** show only the notes plus the DM's Advance Time control. | DM + Player |
 | Store             | `/store`           | Provision Creatures with gear — the Equipment Provision Stub (Weapons, Armor, Alchemy). A recipient that is a Player Character is charged (its own wealth first, then the Party); non-PCs are provisioned free. Enemies are hidden from players. | DM + Player |
 | Notes             | `/notes`           | Shared and per-character game notes.                                        | DM + Player |
 | Social            | `/social`          | Social-encounter information.                                               | DM + Player |

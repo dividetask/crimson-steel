@@ -78,6 +78,7 @@ One entry per Long Cast a Combatant is currently performing. Tracked separately 
 | `granted_actions` | list of Granted Action | |
 | `dm_luck_points` | integer | Cleared only at *End Combat*. |
 | `excluded_pcs` | list of Creature ID | PCs the consuming project should **not** auto-add to this Combat at render time. See *Player Characters always belong in active Combat* under *Start Combat*. Persisted across End/Start cycles so "Pippin is sitting this session out" survives between fights. Mutated via *Set PC Exclusions*. Excluded PCs are absent from `combatants` entirely (they are not Combatants — the list is the source of truth for "currently in this fight"). |
+| `phase` | one of `combat`, `looting`, `traveling`, `social`, `downtime` | The Encounter Phase — a DM-set view selector for the consuming project's Encounter page. It is **independent of the Combat state machine**: setting the Phase does not start or stop Combat, and *Start Combat* / *End Combat* do not change the Phase. Mutated via *Set Phase*. Defaults to `downtime`. |
 
 ## Public entry points
 
@@ -112,11 +113,19 @@ Returns: the resulting Combat State.
 Inputs: none.
 
 Behavior:
-1. Notify the post-combat consumer (Equipment / Loot — target domain pending) of the list of participating Combatants, each entry carrying its Combat ID and Creature ID. The consumer is expected to drive loot distribution, XP, post-combat recovery, etc.
-2. Clear `time_ticks_per_round`, `time_tick`, `combat_anchor`, `elapsed_time_ticks`, `acting_combatant_id`, `combatants`, `granted_actions`, `dm_luck_points`.
+1. Clear the Combat-mode fields — `time_ticks_per_round`, `time_tick`, `combat_anchor`, `elapsed_time_ticks`, `acting_combatant_id`, `granted_actions`, `dm_luck_points` — and reset each Combatant's `initiative_string` (Initiative is per-fight).
+2. **Leave the Combatant roster in place.** The defeated enemies remain as Combatants so the consuming project can loot and clear them afterward (Crimson Steel does this through the *Looting* Phase and the post-combat creatures stub — see `equipment_post_combat_creatures_stub.md`). Combat itself neither removes nor loots Creatures.
 3. Persist.
 
 Concentration Entries and Casting Entries are **not** terminated by End Combat — a caster may continue holding a spell or completing a Long Cast into the post-combat window. They become subject to the wider system's out-of-combat handling, which is out of scope here.
+
+### Set Phase
+
+Inputs: a Phase — one of `combat`, `looting`, `traveling`, `social`, `downtime`.
+
+Behavior: set the Encounter `phase` (ignoring an unrecognized value, leaving the current Phase in place) and persist. The Phase is a pure view selector for the consuming project's Encounter page — it does **not** start or stop Combat, touch the roster, or change any other state. Likewise *Start Combat* / *End Combat* leave the Phase untouched; the two concerns are independent.
+
+Returns: the Phase in effect after the call.
 
 ### Add Combatant
 

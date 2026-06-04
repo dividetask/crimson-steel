@@ -14,6 +14,20 @@
     </ul>
 
     <% if dm_host? %>
+      <%# Encounter Phase selector (DM-only): picks which Encounter stubs
+          are visible. Pure view state — does not start/stop Combat. Auto
+          submits on change; a Set button covers JS-disabled clients. %>
+      <form class="phase-form" method="post" action="/encounter/set_phase">
+        <label class="phase-label">Phase
+          <select name="phase" class="phase-select" onchange="this.form.submit()">
+            <% encounter_phases.each do |val, label| %>
+              <option value="<%= val %>"<%= ' selected' if current_encounter_phase == val %>><%= label %></option>
+            <% end %>
+          </select>
+        </label>
+        <noscript><button type="submit" class="view-as-btn phase-set">Set</button></noscript>
+      </form>
+
       <form class="view-as-form" method="post" action="/view-as/toggle">
         <button type="submit" class="view-as-btn">
           <%= viewing_as_player? ? 'View As DM' : 'View As Player' %>
