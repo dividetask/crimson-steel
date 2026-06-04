@@ -733,7 +733,7 @@ helpers do
     spells.group_by { |sp| sp[:tier].to_i }.sort_by { |tier, _| tier }.each do |tier, group_spells|
       hdr = "tier-#{tier}-h"
       grp = "tier-#{tier}"
-      spell_opts << { kind: 'info', group: hdr, value: "#{hdr}|label", label: %(<span class="tier-#{tier}">Tier #{tier}</span>) }
+      spell_opts << { kind: 'info', group: hdr, value: "#{hdr}|label", label: %(<span class="cb-tier-head tier-#{tier}">Tier #{tier}</span>) }
       group_spells.each do |sp|
         bpl = []
         bpl << sp[:competency] if sp[:competency]

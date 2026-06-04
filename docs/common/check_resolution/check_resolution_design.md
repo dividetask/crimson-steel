@@ -90,6 +90,17 @@ When `opposing_roll_list` is empty, no Opposing Roll exists to propagate from, a
 
 After cross-side propagation, each Roll that carries a `tier` gains its **Ascendancy** modifier — `±2 × Δ` against the opposing primary Roll's `tier` (Bonus when higher-Tier, Penalty when lower; Tier 0 counts as 0.5, floored) — appended to its `bonus_penalty_list`. This runs *after* propagation precisely so the Ascendancy entry is not inverted back onto the other side: each side derives its own modifier directly from the two Tiers. A Roll without a `tier`, or with no opposing Tier, gets nothing — this is the opt-in seam that scopes Ascendancy to **combat**: only the attack and cast builders stamp `tier` on their Rolls, so opposed *skill* checks (whose builders leave `tier` unset) get no Ascendancy. This is the Check-side half of the Tier Mismatch rule defined in `../encounter/encounter_design.md`; the Inherent damage-reduction half is applied server-side at damage time.
 
+### Spread Check (area effects)
+
+A Check flagged `spread: true` models an **area effect**: one Supporting side (the caster, plus any supports) opposed by *N independent* Opposing Rolls — every creature caught in the spell's footprint makes its own Save. **None of the Opposers is the singular Target / Defending Roll**; they are peers, each opposed only to the caster.
+
+Spread changes both composition and aggregation:
+
+- **Propagation is one-directional.** Every Supporting Roll's `bonus_penalty_list` inverts onto **each** Opposing Roll (the casting check opposes every Save), but the Opposers never propagate back onto the caster — the caster Rolls once and is then compared to each Opposer. Each Opposing Roll also gains its own **Tier Mismatch Ascendancy** versus the caster; the caster's Roll, being shared, takes none.
+- **Resolution is per-Opposer.** The Supporting side resolves once into a single Supporting DoIS total; each Opposing Roll then resolves and nets independently: `degree_of_success_i = Σ Supporting DoIS − Opposer_i DoIS`, classified into its own Outcome. There is **no single Check-level Degree of Success** — the result is one Outcome per caught creature.
+
+A non-spread Check is unchanged (bidirectional propagation, pooled `Σ Supporting − Σ Opposing`).
+
 ### Check Outcome classification
 
 Once `degree_of_success` is computed, the Check Outcome is derived by calling dice resolution's "classify a value against outcome thresholds" entry point with `can_fumble = true`. The Default Success and Default Fumble Thresholds applied are the dice resolution config values.

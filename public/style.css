@@ -1052,6 +1052,12 @@ body {
   border-radius: 3px;
 }
 
+/* Spell-picker Tier header — larger than the option buttons, Tier-colored. */
+.cb-tier-head {
+  font-size: 16px;
+  font-weight: 700;
+}
+
 .cr-mod-btn:hover { background: #f0f0f0; }
 
 /* Dice / option choices the Combat Pool can't afford (Speed + dice >

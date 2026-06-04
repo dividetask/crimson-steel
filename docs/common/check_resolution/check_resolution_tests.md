@@ -59,6 +59,16 @@ Tests that depend on randomness state the *rolled* dice as input; an implementat
 
 ---
 
+## Spread Check (area effects)
+
+**Spread propagation is one-directional.** A `spread: true` Check with a caster Supporting Roll carrying `['Competency', 2]` and two Opposers: each Opposer's `bonus_penalty_list` gains `['Competency', -2]` (the caster's bonus inverted), while the caster's list is unchanged (Opposers never pool onto it).
+
+**Each Opposer gains its Ascendancy versus the caster.** A `spread` Check with a Tier-3 caster and a Tier-1 Opposer adds `['Ascendancy', -4]` to the Opposer (and nothing to the caster's shared Roll).
+
+**Resolution nets the caster against each Opposer independently.** A `spread` Check where the caster's Supporting DoIS totals +2, Opposer 1 rolls +1, and Opposer 2 rolls −1 yields `degree_of_success` of `1` and `3` respectively (`2 − 1`, `2 − (−1)`) — one Outcome per Opposer, and no single Check-level Degree of Success.
+
+---
+
 ## Edge cases
 
 **Empty supporting list.** Calling Resolve a Check with `supporting_roll_list = []` is invalid. Validation is unassigned (per the design); behavior is implementation-defined until specified.
