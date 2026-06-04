@@ -59,6 +59,7 @@ class AtlasCanvas {
     this.panY = 0;
     this.tool = 'select';
     this.placing = null;   // creature_id armed for placement, or null
+    this.placingArea = null; // {shape, size} armed for spell-area placement
   }
 
   start() {
@@ -67,7 +68,14 @@ class AtlasCanvas {
     this.bindToolbar();
     this.bindCanvas();
     // Esc cancels an armed placement.
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.placing) this.clearPlacing(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (this.placing) this.clearPlacing();
+      if (this.placingArea) { this.placingArea = null; this.hidePlaceHint(); }
+    });
+    // The cast panel arms spell-area placement; we drop a local preview and
+    // report the caught creatures back (nothing is persisted until commit).
+    document.addEventListener('cast:arm-area', (e) => this.armArea(e.detail || {}));
   }
 
   // The color for the next drawing: a tool's fixed color (e.g. the players'
@@ -341,6 +349,8 @@ class AtlasCanvas {
 
     this.viewport.addEventListener('pointerdown', (e) => {
       if (!this.world) return;
+      // Placing a spell area: drop the footprint at the clicked cell (local).
+      if (this.placingArea) return this.placeArea(e);
       // Placing a Combatant: drop / drag the new Token to the clicked cell.
       if (this.placing) return this.beginPlace(e);
       if (this.tool !== 'select') {
@@ -645,6 +655,75 @@ class AtlasCanvas {
     this.viewport.classList.remove('atlas-placing');
     this.hidePlaceHint();
     if (this._ghost) { this._ghost.remove(); this._ghost = null; }
+  }
+
+  // ----- placing a spell area (local preview only) -----
+
+  armArea(detail) {
+    if (!this.world) return;
+    this.placingArea = { shape: (detail.shape || 'circle'), size: parseInt(detail.size, 10) || 0 };
+    this.placing = null;
+    this.tool = 'select';
+    this.viewport.classList.add('atlas-placing');
+    this.showPlaceHint('Click the map to place the spell effect — Esc to cancel');
+  }
+
+  placeArea(e) {
+    e.preventDefault();
+    const u = this.toUnits(e.clientX, e.clientY);
+    const x = Math.round(u[0]);
+    const y = Math.round(u[1]);
+    const area = this.placingArea;
+    this.placingArea = null;
+    this.viewport.classList.remove('atlas-placing');
+    this.hidePlaceHint();
+    this.renderAreaPreview(x, y, area);
+    const hits = this.tokensInArea(x, y, area);
+    document.dispatchEvent(new CustomEvent('cast:area-placed', {
+      detail: { x: x, y: y, shape: area.shape, size: area.size, hits: hits }
+    }));
+  }
+
+  // A local-only preview of the footprint (purple), cleared on the next place
+  // or when the canvas re-renders from a fresh snapshot.
+  renderAreaPreview(x, y, area) {
+    if (this._areaPreview) this._areaPreview.remove();
+    const map = this.snapshot.map || {};
+    const w = (map.width || 40) * BASE_CELL;
+    const h = (map.height || 30) * BASE_CELL;
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'atlas-zones atlas-zone-preview');
+    svg.setAttribute('width', w); svg.setAttribute('height', h);
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    const el = this.zoneEl({ anchor: { x: x, y: y }, shape: area.shape, size: area.size });
+    if (el) svg.appendChild(el);
+    this.world.appendChild(svg);
+    this._areaPreview = svg;
+  }
+
+  // Combatant Tokens whose center lies within the footprint centered on the
+  // clicked cell. circle: distance <= size (radius in cells); square: size on
+  // a side. Only Tokens tied to a Combatant are reported (the cast resolves by
+  // Combatant id).
+  tokensInArea(x, y, area) {
+    const acx = x + 0.5;
+    const acy = y + 0.5;
+    const r = area.size;
+    const out = [];
+    (this.snapshot.tokens || []).forEach((t) => {
+      if (t.combatant_id == null) return;
+      const tcx = (t.x || 0) + (t.size || 1) / 2;
+      const tcy = (t.y || 0) + (t.size || 1) / 2;
+      let inside;
+      if (area.shape === 'square') {
+        inside = Math.abs(tcx - acx) <= r / 2 && Math.abs(tcy - acy) <= r / 2;
+      } else {
+        const dx = tcx - acx, dy = tcy - acy;
+        inside = Math.sqrt(dx * dx + dy * dy) <= r;
+      }
+      if (inside) out.push({ combatant_id: t.combatant_id, creature_id: t.creature_id, label: t.label });
+    });
+    return out;
   }
 
   // Drop / drag the new Token: a ghost follows the pointer (snapped to cells);

@@ -20,7 +20,15 @@ export class TurnCast {
     container.addEventListener('check:confirmed', (e) => TurnCast._preview(container, e.detail));
     container.addEventListener('click', (e) => {
       if (e.target.closest && e.target.closest('.ta-commit')) { e.preventDefault(); TurnCast._commit(container); }
+      // "Change" re-arms map placement with the last footprint.
+      if (e.target.closest && e.target.closest('.tc-replace') && container._areaArm) {
+        e.preventDefault();
+        document.dispatchEvent(new CustomEvent('cast:arm-area', { detail: container._areaArm }));
+      }
     });
+    // Remember the armed footprint (for "Change") and capture the placement.
+    document.addEventListener('cast:arm-area', (e) => { container._areaArm = e.detail || null; });
+    document.addEventListener('cast:area-placed', (e) => TurnCast._areaPlaced(container, e.detail || {}));
 
     container.innerHTML = '<p class="ta-attack-loading">Loading spells…</p>';
     fetch('/encounter/cast_builder?caster_id=' + encodeURIComponent(container._casterId), { headers: { Accept: 'text/html' } })
@@ -34,12 +42,44 @@ export class TurnCast {
       .catch(() => { container.innerHTML = '<p class="ta-warn">Could not load the cast.</p>'; });
   }
 
+  // Record an area placement: stash it for the payload and list the caught
+  // creatures (with a Change button to re-place) under the builder.
+  static _areaPlaced(container, detail) {
+    container._placement = detail;
+    const slot = container.querySelector('.tc-result');
+    if (!slot) return;
+    const hits = detail.hits || [];
+    const names = hits.length
+      ? hits.map((h) => esc(h.label || ('#' + h.combatant_id))).join(', ')
+      : '<em>no creatures caught</em>';
+    slot.innerHTML =
+      '<p class="tc-line"><strong>Spell effect placed.</strong> Affected: ' + names + '</p>' +
+      '<div class="ta-actions"><button type="button" class="ce-btn tc-replace">Change</button></div>';
+    slot.hidden = false;
+  }
+
   // Translate the builder's confirmed choices + rolls into a resolve_cast payload.
   static _payload(container, detail, commit) {
     const choices = detail.choices || {};
     const rolls = detail.rolls || [];
     const spellName = choices.spell;
     const caster = rolls.find((r) => r.id === 'caster') || {};
+
+    // Area Spell: the placed footprint determines the affected creatures; there
+    // is no single Target. Send the placement point + the caught Combatants.
+    if (container._placement) {
+      const p = container._placement;
+      return {
+        commit: commit,
+        spell_name: spellName,
+        spell: { name: spellName },
+        luck: CheckBuilder.luckSpends(choices),
+        caster: { id: container._casterId, dice: caster.dice_count, speed: caster.speed || 0, successes: caster.successes },
+        placement: { x: p.x, y: p.y },
+        targets: (p.hits || []).map((h) => ({ id: h.combatant_id }))
+      };
+    }
+
     const tgtRoll = rolls.find((r) => r.id === 'target');
     const defType = String(choices.defense == null ? '' : choices.defense).split('|')[0];
 

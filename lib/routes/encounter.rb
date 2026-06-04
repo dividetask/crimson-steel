@@ -695,10 +695,16 @@ helpers do
         v     = (Abilities.lookup(name) rescue nil) || {}
         skill = (Array(v['skills']).first || Encounter::Cast::DEFAULT_CAST_SKILL)
         ri    = roll_inputs_for(acc, skill)
+        # Area footprint (Hash, or the first footprint Aspect of an Aspect-list
+        # area like Grease). Area Spells are placed on the map, not targeted.
+        raw   = (Abilities.catalog.ability(name) rescue nil) || {}
+        ra    = raw['area']
+        area  = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
         { name: name, tier: g[:tier], mana_cost: cost, skill: skill,
           dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier],
           damage_type: Array(v['damage_type']).compact.first,
           attack_roll: !!v['attack_roll'], save: Array(v['save']).first,
+          area: (area.is_a?(Hash) ? area : nil),
           affordable: mana_left.nil? || cost <= mana_left }
       end
     end
@@ -730,10 +736,11 @@ helpers do
     # sets the caster Roll's Bonuses (casting-skill Competency + the Tier's
     # inherent Bonus); the dice count is the next step.
     spell_opts = []
-    spells.group_by { |sp| sp[:tier].to_i }.sort_by { |tier, _| tier }.each do |tier, group_spells|
+    spells.group_by { |sp| sp[:tier].to_i }.sort_by { |tier, _| tier }.each_with_index do |(tier, group_spells), gi|
       hdr = "tier-#{tier}-h"
       grp = "tier-#{tier}"
-      spell_opts << { kind: 'info', group: hdr, value: "#{hdr}|label", label: %(<span class="cb-tier-head tier-#{tier}">Tier #{tier}</span>) }
+      br  = gi.zero? ? '' : '<br>'
+      spell_opts << { kind: 'info', group: hdr, value: "#{hdr}|label", label: %(#{br}<span class="cb-tier-head tier-#{tier}">Tier #{tier}</span>) }
       group_spells.each do |sp|
         bpl = []
         bpl << sp[:competency] if sp[:competency]
@@ -751,9 +758,19 @@ helpers do
     # Step 2 — Dice for the casting check, asked only after a spell is picked
     # (choice-dependent on `spell`), bounded by Combat Pool and that spell's
     # casting-skill Dice Cap.
+    dice_min = 2
     dice_map = {}
     spells.each do |sp|
-      cap  = sp[:dice_cap]
+      cap = sp[:dice_cap]
+      # A no-save area Spell (Obscuring Mist, Darkness) opposes no roll, so it
+      # skips the dice choice and casts with the minimum dice.
+      if sp[:area] && !sp[:save]
+        dice_map[sp[:name]] = [{ value: "#{sp[:name]}|#{dice_min}", key: dice_min, group: 'dice',
+                                 label: "Cast (min #{dice_min} dice)", summary: "#{dice_min} dice",
+                                 disabled: dice_min > pool,
+                                 patch: { set_dice: [{ id: 'caster', count: dice_min }] } }]
+        next
+      end
       opts = (2..cap).map do |n|
         { value: "#{sp[:name]}|#{n}", key: n, group: 'dice', label: n.to_s, summary: "#{n} dice",
           disabled: n > pool, patch: { set_dice: [{ id: 'caster', count: n }] } }
@@ -763,11 +780,27 @@ helpers do
     end
     dice_step = { key: 'dice', label: 'Dice', options_by: %w[spell], options_map: dice_map }
 
-    # Step 3 — Target (a save / defense cannot be rolled without one).
-    target_step = { key: 'target', label: 'Target',
-                    options: targets.map { |t| { value: t[:id], key: t[:id], label: t[:name],
-                                                 patch: { set_name: [{ id: 'target', creature_name: t[:name] }],
-                                                          set_tier: [{ id: 'target', tier: t[:tier] }] } } } }
+    # Step 3 — Target, choice-dependent on the Spell. A normal Spell lists the
+    # Combatants; an **area Spell** instead offers a single "Place on the map"
+    # action — the client arms the Atlas, the DM clicks to drop the footprint,
+    # and the creatures it covers become the affected set (no single Target).
+    combatant_target_opts = targets.map do |t|
+      { value: t[:id], key: t[:id], label: t[:name],
+        patch: { set_name: [{ id: 'target', creature_name: t[:name] }],
+                 set_tier: [{ id: 'target', tier: t[:tier] }] } }
+    end
+    target_map = {}
+    spells.each do |sp|
+      target_map[sp[:name]] =
+        if sp[:area]
+          [{ value: 'place', key: 'place', group: 'place', label: 'Place on the map',
+             summary: 'Place the spell effect on the Atlas',
+             place: { shape: sp[:area]['shape'], size: sp[:area]['size'], save: !!sp[:save] } }]
+        else
+          combatant_target_opts
+        end
+    end
+    target_step = { key: 'target', label: 'Target', options_by: %w[spell], options_map: target_map }
 
     # Step 4 — the target's Defense, choice-dependent on (target, spell): the
     # target's Saving Throw for a Save spell, Dodge / Block for an attack-roll
@@ -790,6 +823,16 @@ helpers do
         end
         defense_map["#{t[:id]}|#{sp[:name]}"] = opts
       end
+    end
+    # Area Spells resolve in the placed footprint, not against a single defender,
+    # so their "defense" step is a single Confirm that excludes the lone Target
+    # Roll (the caught creatures are resolved at commit).
+    spells.select { |sp| sp[:area] }.each do |sp|
+      defense_map["place|#{sp[:name]}"] = [
+        { value: 'area', key: 'area', group: 'area', label: 'Resolve in the area',
+          summary: 'Apply to the creatures in the footprint',
+          patch: { set_excluded: [{ id: 'target', excluded: true }] } }
+      ]
     end
     defense_step = { key: 'defense', label: 'Target&rsquo;s defense', options_by: %w[target spell], options_map: defense_map }
 
@@ -909,7 +952,6 @@ helpers do
       effects += [{ 'kind' => 'modifiers', 'modifiers' => variant['modifiers'],
                     'duration' => variant['duration'] }]
     end
-    Array(payload['targets']).each { |t| t['effects'] = effects }
 
     # Area Spells (Obscuring Mist, Darkness, Web, Create Pit, Silence) carry an
     # `area` footprint placed on the map at commit time. For an Aspect-list area
@@ -917,6 +959,15 @@ helpers do
     raw_entry = (Abilities.catalog.ability(spell['name']) rescue nil) || {}
     raw_area  = raw_entry['area']
     area_hash = raw_area.is_a?(Array) ? raw_area.find { |x| x.is_a?(Hash) } : raw_area
+    # Each creature caught in the footprint gets the area's on-enter Effect (its
+    # Save is DM-adjudicated in this pass; the per-creature opposed Save roll is
+    # the follow-up that uses the Check Resolution Spread rule).
+    if area_hash.is_a?(Hash) && (oe = Array(area_hash['on_enter']).first)
+      fx = oe['fail'].to_s
+      effects += [{ 'kind' => 'effect', 'name' => fx }] unless fx.empty? || fx == '0'
+    end
+    Array(payload['targets']).each { |t| t['effects'] = effects }
+
     if area_hash.is_a?(Hash)
       spell['area'] = area_hash
       spell['duration'] = variant['duration'] || raw_entry['duration']
@@ -970,14 +1021,22 @@ helpers do
     return nil unless area.is_a?(Hash)
     map_id = Atlas.state.active_map_id
     return nil unless map_id
-    target = Array(payload['targets']).first or return nil
-    combatant = encounter_state.combatant(target['id'].to_i) or return nil
     caster = payload['caster'] || {}
     source_id = "encounter:zone:#{spell['name']}:#{caster['id']}"
+    # Anchor at the placed map point (area Spells), else at the first target's
+    # Token (legacy single-target anchoring).
+    placement = payload['placement']
+    anchor =
+      if placement && placement['x'] && placement['y']
+        { 'type' => 'point', 'x' => placement['x'].to_i, 'y' => placement['y'].to_i }
+      else
+        target = Array(payload['targets']).first or return nil
+        combatant = encounter_state.combatant(target['id'].to_i) or return nil
+        { 'type' => 'target', 'creature_id' => combatant[:creature_id] }
+      end
     zone_id = Atlas.state.place_zone(map_id: map_id, source_id: source_id,
                                      shape: area['shape'], size: area['size'],
-                                     anchor: { 'type' => 'target', 'creature_id' => combatant[:creature_id] },
-                                     texture: area['texture'])
+                                     anchor: anchor, texture: area['texture'])
     return nil unless zone_id.is_a?(Integer)
     # Expiry: the caster's casting-skill rank drives `rank`-based durations;
     # the Zone auto-expires at the caster's start of turn once this Round passes.

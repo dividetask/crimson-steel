@@ -220,6 +220,11 @@ export class CheckBuilder {
     if (!opt) return;
     cb.choices[key] = { value: opt.value, label: opt.label, key: opt.key != null ? opt.key : opt.value };
     CheckBuilder._applyPatch(root, opt.patch);
+    // An area Spell's "Place on the map" option arms the Atlas; the actual
+    // footprint (and the creatures it catches) come back via cast:area-placed.
+    if (opt.place) {
+      document.dispatchEvent(new CustomEvent('cast:arm-area', { detail: opt.place }));
+    }
     CheckBuilder._setState(root, key, 'complete');
     const sum = CheckBuilder._sumRow(root, key);
     if (sum) {
