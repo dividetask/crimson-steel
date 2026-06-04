@@ -704,8 +704,16 @@ module Encounter
         else
           sev = preview_severity(p[:target_id], damage, dtype, threshold)
         end
+        # Magical weapon Damage Riders: the 4 extra dice the DM rolls
+        # client-side at the attack's Target Number once the hit lands. Each
+        # rider lands as its own Severity Calculation, kept separate from the
+        # weapon's base damage; a Vicious rider also bites the wielder. The
+        # per-rider Success / "1" counts arrive in `rider_results`.
+        riders = Array(weapon[:damage_riders]).each_with_index.map { |r, i| r.merge(id: i) }
+        rider_outcomes = apply_attack_riders(p[:target_id], attacker[:id], riders, p[:rider_results], commit)
         { ok: true, damage: damage, severity_map: sev, net_dos: net, damage_type: dtype,
           threshold: threshold, damage_resilience: resil, bleed: bleed,
+          riders: riders, rider_outcomes: rider_outcomes,
           pool_spends: pool_spends, committed: commit }
       else
         { ok: true, damage: 0, severity_map: {}, net_dos: net, damage_type: dtype,
@@ -856,6 +864,83 @@ module Encounter
                        target_tags: creature ? Array(creature.tags) : [])[:severity_map]
     rescue StandardError
       {}
+    end
+
+    # ---------- Magical weapon Damage Riders ----------
+
+    # Apply (or, in preview, just size) the weapon's Damage Riders for a
+    # landed hit. `riders` are the resolved rider specs from Get Weapon
+    # Details; `results` is the client's per-rider roll — a list of
+    # { id:, successes:, ones: }. Returns one outcome per rider for the
+    # result panel; only mutates Conditions when `commit` is true.
+    def apply_attack_riders(target_id, attacker_id, riders, results, commit)
+      return [] if riders.nil? || riders.empty?
+      by_id = Array(results).each_with_object({}) do |r, h|
+        rr = deep_symbolize(r)
+        h[rr[:id].to_i] = rr
+      end
+      riders.each_with_index.map do |rider, i|
+        res       = by_id[i] || {}
+        successes = res[:successes].to_i
+        ones      = res[:ones].to_i
+        outcome   = { id: i, label: rider[:label], successes: successes }
+
+        if rider[:kind].to_s == 'named_effect'
+          amt = successes * rider[:amount].to_i
+          outcome[:effect] = rider[:effect]
+          outcome[:amount] = amt
+          apply_rider_named_effect(target_id, rider[:effect], amt) if commit && amt.positive?
+        else
+          amt = successes * rider[:amount].to_i
+          outcome[:damage]       = amt
+          outcome[:damage_type]  = rider[:damage_type]
+          outcome[:severity_map] = rider_target_severity(target_id, amt, rider, commit)
+        end
+
+        if rider[:self_damage]
+          sd       = rider[:self_damage]
+          self_amt = sd[:minimum].to_i + ones * sd[:amount].to_i
+          outcome[:self_damage] = { severity: sd[:severity].to_s, amount: self_amt }
+          apply_hp_severity(attacker_id, sd[:severity], self_amt) if commit && self_amt.positive?
+        end
+        outcome
+      end
+    end
+
+    # Bucket (and, on commit, apply) a rider's target damage. A rider with
+    # an explicit `severity` lands wholly in that Severity bucket; otherwise
+    # the rider's Damage Type drives a normal Severity Calculation —
+    # separate from the weapon's base-damage calculation either way.
+    def rider_target_severity(target_id, amount, rider, commit)
+      return {} unless amount.positive?
+      if rider[:severity]
+        map = { rider[:severity].to_s.to_sym => amount }
+        apply_hp_severity(target_id, rider[:severity], amount) if commit
+        map
+      elsif commit
+        apply_damage(target_id, amount, rider[:damage_type].to_s)[:severity_map]
+      else
+        preview_severity(target_id, amount, rider[:damage_type].to_s, 0)
+      end
+    end
+
+    # Apply a flat Severity-keyed Hit Point Damage amount to a Combatant
+    # (rider self-damage, or a rider's forced-Severity target damage).
+    def apply_hp_severity(combatant_id, severity, amount)
+      c = combatant_for(combatant_id) or return
+      conditions_for(c[:creature_id]).apply_hit_point_damage(severity.to_s.to_sym => amount)
+    rescue StandardError
+      nil
+    end
+
+    # Apply a rider's named Effect (e.g. Subdual's Shock) to the target,
+    # mirroring the Damage-Type `inflict` side-effect routing in apply_damage.
+    def apply_rider_named_effect(target_id, effect, amount)
+      c = combatant_for(target_id) or return
+      inst = conditions_for(c[:creature_id])
+      inst.state.shock += amount if effect.to_s == 'shock'
+    rescue StandardError
+      nil
     end
 
     # Active-effect Damage Resilience Modifiers (e.g. Rage) for a Creature,

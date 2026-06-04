@@ -144,6 +144,18 @@ Cases:
 
 **Damage routes through apply_damage.** Resolved damage is dispatched to `apply_damage(target_id, damage, "physical")`. Per Severity Calculation, that bucket-sorts the raw damage into the `{minor, moderate, major}` Severity Map and forwards to `Conditions.apply_hit_point_damage`. The endpoint returns `severity_map` so the client can update the tracker.
 
+### Magical weapon Damage Riders
+
+A weapon carries `damage_riders` (from *Get Weapon Details*) when its Stack has a magical Property with a `damage_rider`. The rider's extra dice are rolled client-side **at the attack's Target Number, only after the hit lands** — the DM rolls them in the result panel before the final Commit. The payload returns `riders` (metadata so the panel can render the second roll) and carries each roll's outcome back in `rider_results: [{ id, successes, ones }]`. Each rider lands as its **own** Severity Calculation, separate from the weapon's base damage.
+
+**Rider damage is a separate Severity Calculation.** A `slashing` hit also carries an Elemental(Fire) rider (`damage_type: fire`, `amount: 1`). With the rider rolling 2 Successes, `2 × 1 = 2` fire damage routes through `apply_damage(target, 2, "fire")` — fire's `damage_per_hit: 1` makes it `3`, bucketed Moderate — landing in Conditions separately from the weapon's slashing damage.
+
+**A rider only fires on a hit.** When the net DoS is ≤ 0 (a miss), the payload returns no `riders` / `rider_outcomes` and rolls nothing extra.
+
+**Vicious lands Major and bites the wielder.** A Vicious rider (`severity: major`, `self_damage: {severity: minor, amount: 1, minimum: 1}`) rolling 3 Successes and 2 `1`s applies `{major: 3}` to the target and `{minor: 3}` (minimum 1 + two `1`s) to the **attacker**. With zero `1`s the wielder still takes the `minimum` of 1 Minor.
+
+**Preview rolls nothing.** A `commit: false` preview returns the `riders` metadata but applies no rider damage and no wielder self-damage.
+
 ## Get / Spend / Reset Combat Pool
 
 **Get Combat Pool runs the buy formula.** Combatant has Tier 0, `martial_proficiency_ranks = 4`, attribute = 12. Budget = `floor((4 + floor(12/2)) / 1) = 10`. The tiered Buy cost function (per *Combat Pool computation*: `Step·T(T-1)/2 + R·T` with `T = floor(P/Step)`, `R = P mod Step`) gives `cost(11) = 4·1 + 3·2 = 10 ≤ 10 < cost(12) = 4·3 = 12`. So P = 11 is the largest fit. Result: 11.

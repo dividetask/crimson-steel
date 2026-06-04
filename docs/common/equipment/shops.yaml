@@ -28,6 +28,13 @@
 #   tier              Optional tier override. For tier-array items
 #                     (e.g. Healing Potion), the tier selects which
 #                     variant the shopkeeper stocks.
+#   properties        Optional list of Magical Properties (same shape as
+#                     the inventory data files: a string, or {name,
+#                     subtype}). Lets a Shop stock a magical weapon — e.g.
+#                     a Flaming Long sword. Pair with a `tier` so the
+#                     Property is legal (most weapon Properties need
+#                     tier >= their min_tier). Unit Price uses the catalog
+#                     Property cost.
 
 generic_shops:
 
@@ -70,6 +77,14 @@ generic_shops:
       - { item: "Chain shirt",    min_pop:  500, qty_base: 1, qty_per_kpop: 0 }
       - { item: "Hide armor",     min_pop:  500, qty_base: 1, qty_per_kpop: 0 }
       - { item: "Chain mail",     min_pop: 1000, qty_base: 1, qty_per_kpop: 0 }
+      # Magical weapons (rare — large settlements only). Each lands 4 extra
+      # dice of its damage type on a hit; Vicious also bites the wielder.
+      - { item: "Long sword",  tier: 1, min_pop: 2000, qty_base: 1, qty_per_kpop: 0, properties: [{ name: Elemental, subtype: Fire }] }
+      - { item: "Long sword",  tier: 1, min_pop: 3000, qty_base: 1, qty_per_kpop: 0, properties: [{ name: Elemental, subtype: Cold }] }
+      - { item: Mace,          tier: 1, min_pop: 3000, qty_base: 1, qty_per_kpop: 0, properties: [{ name: Elemental, subtype: Acid }] }
+      - { item: Warhammer,     tier: 1, min_pop: 3000, qty_base: 1, qty_per_kpop: 0, properties: [{ name: Elemental, subtype: Electricity }] }
+      - { item: Rapier,        tier: 1, min_pop: 4000, qty_base: 1, qty_per_kpop: 0, properties: [{ name: Emotional }] }
+      - { item: "Great sword", tier: 2, min_pop: 8000, qty_base: 1, qty_per_kpop: 0, properties: [{ name: Vicious }] }
       - { item: "Plate mail",     min_pop: 5000, qty_base: 1, qty_per_kpop: 0 }
       - { item: "Light wooden shield", min_pop: 100, qty_base: 2, qty_per_kpop: 1 }
       - { item: "Tower shield",        min_pop: 500, qty_base: 1, qty_per_kpop: 0 }

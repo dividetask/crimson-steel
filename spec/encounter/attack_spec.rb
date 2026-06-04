@@ -325,6 +325,109 @@ RSpec.describe 'Encounter::State#resolve_attack_payload (weapon-aware)' do
     expect(s.dm_luck_points).to eq(1) # 4 − 3
   end
 
+  it 'rolls a Damage Rider as its own Severity Calculation on a hit' do
+    cond = Conditions::Instance.new
+    s = state(cond)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee', commit: true,
+      weapon: { damage_types: ['slashing'], threshold: 5, base_damage: 0,
+                damage_riders: [{ property: 'Elemental', subtype: 'Fire', label: 'Flaming',
+                                  dice: 4, kind: 'damage', damage_type: 'fire', amount: 1, severity: nil }] },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 3 },
+      defense:  { choice: 'none' },
+      rider_results: [{ id: 0, successes: 2, ones: 1 }]
+    )
+    ro = out[:rider_outcomes].first
+    expect(ro[:damage]).to eq(2)                  # 2 successes × amount 1
+    expect(ro[:severity_map]).to eq(moderate: 3) # fire is moderate + its damage_per_hit 1
+    # Main slashing (3, runtime-bucketed at threshold 5 → minor) is kept
+    # separate from the rider's fire (moderate).
+    expect(cond.state.hp_damage[:minor]).to eq(3)
+    expect(cond.state.hp_damage[:moderate]).to eq(3)
+  end
+
+  it 'applies a Vicious rider as Major to the target and bites the wielder' do
+    target_cond   = Conditions::Instance.new
+    attacker_cond = Conditions::Instance.new
+    conds = { '1' => attacker_cond, '2' => target_cond }
+    s = Encounter::State.new({}, data_path: data_path,
+                             creature_lookup: ->(_id) { creature },
+                             conditions_for: ->(id) { conds[id.to_s] })
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee', commit: true,
+      weapon: { damage_types: ['slashing'], threshold: 0, base_damage: 0,
+                damage_riders: [{ property: 'Vicious', subtype: nil, label: 'Vicious',
+                                  dice: 4, kind: 'damage', damage_type: 'slashing', amount: 1,
+                                  severity: 'major',
+                                  self_damage: { severity: 'minor', amount: 1, minimum: 1 } }] },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 2 },
+      defense:  { choice: 'none' },
+      rider_results: [{ id: 0, successes: 3, ones: 2 }]
+    )
+    ro = out[:rider_outcomes].first
+    expect(ro[:severity_map]).to eq(major: 3)               # 3 successes → 3 Major
+    expect(target_cond.state.hp_damage[:major]).to eq(3)
+    expect(ro[:self_damage]).to eq(severity: 'minor', amount: 3) # minimum 1 + 2 ones
+    expect(attacker_cond.state.hp_damage[:minor]).to eq(3)
+  end
+
+  it 'self-damages the Vicious wielder the minimum even with zero 1s' do
+    target_cond   = Conditions::Instance.new
+    attacker_cond = Conditions::Instance.new
+    conds = { '1' => attacker_cond, '2' => target_cond }
+    s = Encounter::State.new({}, data_path: data_path,
+                             creature_lookup: ->(_id) { creature },
+                             conditions_for: ->(id) { conds[id.to_s] })
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee', commit: true,
+      weapon: { damage_types: ['slashing'], threshold: 0, base_damage: 0,
+                damage_riders: [{ property: 'Vicious', label: 'Vicious', dice: 4, kind: 'damage',
+                                  damage_type: 'slashing', amount: 1, severity: 'major',
+                                  self_damage: { severity: 'minor', amount: 1, minimum: 1 } }] },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 2 },
+      defense:  { choice: 'none' },
+      rider_results: [{ id: 0, successes: 0, ones: 0 }]
+    )
+    expect(attacker_cond.state.hp_damage[:minor]).to eq(1) # minimum, no 1s rolled
+  end
+
+  it 'preview returns rider metadata but applies no rider damage' do
+    cond = Conditions::Instance.new
+    s = state(cond)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee', commit: false,
+      weapon: { damage_types: ['slashing'], threshold: 5, base_damage: 0,
+                damage_riders: [{ property: 'Elemental', subtype: 'Fire', label: 'Flaming',
+                                  dice: 4, kind: 'damage', damage_type: 'fire', amount: 1 }] },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 3 },
+      defense:  { choice: 'none' }
+    )
+    expect(out[:riders].length).to eq(1)
+    expect(out[:riders].first[:label]).to eq('Flaming')
+    expect(cond.state.hp_damage.values.sum).to eq(0) # preview mutates nothing
+  end
+
+  it 'a miss carries no riders' do
+    cond = Conditions::Instance.new
+    s = state(cond)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee', commit: true,
+      weapon: { damage_types: ['slashing'], threshold: 0, base_damage: 0,
+                damage_riders: [{ property: 'Elemental', subtype: 'Fire', label: 'Flaming',
+                                  dice: 4, kind: 'damage', damage_type: 'fire', amount: 1 }] },
+      attacker: { id: atk[:id], dice: 2, speed: 2, successes: 0 },
+      defense:  { choice: 'dodge', id: tgt[:id], dice: 3, speed: 0, successes: 2 }
+    )
+    expect(out[:net_dos]).to be <= 0
+    expect(out[:riders]).to be_nil
+    expect(out[:rider_outcomes]).to be_nil
+  end
+
   it 'rejects an ineligible defense (Parry vs ranged) before spending' do
     s = state
     atk = s.add_combatant('1'); tgt = s.add_combatant('2')

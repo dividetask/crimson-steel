@@ -486,7 +486,7 @@ helpers do
     natural = !!(wd[:definition] && wd[:definition]['natural'])
     { item_type: item_type, display_name: wd[:display_name], ranged: ranged, natural: natural,
       speed: wd[:speed], damage_types: wd[:damage_types], threshold: wd[:threshold],
-      bleed: wd[:bleed], damage_formula: wd[:damage_formula] }
+      bleed: wd[:bleed], damage_formula: wd[:damage_formula], damage_riders: wd[:damage_riders] }
   end
 
   # The defender's weapons usable to Parry: equipped melee weapons, excluding
@@ -783,7 +783,8 @@ helpers do
     atk['speed'] = w[:speed]
     payload['attacker'] = atk
     payload['weapon'] = { 'damage_types' => w[:damage_types], 'threshold' => w[:threshold],
-                          'bleed' => w[:bleed], 'base_damage' => evaluate_weapon_damage(w[:damage_formula], acc) }
+                          'bleed' => w[:bleed], 'base_damage' => evaluate_weapon_damage(w[:damage_formula], acc),
+                          'damage_riders' => w[:damage_riders] }
   end
 
   # ---- Check Resolution Builder blob for a Cast (turn_action_stub.md → Cast)

@@ -42,6 +42,9 @@ characters:
   1:
     inventory:
       - item: Rapier
+        tier: 1
+        properties:
+          - name: Emotional
         equipped: true
       - item: Hand crossbow
         equipped: true
@@ -166,6 +169,10 @@ characters:
   7:
     inventory:
       - item: Mace
+        tier: 2
+        properties:
+          - name: Elemental
+            subtype: Fire
         equipped: true
       - item: Crossbow
       - item: Bolt
@@ -183,6 +190,9 @@ characters:
   8:
     inventory:
       - item: Great sword
+        tier: 2
+        properties:
+          - name: Vicious
         equipped: true
       - item: Javelin
         quantity: 4
