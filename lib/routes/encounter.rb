@@ -912,11 +912,14 @@ helpers do
     Array(payload['targets']).each { |t| t['effects'] = effects }
 
     # Area Spells (Obscuring Mist, Darkness, Web, Create Pit, Silence) carry an
-    # `area` footprint placed on the map at commit time. (Aspect-list areas like
-    # Grease are not auto-placed yet.)
-    if variant && variant['area'].is_a?(Hash)
-      spell['area'] = variant['area']
-      spell['duration'] = variant['duration']
+    # `area` footprint placed on the map at commit time. For an Aspect-list area
+    # (Grease: object vs. area), use the first footprint Aspect.
+    raw_entry = (Abilities.catalog.ability(spell['name']) rescue nil) || {}
+    raw_area  = raw_entry['area']
+    area_hash = raw_area.is_a?(Array) ? raw_area.find { |x| x.is_a?(Hash) } : raw_area
+    if area_hash.is_a?(Hash)
+      spell['area'] = area_hash
+      spell['duration'] = variant['duration'] || raw_entry['duration']
     end
 
     # Damage routing for the Cast path. An attack-roll Spell resolves as a spell

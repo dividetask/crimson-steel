@@ -550,7 +550,7 @@ Entangle:
   area:
     shape: circle
     size: 8
-    texture: entangle
+    texture: entangle.png
     on_enter:
       - attribute: str
         fail: entangled
@@ -661,7 +661,7 @@ Web:
   area:
     shape: circle
     size: 4
-    texture: web
+    texture: web.png
     on_enter:
       - attribute: dex
         fail: restrained
@@ -763,6 +763,7 @@ Grease:
     - null
     - shape: square
       size: 2
+      texture: grease.webp
       on_enter:
         - attribute: dex
           fail: prone
@@ -901,7 +902,7 @@ Obscuring Mist:
   area:
     shape: circle
     size: 2
-    texture: mist
+    texture: obscuringmist.png
   duration: "rank minutes"
   resolution: dm
   description: "A 10-foot-radius cloud of mist billows out from a point within range. Sight is obscured for anyone trying to see into, out of, or through the mist. The DM adjudicates the resulting concealment on attacks and Perception checks. The mist's area is placed on the map as an area shape."

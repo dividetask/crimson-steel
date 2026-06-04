@@ -200,7 +200,7 @@ class AtlasCanvas {
     if (z.id != null) el.dataset.zoneId = z.id;
     if (z.texture && defs) {
       const pid = 'zone-tex-' + (z.id != null ? z.id : Math.random().toString(36).slice(2));
-      defs.appendChild(zonePattern(pid, bx, by, bw, bh, '/images/zones/' + z.texture + '.png'));
+      defs.appendChild(zonePattern(pid, bx, by, bw, bh, '/images/zones/' + z.texture));
       el.classList.add('atlas-zone-textured');
       el.style.fill = 'url(#' + pid + ')';
     }
