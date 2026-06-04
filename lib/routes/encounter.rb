@@ -1415,6 +1415,34 @@ get '/encounter/cast_builder' do
   erb :_check_builder, layout: false, locals: { builder: cast_builder_blob(caster) }
 end
 
+# One opposing Save Roll per creature caught in an area Spell's footprint —
+# the Spread Opposers. Rendered as roll-group <tbody>s the cast builder swaps
+# into its dice table after the DM places the effect on the map.
+get '/encounter/cast_area_rolls' do
+  require_dm!
+  return encounter_error(404, 'unknown caster') unless encounter_state.combatant(params[:caster_id].to_i)
+  v    = (Abilities.lookup(params[:spell].to_s) rescue nil) || {}
+  raw  = (Abilities.catalog.ability(params[:spell].to_s) rescue nil) || {}
+  ra   = raw['area']
+  area = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
+  save = Array(v['save']).first || (area.is_a?(Hash) ? Array(area['on_enter']).first : nil)
+  attr = save && save['attribute'].to_s
+  die     = DiceResolution.config.die_size
+  base_tn = DiceResolution.config.base_target_number
+  rolls = Array(params[:affected]).filter_map do |cid|
+    c   = encounter_state.combatant(cid.to_i) or next
+    acc = Creatures.lookup(c[:creature_id]) rescue nil
+    ri  = attr ? roll_inputs_for(acc, "#{attr}_save", attribute_override: attr.to_sym) : {}
+    bpl = ri[:competency_modifier] ? [ri[:competency_modifier]] : []
+    { id: "save-#{c[:id]}", side: 'opposing', creature_name: tracker_name(c),
+      roll_name: (attr ? "#{attr_label(attr)} save" : 'Save'),
+      die_size: die, tn: base_tn, starting_value: 0, base_tn: base_tn,
+      bonus_penalty_list: bpl, dice_count: ri[:dice_cap].to_i, speed: 0, excluded: false,
+      tier: (acc&.tier rescue nil) }
+  end
+  erb :_roll_stub, layout: false, locals: { rolls: rolls, wrapper: false }
+end
+
 post '/encounter/resolve_cast' do
   require_dm!
   payload = JSON.parse(request.body.read) rescue nil

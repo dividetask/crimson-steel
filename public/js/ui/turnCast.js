@@ -20,14 +20,9 @@ export class TurnCast {
     container.addEventListener('check:confirmed', (e) => TurnCast._preview(container, e.detail));
     container.addEventListener('click', (e) => {
       if (e.target.closest && e.target.closest('.ta-commit')) { e.preventDefault(); TurnCast._commit(container); }
-      // "Change" re-arms map placement with the last footprint.
-      if (e.target.closest && e.target.closest('.tc-replace') && container._areaArm) {
-        e.preventDefault();
-        document.dispatchEvent(new CustomEvent('cast:arm-area', { detail: container._areaArm }));
-      }
     });
-    // Remember the armed footprint (for "Change") and capture the placement.
-    document.addEventListener('cast:arm-area', (e) => { container._areaArm = e.detail || null; });
+    // Capture an area placement (re-placement re-fires via the Target step's
+    // own Change button, which re-arms the "Place on the map" option).
     document.addEventListener('cast:area-placed', (e) => TurnCast._areaPlaced(container, e.detail || {}));
 
     container.innerHTML = '<p class="ta-attack-loading">Loading spells…</p>';
@@ -36,26 +31,18 @@ export class TurnCast {
       .then((html) => {
         container.innerHTML = html + '<div class="ta-result tc-result" hidden></div>';
         const builder = container.querySelector('.check-builder');
-        if (builder) CheckBuilder.ensureLoaded(builder);
+        if (builder) { CheckBuilder.ensureLoaded(builder); container._builder = builder; }
         else container.innerHTML = '<p class="ta-warn">This Combatant knows no castable spells.</p>';
       })
       .catch(() => { container.innerHTML = '<p class="ta-warn">Could not load the cast.</p>'; });
   }
 
-  // Record an area placement: stash it for the payload and list the caught
-  // creatures (with a Change button to re-place) under the builder.
+  // Record an area placement: stash it for the payload and hand it to the
+  // builder, which lists the affected creatures as the Target and gives each a
+  // Save (Opposed) Roll. No separate "placed" box.
   static _areaPlaced(container, detail) {
     container._placement = detail;
-    const slot = container.querySelector('.tc-result');
-    if (!slot) return;
-    const hits = detail.hits || [];
-    const names = hits.length
-      ? hits.map((h) => esc(h.label || ('#' + h.combatant_id))).join(', ')
-      : '<em>no creatures caught</em>';
-    slot.innerHTML =
-      '<p class="tc-line"><strong>Spell effect placed.</strong> Affected: ' + names + '</p>' +
-      '<div class="ta-actions"><button type="button" class="ce-btn tc-replace">Change</button></div>';
-    slot.hidden = false;
+    if (container._builder) CheckBuilder.areaPlaced(container._builder, container._casterId, detail);
   }
 
   // Translate the builder's confirmed choices + rolls into a resolve_cast payload.
@@ -65,10 +52,14 @@ export class TurnCast {
     const spellName = choices.spell;
     const caster = rolls.find((r) => r.id === 'caster') || {};
 
-    // Area Spell: the placed footprint determines the affected creatures; there
-    // is no single Target. Send the placement point + the caught Combatants.
+    // Area Spell: the placed footprint determines the affected creatures (the
+    // Spread Opposers). Each caught creature's Save Roll nets against the cast
+    // independently; send the placement point + each creature's Save successes.
     if (container._placement) {
       const p = container._placement;
+      const targets = rolls
+        .filter((r) => String(r.id).indexOf('save-') === 0)
+        .map((r) => ({ id: parseInt(String(r.id).replace('save-', ''), 10), save: { successes: r.successes } }));
       return {
         commit: commit,
         spell_name: spellName,
@@ -76,7 +67,7 @@ export class TurnCast {
         luck: CheckBuilder.luckSpends(choices),
         caster: { id: container._casterId, dice: caster.dice_count, speed: caster.speed || 0, successes: caster.successes },
         placement: { x: p.x, y: p.y },
-        targets: (p.hits || []).map((h) => ({ id: h.combatant_id }))
+        targets: targets
       };
     }
 

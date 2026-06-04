@@ -344,6 +344,64 @@ export class CheckBuilder {
       esc(String(o.value)) + '"' + (o.disabled ? ' disabled' : '') + '>' + o.label + '</button>';
   }
 
+  // ----- area-spell placement (Spread Check) -----
+  //
+  // After the DM places an area Spell on the map, the caught creatures become
+  // the Opposers: replace the placeholder Target Roll with one Save Roll per
+  // creature (fetched from the server), mark the Check Spread, set the Target
+  // summary to the affected names, and skip the (non-existent) Defense step.
+  static areaPlaced(root, casterId, detail) {
+    const cb = root._cb;
+    if (!cb) return;
+    cb.spread = true;
+
+    const hits = detail.hits || [];
+    const names = hits.length
+      ? hits.map((h) => h.label || ('#' + h.combatant_id)).join(', ')
+      : 'no creatures';
+    CheckBuilder._setSummaryText(root, 'target', names);
+    CheckBuilder._skipStep(root, 'defense');
+
+    const params = new URLSearchParams();
+    params.set('caster_id', casterId);
+    params.set('spell', cb.choices.spell ? cb.choices.spell.value : '');
+    hits.forEach((h) => params.append('affected[]', h.combatant_id));
+    fetch('/encounter/cast_area_rolls?' + params.toString(), { headers: { Accept: 'text/html' } })
+      .then((r) => r.text())
+      .then((html) => {
+        const table = root.querySelector('.roll-table');
+        if (!table) return;
+        // Drop the placeholder Target Roll and any prior Save Rolls, then add
+        // the fresh per-creature Save Rolls.
+        table.querySelectorAll('tbody.roll-group').forEach((g) => {
+          const id = g.dataset.rollId || '';
+          if (id === 'target' || id.indexOf('save-') === 0) g.remove();
+        });
+        table.insertAdjacentHTML('beforeend', html);
+        CheckBuilder._previewTns(root);
+      })
+      .catch(() => {});
+  }
+
+  static _setSummaryText(root, key, text) {
+    const sum = CheckBuilder._sumRow(root, key);
+    if (!sum) return;
+    const v = sum.querySelector('.step-summary-value');
+    if (v) v.textContent = text;
+    sum.hidden = false;
+  }
+
+  // Complete a step without showing it (area casts have no Defense step).
+  static _skipStep(root, key) {
+    const idx = CheckBuilder._index(root, key);
+    if (idx < 0) return;
+    root._cb.choices[key] = { value: 'skip', label: 'skip', key: 'skip' };
+    CheckBuilder._setState(root, key, 'complete');
+    const sum = CheckBuilder._sumRow(root, key);
+    if (sum) sum.hidden = true;
+    CheckBuilder._activateFrom(root, idx + 1);
+  }
+
   // ----- patch application (mutates the embedded roll-groups by id) -----
 
   static _applyPatch(root, patch) {
@@ -390,7 +448,9 @@ export class CheckBuilder {
     const opposing   = groups.filter((g) => g.dataset.side === 'opposing').map(rollFor);
     // baseTn isn't a TnComputation input (it uses the config's Base TN); our
     // rolls all share the configured Base TN, so previewParameters is correct.
-    const preview = CheckResolution.previewParameters({ supporting, opposing });
+    // An area cast is a Spread Check (caster vs each independent Opposer).
+    const spread = !!(root._cb && root._cb.spread);
+    const preview = CheckResolution.previewParameters({ supporting, opposing, spread });
     const applyOne = (roll, res) => {
       if (!roll || !res) return;
       CheckBuilder._renderTn(roll._g, roll.baseTn, res);
