@@ -16,6 +16,9 @@
     alchemy    — [{name:, price:, icon:}] alchemical items.
     magical    — [{name:, icon:, attribute:, options: [{bonus:, tier:, price:}]}]
                  Guidance Items; each card has a +N Bonus dropdown.
+    magical_weapons — {weapons:[{name:,category:,base_price:}],
+                 properties:[{name:,subtype:,label:,cost:,min_tier:,applies_to:}],
+                 tiers:[{tier:,surcharge:}]} for the Magical Weapons builder.
 %>
 <%
   fmt = ->(n) { n.is_a?(Integer) ? n.to_s : (n == n.to_i ? n.to_i.to_s : format('%.2f', n)) }
@@ -151,6 +154,68 @@
           <% end %>
         </div>
       </section>
+
+      <%# ---- Magical Weapons: pick weapon + property + tier, live-priced ---- %>
+      <% mw = defined?(magical_weapons) ? magical_weapons : nil %>
+      <% if mw && !Array(mw[:weapons]).empty? && !Array(mw[:properties]).empty? %>
+        <section class="provision-section">
+          <h2>Magical Weapons</h2>
+          <div class="provision-recipient">
+            <label>Recipient
+              <select class="provision-creature-select">
+                <% creatures.each do |c| %>
+                  <option value="<%= c[:id] %>" data-pc="<%= !!c[:pc] %>"><%= esc.call(c[:name]) %></option>
+                <% end %>
+              </select>
+            </label>
+          </div>
+          <div class="provision-grid">
+            <div class="provision-card provision-card-batch provision-card-magicweapon" data-price="0">
+              <div class="provision-card-body">
+                <div class="provision-card-name">Enchanted Weapon</div>
+                <label class="provision-bonus">Weapon
+                  <select class="mw-weapon">
+                    <% mw[:weapons].each do |w| %>
+                      <option value="<%= esc.call(w[:name]) %>" data-category="<%= w[:category] %>" data-base="<%= w[:base_price] %>"><%= esc.call(w[:name]) %></option>
+                    <% end %>
+                  </select>
+                </label>
+                <label class="provision-bonus">Property
+                  <select class="mw-property">
+                    <% mw[:properties].each do |p| %>
+                      <option value="<%= esc.call(p[:name]) %>|<%= esc.call(p[:subtype]) %>"
+                              data-name="<%= esc.call(p[:name]) %>" data-subtype="<%= esc.call(p[:subtype]) %>"
+                              data-cost="<%= p[:cost] %>" data-min-tier="<%= p[:min_tier] %>"
+                              data-applies="<%= Array(p[:applies_to]).join(',') %>"><%= esc.call(p[:label]) %></option>
+                    <% end %>
+                  </select>
+                </label>
+                <label class="provision-bonus">Tier
+                  <select class="mw-tier">
+                    <% mw[:tiers].each do |t| %>
+                      <option value="<%= t[:tier] %>" data-surcharge="<%= t[:surcharge] %>"><%= t[:tier] %></option>
+                    <% end %>
+                  </select>
+                </label>
+                <div class="provision-card-price"><span class="provision-price-amount">0</span> gp</div>
+                <div class="provision-note mw-note" hidden></div>
+                <div class="provision-alch-boxes">
+                  <label class="provision-box">
+                    <input type="number" class="provision-qty provision-qty-selected" value="0" min="0"> selected
+                  </label>
+                  <% players.each do |p| %>
+                    <label class="provision-box">
+                      <input type="number" class="provision-qty provision-qty-pc" value="0" min="0"
+                             data-recipient-id="<%= p[:id] %>" data-recipient-name="<%= esc.call(p[:name]) %>"> <%= esc.call(p[:name]) %>
+                    </label>
+                  <% end %>
+                </div>
+                <button type="button" class="ce-btn ce-btn-primary provision-add provision-alch-buy">Add</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      <% end %>
 
       <%# ---- Potions: deferred until the Abilities domain is wired ---- %>
       <section class="provision-section provision-disabled">
