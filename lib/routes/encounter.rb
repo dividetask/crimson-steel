@@ -475,7 +475,8 @@ helpers do
       next unless res && res[:reservoir].to_i >= 2
       cacc = Creatures.lookup(cc[:creature_id]) rescue nil
       shields[g[:defends]] = { caster_id: g[:combatant_id], caster_name: tracker_name(cc),
-                               reservoir: res[:reservoir].to_i, tier: (cacc&.tier rescue nil) }
+                               reservoir: res[:reservoir].to_i, dice_cap: g[:dice_cap].to_i,
+                               tier: (cacc&.tier rescue nil) }
     end
 
     # Header quick-picks (next to "Target"): one button per enemy of the
@@ -604,7 +605,10 @@ helpers do
         # the target's own Defense Roll stays excluded).
         sh = shields[t[:id]]
         if sh
-          cap = sh[:reservoir]
+          # Up to the caster's casting-skill Dice Cap, and never more dice than
+          # Reservoir remains (1 Reservoir die spent per die rolled).
+          dcap = sh[:dice_cap].to_i.positive? ? sh[:dice_cap].to_i : sh[:reservoir]
+          cap = [sh[:reservoir], dcap].min
           mk_sh = lambda do |dice|
             { value: "shield:#{sh[:caster_id]}|#{dice}", group: 'shield', label: dice.to_s,
               summary: "Shield of Faith — #{dice} dice",
@@ -1138,10 +1142,17 @@ helpers do
     return unless v.dig('reservoir', 'discharge', 'defends').to_s == 'target'
     caster = payload['caster'] || {}
     ally = Array(payload['targets']).first or return
+    # The block may roll up to the caster's Dice Cap in the casting skill, each
+    # die costing one Reservoir die — store the cap so the attack builder can
+    # bound the block.
+    skill = (spell['cast_skill'] || Encounter::Cast::DEFAULT_CAST_SKILL).to_s
+    cacc  = (Creatures.lookup(combatant_for_id_creature(caster['id'])) rescue nil)
+    cap   = (roll_inputs_for(cacc, skill)[:dice_cap].to_i rescue 0)
     # Replace any prior shield from the same caster+spell on a new cast.
     encounter_state.revoke_action { |g| g[:source] == spell['name'].to_s && g[:combatant_id] == caster['id'] }
     encounter_state.grant_action({ combatant_id: caster['id'], name: spell['name'], source: spell['name'],
-                                   spell_name: spell['name'], defends: ally['id'] })
+                                   spell_name: spell['name'], defends: ally['id'],
+                                   cast_skill: skill, dice_cap: cap })
   end
 
   def cast_effects_from_consumption(effects)
