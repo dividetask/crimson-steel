@@ -844,7 +844,10 @@ helpers do
     dice_min = 2
     dice_map = {}
     spells.each do |sp|
-      cap = sp[:dice_cap]
+      # A rolled cast is bounded by the casting-skill Dice Cap. A reservoir pour
+      # is not rolled — those dice are banked — so it is bounded only by the
+      # Combat Pool the caster can spend, letting more than the Dice Cap go in.
+      cap = sp[:reservoir] ? pool : sp[:dice_cap]
       # Roll Spells (Save / attack / damage) and reservoir-channel Spells both
       # ask for a dice count — rolled for the former, poured into the Reservoir
       # for the latter. Everything else (buffs, no-save areas, Shield-style
