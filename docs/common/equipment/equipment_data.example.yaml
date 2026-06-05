@@ -418,7 +418,7 @@ characters:
 party:
   inventory:
     - item: Gold
-      quantity: 275
+      quantity: 50275
     - item: Bolt
       quantity: 60
       restock_target: 120
