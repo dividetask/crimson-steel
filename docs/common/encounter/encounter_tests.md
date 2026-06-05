@@ -146,7 +146,7 @@ Cases:
 
 ### Magical weapon Damage Riders
 
-A weapon carries `damage_riders` (from *Get Weapon Details*) when its Stack has a magical Property with a `damage_rider`. The rider's extra dice are rolled client-side **at the attack's Target Number, only after the hit lands** — the DM rolls them in the result panel before the final Commit. The payload returns `riders` (metadata so the panel can render the second roll) and carries each roll's outcome back in `rider_results: [{ id, successes, ones }]`. Each rider lands as its **own** Severity Calculation, separate from the weapon's base damage.
+A weapon carries `damage_riders` (from *Get Weapon Details*) when its Stack has a magical Property with a `damage_rider`. The rider's extra dice are rolled **at the attack's Target Number, only after the hit lands**, in their own **Roll Resolution Stub** that renders before the editable damage screen; on Confirm it collapses to its own row (with a Change button), then the damage screen appears. The preview returns `riders` (metadata so the panel can build that roll stub) and the commit carries each roll's outcome back in `rider_results: [{ id, successes, ones }]` — `successes` counts dice ≥ TN, `ones` counts Failures. Each rider lands as its **own** Severity Calculation, separate from the weapon's base damage.
 
 **Rider damage is a separate Severity Calculation.** A `slashing` hit also carries an Elemental(Fire) rider (`damage_type: fire`, `amount: 1`). With the rider rolling 2 Successes, `2 × 1 = 2` fire damage routes through `apply_damage(target, 2, "fire")` — fire's `damage_per_hit: 1` makes it `3`, bucketed Moderate — landing in Conditions separately from the weapon's slashing damage.
 

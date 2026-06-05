@@ -1,17 +1,16 @@
 import { CheckBuilder } from './checkBuilder.js';
-import { RandomRng } from '../rng.js';
-import { DiceRenderer } from './diceRenderer.js';
 
 // Turn Action panel — Attack (turn_action_stub.md → Attack).
 //
-// Thin host for the Check Resolution Builder. Confirm is two-stage so the DM
+// Thin host for the Check Resolution Builder. Confirm is multi-stage so the DM
 // can review before anything is saved:
-//   1st Confirm  -> non-mutating PREVIEW (commit:false). The result renders
-//       beneath the still-present builder with editable Damage / Bleed /
-//       Combat-Pool fields. When the weapon carries magical Damage Riders,
-//       the preview also shows a second roll per rider (4 extra dice at the
-//       attack's Target Number); the DM rolls each before committing.
-//   2nd Confirm  -> the "Commit attack" button: applies the (possibly edited)
+//   1st Confirm  -> non-mutating PREVIEW (commit:false). When the weapon
+//       carries magical Damage Riders, a second Roll Resolution Stub (the 4
+//       extra dice per rider, at the attack's Target Number) renders first;
+//       the DM rolls + Confirms it and it collapses to its own row (with a
+//       Change button). Then the editable Damage / Bleed / Combat-Pool screen
+//       appears. With no riders the damage screen shows immediately.
+//   Final Confirm -> the "Commit attack" button: applies the (possibly edited)
 //       result for real (spends Combat Pool, applies damage + bleed + rider
 //       damage), locks.
 export class TurnAttack {
@@ -24,8 +23,12 @@ export class TurnAttack {
     container.addEventListener('check:confirmed', (e) => TurnAttack._preview(container, e.detail));
     container.addEventListener('click', (e) => {
       if (e.target.closest && e.target.closest('.ta-commit')) { e.preventDefault(); TurnAttack._commit(container); }
-      const rr = e.target.closest && e.target.closest('.ta-rider-roll');
-      if (rr) { e.preventDefault(); TurnAttack._rollRider(container, rr); }
+      // The rider Roll Resolution Stub's Roll / Confirm / Change are driven by
+      // the shared handlers in app.js (any .rolls-wrapper). We only hook the
+      // Confirm (reveal the damage screen) and Change (hide it again), without
+      // preventing app.js from collapsing / expanding the stub.
+      if (e.target.closest && e.target.closest('.ta-rider-stub .btn-confirm')) TurnAttack._onRiderConfirm(container);
+      if (e.target.closest && e.target.closest('.ta-rider-stub .btn-rolls-change')) TurnAttack._onRiderChange(container);
     });
     // Editing the Damage field re-buckets the Minor/Moderate/Major split live.
     container.addEventListener('input', (e) => {
@@ -131,8 +134,6 @@ export class TurnAttack {
     const slot = container.querySelector('.ta-result');
     if (!slot) return;
     container._lastRes = res;
-    const nameOf = TurnAttack._namer(container);
-    const spends = (res.pool_spends || []).filter((s) => s.amount > 0);
 
     if (committed) {
       // Attack applied — the panel's work is done. Reload so the tracker
@@ -142,8 +143,29 @@ export class TurnAttack {
       return;
     }
 
-    // Preview: editable Damage / Bleed / per-participant Combat Pool. The
-    // Minor/Moderate/Major split is derived from Damage + Threshold (live).
+    container._riders = res.riders || [];
+    container._riderRolls = {};
+    slot.hidden = false;
+
+    // When the weapon has Damage Riders, the rider Roll Resolution Stub comes
+    // first; the editable damage screen is revealed once the DM Confirms it.
+    // With no riders the damage screen shows straight away.
+    if (container._riders.length) {
+      const { tn, dieSize } = TurnAttack._attackerTn(container);
+      slot.innerHTML = `<div class="ta-rider-stub">${TurnAttack._riderStubHtml(container._riders, tn, dieSize)}</div>` +
+        '<div class="ta-damage-screen" hidden></div>';
+    } else {
+      slot.innerHTML = '<div class="ta-damage-screen"></div>';
+      TurnAttack._renderDamageScreen(container, res);
+    }
+  }
+
+  // Build the editable Damage / Bleed / Combat-Pool screen + Commit button.
+  static _renderDamageScreen(container, res) {
+    const screen = container.querySelector('.ta-damage-screen');
+    if (!screen) return;
+    const nameOf = TurnAttack._namer(container);
+    const spends = (res.pool_spends || []).filter((s) => s.amount > 0);
     const rows = [];
     rows.push(`<div class="ta-field"><label>Damage` +
       ` <input type="number" class="ta-dmg-input" value="${res.damage}" min="0"></label>` +
@@ -154,62 +176,114 @@ export class TurnAttack {
       rows.push(`<div class="ta-field"><label>Combat Pool — ${nameOf(s.id)}` +
         ` <input type="number" class="ta-pool-input" data-id="${s.id}" value="${s.amount}" min="0"></label></div>`);
     });
-
-    // Magical Damage Riders: a second roll per rider, before the final commit.
-    // The 4 extra dice roll at the attack's Target Number; each Success adds
-    // its damage. Until every rider is rolled, Commit stays disabled.
-    container._riders = res.riders || [];
-    container._riderRolls = {};
-    const tn = TurnAttack._attackerTn(container).tn;
-    container._riders.forEach((rider) => { rows.push(TurnAttack._riderHtml(rider, tn)); });
-
-    const disabled = container._riders.length ? ' disabled' : '';
-    rows.push(`<div class="ta-actions"><button type="button" class="ce-btn ta-commit"${disabled}>Commit attack</button></div>`);
-    slot.innerHTML = rows.join('');
-    slot.hidden = false;
+    rows.push(`<div class="ta-actions"><button type="button" class="ce-btn ta-commit">Commit attack</button></div>`);
+    screen.innerHTML = rows.join('');
     TurnAttack._renderSplit(container);
   }
 
-  // One rider's second-roll block: a heading naming the rider, its dice/TN,
-  // a Roll button, an (initially empty) dice strip, and an outcome line.
-  static _riderHtml(rider, tn) {
-    const typeNote = rider.kind === 'named_effect' ? cap(String(rider.effect || '')) : (rider.damage_type || '');
-    return `<div class="ta-rider" data-rider-id="${rider.id}">` +
-      `<div class="ta-rider-head"><strong>${rider.label}</strong> — ${rider.dice} dice @ TN ${tn}` +
-      ` <span class="ta-dim">(${typeNote})</span>` +
-      ` <button type="button" class="ce-btn ta-rider-roll" data-rider-id="${rider.id}">Roll</button></div>` +
-      `<div class="ta-rider-dice"></div><div class="ta-rider-out ta-dim"></div></div>`;
+  // Markup for the rider Roll Resolution Stub — the standard `.rolls-wrapper`
+  // the dice engine + app.js delegation already drive (Roll All / Confirm /
+  // Change). One Roll per rider: `rider.dice` dice at the attack's TN.
+  static _riderStubHtml(riders, tn, dieSize) {
+    const cfgFor = (r) => esc(JSON.stringify({ dice_count: r.dice, tn: tn, die_size: dieSize, starting_value: 0 }));
+    const bodies = riders.map((r, i) => (
+      `<tbody class="roll-group" data-roll-idx="${i}" data-rider-id="${r.id}" data-roll-id="rider-${r.id}" data-config='${cfgFor(r)}'>` +
+        '<tr class="roll-row row-initial">' +
+          `<td rowspan="1" class="character-cell">` +
+            `<span class="stub-line creature-name">${esc(r.label)}</span>` +
+            `<span class="stub-line params">${r.dice} dice @ TN ${tn}</span>` +
+            `<span class="stub-line roll-name"><em>(${esc(TurnAttack._riderTypeNote(r))})</em></span>` +
+          '</td>' +
+          '<td class="mod-cell"></td><td class="mod-cell"></td>' +
+          '<td class="dice-cell"><span class="dice-placeholder">[ &mdash; ]</span></td>' +
+          '<td rowspan="1" class="result-cell"><input class="result-input" type="text" value=""></td>' +
+          '<td rowspan="1" class="result-cell"><input class="result-input" type="text" value=""></td>' +
+          '<td rowspan="1" class="lock-cell"><button type="button" class="lock-btn" aria-label="Toggle lock"></button></td>' +
+        '</tr>' +
+      '</tbody>'
+    )).join('');
+    const resultRows = riders.map((r, i) => (
+      `<div class="rolls-result-row" data-roll-idx="${i}">` +
+        `<span class="rolls-result-name">${esc(r.label)}:</span>` +
+        '<span class="rolls-result-value"></span>' +
+      '</div>'
+    )).join('');
+    const rollLabel = riders.length > 1 ? 'Roll All' : 'Roll';
+    return '<div class="rolls-wrapper" data-stub="roll" data-state="active">' +
+      '<div class="rolls-header">' +
+        '<span class="rolls-title">Damage Riders</span>' +
+        '<div class="rolls-actions">' +
+          `<button type="button" class="btn-roll-all">${rollLabel}</button>` +
+          '<button type="button" class="btn-confirm">Confirm</button>' +
+        '</div>' +
+      '</div>' +
+      '<table class="stub-table roll-table">' +
+        '<colgroup><col class="col-character"><col class="col-mod"><col class="col-mod"><col class="col-dice"><col class="col-result"><col class="col-result"><col class="col-lock"></colgroup>' +
+        '<thead><tr><th>Rider</th><th>Reroll</th><th>Nudge</th><th>Dice</th><th>Result</th><th>Crits</th><th></th></tr></thead>' +
+        bodies +
+      '</table>' +
+      '<div class="rolls-results" hidden>' + resultRows +
+        '<button type="button" class="btn-rolls-change"><span class="cr-change-icon">↶</span> Change</button>' +
+      '</div>' +
+    '</div>';
   }
 
-  // Roll one rider's extra dice at the attack's TN, count Successes (≥ TN) and
-  // 1s, render the dice, and record the result for the commit payload.
-  static _rollRider(container, btn) {
-    const id = num(btn.dataset.riderId);
-    const rider = (container._riders || []).find((r) => r.id === id);
-    if (!rider) return;
-    const { tn, dieSize } = TurnAttack._attackerTn(container);
-    const dice = new RandomRng().rollDice(rider.dice, dieSize);
-    let successes = 0; let ones = 0;
-    dice.forEach((v) => { if (v >= tn) successes += 1; else if (v === 1) ones += 1; });
-    container._riderRolls[id] = { successes: successes, ones: ones };
+  static _riderTypeNote(r) {
+    return r.kind === 'named_effect' ? cap(String(r.effect || '')) : (r.damage_type || '');
+  }
 
-    const block = container.querySelector(`.ta-rider[data-rider-id="${id}"]`);
-    if (block) {
-      const diceCell = block.querySelector('.ta-rider-dice');
-      if (diceCell) diceCell.innerHTML = DiceRenderer.renderDice(dice, tn, dieSize, 0, 'shown');
-      const out = block.querySelector('.ta-rider-out');
-      if (out) out.textContent = TurnAttack._riderOutcomeText(rider, successes, ones);
-      const rb = block.querySelector('.ta-rider-roll');
-      if (rb) rb.textContent = 'Reroll';
+  // The rider stub's Confirm: read each rider's rolled dice, record the
+  // Successes / 1s for the commit payload, relabel its collapsed row with the
+  // damage it deals, and reveal the damage screen. Deferred so app.js's
+  // collapse (the shared .btn-confirm handler) runs first.
+  static _onRiderConfirm(container) {
+    TurnAttack._computeRiderResults(container);
+    setTimeout(() => {
+      const stub = container.querySelector('.ta-rider-stub');
+      (container._riders || []).forEach((rider) => {
+        const r = container._riderRolls[rider.id] || { successes: 0, ones: 0 };
+        const cell = stub && stub.querySelector(`.rolls-result-row[data-roll-idx="${rider.id}"] .rolls-result-value`);
+        if (cell) cell.textContent = TurnAttack._riderOutcomeText(rider, r.successes, r.ones);
+      });
+      TurnAttack._renderDamageScreen(container, container._lastRes || {});
+      const screen = container.querySelector('.ta-damage-screen');
+      if (screen) screen.hidden = false;
+    }, 0);
+  }
+
+  // The rider stub's Change re-opens the dice: hide the damage screen until the
+  // DM re-Confirms the riders.
+  static _onRiderChange(container) {
+    container._riderRolls = {};
+    const screen = container.querySelector('.ta-damage-screen');
+    if (screen) { screen.hidden = true; screen.innerHTML = ''; }
+  }
+
+  // Count each rider's rolled dice: a Success is a die ≥ TN (a natural max
+  // counts), a "1" is a Failure (feeds Vicious self-damage). Read from the
+  // stub's rendered dice so the tally matches what the DM sees.
+  static _computeRiderResults(container) {
+    const stub = container.querySelector('.ta-rider-stub');
+    const rolls = {};
+    if (stub) {
+      stub.querySelectorAll('tbody.roll-group').forEach((g) => {
+        const id = num(g.dataset.riderId);
+        let successes = 0; let ones = 0;
+        g.querySelectorAll('.dice-cell .die').forEach((d) => {
+          if (d.classList.contains('success') || d.classList.contains('crit')) successes += 1;
+          else if (d.classList.contains('fail')) ones += 1;
+        });
+        rolls[id] = { successes: successes, ones: ones };
+      });
     }
-    TurnAttack._updateCommitGate(container);
+    container._riderRolls = rolls;
   }
 
   // Human-readable summary of a rolled rider, mirroring the server's math.
   static _riderOutcomeText(rider, successes, ones) {
     const parts = [];
     if (rider.kind === 'named_effect') {
-      parts.push(`${successes * (rider.amount || 1)} ${rider.effect}`);
+      parts.push(`${successes * (rider.amount || 1)} ${rider.effect} (${successes} success${successes === 1 ? '' : 'es'})`);
     } else {
       const dmg = successes * (rider.amount || 1);
       const sev = rider.severity ? ' ' + rider.severity : '';
@@ -220,15 +294,6 @@ export class TurnAttack {
       parts.push(`wielder takes ${self} ${rider.self_damage.severity}`);
     }
     return parts.join('; ');
-  }
-
-  // Enable Commit only once every rider has been rolled.
-  static _updateCommitGate(container) {
-    const btn = container.querySelector('.ta-commit');
-    if (!btn) return;
-    const need = (container._riders || []).length;
-    const have = Object.keys(container._riderRolls || {}).length;
-    btn.disabled = have < need;
   }
 
   // The attacker Roll's Target Number and die size, read from the builder's
@@ -276,6 +341,7 @@ export class TurnAttack {
 
 function cap(s) { return String(s).charAt(0).toUpperCase() + String(s).slice(1); }
 function num(v) { const n = parseInt(v, 10); return Number.isNaN(n) ? 0 : n; }
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 // The Roll's creature name has a `.tn-tip` child span; read only its text
 // nodes so the tooltip's computation text doesn't leak into the name.
