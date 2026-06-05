@@ -2164,10 +2164,12 @@ body {
 }
 .cs-card .cs-col {}
 
-/* Minimal-sheet attribute + vitals block. */
+/* Minimal-sheet attribute + vitals block. Three columns: the 3×2
+   attribute grid, the HP / Mana stack, and the Damage Reduction /
+   Resilience stack to its right. */
 .cs-card.cs-minimal .cs-vitals-block {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.4fr 1fr 1fr;
   gap: 24px;
   border-top: 1px solid #b9472c;
   padding-top: 10px;
@@ -2184,6 +2186,94 @@ body {
   align-items: baseline;
   gap: 8px;
 }
+/* Attribute cells that carry a Check/Save popup are interactive. */
+.cs-card.cs-minimal .cs-attr-cell.cs-attr-has-pop {
+  position: relative;
+  cursor: pointer;
+}
+.cs-card.cs-minimal .cs-attr-cell.cs-attr-has-pop:hover,
+.cs-card.cs-minimal .cs-attr-cell.cs-attr-has-pop:focus-within,
+.cs-card.cs-minimal .cs-attr-cell.cs-attr-has-pop.cs-pop-open {
+  outline: none;
+}
+.cs-card.cs-minimal .cs-attr-cell.cs-attr-has-pop:hover .cs-attr-key,
+.cs-card.cs-minimal .cs-attr-cell.cs-attr-has-pop:focus-within .cs-attr-key,
+.cs-card.cs-minimal .cs-attr-cell.cs-attr-has-pop.cs-pop-open .cs-attr-key {
+  text-decoration: underline dotted;
+}
+
+/* Attribute popup — Check / Save / untrained Dice Cap + Bonus. Hidden
+   until the cell is hovered, keyboard-focused, or click-toggled. */
+.cs-card.cs-minimal .cs-attr-pop {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: 4px;
+  z-index: 20;
+  min-width: 168px;
+  padding: 8px 10px;
+  background: #fffaf0;
+  border: 1px solid #b9472c;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(43, 26, 19, 0.22);
+}
+.cs-card.cs-minimal .cs-attr-cell.cs-attr-has-pop:hover .cs-attr-pop,
+.cs-card.cs-minimal .cs-attr-cell.cs-attr-has-pop:focus-within .cs-attr-pop,
+.cs-card.cs-minimal .cs-attr-cell.cs-attr-has-pop.cs-pop-open .cs-attr-pop {
+  display: block;
+}
+.cs-card.cs-minimal .cs-attr-pop-title {
+  font-variant: small-caps;
+  color: #882f1f;
+  font-weight: bold;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.cs-card.cs-minimal .cs-attr-pop-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.cs-card.cs-minimal .cs-attr-pop-table th,
+.cs-card.cs-minimal .cs-attr-pop-table td {
+  padding: 2px 6px;
+  border: none;
+}
+.cs-card.cs-minimal .cs-attr-pop-table thead th {
+  color: #882f1f;
+  font-variant: small-caps;
+  font-size: 10px;
+  font-weight: bold;
+  border-bottom: 1px solid #d9a98a;
+}
+.cs-card.cs-minimal .cs-attr-pop-table tbody th {
+  text-align: left;
+  font-weight: 600;
+  color: #4d2e1e;
+}
+
+/* Damage Reduction / Resilience stack (right of HP / Mana). */
+.cs-card.cs-minimal .cs-defense {
+  font-size: 15px;
+  line-height: 1.6;
+}
+.cs-card.cs-minimal .cs-def-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 8px;
+}
+.cs-card.cs-minimal .cs-def-label {
+  font-variant: small-caps;
+  color: #882f1f;
+  font-weight: bold;
+  font-size: 13px;
+}
+.cs-card.cs-minimal .cs-def-value {
+  font-weight: bold;
+  color: #2b1a13;
+}
 .cs-card.cs-minimal .cs-attr-key {
   font-variant: small-caps;
   color: #882f1f;
@@ -2195,6 +2285,20 @@ body {
   color: #2b1a13;
   font-weight: bold;
 }
+/* Broken-out bonus / penalty tokens — green "+X" for a bonus, red "−X"
+   for a penalty, shown inline beside the base value (a conditional one
+   carries a leading "*"). cs-nowrap keeps the whole stack on one line. */
+.cs-card .cs-mod-bonus {
+  color: #2e7d32;
+  font-weight: bold;
+}
+.cs-card .cs-mod-penalty {
+  color: #b9472c;
+  font-weight: bold;
+}
+.cs-card .cs-nowrap { white-space: nowrap; }
+.cs-card.cs-minimal .cs-attr-grid .cs-mod-bonus,
+.cs-card.cs-minimal .cs-attr-grid .cs-mod-penalty { font-size: 13px; }
 .cs-card.cs-minimal .cs-hp-mana {
   font-size: 15px;
   line-height: 1.6;

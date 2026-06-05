@@ -85,8 +85,10 @@ export class TurnAttack {
     const o = {};
     const dmg = slot && slot.querySelector('.ta-dmg-input');
     const bl = slot && slot.querySelector('.ta-bleed-input');
+    const poi = slot && slot.querySelector('.ta-poison-input');
     if (dmg) o.damage = num(dmg.value);
     if (bl) o.bleed = num(bl.value);
+    if (poi) o.poison = num(poi.value);
     const pools = slot ? Array.from(slot.querySelectorAll('.ta-pool-input')) : [];
     if (pools.length) o.pool_spends = pools.map((p) => ({ id: num(p.dataset.id), amount: num(p.value) }));
     return o;
@@ -134,6 +136,13 @@ export class TurnAttack {
       ` <span class="ta-dim">${res.damage_type || ''}</span> <span class="ta-split"></span></div>`);
     rows.push(`<div class="ta-field"><label>Bleed` +
       ` <input type="number" class="ta-bleed-input" value="${res.bleed}" min="0"></label></div>`);
+    // Poison — only weapons that inject an Affliction (e.g. a spider's
+    // venom) return a poison_name; its potency is editable like Bleed.
+    if (res.poison_name) {
+      rows.push(`<div class="ta-field"><label>Poison` +
+        ` <input type="number" class="ta-poison-input" value="${res.poison || 0}" min="0"></label>` +
+        ` <span class="ta-dim">${res.poison_name}</span></div>`);
+    }
     spends.forEach((s) => {
       rows.push(`<div class="ta-field"><label>Combat Pool — ${nameOf(s.id)}` +
         ` <input type="number" class="ta-pool-input" data-id="${s.id}" value="${s.amount}" min="0"></label></div>`);
@@ -141,6 +150,16 @@ export class TurnAttack {
     rows.push(`<div class="ta-actions"><button type="button" class="ce-btn ta-commit">Commit attack</button></div>`);
     slot.innerHTML = rows.join('');
     slot.hidden = false;
+    // Mirror the Commit button up into the builder's title row (next to Roll
+    // All / Confirm) so the DM can commit without moving the mouse far.
+    const actions = container.querySelector('.rolls-actions');
+    if (actions && !actions.querySelector('.ta-commit')) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ce-btn ta-commit';
+      btn.textContent = 'Commit attack';
+      actions.appendChild(btn);
+    }
     TurnAttack._renderSplit(container);
   }
 

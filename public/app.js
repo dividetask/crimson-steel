@@ -19,6 +19,19 @@ document.addEventListener('submit', function (e) {
 });
 
 document.addEventListener('click', function (e) {
+  // Minimal-sheet Attribute popup (Check / Save / untrained Dice Cap +
+  // Bonus). Hover / keyboard focus reveal it via CSS; a click toggles a
+  // sticky open state (so it works on touch and stays put). Any click
+  // closes popups on other Attribute cells.
+  const attrCell = e.target.closest('.cs-attr-has-pop');
+  document.querySelectorAll('.cs-attr-has-pop.cs-pop-open').forEach(function (c) {
+    if (c !== attrCell) c.classList.remove('cs-pop-open');
+  });
+  if (attrCell) {
+    attrCell.classList.toggle('cs-pop-open');
+    return;
+  }
+
   const badge = e.target.closest('.mod-badge');
   if (badge) {
     badge.classList.add('show-tip');
@@ -89,6 +102,17 @@ document.addEventListener('click', function (e) {
 
 document.addEventListener('change', function (e) {
   SavePreview.syncFromResultInput(e.target);
+});
+
+// Hovering an Attribute cell dismisses any click-stuck popup on the
+// other Attribute cells, so only one Attribute popup is ever visible at
+// a time (the hovered one shows via CSS :hover).
+document.addEventListener('mouseover', function (e) {
+  const cell = e.target.closest('.cs-attr-has-pop');
+  if (!cell) return;
+  document.querySelectorAll('.cs-attr-has-pop.cs-pop-open').forEach(function (c) {
+    if (c !== cell) c.classList.remove('cs-pop-open');
+  });
 });
 
 (function () {

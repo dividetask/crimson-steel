@@ -200,6 +200,25 @@ Weapons:
     threshold: 8
     natural: true
     base_price: 0
+  # Natural bites carried by beast subtypes. `affliction` names a
+  # Conditions Affliction the bite injects on a hit; Combat offers a
+  # poison input alongside damage / bleed in the attack resolution.
+  Bite (Fangs):
+    category: One Handed
+    damage_type: Piercing
+    base_damage: "str / 8"
+    speed: 0
+    natural: true
+    affliction: spider_venom
+    affliction_potency: 5   # injected Potency = this + damage dealt
+    base_price: 0
+  Bite (Jaws):
+    category: One Handed
+    damage_type: Piercing
+    base_damage: "str / 2"
+    speed: 0
+    natural: true
+    base_price: 0
   Longbow:
     category: Ranged
     damage_type: Piercing
@@ -520,12 +539,30 @@ Items:
     guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
     tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     description: Grants a Guidance Bonus to the wearer's Dexterity.
+  Belt of Constitution:
+    slot: belt
+    guidance_attribute: con
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    description: Grants a Guidance Bonus to the wearer's Constitution.
   Headband of Intelligence:
     slot: head
     guidance_attribute: int
     guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
     tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
     description: Grants a Guidance Bonus to the wearer's Intelligence.
+  Headband of Wisdom:
+    slot: head
+    guidance_attribute: wis
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    description: Grants a Guidance Bonus to the wearer's Wisdom.
+  Headband of Charisma:
+    slot: head
+    guidance_attribute: cha
+    guidance_bonus: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    tier: [1, 1, 2, 2, 3, 3, 4, 4, 5]
+    description: Grants a Guidance Bonus to the wearer's Charisma.
 
 # =====================================================================
 # CURRENCY

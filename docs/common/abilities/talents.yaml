@@ -210,6 +210,20 @@ Natural Attack:
   description: "Grants one or more natural weapons (slam, claw, bite, horn, etc.). The weapons themselves are Equipment entries; this Talent is how a Creature gains access to them. The granting Class or Race specifies which natural weapons via grants_equipment."
   grants_equipment: []   # filled in by the granting Class or Race; Equipment owns the weapon stat blocks.
 
+# Concrete Natural Attack Talents granted by the beast subtypes. Each names
+# the Bite weapon it confers via grants_equipment; the weapon (and, for the
+# spider, its venom) lives in the Equipment catalog. The bite is offered as
+# an attack but is never carried as inventory.
+Canine Bite:
+  type: talent
+  description: "A canine's powerful jaws. Grants the Bite (Jaws) natural weapon."
+  grants_equipment: ["Bite (Jaws)"]
+
+Spider Bite:
+  type: talent
+  description: "A spider's venomous fangs. Grants the Bite (Fangs) natural weapon, which injects spider venom on a hit."
+  grants_equipment: ["Bite (Fangs)"]
+
 Rend:
   type: talent
   trigger:

@@ -57,7 +57,8 @@ The shape `Encounter::State#resolve_attack_payload` consumes (symbol or string k
 
 - `target_id` — the defender's Combat ID.
 - `attack_kind` — `melee` | `ranged` | `spell` (default `melee`).
-- `weapon` — `{ damage_types, threshold, base_damage }` (optional; falls back to `damage_bonus` + `physical`).
+- `weapon` — `{ damage_types, threshold, base_damage, bleed, affliction }` (optional; falls back to `damage_bonus` + `physical`). `affliction` names a Conditions Affliction the weapon injects on a hit (e.g. a spider's `spider_venom`).
+- `override` — `{ damage, bleed, poison, pool_spends }` (commit only). The result preview shows **Damage**, **Bleed**, and — when the weapon carries an `affliction` — a **Poison** input box, each editable before the final Confirm. On commit, positive Damage routes through *Apply Damage*, Bleed and Poison are inflicted through Conditions' affliction channel (Bleed as `bleeding`, Poison as the weapon's `affliction`), scheduled to the victim's next turn. Poison potency defaults to the attack's net Degrees of Success.
 - `attacker` — `{ id, dice, speed, successes }`.
 - `defense` — `{ choice, id, dice, speed, successes }`. `choice` of `none`/empty skips it; an ineligible defense is rejected before any Combat Pool is spent. Every Defensive Action (Parry / Block / Dodge) costs Combat Pool (`Speed + dice`).
 - `allies` — `[ { id, dice, speed, successes }, … ]` for ally Reactions (e.g. a Granted-Action block).

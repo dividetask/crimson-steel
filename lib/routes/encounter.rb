@@ -127,12 +127,9 @@ helpers do
   def reconcile_player_combatants!
     pc_ids = Creatures.player_controlled.map { |pc| pc[:id] }
     encounter_state.reconcile_pcs(pc_ids)
-    # Everyone in the roster should have an Initiative — roll one for any
-    # Combatant still missing it (e.g. PCs just auto-added above), leaving
-    # already-rolled Combatants untouched.
-    if encounter_state.combatants.any? { |c| c[:initiative_string].to_s.empty? }
-      encounter_state.reroll_initiative(missing_only: true)
-    end
+    # A Combatant added to the encounter starts with NO Initiative — the DM
+    # rolls it manually (the roster's roll-initiative control, or *Start
+    # Combat* which rolls everyone). We deliberately do not auto-roll here.
   end
 
   def require_dm!
@@ -365,11 +362,14 @@ helpers do
   # One Conditions Save Resolution Stub `save` blob per Affliction due this
   # Round for the Acting Combatant (the same shape Status builds in
   # lib/status/sample_conditions.rb; see conditions_save_resolution_stub.md).
-  # save_tn folds in the Competency Modifier and the Potency Save Penalty
-  # (a Competency Penalty of floor(potency / Potency Divisor)) the same way
-  # Conditions' *Resolve Affliction* does. The `resolve` key tells the
-  # stub's Confirm where to POST the rolled DoIS so it actually resolves
-  # the Affliction (vs. the Status page's display-only demo).
+  # We pass the Creature's own `save_modifiers` (its Save Competency plus any
+  # Always-On Save bonuses that apply against the Affliction's category — a
+  # Dwarf's racial poison resistance, a Cloak of Resistance, ...); the stub
+  # itself adds the Potency Save Penalty and the Inflicter Tier Penalty and
+  # computes the TN, so every modifier is listed in its TN breakdown. The
+  # `resolve` key tells the stub's Confirm where to POST the rolled DoIS so
+  # it actually resolves the Affliction (vs. the Status page's display-only
+  # demo).
   def start_of_turn_saves(combatant)
     return [] unless combatant
     inst  = Conditions.store.instance_for(combatant[:creature_id])
@@ -389,17 +389,23 @@ helpers do
       attr    = (rule['save'] || 'con').to_s
 
       ri  = roll_inputs_for(acc, "#{attr}_save", attribute_override: attr.to_sym)
-      bpl = []
-      bpl << ri[:competency_modifier] if ri[:competency_modifier]
-      penalty = potency / divisor
-      bpl << ['Competency', -penalty] if penalty.positive?
-      tn = DiceResolution.compute_target_number(bpl)[:tn]
+      # The Creature's own Save Bonuses/Penalties: the Save Competency plus
+      # any Always-On Save modifiers that apply against this Affliction's
+      # category (a Dwarf's +1 racial poison resistance, a Cloak of
+      # Resistance, ...). The save stub adds the Potency Save Penalty and the
+      # Inflicter Tier Penalty and computes the TN itself, listing each.
+      save_mods = []
+      save_mods << ri[:competency_modifier] if ri[:competency_modifier]
+      if acc
+        category = (rule['category'] || 'other').to_s
+        CreatureModifiers.save_modifiers(acc, attr, descriptors: [category]).each { |pair| save_mods << pair }
+      end
 
       {
         creature:   { id: combatant[:creature_id], name: cname, tier: tier },
         affliction: { name: name, rule: rule, potency: potency,
                       inflicter_tier: entry[:inflicting_tier].to_i },
-        save_dice: ri[:dice_cap].to_i, save_tn: tn, die_size: die,
+        save_dice: ri[:dice_cap].to_i, save_modifiers: save_mods, die_size: die,
         potency_divisor: divisor,
         reroll_sources: nil, mass_reroll_sources: nil, nudge_sources: nil,
         stub_id: "sot-#{combatant[:id]}-#{name}",
@@ -477,8 +483,14 @@ helpers do
     inv = (Equipment.instance.get_inventory(equipment_owner(creature_id)) rescue [])
     rows = inv.select { |s| s.equipped && (it = cat.item_type(s.item_type)) && it[:category] == 'Weapon' }
               .map { |s| weapon_row(Equipment::Details.weapon_details(s, cat), s.item_type) }
+    # Race / Class Natural Attacks (e.g. a beast's Bite) — granted weapons
+    # offered as attacks but never carried as inventory.
+    acc = Creatures.lookup(creature_id) rescue nil
+    natural = (acc ? CreatureSheet.granted_natural_weapons(acc) : []).map do |name|
+      weapon_row(Equipment::Details.weapon_details(Equipment::Stack.normalize('item' => name), cat), name)
+    end
     # Everyone can attack Unarmed (Speed 0) — always offered, never carried.
-    rows + [weapon_row(Equipment::Details.weapon_details(Equipment::Stack.normalize('item' => 'Unarmed'), cat), 'Unarmed')]
+    rows + natural + [weapon_row(Equipment::Details.weapon_details(Equipment::Stack.normalize('item' => 'Unarmed'), cat), 'Unarmed')]
   end
 
   def weapon_row(wd, item_type)
@@ -486,7 +498,8 @@ helpers do
     natural = !!(wd[:definition] && wd[:definition]['natural'])
     { item_type: item_type, display_name: wd[:display_name], ranged: ranged, natural: natural,
       speed: wd[:speed], damage_types: wd[:damage_types], threshold: wd[:threshold],
-      bleed: wd[:bleed], damage_formula: wd[:damage_formula] }
+      bleed: wd[:bleed], damage_formula: wd[:damage_formula], affliction: wd[:affliction],
+      affliction_potency: wd[:affliction_potency] }
   end
 
   # The defender's weapons usable to Parry: equipped melee weapons, excluding
@@ -495,6 +508,16 @@ helpers do
   # natural weapons are simply never offered as a Parry option.
   def equipped_melee_weapons(creature_id)
     equipped_weapons(creature_id).reject { |w| w[:ranged] || w[:natural] }
+  end
+
+  # A target holding any Flatfooted-Suppressor ability (Uncanny Dodge, ...)
+  # cannot be caught Flatfooted or Unaware.
+  def flatfooted_immune?(accessor)
+    return false unless accessor
+    names = (accessor.granted_abilities.map { |g| g[:name].to_s } rescue [])
+    (names & Encounter::Config.flatfooted_suppressors).any?
+  rescue StandardError
+    false
   end
 
   def equipped_shield?(creature_id)
@@ -555,6 +578,8 @@ helpers do
     targets = encounter_state.combatants.reject { |c| c[:id] == attacker[:id] }.map do |c|
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
       { id: c[:id], name: tracker_name(c), unaware: encounter_state.unaware?(c[:id]),
+        # Uncanny Dodge (et al.) make the target immune to Flatfooted / Unaware.
+        flatfooted_immune: flatfooted_immune?(tacc),
         is_pc: creature_is_pc?(c[:creature_id]),
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
         martial: roll_inputs_for(tacc, 'martial',   attribute_override: :str),
@@ -624,11 +649,13 @@ helpers do
     targets.each do |t|
       weapons.each do |w|
         comp = w[:competency] ? [w[:competency]] : []
-        # Raw attacker Bonus lists for each branch (no TN math here): with no
-        # defence the attacker keeps Flatfooted (+ Unaware if applicable); a
-        # declared defence suppresses both.
-        atk_none_bpl     = comp + Encounter::Attack.attacker_bonuses(no_defense: true,  unaware: t[:unaware])
-        atk_declared_bpl = comp + Encounter::Attack.attacker_bonuses(no_defense: false, unaware: t[:unaware])
+        # Raw attacker Bonus lists (no TN math here). Flatfooted applies
+        # whenever the defender is NOT Dodging — so no defence and Block /
+        # Parry all keep it; only Dodge sheds it. Unaware applies only when
+        # no defence is declared (declaring proves awareness). The per-branch
+        # list is built in the branch loop; this is the no-defence one.
+        atk_none_bpl = comp + Encounter::Attack.attacker_bonuses(
+          flatfooted: !t[:flatfooted_immune], unaware: t[:unaware] && !t[:flatfooted_immune])
         # No defense first (attacker keeps Flatfooted), then one group per
         # Defensive Action: a name button carrying the defence Speed (Dodge /
         # Block = 0, Parry = weapon Speed), a button per die choice, and a
@@ -638,10 +665,11 @@ helpers do
         opts = [{ value: 'none', group: 'none', label: 'No defense', summary: 'No defense',
                   patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_none_bpl }],
                            set_excluded: [{ id: 'defender', excluded: true }] } }]
-        # Header quick-picks: one button per Defensive Action (top-right, like
-        # the weapon buttons), each selecting that defence at the MINIMUM dice
-        # (the Reaction Action Minimum) — Defensive Actions all cost pool.
-        headers = []
+        # Header quick-picks: "No defense" first, then one button per
+        # Defensive Action (top-right, like the weapon buttons), each
+        # selecting that defence at the MINIMUM dice (the Reaction Action
+        # Minimum) — Defensive Actions all cost pool.
+        headers = [{ value: 'none', label: 'No defense' }]
         # Eligible Defensive Action branches against this attack:
         #   Dodge — always (uses dex_save inputs; pool-costed, Speed 0).
         #   Block — only when the defender has a Shield equipped; any attack.
@@ -668,10 +696,14 @@ helpers do
           dcmp  = di[:competency_modifier] ? [di[:competency_modifier]] : []
           cap   = di[:dice_cap].to_i
           dspd  = b[:speed]
+          # Flatfooted sticks unless this defence is a Dodge; declaring a
+          # defence proves awareness, so Unaware never applies here.
+          atk_branch_bpl = comp + Encounter::Attack.attacker_bonuses(
+            flatfooted: (b[:key] != 'dodge') && !t[:flatfooted_immune], unaware: false)
           mk = lambda do |dice, label, disabled|
             { value: "#{b[:key]}|#{dice}", group: b[:group], label: label,
               summary: "#{b[:name]} — #{dice} dice", disabled: disabled,
-              patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_declared_bpl },
+              patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_branch_bpl },
                                  { id: 'defender', bonus_penalty_list: dcmp }],
                        set_dice:  [{ id: 'defender', count: dice }],
                        set_speed: [{ id: 'defender', speed: dspd }],
@@ -783,7 +815,9 @@ helpers do
     atk['speed'] = w[:speed]
     payload['attacker'] = atk
     payload['weapon'] = { 'damage_types' => w[:damage_types], 'threshold' => w[:threshold],
-                          'bleed' => w[:bleed], 'base_damage' => evaluate_weapon_damage(w[:damage_formula], acc) }
+                          'bleed' => w[:bleed], 'affliction' => w[:affliction],
+                          'affliction_potency' => w[:affliction_potency],
+                          'base_damage' => evaluate_weapon_damage(w[:damage_formula], acc) }
   end
 
   # ---- Check Resolution Builder blob for a Cast (turn_action_stub.md → Cast)
@@ -813,7 +847,7 @@ helpers do
         ri    = roll_inputs_for(acc, skill)
         { name: name, tier: g[:tier], mana_cost: cost, skill: skill,
           dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier],
-          damage_type: Array(v['damage_type']).compact.first,
+          damage_type: Array(v['damage_type']).compact.first, school: v['school'],
           attack_roll: !!v['attack_roll'], save: Array(v['save']).first,
           affordable: mana_left.nil? || cost <= mana_left }
       end
@@ -821,7 +855,8 @@ helpers do
 
     targets = encounter_state.combatants.map do |c|
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
-      { id: c[:id], name: tracker_name(c) + (c[:id] == caster[:id] ? ' (self)' : ''),
+      { id: c[:id], creature_id: c[:creature_id],
+        name: tracker_name(c) + (c[:id] == caster[:id] ? ' (self)' : ''),
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
         dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex),
         martial: roll_inputs_for(tacc, 'martial',  attribute_override: :str),
@@ -897,8 +932,14 @@ helpers do
           opts.concat(cast_defense_branch('block', 'Block', t[:martial], speed: 0, save: false, pool: t[:pool])) if t[:has_shield]
         elsif sp[:save]
           attr = sp[:save]['attribute'].to_s
+          # Always-On Save bonuses (Cloak) plus the spell's School as the
+          # descriptor context, so an Elf/Satyr's +1 enchantment resistance
+          # applies to enchantment-school Save spells.
+          tacc  = Creatures.lookup(t[:creature_id]) rescue nil
+          extra = tacc ? CreatureModifiers.save_modifiers(tacc, attr, descriptors: [sp[:school]].compact) : []
           opts.concat(cast_defense_branch("save:#{attr}", "#{attr_label(attr)} save",
-                                          t[:saves][attr.to_sym] || t[:dodge], speed: 0, save: true, pool: t[:pool]))
+                                          t[:saves][attr.to_sym] || t[:dodge], speed: 0, save: true,
+                                          pool: t[:pool], extra_bpl: extra))
         end
         defense_map["#{t[:id]}|#{sp[:name]}"] = opts
       end
@@ -920,9 +961,10 @@ helpers do
   # option with no dice choice. The pool-costed Defensive Actions (Dodge /
   # Block, `save: false`) show a button per affordable die count plus a trailing
   # Bonus note.
-  def cast_defense_branch(key, name, inputs, speed:, save:, pool:)
+  def cast_defense_branch(key, name, inputs, speed:, save:, pool:, extra_bpl: [])
     di   = inputs || { dice_cap: 0 }
     dcmp = di[:competency_modifier] ? [di[:competency_modifier]] : []
+    dcmp += Array(extra_bpl)
     cap  = di[:dice_cap].to_i
     mk = lambda do |dice, label, disabled|
       { value: "#{key}|#{dice}", group: key, label: label, summary: "#{name} — #{dice} dice", disabled: disabled,

@@ -688,6 +688,11 @@ module Encounter
       threshold = weapon[:threshold].to_i
       resil = defender_resilience(p[:target_id])
       dtype = (Array(weapon[:damage_types]).first || weapon[:damage_type] || 'physical').to_s
+      # Affliction the weapon injects on a hit (e.g. a spider's venom). Drives
+      # the poison input the attack resolution shows beside damage / bleed.
+      poison_name = weapon[:affliction].to_s
+      has_poison  = !poison_name.empty?
+      poison_label = has_poison ? poison_name.split('_').map(&:capitalize).join(' ') : nil
 
       if net.positive?
         base = weapon[:base_damage] ? weapon[:base_damage].to_i : p[:damage_bonus].to_i
@@ -697,19 +702,32 @@ module Encounter
         # still bleeds for its damage.
         damage = over.key?(:damage) ? over[:damage].to_i : base + net
         bleed  = over.key?(:bleed)  ? over[:bleed].to_i  : weapon[:bleed].to_i + damage
+        # Poison potency = the weapon's Affliction Potency constant + the
+        # damage dealt (the same "constant + damage" shape as Bleed), editable
+        # by the DM. Only weapons carrying an Affliction offer it.
+        poison = if over.key?(:poison)
+                   over[:poison].to_i
+                 elsif has_poison
+                   [weapon[:affliction_potency].to_i + damage, 1].max
+                 else
+                   0
+                 end
         if commit
           out = apply_damage(p[:target_id], damage, dtype, threshold: threshold)
           apply_weapon_bleed(p[:target_id], attacker[:id], bleed) if bleed.positive?
+          apply_weapon_poison(p[:target_id], attacker[:id], poison_name, poison) if has_poison && poison.positive?
           sev = out[:severity_map]
         else
           sev = preview_severity(p[:target_id], damage, dtype, threshold)
         end
         { ok: true, damage: damage, severity_map: sev, net_dos: net, damage_type: dtype,
           threshold: threshold, damage_resilience: resil, bleed: bleed,
+          poison: poison, poison_name: poison_label,
           pool_spends: pool_spends, committed: commit }
       else
         { ok: true, damage: 0, severity_map: {}, net_dos: net, damage_type: dtype,
           threshold: threshold, damage_resilience: resil, bleed: 0,
+          poison: 0, poison_name: poison_label,
           pool_spends: pool_spends, committed: commit }
       end
     end
@@ -875,6 +893,20 @@ module Encounter
       tier = (tc&.tier rescue 0) || 0
       conditions_for(combatant_for(target_id)[:creature_id])
         .inflict_affliction('bleeding', inflicter_tier: tier, delta: amount,
+                            current_round: bleed_first_resolution_round(target_id))
+    rescue StandardError
+      nil
+    end
+
+    # Inflict the weapon's on-hit Affliction (e.g. a spider's venom) on the
+    # target, scaled to the attacker's Tier — the same channel as weapon
+    # Bleed, scheduled to the victim's next turn.
+    def apply_weapon_poison(target_id, attacker_id, affliction_name, amount)
+      return nil if affliction_name.to_s.empty? || amount.to_i <= 0
+      tc = combatant_creature(attacker_id)
+      tier = (tc&.tier rescue 0) || 0
+      conditions_for(combatant_for(target_id)[:creature_id])
+        .inflict_affliction(affliction_name.to_s, inflicter_tier: tier, delta: amount.to_i,
                             current_round: bleed_first_resolution_round(target_id))
     rescue StandardError
       nil

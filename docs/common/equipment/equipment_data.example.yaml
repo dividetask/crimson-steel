@@ -53,6 +53,10 @@ characters:
         tier: 1
         guidance_bonus: 1
         equipped: true
+      - item: Headband of Charisma
+        tier: 1
+        guidance_bonus: 2
+        equipped: true
       - item: Lute
         tier: 1
         name: "Lute of the Wandering Bard"
@@ -101,6 +105,10 @@ characters:
   3:
     inventory:
       - item: Quarterstaff
+        equipped: true
+      - item: Headband of Intelligence
+        tier: 1
+        guidance_bonus: 2
         equipped: true
       - item: Crossbow
       - item: Bolt
@@ -167,6 +175,10 @@ characters:
     inventory:
       - item: Mace
         equipped: true
+      - item: Headband of Wisdom
+        tier: 1
+        guidance_bonus: 2
+        equipped: true
       - item: Crossbow
       - item: Bolt
         quantity: 20
@@ -183,6 +195,10 @@ characters:
   8:
     inventory:
       - item: Great sword
+        equipped: true
+      - item: Belt of Strength
+        tier: 1
+        guidance_bonus: 2
         equipped: true
       - item: Javelin
         quantity: 4

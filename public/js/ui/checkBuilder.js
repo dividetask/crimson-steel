@@ -404,9 +404,14 @@ export class CheckBuilder {
     if (params) params.textContent = cfg.dice_count + ' dice @ TN ' + res.tn +
       (res.startingValue > 0 ? ', R+' + res.startingValue : res.startingValue < 0 ? ', R-' + Math.abs(res.startingValue) : '');
     if (baseTn == null) return;
-    const terms = (res.contributions || []).map((c) =>
-      (c.influence >= 0 ? '+' : '−') + Math.abs(c.influence) + ' ' + c.type);
-    const txt = baseTn + (terms.length ? ' ' + terms.join(' ') : '') + ' = TN ' + res.tn;
+    // Show each modifier with its natural sign and, when it has a source
+    // (e.g. Flatfooted), that source in parentheses; Competency and other
+    // plain modifiers show their Bonus Type.
+    const terms = (res.contributions || []).map((c) => {
+      const label = c.source ? '(' + c.source + ')' : c.type;
+      return (c.value >= 0 ? '+' : '−') + Math.abs(c.value) + ' ' + label;
+    });
+    const txt = (terms.length ? terms.join(' ') + ' = ' : '') + 'TN ' + res.tn;
     const name = g.querySelector('.creature-name');
     if (!name) return;
     name.classList.add('has-tn-tip');

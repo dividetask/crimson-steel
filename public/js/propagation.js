@@ -37,8 +37,8 @@ export class Propagation {
     const base = (roll.bonusPenaltyList || []).slice();
     for (const source of sourceRolls) {
       if (!source || source === roll) continue;
-      for (const [type, value] of source.bonusPenaltyList || []) {
-        base.push([type, -value]);
+      for (const [type, value, src] of source.bonusPenaltyList || []) {
+        base.push(src === undefined ? [type, -value] : [type, -value, src]);
       }
     }
     return { ...roll, bonusPenaltyList: base };

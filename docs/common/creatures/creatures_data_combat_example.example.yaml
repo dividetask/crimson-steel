@@ -14,7 +14,7 @@ characters:
       creature_token: "/images/icons/Collection/Werewolves, Wolves/armored wolf companion.png"
     group: enemy
     tags: [category:general_red_tier]
-    race: beast
+    race: canine
     attributes: { str: 12, dex: 15, con: 13, int: 3, wis: 12, cha: 6 }
     advancement:
       classes:

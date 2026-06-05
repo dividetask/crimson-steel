@@ -24,17 +24,18 @@ RSpec.describe Encounter::Attack do
   end
 
   describe 'Attacker bonuses' do
-    it 'applies Flatfooted when no defense is declared and Unaware when applicable' do
-      expect(described_class.attacker_bonuses(no_defense: true, unaware: false)).to eq([['Circumstance', 1]])
-      expect(described_class.attacker_bonuses(no_defense: false, unaware: false)).to eq([])
-      expect(described_class.attacker_bonuses(no_defense: true, unaware: true))
-        .to eq([['Circumstance', 1], ['Circumstance', 2]])
+    it 'applies Flatfooted when set, plus Unaware when applicable, each tagged with its source' do
+      expect(described_class.attacker_bonuses(flatfooted: true, unaware: false)).to eq([['Circumstance', 1, 'flatfooted']])
+      expect(described_class.attacker_bonuses(flatfooted: false, unaware: false)).to eq([])
+      expect(described_class.attacker_bonuses(flatfooted: true, unaware: true))
+        .to eq([['Circumstance', 1, 'flatfooted'], ['Circumstance', 2, 'unaware']])
     end
 
-    it 'suppresses Unaware when a defense is declared (declaring proves awareness)' do
-      # The defender has not acted, but declaring a Defensive Action makes
-      # them Aware — so neither Flatfooted nor Unaware applies.
-      expect(described_class.attacker_bonuses(no_defense: false, unaware: true)).to eq([])
+    it 'keeps Flatfooted for a non-Dodge defence (Block / Parry) but not for Dodge' do
+      # The route passes flatfooted:true for Block/Parry/no-defence and
+      # flatfooted:false only for a Dodge.
+      expect(described_class.attacker_bonuses(flatfooted: true,  unaware: false)).to eq([['Circumstance', 1, 'flatfooted']])
+      expect(described_class.attacker_bonuses(flatfooted: false, unaware: false)).to eq([])
     end
   end
 
@@ -52,8 +53,8 @@ RSpec.describe Encounter::Attack do
       expect(a[:dice_cap]).to eq(6)
       expect(a[:critical_modifier]).to eq(3) # emotional critical_value
       expect(a[:speed]).to eq(2)
-      # competency + flatfooted (no defense) + unaware
-      expect(a[:bonus_penalty_list]).to eq([['Competency', 2], ['Circumstance', 1], ['Circumstance', 2]])
+      # competency + flatfooted (no defense) + unaware (each source-tagged)
+      expect(a[:bonus_penalty_list]).to eq([['Competency', 2], ['Circumstance', 1, 'flatfooted'], ['Circumstance', 2, 'unaware']])
       expect(spec[:target][:flatfooted]).to be true
       expect(spec[:eligible_defenses]).to contain_exactly('parry', 'block', 'dodge')
       expect(spec).not_to have_key(:defense)
@@ -195,6 +196,51 @@ RSpec.describe 'Encounter::State#resolve_attack_payload (weapon-aware)' do
     expect(out[:damage]).to eq(4)            # base 0 + net 4
     expect(out[:bleed]).to eq(4)             # 0 + damage 4
     expect(cond.state.afflictions['bleeding'][:potency]).to eq(4)
+  end
+
+  it 'inflicts the weapon Affliction (poison): potency = Affliction Potency constant + damage' do
+    cond = build_instance # catalog-backed, so spider_venom resolves
+    s = state(cond)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee',
+      weapon: { damage_types: ['piercing'], threshold: 0, base_damage: 1, bleed: 0,
+                affliction: 'spider_venom', affliction_potency: 5 },
+      attacker: { id: atk[:id], dice: 4, speed: 0, successes: 3 },
+      defense:  { choice: 'none' }, allies: []
+    )
+    expect(out[:poison_name]).to eq('Spider Venom')
+    expect(out[:damage]).to eq(4)  # base 1 + net 3
+    expect(out[:poison]).to eq(9)  # affliction_potency 5 + damage 4
+    expect(cond.state.afflictions['spider_venom'][:potency]).to eq(9)
+  end
+
+  it 'honors a DM poison override' do
+    cond = build_instance
+    s = state(cond)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee',
+      weapon: { damage_types: ['piercing'], threshold: 0, base_damage: 0, bleed: 0, affliction: 'spider_venom' },
+      attacker: { id: atk[:id], dice: 4, speed: 0, successes: 2 },
+      defense:  { choice: 'none' }, allies: [],
+      override: { poison: 5 }
+    )
+    expect(cond.state.afflictions['spider_venom'][:potency]).to eq(5)
+  end
+
+  it 'a weapon without an Affliction inflicts no poison' do
+    cond = build_instance
+    s = state(cond)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee',
+      weapon: { damage_types: ['physical'], threshold: 0, base_damage: 2 },
+      attacker: { id: atk[:id], dice: 4, speed: 0, successes: 3 },
+      defense:  { choice: 'none' }, allies: []
+    )
+    expect(out[:poison_name]).to be_nil
+    expect(cond.state.afflictions).not_to have_key('spider_venom')
   end
 
   it 'preview (commit: false) reports the same numbers but mutates nothing' do

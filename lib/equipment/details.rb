@@ -47,7 +47,13 @@ module Equipment
         threshold: threshold(defn, types, catalog),
         speed: speed(defn, catalog),
         tags: defn['tags'] || [],
-        ammo_type: defn['ammo_type']
+        ammo_type: defn['ammo_type'],
+        # Affliction (e.g. a venom) the weapon injects on a hit — Combat
+        # offers a poison input alongside damage / bleed when present.
+        # `affliction_potency` is the Bleed-style constant added to the
+        # damage dealt to form the injected Potency.
+        affliction: defn['affliction'],
+        affliction_potency: defn['affliction_potency']
       )
     end
 

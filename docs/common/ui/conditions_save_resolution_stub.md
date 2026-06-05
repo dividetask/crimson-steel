@@ -24,7 +24,8 @@ See `ui_conventions.md` for shared rules. Cross-domain terms (Magic Toxicity, To
 
 The save Roll carries a Bonus/Penalty list and renders the same TN-breakdown tooltip the Check Resolution stub uses (`dice_resolution_roll_tooltip.md`) — hover the Creature name to see `Base ±mods = TN n`. The stub composes the list from, in order:
 
-- the caller's `save_modifiers` (the Creature's own save Competency / Bonuses);
+- the caller's `save_modifiers` (the Creature's own save Competency plus Always-On Save Bonuses — racial resistances, a Cloak of Resistance, ...);
+- the **Creature Tier Inherent Bonus** — an `Inherent` Bonus equal to the Creature's own `tier`: its natural advantage from an elevated Tier makes the Affliction easier to shake off;
 - the **Potency Save Penalty** — a `Competency` Penalty of `floor(potency / potency_divisor)` (the same penalty Conditions' *Resolve Affliction* injects when it scores the save);
 - the **Inflicter Tier Penalty** — a `Circumstance` Penalty equal to the Affliction's `inflicter_tier`: a wound dealt by a higher-Tier creature is harder to shake off.
 

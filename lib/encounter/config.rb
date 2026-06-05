@@ -28,6 +28,9 @@ module Encounter
     def combat_pool_divisor   = Integer(data['Combat Pool Divisor'] || 2)
     def combat_pool_step      = Integer(data['Combat Pool Step'] || 4)
 
+    # Granted-Ability names that suppress Flatfooted (and Unaware).
+    def flatfooted_suppressors = Array(data['Flatfooted Suppressors']).map(&:to_s)
+
     # Turns Per Round indexed by Tier. A Tier beyond the array is an
     # error (the caller must extend the config), not a clamp.
     def turns_per_round = (data['Turns Per Round'] || [1])

@@ -78,6 +78,13 @@ Unaware Bonus:
   type: Circumstance
   amount: 2
 
+# Granted Abilities that make their bearer immune to being Flatfooted
+# (and, since Unaware implies Flatfooted, immune to the Unaware bonus
+# too). A target holding any of these never grants the attacker the
+# Flatfooted / Unaware bonus.
+Flatfooted Suppressors:
+  - uncanny_dodge
+
 # ---- Set-Value Spend ----
 #
 # Optional dice-spend mechanic: a combatant may pay extra dice from

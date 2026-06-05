@@ -230,6 +230,9 @@ module Status
         header: { name: 'Ash Windmere', player: 'Sam',
                   summary: 'Human Bard 3', tier: 3, bab: 4 },
         attributes: attrs,
+        # Belt of Dexterity +2 (Guidance) — shown as a green "+2" beside DEX
+        # and folded into the Effective Dexterity the popup's rolls use.
+        attribute_bonuses: { str: 0, dex: 2, con: 0, int: 0, wis: 0, cha: 0 },
         classes: classes,
         vitals: {
           hp:   { current: 22, max: 48 },
@@ -246,16 +249,22 @@ module Status
           { name: 'Hand Crossbow', speed: 3, roll: '3d', attack_bonus: 4, dmg_bonus: 1, bleed: 0, mt: 7, notes: '' },
           { name: 'Dodge',         speed: 0, roll: '3d', attack_bonus: 2, dmg_bonus: nil, bleed: nil, mt: nil, notes: '' }
         ],
+        # This Bard has Jack of All Trades, so each Attribute carries an
+        # untrained-Skill row in the minimal sheet's popup.
+        # save.tokens are the broken-out Save bonuses: the Cloak of
+        # Resistance's +1 (unconditional) on every save, plus an
+        # illustrative conditional resistance on Constitution (renders the
+        # "*+1") so the demo shows the +2+1*+1 form.
         attributes_table: [
-          { attr: 'Strength',     score: 14, half: 7,  check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } },
-          { attr: 'Dexterity',    score: 18, half: 9,  check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } },
-          { attr: 'Constitution', score: 16, half: 8,  check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } },
-          { attr: 'Intelligence', score: 17, half: 8,  check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } },
-          { attr: 'Wisdom',       score: 20, half: 10, check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } },
-          { attr: 'Charisma',     score: 22, half: 11, check: { dice: 3, bonus: 2 }, save: { dice: 3, bonus: 2 } }
+          { attr: 'Strength',     score: 14, half: 7,  check: { dice: 3, bonus: 2, ranks: 0 }, save: { dice: 3, bonus: 2, ranks: 2, tokens: [{ amount: 1, conditional: false }] }, untrained: { dice: 4, bonus: 1, ranks: 1 } },
+          { attr: 'Dexterity',    score: 18, half: 9,  check: { dice: 3, bonus: 2, ranks: 0 }, save: { dice: 3, bonus: 2, ranks: 2, tokens: [{ amount: 1, conditional: false }] }, attr_bonus: 2, untrained: { dice: 4, bonus: 1, ranks: 1 } },
+          { attr: 'Constitution', score: 16, half: 8,  check: { dice: 3, bonus: 2, ranks: 0 }, save: { dice: 3, bonus: 2, ranks: 2, tokens: [{ amount: 1, conditional: false }, { amount: 1, conditional: true }] }, untrained: { dice: 4, bonus: 1, ranks: 1 } },
+          { attr: 'Intelligence', score: 17, half: 8,  check: { dice: 3, bonus: 2, ranks: 0 }, save: { dice: 3, bonus: 2, ranks: 2, tokens: [{ amount: 1, conditional: false }] }, untrained: { dice: 4, bonus: 1, ranks: 1 } },
+          { attr: 'Wisdom',       score: 20, half: 10, check: { dice: 3, bonus: 2, ranks: 0 }, save: { dice: 3, bonus: 2, ranks: 2, tokens: [{ amount: 1, conditional: false }] }, untrained: { dice: 4, bonus: 1, ranks: 1 } },
+          { attr: 'Charisma',     score: 22, half: 11, check: { dice: 3, bonus: 2, ranks: 0 }, save: { dice: 3, bonus: 2, ranks: 2, tokens: [{ amount: 1, conditional: false }] }, untrained: { dice: 4, bonus: 1, ranks: 1 } }
         ],
         items: {
-          equipped: [{ name: 'Rapier' }, { name: 'Hand Crossbow' }, { name: 'Studded Leather' }],
+          equipped: [{ name: 'Rapier' }, { name: 'Hand Crossbow' }, { name: 'Studded Leather' }, { name: 'Belt of Dexterity +2' }, { name: 'Cloak of Resistance +1' }],
           consumable: [{ quantity: 2, name: 'Healing Draught' }],
           ammunition: [{ quantity: 20, name: 'Bolt' }],
           other: [{ quantity: 1, name: 'Lute' }, { quantity: 5, name: 'Rations' }, { quantity: 1, name: 'Bedroll' }]
@@ -442,11 +451,11 @@ module Status
 
     def general_red_tier_demos
       [
-        template_demo(id: 300, name: 'Medium Spider', race: 'beast', tier: 1,
+        template_demo(id: 300, name: 'Medium Spider', race: 'spider', tier: 1,
                        attrs: { str: 9, dex: 14, con: 11, int: 1, wis: 10, cha: 2 },
                        classes: [{ key: 'commoner', level: 1, trained_skills: [] }],
                        category: 'general_red_tier'),
-        template_demo(id: 301, name: 'Wolf', race: 'beast', tier: 1,
+        template_demo(id: 301, name: 'Wolf', race: 'canine', tier: 1,
                        attrs: { str: 12, dex: 15, con: 13, int: 3, wis: 12, cha: 6 },
                        classes: [{ key: 'commoner', level: 1, trained_skills: [] }],
                        category: 'general_red_tier'),

@@ -98,7 +98,7 @@ characters:
       creature_token: "/images/icons/war dog token.webp"
     group: enemy
     tags: [enemy_template, category:slave_lords_caravan]
-    race: beast
+    race: canine
     attributes: { str: 14, dex: 14, con: 12, int: 3, wis: 12, cha: 6 }
     advancement:
       classes:

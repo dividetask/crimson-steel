@@ -42,25 +42,28 @@ module Encounter
       DEFENSES.keys.select { |d| defense_eligible?(d, attack_kind) }
     end
 
-    # Attacker Bonuses (encounter_config.yaml). Flatfooted applies when
-    # the defender declares no Defensive Action against this attack.
-    # Unaware applies when the defender has not yet acted in the Combat —
-    # but declaring a Defensive Action proves awareness, so a declared
-    # defence (no_defense: false) suppresses Unaware too. Both bonuses
-    # therefore require no_defense; when present they can apply together.
+    # Attacker Bonuses (encounter_config.yaml). Flatfooted applies whenever
+    # the defender is not actively Dodging — so no defence and Block / Parry
+    # all leave the target Flatfooted; only a Dodge sheds it. Unaware applies
+    # when the defender has not yet acted in the Combat, but declaring any
+    # Defensive Action proves awareness, so the caller passes `unaware: false`
+    # for a declared defence. The caller decides each flag per branch.
     # Returns a bonus_penalty_list of [type, amount] pairs.
-    def attacker_bonuses(no_defense:, unaware:)
+    def attacker_bonuses(flatfooted:, unaware:)
       list = []
-      if no_defense
-        list << bonus_pair(Config.data['Flatfooted Bonus'])
-        list << bonus_pair(Config.data['Unaware Bonus']) if unaware
-      end
+      list << bonus_pair(Config.data['Flatfooted Bonus'], 'flatfooted') if flatfooted
+      list << bonus_pair(Config.data['Unaware Bonus'],     'unaware')    if unaware
       list.compact
     end
 
-    def bonus_pair(cfg)
+    # A [type, amount] (or [type, amount, source]) Bonus/Penalty entry. The
+    # optional `source` is a display label (e.g. "flatfooted") the TN-breakdown
+    # tooltip shows in parentheses; TN computation ignores it (it destructures
+    # only type + amount), so per-Type stacking is unaffected.
+    def bonus_pair(cfg, source = nil)
       return nil unless cfg
-      [cfg['type'] || cfg[:type], cfg['amount'] || cfg[:amount]]
+      pair = [cfg['type'] || cfg[:type], cfg['amount'] || cfg[:amount]]
+      source ? pair + [source] : pair
     end
 
     # Assemble the client-resolvable attack spec.
@@ -90,7 +93,9 @@ module Encounter
       bonuses = []
       bonuses << attacker_competency if attacker_competency
       bonuses.concat(Array(attacker_modifiers))
-      bonuses.concat(attacker_bonuses(no_defense: declared_defense.nil?, unaware: unaware))
+      no_def = declared_defense.nil?
+      bonuses.concat(attacker_bonuses(flatfooted: (no_def || declared_defense.to_s != 'dodge'),
+                                      unaware: (no_def && unaware)))
 
       spec = {
         attacker: {

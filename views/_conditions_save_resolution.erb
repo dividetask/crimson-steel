@@ -73,14 +73,20 @@
   # The save Roll's Bonus/Penalty list, rendered into the same TN-breakdown
   # tooltip the Check Resolution stub uses (dice_resolution_roll_tooltip.md).
   # A Penalty (negative amount) raises the TN.
+  #   - Any caller-supplied save modifiers (the Creature's own save
+  #     Competency plus Always-On Save Bonuses — racial resistances, a Cloak
+  #     of Resistance, ...).
+  #   - Creature Tier Inherent Bonus: the Creature's own Tier — its natural
+  #     advantage from an elevated Tier makes an Affliction easier to shake.
   #   - Potency Save Penalty: floor(potency / Potency Divisor) (Conditions'
   #     Resolve Affliction injects the same penalty when it scores the save).
   #   - Inflicter Tier Penalty: the Tier of the creature that inflicted the
   #     Affliction — a higher-Tier wound is harder to shake off.
-  #   - Any caller-supplied save modifiers (the Creature's own save Competency).
   potency_penalty = a[:potency].to_i / s[:potency_divisor].to_i
   inflicter_tier  = a[:inflicter_tier].to_i
+  creature_tier   = c[:tier].to_i
   bonus_penalty_list = Array(s[:save_modifiers]).map { |m| m.is_a?(Array) ? m : [m[:type] || m['type'], m[:amount] || m['amount']] }
+  bonus_penalty_list << ['Inherent', creature_tier] if creature_tier.positive?
   bonus_penalty_list << ['Competency', -potency_penalty] if potency_penalty.positive?
   bonus_penalty_list << ['Circumstance', -inflicter_tier] if inflicter_tier.positive?
   tn_calc = DiceResolution.compute_target_number(bonus_penalty_list)

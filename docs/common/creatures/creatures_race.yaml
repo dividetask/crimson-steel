@@ -29,9 +29,6 @@ undead:
     - name: undead_traits
       min_level: 0
 
-animal:
-  abilities: []
-
 # --- Humanoid races ----------------------------------------------------
 human:
   parent: humanoid
@@ -40,7 +37,9 @@ human:
 dwarf:
   parent: humanoid
   speed: 20
-  abilities: []
+  abilities:
+    - name: poison_resistance
+      min_level: 0
 
 hill_dwarf:
   parent: dwarf
@@ -48,7 +47,9 @@ hill_dwarf:
 
 elf:
   parent: humanoid
-  abilities: []
+  abilities:
+    - name: enchantment_resistance
+      min_level: 0
 
 high_elf:
   parent: elf
@@ -75,7 +76,9 @@ halfling:
 satyr:
   parent: humanoid
   speed: 35
-  abilities: []
+  abilities:
+    - name: enchantment_resistance
+      min_level: 0
 
 goblin:
   parent: humanoid
@@ -115,9 +118,27 @@ brownie:
   abilities: []
 
 # --- Animal races ------------------------------------------------------
+# `beast` is the root Animal race; every beast is one of its subtypes
+# (canine, spider, ...). Subtypes set their own speed and grant a Natural
+# Attack Talent (Canine Bite / Spider Bite) whose `grants_equipment` names
+# the Bite weapon in the Equipment catalog. The bite is offered as an
+# attack but is never carried as an inventory item.
 
 beast:
-  parent: animal
   size: medium
   speed: 30
   abilities: []
+
+canine:
+  parent: beast
+  speed: 40
+  abilities:
+    - name: Canine Bite
+      min_level: 0
+
+spider:
+  parent: beast
+  speed: 20
+  abilities:
+    - name: Spider Bite
+      min_level: 0

@@ -248,8 +248,20 @@ module Creatures
       end
 
       attrs.each_with_object({}) do |a, h|
-        h[a] = base[a] + (racial[a] || 0) + per_tier + chosen[a]
+        h[a] = base[a] + (racial[a] || 0) + per_tier + chosen[a] + attribute_modifier(a)
       end
+    end
+
+    # Always-On numeric bonus to an Attribute from equipped Guidance items
+    # (Belt of Strength, Headband of Wisdom, ...) and any Attribute-target
+    # Modifier ability, sourced through the cross-domain CreatureModifiers
+    # bridge. Zero when the bridge (or Equipment / Abilities) is not
+    # loaded, so pure-Creatures unit tests keep their intrinsic values.
+    def attribute_modifier(attr)
+      return 0 unless defined?(::CreatureModifiers)
+      ::CreatureModifiers.attribute_bonus(self, attr)
+    rescue StandardError
+      0
     end
 
     def skill_ranks(skill_key)

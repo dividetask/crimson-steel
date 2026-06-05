@@ -129,11 +129,11 @@
     # Check Builder re-renders it via Check Resolution after propagation.)
     tn_breakdown =
       if roll[:base_tn]
-        terms = Array(roll[:bonus_penalty_list]).map do |type, amt|
-          infl = -amt
-          "#{infl >= 0 ? '+' : '−'}#{infl.abs} #{type}"
+        terms = Array(roll[:bonus_penalty_list]).map do |type, amt, source|
+          label = source ? "(#{source})" : type
+          "#{amt.to_i >= 0 ? '+' : '−'}#{amt.to_i.abs} #{label}"
         end
-        "#{roll[:base_tn]}#{terms.empty? ? '' : ' ' + terms.join(' ')} = TN #{roll[:tn]}"
+        "#{terms.empty? ? '' : terms.join(' ') + ' = '}TN #{roll[:tn]}"
       end
 
     starting_value = roll[:starting_value].to_i
