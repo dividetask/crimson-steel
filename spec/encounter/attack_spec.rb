@@ -38,6 +38,47 @@ RSpec.describe Encounter::Attack do
     end
   end
 
+  describe 'Tier modifiers on the attack check' do
+    let(:table) { [0, 1, 2, 3, 4, 5] } # Tier Minimum Inherent Bonus
+
+    it 'raises the wielder effective Tier with Glory only when fighting up' do
+      expect(described_class.effective_attacker_tier(1, 2, 1)).to eq(2) # Glory vs higher
+      expect(described_class.effective_attacker_tier(1, 0, 1)).to eq(1) # not fighting up → no bump
+      expect(described_class.effective_attacker_tier(1, 2, 0)).to eq(1) # no Glory
+    end
+
+    it 'gives the attacker its Inherent Bonus on a defended attack' do
+      expect(described_class.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 0,
+                                                   inherent_table: table, no_defense: false))
+        .to eq([['Inherent', 1]])
+      # Glory lifts the Inherent Bonus to the higher Tier's.
+      expect(described_class.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 1,
+                                                   inherent_table: table, no_defense: false))
+        .to eq([['Inherent', 2]])
+    end
+
+    it 'adds an Ascendancy penalty (the un-rolled defender Inherent) on a no-defense attack' do
+      # Without Glory: +1 Inherent and −2 Ascendancy nets to −1 on the TN (harder).
+      expect(described_class.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 0,
+                                                   inherent_table: table, no_defense: true))
+        .to eq([['Inherent', 1], ['Ascendancy', -2]])
+      # Glory: +2 Inherent and −2 Ascendancy nets to 0 — the gap is closed.
+      expect(described_class.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 1,
+                                                   inherent_table: table, no_defense: true))
+        .to eq([['Inherent', 2], ['Ascendancy', -2]])
+    end
+
+    it 'drops zero Tier-0 modifiers' do
+      expect(described_class.attacker_tier_bonuses(attacker_tier: 0, defender_tier: 0, tier_advantage: 0,
+                                                   inherent_table: table, no_defense: true)).to eq([])
+      expect(described_class.defender_tier_bonuses(defender_tier: 0, inherent_table: table)).to eq([])
+    end
+
+    it 'gives the defender its Inherent Bonus to propagate' do
+      expect(described_class.defender_tier_bonuses(defender_tier: 2, inherent_table: table)).to eq([['Inherent', 2]])
+    end
+  end
+
   describe '.build_spec' do
     let(:attacker) { { id: 1 } }
     let(:target)   { { id: 2 } }

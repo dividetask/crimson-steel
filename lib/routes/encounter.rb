@@ -541,6 +541,10 @@ helpers do
     die      = DiceResolution.config.die_size
     base_tn  = DiceResolution.config.base_target_number
     atk_pool = (encounter_state.combat_pool_remaining(attacker[:id]) rescue 0) || 0
+    atk_tier = (acc&.tier rescue 0) || 0
+    # Inherent / Ascendancy Tier modifiers on the attack check read the
+    # Creatures Tier Minimum Inherent Bonus table.
+    inh_table = (Creatures::Config.tier_minimum_inherent_bonus rescue [])
 
     # Display the character's own Bonus/Penalty list (natural signs). TNs are
     # NOT computed here — the builder hands raw Bonus lists to Check Resolution,
@@ -556,7 +560,7 @@ helpers do
     targets = encounter_state.combatants.reject { |c| c[:id] == attacker[:id] }.map do |c|
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
       { id: c[:id], name: tracker_name(c), unaware: encounter_state.unaware?(c[:id]),
-        is_pc: creature_is_pc?(c[:creature_id]),
+        is_pc: creature_is_pc?(c[:creature_id]), tier: (tacc&.tier rescue 0) || 0,
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
         martial: roll_inputs_for(tacc, 'martial',   attribute_override: :str),
         dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex),
@@ -625,11 +629,25 @@ helpers do
     targets.each do |t|
       weapons.each do |w|
         comp = w[:competency] ? [w[:competency]] : []
+        # Tier modifiers on the attack check: the attacker's (Glory-adjusted)
+        # Inherent Bonus on both branches, plus an Ascendancy penalty equal to
+        # the un-rolled defender's Inherent on the No-defense branch (a defended
+        # branch lets the defender's Inherent propagate instead). The defender's
+        # own Inherent rides its defense Roll (see `def_tier`).
+        atk_tier_none = Encounter::Attack.attacker_tier_bonuses(
+          attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
+          inherent_table: inh_table, no_defense: true
+        )
+        atk_tier_def = Encounter::Attack.attacker_tier_bonuses(
+          attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
+          inherent_table: inh_table, no_defense: false
+        )
+        def_tier = Encounter::Attack.defender_tier_bonuses(defender_tier: t[:tier], inherent_table: inh_table)
         # Raw attacker Bonus lists for each branch (no TN math here): with no
         # defence the attacker keeps Flatfooted (+ Unaware if applicable); a
         # declared defence suppresses both.
-        atk_none_bpl     = comp + Encounter::Attack.attacker_bonuses(no_defense: true,  unaware: t[:unaware])
-        atk_declared_bpl = comp + Encounter::Attack.attacker_bonuses(no_defense: false, unaware: t[:unaware])
+        atk_none_bpl     = comp + atk_tier_none + Encounter::Attack.attacker_bonuses(no_defense: true,  unaware: t[:unaware])
+        atk_declared_bpl = comp + atk_tier_def  + Encounter::Attack.attacker_bonuses(no_defense: false, unaware: t[:unaware])
         # No defense first (attacker keeps Flatfooted), then one group per
         # Defensive Action: a name button carrying the defence Speed (Dodge /
         # Block = 0, Parry = weapon Speed), a button per die choice, and a
@@ -666,7 +684,10 @@ helpers do
 
         branches.each do |b|
           di    = b[:inputs]
-          dcmp  = di[:competency_modifier] ? [di[:competency_modifier]] : []
+          # The defender's own Competency plus its Inherent Tier Bonus — the
+          # latter propagates onto the attacker's TN per Check Resolution, which
+          # is how a higher-Tier defender makes the attack harder.
+          dcmp  = (di[:competency_modifier] ? [di[:competency_modifier]] : []) + def_tier
           cap   = di[:dice_cap].to_i
           dspd  = b[:speed]
           mk = lambda do |dice, label, disabled|

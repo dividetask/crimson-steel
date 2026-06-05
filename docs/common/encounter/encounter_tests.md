@@ -164,6 +164,18 @@ A weapon carries `damage_riders` (from *Get Weapon Details*) when its Stack has 
 
 **No reduction at equal or lower Tier.** An attacker who equals or outranks the defender gets `tier_gap_reduction: 0` (the gap is clamped at zero); the damage is unreduced.
 
+### Inherent / Ascendancy Tier modifiers on the attack check
+
+With `Tier Minimum Inherent Bonus: [0, 1, 2, 3, 4, 5]`:
+
+**Attacker carries its Inherent Bonus.** `Encounter::Attack.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 0, no_defense: false)` → `[['Inherent', 1]]`. The defender's Defense Roll carries `[['Inherent', 2]]`, which propagates onto the attacker's TN (fighting up is harder by the gap).
+
+**Glory lifts the attacker's Inherent.** The same call with `tier_advantage: 1` → `[['Inherent', 2]]` — the wielder is treated as Tier 2, so its Inherent matches the defender's and the gap closes.
+
+**No-defense adds an Ascendancy penalty.** With `no_defense: true` and no Glory → `[['Inherent', 1], ['Ascendancy', -2]]` (the un-rolled Tier-2 defender's advantage, negated; nets −1 on the TN). With Glory → `[['Inherent', 2], ['Ascendancy', -2]]` (nets 0 — the gap is closed without a defender Roll to propagate).
+
+**Tier 0 contributes nothing.** Tier-0 attacker vs Tier-0 defender yields `[]` from both `attacker_tier_bonuses` and `defender_tier_bonuses` (the Inherent Bonus at Tier 0 is 0).
+
 ## Get / Spend / Reset Combat Pool
 
 **Get Combat Pool runs the buy formula.** Combatant has Tier 0, `martial_proficiency_ranks = 4`, attribute = 12. Budget = `floor((4 + floor(12/2)) / 1) = 10`. The tiered Buy cost function (per *Combat Pool computation*: `Step·T(T-1)/2 + R·T` with `T = floor(P/Step)`, `R = P mod Step`) gives `cost(11) = 4·1 + 3·2 = 10 ≤ 10 < cost(12) = 4·3 = 12`. So P = 11 is the largest fit. Result: 11.
