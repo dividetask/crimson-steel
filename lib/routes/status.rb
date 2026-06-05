@@ -1,4 +1,4 @@
-STATUS_VIEWS = %w[status dice check conditions creatures timekeeping chronicle encounter equipment].freeze
+STATUS_VIEWS = %w[status dice check conditions creatures timekeeping chronicle encounter equipment devices].freeze
 
 get '/status' do
   redirect '/character-sheets' unless dm_view?
@@ -30,6 +30,12 @@ get '/status' do
     @chronicle_examples = Status::SampleChronicle.chronicle_examples.map do |ex|
       ex.merge(entry: Chronicle::Entry.normalize(ex[:entry]))
     end
+  elsif @view == 'devices'
+    # Unlike the other sub-views, the Devices stub runs on live state:
+    # the real DeviceRegistry list and the live player Characters that
+    # can be assigned to a device.
+    @devices    = DeviceRegistry.instance.list
+    @characters = Creatures.player_controlled
   end
 
   @tests_html  = TestDocs.render_for(@view)

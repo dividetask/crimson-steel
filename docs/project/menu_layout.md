@@ -45,7 +45,7 @@ Each page is listed with a short description and its access rule. Detailed page 
 | Notes             | `/notes`           | Shared and per-character game notes.                                        | DM + Player |
 | Social            | `/social`          | Social-encounter information.                                               | DM + Player |
 | Compendium        | `/compendium`      | Reference material drawn from the rules documents — currently the Glossary. | DM + Player |
-| Status            | `/status`          | DM operations surface — currently hosts the Check Resolution Stub and the Dice Resolution Roll Stub for inspection, fed with dummy data. | DM only |
+| Status            | `/status`          | DM operations surface — hosts the inspection stubs (Dice/Check Resolution, Conditions, Creatures, Encounter, Timekeeping, Chronicle, Equipment) fed with dummy data, plus the live Devices sub-view for tracking devices and assigning player Characters to them (see [device_assignment.md](device_assignment.md)). | DM only |
 
 A player who attempts to navigate to a DM-only URL is treated as if the page did not exist for them; the application is free to redirect them to the default landing page or render a not-available response. A DM viewing as a player is, for access purposes, a player.
 
@@ -64,7 +64,7 @@ The Compendium is visible to both DMs and players.
 
 ## Status page layout
 
-The Status page has its own internal left-hand navigation that switches the right-hand content pane. The left nav sits flush against the left edge of the page content (below the global top menu bar) and lists six entries, top to bottom:
+The Status page has its own internal left-hand navigation that switches the right-hand content pane. The left nav sits flush against the left edge of the page content (below the global top menu bar) and lists the following entries, top to bottom (the live nav also carries Creatures and Encounter sub-views between Conditions and Timekeeping):
 
 1. **Status** — the default landing pane for `/status`. Shows a brief description and acts as a hub.
 2. **Dice Resolution** — the right pane renders the Roll Resolution Stub (see `docs/common/ui/dice_resolution_roll_stub.md`) for each example Roll, with each Roll inside its own demo Rolls wrapper.
@@ -73,6 +73,7 @@ The Status page has its own internal left-hand navigation that switches the righ
 5. **Timekeeping** — the right pane renders the Timekeeping Stub (see `docs/common/ui/timekeeping_stub.md`) once per example Timestamp, stacked vertically. The examples vary the Time of Day across early morning, dawn, midday, dusk, midnight, and a Leap Day to show the sky's day/night transitions and the sun/moon's arc across the full width of the stub.
 6. **Chronicle** — the right pane renders the Chronicle Entry Stub (see `docs/common/ui/chronicle_entry_stub.md`). Five example Entries are rendered twice: first under a **DM View** heading, then again under a **Player View** heading using a player viewer (Bryn, Creature id 1). The five Entries cover a shared Note with a long public description, a private GM Note with a long DM-only description, a shared Note with long content in both descriptions, a Creature Reference with an image, and a player-owned shared Note (whose owner can edit it under both views). Each example is labeled above the card so reviewers can compare what does and does not render for each viewer role.
 7. **Equipment** — the right pane renders the Equipment Store Stub (see `docs/common/ui/equipment_store_stub.md`) on hand-curated sample stock. The selectors and Buy buttons are inert here (`purchasable: false`); the live, purchasable version of the same stub is the `/store` page.
+8. **Devices** — the right pane renders the Device Assignment Stub (see `device_assignment.md`). Unlike the other sub-views this one runs on live state: it lists every device the server has tracked (from the Device Registry, persisted in `data/devices.json`) and lets the DM assign a player Character to each device. Assigning a Character changes which sheet that device opens on by default on the Character Sheets page. The viewing device is badged "this device".
 
 The currently-selected nav entry is visually highlighted.
 

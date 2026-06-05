@@ -8,7 +8,8 @@
     { key: 'encounter',     label: 'Encounter',        href: '/status?view=encounter' },
     { key: 'timekeeping',   label: 'Timekeeping',      href: '/status?view=timekeeping' },
     { key: 'chronicle',     label: 'Chronicle',        href: '/status?view=chronicle' },
-    { key: 'equipment',     label: 'Equipment',        href: '/status?view=equipment' }
+    { key: 'equipment',     label: 'Equipment',        href: '/status?view=equipment' },
+    { key: 'devices',       label: 'Devices',          href: '/status?view=devices' }
   ]
 %>
 
@@ -122,6 +123,12 @@
       <h1>Equipment &mdash; Store Stub</h1>
       <p class="lead">The Equipment Store Stub (<code>docs/common/ui/equipment_store_stub.md</code>) rendered on hand-curated sample stock. The live, purchasable version is at <code>/store</code>; here the shop/buyer selectors and Buy buttons are inert preview affordances.</p>
       <%= erb :_equipment_store_stub, locals: @store_demo %>
+
+    <% when 'devices' %>
+      <h1>Devices &mdash; Character Assignment</h1>
+      <p class="lead">Every device that connects to the server is tracked here (identified by a per-device cookie, stored in <code>data/devices.json</code>). Assign a player Character to a device and that device opens the Character Sheets page on its own sheet by default &mdash; while still being able to page through the other player Characters.</p>
+      <%= erb :_assignment_stub, locals: {
+            devices: @devices, characters: @characters, current_id: current_device_id } %>
 
     <% else %>
       <h1>Status</h1>
