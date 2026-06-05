@@ -429,6 +429,15 @@ helpers do
       ri   = roll_inputs_for(acc, 'martial', attribute_override: attr)
       w.merge(dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier])
     end
+    # Spiritual Weapon: while the caster channels it, the floating weapon strikes
+    # each turn with a number of dice equal to its (persistent) Reservoir — a
+    # force attack that costs no Combat Pool and does not consume the Reservoir.
+    sw = Array(attacker[:concentration]).find { |e| e[:spell_name].to_s == 'Spiritual Weapon' && e[:reservoir].to_i.positive? }
+    if sw
+      weapons << { item_type: 'spiritual_weapon', display_name: 'Spiritual Weapon', ranged: true,
+                   speed: 0, damage_types: ['force'], threshold: 0, bleed: 0, base_damage: 0,
+                   dice_cap: sw[:reservoir].to_i, competency: nil }
+    end
 
     atk_tier = (acc&.tier rescue nil)
 
@@ -506,7 +515,10 @@ helpers do
           set_bpl: [{ id: 'attacker', bonus_penalty_list: bpl }] }
       end
       # Cost to roll n dice = flat weapon Speed + n; grey out unaffordable.
-      aff_max = (2..cap).select { |n| speed + n <= atk_pool }.max
+      # Spiritual Weapon rolls Reservoir dice (free), so its dice aren't pool-gated.
+      free    = w[:item_type] == 'spiritual_weapon'
+      aff = ->(n) { free || speed + n <= atk_pool }
+      aff_max = (2..cap).select { |n| aff.call(n) }.max
       max_opt = { value: "#{w[:item_type]}|#{aff_max || cap}", key: w[:item_type], group: grp,
                   label: "#{disp} (speed #{speed})", summary: "#{disp} — #{aff_max || cap} dice",
                   disabled: aff_max.nil?, patch: set_atk.call(aff_max || cap) }
@@ -514,7 +526,7 @@ helpers do
       (2..cap).each do |n|
         action_opts << { value: "#{w[:item_type]}|#{n}", key: w[:item_type], group: grp,
                          label: n.to_s, summary: "#{disp} — #{n} dice",
-                         disabled: speed + n > atk_pool, patch: set_atk.call(n) }
+                         disabled: !aff.call(n), patch: set_atk.call(n) }
       end
       action_opts << { kind: 'info', group: grp, value: "#{grp}|info",
                        label: (bpl.empty? ? 'no bonuses' : fmt_mods.call(bpl)) }
@@ -703,6 +715,17 @@ helpers do
     wt  = payload['weapon_type']
     atk = payload['attacker'] || {}
     return unless wt && atk['id']
+    # Spiritual Weapon is a virtual force weapon: its dice come from the
+    # Reservoir (charged at cast), so it costs no Combat Pool and the Reservoir
+    # is not spent. Damage is force, scaling with the net Successes (base 0).
+    if wt == 'spiritual_weapon'
+      payload['attack_kind'] ||= 'ranged'
+      atk['speed'] = 0
+      payload['attacker'] = atk
+      payload['weapon'] = { 'damage_types' => ['force'], 'threshold' => 0, 'bleed' => 0, 'base_damage' => 0 }
+      payload['free_attacker_pool'] = true
+      return
+    end
     combatant = encounter_state.combatant(atk['id'].to_i) or return
     w = equipped_weapons(combatant[:creature_id]).find { |x| x[:item_type] == wt } or return
     acc = Creatures.lookup(combatant[:creature_id]) rescue nil
@@ -744,18 +767,22 @@ helpers do
         ra    = raw['area']
         area  = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
         act   = (Abilities.resolve_activation(v) rescue nil)
-        # A casting check is rolled only when its Successes matter — a Save,
-        # attack-roll, or damage Spell. A reservoir-channel Spell instead pours
-        # its dice into a Reservoir (not rolled, no Luck). Everything else casts
-        # at the minimum with no roll.
-        requires_roll = !!(v['attack_roll'] || Array(v['save']).first || Array(v['damage_type']).compact.first)
+        # A reservoir/auto channel pours its cast dice into a Reservoir — those
+        # casts ask for a dice count but roll nothing (a Save/attack_roll on such
+        # a Spell governs its per-turn channel, not the cast). A casting check is
+        # rolled only for a non-reservoir Save / attack-roll / damage Spell.
+        channel_mode = v.dig('channel', 'mode').to_s
+        fills_reservoir = %w[reservoir auto].include?(channel_mode) &&
+                          v.dig('reservoir', 'fill', 'source').to_s == 'channel_dice'
+        requires_roll = !fills_reservoir &&
+                        !!(v['attack_roll'] || Array(v['save']).first || Array(v['damage_type']).compact.first)
         { name: name, tier: g[:tier], mana_cost: cost, skill: skill,
           dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier],
           damage_type: Array(v['damage_type']).compact.first,
           attack_roll: !!v['attack_roll'], save: Array(v['save']).first,
           area: (area.is_a?(Hash) ? area : nil),
           requires_roll: requires_roll,
-          reservoir: (v.dig('channel', 'mode').to_s == 'reservoir'),
+          reservoir: fills_reservoir,
           long_cast: !!(act && act[:kind].to_s == 'real_time' && act[:minutes].to_i >= 1),
           affordable: mana_left.nil? || cost <= mana_left }
       end

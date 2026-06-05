@@ -643,7 +643,9 @@ module Encounter
       over = p[:override] || {}
 
       pool_spends = []
-      pool_spends << { id: attacker[:id], amount: pool_cost(attacker) } if attacker[:id]
+      # A Spiritual Weapon strike (free_attacker_pool) rolls Reservoir dice, not
+      # Combat Pool, so the attacker spends nothing.
+      pool_spends << { id: attacker[:id], amount: pool_cost(attacker) } if attacker[:id] && !p[:free_attacker_pool]
       allies.each { |a| pool_spends << { id: a[:id], amount: pool_cost(a) } if a[:id] }
       opposing = 0
       if declared
@@ -1466,9 +1468,10 @@ module Encounter
                  cast_skill: (spell[:cast_skill] || Cast::DEFAULT_CAST_SKILL).to_s }
       case s[:kind].to_s
       when 'concentration'
-        # A reservoir-channel Spell pours the dice it was cast with straight
-        # into the Reservoir (they are not rolled).
-        initial = s[:mode].to_s == 'reservoir' ? channel_dice.to_i : (s[:initial_reservoir] || 0).to_i
+        # A reservoir- or auto-channel Spell pours the dice it was cast with
+        # straight into the Reservoir (they are not rolled). Auto reservoirs are
+        # persistent (Spiritual Weapon strikes from them each turn).
+        initial = %w[reservoir auto].include?(s[:mode].to_s) ? channel_dice.to_i : (s[:initial_reservoir] || 0).to_i
         begin_concentration(caster_id, **common, mode: (s[:mode] || 'maintain').to_s,
                             reservoir_reset: (s[:reservoir_reset] || 'per_turn').to_s,
                             initial_reservoir: initial)
