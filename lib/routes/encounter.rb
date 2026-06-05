@@ -776,6 +776,11 @@ helpers do
                           v.dig('reservoir', 'fill', 'source').to_s == 'channel_dice'
         requires_roll = !fills_reservoir &&
                         !!(v['attack_roll'] || Array(v['save']).first || Array(v['damage_type']).compact.first)
+        # The Combat Pool dice a cast costs at minimum — its Action category's
+        # Action Minimum (Main 4 / Bonus 2 / Free 0), not a flat 2. A no-roll,
+        # no-Reservoir Spell costs exactly this and asks nothing; a rolled or
+        # Reservoir Spell asks for a count from here up to the Dice Cap.
+        action_min = Encounter::Special.action_cost(act && act[:alias])
         { name: name, tier: g[:tier], mana_cost: cost, skill: skill,
           dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier],
           damage_type: Array(v['damage_type']).compact.first,
@@ -783,6 +788,7 @@ helpers do
           area: (area.is_a?(Hash) ? area : nil),
           requires_roll: requires_roll,
           reservoir: fills_reservoir,
+          action_min: action_min,
           long_cast: !!(act && act[:kind].to_s == 'real_time' && act[:minutes].to_i >= 1),
           affordable: mana_left.nil? || cost <= mana_left }
       end
@@ -838,33 +844,34 @@ helpers do
     end
     spell_step = { key: 'spell', label: 'Spell', options: spell_opts }
 
-    # Step 2 — Dice for the casting check, asked only after a spell is picked
-    # (choice-dependent on `spell`), bounded by Combat Pool and that spell's
-    # casting-skill Dice Cap.
-    dice_min = 2
+    # Step 2 — Dice for the cast, choice-dependent on the picked spell. A spell
+    # whose dice count is *variable* (a rolled cast, or a Reservoir pour) asks
+    # for a count from its Action Minimum up to the casting-skill Dice Cap; a
+    # spell whose count is *known* (a no-roll, no-Reservoir buff costs exactly
+    # its Action Minimum) skips the step — the option is auto-applied with no
+    # button. Either way each die is spent from the Combat Pool, so counts past
+    # the remaining Pool are disabled.
     dice_map = {}
     spells.each do |sp|
-      # Both a rolled cast and a Reservoir pour are bounded by the casting-skill
-      # Dice Cap: you may commit up to Dice Cap dice — rolled for the former,
-      # banked into the Reservoir for the latter. Either way each die is spent
-      # from the Combat Pool, so options past the remaining Pool are disabled.
       cap = sp[:dice_cap]
-      # Roll Spells (Save / attack / damage) and reservoir-channel Spells both
-      # ask for a dice count — rolled for the former, poured into the Reservoir
-      # for the latter. Everything else (buffs, no-save areas, Shield-style
-      # utility) casts at the minimum and just confirms.
+      min = sp[:action_min].to_i
       if sp[:requires_roll] || sp[:reservoir]
-        opts = (2..cap).map do |n|
+        opts = (min..cap).map do |n|
           { value: "#{sp[:name]}|#{n}", key: n, group: 'dice', label: n.to_s, summary: "#{n} dice",
             disabled: n > pool, patch: { set_dice: [{ id: 'caster', count: n }] } }
         end
         opts = [{ kind: 'info', group: 'dice', value: 'dice|none', label: 'no dice available' }] if opts.empty?
         dice_map[sp[:name]] = opts
       else
-        dice_map[sp[:name]] = [{ value: "#{sp[:name]}|#{dice_min}", key: dice_min, group: 'dice',
-                                 label: "Cast (min #{dice_min} dice)", summary: "#{dice_min} dice",
-                                 disabled: dice_min > pool,
-                                 patch: { set_dice: [{ id: 'caster', count: dice_min }] } }]
+        # Known dice count — auto-applied (the builder skips the step) when the
+        # caster can afford it; otherwise shown as a blocked option.
+        affordable = min <= pool
+        opt = { value: "#{sp[:name]}|#{min}", key: min, group: 'dice',
+                label: "#{min} dice", summary: "#{min} dice",
+                disabled: !affordable,
+                patch: { set_dice: [{ id: 'caster', count: min }] } }
+        opt[:auto] = true if affordable
+        dice_map[sp[:name]] = [opt]
       end
     end
     dice_step = { key: 'dice', label: 'Dice', options_by: %w[spell], options_map: dice_map }
