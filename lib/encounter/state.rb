@@ -691,11 +691,16 @@ module Encounter
 
       if net.positive?
         base = weapon[:base_damage] ? weapon[:base_damage].to_i : p[:damage_bonus].to_i
+        # Tier Gap reduction: a weapon attack against a higher-Tier defender
+        # loses Tier-Gap-Per-Step damage for each Tier of the gap. The weapon's
+        # Glory Property (tier_advantage) treats the wielder as that many Tiers
+        # higher, shrinking the gap first.
+        tier_gap_reduction = tier_gap_reduction(attacker[:id], p[:target_id], weapon[:tier_advantage].to_i)
         # Computed damage / bleed, each replaceable by a DM override. Bleed is
         # the weapon's Bleed plus the damage dealt (encounter_design.md →
         # "actual bleed = Bleed Constant + damage dealt"), so a 0-Bleed weapon
         # still bleeds for its damage.
-        damage = over.key?(:damage) ? over[:damage].to_i : base + net
+        damage = over.key?(:damage) ? over[:damage].to_i : [base + net - tier_gap_reduction, 0].max
         bleed  = over.key?(:bleed)  ? over[:bleed].to_i  : weapon[:bleed].to_i + damage
         if commit
           out = apply_damage(p[:target_id], damage, dtype, threshold: threshold)
@@ -713,6 +718,7 @@ module Encounter
         rider_outcomes = apply_attack_riders(p[:target_id], attacker[:id], riders, p[:rider_results], commit)
         { ok: true, damage: damage, severity_map: sev, net_dos: net, damage_type: dtype,
           threshold: threshold, damage_resilience: resil, bleed: bleed,
+          tier_gap_reduction: tier_gap_reduction,
           riders: riders, rider_outcomes: rider_outcomes,
           pool_spends: pool_spends, committed: commit }
       else
@@ -907,6 +913,22 @@ module Encounter
         end
         outcome
       end
+    end
+
+    # The Tier Gap damage reduction for a weapon attack: the defender's Tier
+    # minus the attacker's Tier (raised by the weapon's `tier_advantage`, the
+    # Glory Property), clamped at a zero gap, times Tier-Gap-Per-Step. Returns 0
+    # when the defender does not outrank the (Glory-adjusted) attacker.
+    def tier_gap_reduction(attacker_id, target_id, tier_advantage)
+      gap = combatant_tier(target_id) - (combatant_tier(attacker_id) + tier_advantage.to_i)
+      [gap, 0].max * Config.tier_gap_damage_reduction_per_step
+    end
+
+    # A Combatant's Creature Tier (0 when unknown). Tier 0 is the floor — the
+    # 0.5 convention is for formula math, not this integer gap.
+    def combatant_tier(combatant_id)
+      c = combatant_for(combatant_id) or return 0
+      (lookup!(c[:creature_id])&.tier rescue 0) || 0
     end
 
     # Bucket (and, on commit, apply) a rider's target damage. A rider with

@@ -175,9 +175,10 @@ export class TurnAttack {
     const spends = (res.pool_spends || []).filter((s) => s.amount > 0);
     const rolls = container._riderRolls || {};
     const rows = [];
+    const gap = num(res.tier_gap_reduction) > 0 ? ` <span class="ta-dim">(−${num(res.tier_gap_reduction)} tier gap)</span>` : '';
     rows.push(`<div class="ta-field"><label>Damage` +
       ` <input type="number" class="ta-dmg-input" value="${res.damage}" min="0"></label>` +
-      ` <span class="ta-dim">${res.damage_type || ''}</span> <span class="ta-split"></span></div>`);
+      ` <span class="ta-dim">${res.damage_type || ''}</span>${gap} <span class="ta-split"></span></div>`);
     // One bonus-damage box per rider (separate from the base damage and from
     // each other), plus a self-damage box for a rider that bites the wielder.
     (container._riders || []).forEach((rider) => {

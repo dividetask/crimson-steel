@@ -127,6 +127,17 @@ Falling Damage Per 10 Feet: 2
 Falling Damage Threshold: 5
 Falling Damage Bleed Constant: 0   # actual bleed = Bleed Constant + damage dealt
 
+# ---- Tier Gap ----
+#
+# A weapon attack against a higher-Tier opponent deals reduced damage:
+# the hit-point damage is lowered by this much per Tier step of the gap
+# (defender Tier − attacker Tier), clamped at zero. So a defender one
+# Tier higher takes `-5`, two Tiers higher `-10`, etc. A weapon's Glory
+# Property (equipment_config.yaml → Weapon Properties) treats the
+# wielder's Tier as higher, shrinking the gap before this reduction.
+Tier Gap Damage Reduction Per Step: 5
+
+
 # ---- Trigger Conditions ----
 #
 # Canonical catalog of Trigger Condition names that Abilities may

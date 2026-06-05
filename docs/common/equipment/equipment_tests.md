@@ -311,6 +311,8 @@ Conditions, Combat, and Abilities are mocked as recorded-call stubs. A test asse
 
 **Property `threshold_delta` raises the weapon Threshold.** A `{Mace, tier: 1, properties: [Subdual]}` Stack returns `threshold: 8` — the Bludgeoning default 3 plus Subdual's `weapon_modifiers.threshold_delta: 5`. A weapon whose Threshold is `null` (Whip) stays `null`.
 
+**Glory surfaces a Tier Advantage.** A `{Long sword, tier: 1, properties: [Glory]}` Stack returns `tier_advantage: 1` (the Property's `tier_advantage.amount`); a mundane weapon returns `tier_advantage: 0`.
+
 **Get Armor Details computes Effective Hardness and Resilience.** For `{Chain mail, tier: 2, properties: []}`: `material: Metal`, `base_hardness: 10`, `effective_hardness: 14`, `damage_reduction: 3`, `resilience_increment: 2`, `resilience: 4`, `hit_points_formula: "30 * thickness"`, `thickness: 2`, `is_metal_armor: true` (Chain mail's catalog entry declares `metal: true`).
 
 **Shields read the per-Item Metal flag.** For `{Tower shield, tier: 3}`: `damage_reduction: null`, `resilience_increment: null`, `resilience: 0` (the null guard), `is_metal_armor: true` (Tower shield declares `metal: true`). For `{Light wooden shield, tier: 0}`: `is_metal_armor: false` (no `metal` flag).

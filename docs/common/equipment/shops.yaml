@@ -84,6 +84,7 @@ generic_shops:
       - { item: Mace,          tier: 1, min_pop: 3000, qty_base: 1, qty_per_kpop: 0, properties: [{ name: Elemental, subtype: Acid }] }
       - { item: Warhammer,     tier: 1, min_pop: 3000, qty_base: 1, qty_per_kpop: 0, properties: [{ name: Elemental, subtype: Electricity }] }
       - { item: Rapier,        tier: 1, min_pop: 4000, qty_base: 1, qty_per_kpop: 0, properties: [{ name: Emotional }] }
+      - { item: "Long sword",  tier: 1, min_pop: 6000, qty_base: 1, qty_per_kpop: 0, properties: [{ name: Glory }] }
       - { item: "Great sword", tier: 2, min_pop: 8000, qty_base: 1, qty_per_kpop: 0, properties: [{ name: Vicious }] }
       - { item: "Plate mail",     min_pop: 5000, qty_base: 1, qty_per_kpop: 0 }
       - { item: "Light wooden shield", min_pop: 100, qty_base: 2, qty_per_kpop: 1 }

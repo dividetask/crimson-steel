@@ -195,7 +195,7 @@ Returns a dict with: `category`, `item_type`, `definition` (the catalog block), 
 
 Input: a Stack with `category == Weapon`.
 
-Returns *Get Item Details* extended with: `damage_formula` (per-weapon override → first Tag with `damage_formula` → Category default), `damage_types` (list), `bleed` (max over the Damage Types' defaults, or per-weapon override), `threshold` (min over the Damage Types' defaults, or per-weapon override, plus the sum of every equipped Property's `weapon_modifiers.threshold_delta`; `null` when explicitly null on the Weapon), `tags` (list), `ammo_type` (string or null), `damage_riders` (the resolved `damage_rider` of every magical Property on the Stack — sentinel Damage Types `from_subtype` / `from_weapon` already resolved to a concrete type — for Combat to roll at attack time).
+Returns *Get Item Details* extended with: `damage_formula` (per-weapon override → first Tag with `damage_formula` → Category default), `damage_types` (list), `bleed` (max over the Damage Types' defaults, or per-weapon override), `threshold` (min over the Damage Types' defaults, or per-weapon override, plus the sum of every equipped Property's `weapon_modifiers.threshold_delta`; `null` when explicitly null on the Weapon), `tags` (list), `ammo_type` (string or null), `damage_riders` (the resolved `damage_rider` of every magical Property on the Stack — sentinel Damage Types `from_subtype` / `from_weapon` already resolved to a concrete type — for Combat to roll at attack time), `tier_advantage` (summed `tier_advantage.amount` across the Stack's Properties — the Glory Tier bump; 0 for a mundane weapon).
 
 ### Get Armor Details
 
@@ -453,6 +453,14 @@ The rider damage is applied as its **own** Severity Calculation, separate from t
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `threshold_delta` | integer | 0 | Added to the weapon's Threshold (for damage-bucketing rules in Combat). |
+
+**`tier_advantage:`** — A weapon-attack-only modifier (the Glory Property) that treats the wielder as that many Tiers higher when attacking a higher-Tier opponent, shrinking the Tier gap Combat applies before the per-step damage reduction. Single-target weapon attacks only — never a spell or area effect. Schema:
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `amount` | non-neg integer | required | Tiers added to the wielder's effective Tier for the attack's Tier-gap math. |
+
+*Get Weapon Details* surfaces the summed `tier_advantage` across the Stack's Properties; Combat reads it at attack time (it is not posted to Conditions).
 
 **`damage_resistance:`** — Incoming-damage filter the Property applies when the wearer is hit by damage of a matching type. Schema:
 

@@ -48,8 +48,21 @@ module Equipment
         speed: speed(defn, catalog),
         tags: defn['tags'] || [],
         ammo_type: defn['ammo_type'],
-        damage_riders: damage_riders(stack, types, catalog)
+        damage_riders: damage_riders(stack, types, catalog),
+        tier_advantage: tier_advantage(stack, catalog)
       )
+    end
+
+    # The weapon's Tier Advantage — how many Tiers higher the wielder is
+    # treated as when attacking a higher-Tier opponent (the Glory Property,
+    # equipment_design.md → Property Effects). Summed across the Stack's
+    # Properties; 0 for a mundane weapon. Combat shrinks the attack's Tier
+    # gap by this much before applying the per-step damage reduction.
+    def tier_advantage(stack, catalog)
+      stack.properties.sum do |prop|
+        adv = (catalog.property(prop[:name]) || {})['tier_advantage'] || {}
+        Integer(adv['amount'] || 0)
+      end
     end
 
     # The resolved per-hit Damage Riders a weapon Stack adds when an

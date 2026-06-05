@@ -111,6 +111,14 @@ RSpec.describe Equipment::Details do
     it 'has no riders for a mundane weapon' do
       expect(described_class.weapon_details(stack(item_type: 'Long sword', tier: 0), catalog)[:damage_riders]).to eq([])
     end
+
+    it 'surfaces a Glory weapon Tier Advantage; a mundane weapon has none' do
+      glorious = described_class.weapon_details(
+        stack(item_type: 'Long sword', tier: 1, properties: [{ name: 'Glory' }]), catalog
+      )
+      expect(glorious[:tier_advantage]).to eq(1)
+      expect(described_class.weapon_details(stack(item_type: 'Long sword', tier: 0), catalog)[:tier_advantage]).to eq(0)
+    end
   end
 
   describe 'Get Armor Details' do

@@ -58,5 +58,10 @@ module Encounter
     # ---- Damage Types ----
     def damage_types = (data['damage_types'] || {})
     def metal_armor_categories = (data['Metal Armor Categories'] || [])
+
+    # ---- Tier Gap ----
+    # Hit-point damage a weapon attack loses per Tier step when the
+    # defender outranks the attacker (clamped at zero gap).
+    def tier_gap_damage_reduction_per_step = Integer(data['Tier Gap Damage Reduction Per Step'] || 5)
   end
 end

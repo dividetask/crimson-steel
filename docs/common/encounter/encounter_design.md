@@ -353,6 +353,8 @@ Behavior: resolution is client-side (the JS Dice/Check engine) and comes back to
 
 A Spell that declares its own damage formula overrides the default (the Abilities engine evaluates it).
 
+**Tier Gap damage reduction (weapon attacks).** When a weapon attack lands on a defender of higher Tier, `resolve_attack_payload` lowers the hit-point damage by `Tier Gap Damage Reduction Per Step` (`encounter_config.yaml`, default 5) for each Tier of the gap — `defender Tier − attacker Tier`, clamped at a zero gap. A defender one Tier higher takes `-5`, two Tiers higher `-10`, etc. The weapon's **Glory** Property (`tier_advantage`, surfaced by *Get Weapon Details*) treats the wielder as that many Tiers higher, shrinking the gap before the reduction — so a Glory weapon makes a one-Tier-higher foe take full damage and a two-Tier-higher foe take only `-5`. The reduction applies to the base weapon damage (the editable Damage box already shows the reduced figure); it is weapon-only and single-target — spells and the magical rider bonus dice are not reduced here.
+
 ### Defensive Actions
 
 A Defensive Action is a Reaction the defender declares on the attacker's turn against an incoming attack. Three Defensive Actions exist: Parry, Block, and Dodge. Each contributes an Opposing Roll to the attack Check; per Check Resolution, the Opposing Roll's Successes subtract from the attack Roll's Successes within a single Check. There is no "defender wins" outcome — the only question Check Resolution answers is whether the attacker succeeds.

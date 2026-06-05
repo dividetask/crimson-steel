@@ -429,6 +429,66 @@ RSpec.describe 'Encounter::State#resolve_attack_payload (weapon-aware)' do
     expect(out[:rider_outcomes]).to be_nil
   end
 
+  # Tier Gap damage reduction + the Glory weapon Property.
+  def tiered_creature(tier)
+    obj = Object.new
+    obj.define_singleton_method(:tier) { tier }
+    obj.define_singleton_method(:attribute_value) { |_a| 12 }
+    obj.define_singleton_method(:ranks_for) { |_k| 4 }
+    obj.define_singleton_method(:max_hit_points) { 60 }
+    obj.define_singleton_method(:max_mana) { 8 }
+    obj.define_singleton_method(:tags) { [] }
+    obj.define_singleton_method(:name) { "T#{tier}" }
+    obj
+  end
+
+  def tier_state(tiers)
+    Encounter::State.new({}, data_path: data_path,
+                         creature_lookup: ->(id) { tiered_creature(tiers[id.to_s] || 0) },
+                         conditions_for: ->(_id) { Conditions::Instance.new })
+  end
+
+  def attack_for_gap(s, atk, tgt, tier_advantage: 0)
+    s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee', commit: false,
+      weapon: { damage_types: ['slashing'], threshold: 0, base_damage: 10, tier_advantage: tier_advantage },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 1 }, # base 10 + net 1 = 11 pre-reduction
+      defense:  { choice: 'none' }
+    )
+  end
+
+  it 'reduces weapon damage by 5 per Tier step against a higher-Tier defender' do
+    s = tier_state('1' => 0, '2' => 2) # attacker Tier 0, defender Tier 2
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = attack_for_gap(s, atk, tgt)
+    expect(out[:tier_gap_reduction]).to eq(10) # gap 2 × 5
+    expect(out[:damage]).to eq(1)              # 11 − 10
+  end
+
+  it 'Glory shrinks the Tier gap by its tier_advantage' do
+    s = tier_state('1' => 0, '2' => 2)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = attack_for_gap(s, atk, tgt, tier_advantage: 1)
+    expect(out[:tier_gap_reduction]).to eq(5) # gap (2 − (0+1)) × 5
+    expect(out[:damage]).to eq(6)             # 11 − 5
+  end
+
+  it 'Glory lets a one-Tier-higher foe take full damage' do
+    s = tier_state('1' => 0, '2' => 1)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = attack_for_gap(s, atk, tgt, tier_advantage: 1)
+    expect(out[:tier_gap_reduction]).to eq(0) # gap (1 − 1) = 0
+    expect(out[:damage]).to eq(11)
+  end
+
+  it 'never reduces damage against an equal or lower Tier defender' do
+    s = tier_state('1' => 2, '2' => 0) # attacker outranks defender
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = attack_for_gap(s, atk, tgt)
+    expect(out[:tier_gap_reduction]).to eq(0)
+    expect(out[:damage]).to eq(11)
+  end
+
   it 'rejects an ineligible defense (Parry vs ranged) before spending' do
     s = state
     atk = s.add_combatant('1'); tgt = s.add_combatant('2')

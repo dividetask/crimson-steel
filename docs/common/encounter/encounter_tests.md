@@ -156,6 +156,14 @@ A weapon carries `damage_riders` (from *Get Weapon Details*) when its Stack has 
 
 **Preview rolls nothing.** A `commit: false` preview returns the `riders` metadata but applies no rider damage and no wielder self-damage.
 
+### Tier Gap damage reduction + Glory
+
+**Higher-Tier defender reduces weapon damage.** Attacker Tier 0 hits a Tier 2 defender for a pre-reduction `11` (base 10 + net 1). With `Tier Gap Damage Reduction Per Step: 5`, the gap of 2 removes `10`; the payload returns `tier_gap_reduction: 10` and `damage: 1`.
+
+**Glory shrinks the gap.** The same attack with a `tier_advantage: 1` (Glory) weapon treats the wielder as Tier 1: gap `2 − 1 = 1`, reduction `5`, `damage: 6`. Against a defender only one Tier higher, Glory closes the gap entirely — `tier_gap_reduction: 0`, full `damage: 11`.
+
+**No reduction at equal or lower Tier.** An attacker who equals or outranks the defender gets `tier_gap_reduction: 0` (the gap is clamped at zero); the damage is unreduced.
+
 ## Get / Spend / Reset Combat Pool
 
 **Get Combat Pool runs the buy formula.** Combatant has Tier 0, `martial_proficiency_ranks = 4`, attribute = 12. Budget = `floor((4 + floor(12/2)) / 1) = 10`. The tiered Buy cost function (per *Combat Pool computation*: `Step·T(T-1)/2 + R·T` with `T = floor(P/Step)`, `R = P mod Step`) gives `cost(11) = 4·1 + 3·2 = 10 ≤ 10 < cost(12) = 4·3 = 12`. So P = 11 is the largest fit. Result: 11.
