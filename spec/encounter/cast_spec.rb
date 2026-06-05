@@ -363,6 +363,19 @@ RSpec.describe 'Encounter::State#resolve_cast_payload' do
     expect(s.combatant(caster[:id])[:combat_pool_spent]).to eq(4)     # caster speed 1 + dice 3
   end
 
+  it 'a reservoir-channel sustain pours the cast dice into the Reservoir' do
+    s = state
+    caster = s.add_combatant('1')
+    out = s.resolve_cast_payload(
+      caster: { id: caster[:id], dice: 4, speed: 0, successes: 0 },
+      spell:  { name: 'Shield of Faith', tier: 1, cast_skill: 'invocation', mana_cost: 0 }, targets: [],
+      sustain: { kind: 'concentration', mode: 'reservoir', reservoir_reset: 'per_turn' }
+    )
+    expect(out[:sustain][:reservoir]).to eq(4) # the 4 cast dice, not rolled
+    held = s.combatant(caster[:id])[:concentration].find { |e| e[:spell_name] == 'Shield of Faith' }
+    expect(held[:reservoir]).to eq(4)
+  end
+
   it 'registers a Concentration Entry for a Channeled sustain' do
     s = state
     caster = s.add_combatant('1')
@@ -371,7 +384,8 @@ RSpec.describe 'Encounter::State#resolve_cast_payload' do
       spell:  { name: 'Bless', tier: 1, cast_skill: 'faith', mana_cost: 0 }, targets: [],
       sustain: { kind: 'concentration', mode: 'maintain', reservoir_reset: 'per_turn' }
     )
-    expect(out[:sustain]).to eq(kind: 'concentration', spell_name: 'Bless')
+    # maintain-mode sustain seeds an empty Reservoir.
+    expect(out[:sustain]).to eq(kind: 'concentration', spell_name: 'Bless', reservoir: 0)
     held = s.combatant(caster[:id])[:concentration]
     expect(held.map { |e| e[:spell_name] }).to include('Bless')
     expect(held.first[:cast_skill]).to eq('faith')

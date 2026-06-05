@@ -220,6 +220,10 @@ export class CheckBuilder {
     if (!opt) return;
     cb.choices[key] = { value: opt.value, label: opt.label, key: opt.key != null ? opt.key : opt.value };
     CheckBuilder._applyPatch(root, opt.patch);
+    // A Spell option carries whether casting it rolls a check. A no-roll Spell
+    // (a buff, or a reservoir-channel like Shield of Faith) skips the Luck steps
+    // — its dice are charged/poured, not rolled.
+    if (opt.cast) cb.noRoll = !opt.cast.roll;
     // An area Spell's "Place on the map" option arms the Atlas; the actual
     // footprint (and the creatures it catches) come back via cast:area-placed.
     if (opt.place) {
@@ -260,6 +264,9 @@ export class CheckBuilder {
     while (i < cb.steps.length) {
       const step = cb.steps[i];
       if (step.dynamic === 'luck') {
+        // A no-roll cast (buff / reservoir-channel) rolls nothing, so Luck has
+        // nothing to apply — skip every Luck step.
+        if (cb.noRoll) { CheckBuilder._setState(root, step.key, 'complete'); i++; continue; }
         // One Luck step per source: render its table. If no in-play Roll can
         // take this source's Luck, there is nothing to ask — skip it.
         const lb = CheckBuilder._luckBody(root, step);
@@ -282,6 +289,10 @@ export class CheckBuilder {
       return;
     }
     CheckBuilder._setState(root, '__dice', 'active');
+    // A no-roll cast charges its dice without rolling — hide "Roll All" so the
+    // DM just confirms.
+    const rollAll = root.querySelector('.btn-roll-all');
+    if (rollAll) rollAll.hidden = !!cb.noRoll;
     // All steps resolved — show the final propagated TNs before the DM rolls.
     CheckBuilder._previewTns(root);
   }

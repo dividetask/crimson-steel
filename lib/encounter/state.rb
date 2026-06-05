@@ -843,7 +843,7 @@ module Encounter
         mana_spent = mana_cost.positive? ? caster_inst.apply_mana_cost(amount: mana_cost, mana_max: mana_max) : 0
         tox = apply_cast_toxicity(caster_inst, toxicity, polarity, cha, tier)
         applied = resolved.map { |t| apply_cast_target(t, spell) }
-        sustain = p[:sustain] ? register_cast_sustain(caster[:id], spell, p[:sustain]) : nil
+        sustain = p[:sustain] ? register_cast_sustain(caster[:id], spell, p[:sustain], channel_dice: caster[:dice].to_i) : nil
         base.merge(mana_spent: mana_spent, toxicity: tox, targets: applied, sustain: sustain)
       else
         available  = [mana_max - (caster_inst.state.mana_spent rescue 0), 0].max
@@ -1459,17 +1459,20 @@ module Encounter
     end
 
     # Register the sustain bookkeeping a Channeled / multi-turn cast needs.
-    def register_cast_sustain(caster_id, spell, sustain)
+    def register_cast_sustain(caster_id, spell, sustain, channel_dice: 0)
       s = deep_symbolize(sustain)
       common = { spell_name: spell[:name].to_s, source: cast_source_id(spell),
                  spell_tier: (spell[:tier] || 0).to_i,
                  cast_skill: (spell[:cast_skill] || Cast::DEFAULT_CAST_SKILL).to_s }
       case s[:kind].to_s
       when 'concentration'
+        # A reservoir-channel Spell pours the dice it was cast with straight
+        # into the Reservoir (they are not rolled).
+        initial = s[:mode].to_s == 'reservoir' ? channel_dice.to_i : (s[:initial_reservoir] || 0).to_i
         begin_concentration(caster_id, **common, mode: (s[:mode] || 'maintain').to_s,
                             reservoir_reset: (s[:reservoir_reset] || 'per_turn').to_s,
-                            initial_reservoir: (s[:initial_reservoir] || 0).to_i)
-        { kind: 'concentration', spell_name: common[:spell_name] }
+                            initial_reservoir: initial)
+        { kind: 'concentration', spell_name: common[:spell_name], reservoir: initial }
       when 'long_cast'
         turns = (s[:turns_required] || 1).to_i
         begin_long_cast(caster_id, **common, turns_required: turns)

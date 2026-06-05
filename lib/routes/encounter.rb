@@ -743,14 +743,26 @@ helpers do
         raw   = (Abilities.catalog.ability(name) rescue nil) || {}
         ra    = raw['area']
         area  = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
+        act   = (Abilities.resolve_activation(v) rescue nil)
+        # A casting check is rolled only when its Successes matter — a Save,
+        # attack-roll, or damage Spell. A reservoir-channel Spell instead pours
+        # its dice into a Reservoir (not rolled, no Luck). Everything else casts
+        # at the minimum with no roll.
+        requires_roll = !!(v['attack_roll'] || Array(v['save']).first || Array(v['damage_type']).compact.first)
         { name: name, tier: g[:tier], mana_cost: cost, skill: skill,
           dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier],
           damage_type: Array(v['damage_type']).compact.first,
           attack_roll: !!v['attack_roll'], save: Array(v['save']).first,
           area: (area.is_a?(Hash) ? area : nil),
+          requires_roll: requires_roll,
+          reservoir: (v.dig('channel', 'mode').to_s == 'reservoir'),
+          long_cast: !!(act && act[:kind].to_s == 'real_time' && act[:minutes].to_i >= 1),
           affordable: mana_left.nil? || cost <= mana_left }
       end
     end
+    # Hide Spells that take a minute or longer to cast — they aren't cast in the
+    # heat of combat.
+    spells = spells.reject { |sp| sp[:long_cast] }
 
     targets = encounter_state.combatants.map do |c|
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
@@ -791,6 +803,7 @@ helpers do
         spell_opts << { value: sp[:name], key: sp[:name], group: grp,
                         label: sp[:name], summary: sp[:name],
                         disabled: !sp[:affordable],
+                        cast: { roll: sp[:requires_roll], reservoir: sp[:reservoir] },
                         patch: { set_bpl:   [{ id: 'caster', bonus_penalty_list: bpl }],
                                  set_speed: [{ id: 'caster', speed: 0 }],
                                  set_name:  [{ id: 'caster', roll_name: "Cast #{sp[:name]}" }] } }
@@ -805,21 +818,23 @@ helpers do
     dice_map = {}
     spells.each do |sp|
       cap = sp[:dice_cap]
-      # A no-save area Spell (Obscuring Mist, Darkness) opposes no roll, so it
-      # skips the dice choice and casts with the minimum dice.
-      if sp[:area] && !sp[:save]
+      # Roll Spells (Save / attack / damage) and reservoir-channel Spells both
+      # ask for a dice count — rolled for the former, poured into the Reservoir
+      # for the latter. Everything else (buffs, no-save areas, Shield-style
+      # utility) casts at the minimum and just confirms.
+      if sp[:requires_roll] || sp[:reservoir]
+        opts = (2..cap).map do |n|
+          { value: "#{sp[:name]}|#{n}", key: n, group: 'dice', label: n.to_s, summary: "#{n} dice",
+            disabled: n > pool, patch: { set_dice: [{ id: 'caster', count: n }] } }
+        end
+        opts = [{ kind: 'info', group: 'dice', value: 'dice|none', label: 'no dice available' }] if opts.empty?
+        dice_map[sp[:name]] = opts
+      else
         dice_map[sp[:name]] = [{ value: "#{sp[:name]}|#{dice_min}", key: dice_min, group: 'dice',
                                  label: "Cast (min #{dice_min} dice)", summary: "#{dice_min} dice",
                                  disabled: dice_min > pool,
                                  patch: { set_dice: [{ id: 'caster', count: dice_min }] } }]
-        next
       end
-      opts = (2..cap).map do |n|
-        { value: "#{sp[:name]}|#{n}", key: n, group: 'dice', label: n.to_s, summary: "#{n} dice",
-          disabled: n > pool, patch: { set_dice: [{ id: 'caster', count: n }] } }
-      end
-      opts = [{ kind: 'info', group: 'dice', value: 'dice|none', label: 'no dice available' }] if opts.empty?
-      dice_map[sp[:name]] = opts
     end
     dice_step = { key: 'dice', label: 'Dice', options_by: %w[spell], options_map: dice_map }
 
