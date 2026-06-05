@@ -126,21 +126,17 @@ function initCart(root) {
     const bonus = gb ? gb.bonus : null;
 
     if (card.classList.contains('provision-card-magicweapon')) {
-      // Magical Weapons: weapon + property + tier from three selects, then
-      // the Alchemy-style recipient boxes. The whole combination is one
-      // variant; an invalid combination adds nothing.
+      // Magical Weapons: weapon + property + tier from three selects, bought
+      // (one) for the section's dropdown recipient. An invalid combination
+      // adds nothing.
       const st = magicWeaponState(card);
       if (!st.valid) { updateMagicWeapon(card); return; }
-      const extra = { properties: [{ name: st.property.name, subtype: st.property.subtype || null }],
-                      tier: st.tier, label: st.label };
-      const sel = selectedRecipient(card);
-      const selBox = card.querySelector('.provision-qty-selected');
-      if (sel) addLine(st.weapon.name, null, st.price, sel.id, sel.name, sel.isPc, selBox && selBox.value, extra);
-      card.querySelectorAll('.provision-qty-pc').forEach((box) => {
-        addLine(st.weapon.name, null, st.price, box.dataset.recipientId, box.dataset.recipientName, true, box.value, extra);
-      });
-      if (selBox) selBox.value = 0;
-      card.querySelectorAll('.provision-qty-pc').forEach((box) => { box.value = 0; });
+      const r = selectedRecipient(card);
+      if (r) {
+        const extra = { properties: [{ name: st.property.name, subtype: st.property.subtype || null }],
+                        tier: st.tier, label: st.label };
+        addLine(st.weapon.name, null, st.price, r.id, r.name, r.isPc, 1, extra);
+      }
       render();
       return;
     }

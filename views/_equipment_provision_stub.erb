@@ -170,7 +170,7 @@
             </label>
           </div>
           <div class="provision-grid">
-            <div class="provision-card provision-card-batch provision-card-magicweapon" data-price="0">
+            <div class="provision-card provision-card-magicweapon" data-price="0">
               <div class="provision-card-body">
                 <div class="provision-card-name">Enchanted Weapon</div>
                 <label class="provision-bonus">Weapon
@@ -199,18 +199,9 @@
                 </label>
                 <div class="provision-card-price"><span class="provision-price-amount">0</span> gp</div>
                 <div class="provision-note mw-note" hidden></div>
-                <div class="provision-alch-boxes">
-                  <label class="provision-box">
-                    <input type="number" class="provision-qty provision-qty-selected" value="0" min="0"> selected
-                  </label>
-                  <% players.each do |p| %>
-                    <label class="provision-box">
-                      <input type="number" class="provision-qty provision-qty-pc" value="0" min="0"
-                             data-recipient-id="<%= p[:id] %>" data-recipient-name="<%= esc.call(p[:name]) %>"> <%= esc.call(p[:name]) %>
-                    </label>
-                  <% end %>
+                <div class="provision-card-buy">
+                  <button type="button" class="ce-btn ce-btn-primary provision-add">Add</button>
                 </div>
-                <button type="button" class="ce-btn ce-btn-primary provision-add provision-alch-buy">Add</button>
               </div>
             </div>
           </div>
