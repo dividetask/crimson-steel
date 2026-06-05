@@ -1,17 +1,23 @@
 import { CheckResolution } from '../check.js';
 import { RollRows } from './rollRows.js';
 
-// Check Resolution Builder (check_resolution_builder_stub.md).
+// Action Builder (action_builder_stub.md).
 //
-// A domain-agnostic, parameter-driven wizard. It reuses the Save Resolution
-// stub's markup + CSS: the active step's controls live in the Rolls header,
-// completed steps become thin `.step-summary` rows (each with a ↶ Change), and
-// the active step's `.step-body` shows its option buttons (.cr-mod-btn). The
-// host precomputes the whole blob; the builder runs client-side and emits a
-// single `check:confirmed` CustomEvent with the picked choices + resolved
-// per-Roll Successes. It never calls back into the host.
+// A domain-agnostic, parameter-driven wizard for composing an action — an
+// Attack, a Cast, or a Special. It owns the step flow only; it **composes in
+// the Check Resolution roll table** (the shared roll stub embedded as the
+// terminal `__dice` step) and shows its *Roll All* affordance **only when a
+// step actually rolls dice**. A no-roll flow (a buff Cast, a reservoir pour)
+// never mounts that affordance — the DM just confirms.
 //
-// Blob (read from the `.check-builder` element's data-builder):
+// It reuses the Save Resolution stub's markup + CSS: the active step's controls
+// live in the Rolls header, completed steps become thin `.step-summary` rows
+// (each with a ↶ Change), and the active step's `.step-body` shows its option
+// buttons (.cr-mod-btn). The host precomputes the whole blob; the builder runs
+// client-side and emits a single `action:confirmed` CustomEvent with the picked
+// choices + resolved per-Roll Successes. It never calls back into the host.
+//
+// Blob (read from the `.action-builder` element's data-builder):
 //   { title, stub_id,
 //     rolls: [ { id, side, creature_name, roll_name, die_size, tn,
 //                starting_value, dice_count, excluded? } ],
@@ -26,25 +32,25 @@ import { RollRows } from './rollRows.js';
 //             set_excluded:[{id,excluded}],
 //             set_reroll:[{id,sign,count}|{id,clear:true}],
 //             set_nudge:[{id,sign,count}|{id,clear:true}] }
-export class CheckBuilder {
+export class ActionBuilder {
   static ensureLoaded(root) {
     if (!root || root.dataset.cbLoaded) return;
     root.dataset.cbLoaded = '1';
     let blob;
     try { blob = JSON.parse(root.dataset.builder); } catch (e) { return; }
     root._cb = { steps: blob.steps || [], choices: {} };
-    CheckBuilder._bind(root);
+    ActionBuilder._bind(root);
     // The server rendered the first step active; nothing to do until a pick.
   }
 
   static _bind(root) {
     root.addEventListener('click', (e) => {
       const opt = e.target.closest && e.target.closest('.cb-opt');
-      if (opt && root.contains(opt) && !opt.disabled) return CheckBuilder._pick(root, opt);
+      if (opt && root.contains(opt) && !opt.disabled) return ActionBuilder._pick(root, opt);
       const chg = e.target.closest && e.target.closest('.cr-step-change');
-      if (chg && root.contains(chg) && chg.dataset.step) return CheckBuilder._change(root, chg.dataset.step);
+      if (chg && root.contains(chg) && chg.dataset.step) return ActionBuilder._change(root, chg.dataset.step);
       const conf = e.target.closest && e.target.closest('.btn-confirm');
-      if (conf && root.contains(conf)) return CheckBuilder._confirm(root);
+      if (conf && root.contains(conf)) return ActionBuilder._confirm(root);
     });
   }
 
@@ -78,7 +84,7 @@ export class CheckBuilder {
     const src = (step.luck || {}).source || {};
     const targets = (step.luck || {}).targets || [];
     const diceOf = (id) => {
-      const g = CheckBuilder._group(root, id);
+      const g = ActionBuilder._group(root, id);
       if (!g || g.classList.contains('roll-group-excluded') || g.hidden) return 0;
       try { return JSON.parse(g.dataset.config).dice_count || 0; } catch (e) { return 0; }
     };
@@ -88,18 +94,18 @@ export class CheckBuilder {
       const cap = Math.min(src.amount || 0, diceOf(t.roll_id));
       if (cap <= 0) return;
       any = true;
-      const rl = CheckBuilder._rollLabel(root, t.roll_id) || t.label || t.roll_id;
+      const rl = ActionBuilder._rollLabel(root, t.roll_id) || t.label || t.roll_id;
       // Unsettling Words (penalty) column first, right-aligned and descending
       // (−cap … −1) so the smallest penalty sits next to the smallest bonus —
       // a continuous number line. Bardic Inspiration (bonus) column second.
       let penCell = '';
       if (src.penalty) {
         const pen = [];
-        for (let n = cap; n >= 1; n--) pen.push(CheckBuilder._luckBtn(step.key, src.sid, 'neg', n, t.roll_id));
+        for (let n = cap; n >= 1; n--) pen.push(ActionBuilder._luckBtn(step.key, src.sid, 'neg', n, t.roll_id));
         penCell = '<td class="cb-luck-cell cb-luck-penalty">' + pen.join(' ') + '</td>';
       }
       const bonus = [];
-      for (let n = 1; n <= cap; n++) bonus.push(CheckBuilder._luckBtn(step.key, src.sid, 'pos', n, t.roll_id));
+      for (let n = 1; n <= cap; n++) bonus.push(ActionBuilder._luckBtn(step.key, src.sid, 'pos', n, t.roll_id));
       rows.push('<tr><td class="cb-luck-roll">' + esc(rl) + '</td>' + penCell +
                 '<td class="cb-luck-cell">' + bonus.join(' ') + '</td></tr>');
     });
@@ -121,7 +127,7 @@ export class CheckBuilder {
   // Resolve a Roll's display label from its group (the roll-name, else the
   // creature name) for the Luck table's ROLL column.
   static _rollLabel(root, rollId) {
-    const g = CheckBuilder._group(root, rollId);
+    const g = ActionBuilder._group(root, rollId);
     if (!g) return null;
     const rn = g.querySelector('.roll-name');
     if (rn) { const t = rn.textContent.replace(/[()]/g, '').trim(); if (t) return t; }
@@ -142,19 +148,19 @@ export class CheckBuilder {
       summary = (step.heading || 'Luck') + ': No luck';
     } else {
       choice = { roll_id: parts[3], sign: parts[1], count: parseInt(parts[2], 10) || 0 };
-      const rl = CheckBuilder._rollLabel(root, choice.roll_id) || choice.roll_id;
+      const rl = ActionBuilder._rollLabel(root, choice.roll_id) || choice.roll_id;
       label = (choice.sign === 'pos' ? '+' : '−') + choice.count + ' ' + rl;
       summary = (step.heading || 'Luck') + ': ' + label;
     }
     (cb.luck || (cb.luck = {}))[key] = choice;
     cb.choices[key] = { value: value, label: label, key: value };
-    CheckBuilder._recomputeLuck(root);
-    const body = CheckBuilder._body(root, key);
+    ActionBuilder._recomputeLuck(root);
+    const body = ActionBuilder._body(root, key);
     if (body) body.querySelectorAll('.cb-luck-opt').forEach((b) => b.classList.toggle('cr-mod-selected', b.dataset.value === value));
-    CheckBuilder._setState(root, key, 'complete');
-    const sum = CheckBuilder._sumRow(root, key);
+    ActionBuilder._setState(root, key, 'complete');
+    const sum = ActionBuilder._sumRow(root, key);
     if (sum) { const v = sum.querySelector('.step-summary-value'); if (v) v.textContent = summary; sum.hidden = false; }
-    CheckBuilder._activateFrom(root, CheckBuilder._index(root, key) + 1);
+    ActionBuilder._activateFrom(root, ActionBuilder._index(root, key) + 1);
   }
 
   // Compose all Luck picks into each Roll's reroll modifiers (data only — the
@@ -206,20 +212,20 @@ export class CheckBuilder {
   static _body(root, key) { return root.querySelector('.step-body[data-step="' + key + '"]'); }
   static _sumRow(root, key) { return root.querySelector('.step-summary[data-step="' + key + '"]'); }
   static _setState(root, key, state) {
-    const c = CheckBuilder._ctrl(root, key); if (c) c.dataset.state = state;
-    const b = CheckBuilder._body(root, key); if (b) b.dataset.state = state;
+    const c = ActionBuilder._ctrl(root, key); if (c) c.dataset.state = state;
+    const b = ActionBuilder._body(root, key); if (b) b.dataset.state = state;
   }
 
   static _pick(root, optEl) {
     const cb = root._cb;
     const key = optEl.dataset.step;
-    const step = cb.steps[CheckBuilder._index(root, key)];
+    const step = cb.steps[ActionBuilder._index(root, key)];
     if (!step) return;
-    if (step.dynamic === 'luck') return CheckBuilder._pickLuck(root, step, optEl);
-    const opt = CheckBuilder._optionsFor(root, step).find((o) => String(o.value) === optEl.dataset.value);
+    if (step.dynamic === 'luck') return ActionBuilder._pickLuck(root, step, optEl);
+    const opt = ActionBuilder._optionsFor(root, step).find((o) => String(o.value) === optEl.dataset.value);
     if (!opt) return;
     cb.choices[key] = { value: opt.value, label: opt.label, key: opt.key != null ? opt.key : opt.value };
-    CheckBuilder._applyPatch(root, opt.patch);
+    ActionBuilder._applyPatch(root, opt.patch);
     // A Spell option carries whether casting it rolls a check. A no-roll Spell
     // (a buff, or a reservoir-channel like Shield of Faith) skips the Luck steps
     // — its dice are charged/poured, not rolled.
@@ -229,14 +235,14 @@ export class CheckBuilder {
     if (opt.place) {
       document.dispatchEvent(new CustomEvent('cast:arm-area', { detail: opt.place }));
     }
-    CheckBuilder._setState(root, key, 'complete');
-    const sum = CheckBuilder._sumRow(root, key);
+    ActionBuilder._setState(root, key, 'complete');
+    const sum = ActionBuilder._sumRow(root, key);
     if (sum) {
       const v = sum.querySelector('.step-summary-value');
       if (v) v.textContent = opt.summary || stripTags(opt.label);
       sum.hidden = false;
     }
-    CheckBuilder._activateFrom(root, CheckBuilder._index(root, key) + 1);
+    ActionBuilder._activateFrom(root, ActionBuilder._index(root, key) + 1);
   }
 
   // Apply a forced (`auto`) option without a click: record the choice + its
@@ -246,9 +252,9 @@ export class CheckBuilder {
     const cb = root._cb;
     const key = step.key;
     cb.choices[key] = { value: opt.value, label: opt.label, key: opt.key != null ? opt.key : opt.value };
-    CheckBuilder._applyPatch(root, opt.patch);
-    CheckBuilder._setState(root, key, 'complete');
-    const sum = CheckBuilder._sumRow(root, key);
+    ActionBuilder._applyPatch(root, opt.patch);
+    ActionBuilder._setState(root, key, 'complete');
+    const sum = ActionBuilder._sumRow(root, key);
     if (sum) {
       const v = sum.querySelector('.step-summary-value');
       if (v) v.textContent = opt.summary || stripTags(opt.label);
@@ -266,35 +272,36 @@ export class CheckBuilder {
       if (step.dynamic === 'luck') {
         // A no-roll cast (buff / reservoir-channel) rolls nothing, so Luck has
         // nothing to apply — skip every Luck step.
-        if (cb.noRoll) { CheckBuilder._setState(root, step.key, 'complete'); i++; continue; }
+        if (cb.noRoll) { ActionBuilder._setState(root, step.key, 'complete'); i++; continue; }
         // One Luck step per source: render its table. If no in-play Roll can
         // take this source's Luck, there is nothing to ask — skip it.
-        const lb = CheckBuilder._luckBody(root, step);
-        if (!lb.any) { CheckBuilder._setState(root, step.key, 'complete'); i++; continue; }
-        const b = CheckBuilder._body(root, step.key); if (b) b.innerHTML = lb.html;
-        CheckBuilder._setState(root, step.key, 'active');
+        const lb = ActionBuilder._luckBody(root, step);
+        if (!lb.any) { ActionBuilder._setState(root, step.key, 'complete'); i++; continue; }
+        const b = ActionBuilder._body(root, step.key); if (b) b.innerHTML = lb.html;
+        ActionBuilder._setState(root, step.key, 'active');
         return;
       }
-      const opts = CheckBuilder._optionsFor(root, step);
+      const opts = ActionBuilder._optionsFor(root, step);
       const interactive = opts.filter((o) => !o.header_only && o.kind !== 'info');
-      if (interactive.length === 0) { CheckBuilder._setState(root, step.key, 'complete'); i++; continue; }
+      if (interactive.length === 0) { ActionBuilder._setState(root, step.key, 'complete'); i++; continue; }
       // A single `auto` option has nothing to ask (e.g. a Saving Throw is always
       // full Dice Cap) — apply it and move on without rendering a button.
       if (interactive.length === 1 && interactive[0].auto) {
-        CheckBuilder._applyAuto(root, step, interactive[0]); i++; continue;
+        ActionBuilder._applyAuto(root, step, interactive[0]); i++; continue;
       }
-      if (!step.options) { const b = CheckBuilder._body(root, step.key); if (b) b.innerHTML = CheckBuilder._optsHtml(step.key, opts); }
-      CheckBuilder._renderDynHeader(root, step);
-      CheckBuilder._setState(root, step.key, 'active');
+      if (!step.options) { const b = ActionBuilder._body(root, step.key); if (b) b.innerHTML = ActionBuilder._optsHtml(step.key, opts); }
+      ActionBuilder._renderDynHeader(root, step);
+      ActionBuilder._setState(root, step.key, 'active');
       return;
     }
-    CheckBuilder._setState(root, '__dice', 'active');
-    // A no-roll cast charges its dice without rolling — hide "Roll All" so the
-    // DM just confirms.
+    ActionBuilder._setState(root, '__dice', 'active');
+    // Compose the Check Resolution roll affordance only when the flow rolls. A
+    // no-roll action (a buff Cast, a reservoir pour) charges its dice without
+    // rolling, so "Roll All" is not mounted — the DM just confirms.
     const rollAll = root.querySelector('.btn-roll-all');
     if (rollAll) rollAll.hidden = !!cb.noRoll;
     // All steps resolved — show the final propagated TNs before the DM rolls.
-    CheckBuilder._previewTns(root);
+    ActionBuilder._previewTns(root);
   }
 
   // Choice-dependent header quick-picks (e.g. one button per Defensive Action),
@@ -303,7 +310,7 @@ export class CheckBuilder {
   // by prior choices like `options_map`. Rebuilt on each activation.
   static _renderDynHeader(root, step) {
     if (!step.header_options_by || !step.header_options_map) return;
-    const ctrl = CheckBuilder._ctrl(root, step.key);
+    const ctrl = ActionBuilder._ctrl(root, step.key);
     if (!ctrl) return;
     ctrl.querySelectorAll('.cb-dyn').forEach((b) => b.remove());
     const k = step.header_options_by.map((s) => (root._cb.choices[s] ? root._cb.choices[s].key : '')).join('|');
@@ -323,29 +330,29 @@ export class CheckBuilder {
   // summaries, clear choice-dependent bodies) and re-collapse the dice table.
   static _change(root, key) {
     const cb = root._cb;
-    const ti = CheckBuilder._index(root, key);
+    const ti = ActionBuilder._index(root, key);
     if (ti < 0) return;
     for (let i = ti; i < cb.steps.length; i++) {
       const sk = cb.steps[i].key;
       delete cb.choices[sk];
       if (cb.luck) delete cb.luck[sk];
-      const sum = CheckBuilder._sumRow(root, sk);
+      const sum = ActionBuilder._sumRow(root, sk);
       if (sum) { sum.hidden = true; const v = sum.querySelector('.step-summary-value'); if (v) v.textContent = ''; }
-      CheckBuilder._setState(root, sk, 'pending');
-      if (i > ti && !cb.steps[i].options) { const b = CheckBuilder._body(root, sk); if (b) b.innerHTML = ''; }
+      ActionBuilder._setState(root, sk, 'pending');
+      if (i > ti && !cb.steps[i].options) { const b = ActionBuilder._body(root, sk); if (b) b.innerHTML = ''; }
     }
-    CheckBuilder._recomputeLuck(root);
-    CheckBuilder._setState(root, '__dice', 'pending');
+    ActionBuilder._recomputeLuck(root);
+    ActionBuilder._setState(root, '__dice', 'pending');
     const results = root.querySelector('.rolls-results'); if (results) results.hidden = true;
     root.dataset.state = 'building';
-    CheckBuilder._activateFrom(root, ti);
+    ActionBuilder._activateFrom(root, ti);
   }
 
   static _optsHtml(stepKey, opts) {
     const groups = {};
     const order = [];
     opts.forEach((o) => { if (o.header_only) return; const g = o.group || ''; if (!(g in groups)) { groups[g] = []; order.push(g); } groups[g].push(o); });
-    return order.map((g) => '<div class="cb-line">' + groups[g].map((o) => CheckBuilder._btn(stepKey, o)).join(' ') + '</div>').join('');
+    return order.map((g) => '<div class="cb-line">' + groups[g].map((o) => ActionBuilder._btn(stepKey, o)).join(' ') + '</div>').join('');
   }
   // An `info` option is non-interactive descriptive text (e.g. the TN
   // Bonus/Penalty breakdown shown after a group's buttons), not a choice.
@@ -370,8 +377,8 @@ export class CheckBuilder {
     const names = hits.length
       ? hits.map((h) => h.label || ('#' + h.combatant_id)).join(', ')
       : 'no creatures';
-    CheckBuilder._setSummaryText(root, 'target', names);
-    CheckBuilder._skipStep(root, 'defense');
+    ActionBuilder._setSummaryText(root, 'target', names);
+    ActionBuilder._skipStep(root, 'defense');
 
     const params = new URLSearchParams();
     params.set('caster_id', casterId);
@@ -389,13 +396,13 @@ export class CheckBuilder {
           if (id === 'target' || id.indexOf('save-') === 0) g.remove();
         });
         table.insertAdjacentHTML('beforeend', html);
-        CheckBuilder._previewTns(root);
+        ActionBuilder._previewTns(root);
       })
       .catch(() => {});
   }
 
   static _setSummaryText(root, key, text) {
-    const sum = CheckBuilder._sumRow(root, key);
+    const sum = ActionBuilder._sumRow(root, key);
     if (!sum) return;
     const v = sum.querySelector('.step-summary-value');
     if (v) v.textContent = text;
@@ -404,40 +411,40 @@ export class CheckBuilder {
 
   // Complete a step without showing it (area casts have no Defense step).
   static _skipStep(root, key) {
-    const idx = CheckBuilder._index(root, key);
+    const idx = ActionBuilder._index(root, key);
     if (idx < 0) return;
     root._cb.choices[key] = { value: 'skip', label: 'skip', key: 'skip' };
-    CheckBuilder._setState(root, key, 'complete');
-    const sum = CheckBuilder._sumRow(root, key);
+    ActionBuilder._setState(root, key, 'complete');
+    const sum = ActionBuilder._sumRow(root, key);
     if (sum) sum.hidden = true;
-    CheckBuilder._activateFrom(root, idx + 1);
+    ActionBuilder._activateFrom(root, idx + 1);
   }
 
   // ----- patch application (mutates the embedded roll-groups by id) -----
 
   static _applyPatch(root, patch) {
     if (!patch) return;
-    (patch.set_dice || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.dice_count = p.count; }));
-    (patch.set_speed || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.speed = p.speed; }));
+    (patch.set_dice || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.dice_count = p.count; }));
+    (patch.set_speed || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.speed = p.speed; }));
     // Set a Roll's own Bonus/Penalty list. The TN is NOT set here — it is
     // computed by Check Resolution at roll time (after cross-side propagation).
-    (patch.set_bpl || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.bonus_penalty_list = p.bonus_penalty_list || []; }));
-    (patch.set_reroll || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.reroll = p.clear ? null : { sign: p.sign, count: p.count, max: !!p.max }; }));
-    (patch.set_nudge || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.nudge = p.clear ? null : { sign: p.sign, count: p.count, max: !!p.max }; }));
-    (patch.set_name || []).forEach((p) => CheckBuilder._setName(root, p));
-    (patch.set_excluded || []).forEach((p) => CheckBuilder._setExcluded(root, p.id, p.excluded));
+    (patch.set_bpl || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.bonus_penalty_list = p.bonus_penalty_list || []; }));
+    (patch.set_reroll || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.reroll = p.clear ? null : { sign: p.sign, count: p.count, max: !!p.max }; }));
+    (patch.set_nudge || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.nudge = p.clear ? null : { sign: p.sign, count: p.count, max: !!p.max }; }));
+    (patch.set_name || []).forEach((p) => ActionBuilder._setName(root, p));
+    (patch.set_excluded || []).forEach((p) => ActionBuilder._setExcluded(root, p.id, p.excluded));
     // The Roll's Creature Tier, used by Check Resolution's Tier Mismatch
     // Ascendancy. The defender's Tier is set when a Target is chosen.
-    (patch.set_tier || []).forEach((p) => CheckBuilder._mutate(root, p.id, (c) => { c.tier = p.tier; }));
+    (patch.set_tier || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.tier = p.tier; }));
     // Re-preview every Roll's TN through Check Resolution so each row reflects
     // the propagated math after any change.
-    CheckBuilder._previewTns(root);
+    ActionBuilder._previewTns(root);
   }
 
   static _group(root, id) { return root.querySelector('.roll-group[data-roll-id="' + id + '"]'); }
 
   static _mutate(root, id, fn) {
-    const g = CheckBuilder._group(root, id);
+    const g = ActionBuilder._group(root, id);
     if (!g) return;
     let cfg; try { cfg = JSON.parse(g.dataset.config); } catch (e) { return; }
     fn(cfg);
@@ -464,7 +471,7 @@ export class CheckBuilder {
     const preview = CheckResolution.previewParameters({ supporting, opposing, spread });
     const applyOne = (roll, res) => {
       if (!roll || !res) return;
-      CheckBuilder._renderTn(roll._g, roll.baseTn, res);
+      ActionBuilder._renderTn(roll._g, roll.baseTn, res);
       let c; try { c = JSON.parse(roll._g.dataset.config); } catch (e) { return; }
       c.tn = res.tn; c.starting_value = res.startingValue;
       roll._g.dataset.config = JSON.stringify(c);
@@ -497,14 +504,14 @@ export class CheckBuilder {
   }
 
   static _setName(root, p) {
-    const g = CheckBuilder._group(root, p.id);
+    const g = ActionBuilder._group(root, p.id);
     if (!g) return;
     if (p.creature_name != null) { const el = g.querySelector('.creature-name'); if (el) el.textContent = p.creature_name; }
     if (p.roll_name != null) { const el = g.querySelector('.roll-name'); if (el) el.innerHTML = '<em>(' + p.roll_name + ')</em>'; }
   }
 
   static _setExcluded(root, id, excluded) {
-    const g = CheckBuilder._group(root, id);
+    const g = ActionBuilder._group(root, id);
     if (!g) return;
     g.classList.toggle('roll-group-excluded', !!excluded);
     g.hidden = !!excluded;
@@ -538,7 +545,7 @@ export class CheckBuilder {
     });
     const netEl = root.querySelector('.cb-net');
     if (netEl) netEl.textContent = 'Net Degree of Success ' + net + '.';
-    root.dispatchEvent(new CustomEvent('check:confirmed', { bubbles: true, detail: { choices, rolls } }));
+    root.dispatchEvent(new CustomEvent('action:confirmed', { bubbles: true, detail: { choices, rolls } }));
   }
 }
 

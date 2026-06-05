@@ -1,11 +1,11 @@
-import { CheckBuilder } from './checkBuilder.js';
+import { ActionBuilder } from './actionBuilder.js';
 
 // Turn Action panel — Cast (turn_action_stub.md → Cast).
 //
-// Thin host for the shared Check Resolution Builder, exactly like the Attack
+// Thin host for the shared Action Builder, exactly like the Attack
 // pane (turnAttack.js). The server precomputes the builder blob
 // (GET /encounter/cast_builder) with Target / Spell+dice / Defense steps; this
-// host mounts the builder and, on `check:confirmed`, POSTs the choices +
+// host mounts the builder and, on `action:confirmed`, POSTs the choices +
 // rolled Successes to /encounter/resolve_cast. Confirm is two-stage:
 //   1st Confirm -> non-mutating PREVIEW (commit:false); the outcome renders
 //       beneath the still-present builder with a Commit button.
@@ -17,7 +17,7 @@ export class TurnCast {
     container.dataset.tcLoaded = '1';
     container._casterId = parseInt(container.getAttribute('data-caster-id'), 10);
 
-    container.addEventListener('check:confirmed', (e) => TurnCast._preview(container, e.detail));
+    container.addEventListener('action:confirmed', (e) => TurnCast._preview(container, e.detail));
     container.addEventListener('click', (e) => {
       if (e.target.closest && e.target.closest('.ta-commit')) { e.preventDefault(); TurnCast._commit(container); }
     });
@@ -30,8 +30,8 @@ export class TurnCast {
       .then((r) => r.text())
       .then((html) => {
         container.innerHTML = html + '<div class="ta-result tc-result" hidden></div>';
-        const builder = container.querySelector('.check-builder');
-        if (builder) { CheckBuilder.ensureLoaded(builder); container._builder = builder; }
+        const builder = container.querySelector('.action-builder');
+        if (builder) { ActionBuilder.ensureLoaded(builder); container._builder = builder; }
         else container.innerHTML = '<p class="ta-warn">This Combatant knows no castable spells.</p>';
       })
       .catch(() => { container.innerHTML = '<p class="ta-warn">Could not load the cast.</p>'; });
@@ -42,7 +42,7 @@ export class TurnCast {
   // Save (Opposed) Roll. No separate "placed" box.
   static _areaPlaced(container, detail) {
     container._placement = detail;
-    if (container._builder) CheckBuilder.areaPlaced(container._builder, container._casterId, detail);
+    if (container._builder) ActionBuilder.areaPlaced(container._builder, container._casterId, detail);
   }
 
   // Translate the builder's confirmed choices + rolls into a resolve_cast payload.
@@ -64,7 +64,7 @@ export class TurnCast {
         commit: commit,
         spell_name: spellName,
         spell: { name: spellName },
-        luck: CheckBuilder.luckSpends(choices),
+        luck: ActionBuilder.luckSpends(choices),
         caster: { id: container._casterId, dice: caster.dice_count, speed: caster.speed || 0, successes: caster.successes },
         placement: { x: p.x, y: p.y },
         targets: targets
@@ -92,7 +92,7 @@ export class TurnCast {
       spell_name: spellName,
       spell: { name: spellName },
       // Luck spent on this cast (one entry per source; source_id null = DM).
-      luck: CheckBuilder.luckSpends(choices),
+      luck: ActionBuilder.luckSpends(choices),
       caster: { id: container._casterId, dice: caster.dice_count, speed: caster.speed || 0, successes: caster.successes },
       targets: choices.target != null ? [target] : []
     };

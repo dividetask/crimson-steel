@@ -1,8 +1,8 @@
-import { CheckBuilder } from './checkBuilder.js';
+import { ActionBuilder } from './actionBuilder.js';
 
 // Turn Action panel — Attack (turn_action_stub.md → Attack).
 //
-// Thin host for the Check Resolution Builder. Confirm is two-stage so the DM
+// Thin host for the Action Builder. Confirm is two-stage so the DM
 // can review before anything is saved:
 //   1st Confirm  -> non-mutating PREVIEW (commit:false). The result renders
 //       beneath the still-present builder with editable Damage / Bleed /
@@ -16,7 +16,7 @@ export class TurnAttack {
     const attackerId = container.getAttribute('data-attacker-id');
     container._attackerId = attackerId;
 
-    container.addEventListener('check:confirmed', (e) => TurnAttack._preview(container, e.detail));
+    container.addEventListener('action:confirmed', (e) => TurnAttack._preview(container, e.detail));
     container.addEventListener('click', (e) => {
       if (e.target.closest && e.target.closest('.ta-commit')) { e.preventDefault(); TurnAttack._commit(container); }
     });
@@ -30,8 +30,8 @@ export class TurnAttack {
       .then((r) => r.text())
       .then((html) => {
         container.innerHTML = html + '<div class="ta-result" hidden></div>';
-        const builder = container.querySelector('.check-builder');
-        if (builder) CheckBuilder.ensureLoaded(builder);
+        const builder = container.querySelector('.action-builder');
+        if (builder) ActionBuilder.ensureLoaded(builder);
         else container.innerHTML = '<p class="ta-warn">Could not load the attack.</p>';
       })
       .catch(() => { container.innerHTML = '<p class="ta-warn">Could not load the attack.</p>'; });
@@ -55,7 +55,7 @@ export class TurnAttack {
       // Luck spent on this attack (one entry per source; source_id null = DM).
       // The rerolls are already on the chosen Rolls; the server only debits
       // each source's Reservoir / DM pool on commit.
-      luck: CheckBuilder.luckSpends(choices),
+      luck: ActionBuilder.luckSpends(choices),
       attacker: { id: parseInt(container._attackerId, 10), dice: atk.dice_count, speed: atk.speed, successes: atk.successes }
     };
 

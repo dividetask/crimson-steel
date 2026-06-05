@@ -501,7 +501,7 @@ class AtlasCanvas {
   target(tokenEl) {
     const combatantId = tokenEl.dataset.combatantId;
     if (combatantId == null || combatantId === '') return;
-    const builder = document.querySelector('.turn-action .ta-attack .check-builder');
+    const builder = document.querySelector('.turn-action .ta-attack .action-builder');
     if (!builder) return;
     const summary = builder.querySelector('.step-summary[data-step="target"]');
     if (summary && !summary.hidden) {

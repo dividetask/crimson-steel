@@ -405,9 +405,9 @@ helpers do
     { dice_cap: 0, competency_modifier: nil }
   end
 
-  # ---- Check Resolution Builder blob for an attack -------------------
+  # ---- Action Builder blob for an attack -------------------
   #
-  # Precompute the entire decoupled builder blob (check_resolution_builder_stub.md):
+  # Precompute the entire decoupled builder blob (action_builder_stub.md):
   # target / weapon+dice / defense steps whose options carry patches that
   # mutate the seed Rolls, so the Builder runs without calling back. Per the
   # design, attacker TN folds in Competency + Unaware (per target) + Flatfooted
@@ -736,7 +736,7 @@ helpers do
                           'bleed' => w[:bleed], 'base_damage' => evaluate_weapon_damage(w[:damage_formula], acc) }
   end
 
-  # ---- Check Resolution Builder blob for a Cast (turn_action_stub.md → Cast)
+  # ---- Action Builder blob for a Cast (turn_action_stub.md → Cast)
   #
   # Same decoupled builder pattern as the Attack flow (attack_builder_blob): a
   # Target step, a "Spell & dice" action step (one group per known Spell, dice
@@ -1241,7 +1241,7 @@ helpers do
   # Performance check the same way Attack rolls: the DM picks how many dice
   # to spend — Main Action Minimum up to Combat Pool Remaining (Dice Cap does
   # not apply to channeling) — then rolls them; each Success fills the
-  # Reservoir. This reuses the Check Resolution Builder; the host posts the
+  # Reservoir. This reuses the Action Builder; the host posts the
   # confirmed Successes + dice to /encounter/use_special.
 
   # The Creature's trained Performance skill key (perform_<type>), for the
@@ -1491,19 +1491,19 @@ end
 
 # ---- Attack pipeline endpoints (turn_action_stub.md) -----------------
 #
-# attack_builder precomputes the whole Check Resolution Builder blob for an
+# attack_builder precomputes the whole Action Builder blob for an
 # attack (Target / Weapon+dice / Defense steps, each option carrying a patch);
 # the Builder resolves it client-side and posts the picked choices + Successes
 # to resolve_attack, which recomputes the weapon damage from the chosen weapon,
 # spends Combat Pool, and applies damage.
 
-# The Check Resolution Builder for the Acting Combatant's attack, rendered as
+# The Action Builder for the Acting Combatant's attack, rendered as
 # an HTML fragment the turn-action panel injects.
 get '/encounter/attack_builder' do
   require_dm!
   attacker = encounter_state.combatant(params[:attacker_id].to_i)
   return encounter_error(404, 'unknown attacker') unless attacker
-  erb :_check_builder, layout: false, locals: { builder: attack_builder_blob(attacker) }
+  erb :_action_builder, layout: false, locals: { builder: attack_builder_blob(attacker) }
 end
 
 post '/encounter/resolve_attack' do
@@ -1531,7 +1531,7 @@ get '/encounter/cast_builder' do
   require_dm!
   caster = encounter_state.combatant(params[:caster_id].to_i)
   return encounter_error(404, 'unknown caster') unless caster
-  erb :_check_builder, layout: false, locals: { builder: cast_builder_blob(caster) }
+  erb :_action_builder, layout: false, locals: { builder: cast_builder_blob(caster) }
 end
 
 # One opposing Save Roll per creature caught in an area Spell's footprint —
@@ -1581,14 +1581,14 @@ post '/encounter/resolve_cast' do
 end
 
 # The Performance-check builder for a channeled Special Ability (Bardic
-# Performance), rendered as the Check Resolution Builder fragment the
+# Performance), rendered as the Action Builder fragment the
 # turn-action Special pane injects — the same flow as Attack.
 get '/encounter/special_builder' do
   require_dm!
   combatant = encounter_state.combatant(params[:combatant_id].to_i)
   return encounter_error(404, 'unknown combatant') unless combatant
   ability = params[:ability].to_s
-  erb :_check_builder, layout: false, locals: { builder: special_builder_blob(combatant, ability) }
+  erb :_action_builder, layout: false, locals: { builder: special_builder_blob(combatant, ability) }
 end
 
 # Use a Special action (turn_action_stub.md → Special): a non-Spell,
