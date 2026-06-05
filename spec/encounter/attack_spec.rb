@@ -336,10 +336,10 @@ RSpec.describe 'Encounter::State#resolve_attack_payload (weapon-aware)' do
                                   dice: 4, kind: 'damage', damage_type: 'fire', amount: 1, severity: nil }] },
       attacker: { id: atk[:id], dice: 4, speed: 2, successes: 3 },
       defense:  { choice: 'none' },
-      rider_results: [{ id: 0, successes: 2, ones: 1 }]
+      rider_results: [{ id: 0, damage: 2 }] # client-rolled bonus fire damage
     )
     ro = out[:rider_outcomes].first
-    expect(ro[:damage]).to eq(2)                  # 2 successes × amount 1
+    expect(ro[:damage]).to eq(2)
     expect(ro[:severity_map]).to eq(moderate: 3) # fire is moderate + its damage_per_hit 1
     # Main slashing (3, runtime-bucketed at threshold 5 → minor) is kept
     # separate from the rider's fire (moderate).
@@ -364,16 +364,17 @@ RSpec.describe 'Encounter::State#resolve_attack_payload (weapon-aware)' do
                                   self_damage: { severity: 'minor', amount: 1, minimum: 1 } }] },
       attacker: { id: atk[:id], dice: 4, speed: 2, successes: 2 },
       defense:  { choice: 'none' },
-      rider_results: [{ id: 0, successes: 3, ones: 2 }]
+      # e.g. 3 crits + 1 one: bonus damage 6 (crits ×2, the 1 ignored), self 3.
+      rider_results: [{ id: 0, damage: 6, self_damage: 3 }]
     )
     ro = out[:rider_outcomes].first
-    expect(ro[:severity_map]).to eq(major: 3)               # 3 successes → 3 Major
-    expect(target_cond.state.hp_damage[:major]).to eq(3)
-    expect(ro[:self_damage]).to eq(severity: 'minor', amount: 3) # minimum 1 + 2 ones
+    expect(ro[:severity_map]).to eq(major: 6)               # all bonus damage is Major
+    expect(target_cond.state.hp_damage[:major]).to eq(6)
+    expect(ro[:self_damage]).to eq(severity: 'minor', amount: 3)
     expect(attacker_cond.state.hp_damage[:minor]).to eq(3)
   end
 
-  it 'self-damages the Vicious wielder the minimum even with zero 1s' do
+  it 'applies the DM-edited self-damage to the wielder (minimum with no 1s)' do
     target_cond   = Conditions::Instance.new
     attacker_cond = Conditions::Instance.new
     conds = { '1' => attacker_cond, '2' => target_cond }
@@ -389,9 +390,9 @@ RSpec.describe 'Encounter::State#resolve_attack_payload (weapon-aware)' do
                                   self_damage: { severity: 'minor', amount: 1, minimum: 1 } }] },
       attacker: { id: atk[:id], dice: 4, speed: 2, successes: 2 },
       defense:  { choice: 'none' },
-      rider_results: [{ id: 0, successes: 0, ones: 0 }]
+      rider_results: [{ id: 0, damage: 0, self_damage: 1 }] # minimum self-damage, no 1s
     )
-    expect(attacker_cond.state.hp_damage[:minor]).to eq(1) # minimum, no 1s rolled
+    expect(attacker_cond.state.hp_damage[:minor]).to eq(1)
   end
 
   it 'preview returns rider metadata but applies no rider damage' do

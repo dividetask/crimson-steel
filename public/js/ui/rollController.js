@@ -29,6 +29,11 @@ export class RollController {
     const dieSize = config.dieSize;
     const tn = cfg.tn;
     const startingValue = parseInt(cfg.starting_value, 10) || 0;
+    // A Roll may override the scoring modifiers (e.g. magical Damage Riders
+    // score bonus damage without letting 1s count against it: failure_modifier
+    // 0). Absent, the Dice Resolution defaults apply.
+    const failureModifier = cfg.failure_modifier != null ? cfg.failure_modifier : config.defaultFailureModifier;
+    const criticalModifier = cfg.critical_modifier != null ? cfg.critical_modifier : config.defaultCriticalModifier;
     const rng = new RandomRng();
 
     const initial = rng.rollDice(cfg.dice_count, dieSize);
@@ -65,8 +70,8 @@ export class RollController {
       };
       const changes = Nudge.applyWithTn(current, valueAdjustment, {
         tn,
-        failureModifier: config.defaultFailureModifier,
-        criticalModifier: config.defaultCriticalModifier,
+        failureModifier,
+        criticalModifier,
       }, config);
       current = merge(current, changes);
       RollController._render(group, '.row-nudge', DiceRenderer.renderDice(changes, tn, dieSize, startingValue, 'spacer'));
@@ -75,8 +80,8 @@ export class RollController {
     const { dois, criticalCount } = Scoring.score(current, {
       tn,
       startingValue,
-      failureModifier: config.defaultFailureModifier,
-      criticalModifier: config.defaultCriticalModifier,
+      failureModifier,
+      criticalModifier,
     }, config);
 
     const inputs = group.querySelectorAll('.result-input');

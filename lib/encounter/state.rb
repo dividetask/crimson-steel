@@ -868,11 +868,13 @@ module Encounter
 
     # ---------- Magical weapon Damage Riders ----------
 
-    # Apply (or, in preview, just size) the weapon's Damage Riders for a
-    # landed hit. `riders` are the resolved rider specs from Get Weapon
-    # Details; `results` is the client's per-rider roll — a list of
-    # { id:, successes:, ones: }. Returns one outcome per rider for the
-    # result panel; only mutates Conditions when `commit` is true.
+    # Apply the weapon's Damage Riders for a landed hit. `riders` are the
+    # resolved rider specs from Get Weapon Details; `results` is the client's
+    # per-rider roll — a list of { id:, damage:, self_damage: } (the rolled,
+    # DM-editable amounts: bonus damage to the target and self-damage to the
+    # wielder). Each rider lands as its own Severity Calculation, separate from
+    # the weapon's base damage. Returns one outcome per rider for the result
+    # panel; only mutates Conditions when `commit` is true.
     def apply_attack_riders(target_id, attacker_id, riders, results, commit)
       return [] if riders.nil? || riders.empty?
       by_id = Array(results).each_with_object({}) do |r, h|
@@ -880,28 +882,28 @@ module Encounter
         h[rr[:id].to_i] = rr
       end
       riders.each_with_index.map do |rider, i|
-        res       = by_id[i] || {}
-        successes = res[:successes].to_i
-        ones      = res[:ones].to_i
-        outcome   = { id: i, label: rider[:label], successes: successes }
+        # The client rolled each rider (4 dice at the attack's TN) and the DM may
+        # have edited the result in the damage screen; the payload carries the
+        # final `damage` (to the target) and `self_damage` (to the wielder).
+        res      = by_id[i] || {}
+        amt      = res[:damage].to_i
+        self_amt = res[:self_damage].to_i
+        outcome  = { id: i, label: rider[:label] }
 
         if rider[:kind].to_s == 'named_effect'
-          amt = successes * rider[:amount].to_i
           outcome[:effect] = rider[:effect]
           outcome[:amount] = amt
           apply_rider_named_effect(target_id, rider[:effect], amt) if commit && amt.positive?
         else
-          amt = successes * rider[:amount].to_i
           outcome[:damage]       = amt
           outcome[:damage_type]  = rider[:damage_type]
           outcome[:severity_map] = rider_target_severity(target_id, amt, rider, commit)
         end
 
         if rider[:self_damage]
-          sd       = rider[:self_damage]
-          self_amt = sd[:minimum].to_i + ones * sd[:amount].to_i
-          outcome[:self_damage] = { severity: sd[:severity].to_s, amount: self_amt }
-          apply_hp_severity(attacker_id, sd[:severity], self_amt) if commit && self_amt.positive?
+          sev = rider[:self_damage][:severity]
+          outcome[:self_damage] = { severity: sev.to_s, amount: self_amt }
+          apply_hp_severity(attacker_id, sev, self_amt) if commit && self_amt.positive?
         end
         outcome
       end

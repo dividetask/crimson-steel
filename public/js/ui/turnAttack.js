@@ -91,11 +91,15 @@ export class TurnAttack {
     TurnAttack._post(container, payload, (res) => TurnAttack._renderResult(container, res, true));
   }
 
-  // The rolled rider results for the commit payload: one { id, successes,
-  // ones } per rider the DM rolled in the preview.
+  // The rider amounts for the commit payload, read from the (DM-editable)
+  // damage screen boxes: one { id, damage, self_damage } per rider.
   static _gatherRiders(container) {
-    const rolls = container._riderRolls || {};
-    return Object.keys(rolls).map((id) => ({ id: num(id), successes: rolls[id].successes, ones: rolls[id].ones }));
+    const screen = container.querySelector('.ta-damage-screen');
+    return (container._riders || []).map((rider) => {
+      const dmgEl = screen && screen.querySelector(`.ta-rider-dmg-input[data-id="${rider.id}"]`);
+      const selfEl = screen && screen.querySelector(`.ta-rider-self-input[data-id="${rider.id}"]`);
+      return { id: rider.id, damage: dmgEl ? num(dmgEl.value) : 0, self_damage: selfEl ? num(selfEl.value) : 0 };
+    });
   }
 
   // Read the editable result fields into an override the server applies.
@@ -160,16 +164,35 @@ export class TurnAttack {
     }
   }
 
-  // Build the editable Damage / Bleed / Combat-Pool screen + Commit button.
+  // Build the editable damage screen + Commit button. The weapon's base
+  // Damage, each magical rider's bonus Damage (its own box), any Vicious-style
+  // self-inflicted Damage (its own box), Bleed, and per-participant Combat
+  // Pool are all editable; the rider boxes are prefilled from the rider roll.
   static _renderDamageScreen(container, res) {
     const screen = container.querySelector('.ta-damage-screen');
     if (!screen) return;
     const nameOf = TurnAttack._namer(container);
     const spends = (res.pool_spends || []).filter((s) => s.amount > 0);
+    const rolls = container._riderRolls || {};
     const rows = [];
     rows.push(`<div class="ta-field"><label>Damage` +
       ` <input type="number" class="ta-dmg-input" value="${res.damage}" min="0"></label>` +
       ` <span class="ta-dim">${res.damage_type || ''}</span> <span class="ta-split"></span></div>`);
+    // One bonus-damage box per rider (separate from the base damage and from
+    // each other), plus a self-damage box for a rider that bites the wielder.
+    (container._riders || []).forEach((rider) => {
+      const roll = rolls[rider.id] || { damage: 0, self_damage: 0 };
+      const note = rider.kind === 'named_effect' ? cap(String(rider.effect || '')) : (rider.damage_type || '');
+      const sev = rider.severity ? rider.severity + ' ' : '';
+      rows.push(`<div class="ta-field"><label>${esc(rider.label)} damage` +
+        ` <input type="number" class="ta-rider-dmg-input" data-id="${rider.id}" value="${roll.damage}" min="0"></label>` +
+        ` <span class="ta-dim">${sev}${esc(note)}</span></div>`);
+      if (rider.self_damage) {
+        rows.push(`<div class="ta-field"><label>Self damage (wielder)` +
+          ` <input type="number" class="ta-rider-self-input" data-id="${rider.id}" value="${roll.self_damage}" min="0"></label>` +
+          ` <span class="ta-dim">${esc(rider.self_damage.severity)}</span></div>`);
+      }
+    });
     rows.push(`<div class="ta-field"><label>Bleed` +
       ` <input type="number" class="ta-bleed-input" value="${res.bleed}" min="0"></label></div>`);
     spends.forEach((s) => {
@@ -185,7 +208,11 @@ export class TurnAttack {
   // the dice engine + app.js delegation already drive (Roll All / Confirm /
   // Change). One Roll per rider: `rider.dice` dice at the attack's TN.
   static _riderStubHtml(riders, tn, dieSize) {
-    const cfgFor = (r) => esc(JSON.stringify({ dice_count: r.dice, tn: tn, die_size: dieSize, starting_value: 0 }));
+    // failure_modifier 0: rider (bonus) damage counts Successes and Crits but
+    // never lets a rolled 1 subtract from the total. Crits still count double
+    // (the Dice Resolution default critical_modifier), so the Result column is
+    // the bonus damage the rider deals.
+    const cfgFor = (r) => esc(JSON.stringify({ dice_count: r.dice, tn: tn, die_size: dieSize, starting_value: 0, failure_modifier: 0 }));
     const bodies = riders.map((r, i) => (
       `<tbody class="roll-group" data-roll-idx="${i}" data-rider-id="${r.id}" data-roll-id="rider-${r.id}" data-config='${cfgFor(r)}'>` +
         '<tr class="roll-row row-initial">' +
@@ -241,9 +268,9 @@ export class TurnAttack {
     setTimeout(() => {
       const stub = container.querySelector('.ta-rider-stub');
       (container._riders || []).forEach((rider) => {
-        const r = container._riderRolls[rider.id] || { successes: 0, ones: 0 };
+        const r = container._riderRolls[rider.id] || { damage: 0, self_damage: 0 };
         const cell = stub && stub.querySelector(`.rolls-result-row[data-roll-idx="${rider.id}"] .rolls-result-value`);
-        if (cell) cell.textContent = TurnAttack._riderOutcomeText(rider, r.successes, r.ones);
+        if (cell) cell.textContent = TurnAttack._riderOutcomeText(rider, r);
       });
       TurnAttack._renderDamageScreen(container, container._lastRes || {});
       const screen = container.querySelector('.ta-damage-screen');
@@ -259,39 +286,41 @@ export class TurnAttack {
     if (screen) { screen.hidden = true; screen.innerHTML = ''; }
   }
 
-  // Count each rider's rolled dice: a Success is a die ≥ TN (a natural max
-  // counts), a "1" is a Failure (feeds Vicious self-damage). Read from the
-  // stub's rendered dice so the tally matches what the DM sees.
+  // Read each rider roll's outcome. The bonus damage is the roll's Result
+  // (Degrees of Success with failure_modifier 0 — Crits count double, 1s never
+  // subtract) times the rider's per-Success amount. A rolled 1 only feeds
+  // Vicious-style self-damage (minimum + amount per 1), never the bonus damage.
   static _computeRiderResults(container) {
     const stub = container.querySelector('.ta-rider-stub');
     const rolls = {};
-    if (stub) {
-      stub.querySelectorAll('tbody.roll-group').forEach((g) => {
-        const id = num(g.dataset.riderId);
-        let successes = 0; let ones = 0;
-        g.querySelectorAll('.dice-cell .die').forEach((d) => {
-          if (d.classList.contains('success') || d.classList.contains('crit')) successes += 1;
-          else if (d.classList.contains('fail')) ones += 1;
-        });
-        rolls[id] = { successes: successes, ones: ones };
-      });
-    }
+    (container._riders || []).forEach((rider) => {
+      const g = stub && stub.querySelector(`tbody.roll-group[data-rider-id="${rider.id}"]`);
+      let result = 0; let ones = 0;
+      if (g) {
+        const input = g.querySelector('.result-input');
+        result = input ? num(input.value) : 0;
+        ones = g.querySelectorAll('.dice-cell .die.fail').length;
+      }
+      const damage = Math.max(0, result) * (rider.amount || 1);
+      const self = rider.self_damage
+        ? (rider.self_damage.minimum || 0) + ones * (rider.self_damage.amount || 0)
+        : 0;
+      rolls[rider.id] = { result: result, ones: ones, damage: damage, self_damage: self };
+    });
     container._riderRolls = rolls;
   }
 
   // Human-readable summary of a rolled rider, mirroring the server's math.
-  static _riderOutcomeText(rider, successes, ones) {
+  static _riderOutcomeText(rider, roll) {
     const parts = [];
     if (rider.kind === 'named_effect') {
-      parts.push(`${successes * (rider.amount || 1)} ${rider.effect} (${successes} success${successes === 1 ? '' : 'es'})`);
+      parts.push(`${roll.damage} ${rider.effect}`);
     } else {
-      const dmg = successes * (rider.amount || 1);
       const sev = rider.severity ? ' ' + rider.severity : '';
-      parts.push(`${dmg}${sev} ${rider.damage_type} (${successes} success${successes === 1 ? '' : 'es'})`);
+      parts.push(`${roll.damage}${sev} ${rider.damage_type}`);
     }
     if (rider.self_damage) {
-      const self = (rider.self_damage.minimum || 0) + ones * (rider.self_damage.amount || 0);
-      parts.push(`wielder takes ${self} ${rider.self_damage.severity}`);
+      parts.push(`wielder takes ${roll.self_damage} ${rider.self_damage.severity}`);
     }
     return parts.join('; ');
   }
