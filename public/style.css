@@ -3754,3 +3754,72 @@ body {
 .loot-flag-btn:has(input:checked) { border-color: #fca5a5; background: #fee2e2; color: #991b1b; }
 .loot-flag-btn:has(input:checked)::after { content: "Discard"; }
 .loot-flag-btn:has(input:focus-visible) { outline: 2px solid #2563eb; }
+
+/* === Devices — Character Assignment stub === */
+
+.assignment-stub { margin-top: 8px; }
+
+.assignment-heading {
+  font-size: 14px;
+  margin: 0 0 6px 0;
+}
+
+.assignment-empty {
+  color: #666;
+  font-style: italic;
+}
+
+.assignment-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: #fff;
+  border: 1px solid #d8d8d8;
+}
+
+.assignment-table th,
+.assignment-table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid #ececec;
+  vertical-align: middle;
+}
+
+.assignment-table thead th {
+  background: #f2f2f2;
+  border-bottom: 1px solid #d8d8d8;
+}
+
+.assignment-table tbody tr:last-child td { border-bottom: none; }
+
+.assignment-table tr.assignment-self { background: #eef4fb; }
+
+.assignment-id code {
+  font-family: monospace;
+  color: #1a3d6d;
+}
+
+.assignment-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: #2c5fa0;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.assignment-seen { color: #555; white-space: nowrap; }
+
+.assignment-assigned em { color: #999; }
+
+.assignment-form {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+}

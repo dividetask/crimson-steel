@@ -45,7 +45,7 @@ Each page is listed with a short description and its access rule. Detailed page 
 | Notes             | `/notes`           | Shared and per-character game notes.                                        | DM + Player |
 | Social            | `/social`          | Social-encounter information.                                               | DM + Player |
 | Compendium        | `/compendium`      | Reference material drawn from the rules documents — currently the Glossary. | DM + Player |
-| Status            | `/status`          | DM operations surface — currently hosts the Check Resolution Stub and the Dice Resolution Roll Stub for inspection, fed with dummy data. | DM only |
+| Status            | `/status`          | DM operations surface — the default landing pane hosts the live Device Assignment tool for tracking devices and assigning player Characters to them (see [device_assignment.md](device_assignment.md)); the sub-views host the inspection stubs (Dice/Check Resolution, Conditions, Creatures, Encounter, Timekeeping, Chronicle, Equipment) fed with dummy data. | DM only |
 
 A player who attempts to navigate to a DM-only URL is treated as if the page did not exist for them; the application is free to redirect them to the default landing page or render a not-available response. A DM viewing as a player is, for access purposes, a player.
 
@@ -64,9 +64,9 @@ The Compendium is visible to both DMs and players.
 
 ## Status page layout
 
-The Status page has its own internal left-hand navigation that switches the right-hand content pane. The left nav sits flush against the left edge of the page content (below the global top menu bar) and lists six entries, top to bottom:
+The Status page has its own internal left-hand navigation that switches the right-hand content pane. The left nav sits flush against the left edge of the page content (below the global top menu bar) and lists the following entries, top to bottom (the live nav also carries Creatures and Encounter sub-views between Conditions and Timekeeping):
 
-1. **Status** — the default landing pane for `/status`. Shows a brief description and acts as a hub.
+1. **Status** — the default landing pane for `/status`. Acts as the hub and hosts the live Device Assignment Stub (see [device_assignment.md](device_assignment.md)). Unlike the inspection sub-views, which run on Status sample data, this stub runs on live state: it lists every device the server has tracked (from the Device Registry, persisted in `data/devices.json`) and lets the DM assign a player Character to each device. Assigning a Character changes which sheet that device opens on by default on the Character Sheets page. The viewing device is badged "this device".
 2. **Dice Resolution** — the right pane renders the Roll Resolution Stub (see `docs/common/ui/dice_resolution_roll_stub.md`) for each example Roll, with each Roll inside its own demo Rolls wrapper.
 3. **Check Resolution** — the right pane renders the Check Resolution Stub (see `docs/common/ui/check_resolution_stub.md`) with one shared Rolls wrapper containing multiple example Rolls (Supporting and Opposing sides separated by a divider), followed by three example Conditions Save Resolution Stubs (see `docs/common/ui/conditions_save_resolution_stub.md`) — each wrapping the Action Builder Stub (see `docs/common/ui/action_builder_stub.md`) over a sample Affliction save (Bleed vs Tier 3 with Bardic Inspiration, Poison vs Tier 1 with Bardic Inspiration, Bleed vs Tier 2 with no Reroll).
 4. **Conditions** — the right pane renders the Conditions Downtime PC Card Stub (see `docs/common/ui/conditions_downtime_pc_card_stub.md`) for each example player Creature. The stub runs on example data; the panel emits no real state changes.

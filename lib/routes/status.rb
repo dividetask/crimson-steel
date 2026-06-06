@@ -6,7 +6,14 @@ get '/status' do
   @check = Status::SampleCheck.check
   @rolls = Status::SampleRolls.rolls
 
-  if @view == 'conditions'
+  if @view == 'status'
+    # The default landing pane hosts the live Device — Character
+    # Assignment tool. Unlike the inspection sub-views (which run on
+    # Status sample data), it reads the real DeviceRegistry and the
+    # live player Characters that can be assigned to a device.
+    @devices    = DeviceRegistry.instance.list
+    @characters = Creatures.player_controlled
+  elsif @view == 'conditions'
     @catalog = Conditions::Catalog.load
     @creatures = Status::SampleConditions.creatures
     @save_examples = Status::SampleConditions.save_resolution_examples(@catalog)
