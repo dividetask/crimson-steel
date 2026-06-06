@@ -42,10 +42,11 @@ function initCart(root) {
   }
 
   // A string that distinguishes variants of the same item so the cart only
-  // merges identical ones: a Guidance Bonus, or a magical weapon's
-  // properties + tier.
+  // merges identical ones: a Guidance Bonus, a magical weapon's properties +
+  // tier, or a magical armor's tier (no properties).
   function variantKey(bonus, extra) {
     if (extra && extra.properties) return 'p' + JSON.stringify(extra.properties) + 't' + (extra.tier || '');
+    if (extra && extra.tier) return 'a' + 't' + extra.tier;
     if (bonus) return 'b' + bonus;
     return '';
   }
@@ -107,6 +108,30 @@ function initCart(root) {
     if (btn) btn.disabled = !st.valid;
   }
 
+  // Read a Magical Armor card's two selects into a priced state:
+  // { armor, tier, price, label }. Price = base armor + Tier Surcharge (the
+  // server reprices at checkout). No Properties — the only enchantment is the
+  // Tier — so there is nothing to invalidate.
+  function magicArmorState(card) {
+    const asel = card.querySelector('.ma-armor');
+    const tsel = card.querySelector('.ma-tier');
+    const aopt = asel.options[asel.selectedIndex];
+    const topt = tsel.options[tsel.selectedIndex];
+    const armor = { name: asel.value, base: parseFloat(aopt.dataset.base) || 0 };
+    const tier = parseInt(tsel.value, 10) || 0;
+    const surcharge = parseFloat(topt.dataset.surcharge) || 0;
+    const price = armor.base + surcharge;
+    const label = `+${tier} ${armor.name}`;
+    return { armor, tier, price, label };
+  }
+
+  // Refresh a Magical Armor card's shown price as its selects change.
+  function updateMagicArmor(card) {
+    const st = magicArmorState(card);
+    const amount = card.querySelector('.provision-price-amount');
+    if (amount) amount.textContent = fmt(st.price);
+  }
+
   // The selected Guidance Bonus on a magical-item card: { bonus, price }
   // from the `+N` dropdown's current option. null for ordinary gear.
   function selectedBonus(card) {
@@ -136,6 +161,19 @@ function initCart(root) {
         const extra = { properties: [{ name: st.property.name, subtype: st.property.subtype || null }],
                         tier: st.tier, label: st.label };
         addLine(st.weapon.name, null, st.price, r.id, r.name, r.isPc, 1, extra);
+      }
+      render();
+      return;
+    }
+
+    if (card.classList.contains('provision-card-magicarmor')) {
+      // Magical Armor: armor + tier from two selects, bought (one) for the
+      // section's dropdown recipient. No Properties to validate.
+      const st = magicArmorState(card);
+      const r = selectedRecipient(card);
+      if (r) {
+        const extra = { tier: st.tier, label: st.label };
+        addLine(st.armor.name, null, st.price, r.id, r.name, r.isPc, 1, extra);
       }
       render();
       return;
@@ -214,6 +252,7 @@ function initCart(root) {
         const line = { item: l.item, recipient_id: l.recipientId, quantity: l.quantity };
         if (l.bonus) line.guidance_bonus = l.bonus;
         if (l.properties) { line.properties = l.properties; line.tier = l.tier; }
+        else if (l.tier) { line.tier = l.tier; } // magical armor: tier, no properties
         return line;
       }),
     };
@@ -257,6 +296,14 @@ function initCart(root) {
       sel.addEventListener('change', () => updateMagicWeapon(card));
     });
     updateMagicWeapon(card);
+  });
+
+  // Magical Armor cards: either select (armor / tier) re-prices.
+  root.querySelectorAll('.provision-card-magicarmor').forEach((card) => {
+    card.querySelectorAll('.ma-armor, .ma-tier').forEach((sel) => {
+      sel.addEventListener('change', () => updateMagicArmor(card));
+    });
+    updateMagicArmor(card);
   });
 
   const toggle = root.querySelector('[data-cart-toggle]');

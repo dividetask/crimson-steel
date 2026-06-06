@@ -63,6 +63,17 @@ get '/encounter' do
   @acting_saves = acting_combatant ? start_of_turn_saves(acting_combatant) : []
   @acting_expiring_effects = acting_combatant ? expiring_effects_for(acting_combatant) : []
 
+  # Acting Combatant's Character Sheet (creatures_minimal_stub.md): shown
+  # under the Map during Combat. Built only when the Acting Combatant is a
+  # Player Character — an NPC / monster turn shows no sheet, so enemy stats
+  # never leak to players. Sourced from the live Creatures domain via the
+  # CreatureSheet bridge, the same source the Character Sheets page uses.
+  @acting_sheet = nil
+  if @combat_active && @acting_row && creature_is_pc?(@acting_row[:creature_id])
+    sheet_accessor = Creatures.lookup(@acting_row[:creature_id]) rescue nil
+    @acting_sheet = sheet_accessor ? CreatureSheet.build(sheet_accessor) : nil
+  end
+
   # Special pane (turn_action_stub.md → Special): the Acting Combatant's
   # usable non-Spell, non-Reaction Abilities, computed at render time.
   @acting_special = (@viewer == :dm && @acting_row) ? (@encounter_state.special_options(@acting_row[:combatant_id]) rescue []) : []

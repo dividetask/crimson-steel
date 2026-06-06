@@ -2991,7 +2991,18 @@ body {
 /* =====================================================================
    Equipment Provisioning (views/_equipment_provision_stub.erb)
    ===================================================================== */
-.provision > h1 { border-bottom: 2px solid #b9472c; padding-bottom: 8px; }
+/* Header row: the "Store" title on the left, the Party gold on the right. */
+.provision-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 2px solid #b9472c;
+  padding-bottom: 8px;
+}
+.provision-header h1 { border-bottom: none; padding-bottom: 0; margin: 0; }
+.provision-party-gold { font-size: 14px; color: #475569; white-space: nowrap; }
+.provision-party-gold strong { color: #b9472c; }
 
 /* The page splits into the provisioning sections (left) and the
    Shopping Cart rail (right). The cart collapses out when empty, so the
@@ -3375,6 +3386,9 @@ body {
   background: #1b1b1b;
   overflow: hidden;
 }
+
+/* Acting Combatant's Character Sheet, shown beneath the Map during Combat. */
+.encounter-acting-sheet { margin-top: 16px; }
 
 /* --- Toolbar (thin strip across the top) --- */
 .atlas-toolbar {

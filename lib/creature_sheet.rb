@@ -255,8 +255,12 @@ module CreatureSheet
     []
   end
 
+  # Granted Abilities a Creature has, minus its known Spells — those are
+  # listed separately (see #spells). A spell-typed Catalog entry resolves
+  # through #spell_info, so anything it recognizes is dropped here.
   def abilities(accessor)
-    (accessor.granted_abilities rescue []).map do |g|
+    (accessor.granted_abilities rescue []).filter_map do |g|
+      next if spell_info(g[:name])
       { name: titleize_ability(g[:name]), description: ability_description(g[:name]) }
     end
   end

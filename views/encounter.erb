@@ -64,6 +64,16 @@
       } %>
 <% end %>
 
+<%# Acting Combatant's Character Sheet (creatures_minimal_stub.md): sits
+    under the Map during active Combat, but only when the Acting Combatant is
+    a Player Character. An NPC / monster turn shows no sheet — enemy stats are
+    never exposed here. Shown to the DM and players alike. %>
+<% if phase == :combat && @combat_active && @acting_sheet %>
+  <section class="encounter-acting-sheet">
+    <%= erb :_creature_minimal, locals: { demo: @acting_sheet } %>
+  </section>
+<% end %>
+
 <%# Bardic Inspiration: discharge a live Reservoir to grant Luck (DM-only).
     A Reaction, so it sits outside the turn panel and fires any time. %>
 <% if @viewer == :dm && phase == :combat && @inspirations && @inspirations.any? %>

@@ -27,9 +27,8 @@ Listed in display order. Each item links to the page named in the next section.
 | 3 | Encounter         | `/encounter`       | DM + Player |
 | 4 | Store             | `/store`           | DM + Player |
 | 5 | Notes             | `/notes`           | DM + Player |
-| 6 | Social            | `/social`          | DM + Player |
-| 7 | Compendium        | `/compendium`      | DM + Player |
-| 8 | Status            | `/status`          | DM only    |
+| 6 | Compendium        | `/compendium`      | DM + Player |
+| 7 | Status            | `/status`          | DM only    |
 
 `Home` always points at the website root (`/`). The root is not a page in its own right — it immediately redirects to `/character-sheets`, which is the default landing page. Clicking `Home` therefore lands the viewer on Character Sheets.
 
@@ -40,10 +39,9 @@ Each page is listed with a short description and its access rule. Detailed page 
 | Page              | URL                | Description                                                                 | Access     |
 |-------------------|--------------------|-----------------------------------------------------------------------------|------------|
 | Character Sheets  | `/character-sheets`| Per-character sheets for the party. The default landing page.               | DM + Player |
-| Encounter         | `/encounter`       | What is happening right now. Which stubs are shown is driven by the DM's Encounter Phase selector (see the menu bar above): **Combat** hides the Advance Time control and shows the Combat Tracker (initiative) + Atlas map (both to players too), with the scene notes shown to the DM only; **Looting** shows only the loot stubs (the DM also sees the notes underneath); **Traveling / Social Encounter / Downtime** show only the notes plus the DM's Advance Time control. | DM + Player |
-| Store             | `/store`           | Provision Creatures with gear — the Equipment Provision Stub (Weapons, Armor, Alchemy). A recipient that is a Player Character is charged (its own wealth first, then the Party); non-PCs are provisioned free. Enemies are hidden from players. | DM + Player |
+| Encounter         | `/encounter`       | What is happening right now. Which stubs are shown is driven by the DM's Encounter Phase selector (see the menu bar above): **Combat** hides the Advance Time control and shows the Combat Tracker (initiative) + Atlas map (both to players too), and — when Combat is active and the Acting Combatant is a Player Character — that PC's Character Sheet beneath the map (an NPC / monster turn shows no sheet), with the scene notes shown to the DM only; **Looting** shows only the loot stubs (the DM also sees the notes underneath); **Traveling / Social Encounter / Downtime** show only the notes plus the DM's Advance Time control. | DM + Player |
+| Store             | `/store`           | Provision Creatures with gear — the Equipment Provision Stub (Weapons, Armor, Alchemy, Magical Items, Magical Weapons, Magical Armor), with the shared Party gold shown top-right. A recipient that is a Player Character is charged (its own wealth first, then the Party); non-PCs are provisioned free. Enemies are hidden from players. Natural attacks are not gear and never appear. | DM + Player |
 | Notes             | `/notes`           | Shared and per-character game notes.                                        | DM + Player |
-| Social            | `/social`          | Social-encounter information.                                               | DM + Player |
 | Compendium        | `/compendium`      | Reference material drawn from the rules documents — currently the Glossary. | DM + Player |
 | Status            | `/status`          | DM operations surface — the default landing pane hosts the live Device Assignment tool for tracking devices and assigning player Characters to them (see [device_assignment.md](device_assignment.md)); the sub-views host the inspection stubs (Dice/Check Resolution, Conditions, Creatures, Encounter, Timekeeping, Chronicle, Equipment) fed with dummy data. | DM only |
 
