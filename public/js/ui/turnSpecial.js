@@ -47,6 +47,9 @@ export class TurnSpecial {
     container._ability = btn.dataset.ability;
     container._pending = null;
     container.querySelectorAll('.ta-special-opt').forEach((b) => b.classList.toggle('cr-mod-selected', b === btn));
+    // Collapse the action menu to the selected-action row (shared helper).
+    const panel = container.closest('.turn-action');
+    if (panel && window.__taSelectAction) window.__taSelectAction(panel, btn.textContent.trim());
     const slot = container.querySelector('.ta-special-result');
     if (!slot) return;
 

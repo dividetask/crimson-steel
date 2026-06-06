@@ -17,6 +17,8 @@ Top to bottom:
 
    An empty category (no generic actions and no Special Abilities) is skipped. A generic action button (styled like a Cast option) opens that action's pane below it; a Special Ability button is handled in place (see *Special*). When the Acting Combatant cannot act (Conditions' *Creature Can Act?* is false — Dying, Dead, or carrying a "cannot act" Active Effect), it is offered no Main/Bonus actions and no Special Abilities — only **End Turn** under Free Action — and the header carries an `(Incapacitated)` suffix.
 
+   **Once an action is picked the category groups collapse** to a single **selected-action row**: the chosen action's name with a **Change** button (re-opens the menu and clears the open action). The row also carries a **confirm slot** on its right: when a rolled **Attack** or **Cast** is ready to apply, its **Commit** button surfaces there — at the top of the stub — so the DM confirms without reaching down to the result. (It mirrors the real Commit button rendered in the result.)
+
 ## Header
 
 `<Combatant Name>'s Turn`. The name is resolved via Creatures' *Look up Creature*, falling back to the Combatant's stored `name`, then to `Creature #<id>`. An optional `(<state>)` suffix appears when the Combatant has a salient state — `(Incapacitated)` (Conditions' *Creature Can Act?* is false) or `(Dead)` (Conditions' *Dead?*). Beside it the Combatant's standing resources: **Mana** remaining, **Combat Pool** remaining (`Get Combat Pool − combat_pool_spent`), and **Main Actions** left this turn (`—` before the turn has begun).

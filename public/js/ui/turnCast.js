@@ -1,4 +1,5 @@
 import { ActionBuilder } from './actionBuilder.js';
+import { placeCommitProxy } from './turnCommit.js';
 
 // Turn Action panel — Cast (turn_action_stub.md → Cast).
 //
@@ -136,6 +137,9 @@ export class TurnCast {
     lines.push(`<div class="ta-actions"><button type="button" class="ce-btn ta-commit">Commit cast</button></div>`);
     slot.innerHTML = lines.join('');
     slot.hidden = false;
+    // Surface a Commit button at the top of the Turn Action stub (the action
+    // menu's confirm slot) so the DM commits without reaching down here.
+    placeCommitProxy(container, 'Commit cast');
   }
 
   static _fxText(a) {

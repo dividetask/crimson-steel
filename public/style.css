@@ -3231,6 +3231,27 @@ body {
 .ta-action-cat { margin: 0 0 6px; color: #334155; }
 .ta-menu-btn.ta-selected { border-color: #2563eb; background: #eff6ff; }
 .ta-panes { padding: 0 14px 14px; }
+
+/* Selected-action row: replaces the category groups once an action is picked.
+   Change re-opens the menu; the right-hand slot hosts the action's Commit
+   button. */
+.ta-selected-action { display: none; align-items: center; gap: 10px; }
+.turn-action.ta-has-selection .ta-selected-action { display: flex; }
+.turn-action.ta-has-selection .ta-cat-group { display: none; }
+.ta-selected-label { font-weight: 600; color: #1e293b; }
+.ta-change {
+  flex: 0 0 auto;
+  background: #fff7e0;
+  border: 1px solid #d6a700;
+  color: #8a5d00;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.ta-change:hover { background: #fff1c5; }
+.ta-confirm-slot { margin-left: auto; display: flex; gap: 6px; }
 .ta-pane { display: none; }
 .ta-pane.ta-pane-active { display: block; }
 .ta-pane-h { margin: 0 0 8px; }
@@ -3242,8 +3263,12 @@ body {
 .encounter-next-turn { margin: 10px 0; display: flex; justify-content: flex-end; }
 .encounter-next-turn-btn { font-weight: 600; }
 
-/* Start of Turn pane (turn_action_stub.md → Start of Turn) */
+/* Afflictions due this Round (turn_action_stub.md). Inset from the panel
+   edges, with breathing room above the heading and between it and the save
+   table below. */
 .ta-sot-section { margin: 0 0 14px; }
+.ta-afflictions { padding: 14px 14px 2px; margin-bottom: 6px; }
+.ta-afflictions .ta-sot-h { margin: 0 0 10px; }
 .ta-sot-h { margin: 0 0 6px; font-size: 0.9em; color: #334155; }
 .ta-sot-clear-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .ta-sot-clear {

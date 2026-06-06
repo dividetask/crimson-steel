@@ -1,4 +1,5 @@
 import { ActionBuilder } from './actionBuilder.js';
+import { placeCommitProxy } from './turnCommit.js';
 
 // Turn Action panel — Attack (turn_action_stub.md → Attack).
 //
@@ -227,16 +228,10 @@ export class TurnAttack {
     });
     rows.push(`<div class="ta-actions"><button type="button" class="ce-btn ta-commit">Commit attack</button></div>`);
     screen.innerHTML = rows.join('');
-    // Mirror the Commit button up into the builder's title row (next to Roll
-    // All / Confirm) so the DM can commit without moving the mouse far.
-    const actions = container.querySelector('.rolls-actions');
-    if (actions && !actions.querySelector('.ta-commit')) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'ce-btn ta-commit';
-      btn.textContent = 'Commit attack';
-      actions.appendChild(btn);
-    }
+    // Surface a Commit button at the top of the Turn Action stub (the action
+    // menu's confirm slot) so the DM commits without reaching down to the
+    // result. It proxies to the real Commit button rendered above.
+    placeCommitProxy(container, 'Commit attack');
     TurnAttack._renderSplit(container);
   }
 
