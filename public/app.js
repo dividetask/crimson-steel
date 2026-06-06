@@ -461,11 +461,13 @@ document.addEventListener('mouseover', function (e) {
     fetchEncounterRoll(tableId);
   });
 
-  // -- Turn Action panel: left-menu action switching ------------------
+  // -- Turn Action panel: grouped action buttons ----------------------
   //
-  // turn_action_stub.md. Clicking an action in the left menu selects it
-  // and shows that action's pane on the right. Pure client-side view
-  // switching; each pane POSTs on its own Submit.
+  // turn_action_stub.md. The actions are grouped under Main / Bonus / Free
+  // Action headers. Clicking a generic action button (.ta-menu-btn) opens
+  // that action's pane below; each pane POSTs on its own Submit. Special
+  // Ability buttons are handled separately by TurnSpecial (delegated from the
+  // wrapping .ta-special), which is wired eagerly on load below.
   document.addEventListener('click', function (e) {
     var btn = e.target.closest && e.target.closest('.ta-menu-btn');
     if (!btn) return;
@@ -488,11 +490,13 @@ document.addEventListener('mouseover', function (e) {
       var castContainer = panel.querySelector('.ta-cast');
       if (castContainer) TurnCast.ensureLoaded(castContainer);
     }
-    // Wire the Special pane (use a non-Spell, non-Reaction Ability).
-    if (key === 'special') {
-      var special = panel.querySelector('.ta-special');
-      if (special) TurnSpecial.ensureLoaded(special);
-    }
+  });
+
+  // Wire each turn panel's Special Ability buttons up front — they now live in
+  // the action menu (no separate Special pane to open), so TurnSpecial must
+  // delegate from the .ta-special wrapper as soon as the panel renders.
+  document.querySelectorAll('.turn-action .ta-special').forEach(function (el) {
+    TurnSpecial.ensureLoaded(el);
   });
 
   // -- Combat Tracker: double-click to edit Initiative (DM only) -------

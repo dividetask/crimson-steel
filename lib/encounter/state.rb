@@ -20,6 +20,11 @@ module Encounter
     PHASES         = %i[combat looting traveling social downtime].freeze
     DEFAULT_PHASE  = :downtime
 
+    # Main Actions a Combatant is granted at the start of each turn. We do not
+    # enforce the cap (the counter may go negative); it is tracked so the DM
+    # can see how many a Combatant has used.
+    MAIN_ACTIONS_PER_TURN = 2
+
     attr_reader :data_path
 
     def self.load(data_path: DATA_PATH, example_path: EXAMPLE_PATH, **opts)
@@ -296,6 +301,7 @@ module Encounter
       cost = Config.move_cost
       remaining = spend_combat_pool(combatant_id, cost)
       return { ok: false, error: 'not enough Combat Pool' } if remaining.nil?
+      spend_main_action(combatant_id) # Move is a Main Action
       { ok: true, pool_spent: cost, pool_remaining: remaining }
     end
 
@@ -475,7 +481,9 @@ module Encounter
         @acting_combatant_id = nxt[:id]
         break if creature_can_act?(nxt[:id])
       end
-      apply_per_turn_setup(@acting_combatant_id) if @acting_combatant_id
+      # Begin the incoming Combatant's turn: refill its Combat Pool, grant its
+      # Main Actions, run Per-Turn Setup, and clear its expired Effects.
+      begin_turn_for(@acting_combatant_id) if @acting_combatant_id
       persist!
       @acting_combatant_id
     end
@@ -1134,13 +1142,39 @@ module Encounter
     # separately — one per Conditions Save Resolution Stub via
     # *resolve_affliction_save*. Returns { cleared: [...] }, or nil when the
     # Combatant is unknown.
-    def resolve_start_of_turn(combatant_id)
+    # Begin a Combatant's turn (turn_action_stub.md). Refills the Combat Pool
+    # (Combat begins empty; the refill is at the start of each turn, never at
+    # the end), grants the turn's two Main Actions, applies Per-Turn Setup, and
+    # clears the Active Effects that expire this Round. Called automatically as
+    # the turn passes to a Combatant — for the first Combatant at Start Combat,
+    # and for each Combatant the turn advances to (advance_turn). Returns the
+    # cleared Effects so the caller can persist Conditions.
+    def begin_turn_for(combatant_id)
       c = combatant_for(combatant_id) or return nil
       c[:combat_pool_spent] = 0
+      c[:main_actions_remaining] = MAIN_ACTIONS_PER_TURN
+      apply_per_turn_setup(combatant_id)
       round = current_abs_round
       cleared = round ? conditions_for(c[:creature_id]).clear_expired_effects(round) : []
       persist!
       { cleared: cleared }
+    end
+
+    # Main Actions a Combatant has left this turn (nil for an unknown
+    # Combatant). -1 until the Combatant has begun a turn.
+    def main_actions_remaining(combatant_id)
+      c = combatant_for(combatant_id) or return nil
+      c[:main_actions_remaining].to_i
+    end
+
+    # Record that a Combatant spent a Main Action (Attack / Move / Cast /
+    # Item). Decrements the counter — not enforced, so it may go negative —
+    # and returns the new value.
+    def spend_main_action(combatant_id)
+      c = combatant_for(combatant_id) or return nil
+      c[:main_actions_remaining] = c[:main_actions_remaining].to_i - 1
+      persist!
+      c[:main_actions_remaining]
     end
 
     # ---------- Special Actions ----------
@@ -1673,7 +1707,7 @@ module Encounter
     def blank_combatant(id, creature_id, name)
       { id: id, creature_id: creature_id, name: name,
         initiative_string: '', combat_pool_spent: 0, time_tick_schedule: [],
-        luck_points: 0, concentration: [], casting: [] }
+        luck_points: 0, concentration: [], casting: [], main_actions_remaining: -1 }
     end
 
     def recompute_schedules!
@@ -1969,7 +2003,10 @@ module Encounter
         time_tick_schedule:  Array(c['time_tick_schedule']).map { |n| Integer(n) },
         luck_points:         Integer(c['luck_points'] || 0),
         concentration:       (c['concentration'] || []).map { |e| symbolize(e) },
-        casting:             (c['casting'] || []).map { |e| symbolize(e) }
+        casting:             (c['casting'] || []).map { |e| symbolize(e) },
+        # Main Actions left this turn. -1 = the Combatant has not begun a turn
+        # yet (pre-combat / not their turn); a turn-start sets it to 2.
+        main_actions_remaining: Integer(c['main_actions_remaining'] || -1)
       }
     end
 
@@ -1979,7 +2016,8 @@ module Encounter
         'initiative_string' => c[:initiative_string], 'combat_pool_spent' => c[:combat_pool_spent],
         'time_tick_schedule' => c[:time_tick_schedule], 'luck_points' => c[:luck_points],
         'concentration' => c[:concentration].map { |e| stringify(e) },
-        'casting' => c[:casting].map { |e| stringify(e) }
+        'casting' => c[:casting].map { |e| stringify(e) },
+        'main_actions_remaining' => c[:main_actions_remaining]
       }
     end
 

@@ -3222,31 +3222,15 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-.ta-body { display: flex; }
-.ta-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 150px;
-  padding: 12px;
-  border-right: 1px solid #e2e8f0;
-}
-.ta-menu-btn {
-  text-align: left;
-  padding: 8px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #f8fafc;
-  font: inherit;
-  cursor: pointer;
-}
-.ta-menu-btn:hover { background: #eef2f7; }
-.ta-menu-btn.ta-selected {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
-}
-.ta-panes { flex: 1; padding: 14px; }
+/* Action menu: buttons grouped under Main / Bonus / Free Action headers
+   (the headers reuse the Cast builder's .cb-tier-head font). A generic action
+   button (.ta-menu-btn) and a Special Ability button (.ta-special-opt) share
+   the .cr-mod-btn / .cb-opt look. */
+.ta-actions-menu { padding: 12px 14px; }
+.ta-cat-group { margin-bottom: 10px; }
+.ta-action-cat { margin: 0 0 6px; color: #334155; }
+.ta-menu-btn.ta-selected { border-color: #2563eb; background: #eff6ff; }
+.ta-panes { padding: 0 14px 14px; }
 .ta-pane { display: none; }
 .ta-pane.ta-pane-active { display: block; }
 .ta-pane-h { margin: 0 0 8px; }

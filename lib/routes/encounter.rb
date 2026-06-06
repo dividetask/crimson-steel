@@ -61,7 +61,9 @@ get '/encounter' do
   # plus the Active Effects that the finalize step will clear.
   acting_combatant = @acting_row ? @encounter_state.combatant(@acting_row[:combatant_id]) : nil
   @acting_saves = acting_combatant ? start_of_turn_saves(acting_combatant) : []
-  @acting_expiring_effects = acting_combatant ? expiring_effects_for(acting_combatant) : []
+  # Main Actions the Acting Combatant has left this turn (-1 before their first
+  # turn). Shown in the Turn Action header; tracked, not enforced.
+  @acting_main_actions = @acting_row ? @encounter_state.main_actions_remaining(@acting_row[:combatant_id]) : nil
 
   # Acting Combatant's Character Sheet (creatures_minimal_stub.md): shown
   # under the Map during Combat. Built only when the Acting Combatant is a
@@ -1387,6 +1389,16 @@ helpers do
     removed.map { |z| z[:source_id] }
   end
 
+  # The route-level side effects of a Combatant beginning its turn: expire its
+  # timed Zones (spell areas) and persist the Conditions store (begin_turn_for
+  # has already refilled the pool, granted Main Actions, and cleared expired
+  # Effects in memory). Called for the first Combatant at Start Combat and for
+  # each Combatant the turn advances to.
+  def begin_turn_side_effects!(combatant_id)
+    expire_caster_zones!(combatant_id)
+    Conditions.store.persist!
+  end
+
   # A Spell whose Reservoir discharge `defends: target` (Shield of Faith) hangs
   # a shield over the chosen ally: grant the caster a reaction tied to that
   # Combatant, so attacks against the ally can surface the caster's block as an
@@ -1594,9 +1606,16 @@ post '/encounter/start_combat' do
   encounter_state.start_combat
   encounter_state.reroll_initiative # roll initiative for everyone on start
   # Point the turn at the top of the initiative order so the Combat
-  # Tracker shows the ▶ marker on the acting Combatant immediately.
+  # Tracker shows the ▶ marker on the acting Combatant immediately, and
+  # begin that first Combatant's turn (refill its Combat Pool, grant its
+  # Main Actions, clear expired Effects / Zones) — the same turn-start the
+  # next Combatant gets on End Turn.
   first = encounter_state.acting_combatants.first
-  encounter_state.set_acting_combatant(first[:id]) if first
+  if first
+    encounter_state.set_acting_combatant(first[:id])
+    encounter_state.begin_turn_for(first[:id])
+    begin_turn_side_effects!(first[:id])
+  end
   redirect back || '/encounter'
 end
 
@@ -1744,20 +1763,12 @@ end
 # Time Tick / Round on wrap.
 post '/encounter/advance_turn' do
   require_dm!
-  encounter_state.advance_turn
-  redirect back || '/encounter'
-end
-
-# Start of Turn finalize (turn_action_stub.md → Start of Turn): refill the
-# Acting Combatant's Combat Pool and clear the Active Effects that expire
-# this Round. Afflictions are resolved separately via the per-Affliction
-# Conditions Save Resolution Stub (POST /encounter/resolve_affliction).
-post '/encounter/start_of_turn' do
-  require_dm!
-  encounter_state.resolve_start_of_turn(params[:combatant_id].to_i)
-  # Auto-expire the caster's timed Zones (spell areas) at their start of turn.
-  expire_caster_zones!(params[:combatant_id].to_i)
-  Conditions.store.persist!
+  # advance_turn begins the incoming Combatant's turn server-side (Combat
+  # Pool refill, Main Actions, expired-Effect clear); the route adds the
+  # turn-start side effects (expire the new Combatant's timed Zones) and
+  # persists Conditions.
+  new_id = encounter_state.advance_turn
+  begin_turn_side_effects!(new_id) if new_id
   redirect back || '/encounter'
 end
 
@@ -1819,8 +1830,12 @@ post '/encounter/resolve_attack' do
   result = encounter_state.resolve_attack_payload(payload)
   # A committed attack mutated the target's Conditions (HP damage, bleed) —
   # persist the Conditions store so the damage survives a restart. A preview
-  # (commit:false) mutates nothing, so there's nothing to write.
-  Conditions.store.persist! if result[:committed]
+  # (commit:false) mutates nothing, so there's nothing to write. A commit also
+  # spends one of the attacker's Main Actions (Attack is a Main Action).
+  if result[:committed]
+    Conditions.store.persist!
+    encounter_state.spend_main_action(payload.dig('attacker', 'id').to_i)
+  end
   encounter_response(result)
 end
 
@@ -1881,6 +1896,7 @@ post '/encounter/resolve_cast' do
     result = result.merge(zone: zone) if zone
     grant_defend_reaction!(payload) rescue nil
     Conditions.store.persist!
+    encounter_state.spend_main_action(payload.dig('caster', 'id').to_i) # Cast is a Main Action
   end
   encounter_response(result)
 end

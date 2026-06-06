@@ -19,7 +19,8 @@ Sibling domains:
 | `creature_id` | string | Identity passed to `creature_lookup`. |
 | `name` | string | Display name. |
 | `initiative_string` | string | Per *Initiative String* in the glossary. Empty until first Reroll Initiative. |
-| `combat_pool_spent` | integer | Combat Pool dice spent so far in this turn. At *Start Combat* it is set to the full pool size so every Combatant begins with an **empty** pool; the pool refills (reset to 0) at the start of the Combatant's turn (the *Start of Turn* action), **not** at end of turn. Remaining is derived as `Get Combat Pool − combat_pool_spent`. |
+| `combat_pool_spent` | integer | Combat Pool dice spent so far in this turn. At *Start Combat* it is set to the full pool size so every Combatant begins with an **empty** pool; the pool refills (reset to 0) automatically when the Combatant's turn begins (*Begin Turn*), **not** at end of turn. Remaining is derived as `Get Combat Pool − combat_pool_spent`. |
+| `main_actions_remaining` | integer | Main Actions the Combatant has left this turn. `-1` before the Combatant's first turn; set to `MAIN_ACTIONS_PER_TURN` (2) when the turn begins; decremented by a committed Attack / Move / Cast / Item. The cap is **not** enforced (it may go negative) — it is tracked so the DM can see how many a Combatant has used. |
 | `time_tick_schedule` | list of integer | Time Ticks within a Round on which this Combatant acts. Recomputed when Time Ticks Per Round changes. |
 | `luck_points` | integer | Per-Combatant Luck Points. Cleared at the start of this Combatant's turn. |
 | `concentration` | list of Concentration Entry | Channeled spells the Combatant is currently holding. |
@@ -218,7 +219,7 @@ Returns: the new remaining value, or an error sentinel.
 
 Input: Combat ID.
 
-Behavior: Set the Combatant's `combat_pool_spent` to 0 — refilling the pool. Invoked at the start of a Combatant's turn (the *Start of Turn* action); also exposed for explicit calls. Implementations that need to report the resulting "remaining" value compute it as *Get Combat Pool*.
+Behavior: Set the Combatant's `combat_pool_spent` to 0 — refilling the pool. Invoked automatically when a Combatant's turn begins (*Begin Turn*); also exposed for explicit calls. Implementations that need to report the resulting "remaining" value compute it as *Get Combat Pool*.
 
 ### Apply Damage
 
@@ -362,7 +363,7 @@ Inputs: actor Combat ID, target spec, the action data (weapon, spell name, item,
 
 Behavior: resolution is client-side (the JS Dice/Check engine) and comes back to Combat as a *resolved payload* that Combat applies. **Attack** is implemented via `resolve_attack_payload`; **Cast** via `resolve_cast_payload` (with the pure helpers in `Encounter::Cast`) — it spends Combat Pool (`Speed + dice`), debits Mana, applies Magic Toxicity (gated over threshold), nets the casting check against each target's Save, routes the resolved Effects (damage through *Apply Damage*; heal / mana / Temporary HP / named Active Effect through Conditions; and a buff Spell's `modifiers:` — Magic Weapon, Magic Vestments, Expeditious Retreat, Resistance, Protection from Poison — evaluated against the caster and applied as timed modifier Active Effects via Conditions' *Apply Effect*, a turns-based `duration` setting expiry), and registers a Concentration / Long Cast Entry for a sustained spell. The spell's Effects are produced by the Abilities domain (`Abilities.resolve_spell`); Combat never reads spell data, it only routes the resolved Effects, exactly as the Attack flow routes an already-evaluated weapon. **Use Item** is still future work (it needs the Equipment-consumable wiring).
 
-**Area Spells place a Zone.** A committed area Spell (Obscuring Mist, Darkness, Web, Create Pit, Silence) drops its footprint on the active Map: Combat anchors an Atlas Zone at the target's Token and pairs it with a Conditions Zone Effect carrying the area's triggers, with `ends_on_round` computed from the Spell's `duration` (turns count as Rounds; minutes/hours convert via Timekeeping's Round Length). The Zone **auto-expires at the caster's start of turn** — `resolve_start_of_turn` (route) removes the caster's elapsed Zone Effects via Conditions' *Expire Zone Effects For* and drops the paired Atlas Zones. Resolving the Zone's on-enter / on-end-of-turn Saves during movement is still future work.
+**Area Spells place a Zone.** A committed area Spell (Obscuring Mist, Darkness, Web, Create Pit, Silence) drops its footprint on the active Map: Combat anchors an Atlas Zone at the target's Token and pairs it with a Conditions Zone Effect carrying the area's triggers, with `ends_on_round` computed from the Spell's `duration` (turns count as Rounds; minutes/hours convert via Timekeeping's Round Length). The Zone **auto-expires at the caster's start of turn** — the turn-start side effects (`begin_turn_side_effects!`, run by the `start_combat` and `advance_turn` routes) remove the caster's elapsed Zone Effects via Conditions' *Expire Zone Effects For* and drop the paired Atlas Zones. Resolving the Zone's on-enter / on-end-of-turn Saves during movement is still future work.
 
 **No-roll casts skip the roll and Luck.** The cast builder only asks the caster to roll a casting check when its Successes matter — a Save, attack-roll, or damage Spell. The Dice step adapts to the Spell: a Spell with a **variable** dice count — a rolled cast, or a reservoir-channel pour (Shield of Faith), whose dice are **poured into the Reservoir** at cast (`register_cast_sustain`'s `channel_dice`) rather than rolled — asks for a count from the Spell's **Action Minimum** (Main 4 / Bonus 2, `encounter_config.yaml`) up to the casting-skill Dice Cap. A Spell with a **known** dice count — a no-roll, no-Reservoir buff (Ward, Bless, Cure Wounds) costs exactly its Action Minimum — **skips the Dice step entirely**: its option is auto-applied with no button, so the DM never picks a count it can't change. For any no-roll Spell the builder also skips the Luck steps and hides *Roll All*, so the DM just confirms. The builder **hides Spells that take a minute or longer to cast** — they aren't cast in the heat of combat.
 
@@ -527,7 +528,7 @@ The expected Round at any moment during Combat is `combat_anchor.round_of_day + 
 
 **Apply Per-Turn Cleanup** (called as part of *Advance Turn* on the outgoing Combatant):
 - Clear `luck_points` (per the Luck Points clear rule).
-- The Combat Pool is **not** refilled here. It refills at the *start* of a Combatant's turn (the *Start of Turn* action), so a spent pool stays spent until then. (Combat itself starts every Combatant's pool empty — see *Start Combat*.)
+- The Combat Pool is **not** refilled here. It refills automatically at the *start* of a Combatant's turn (*Begin Turn*), so a spent pool stays spent until then. (Combat itself starts every Combatant's pool empty — see *Start Combat*.)
 - Run the End-of-turn channel check.
 - Run the End-of-turn cast check.
 - Reset `channeled_this_turn` to false on each of the Combatant's Concentration Entries (ready for next turn).
