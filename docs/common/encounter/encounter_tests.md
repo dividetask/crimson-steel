@@ -158,7 +158,7 @@ A weapon carries `damage_riders` (from *Get Weapon Details*) when its Stack has 
 
 ### Tier Mismatch weapon damage reduction + Glory
 
-**Higher-Tier defender reduces weapon damage.** Attacker Tier 0 hits a Tier 2 defender for a pre-reduction `11` (base 10 + net 1). The Tier Mismatch Inherent damage reduction `5 × Δ` (Tier 0 = 0.5) removes `floor(5 × 1.5) = 7`; the payload returns `inherent_dr: 7` and `damage: 4`.
+**Higher-Tier defender reduces weapon damage.** Attacker Tier 0 hits a Tier 2 defender for a pre-reduction `11` (base 10 + net 1). With the default `Inherent Damage Reduction Per Tier: 5`, the Tier Mismatch Inherent damage reduction `5 × Δ` (Tier 0 = 0.5) removes `floor(5 × 1.5) = 7`; the payload returns `inherent_dr: 7` and `damage: 4`.
 
 **Glory shrinks the gap.** The same attack with a `tier_advantage: 1` (Glory) weapon raises the wielder's effective Tier to 1: `Δ = 2 − 1 = 1`, reduction `5`, `damage: 6`. Against a defender only one Tier higher, Glory closes the gap entirely — `inherent_dr: 0`, full `damage: 11`.
 

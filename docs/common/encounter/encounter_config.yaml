@@ -135,6 +135,24 @@ Falling Damage Threshold: 5
 Falling Damage Bleed Constant: 0   # actual bleed = Bleed Constant + damage dealt
 
 
+# ---- Tier Mismatch ----
+#
+# When a higher-Tier Creature is hit by a lower-Tier attacker, it shrugs
+# off Inherent damage reduction scaled by the Tier gap:
+#
+#   reduction = floor(Inherent Damage Reduction Per Tier × Δ)
+#   Δ = defender Tier − attacker effective Tier   (Tier 0 counts as 0.5)
+#
+# clamped at a zero gap. This is the damage half of the Tier Mismatch rule
+# and applies to every damaging effect — weapon attacks, spells, and
+# abilities alike. A weapon's Glory Property (`tier_advantage`) raises the
+# attacker's effective Tier when fighting up, shrinking Δ first; that is a
+# weapon-only adjustment, never applied to spells or abilities. (The Check
+# half — the ±2 × Δ Ascendancy modifier on opposed combat checks — resolves
+# client-side in the Dice / Check engine, not from this file.)
+Inherent Damage Reduction Per Tier: 5
+
+
 # ---- Trigger Conditions ----
 #
 # Canonical catalog of Trigger Condition names that Abilities may

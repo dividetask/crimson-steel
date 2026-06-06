@@ -20,8 +20,6 @@ module Encounter
   # is computed client-side in the JS Check Resolution engine
   # (public/js/tierMismatch.js), since Rolls resolve there.
   module TierMismatch
-    INHERENT_DR_PER_TIER = 5
-
     module_function
 
     # Tier 0 -> 0.5 per project convention.
@@ -36,11 +34,12 @@ module Encounter
     end
 
     # Inherent damage reduction the defender gets against a lower-Tier
-    # attacker's hit: 5 per Tier the defender is above the attacker, else 0.
+    # attacker's hit: `Inherent Damage Reduction Per Tier` (encounter_config.yaml,
+    # default 5) per Tier the defender is above the attacker, else 0.
     def inherent_damage_reduction(defender_tier, attacker_tier)
       d = delta(defender_tier, attacker_tier)
       return 0 unless d.positive?
-      (INHERENT_DR_PER_TIER * d).floor
+      (Config.inherent_damage_reduction_per_tier * d).floor
     end
   end
 end
