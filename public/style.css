@@ -29,6 +29,9 @@ body {
   display: flex;
   align-items: center;
   gap: 18px;
+  /* Absorb the free space so the right-hand nav controls (Phase / View As /
+     player Character name / server address) always sit flush right. */
+  margin-right: auto;
 }
 
 .menu-items a {
@@ -40,10 +43,8 @@ body {
   text-decoration: underline;
 }
 
-/* Encounter Phase selector (nav, DM-only). Sits just before View As and
- * pushes the right-hand controls over. */
+/* Encounter Phase selector (nav, DM view only). Sits just before View As. */
 .phase-form {
-  margin-left: auto;
   margin-right: 12px;
   display: flex;
   align-items: center;
@@ -89,8 +90,13 @@ body {
   font-family: monospace;
 }
 
-.menu-items + .server-addr {
-  margin-left: auto;
+/* The player's Character name in the nav, where the DM's View-As control
+   sits. Shown to player viewers only. */
+.player-creature {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 12px;
 }
 
 .page {
