@@ -97,4 +97,23 @@ helpers do
       { label: 'Status',           href: '/status',           dm_only: true  }
     ]
   end
+
+  # Roll a freshly-spawned Creature's `equipment_table` (if any) and place
+  # the resulting Stacks — gear, ammunition, pocket change — onto the
+  # Creature, then reconcile the loadout so equipped items post their
+  # Effects. Called after Spawn Creature From Template so each spawn gets a
+  # randomized kit. No-op when the Creature has no equipment_table.
+  def equip_spawned_creature(creature_id)
+    accessor = Creatures.lookup(creature_id)
+    return unless accessor
+    table = accessor.equipment_table
+    return if table.nil? || table.to_s.empty?
+
+    rolled = Equipment.instance.roll_loot_table(table.to_s)
+    return if rolled.equal?(Equipment::ERROR)
+
+    owner = "creature:#{creature_id}"
+    Array(rolled).each { |stack| Equipment.instance.add_item(owner, stack) }
+    Equipment.instance.reconcile_loadout(owner)
+  end
 end

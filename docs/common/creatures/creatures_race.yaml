@@ -165,15 +165,43 @@ beast:
   speed: 30
   abilities: []
 
-canine:
+# Size-keyed beast templates. Every beast inherits its attribute
+# adjustments from one of these and then its concrete subtype
+# (canine, spider, ...) layers on speed and a Natural Attack. All
+# beasts take -8 Int (the min-1 Effective Attribute clamp keeps the
+# score at 1) and -4 Wis/Cha.
+tiny_beast:
   parent: beast
+  size: tiny
+  attribute_adjustments: { str: -6, con: -6, dex: 6, wis: -4, cha: -4, int: -8 }
+
+small_beast:
+  parent: beast
+  size: small
+  attribute_adjustments: { str: -4, con: -4, dex: 4, wis: -4, cha: -4, int: -8 }
+
+medium_beast:
+  parent: beast
+  size: medium
+  attribute_adjustments: { dex: 2, wis: -4, cha: -4, int: -8 }
+
+large_beast:
+  parent: beast
+  size: large
+  attribute_adjustments: { str: 4, con: 4, wis: -4, cha: -4, int: -8 }
+  abilities:
+    - name: natural_armor_2
+      min_level: 0
+
+canine:
+  parent: medium_beast
   speed: 40
   abilities:
     - name: Canine Bite
       min_level: 0
 
 spider:
-  parent: beast
+  parent: medium_beast
   speed: 20
   abilities:
     - name: Spider Bite

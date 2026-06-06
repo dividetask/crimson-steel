@@ -50,6 +50,83 @@ loot_tables:
       - chance: 0.3
         item: { item: Silver, quantity: "1d4" }
 
+  # Common Goblin starting loadout (rolled at spawn, see the Common
+  # Goblin template's `equipment_table`). A melee weapon + a ranged
+  # option, a chance of armor / shield, ammunition for the ranged
+  # weapon, pocket change, and the occasional gem or grisly trophy.
+  common_goblin_loadout:
+    rolls:
+
+      # Melee weapon — equal chance dagger / short sword / spear.
+      # `key` records hand-ness so the shield row can gate on it.
+      - equipped: true
+        as: melee
+        options:
+          - chance: 0.34
+            key: one_handed
+            item: { item: Dagger }
+          - chance: 0.33
+            key: one_handed
+            item: { item: Short sword }
+          - chance: 0.33
+            key: two_handed
+            item: { item: Spear }
+
+      # Ranged option — equal chance sling / short bow / thrown rocks.
+      - as: ranged
+        options:
+          - chance: 0.34
+            key: sling
+            item: { item: Sling }
+          - chance: 0.33
+            key: short_bow
+            item: { item: Short bow }
+          - chance: 0.33
+            key: rocks
+            item: { item: Stone, quantity: "1d6 + 4" }
+
+      # Ammunition for the chosen ranged weapon.
+      - when: { ranged: short_bow }
+        item: { item: Arrow, quantity: "5d4" }   # 5–20 arrows
+      - when: { ranged: sling }
+        item: { item: Stone, quantity: "5d8" }   # 5–40 bullets
+
+      # 25% chance of leather armor.
+      - equipped: true
+        chance: 0.25
+        item: { item: Leather armor }
+
+      # 25% chance of a light wooden shield — only with a one-handed
+      # melee weapon (no shield alongside a two-handed spear).
+      - equipped: true
+        when: { melee: one_handed }
+        chance: 0.25
+        item: { item: Light wooden shield }
+
+      # Pocket change.
+      - item: { item: Copper, quantity: "2d10" }   # ~0–20 cp
+      - chance: 0.2
+        item: { item: Silver, quantity: "1d4" }    # 1–5 sp (20%)
+      - chance: 0.1
+        item: { item: Gold, quantity: "1d2" }      # 1–2 gp (10%)
+
+      # 5% chance of a small gem worth ~1–25 gp.
+      - chance: 0.05
+        options:
+          - chance: 0.34
+            key: gem_small
+            item: { item: Gem, quantity: 1, value_in_gold: 5 }
+          - chance: 0.33
+            key: gem_medium
+            item: { item: Gem, quantity: 1, value_in_gold: 15 }
+          - chance: 0.33
+            key: gem_large
+            item: { item: Gem, quantity: 1, value_in_gold: 25 }
+
+      # 10% chance of a grisly trophy.
+      - chance: 0.1
+        item: { item: Humanoid skull }
+
   # Town guard equipment loadout. Spear is two-handed (no shield);
   # shield row gates on the hand variable.
   town_guard_equipment:

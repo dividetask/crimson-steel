@@ -156,6 +156,27 @@ Classes:
       - nature
       - perception
 
+  # NPC martial class. Mirrors `fighter` exactly but grants no class
+  # abilities (no weapon/armor training). `npc_class: true` keeps it
+  # out of the player-character class picker — it is for enemy and NPC
+  # stat blocks only.
+  warrior:
+    npc_class: true
+    martial_advancement: aligned
+    bonus_skills: 2
+    mana_per_level: 1
+    saves:
+      aligned: [str, con]
+      opposed: [dex, int, wis, cha]
+    aligned_proficiencies:
+      - acrobatics
+      - animal_handling
+      - athletics
+      - history
+      - intimidate
+      - nature
+      - perception
+
   ranger:
     martial_advancement: aligned
     bonus_skills: 4

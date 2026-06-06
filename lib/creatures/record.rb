@@ -38,6 +38,11 @@ module Creatures
       out[:attributes]  = normalize_attributes(r['attributes'], out[:id], source)
       out[:tier]        = normalize_tier(r['tier'], out[:id], source)
       out[:loot_table]  = r['loot_table']
+      # Optional Equipment Loot Table ID rolled once at spawn time to
+      # generate the Creature's starting (and equipped) loadout — gear,
+      # ammunition, pocket change. Distinct from `loot_table`, which
+      # Collect Combat Loot rolls as extra drops on death.
+      out[:equipment_table] = r['equipment_table']
       out[:metadata]    = r['metadata'] || {}
       # Persisted spawned-instance marker (Spawn Creature From Template);
       # round-tripped so a reloaded spawn still groups under its template.
@@ -87,6 +92,7 @@ module Creatures
       out['tags']         = rec[:tags]                         unless Array(rec[:tags]).empty?
       out['tier']         = rec[:tier]                         unless rec[:tier].nil?
       out['loot_table']   = rec[:loot_table]                   unless rec[:loot_table].nil?
+      out['equipment_table'] = rec[:equipment_table]           unless rec[:equipment_table].nil?
       out['metadata']     = rec[:metadata]                     unless (rec[:metadata] || {}).empty?
       out['spawned_from'] = rec[:spawned_from]                 unless rec[:spawned_from].nil?
       out

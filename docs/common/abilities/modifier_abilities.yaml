@@ -64,6 +64,13 @@ natural_armor:
       type: Racial
       add: 0   # overridden by the granting Class or Race
 
+natural_armor_2:
+  description: "Thick hide grants +2 damage reduction."
+  modifiers:
+    - target: damage_reduction
+      type: Racial
+      add: 2
+
 ferocity:
   description: "+3 damage resilience."
   modifiers:

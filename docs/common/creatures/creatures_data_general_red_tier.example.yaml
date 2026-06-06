@@ -85,3 +85,20 @@ characters:
     advancement:
       classes:
         cleric: 2
+
+  # Tier-1 rank-and-file goblin. Level 1 warrior; base 10s before the
+  # goblin racial modifiers (-4 Str/Con/Int/Cha, -2 Wis, +4 Dex). Gear is
+  # rolled at spawn from the `common_goblin_loadout` Equipment Loot Table.
+  - id: 306
+    name: Common Goblin
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin 1.png"
+    group: enemy
+    tags: [enemy_template, category:general_red_tier]
+    race: goblin
+    tier: 1
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+    advancement:
+      classes:
+        warrior: 1
+    equipment_table: common_goblin_loadout

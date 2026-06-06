@@ -25,6 +25,20 @@ module Creatures
       data['Tier Breakpoints'] || {}
     end
 
+    # True when the Class is flagged `npc_class: true` — an enemy/NPC-only
+    # Class (e.g. `warrior`, `commoner`) that should not be offered in the
+    # player-character class picker.
+    def npc_class?(key)
+      entry = classes[key.to_s]
+      !!(entry && entry['npc_class'])
+    end
+
+    # Class keys selectable by player characters: every Class except those
+    # flagged `npc_class: true`.
+    def pc_class_keys
+      classes.reject { |_k, entry| entry['npc_class'] }.keys
+    end
+
     # Look up a Class key. Returns the resolved Class Catalog Entry,
     # applying Archetype merge when the entry declares `parent_class`.
     # Returns nil when the key is absent.

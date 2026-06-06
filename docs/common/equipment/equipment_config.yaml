@@ -224,6 +224,11 @@ Weapons:
     damage_type: Piercing
     ammo_type: Arrow
     base_price: 50
+  Short bow:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Arrow
+    base_price: 50
   Crossbow:
     category: Ranged
     damage_type: Piercing
@@ -658,6 +663,9 @@ Misc Items:
   Whetstone:
     category: Item
     base_price: 0.2
+  Humanoid skull:
+    category: Item
+    base_price: 0
   Thieves' tools:
     category: Item
     slot: bag

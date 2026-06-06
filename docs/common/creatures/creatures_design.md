@@ -28,6 +28,7 @@ The on-disk shape persisted in the `creatures_data_*.example.{json,yaml}` files 
 | `tier` | integer or null | null | Tier Override. When non-null, *Get Tier* returns this verbatim and Tier Breakpoints are ignored. When null, Tier is auto-computed from Total Class Level against the breakpoint list selected by the Creature's `tags`. |
 | `advancement` | Advancement Block | `{}` | Holds the Creature's classes and tier attribute advancement picks. See *Advancement Block* below. |
 | `loot_table` | string or null | null | Optional Loot Table ID (defined in Equipment). When set, Equipment's *Collect Combat Loot* rolls this table for the Creature on top of moving its Inventory. |
+| `equipment_table` | string or null | null | Optional Equipment Loot Table ID rolled **once at spawn time** to generate the Creature's starting loadout — equipped gear, ammunition, and pocket change. Distinct from `loot_table` (death drops). The consuming project rolls it immediately after *Spawn Creature From Template* (see that entry point). |
 | `metadata` | dict | `{}` | Caller-supplied free-form data. Creatures does not interpret. Used by consuming projects for portrait paths, custom flags, etc. |
 
 `mana_spent`, `hp_damage`, equipped items, active Conditions, and similar runtime state are **not** stored on the Creature record — they live in Conditions, Equipment, and elsewhere, keyed by Creature ID.
@@ -93,6 +94,7 @@ The schema for entries in `creatures_advancement.yaml`'s `Classes:` map. Looked 
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `parent_class` | string or null | null | When non-null, this Class is an **Archetype** of the named parent Class. See *Archetype* below. |
+| `npc_class` | boolean | false | When true, this is an NPC/enemy-only Class (e.g. `warrior`, `commoner`) excluded from the player-character class picker (*pc_class_keys*). Otherwise a normal Class in every mechanical respect. |
 | `martial_advancement` | enum | required | One of `aligned`, `unaligned`, `opposed`. The rate at which each Class Level adds Martial ranks. (Martial is computed from this field, not from any proficiency list.) |
 | `bonus_skills` | integer | 0 | Bonus Skill picks per Class Level used by the `Skill Pick Formula`. Advisory — Creatures does not enforce trained-skill counts. |
 | `mana_per_level` | integer | 0 | Mana per Class Level contributed by this Class. Folds into Max Mana on top of the per-Tier `Mana Base Formula`. |
@@ -350,6 +352,8 @@ Returns: the new Creature ID.
 
 The new record is persistent — it lives in the same dataset as PCs and templates and is round-tripped by Save Creatures. Lifecycle management (deletion after combat resolution) is the caller's responsibility. The post-combat loot stub in Equipment is the conventional caller for cleanup via *Delete Creature*.
 
+The spawn deep-copies the template's `equipment_table` (when present). Creatures itself does not roll it — generating the spawn's loadout is the consuming project's job, performed immediately after this call (and after *Roll Random Encounter*): roll the `equipment_table` via Equipment's *Roll Loot Table*, *Add Item* each produced Stack to the spawn, then *Reconcile Loadout*. Equipped rows in the table become the spawn's combat loadout; non-equipped rows (coins, trophies) are carried and collected by *Collect Combat Loot* on death.
+
 ### Delete Creature
 
 Inputs: Creature ID.
@@ -396,7 +400,7 @@ Reads the Creature Record. For each attribute `a`:
 2. `racial = racial_adjustment_for(race)[a]` — see *Racial Adjustment Resolution*.
 3. `per_tier = Tier Minimum Inherent Bonus[tier]` — read directly from `creatures_config.yaml`'s per-Tier list.
 4. `chosen = Per-Tier Inherent Chosen Bonus Amount × count of attribute key a in the slice of `tier_attribute_advancement` consumed by Tiers 2..tier`. The slice is built by walking the Tiers in order, taking `Tier Inherent Chosen Bonus Count[t]` entries from the head of the list for each Tier `t`. Tier 1 grants only the Per-Tier Inherent Bonus, not the Chosen Bonus — the Chosen Bonus begins at Tier 2.
-5. `effective = base + racial + per_tier + chosen`.
+5. `effective = max(1, base + racial + per_tier + chosen)` — every Effective Attribute floors at 1, so racial penalties (notably beasts' -8 Int) never drive a score below 1.
 
 With the default `Tier Minimum Inherent Bonus: [0, 1, 2, 3, 4, 5]`, step 3 produces +0 at Tier 0, +1 at Tier 1, +2 at Tier 2, and so on. Tier 1 is the first Tier with a non-zero Per-Tier Inherent Bonus; Tier 2 is the first Tier with chosen bonus picks (per `Tier Inherent Chosen Bonus Count: [0, 0, 2, 2, 2, 2]`).
 
