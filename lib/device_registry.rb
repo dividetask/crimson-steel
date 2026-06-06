@@ -17,17 +17,12 @@ require 'fileutils'
 # that is derived from the request's origin (loopback = DM); the same
 # physical machine is always the DM regardless of its device record.
 #
-# The records persist to a JSON file under data/ (gitignored). A fresh
-# registry seeds a couple of demo devices so the Status -> Devices stub
-# has something to show before any real player has connected.
+# The records persist to a JSON file under data/ (gitignored). The
+# registry starts empty; rows appear only as real devices connect (the
+# DM's own machine first, then each player device on its first request).
 class DeviceRegistry
   COOKIE    = 'crimson_device_id'.freeze
   DATA_PATH = File.expand_path('../data/devices.json', __dir__).freeze
-
-  # Seeded into a brand-new registry. The ids are intentionally
-  # human-readable; the assignment stub shortens ids to eight
-  # characters, so these render as "demo-pho" and "demo-tab".
-  DEMO_DEVICE_IDS = %w[demo-phone demo-tablet].freeze
 
   class << self
     # Process-wide registry pointed at the default data file. Routes and
@@ -46,12 +41,7 @@ class DeviceRegistry
 
   def initialize(data_path = DATA_PATH)
     @data_path = data_path
-    if File.exist?(@data_path)
-      @records = read_records
-    else
-      @records = DEMO_DEVICE_IDS.map { |id| blank_record(id) }
-      persist!
-    end
+    @records = File.exist?(@data_path) ? read_records : []
   end
 
   # All records, newest activity first, as defensive copies.

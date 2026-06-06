@@ -24,7 +24,7 @@ The `DeviceRegistry` class (`lib/device_registry.rb`) owns the device list and p
 | `character_id` | The assigned player Character's id, or `null` when unassigned.    |
 | `last_seen`    | ISO-8601 timestamp of the device's most recent request.           |
 
-A brand-new registry seeds two demo devices (`demo-phone`, `demo-tablet`) so the Devices stub has rows to show before any real player connects. The stub shortens device ids to eight characters for display, so these render as `demo-pho` and `demo-tab`.
+The registry starts empty and contains only devices that have genuinely connected — the DM's own machine appears on first load, and each player device is added on its first request. The stub shortens device ids to eight characters for display.
 
 ## Device Assignment Stub
 

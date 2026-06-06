@@ -13,27 +13,20 @@ RSpec.describe DeviceRegistry do
     DeviceRegistry.new(data_path)
   end
 
-  describe 'seeding a fresh registry' do
-    it 'seeds the demo devices and writes them to disk' do
-      r = registry
-      ids = r.list.map { |d| d['device_id'] }
-      expect(ids).to match_array(DeviceRegistry::DEMO_DEVICE_IDS)
-      expect(File.exist?(data_path)).to be(true)
-      on_disk = JSON.parse(File.read(data_path)).map { |d| d['device_id'] }
-      expect(on_disk).to match_array(DeviceRegistry::DEMO_DEVICE_IDS)
-    end
-
-    it 'gives every seeded device a nil assignment and a last_seen stamp' do
-      r = registry
-      r.list.each do |d|
-        expect(d['character_id']).to be_nil
-        expect(d['last_seen']).to match(/\A\d{4}-\d\d-\d\dT/)
-      end
-    end
-
-    it 'does not re-seed an existing (even empty) registry' do
-      File.write(data_path, JSON.pretty_generate([]))
+  describe 'a fresh registry' do
+    it 'starts empty — no rows until a real device connects' do
       expect(registry.list).to eq([])
+    end
+
+    it 'does not write a file until something is recorded' do
+      registry
+      expect(File.exist?(data_path)).to be(false)
+    end
+
+    it 'records a device with a nil assignment and a last_seen stamp' do
+      d = registry.touch('abc')
+      expect(d['character_id']).to be_nil
+      expect(d['last_seen']).to match(/\A\d{4}-\d\d-\d\dT/)
     end
   end
 
