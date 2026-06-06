@@ -51,6 +51,8 @@ Each option carries a **patch** that mutates the seed Rolls: the Competency + Un
 
 When every step is resolved the embedded **Check Resolution Stub** appears (`Roll All` / `Confirm` + the dice table). The DM rolls (and may reroll/nudge or type a manual override into the Result field), then `Confirm` emits `action:confirmed`. On it, Combat reads each Roll's Successes + the defender dice, and `resolve_attack` recomputes the weapon damage from the chosen weapon, spends Combat Pool per participant, nets Supporting − Opposing Successes per *Check Resolution*, and routes positive net damage through *Apply Damage* → Conditions' *Apply Hit Point Damage* (Temporary HP absorbs worst-first, per `conditions_design.md`).
 
+When the chosen weapon carries magical **Damage Riders** and the hit lands, the result panel first shows a second **Roll Resolution Stub** — the rider dice (typically 4 per Property) rolled at the attack's Target Number. The DM rolls and `Confirm`s it; it collapses to its own row (with a Change button) and only then does the editable damage screen appear, now carrying a **separate Damage box per rider** (and a Self-damage box for a rider that bites the wielder) alongside the base Damage / Bleed / Combat-Pool fields + `Commit attack`. Rider bonus damage scores without letting a rolled `1` count against it (`failure_modifier 0`; Crits still double); a `1` only feeds the self-damage. The rolled, DM-editable amounts ride the commit payload as `rider_results: [{ id, damage, self_damage }]`, and each rider applies as its own Severity Calculation. See `encounter_tests.md` → *Magical weapon Damage Riders*.
+
 #### Confirm payload
 
 The shape `Encounter::State#resolve_attack_payload` consumes (symbol or string keys):

@@ -10,7 +10,17 @@
 // not. Returns a propagated copy of the Check — each Roll cloned with its
 // bonus_penalty_list extended. A null Roll (a Defender slot left blank)
 // contributes nothing and receives nothing.
+//
+// Ascendancy: a creature's Inherent Bonus is the advantage of its own Tier;
+// to its opponent that same edge is the Tier-gap disadvantage we call
+// Ascendancy. So when an `Inherent` entry crosses sides it is relabeled
+// `Ascendancy` (still inverted) — this is how a different-Tier matchup shows
+// up, labeled, on the opposing Roll's Target Number. Every other Bonus Type
+// keeps its name when it crosses.
 export class Propagation {
+  // Bonus Types that change name when they propagate to the other side.
+  static CROSS_SIDE_RELABEL = { Inherent: 'Ascendancy' };
+
   static apply(check) {
     const supporting = check.supporting || [];
     const opposing = check.opposing || [];
@@ -38,7 +48,8 @@ export class Propagation {
     for (const source of sourceRolls) {
       if (!source || source === roll) continue;
       for (const [type, value, src] of source.bonusPenaltyList || []) {
-        base.push(src === undefined ? [type, -value] : [type, -value, src]);
+        const relabeled = Propagation.CROSS_SIDE_RELABEL[type] || type;
+        base.push(src === undefined ? [relabeled, -value] : [relabeled, -value, src]);
       }
     }
     return { ...roll, bonusPenaltyList: base };

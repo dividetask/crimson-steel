@@ -39,6 +39,47 @@ RSpec.describe Encounter::Attack do
     end
   end
 
+  describe 'Tier modifiers on the attack check' do
+    let(:table) { [0, 1, 2, 3, 4, 5] } # Tier Minimum Inherent Bonus
+
+    it 'raises the wielder effective Tier with Glory only when fighting up' do
+      expect(described_class.effective_attacker_tier(1, 2, 1)).to eq(2) # Glory vs higher
+      expect(described_class.effective_attacker_tier(1, 0, 1)).to eq(1) # not fighting up → no bump
+      expect(described_class.effective_attacker_tier(1, 2, 0)).to eq(1) # no Glory
+    end
+
+    it 'gives the attacker its Inherent Bonus on a defended attack' do
+      expect(described_class.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 0,
+                                                   inherent_table: table, no_defense: false))
+        .to eq([['Inherent', 1]])
+      # Glory lifts the Inherent Bonus to the higher Tier's.
+      expect(described_class.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 1,
+                                                   inherent_table: table, no_defense: false))
+        .to eq([['Inherent', 2]])
+    end
+
+    it 'adds an Ascendancy penalty (the un-rolled defender Inherent) on a no-defense attack' do
+      # Without Glory: +1 Inherent and −2 Ascendancy nets to −1 on the TN (harder).
+      expect(described_class.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 0,
+                                                   inherent_table: table, no_defense: true))
+        .to eq([['Inherent', 1], ['Ascendancy', -2]])
+      # Glory: +2 Inherent and −2 Ascendancy nets to 0 — the gap is closed.
+      expect(described_class.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 1,
+                                                   inherent_table: table, no_defense: true))
+        .to eq([['Inherent', 2], ['Ascendancy', -2]])
+    end
+
+    it 'drops zero Tier-0 modifiers' do
+      expect(described_class.attacker_tier_bonuses(attacker_tier: 0, defender_tier: 0, tier_advantage: 0,
+                                                   inherent_table: table, no_defense: true)).to eq([])
+      expect(described_class.defender_tier_bonuses(defender_tier: 0, inherent_table: table)).to eq([])
+    end
+
+    it 'gives the defender its Inherent Bonus to propagate' do
+      expect(described_class.defender_tier_bonuses(defender_tier: 2, inherent_table: table)).to eq([['Inherent', 2]])
+    end
+  end
+
   describe '.build_spec' do
     let(:attacker) { { id: 1 } }
     let(:target)   { { id: 2 } }
@@ -370,6 +411,170 @@ RSpec.describe 'Encounter::State#resolve_attack_payload (weapon-aware)' do
     s.resolve_attack_payload(args.merge(commit: true))
     expect(s.combatant(3)[:concentration].first[:reservoir]).to eq(3) # 5 − 2
     expect(s.dm_luck_points).to eq(1) # 4 − 3
+  end
+
+  it 'rolls a Damage Rider as its own Severity Calculation on a hit' do
+    cond = Conditions::Instance.new
+    s = state(cond)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee', commit: true,
+      weapon: { damage_types: ['slashing'], threshold: 5, base_damage: 0,
+                damage_riders: [{ property: 'Elemental', subtype: 'Fire', label: 'Flaming',
+                                  dice: 4, kind: 'damage', damage_type: 'fire', amount: 1, severity: nil }] },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 3 },
+      defense:  { choice: 'none' },
+      rider_results: [{ id: 0, damage: 2 }] # client-rolled bonus fire damage
+    )
+    ro = out[:rider_outcomes].first
+    expect(ro[:damage]).to eq(2)
+    expect(ro[:severity_map]).to eq(moderate: 3) # fire is moderate + its damage_per_hit 1
+    # Main slashing (3, runtime-bucketed at threshold 5 → minor) is kept
+    # separate from the rider's fire (moderate).
+    expect(cond.state.hp_damage[:minor]).to eq(3)
+    expect(cond.state.hp_damage[:moderate]).to eq(3)
+  end
+
+  it 'applies a Vicious rider as Major to the target and bites the wielder' do
+    target_cond   = Conditions::Instance.new
+    attacker_cond = Conditions::Instance.new
+    conds = { '1' => attacker_cond, '2' => target_cond }
+    s = Encounter::State.new({}, data_path: data_path,
+                             creature_lookup: ->(_id) { creature },
+                             conditions_for: ->(id) { conds[id.to_s] })
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee', commit: true,
+      weapon: { damage_types: ['slashing'], threshold: 0, base_damage: 0,
+                damage_riders: [{ property: 'Vicious', subtype: nil, label: 'Vicious',
+                                  dice: 4, kind: 'damage', damage_type: 'slashing', amount: 1,
+                                  severity: 'major',
+                                  self_damage: { severity: 'minor', amount: 1, minimum: 1 } }] },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 2 },
+      defense:  { choice: 'none' },
+      # e.g. 3 crits + 1 one: bonus damage 6 (crits ×2, the 1 ignored), self 3.
+      rider_results: [{ id: 0, damage: 6, self_damage: 3 }]
+    )
+    ro = out[:rider_outcomes].first
+    expect(ro[:severity_map]).to eq(major: 6)               # all bonus damage is Major
+    expect(target_cond.state.hp_damage[:major]).to eq(6)
+    expect(ro[:self_damage]).to eq(severity: 'minor', amount: 3)
+    expect(attacker_cond.state.hp_damage[:minor]).to eq(3)
+  end
+
+  it 'applies the DM-edited self-damage to the wielder (minimum with no 1s)' do
+    target_cond   = Conditions::Instance.new
+    attacker_cond = Conditions::Instance.new
+    conds = { '1' => attacker_cond, '2' => target_cond }
+    s = Encounter::State.new({}, data_path: data_path,
+                             creature_lookup: ->(_id) { creature },
+                             conditions_for: ->(id) { conds[id.to_s] })
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee', commit: true,
+      weapon: { damage_types: ['slashing'], threshold: 0, base_damage: 0,
+                damage_riders: [{ property: 'Vicious', label: 'Vicious', dice: 4, kind: 'damage',
+                                  damage_type: 'slashing', amount: 1, severity: 'major',
+                                  self_damage: { severity: 'minor', amount: 1, minimum: 1 } }] },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 2 },
+      defense:  { choice: 'none' },
+      rider_results: [{ id: 0, damage: 0, self_damage: 1 }] # minimum self-damage, no 1s
+    )
+    expect(attacker_cond.state.hp_damage[:minor]).to eq(1)
+  end
+
+  it 'preview returns rider metadata but applies no rider damage' do
+    cond = Conditions::Instance.new
+    s = state(cond)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee', commit: false,
+      weapon: { damage_types: ['slashing'], threshold: 5, base_damage: 0,
+                damage_riders: [{ property: 'Elemental', subtype: 'Fire', label: 'Flaming',
+                                  dice: 4, kind: 'damage', damage_type: 'fire', amount: 1 }] },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 3 },
+      defense:  { choice: 'none' }
+    )
+    expect(out[:riders].length).to eq(1)
+    expect(out[:riders].first[:label]).to eq('Flaming')
+    expect(cond.state.hp_damage.values.sum).to eq(0) # preview mutates nothing
+  end
+
+  it 'a miss carries no riders' do
+    cond = Conditions::Instance.new
+    s = state(cond)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee', commit: true,
+      weapon: { damage_types: ['slashing'], threshold: 0, base_damage: 0,
+                damage_riders: [{ property: 'Elemental', subtype: 'Fire', label: 'Flaming',
+                                  dice: 4, kind: 'damage', damage_type: 'fire', amount: 1 }] },
+      attacker: { id: atk[:id], dice: 2, speed: 2, successes: 0 },
+      defense:  { choice: 'dodge', id: tgt[:id], dice: 3, speed: 0, successes: 2 }
+    )
+    expect(out[:net_dos]).to be <= 0
+    expect(out[:riders]).to be_nil
+    expect(out[:rider_outcomes]).to be_nil
+  end
+
+  # Tier Mismatch Inherent damage reduction + the Glory weapon Property.
+  def tiered_creature(tier)
+    obj = Object.new
+    obj.define_singleton_method(:tier) { tier }
+    obj.define_singleton_method(:attribute_value) { |_a| 12 }
+    obj.define_singleton_method(:ranks_for) { |_k| 4 }
+    obj.define_singleton_method(:max_hit_points) { 60 }
+    obj.define_singleton_method(:max_mana) { 8 }
+    obj.define_singleton_method(:tags) { [] }
+    obj.define_singleton_method(:name) { "T#{tier}" }
+    obj
+  end
+
+  def tier_state(tiers)
+    Encounter::State.new({}, data_path: data_path,
+                         creature_lookup: ->(id) { tiered_creature(tiers[id.to_s] || 0) },
+                         conditions_for: ->(_id) { Conditions::Instance.new })
+  end
+
+  def attack_for_gap(s, atk, tgt, tier_advantage: 0)
+    s.resolve_attack_payload(
+      target_id: tgt[:id], attack_kind: 'melee', commit: false,
+      weapon: { damage_types: ['slashing'], threshold: 0, base_damage: 10, tier_advantage: tier_advantage },
+      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 1 }, # base 10 + net 1 = 11 pre-reduction
+      defense:  { choice: 'none' }
+    )
+  end
+
+  it 'reduces weapon damage by the Tier Mismatch Inherent DR against a higher-Tier defender' do
+    s = tier_state('1' => 0, '2' => 2) # attacker Tier 0, defender Tier 2
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = attack_for_gap(s, atk, tgt)
+    expect(out[:inherent_dr]).to eq(7) # floor(5 × (2 − 0.5))
+    expect(out[:damage]).to eq(4)      # 11 − 7
+  end
+
+  it 'Glory shrinks the gap by raising the wielder effective Tier' do
+    s = tier_state('1' => 0, '2' => 2)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = attack_for_gap(s, atk, tgt, tier_advantage: 1)
+    expect(out[:inherent_dr]).to eq(5) # effective Tier 1: floor(5 × (2 − 1))
+    expect(out[:damage]).to eq(6)      # 11 − 5
+  end
+
+  it 'Glory lets a one-Tier-higher foe take full damage' do
+    s = tier_state('1' => 0, '2' => 1)
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = attack_for_gap(s, atk, tgt, tier_advantage: 1)
+    expect(out[:inherent_dr]).to eq(0) # effective Tier 1 == defender Tier 1
+    expect(out[:damage]).to eq(11)
+  end
+
+  it 'never reduces damage against an equal or lower Tier defender' do
+    s = tier_state('1' => 2, '2' => 0) # attacker outranks defender
+    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = attack_for_gap(s, atk, tgt)
+    expect(out[:inherent_dr]).to eq(0)
+    expect(out[:damage]).to eq(11)
   end
 
   it 'rejects an ineligible defense (Parry vs ranged) before spending' do

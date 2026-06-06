@@ -72,3 +72,28 @@ test('Non-lead Opposing Rolls receive only the Initiator inversion', () => {
   // Non-lead Opposing effective [('A',-3)]; Net = -3; TN = 6 - (-3) = 9.
   assert.equal(params.opposing[1].tn, 9);
 });
+
+test("A creature's Inherent becomes the opponent's Ascendancy when it crosses sides", () => {
+  // Tier-1 attacker (Inherent +1) vs Tier-2 defender (Inherent +2).
+  const params = CheckResolution.previewParameters({
+    supporting: [{ bonusPenaltyList: [['Inherent', 1]] }],
+    opposing: [{ bonusPenaltyList: [['Inherent', 2]] }],
+  });
+  // Attacker keeps its own Inherent; the defender's Inherent crosses as an
+  // Ascendancy Penalty. Net +1 - 2 = -1 → TN 6 - (-1) = 7 (fighting up is harder).
+  assert.deepEqual(params.supporting[0].bonusPenaltyList, [['Inherent', 1], ['Ascendancy', -2]]);
+  assert.equal(params.supporting[0].tn, 7);
+  // The defender sees the attacker's Inherent as its own Ascendancy (a Bonus,
+  // since it out-ranks): +2 Inherent, -1 Ascendancy → net +1 → TN 5.
+  assert.deepEqual(params.opposing[0].bonusPenaltyList, [['Inherent', 2], ['Ascendancy', -1]]);
+  assert.equal(params.opposing[0].tn, 5);
+});
+
+test('Inherent against an equal-Tier opponent cancels to no Ascendancy effect', () => {
+  const params = CheckResolution.computeParameters({
+    supporting: [{ bonusPenaltyList: [['Inherent', 2]] }],
+    opposing: [{ bonusPenaltyList: [['Inherent', 2]] }],
+  });
+  // +2 Inherent and -2 Ascendancy (different Types, both apply) net to 0 → TN 6.
+  assert.equal(params.supporting[0].tn, 6);
+});

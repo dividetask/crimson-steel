@@ -360,6 +360,22 @@ Weapon Properties:
         amount: 2
     weapon_modifiers:
       threshold_delta: 5
+  # Glory treats the wielder's Tier as `amount` higher when attacking a
+  # higher-Tier opponent, shrinking the Tier gap (Δ) that drives the Tier
+  # Mismatch Inherent damage reduction (encounter_design.md → "Tier Mismatch
+  # modifiers") and lifting its Inherent Bonus on the attack check. A
+  # weapon-only, single-target effect — it never rides a spell or area
+  # attack. `tier_advantage` is read by Combat at attack time (not posted to
+  # Conditions).
+  Glory:
+    min_tier: 1
+    cost: 2000
+    applies_to: [melee, ranged]
+    has_subtype: false
+    display:
+      word: Glorious
+    tier_advantage:
+      amount: 1
   Vicious:
     min_tier: 2
     cost: 2000
@@ -367,16 +383,22 @@ Weapon Properties:
     has_subtype: false
     display:
       word: Vicious
+    # Each rider Success deals Major damage to the target (the weapon's
+    # own Damage Type, but the Severity is forced to Major). The bite is
+    # double-edged: on a hit the wielder takes a minimum of 1 Minor
+    # damage, plus 1 more Minor per rider die that came up a 1.
     damage_rider:
       dice: 4
       on_success:
         kind: damage
         damage_type: from_weapon
-        amount: 2
+        amount: 1
+        severity: major
       on_failure:
         kind: self_damage
         severity: minor
         amount: 1
+        minimum: 1
 
 # =====================================================================
 # AMMUNITION

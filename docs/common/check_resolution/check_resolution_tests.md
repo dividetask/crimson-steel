@@ -27,6 +27,8 @@ Tests that depend on randomness state the *rolled* dice as input; an implementat
 
 **Non-lead Opposing Rolls receive only the Initiator's inversion.** Symmetric to the above: a non-Defending Opposing Roll's effective list contains only the inverted entries from the Initiating Roll.
 
+**Inherent crosses sides as Ascendancy.** Given a Supporting Roll `[('Inherent', +1)]` and an Opposing Roll `[('Inherent', +2)]`: the Supporting Roll's effective list is `[('Inherent', +1), ('Ascendancy', -2)]` — the opponent's Inherent is inverted **and relabeled** Ascendancy. TN Net Modifier = +1 − 2 = −1; TN = 6 − (−1) = 7. The Opposing Roll's effective list is `[('Inherent', +2), ('Ascendancy', -1)]`; TN = 5. Equal Inherent on both sides nets to zero (the +Inherent and −Ascendancy cancel) — Base TN. Every other Bonus Type keeps its name when it crosses.
+
 ---
 
 ## Resolve a Check

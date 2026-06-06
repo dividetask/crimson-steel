@@ -50,6 +50,11 @@ module Equipment
         next if qty <= 0
         payload = { 'item' => entry['item'], 'quantity' => qty }
         payload['tier'] = entry['tier'] if entry.key?('tier')
+        # Magical stock: an entry may carry `properties` (the same shape the
+        # inventory data files use — a string, or {name, subtype}) so a Shop
+        # can sell, say, a Flaming Long sword. Unit Price falls back to the
+        # catalog Property cost when none is stored on the Stack.
+        payload['properties'] = entry['properties'] if entry.key?('properties')
         stacks << Stack.normalize(payload)
       end
       stacks

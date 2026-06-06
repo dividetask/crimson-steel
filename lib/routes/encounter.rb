@@ -499,7 +499,8 @@ helpers do
     { item_type: item_type, display_name: wd[:display_name], ranged: ranged, natural: natural,
       speed: wd[:speed], damage_types: wd[:damage_types], threshold: wd[:threshold],
       bleed: wd[:bleed], damage_formula: wd[:damage_formula], affliction: wd[:affliction],
-      affliction_potency: wd[:affliction_potency] }
+      affliction_potency: wd[:affliction_potency], damage_riders: wd[:damage_riders],
+      tier_advantage: wd[:tier_advantage] }
   end
 
   # The defender's weapons usable to Parry: equipped melee weapons, excluding
@@ -563,6 +564,10 @@ helpers do
     die      = DiceResolution.config.die_size
     base_tn  = DiceResolution.config.base_target_number
     atk_pool = (encounter_state.combat_pool_remaining(attacker[:id]) rescue 0) || 0
+    atk_tier = (acc&.tier rescue 0) || 0
+    # Inherent / Ascendancy Tier modifiers on the attack check read the
+    # Creatures Tier Minimum Inherent Bonus table.
+    inh_table = (Creatures::Config.tier_minimum_inherent_bonus rescue [])
 
     # Display the character's own Bonus/Penalty list (natural signs). TNs are
     # NOT computed here — the builder hands raw Bonus lists to Check Resolution,
@@ -591,8 +596,7 @@ helpers do
       { id: c[:id], name: tracker_name(c), unaware: encounter_state.unaware?(c[:id]),
         # Uncanny Dodge (et al.) make the target immune to Flatfooted / Unaware.
         flatfooted_immune: flatfooted_immune?(tacc),
-        is_pc: creature_is_pc?(c[:creature_id]),
-        tier: (tacc&.tier rescue nil),
+        is_pc: creature_is_pc?(c[:creature_id]), tier: (tacc&.tier rescue 0) || 0,
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
         martial: roll_inputs_for(tacc, 'martial',   attribute_override: :str),
         dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex),
@@ -687,13 +691,32 @@ helpers do
     targets.each do |t|
       weapons.each do |w|
         comp = w[:competency] ? [w[:competency]] : []
-        # Raw attacker Bonus lists (no TN math here). Flatfooted applies
-        # whenever the defender is NOT Dodging — so no defence and Block /
-        # Parry all keep it; only Dodge sheds it. Unaware applies only when
-        # no defence is declared (declaring proves awareness). The per-branch
-        # list is built in the branch loop; this is the no-defence one.
-        atk_none_bpl = comp + Encounter::Attack.attacker_bonuses(
+        # Tier modifiers on the attack check: the attacker's (Glory-adjusted)
+        # Inherent Bonus on both branches, plus an Ascendancy penalty equal to
+        # the un-rolled defender's Inherent on the No-defense branch (a defended
+        # branch lets the defender's Inherent propagate instead). The defender's
+        # own Inherent rides its defense Roll (see `def_tier`).
+        atk_tier_none = Encounter::Attack.attacker_tier_bonuses(
+          attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
+          inherent_table: inh_table, no_defense: true
+        )
+        atk_tier_def = Encounter::Attack.attacker_tier_bonuses(
+          attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
+          inherent_table: inh_table, no_defense: false
+        )
+        def_tier = Encounter::Attack.defender_tier_bonuses(defender_tier: t[:tier], inherent_table: inh_table)
+        # Raw attacker Bonus lists (no TN math here), each carrying its tier
+        # modifiers. Flatfooted applies whenever the defender is NOT Dodging —
+        # so no defence and Block / Parry all keep it; only Dodge sheds it (the
+        # per-branch list is built in the branch loop). Unaware applies only on
+        # the no-defence branch (declaring a defence proves awareness). Uncanny
+        # Dodge (et al.) via `flatfooted_immune` sheds both. `atk_declared_bpl`
+        # backs the Shield of Faith branch (a caster defends; the shielded
+        # target itself is not Dodging, so it stays Flatfooted unless immune).
+        atk_none_bpl     = comp + atk_tier_none + Encounter::Attack.attacker_bonuses(
           flatfooted: !t[:flatfooted_immune], unaware: t[:unaware] && !t[:flatfooted_immune])
+        atk_declared_bpl = comp + atk_tier_def + Encounter::Attack.attacker_bonuses(
+          flatfooted: !t[:flatfooted_immune], unaware: false)
         # No defense first (attacker keeps Flatfooted), then one group per
         # Defensive Action: a name button carrying the defence Speed (Dodge /
         # Block = 0, Parry = weapon Speed), a button per die choice, and a
@@ -731,7 +754,10 @@ helpers do
 
         branches.each do |b|
           di    = b[:inputs]
-          dcmp  = di[:competency_modifier] ? [di[:competency_modifier]] : []
+          # The defender's own Competency plus its Inherent Tier Bonus — the
+          # latter propagates onto the attacker's TN per Check Resolution, which
+          # is how a higher-Tier defender makes the attack harder.
+          dcmp  = (di[:competency_modifier] ? [di[:competency_modifier]] : []) + def_tier
           cap   = di[:dice_cap].to_i
           dspd  = b[:speed]
           # Flatfooted sticks unless this defence is a Dodge; declaring a
@@ -889,7 +915,8 @@ helpers do
     payload['weapon'] = { 'damage_types' => w[:damage_types], 'threshold' => w[:threshold],
                           'bleed' => w[:bleed], 'affliction' => w[:affliction],
                           'affliction_potency' => w[:affliction_potency],
-                          'base_damage' => evaluate_weapon_damage(w[:damage_formula], acc) }
+                          'base_damage' => evaluate_weapon_damage(w[:damage_formula], acc),
+                          'damage_riders' => w[:damage_riders], 'tier_advantage' => w[:tier_advantage] }
   end
 
   # ---- Action Builder blob for a Cast (turn_action_stub.md → Cast)

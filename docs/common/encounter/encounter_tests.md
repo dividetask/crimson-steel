@@ -144,6 +144,38 @@ Cases:
 
 **Damage routes through apply_damage.** Resolved damage is dispatched to `apply_damage(target_id, damage, "physical")`. Per Severity Calculation, that bucket-sorts the raw damage into the `{minor, moderate, major}` Severity Map and forwards to `Conditions.apply_hit_point_damage`. The endpoint returns `severity_map` so the client can update the tracker.
 
+### Magical weapon Damage Riders
+
+A weapon carries `damage_riders` (from *Get Weapon Details*) when its Stack has a magical Property with a `damage_rider`. The rider's extra dice are rolled **at the attack's Target Number, only after the hit lands**, in their own **Roll Resolution Stub** that renders before the editable damage screen; on Confirm it collapses to its own row (with a Change button), then the damage screen appears with a **separate, editable Damage box per rider** (and a Self-damage box for a rider that bites the wielder). Rider (bonus) damage scores with `failure_modifier 0` — Successes and Crits count (Crits double, the Dice Resolution default) but a rolled `1` **never subtracts** from the bonus damage; a `1` only feeds a Vicious-style `self_damage` (its `minimum` plus its `amount` per `1`). The preview returns `riders` (metadata so the panel can build the roll stub); the commit carries the rolled, DM-editable amounts back in `rider_results: [{ id, damage, self_damage }]`. Each rider lands as its **own** Severity Calculation, separate from the weapon's base damage.
+
+**Rider damage is a separate Severity Calculation.** A `slashing` hit also carries an Elemental(Fire) rider (`damage_type: fire`). The rolled `damage: 2` routes through `apply_damage(target, 2, "fire")` — fire's `damage_per_hit: 1` makes it `3`, bucketed Moderate — landing in Conditions separately from the weapon's slashing damage.
+
+**A rider only fires on a hit.** When the net DoS is ≤ 0 (a miss), the payload returns no `riders` / `rider_outcomes` and rolls nothing extra.
+
+**Vicious lands Major and bites the wielder.** A Vicious rider (`severity: major`, `self_damage: {severity: minor, …}`) with `rider_results: { damage: 6, self_damage: 3 }` applies `{major: 6}` to the target and `{minor: 3}` to the **attacker** — all of the bonus damage is Major regardless of its Damage Type, and the self-damage is its own box.
+
+**Preview rolls nothing.** A `commit: false` preview returns the `riders` metadata but applies no rider damage and no wielder self-damage.
+
+### Tier Mismatch weapon damage reduction + Glory
+
+**Higher-Tier defender reduces weapon damage.** Attacker Tier 0 hits a Tier 2 defender for a pre-reduction `11` (base 10 + net 1). The Tier Mismatch Inherent damage reduction `5 × Δ` (Tier 0 = 0.5) removes `floor(5 × 1.5) = 7`; the payload returns `inherent_dr: 7` and `damage: 4`.
+
+**Glory shrinks the gap.** The same attack with a `tier_advantage: 1` (Glory) weapon raises the wielder's effective Tier to 1: `Δ = 2 − 1 = 1`, reduction `5`, `damage: 6`. Against a defender only one Tier higher, Glory closes the gap entirely — `inherent_dr: 0`, full `damage: 11`.
+
+**No reduction at equal or lower Tier.** An attacker who equals or outranks the defender gets `inherent_dr: 0` (the gap is clamped at zero); the damage is unreduced.
+
+### Inherent / Ascendancy Tier modifiers on the attack check
+
+With `Tier Minimum Inherent Bonus: [0, 1, 2, 3, 4, 5]`:
+
+**Attacker carries its Inherent Bonus.** `Encounter::Attack.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 0, no_defense: false)` → `[['Inherent', 1]]`. The defender's Defense Roll carries `[['Inherent', 2]]`, which propagates onto the attacker's TN (fighting up is harder by the gap).
+
+**Glory lifts the attacker's Inherent.** The same call with `tier_advantage: 1` → `[['Inherent', 2]]` — the wielder is treated as Tier 2, so its Inherent matches the defender's and the gap closes.
+
+**No-defense adds an Ascendancy penalty.** With `no_defense: true` and no Glory → `[['Inherent', 1], ['Ascendancy', -2]]` (the un-rolled Tier-2 defender's advantage, negated; nets −1 on the TN). With Glory → `[['Inherent', 2], ['Ascendancy', -2]]` (nets 0 — the gap is closed without a defender Roll to propagate).
+
+**Tier 0 contributes nothing.** Tier-0 attacker vs Tier-0 defender yields `[]` from both `attacker_tier_bonuses` and `defender_tier_bonuses` (the Inherent Bonus at Tier 0 is 0).
+
 ## Get / Spend / Reset Combat Pool
 
 **Get Combat Pool runs the buy formula.** Combatant has Tier 0, `martial_proficiency_ranks = 4`, attribute = 12. Budget = `floor((4 + floor(12/2)) / 1) = 10`. The tiered Buy cost function (per *Combat Pool computation*: `Step·T(T-1)/2 + R·T` with `T = floor(P/Step)`, `R = P mod Step`) gives `cost(11) = 4·1 + 3·2 = 10 ≤ 10 < cost(12) = 4·3 = 12`. So P = 11 is the largest fit. Result: 11.

@@ -69,6 +69,25 @@ Tier from the catalog and reprices — the client cart is never trusted for
 Tier or cost. Because Guidance Bonus is a Stack-identity field, two
 Bonuses of the same Item are distinct Stacks and never merge.
 
+### Magical Weapons
+
+A builder card for enchanted weapons: three dropdowns — **Weapon** (any
+buyable Weapon, no natural attacks), **Property** (the Weapon Properties —
+Elemental flattened per Subtype, Emotional, Radiant, Subdual, Vicious,
+Glory) and **Tier** (1–5). One enchanted weapon is bought per **Add**, for
+the section's **Recipient** dropdown (there is no quantity box — a magic
+weapon is bought one at a time). The shown price updates client-side as
+`base weapon + Tier Surcharge + Property cost`. The card validates the
+combination live: a Property below its `min_tier`, or one whose
+`applies_to` excludes the weapon's melee/ranged category (e.g. Vicious on a
+bow), shows a note and disables **Add**.
+
+At checkout the client sends the chosen `properties` (name + subtype) and
+`tier`; the server (`StoreMagicWeapons.fields`) revalidates eligibility and
+reprices from the catalog — the cart is never trusted for cost. Because
+`properties` and `tier` are Stack-identity fields, different enchantments
+of the same Weapon are distinct Stacks and never merge.
+
 ### Potions
 
 Deferred. One Item per potion-capable Spell, sorted and colored by Tier.

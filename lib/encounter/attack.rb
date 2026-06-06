@@ -66,6 +66,61 @@ module Encounter
       source ? pair + [source] : pair
     end
 
+    # ---- Tier modifiers on the attack check (Inherent / Ascendancy) ----
+    #
+    # Every Creature's Inherent Bonus (Creatures' Tier Minimum Inherent Bonus
+    # table) applies to its checks, not only its Attributes. On a weapon attack
+    # both sides carry their Inherent Bonus, and the Tier-gap effect — the
+    # Ascendancy — is produced by Check Resolution's cross-side propagation:
+    # when a Roll's Inherent crosses to the opposing Roll it is inverted *and
+    # relabeled Ascendancy* (see propagation.js → CROSS_SIDE_RELABEL), so a
+    # higher-Tier defender's Inherent lands on the attacker's TN as an
+    # Ascendancy Penalty. When the defender declares no Defensive Action it does
+    # not roll — nothing propagates — so Combat supplies the same Ascendancy
+    # explicitly: the defender's Inherent, negated. A weapon's Glory Property
+    # (`tier_advantage`) treats the wielder as that many Tiers higher when
+    # fighting up, lifting its Inherent Bonus and shrinking the gap. Magnitudes
+    # come entirely from the Inherent table — Ascendancy invents no new number.
+
+    # The wielder's effective Tier for the attack: raised by a Glory weapon's
+    # `tier_advantage`, but only when the defender outranks the attacker.
+    def effective_attacker_tier(attacker_tier, defender_tier, tier_advantage)
+      bump = (tier_advantage.to_i.positive? && defender_tier.to_i > attacker_tier.to_i) ? tier_advantage.to_i : 0
+      attacker_tier.to_i + bump
+    end
+
+    # Inherent Bonus amount for a Tier from the Tier Minimum Inherent Bonus
+    # table (clamped to the table's range; 0 when empty).
+    def inherent_amount(inherent_table, tier)
+      t = Array(inherent_table)
+      return 0 if t.empty?
+      idx = tier.to_i.clamp(0, t.length - 1)
+      (t[idx] || 0).to_i
+    end
+
+    # The attacker roll's Tier modifiers: its (Glory-adjusted) Inherent Bonus,
+    # plus — only against an undefended target — an Ascendancy penalty equal to
+    # the defender's Inherent (the advantage that would otherwise propagate).
+    # Returns a bonus_penalty_list of [type, amount] pairs.
+    def attacker_tier_bonuses(attacker_tier:, defender_tier:, tier_advantage:, inherent_table:, no_defense:)
+      eff = effective_attacker_tier(attacker_tier, defender_tier, tier_advantage)
+      list = []
+      inh = inherent_amount(inherent_table, eff)
+      list << ['Inherent', inh] unless inh.zero?
+      if no_defense
+        asc = -inherent_amount(inherent_table, defender_tier)
+        list << ['Ascendancy', asc] unless asc.zero?
+      end
+      list
+    end
+
+    # The defender roll's Tier modifier: its Inherent Bonus (which propagates
+    # onto the attacker's TN per Check Resolution). [] when zero.
+    def defender_tier_bonuses(defender_tier:, inherent_table:)
+      inh = inherent_amount(inherent_table, defender_tier)
+      inh.zero? ? [] : [['Inherent', inh]]
+    end
+
     # Assemble the client-resolvable attack spec.
     #
     #   attacker / target — Combatant hashes from the State.

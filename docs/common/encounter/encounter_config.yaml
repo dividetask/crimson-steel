@@ -134,6 +134,7 @@ Falling Damage Per 10 Feet: 2
 Falling Damage Threshold: 5
 Falling Damage Bleed Constant: 0   # actual bleed = Bleed Constant + damage dealt
 
+
 # ---- Trigger Conditions ----
 #
 # Canonical catalog of Trigger Condition names that Abilities may

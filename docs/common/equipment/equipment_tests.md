@@ -307,6 +307,12 @@ Conditions, Combat, and Abilities are mocked as recorded-call stubs. A test asse
 
 **Per-Weapon `threshold: null` propagates.** `Whip` declares `threshold: null`; *Get Weapon Details* returns `threshold: null` rather than the min over Damage Type defaults.
 
+**Damage Riders surface with sentinels resolved.** A `{Long sword, tier: 1, properties: [Elemental(Fire)]}` Stack returns `damage_riders: [{property: Elemental, subtype: Fire, label: "Flaming", dice: 4, kind: damage, damage_type: "fire", amount: 1, severity: null}]` — `from_subtype` expanded to `fire`. A `{Great sword, tier: 2, properties: [Vicious]}` Stack resolves `from_weapon` to `slashing`, carries `severity: major`, and a `self_damage: {severity: minor, amount: 1, minimum: 1}`. A mundane Stack returns `damage_riders: []`.
+
+**Property `threshold_delta` raises the weapon Threshold.** A `{Mace, tier: 1, properties: [Subdual]}` Stack returns `threshold: 8` — the Bludgeoning default 3 plus Subdual's `weapon_modifiers.threshold_delta: 5`. A weapon whose Threshold is `null` (Whip) stays `null`.
+
+**Glory surfaces a Tier Advantage.** A `{Long sword, tier: 1, properties: [Glory]}` Stack returns `tier_advantage: 1` (the Property's `tier_advantage.amount`); a mundane weapon returns `tier_advantage: 0`.
+
 **Get Armor Details computes Effective Hardness and Resilience.** For `{Chain mail, tier: 2, properties: []}`: `material: Metal`, `base_hardness: 10`, `effective_hardness: 14`, `damage_reduction: 3`, `resilience_increment: 2`, `resilience: 4`, `hit_points_formula: "30 * thickness"`, `thickness: 2`, `is_metal_armor: true` (Chain mail's catalog entry declares `metal: true`).
 
 **Shields read the per-Item Metal flag.** For `{Tower shield, tier: 3}`: `damage_reduction: null`, `resilience_increment: null`, `resilience: 0` (the null guard), `is_metal_armor: true` (Tower shield declares `metal: true`). For `{Light wooden shield, tier: 0}`: `is_metal_armor: false` (no `metal` flag).
@@ -342,6 +348,8 @@ Conditions, Combat, and Abilities are mocked as recorded-call stubs. A test asse
 **First Visit scales stock by population.** A Generic Shop visited on Game Day 5 with `population: 1000` produces an Active Generic Shop Owner with `generated_at_day: 5`. A stock entry `{qty_base: 2, qty_per_kpop: 4}` materializes at Quantity `2 + floor(4 * 1000 / 1000) = 6`.
 
 **Items below their `min_pop` are omitted.** At `population: 100`, an entry with `min_pop: 200` is not stocked.
+
+**A stock entry may carry magical `properties`.** A stock entry `{item: Long sword, tier: 1, properties: [Elemental(Fire)]}` materializes a Stack with that Property attached; its Unit Price uses the catalog Property cost (`35 + 250 + 500 = 785`). This is how a Shop sells a magical weapon.
 
 **Budget scales with population.** *Get Total Wealth* on the Active Generic Shop equals `base_gold + floor(gold_per_sqrt_pop * sqrt(population))` (e.g. `80 + floor(18 * sqrt(1000)) = 649`), held as a Gold Stack in its materialized stock.
 

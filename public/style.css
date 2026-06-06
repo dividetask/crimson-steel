@@ -909,6 +909,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 4px 10px;
+  font-family: Arial, sans-serif;
   font-size: 11px;
   border-bottom: 1px solid #eee;
 }
@@ -922,9 +923,20 @@ body {
 }
 
 .step-summary-value {
+  font-family: Arial, sans-serif;
   font-weight: bold;
   color: #333;
   flex: 1;
+}
+
+/* The collapsed Net Degree of Success line shares the step-summary value's
+   typography so the finished builder reads as one uniform list rather than
+   switching fonts between the step notes and the net line. */
+.cb-net {
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  color: #333;
 }
 
 .save-roll-table[data-roll-state="pending"] { display: none; }
@@ -3319,6 +3331,10 @@ body {
 .ta-field label { font-weight: bold; color: #444; display: flex; align-items: center; gap: 4px; }
 .ta-field input { width: 56px; padding: 2px 4px; font-size: 12px; }
 .ta-split { color: #7f1d1d; }
+/* Rider Roll Resolution Stub sits above the damage screen; trim the shared
+   .rolls-wrapper margin so the two read as one stacked flow. */
+.ta-rider-stub .rolls-wrapper { margin-bottom: 10px; }
+.ta-damage-screen { margin-top: 4px; }
 .ta-result-label { font-size: 11px; font-weight: bold; color: #8a5d00; margin-bottom: 4px; }
 .ta-result-committed { background: #eef7ee; border-top-color: #2c8a2c; }
 .ta-hit strong { color: #7f1d1d; }
