@@ -71,6 +71,16 @@ ferocity:
       type: Racial
       add: 3
 
+scaled_hide:
+  description: "Tough reptilian scales grant +1 damage reduction and +1 damage resilience."
+  modifiers:
+    - target: damage_reduction
+      type: Racial
+      add: 1
+    - target: damage_resilience
+      type: Racial
+      add: 1
+
 # --- Skill / save modifiers --------------------------------------------
 
 silver_tongue:
@@ -124,6 +134,9 @@ darkvision:
 
 low_light_vision:
   description: "See twice as far as a human in dim light."
+
+light_sensitivity:
+  description: "Dazzled in bright light such as sunlight: takes a penalty on attack rolls and sight-based Perception checks while brightly illuminated."
 
 uncanny_dodge:
   description: "Lets the Creature enter a Rage even if Surprised. Cannot be caught Flatfooted or Unaware unless Paralyzed or Unconscious. Certain abilities can negate this protection."

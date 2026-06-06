@@ -68,6 +68,17 @@ half_orc:
   parent: humanoid
   abilities: []
 
+# Full-blooded orc. +4 Str/Con, -2 Int/Wis/Cha; low-light vision and
+# Ferocity (fights on past 0 HP). Medium / speed 30 from humanoid.
+orc:
+  parent: humanoid
+  attribute_adjustments: { str: 4, con: 4, int: -2, wis: -2, cha: -2 }
+  abilities:
+    - name: low_light_vision
+      min_level: 0
+    - name: ferocity
+      min_level: 0
+
 halfling:
   parent: humanoid
   speed: 25
@@ -80,11 +91,36 @@ satyr:
     - name: enchantment_resistance
       min_level: 0
 
+# -4 Str/Con/Int/Cha, -2 Wis, +4 Dex. Small, low-light vision, and the
+# Fast Movement trait (+10 ft).
 goblin:
   parent: humanoid
   size: small
   speed: 25
-  abilities: []
+  attribute_adjustments: { str: -4, con: -4, int: -4, cha: -4, wis: -2, dex: 4 }
+  abilities:
+    - name: low_light_vision
+      min_level: 0
+    - name: fast_movement
+      min_level: 0
+
+# -4 Str, -2 Con/Wis, +2 Dex/Int. Small, speed 30. Low-light vision,
+# scaled hide (+1 damage reduction / resilience), light sensitivity, and
+# Trapfinding.
+kobold:
+  parent: humanoid
+  size: small
+  speed: 30
+  attribute_adjustments: { str: -4, con: -2, wis: -2, dex: 2, int: 2 }
+  abilities:
+    - name: low_light_vision
+      min_level: 0
+    - name: scaled_hide
+      min_level: 0
+    - name: light_sensitivity
+      min_level: 0
+    - name: Trapfinding
+      min_level: 0
 
 # --- Fey races ---------------------------------------------------------
 
