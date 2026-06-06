@@ -84,6 +84,8 @@ Only `bonus_penalty_list` propagates. `starting_contribution` and Roll Modifiers
 
 The propagation is structural — every entry in a Roll's `bonus_penalty_list` propagates per the rules above. No per-entry opt-out exists.
 
+**Cross-side relabel — Inherent → Ascendancy.** One Bonus Type changes name as it crosses sides: an **Inherent** entry (a creature's own-Tier advantage) is inverted *and relabeled* **Ascendancy** on the opposing Roll. This is how the Tier-gap advantage/disadvantage of fighting a different-Tier opponent — the Ascendancy — is produced by Check Resolution itself and shown, labeled, on the opponent's Target Number: a higher-Tier defender's `Inherent +2` lands on the attacker as `Ascendancy −2`. Because Inherent and Ascendancy are distinct Types, a Roll's own Inherent and the incoming Ascendancy do not stack together — both contribute (so equal Tiers net to zero, an unequal Tier leaves the gap). Every other Bonus Type keeps its name when it crosses.
+
 When `opposing_roll_list` is empty, no Opposing Roll exists to propagate from, and the Initiating Roll receives no inverted entries. Other Supporting Rolls also receive no inverted entries (they would have received them from a non-existent Defending Roll). The Check resolves with Supporting-side DoIS only.
 
 ### Check Outcome classification

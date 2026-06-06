@@ -67,15 +67,17 @@ module Encounter
     #
     # Every Creature's Inherent Bonus (Creatures' Tier Minimum Inherent Bonus
     # table) applies to its checks, not only its Attributes. On a weapon attack
-    # both sides carry their Inherent Bonus, so the Tier-gap advantage emerges
-    # through Check Resolution's cross-side propagation: a higher-Tier
-    # defender's Inherent inverts onto the attacker's TN. When the defender
-    # declares no Defensive Action it does not roll — nothing propagates — so
-    # the attacker instead takes an explicit Ascendancy penalty equal to the
-    # defender's Inherent (negated). A weapon's Glory Property (`tier_advantage`)
-    # treats the wielder as that many Tiers higher when fighting up, lifting its
-    # Inherent Bonus and shrinking the gap. Magnitudes come entirely from the
-    # Inherent table — Ascendancy invents no new number.
+    # both sides carry their Inherent Bonus, and the Tier-gap effect — the
+    # Ascendancy — is produced by Check Resolution's cross-side propagation:
+    # when a Roll's Inherent crosses to the opposing Roll it is inverted *and
+    # relabeled Ascendancy* (see propagation.js → CROSS_SIDE_RELABEL), so a
+    # higher-Tier defender's Inherent lands on the attacker's TN as an
+    # Ascendancy Penalty. When the defender declares no Defensive Action it does
+    # not roll — nothing propagates — so Combat supplies the same Ascendancy
+    # explicitly: the defender's Inherent, negated. A weapon's Glory Property
+    # (`tier_advantage`) treats the wielder as that many Tiers higher when
+    # fighting up, lifting its Inherent Bonus and shrinking the gap. Magnitudes
+    # come entirely from the Inherent table — Ascendancy invents no new number.
 
     # The wielder's effective Tier for the attack: raised by a Glory weapon's
     # `tier_advantage`, but only when the defender outranks the attacker.
