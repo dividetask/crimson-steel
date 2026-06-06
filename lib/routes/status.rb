@@ -1,4 +1,4 @@
-STATUS_VIEWS = %w[status dice check conditions creatures timekeeping chronicle encounter equipment devices].freeze
+STATUS_VIEWS = %w[status dice check conditions creatures timekeeping chronicle encounter equipment].freeze
 
 get '/status' do
   redirect '/character-sheets' unless dm_view?
@@ -6,7 +6,14 @@ get '/status' do
   @check = Status::SampleCheck.check
   @rolls = Status::SampleRolls.rolls
 
-  if @view == 'conditions'
+  if @view == 'status'
+    # The default landing pane hosts the live Device — Character
+    # Assignment tool. Unlike the inspection sub-views (which run on
+    # Status sample data), it reads the real DeviceRegistry and the
+    # live player Characters that can be assigned to a device.
+    @devices    = DeviceRegistry.instance.list
+    @characters = Creatures.player_controlled
+  elsif @view == 'conditions'
     @catalog = Conditions::Catalog.load
     @creatures = Status::SampleConditions.creatures
     @save_examples = Status::SampleConditions.save_resolution_examples(@catalog)
@@ -30,12 +37,6 @@ get '/status' do
     @chronicle_examples = Status::SampleChronicle.chronicle_examples.map do |ex|
       ex.merge(entry: Chronicle::Entry.normalize(ex[:entry]))
     end
-  elsif @view == 'devices'
-    # Unlike the other sub-views, the Devices stub runs on live state:
-    # the real DeviceRegistry list and the live player Characters that
-    # can be assigned to a device.
-    @devices    = DeviceRegistry.instance.list
-    @characters = Creatures.player_controlled
   end
 
   @tests_html  = TestDocs.render_for(@view)

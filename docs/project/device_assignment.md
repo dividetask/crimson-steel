@@ -28,7 +28,7 @@ A brand-new registry seeds two demo devices (`demo-phone`, `demo-tablet`) so the
 
 ## Device Assignment Stub
 
-The Devices sub-view of the Status page (`docs/project/menu_layout.md`, Status page layout) renders the assignment table from `views/_assignment_stub.erb`. Columns:
+The Status page's default landing pane ([menu_layout.md](menu_layout.md), Status page layout) renders the assignment table from `views/_assignment_stub.erb`. Columns:
 
 - **Device** — the eight-character id preview; the viewing device is badged **this device**.
 - **Last Seen** — the formatted `last_seen` timestamp.
