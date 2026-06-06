@@ -59,7 +59,7 @@ module CreaturesFixtures
       tags: ['player_character'],
       attributes: { str: 12, dex: 14, con: 17, int: 14, wis: 18, cha: 11 },
       classes: { cleric: { level: 4, skills: %w[healing arcana intimidate sense_motive],
-                            choices: { 'deity' => 'Grull', 'domain' => 'War' } } },
+                            choices: { 'deity' => 'Karthak', 'domain' => 'War' } } },
       tier_attribute_advancement: %i[con wis]
     )
   end

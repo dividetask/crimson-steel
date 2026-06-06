@@ -1,17 +1,28 @@
 import { DiceConfig } from './config.js';
 import { RandomRng } from './rng.js';
 import { Propagation } from './propagation.js';
+import { TierMismatch } from './tierMismatch.js';
 import { TnComputation } from './tnComputation.js';
 import { Classifier } from './classifier.js';
 import { Roll } from './roll.js';
 
-// Multi-Roll composition. Applies cross-side propagation, defers all
-// per-Roll math to Dice Resolution, then aggregates and classifies.
+// Multi-Roll composition. Applies cross-side propagation and the Tier
+// Mismatch Ascendancy modifier, defers all per-Roll math to Dice
+// Resolution, then aggregates and classifies.
 export class CheckResolution {
+  // Cross-side Propagation followed by the Tier Mismatch Ascendancy
+  // modifier. Tier Mismatch runs AFTER Propagation so its Ascendancy entry
+  // is not itself inverted onto the other side. A Spread (area) Check uses
+  // the same bidirectional preparation — the caster and every Opposer
+  // exchange bonuses, and the caster takes its Ascendancy against each — and
+  // differs only in how `resolveCheck` aggregates (per-Opposer, below).
+  static prepare(check) {
+    return TierMismatch.apply(Propagation.apply(check));
+  }
   // Pure preview: per-Roll { tn, startingValue } after propagation. No
   // dice rolled. Lists align with the input lists.
   static computeParameters(check, config = DiceConfig.default()) {
-    const propagated = Propagation.apply(check);
+    const propagated = CheckResolution.prepare(check);
     const compute = (roll) => (roll ? TnComputation.compute(roll, config) : null);
     return {
       supporting: propagated.supporting.map(compute),
@@ -24,7 +35,7 @@ export class CheckResolution {
   // UI can display the full TN computation without doing any of the math
   // itself. No dice rolled.
   static previewParameters(check, config = DiceConfig.default()) {
-    const propagated = Propagation.apply(check);
+    const propagated = CheckResolution.prepare(check);
     const compute = (roll) => {
       if (!roll) return null;
       const list = roll.bonusPenaltyList || [];
@@ -43,11 +54,24 @@ export class CheckResolution {
   // degreeOfSuccess, outcome }. Degree of Success = sum of Supporting DoIS
   // minus sum of Opposing DoIS. A Check can always Fumble.
   static resolveCheck(check, rng = new RandomRng(), config = DiceConfig.default()) {
-    const propagated = Propagation.apply(check);
+    const propagated = CheckResolution.prepare(check);
     const resolve = (roll) => (roll ? Roll.resolveWithTn(roll, rng, config) : null);
 
     const supportingResults = propagated.supporting.map(resolve);
     const opposingResults = propagated.opposing.map(resolve);
+
+    // Spread Check: resolve the Supporting side once, then net it against EACH
+    // Opposer independently — a separate Degree of Success and Outcome per
+    // caught creature. There is no single Check-level Degree of Success.
+    if (check.spread) {
+      const supportTotal = supportingResults.reduce((a, r) => a + (r ? r.dois : 0), 0);
+      const perOpposer = opposingResults.map((r) => {
+        if (!r) return null;
+        const dos = supportTotal - r.dois;
+        return { ...r, degreeOfSuccess: dos, outcome: Classifier.classify(dos, true, config) };
+      });
+      return { supportingResults, opposingResults: perOpposer, spread: true };
+    }
 
     const degreeOfSuccess = CheckResolution.degreeOfSuccess({
       supporting: supportingResults.map((r) => (r ? r.dois : 0)),

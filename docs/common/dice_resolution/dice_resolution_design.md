@@ -16,6 +16,8 @@ The structure consumed by every public entry point. Constructed by the caller fr
 | `value_adjustment` | `(value, max)` pair or null | null | The Nudge modifier. `value` is signed; `max` is a boolean that switches between targeted and uniform modes. |
 | `positive_reroll` | `(count, max)` pair or null | null | Rerolls non-Successes from lowest first. `max = true` replaces `count` with Maximum Dice Count. |
 | `negative_reroll` | `(count, max)` pair or null | null | Rerolls Successes from highest first. `max = true` replaces `count` with Maximum Dice Count. |
+| `critical_reroll` | `(count, max)` pair or null | null | Rerolls dice equal to Die Size (Critical Successes), lowest index first. Disadvantageous — strips Crits. `max = true` replaces `count` with Maximum Dice Count. |
+| `floor_reroll` | `(count, max)` pair or null | null | Rerolls dice equal to 1, lowest index first. Advantageous — strips natural 1s. `max = true` replaces `count` with Maximum Dice Count. |
 | `failure_modifier` | signed integer | -1 | Each Failure's contribution to DoIS. Set to 0 for Rolls that ignore Failures. |
 | `critical_modifier` | signed integer | 2 | Each Critical Success's contribution to DoIS. Replaces (does not stack with) the +1 a regular Success would contribute. |
 
@@ -67,7 +69,7 @@ The intermediate fields (`initial_dice`, `reroll_changes`, `nudge_changes`, `fin
 
 ### Resolve a Roll without a Target Number (Full Roll Ordered)
 
-Used when a Roll only needs to be ordered against other Rolls — no Successes, no DoIS, no Roll Outcome. Input: a Roll. Only `dice_count`, `value_adjustment`, `positive_reroll`, and `negative_reroll` are read; other fields are ignored.
+Used when a Roll only needs to be ordered against other Rolls — no Successes, no DoIS, no Roll Outcome. Input: a Roll. Only `dice_count`, `value_adjustment`, `positive_reroll`, `negative_reroll`, `critical_reroll`, and `floor_reroll` are read; other fields are ignored.
 
 The pipeline matches the with-TN case but with TN-dependent steps removed:
 
@@ -168,16 +170,21 @@ DoIS = Starting Value + sum of per-die contributions across all dice in `final_d
 
 ### Reroll
 
-A Roll has two slots, `positive_reroll` and `negative_reroll`. Either, both, or neither may be present. Both apply in a single conceptual pass; no die is rerolled more than once.
+A Roll has four slots: `positive_reroll`, `negative_reroll`, `critical_reroll`, and `floor_reroll`. Any combination (or none) may be present. All present slots apply in a single conceptual pass; no die is rerolled more than once.
 
 - Positive: rerolls non-Successes (`value < TN`), preferring lowest values first.
 - Negative: rerolls Successes (`value ≥ TN`), preferring highest values first.
-- The two slots target structurally disjoint dice — non-Successes vs. Successes — so a Roll using both never rerolls the same die twice.
+- Critical: rerolls dice equal to Die Size (Critical Successes), preferring lowest index first (all eligible dice share the same value).
+- Floor: rerolls dice equal to 1, preferring lowest index first.
 - `max = true` on a slot replaces that slot's count with Maximum Dice Count.
 
-For Rolls without a TN, eligibility is restricted to the bottom and top quartiles of `[1, Die Size]`:
+The positive/negative slots partition the dice into structurally disjoint sets (non-Successes vs. Successes), so a Roll using both never rerolls the same die twice. The critical/floor slots target exact extremes (`value = Die Size`, `value = 1`), which overlap those sets — a Crit is also a Success, a 1 is also a non-Success. To keep the "no die rerolled twice" guarantee, the extreme-value slots claim their dice first; `negative_reroll` and `positive_reroll` then select only from the Successes / non-Successes that remain.
+
+For Rolls without a TN, the positive/negative eligibility is restricted to the bottom and top quartiles of `[1, Die Size]`:
 - Positive eligible: `value < floor(Die Size / 4) + 1`.
 - Negative eligible: `value ≥ Die Size - floor(Die Size / 4)`.
+
+The critical/floor slots are TN-independent — their eligibility (`value = Die Size`, `value = 1`) is the same with or without a TN.
 
 ### Nudge
 
@@ -194,7 +201,7 @@ Two modes, selected by the `max` flag in `value_adjustment`.
 
 Modifiers apply in this fixed order on each Roll:
 
-1. Reroll (positive and negative slots, in a single pass).
+1. Reroll (positive, negative, critical, and floor slots, in a single pass).
 2. Nudge.
 
 ## Cross-domain interactions

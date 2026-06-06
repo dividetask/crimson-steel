@@ -1,15 +1,17 @@
 <%#
-  Check Resolution Builder (check_resolution_builder_stub.md).
+  Action Builder (action_builder_stub.md).
 
-  A domain-agnostic, parameter-driven wizard that reuses the Save Resolution
-  stub's look: one "Rolls" wrapper whose header shows the active step's
-  controls, a stack of thin step-summary rows (each with a ↶ Change), the
-  active step's body, and the shared dice table. public/js/ui/checkBuilder.js
-  drives the steps from the data-builder blob and emits `check:confirmed`; the
-  builder never calls back into the host.
+  A domain-agnostic, parameter-driven wizard for composing an action (Attack /
+  Cast / Special) that reuses the Save Resolution stub's look: one "Rolls"
+  wrapper whose header shows the active step's controls, a stack of thin
+  step-summary rows (each with a ↶ Change), the active step's body, and — as its
+  terminal step — the **Check Resolution roll table** (the shared roll stub),
+  whose Roll All affordance is shown only when a step actually rolls dice.
+  public/js/ui/actionBuilder.js drives the steps from the data-builder blob and
+  emits `action:confirmed`; the builder never calls back into the host.
 
   Local:
-    builder — the blob. See checkBuilder.js for the shape. Static steps render
+    builder — the blob. See actionBuilder.js for the shape. Static steps render
               their option buttons here; choice-dependent steps (options_by)
               render their body in JS when reached. `rolls` seeds the table;
               rolls flagged `excluded` start hidden.
@@ -47,7 +49,7 @@
     end.join
   end
 %>
-<div class="rolls-wrapper check-builder" data-state="building"
+<div class="rolls-wrapper action-builder" data-state="building"
      data-stub-id="<%= b[:stub_id] %>"
      data-builder="<%= CGI.escapeHTML(b.to_json) %>">
   <div class="rolls-header">
@@ -107,7 +109,7 @@
   </div>
 
   <%# On Confirm the builder collapses to a single net Degree of Success line
-      (Supporting Successes − Opposing Successes), filled by checkBuilder.js. %>
+      (Supporting Successes − Opposing Successes), filled by actionBuilder.js. %>
   <div class="rolls-results" hidden>
     <div class="cb-net"></div>
     <button type="button" class="btn-rolls-change"><span class="cr-change-icon">↶</span> Change</button>

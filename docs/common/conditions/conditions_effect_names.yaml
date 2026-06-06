@@ -204,3 +204,19 @@ Effect Names:
     mechanics:
       - kind: flag
         flag: unaware
+
+  blindspot:
+    description: "The creature is invisible to one or more observers; an affected observer cannot see it and treats it as unseen."
+    mechanics:
+      - kind: flag
+        flag: unseen
+      - kind: display
+        text: "The creature is unseen by each observer that failed its save. The DM adjudicates the consequences of invisibility (attacks against the unseen creature, the creature's own attacks, Perception to locate it, etc.)."
+
+  blurred:
+    description: "The creature's form is blurred; Critical Successes rolled on attacks against it are rerolled, blunting decisive blows."
+    mechanics:
+      - kind: reroll
+        scope: criticals
+        applies_to: [attacks_against]
+        amount: -1

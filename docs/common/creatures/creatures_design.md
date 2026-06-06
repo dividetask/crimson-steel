@@ -51,7 +51,7 @@ The value under a key in `advancement.classes`.
 |---|---|---|---|
 | `level` | integer | required | Class Level (≥ 0). |
 | `skills` | list of string | `[]` | Skill keys the Creature has chosen to train in this Class. Set Instances are valid (e.g. `perform_dance`); bare Set Skill keys (ending in `_`) are not. |
-| `choices` | dict | `{}` | Per-Class catalog choices. Free-form keys; the consuming Class entry interprets each one. Common keys include `spellcasting: [<spell_name>, ...]` (the spells chosen for the Class's Spellcasting-type ability — Bardic Spellcasting, Arcane Spellcasting, Druidic Spellcasting, Ranger Spellcasting, or the Cleric's `domain` resolution), `deity: <name>` and `domain: <name>` (Cleric), Bard's Versatile Performance subject, etc. Creatures stores and round-trips the dict opaquely; spells listed under `choices.spellcasting` are surfaced as Granted Abilities by *Get Granted Abilities*. |
+| `choices` | dict | `{}` | Per-Class catalog choices. Free-form keys; the consuming Class entry interprets each one. Common keys include `spellcasting: [<spell_name>, ...]` (the spells chosen for the Class's Spellcasting-type ability — Bardic Spellcasting, Arcane Spellcasting, Druidic Spellcasting, Ranger Spellcasting, or the Cleric's `domain` resolution), `deity: <name>` and `domains: [<name>, ...]` (Cleric — up to three domains; the legacy single `domain: <name>` is still accepted), Bard's Versatile Performance subject, etc. Creatures stores and round-trips the dict opaquely; spells listed under `choices.spellcasting` are surfaced as Granted Abilities by *Get Granted Abilities*. |
 
 A bare integer in place of a Class Entry is shorthand: `fighter: 1` is equivalent to `fighter: { level: 1 }`.
 
@@ -238,7 +238,7 @@ Behavior: Concatenate:
 - For each Class Entry the Creature holds: when the Class is an Archetype, the merged `ability_progression` is the parent's progression with the Archetype's appended at each Class Level. For non-Archetype Classes, the Class's own progression. Take entries whose Class Level ≤ the Creature's Class Level in that entry.
 - For each Class Entry, the resolved Class's `granted_spells` (the parent's, when the Class is an Archetype that does not override; the Archetype's, when it declares its own).
 - For each Class Entry, every entry in `choices.spellcasting` (the spells the player picked for the Class's Spellcasting-type ability). Only counted when the Class's progression actually granted a Spellcasting-type ability at or before the Creature's Class Level.
-- For each Class Entry, choice-driven spells looked up through external catalogs (e.g. a Cleric's `choices.deity` + `choices.domain` resolves additional spells via `deities.yaml`).
+- For each Class Entry, choice-driven abilities looked up through external catalogs. A Cleric's `choices.deity` + `choices.domains` resolves, via `deities.yaml`: each chosen domain's bonus spells; the Channel Divinity Talent of each chosen domain that is one of the deity's own domains; and, at Cleric Level ≥ 4, the deity's own Channel Divinity Talent. (The legacy single `choices.domain` is treated as a one-element domain list.)
 
 Deduplicate while preserving first-encounter order. Filter by `source` when supplied.
 

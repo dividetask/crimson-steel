@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'encounter'
+require 'abilities'
 require 'tmpdir'
 
 RSpec.describe Encounter::Cast do
@@ -161,6 +162,70 @@ RSpec.describe 'Encounter::State#resolve_cast_payload' do
     expect(cond.state.hp_damage.values.sum).to eq(5)
   end
 
+  describe 'buff modifiers' do
+    it 'applies a buff Spell modifier as an Active Effect on the target' do
+      cond = Conditions::Instance.new
+      s = state(cond, creature(tier: 1))
+      caster = s.add_combatant('1'); tgt = s.add_combatant('2')
+      s.resolve_cast_payload(
+        caster: { id: caster[:id], dice: 2, speed: 0, successes: 2 },
+        spell:  { name: 'Haste', tier: 1, mana_cost: 0 },
+        targets: [{ id: tgt[:id], effects: [{ kind: 'modifiers', duration: 'rank minutes',
+                    modifiers: [{ target: 'speed', type: 'Guidance', add: 30 }] }] }]
+      )
+      expect(cond.get_modifiers('speed')).to include(['Guidance', 30])
+    end
+
+    it 'evaluates a caster_tier modifier against the caster (Magic Weapon)' do
+      cond = Conditions::Instance.new
+      s = state(cond, creature(tier: 3))
+      caster = s.add_combatant('1'); tgt = s.add_combatant('2')
+      s.resolve_cast_payload(
+        caster: { id: caster[:id], dice: 2, speed: 0, successes: 2 },
+        spell:  { name: 'Magic Weapon', tier: 2, mana_cost: 0 },
+        targets: [{ id: tgt[:id], effects: [{ kind: 'modifiers', duration: 'rank minutes',
+                    modifiers: [{ target: 'attack', type: 'Guidance', add: 'caster_tier' },
+                                { target: 'damage', type: 'Guidance', add: 'caster_tier' }] }] }]
+      )
+      expect(cond.get_modifiers('attack')).to include(['Guidance', 3])
+      expect(cond.get_modifiers('damage')).to include(['Guidance', 3])
+    end
+
+    it 'narrows the target_key by a non-all descriptor (Protection from Poison)' do
+      cond = Conditions::Instance.new
+      s = state(cond, creature(tier: 1))
+      caster = s.add_combatant('1'); tgt = s.add_combatant('2')
+      s.resolve_cast_payload(
+        caster: { id: caster[:id], dice: 1, speed: 0, successes: 1 },
+        spell:  { name: 'Protection from Poison', tier: 2, mana_cost: 0 },
+        targets: [{ id: tgt[:id], effects: [{ kind: 'modifiers', duration: 'rank*10 minutes',
+                    modifiers: [{ target: 'save', type: 'Guidance', add: 1, descriptors: ['poison'] }] }] }]
+      )
+      expect(cond.get_modifiers('poison')).to include(['Guidance', 1])
+      expect(cond.get_modifiers('save')).to be_empty # a poison-only ward, not all saves
+    end
+
+    it 'a turn-based duration sets the Active Effect expiry; minutes are open-ended' do
+      cond = Conditions::Instance.new
+      # Fixed timestamp so current_abs_round is deterministically 0.
+      s = Encounter::State.new({}, data_path: data_path,
+                               creature_lookup: ->(_id) { creature(tier: 1) },
+                               conditions_for: ->(_id) { cond },
+                               current_timestamp_fn: -> { { day_index: 0, round_of_day: 0 } },
+                               rounds_per_day: 10_000)
+      caster = s.add_combatant('1'); tgt = s.add_combatant('2')
+      s.resolve_cast_payload(
+        caster: { id: caster[:id], dice: 1, speed: 0, successes: 1 },
+        spell:  { name: 'Bless', tier: 1, mana_cost: 0 },
+        targets: [{ id: tgt[:id], effects: [{ kind: 'modifiers', duration: '1 turn',
+                    modifiers: [{ target: 'damage_reduction', type: 'Guidance', add: 3 }] }] }]
+      )
+      # current_abs_round is 0 outside combat, so a 1-turn buff expires on round 1.
+      expect(cond.get_modifiers('damage_reduction', current_round: 0)).to include(['Guidance', 3])
+      expect(cond.get_modifiers('damage_reduction', current_round: 1)).to be_empty
+    end
+  end
+
   it 'routes heal, mana restore, and Temporary HP Effects to Conditions' do
     cond = build_instance
     cond.apply_hit_point_damage(minor: 6)
@@ -298,6 +363,19 @@ RSpec.describe 'Encounter::State#resolve_cast_payload' do
     expect(s.combatant(caster[:id])[:combat_pool_spent]).to eq(4)     # caster speed 1 + dice 3
   end
 
+  it 'a reservoir-channel sustain pours the cast dice into the Reservoir' do
+    s = state
+    caster = s.add_combatant('1')
+    out = s.resolve_cast_payload(
+      caster: { id: caster[:id], dice: 4, speed: 0, successes: 0 },
+      spell:  { name: 'Shield of Faith', tier: 1, cast_skill: 'invocation', mana_cost: 0 }, targets: [],
+      sustain: { kind: 'concentration', mode: 'reservoir', reservoir_reset: 'per_turn' }
+    )
+    expect(out[:sustain][:reservoir]).to eq(4) # the 4 cast dice, not rolled
+    held = s.combatant(caster[:id])[:concentration].find { |e| e[:spell_name] == 'Shield of Faith' }
+    expect(held[:reservoir]).to eq(4)
+  end
+
   it 'registers a Concentration Entry for a Channeled sustain' do
     s = state
     caster = s.add_combatant('1')
@@ -306,7 +384,8 @@ RSpec.describe 'Encounter::State#resolve_cast_payload' do
       spell:  { name: 'Bless', tier: 1, cast_skill: 'faith', mana_cost: 0 }, targets: [],
       sustain: { kind: 'concentration', mode: 'maintain', reservoir_reset: 'per_turn' }
     )
-    expect(out[:sustain]).to eq(kind: 'concentration', spell_name: 'Bless')
+    # maintain-mode sustain seeds an empty Reservoir.
+    expect(out[:sustain]).to eq(kind: 'concentration', spell_name: 'Bless', reservoir: 0)
     held = s.combatant(caster[:id])[:concentration]
     expect(held.map { |e| e[:spell_name] }).to include('Bless')
     expect(held.first[:cast_skill]).to eq('faith')

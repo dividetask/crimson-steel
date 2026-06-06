@@ -14,7 +14,26 @@
 
 const BASE_CELL = 28;          // CSS px per Map Unit at zoom factor 1.0.
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const XLINK_NS = 'http://www.w3.org/1999/xlink';
 const ENC = (s) => encodeURIComponent(s);
+
+// An SVG <pattern> wrapping one image sized to a shape's bounding box, so a
+// Zone shape filled with url(#id) shows the image clipped to the shape.
+function zonePattern(id, x, y, w, h, href) {
+  const pat = document.createElementNS(SVG_NS, 'pattern');
+  pat.setAttribute('id', id);
+  pat.setAttribute('patternUnits', 'userSpaceOnUse');
+  pat.setAttribute('x', x); pat.setAttribute('y', y);
+  pat.setAttribute('width', w); pat.setAttribute('height', h);
+  const img = document.createElementNS(SVG_NS, 'image');
+  img.setAttribute('x', x); img.setAttribute('y', y);
+  img.setAttribute('width', w); img.setAttribute('height', h);
+  img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+  img.setAttributeNS(XLINK_NS, 'href', href);
+  img.setAttribute('href', href);
+  pat.appendChild(img);
+  return pat;
+}
 
 export const AtlasMap = {
   initAll() {
@@ -40,6 +59,7 @@ class AtlasCanvas {
     this.panY = 0;
     this.tool = 'select';
     this.placing = null;   // creature_id armed for placement, or null
+    this.placingArea = null; // {shape, size} armed for spell-area placement
   }
 
   start() {
@@ -48,7 +68,14 @@ class AtlasCanvas {
     this.bindToolbar();
     this.bindCanvas();
     // Esc cancels an armed placement.
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.placing) this.clearPlacing(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (this.placing) this.clearPlacing();
+      if (this.placingArea) { this.placingArea = null; this.hidePlaceHint(); }
+    });
+    // The cast panel arms spell-area placement; we drop a local preview and
+    // report the caught creatures back (nothing is persisted until commit).
+    document.addEventListener('cast:arm-area', (e) => this.armArea(e.detail || {}));
   }
 
   // The color for the next drawing: a tool's fixed color (e.g. the players'
@@ -95,6 +122,9 @@ class AtlasCanvas {
       this.world.appendChild(this.buildGridLayer(w, h, map));
     }
 
+    // Zones (spell areas / hazards) sit above the grid but below tokens.
+    this.world.appendChild(this.buildZoneLayer(w, h));
+
     this.annLayer = this.buildAnnotationLayer(w, h);
     this.world.appendChild(this.annLayer);
 
@@ -135,6 +165,54 @@ class AtlasCanvas {
   // units paints as a single pixel after that scale — independent of zoom.
   updateGridStroke() {
     if (this.gridPath) this.gridPath.setAttribute('stroke-width', String(1 / this.zoom));
+  }
+
+  // SVG layer of Zones (spell areas / hazards). A circle's `size` is its radius
+  // in Map Units; a square's `size` is its side. Both center on the anchor cell.
+  buildZoneLayer(w, h) {
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'atlas-zones');
+    svg.setAttribute('width', w);
+    svg.setAttribute('height', h);
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    const defs = document.createElementNS(SVG_NS, 'defs');
+    svg.appendChild(defs);
+    (this.snapshot.zones || []).forEach((z) => {
+      const el = this.zoneEl(z, defs);
+      if (el) svg.appendChild(el);
+    });
+    return svg;
+  }
+
+  // A Zone shape. A `texture` fills it with /images/zones/<texture>.png clipped
+  // to the shape (via an SVG pattern); without one it falls back to the solid
+  // purple fill from CSS. The image fill is set inline so it wins over the CSS.
+  zoneEl(z, defs) {
+    const a = z.anchor || {};
+    const cx = ((a.x || 0) + 0.5) * BASE_CELL;
+    const cy = ((a.y || 0) + 0.5) * BASE_CELL;
+    const size = (z.size || 0) * BASE_CELL;
+    let el, bx, by, bw, bh;
+    if (z.shape === 'square') {
+      bx = cx - size / 2; by = cy - size / 2; bw = bh = size;
+      el = document.createElementNS(SVG_NS, 'rect');
+      el.setAttribute('x', bx); el.setAttribute('y', by);
+      el.setAttribute('width', bw); el.setAttribute('height', bh);
+    } else {
+      // circle (default); line / cone rendering is deferred.
+      bx = cx - size; by = cy - size; bw = bh = size * 2;
+      el = document.createElementNS(SVG_NS, 'circle');
+      el.setAttribute('cx', cx); el.setAttribute('cy', cy); el.setAttribute('r', size);
+    }
+    el.setAttribute('class', 'atlas-zone');
+    if (z.id != null) el.dataset.zoneId = z.id;
+    if (z.texture && defs) {
+      const pid = 'zone-tex-' + (z.id != null ? z.id : Math.random().toString(36).slice(2));
+      defs.appendChild(zonePattern(pid, bx, by, bw, bh, '/images/zones/' + z.texture));
+      el.classList.add('atlas-zone-textured');
+      el.style.fill = 'url(#' + pid + ')';
+    }
+    return el;
   }
 
   buildAnnotationLayer(w, h) {
@@ -271,6 +349,8 @@ class AtlasCanvas {
 
     this.viewport.addEventListener('pointerdown', (e) => {
       if (!this.world) return;
+      // Placing a spell area: drop the footprint at the clicked cell (local).
+      if (this.placingArea) return this.placeArea(e);
       // Placing a Combatant: drop / drag the new Token to the clicked cell.
       if (this.placing) return this.beginPlace(e);
       if (this.tool !== 'select') {
@@ -421,7 +501,7 @@ class AtlasCanvas {
   target(tokenEl) {
     const combatantId = tokenEl.dataset.combatantId;
     if (combatantId == null || combatantId === '') return;
-    const builder = document.querySelector('.turn-action .ta-attack .check-builder');
+    const builder = document.querySelector('.turn-action .ta-attack .action-builder');
     if (!builder) return;
     const summary = builder.querySelector('.step-summary[data-step="target"]');
     if (summary && !summary.hidden) {
@@ -575,6 +655,75 @@ class AtlasCanvas {
     this.viewport.classList.remove('atlas-placing');
     this.hidePlaceHint();
     if (this._ghost) { this._ghost.remove(); this._ghost = null; }
+  }
+
+  // ----- placing a spell area (local preview only) -----
+
+  armArea(detail) {
+    if (!this.world) return;
+    this.placingArea = { shape: (detail.shape || 'circle'), size: parseInt(detail.size, 10) || 0 };
+    this.placing = null;
+    this.tool = 'select';
+    this.viewport.classList.add('atlas-placing');
+    this.showPlaceHint('Click the map to place the spell effect — Esc to cancel');
+  }
+
+  placeArea(e) {
+    e.preventDefault();
+    const u = this.toUnits(e.clientX, e.clientY);
+    const x = Math.round(u[0]);
+    const y = Math.round(u[1]);
+    const area = this.placingArea;
+    this.placingArea = null;
+    this.viewport.classList.remove('atlas-placing');
+    this.hidePlaceHint();
+    this.renderAreaPreview(x, y, area);
+    const hits = this.tokensInArea(x, y, area);
+    document.dispatchEvent(new CustomEvent('cast:area-placed', {
+      detail: { x: x, y: y, shape: area.shape, size: area.size, hits: hits }
+    }));
+  }
+
+  // A local-only preview of the footprint (purple), cleared on the next place
+  // or when the canvas re-renders from a fresh snapshot.
+  renderAreaPreview(x, y, area) {
+    if (this._areaPreview) this._areaPreview.remove();
+    const map = this.snapshot.map || {};
+    const w = (map.width || 40) * BASE_CELL;
+    const h = (map.height || 30) * BASE_CELL;
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'atlas-zones atlas-zone-preview');
+    svg.setAttribute('width', w); svg.setAttribute('height', h);
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    const el = this.zoneEl({ anchor: { x: x, y: y }, shape: area.shape, size: area.size });
+    if (el) svg.appendChild(el);
+    this.world.appendChild(svg);
+    this._areaPreview = svg;
+  }
+
+  // Combatant Tokens whose center lies within the footprint centered on the
+  // clicked cell. circle: distance <= size (radius in cells); square: size on
+  // a side. Only Tokens tied to a Combatant are reported (the cast resolves by
+  // Combatant id).
+  tokensInArea(x, y, area) {
+    const acx = x + 0.5;
+    const acy = y + 0.5;
+    const r = area.size;
+    const out = [];
+    (this.snapshot.tokens || []).forEach((t) => {
+      if (t.combatant_id == null) return;
+      const tcx = (t.x || 0) + (t.size || 1) / 2;
+      const tcy = (t.y || 0) + (t.size || 1) / 2;
+      let inside;
+      if (area.shape === 'square') {
+        inside = Math.abs(tcx - acx) <= r / 2 && Math.abs(tcy - acy) <= r / 2;
+      } else {
+        const dx = tcx - acx, dy = tcy - acy;
+        inside = Math.sqrt(dx * dx + dy * dy) <= r;
+      }
+      if (inside) out.push({ combatant_id: t.combatant_id, creature_id: t.creature_id, label: t.label });
+    });
+    return out;
   }
 
   // Drop / drag the new Token: a ghost follows the pointer (snapped to cells);

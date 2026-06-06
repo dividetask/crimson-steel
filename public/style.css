@@ -1078,6 +1078,12 @@ body {
   border-radius: 3px;
 }
 
+/* Spell-picker Tier header — larger than the option buttons, Tier-colored. */
+.cb-tier-head {
+  font-size: 16px;
+  font-weight: 700;
+}
+
 .cr-mod-btn:hover { background: #f0f0f0; }
 
 /* Dice / option choices the Combat Pool can't afford (Speed + dice >
@@ -3443,6 +3449,24 @@ body {
   left: 0;
   pointer-events: none;
 }
+/* --- Zones (spell areas / hazards) --- */
+.atlas-zones {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.atlas-zone {
+  fill: rgba(128, 90, 213, 0.30);          /* default: solid purple */
+  stroke: rgba(128, 90, 213, 0.85);
+  stroke-width: 2;
+}
+.atlas-zone-textured {
+  /* Image fill is set inline (wins over this); keep the purple outline. */
+  stroke: rgba(128, 90, 213, 0.85);
+}
+/* Local, un-committed placement preview — dashed to read as provisional. */
+.atlas-zone-preview .atlas-zone { stroke-dasharray: 6 4; }
 .atlas-empty {
   position: absolute;
   top: 50%;

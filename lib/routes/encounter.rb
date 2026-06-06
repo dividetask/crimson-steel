@@ -550,9 +550,9 @@ helpers do
     { dice_cap: 0, competency_modifier: nil }
   end
 
-  # ---- Check Resolution Builder blob for an attack -------------------
+  # ---- Action Builder blob for an attack -------------------
   #
-  # Precompute the entire decoupled builder blob (check_resolution_builder_stub.md):
+  # Precompute the entire decoupled builder blob (action_builder_stub.md):
   # target / weapon+dice / defense steps whose options carry patches that
   # mutate the seed Rolls, so the Builder runs without calling back. Per the
   # design, attacker TN folds in Competency + Unaware (per target) + Flatfooted
@@ -574,6 +574,17 @@ helpers do
       ri   = roll_inputs_for(acc, 'martial', attribute_override: attr)
       w.merge(dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier])
     end
+    # Spiritual Weapon: while the caster channels it, the floating weapon strikes
+    # each turn with a number of dice equal to its (persistent) Reservoir — a
+    # force attack that costs no Combat Pool and does not consume the Reservoir.
+    sw = Array(attacker[:concentration]).find { |e| e[:spell_name].to_s == 'Spiritual Weapon' && e[:reservoir].to_i.positive? }
+    if sw
+      weapons << { item_type: 'spiritual_weapon', display_name: 'Spiritual Weapon', ranged: true,
+                   speed: 0, damage_types: ['force'], threshold: 0, bleed: 0, base_damage: 0,
+                   dice_cap: sw[:reservoir].to_i, competency: nil }
+    end
+
+    atk_tier = (acc&.tier rescue nil)
 
     targets = encounter_state.combatants.reject { |c| c[:id] == attacker[:id] }.map do |c|
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
@@ -581,6 +592,7 @@ helpers do
         # Uncanny Dodge (et al.) make the target immune to Flatfooted / Unaware.
         flatfooted_immune: flatfooted_immune?(tacc),
         is_pc: creature_is_pc?(c[:creature_id]),
+        tier: (tacc&.tier rescue nil),
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
         martial: roll_inputs_for(tacc, 'martial',   attribute_override: :str),
         dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex),
@@ -595,11 +607,33 @@ helpers do
     rolls = [
       { id: 'attacker', side: 'supporting', creature_name: tracker_name(attacker),
         roll_name: 'Attack', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false },
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false,
+        tier: atk_tier },
       { id: 'defender', side: 'opposing', creature_name: '—',
         roll_name: 'Defense', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true }
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
+        tier: nil },
+      # A Shield of Faith caster defending the target — a second Opposing Roll,
+      # hidden until the defender chooses it (fueled by Reservoir dice).
+      { id: 'shield', side: 'opposing', creature_name: '—',
+        roll_name: 'Shield of Faith', die_size: die, tn: base_tn, starting_value: 0,
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
+        tier: nil }
     ]
+
+    # Map of defender Combatant id -> the caster shielding them (Shield of Faith)
+    # and their available Reservoir dice, so the defense step can offer the
+    # caster's block as an Opposing Roll.
+    shields = {}
+    encounter_state.granted_actions.select { |g| g[:source].to_s == 'Shield of Faith' && g[:defends] }.each do |g|
+      cc = encounter_state.combatant(g[:combatant_id]) or next
+      res = Array(cc[:concentration]).find { |e| e[:mode] == 'reservoir' && e[:spell_name].to_s == 'Shield of Faith' }
+      next unless res && res[:reservoir].to_i >= 2
+      cacc = Creatures.lookup(cc[:creature_id]) rescue nil
+      shields[g[:defends]] = { caster_id: g[:combatant_id], caster_name: tracker_name(cc),
+                               reservoir: res[:reservoir].to_i, dice_cap: g[:dice_cap].to_i,
+                               tier: (cacc&.tier rescue nil) }
+    end
 
     # Header quick-picks (next to "Target"): one button per enemy of the
     # attacker. Enemies are the Combatants on the opposite side of the
@@ -610,7 +644,8 @@ helpers do
     target_step = { key: 'target', label: 'Target',
                     header_options: enemy_targets.map { |t| { value: t[:id], label: t[:name] } },
                     options: targets.map { |t| { value: t[:id], key: t[:id], label: t[:name],
-                                                 patch: { set_name: [{ id: 'defender', creature_name: t[:name] }] } } } }
+                                                 patch: { set_name: [{ id: 'defender', creature_name: t[:name] }],
+                                                          set_tier: [{ id: 'defender', tier: t[:tier] }] } } } }
 
     action_opts = []
     action_quick = []
@@ -627,7 +662,10 @@ helpers do
           set_bpl: [{ id: 'attacker', bonus_penalty_list: bpl }] }
       end
       # Cost to roll n dice = flat weapon Speed + n; grey out unaffordable.
-      aff_max = (2..cap).select { |n| speed + n <= atk_pool }.max
+      # Spiritual Weapon rolls Reservoir dice (free), so its dice aren't pool-gated.
+      free    = w[:item_type] == 'spiritual_weapon'
+      aff = ->(n) { free || speed + n <= atk_pool }
+      aff_max = (2..cap).select { |n| aff.call(n) }.max
       max_opt = { value: "#{w[:item_type]}|#{aff_max || cap}", key: w[:item_type], group: grp,
                   label: "#{disp} (speed #{speed})", summary: "#{disp} — #{aff_max || cap} dice",
                   disabled: aff_max.nil?, patch: set_atk.call(aff_max || cap) }
@@ -635,7 +673,7 @@ helpers do
       (2..cap).each do |n|
         action_opts << { value: "#{w[:item_type]}|#{n}", key: w[:item_type], group: grp,
                          label: n.to_s, summary: "#{disp} — #{n} dice",
-                         disabled: speed + n > atk_pool, patch: set_atk.call(n) }
+                         disabled: !aff.call(n), patch: set_atk.call(n) }
       end
       action_opts << { kind: 'info', group: grp, value: "#{grp}|info",
                        label: (bpl.empty? ? 'no bonuses' : fmt_mods.call(bpl)) }
@@ -728,6 +766,29 @@ helpers do
           opts << { kind: 'info', group: b[:group], value: "#{b[:group]}|info",
                     label: (dcmp.empty? ? 'no bonuses' : fmt_mods.call(dcmp)) }
         end
+        # Shield of Faith: a caster shielding this target blocks the attack as a
+        # separate Opposing Roll, spending Reservoir dice (no Combat Pool, and
+        # the target's own Defense Roll stays excluded).
+        sh = shields[t[:id]]
+        if sh
+          # Up to the caster's casting-skill Dice Cap, and never more dice than
+          # Reservoir remains (1 Reservoir die spent per die rolled).
+          dcap = sh[:dice_cap].to_i.positive? ? sh[:dice_cap].to_i : sh[:reservoir]
+          cap = [sh[:reservoir], dcap].min
+          mk_sh = lambda do |dice|
+            { value: "shield:#{sh[:caster_id]}|#{dice}", group: 'shield', label: dice.to_s,
+              summary: "Shield of Faith — #{dice} dice",
+              patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_declared_bpl }],
+                       set_dice: [{ id: 'shield', count: dice }],
+                       set_tier: [{ id: 'shield', tier: sh[:tier] }],
+                       set_name: [{ id: 'shield', roll_name: "Shield of Faith (#{sh[:caster_name]})" }],
+                       set_excluded: [{ id: 'defender', excluded: true }, { id: 'shield', excluded: false }] } }
+          end
+          (2..cap).each { |n| opts << mk_sh.call(n) }
+          headers << { value: "shield:#{sh[:caster_id]}|2", label: "Shield (#{sh[:caster_name]})", disabled: cap < 2 }
+          opts << { kind: 'info', group: 'shield', value: 'shield|info',
+                    label: "Shield of Faith by #{sh[:caster_name]} — up to #{cap} Reservoir dice" }
+        end
         defense_map["#{t[:id]}|#{w[:item_type]}"] = opts
         defense_header_map["#{t[:id]}|#{w[:item_type]}"] = headers
       end
@@ -808,6 +869,17 @@ helpers do
     wt  = payload['weapon_type']
     atk = payload['attacker'] || {}
     return unless wt && atk['id']
+    # Spiritual Weapon is a virtual force weapon: its dice come from the
+    # Reservoir (charged at cast), so it costs no Combat Pool and the Reservoir
+    # is not spent. Damage is force, scaling with the net Successes (base 0).
+    if wt == 'spiritual_weapon'
+      payload['attack_kind'] ||= 'ranged'
+      atk['speed'] = 0
+      payload['attacker'] = atk
+      payload['weapon'] = { 'damage_types' => ['force'], 'threshold' => 0, 'bleed' => 0, 'base_damage' => 0 }
+      payload['free_attacker_pool'] = true
+      return
+    end
     combatant = encounter_state.combatant(atk['id'].to_i) or return
     w = equipped_weapons(combatant[:creature_id]).find { |x| x[:item_type] == wt } or return
     acc = Creatures.lookup(combatant[:creature_id]) rescue nil
@@ -820,7 +892,7 @@ helpers do
                           'base_damage' => evaluate_weapon_damage(w[:damage_formula], acc) }
   end
 
-  # ---- Check Resolution Builder blob for a Cast (turn_action_stub.md → Cast)
+  # ---- Action Builder blob for a Cast (turn_action_stub.md → Cast)
   #
   # Same decoupled builder pattern as the Attack flow (attack_builder_blob): a
   # Target step, a "Spell & dice" action step (one group per known Spell, dice
@@ -845,19 +917,48 @@ helpers do
         v     = (Abilities.lookup(name) rescue nil) || {}
         skill = (Array(v['skills']).first || Encounter::Cast::DEFAULT_CAST_SKILL)
         ri    = roll_inputs_for(acc, skill)
+        # Area footprint (Hash, or the first footprint Aspect of an Aspect-list
+        # area like Grease). Area Spells are placed on the map, not targeted.
+        raw   = (Abilities.catalog.ability(name) rescue nil) || {}
+        ra    = raw['area']
+        area  = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
+        act   = (Abilities.resolve_activation(v) rescue nil)
+        # A reservoir/auto channel pours its cast dice into a Reservoir — those
+        # casts ask for a dice count but roll nothing (a Save/attack_roll on such
+        # a Spell governs its per-turn channel, not the cast). A casting check is
+        # rolled only for a non-reservoir Save / attack-roll / damage Spell.
+        channel_mode = v.dig('channel', 'mode').to_s
+        fills_reservoir = %w[reservoir auto].include?(channel_mode) &&
+                          v.dig('reservoir', 'fill', 'source').to_s == 'channel_dice'
+        requires_roll = !fills_reservoir &&
+                        !!(v['attack_roll'] || Array(v['save']).first || Array(v['damage_type']).compact.first)
+        # The Combat Pool dice a cast costs at minimum — its Action category's
+        # Action Minimum (Main 4 / Bonus 2 / Free 0), not a flat 2. A no-roll,
+        # no-Reservoir Spell costs exactly this and asks nothing; a rolled or
+        # Reservoir Spell asks for a count from here up to the Dice Cap.
+        action_min = Encounter::Special.action_cost(act && act[:alias])
         { name: name, tier: g[:tier], mana_cost: cost, skill: skill,
           dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier],
           damage_type: Array(v['damage_type']).compact.first, school: v['school'],
           attack_roll: !!v['attack_roll'], save: Array(v['save']).first,
+          area: (area.is_a?(Hash) ? area : nil),
+          requires_roll: requires_roll,
+          reservoir: fills_reservoir,
+          action_min: action_min,
+          long_cast: !!(act && act[:kind].to_s == 'real_time' && act[:minutes].to_i >= 1),
           affordable: mana_left.nil? || cost <= mana_left }
       end
     end
+    # Hide Spells that take a minute or longer to cast — they aren't cast in the
+    # heat of combat.
+    spells = spells.reject { |sp| sp[:long_cast] }
 
     targets = encounter_state.combatants.map do |c|
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
       { id: c[:id], creature_id: c[:creature_id],
         name: tracker_name(c) + (c[:id] == caster[:id] ? ' (self)' : ''),
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
+        tier: (tacc&.tier rescue nil),
         dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex),
         martial: roll_inputs_for(tacc, 'martial',  attribute_override: :str),
         has_shield: equipped_shield?(c[:creature_id]),
@@ -867,21 +968,24 @@ helpers do
     rolls = [
       { id: 'caster', side: 'supporting', creature_name: tracker_name(caster),
         roll_name: 'Cast', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false },
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false,
+        tier: (acc&.tier rescue nil) },
       { id: 'target', side: 'opposing', creature_name: '—',
         roll_name: 'Defense', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true }
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
+        tier: nil }
     ]
 
-    # Step 1 — Spell, grouped by Tier ("Tier 0 (red)" header, then that Tier's
+    # Step 1 — Spell, grouped by Tier (a Tier-colored "Tier N" header, then that Tier's
     # spells underneath). Tiers with no known spell are skipped. Picking a spell
     # sets the caster Roll's Bonuses (casting-skill Competency + the Tier's
     # inherent Bonus); the dice count is the next step.
     spell_opts = []
-    spells.group_by { |sp| sp[:tier].to_i }.sort_by { |tier, _| tier }.each do |tier, group_spells|
+    spells.group_by { |sp| sp[:tier].to_i }.sort_by { |tier, _| tier }.each_with_index do |(tier, group_spells), gi|
       hdr = "tier-#{tier}-h"
       grp = "tier-#{tier}"
-      spell_opts << { kind: 'info', group: hdr, value: "#{hdr}|label", label: "Tier #{tier} (#{tier_color(tier)})" }
+      br  = gi.zero? ? '' : '<br>'
+      spell_opts << { kind: 'info', group: hdr, value: "#{hdr}|label", label: %(#{br}<span class="cb-tier-head tier-#{tier}">Tier #{tier}</span>) }
       group_spells.each do |sp|
         bpl = []
         bpl << sp[:competency] if sp[:competency]
@@ -889,6 +993,7 @@ helpers do
         spell_opts << { value: sp[:name], key: sp[:name], group: grp,
                         label: sp[:name], summary: sp[:name],
                         disabled: !sp[:affordable],
+                        cast: { roll: sp[:requires_roll], reservoir: sp[:reservoir] },
                         patch: { set_bpl:   [{ id: 'caster', bonus_penalty_list: bpl }],
                                  set_speed: [{ id: 'caster', speed: 0 }],
                                  set_name:  [{ id: 'caster', roll_name: "Cast #{sp[:name]}" }] } }
@@ -896,25 +1001,59 @@ helpers do
     end
     spell_step = { key: 'spell', label: 'Spell', options: spell_opts }
 
-    # Step 2 — Dice for the casting check, asked only after a spell is picked
-    # (choice-dependent on `spell`), bounded by Combat Pool and that spell's
-    # casting-skill Dice Cap.
+    # Step 2 — Dice for the cast, choice-dependent on the picked spell. A spell
+    # whose dice count is *variable* (a rolled cast, or a Reservoir pour) asks
+    # for a count from its Action Minimum up to the casting-skill Dice Cap; a
+    # spell whose count is *known* (a no-roll, no-Reservoir buff costs exactly
+    # its Action Minimum) skips the step — the option is auto-applied with no
+    # button. Either way each die is spent from the Combat Pool, so counts past
+    # the remaining Pool are disabled.
     dice_map = {}
     spells.each do |sp|
-      cap  = sp[:dice_cap]
-      opts = (2..cap).map do |n|
-        { value: "#{sp[:name]}|#{n}", key: n, group: 'dice', label: n.to_s, summary: "#{n} dice",
-          disabled: n > pool, patch: { set_dice: [{ id: 'caster', count: n }] } }
+      cap = sp[:dice_cap]
+      min = sp[:action_min].to_i
+      if sp[:requires_roll] || sp[:reservoir]
+        opts = (min..cap).map do |n|
+          { value: "#{sp[:name]}|#{n}", key: n, group: 'dice', label: n.to_s, summary: "#{n} dice",
+            disabled: n > pool, patch: { set_dice: [{ id: 'caster', count: n }] } }
+        end
+        opts = [{ kind: 'info', group: 'dice', value: 'dice|none', label: 'no dice available' }] if opts.empty?
+        dice_map[sp[:name]] = opts
+      else
+        # Known dice count — auto-applied (the builder skips the step) when the
+        # caster can afford it; otherwise shown as a blocked option.
+        affordable = min <= pool
+        opt = { value: "#{sp[:name]}|#{min}", key: min, group: 'dice',
+                label: "#{min} dice", summary: "#{min} dice",
+                disabled: !affordable,
+                patch: { set_dice: [{ id: 'caster', count: min }] } }
+        opt[:auto] = true if affordable
+        dice_map[sp[:name]] = [opt]
       end
-      opts = [{ kind: 'info', group: 'dice', value: 'dice|none', label: 'no dice available' }] if opts.empty?
-      dice_map[sp[:name]] = opts
     end
     dice_step = { key: 'dice', label: 'Dice', options_by: %w[spell], options_map: dice_map }
 
-    # Step 3 — Target (a save / defense cannot be rolled without one).
-    target_step = { key: 'target', label: 'Target',
-                    options: targets.map { |t| { value: t[:id], key: t[:id], label: t[:name],
-                                                 patch: { set_name: [{ id: 'target', creature_name: t[:name] }] } } } }
+    # Step 3 — Target, choice-dependent on the Spell. A normal Spell lists the
+    # Combatants; an **area Spell** instead offers a single "Place on the map"
+    # action — the client arms the Atlas, the DM clicks to drop the footprint,
+    # and the creatures it covers become the affected set (no single Target).
+    combatant_target_opts = targets.map do |t|
+      { value: t[:id], key: t[:id], label: t[:name],
+        patch: { set_name: [{ id: 'target', creature_name: t[:name] }],
+                 set_tier: [{ id: 'target', tier: t[:tier] }] } }
+    end
+    target_map = {}
+    spells.each do |sp|
+      target_map[sp[:name]] =
+        if sp[:area]
+          [{ value: 'place', key: 'place', group: 'place', label: 'Place on the map',
+             summary: 'Place the spell effect on the Atlas',
+             place: { shape: sp[:area]['shape'], size: sp[:area]['size'], save: !!sp[:save] } }]
+        else
+          combatant_target_opts
+        end
+    end
+    target_step = { key: 'target', label: 'Target', options_by: %w[spell], options_map: target_map }
 
     # Step 4 — the target's Defense, choice-dependent on (target, spell): the
     # target's Saving Throw for a Save spell, Dodge / Block for an attack-roll
@@ -943,6 +1082,16 @@ helpers do
         end
         defense_map["#{t[:id]}|#{sp[:name]}"] = opts
       end
+    end
+    # Area Spells resolve in the placed footprint, not against a single defender,
+    # so their "defense" step is a single Confirm that excludes the lone Target
+    # Roll (the caught creatures are resolved at commit).
+    spells.select { |sp| sp[:area] }.each do |sp|
+      defense_map["place|#{sp[:name]}"] = [
+        { value: 'area', key: 'area', group: 'area', label: 'Resolve in the area',
+          summary: 'Apply to the creatures in the footprint',
+          patch: { set_excluded: [{ id: 'target', excluded: true }] } }
+      ]
     end
     defense_step = { key: 'defense', label: 'Target&rsquo;s defense', options_by: %w[target spell], options_map: defense_map }
 
@@ -1055,7 +1204,34 @@ helpers do
     spell['cast_skill'] ||= (Array(variant && variant['skills']).first || Encounter::Cast::DEFAULT_CAST_SKILL)
 
     effects = cast_effects_from_consumption(r['effects'])
+    # Buff Spells carry a `modifiers:` list (Magic Weapon, Magic Vestments,
+    # Expeditious Retreat, Resistance, Protection from Poison, …). Carry it
+    # through as a `modifiers` cast Effect; resolve_cast_payload evaluates the
+    # amounts against the caster and applies them as timed Active Effects.
+    if variant && Array(variant['modifiers']).any?
+      effects += [{ 'kind' => 'modifiers', 'modifiers' => variant['modifiers'],
+                    'duration' => variant['duration'] }]
+    end
+
+    # Area Spells (Obscuring Mist, Darkness, Web, Create Pit, Silence) carry an
+    # `area` footprint placed on the map at commit time. For an Aspect-list area
+    # (Grease: object vs. area), use the first footprint Aspect.
+    raw_entry = (Abilities.catalog.ability(spell['name']) rescue nil) || {}
+    raw_area  = raw_entry['area']
+    area_hash = raw_area.is_a?(Array) ? raw_area.find { |x| x.is_a?(Hash) } : raw_area
+    # Each creature caught in the footprint gets the area's on-enter Effect (its
+    # Save is DM-adjudicated in this pass; the per-creature opposed Save roll is
+    # the follow-up that uses the Check Resolution Spread rule).
+    if area_hash.is_a?(Hash) && (oe = Array(area_hash['on_enter']).first)
+      fx = oe['fail'].to_s
+      effects += [{ 'kind' => 'effect', 'name' => fx }] unless fx.empty? || fx == '0'
+    end
     Array(payload['targets']).each { |t| t['effects'] = effects }
+
+    if area_hash.is_a?(Hash)
+      spell['area'] = area_hash
+      spell['duration'] = variant['duration'] || raw_entry['duration']
+    end
 
     # Damage routing for the Cast path. An attack-roll Spell resolves as a spell
     # attack — net the casting check against the target's Block / Dodge, damage
@@ -1094,6 +1270,108 @@ helpers do
   #   { 'temp_hp' => n } / { 'mana' => n }             -> { kind: temp_hp/mana }
   #   { minor/moderate/major_damage: ... } (signed)    -> heal (cures are
   #     negated by resolve_spell) or, if positive, summed damage.
+  # Drop an area Spell's footprint on the active Map as a Zone, paired with a
+  # Conditions Zone Effect. Anchored at the (first) target's Token. Returns the
+  # placement, or nil when there's no active Map / Token / area — it is skipped
+  # silently so the cast still succeeds. Atlas.place_zone persists the Map; the
+  # Zone Effect carries the area's triggers for later on-enter resolution.
+  def place_spell_area_zone!(payload)
+    spell = payload['spell'] || {}
+    area  = spell['area']
+    return nil unless area.is_a?(Hash)
+    map_id = Atlas.state.active_map_id
+    return nil unless map_id
+    caster = payload['caster'] || {}
+    source_id = "encounter:zone:#{spell['name']}:#{caster['id']}"
+    # Anchor at the placed map point (area Spells), else at the first target's
+    # Token (legacy single-target anchoring).
+    placement = payload['placement']
+    anchor =
+      if placement && placement['x'] && placement['y']
+        { 'type' => 'point', 'x' => placement['x'].to_i, 'y' => placement['y'].to_i }
+      else
+        target = Array(payload['targets']).first or return nil
+        combatant = encounter_state.combatant(target['id'].to_i) or return nil
+        { 'type' => 'target', 'creature_id' => combatant[:creature_id] }
+      end
+    zone_id = Atlas.state.place_zone(map_id: map_id, source_id: source_id,
+                                     shape: area['shape'], size: area['size'],
+                                     anchor: anchor, texture: area['texture'])
+    return nil unless zone_id.is_a?(Integer)
+    # Expiry: the caster's casting-skill rank drives `rank`-based durations;
+    # the Zone auto-expires at the caster's start of turn once this Round passes.
+    cacc  = (Creatures.lookup(combatant_for_id_creature(caster['id'])) rescue nil)
+    rank  = (cacc&.ranks_for(spell['cast_skill']) rescue 0) || 0
+    rounds = duration_in_rounds(spell['duration'], rank)
+    ends   = rounds && encounter_state.current_round ? encounter_state.current_round + rounds : nil
+    Conditions.store.create_zone_effect(
+      source_id: source_id, atlas_zone_id: zone_id, ends_on_round: ends,
+      triggers: { on_create: area['on_create'], on_enter: area['on_enter'],
+                  on_end_of_turn: area['on_end_of_turn'] },
+      metadata: { 'caster_id' => caster['id'] }
+    )
+    { source_id: source_id, atlas_zone_id: zone_id, map_id: map_id,
+      shape: area['shape'], size: area['size'], ends_on_round: ends }
+  end
+
+  # The Creature ID behind a Combatant ID (for caster lookups).
+  def combatant_for_id_creature(combatant_id)
+    c = encounter_state.combatant(combatant_id.to_i)
+    c && c[:creature_id]
+  end
+
+  # A Spell `duration` expressed in absolute Rounds, or nil when it does not
+  # convert (permanent / concentration / instant). Turns count as Rounds;
+  # minutes/hours convert via Timekeeping's Round Length (seconds per Round).
+  def duration_in_rounds(duration, rank)
+    return nil if duration.nil?
+    s = duration.to_s.strip
+    binds = { 'rank' => rank.to_i }
+    rl = (Timekeeping.config.round_length.to_f rescue 6.0)
+    rl = 6.0 if rl <= 0
+    if (m = s.match(/\A(.+?)\s+turns?\z/))
+      (Abilities::Formula.evaluate(m[1], binds).to_i rescue nil)
+    elsif (m = s.match(/\A(.+?)\s+minutes?\z/))
+      n = (Abilities::Formula.evaluate(m[1], binds).to_f rescue nil)
+      n && (n * 60 / rl).ceil
+    elsif (m = s.match(/\A(.+?)\s+hours?\z/))
+      n = (Abilities::Formula.evaluate(m[1], binds).to_f rescue nil)
+      n && (n * 3600 / rl).ceil
+    end
+  end
+
+  # Remove a caster's expired Zones at their start of turn — drop the
+  # Conditions Zone Effect and the paired Atlas Zone. Returns removed source_ids.
+  def expire_caster_zones!(combatant_id)
+    round = encounter_state.current_round or return []
+    removed = Conditions.store.expire_zone_effects_for(combatant_id, round)
+    removed.each { |z| Atlas.state.remove_zone(z[:atlas_zone_id]) if z[:atlas_zone_id] }
+    removed.map { |z| z[:source_id] }
+  end
+
+  # A Spell whose Reservoir discharge `defends: target` (Shield of Faith) hangs
+  # a shield over the chosen ally: grant the caster a reaction tied to that
+  # Combatant, so attacks against the ally can surface the caster's block as an
+  # opposing Roll. The Reservoir itself is registered by the cast's sustain.
+  def grant_defend_reaction!(payload)
+    spell = payload['spell'] || {}
+    v = (Abilities.lookup(spell['name'].to_s) rescue nil) || {}
+    return unless v.dig('reservoir', 'discharge', 'defends').to_s == 'target'
+    caster = payload['caster'] || {}
+    ally = Array(payload['targets']).first or return
+    # The block may roll up to the caster's Dice Cap in the casting skill, each
+    # die costing one Reservoir die — store the cap so the attack builder can
+    # bound the block.
+    skill = (spell['cast_skill'] || Encounter::Cast::DEFAULT_CAST_SKILL).to_s
+    cacc  = (Creatures.lookup(combatant_for_id_creature(caster['id'])) rescue nil)
+    cap   = (roll_inputs_for(cacc, skill)[:dice_cap].to_i rescue 0)
+    # Replace any prior shield from the same caster+spell on a new cast.
+    encounter_state.revoke_action { |g| g[:source] == spell['name'].to_s && g[:combatant_id] == caster['id'] }
+    encounter_state.grant_action({ combatant_id: caster['id'], name: spell['name'], source: spell['name'],
+                                   spell_name: spell['name'], defends: ally['id'],
+                                   cast_skill: skill, dice_cap: cap })
+  end
+
   def cast_effects_from_consumption(effects)
     Array(effects).flat_map do |raw|
       e = (raw.transform_keys(&:to_s) rescue raw)
@@ -1127,7 +1405,7 @@ helpers do
   # Performance check the same way Attack rolls: the DM picks how many dice
   # to spend — Main Action Minimum up to Combat Pool Remaining (Dice Cap does
   # not apply to channeling) — then rolls them; each Success fills the
-  # Reservoir. This reuses the Check Resolution Builder; the host posts the
+  # Reservoir. This reuses the Action Builder; the host posts the
   # confirmed Successes + dice to /encounter/use_special.
 
   # The Creature's trained Performance skill key (perform_<type>), for the
@@ -1439,6 +1717,8 @@ end
 post '/encounter/start_of_turn' do
   require_dm!
   encounter_state.resolve_start_of_turn(params[:combatant_id].to_i)
+  # Auto-expire the caster's timed Zones (spell areas) at their start of turn.
+  expire_caster_zones!(params[:combatant_id].to_i)
   Conditions.store.persist!
   redirect back || '/encounter'
 end
@@ -1478,19 +1758,19 @@ end
 
 # ---- Attack pipeline endpoints (turn_action_stub.md) -----------------
 #
-# attack_builder precomputes the whole Check Resolution Builder blob for an
+# attack_builder precomputes the whole Action Builder blob for an
 # attack (Target / Weapon+dice / Defense steps, each option carrying a patch);
 # the Builder resolves it client-side and posts the picked choices + Successes
 # to resolve_attack, which recomputes the weapon damage from the chosen weapon,
 # spends Combat Pool, and applies damage.
 
-# The Check Resolution Builder for the Acting Combatant's attack, rendered as
+# The Action Builder for the Acting Combatant's attack, rendered as
 # an HTML fragment the turn-action panel injects.
 get '/encounter/attack_builder' do
   require_dm!
   attacker = encounter_state.combatant(params[:attacker_id].to_i)
   return encounter_error(404, 'unknown attacker') unless attacker
-  erb :_check_builder, layout: false, locals: { builder: attack_builder_blob(attacker) }
+  erb :_action_builder, layout: false, locals: { builder: attack_builder_blob(attacker) }
 end
 
 post '/encounter/resolve_attack' do
@@ -1518,7 +1798,35 @@ get '/encounter/cast_builder' do
   require_dm!
   caster = encounter_state.combatant(params[:caster_id].to_i)
   return encounter_error(404, 'unknown caster') unless caster
-  erb :_check_builder, layout: false, locals: { builder: cast_builder_blob(caster) }
+  erb :_action_builder, layout: false, locals: { builder: cast_builder_blob(caster) }
+end
+
+# One opposing Save Roll per creature caught in an area Spell's footprint —
+# the Spread Opposers. Rendered as roll-group <tbody>s the cast builder swaps
+# into its dice table after the DM places the effect on the map.
+get '/encounter/cast_area_rolls' do
+  require_dm!
+  return encounter_error(404, 'unknown caster') unless encounter_state.combatant(params[:caster_id].to_i)
+  v    = (Abilities.lookup(params[:spell].to_s) rescue nil) || {}
+  raw  = (Abilities.catalog.ability(params[:spell].to_s) rescue nil) || {}
+  ra   = raw['area']
+  area = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
+  save = Array(v['save']).first || (area.is_a?(Hash) ? Array(area['on_enter']).first : nil)
+  attr = save && save['attribute'].to_s
+  die     = DiceResolution.config.die_size
+  base_tn = DiceResolution.config.base_target_number
+  rolls = Array(params[:affected]).filter_map do |cid|
+    c   = encounter_state.combatant(cid.to_i) or next
+    acc = Creatures.lookup(c[:creature_id]) rescue nil
+    ri  = attr ? roll_inputs_for(acc, "#{attr}_save", attribute_override: attr.to_sym) : {}
+    bpl = ri[:competency_modifier] ? [ri[:competency_modifier]] : []
+    { id: "save-#{c[:id]}", side: 'opposing', creature_name: tracker_name(c),
+      roll_name: (attr ? "#{attr_label(attr)} save" : 'Save'),
+      die_size: die, tn: base_tn, starting_value: 0, base_tn: base_tn,
+      bonus_penalty_list: bpl, dice_count: ri[:dice_cap].to_i, speed: 0, excluded: false,
+      tier: (acc&.tier rescue nil) }
+  end
+  erb :_roll_stub, layout: false, locals: { rolls: rolls, wrapper: false }
 end
 
 post '/encounter/resolve_cast' do
@@ -1529,20 +1837,25 @@ post '/encounter/resolve_cast' do
   result = encounter_state.resolve_cast_payload(payload)
   # A committed cast mutated Conditions (HP / mana / toxicity / temp HP /
   # active effects) — persist so it survives a restart. A preview mutates
-  # nothing.
-  Conditions.store.persist! if result[:committed]
+  # nothing. An area Spell also drops a Zone on the active Map.
+  if result[:committed]
+    zone = (place_spell_area_zone!(payload) rescue nil)
+    result = result.merge(zone: zone) if zone
+    grant_defend_reaction!(payload) rescue nil
+    Conditions.store.persist!
+  end
   encounter_response(result)
 end
 
 # The Performance-check builder for a channeled Special Ability (Bardic
-# Performance), rendered as the Check Resolution Builder fragment the
+# Performance), rendered as the Action Builder fragment the
 # turn-action Special pane injects — the same flow as Attack.
 get '/encounter/special_builder' do
   require_dm!
   combatant = encounter_state.combatant(params[:combatant_id].to_i)
   return encounter_error(404, 'unknown combatant') unless combatant
   ability = params[:ability].to_s
-  erb :_check_builder, layout: false, locals: { builder: special_builder_blob(combatant, ability) }
+  erb :_action_builder, layout: false, locals: { builder: special_builder_blob(combatant, ability) }
 end
 
 # Use a Special action (turn_action_stub.md → Special): a non-Spell,

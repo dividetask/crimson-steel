@@ -59,6 +59,16 @@ Tests that depend on randomness state the *rolled* dice as input; an implementat
 
 ---
 
+## Spread Check (area effects)
+
+**The initiating Roll takes Ascendancy against every Opposer.** Tier Mismatch on a Tier-3 caster opposed by a Tier-1 and a Tier-3 creature adds `['Ascendancy', +4]` to the caster (vs the Tier-1; nothing vs the Tier-3), `['Ascendancy', -4]` to the Tier-1 Opposer, and nothing to the Tier-3 Opposer.
+
+**Spread preparation is bidirectional.** A `spread` Check with a Tier-2 caster carrying `['Inherent', 2]` and a Tier-1 Opposer carrying `['Competency', 3]` prepares to: caster `[['Inherent', 2], ['Competency', -3], ['Ascendancy', 2]]` (own bonus + the Opposer's inverted + Ascendancy vs it) and Opposer `[['Competency', 3], ['Inherent', -2], ['Ascendancy', -2]]`.
+
+**Resolution nets the caster against each Opposer independently.** A `spread` Check where the caster's Supporting DoIS totals +2, Opposer 1 rolls +1, and Opposer 2 rolls −1 yields `degree_of_success` of `1` and `3` respectively (`2 − 1`, `2 − (−1)`) — one Outcome per Opposer, and no single Check-level Degree of Success.
+
+---
+
 ## Edge cases
 
 **Empty supporting list.** Calling Resolve a Check with `supporting_roll_list = []` is invalid. Validation is unassigned (per the design); behavior is implementation-defined until specified.

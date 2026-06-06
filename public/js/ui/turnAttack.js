@@ -1,8 +1,8 @@
-import { CheckBuilder } from './checkBuilder.js';
+import { ActionBuilder } from './actionBuilder.js';
 
 // Turn Action panel — Attack (turn_action_stub.md → Attack).
 //
-// Thin host for the Check Resolution Builder. Confirm is two-stage so the DM
+// Thin host for the Action Builder. Confirm is two-stage so the DM
 // can review before anything is saved:
 //   1st Confirm  -> non-mutating PREVIEW (commit:false). The result renders
 //       beneath the still-present builder with editable Damage / Bleed /
@@ -16,7 +16,7 @@ export class TurnAttack {
     const attackerId = container.getAttribute('data-attacker-id');
     container._attackerId = attackerId;
 
-    container.addEventListener('check:confirmed', (e) => TurnAttack._preview(container, e.detail));
+    container.addEventListener('action:confirmed', (e) => TurnAttack._preview(container, e.detail));
     container.addEventListener('click', (e) => {
       if (e.target.closest && e.target.closest('.ta-commit')) { e.preventDefault(); TurnAttack._commit(container); }
     });
@@ -30,8 +30,8 @@ export class TurnAttack {
       .then((r) => r.text())
       .then((html) => {
         container.innerHTML = html + '<div class="ta-result" hidden></div>';
-        const builder = container.querySelector('.check-builder');
-        if (builder) CheckBuilder.ensureLoaded(builder);
+        const builder = container.querySelector('.action-builder');
+        if (builder) ActionBuilder.ensureLoaded(builder);
         else container.innerHTML = '<p class="ta-warn">Could not load the attack.</p>';
       })
       .catch(() => { container.innerHTML = '<p class="ta-warn">Could not load the attack.</p>'; });
@@ -42,25 +42,41 @@ export class TurnAttack {
     const choices = detail.choices || {};
     const rolls = detail.rolls || [];
     const weaponType = String(choices.action || '').split('|')[0];
-    // Defence values are "<type>|<dice>" where <type> may be "parry:<weapon>";
-    // the server's defence kind is the base type before any ':'.
-    const defenseName = String(choices.defense || 'none').split('|')[0].split(':')[0];
+    // Defence values are "<type>|<dice>" where <type> may be "parry:<weapon>"
+    // or "shield:<casterId>"; the server's defence kind is the base before ':'.
+    const defFull = String(choices.defense || 'none');
+    const defType = defFull.split('|')[0];
+    const defenseName = defType.split(':')[0];
     const atk = rolls.find((r) => r.id === 'attacker') || {};
-    const def = rolls.find((r) => r.id === 'defender');
-    const declared = def && defenseName !== 'none';
-    return {
+    const base = {
       target_id: choices.target,
       weapon_type: weaponType,
       commit: commit,
       // Luck spent on this attack (one entry per source; source_id null = DM).
       // The rerolls are already on the chosen Rolls; the server only debits
       // each source's Reservoir / DM pool on commit.
-      luck: CheckBuilder.luckSpends(choices),
-      attacker: { id: parseInt(container._attackerId, 10), dice: atk.dice_count, speed: atk.speed, successes: atk.successes },
+      luck: ActionBuilder.luckSpends(choices),
+      attacker: { id: parseInt(container._attackerId, 10), dice: atk.dice_count, speed: atk.speed, successes: atk.successes }
+    };
+
+    // Shield of Faith: the shielding caster blocks as a separate Opposing Roll,
+    // spending Reservoir dice (the target's own Defense stays out).
+    if (defenseName === 'shield') {
+      const sh = rolls.find((r) => r.id === 'shield') || {};
+      return Object.assign(base, {
+        defense: { choice: 'none' },
+        shield: { id: parseInt(defType.split(':')[1], 10), dice: parseInt(defFull.split('|')[1], 10) || 0,
+                  successes: sh.successes || 0, spell_name: 'Shield of Faith' }
+      });
+    }
+
+    const def = rolls.find((r) => r.id === 'defender');
+    const declared = def && defenseName !== 'none';
+    return Object.assign(base, {
       defense: declared
         ? { choice: defenseName, id: choices.target, dice: def.dice_count, speed: def.speed || 0, successes: def.successes }
         : { choice: 'none' }
-    };
+    });
   }
 
   // First Confirm: non-mutating preview. Keep the builder; show the editable

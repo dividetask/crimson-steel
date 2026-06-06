@@ -93,6 +93,7 @@ RSpec.describe Encounter::Attack do
                                    weapon: weapon, attacker_dice_cap: 6, declared_defense: 'parry')
       end.to raise_error(ArgumentError, /not eligible/)
     end
+
   end
 end
 

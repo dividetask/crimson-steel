@@ -372,6 +372,7 @@ Shield of Faith:
       ratio: 1
     discharge:
       action: reaction
+      defends: target
       amount: "2..dice_cap"
       description: "When an attack is made against the target, spend {amount} Reservoir dice to fuel a block Roll against the attack."
   description: "Conjures a floating magical shield next to the target. While channeled, the caster may discharge Reservoir dice as reactions to block attacks made against the target."
@@ -550,6 +551,7 @@ Entangle:
   area:
     shape: circle
     size: 8
+    texture: entangle.png
     on_enter:
       - attribute: str
         fail: entangled
@@ -632,7 +634,7 @@ Grasp:
 
 Ears of the City:
   type: spell
-  tier: 2
+  tier: 1
   school: augury
   activation_time: full turn
   range: Self
@@ -660,6 +662,7 @@ Web:
   area:
     shape: circle
     size: 4
+    texture: web.png
     on_enter:
       - attribute: dex
         fail: restrained
@@ -737,7 +740,7 @@ Sift:
 
 Vacuous Vessel:
   type: spell
-  tier: 1
+  tier: 0
   school: enchantment
   range: Touch
   target: object
@@ -761,6 +764,7 @@ Grease:
     - null
     - shape: square
       size: 2
+      texture: grease.webp
       on_enter:
         - attribute: dex
           fail: prone
@@ -862,3 +866,114 @@ Suggestion:
       condition: "request is reasonable (DM discretion)"
       description: "+2 if the suggested course of action sounds reasonable."
   description: "You influence the actions of the target creature by suggesting a course of activity (limited to a sentence or two). The suggestion must be worded in such a manner as to make the activity sound reasonable. Asking the creature to do some obviously harmful act automatically negates the effect of the spell. The suggested course of activity can continue for the entire duration. If the suggested activity can be completed in a shorter time, the spell ends when the subject finishes what it was asked to do. You can instead specify conditions that will trigger a special activity during the duration. If the condition is not met before the spell duration expires, the activity is not performed."
+
+Blind:
+  type: spell
+  tier: 2
+  school: resonance
+  range: Medium
+  target: "1"
+  save:
+    - attribute: wis
+      fail: blind
+      success: "0"
+  duration: permanent
+  description: "A single target within range must make a Wisdom save or gain the blinded condition. The effect is permanent until removed by other means."
+
+Protection from Poison:
+  type: spell
+  tier: 2
+  school: pneumancy
+  range: Touch
+  target: "1"
+  duration: "rank*10 minutes"
+  skills: [healing, nature]
+  modifiers:
+    - target: save
+      type: Guidance
+      descriptors: [poison]
+      add: 1
+  description: "Grants the touched creature a +1 Guidance bonus on all Constitution saves against poison for the duration."
+
+Obscuring Mist:
+  type: spell
+  tier: 1
+  school: transmutation
+  range: Medium
+  area:
+    shape: circle
+    size: 2
+    texture: obscuringmist.png
+  duration: "rank minutes"
+  resolution: dm
+  description: "A 10-foot-radius cloud of mist billows out from a point within range. Sight is obscured for anyone trying to see into, out of, or through the mist. The DM adjudicates the resulting concealment on attacks and Perception checks. The mist's area is placed on the map as an area shape."
+
+Expeditious Retreat:
+  type: spell
+  tier: 1
+  school: transmutation
+  range: Self
+  target: self
+  duration: "rank minutes"
+  modifiers:
+    - target: speed
+      type: Guidance
+      add: 30
+  description: "Your speed increases by 30 feet (a +30 Guidance bonus to speed) for the duration."
+
+Blindspot:
+  type: spell
+  tier: 2
+  school: resonance
+  range: Touch
+  target: "1"
+  requires_willing: true
+  save:
+    - attribute: wis
+      save_target: observers
+      fail: blindspot
+      success: "0"
+  duration: "rank minutes"
+  description: "The touched creature becomes invisible, gaining the blindspot effect. Any creature attempting to perceive the target makes a Wisdom save; on a failure the target remains unseen by that observer, on a success that observer sees through the invisibility."
+
+Darkness:
+  type: spell
+  tier: 2
+  school: resonance
+  range: Medium
+  area:
+    shape: circle
+    size: 4
+  duration: "rank minutes"
+  resolution: dm
+  description: "A 20-foot-radius area centered on a point within range is shrouded in magical gloom, lowering the light level there by two steps for the duration. The DM adjudicates the effects of the reduced light. The darkened area is placed on the map as an area shape."
+
+Magic Weapon:
+  type: spell
+  tier: 2
+  school: transmutation
+  range: Touch
+  target: object
+  duration: "rank minutes"
+  modifiers:
+    - target: attack
+      type: Guidance
+      add: caster_tier
+    - target: damage
+      type: Guidance
+      add: caster_tier
+  effect_hash:
+    caster_tier: caster_tier    # the casting Creature's Tier; plumbed into the Active Effect metadata so the modifiers resolve against the caster, not the wielder
+  description: "Imbues the touched weapon with a Guidance enhancement bonus equal to the caster's Tier. Like an enhanced weapon, the bonus applies to both attack rolls and damage rolls made with the weapon. Lasts 1 minute per rank."
+
+Blur:
+  type: spell
+  tier: 2
+  school: resonance
+  range: Touch
+  target: "1"
+  requires_willing: true
+  duration: "rank minutes"
+  effects:
+    - "blurred"
+  description: "The touched creature's outline blurs and wavers. For the duration the creature gains the blurred effect: every Critical Success rolled on an attack against it is rerolled, blunting decisive blows."
