@@ -96,9 +96,11 @@ module Creatures
     end
 
     # Shuffle the spawn's skill_table and assign the first N to its (single)
-    # class, where N is the Skill Pick Budget: (floor(Eff Int / 4) +
-    # class.bonus_skills) per Class Level — the `Skill Pick Formula` from
-    # creatures_config.yaml, computed against the spawn's resolved race/tier.
+    # class, where N is the Skill Pick Budget: floor(Eff Int / 4) +
+    # class.bonus_skills — the `Skill Pick Formula` from creatures_config.yaml,
+    # computed against the spawn's resolved race/tier. The count does NOT
+    # scale with Class Level: higher level advances the chosen skills further
+    # (more ranks), it does not grant more distinct skills.
     def assign_random_skills(copy, rng)
       classes = copy[:classes]
       return if classes.nil? || classes.empty?
@@ -106,9 +108,8 @@ module Creatures
       key, entry = classes.first
       cls = Creatures::Advancement.look_up_class(key) || {}
       bonus = cls['bonus_skills'] || 0
-      level = entry[:level] || 0
       eff_int = Creatures::Accessor.new(copy).attribute_value(:int)
-      budget = ((eff_int / 4) + bonus) * level
+      budget = (eff_int / 4) + bonus
       budget = 0 if budget.negative?
 
       pool = Array(copy[:skill_table]).shuffle(random: rng)

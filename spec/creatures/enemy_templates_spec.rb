@@ -201,6 +201,7 @@ RSpec.describe 'Enemy templates: races, clamp, NPC class, loadout', type: :model
       expect(a.record[:class_table].map { |e| e[:class] }).to eq(%w[barbarian fighter cleric rogue])
       expect(a.record[:tier_advancement_table]).to eq(count: 2, from: %i[str con cha dex])
 
+      pool = %w[athletics perception religion restricted_magic sense_motive healing]
       10.times do |seed|
         s = Creatures.lookup(Creatures.spawn_from_template(356, rng: Random.new(seed)))
         cls_key, level = s.class_summary.first
@@ -209,6 +210,12 @@ RSpec.describe 'Enemy templates: races, clamp, NPC class, loadout', type: :model
         adv = s.tier_attribute_advancement
         expect(adv.size).to eq(2)
         expect(adv).to all(satisfy { |x| %i[str con cha dex].include?(x) })
+
+        # Skill COUNT does not scale with Class Level: it is the level-1
+        # budget floor(int/4)+bonus_skills, capped at the pool size.
+        bonus = Creatures::Advancement.look_up_class(cls_key)['bonus_skills'] || 0
+        expected = [(s.attribute_value(:int) / 4) + bonus, pool.size].min
+        expect(s.record[:classes][cls_key][:skills].size).to eq(expected)
       end
     end
 
