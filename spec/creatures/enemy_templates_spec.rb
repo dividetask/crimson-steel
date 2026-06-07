@@ -135,27 +135,49 @@ RSpec.describe 'Enemy templates: races, clamp, NPC class, loadout', type: :model
       expect(Creatures.lookup(new_id).equipment_table).to eq('common_orc_loadout')
     end
 
-    it 'Slaver: tier 1, race rolled at spawn from race_table, equipment_table slaver_loadout' do
+    it 'Slaver: tier 1, race + class rolled at spawn, equipment_table slaver_loadout' do
       a = Creatures.lookup(355)
       expect(a.name).to eq('Slaver')
       expect(a.tier).to eq(1)
       expect(a.equipment_table).to eq('slaver_loadout')
       expect(a.record[:race_table].map { |e| e[:race] }).to eq(%w[orc human elf dwarf])
+      expect(a.record[:class_table].map { |e| e[:class] }).to eq(%w[warrior fighter cleric rogue])
 
       spawn = Creatures.lookup(Creatures.spawn_from_template(355))
-      # The spawn has a concrete race drawn from the table, and no table.
+      # The spawn has a concrete race + single class drawn from the tables.
       expect(%w[orc human elf dwarf]).to include(spawn.race)
       expect(spawn.record[:race_table]).to be_empty
+      expect(spawn.class_summary.size).to eq(1)
+      expect(%w[warrior fighter cleric rogue]).to include(spawn.class_summary.first.first)
+      expect(spawn.record[:class_table]).to be_empty
     end
 
-    it 'Slaver race roll is weighted ~50% orc and honors the seeded rng' do
+    it 'Slaver race + class rolls are weighted ~50% and honor the seeded rng' do
       races = Hash.new(0)
+      classes = Hash.new(0)
       400.times do |seed|
-        id = Creatures.spawn_from_template(355, rng: Random.new(seed))
-        races[Creatures.lookup(id).race] += 1
+        a = Creatures.lookup(Creatures.spawn_from_template(355, rng: Random.new(seed)))
+        races[a.race] += 1
+        classes[a.class_summary.first.first] += 1
       end
       expect(races.keys).to match_array(%w[orc human elf dwarf])
+      expect(classes.keys).to match_array(%w[warrior fighter cleric rogue])
       expect(races['orc'].to_f / 400).to be_within(0.08).of(0.5)
+      expect(classes['warrior'].to_f / 400).to be_within(0.08).of(0.5)
+    end
+
+    it 'the cleric Slaver variant carries Mortheth as its deity' do
+      # Find a seed that rolls the cleric variant, then assert its choices.
+      cleric = nil
+      (0..120).each do |s|
+        a = Creatures.lookup(Creatures.spawn_from_template(355, rng: Random.new(s)))
+        if a.class_summary.first.first == 'cleric'
+          cleric = a
+          break
+        end
+      end
+      expect(cleric).not_to be_nil
+      expect(cleric.record[:classes]['cleric'][:choices]).to include('deity' => 'Mortheth')
     end
   end
 end

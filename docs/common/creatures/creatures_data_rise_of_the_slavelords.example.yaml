@@ -73,10 +73,12 @@ characters:
       classes:
         fighter: 2
 
-  # Tier-1 slaver. Race is rolled at spawn (50% orc, else equal
-  # human/elf/dwarf) via race_table; base 10s before racial modifiers and
-  # the Tier-1 inherent bonus. Gear (race-aware) is rolled from the
-  # slaver_loadout Equipment Loot Table. All slavers worship Mortheth.
+  # Tier-1 slaver. Race AND class are rolled at spawn: race is 50% orc,
+  # else equal human/elf/dwarf (race_table); class is 50% warrior, else
+  # equal fighter/cleric/rogue (class_table). Base 10s before racial
+  # modifiers and the Tier-1 inherent bonus. Gear (race-aware) is rolled
+  # from the slaver_loadout Equipment Loot Table. All slavers worship
+  # Mortheth (the cleric variant takes him as its deity).
   - id: 355
     name: Slaver
     metadata:
@@ -96,3 +98,8 @@ characters:
       - { race: human, chance: 0.1667 }
       - { race: elf,   chance: 0.1667 }
       - { race: dwarf, chance: 0.1666 }
+    class_table:
+      - { class: warrior, chance: 0.5 }
+      - { class: fighter, chance: 0.1667 }
+      - { class: cleric,  chance: 0.1667, choices: { deity: Mortheth } }
+      - { class: rogue,   chance: 0.1666 }

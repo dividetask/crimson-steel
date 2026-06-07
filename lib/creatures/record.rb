@@ -47,6 +47,10 @@ module Creatures
       # spawn's `race` (e.g. a Slaver that is 50% orc, else human/elf/dwarf).
       # The template's own `race` is the default shown before a spawn.
       out[:race_table]  = normalize_race_table(r['race_table'], out[:id], source)
+      # Optional weighted class list rolled once at spawn time to pick the
+      # spawn's class (e.g. a Slaver that is 50% warrior, else fighter /
+      # cleric / rogue). Replaces the template's `advancement.classes`.
+      out[:class_table] = normalize_class_table(r['class_table'], out[:id], source)
       out[:metadata]    = r['metadata'] || {}
       # Persisted spawned-instance marker (Spawn Creature From Template);
       # round-tripped so a reloaded spawn still groups under its template.
@@ -100,6 +104,14 @@ module Creatures
       unless Array(rec[:race_table]).empty?
         out['race_table'] = rec[:race_table].map { |e| { 'race' => e[:race], 'chance' => e[:chance] } }
       end
+      unless Array(rec[:class_table]).empty?
+        out['class_table'] = rec[:class_table].map do |e|
+          h = { 'class' => e[:class], 'chance' => e[:chance], 'level' => e[:level] }
+          h['skills']  = e[:skills]  unless Array(e[:skills]).empty?
+          h['choices'] = e[:choices] unless (e[:choices] || {}).empty?
+          h
+        end
+      end
       out['metadata']     = rec[:metadata]                     unless (rec[:metadata] || {}).empty?
       out['spawned_from'] = rec[:spawned_from]                 unless rec[:spawned_from].nil?
       out
@@ -148,6 +160,25 @@ module Creatures
                                "#{source ? " (in #{source})" : ''}"
         end
         { race: race, chance: h['chance'].to_f }
+      end
+    end
+
+    def normalize_class_table(list, cid, source)
+      return [] if list.nil?
+      Array(list).map do |e|
+        h = stringify_keys(e)
+        class_key = h['class'].to_s
+        unless Creatures::Advancement.classes.key?(class_key)
+          raise ArgumentError, "Creature #{cid}: `class_table` class #{class_key.inspect} is unknown" \
+                               "#{source ? " (in #{source})" : ''}"
+        end
+        {
+          class:   class_key,
+          chance:  h['chance'].to_f,
+          level:   h.key?('level') ? Integer(h['level']) : 1,
+          skills:  (h['skills'] || []).map(&:to_s),
+          choices: stringify_keys(h['choices'] || {})
+        }
       end
     end
 

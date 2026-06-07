@@ -36,8 +36,17 @@ module Creatures
       # Resolve a weighted race_table (if any) to a concrete race on the
       # spawn, then clear the table so the instance is a fixed-race Creature.
       unless Array(copy[:race_table]).empty?
-        copy[:race] = pick_race(copy[:race_table], rng)
+        copy[:race] = weighted_pick(copy[:race_table], rng)[:race]
         copy[:race_table] = []
+      end
+      # Resolve a weighted class_table (if any) to a single concrete class,
+      # replacing the template's classes, then clear the table.
+      unless Array(copy[:class_table]).empty?
+        chosen = weighted_pick(copy[:class_table], rng)
+        copy[:classes] = {
+          chosen[:class] => { level: chosen[:level], skills: chosen[:skills], choices: chosen[:choices] }
+        }
+        copy[:class_table] = []
       end
       # Record the template this instance was cloned from so the Roster
       # Sidebar / Character Sheets can group spawned Creatures under their
@@ -50,17 +59,18 @@ module Creatures
       new_id
     end
 
-    # Weighted pick over a race_table (list of { race:, chance: }). The
-    # chances are absolute and conventionally sum to 1; any leftover
-    # probability falls through to the last entry.
-    def pick_race(table, rng)
+    # Weighted pick over a table of entries carrying a `:chance`
+    # (race_table / class_table). Chances are absolute and conventionally
+    # sum to 1; any leftover probability falls through to the last entry.
+    # Returns the chosen entry.
+    def weighted_pick(table, rng)
       u = rng.rand
       acc = 0.0
       table.each do |e|
         acc += e[:chance].to_f
-        return e[:race] if u < acc
+        return e if u < acc
       end
-      table.last[:race]
+      table.last
     end
 
     def delete_creature(id)
