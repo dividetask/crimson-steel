@@ -64,7 +64,9 @@ Martial Devotion:
   range: Self
   target: self
   duration: "1 turn"
-  description: "War domain Channel Divinity. As a bonus action, gain the benefits of Weapon Training (see `weapon_training` in modifier_abilities.yaml) for one turn."
+  effects:
+    - martial_devotion
+  description: "War domain Channel Divinity. As a bonus action, gain the benefits of Weapon Training (see `weapon_training` in modifier_abilities.yaml) for one turn — a Competency attack bonus (the `martial_devotion` Active Effect)."
 
 Flame Devotion:
   type: talent

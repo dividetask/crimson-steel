@@ -172,11 +172,16 @@ module CreatureSheet
   # ranged) and the damage bonus from the weapon's damage formula
   # evaluated against the wielder. Always offers Dodge (a Dexterity Save).
   def actions(accessor)
+    # Active-effect attack Modifiers (e.g. Martial Devotion's Competency bonus)
+    # add to the weapon attack rows' Bonus, so a buffed Creature's sheet shows
+    # the higher to-hit. Dodge is not a weapon attack, so it is excluded.
+    cond    = conditions_for(accessor.id)
+    atk_mod = cond ? (condition_modifier_total(cond, 'attack') rescue 0) : 0
     rows = equipped_weapons(accessor).map do |w|
       attack_attr = ranged_weapon?(w) ? :dex : :str
       ri  = roll_inputs(accessor, 'martial', attack_attr)
       { name: w[:display_name], speed: w[:speed], roll: "#{ri[:dice_cap]}d",
-        attack_bonus: competency_bonus(ri), dmg_bonus: weapon_damage(w, accessor),
+        attack_bonus: competency_bonus(ri) + atk_mod, dmg_bonus: weapon_damage(w, accessor),
         bleed: w[:bleed], mt: w[:threshold], notes: Array(w[:damage_types]).join('/') }
     end
     dodge = roll_inputs(accessor, 'dex_save', :dex)
