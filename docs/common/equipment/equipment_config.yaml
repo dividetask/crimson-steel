@@ -292,6 +292,15 @@ Weapons:
     damage_type: Slashing
     tags: [heavy]
     base_price: 60
+  Great axe:
+    category: Two Handed
+    damage_type: Slashing
+    tags: [heavy]
+    base_price: 50
+  Falchion:
+    category: One Handed
+    damage_type: Slashing
+    base_price: 30
   Quarterstaff:
     category: Two Handed
     damage_type: Bludgeoning
@@ -491,6 +500,11 @@ Armor:
     material: Metal
     metal: true
     base_price: 150
+  Breastplate:
+    category: Medium
+    material: Metal
+    metal: true
+    base_price: 200
   Plate mail:
     category: Heavy
     material: Metal
@@ -500,6 +514,11 @@ Armor:
     category: Shield
     material: Wood
     base_price: 3
+  Light metal shield:
+    category: Shield
+    material: Metal
+    metal: true
+    base_price: 9
   Tower shield:
     category: Shield
     material: Metal
@@ -664,6 +683,9 @@ Misc Items:
     category: Item
     base_price: 0.2
   Humanoid skull:
+    category: Item
+    base_price: 0
+  Necklace of animal fangs:
     category: Item
     base_price: 0
   Thieves' tools:

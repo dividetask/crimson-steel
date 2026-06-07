@@ -41,6 +41,14 @@ RSpec.describe 'Enemy templates: races, clamp, NPC class, loadout', type: :model
     end
   end
 
+  describe 'fey races removed' do
+    it 'fey/sprite/pixie/dryad/brownie are no longer known races' do
+      %w[fey sprite pixie dryad brownie].each do |r|
+        expect(Creatures::Races.known?(r)).to be(false), "expected #{r} to be removed"
+      end
+    end
+  end
+
   describe 'minimum-1 attribute clamp' do
     it 'a beast -8 Int never drops below 1' do
       # spider is a medium_beast: -8 Int. Base 5 would land at -3 without the clamp.
@@ -60,10 +68,11 @@ RSpec.describe 'Enemy templates: races, clamp, NPC class, loadout', type: :model
   end
 
   describe 'warrior NPC class' do
-    it 'is flagged npc_class and excluded from the PC class picker' do
+    it 'is flagged npc_class and excluded from the PC class picker (with commoner)' do
       expect(Creatures::Advancement.npc_class?('warrior')).to be(true)
+      expect(Creatures::Advancement.npc_class?('commoner')).to be(true)
       expect(Creatures::Advancement.npc_class?('fighter')).to be(false)
-      expect(Creatures::Advancement.pc_class_keys).not_to include('warrior')
+      expect(Creatures::Advancement.pc_class_keys).not_to include('warrior', 'commoner')
       expect(Creatures::Advancement.pc_class_keys).to include('fighter')
     end
 
@@ -92,7 +101,7 @@ RSpec.describe 'Enemy templates: races, clamp, NPC class, loadout', type: :model
     end
   end
 
-  describe 'Common Goblin template (dataset)' do
+  describe 'Common templates (dataset)' do
     around(:each) do |ex|
       Dir.mktmpdir('creatures-data') do |dir|
         Creatures::Dataset.data_dir = dir
@@ -103,14 +112,27 @@ RSpec.describe 'Enemy templates: races, clamp, NPC class, loadout', type: :model
     end
     before(:each) { Creatures::Dataset.load! }
 
-    it 'spawns with its equipment_table carried onto the instance' do
+    it 'Common Goblin: tier 0, goblin, spawns carrying its equipment_table' do
       a = Creatures.lookup(306)
       expect(a.name).to eq('Common Goblin')
       expect(a.race).to eq('goblin')
+      expect(a.tier).to eq(0)
       expect(a.equipment_table).to eq('common_goblin_loadout')
 
       new_id = Creatures.spawn_from_template(306)
       expect(Creatures.lookup(new_id).equipment_table).to eq('common_goblin_loadout')
+    end
+
+    it 'Common Orc: tier 0, orc, orc-adjusted stats, spawns carrying its equipment_table' do
+      a = Creatures.lookup(307)
+      expect(a.name).to eq('Common Orc')
+      expect(a.race).to eq('orc')
+      expect(a.tier).to eq(0)
+      expect(a.equipment_table).to eq('common_orc_loadout')
+      expect(a.effective_attributes).to include(str: 14, con: 14, int: 8, wis: 8, cha: 8)
+
+      new_id = Creatures.spawn_from_template(307)
+      expect(Creatures.lookup(new_id).equipment_table).to eq('common_orc_loadout')
     end
   end
 end

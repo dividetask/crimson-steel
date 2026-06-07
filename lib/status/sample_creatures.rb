@@ -33,8 +33,7 @@ module Status
         ash_windmere, bryn_ironvein, veyl_aetheris,
         daven_korr_npc,
         *general_red_tier_demos,
-        *rise_of_the_slavelords_demos,
-        *fey_favors_demos
+        *rise_of_the_slavelords_demos
       ]
     end
 
@@ -123,9 +122,7 @@ module Status
         { table_id: 'stockade_patrol',     name: 'Stockade patrol',          category: 'rise_of_the_slavelords' },
         { table_id: 'general_pirate_raid', name: 'Generic pirate raid',      category: 'general_red_tier' },
         { table_id: 'general_wolf_pack',   name: 'Wolf pack',                category: 'general_red_tier' },
-        { table_id: 'general_goblin_ambush', name: 'Goblin ambush',          category: 'general_red_tier' },
-        { table_id: 'fey_pixie_mischief',  name: 'Pixie mischief',           category: 'fey_favors' },
-        { table_id: 'fey_dryad_grove',     name: "Dryad's grove",            category: 'fey_favors' }
+        { table_id: 'general_goblin_ambush', name: 'Goblin ambush',          category: 'general_red_tier' }
       ]
     end
 
@@ -503,30 +500,6 @@ module Status
       ]
     end
 
-    def fey_favors_demos
-      [
-        template_demo(id: 400, name: 'Sprite', race: 'sprite', tier: 1,
-                       attrs: { str: 3, dex: 18, con: 10, int: 14, wis: 13, cha: 11 },
-                       classes: [{ key: 'rogue', level: 1, trained_skills: %w[stealth perception] }],
-                       category: 'fey_favors'),
-        template_demo(id: 401, name: 'Pixie', race: 'pixie', tier: 1,
-                       attrs: { str: 2, dex: 20, con: 8, int: 10, wis: 14, cha: 15 },
-                       classes: [{ key: 'bard', level: 1, trained_skills: %w[perform_dance deception] }],
-                       category: 'fey_favors'),
-        template_demo(id: 402, name: 'Dryad', race: 'dryad', tier: 1,
-                       attrs: { str: 10, dex: 12, con: 11, int: 14, wis: 15, cha: 18 },
-                       classes: [{ key: 'druid', level: 2, trained_skills: %w[nature persuasion] }],
-                       category: 'fey_favors'),
-        template_demo(id: 403, name: 'Brownie', race: 'brownie', tier: 1,
-                       attrs: { str: 6, dex: 14, con: 10, int: 12, wis: 13, cha: 11 },
-                       classes: [{ key: 'rogue', level: 1, trained_skills: %w[stealth sleight_of_hand] }],
-                       category: 'fey_favors'),
-        template_demo(id: 404, name: "Will-o'-Wisp Spark", race: 'fey', tier: 1,
-                       attrs: { str: 1, dex: 17, con: 10, int: 13, wis: 14, cha: 11 },
-                       classes: [{ key: 'commoner', level: 2, trained_skills: [] }],
-                       category: 'fey_favors')
-      ]
-    end
 
     # Bridge a live Creatures::Accessor to the demo Hash the sheet
     # partials consume. Used to render spawned Creatures (instances

@@ -122,37 +122,6 @@ kobold:
     - name: Trapfinding
       min_level: 0
 
-# --- Fey races ---------------------------------------------------------
-
-fey:
-  size: small
-  speed: 30
-  abilities: []
-
-sprite:
-  parent: fey
-  size: tiny
-  speed: 20
-  abilities: []
-
-pixie:
-  parent: fey
-  size: tiny
-  speed: 20
-  abilities: []
-
-dryad:
-  parent: fey
-  size: medium
-  speed: 30
-  abilities: []
-
-brownie:
-  parent: fey
-  size: small
-  speed: 25
-  abilities: []
-
 # --- Animal races ------------------------------------------------------
 # `beast` is the root Animal race; every beast is one of its subtypes
 # (canine, spider, ...). Subtypes set their own speed and grant a Natural

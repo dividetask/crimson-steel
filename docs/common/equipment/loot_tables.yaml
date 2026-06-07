@@ -127,6 +127,97 @@ loot_tables:
       - chance: 0.1
         item: { item: Humanoid skull }
 
+  # Common Orc starting loadout (rolled at spawn, see the Common Orc
+  # template's `equipment_table`). Heavier-hitting than a goblin: a
+  # falchion-favoring melee pick, a bow or sling, a better shot at armor
+  # and a metal shield, and fatter pockets.
+  common_orc_loadout:
+    rolls:
+
+      # Melee — 50% falchion, else equal chance great axe / long sword /
+      # dagger / short sword / spear. `key` records hand-ness so the shield
+      # row can gate (no shield with a two-handed weapon).
+      - equipped: true
+        as: melee
+        options:
+          - chance: 0.5
+            key: one_handed
+            item: { item: Falchion }
+          - chance: 0.1
+            key: two_handed
+            item: { item: Great axe }
+          - chance: 0.1
+            key: one_handed
+            item: { item: Long sword }
+          - chance: 0.1
+            key: one_handed
+            item: { item: Dagger }
+          - chance: 0.1
+            key: one_handed
+            item: { item: Short sword }
+          - chance: 0.1
+            key: two_handed
+            item: { item: Spear }
+
+      # Ranged — equal chance sling / long bow.
+      - as: ranged
+        options:
+          - chance: 0.5
+            key: sling
+            item: { item: Sling }
+          - chance: 0.5
+            key: bow
+            item: { item: Longbow }
+
+      # Ammunition for the chosen ranged weapon.
+      - when: { ranged: bow }
+        item: { item: Arrow, quantity: "5d4" }   # 5–20 arrows
+      - when: { ranged: sling }
+        item: { item: Stone, quantity: "5d8" }   # 5–40 bullets
+
+      # Armor — weighted: 50% hide, 25% leather, 5% breastplate (else none).
+      - equipped: true
+        options:
+          - chance: 0.5
+            key: hide
+            item: { item: Hide armor }
+          - chance: 0.25
+            key: leather
+            item: { item: Leather armor }
+          - chance: 0.05
+            key: breastplate
+            item: { item: Breastplate }
+
+      # 50% chance of a light metal shield — only with a one-handed weapon.
+      - equipped: true
+        when: { melee: one_handed }
+        chance: 0.5
+        item: { item: Light metal shield }
+
+      # Pocket change.
+      - item: { item: Copper, quantity: "5d16" }   # 5–80 cp
+      - chance: 0.2
+        item: { item: Silver, quantity: "5d10" }   # 5–50 sp (20%)
+      - chance: 0.1
+        item: { item: Gold, quantity: "10d5" }     # 10–50 gp (10%)
+
+      # 15% chance of a small gem worth ~1–25 gp.
+      - chance: 0.15
+        options:
+          - chance: 0.34
+            key: gem_small
+            item: { item: Gem, quantity: 1, value_in_gold: 5 }
+          - chance: 0.33
+            key: gem_medium
+            item: { item: Gem, quantity: 1, value_in_gold: 15 }
+          - chance: 0.33
+            key: gem_large
+            item: { item: Gem, quantity: 1, value_in_gold: 25 }
+
+      # 10% chance of a trophy necklace.
+      - chance: 0.1
+        item: { item: Necklace of animal fangs }
+
   # Town guard equipment loadout. Spear is two-handed (no shield);
   # shield row gates on the hand variable.
   town_guard_equipment:

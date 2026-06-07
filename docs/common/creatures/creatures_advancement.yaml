@@ -256,7 +256,9 @@ Classes:
       - planes
       - religion
 
+  # NPC-only class (kept out of the player-character class picker).
   commoner:
+    npc_class: true
     martial_advancement: opposed
     bonus_skills: 2
     mana_per_level: 0
