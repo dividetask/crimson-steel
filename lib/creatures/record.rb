@@ -109,6 +109,9 @@ module Creatures
           h = { 'class' => e[:class], 'chance' => e[:chance], 'level' => e[:level] }
           h['skills']  = e[:skills]  unless Array(e[:skills]).empty?
           h['choices'] = e[:choices] unless (e[:choices] || {}).empty?
+          unless Array(e[:domain_picks]).empty?
+            h['domain_picks'] = e[:domain_picks].map { |p| { 'count' => p[:count], 'from' => p[:from] } }
+          end
           h
         end
       end
@@ -173,12 +176,23 @@ module Creatures
                                "#{source ? " (in #{source})" : ''}"
         end
         {
-          class:   class_key,
-          chance:  h['chance'].to_f,
-          level:   h.key?('level') ? Integer(h['level']) : 1,
-          skills:  (h['skills'] || []).map(&:to_s),
-          choices: stringify_keys(h['choices'] || {})
+          class:        class_key,
+          chance:       h['chance'].to_f,
+          level:        h.key?('level') ? Integer(h['level']) : 1,
+          skills:       (h['skills'] || []).map(&:to_s),
+          choices:      stringify_keys(h['choices'] || {}),
+          domain_picks: normalize_domain_picks(h['domain_picks'])
         }
+      end
+    end
+
+    # Optional per-class_table-entry spec for rolling Cleric domains at
+    # spawn: a list of { count, from } draws (distinct, no repeats across
+    # draws) whose result is written to the spawn's `choices.domains`.
+    def normalize_domain_picks(list)
+      Array(list).map do |p|
+        ph = stringify_keys(p)
+        { count: Integer(ph['count'] || 0), from: Array(ph['from']).map(&:to_s) }
       end
     end
 

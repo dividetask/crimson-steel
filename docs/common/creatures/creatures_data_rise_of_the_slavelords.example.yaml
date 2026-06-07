@@ -101,5 +101,11 @@ characters:
     class_table:
       - { class: warrior, chance: 0.5 }
       - { class: fighter, chance: 0.1667 }
-      - { class: cleric,  chance: 0.1667, choices: { deity: Mortheth } }
+      - class: cleric
+        chance: 0.1667
+        choices: { deity: Mortheth }
+        # Two domains from Mortheth's own set, plus one from a wider pool.
+        domain_picks:
+          - { count: 2, from: [Artifice, Death, Earth, Greed, Ruin] }
+          - { count: 1, from: [Plague, Travel, Vengeance, Secrets, Tempest, Cunning, Despair, Knowledge] }
       - { class: rogue,   chance: 0.1666 }

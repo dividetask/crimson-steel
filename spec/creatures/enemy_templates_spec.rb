@@ -179,5 +179,22 @@ RSpec.describe 'Enemy templates: races, clamp, NPC class, loadout', type: :model
       expect(cleric).not_to be_nil
       expect(cleric.record[:classes]['cleric'][:choices]).to include('deity' => 'Mortheth')
     end
+
+    it 'cleric Slaver rolls 3 distinct domains (2 from Mortheth, 1 from the wider pool)' do
+      pool_a = %w[Artifice Death Earth Greed Ruin]
+      pool_b = %w[Plague Travel Vengeance Secrets Tempest Cunning Despair Knowledge]
+      checked = 0
+      (0..200).each do |s|
+        a = Creatures.lookup(Creatures.spawn_from_template(355, rng: Random.new(s)))
+        next unless a.class_summary.first.first == 'cleric'
+        domains = a.record[:classes]['cleric'][:choices]['domains']
+        expect(domains.uniq.size).to eq(3)
+        expect((domains & pool_a).size).to eq(2)
+        expect((domains & pool_b).size).to eq(1)
+        checked += 1
+        break if checked >= 5
+      end
+      expect(checked).to be >= 1
+    end
   end
 end

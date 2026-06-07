@@ -43,8 +43,12 @@ module Creatures
       # replacing the template's classes, then clear the table.
       unless Array(copy[:class_table]).empty?
         chosen = weighted_pick(copy[:class_table], rng)
+        choices = deep_dup(chosen[:choices] || {})
+        unless Array(chosen[:domain_picks]).empty?
+          choices['domains'] = roll_domain_picks(chosen[:domain_picks], rng, existing: choices['domains'])
+        end
         copy[:classes] = {
-          chosen[:class] => { level: chosen[:level], skills: chosen[:skills], choices: chosen[:choices] }
+          chosen[:class] => { level: chosen[:level], skills: chosen[:skills], choices: choices }
         }
         copy[:class_table] = []
       end
@@ -57,6 +61,22 @@ module Creatures
 
       Dataset.insert!(copy)
       new_id
+    end
+
+    # Roll Cleric domains from a domain_picks spec (list of { count, from }).
+    # Draws are distinct and never repeat a domain already chosen (within or
+    # across draws, and any pre-existing `existing` domains). Returns the
+    # full domain list.
+    def roll_domain_picks(picks, rng, existing: nil)
+      chosen = Array(existing).dup
+      picks.each do |pick|
+        pool = Array(pick[:from]) - chosen
+        (pick[:count] || 0).times do
+          break if pool.empty?
+          chosen << pool.delete_at(rng.rand(pool.size))
+        end
+      end
+      chosen
     end
 
     # Weighted pick over a table of entries carrying a `:chance`

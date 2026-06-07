@@ -88,9 +88,8 @@ Deities:
     anathema: [Humility, Harmony, Despair, Knowledge, Cunning]
     channel_divinity: Karthak's Resolve
 
-  # Lesser deity worshipped by slavers. Domains are a reasonable
-  # starting set — adjust to taste. No Channel Divinity defined yet.
+  # Lesser deity worshipped by slavers. No Channel Divinity defined yet.
   Mortheth:
     rank: lesser
-    domains: [Greed, Trickery, Despair, Ruin]
-    anathema: [Hope, Healing, Life, Harmony]
+    domains: [Artifice, Death, Earth, Greed, Ruin]
+    anathema: [Humility, Hearth, Nature, Truth, Water]
