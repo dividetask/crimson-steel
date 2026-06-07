@@ -289,7 +289,16 @@ module Creatures
       @record[:classes].sum do |class_key, entry|
         cls = Creatures::Advancement.look_up_class(class_key) || {}
         saves = cls['saves'] || {}
-        rate = (saves['aligned'] || []).include?(attr_key.to_s) ? :aligned : :opposed
+        # Aligned (fast) and Opposed (slow) are explicit; a Save Attribute in
+        # neither list takes the Unaligned (medium) rate — so emptying a Class's
+        # `saves.aligned` drops those Saves to Unaligned.
+        rate = if (saves['aligned'] || []).include?(attr_key.to_s)
+                 :aligned
+               elsif (saves['opposed'] || []).include?(attr_key.to_s)
+                 :opposed
+               else
+                 :unaligned
+               end
         Proficiencies::Ranks.apply_rate(entry[:level], rate)
       end
     end

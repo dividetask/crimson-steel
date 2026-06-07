@@ -232,11 +232,11 @@ Returned list (in encounter order, deduplicated): `darkvision`, `dwarven_resilie
 
 ### Saves
 
-**A Class Save advances at the `aligned` rate.** Korth: cleric's `saves.aligned = [wis, cha]`. `ranks_for("wis_save") = floor(4 × 5 / 3) = 6`.
+**A Save in neither list advances at the `unaligned` (medium) rate.** Korth: cleric's `saves.aligned` is empty and `wis` is not in `saves.opposed`, so `wis` is Unaligned. `ranks_for("wis_save") = 4` (Unaligned rate = `level`).
 
-**A Save not in `saves.aligned` advances at the `opposed` rate (the default).** Korth: `str` is not in cleric's `saves.aligned`. `ranks_for("str_save") = floor(4 × 2 / 3) = 2`.
+**An explicitly `opposed` Save advances at the `opposed` rate.** Korth: `str` is in cleric's `saves.opposed`. `ranks_for("str_save") = floor(4 × 2 / 3) = 2`.
 
-**Every Class contributes to every Save.** A hypothetical multi-classed Creature `{ fighter: 3, rogue: 2 }` for `ranks_for("dex_save")`: fighter has `dex` as `opposed` (`saves.aligned = [str, con]`) → `floor(3 × 2/3) = 2`. Rogue has `dex` in `saves.aligned = [dex, int]` → `floor(2 × 5/3) = 3`. Sum = `5`.
+**Every Class contributes to every Save.** A hypothetical multi-classed Creature `{ fighter: 3, rogue: 2 }` for `ranks_for("dex_save")`: fighter lists `dex` in `saves.opposed` → `floor(3 × 2/3) = 2`. Rogue lists `dex` in neither set (its `saves.aligned` is empty), so `dex` is Unaligned → `level = 2`. Sum = `4`.
 
 ### Martial
 

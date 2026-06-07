@@ -336,37 +336,29 @@ module CreatureSheet
     []
   end
 
-  # Resolve a spell key to { tier:, name: }, or nil when it is not a
-  # Catalog spell. Granted keys arrive snake_case; the spell catalog is
-  # keyed by display name, so we try the Title-Cased form too. A Creature may
-  # also know a Tier-axis spell by one of its **per-Tier variant names** (e.g.
-  # "Create Illusionary Sound" is the Tier-0 name of "Create Illusion"), so a
-  # name that is not a catalog key is matched against every spell's `name`
-  # array.
+  # Resolve a granted ability key to { tier:, name: }, or nil when it is not a
+  # Catalog spell. A Creature may name a spell in several forms — the catalog
+  # key ("Shield of Faith"), a snake_case key ("shield_of_faith"), or a
+  # **per-Tier variant name** of a Tier-axis spell ("Create Illusionary Sound"
+  # is the Tier-0 name of "Create Illusion"). Matching is case-insensitive and
+  # treats `_` as a space, so small words ("of", "the") don't trip Title-Casing.
   def spell_info(key)
-    title = titleize_ability(key)
-    entry = (Abilities.catalog.ability(title) || Abilities.catalog.ability(key.to_s) rescue nil)
-    if entry && entry['type'] == 'spell'
-      tier = entry['tier']
-      tier = Array(tier).map(&:to_i).min if tier.is_a?(Array)
-      return { tier: tier.to_i, name: title }
-    end
-    spell_by_variant_name(title) || spell_by_variant_name(key.to_s)
-  rescue StandardError
-    nil
-  end
-
-  # Find a Catalog spell that lists `name` among its per-Tier display names,
-  # returning { tier:, name: } for the matching Tier. nil when none matches.
-  def spell_by_variant_name(name)
-    nm = name.to_s
-    (Abilities.catalog.catalog rescue {}).each_value do |e|
+    k    = key.to_s
+    norm = ->(s) { s.to_s.tr('_', ' ').downcase }
+    want = [k, titleize_ability(k)].map(&norm).uniq
+    (Abilities.catalog.catalog rescue {}).each do |ckey, e|
       next unless e.is_a?(Hash) && e['type'] == 'spell'
-      idx = Array(e['name']).map(&:to_s).index(nm)
+      candidates = ([ckey] + Array(e['name'])).compact.map(&:to_s)
+      idx = candidates.index { |c| want.include?(norm.call(c)) }
       next unless idx
       tiers = Array(e['tier'])
-      tier  = tiers[idx] || tiers.map(&:to_i).min || 0
-      return { tier: tier.to_i, name: nm }
+      if idx.zero? # matched the catalog key
+        tier = e['tier']
+        tier = tiers.map(&:to_i).min if tier.is_a?(Array)
+        return { tier: tier.to_i, name: ckey.to_s }
+      else         # matched a per-Tier variant name
+        return { tier: (tiers[idx - 1] || tiers.map(&:to_i).min || 0).to_i, name: candidates[idx] }
+      end
     end
     nil
   rescue StandardError

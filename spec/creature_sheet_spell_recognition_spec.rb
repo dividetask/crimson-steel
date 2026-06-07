@@ -18,6 +18,13 @@ RSpec.describe 'CreatureSheet spell recognition' do
       expect(CreatureSheet.spell_info('Create Illusion')).to include(name: 'Create Illusion')
     end
 
+    it 'recognizes a snake_case spell name with small words (case-insensitive)' do
+      # "shield_of_faith" must match the catalog key "Shield of Faith" — naive
+      # Title-Casing would yield "Shield Of Faith" and miss it.
+      expect(CreatureSheet.spell_info('shield_of_faith')).to eq(tier: 1, name: 'Shield of Faith')
+      expect(CreatureSheet.spell_info('Shield of Faith')).to eq(tier: 1, name: 'Shield of Faith')
+    end
+
     it 'returns nil for non-spell Talents (they stay under Abilities)' do
       expect(CreatureSheet.spell_info('Rage')).to be_nil
       expect(CreatureSheet.spell_info('Turn Undead')).to be_nil
