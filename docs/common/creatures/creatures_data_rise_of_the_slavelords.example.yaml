@@ -129,7 +129,7 @@ characters:
     attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
     advancement:
       classes:
-        fighter: 1
+        fighter: 4
     equipment_table: slaver_loadout
     race_table:
       - { race: orc,   chance: 0.5 }
@@ -137,15 +137,16 @@ characters:
       - { race: elf,   chance: 0.1667 }
       - { race: dwarf, chance: 0.1666 }
     class_table:
-      - { class: barbarian, chance: 0.25 }
-      - { class: fighter,   chance: 0.25 }
+      - { class: barbarian, chance: 0.25, level: 4 }
+      - { class: fighter,   chance: 0.25, level: 4 }
       - class: cleric
         chance: 0.25
+        level: 4
         choices: { deity: Mortheth }
         domain_picks:
           - { count: 2, from: [Artifice, Death, Earth, Greed, Ruin] }
           - { count: 1, from: [Plague, Travel, Vengeance, Secrets, Tempest, Cunning, Despair, Knowledge] }
-      - { class: rogue,     chance: 0.25 }
+      - { class: rogue,     chance: 0.25, level: 4 }
     # Tier 2 grants two chosen attribute bonuses; roll each onto one of these.
     tier_advancement_table: { count: 2, from: [str, con, cha, dex] }
     skill_table: [athletics, perception, religion, restricted_magic, sense_motive, healing]

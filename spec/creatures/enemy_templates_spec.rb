@@ -203,7 +203,9 @@ RSpec.describe 'Enemy templates: races, clamp, NPC class, loadout', type: :model
 
       10.times do |seed|
         s = Creatures.lookup(Creatures.spawn_from_template(356, rng: Random.new(seed)))
-        expect(%w[barbarian fighter cleric rogue]).to include(s.class_summary.first.first)
+        cls_key, level = s.class_summary.first
+        expect(%w[barbarian fighter cleric rogue]).to include(cls_key)
+        expect(level).to eq(4)
         adv = s.tier_attribute_advancement
         expect(adv.size).to eq(2)
         expect(adv).to all(satisfy { |x| %i[str con cha dex].include?(x) })
