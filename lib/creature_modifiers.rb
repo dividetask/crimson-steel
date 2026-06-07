@@ -138,16 +138,29 @@ module CreatureModifiers
     []
   end
 
-  # [[ability_name, modifier_hash], ...] across every Modifier Entry the
-  # Creature's Granted Abilities carry.
+  # [[ability_name, modifier_hash], ...] across every **passive** Modifier
+  # Entry the Creature's Granted Abilities carry. An **active** ability — one
+  # with an `activation_time` (a Channel Divinity action like Strength
+  # Devotion, used as a Main/Bonus/Free action) — does NOT contribute its
+  # Modifiers Always-On; those apply only when the action is used.
   def ability_modifier_entries(accessor)
     return [] unless defined?(Abilities)
     (accessor.granted_abilities rescue []).flat_map do |g|
       name = g[:name]
+      next [] if active_ability?(name)
       (Abilities.get_modifiers(name) rescue []).map { |m| [name, m] }
     end
   rescue StandardError
     []
+  end
+
+  # Whether a Granted Ability is an action (declares an `activation_time`), as
+  # opposed to a passive Modifier ability whose Modifiers are Always-On.
+  def active_ability?(name)
+    entry = (Abilities.catalog.ability(name) rescue nil)
+    !!(entry && !entry['activation_time'].to_s.strip.empty?)
+  rescue StandardError
+    false
   end
 
   # A Modifier's `add`: an Integer verbatim, or a Formula string resolved
