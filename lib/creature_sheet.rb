@@ -333,14 +333,37 @@ module CreatureSheet
 
   # Resolve a spell key to { tier:, name: }, or nil when it is not a
   # Catalog spell. Granted keys arrive snake_case; the spell catalog is
-  # keyed by display name, so we try the Title-Cased form too.
+  # keyed by display name, so we try the Title-Cased form too. A Creature may
+  # also know a Tier-axis spell by one of its **per-Tier variant names** (e.g.
+  # "Create Illusionary Sound" is the Tier-0 name of "Create Illusion"), so a
+  # name that is not a catalog key is matched against every spell's `name`
+  # array.
   def spell_info(key)
     title = titleize_ability(key)
     entry = (Abilities.catalog.ability(title) || Abilities.catalog.ability(key.to_s) rescue nil)
-    return nil unless entry && entry['type'] == 'spell'
-    tier = entry['tier']
-    tier = Array(tier).map(&:to_i).min if tier.is_a?(Array)
-    { tier: tier.to_i, name: title }
+    if entry && entry['type'] == 'spell'
+      tier = entry['tier']
+      tier = Array(tier).map(&:to_i).min if tier.is_a?(Array)
+      return { tier: tier.to_i, name: title }
+    end
+    spell_by_variant_name(title) || spell_by_variant_name(key.to_s)
+  rescue StandardError
+    nil
+  end
+
+  # Find a Catalog spell that lists `name` among its per-Tier display names,
+  # returning { tier:, name: } for the matching Tier. nil when none matches.
+  def spell_by_variant_name(name)
+    nm = name.to_s
+    (Abilities.catalog.catalog rescue {}).each_value do |e|
+      next unless e.is_a?(Hash) && e['type'] == 'spell'
+      idx = Array(e['name']).map(&:to_s).index(nm)
+      next unless idx
+      tiers = Array(e['tier'])
+      tier  = tiers[idx] || tiers.map(&:to_i).min || 0
+      return { tier: tier.to_i, name: nm }
+    end
+    nil
   rescue StandardError
     nil
   end
