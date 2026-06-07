@@ -397,6 +397,7 @@ Weapon-specific bonuses (e.g. Weapon Training for a particular weapon family) ap
 **Cost:** All three Defensive Actions consume one Reaction allowance plus dice from the defender's Combat Pool. The defender chooses the dice count from Reaction Action Minimum up to Combat Pool Remaining (Dice Cap still applies as a per-Roll cap).
 - Parry costs that weapon's Speed + dice; Block and Dodge are Speed 0 + dice.
 - Dodge is **not** a Saving Throw: it merely borrows the `dex_save` proficiency to compute its Dice Cap and Competency Modifier. Mechanically it is a pool-costed Defensive Action like Block, so the defender picks how many dice to spend (it does **not** automatically spend the full Dice Cap, and it is **not** exempt from the Combat Pool cost).
+- A Dodge's **Competency does not propagate to the attacker.** It helps the dodger's own defence Roll but is not inverted onto the attacker's Target Number — the attack builder marks the dodger Roll's `Competency` in Check Resolution's `no_propagate` field. (Parry / Block competency still propagates; only Dodge holds its Competency local. The dodger's Tier **Inherent** still crosses as Ascendancy.)
 
 **Eligibility:** Combat refuses ineligible Defensive Action declarations up front — e.g., a Parry declared against a ranged attack is rejected before the Reaction allowance or dice are committed. The defender cannot "spend" a Reaction on an ineligible defense.
 

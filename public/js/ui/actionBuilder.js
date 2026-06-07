@@ -429,6 +429,9 @@ export class ActionBuilder {
     // Set a Roll's own Bonus/Penalty list. The TN is NOT set here — it is
     // computed by Check Resolution at roll time (after cross-side propagation).
     (patch.set_bpl || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.bonus_penalty_list = p.bonus_penalty_list || []; }));
+    // Bonus Types on this Roll that Check Resolution must NOT propagate to the
+    // other side (e.g. a Dodge's Competency). Empty by default.
+    (patch.set_no_propagate || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.no_propagate = p.types || []; }));
     (patch.set_reroll || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.reroll = p.clear ? null : { sign: p.sign, count: p.count, max: !!p.max }; }));
     (patch.set_nudge || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.nudge = p.clear ? null : { sign: p.sign, count: p.count, max: !!p.max }; }));
     (patch.set_name || []).forEach((p) => ActionBuilder._setName(root, p));
@@ -460,7 +463,8 @@ export class ActionBuilder {
     const rollFor = (g) => {
       let c; try { c = JSON.parse(g.dataset.config); } catch (e) { return null; }
       return { _g: g, side: g.dataset.side, baseTn: c.base_tn, tier: c.tier,
-               bonusPenaltyList: c.bonus_penalty_list || [], startingContribution: 0 };
+               bonusPenaltyList: c.bonus_penalty_list || [], noPropagate: c.no_propagate || [],
+               startingContribution: 0 };
     };
     const supporting = groups.filter((g) => g.dataset.side === 'supporting').map(rollFor);
     const opposing   = groups.filter((g) => g.dataset.side === 'opposing').map(rollFor);

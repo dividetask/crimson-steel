@@ -47,7 +47,12 @@ export class Propagation {
     const base = (roll.bonusPenaltyList || []).slice();
     for (const source of sourceRolls) {
       if (!source || source === roll) continue;
+      // A Roll may declare Bonus Types that stay on its own side and do not
+      // cross to the opponent (e.g. a Dodge's Competency helps the dodger but
+      // never penalizes the attacker). Those entries are skipped here.
+      const noCross = source.noPropagate || [];
       for (const [type, value, src] of source.bonusPenaltyList || []) {
+        if (noCross.includes(type)) continue;
         const relabeled = Propagation.CROSS_SIDE_RELABEL[type] || type;
         base.push(src === undefined ? [relabeled, -value] : [relabeled, -value, src]);
       }

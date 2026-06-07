@@ -21,8 +21,9 @@ test('the initiating Roll takes Ascendancy against every Opposer', () => {
 });
 
 test('prepare propagates bonuses both ways for an area cast', () => {
-  // The caster's Inherent reaches the Opposer; the Opposer's Competency reaches
-  // the caster (bidirectional); and each gets its Ascendancy versus the other.
+  // The caster's Inherent reaches the Opposer — relabeled Ascendancy as it
+  // crosses; the Opposer's Competency reaches the caster (bidirectional); and
+  // each also gets its Tier Mismatch Ascendancy versus the other.
   const prepared = CheckResolution.prepare({
     spread: true,
     supporting: [{ tier: 2, bonusPenaltyList: [['Inherent', 2]] }],
@@ -30,8 +31,10 @@ test('prepare propagates bonuses both ways for an area cast', () => {
   });
   assert.deepEqual(prepared.supporting[0].bonusPenaltyList,
     [['Inherent', 2], ['Competency', -3], ['Ascendancy', 2]]);
+  // The crossed Inherent arrives as Ascendancy (-2), and the Tier Mismatch
+  // Ascendancy (-2) is added on top.
   assert.deepEqual(prepared.opposing[0].bonusPenaltyList,
-    [['Competency', 3], ['Inherent', -2], ['Ascendancy', -2]]);
+    [['Competency', 3], ['Ascendancy', -2], ['Ascendancy', -2]]);
 });
 
 test('resolveCheck spread nets the caster against each Opposer independently', () => {

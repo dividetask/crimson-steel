@@ -785,11 +785,17 @@ helpers do
           # defence proves awareness, so Unaware never applies here.
           atk_branch_bpl = comp + Encounter::Attack.attacker_bonuses(
             flatfooted: (b[:key] != 'dodge') && !t[:flatfooted_immune], unaware: false, helpless: t[:helpless])
+          # A Dodge's Competency helps the defender's own Roll but is NOT
+          # propagated onto the attacker as a penalty — Check Resolution's
+          # per-Roll `no_propagate` field carries that (the defender's Inherent
+          # still crosses as Ascendancy). Other defences propagate normally.
+          def_no_prop = b[:key] == 'dodge' ? ['Competency'] : []
           mk = lambda do |dice, label, disabled|
             { value: "#{b[:key]}|#{dice}", group: b[:group], label: label,
               summary: "#{b[:name]} — #{dice} dice", disabled: disabled,
               patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_branch_bpl },
                                  { id: 'defender', bonus_penalty_list: dcmp }],
+                       set_no_propagate: [{ id: 'defender', types: def_no_prop }],
                        set_dice:  [{ id: 'defender', count: dice }],
                        set_speed: [{ id: 'defender', speed: dspd }],
                        set_name:  [{ id: 'defender', roll_name: b[:name] }],
