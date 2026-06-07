@@ -218,10 +218,6 @@ Druidic Spellcasting:
   type: talent
   description: "Cast druidic spells drawn from the bond with nature. The Creature's chosen spells live under `advancement.classes.druid.choices.spellcasting`; spells need not be prepared each day."
 
-Ranger Spellcasting:
-  type: talent
-  description: "Cast a small repertoire of nature-aspected spells. The Creature's chosen spells live under `advancement.classes.ranger.choices.spellcasting`. Spells need not be prepared in advance."
-
 Bardic Inspiration:
   type: talent
   activation_time: main

@@ -43,6 +43,10 @@ module Creatures
       # ammunition, pocket change. Distinct from `loot_table`, which
       # Collect Combat Loot rolls as extra drops on death.
       out[:equipment_table] = r['equipment_table']
+      # Optional weighted race list rolled once at spawn time to pick the
+      # spawn's `race` (e.g. a Slaver that is 50% orc, else human/elf/dwarf).
+      # The template's own `race` is the default shown before a spawn.
+      out[:race_table]  = normalize_race_table(r['race_table'], out[:id], source)
       out[:metadata]    = r['metadata'] || {}
       # Persisted spawned-instance marker (Spawn Creature From Template);
       # round-tripped so a reloaded spawn still groups under its template.
@@ -93,6 +97,9 @@ module Creatures
       out['tier']         = rec[:tier]                         unless rec[:tier].nil?
       out['loot_table']   = rec[:loot_table]                   unless rec[:loot_table].nil?
       out['equipment_table'] = rec[:equipment_table]           unless rec[:equipment_table].nil?
+      unless Array(rec[:race_table]).empty?
+        out['race_table'] = rec[:race_table].map { |e| { 'race' => e[:race], 'chance' => e[:chance] } }
+      end
       out['metadata']     = rec[:metadata]                     unless (rec[:metadata] || {}).empty?
       out['spawned_from'] = rec[:spawned_from]                 unless rec[:spawned_from].nil?
       out
@@ -129,6 +136,19 @@ module Creatures
         out[k] = Integer(a[k.to_s])
       end
       out
+    end
+
+    def normalize_race_table(list, cid, source)
+      return [] if list.nil?
+      Array(list).map do |e|
+        h = stringify_keys(e)
+        race = h['race'].to_s
+        unless Races.known?(race)
+          raise ArgumentError, "Creature #{cid}: `race_table` race #{race.inspect} is unknown" \
+                               "#{source ? " (in #{source})" : ''}"
+        end
+        { race: race, chance: h['chance'].to_f }
+      end
     end
 
     def normalize_tier(v, cid, source)

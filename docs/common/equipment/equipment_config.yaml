@@ -244,6 +244,20 @@ Weapons:
     damage_type: Piercing
     tags: [thrown]
     base_price: 4
+  Bola:
+    category: Ranged
+    damage_type: Bludgeoning
+    base_damage: 0
+    threshold: null
+    tags: [thrown]
+    base_price: 5
+  Net:
+    category: Ranged
+    damage_type: Bludgeoning
+    base_damage: 0
+    threshold: null
+    tags: [thrown]
+    base_price: 1
   Mace:
     category: One Handed
     damage_type: Bludgeoning
@@ -688,6 +702,9 @@ Misc Items:
   Necklace of animal fangs:
     category: Item
     base_price: 0
+  Manacles:
+    category: Item
+    base_price: 2
   Thieves' tools:
     category: Item
     slot: bag

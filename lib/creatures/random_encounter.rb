@@ -24,7 +24,7 @@ module Creatures
 
     # ---- Spawn / Delete -------------------------------------------------
 
-    def spawn_from_template(template_id, name_override: nil, loot_table: nil)
+    def spawn_from_template(template_id, name_override: nil, loot_table: nil, rng: Random.new)
       template = Dataset.get(Integer(template_id))
       raise ArgumentError, "no template Creature with id #{template_id}" unless template
 
@@ -33,6 +33,12 @@ module Creatures
       copy[:id] = new_id
       copy[:name] = name_override if name_override
       copy[:loot_table] = loot_table if loot_table
+      # Resolve a weighted race_table (if any) to a concrete race on the
+      # spawn, then clear the table so the instance is a fixed-race Creature.
+      unless Array(copy[:race_table]).empty?
+        copy[:race] = pick_race(copy[:race_table], rng)
+        copy[:race_table] = []
+      end
       # Record the template this instance was cloned from so the Roster
       # Sidebar / Character Sheets can group spawned Creatures under their
       # source. A spawned instance is NOT itself a template — drop the
@@ -42,6 +48,19 @@ module Creatures
 
       Dataset.insert!(copy)
       new_id
+    end
+
+    # Weighted pick over a race_table (list of { race:, chance: }). The
+    # chances are absolute and conventionally sum to 1; any leftover
+    # probability falls through to the last entry.
+    def pick_race(table, rng)
+      u = rng.rand
+      acc = 0.0
+      table.each do |e|
+        acc += e[:chance].to_f
+        return e[:race] if u < acc
+      end
+      table.last[:race]
     end
 
     def delete_creature(id)
@@ -106,7 +125,8 @@ module Creatures
             new_ids << spawn_from_template(
               Integer(sref['template_id']),
               name_override: sref['name_override'],
-              loot_table:    sref['loot_table']
+              loot_table:    sref['loot_table'],
+              rng:           rng
             )
           end
         end

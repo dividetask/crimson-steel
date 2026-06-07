@@ -102,11 +102,8 @@ characters:
       cha: 10
     advancement:
       classes:
-        ranger:
+        fighter:
           level: 3
-          choices:
-            spellcasting:
-              - heal_lesser_wounds
           skills:
             - survival
             - perception

@@ -134,5 +134,28 @@ RSpec.describe 'Enemy templates: races, clamp, NPC class, loadout', type: :model
       new_id = Creatures.spawn_from_template(307)
       expect(Creatures.lookup(new_id).equipment_table).to eq('common_orc_loadout')
     end
+
+    it 'Slaver: tier 1, race rolled at spawn from race_table, equipment_table slaver_loadout' do
+      a = Creatures.lookup(355)
+      expect(a.name).to eq('Slaver')
+      expect(a.tier).to eq(1)
+      expect(a.equipment_table).to eq('slaver_loadout')
+      expect(a.record[:race_table].map { |e| e[:race] }).to eq(%w[orc human elf dwarf])
+
+      spawn = Creatures.lookup(Creatures.spawn_from_template(355))
+      # The spawn has a concrete race drawn from the table, and no table.
+      expect(%w[orc human elf dwarf]).to include(spawn.race)
+      expect(spawn.record[:race_table]).to be_empty
+    end
+
+    it 'Slaver race roll is weighted ~50% orc and honors the seeded rng' do
+      races = Hash.new(0)
+      400.times do |seed|
+        id = Creatures.spawn_from_template(355, rng: Random.new(seed))
+        races[Creatures.lookup(id).race] += 1
+      end
+      expect(races.keys).to match_array(%w[orc human elf dwarf])
+      expect(races['orc'].to_f / 400).to be_within(0.08).of(0.5)
+    end
   end
 end

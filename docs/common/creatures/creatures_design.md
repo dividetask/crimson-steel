@@ -29,6 +29,7 @@ The on-disk shape persisted in the `creatures_data_*.example.{json,yaml}` files 
 | `advancement` | Advancement Block | `{}` | Holds the Creature's classes and tier attribute advancement picks. See *Advancement Block* below. |
 | `loot_table` | string or null | null | Optional Loot Table ID (defined in Equipment). When set, Equipment's *Collect Combat Loot* rolls this table for the Creature on top of moving its Inventory. |
 | `equipment_table` | string or null | null | Optional Equipment Loot Table ID rolled **once at spawn time** to generate the Creature's starting loadout — equipped gear, ammunition, and pocket change. Distinct from `loot_table` (death drops). The consuming project rolls it immediately after *Spawn Creature From Template* (see that entry point). |
+| `race_table` | list of `{race, chance}` | `[]` | Optional weighted race list rolled **once at spawn time** to choose the spawn's `race` (e.g. a Slaver that is 50% orc, else human/elf/dwarf). `chance` values are absolute and conventionally sum to 1; leftover probability falls through to the last entry. Every `race` must resolve in `creatures_race.yaml`. The template's own `race` field is the default shown before any spawn. *Spawn Creature From Template* resolves the table to a concrete `race` and clears it on the spawn. |
 | `metadata` | dict | `{}` | Caller-supplied free-form data. Creatures does not interpret. Used by consuming projects for portrait paths, custom flags, etc. |
 
 `mana_spent`, `hp_damage`, equipped items, active Conditions, and similar runtime state are **not** stored on the Creature record — they live in Conditions, Equipment, and elsewhere, keyed by Creature ID.
@@ -52,7 +53,7 @@ The value under a key in `advancement.classes`.
 |---|---|---|---|
 | `level` | integer | required | Class Level (≥ 0). |
 | `skills` | list of string | `[]` | Skill keys the Creature has chosen to train in this Class. Set Instances are valid (e.g. `perform_dance`); bare Set Skill keys (ending in `_`) are not. |
-| `choices` | dict | `{}` | Per-Class catalog choices. Free-form keys; the consuming Class entry interprets each one. Common keys include `spellcasting: [<spell_name>, ...]` (the spells chosen for the Class's Spellcasting-type ability — Bardic Spellcasting, Arcane Spellcasting, Druidic Spellcasting, Ranger Spellcasting, or the Cleric's `domain` resolution), `deity: <name>` and `domains: [<name>, ...]` (Cleric — up to three domains; the legacy single `domain: <name>` is still accepted), Bard's Versatile Performance subject, etc. Creatures stores and round-trips the dict opaquely; spells listed under `choices.spellcasting` are surfaced as Granted Abilities by *Get Granted Abilities*. |
+| `choices` | dict | `{}` | Per-Class catalog choices. Free-form keys; the consuming Class entry interprets each one. Common keys include `spellcasting: [<spell_name>, ...]` (the spells chosen for the Class's Spellcasting-type ability — Bardic Spellcasting, Arcane Spellcasting, Druidic Spellcasting, or the Cleric's `domain` resolution), `deity: <name>` and `domains: [<name>, ...]` (Cleric — up to three domains; the legacy single `domain: <name>` is still accepted), Bard's Versatile Performance subject, etc. Creatures stores and round-trips the dict opaquely; spells listed under `choices.spellcasting` are surfaced as Granted Abilities by *Get Granted Abilities*. |
 
 A bare integer in place of a Class Entry is shorthand: `fighter: 1` is equivalent to `fighter: { level: 1 }`.
 
@@ -351,6 +352,8 @@ Behavior:
 Returns: the new Creature ID.
 
 The new record is persistent — it lives in the same dataset as PCs and templates and is round-tripped by Save Creatures. Lifecycle management (deletion after combat resolution) is the caller's responsibility. The post-combat loot stub in Equipment is the conventional caller for cleanup via *Delete Creature*.
+
+When the template carries a `race_table`, the spawn rolls it (weighted by `chance`, using the caller-supplied `rng`) to pick a concrete `race`, writes that onto the spawn, and clears the spawn's `race_table`. The consuming project seeds this resolved `race` as a roll variable when rolling the `equipment_table`, so race-aware loadouts can branch with `when: { race: <race> }`.
 
 The spawn deep-copies the template's `equipment_table` (when present). Creatures itself does not roll it — generating the spawn's loadout is the consuming project's job, performed immediately after this call (and after *Roll Random Encounter*): roll the `equipment_table` via Equipment's *Roll Loot Table*, *Add Item* each produced Stack to the spawn, then *Reconcile Loadout*. Equipped rows in the table become the spawn's combat loadout; non-equipped rows (coins, trophies) are carried and collected by *Collect Combat Loot* on death.
 

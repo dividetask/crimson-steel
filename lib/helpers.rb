@@ -109,7 +109,9 @@ helpers do
     table = accessor.equipment_table
     return if table.nil? || table.to_s.empty?
 
-    rolled = Equipment.instance.roll_loot_table(table.to_s)
+    # Seed the roll with the spawn's resolved race so race-aware loadouts
+    # (e.g. the Slaver) can branch on `when: { race: orc }`.
+    rolled = Equipment.instance.roll_loot_table(table.to_s, vars: { 'race' => accessor.race })
     return if rolled.equal?(Equipment::ERROR)
 
     owner = "creature:#{creature_id}"

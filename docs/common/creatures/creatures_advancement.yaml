@@ -177,24 +177,6 @@ Classes:
       - nature
       - perception
 
-  ranger:
-    martial_advancement: aligned
-    bonus_skills: 4
-    mana_per_level: 2
-    saves:
-      aligned: [str, dex]
-      opposed: [con, int, wis, cha]
-    ability_progression:
-      "1": [ranger_spellcasting]
-    aligned_proficiencies:
-      - animal_handling
-      - athletics
-      - healing
-      - nature
-      - perception
-      - stealth
-      - survival
-
   rogue:
     martial_advancement: unaligned
     bonus_skills: 4

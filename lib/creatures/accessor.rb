@@ -12,7 +12,7 @@ module Creatures
   class Accessor
     SPELLCASTING_ABILITIES = %w[
       bardic_spellcasting arcane_spellcasting druidic_spellcasting
-      ranger_spellcasting domain
+      domain
     ].freeze
 
     def initialize(record)
