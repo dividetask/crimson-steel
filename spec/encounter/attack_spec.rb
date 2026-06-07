@@ -37,6 +37,15 @@ RSpec.describe Encounter::Attack do
       expect(described_class.attacker_bonuses(flatfooted: true,  unaware: false)).to eq([['Circumstance', 1, 'flatfooted']])
       expect(described_class.attacker_bonuses(flatfooted: false, unaware: false)).to eq([])
     end
+
+    it 'Helpless supersedes Flatfooted / Unaware with a single, more severe advantage' do
+      # A Helpless target (cannot act) yields only the +3 Helpless Circumstance
+      # advantage — never also the lesser Flatfooted / Unaware.
+      expect(described_class.attacker_bonuses(flatfooted: true, unaware: true, helpless: true))
+        .to eq([['Circumstance', 3, 'helpless']])
+      expect(described_class.attacker_bonuses(flatfooted: false, unaware: false, helpless: true))
+        .to eq([['Circumstance', 3, 'helpless']])
+    end
   end
 
   describe 'Tier modifiers on the attack check' do

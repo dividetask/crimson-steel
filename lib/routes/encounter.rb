@@ -609,6 +609,10 @@ helpers do
       { id: c[:id], name: tracker_name(c), unaware: encounter_state.unaware?(c[:id]),
         # Uncanny Dodge (et al.) make the target immune to Flatfooted / Unaware.
         flatfooted_immune: flatfooted_immune?(tacc),
+        # A target that cannot act (incapacitated / paralyzed / dying) is
+        # Helpless: it offers no defense and attacks against it gain the more
+        # severe Helpless advantage (supersedes Flatfooted / Unaware).
+        helpless: !(encounter_state.creature_can_act?(c[:id]) rescue true),
         is_pc: creature_is_pc?(c[:creature_id]), tier: (tacc&.tier rescue 0) || 0,
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
         martial: roll_inputs_for(tacc, 'martial',   attribute_override: :str),
@@ -727,9 +731,9 @@ helpers do
         # backs the Shield of Faith branch (a caster defends; the shielded
         # target itself is not Dodging, so it stays Flatfooted unless immune).
         atk_none_bpl     = comp + atk_tier_none + Encounter::Attack.attacker_bonuses(
-          flatfooted: !t[:flatfooted_immune], unaware: t[:unaware] && !t[:flatfooted_immune])
+          flatfooted: !t[:flatfooted_immune], unaware: t[:unaware] && !t[:flatfooted_immune], helpless: t[:helpless])
         atk_declared_bpl = comp + atk_tier_def + Encounter::Attack.attacker_bonuses(
-          flatfooted: !t[:flatfooted_immune], unaware: false)
+          flatfooted: !t[:flatfooted_immune], unaware: false, helpless: t[:helpless])
         # No defense first (attacker keeps Flatfooted), then one group per
         # Defensive Action: a name button carrying the defence Speed (Dodge /
         # Block = 0, Parry = weapon Speed), a button per die choice, and a
@@ -749,19 +753,23 @@ helpers do
         #   Block — only when the defender has a Shield equipped; any attack.
         #   Parry — melee attacks only, one branch per equipped melee weapon
         #           ("Parry with <weapon>"); costs that weapon's Speed + dice.
+        # A Helpless target (incapacitated / paralyzed / dying) cannot Dodge,
+        # Block, or Parry — only "No defense" is offered.
         branches = []
-        # Dodge borrows the dex_save proficiency for its Dice Cap/Modifiers but
-        # is a pool-costed Defensive Action (not a Saving Throw): Speed 0, dice
-        # chosen from the Reaction Minimum up to the remaining pool.
-        branches << { key: 'dodge', group: 'dodge', name: 'Dodge', inputs: t[:dodge], speed: 0, save: false }
-        if t[:has_shield]
-          branches << { key: 'block', group: 'block', name: 'Block', inputs: t[:martial], speed: 0, save: false }
-        end
-        unless w[:ranged]
-          t[:parry_weapons].each do |pw|
-            branches << { key: "parry:#{pw[:item_type]}", group: "parry:#{pw[:item_type]}",
-                          name: "Parry with #{pw[:display_name]}", inputs: t[:martial],
-                          speed: [pw[:speed].to_i, 0].max, save: false }
+        unless t[:helpless]
+          # Dodge borrows the dex_save proficiency for its Dice Cap/Modifiers but
+          # is a pool-costed Defensive Action (not a Saving Throw): Speed 0, dice
+          # chosen from the Reaction Minimum up to the remaining pool.
+          branches << { key: 'dodge', group: 'dodge', name: 'Dodge', inputs: t[:dodge], speed: 0, save: false }
+          if t[:has_shield]
+            branches << { key: 'block', group: 'block', name: 'Block', inputs: t[:martial], speed: 0, save: false }
+          end
+          unless w[:ranged]
+            t[:parry_weapons].each do |pw|
+              branches << { key: "parry:#{pw[:item_type]}", group: "parry:#{pw[:item_type]}",
+                            name: "Parry with #{pw[:display_name]}", inputs: t[:martial],
+                            speed: [pw[:speed].to_i, 0].max, save: false }
+            end
           end
         end
 
@@ -776,7 +784,7 @@ helpers do
           # Flatfooted sticks unless this defence is a Dodge; declaring a
           # defence proves awareness, so Unaware never applies here.
           atk_branch_bpl = comp + Encounter::Attack.attacker_bonuses(
-            flatfooted: (b[:key] != 'dodge') && !t[:flatfooted_immune], unaware: false)
+            flatfooted: (b[:key] != 'dodge') && !t[:flatfooted_immune], unaware: false, helpless: t[:helpless])
           mk = lambda do |dice, label, disabled|
             { value: "#{b[:key]}|#{dice}", group: b[:group], label: label,
               summary: "#{b[:name]} — #{dice} dice", disabled: disabled,
@@ -1048,17 +1056,33 @@ helpers do
     # its Action Minimum) skips the step — the option is auto-applied with no
     # button. Either way each die is spent from the Combat Pool, so counts past
     # the remaining Pool are disabled.
+    # Shaped like the Attack weapon step: each rolled spell's Dice options lead
+    # with a "<casting skill> (max N)" quick-pick (selects the max affordable
+    # dice), then a button per count, plus a top-right header quick-pick for the
+    # max. A no-roll, known-count buff keeps its single auto-applied option.
     dice_map = {}
+    header_map = {}
     spells.each do |sp|
       cap = sp[:dice_cap]
       min = sp[:action_min].to_i
       if sp[:requires_roll] || sp[:reservoir]
-        opts = (min..cap).map do |n|
-          { value: "#{sp[:name]}|#{n}", key: n, group: 'dice', label: n.to_s, summary: "#{n} dice",
-            disabled: n > pool, patch: { set_dice: [{ id: 'caster', count: n }] } }
+        if cap < min
+          dice_map[sp[:name]] = [{ kind: 'info', group: 'dice', value: 'dice|none', label: 'no dice available' }]
+          next
         end
-        opts = [{ kind: 'info', group: 'dice', value: 'dice|none', label: 'no dice available' }] if opts.empty?
-        dice_map[sp[:name]] = opts
+        skill_label = Encounter::Special.pretty_skill(sp[:skill])
+        aff_max     = [cap, pool].min
+        lead_off    = aff_max < min
+        set = ->(n) { { set_dice: [{ id: 'caster', count: n }] } }
+        opts = [{ value: "#{sp[:name]}|#{aff_max}", key: aff_max, group: 'dice',
+                  label: "#{skill_label} (max #{aff_max})", summary: "#{skill_label} — #{aff_max} dice",
+                  disabled: lead_off, patch: set.call(aff_max) }]
+        (min..cap).each do |n|
+          opts << { value: "#{sp[:name]}|#{n}", key: n, group: 'dice', label: n.to_s,
+                    summary: "#{n} dice", disabled: n > pool, patch: set.call(n) }
+        end
+        dice_map[sp[:name]]   = opts
+        header_map[sp[:name]] = [{ value: "#{sp[:name]}|#{aff_max}", label: "Max (#{aff_max})", disabled: lead_off }]
       else
         # Known dice count — auto-applied (the builder skips the step) when the
         # caster can afford it; otherwise shown as a blocked option.
@@ -1071,7 +1095,8 @@ helpers do
         dice_map[sp[:name]] = [opt]
       end
     end
-    dice_step = { key: 'dice', label: 'Dice', options_by: %w[spell], options_map: dice_map }
+    dice_step = { key: 'dice', label: 'Dice', options_by: %w[spell], options_map: dice_map,
+                  header_options_by: %w[spell], header_options_map: header_map }
 
     # Step 3 — Target, choice-dependent on the Spell. A normal Spell lists the
     # Combatants; an **area Spell** instead offers a single "Place on the map"
@@ -1481,13 +1506,20 @@ helpers do
                roll_name: ability_name, die_size: die, tn: base_tn, starting_value: 0,
                base_tn: base_tn, bonus_penalty_list: [], dice_count: min, speed: 0, excluded: false }]
 
-    # Channel dice options: capped at the chosen skill's Dice Cap for a Check
-    # channel, otherwise up to Combat Pool Remaining.
-    dice_opts = lambda do |dice_cap|
+    # Channel dice shaped like the Attack weapon step: a leading
+    # "<skill> (max N)" quick-pick that selects the maximum dice, then a button
+    # per die count, plus a top-right header quick-pick for the max. Dice are
+    # capped at the chosen skill's Dice Cap for a Check channel, otherwise up to
+    # Combat Pool Remaining.
+    dice_for = lambda do |skill_label, dice_cap|
       upper = (check_channel && dice_cap.to_i.positive?) ? [dice_cap.to_i, pool].min : pool
       upper = [upper, min].max
-      (min..upper).map { |n| { value: n, key: n, label: n.to_s, summary: "#{n} dice",
-                               patch: { set_dice: [{ id: 'performance', count: n }] } } }
+      set   = ->(n) { { set_dice: [{ id: 'performance', count: n }] } }
+      opts  = [{ value: upper, key: 'dice', group: 'dice', label: "#{skill_label} (max #{upper})",
+                 summary: "#{skill_label} — #{upper} dice", patch: set.call(upper) }]
+      (min..upper).each { |n| opts << { value: n, key: 'dice', group: 'dice', label: n.to_s,
+                                        summary: "#{n} dice", patch: set.call(n) } }
+      { options: opts, header: { value: upper, label: "Max (#{upper})" } }
     end
 
     steps = []
@@ -1501,13 +1533,20 @@ helpers do
       end
       steps << { key: 'performance', label: 'Performance', options: perf_opts }
       dice_map = {}
-      skills.each { |s| dice_map[s[:key]] = dice_opts.call(s[:dice_cap]) }
-      steps << { key: 'dice', label: 'Channel dice', options_by: %w[performance], options_map: dice_map }
+      header_map = {}
+      skills.each do |s|
+        d = dice_for.call(s[:label], s[:dice_cap])
+        dice_map[s[:key]]   = d[:options]
+        header_map[s[:key]] = [d[:header]]
+      end
+      steps << { key: 'dice', label: 'Channel dice', options_by: %w[performance], options_map: dice_map,
+                 header_options_by: %w[performance], header_options_map: header_map }
     else
       skill = skills.first
       perform_skill = skill && skill[:key]
       rolls[0][:bonus_penalty_list] = (skill && skill[:competency]) ? [skill[:competency]] : []
-      steps << { key: 'dice', label: 'Channel dice', options: dice_opts.call(skill ? skill[:dice_cap] : 0) }
+      d = dice_for.call((skill ? skill[:label] : ability_name), skill ? skill[:dice_cap] : 0)
+      steps << { key: 'dice', label: 'Channel dice', options: d[:options], header_options: [d[:header]] }
     end
 
     steps.concat(luck_steps(actor_id: combatant[:id],

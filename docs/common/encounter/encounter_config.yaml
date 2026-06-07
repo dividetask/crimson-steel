@@ -78,6 +78,14 @@ Unaware Bonus:
   type: Circumstance
   amount: 2
 
+# Applied when the defender is **Helpless** — it cannot act (incapacitated,
+# paralyzed, or dying), so it offers no Defensive Action at all. A more severe
+# version of Flatfooted / Unaware that **supersedes** them (only this advantage
+# applies, not also the lesser two).
+Helpless Bonus:
+  type: Circumstance
+  amount: 3
+
 # Granted Abilities that make their bearer immune to being Flatfooted
 # (and, since Unaware implies Flatfooted, immune to the Unaware bonus
 # too). A target holding any of these never grants the attacker the

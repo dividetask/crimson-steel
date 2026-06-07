@@ -1238,7 +1238,11 @@ module Encounter
       return { ok: false, error: "#{name} is not a usable special action" } unless Special.usable?(raw, activation)
 
       channeled = raw.key?('channel')
-      mana_cost = Integer(raw['mana_cost'] || 0)
+      # Resolve the Mana cost so inherited costs are charged — a Channel
+      # Divinity action inherits `mana_cost` from the base Channel Divinity
+      # Talent, which the raw catalog entry omits.
+      resolved_mana = (Abilities.lookup(name)&.dig('mana_cost') rescue nil)
+      mana_cost = Integer((resolved_mana || raw['mana_cost']) || 0)
       # Net Successes may be negative (a failed Performance check) — that is how
       # Bardic Inspiration grants Luck to the DM instead of the Reservoir, so do
       # not clamp here; use_channeled_special handles the sign.
@@ -1770,10 +1774,17 @@ module Encounter
       resolved = (Abilities.lookup(display, level: level, rank: level) rescue nil) || raw
       {
         name:        display,
-        label:       (resolved['name'] || display).to_s,
+        # The granted Ability's own name — NOT `resolved['name']`, which
+        # inheritance resolution sets to the base template (so a specific
+        # Channel Divinity action like Turn Undead would mislabel as the
+        # "Channel Divinity" category).
+        label:       display,
         activation:  activation[:alias].to_s,
         action_cost: Special.action_cost(activation[:alias]),
-        mana_cost:   Integer(raw['mana_cost'] || 0),
+        # Mana from the resolved entry so inherited costs surface — a Channel
+        # Divinity action (Turn Undead) inherits `mana_cost: 1` from the base
+        # Channel Divinity Talent, which the raw catalog entry omits.
+        mana_cost:   Integer((resolved['mana_cost'] || raw['mana_cost']) || 0),
         channeled:   raw.key?('channel'),
         performance: raw.dig('reservoir', 'fill', 'source') == 'check_successes',
         self_target: raw['target'] == 'self',
@@ -1788,13 +1799,21 @@ module Encounter
     # omitted when the cost is zero.
     def special_summary(desc)
       clauses = []
-      clauses << "spend #{desc[:mana_cost]} mana" if desc[:mana_cost].to_i.positive?
       if desc[:channeled]
         # Channeled Abilities choose their channel dice in the roll builder,
         # so don't quote a fixed Combat-Pool number here.
+        clauses << "spend #{desc[:mana_cost]} mana" if desc[:mana_cost].to_i.positive?
         clauses << "#{desc[:active] ? 'continue' : 'begin'} #{desc[:label]}"
       else
-        clauses << "spend #{desc[:action_cost]} combat pool" if desc[:action_cost].to_i.positive?
+        # Non-channeled (e.g. a Channel Divinity action like Turn Undead): show
+        # the Mana cost AND the Combat-Pool dice count together before Confirm.
+        cost = []
+        cost << "#{desc[:mana_cost]} mana" if desc[:mana_cost].to_i.positive?
+        if desc[:action_cost].to_i.positive?
+          n = desc[:action_cost].to_i
+          cost << "#{n} Combat Pool #{n == 1 ? 'die' : 'dice'}"
+        end
+        clauses << "spend #{cost.join(' and ')}" unless cost.empty?
         Array(desc[:effects]).each { |fx| clauses << "gain the #{fx} condition" }
       end
       return 'No Mana or Combat-Pool cost.' if clauses.empty?

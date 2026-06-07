@@ -48,11 +48,20 @@ module Encounter
     # when the defender has not yet acted in the Combat, but declaring any
     # Defensive Action proves awareness, so the caller passes `unaware: false`
     # for a declared defence. The caller decides each flag per branch.
-    # Returns a bonus_penalty_list of [type, amount] pairs.
-    def attacker_bonuses(flatfooted:, unaware:)
+    #
+    # Helpless is the most severe of the three: a target that cannot act
+    # (incapacitated / paralyzed / dying) offers no defence at all. It
+    # **supersedes** Flatfooted / Unaware — only the single Helpless advantage
+    # applies, not also the lesser two. Returns a bonus_penalty_list of
+    # [type, amount, source] entries.
+    def attacker_bonuses(flatfooted:, unaware:, helpless: false)
       list = []
-      list << bonus_pair(Config.data['Flatfooted Bonus'], 'flatfooted') if flatfooted
-      list << bonus_pair(Config.data['Unaware Bonus'],     'unaware')    if unaware
+      if helpless
+        list << bonus_pair(Config.data['Helpless Bonus'], 'helpless')
+      else
+        list << bonus_pair(Config.data['Flatfooted Bonus'], 'flatfooted') if flatfooted
+        list << bonus_pair(Config.data['Unaware Bonus'],     'unaware')    if unaware
+      end
       list.compact
     end
 

@@ -96,6 +96,20 @@ RSpec.describe 'Encounter::State special actions' do
       expect(names).to contain_exactly('Bardic Inspiration', 'Rage')
     end
 
+    it 'labels a specific Channel Divinity action by its own name and shows mana + dice' do
+      # Turn Undead inherits from the "Channel Divinity" category Talent. The
+      # option must read "Turn Undead" (not the category) and surface the
+      # inherited 1 Mana cost alongside the Combat-Pool dice.
+      s = state(creature([{ name: 'Turn Undead', source: 'class:cleric' }]))
+      c = s.add_combatant('1')
+      tu = s.special_options(c[:id]).find { |o| o[:name] == 'Turn Undead' }
+      expect(tu).not_to be_nil
+      expect(tu[:label]).to eq('Turn Undead')          # not the "Channel Divinity" category
+      expect(tu[:mana_cost]).to eq(1)                  # inherited from Channel Divinity
+      expect(tu[:activation]).to eq('main')
+      expect(tu[:summary]).to eq("Spend 1 mana and #{Encounter::Config.main_action_minimum} Combat Pool dice.")
+    end
+
     it 'flags Bardic Inspiration as a channeled Performance' do
       s = state(creature(bard_abilities))
       c = s.add_combatant('1')
