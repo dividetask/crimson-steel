@@ -25,6 +25,14 @@ RSpec.describe 'CreatureSheet spell recognition' do
       expect(CreatureSheet.spell_info('Shield of Faith')).to eq(tier: 1, name: 'Shield of Faith')
     end
 
+    it 'recognizes per-Tier variant names built from prefix / suffix arrays' do
+      # "Ward" has prefix [Trivial, Lesser, Standard, …]; "Heal" has a `suffix`.
+      expect(CreatureSheet.spell_info('Lesser Ward')).to eq(tier: 1, name: 'Lesser Ward')
+      expect(CreatureSheet.spell_info('Standard Ward')).to eq(tier: 2, name: 'Standard Ward')
+      expect(CreatureSheet.spell_info('Heal Petty Wounds')).to eq(tier: 0, name: 'Heal Petty Wounds')
+      expect(CreatureSheet.spell_info('heal_lesser_wounds')).to eq(tier: 1, name: 'Heal Lesser Wounds')
+    end
+
     it 'returns nil for non-spell Talents (they stay under Abilities)' do
       expect(CreatureSheet.spell_info('Rage')).to be_nil
       expect(CreatureSheet.spell_info('Turn Undead')).to be_nil

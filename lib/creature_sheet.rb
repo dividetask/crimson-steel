@@ -338,31 +338,58 @@ module CreatureSheet
 
   # Resolve a granted ability key to { tier:, name: }, or nil when it is not a
   # Catalog spell. A Creature may name a spell in several forms — the catalog
-  # key ("Shield of Faith"), a snake_case key ("shield_of_faith"), or a
-  # **per-Tier variant name** of a Tier-axis spell ("Create Illusionary Sound"
-  # is the Tier-0 name of "Create Illusion"). Matching is case-insensitive and
-  # treats `_` as a space, so small words ("of", "the") don't trip Title-Casing.
+  # key ("Ward"), a snake_case key, or a **per-Tier variant name**. A Tier-axis
+  # spell's variant names come either from its `name` array ("Create Illusionary
+  # Sound") or are **constructed from `prefix` / `suffix` arrays** the way the
+  # Abilities resolver builds them ("Lesser Ward" = prefix "Lesser" + "Ward";
+  # "Heal Petty Wounds" = "Heal" + suffix "Petty Wounds"). Matching is
+  # case-insensitive and treats `_` as a space.
   def spell_info(key)
-    k    = key.to_s
-    norm = ->(s) { s.to_s.tr('_', ' ').downcase }
-    want = [k, titleize_ability(k)].map(&norm).uniq
-    (Abilities.catalog.catalog rescue {}).each do |ckey, e|
-      next unless e.is_a?(Hash) && e['type'] == 'spell'
-      candidates = ([ckey] + Array(e['name'])).compact.map(&:to_s)
-      idx = candidates.index { |c| want.include?(norm.call(c)) }
-      next unless idx
-      tiers = Array(e['tier'])
-      if idx.zero? # matched the catalog key
-        tier = e['tier']
-        tier = tiers.map(&:to_i).min if tier.is_a?(Array)
-        return { tier: tier.to_i, name: ckey.to_s }
-      else         # matched a per-Tier variant name
-        return { tier: (tiers[idx - 1] || tiers.map(&:to_i).min || 0).to_i, name: candidates[idx] }
-      end
+    norm = ->(s) { s.to_s.tr('_', ' ').downcase.strip }
+    [key.to_s, titleize_ability(key)].each do |form|
+      hit = spell_index[norm.call(form)]
+      return hit.dup if hit
     end
     nil
   rescue StandardError
     nil
+  end
+
+  # Normalized-name → { tier:, name: } over every Catalog spell variant. Built
+  # once; the spell Catalog is immutable at runtime.
+  def spell_index
+    @spell_index ||= begin
+      norm = ->(s) { s.to_s.tr('_', ' ').downcase.strip }
+      idx = {}
+      (Abilities.catalog.catalog rescue {}).each do |ckey, e|
+        next unless e.is_a?(Hash) && e['type'] == 'spell'
+        spell_variants(ckey, e).each { |tier, vname| idx[norm.call(vname)] ||= { tier: tier, name: vname } }
+      end
+      idx
+    end
+  end
+
+  # [ [tier, display_name], … ] for a spell: the catalog key, plus every
+  # per-Tier variant from its `name` array or constructed from `prefix`/`suffix`
+  # (mirroring Abilities' name construction: `[prefix, key, suffix]`).
+  def spell_variants(key, entry)
+    tiers = Array(entry['tier'])
+    tiers = [0] if tiers.empty?
+    name   = entry['name']
+    prefix = entry['prefix']
+    suffix = entry['suffix']
+    out = [[tiers.map(&:to_i).min, key.to_s]]
+    tiers.each_with_index do |t, i|
+      vname =
+        if name.is_a?(Array)                          then name[i]
+        elsif name.is_a?(String) && !name.strip.empty? then name
+        else
+          [(prefix.is_a?(Array) ? prefix[i] : prefix), key, (suffix.is_a?(Array) ? suffix[i] : suffix)]
+            .reject { |p| p.nil? || p.to_s.strip.empty? }.join(' ')
+        end
+      out << [t.to_i, vname.to_s] if vname && !vname.to_s.strip.empty?
+    end
+    out
   end
 
   def inventory(accessor)
