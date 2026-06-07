@@ -1,4 +1,5 @@
 require 'abilities'
+require 'proficiencies'
 
 module Encounter
   # Special Actions (turn_action_stub.md → Special). The Special pane lets
@@ -50,6 +51,45 @@ module Encounter
       when 'bonus' then Config.bonus_action_minimum
       else Config.main_action_minimum
       end
+    end
+
+    # Whether a Channeled Ability's Reservoir fills from **check successes**
+    # (a real skill Check, which obeys the skill's Dice Cap — Bardic
+    # Inspiration) rather than `channel_dice` / fire (which pour dice straight
+    # into the effect and ignore the Dice Cap, per abilities_design.md).
+    def check_channel?(raw)
+      !!(raw && raw.dig('reservoir', 'fill', 'source').to_s == 'check_successes')
+    end
+
+    # The Creature's trained skills usable for a check-based channel's Check,
+    # each with its Dice Cap + Competency. The Ability's `skills` list may name
+    # a skill **family** (a trailing-underscore prefix like `perform_`, matched
+    # by every trained `perform_<type>`) or an exact skill key. Returns
+    # [{ key:, label:, dice_cap:, competency: }] in the Creature's trained order
+    # (empty when the Creature trains none, or has no class records).
+    def check_skills(accessor, raw)
+      return [] unless accessor.respond_to?(:record)
+      trained  = (accessor.record[:classes] || {}).values
+                      .flat_map { |e| Array(e[:skills]) }.map(&:to_s).uniq
+      families = Array(raw && raw['skills']).map(&:to_s)
+      trained.select { |k| families.any? { |f| f.end_with?('_') ? (k.start_with?(f) && k != f) : k == f } }
+             .map do |k|
+        ri = (Proficiencies::Compute.roll_inputs(key: k, creature: accessor) rescue {})
+        { key: k, label: pretty_skill(k), dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier] }
+      end
+    rescue StandardError
+      []
+    end
+
+    # Render a skill key for display: a Set-Skill (`perform_dance`) reads
+    # `Perform (Dance)`; a plain key (`sleight_of_hand`) Title-Cases.
+    def pretty_skill(key)
+      k = key.to_s
+      if k.include?('_') && (Proficiencies.skills.key?("#{k.split('_').first}_") rescue false)
+        family, *rest = k.split('_')
+        return "#{family.capitalize} (#{rest.map(&:capitalize).join(' ')})"
+      end
+      k.split('_').map(&:capitalize).join(' ')
     end
 
     # The Ability's unconditional named Effects (Conditions Effect Names),

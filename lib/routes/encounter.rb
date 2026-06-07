@@ -1452,21 +1452,16 @@ helpers do
   # ---- Special Performance builder (turn_action_stub.md → Special) ----
   #
   # A channeled Special Ability (a Bard's Bardic Performance) rolls a
-  # Performance check the same way Attack rolls: the DM picks how many dice
-  # to spend — Main Action Minimum up to Combat Pool Remaining (Dice Cap does
-  # not apply to channeling) — then rolls them; each Success fills the
-  # Reservoir. This reuses the Action Builder; the host posts the
-  # confirmed Successes + dice to /encounter/use_special.
-
-  # The Creature's trained Performance skill key (perform_<type>), for the
-  # Performance check's Competency. Nil when none is trained.
-  def performance_skill_key(accessor)
-    return nil unless accessor.respond_to?(:record)
-    trained = accessor.record[:classes].values.flat_map { |e| Array(e[:skills]) }
-    trained.map(&:to_s).find { |k| k.start_with?('perform_') && !k.end_with?('_') }
-  rescue StandardError
-    nil
-  end
+  # Performance check the same way Attack rolls. For a **check-based** channel
+  # — its Reservoir fills from `check_successes` (Bardic Inspiration) — the
+  # roll is a real skill Check, so the channel dice are bounded by the
+  # Performance skill's **Dice Cap** (Main Action Minimum up to
+  # min(Dice Cap, Combat Pool Remaining)). For a `channel_dice` / fire channel
+  # the dice pour straight into the effect and the Dice Cap does not apply
+  # (abilities_design.md). When several Performance skills are trained the
+  # builder adds a step to pick which one (its Dice Cap + Competency govern the
+  # roll). This reuses the Action Builder; the host posts the confirmed
+  # Successes + dice to /encounter/use_special.
 
   def special_builder_blob(combatant, ability_name)
     acc     = Creatures.lookup(combatant[:creature_id]) rescue nil
@@ -1475,32 +1470,68 @@ helpers do
     pool    = (encounter_state.combat_pool_remaining(combatant[:id]) rescue 0) || 0
     min     = Encounter::Config.main_action_minimum
 
-    skill = performance_skill_key(acc)
-    ri    = skill ? (Proficiencies::Compute.roll_inputs(key: skill, creature: acc) rescue {}) : {}
-    comp  = ri[:competency_modifier]
-    bpl   = comp ? [comp] : []
+    raw   = Abilities.catalog.ability(ability_name)
+    ratio = (raw && raw.dig('reservoir', 'fill', 'ratio')) || 1
+    # A check-based channel (fill source check_successes, e.g. Bardic
+    # Inspiration) rolls a real skill Check, so it obeys the skill's Dice Cap.
+    check_channel = Encounter::Special.check_channel?(raw)
+    skills = Encounter::Special.check_skills(acc, raw)
 
     rolls = [{ id: 'performance', side: 'supporting', creature_name: tracker_name(combatant),
                roll_name: ability_name, die_size: die, tn: base_tn, starting_value: 0,
-               base_tn: base_tn, bonus_penalty_list: bpl, dice_count: min, speed: 0, excluded: false }]
+               base_tn: base_tn, bonus_penalty_list: [], dice_count: min, speed: 0, excluded: false }]
 
-    # Channel dice: Main Action Minimum up to Combat Pool Remaining (no Dice
-    # Cap on channeling). Each option just sets the Performance roll's dice.
-    max  = [pool, min].max
-    opts = (min..max).map do |n|
-      { value: n, key: n, label: n.to_s, summary: "#{n} dice",
-        patch: { set_dice: [{ id: 'performance', count: n }] } }
+    # Channel dice options: capped at the chosen skill's Dice Cap for a Check
+    # channel, otherwise up to Combat Pool Remaining.
+    dice_opts = lambda do |dice_cap|
+      upper = (check_channel && dice_cap.to_i.positive?) ? [dice_cap.to_i, pool].min : pool
+      upper = [upper, min].max
+      (min..upper).map { |n| { value: n, key: n, label: n.to_s, summary: "#{n} dice",
+                               patch: { set_dice: [{ id: 'performance', count: n }] } } }
     end
 
-    raw   = Abilities.catalog.ability(ability_name)
-    ratio = (raw && raw.dig('reservoir', 'fill', 'ratio')) || 1
+    steps = []
+    perform_skill = nil
+    if check_channel && skills.length > 1
+      # Several trained Performance skills — ask which (its Competency rides the
+      # Roll; its Dice Cap bounds the choice-dependent Dice step).
+      perf_opts = skills.map do |s|
+        { value: s[:key], key: s[:key], label: s[:label], summary: s[:label],
+          patch: { set_bpl: [{ id: 'performance', bonus_penalty_list: (s[:competency] ? [s[:competency]] : []) }] } }
+      end
+      steps << { key: 'performance', label: 'Performance', options: perf_opts }
+      dice_map = {}
+      skills.each { |s| dice_map[s[:key]] = dice_opts.call(s[:dice_cap]) }
+      steps << { key: 'dice', label: 'Channel dice', options_by: %w[performance], options_map: dice_map }
+    else
+      skill = skills.first
+      perform_skill = skill && skill[:key]
+      rolls[0][:bonus_penalty_list] = (skill && skill[:competency]) ? [skill[:competency]] : []
+      steps << { key: 'dice', label: 'Channel dice', options: dice_opts.call(skill ? skill[:dice_cap] : 0) }
+    end
 
-    steps = [{ key: 'dice', label: 'Channel dice', options: opts }]
     steps.concat(luck_steps(actor_id: combatant[:id],
                             targets: [{ roll_id: 'performance', label: tracker_name(combatant) }]))
 
     { title: "#{tracker_name(combatant)} — #{ability_name}", stub_id: "special-#{combatant[:id]}",
-      reservoir_ratio: ratio, rolls: rolls, steps: steps }
+      reservoir_ratio: ratio, perform_skill: perform_skill, rolls: rolls, steps: steps }
+  end
+
+  # Server-side backstop for a check-based channel (Bardic Inspiration): the
+  # rolled dice are a skill Check, so they may not exceed the best qualifying
+  # Performance skill's Dice Cap. Returns an error string when the requested
+  # dice exceed it, else nil. (The builder already bounds the offered options;
+  # this guards a payload that bypasses the UI.)
+  def channel_dice_cap_error(payload)
+    raw = Abilities.catalog.ability(payload['ability'].to_s) or return nil
+    return nil unless Encounter::Special.check_channel?(raw)
+    dice = payload['dice'].to_i
+    return nil unless dice.positive?
+    combatant = encounter_state.combatant(payload['combatant_id'].to_i) or return nil
+    acc = (Creatures.lookup(combatant[:creature_id]) rescue nil)
+    cap = Encounter::Special.check_skills(acc, raw).map { |s| s[:dice_cap] }.max.to_i
+    return nil unless cap.positive?
+    dice > cap ? "Performance check cannot roll more than the Dice Cap (#{cap})" : nil
   end
 end
 
@@ -1920,6 +1951,8 @@ post '/encounter/use_special' do
   require_dm!
   payload = JSON.parse(request.body.read) rescue nil
   return encounter_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
+  cap_err = channel_dice_cap_error(payload)
+  return encounter_error(400, cap_err) if cap_err
   result = encounter_state.use_special_payload(payload)
   Conditions.store.persist! if result[:ok]
   encounter_response(result)

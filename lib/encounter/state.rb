@@ -1246,10 +1246,14 @@ module Encounter
       pool_rem  = combat_pool_remaining(combatant_id)
 
       # Channeled Abilities (Bardic Performance) spend the DM-chosen channel
-      # dice — Main Action Minimum up to Combat Pool Remaining; Dice Cap does
-      # not apply to channeling (abilities_design.md). The chosen dice are the
-      # Performance check the DM just rolled. Other actions spend the flat
-      # Action Minimum for their category.
+      # dice — Main Action Minimum up to Combat Pool Remaining. For a
+      # `channel_dice` / fire channel the Dice Cap does not apply
+      # (abilities_design.md); a **check-based** channel (fill from
+      # check_successes, e.g. Bardic Inspiration) rolls a real Check and IS
+      # bounded by the Performance skill's Dice Cap — enforced by the
+      # use_special route's `channel_dice_cap_error` before we get here. The
+      # chosen dice are the Performance check the DM just rolled. Other actions
+      # spend the flat Action Minimum for their category.
       if channeled
         pool_cost = p.key?(:dice) ? p[:dice].to_i : Config.main_action_minimum
         return { ok: false, error: "must channel at least #{Config.main_action_minimum} dice" } if pool_cost < Config.main_action_minimum
