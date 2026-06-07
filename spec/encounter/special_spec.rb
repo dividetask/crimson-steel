@@ -96,6 +96,20 @@ RSpec.describe 'Encounter::State special actions' do
       expect(names).to contain_exactly('Bardic Inspiration', 'Rage')
     end
 
+    it 'labels a specific Channel Divinity action by its own name and shows mana + dice' do
+      # Turn Undead inherits from the "Channel Divinity" category Talent. The
+      # option must read "Turn Undead" (not the category) and surface the
+      # inherited 1 Mana cost alongside the Combat-Pool dice.
+      s = state(creature([{ name: 'Turn Undead', source: 'class:cleric' }]))
+      c = s.add_combatant('1')
+      tu = s.special_options(c[:id]).find { |o| o[:name] == 'Turn Undead' }
+      expect(tu).not_to be_nil
+      expect(tu[:label]).to eq('Turn Undead')          # not the "Channel Divinity" category
+      expect(tu[:mana_cost]).to eq(1)                  # inherited from Channel Divinity
+      expect(tu[:activation]).to eq('main')
+      expect(tu[:summary]).to eq("Spend 1 mana and #{Encounter::Config.main_action_minimum} Combat Pool dice.")
+    end
+
     it 'flags Bardic Inspiration as a channeled Performance' do
       s = state(creature(bard_abilities))
       c = s.add_combatant('1')
@@ -258,6 +272,21 @@ RSpec.describe 'Encounter::State special actions' do
       expect(cond.get_modifiers('damage_reduction')).to eq([['Circumstance', 2]])
       expect(cond.get_modifiers('damage_resilience')).to eq([['Circumstance', 3]])
       expect(cond.active_effect_names).to include('rage')
+    end
+
+    it 'Martial Devotion applies its Weapon Training attack bonus as an Active Effect' do
+      cond = build_instance
+      s = state(creature([{ name: 'Martial Devotion', source: 'class:bard' }]), cond) # level 5
+      c = s.add_combatant('1')
+      out = s.use_special_payload(combatant_id: c[:id], ability: 'Martial Devotion')
+
+      expect(out[:ok]).to be true
+      expect(out[:applied_effects]).to include('martial_devotion')
+      expect(out[:mana_spent]).to eq(1) # inherited from the Channel Divinity category
+      # Shows in Active Effects (the conditions list) and grants a Competency
+      # attack bonus: 1 + floor(level / 4) = 2 at level 5.
+      expect(cond.active_effect_names).to include('martial_devotion')
+      expect(cond.get_modifiers('attack')).to eq([['Competency', 2]])
     end
 
     it 'rage’s Resilience Modifier raises the Combat damage-bucketing resilience' do

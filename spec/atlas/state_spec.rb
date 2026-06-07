@@ -348,6 +348,18 @@ RSpec.describe Atlas::State do
                               anchor: { type: 'target', creature_id: 'ghost' })).to eq(Atlas::ERROR)
     end
 
+    it 'stores and round-trips an optional texture' do
+      zid = state.place_zone(map_id: map_id, source_id: 'spell:web', shape: 'circle', size: 4,
+                             anchor: { type: 'point', x: 2, y: 2 }, texture: 'web')
+      expect(state.get_zone(zid)[:texture]).to eq('web')
+      reloaded = described_class.new(JSON.parse(JSON.generate(state.to_h)), data_path: data_path)
+      expect(reloaded.get_zone(zid)[:texture]).to eq('web')
+      # A textureless Zone simply has nil and is dropped from the serialized form.
+      plain = state.place_zone(map_id: map_id, source_id: 'spell:plain', shape: 'square', size: 2,
+                               anchor: { type: 'point', x: 1, y: 1 })
+      expect(state.get_zone(plain)[:texture]).to be_nil
+    end
+
     it 'a following Zone tracks its anchor Creature when the Token moves, notifying on membership change' do
       notes = []
       st = described_class.new({}, data_path: data_path, movement_notifier: ->(n) { notes << n })

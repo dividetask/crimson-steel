@@ -1,4 +1,4 @@
-import { CheckBuilder } from './checkBuilder.js';
+import { ActionBuilder } from './actionBuilder.js';
 
 // Turn Action panel — Special (turn_action_stub.md → Special).
 //
@@ -27,13 +27,13 @@ export class TurnSpecial {
     // A channeled Performance resolves through the embedded Check Builder.
     // After Confirm, show the Luck points it will grant + a Confirm button;
     // nothing is saved until that second Confirm.
-    container.addEventListener('check:confirmed', (e) => {
+    container.addEventListener('action:confirmed', (e) => {
       const roll = (e.detail.rolls || []).find((r) => r.id === 'performance') || {};
       const successes = roll.successes || 0;
       const luck = successes * (container._ratio || 1);
       // Luck an ally Bard / the DM spent (as a Reaction) on this Performance.
       container._pending = { dice: roll.dice_count, successes: successes,
-                             luck: CheckBuilder.luckSpends(e.detail.choices || {}) };
+                             luck: ActionBuilder.luckSpends(e.detail.choices || {}) };
       const commit = container.querySelector('.ta-special-commit');
       if (!commit) return;
       commit.innerHTML = '<p class="ta-special-summary">Gaining ' + luck + ' luck point' + (luck === 1 ? '' : 's') + '.</p>' +
@@ -47,6 +47,9 @@ export class TurnSpecial {
     container._ability = btn.dataset.ability;
     container._pending = null;
     container.querySelectorAll('.ta-special-opt').forEach((b) => b.classList.toggle('cr-mod-selected', b === btn));
+    // Collapse the action menu to the selected-action row (shared helper).
+    const panel = container.closest('.turn-action');
+    if (panel && window.__taSelectAction) window.__taSelectAction(panel, btn.textContent.trim());
     const slot = container.querySelector('.ta-special-result');
     if (!slot) return;
 
@@ -67,11 +70,11 @@ export class TurnSpecial {
       .then((r) => r.text())
       .then((html) => {
         slot.innerHTML = html + '<div class="ta-special-commit" hidden></div>';
-        const builder = slot.querySelector('.check-builder');
+        const builder = slot.querySelector('.action-builder');
         if (builder) {
           let blob; try { blob = JSON.parse(builder.dataset.builder); } catch (e) { blob = {}; }
           container._ratio = blob.reservoir_ratio || 1;
-          CheckBuilder.ensureLoaded(builder);
+          ActionBuilder.ensureLoaded(builder);
         } else {
           slot.innerHTML = '<p class="ta-warn">Could not load the performance.</p>';
         }

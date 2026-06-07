@@ -78,6 +78,14 @@ Unaware Bonus:
   type: Circumstance
   amount: 2
 
+# Applied when the defender is **Helpless** — it cannot act (incapacitated,
+# paralyzed, or dying), so it offers no Defensive Action at all. A more severe
+# version of Flatfooted / Unaware that **supersedes** them (only this advantage
+# applies, not also the lesser two).
+Helpless Bonus:
+  type: Circumstance
+  amount: 3
+
 # Granted Abilities that make their bearer immune to being Flatfooted
 # (and, since Unaware implies Flatfooted, immune to the Unaware bonus
 # too). A target holding any of these never grants the attacker the
@@ -133,6 +141,25 @@ Set Value Spend Ratio: 1
 Falling Damage Per 10 Feet: 2
 Falling Damage Threshold: 5
 Falling Damage Bleed Constant: 0   # actual bleed = Bleed Constant + damage dealt
+
+
+# ---- Tier Mismatch ----
+#
+# When a higher-Tier Creature is hit by a lower-Tier attacker, it shrugs
+# off Inherent damage reduction scaled by the Tier gap:
+#
+#   reduction = floor(Inherent Damage Reduction Per Tier × Δ)
+#   Δ = defender Tier − attacker effective Tier   (Tier 0 counts as 0.5)
+#
+# clamped at a zero gap. This is the damage half of the Tier Mismatch rule
+# and applies to every damaging effect — weapon attacks, spells, and
+# abilities alike. A weapon's Glory Property (`tier_advantage`) raises the
+# attacker's effective Tier when fighting up, shrinking Δ first; that is a
+# weapon-only adjustment, never applied to spells or abilities. (The Check
+# half — the ±2 × Δ Ascendancy modifier on opposed combat checks — resolves
+# client-side in the Dice / Check engine, not from this file.)
+Inherent Damage Reduction Per Tier: 5
+
 
 # ---- Trigger Conditions ----
 #

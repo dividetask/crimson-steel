@@ -1,11 +1,12 @@
-import { CheckBuilder } from './checkBuilder.js';
+import { ActionBuilder } from './actionBuilder.js';
+import { placeCommitProxy } from './turnCommit.js';
 
 // Turn Action panel — Cast (turn_action_stub.md → Cast).
 //
-// Thin host for the shared Check Resolution Builder, exactly like the Attack
+// Thin host for the shared Action Builder, exactly like the Attack
 // pane (turnAttack.js). The server precomputes the builder blob
 // (GET /encounter/cast_builder) with Target / Spell+dice / Defense steps; this
-// host mounts the builder and, on `check:confirmed`, POSTs the choices +
+// host mounts the builder and, on `action:confirmed`, POSTs the choices +
 // rolled Successes to /encounter/resolve_cast. Confirm is two-stage:
 //   1st Confirm -> non-mutating PREVIEW (commit:false); the outcome renders
 //       beneath the still-present builder with a Commit button.
@@ -17,21 +18,32 @@ export class TurnCast {
     container.dataset.tcLoaded = '1';
     container._casterId = parseInt(container.getAttribute('data-caster-id'), 10);
 
-    container.addEventListener('check:confirmed', (e) => TurnCast._preview(container, e.detail));
+    container.addEventListener('action:confirmed', (e) => TurnCast._preview(container, e.detail));
     container.addEventListener('click', (e) => {
       if (e.target.closest && e.target.closest('.ta-commit')) { e.preventDefault(); TurnCast._commit(container); }
     });
+    // Capture an area placement (re-placement re-fires via the Target step's
+    // own Change button, which re-arms the "Place on the map" option).
+    document.addEventListener('cast:area-placed', (e) => TurnCast._areaPlaced(container, e.detail || {}));
 
     container.innerHTML = '<p class="ta-attack-loading">Loading spells…</p>';
     fetch('/encounter/cast_builder?caster_id=' + encodeURIComponent(container._casterId), { headers: { Accept: 'text/html' } })
       .then((r) => r.text())
       .then((html) => {
         container.innerHTML = html + '<div class="ta-result tc-result" hidden></div>';
-        const builder = container.querySelector('.check-builder');
-        if (builder) CheckBuilder.ensureLoaded(builder);
+        const builder = container.querySelector('.action-builder');
+        if (builder) { ActionBuilder.ensureLoaded(builder); container._builder = builder; }
         else container.innerHTML = '<p class="ta-warn">This Combatant knows no castable spells.</p>';
       })
       .catch(() => { container.innerHTML = '<p class="ta-warn">Could not load the cast.</p>'; });
+  }
+
+  // Record an area placement: stash it for the payload and hand it to the
+  // builder, which lists the affected creatures as the Target and gives each a
+  // Save (Opposed) Roll. No separate "placed" box.
+  static _areaPlaced(container, detail) {
+    container._placement = detail;
+    if (container._builder) ActionBuilder.areaPlaced(container._builder, container._casterId, detail);
   }
 
   // Translate the builder's confirmed choices + rolls into a resolve_cast payload.
@@ -40,6 +52,26 @@ export class TurnCast {
     const rolls = detail.rolls || [];
     const spellName = choices.spell;
     const caster = rolls.find((r) => r.id === 'caster') || {};
+
+    // Area Spell: the placed footprint determines the affected creatures (the
+    // Spread Opposers). Each caught creature's Save Roll nets against the cast
+    // independently; send the placement point + each creature's Save successes.
+    if (container._placement) {
+      const p = container._placement;
+      const targets = rolls
+        .filter((r) => String(r.id).indexOf('save-') === 0)
+        .map((r) => ({ id: parseInt(String(r.id).replace('save-', ''), 10), save: { successes: r.successes } }));
+      return {
+        commit: commit,
+        spell_name: spellName,
+        spell: { name: spellName },
+        luck: ActionBuilder.luckSpends(choices),
+        caster: { id: container._casterId, dice: caster.dice_count, speed: caster.speed || 0, successes: caster.successes },
+        placement: { x: p.x, y: p.y },
+        targets: targets
+      };
+    }
+
     const tgtRoll = rolls.find((r) => r.id === 'target');
     const defType = String(choices.defense == null ? '' : choices.defense).split('|')[0];
 
@@ -61,7 +93,7 @@ export class TurnCast {
       spell_name: spellName,
       spell: { name: spellName },
       // Luck spent on this cast (one entry per source; source_id null = DM).
-      luck: CheckBuilder.luckSpends(choices),
+      luck: ActionBuilder.luckSpends(choices),
       caster: { id: container._casterId, dice: caster.dice_count, speed: caster.speed || 0, successes: caster.successes },
       targets: choices.target != null ? [target] : []
     };
@@ -105,6 +137,9 @@ export class TurnCast {
     lines.push(`<div class="ta-actions"><button type="button" class="ce-btn ta-commit">Commit cast</button></div>`);
     slot.innerHTML = lines.join('');
     slot.hidden = false;
+    // Surface a Commit button at the top of the Turn Action stub (the action
+    // menu's confirm slot) so the DM commits without reaching down here.
+    placeCommitProxy(container, 'Commit cast');
   }
 
   static _fxText(a) {

@@ -27,6 +27,8 @@ Tests that depend on randomness state the *rolled* dice as input; an implementat
 
 **Non-lead Opposing Rolls receive only the Initiator's inversion.** Symmetric to the above: a non-Defending Opposing Roll's effective list contains only the inverted entries from the Initiating Roll.
 
+**Inherent crosses sides as Ascendancy.** Given a Supporting Roll `[('Inherent', +1)]` and an Opposing Roll `[('Inherent', +2)]`: the Supporting Roll's effective list is `[('Inherent', +1), ('Ascendancy', -2)]` — the opponent's Inherent is inverted **and relabeled** Ascendancy. TN Net Modifier = +1 − 2 = −1; TN = 6 − (−1) = 7. The Opposing Roll's effective list is `[('Inherent', +2), ('Ascendancy', -1)]`; TN = 5. Equal Inherent on both sides nets to zero (the +Inherent and −Ascendancy cancel) — Base TN. Every other Bonus Type keeps its name when it crosses.
+
 ---
 
 ## Resolve a Check
@@ -56,6 +58,16 @@ Tests that depend on randomness state the *rolled* dice as input; an implementat
 **Ties break by original list index.** Given three Rolls whose Dice Result Strings are all `"754"`: `order = [0, 1, 2]`. Earlier indices win ties.
 
 **Roll and Sort skips propagation entirely.** Given a list of Rolls each with non-empty `bonus_penalty_list`: those entries are ignored. The dice resolution no-TN entry point doesn't read `bonus_penalty_list`, and Check Resolution does not apply cross-side propagation here.
+
+---
+
+## Spread Check (area effects)
+
+**The initiating Roll takes Ascendancy against every Opposer.** Tier Mismatch on a Tier-3 caster opposed by a Tier-1 and a Tier-3 creature adds `['Ascendancy', +4]` to the caster (vs the Tier-1; nothing vs the Tier-3), `['Ascendancy', -4]` to the Tier-1 Opposer, and nothing to the Tier-3 Opposer.
+
+**Spread preparation is bidirectional.** A `spread` Check with a Tier-2 caster carrying `['Inherent', 2]` and a Tier-1 Opposer carrying `['Competency', 3]` prepares to: caster `[['Inherent', 2], ['Competency', -3], ['Ascendancy', 2]]` (own bonus + the Opposer's inverted + Ascendancy vs it) and Opposer `[['Competency', 3], ['Inherent', -2], ['Ascendancy', -2]]`.
+
+**Resolution nets the caster against each Opposer independently.** A `spread` Check where the caster's Supporting DoIS totals +2, Opposer 1 rolls +1, and Opposer 2 rolls −1 yields `degree_of_success` of `1` and `3` respectively (`2 − 1`, `2 − (−1)`) — one Outcome per Opposer, and no single Check-level Degree of Success.
 
 ---
 

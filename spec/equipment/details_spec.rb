@@ -71,6 +71,56 @@ RSpec.describe Equipment::Details do
     end
   end
 
+  describe 'Get Weapon Details — Damage Riders' do
+    it 'resolves an Elemental(Fire) rider, expanding from_subtype' do
+      d = described_class.weapon_details(
+        stack(item_type: 'Long sword', tier: 1,
+              properties: [{ name: 'Elemental', subtype: 'Fire' }]),
+        catalog
+      )
+      expect(d[:damage_riders]).to eq([
+        { property: 'Elemental', subtype: 'Fire', label: 'Flaming', dice: 4,
+          kind: 'damage', damage_type: 'fire', amount: 1, severity: nil }
+      ])
+    end
+
+    it 'resolves a Vicious rider: from_weapon type, forced Major, and self-damage' do
+      d = described_class.weapon_details(
+        stack(item_type: 'Great sword', tier: 2, properties: [{ name: 'Vicious' }]),
+        catalog
+      )
+      r = d[:damage_riders].first
+      expect(r[:damage_type]).to eq('slashing')  # from_weapon -> Great sword's type
+      expect(r[:severity]).to eq('major')
+      expect(r[:self_damage]).to eq(severity: 'minor', amount: 1, minimum: 1)
+    end
+
+    it 'resolves a Subdual named-effect rider and adds its threshold_delta' do
+      d = described_class.weapon_details(
+        stack(item_type: 'Mace', tier: 1, properties: [{ name: 'Subdual' }]),
+        catalog
+      )
+      r = d[:damage_riders].first
+      expect(r[:kind]).to eq('named_effect')
+      expect(r[:effect]).to eq('shock')
+      expect(r[:amount]).to eq(2)
+      # Bludgeoning Threshold 3 + Subdual threshold_delta 5 = 8.
+      expect(d[:threshold]).to eq(8)
+    end
+
+    it 'has no riders for a mundane weapon' do
+      expect(described_class.weapon_details(stack(item_type: 'Long sword', tier: 0), catalog)[:damage_riders]).to eq([])
+    end
+
+    it 'surfaces a Glory weapon Tier Advantage; a mundane weapon has none' do
+      glorious = described_class.weapon_details(
+        stack(item_type: 'Long sword', tier: 1, properties: [{ name: 'Glory' }]), catalog
+      )
+      expect(glorious[:tier_advantage]).to eq(1)
+      expect(described_class.weapon_details(stack(item_type: 'Long sword', tier: 0), catalog)[:tier_advantage]).to eq(0)
+    end
+  end
+
   describe 'Get Armor Details' do
     it 'computes Effective Hardness and Resilience' do
       d = described_class.armor_details(stack(item_type: 'Chain mail', tier: 2), catalog)

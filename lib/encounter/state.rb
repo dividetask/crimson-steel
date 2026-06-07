@@ -20,6 +20,11 @@ module Encounter
     PHASES         = %i[combat looting traveling social downtime].freeze
     DEFAULT_PHASE  = :downtime
 
+    # Main Actions a Combatant is granted at the start of each turn. We do not
+    # enforce the cap (the counter may go negative); it is tracked so the DM
+    # can see how many a Combatant has used.
+    MAIN_ACTIONS_PER_TURN = 2
+
     attr_reader :data_path
 
     def self.load(data_path: DATA_PATH, example_path: EXAMPLE_PATH, **opts)
@@ -88,6 +93,9 @@ module Encounter
     def combatant(id)            = @combatants.find { |c| c[:id] == id }&.dup
     def excluded_pcs             = @excluded_pcs.dup
     def acting_combatant_id      = @acting_combatant_id
+    # Absolute Round number (day_index * rounds_per_day + round_of_day), or nil
+    # outside any timeline. Public so the route can expire timed Zones.
+    def current_round            = current_abs_round
     def time_ticks_per_round     = @time_ticks_per_round
     def time_tick                = @time_tick
     def elapsed_time_ticks       = @elapsed_time_ticks
@@ -293,6 +301,7 @@ module Encounter
       cost = Config.move_cost
       remaining = spend_combat_pool(combatant_id, cost)
       return { ok: false, error: 'not enough Combat Pool' } if remaining.nil?
+      spend_main_action(combatant_id) # Move is a Main Action
       { ok: true, pool_spent: cost, pool_remaining: remaining }
     end
 
@@ -472,7 +481,9 @@ module Encounter
         @acting_combatant_id = nxt[:id]
         break if creature_can_act?(nxt[:id])
       end
-      apply_per_turn_setup(@acting_combatant_id) if @acting_combatant_id
+      # Begin the incoming Combatant's turn: refill its Combat Pool, grant its
+      # Main Actions, run Per-Turn Setup, and clear its expired Effects.
+      begin_turn_for(@acting_combatant_id) if @acting_combatant_id
       persist!
       @acting_combatant_id
     end
@@ -666,7 +677,9 @@ module Encounter
       over = p[:override] || {}
 
       pool_spends = []
-      pool_spends << { id: attacker[:id], amount: pool_cost(attacker) } if attacker[:id]
+      # A Spiritual Weapon strike (free_attacker_pool) rolls Reservoir dice, not
+      # Combat Pool, so the attacker spends nothing.
+      pool_spends << { id: attacker[:id], amount: pool_cost(attacker) } if attacker[:id] && !p[:free_attacker_pool]
       allies.each { |a| pool_spends << { id: a[:id], amount: pool_cost(a) } if a[:id] }
       opposing = 0
       if declared
@@ -675,8 +688,17 @@ module Encounter
         end
         opposing = defense[:successes].to_i
       end
+      # Shield of Faith: a third Combatant (the caster) defends the target as an
+      # extra Opposing Roll, fueled by spending Reservoir dice. Its Successes
+      # subtract from the attack like any defense; the dice come from the
+      # caster's reservoir (discharged on commit), not the Combat Pool.
+      shield = p[:shield] || {}
+      opposing += shield[:successes].to_i if shield[:id]
       pool_spends = apply_pool_override(pool_spends, over[:pool_spends])
       pool_spends.each { |s| spend_combat_pool(s[:id], s[:amount].to_i) } if commit
+      if commit && shield[:id] && shield[:dice].to_i.positive?
+        discharge_reservoir(shield[:id], (shield[:spell_name] || 'Shield of Faith').to_s, shield[:dice].to_i)
+      end
       # Debit the Luck applied to this attack. Each Luck is one reroll (applied
       # client-side already); here we only spend the source: an ally Bard's
       # Reservoir (a Reaction discharge) or the attacker's own Luck Points.
@@ -694,13 +716,28 @@ module Encounter
       has_poison  = !poison_name.empty?
       poison_label = has_poison ? poison_name.split('_').map(&:capitalize).join(' ') : nil
 
+      # Tier Mismatch Inherent damage reduction: a higher-Tier defender shrugs
+      # off 5 damage per Tier it stands above the attacker (Tier 0 counts as
+      # 0.5) — the same rule that reduces spell / ability damage. The attacker's
+      # effective Tier may be raised by Glorious Charge (the payload's
+      # `attacker.tier_bonus`) and, for a weapon, by the weapon's Glory Property
+      # (`tier_advantage`), which treats the wielder as that many Tiers higher
+      # when fighting up and so shrinks the gap before the reduction. Glory is
+      # weapon-only; spells fold in nothing here.
+      atk_tier = combatant_tier(attacker[:id]) + attacker[:tier_bonus].to_i
+      atk_eff_tier = Encounter::Attack.effective_attacker_tier(
+        atk_tier, combatant_tier(p[:target_id]), weapon[:tier_advantage].to_i)
+      inherent_dr = TierMismatch.inherent_damage_reduction(combatant_tier(p[:target_id]), atk_eff_tier)
+
       if net.positive?
         base = weapon[:base_damage] ? weapon[:base_damage].to_i : p[:damage_bonus].to_i
         # Computed damage / bleed, each replaceable by a DM override. Bleed is
         # the weapon's Bleed plus the damage dealt (encounter_design.md →
         # "actual bleed = Bleed Constant + damage dealt"), so a 0-Bleed weapon
-        # still bleeds for its damage.
-        damage = over.key?(:damage) ? over[:damage].to_i : base + net
+        # still bleeds for its damage. Inherent DR is subtracted before the
+        # severity split (floored at 0).
+        computed = [base + net - inherent_dr, 0].max
+        damage = over.key?(:damage) ? over[:damage].to_i : computed
         bleed  = over.key?(:bleed)  ? over[:bleed].to_i  : weapon[:bleed].to_i + damage
         # Poison potency = the weapon's Affliction Potency constant + the
         # damage dealt (the same "constant + damage" shape as Bleed), editable
@@ -720,13 +757,21 @@ module Encounter
         else
           sev = preview_severity(p[:target_id], damage, dtype, threshold)
         end
+        # Magical weapon Damage Riders: the 4 extra dice the DM rolls
+        # client-side at the attack's Target Number once the hit lands. Each
+        # rider lands as its own Severity Calculation, kept separate from the
+        # weapon's base damage; a Vicious rider also bites the wielder. The
+        # per-rider Success / "1" counts arrive in `rider_results`.
+        riders = Array(weapon[:damage_riders]).each_with_index.map { |r, i| r.merge(id: i) }
+        rider_outcomes = apply_attack_riders(p[:target_id], attacker[:id], riders, p[:rider_results], commit)
         { ok: true, damage: damage, severity_map: sev, net_dos: net, damage_type: dtype,
-          threshold: threshold, damage_resilience: resil, bleed: bleed,
+          threshold: threshold, damage_resilience: resil, inherent_dr: inherent_dr, bleed: bleed,
           poison: poison, poison_name: poison_label,
+          riders: riders, rider_outcomes: rider_outcomes,
           pool_spends: pool_spends, committed: commit }
       else
         { ok: true, damage: 0, severity_map: {}, net_dos: net, damage_type: dtype,
-          threshold: threshold, damage_resilience: resil, bleed: 0,
+          threshold: threshold, damage_resilience: resil, inherent_dr: inherent_dr, bleed: 0,
           poison: 0, poison_name: poison_label,
           pool_spends: pool_spends, committed: commit }
       end
@@ -765,6 +810,10 @@ module Encounter
     #   { kind: 'mana',    amount: }
     #   { kind: 'temp_hp', amount:, ends_on_round: }
     #   { kind: 'effect',  name:, ends_on_round: }
+    #   { kind: 'modifiers', modifiers: [{ target:, type:, add:, descriptors? }],
+    #            duration: }  # buff Spells; amounts evaluated against the caster
+    #            and applied as timed Active Effects (Magic Weapon, Magic
+    #            Vestments, Expeditious Retreat, Resistance, Protection from Poison).
     def resolve_cast_payload(payload)
       p = deep_symbolize(payload)
       caster  = p[:caster] || {}
@@ -816,6 +865,34 @@ module Encounter
         attack_roll ? cast_attack_target(t, spell, caster, casting_stat) : cast_save_target(t, caster)
       end
 
+      # Tier Mismatch Inherent damage reduction: a higher-Tier target shrugs
+      # off 5 damage per Tier it stands above the caster. Subtracted from each
+      # resolved damage Effect (after Save halving) so preview and commit agree.
+      # The caster's effective Tier may be raised via caster.tier_bonus.
+      caster_eff_tier = combatant_tier(caster[:id]) + caster[:tier_bonus].to_i
+      resolved = resolved.map do |t|
+        dr = TierMismatch.inherent_damage_reduction(combatant_tier(t[:id]), caster_eff_tier)
+        next t if dr.zero? || Array(t[:effects]).empty?
+        reduced = Array(t[:effects]).map do |e|
+          e[:kind].to_s == 'damage' ? e.merge(amount: [e[:amount].to_i - dr, 0].max, inherent_dr: dr) : e
+        end
+        t.merge(effects: reduced)
+      end
+
+      # Buff modifiers: evaluate each spell modifier's amount against the caster
+      # (so Magic Weapon's `caster_tier` etc. become concrete) and compute its
+      # expiry, once, so both preview and commit apply the same Active Effects.
+      caster_level = (caster_creature.total_level rescue nil) || tier
+      mod_binds = { 'caster_tier' => tier, 'tier' => (spell[:tier] || 0),
+                    'level' => caster_level, 'rank' => caster_level }
+      resolved = resolved.map do |t|
+        next t if Array(t[:effects]).none? { |e| e[:kind].to_s == 'modifiers' }
+        fx = Array(t[:effects]).map do |e|
+          e[:kind].to_s == 'modifiers' ? resolve_modifier_effect(e, mod_binds) : e
+        end
+        t.merge(effects: fx)
+      end
+
       # Combat Pool: the caster's casting-time Speed + dice, plus any pool-costed
       # Defensive Action (Dodge / Block) the defender spent. A Save spell's
       # Saving Throw costs none. DM may override the spends.
@@ -834,7 +911,7 @@ module Encounter
         mana_spent = mana_cost.positive? ? caster_inst.apply_mana_cost(amount: mana_cost, mana_max: mana_max) : 0
         tox = apply_cast_toxicity(caster_inst, toxicity, polarity, cha, tier)
         applied = resolved.map { |t| apply_cast_target(t, spell) }
-        sustain = p[:sustain] ? register_cast_sustain(caster[:id], spell, p[:sustain]) : nil
+        sustain = p[:sustain] ? register_cast_sustain(caster[:id], spell, p[:sustain], channel_dice: caster[:dice].to_i) : nil
         base.merge(mana_spent: mana_spent, toxicity: tox, targets: applied, sustain: sustain)
       else
         available  = [mana_max - (caster_inst.state.mana_spent rescue 0), 0].max
@@ -874,6 +951,92 @@ module Encounter
                        target_tags: creature ? Array(creature.tags) : [])[:severity_map]
     rescue StandardError
       {}
+    end
+
+    # ---------- Magical weapon Damage Riders ----------
+
+    # Apply the weapon's Damage Riders for a landed hit. `riders` are the
+    # resolved rider specs from Get Weapon Details; `results` is the client's
+    # per-rider roll — a list of { id:, damage:, self_damage: } (the rolled,
+    # DM-editable amounts: bonus damage to the target and self-damage to the
+    # wielder). Each rider lands as its own Severity Calculation, separate from
+    # the weapon's base damage. Returns one outcome per rider for the result
+    # panel; only mutates Conditions when `commit` is true.
+    def apply_attack_riders(target_id, attacker_id, riders, results, commit)
+      return [] if riders.nil? || riders.empty?
+      by_id = Array(results).each_with_object({}) do |r, h|
+        rr = deep_symbolize(r)
+        h[rr[:id].to_i] = rr
+      end
+      riders.each_with_index.map do |rider, i|
+        # The client rolled each rider (4 dice at the attack's TN) and the DM may
+        # have edited the result in the damage screen; the payload carries the
+        # final `damage` (to the target) and `self_damage` (to the wielder).
+        res      = by_id[i] || {}
+        amt      = res[:damage].to_i
+        self_amt = res[:self_damage].to_i
+        outcome  = { id: i, label: rider[:label] }
+
+        if rider[:kind].to_s == 'named_effect'
+          outcome[:effect] = rider[:effect]
+          outcome[:amount] = amt
+          apply_rider_named_effect(target_id, rider[:effect], amt) if commit && amt.positive?
+        else
+          outcome[:damage]       = amt
+          outcome[:damage_type]  = rider[:damage_type]
+          outcome[:severity_map] = rider_target_severity(target_id, amt, rider, commit)
+        end
+
+        if rider[:self_damage]
+          sev = rider[:self_damage][:severity]
+          outcome[:self_damage] = { severity: sev.to_s, amount: self_amt }
+          apply_hp_severity(attacker_id, sev, self_amt) if commit && self_amt.positive?
+        end
+        outcome
+      end
+    end
+
+    # A Combatant's Creature Tier (0 when unknown). Tier 0 is the floor; the
+    # 0.5 convention is applied where the Tier Mismatch formulas need it.
+    def combatant_tier(combatant_id)
+      c = combatant_for(combatant_id) or return 0
+      (lookup!(c[:creature_id])&.tier rescue 0) || 0
+    end
+
+    # Bucket (and, on commit, apply) a rider's target damage. A rider with
+    # an explicit `severity` lands wholly in that Severity bucket; otherwise
+    # the rider's Damage Type drives a normal Severity Calculation —
+    # separate from the weapon's base-damage calculation either way.
+    def rider_target_severity(target_id, amount, rider, commit)
+      return {} unless amount.positive?
+      if rider[:severity]
+        map = { rider[:severity].to_s.to_sym => amount }
+        apply_hp_severity(target_id, rider[:severity], amount) if commit
+        map
+      elsif commit
+        apply_damage(target_id, amount, rider[:damage_type].to_s)[:severity_map]
+      else
+        preview_severity(target_id, amount, rider[:damage_type].to_s, 0)
+      end
+    end
+
+    # Apply a flat Severity-keyed Hit Point Damage amount to a Combatant
+    # (rider self-damage, or a rider's forced-Severity target damage).
+    def apply_hp_severity(combatant_id, severity, amount)
+      c = combatant_for(combatant_id) or return
+      conditions_for(c[:creature_id]).apply_hit_point_damage(severity.to_s.to_sym => amount)
+    rescue StandardError
+      nil
+    end
+
+    # Apply a rider's named Effect (e.g. Subdual's Shock) to the target,
+    # mirroring the Damage-Type `inflict` side-effect routing in apply_damage.
+    def apply_rider_named_effect(target_id, effect, amount)
+      c = combatant_for(target_id) or return
+      inst = conditions_for(c[:creature_id])
+      inst.state.shock += amount if effect.to_s == 'shock'
+    rescue StandardError
+      nil
     end
 
     # Active-effect Damage Resilience Modifiers (e.g. Rage) for a Creature,
@@ -979,13 +1142,39 @@ module Encounter
     # separately — one per Conditions Save Resolution Stub via
     # *resolve_affliction_save*. Returns { cleared: [...] }, or nil when the
     # Combatant is unknown.
-    def resolve_start_of_turn(combatant_id)
+    # Begin a Combatant's turn (turn_action_stub.md). Refills the Combat Pool
+    # (Combat begins empty; the refill is at the start of each turn, never at
+    # the end), grants the turn's two Main Actions, applies Per-Turn Setup, and
+    # clears the Active Effects that expire this Round. Called automatically as
+    # the turn passes to a Combatant — for the first Combatant at Start Combat,
+    # and for each Combatant the turn advances to (advance_turn). Returns the
+    # cleared Effects so the caller can persist Conditions.
+    def begin_turn_for(combatant_id)
       c = combatant_for(combatant_id) or return nil
       c[:combat_pool_spent] = 0
+      c[:main_actions_remaining] = MAIN_ACTIONS_PER_TURN
+      apply_per_turn_setup(combatant_id)
       round = current_abs_round
       cleared = round ? conditions_for(c[:creature_id]).clear_expired_effects(round) : []
       persist!
       { cleared: cleared }
+    end
+
+    # Main Actions a Combatant has left this turn (nil for an unknown
+    # Combatant). -1 until the Combatant has begun a turn.
+    def main_actions_remaining(combatant_id)
+      c = combatant_for(combatant_id) or return nil
+      c[:main_actions_remaining].to_i
+    end
+
+    # Record that a Combatant spent a Main Action (Attack / Move / Cast /
+    # Item). Decrements the counter — not enforced, so it may go negative —
+    # and returns the new value.
+    def spend_main_action(combatant_id)
+      c = combatant_for(combatant_id) or return nil
+      c[:main_actions_remaining] = c[:main_actions_remaining].to_i - 1
+      persist!
+      c[:main_actions_remaining]
     end
 
     # ---------- Special Actions ----------
@@ -1049,7 +1238,11 @@ module Encounter
       return { ok: false, error: "#{name} is not a usable special action" } unless Special.usable?(raw, activation)
 
       channeled = raw.key?('channel')
-      mana_cost = Integer(raw['mana_cost'] || 0)
+      # Resolve the Mana cost so inherited costs are charged — a Channel
+      # Divinity action inherits `mana_cost` from the base Channel Divinity
+      # Talent, which the raw catalog entry omits.
+      resolved_mana = (Abilities.lookup(name)&.dig('mana_cost') rescue nil)
+      mana_cost = Integer((resolved_mana || raw['mana_cost']) || 0)
       # Net Successes may be negative (a failed Performance check) — that is how
       # Bardic Inspiration grants Luck to the DM instead of the Reservoir, so do
       # not clamp here; use_channeled_special handles the sign.
@@ -1057,10 +1250,14 @@ module Encounter
       pool_rem  = combat_pool_remaining(combatant_id)
 
       # Channeled Abilities (Bardic Performance) spend the DM-chosen channel
-      # dice — Main Action Minimum up to Combat Pool Remaining; Dice Cap does
-      # not apply to channeling (abilities_design.md). The chosen dice are the
-      # Performance check the DM just rolled. Other actions spend the flat
-      # Action Minimum for their category.
+      # dice — Main Action Minimum up to Combat Pool Remaining. For a
+      # `channel_dice` / fire channel the Dice Cap does not apply
+      # (abilities_design.md); a **check-based** channel (fill from
+      # check_successes, e.g. Bardic Inspiration) rolls a real Check and IS
+      # bounded by the Performance skill's Dice Cap — enforced by the
+      # use_special route's `channel_dice_cap_error` before we get here. The
+      # chosen dice are the Performance check the DM just rolled. Other actions
+      # spend the flat Action Minimum for their category.
       if channeled
         pool_cost = p.key?(:dice) ? p[:dice].to_i : Config.main_action_minimum
         return { ok: false, error: "must channel at least #{Config.main_action_minimum} dice" } if pool_cost < Config.main_action_minimum
@@ -1391,9 +1588,57 @@ module Encounter
         inst.apply_named_effect(eff[:name].to_s, source_id: cast_source_id(spell),
                                 ends_on_round: eff[:ends_on_round])
         { kind: 'effect', name: eff[:name].to_s }
+      when 'modifiers'
+        Array(eff[:modifiers]).each do |m|
+          inst.apply_effect('target_key' => m[:target_key], 'bonus_type' => m[:bonus_type],
+                            'amount' => m[:amount], 'ends_on_round' => m[:ends_on_round],
+                            'source_id' => "#{cast_source_id(spell)}:#{Array(m[:target_key]).join('+')}")
+        end
+        { kind: 'modifiers', modifiers: eff[:modifiers] }
       end
     rescue StandardError => e
       { kind: eff[:kind].to_s, error: e.message }
+    end
+
+    # Turn one spell `modifiers` Effect into concrete Active-Effect data: each
+    # modifier's `add` is evaluated against the caster bindings (literals pass
+    # through; formulas like Magic Weapon's `caster_tier` resolve), a non-`all`
+    # descriptor narrows the target_key, and a turns-based duration sets expiry.
+    def resolve_modifier_effect(eff, binds)
+      ends = modifier_ends_on_round(eff[:duration], binds)
+      mods = Array(eff[:modifiers]).filter_map do |raw|
+        m = (raw.transform_keys(&:to_s) rescue raw)
+        target = m['target'] or next
+        btype  = m['type'] or next
+        amount = eval_modifier_amount(m['add'], binds)
+        next if amount.nil?
+        descriptors = Array(m['descriptors']).map(&:to_s).reject { |d| d == 'all' }
+        tkey = descriptors.empty? ? target.to_s : descriptors
+        { target_key: tkey, bonus_type: btype.to_s, amount: amount, ends_on_round: ends }
+      end
+      { kind: 'modifiers', modifiers: mods }
+    end
+
+    # A modifier `add` resolved to an integer: a literal as-is, a Formula
+    # evaluated against the caster bindings, nil when it cannot resolve.
+    def eval_modifier_amount(add, binds)
+      return add if add.is_a?(Integer)
+      return nil if add.nil?
+      return add.to_i if add.to_s.match?(/\A-?\d+\z/)
+      return nil unless defined?(Abilities::Formula)
+      Abilities::Formula.evaluate(add.to_s, binds).to_i
+    rescue StandardError
+      nil
+    end
+
+    # The absolute Round a buff expires on, when its `duration` is in turns
+    # (e.g. "1 turn", "rank turns"). Minute/hour/open-ended durations return
+    # nil — the DM clears them — matching the self-buff (Special) convention.
+    def modifier_ends_on_round(duration, binds)
+      return nil if duration.nil?
+      m = duration.to_s.strip.match(/\A(.+?)\s+turns?\z/) or return nil
+      turns = (Abilities::Formula.evaluate(m[1], binds).to_i rescue nil)
+      turns ? current_abs_round + turns : nil
     end
 
     # Preview a target's resolved Effects without mutating (damage is bucketed
@@ -1409,23 +1654,28 @@ module Encounter
         when 'mana'    then { kind: 'mana', amount: eff[:amount].to_i }
         when 'temp_hp' then { kind: 'temp_hp', amount: eff[:amount].to_i }
         when 'effect'  then { kind: 'effect', name: eff[:name].to_s }
+        when 'modifiers' then { kind: 'modifiers', modifiers: eff[:modifiers] }
         end
       end.compact
       { id: t[:id], outcome: t[:outcome], applied: applied }
     end
 
     # Register the sustain bookkeeping a Channeled / multi-turn cast needs.
-    def register_cast_sustain(caster_id, spell, sustain)
+    def register_cast_sustain(caster_id, spell, sustain, channel_dice: 0)
       s = deep_symbolize(sustain)
       common = { spell_name: spell[:name].to_s, source: cast_source_id(spell),
                  spell_tier: (spell[:tier] || 0).to_i,
                  cast_skill: (spell[:cast_skill] || Cast::DEFAULT_CAST_SKILL).to_s }
       case s[:kind].to_s
       when 'concentration'
+        # A reservoir- or auto-channel Spell pours the dice it was cast with
+        # straight into the Reservoir (they are not rolled). Auto reservoirs are
+        # persistent (Spiritual Weapon strikes from them each turn).
+        initial = %w[reservoir auto].include?(s[:mode].to_s) ? channel_dice.to_i : (s[:initial_reservoir] || 0).to_i
         begin_concentration(caster_id, **common, mode: (s[:mode] || 'maintain').to_s,
                             reservoir_reset: (s[:reservoir_reset] || 'per_turn').to_s,
-                            initial_reservoir: (s[:initial_reservoir] || 0).to_i)
-        { kind: 'concentration', spell_name: common[:spell_name] }
+                            initial_reservoir: initial)
+        { kind: 'concentration', spell_name: common[:spell_name], reservoir: initial }
       when 'long_cast'
         turns = (s[:turns_required] || 1).to_i
         begin_long_cast(caster_id, **common, turns_required: turns)
@@ -1465,7 +1715,7 @@ module Encounter
     def blank_combatant(id, creature_id, name)
       { id: id, creature_id: creature_id, name: name,
         initiative_string: '', combat_pool_spent: 0, time_tick_schedule: [],
-        luck_points: 0, concentration: [], casting: [] }
+        luck_points: 0, concentration: [], casting: [], main_actions_remaining: -1 }
     end
 
     def recompute_schedules!
@@ -1524,10 +1774,17 @@ module Encounter
       resolved = (Abilities.lookup(display, level: level, rank: level) rescue nil) || raw
       {
         name:        display,
-        label:       (resolved['name'] || display).to_s,
+        # The granted Ability's own name — NOT `resolved['name']`, which
+        # inheritance resolution sets to the base template (so a specific
+        # Channel Divinity action like Turn Undead would mislabel as the
+        # "Channel Divinity" category).
+        label:       display,
         activation:  activation[:alias].to_s,
         action_cost: Special.action_cost(activation[:alias]),
-        mana_cost:   Integer(raw['mana_cost'] || 0),
+        # Mana from the resolved entry so inherited costs surface — a Channel
+        # Divinity action (Turn Undead) inherits `mana_cost: 1` from the base
+        # Channel Divinity Talent, which the raw catalog entry omits.
+        mana_cost:   Integer((resolved['mana_cost'] || raw['mana_cost']) || 0),
         channeled:   raw.key?('channel'),
         performance: raw.dig('reservoir', 'fill', 'source') == 'check_successes',
         self_target: raw['target'] == 'self',
@@ -1542,13 +1799,21 @@ module Encounter
     # omitted when the cost is zero.
     def special_summary(desc)
       clauses = []
-      clauses << "spend #{desc[:mana_cost]} mana" if desc[:mana_cost].to_i.positive?
       if desc[:channeled]
         # Channeled Abilities choose their channel dice in the roll builder,
         # so don't quote a fixed Combat-Pool number here.
+        clauses << "spend #{desc[:mana_cost]} mana" if desc[:mana_cost].to_i.positive?
         clauses << "#{desc[:active] ? 'continue' : 'begin'} #{desc[:label]}"
       else
-        clauses << "spend #{desc[:action_cost]} combat pool" if desc[:action_cost].to_i.positive?
+        # Non-channeled (e.g. a Channel Divinity action like Turn Undead): show
+        # the Mana cost AND the Combat-Pool dice count together before Confirm.
+        cost = []
+        cost << "#{desc[:mana_cost]} mana" if desc[:mana_cost].to_i.positive?
+        if desc[:action_cost].to_i.positive?
+          n = desc[:action_cost].to_i
+          cost << "#{n} Combat Pool #{n == 1 ? 'die' : 'dice'}"
+        end
+        clauses << "spend #{cost.join(' and ')}" unless cost.empty?
         Array(desc[:effects]).each { |fx| clauses << "gain the #{fx} condition" }
       end
       return 'No Mana or Combat-Pool cost.' if clauses.empty?
@@ -1689,6 +1954,14 @@ module Encounter
       creature ? (creature.tier rescue 0) : 0
     end
 
+    # Tier of the Creature behind a Combatant ID (0 when unknown). Used by
+    # the Tier Mismatch damage-reduction path in resolve_attack_payload.
+    def combatant_tier(combatant_id)
+      return 0 unless combatant_id
+      c = @combatants.find { |x| x[:id] == combatant_id }
+      c ? tier_of(c[:creature_id]) : 0
+    end
+
     def current_timestamp
       fn = @current_timestamp_fn || -> { Encounter.current_timestamp }
       ts = fn.call || {}
@@ -1753,7 +2026,10 @@ module Encounter
         time_tick_schedule:  Array(c['time_tick_schedule']).map { |n| Integer(n) },
         luck_points:         Integer(c['luck_points'] || 0),
         concentration:       (c['concentration'] || []).map { |e| symbolize(e) },
-        casting:             (c['casting'] || []).map { |e| symbolize(e) }
+        casting:             (c['casting'] || []).map { |e| symbolize(e) },
+        # Main Actions left this turn. -1 = the Combatant has not begun a turn
+        # yet (pre-combat / not their turn); a turn-start sets it to 2.
+        main_actions_remaining: Integer(c['main_actions_remaining'] || -1)
       }
     end
 
@@ -1763,7 +2039,8 @@ module Encounter
         'initiative_string' => c[:initiative_string], 'combat_pool_spent' => c[:combat_pool_spent],
         'time_tick_schedule' => c[:time_tick_schedule], 'luck_points' => c[:luck_points],
         'concentration' => c[:concentration].map { |e| stringify(e) },
-        'casting' => c[:casting].map { |e| stringify(e) }
+        'casting' => c[:casting].map { |e| stringify(e) },
+        'main_actions_remaining' => c[:main_actions_remaining]
       }
     end
 

@@ -29,6 +29,9 @@ body {
   display: flex;
   align-items: center;
   gap: 18px;
+  /* Absorb the free space so the right-hand nav controls (Phase / View As /
+     player Character name / server address) always sit flush right. */
+  margin-right: auto;
 }
 
 .menu-items a {
@@ -40,10 +43,8 @@ body {
   text-decoration: underline;
 }
 
-/* Encounter Phase selector (nav, DM-only). Sits just before View As and
- * pushes the right-hand controls over. */
+/* Encounter Phase selector (nav, DM view only). Sits just before View As. */
 .phase-form {
-  margin-left: auto;
   margin-right: 12px;
   display: flex;
   align-items: center;
@@ -89,8 +90,13 @@ body {
   font-family: monospace;
 }
 
-.menu-items + .server-addr {
-  margin-left: auto;
+/* The player's Character name in the nav, where the DM's View-As control
+   sits. Shown to player viewers only. */
+.player-creature {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 12px;
 }
 
 .page {
@@ -909,6 +915,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 4px 10px;
+  font-family: Arial, sans-serif;
   font-size: 11px;
   border-bottom: 1px solid #eee;
 }
@@ -922,9 +929,20 @@ body {
 }
 
 .step-summary-value {
+  font-family: Arial, sans-serif;
   font-weight: bold;
   color: #333;
   flex: 1;
+}
+
+/* The collapsed Net Degree of Success line shares the step-summary value's
+   typography so the finished builder reads as one uniform list rather than
+   switching fonts between the step notes and the net line. */
+.cb-net {
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  color: #333;
 }
 
 .save-roll-table[data-roll-state="pending"] { display: none; }
@@ -1076,6 +1094,12 @@ body {
   font-weight: bold;
   cursor: pointer;
   border-radius: 3px;
+}
+
+/* Spell-picker Tier header — larger than the option buttons, Tier-colored. */
+.cb-tier-head {
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .cr-mod-btn:hover { background: #f0f0f0; }
@@ -2973,7 +2997,18 @@ body {
 /* =====================================================================
    Equipment Provisioning (views/_equipment_provision_stub.erb)
    ===================================================================== */
-.provision > h1 { border-bottom: 2px solid #b9472c; padding-bottom: 8px; }
+/* Header row: the "Store" title on the left, the Party gold on the right. */
+.provision-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 2px solid #b9472c;
+  padding-bottom: 8px;
+}
+.provision-header h1 { border-bottom: none; padding-bottom: 0; margin: 0; }
+.provision-party-gold { font-size: 14px; color: #475569; white-space: nowrap; }
+.provision-party-gold strong { color: #b9472c; }
 
 /* The page splits into the provisioning sections (left) and the
    Shopping Cart rail (right). The cart collapses out when empty, so the
@@ -3187,31 +3222,36 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-.ta-body { display: flex; }
-.ta-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 150px;
-  padding: 12px;
-  border-right: 1px solid #e2e8f0;
-}
-.ta-menu-btn {
-  text-align: left;
-  padding: 8px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #f8fafc;
-  font: inherit;
+/* Action menu: buttons grouped under Main / Bonus / Free Action headers
+   (the headers reuse the Cast builder's .cb-tier-head font). A generic action
+   button (.ta-menu-btn) and a Special Ability button (.ta-special-opt) share
+   the .cr-mod-btn / .cb-opt look. */
+.ta-actions-menu { padding: 12px 14px; }
+.ta-cat-group { margin-bottom: 10px; }
+.ta-action-cat { margin: 0 0 6px; color: #334155; }
+.ta-menu-btn.ta-selected { border-color: #2563eb; background: #eff6ff; }
+.ta-panes { padding: 0 14px 14px; }
+
+/* Selected-action row: replaces the category groups once an action is picked.
+   Change re-opens the menu; the right-hand slot hosts the action's Commit
+   button. */
+.ta-selected-action { display: none; align-items: center; gap: 10px; }
+.turn-action.ta-has-selection .ta-selected-action { display: flex; }
+.turn-action.ta-has-selection .ta-cat-group { display: none; }
+.ta-selected-label { font-weight: 600; color: #1e293b; }
+.ta-change {
+  flex: 0 0 auto;
+  background: #fff7e0;
+  border: 1px solid #d6a700;
+  color: #8a5d00;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 3px;
   cursor: pointer;
 }
-.ta-menu-btn:hover { background: #eef2f7; }
-.ta-menu-btn.ta-selected {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
-}
-.ta-panes { flex: 1; padding: 14px; }
+.ta-change:hover { background: #fff1c5; }
+.ta-confirm-slot { margin-left: auto; display: flex; gap: 6px; }
 .ta-pane { display: none; }
 .ta-pane.ta-pane-active { display: block; }
 .ta-pane-h { margin: 0 0 8px; }
@@ -3223,8 +3263,12 @@ body {
 .encounter-next-turn { margin: 10px 0; display: flex; justify-content: flex-end; }
 .encounter-next-turn-btn { font-weight: 600; }
 
-/* Start of Turn pane (turn_action_stub.md → Start of Turn) */
+/* Afflictions due this Round (turn_action_stub.md). Inset from the panel
+   edges, with breathing room above the heading and between it and the save
+   table below. */
 .ta-sot-section { margin: 0 0 14px; }
+.ta-afflictions { padding: 14px 14px 2px; margin-bottom: 6px; }
+.ta-afflictions .ta-sot-h { margin: 0 0 10px; }
 .ta-sot-h { margin: 0 0 6px; font-size: 0.9em; color: #334155; }
 .ta-sot-clear-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .ta-sot-clear {
@@ -3313,6 +3357,10 @@ body {
 .ta-field label { font-weight: bold; color: #444; display: flex; align-items: center; gap: 4px; }
 .ta-field input { width: 56px; padding: 2px 4px; font-size: 12px; }
 .ta-split { color: #7f1d1d; }
+/* Rider Roll Resolution Stub sits above the damage screen; trim the shared
+   .rolls-wrapper margin so the two read as one stacked flow. */
+.ta-rider-stub .rolls-wrapper { margin-bottom: 10px; }
+.ta-damage-screen { margin-top: 4px; }
 .ta-result-label { font-size: 11px; font-weight: bold; color: #8a5d00; margin-bottom: 4px; }
 .ta-result-committed { background: #eef7ee; border-top-color: #2c8a2c; }
 .ta-hit strong { color: #7f1d1d; }
@@ -3353,6 +3401,9 @@ body {
   background: #1b1b1b;
   overflow: hidden;
 }
+
+/* Acting Combatant's Character Sheet, shown beneath the Map during Combat. */
+.encounter-acting-sheet { margin-top: 16px; }
 
 /* --- Toolbar (thin strip across the top) --- */
 .atlas-toolbar {
@@ -3443,6 +3494,24 @@ body {
   left: 0;
   pointer-events: none;
 }
+/* --- Zones (spell areas / hazards) --- */
+.atlas-zones {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.atlas-zone {
+  fill: rgba(128, 90, 213, 0.30);          /* default: solid purple */
+  stroke: rgba(128, 90, 213, 0.85);
+  stroke-width: 2;
+}
+.atlas-zone-textured {
+  /* Image fill is set inline (wins over this); keep the purple outline. */
+  stroke: rgba(128, 90, 213, 0.85);
+}
+/* Local, un-committed placement preview — dashed to read as provisional. */
+.atlas-zone-preview .atlas-zone { stroke-dasharray: 6 4; }
 .atlas-empty {
   position: absolute;
   top: 50%;
@@ -3714,3 +3783,72 @@ body {
 .loot-flag-btn:has(input:checked) { border-color: #fca5a5; background: #fee2e2; color: #991b1b; }
 .loot-flag-btn:has(input:checked)::after { content: "Discard"; }
 .loot-flag-btn:has(input:focus-visible) { outline: 2px solid #2563eb; }
+
+/* === Devices — Character Assignment stub === */
+
+.assignment-stub { margin-top: 8px; }
+
+.assignment-heading {
+  font-size: 14px;
+  margin: 0 0 6px 0;
+}
+
+.assignment-empty {
+  color: #666;
+  font-style: italic;
+}
+
+.assignment-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: #fff;
+  border: 1px solid #d8d8d8;
+}
+
+.assignment-table th,
+.assignment-table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid #ececec;
+  vertical-align: middle;
+}
+
+.assignment-table thead th {
+  background: #f2f2f2;
+  border-bottom: 1px solid #d8d8d8;
+}
+
+.assignment-table tbody tr:last-child td { border-bottom: none; }
+
+.assignment-table tr.assignment-self { background: #eef4fb; }
+
+.assignment-id code {
+  font-family: monospace;
+  color: #1a3d6d;
+}
+
+.assignment-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: #2c5fa0;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.assignment-seen { color: #555; white-space: nowrap; }
+
+.assignment-assigned em { color: #999; }
+
+.assignment-form {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+}

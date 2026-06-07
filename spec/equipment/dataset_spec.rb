@@ -22,6 +22,9 @@ RSpec.describe Equipment::Dataset do
 
   it 'persists a mutation and reloads it from the data path' do
     ds = load
+    # Read the example's starting Party Gold so the assertion isn't coupled to
+    # the exact campaign value (which the DM may tune).
+    base_gold = ds.inventory('party').find { |s| s.item_type == 'Gold' }.quantity
     inst = Equipment::Instance.new(
       catalog: Equipment::Catalog.load,
       store: Equipment::Dataset::StoreAdapter.new(ds),
@@ -33,7 +36,7 @@ RSpec.describe Equipment::Dataset do
     expect(File.exist?(@data_path)).to be true
     reloaded = load
     party_gold = reloaded.inventory('party').find { |s| s.item_type == 'Gold' }
-    expect(party_gold.quantity).to eq(375) # 275 in the example + 100
+    expect(party_gold.quantity).to eq(base_gold + 100)
     expect(reloaded.inventory('character:1').count { |s| s.item_type == 'Healing Potion' }).to be >= 1
   end
 

@@ -58,6 +58,12 @@ module Encounter
     def falling_damage_threshold    = Integer(data['Falling Damage Threshold'] || 5)
     def falling_damage_bleed_constant = Integer(data['Falling Damage Bleed Constant'] || 0)
 
+    # ---- Tier Mismatch ----
+    # Inherent damage reduction a higher-Tier defender gets per Tier of the
+    # gap (Tier 0 counts as 0.5; the product is floored). Applies to every
+    # damaging effect — weapon attacks, spells, and abilities.
+    def inherent_damage_reduction_per_tier = Integer(data['Inherent Damage Reduction Per Tier'] || 5)
+
     # ---- Damage Types ----
     def damage_types = (data['damage_types'] || {})
     def metal_armor_categories = (data['Metal Armor Categories'] || [])

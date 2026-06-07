@@ -74,7 +74,7 @@ Field on a Catalog Ability or on an entry in `modifier_abilities.yaml`. Shape:
 | `target` | string | What the bonus applies to (`speed`, `attack`, `perception`, etc.). The target vocabulary is owned by the consuming domain (Combat, Equipment, etc.) — Abilities does not police it. |
 | `type` | string | Bonus Type Name — must name an entry in the `Bonus Types List` config. Validated by Abilities at load time. |
 | `descriptors` | list of string | Optional scope tags. Free-form. |
-| `add` | signed number or Formula | Value to apply. May be a Formula of `level` / `tier`. Abilities returns Formulas verbatim; consumers evaluate. |
+| `add` | signed number or Formula | Value to apply. May be a Formula of `level` / `tier` / `caster_tier`. Abilities returns Formulas verbatim; consumers evaluate. |
 
 The Abilities module validates `type` against the `Bonus Types List` and returns the Modifier Entry verbatim. Aggregation across Abilities, type-stacking rules, and Formula evaluation against the Creature's level happen in Creatures and Combat.
 
@@ -133,8 +133,8 @@ Presence of a Channel Block makes a Catalog Ability a Channeled Ability. The Com
 
 **Channel Mode notes:**
 
-- **fire**: each turn's channel fuels the spell's effect directly. The channeled dice serve as the Roll (when `attack_roll` or a Save is involved) or drive the effect formula (e.g. Heal's bleed reduction scales with successes on the casting check). Channel dice are Main Action Minimum to Combat Pool Remaining; Dice Cap does not apply to channeling.
-- **reservoir**: each turn's channel fills an associated Reservoir Block (with `fill.source: channel_dice`). The Reservoir is consumed by its Discharge.
+- **fire**: each turn's channel fuels the spell's effect directly. The channeled dice serve as the Roll (when `attack_roll` or a Save is involved) or drive the effect formula (e.g. Heal's bleed reduction scales with successes on the casting check). Channel dice are Main Action Minimum to Combat Pool Remaining; the Dice Cap does not apply, because the dice are poured straight into the effect rather than rolled as a skill Check.
+- **reservoir**: each turn's channel fills an associated Reservoir Block. With `fill.source: channel_dice` the channeled dice are poured into the Reservoir (Dice Cap does not apply, as in *fire*). With **`fill.source: check_successes`** (Bardic Inspiration) the channel instead rolls a real **skill Check** — each Success fills the Reservoir — so the dice **are** bounded by that skill's **Dice Cap** (Main Action Minimum up to `min(Dice Cap, Combat Pool Remaining)`). The Reservoir is consumed by its Discharge.
 - **maintain**: channel is upkeep only. No fueled effect, no Reservoir. Channel always costs exactly Main Action Minimum dice. The spell's text and the GM resolve what the maintained effect looks like.
 - **auto**: the cast itself fills the associated Reservoir Block (which must have `reset: persistent`). After cast, the spell self-sustains — no Main Action channel is required each turn. The Reservoir is not Discharged; instead it defines the per-turn effect's magnitude (e.g. Spiritual Weapon attacks each turn using a number of dice equal to its Reservoir). The spell ends when its declared `duration` expires.
 
@@ -144,7 +144,7 @@ Presence of a Reservoir Block gives a Catalog Ability a Reservoir — a tagged c
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `fill.source` | enum | required | How the Reservoir gains amount. `channel_dice` (per-channel dice add to the Reservoir, used by channeled spells) or `check_successes` (each Success on a designated Check adds one). *(configurable)* |
+| `fill.source` | enum | required | How the Reservoir gains amount. `channel_dice` (per-channel dice add to the Reservoir, used by channeled spells; Dice Cap does not apply) or `check_successes` (each Success on a designated Check adds one — the dice are a real skill Check, so they obey that skill's Dice Cap). *(configurable)* |
 | `fill.ratio` | int | `1` | Multiplier applied to the Fill Source's input. Spiritual Weapon uses 1; ratios above 1 grant amplification (n channeled dice → ratio × n Reservoir). |
 | `reset` | enum | `per_turn` | When the Reservoir resets to zero. `per_turn` (default) resets at the start of the holder's turn; `persistent` never resets and ends only with the owning Ability. Auto-mode Channeled Abilities use `persistent`. |
 | `discharge` | Discharge | optional | Defines how the Reservoir is spent. Omitted for auto-mode reservoirs (whose amount drives a per-turn effect without being consumed). |
@@ -343,7 +343,7 @@ The Effect Hash is a flat dictionary, but its values cross-reference each other 
 - A string-valued entry is treated as a Formula and evaluated.
 - Any other value is taken verbatim.
 
-`tier` is always present (Tier 0 → 0.5 per project convention). `rank` is always present. Names from the Effect Hash become available as soon as they're resolved, so a later entry's Formula may reference an earlier entry's value.
+`tier` is always present (Tier 0 → 0.5 per project convention). `rank` is always present. `caster_tier` — the casting Creature's Tier — is supplied by the casting pipeline at cast time; it differs from `tier` (the Ability's own Tier) and lets an Effect scale with whoever cast it rather than with the affected Creature. An Ability whose `modifiers` must resolve against the caster (e.g. Magic Weapon, whose bonus follows the *caster's* Tier even when the weapon's wielder is someone else) plumbs `caster_tier` into the Active Effect's `metadata` through an Effect Hash entry, the same way `rage` plumbs `level`. Names from the Effect Hash become available as soon as they're resolved, so a later entry's Formula may reference an earlier entry's value.
 
 Damage-expression-only variables (`success`, `critical`, `attribute`) must **not** appear in Effect Hash Formulas, Range Formulas, or Target Formulas — those are resolved before any roll. The validator does not catch this; it surfaces as an unresolved-name error at evaluation time.
 

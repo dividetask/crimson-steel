@@ -85,7 +85,7 @@ RSpec.describe 'Encounter::State start of turn' do
     expect(s.resolve_affliction_save(c[:id], 'bleeding', 0)).to be_nil    # no such Affliction
   end
 
-  it 'clears expired Active Effects for the current Round on the finalize Submit' do
+  it 'clears expired Active Effects for the current Round when the turn begins' do
     s = state
     c = s.add_combatant('101')
     inst = conditions['101']
@@ -94,7 +94,7 @@ RSpec.describe 'Encounter::State start of turn' do
     inst.apply_effect(target_key: 'martial', bonus_type: 'Enhancement', amount: 1,
                       source_id: 'spell:lasting', ends_on_round: 200)
 
-    out = s.resolve_start_of_turn(c[:id])
+    out = s.begin_turn_for(c[:id])
     expect(out[:cleared].map { |e| e[:source_id] }).to eq(['spell:expiring'])
     expect(inst.state.effects.map { |e| e[:source_id] }).to eq(['spell:lasting'])
   end
@@ -117,7 +117,7 @@ RSpec.describe 'Encounter::State start of turn' do
   end
 
   it 'returns nil for an unknown Combatant' do
-    expect(state.resolve_start_of_turn(999)).to be_nil
+    expect(state.begin_turn_for(999)).to be_nil
   end
 
   describe 'Affliction scheduled on the victim\'s next turn' do
@@ -151,7 +151,7 @@ RSpec.describe 'Encounter::State start of turn' do
   end
 
   describe 'Combat Pool lifecycle' do
-    it 'starts empty at Start Combat and refills at the Start of Turn' do
+    it 'starts empty at Start Combat and refills when the turn begins' do
       s = state
       c = s.add_combatant('101')
       s.start_combat
@@ -159,23 +159,63 @@ RSpec.describe 'Encounter::State start of turn' do
       expect(pool).to be > 0
       expect(s.combat_pool_remaining(c[:id])).to eq(0) # empty when Combat starts
 
-      s.resolve_start_of_turn(c[:id])
-      expect(s.combat_pool_remaining(c[:id])).to eq(pool) # refilled at Start of Turn
+      s.begin_turn_for(c[:id])
+      expect(s.combat_pool_remaining(c[:id])).to eq(pool) # refilled when the turn begins
     end
 
-    it 'does not refill the Combat Pool at end of turn (Per-Turn Cleanup)' do
+    it 'does not refill the outgoing Combatant\'s Combat Pool on End Turn' do
       s = state
       a = s.add_combatant('101'); b = s.add_combatant('102')
       s.start_combat
-      s.resolve_start_of_turn(a[:id]) # a refills
-      s.spend_combat_pool(a[:id], 2)      # a spends 2
+      s.begin_turn_for(a[:id])         # a's turn begins, pool full
+      s.spend_combat_pool(a[:id], 2)   # a spends 2
       s.set_initiative(a[:id], '9'); s.set_initiative(b[:id], '7')
       s.set_acting_combatant(a[:id])
 
-      s.advance_turn # a is the outgoing Combatant
-      # Cleanup no longer resets the pool — a's spend persists until a's
-      # next Start of Turn.
+      s.advance_turn # a ends; b's turn begins
+      # a is the outgoing Combatant — its spend persists until a's next turn.
       expect(s.combatant(a[:id])[:combat_pool_spent]).to eq(2)
+      # b is the incoming Combatant — its turn began, so its pool is full.
+      expect(s.combat_pool_remaining(b[:id])).to eq(s.get_combat_pool(b[:id]))
+    end
+  end
+
+  describe 'Main Actions' do
+    it 'start at -1 and are granted at the start of a turn' do
+      s = state
+      c = s.add_combatant('101')
+      expect(s.main_actions_remaining(c[:id])).to eq(-1) # before the first turn
+      s.begin_turn_for(c[:id])
+      expect(s.main_actions_remaining(c[:id])).to eq(Encounter::State::MAIN_ACTIONS_PER_TURN)
+    end
+
+    it 'decrement as Main Actions are spent, unenforced (may go negative)' do
+      s = state
+      c = s.add_combatant('101')
+      s.begin_turn_for(c[:id])
+      expect(s.spend_main_action(c[:id])).to eq(1)
+      expect(s.spend_main_action(c[:id])).to eq(0)
+      expect(s.spend_main_action(c[:id])).to eq(-1) # not enforced — goes negative
+    end
+
+    it 'a committed Move spends a Main Action' do
+      s = state
+      c = s.add_combatant('101')
+      s.start_combat
+      s.begin_turn_for(c[:id])
+      s.apply_move(c[:id])
+      expect(s.main_actions_remaining(c[:id])).to eq(1)
+    end
+
+    it 'grants the next Combatant its Main Actions on advance_turn' do
+      s = state
+      a = s.add_combatant('101'); b = s.add_combatant('102')
+      s.start_combat
+      s.set_initiative(a[:id], '9'); s.set_initiative(b[:id], '5')
+      s.set_acting_combatant(a[:id])
+      s.advance_turn # -> b's turn begins
+      expect(s.acting_combatant_id).to eq(b[:id])
+      expect(s.main_actions_remaining(b[:id])).to eq(2)
     end
   end
 end

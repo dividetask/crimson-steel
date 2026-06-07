@@ -9,6 +9,10 @@ in each recipient's Inventory (via Equipment's *Add Item*).
 
 See `ui_conventions.md` for shared rules.
 
+The page header shows the **Store** title on the left and the shared
+**Party** wallet total (`Party gold: N gp`) on the right, so the DM can see
+the party's purse while provisioning.
+
 ## Charging
 
 - A recipient that is a **Player Character** is charged for what it
@@ -33,6 +37,10 @@ Below it, every mundane (Tier 0) Weapon is laid out in **three columns**.
 Each Item shows a picture slot, its name and Unit Price, a quantity
 input, and an **Add** button. Add places the chosen quantity into the
 cart for the Creature currently selected in the dropdown.
+
+**Natural attacks** (Bite, claws, Unarmed — Weapons flagged `natural` in
+the catalog) are **never listed**. They are innate Creature abilities, not
+gear that can be owned, bought, or sold.
 
 ### Armor
 
@@ -69,6 +77,41 @@ Tier from the catalog and reprices — the client cart is never trusted for
 Tier or cost. Because Guidance Bonus is a Stack-identity field, two
 Bonuses of the same Item are distinct Stacks and never merge.
 
+### Magical Weapons
+
+A builder card for enchanted weapons: three dropdowns — **Weapon** (any
+buyable Weapon, no natural attacks), **Property** (the Weapon Properties —
+Elemental flattened per Subtype, Emotional, Radiant, Subdual, Vicious,
+Glory) and **Tier** (1–5). One enchanted weapon is bought per **Add**, for
+the section's **Recipient** dropdown (there is no quantity box — a magic
+weapon is bought one at a time). The shown price updates client-side as
+`base weapon + Tier Surcharge + Property cost`. The card validates the
+combination live: a Property below its `min_tier`, or one whose
+`applies_to` excludes the weapon's melee/ranged category (e.g. Vicious on a
+bow), shows a note and disables **Add**.
+
+At checkout the client sends the chosen `properties` (name + subtype) and
+`tier`; the server (`StoreMagicWeapons.fields`) revalidates eligibility and
+reprices from the catalog — the cart is never trusted for cost. Because
+`properties` and `tier` are Stack-identity fields, different enchantments
+of the same Weapon are distinct Stacks and never merge.
+
+### Magical Armor
+
+A builder card for enchanted armor, following the **Magical Weapons**
+layout **without the Property dimension** — a magical Armor's only
+enchantment is its Tier. Two dropdowns: **Armor** (any buyable Armor,
+Shields included) and **Tier** (1–5). One enchanted Armor is bought per
+**Add**, for the section's **Recipient** dropdown (no quantity box). The
+shown price updates client-side as `base armor + Tier Surcharge`; there is
+no Property to validate, so **Add** is always enabled.
+
+At checkout the client sends the chosen `tier` (and no `properties`); the
+server (`StoreMagicalArmor.fields`) revalidates that the Item is an Armor
+and reprices from the catalog — the cart is never trusted for cost. Because
+`tier` is a Stack-identity field, different Tiers of the same Armor are
+distinct Stacks and never merge.
+
 ### Potions
 
 Deferred. One Item per potion-capable Spell, sorted and colored by Tier.
@@ -93,13 +136,16 @@ totalling happen in the browser with no server round-trip. Only
 - **Add** is a pure client action — it never contacts the server. There
   is no confirm popup.
 - **Purchase** POSTs the whole cart to `/store/checkout` as JSON
-  (`{ lines: [{ item, recipient_id, quantity, guidance_bonus? }, …] }` —
-  `guidance_bonus` present only on magical-item lines). The server
-  recomputes every Unit Price and PC-status, re-derives a magical item's
-  Tier from its catalog Bonus→Tier array (the client cart is never trusted
-  for Tier or cost), resolves each line through *Debit Wealth* (PCs) then
-  *Add Item*, and returns a JSON `{ ok, type, message }` summary the page
-  shows as a flash. On success the cart is emptied.
+  (`{ lines: [{ item, recipient_id, quantity, guidance_bonus?, properties?,
+  tier? }, …] }` — `guidance_bonus` present only on magical-item lines,
+  `properties` + `tier` on magical-weapon lines, and `tier` alone on
+  magical-armor lines). The server recomputes every Unit Price and
+  PC-status, re-derives a magical item's Tier from its catalog Bonus→Tier
+  array, revalidates magical weapons / armor and reprices them (the client
+  cart is never trusted for Tier or cost), resolves each line through
+  *Debit Wealth* (PCs) then *Add Item*, and returns a JSON
+  `{ ok, type, message }` summary the page shows as a flash. On success the
+  cart is emptied.
 
 ## What this stub does not do
 

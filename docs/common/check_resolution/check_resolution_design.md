@@ -82,9 +82,26 @@ Bonuses and Penalties on Rolls on one side are inverted (Bonus ↔ Penalty) and 
 
 Only `bonus_penalty_list` propagates. `starting_contribution` and Roll Modifiers (reroll, nudge, failure modifier, critical modifier) do not. A Defender's reroll doesn't affect the Initiator's dice; a Supporting ally's `starting_contribution` doesn't affect anyone else's Starting Value.
 
-The propagation is structural — every entry in a Roll's `bonus_penalty_list` propagates per the rules above. No per-entry opt-out exists.
+The propagation is structural — every entry in a Roll's `bonus_penalty_list` propagates per the rules above, **except** Bonus Types named in the Roll's optional **`no_propagate`** field (a list of Bonus Type names). Those entries stay on the Roll's own side: the Roll's own Target Number still includes them, but they are **not** inverted onto the opponent. (A Dodge uses this so its Competency helps the dodger's own Roll without penalizing the attacker; the dodger's Tier **Inherent** is not listed, so it still crosses as Ascendancy.)
+
+**Cross-side relabel — Inherent → Ascendancy.** One Bonus Type changes name as it crosses sides: an **Inherent** entry (a creature's own-Tier advantage) is inverted *and relabeled* **Ascendancy** on the opposing Roll. This is how the Tier-gap advantage/disadvantage of fighting a different-Tier opponent — the Ascendancy — is produced by Check Resolution itself and shown, labeled, on the opponent's Target Number: a higher-Tier defender's `Inherent +2` lands on the attacker as `Ascendancy −2`. Because Inherent and Ascendancy are distinct Types, a Roll's own Inherent and the incoming Ascendancy do not stack together — both contribute (so equal Tiers net to zero, an unequal Tier leaves the gap). Every other Bonus Type keeps its name when it crosses.
 
 When `opposing_roll_list` is empty, no Opposing Roll exists to propagate from, and the Initiating Roll receives no inverted entries. Other Supporting Rolls also receive no inverted entries (they would have received them from a non-existent Defending Roll). The Check resolves with Supporting-side DoIS only.
+
+### Tier Mismatch (Ascendancy)
+
+After cross-side propagation, each Roll that carries a `tier` gains its **Ascendancy** modifier — `±2 × Δ` against the opposing `tier` (Bonus when higher-Tier, Penalty when lower; Tier 0 counts as 0.5, floored) — appended to its `bonus_penalty_list`. The **initiating** Roll (the attacker / caster) takes its Ascendancy against **every** Opposing Roll, so an area cast picks up the Bonus against each lower-Tier creature it catches (per-Type stacking then surfaces the strongest); supporting allies and each Opposer pair with the primary Roll on the far side. This runs *after* propagation precisely so the Ascendancy entry is not inverted back onto the other side: each side derives its own modifier directly from the two Tiers. A Roll without a `tier`, or with no opposing Tier, gets nothing — this is the opt-in seam that scopes Ascendancy to **combat**: only the attack and cast builders stamp `tier` on their Rolls, so opposed *skill* checks (whose builders leave `tier` unset) get no Ascendancy. This is the Check-side half of the Tier Mismatch rule defined in `../encounter/encounter_design.md`; the Inherent damage-reduction half is applied server-side at damage time.
+
+### Spread Check (area effects)
+
+A Check flagged `spread: true` models an **area effect**: one Supporting side (the caster, plus any supports) opposed by *N independent* Opposing Rolls — every creature caught in the spell's footprint makes its own Save. **None of the Opposers is the singular Target / Defending Roll**; they are peers, each opposed only to the caster.
+
+A Spread Check **prepares exactly like any other** (the standard bidirectional cross-side propagation, then Tier Mismatch) — it only **aggregates differently**:
+
+- **Preparation is bidirectional**, so the caster and every Opposer exchange bonuses: the caster's casting bonuses (Competency, the Spell's Inherent, …) invert onto **each** caught creature's Save, and every Opposer's bonuses invert back onto the caster. The **initiating Roll takes its Tier Mismatch Ascendancy against every Opposer** (per-Type stacking later surfaces the strongest), and each Opposer takes its Ascendancy against the caster — so a caster who out-Tiers a caught creature gets the Bonus against it while that creature takes the Penalty, both ways.
+- **Resolution is per-Opposer.** The Supporting side resolves once into a single Supporting DoIS total; each Opposing Roll then resolves and nets independently: `degree_of_success_i = Σ Supporting DoIS − Opposer_i DoIS`, classified into its own Outcome. There is **no single Check-level Degree of Success** — the result is one Outcome per caught creature.
+
+A non-spread Check uses the same preparation but the pooled aggregation `Σ Supporting − Σ Opposing`.
 
 ### Check Outcome classification
 

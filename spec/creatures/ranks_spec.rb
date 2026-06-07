@@ -77,14 +77,15 @@ RSpec.describe 'Creatures ranks_for', type: :model do
   end
 
   describe 'saves' do
-    it 'aligned save uses the aligned rate' do
-      # Cleric saves.aligned = [wis, cha]. wis_save aligned at level 4 = 6.
+    it 'a save in neither list uses the Unaligned (medium) rate' do
+      # saves.aligned is now empty for every Class; cleric's saves.opposed is
+      # [str, dex, con, int], so wis is in neither list → Unaligned = level = 4.
       a = Creatures::Accessor.new(korth)
-      expect(a.ranks_for('wis_save')).to eq(6)
+      expect(a.ranks_for('wis_save')).to eq(4)
     end
 
-    it 'non-aligned save uses the opposed default' do
-      # str not in cleric saves.aligned → opposed = floor(2*4/3) = 2.
+    it 'an explicitly opposed save uses the opposed rate' do
+      # str is in cleric's saves.opposed → opposed = floor(2*4/3) = 2.
       a = Creatures::Accessor.new(korth)
       expect(a.ranks_for('str_save')).to eq(2)
     end
@@ -94,10 +95,11 @@ RSpec.describe 'Creatures ranks_for', type: :model do
         id: 99, name: 'Multi', race: 'human',
         classes: { fighter: { level: 3 }, rogue: { level: 2 } }
       )
-      # Fighter saves.aligned = [str, con]. dex_save → opposed (floor(2*3/3) = 2).
-      # Rogue saves.aligned = [dex, int]. dex_save → aligned (floor(5*2/3) = 3).
-      # Sum = 5.
-      expect(Creatures::Accessor.new(rec).ranks_for('dex_save')).to eq(2 + 3)
+      # saves.aligned is now empty for every Class.
+      # Fighter: dex is in saves.opposed → opposed = floor(2*3/3) = 2.
+      # Rogue: dex is in neither list → Unaligned = level = 2.
+      # Sum = 4.
+      expect(Creatures::Accessor.new(rec).ranks_for('dex_save')).to eq(2 + 2)
     end
   end
 

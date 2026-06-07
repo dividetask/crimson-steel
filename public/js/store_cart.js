@@ -7,9 +7,11 @@
 // so the cart's totals are display-only.
 //
 // A cart line is { item, bonus, recipientId, recipientName, isPc,
-// unitPrice, quantity }. Lines with the same item + bonus + recipient
-// merge by summing quantity. `bonus` is the Guidance Bonus (+N) for a
-// magical item, or null for ordinary gear.
+// unitPrice, quantity, properties, tier, label, variantKey }. Lines with
+// the same item + variant + recipient merge by summing quantity. `bonus`
+// is the Guidance Bonus (+N) for a Guidance item; `properties` + `tier`
+// describe a magical weapon (Elemental, Vicious, Glory, …); both null for
+// ordinary gear. `variantKey` distinguishes those variants when merging.
 
 const root = document.querySelector('.provision');
 if (root) initCart(root);
@@ -39,15 +41,95 @@ function initCart(root) {
              isPc: opt ? opt.dataset.pc === 'true' : false };
   }
 
-  // Add (or merge) one line. Quantities <= 0 are ignored. Lines merge
-  // only when item, bonus, and recipient all match.
-  function addLine(item, bonus, unitPrice, recipientId, recipientName, isPc, quantity) {
+  // A string that distinguishes variants of the same item so the cart only
+  // merges identical ones: a Guidance Bonus, a magical weapon's properties +
+  // tier, or a magical armor's tier (no properties).
+  function variantKey(bonus, extra) {
+    if (extra && extra.properties) return 'p' + JSON.stringify(extra.properties) + 't' + (extra.tier || '');
+    if (extra && extra.tier) return 'a' + 't' + extra.tier;
+    if (bonus) return 'b' + bonus;
+    return '';
+  }
+
+  // Add (or merge) one line. Quantities <= 0 are ignored. Lines merge only
+  // when item, variant, and recipient all match. `extra` (optional) carries
+  // a magical weapon's { properties, tier, label }.
+  function addLine(item, bonus, unitPrice, recipientId, recipientName, isPc, quantity, extra) {
     const qty = parseInt(quantity, 10);
     if (!recipientId || !Number.isFinite(qty) || qty <= 0) return;
+    const vk = variantKey(bonus, extra);
     const existing = lines.find(
-      (l) => l.item === item && l.bonus === bonus && l.recipientId === recipientId);
+      (l) => l.item === item && l.variantKey === vk && l.recipientId === recipientId);
     if (existing) existing.quantity += qty;
-    else lines.push({ item, bonus, unitPrice, recipientId, recipientName, isPc, quantity: qty });
+    else lines.push({ item, bonus, unitPrice, recipientId, recipientName, isPc, quantity: qty,
+                      variantKey: vk,
+                      properties: (extra && extra.properties) || null,
+                      tier: (extra && extra.tier) || null,
+                      label: (extra && extra.label) || null });
+  }
+
+  // Read a Magical Weapon card's three selects into a priced, validated
+  // state: { weapon, property, tier, price, valid, note, label }. Price =
+  // base weapon + Tier Surcharge + Property cost (the server reprices at
+  // checkout). Invalid when the Tier is below the Property's minimum or the
+  // Property can't go on the weapon's melee/ranged category.
+  function magicWeaponState(card) {
+    const wsel = card.querySelector('.mw-weapon');
+    const psel = card.querySelector('.mw-property');
+    const tsel = card.querySelector('.mw-tier');
+    const wopt = wsel.options[wsel.selectedIndex];
+    const popt = psel.options[psel.selectedIndex];
+    const topt = tsel.options[tsel.selectedIndex];
+    const weapon = { name: wsel.value, category: wopt.dataset.category, base: parseFloat(wopt.dataset.base) || 0 };
+    const property = { name: popt.dataset.name, subtype: popt.dataset.subtype || null,
+                       label: popt.textContent.trim(),
+                       cost: parseFloat(popt.dataset.cost) || 0,
+                       minTier: parseInt(popt.dataset.minTier, 10) || 1,
+                       applies: (popt.dataset.applies || '').split(',') };
+    const tier = parseInt(tsel.value, 10) || 0;
+    const surcharge = parseFloat(topt.dataset.surcharge) || 0;
+    let valid = true; let note = '';
+    if (tier < property.minTier) { valid = false; note = `${property.name} needs tier ${property.minTier}+.`; }
+    else if (!property.applies.includes(weapon.category)) { valid = false; note = `${property.name} can't go on a ${weapon.category} weapon.`; }
+    const price = weapon.base + surcharge + property.cost;
+    const label = `+${tier} ${weapon.name} (${property.label})`;
+    return { weapon, property, tier, price, valid, note, label };
+  }
+
+  // Refresh a Magical Weapon card's shown price, validity note, and Add
+  // button as its selects change.
+  function updateMagicWeapon(card) {
+    const st = magicWeaponState(card);
+    const amount = card.querySelector('.provision-price-amount');
+    if (amount) amount.textContent = fmt(st.price);
+    const note = card.querySelector('.mw-note');
+    if (note) { note.textContent = st.valid ? '' : st.note; note.hidden = st.valid; }
+    const btn = card.querySelector('.provision-add');
+    if (btn) btn.disabled = !st.valid;
+  }
+
+  // Read a Magical Armor card's two selects into a priced state:
+  // { armor, tier, price, label }. Price = base armor + Tier Surcharge (the
+  // server reprices at checkout). No Properties — the only enchantment is the
+  // Tier — so there is nothing to invalidate.
+  function magicArmorState(card) {
+    const asel = card.querySelector('.ma-armor');
+    const tsel = card.querySelector('.ma-tier');
+    const aopt = asel.options[asel.selectedIndex];
+    const topt = tsel.options[tsel.selectedIndex];
+    const armor = { name: asel.value, base: parseFloat(aopt.dataset.base) || 0 };
+    const tier = parseInt(tsel.value, 10) || 0;
+    const surcharge = parseFloat(topt.dataset.surcharge) || 0;
+    const price = armor.base + surcharge;
+    const label = `+${tier} ${armor.name}`;
+    return { armor, tier, price, label };
+  }
+
+  // Refresh a Magical Armor card's shown price as its selects change.
+  function updateMagicArmor(card) {
+    const st = magicArmorState(card);
+    const amount = card.querySelector('.provision-price-amount');
+    if (amount) amount.textContent = fmt(st.price);
   }
 
   // The selected Guidance Bonus on a magical-item card: { bonus, price }
@@ -67,6 +149,35 @@ function initCart(root) {
     const gb    = selectedBonus(card);
     const price = gb ? gb.price : (parseFloat(card.dataset.price) || 0);
     const bonus = gb ? gb.bonus : null;
+
+    if (card.classList.contains('provision-card-magicweapon')) {
+      // Magical Weapons: weapon + property + tier from three selects, bought
+      // (one) for the section's dropdown recipient. An invalid combination
+      // adds nothing.
+      const st = magicWeaponState(card);
+      if (!st.valid) { updateMagicWeapon(card); return; }
+      const r = selectedRecipient(card);
+      if (r) {
+        const extra = { properties: [{ name: st.property.name, subtype: st.property.subtype || null }],
+                        tier: st.tier, label: st.label };
+        addLine(st.weapon.name, null, st.price, r.id, r.name, r.isPc, 1, extra);
+      }
+      render();
+      return;
+    }
+
+    if (card.classList.contains('provision-card-magicarmor')) {
+      // Magical Armor: armor + tier from two selects, bought (one) for the
+      // section's dropdown recipient. No Properties to validate.
+      const st = magicArmorState(card);
+      const r = selectedRecipient(card);
+      if (r) {
+        const extra = { tier: st.tier, label: st.label };
+        addLine(st.armor.name, null, st.price, r.id, r.name, r.isPc, 1, extra);
+      }
+      render();
+      return;
+    }
 
     if (card.classList.contains('provision-card-batch')) {
       // Alchemy / Magical: the "selected" box (dropdown recipient, maybe
@@ -108,7 +219,7 @@ function initCart(root) {
       const desc = document.createElement('span');
       desc.className = 'provision-cart-line-desc';
       const cost = l.isPc ? `${fmt(l.unitPrice * l.quantity)} gp` : 'free';
-      const label = l.bonus ? `+${l.bonus} ${l.item}` : l.item;
+      const label = l.label || (l.bonus ? `+${l.bonus} ${l.item}` : l.item);
       desc.textContent = `${l.quantity}× ${label} → ${l.recipientName} (${cost})`;
 
       const rm = document.createElement('button');
@@ -140,6 +251,8 @@ function initCart(root) {
       lines: lines.map((l) => {
         const line = { item: l.item, recipient_id: l.recipientId, quantity: l.quantity };
         if (l.bonus) line.guidance_bonus = l.bonus;
+        if (l.properties) { line.properties = l.properties; line.tier = l.tier; }
+        else if (l.tier) { line.tier = l.tier; } // magical armor: tier, no properties
         return line;
       }),
     };
@@ -175,6 +288,22 @@ function initCart(root) {
       const amount = card && card.querySelector('.provision-price-amount');
       if (gb && amount) amount.textContent = fmt(gb.price);
     });
+  });
+
+  // Magical Weapon cards: any of the three selects re-prices + re-validates.
+  root.querySelectorAll('.provision-card-magicweapon').forEach((card) => {
+    card.querySelectorAll('.mw-weapon, .mw-property, .mw-tier').forEach((sel) => {
+      sel.addEventListener('change', () => updateMagicWeapon(card));
+    });
+    updateMagicWeapon(card);
+  });
+
+  // Magical Armor cards: either select (armor / tier) re-prices.
+  root.querySelectorAll('.provision-card-magicarmor').forEach((card) => {
+    card.querySelectorAll('.ma-armor, .ma-tier').forEach((sel) => {
+      sel.addEventListener('change', () => updateMagicArmor(card));
+    });
+    updateMagicArmor(card);
   });
 
   const toggle = root.querySelector('[data-cart-toggle]');

@@ -22,6 +22,8 @@
 # until the Abilities domain is wired into Equipment.
 
 require 'json'
+require 'store_magic_weapons'
+require 'store_magical_armor'
 
 get '/store' do
   cat        = Equipment.catalog
@@ -32,6 +34,10 @@ get '/store' do
   @armor     = mundane_items('Armor', cat)
   @alchemy   = ['Acid jar', "Alchemist's fire"].map { |n| catalog_item(n, cat) }
   @magical   = guidance_items(cat)
+  @magical_weapons = magical_weapon_builder(cat)
+  @magical_armor   = magical_armor_builder(cat)
+  # The shared Party wallet, shown at the top-right of the Store.
+  @party_gold = (Equipment.instance.get_total_wealth('party') rescue 0)
   erb :store
 end
 
@@ -67,25 +73,45 @@ post '/store/checkout' do
       next
     end
 
-    # Guidance Items carry a +N Bonus; the client sends the bonus only,
-    # and we re-derive the Tier from the catalog (never trusting the
-    # client for Tier or price). A non-guidance line ignores the bonus.
-    bonus = guidance_bonus_arg(ln)
-    if guidance_item?(item, cat)
-      tier = guidance_tier_for(item, bonus, cat)
-      if tier.nil?
-        errors << "#{qty}× #{item} (invalid bonus +#{bonus})"
+    # A magical-weapon line carries `properties` (a list of {name, subtype})
+    # and a `tier`; a magical-armor line carries a `tier` with no properties.
+    # The server validates eligibility and re-derives the price (never
+    # trusting the client). Guidance Items carry a +N Bonus only, and the Tier
+    # is re-derived from the catalog. Everything else is mundane.
+    if ln['properties'].is_a?(Array) && !ln['properties'].empty?
+      built = magical_weapon_fields(item, ln['properties'], ln['tier'], cat)
+      if built[:error]
+        errors << "#{qty}× #{item} (#{built[:error]})"
         next
       end
-    elsif bonus
-      errors << "#{qty}× #{item} (not a magical item)"
-      next
-    end
+      fields = built[:fields].merge('quantity' => qty)
+      label  = built[:label]
+    elsif !ln['tier'].to_s.strip.empty?
+      built = magical_armor_fields(item, ln['tier'], cat)
+      if built[:error]
+        errors << "#{qty}× #{item} (#{built[:error]})"
+        next
+      end
+      fields = built[:fields].merge('quantity' => qty)
+      label  = built[:label]
+    else
+      bonus = guidance_bonus_arg(ln)
+      if guidance_item?(item, cat)
+        tier = guidance_tier_for(item, bonus, cat)
+        if tier.nil?
+          errors << "#{qty}× #{item} (invalid bonus +#{bonus})"
+          next
+        end
+      elsif bonus
+        errors << "#{qty}× #{item} (not a magical item)"
+        next
+      end
 
-    fields = { 'item' => item, 'quantity' => qty }
-    fields['guidance_bonus'] = bonus if bonus
-    fields['tier'] = tier if bonus
-    label = bonus ? "+#{bonus} #{item}" : item
+      fields = { 'item' => item, 'quantity' => qty }
+      fields['guidance_bonus'] = bonus if bonus
+      fields['tier'] = tier if bonus
+      label = bonus ? "+#{bonus} #{item}" : item
+    end
 
     name  = creature_name(cid)
     owner = "character:#{cid}"
@@ -132,8 +158,13 @@ helpers do
   end
 
   # Every Item Type in a Category, priced as a mundane (Tier 0) Stack.
+  # Natural attacks (Bite, claws, Unarmed — `natural: true`) are skipped:
+  # they are innate Creature abilities, not gear that can be owned, bought,
+  # or sold, so they never appear in the Store.
   def mundane_items(category, catalog)
-    catalog.item_types_in_category(category).map { |name| catalog_item(name, catalog) }
+    catalog.item_types_in_category(category)
+           .reject { |name| (catalog.definition_of(name) || {})['natural'] }
+           .map { |name| catalog_item(name, catalog) }
   end
 
   def catalog_item(name, catalog)
@@ -162,6 +193,24 @@ helpers do
   def guidance_item?(name, catalog)
     defn = catalog.definition_of(name) || {}
     defn.key?('guidance_bonus')
+  end
+
+  # The Store's "Magical Weapons" picker data + per-line validation live in
+  # the pure StoreMagicWeapons module (so they're unit-testable).
+  def magical_weapon_builder(catalog) = StoreMagicWeapons.builder(catalog)
+
+  def magical_weapon_fields(item, props, tier_raw, catalog)
+    StoreMagicWeapons.fields(item, props, tier_raw, catalog)
+  end
+
+  # The Store's "Magical Armor" picker data + per-line validation live in the
+  # pure StoreMagicalArmor module (so they're unit-testable). Magical Armor is
+  # a tiered base Armor with no Properties — the layout mirrors Magical
+  # Weapons minus the Property dimension.
+  def magical_armor_builder(catalog) = StoreMagicalArmor.builder(catalog)
+
+  def magical_armor_fields(item, tier_raw, catalog)
+    StoreMagicalArmor.fields(item, tier_raw, catalog)
   end
 
   # The catalog Tier paired with the given Bonus for a Guidance Item, or

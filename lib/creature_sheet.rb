@@ -172,11 +172,16 @@ module CreatureSheet
   # ranged) and the damage bonus from the weapon's damage formula
   # evaluated against the wielder. Always offers Dodge (a Dexterity Save).
   def actions(accessor)
+    # Active-effect attack Modifiers (e.g. Martial Devotion's Competency bonus)
+    # add to the weapon attack rows' Bonus, so a buffed Creature's sheet shows
+    # the higher to-hit. Dodge is not a weapon attack, so it is excluded.
+    cond    = conditions_for(accessor.id)
+    atk_mod = cond ? (condition_modifier_total(cond, 'attack') rescue 0) : 0
     rows = equipped_weapons(accessor).map do |w|
       attack_attr = ranged_weapon?(w) ? :dex : :str
       ri  = roll_inputs(accessor, 'martial', attack_attr)
       { name: w[:display_name], speed: w[:speed], roll: "#{ri[:dice_cap]}d",
-        attack_bonus: competency_bonus(ri), dmg_bonus: weapon_damage(w, accessor),
+        attack_bonus: competency_bonus(ri) + atk_mod, dmg_bonus: weapon_damage(w, accessor),
         bleed: w[:bleed], mt: w[:threshold], notes: Array(w[:damage_types]).join('/') }
     end
     dodge = roll_inputs(accessor, 'dex_save', :dex)
@@ -255,8 +260,12 @@ module CreatureSheet
     []
   end
 
+  # Granted Abilities a Creature has, minus its known Spells — those are
+  # listed separately (see #spells). A spell-typed Catalog entry resolves
+  # through #spell_info, so anything it recognizes is dropped here.
   def abilities(accessor)
-    (accessor.granted_abilities rescue []).map do |g|
+    (accessor.granted_abilities rescue []).filter_map do |g|
+      next if spell_info(g[:name])
       { name: titleize_ability(g[:name]), description: ability_description(g[:name]) }
     end
   end
@@ -327,18 +336,60 @@ module CreatureSheet
     []
   end
 
-  # Resolve a spell key to { tier:, name: }, or nil when it is not a
-  # Catalog spell. Granted keys arrive snake_case; the spell catalog is
-  # keyed by display name, so we try the Title-Cased form too.
+  # Resolve a granted ability key to { tier:, name: }, or nil when it is not a
+  # Catalog spell. A Creature may name a spell in several forms — the catalog
+  # key ("Ward"), a snake_case key, or a **per-Tier variant name**. A Tier-axis
+  # spell's variant names come either from its `name` array ("Create Illusionary
+  # Sound") or are **constructed from `prefix` / `suffix` arrays** the way the
+  # Abilities resolver builds them ("Lesser Ward" = prefix "Lesser" + "Ward";
+  # "Heal Petty Wounds" = "Heal" + suffix "Petty Wounds"). Matching is
+  # case-insensitive and treats `_` as a space.
   def spell_info(key)
-    title = titleize_ability(key)
-    entry = (Abilities.catalog.ability(title) || Abilities.catalog.ability(key.to_s) rescue nil)
-    return nil unless entry && entry['type'] == 'spell'
-    tier = entry['tier']
-    tier = Array(tier).map(&:to_i).min if tier.is_a?(Array)
-    { tier: tier.to_i, name: title }
+    norm = ->(s) { s.to_s.tr('_', ' ').downcase.strip }
+    [key.to_s, titleize_ability(key)].each do |form|
+      hit = spell_index[norm.call(form)]
+      return hit.dup if hit
+    end
+    nil
   rescue StandardError
     nil
+  end
+
+  # Normalized-name → { tier:, name: } over every Catalog spell variant. Built
+  # once; the spell Catalog is immutable at runtime.
+  def spell_index
+    @spell_index ||= begin
+      norm = ->(s) { s.to_s.tr('_', ' ').downcase.strip }
+      idx = {}
+      (Abilities.catalog.catalog rescue {}).each do |ckey, e|
+        next unless e.is_a?(Hash) && e['type'] == 'spell'
+        spell_variants(ckey, e).each { |tier, vname| idx[norm.call(vname)] ||= { tier: tier, name: vname } }
+      end
+      idx
+    end
+  end
+
+  # [ [tier, display_name], … ] for a spell: the catalog key, plus every
+  # per-Tier variant from its `name` array or constructed from `prefix`/`suffix`
+  # (mirroring Abilities' name construction: `[prefix, key, suffix]`).
+  def spell_variants(key, entry)
+    tiers = Array(entry['tier'])
+    tiers = [0] if tiers.empty?
+    name   = entry['name']
+    prefix = entry['prefix']
+    suffix = entry['suffix']
+    out = [[tiers.map(&:to_i).min, key.to_s]]
+    tiers.each_with_index do |t, i|
+      vname =
+        if name.is_a?(Array)                          then name[i]
+        elsif name.is_a?(String) && !name.strip.empty? then name
+        else
+          [(prefix.is_a?(Array) ? prefix[i] : prefix), key, (suffix.is_a?(Array) ? suffix[i] : suffix)]
+            .reject { |p| p.nil? || p.to_s.strip.empty? }.join(' ')
+        end
+      out << [t.to_i, vname.to_s] if vname && !vname.to_s.strip.empty?
+    end
+    out
   end
 
   def inventory(accessor)

@@ -45,8 +45,9 @@ require_relative 'lib/live_roster'
 require_relative 'lib/test_docs'
 require_relative 'lib/glossary_docs'
 require_relative 'lib/explainer_docs'
+require_relative 'lib/device_registry'
 require_relative 'lib/helpers'
 
-%w[home character_sheets store notes social compendium status view_as chronicle encounter inventory atlas].each do |name|
+%w[home character_sheets store notes compendium status view_as devices chronicle encounter inventory atlas].each do |name|
   require_relative "lib/routes/#{name}"
 end
