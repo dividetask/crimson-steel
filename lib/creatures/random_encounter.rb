@@ -52,6 +52,22 @@ module Creatures
         }
         copy[:class_table] = []
       end
+      # Roll Tier Attribute Advancement picks (if specified) into the spawn.
+      unless copy[:tier_advancement_table].nil?
+        spec = copy[:tier_advancement_table]
+        pool = Array(spec[:from])
+        unless pool.empty?
+          picks = Array.new(spec[:count] || 0) { pool[rng.rand(pool.size)] }
+          copy[:tier_attribute_advancement] = Array(copy[:tier_attribute_advancement]) + picks
+        end
+        copy[:tier_advancement_table] = nil
+      end
+      # Assign random trained skills (if a skill_table is present): shuffle
+      # the candidates and keep the first N the spawn can train.
+      unless Array(copy[:skill_table]).empty?
+        assign_random_skills(copy, rng)
+        copy[:skill_table] = []
+      end
       # Record the template this instance was cloned from so the Roster
       # Sidebar / Character Sheets can group spawned Creatures under their
       # source. A spawned instance is NOT itself a template — drop the
@@ -77,6 +93,27 @@ module Creatures
         end
       end
       chosen
+    end
+
+    # Shuffle the spawn's skill_table and assign the first N to its (single)
+    # class, where N is the Skill Pick Budget: (floor(Eff Int / 4) +
+    # class.bonus_skills) per Class Level — the `Skill Pick Formula` from
+    # creatures_config.yaml, computed against the spawn's resolved race/tier.
+    def assign_random_skills(copy, rng)
+      classes = copy[:classes]
+      return if classes.nil? || classes.empty?
+
+      key, entry = classes.first
+      cls = Creatures::Advancement.look_up_class(key) || {}
+      bonus = cls['bonus_skills'] || 0
+      level = entry[:level] || 0
+      eff_int = Creatures::Accessor.new(copy).attribute_value(:int)
+      budget = ((eff_int / 4) + bonus) * level
+      budget = 0 if budget.negative?
+
+      pool = Array(copy[:skill_table]).shuffle(random: rng)
+      picks = pool.first([budget, pool.size].min)
+      entry[:skills] = (Array(entry[:skills]) + picks).uniq
     end
 
     # Weighted pick over a table of entries carrying a `:chance`

@@ -180,6 +180,36 @@ RSpec.describe 'Enemy templates: races, clamp, NPC class, loadout', type: :model
       expect(cleric.record[:classes]['cleric'][:choices]).to include('deity' => 'Mortheth')
     end
 
+    it 'Slaver spawns get random trained skills sized by class + Effective Intelligence' do
+      pool = %w[athletics perception religion restricted_magic sense_motive healing]
+      20.times do |seed|
+        a = Creatures.lookup(Creatures.spawn_from_template(355, rng: Random.new(seed)))
+        cls_key, = a.class_summary.first
+        skills = a.record[:classes][cls_key][:skills]
+        bonus = Creatures::Advancement.look_up_class(cls_key)['bonus_skills'] || 0
+        budget = ((a.attribute_value(:int) / 4) + bonus) # level 1
+        expect(skills).to all(satisfy { |s| pool.include?(s) })
+        expect(skills.uniq.size).to eq(skills.size)
+        expect(skills.size).to eq([budget, pool.size].min)
+      end
+    end
+
+    it 'Slaver Lieutenant: tier 2, barbarian/fighter/cleric/rogue, rolls 2 Str/Con/Cha/Dex picks' do
+      a = Creatures.lookup(356)
+      expect(a.name).to eq('Slaver Lieutenant')
+      expect(a.tier).to eq(2)
+      expect(a.record[:class_table].map { |e| e[:class] }).to eq(%w[barbarian fighter cleric rogue])
+      expect(a.record[:tier_advancement_table]).to eq(count: 2, from: %i[str con cha dex])
+
+      10.times do |seed|
+        s = Creatures.lookup(Creatures.spawn_from_template(356, rng: Random.new(seed)))
+        expect(%w[barbarian fighter cleric rogue]).to include(s.class_summary.first.first)
+        adv = s.tier_attribute_advancement
+        expect(adv.size).to eq(2)
+        expect(adv).to all(satisfy { |x| %i[str con cha dex].include?(x) })
+      end
+    end
+
     it 'cleric Slaver rolls 3 distinct domains (2 from Mortheth, 1 from the wider pool)' do
       pool_a = %w[Artifice Death Earth Greed Ruin]
       pool_b = %w[Plague Travel Vengeance Secrets Tempest Cunning Despair Knowledge]

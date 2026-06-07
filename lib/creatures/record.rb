@@ -51,6 +51,13 @@ module Creatures
       # spawn's class (e.g. a Slaver that is 50% warrior, else fighter /
       # cleric / rogue). Replaces the template's `advancement.classes`.
       out[:class_table] = normalize_class_table(r['class_table'], out[:id], source)
+      # Optional candidate skill list, shuffled at spawn; the spawn keeps the
+      # first N (its Skill Pick Budget from class + Effective Intelligence).
+      out[:skill_table] = normalize_skill_table(r['skill_table'], out[:id], source)
+      # Optional spec for rolling Tier Attribute Advancement picks at spawn:
+      # { count, from: [attr keys] }. Appends `count` rolled picks to
+      # tier_attribute_advancement.
+      out[:tier_advancement_table] = normalize_tier_adv_table(r['tier_advancement_table'], out[:id], source)
       out[:metadata]    = r['metadata'] || {}
       # Persisted spawned-instance marker (Spawn Creature From Template);
       # round-tripped so a reloaded spawn still groups under its template.
@@ -114,6 +121,11 @@ module Creatures
           end
           h
         end
+      end
+      out['skill_table'] = rec[:skill_table] unless Array(rec[:skill_table]).empty?
+      unless rec[:tier_advancement_table].nil?
+        t = rec[:tier_advancement_table]
+        out['tier_advancement_table'] = { 'count' => t[:count], 'from' => t[:from].map(&:to_s) }
       end
       out['metadata']     = rec[:metadata]                     unless (rec[:metadata] || {}).empty?
       out['spawned_from'] = rec[:spawned_from]                 unless rec[:spawned_from].nil?
@@ -184,6 +196,31 @@ module Creatures
           domain_picks: normalize_domain_picks(h['domain_picks'])
         }
       end
+    end
+
+    def normalize_skill_table(list, cid, source)
+      return [] if list.nil?
+      Array(list).map do |s|
+        key = s.to_s
+        if key.end_with?('_')
+          raise ArgumentError, "Creature #{cid}: `skill_table` entry #{key.inspect} is a bare " \
+                               "Set Skill key (not allowed)#{source ? " (in #{source})" : ''}"
+        end
+        key
+      end
+    end
+
+    def normalize_tier_adv_table(spec, cid, source)
+      return nil if spec.nil?
+      h = stringify_keys(spec)
+      from = Array(h['from']).map { |a| a.to_s.to_sym }
+      from.each do |a|
+        unless Creatures::Config.attribute_keys.include?(a)
+          raise ArgumentError, "Creature #{cid}: `tier_advancement_table` attribute #{a.inspect} " \
+                               "is not recognized#{source ? " (in #{source})" : ''}"
+        end
+      end
+      { count: Integer(h['count'] || 0), from: from }
     end
 
     # Optional per-class_table-entry spec for rolling Cleric domains at
