@@ -143,11 +143,26 @@ module Creatures
 
         Array(cls['granted_spells']).each { |name| push.call(name, "class:#{key}") }
 
-        # Deity / domain spells (Cleric pattern).
-        if entry[:choices]['deity'] && entry[:choices]['domain']
-          Creatures::Deities.domain_spells(
-            entry[:choices]['deity'], entry[:choices]['domain']
-          ).each { |name| push.call(name, "class:#{key}") }
+        # Deity / domain (Cleric pattern). A Cleric chooses up to three
+        # domains (`choices.domains`); the legacy single `choices.domain`
+        # is still accepted. Every chosen domain grants its spells; a
+        # chosen domain that is one of the deity's own domains also
+        # grants that domain's Channel Divinity. The deity's own Channel
+        # Divinity is granted at Class Level 4.
+        deity = entry[:choices]['deity']
+        chosen_domains = Array(entry[:choices]['domains'])
+        chosen_domains = [entry[:choices]['domain']].compact if chosen_domains.empty?
+        god_domains = deity ? Creatures::Deities.deity_domains(deity) : []
+        chosen_domains.each do |dom|
+          Creatures::Deities.domain_spells(dom).each { |name| push.call(name, "class:#{key}") }
+          if god_domains.include?(dom)
+            cd = Creatures::Deities.domain_channel_divinity(dom)
+            push.call(cd, "class:#{key}") if cd
+          end
+        end
+        if deity && entry[:level] >= 4
+          dcd = Creatures::Deities.deity_channel_divinity(deity)
+          push.call(dcd, "class:#{key}") if dcd
         end
 
         # choices.spellcasting — only when the Class progression
@@ -274,7 +289,16 @@ module Creatures
       @record[:classes].sum do |class_key, entry|
         cls = Creatures::Advancement.look_up_class(class_key) || {}
         saves = cls['saves'] || {}
-        rate = (saves['aligned'] || []).include?(attr_key.to_s) ? :aligned : :opposed
+        # Aligned (fast) and Opposed (slow) are explicit; a Save Attribute in
+        # neither list takes the Unaligned (medium) rate — so emptying a Class's
+        # `saves.aligned` drops those Saves to Unaligned.
+        rate = if (saves['aligned'] || []).include?(attr_key.to_s)
+                 :aligned
+               elsif (saves['opposed'] || []).include?(attr_key.to_s)
+                 :opposed
+               else
+                 :unaligned
+               end
         Proficiencies::Ranks.apply_rate(entry[:level], rate)
       end
     end

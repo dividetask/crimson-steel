@@ -2,7 +2,7 @@
 
 Resolves one Affliction save end-to-end: composes the save Roll, walks the DM through any Reroll / Mass Reroll / Nudge picks, rolls the dice, previews what *Resolve Affliction* would do, and applies the result on Confirm. Renders as a single Rolls wrapper that visually matches the Roll Resolution / Check Resolution stub shell. Nothing is mutated server-side until the DM presses Confirm.
 
-See `ui_conventions.md` for shared rules. Cross-domain terms (Magic Toxicity, Toxicity Threshold, Tier) live in `../common_glossary.md`. The Check Resolution Builder pattern that drives the step-by-step disclosure is documented in `check_resolution_builder_stub.md`; for the save case the Builder is integrated directly into this stub rather than rendered as a child.
+See `ui_conventions.md` for shared rules. Cross-domain terms (Magic Toxicity, Toxicity Threshold, Tier) live in `../common_glossary.md`. The Action Builder pattern that drives the step-by-step disclosure is documented in `action_builder_stub.md`; for the save case the Builder is integrated directly into this stub rather than rendered as a child.
 
 ## Parameters
 

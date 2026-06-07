@@ -83,6 +83,12 @@ Tests that depend on randomness (the actual values dice land on) state the *roll
 
 **Reroll changes report per-position rerolled values.** Given a Roll with `dice_count = 4`, `positive_reroll = (1, false)`, dice `[1, 4, 6, 7]`, and the rerolled die landing on `8`: `reroll_changes = [8, null, null, null]`. The position of the rerolled die is preserved; unchanged dice are null.
 
+**Critical reroll strips a Crit.** With Die Size 10, given a Roll with `dice_count = 6`, `critical_reroll = (1, false)`, dice `[10, 7, 10, 4, 3, 6]`, and the rerolled die landing on `5`: only dice equal to Die Size are eligible (the two 10s). The lowest index is selected, so index 0 is rerolled: `final_dice = [5, 7, 10, 4, 3, 6]`. The second Crit at index 2 is untouched because `count = 1`.
+
+**Floor reroll strips a natural 1.** Given a Roll with `dice_count = 6`, `floor_reroll = (2, false)`, dice `[1, 5, 1, 8, 1, 4]`, and the rerolled dice landing on `6` and `7`: only dice equal to 1 are eligible (indices 0, 2, 4). Lowest index first selects indices 0 and 2: `final_dice = [6, 5, 7, 8, 1, 4]`. The third 1 at index 4 remains because `count = 2`.
+
+**Extreme-value slots claim their dice before negative/positive.** Given a Roll at TN 6 with both `negative_reroll = (1, false)` and `critical_reroll = (1, false)`, and dice `[10, 7, 6, 2, 3, 4]`: the single Crit (index 0) is claimed by `critical_reroll`; `negative_reroll` then selects from the remaining Successes (the 7 at index 1, the 6 at index 2), taking the highest — the 7. No die is rerolled twice; both the 10 and the 7 are rerolled.
+
 **Nudge changes report only the affected position.** Given a Roll with default `failure_modifier = -1`, `value_adjustment = (+1, false)`, and dice `[5, 5, 5, 1]` at TN 6: the nudge targets index 3 (the 1). The 1→2 shift moves contribution from -1 (Failure) to 0 (Neutral) — a +1 delta, the same as the 5→6 shifts (0 → +1). Per the design's tie-break rule, the die that started lowest wins for a positive nudge. `nudge_changes = [null, null, null, 2]`. Other positions stay null.
 
 ---

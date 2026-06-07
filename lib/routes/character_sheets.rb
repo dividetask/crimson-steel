@@ -11,9 +11,18 @@ get '/character-sheets' do
                      : LiveRoster.ordered_ids
   @total = ids.length
   requested = params[:creature_id] && (Creatures.lookup(params[:creature_id]) rescue nil)
+
+  # A player device assigned a Character (Status -> Devices) opens on
+  # that sheet by default. The default only applies to a bare visit —
+  # once the player pages with the arrows (?creature_id=) or jumps to an
+  # index (?i=), that choice wins so they can browse the other PCs.
+  assigned = (@player_view && !params[:creature_id] && !params[:i]) ? assigned_character_id : nil
+
   @creature_id =
     if requested && ids.include?(requested.id)
       requested.id
+    elsif assigned && ids.include?(assigned)
+      assigned
     elsif !ids.empty?
       i = params[:i].to_i
       i = 0 if i < 0

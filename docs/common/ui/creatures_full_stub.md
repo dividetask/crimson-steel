@@ -19,7 +19,7 @@ Below Combat the sheet splits into two side-by-side columns. The left column car
 6. **Items** (left column) — Equipped, Consumable, Ammunition, Other. Ammunition is a separate category from Consumable because arrows, bolts, and similar quantity-tracked stacks are consumed by Combat actions rather than used as standalone consumables; the parent looks them up via the same Equipment-domain accessor as Consumable but reads from the `ammunition` slot.
 7. **Item Descriptions** (left column) — descriptions of named magic items.
 8. **Active Effects** (right column) — the named Conditions currently on the Creature (e.g. Rage), shown as badges. Sourced from Conditions' active named Effects. Omitted when none are active.
-9. **Abilities** (right column) — granted abilities with full descriptions.
+9. **Abilities** (right column) — granted abilities with full descriptions, **excluding known Spells** (a spell-typed granted entry appears in the Spell List below, not here).
 10. **Spell List** (right column) — spells grouped by tier. Two follow-on subsections render beneath the main spell list when their lists are non-empty: **Rituals** (spells the Creature knows as rituals — same per-row format as the spell list, with the ritual's casting time and component cost shown in place of mana cost) and **Item Spells** (spells the Creature can cast from carried items such as scrolls or wands — each row names the source item alongside the spell). Both subsections share the spell list's column layout.
 
 Sections with no content are omitted. When one side of the two-column body is much taller than the other, the shorter column simply ends earlier — sections do not flow across the split.

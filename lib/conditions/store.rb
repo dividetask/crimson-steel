@@ -30,6 +30,62 @@ module Conditions
       (raw['creatures'] || {}).each do |id, state_hash|
         @states[id.to_s] = State.load(state_hash)
       end
+      @zone_effects = (raw['zone_effects'] || []).map { |z| normalize_zone_effect(z) }
+    end
+
+    # ---------- Zone Effects (module-level, not per-Creature) ----------
+    #
+    # A Zone Effect is a spatial Effect (a spell's area, a hazard) paired
+    # with an Atlas Zone by a shared `source_id`. Conditions owns the
+    # mechanical record (triggers + expiry); Atlas owns the footprint. See
+    # conditions_design.md → Zone Effect. The Atlas Zone is placed by the
+    # orchestrating caller, which passes the resulting `atlas_zone_id` here.
+
+    # Create (or replace, by source_id) a Zone Effect.
+    def create_zone_effect(source_id:, atlas_zone_id:, triggers: {}, ends_on_round: nil, metadata: {})
+      rec = normalize_zone_effect('source_id' => source_id, 'atlas_zone_id' => atlas_zone_id,
+                                  'triggers' => triggers, 'ends_on_round' => ends_on_round,
+                                  'metadata' => metadata)
+      @zone_effects.reject! { |z| z[:source_id] == rec[:source_id] }
+      @zone_effects << rec
+      rec
+    end
+
+    # Remove a Zone Effect by source_id; returns the removed record or nil.
+    def remove_zone_effect(source_id:)
+      removed = @zone_effects.find { |z| z[:source_id] == source_id.to_s }
+      @zone_effects.delete(removed) if removed
+      removed
+    end
+
+    def zone_effect(source_id:)
+      @zone_effects.find { |z| z[:source_id] == source_id.to_s }
+    end
+
+    # Active Zone Effects — those not expired as of `current_round` (when
+    # supplied). A null `ends_on_round` never expires here.
+    def list_zone_effects(current_round: nil)
+      @zone_effects.reject { |z| current_round && z[:ends_on_round] && z[:ends_on_round] <= current_round }
+    end
+
+    # Drop every Zone Effect whose `ends_on_round` has passed; returns them.
+    def clear_expired_zone_effects(current_round)
+      expired = @zone_effects.select { |z| z[:ends_on_round] && z[:ends_on_round] <= current_round }
+      @zone_effects -= expired
+      expired
+    end
+
+    # Remove a caster's Zone Effects that have expired as of current_round —
+    # the start-of-turn auto-expiry. A caster owns a Zone Effect when its
+    # metadata `caster_id` matches. Returns the removed records so the caller
+    # can drop the paired Atlas Zones.
+    def expire_zone_effects_for(caster_id, current_round)
+      removable = @zone_effects.select do |z|
+        owner = z[:metadata] && (z[:metadata]['caster_id'] || z[:metadata][:caster_id])
+        owner.to_s == caster_id.to_s && z[:ends_on_round] && z[:ends_on_round] <= current_round
+      end
+      @zone_effects -= removable
+      removable
     end
 
     # ---------- Reads ----------
@@ -60,7 +116,9 @@ module Conditions
         h = state.to_h
         out[id] = h unless h.empty?
       end
-      { 'creatures' => out }
+      h = { 'creatures' => out }
+      h['zone_effects'] = @zone_effects.map { |z| stringify_zone_effect(z) } unless @zone_effects.empty?
+      h
     end
 
     def persist!
@@ -68,6 +126,42 @@ module Conditions
       tmp = "#{@data_path}.tmp"
       File.write(tmp, JSON.pretty_generate(to_h))
       File.rename(tmp, @data_path)
+    end
+
+    private
+
+    # Coerce a raw (string- or symbol-keyed) Zone Effect into the canonical
+    # symbol-keyed record. Triggers are stored opaquely (Combat builds the
+    # Saving Throw from them).
+    def normalize_zone_effect(z)
+      z = z.transform_keys(&:to_s) if z.respond_to?(:transform_keys)
+      trig = (z['triggers'] || {})
+      trig = trig.transform_keys(&:to_s) if trig.respond_to?(:transform_keys)
+      {
+        source_id:     z.fetch('source_id').to_s,
+        atlas_zone_id: z['atlas_zone_id'],
+        triggers: {
+          on_create:      trig['on_create'],
+          on_enter:       trig['on_enter'],
+          on_end_of_turn: trig['on_end_of_turn']
+        },
+        ends_on_round: z['ends_on_round']&.then { |r| Integer(r) },
+        metadata: z['metadata'] || {}
+      }
+    end
+
+    def stringify_zone_effect(z)
+      {
+        'source_id'     => z[:source_id],
+        'atlas_zone_id' => z[:atlas_zone_id],
+        'triggers' => {
+          'on_create'      => z[:triggers][:on_create],
+          'on_enter'       => z[:triggers][:on_enter],
+          'on_end_of_turn' => z[:triggers][:on_end_of_turn]
+        }.compact,
+        'ends_on_round' => z[:ends_on_round],
+        'metadata'      => z[:metadata]
+      }.compact
     end
   end
 

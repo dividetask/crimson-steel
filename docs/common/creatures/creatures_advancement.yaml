@@ -55,7 +55,7 @@ Classes:
     bonus_skills: 2
     mana_per_level: 1
     saves:
-      aligned: [str, con]
+      aligned: []
       opposed: [dex, int, wis, cha]
     ability_progression:
       "1": [rage, fast_movement, reckless_attacks]
@@ -75,7 +75,7 @@ Classes:
     bonus_skills: 4
     mana_per_level: 2
     saves:
-      aligned: [dex, cha]
+      aligned: []
       opposed: [str, con, int, wis]
     ability_progression:
       "1": [magical_performance, bardic_spellcasting, bardic_inspiration]
@@ -91,7 +91,7 @@ Classes:
     bonus_skills: 2
     mana_per_level: 4
     saves:
-      aligned: [wis, cha]
+      aligned: []
       opposed: [str, dex, con, int]
     ability_progression:
       "1": [see_injury, improved_healing, combat_healing, domain]
@@ -101,8 +101,11 @@ Classes:
       - Heal
       - Ward
       - Standard Surgery
-    # Domain-specific spells are looked up via the Creature's `choices.deity`
-    # and `choices.domain` keys against `creatures/deities.yaml`.
+    # Domain-specific spells and Channel Divinity abilities are looked up
+    # via the Creature's `choices.deity` and `choices.domains` keys against
+    # `creatures/deities.yaml` (each chosen domain's spells; the Channel
+    # Divinity of each chosen domain that is one of the deity's own; and the
+    # deity's Channel Divinity at Cleric level 4).
     aligned_proficiencies:
       - appraisal
       - arcana
@@ -123,7 +126,7 @@ Classes:
     bonus_skills: 4
     mana_per_level: 4
     saves:
-      aligned: [int, wis]
+      aligned: []
       opposed: [str, dex, con, cha]
     ability_progression:
       "1": [druidic_spellcasting]
@@ -140,7 +143,7 @@ Classes:
     bonus_skills: 2
     mana_per_level: 1
     saves:
-      aligned: [str, con]
+      aligned: []
       opposed: [dex, int, wis, cha]
     ability_progression:
       "1": [weapon_training, armor_training]
@@ -158,7 +161,7 @@ Classes:
     bonus_skills: 4
     mana_per_level: 2
     saves:
-      aligned: [str, dex]
+      aligned: []
       opposed: [con, int, wis, cha]
     ability_progression:
       "1": [ranger_spellcasting]
@@ -176,7 +179,7 @@ Classes:
     bonus_skills: 4
     mana_per_level: 1
     saves:
-      aligned: [dex, int]
+      aligned: []
       opposed: [str, con, wis, cha]
     ability_progression:
       "1": [trapfinding, sneak_attack, thieves_cant]
@@ -204,7 +207,7 @@ Classes:
     bonus_skills: 4
     mana_per_level: 2
     saves:
-      aligned: [dex, wis]
+      aligned: []
       opposed: [str, con, int, cha]
     ability_progression:
       "1": [stunning_strike, ki_pool]
@@ -220,7 +223,7 @@ Classes:
     bonus_skills: 2
     mana_per_level: 4
     saves:
-      aligned: [int, wis]
+      aligned: []
       opposed: [str, dex, con, cha]
     ability_progression:
       "1": [arcane_spellcasting]
@@ -237,7 +240,7 @@ Classes:
     bonus_skills: 2
     mana_per_level: 0
     saves:
-      aligned: [str, con]
+      aligned: []
       opposed: [dex, int, wis, cha]
     aligned_proficiencies:
       - athletics

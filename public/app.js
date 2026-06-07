@@ -461,11 +461,26 @@ document.addEventListener('mouseover', function (e) {
     fetchEncounterRoll(tableId);
   });
 
-  // -- Turn Action panel: left-menu action switching ------------------
+  // -- Turn Action panel: grouped action buttons ----------------------
   //
-  // turn_action_stub.md. Clicking an action in the left menu selects it
-  // and shows that action's pane on the right. Pure client-side view
-  // switching; each pane POSTs on its own Submit.
+  // turn_action_stub.md. The actions are grouped under Main / Bonus / Free
+  // Action headers. Clicking a generic action button (.ta-menu-btn) opens
+  // that action's pane below; each pane POSTs on its own Submit. Special
+  // Ability buttons are handled separately by TurnSpecial (delegated from the
+  // wrapping .ta-special), which is wired eagerly on load below.
+
+  // Collapse the category groups to the selected-action row: show the chosen
+  // action's label, clear the confirm slot (no Commit ready yet). Shared with
+  // TurnSpecial via the exported helper on window (see turnSpecial.js).
+  function selectTurnAction(panel, label) {
+    var lbl = panel.querySelector('.ta-selected-label');
+    if (lbl) lbl.textContent = label;
+    var slot = panel.querySelector('.ta-confirm-slot');
+    if (slot) slot.innerHTML = '';
+    panel.classList.add('ta-has-selection');
+  }
+  window.__taSelectAction = selectTurnAction;
+
   document.addEventListener('click', function (e) {
     var btn = e.target.closest && e.target.closest('.ta-menu-btn');
     if (!btn) return;
@@ -478,6 +493,10 @@ document.addEventListener('mouseover', function (e) {
     panel.querySelectorAll('.ta-pane').forEach(function (p) {
       p.classList.toggle('ta-pane-active', p.getAttribute('data-ta-pane') === key);
     });
+    // Collapse the category groups to the selected-action row (the action's
+    // name + a Change button); the action's Commit button surfaces in the
+    // row's confirm slot once the roll is ready.
+    selectTurnAction(panel, btn.textContent.trim());
     // Lazily build the Attack flow the first time its pane is opened.
     if (key === 'attack') {
       var container = panel.querySelector('.ta-attack');
@@ -488,11 +507,42 @@ document.addEventListener('mouseover', function (e) {
       var castContainer = panel.querySelector('.ta-cast');
       if (castContainer) TurnCast.ensureLoaded(castContainer);
     }
-    // Wire the Special pane (use a non-Spell, non-Reaction Ability).
-    if (key === 'special') {
-      var special = panel.querySelector('.ta-special');
-      if (special) TurnSpecial.ensureLoaded(special);
-    }
+  });
+
+  // Change (in the selected-action row): re-open the category menu and clear
+  // the open action — its pane, any Special result, and the confirm slot.
+  document.addEventListener('click', function (e) {
+    var chg = e.target.closest && e.target.closest('.ta-change');
+    if (!chg) return;
+    var panel = chg.closest('.turn-action');
+    if (!panel) return;
+    panel.classList.remove('ta-has-selection');
+    panel.querySelectorAll('.ta-menu-btn').forEach(function (b) { b.classList.remove('ta-selected'); });
+    panel.querySelectorAll('.ta-pane').forEach(function (p) { p.classList.remove('ta-pane-active'); });
+    panel.querySelectorAll('.ta-special-opt').forEach(function (b) { b.classList.remove('cr-mod-selected'); });
+    var result = panel.querySelector('.ta-special-result');
+    if (result) { result.hidden = true; result.innerHTML = ''; }
+    var slot = panel.querySelector('.ta-confirm-slot');
+    if (slot) slot.innerHTML = '';
+  });
+
+  // The Commit button mirrored into the selected-action row's confirm slot is
+  // a proxy: clicking it triggers the active pane's real Commit (so the DM
+  // confirms from the top of the stub without reaching down to the result).
+  document.addEventListener('click', function (e) {
+    var proxy = e.target.closest && e.target.closest('.ta-commit-proxy');
+    if (!proxy) return;
+    e.preventDefault();
+    var panel = proxy.closest('.turn-action');
+    var real = panel && panel.querySelector('.ta-pane.ta-pane-active .ta-commit');
+    if (real) real.click();
+  });
+
+  // Wire each turn panel's Special Ability buttons up front — they now live in
+  // the action menu (no separate Special pane to open), so TurnSpecial must
+  // delegate from the .ta-special wrapper as soon as the panel renders.
+  document.querySelectorAll('.turn-action .ta-special').forEach(function (el) {
+    TurnSpecial.ensureLoaded(el);
   });
 
   // -- Combat Tracker: double-click to edit Initiative (DM only) -------

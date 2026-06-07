@@ -42,6 +42,9 @@ characters:
   1:
     inventory:
       - item: Rapier
+        tier: 1
+        properties:
+          - name: Emotional
         equipped: true
       - item: Hand crossbow
         equipped: true
@@ -174,6 +177,10 @@ characters:
   7:
     inventory:
       - item: Mace
+        tier: 2
+        properties:
+          - name: Elemental
+            subtype: Fire
         equipped: true
       - item: Headband of Wisdom
         tier: 1
@@ -195,6 +202,9 @@ characters:
   8:
     inventory:
       - item: Great sword
+        tier: 2
+        properties:
+          - name: Vicious
         equipped: true
       - item: Belt of Strength
         tier: 1
@@ -424,7 +434,7 @@ characters:
 party:
   inventory:
     - item: Gold
-      quantity: 275
+      quantity: 50275
     - item: Bolt
       quantity: 60
       restock_target: 120

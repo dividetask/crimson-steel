@@ -64,6 +64,10 @@ Defines the vocabulary used by `equipment_design.md` and `equipment_tests.md`. E
 
 **Property Subtype**: A variant of a Magical Property — for example the elemental kinds (Fire, Acid, Electricity, Cold) of an Elemental Property.
 
+**Damage Rider**: Extra dice a magical Weapon Property adds when an attack lands (typically 4), rolled at the attack's Target Number after the hit. Each Success adds damage of a specific type (kept separate from the weapon's base damage for Severity Calculation) or applies a named Effect; a Vicious rider also damages the wielder.
+
+**Tier Advantage**: A weapon-attack-only Property effect (the Glory Property) that treats the wielder as some number of Tiers higher when attacking a higher-Tier opponent, shrinking the Tier gap Combat applies before the per-step damage reduction.
+
 **Generated Display Name**: The Item name composed from the Tier prefix, Property affixes, and Item Type when no Name Override is set. The Tier prefix is omitted at Tier 0 and for any Item Category listed under Tier Hidden For.
 
 **Tier Prefix Format**: The pattern used to render the Tier prefix in a Generated Display Name. *(configurable)*

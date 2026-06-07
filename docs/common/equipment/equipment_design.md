@@ -195,7 +195,7 @@ Returns a dict with: `category`, `item_type`, `definition` (the catalog block), 
 
 Input: a Stack with `category == Weapon`.
 
-Returns *Get Item Details* extended with: `damage_formula` (per-weapon override → first Tag with `damage_formula` → Category default), `damage_types` (list), `bleed` (max over the Damage Types' defaults, or per-weapon override), `threshold` (min over the Damage Types' defaults, or per-weapon override; `null` when explicitly null on the Weapon), `tags` (list), `ammo_type` (string or null), `affliction` (the key of a Conditions Affliction the weapon injects on a hit — e.g. a spider's `spider_venom` Bite — or `null`; Combat offers a Poison input alongside Damage / Bleed when present).
+Returns *Get Item Details* extended with: `damage_formula` (per-weapon override → first Tag with `damage_formula` → Category default), `damage_types` (list), `bleed` (max over the Damage Types' defaults, or per-weapon override), `threshold` (min over the Damage Types' defaults, or per-weapon override, plus the sum of every equipped Property's `weapon_modifiers.threshold_delta`; `null` when explicitly null on the Weapon), `tags` (list), `ammo_type` (string or null), `affliction` (the key of a Conditions Affliction the weapon injects on a hit — e.g. a spider's `spider_venom` Bite — or `null`; Combat offers a Poison input alongside Damage / Bleed when present), `damage_riders` (the resolved `damage_rider` of every magical Property on the Stack — sentinel Damage Types `from_subtype` / `from_weapon` already resolved to a concrete type — for Combat to roll at attack time), `tier_advantage` (summed `tier_advantage.amount` across the Stack's Properties — the Glory Tier bump; 0 for a mundane weapon).
 
 ### Get Armor Details
 
@@ -439,18 +439,28 @@ A Property catalog entry may declare any combination of three effect-shape field
 
 `on_success` dict:
 - `kind`: `damage` or `named_effect`.
-- For `damage`: `damage_type` is either a literal Damage Type name (`radiant`, `emotional`) or the sentinel `from_subtype` (use the Stack's Subtype as the Damage Type) or `from_weapon` (use the wielded weapon's normal Damage Type). `amount` is the damage per Success (default 1; Vicious uses 2 for double damage).
+- For `damage`: `damage_type` is either a literal Damage Type name (`radiant`, `emotional`) or the sentinel `from_subtype` (use the Stack's Subtype as the Damage Type) or `from_weapon` (use the wielded weapon's normal Damage Type). `amount` is the damage per Success (default 1). Optional `severity` (`minor` / `moderate` / `major`) forces the Severity of the rider damage rather than deriving it from the Damage Type — Vicious uses `major` so every Success lands as Major damage.
 - For `named_effect`: `name` is the Effect Name from Conditions' catalog (e.g. `shock`). `amount` is the magnitude per Success (e.g. 2).
+
+The rider damage is applied as its **own** Severity Calculation, separate from the weapon's base damage — fire damage from a Flaming weapon buckets independently of the slashing damage the blade deals.
 
 `on_failure` dict (optional):
 - `kind`: `self_damage` is the only case in current data.
-- For `self_damage`: `severity` (`minor`, `moderate`, `major`) and `amount` per failed rider die.
+- For `self_damage`: `severity` (`minor`, `moderate`, `major`) and `amount` per rider die that came up a Failure (a `1`). Optional `minimum` adds a flat floor applied once whenever the attack hits (even with zero `1`s) — Vicious deals `minimum: 1` plus `amount: 1` per `1` rolled to the wielder.
 
 **`weapon_modifiers:`** — Per-weapon stat adjustments the Property applies. Schema:
 
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `threshold_delta` | integer | 0 | Added to the weapon's Threshold (for damage-bucketing rules in Combat). |
+
+**`tier_advantage:`** — A weapon-attack-only modifier (the Glory Property) that treats the wielder as that many Tiers higher when attacking a higher-Tier opponent, shrinking the Tier gap Combat applies before the per-step damage reduction. Single-target weapon attacks only — never a spell or area effect. Schema:
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `amount` | non-neg integer | required | Tiers added to the wielder's effective Tier for the attack's Tier-gap math. |
+
+*Get Weapon Details* surfaces the summed `tier_advantage` across the Stack's Properties; Combat reads it at attack time (it is not posted to Conditions).
 
 **`damage_resistance:`** — Incoming-damage filter the Property applies when the wearer is hit by damage of a matching type. Schema:
 

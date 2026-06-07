@@ -34,6 +34,21 @@ RSpec.describe CreatureModifiers do
     end
   end
 
+  describe 'active abilities are not Always-On' do
+    it 'classifies an action (has activation_time) vs a passive Modifier ability' do
+      # Strength Devotion is a Channel Divinity action (activation_time: main).
+      expect(described_class.active_ability?('Strength Devotion')).to be true
+      expect(described_class.active_ability?('Weapon Training')).to be false
+    end
+
+    it "excludes an action ability's Modifiers from the Always-On aggregate" do
+      acc = Object.new
+      acc.define_singleton_method(:granted_abilities) { |source: nil| [{ name: 'Strength Devotion', source: 'class:cleric' }] }
+      # Strength Devotion grants +2 str/con, but only when used — never Always-On.
+      expect(described_class.ability_modifier_entries(acc)).to eq([])
+    end
+  end
+
   describe '.save_modifiers' do
     it 'includes the Cloak (Guidance to saves) on every save, unconditionally' do
       allow(described_class).to receive(:equipped_effects).and_return(
