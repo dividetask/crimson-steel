@@ -906,7 +906,9 @@ helpers do
     steps = []
     encounter_state.combatants.each do |c|
       next if c[:id] == actor_id # a Reaction can't fire on your own action
-      entry = Array(c[:concentration]).find { |e| e[:mode] == 'reservoir' && e[:reservoir].to_i.positive? }
+      entry = Array(c[:concentration]).find do |e|
+        e[:mode] == 'reservoir' && e[:reservoir].to_i.positive? && luck_reservoir?(e)
+      end
       next unless entry
       steps << luck_step("#{c[:id]}", c[:id], tracker_name(c), entry[:reservoir].to_i,
                          bard_has_unsettling_words?(c[:creature_id]), targets)
@@ -915,6 +917,17 @@ helpers do
       steps << luck_step('dm', nil, 'DM', encounter_state.dm_luck_points.to_i, true, targets)
     end
     steps
+  end
+
+  # Whether a reservoir Concentration is a **Luck** reservoir (Bardic
+  # Inspiration), as opposed to a defending one (Shield of Faith), whose
+  # discharge interposes a block instead of granting Luck. Only Luck reservoirs
+  # belong in the Luck steps.
+  def luck_reservoir?(entry)
+    v = (Abilities.lookup(entry[:spell_name].to_s) rescue nil) || {}
+    v.dig('reservoir', 'discharge', 'defends').to_s.empty?
+  rescue StandardError
+    true
   end
 
   def luck_step(sid, source_id, label, amount, penalty, targets)

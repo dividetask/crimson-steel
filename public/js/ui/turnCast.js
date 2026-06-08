@@ -101,6 +101,10 @@ export class TurnCast {
 
   static _preview(container, detail) {
     container._lastDetail = detail;
+    // A no-roll cast (a buff, or a reservoir pour like Shield of Faith) has
+    // nothing to preview — its outcome is fully determined by the choices — so
+    // a single Confirm applies it directly rather than asking again to commit.
+    if (detail.noRoll) { TurnCast._commit(container); return; }
     TurnCast._post(container, TurnCast._payload(container, detail, false), (res) => TurnCast._renderResult(container, res));
   }
 

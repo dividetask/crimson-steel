@@ -579,7 +579,7 @@ export class ActionBuilder {
     });
     const netEl = root.querySelector('.cb-net');
     if (netEl) netEl.textContent = 'Net Degree of Success ' + net + '.';
-    root.dispatchEvent(new CustomEvent('action:confirmed', { bubbles: true, detail: { choices, rolls } }));
+    root.dispatchEvent(new CustomEvent('action:confirmed', { bubbles: true, detail: { choices, rolls, noRoll: !!cb.noRoll } }));
   }
 }
 
