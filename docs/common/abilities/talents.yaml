@@ -97,14 +97,9 @@ Strength Devotion:
   range: Self
   target: self
   duration: "1 minute"
-  modifiers:
-    - target: str
-      type: Morale
-      add: 2
-    - target: con
-      type: Morale
-      add: 2
-  description: "Strength domain Channel Divinity. As a main action, gain a +2 Morale bonus to Strength and Constitution for 1 minute."
+  effects:
+    - strength_devotion
+  description: "Strength domain Channel Divinity. As a main action, gain a +2 Morale bonus to Strength and Constitution for 1 minute (the `strength_devotion` Active Effect)."
 
 Glorious Charge:
   type: talent
