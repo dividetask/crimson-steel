@@ -3697,6 +3697,237 @@ body {
 }
 .atlas-place-armed[hidden] { display: none; }
 
+/* ---- Character Creation Stub (character_creation.erb) ---- */
+.cc-page {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 8px 4px 32px;
+}
+.cc-title { font-size: 20px; margin: 4px 0 12px; }
+
+/* Step indicator */
+.cc-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+}
+.cc-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  font-size: 12px;
+  color: #64748b;
+  background: #f8fafc;
+}
+.cc-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  color: #fff;
+  font-size: 11px;
+}
+.cc-step-current { border-color: #2563eb; color: #1d4ed8; background: #eff6ff; font-weight: 600; }
+.cc-step-current .cc-step-num { background: #2563eb; }
+.cc-step-done { color: #15803d; border-color: #86efac; background: #f0fdf4; }
+.cc-step-done .cc-step-num { background: #22c55e; }
+
+.cc-stage { min-height: 200px; }
+.cc-section { display: block; }
+.cc-lead { font-size: 13px; color: #475569; margin: 0 0 14px; }
+
+/* Navigation */
+.cc-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 22px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 14px;
+}
+.cc-nav .ce-btn { font-size: 13px; padding: 7px 16px; border-radius: 4px; }
+.cc-next { background: #2563eb; color: #fff; border-color: #1d4ed8; margin-left: auto; }
+.cc-next:hover:not(:disabled) { background: #1d4ed8; }
+.cc-next.cc-disabled, .cc-nav .ce-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.cc-error {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 13px;
+}
+.cc-error[hidden] { display: none; }
+
+/* Counters / point-buy badge */
+.cc-pointbuy, .cc-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+.cc-pointbuy-label, .cc-counter-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; }
+.cc-pointbuy-value, .cc-counter-value { font-size: 16px; font-weight: 700; color: #0f172a; }
+.cc-over { color: #b91c1c; }
+
+/* Attribute allocation */
+.cc-attr-grid { display: grid; gap: 8px; max-width: 420px; }
+.cc-attr-row {
+  display: grid;
+  grid-template-columns: 48px 32px 44px 32px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.cc-attr-name { font-weight: 700; font-size: 13px; }
+.cc-attr-value { text-align: center; font-size: 16px; font-weight: 600; }
+.cc-attr-cost { font-size: 11px; color: #64748b; }
+.cc-step-btn { min-width: 26px; font-size: 14px; line-height: 1; }
+
+/* Effective-attribute bar (Race step) */
+.cc-attr-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: #0f172a;
+  border-radius: 6px;
+  color: #e2e8f0;
+}
+.cc-attr-bar-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; }
+.cc-attr-cell { display: inline-flex; align-items: baseline; gap: 4px; }
+.cc-attr-cell-name { font-size: 11px; color: #94a3b8; }
+.cc-attr-cell-val { font-size: 15px; font-weight: 700; }
+.cc-attr-cell-adj { font-size: 11px; }
+.cc-attr-cell-adj.cc-pos { color: #4ade80; }
+.cc-attr-cell-adj.cc-neg { color: #f87171; }
+
+/* Selectable cards (Race / Class) */
+.cc-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.cc-card {
+  text-align: left;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 0.1s, box-shadow 0.1s;
+}
+.cc-card:hover { border-color: #94a3b8; }
+.cc-card.cc-selected { border-color: #2563eb; box-shadow: 0 0 0 1px #2563eb inset; background: #eff6ff; }
+.cc-card-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.cc-card-props { display: grid; gap: 2px; }
+.cc-prop { font-size: 12px; color: #475569; }
+.cc-prop-spell { color: #7c3aed; font-weight: 600; }
+
+/* Skill selection */
+.cc-skill-group { margin-bottom: 16px; }
+.cc-skill-group-title {
+  font-size: 13px;
+  margin: 0 0 6px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.cc-skill-aligned .cc-skill-group-title { color: #15803d; }
+.cc-skill-unaligned .cc-skill-group-title { color: #b45309; }
+.cc-skill-opposed .cc-skill-group-title { color: #b91c1c; }
+.cc-skill-list, .cc-spell-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 4px 14px;
+}
+.cc-skill-row, .cc-spell-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 2px 0;
+}
+.cc-skill-name, .cc-spell-name { flex: 0 1 auto; }
+.cc-skill-attr { font-size: 10px; color: #94a3b8; }
+.cc-skill-suffix { flex: 1 1 80px; min-width: 60px; font-size: 12px; padding: 1px 4px; border: 1px solid #cbd5e1; border-radius: 3px; }
+.cc-skill-box:disabled + .cc-skill-name, .cc-spell-box:disabled + .cc-spell-name { color: #cbd5e1; }
+
+/* Spell selection */
+.cc-spell-group { margin-bottom: 14px; }
+.cc-spell-tier { font-size: 13px; margin: 0 0 6px; color: #7c3aed; }
+.cc-spell-cost { font-size: 11px; color: #64748b; margin-left: auto; }
+
+/* Domain (Cleric) */
+.cc-field { display: grid; gap: 4px; max-width: 320px; margin-bottom: 12px; }
+.cc-field-label { font-size: 12px; color: #64748b; }
+.cc-select, .cc-text {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+.cc-domain-spells { margin-top: 8px; }
+.cc-domain-spells-title { font-size: 12px; color: #64748b; margin-bottom: 6px; }
+.cc-chip, .cc-summary .cc-chip {
+  display: inline-block;
+  margin: 0 4px 4px 0;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #ede9fe;
+  color: #6d28d9;
+  font-size: 12px;
+}
+
+/* Confirmation summary */
+.cc-summary {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 4px 12px;
+  margin-top: 16px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+.cc-summary-key { font-size: 12px; color: #64748b; font-weight: 600; }
+.cc-summary-val { font-size: 13px; color: #0f172a; }
+
+/* New Character button on the roster sidebar */
+.cs-roster-new-character {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #3a3a3a;
+}
+.cs-roster-new-character-btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  padding: 6px 8px;
+  font-size: 12px;
+  background: #2563eb;
+  color: #fff;
+  border-color: #1d4ed8;
+}
+.cs-roster-new-character-btn:hover { background: #1d4ed8; }
+
 /* ===== Post-Combat Cleanup + Loot Pile stubs ======================== *
  * equipment_post_combat_creatures_stub.md / equipment_loot_pile_stub.md.
  * The post-combat panel loots and clears a fight's enemies; the loot pile
