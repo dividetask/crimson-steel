@@ -202,12 +202,19 @@ class CharacterCreator {
     return this.checkedSpells().length <= sel.budget; // count
   }
 
-  // How many domains a Cleric of the chosen deity must pick: the
-  // configured number, capped by how many favored domains the deity has.
-  requiredDomainCount(sel) {
+  // Domains a Cleric of the chosen deity may pick: every domain except the
+  // deity's anathema.
+  availableDomains(sel) {
     const deity = sel.deities.find((d) => d.name === this.state.deity);
-    if (!deity) return 0;
-    return Math.min(sel.max_domains, deity.domains.length);
+    if (!deity) return [];
+    return sel.domains.filter((dom) => !deity.anathema.includes(dom.name));
+  }
+
+  // How many domains the Cleric picks: the configured number, capped by how
+  // many domains are actually available.
+  requiredDomainCount(sel) {
+    if (!this.state.deity) return 0;
+    return Math.min(sel.max_domains, this.availableDomains(sel).length);
   }
 
   goBack() {
@@ -556,10 +563,11 @@ class CharacterCreator {
 
   buildDomain(sel) {
     const wrap = el('div', { class: 'cc-section cc-domain' });
-    const required = () => this.requiredDomainCount(sel);
     wrap.appendChild(el('p', { class: 'cc-lead' },
-      'Choose a deity, then pick their domains. Each chosen domain grants its spells.'));
+      'Choose a deity, then pick any domains except the deity’s anathema. ' +
+      'Every chosen domain grants its spells; a favored domain also grants its ability.'));
 
+    const deity = () => sel.deities.find((d) => d.name === this.state.deity);
     const deitySel = el('select', { class: 'cc-select' },
       el('option', { value: '', text: 'Select a deity…' }),
       ...sel.deities.map((d) => el('option', { value: d.name, text: d.name, selected: this.state.deity === d.name })));
@@ -568,13 +576,8 @@ class CharacterCreator {
     const domainList = el('div', { class: 'cc-skill-list' });
     const spellList = el('div', { class: 'cc-domain-spells' });
 
-    const deityDomains = () => {
-      const deity = sel.deities.find((d) => d.name === this.state.deity);
-      return deity ? deity.domains : [];
-    };
-
     const refresh = () => {
-      const need = required();
+      const need = this.requiredDomainCount(sel);
       counter.innerHTML = '';
       counter.appendChild(el('span', { class: 'cc-counter-label', text: 'Domains' }));
       counter.appendChild(el('span', {
@@ -582,10 +585,12 @@ class CharacterCreator {
         text: this.state.domains.length + ' / ' + need
       }));
 
+      const d = deity();
       const full = this.state.domains.length >= need;
       domainList.innerHTML = '';
-      deityDomains().forEach((dom) => {
+      this.availableDomains(sel).forEach((dom) => {
         const checked = this.state.domains.includes(dom.name);
+        const favored = d && d.favored.includes(dom.name);
         const box = el('input', { type: 'checkbox', class: 'cc-skill-box', checked: checked });
         box.disabled = full && !checked;
         box.addEventListener('change', () => {
@@ -593,15 +598,19 @@ class CharacterCreator {
           else this.state.domains = this.state.domains.filter((n) => n !== dom.name);
           refresh();
         });
-        domainList.appendChild(el('label', { class: 'cc-skill-row' },
+        const tags = [];
+        if (favored && dom.channel) tags.push('favored · grants ' + dom.channel);
+        else if (favored) tags.push('favored');
+        if (dom.spells.length) tags.push(dom.spells.length + ' spell' + (dom.spells.length === 1 ? '' : 's'));
+        domainList.appendChild(el('label', { class: 'cc-skill-row' + (favored ? ' cc-domain-favored' : '') },
           box,
           el('span', { class: 'cc-skill-name', text: dom.name }),
-          dom.spells.length ? el('span', { class: 'cc-skill-attr', text: dom.spells.length + ' spell' + (dom.spells.length === 1 ? '' : 's') }) : null));
+          tags.length ? el('span', { class: 'cc-skill-attr', text: tags.join(' · ') }) : null));
       });
 
       spellList.innerHTML = '';
-      const chosen = deityDomains().filter((d) => this.state.domains.includes(d.name));
-      const spells = chosen.flatMap((d) => d.spells);
+      const chosen = this.availableDomains(sel).filter((x) => this.state.domains.includes(x.name));
+      const spells = chosen.flatMap((x) => x.spells);
       if (spells.length) {
         spellList.appendChild(el('div', { class: 'cc-domain-spells-title', text: 'Granted domain spells' }));
         spells.forEach((s) => spellList.appendChild(el('span', { class: 'cc-chip', text: s })));

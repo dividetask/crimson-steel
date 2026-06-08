@@ -54,9 +54,10 @@ is disabled until the current step is valid.
    - **points** — spend a `budget` point pool; each spell costs `cost`
      (a formula in `tier`, floored — a Tier 0 spell costs 1).
      Unaffordable spells disable.
-   - **domain** (Cleric) — pick a deity, then choose up to
-     `CLERIC_DOMAIN_PICKS` (3) of that deity's favored domains instead of
-     individual spells; the chosen domains' spells are shown and granted.
+   - **domain** (Cleric) — pick a deity, then choose `CLERIC_DOMAIN_PICKS`
+     (3) domains instead of individual spells. Any domain may be chosen
+     except the deity's anathema; every chosen domain grants its spells,
+     and a favored domain additionally grants its Channel Divinity ability.
    Classes with `mode: auto` (Druid) or no block (non-casters) skip this
    step entirely.
 6. **Confirmation.** A character-name field (required) and an optional

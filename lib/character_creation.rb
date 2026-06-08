@@ -179,7 +179,8 @@ module CharacterCreation
 
     case sel['mode']
     when 'domain'
-      { mode: 'domain', max_domains: CLERIC_DOMAIN_PICKS, deities: deities_blob }
+      { mode: 'domain', max_domains: CLERIC_DOMAIN_PICKS,
+        domains: domains_blob, deities: deities_blob }
     when 'count'
       { mode: 'count', budget: eval_budget(sel['budget']),
         spells: spell_pool(sel['filter']) }
@@ -232,13 +233,28 @@ module CharacterCreation
     Creatures::Formula.eval(expr, level: CREATION_LEVEL)
   end
 
-  def deities_blob
-    Creatures::Deities.deities.keys.map do |dname|
+  # The global Domain catalog: every domain a Cleric may pick (subject to
+  # the chosen deity's anathema), with its bonus spells and whether it
+  # carries a Channel Divinity ability (granted only for favored domains).
+  def domains_blob
+    Creatures::Deities.domains.keys.map do |dom|
       {
-        name: dname,
-        domains: Creatures::Deities.deity_domains(dname).map do |dom|
-          { name: dom, spells: Creatures::Deities.domain_spells(dom) }
-        end
+        name:    dom,
+        spells:  Creatures::Deities.domain_spells(dom),
+        channel: Creatures::Deities.domain_channel_divinity(dom)
+      }
+    end
+  end
+
+  # Each deity with its favored domains (which additionally grant the
+  # domain's Channel Divinity) and its anathema domains (which its Clerics
+  # may NOT choose).
+  def deities_blob
+    Creatures::Deities.deities.map do |dname, d|
+      {
+        name:     dname,
+        favored:  Array(d['domains']),
+        anathema: Array(d['anathema'])
       }
     end
   end

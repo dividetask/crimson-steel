@@ -105,14 +105,17 @@ RSpec.describe CharacterCreation, type: :model do
       expect(sel[:budget]).to eq(10)
     end
 
-    it 'has the Cleric pick a deity and domains instead of spells' do
+    it 'has the Cleric pick a deity and domains (any but anathema)' do
       sel = by_key['cleric'][:spell_selection]
       expect(sel[:mode]).to eq('domain')
       expect(sel[:max_domains]).to eq(3)
-      karthak = sel[:deities].find { |d| d[:name] == 'Karthak' }
-      expect(karthak).not_to be_nil
-      war = karthak[:domains].find { |dom| dom[:name] == 'War' }
+      # The global domain catalog carries each domain's spells.
+      war = sel[:domains].find { |d| d[:name] == 'War' }
       expect(war[:spells]).to include('Spiritual Hammer')
+      # Deities carry favored (ability-granting) and anathema (forbidden) lists.
+      karthak = sel[:deities].find { |d| d[:name] == 'Karthak' }
+      expect(karthak[:favored]).to include('War')
+      expect(karthak[:anathema]).to include('Humility')
     end
 
     it 'skips the step for auto casters (Druid) and non-casters (Fighter)' do
