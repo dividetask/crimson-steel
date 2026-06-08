@@ -14,12 +14,12 @@ The sheet has a mix of full-width sections and a two-column body:
 
 Below Combat the sheet splits into two side-by-side columns. The left column carries the per-Creature mechanical detail (Attributes through Item Descriptions); the right column carries the narrative / casting detail (Abilities and Spell List). The split keeps the sheet from running too tall when both halves are populated.
 
-4. **Attributes** (left column) — table of all six Attributes: Score, Half (modifier), Check dice and bonus, Save dice and bonus.
+4. **Attributes** (left column) — table of all six Attributes: Score, Half (modifier), Check dice and bonus, Save dice and bonus. An equipped Guidance item (Belt / Headband) shows the intrinsic Score followed by a green `+X` (the bonus is folded into the Effective Attribute the Check / Save dice use). Save bonuses are broken out as signed tokens after the Save's Competency — green for a bonus, red for a penalty — with a leading `*` on conditional ones (poison / enchantment / charm resistance). Inherent bonuses stay baked into the underlying value. The Damage Reduction / Resilience vitals follow the same rule (base plus broken-out active-effect tokens, e.g. `3+2` while raging).
 5. **Skills** (left column) — table of Skills the Creature has trained: Name, Ranks, Dice, Bonus. Omitted when the Creature has no trained Skills.
 6. **Items** (left column) — Equipped, Consumable, Ammunition, Other. Ammunition is a separate category from Consumable because arrows, bolts, and similar quantity-tracked stacks are consumed by Combat actions rather than used as standalone consumables; the parent looks them up via the same Equipment-domain accessor as Consumable but reads from the `ammunition` slot.
 7. **Item Descriptions** (left column) — descriptions of named magic items.
 8. **Active Effects** (right column) — the named Conditions currently on the Creature (e.g. Rage), shown as badges. Sourced from Conditions' active named Effects. Omitted when none are active.
-9. **Abilities** (right column) — granted abilities with full descriptions.
+9. **Abilities** (right column) — granted abilities with full descriptions, **excluding known Spells** (a spell-typed granted entry appears in the Spell List below, not here).
 10. **Spell List** (right column) — spells grouped by tier. Two follow-on subsections render beneath the main spell list when their lists are non-empty: **Rituals** (spells the Creature knows as rituals — same per-row format as the spell list, with the ritual's casting time and component cost shown in place of mana cost) and **Item Spells** (spells the Creature can cast from carried items such as scrolls or wands — each row names the source item alongside the spell). Both subsections share the spell list's column layout.
 
 Sections with no content are omitted. When one side of the two-column body is much taller than the other, the shorter column simply ends earlier — sections do not flow across the split.

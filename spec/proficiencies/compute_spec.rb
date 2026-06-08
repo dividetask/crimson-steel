@@ -209,4 +209,29 @@ RSpec.describe 'Proficiencies.compute', type: :model do
       expect(out).to eq(dice_cap: 9, competency_modifier: ['Competency', 1])
     end
   end
+
+  describe 'untrained_roll_inputs' do
+    it 'applies the Floor lift for a Creature with the Floor Ability' do
+      # int 2, jack_of_all_trades level 5 → floor 2. Prowess = 2 + 1 + 0 = 3.
+      # Matches the trained `history` Floor example (dice 9, bonus 0).
+      out = Proficiencies::Compute.untrained_roll_inputs(
+        attribute: :int,
+        creature: mock(
+          attrs: { int: 2 },
+          abilities: { 'jack_of_all_trades' => true },
+          levels: { 'jack_of_all_trades' => 5 }
+        )
+      )
+      expect(out).to eq(dice_cap: 9, competency_modifier: nil)
+    end
+
+    it 'falls back to attr_contrib + Non-Proficiency Penalty without the Floor Ability' do
+      # dex 3, no Floor Ability → 0 ranks + 1 - 2 = -1. dice 10, bonus -1.
+      out = Proficiencies::Compute.untrained_roll_inputs(
+        attribute: :dex,
+        creature: mock(attrs: { dex: 3 })
+      )
+      expect(out).to eq(dice_cap: 10, competency_modifier: ['Competency', -1])
+    end
+  end
 end

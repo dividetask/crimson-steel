@@ -84,6 +84,35 @@ RSpec.describe 'Encounter::State combat mode' do
     end
   end
 
+  describe 'Encounter Phase (DM view selector)' do
+    it 'defaults to downtime and only accepts known phases' do
+      s = state
+      expect(s.phase).to eq(:downtime)
+      expect(s.set_phase('combat')).to eq(:combat)
+      expect(s.phase).to eq(:combat)
+      expect(s.set_phase('nonsense')).to eq(:combat) # unknown ignored
+      expect(s.phase).to eq(:combat)
+      expect(s.set_phase(:looting)).to eq(:looting)  # symbol accepted
+    end
+
+    it 'is independent of Combat mechanics' do
+      s = state
+      s.add_combatant('1')
+      s.set_phase(:looting)
+      s.start_combat
+      expect(s.phase).to eq(:looting)  # Start Combat does not touch the Phase
+      s.end_combat
+      expect(s.phase).to eq(:looting)
+    end
+
+    it 'round-trips through persistence' do
+      s = state
+      s.set_phase(:social)
+      reloaded = Encounter::State.load(data_path: data_path)
+      expect(reloaded.phase).to eq(:social)
+    end
+  end
+
   describe 'Advance Turn' do
     it 'moves to the next acting combatant in initiative order' do
       s = state

@@ -16,6 +16,12 @@
     alchemy    — [{name:, price:, icon:}] alchemical items.
     magical    — [{name:, icon:, attribute:, options: [{bonus:, tier:, price:}]}]
                  Guidance Items; each card has a +N Bonus dropdown.
+    magical_weapons — {weapons:[{name:,category:,base_price:}],
+                 properties:[{name:,subtype:,label:,cost:,min_tier:,applies_to:}],
+                 tiers:[{tier:,surcharge:}]} for the Magical Weapons builder.
+    magical_armor — {armor:[{name:,base_price:}], tiers:[{tier:,surcharge:}]}
+                 for the Magical Armor builder (no Properties — Tier only).
+    party_gold — the shared Party wallet total, shown at the top-right.
 %>
 <%
   fmt = ->(n) { n.is_a?(Integer) ? n.to_s : (n == n.to_i ? n.to_i.to_s : format('%.2f', n)) }
@@ -24,7 +30,14 @@
   esc = ->(s) { Rack::Utils.escape_html(s.to_s) }
 %>
 <section class="provision" data-checkout-url="/store/checkout">
-  <h1>Store</h1>
+  <div class="provision-header">
+    <h1>Store</h1>
+    <% if defined?(party_gold) && !party_gold.nil? %>
+      <div class="provision-party-gold" title="Shared Party wallet">
+        Party gold: <strong><%= fmt.call(party_gold) %></strong> gp
+      </div>
+    <% end %>
+  </div>
 
   <div class="store-flash" data-store-flash hidden></div>
 
@@ -151,6 +164,101 @@
           <% end %>
         </div>
       </section>
+
+      <%# ---- Magical Weapons: pick weapon + property + tier, live-priced ---- %>
+      <% mw = defined?(magical_weapons) ? magical_weapons : nil %>
+      <% if mw && !Array(mw[:weapons]).empty? && !Array(mw[:properties]).empty? %>
+        <section class="provision-section">
+          <h2>Magical Weapons</h2>
+          <div class="provision-recipient">
+            <label>Recipient
+              <select class="provision-creature-select">
+                <% creatures.each do |c| %>
+                  <option value="<%= c[:id] %>" data-pc="<%= !!c[:pc] %>"><%= esc.call(c[:name]) %></option>
+                <% end %>
+              </select>
+            </label>
+          </div>
+          <div class="provision-grid">
+            <div class="provision-card provision-card-magicweapon" data-price="0">
+              <div class="provision-card-body">
+                <div class="provision-card-name">Enchanted Weapon</div>
+                <label class="provision-bonus">Weapon
+                  <select class="mw-weapon">
+                    <% mw[:weapons].each do |w| %>
+                      <option value="<%= esc.call(w[:name]) %>" data-category="<%= w[:category] %>" data-base="<%= w[:base_price] %>"><%= esc.call(w[:name]) %></option>
+                    <% end %>
+                  </select>
+                </label>
+                <label class="provision-bonus">Property
+                  <select class="mw-property">
+                    <% mw[:properties].each do |p| %>
+                      <option value="<%= esc.call(p[:name]) %>|<%= esc.call(p[:subtype]) %>"
+                              data-name="<%= esc.call(p[:name]) %>" data-subtype="<%= esc.call(p[:subtype]) %>"
+                              data-cost="<%= p[:cost] %>" data-min-tier="<%= p[:min_tier] %>"
+                              data-applies="<%= Array(p[:applies_to]).join(',') %>"><%= esc.call(p[:label]) %></option>
+                    <% end %>
+                  </select>
+                </label>
+                <label class="provision-bonus">Tier
+                  <select class="mw-tier">
+                    <% mw[:tiers].each do |t| %>
+                      <option value="<%= t[:tier] %>" data-surcharge="<%= t[:surcharge] %>"><%= t[:tier] %></option>
+                    <% end %>
+                  </select>
+                </label>
+                <div class="provision-card-price"><span class="provision-price-amount">0</span> gp</div>
+                <div class="provision-note mw-note" hidden></div>
+                <div class="provision-card-buy">
+                  <button type="button" class="ce-btn ce-btn-primary provision-add">Add</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      <% end %>
+
+      <%# ---- Magical Armor: pick armor + tier, live-priced (no properties) ---- %>
+      <% ma = defined?(magical_armor) ? magical_armor : nil %>
+      <% if ma && !Array(ma[:armor]).empty? %>
+        <section class="provision-section">
+          <h2>Magical Armor</h2>
+          <div class="provision-recipient">
+            <label>Recipient
+              <select class="provision-creature-select">
+                <% creatures.each do |c| %>
+                  <option value="<%= c[:id] %>" data-pc="<%= !!c[:pc] %>"><%= esc.call(c[:name]) %></option>
+                <% end %>
+              </select>
+            </label>
+          </div>
+          <div class="provision-grid">
+            <div class="provision-card provision-card-magicarmor" data-price="0">
+              <div class="provision-card-body">
+                <div class="provision-card-name">Enchanted Armor</div>
+                <label class="provision-bonus">Armor
+                  <select class="ma-armor">
+                    <% ma[:armor].each do |a| %>
+                      <option value="<%= esc.call(a[:name]) %>" data-base="<%= a[:base_price] %>"><%= esc.call(a[:name]) %></option>
+                    <% end %>
+                  </select>
+                </label>
+                <label class="provision-bonus">Tier
+                  <select class="ma-tier">
+                    <% ma[:tiers].each do |t| %>
+                      <option value="<%= t[:tier] %>" data-surcharge="<%= t[:surcharge] %>"><%= t[:tier] %></option>
+                    <% end %>
+                  </select>
+                </label>
+                <div class="provision-card-price"><span class="provision-price-amount">0</span> gp</div>
+                <div class="provision-card-buy">
+                  <button type="button" class="ce-btn ce-btn-primary provision-add">Add</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      <% end %>
 
       <%# ---- Potions: deferred until the Abilities domain is wired ---- %>
       <section class="provision-section provision-disabled">

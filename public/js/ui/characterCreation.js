@@ -73,7 +73,7 @@ class CharacterCreator {
       setSuffix: {},   // set-skill key -> instance suffix text
       spells: {},      // spell catalog name -> selected (bool)
       deity: null,
-      domain: null,
+      domains: [],
       name: '',
       player: ''
     };
@@ -195,9 +195,19 @@ class CharacterCreator {
 
   spellsValid() {
     const sel = this.currentClass().spell_selection;
-    if (sel.mode === 'domain') return !!this.state.deity && !!this.state.domain;
+    if (sel.mode === 'domain') {
+      return !!this.state.deity && this.state.domains.length === this.requiredDomainCount(sel);
+    }
     if (sel.mode === 'points') return this.spellSpent() <= sel.budget;
     return this.checkedSpells().length <= sel.budget; // count
+  }
+
+  // How many domains a Cleric of the chosen deity must pick: the
+  // configured number, capped by how many favored domains the deity has.
+  requiredDomainCount(sel) {
+    const deity = sel.deities.find((d) => d.name === this.state.deity);
+    if (!deity) return 0;
+    return Math.min(sel.max_domains, deity.domains.length);
   }
 
   goBack() {
@@ -424,7 +434,7 @@ class CharacterCreator {
             this.state.setSuffix = {};
             this.state.spells = {};
             this.state.deity = null;
-            this.state.domain = null;
+            this.state.domains = [];
           }
           list.querySelectorAll('.cc-card').forEach((c) => c.classList.remove('cc-selected'));
           card.classList.add('cc-selected');
@@ -443,7 +453,7 @@ class CharacterCreator {
       const sel = cls.spell_selection;
       if (sel) {
         let label;
-        if (sel.mode === 'domain') label = 'Spells: deity & domain';
+        if (sel.mode === 'domain') label = 'Spells: deity & domains';
         else if (sel.mode === 'points') label = 'Spells: ' + sel.budget + ' points';
         else label = 'Spells: ' + sel.budget + ' known';
         props.appendChild(el('div', { class: 'cc-prop cc-prop-spell', text: label }));
@@ -546,56 +556,70 @@ class CharacterCreator {
 
   buildDomain(sel) {
     const wrap = el('div', { class: 'cc-section cc-domain' });
-    wrap.appendChild(el('p', { class: 'cc-lead' }, 'Choose a deity and one of their domains. The domain grants its spells.'));
+    const required = () => this.requiredDomainCount(sel);
+    wrap.appendChild(el('p', { class: 'cc-lead' },
+      'Choose a deity, then pick their domains. Each chosen domain grants its spells.'));
 
     const deitySel = el('select', { class: 'cc-select' },
       el('option', { value: '', text: 'Select a deity…' }),
       ...sel.deities.map((d) => el('option', { value: d.name, text: d.name, selected: this.state.deity === d.name })));
 
-    const domainSel = el('select', { class: 'cc-select' });
+    const counter = el('div', { class: 'cc-counter' });
+    const domainList = el('div', { class: 'cc-skill-list' });
     const spellList = el('div', { class: 'cc-domain-spells' });
 
-    const fillDomains = () => {
+    const deityDomains = () => {
       const deity = sel.deities.find((d) => d.name === this.state.deity);
-      domainSel.innerHTML = '';
-      domainSel.appendChild(el('option', { value: '', text: 'Select a domain…' }));
-      (deity ? deity.domains : []).forEach((dom) => {
-        domainSel.appendChild(el('option', { value: dom.name, text: dom.name, selected: this.state.domain === dom.name }));
-      });
-      domainSel.disabled = !deity;
+      return deity ? deity.domains : [];
     };
 
-    const fillSpells = () => {
-      const deity = sel.deities.find((d) => d.name === this.state.deity);
-      const dom = deity && deity.domains.find((x) => x.name === this.state.domain);
+    const refresh = () => {
+      const need = required();
+      counter.innerHTML = '';
+      counter.appendChild(el('span', { class: 'cc-counter-label', text: 'Domains' }));
+      counter.appendChild(el('span', {
+        class: 'cc-counter-value' + (this.state.domains.length > need ? ' cc-over' : ''),
+        text: this.state.domains.length + ' / ' + need
+      }));
+
+      const full = this.state.domains.length >= need;
+      domainList.innerHTML = '';
+      deityDomains().forEach((dom) => {
+        const checked = this.state.domains.includes(dom.name);
+        const box = el('input', { type: 'checkbox', class: 'cc-skill-box', checked: checked });
+        box.disabled = full && !checked;
+        box.addEventListener('change', () => {
+          if (box.checked) this.state.domains.push(dom.name);
+          else this.state.domains = this.state.domains.filter((n) => n !== dom.name);
+          refresh();
+        });
+        domainList.appendChild(el('label', { class: 'cc-skill-row' },
+          box,
+          el('span', { class: 'cc-skill-name', text: dom.name }),
+          dom.spells.length ? el('span', { class: 'cc-skill-attr', text: dom.spells.length + ' spell' + (dom.spells.length === 1 ? '' : 's') }) : null));
+      });
+
       spellList.innerHTML = '';
-      if (dom && dom.spells.length) {
-        spellList.appendChild(el('div', { class: 'cc-domain-spells-title', text: 'Domain spells' }));
-        dom.spells.forEach((s) => spellList.appendChild(el('span', { class: 'cc-chip', text: s })));
-      } else if (dom) {
-        spellList.appendChild(el('div', { class: 'cc-prop', text: 'This domain has no spells defined yet.' }));
+      const chosen = deityDomains().filter((d) => this.state.domains.includes(d.name));
+      const spells = chosen.flatMap((d) => d.spells);
+      if (spells.length) {
+        spellList.appendChild(el('div', { class: 'cc-domain-spells-title', text: 'Granted domain spells' }));
+        spells.forEach((s) => spellList.appendChild(el('span', { class: 'cc-chip', text: s })));
       }
+      this.refreshNav();
     };
 
     deitySel.addEventListener('change', () => {
       this.state.deity = deitySel.value || null;
-      this.state.domain = null;
-      fillDomains();
-      fillSpells();
-      this.refreshNav();
+      this.state.domains = [];
+      refresh();
     });
-    domainSel.addEventListener('change', () => {
-      this.state.domain = domainSel.value || null;
-      fillSpells();
-      this.refreshNav();
-    });
-
-    fillDomains();
-    fillSpells();
 
     wrap.appendChild(el('div', { class: 'cc-field' }, el('label', { class: 'cc-field-label', text: 'Deity' }), deitySel));
-    wrap.appendChild(el('div', { class: 'cc-field' }, el('label', { class: 'cc-field-label', text: 'Domain' }), domainSel));
+    wrap.appendChild(counter);
+    wrap.appendChild(domainList);
     wrap.appendChild(spellList);
+    refresh();
     return wrap;
   }
 
@@ -678,7 +702,7 @@ class CharacterCreator {
     const sel = cls && cls.spell_selection;
     if (sel && sel.mode === 'domain') {
       addRow('Deity', this.state.deity || '—');
-      addRow('Domain', this.state.domain || '—');
+      addRow('Domains', this.state.domains.join(', ') || '—');
     } else if (sel) {
       addRow('Spells', this.checkedSpells().join(', ') || 'none');
     }
@@ -710,7 +734,7 @@ class CharacterCreator {
       skills: this.collectSkills(),
       spells: this.checkedSpells(),
       deity: this.state.deity,
-      domain: this.state.domain
+      domains: this.state.domains
     };
     this.nextBtn.disabled = true;
     fetch(this.blob.create_url, {

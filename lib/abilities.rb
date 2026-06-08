@@ -92,6 +92,16 @@ module Abilities
     []
   end
 
+  # Equipment item names a Natural Attack Talent grants (its
+  # `grants_equipment` list). Always returns a list (empty when none /
+  # unknown). The names resolve to Equipment catalog Weapons.
+  def granted_equipment(name)
+    entry = catalog.ability(name)
+    Array(entry && entry['grants_equipment']).map(&:to_s)
+  rescue StandardError
+    []
+  end
+
   # Catalog Abilities matching a Type and/or School filter, on un-resolved
   # data (the Variant Axis is not iterated). Returns entries with `name`.
   def list(type: nil, school: nil)

@@ -1,0 +1,51 @@
+<%#
+  Equipment Post-Combat Creatures Stub —
+  docs/common/ui/equipment_post_combat_creatures_stub.md
+
+  DM-only list — one row each: <Name> <Loot/Ignore toggle> <Delete/Keep
+  toggle> — beside a single combined preview of the loot the current
+  selection will gather (aggregated across every row still set to Loot; a
+  rolled Loot Table adds random items on top). Confirm composes Collect
+  Combat Loot + Remove Combatant + Delete Creature.
+
+  Locals:
+    rows — [{combatant_id, creature_id, name, loot_table, loot:[{name,quantity}]}].
+%>
+<% esc = ->(s) { Rack::Utils.escape_html(s.to_s) } %>
+<% combined = combine_loot(rows) %>
+<section class="pcc-stub">
+  <h3 class="pcc-title">Post-Combat Cleanup</h3>
+
+  <% if rows.empty? %>
+    <p class="pcc-empty">No creatures to clean up.</p>
+  <% else %>
+    <form method="post" action="/encounter/post_combat_cleanup" class="pcc-form">
+      <div class="pcc-body">
+        <ul class="pcc-list">
+          <% rows.each do |row| %>
+            <% cid = row[:combatant_id] %>
+            <li class="pcc-row" data-loot="<%= esc.call(row[:loot].to_json) %>" data-loot-table="<%= row[:loot_table] ? '1' : '' %>">
+              <span class="pcc-name"><%= esc.call(row[:name]) %></span>
+              <label class="pcc-btn pcc-loot-btn"><input type="checkbox" name="loot_<%= cid %>" value="ignore"></label>
+              <label class="pcc-btn pcc-del-btn"><input type="checkbox" name="delete_<%= cid %>" value="keep"></label>
+            </li>
+          <% end %>
+        </ul>
+
+        <aside class="pcc-loot" aria-live="polite">
+          <ul class="pcc-loot-list">
+            <% if combined[:items].empty? && !combined[:random] %>
+              <li class="pcc-loot-none">Nothing</li>
+            <% else %>
+              <% combined[:items].each do |it| %>
+                <li><%= it[:quantity] > 1 ? "#{it[:quantity]}× " : '' %><%= esc.call(it[:name]) %></li>
+              <% end %>
+              <% if combined[:random] %><li class="pcc-loot-random">+ random loot</li><% end %>
+            <% end %>
+          </ul>
+        </aside>
+      </div>
+      <button type="submit" class="ce-btn ce-btn-primary pcc-confirm">Confirm</button>
+    </form>
+  <% end %>
+</section>

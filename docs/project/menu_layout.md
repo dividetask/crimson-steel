@@ -10,6 +10,7 @@ The bar has two regions:
 
 1. **Menu items** (left) — the links listed in the next section, in the listed order.
 2. **Right-aligned group** — pushed to the far right of the bar, in this order:
+   - **Encounter Phase selector** (DM only) — a dropdown, immediately to the left of the View-As toggle, that sets the Encounter Phase: `Combat`, `Looting`, `Traveling`, `Social Encounter`, or `Downtime`. It is a pure view selector — it only changes which stubs the Encounter page shows (see the Encounter page entry below) and does **not** start or stop Combat mechanics. Changing it takes effect immediately. The Phase persists with the Encounter and defaults to `Downtime`. Players never see this dropdown.
    - **View-As toggle** (DM only) — When the DM is currently viewing the site as a DM, the button reads `View As Player`; pressing it switches the session to the player view and the button label flips to `View As DM`. Pressing it again returns to the DM view. Players never see this button.
    - **Server address** — the server's IP address (and port, if non-default), shown as plain text at the far-right edge of the bar, immediately to the right of the View-As toggle.
 
@@ -26,9 +27,8 @@ Listed in display order. Each item links to the page named in the next section.
 | 3 | Encounter         | `/encounter`       | DM + Player |
 | 4 | Store             | `/store`           | DM + Player |
 | 5 | Notes             | `/notes`           | DM + Player |
-| 6 | Social            | `/social`          | DM + Player |
-| 7 | Compendium        | `/compendium`      | DM + Player |
-| 8 | Status            | `/status`          | DM only    |
+| 6 | Compendium        | `/compendium`      | DM + Player |
+| 7 | Status            | `/status`          | DM only    |
 
 `Home` always points at the website root (`/`). The root is not a page in its own right — it immediately redirects to `/character-sheets`, which is the default landing page. Clicking `Home` therefore lands the viewer on Character Sheets.
 
@@ -39,12 +39,11 @@ Each page is listed with a short description and its access rule. Detailed page 
 | Page              | URL                | Description                                                                 | Access     |
 |-------------------|--------------------|-----------------------------------------------------------------------------|------------|
 | Character Sheets  | `/character-sheets`| Per-character sheets for the party. The default landing page. The DM's roster sidebar carries a **New Character** button linking to the Character Creation Stub (`/character-creation`, see `docs/common/ui/character_creation_stub.md`). | DM + Player |
-| Encounter         | `/encounter`       | What is happening right now — timekeeping, the Combat Tracker (initiative), and the active scene's notes. The Combat Tracker is hidden from players until Combat starts; the notes are hidden from players once Combat starts. | DM + Player |
-| Store             | `/store`           | Provision Creatures with gear — the Equipment Provision Stub (Weapons, Armor, Alchemy). A recipient that is a Player Character is charged (its own wealth first, then the Party); non-PCs are provisioned free. Enemies are hidden from players. | DM + Player |
+| Encounter         | `/encounter`       | What is happening right now. Which stubs are shown is driven by the DM's Encounter Phase selector (see the menu bar above): **Combat** hides the Advance Time control and shows the Combat Tracker (initiative) + Atlas map (both to players too), and — when Combat is active and the Acting Combatant is a Player Character — that PC's Character Sheet beneath the map (an NPC / monster turn shows no sheet), with the scene notes shown to the DM only; **Looting** shows only the loot stubs (the DM also sees the notes underneath); **Traveling / Social Encounter / Downtime** show only the notes plus the DM's Advance Time control. | DM + Player |
+| Store             | `/store`           | Provision Creatures with gear — the Equipment Provision Stub (Weapons, Armor, Alchemy, Magical Items, Magical Weapons, Magical Armor), with the shared Party gold shown top-right. A recipient that is a Player Character is charged (its own wealth first, then the Party); non-PCs are provisioned free. Enemies are hidden from players. Natural attacks are not gear and never appear. | DM + Player |
 | Notes             | `/notes`           | Shared and per-character game notes.                                        | DM + Player |
-| Social            | `/social`          | Social-encounter information.                                               | DM + Player |
 | Compendium        | `/compendium`      | Reference material drawn from the rules documents — currently the Glossary. | DM + Player |
-| Status            | `/status`          | DM operations surface — currently hosts the Check Resolution Stub and the Dice Resolution Roll Stub for inspection, fed with dummy data. | DM only |
+| Status            | `/status`          | DM operations surface — the default landing pane hosts the live Device Assignment tool for tracking devices and assigning player Characters to them (see [device_assignment.md](device_assignment.md)); the sub-views host the inspection stubs (Dice/Check Resolution, Conditions, Creatures, Encounter, Timekeeping, Chronicle, Equipment) fed with dummy data. | DM only |
 
 A player who attempts to navigate to a DM-only URL is treated as if the page did not exist for them; the application is free to redirect them to the default landing page or render a not-available response. A DM viewing as a player is, for access purposes, a player.
 
@@ -63,11 +62,11 @@ The Compendium is visible to both DMs and players.
 
 ## Status page layout
 
-The Status page has its own internal left-hand navigation that switches the right-hand content pane. The left nav sits flush against the left edge of the page content (below the global top menu bar) and lists six entries, top to bottom:
+The Status page has its own internal left-hand navigation that switches the right-hand content pane. The left nav sits flush against the left edge of the page content (below the global top menu bar) and lists the following entries, top to bottom (the live nav also carries Creatures and Encounter sub-views between Conditions and Timekeeping):
 
-1. **Status** — the default landing pane for `/status`. Shows a brief description and acts as a hub.
+1. **Status** — the default landing pane for `/status`. Acts as the hub and hosts the live Device Assignment Stub (see [device_assignment.md](device_assignment.md)). Unlike the inspection sub-views, which run on Status sample data, this stub runs on live state: it lists every device the server has tracked (from the Device Registry, persisted in `data/devices.json`) and lets the DM assign a player Character to each device. Assigning a Character changes which sheet that device opens on by default on the Character Sheets page. The viewing device is badged "this device".
 2. **Dice Resolution** — the right pane renders the Roll Resolution Stub (see `docs/common/ui/dice_resolution_roll_stub.md`) for each example Roll, with each Roll inside its own demo Rolls wrapper.
-3. **Check Resolution** — the right pane renders the Check Resolution Stub (see `docs/common/ui/check_resolution_stub.md`) with one shared Rolls wrapper containing multiple example Rolls (Supporting and Opposing sides separated by a divider), followed by three example Conditions Save Resolution Stubs (see `docs/common/ui/conditions_save_resolution_stub.md`) — each wrapping the Check Resolution Builder Stub (see `docs/common/ui/check_resolution_builder_stub.md`) over a sample Affliction save (Bleed vs Tier 3 with Bardic Inspiration, Poison vs Tier 1 with Bardic Inspiration, Bleed vs Tier 2 with no Reroll).
+3. **Check Resolution** — the right pane renders the Check Resolution Stub (see `docs/common/ui/check_resolution_stub.md`) with one shared Rolls wrapper containing multiple example Rolls (Supporting and Opposing sides separated by a divider), followed by three example Conditions Save Resolution Stubs (see `docs/common/ui/conditions_save_resolution_stub.md`) — each wrapping the Action Builder Stub (see `docs/common/ui/action_builder_stub.md`) over a sample Affliction save (Bleed vs Tier 3 with Bardic Inspiration, Poison vs Tier 1 with Bardic Inspiration, Bleed vs Tier 2 with no Reroll).
 4. **Conditions** — the right pane renders the Conditions Downtime PC Card Stub (see `docs/common/ui/conditions_downtime_pc_card_stub.md`) for each example player Creature. The stub runs on example data; the panel emits no real state changes.
 5. **Timekeeping** — the right pane renders the Timekeeping Stub (see `docs/common/ui/timekeeping_stub.md`) once per example Timestamp, stacked vertically. The examples vary the Time of Day across early morning, dawn, midday, dusk, midnight, and a Leap Day to show the sky's day/night transitions and the sun/moon's arc across the full width of the stub.
 6. **Chronicle** — the right pane renders the Chronicle Entry Stub (see `docs/common/ui/chronicle_entry_stub.md`). Five example Entries are rendered twice: first under a **DM View** heading, then again under a **Player View** heading using a player viewer (Bryn, Creature id 1). The five Entries cover a shared Note with a long public description, a private GM Note with a long DM-only description, a shared Note with long content in both descriptions, a Creature Reference with an image, and a player-owned shared Note (whose owner can edit it under both views). Each example is labeled above the card so reviewers can compare what does and does not render for each viewer role.

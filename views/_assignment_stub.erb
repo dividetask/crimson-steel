@@ -1,0 +1,65 @@
+<%#
+  Device assignment stub. Lists every device the server has seen and
+  lets the DM pick the player Character each one defaults to on the
+  Character Sheets page.
+
+  Locals:
+    devices    — array of DeviceRegistry records
+                 ({ 'device_id', 'character_id', 'last_seen' })
+    characters — assignable player Characters ([{ id:, name: }])
+    current_id — the viewing device's id (badged as "this device")
+%>
+<div class="assignment-stub">
+  <h2 class="assignment-heading">Devices</h2>
+  <% if devices.empty? %>
+    <p class="assignment-empty">No devices have connected yet.</p>
+  <% else %>
+    <table class="assignment-table">
+      <thead>
+        <tr>
+          <th>Device</th>
+          <th>Last Seen</th>
+          <th>Assigned Character</th>
+          <th>Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% devices.each do |d|
+             device_id   = d['device_id']
+             assigned_id = d['character_id']
+             assigned    = characters.find { |c| c[:id] == assigned_id }
+             is_current  = current_id && device_id == current_id
+        %>
+          <tr class="<%= 'assignment-self' if is_current %>">
+            <td class="assignment-id" title="<%= h device_id %>">
+              <code><%= h assignment_short_id(device_id) %></code>
+              <% if is_current %><span class="assignment-tag">this device</span><% end %>
+            </td>
+            <td class="assignment-seen"><%= assignment_format_seen(d['last_seen']) %></td>
+            <td class="assignment-assigned">
+              <% if assigned %>
+                <%= h assigned[:name] %>
+              <% else %>
+                <em>unassigned</em>
+              <% end %>
+            </td>
+            <td class="assignment-change">
+              <form method="post" action="/devices/assign" class="assignment-form">
+                <input type="hidden" name="device_id" value="<%= h device_id %>">
+                <select name="character_id">
+                  <option value="">(unassign)</option>
+                  <% characters.each do |c| %>
+                    <option value="<%= c[:id] %>" <%= 'selected' if assigned_id == c[:id] %>>
+                      <%= h c[:name] %>
+                    </option>
+                  <% end %>
+                </select>
+                <button type="submit">Save</button>
+              </form>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</div>

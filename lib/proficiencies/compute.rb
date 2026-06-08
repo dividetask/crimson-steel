@@ -49,6 +49,27 @@ module Proficiencies
       { dice_cap: dice_cap, competency_modifier: modifier }
     end
 
+    # Roll inputs for an *untrained* (zero-rank) non-Restricted Skill
+    # driven by `attribute`. This is what the Floor Ability (Jack of
+    # All Trades) grants on Skills the Creature has no ranks in: it
+    # mirrors direct_prowess with base ranks pinned to zero, so without
+    # the Floor Ability it collapses to attr_contrib + the
+    # Non-Proficiency Penalty. Restricted Skills are out of scope here.
+    #
+    # Returns the same { dice_cap:, competency_modifier: } shape as
+    # roll_inputs.
+    def untrained_roll_inputs(attribute:, creature:)
+      effective_ranks = floor_ability_ranks(creature)
+      attr_contrib = (creature.attribute_value(attribute).to_f /
+                      Config.attribute_contribution_divisor).floor
+      penalty = effective_ranks.zero? ? Config.non_proficiency_penalty : 0
+      prowess = effective_ranks + attr_contrib + penalty
+
+      dice_cap, bonus_penalty = DiceResolution.translate_prowess(prowess)
+      modifier = bonus_penalty.zero? ? nil : ['Competency', bonus_penalty]
+      { dice_cap: dice_cap, competency_modifier: modifier }
+    end
+
     # ---- pipeline pieces -----------------------------------------------
 
     def direct_prowess(key, entry, driving_attr, creature)
@@ -65,15 +86,23 @@ module Proficiencies
     end
 
     def floor_lift(key, entry, creature)
-      ability = Config.floor_ability
-      return 0 unless ability
-      return 0 unless creature.has_ability(ability)
       return 0 if entry.nil?  # Floor doesn't apply to keys without a catalog entry.
       return 0 if Config.restricted_skills.include?(key)
       # Also restricted by the resolved entry's own key: a Set
       # Instance whose family is restricted (e.g. `restricted_magic_*`)
       # would inherit. The shipped config only restricts the plain
       # `restricted_magic`, so the entry-level check is enough.
+      floor_ability_ranks(creature)
+    end
+
+    # floor(granting class level / 2) the Floor Ability grants, or 0
+    # when the Creature lacks the ability. Callers apply any
+    # Restricted-Skill / catalog-entry guards before calling (see
+    # floor_lift).
+    def floor_ability_ranks(creature)
+      ability = Config.floor_ability
+      return 0 unless ability
+      return 0 unless creature.has_ability(ability)
       (creature.level_for_ability(ability).to_f / 2).floor
     end
 

@@ -28,6 +28,8 @@ module CharacterCreation
   CREATION_TIER  = 0
   # New PCs persist to the Player Character data file (data/ overlay).
   PC_SOURCE = 'creatures_data_pcs.yaml'.freeze
+  # A Cleric chooses this many of their deity's favored domains.
+  CLERIC_DOMAIN_PICKS = 3
 
   module_function
 
@@ -177,7 +179,7 @@ module CharacterCreation
 
     case sel['mode']
     when 'domain'
-      { mode: 'domain', deities: deities_blob }
+      { mode: 'domain', max_domains: CLERIC_DOMAIN_PICKS, deities: deities_blob }
     when 'count'
       { mode: 'count', budget: eval_budget(sel['budget']),
         spells: spell_pool(sel['filter']) }
@@ -231,11 +233,11 @@ module CharacterCreation
   end
 
   def deities_blob
-    Creatures::Deities.deities.map do |dname, d|
+    Creatures::Deities.deities.keys.map do |dname|
       {
         name: dname,
-        domains: Array(d['domains']).map do |dom|
-          { name: dom, spells: Creatures::Deities.domain_spells(dname, dom) }
+        domains: Creatures::Deities.deity_domains(dname).map do |dom|
+          { name: dom, spells: Creatures::Deities.domain_spells(dom) }
         end
       }
     end
@@ -319,9 +321,9 @@ module CharacterCreation
     when 'domain'
       choices = {}
       deity = params['deity'].to_s
-      domain = params['domain'].to_s
-      choices['deity']  = deity  unless deity.empty?
-      choices['domain'] = domain unless domain.empty?
+      domains = Array(params['domains']).map(&:to_s).reject(&:empty?)
+      choices['deity']   = deity   unless deity.empty?
+      choices['domains'] = domains unless domains.empty?
       choices
     when 'count', 'points'
       spells = Array(params['spells']).map(&:to_s).reject(&:empty?)

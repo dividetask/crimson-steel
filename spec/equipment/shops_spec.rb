@@ -63,6 +63,22 @@ RSpec.describe 'Shops' do
       expect(potion.quantity).to eq(6)
       expect(i.get_total_wealth(owner)).to eq(649)
     end
+
+    it 'stocks a magical weapon with its Property and prices it from the catalog' do
+      generic_magic = { 'magic' => {
+        'name' => 'Arcane Armory', 'base_gold' => 0, 'gold_per_sqrt_pop' => 0,
+        'stock' => [
+          { 'item' => 'Long sword', 'tier' => 1, 'min_pop' => 5, 'qty_base' => 1, 'qty_per_kpop' => 0,
+            'properties' => [{ 'name' => 'Elemental', 'subtype' => 'Fire' }] }
+        ]
+      } }
+      i = Equipment::Instance.new(catalog: catalog, generic_shops: generic_magic, game_day: 1)
+      owner = i.visit_generic_shop('magic', population: 100)
+      sword = i.get_inventory(owner).find { |s| s.item_type == 'Long sword' }
+      expect(sword.properties).to eq([{ name: 'Elemental', subtype: 'Fire', cost: nil }])
+      # Base 35 + Tier 1 surcharge 250 + Elemental cost 500 = 785.
+      expect(Equipment::Pricing.unit_price(sword, catalog)).to eq(785)
+    end
   end
 
   describe 'Advance Time' do

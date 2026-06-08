@@ -1,6 +1,18 @@
 <%= erb :_timekeeping_stub, locals: { timestamp: @timestamp } %>
 
-<% if @viewer == :dm %>
+<%
+  # The Encounter Phase (DM's menu dropdown) selects which stubs show.
+  #   combat   — hide Advance Time; show Initiative + Map; notes DM-only.
+  #   looting  — show only the loot stubs (DM also sees notes underneath).
+  #   traveling / social / downtime ("peaceful") — show only the notes
+  #     (plus the DM's Advance Time control, the natural place to pass time).
+  phase    = @phase
+  peaceful = %i[traveling social downtime].include?(phase)
+%>
+
+<%# Advance Time (DM): the peaceful Phases, where time passes between
+    scenes. Hidden in Combat (time is tracked by rounds/ticks) and Looting. %>
+<% if @viewer == :dm && peaceful %>
   <form method="post" action="/chronicle/advance-time" class="tk-advance">
     <span class="tk-advance-label">Advance time:</span>
     <button type="submit" name="rounds" value="10" class="ce-btn">+1 min</button>
@@ -12,9 +24,9 @@
   </form>
 <% end %>
 
-<%# Initiative stub: rendered for the DM at all times, and for players
-    only when Combat is active. %>
-<% if @viewer == :dm || @combat_active %>
+<%# Initiative stub: Combat Phase only (both viewers). The Start/End Combat
+    buttons inside it still drive the actual Combat mechanics. %>
+<% if phase == :combat %>
   <%= erb :_initiative_stub, locals: {
         rows: @tracker_rows,
         combat_active: @combat_active,
@@ -27,7 +39,7 @@
     DM-only, shown during Combat. Sits at the bottom of the Combat Tracker,
     above the Turn Action stub. Advances to the next Combatant in initiative
     order, rolling over the Round when the last Combatant ends their turn. %>
-<% if @viewer == :dm && @combat_active %>
+<% if @viewer == :dm && phase == :combat && @combat_active %>
   <form method="post" action="/encounter/advance_turn" class="encounter-next-turn">
     <button type="submit" class="ce-btn encounter-next-turn-btn">Next Turn ▶</button>
   </form>
@@ -35,14 +47,14 @@
 
 <%# Turn Action panel (turn_action_stub.md): DM-only, acts on the Acting
     Combatant. Rendered only when a Combatant currently holds the turn. %>
-<% if @viewer == :dm && @acting_row %>
-  <%= erb :_turn_action, locals: { acting: @acting_row, dead: @acting_dead, saves: @acting_saves, expiring_effects: @acting_expiring_effects } %>
+<% if @viewer == :dm && phase == :combat && @acting_row %>
+  <%= erb :_turn_action, locals: { acting: @acting_row, dead: @acting_dead, saves: @acting_saves, main_actions: @acting_main_actions, special_options: @acting_special } %>
 <% end %>
 
-<%# Atlas map (atlas_stub.md): DM always; players only while Combat is active.
-    DM places Combatant icons from the tracker, drags to reposition, and
-    clicks a Token to target it from the open Attack pane. %>
-<% if @viewer == :dm || @combat_active %>
+<%# Atlas map (atlas_stub.md): Combat Phase only (both viewers). DM places
+    Combatant icons from the tracker, drags to reposition, and clicks a
+    Token to target it from the open Attack pane. %>
+<% if phase == :combat %>
   <%= erb :_atlas_stub, locals: {
         snapshot: @atlas_snapshot,
         maps: @atlas_maps,
@@ -52,9 +64,19 @@
       } %>
 <% end %>
 
+<%# Acting Combatant's Character Sheet (creatures_minimal_stub.md): sits
+    under the Map during active Combat, but only when the Acting Combatant is
+    a Player Character. An NPC / monster turn shows no sheet — enemy stats are
+    never exposed here. Shown to the DM and players alike. %>
+<% if phase == :combat && @combat_active && @acting_sheet %>
+  <section class="encounter-acting-sheet">
+    <%= erb :_creature_minimal, locals: { demo: @acting_sheet } %>
+  </section>
+<% end %>
+
 <%# Bardic Inspiration: discharge a live Reservoir to grant Luck (DM-only).
     A Reaction, so it sits outside the turn panel and fires any time. %>
-<% if @viewer == :dm && @inspirations && @inspirations.any? %>
+<% if @viewer == :dm && phase == :combat && @inspirations && @inspirations.any? %>
   <section class="inspiration-panel">
     <h3 class="inspiration-h">Bardic Inspiration</h3>
     <% @inspirations.each do |insp| %>
@@ -79,8 +101,26 @@
   </section>
 <% end %>
 
-<%# Notes / Chronicle Entries: hidden from players once Combat starts. %>
-<% if @viewer == :dm || !@combat_active %>
+<%# Post-Combat Cleanup (equipment_post_combat_creatures_stub.md): DM-only,
+    Looting Phase. Loots and clears the just-ended fight's non-PC
+    Combatants. Only shown when such Combatants remain on the roster. %>
+<% if @viewer == :dm && phase == :looting && @post_combat_rows.any? %>
+  <%= erb :_equipment_post_combat_creatures_stub, locals: { rows: @post_combat_rows } %>
+<% end %>
+
+<%# Loot Pile (equipment_loot_pile_stub.md): DM + players, Looting Phase.
+    Shows the active Map's Ground Pile when it holds anything. %>
+<% if phase == :looting && @loot_pile %>
+  <%= erb :_equipment_loot_pile_stub, locals: {
+        pile: @loot_pile, viewer: @viewer,
+        give_options: @loot_give_options, claim_creature_id: @loot_claim_creature_id
+      } %>
+<% end %>
+
+<%# Notes / Chronicle Entries: the DM sees them in every Phase; players see
+    them only in the peaceful Phases (in Combat / Looting players get the
+    Initiative + Map / loot stubs instead). %>
+<% if @viewer == :dm || peaceful %>
   <section class="scene-section">
     <% if @active_entries.any? %>
       <div class="scene-list">

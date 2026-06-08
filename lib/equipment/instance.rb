@@ -164,6 +164,18 @@ module Equipment
       posted
     end
 
+    # The Active Effects every equipped Stack would post (Guidance Bonus +
+    # Property effects), without touching Conditions. Lets read-only
+    # consumers (the character sheet, modifier aggregation) see a
+    # Creature's equipped Guidance / Property bonuses regardless of
+    # whether the loadout has been reconciled into Conditions this
+    # session. Returns a list of { target_key:, bonus_type:, amount:, ... }.
+    def equipped_effects(owner_id)
+      read_inventory(owner_id).select(&:equipped).flat_map { |s| stack_effects(s) }
+    rescue StandardError
+      []
+    end
+
     # ===== Detail-fetchers =====
     def get_item_details(arg, ref = nil)
       stack = resolve_stack(arg, ref) or return ERROR

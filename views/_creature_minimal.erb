@@ -16,6 +16,26 @@
 
   attr_order = %i[str dex con int wis cha]
   attr_label = { str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA' }
+
+  # Per-Attribute Check / Save (and untrained-Skill) Dice Cap + Bonus
+  # for the click/hover popup. attributes_table is ordered to match
+  # attr_order, so we pair them positionally — robust whether or not
+  # the row carries an explicit :key.
+  attr_rows = Array(demo[:attributes_table])
+  attr_info = {}
+  attr_order.each_with_index { |a, i| attr_info[a] = attr_rows[i] if attr_rows[i] }
+
+  # Render bonus/penalty tokens ({ amount:, conditional: }) inline: green
+  # for a bonus, red for a penalty, a leading "*" for a conditional one.
+  mod_tokens = lambda do |tokens|
+    Array(tokens).filter_map do |t|
+      amt = t[:amount].to_i
+      next if amt.zero?
+      cls  = amt.negative? ? 'cs-mod-penalty' : 'cs-mod-bonus'
+      star = t[:conditional] ? '*' : ''
+      %(<span class="#{cls}">#{star}#{format('%+d', amt)}</span>)
+    end.join
+  end
 %>
 
 <article class="cs-card cs-minimal tier-<%= h[:tier] %><%= ' cs-bare' unless chrome_on %>" data-creature-id="<%= demo[:id] %>">
@@ -31,9 +51,47 @@
   <section class="cs-vitals-block">
     <div class="cs-attr-grid">
       <% attr_order.each do |a| %>
-        <div class="cs-attr-cell">
+        <%
+          info   = attr_info[a]
+          label  = info ? info[:attr] : attr_label[a]
+          abonus = (demo[:attribute_bonuses] || {})[a].to_i
+          # Grid shows the intrinsic Attribute (Effective minus the item
+          # bonus) so the green "+X" reads as an addition on top.
+          aval   = demo[:attributes][a].to_i - abonus
+        %>
+        <div class="cs-attr-cell<%= ' cs-attr-has-pop' if info %>"<% if info %> tabindex="0" role="button" aria-label="<%= label %> checks and saves"<% end %>>
           <span class="cs-attr-key"><%= attr_label[a] %></span>
-          <span class="cs-attr-value"><%= demo[:attributes][a] %></span>
+          <span class="cs-attr-value"><%= aval %><%= mod_tokens.call([{ amount: abonus }]) %></span>
+          <% if info %>
+            <div class="cs-attr-pop" role="tooltip">
+              <div class="cs-attr-pop-title"><%= label %></div>
+              <table class="cs-attr-pop-table">
+                <thead><tr><th></th><th class="cs-num">Ranks</th><th class="cs-num">Dice</th><th class="cs-num">Bonus</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <th>Check</th>
+                    <td class="cs-num"><%= info[:check][:ranks] || 0 %></td>
+                    <td class="cs-num"><%= info[:check][:dice] %>d</td>
+                    <td class="cs-num"><%= sprintf('%+d', info[:check][:bonus]) %></td>
+                  </tr>
+                  <tr>
+                    <th>Save</th>
+                    <td class="cs-num"><%= info[:save][:ranks] || 0 %></td>
+                    <td class="cs-num"><%= info[:save][:dice] %>d</td>
+                    <td class="cs-num cs-nowrap"><%= sprintf('%+d', info[:save][:bonus]) %><%= mod_tokens.call(info[:save][:tokens]) %></td>
+                  </tr>
+                  <% if info[:untrained] %>
+                    <tr>
+                      <th>Untrained</th>
+                      <td class="cs-num"><%= info[:untrained][:ranks] || 0 %></td>
+                      <td class="cs-num"><%= info[:untrained][:dice] %>d</td>
+                      <td class="cs-num"><%= sprintf('%+d', info[:untrained][:bonus]) %></td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% end %>
         </div>
       <% end %>
     </div>
@@ -43,6 +101,14 @@
         <span class="cs-mana-label">Mana</span> <%= v[:mana][:current] %>/<%= v[:mana][:max] %>,
         <span class="cs-tox">Toxicity <%= v[:toxicity][:current] %>/<%= v[:toxicity][:threshold] %></span>
       </div>
+    </div>
+    <%
+      drb  = (v[:defense_breakdown] || {})[:damage_reduction]
+      resb = (v[:defense_breakdown] || {})[:damage_resilience]
+    %>
+    <div class="cs-defense">
+      <div class="cs-def-line"><span class="cs-def-label">Damage Reduction</span> <span class="cs-def-value cs-nowrap"><%= drb ? drb[:base] : v[:damage_reduction] %><%= mod_tokens.call(drb[:tokens]) if drb %></span></div>
+      <div class="cs-def-line"><span class="cs-def-label">Damage Resilience</span> <span class="cs-def-value cs-nowrap"><%= resb ? resb[:base] : v[:damage_resilience] %><%= mod_tokens.call(resb[:tokens]) if resb %></span></div>
     </div>
   </section>
 

@@ -28,6 +28,9 @@ module Encounter
     def combat_pool_divisor   = Integer(data['Combat Pool Divisor'] || 2)
     def combat_pool_step      = Integer(data['Combat Pool Step'] || 4)
 
+    # Granted-Ability names that suppress Flatfooted (and Unaware).
+    def flatfooted_suppressors = Array(data['Flatfooted Suppressors']).map(&:to_s)
+
     # Turns Per Round indexed by Tier. A Tier beyond the array is an
     # error (the caller must extend the config), not a clamp.
     def turns_per_round = (data['Turns Per Round'] || [1])
@@ -54,6 +57,12 @@ module Encounter
     def falling_damage_per_10_feet  = Integer(data['Falling Damage Per 10 Feet'] || 2)
     def falling_damage_threshold    = Integer(data['Falling Damage Threshold'] || 5)
     def falling_damage_bleed_constant = Integer(data['Falling Damage Bleed Constant'] || 0)
+
+    # ---- Tier Mismatch ----
+    # Inherent damage reduction a higher-Tier defender gets per Tier of the
+    # gap (Tier 0 counts as 0.5; the product is floored). Applies to every
+    # damaging effect — weapon attacks, spells, and abilities.
+    def inherent_damage_reduction_per_tier = Integer(data['Inherent Damage Reduction Per Tier'] || 5)
 
     # ---- Damage Types ----
     def damage_types = (data['damage_types'] || {})

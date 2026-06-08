@@ -19,8 +19,8 @@ RSpec.describe 'End-of-Combat loot' do
     end
 
     it 'moves non-ally Inventory and Currency into the Ground Pile' do
-      pile = inst.collect_combat_loot(entries, combat_id: 7)
-      expect(pile).to eq('ground:combat_7')
+      pile = inst.collect_combat_loot(entries, location: 'map_7')
+      expect(pile).to eq('ground:map_7')
       contents = inst.get_inventory(pile).map { |s| [s.item_type, s.quantity] }
       expect(contents).to eq([['Short sword', 1], ['Gold', 3], ['Dagger', 1], ['Silver', 10]])
       expect(inst.get_inventory('creature:goblin_a')).to be_empty
@@ -28,12 +28,12 @@ RSpec.describe 'End-of-Combat loot' do
     end
 
     it 'leaves ally Inventories untouched' do
-      inst.collect_combat_loot(entries, combat_id: 7)
+      inst.collect_combat_loot(entries, location: 'map_7')
       expect(inst.get_inventory('creature:pc_1').map(&:item_type)).to eq(['Long sword'])
     end
 
     it 'resets equipped on moved Stacks' do
-      pile = inst.collect_combat_loot(entries, combat_id: 7)
+      pile = inst.collect_combat_loot(entries, location: 'map_7')
       expect(inst.get_inventory(pile).map(&:equipped)).to all(be false)
     end
 
@@ -44,13 +44,13 @@ RSpec.describe 'End-of-Combat loot' do
       i = Equipment::Instance.new(catalog: catalog, creature_accessor: accessor, loot: loot)
       pile = i.collect_combat_loot(
         [{ combatant_id: 2, creature_id: 'goblin_a', ally: false, loot_table: 'goblin_pocket_change' }],
-        combat_id: 9
+        location: 'map_9'
       )
       expect(i.get_inventory(pile).map(&:item_type)).to include('Copper')
     end
 
     it 'produces no Ground Pile for an all-ally hand-off' do
-      expect(inst.collect_combat_loot([{ combatant_id: 1, creature_id: 'pc_1', ally: true }], combat_id: 1)).to be_nil
+      expect(inst.collect_combat_loot([{ combatant_id: 1, creature_id: 'pc_1', ally: true }], location: 'map_1')).to be_nil
     end
   end
 
@@ -118,6 +118,26 @@ RSpec.describe 'End-of-Combat loot' do
       inst = Equipment::Instance.new(catalog: catalog, creature_accessor: accessor)
       inst.drop_stack('creature:1', 0, 'tavern floor', quantity: 1)
       expect(inst.get_inventory('ground:tavern floor').map { |s| [s.item_type, s.quantity] }).to eq([['Dagger', 1]])
+    end
+  end
+
+  describe 'Delete Ground Pile' do
+    let(:inst) { Equipment::Instance.new(catalog: catalog, creature_accessor: FakeCreatureAccessor.new) }
+
+    it 'removes the pile and every remaining Stack wholesale' do
+      inst.add_item('ground:combat_3', Equipment::Stack.normalize(item: 'Rapier'))
+      inst.add_item('ground:combat_3', Equipment::Stack.normalize(item: 'Gold', quantity: 5))
+      expect(inst.delete_ground_pile('ground:combat_3')).to be(true)
+      expect(inst.get_inventory('ground:combat_3')).to be_empty
+      expect(inst.store.exists?('ground:combat_3')).to be false
+    end
+
+    it 'rejects a non-existent pile' do
+      expect(inst.delete_ground_pile('ground:never')).to be(Equipment::ERROR)
+    end
+
+    it 'rejects a non-Ground owner' do
+      expect(inst.delete_ground_pile('party')).to be(Equipment::ERROR)
     end
   end
 end

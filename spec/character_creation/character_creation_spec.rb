@@ -105,10 +105,14 @@ RSpec.describe CharacterCreation, type: :model do
       expect(sel[:budget]).to eq(10)
     end
 
-    it 'has the Cleric pick a deity and domain instead of spells' do
+    it 'has the Cleric pick a deity and domains instead of spells' do
       sel = by_key['cleric'][:spell_selection]
       expect(sel[:mode]).to eq('domain')
-      expect(sel[:deities].map { |d| d[:name] }).to include('Grull')
+      expect(sel[:max_domains]).to eq(3)
+      karthak = sel[:deities].find { |d| d[:name] == 'Karthak' }
+      expect(karthak).not_to be_nil
+      war = karthak[:domains].find { |dom| dom[:name] == 'War' }
+      expect(war[:spells]).to include('Spiritual Hammer')
     end
 
     it 'skips the step for auto casters (Druid) and non-casters (Fighter)' do
@@ -147,11 +151,11 @@ RSpec.describe CharacterCreation, type: :model do
       expect(names).to include('Mage Hand', 'Charm Person')
     end
 
-    it 'records a deity / domain for the Cleric domain flow' do
+    it 'records a deity / domains for the Cleric domain flow' do
       id = CharacterCreation.create!(
         'name' => 'Brother Vael', 'race' => 'hill_dwarf', 'class' => 'cleric',
         'attributes' => { 'str' => 12, 'dex' => 10, 'con' => 14, 'int' => 10, 'wis' => 15, 'cha' => 13 },
-        'skills' => %w[healing religion], 'deity' => 'Grull', 'domain' => 'War'
+        'skills' => %w[healing religion], 'deity' => 'Karthak', 'domains' => %w[War Fire Glory]
       )
       names = Creatures.lookup(id).granted_abilities.map { |g| g[:name] }
       expect(names).to include('Heal')             # class-level granted spell

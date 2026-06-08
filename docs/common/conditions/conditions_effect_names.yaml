@@ -199,8 +199,38 @@ Effect Names:
       - kind: flag
         flag: raging
 
+  # War-domain Channel Divinity (Martial Devotion) grants the benefits of
+  # Weapon Training for one turn: a Competency bonus to weapon attacks that
+  # scales every 4 levels (mirrors `weapon_training` in modifier_abilities.yaml).
+  # The flag makes the buff show in the Creature's Active Effects.
+  martial_devotion:
+    mechanics:
+      - kind: modifier
+        modifier_type: Competency
+        amount: "1 + level / 4"
+        applies_to: [attack]
+      - kind: flag
+        flag: martial_devotion
+
+
   unaware:
     description: "The target has yet to act in combat."
     mechanics:
       - kind: flag
         flag: unaware
+
+  blindspot:
+    description: "The creature is invisible to one or more observers; an affected observer cannot see it and treats it as unseen."
+    mechanics:
+      - kind: flag
+        flag: unseen
+      - kind: display
+        text: "The creature is unseen by each observer that failed its save. The DM adjudicates the consequences of invisibility (attacks against the unseen creature, the creature's own attacks, Perception to locate it, etc.)."
+
+  blurred:
+    description: "The creature's form is blurred; Critical Successes rolled on attacks against it are rerolled, blunting decisive blows."
+    mechanics:
+      - kind: reroll
+        scope: criticals
+        applies_to: [attacks_against]
+        amount: -1

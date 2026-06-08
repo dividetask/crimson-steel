@@ -39,21 +39,23 @@ export class TnComputation {
     const highestPositive = new Map();
     const lowestNegative = new Map();
 
-    for (const [type, value] of list) {
+    for (const [type, value, source] of list) {
       if (value > 0) {
-        if (!highestPositive.has(type) || value > highestPositive.get(type)) {
-          highestPositive.set(type, value);
+        if (!highestPositive.has(type) || value > highestPositive.get(type).value) {
+          highestPositive.set(type, { value, source });
         }
       } else if (value < 0) {
-        if (!lowestNegative.has(type) || value < lowestNegative.get(type)) {
-          lowestNegative.set(type, value);
+        if (!lowestNegative.has(type) || value < lowestNegative.get(type).value) {
+          lowestNegative.set(type, { value, source });
         }
       }
     }
 
+    // `source` (optional 3rd element of each entry) is a display label the
+    // TN-breakdown tooltip shows in parentheses; it does not affect stacking.
     const out = [];
-    for (const [type, value] of highestPositive) out.push({ type, value, influence: -value });
-    for (const [type, value] of lowestNegative) out.push({ type, value, influence: -value });
+    for (const [type, e] of highestPositive) out.push({ type, value: e.value, influence: -e.value, source: e.source });
+    for (const [type, e] of lowestNegative) out.push({ type, value: e.value, influence: -e.value, source: e.source });
     return out;
   }
 

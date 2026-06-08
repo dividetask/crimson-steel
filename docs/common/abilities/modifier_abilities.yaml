@@ -93,6 +93,22 @@ fey_resistance:
       descriptors: [magical_sleep]
       add: 1
 
+poison_resistance:
+  description: "+1 racial bonus on all saving throws against poison."
+  modifiers:
+    - target: save
+      type: Racial
+      descriptors: [poison]
+      add: 1
+
+enchantment_resistance:
+  description: "+1 racial bonus on saving throws against enchantment effects."
+  modifiers:
+    - target: save
+      type: Racial
+      descriptors: [enchantment]
+      add: 1
+
 far_sight:
   description: "All distance penalties for sight-based perception checks are halved."
   modifiers:

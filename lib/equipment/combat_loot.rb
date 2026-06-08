@@ -4,14 +4,17 @@ module Equipment
   # Stack", and "Distribute Loot Pile".
   module CombatLoot
     # entries: list of { combatant_id, creature_id, ally, loot_table? }.
-    # Moves each non-ally Combatant's Inventory (+ optional rolled Loot
-    # Table) into a single Ground Pile. Returns the pile Owner ID, or
-    # nil when there is nothing to collect.
-    def collect_combat_loot(entries, combat_id:)
+    # location: the Ground Pile location to gather into (the caller's
+    # choice — the Encounter uses the active Map, so loot left behind when
+    # the party changes Maps is no longer surfaced). Moves each non-ally
+    # Combatant's Inventory (+ optional rolled Loot Table) into the single
+    # Ground Pile `ground:<location>`. Returns the pile Owner ID, or nil
+    # when there is nothing to collect.
+    def collect_combat_loot(entries, location:)
       non_ally = entries.map { |e| symbolize(e) }.reject { |e| e[:ally] }
       return nil if non_ally.empty?
 
-      pile = "ground:combat_#{combat_id}"
+      pile = "ground:#{location}"
       non_ally.each do |entry|
         owner = "creature:#{entry[:creature_id]}"
         read_inventory(owner).each do |stack|
@@ -58,6 +61,16 @@ module Equipment
 
       cleanup(pile_owner_id)
       results
+    end
+
+    # Remove a Ground Pile and every remaining Stack on it wholesale —
+    # the loot-pile stub's "Delete Pile". Returns true, or ERROR when the
+    # owner is not an existing Ground Pile. (Distribute leaves Skipped
+    # Stacks behind; this discards them when the DM gives up on the pile.)
+    def delete_ground_pile(owner_id)
+      return ERROR unless ground_owner?(owner_id) && @store.exists?(owner_id)
+      @store.delete(owner_id)
+      true
     end
 
     private

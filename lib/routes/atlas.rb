@@ -100,7 +100,9 @@ helpers do
                      grid: map[:grid], archived: map[:archived] },
       tokens:      tokens.map { |t| atlas_token_view(t, acting_id, viewer) },
       # Annotations (drawings) are shared — every viewer sees them all.
-      annotations: atlas_state.list_annotations(map_id: map[:id])
+      annotations: atlas_state.list_annotations(map_id: map[:id]),
+      # Zones (spell areas / hazards). Anchor x/y are resolved Map Units.
+      zones:       atlas_state.list_zones(map_id: map[:id])
     }
   end
 

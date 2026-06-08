@@ -14,11 +14,36 @@
     </ul>
 
     <% if dm_host? %>
+      <%# Encounter Phase selector: the DM's own view only. It is a pure
+          view-state control (it does not start/stop Combat), and players —
+          including the DM while Viewing As Player — must not change the
+          Phase, so it is hidden whenever the view is not the DM's. Auto
+          submits on change; a Set button covers JS-disabled clients. %>
+      <% if dm_view? %>
+        <form class="phase-form" method="post" action="/encounter/set_phase">
+          <label class="phase-label">Phase
+            <select name="phase" class="phase-select" onchange="this.form.submit()">
+              <% encounter_phases.each do |val, label| %>
+                <option value="<%= val %>"<%= ' selected' if current_encounter_phase == val %>><%= label %></option>
+              <% end %>
+            </select>
+          </label>
+          <noscript><button type="submit" class="view-as-btn phase-set">Set</button></noscript>
+        </form>
+      <% end %>
+
       <form class="view-as-form" method="post" action="/view-as/toggle">
         <button type="submit" class="view-as-btn">
           <%= viewing_as_player? ? 'View As DM' : 'View As Player' %>
         </button>
       </form>
+    <% end %>
+
+    <%# A player viewer (a real player, or the DM while Viewing As Player)
+        sees the name of the Character they are playing where the DM's
+        View-As control sits. Players never get the Phase selector. %>
+    <% if viewer_role == :player && viewing_creature_name %>
+      <span class="player-creature" title="You are playing this Character"><%= h(viewing_creature_name) %></span>
     <% end %>
 
     <span class="server-addr"><%= server_address %>:<%= request.port %></span>

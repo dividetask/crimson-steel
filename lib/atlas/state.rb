@@ -252,7 +252,7 @@ module Atlas
 
     # ---------- Manage Zones ----------
 
-    def place_zone(map_id:, source_id:, shape:, size:, anchor:)
+    def place_zone(map_id:, source_id:, shape:, size:, anchor:, texture: nil)
       return ERROR unless map_for(map_id)
       a = normalize_anchor(anchor)
       if %w[target caster].include?(a[:type])
@@ -262,7 +262,8 @@ module Atlas
         a[:y] = tok[:y]
       end
       zone = { id: @next_zone_id, map_id: map_id, source_id: source_id.to_s,
-               shape: shape.to_s, size: Integer(size), anchor: a }
+               shape: shape.to_s, size: Integer(size), anchor: a,
+               texture: texture && texture.to_s }
       @next_zone_id += 1
       @zones << zone
       persist!
@@ -480,7 +481,8 @@ module Atlas
         source_id: (z['source_id'] || '').to_s,
         shape:     (z['shape'] || 'square').to_s,
         size:      Integer(z['size'] || 0),
-        anchor:    normalize_anchor(z['anchor']) }
+        anchor:    normalize_anchor(z['anchor']),
+        texture:   z['texture'] }
     end
 
     def normalize_annotation(a)
@@ -523,7 +525,8 @@ module Atlas
       { 'id' => z[:id], 'map_id' => z[:map_id], 'source_id' => z[:source_id],
         'shape' => z[:shape], 'size' => z[:size],
         'anchor' => { 'type' => z[:anchor][:type], 'x' => z[:anchor][:x],
-                      'y' => z[:anchor][:y], 'creature_id' => z[:anchor][:creature_id] } }
+                      'y' => z[:anchor][:y], 'creature_id' => z[:anchor][:creature_id] },
+        'texture' => z[:texture] }.compact
     end
 
     def stringify_annotation(a)

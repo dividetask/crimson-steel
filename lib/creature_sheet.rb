@@ -6,6 +6,7 @@ require 'encounter'
 require 'equipment'
 require 'abilities'
 require 'dice_resolution'
+require_relative 'creature_modifiers'
 
 # Builds the sheet hash the character-sheet partials
 # (_creature_minimal / _creature_full) consume, sourced exclusively
@@ -32,6 +33,7 @@ module CreatureSheet
       roster_group: roster_group(rec),
       header:       header(accessor, classes, tier),
       attributes:   attrs,
+      attribute_bonuses: attribute_bonuses(accessor),
       classes:      classes,
       skills:       skills(accessor),
       vitals:       vitals(accessor, tier),
@@ -94,11 +96,12 @@ module CreatureSheet
     cha      = (accessor.attribute_value(:cha) rescue 0)
     hp_dmg   = st ? st.hp_damage.values.sum : 0
     defense  = defensive_totals(accessor)
-    # Damage Reduction / Resilience = equipped Armor + active-effect Modifiers
-    # (e.g. Rage's Circumstance bonuses), so a Condition the Creature is under
-    # shows up in these totals.
-    dr  = defense[:damage_reduction]  + condition_modifier_total(cond, 'damage_reduction')
-    res = defense[:damage_resilience] + condition_modifier_total(cond, 'damage_resilience')
+    # Damage Reduction / Resilience = equipped Armor (the base) + active-
+    # effect Modifiers (e.g. Rage's Circumstance bonus), each broken out so
+    # a raging Creature reads "3+2" rather than a baked-in "5". Inherent
+    # Modifiers stay folded into the base.
+    dr_break  = defense_breakdown(defense[:damage_reduction],  cond, 'damage_reduction')
+    res_break = defense_breakdown(defense[:damage_resilience], cond, 'damage_resilience')
     {
       hp:   { current: [max_hp - hp_dmg, 0].max, max: max_hp },
       mana: { current: (st ? [max_mana - st.mana_spent, 0].max : max_mana), max: max_mana,
@@ -109,8 +112,21 @@ module CreatureSheet
       moderate_damage: (st ? st.hp_damage[:moderate] || 0 : 0),
       major_damage:    (st ? st.hp_damage[:major] || 0 : 0),
       combat_pool: (Encounter::CombatPool.size_for(accessor) rescue 0),
-      damage_reduction: dr, damage_resilience: res
+      damage_reduction: dr_break[:total], damage_resilience: res_break[:total],
+      defense_breakdown: { damage_reduction: dr_break, damage_resilience: res_break }
     }
+  end
+
+  # Split a defensive total into its base (equipped Armor + any Inherent
+  # Modifiers, which stay baked in) and the broken-out active-effect tokens
+  # (everything else). Returns { base:, total:, tokens: [{ amount:, conditional: }] }.
+  def defense_breakdown(armor_base, cond, key)
+    pairs    = cond ? (cond.get_modifiers(key) rescue []) : []
+    inherent = pairs.select { |type, _| type == 'Inherent' }.sum { |_, a| a.to_i }
+    tokens   = pairs.reject { |type, _| type == 'Inherent' }
+                    .map { |_type, amount| { amount: amount.to_i, conditional: false } }
+    base = armor_base.to_i + inherent
+    { base: base, tokens: tokens, total: base + tokens.sum { |t| t[:amount] } }
   end
 
   # Sum of the active-effect Modifiers targeting a key (e.g. damage_reduction),
@@ -156,11 +172,16 @@ module CreatureSheet
   # ranged) and the damage bonus from the weapon's damage formula
   # evaluated against the wielder. Always offers Dodge (a Dexterity Save).
   def actions(accessor)
+    # Active-effect attack Modifiers (e.g. Martial Devotion's Competency bonus)
+    # add to the weapon attack rows' Bonus, so a buffed Creature's sheet shows
+    # the higher to-hit. Dodge is not a weapon attack, so it is excluded.
+    cond    = conditions_for(accessor.id)
+    atk_mod = cond ? (condition_modifier_total(cond, 'attack') rescue 0) : 0
     rows = equipped_weapons(accessor).map do |w|
       attack_attr = ranged_weapon?(w) ? :dex : :str
       ri  = roll_inputs(accessor, 'martial', attack_attr)
       { name: w[:display_name], speed: w[:speed], roll: "#{ri[:dice_cap]}d",
-        attack_bonus: competency_bonus(ri), dmg_bonus: weapon_damage(w, accessor),
+        attack_bonus: competency_bonus(ri) + atk_mod, dmg_bonus: weapon_damage(w, accessor),
         bleed: w[:bleed], mt: w[:threshold], notes: Array(w[:damage_types]).join('/') }
     end
     dodge = roll_inputs(accessor, 'dex_save', :dex)
@@ -239,8 +260,12 @@ module CreatureSheet
     []
   end
 
+  # Granted Abilities a Creature has, minus its known Spells — those are
+  # listed separately (see #spells). A spell-typed Catalog entry resolves
+  # through #spell_info, so anything it recognizes is dropped here.
   def abilities(accessor)
-    (accessor.granted_abilities rescue []).map do |g|
+    (accessor.granted_abilities rescue []).filter_map do |g|
+      next if spell_info(g[:name])
       { name: titleize_ability(g[:name]), description: ability_description(g[:name]) }
     end
   end
@@ -311,18 +336,60 @@ module CreatureSheet
     []
   end
 
-  # Resolve a spell key to { tier:, name: }, or nil when it is not a
-  # Catalog spell. Granted keys arrive snake_case; the spell catalog is
-  # keyed by display name, so we try the Title-Cased form too.
+  # Resolve a granted ability key to { tier:, name: }, or nil when it is not a
+  # Catalog spell. A Creature may name a spell in several forms — the catalog
+  # key ("Ward"), a snake_case key, or a **per-Tier variant name**. A Tier-axis
+  # spell's variant names come either from its `name` array ("Create Illusionary
+  # Sound") or are **constructed from `prefix` / `suffix` arrays** the way the
+  # Abilities resolver builds them ("Lesser Ward" = prefix "Lesser" + "Ward";
+  # "Heal Petty Wounds" = "Heal" + suffix "Petty Wounds"). Matching is
+  # case-insensitive and treats `_` as a space.
   def spell_info(key)
-    title = titleize_ability(key)
-    entry = (Abilities.catalog.ability(title) || Abilities.catalog.ability(key.to_s) rescue nil)
-    return nil unless entry && entry['type'] == 'spell'
-    tier = entry['tier']
-    tier = Array(tier).map(&:to_i).min if tier.is_a?(Array)
-    { tier: tier.to_i, name: title }
+    norm = ->(s) { s.to_s.tr('_', ' ').downcase.strip }
+    [key.to_s, titleize_ability(key)].each do |form|
+      hit = spell_index[norm.call(form)]
+      return hit.dup if hit
+    end
+    nil
   rescue StandardError
     nil
+  end
+
+  # Normalized-name → { tier:, name: } over every Catalog spell variant. Built
+  # once; the spell Catalog is immutable at runtime.
+  def spell_index
+    @spell_index ||= begin
+      norm = ->(s) { s.to_s.tr('_', ' ').downcase.strip }
+      idx = {}
+      (Abilities.catalog.catalog rescue {}).each do |ckey, e|
+        next unless e.is_a?(Hash) && e['type'] == 'spell'
+        spell_variants(ckey, e).each { |tier, vname| idx[norm.call(vname)] ||= { tier: tier, name: vname } }
+      end
+      idx
+    end
+  end
+
+  # [ [tier, display_name], … ] for a spell: the catalog key, plus every
+  # per-Tier variant from its `name` array or constructed from `prefix`/`suffix`
+  # (mirroring Abilities' name construction: `[prefix, key, suffix]`).
+  def spell_variants(key, entry)
+    tiers = Array(entry['tier'])
+    tiers = [0] if tiers.empty?
+    name   = entry['name']
+    prefix = entry['prefix']
+    suffix = entry['suffix']
+    out = [[tiers.map(&:to_i).min, key.to_s]]
+    tiers.each_with_index do |t, i|
+      vname =
+        if name.is_a?(Array)                          then name[i]
+        elsif name.is_a?(String) && !name.strip.empty? then name
+        else
+          [(prefix.is_a?(Array) ? prefix[i] : prefix), key, (suffix.is_a?(Array) ? suffix[i] : suffix)]
+            .reject { |p| p.nil? || p.to_s.strip.empty? }.join(' ')
+        end
+      out << [t.to_i, vname.to_s] if vname && !vname.to_s.strip.empty?
+    end
+    out
   end
 
   def inventory(accessor)
@@ -336,24 +403,104 @@ module CreatureSheet
     it && it[:definition].is_a?(Hash) && it[:definition]['inscribable']
   end
 
+  # Always-On Attribute bonuses (equipped Guidance items + Attribute-
+  # target Modifier abilities) per Attribute key, for the sheet's green
+  # "+X" and for showing the intrinsic Attribute value (Effective minus
+  # this bonus) in the grid.
+  def attribute_bonuses(accessor)
+    Creatures::Config.attribute_keys.each_with_object({}) do |k, h|
+      h[k] = (CreatureModifiers.attribute_bonus(accessor, k) rescue 0)
+    end
+  end
+
   def attributes_table(accessor, attrs)
+    jack = jack_of_all_trades?(accessor)
     %i[Strength Dexterity Constitution Intelligence Wisdom Charisma]
       .zip(%i[str dex con int wis cha]).map do |label, k|
       save = (Proficiencies::Compute.roll_inputs(key: "#{k}_save", creature: accessor, attribute_override: k) rescue nil)
       # Attribute Check Prowess is floor(Effective Attribute / 2),
       # translated through Dice Resolution into a Dice Cap + bonus.
       check_dice, check_bonus = DiceResolution.translate_prowess(attrs[k] / 2)
-      { attr: label.to_s, score: attrs[k], half: attrs[k] / 2,
-        check: { dice: check_dice, bonus: check_bonus },
-        save:  { dice: (save ? save[:dice_cap] : 0), bonus: (save && save[:competency_modifier] ? save[:competency_modifier][1] : 0) } }
+      # Save bonus tokens (Cloak of Resistance, racial resistances, ...)
+      # broken out as signed amounts; conditional ones are flagged so the
+      # sheet can mark them with a `*`.
+      save_tokens = (CreatureModifiers.save_bonus_tokens(accessor, k) rescue [])
+      # Always-On Attribute bonus (Belt / Headband Guidance) — already
+      # folded into `score`; carried so the sheet can show the intrinsic
+      # value plus a green "+X".
+      attr_bonus = (CreatureModifiers.attribute_bonus(accessor, k) rescue 0)
+      { attr: label.to_s, key: k, score: attrs[k], half: attrs[k] / 2,
+        attr_bonus: attr_bonus,
+        # An Attribute Check is a pure Attribute roll — it uses no Skill
+        # ranks, so its Ranks cell is always 0.
+        check: { dice: check_dice, bonus: check_bonus, ranks: 0 },
+        save:  { dice: (save ? save[:dice_cap] : 0),
+                 bonus: (save && save[:competency_modifier] ? save[:competency_modifier][1] : 0),
+                 ranks: save_ranks(accessor, k), tokens: save_tokens },
+        # Only meaningful when the Creature has the Floor Ability (Jack
+        # of All Trades) — the Dice Cap + Bonus an untrained Skill driven
+        # by this Attribute would roll. nil otherwise so the sheet can
+        # omit the row.
+        untrained: (jack ? untrained_roll(accessor, k) : nil) }
     end
+  end
+
+  # Does the Creature carry the Proficiencies Floor Ability (default
+  # Jack of All Trades)? Drives whether the minimal sheet's Attribute
+  # popup shows an untrained-Skill row.
+  def jack_of_all_trades?(accessor)
+    ability = Proficiencies::Config.floor_ability
+    ability && accessor.has_ability(ability)
+  rescue StandardError
+    false
+  end
+
+  # Ranks the Creature has in an Attribute's Saving Throw proficiency
+  # (e.g. `dex_save`), for the Attribute popup's Ranks column.
+  def save_ranks(accessor, attr)
+    accessor.ranks_for("#{attr}_save").to_i
+  rescue StandardError
+    0
+  end
+
+  # Dice Cap + Bonus (and the Floor-granted ranks) for an untrained
+  # (zero-rank) Skill driven by an Attribute, sourced from Proficiencies
+  # (never recomputed here).
+  def untrained_roll(accessor, attr)
+    ri = Proficiencies::Compute.untrained_roll_inputs(attribute: attr, creature: accessor)
+    { dice: ri[:dice_cap],
+      bonus: (ri[:competency_modifier] ? ri[:competency_modifier][1] : 0),
+      ranks: (Proficiencies::Compute.floor_ability_ranks(accessor) rescue 0) }
+  rescue StandardError
+    nil
   end
 
   def equipped_weapons(accessor)
     cat = Equipment.catalog
-    Equipment.instance.get_inventory("creature:#{accessor.id}")
-             .select { |s| s.equipped && (it = cat.item_type(s.item_type)) && it[:category] == 'Weapon' }
-             .map { |s| Equipment::Details.weapon_details(s, cat) }
+    carried = Equipment.instance.get_inventory("creature:#{accessor.id}")
+                       .select { |s| s.equipped && (it = cat.item_type(s.item_type)) && it[:category] == 'Weapon' }
+                       .map { |s| Equipment::Details.weapon_details(s, cat) }
+    carried + natural_weapon_details(accessor, cat)
+  rescue StandardError
+    []
+  end
+
+  # Weapon Details for the natural weapons a Creature's Granted Abilities
+  # confer (a Natural Attack Talent's grants_equipment, e.g. a canine's
+  # Bite (Jaws)). These are built from a synthetic Stack — the bite is an
+  # attack the Creature has, never an item carried in inventory.
+  def natural_weapon_details(accessor, cat = Equipment.catalog)
+    granted_natural_weapons(accessor).map do |name|
+      Equipment::Details.weapon_details(Equipment::Stack.normalize('item' => name), cat)
+    end
+  rescue StandardError
+    []
+  end
+
+  # The natural-weapon item names a Creature is granted across its
+  # Abilities (each Natural Attack Talent's grants_equipment).
+  def granted_natural_weapons(accessor)
+    (accessor.granted_abilities rescue []).flat_map { |g| Abilities.granted_equipment(g[:name]) }.uniq
   rescue StandardError
     []
   end

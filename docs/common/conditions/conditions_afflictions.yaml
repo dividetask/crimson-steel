@@ -64,6 +64,15 @@ Afflictions:
       attribute: "dex"
       severity: "minor"
 
+  # Generic spider bite venom — Constitution save (the Affliction default),
+  # minor Dexterity Ability Damage. Injected by the Bite (Fangs) weapon.
+  spider_venom:
+    category: "poison"
+    effect:
+      kind: "ability_damage"
+      attribute: "dex"
+      severity: "minor"
+
   common_venom:
     category: "poison"
     effect:

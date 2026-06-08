@@ -14,7 +14,10 @@ module CreaturesFixtures
   # shape).
   def record(**overrides)
     base = {
-      id: 1,
+      # 9000-range ids keep these in-memory fixtures clear of the example
+      # Equipment / Conditions datasets (whose owners use low ids), so a
+      # fixture never accidentally inherits a real Creature's equipment.
+      id: 9000,
       name: 'Test',
       player: nil,
       group: '',
@@ -55,18 +58,18 @@ module CreaturesFixtures
 
   def korth  # Dwarven Cleric 4, hill_dwarf race, Tier 2 (override)
     record(
-      id: 1, name: 'Korth', race: 'hill_dwarf', tier: 2,
+      id: 9001, name: 'Korth', race: 'hill_dwarf', tier: 2,
       tags: ['player_character'],
       attributes: { str: 12, dex: 14, con: 17, int: 14, wis: 18, cha: 11 },
       classes: { cleric: { level: 4, skills: %w[healing arcana intimidate sense_motive],
-                            choices: { 'deity' => 'Grull', 'domain' => 'War' } } },
+                            choices: { 'deity' => 'Karthak', 'domain' => 'War' } } },
       tier_attribute_advancement: %i[con wis]
     )
   end
 
   def brenna  # Human Barbarian 4, Tier 2 (override)
     record(
-      id: 2, name: 'Brenna', race: 'human', tier: 2,
+      id: 9002, name: 'Brenna', race: 'human', tier: 2,
       tags: ['player_character'],
       attributes: { str: 19, dex: 17, con: 17, int: 11, wis: 13, cha: 10 },
       classes: { barbarian: { level: 4, skills: %w[athletics intimidate survival sense_motive] } },
@@ -76,7 +79,7 @@ module CreaturesFixtures
 
   def vex  # High-Elf Arcane Trickster 4, Tier 2 (override)
     record(
-      id: 3, name: 'Vex', race: 'high_elf', tier: 2,
+      id: 9003, name: 'Vex', race: 'high_elf', tier: 2,
       tags: ['player_character'],
       attributes: { str: 9, dex: 19, con: 13, int: 14, wis: 15, cha: 15 },
       classes: { arcane_trickster: { level: 4,
@@ -88,7 +91,7 @@ module CreaturesFixtures
 
   def birch  # Satyr Bard 4, Tier 2 (override)
     record(
-      id: 4, name: 'Birch', race: 'satyr', tier: 2,
+      id: 9004, name: 'Birch', race: 'satyr', tier: 2,
       tags: ['player_character'],
       attributes: { str: 9, dex: 12, con: 12, int: 10, wis: 11, cha: 18 },
       classes: { bard: { level: 4, skills: %w[perform_sing perform_dance persuasion arcana] } },
@@ -98,7 +101,7 @@ module CreaturesFixtures
 
   def ghoul  # Undead 2, Tier 1 (override). No class entries.
     record(
-      id: 100, name: 'Ghoul', race: 'undead', tier: 1,
+      id: 9100, name: 'Ghoul', race: 'undead', tier: 1,
       tags: ['enemy'],
       attributes: { str: 13, dex: 14, con: 12, int: 7, wis: 10, cha: 6 },
       classes: {}
@@ -107,7 +110,7 @@ module CreaturesFixtures
 
   def brown_bear  # Animal track, Total Level 6
     record(
-      id: 101, name: 'Brown Bear', race: 'beast',
+      id: 9101, name: 'Brown Bear', race: 'beast',
       tags: ['animal'],
       attributes: { str: 19, dex: 10, con: 16, int: 2, wis: 13, cha: 7 },
       classes: { commoner: { level: 6 } }

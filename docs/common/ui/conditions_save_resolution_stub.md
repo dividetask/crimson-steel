@@ -2,7 +2,7 @@
 
 Resolves one Affliction save end-to-end: composes the save Roll, walks the DM through any Reroll / Mass Reroll / Nudge picks, rolls the dice, previews what *Resolve Affliction* would do, and applies the result on Confirm. Renders as a single Rolls wrapper that visually matches the Roll Resolution / Check Resolution stub shell. Nothing is mutated server-side until the DM presses Confirm.
 
-See `ui_conventions.md` for shared rules. Cross-domain terms (Magic Toxicity, Toxicity Threshold, Tier) live in `../common_glossary.md`. The Check Resolution Builder pattern that drives the step-by-step disclosure is documented in `check_resolution_builder_stub.md`; for the save case the Builder is integrated directly into this stub rather than rendered as a child.
+See `ui_conventions.md` for shared rules. Cross-domain terms (Magic Toxicity, Toxicity Threshold, Tier) live in `../common_glossary.md`. The Action Builder pattern that drives the step-by-step disclosure is documented in `action_builder_stub.md`; for the save case the Builder is integrated directly into this stub rather than rendered as a child.
 
 ## Parameters
 
@@ -24,7 +24,8 @@ See `ui_conventions.md` for shared rules. Cross-domain terms (Magic Toxicity, To
 
 The save Roll carries a Bonus/Penalty list and renders the same TN-breakdown tooltip the Check Resolution stub uses (`dice_resolution_roll_tooltip.md`) — hover the Creature name to see `Base ±mods = TN n`. The stub composes the list from, in order:
 
-- the caller's `save_modifiers` (the Creature's own save Competency / Bonuses);
+- the caller's `save_modifiers` (the Creature's own save Competency plus Always-On Save Bonuses — racial resistances, a Cloak of Resistance, ...);
+- the **Creature Tier Inherent Bonus** — an `Inherent` Bonus equal to the Creature's own `tier`: its natural advantage from an elevated Tier makes the Affliction easier to shake off;
 - the **Potency Save Penalty** — a `Competency` Penalty of `floor(potency / potency_divisor)` (the same penalty Conditions' *Resolve Affliction* injects when it scores the save);
 - the **Inflicter Tier Penalty** — a `Circumstance` Penalty equal to the Affliction's `inflicter_tier`: a wound dealt by a higher-Tier creature is harder to shake off.
 

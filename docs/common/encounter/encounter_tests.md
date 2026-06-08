@@ -144,6 +144,38 @@ Cases:
 
 **Damage routes through apply_damage.** Resolved damage is dispatched to `apply_damage(target_id, damage, "physical")`. Per Severity Calculation, that bucket-sorts the raw damage into the `{minor, moderate, major}` Severity Map and forwards to `Conditions.apply_hit_point_damage`. The endpoint returns `severity_map` so the client can update the tracker.
 
+### Magical weapon Damage Riders
+
+A weapon carries `damage_riders` (from *Get Weapon Details*) when its Stack has a magical Property with a `damage_rider`. The rider's extra dice are rolled **at the attack's Target Number, only after the hit lands**, in their own **Roll Resolution Stub** that renders before the editable damage screen; on Confirm it collapses to its own row (with a Change button), then the damage screen appears with a **separate, editable Damage box per rider** (and a Self-damage box for a rider that bites the wielder). Rider (bonus) damage scores with `failure_modifier 0` — Successes and Crits count (Crits double, the Dice Resolution default) but a rolled `1` **never subtracts** from the bonus damage; a `1` only feeds a Vicious-style `self_damage` (its `minimum` plus its `amount` per `1`). The preview returns `riders` (metadata so the panel can build the roll stub); the commit carries the rolled, DM-editable amounts back in `rider_results: [{ id, damage, self_damage }]`. Each rider lands as its **own** Severity Calculation, separate from the weapon's base damage.
+
+**Rider damage is a separate Severity Calculation.** A `slashing` hit also carries an Elemental(Fire) rider (`damage_type: fire`). The rolled `damage: 2` routes through `apply_damage(target, 2, "fire")` — fire's `damage_per_hit: 1` makes it `3`, bucketed Moderate — landing in Conditions separately from the weapon's slashing damage.
+
+**A rider only fires on a hit.** When the net DoS is ≤ 0 (a miss), the payload returns no `riders` / `rider_outcomes` and rolls nothing extra.
+
+**Vicious lands Major and bites the wielder.** A Vicious rider (`severity: major`, `self_damage: {severity: minor, …}`) with `rider_results: { damage: 6, self_damage: 3 }` applies `{major: 6}` to the target and `{minor: 3}` to the **attacker** — all of the bonus damage is Major regardless of its Damage Type, and the self-damage is its own box.
+
+**Preview rolls nothing.** A `commit: false` preview returns the `riders` metadata but applies no rider damage and no wielder self-damage.
+
+### Tier Mismatch weapon damage reduction + Glory
+
+**Higher-Tier defender reduces weapon damage.** Attacker Tier 0 hits a Tier 2 defender for a pre-reduction `11` (base 10 + net 1). With the default `Inherent Damage Reduction Per Tier: 5`, the Tier Mismatch Inherent damage reduction `5 × Δ` (Tier 0 = 0.5) removes `floor(5 × 1.5) = 7`; the payload returns `inherent_dr: 7` and `damage: 4`.
+
+**Glory shrinks the gap.** The same attack with a `tier_advantage: 1` (Glory) weapon raises the wielder's effective Tier to 1: `Δ = 2 − 1 = 1`, reduction `5`, `damage: 6`. Against a defender only one Tier higher, Glory closes the gap entirely — `inherent_dr: 0`, full `damage: 11`.
+
+**No reduction at equal or lower Tier.** An attacker who equals or outranks the defender gets `inherent_dr: 0` (the gap is clamped at zero); the damage is unreduced.
+
+### Inherent / Ascendancy Tier modifiers on the attack check
+
+With `Tier Minimum Inherent Bonus: [0, 1, 2, 3, 4, 5]`:
+
+**Attacker carries its Inherent Bonus.** `Encounter::Attack.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 0, no_defense: false)` → `[['Inherent', 1]]`. The defender's Defense Roll carries `[['Inherent', 2]]`, which propagates onto the attacker's TN (fighting up is harder by the gap).
+
+**Glory lifts the attacker's Inherent.** The same call with `tier_advantage: 1` → `[['Inherent', 2]]` — the wielder is treated as Tier 2, so its Inherent matches the defender's and the gap closes.
+
+**No-defense adds an Ascendancy penalty.** With `no_defense: true` and no Glory → `[['Inherent', 1], ['Ascendancy', -2]]` (the un-rolled Tier-2 defender's advantage, negated; nets −1 on the TN). With Glory → `[['Inherent', 2], ['Ascendancy', -2]]` (nets 0 — the gap is closed without a defender Roll to propagate).
+
+**Tier 0 contributes nothing.** Tier-0 attacker vs Tier-0 defender yields `[]` from both `attacker_tier_bonuses` and `defender_tier_bonuses` (the Inherent Bonus at Tier 0 is 0).
+
 ## Get / Spend / Reset Combat Pool
 
 **Get Combat Pool runs the buy formula.** Combatant has Tier 0, `martial_proficiency_ranks = 4`, attribute = 12. Budget = `floor((4 + floor(12/2)) / 1) = 10`. The tiered Buy cost function (per *Combat Pool computation*: `Step·T(T-1)/2 + R·T` with `T = floor(P/Step)`, `R = P mod Step`) gives `cost(11) = 4·1 + 3·2 = 10 ≤ 10 < cost(12) = 4·3 = 12`. So P = 11 is the largest fit. Result: 11.
@@ -272,4 +304,18 @@ Cases:
 **Damage Type with critical_value Mechanic.** A Damage Type with `critical_value: 4` mechanic returns 4. The attacker's Roll is built with `critical_modifier = 4`.
 
 **Damage Type without critical_value.** Returns the Roll struct default of 2 (per `dice_resolution_design.md`).
+
+## Tier Mismatch
+
+The Ascendancy (Check) half is tested in the JavaScript suite (`test/check_resolution/tier_mismatch.test.js`); the Inherent damage-reduction half is tested here / in `spec/encounter`.
+
+**Inherent damage reduction scales with the Tier difference.** `inherent_damage_reduction(defender, attacker)` returns `5 × Δ` when the defender out-Tiers the attacker (`(3, 1) → 10`), and 0 when the defender is equal or lower (`(1, 1)`, `(1, 3) → 0`). Tier 0 counts as 0.5 and the result is floored (`(1, 0) → 2`).
+
+**Inherent DR is subtracted in resolve_attack_payload.** A Tier-3 defender struck by a Tier-1 attacker for net 12 takes `12 − (5 × 2) = 2`; the result reports `inherent_dr: 10`. No reduction applies when the attacker is equal or higher Tier.
+
+**Inherent DR also applies to spell damage (resolve_cast_payload).** A Tier-3 target hit by a Tier-1 caster's 14-damage spell takes `14 − (5 × 2) = 4`; it is subtracted from each resolved damage Effect (after Save halving) so preview and commit agree. None applies when the caster is equal or higher Tier; `caster.tier_bonus` (Glorious Charge) shrinks the gap.
+
+**Effective-Tier override shrinks the gap.** Passing `attacker.tier_bonus` to the attack payload raises the attacker's effective Tier for that attack — Glorious Charge's +1 against a one-Tier-higher foe drives Δ to 0, dropping the Inherent DR to `inherent_dr: 0`.
+
+**Ascendancy on the Check (JS).** `TierMismatch.ascendancyModifier(actor, opponent)` returns `['Ascendancy', 2 × Δ]` — a Bonus when the actor out-Tiers the opponent (`(3, 1) → +4`), a Penalty when out-Tiered (`(1, 3) → −4`), and null at equal Tier or when a Tier is absent. Tier 0 counts as 0.5 and the magnitude is floored (`(1, 0) → +1`). `CheckResolution` runs it after Propagation, so a Tier-2 attacker vs a Tier-1 defender resolves to attacker TN 4 / defender TN 8 (the defender's Penalty is not inverted back onto the attacker).
 

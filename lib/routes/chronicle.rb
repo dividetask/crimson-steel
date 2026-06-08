@@ -22,6 +22,18 @@ helpers do
     Creatures.player_controlled.first&.dig(:id)
   end
 
+  # Display name of the Creature the current player viewer is playing, for
+  # the top menu. The device's assigned Character wins; otherwise the shared
+  # first player Creature (matching viewing_creature_id). nil for the DM's
+  # own view (the DM gets the View-As toggle there instead).
+  def viewing_creature_name
+    return nil if viewer_role == :dm
+    cid = assigned_character_id || viewing_creature_id
+    return nil unless cid
+    info = (Creatures.get(cid) rescue nil)
+    info && info[:name]
+  end
+
   def player_creatures
     Creatures.player_controlled
   end

@@ -37,9 +37,11 @@
 #                                 spells the player picked for the class's
 #                                 Spellcasting-type ability — Bardic
 #                                 Spellcasting, Arcane Spellcasting, etc.),
-#                                 `deity` + `domain` (Cleric), Bard's
-#                                 Versatile Performance subject. Free-form
-#                                 — the granting Class interprets each key.
+#                                 `deity` + `domains: [a, b, c]` (Cleric —
+#                                 up to three; legacy single `domain` still
+#                                 accepted), Bard's Versatile Performance
+#                                 subject. Free-form — the granting Class
+#                                 interprets each key.
 
 characters:
   - id: 1
@@ -65,6 +67,16 @@ characters:
               - charm_person
               - healing_word
               - suggestion
+              - detect_magic
+              - friends
+              - create_illusionary_sound
+              - sift
+              - vacuous_vessel
+              - vicious_mockery
+              - biting_words
+              - ears_of_the_city
+              - create_illusionary_image
+              - timely_inspiration
           skills:
             - perform_dance
             - persuasion
@@ -99,6 +111,20 @@ characters:
               - create_illusionary_image
               - disguise_self
               - sift
+              - message
+              - silent_portal
+              - mage_hand
+              - hideous_laughter
+              - illusion_of_calm
+              - auditory_hallucination
+              - obscuring_mist
+              - grease
+              - expeditious_retreat
+              - blindspot
+              - darkness
+              - web
+              - create_pit
+              - blur
           skills:
             - arcana
             - perception
@@ -127,8 +153,8 @@ characters:
         cleric:
           level: 4
           choices:
-            deity: Grull
-            domain: War
+            deity: Karthak
+            domains: [War, Strength, Fire]
             spellcasting:
               - heal_petty_wounds
               - sacred_flame
@@ -137,8 +163,16 @@ characters:
               - healing_word
               - command
               - lesser_ward
+              - divine_favor
+              - shield_of_faith
+              - magic_weapon
+              - spiritual_weapon
+              - hold_person
+              - silence
+              - blind
               - heal_simple_wounds
               - standard_ward
+              - protection_from_poison
               - standard_surgery
           skills:
             - healing

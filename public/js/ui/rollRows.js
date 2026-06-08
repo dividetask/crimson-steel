@@ -2,8 +2,8 @@
 //
 // Roll modifiers (reroll / mass-reroll / nudge / Luck) are composed
 // client-side, so their badge rows above the dice are created in JS — not
-// server-seeded. Both the Save Resolution stub (stepMachine.js) and the Check
-// Resolution Builder (checkBuilder.js) use this so the behaviour is identical
+// server-seeded. Both the Save Resolution stub (stepMachine.js) and the Action
+// Builder (actionBuilder.js) use this so the behaviour is identical
 // wherever the Roll stub is mounted. The Roll's `.row-initial` carries the
 // rowspanned cells (character / result / lock); this keeps their rowspan in
 // sync as modifier rows come and go.
