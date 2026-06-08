@@ -25,11 +25,18 @@ RSpec.describe 'Creatures::Races chain walk', type: :model do
   end
 
   it 'attribute_adjustments accumulate across the chain' do
-    # The shipped catalog has no per-race adjustments — verify the
-    # zero-baseline before downstream content fills it in.
+    # Hill Dwarf's modifiers live on the leaf; the dwarf / humanoid
+    # ancestors contribute none, so the chain total is the leaf's.
     r = Creatures::Races.look_up('hill_dwarf')
     expect(r[:attribute_adjustments]).to eq(
-      str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0
+      str: 0, dex: 0, con: 2, int: 0, wis: 2, cha: 0
+    )
+  end
+
+  it 'the all:N shorthand expands to every attribute (human)' do
+    r = Creatures::Races.look_up('human')
+    expect(r[:attribute_adjustments]).to eq(
+      str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1
     )
   end
 end
