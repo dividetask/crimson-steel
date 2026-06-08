@@ -302,10 +302,13 @@ export class ActionBuilder {
     }
     ActionBuilder._setState(root, '__dice', 'active');
     // Compose the Check Resolution roll affordance only when the flow rolls. A
-    // no-roll action (a buff Cast, a reservoir pour) charges its dice without
-    // rolling, so "Roll All" is not mounted — the DM just confirms.
+    // no-roll action (a buff Cast, a reservoir pour like Shield of Faith)
+    // charges its dice without rolling, so "Roll All" is not mounted and the
+    // roll table itself is hidden — the DM just confirms, never prompted to roll.
     const rollAll = root.querySelector('.btn-roll-all');
     if (rollAll) rollAll.hidden = !!cb.noRoll;
+    const diceBody = root.querySelector('.step-body-dice');
+    if (diceBody) diceBody.hidden = !!cb.noRoll;
     // All steps resolved — show the final propagated TNs before the DM rolls.
     ActionBuilder._previewTns(root);
   }
