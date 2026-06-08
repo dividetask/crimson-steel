@@ -45,6 +45,12 @@ export class ActionBuilder {
 
   static _bind(root) {
     root.addEventListener('click', (e) => {
+      // The Damage Rider stub (a nested .rolls-wrapper injected into our results
+      // block after Confirm) carries its own .btn-confirm / .cr-step-change; its
+      // controls are driven by the dice engine + turnAttack.js, so ignore clicks
+      // that originate inside it — otherwise the rider's Confirm would re-fire
+      // the attack's own Confirm.
+      if (e.target.closest && e.target.closest('.ta-rider-stub')) return;
       const opt = e.target.closest && e.target.closest('.cb-opt');
       if (opt && root.contains(opt) && !opt.disabled) return ActionBuilder._pick(root, opt);
       const chg = e.target.closest && e.target.closest('.cr-step-change');

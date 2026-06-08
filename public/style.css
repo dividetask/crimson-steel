@@ -3344,12 +3344,10 @@ body {
 .rolls-actions .cb-quick:disabled { opacity: 0.4; background: #f3f3f3; color: #999; cursor: not-allowed; }
 
 /* Attack result block: shown beneath the (still-present) builder after the
-   first Confirm as a non-mutating preview, then again after committing. */
+   first Confirm as a non-mutating preview, then again after committing. It now
+   holds only the editable damage screen — the rider Roll Resolution Stub is
+   injected into the attack builder's own results block (see below). */
 .ta-result {
-  margin-top: 10px;
-  padding: 8px 10px;
-  border-top: 2px solid #c8c8c8;
-  background: #fafafa;
   font-size: 12px;
 }
 .ta-result p { margin: 2px 0; }
@@ -3357,10 +3355,21 @@ body {
 .ta-field label { font-weight: bold; color: #444; display: flex; align-items: center; gap: 4px; }
 .ta-field input { width: 56px; padding: 2px 4px; font-size: 12px; }
 .ta-split { color: #7f1d1d; }
-/* Rider Roll Resolution Stub sits above the damage screen; trim the shared
-   .rolls-wrapper margin so the two read as one stacked flow. */
-.ta-rider-stub .rolls-wrapper { margin-bottom: 10px; }
-.ta-damage-screen { margin-top: 4px; }
+/* The rider Roll Resolution Stub is injected into the attack's results block,
+   directly under the Net Degree of Success line, so it reads as part of the
+   same attack table rather than a separate boxed widget. Strip the standalone
+   .rolls-wrapper chrome (border / background / margin) and tone its header down
+   to a thin sub-section divider; its Roll / Confirm stay right-aligned in the
+   same column the attack roll's were. */
+.rolls-results .ta-rider-stub { margin-top: 4px; }
+.rolls-results .ta-rider-stub .rolls-wrapper { border: none; margin: 0; background: transparent; }
+.rolls-results .ta-rider-stub .rolls-header {
+  background: transparent; border-bottom: 1px solid #ddd; padding: 4px 0;
+}
+.rolls-results .ta-rider-stub .rolls-results {
+  padding: 4px 0 0; background: transparent; border-top: none;
+}
+.ta-damage-screen { margin-top: 8px; }
 .ta-result-label { font-size: 11px; font-weight: bold; color: #8a5d00; margin-bottom: 4px; }
 .ta-result-committed { background: #eef7ee; border-top-color: #2c8a2c; }
 .ta-hit strong { color: #7f1d1d; }

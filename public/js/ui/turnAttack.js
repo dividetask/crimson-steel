@@ -168,16 +168,28 @@ export class TurnAttack {
 
     container._riders = res.riders || [];
     container._riderRolls = {};
-    slot.hidden = false;
 
-    // When the weapon has Damage Riders, the rider Roll Resolution Stub comes
-    // first; the editable damage screen is revealed once the DM Confirms it.
-    // With no riders the damage screen shows straight away.
+    // When the weapon has Damage Riders, the rider Roll Resolution Stub is
+    // injected into the attack builder's own results block — directly under the
+    // Net Degree of Success line and above its Change button — so it reads as a
+    // continuation of the same attack table, with its Roll / Confirm in the same
+    // place the attack roll's were. The DM rolls + Confirms it, it collapses to
+    // a row beneath Net Degree of Success, and only then is the editable damage
+    // screen (in .ta-result below) revealed. With no riders the damage screen
+    // shows straight away.
     if (container._riders.length) {
       const { tn, dieSize } = TurnAttack._attackerTn(container);
-      slot.innerHTML = `<div class="ta-rider-stub">${TurnAttack._riderStubHtml(container._riders, tn, dieSize)}</div>` +
-        '<div class="ta-damage-screen" hidden></div>';
+      const results = container.querySelector('.action-builder .rolls-results');
+      const prior = results && results.querySelector('.ta-rider-stub');
+      if (prior) prior.remove();
+      const stubHtml = `<div class="ta-rider-stub">${TurnAttack._riderStubHtml(container._riders, tn, dieSize)}</div>`;
+      const changeBtn = results && results.querySelector('.btn-rolls-change');
+      if (changeBtn) changeBtn.insertAdjacentHTML('beforebegin', stubHtml);
+      else if (results) results.insertAdjacentHTML('beforeend', stubHtml);
+      slot.hidden = false;
+      slot.innerHTML = '<div class="ta-damage-screen" hidden></div>';
     } else {
+      slot.hidden = false;
       slot.innerHTML = '<div class="ta-damage-screen"></div>';
       TurnAttack._renderDamageScreen(container, res);
     }
