@@ -35,6 +35,11 @@ export class TurnAttack {
     container.addEventListener('input', (e) => {
       if (e.target.closest && e.target.closest('.ta-dmg-input')) TurnAttack._renderSplit(container);
     });
+    // Toggling a post-roll defender Reaction (Danger Sense / Primal Tenacity)
+    // adjusts this attack's damage / severity live.
+    container.addEventListener('change', (e) => {
+      if (e.target.closest && e.target.closest('.ta-reaction-toggle')) TurnAttack._onReactionToggle(container, e.target);
+    });
 
     container.innerHTML = '<p class="ta-attack-loading">Loading attack…</p><div class="ta-result" hidden></div>';
     fetch('/encounter/attack_builder?attacker_id=' + encodeURIComponent(attackerId), { headers: { Accept: 'text/html' } })
@@ -105,6 +110,7 @@ export class TurnAttack {
     const payload = TurnAttack._payload(container, container._lastDetail, true);
     payload.override = TurnAttack._gatherOverride(container);
     payload.rider_results = TurnAttack._gatherRiders(container);
+    payload.defender_reactions = TurnAttack._reactionsChosen(container);
     TurnAttack._post(container, payload, (res) => TurnAttack._renderResult(container, res, true));
   }
 
@@ -238,6 +244,19 @@ export class TurnAttack {
       rows.push(`<div class="ta-field"><label>Combat Pool — ${nameOf(s.id)}` +
         ` <input type="number" class="ta-pool-input" data-id="${s.id}" value="${s.amount}" min="0"></label></div>`);
     });
+    // Post-roll defender Reactions (Danger Sense / Primal Tenacity) the target
+    // may use against this hit — offered only when it declared no defense.
+    // Each is a one-shot effect on this attack: Danger Sense widens the Severity
+    // buckets (Damage Resilience), Primal Tenacity trims the damage (Damage
+    // Reduction). Checking one spends its Mana on commit.
+    const reactions = (container._lastRes && container._lastRes.defender_reactions_available) || [];
+    if (reactions.length) {
+      const rx = reactions.map((r) => (
+        `<label class="ta-reaction"><input type="checkbox" class="ta-reaction-toggle" data-key="${esc(r.key)}"` +
+        ` data-target="${esc(r.target)}" data-amount="${num(r.amount)}"> ${esc(r.label)}</label>`
+      )).join('');
+      rows.push(`<div class="ta-reactions"><div class="ta-reactions-head">Defender reactions</div>${rx}</div>`);
+    }
     rows.push(`<div class="ta-actions"><button type="button" class="ce-btn ta-commit">Commit attack</button></div>`);
     screen.innerHTML = rows.join('');
     // Surface a Commit button at the top of the Turn Action stub (the action
@@ -385,8 +404,41 @@ export class TurnAttack {
     const input = slot && slot.querySelector('.ta-dmg-input');
     const out = slot && slot.querySelector('.ta-split');
     if (!input || !out) return;
-    const sev = bucketSeverity(num(input.value), res.threshold || 0, res.damage_resilience || 0);
+    const resil = (res.damage_resilience || 0) + TurnAttack._reactionResilience(container);
+    const sev = bucketSeverity(num(input.value), res.threshold || 0, resil);
     out.textContent = num(input.value) > 0 ? `(${TurnAttack._splitText(sev)})` : '';
+  }
+
+  // A checked post-roll Reaction's Damage Reduction trims the damage field; its
+  // Damage Resilience widens the Severity buckets (re-split). Mana is debited
+  // on commit, where the chosen keys ride along in the payload.
+  static _onReactionToggle(container, el) {
+    if (el.dataset.target === 'damage_reduction') {
+      const screen = container.querySelector('.ta-damage-screen');
+      const dmg = screen && screen.querySelector('.ta-dmg-input');
+      if (dmg) {
+        const amt = num(el.dataset.amount);
+        dmg.value = Math.max(0, num(dmg.value) + (el.checked ? -amt : amt));
+      }
+    }
+    TurnAttack._renderSplit(container);
+  }
+
+  // Total Damage Resilience from checked Resilience reactions (Danger Sense).
+  static _reactionResilience(container) {
+    const screen = container.querySelector('.ta-damage-screen');
+    if (!screen) return 0;
+    return Array.from(screen.querySelectorAll('.ta-reaction-toggle'))
+      .filter((c) => c.checked && c.dataset.target === 'damage_resilience')
+      .reduce((s, c) => s + num(c.dataset.amount), 0);
+  }
+
+  // The keys of the checked post-roll Reactions, for the commit payload.
+  static _reactionsChosen(container) {
+    const screen = container.querySelector('.ta-damage-screen');
+    if (!screen) return [];
+    return Array.from(screen.querySelectorAll('.ta-reaction-toggle'))
+      .filter((c) => c.checked).map((c) => c.dataset.key);
   }
 
   static _splitText(sev) {

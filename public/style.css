@@ -3370,6 +3370,11 @@ body {
   padding: 4px 0 0; background: transparent; border-top: none;
 }
 .ta-damage-screen { margin-top: 8px; }
+/* Post-roll defender Reactions (Danger Sense / Primal Tenacity) — a small set
+   of checkboxes beneath the damage fields. */
+.ta-reactions { margin: 6px 0 2px; padding-top: 6px; border-top: 1px dashed #d0d0d0; }
+.ta-reactions-head { font-weight: bold; color: #444; margin-bottom: 2px; }
+.ta-reaction { display: flex; align-items: center; gap: 5px; margin: 2px 0; }
 .ta-result-label { font-size: 11px; font-weight: bold; color: #8a5d00; margin-bottom: 4px; }
 .ta-result-committed { background: #eef7ee; border-top-color: #2c8a2c; }
 .ta-hit strong { color: #7f1d1d; }

@@ -433,7 +433,23 @@ export class ActionBuilder {
 
   static _applyPatch(root, patch) {
     if (!patch) return;
-    (patch.set_dice || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.dice_count = p.count; }));
+    // Setting an absolute dice count clears any prior scale baseline (a fresh
+    // weapon / dice choice is the new full count Better Lucky would halve).
+    (patch.set_dice || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.dice_count = p.count; delete c._base_dice; }));
+    // Scale a Roll's dice relative to its chosen count — Better Lucky Than
+    // Good halves the attacker's dice (min 3). The pre-scale count is stashed
+    // so picking a different defense (restore_dice) puts it back.
+    (patch.scale_dice || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => {
+      if (c._base_dice == null) c._base_dice = c.dice_count;
+      const base = c._base_dice;
+      const scaled = Math.floor(base * (p.num || 1) / (p.den || 1));
+      c.dice_count = Math.min(base, Math.max(p.min || 1, scaled));
+    }));
+    // Undo a prior scale_dice (any defense other than the scaling Reaction
+    // restores the attacker's full dice).
+    (patch.restore_dice || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => {
+      if (c._base_dice != null) { c.dice_count = c._base_dice; delete c._base_dice; }
+    }));
     (patch.set_speed || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.speed = p.speed; }));
     // Set a Roll's own Bonus/Penalty list. The TN is NOT set here — it is
     // computed by Check Resolution at roll time (after cross-side propagation).

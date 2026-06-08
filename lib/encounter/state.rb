@@ -589,10 +589,12 @@ module Encounter
     # (no breakage) until a Check Resolution engine is wired in. On a
     # failed save the matching Concentration ends / Long Cast cancels
     # with reason: damage; those notifications are returned for dispatch.
-    def apply_damage(combatant_id, raw, type, threshold: 0, save_resolver: ->(_) { true })
+    def apply_damage(combatant_id, raw, type, threshold: 0, save_resolver: ->(_) { true }, extra_resilience: 0)
       c = find!(combatant_id)
       creature = lookup!(c[:creature_id])
-      resilience = defender_damage_resilience(creature) + condition_resilience(c[:creature_id])
+      # `extra_resilience` is a one-shot Damage Resilience for this hit only
+      # (Danger Sense), on top of the defender's armor + active Conditions.
+      resilience = defender_damage_resilience(creature) + condition_resilience(c[:creature_id]) + extra_resilience.to_i
       tags = creature ? Array(creature.tags) : []
 
       result = Severity.compute(raw: raw, type: type, threshold: threshold,
@@ -665,11 +667,24 @@ module Encounter
 
       # Reject an ineligible Defensive Action before spending anything.
       choice = defense[:choice].to_s
-      declared = !(choice.empty? || choice == 'none' || defense.empty?)
+      # Better Lucky Than Good is a Reaction, not a Defensive Action: it spends
+      # Mana and halves the attacker's dice (already done client-side) but rolls
+      # no defense and costs no Combat Pool — so it nets no Successes and is not
+      # in the eligibility table.
+      better_lucky = (choice == 'better_lucky')
+      declared = !(choice.empty? || choice == 'none' || defense.empty? || better_lucky)
       if declared && !Attack.defense_eligible?(choice, attack_kind)
         return { ok: false, error: "#{choice} is not eligible against a #{attack_kind} attack",
                  damage: 0, severity_map: {}, net_dos: 0, bleed: 0, pool_spends: [] }
       end
+
+      # Post-roll defender Reactions (Danger Sense / Primal Tenacity), each a
+      # one-shot Modifier on this single attack: Danger Sense adds Damage
+      # Resilience (a wider Severity bucket), Primal Tenacity adds Damage
+      # Reduction (subtracted from the damage). Specs are enriched route-side.
+      reactions    = Array(p[:defender_reactions])
+      extra_resil  = reactions.select { |r| r[:target].to_s == 'damage_resilience' }.sum { |r| r[:amount].to_i }
+      extra_reduce = reactions.select { |r| r[:target].to_s == 'damage_reduction' }.sum { |r| r[:amount].to_i }
 
       # Combat Pool each participant spends (Speed + dice). Dodge (a Saving
       # Throw) spends none. Reported either way; only applied on commit.
@@ -705,10 +720,24 @@ module Encounter
       apply_attack_luck(attacker[:id], attacker[:luck]) if commit
       apply_luck_spends(p[:luck]) if commit
 
+      # Debit the defender's Mana for the Reactions it used: Better Lucky Than
+      # Good (a Defense-step Reaction) and any post-roll Danger Sense / Primal
+      # Tenacity. Reported numbers are unchanged on preview; only spent on commit.
+      if commit
+        if better_lucky && defense[:id] && defense[:mana_cost].to_i.positive?
+          spend_reaction_mana(defense[:id], defense[:mana_cost].to_i)
+        end
+        reactions.each do |r|
+          spend_reaction_mana(p[:target_id], r[:mana_cost].to_i) if r[:mana_cost].to_i.positive?
+        end
+      end
+
       supporting = attacker[:successes].to_i + allies.sum { |a| a[:successes].to_i }
       net = supporting - opposing
       threshold = weapon[:threshold].to_i
-      resil = defender_resilience(p[:target_id])
+      # Danger Sense's one-shot Damage Resilience adds to the bucketing for this
+      # attack only (it is not a lingering Condition).
+      resil = defender_resilience(p[:target_id]) + extra_resil
       dtype = (Array(weapon[:damage_types]).first || weapon[:damage_type] || 'physical').to_s
       # Affliction the weapon injects on a hit (e.g. a spider's venom). Drives
       # the poison input the attack resolution shows beside damage / bleed.
@@ -736,7 +765,9 @@ module Encounter
         # "actual bleed = Bleed Constant + damage dealt"), so a 0-Bleed weapon
         # still bleeds for its damage. Inherent DR is subtracted before the
         # severity split (floored at 0).
-        computed = [base + net - inherent_dr, 0].max
+        # Primal Tenacity's one-shot Damage Reduction is subtracted here, like
+        # the Tier-Mismatch Inherent DR, before the Severity split (floored at 0).
+        computed = [base + net - inherent_dr - extra_reduce, 0].max
         damage = over.key?(:damage) ? over[:damage].to_i : computed
         bleed  = over.key?(:bleed)  ? over[:bleed].to_i  : weapon[:bleed].to_i + damage
         # Poison potency = the weapon's Affliction Potency constant + the
@@ -750,12 +781,12 @@ module Encounter
                    0
                  end
         if commit
-          out = apply_damage(p[:target_id], damage, dtype, threshold: threshold)
+          out = apply_damage(p[:target_id], damage, dtype, threshold: threshold, extra_resilience: extra_resil)
           apply_weapon_bleed(p[:target_id], attacker[:id], bleed) if bleed.positive?
           apply_weapon_poison(p[:target_id], attacker[:id], poison_name, poison) if has_poison && poison.positive?
           sev = out[:severity_map]
         else
-          sev = preview_severity(p[:target_id], damage, dtype, threshold)
+          sev = preview_severity(p[:target_id], damage, dtype, threshold, extra_resilience: extra_resil)
         end
         # Magical weapon Damage Riders: the 4 extra dice the DM rolls
         # client-side at the attack's Target Number once the hit lands. Each
@@ -943,11 +974,11 @@ module Encounter
     # Severity bucketing for a hypothetical hit, without applying it — mirrors
     # the front of apply_damage so the preview shows the same Minor/Moderate/
     # Major split the commit will produce.
-    def preview_severity(combatant_id, raw, type, threshold)
+    def preview_severity(combatant_id, raw, type, threshold, extra_resilience: 0)
       c = combatant_for(combatant_id) or return {}
       creature = lookup!(c[:creature_id])
       Severity.compute(raw: raw, type: type, threshold: threshold,
-                       damage_resilience: defender_damage_resilience(creature) + condition_resilience(c[:creature_id]),
+                       damage_resilience: defender_damage_resilience(creature) + condition_resilience(c[:creature_id]) + extra_resilience.to_i,
                        target_tags: creature ? Array(creature.tags) : [])[:severity_map]
     rescue StandardError
       {}
@@ -1755,6 +1786,20 @@ module Encounter
     def conditions_for(creature_id)
       cf = @conditions_for || ->(id) { Conditions.store.instance_for(id) }
       cf.call(creature_id)
+    end
+
+    # Debit a Combatant's Mana for a Reaction Ability it used during another
+    # Combatant's action (Better Lucky Than Good / Danger Sense / Primal
+    # Tenacity). Returns the Mana actually spent (clamped to what remains).
+    def spend_reaction_mana(combatant_id, amount)
+      return 0 unless amount.to_i.positive?
+      c = combatant_for(combatant_id) or return 0
+      creature = lookup!(c[:creature_id])
+      mana_max = (creature.respond_to?(:max_mana) ? creature.max_mana : nil)
+      return 0 unless mana_max
+      conditions_for(c[:creature_id]).apply_mana_cost(amount: amount.to_i, mana_max: mana_max)
+    rescue StandardError
+      0
     end
 
     # ---- Special Action helpers (see #special_options / #use_special_payload) ----

@@ -619,7 +619,14 @@ helpers do
         dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex),
         # Parry uses one of the defender's melee weapons; Block needs a shield.
         parry_weapons: equipped_melee_weapons(c[:creature_id]),
-        has_shield:    equipped_shield?(c[:creature_id]) }
+        has_shield:    equipped_shield?(c[:creature_id]),
+        # Reaction Abilities the target may use against this attack: the Talents
+        # it has, its remaining Mana (to afford them), and whether it is Raging
+        # (Primal Tenacity is a rage power). Drives Better Lucky Than Good as a
+        # defense and the post-roll Danger Sense / Primal Tenacity reactions.
+        abilities: (tacc&.granted_abilities rescue []).map { |g| g[:name] },
+        mana_left: combatant_mana_left(c[:creature_id], tacc),
+        raging:    creature_raging?(c[:creature_id]) }
     end
 
     # Seed Rolls carry raw inputs (base TN + each side's own Bonus list + dice).
@@ -742,6 +749,7 @@ helpers do
         # versa) and computes both TNs.
         opts = [{ value: 'none', group: 'none', label: 'No defense', summary: 'No defense',
                   patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_none_bpl }],
+                           restore_dice: [{ id: 'attacker' }],
                            set_excluded: [{ id: 'defender', excluded: true }] } }]
         # Header quick-picks: "No defense" first, then one button per
         # Defensive Action (top-right, like the weapon buttons), each
@@ -796,6 +804,7 @@ helpers do
               patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_branch_bpl },
                                  { id: 'defender', bonus_penalty_list: dcmp }],
                        set_no_propagate: [{ id: 'defender', types: def_no_prop }],
+                       restore_dice: [{ id: 'attacker' }],
                        set_dice:  [{ id: 'defender', count: dice }],
                        set_speed: [{ id: 'defender', speed: dspd }],
                        set_name:  [{ id: 'defender', roll_name: b[:name] }],
@@ -832,6 +841,7 @@ helpers do
             { value: "shield:#{sh[:caster_id]}|#{dice}", group: 'shield', label: dice.to_s,
               summary: "Shield of Faith — #{dice} dice",
               patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_declared_bpl }],
+                       restore_dice: [{ id: 'attacker' }],
                        set_dice: [{ id: 'shield', count: dice }],
                        set_tier: [{ id: 'shield', tier: sh[:tier] }],
                        set_name: [{ id: 'shield', roll_name: "Shield of Faith (#{sh[:caster_name]})" }],
@@ -841,6 +851,24 @@ helpers do
           headers << { value: "shield:#{sh[:caster_id]}|2", label: "Shield (#{sh[:caster_name]})", disabled: cap < 2 }
           opts << { kind: 'info', group: 'shield', value: 'shield|info',
                     label: "Shield of Faith by #{sh[:caster_name]} — up to #{cap} Reservoir dice" }
+        end
+        # Better Lucky Than Good — a Reaction, not a Defensive Action: no
+        # defender Roll and no Combat Pool, it spends 4 Mana to halve the
+        # attacker's dice (min 3). It can be used even while Unaware, and the
+        # target never becomes aware, so the attacker keeps its Flatfooted /
+        # Unaware Bonus (the No-defense attacker list). Offered only when the
+        # target has the Talent and can afford the Mana.
+        if t[:abilities].include?('Better Lucky Than Good')
+          bl_cost = reaction_mana_cost('Better Lucky Than Good')
+          bl_cost = 4 if bl_cost.zero?
+          bl_afford = t[:mana_left].nil? || t[:mana_left] >= bl_cost
+          opts << { value: 'better_lucky', group: 'better_lucky',
+                    label: "Better Lucky Than Good (#{bl_cost} mana)",
+                    summary: 'Better Lucky Than Good', disabled: !bl_afford,
+                    patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_none_bpl }],
+                             scale_dice: [{ id: 'attacker', num: 1, den: 2, min: 3 }],
+                             set_excluded: [{ id: 'defender', excluded: true }] } }
+          headers << { value: 'better_lucky', label: 'Better Lucky', disabled: !bl_afford }
         end
         defense_map["#{t[:id]}|#{w[:item_type]}"] = opts
         defense_header_map["#{t[:id]}|#{w[:item_type]}"] = headers
@@ -919,6 +947,11 @@ helpers do
   # from the chosen weapon (the client carries only `weapon_type`), so the
   # combat damage logic stays server-side.
   def enrich_attack_payload!(payload)
+    # Defender Reaction Abilities carry a Mana Cost the resolver debits on
+    # commit. Better Lucky Than Good is chosen in the Defense step; Danger Sense
+    # / Primal Tenacity are chosen after the roll (payload['defender_reactions']).
+    enrich_attack_reactions!(payload)
+
     wt  = payload['weapon_type']
     atk = payload['attacker'] || {}
     return unless wt && atk['id']
@@ -944,6 +977,62 @@ helpers do
                           'affliction_potency' => w[:affliction_potency],
                           'base_damage' => evaluate_weapon_damage(w[:damage_formula], acc),
                           'damage_riders' => w[:damage_riders], 'tier_advantage' => w[:tier_advantage] }
+  end
+
+  # Attach each defender Reaction's numeric spec (Mana Cost; and, for the
+  # post-roll reactions, the one-shot damage Modifier they apply to this single
+  # attack) so the resolver can debit Mana and fold the Modifier in without
+  # reaching into the Abilities catalog itself.
+  #   Better Lucky Than Good — Defense-step choice 'better_lucky'.
+  #   Danger Sense / Primal Tenacity — payload['defender_reactions'] (keys), each
+  #     carrying { target: damage_resilience|damage_reduction, type:, amount: }.
+  POST_ROLL_REACTIONS = {
+    'danger_sense'    => 'Danger Sense',
+    'primal_tenacity' => 'Primal Tenacity'
+  }.freeze
+
+  # The post-roll defender Reactions available on this preview: offered only
+  # when the target declared no defense, the hit landed (damage > 0), the target
+  # has the Talent, can afford its Mana, and (for Primal Tenacity) is Raging.
+  # Each carries its one-shot damage Modifier so the client can preview / apply
+  # it. Merged into the resolve result as `defender_reactions_available`.
+  def attach_defender_reactions(result, payload)
+    return result if result[:ok] == false
+    return result unless result[:damage].to_i.positive?
+    choice = (payload['defense'] || {})['choice'].to_s
+    return result unless choice.empty? || choice == 'none'
+    c   = encounter_state.combatant(payload['target_id'].to_i) or return result
+    acc = Creatures.lookup(c[:creature_id]) rescue nil
+    abilities = (acc&.granted_abilities rescue []).map { |g| g[:name] }
+    mana_left = combatant_mana_left(c[:creature_id], acc)
+    raging    = creature_raging?(c[:creature_id])
+    avail = POST_ROLL_REACTIONS.filter_map do |key, name|
+      next unless abilities.include?(name)
+      next if name == 'Primal Tenacity' && !raging
+      cost = reaction_mana_cost(name); cost = 4 if cost.zero?
+      next unless mana_left.nil? || mana_left >= cost
+      mod = Array((Abilities.catalog.ability(name) rescue nil)&.dig('modifiers')).first || {}
+      { key: key, name: name, mana_cost: cost, label: "#{name} (#{cost} mana)",
+        target: mod['target'].to_s, type: mod['type'].to_s, amount: mod['add'].to_i }
+    end
+    result.merge(defender_reactions_available: avail)
+  end
+
+  def enrich_attack_reactions!(payload)
+    dfn = payload['defense']
+    if dfn.is_a?(Hash) && dfn['choice'].to_s == 'better_lucky'
+      cost = reaction_mana_cost('Better Lucky Than Good')
+      dfn['mana_cost'] = cost.zero? ? 4 : cost
+    end
+    keys = Array(payload['defender_reactions'])
+    return if keys.empty?
+    payload['defender_reactions'] = keys.filter_map do |key|
+      name = POST_ROLL_REACTIONS[key.to_s] or next
+      mod  = Array((Abilities.catalog.ability(name) rescue nil)&.dig('modifiers')).first || {}
+      cost = reaction_mana_cost(name)
+      { 'key' => key.to_s, 'name' => name, 'mana_cost' => (cost.zero? ? 4 : cost),
+        'target' => mod['target'].to_s, 'type' => mod['type'].to_s, 'amount' => mod['add'].to_i }
+    end
   end
 
   # ---- Action Builder blob for a Cast (turn_action_stub.md → Cast)
@@ -1242,6 +1331,29 @@ helpers do
       skill = 'invocation'
     end
     skill
+  end
+
+  # A Creature's remaining Mana (max minus spent), or nil when it has no Mana
+  # pool. Mirrors the cast builder's computation for a non-acting Combatant.
+  def combatant_mana_left(creature_id, acc)
+    mana_max = (acc&.max_mana rescue nil)
+    return nil unless mana_max
+    spent = (Conditions.store.instance_for(creature_id).state.mana_spent rescue 0)
+    [mana_max - spent, 0].max
+  end
+
+  # Whether a Creature is currently Raging (an active `rage` named effect),
+  # which gates the Rage-power reaction Primal Tenacity.
+  def creature_raging?(creature_id)
+    (Conditions.store.instance_for(creature_id).active_effect_names rescue []).include?('rage')
+  rescue StandardError
+    false
+  end
+
+  # The Mana Cost of a reaction Ability (its catalog `mana_cost`), e.g. 4 for
+  # Better Lucky Than Good / Danger Sense / Primal Tenacity.
+  def reaction_mana_cost(ability_name)
+    (Abilities.catalog.ability(ability_name)&.dig('mana_cost') rescue nil).to_i
   end
 
   # The per-Tier Mana Cost (abilities_config.yaml → Mana Cost Per Tier).
@@ -1933,6 +2045,10 @@ post '/encounter/resolve_attack' do
   return encounter_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
   enrich_attack_payload!(payload)
   result = encounter_state.resolve_attack_payload(payload)
+  # On a preview, surface the post-roll defender Reactions (Danger Sense /
+  # Primal Tenacity) the target may use — but only when it declared no defense
+  # and the hit actually landed.
+  result = attach_defender_reactions(result, payload) unless result[:committed]
   # A committed attack mutated the target's Conditions (HP damage, bleed) —
   # persist the Conditions store so the damage survives a restart. A preview
   # (commit:false) mutates nothing, so there's nothing to write. A commit also
