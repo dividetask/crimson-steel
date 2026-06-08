@@ -1058,7 +1058,7 @@ helpers do
       cost = mana_cost_for_tier(g[:tier])
       Array(g[:names]).map do |name|
         v     = (Abilities.lookup(name) rescue nil) || {}
-        skill = cast_skill_for(acc, v)
+        skill = cast_skill_for(acc, v, name)
         ri    = roll_inputs_for(acc, skill)
         # Area footprint (Hash, or the first footprint Aspect of an Aspect-list
         # area like Grease). Area Spells are placed on the map, not targeted.
@@ -1320,17 +1320,52 @@ helpers do
   # — trained in `invocation` but not `arcana` — casts an otherwise-`arcana`
   # Spell with Invocation instead (Clerics do not cast with Arcana). Other
   # classes (Wizard, Bard, Druid) are left on their existing resolution.
-  def cast_skill_for(acc, variant)
-    cfg = (Abilities.catalog.config rescue nil)
+  # The Casting Skill a class confers on every Spell it grants: a Cleric's
+  # granted Spells all cast with Invocation, a Bard's all with Performance (the
+  # `perform_` family, resolved per-caster to a concrete Performance skill).
+  # Other classes (Wizard, Druid, Ranger) carry no override and fall back to the
+  # Spell's own skill.
+  CLASS_CASTING_SKILL = { 'cleric' => 'invocation', 'bard' => 'perform_' }.freeze
+
+  # The Casting Skill a caster uses for a Spell, decided by the **class that
+  # granted** it (CLASS_CASTING_SKILL). A class with no override falls back to
+  # the Spell's first listed skill / the default.
+  def cast_skill_for(acc, variant, spell_name)
     default = Encounter::Cast::DEFAULT_CAST_SKILL
-    return (Array((variant || {})['skills']).first || default) unless acc && cfg
-    trained = (acc.trained_skills rescue []).select { |s| cfg.casting_skill?(s) }
-    allowed = Array((variant || {})['skills'])
-    skill = allowed.find { |s| trained.include?(s) } || allowed.first || default
-    if skill.to_s == 'arcana' && !trained.include?('arcana') && trained.include?('invocation')
-      skill = 'invocation'
+    klass = spell_source_classes(acc)[spell_name.to_s]
+    cs = klass && class_casting_skill(acc, klass)
+    cs || (Array((variant || {})['skills']).first || default)
+  end
+
+  # Map of canonical Spell name → the class key that granted it, from the
+  # caster's granted Abilities (source "class:<key>"). Non-spell grants are
+  # skipped; the first granting class wins for a multiclass overlap.
+  def spell_source_classes(acc)
+    map = {}
+    (acc&.granted_abilities rescue []).each do |g|
+      src = g[:source].to_s
+      next unless src.start_with?('class:')
+      info = (CreatureSheet.spell_info(g[:name]) rescue nil) or next
+      map[info[:name]] ||= src.sub('class:', '')
     end
-    skill
+    map
+  end
+
+  # The Casting Skill a class confers (CLASS_CASTING_SKILL), with a `perform_`
+  # family resolved to the caster's concrete trained Performance skill. Nil when
+  # the class has no override (or a family the caster trains no instance of).
+  def class_casting_skill(acc, class_key)
+    skill = CLASS_CASTING_SKILL[class_key.to_s] or return nil
+    resolved = resolve_skill_family(acc, skill)
+    resolved.to_s.end_with?('_') ? nil : resolved
+  end
+
+  # Resolve a Set-Skill family ('perform_') to the caster's concrete trained
+  # instance ('perform_dance'); a non-family skill is returned unchanged. The
+  # family itself is returned only when the caster trains no instance of it.
+  def resolve_skill_family(acc, skill)
+    return skill unless skill.to_s.end_with?('_')
+    (acc&.trained_skills rescue []).find { |s| s.start_with?(skill) } || skill
   end
 
   # A Creature's remaining Mana (max minus spent), or nil when it has no Mana
@@ -1379,7 +1414,7 @@ helpers do
       ccomb = (encounter_state.combatant(caster['id'].to_i) rescue nil)
       cacc  = ccomb && (Creatures.lookup(ccomb[:creature_id]) rescue nil)
       variant = (Abilities.lookup(spell['name']) rescue nil) || {}
-      spell['cast_skill'] = cast_skill_for(cacc, variant) if cacc
+      spell['cast_skill'] = cast_skill_for(cacc, variant, spell['name']) if cacc
     end
 
     if spell['tier'].nil? && spell['name']
