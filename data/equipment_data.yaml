@@ -1,0 +1,470 @@
+# Loot — Inventory and Item Tracking (example)
+# Tracks who owns what. Item type definitions live in
+# `equipment_config.yaml`. This file holds quantities and per-instance
+# identity fields (tier, properties, stored spell, durability, name
+# override, restock target).
+# See `equipment_glossary.md` and `equipment_design.md`.
+
+# Owner IDs:
+#   Character:    "character:<id>"
+#   Party:        "party"
+#   Ground pile:  "ground:<location>"
+#   Shop:         "shop:<id>"
+# Character IDs are integers matching the character roster.
+
+# Stack identity & merging: two Stacks merge when item, tier, properties
+# (in order), stored_spell, durability_damage, name override, and
+# value_in_gold (for Gems) are all equal. Quantity and restock_target
+# are NOT identity fields.
+
+# Item Stack fields:
+#   item               REQUIRED. Key from equipment_config.yaml.
+#   quantity           Default 1. Fractional allowed for Currency.
+#   tier               Default 0 (non-magical).
+#   properties         List. String (non-subtyped) or {name, subtype}.
+#   stored_spell       Spell held in Spell Storing/Crystal. Blank = expended.
+#   durability_damage  Default 0.
+#   name               Display-name override. Default = generated.
+#   restock_target     Top-up target for Restock; paid from owner wealth.
+#   value_in_gold      Required on Gem stacks; absent elsewhere.
+#   description        Free-text override. Reserved for unique items
+#                      whose flavor isn't captured by their Type +
+#                      Properties (e.g. the Lute of the Wandering Bard).
+#                      Generic catalog items must not carry a description
+#                      here — their description lives in equipment_config.yaml.
+
+# =====================================================================
+# Characters
+# =====================================================================
+
+characters:
+
+  1:
+    inventory:
+      - item: Rapier
+        tier: 1
+        properties:
+          - name: Emotional
+        equipped: true
+      - item: Hand crossbow
+        equipped: true
+      - item: Bolt
+        quantity: 20
+      - item: Studded leather
+        equipped: true
+      - item: Cloak of Resistance
+        tier: 1
+        guidance_bonus: 1
+        equipped: true
+      - item: Headband of Charisma
+        tier: 1
+        guidance_bonus: 2
+        equipped: true
+      - item: Lute
+        tier: 1
+        name: "Lute of the Wandering Bard"
+        description: "Once per scene, grant Bardic Inspiration without spending the action."
+      - item: Healing Potion
+        tier: 0
+        quantity: 2
+      - item: Lute
+      - item: Ritual book
+        inscribed_spells:
+          - detect_magic
+          - light
+          - resistance
+          - message
+          - mage_hand
+          - disguise_self
+          - silence
+          - charm_person
+          - command
+          - friends
+      - item: Rations
+        quantity: 5
+      - item: Bedroll
+      - item: Gold
+        quantity: 32
+
+  2:
+    inventory:
+      - item: Warhammer
+        equipped: true
+      - item: Javelin
+        quantity: 3
+      - item: Tower shield
+        equipped: true
+      - item: Chain mail
+        equipped: true
+      - item: Healing Potion
+        tier: 0
+        quantity: 1
+      - item: Whetstone
+      - item: Rations
+        quantity: 5
+      - item: Gold
+        quantity: 28
+
+  3:
+    inventory:
+      - item: Quarterstaff
+        equipped: true
+      - item: Headband of Intelligence
+        tier: 1
+        guidance_bonus: 2
+        equipped: true
+      - item: Crossbow
+      - item: Bolt
+        quantity: 20
+      - item: Ritual book
+        inscribed_spells:
+          - heal
+          - ward
+          - speak_with_plants
+          - entangle
+      - item: Healing Potion
+        tier: 0
+      - item: Gold
+        quantity: 52
+      - item: Silver
+        quantity: 8
+
+  4:
+    inventory:
+      - item: Short sword
+        equipped: true
+      - item: Dagger
+        equipped: true
+      - item: Leather armor
+        equipped: true
+      - item: Healing Potion
+        tier: 0
+        quantity: 3
+      - item: Thieves' tools
+      - item: Gold
+        quantity: 24
+
+  5:
+    inventory:
+      - item: Longbow
+        equipped: true
+      - item: Dagger
+        equipped: true
+      - item: Studded leather
+        equipped: true
+      - item: Arrow
+        quantity: 20
+      - item: Rations
+        quantity: 5
+      - item: Gold
+        quantity: 18
+
+  6:
+    inventory:
+      - item: Quarterstaff
+        equipped: true
+      - item: Sling
+      - item: Stone
+        quantity: 20
+      - item: Hide armor
+        equipped: true
+      - item: Healing Potion
+        tier: 0
+        quantity: 2
+      - item: Gold
+        quantity: 14
+
+  7:
+    inventory:
+      - item: Mace
+        tier: 2
+        properties:
+          - name: Elemental
+            subtype: Fire
+        equipped: true
+      - item: Headband of Wisdom
+        tier: 1
+        guidance_bonus: 2
+        equipped: true
+      - item: Crossbow
+      - item: Bolt
+        quantity: 20
+      - item: Chain mail
+        equipped: true
+      - item: Healing Potion
+        tier: 0
+        quantity: 3
+      - item: Rations
+        quantity: 5
+      - item: Gold
+        quantity: 22
+
+  8:
+    inventory:
+      - item: Great sword
+        tier: 2
+        properties:
+          - name: Vicious
+        equipped: true
+      - item: Belt of Strength
+        tier: 1
+        guidance_bonus: 2
+        equipped: true
+      - item: Javelin
+        quantity: 4
+      - item: Hide armor
+        equipped: true
+      - item: Healing Potion
+        tier: 0
+        quantity: 2
+      - item: Rations
+        quantity: 5
+      - item: Bedroll
+      - item: Gold
+        quantity: 16
+
+  9:
+    inventory:
+      - item: Rapier
+        equipped: true
+      - item: Dagger
+        equipped: true
+      - item: Studded leather
+        equipped: true
+      - item: Healing Potion
+        tier: 0
+        quantity: 2
+      - item: Thieves' tools
+      - item: Ritual book
+      - item: Gold
+        quantity: 20
+
+  10:
+    inventory:
+      - item: Rapier
+        equipped: true
+      - item: Sling
+      - item: Stone
+        quantity: 20
+      - item: Lute
+        equipped: true
+      - item: Leather armor
+        equipped: true
+      - item: Healing Potion
+        tier: 0
+        quantity: 2
+      - item: Gold
+        quantity: 19
+
+  # Enemy gear. Each template carries a weapon + armor so the combat
+  # tracker has real Damage Resilience / weapon dice to work with.
+
+  100:
+    inventory:
+      - item: Short sword
+        equipped: true
+      - item: Leather armor
+        equipped: true
+      - item: Dagger
+
+  101:
+    inventory:
+      - item: Great sword
+        equipped: true
+      - item: Hide armor
+        equipped: true
+
+  102:
+    inventory:
+      - item: Long sword
+        equipped: true
+      - item: Chain shirt
+        equipped: true
+      - item: Hand crossbow
+        equipped: true
+      - item: Bolt
+        quantity: 12
+
+  103:
+    inventory:
+      - item: Long sword
+        equipped: true
+      - item: Studded leather
+        equipped: true
+
+  104:
+    inventory:
+      - item: Quarterstaff
+
+  106:
+    inventory:
+      - item: Spear
+        equipped: true
+      - item: Chain mail
+        equipped: true
+      - item: Tower shield
+        equipped: true
+
+  107:
+    inventory:
+      - item: Mace
+        equipped: true
+      - item: Robes
+        equipped: true
+
+  # General Red Tier templates (creatures_data_general_red_tier) — give the
+  # goblins a real weapon so the combat tracker has weapon dice to work with.
+  302:  # Goblin — short sword + light shield (can Parry and Block)
+    inventory:
+      - item: Short sword
+        equipped: true
+      - item: Light wooden shield
+        equipped: true
+      - item: Leather armor
+        equipped: true
+  303:  # Goblin Archer — hand crossbow + dagger sidearm
+    inventory:
+      - item: Hand crossbow
+        equipped: true
+      - item: Bolt
+        quantity: 20
+      - item: Dagger
+        equipped: true
+      - item: Leather armor
+        equipped: true
+  304:  # Cultist — dagger + robes
+    inventory:
+      - item: Dagger
+        equipped: true
+      - item: Robes
+        equipped: true
+  305:  # Cult Fanatic — mace + leather
+    inventory:
+      - item: Mace
+        equipped: true
+      - item: Leather armor
+        equipped: true
+
+  # Rise of the Slavelords templates (creatures_data_rise_of_the_slavelords).
+  350:  # Slaver Merchant — dagger
+    inventory:
+      - item: Dagger
+        equipped: true
+      - item: Studded leather
+        equipped: true
+  351:  # Slaver Lieutenant — long sword + chain shirt
+    inventory:
+      - item: Long sword
+        equipped: true
+      - item: Chain shirt
+        equipped: true
+  352:  # Half-Orc Soldier — spear + hide armor
+    inventory:
+      - item: Spear
+        equipped: true
+      - item: Hide armor
+        equipped: true
+  353:  # Orc Interpreter — short sword
+    inventory:
+      - item: Short sword
+        equipped: true
+      - item: Leather armor
+        equipped: true
+  354:  # Stockade Guard — mace + light shield
+    inventory:
+      - item: Mace
+        equipped: true
+      - item: Light wooden shield
+        equipped: true
+      - item: Chain shirt
+        equipped: true
+
+  # Fey Favors templates (creatures_data_fey_favors) — fey, not animals, so
+  # they carry a weapon (mostly light/improvised blades).
+  400:  # Sprite — dagger
+    inventory:
+      - item: Dagger
+        equipped: true
+  401:  # Pixie — dagger
+    inventory:
+      - item: Dagger
+        equipped: true
+  402:  # Dryad — quarterstaff
+    inventory:
+      - item: Quarterstaff
+        equipped: true
+  403:  # Brownie — dagger
+    inventory:
+      - item: Dagger
+        equipped: true
+  404:  # Will-o'-Wisp Spark — dagger (token sidearm; fights mainly by other means)
+    inventory:
+      - item: Dagger
+        equipped: true
+
+  # NPC quest-giver (creatures_data_npcs).
+  2001:  # Daven Korr — dagger (a townsman's belt knife)
+    inventory:
+      - item: Dagger
+        equipped: true
+
+  # Shipped in-progress-combat instances (creatures_data_combat_example):
+  # the two Goblins carry the same gear as their 302 template.
+  2004:  # Goblin A — short sword + light shield
+    inventory:
+      - item: Short sword
+        equipped: true
+      - item: Light wooden shield
+        equipped: true
+      - item: Leather armor
+        equipped: true
+  2005:  # Goblin B — short sword + light shield
+    inventory:
+      - item: Short sword
+        equipped: true
+      - item: Light wooden shield
+        equipped: true
+      - item: Leather armor
+        equipped: true
+
+# =====================================================================
+# Party — Owner ID "party". Group-shared items.
+# =====================================================================
+
+party:
+  inventory:
+    - item: Gold
+      quantity: 50275
+    - item: Bolt
+      quantity: 60
+      restock_target: 120
+    - item: Gem
+      name: Uncut Sapphire
+      value_in_gold: 200
+      quantity: 1
+
+# =====================================================================
+# Ground piles — Owner ID "ground:<location>". Free-form locations.
+# =====================================================================
+
+ground_piles:
+
+  - location: "Goblin cave — entrance"
+    inventory:
+      - item: Arrow
+        quantity: 11
+      - item: Dagger
+        quantity: 2
+      - item: Gold
+        quantity: 8
+      - item: Silver
+        quantity: 23
+
+  - location: "Abandoned shrine — altar"
+    inventory:
+      - item: Mace
+        tier: 1
+        properties:
+          - name: Radiant
+      - item: Leather armor
+        durability_damage: 5
