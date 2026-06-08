@@ -969,7 +969,7 @@ helpers do
       cost = mana_cost_for_tier(g[:tier])
       Array(g[:names]).map do |name|
         v     = (Abilities.lookup(name) rescue nil) || {}
-        skill = (Array(v['skills']).first || Encounter::Cast::DEFAULT_CAST_SKILL)
+        skill = cast_skill_for(acc, v)
         ri    = roll_inputs_for(acc, skill)
         # Area footprint (Hash, or the first footprint Aspect of an Aspect-list
         # area like Grease). Area Spells are placed on the map, not targeted.
@@ -1224,6 +1224,26 @@ helpers do
       'int' => 'Intelligence', 'wis' => 'Wisdom', 'cha' => 'Charisma' }[attr.to_s] || attr.to_s
   end
 
+  # The Casting Skill a given caster uses for a given Spell Variant. Prefer the
+  # Spell's own allowed Casting Skill that the caster is actually trained in
+  # (so a Cleric's heals still roll `healing`); otherwise fall back to the
+  # Spell's first listed skill / the default. The one override: a divine caster
+  # — trained in `invocation` but not `arcana` — casts an otherwise-`arcana`
+  # Spell with Invocation instead (Clerics do not cast with Arcana). Other
+  # classes (Wizard, Bard, Druid) are left on their existing resolution.
+  def cast_skill_for(acc, variant)
+    cfg = (Abilities.catalog.config rescue nil)
+    default = Encounter::Cast::DEFAULT_CAST_SKILL
+    return (Array((variant || {})['skills']).first || default) unless acc && cfg
+    trained = (acc.trained_skills rescue []).select { |s| cfg.casting_skill?(s) }
+    allowed = Array((variant || {})['skills'])
+    skill = allowed.find { |s| trained.include?(s) } || allowed.first || default
+    if skill.to_s == 'arcana' && !trained.include?('arcana') && trained.include?('invocation')
+      skill = 'invocation'
+    end
+    skill
+  end
+
   # The per-Tier Mana Cost (abilities_config.yaml → Mana Cost Per Tier).
   def mana_cost_for_tier(tier)
     tbl = (Abilities.catalog.config.mana_cost_per_tier rescue {})
@@ -1240,6 +1260,15 @@ helpers do
     spell  = (payload['spell'] ||= {})
     spell['name'] ||= payload['spell_name']
     caster = payload['caster'] || {}
+
+    # Resolve the caster's own Casting Skill (a Cleric's Invocation) so the
+    # casting check rolls that Skill, not the Spell's generic `arcana` default.
+    if spell['cast_skill'].nil? && caster['id'] && spell['name']
+      ccomb = (encounter_state.combatant(caster['id'].to_i) rescue nil)
+      cacc  = ccomb && (Creatures.lookup(ccomb[:creature_id]) rescue nil)
+      variant = (Abilities.lookup(spell['name']) rescue nil) || {}
+      spell['cast_skill'] = cast_skill_for(cacc, variant) if cacc
+    end
 
     if spell['tier'].nil? && spell['name']
       info = (CreatureSheet.spell_info(spell['name']) rescue nil)
