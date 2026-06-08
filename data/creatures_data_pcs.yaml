@@ -1,0 +1,174 @@
+# Crimson Steel — Player Character roster (live campaign data).
+#
+# Migrated from the legacy `characters.json` export. Only Player
+# Characters (group "PC") live here; enemies and NPCs are tracked in
+# their own creatures_data_* files. PCs take ids 1..99.
+#
+# Translation notes (legacy JSON -> current schema):
+#   * `ability_scores` -> `attributes`; the race array (e.g. ["dwarf",
+#     "hill"]) collapses to a single sub-race key (hill_dwarf).
+#   * The `classes` array becomes `advancement.classes`; spell display
+#     names become snake_case Catalog keys under `choices.spellcasting`.
+#   * Legacy `feats` are dropped (no schema home). Legacy `rituals` move
+#     to a Ritual book in the character's inventory (equipment_data.yaml).
+#   * Tier is derived from the player_character breakpoints (level 4 ->
+#     Tier 2), so it is not hardcoded here.
+
+characters:
+  - id: 1
+    name: Stumpy
+    player: Jarett
+    race: hill_dwarf
+    attributes:
+      str: 12
+      dex: 14
+      con: 17
+      int: 14
+      wis: 18
+      cha: 11
+    advancement:
+      classes:
+        cleric:
+          level: 4
+          choices:
+            deity: Gorum
+            spellcasting:
+              - sacred_flame
+              - magic_vestments
+              - heal_lesser_wounds
+              - healing_word
+              - command
+              - lesser_ward
+              - divine_favor
+              - shield_of_faith
+              - magic_weapon
+              - spiritual_weapon
+              - hold_person
+              - silence
+              - blind
+              - heal_simple_wounds
+              - standard_ward
+              - protection_from_poison
+              - standard_surgery
+          skills:
+            - healing
+            - sense_motive
+            - arcana
+            - nature
+            - intimidate
+            - perception
+
+  - id: 2
+    name: Olga
+    player: Candace
+    race: human
+    attributes:
+      str: 19
+      dex: 17
+      con: 17
+      int: 11
+      wis: 13
+      cha: 10
+    advancement:
+      classes:
+        barbarian:
+          level: 4
+          skills:
+            - athletics
+            - nature
+            - sense_motive
+            - stealth
+
+  - id: 3
+    name: Lysander
+    player: Zack
+    race: high_elf
+    attributes:
+      str: 9
+      dex: 19
+      con: 13
+      int: 13
+      wis: 15
+      cha: 15
+    advancement:
+      classes:
+        arcane_trickster:
+          level: 4
+          choices:
+            spellcasting:
+              - fire_dart
+              - message
+              - silent_portal
+              - create_illusionary_sound
+              - mage_hand
+              - hideous_laughter
+              - illusion_of_calm
+              - auditory_hallucination
+          skills:
+            - arcana
+            - stealth
+            - larceny
+            - sleight_of_hand
+            - deception
+            - persuasion
+            - perception
+            - game_chess
+
+  - id: 4
+    name: Cottonballs
+    player: Dave
+    race: satyr
+    attributes:
+      str: 11
+      dex: 18
+      con: 14
+      int: 12
+      wis: 13
+      cha: 18
+    advancement:
+      classes:
+        bard:
+          level: 4
+          choices:
+            versatile_performance:
+              - sing
+            spellcasting:
+              - detect_magic
+              - friends
+              - create_illusionary_sound
+              - sift
+              - vacuous_vessel
+              - vicious_mockery
+              - biting_words
+              - ears_of_the_city
+              - create_illusionary_image
+              - timely_inspiration
+          skills:
+            - perform_sing
+            - perform_percussion
+            - animal_handling
+            - persuasion
+            - perception
+            - evocation
+            - nature
+
+  - id: 40
+    name: Kael
+    player: DM
+    race: human
+    attributes:
+      str: 16
+      dex: 14
+      con: 18
+      int: 10
+      wis: 11
+      cha: 10
+    advancement:
+      classes:
+        barbarian:
+          level: 4
+          skills:
+            - athletics
+            - nature
+            - sense_motive
+            - stealth
