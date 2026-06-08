@@ -185,6 +185,7 @@ Better Lucky Than Good:
   range: Self
   target: self
   duration: "1 turn"
+  mana_cost: 4
   description: "Can be activated while unaware. Attacks against you (including spells) are made with half as many dice (min 3)."
 
 Magical Performance:

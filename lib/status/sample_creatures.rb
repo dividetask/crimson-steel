@@ -279,7 +279,7 @@ module Status
           { name: 'Bardic Spellcasting',     description: 'Cast a number of bardic spells as a main action while performing. Spells need not be prepared each day. Casting outside a performance takes twice as long.' },
           { name: 'Bardic Inspiration',      description: 'While performing, spend 1 mana (once per turn) to grant a pool of luck. Each point lets you or an ally reroll a single die before the initial check. Successes grant 1 luck (must be used before your next turn); a fumble awards luck to the DM instead.' },
           { name: 'Jack Of All Trades',      description: 'Treat all skills (except restricted skills) as trained, with effective ranks equal to half your level on checks where you have no ranks.' },
-          { name: 'Better Lucky Than Good',  description: 'Spend 3 mana during a round you cannot act (e.g. surprise round). Attacks against you (including spells) are made with half as many dice (min 3). Enemies are unconsciously aware of the penalty.' },
+          { name: 'Better Lucky Than Good',  description: 'Can be activated during a round you cannot act (e.g. surprise round). Attacks against you (including spells) are made with half as many dice (min 3).' },
           { name: 'Performance Feat',        description: 'Gain Familiar, Social Spell, Spell Focus (Enchantment), or Spell Focus (Illusion) as a bonus feat.' },
           { name: 'Silver Tongue',           description: '+1 inherent bonus to Persuasion and Deception checks; applies when using versatile performance.' },
           { name: 'Unsettling Words',        description: 'Spend a luck point from your performance before an enemy rolls; pick one of their dice to reroll.' },
