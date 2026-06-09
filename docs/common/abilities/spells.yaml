@@ -380,6 +380,7 @@ Shield of Faith:
 Shield:
   type: spell
   tier: [0, 1, 2]
+  prefix: [Lesser, Standard, Greater]
   school: convergence
   activation_time: bonus
   range: Self

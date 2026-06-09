@@ -125,6 +125,9 @@ characters:
               - web
               - create_pit
               - blur
+              - lesser_shield
+              - standard_shield
+              - greater_shield
           skills:
             - arcana
             - perception
