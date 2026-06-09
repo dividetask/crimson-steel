@@ -1666,6 +1666,18 @@ helpers do
                                    spell_name: spell['name'], defends: ally['id'],
                                    cast_skill: skill, dice_cap: cap,
                                    shield_bonus: v['shield_bonus'].to_i })
+    # Show the protected ally a visible "shielded" condition (the caster still
+    # controls the block). Refreshed each cast.
+    apply_shielded_condition(ally['id'], spell['name'].to_s)
+  end
+
+  # Mark the shielded Combatant with the `shielded` named effect for display.
+  def apply_shielded_condition(combatant_id, source_name)
+    c = encounter_state.combatant(combatant_id.to_i) or return
+    inst = Conditions.store.instance_for(c[:creature_id])
+    inst.apply_named_effect('shielded', source_id: "shield:#{source_name}") if inst.respond_to?(:apply_named_effect)
+  rescue StandardError
+    nil
   end
 
   def cast_effects_from_consumption(effects)
