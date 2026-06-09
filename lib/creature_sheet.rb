@@ -419,7 +419,6 @@ module CreatureSheet
   end
 
   def attributes_table(accessor, attrs)
-    jack = jack_of_all_trades?(accessor)
     %i[Strength Dexterity Constitution Intelligence Wisdom Charisma]
       .zip(%i[str dex con int wis cha]).map do |label, k|
       save = (Proficiencies::Compute.roll_inputs(key: "#{k}_save", creature: accessor, attribute_override: k) rescue nil)
@@ -436,28 +435,22 @@ module CreatureSheet
       attr_bonus = (CreatureModifiers.attribute_bonus(accessor, k) rescue 0)
       { attr: label.to_s, key: k, score: attrs[k], half: attrs[k] / 2,
         attr_bonus: attr_bonus,
+        # Ordered components that sum to the Effective Attribute (base,
+        # racial, inherent, then per-Bonus-Type Modifiers) — the popup's
+        # breakdown line. Computed by the Creature, not here.
+        breakdown: (accessor.attribute_breakdown(k) rescue []),
         # An Attribute Check is a pure Attribute roll — it uses no Skill
         # ranks, so its Ranks cell is always 0.
         check: { dice: check_dice, bonus: check_bonus, ranks: 0 },
         save:  { dice: (save ? save[:dice_cap] : 0),
                  bonus: (save && save[:competency_modifier] ? save[:competency_modifier][1] : 0),
                  ranks: save_ranks(accessor, k), tokens: save_tokens },
-        # Only meaningful when the Creature has the Floor Ability (Jack
-        # of All Trades) — the Dice Cap + Bonus an untrained Skill driven
-        # by this Attribute would roll. nil otherwise so the sheet can
-        # omit the row.
-        untrained: (jack ? untrained_roll(accessor, k) : nil) }
+        # The Dice Cap + Bonus an untrained (zero-rank) Skill driven by
+        # this Attribute would roll — the Non-Proficiency Penalty for a
+        # normal Creature, or the Floor Ability (Jack of All Trades) lift
+        # for one that carries it. Shown for every Creature.
+        unskilled: unskilled_roll(accessor, k) }
     end
-  end
-
-  # Does the Creature carry the Proficiencies Floor Ability (default
-  # Jack of All Trades)? Drives whether the minimal sheet's Attribute
-  # popup shows an untrained-Skill row.
-  def jack_of_all_trades?(accessor)
-    ability = Proficiencies::Config.floor_ability
-    ability && accessor.has_ability(ability)
-  rescue StandardError
-    false
   end
 
   # Ranks the Creature has in an Attribute's Saving Throw proficiency
@@ -468,10 +461,12 @@ module CreatureSheet
     0
   end
 
-  # Dice Cap + Bonus (and the Floor-granted ranks) for an untrained
+  # Dice Cap + Bonus (and any Floor-granted ranks) for an unskilled
   # (zero-rank) Skill driven by an Attribute, sourced from Proficiencies
-  # (never recomputed here).
-  def untrained_roll(accessor, attr)
+  # (never recomputed here). For a normal Creature this carries the
+  # Non-Proficiency Penalty; a Creature with the Floor Ability (Jack of
+  # All Trades) gets its lift instead, so its ranks read floor(level/2).
+  def unskilled_roll(accessor, attr)
     ri = Proficiencies::Compute.untrained_roll_inputs(attribute: attr, creature: accessor)
     { dice: ri[:dice_cap],
       bonus: (ri[:competency_modifier] ? ri[:competency_modifier][1] : 0),

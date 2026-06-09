@@ -83,6 +83,25 @@ RSpec.describe CreatureModifiers do
     end
   end
 
+  describe '.attribute_bonus_tokens (sheet breakdown)' do
+    it 'breaks out a Bonus Type (per-Type stacked), summing to attribute_bonus' do
+      allow(described_class).to receive(:equipped_effects).and_return(
+        [{ target_key: 'str', bonus_type: 'Guidance', amount: 2 },
+         { target_key: 'str', bonus_type: 'Guidance', amount: 5 }]
+      )
+      tokens = described_class.attribute_bonus_tokens(human, :str)
+      expect(tokens).to eq([{ amount: 5, type: 'Guidance' }])
+      expect(tokens.sum { |t| t[:amount] }).to eq(described_class.attribute_bonus(human, :str))
+    end
+
+    it 'returns no tokens for an attribute with no Always-On bonus' do
+      allow(described_class).to receive(:equipped_effects).and_return(
+        [{ target_key: 'str', bonus_type: 'Guidance', amount: 2 }]
+      )
+      expect(described_class.attribute_bonus_tokens(human, :con)).to eq([])
+    end
+  end
+
   describe '.save_bonus_tokens (sheet display)' do
     it 'returns the Cloak as an unconditional token' do
       allow(described_class).to receive(:equipped_effects).and_return(

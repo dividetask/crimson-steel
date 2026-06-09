@@ -29,6 +29,17 @@ module CreatureModifiers
     DiceResolution.net_modifier(attribute_pairs(accessor, attr.to_s))
   end
 
+  # Display tokens for the Attribute breakdown popup: each Always-On
+  # Attribute bonus (equipped Guidance, Modifier abilities, active-effect
+  # Attribute Modifiers) per Bonus Type, after per-Type stacking. The sum
+  # of the token amounts equals #attribute_bonus. Returns
+  # [{ amount:, type: }], at most one positive and one negative per Type.
+  def attribute_bonus_tokens(accessor, attr)
+    stack_pairs(attribute_pairs(accessor, attr.to_s)).map do |type, amount|
+      { amount: amount, type: type }
+    end
+  end
+
   # The [[bonus_type, amount], ...] pairs (already per-Type-stacked) that
   # apply to an Attribute's Saving Throw, given a descriptor context.
   # Equipment Guidance to `saves` (the Cloak) and any "<attr>_save" effect

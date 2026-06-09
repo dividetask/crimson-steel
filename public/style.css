@@ -2254,6 +2254,14 @@ body {
   font-size: 13px;
   margin-bottom: 4px;
 }
+/* Breakdown line under the popup title: how the Effective Attribute is
+   built up (base + racial + inherent + per-Type Modifiers). */
+.cs-card.cs-minimal .cs-attr-pop-breakdown {
+  font-size: 11px;
+  color: #6b4a36;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
 .cs-card.cs-minimal .cs-attr-pop-table {
   width: 100%;
   border-collapse: collapse;
