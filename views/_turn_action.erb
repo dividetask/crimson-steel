@@ -29,6 +29,7 @@
 <% saves ||= [] %>
 <% special_options ||= [] %>
 <% main_actions ||= -1 %>
+<% has_spells = false unless defined?(has_spells) %>
 <%
   incapacitated = !acting[:can_act]
   state_suffix  = dead ? 'Dead' : (incapacitated ? 'Incapacitated' : nil)
@@ -39,13 +40,16 @@
   dash = '—'
 
   # Generic Main-Action buttons. An incapacitated Combatant can only end its
-  # turn, so it is offered no Main Actions.
-  main_generic = incapacitated ? [] : [
-    { key: 'attack', label: 'Attack' },
-    { key: 'move',   label: 'Move' },
-    { key: 'cast',   label: 'Cast' },
-    { key: 'item',   label: 'Item' }
-  ]
+  # turn, so it is offered no Main Actions. Cast is offered only when the
+  # Combatant knows a spell (has_spells).
+  main_generic = if incapacitated
+                   []
+                 else
+                   [{ key: 'attack', label: 'Attack' },
+                    { key: 'move',   label: 'Move' }] +
+                     (has_spells ? [{ key: 'cast', label: 'Cast' }] : []) +
+                     [{ key: 'item', label: 'Item' }]
+                 end
   free_generic = [{ key: 'end_turn', label: 'End Turn' }]
 
   # Special Abilities grouped by their action category (skipped when
