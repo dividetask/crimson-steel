@@ -120,6 +120,14 @@ Karthak's Resolve:
       add: 5
   description: "Gain a +5 Morale bonus to damage resilience. Usable only when fighting a higher-Tier creature, or when surrounded by multiple enemies with no allies within 15 feet."
 
+Kesser's Gambit:
+  type: talent
+  inherits_from: Channel Divinity
+  mana_cost: 4
+  activation_time: reaction
+  roll_table: Kesser Reversal Table
+  description: "Kesser's deity Channel Divinity, gained at Cleric level 4. As a reaction triggered on an attack or spell roll, roll a d10 on the Kesser Reversal Table (see creatures_design.md). Channel Successes scale the table's entries."
+
 Sneak Attack:
   type: talent
   trigger:

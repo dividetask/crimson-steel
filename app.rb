@@ -48,6 +48,6 @@ require_relative 'lib/explainer_docs'
 require_relative 'lib/device_registry'
 require_relative 'lib/helpers'
 
-%w[home character_sheets store notes compendium status view_as devices chronicle encounter inventory atlas].each do |name|
+%w[home character_sheets character_creation store notes compendium status view_as devices chronicle encounter inventory atlas].each do |name|
   require_relative "lib/routes/#{name}"
 end

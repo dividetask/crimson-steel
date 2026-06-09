@@ -1,0 +1,143 @@
+---
+characters:
+- id: 1
+  name: Stumpy
+  race: hill_dwarf
+  attributes:
+    str: 12
+    dex: 14
+    con: 17
+    int: 14
+    wis: 18
+    cha: 11
+  advancement:
+    classes:
+      cleric:
+        level: 4
+        skills:
+        - healing
+        - sense_motive
+        - arcana
+        - nature
+        - intimidate
+        - perception
+        choices:
+          deity: Gorum
+          spellcasting:
+          - sacred_flame
+          - magic_vestments
+          - heal_lesser_wounds
+          - healing_word
+          - command
+          - lesser_ward
+          - divine_favor
+          - shield_of_faith
+          - magic_weapon
+          - spiritual_weapon
+          - hold_person
+          - silence
+          - blind
+          - heal_simple_wounds
+          - standard_ward
+          - protection_from_poison
+          - standard_surgery
+  player: Jarett
+  tags:
+  - player_character
+- id: 2
+  name: Olga
+  race: human
+  attributes:
+    str: 19
+    dex: 17
+    con: 17
+    int: 11
+    wis: 13
+    cha: 10
+  advancement:
+    classes:
+      barbarian:
+        level: 4
+        skills:
+        - athletics
+        - nature
+        - sense_motive
+        - stealth
+  player: Candace
+  tags:
+  - player_character
+- id: 3
+  name: Lysander
+  race: high_elf
+  attributes:
+    str: 9
+    dex: 19
+    con: 13
+    int: 13
+    wis: 15
+    cha: 15
+  advancement:
+    classes:
+      arcane_trickster:
+        level: 4
+        skills:
+        - arcana
+        - stealth
+        - larceny
+        - sleight_of_hand
+        - deception
+        - persuasion
+        - perception
+        - game_chess
+        choices:
+          spellcasting:
+          - fire_dart
+          - message
+          - silent_portal
+          - create_illusionary_sound
+          - mage_hand
+          - hideous_laughter
+          - illusion_of_calm
+          - auditory_hallucination
+  player: Zack
+  tags:
+  - player_character
+- id: 4
+  name: Cottonballs
+  race: satyr
+  attributes:
+    str: 11
+    dex: 18
+    con: 14
+    int: 12
+    wis: 13
+    cha: 18
+  advancement:
+    classes:
+      bard:
+        level: 4
+        skills:
+        - perform_sing
+        - perform_percussion
+        - animal_handling
+        - persuasion
+        - perception
+        - evocation
+        - nature
+        choices:
+          versatile_performance:
+          - sing
+          spellcasting:
+          - detect_magic
+          - friends
+          - create_illusionary_sound
+          - sift
+          - vacuous_vessel
+          - vicious_mockery
+          - biting_words
+          - ears_of_the_city
+          - create_illusionary_image
+          - timely_inspiration
+  player: Dave
+  tags:
+  - player_character

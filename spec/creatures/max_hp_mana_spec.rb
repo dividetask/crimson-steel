@@ -5,9 +5,9 @@ RSpec.describe 'Creatures Max HP / Max Mana', type: :model do
   include CreaturesFixtures
 
   it 'Tier 2 HP uses 2*con against Effective Constitution' do
-    # Korth: base con 17, hill_dwarf chain contributes 0 (no per-race
-    # adjustments in shipped data), per-tier 2 = 2, chosen +2 (con).
-    # Effective Con = 17 + 0 + 2 + 2 = 21. Tier 2 HP formula = "2 * con" → 42.
+    # Korth: base con 17, hill_dwarf chain contributes +2 con, per-tier 2
+    # = 2, chosen +2 (con). Effective Con = 17 + 2 + 2 + 2 = 23. Tier 2 HP
+    # formula = "2 * con". Asserted dynamically against Effective Con.
     a = Creatures::Accessor.new(korth)
     expect(a.max_hit_points).to eq(2 * a.effective_attributes[:con])
   end
@@ -34,7 +34,7 @@ RSpec.describe 'Creatures Max HP / Max Mana', type: :model do
 
   it 'multi-class Max Mana sums per-class contributions' do
     rec = record(
-      id: 99, name: 'Multi', race: 'human', tier: 2,
+      id: 99, name: 'Multi', race: 'humanoid', tier: 2,
       attributes: { str: 10, dex: 10, con: 10, int: 14, wis: 10, cha: 10 },
       classes: { fighter: { level: 3 }, rogue: { level: 2 } }
     )
