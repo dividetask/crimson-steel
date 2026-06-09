@@ -141,25 +141,3 @@ characters:
   player: Dave
   tags:
   - player_character
-- id: 40
-  name: Kael
-  race: human
-  attributes:
-    str: 16
-    dex: 14
-    con: 18
-    int: 10
-    wis: 11
-    cha: 10
-  advancement:
-    classes:
-      barbarian:
-        level: 4
-        skills:
-        - athletics
-        - nature
-        - sense_motive
-        - stealth
-  player: DM
-  tags:
-  - player_character

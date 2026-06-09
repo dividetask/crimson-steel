@@ -1,9 +1,34 @@
 # Crimson Steel — NPC roster (live campaign data overlay).
 #
-# Intentionally empty for now. Its sole current purpose is to OVERRIDE the
-# shipped `creatures_data_npcs.example.yaml`, whose placeholder NPCs reuse
-# ids 2 and 4 — the same ids the live Player Characters Olga (2) and
-# Cottonballs (4) occupy. Loading both files would raise a duplicate-id
-# error, so this overlay suppresses the example NPCs until the campaign's
-# real NPCs are migrated here.
-characters: []
+# Overrides the shipped `creatures_data_npcs.example.yaml`. NPCs share the
+# integer ID space with PCs and enemies; ids are kept stable so Equipment
+# loadouts (keyed by creature id) stay valid.
+#
+# Kael was migrated from the PC roster (player "DM") — he is DM-run, not a
+# player character. His id (40) and equipment are unchanged. `tier: 2` is
+# pinned to preserve the Tier his level-4 build had as a PC, since an NPC
+# with no tier breakpoint tag would otherwise fall back to Tier 1.
+
+characters:
+  - id: 40
+    name: Kael
+    group: npc
+    tags: []
+    race: human
+    tier: 2
+    attributes:
+      str: 16
+      dex: 14
+      con: 18
+      int: 10
+      wis: 11
+      cha: 10
+    advancement:
+      classes:
+        barbarian:
+          level: 4
+          skills:
+            - athletics
+            - nature
+            - sense_motive
+            - stealth
