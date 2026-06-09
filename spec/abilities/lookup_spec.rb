@@ -22,8 +22,10 @@ RSpec.describe 'Abilities.lookup' do
     expect([tier0['name'], tier1['name'], tier2['name']]).to eq(['Lesser Shield', 'Standard Shield', 'Greater Shield'])
     expect([tier0['range'], tier1['range'], tier2['range']]).to eq(%w[Self Close Medium])
     expect([tier0['shield_bonus'], tier1['shield_bonus'], tier2['shield_bonus']]).to eq([0, 1, 2])
-    # The shield is a caster-controlled reservoir block that defends the target.
-    expect(tier1.dig('reservoir', 'discharge', 'defends')).to eq('target')
+    # The shield is a caster-controlled block fueled by the caster's Combat Pool
+    # (no Reservoir), lasting rank minutes.
+    expect(tier1['reservoir']).to be_nil
+    expect(tier1.dig('defends', 'block_dice')).to eq('combat_pool')
     expect(tier1['duration']).to eq('rank minutes')
   end
 

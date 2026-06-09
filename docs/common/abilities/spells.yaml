@@ -386,18 +386,12 @@ Shield:
   range: Self
   target: "1"
   duration: rank minutes
-  channel:
-    mode: reservoir
-    retarget: true
-  reservoir:
-    fill:
-      source: channel_dice
-      ratio: 1
-    discharge:
-      action: reaction
-      defends: target
-      amount: "2..dice_cap"
-      description: "When an attack is made against the target, spend {amount} Reservoir dice to interpose the shield and block the attack as though it were made against you."
+  # A caster-controlled block over the target. Unlike Shield of Faith there is
+  # NO Reservoir — nothing is charged at cast. While the shield lasts, the caster
+  # may spend Combat Pool dice as a reaction to interpose it and block an attack
+  # on the target as though it were made against the caster.
+  defends:
+    block_dice: combat_pool
   # The shield's Guidance bonus to the block, scaling with Tier (Tier 0 grants
   # no bonus, Tier 1 a +1 shield, Tier 2 a +2 shield). Range widens with Tier:
   # Self (personal) at Tier 0, Close at Tier 1, Medium at Tier 2.
@@ -406,7 +400,7 @@ Shield:
     - null
     - { range: Close,  shield_bonus: 1 }
     - { range: Medium, shield_bonus: 2 }
-  description: "Conjures an incorporeal floating shield beside the target. The target gains the shield, but you control it — spend Reservoir dice as a reaction to interpose it and block an attack made against the target as though it were made against you. Tier 1 is a +1 shield, Tier 2 a +2 shield. Lasts rank minutes."
+  description: "Conjures an incorporeal floating shield beside the target. The target gains the shield, but you control it — spend Combat Pool dice as a reaction to interpose it and block an attack made against the target as though it were made against you. Tier 1 is a +1 shield, Tier 2 a +2 shield. Lasts rank minutes."
 
 Spiritual Weapon:
   type: spell

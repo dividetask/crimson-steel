@@ -649,19 +649,26 @@ helpers do
         tier: nil }
     ]
 
-    # Map of defender Combatant id -> the caster shielding them (Shield of Faith,
-    # or the Shield spell) and their available Reservoir dice, so the defense
-    # step can offer the caster's block as an Opposing Roll. Any defending
-    # reservoir reaction (discharge `defends: target`) qualifies; a Tier-scaled
-    # Shield also carries its +N Guidance bonus.
+    # Map of defender Combatant id -> the caster shielding them and the dice they
+    # can spend to block, so the Ally Defense step can offer the block as an
+    # Opposing Roll. The block dice come from the shield's `dice_source`: a
+    # Reservoir (Shield of Faith) or the caster's Combat Pool (the Shield spell).
+    # A Tier-scaled Shield also carries its +N Guidance bonus.
     shields = {}
     encounter_state.granted_actions.select { |g| g[:defends] }.each do |g|
       cc = encounter_state.combatant(g[:combatant_id]) or next
-      res = Array(cc[:concentration]).find { |e| e[:mode] == 'reservoir' && e[:spell_name].to_s == g[:spell_name].to_s }
-      next unless res && res[:reservoir].to_i >= 2
+      source = (g[:dice_source] || 'reservoir').to_s
+      available =
+        if source == 'combat_pool'
+          (encounter_state.combat_pool_remaining(g[:combatant_id]) rescue 0).to_i
+        else
+          res = Array(cc[:concentration]).find { |e| e[:mode] == 'reservoir' && e[:spell_name].to_s == g[:spell_name].to_s }
+          res ? res[:reservoir].to_i : 0
+        end
+      next unless available >= 2
       cacc = Creatures.lookup(cc[:creature_id]) rescue nil
       shields[g[:defends]] = { caster_id: g[:combatant_id], caster_name: tracker_name(cc),
-                               reservoir: res[:reservoir].to_i, dice_cap: g[:dice_cap].to_i,
+                               available: available, dice_source: source, dice_cap: g[:dice_cap].to_i,
                                tier: (cacc&.tier rescue nil), spell_name: g[:spell_name].to_s,
                                bonus: g[:shield_bonus].to_i }
     end
@@ -854,15 +861,19 @@ helpers do
 
     # Ally Defense — a separate step after the target's own defense: when the
     # target is shielded (Shield of Faith / the Shield spell), the shielding
-    # caster may spend Reservoir dice to interpose the shield as an *additional*
-    # Opposing Roll (it does not replace the target's defense). The step asks how
-    # many dice to spend; "No shield" leaves the shield Roll out. Keyed by target
-    # — a target with no shield has no options, so the step is skipped.
+    # caster may spend its block dice (Reservoir or Combat Pool, per the shield)
+    # to interpose the shield as an *additional* Opposing Roll (it does not
+    # replace the target's defense). The step asks how many dice to spend; "No
+    # shield" leaves the shield Roll out. Keyed by target — a target with no
+    # shield has no options, so the step is skipped.
     ally_defense_map = {}
     ally_defense_header_map = {}
     shields.each do |target_id, sh|
-      dcap = sh[:dice_cap].to_i.positive? ? sh[:dice_cap].to_i : sh[:reservoir]
-      cap  = [sh[:reservoir], dcap].min
+      # Block dice are bounded by the caster's Dice Cap and the dice available
+      # (Reservoir, or remaining Combat Pool).
+      dcap = sh[:dice_cap].to_i.positive? ? sh[:dice_cap].to_i : sh[:available]
+      cap  = [sh[:available], dcap].min
+      dice_word = sh[:dice_source] == 'combat_pool' ? 'Combat Pool' : 'Reservoir'
       sh_bpl = sh[:bonus].to_i.positive? ? [['Guidance', sh[:bonus].to_i]] : []
       opts = [{ value: 'none', group: 'none', label: 'No shield', summary: 'No shield',
                 patch: { set_excluded: [{ id: 'shield', excluded: true }] } }]
@@ -880,7 +891,7 @@ helpers do
       (2..cap).each { |n| opts << mk_sh.call(n) }
       bonus_note = sh[:bonus].to_i.positive? ? " (+#{sh[:bonus].to_i})" : ''
       opts << { kind: 'info', group: 'shield', value: 'shield|info',
-                label: "#{sh[:spell_name]}#{bonus_note} by #{sh[:caster_name]} — up to #{cap} Reservoir dice" }
+                label: "#{sh[:spell_name]}#{bonus_note} by #{sh[:caster_name]} — up to #{cap} #{dice_word} dice" }
       ally_defense_map["#{target_id}"] = opts
       # Title-row quick-picks (like every other step): "No shield", then the
       # ability's name which selects the MAX affordable dice.
@@ -982,14 +993,16 @@ helpers do
     # / Primal Tenacity are chosen after the roll (payload['defender_reactions']).
     enrich_attack_reactions!(payload)
 
-    # A shielding caster's block discharges its own spell's Reservoir — resolve
-    # the spell name from the caster's defending granted action (Shield of Faith
-    # or the Shield spell) so the right Reservoir is spent, regardless of which
-    # the client assumed.
+    # A shielding caster's block spends its own spell's dice — resolve the spell
+    # name and the dice source (Reservoir vs Combat Pool) from the caster's
+    # defending granted action, so the resolver spends the right pool.
     sh = payload['shield']
     if sh.is_a?(Hash) && sh['id']
       g = encounter_state.granted_actions.find { |x| x[:combatant_id] == sh['id'] && x[:defends] }
-      sh['spell_name'] = g[:spell_name].to_s if g
+      if g
+        sh['spell_name']  = g[:spell_name].to_s
+        sh['dice_source'] = (g[:dice_source] || 'reservoir').to_s
+      end
     end
 
     wt  = payload['weapon_type']
@@ -1451,6 +1464,17 @@ helpers do
     {}
   end
 
+  # The defend spec for a shield-granting Spell, or nil. Shield of Faith defends
+  # the target via a Reservoir discharge; the Shield spell via a top-level
+  # `defends` marker whose block dice come from the caster's Combat Pool (no
+  # Reservoir). Returns { block_dice: 'reservoir' | 'combat_pool' }.
+  def spell_defends_spec(v)
+    return { block_dice: 'reservoir' } if v.dig('reservoir', 'discharge', 'defends').to_s == 'target'
+    d = v['defends']
+    return { block_dice: (d['block_dice'] || 'combat_pool').to_s } if d.is_a?(Hash)
+    { block_dice: 'combat_pool' } if d.to_s == 'target'
+  end
+
   # The per-Tier Mana Cost (abilities_config.yaml → Mana Cost Per Tier).
   def mana_cost_for_tier(tier)
     tbl = (Abilities.catalog.config.mana_cost_per_tier rescue {})
@@ -1669,22 +1693,21 @@ helpers do
     Conditions.store.persist!
   end
 
-  # A Spell whose Reservoir discharge `defends: target` (Shield of Faith) hangs
-  # a shield over the chosen ally: grant the caster a reaction tied to that
-  # Combatant, so attacks against the ally can surface the caster's block as an
-  # opposing Roll. The Reservoir itself is registered by the cast's sustain.
+  # A shield-granting Spell (Shield of Faith via a Reservoir discharge, or the
+  # Shield spell via a Combat-Pool block) hangs a shield over the chosen ally:
+  # grant the caster a reaction tied to that Combatant, so attacks against the
+  # ally can surface the caster's block as an opposing Roll.
   def grant_defend_reaction!(payload)
     spell = payload['spell'] || {}
     # Resolve the spell's variant (a constructed name like "Standard Shield"
     # resolves to its base + Tier) so a Tier-scaled shield carries the right
-    # bonus and the `defends: target` discharge is detected.
+    # bonus and its defend spec is detected.
     v = resolve_named_spell(spell['name'])
-    return unless v.dig('reservoir', 'discharge', 'defends').to_s == 'target'
+    spec = spell_defends_spec(v) or return
     caster = payload['caster'] || {}
     ally = Array(payload['targets']).first or return
-    # The block may roll up to the caster's Dice Cap in the casting skill, each
-    # die costing one Reservoir die — store the cap so the attack builder can
-    # bound the block.
+    # The block rolls up to the caster's Dice Cap in the casting skill; each die
+    # spends one Reservoir die (Shield of Faith) or one Combat Pool die (Shield).
     skill = (spell['cast_skill'] || Encounter::Cast::DEFAULT_CAST_SKILL).to_s
     cacc  = (Creatures.lookup(combatant_for_id_creature(caster['id'])) rescue nil)
     cap   = (roll_inputs_for(cacc, skill)[:dice_cap].to_i rescue 0)
@@ -1693,6 +1716,7 @@ helpers do
     encounter_state.grant_action({ combatant_id: caster['id'], name: spell['name'], source: spell['name'],
                                    spell_name: spell['name'], defends: ally['id'],
                                    cast_skill: skill, dice_cap: cap,
+                                   dice_source: spec[:block_dice],
                                    shield_bonus: v['shield_bonus'].to_i })
     # Show the protected ally a visible "shielded" condition (the caster still
     # controls the block). Refreshed each cast.
