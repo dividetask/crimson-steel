@@ -74,6 +74,9 @@ Skills:
   healing:
     attribute: wis
     description: Tending wounds and casting divine healing magic.
+  invocation:
+    attribute: wis
+    description: Divine casting — channeling spells through a deity. The casting skill clerics use.
   nature:
     attribute: wis
     description: Wilderness lore, animal husbandry, and survival in the outdoors.
