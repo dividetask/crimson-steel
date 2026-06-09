@@ -198,6 +198,8 @@ Input: a Stack with `category == Weapon`.
 
 Returns *Get Item Details* extended with: `damage_formula` (per-weapon override → first Tag with `damage_formula` → Category default), `damage_types` (list), `bleed` (max over the Damage Types' defaults, or per-weapon override), `threshold` (min over the Damage Types' defaults, or per-weapon override, plus the sum of every equipped Property's `weapon_modifiers.threshold_delta`; `null` when explicitly null on the Weapon), `tags` (list), `ammo_type` (string or null), `affliction` (the key of a Conditions Affliction the weapon injects on a hit — e.g. a spider's `spider_venom` Bite — or `null`; Combat offers a Poison input alongside Damage / Bleed when present), `damage_riders` (the resolved `damage_rider` of every magical Property on the Stack — sentinel Damage Types `from_subtype` / `from_weapon` already resolved to a concrete type — for Combat to roll at attack time), `tier_advantage` (summed `tier_advantage.amount` across the Stack's Properties — the Glory Tier bump; 0 for a mundane weapon).
 
+A Weapon's `base_damage` is its **damage field** — the amount the weapon adds to an attack; `base_damage: 0` (e.g. the Bola) means the Weapon contributes no extra damage, not that the attack deals nothing. Two further per-weapon catalog fields are **declarative** (surfaced for Combat but not yet acted on): `range_feet` (a thrown Weapon's range in feet) and `on_hit_save` (a `{ attribute, fail, success }` save the target makes when hit — the Bola's Dexterity-save-or-`prone`).
+
 ### Get Armor Details
 
 Input: a Stack with `category == Armor`.
@@ -239,6 +241,29 @@ throwing/applying an Oil, reading a Scroll, or casting through a Wand — the
 casting check uses the skill defined on the spell (or evocation): the spell's
 `skills:` list in `abilities/spells.yaml`. The consumer need not be a caster;
 the item supplies the spell and the spell supplies the skill.
+
+**Autogeneration.** These forms are not enumerated in `equipment_config.yaml`.
+The Catalog generates them from the Abilities Spell catalog at load: for each
+Spell it synthesizes the Item Types named `Scroll of <Spell>`, `Wand of
+<Spell>`, and — gated by the Spell's `items:` — `Potion of <Spell>` /
+`Oil of <Spell>`, each keyed by the Spell's base name and carrying that Spell's
+`spell` and `tier`. Scroll / Potion / Oil are `Consumable` and `innately_usable`
+(anyone may use them); a Wand is a held `Item` (`slot: hands`) flagged
+`grants_spell`. A handwritten catalog entry of the same name always wins over
+the generated one. (Generated forms currently price through the standard Unit
+Price formula from their Tier; a per-form price model is not yet defined.)
+
+### Poison Vials
+
+A Poison Vial (catalog block `Poison Vials`, Category `Consumable`) holds doses
+of one specific poison. The vial entry binds the poison by name through a
+`poison` field — a Conditions Affliction of category `poison` (e.g.
+`spider_venom`) from `conditions/conditions_afflictions.yaml`. The number of
+doses a Vial holds is its Stack `quantity`. This is **structure only**: the
+catalog and lookups recognize Poison Vials, but applying a dose (coating a
+Weapon, or throwing / applying the vial to a target) is not yet wired into
+Combat, and a Poison Vial carries no `spell`, so *Consume Item* does not act on
+it.
 
 ### Consume Item
 

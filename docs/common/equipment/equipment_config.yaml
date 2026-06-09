@@ -332,6 +332,21 @@ Weapons:
     damage_type: Piercing
     ammo_type: Arrow
     base_price: 25
+  # Bola — a thrown entangling weapon (10-ft range). Its damage field adds
+  # nothing to the attack (`base_damage: 0`); a creature it hits must make a
+  # Dexterity save or fall prone. `range_feet` and `on_hit_save` are
+  # declarative — the save's Combat wiring is not yet implemented.
+  Bola:
+    category: Ranged
+    damage_type: Bludgeoning
+    base_damage: 0
+    tags: [thrown]
+    range_feet: 10
+    on_hit_save:
+      attribute: dex
+      fail: prone
+      success: "0"
+    base_price: 5
 
 # Magical Weapon Properties. `applies_to` keys: `melee`, `ranged`,
 # `ammo`. A Property with `has_subtype: true` has a Display block
@@ -797,3 +812,26 @@ Tattoos:
     slot: chest
     grants: [Sneak Attack]
     base_price: 500
+
+# =====================================================================
+# POISON VIALS
+# =====================================================================
+# A Poison Vial holds a number of doses (the Stack `quantity`) of one
+# specific poison — an Affliction of category "poison" from
+# `conditions/conditions_afflictions.yaml`, named by the `poison` field.
+# Structure only for now: applying a dose (to a weapon, or thrown /
+# applied to a target) is not yet wired into Combat. Each Vial entry
+# binds one poison; the catalog is open for projects to add more.
+Poison Vials:
+  Vial of Spider Venom:
+    category: Consumable
+    poison: spider_venom
+    base_price: 100
+  Vial of Common Venom:
+    category: Consumable
+    poison: common_venom
+    base_price: 60
+  Vial of Sleep Venom:
+    category: Consumable
+    poison: sleep_venom
+    base_price: 150
