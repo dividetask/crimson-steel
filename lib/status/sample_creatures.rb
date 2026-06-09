@@ -450,11 +450,11 @@ module Status
       [
         template_demo(id: 300, name: 'Medium Spider', race: 'spider', tier: 1,
                        attrs: { str: 9, dex: 14, con: 11, int: 1, wis: 10, cha: 2 },
-                       classes: [{ key: 'commoner', level: 1, trained_skills: [] }],
+                       classes: [{ key: 'feral', level: 4, trained_skills: [] }],
                        category: 'general_red_tier'),
         template_demo(id: 301, name: 'Wolf', race: 'canine', tier: 1,
                        attrs: { str: 12, dex: 15, con: 13, int: 3, wis: 12, cha: 6 },
-                       classes: [{ key: 'commoner', level: 1, trained_skills: [] }],
+                       classes: [{ key: 'feral', level: 4, trained_skills: [] }],
                        category: 'general_red_tier'),
         template_demo(id: 302, name: 'Goblin', race: 'goblin', tier: 1,
                        attrs: { str: 8, dex: 14, con: 10, int: 9, wis: 8, cha: 8 },

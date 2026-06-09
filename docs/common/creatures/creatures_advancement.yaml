@@ -215,6 +215,27 @@ Classes:
       - nature
       - perception
 
+  # NPC martial class for beasts. Identical to `warrior` — a copy of
+  # `fighter` that grants no class abilities (no weapon/armor training).
+  # Beasts use this instead of `commoner`, which is reserved for ordinary
+  # folk. `npc_class: true` keeps it out of the player-character picker.
+  feral:
+    npc_class: true
+    martial_advancement: aligned
+    bonus_skills: 2
+    mana_per_level: 1
+    saves:
+      aligned: []
+      opposed: [dex, int, wis, cha]
+    aligned_proficiencies:
+      - acrobatics
+      - animal_handling
+      - athletics
+      - history
+      - intimidate
+      - nature
+      - perception
+
   rogue:
     martial_advancement: unaligned
     bonus_skills: 4

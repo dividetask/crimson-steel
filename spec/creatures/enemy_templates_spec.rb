@@ -92,6 +92,22 @@ RSpec.describe 'Enemy templates: races, clamp, NPC class, loadout', type: :model
     end
   end
 
+  describe 'feral NPC class' do
+    it 'is flagged npc_class and excluded from the PC class picker' do
+      expect(Creatures::Advancement.npc_class?('feral')).to be(true)
+      expect(Creatures::Advancement.pc_class_keys).not_to include('feral')
+    end
+
+    it 'mirrors fighter saves/martial but grants no class abilities' do
+      fe = Creatures::Advancement.look_up_class('feral')
+      f = Creatures::Advancement.look_up_class('fighter')
+      expect(fe['martial_advancement']).to eq(f['martial_advancement'])
+      expect(fe['saves']).to eq(f['saves'])
+      expect(fe['aligned_proficiencies']).to eq(f['aligned_proficiencies'])
+      expect(fe['ability_progression']).to be_nil
+    end
+  end
+
   describe 'equipment_table round-trip' do
     it 'normalize/serialize preserve equipment_table' do
       raw = {
