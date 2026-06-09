@@ -1,4 +1,5 @@
 import { ActionBuilder } from './actionBuilder.js';
+import { ActionResult } from './actionResult.js';
 import { placeCommitProxy } from './turnCommit.js';
 
 // Turn Action panel — Cast (turn_action_stub.md → Cast).
@@ -20,7 +21,7 @@ export class TurnCast {
 
     container.addEventListener('action:confirmed', (e) => TurnCast._preview(container, e.detail));
     container.addEventListener('click', (e) => {
-      if (e.target.closest && e.target.closest('.ta-commit')) { e.preventDefault(); TurnCast._commit(container); }
+      if (e.target.closest && e.target.closest('.ar-commit')) { e.preventDefault(); TurnCast._commit(container); }
     });
     // Capture an area placement (re-placement re-fires via the Target step's
     // own Change button, which re-arms the "Place on the map" option).
@@ -110,7 +111,21 @@ export class TurnCast {
 
   static _commit(container) {
     if (!container._lastDetail) return;
-    TurnCast._post(container, TurnCast._payload(container, container._lastDetail, true), () => window.location.reload());
+    const payload = TurnCast._payload(container, container._lastDetail, true);
+    payload.override = TurnCast._gatherOverride(container);
+    TurnCast._post(container, payload, () => window.location.reload());
+  }
+
+  // Read the editable result fields (Mana, per-participant Combat Pool) into an
+  // override the cast resolver applies on commit.
+  static _gatherOverride(container) {
+    const f = ActionResult.fields(container.querySelector('.tc-result'));
+    const o = {};
+    if ('mana' in f) o.mana = f.mana;
+    const pools = Object.keys(f).filter((k) => k.indexOf('pool:') === 0)
+      .map((k) => ({ id: num(k.slice(5)), amount: f[k] }));
+    if (pools.length) o.pool_spends = pools;
+    return o;
   }
 
   static _post(container, payload, onOk) {
@@ -126,20 +141,29 @@ export class TurnCast {
       .catch(() => TurnCast._warn(container, 'Could not resolve the cast.'));
   }
 
+  // Render the cast outcome through the shared Action Result renderer — the same
+  // markup the Attack result uses. Mana and per-participant Combat Pool are the
+  // editable fields; the spell line, per-target outcomes, and sustain are
+  // read-only notes.
   static _renderResult(container, res) {
     const slot = container.querySelector('.tc-result');
     if (!slot) return;
-    const lines = [];
     const tox = res.toxicity || {};
-    lines.push(`<p class="tc-line"><strong>${esc(res.spell || 'Spell')}</strong> — ${esc(res.cast_skill || '')}` +
-      ` · Mana ${num(res.mana_spent)}${tox.requested ? ` · Toxicity ${num(tox.requested)}${tox.accepted === false ? ' (blocked)' : ''}` : ''}</p>`);
+    const fields = [{ key: 'mana', label: 'Mana', value: num(res.mana_spent), editable: true }];
+    (res.pool_spends || []).filter((s) => s.amount > 0).forEach((s) => {
+      fields.push({ key: `pool:${s.id}`, label: `Combat Pool — #${s.id}`, value: num(s.amount), editable: true });
+    });
+    const notes = [{
+      label: res.spell || 'Spell',
+      value: (res.cast_skill || '') +
+        (tox.requested ? ` · Toxicity ${num(tox.requested)}${tox.accepted === false ? ' (blocked)' : ''}` : '')
+    }];
     (res.targets || []).forEach((t) => {
       const fx = (t.applied || []).map((a) => TurnCast._fxText(a)).filter(Boolean).join(', ');
-      lines.push(`<p class="tc-line">#${t.id}: ${esc(t.outcome)}${fx ? ' — ' + fx : ''}</p>`);
+      notes.push({ label: `#${t.id}`, value: `${t.outcome || ''}${fx ? ' — ' + fx : ''}` });
     });
-    if (res.sustain) lines.push(`<p class="tc-line">Sustain: ${esc(res.sustain.kind)}</p>`);
-    lines.push(`<div class="ta-actions"><button type="button" class="ce-btn ta-commit">Commit cast</button></div>`);
-    slot.innerHTML = lines.join('');
+    if (res.sustain) notes.push({ label: 'Sustain', value: res.sustain.kind });
+    ActionResult.render(slot, { fields, notes, commitLabel: 'Commit cast' });
     slot.hidden = false;
     // Surface a Commit button at the top of the Turn Action stub (the action
     // menu's confirm slot) so the DM commits without reaching down here.

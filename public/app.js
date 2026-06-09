@@ -534,7 +534,7 @@ document.addEventListener('mouseover', function (e) {
     if (!proxy) return;
     e.preventDefault();
     var panel = proxy.closest('.turn-action');
-    var real = panel && panel.querySelector('.ta-pane.ta-pane-active .ta-commit');
+    var real = panel && panel.querySelector('.ta-pane.ta-pane-active .ar-commit');
     if (real) real.click();
   });
 

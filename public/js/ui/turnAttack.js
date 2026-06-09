@@ -1,4 +1,5 @@
 import { ActionBuilder } from './actionBuilder.js';
+import { ActionResult } from './actionResult.js';
 import { placeCommitProxy } from './turnCommit.js';
 
 // Turn Action panel — Attack (turn_action_stub.md → Attack).
@@ -23,7 +24,7 @@ export class TurnAttack {
 
     container.addEventListener('action:confirmed', (e) => TurnAttack._preview(container, e.detail));
     container.addEventListener('click', (e) => {
-      if (e.target.closest && e.target.closest('.ta-commit')) { e.preventDefault(); TurnAttack._commit(container); }
+      if (e.target.closest && e.target.closest('.ar-commit')) { e.preventDefault(); TurnAttack._commit(container); }
       // The rider Roll Resolution Stub's Roll / Confirm / Change are driven by
       // the shared handlers in app.js (any .rolls-wrapper). We only hook the
       // Confirm (reveal the damage screen) and Change (hide it again), without
@@ -33,12 +34,12 @@ export class TurnAttack {
     });
     // Editing the Damage field re-buckets the Minor/Moderate/Major split live.
     container.addEventListener('input', (e) => {
-      if (e.target.closest && e.target.closest('.ta-dmg-input')) TurnAttack._renderSplit(container);
+      if (e.target.closest && e.target.closest('.ar-input[data-key="damage"]')) TurnAttack._renderSplit(container);
     });
     // Toggling a post-roll defender Reaction (Danger Sense / Primal Tenacity)
     // adjusts this attack's damage / severity live.
     container.addEventListener('change', (e) => {
-      if (e.target.closest && e.target.closest('.ta-reaction-toggle')) TurnAttack._onReactionToggle(container, e.target);
+      if (e.target.closest && e.target.closest('.ar-reaction-toggle')) TurnAttack._onReactionToggle(container, e.target);
     });
 
     container.innerHTML = '<p class="ta-attack-loading">Loading attack…</p><div class="ta-result" hidden></div>';
@@ -115,28 +116,24 @@ export class TurnAttack {
   }
 
   // The rider amounts for the commit payload, read from the (DM-editable)
-  // damage screen boxes: one { id, damage, self_damage } per rider.
+  // damage screen fields: one { id, damage, self_damage } per rider.
   static _gatherRiders(container) {
-    const screen = container.querySelector('.ta-damage-screen');
-    return (container._riders || []).map((rider) => {
-      const dmgEl = screen && screen.querySelector(`.ta-rider-dmg-input[data-id="${rider.id}"]`);
-      const selfEl = screen && screen.querySelector(`.ta-rider-self-input[data-id="${rider.id}"]`);
-      return { id: rider.id, damage: dmgEl ? num(dmgEl.value) : 0, self_damage: selfEl ? num(selfEl.value) : 0 };
-    });
+    const f = ActionResult.fields(TurnAttack._screen(container));
+    return (container._riders || []).map((rider) => ({
+      id: rider.id, damage: f[`rider:${rider.id}`] || 0, self_damage: f[`rider_self:${rider.id}`] || 0
+    }));
   }
 
   // Read the editable result fields into an override the server applies.
   static _gatherOverride(container) {
-    const slot = container.querySelector('.ta-result');
+    const f = ActionResult.fields(TurnAttack._screen(container));
     const o = {};
-    const dmg = slot && slot.querySelector('.ta-dmg-input');
-    const bl = slot && slot.querySelector('.ta-bleed-input');
-    const poi = slot && slot.querySelector('.ta-poison-input');
-    if (dmg) o.damage = num(dmg.value);
-    if (bl) o.bleed = num(bl.value);
-    if (poi) o.poison = num(poi.value);
-    const pools = slot ? Array.from(slot.querySelectorAll('.ta-pool-input')) : [];
-    if (pools.length) o.pool_spends = pools.map((p) => ({ id: num(p.dataset.id), amount: num(p.value) }));
+    if ('damage' in f) o.damage = f.damage;
+    if ('bleed' in f) o.bleed = f.bleed;
+    if ('poison' in f) o.poison = f.poison;
+    const pools = Object.keys(f).filter((k) => k.indexOf('pool:') === 0)
+      .map((k) => ({ id: num(k.slice(5)), amount: f[k] }));
+    if (pools.length) o.pool_spends = pools;
     return o;
   }
 
@@ -201,70 +198,53 @@ export class TurnAttack {
     }
   }
 
-  // Build the editable damage screen + Commit button. The weapon's base
-  // Damage, each magical rider's bonus Damage (its own box), any Vicious-style
-  // self-inflicted Damage (its own box), Bleed, and per-participant Combat
-  // Pool are all editable; the rider boxes are prefilled from the rider roll.
+  // Build the editable damage screen via the shared Action Result renderer.
+  // The weapon's base Damage, each magical rider's bonus Damage, any Vicious-
+  // style self-inflicted Damage, Bleed, Poison, and per-participant Combat Pool
+  // are all editable fields; the rider boxes are prefilled from the rider roll.
   static _renderDamageScreen(container, res) {
-    const screen = container.querySelector('.ta-damage-screen');
+    const screen = TurnAttack._screen(container);
     if (!screen) return;
     const nameOf = TurnAttack._namer(container);
     const spends = (res.pool_spends || []).filter((s) => s.amount > 0);
     const rolls = container._riderRolls || {};
-    const rows = [];
-    const gap = num(res.inherent_dr) > 0 ? ` <span class="ta-dim">(−${num(res.inherent_dr)} tier mismatch)</span>` : '';
-    rows.push(`<div class="ta-field"><label>Damage` +
-      ` <input type="number" class="ta-dmg-input" value="${res.damage}" min="0"></label>` +
-      ` <span class="ta-dim">${res.damage_type || ''}</span>${gap} <span class="ta-split"></span></div>`);
-    // One bonus-damage box per rider (separate from the base damage and from
-    // each other), plus a self-damage box for a rider that bites the wielder.
+    const fields = [];
+    const gap = num(res.inherent_dr) > 0 ? ` (−${num(res.inherent_dr)} tier mismatch)` : '';
+    fields.push({ key: 'damage', label: 'Damage', value: res.damage, editable: true,
+                  suffix: (res.damage_type || '') + gap, split: true });
+    // One bonus-damage field per rider, plus a self-damage field for a rider
+    // that bites the wielder.
     (container._riders || []).forEach((rider) => {
       const roll = rolls[rider.id] || { damage: 0, self_damage: 0 };
       const note = rider.kind === 'named_effect' ? cap(String(rider.effect || '')) : (rider.damage_type || '');
       const sev = rider.severity ? rider.severity + ' ' : '';
-      rows.push(`<div class="ta-field"><label>${esc(rider.label)} damage` +
-        ` <input type="number" class="ta-rider-dmg-input" data-id="${rider.id}" value="${roll.damage}" min="0"></label>` +
-        ` <span class="ta-dim">${sev}${esc(note)}</span></div>`);
+      fields.push({ key: `rider:${rider.id}`, label: `${rider.label} damage`, value: roll.damage,
+                    editable: true, suffix: `${sev}${note}` });
       if (rider.self_damage) {
-        rows.push(`<div class="ta-field"><label>Self damage (wielder)` +
-          ` <input type="number" class="ta-rider-self-input" data-id="${rider.id}" value="${roll.self_damage}" min="0"></label>` +
-          ` <span class="ta-dim">${esc(rider.self_damage.severity)}</span></div>`);
+        fields.push({ key: `rider_self:${rider.id}`, label: 'Self damage (wielder)', value: roll.self_damage,
+                      editable: true, suffix: rider.self_damage.severity });
       }
     });
-    rows.push(`<div class="ta-field"><label>Bleed` +
-      ` <input type="number" class="ta-bleed-input" value="${res.bleed}" min="0"></label></div>`);
-    // Poison — only weapons that inject an Affliction (e.g. a spider's
-    // venom) return a poison_name; its potency is editable like Bleed.
+    fields.push({ key: 'bleed', label: 'Bleed', value: res.bleed, editable: true });
+    // Poison — only weapons that inject an Affliction (a spider's venom) return
+    // a poison_name; its potency is editable like Bleed.
     if (res.poison_name) {
-      rows.push(`<div class="ta-field"><label>Poison` +
-        ` <input type="number" class="ta-poison-input" value="${res.poison || 0}" min="0"></label>` +
-        ` <span class="ta-dim">${res.poison_name}</span></div>`);
+      fields.push({ key: 'poison', label: 'Poison', value: res.poison || 0, editable: true, suffix: res.poison_name });
     }
     spends.forEach((s) => {
-      rows.push(`<div class="ta-field"><label>Combat Pool — ${nameOf(s.id)}` +
-        ` <input type="number" class="ta-pool-input" data-id="${s.id}" value="${s.amount}" min="0"></label></div>`);
+      fields.push({ key: `pool:${s.id}`, label: `Combat Pool — ${nameOf(s.id)}`, value: s.amount, editable: true });
     });
     // Post-roll defender Reactions (Danger Sense / Primal Tenacity) the target
     // may use against this hit — offered only when it declared no defense.
-    // Each is a one-shot effect on this attack: Danger Sense widens the Severity
-    // buckets (Damage Resilience), Primal Tenacity trims the damage (Damage
-    // Reduction). Checking one spends its Mana on commit.
     const reactions = (container._lastRes && container._lastRes.defender_reactions_available) || [];
-    if (reactions.length) {
-      const rx = reactions.map((r) => (
-        `<label class="ta-reaction"><input type="checkbox" class="ta-reaction-toggle" data-key="${esc(r.key)}"` +
-        ` data-target="${esc(r.target)}" data-amount="${num(r.amount)}"> ${esc(r.label)}</label>`
-      )).join('');
-      rows.push(`<div class="ta-reactions"><div class="ta-reactions-head">Defender reactions</div>${rx}</div>`);
-    }
-    rows.push(`<div class="ta-actions"><button type="button" class="ce-btn ta-commit">Commit attack</button></div>`);
-    screen.innerHTML = rows.join('');
+    ActionResult.render(screen, { fields, reactions, commitLabel: 'Commit attack' });
     // Surface a Commit button at the top of the Turn Action stub (the action
-    // menu's confirm slot) so the DM commits without reaching down to the
-    // result. It proxies to the real Commit button rendered above.
+    // menu's confirm slot) so the DM commits without reaching down to the result.
     placeCommitProxy(container, 'Commit attack');
     TurnAttack._renderSplit(container);
   }
+
+  static _screen(container) { return container.querySelector('.ta-damage-screen'); }
 
   // Markup for the rider Roll Resolution Stub — the standard `.rolls-wrapper`
   // the dice engine + app.js delegation already drive (Roll All / Confirm /
@@ -400,9 +380,9 @@ export class TurnAttack {
   // target's Threshold + Damage Resilience (mirrors the server's bucketing).
   static _renderSplit(container) {
     const res = container._lastRes || {};
-    const slot = container.querySelector('.ta-result');
-    const input = slot && slot.querySelector('.ta-dmg-input');
-    const out = slot && slot.querySelector('.ta-split');
+    const screen = TurnAttack._screen(container);
+    const input = screen && screen.querySelector('.ar-input[data-key="damage"]');
+    const out = screen && screen.querySelector('.ar-split');
     if (!input || !out) return;
     const resil = (res.damage_resilience || 0) + TurnAttack._reactionResilience(container);
     const sev = bucketSeverity(num(input.value), res.threshold || 0, resil);
@@ -414,8 +394,8 @@ export class TurnAttack {
   // on commit, where the chosen keys ride along in the payload.
   static _onReactionToggle(container, el) {
     if (el.dataset.target === 'damage_reduction') {
-      const screen = container.querySelector('.ta-damage-screen');
-      const dmg = screen && screen.querySelector('.ta-dmg-input');
+      const screen = TurnAttack._screen(container);
+      const dmg = screen && screen.querySelector('.ar-input[data-key="damage"]');
       if (dmg) {
         const amt = num(el.dataset.amount);
         dmg.value = Math.max(0, num(dmg.value) + (el.checked ? -amt : amt));
@@ -426,19 +406,16 @@ export class TurnAttack {
 
   // Total Damage Resilience from checked Resilience reactions (Danger Sense).
   static _reactionResilience(container) {
-    const screen = container.querySelector('.ta-damage-screen');
+    const screen = TurnAttack._screen(container);
     if (!screen) return 0;
-    return Array.from(screen.querySelectorAll('.ta-reaction-toggle'))
+    return Array.from(screen.querySelectorAll('.ar-reaction-toggle'))
       .filter((c) => c.checked && c.dataset.target === 'damage_resilience')
       .reduce((s, c) => s + num(c.dataset.amount), 0);
   }
 
   // The keys of the checked post-roll Reactions, for the commit payload.
   static _reactionsChosen(container) {
-    const screen = container.querySelector('.ta-damage-screen');
-    if (!screen) return [];
-    return Array.from(screen.querySelectorAll('.ta-reaction-toggle'))
-      .filter((c) => c.checked).map((c) => c.dataset.key);
+    return ActionResult.reactionsChosen(TurnAttack._screen(container));
   }
 
   static _splitText(sev) {

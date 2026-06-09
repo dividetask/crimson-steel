@@ -3351,10 +3351,6 @@ body {
   font-size: 12px;
 }
 .ta-result p { margin: 2px 0; }
-.ta-field { margin: 4px 0; display: flex; align-items: center; gap: 6px; }
-.ta-field label { font-weight: bold; color: #444; display: flex; align-items: center; gap: 4px; }
-.ta-field input { width: 56px; padding: 2px 4px; font-size: 12px; }
-.ta-split { color: #7f1d1d; }
 /* The rider Roll Resolution Stub is injected into the attack's results block,
    directly under the Net Degree of Success line, so it reads as part of the
    same attack table rather than a separate boxed widget. Strip the standalone
@@ -3370,11 +3366,31 @@ body {
   padding: 4px 0 0; background: transparent; border-top: none;
 }
 .ta-damage-screen { margin-top: 8px; }
-/* Post-roll defender Reactions (Danger Sense / Primal Tenacity) — a small set
-   of checkboxes beneath the damage fields. */
-.ta-reactions { margin: 6px 0 2px; padding-top: 6px; border-top: 1px dashed #d0d0d0; }
-.ta-reactions-head { font-weight: bold; color: #444; margin-bottom: 2px; }
-.ta-reaction { display: flex; align-items: center; gap: 5px; margin: 2px 0; }
+
+/* Shared Action Result block (actionResult.js) — the single, uniform "what
+   happens when this action is taken" layout used by every turn action (Attack,
+   Cast, …): a resources-spent line, a list of editable fields, read-only
+   outcome notes, optional defender-reaction toggles, and a Commit button. */
+.ar { font-size: 12px; }
+.ar-spent { margin: 2px 0 4px; color: #444; }
+.ar-spent-label { font-weight: bold; margin-right: 4px; }
+.ar-spent-item { display: inline-block; margin-right: 8px; }
+.ar-field { margin: 4px 0; display: flex; align-items: center; gap: 6px; }
+.ar-field label { font-weight: bold; color: #444; display: flex; align-items: center; gap: 4px; }
+.ar-field input { width: 56px; padding: 2px 4px; font-size: 12px; }
+.ar-value { font-weight: normal; }
+.ar-dim { color: #777; font-weight: normal; }
+.ar-split { color: #7f1d1d; }
+.ar-note-row { margin: 2px 0; display: flex; gap: 6px; }
+.ar-note-label { font-weight: bold; color: #444; }
+.ar-note-value { color: #333; }
+.ar-actions { margin-top: 8px; }
+/* Defender Reactions (Danger Sense / Primal Tenacity) — a small set of
+   checkboxes beneath the fields. */
+.ar-reactions { margin: 6px 0 2px; padding-top: 6px; border-top: 1px dashed #d0d0d0; }
+.ar-reactions-head { font-weight: bold; color: #444; margin-bottom: 2px; }
+.ar-reaction { display: flex; align-items: center; gap: 5px; margin: 2px 0; }
+
 .ta-result-label { font-size: 11px; font-weight: bold; color: #8a5d00; margin-bottom: 4px; }
 .ta-result-committed { background: #eef7ee; border-top-color: #2c8a2c; }
 .ta-hit strong { color: #7f1d1d; }
