@@ -474,8 +474,9 @@ document.addEventListener('mouseover', function (e) {
   // action's label, clear the confirm slot (no Commit ready yet). Shared with
   // TurnSpecial via the exported helper on window (see turnSpecial.js).
   function selectTurnAction(panel, label) {
-    var lbl = panel.querySelector('.ta-selected-label');
-    if (lbl) lbl.textContent = label;
+    // Stash the chosen action's name; each host folds it into its builder as the
+    // first step row (mountActionRow). Collapse the category menu.
+    panel.dataset.actionLabel = label;
     var slot = panel.querySelector('.ta-confirm-slot');
     if (slot) slot.innerHTML = '';
     panel.classList.add('ta-has-selection');
@@ -528,8 +529,7 @@ document.addEventListener('mouseover', function (e) {
     panel.querySelectorAll('.ta-special-opt').forEach(function (b) { b.classList.remove('cr-mod-selected'); });
     var result = panel.querySelector('.ta-special-result');
     if (result) { result.hidden = true; result.innerHTML = ''; }
-    var slot = panel.querySelector('.ta-confirm-slot');
-    if (slot) slot.innerHTML = '';
+    panel.querySelectorAll('.ta-confirm-slot').forEach(function (s) { s.innerHTML = ''; });
   });
 
   // The Commit button mirrored into the selected-action row's confirm slot is

@@ -1,6 +1,6 @@
 import { ActionBuilder } from './actionBuilder.js';
 import { ActionResult } from './actionResult.js';
-import { placeCommitProxy } from './turnCommit.js';
+import { placeCommitProxy, mountActionRow } from './turnCommit.js';
 
 // Turn Action panel — Cast (turn_action_stub.md → Cast).
 //
@@ -33,8 +33,12 @@ export class TurnCast {
       .then((html) => {
         container.innerHTML = html + '<div class="ta-result tc-result" hidden></div>';
         const builder = container.querySelector('.action-builder');
-        if (builder) { ActionBuilder.ensureLoaded(builder); container._builder = builder; }
-        else container.innerHTML = '<p class="ta-warn">This Combatant knows no castable spells.</p>';
+        if (builder) {
+          ActionBuilder.ensureLoaded(builder);
+          container._builder = builder;
+          const panel = container.closest && container.closest('.turn-action');
+          mountActionRow(builder, (panel && panel.dataset.actionLabel) || 'Cast');
+        } else { container.innerHTML = '<p class="ta-warn">This Combatant knows no castable spells.</p>'; }
       })
       .catch(() => { container.innerHTML = '<p class="ta-warn">Could not load the cast.</p>'; });
   }

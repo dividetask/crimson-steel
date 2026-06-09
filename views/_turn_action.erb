@@ -92,17 +92,11 @@
       each Special Ability button is handled by TurnSpecial. The wrapping
       .ta-special is what TurnSpecial delegates its clicks from. %>
   <div class="ta-special ta-actions-menu" data-combatant-id="<%= acting[:combatant_id] %>">
-    <%# Once an action is picked the category groups collapse to this row: the
-        chosen action with a Change button (re-opens the menu), and a slot on
-        the right where the action's Confirm/Commit button surfaces — so the
-        DM confirms from the top of the stub without reaching down to the
-        result. Shown via the `ta-has-selection` class on .turn-action. %>
-    <div class="ta-selected-action">
-      <span class="step-summary-label">Action</span>
-      <span class="step-summary-value ta-selected-label"></span>
-      <button type="button" class="ta-change"><span class="cr-change-icon">↶</span> Change</button>
-      <span class="ta-confirm-slot"></span>
-    </div>
+    <%# Once an action is picked the category groups collapse (ta-has-selection)
+        and the chosen action is folded into the builder as its first step row
+        (mountActionRow) — an "Action" row with a Change button (re-opens the
+        menu) and the confirm slot the Commit proxy lands in — so it reads in
+        the same pattern as Target / Weapon / Defense. %>
     <% categories.each do |cat, heading, generics, specials_in_cat| %>
       <% next if generics.empty? && specials_in_cat.empty? %>
       <div class="ta-cat-group">
@@ -152,8 +146,14 @@
       </div>
 
       <div class="ta-pane" data-ta-pane="item">
-        <%# Item use is not built yet; render the shared Action Result shell so it
-            reads like every other action once wired. %>
+        <%# Item use is not built yet; render the shared Action row + result shell
+            so it reads like every other action once wired. %>
+        <div class="step-summary ta-action-row">
+          <span class="step-summary-label">Action</span>
+          <span class="step-summary-value ta-action-name">Item</span>
+          <button type="button" class="ta-change"><span class="cr-change-icon">↶</span> Change</button>
+          <span class="ta-confirm-slot"></span>
+        </div>
         <div class="ar">
           <div class="ar-note-row">
             <span class="ar-note-label">Item</span>
@@ -164,6 +164,12 @@
     <% end %>
 
     <div class="ta-pane" data-ta-pane="end_turn">
+      <div class="step-summary ta-action-row">
+        <span class="step-summary-label">Action</span>
+        <span class="step-summary-value ta-action-name">End Turn</span>
+        <button type="button" class="ta-change"><span class="cr-change-icon">↶</span> Change</button>
+        <span class="ta-confirm-slot"></span>
+      </div>
       <p class="ta-pane-lead">Advance to the next Combatant in initiative order. Clears this Combatant&rsquo;s luck points; a Round wrap advances the Timestamp. The next Combatant&rsquo;s Combat Pool and Main Actions refresh automatically.</p>
       <form method="post" action="/encounter/advance_turn">
         <button type="submit" class="ce-btn ta-confirm">End Turn</button>

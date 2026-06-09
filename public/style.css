@@ -3235,20 +3235,12 @@ body {
 /* Selected-action row: replaces the category groups once an action is picked.
    Change re-opens the menu; the right-hand slot hosts the action's Commit
    button. */
-/* The chosen action collapses to a row in the SAME pattern as the builder's
-   step rows (an uppercase label + value + Change), reusing .step-summary-label
-   / .step-summary-value so "Action  Attack" reads like "Target  Wolf". */
-.ta-selected-action {
-  display: none;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 10px;
-  font-family: Arial, sans-serif;
-  font-size: 11px;
-  border-bottom: 1px solid #eee;
-}
-.turn-action.ta-has-selection .ta-selected-action { display: flex; }
+/* Picking an action collapses the category menu; the chosen action is folded
+   into the builder (or the action's pane) as its first row — .ta-action-row —
+   reusing the .step-summary label/value pattern so "Action  Attack" reads like
+   "Target  Wolf". It carries the Change button and the Commit-proxy slot. */
 .turn-action.ta-has-selection .ta-cat-group { display: none; }
+.ta-action-row .ta-action-name { color: #1e293b; }
 .ta-change {
   flex: 0 0 auto;
   background: #fff7e0;

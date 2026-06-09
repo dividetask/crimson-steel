@@ -1,5 +1,5 @@
 import { ActionResult } from './actionResult.js';
-import { placeCommitProxy } from './turnCommit.js';
+import { placeCommitProxy, actionRowHtml } from './turnCommit.js';
 
 // Turn Action panel — Move (turn_action_stub.md → Move).
 //
@@ -19,16 +19,23 @@ export class TurnMove {
       if (e.target.closest && e.target.closest('.ar-commit')) { e.preventDefault(); TurnMove._commit(container); }
     });
 
-    ActionResult.render(container, {
-      fields: [{ key: 'cost', label: 'Combat Pool', value: cost, editable: true }],
-      notes: remaining < cost ? [{ label: 'Note', value: `Only ${remaining} Combat Pool remaining` }] : [],
-      commitLabel: 'Confirm Move'
-    });
+    // The same "Action" row the builders fold in, then the shared result block —
+    // so Move reads identically to Attack / Cast (Action row + editable spend).
+    container.innerHTML = actionRowHtml('Move') + '<div class="ta-move-result"></div>';
+    TurnMove._render(container, cost, remaining < cost ? `Only ${remaining} Combat Pool remaining` : null);
     placeCommitProxy(container, 'Confirm Move');
   }
 
+  static _render(container, cost, note) {
+    ActionResult.render(container.querySelector('.ta-move-result'), {
+      fields: [{ key: 'cost', label: 'Combat Pool', value: cost, editable: true }],
+      notes: note ? [{ label: 'Note', value: note }] : [],
+      commitLabel: 'Confirm Move'
+    });
+  }
+
   static _commit(container) {
-    const cost = ActionResult.field(container, 'cost');
+    const cost = ActionResult.field(container.querySelector('.ta-move-result'), 'cost');
     fetch('/encounter/move', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ combatant_id: container._combatantId, cost: cost })
@@ -36,11 +43,7 @@ export class TurnMove {
       .then((r) => r.json().catch(() => null))
       .then((res) => {
         if (!res || res.ok === false) {
-          ActionResult.render(container, {
-            fields: [{ key: 'cost', label: 'Combat Pool', value: cost, editable: true }],
-            notes: [{ label: 'Error', value: (res && res.error) || 'Could not move.' }],
-            commitLabel: 'Confirm Move'
-          });
+          TurnMove._render(container, cost, (res && res.error) || 'Could not move.');
           return;
         }
         window.location.reload();

@@ -1,6 +1,13 @@
 import { ActionBuilder } from './actionBuilder.js';
 import { ActionResult } from './actionResult.js';
-import { placeCommitProxy } from './turnCommit.js';
+import { placeCommitProxy, mountActionRow } from './turnCommit.js';
+
+// The chosen action's display name, stashed on the turn panel when the menu
+// button was clicked (app.js selectTurnAction), for the in-builder Action row.
+function actionLabel(container) {
+  const panel = container.closest && container.closest('.turn-action');
+  return (panel && panel.dataset.actionLabel) || 'Attack';
+}
 
 // Turn Action panel — Attack (turn_action_stub.md → Attack).
 //
@@ -48,7 +55,7 @@ export class TurnAttack {
       .then((html) => {
         container.innerHTML = html + '<div class="ta-result" hidden></div>';
         const builder = container.querySelector('.action-builder');
-        if (builder) ActionBuilder.ensureLoaded(builder);
+        if (builder) { ActionBuilder.ensureLoaded(builder); mountActionRow(builder, actionLabel(container)); }
         else container.innerHTML = '<p class="ta-warn">Could not load the attack.</p>';
       })
       .catch(() => { container.innerHTML = '<p class="ta-warn">Could not load the attack.</p>'; });

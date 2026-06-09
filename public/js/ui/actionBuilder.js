@@ -577,8 +577,10 @@ export class ActionBuilder {
       supporting: rolls.filter((r) => r.side !== 'opposing').map((r) => r.successes),
       opposing: rolls.filter((r) => r.side === 'opposing').map((r) => r.successes),
     });
+    // A no-roll action (a buff / reservoir pour) rolls nothing, so there is no
+    // Net Degree of Success to report — leave the line empty rather than "0".
     const netEl = root.querySelector('.cb-net');
-    if (netEl) netEl.textContent = 'Net Degree of Success ' + net + '.';
+    if (netEl) netEl.textContent = cb.noRoll ? '' : ('Net Degree of Success ' + net + '.');
     root.dispatchEvent(new CustomEvent('action:confirmed', { bubbles: true, detail: { choices, rolls, noRoll: !!cb.noRoll } }));
   }
 }

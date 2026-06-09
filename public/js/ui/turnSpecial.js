@@ -1,5 +1,6 @@
 import { ActionBuilder } from './actionBuilder.js';
 import { ActionResult } from './actionResult.js';
+import { mountActionRow, actionRowHtml } from './turnCommit.js';
 
 // Turn Action panel — Special (turn_action_stub.md → Special).
 //
@@ -58,11 +59,13 @@ export class TurnSpecial {
 
     if (btn.dataset.performance === '1') { TurnSpecial._mountBuilder(container, slot); return; }
 
-    // Non-channeled: summary + Confirm, through the shared result renderer.
+    // Non-channeled: the Action row (with Change) + summary + Confirm, through
+    // the shared result renderer — the same shape as every other action.
     ActionResult.render(slot, {
       notes: [{ label: btn.textContent.trim(), value: btn.dataset.summary || '' }],
       commitLabel: 'Confirm'
     });
+    slot.insertAdjacentHTML('afterbegin', actionRowHtml(btn.textContent.trim()));
     slot.hidden = false;
   }
 
@@ -80,6 +83,8 @@ export class TurnSpecial {
           let blob; try { blob = JSON.parse(builder.dataset.builder); } catch (e) { blob = {}; }
           container._ratio = blob.reservoir_ratio || 1;
           ActionBuilder.ensureLoaded(builder);
+          const panel = container.closest && container.closest('.turn-action');
+          mountActionRow(builder, (panel && panel.dataset.actionLabel) || 'Special');
         } else {
           slot.innerHTML = '<p class="ta-warn">Could not load the performance.</p>';
         }
