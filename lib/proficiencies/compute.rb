@@ -35,16 +35,21 @@ module Proficiencies
       end
 
       driving_attr = (attribute_override || entry['attribute']).to_sym
-      direct = direct_prowess(key, entry, driving_attr, creature)
+      direct_value, direct_trained = direct_prowess(key, entry, driving_attr, creature)
       substituted = substituted_prowess(key, creature)
 
-      prowess = if substituted && substituted > direct
-                  substituted
-                else
-                  direct
-                end
+      prowess, trained = if substituted && substituted.first > direct_value
+                           substituted
+                         else
+                           [direct_value, direct_trained]
+                         end
 
       dice_cap, bonus_penalty = DiceResolution.translate_prowess(prowess)
+      # The Non-Proficiency Penalty is a Target-Number penalty — it adjusts the
+      # Competency Modifier, never the dice count (a bonus/penalty never moves
+      # dice; only ranks + attribute do). It applies only to an *untrained Skill
+      # check*; a Saving Throw (`*_save`) never takes it.
+      bonus_penalty += Config.non_proficiency_penalty if !trained && !key.end_with?('_save')
       modifier = bonus_penalty.zero? ? nil : ['Competency', bonus_penalty]
       { dice_cap: dice_cap, competency_modifier: modifier }
     end
@@ -62,16 +67,25 @@ module Proficiencies
       effective_ranks = floor_ability_ranks(creature)
       attr_contrib = (creature.attribute_value(attribute).to_f /
                       Config.attribute_contribution_divisor).floor
-      penalty = effective_ranks.zero? ? Config.non_proficiency_penalty : 0
-      prowess = effective_ranks + attr_contrib + penalty
+      prowess = effective_ranks + attr_contrib
 
       dice_cap, bonus_penalty = DiceResolution.translate_prowess(prowess)
+      # Untrained Skill check: the Non-Proficiency Penalty rides the Competency
+      # Modifier (Target Number), not the dice. The Floor Ability lift may make
+      # it trained (effective_ranks > 0), in which case no penalty applies.
+      bonus_penalty += Config.non_proficiency_penalty if effective_ranks.zero?
       modifier = bonus_penalty.zero? ? nil : ['Competency', bonus_penalty]
       { dice_cap: dice_cap, competency_modifier: modifier }
     end
 
     # ---- pipeline pieces -----------------------------------------------
 
+    # Returns `[prowess, trained?]`. Prowess (effective ranks + attribute
+    # contribution) is what sets the dice count and the base Competency — it
+    # carries no bonus/penalty, because a bonus/penalty must never move the
+    # dice. `trained?` (effective ranks > 0) tells the caller whether the
+    # Non-Proficiency Penalty applies, which the caller layers onto the Target
+    # Number.
     def direct_prowess(key, entry, driving_attr, creature)
       base_ranks = creature.ranks_for(key)
 
@@ -80,9 +94,8 @@ module Proficiencies
 
       attr_contrib = (creature.attribute_value(driving_attr).to_f /
                       Config.attribute_contribution_divisor).floor
-      penalty = effective_ranks.zero? ? Config.non_proficiency_penalty : 0
 
-      effective_ranks + attr_contrib + penalty
+      [effective_ranks + attr_contrib, effective_ranks.positive?]
     end
 
     def floor_lift(key, entry, creature)
@@ -116,6 +129,9 @@ module Proficiencies
       end.keys
       return nil if sources.empty?
 
+      # Each source yields `[prowess, trained?]` (penalty-free, like
+      # direct_prowess); the highest Prowess wins, and its `trained?` flows back
+      # so the caller can decide the Target-Number penalty.
       sources.map do |source_key|
         source_entry = Proficiencies.look_up(source_key)
         raise ArgumentError, "Substitution source #{source_key.inspect} has no catalog entry" \
@@ -125,9 +141,8 @@ module Proficiencies
         source_attr  = source_entry['attribute'].to_sym
         attr_contrib = (creature.attribute_value(source_attr).to_f /
                         Config.attribute_contribution_divisor).floor
-        penalty = source_ranks.zero? ? Config.non_proficiency_penalty : 0
-        source_ranks + attr_contrib + penalty
-      end.max
+        [source_ranks + attr_contrib, source_ranks.positive?]
+      end.max_by(&:first)
     end
   end
 

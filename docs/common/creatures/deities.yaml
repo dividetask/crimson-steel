@@ -45,9 +45,23 @@ Domains:
   Fire:
     channel_divinity: Flame Devotion
   Glory:
+    spells:
+      - Trivial Ward
+      - Lesser Ward
+      - Standard Ward
+      - Improved Ward
+      - Advanced Ward
+      - Superior Ward
     channel_divinity: Glorious Charge
   Greed: {}
-  Healing: {}
+  Healing:
+    spells:
+      - Heal Petty Wounds
+      - Heal Lesser Wounds
+      - Heal Simple Wounds
+      - Heal Moderate Wounds
+      - Heal Advanced Wounds
+      - Heal Extreme Wounds
   Hearth: {}
   Hope: {}
   Humility: {}
@@ -75,6 +89,9 @@ Domains:
       - Shield of Faith
       - Spiritual Hammer
       - Silence
+      - Lesser Shield
+      - Standard Shield
+      - Greater Shield
     channel_divinity: Martial Devotion
   Water: {}
   Wisdom: {}

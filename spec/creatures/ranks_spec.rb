@@ -5,10 +5,11 @@ RSpec.describe 'Creatures ranks_for', type: :model do
   include CreaturesFixtures
 
   describe 'skills' do
-    it 'aligned skill (inclusion form): Korth Cleric 4 healing' do
-      # Cleric has `aligned_proficiencies` including `healing`. Aligned = floor(5*4/3) = 6.
+    it 'aligned skill (inclusion form): Korth Cleric 4 invocation' do
+      # Cleric has `aligned_proficiencies` including `invocation` (its divine
+      # casting skill). Aligned = floor(5*4/3) = 6.
       a = Creatures::Accessor.new(korth)
-      expect(a.ranks_for('healing')).to eq(6)
+      expect(a.ranks_for('invocation')).to eq(6)
     end
 
     it 'untrained skill returns 0' do
