@@ -101,6 +101,16 @@ module Creatures
       base + class_contrib + aggregated_modifiers(target: 'mana_bonus').sum { |m| m[:amount] }
     end
 
+    # ---- skills ----
+    # Every Skill the Creature is trained in, unioned across all its Classes
+    # (a Class's `choices.skills`). Order follows Class iteration, then the
+    # listed order within a Class. Used to resolve a caster's Casting Skill —
+    # e.g. a Cleric trained in `invocation` casts with Invocation rather than a
+    # Spell's generic `arcana` default.
+    def trained_skills
+      @record[:classes].values.flat_map { |e| Array(e[:skills]).map(&:to_s) }.uniq
+    end
+
     # ---- ranks ----
     def ranks_for(key)
       key = key.to_s

@@ -45,6 +45,12 @@ export class ActionBuilder {
 
   static _bind(root) {
     root.addEventListener('click', (e) => {
+      // The Damage Rider stub (a nested .rolls-wrapper injected into our results
+      // block after Confirm) carries its own .btn-confirm / .cr-step-change; its
+      // controls are driven by the dice engine + turnAttack.js, so ignore clicks
+      // that originate inside it — otherwise the rider's Confirm would re-fire
+      // the attack's own Confirm.
+      if (e.target.closest && e.target.closest('.ta-rider-stub')) return;
       const opt = e.target.closest && e.target.closest('.cb-opt');
       if (opt && root.contains(opt) && !opt.disabled) return ActionBuilder._pick(root, opt);
       const chg = e.target.closest && e.target.closest('.cr-step-change');
@@ -296,10 +302,13 @@ export class ActionBuilder {
     }
     ActionBuilder._setState(root, '__dice', 'active');
     // Compose the Check Resolution roll affordance only when the flow rolls. A
-    // no-roll action (a buff Cast, a reservoir pour) charges its dice without
-    // rolling, so "Roll All" is not mounted — the DM just confirms.
+    // no-roll action (a buff Cast, a reservoir pour like Shield of Faith)
+    // charges its dice without rolling, so "Roll All" is not mounted and the
+    // roll table itself is hidden — the DM just confirms, never prompted to roll.
     const rollAll = root.querySelector('.btn-roll-all');
     if (rollAll) rollAll.hidden = !!cb.noRoll;
+    const diceBody = root.querySelector('.step-body-dice');
+    if (diceBody) diceBody.hidden = !!cb.noRoll;
     // All steps resolved — show the final propagated TNs before the DM rolls.
     ActionBuilder._previewTns(root);
   }
@@ -424,7 +433,23 @@ export class ActionBuilder {
 
   static _applyPatch(root, patch) {
     if (!patch) return;
-    (patch.set_dice || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.dice_count = p.count; }));
+    // Setting an absolute dice count clears any prior scale baseline (a fresh
+    // weapon / dice choice is the new full count Better Lucky would halve).
+    (patch.set_dice || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.dice_count = p.count; delete c._base_dice; }));
+    // Scale a Roll's dice relative to its chosen count — Better Lucky Than
+    // Good halves the attacker's dice (min 3). The pre-scale count is stashed
+    // so picking a different defense (restore_dice) puts it back.
+    (patch.scale_dice || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => {
+      if (c._base_dice == null) c._base_dice = c.dice_count;
+      const base = c._base_dice;
+      const scaled = Math.floor(base * (p.num || 1) / (p.den || 1));
+      c.dice_count = Math.min(base, Math.max(p.min || 1, scaled));
+    }));
+    // Undo a prior scale_dice (any defense other than the scaling Reaction
+    // restores the attacker's full dice).
+    (patch.restore_dice || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => {
+      if (c._base_dice != null) { c.dice_count = c._base_dice; delete c._base_dice; }
+    }));
     (patch.set_speed || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.speed = p.speed; }));
     // Set a Roll's own Bonus/Penalty list. The TN is NOT set here — it is
     // computed by Check Resolution at roll time (after cross-side propagation).
@@ -554,7 +579,7 @@ export class ActionBuilder {
     });
     const netEl = root.querySelector('.cb-net');
     if (netEl) netEl.textContent = 'Net Degree of Success ' + net + '.';
-    root.dispatchEvent(new CustomEvent('action:confirmed', { bubbles: true, detail: { choices, rolls } }));
+    root.dispatchEvent(new CustomEvent('action:confirmed', { bubbles: true, detail: { choices, rolls, noRoll: !!cb.noRoll } }));
   }
 }
 

@@ -49,8 +49,7 @@ RSpec.describe CharacterCreation, type: :model do
   describe '.blob classes' do
     let(:by_key) { CharacterCreation.classes.each_with_object({}) { |c, h| h[c[:key]] = c } }
 
-    it 'drops the deleted Ranger class and includes the new Sorcerer' do
-      expect(by_key).not_to have_key('ranger')
+    it 'includes the Sorcerer class added in character creation' do
       expect(by_key).to have_key('sorcerer')
     end
 

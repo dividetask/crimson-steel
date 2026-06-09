@@ -244,6 +244,23 @@ Deduplicate while preserving first-encounter order. Filter by `source` when supp
 
 Returns: a list of `{ name, source }` records. `source` is one of `race` or `class:<class_key>`. The Class source carries the Class key so consumers (e.g. Floor Ability's `level_for_ability`) can recover the granting Class. Spells contributed via `choices.spellcasting` (and via deity/domain) report the granting Class as their source.
 
+#### Kesser — Reversal Table (d10)
+
+The deity Kesser's 4th-level Channel Divinity, **Kesser's Gambit** (`talents.yaml`, `roll_table: Kesser Reversal Table`), is a Reaction triggered on an attack or spell roll. The channeler rolls a d10 here; **Channel Successes** scale the entries.
+
+| d10 | Effect |
+|---|---|
+| 1 | **Disaster.** Channel Successes are added or subtracted, whichever is worse for the cleric, to all checks. |
+| 2 | **Backfire.** Attack causes a magical explosion. The damage dealt is dealt again to all creatures within 30'. A Charisma check against Channel Successes can reduce the damage taken by half. |
+| 3 | **Sympathy.** Both attacker, channeler, and target take the attack's damage in full. Channeler can choose to increase or decrease damage by Channel Successes but must make the same choice for all affected creatures. |
+| 4 | **Counter.** The target gets a free weapon attack after this attack resolves with starting successes equal to Channel Successes. |
+| 5 | **Wild Deflection.** Attack changes target to a random creature in range instead — channeler picks if ties. |
+| 6 | **Reversal.** Attacker and target swap tiers and dice for the attack. |
+| 7 | **Surprise.** Target is flatfooted for this attack and all dice spent on defence are lost. Channeler can choose to increase or reduce damage dealt by Channel Successes. |
+| 8 | **Naked.** Attacker's sword and target's armor teleport to a random square within 30'. Both gain a Charisma save against Channel Successes to resist. If a weapon teleports, the attack still resolves with a natural attack instead. |
+| 9 | **Lucky Break.** All creatures gain a luck bonus or penalty on their roll equal to Channel Successes. |
+| 10 | **Crit.** Channel Successes are added or subtracted, whichever is best for the channeler, to all checks. |
+
 ### Look up Class
 
 Input: a Class key.

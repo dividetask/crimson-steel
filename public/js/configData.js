@@ -4,7 +4,7 @@
 export const CONFIG_DATA = {
   "dieSize": 10,
   "diceResultStringEncoding": "X",
-  "baseTargetNumber": 8,
+  "baseTargetNumber": 6,
   "minimumTargetNumber": 3,
   "maximumTargetNumber": 9,
   "minimumDiceCount": 6,

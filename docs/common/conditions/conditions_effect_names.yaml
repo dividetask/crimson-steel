@@ -212,6 +212,23 @@ Effect Names:
       - kind: flag
         flag: martial_devotion
 
+  # Strength-domain Channel Divinity (Strength Devotion) grants +2 Morale to
+  # Strength and Constitution for its duration. The flag makes the buff show in
+  # the Creature's Active Effects; the Attribute Modifiers fold into the
+  # Creature's Effective Attributes (CreatureModifiers).
+  strength_devotion:
+    mechanics:
+      - kind: modifier
+        modifier_type: Morale
+        amount: 2
+        applies_to: [str]
+      - kind: modifier
+        modifier_type: Morale
+        amount: 2
+        applies_to: [con]
+      - kind: flag
+        flag: strength_devotion
+
 
   unaware:
     description: "The target has yet to act in combat."

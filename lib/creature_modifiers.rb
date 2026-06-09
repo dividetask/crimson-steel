@@ -1,8 +1,10 @@
 require 'dice_resolution'
 
-# Cross-domain bridge that aggregates the Always-On numeric modifiers a
-# Creature carries — equipped Guidance / Property bonuses (Equipment) and
-# Modifier-ability bonuses (Abilities) — for two consumers:
+# Cross-domain bridge that aggregates the numeric modifiers a Creature
+# carries — equipped Guidance / Property bonuses (Equipment), passive
+# Modifier-ability bonuses (Abilities), and active-effect Attribute Modifiers
+# (Conditions, e.g. Strength Devotion's +2 str/con while the buff is up) — for
+# two consumers:
 #
 #   * Attribute bonuses (Belt of Strength, Headband of Wisdom, ...) fold
 #     into the Creature's Effective Attributes (Creatures::Accessor).
@@ -105,7 +107,24 @@ module CreatureModifiers
       amt = eval_amount(m['add'], accessor, name)
       pairs << [m['type'].to_s, amt] if amt.is_a?(Integer) && !amt.zero?
     end
+    # Active-effect (Conditions) Attribute Modifiers — e.g. Strength Devotion's
+    # +2 Morale to str/con while the buff is up. These fold in like equipped
+    # bonuses, so the Effective Attribute (and everything derived from it)
+    # reflects the buff.
+    condition_attribute_pairs(accessor, target).each { |p| pairs << p }
     pairs
+  end
+
+  # [[bonus_type, amount], ...] active-effect Attribute Modifiers for `target`
+  # from the Creature's Conditions instance. Empty when Conditions is not
+  # loaded or the Creature has no record.
+  def condition_attribute_pairs(accessor, target)
+    return [] unless defined?(Conditions)
+    inst = (Conditions.store.instance_for(accessor.id) rescue nil)
+    return [] unless inst
+    (inst.get_modifiers(target) rescue []).map { |type, amount| [type.to_s, amount.to_i] }
+  rescue StandardError
+    []
   end
 
   # Per-Bonus-Type stacking → at most one positive and one negative entry

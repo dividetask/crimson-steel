@@ -85,3 +85,8 @@ Deities:
     domains: [Strength, Glory, Chaos, War, Fire]
     anathema: [Humility, Harmony, Despair, Knowledge, Cunning]
     channel_divinity: Karthak's Resolve
+
+  Kesser:
+    domains: [Hope, Chaos, Secrets, Greed]
+    anathema: [Wisdom, Order, Hearth, Truth, Knowledge]
+    channel_divinity: Kesser's Gambit

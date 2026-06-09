@@ -159,6 +159,7 @@ Ward:
   target: "1"
   duration: "rank turns"
   skills: [healing, nature]
+  items: [potion, oil]
   effect_hash:
     temp_hp: [3, 5, 8, 12, 16, 20]
   variant_overrides:
@@ -307,6 +308,7 @@ Recharge:
       success: "0"
   duration: instant
   skills: [arcana, perform_]
+  items: [potion]
   effect_hash:
     mana: [2, 4, 8, 16, 32, 64]
     minimum_saturation: tier*4
@@ -915,11 +917,27 @@ Expeditious Retreat:
   range: Self
   target: self
   duration: "rank minutes"
+  items: [potion]
   modifiers:
     - target: speed
       type: Guidance
       add: 30
   description: "Your speed increases by 30 feet (a +30 Guidance bonus to speed) for the duration."
+
+Expeditious Excavation:
+  type: spell
+  tier: 1
+  school: transmutation
+  range: Close
+  target: "1"
+  area: { shape: square, size: 1 }
+  save:
+    - attribute: dex
+      fail: prone
+      success: "0"
+  duration: permanent
+  skills: [nature, arcana]
+  description: "You can excavate and move earth, dust, and sand up to the size of a 5-foot cube. If you are buried, you may open a 5-foot cube around yourself, but the spell cannot be used for tunneling. Besides its mundane applications, you can open a 5-foot-deep pit at a creature's feet. A Medium or smaller creature falls prone in the pit unless it succeeds on a Dexterity save. With a successful save, it can choose to land harmlessly on its feet in the pit or hop to an adjacent square."
 
 Blindspot:
   type: spell

@@ -158,12 +158,13 @@ helpers do
   end
 
   # Every Item Type in a Category, priced as a mundane (Tier 0) Stack.
-  # Natural attacks (Bite, claws, Unarmed — `natural: true`) are skipped:
-  # they are innate Creature abilities, not gear that can be owned, bought,
-  # or sold, so they never appear in the Store.
+  # Skipped: Natural attacks (Bite, claws, Unarmed — `natural: true`), which
+  # are innate Creature abilities rather than ownable gear; and unique items
+  # (`no_store: true`), which the DM places and are never bought or sold.
+  # Neither ever appears in the Store.
   def mundane_items(category, catalog)
     catalog.item_types_in_category(category)
-           .reject { |name| (catalog.definition_of(name) || {})['natural'] }
+           .reject { |name| d = catalog.definition_of(name) || {}; d['natural'] || d['no_store'] }
            .map { |name| catalog_item(name, catalog) }
   end
 

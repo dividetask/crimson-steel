@@ -10,7 +10,7 @@ Die Size: 10
 Dice Result String Encoding: "X"
 
 # Default Target Number before any modifiers.
-Base Target Number: 8
+Base Target Number: 6
 
 # Target Number Bounds. Bonuses below this become Starting Successes, 
 # Penalties above this become Starting Failures (1 per overflow point).

@@ -177,7 +177,7 @@ characters:
           skills:
             - healing
             - sense_motive
-            - arcana
+            - invocation
             - survival
             - intimidate
             - perception
