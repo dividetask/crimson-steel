@@ -17,12 +17,12 @@ characters:
     race: human
     tier: 2
     attributes:
-      str: 16
-      dex: 14
-      con: 18
-      int: 10
-      wis: 11
-      cha: 10
+      str: 13
+      dex: 11
+      con: 15
+      int: 7
+      wis: 8
+      cha: 7
     advancement:
       classes:
         barbarian:
@@ -32,3 +32,259 @@ characters:
             - nature
             - sense_motive
             - stealth
+
+  # Migrated from the `character` notes. These carry no class/level, so
+  # `tier` is pinned directly. `attributes` are the stat lines you gave,
+  # stored as BASE scores — racial adjustments (human +1 all; high_elf
+  # +2 dex/+2 int; eladrin & sidhe +2 dex/+2 cha) apply on top for the
+  # Effective scores. Alric and Dala have hide_tier set.
+  - id: 2010
+    name: Lev "The Moth" Rybar
+    group: npc
+    tags: []
+    race: human
+    tier: 1
+    attributes:
+      str: 9
+      dex: 11
+      con: 12
+      int: 7
+      wis: 10
+      cha: 12
+
+  - id: 2011
+    name: Virelle
+    group: npc
+    tags: []
+    race: high_elf
+    tier: 3
+    attributes:
+      str: 13
+      dex: 9
+      con: 13
+      int: 11
+      wis: 19
+      cha: 14
+
+  - id: 2012
+    name: Sylwen
+    group: npc
+    tags: []
+    race: high_elf
+    tier: 3
+    attributes:
+      str: 10
+      dex: 14
+      con: 12
+      int: 12
+      wis: 14
+      cha: 17
+
+  - id: 2013
+    name: Alric Thorne
+    group: npc
+    tags: []
+    race: eladrin
+    tier: 4
+    hide_tier: true
+    attributes:
+      str: 14
+      dex: 14
+      con: 16
+      int: 18
+      wis: 17
+      cha: 22
+
+  - id: 2014
+    name: Dala Nyssira
+    group: npc
+    tags: []
+    race: sidhe
+    tier: 4
+    hide_tier: true
+    attributes:
+      str: 12
+      dex: 18
+      con: 14
+      int: 20
+      wis: 18
+      cha: 22
+
+  - id: 2017
+    name: Mayor Tamsin Holt
+    group: npc
+    tags: []
+    race: human   # not stated in the source note; assumed human
+    tier: 1
+    attributes:
+      str: 7
+      dex: 9
+      con: 8
+      int: 10
+      wis: 12
+      cha: 10
+
+  - id: 2018
+    name: Silovan Kreshholm
+    group: npc
+    tags: []
+    race: wood_elf
+    tier: 3
+    attributes:
+      str: 10
+      dex: 16
+      con: 12
+      int: 16
+      wis: 8
+      cha: 18
+
+  # New NPC (not from the character notes): captain of the Ghoul, helped
+  # the party escape.
+  - id: 2019
+    name: Pipo Prado
+    group: npc
+    tags: []
+    race: halfling
+    tier: 1
+    attributes:
+      str: 8
+      dex: 13
+      con: 9
+      int: 11
+      wis: 13
+      cha: 13
+
+  # ---- Stat lines you provided ----
+  - id: 2020
+    name: Harkon of the Hollow Antler, Master of the Tally
+    group: npc
+    tags: []
+    race: undead
+    tier: 4
+    attributes:
+      str: 20
+      dex: 14
+      con: 6   # "Con --" (undead, no Con); base 6 -> effective 10 placeholder, pending undead logic
+      int: 12
+      wis: 10
+      cha: 16
+
+  - id: 2021
+    name: Lady Selara Hawthorne
+    group: npc
+    tags: []
+    race: human   # not stated in the note; assumed human
+    tier: 3
+    attributes:
+      str: 8
+      dex: 12
+      con: 11
+      int: 14
+      wis: 14
+      cha: 12
+
+  - id: 2022
+    name: Lord Varen Hawthorne
+    group: npc
+    tags: []
+    race: human   # not stated in the note; assumed human
+    tier: 3
+    attributes:
+      str: 16
+      dex: 18
+      con: 11
+      int: 12
+      wis: 12
+      cha: 10
+
+  - id: 2023
+    name: Orman Harrington
+    group: npc
+    tags: []
+    race: human   # "Middle-aged man" in the note; assumed human
+    tier: 2
+    attributes:
+      str: 11
+      dex: 11
+      con: 12
+      int: 11
+      wis: 11
+      cha: 11
+
+  # ---- Placeholder 10s (stats TBD); races read from the source notes ----
+  - id: 2024
+    name: Vrakka Bloodfang
+    group: npc
+    tags: []
+    race: half_orc   # "Half orc slaver" in the note
+    tier: 4
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+
+  - id: 2025
+    name: Caelian di Soliastres
+    group: npc
+    tags: []
+    race: elf   # "Elven noble" in the note (base elf; say if high/wood/eladrin)
+    tier: 3
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+
+  - id: 2026
+    name: Theron Ashfeld
+    group: npc
+    tags: []
+    race: wood_elf   # "3/4 wood elf, 1/4 orc" — used the dominant heritage
+    tier: 3
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+
+  - id: 2027
+    name: Sable
+    group: npc
+    tags: []
+    race: beast   # Theron's lynx companion; no feline subtype in the catalog
+    tier: 3
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+
+  - id: 2028
+    name: Severus
+    group: npc
+    tags: []
+    race: elf   # "True elf" in the note (base elf)
+    tier: 2
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+
+  - id: 2029
+    name: Athach
+    group: npc
+    tags: []
+    race: elf   # "Elven noble" in the note (base elf)
+    tier: 2
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+
+  - id: 2030
+    name: Drav Kovin
+    group: npc
+    tags: []
+    race: human   # "Mercenary sellsword" in the note; assumed human
+    tier: 1
+    attributes:
+      str: 19
+      dex: 14
+      con: 13
+      int: 18
+      wis: 15
+      cha: 18
+
+  - id: 2031
+    name: Varen
+    group: npc
+    tags: []
+    race: human   # Kael's companion (female rogue); race not stated, assumed human
+    tier: 2
+    attributes:
+      str: 11
+      dex: 17
+      con: 13
+      int: 9
+      wis: 11
+      cha: 12
+

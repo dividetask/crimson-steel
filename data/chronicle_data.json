@@ -843,7 +843,427 @@
       ],
       "owner_id": null,
       "active": false
+    },
+    {
+      "id": 49,
+      "entry_type": "creature",
+      "chapter": 1,
+      "notes_position": 49,
+      "scene_position": 49,
+      "title": "",
+      "public_description": "Alric's wife. Elven woman with silver eyes. Was last seen wearing a dark crimson cloak over black leather and a silver necklace of a wasp. Worshiper of Callistria",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2011,
+      "creature_token": "/images/scene/1777591419-96d364db-Virelle.webp",
+      "tier": null
+    },
+    {
+      "id": 50,
+      "entry_type": "creature",
+      "chapter": 1,
+      "notes_position": 50,
+      "scene_position": 50,
+      "title": "",
+      "public_description": "Alric and Virelle's friend. Virelle didn't seem to like her much. Sylwen is a striking elf with angular features and long silver hair that flows like a silken veil. Her lavender eyes glow faintly in low light, and her skin carries an ethereal, almost translucent quality. She is of average elven height, graceful and slender, last seen wearing a deep violet robe adorned with silver embroidery. Her movements are fluid, and she seems to always be poised.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2012,
+      "creature_token": "/images/scene/1777606231-58937c6b-Sylwen.webp",
+      "tier": null
+    },
+    {
+      "id": 51,
+      "entry_type": "creature",
+      "chapter": 1,
+      "notes_position": 51,
+      "scene_position": 51,
+      "title": "",
+      "public_description": "Alric is slender, with sharp elven features. He dresses in elegant green and gold finery, embroidered with thorn motifs and adorned with tiny bells that chime softly with his movements. Soft leather boots rise to mid-calf, supple and well-made. A silver chain rests just beneath his collar, mostly hidden. He carries a slim cane—clearly decorative, but possibly more—and a silver ring set with a black opal gleams whenever it catches the light. He never seems to give a straight answer; often speaks in rhymes or riddles. Seems constantly amused.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2013,
+      "creature_token": "/images/scene/1777573482-a0132274-ALdric.webp",
+      "tier": null
+    },
+    {
+      "id": 52,
+      "entry_type": "creature",
+      "chapter": 1,
+      "notes_position": 52,
+      "scene_position": 52,
+      "title": "",
+      "public_description": "Middle-aged man who hired your party in Ashwood. He hired you to steal Alric's Locket",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2023,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 53,
+      "entry_type": "creature",
+      "chapter": 2,
+      "notes_position": 53,
+      "scene_position": 53,
+      "title": "",
+      "public_description": "Dala Nyssira is a fey noble who agreed to send the party back home in exchange for a few tasks. She is a tall, ethereal figure with pale, green-tinged skin and piercing golden amber eyes that occasionally shimmer with light. Her long, silvery hair flows in soft waves, interwoven with flowers and ivy that slowly moves and shifts on it’s own. She wears a gown made of living flowers, each blooming with insects flying around drinking the nectar. Her movements are graceful and silent, and her voice is musical, carrying both an enchanting and commanding presence.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2014,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 54,
+      "entry_type": "creature",
+      "chapter": 2,
+      "notes_position": 54,
+      "scene_position": 54,
+      "title": "",
+      "public_description": "Eladrin Undead Skeleton Mage. A gaunt, skeletal figure clad in bark-wrapped chainmail, with a tattered cloak of autumn leaves and a massive stag skull fused to her own. Her breath fogs unnaturally warm even in the chill air.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2020,
+      "creature_token": "/images/scene/1777490469-29bd66ec-Harkon.webp",
+      "tier": null
+    },
+    {
+      "id": 55,
+      "entry_type": "creature",
+      "chapter": 2,
+      "notes_position": 55,
+      "scene_position": 55,
+      "title": "",
+      "public_description": "True elf guest at the feast, distant relative of Princess Dala. Foppish, rich, arrogant, and deeply insecure",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2028,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 56,
+      "entry_type": "creature",
+      "chapter": 2,
+      "notes_position": 56,
+      "scene_position": 56,
+      "title": "",
+      "public_description": "Elven noble so enraged with his former lover that he convinced the Wild Hunt to kill her.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2029,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 57,
+      "entry_type": "creature",
+      "chapter": 3,
+      "notes_position": 57,
+      "scene_position": 57,
+      "title": "",
+      "public_description": "Drug dealer in Sorinks\r\n    • Thin, wiry build, always looks slightly underfed \r\n    • Pale skin, dark circles under his eyes \r\n    • Keeps his dark hair slicked back with too much oil \r\n    • Wears a faded gray coat with many pockets \r\n    • Nervous energy - constantly moving, twitching, fidgeting \r\n    • Has a habit of rubbing his fingers together ",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2010,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 58,
+      "entry_type": "creature",
+      "chapter": 3,
+      "notes_position": 58,
+      "scene_position": 58,
+      "title": "",
+      "public_description": "A wiry woman in her 60s with a perpetually worried expression and a sharp tongue. She's practical, skeptical of adventurers, but too desperate to turn down help.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2017,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 59,
+      "entry_type": "creature",
+      "chapter": 4,
+      "notes_position": 59,
+      "scene_position": 59,
+      "title": "",
+      "public_description": "Middle age Wood elf. Lean build, moves with absolute silence. Dark green and brown practical clothing that blends. Wears a small pin with Lady Hawthorne's crest. Lady Hawthorne's intelligence agent. Hired the party for a job",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2018,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 60,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 60,
+      "scene_position": 60,
+      "title": "",
+      "public_description": "Adventurer, early 30s, barbarian",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 40,
+      "creature_token": "/images/scene/1777571926-97f95988-Kael.webp",
+      "tier": null
+    },
+    {
+      "id": 61,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 61,
+      "scene_position": 61,
+      "title": "",
+      "public_description": "(missing) Duchess of Ironford region, lives in Sorinsk, brother is sick with lycanthropy. Kidnapped by Vrakka's Hand",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2021,
+      "creature_token": "/images/scene/1777571218-0a24931c-LadyHawthorne.webp",
+      "tier": null
+    },
+    {
+      "id": 62,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 62,
+      "scene_position": 62,
+      "title": "",
+      "public_description": "(missing) Brother of Selara Hawthorne, sick with lycanthropy. Kidnapped by Vrakka's Hand",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2022,
+      "creature_token": "/images/scene/1777571432-97150d94-VarenHawthorne.webp",
+      "tier": null
+    },
+    {
+      "id": 63,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 63,
+      "scene_position": 63,
+      "title": "",
+      "public_description": "Half orc slaver, leader of Vrakka's hand",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2024,
+      "creature_token": "/images/scene/1777572332-630d0cc3-Vrakka.webp",
+      "tier": null
+    },
+    {
+      "id": 64,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 64,
+      "scene_position": 64,
+      "title": "",
+      "public_description": "",
+      "dm_description": "Elven noble with some magical training. Drav informed him of you and where you were hiding. He offered to help you in exchange for land and a title under Lady Hawthorne.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2025,
+      "creature_token": "/images/scene/1777490391-331dd9fb-Caelian_di_Soliastres.webp",
+      "tier": null
+    },
+    {
+      "id": 65,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 65,
+      "scene_position": 65,
+      "title": "",
+      "public_description": "(missing) 3/4 wood elf, 1/4 orc, ranger/druid, Silovan's agent who is helping search for his employeers",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2026,
+      "creature_token": "/images/scene/1777571828-cc7cdbc5-Theron_Ashfeld.webp",
+      "tier": null
+    },
+    {
+      "id": 66,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 66,
+      "scene_position": 66,
+      "title": "",
+      "public_description": "(missing) Theron's lynx companion, dark gray with silver tips",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2027,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 67,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 67,
+      "scene_position": 67,
+      "title": "",
+      "public_description": "Mercenary sellsword from the eastern provinces. Met at the slaver's temple where he agreed to help you escape in exchange for his life. He sheltered you in the city while you recovered from your injuries.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2030,
+      "creature_token": "/images/scene/1777490163-e4878a18-Drav.webp",
+      "tier": null
+    },
+    {
+      "id": 68,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 68,
+      "scene_position": 68,
+      "title": "",
+      "public_description": "(missing) Kael's companion, female rogue, understands Thieves' Cant, spoke with Lysander, open to partnership with Olga. Kidnapped by Vrakka's Hand",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2031,
+      "creature_token": "/images/scene/1777591489-9c85dd74-Varen.webp",
+      "tier": null
+    },
+    {
+      "id": 69,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 69,
+      "scene_position": 69,
+      "title": "",
+      "public_description": "Helped you escape, now the captain of the Ghoul.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2019,
+      "creature_token": null,
+      "tier": null
     }
   ],
-  "next_id": 49
+  "next_id": 70
 }

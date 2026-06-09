@@ -78,6 +78,15 @@ wood_elf:
     wis: 2
   abilities: []
 
+# Not a playable sub-race (absent from character_creation.yaml's
+# Playable Races) — exists for NPCs such as the Eladrin nobles.
+eladrin:
+  parent: elf
+  attribute_adjustments:
+    dex: 2
+    cha: 2
+  abilities: []
+
 gnome:
   parent: humanoid
   size: small
@@ -135,6 +144,16 @@ goblin:
 fey:
   size: small
   speed: 30
+  abilities: []
+
+# A fey race (parent: fey). Not playable. Size set to medium — the noble
+# Sidhe are human-sized, unlike the small fey root.
+sidhe:
+  parent: fey
+  size: medium
+  attribute_adjustments:
+    dex: 2
+    cha: 2
   abilities: []
 
 sprite:
