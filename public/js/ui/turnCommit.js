@@ -23,11 +23,14 @@ export function actionRowHtml(label) {
   const safe = String(label == null ? '' : label).replace(/[&<>"]/g, (c) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]
   ));
+  // The confirm slot sits BEFORE the Change button so the Change stays flush at
+  // the right edge — aligned with the step rows' Change buttons — whether or not
+  // a Commit proxy is present.
   return '<div class="step-summary ta-action-row">' +
     '<span class="step-summary-label">Action</span>' +
     '<span class="step-summary-value ta-action-name">' + safe + '</span>' +
-    '<button type="button" class="ta-change"><span class="cr-change-icon">↶</span> Change</button>' +
     '<span class="ta-confirm-slot"></span>' +
+    '<button type="button" class="ta-change"><span class="cr-change-icon">↶</span> Change</button>' +
     '</div>';
 }
 

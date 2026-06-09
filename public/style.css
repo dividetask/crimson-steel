@@ -3253,7 +3253,11 @@ body {
   cursor: pointer;
 }
 .ta-change:hover { background: #fff1c5; }
-.ta-confirm-slot { margin-left: auto; display: flex; gap: 6px; }
+.ta-confirm-slot { display: flex; gap: 6px; }
+/* When no Commit proxy is present, the slot must not occupy space (or add the
+   row's flex gap), so the Action row's Change button stays flush-right and
+   aligned with the step rows' Change buttons. */
+.ta-confirm-slot:empty { display: none; }
 .ta-pane { display: none; }
 .ta-pane.ta-pane-active { display: block; }
 .ta-pane-h { margin: 0 0 8px; }
