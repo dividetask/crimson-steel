@@ -25,22 +25,19 @@ characters:
           deity: Karthak
           domains:
           - War
+          - Healing
+          - Glory
           spellcasting:
           - sacred_flame
           - magic_vestments
-          - heal_lesser_wounds
           - healing_word
           - command
-          - lesser_ward
           - divine_favor
-          - shield_of_faith
           - magic_weapon
           - spiritual_weapon
           - hold_person
           - silence
           - blind
-          - heal_simple_wounds
-          - standard_ward
           - protection_from_poison
           - standard_surgery
   player: Jarett
