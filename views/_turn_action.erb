@@ -135,16 +135,12 @@
 
       <div class="ta-pane" data-ta-pane="move">
         <%# Move (turn_action_stub.md → Move): a Main Action that spends a flat
-            Move Cost in Combat Pool dice and confirms. %>
-        <% can_move = pool && pool[:remaining] >= move_cost %>
-        <p class="ta-pane-lead">Move spends <strong><%= move_cost %></strong> Combat Pool dice (no other effect). Confirm to spend them.</p>
-        <% unless can_move %>
-          <p class="ta-warn">Not enough Combat Pool (<%= pool ? pool[:remaining] : 0 %>/<%= move_cost %>).</p>
-        <% end %>
-        <form method="post" action="/encounter/move">
-          <input type="hidden" name="combatant_id" value="<%= acting[:combatant_id] %>">
-          <button type="submit" class="ce-btn ta-confirm"<%= ' disabled' unless can_move %>>Confirm Move</button>
-        </form>
+            Move Cost in Combat Pool dice. Rendered through the shared Action
+            Result block (TurnMove) so the spent dice are an editable field and
+            it confirms exactly like Attack / Cast. %>
+        <div class="ta-move" data-combatant-id="<%= acting[:combatant_id] %>"
+             data-move-cost="<%= move_cost %>"
+             data-pool-remaining="<%= pool ? pool[:remaining] : 0 %>"></div>
       </div>
 
       <div class="ta-pane" data-ta-pane="cast">
@@ -155,7 +151,14 @@
       </div>
 
       <div class="ta-pane" data-ta-pane="item">
-        <p class="ta-pane-lead ta-staged">Use a carried consumable (potion, scroll, alchemical item) on a target via Equipment&rsquo;s Consume Item. Coming next.</p>
+        <%# Item use is not built yet; render the shared Action Result shell so it
+            reads like every other action once wired. %>
+        <div class="ar">
+          <div class="ar-note-row">
+            <span class="ar-note-label">Item</span>
+            <span class="ar-note-value">Use a carried consumable (potion, scroll, alchemical item) on a target via Equipment&rsquo;s Consume Item &mdash; coming next.</span>
+          </div>
+        </div>
       </div>
     <% end %>
 

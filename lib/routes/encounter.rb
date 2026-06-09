@@ -2063,8 +2063,17 @@ end
 # Move (turn_action_stub.md → Move): spend the Move Cost in Combat Pool dice.
 post '/encounter/move' do
   require_dm!
-  encounter_state.apply_move(params[:combatant_id].to_i)
-  redirect back || '/encounter'
+  # JSON from the turn-action Move pane (combatant_id + the editable Combat-Pool
+  # cost); falls back to a plain form post for non-JS callers.
+  body = (JSON.parse(request.body.read) rescue nil)
+  cid  = ((body && body['combatant_id']) || params[:combatant_id]).to_i
+  cost = body && body.key?('cost') ? body['cost'] : nil
+  result = encounter_state.apply_move(cid, cost: cost)
+  if body
+    encounter_response(result)
+  else
+    redirect back || '/encounter'
+  end
 end
 
 # Resolve one Affliction Save (the Conditions Save Resolution Stub's

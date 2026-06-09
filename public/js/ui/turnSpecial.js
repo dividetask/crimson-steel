@@ -1,4 +1,5 @@
 import { ActionBuilder } from './actionBuilder.js';
+import { ActionResult } from './actionResult.js';
 
 // Turn Action panel — Special (turn_action_stub.md → Special).
 //
@@ -21,8 +22,8 @@ export class TurnSpecial {
     container.addEventListener('click', (e) => {
       const opt = e.target.closest && e.target.closest('.ta-special-opt');
       if (opt) { e.preventDefault(); TurnSpecial._pick(container, opt); return; }
-      const use = e.target.closest && e.target.closest('.ta-special-use');
-      if (use) { e.preventDefault(); TurnSpecial._use(container, container._pending || {}); }
+      const use = e.target.closest && e.target.closest('.ar-commit');
+      if (use && e.target.closest('.ta-special')) { e.preventDefault(); TurnSpecial._use(container, container._pending || {}); }
     });
     // A channeled Performance resolves through the embedded Check Builder.
     // After Confirm, show the Luck points it will grant + a Confirm button;
@@ -36,8 +37,10 @@ export class TurnSpecial {
                              luck: ActionBuilder.luckSpends(e.detail.choices || {}) };
       const commit = container.querySelector('.ta-special-commit');
       if (!commit) return;
-      commit.innerHTML = '<p class="ta-special-summary">Gaining ' + luck + ' luck point' + (luck === 1 ? '' : 's') + '.</p>' +
-        '<div class="ta-actions"><button type="button" class="ce-btn ta-special-use">Confirm</button></div>';
+      ActionResult.render(commit, {
+        notes: [{ label: 'Luck', value: `Gaining ${luck} luck point${luck === 1 ? '' : 's'}` }],
+        commitLabel: 'Confirm'
+      });
       commit.hidden = false;
     });
   }
@@ -55,9 +58,11 @@ export class TurnSpecial {
 
     if (btn.dataset.performance === '1') { TurnSpecial._mountBuilder(container, slot); return; }
 
-    // Non-channeled: summary + Confirm.
-    slot.innerHTML = '<p class="ta-special-summary">' + esc(btn.dataset.summary || '') + '</p>' +
-      '<div class="ta-actions"><button type="button" class="ce-btn ta-special-use">Confirm</button></div>';
+    // Non-channeled: summary + Confirm, through the shared result renderer.
+    ActionResult.render(slot, {
+      notes: [{ label: btn.textContent.trim(), value: btn.dataset.summary || '' }],
+      commitLabel: 'Confirm'
+    });
     slot.hidden = false;
   }
 

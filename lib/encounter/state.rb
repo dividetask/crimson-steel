@@ -296,9 +296,9 @@ module Encounter
     # dice (Config Move Cost) with no other mechanical effect. Returns
     # { ok:, pool_spent:, pool_remaining: }, or { ok: false, error: } when the
     # Combatant is unknown or cannot afford the cost.
-    def apply_move(combatant_id)
+    def apply_move(combatant_id, cost: nil)
       return { ok: false, error: 'unknown combatant' } unless combatant_for(combatant_id)
-      cost = Config.move_cost
+      cost = cost.nil? ? Config.move_cost : [cost.to_i, 0].max
       remaining = spend_combat_pool(combatant_id, cost)
       return { ok: false, error: 'not enough Combat Pool' } if remaining.nil?
       spend_main_action(combatant_id) # Move is a Main Action
