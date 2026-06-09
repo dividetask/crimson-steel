@@ -308,6 +308,7 @@ Recharge:
       success: "0"
   duration: instant
   skills: [arcana, perform_]
+  items: [potion]
   effect_hash:
     mana: [2, 4, 8, 16, 32, 64]
     minimum_saturation: tier*4
@@ -916,6 +917,7 @@ Expeditious Retreat:
   range: Self
   target: self
   duration: "rank minutes"
+  items: [potion]
   modifiers:
     - target: speed
       type: Guidance
