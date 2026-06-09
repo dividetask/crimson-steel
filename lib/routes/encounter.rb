@@ -872,7 +872,9 @@ helpers do
           patch: { set_dice: [{ id: 'shield', count: dice }],
                    set_tier: [{ id: 'shield', tier: sh[:tier] }],
                    set_bpl:  [{ id: 'shield', bonus_penalty_list: sh_bpl }],
-                   set_name: [{ id: 'shield', roll_name: "#{sh[:spell_name]} (#{sh[:caster_name]})" }],
+                   # The shield Roll is the caster's — show their name, with the
+                   # spell as the roll's label.
+                   set_name: [{ id: 'shield', creature_name: sh[:caster_name], roll_name: sh[:spell_name] }],
                    set_excluded: [{ id: 'shield', excluded: false }] } }
       end
       (2..cap).each { |n| opts << mk_sh.call(n) }
@@ -880,8 +882,11 @@ helpers do
       opts << { kind: 'info', group: 'shield', value: 'shield|info',
                 label: "#{sh[:spell_name]}#{bonus_note} by #{sh[:caster_name]} — up to #{cap} Reservoir dice" }
       ally_defense_map["#{target_id}"] = opts
+      # Title-row quick-picks (like every other step): "No shield", then the
+      # ability's name which selects the MAX affordable dice.
       ally_defense_header_map["#{target_id}"] = [
-        { value: "shield:#{sh[:caster_id]}|2", label: "Shield (#{sh[:caster_name]})", disabled: cap < 2 }
+        { value: 'none', label: 'No shield' },
+        { value: "shield:#{sh[:caster_id]}|#{cap}", label: sh[:spell_name], disabled: cap < 2 }
       ]
     end
     ally_defense_step = { key: 'ally_defense', label: 'Ally Defense',
@@ -936,7 +941,7 @@ helpers do
   # discharge interposes a block instead of granting Luck. Only Luck reservoirs
   # belong in the Luck steps.
   def luck_reservoir?(entry)
-    v = (Abilities.lookup(entry[:spell_name].to_s) rescue nil) || {}
+    v = resolve_named_spell(entry[:spell_name])
     v.dig('reservoir', 'discharge', 'defends').to_s.empty?
   rescue StandardError
     true
