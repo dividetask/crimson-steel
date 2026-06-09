@@ -37,6 +37,11 @@ module Creatures
 
       out[:attributes]  = normalize_attributes(r['attributes'], out[:id], source)
       out[:tier]        = normalize_tier(r['tier'], out[:id], source)
+      # Display flag: when true the Creature's Tier is withheld from the
+      # sheet (the real Tier is still stored and still drives every
+      # formula). Used for Creatures whose power level is meant to be a
+      # mystery to the players.
+      out[:hide_tier]   = r['hide_tier'] ? true : false
       out[:loot_table]  = r['loot_table']
       out[:metadata]    = r['metadata'] || {}
       # Persisted spawned-instance marker (Spawn Creature From Template);
@@ -86,6 +91,7 @@ module Creatures
       out['group']        = rec[:group]                        unless rec[:group].to_s.empty?
       out['tags']         = rec[:tags]                         unless Array(rec[:tags]).empty?
       out['tier']         = rec[:tier]                         unless rec[:tier].nil?
+      out['hide_tier']    = true                               if rec[:hide_tier]
       out['loot_table']   = rec[:loot_table]                   unless rec[:loot_table].nil?
       out['metadata']     = rec[:metadata]                     unless (rec[:metadata] || {}).empty?
       out['spawned_from'] = rec[:spawned_from]                 unless rec[:spawned_from].nil?

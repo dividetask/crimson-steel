@@ -71,7 +71,8 @@ module CreatureSheet
     cls   = classes.map { |c| "#{c[:key].split('_').map(&:capitalize).join(' ')} #{c[:level]}" }.join(' / ')
     { name: accessor.name, player: accessor.player,
       summary: [race, cls].reject(&:empty?).join(' '),
-      tier: tier, bab: (accessor.ranks_for('martial') rescue 0) }
+      tier: tier, hide_tier: !!(accessor.record[:hide_tier] rescue false),
+      bab: (accessor.ranks_for('martial') rescue 0) }
   end
 
   # Trained skills across all the Creature's classes, with Dice Cap +

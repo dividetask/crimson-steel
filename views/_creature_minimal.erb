@@ -46,7 +46,7 @@
       <span class="cs-player">Player: <strong><%= h[:player] %></strong></span>
     <% end %>
   </header>
-  <div class="cs-subtitle"><em><%= h[:summary] %>, Tier <span class="cs-tier-num"><%= h[:tier] %></span></em></div>
+  <div class="cs-subtitle"><em><%= h[:summary] %><% unless h[:hide_tier] %>, Tier <span class="cs-tier-num"><%= h[:tier] %></span><% end %></em></div>
 
   <section class="cs-vitals-block">
     <div class="cs-attr-grid">

@@ -26,6 +26,7 @@ The on-disk shape persisted in the `creatures_data_*.example.{json,yaml}` files 
 | `race` | string | required | Key into `creatures_race.yaml`. Names a single Race entry. Multi-level inheritance is expressed through that entry's `parent:` chain — there is no separate `race_aspect` field. |
 | `attributes` | map of attribute key → integer | required | The six raw scores (`str`, `dex`, `con`, `int`, `wis`, `cha`). Every key is required; default zero is *not* assumed. |
 | `tier` | integer or null | null | Tier Override. When non-null, *Get Tier* returns this verbatim and Tier Breakpoints are ignored. When null, Tier is auto-computed from Total Class Level against the breakpoint list selected by the Creature's `tags`. |
+| `hide_tier` | boolean | false | Display-only flag. When true, the Creature's Tier is withheld from the rendered sheet (the real Tier is still stored and still drives HP/Mana/Toxicity and every other formula). For Creatures whose power level is meant to be hidden from players. |
 | `advancement` | Advancement Block | `{}` | Holds the Creature's classes and tier attribute advancement picks. See *Advancement Block* below. |
 | `loot_table` | string or null | null | Optional Loot Table ID (defined in Equipment). When set, Equipment's *Collect Combat Loot* rolls this table for the Creature on top of moving its Inventory. |
 | `metadata` | dict | `{}` | Caller-supplied free-form data. Creatures does not interpret. Used by consuming projects for portrait paths, custom flags, etc. |
