@@ -159,6 +159,7 @@ Ward:
   target: "1"
   duration: "rank turns"
   skills: [healing, nature]
+  items: [potion, oil]
   effect_hash:
     temp_hp: [3, 5, 8, 12, 16, 20]
   variant_overrides:

@@ -31,11 +31,12 @@ Sibling domains:
 
 ### Item Type catalog entry
 
-An Item Type lives in `equipment_config.yaml` under one of the catalog blocks (`Weapons`, `Armor`, `Items`, `Consumables`, `Books`, `Misc Items`, `Currency`, `Ammunition`). Beyond the per-category fields documented in the config file's comments, two cross-category fields are standardized:
+An Item Type lives in `equipment_config.yaml` under one of the catalog blocks (`Weapons`, `Armor`, `Items`, `Consumables`, `Books`, `Misc Items`, `Tattoos`, `Currency`, `Ammunition`). Beyond the per-category fields documented in the config file's comments, two cross-category fields are standardized:
 
 | Field | Type | When used | Description |
 |---|---|---|---|
-| `spell` | string or null | Items whose magical effect derives from a known spell — chiefly Potions / Oils / Scrolls (where the spell is invoked at *Consume Item*) and guidance Items like Cloak of Resistance (where the connection is documentary, naming the spell whose effect the item embodies). Identifies the spell by its catalog name from `abilities/spells.yaml`. For tier-array items the same `spell` covers every tier, with the spell's own tier resolution producing the variant name. |
+| `spell` | string or null | Items whose magical effect derives from a known spell — chiefly Potions / Oils / Scrolls / Wands (where the spell is invoked at *Consume Item* or, for Wands, granted while equipped) and guidance Items like Cloak of Resistance (where the connection is documentary, naming the spell whose effect the item embodies). Identifies the spell by its catalog name from `abilities/spells.yaml`. For tier-array items the same `spell` covers every tier, with the spell's own tier resolution producing the variant name. |
+| `grants` | list of string | Tattoos (and any Item Type conferring Abilities while borne). Ability catalog names (from `abilities/`) granted to the wearer while the Item is equipped. For Tattoos — which are always equipped — the grant is permanent. |
 | `description` | string | Generic catalog items. Authoritative single source of truth for the Item Type's description. Inventory Stacks must not carry a `description` override unless the Stack is a unique item whose flavor isn't captured by Type + Properties (e.g. a named magic Lute). |
 
 ### Property Application
@@ -208,6 +209,36 @@ Returns *Get Item Details* extended with: `damage_reduction`, `material`, `base_
 Input: a spell name (string).
 
 Returns: boolean. Delegates to the Abilities catalog. Exposed by Equipment so UI surfaces can suppress non-item invocation paths without a direct dependency on Abilities.
+
+### Item Forms (Scroll / Potion / Oil / Wand)
+
+A spell may be packaged into a consumable or held item. Which forms a spell
+permits is declared on the spell itself, by the `items:` list in
+`abilities/spells.yaml`:
+
+- **Scroll** — every spell can be made into a Scroll, regardless of `items:`.
+  Consuming a Scroll casts its spell once and destroys the Scroll.
+- **Wand** — every spell can be made into a Wand. While a Wand is equipped it
+  adds its `spell` to the wielder's castable list (the wielder casts it as if
+  they knew it, channelling their own Mana); unequipping the Wand removes the
+  spell. A Wand is not consumed by casting and imposes no Magic Toxicity.
+- **Potion** — permitted only when the spell's `items:` list contains `potion`.
+  Anyone may drink a Potion to cast its spell on **themselves** (the drinker is
+  the target).
+- **Oil** — permitted only when the spell's `items:` list contains `oil`. An Oil
+  is either **thrown** to cast its spell at a target at range, or **applied** to
+  an adjacent target.
+
+`items:` therefore restricts only the Potion and Oil forms; Scroll and Wand are
+universal. For example `Heal` and `Ward` carry `items: [potion, oil]` (both
+forms), `Grease` carries `items: [oil]` (Oil only), and a spell with no `items:`
+list can still be a Scroll or Wand but never a Potion or Oil.
+
+**Casting skill.** When a spell is cast from an item — drinking a Potion,
+throwing/applying an Oil, reading a Scroll, or casting through a Wand — the
+casting check uses the skill defined on the spell (or evocation): the spell's
+`skills:` list in `abilities/spells.yaml`. The consumer need not be a caster;
+the item supplies the spell and the spell supplies the skill.
 
 ### Consume Item
 
@@ -479,7 +510,25 @@ Computed at *Reconcile Loadout* time:
 
 - Armor / Item: `<item_type>:<slot>` (slot resolved from the catalog `slot:`; defaults to `body` when absent).
 - Weapon: `<item_type>:hand:<index>` where `index` disambiguates two-weapon configurations (0 for the first equipped copy, 1 for the second). Index is recomputed each Reconcile; callers should not depend on it across calls beyond the lifetime of one equipped state.
+- Tattoo: `<item_type>:tattoo:<slot>` — the `tattoo:` infix keeps Tattoo keys in their own namespace, so a Tattoo and a worn Item may occupy the same body location without colliding.
 - Ammunition / Consumable / Currency / Gem: never equipped. *Equip Stack* on these is an error.
+
+### Tattoos
+
+A Tattoo is permanent body art (catalog `category: Tattoo`) that confers the
+Abilities in its `grants` list. Tattoos differ from worn Items in three ways:
+
+- **Parallel slots.** A Tattoo occupies a Tattoo Slot (the `Tattoo Slots`
+  namespace in `equipment_config.yaml`), not a worn-Item Slot. A `chest` Tattoo
+  does not conflict with chest Armor — only with another `chest` Tattoo.
+  Creatures enforces "one Tattoo per Tattoo Slot" independently of the worn-Item
+  one-per-Slot rule.
+- **Always equipped.** A Tattoo has no un-equipped state and carries no
+  `equipped` field; it is treated as equipped at all times, so its `grants`
+  Abilities are always active.
+- **Permanent.** A Tattoo cannot be removed or unequipped. *Equip Stack* and
+  *Unequip Stack* are errors on a Tattoo; it is conferred (and its Abilities
+  granted) for as long as the Creature carries it.
 
 ### Generated Display Name
 
