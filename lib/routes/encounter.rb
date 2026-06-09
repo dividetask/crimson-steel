@@ -761,15 +761,15 @@ helpers do
           # Dodge borrows the dex_save proficiency for its Dice Cap/Modifiers but
           # is a pool-costed Defensive Action (not a Saving Throw): Speed 0, dice
           # chosen from the Reaction Minimum up to the remaining pool.
-          branches << { key: 'dodge', group: 'dodge', name: 'Dodge', inputs: t[:dodge], speed: 0, save: false }
+          branches << { key: 'dodge', group: 'dodge', name: 'Dodge', inputs: t[:dodge], speed: 0 }
           if t[:has_shield]
-            branches << { key: 'block', group: 'block', name: 'Block', inputs: t[:martial], speed: 0, save: false }
+            branches << { key: 'block', group: 'block', name: 'Block', inputs: t[:martial], speed: 0 }
           end
           unless w[:ranged]
             t[:parry_weapons].each do |pw|
               branches << { key: "parry:#{pw[:item_type]}", group: "parry:#{pw[:item_type]}",
                             name: "Parry with #{pw[:display_name]}", inputs: t[:martial],
-                            speed: [pw[:speed].to_i, 0].max, save: false }
+                            speed: [pw[:speed].to_i, 0].max }
             end
           end
         end
@@ -803,21 +803,18 @@ helpers do
                        set_name:  [{ id: 'defender', roll_name: b[:name] }],
                        set_excluded: [{ id: 'defender', excluded: false }] } }
           end
+          # Every Defensive Action here (Dodge / Block / Parry) is a pool-costed
+          # Reaction — the DM picks dice from the Reaction Minimum up to the
+          # remaining pool, capped by the Dice Cap. (Dodge is NOT a Saving Throw;
+          # it only borrows the dex_save proficiency for its Dice Cap / Modifiers,
+          # so it still costs Combat Pool and never auto-spends the full cap.)
           name_label = "#{b[:name]} (speed #{dspd})"
-          if b[:save]
-            # Dodge is a Saving Throw: it always spends the full Dice Cap and
-            # costs no Combat Pool, so there is no dice count to ask for — one
-            # option only, both in the body and as the quick-pick.
-            opts << mk.call(cap, "#{b[:name]} (max #{cap})", cap < 2)
-            headers << { value: "#{b[:key]}|#{cap}", label: b[:name], disabled: cap < 2 }
-          else
-            aff_max = (2..cap).select { |n| dspd + n <= t[:pool] }.max
-            opts << mk.call(aff_max || cap, name_label, aff_max.nil?)
-            (2..cap).each { |n| opts << mk.call(n, n.to_s, dspd + n > t[:pool]) }
-            hmin = Encounter::Config.reaction_action_minimum
-            headers << { value: "#{b[:key]}|#{hmin}", label: b[:name],
-                         disabled: (hmin > cap || dspd + hmin > t[:pool]) }
-          end
+          aff_max = (2..cap).select { |n| dspd + n <= t[:pool] }.max
+          opts << mk.call(aff_max || cap, name_label, aff_max.nil?)
+          (2..cap).each { |n| opts << mk.call(n, n.to_s, dspd + n > t[:pool]) }
+          hmin = Encounter::Config.reaction_action_minimum
+          headers << { value: "#{b[:key]}|#{hmin}", label: b[:name],
+                       disabled: (hmin > cap || dspd + hmin > t[:pool]) }
           opts << { kind: 'info', group: b[:group], value: "#{b[:group]}|info",
                     label: (dcmp.empty? ? 'no bonuses' : fmt_mods.call(dcmp)) }
         end
