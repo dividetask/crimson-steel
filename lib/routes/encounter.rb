@@ -649,18 +649,21 @@ helpers do
         tier: nil }
     ]
 
-    # Map of defender Combatant id -> the caster shielding them (Shield of Faith)
-    # and their available Reservoir dice, so the defense step can offer the
-    # caster's block as an Opposing Roll.
+    # Map of defender Combatant id -> the caster shielding them (Shield of Faith,
+    # or the Shield spell) and their available Reservoir dice, so the defense
+    # step can offer the caster's block as an Opposing Roll. Any defending
+    # reservoir reaction (discharge `defends: target`) qualifies; a Tier-scaled
+    # Shield also carries its +N Guidance bonus.
     shields = {}
-    encounter_state.granted_actions.select { |g| g[:source].to_s == 'Shield of Faith' && g[:defends] }.each do |g|
+    encounter_state.granted_actions.select { |g| g[:defends] }.each do |g|
       cc = encounter_state.combatant(g[:combatant_id]) or next
-      res = Array(cc[:concentration]).find { |e| e[:mode] == 'reservoir' && e[:spell_name].to_s == 'Shield of Faith' }
+      res = Array(cc[:concentration]).find { |e| e[:mode] == 'reservoir' && e[:spell_name].to_s == g[:spell_name].to_s }
       next unless res && res[:reservoir].to_i >= 2
       cacc = Creatures.lookup(cc[:creature_id]) rescue nil
       shields[g[:defends]] = { caster_id: g[:combatant_id], caster_name: tracker_name(cc),
                                reservoir: res[:reservoir].to_i, dice_cap: g[:dice_cap].to_i,
-                               tier: (cacc&.tier rescue nil) }
+                               tier: (cacc&.tier rescue nil), spell_name: g[:spell_name].to_s,
+                               bonus: g[:shield_bonus].to_i }
     end
 
     # Header quick-picks (next to "Target"): one button per enemy of the
@@ -828,29 +831,33 @@ helpers do
           opts << { kind: 'info', group: b[:group], value: "#{b[:group]}|info",
                     label: (dcmp.empty? ? 'no bonuses' : fmt_mods.call(dcmp)) }
         end
-        # Shield of Faith: a caster shielding this target blocks the attack as a
-        # separate Opposing Roll, spending Reservoir dice (no Combat Pool, and
-        # the target's own Defense Roll stays excluded).
+        # A caster shielding this target (Shield of Faith or the Shield spell)
+        # blocks the attack as a separate Opposing Roll, spending Reservoir dice
+        # (no Combat Pool, and the target's own Defense Roll stays excluded). A
+        # Tier-scaled Shield adds its +N Guidance bonus to the block.
         sh = shields[t[:id]]
         if sh
           # Up to the caster's casting-skill Dice Cap, and never more dice than
           # Reservoir remains (1 Reservoir die spent per die rolled).
           dcap = sh[:dice_cap].to_i.positive? ? sh[:dice_cap].to_i : sh[:reservoir]
           cap = [sh[:reservoir], dcap].min
+          sh_bpl = sh[:bonus].to_i.positive? ? [['Guidance', sh[:bonus].to_i]] : []
           mk_sh = lambda do |dice|
             { value: "shield:#{sh[:caster_id]}|#{dice}", group: 'shield', label: dice.to_s,
-              summary: "Shield of Faith — #{dice} dice",
-              patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_declared_bpl }],
+              summary: "#{sh[:spell_name]} — #{dice} dice",
+              patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_declared_bpl },
+                                 { id: 'shield', bonus_penalty_list: sh_bpl }],
                        restore_dice: [{ id: 'attacker' }],
                        set_dice: [{ id: 'shield', count: dice }],
                        set_tier: [{ id: 'shield', tier: sh[:tier] }],
-                       set_name: [{ id: 'shield', roll_name: "Shield of Faith (#{sh[:caster_name]})" }],
+                       set_name: [{ id: 'shield', roll_name: "#{sh[:spell_name]} (#{sh[:caster_name]})" }],
                        set_excluded: [{ id: 'defender', excluded: true }, { id: 'shield', excluded: false }] } }
           end
           (2..cap).each { |n| opts << mk_sh.call(n) }
           headers << { value: "shield:#{sh[:caster_id]}|2", label: "Shield (#{sh[:caster_name]})", disabled: cap < 2 }
+          bonus_note = sh[:bonus].to_i.positive? ? " (+#{sh[:bonus].to_i})" : ''
           opts << { kind: 'info', group: 'shield', value: 'shield|info',
-                    label: "Shield of Faith by #{sh[:caster_name]} — up to #{cap} Reservoir dice" }
+                    label: "#{sh[:spell_name]}#{bonus_note} by #{sh[:caster_name]} — up to #{cap} Reservoir dice" }
         end
         # Better Lucky Than Good — a Reaction, not a Defensive Action: no
         # defender Roll and no Combat Pool, it spends 4 Mana to halve the
@@ -964,6 +971,16 @@ helpers do
     # commit. Better Lucky Than Good is chosen in the Defense step; Danger Sense
     # / Primal Tenacity are chosen after the roll (payload['defender_reactions']).
     enrich_attack_reactions!(payload)
+
+    # A shielding caster's block discharges its own spell's Reservoir — resolve
+    # the spell name from the caster's defending granted action (Shield of Faith
+    # or the Shield spell) so the right Reservoir is spent, regardless of which
+    # the client assumed.
+    sh = payload['shield']
+    if sh.is_a?(Hash) && sh['id']
+      g = encounter_state.granted_actions.find { |x| x[:combatant_id] == sh['id'] && x[:defends] }
+      sh['spell_name'] = g[:spell_name].to_s if g
+    end
 
     wt  = payload['weapon_type']
     atk = payload['attacker'] || {}
@@ -1625,7 +1642,12 @@ helpers do
   # opposing Roll. The Reservoir itself is registered by the cast's sustain.
   def grant_defend_reaction!(payload)
     spell = payload['spell'] || {}
-    v = (Abilities.lookup(spell['name'].to_s) rescue nil) || {}
+    # Resolve the caster's own Tier variant of the spell so a Tier-scaled shield
+    # (the Shield spell: +1 at Tier 1, +2 at Tier 2) carries the right bonus.
+    raw   = (Abilities.catalog.ability(spell['name'].to_s) rescue nil) || {}
+    tiers = raw['tier']
+    idx   = tiers.is_a?(Array) ? (tiers.index(spell['tier'].to_i) || 0) : 0
+    v = (Abilities.lookup(spell['name'].to_s, axis_index: idx) rescue nil) || {}
     return unless v.dig('reservoir', 'discharge', 'defends').to_s == 'target'
     caster = payload['caster'] || {}
     ally = Array(payload['targets']).first or return
@@ -1639,7 +1661,8 @@ helpers do
     encounter_state.revoke_action { |g| g[:source] == spell['name'].to_s && g[:combatant_id] == caster['id'] }
     encounter_state.grant_action({ combatant_id: caster['id'], name: spell['name'], source: spell['name'],
                                    spell_name: spell['name'], defends: ally['id'],
-                                   cast_skill: skill, dice_cap: cap })
+                                   cast_skill: skill, dice_cap: cap,
+                                   shield_bonus: v['shield_bonus'].to_i })
   end
 
   def cast_effects_from_consumption(effects)
