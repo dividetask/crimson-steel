@@ -47,6 +47,30 @@ Tier Breakpoints:
 #
 # Skill lists may name bare Set Skill keys (ending `_`); a Set
 # Instance whose prefix matches the list is treated the same way.
+#
+# Spellcasting Classes additionally declare a `spell_selection` block
+# that drives the Character Creation Spell Selection step. Fields:
+#   mode    — one of:
+#               points  the Creature spends a point pool on spells; each
+#                       spell costs `cost` points (a formula in `tier`).
+#               count   the Creature picks a fixed NUMBER of spells.
+#               domain  the Creature picks a deity + domain instead of
+#                       individual spells (Cleric); the domain's spell
+#                       list is granted via deities.yaml.
+#               auto    every spell matching `filter` is granted
+#                       automatically; the Creature picks nothing and the
+#                       Spell Selection step is skipped.
+#   budget  — formula in `level` giving the point pool (points) or the
+#             number of spells (count). Evaluated at the Creature's level.
+#   cost    — points mode only: formula in `tier` for one spell's cost.
+#             The result is floored to an integer, so a Tier 0 spell
+#             costs 1 (not 1.5).
+#   filter  — which Catalog spells are selectable. `any` allows every
+#             spell; otherwise the value is a casting-skill key and a
+#             spell qualifies when one of its `skills` starts with it
+#             (e.g. `perform` matches the `perform_` Set Skill).
+# A Class with no `spell_selection` block is a non-caster and the Spell
+# Selection step is skipped for it.
 
 Classes:
 
@@ -85,6 +109,11 @@ Classes:
     unaligned_proficiencies:
       - restricted_magic
       - survival
+    # Bards know 2 spells per level and may only learn Performance spells.
+    spell_selection:
+      mode: count
+      budget: "2 * level"
+      filter: perform
 
   cleric:
     martial_advancement: unaligned
@@ -106,6 +135,10 @@ Classes:
     # `creatures/deities.yaml` (each chosen domain's spells; the Channel
     # Divinity of each chosen domain that is one of the deity's own; and the
     # deity's Channel Divinity at Cleric level 4).
+    # Clerics do not pick individual spells in the creation flow — they pick
+    # a deity and domain, gaining that domain's spells on top of granted_spells.
+    spell_selection:
+      mode: domain
     aligned_proficiencies:
       - appraisal
       - arcana
@@ -130,6 +163,11 @@ Classes:
       opposed: [str, dex, con, cha]
     ability_progression:
       "1": [druidic_spellcasting]
+    # Druids automatically know every Nature spell, so they pick none —
+    # the Spell Selection step is skipped for them.
+    spell_selection:
+      mode: auto
+      filter: nature
     aligned_proficiencies:
       - animal_handling
       - healing
@@ -201,6 +239,12 @@ Classes:
       "2": [combat_trickery, mage_hand_legerdemain]
     aligned_proficiencies:
       - arcana
+    # Arcane Tricksters get a 9 + level point pool for any spell.
+    spell_selection:
+      mode: points
+      budget: "9 + level"
+      cost: "1 + tier"
+      filter: any
 
   monk:
     martial_advancement: aligned
@@ -227,11 +271,39 @@ Classes:
       opposed: [str, dex, con, cha]
     ability_progression:
       "1": [arcane_spellcasting]
+    # Wizards get a 5 + level^2 point pool; each spell costs 1 + its tier.
+    spell_selection:
+      mode: points
+      budget: "5 + level * level"
+      cost: "1 + tier"
+      filter: any
     aligned_proficiencies:
       - arcana
       - history
       - investigation
       - linguistics
+      - planes
+      - religion
+
+  sorcerer:
+    martial_advancement: opposed
+    bonus_skills: 2
+    mana_per_level: 4
+    saves:
+      aligned: [con, cha]
+      opposed: [str, dex, int, wis]
+    ability_progression:
+      "1": [arcane_spellcasting]
+    # Sorcerers know 4 spells per level and may learn any spell.
+    spell_selection:
+      mode: count
+      budget: "4 * level"
+      filter: any
+    aligned_proficiencies:
+      - arcana
+      - deception
+      - intimidate
+      - persuasion
       - planes
       - religion
 

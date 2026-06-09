@@ -22,7 +22,10 @@ module CreaturesFixtures
       player: nil,
       group: '',
       tags: [],
-      race: 'human',
+      # The generic fixture uses the `humanoid` root (no racial attribute
+      # adjustments) so attribute / HP / mana mechanic tests read a clean
+      # base; the named fixtures below set their own real sub-race.
+      race: 'humanoid',
       attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
       tier: nil,
       loot_table: nil,
