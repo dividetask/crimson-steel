@@ -946,6 +946,7 @@ Blindspot:
   range: Touch
   target: "1"
   requires_willing: true
+  items: [potion]
   save:
     - attribute: wis
       save_target: observers
