@@ -891,10 +891,10 @@ helpers do
                            summary: ->(n) { "#{sh[:spell_name]} (#{sh[:caster_name]}) — #{n} dice" },
                            info: "#{sh[:spell_name]}#{bonus_note} by #{sh[:caster_name]} — up to #{cap} #{dice_word} dice")
       ally_defense_map["#{target_id}"] =
-        [{ value: 'none', group: 'none', label: 'No shield', summary: 'No shield',
+        [{ value: 'none', group: 'none', label: 'No defense', summary: 'No defense',
            patch: { set_excluded: [{ id: 'shield', excluded: true }] } }] + g[:body]
-      # Title row: "No shield" plus the ability-name max quick-pick.
-      ally_defense_header_map["#{target_id}"] = [{ value: 'none', label: 'No shield' }, g[:header]]
+      # Title row: "No defense" plus the ability-name max quick-pick.
+      ally_defense_header_map["#{target_id}"] = [{ value: 'none', label: 'No defense' }, g[:header]]
     end
     ally_defense_step = { key: 'ally_defense', label: 'Ally Defense',
                           options_by: %w[target], options_map: ally_defense_map,
