@@ -102,10 +102,9 @@ export class TurnCast {
 
   static _preview(container, detail) {
     container._lastDetail = detail;
-    // A no-roll cast (a buff, or a reservoir pour like Shield of Faith) has
-    // nothing to preview — its outcome is fully determined by the choices — so
-    // a single Confirm applies it directly rather than asking again to commit.
-    if (detail.noRoll) { TurnCast._commit(container); return; }
+    // Every cast — even a no-roll one (a buff, or a reservoir pour like Shield) —
+    // shows its result block first, so the DM sees and confirms the Combat Pool
+    // and Mana it spends before committing, exactly like Attack and Move.
     TurnCast._post(container, TurnCast._payload(container, detail, false), (res) => TurnCast._renderResult(container, res));
   }
 
@@ -149,9 +148,10 @@ export class TurnCast {
     const slot = container.querySelector('.tc-result');
     if (!slot) return;
     const tox = res.toxicity || {};
+    const nameOf = TurnCast._namer(container);
     const fields = [{ key: 'mana', label: 'Mana', value: num(res.mana_spent), editable: true }];
     (res.pool_spends || []).filter((s) => s.amount > 0).forEach((s) => {
-      fields.push({ key: `pool:${s.id}`, label: `Combat Pool — #${s.id}`, value: num(s.amount), editable: true });
+      fields.push({ key: `pool:${s.id}`, label: `Combat Pool — ${nameOf(s.id)}`, value: num(s.amount), editable: true });
     });
     const notes = [{
       label: res.spell || 'Spell',
@@ -184,6 +184,29 @@ export class TurnCast {
     const slot = container.querySelector('.tc-result');
     if (slot) { slot.hidden = false; slot.innerHTML = `<p class="ta-warn">${esc(msg)}</p>`; }
   }
+
+  // Resolve a Combatant id to a display name from the builder's roll groups (the
+  // caster and any target), so the Combat-Pool rows read by name like Attack's.
+  static _namer(container) {
+    const map = {};
+    container.querySelectorAll('.roll-group').forEach((g) => {
+      const nm = g.querySelector('.creature-name');
+      if (nm) map[g.dataset.rollId] = nameText(nm);
+    });
+    const choices = (container._lastDetail || {}).choices || {};
+    const byId = {};
+    byId[container._casterId] = map.caster || ('#' + container._casterId);
+    if (choices.target != null) byId[choices.target] = map.target || ('#' + choices.target);
+    return (id) => byId[id] || ('#' + id);
+  }
+}
+
+// Read only the creature-name cell's own text nodes (excluding the .tn-tip
+// tooltip span) so the TN computation text doesn't leak into the name.
+function nameText(el) {
+  let t = '';
+  el.childNodes.forEach((n) => { if (n.nodeType === 3) t += n.textContent; });
+  return t.trim() || el.textContent.trim();
 }
 
 function num(v) { const n = parseInt(v, 10); return Number.isNaN(n) ? 0 : n; }
