@@ -15,14 +15,16 @@ characters:
       cleric:
         level: 4
         skills:
-        - healing
+        - invocation
         - sense_motive
         - arcana
         - nature
         - intimidate
         - perception
         choices:
-          deity: Gorum
+          deity: Karthak
+          domains:
+          - War
           spellcasting:
           - sacred_flame
           - magic_vestments

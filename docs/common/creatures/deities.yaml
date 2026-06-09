@@ -75,6 +75,9 @@ Domains:
       - Shield of Faith
       - Spiritual Hammer
       - Silence
+      - Lesser Shield
+      - Standard Shield
+      - Greater Shield
     channel_divinity: Martial Devotion
   Water: {}
   Wisdom: {}
