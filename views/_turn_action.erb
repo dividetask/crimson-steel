@@ -148,12 +148,7 @@
       <div class="ta-pane" data-ta-pane="item">
         <%# Item use is not built yet; render the shared Action row + result shell
             so it reads like every other action once wired. %>
-        <div class="step-summary ta-action-row">
-          <span class="step-summary-label">Action</span>
-          <span class="step-summary-value ta-action-name">Item</span>
-          <span class="ta-confirm-slot"></span>
-          <button type="button" class="ta-change"><span class="cr-change-icon">↶</span> Change</button>
-        </div>
+        <%= erb :_ta_action_row, locals: { label: 'Item' } %>
         <div class="ar">
           <div class="ar-note-row">
             <span class="ar-note-label">Item</span>
@@ -164,12 +159,7 @@
     <% end %>
 
     <div class="ta-pane" data-ta-pane="end_turn">
-      <div class="step-summary ta-action-row">
-        <span class="step-summary-label">Action</span>
-        <span class="step-summary-value ta-action-name">End Turn</span>
-        <span class="ta-confirm-slot"></span>
-        <button type="button" class="ta-change"><span class="cr-change-icon">↶</span> Change</button>
-      </div>
+      <%= erb :_ta_action_row, locals: { label: 'End Turn' } %>
       <p class="ta-pane-lead">Advance to the next Combatant in initiative order. Clears this Combatant&rsquo;s luck points; a Round wrap advances the Timestamp. The next Combatant&rsquo;s Combat Pool and Main Actions refresh automatically.</p>
       <form method="post" action="/encounter/advance_turn">
         <button type="submit" class="ce-btn ta-confirm">End Turn</button>
