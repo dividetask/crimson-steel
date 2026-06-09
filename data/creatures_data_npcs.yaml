@@ -32,3 +32,81 @@ characters:
             - nature
             - sense_motive
             - stealth
+
+  # Migrated from the `character` notes. These carry no class/level, so
+  # `tier` is pinned directly. `attributes` are the stat lines you gave,
+  # stored as BASE scores — racial adjustments (human +1 all; high_elf
+  # +2 dex/+2 int; eladrin & sidhe +2 dex/+2 cha) apply on top for the
+  # Effective scores. Alric and Dala have hide_tier set.
+  - id: 2010
+    name: Lev "The Moth" Rybar
+    group: npc
+    tags: []
+    race: human
+    tier: 1
+    attributes:
+      str: 11
+      dex: 13
+      con: 14
+      int: 9
+      wis: 12
+      cha: 14
+
+  - id: 2011
+    name: Virelle
+    group: npc
+    tags: []
+    race: high_elf
+    tier: 3
+    attributes:
+      str: 16
+      dex: 14
+      con: 16
+      int: 16
+      wis: 22
+      cha: 17
+
+  - id: 2012
+    name: Sylwen
+    group: npc
+    tags: []
+    race: high_elf
+    tier: 3
+    attributes:
+      str: 13
+      dex: 19
+      con: 15
+      int: 17
+      wis: 17
+      cha: 20
+
+  - id: 2013
+    name: Alric Thorne
+    group: npc
+    tags: []
+    race: eladrin
+    tier: 4
+    hide_tier: true
+    attributes:
+      str: 18
+      dex: 20
+      con: 20
+      int: 22
+      wis: 21
+      cha: 28
+
+  - id: 2014
+    name: Dala Nyssira
+    group: npc
+    tags: []
+    race: sidhe
+    tier: 4
+    hide_tier: true
+    attributes:
+      str: 16
+      dex: 24
+      con: 18
+      int: 24
+      wis: 22
+      cha: 28
+
