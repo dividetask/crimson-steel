@@ -1,0 +1,9 @@
+# Crimson Steel — NPC roster (live campaign data overlay).
+#
+# Intentionally empty for now. Its sole current purpose is to OVERRIDE the
+# shipped `creatures_data_npcs.example.yaml`, whose placeholder NPCs reuse
+# ids 2 and 4 — the same ids the live Player Characters Olga (2) and
+# Cottonballs (4) occupy. Loading both files would raise a duplicate-id
+# error, so this overlay suppresses the example NPCs until the campaign's
+# real NPCs are migrated here.
+characters: []
