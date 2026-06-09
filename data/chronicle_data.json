@@ -1,0 +1,849 @@
+{
+  "campaign_name": "",
+  "timestamp": {
+    "day_index": 0,
+    "round_of_day": 0
+  },
+  "current_chapter": 5,
+  "chapters": [
+    {
+      "number": 1,
+      "name": "The Heist"
+    },
+    {
+      "number": 2,
+      "name": "Fey Wilds"
+    },
+    {
+      "number": 3,
+      "name": "Rescuing Farmer Jon"
+    },
+    {
+      "number": 4,
+      "name": "Discrete Acquisition"
+    },
+    {
+      "number": 5,
+      "name": "Rescuing Hawthorne"
+    }
+  ],
+  "entries": [
+    {
+      "id": 1,
+      "entry_type": "note",
+      "chapter": 1,
+      "notes_position": 1,
+      "scene_position": 1,
+      "title": "Orman Harrington Request",
+      "public_description": "My brother passed several years ago. He was a crafter. He made jewelry. This is all I have left of his. This was stolen by an influential elf. A powerful mage I suspect. I would ask the guards for assistance but they do not help when it involves mages or the connected, also they would ask for proof it is mine and I have none. This mage, his name is Alric. I would not ask you to try to take it from him directly, I know that is beyond your abilities. No, I was unable to seek this item out until recently. It has come to my attention that he has gifted the item away, to someone of far less means. Someone I think that is within your abilities. Her name Gilda. I suspect his wife would not like to know about her.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 2,
+      "entry_type": "note",
+      "chapter": 1,
+      "notes_position": 2,
+      "scene_position": 2,
+      "title": "The Theft",
+      "public_description": "Stumpy pretended to lose his balance tripping into a waitress and pulled her blouse down and Olga spat her drink out over a flame in suprise to the sudden sight. Meanwhile, using the distraction, Lysander tried to lift the necklace. Lysander failed and ended up ripping it off her neck attracting the attention of the guards and a priestess. Lysander ran but not before getting a firebolt to his ass.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 3,
+      "entry_type": "note",
+      "chapter": 1,
+      "notes_position": 3,
+      "scene_position": 3,
+      "title": "The Locket",
+      "public_description": "Looking at the locket after escaping Lysander saw a middle aged elven looking man inside",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 4,
+      "entry_type": "note",
+      "chapter": 1,
+      "notes_position": 4,
+      "scene_position": 4,
+      "title": "Reward",
+      "public_description": "Collecting their reward the party neglected to tell Orman about their partial failure. They were supposed to do it unnoticed",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 5,
+      "entry_type": "note",
+      "chapter": 1,
+      "notes_position": 5,
+      "scene_position": 5,
+      "title": "Caught",
+      "public_description": "The party fled town and made it to a village several days away. They awoke the next day to three people in their room: Alric, Virelle, and Sylwen. Virelle demanded they be executed but Alric thought that was too dull and uninteresting of a punishment. He instead sent them to his sisters as he put it. Before being banished to the fey wilds Stumpy was given a bottle of ale that Alric never asked to be returned.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 6,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 6,
+      "scene_position": 6,
+      "title": "Arrival in the Fey Wilds",
+      "public_description": "You suddenly find yourselves standing inside a vast chamber, the air thick with the scent of blooming flowers and the rich earthiness of moss. The walls are not walls at all but living, breathing plants—intertwining vines and creeping ivy wrap around the stone, their leaves pulsing faintly with light. Thick flowers of every color imaginable hang from the ceiling like chandeliers, their petals opening and closing in rhythm with some unseen, gentle breeze.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 7,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 7,
+      "scene_position": 7,
+      "title": "Dala's Request",
+      "public_description": "Intruders into my realm. How brave must you be to come here? I could simply send you back to the mundane, but what would be the fun in that? No, no. I have tasks that need to be done. I am bored and uninterested in such trivial things my playthings. You could do them though, I think five tasks wouldn’t take you too long, but then again time can get very stretchy out here. How many years has already passed I wonder",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 8,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 8,
+      "scene_position": 8,
+      "title": "First Task",
+      "public_description": "Frendamus is late in delivering Dala's slippers. The slippers were stolen and after some investigation a trail was followed to a warehouse owned by a Lark named Lydia. They find Lydia dancing uncontrolably in the corner. Finding the slippers they left her to her fate but not before helping themselves to some of her possessions.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 9,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 9,
+      "scene_position": 9,
+      "title": "Reward",
+      "public_description": "Frendamus is greatly relieved you found the slippers and rewarded you with your choice of footware. She seems confused about any questions related to the purpose or abilities of her items. Olga notes some footwraps that she decides to keep. Crude at first glance—just heavy bands of leather and knotted cord—but each strap bears burn-scars, bite-marks, and dried blood. When bound tightly up the calves and feet, they flex and pulse with primal tension. The name Martha is burned into the inside of one of the straps.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 10,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 10,
+      "scene_position": 10,
+      "title": "Strange Effects",
+      "public_description": "Olga's nose appears to grow a bit larger and Stumpy turns greenish. It is suspected that the fey food had this effect on them. Olga's sense of smell improves and Stumpy seems to need less food. These changes eventually go away after returning home",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 11,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 11,
+      "scene_position": 11,
+      "title": "Second Task",
+      "public_description": "Now. My feast draws near, and I grow bored of honeyed fruits and marrowless bones. I crave something wild. Bring me an emberboar. Alive. Chained, if you must, but breathing. I want its rage hot and thrashing when I slit its throat beneath the bloom moon.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 12,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 12,
+      "scene_position": 12,
+      "title": "Wild Hunt Preperations",
+      "public_description": "The party located the Wild Hunt after a few weeks of waiting and gathering information. Deciding it would be reckless to show up without something to show they decide to hunt a bear. One is found and a trophy is made of it.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 13,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 13,
+      "scene_position": 13,
+      "title": "Wild Hunt",
+      "public_description": "The path winds through twisted groves and bioluminescent thickets until the trees suddenly part, revealing a wide, slow-moving river gleaming beneath the wan light of a shifting Feywild moon. Mist surrounds the area, curling and dancing like living things. The scent of moss and wildflowers is thick in the air, mingled with the faint, metallic tang of old blood. Upon approaching they are given a riddle but are unable to solve it. Next it is requested the share a deed of valor which Stumpy does. Instead of challenging them to a duel, as is custom, the offering of the bear trophy sufficed.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 14,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 14,
+      "scene_position": 14,
+      "title": "Robbing a drunk",
+      "public_description": "Lysander recognized Athach from the locket and decided to investigate him as subtly as he could. Athach was uninterested in talking to anyone wanting only to sulk. Stumpy challenged him to a drinking contest and won the mans most valuable possession: A name written on a piece of paper. Athach laughed as they took it mentioning how the name would get them killed. Lysander then robbed him finding several gems worth nearly a thousand gold, the most by far that Lysander had ever stolen. He also found a key with the name Orin engraved in it.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 15,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 15,
+      "scene_position": 15,
+      "title": "Interesting Friends",
+      "public_description": "Lysander made friends with Harkon and secured a promise of a future meeting.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 16,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 16,
+      "scene_position": 16,
+      "title": "Successfull Hunt",
+      "public_description": "The boar was killed and delivered to Dala",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 17,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 17,
+      "scene_position": 17,
+      "title": "Third Task",
+      "public_description": "Getting the boar in time for the feast Dala tasks the party to attend so that she may show you off to her guests. The party manages to acquire a false bottomed chalice, steal a ring from a rude noble, and fingerbang a drunk chick.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 18,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 18,
+      "scene_position": 18,
+      "title": "Fourth Task",
+      "public_description": "The party is asked to help a hopeless Satyr find love.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 19,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 19,
+      "scene_position": 19,
+      "title": "Shopping",
+      "public_description": "Olga manages to get an axe crafted using the axe blade stolen from Lydia. Stumpy purchases a set of armbands with the name Narn on it trading away his knowledge of a skill. Lysander buys some thieving equipment and convinces the shopkeeper to help him out. Since the shop keeper also hates Severus she gifts Lysander a ring with the name Petey scrawled on it.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 20,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 20,
+      "scene_position": 20,
+      "title": "Getting a Goat Laid",
+      "public_description": "Trying to get Beau laid proves nearly impossible, and the party decides to give up looking. Instead Olga decides to sleep with him and hope Dala will accept that as a success",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 21,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 21,
+      "scene_position": 21,
+      "title": "Return to Ashwood",
+      "public_description": "The players find themselves back in Ashwood in the Stumbling Stag. 43 have passed",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 22,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 22,
+      "scene_position": 22,
+      "title": "Mayor Tamsin Holt",
+      "public_description": "“Gerrick Bain hasn’t come into town in three days, and now his neighbors say his farm’s gone silent. Chickens, cows—everything’s gone. I’ll give you twenty gold to take a look and come back with something useful.”",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 23,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 23,
+      "scene_position": 23,
+      "title": "Investigation",
+      "public_description": "Gerrick's house was empty, but no sign of a fight. It appeared all of his animals were led away",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 24,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 24,
+      "scene_position": 24,
+      "title": "Cultist",
+      "public_description": "Following the tracks they found two cultists complaining about wanting to kill 'that bitch'. The party quickly killed one and subdued the other only to find out they were complaining about carrying water for a cow who was the 'bitch' they were complaining about. Lysander decided they needed to kill them to avoid reprisals even though it appeared they were innocent.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 25,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 25,
+      "scene_position": 25,
+      "title": "Sha’tin Cult Cave",
+      "public_description": "Following the tracks further they found a cave and took out the two guards, then disguised their voices and appearance (using magic) as the cultists. They tried to lure people to come out and be ambushed but the lead cultist was busy completing his ritual. He got annoyed with stumpy and used a spell to crush stumpies heart, then enthralled everyone forcing them to watch as he completed his ritual. Olga, enhanced by her legwraps, overcame the compulsion and killed him. Watching him twitching on the ground Olga felt compelled to finish him and watched as the axe drank up his essence. The other cultists were slaughtered.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 26,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 26,
+      "scene_position": 26,
+      "title": "Return of the Locket",
+      "public_description": "Alric's locket, taken from the party before being sent to the fey wilds was found on one of the cultists. Unsure if they should take it the decision was made for them when it magically disappeared, only to be found later inside Lysander's backpack.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 27,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 27,
+      "scene_position": 27,
+      "title": "Information Learned about Sha’tin",
+      "public_description": "Title: The Whisper in Chains\r\nDomain: Devils, obedience, corruption of the will.\r\nSymbols: A broken manacle with its ends curled inward like fangs.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 28,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 28,
+      "scene_position": 28,
+      "title": "Notable Loot",
+      "public_description": "A ceremonial dagger of blood drinking (Casts cure light wounds on self after sacrificing a creature. Effect destroys victims soul preventing reincarnation or afterlife)",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 29,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 29,
+      "scene_position": 29,
+      "title": "A Useful Introduction",
+      "public_description": "After arriving back in town the mayor informed you that she is writing to the dutchess of Ironford to tell her of your deeds. A week later a letter arrived which disappeared before it could be read. Guessing it was an invitation by Lady Hawthorne was easy enough and the party decided to head out. When the later was later found it read as follows:\r\n\r\nTo Lysander, Olga, and Stephen,\r\nYour recent deeds in Ashwood have not gone unnoticed. Word of your courage, resourcefulness, and success in protecting the townsfolk from grave danger has reached my attention, and I wish to extend my personal gratitude.\r\nYou are cordially invited to my estate for a feast in your honor. It is my hope to meet you in person, hear of your adventures, and discuss opportunities for further service in these lands.\r\nYour presence will be most welcome, and arrangements will be made to ensure your comfort during your stay.\r\nWith respect and anticipation,\r\nLady Selara Hawthorne\r\nDuchess of Ironford",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 30,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 30,
+      "scene_position": 30,
+      "title": "Bandits Mysteriously Charmed",
+      "public_description": "Some bandits overturned a cart feigning a need for help. They demanded a toll to pass but suddenly changed their turn once their leader fell under a charm effect. It unclear how this happened but was clear that the effect originated with Olga. There was also a few instances of items disappearing",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 31,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 31,
+      "scene_position": 31,
+      "title": "Rumors of Vrakka's Hand",
+      "public_description": "A group of angry coal burners is met and pacified with offers of alcohol and drugs. They speak about a band of raiders that sack towns carting away it's residents harassing towns. A name of a drug dealer local to Sorinks is shared",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 32,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 32,
+      "scene_position": 32,
+      "title": "Petey",
+      "public_description": "Lysander decides to try to communicate with their thief stalker by simply talking out loud hoping he will hear them. Wooden blocks with letters are created and left out with the intention of allowing their 'friend' to pick up letters to form words. It is soon learned that Lysander has a telepathic link to his ring which has been 'borrowing' his stuff.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 33,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 33,
+      "scene_position": 33,
+      "title": "A Botched Bribe",
+      "public_description": "Entering town Petey recognized the guard and told Lysander to bribe him. The guard insulted by this became angry and demanded to search the parties possessions. Petey continued to insist the guard's name was Ruslan even after it became clear his name was Tavik. \r\nStumpy, wearing Alric's amulet, allows the female guard to look inside watching her reation carefully. She indicates her attraction to the man pictured inside mistakenly assuming he was Stumpy's lover.\r\nThe party is allowed inside",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 34,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 34,
+      "scene_position": 34,
+      "title": "The Offended Adventurer",
+      "public_description": "In town the party meets Kael and Varen. Kael gets into an argument with Stumpy which ends in  a drinking competition that Stumpy wins. Olga befriends Varen and Varen leads Kael upstairs to sleep off the drink",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 35,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 35,
+      "scene_position": 35,
+      "title": "The Party",
+      "public_description": "Lady Hawthorne throws a feast and invites adventurers and nobles including Kael and Varen. At the event, Lysander tells embellished story of their adventures - crowd loves it, Kael doesn't. A priest of Shelyn mistakenly believes Lyasander worships his goddess. Party notices Lysander now wearing a Shelyn necklace (wasn't there before). Lysander plays along ",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 36,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 36,
+      "scene_position": 36,
+      "title": "Discrete Job",
+      "public_description": "Silovan Kreshholm approaches you at the party and asks you to perform a job for Lady Hawthorne. He wants the party to acquire rare herbs and return them to the mansion. 2500 gold for the job with 300 gold up front. It is made clear that this job is not to be discussed with anyone.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 37,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 37,
+      "scene_position": 37,
+      "title": "Journey to Volkmar",
+      "public_description": "Party traveled to Volkmar over two days. Attacked by wolves en route—Lysander badly injured. Arrived and began investigating Borim's location. Petey stole a Poison of Sleeping Death. Decided to find someone who gossips. Met Tavi Redholm (halfling) and Aeris Silvaren (elf) at a tavern. Tavi was telling an exaggerated story about a wolf \"two stories high\" he barely escaped. Both directed party northeast—Borim likely lives in a cave. Also learned that Borim often harvests rare herbs found in the northeast",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 38,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 38,
+      "scene_position": 38,
+      "title": "Enslaving the Alchemist",
+      "public_description": "Party tracked cart tracks near herbs. Led them to Borim's cave. Borim tried to make them leave. Gary (Olga's axe) dominated Borim. Borim gave Lysander a tattoo and created the Crimson Tincture. Two lycanthropes arrived—party killed them. Gave Borim a potion of forgetfulness and made him drink it.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 39,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 39,
+      "scene_position": 39,
+      "title": "Flight from Wolves",
+      "public_description": "The party made haste but was run down by a group of large wolves. Turning to fight they realized these were werewolves. Lysander noticed a man watching in the distance and tried to get him to help, but was unsuccessful. The wolves were killed and Olga finished off the Alpha wolf. Killing the Alpha made her axe grow in power.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 40,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 40,
+      "scene_position": 40,
+      "title": "A chance Encounter",
+      "public_description": "Theron, exposed by Lysander, introduces himself. It is learned that he was sent to keep the party safe which he took very literally. He did not help in the fight because he believed they would live. He escorted the party back to town.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 41,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 41,
+      "scene_position": 41,
+      "title": "Sacking of Sorinsk",
+      "public_description": "Smoke still rises from several buildings throughout the town - thin gray columns that stain the sky. The town walls show scorch marks and broken sections. The main gate hangs crooked on its hinges.\r\nAs you approach, the devastation becomes clearer. The main street is littered with debris - broken furniture, overturned carts, shattered barrels spilling their contents. Windows are smashed. Doors hang open or have been torn from their frames.\r\nA few townspeople move through the wreckage like ghosts, salvaging what they can. They move slowly, mechanically, in shock. Some are bandaged. Others simply stare at nothing.\r\n    • The docks are damaged - pilings broken, debris floating in the water \r\n    • Several ships are missing from the harbor \r\n    • Guard posts are abandoned or destroyed \r\n    • The manor house on the hill shows signs of forced entry \r\n    • Many buildings are intact but looted \r\n    • People are alive but traumatized \r\nKael and Varen fought the raiders when they hit the tavern. Varen was knocked out and dragged away.\r\nThe raiders all had Blue and Orange fish tattoos.\r\n",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 42,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 42,
+      "scene_position": 42,
+      "title": "Letter from Hawthorne",
+      "public_description": "",
+      "dm_description": "",
+      "image": "/images/scene/1776379229-da341abd-Letter.png",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 43,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 43,
+      "scene_position": 43,
+      "title": "Town Purchases",
+      "public_description": "Purchased Items\r\nLesser Ward (5hp) (4 scrolls)\r\nLesser Healing (4 scrolls)\r\nGrease (4 scroll for lysander)\r\nDisguise Self (2 potions for stumpy)\r\nMana Potion (4 mana, 7 sat) (4 stumpy)\r\nExpeditious Retreat (2 potions for Stumpy, 2 scrolls for lysander and cotton, 1 potion olga)\r\n2nd level (150gp scroll), (300 potion), (4k wand)\r\nInvisibility (2 potions stumpy and olga, 2 scrolls lysander and cotton, 1 scroll for lysander book)\r\nDarkness (1 scroll lysander)\r\nWeb (1 scroll lysander)\r\nCreate Pit (2 scrolls lysander, cottonballs)\r\nDisguise Other (1 scroll lysander for book)\r\nspiritual weapon (1 scroll for stumpy)\r\n",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 44,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 44,
+      "scene_position": 44,
+      "title": "[Loot] Orc Slaughter",
+      "public_description": "1000 coins (Total value = 2025 gp, weight 20 lbs)\r\n31 gems (Total value = 2307 gp)\r\nOil of Ablative Barrier (uc, 300 gp)\r\n2 x Oil of Arcane Mark (cr, 25 gp)\r\nOil of Light (cr, 25 gp)\r\nOil of Purify Food and Drink (cr, 25 gp)\r\nOil of Sanctify Corpse (um, 50 gp)\r\nPotion of Ant Haul (apg, 50 gp)\r\n3 x Potion of Cure Light Wounds (cr, 50 gp)\r\n2 x Potion of Enlarge Person (cr, 50 gp)\r\nPotion of Fox's Cunning (cr, 300 gp)\r\n2 x Potion of Guidance (cr, 25 gp)\r\n2 x Potion of Hide from Animals (cr, 50 gp)\r\nPotion of Pass without Trace (cr, 50 gp)\r\nPotion of Reduce Person (cr, 50 gp)\r\nPotion of Remove Fear (cr, 50 gp)\r\nPotion of Resistance (cr, 25 gp)\r\nPotion of Shield of Faith (cr, 50 gp)\r\n2 x Potion of Stabilize (cr, 25 gp)\r\nPotion of Virtue (cr, 25 gp)\r\n\r\n    2 x Amphora of Vinegar (2 gp, 80 lb)\r\n    Artisan's Tools (5 gp, 5 lb)\r\n    3 x Backpack (2 gp, 2 lb)\r\n    4 x Bag of 10 Pitons (1 gp, 5 lb)\r\n    2 x Bag of 20 Marbles (2 sp, 1 lb)\r\n    19 x Bag of 20 Sling Bullets (2 sp, 10 lb)\r\n    7 x Bag of Chalk (1 sp, 1/2 lb)\r\n    2 x Bag of Chestnuts (1 gp, 1 lb)\r\n    7 x Bag of Common Spice (1 gp, 1 lb)\r\n    Bag of Dried Mushrooms (1 gp, 1 lb)\r\n    19 x Bag of Iron Nails (5 sp, 1 lb)\r\n    41 x Bag of Salt (2 sp, 1 lb)\r\n    7 x Bag of Wheat (1 cp, 1 lb)\r\n    Barrel (2 gp, 30 lb)\r\n    15 x Basket (4 sp, 1 lb)\r\n    16 x Bedroll (1 sp, 5 lb)\r\n    12 x Bolt of Canvas (1 gp, 10 lb)\r\n    10 x Bolt of Linen (5 gp, 10 lb)\r\n    2 x Bottle of Brandywine (5 gp, 4 lb)\r\n    6 x Bottle of Common Wine (1 sp, 4 lb)\r\n    Bottle of Honey (4 sp, 4 lb)\r\n    9 x Bottle of Olive Oil (3 gp, 4 lb)\r\n    14 x Bottle of Spiced Wine (2 gp, 4 lb)\r\n    2 x Bottle of Vinegar (1 sp, 4 lb)\r\n    Bow Saw (5 gp, 5 lb)\r\n    3 x Box of 20 Arrowheads (5 sp, 1 lb)\r\n    5 x Box of 20 Candles (2 sp, 1 lb)\r\n    8 x Box of Charcoal (1 sp, 20 lb)\r\n    Box of Firewood (1 cp, 20 lb)\r\n    3 x Bucket (5 sp, 2 lb)\r\n    Cart (15 gp, 200 lb)\r\n    Chandelier (50 gp)\r\n    Chariot (100 gp, 200 lb)\r\n    3 x Cheap Wig (1 sp)\r\n    13 x Chisel (5 sp, 2 lb)\r\n    Clay Pitcher (2 cp, 5 lb)\r\n    4 x Clay Tankard (2 cp, 2 lb)\r\n    3 x Common Wig (1 gp)\r\n    Courtier's Outfit (30 gp, 6 lb)\r\n    Crowbar (2 gp, 5 lb)\r\n    Fishing Net (4 gp, 5 lb)\r\n    9 x Flask of Oil (1 sp, 1 lb)\r\n    11 x Flint and Steel (1 gp)\r\n    2 x Game Board (1 gp, 2 lb)\r\n    Glasscutter (2 gp)\r\n    4 x Hammer (5 sp, 2 lb)\r\n    2 x Handsaw (3 gp, 5 lb)\r\n    Hemp Rope (50') (1 gp, 10 lb)\r\n    16 x Iron Bar (1 sp, 5 lb)\r\n    3 x Iron Pot (8 sp, 4 lb)\r\n    2 x Ladder (10') (2 sp, 20 lb)\r\n    Large Iron Box (2 gp, 100 lb)\r\n    3 x Loaf of Bread (2 cp, 1/2 lb)\r\n    Low Boots (1 gp, 2 lb)\r\n    13 x Manacles (15 gp, 2 lb)\r\n    Merchant's Scale (2 gp, 1 lb)\r\n    2 x Pair of Dice (1 sp)\r\n    2 x Pair of Oars (4 gp, 20 lb)\r\n    2 x Pitchfork (2 gp, 5 lb)\r\n    2 x Piton (1 sp, 1/2 lb)\r\n    2 x Pouch of Tobacco (5 sp, 1 lb)\r\n    11 x Rack of Firewood (1 sp, 200 lb)\r\n    4 x Rake (2 gp, 10 lb)\r\n    Riding Saddle (10 gp, 25 lb)\r\n    2 x Rope Net (10' x 10') (4 gp, 40 lb)\r\n    Sack (1 sp, 1/2 lb)\r\n    Sack of Apples (5 gp, 50 lb)\r\n    4 x Sack of Wheat (5 sp, 50 lb)\r\n    Salted Ham (2 gp, 4 lb)\r\n    2 x Scroll Case (1 gp, 1/2 lb)\r\n    Sedan Chair (100 gp, 60 lb)\r\n    2 x Sewing Needle (5 sp)\r\n    37 x Sickle (1 gp, 2 lb)\r\n    2 x Signet Ring (5 gp)\r\n    Sled (20 gp, 300 lb)\r\n    22 x Sledge (1 gp, 10 lb)\r\n    Small Cage (10 gp)\r\n    3 x Small Cask of Ale (2 sp, 8 lb)\r\n    2 x Small Cask of Common Spice (5 gp, 5 lb)\r\n    Small Cask of Dried Figs (3 gp, 8 lb)\r\n    27 x Small Cask of Oil (8 sp, 5 lb)\r\n    3 x Small Cask of Wax (2 sp, 5 lb)\r\n    10 x Small Glass Rod (1 sp)\r\n    Small Hunting Trap (4 gp, 5 lb)\r\n    Small Wooden Chest (1 gp, 10 lb)\r\n    2 x Spade (2 gp, 8 lb)\r\n    Table (30 gp)\r\n    2 x Tiny Lead Box (1 gp, 5 lb)\r\n    3 x Tiny Wooden Box (5 sp, 1 lb)\r\n    3 x Tongs (3 gp, 2 lb)\r\n    Vial of Ink (8 gp)\r\n    Waterskin (1 gp, 1/2 lb)\r\n    22 x Wedge of Cheese (8 sp, 4 lb)\r\n    3 x Whetsone (2 cp, 1 lb)\r\n    2 x Wooden Drum (5 gp, 3 lb)\r\n    Wool Cloak (5 sp, 3 lb)\r\n\r\nTotal value = 1016 gp 6 sp\r\n\r\nScroll of Burning Hands (cr, 25 gp)\r\nScroll of Darkvision (cr, 150 gp)\r\nScroll of Disguise Self (cr, 25 gp)\r\nScroll of Magic Missile (cr, 25 gp)\r\nScroll of Obscuring Mist (cr, 25 gp)\r\nScroll of Protection from Chaos (cr, 25 gp)\r\nScroll of Protection from Evil (cr, 25 gp)\r\nScroll of Ray of Sickening (um, 25 gp)\r\nScroll of Remove Fear (cr, 25 gp)\r\n2 x Scroll of Resist Energy (cr, 150 gp)\r\nWand of Create Water (cr, 375 gp)\r\nWand of Identify (cr, 1000 gp)\r\nWand of Know Direction (cr, 375 gp)\r\nWand of Inflict Light Wounds (cr, 1000 gp)",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 45,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 45,
+      "scene_position": 45,
+      "title": "Bullying a ride",
+      "public_description": "Theron convinces the sole remaining captain to sail you to Elredd and Highport. Kael agrees to join you. The trip will take approximately 5 days. You set sail on the Silver Surgeon with Captain Casimir Rybar. The next full moon is in four days during which time Hawthorne's brother will likely become a lycanthrope.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 46,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 46,
+      "scene_position": 46,
+      "title": "Kraken",
+      "public_description": "The day before arriving in Elredd the ship is attacked by a Kraken. A glancing blow from the creature injures Olga but the wounds regenerate much quicker then they should. After eating about a dozen sailors the Kraken retreats into the depths. ",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 47,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 47,
+      "scene_position": 47,
+      "title": "Desna's Whim",
+      "public_description": "",
+      "dm_description": "Desna's Whim — d100 Flavor Table\r\nRoll\r\nFlavor\r\n01  Starlight Blind. A burst of silver light in someone's eyes at the critical moment.\r\n02  Wrong Foot. A stone turns, a boot slips, balance falters.\r\n03  Forgotten Word. A crucial syllable, name, or instruction slips the mind.\r\n04  Wind at the Back. A sudden gust pushes exactly the right direction.\r\n05  Sudden Memory. A relevant recollection surfaces at the perfect instant.\r\n06  Loose Buckle. A strap, clasp, or fastening chooses now to fail.\r\n07  Butterfly Effect. A small creature crosses the path — distraction or omen.\r\n08  Borrowed Grace. Movements become briefly, uncannily elegant.\r\n09  Echoing Doubt. A whispered second-guess in the mind's ear.\r\n10  Lucky Thread. A loose thread catches on something useful — or damning.\r\n11  The Coin Flips. Something small and metallic rings on stone nearby.\r\n12  Stitch in Time. A half-second hesitation changes everything.\r\n13  Shadow Puppet. A shadow moves wrong, drawing the eye.\r\n14  Familiar Face. Someone looks momentarily like someone else — friend or foe.\r\n15  Dust Devil. A small swirl of dust, leaves, or snow at the key moment.\r\n16  Slip of the Tongue. Wrong word said, right word heard, or vice versa.\r\n17  Heart's Beat. A single thunderous heartbeat drowns out all else briefly.\r\n18  Cold Spot. A patch of unnatural cold — distraction, warning, or worse.\r\n19  Moonbeam. A shaft of light from nowhere illuminates (or conceals).\r\n20  Sudden Clarity. The world sharpens for one perfect second.\r\n21  Ill Omen. A bird cries, a dog howls, a candle gutters at the worst moment.\r\n22  Guardian's Hand. An unseen force steadies or redirects.\r\n23  Knot Unties. Something bound comes loose — rope, hair, spell, tongue.\r\n24  Déjà Vu. A moment feels rehearsed, granting or stealing confidence.\r\n25  Star Sign. A constellation briefly visible even in daylight or indoors.\r\n26  Dropped Stitch. A tiny flaw in armor, weapon, focus, or clothing reveals itself.\r\n27  Chorus of One. A voice — the wearer's? — gives perfect (or terrible) advice.\r\n28  Feather Fall. Something heavy descends with strange slowness.\r\n29  Breath Held. All sound drops out for a full second.\r\n30  Traveler's Mark. A Desna symbol appears briefly — skin, stone, cloth, air.\r\n31  The Path Forks. Two options present themselves where there was one.\r\n32  Old Wound. A past pain flares — distraction, motivation, or both.\r\n33  Wrong Hand. An off-hand action is attempted, for better or worse.\r\n34  Lantern Flicker. A nearby light source gutters, flares, or changes color.\r\n35  Second Wind. Exhaustion lifts or crashes down suddenly.\r\n36  Snake's Tongue. Words twist on the way out — truth told as lie, lie as truth.\r\n37  Thread of Fate. Something feels pre-ordained, for one beat.\r\n38  Bird's Eye. A momentary sense of the whole battlefield/scene from above.\r\n39  Gentle Touch. An unseen hand guides a blade, finger, or word.\r\n40  Sour Note. A wrong sound — a bowstring twang, cracked voice, off-key chant.\r\n41  Pilgrim's Luck. An improbable coincidence stacks in someone's favor.\r\n42  Dust in the Eye. Literal or figurative — vision obscured at the crux.\r\n43  Stargazer's Trance. A half-second of distraction by something beautiful.\r\n44  The Road Rises. Ground shifts subtly — easier or harder footing.\r\n45  Echo Chamber. Words or sounds repeat uncannily, carrying new meaning.\r\n46  Fool's Gold. Something glitters that shouldn't, drawing attention.\r\n47  Sigil Awakens. A tattoo, mark, or sign on someone warms or glows.\r\n48  Half-Remembered Song. A tune surfaces — comforting, distracting, prophetic.\r\n49  Broken Mirror. A reflection does something the reflected didn't.\r\n50  Night's Mercy. Darkness thickens briefly, hiding or revealing.\r\n51  Hummingbird Heart. Time stretches — one second becomes three.\r\n52  Clean Miss. An action that should have connected passes through empty air.\r\n53  Seamstress's Blessing. A tear mends, a gap closes, a wound staunches briefly.\r\n54  The Wanderer Smiles. Luck turns, visibly, for someone in the scene.\r\n55  Lost and Found. Something missing is suddenly at hand.\r\n56  Compass Spin. Direction becomes briefly uncertain — or perfectly clear.\r\n57  Moth to Flame. Attention is drawn irresistibly toward one point.\r\n58  Traveler's Boon. A small useful item appears in a pocket or pouch.\r\n59  Whispered Name. Someone's true name is almost-heard on the wind.\r\n60  Starlit Step. A footstep lands perfectly, gracefully, impossibly.\r\n61  Silver Tongue. The next words out of someone's mouth are unusually persuasive.\r\n62  Crossroad. A choice presents itself that wasn't there before.\r\n63  Borrowed Breath. Exertion comes easier, or harder, for one moment.\r\n64  Night Bloom. Something beautiful happens at the wrong time.\r\n65  Dream Logic. The scene briefly obeys dream-rules instead of waking ones.\r\n66  Fell Swoop. A single decisive motion carries more weight than it should.\r\n67  Passing Stranger. An NPC intervenes briefly — helpful, hindering, or just odd.\r\n68  Ink Runs. Writing, runes, or markings smear, shift, or rewrite themselves.\r\n69  Good Dog. An animal (real or imagined) aids, warns, or distracts.\r\n70  Thief's Luck. Something valuable changes hands unnoticed.\r\n71  Clear Head. Fear, rage, or confusion lifts — or descends — suddenly.\r\n72  Hinge Creaks. A door, gate, or lid moves on its own at a meaningful moment.\r\n73  Skipped Stone. An action ricochets, skips, or glances in an unexpected way.\r\n74  Soft Spot. A weakness is suddenly apparent — armor gap, tell, insecurity.\r\n75  Sunbeam. Warmth and light in an unexpected place — comforting or blinding.\r\n76  Butterfly's Kiss. A touch so light it's almost not there, but everything changes.\r\n77  Cup Runneth Over. A resource (ammo, spell slot, stamina) feels renewed briefly.\r\n78  Pilgrim's Rest. A moment of peace intrudes into the chaos.\r\n79  Hawk's Cry. A sharp sound from above cuts through the moment.\r\n80  Favor Returned. A past kindness echoes back as aid.\r\n81  Stumble into Grace. A fall, trip, or mistake lands perfectly anyway.\r\n82  Open Window. An escape, solution, or option reveals itself.\r\n83  The Long View. A moment of perspective — the stakes feel clear.\r\n84  Answering Bell. A distant sound confirms something important.\r\n85  Traveler's Gift. An old, forgotten skill or memory surfaces.\r\n86  North Star. Direction, purpose, or target becomes unmistakable.\r\n87  Second Sight. A flash of what's about to happen, or what just did.\r\n88  Midnight's Edge. The world balances on a knife's point for one beat.\r\n89  Dreamer's Gift. Something imagined becomes briefly, partially real.\r\n90  Crown of Stars. A nimbus of light — visible or felt — marks someone.\r\n91  The Road Home. A way out, back, or through becomes clear.\r\n92  Lucky Break. Something breaks at exactly the right moment — chain, wall, silence.\r\n93  Grace Abounding. An effect is more generous than it had any right to be.\r\n94  Desna Laughs. The absurdity of the situation bends reality in someone's favor.\r\n95  Starfall. A streak of light marks the moment — visible to all present.\r\n96  Miracle Small. A minor impossibility happens and is barely noticed.\r\n97  The Wheel Turns. Fortunes visibly, dramatically reverse.\r\n98  Fate's Thumb. The scales tip with an almost-audible click.\r\n99  Goddess's Wink. Something undeniably divine, and undeniably playful, occurs.\r\n00  Wanderer's Blessing. Roll twice more and apply both, or pick the best — GM's call.\r\n",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 48,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 48,
+      "scene_position": 48,
+      "title": "Highport City Map",
+      "public_description": "",
+      "dm_description": "",
+      "image": "/images/scene/1777524319-8111ffba-Highport-map-sm.jpg",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    }
+  ],
+  "next_id": 49
+}
