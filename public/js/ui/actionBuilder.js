@@ -298,22 +298,19 @@ export class ActionBuilder {
     }
     ActionBuilder._setState(root, '__dice', 'active');
     const rollAll = root.querySelector('.btn-roll-all');
-    const confirmBtn = root.querySelector('.step-controls[data-step="__dice"] .btn-confirm');
     const diceBody = root.querySelector('.step-body-dice');
     // All steps resolved — show the final propagated TNs.
     ActionBuilder._previewTns(root);
     if (cb.noRoll) {
       // A no-roll action (a buff Cast, a reservoir pour like Shield) rolls
-      // nothing — there is no roll table and nothing to "confirm" before seeing
-      // the result. Hide the roll affordances and surface the details (the
-      // result block with its single Commit button) straight away.
+      // nothing. Hide "Roll All" and the roll table, then auto-surface the
+      // result details (detail.auto) — the blue title "Confirm" stays as the
+      // single button and commits when clicked.
       if (rollAll) rollAll.hidden = true;
-      if (confirmBtn) confirmBtn.hidden = true;
       if (diceBody) diceBody.hidden = true;
-      ActionBuilder._confirm(root);
+      ActionBuilder._confirm(root, { auto: true });
     } else {
       if (rollAll) rollAll.hidden = false;
-      if (confirmBtn) confirmBtn.hidden = false;
       if (diceBody) diceBody.hidden = false;
     }
   }
@@ -558,7 +555,8 @@ export class ActionBuilder {
 
   // ----- confirm -----
 
-  static _confirm(root) {
+  static _confirm(root, opts) {
+    opts = opts || {};
     const cb = root._cb;
     const rolls = [];
     root.querySelectorAll('.roll-group').forEach((g) => {
@@ -586,7 +584,10 @@ export class ActionBuilder {
     // Net Degree of Success to report — leave the line empty rather than "0".
     const netEl = root.querySelector('.cb-net');
     if (netEl) netEl.textContent = cb.noRoll ? '' : ('Net Degree of Success ' + net + '.');
-    root.dispatchEvent(new CustomEvent('action:confirmed', { bubbles: true, detail: { choices, rolls, noRoll: !!cb.noRoll } }));
+    // `auto`: the builder surfaced the result itself (a no-roll action reaching
+    // the end) vs the DM clicking the title "Confirm" — the host uses it to
+    // tell a details preview apart from the commit.
+    root.dispatchEvent(new CustomEvent('action:confirmed', { bubbles: true, detail: { choices, rolls, noRoll: !!cb.noRoll, auto: !!opts.auto } }));
   }
 }
 

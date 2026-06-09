@@ -106,10 +106,11 @@ export class TurnCast {
 
   static _preview(container, detail) {
     container._lastDetail = detail;
-    // Every cast — even a no-roll one (a buff, or a reservoir pour like Shield) —
-    // shows its result block first, so the DM sees and confirms the Combat Pool
-    // and Mana it spends before committing, exactly like Attack and Move.
-    TurnCast._post(container, TurnCast._payload(container, detail, false), (res) => TurnCast._renderResult(container, res));
+    // A no-roll cast surfaces its details automatically (detail.auto); the blue
+    // title "Confirm" then commits (a non-auto confirm). A rolled cast previews
+    // on the DM's Confirm, then commits from the result's own button.
+    if (detail.noRoll && !detail.auto) { TurnCast._commit(container); return; }
+    TurnCast._post(container, TurnCast._payload(container, detail, false), (res) => TurnCast._renderResult(container, res, detail));
   }
 
   static _commit(container) {
@@ -148,9 +149,13 @@ export class TurnCast {
   // markup the Attack result uses. Mana and per-participant Combat Pool are the
   // editable fields; the spell line, per-target outcomes, and sustain are
   // read-only notes.
-  static _renderResult(container, res) {
+  static _renderResult(container, res, detail) {
     const slot = container.querySelector('.tc-result');
     if (!slot) return;
+    // A no-roll cast commits from the blue title "Confirm" — so the result block
+    // shows only the details (no separate Commit button / proxy). A rolled cast
+    // keeps its own Commit button.
+    const noRoll = !!(detail && detail.noRoll);
     const tox = res.toxicity || {};
     const nameOf = TurnCast._namer(container);
     const fields = [{ key: 'mana', label: 'Mana', value: num(res.mana_spent), editable: true }];
@@ -167,11 +172,12 @@ export class TurnCast {
       notes.push({ label: `#${t.id}`, value: `${t.outcome || ''}${fx ? ' — ' + fx : ''}` });
     });
     if (res.sustain) notes.push({ label: 'Sustain', value: res.sustain.kind });
-    ActionResult.render(slot, { fields, notes, commitLabel: 'Commit cast' });
+    ActionResult.render(slot, { fields, notes, commitLabel: noRoll ? null : 'Commit cast' });
     slot.hidden = false;
-    // Surface a Commit button at the top of the Turn Action stub (the action
-    // menu's confirm slot) so the DM commits without reaching down here.
-    placeCommitProxy(container, 'Commit cast');
+    // A rolled cast surfaces a Commit proxy at the top; a no-roll cast commits
+    // from the blue title "Confirm", so it needs neither a result Commit nor a
+    // proxy.
+    if (!noRoll) placeCommitProxy(container, 'Commit cast');
   }
 
   static _fxText(a) {
