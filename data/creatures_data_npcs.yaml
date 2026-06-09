@@ -110,3 +110,47 @@ characters:
       wis: 22
       cha: 28
 
+  - id: 2017
+    name: Mayor Tamsin Holt
+    group: npc
+    tags: []
+    race: human   # not stated in the source note; assumed human
+    tier: 1
+    attributes:
+      str: 9
+      dex: 11
+      con: 10
+      int: 12
+      wis: 14
+      cha: 12
+
+  - id: 2018
+    name: Silovan Kreshholm
+    group: npc
+    tags: []
+    race: wood_elf
+    tier: 3
+    attributes:
+      str: 13
+      dex: 21
+      con: 15
+      int: 19
+      wis: 13
+      cha: 21
+
+  # New NPC (not from the character notes): captain of the Ghoul, helped
+  # the party escape.
+  - id: 2019
+    name: Pipo Prado
+    group: npc
+    tags: []
+    race: halfling
+    tier: 1
+    attributes:
+      str: 9
+      dex: 16
+      con: 10
+      int: 12
+      wis: 14
+      cha: 16
+
