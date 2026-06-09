@@ -242,8 +242,11 @@ export class ActionBuilder {
       document.dispatchEvent(new CustomEvent('cast:arm-area', { detail: opt.place }));
     }
     ActionBuilder._setState(root, key, 'complete');
+    // A row appears only for a choice the DM actively made and that the step
+    // wants summarized — a `no_summary` step (e.g. the cast's Dice, which is a
+    // resource shown in the result, not a "what" choice) leaves no row.
     const sum = ActionBuilder._sumRow(root, key);
-    if (sum) {
+    if (sum && !step.no_summary) {
       const v = sum.querySelector('.step-summary-value');
       if (v) v.textContent = opt.summary || stripTags(opt.label);
       sum.hidden = false;
@@ -251,21 +254,14 @@ export class ActionBuilder {
     ActionBuilder._activateFrom(root, ActionBuilder._index(root, key) + 1);
   }
 
-  // Apply a forced (`auto`) option without a click: record the choice + its
-  // summary and run its patch, exactly as _pick would, but driven by the step
-  // having nothing to ask (e.g. a Saving Throw at full Dice Cap).
+  // Apply a forced (`auto`) option without a click. The DM made no choice here,
+  // so it leaves no summary row (e.g. a Saving Throw always at full Dice Cap).
   static _applyAuto(root, step, opt) {
     const cb = root._cb;
     const key = step.key;
     cb.choices[key] = { value: opt.value, label: opt.label, key: opt.key != null ? opt.key : opt.value };
     ActionBuilder._applyPatch(root, opt.patch);
     ActionBuilder._setState(root, key, 'complete');
-    const sum = ActionBuilder._sumRow(root, key);
-    if (sum) {
-      const v = sum.querySelector('.step-summary-value');
-      if (v) v.textContent = opt.summary || stripTags(opt.label);
-      sum.hidden = false;
-    }
   }
 
   // Show the first not-yet-complete step from `idx` that has options (rendering
@@ -301,16 +297,25 @@ export class ActionBuilder {
       return;
     }
     ActionBuilder._setState(root, '__dice', 'active');
-    // Compose the Check Resolution roll affordance only when the flow rolls. A
-    // no-roll action (a buff Cast, a reservoir pour like Shield of Faith)
-    // charges its dice without rolling, so "Roll All" is not mounted and the
-    // roll table itself is hidden — the DM just confirms, never prompted to roll.
     const rollAll = root.querySelector('.btn-roll-all');
-    if (rollAll) rollAll.hidden = !!cb.noRoll;
+    const confirmBtn = root.querySelector('.step-controls[data-step="__dice"] .btn-confirm');
     const diceBody = root.querySelector('.step-body-dice');
-    if (diceBody) diceBody.hidden = !!cb.noRoll;
-    // All steps resolved — show the final propagated TNs before the DM rolls.
+    // All steps resolved — show the final propagated TNs.
     ActionBuilder._previewTns(root);
+    if (cb.noRoll) {
+      // A no-roll action (a buff Cast, a reservoir pour like Shield) rolls
+      // nothing — there is no roll table and nothing to "confirm" before seeing
+      // the result. Hide the roll affordances and surface the details (the
+      // result block with its single Commit button) straight away.
+      if (rollAll) rollAll.hidden = true;
+      if (confirmBtn) confirmBtn.hidden = true;
+      if (diceBody) diceBody.hidden = true;
+      ActionBuilder._confirm(root);
+    } else {
+      if (rollAll) rollAll.hidden = false;
+      if (confirmBtn) confirmBtn.hidden = false;
+      if (diceBody) diceBody.hidden = false;
+    }
   }
 
   // Choice-dependent header quick-picks (e.g. one button per Defensive Action),

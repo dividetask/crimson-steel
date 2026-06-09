@@ -1220,8 +1220,11 @@ helpers do
         dice_map[sp[:name]] = [opt]
       end
     end
+    # The cast's Dice are a resource (the Combat Pool / Reservoir dice spent),
+    # surfaced in the result block — not a "what" choice — so they leave no
+    # summary row (no_summary).
     dice_step = { key: 'dice', label: 'Dice', options_by: %w[spell], options_map: dice_map,
-                  header_options_by: %w[spell], header_options_map: header_map }
+                  header_options_by: %w[spell], header_options_map: header_map, no_summary: true }
 
     # Step 3 — Target, choice-dependent on the Spell. A normal Spell lists the
     # Combatants; an **area Spell** instead offers a single "Place on the map"
