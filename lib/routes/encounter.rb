@@ -1429,6 +1429,23 @@ helpers do
     (Abilities.catalog.ability(ability_name)&.dig('mana_cost') rescue nil).to_i
   end
 
+  # Resolve a Spell name — a catalog key OR a constructed per-Tier variant name
+  # ("Standard Shield") — to [base_catalog_key, tier_axis_index], so the
+  # Abilities domain (which keys only by catalog name) can look it up.
+  def spell_base_axis(name)
+    info = (CreatureSheet.spell_info(name) rescue nil)
+    return [info[:base], info[:axis].to_i] if info && info[:base]
+    [name.to_s, 0]
+  end
+
+  # The resolved Variant for any Spell name (base or constructed), or {}.
+  def resolve_named_spell(name)
+    base, axis = spell_base_axis(name)
+    (Abilities.lookup(base, axis_index: axis) rescue nil) || {}
+  rescue StandardError
+    {}
+  end
+
   # The per-Tier Mana Cost (abilities_config.yaml → Mana Cost Per Tier).
   def mana_cost_for_tier(tier)
     tbl = (Abilities.catalog.config.mana_cost_per_tier rescue {})
@@ -1445,13 +1462,16 @@ helpers do
     spell  = (payload['spell'] ||= {})
     spell['name'] ||= payload['spell_name']
     caster = payload['caster'] || {}
+    # A constructed per-Tier name ("Standard Shield") resolves to its base
+    # catalog key + Tier axis so every Abilities lookup below succeeds.
+    base_name, = spell_base_axis(spell['name']) if spell['name']
 
     # Resolve the caster's own Casting Skill (a Cleric's Invocation) so the
     # casting check rolls that Skill, not the Spell's generic `arcana` default.
     if spell['cast_skill'].nil? && caster['id'] && spell['name']
       ccomb = (encounter_state.combatant(caster['id'].to_i) rescue nil)
       cacc  = ccomb && (Creatures.lookup(ccomb[:creature_id]) rescue nil)
-      variant = (Abilities.lookup(spell['name']) rescue nil) || {}
+      variant = resolve_named_spell(spell['name'])
       spell['cast_skill'] = cast_skill_for(cacc, variant, spell['name']) if cacc
     end
 
@@ -1462,7 +1482,7 @@ helpers do
     spell['mana_cost'] ||= mana_cost_for_tier(spell['tier']) unless spell['tier'].nil?
 
     if Abilities.respond_to?(:resolve_spell) && spell['name']
-      resolved = (Abilities.resolve_spell(spell['name'], tier: spell['tier']) rescue nil)
+      resolved = (Abilities.resolve_spell(base_name, tier: spell['tier']) rescue nil)
       apply_resolved_spell!(payload, resolved) if resolved
     end
     # Fall back to the default casting skill only if neither the client nor the
@@ -1485,7 +1505,7 @@ helpers do
     spell = (payload['spell'] ||= {})
     spell['polarity'] = r['polarity'] unless r['polarity'].nil?
 
-    variant = (Abilities.lookup(spell['name']) rescue nil)
+    variant = resolve_named_spell(spell['name'])
     spell['cast_skill'] ||= (Array(variant && variant['skills']).first || Encounter::Cast::DEFAULT_CAST_SKILL)
 
     effects = cast_effects_from_consumption(r['effects'])
@@ -1501,7 +1521,7 @@ helpers do
     # Area Spells (Obscuring Mist, Darkness, Web, Create Pit, Silence) carry an
     # `area` footprint placed on the map at commit time. For an Aspect-list area
     # (Grease: object vs. area), use the first footprint Aspect.
-    raw_entry = (Abilities.catalog.ability(spell['name']) rescue nil) || {}
+    raw_entry = variant || {}
     raw_area  = raw_entry['area']
     area_hash = raw_area.is_a?(Array) ? raw_area.find { |x| x.is_a?(Hash) } : raw_area
     # Each creature caught in the footprint gets the area's on-enter Effect (its
@@ -1650,12 +1670,10 @@ helpers do
   # opposing Roll. The Reservoir itself is registered by the cast's sustain.
   def grant_defend_reaction!(payload)
     spell = payload['spell'] || {}
-    # Resolve the caster's own Tier variant of the spell so a Tier-scaled shield
-    # (the Shield spell: +1 at Tier 1, +2 at Tier 2) carries the right bonus.
-    raw   = (Abilities.catalog.ability(spell['name'].to_s) rescue nil) || {}
-    tiers = raw['tier']
-    idx   = tiers.is_a?(Array) ? (tiers.index(spell['tier'].to_i) || 0) : 0
-    v = (Abilities.lookup(spell['name'].to_s, axis_index: idx) rescue nil) || {}
+    # Resolve the spell's variant (a constructed name like "Standard Shield"
+    # resolves to its base + Tier) so a Tier-scaled shield carries the right
+    # bonus and the `defends: target` discharge is detected.
+    v = resolve_named_spell(spell['name'])
     return unless v.dig('reservoir', 'discharge', 'defends').to_s == 'target'
     caster = payload['caster'] || {}
     ally = Array(payload['targets']).first or return

@@ -363,22 +363,26 @@ module CreatureSheet
       idx = {}
       (Abilities.catalog.catalog rescue {}).each do |ckey, e|
         next unless e.is_a?(Hash) && e['type'] == 'spell'
-        spell_variants(ckey, e).each { |tier, vname| idx[norm.call(vname)] ||= { tier: tier, name: vname } }
+        spell_variants(ckey, e).each do |tier, vname, base, axis|
+          idx[norm.call(vname)] ||= { tier: tier, name: vname, base: base, axis: axis }
+        end
       end
       idx
     end
   end
 
-  # [ [tier, display_name], … ] for a spell: the catalog key, plus every
-  # per-Tier variant from its `name` array or constructed from `prefix`/`suffix`
-  # (mirroring Abilities' name construction: `[prefix, key, suffix]`).
+  # [ [tier, display_name, base_key, axis_index], … ] for a spell: the catalog
+  # key (axis 0), plus every per-Tier variant from its `name` array or
+  # constructed from `prefix`/`suffix` (mirroring Abilities' name construction:
+  # `[prefix, key, suffix]`). `base`/`axis` let a constructed name be resolved
+  # back to its catalog entry + Tier-axis index for Abilities.lookup.
   def spell_variants(key, entry)
     tiers = Array(entry['tier'])
     tiers = [0] if tiers.empty?
     name   = entry['name']
     prefix = entry['prefix']
     suffix = entry['suffix']
-    out = [[tiers.map(&:to_i).min, key.to_s]]
+    out = [[tiers.map(&:to_i).min, key.to_s, key.to_s, 0]]
     tiers.each_with_index do |t, i|
       vname =
         if name.is_a?(Array)                          then name[i]
@@ -387,7 +391,7 @@ module CreatureSheet
           [(prefix.is_a?(Array) ? prefix[i] : prefix), key, (suffix.is_a?(Array) ? suffix[i] : suffix)]
             .reject { |p| p.nil? || p.to_s.strip.empty? }.join(' ')
         end
-      out << [t.to_i, vname.to_s] if vname && !vname.to_s.strip.empty?
+      out << [t.to_i, vname.to_s, key.to_s, i] if vname && !vname.to_s.strip.empty?
     end
     out
   end
