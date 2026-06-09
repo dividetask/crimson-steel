@@ -12,7 +12,7 @@ module Creatures
   class Accessor
     SPELLCASTING_ABILITIES = %w[
       bardic_spellcasting arcane_spellcasting druidic_spellcasting
-      ranger_spellcasting domain
+      domain
     ].freeze
 
     def initialize(record)
@@ -27,6 +27,8 @@ module Creatures
     def tags      ; @record[:tags]   ; end
     def race      ; @record[:race]   ; end
     def record    ; @record          ; end
+    def loot_table      ; @record[:loot_table]      ; end
+    def equipment_table ; @record[:equipment_table] ; end
 
     # Per-Creature token image (a web path), stored under `metadata`
     # (the design's portrait-path slot). Nil when unset — the Atlas
@@ -269,7 +271,10 @@ module Creatures
     def compute_effective_attributes
       base = @record[:attributes]
       Creatures::Config.attribute_keys.each_with_object({}) do |a, h|
-        h[a] = base[a] + racial_adjustment(a) + inherent_bonus(a) + attribute_modifier(a)
+        raw = base[a] + racial_adjustment(a) + inherent_bonus(a) + attribute_modifier(a)
+        # Every Effective Attribute floors at 1 — racial penalties (notably
+        # beasts' -8 Int) never drop a score below 1.
+        h[a] = [raw, 1].max
       end
     end
 

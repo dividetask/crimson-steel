@@ -58,7 +58,7 @@ Defines the vocabulary used by the Creatures design and tests. Creatures owns id
 
 **Trained Skill**: A Skill the Creature has chosen to invest in under a given Class. Stored in that Class Entry's `skills:` list.
 
-**Skill Pick Budget**: The number of Skill choices a Creature is *expected* to have per Class Level of the chosen Class. Computed from `Skill Pick Formula` against the Creature's Effective Intelligence and the Class's `bonus_skills` field. Advisory — Creatures does not enforce the count.
+**Skill Pick Budget**: The number of Skill choices a Creature is *expected* to have, computed from `Skill Pick Formula` (`floor(int/4) + bonus_skills`) against the Creature's Effective Intelligence and the chosen Class's `bonus_skills` field. The count is fixed for the Class — it does *not* scale with Class Level (a higher-level Creature advances the same Skills further rather than training more of them). Advisory — Creatures does not enforce the count.
 
 ## Random Encounter Tables and Spawns
 

@@ -216,10 +216,6 @@ Druidic Spellcasting:
   type: talent
   description: "Cast druidic spells drawn from the bond with nature."
 
-Ranger Spellcasting:
-  type: talent
-  description: "Cast a small repertoire of nature-aspected spells."
-
 Bardic Inspiration:
   type: talent
   activation_time: main

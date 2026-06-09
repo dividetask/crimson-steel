@@ -43,6 +43,26 @@ module Creatures
       # mystery to the players.
       out[:hide_tier]   = r['hide_tier'] ? true : false
       out[:loot_table]  = r['loot_table']
+      # Optional Equipment Loot Table ID rolled once at spawn time to
+      # generate the Creature's starting (and equipped) loadout — gear,
+      # ammunition, pocket change. Distinct from `loot_table`, which
+      # Collect Combat Loot rolls as extra drops on death.
+      out[:equipment_table] = r['equipment_table']
+      # Optional weighted race list rolled once at spawn time to pick the
+      # spawn's `race` (e.g. a Slaver that is 50% orc, else human/elf/dwarf).
+      # The template's own `race` is the default shown before a spawn.
+      out[:race_table]  = normalize_race_table(r['race_table'], out[:id], source)
+      # Optional weighted class list rolled once at spawn time to pick the
+      # spawn's class (e.g. a Slaver that is 50% warrior, else fighter /
+      # cleric / rogue). Replaces the template's `advancement.classes`.
+      out[:class_table] = normalize_class_table(r['class_table'], out[:id], source)
+      # Optional candidate skill list, shuffled at spawn; the spawn keeps the
+      # first N (its Skill Pick Budget from class + Effective Intelligence).
+      out[:skill_table] = normalize_skill_table(r['skill_table'], out[:id], source)
+      # Optional spec for rolling Tier Attribute Advancement picks at spawn:
+      # { count, from: [attr keys] }. Appends `count` rolled picks to
+      # tier_attribute_advancement.
+      out[:tier_advancement_table] = normalize_tier_adv_table(r['tier_advancement_table'], out[:id], source)
       out[:metadata]    = r['metadata'] || {}
       # Persisted spawned-instance marker (Spawn Creature From Template);
       # round-tripped so a reloaded spawn still groups under its template.
@@ -93,6 +113,26 @@ module Creatures
       out['tier']         = rec[:tier]                         unless rec[:tier].nil?
       out['hide_tier']    = true                               if rec[:hide_tier]
       out['loot_table']   = rec[:loot_table]                   unless rec[:loot_table].nil?
+      out['equipment_table'] = rec[:equipment_table]           unless rec[:equipment_table].nil?
+      unless Array(rec[:race_table]).empty?
+        out['race_table'] = rec[:race_table].map { |e| { 'race' => e[:race], 'chance' => e[:chance] } }
+      end
+      unless Array(rec[:class_table]).empty?
+        out['class_table'] = rec[:class_table].map do |e|
+          h = { 'class' => e[:class], 'chance' => e[:chance], 'level' => e[:level] }
+          h['skills']  = e[:skills]  unless Array(e[:skills]).empty?
+          h['choices'] = e[:choices] unless (e[:choices] || {}).empty?
+          unless Array(e[:domain_picks]).empty?
+            h['domain_picks'] = e[:domain_picks].map { |p| { 'count' => p[:count], 'from' => p[:from] } }
+          end
+          h
+        end
+      end
+      out['skill_table'] = rec[:skill_table] unless Array(rec[:skill_table]).empty?
+      unless rec[:tier_advancement_table].nil?
+        t = rec[:tier_advancement_table]
+        out['tier_advancement_table'] = { 'count' => t[:count], 'from' => t[:from].map(&:to_s) }
+      end
       out['metadata']     = rec[:metadata]                     unless (rec[:metadata] || {}).empty?
       out['spawned_from'] = rec[:spawned_from]                 unless rec[:spawned_from].nil?
       out
@@ -129,6 +169,74 @@ module Creatures
         out[k] = Integer(a[k.to_s])
       end
       out
+    end
+
+    def normalize_race_table(list, cid, source)
+      return [] if list.nil?
+      Array(list).map do |e|
+        h = stringify_keys(e)
+        race = h['race'].to_s
+        unless Races.known?(race)
+          raise ArgumentError, "Creature #{cid}: `race_table` race #{race.inspect} is unknown" \
+                               "#{source ? " (in #{source})" : ''}"
+        end
+        { race: race, chance: h['chance'].to_f }
+      end
+    end
+
+    def normalize_class_table(list, cid, source)
+      return [] if list.nil?
+      Array(list).map do |e|
+        h = stringify_keys(e)
+        class_key = h['class'].to_s
+        unless Creatures::Advancement.classes.key?(class_key)
+          raise ArgumentError, "Creature #{cid}: `class_table` class #{class_key.inspect} is unknown" \
+                               "#{source ? " (in #{source})" : ''}"
+        end
+        {
+          class:        class_key,
+          chance:       h['chance'].to_f,
+          level:        h.key?('level') ? Integer(h['level']) : 1,
+          skills:       (h['skills'] || []).map(&:to_s),
+          choices:      stringify_keys(h['choices'] || {}),
+          domain_picks: normalize_domain_picks(h['domain_picks'])
+        }
+      end
+    end
+
+    def normalize_skill_table(list, cid, source)
+      return [] if list.nil?
+      Array(list).map do |s|
+        key = s.to_s
+        if key.end_with?('_')
+          raise ArgumentError, "Creature #{cid}: `skill_table` entry #{key.inspect} is a bare " \
+                               "Set Skill key (not allowed)#{source ? " (in #{source})" : ''}"
+        end
+        key
+      end
+    end
+
+    def normalize_tier_adv_table(spec, cid, source)
+      return nil if spec.nil?
+      h = stringify_keys(spec)
+      from = Array(h['from']).map { |a| a.to_s.to_sym }
+      from.each do |a|
+        unless Creatures::Config.attribute_keys.include?(a)
+          raise ArgumentError, "Creature #{cid}: `tier_advancement_table` attribute #{a.inspect} " \
+                               "is not recognized#{source ? " (in #{source})" : ''}"
+        end
+      end
+      { count: Integer(h['count'] || 0), from: from }
+    end
+
+    # Optional per-class_table-entry spec for rolling Cleric domains at
+    # spawn: a list of { count, from } draws (distinct, no repeats across
+    # draws) whose result is written to the spawn's `choices.domains`.
+    def normalize_domain_picks(list)
+      Array(list).map do |p|
+        ph = stringify_keys(p)
+        { count: Integer(ph['count'] || 0), from: Array(ph['from']).map(&:to_s) }
+      end
     end
 
     def normalize_tier(v, cid, source)

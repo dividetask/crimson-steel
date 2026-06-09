@@ -117,8 +117,8 @@ module Creatures
 
   # ---- random encounter / spawn / delete ------------------------------
 
-  def spawn_from_template(template_id, name_override: nil, loot_table: nil)
-    RandomEncounter.spawn_from_template(template_id, name_override: name_override, loot_table: loot_table)
+  def spawn_from_template(template_id, name_override: nil, loot_table: nil, rng: Random.new)
+    RandomEncounter.spawn_from_template(template_id, name_override: name_override, loot_table: loot_table, rng: rng)
   end
 
   def delete(id)

@@ -1900,6 +1900,7 @@ post '/encounter/spawn_and_add' do
     return encounter_error(404, e.message)
   end
 
+  equip_spawned_creature(new_creature_id)
   combatant = encounter_state.add_combatant(new_creature_id)
   encounter_response(
     ok: true,

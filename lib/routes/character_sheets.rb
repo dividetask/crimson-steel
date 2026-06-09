@@ -78,6 +78,7 @@ get '/random_encounters/roll/:table_id' do
   halt 404 unless Creatures::RandomEncounter.tables.key?(table_id)
 
   spawn_ids = Creatures.roll_random_encounter(table_id)
+  spawn_ids.each { |id| equip_spawned_creature(id) }
   spawn_ids.each { |id| Encounter.state.add_combatant(id) }
 
   table = Creatures::RandomEncounter.tables[table_id]

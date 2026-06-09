@@ -194,23 +194,26 @@ Classes:
       - nature
       - perception
 
-  ranger:
+  # NPC martial class. Mirrors `fighter` exactly but grants no class
+  # abilities (no weapon/armor training). `npc_class: true` keeps it
+  # out of the player-character class picker — it is for enemy and NPC
+  # stat blocks only.
+  warrior:
+    npc_class: true
     martial_advancement: aligned
-    bonus_skills: 4
-    mana_per_level: 2
+    bonus_skills: 2
+    mana_per_level: 1
     saves:
       aligned: []
-      opposed: [con, int, wis, cha]
-    ability_progression:
-      "1": [ranger_spellcasting]
+      opposed: [dex, int, wis, cha]
     aligned_proficiencies:
+      - acrobatics
       - animal_handling
       - athletics
-      - healing
+      - history
+      - intimidate
       - nature
       - perception
-      - stealth
-      - survival
 
   rogue:
     martial_advancement: unaligned
@@ -307,7 +310,9 @@ Classes:
       - planes
       - religion
 
+  # NPC-only class (kept out of the player-character class picker).
   commoner:
+    npc_class: true
     martial_advancement: opposed
     bonus_skills: 2
     mana_per_level: 0

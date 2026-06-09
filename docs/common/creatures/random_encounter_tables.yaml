@@ -80,23 +80,3 @@ general_goblin_ambush:
       spawn:
         - template_id: "303"
           count: 2
-
-fey_pixie_mischief:
-  name: "Pixie mischief"
-  category: fey_favors
-  rolls:
-    - spawn:
-        - template_id: "401"
-          count: "1d4"
-
-fey_dryad_grove:
-  name: "Dryad's grove"
-  category: fey_favors
-  rolls:
-    - spawn:
-        - template_id: "402"
-          count: 1
-    - chance: 0.7
-      spawn:
-        - template_id: "400"
-          count: "1d4"
