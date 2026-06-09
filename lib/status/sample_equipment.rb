@@ -44,8 +44,8 @@ module Status
              description: 'Wreathed in fire that licks along the blade.'),
         card(3, 'Arrow',                  'Ammunition', 0, 0.05, available: 120),
         card(4, 'Leather armor',          'Armor',      0, 10),
-        card(5, 'Healing Potion',         'Consumable', 0, 50, available: 12),
-        card(6, '+2 Healing Potion',      'Consumable', 2, 1000, available: 1)
+        card(5, 'Potion of Heal',         'Consumable', 0, 50, available: 12),
+        card(6, '+2 Potion of Heal',      'Consumable', 2, 1000, available: 1)
       ]
     end
 

@@ -235,7 +235,7 @@ module Equipment
     public
 
     # The mundane Tier-0 Base Price of an Item Type, honoring tier-array
-    # `base_price` lists (e.g. Healing Potion).
+    # `base_price` lists (e.g. an authored tier-array consumable).
     def base_price_for(name, tier)
       defn = definition_of(name) || {}
       bp = defn['base_price']
