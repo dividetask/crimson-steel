@@ -80,6 +80,17 @@ get '/encounter' do
   # usable non-Spell, non-Reaction Abilities, computed at render time.
   @acting_special = (@viewer == :dm && @acting_row) ? (@encounter_state.special_options(@acting_row[:combatant_id]) rescue []) : []
 
+  # Cast pane (turn_action_stub.md → Cast): offered only when the Acting
+  # Combatant actually knows a spell. A monster or other non-caster gets no
+  # Cast button.
+  @acting_has_spells =
+    if @acting_row
+      aacc = Creatures.lookup(@acting_row[:creature_id]) rescue nil
+      aacc ? (CreatureSheet.spells(aacc) rescue []).any? { |g| Array(g[:names]).any? } : false
+    else
+      false
+    end
+
   # Bardic Inspiration (and any reservoir-mode Performance): the live
   # Reservoirs a DM can discharge to grant Luck. DM-only; off-turn, since a
   # discharge is a Reaction (turn_action_stub.md → Special).
@@ -624,7 +635,7 @@ helpers do
         # it has, its remaining Mana (to afford them), and whether it is Raging
         # (Primal Tenacity is a rage power). Drives Better Lucky Than Good as a
         # defense and the post-roll Danger Sense / Primal Tenacity reactions.
-        abilities: (tacc&.granted_abilities rescue []).map { |g| g[:name] },
+        abilities: ((tacc&.granted_abilities rescue nil) || []).map { |g| g[:name] },
         mana_left: combatant_mana_left(c[:creature_id], tacc),
         raging:    creature_raging?(c[:creature_id]) }
     end
@@ -880,10 +891,10 @@ helpers do
                            summary: ->(n) { "#{sh[:spell_name]} (#{sh[:caster_name]}) — #{n} dice" },
                            info: "#{sh[:spell_name]}#{bonus_note} by #{sh[:caster_name]} — up to #{cap} #{dice_word} dice")
       ally_defense_map["#{target_id}"] =
-        [{ value: 'none', group: 'none', label: 'No shield', summary: 'No shield',
+        [{ value: 'none', group: 'none', label: 'No defense', summary: 'No defense',
            patch: { set_excluded: [{ id: 'shield', excluded: true }] } }] + g[:body]
-      # Title row: "No shield" plus the ability-name max quick-pick.
-      ally_defense_header_map["#{target_id}"] = [{ value: 'none', label: 'No shield' }, g[:header]]
+      # Title row: "No defense" plus the ability-name max quick-pick.
+      ally_defense_header_map["#{target_id}"] = [{ value: 'none', label: 'No defense' }, g[:header]]
     end
     ally_defense_step = { key: 'ally_defense', label: 'Ally Defense',
                           options_by: %w[target], options_map: ally_defense_map,
