@@ -1,0 +1,239 @@
+# Crimson Steel — Active combat enemies (Rise of the Slavelords caravan).
+#
+# Instance records for the enemies imported from the live caravan-ambush
+# combat. IDs (97-112) are preserved so the Encounter and Conditions
+# overlays line up. `attributes` are BASE scores: from each effective score
+# we backed out the racial adjustment (human +1 all; half_orc +0; orc +4
+# Str/Con, -2 Int/Wis/Cha) and the per-Tier inherent minimum ([0,1,2,3,4,5]),
+# so the recomputed Effective scores reproduce the source exactly. `tier` is
+# pinned to match the source. Gear is not imported (Equipment subsystem).
+
+name: Enemies
+
+characters:
+
+  - id: 97
+    name: Slaver Merchant
+    group: enemy
+    tags: []
+    race: human
+    tier: 2
+    attributes: { str: 9, dex: 11, con: 11, int: 13, wis: 11, cha: 13 }
+    advancement:
+      classes:
+        rogue:
+          level: 6
+          skills:
+            - persuasion
+            - perception
+            - intimidate
+            - sense_motive
+            - deception
+
+  - id: 99
+    name: Half-Orc Soldier 7
+    group: enemy
+    tags: []
+    race: half_orc
+    tier: 1
+    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
+    advancement:
+      classes:
+        fighter:
+          level: 4
+          skills:
+            - athletics
+            - intimidate
+            - perception
+
+  - id: 100
+    name: Half-Orc Veteran
+    group: enemy
+    tags: []
+    race: half_orc
+    tier: 2
+    attributes: { str: 19, dex: 11, con: 15, int: 8, wis: 8, cha: 6 }
+    advancement:
+      classes:
+        fighter:
+          level: 7
+          skills:
+            - athletics
+            - intimidate
+            - perception
+            - sense_motive
+
+  - id: 101
+    name: Orc Interpreter
+    group: enemy
+    tags: []
+    race: orc
+    tier: 0
+    attributes: { str: 8, dex: 13, con: 10, int: 16, wis: 10, cha: 16 }
+    advancement:
+      classes:
+        fighter:
+          level: 2
+          skills:
+            - persuasion
+            - sense_motive
+            - intimidate
+            - athletics
+
+  - id: 102
+    name: Half-Orc Soldier e
+    group: enemy
+    tags: []
+    race: half_orc
+    tier: 1
+    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
+    advancement:
+      classes:
+        fighter:
+          level: 4
+          skills:
+            - athletics
+            - intimidate
+            - perception
+
+  - id: 103
+    name: Half-Orc Soldier 1
+    group: enemy
+    tags: []
+    race: half_orc
+    tier: 1
+    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
+    advancement:
+      classes:
+        fighter:
+          level: 4
+          skills:
+            - athletics
+            - intimidate
+            - perception
+
+  - id: 104
+    name: Half-Orc Soldier b
+    group: enemy
+    tags: []
+    race: half_orc
+    tier: 1
+    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
+    advancement:
+      classes:
+        fighter:
+          level: 4
+          skills:
+            - athletics
+            - intimidate
+            - perception
+
+  - id: 105
+    name: Half-Orc Soldier c
+    group: enemy
+    tags: []
+    race: half_orc
+    tier: 1
+    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
+    advancement:
+      classes:
+        fighter:
+          level: 4
+          skills:
+            - athletics
+            - intimidate
+            - perception
+
+  - id: 106
+    name: Half-Orc Veteran
+    group: enemy
+    tags: []
+    race: half_orc
+    tier: 2
+    attributes: { str: 19, dex: 11, con: 15, int: 8, wis: 8, cha: 6 }
+    advancement:
+      classes:
+        fighter:
+          level: 7
+          skills:
+            - athletics
+            - intimidate
+            - perception
+            - sense_motive
+
+  - id: 108
+    name: Orc Handler
+    group: enemy
+    tags: []
+    race: orc
+    tier: 1
+    attributes: { str: 10, dex: 11, con: 8, int: 9, wis: 10, cha: 9 }
+    advancement:
+      classes:
+        fighter:
+          level: 3
+          skills:
+            - intimidate
+            - animal_handling
+
+  - id: 109
+    name: Orc Handler
+    group: enemy
+    tags: []
+    race: orc
+    tier: 1
+    attributes: { str: 10, dex: 11, con: 8, int: 9, wis: 10, cha: 9 }
+    advancement:
+      classes:
+        fighter:
+          level: 3
+          skills:
+            - intimidate
+            - animal_handling
+
+  - id: 110
+    name: Cleric Slaver
+    group: enemy
+    tags: []
+    race: orc
+    tier: 3
+    attributes: { str: 12, dex: 11, con: 7, int: 13, wis: 15, cha: 13 }
+    advancement:
+      classes:
+        cleric:
+          level: 8
+          skills:
+            - healing
+            - religion
+            - perception
+            - sense_motive
+            - intimidate
+
+  - id: 111
+    name: Slave
+    group: enemy
+    tags: []
+    race: human
+    tier: 0
+    attributes: { str: 9, dex: 9, con: 9, int: 9, wis: 9, cha: 9 }
+    advancement:
+      classes:
+        commoner:
+          level: 0
+          skills: []
+
+  - id: 112
+    name: Half-Orc Soldier d
+    group: enemy
+    tags: []
+    race: half_orc
+    tier: 1
+    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
+    advancement:
+      classes:
+        fighter:
+          level: 4
+          skills:
+            - athletics
+            - intimidate
+            - perception
