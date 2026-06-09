@@ -701,22 +701,13 @@ helpers do
       end
       # Cost to roll n dice = flat weapon Speed + n; grey out unaffordable.
       # Spiritual Weapon rolls Reservoir dice (free), so its dice aren't pool-gated.
-      free    = w[:item_type] == 'spiritual_weapon'
-      aff = ->(n) { free || speed + n <= atk_pool }
-      aff_max = (2..cap).select { |n| aff.call(n) }.max
-      max_opt = { value: "#{w[:item_type]}|#{aff_max || cap}", key: w[:item_type], group: grp,
-                  label: "#{disp} (speed #{speed})", summary: "#{disp} — #{aff_max || cap} dice",
-                  disabled: aff_max.nil?, patch: set_atk.call(aff_max || cap) }
-      action_opts << max_opt
-      (2..cap).each do |n|
-        action_opts << { value: "#{w[:item_type]}|#{n}", key: w[:item_type], group: grp,
-                         label: n.to_s, summary: "#{disp} — #{n} dice",
-                         disabled: !aff.call(n), patch: set_atk.call(n) }
-      end
-      action_opts << { kind: 'info', group: grp, value: "#{grp}|info",
-                       label: (bpl.empty? ? 'no bonuses' : fmt_mods.call(bpl)) }
-      # Header quick-pick: one button per weapon that selects it at max dice.
-      action_quick << { value: max_opt[:value], label: disp, disabled: aff_max.nil? }
+      free = w[:item_type] == 'spiritual_weapon'
+      g = dice_count_group(prefix: w[:item_type], key: w[:item_type], group: grp, min: 2, max: cap,
+                           aff: ->(n) { free || speed + n <= atk_pool }, patch: set_atk,
+                           summary: ->(n) { "#{disp} — #{n} dice" }, lead_label: "#{disp} (speed #{speed})",
+                           header_label: disp, info: (bpl.empty? ? 'no bonuses' : fmt_mods.call(bpl)))
+      action_opts.concat(g[:body])
+      action_quick << g[:header]
     end
     action_step = { key: 'action', label: 'Weapon & dice', options: action_opts, header_options: action_quick }
 
@@ -875,30 +866,27 @@ helpers do
       cap  = [sh[:available], dcap].min
       dice_word = sh[:dice_source] == 'combat_pool' ? 'Combat Pool' : 'Reservoir'
       sh_bpl = sh[:bonus].to_i.positive? ? [['Guidance', sh[:bonus].to_i]] : []
-      opts = [{ value: 'none', group: 'none', label: 'No shield', summary: 'No shield',
-                patch: { set_excluded: [{ id: 'shield', excluded: true }] } }]
-      mk_sh = lambda do |dice|
-        { value: "shield:#{sh[:caster_id]}|#{dice}", group: 'shield', label: dice.to_s,
-          summary: "#{sh[:spell_name]} (#{sh[:caster_name]}) — #{dice} dice",
-          patch: { set_dice: [{ id: 'shield', count: dice }],
-                   set_tier: [{ id: 'shield', tier: sh[:tier] }],
-                   set_bpl:  [{ id: 'shield', bonus_penalty_list: sh_bpl }],
-                   # The shield Roll is the caster's — show their name, with the
-                   # spell as the roll's label.
-                   set_name: [{ id: 'shield', creature_name: sh[:caster_name], roll_name: sh[:spell_name] }],
-                   set_excluded: [{ id: 'shield', excluded: false }] } }
+      # The shield Roll's patch for a given dice count (the caster's Roll — its
+      # name, Tier, +N Guidance bonus, and dice).
+      shield_patch = lambda do |dice|
+        { set_dice: [{ id: 'shield', count: dice }],
+          set_tier: [{ id: 'shield', tier: sh[:tier] }],
+          set_bpl:  [{ id: 'shield', bonus_penalty_list: sh_bpl }],
+          set_name: [{ id: 'shield', creature_name: sh[:caster_name], roll_name: sh[:spell_name] }],
+          set_excluded: [{ id: 'shield', excluded: false }] }
       end
-      (2..cap).each { |n| opts << mk_sh.call(n) }
       bonus_note = sh[:bonus].to_i.positive? ? " (+#{sh[:bonus].to_i})" : ''
-      opts << { kind: 'info', group: 'shield', value: 'shield|info',
-                label: "#{sh[:spell_name]}#{bonus_note} by #{sh[:caster_name]} — up to #{cap} #{dice_word} dice" }
-      ally_defense_map["#{target_id}"] = opts
-      # Title-row quick-picks (like every other step): "No shield", then the
-      # ability's name which selects the MAX affordable dice.
-      ally_defense_header_map["#{target_id}"] = [
-        { value: 'none', label: 'No shield' },
-        { value: "shield:#{sh[:caster_id]}|#{cap}", label: sh[:spell_name], disabled: cap < 2 }
-      ]
+      # The same dice-count picker every step uses; the spell name is the
+      # title-row quick-pick that selects the max dice.
+      g = dice_count_group(prefix: "shield:#{sh[:caster_id]}", group: 'shield', min: 2, max: cap,
+                           aff: ->(_n) { true }, patch: shield_patch, header_label: sh[:spell_name],
+                           summary: ->(n) { "#{sh[:spell_name]} (#{sh[:caster_name]}) — #{n} dice" },
+                           info: "#{sh[:spell_name]}#{bonus_note} by #{sh[:caster_name]} — up to #{cap} #{dice_word} dice")
+      ally_defense_map["#{target_id}"] =
+        [{ value: 'none', group: 'none', label: 'No shield', summary: 'No shield',
+           patch: { set_excluded: [{ id: 'shield', excluded: true }] } }] + g[:body]
+      # Title row: "No shield" plus the ability-name max quick-pick.
+      ally_defense_header_map["#{target_id}"] = [{ value: 'none', label: 'No shield' }, g[:header]]
     end
     ally_defense_step = { key: 'ally_defense', label: 'Ally Defense',
                           options_by: %w[target], options_map: ally_defense_map,
@@ -1462,6 +1450,31 @@ helpers do
     (Abilities.lookup(base, axis_index: axis) rescue nil) || {}
   rescue StandardError
     {}
+  end
+
+  # Shared "pick a dice count" picker used across the attack builder (weapon /
+  # defensive action / ally shield). Emits the body option list — an optional
+  # "max" lead quick-pick (`lead_label`), one button per count in min..max, and
+  # a trailing info line — and the title-row header quick-pick. Each option's
+  # value is "<prefix>|<n>"; `aff` / `patch` / `summary` are lambdas of the count.
+  # `header_min` makes the header select the minimum (a Reaction-minimum defence)
+  # rather than the max affordable. Returns { body:, header: }.
+  def dice_count_group(prefix:, group:, min:, max:, aff:, patch:, summary:, info:,
+                       header_label:, key: nil, lead_label: nil, header_min: false)
+    aff_max = (min..max).select { |n| aff.call(n) }.max
+    opt = lambda do |dice, label, disabled|
+      o = { value: "#{prefix}|#{dice}", group: group, label: label,
+            summary: summary.call(dice), disabled: disabled, patch: patch.call(dice) }
+      o[:key] = key unless key.nil?
+      o
+    end
+    body = []
+    body << opt.call(aff_max || max, lead_label, aff_max.nil?) if lead_label
+    (min..max).each { |n| body << opt.call(n, n.to_s, !aff.call(n)) }
+    body << { kind: 'info', group: group, value: "#{group}|info", label: info }
+    hdice = header_min ? min : (aff_max || max)
+    { body: body, header: { value: "#{prefix}|#{hdice}", label: header_label,
+                            disabled: (header_min ? !aff.call(min) : aff_max.nil?) } }
   end
 
   # The defend spec for a shield-granting Spell, or nil. Shield of Faith defends
