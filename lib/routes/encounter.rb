@@ -727,23 +727,15 @@ helpers do
           attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
           inherent_table: inh_table, no_defense: true
         )
-        atk_tier_def = Encounter::Attack.attacker_tier_bonuses(
-          attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
-          inherent_table: inh_table, no_defense: false
-        )
         def_tier = Encounter::Attack.defender_tier_bonuses(defender_tier: t[:tier], inherent_table: inh_table)
         # Raw attacker Bonus lists (no TN math here), each carrying its tier
         # modifiers. Flatfooted applies whenever the defender is NOT Dodging —
         # so no defence and Block / Parry all keep it; only Dodge sheds it (the
         # per-branch list is built in the branch loop). Unaware applies only on
         # the no-defence branch (declaring a defence proves awareness). Uncanny
-        # Dodge (et al.) via `flatfooted_immune` sheds both. `atk_declared_bpl`
-        # backs the Shield of Faith branch (a caster defends; the shielded
-        # target itself is not Dodging, so it stays Flatfooted unless immune).
+        # Dodge (et al.) via `flatfooted_immune` sheds both.
         atk_none_bpl     = comp + atk_tier_none + Encounter::Attack.attacker_bonuses(
           flatfooted: !t[:flatfooted_immune], unaware: t[:unaware] && !t[:flatfooted_immune], helpless: t[:helpless])
-        atk_declared_bpl = comp + atk_tier_def + Encounter::Attack.attacker_bonuses(
-          flatfooted: !t[:flatfooted_immune], unaware: false, helpless: t[:helpless])
         # No defense first (attacker keeps Flatfooted), then one group per
         # Defensive Action: a name button carrying the defence Speed (Dodge /
         # Block = 0, Parry = weapon Speed), a button per die choice, and a
@@ -831,34 +823,9 @@ helpers do
           opts << { kind: 'info', group: b[:group], value: "#{b[:group]}|info",
                     label: (dcmp.empty? ? 'no bonuses' : fmt_mods.call(dcmp)) }
         end
-        # A caster shielding this target (Shield of Faith or the Shield spell)
-        # blocks the attack as a separate Opposing Roll, spending Reservoir dice
-        # (no Combat Pool, and the target's own Defense Roll stays excluded). A
-        # Tier-scaled Shield adds its +N Guidance bonus to the block.
-        sh = shields[t[:id]]
-        if sh
-          # Up to the caster's casting-skill Dice Cap, and never more dice than
-          # Reservoir remains (1 Reservoir die spent per die rolled).
-          dcap = sh[:dice_cap].to_i.positive? ? sh[:dice_cap].to_i : sh[:reservoir]
-          cap = [sh[:reservoir], dcap].min
-          sh_bpl = sh[:bonus].to_i.positive? ? [['Guidance', sh[:bonus].to_i]] : []
-          mk_sh = lambda do |dice|
-            { value: "shield:#{sh[:caster_id]}|#{dice}", group: 'shield', label: dice.to_s,
-              summary: "#{sh[:spell_name]} — #{dice} dice",
-              patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_declared_bpl },
-                                 { id: 'shield', bonus_penalty_list: sh_bpl }],
-                       restore_dice: [{ id: 'attacker' }],
-                       set_dice: [{ id: 'shield', count: dice }],
-                       set_tier: [{ id: 'shield', tier: sh[:tier] }],
-                       set_name: [{ id: 'shield', roll_name: "#{sh[:spell_name]} (#{sh[:caster_name]})" }],
-                       set_excluded: [{ id: 'defender', excluded: true }, { id: 'shield', excluded: false }] } }
-          end
-          (2..cap).each { |n| opts << mk_sh.call(n) }
-          headers << { value: "shield:#{sh[:caster_id]}|2", label: "Shield (#{sh[:caster_name]})", disabled: cap < 2 }
-          bonus_note = sh[:bonus].to_i.positive? ? " (+#{sh[:bonus].to_i})" : ''
-          opts << { kind: 'info', group: 'shield', value: 'shield|info',
-                    label: "#{sh[:spell_name]}#{bonus_note} by #{sh[:caster_name]} — up to #{cap} Reservoir dice" }
-        end
+        # A caster shielding this target (Shield of Faith / the Shield spell) is
+        # offered separately, in the Ally Defense step after this one — an
+        # additional Opposing Roll alongside the target's own defense.
         # Better Lucky Than Good — a Reaction, not a Defensive Action: no
         # defender Roll and no Combat Pool, it spends 4 Mana to halve the
         # attacker's dice (min 3). It can be used even while Unaware, and the
@@ -885,13 +852,51 @@ helpers do
                      options_by: %w[target action], options_map: defense_map,
                      header_options_by: %w[target action], header_options_map: defense_header_map }
 
-    steps = [target_step, action_step, defense_step]
+    # Ally Defense — a separate step after the target's own defense: when the
+    # target is shielded (Shield of Faith / the Shield spell), the shielding
+    # caster may spend Reservoir dice to interpose the shield as an *additional*
+    # Opposing Roll (it does not replace the target's defense). The step asks how
+    # many dice to spend; "No shield" leaves the shield Roll out. Keyed by target
+    # — a target with no shield has no options, so the step is skipped.
+    ally_defense_map = {}
+    ally_defense_header_map = {}
+    shields.each do |target_id, sh|
+      dcap = sh[:dice_cap].to_i.positive? ? sh[:dice_cap].to_i : sh[:reservoir]
+      cap  = [sh[:reservoir], dcap].min
+      sh_bpl = sh[:bonus].to_i.positive? ? [['Guidance', sh[:bonus].to_i]] : []
+      opts = [{ value: 'none', group: 'none', label: 'No shield', summary: 'No shield',
+                patch: { set_excluded: [{ id: 'shield', excluded: true }] } }]
+      mk_sh = lambda do |dice|
+        { value: "shield:#{sh[:caster_id]}|#{dice}", group: 'shield', label: dice.to_s,
+          summary: "#{sh[:spell_name]} (#{sh[:caster_name]}) — #{dice} dice",
+          patch: { set_dice: [{ id: 'shield', count: dice }],
+                   set_tier: [{ id: 'shield', tier: sh[:tier] }],
+                   set_bpl:  [{ id: 'shield', bonus_penalty_list: sh_bpl }],
+                   set_name: [{ id: 'shield', roll_name: "#{sh[:spell_name]} (#{sh[:caster_name]})" }],
+                   set_excluded: [{ id: 'shield', excluded: false }] } }
+      end
+      (2..cap).each { |n| opts << mk_sh.call(n) }
+      bonus_note = sh[:bonus].to_i.positive? ? " (+#{sh[:bonus].to_i})" : ''
+      opts << { kind: 'info', group: 'shield', value: 'shield|info',
+                label: "#{sh[:spell_name]}#{bonus_note} by #{sh[:caster_name]} — up to #{cap} Reservoir dice" }
+      ally_defense_map["#{target_id}"] = opts
+      ally_defense_header_map["#{target_id}"] = [
+        { value: "shield:#{sh[:caster_id]}|2", label: "Shield (#{sh[:caster_name]})", disabled: cap < 2 }
+      ]
+    end
+    ally_defense_step = { key: 'ally_defense', label: 'Ally Defense',
+                          options_by: %w[target], options_map: ally_defense_map,
+                          header_options_by: %w[target], header_options_map: ally_defense_header_map }
+
+    steps = [target_step, action_step, defense_step, ally_defense_step]
 
     # Luck (before the dice): one step per source that can spend Luck on this
-    # attack as a Reaction — see #luck_steps.
+    # attack as a Reaction — see #luck_steps. Luck may target the attacker, the
+    # defender, and the ally's shield Roll.
     steps.concat(luck_steps(actor_id: attacker[:id],
                             targets: [{ roll_id: 'attacker', label: tracker_name(attacker) },
-                                      { roll_id: 'defender', label: 'Defender' }]))
+                                      { roll_id: 'defender', label: 'Defender' },
+                                      { roll_id: 'shield', label: 'Ally shield' }]))
 
     { title: "#{tracker_name(attacker)} attacks", stub_id: "attack-#{attacker[:id]}",
       rolls: rolls, steps: steps }

@@ -66,11 +66,10 @@ export class TurnAttack {
     const choices = detail.choices || {};
     const rolls = detail.rolls || [];
     const weaponType = String(choices.action || '').split('|')[0];
-    // Defence values are "<type>|<dice>" where <type> may be "parry:<weapon>"
-    // or "shield:<casterId>"; the server's defence kind is the base before ':'.
+    // Defence values are "<type>|<dice>" where <type> may be "parry:<weapon>";
+    // the server's defence kind is the base before ':'.
     const defFull = String(choices.defense || 'none');
-    const defType = defFull.split('|')[0];
-    const defenseName = defType.split(':')[0];
+    const defenseName = defFull.split('|')[0].split(':')[0];
     const atk = rolls.find((r) => r.id === 'attacker') || {};
     const base = {
       target_id: choices.target,
@@ -83,24 +82,25 @@ export class TurnAttack {
       attacker: { id: parseInt(container._attackerId, 10), dice: atk.dice_count, speed: atk.speed, successes: atk.successes }
     };
 
-    // Shield of Faith: the shielding caster blocks as a separate Opposing Roll,
-    // spending Reservoir dice (the target's own Defense stays out).
-    if (defenseName === 'shield') {
-      const sh = rolls.find((r) => r.id === 'shield') || {};
-      return Object.assign(base, {
-        defense: { choice: 'none' },
-        shield: { id: parseInt(defType.split(':')[1], 10), dice: parseInt(defFull.split('|')[1], 10) || 0,
-                  successes: sh.successes || 0, spell_name: 'Shield of Faith' }
-      });
-    }
-
+    // Target's own defense (Dodge / Block / Parry / none).
     const def = rolls.find((r) => r.id === 'defender');
     const declared = def && defenseName !== 'none';
-    return Object.assign(base, {
+    Object.assign(base, {
       defense: declared
         ? { choice: defenseName, id: choices.target, dice: def.dice_count, speed: def.speed || 0, successes: def.successes }
         : { choice: 'none' }
     });
+
+    // Ally Defense: a shielding caster interposing their shield as an additional
+    // Opposing Roll (its own step, independent of the target's defense). The
+    // value is "shield:<casterId>|<dice>"; the server resolves the spell name.
+    const allyFull = String(choices.ally_defense || 'none');
+    if (allyFull.split('|')[0].indexOf('shield:') === 0) {
+      const sh = rolls.find((r) => r.id === 'shield') || {};
+      base.shield = { id: parseInt(allyFull.split('|')[0].split(':')[1], 10),
+                      dice: parseInt(allyFull.split('|')[1], 10) || 0, successes: sh.successes || 0 };
+    }
+    return base;
   }
 
   // First Confirm: non-mutating preview. Keep the builder; show the editable
