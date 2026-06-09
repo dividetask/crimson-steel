@@ -17,12 +17,12 @@ characters:
     race: human
     tier: 2
     attributes:
-      str: 16
-      dex: 14
-      con: 18
-      int: 10
-      wis: 11
-      cha: 10
+      str: 13
+      dex: 11
+      con: 15
+      int: 7
+      wis: 8
+      cha: 7
     advancement:
       classes:
         barbarian:
@@ -45,12 +45,12 @@ characters:
     race: human
     tier: 1
     attributes:
-      str: 11
-      dex: 13
-      con: 14
-      int: 9
-      wis: 12
-      cha: 14
+      str: 9
+      dex: 11
+      con: 12
+      int: 7
+      wis: 10
+      cha: 12
 
   - id: 2011
     name: Virelle
@@ -59,12 +59,12 @@ characters:
     race: high_elf
     tier: 3
     attributes:
-      str: 16
-      dex: 14
-      con: 16
-      int: 16
-      wis: 22
-      cha: 17
+      str: 13
+      dex: 9
+      con: 13
+      int: 11
+      wis: 19
+      cha: 14
 
   - id: 2012
     name: Sylwen
@@ -73,12 +73,12 @@ characters:
     race: high_elf
     tier: 3
     attributes:
-      str: 13
-      dex: 19
-      con: 15
-      int: 17
-      wis: 17
-      cha: 20
+      str: 10
+      dex: 14
+      con: 12
+      int: 12
+      wis: 14
+      cha: 17
 
   - id: 2013
     name: Alric Thorne
@@ -88,12 +88,12 @@ characters:
     tier: 4
     hide_tier: true
     attributes:
-      str: 18
-      dex: 20
-      con: 20
-      int: 22
-      wis: 21
-      cha: 28
+      str: 14
+      dex: 14
+      con: 16
+      int: 18
+      wis: 17
+      cha: 22
 
   - id: 2014
     name: Dala Nyssira
@@ -103,12 +103,12 @@ characters:
     tier: 4
     hide_tier: true
     attributes:
-      str: 16
-      dex: 24
-      con: 18
-      int: 24
-      wis: 22
-      cha: 28
+      str: 12
+      dex: 18
+      con: 14
+      int: 20
+      wis: 18
+      cha: 22
 
   - id: 2017
     name: Mayor Tamsin Holt
@@ -117,12 +117,12 @@ characters:
     race: human   # not stated in the source note; assumed human
     tier: 1
     attributes:
-      str: 9
-      dex: 11
-      con: 10
-      int: 12
-      wis: 14
-      cha: 12
+      str: 7
+      dex: 9
+      con: 8
+      int: 10
+      wis: 12
+      cha: 10
 
   - id: 2018
     name: Silovan Kreshholm
@@ -131,12 +131,12 @@ characters:
     race: wood_elf
     tier: 3
     attributes:
-      str: 13
-      dex: 21
-      con: 15
-      int: 19
-      wis: 13
-      cha: 21
+      str: 10
+      dex: 16
+      con: 12
+      int: 16
+      wis: 8
+      cha: 18
 
   # New NPC (not from the character notes): captain of the Ghoul, helped
   # the party escape.
@@ -147,12 +147,12 @@ characters:
     race: halfling
     tier: 1
     attributes:
-      str: 9
-      dex: 16
-      con: 10
-      int: 12
-      wis: 14
-      cha: 16
+      str: 8
+      dex: 13
+      con: 9
+      int: 11
+      wis: 13
+      cha: 13
 
   # ---- Stat lines you provided ----
   - id: 2020
@@ -162,12 +162,12 @@ characters:
     race: undead
     tier: 4
     attributes:
-      str: 24
-      dex: 18
-      con: 10   # source gave "Con --" (no Con); placeholder pending your value
-      int: 16
-      wis: 14
-      cha: 20
+      str: 20
+      dex: 14
+      con: 6   # "Con --" (undead, no Con); base 6 -> effective 10 placeholder, pending undead logic
+      int: 12
+      wis: 10
+      cha: 16
 
   - id: 2021
     name: Lady Selara Hawthorne
@@ -176,12 +176,12 @@ characters:
     race: human   # not stated in the note; assumed human
     tier: 3
     attributes:
-      str: 12
-      dex: 16
-      con: 15
-      int: 18
-      wis: 18
-      cha: 16
+      str: 8
+      dex: 12
+      con: 11
+      int: 14
+      wis: 14
+      cha: 12
 
   - id: 2022
     name: Lord Varen Hawthorne
@@ -190,12 +190,12 @@ characters:
     race: human   # not stated in the note; assumed human
     tier: 3
     attributes:
-      str: 20
-      dex: 22
-      con: 15
-      int: 16
-      wis: 16
-      cha: 14
+      str: 16
+      dex: 18
+      con: 11
+      int: 12
+      wis: 12
+      cha: 10
 
   - id: 2023
     name: Orman Harrington
@@ -204,12 +204,12 @@ characters:
     race: human   # "Middle-aged man" in the note; assumed human
     tier: 2
     attributes:
-      str: 14
-      dex: 14
-      con: 15
-      int: 14
-      wis: 14
-      cha: 14
+      str: 11
+      dex: 11
+      con: 12
+      int: 11
+      wis: 11
+      cha: 11
 
   # ---- Placeholder 10s (stats TBD); races read from the source notes ----
   - id: 2024
@@ -267,12 +267,12 @@ characters:
     race: human   # "Mercenary sellsword" in the note; assumed human
     tier: 1
     attributes:
-      str: 21
-      dex: 16
-      con: 15
-      int: 20
-      wis: 17
-      cha: 20
+      str: 19
+      dex: 14
+      con: 13
+      int: 18
+      wis: 15
+      cha: 18
 
   - id: 2031
     name: Varen
@@ -281,10 +281,10 @@ characters:
     race: human   # Kael's companion (female rogue); race not stated, assumed human
     tier: 2
     attributes:
-      str: 14
-      dex: 20
-      con: 16
-      int: 12
-      wis: 14
-      cha: 15
+      str: 11
+      dex: 17
+      con: 13
+      int: 9
+      wis: 11
+      cha: 12
 

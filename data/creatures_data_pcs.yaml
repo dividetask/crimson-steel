@@ -4,12 +4,12 @@ characters:
   name: Stumpy
   race: hill_dwarf
   attributes:
-    str: 12
-    dex: 14
-    con: 17
-    int: 14
-    wis: 18
-    cha: 11
+    str: 10
+    dex: 12
+    con: 13
+    int: 12
+    wis: 14
+    cha: 9
   advancement:
     classes:
       cleric:
@@ -48,12 +48,12 @@ characters:
   name: Olga
   race: human
   attributes:
-    str: 19
-    dex: 17
-    con: 17
-    int: 11
-    wis: 13
-    cha: 10
+    str: 15
+    dex: 14
+    con: 14
+    int: 8
+    wis: 10
+    cha: 7
   advancement:
     classes:
       barbarian:
@@ -70,12 +70,12 @@ characters:
   name: Lysander
   race: high_elf
   attributes:
-    str: 9
-    dex: 19
-    con: 13
-    int: 13
-    wis: 15
-    cha: 15
+    str: 7
+    dex: 15
+    con: 11
+    int: 9
+    wis: 13
+    cha: 13
   advancement:
     classes:
       arcane_trickster:
@@ -106,12 +106,12 @@ characters:
   name: Cottonballs
   race: satyr
   attributes:
-    str: 11
-    dex: 18
-    con: 14
-    int: 12
-    wis: 13
-    cha: 18
+    str: 9
+    dex: 14
+    con: 12
+    int: 10
+    wis: 11
+    cha: 14
   advancement:
     classes:
       bard:
