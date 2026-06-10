@@ -144,6 +144,36 @@ helpers do
     Encounter.state
   end
 
+  # Incapacitating-status suffix for a target's name in the attack
+  # builder — e.g. " (dying)" / " (paralyzed)". Dying is a Creature state
+  # (not a Named Effect); paralyzed is a Named Effect. Empty when neither
+  # applies. Dying targets are still dropped from the header quick-picks;
+  # this suffix surfaces them in the full Target dropdown.
+  def target_status_suffix(combatant_id, creature_id)
+    parts = []
+    parts << 'dying' if (encounter_state.creature_dying?(combatant_id) rescue false)
+    names = (Conditions.store.instance_for(creature_id).active_effect_names rescue [])
+    parts << 'paralyzed' if names.include?('paralyzed')
+    parts.empty? ? '' : " (#{parts.join(', ')})"
+  end
+
+  # Order enemy targets nearest-first by their Token's distance from the
+  # attacker's Token on the Active Map. Targets with no placed Token (and
+  # the cases of no Active Map or no attacker Token) keep the incoming
+  # order — the sort is stable on the original index.
+  def order_targets_by_distance(attacker, enemy_targets)
+    map_id = (Atlas.state.active_map_id rescue nil) or return enemy_targets
+    pos = lambda do |creature_id|
+      tok = (Atlas.state.list_tokens(map_id: map_id, creature_id: creature_id).first rescue nil)
+      tok && [tok[:x].to_f, tok[:y].to_f]
+    end
+    apos = pos.call(attacker[:creature_id]) or return enemy_targets
+    enemy_targets.each_with_index.sort_by do |t, i|
+      tpos = pos.call(t[:creature_id])
+      [tpos ? Math.hypot(tpos[0] - apos[0], tpos[1] - apos[1]) : Float::INFINITY, i]
+    end.map(&:first)
+  end
+
   # Render-time reconciliation: every non-excluded Player Character
   # belongs in the active Combat, so make sure each is a Combatant
   # before we render the roster or tracker. Players therefore always
@@ -617,7 +647,12 @@ helpers do
 
     targets = encounter_state.combatants.reject { |c| c[:id] == attacker[:id] }.map do |c|
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
-      { id: c[:id], name: tracker_name(c), unaware: encounter_state.unaware?(c[:id]),
+      tname = tracker_name(c)
+      { id: c[:id], creature_id: c[:creature_id], name: tname,
+        # Name as shown when picking this target — suffixed with an
+        # incapacitating status (e.g. " (paralyzed)") so the DM sees it.
+        display_name: tname + target_status_suffix(c[:id], c[:creature_id]),
+        unaware: encounter_state.unaware?(c[:id]),
         # Uncanny Dodge (et al.) make the target immune to Flatfooted / Unaware.
         flatfooted_immune: flatfooted_immune?(tacc),
         # A target that cannot act (incapacitated / paralyzed / dying) is
@@ -690,9 +725,16 @@ helpers do
     # the non-PCs, and vice versa.
     attacker_pc   = creature_is_pc?(attacker[:creature_id])
     enemy_targets = targets.select { |t| t[:is_pc] != attacker_pc }
+    # Header quick-picks: drop Dying enemies (they aren't worth a button),
+    # order the rest nearest-first by Map distance from the attacker, and
+    # cap at 5 so the Target row never overflows. The full set still lives
+    # in the dropdown `options` below.
+    enemy_targets = enemy_targets.reject { |t| encounter_state.creature_dying?(t[:id]) rescue false }
+    enemy_targets = order_targets_by_distance(attacker, enemy_targets)
+    header_targets = enemy_targets.first(5)
     target_step = { key: 'target', label: 'Target',
-                    header_options: enemy_targets.map { |t| { value: t[:id], label: t[:name] } },
-                    options: targets.map { |t| { value: t[:id], key: t[:id], label: t[:name],
+                    header_options: header_targets.map { |t| { value: t[:id], label: t[:display_name] } },
+                    options: targets.map { |t| { value: t[:id], key: t[:id], label: t[:display_name],
                                                  patch: { set_name: [{ id: 'defender', creature_name: t[:name] }],
                                                           set_tier: [{ id: 'defender', tier: t[:tier] }] } } } }
 
