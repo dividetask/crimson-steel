@@ -72,10 +72,19 @@ RSpec.describe Encounter::Attack do
       expect(described_class.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 0,
                                                    inherent_table: table, no_defense: true))
         .to eq([['Inherent', 1], ['Ascendancy', -2]])
-      # Glory: +2 Inherent and −2 Ascendancy nets to 0 — the gap is closed.
+      # Glory raises the effective Tier to the defender's — equal Tiers, so no
+      # Ascendancy at all: the gap is closed and only the lifted Inherent rides.
       expect(described_class.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 1,
                                                    inherent_table: table, no_defense: true))
-        .to eq([['Inherent', 2], ['Ascendancy', -2]])
+        .to eq([['Inherent', 2]])
+    end
+
+    it 'exchanges no Ascendancy between equal-Tier opponents' do
+      # Same Tier, no defense: the attacker keeps its Inherent and takes no
+      # Ascendancy (Ascendancy only exists across a Tier gap).
+      expect(described_class.attacker_tier_bonuses(attacker_tier: 2, defender_tier: 2, tier_advantage: 0,
+                                                   inherent_table: table, no_defense: true))
+        .to eq([['Inherent', 2]])
     end
 
     it 'drops zero Tier-0 modifiers' do

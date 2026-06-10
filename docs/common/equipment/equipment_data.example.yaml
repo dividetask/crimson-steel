@@ -64,7 +64,7 @@ characters:
         tier: 1
         name: "Lute of the Wandering Bard"
         description: "Once per scene, grant Bardic Inspiration without spending the action."
-      - item: Healing Potion
+      - item: Potion of Heal
         tier: 0
         quantity: 2
       - item: Lute
@@ -96,7 +96,7 @@ characters:
         equipped: true
       - item: Chain mail
         equipped: true
-      - item: Healing Potion
+      - item: Potion of Heal
         tier: 0
         quantity: 1
       - item: Whetstone
@@ -122,7 +122,7 @@ characters:
           - ward
           - speak_with_plants
           - entangle
-      - item: Healing Potion
+      - item: Potion of Heal
         tier: 0
       - item: Gold
         quantity: 52
@@ -137,7 +137,7 @@ characters:
         equipped: true
       - item: Leather armor
         equipped: true
-      - item: Healing Potion
+      - item: Potion of Heal
         tier: 0
         quantity: 3
       - item: Thieves' tools
@@ -168,7 +168,7 @@ characters:
         quantity: 20
       - item: Hide armor
         equipped: true
-      - item: Healing Potion
+      - item: Potion of Heal
         tier: 0
         quantity: 2
       - item: Gold
@@ -191,7 +191,7 @@ characters:
         quantity: 20
       - item: Chain mail
         equipped: true
-      - item: Healing Potion
+      - item: Potion of Heal
         tier: 0
         quantity: 3
       - item: Rations
@@ -214,7 +214,7 @@ characters:
         quantity: 4
       - item: Hide armor
         equipped: true
-      - item: Healing Potion
+      - item: Potion of Heal
         tier: 0
         quantity: 2
       - item: Rations
@@ -231,7 +231,7 @@ characters:
         equipped: true
       - item: Studded leather
         equipped: true
-      - item: Healing Potion
+      - item: Potion of Heal
         tier: 0
         quantity: 2
       - item: Thieves' tools
@@ -250,7 +250,7 @@ characters:
         equipped: true
       - item: Leather armor
         equipped: true
-      - item: Healing Potion
+      - item: Potion of Heal
         tier: 0
         quantity: 2
       - item: Gold
@@ -377,29 +377,6 @@ characters:
       - item: Light wooden shield
         equipped: true
       - item: Chain shirt
-        equipped: true
-
-  # Fey Favors templates (creatures_data_fey_favors) — fey, not animals, so
-  # they carry a weapon (mostly light/improvised blades).
-  400:  # Sprite — dagger
-    inventory:
-      - item: Dagger
-        equipped: true
-  401:  # Pixie — dagger
-    inventory:
-      - item: Dagger
-        equipped: true
-  402:  # Dryad — quarterstaff
-    inventory:
-      - item: Quarterstaff
-        equipped: true
-  403:  # Brownie — dagger
-    inventory:
-      - item: Dagger
-        equipped: true
-  404:  # Will-o'-Wisp Spark — dagger (token sidearm; fights mainly by other means)
-    inventory:
-      - item: Dagger
         equipped: true
 
   # NPC quest-giver (creatures_data_npcs).

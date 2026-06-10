@@ -9,12 +9,12 @@ import { SequenceRng } from '../../public/js/rng.js';
 
 test('Empty bonus_penalty_list', () => {
   const { tn, startingValue } = TnComputation.compute({ bonusPenaltyList: [], startingContribution: 0 });
-  assert.equal(tn, 6); // Base Target Number
+  assert.equal(tn, 8); // Base Target Number
   assert.equal(startingValue, 0);
 });
 
 test('Reroll count exceeds eligible dice', () => {
-  const rng = new SequenceRng([6, 6, 6, 6, 6, 6]); // all Successes at TN 6, no reroll values needed
+  const rng = new SequenceRng([8, 8, 8, 8, 8, 8]); // all Successes at TN 8, no reroll values needed
   const r = Roll.resolveWithTn({ diceCount: 6, positiveReroll: { count: 5, max: false } }, rng);
   assert.deepEqual(r.rerollChanges, [null, null, null, null, null, null]);
 });

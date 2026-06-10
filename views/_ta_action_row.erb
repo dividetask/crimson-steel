@@ -1,0 +1,17 @@
+<%#
+  Turn Action "Action" row — the chosen action folded into a builder-style
+  step row: an uppercase "Action" label, the action's name, the confirm slot
+  the Commit proxy lands in, and a Change button that re-opens the action menu.
+  Shared by the static panes here (Item / End Turn); the JS-mounted panes
+  (Attack / Cast / Move / Special) emit the identical row via
+  turnCommit.js → actionRowHtml(). Keep the two in sync.
+
+  Locals:
+    label — the action's display name (e.g. "Item", "End Turn").
+%>
+<div class="step-summary ta-action-row">
+  <span class="step-summary-label">Action</span>
+  <span class="step-summary-value ta-action-name"><%= label %></span>
+  <span class="ta-confirm-slot"></span>
+  <button type="button" class="ta-change"><span class="cr-change-icon">↶</span> Change</button>
+</div>

@@ -78,6 +78,15 @@ wood_elf:
     wis: 2
   abilities: []
 
+# Not a playable sub-race (absent from character_creation.yaml's
+# Playable Races) — exists for NPCs such as the Eladrin nobles.
+eladrin:
+  parent: elf
+  attribute_adjustments:
+    dex: 2
+    cha: 2
+  abilities: []
+
 gnome:
   parent: humanoid
   size: small
@@ -106,6 +115,17 @@ half_orc:
   parent: humanoid
   abilities: []
 
+# Full-blooded orc. +4 Str/Con, -2 Int/Wis/Cha; low-light vision and
+# Ferocity (fights on past 0 HP). Medium / speed 30 from humanoid.
+orc:
+  parent: humanoid
+  attribute_adjustments: { str: 4, con: 4, int: -2, wis: -2, cha: -2 }
+  abilities:
+    - name: low_light_vision
+      min_level: 0
+    - name: ferocity
+      min_level: 0
+
 halfling:
   parent: humanoid
   speed: 25
@@ -124,11 +144,36 @@ satyr:
     - name: enchantment_resistance
       min_level: 0
 
+# -4 Str/Con/Int/Cha, -2 Wis, +4 Dex. Small, low-light vision, and the
+# Fast Movement trait (+10 ft).
 goblin:
   parent: humanoid
   size: small
   speed: 25
-  abilities: []
+  attribute_adjustments: { str: -4, con: -4, int: -4, cha: -4, wis: -2, dex: 4 }
+  abilities:
+    - name: low_light_vision
+      min_level: 0
+    - name: fast_movement
+      min_level: 0
+
+# -4 Str, -2 Con/Wis, +2 Dex/Int. Small, speed 30. Low-light vision,
+# scaled hide (+1 damage reduction / resilience), light sensitivity, and
+# Trapfinding.
+kobold:
+  parent: humanoid
+  size: small
+  speed: 30
+  attribute_adjustments: { str: -4, con: -2, wis: -2, dex: 2, int: 2 }
+  abilities:
+    - name: low_light_vision
+      min_level: 0
+    - name: scaled_hide
+      min_level: 0
+    - name: light_sensitivity
+      min_level: 0
+    - name: Trapfinding
+      min_level: 0
 
 # --- Fey races ---------------------------------------------------------
 
@@ -137,28 +182,14 @@ fey:
   speed: 30
   abilities: []
 
-sprite:
-  parent: fey
-  size: tiny
-  speed: 20
-  abilities: []
-
-pixie:
-  parent: fey
-  size: tiny
-  speed: 20
-  abilities: []
-
-dryad:
+# A fey race (parent: fey). Not playable. Size set to medium — the noble
+# Sidhe are human-sized, unlike the small fey root.
+sidhe:
   parent: fey
   size: medium
-  speed: 30
-  abilities: []
-
-brownie:
-  parent: fey
-  size: small
-  speed: 25
+  attribute_adjustments:
+    dex: 2
+    cha: 2
   abilities: []
 
 # --- Animal races ------------------------------------------------------
@@ -173,15 +204,43 @@ beast:
   speed: 30
   abilities: []
 
-canine:
+# Size-keyed beast templates. Every beast inherits its attribute
+# adjustments from one of these and then its concrete subtype
+# (canine, spider, ...) layers on speed and a Natural Attack. All
+# beasts take -8 Int (the min-1 Effective Attribute clamp keeps the
+# score at 1) and -4 Wis/Cha.
+tiny_beast:
   parent: beast
+  size: tiny
+  attribute_adjustments: { str: -6, con: -6, dex: 6, wis: -4, cha: -4, int: -8 }
+
+small_beast:
+  parent: beast
+  size: small
+  attribute_adjustments: { str: -4, con: -4, dex: 4, wis: -4, cha: -4, int: -8 }
+
+medium_beast:
+  parent: beast
+  size: medium
+  attribute_adjustments: { dex: 2, wis: -4, cha: -4, int: -8 }
+
+large_beast:
+  parent: beast
+  size: large
+  attribute_adjustments: { str: 4, con: 4, wis: -4, cha: -4, int: -8 }
+  abilities:
+    - name: natural_armor_2
+      min_level: 0
+
+canine:
+  parent: medium_beast
   speed: 40
   abilities:
     - name: Canine Bite
       min_level: 0
 
 spider:
-  parent: beast
+  parent: medium_beast
   speed: 20
   abilities:
     - name: Spider Bite

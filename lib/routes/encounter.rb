@@ -80,6 +80,17 @@ get '/encounter' do
   # usable non-Spell, non-Reaction Abilities, computed at render time.
   @acting_special = (@viewer == :dm && @acting_row) ? (@encounter_state.special_options(@acting_row[:combatant_id]) rescue []) : []
 
+  # Cast pane (turn_action_stub.md → Cast): offered only when the Acting
+  # Combatant actually knows a spell. A monster or other non-caster gets no
+  # Cast button.
+  @acting_has_spells =
+    if @acting_row
+      aacc = Creatures.lookup(@acting_row[:creature_id]) rescue nil
+      aacc ? (CreatureSheet.spells(aacc) rescue []).any? { |g| Array(g[:names]).any? } : false
+    else
+      false
+    end
+
   # Bardic Inspiration (and any reservoir-mode Performance): the live
   # Reservoirs a DM can discharge to grant Luck. DM-only; off-turn, since a
   # discharge is a Reaction (turn_action_stub.md → Special).
@@ -131,6 +142,68 @@ end
 helpers do
   def encounter_state
     Encounter.state
+  end
+
+  # Incapacitating-status suffix for a target's name in the attack
+  # builder — e.g. " (dying)" / " (paralyzed)". Dying is a Creature state
+  # (not a Named Effect); paralyzed is a Named Effect. Empty when neither
+  # applies. Dying targets are still dropped from the header quick-picks;
+  # this suffix surfaces them in the full Target dropdown.
+  def target_status_suffix(combatant_id, creature_id)
+    parts = []
+    parts << 'dying' if (encounter_state.creature_dying?(combatant_id) rescue false)
+    names = (Conditions.store.instance_for(creature_id).active_effect_names rescue [])
+    parts << 'paralyzed' if names.include?('paralyzed')
+    parts.empty? ? '' : " (#{parts.join(', ')})"
+  end
+
+  # The Target step's option list, shared by the Attack and Cast builders
+  # so they choose targets identically: one option per combatant, labelled
+  # with its status suffix, split into PC/NPC/enemy sections, dying ones
+  # flagged red. `roll_id` is the opposing Roll the pick names ('defender'
+  # for an attack, 'target' for a cast); `self_id` marks the caster "(self)".
+  def target_options(combatants, roll_id:, self_id: nil)
+    descs = combatants.map do |c|
+      tacc = Creatures.lookup(c[:creature_id]) rescue nil
+      base = tracker_name(c)
+      self_tag = (c[:id] == self_id) ? ' (self)' : ''
+      { id: c[:id],
+        name: base + self_tag,
+        display_name: base + target_status_suffix(c[:id], c[:creature_id]) + self_tag,
+        category: (creature_is_pc?(c[:creature_id]) ? 'pc' : (((tacc&.group rescue nil) == 'npc') ? 'npc' : 'enemy')),
+        dying: (encounter_state.creature_dying?(c[:id]) rescue false),
+        tier: (tacc&.tier rescue 0) || 0 }
+    end
+    order_targets_by_category(descs).map do |t|
+      { value: t[:id], key: t[:id], label: t[:display_name], dying: t[:dying], group: t[:category],
+        patch: { set_name: [{ id: roll_id, creature_name: t[:name] }],
+                 set_tier: [{ id: roll_id, tier: t[:tier] }] } }
+    end
+  end
+
+  # Targets ordered into PC, then NPC, then enemy sections (stable within
+  # each), so the Target list renders one section per group (each group is
+  # its own `.cb-line` row in the builder).
+  def order_targets_by_category(targets)
+    cat = { 'pc' => 0, 'npc' => 1, 'enemy' => 2 }
+    targets.each_with_index.sort_by { |t, i| [cat.fetch(t[:category], 3), i] }.map(&:first)
+  end
+
+  # Order enemy targets nearest-first by their Token's distance from the
+  # attacker's Token on the Active Map. Targets with no placed Token (and
+  # the cases of no Active Map or no attacker Token) keep the incoming
+  # order — the sort is stable on the original index.
+  def order_targets_by_distance(attacker, enemy_targets)
+    map_id = (Atlas.state.active_map_id rescue nil) or return enemy_targets
+    pos = lambda do |creature_id|
+      tok = (Atlas.state.list_tokens(map_id: map_id, creature_id: creature_id).first rescue nil)
+      tok && [tok[:x].to_f, tok[:y].to_f]
+    end
+    apos = pos.call(attacker[:creature_id]) or return enemy_targets
+    enemy_targets.each_with_index.sort_by do |t, i|
+      tpos = pos.call(t[:creature_id])
+      [tpos ? Math.hypot(tpos[0] - apos[0], tpos[1] - apos[1]) : Float::INFINITY, i]
+    end.map(&:first)
   end
 
   # Render-time reconciliation: every non-excluded Player Character
@@ -606,20 +679,37 @@ helpers do
 
     targets = encounter_state.combatants.reject { |c| c[:id] == attacker[:id] }.map do |c|
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
-      { id: c[:id], name: tracker_name(c), unaware: encounter_state.unaware?(c[:id]),
+      tname = tracker_name(c)
+      { id: c[:id], creature_id: c[:creature_id], name: tname,
+        # Name as shown when picking this target — suffixed with an
+        # incapacitating status (e.g. " (paralyzed)") so the DM sees it.
+        display_name: tname + target_status_suffix(c[:id], c[:creature_id]),
+        unaware: encounter_state.unaware?(c[:id]),
         # Uncanny Dodge (et al.) make the target immune to Flatfooted / Unaware.
         flatfooted_immune: flatfooted_immune?(tacc),
         # A target that cannot act (incapacitated / paralyzed / dying) is
         # Helpless: it offers no defense and attacks against it gain the more
         # severe Helpless advantage (supersedes Flatfooted / Unaware).
         helpless: !(encounter_state.creature_can_act?(c[:id]) rescue true),
-        is_pc: creature_is_pc?(c[:creature_id]), tier: (tacc&.tier rescue 0) || 0,
+        # Dying targets render with a red button in every targeting stub.
+        dying: (encounter_state.creature_dying?(c[:id]) rescue false),
+        is_pc: creature_is_pc?(c[:creature_id]),
+        # PC / NPC / enemy — used to split the Target list into sections.
+        category: (creature_is_pc?(c[:creature_id]) ? 'pc' : (((tacc&.group rescue nil) == 'npc') ? 'npc' : 'enemy')),
+        tier: (tacc&.tier rescue 0) || 0,
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
         martial: roll_inputs_for(tacc, 'martial',   attribute_override: :str),
         dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex),
         # Parry uses one of the defender's melee weapons; Block needs a shield.
         parry_weapons: equipped_melee_weapons(c[:creature_id]),
-        has_shield:    equipped_shield?(c[:creature_id]) }
+        has_shield:    equipped_shield?(c[:creature_id]),
+        # Reaction Abilities the target may use against this attack: the Talents
+        # it has, its remaining Mana (to afford them), and whether it is Raging
+        # (Primal Tenacity is a rage power). Drives Better Lucky Than Good as a
+        # defense and the post-roll Danger Sense / Primal Tenacity reactions.
+        abilities: ((tacc&.granted_abilities rescue nil) || []).map { |g| g[:name] },
+        mana_left: combatant_mana_left(c[:creature_id], tacc),
+        raging:    creature_raging?(c[:creature_id]) }
     end
 
     # Seed Rolls carry raw inputs (base TN + each side's own Bonus list + dice).
@@ -642,18 +732,32 @@ helpers do
         tier: nil }
     ]
 
-    # Map of defender Combatant id -> the caster shielding them (Shield of Faith)
-    # and their available Reservoir dice, so the defense step can offer the
-    # caster's block as an Opposing Roll.
+    # Map of defender Combatant id -> the caster shielding them and the dice they
+    # can spend to block, so the Ally Defense step can offer the block as an
+    # Opposing Roll. The block dice come from the shield's `dice_source`: a
+    # Reservoir (Shield of Faith) or the caster's Combat Pool (the Shield spell).
+    # A Tier-scaled Shield also carries its +N Guidance bonus.
     shields = {}
-    encounter_state.granted_actions.select { |g| g[:source].to_s == 'Shield of Faith' && g[:defends] }.each do |g|
+    encounter_state.granted_actions.select { |g| g[:defends] }.each do |g|
       cc = encounter_state.combatant(g[:combatant_id]) or next
-      res = Array(cc[:concentration]).find { |e| e[:mode] == 'reservoir' && e[:spell_name].to_s == 'Shield of Faith' }
-      next unless res && res[:reservoir].to_i >= 2
+      source = (g[:dice_source] || 'reservoir').to_s
+      available =
+        if source == 'combat_pool'
+          (encounter_state.combat_pool_remaining(g[:combatant_id]) rescue 0).to_i
+        else
+          res = Array(cc[:concentration]).find { |e| e[:mode] == 'reservoir' && e[:spell_name].to_s == g[:spell_name].to_s }
+          res ? res[:reservoir].to_i : 0
+        end
+      next unless available >= 2
       cacc = Creatures.lookup(cc[:creature_id]) rescue nil
+      # The caster controls the shield with its casting skill (a Cleric's
+      # Invocation, else Arcana) — that Competency rides the block Roll.
+      shield_skill = cacc ? (cast_skill_for(cacc, nil, g[:spell_name]) rescue nil) : nil
+      shield_comp  = shield_skill ? roll_inputs_for(cacc, shield_skill)[:competency_modifier] : nil
       shields[g[:defends]] = { caster_id: g[:combatant_id], caster_name: tracker_name(cc),
-                               reservoir: res[:reservoir].to_i, dice_cap: g[:dice_cap].to_i,
-                               tier: (cacc&.tier rescue nil) }
+                               available: available, dice_source: source, dice_cap: g[:dice_cap].to_i,
+                               tier: (cacc&.tier rescue nil), spell_name: g[:spell_name].to_s,
+                               bonus: g[:shield_bonus].to_i, competency: shield_comp }
     end
 
     # Header quick-picks (next to "Target"): one button per enemy of the
@@ -662,11 +766,17 @@ helpers do
     # the non-PCs, and vice versa.
     attacker_pc   = creature_is_pc?(attacker[:creature_id])
     enemy_targets = targets.select { |t| t[:is_pc] != attacker_pc }
+    # Header quick-picks: drop Dying enemies (they aren't worth a button),
+    # order the rest nearest-first by Map distance from the attacker, and
+    # cap at 5 so the Target row never overflows. The full set still lives
+    # in the dropdown `options` below.
+    enemy_targets = enemy_targets.reject { |t| encounter_state.creature_dying?(t[:id]) rescue false }
+    enemy_targets = order_targets_by_distance(attacker, enemy_targets)
+    header_targets = enemy_targets.first(5)
     target_step = { key: 'target', label: 'Target',
-                    header_options: enemy_targets.map { |t| { value: t[:id], label: t[:name] } },
-                    options: targets.map { |t| { value: t[:id], key: t[:id], label: t[:name],
-                                                 patch: { set_name: [{ id: 'defender', creature_name: t[:name] }],
-                                                          set_tier: [{ id: 'defender', tier: t[:tier] }] } } } }
+                    header_options: header_targets.map { |t| { value: t[:id], label: t[:display_name] } },
+                    options: target_options(encounter_state.combatants.reject { |c| c[:id] == attacker[:id] },
+                                            roll_id: 'defender') }
 
     action_opts = []
     action_quick = []
@@ -684,22 +794,13 @@ helpers do
       end
       # Cost to roll n dice = flat weapon Speed + n; grey out unaffordable.
       # Spiritual Weapon rolls Reservoir dice (free), so its dice aren't pool-gated.
-      free    = w[:item_type] == 'spiritual_weapon'
-      aff = ->(n) { free || speed + n <= atk_pool }
-      aff_max = (2..cap).select { |n| aff.call(n) }.max
-      max_opt = { value: "#{w[:item_type]}|#{aff_max || cap}", key: w[:item_type], group: grp,
-                  label: "#{disp} (speed #{speed})", summary: "#{disp} — #{aff_max || cap} dice",
-                  disabled: aff_max.nil?, patch: set_atk.call(aff_max || cap) }
-      action_opts << max_opt
-      (2..cap).each do |n|
-        action_opts << { value: "#{w[:item_type]}|#{n}", key: w[:item_type], group: grp,
-                         label: n.to_s, summary: "#{disp} — #{n} dice",
-                         disabled: !aff.call(n), patch: set_atk.call(n) }
-      end
-      action_opts << { kind: 'info', group: grp, value: "#{grp}|info",
-                       label: (bpl.empty? ? 'no bonuses' : fmt_mods.call(bpl)) }
-      # Header quick-pick: one button per weapon that selects it at max dice.
-      action_quick << { value: max_opt[:value], label: disp, disabled: aff_max.nil? }
+      free = w[:item_type] == 'spiritual_weapon'
+      g = dice_count_group(prefix: w[:item_type], key: w[:item_type], group: grp, min: 2, max: cap,
+                           aff: ->(n) { free || speed + n <= atk_pool }, patch: set_atk,
+                           summary: ->(n) { "#{disp} — #{n} dice" }, lead_label: "#{disp} (speed #{speed})",
+                           header_label: disp, info: (bpl.empty? ? 'no bonuses' : fmt_mods.call(bpl)))
+      action_opts.concat(g[:body])
+      action_quick << g[:header]
     end
     action_step = { key: 'action', label: 'Weapon & dice', options: action_opts, header_options: action_quick }
 
@@ -717,23 +818,22 @@ helpers do
           attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
           inherent_table: inh_table, no_defense: true
         )
+        def_tier = Encounter::Attack.defender_tier_bonuses(defender_tier: t[:tier], inherent_table: inh_table)
+        # The attacker's own (Glory-adjusted) Inherent Bonus for a defended
+        # branch — no Ascendancy here, since the defender rolls and its own
+        # Inherent propagates onto the attacker's TN as the Ascendancy.
         atk_tier_def = Encounter::Attack.attacker_tier_bonuses(
           attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
           inherent_table: inh_table, no_defense: false
         )
-        def_tier = Encounter::Attack.defender_tier_bonuses(defender_tier: t[:tier], inherent_table: inh_table)
         # Raw attacker Bonus lists (no TN math here), each carrying its tier
         # modifiers. Flatfooted applies whenever the defender is NOT Dodging —
         # so no defence and Block / Parry all keep it; only Dodge sheds it (the
         # per-branch list is built in the branch loop). Unaware applies only on
         # the no-defence branch (declaring a defence proves awareness). Uncanny
-        # Dodge (et al.) via `flatfooted_immune` sheds both. `atk_declared_bpl`
-        # backs the Shield of Faith branch (a caster defends; the shielded
-        # target itself is not Dodging, so it stays Flatfooted unless immune).
+        # Dodge (et al.) via `flatfooted_immune` sheds both.
         atk_none_bpl     = comp + atk_tier_none + Encounter::Attack.attacker_bonuses(
           flatfooted: !t[:flatfooted_immune], unaware: t[:unaware] && !t[:flatfooted_immune], helpless: t[:helpless])
-        atk_declared_bpl = comp + atk_tier_def + Encounter::Attack.attacker_bonuses(
-          flatfooted: !t[:flatfooted_immune], unaware: false, helpless: t[:helpless])
         # No defense first (attacker keeps Flatfooted), then one group per
         # Defensive Action: a name button carrying the defence Speed (Dodge /
         # Block = 0, Parry = weapon Speed), a button per die choice, and a
@@ -742,6 +842,7 @@ helpers do
         # versa) and computes both TNs.
         opts = [{ value: 'none', group: 'none', label: 'No defense', summary: 'No defense',
                   patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_none_bpl }],
+                           restore_dice: [{ id: 'attacker' }],
                            set_excluded: [{ id: 'defender', excluded: true }] } }]
         # Header quick-picks: "No defense" first, then one button per
         # Defensive Action (top-right, like the weapon buttons), each
@@ -760,15 +861,15 @@ helpers do
           # Dodge borrows the dex_save proficiency for its Dice Cap/Modifiers but
           # is a pool-costed Defensive Action (not a Saving Throw): Speed 0, dice
           # chosen from the Reaction Minimum up to the remaining pool.
-          branches << { key: 'dodge', group: 'dodge', name: 'Dodge', inputs: t[:dodge], speed: 0, save: false }
+          branches << { key: 'dodge', group: 'dodge', name: 'Dodge', inputs: t[:dodge], speed: 0 }
           if t[:has_shield]
-            branches << { key: 'block', group: 'block', name: 'Block', inputs: t[:martial], speed: 0, save: false }
+            branches << { key: 'block', group: 'block', name: 'Block', inputs: t[:martial], speed: 0 }
           end
           unless w[:ranged]
             t[:parry_weapons].each do |pw|
               branches << { key: "parry:#{pw[:item_type]}", group: "parry:#{pw[:item_type]}",
                             name: "Parry with #{pw[:display_name]}", inputs: t[:martial],
-                            speed: [pw[:speed].to_i, 0].max, save: false }
+                            speed: [pw[:speed].to_i, 0].max }
             end
           end
         end
@@ -783,7 +884,7 @@ helpers do
           dspd  = b[:speed]
           # Flatfooted sticks unless this defence is a Dodge; declaring a
           # defence proves awareness, so Unaware never applies here.
-          atk_branch_bpl = comp + Encounter::Attack.attacker_bonuses(
+          atk_branch_bpl = comp + atk_tier_def + Encounter::Attack.attacker_bonuses(
             flatfooted: (b[:key] != 'dodge') && !t[:flatfooted_immune], unaware: false, helpless: t[:helpless])
           # A Dodge's Competency helps the defender's own Roll but is NOT
           # propagated onto the attacker as a penalty — Check Resolution's
@@ -796,51 +897,47 @@ helpers do
               patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_branch_bpl },
                                  { id: 'defender', bonus_penalty_list: dcmp }],
                        set_no_propagate: [{ id: 'defender', types: def_no_prop }],
+                       restore_dice: [{ id: 'attacker' }],
                        set_dice:  [{ id: 'defender', count: dice }],
                        set_speed: [{ id: 'defender', speed: dspd }],
                        set_name:  [{ id: 'defender', roll_name: b[:name] }],
                        set_excluded: [{ id: 'defender', excluded: false }] } }
           end
+          # Every Defensive Action here (Dodge / Block / Parry) is a pool-costed
+          # Reaction — the DM picks dice from the Reaction Minimum up to the
+          # remaining pool, capped by the Dice Cap. (Dodge is NOT a Saving Throw;
+          # it only borrows the dex_save proficiency for its Dice Cap / Modifiers,
+          # so it still costs Combat Pool and never auto-spends the full cap.)
           name_label = "#{b[:name]} (speed #{dspd})"
-          if b[:save]
-            # Dodge is a Saving Throw: it always spends the full Dice Cap and
-            # costs no Combat Pool, so there is no dice count to ask for — one
-            # option only, both in the body and as the quick-pick.
-            opts << mk.call(cap, "#{b[:name]} (max #{cap})", cap < 2)
-            headers << { value: "#{b[:key]}|#{cap}", label: b[:name], disabled: cap < 2 }
-          else
-            aff_max = (2..cap).select { |n| dspd + n <= t[:pool] }.max
-            opts << mk.call(aff_max || cap, name_label, aff_max.nil?)
-            (2..cap).each { |n| opts << mk.call(n, n.to_s, dspd + n > t[:pool]) }
-            hmin = Encounter::Config.reaction_action_minimum
-            headers << { value: "#{b[:key]}|#{hmin}", label: b[:name],
-                         disabled: (hmin > cap || dspd + hmin > t[:pool]) }
-          end
+          aff_max = (2..cap).select { |n| dspd + n <= t[:pool] }.max
+          opts << mk.call(aff_max || cap, name_label, aff_max.nil?)
+          (2..cap).each { |n| opts << mk.call(n, n.to_s, dspd + n > t[:pool]) }
+          hmin = Encounter::Config.reaction_action_minimum
+          headers << { value: "#{b[:key]}|#{hmin}", label: b[:name],
+                       disabled: (hmin > cap || dspd + hmin > t[:pool]) }
           opts << { kind: 'info', group: b[:group], value: "#{b[:group]}|info",
                     label: (dcmp.empty? ? 'no bonuses' : fmt_mods.call(dcmp)) }
         end
-        # Shield of Faith: a caster shielding this target blocks the attack as a
-        # separate Opposing Roll, spending Reservoir dice (no Combat Pool, and
-        # the target's own Defense Roll stays excluded).
-        sh = shields[t[:id]]
-        if sh
-          # Up to the caster's casting-skill Dice Cap, and never more dice than
-          # Reservoir remains (1 Reservoir die spent per die rolled).
-          dcap = sh[:dice_cap].to_i.positive? ? sh[:dice_cap].to_i : sh[:reservoir]
-          cap = [sh[:reservoir], dcap].min
-          mk_sh = lambda do |dice|
-            { value: "shield:#{sh[:caster_id]}|#{dice}", group: 'shield', label: dice.to_s,
-              summary: "Shield of Faith — #{dice} dice",
-              patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_declared_bpl }],
-                       set_dice: [{ id: 'shield', count: dice }],
-                       set_tier: [{ id: 'shield', tier: sh[:tier] }],
-                       set_name: [{ id: 'shield', roll_name: "Shield of Faith (#{sh[:caster_name]})" }],
-                       set_excluded: [{ id: 'defender', excluded: true }, { id: 'shield', excluded: false }] } }
-          end
-          (2..cap).each { |n| opts << mk_sh.call(n) }
-          headers << { value: "shield:#{sh[:caster_id]}|2", label: "Shield (#{sh[:caster_name]})", disabled: cap < 2 }
-          opts << { kind: 'info', group: 'shield', value: 'shield|info',
-                    label: "Shield of Faith by #{sh[:caster_name]} — up to #{cap} Reservoir dice" }
+        # A caster shielding this target (Shield of Faith / the Shield spell) is
+        # offered separately, in the Ally Defense step after this one — an
+        # additional Opposing Roll alongside the target's own defense.
+        # Better Lucky Than Good — a Reaction, not a Defensive Action: no
+        # defender Roll and no Combat Pool, it spends 4 Mana to halve the
+        # attacker's dice (min 3). It can be used even while Unaware, and the
+        # target never becomes aware, so the attacker keeps its Flatfooted /
+        # Unaware Bonus (the No-defense attacker list). Offered only when the
+        # target has the Talent and can afford the Mana.
+        if t[:abilities].include?('Better Lucky Than Good')
+          bl_cost = reaction_mana_cost('Better Lucky Than Good')
+          bl_cost = 4 if bl_cost.zero?
+          bl_afford = t[:mana_left].nil? || t[:mana_left] >= bl_cost
+          opts << { value: 'better_lucky', group: 'better_lucky',
+                    label: "Better Lucky Than Good (#{bl_cost} mana)",
+                    summary: 'Better Lucky Than Good', disabled: !bl_afford,
+                    patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_none_bpl }],
+                             scale_dice: [{ id: 'attacker', num: 1, den: 2, min: 3 }],
+                             set_excluded: [{ id: 'defender', excluded: true }] } }
+          headers << { value: 'better_lucky', label: 'Better Lucky', disabled: !bl_afford }
         end
         defense_map["#{t[:id]}|#{w[:item_type]}"] = opts
         defense_header_map["#{t[:id]}|#{w[:item_type]}"] = headers
@@ -850,13 +947,65 @@ helpers do
                      options_by: %w[target action], options_map: defense_map,
                      header_options_by: %w[target action], header_options_map: defense_header_map }
 
-    steps = [target_step, action_step, defense_step]
+    # Ally Defense — a separate step after the target's own defense: when the
+    # target is shielded (Shield of Faith / the Shield spell), the shielding
+    # caster may spend its block dice (Reservoir or Combat Pool, per the shield)
+    # to interpose the shield as an *additional* Opposing Roll (it does not
+    # replace the target's defense). The step asks how many dice to spend; "No
+    # shield" leaves the shield Roll out. Keyed by target — a target with no
+    # shield has no options, so the step is skipped.
+    ally_defense_map = {}
+    ally_defense_header_map = {}
+    shields.each do |target_id, sh|
+      # Block dice are bounded by the caster's Dice Cap and the dice available
+      # (Reservoir, or remaining Combat Pool).
+      dcap = sh[:dice_cap].to_i.positive? ? sh[:dice_cap].to_i : sh[:available]
+      cap  = [sh[:available], dcap].min
+      dice_word = sh[:dice_source] == 'combat_pool' ? 'Combat Pool' : 'Reservoir'
+      # The block Roll carries the caster's own Competency (its casting skill)
+      # and Inherent Bonus — like any defender Roll — plus the shield's +N
+      # Guidance. Without these the shielding caster rolled bare (only Guidance),
+      # so its skill never opposed the attack.
+      sh_bpl = []
+      sh_bpl << sh[:competency] if sh[:competency]
+      sh_inh = Encounter::Attack.inherent_amount(inh_table, sh[:tier].to_i)
+      sh_bpl << ['Inherent', sh_inh] unless sh_inh.zero?
+      sh_bpl << ['Guidance', sh[:bonus].to_i] if sh[:bonus].to_i.positive?
+      # The shield Roll's patch for a given dice count (the caster's Roll — its
+      # name, Tier, +N Guidance bonus, and dice).
+      shield_patch = lambda do |dice|
+        { set_dice: [{ id: 'shield', count: dice }],
+          set_tier: [{ id: 'shield', tier: sh[:tier] }],
+          set_bpl:  [{ id: 'shield', bonus_penalty_list: sh_bpl }],
+          set_name: [{ id: 'shield', creature_name: sh[:caster_name], roll_name: sh[:spell_name] }],
+          set_excluded: [{ id: 'shield', excluded: false }] }
+      end
+      bonus_note = sh[:bonus].to_i.positive? ? " (+#{sh[:bonus].to_i})" : ''
+      # The same dice-count picker every step uses; the spell name is the
+      # title-row quick-pick that selects the max dice.
+      g = dice_count_group(prefix: "shield:#{sh[:caster_id]}", group: 'shield', min: 2, max: cap,
+                           aff: ->(_n) { true }, patch: shield_patch, header_label: sh[:spell_name],
+                           summary: ->(n) { "#{sh[:spell_name]} (#{sh[:caster_name]}) — #{n} dice" },
+                           info: "#{sh[:spell_name]}#{bonus_note} by #{sh[:caster_name]} — up to #{cap} #{dice_word} dice")
+      ally_defense_map["#{target_id}"] =
+        [{ value: 'none', group: 'none', label: 'No defense', summary: 'No defense',
+           patch: { set_excluded: [{ id: 'shield', excluded: true }] } }] + g[:body]
+      # Title row: "No defense" plus the ability-name max quick-pick.
+      ally_defense_header_map["#{target_id}"] = [{ value: 'none', label: 'No defense' }, g[:header]]
+    end
+    ally_defense_step = { key: 'ally_defense', label: 'Ally Defense',
+                          options_by: %w[target], options_map: ally_defense_map,
+                          header_options_by: %w[target], header_options_map: ally_defense_header_map }
+
+    steps = [target_step, action_step, defense_step, ally_defense_step]
 
     # Luck (before the dice): one step per source that can spend Luck on this
-    # attack as a Reaction — see #luck_steps.
+    # attack as a Reaction — see #luck_steps. Luck may target the attacker, the
+    # defender, and the ally's shield Roll.
     steps.concat(luck_steps(actor_id: attacker[:id],
                             targets: [{ roll_id: 'attacker', label: tracker_name(attacker) },
-                                      { roll_id: 'defender', label: 'Defender' }]))
+                                      { roll_id: 'defender', label: 'Defender' },
+                                      { roll_id: 'shield', label: 'Ally shield' }]))
 
     { title: "#{tracker_name(attacker)} attacks", stub_id: "attack-#{attacker[:id]}",
       rolls: rolls, steps: steps }
@@ -878,7 +1027,9 @@ helpers do
     steps = []
     encounter_state.combatants.each do |c|
       next if c[:id] == actor_id # a Reaction can't fire on your own action
-      entry = Array(c[:concentration]).find { |e| e[:mode] == 'reservoir' && e[:reservoir].to_i.positive? }
+      entry = Array(c[:concentration]).find do |e|
+        e[:mode] == 'reservoir' && e[:reservoir].to_i.positive? && luck_reservoir?(e)
+      end
       next unless entry
       steps << luck_step("#{c[:id]}", c[:id], tracker_name(c), entry[:reservoir].to_i,
                          bard_has_unsettling_words?(c[:creature_id]), targets)
@@ -887,6 +1038,17 @@ helpers do
       steps << luck_step('dm', nil, 'DM', encounter_state.dm_luck_points.to_i, true, targets)
     end
     steps
+  end
+
+  # Whether a reservoir Concentration is a **Luck** reservoir (Bardic
+  # Inspiration), as opposed to a defending one (Shield of Faith), whose
+  # discharge interposes a block instead of granting Luck. Only Luck reservoirs
+  # belong in the Luck steps.
+  def luck_reservoir?(entry)
+    v = resolve_named_spell(entry[:spell_name])
+    v.dig('reservoir', 'discharge', 'defends').to_s.empty?
+  rescue StandardError
+    true
   end
 
   def luck_step(sid, source_id, label, amount, penalty, targets)
@@ -919,6 +1081,23 @@ helpers do
   # from the chosen weapon (the client carries only `weapon_type`), so the
   # combat damage logic stays server-side.
   def enrich_attack_payload!(payload)
+    # Defender Reaction Abilities carry a Mana Cost the resolver debits on
+    # commit. Better Lucky Than Good is chosen in the Defense step; Danger Sense
+    # / Primal Tenacity are chosen after the roll (payload['defender_reactions']).
+    enrich_attack_reactions!(payload)
+
+    # A shielding caster's block spends its own spell's dice — resolve the spell
+    # name and the dice source (Reservoir vs Combat Pool) from the caster's
+    # defending granted action, so the resolver spends the right pool.
+    sh = payload['shield']
+    if sh.is_a?(Hash) && sh['id']
+      g = encounter_state.granted_actions.find { |x| x[:combatant_id] == sh['id'] && x[:defends] }
+      if g
+        sh['spell_name']  = g[:spell_name].to_s
+        sh['dice_source'] = (g[:dice_source] || 'reservoir').to_s
+      end
+    end
+
     wt  = payload['weapon_type']
     atk = payload['attacker'] || {}
     return unless wt && atk['id']
@@ -946,6 +1125,62 @@ helpers do
                           'damage_riders' => w[:damage_riders], 'tier_advantage' => w[:tier_advantage] }
   end
 
+  # Attach each defender Reaction's numeric spec (Mana Cost; and, for the
+  # post-roll reactions, the one-shot damage Modifier they apply to this single
+  # attack) so the resolver can debit Mana and fold the Modifier in without
+  # reaching into the Abilities catalog itself.
+  #   Better Lucky Than Good — Defense-step choice 'better_lucky'.
+  #   Danger Sense / Primal Tenacity — payload['defender_reactions'] (keys), each
+  #     carrying { target: damage_resilience|damage_reduction, type:, amount: }.
+  POST_ROLL_REACTIONS = {
+    'danger_sense'    => 'Danger Sense',
+    'primal_tenacity' => 'Primal Tenacity'
+  }.freeze
+
+  # The post-roll defender Reactions available on this preview: offered only
+  # when the target declared no defense, the hit landed (damage > 0), the target
+  # has the Talent, can afford its Mana, and (for Primal Tenacity) is Raging.
+  # Each carries its one-shot damage Modifier so the client can preview / apply
+  # it. Merged into the resolve result as `defender_reactions_available`.
+  def attach_defender_reactions(result, payload)
+    return result if result[:ok] == false
+    return result unless result[:damage].to_i.positive?
+    choice = (payload['defense'] || {})['choice'].to_s
+    return result unless choice.empty? || choice == 'none'
+    c   = encounter_state.combatant(payload['target_id'].to_i) or return result
+    acc = Creatures.lookup(c[:creature_id]) rescue nil
+    abilities = (acc&.granted_abilities rescue []).map { |g| g[:name] }
+    mana_left = combatant_mana_left(c[:creature_id], acc)
+    raging    = creature_raging?(c[:creature_id])
+    avail = POST_ROLL_REACTIONS.filter_map do |key, name|
+      next unless abilities.include?(name)
+      next if name == 'Primal Tenacity' && !raging
+      cost = reaction_mana_cost(name); cost = 4 if cost.zero?
+      next unless mana_left.nil? || mana_left >= cost
+      mod = Array((Abilities.catalog.ability(name) rescue nil)&.dig('modifiers')).first || {}
+      { key: key, name: name, mana_cost: cost, label: "#{name} (#{cost} mana)",
+        target: mod['target'].to_s, type: mod['type'].to_s, amount: mod['add'].to_i }
+    end
+    result.merge(defender_reactions_available: avail)
+  end
+
+  def enrich_attack_reactions!(payload)
+    dfn = payload['defense']
+    if dfn.is_a?(Hash) && dfn['choice'].to_s == 'better_lucky'
+      cost = reaction_mana_cost('Better Lucky Than Good')
+      dfn['mana_cost'] = cost.zero? ? 4 : cost
+    end
+    keys = Array(payload['defender_reactions'])
+    return if keys.empty?
+    payload['defender_reactions'] = keys.filter_map do |key|
+      name = POST_ROLL_REACTIONS[key.to_s] or next
+      mod  = Array((Abilities.catalog.ability(name) rescue nil)&.dig('modifiers')).first || {}
+      cost = reaction_mana_cost(name)
+      { 'key' => key.to_s, 'name' => name, 'mana_cost' => (cost.zero? ? 4 : cost),
+        'target' => mod['target'].to_s, 'type' => mod['type'].to_s, 'amount' => mod['add'].to_i }
+    end
+  end
+
   # ---- Action Builder blob for a Cast (turn_action_stub.md → Cast)
   #
   # Same decoupled builder pattern as the Attack flow (attack_builder_blob): a
@@ -969,7 +1204,7 @@ helpers do
       cost = mana_cost_for_tier(g[:tier])
       Array(g[:names]).map do |name|
         v     = (Abilities.lookup(name) rescue nil) || {}
-        skill = (Array(v['skills']).first || Encounter::Cast::DEFAULT_CAST_SKILL)
+        skill = cast_skill_for(acc, v, name)
         ri    = roll_inputs_for(acc, skill)
         # Area footprint (Hash, or the first footprint Aspect of an Aspect-list
         # area like Grease). Area Spells are placed on the map, not targeted.
@@ -1078,17 +1313,19 @@ helpers do
         end
         skill_label = Encounter::Special.pretty_skill(sp[:skill])
         aff_max     = [cap, pool].min
-        lead_off    = aff_max < min
         set = ->(n) { { set_dice: [{ id: 'caster', count: n }] } }
-        opts = [{ value: "#{sp[:name]}|#{aff_max}", key: aff_max, group: 'dice',
-                  label: "#{skill_label} (max #{aff_max})", summary: "#{skill_label} — #{aff_max} dice",
-                  disabled: lead_off, patch: set.call(aff_max) }]
-        (min..cap).each do |n|
-          opts << { value: "#{sp[:name]}|#{n}", key: n, group: 'dice', label: n.to_s,
-                    summary: "#{n} dice", disabled: n > pool, patch: set.call(n) }
-        end
-        dice_map[sp[:name]]   = opts
-        header_map[sp[:name]] = [{ value: "#{sp[:name]}|#{aff_max}", label: "Max (#{aff_max})", disabled: lead_off }]
+        # Shaped exactly like the Attack weapon/dice step via the shared
+        # dice_count_group helper: a "<skill> (max N)" lead, a button per
+        # count, and a top-right header quick-pick that names the casting
+        # skill (e.g. "Arcana") rather than a generic "Max".
+        g = dice_count_group(prefix: sp[:name], group: 'dice', min: min, max: cap,
+                             aff: ->(n) { n <= pool }, patch: set,
+                             summary: ->(n) { "#{skill_label} — #{n} dice" },
+                             lead_label: "#{skill_label} (max #{aff_max})",
+                             header_label: skill_label,
+                             info: "#{skill_label} — up to #{cap} dice")
+        dice_map[sp[:name]]   = g[:body]
+        header_map[sp[:name]] = [g[:header]]
       else
         # Known dice count — auto-applied (the builder skips the step) when the
         # caster can afford it; otherwise shown as a blocked option.
@@ -1101,18 +1338,17 @@ helpers do
         dice_map[sp[:name]] = [opt]
       end
     end
+    # The cast's Dice are a resource (the Combat Pool / Reservoir dice spent),
+    # surfaced in the result block — not a "what" choice — so they leave no
+    # summary row (no_summary).
     dice_step = { key: 'dice', label: 'Dice', options_by: %w[spell], options_map: dice_map,
-                  header_options_by: %w[spell], header_options_map: header_map }
+                  header_options_by: %w[spell], header_options_map: header_map, no_summary: true }
 
     # Step 3 — Target, choice-dependent on the Spell. A normal Spell lists the
     # Combatants; an **area Spell** instead offers a single "Place on the map"
     # action — the client arms the Atlas, the DM clicks to drop the footprint,
     # and the creatures it covers become the affected set (no single Target).
-    combatant_target_opts = targets.map do |t|
-      { value: t[:id], key: t[:id], label: t[:name],
-        patch: { set_name: [{ id: 'target', creature_name: t[:name] }],
-                 set_tier: [{ id: 'target', tier: t[:tier] }] } }
-    end
+    combatant_target_opts = target_options(encounter_state.combatants, roll_id: 'target', self_id: caster[:id])
     target_map = {}
     spells.each do |sp|
       target_map[sp[:name]] =
@@ -1224,6 +1460,137 @@ helpers do
       'int' => 'Intelligence', 'wis' => 'Wisdom', 'cha' => 'Charisma' }[attr.to_s] || attr.to_s
   end
 
+  # The Casting Skill a given caster uses for a given Spell Variant. Prefer the
+  # Spell's own allowed Casting Skill that the caster is actually trained in
+  # (so a Cleric's heals still roll `healing`); otherwise fall back to the
+  # Spell's first listed skill / the default. The one override: a divine caster
+  # — trained in `invocation` but not `arcana` — casts an otherwise-`arcana`
+  # Spell with Invocation instead (Clerics do not cast with Arcana). Other
+  # classes (Wizard, Bard, Druid) are left on their existing resolution.
+  # The Casting Skill a class confers on every Spell it grants: a Cleric's
+  # granted Spells all cast with Invocation, a Bard's all with Performance (the
+  # `perform_` family, resolved per-caster to a concrete Performance skill).
+  # Other classes (Wizard, Druid, Ranger) carry no override and fall back to the
+  # Spell's own skill.
+  CLASS_CASTING_SKILL = { 'cleric' => 'invocation', 'bard' => 'perform_' }.freeze
+
+  # The Casting Skill a caster uses for a Spell, decided by the **class that
+  # granted** it (CLASS_CASTING_SKILL). A class with no override falls back to
+  # the Spell's first listed skill / the default.
+  def cast_skill_for(acc, variant, spell_name)
+    default = Encounter::Cast::DEFAULT_CAST_SKILL
+    klass = spell_source_classes(acc)[spell_name.to_s]
+    cs = klass && class_casting_skill(acc, klass)
+    cs || (Array((variant || {})['skills']).first || default)
+  end
+
+  # Map of canonical Spell name → the class key that granted it, from the
+  # caster's granted Abilities (source "class:<key>"). Non-spell grants are
+  # skipped; the first granting class wins for a multiclass overlap.
+  def spell_source_classes(acc)
+    map = {}
+    (acc&.granted_abilities rescue []).each do |g|
+      src = g[:source].to_s
+      next unless src.start_with?('class:')
+      info = (CreatureSheet.spell_info(g[:name]) rescue nil) or next
+      map[info[:name]] ||= src.sub('class:', '')
+    end
+    map
+  end
+
+  # The Casting Skill a class confers (CLASS_CASTING_SKILL), with a `perform_`
+  # family resolved to the caster's concrete trained Performance skill. Nil when
+  # the class has no override (or a family the caster trains no instance of).
+  def class_casting_skill(acc, class_key)
+    skill = CLASS_CASTING_SKILL[class_key.to_s] or return nil
+    resolved = resolve_skill_family(acc, skill)
+    resolved.to_s.end_with?('_') ? nil : resolved
+  end
+
+  # Resolve a Set-Skill family ('perform_') to the caster's concrete trained
+  # instance ('perform_dance'); a non-family skill is returned unchanged. The
+  # family itself is returned only when the caster trains no instance of it.
+  def resolve_skill_family(acc, skill)
+    return skill unless skill.to_s.end_with?('_')
+    (acc&.trained_skills rescue []).find { |s| s.start_with?(skill) } || skill
+  end
+
+  # A Creature's remaining Mana (max minus spent), or nil when it has no Mana
+  # pool. Mirrors the cast builder's computation for a non-acting Combatant.
+  def combatant_mana_left(creature_id, acc)
+    mana_max = (acc&.max_mana rescue nil)
+    return nil unless mana_max
+    spent = (Conditions.store.instance_for(creature_id).state.mana_spent rescue 0)
+    [mana_max - spent, 0].max
+  end
+
+  # Whether a Creature is currently Raging (an active `rage` named effect),
+  # which gates the Rage-power reaction Primal Tenacity.
+  def creature_raging?(creature_id)
+    (Conditions.store.instance_for(creature_id).active_effect_names rescue []).include?('rage')
+  rescue StandardError
+    false
+  end
+
+  # The Mana Cost of a reaction Ability (its catalog `mana_cost`), e.g. 4 for
+  # Better Lucky Than Good / Danger Sense / Primal Tenacity.
+  def reaction_mana_cost(ability_name)
+    (Abilities.catalog.ability(ability_name)&.dig('mana_cost') rescue nil).to_i
+  end
+
+  # Resolve a Spell name — a catalog key OR a constructed per-Tier variant name
+  # ("Standard Shield") — to [base_catalog_key, tier_axis_index], so the
+  # Abilities domain (which keys only by catalog name) can look it up.
+  def spell_base_axis(name)
+    info = (CreatureSheet.spell_info(name) rescue nil)
+    return [info[:base], info[:axis].to_i] if info && info[:base]
+    [name.to_s, 0]
+  end
+
+  # The resolved Variant for any Spell name (base or constructed), or {}.
+  def resolve_named_spell(name)
+    base, axis = spell_base_axis(name)
+    (Abilities.lookup(base, axis_index: axis) rescue nil) || {}
+  rescue StandardError
+    {}
+  end
+
+  # Shared "pick a dice count" picker used across the attack builder (weapon /
+  # defensive action / ally shield). Emits the body option list — an optional
+  # "max" lead quick-pick (`lead_label`), one button per count in min..max, and
+  # a trailing info line — and the title-row header quick-pick. Each option's
+  # value is "<prefix>|<n>"; `aff` / `patch` / `summary` are lambdas of the count.
+  # `header_min` makes the header select the minimum (a Reaction-minimum defence)
+  # rather than the max affordable. Returns { body:, header: }.
+  def dice_count_group(prefix:, group:, min:, max:, aff:, patch:, summary:, info:,
+                       header_label:, key: nil, lead_label: nil, header_min: false)
+    aff_max = (min..max).select { |n| aff.call(n) }.max
+    opt = lambda do |dice, label, disabled|
+      o = { value: "#{prefix}|#{dice}", group: group, label: label,
+            summary: summary.call(dice), disabled: disabled, patch: patch.call(dice) }
+      o[:key] = key unless key.nil?
+      o
+    end
+    body = []
+    body << opt.call(aff_max || max, lead_label, aff_max.nil?) if lead_label
+    (min..max).each { |n| body << opt.call(n, n.to_s, !aff.call(n)) }
+    body << { kind: 'info', group: group, value: "#{group}|info", label: info }
+    hdice = header_min ? min : (aff_max || max)
+    { body: body, header: { value: "#{prefix}|#{hdice}", label: header_label,
+                            disabled: (header_min ? !aff.call(min) : aff_max.nil?) } }
+  end
+
+  # The defend spec for a shield-granting Spell, or nil. Shield of Faith defends
+  # the target via a Reservoir discharge; the Shield spell via a top-level
+  # `defends` marker whose block dice come from the caster's Combat Pool (no
+  # Reservoir). Returns { block_dice: 'reservoir' | 'combat_pool' }.
+  def spell_defends_spec(v)
+    return { block_dice: 'reservoir' } if v.dig('reservoir', 'discharge', 'defends').to_s == 'target'
+    d = v['defends']
+    return { block_dice: (d['block_dice'] || 'combat_pool').to_s } if d.is_a?(Hash)
+    { block_dice: 'combat_pool' } if d.to_s == 'target'
+  end
+
   # The per-Tier Mana Cost (abilities_config.yaml → Mana Cost Per Tier).
   def mana_cost_for_tier(tier)
     tbl = (Abilities.catalog.config.mana_cost_per_tier rescue {})
@@ -1240,6 +1607,18 @@ helpers do
     spell  = (payload['spell'] ||= {})
     spell['name'] ||= payload['spell_name']
     caster = payload['caster'] || {}
+    # A constructed per-Tier name ("Standard Shield") resolves to its base
+    # catalog key + Tier axis so every Abilities lookup below succeeds.
+    base_name, = spell_base_axis(spell['name']) if spell['name']
+
+    # Resolve the caster's own Casting Skill (a Cleric's Invocation) so the
+    # casting check rolls that Skill, not the Spell's generic `arcana` default.
+    if spell['cast_skill'].nil? && caster['id'] && spell['name']
+      ccomb = (encounter_state.combatant(caster['id'].to_i) rescue nil)
+      cacc  = ccomb && (Creatures.lookup(ccomb[:creature_id]) rescue nil)
+      variant = resolve_named_spell(spell['name'])
+      spell['cast_skill'] = cast_skill_for(cacc, variant, spell['name']) if cacc
+    end
 
     if spell['tier'].nil? && spell['name']
       info = (CreatureSheet.spell_info(spell['name']) rescue nil)
@@ -1248,7 +1627,7 @@ helpers do
     spell['mana_cost'] ||= mana_cost_for_tier(spell['tier']) unless spell['tier'].nil?
 
     if Abilities.respond_to?(:resolve_spell) && spell['name']
-      resolved = (Abilities.resolve_spell(spell['name'], tier: spell['tier']) rescue nil)
+      resolved = (Abilities.resolve_spell(base_name, tier: spell['tier']) rescue nil)
       apply_resolved_spell!(payload, resolved) if resolved
     end
     # Fall back to the default casting skill only if neither the client nor the
@@ -1271,7 +1650,7 @@ helpers do
     spell = (payload['spell'] ||= {})
     spell['polarity'] = r['polarity'] unless r['polarity'].nil?
 
-    variant = (Abilities.lookup(spell['name']) rescue nil)
+    variant = resolve_named_spell(spell['name'])
     spell['cast_skill'] ||= (Array(variant && variant['skills']).first || Encounter::Cast::DEFAULT_CAST_SKILL)
 
     effects = cast_effects_from_consumption(r['effects'])
@@ -1287,7 +1666,7 @@ helpers do
     # Area Spells (Obscuring Mist, Darkness, Web, Create Pit, Silence) carry an
     # `area` footprint placed on the map at commit time. For an Aspect-list area
     # (Grease: object vs. area), use the first footprint Aspect.
-    raw_entry = (Abilities.catalog.ability(spell['name']) rescue nil) || {}
+    raw_entry = variant || {}
     raw_area  = raw_entry['area']
     area_hash = raw_area.is_a?(Array) ? raw_area.find { |x| x.is_a?(Hash) } : raw_area
     # Each creature caught in the footprint gets the area's on-enter Effect (its
@@ -1430,19 +1809,21 @@ helpers do
     Conditions.store.persist!
   end
 
-  # A Spell whose Reservoir discharge `defends: target` (Shield of Faith) hangs
-  # a shield over the chosen ally: grant the caster a reaction tied to that
-  # Combatant, so attacks against the ally can surface the caster's block as an
-  # opposing Roll. The Reservoir itself is registered by the cast's sustain.
+  # A shield-granting Spell (Shield of Faith via a Reservoir discharge, or the
+  # Shield spell via a Combat-Pool block) hangs a shield over the chosen ally:
+  # grant the caster a reaction tied to that Combatant, so attacks against the
+  # ally can surface the caster's block as an opposing Roll.
   def grant_defend_reaction!(payload)
     spell = payload['spell'] || {}
-    v = (Abilities.lookup(spell['name'].to_s) rescue nil) || {}
-    return unless v.dig('reservoir', 'discharge', 'defends').to_s == 'target'
+    # Resolve the spell's variant (a constructed name like "Standard Shield"
+    # resolves to its base + Tier) so a Tier-scaled shield carries the right
+    # bonus and its defend spec is detected.
+    v = resolve_named_spell(spell['name'])
+    spec = spell_defends_spec(v) or return
     caster = payload['caster'] || {}
     ally = Array(payload['targets']).first or return
-    # The block may roll up to the caster's Dice Cap in the casting skill, each
-    # die costing one Reservoir die — store the cap so the attack builder can
-    # bound the block.
+    # The block rolls up to the caster's Dice Cap in the casting skill; each die
+    # spends one Reservoir die (Shield of Faith) or one Combat Pool die (Shield).
     skill = (spell['cast_skill'] || Encounter::Cast::DEFAULT_CAST_SKILL).to_s
     cacc  = (Creatures.lookup(combatant_for_id_creature(caster['id'])) rescue nil)
     cap   = (roll_inputs_for(cacc, skill)[:dice_cap].to_i rescue 0)
@@ -1450,7 +1831,21 @@ helpers do
     encounter_state.revoke_action { |g| g[:source] == spell['name'].to_s && g[:combatant_id] == caster['id'] }
     encounter_state.grant_action({ combatant_id: caster['id'], name: spell['name'], source: spell['name'],
                                    spell_name: spell['name'], defends: ally['id'],
-                                   cast_skill: skill, dice_cap: cap })
+                                   cast_skill: skill, dice_cap: cap,
+                                   dice_source: spec[:block_dice],
+                                   shield_bonus: v['shield_bonus'].to_i })
+    # Show the protected ally a visible "shielded" condition (the caster still
+    # controls the block). Refreshed each cast.
+    apply_shielded_condition(ally['id'], spell['name'].to_s)
+  end
+
+  # Mark the shielded Combatant with the `shielded` named effect for display.
+  def apply_shielded_condition(combatant_id, source_name)
+    c = encounter_state.combatant(combatant_id.to_i) or return
+    inst = Conditions.store.instance_for(c[:creature_id])
+    inst.apply_named_effect('shielded', source_id: "shield:#{source_name}") if inst.respond_to?(:apply_named_effect)
+  rescue StandardError
+    nil
   end
 
   def cast_effects_from_consumption(effects)
@@ -1600,6 +1995,7 @@ post '/encounter/spawn_and_add' do
     return encounter_error(404, e.message)
   end
 
+  equip_spawned_creature(new_creature_id)
   combatant = encounter_state.add_combatant(new_creature_id)
   encounter_response(
     ok: true,
@@ -1851,8 +2247,17 @@ end
 # Move (turn_action_stub.md → Move): spend the Move Cost in Combat Pool dice.
 post '/encounter/move' do
   require_dm!
-  encounter_state.apply_move(params[:combatant_id].to_i)
-  redirect back || '/encounter'
+  # JSON from the turn-action Move pane (combatant_id + the editable Combat-Pool
+  # cost); falls back to a plain form post for non-JS callers.
+  body = (JSON.parse(request.body.read) rescue nil)
+  cid  = ((body && body['combatant_id']) || params[:combatant_id]).to_i
+  cost = body && body.key?('cost') ? body['cost'] : nil
+  result = encounter_state.apply_move(cid, cost: cost)
+  if body
+    encounter_response(result)
+  else
+    redirect back || '/encounter'
+  end
 end
 
 # Resolve one Affliction Save (the Conditions Save Resolution Stub's
@@ -1904,6 +2309,10 @@ post '/encounter/resolve_attack' do
   return encounter_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
   enrich_attack_payload!(payload)
   result = encounter_state.resolve_attack_payload(payload)
+  # On a preview, surface the post-roll defender Reactions (Danger Sense /
+  # Primal Tenacity) the target may use — but only when it declared no defense
+  # and the hit actually landed.
+  result = attach_defender_reactions(result, payload) unless result[:committed]
   # A committed attack mutated the target's Conditions (HP damage, bleed) —
   # persist the Conditions store so the damage survives a restart. A preview
   # (commit:false) mutates nothing, so there's nothing to write. A commit also

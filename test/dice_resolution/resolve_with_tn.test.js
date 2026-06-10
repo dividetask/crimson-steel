@@ -8,9 +8,9 @@ import { SequenceRng } from '../../public/js/rng.js';
 // "Resolve a Roll with a Target Number"
 
 test('A Roll with no modifiers and middling dice', () => {
-  const rng = new SequenceRng([6, 6, 5, 1, 3, 7]);
+  const rng = new SequenceRng([8, 8, 5, 1, 3, 9]);
   const r = Roll.resolveWithTn({ diceCount: 6 }, rng);
-  assert.equal(r.tn, 6);
+  assert.equal(r.tn, 8);
   assert.equal(r.startingValue, 0);
   assert.equal(r.dois, 2);
   assert.equal(r.criticalCount, 0);
@@ -23,15 +23,17 @@ test('Bonus and Penalty stacking', () => {
   const { tn, startingValue } = TnComputation.compute({
     bonusPenaltyList: [['A', 3], ['A', 1], ['A', -2], ['B', 2]],
   });
-  assert.equal(tn, 3);
+  assert.equal(tn, 5);
   assert.equal(startingValue, 0);
 });
 
 test('Bonus overflow into Starting Successes', () => {
   const { tn, startingValue } = TnComputation.compute({
-    bonusPenaltyList: [['A', 5]],
+    bonusPenaltyList: [['A', 7]],
     startingContribution: 1,
   });
+  // 8 - 7 = 1, clamped to the Minimum TN 3; the 2-point overflow becomes
+  // Starting Successes on top of the contribution.
   assert.equal(tn, 3);
   assert.equal(startingValue, 3);
 });
@@ -41,15 +43,17 @@ test('Penalty overflow into Starting Failures', () => {
     bonusPenaltyList: [['A', -5]],
     startingContribution: 0,
   });
+  // 8 + 5 = 13, clamped to the Maximum TN 9; the 4-point overflow becomes
+  // Starting Failures.
   assert.equal(tn, 9);
-  assert.equal(startingValue, -2);
+  assert.equal(startingValue, -4);
 });
 
 test('Bonus and Penalty cancel out', () => {
   const { tn, startingValue } = TnComputation.compute({
     bonusPenaltyList: [['A', 20], ['B', -20]],
   });
-  assert.equal(tn, 6);
+  assert.equal(tn, 8);
   assert.equal(startingValue, 0);
 });
 
@@ -87,12 +91,12 @@ test('A reroll changes a Failure into a Success', () => {
 });
 
 test('A nudge promotes a near-Success', () => {
-  const rng = new SequenceRng([5, 5, 5, 5, 5, 1]);
+  const rng = new SequenceRng([7, 5, 5, 5, 5, 1]);
   const r = Roll.resolveWithTn(
     { diceCount: 6, failureModifier: 0, valueAdjustment: { value: 1, max: false } },
     rng
   );
-  assert.deepEqual(r.nudgeChanges, [6, null, null, null, null, null]);
+  assert.deepEqual(r.nudgeChanges, [8, null, null, null, null, null]);
 });
 
 test('Tied delta with a Failure prefers the lower-starting die', () => {

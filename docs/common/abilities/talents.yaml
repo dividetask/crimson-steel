@@ -31,31 +31,27 @@ Rage:
   effects:
     - "rage"
   effect_hash:
-    level: level    # the granting Class's level; plumbed into the rage Active Effect's metadata
-  description: "You can spend a point of mana to enter a rage for constitution/2 + class level turns. At the end of your rage you are exhausted for 10 minutes. You can enter a rage as a free action but not if you are surprised. While raging you gain the following Circumstance bonuses: one point of damage reduction plus an additional point every 3 levels, and one point of damage resilience plus an additional point every 2 levels. You also gain a number of rage powers based upon your level. You cannot enter a rage while fatigued, and you cannot extend an ongoing rage unless a power specifically states otherwise. The numeric bonuses are computed by the `rage` Effect from its metadata; per-creature state (rage timer, exhaustion on end) lives in Conditions."
+    level: level
+  description: "You can spend a point of mana to enter a rage for constitution/2 + class level turns. At the end of your rage you are exhausted for 10 minutes. You can enter a rage as a free action but not if you are surprised. While raging you gain the following Circumstance bonuses: one point of damage reduction plus an additional point every 3 levels, and one point of damage resilience plus an additional point every 2 levels. You also gain a number of rage powers based upon your level. You cannot enter a rage while fatigued, and you cannot extend an ongoing rage unless a power specifically states otherwise."
 
 Channel Divinity:
   type: talent
   skills: [invocation]
   mana_cost: 1
-  description: "Spend mana to invoke a divine effect from your domain. Channel Divinity has no effect on its own — specific Channel Divinity abilities (like Turn Undead) inherit from this Talent and supply the actual mechanics."
+  description: "Spend mana to invoke a divine effect from your domain."
 
 Turn Undead:
   type: talent
   inherits_from: Channel Divinity
   activation_time: main
-  range: Medium
+  range: Close
   target: "1+rank"
   save:
     - attribute: wis
       fail: frightened
       success: "0"
   duration: rank turns
-  description: "A Channel Divinity ability. Drive undead within range to flee — each affected undead must make a Wisdom save or be Frightened for the duration."
-
-# --- Domain Channel Divinity (1st-level; 1 mana, inherited) -------------
-# Granted to a Cleric when the matching domain is one of their deity's
-# own domains. The domain -> Talent mapping lives in deities.yaml.
+  description: "Each affected undead must make a Wisdom save or be Frightened for the duration."
 
 Martial Devotion:
   type: talent
@@ -66,7 +62,7 @@ Martial Devotion:
   duration: "1 turn"
   effects:
     - martial_devotion
-  description: "War domain Channel Divinity. As a bonus action, gain the benefits of Weapon Training (see `weapon_training` in modifier_abilities.yaml) for one turn — a Competency attack bonus (the `martial_devotion` Active Effect)."
+  description: "Gain the benefits of Weapon Training Special Ability."
 
 Flame Devotion:
   type: talent
@@ -75,7 +71,7 @@ Flame Devotion:
   range: 15
   target: object
   duration: "1 turn"
-  description: "Fire domain Channel Divinity. As a reaction, a target weapon within 15 feet gains the Flaming property for one turn (Flaming is an Equipment weapon enchantment analogous to the Radiant enchantment granted by Divine Favor; it adds fire damage to attacks made with the weapon)."
+  description: "A target weapon within 15 feet gains the Flaming property for one turn."
 
 Touch of Chaos:
   type: talent
@@ -88,7 +84,7 @@ Touch of Chaos:
       fail: confused
       success: "0"
   duration: "1 attack"
-  description: "Chaos domain Channel Divinity. As a reaction when the target makes an attack, the target must make a Charisma save or its attack targets a random creature in range instead."
+  description: "Force target creature to redirect their attack to a random creature in range instead."
 
 Strength Devotion:
   type: talent
@@ -97,14 +93,9 @@ Strength Devotion:
   range: Self
   target: self
   duration: "1 minute"
-  modifiers:
-    - target: str
-      type: Morale
-      add: 2
-    - target: con
-      type: Morale
-      add: 2
-  description: "Strength domain Channel Divinity. As a main action, gain a +2 Morale bonus to Strength and Constitution for 1 minute."
+  effects:
+    - strength_devotion
+  description: "Gain a +2 Morale bonus to Strength and Constitution."
 
 Glorious Charge:
   type: talent
@@ -113,11 +104,7 @@ Glorious Charge:
   range: Self
   target: self
   duration: "1 attack"
-  description: "Glory domain Channel Divinity. As a bonus action, treat your Tier as 1 higher for a single attack. This raises the effective Tier used for Tier Mismatch modifiers (see encounter_design.md) — negating the Ascendancy penalty when striking a creature one Tier above you, and reducing it against foes more than one Tier higher."
-
-# --- Deity Channel Divinity (4th-level; 4 mana) ------------------------
-# Granted at Cleric level 4. The deity -> Talent mapping lives in
-# deities.yaml.
+  description: "Treat your Tier as 1 higher for a single attack."
 
 Karthak's Resolve:
   type: talent
@@ -131,7 +118,15 @@ Karthak's Resolve:
     - target: damage_resilience
       type: Morale
       add: 5
-  description: "Karthak's deity Channel Divinity, gained at Cleric level 4. As a reaction, gain a +5 Morale bonus to damage resilience for one turn. Usable only when fighting a higher-Tier creature, or when surrounded by multiple enemies with no allies within 15 feet (DM-adjudicated)."
+  description: "Gain a +5 Morale bonus to damage resilience. Usable only when fighting a higher-Tier creature, or when surrounded by multiple enemies with no allies within 15 feet."
+
+Kesser's Gambit:
+  type: talent
+  inherits_from: Channel Divinity
+  mana_cost: 4
+  activation_time: reaction
+  roll_table: Kesser Reversal Table
+  description: "As a reaction triggered on an attack or spell roll, roll a d10 on the Kesser Reversal Table."
 
 Sneak Attack:
   type: talent
@@ -141,7 +136,7 @@ Sneak Attack:
     effect:
       kind: bonus_damage
       damage: "1 + (level - 1) / 2"
-  description: "Weapon attacks deal extra damage against flat-footed creatures within 30 ft (+1 per 2 levels after 1st). Before rolling, you may impose an additional effect (e.g. extra bleed, halved movement) by raising the success requirement; the target then makes a Constitution save with a penalty equal to your sneak-attack bonus. The GM adjudicates eligibility."
+  description: "Attacks deal extra damage against flat-footed creatures within 30 ft (+1 per 2 levels after 1st). Before rolling, you may impose an additional effect by raising the success requirement; the target then makes a Constitution save with a penalty equal to your sneak-attack bonus."
 
 Reckless Attacks:
   type: talent
@@ -166,13 +161,13 @@ Primal Tenacity:
     - target: damage_reduction
       type: Morale
       add: 4
-  description: "While raging: spend a reaction and 4 mana to gain a +4 Morale bonus to damage reduction against a single incoming attack."
+  description: "While raging: Gain a +4 Morale bonus to damage reduction against a single attack."
 
 Trapfinding:
   type: talent
   effects:
     - "trapfinding"
-  description: "Passively sense certain magical auras from traps and illusions. The Trapfinding Active Effect lets the creature attempt Perception checks against magically concealed traps and illusions; the bonus grows with level."
+  description: "Passively sense certain magical auras from traps and illusions, and gain a perception bonus against them."
   modifiers:
     - target: skill
       type: Competency
@@ -190,7 +185,7 @@ Danger Sense:
     - target: damage_resilience
       type: Competency
       add: 4
-  description: "Spend a reaction and 4 mana when taking damage (even when unaware) to gain a +4 Competency bonus to damage resilience against that damage."
+  description: "Gain a +4 Competency bonus to damage resilience against a single attack."
 
 Better Lucky Than Good:
   type: talent
@@ -198,7 +193,8 @@ Better Lucky Than Good:
   range: Self
   target: self
   duration: "1 turn"
-  description: "Spend 3 mana. Can be activated while unaware. Attacks against you (including spells) are made with half as many dice (min 3). Enemies are unconsciously aware of the penalty."
+  mana_cost: 4
+  description: "Can be activated while unaware. Attacks against you (including spells) are made with half as many dice (min 3)."
 
 Magical Performance:
   type: talent
@@ -206,23 +202,19 @@ Magical Performance:
   target: self
   duration: concentration
   skills: [perform_]
-  description: "Learn a magical variant of any Performance skill, used both for mundane checks and to create a magical performance. Maintaining a performance takes a main action each turn; bardic spells can be cast as part of that action. Only advances on bard levels."
+  description: "Learn a magical variant of any Performance skill, used both for mundane checks and to create a magical performance. Maintaining a performance takes a main action each turn."
 
 Bardic Spellcasting:
   type: talent
-  description: "Cast a number of bardic spells as a main action while performing. Spells need not be prepared each day. Casting outside a performance takes twice as long. The Creature's chosen spells live under `advancement.classes.bard.choices.spellcasting`; every entry there becomes a Granted Ability."
+  description: "Cast a number of bardic spells as a main action while performing. Spells need not be prepared each day. Casting outside a performance takes twice as long."
 
 Arcane Spellcasting:
   type: talent
-  description: "Cast arcane spells. The Creature's chosen spells live under `choices.spellcasting` on the granting Class Entry (wizard or arcane_trickster). Spells must be prepared from the spellbook at the start of each day; casting consumes Mana per the spell's Tier."
+  description: "Cast arcane spells."
 
 Druidic Spellcasting:
   type: talent
-  description: "Cast druidic spells drawn from the bond with nature. The Creature's chosen spells live under `advancement.classes.druid.choices.spellcasting`; spells need not be prepared each day."
-
-Ranger Spellcasting:
-  type: talent
-  description: "Cast a small repertoire of nature-aspected spells. The Creature's chosen spells live under `advancement.classes.ranger.choices.spellcasting`. Spells need not be prepared in advance."
+  description: "Cast druidic spells drawn from the bond with nature."
 
 Bardic Inspiration:
   type: talent
@@ -234,7 +226,7 @@ Bardic Inspiration:
   skills: [perform_]
   channel:
     mode: reservoir
-    description: "Make a Performance check; each Success adds one die to the Bardic Inspiration Reservoir."
+    description: "Make a Performance check; each Success grants one point of luck."
   reservoir:
     fill:
       source: check_successes
@@ -242,17 +234,16 @@ Bardic Inspiration:
     discharge:
       action: reaction
       amount: "1..reservoir"
-      description: "Spend Reservoir dice as a reaction to grant the targeted Creature (self or any ally) that many Luck dice on their next Roll."
-  description: "Cast on yourself to begin a Bardic Performance. On cast and on each subsequent channel, make a Performance check — each Success adds one die to the Bardic Inspiration Reservoir. Reservoir dice can be Discharged as a reaction to grant Luck to any creature within range. The Performance ends when channeling stops or the duration elapses."
+      description: "Spend luck to allow target roll to reroll low rolls."
 
 Unsettling Words:
   type: talent
   inherits_from: Bardic Inspiration
-  description: "Modifies Bardic Inspiration: the Bardic Inspiration Reservoir may also be discharged as a reaction to impose Luck penalties on an enemy's Roll, in addition to granting Luck bonuses to allies."
+  description: "You may use luck from youur Bardic Inspiration to force target roll to reroll successes."
 
 Combat Trickery:
   type: talent
-  description: "Gain a number of arcane spells from the Trickery list as innate spells. Cast them as a main action without preparation."
+  description: "Gain a number of arcane spells from the Trickery list as innate spells."
 
 Mage Hand Legermain:
   type: talent
@@ -287,7 +278,7 @@ Halfling Luck:
 # resolve to Equipment entries once that domain ships).
 Natural Attack:
   type: talent
-  description: "Grants one or more natural weapons (slam, claw, bite, horn, etc.). The weapons themselves are Equipment entries; this Talent is how a Creature gains access to them. The granting Class or Race specifies which natural weapons via grants_equipment."
+  description: "Grants one or more natural weapons (slam, claw, bite, horn, etc.)."
   grants_equipment: []   # filled in by the granting Class or Race; Equipment owns the weapon stat blocks.
 
 # Concrete Natural Attack Talents granted by the beast subtypes. Each names
@@ -296,12 +287,12 @@ Natural Attack:
 # an attack but is never carried as inventory.
 Canine Bite:
   type: talent
-  description: "A canine's powerful jaws. Grants the Bite (Jaws) natural weapon."
+  description: "Grants the Bite (Jaws) natural weapon."
   grants_equipment: ["Bite (Jaws)"]
 
 Spider Bite:
   type: talent
-  description: "A spider's venomous fangs. Grants the Bite (Fangs) natural weapon, which injects spider venom on a hit."
+  description: "Grants the Bite (Fangs) natural weapon."
   grants_equipment: ["Bite (Fangs)"]
 
 Rend:
@@ -312,7 +303,7 @@ Rend:
     effect:
       kind: bonus_damage
       damage: "tier"
-  description: "On a successful hit with two natural attacks against the same target on the same turn, deal additional damage equal to tier. The GM adjudicates whether the second hit qualifies."
+  description: "On a successful hit with two natural attacks against the same target on the same turn, deal additional damage equal to tier."
 
 # --- Trigger talents tied to monster bites/slams -----------------------
 
@@ -342,7 +333,7 @@ Ghoul Fever:
     - attribute: con
       fail: ghoul_fever
       success: "0"
-  description: "Disease inflicted on bite. Targets must make a Constitution save against contracting ghoul fever; see Conditions for the affliction's mechanics."
+  description: "Disease inflicted on bite. Targets must make a Constitution save against contracting ghoul fever."
 
 Ghoul Paralysis:
   type: talent

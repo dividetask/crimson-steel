@@ -143,7 +143,7 @@ Classes:
       - appraisal
       - arcana
       - craft_
-      - healing
+      - invocation
       - history
       - linguistics
       - nobility
@@ -185,6 +185,48 @@ Classes:
       opposed: [dex, int, wis, cha]
     ability_progression:
       "1": [weapon_training, armor_training]
+    aligned_proficiencies:
+      - acrobatics
+      - animal_handling
+      - athletics
+      - history
+      - intimidate
+      - nature
+      - perception
+
+  # NPC martial class. Mirrors `fighter` exactly but grants no class
+  # abilities (no weapon/armor training). `npc_class: true` keeps it
+  # out of the player-character class picker — it is for enemy and NPC
+  # stat blocks only.
+  warrior:
+    npc_class: true
+    martial_advancement: aligned
+    bonus_skills: 2
+    mana_per_level: 1
+    saves:
+      aligned: []
+      opposed: [dex, int, wis, cha]
+    aligned_proficiencies:
+      - acrobatics
+      - animal_handling
+      - athletics
+      - history
+      - intimidate
+      - nature
+      - perception
+
+  # NPC martial class for beasts. Identical to `warrior` — a copy of
+  # `fighter` that grants no class abilities (no weapon/armor training).
+  # Beasts use this instead of `commoner`, which is reserved for ordinary
+  # folk. `npc_class: true` keeps it out of the player-character picker.
+  feral:
+    npc_class: true
+    martial_advancement: aligned
+    bonus_skills: 2
+    mana_per_level: 1
+    saves:
+      aligned: []
+      opposed: [dex, int, wis, cha]
     aligned_proficiencies:
       - acrobatics
       - animal_handling
@@ -289,7 +331,9 @@ Classes:
       - planes
       - religion
 
+  # NPC-only class (kept out of the player-character class picker).
   commoner:
+    npc_class: true
     martial_advancement: opposed
     bonus_skills: 2
     mana_per_level: 0

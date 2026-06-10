@@ -61,7 +61,7 @@ module CreaturesFixtures
       id: 9001, name: 'Korth', race: 'hill_dwarf', tier: 2,
       tags: ['player_character'],
       attributes: { str: 12, dex: 14, con: 17, int: 14, wis: 18, cha: 11 },
-      classes: { cleric: { level: 4, skills: %w[healing arcana intimidate sense_motive],
+      classes: { cleric: { level: 4, skills: %w[invocation arcana intimidate sense_motive],
                             choices: { 'deity' => 'Karthak', 'domain' => 'War' } } },
       tier_attribute_advancement: %i[con wis]
     )

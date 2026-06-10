@@ -19,6 +19,16 @@
 
 option_lists:
 
+  # Equal-chance melee weapons for a non-orc Slaver. `key` records
+  # hand-ness so the shield row can gate (no shield with two-handed).
+  slaver_common_melee:
+    - { chance: 0.1667, key: one_handed, item: { item: Falchion } }
+    - { chance: 0.1667, key: two_handed, item: { item: Great axe } }
+    - { chance: 0.1667, key: one_handed, item: { item: Long sword } }
+    - { chance: 0.1667, key: one_handed, item: { item: Dagger } }
+    - { chance: 0.1666, key: one_handed, item: { item: Short sword } }
+    - { chance: 0.1666, key: two_handed, item: { item: Spear } }
+
   tier_one_magical_melee:
     - chance: 0.5
       item:
@@ -49,6 +59,239 @@ loot_tables:
         item: { item: Copper, quantity: "2d6" }
       - chance: 0.3
         item: { item: Silver, quantity: "1d4" }
+
+  # Common Goblin starting loadout (rolled at spawn, see the Common
+  # Goblin template's `equipment_table`). A melee weapon + a ranged
+  # option, a chance of armor / shield, ammunition for the ranged
+  # weapon, pocket change, and the occasional gem or grisly trophy.
+  common_goblin_loadout:
+    rolls:
+
+      # Melee weapon — equal chance dagger / short sword / spear.
+      # `key` records hand-ness so the shield row can gate on it.
+      - equipped: true
+        as: melee
+        options:
+          - chance: 0.34
+            key: one_handed
+            item: { item: Dagger }
+          - chance: 0.33
+            key: one_handed
+            item: { item: Short sword }
+          - chance: 0.33
+            key: two_handed
+            item: { item: Spear }
+
+      # Ranged option — equal chance sling / short bow / thrown rocks.
+      - as: ranged
+        options:
+          - chance: 0.34
+            key: sling
+            item: { item: Sling }
+          - chance: 0.33
+            key: short_bow
+            item: { item: Short bow }
+          - chance: 0.33
+            key: rocks
+            item: { item: Stone, quantity: "1d6 + 4" }
+
+      # Ammunition for the chosen ranged weapon.
+      - when: { ranged: short_bow }
+        item: { item: Arrow, quantity: "5d4" }   # 5–20 arrows
+      - when: { ranged: sling }
+        item: { item: Stone, quantity: "5d8" }   # 5–40 bullets
+
+      # 25% chance of leather armor.
+      - equipped: true
+        chance: 0.25
+        item: { item: Leather armor }
+
+      # 25% chance of a light wooden shield — only with a one-handed
+      # melee weapon (no shield alongside a two-handed spear).
+      - equipped: true
+        when: { melee: one_handed }
+        chance: 0.25
+        item: { item: Light wooden shield }
+
+      # Pocket change.
+      - item: { item: Copper, quantity: "2d10" }   # ~0–20 cp
+      - chance: 0.2
+        item: { item: Silver, quantity: "1d4" }    # 1–5 sp (20%)
+      - chance: 0.1
+        item: { item: Gold, quantity: "1d2" }      # 1–2 gp (10%)
+
+      # 5% chance of a small gem worth ~1–25 gp.
+      - chance: 0.05
+        options:
+          - chance: 0.34
+            key: gem_small
+            item: { item: Gem, quantity: 1, value_in_gold: 5 }
+          - chance: 0.33
+            key: gem_medium
+            item: { item: Gem, quantity: 1, value_in_gold: 15 }
+          - chance: 0.33
+            key: gem_large
+            item: { item: Gem, quantity: 1, value_in_gold: 25 }
+
+      # 10% chance of a grisly trophy.
+      - chance: 0.1
+        item: { item: Humanoid skull }
+
+  # Common Orc starting loadout (rolled at spawn, see the Common Orc
+  # template's `equipment_table`). Heavier-hitting than a goblin: a
+  # falchion-favoring melee pick, a bow or sling, a better shot at armor
+  # and a metal shield, and fatter pockets.
+  common_orc_loadout:
+    rolls:
+
+      # Melee — 50% falchion, else equal chance great axe / long sword /
+      # dagger / short sword / spear. `key` records hand-ness so the shield
+      # row can gate (no shield with a two-handed weapon).
+      - equipped: true
+        as: melee
+        options:
+          - chance: 0.5
+            key: one_handed
+            item: { item: Falchion }
+          - chance: 0.1
+            key: two_handed
+            item: { item: Great axe }
+          - chance: 0.1
+            key: one_handed
+            item: { item: Long sword }
+          - chance: 0.1
+            key: one_handed
+            item: { item: Dagger }
+          - chance: 0.1
+            key: one_handed
+            item: { item: Short sword }
+          - chance: 0.1
+            key: two_handed
+            item: { item: Spear }
+
+      # Ranged — equal chance sling / long bow.
+      - as: ranged
+        options:
+          - chance: 0.5
+            key: sling
+            item: { item: Sling }
+          - chance: 0.5
+            key: bow
+            item: { item: Longbow }
+
+      # Ammunition for the chosen ranged weapon.
+      - when: { ranged: bow }
+        item: { item: Arrow, quantity: "5d4" }   # 5–20 arrows
+      - when: { ranged: sling }
+        item: { item: Stone, quantity: "5d8" }   # 5–40 bullets
+
+      # Armor — weighted: 50% hide, 25% leather, 5% breastplate (else none).
+      - equipped: true
+        options:
+          - chance: 0.5
+            key: hide
+            item: { item: Hide armor }
+          - chance: 0.25
+            key: leather
+            item: { item: Leather armor }
+          - chance: 0.05
+            key: breastplate
+            item: { item: Breastplate }
+
+      # 50% chance of a light metal shield — only with a one-handed weapon.
+      - equipped: true
+        when: { melee: one_handed }
+        chance: 0.5
+        item: { item: Light metal shield }
+
+      # Pocket change.
+      - item: { item: Copper, quantity: "5d16" }   # 5–80 cp
+      - chance: 0.2
+        item: { item: Silver, quantity: "5d10" }   # 5–50 sp (20%)
+      - chance: 0.1
+        item: { item: Gold, quantity: "10d5" }     # 10–50 gp (10%)
+
+      # 15% chance of a small gem worth ~1–25 gp.
+      - chance: 0.15
+        options:
+          - chance: 0.34
+            key: gem_small
+            item: { item: Gem, quantity: 1, value_in_gold: 5 }
+          - chance: 0.33
+            key: gem_medium
+            item: { item: Gem, quantity: 1, value_in_gold: 15 }
+          - chance: 0.33
+            key: gem_large
+            item: { item: Gem, quantity: 1, value_in_gold: 25 }
+
+      # 10% chance of a trophy necklace.
+      - chance: 0.1
+        item: { item: Necklace of animal fangs }
+
+  # Slaver starting loadout (rolled at spawn, see the Slaver template's
+  # `equipment_table`). The melee pick branches on the spawn's rolled
+  # race, which the spawn flow seeds as the `race` roll variable: orc
+  # slavers favor the falchion, everyone else rolls it evenly.
+  slaver_loadout:
+    rolls:
+
+      # Orc slavers favor the falchion (50%); the rest split evenly.
+      - equipped: true
+        when: { race: orc }
+        as: melee
+        options:
+          - { chance: 0.5, key: one_handed, item: { item: Falchion } }
+          - { chance: 0.1, key: two_handed, item: { item: Great axe } }
+          - { chance: 0.1, key: one_handed, item: { item: Long sword } }
+          - { chance: 0.1, key: one_handed, item: { item: Dagger } }
+          - { chance: 0.1, key: one_handed, item: { item: Short sword } }
+          - { chance: 0.1, key: two_handed, item: { item: Spear } }
+
+      # Human / elf / dwarf slavers: equal chance across the same weapons.
+      - { equipped: true, when: { race: human }, as: melee, options: slaver_common_melee }
+      - { equipped: true, when: { race: elf },   as: melee, options: slaver_common_melee }
+      - { equipped: true, when: { race: dwarf }, as: melee, options: slaver_common_melee }
+
+      # Every slaver carries a whip.
+      - equipped: true
+        item: { item: Whip }
+
+      # Ranged restraint — equal chance bola / nets / long bow.
+      - as: ranged
+        options:
+          - { chance: 0.34, key: bola, item: { item: Bola } }
+          - { chance: 0.33, key: net,  item: { item: Net, quantity: "1d4 + 1" } }   # 2-5 nets
+          - { chance: 0.33, key: bow,  item: { item: Longbow } }
+      - when: { ranged: bow }
+        item: { item: Arrow, quantity: "5d4" }   # 5-20 arrows
+
+      # Armor — weighted: 50% hide, 25% leather, 5% breastplate (else none).
+      - equipped: true
+        options:
+          - { chance: 0.5,  key: hide,        item: { item: Hide armor } }
+          - { chance: 0.25, key: leather,     item: { item: Leather armor } }
+          - { chance: 0.05, key: breastplate, item: { item: Breastplate } }
+
+      # 50% chance of a light metal shield — only with a one-handed weapon.
+      - equipped: true
+        when: { melee: one_handed }
+        chance: 0.5
+        item: { item: Light metal shield }
+
+      # Coin and slaving kit.
+      - item: { item: Copper, quantity: "5d4" }      # 5-20 cp
+      - chance: 0.75
+        item: { item: Manacles, quantity: "1d3" }    # 0-3 (25% none, else 1-3)
+
+  # Half-orc caravan soldier kit: falchion + chain shirt always, longbow
+  # with a quiver. Used by the Half-Orc Soldier template (slaver_loadout
+  # is orc/human/elf/dwarf only, so soldiers get this military loadout).
+  soldier_loadout:
+    rolls:
+      - { equipped: true, item: { item: Falchion } }
+      - { equipped: true, item: { item: Chain shirt } }
+      - item: { item: Longbow }
+      - item: { item: Arrow, quantity: "5d4" }   # 5-20 arrows
 
   # Town guard equipment loadout. Spear is two-handed (no shield);
   # shield row gates on the hand variable.

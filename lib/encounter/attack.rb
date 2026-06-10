@@ -84,12 +84,16 @@ module Encounter
     # when a Roll's Inherent crosses to the opposing Roll it is inverted *and
     # relabeled Ascendancy* (see propagation.js → CROSS_SIDE_RELABEL), so a
     # higher-Tier defender's Inherent lands on the attacker's TN as an
-    # Ascendancy Penalty. When the defender declares no Defensive Action it does
-    # not roll — nothing propagates — so Combat supplies the same Ascendancy
-    # explicitly: the defender's Inherent, negated. A weapon's Glory Property
-    # (`tier_advantage`) treats the wielder as that many Tiers higher when
-    # fighting up, lifting its Inherent Bonus and shrinking the gap. Magnitudes
-    # come entirely from the Inherent table — Ascendancy invents no new number.
+    # Ascendancy Penalty. Ascendancy only exists across a Tier gap — equal-Tier
+    # opponents exchange none (the Inherent does not cross between equal-Tier
+    # Rolls). When the defender declares no Defensive Action it does not roll —
+    # nothing propagates — so Combat supplies the same Ascendancy explicitly:
+    # the defender's Inherent, negated, again only when the Tiers differ. A
+    # weapon's Glory Property (`tier_advantage`) treats the wielder as that
+    # many Tiers higher when fighting up, lifting its Inherent Bonus and
+    # closing the gap (at equal effective Tier no Ascendancy applies at all).
+    # Magnitudes come entirely from the Inherent table — Ascendancy invents no
+    # new number.
 
     # The wielder's effective Tier for the attack: raised by a Glory weapon's
     # `tier_advantage`, but only when the defender outranks the attacker.
@@ -108,15 +112,18 @@ module Encounter
     end
 
     # The attacker roll's Tier modifiers: its (Glory-adjusted) Inherent Bonus,
-    # plus — only against an undefended target — an Ascendancy penalty equal to
-    # the defender's Inherent (the advantage that would otherwise propagate).
+    # plus — only against an undefended target of a DIFFERENT Tier — an
+    # Ascendancy penalty equal to the defender's Inherent (the advantage that
+    # would otherwise propagate). Ascendancy only exists across a Tier gap:
+    # equal-Tier opponents exchange none, matching propagation.js (where the
+    # Inherent does not cross between equal-Tier Rolls).
     # Returns a bonus_penalty_list of [type, amount] pairs.
     def attacker_tier_bonuses(attacker_tier:, defender_tier:, tier_advantage:, inherent_table:, no_defense:)
       eff = effective_attacker_tier(attacker_tier, defender_tier, tier_advantage)
       list = []
       inh = inherent_amount(inherent_table, eff)
       list << ['Inherent', inh] unless inh.zero?
-      if no_defense
+      if no_defense && eff != defender_tier.to_i
         asc = -inherent_amount(inherent_table, defender_tier)
         list << ['Ascendancy', asc] unless asc.zero?
       end

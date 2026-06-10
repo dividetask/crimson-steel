@@ -19,8 +19,8 @@ test('Single Supporting Roll, single Opposing Roll, both with no modifiers', () 
     supporting: [{ bonusPenaltyList: [] }],
     opposing: [{ bonusPenaltyList: [] }],
   });
-  assert.equal(params.supporting[0].tn, 6); // Base TN, no propagation entries
-  assert.equal(params.opposing[0].tn, 6);
+  assert.equal(params.supporting[0].tn, 8); // Base TN, no propagation entries
+  assert.equal(params.opposing[0].tn, 8);
 });
 
 test('Same Roll in both lists', () => {
@@ -30,8 +30,8 @@ test('Same Roll in both lists', () => {
   // its own bonus_penalty_list with no self-cancellation.
   const shared = { diceCount: 1, bonusPenaltyList: [['A', 2]] };
   const params = CheckResolution.computeParameters({ supporting: [shared], opposing: [shared] });
-  assert.equal(params.supporting[0].tn, 4); // +2 Bonus -> TN 4, not self-inverted to 6
-  assert.equal(params.opposing[0].tn, 4);
+  assert.equal(params.supporting[0].tn, 6); // +2 Bonus -> TN 6, not self-inverted to 8
+  assert.equal(params.opposing[0].tn, 6);
 });
 
 test('A value_adjustment on the Supporting side nudges that Roll only', () => {

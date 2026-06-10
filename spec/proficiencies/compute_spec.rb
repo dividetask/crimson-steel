@@ -25,13 +25,14 @@ RSpec.describe 'Proficiencies.compute', type: :model do
       expect(out).to eq(dice_cap: 6, competency_modifier: ['Competency', 1])
     end
 
-    it 'untrained skill triggers the Non-Proficiency Penalty' do
-      # ranks 0, dex 3, penalty -2. Prowess = -1 → dice 10, bonus -1.
+    it 'untrained skill takes the Non-Proficiency Penalty on the TN, not the dice' do
+      # ranks 0, dex 3. Dice Prowess = 0 + floor(3/2) = 1 → dice 7, bonus 0.
+      # The −2 Non-Proficiency Penalty rides the Competency (TN), not the dice.
       out = Proficiencies.compute(
         key: 'stealth',
         creature: mock(ranks: { 'stealth' => 0 }, attrs: { dex: 3 })
       )
-      expect(out).to eq(dice_cap: 10, competency_modifier: ['Competency', -1])
+      expect(out).to eq(dice_cap: 7, competency_modifier: ['Competency', -2])
     end
 
     it 'zero Prowess returns a nil competency_modifier' do
@@ -115,9 +116,10 @@ RSpec.describe 'Proficiencies.compute', type: :model do
           levels: { 'jack_of_all_trades' => 8 }
         )
       )
-      # ranks 0, attr_contrib 1, penalty -2. Prowess = -1.
-      expect(out[:dice_cap]).to eq(10)
-      expect(out[:competency_modifier]).to eq(['Competency', -1])
+      # Floor skipped (Restricted). Dice Prowess = 0 + floor(2/2) = 1 → dice 7;
+      # the −2 Non-Proficiency Penalty rides the TN, not the dice.
+      expect(out[:dice_cap]).to eq(7)
+      expect(out[:competency_modifier]).to eq(['Competency', -2])
     end
 
     it 'does not apply to keys without a catalog entry' do
@@ -129,9 +131,10 @@ RSpec.describe 'Proficiencies.compute', type: :model do
           levels: { 'jack_of_all_trades' => 8 }
         )
       )
-      # Prowess = 0 + 4 - 2 = 2.
+      # A Save never takes the Non-Proficiency Penalty. Dice Prowess =
+      # 0 + floor(8/2) = 4 → dice 10, bonus 0.
       expect(out[:competency_modifier]).to be_nil
-      expect(out[:dice_cap]).to eq(8)
+      expect(out[:dice_cap]).to eq(10)
     end
   end
 
@@ -172,10 +175,10 @@ RSpec.describe 'Proficiencies.compute', type: :model do
         key: 'deception',
         creature: mock(ranks: { 'deception' => 0, 'perform_act' => 8 }, attrs: { cha: 6 })
       )
-      # Falls through to direct: 0 ranks + floor(6/2) - 2 = 1.
-      # Translate prowess 1: bonus_penalty 0, dice_cap 7.
-      expect(out[:competency_modifier]).to be_nil
-      expect(out[:dice_cap]).to eq(7)
+      # Falls through to direct (untrained Skill): Dice Prowess = 0 + floor(6/2)
+      # = 3 → dice 9, bonus 0; the −2 penalty rides the TN.
+      expect(out[:competency_modifier]).to eq(['Competency', -2])
+      expect(out[:dice_cap]).to eq(9)
     end
 
     it 'skipped when no Substitution Map entry targets the key' do
@@ -187,9 +190,10 @@ RSpec.describe 'Proficiencies.compute', type: :model do
           abilities: { 'versatile_performance' => true }
         )
       )
-      # Direct only: 0 + 1 - 2 = -1.
-      expect(out[:competency_modifier]).to eq(['Competency', -1])
-      expect(out[:dice_cap]).to eq(10)
+      # Direct only (untrained Skill): Dice Prowess = 0 + floor(3/2) = 1 →
+      # dice 7; the −2 penalty rides the TN.
+      expect(out[:competency_modifier]).to eq(['Competency', -2])
+      expect(out[:dice_cap]).to eq(7)
     end
   end
 
@@ -225,13 +229,14 @@ RSpec.describe 'Proficiencies.compute', type: :model do
       expect(out).to eq(dice_cap: 9, competency_modifier: nil)
     end
 
-    it 'falls back to attr_contrib + Non-Proficiency Penalty without the Floor Ability' do
-      # dex 3, no Floor Ability → 0 ranks + 1 - 2 = -1. dice 10, bonus -1.
+    it 'puts the Non-Proficiency Penalty on the TN (not dice) without the Floor Ability' do
+      # dex 3, no Floor Ability → Dice Prowess = 0 + floor(3/2) = 1 → dice 7;
+      # the −2 penalty rides the Competency.
       out = Proficiencies::Compute.untrained_roll_inputs(
         attribute: :dex,
         creature: mock(attrs: { dex: 3 })
       )
-      expect(out).to eq(dice_cap: 10, competency_modifier: ['Competency', -1])
+      expect(out).to eq(dice_cap: 7, competency_modifier: ['Competency', -2])
     end
   end
 end

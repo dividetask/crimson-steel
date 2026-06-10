@@ -45,6 +45,12 @@ export class ActionBuilder {
 
   static _bind(root) {
     root.addEventListener('click', (e) => {
+      // The Damage Rider stub (a nested .rolls-wrapper injected into our results
+      // block after Confirm) carries its own .btn-confirm / .cr-step-change; its
+      // controls are driven by the dice engine + turnAttack.js, so ignore clicks
+      // that originate inside it — otherwise the rider's Confirm would re-fire
+      // the attack's own Confirm.
+      if (e.target.closest && e.target.closest('.ta-rider-stub')) return;
       const opt = e.target.closest && e.target.closest('.cb-opt');
       if (opt && root.contains(opt) && !opt.disabled) return ActionBuilder._pick(root, opt);
       const chg = e.target.closest && e.target.closest('.cr-step-change');
@@ -236,8 +242,11 @@ export class ActionBuilder {
       document.dispatchEvent(new CustomEvent('cast:arm-area', { detail: opt.place }));
     }
     ActionBuilder._setState(root, key, 'complete');
+    // A row appears only for a choice the DM actively made and that the step
+    // wants summarized — a `no_summary` step (e.g. the cast's Dice, which is a
+    // resource shown in the result, not a "what" choice) leaves no row.
     const sum = ActionBuilder._sumRow(root, key);
-    if (sum) {
+    if (sum && !step.no_summary) {
       const v = sum.querySelector('.step-summary-value');
       if (v) v.textContent = opt.summary || stripTags(opt.label);
       sum.hidden = false;
@@ -245,21 +254,14 @@ export class ActionBuilder {
     ActionBuilder._activateFrom(root, ActionBuilder._index(root, key) + 1);
   }
 
-  // Apply a forced (`auto`) option without a click: record the choice + its
-  // summary and run its patch, exactly as _pick would, but driven by the step
-  // having nothing to ask (e.g. a Saving Throw at full Dice Cap).
+  // Apply a forced (`auto`) option without a click. The DM made no choice here,
+  // so it leaves no summary row (e.g. a Saving Throw always at full Dice Cap).
   static _applyAuto(root, step, opt) {
     const cb = root._cb;
     const key = step.key;
     cb.choices[key] = { value: opt.value, label: opt.label, key: opt.key != null ? opt.key : opt.value };
     ActionBuilder._applyPatch(root, opt.patch);
     ActionBuilder._setState(root, key, 'complete');
-    const sum = ActionBuilder._sumRow(root, key);
-    if (sum) {
-      const v = sum.querySelector('.step-summary-value');
-      if (v) v.textContent = opt.summary || stripTags(opt.label);
-      sum.hidden = false;
-    }
   }
 
   // Show the first not-yet-complete step from `idx` that has options (rendering
@@ -295,13 +297,22 @@ export class ActionBuilder {
       return;
     }
     ActionBuilder._setState(root, '__dice', 'active');
-    // Compose the Check Resolution roll affordance only when the flow rolls. A
-    // no-roll action (a buff Cast, a reservoir pour) charges its dice without
-    // rolling, so "Roll All" is not mounted — the DM just confirms.
     const rollAll = root.querySelector('.btn-roll-all');
-    if (rollAll) rollAll.hidden = !!cb.noRoll;
-    // All steps resolved — show the final propagated TNs before the DM rolls.
+    const diceBody = root.querySelector('.step-body-dice');
+    // All steps resolved — show the final propagated TNs.
     ActionBuilder._previewTns(root);
+    if (cb.noRoll) {
+      // A no-roll action (a buff Cast, a reservoir pour like Shield) rolls
+      // nothing. Hide "Roll All" and the roll table, then auto-surface the
+      // result details (detail.auto) — the blue title "Confirm" stays as the
+      // single button and commits when clicked.
+      if (rollAll) rollAll.hidden = true;
+      if (diceBody) diceBody.hidden = true;
+      ActionBuilder._confirm(root, { auto: true });
+    } else {
+      if (rollAll) rollAll.hidden = false;
+      if (diceBody) diceBody.hidden = false;
+    }
   }
 
   // Choice-dependent header quick-picks (e.g. one button per Defensive Action),
@@ -344,6 +355,11 @@ export class ActionBuilder {
     ActionBuilder._recomputeLuck(root);
     ActionBuilder._setState(root, '__dice', 'pending');
     const results = root.querySelector('.rolls-results'); if (results) results.hidden = true;
+    // A post-Confirm collapse (RollsWrapper.collapse) hides the roll table and
+    // the header's controls slot wholesale; re-opening a step from its summary
+    // row must bring both back or the header quick-picks never reappear.
+    const tbl = root.querySelector('.roll-table'); if (tbl) tbl.hidden = false;
+    const acts = root.querySelector('.rolls-header .rolls-actions'); if (acts) acts.hidden = false;
     root.dataset.state = 'building';
     ActionBuilder._activateFrom(root, ti);
   }
@@ -358,7 +374,8 @@ export class ActionBuilder {
   // Bonus/Penalty breakdown shown after a group's buttons), not a choice.
   static _btn(stepKey, o) {
     if (o.kind === 'info') return '<span class="cb-bonus-note">' + o.label + '</span>';
-    return '<button type="button" class="cr-mod-btn cb-opt" data-step="' + stepKey + '" data-value="' +
+    const cls = 'cr-mod-btn cb-opt' + (o.dying ? ' cb-opt-dying' : '');
+    return '<button type="button" class="' + cls + '" data-step="' + stepKey + '" data-value="' +
       esc(String(o.value)) + '"' + (o.disabled ? ' disabled' : '') + '>' + o.label + '</button>';
   }
 
@@ -424,7 +441,23 @@ export class ActionBuilder {
 
   static _applyPatch(root, patch) {
     if (!patch) return;
-    (patch.set_dice || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.dice_count = p.count; }));
+    // Setting an absolute dice count clears any prior scale baseline (a fresh
+    // weapon / dice choice is the new full count Better Lucky would halve).
+    (patch.set_dice || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.dice_count = p.count; delete c._base_dice; }));
+    // Scale a Roll's dice relative to its chosen count — Better Lucky Than
+    // Good halves the attacker's dice (min 3). The pre-scale count is stashed
+    // so picking a different defense (restore_dice) puts it back.
+    (patch.scale_dice || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => {
+      if (c._base_dice == null) c._base_dice = c.dice_count;
+      const base = c._base_dice;
+      const scaled = Math.floor(base * (p.num || 1) / (p.den || 1));
+      c.dice_count = Math.min(base, Math.max(p.min || 1, scaled));
+    }));
+    // Undo a prior scale_dice (any defense other than the scaling Reaction
+    // restores the attacker's full dice).
+    (patch.restore_dice || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => {
+      if (c._base_dice != null) { c.dice_count = c._base_dice; delete c._base_dice; }
+    }));
     (patch.set_speed || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.speed = p.speed; }));
     // Set a Roll's own Bonus/Penalty list. The TN is NOT set here — it is
     // computed by Check Resolution at roll time (after cross-side propagation).
@@ -528,7 +561,8 @@ export class ActionBuilder {
 
   // ----- confirm -----
 
-  static _confirm(root) {
+  static _confirm(root, opts) {
+    opts = opts || {};
     const cb = root._cb;
     const rolls = [];
     root.querySelectorAll('.roll-group').forEach((g) => {
@@ -552,9 +586,14 @@ export class ActionBuilder {
       supporting: rolls.filter((r) => r.side !== 'opposing').map((r) => r.successes),
       opposing: rolls.filter((r) => r.side === 'opposing').map((r) => r.successes),
     });
+    // A no-roll action (a buff / reservoir pour) rolls nothing, so there is no
+    // Net Degree of Success to report — leave the line empty rather than "0".
     const netEl = root.querySelector('.cb-net');
-    if (netEl) netEl.textContent = 'Net Degree of Success ' + net + '.';
-    root.dispatchEvent(new CustomEvent('action:confirmed', { bubbles: true, detail: { choices, rolls } }));
+    if (netEl) netEl.textContent = cb.noRoll ? '' : ('Net Degree of Success ' + net + '.');
+    // `auto`: the builder surfaced the result itself (a no-roll action reaching
+    // the end) vs the DM clicking the title "Confirm" — the host uses it to
+    // tell a details preview apart from the commit.
+    root.dispatchEvent(new CustomEvent('action:confirmed', { bubbles: true, detail: { choices, rolls, noRoll: !!cb.noRoll, auto: !!opts.auto } }));
   }
 }
 

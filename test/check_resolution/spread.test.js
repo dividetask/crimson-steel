@@ -38,8 +38,8 @@ test('prepare propagates bonuses both ways for an area cast', () => {
 });
 
 test('resolveCheck spread nets the caster against each Opposer independently', () => {
-  // caster 2 dice [7,7] -> +2; opposer1 1 die [7] -> +1; opposer2 1 die [1] -> -1.
-  const rng = new SequenceRng([7, 7, 7, 1]);
+  // caster 2 dice [8,8] -> +2; opposer1 1 die [8] -> +1; opposer2 1 die [1] -> -1.
+  const rng = new SequenceRng([8, 8, 8, 1]);
   const res = CheckResolution.resolveCheck({
     spread: true,
     supporting: [{ diceCount: 2, bonusPenaltyList: [] }],

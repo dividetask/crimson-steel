@@ -18,7 +18,7 @@ characters:
     attributes: { str: 12, dex: 15, con: 13, int: 3, wis: 12, cha: 6 }
     advancement:
       classes:
-        commoner: 1
+        feral: 4
     spawned_from: 301
 
   - id: 2004

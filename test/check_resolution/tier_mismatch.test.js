@@ -44,13 +44,14 @@ test('apply is a no-op when Rolls carry no tier', () => {
 
 test('Ascendancy flows through Check Resolution into the TN (not double-propagated)', () => {
   // A Tier-2 attacker vs a Tier-1 defender: the attacker gets +2 Ascendancy
-  // (TN 6 -> 4) and the defender -2 (TN 6 -> 8). The defender's Penalty is NOT
+  // (TN 8 -> 6) and the defender -2 (TN 8 -> 9, clamped at the Maximum; the
+  // overflow becomes a Starting Failure). The defender's Penalty is NOT
   // inverted back onto the attacker (Tier Mismatch runs after Propagation), so
-  // the attacker's TN stays 4 rather than dropping further.
+  // the attacker's TN stays 6 rather than dropping further.
   const params = CheckResolution.computeParameters({
     supporting: [{ tier: 2, bonusPenaltyList: [] }],
     opposing: [{ tier: 1, bonusPenaltyList: [] }],
   });
-  assert.equal(params.supporting[0].tn, 4); // 6 - 2
-  assert.equal(params.opposing[0].tn, 8);   // 6 + 2
+  assert.equal(params.supporting[0].tn, 6); // 8 - 2
+  assert.equal(params.opposing[0].tn, 9);   // 8 + 2 = 10, clamped to Max TN 9
 });

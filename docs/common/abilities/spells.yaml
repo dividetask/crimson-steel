@@ -159,6 +159,7 @@ Ward:
   target: "1"
   duration: "rank turns"
   skills: [healing, nature]
+  items: [potion, oil]
   effect_hash:
     temp_hp: [3, 5, 8, 12, 16, 20]
   variant_overrides:
@@ -307,6 +308,7 @@ Recharge:
       success: "0"
   duration: instant
   skills: [arcana, perform_]
+  items: [potion]
   effect_hash:
     mana: [2, 4, 8, 16, 32, 64]
     minimum_saturation: tier*4
@@ -376,6 +378,27 @@ Shield of Faith:
       amount: "2..dice_cap"
       description: "When an attack is made against the target, spend {amount} Reservoir dice to fuel a block Roll against the attack."
   description: "Conjures a floating magical shield next to the target. While channeled, the caster may discharge Reservoir dice as reactions to block attacks made against the target."
+
+Shield:
+  type: spell
+  tier: [0, 1, 2]
+  prefix: [Lesser, Standard, Greater]
+  school: convergence
+  activation_time: bonus
+  range: Self
+  target: "1"
+  duration: rank minutes
+  defends:
+    block_dice: combat_pool
+  # The shield's Guidance bonus to the block, scaling with Tier (Tier 0 grants
+  # no bonus, Tier 1 a +1 shield, Tier 2 a +2 shield). Range widens with Tier:
+  # Self (personal) at Tier 0, Close at Tier 1, Medium at Tier 2.
+  shield_bonus: 0
+  variant_overrides:
+    - null
+    - { range: Close,  shield_bonus: 1 }
+    - { range: Medium, shield_bonus: 2 }
+  description: "Conjures an incorporeal floating shield beside the target. The target gains the shield, but you control it — spend Combat Pool dice as a reaction to interpose it and block an attack made against the target as though it were made against you. Tier 1 is a +1 shield, Tier 2 a +2 shield. Lasts rank minutes."
 
 Spiritual Weapon:
   type: spell
@@ -915,11 +938,27 @@ Expeditious Retreat:
   range: Self
   target: self
   duration: "rank minutes"
+  items: [potion]
   modifiers:
     - target: speed
       type: Guidance
       add: 30
   description: "Your speed increases by 30 feet (a +30 Guidance bonus to speed) for the duration."
+
+Expeditious Excavation:
+  type: spell
+  tier: 1
+  school: transmutation
+  range: Close
+  target: "1"
+  area: { shape: square, size: 1 }
+  save:
+    - attribute: dex
+      fail: prone
+      success: "0"
+  duration: permanent
+  skills: [nature, arcana]
+  description: "You can excavate and move earth, dust, and sand up to the size of a 5-foot cube. If you are buried, you may open a 5-foot cube around yourself, but the spell cannot be used for tunneling. Besides its mundane applications, you can open a 5-foot-deep pit at a creature's feet. A Medium or smaller creature falls prone in the pit unless it succeeds on a Dexterity save. With a successful save, it can choose to land harmlessly on its feet in the pit or hop to an adjacent square."
 
 Blindspot:
   type: spell
@@ -928,6 +967,7 @@ Blindspot:
   range: Touch
   target: "1"
   requires_willing: true
+  items: [potion]
   save:
     - attribute: wis
       save_target: observers

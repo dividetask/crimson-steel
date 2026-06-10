@@ -34,6 +34,7 @@ Ritual:
 # The value is a categorical label (fraction-of-turn weight), NOT a
 # duration — Combat maps it to an action category. Resolved activation
 # results carry this value verbatim.
+# THIS SHOULD BE REMOVED
 Action Aliases:
   free: 0
   bonus: 0.25

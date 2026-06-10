@@ -8,7 +8,7 @@ RSpec.describe 'Shops' do
       { 'alch' => {
         'name' => 'Alchemist', 'base_gold' => 80, 'gold_per_sqrt_pop' => 18,
         'stock' => [
-          { 'item' => 'Healing Potion', 'tier' => 0, 'min_pop' => 5, 'qty_base' => 2, 'qty_per_kpop' => 4 },
+          { 'item' => 'Potion of Heal', 'tier' => 0, 'min_pop' => 5, 'qty_base' => 2, 'qty_per_kpop' => 4 },
           { 'item' => "Acid jar", 'min_pop' => 200, 'qty_base' => 1, 'qty_per_kpop' => 1 }
         ]
       } }
@@ -23,7 +23,7 @@ RSpec.describe 'Shops' do
       owner = i.visit_generic_shop('alch', population: 1000)
       expect(owner).to eq('generic_shop:alch')
       expect(i.active_generic_day('alch')).to eq(5)
-      potion = i.get_inventory(owner).find { |s| s.item_type == 'Healing Potion' }
+      potion = i.get_inventory(owner).find { |s| s.item_type == 'Potion of Heal' }
       expect(potion.quantity).to eq(6) # 2 + floor(4 * 1000 / 1000)
     end
 
@@ -31,7 +31,7 @@ RSpec.describe 'Shops' do
       i = inst
       i.visit_generic_shop('alch', population: 100)
       types = i.get_inventory('generic_shop:alch').map(&:item_type)
-      expect(types).to include('Healing Potion')
+      expect(types).to include('Potion of Heal')
       expect(types).not_to include('Acid jar')
     end
 
@@ -59,7 +59,7 @@ RSpec.describe 'Shops' do
     it 'loads the real shops.yaml catalog by default' do
       i = Equipment::Instance.new(catalog: catalog, game_day: 1)
       owner = i.visit_generic_shop('alchemist_shop', population: 1000)
-      potion = i.get_inventory(owner).find { |s| s.item_type == 'Healing Potion' && s.tier == 0 }
+      potion = i.get_inventory(owner).find { |s| s.item_type == 'Potion of Heal' && s.tier == 0 }
       expect(potion.quantity).to eq(6)
       expect(i.get_total_wealth(owner)).to eq(649)
     end
@@ -82,7 +82,7 @@ RSpec.describe 'Shops' do
   end
 
   describe 'Advance Time' do
-    let(:generic) { { 'alch' => { 'base_gold' => 0, 'gold_per_sqrt_pop' => 0, 'stock' => [{ 'item' => 'Healing Potion', 'tier' => 0, 'min_pop' => 5, 'qty_base' => 1, 'qty_per_kpop' => 0 }] } } }
+    let(:generic) { { 'alch' => { 'base_gold' => 0, 'gold_per_sqrt_pop' => 0, 'stock' => [{ 'item' => 'Potion of Heal', 'tier' => 0, 'min_pop' => 5, 'qty_base' => 1, 'qty_per_kpop' => 0 }] } } }
 
     it 'expires yesterday Active Generic Shops; a later visit re-rolls' do
       i = Equipment::Instance.new(catalog: catalog, generic_shops: generic, game_day: 5)

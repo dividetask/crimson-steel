@@ -9,7 +9,7 @@
 # Quantity formula:
 #   quantity = qty_base + floor(qty_per_kpop * pop / 1000)
 #
-# Sample scaling for a Healing Potion (qty_base 2, qty_per_kpop 4):
+# Sample scaling for a Potion of Heal (qty_base 2, qty_per_kpop 4):
 #   pop    100 ->   2 +  0 =   2
 #   pop  1,000 ->   2 +  4 =   6
 #   pop  5,000 ->   2 + 20 =  22
@@ -26,7 +26,7 @@
 #   qty_base          Quantity at exactly min_pop.
 #   qty_per_kpop      Extra quantity per 1,000 population.
 #   tier              Optional tier override. For tier-array items
-#                     (e.g. Healing Potion), the tier selects which
+#                     (e.g. Potion of Heal), the tier selects which
 #                     variant the shopkeeper stocks.
 #   properties        Optional list of Magical Properties (same shape as
 #                     the inventory data files: a string, or {name,
@@ -43,11 +43,11 @@ generic_shops:
     base_gold: 80
     gold_per_sqrt_pop: 18
     stock:
-      - { item: Healing Potion, tier: 0, min_pop:     5, qty_base: 2, qty_per_kpop: 4 }
+      - { item: Potion of Heal, tier: 0, min_pop:     5, qty_base: 2, qty_per_kpop: 4 }
       - { item: "Acid jar",            min_pop:   200, qty_base: 1, qty_per_kpop: 1 }
       - { item: "Alchemist's fire",    min_pop:   200, qty_base: 1, qty_per_kpop: 1 }
-      - { item: Healing Potion, tier: 1, min_pop:  1000, qty_base: 1, qty_per_kpop: 0 }
-      - { item: Healing Potion, tier: 2, min_pop: 10000, qty_base: 1, qty_per_kpop: 0 }
+      - { item: Potion of Heal, tier: 1, min_pop:  1000, qty_base: 1, qty_per_kpop: 0 }
+      - { item: Potion of Heal, tier: 2, min_pop: 10000, qty_base: 1, qty_per_kpop: 0 }
 
   weapons_shop:
     name: Weapons Shop

@@ -16,7 +16,9 @@
 #     `domains` are the deity's favored domains; `anathema` are the
 #     domains opposed to the deity, which its Clerics may NOT choose.
 #     `channel_divinity` names the deity's 4th-level Channel Divinity
-#     Talent, granted at Cleric level 4.
+#     Talent, granted at Cleric level 4. Optional `rank` (e.g. `lesser`,
+#     `greater`) is flavor describing the deity's standing in the
+#     pantheon; it carries no mechanics yet.
 #
 # Cleric domain rules:
 #   - A Cleric chooses three domains (`choices.domains: [a, b, c]`;
@@ -45,9 +47,23 @@ Domains:
   Fire:
     channel_divinity: Flame Devotion
   Glory:
+    spells:
+      - Trivial Ward
+      - Lesser Ward
+      - Standard Ward
+      - Improved Ward
+      - Advanced Ward
+      - Superior Ward
     channel_divinity: Glorious Charge
   Greed: {}
-  Healing: {}
+  Healing:
+    spells:
+      - Heal Petty Wounds
+      - Heal Lesser Wounds
+      - Heal Simple Wounds
+      - Heal Moderate Wounds
+      - Heal Advanced Wounds
+      - Heal Extreme Wounds
   Hearth: {}
   Hope: {}
   Humility: {}
@@ -75,6 +91,9 @@ Domains:
       - Shield of Faith
       - Spiritual Hammer
       - Silence
+      - Lesser Shield
+      - Standard Shield
+      - Greater Shield
     channel_divinity: Martial Devotion
   Water: {}
   Wisdom: {}
@@ -85,3 +104,14 @@ Deities:
     domains: [Strength, Glory, Chaos, War, Fire]
     anathema: [Humility, Harmony, Despair, Knowledge, Cunning]
     channel_divinity: Karthak's Resolve
+
+  Kesser:
+    domains: [Hope, Chaos, Secrets, Greed]
+    anathema: [Wisdom, Order, Hearth, Truth, Knowledge]
+    channel_divinity: Kesser's Gambit
+
+  # Lesser deity worshipped by slavers. No Channel Divinity defined yet.
+  Mortheth:
+    rank: lesser
+    domains: [Artifice, Death, Earth, Greed, Ruin]
+    anathema: [Humility, Hearth, Nature, Truth, Water]

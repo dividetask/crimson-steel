@@ -172,7 +172,9 @@ With `Tier Minimum Inherent Bonus: [0, 1, 2, 3, 4, 5]`:
 
 **Glory lifts the attacker's Inherent.** The same call with `tier_advantage: 1` → `[['Inherent', 2]]` — the wielder is treated as Tier 2, so its Inherent matches the defender's and the gap closes.
 
-**No-defense adds an Ascendancy penalty.** With `no_defense: true` and no Glory → `[['Inherent', 1], ['Ascendancy', -2]]` (the un-rolled Tier-2 defender's advantage, negated; nets −1 on the TN). With Glory → `[['Inherent', 2], ['Ascendancy', -2]]` (nets 0 — the gap is closed without a defender Roll to propagate).
+**No-defense adds an Ascendancy penalty — only across a Tier gap.** With `no_defense: true` and no Glory → `[['Inherent', 1], ['Ascendancy', -2]]` (the un-rolled Tier-2 defender's advantage, negated; nets −1 on the TN). With Glory the effective Tier rises to the defender's — equal Tiers exchange no Ascendancy — so → `[['Inherent', 2]]` (the gap is closed; only the lifted Inherent rides).
+
+**Equal Tiers exchange no Ascendancy.** `attacker_tier_bonuses(attacker_tier: 2, defender_tier: 2, tier_advantage: 0, no_defense: true)` → `[['Inherent', 2]]` — no Ascendancy entry between same-Tier opponents (mirroring propagation, where the Inherent does not cross between equal-Tier Rolls).
 
 **Tier 0 contributes nothing.** Tier-0 attacker vs Tier-0 defender yields `[]` from both `attacker_tier_bonuses` and `defender_tier_bonuses` (the Inherent Bonus at Tier 0 is 0).
 
