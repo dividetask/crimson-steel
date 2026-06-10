@@ -369,7 +369,8 @@ export class ActionBuilder {
   // Bonus/Penalty breakdown shown after a group's buttons), not a choice.
   static _btn(stepKey, o) {
     if (o.kind === 'info') return '<span class="cb-bonus-note">' + o.label + '</span>';
-    return '<button type="button" class="cr-mod-btn cb-opt" data-step="' + stepKey + '" data-value="' +
+    const cls = 'cr-mod-btn cb-opt' + (o.dying ? ' cb-opt-dying' : '');
+    return '<button type="button" class="' + cls + '" data-step="' + stepKey + '" data-value="' +
       esc(String(o.value)) + '"' + (o.disabled ? ' disabled' : '') + '>' + o.label + '</button>';
   }
 

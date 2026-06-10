@@ -3923,3 +3923,16 @@ body {
   border-radius: 3px;
   opacity: 0.85;
 }
+
+/* Targeting stubs: a Dying creature's button is red (all targeting stubs). */
+.cb-opt.cb-opt-dying { border-color: #c0362c; color: #c0362c; }
+.cb-opt.cb-opt-dying:hover { background: #fdecea; }
+
+/* Multi-select target toggle: a selected target turns blue (grey by
+   default); clicking again toggles it back. Dying + selected stays red-tinted. */
+.cb-opt.cr-mod-selected { border-color: #2563eb; background: #eff6ff; }
+.cb-opt.cb-opt-dying.cr-mod-selected { border-color: #c0362c; background: #fbe9e7; }
+
+/* Running "selected / max Targets" count above a multi-select target list. */
+.cb-multi-count { font-size: 0.85rem; font-weight: 600; margin: 0 0 4px; }
+.cb-multi-count.cb-multi-full { color: #2563eb; }

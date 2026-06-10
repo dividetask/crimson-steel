@@ -659,6 +659,8 @@ helpers do
         # Helpless: it offers no defense and attacks against it gain the more
         # severe Helpless advantage (supersedes Flatfooted / Unaware).
         helpless: !(encounter_state.creature_can_act?(c[:id]) rescue true),
+        # Dying targets render with a red button in every targeting stub.
+        dying: (encounter_state.creature_dying?(c[:id]) rescue false),
         is_pc: creature_is_pc?(c[:creature_id]), tier: (tacc&.tier rescue 0) || 0,
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
         martial: roll_inputs_for(tacc, 'martial',   attribute_override: :str),
@@ -738,7 +740,7 @@ helpers do
     header_targets = enemy_targets.first(5)
     target_step = { key: 'target', label: 'Target',
                     header_options: header_targets.map { |t| { value: t[:id], label: t[:display_name] } },
-                    options: targets.map { |t| { value: t[:id], key: t[:id], label: t[:display_name],
+                    options: targets.map { |t| { value: t[:id], key: t[:id], label: t[:display_name], dying: t[:dying],
                                                  patch: { set_name: [{ id: 'defender', creature_name: t[:name] }],
                                                           set_tier: [{ id: 'defender', tier: t[:tier] }] } } } }
 
@@ -1313,7 +1315,7 @@ helpers do
     # action — the client arms the Atlas, the DM clicks to drop the footprint,
     # and the creatures it covers become the affected set (no single Target).
     combatant_target_opts = targets.map do |t|
-      { value: t[:id], key: t[:id], label: t[:name],
+      { value: t[:id], key: t[:id], label: t[:display_name], dying: t[:dying],
         patch: { set_name: [{ id: 'target', creature_name: t[:name] }],
                  set_tier: [{ id: 'target', tier: t[:tier] }] } }
     end
