@@ -713,10 +713,14 @@ helpers do
         end
       next unless available >= 2
       cacc = Creatures.lookup(cc[:creature_id]) rescue nil
+      # The caster controls the shield with its casting skill (a Cleric's
+      # Invocation, else Arcana) — that Competency rides the block Roll.
+      shield_skill = cacc ? (cast_skill_for(cacc, nil, g[:spell_name]) rescue nil) : nil
+      shield_comp  = shield_skill ? roll_inputs_for(cacc, shield_skill)[:competency_modifier] : nil
       shields[g[:defends]] = { caster_id: g[:combatant_id], caster_name: tracker_name(cc),
                                available: available, dice_source: source, dice_cap: g[:dice_cap].to_i,
                                tier: (cacc&.tier rescue nil), spell_name: g[:spell_name].to_s,
-                               bonus: g[:shield_bonus].to_i }
+                               bonus: g[:shield_bonus].to_i, competency: shield_comp }
     end
 
     # Header quick-picks (next to "Target"): one button per enemy of the
@@ -922,7 +926,15 @@ helpers do
       dcap = sh[:dice_cap].to_i.positive? ? sh[:dice_cap].to_i : sh[:available]
       cap  = [sh[:available], dcap].min
       dice_word = sh[:dice_source] == 'combat_pool' ? 'Combat Pool' : 'Reservoir'
-      sh_bpl = sh[:bonus].to_i.positive? ? [['Guidance', sh[:bonus].to_i]] : []
+      # The block Roll carries the caster's own Competency (its casting skill)
+      # and Inherent Bonus — like any defender Roll — plus the shield's +N
+      # Guidance. Without these the shielding caster rolled bare (only Guidance),
+      # so its skill never opposed the attack.
+      sh_bpl = []
+      sh_bpl << sh[:competency] if sh[:competency]
+      sh_inh = Encounter::Attack.inherent_amount(inh_table, sh[:tier].to_i)
+      sh_bpl << ['Inherent', sh_inh] unless sh_inh.zero?
+      sh_bpl << ['Guidance', sh[:bonus].to_i] if sh[:bonus].to_i.positive?
       # The shield Roll's patch for a given dice count (the caster's Roll — its
       # name, Tier, +N Guidance bonus, and dice).
       shield_patch = lambda do |dice|
