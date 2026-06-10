@@ -20,7 +20,7 @@
   sheet_href  = ->(id) { "/character-sheets?creature_id=#{id}&detail=#{detail_mode}" }
 %>
 
-<aside class="cs-roster-sidebar">
+<aside class="cs-roster-sidebar" data-boot-id="<%= SERVER_BOOT_ID %>">
 
   <% # ---- Players ------------------------------------------------------- %>
   <details class="cs-roster-group" data-group-key="players">

@@ -4,6 +4,12 @@ require 'time'
 
 LOOPBACK_ADDRS = %w[127.0.0.1 ::1 ::ffff:127.0.0.1].freeze
 
+# A per-process id, regenerated on each server start. Used to scope
+# client-side UI state (the Roster Sidebar's collapsed/expanded groups)
+# so it persists across navigation within one server run but resets to
+# the default — all groups collapsed — whenever the server restarts.
+SERVER_BOOT_ID = SecureRandom.hex(8)
+
 helpers do
   def h(text)
     Rack::Utils.escape_html(text.to_s)

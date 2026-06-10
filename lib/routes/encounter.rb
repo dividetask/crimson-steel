@@ -157,6 +157,14 @@ helpers do
     parts.empty? ? '' : " (#{parts.join(', ')})"
   end
 
+  # Targets ordered into PC, then NPC, then enemy sections (stable within
+  # each), so the Target list renders one section per group (each group is
+  # its own `.cb-line` row in the builder).
+  def order_targets_by_category(targets)
+    cat = { 'pc' => 0, 'npc' => 1, 'enemy' => 2 }
+    targets.each_with_index.sort_by { |t, i| [cat.fetch(t[:category], 3), i] }.map(&:first)
+  end
+
   # Order enemy targets nearest-first by their Token's distance from the
   # attacker's Token on the Active Map. Targets with no placed Token (and
   # the cases of no Active Map or no attacker Token) keep the incoming
@@ -661,7 +669,10 @@ helpers do
         helpless: !(encounter_state.creature_can_act?(c[:id]) rescue true),
         # Dying targets render with a red button in every targeting stub.
         dying: (encounter_state.creature_dying?(c[:id]) rescue false),
-        is_pc: creature_is_pc?(c[:creature_id]), tier: (tacc&.tier rescue 0) || 0,
+        is_pc: creature_is_pc?(c[:creature_id]),
+        # PC / NPC / enemy — used to split the Target list into sections.
+        category: (creature_is_pc?(c[:creature_id]) ? 'pc' : (((tacc&.group rescue nil) == 'npc') ? 'npc' : 'enemy')),
+        tier: (tacc&.tier rescue 0) || 0,
         pool: (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0,
         martial: roll_inputs_for(tacc, 'martial',   attribute_override: :str),
         dodge:   roll_inputs_for(tacc, 'dex_save', attribute_override: :dex),
@@ -740,7 +751,8 @@ helpers do
     header_targets = enemy_targets.first(5)
     target_step = { key: 'target', label: 'Target',
                     header_options: header_targets.map { |t| { value: t[:id], label: t[:display_name] } },
-                    options: targets.map { |t| { value: t[:id], key: t[:id], label: t[:display_name], dying: t[:dying],
+                    options: order_targets_by_category(targets).map { |t| { value: t[:id], key: t[:id], label: t[:display_name],
+                                                 dying: t[:dying], group: t[:category],
                                                  patch: { set_name: [{ id: 'defender', creature_name: t[:name] }],
                                                           set_tier: [{ id: 'defender', tier: t[:tier] }] } } } }
 
@@ -1314,8 +1326,8 @@ helpers do
     # Combatants; an **area Spell** instead offers a single "Place on the map"
     # action — the client arms the Atlas, the DM clicks to drop the footprint,
     # and the creatures it covers become the affected set (no single Target).
-    combatant_target_opts = targets.map do |t|
-      { value: t[:id], key: t[:id], label: t[:display_name], dying: t[:dying],
+    combatant_target_opts = order_targets_by_category(targets).map do |t|
+      { value: t[:id], key: t[:id], label: t[:display_name], dying: t[:dying], group: t[:category],
         patch: { set_name: [{ id: 'target', creature_name: t[:name] }],
                  set_tier: [{ id: 'target', tier: t[:tier] }] } }
     end

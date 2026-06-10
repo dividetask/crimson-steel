@@ -314,10 +314,16 @@ document.addEventListener('mouseover', function (e) {
 
   // -- Roster Sidebar: <details> open/closed persistence ---------------
   //
-  // Each group's open state lives in localStorage under
-  // `cs-roster-group:<data-group-key>`. We restore on load and write
-  // on toggle.
-  var ROSTER_STORAGE_PREFIX = 'cs-roster-group:';
+  // Groups default to collapsed. A group's open state is remembered while
+  // the DM navigates, but only for the current server run: the key is
+  // scoped by the server's boot id (data-boot-id on the sidebar) and held
+  // in sessionStorage, so a server restart (new boot id) reverts every
+  // group to collapsed.
+  function rosterStorageKey(key) {
+    var aside = document.querySelector('.cs-roster-sidebar');
+    var bootId = aside ? (aside.getAttribute('data-boot-id') || '') : '';
+    return 'cs-roster-group:' + bootId + ':' + key;
+  }
 
   function restoreRosterGroups() {
     var groups = document.querySelectorAll('.cs-roster-sidebar .cs-roster-group');
@@ -325,12 +331,10 @@ document.addEventListener('mouseover', function (e) {
       var key = g.getAttribute('data-group-key');
       if (!key) return;
       var stored = null;
-      try { stored = localStorage.getItem(ROSTER_STORAGE_PREFIX + key); } catch (e) {}
-      if (stored === 'open') {
-        g.setAttribute('open', '');
-      } else if (stored === 'closed') {
-        g.removeAttribute('open');
-      }
+      try { stored = sessionStorage.getItem(rosterStorageKey(key)); } catch (e) {}
+      // Default collapsed; only an explicit 'open' from this server run re-expands.
+      if (stored === 'open') g.setAttribute('open', '');
+      else g.removeAttribute('open');
     });
   }
 
@@ -353,8 +357,8 @@ document.addEventListener('mouseover', function (e) {
     var key = g.getAttribute('data-group-key');
     if (!key) return;
     try {
-      localStorage.setItem(ROSTER_STORAGE_PREFIX + key, g.open ? 'open' : 'closed');
-    } catch (e2) { /* localStorage unavailable */ }
+      sessionStorage.setItem(rosterStorageKey(key), g.open ? 'open' : 'closed');
+    } catch (e2) { /* sessionStorage unavailable */ }
   }, true);
 
   // -- Roster Sidebar: Encounter mutations -----------------------------
