@@ -355,6 +355,11 @@ export class ActionBuilder {
     ActionBuilder._recomputeLuck(root);
     ActionBuilder._setState(root, '__dice', 'pending');
     const results = root.querySelector('.rolls-results'); if (results) results.hidden = true;
+    // A post-Confirm collapse (RollsWrapper.collapse) hides the roll table and
+    // the header's controls slot wholesale; re-opening a step from its summary
+    // row must bring both back or the header quick-picks never reappear.
+    const tbl = root.querySelector('.roll-table'); if (tbl) tbl.hidden = false;
+    const acts = root.querySelector('.rolls-header .rolls-actions'); if (acts) acts.hidden = false;
     root.dataset.state = 'building';
     ActionBuilder._activateFrom(root, ti);
   }

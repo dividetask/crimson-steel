@@ -3365,16 +3365,17 @@ body {
   font-size: 12px;
 }
 .ta-result p { margin: 2px 0; }
-/* The rider Roll Resolution Stub is injected into the attack's results block,
-   directly under the Net Degree of Success line, so it reads as part of the
-   same attack table rather than a separate boxed widget. Strip the standalone
-   .rolls-wrapper chrome (border / background / margin) and tone its header down
-   to a thin sub-section divider; its Roll / Confirm stay right-aligned in the
-   same column the attack roll's were. */
+/* The rider rows are injected into the attack's results block, directly under
+   the Net Degree of Success line, so they read as part of the same attack
+   table rather than a separate boxed widget. They carry no header of their
+   own — the rider phase's Roll / Confirm mount into the builder's TOP Rolls
+   header (turnAttack.js _enterRiderPhase), the same controls slot the attack
+   roll used — so only a slim title line marks the rows. */
 .rolls-results .ta-rider-stub { margin-top: 4px; }
 .rolls-results .ta-rider-stub .rolls-wrapper { border: none; margin: 0; background: transparent; }
-.rolls-results .ta-rider-stub .rolls-header {
-  background: transparent; border-bottom: 1px solid #ddd; padding: 4px 0;
+.ta-rider-title {
+  font-size: 0.85rem; font-weight: 600; padding: 4px 0;
+  border-bottom: 1px solid #ddd;
 }
 .rolls-results .ta-rider-stub .rolls-results {
   padding: 4px 0 0; background: transparent; border-top: none;
