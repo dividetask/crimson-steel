@@ -1265,17 +1265,19 @@ helpers do
         end
         skill_label = Encounter::Special.pretty_skill(sp[:skill])
         aff_max     = [cap, pool].min
-        lead_off    = aff_max < min
         set = ->(n) { { set_dice: [{ id: 'caster', count: n }] } }
-        opts = [{ value: "#{sp[:name]}|#{aff_max}", key: aff_max, group: 'dice',
-                  label: "#{skill_label} (max #{aff_max})", summary: "#{skill_label} — #{aff_max} dice",
-                  disabled: lead_off, patch: set.call(aff_max) }]
-        (min..cap).each do |n|
-          opts << { value: "#{sp[:name]}|#{n}", key: n, group: 'dice', label: n.to_s,
-                    summary: "#{n} dice", disabled: n > pool, patch: set.call(n) }
-        end
-        dice_map[sp[:name]]   = opts
-        header_map[sp[:name]] = [{ value: "#{sp[:name]}|#{aff_max}", label: "Max (#{aff_max})", disabled: lead_off }]
+        # Shaped exactly like the Attack weapon/dice step via the shared
+        # dice_count_group helper: a "<skill> (max N)" lead, a button per
+        # count, and a top-right header quick-pick that names the casting
+        # skill (e.g. "Arcana") rather than a generic "Max".
+        g = dice_count_group(prefix: sp[:name], group: 'dice', min: min, max: cap,
+                             aff: ->(n) { n <= pool }, patch: set,
+                             summary: ->(n) { "#{skill_label} — #{n} dice" },
+                             lead_label: "#{skill_label} (max #{aff_max})",
+                             header_label: skill_label,
+                             info: "#{skill_label} — up to #{cap} dice")
+        dice_map[sp[:name]]   = g[:body]
+        header_map[sp[:name]] = [g[:header]]
       else
         # Known dice count — auto-applied (the builder skips the step) when the
         # caster can afford it; otherwise shown as a blocked option.
