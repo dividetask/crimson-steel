@@ -33,6 +33,10 @@ get '/character-sheets' do
   accessor = @creature_id && (Creatures.lookup(@creature_id) rescue nil)
   @demo = accessor ? CreatureSheet.build(accessor) : nil
 
+  # Spawn Roll Tables (equipment loadout + race/class/skill/tier tables)
+  # shown in a stub above the sheet for a template that declares them.
+  @roll_tables = @creature_id ? roll_tables_data(@creature_id) : nil
+
   # Inventory-management stub — shown below the sheet for a real Creature
   # (never an enemy_template). Keyed to the Creature shown above.
   @inventory_stub =
