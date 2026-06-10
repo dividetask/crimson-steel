@@ -157,6 +157,30 @@ helpers do
     parts.empty? ? '' : " (#{parts.join(', ')})"
   end
 
+  # The Target step's option list, shared by the Attack and Cast builders
+  # so they choose targets identically: one option per combatant, labelled
+  # with its status suffix, split into PC/NPC/enemy sections, dying ones
+  # flagged red. `roll_id` is the opposing Roll the pick names ('defender'
+  # for an attack, 'target' for a cast); `self_id` marks the caster "(self)".
+  def target_options(combatants, roll_id:, self_id: nil)
+    descs = combatants.map do |c|
+      tacc = Creatures.lookup(c[:creature_id]) rescue nil
+      base = tracker_name(c)
+      self_tag = (c[:id] == self_id) ? ' (self)' : ''
+      { id: c[:id],
+        name: base + self_tag,
+        display_name: base + target_status_suffix(c[:id], c[:creature_id]) + self_tag,
+        category: (creature_is_pc?(c[:creature_id]) ? 'pc' : (((tacc&.group rescue nil) == 'npc') ? 'npc' : 'enemy')),
+        dying: (encounter_state.creature_dying?(c[:id]) rescue false),
+        tier: (tacc&.tier rescue 0) || 0 }
+    end
+    order_targets_by_category(descs).map do |t|
+      { value: t[:id], key: t[:id], label: t[:display_name], dying: t[:dying], group: t[:category],
+        patch: { set_name: [{ id: roll_id, creature_name: t[:name] }],
+                 set_tier: [{ id: roll_id, tier: t[:tier] }] } }
+    end
+  end
+
   # Targets ordered into PC, then NPC, then enemy sections (stable within
   # each), so the Target list renders one section per group (each group is
   # its own `.cb-line` row in the builder).
@@ -751,10 +775,8 @@ helpers do
     header_targets = enemy_targets.first(5)
     target_step = { key: 'target', label: 'Target',
                     header_options: header_targets.map { |t| { value: t[:id], label: t[:display_name] } },
-                    options: order_targets_by_category(targets).map { |t| { value: t[:id], key: t[:id], label: t[:display_name],
-                                                 dying: t[:dying], group: t[:category],
-                                                 patch: { set_name: [{ id: 'defender', creature_name: t[:name] }],
-                                                          set_tier: [{ id: 'defender', tier: t[:tier] }] } } } }
+                    options: target_options(encounter_state.combatants.reject { |c| c[:id] == attacker[:id] },
+                                            roll_id: 'defender') }
 
     action_opts = []
     action_quick = []
@@ -1326,11 +1348,7 @@ helpers do
     # Combatants; an **area Spell** instead offers a single "Place on the map"
     # action — the client arms the Atlas, the DM clicks to drop the footprint,
     # and the creatures it covers become the affected set (no single Target).
-    combatant_target_opts = order_targets_by_category(targets).map do |t|
-      { value: t[:id], key: t[:id], label: t[:display_name], dying: t[:dying], group: t[:category],
-        patch: { set_name: [{ id: 'target', creature_name: t[:name] }],
-                 set_tier: [{ id: 'target', tier: t[:tier] }] } }
-    end
+    combatant_target_opts = target_options(encounter_state.combatants, roll_id: 'target', self_id: caster[:id])
     target_map = {}
     spells.each do |sp|
       target_map[sp[:name]] =
