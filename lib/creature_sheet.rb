@@ -296,10 +296,13 @@ module CreatureSheet
   end
 
   # Spells the Creature knows from Class spellcasting — the spell-typed
-  # entries among its Granted Abilities, grouped by Tier.
+  # entries among its Granted Abilities, grouped by Tier. A Creature's
+  # deity/domains never grant spells above the Creature's own Tier (the
+  # highest Tier it can cast), so Tiers beyond that are dropped.
   def spells(accessor)
     keys = (accessor.granted_abilities rescue []).map { |g| g[:name] }
-    spell_groups(keys)
+    cap  = (accessor.tier rescue 0)
+    spell_groups(keys).select { |g| g[:tier] <= cap }
   end
 
   # Rituals — the spells inscribed in the Creature's carried Ritual
