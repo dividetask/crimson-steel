@@ -779,6 +779,13 @@ helpers do
           inherent_table: inh_table, no_defense: true
         )
         def_tier = Encounter::Attack.defender_tier_bonuses(defender_tier: t[:tier], inherent_table: inh_table)
+        # The attacker's own (Glory-adjusted) Inherent Bonus for a defended
+        # branch — no Ascendancy here, since the defender rolls and its own
+        # Inherent propagates onto the attacker's TN as the Ascendancy.
+        atk_tier_def = Encounter::Attack.attacker_tier_bonuses(
+          attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
+          inherent_table: inh_table, no_defense: false
+        )
         # Raw attacker Bonus lists (no TN math here), each carrying its tier
         # modifiers. Flatfooted applies whenever the defender is NOT Dodging —
         # so no defence and Block / Parry all keep it; only Dodge sheds it (the
@@ -837,7 +844,7 @@ helpers do
           dspd  = b[:speed]
           # Flatfooted sticks unless this defence is a Dodge; declaring a
           # defence proves awareness, so Unaware never applies here.
-          atk_branch_bpl = comp + Encounter::Attack.attacker_bonuses(
+          atk_branch_bpl = comp + atk_tier_def + Encounter::Attack.attacker_bonuses(
             flatfooted: (b[:key] != 'dodge') && !t[:flatfooted_immune], unaware: false, helpless: t[:helpless])
           # A Dodge's Competency helps the defender's own Roll but is NOT
           # propagated onto the attacker as a penalty — Check Resolution's

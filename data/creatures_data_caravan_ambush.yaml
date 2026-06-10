@@ -35,7 +35,7 @@ characters:
             - deception
 
   - id: 1099
-    name: Half-Orc Soldier 7
+    name: Half-Orc Soldier 1
     spawned_from: 103
     group: enemy
     tags: []
@@ -52,7 +52,7 @@ characters:
             - perception
 
   - id: 1100
-    name: Half-Orc Veteran
+    name: Half-Orc Veteran 1
     spawned_from: 108
     group: enemy
     tags: []
@@ -88,7 +88,7 @@ characters:
             - athletics
 
   - id: 1102
-    name: Half-Orc Soldier e
+    name: Half-Orc Soldier 2
     spawned_from: 103
     group: enemy
     tags: []
@@ -105,7 +105,7 @@ characters:
             - perception
 
   - id: 1103
-    name: Half-Orc Soldier 1
+    name: Half-Orc Soldier 3
     spawned_from: 103
     group: enemy
     tags: []
@@ -122,7 +122,7 @@ characters:
             - perception
 
   - id: 1104
-    name: Half-Orc Soldier b
+    name: Half-Orc Soldier 4
     spawned_from: 103
     group: enemy
     tags: []
@@ -139,7 +139,7 @@ characters:
             - perception
 
   - id: 1105
-    name: Half-Orc Soldier c
+    name: Half-Orc Soldier 5
     spawned_from: 103
     group: enemy
     tags: []
@@ -156,7 +156,7 @@ characters:
             - perception
 
   - id: 1106
-    name: Half-Orc Veteran
+    name: Half-Orc Veteran 2
     spawned_from: 108
     group: enemy
     tags: []
@@ -174,7 +174,7 @@ characters:
             - sense_motive
 
   - id: 1108
-    name: Orc Handler
+    name: Orc Handler 1
     spawned_from: 109
     group: enemy
     tags: []
@@ -190,7 +190,7 @@ characters:
             - animal_handling
 
   - id: 1109
-    name: Orc Handler
+    name: Orc Handler 2
     spawned_from: 109
     group: enemy
     tags: []
@@ -239,7 +239,7 @@ characters:
           skills: []
 
   - id: 1112
-    name: Half-Orc Soldier d
+    name: Half-Orc Soldier 6
     spawned_from: 103
     group: enemy
     tags: []
