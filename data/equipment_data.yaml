@@ -324,3 +324,118 @@ characters:
           - name: Elemental
             subtype: Acid
         equipped: true
+
+  # =============================================================
+  # Imported caravan-ambush enemies (97-112)
+  # =============================================================
+  97:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Chain shirt
+        tier: 1
+        equipped: true
+  99:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+      - item: Potion of Cure Lesser Wounds
+        tier: 1
+      - item: Potion of Ablative Barrier
+        tier: 2
+  100:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+      - item: Oil of Arcane Mark
+  101:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        tier: 1
+        equipped: true
+      - item: Potion of Delay Poison
+        tier: 2
+  102:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+  103:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+      - item: Potion of Jump
+        tier: 1
+  104:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+      - item: Oil of Arcane Mark
+      - item: Potion of Invigorate
+        tier: 1
+  105:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+      - item: Potion of Spider Climb
+        tier: 2
+  106:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+  108:
+    inventory:
+      - item: Whip
+        equipped: true
+      - item: Short sword
+      - item: Leather armor
+        equipped: true
+  109:
+    inventory:
+      - item: Whip
+        equipped: true
+      - item: Short sword
+      - item: Leather armor
+        equipped: true
+  110:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Breastplate
+        tier: 1
+        equipped: true
+  111:
+    inventory: []
+  112:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+      - item: Oil of Light
+      - item: Oil of Goodberry
+        tier: 1
