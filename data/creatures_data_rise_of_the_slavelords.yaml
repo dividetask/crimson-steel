@@ -20,22 +20,30 @@ characters:
     group: enemy
     tags: [enemy_template, category:rise_of_the_slavelords]
     race: human
-    attributes: { str: 12, dex: 12, con: 12, int: 13, wis: 11, cha: 14 }
+    tier: 2
+    attributes: { str: 9, dex: 11, con: 11, int: 13, wis: 11, cha: 13 }
     advancement:
       classes:
-        rogue: 2
+        rogue:
+          level: 6
+          skills: [deception, intimidate, perception, persuasion, sense_motive]
+    equipment_table: slaver_loadout
 
   - id: 351
     name: Slaver Lieutenant
     metadata:
-      creature_token: "/images/icons/human token.webp"
+      creature_token: "/images/icons/orc token.webp"
     group: enemy
     tags: [enemy_template, category:rise_of_the_slavelords]
-    race: human
-    attributes: { str: 15, dex: 13, con: 14, int: 11, wis: 11, cha: 12 }
+    race: orc
+    tier: 2
+    attributes: { str: 19, dex: 14, con: 8, int: 12, wis: 11, cha: 9 }
     advancement:
       classes:
-        fighter: 3
+        fighter:
+          level: 8
+          skills: [athletics, intimidate, perception]
+    equipment_table: slaver_loadout
 
   - id: 352
     name: Half-Orc Soldier
@@ -44,10 +52,14 @@ characters:
     group: enemy
     tags: [enemy_template, category:rise_of_the_slavelords]
     race: half_orc
-    attributes: { str: 15, dex: 12, con: 14, int: 9, wis: 10, cha: 8 }
+    tier: 1
+    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
     advancement:
       classes:
-        fighter: 1
+        fighter:
+          level: 4
+          skills: [athletics, intimidate, perception]
+    equipment_table: soldier_loadout
 
   - id: 353
     name: Orc Interpreter
@@ -55,23 +67,31 @@ characters:
       creature_token: "/images/icons/orc rogue.webp"
     group: enemy
     tags: [enemy_template, category:rise_of_the_slavelords]
-    race: half_orc
-    attributes: { str: 12, dex: 12, con: 12, int: 12, wis: 10, cha: 10 }
+    race: orc
+    tier: 0
+    attributes: { str: 8, dex: 13, con: 10, int: 16, wis: 10, cha: 16 }
     advancement:
       classes:
-        rogue: 1
+        fighter:
+          level: 2
+          skills: [athletics, intimidate, persuasion, sense_motive]
+    equipment_table: slaver_loadout
 
   - id: 354
     name: Stockade Guard
     metadata:
-      creature_token: "/images/icons/human token.webp"
+      creature_token: "/images/icons/orc token.webp"
     group: enemy
     tags: [enemy_template, category:rise_of_the_slavelords]
-    race: human
-    attributes: { str: 14, dex: 12, con: 14, int: 10, wis: 12, cha: 10 }
+    race: orc
+    tier: 1
+    attributes: { str: 12, dex: 10, con: 7, int: 8, wis: 9, cha: 7 }
     advancement:
       classes:
-        fighter: 2
+        fighter:
+          level: 5
+          skills: [athletics, intimidate]
+    equipment_table: slaver_loadout
 
   # Tier-1 slaver. Race AND class are rolled at spawn: race is 50% orc,
   # else equal human/elf/dwarf (race_table); class is 50% warrior, else

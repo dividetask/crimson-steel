@@ -283,6 +283,16 @@ loot_tables:
       - chance: 0.75
         item: { item: Manacles, quantity: "1d3" }    # 0-3 (25% none, else 1-3)
 
+  # Half-orc caravan soldier kit: falchion + chain shirt always, longbow
+  # with a quiver. Used by the Half-Orc Soldier template (slaver_loadout
+  # is orc/human/elf/dwarf only, so soldiers get this military loadout).
+  soldier_loadout:
+    rolls:
+      - { equipped: true, item: { item: Falchion } }
+      - { equipped: true, item: { item: Chain shirt } }
+      - item: { item: Longbow }
+      - item: { item: Arrow, quantity: "5d4" }   # 5-20 arrows
+
   # Town guard equipment loadout. Spear is two-handed (no shield);
   # shield row gates on the hand variable.
   town_guard_equipment:
