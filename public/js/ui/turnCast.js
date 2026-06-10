@@ -1,6 +1,6 @@
 import { ActionBuilder } from './actionBuilder.js';
 import { ActionResult } from './actionResult.js';
-import { placeCommitProxy } from './turnCommit.js';
+import { placeCommitProxy, mountActionRow } from './turnCommit.js';
 
 // Turn Action panel — Cast (turn_action_stub.md → Cast).
 //
@@ -33,8 +33,12 @@ export class TurnCast {
       .then((html) => {
         container.innerHTML = html + '<div class="ta-result tc-result" hidden></div>';
         const builder = container.querySelector('.action-builder');
-        if (builder) { ActionBuilder.ensureLoaded(builder); container._builder = builder; }
-        else container.innerHTML = '<p class="ta-warn">This Combatant knows no castable spells.</p>';
+        if (builder) {
+          ActionBuilder.ensureLoaded(builder);
+          container._builder = builder;
+          const panel = container.closest && container.closest('.turn-action');
+          mountActionRow(builder, (panel && panel.dataset.actionLabel) || 'Cast');
+        } else { container.innerHTML = '<p class="ta-warn">This Combatant knows no castable spells.</p>'; }
       })
       .catch(() => { container.innerHTML = '<p class="ta-warn">Could not load the cast.</p>'; });
   }
@@ -102,11 +106,11 @@ export class TurnCast {
 
   static _preview(container, detail) {
     container._lastDetail = detail;
-    // A no-roll cast (a buff, or a reservoir pour like Shield of Faith) has
-    // nothing to preview — its outcome is fully determined by the choices — so
-    // a single Confirm applies it directly rather than asking again to commit.
-    if (detail.noRoll) { TurnCast._commit(container); return; }
-    TurnCast._post(container, TurnCast._payload(container, detail, false), (res) => TurnCast._renderResult(container, res));
+    // A no-roll cast surfaces its details automatically (detail.auto); the blue
+    // title "Confirm" then commits (a non-auto confirm). A rolled cast previews
+    // on the DM's Confirm, then commits from the result's own button.
+    if (detail.noRoll && !detail.auto) { TurnCast._commit(container); return; }
+    TurnCast._post(container, TurnCast._payload(container, detail, false), (res) => TurnCast._renderResult(container, res, detail));
   }
 
   static _commit(container) {
@@ -145,13 +149,18 @@ export class TurnCast {
   // markup the Attack result uses. Mana and per-participant Combat Pool are the
   // editable fields; the spell line, per-target outcomes, and sustain are
   // read-only notes.
-  static _renderResult(container, res) {
+  static _renderResult(container, res, detail) {
     const slot = container.querySelector('.tc-result');
     if (!slot) return;
+    // A no-roll cast commits from the blue title "Confirm" — so the result block
+    // shows only the details (no separate Commit button / proxy). A rolled cast
+    // keeps its own Commit button.
+    const noRoll = !!(detail && detail.noRoll);
     const tox = res.toxicity || {};
+    const nameOf = TurnCast._namer(container);
     const fields = [{ key: 'mana', label: 'Mana', value: num(res.mana_spent), editable: true }];
     (res.pool_spends || []).filter((s) => s.amount > 0).forEach((s) => {
-      fields.push({ key: `pool:${s.id}`, label: `Combat Pool — #${s.id}`, value: num(s.amount), editable: true });
+      fields.push({ key: `pool:${s.id}`, label: `Combat Pool — ${nameOf(s.id)}`, value: num(s.amount), editable: true });
     });
     const notes = [{
       label: res.spell || 'Spell',
@@ -163,11 +172,12 @@ export class TurnCast {
       notes.push({ label: `#${t.id}`, value: `${t.outcome || ''}${fx ? ' — ' + fx : ''}` });
     });
     if (res.sustain) notes.push({ label: 'Sustain', value: res.sustain.kind });
-    ActionResult.render(slot, { fields, notes, commitLabel: 'Commit cast' });
+    ActionResult.render(slot, { fields, notes, commitLabel: noRoll ? null : 'Commit cast' });
     slot.hidden = false;
-    // Surface a Commit button at the top of the Turn Action stub (the action
-    // menu's confirm slot) so the DM commits without reaching down here.
-    placeCommitProxy(container, 'Commit cast');
+    // A rolled cast surfaces a Commit proxy at the top; a no-roll cast commits
+    // from the blue title "Confirm", so it needs neither a result Commit nor a
+    // proxy.
+    if (!noRoll) placeCommitProxy(container, 'Commit cast');
   }
 
   static _fxText(a) {
@@ -184,6 +194,29 @@ export class TurnCast {
     const slot = container.querySelector('.tc-result');
     if (slot) { slot.hidden = false; slot.innerHTML = `<p class="ta-warn">${esc(msg)}</p>`; }
   }
+
+  // Resolve a Combatant id to a display name from the builder's roll groups (the
+  // caster and any target), so the Combat-Pool rows read by name like Attack's.
+  static _namer(container) {
+    const map = {};
+    container.querySelectorAll('.roll-group').forEach((g) => {
+      const nm = g.querySelector('.creature-name');
+      if (nm) map[g.dataset.rollId] = nameText(nm);
+    });
+    const choices = (container._lastDetail || {}).choices || {};
+    const byId = {};
+    byId[container._casterId] = map.caster || ('#' + container._casterId);
+    if (choices.target != null) byId[choices.target] = map.target || ('#' + choices.target);
+    return (id) => byId[id] || ('#' + id);
+  }
+}
+
+// Read only the creature-name cell's own text nodes (excluding the .tn-tip
+// tooltip span) so the TN computation text doesn't leak into the name.
+function nameText(el) {
+  let t = '';
+  el.childNodes.forEach((n) => { if (n.nodeType === 3) t += n.textContent; });
+  return t.trim() || el.textContent.trim();
 }
 
 function num(v) { const n = parseInt(v, 10); return Number.isNaN(n) ? 0 : n; }

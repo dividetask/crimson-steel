@@ -6,12 +6,12 @@ module Equipment
   # Roll Row resolution".
   module LootRolling
     # Returns the produced Item Stacks. Persistence is the caller's job.
-    def roll_loot_table(table_id, seed: nil, rng: nil)
+    def roll_loot_table(table_id, seed: nil, rng: nil, vars: {})
       rng ||= seed ? Random.new(seed) : @rng
       table = loot.table(table_id)
       return ERROR unless table
 
-      vars = {}
+      vars = (vars || {}).transform_keys(&:to_s)
       stacks = []
       Array(table['rolls']).each do |row|
         row = row.transform_keys(&:to_s)

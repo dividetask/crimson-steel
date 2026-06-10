@@ -2254,6 +2254,14 @@ body {
   font-size: 13px;
   margin-bottom: 4px;
 }
+/* Breakdown line under the popup title: how the Effective Attribute is
+   built up (base + racial + inherent + per-Type Modifiers). */
+.cs-card.cs-minimal .cs-attr-pop-breakdown {
+  font-size: 11px;
+  color: #6b4a36;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
 .cs-card.cs-minimal .cs-attr-pop-table {
   width: 100%;
   border-collapse: collapse;
@@ -3235,10 +3243,12 @@ body {
 /* Selected-action row: replaces the category groups once an action is picked.
    Change re-opens the menu; the right-hand slot hosts the action's Commit
    button. */
-.ta-selected-action { display: none; align-items: center; gap: 10px; }
-.turn-action.ta-has-selection .ta-selected-action { display: flex; }
+/* Picking an action collapses the category menu; the chosen action is folded
+   into the builder (or the action's pane) as its first row — .ta-action-row —
+   reusing the .step-summary label/value pattern so "Action  Attack" reads like
+   "Target  Wolf". It carries the Change button and the Commit-proxy slot. */
 .turn-action.ta-has-selection .ta-cat-group { display: none; }
-.ta-selected-label { font-weight: 600; color: #1e293b; }
+.ta-action-row .ta-action-name { color: #1e293b; }
 .ta-change {
   flex: 0 0 auto;
   background: #fff7e0;
@@ -3251,7 +3261,11 @@ body {
   cursor: pointer;
 }
 .ta-change:hover { background: #fff1c5; }
-.ta-confirm-slot { margin-left: auto; display: flex; gap: 6px; }
+.ta-confirm-slot { display: flex; gap: 6px; }
+/* When no Commit proxy is present, the slot must not occupy space (or add the
+   row's flex gap), so the Action row's Change button stays flush-right and
+   aligned with the step rows' Change buttons. */
+.ta-confirm-slot:empty { display: none; }
 .ta-pane { display: none; }
 .ta-pane.ta-pane-active { display: block; }
 .ta-pane-h { margin: 0 0 8px; }
@@ -3351,16 +3365,17 @@ body {
   font-size: 12px;
 }
 .ta-result p { margin: 2px 0; }
-/* The rider Roll Resolution Stub is injected into the attack's results block,
-   directly under the Net Degree of Success line, so it reads as part of the
-   same attack table rather than a separate boxed widget. Strip the standalone
-   .rolls-wrapper chrome (border / background / margin) and tone its header down
-   to a thin sub-section divider; its Roll / Confirm stay right-aligned in the
-   same column the attack roll's were. */
+/* The rider rows are injected into the attack's results block, directly under
+   the Net Degree of Success line, so they read as part of the same attack
+   table rather than a separate boxed widget. They carry no header of their
+   own — the rider phase's Roll / Confirm mount into the builder's TOP Rolls
+   header (turnAttack.js _enterRiderPhase), the same controls slot the attack
+   roll used — so only a slim title line marks the rows. */
 .rolls-results .ta-rider-stub { margin-top: 4px; }
 .rolls-results .ta-rider-stub .rolls-wrapper { border: none; margin: 0; background: transparent; }
-.rolls-results .ta-rider-stub .rolls-header {
-  background: transparent; border-bottom: 1px solid #ddd; padding: 4px 0;
+.ta-rider-title {
+  font-size: 0.85rem; font-weight: 600; padding: 4px 0;
+  border-bottom: 1px solid #ddd;
 }
 .rolls-results .ta-rider-stub .rolls-results {
   padding: 4px 0 0; background: transparent; border-top: none;
@@ -3882,3 +3897,43 @@ body {
   align-items: center;
   margin: 0;
 }
+
+/* Spawn Roll Tables stub (above a template's Character Sheet) */
+.cs-roll-tables {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  border-radius: 6px;
+  background: rgba(128, 128, 128, 0.06);
+}
+.cs-roll-tables-title { margin: 0 0 0.1rem; font-size: 1.05rem; }
+.cs-roll-tables-note { margin: 0 0 0.6rem; font-size: 0.8rem; opacity: 0.7; }
+.cs-roll-table { margin: 0.5rem 0; }
+.cs-roll-table h3 { margin: 0 0 0.2rem; font-size: 0.9rem; }
+.cs-roll-table ul { margin: 0; padding-left: 1.2rem; }
+.cs-roll-table li { margin: 0.1rem 0; font-size: 0.88rem; }
+.cs-roll-table p { margin: 0.1rem 0; font-size: 0.88rem; }
+.cs-roll-table-id { font-size: 0.8rem; opacity: 0.8; }
+.cs-roll-when { opacity: 0.7; font-style: italic; }
+.cs-tag {
+  display: inline-block;
+  margin-left: 0.3rem;
+  padding: 0 0.4rem;
+  font-size: 0.72rem;
+  border: 1px solid rgba(128, 128, 128, 0.5);
+  border-radius: 3px;
+  opacity: 0.85;
+}
+
+/* Targeting stubs: a Dying creature's button is red (all targeting stubs). */
+.cb-opt.cb-opt-dying { border-color: #c0362c; color: #c0362c; }
+.cb-opt.cb-opt-dying:hover { background: #fdecea; }
+
+/* Multi-select target toggle: a selected target turns blue (grey by
+   default); clicking again toggles it back. Dying + selected stays red-tinted. */
+.cb-opt.cr-mod-selected { border-color: #2563eb; background: #eff6ff; }
+.cb-opt.cb-opt-dying.cr-mod-selected { border-color: #c0362c; background: #fbe9e7; }
+
+/* Running "selected / max Targets" count above a multi-select target list. */
+.cb-multi-count { font-size: 0.85rem; font-weight: 600; margin: 0 0 4px; }
+.cb-multi-count.cb-multi-full { color: #2563eb; }

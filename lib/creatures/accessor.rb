@@ -12,7 +12,7 @@ module Creatures
   class Accessor
     SPELLCASTING_ABILITIES = %w[
       bardic_spellcasting arcane_spellcasting druidic_spellcasting
-      ranger_spellcasting domain
+      domain
     ].freeze
 
     def initialize(record)
@@ -27,6 +27,8 @@ module Creatures
     def tags      ; @record[:tags]   ; end
     def race      ; @record[:race]   ; end
     def record    ; @record          ; end
+    def loot_table      ; @record[:loot_table]      ; end
+    def equipment_table ; @record[:equipment_table] ; end
 
     # Per-Creature token image (a web path), stored under `metadata`
     # (the design's portrait-path slot). Nil when unset — the Atlas
@@ -46,6 +48,26 @@ module Creatures
 
     def effective_attributes
       @effective ||= compute_effective_attributes
+    end
+
+    # Ordered components that sum to the Effective Attribute, for the
+    # character sheet's attribute popup. The base score always leads,
+    # followed by the racial adjustment, the inherent bonus (per-Tier
+    # minimum + chosen Tier advancements), then each Always-On Modifier
+    # (equipped Guidance / Modifier abilities / active effects) broken
+    # out by Bonus Type. Zero components are omitted except the base.
+    # Each entry is { label:, amount: }.
+    def attribute_breakdown(attr)
+      attr = attr.to_sym
+      parts = [{ label: 'base', amount: @record[:attributes][attr].to_i }]
+      racial = racial_adjustment(attr)
+      parts << { label: 'racial', amount: racial } unless racial.zero?
+      inherent = inherent_bonus(attr)
+      parts << { label: 'inherent', amount: inherent } unless inherent.zero?
+      attribute_modifier_tokens(attr).each do |tok|
+        parts << { label: tok[:type], amount: tok[:amount] }
+      end
+      parts
     end
 
     # ---- tier ----
@@ -247,33 +269,48 @@ module Creatures
     end
 
     def compute_effective_attributes
-      attrs = Creatures::Config.attribute_keys
       base = @record[:attributes]
-
-      race = Creatures::Races.look_up(@record[:race])
-      racial = race ? race[:attribute_adjustments] : Hash.new(0)
-
-      per_tier_table = Creatures::Config.tier_minimum_inherent_bonus
-      per_tier = per_tier_table[tier] || 0
-
-      counts = Creatures::Config.tier_inherent_chosen_bonus_count
-      amount = Creatures::Config.per_tier_inherent_chosen_bonus_amount
-
-      # Chunk tier_attribute_advancement into per-tier slices,
-      # consuming `counts[t]` entries from the head for each Tier
-      # from 2 up to the Creature's current Tier. Anything past the
-      # current Tier's reach doesn't apply.
-      chosen = Hash.new(0)
-      offset = 0
-      (2..tier).each do |t|
-        take = counts[t] || 0
-        slice = @record[:tier_attribute_advancement][offset, take] || []
-        slice.each { |attr| chosen[attr] += amount }
-        offset += take
+      Creatures::Config.attribute_keys.each_with_object({}) do |a, h|
+        raw = base[a] + racial_adjustment(a) + inherent_bonus(a) + attribute_modifier(a)
+        # Every Effective Attribute floors at 1 — racial penalties (notably
+        # beasts' -8 Int) never drop a score below 1.
+        h[a] = [raw, 1].max
       end
+    end
 
-      attrs.each_with_object({}) do |a, h|
-        h[a] = base[a] + (racial[a] || 0) + per_tier + chosen[a] + attribute_modifier(a)
+    # Race-granted adjustment for one Attribute (0 when the race has none
+    # or is unknown).
+    def racial_adjustment(attr)
+      race = Creatures::Races.look_up(@record[:race])
+      racial = race ? race[:attribute_adjustments] : nil
+      (racial && racial[attr.to_sym]) || 0
+    end
+
+    # Inherent bonus to one Attribute: the flat per-Tier minimum plus any
+    # chosen Tier-advancement picks. Tier 0 contributes none.
+    def inherent_bonus(attr)
+      per_tier = Creatures::Config.tier_minimum_inherent_bonus[tier] || 0
+      per_tier + chosen_inherent_bonuses[attr.to_sym]
+    end
+
+    # Chosen Tier-advancement bonuses per Attribute. Chunks
+    # tier_attribute_advancement into per-Tier slices, consuming
+    # `counts[t]` entries from the head for each Tier from 2 up to the
+    # Creature's current Tier; anything past the current Tier's reach
+    # doesn't apply.
+    def chosen_inherent_bonuses
+      @chosen_inherent_bonuses ||= begin
+        counts = Creatures::Config.tier_inherent_chosen_bonus_count
+        amount = Creatures::Config.per_tier_inherent_chosen_bonus_amount
+        chosen = Hash.new(0)
+        offset = 0
+        (2..tier).each do |t|
+          take = counts[t] || 0
+          slice = @record[:tier_attribute_advancement][offset, take] || []
+          slice.each { |attr| chosen[attr.to_sym] += amount }
+          offset += take
+        end
+        chosen
       end
     end
 
@@ -287,6 +324,17 @@ module Creatures
       ::CreatureModifiers.attribute_bonus(self, attr)
     rescue StandardError
       0
+    end
+
+    # The Always-On Attribute Modifiers broken out per Bonus Type (e.g.
+    # Guidance), for the breakdown popup. Their amounts sum to
+    # #attribute_modifier. Empty when the bridge (or its source domains)
+    # is not loaded.
+    def attribute_modifier_tokens(attr)
+      return [] unless defined?(::CreatureModifiers)
+      ::CreatureModifiers.attribute_bonus_tokens(self, attr)
+    rescue StandardError
+      []
     end
 
     def skill_ranks(skill_key)

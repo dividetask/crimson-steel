@@ -6,11 +6,14 @@ characters:
   attributes:
     str: 10
     dex: 12
-    con: 13
+    con: 11
     int: 12
-    wis: 14
+    wis: 12
     cha: 9
   advancement:
+    tier_attribute_advancement:
+    - wis
+    - con
     classes:
       cleric:
         level: 4
@@ -23,22 +26,21 @@ characters:
         - perception
         choices:
           deity: Karthak
+          domains:
+          - War
+          - Healing
+          - Glory
           spellcasting:
           - sacred_flame
           - magic_vestments
-          - heal_lesser_wounds
           - healing_word
           - command
-          - lesser_ward
           - divine_favor
-          - shield_of_faith
           - magic_weapon
           - spiritual_weapon
           - hold_person
           - silence
           - blind
-          - heal_simple_wounds
-          - standard_ward
           - protection_from_poison
           - standard_surgery
   player: Jarett
@@ -48,13 +50,16 @@ characters:
   name: Olga
   race: human
   attributes:
-    str: 15
+    str: 14
     dex: 14
-    con: 14
+    con: 12
     int: 8
     wis: 10
     cha: 7
   advancement:
+    tier_attribute_advancement:
+    - str
+    - con
     classes:
       barbarian:
         level: 4
@@ -71,12 +76,15 @@ characters:
   race: high_elf
   attributes:
     str: 7
-    dex: 15
+    dex: 13
     con: 11
     int: 9
     wis: 13
-    cha: 13
+    cha: 11
   advancement:
+    tier_attribute_advancement:
+    - dex
+    - cha
     classes:
       arcane_trickster:
         level: 4
@@ -107,12 +115,15 @@ characters:
   race: satyr
   attributes:
     str: 9
-    dex: 14
+    dex: 12
     con: 12
     int: 10
     wis: 11
-    cha: 14
+    cha: 12
   advancement:
+    tier_attribute_advancement:
+    - dex
+    - cha
     classes:
       bard:
         level: 4

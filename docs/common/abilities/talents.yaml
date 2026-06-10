@@ -104,7 +104,7 @@ Glorious Charge:
   range: Self
   target: self
   duration: "1 attack"
-  description: "Treat your Tier as 1 higher for a single attack for the rest of your turn."
+  description: "Treat your Tier as 1 higher for a single attack."
 
 Karthak's Resolve:
   type: talent
@@ -215,10 +215,6 @@ Arcane Spellcasting:
 Druidic Spellcasting:
   type: talent
   description: "Cast druidic spells drawn from the bond with nature."
-
-Ranger Spellcasting:
-  type: talent
-  description: "Cast a small repertoire of nature-aspected spells."
 
 Bardic Inspiration:
   type: talent

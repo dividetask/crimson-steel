@@ -1,6 +1,15 @@
 import { ActionBuilder } from './actionBuilder.js';
 import { ActionResult } from './actionResult.js';
-import { placeCommitProxy } from './turnCommit.js';
+import { RollController } from './rollController.js';
+import { RollsWrapper } from './rollsWrapper.js';
+import { placeCommitProxy, mountActionRow } from './turnCommit.js';
+
+// The chosen action's display name, stashed on the turn panel when the menu
+// button was clicked (app.js selectTurnAction), for the in-builder Action row.
+function actionLabel(container) {
+  const panel = container.closest && container.closest('.turn-action');
+  return (panel && panel.dataset.actionLabel) || 'Attack';
+}
 
 // Turn Action panel — Attack (turn_action_stub.md → Attack).
 //
@@ -25,12 +34,24 @@ export class TurnAttack {
     container.addEventListener('action:confirmed', (e) => TurnAttack._preview(container, e.detail));
     container.addEventListener('click', (e) => {
       if (e.target.closest && e.target.closest('.ar-commit')) { e.preventDefault(); TurnAttack._commit(container); }
-      // The rider Roll Resolution Stub's Roll / Confirm / Change are driven by
-      // the shared handlers in app.js (any .rolls-wrapper). We only hook the
-      // Confirm (reveal the damage screen) and Change (hide it again), without
-      // preventing app.js from collapsing / expanding the stub.
-      if (e.target.closest && e.target.closest('.ta-rider-stub .btn-confirm')) TurnAttack._onRiderConfirm(container);
-      if (e.target.closest && e.target.closest('.ta-rider-stub .btn-rolls-change')) TurnAttack._onRiderChange(container);
+      // The rider phase's Roll / Confirm live in the builder's top Rolls
+      // header (the same controls slot the attack roll used) with their own
+      // classes, so neither app.js's shared wrapper delegation nor the
+      // builder's own Confirm reacts to them — turnAttack drives the nested
+      // rider stub directly.
+      if (e.target.closest && e.target.closest('.ta-rider-roll')) { TurnAttack._riderRoll(container); return; }
+      if (e.target.closest && e.target.closest('.ta-rider-confirm')) { TurnAttack._riderConfirm(container); return; }
+      // The rider rows' own Change (under their collapsed results): app.js
+      // re-expands the nested stub; we re-arm the header controls.
+      if (e.target.closest && e.target.closest('.ta-rider-stub .btn-rolls-change')) { TurnAttack._onRiderChange(container); return; }
+      // The builder's main Change (re-opening the attack itself) or a step
+      // summary's per-step Change leaves the rider phase entirely — restore
+      // the builder's own header controls. (No `return`: the builder's own
+      // listener still processes the step Change.)
+      const mainChange = e.target.closest && e.target.closest('.btn-rolls-change');
+      if (mainChange && !mainChange.closest('.ta-rider-stub')) TurnAttack._exitRiderPhase(container);
+      const stepChange = e.target.closest && e.target.closest('.cr-step-change');
+      if (stepChange && !stepChange.closest('.ta-rider-stub')) TurnAttack._exitRiderPhase(container);
     });
     // Editing the Damage field re-buckets the Minor/Moderate/Major split live.
     container.addEventListener('input', (e) => {
@@ -48,7 +69,7 @@ export class TurnAttack {
       .then((html) => {
         container.innerHTML = html + '<div class="ta-result" hidden></div>';
         const builder = container.querySelector('.action-builder');
-        if (builder) ActionBuilder.ensureLoaded(builder);
+        if (builder) { ActionBuilder.ensureLoaded(builder); mountActionRow(builder, actionLabel(container)); }
         else container.innerHTML = '<p class="ta-warn">Could not load the attack.</p>';
       })
       .catch(() => { container.innerHTML = '<p class="ta-warn">Could not load the attack.</p>'; });
@@ -59,11 +80,10 @@ export class TurnAttack {
     const choices = detail.choices || {};
     const rolls = detail.rolls || [];
     const weaponType = String(choices.action || '').split('|')[0];
-    // Defence values are "<type>|<dice>" where <type> may be "parry:<weapon>"
-    // or "shield:<casterId>"; the server's defence kind is the base before ':'.
+    // Defence values are "<type>|<dice>" where <type> may be "parry:<weapon>";
+    // the server's defence kind is the base before ':'.
     const defFull = String(choices.defense || 'none');
-    const defType = defFull.split('|')[0];
-    const defenseName = defType.split(':')[0];
+    const defenseName = defFull.split('|')[0].split(':')[0];
     const atk = rolls.find((r) => r.id === 'attacker') || {};
     const base = {
       target_id: choices.target,
@@ -76,24 +96,25 @@ export class TurnAttack {
       attacker: { id: parseInt(container._attackerId, 10), dice: atk.dice_count, speed: atk.speed, successes: atk.successes }
     };
 
-    // Shield of Faith: the shielding caster blocks as a separate Opposing Roll,
-    // spending Reservoir dice (the target's own Defense stays out).
-    if (defenseName === 'shield') {
-      const sh = rolls.find((r) => r.id === 'shield') || {};
-      return Object.assign(base, {
-        defense: { choice: 'none' },
-        shield: { id: parseInt(defType.split(':')[1], 10), dice: parseInt(defFull.split('|')[1], 10) || 0,
-                  successes: sh.successes || 0, spell_name: 'Shield of Faith' }
-      });
-    }
-
+    // Target's own defense (Dodge / Block / Parry / none).
     const def = rolls.find((r) => r.id === 'defender');
     const declared = def && defenseName !== 'none';
-    return Object.assign(base, {
+    Object.assign(base, {
       defense: declared
         ? { choice: defenseName, id: choices.target, dice: def.dice_count, speed: def.speed || 0, successes: def.successes }
         : { choice: 'none' }
     });
+
+    // Ally Defense: a shielding caster interposing their shield as an additional
+    // Opposing Roll (its own step, independent of the target's defense). The
+    // value is "shield:<casterId>|<dice>"; the server resolves the spell name.
+    const allyFull = String(choices.ally_defense || 'none');
+    if (allyFull.split('|')[0].indexOf('shield:') === 0) {
+      const sh = rolls.find((r) => r.id === 'shield') || {};
+      base.shield = { id: parseInt(allyFull.split('|')[0].split(':')[1], 10),
+                      dice: parseInt(allyFull.split('|')[1], 10) || 0, successes: sh.successes || 0 };
+    }
+    return base;
   }
 
   // First Confirm: non-mutating preview. Keep the builder; show the editable
@@ -172,23 +193,26 @@ export class TurnAttack {
     container._riders = res.riders || [];
     container._riderRolls = {};
 
-    // When the weapon has Damage Riders, the rider Roll Resolution Stub is
-    // injected into the attack builder's own results block — directly under the
-    // Net Degree of Success line and above its Change button — so it reads as a
-    // continuation of the same attack table, with its Roll / Confirm in the same
-    // place the attack roll's were. The DM rolls + Confirms it, it collapses to
-    // a row beneath Net Degree of Success, and only then is the editable damage
-    // screen (in .ta-result below) revealed. With no riders the damage screen
-    // shows straight away.
+    // Re-render: drop any rider phase from a previous preview (a Change may
+    // have swapped to a rider-less weapon).
+    TurnAttack._exitRiderPhase(container);
+
+    // When the weapon has Damage Riders, the rider rows are injected into the
+    // attack builder's own results block — directly under the Net Degree of
+    // Success line — as a continuation of the same attack table. Their Roll /
+    // Confirm controls mount into the builder's TOP Rolls header (the same
+    // slot the attack roll's controls used), not a second mid-panel header.
+    // The DM rolls + Confirms; the rows collapse beneath Net Degree of
+    // Success, and only then is the editable damage screen (in .ta-result
+    // below) revealed. With no riders the damage screen shows straight away.
     if (container._riders.length) {
       const { tn, dieSize } = TurnAttack._attackerTn(container);
       const results = container.querySelector('.action-builder .rolls-results');
-      const prior = results && results.querySelector('.ta-rider-stub');
-      if (prior) prior.remove();
       const stubHtml = `<div class="ta-rider-stub">${TurnAttack._riderStubHtml(container._riders, tn, dieSize)}</div>`;
-      const changeBtn = results && results.querySelector('.btn-rolls-change');
+      const changeBtn = results && results.querySelector(':scope > .btn-rolls-change');
       if (changeBtn) changeBtn.insertAdjacentHTML('beforebegin', stubHtml);
       else if (results) results.insertAdjacentHTML('beforeend', stubHtml);
+      TurnAttack._enterRiderPhase(container);
       slot.hidden = false;
       slot.innerHTML = '<div class="ta-damage-screen" hidden></div>';
     } else {
@@ -196,6 +220,66 @@ export class TurnAttack {
       slot.innerHTML = '<div class="ta-damage-screen"></div>';
       TurnAttack._renderDamageScreen(container, res);
     }
+  }
+
+  // ---- Damage Rider phase ------------------------------------------------
+  //
+  // The rider roll is a real phase of the attack builder's flow: its Roll /
+  // Confirm buttons live in the builder's top Rolls header (the `__dice`
+  // controls step aside), and the rider rows render under the collapsed
+  // attack results. The buttons carry their own classes so the shared
+  // wrapper delegation (app.js) and the builder's Confirm ignore them.
+
+  static _riderWrapper(container) {
+    const stub = container.querySelector('.ta-rider-stub');
+    return stub && stub.querySelector('.rolls-wrapper');
+  }
+
+  static _enterRiderPhase(container) {
+    const actions = container.querySelector('.action-builder .rolls-header .rolls-actions');
+    if (!actions) return;
+    const dice = actions.querySelector('.step-controls[data-step="__dice"]');
+    if (dice) dice.dataset.state = 'complete';
+    let ctrl = actions.querySelector('.ta-rider-controls');
+    if (!ctrl) {
+      ctrl = document.createElement('div');
+      ctrl.className = 'step-controls ta-rider-controls';
+      ctrl.dataset.step = '__riders';
+      const label = (container._riders || []).length > 1 ? 'Roll All' : 'Roll';
+      ctrl.innerHTML = '<span class="step-kind-label">Damage Riders</span>' +
+        `<button type="button" class="ta-rider-roll">${label}</button>` +
+        '<button type="button" class="ta-rider-confirm">Confirm</button>';
+      actions.appendChild(ctrl);
+    }
+    ctrl.dataset.state = 'active';
+    actions.hidden = false;
+  }
+
+  // Leave the rider phase (the builder's main Change, or a re-preview):
+  // remove the header controls, hand the slot back to the builder's own
+  // Roll All / Confirm, and drop the rider rows + damage screen.
+  static _exitRiderPhase(container) {
+    const actions = container.querySelector('.action-builder .rolls-header .rolls-actions');
+    const ctrl = actions && actions.querySelector('.ta-rider-controls');
+    if (!ctrl) return;
+    ctrl.remove();
+    // Hand the slot back only from the state we put it in: a per-step Change
+    // runs the builder's own rewind first (setting __dice to 'pending'), and
+    // that state must survive until the steps re-complete.
+    const dice = actions.querySelector('.step-controls[data-step="__dice"]');
+    if (dice && dice.dataset.state === 'complete') dice.dataset.state = 'active';
+    const stub = container.querySelector('.ta-rider-stub');
+    if (stub) stub.remove();
+    container._riderRolls = {};
+    const screen = container.querySelector('.ta-damage-screen');
+    if (screen) { screen.hidden = true; screen.innerHTML = ''; }
+  }
+
+  // Top-header Roll: roll only the rider rows (the nested wrapper), never
+  // the already-confirmed attack rolls.
+  static _riderRoll(container) {
+    const w = TurnAttack._riderWrapper(container);
+    if (w) RollController.rollAll(w);
   }
 
   // Build the editable damage screen via the shared Action Result renderer.
@@ -277,15 +361,11 @@ export class TurnAttack {
         '<span class="rolls-result-value"></span>' +
       '</div>'
     )).join('');
-    const rollLabel = riders.length > 1 ? 'Roll All' : 'Roll';
+    // No header of its own: the rider phase's Roll / Confirm live in the
+    // builder's top Rolls header (see _enterRiderPhase); only a slim title
+    // line marks the rows.
     return '<div class="rolls-wrapper" data-stub="roll" data-state="active">' +
-      '<div class="rolls-header">' +
-        '<span class="rolls-title">Damage Riders</span>' +
-        '<div class="rolls-actions">' +
-          `<button type="button" class="btn-roll-all">${rollLabel}</button>` +
-          '<button type="button" class="btn-confirm">Confirm</button>' +
-        '</div>' +
-      '</div>' +
+      '<div class="ta-rider-title">Damage Riders</div>' +
       '<table class="stub-table roll-table">' +
         '<colgroup><col class="col-character"><col class="col-mod"><col class="col-mod"><col class="col-dice"><col class="col-result"><col class="col-result"><col class="col-lock"></colgroup>' +
         '<thead><tr><th>Rider</th><th>Reroll</th><th>Nudge</th><th>Dice</th><th>Result</th><th>Crits</th><th></th></tr></thead>' +
@@ -301,29 +381,39 @@ export class TurnAttack {
     return r.kind === 'named_effect' ? cap(String(r.effect || '')) : (r.damage_type || '');
   }
 
-  // The rider stub's Confirm: read each rider's rolled dice, record the
-  // Successes / 1s for the commit payload, relabel its collapsed row with the
-  // damage it deals, and reveal the damage screen. Deferred so app.js's
-  // collapse (the shared .btn-confirm handler) runs first.
-  static _onRiderConfirm(container) {
+  // Top-header Confirm for the rider phase: read each rider's rolled dice,
+  // record the Successes / 1s for the commit payload, collapse the rider rows
+  // (relabelled with the damage each deals), retire the header controls, and
+  // reveal the damage screen.
+  static _riderConfirm(container) {
+    const w = TurnAttack._riderWrapper(container);
+    if (!w) return;
     TurnAttack._computeRiderResults(container);
-    setTimeout(() => {
-      const stub = container.querySelector('.ta-rider-stub');
-      (container._riders || []).forEach((rider) => {
-        const r = container._riderRolls[rider.id] || { damage: 0, self_damage: 0 };
-        const cell = stub && stub.querySelector(`.rolls-result-row[data-roll-idx="${rider.id}"] .rolls-result-value`);
-        if (cell) cell.textContent = TurnAttack._riderOutcomeText(rider, r);
-      });
-      TurnAttack._renderDamageScreen(container, container._lastRes || {});
-      const screen = container.querySelector('.ta-damage-screen');
-      if (screen) screen.hidden = false;
-    }, 0);
+    RollsWrapper.collapse(w);
+    const stub = container.querySelector('.ta-rider-stub');
+    (container._riders || []).forEach((rider) => {
+      const r = container._riderRolls[rider.id] || { damage: 0, self_damage: 0 };
+      const cell = stub && stub.querySelector(`.rolls-result-row[data-roll-idx="${rider.id}"] .rolls-result-value`);
+      if (cell) cell.textContent = TurnAttack._riderOutcomeText(rider, r);
+    });
+    const ctrl = container.querySelector('.ta-rider-controls');
+    if (ctrl) ctrl.dataset.state = 'complete';
+    const actions = container.querySelector('.action-builder .rolls-header .rolls-actions');
+    if (actions) actions.hidden = true;
+    TurnAttack._renderDamageScreen(container, container._lastRes || {});
+    const screen = container.querySelector('.ta-damage-screen');
+    if (screen) screen.hidden = false;
   }
 
-  // The rider stub's Change re-opens the dice: hide the damage screen until the
-  // DM re-Confirms the riders.
+  // The rider rows' Change re-opens the dice (app.js expands the nested
+  // wrapper): re-arm the header Roll / Confirm and hide the damage screen
+  // until the DM re-Confirms the riders.
   static _onRiderChange(container) {
     container._riderRolls = {};
+    const ctrl = container.querySelector('.ta-rider-controls');
+    if (ctrl) ctrl.dataset.state = 'active';
+    const actions = container.querySelector('.action-builder .rolls-header .rolls-actions');
+    if (actions) actions.hidden = false;
     const screen = container.querySelector('.ta-damage-screen');
     if (screen) { screen.hidden = true; screen.innerHTML = ''; }
   }

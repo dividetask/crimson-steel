@@ -45,7 +45,9 @@ export const ActionResult = {
       parts.push(`<div class="ar-reactions"><div class="ar-reactions-head">Defender reactions</div>${rx}</div>`);
     }
 
-    parts.push(`<div class="ar-actions"><button type="button" class="ce-btn ar-commit">${esc(model.commitLabel || 'Commit')}</button></div>`);
+    if (model.commitLabel) {
+      parts.push(`<div class="ar-actions"><button type="button" class="ce-btn ar-commit">${esc(model.commitLabel)}</button></div>`);
+    }
     slot.innerHTML = `<div class="ar">${parts.join('')}</div>`;
   },
 

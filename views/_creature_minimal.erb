@@ -65,29 +65,44 @@
           <% if info %>
             <div class="cs-attr-pop" role="tooltip">
               <div class="cs-attr-pop-title"><%= label %></div>
+              <%
+                # Breakdown line: "8 base + 2 racial + 1 inherent + 2 Guidance".
+                # The base leads unsigned; later components carry their sign.
+                bd = Array(info[:breakdown])
+              %>
+              <% if bd.any? %>
+                <div class="cs-attr-pop-breakdown">
+                  <%= bd.each_with_index.map { |c, i|
+                        amt = c[:amount].to_i
+                        i.zero? ? "#{amt} #{c[:label]}"
+                                : "#{amt.negative? ? '&minus;' : '+'} #{amt.abs} #{c[:label]}"
+                      }.join(' ') %>
+                </div>
+              <% end %>
               <table class="cs-attr-pop-table">
                 <thead><tr><th></th><th class="cs-num">Ranks</th><th class="cs-num">Dice</th><th class="cs-num">Bonus</th></tr></thead>
                 <tbody>
                   <tr>
-                    <th>Check</th>
+                    <th>Attribute</th>
                     <td class="cs-num"><%= info[:check][:ranks] || 0 %></td>
                     <td class="cs-num"><%= info[:check][:dice] %>d</td>
                     <td class="cs-num"><%= sprintf('%+d', info[:check][:bonus]) %></td>
                   </tr>
+                  <% unskilled = info[:unskilled] || info[:untrained] %>
+                  <% if unskilled %>
+                    <tr>
+                      <th>Unskilled</th>
+                      <td class="cs-num"><%= unskilled[:ranks] || 0 %></td>
+                      <td class="cs-num"><%= unskilled[:dice] %>d</td>
+                      <td class="cs-num"><%= sprintf('%+d', unskilled[:bonus]) %></td>
+                    </tr>
+                  <% end %>
                   <tr>
                     <th>Save</th>
                     <td class="cs-num"><%= info[:save][:ranks] || 0 %></td>
                     <td class="cs-num"><%= info[:save][:dice] %>d</td>
                     <td class="cs-num cs-nowrap"><%= sprintf('%+d', info[:save][:bonus]) %><%= mod_tokens.call(info[:save][:tokens]) %></td>
                   </tr>
-                  <% if info[:untrained] %>
-                    <tr>
-                      <th>Untrained</th>
-                      <td class="cs-num"><%= info[:untrained][:ranks] || 0 %></td>
-                      <td class="cs-num"><%= info[:untrained][:dice] %>d</td>
-                      <td class="cs-num"><%= sprintf('%+d', info[:untrained][:bonus]) %></td>
-                    </tr>
-                  <% end %>
                 </tbody>
               </table>
             </div>

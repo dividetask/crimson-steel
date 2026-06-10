@@ -244,6 +244,11 @@ Weapons:
     damage_type: Piercing
     ammo_type: Arrow
     base_price: 50
+  Short bow:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Arrow
+    base_price: 50
   Crossbow:
     category: Ranged
     damage_type: Piercing
@@ -259,6 +264,20 @@ Weapons:
     damage_type: Piercing
     tags: [thrown]
     base_price: 4
+  Bola:
+    category: Ranged
+    damage_type: Bludgeoning
+    base_damage: 0
+    threshold: null
+    tags: [thrown]
+    base_price: 5
+  Net:
+    category: Ranged
+    damage_type: Bludgeoning
+    base_damage: 0
+    threshold: null
+    tags: [thrown]
+    base_price: 1
   Mace:
     category: One Handed
     damage_type: Bludgeoning
@@ -307,6 +326,15 @@ Weapons:
     damage_type: Slashing
     tags: [heavy]
     base_price: 60
+  Great axe:
+    category: Two Handed
+    damage_type: Slashing
+    tags: [heavy]
+    base_price: 50
+  Falchion:
+    category: One Handed
+    damage_type: Slashing
+    base_price: 30
   Quarterstaff:
     category: Two Handed
     damage_type: Bludgeoning
@@ -548,6 +576,11 @@ Armor:
     material: Metal
     metal: true
     base_price: 150
+  Breastplate:
+    category: Medium
+    material: Metal
+    metal: true
+    base_price: 200
   Plate mail:
     category: Heavy
     material: Metal
@@ -557,6 +590,11 @@ Armor:
     category: Shield
     material: Wood
     base_price: 3
+  Light metal shield:
+    category: Shield
+    material: Metal
+    metal: true
+    base_price: 9
   Tower shield:
     category: Shield
     material: Metal
@@ -714,6 +752,15 @@ Misc Items:
   Whetstone:
     category: Item
     base_price: 0.2
+  Humanoid skull:
+    category: Item
+    base_price: 0
+  Necklace of animal fangs:
+    category: Item
+    base_price: 0
+  Manacles:
+    category: Item
+    base_price: 2
   Thieves' tools:
     category: Item
     slot: bag

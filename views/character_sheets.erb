@@ -16,6 +16,9 @@
         <a class="cs-sheet-arrow" href="/character-sheets?creature_id=<%= @next_creature_id %>&detail=<%= @detail %>" aria-label="Next sheet">Next ›</a>
       </nav>
     <% end %>
+    <% if !@random_encounter_template_id && @roll_tables %>
+      <%= erb :_creature_roll_tables_stub, locals: { roll_tables: @roll_tables } %>
+    <% end %>
     <% if @random_encounter_template_id %>
       <%= erb :_random_encounter_template,
               locals: { table_id: @random_encounter_template_id,

@@ -251,3 +251,9 @@ Effect Names:
         scope: criticals
         applies_to: [attacks_against]
         amount: -1
+
+  shielded:
+    description: "An incorporeal floating shield hovers beside the creature. Its caster controls it, spending Reservoir dice as a reaction to interpose it and block an attack made against this creature."
+    mechanics:
+      - kind: display
+        text: "The shielding caster may block attacks against this creature with Reservoir dice (an Ally Defense)."

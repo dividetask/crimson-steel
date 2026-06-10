@@ -102,7 +102,7 @@ characters:
     attributes: { str: 14, dex: 14, con: 12, int: 3, wis: 12, cha: 6 }
     advancement:
       classes:
-        commoner: 1
+        feral: 4
 
   - id: 106
     name: Stockade Guard
@@ -127,3 +127,35 @@ characters:
     advancement:
       classes:
         cleric: 1
+
+  - id: 108
+    name: Half-Orc Veteran
+    metadata:
+      creature_token: "/images/icons/orc rogue.webp"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: half_orc
+    tier: 2
+    attributes: { str: 19, dex: 11, con: 15, int: 8, wis: 8, cha: 6 }
+    advancement:
+      classes:
+        fighter:
+          level: 7
+          skills: [athletics, intimidate, perception, sense_motive]
+    equipment_table: soldier_loadout
+
+  - id: 109
+    name: Orc Handler
+    metadata:
+      creature_token: "/images/icons/orc token.webp"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: orc
+    tier: 1
+    attributes: { str: 10, dex: 11, con: 8, int: 9, wis: 10, cha: 9 }
+    advancement:
+      classes:
+        fighter:
+          level: 3
+          skills: [animal_handling, intimidate]
+    equipment_table: slaver_loadout

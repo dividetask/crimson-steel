@@ -379,29 +379,6 @@ characters:
       - item: Chain shirt
         equipped: true
 
-  # Fey Favors templates (creatures_data_fey_favors) — fey, not animals, so
-  # they carry a weapon (mostly light/improvised blades).
-  400:  # Sprite — dagger
-    inventory:
-      - item: Dagger
-        equipped: true
-  401:  # Pixie — dagger
-    inventory:
-      - item: Dagger
-        equipped: true
-  402:  # Dryad — quarterstaff
-    inventory:
-      - item: Quarterstaff
-        equipped: true
-  403:  # Brownie — dagger
-    inventory:
-      - item: Dagger
-        equipped: true
-  404:  # Will-o'-Wisp Spark — dagger (token sidearm; fights mainly by other means)
-    inventory:
-      - item: Dagger
-        equipped: true
-
   # NPC quest-giver (creatures_data_npcs).
   2001:  # Daven Korr — dagger (a townsman's belt knife)
     inventory:

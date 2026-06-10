@@ -24,7 +24,7 @@ module Creatures
 
     # ---- Spawn / Delete -------------------------------------------------
 
-    def spawn_from_template(template_id, name_override: nil, loot_table: nil)
+    def spawn_from_template(template_id, name_override: nil, loot_table: nil, rng: Random.new)
       template = Dataset.get(Integer(template_id))
       raise ArgumentError, "no template Creature with id #{template_id}" unless template
 
@@ -33,6 +33,41 @@ module Creatures
       copy[:id] = new_id
       copy[:name] = name_override if name_override
       copy[:loot_table] = loot_table if loot_table
+      # Resolve a weighted race_table (if any) to a concrete race on the
+      # spawn, then clear the table so the instance is a fixed-race Creature.
+      unless Array(copy[:race_table]).empty?
+        copy[:race] = weighted_pick(copy[:race_table], rng)[:race]
+        copy[:race_table] = []
+      end
+      # Resolve a weighted class_table (if any) to a single concrete class,
+      # replacing the template's classes, then clear the table.
+      unless Array(copy[:class_table]).empty?
+        chosen = weighted_pick(copy[:class_table], rng)
+        choices = deep_dup(chosen[:choices] || {})
+        unless Array(chosen[:domain_picks]).empty?
+          choices['domains'] = roll_domain_picks(chosen[:domain_picks], rng, existing: choices['domains'])
+        end
+        copy[:classes] = {
+          chosen[:class] => { level: chosen[:level], skills: chosen[:skills], choices: choices }
+        }
+        copy[:class_table] = []
+      end
+      # Roll Tier Attribute Advancement picks (if specified) into the spawn.
+      unless copy[:tier_advancement_table].nil?
+        spec = copy[:tier_advancement_table]
+        pool = Array(spec[:from])
+        unless pool.empty?
+          picks = Array.new(spec[:count] || 0) { pool[rng.rand(pool.size)] }
+          copy[:tier_attribute_advancement] = Array(copy[:tier_attribute_advancement]) + picks
+        end
+        copy[:tier_advancement_table] = nil
+      end
+      # Assign random trained skills (if a skill_table is present): shuffle
+      # the candidates and keep the first N the spawn can train.
+      unless Array(copy[:skill_table]).empty?
+        assign_random_skills(copy, rng)
+        copy[:skill_table] = []
+      end
       # Record the template this instance was cloned from so the Roster
       # Sidebar / Character Sheets can group spawned Creatures under their
       # source. A spawned instance is NOT itself a template — drop the
@@ -42,6 +77,58 @@ module Creatures
 
       Dataset.insert!(copy)
       new_id
+    end
+
+    # Roll Cleric domains from a domain_picks spec (list of { count, from }).
+    # Draws are distinct and never repeat a domain already chosen (within or
+    # across draws, and any pre-existing `existing` domains). Returns the
+    # full domain list.
+    def roll_domain_picks(picks, rng, existing: nil)
+      chosen = Array(existing).dup
+      picks.each do |pick|
+        pool = Array(pick[:from]) - chosen
+        (pick[:count] || 0).times do
+          break if pool.empty?
+          chosen << pool.delete_at(rng.rand(pool.size))
+        end
+      end
+      chosen
+    end
+
+    # Shuffle the spawn's skill_table and assign the first N to its (single)
+    # class, where N is the Skill Pick Budget: floor(Eff Int / 4) +
+    # class.bonus_skills — the `Skill Pick Formula` from creatures_config.yaml,
+    # computed against the spawn's resolved race/tier. The count does NOT
+    # scale with Class Level: higher level advances the chosen skills further
+    # (more ranks), it does not grant more distinct skills.
+    def assign_random_skills(copy, rng)
+      classes = copy[:classes]
+      return if classes.nil? || classes.empty?
+
+      key, entry = classes.first
+      cls = Creatures::Advancement.look_up_class(key) || {}
+      bonus = cls['bonus_skills'] || 0
+      eff_int = Creatures::Accessor.new(copy).attribute_value(:int)
+      budget = (eff_int / 4) + bonus
+      budget = 0 if budget.negative?
+
+      pool = Array(copy[:skill_table]).shuffle(random: rng)
+      picks = pool.first([budget, pool.size].min)
+      entry[:skills] = (Array(entry[:skills]) + picks).uniq
+    end
+
+    # Weighted pick over a table of entries carrying a `:chance`
+    # (race_table / class_table). Chances are absolute and conventionally
+    # sum to 1; any leftover probability falls through to the last entry.
+    # Returns the chosen entry.
+    def weighted_pick(table, rng)
+      u = rng.rand
+      acc = 0.0
+      table.each do |e|
+        acc += e[:chance].to_f
+        return e if u < acc
+      end
+      table.last
     end
 
     def delete_creature(id)
@@ -106,7 +193,8 @@ module Creatures
             new_ids << spawn_from_template(
               Integer(sref['template_id']),
               name_override: sref['name_override'],
-              loot_table:    sref['loot_table']
+              loot_table:    sref['loot_table'],
+              rng:           rng
             )
           end
         end

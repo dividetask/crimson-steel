@@ -126,8 +126,11 @@ RSpec.describe CharacterCreation, type: :model do
   describe '.create!' do
     around do |example|
       Dir.mktmpdir do |dir|
-        Creatures::Dataset.data_dir = dir
+        # reset! clears @data_dir, so it must run BEFORE pointing the dataset at
+        # the tmpdir — otherwise create! falls back to the real data/ overlay
+        # and leaks test PCs into the live campaign file.
         Creatures::Dataset.reset!
+        Creatures::Dataset.data_dir = dir
         example.run
       ensure
         Creatures::Dataset.reset!

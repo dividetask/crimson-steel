@@ -296,9 +296,9 @@ module Encounter
     # dice (Config Move Cost) with no other mechanical effect. Returns
     # { ok:, pool_spent:, pool_remaining: }, or { ok: false, error: } when the
     # Combatant is unknown or cannot afford the cost.
-    def apply_move(combatant_id)
+    def apply_move(combatant_id, cost: nil)
       return { ok: false, error: 'unknown combatant' } unless combatant_for(combatant_id)
-      cost = Config.move_cost
+      cost = cost.nil? ? Config.move_cost : [cost.to_i, 0].max
       remaining = spend_combat_pool(combatant_id, cost)
       return { ok: false, error: 'not enough Combat Pool' } if remaining.nil?
       spend_main_action(combatant_id) # Move is a Main Action
@@ -703,15 +703,18 @@ module Encounter
         end
         opposing = defense[:successes].to_i
       end
-      # Shield of Faith: a third Combatant (the caster) defends the target as an
-      # extra Opposing Roll, fueled by spending Reservoir dice. Its Successes
-      # subtract from the attack like any defense; the dice come from the
-      # caster's reservoir (discharged on commit), not the Combat Pool.
+      # A shielding caster (Shield of Faith / the Shield spell) defends the target
+      # as an extra Opposing Roll. Its Successes subtract from the attack like any
+      # defense. The block dice come from the shield's source: a Combat-Pool block
+      # (Shield) folds into pool_spends; a Reservoir block (Shield of Faith) is
+      # discharged on commit.
       shield = p[:shield] || {}
       opposing += shield[:successes].to_i if shield[:id]
+      shield_pool = shield[:id] && shield[:dice_source].to_s == 'combat_pool' && shield[:dice].to_i.positive?
+      pool_spends << { id: shield[:id], amount: shield[:dice].to_i } if shield_pool
       pool_spends = apply_pool_override(pool_spends, over[:pool_spends])
       pool_spends.each { |s| spend_combat_pool(s[:id], s[:amount].to_i) } if commit
-      if commit && shield[:id] && shield[:dice].to_i.positive?
+      if commit && shield[:id] && shield[:dice].to_i.positive? && shield[:dice_source].to_s != 'combat_pool'
         discharge_reservoir(shield[:id], (shield[:spell_name] || 'Shield of Faith').to_s, shield[:dice].to_i)
       end
       # Debit the Luck applied to this attack. Each Luck is one reroll (applied
