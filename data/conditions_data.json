@@ -13,7 +13,7 @@
         }
       }
     },
-    "110": {
+    "1110": {
       "hp_damage": {
         "minor": 27,
         "moderate": 11
@@ -26,7 +26,7 @@
         }
       }
     },
-    "109": {
+    "1109": {
       "hp_damage": {
         "minor": 7,
         "moderate": 7,
@@ -40,7 +40,7 @@
         }
       }
     },
-    "101": {
+    "1101": {
       "hp_damage": {
         "minor": 6,
         "moderate": 1
@@ -70,7 +70,7 @@
     "4": {
       "mana_spent": 1
     },
-    "103": {
+    "1103": {
       "hp_damage": {
         "minor": 9,
         "moderate": 4,
@@ -84,7 +84,7 @@
         }
       }
     },
-    "104": {
+    "1104": {
       "hp_damage": {
         "minor": 10,
         "moderate": 4,
@@ -98,7 +98,7 @@
         }
       }
     },
-    "102": {
+    "1102": {
       "hp_damage": {
         "minor": 6,
         "moderate": 4,
@@ -112,7 +112,7 @@
         }
       }
     },
-    "99": {
+    "1099": {
       "hp_damage": {
         "minor": 5,
         "moderate": 5,
@@ -133,7 +133,7 @@
       "mana_spent": 11,
       "magic_toxicity": 9
     },
-    "105": {
+    "1105": {
       "hp_damage": {
         "minor": 6,
         "moderate": 5,
@@ -147,7 +147,7 @@
         }
       }
     },
-    "112": {
+    "1112": {
       "hp_damage": {
         "minor": 23,
         "moderate": 4,
@@ -161,12 +161,12 @@
         }
       }
     },
-    "111": {
+    "1111": {
       "hp_damage": {
         "minor": 12
       }
     },
-    "108": {
+    "1108": {
       "hp_damage": {
         "minor": 7,
         "moderate": 5

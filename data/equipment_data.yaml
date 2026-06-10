@@ -328,14 +328,14 @@ characters:
   # =============================================================
   # Imported caravan-ambush enemies (97-112)
   # =============================================================
-  97:
+  1097:
     inventory:
       - item: Falchion
         equipped: true
       - item: Chain shirt
         tier: 1
         equipped: true
-  99:
+  1099:
     inventory:
       - item: Falchion
         equipped: true
@@ -346,7 +346,7 @@ characters:
         tier: 1
       - item: Potion of Ablative Barrier
         tier: 2
-  100:
+  1100:
     inventory:
       - item: Falchion
         equipped: true
@@ -354,7 +354,7 @@ characters:
       - item: Chain shirt
         equipped: true
       - item: Oil of Arcane Mark
-  101:
+  1101:
     inventory:
       - item: Falchion
         equipped: true
@@ -364,14 +364,14 @@ characters:
         equipped: true
       - item: Potion of Delay Poison
         tier: 2
-  102:
+  1102:
     inventory:
       - item: Falchion
         equipped: true
       - item: Longbow
       - item: Chain shirt
         equipped: true
-  103:
+  1103:
     inventory:
       - item: Falchion
         equipped: true
@@ -380,7 +380,7 @@ characters:
         equipped: true
       - item: Potion of Jump
         tier: 1
-  104:
+  1104:
     inventory:
       - item: Falchion
         equipped: true
@@ -390,7 +390,7 @@ characters:
       - item: Oil of Arcane Mark
       - item: Potion of Invigorate
         tier: 1
-  105:
+  1105:
     inventory:
       - item: Falchion
         equipped: true
@@ -399,37 +399,37 @@ characters:
         equipped: true
       - item: Potion of Spider Climb
         tier: 2
-  106:
+  1106:
     inventory:
       - item: Falchion
         equipped: true
       - item: Longbow
       - item: Chain shirt
         equipped: true
-  108:
+  1108:
     inventory:
       - item: Whip
         equipped: true
       - item: Short sword
       - item: Leather armor
         equipped: true
-  109:
+  1109:
     inventory:
       - item: Whip
         equipped: true
       - item: Short sword
       - item: Leather armor
         equipped: true
-  110:
+  1110:
     inventory:
       - item: Falchion
         equipped: true
       - item: Breastplate
         tier: 1
         equipped: true
-  111:
+  1111:
     inventory: []
-  112:
+  1112:
     inventory:
       - item: Falchion
         equipped: true

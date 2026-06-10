@@ -1,239 +1,129 @@
-# Crimson Steel — Active combat enemies (Rise of the Slavelords caravan).
+# Crimson Steel — Enemy roster (example data).
 #
-# Instance records for the enemies imported from the live caravan-ambush
-# combat. IDs (97-112) are preserved so the Encounter and Conditions
-# overlays line up. `attributes` are BASE scores: from each effective score
-# we backed out the racial adjustment (human +1 all; half_orc +0; orc +4
-# Str/Con, -2 Int/Wis/Cha) and the per-Tier inherent minimum ([0,1,2,3,4,5]),
-# so the recomputed Effective scores reproduce the source exactly. `tier` is
-# pinned to match the source. Gear is not imported (Equipment subsystem).
-
-name: Enemies
+# Holds two kinds of entries (both share the same schema):
+#
+#   * Enemy templates — long-lived catalog entries that Random Encounter Tables
+#     and the DM enemy sidebar reference. Tagged `enemy_template` plus
+#     one or more `category:<bucket>` tags. Conventionally id 100..999.
+#
+#   * Spawned enemies — instance records created when an Random Encounter Table
+#     resolves or the DM adds a creature from a template. Each spawn is
+#     a distinct Creature with its own ID (no two Combatants share a
+#     Creature record). Spawns are typically deleted by the post-combat
+#     loot stub (Equipment) once the DM marks them for removal. They
+#     conventionally start at id 1000.
+#
+# See `creatures_data_pcs.example.yaml` for the full Creature schema.
 
 characters:
 
-  - id: 97
-    name: Slaver Merchant
+  - id: 100
+    name: Pirate
+    metadata:
+      creature_token: "/images/icons/human token.webp"
     group: enemy
-    tags: []
+    tags: [enemy_template, category:general]
     race: human
-    tier: 2
-    attributes: { str: 9, dex: 11, con: 11, int: 13, wis: 11, cha: 13 }
+    attributes:
+      str: 13
+      dex: 14
+      con: 13
+      int: 12
+      wis: 10
+      cha: 8
     advancement:
       classes:
         rogue:
-          level: 6
+          level: 1
           skills:
-            - persuasion
-            - perception
-            - intimidate
-            - sense_motive
+            - acrobatics
+            - athletics
             - deception
-
-  - id: 99
-    name: Half-Orc Soldier 7
-    group: enemy
-    tags: []
-    race: half_orc
-    tier: 1
-    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
-    advancement:
-      classes:
-        fighter:
-          level: 4
-          skills:
-            - athletics
             - intimidate
             - perception
-
-  - id: 100
-    name: Half-Orc Veteran
-    group: enemy
-    tags: []
-    race: half_orc
-    tier: 2
-    attributes: { str: 19, dex: 11, con: 15, int: 8, wis: 8, cha: 6 }
-    advancement:
-      classes:
-        fighter:
-          level: 7
-          skills:
-            - athletics
-            - intimidate
-            - perception
+            - profession_sailor
             - sense_motive
 
   - id: 101
-    name: Orc Interpreter
+    name: Orc Patrol
+    metadata:
+      creature_token: "/images/icons/orc token.webp"
     group: enemy
-    tags: []
-    race: orc
-    tier: 0
-    attributes: { str: 8, dex: 13, con: 10, int: 16, wis: 10, cha: 16 }
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: human
+    attributes: { str: 16, dex: 12, con: 14, int: 8, wis: 10, cha: 8 }
     advancement:
       classes:
-        fighter:
-          level: 2
-          skills:
-            - persuasion
-            - sense_motive
-            - intimidate
-            - athletics
+        fighter: 1
 
   - id: 102
-    name: Half-Orc Soldier e
+    name: Orc Patrol Captain
+    metadata:
+      creature_token: "/images/icons/orc token.webp"
     group: enemy
-    tags: []
-    race: half_orc
-    tier: 1
-    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: human
+    attributes: { str: 17, dex: 12, con: 15, int: 9, wis: 11, cha: 10 }
     advancement:
       classes:
-        fighter:
-          level: 4
-          skills:
-            - athletics
-            - intimidate
-            - perception
+        fighter: 3
 
   - id: 103
-    name: Half-Orc Soldier 1
+    name: Half-Orc Soldier
+    metadata:
+      creature_token: "/images/icons/orc rogue.webp"
     group: enemy
-    tags: []
-    race: half_orc
-    tier: 1
-    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: human
+    attributes: { str: 15, dex: 12, con: 14, int: 9, wis: 10, cha: 8 }
     advancement:
       classes:
-        fighter:
-          level: 4
-          skills:
-            - athletics
-            - intimidate
-            - perception
+        fighter: 1
 
   - id: 104
-    name: Half-Orc Soldier b
+    name: Slave
+    metadata:
+      creature_token: "/images/icons/slaves token.webp"
     group: enemy
-    tags: []
-    race: half_orc
-    tier: 1
-    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
+    tags: [enemy_template, category:slave_lords_caravan, noncombatant]
+    race: human
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
     advancement:
       classes:
-        fighter:
-          level: 4
-          skills:
-            - athletics
-            - intimidate
-            - perception
+        commoner: 1
 
   - id: 105
-    name: Half-Orc Soldier c
+    name: Wardog
+    metadata:
+      creature_token: "/images/icons/war dog token.webp"
     group: enemy
-    tags: []
-    race: half_orc
-    tier: 1
-    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: canine
+    attributes: { str: 14, dex: 14, con: 12, int: 3, wis: 12, cha: 6 }
     advancement:
       classes:
-        fighter:
-          level: 4
-          skills:
-            - athletics
-            - intimidate
-            - perception
+        feral: 4
 
   - id: 106
-    name: Half-Orc Veteran
+    name: Stockade Guard
+    metadata:
+      creature_token: "/images/icons/human token.webp"
     group: enemy
-    tags: []
-    race: half_orc
-    tier: 2
-    attributes: { str: 19, dex: 11, con: 15, int: 8, wis: 8, cha: 6 }
-    advancement:
-      classes:
-        fighter:
-          level: 7
-          skills:
-            - athletics
-            - intimidate
-            - perception
-            - sense_motive
-
-  - id: 108
-    name: Orc Handler
-    group: enemy
-    tags: []
-    race: orc
-    tier: 1
-    attributes: { str: 10, dex: 11, con: 8, int: 9, wis: 10, cha: 9 }
-    advancement:
-      classes:
-        fighter:
-          level: 3
-          skills:
-            - intimidate
-            - animal_handling
-
-  - id: 109
-    name: Orc Handler
-    group: enemy
-    tags: []
-    race: orc
-    tier: 1
-    attributes: { str: 10, dex: 11, con: 8, int: 9, wis: 10, cha: 9 }
-    advancement:
-      classes:
-        fighter:
-          level: 3
-          skills:
-            - intimidate
-            - animal_handling
-
-  - id: 110
-    name: Cleric Slaver
-    group: enemy
-    tags: []
-    race: orc
-    tier: 3
-    attributes: { str: 12, dex: 11, con: 7, int: 13, wis: 15, cha: 13 }
-    advancement:
-      classes:
-        cleric:
-          level: 8
-          skills:
-            - healing
-            - religion
-            - perception
-            - sense_motive
-            - intimidate
-
-  - id: 111
-    name: Slave
-    group: enemy
-    tags: []
+    tags: [enemy_template, category:slave_lords_stockade]
     race: human
-    tier: 0
-    attributes: { str: 9, dex: 9, con: 9, int: 9, wis: 9, cha: 9 }
+    attributes: { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 10 }
     advancement:
       classes:
-        commoner:
-          level: 0
-          skills: []
+        fighter: 2
 
-  - id: 112
-    name: Half-Orc Soldier d
+  - id: 107
+    name: Temple Acolyte
+    metadata:
+      creature_token: "/images/icons/human token.webp"
     group: enemy
-    tags: []
-    race: half_orc
-    tier: 1
-    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
+    tags: [enemy_template, category:slave_lords_temple]
+    race: human
+    attributes: { str: 10, dex: 12, con: 12, int: 13, wis: 16, cha: 14 }
     advancement:
       classes:
-        fighter:
-          level: 4
-          skills:
-            - athletics
-            - intimidate
-            - perception
+        cleric: 1

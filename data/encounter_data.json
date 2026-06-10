@@ -10,17 +10,13 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 53,
-      "creature_id": "110",
+      "creature_id": "1110",
       "name": "",
       "initiative_string": "X9876321",
       "combat_pool_spent": 1,
@@ -29,17 +25,13 @@
         2
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 52,
-      "creature_id": "109",
+      "creature_id": "1109",
       "name": "",
       "initiative_string": "X953",
       "combat_pool_spent": 0,
@@ -47,17 +39,13 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 45,
-      "creature_id": "101",
+      "creature_id": "1101",
       "name": "",
       "initiative_string": "X943",
       "combat_pool_spent": 0,
@@ -65,12 +53,8 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
@@ -83,12 +67,8 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
@@ -101,17 +81,13 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 47,
-      "creature_id": "103",
+      "creature_id": "1103",
       "name": "",
       "initiative_string": "X8421",
       "combat_pool_spent": 0,
@@ -119,17 +95,13 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 48,
-      "creature_id": "104",
+      "creature_id": "1104",
       "name": "",
       "initiative_string": "X8321",
       "combat_pool_spent": 0,
@@ -137,17 +109,13 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 46,
-      "creature_id": "102",
+      "creature_id": "1102",
       "name": "",
       "initiative_string": "X8321",
       "combat_pool_spent": 4,
@@ -155,17 +123,13 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 43,
-      "creature_id": "99",
+      "creature_id": "1099",
       "name": "",
       "initiative_string": "X7531",
       "combat_pool_spent": 0,
@@ -173,12 +137,8 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
@@ -213,14 +173,12 @@
           "channeled_this_turn": false
         }
       ],
-      "casting": [
-
-      ],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 50,
-      "creature_id": "106",
+      "creature_id": "1106",
       "name": "",
       "initiative_string": "98754",
       "combat_pool_spent": 3,
@@ -228,17 +186,13 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 49,
-      "creature_id": "105",
+      "creature_id": "1105",
       "name": "",
       "initiative_string": "98752",
       "combat_pool_spent": 0,
@@ -246,17 +200,13 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 55,
-      "creature_id": "112",
+      "creature_id": "1112",
       "name": "",
       "initiative_string": "98631",
       "combat_pool_spent": 0,
@@ -264,17 +214,13 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 54,
-      "creature_id": "111",
+      "creature_id": "1111",
       "name": "",
       "initiative_string": "98521",
       "combat_pool_spent": 2,
@@ -282,17 +228,13 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 51,
-      "creature_id": "108",
+      "creature_id": "1108",
       "name": "",
       "initiative_string": "9541",
       "combat_pool_spent": 0,
@@ -300,12 +242,8 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
@@ -318,17 +256,13 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 44,
-      "creature_id": "100",
+      "creature_id": "1100",
       "name": "",
       "initiative_string": "87421",
       "combat_pool_spent": 0,
@@ -336,17 +270,13 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     },
     {
       "id": 41,
-      "creature_id": "97",
+      "creature_id": "1097",
       "name": "",
       "initiative_string": "8654321",
       "combat_pool_spent": 0,
@@ -354,19 +284,13 @@
         1
       ],
       "luck_points": 0,
-      "concentration": [
-
-      ],
-      "casting": [
-
-      ],
+      "concentration": [],
+      "casting": [],
       "main_actions_remaining": -1
     }
   ],
   "next_combatant_id": 56,
-  "excluded_pcs": [
-
-  ],
+  "excluded_pcs": [],
   "time_ticks_per_round": 2,
   "time_tick": 1,
   "combat_anchor": {
@@ -375,9 +299,7 @@
   },
   "elapsed_time_ticks": 0,
   "acting_combatant_id": 3,
-  "granted_actions": [
-
-  ],
+  "granted_actions": [],
   "dm_luck_points": 0,
   "phase": "combat"
 }
