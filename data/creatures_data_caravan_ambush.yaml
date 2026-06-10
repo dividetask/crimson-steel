@@ -17,6 +17,7 @@ characters:
 
   - id: 1097
     name: Slaver Merchant
+    spawned_from: 350
     group: enemy
     tags: []
     race: human
@@ -35,6 +36,7 @@ characters:
 
   - id: 1099
     name: Half-Orc Soldier 7
+    spawned_from: 103
     group: enemy
     tags: []
     race: half_orc
@@ -51,6 +53,7 @@ characters:
 
   - id: 1100
     name: Half-Orc Veteran
+    spawned_from: 108
     group: enemy
     tags: []
     race: half_orc
@@ -68,6 +71,7 @@ characters:
 
   - id: 1101
     name: Orc Interpreter
+    spawned_from: 353
     group: enemy
     tags: []
     race: orc
@@ -85,6 +89,7 @@ characters:
 
   - id: 1102
     name: Half-Orc Soldier e
+    spawned_from: 103
     group: enemy
     tags: []
     race: half_orc
@@ -101,6 +106,7 @@ characters:
 
   - id: 1103
     name: Half-Orc Soldier 1
+    spawned_from: 103
     group: enemy
     tags: []
     race: half_orc
@@ -117,6 +123,7 @@ characters:
 
   - id: 1104
     name: Half-Orc Soldier b
+    spawned_from: 103
     group: enemy
     tags: []
     race: half_orc
@@ -133,6 +140,7 @@ characters:
 
   - id: 1105
     name: Half-Orc Soldier c
+    spawned_from: 103
     group: enemy
     tags: []
     race: half_orc
@@ -149,6 +157,7 @@ characters:
 
   - id: 1106
     name: Half-Orc Veteran
+    spawned_from: 108
     group: enemy
     tags: []
     race: half_orc
@@ -166,6 +175,7 @@ characters:
 
   - id: 1108
     name: Orc Handler
+    spawned_from: 109
     group: enemy
     tags: []
     race: orc
@@ -181,6 +191,7 @@ characters:
 
   - id: 1109
     name: Orc Handler
+    spawned_from: 109
     group: enemy
     tags: []
     race: orc
@@ -196,6 +207,7 @@ characters:
 
   - id: 1110
     name: Cleric Slaver
+    spawned_from: 107
     group: enemy
     tags: []
     race: orc
@@ -214,6 +226,7 @@ characters:
 
   - id: 1111
     name: Slave
+    spawned_from: 104
     group: enemy
     tags: []
     race: human
@@ -227,6 +240,7 @@ characters:
 
   - id: 1112
     name: Half-Orc Soldier d
+    spawned_from: 103
     group: enemy
     tags: []
     race: half_orc
