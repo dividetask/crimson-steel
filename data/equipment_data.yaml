@@ -342,7 +342,7 @@ characters:
       - item: Longbow
       - item: Chain shirt
         equipped: true
-      - item: Potion of Cure Lesser Wounds
+      - item: Potion of Heal
         tier: 1
       - item: Potion of Ablative Barrier
         tier: 2
