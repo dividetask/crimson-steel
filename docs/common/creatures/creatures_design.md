@@ -253,7 +253,7 @@ Returns: a list of `{ name, source }` records. `source` is one of `race` or `cla
 
 #### Kesser — Reversal Table (d10)
 
-The deity Kesser's 4th-level Channel Divinity, **Kesser's Gambit** (`talents.yaml`, `roll_table: Kesser Reversal Table`), is a Reaction triggered on an attack or spell roll. The channeler rolls a d10 here; **Channel Successes** scale the entries.
+The deity Kesser's 4th-level Channel Divinity, **Kesser's Gambit** (`talents.yaml`, `roll_table: Kesser Reversal Table`), is a Reaction triggered on an attack or spell roll. The channeler rolls a d10 here; **Channel Successes** scale the entries. The table below is the canonical description; it is provided as data in `../abilities/roll_tables.yaml` and rolled in combat through the Roll Table Stub (`../ui/encounter_roll_table_stub.md`). Kesser's Ring (`../equipment/equipment_config.yaml` → *Unique Items*) grants the same Gambit, rolled with **Evocation** rather than a Cleric's **Invocation**.
 
 | d10 | Effect |
 |---|---|

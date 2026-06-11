@@ -1684,7 +1684,121 @@ helpers do
   # The Mana Cost of a reaction Ability (its catalog `mana_cost`), e.g. 4 for
   # Better Lucky Than Good / Danger Sense / Primal Tenacity.
   def reaction_mana_cost(ability_name)
-    (Abilities.catalog.ability(ability_name)&.dig('mana_cost') rescue nil).to_i
+    # Resolve through #lookup so an inherited cost (a Channel Divinity Talent
+    # inherits Mana Cost from the base Channel Divinity) is honored.
+    cost = (Abilities.lookup(ability_name)&.dig('mana_cost') rescue nil)
+    cost ||= (Abilities.catalog.ability(ability_name)&.dig('mana_cost') rescue nil)
+    cost.to_i
+  end
+
+  # ---- Roll Table Reactions (encounter_roll_table_stub.md) ---------------
+  #
+  # A Reaction Ability that fires on a provided table — Kesser's Gambit →
+  # the Kesser Reversal Table. Offered, during an attack, to a Combatant
+  # other than the attacker who holds such an Ability, in the same place as
+  # the Standard Shield's ally block. The channeler spends Combat Pool dice
+  # (rolled for Channel Successes through Evocation / Invocation) and Mana;
+  # a die is rolled on the table and the entry reported for the DM.
+
+  # The Ability names an equipped Item grants its wearer (its definition's
+  # `grants` list — a plain name, or `{ ability:, class_level: }`). Combat
+  # does not yet fold equipped grants into Creatures' Granted Abilities, so
+  # this reads them straight off the equipped Items.
+  def equipped_granted_abilities(creature_id)
+    cat = Equipment.catalog
+    inv = (Equipment.instance.get_inventory(equipment_owner(creature_id)) rescue [])
+    inv.select(&:equipped).flat_map do |s|
+      it = cat.item_type(s.item_type)
+      Array(it && it[:definition] && it[:definition]['grants']).map do |g|
+        (g.is_a?(Hash) ? g['ability'] : g).to_s
+      end
+    end.reject(&:empty?).uniq
+  rescue StandardError
+    []
+  end
+
+  # The first Roll Table Reaction a Combatant can field, with the casting
+  # skill its *source* dictates: an equipped Item grant (Kesser's Ring) rolls
+  # with **Evocation**; a Cleric's Channel Divinity grant rolls with
+  # **Invocation**. Returns { ability:, table:, source:, skill: } or nil.
+  def roll_table_reaction_for(acc, creature_id)
+    equipped_granted_abilities(creature_id).each do |name|
+      table = Abilities.roll_table_for(name) or next
+      return { ability: name, table: table, source: 'item', skill: 'evocation' }
+    end
+    (acc&.granted_abilities rescue []).each do |g|
+      table = Abilities.roll_table_for(g[:name]) or next
+      skill = g[:source].to_s.start_with?('class:') ? 'invocation' : 'evocation'
+      return { ability: g[:name], table: table, source: 'class', skill: skill }
+    end
+    nil
+  end
+
+  # Combatants other than the attacker who can answer this attack with a Roll
+  # Table Reaction. Each entry carries the channel skill + its Dice Cap, the
+  # Mana cost, and whether the channeler can afford it (≥ Reaction Minimum in
+  # the pool, and enough Mana).
+  def roll_table_reaction_channelers(attacker_id)
+    rmin = Encounter::Config.reaction_action_minimum
+    encounter_state.combatants.filter_map do |c|
+      next if c[:id] == attacker_id
+      acc = Creatures.lookup(c[:creature_id]) rescue nil
+      next unless acc
+      found = roll_table_reaction_for(acc, c[:creature_id]) or next
+      pool  = (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0
+      ri    = roll_inputs_for(acc, found[:skill])
+      cost  = reaction_mana_cost(found[:ability])
+      mana_left = combatant_mana_left(c[:creature_id], acc)
+      afford_pool = pool >= rmin
+      afford_mana = mana_left.nil? || mana_left >= cost
+      { combatant_id: c[:id], name: tracker_name(c), ability: found[:ability],
+        table: found[:table], source: found[:source], skill: found[:skill],
+        skill_label: Encounter::Special.pretty_skill(found[:skill]), dice_cap: ri[:dice_cap].to_i,
+        mana_cost: cost, pool: pool,
+        disabled: !(afford_pool && afford_mana),
+        disabled_reason: (!afford_pool ? 'not enough Combat Pool' : (!afford_mana ? 'not enough Mana' : nil)) }
+    end
+  end
+
+  # A single-Roll channel-check builder for a Roll Table Reaction — the
+  # channeler rolls `Reaction Minimum..min(pool, Dice Cap)` dice in its
+  # Evocation / Invocation skill; the Successes are the Channel Successes that
+  # scale the table entry. Shaped like #special_builder_blob's Performance
+  # check (one supporting Roll + a Channel-dice step), so the same Action
+  # Builder component drives it.
+  def roll_table_builder_blob(combatant, ability_name)
+    acc     = Creatures.lookup(combatant[:creature_id]) rescue nil
+    die     = DiceResolution.config.die_size
+    base_tn = DiceResolution.config.base_target_number
+    pool    = (encounter_state.combat_pool_remaining(combatant[:id]) rescue 0) || 0
+    rmin    = Encounter::Config.reaction_action_minimum
+    found   = roll_table_reaction_for(acc, combatant[:creature_id]) || { skill: 'evocation' }
+    skill   = found[:skill]
+    ri      = roll_inputs_for(acc, skill)
+
+    bpl = []
+    bpl << ri[:competency_modifier] if ri[:competency_modifier]
+    tier = (acc&.tier rescue nil)
+    bpl << ['Inherent', tier.to_i] if tier.to_i.positive?
+
+    rolls = [{ id: 'channel', side: 'supporting', creature_name: tracker_name(combatant),
+               roll_name: ability_name, die_size: die, tn: base_tn, starting_value: 0,
+               base_tn: base_tn, bonus_penalty_list: bpl, dice_count: rmin, speed: 0, excluded: false,
+               tier: tier }]
+
+    upper = ri[:dice_cap].to_i.positive? ? [ri[:dice_cap].to_i, pool].min : pool
+    upper = [upper, rmin].max
+    set   = ->(n) { { set_dice: [{ id: 'channel', count: n }] } }
+    label = Encounter::Special.pretty_skill(skill)
+    opts  = [{ value: upper, key: 'dice', group: 'dice', label: "#{label} (max #{upper})",
+               summary: "#{label} — #{upper} dice", patch: set.call(upper) }]
+    (rmin..upper).each { |n| opts << { value: n, key: 'dice', group: 'dice', label: n.to_s,
+                                       summary: "#{n} dice", patch: set.call(n) } }
+    steps = [{ key: 'dice', label: 'Channel dice', options: opts,
+               header_options: [{ value: upper, label: "Max (#{upper})" }] }]
+
+    { title: "#{tracker_name(combatant)} — #{ability_name}",
+      stub_id: "roll-table-#{combatant[:id]}", rolls: rolls, steps: steps }
   end
 
   # Resolve a Spell name — a catalog key OR a constructed per-Tier variant name
@@ -2480,7 +2594,14 @@ get '/encounter/attack_builder' do
   require_dm!
   attacker = encounter_state.combatant(params[:attacker_id].to_i)
   return encounter_error(404, 'unknown attacker') unless attacker
-  erb :_action_builder, layout: false, locals: { builder: attack_builder_blob(attacker) }
+  builder_html = erb :_action_builder, layout: false, locals: { builder: attack_builder_blob(attacker) }
+  # A Roll Table Reaction (Kesser's Gambit) a bystander may answer this attack
+  # with rides alongside the builder, in the same place as the Standard Shield's
+  # ally block. Rendered only when an eligible channeler exists.
+  channelers = roll_table_reaction_channelers(attacker[:id])
+  return builder_html if channelers.empty?
+  builder_html + erb(:_encounter_roll_table_stub, layout: false,
+                     locals: { channelers: channelers, attacker_id: attacker[:id] })
 end
 
 post '/encounter/resolve_attack' do
@@ -2605,6 +2726,31 @@ post '/encounter/use_special' do
   cap_err = channel_dice_cap_error(payload)
   return encounter_error(400, cap_err) if cap_err
   result = encounter_state.use_special_payload(payload)
+  Conditions.store.persist! if result[:ok]
+  encounter_response(result)
+end
+
+# The channel-check Action Builder for a Roll Table Reaction (Kesser's
+# Gambit), rendered as an HTML fragment the attack panel injects when the
+# DM picks a channeler. The DM rolls the Channel check; the Successes +
+# chosen dice POST to /encounter/roll_table_reaction.
+get '/encounter/roll_table_builder' do
+  require_dm!
+  combatant = encounter_state.combatant(params[:combatant_id].to_i)
+  return encounter_error(404, 'unknown combatant') unless combatant
+  ability = params[:ability].to_s
+  erb :_action_builder, layout: false, locals: { builder: roll_table_builder_blob(combatant, ability) }
+end
+
+# Fire a Roll Table Reaction (encounter_roll_table_stub.md): spend the
+# channeler's Combat Pool dice + Mana, roll the table, and report the entry
+# with the Channel Successes the channel check produced. Mutates Conditions
+# (Mana), so persist its store on success.
+post '/encounter/roll_table_reaction' do
+  require_dm!
+  payload = JSON.parse(request.body.read) rescue nil
+  return encounter_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
+  result = encounter_state.use_roll_table_payload(payload)
   Conditions.store.persist! if result[:ok]
   encounter_response(result)
 end

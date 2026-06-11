@@ -1325,6 +1325,66 @@ module Encounter
       result
     end
 
+    # Resolve a Roll Table reaction (encounter_roll_table_stub.md) — a
+    # Reaction Ability that fires on a provided table (talents.yaml
+    # `roll_table:`, e.g. Kesser's Gambit → the Kesser Reversal Table).
+    # Unlike a Special action this is a Reaction, so it does not pass
+    # through #use_special_payload; the host (the attack flow) offers it
+    # to a Combatant other than the attacker.
+    #
+    # The channeler spends `dice` from its Combat Pool (Reaction Action
+    # Minimum up to the pool) — the dice the DM rolled for the channel
+    # check — plus the Ability's Mana Cost, then a die is rolled on the
+    # table and the matched entry reported with the Channel Successes the
+    # check produced. Combat does not apply the entry; the DM adjudicates.
+    #
+    # Payload (symbol or string keys): combatant_id, ability (display
+    # name), dice (Combat Pool spent on the channel check), successes
+    # (Channel Successes rolled), face (optional — a die the DM rolled
+    # client-side; omitted rolls server-side via `rng`).
+    def use_roll_table_payload(payload, rng: Random.new)
+      p = deep_symbolize(payload)
+      combatant_id = p[:combatant_id].to_i
+      c = combatant_for(combatant_id) or return { ok: false, error: 'unknown combatant' }
+      creature = lookup!(c[:creature_id]) or return { ok: false, error: 'unknown creature' }
+
+      name  = p[:ability].to_s
+      table_name = Abilities.roll_table_for(name)
+      return { ok: false, error: "#{name} has no roll table" } unless table_name
+      table = Abilities.roll_table(table_name)
+      return { ok: false, error: "unknown roll table #{table_name}" } unless table
+
+      reaction_min = Config.reaction_action_minimum
+      dice = p.key?(:dice) ? p[:dice].to_i : reaction_min
+      return { ok: false, error: "must spend at least #{reaction_min} dice" } if dice < reaction_min
+      pool_rem = combat_pool_remaining(combatant_id)
+      return { ok: false, error: 'not enough Combat Pool' } if dice > pool_rem
+
+      # Kesser's Gambit inherits its Mana Cost from the base Channel
+      # Divinity Talent — resolve the inherited value, falling back to the
+      # raw catalog entry.
+      raw       = Abilities.catalog.ability(name)
+      mana_cost = Integer((Abilities.lookup(name)&.dig('mana_cost') rescue nil) || (raw && raw['mana_cost']) || 0)
+      inst      = conditions_for(c[:creature_id])
+      mana_rem  = special_mana_remaining(c[:creature_id], creature)
+      return { ok: false, error: 'not enough Mana' } if mana_cost.positive? && mana_rem && mana_rem < mana_cost
+
+      spend_combat_pool(combatant_id, dice)
+      if mana_cost.positive? && creature.respond_to?(:max_mana) && creature.max_mana
+        inst.apply_mana_cost(amount: mana_cost, mana_max: creature.max_mana)
+      end
+
+      successes = p[:successes].to_i
+      result    = RollTable.roll(table, face: p[:face], successes: successes, rng: rng)
+      return { ok: false, error: 'roll table produced no entry' } unless result
+
+      actor = special_actor_name(c, creature)
+      { ok: true, ability: name, table: table_name, pool_spent: dice, mana_spent: mana_cost,
+        successes: successes, face: result[:face], die: result[:die],
+        entry: { name: result[:name], effect: result[:effect] },
+        log: "#{actor} channels #{name}: rolled #{result[:face]} (#{result[:name]})" }
+    end
+
     # ---------- Granted Actions ----------
 
     def grant_action(action)
