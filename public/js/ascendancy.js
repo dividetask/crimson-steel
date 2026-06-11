@@ -3,10 +3,16 @@
 // A Roll's Inherent entries are its Tier-derived raw power: its own Inherent
 // Bonus, plus the Inherent Penalties that crossed over from the other side
 // during Propagation. When the two do not cancel out, the gap is amplified:
-// the Roll gains an Ascendancy Bonus of 2 x the gap when its Inherent Bonus
-// is the stronger, or an Ascendancy Penalty of 2 x the gap when the crossed
-// Inherent Penalty is the stronger. Balanced Inherents — equal values, or no
-// Inherent entries at all — add nothing.
+// the Roll gains an Ascendancy Bonus of floor(2 x gap) when its Inherent
+// Bonus is the stronger, or an Ascendancy Penalty of floor(2 x gap) when
+// the crossed Inherent Penalty is the stronger.
+//
+// The Inherent value stands in for the Tier (the Tier Minimum Inherent
+// Bonus table is [0, 1, 2, 3, 4, 5]), so the project's "Tier 0 counts as
+// 0.5" convention applies here: when a Roll has any Inherent entry, a side
+// of the comparison that is zero or absent reads as 0.5 — the Tier-0
+// value. A Roll with no Inherent entries at all derives nothing (that is
+// what scopes Ascendancy to combat Rolls).
 //
 // Only the strongest Inherent Bonus and the strongest Inherent Penalty are
 // compared, mirroring the per-Type stacking that TN computation applies.
@@ -19,21 +25,31 @@ export class Ascendancy {
   static TYPE = 'Ascendancy';
   static INHERENT = 'Inherent';
 
+  // Tier 0 -> 0.5: a zero (or absent) side of the comparison reads as the
+  // Tier-0 value.
+  static effective(value) {
+    return value === 0 ? 0.5 : value;
+  }
+
   // The Ascendancy [type, amount] pair for a propagated bonusPenaltyList,
-  // or null when the strongest Inherent Bonus and strongest Inherent
-  // Penalty balance (or no Inherent entry exists). The magnitude is
-  // floor(PER_POINT x gap).
+  // or null when the Roll has no Inherent entries, or its strongest
+  // Inherent Bonus and strongest Inherent Penalty balance. The magnitude is
+  // floor(PER_POINT x gap), the gap measured on effective (0 -> 0.5)
+  // values.
   static modifier(bonusPenaltyList) {
     let bonus = 0;
     let penalty = 0;
+    let present = false;
     for (const entry of bonusPenaltyList || []) {
       const [type, value] = entry;
       if (type !== Ascendancy.INHERENT) continue;
+      present = true;
       const v = Number(value) || 0;
       if (v > bonus) bonus = v;
       if (v < penalty) penalty = v;
     }
-    const gap = bonus + penalty; // penalty is <= 0, so this is bonus - |penalty|
+    if (!present) return null;
+    const gap = Ascendancy.effective(bonus) - Ascendancy.effective(-penalty);
     if (gap === 0) return null;
     const magnitude = Math.floor(Ascendancy.PER_POINT * Math.abs(gap));
     if (magnitude === 0) return null;

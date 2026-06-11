@@ -31,13 +31,20 @@ test('modifier compares only the strongest Bonus and strongest Penalty (per-Type
     ['Ascendancy', -2]);
 });
 
-test('an Inherent Bonus with nothing crossing against it is amplified whole', () => {
-  // No opposing Inherent ever crossed: the gap is the full Bonus. Combat
-  // always supplies the other side (a rolled defender propagates; an
-  // un-rolled one is injected by the attack builder), so this arises only
-  // for a one-sided list.
-  assert.deepEqual(Ascendancy.modifier([['Inherent', 2]]), ['Ascendancy', 4]);
-  assert.deepEqual(Ascendancy.modifier([['Inherent', -2]]), ['Ascendancy', -4]);
+test('a wide Inherent gap scales: +1 vs +4 is a ±6 pair', () => {
+  assert.deepEqual(Ascendancy.modifier([['Inherent', 1], ['Inherent', -4]]), ['Ascendancy', -6]);
+  assert.deepEqual(Ascendancy.modifier([['Inherent', 4], ['Inherent', -1]]), ['Ascendancy', 6]);
+});
+
+test('a zero or absent side of the comparison reads as 0.5 (Tier 0)', () => {
+  // Tier-0 creatures carry no Inherent entry, so a crossed -1 alone is a
+  // Tier-0 Roll facing a Tier 1: gap 0.5 - 1 = -0.5 → floor(2 × 0.5) = 1.
+  assert.deepEqual(Ascendancy.modifier([['Inherent', -1]]), ['Ascendancy', -1]);
+  // The Tier-1 side faces the Tier-0's absent Inherent: +1.
+  assert.deepEqual(Ascendancy.modifier([['Inherent', 1]]), ['Ascendancy', 1]);
+  // Tier 2 vs Tier 0: gap 2 - 0.5 = 1.5 → floor(3) = 3.
+  assert.deepEqual(Ascendancy.modifier([['Inherent', 2]]), ['Ascendancy', 3]);
+  assert.deepEqual(Ascendancy.modifier([['Inherent', -2]]), ['Ascendancy', -3]);
 });
 
 // ---- Worked examples (check_resolution_tests.md → Ascendancy) ----

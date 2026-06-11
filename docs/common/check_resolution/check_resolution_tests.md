@@ -41,6 +41,10 @@ All four examples name the participants: Adam is the Initiating Roll, Ben a seco
 
 **Each Roll measures against the strongest crossing.** Adam carries `('Inherent', +2)`; Dawn (defending) `('Inherent', +1)` and Carol (opposing) `('Inherent', +3)`. Adam receives both Opposers' Inherents (`-1`, `-3`); per-Type stacking counts only the `-3`, so his list ends `[('Inherent', +2), ('Inherent', -1), ('Inherent', -3), ('Ascendancy', -2)]`. Carol receives the Initiating Roll's `-2`: `[('Inherent', +3), ('Inherent', -2), ('Ascendancy', +2)]`. Dawn receives the same `-2`: `[('Inherent', +1), ('Inherent', -2), ('Ascendancy', -2)]`.
 
+**A wide gap scales.** A Roll holding `('Inherent', +1)` and a crossed `('Inherent', -4)` (Tier 1 fighting Tier 4) derives `('Ascendancy', -6)`; the mirror image derives `+6`.
+
+**A zero or absent side reads as 0.5 (Tier 0).** A Tier-0 creature carries no Inherent entry, so its Roll against a Tier-1 opponent holds only the crossed `('Inherent', -1)`: gap `0.5 − 1 = −0.5`, so it derives `('Ascendancy', -1)`; the Tier-1 side, holding only its own `('Inherent', +1)`, derives `+1`. Against a Tier-2 opponent the pair is `∓3` (`floor(2 × 1.5)`).
+
 **An Ascendancy entry never crosses sides.** Given a Supporting Roll already carrying `('Ascendancy', +4)` (e.g. a re-prepared Check) and an Opposing Roll `[('Competency', +1)]`: the Opposing Roll's effective list gains nothing from it — Ascendancy is derived per Roll, never exchanged.
 
 **No Inherent entries, no Ascendancy.** An opposed skill check whose Rolls carry only `('Competency', …)` entries derives no Ascendancy entry on either side.

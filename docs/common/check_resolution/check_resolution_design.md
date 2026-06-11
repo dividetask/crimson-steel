@@ -96,9 +96,11 @@ Compare the Roll's strongest **Inherent** Bonus `B` against its strongest **Inhe
 
 - `B > P` — an **Ascendancy Bonus** of `floor(2 × (B − P))`.
 - `P > B` — an **Ascendancy Penalty** of `floor(2 × (P − B))`.
-- `B = P` (including no Inherent entries at all) — no entry. Balanced Inherents produce no Ascendancy.
+- `B = P` — no entry. Balanced Inherents produce no Ascendancy.
 
-A Creature's Inherent Bonus is its Tier-derived raw power, and propagation delivers the other side's Inherent as an inverted Inherent Penalty, so the gap measures how far the Roll out- or under-classes the strongest opponent it faces. Ascendancy amplifies that gap: fighting up hurts twice over (the crossed Inherent Penalty *and* the derived Ascendancy Penalty), fighting down helps twice over.
+The Inherent value stands in for the Tier (the Tier Minimum Inherent Bonus table is `[0, 1, 2, 3, 4, 5]`), so the project's **Tier 0 counts as 0.5** convention applies: when a Roll has at least one Inherent entry, a side of the comparison that is zero or absent reads as `0.5`. A Tier-1 Roll facing a Tier-0 opponent (whose Inherent of 0 never appears as an entry) therefore gains `floor(2 × (1 − 0.5)) = +1` Ascendancy, and the Tier-0 Roll takes `−1`. A Roll with **no Inherent entries at all** derives nothing — that absence is what scopes Ascendancy to combat.
+
+A Creature's Inherent Bonus is its Tier-derived raw power, and propagation delivers the other side's Inherent as an inverted Inherent Penalty, so the gap measures how far the Roll out- or under-classes the strongest opponent it faces — `+1` Inherent against `+4` yields a `−6` Ascendancy. Ascendancy amplifies the gap: fighting up hurts twice over (the crossed Inherent Penalty *and* the derived Ascendancy Penalty), fighting down helps twice over.
 
 Worked examples — Adam is the Initiating Roll, Ben a Supporting Roll, Dawn the Defending Roll, Carol another Opposing Roll:
 
