@@ -120,10 +120,12 @@
 
               <div class="ce-edit-row ce-edit-inline ce-edit-row-save">
                 <label class="ce-checkbox">
+                  <input type="hidden" name="shared" value="false">
                   <input type="checkbox" name="shared" value="true" <%= entry['shared'] ? 'checked' : '' %>>
                   <span>Shared</span>
                 </label>
                 <label class="ce-checkbox">
+                  <input type="hidden" name="active" value="false">
                   <input type="checkbox" name="active" value="true" <%= entry['active'] ? 'checked' : '' %>>
                   <span>Active</span>
                 </label>
