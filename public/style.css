@@ -3309,6 +3309,23 @@ body {
 .ta-special-commit { margin-top: 12px; }
 .ta-special-summary { margin: 0 0 8px; color: #334155; }
 
+/* Roll Table Reaction stub (encounter_roll_table_stub.md) — rides alongside
+   the attack builder, offered to a bystander channeler (Kesser's Gambit). */
+.ta-roll-table { margin-top: 14px; padding-top: 10px; border-top: 1px dashed #cbd5e1; }
+.ta-rt-title { margin: 0 0 2px; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
+.ta-rt-lead { margin: 0 0 8px; font-size: 0.85em; color: #64748b; }
+.ta-rt-opt.cr-mod-selected { border-color: #2563eb; background: #eff6ff; }
+.ta-rt-skill { color: #64748b; font-size: 0.85em; }
+.ta-rt-builder { margin-top: 12px; }
+.ta-rt-result { margin-top: 12px; }
+.ta-rt-entry { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; background: #f8fafc; }
+.ta-rt-entry-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.ta-rt-die { font-weight: 600; color: #b91c1c; }
+.ta-rt-entry-name { font-weight: 600; }
+.ta-rt-successes { color: #64748b; font-size: 0.85em; }
+.ta-rt-entry-effect { margin: 0 0 6px; color: #334155; }
+.ta-rt-note { margin: 0; font-size: 0.85em; color: #64748b; font-style: italic; }
+
 /* Check Resolution Builder option lines — reuse the .cr-mod-btn palette */
 .cb-line { padding: 2px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .cb-line .cr-mod-btn { margin-right: 0; }

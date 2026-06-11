@@ -3,6 +3,7 @@ import { ActionResult } from './actionResult.js';
 import { RollController } from './rollController.js';
 import { RollsWrapper } from './rollsWrapper.js';
 import { placeCommitProxy, mountActionRow } from './turnCommit.js';
+import { TurnRollTable } from './turnRollTable.js';
 
 // The chosen action's display name, stashed on the turn panel when the menu
 // button was clicked (app.js selectTurnAction), for the in-builder Action row.
@@ -69,8 +70,13 @@ export class TurnAttack {
       .then((html) => {
         container.innerHTML = html + '<div class="ta-result" hidden></div>';
         const builder = container.querySelector('.action-builder');
-        if (builder) { ActionBuilder.ensureLoaded(builder); mountActionRow(builder, actionLabel(container)); }
-        else container.innerHTML = '<p class="ta-warn">Could not load the attack.</p>';
+        if (builder) {
+          ActionBuilder.ensureLoaded(builder);
+          mountActionRow(builder, actionLabel(container));
+          // A Roll Table Reaction (Kesser's Gambit) a bystander may answer this
+          // attack with rides alongside the builder in the same fragment.
+          TurnRollTable.mount(container);
+        } else container.innerHTML = '<p class="ta-warn">Could not load the attack.</p>';
       })
       .catch(() => { container.innerHTML = '<p class="ta-warn">Could not load the attack.</p>'; });
   }
