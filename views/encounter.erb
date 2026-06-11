@@ -124,10 +124,11 @@
     them only in the peaceful Phases (in Combat / Looting players get the
     Initiative + Map / loot stubs instead). %>
 <% if @viewer == :dm || peaceful %>
+  <% scene_notes = @active_entries.select { |e| e['entry_type'] == 'note' } %>
   <section class="scene-section">
-    <% if @active_entries.any? %>
+    <% if scene_notes.any? %>
       <div class="scene-list">
-        <% @active_entries.each do |e| %>
+        <% scene_notes.each do |e| %>
           <%= erb :_chronicle_entry, locals: { entry: e, viewer: @viewer, viewing_id: @viewing_id, player_creatures: @player_creatures } %>
         <% end %>
       </div>

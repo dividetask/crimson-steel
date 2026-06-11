@@ -42,6 +42,11 @@ module Creatures
       # formula). Used for Creatures whose power level is meant to be a
       # mystery to the players.
       out[:hide_tier]   = r['hide_tier'] ? true : false
+      # Display-only false Tier: when set, the sheet shows this Tier to
+      # viewers in place of the real one, while combat and every formula
+      # keep using the real `tier`. Players see the wrong Tier; the
+      # mechanics stay correct.
+      out[:false_tier]  = normalize_tier(r['false_tier'], out[:id], source)
       out[:loot_table]  = r['loot_table']
       # Optional Equipment Loot Table ID rolled once at spawn time to
       # generate the Creature's starting (and equipped) loadout — gear,
@@ -112,6 +117,7 @@ module Creatures
       out['tags']         = rec[:tags]                         unless Array(rec[:tags]).empty?
       out['tier']         = rec[:tier]                         unless rec[:tier].nil?
       out['hide_tier']    = true                               if rec[:hide_tier]
+      out['false_tier']   = rec[:false_tier]                   unless rec[:false_tier].nil?
       out['loot_table']   = rec[:loot_table]                   unless rec[:loot_table].nil?
       out['equipment_table'] = rec[:equipment_table]           unless rec[:equipment_table].nil?
       unless Array(rec[:race_table]).empty?

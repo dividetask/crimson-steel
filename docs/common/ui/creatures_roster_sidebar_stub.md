@@ -10,7 +10,9 @@ A vertical sidebar, top to bottom:
 
 1. **Players** — `<details>`-style collapsible group titled `Players`. One row per Creature whose `tags` include `player_character`. Player rows render a **single Active / Absent toggle** in place of the `+ / −` buttons — a Player can't appear in Combat more than once, so the binary state (in the party, or sitting out) is what the DM tracks. Default is **Active**.
 
-2. **NPCs** — `<details>`-style group titled `NPCs`. One row per Creature whose `group` is `npc`. NPC rows render the same Active / Absent toggle as Player rows, but default to **Inactive** — an NPC is in the world but not in the active scene until the DM flips them.
+2. **NPCs** — `<details>`-style group titled `NPCs`. One row per Creature whose `group` is `npc` **and** whose Chronicle Creature Reference is active (in the current Scene). NPC rows render the same Active / Absent toggle as Player rows.
+
+2a. **Inactive NPCs** — `<details>`-style group titled `Inactive NPCs`, holding every `group: npc` Creature whose Chronicle Creature Reference is **not** active. Same row rendering as the NPCs group.
 
 3. **Themed categories** — one `<details>`-style group per entry in the project's themed Creature Template files (`docs/common/creatures/creatures_data_<theme>.example.yaml`). The display order is the order the categories appear in the page configuration. Each section's body mixes:
    - **Creature template rows** — every template whose `tags` include `category:<theme_key>` (and `enemy_template`).
@@ -59,7 +61,8 @@ The entire sidebar is DM-only. Player viewers do not see the sidebar at all; the
 Required:
 - A `roster` structure:
   - `players` — list of `{ id, name, sheet_index, active }` (`active` defaults to true).
-  - `npcs` — list of `{ id, name, sheet_index, active }` (`active` defaults to false).
+  - `npcs` — Scene-active NPCs; list of `{ id, name, sheet_index, active }`.
+  - `inactive_npcs` — NPCs not in the current Scene; same shape as `npcs`.
   - `categories` — list of `{ key, name, templates, random_encounter_tables }`. Each `templates` entry is `{ id, name, sheet_index, copy_count, spawned }`, where `spawned` is the list of instance rows `{ creature_id, combatant_id, name }` cloned from that template; each `random_encounter_tables` entry is `{ table_id, name }`.
 - The viewer role — must be `dm`. The stub renders nothing for player viewers.
 

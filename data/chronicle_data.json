@@ -959,7 +959,7 @@
 
       ],
       "owner_id": null,
-      "active": false,
+      "active": true,
       "creature_id": 2020,
       "creature_token": "/images/scene/1777490469-29bd66ec-Harkon.webp",
       "tier": null
@@ -1019,7 +1019,7 @@
 
       ],
       "owner_id": null,
-      "active": false,
+      "active": true,
       "creature_id": 2010,
       "creature_token": null,
       "tier": null
@@ -1079,7 +1079,7 @@
 
       ],
       "owner_id": null,
-      "active": false,
+      "active": true,
       "creature_id": 40,
       "creature_token": "/images/scene/1777571926-97f95988-Kael.webp",
       "tier": null
@@ -1099,7 +1099,7 @@
 
       ],
       "owner_id": null,
-      "active": false,
+      "active": true,
       "creature_id": 2021,
       "creature_token": "/images/scene/1777571218-0a24931c-LadyHawthorne.webp",
       "tier": null
@@ -1119,7 +1119,7 @@
 
       ],
       "owner_id": null,
-      "active": false,
+      "active": true,
       "creature_id": 2022,
       "creature_token": "/images/scene/1777571432-97150d94-VarenHawthorne.webp",
       "tier": null
@@ -1139,7 +1139,7 @@
 
       ],
       "owner_id": null,
-      "active": false,
+      "active": true,
       "creature_id": 2024,
       "creature_token": "/images/scene/1777572332-630d0cc3-Vrakka.webp",
       "tier": null
@@ -1159,7 +1159,7 @@
 
       ],
       "owner_id": null,
-      "active": false,
+      "active": true,
       "creature_id": 2025,
       "creature_token": "/images/scene/1777490391-331dd9fb-Caelian_di_Soliastres.webp",
       "tier": null
@@ -1179,7 +1179,7 @@
 
       ],
       "owner_id": null,
-      "active": false,
+      "active": true,
       "creature_id": 2026,
       "creature_token": "/images/scene/1777571828-cc7cdbc5-Theron_Ashfeld.webp",
       "tier": null
@@ -1219,7 +1219,7 @@
 
       ],
       "owner_id": null,
-      "active": false,
+      "active": true,
       "creature_id": 2030,
       "creature_token": "/images/scene/1777490163-e4878a18-Drav.webp",
       "tier": null

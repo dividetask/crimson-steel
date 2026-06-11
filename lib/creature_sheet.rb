@@ -69,9 +69,13 @@ module CreatureSheet
   def header(accessor, classes, tier)
     race  = (accessor.race || '').to_s.split('_').map(&:capitalize).join(' ')
     cls   = classes.map { |c| "#{c[:key].split('_').map(&:capitalize).join(' ')} #{c[:level]}" }.join(' / ')
+    # Display Tier: a false Tier (when set) is shown on the sheet in place
+    # of the real one; combat still uses the real `tier` passed in here.
+    false_tier   = (accessor.record[:false_tier] rescue nil)
+    display_tier = false_tier.nil? ? tier : false_tier
     { name: accessor.name, player: accessor.player,
       summary: [race, cls].reject(&:empty?).join(' '),
-      tier: tier, hide_tier: !!(accessor.record[:hide_tier] rescue false),
+      tier: display_tier, hide_tier: !!(accessor.record[:hide_tier] rescue false),
       bab: (accessor.ranks_for('martial') rescue 0) }
   end
 
