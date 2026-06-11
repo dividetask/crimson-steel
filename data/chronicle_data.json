@@ -1263,7 +1263,58 @@
       "creature_id": 2019,
       "creature_token": null,
       "tier": null
+    },
+    {
+      "id": 70,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 70,
+      "scene_position": 1,
+      "title": " Caravan Survivors",
+      "public_description": "",
+      "dm_description": "Knowledge is tiered. Grunts know the road; leaders know the cargo. Nobody low-level knows where Hawthorne ultimately went — only that she was \"moved ahead.\"\r\n\r\nRenzo di Calvo — Merchant (talkative, cowardly, self-preserving)\r\nFolds fast under any real threat; will trade info for his life without loyalty.\r\nKnows: the cargo manifest and that \"the ransom-lady\" was forwarded ahead under heavy escort before the caravan left — flushed out early because intruders hit the temple. Knows the fort is the next handoff point, not the final stop. Can name Koi as the buyer and that payment runs through the fort's overseer.\r\nCarries (if not looted): the route map, a strongbox key, a slaver toll-token/signet.\r\n\r\nVurgan — Interpreter, half-orc (pragmatic, survivor, oddly chatty)\r\nNot loyal to the slavers — a hired tongue. Talks to stay useful/alive. Sardonic.\r\nKnows: the toll arrangement with the hill tribes (goblins, gnolls, flinds) and how to bluff through — the passwords, the customary toll, which tribe holds which stretch. This is the party's golden ticket through the wilderness.\r\nWill guide them for survival's sake but is never trustworthy — flips to the slavers' side the instant it's safer.\r\n\r\nPetra Kovin — Slave Handler (resentful, bitter, leaks under pressure)\r\nHates the work, hates her bosses; bitterness makes her talk.\r\nKnows: which named prisoners came through and where they're held now — confirms Silovan (held for interrogation, not sale) and Doran (bulk stock, possibly to be sold to a visiting merchant) are at the fort. Confirms Hawthorne did not come with this caravan.\r\n\r\nThe Cleric — STONEWALL. Fanatic, won't break, may bait/lie/curse them. Use for contrast — set expectations that not everyone talks.\r\nThe 6 soldiers / 2 veterans know only road-and-toll basics (Vurgan's info, less detail).",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 71,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 71,
+      "scene_position": 2,
+      "title": "The Fort (Hill Fort / \"Slavers' Stockade\")",
+      "public_description": "Approach: small stockade atop a steep hill, commanding the countryside. Surrounded by a warding ditch (20 ft wide, 10 ft deep). Only access: a road winding from the north through a narrow valley to a drawbridge.",
+      "dm_description": "Walls: stone curtain wall at the drawbridge (35 ft, manned parapet). Earthen rampart + wooden stockade on W/S/E sides. Outer walls spiked downward to stop climbers. Guarded wall-walk all around.\r\n\r\nInside: open courtyard → 4-story gatehouse (massive, defensible all sides) → U-shaped stone keep with an enclosed garden. Dungeon level below (where prisoners/cells are). Filthy, vermin-infested, partly fire-scarred from a past sacking — repairs are crude (exploitable weak points).\r\n\r\nGarrison leaders\r\nOverseer / minor slave-lord — runs the fort, cruel, a fighter-mage. Suggest reskinning as Lucian de Sombra (your Koi magic-user agent, Tier 3).\r\nFort commander + his ogre second.\r\nBlackthorn — ogre mage, special agent of the higher council, runs the dungeon. Reskin as a Koi enforcer.\r\nTwo humanoid clerics (goblin witch-doctor, hobgoblin shaman) — roam as wandering encounters.\r\nGatehouse captain + half-orc lieutenant — where caught intruders are dragged for interrogation.\r\n\r\nAlarm & defense (defensive/delaying posture):\r\nGong → upper fort alerted end of that turn. Shout → next turn. Dungeon alerts one turn after the fort.\r\nOnce alerted: barracks guards take 1 turn to arm, then block ground entrances; wall guards lay down missile fire. No one found asleep/unarmed.\r\nIf the party retreats and returns: defenses strengthened, ambushes set. (They've already tipped the operation by destroying the caravan — consider the fort mildly pre-warned.)",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 72,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 72,
+      "scene_position": 3,
+      "title": "Journey to the Fort",
+      "public_description": "The fort is several more days south through the Drachensgrab hills.",
+      "dm_description": "Daily wilderness encounter check (roll once per travel day):\r\n\r\nHumanoid patrol (most common) — toll/bluff opportunity.\r\nOrc raiding party — hostile; the hired half-orc guide fights orcs to the death (they'd flay him as a renegade).\r\nHumanoid scout / wildman scout spotted (they're being watched regardless — assume the tribes track their passage).\r\nRain / no encounter.",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
     }
   ],
-  "next_id": 70
+  "next_id": 73
 }
