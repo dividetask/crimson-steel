@@ -1227,8 +1227,7 @@ helpers do
   def item_builder_blob(actor)
     acc  = Creatures.lookup(actor[:creature_id]) rescue nil
     pool = (encounter_state.combat_pool_remaining(actor[:id]) rescue 0) || 0
-    # Area Spells (placed on the map) aren't supported from items in this pass.
-    spells = consumable_castables(actor, acc, pool).reject { |sp| sp[:long_cast] || sp[:area] }
+    spells = consumable_castables(actor, acc, pool).reject { |sp| sp[:long_cast] }
     build_cast_blob(caster: actor, acc: acc, spells: spells, pool: pool,
                     title: "#{tracker_name(actor)} uses an item", stub_id: "item-#{actor[:id]}")
   end
@@ -1269,7 +1268,7 @@ helpers do
       castable_descriptor(acc, it[:spell], it[:tier], pool, nil,
                           skill: item_cast_skill(v), mana_cost: 0,
                           key: "item:#{it[:ref]}", display: it[:display], item: it,
-                          self_only: %w[potion oil].include?(it[:form]))
+                          self_only: it[:form] == 'potion')
     end
   end
 
@@ -1349,7 +1348,7 @@ helpers do
       spell = s.stored_spell || defn['spell']
       next unless spell
       form = item_form_of(s.item_type, defn)
-      next unless %w[potion oil scroll].include?(form)
+      next unless %w[potion scroll].include?(form)
       { ref: i, owner_id: owner, item_type: s.item_type,
         display: Equipment::DisplayName.call(s, cat),
         spell: spell, tier: s.tier, form: form, quantity: s.quantity }
@@ -1420,6 +1419,7 @@ helpers do
         spell_opts << { value: sp[:key], key: sp[:key], group: grp,
                         label: sp[:display], summary: sp[:display],
                         disabled: !sp[:affordable],
+                        spell_name: sp[:name],
                         cast: { roll: sp[:requires_roll], reservoir: sp[:reservoir] },
                         patch: { set_bpl:   [{ id: 'caster', bonus_penalty_list: bpl }],
                                  set_speed: [{ id: 'caster', speed: 0 }],
@@ -1763,13 +1763,13 @@ helpers do
     # A consumable Item cast (a Potion / Scroll from the Item pane): the Item,
     # not the caster, supplies the Spell — so it costs no Mana and rolls the
     # Spell's own casting skill (Evocation by default, equipment_design.md →
-    # "Casting skill"). Potions / Oils impose Item-Form Magic Toxicity on the
-    # drinker (Item-Form Toxicity); Scrolls impose none. Setting mana_cost to 0
-    # and cast_skill here pre-empts the caster-based resolution below.
+    # "Casting skill"). A Potion imposes Item-Form Magic Toxicity on the drinker
+    # (Item-Form Toxicity); a Scroll imposes none. Setting mana_cost to 0 and
+    # cast_skill here pre-empts the caster-based resolution below.
     if (item = payload['item']) && spell['name']
       spell['mana_cost'] = 0
       spell['cast_skill'] ||= item_cast_skill(resolve_named_spell(spell['name']))
-      if %w[potion oil].include?(item['form'].to_s)
+      if item['form'].to_s == 'potion'
         ccomb = (encounter_state.combatant(caster['id'].to_i) rescue nil)
         cacc  = ccomb && (Creatures.lookup(ccomb[:creature_id]) rescue nil)
         spell['toxicity'] = (Equipment.instance.item_form_toxicity(

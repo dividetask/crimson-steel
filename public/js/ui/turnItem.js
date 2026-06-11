@@ -26,6 +26,9 @@ export class TurnItem {
     container.addEventListener('click', (e) => {
       if (e.target.closest && e.target.closest('.ar-commit')) { e.preventDefault(); TurnItem._commit(container); }
     });
+    // An area Item (a Scroll of an area spell) places its footprint on the map
+    // exactly like casting it — the caught creatures become the Save Opposers.
+    document.addEventListener('cast:area-placed', (e) => TurnItem._areaPlaced(container, e.detail || {}));
 
     container.innerHTML = '<p class="ta-attack-loading">Loading items…</p>';
     fetch('/encounter/item_builder?actor_id=' + encodeURIComponent(container._casterId), { headers: { Accept: 'text/html' } })
@@ -52,6 +55,19 @@ export class TurnItem {
     return (container._items || {})[choices.spell] || null;
   }
 
+  // The `item` block carried on the resolve payload (ref / owner / form / Tier).
+  static _itemRef(item) {
+    return item ? { ref: item.ref, owner_id: item.owner_id, form: item.form,
+                    tier: item.tier, item_type: item.item_type, display: item.display } : null;
+  }
+
+  // Record an area placement and hand it to the builder, which lists the caught
+  // creatures as the Target and gives each a Save Roll (mirrors TurnCast).
+  static _areaPlaced(container, detail) {
+    container._placement = detail;
+    if (container._builder) ActionBuilder.areaPlaced(container._builder, container._casterId, detail);
+  }
+
   // Translate the builder's confirmed choices + rolls into a resolve_cast
   // payload that names the Item. Mirrors TurnCast._payload, but the rolled
   // "spell" is the Item's Spell and the payload carries the Item ref/owner/form.
@@ -61,6 +77,26 @@ export class TurnItem {
     const item = TurnItem._item(container, choices);
     const spellName = item ? item.spell : choices.spell;
     const caster = rolls.find((r) => r.id === 'caster') || {};
+
+    // Area Item: the placed footprint determines the affected creatures (the
+    // Spread Opposers). Each caught creature's Save nets against the cast
+    // independently; send the placement point + each creature's Save successes.
+    if (container._placement) {
+      const p = container._placement;
+      const targets = rolls
+        .filter((r) => String(r.id).indexOf('save-') === 0)
+        .map((r) => ({ id: parseInt(String(r.id).replace('save-', ''), 10), save: { successes: r.successes } }));
+      return {
+        commit: commit,
+        spell_name: spellName,
+        spell: { name: spellName, tier: item ? item.tier : null },
+        item: TurnItem._itemRef(item),
+        luck: ActionBuilder.luckSpends(choices),
+        caster: { id: container._casterId, dice: caster.dice_count, speed: caster.speed || 0, successes: caster.successes },
+        placement: { x: p.x, y: p.y },
+        targets: targets
+      };
+    }
 
     const tgtRoll = rolls.find((r) => r.id === 'target');
     const defType = String(choices.defense == null ? '' : choices.defense).split('|')[0];
@@ -79,8 +115,7 @@ export class TurnItem {
       commit: commit,
       spell_name: spellName,
       spell: { name: spellName, tier: item ? item.tier : null },
-      item: item ? { ref: item.ref, owner_id: item.owner_id, form: item.form,
-                     tier: item.tier, item_type: item.item_type, display: item.display } : null,
+      item: TurnItem._itemRef(item),
       luck: ActionBuilder.luckSpends(choices),
       caster: { id: container._casterId, dice: caster.dice_count, speed: caster.speed || 0, successes: caster.successes },
       targets: choices.target != null ? [target] : []

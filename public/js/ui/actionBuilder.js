@@ -236,6 +236,10 @@ export class ActionBuilder {
     // (a buff, or a reservoir-channel like Shield of Faith) skips the Luck steps
     // — its dice are charged/poured, not rolled.
     if (opt.cast) cb.noRoll = !opt.cast.roll;
+    // The resolved Spell name behind the chosen option (equals the value for a
+    // known Spell; the underlying Spell for an Item whose option is keyed by the
+    // Stack). Used by the area-placement Save fetch so it resolves the Spell.
+    if (opt.spell_name != null) cb.spellName = opt.spell_name;
     // An area Spell's "Place on the map" option arms the Atlas; the actual
     // footprint (and the creatures it catches) come back via cast:area-placed.
     if (opt.place) {
@@ -399,7 +403,7 @@ export class ActionBuilder {
 
     const params = new URLSearchParams();
     params.set('caster_id', casterId);
-    params.set('spell', cb.choices.spell ? cb.choices.spell.value : '');
+    params.set('spell', cb.spellName || (cb.choices.spell ? cb.choices.spell.value : ''));
     hits.forEach((h) => params.append('affected[]', h.combatant_id));
     fetch('/encounter/cast_area_rolls?' + params.toString(), { headers: { Accept: 'text/html' } })
       .then((r) => r.text())
