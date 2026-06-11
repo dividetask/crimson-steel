@@ -1229,7 +1229,8 @@ helpers do
     pool = (encounter_state.combat_pool_remaining(actor[:id]) rescue 0) || 0
     spells = consumable_castables(actor, acc, pool).reject { |sp| sp[:long_cast] }
     build_cast_blob(caster: actor, acc: acc, spells: spells, pool: pool,
-                    title: "#{tracker_name(actor)} uses an item", stub_id: "item-#{actor[:id]}")
+                    title: "#{tracker_name(actor)} uses an item", stub_id: "item-#{actor[:id]}",
+                    spell_label: 'Item', cast_verb: 'Use')
   end
 
   # The Combatant's known Spells as castable descriptors (the Cast list).
@@ -1282,17 +1283,14 @@ helpers do
   def consumable_castables(actor, acc, pool)
     consumable_spell_items(actor[:creature_id]).map do |it|
       v = (Abilities.lookup(it[:spell]) rescue nil) || {}
-      # One castable per Item (the list selects an *item*, not a skill). The Spell
-      # step picks the item; a rolled consumable then offers a Skill step — the
-      # Spell's own primary skill plus Evocation (the item-form default). The
-      # chosen skill rolls the check, so it determines how much bleeding a Heal
-      # clears.
-      # Show the carried quantity on the button when more than one is held.
-      label = it[:quantity].to_i > 1 ? "#{it[:display]} &times;#{it[:quantity]}" : it[:display]
+      # One castable per Item (the list selects an *item*, not a skill). The Item
+      # step picks the item; the Dice step then offers the casting skills (the
+      # Spell's own primary skill plus Evocation, the item-form default). `quantity`
+      # decorates the button only — the summary row keeps the plain name.
       castable_descriptor(acc, it[:spell], it[:tier], pool, nil,
-                          mana_cost: 0, key: "item:#{it[:ref]}", display: label,
+                          mana_cost: 0, key: "item:#{it[:ref]}", display: it[:display],
                           item: it, self_only: it[:form] == 'potion',
-                          skill_options: item_skill_options(v))
+                          quantity: it[:quantity], skill_options: item_skill_options(v))
     end
   end
 
@@ -1317,7 +1315,8 @@ helpers do
   # a consumable so two items of the same Spell never collide). `item` carries
   # the originating Consumable; `self_only` forces the Target step to self.
   def castable_descriptor(acc, name, tier, pool, mana_left, skill: nil, mana_cost:,
-                          key: nil, display: nil, item: nil, self_only: false, skill_options: nil)
+                          key: nil, display: nil, item: nil, self_only: false,
+                          skill_options: nil, quantity: nil)
     v   = (Abilities.lookup(name) rescue nil) || {}
     # Area footprint (Hash, or the first footprint Aspect of an Aspect-list area
     # like Grease). Area Spells are placed on the map, not targeted.
@@ -1371,7 +1370,7 @@ helpers do
       # A Spell that can only target the caster (a Potion drunk on oneself, or a
       # Spell declaring `target: self`) knows its target already — the Target
       # step shouldn't ask. `self_only` forces (and auto-applies) the self Target.
-      item: item, self_only: self_only || v['target'].to_s == 'self' }
+      item: item, self_only: self_only || v['target'].to_s == 'self', quantity: quantity }
   end
 
   # Equipped Wands / Rings (any `grants_spell` Item): each adds its Spell to the
@@ -1430,7 +1429,7 @@ helpers do
   # Tier), a choice-dependent Dice step, a Target step (self-only when the
   # castable demands it), and a target-Defense step. Options are keyed by each
   # castable's unique `key`; the button shows its `display`.
-  def build_cast_blob(caster:, acc:, spells:, pool:, title:, stub_id:)
+  def build_cast_blob(caster:, acc:, spells:, pool:, title:, stub_id:, spell_label: 'Spell', cast_verb: 'Cast')
     die     = DiceResolution.config.die_size
     base_tn = DiceResolution.config.base_target_number
 
@@ -1476,22 +1475,25 @@ helpers do
       spell_opts << { kind: 'info', group: hdr, value: "#{hdr}|label", label: %(#{br}<span class="cb-tier-head tier-#{tier}">Tier #{tier}</span>) }
       group_spells.each do |sp|
         patch = { set_speed: [{ id: 'caster', speed: 0 }],
-                  set_name:  [{ id: 'caster', roll_name: "Cast #{sp[:display]}" }] }
+                  set_name:  [{ id: 'caster', roll_name: "#{cast_verb} #{sp[:display]}" }] }
         unless has_skill_step
           bpl = []
           bpl << sp[:competency] if sp[:competency]
           bpl << ['Inherent', sp[:tier].to_i] if sp[:tier].to_i.positive?
           patch[:set_bpl] = [{ id: 'caster', bonus_penalty_list: bpl }]
         end
+        # The carried quantity decorates the *button* only (e.g. "… ×2"); the
+        # summary row keeps the plain name.
+        button = sp[:quantity].to_i > 1 ? "#{sp[:display]} ×#{sp[:quantity]}" : sp[:display]
         spell_opts << { value: sp[:key], key: sp[:key], group: grp,
-                        label: sp[:display], summary: sp[:display],
+                        label: button, summary: sp[:display],
                         disabled: !sp[:affordable],
                         spell_name: sp[:name],
                         cast: { roll: sp[:requires_roll], reservoir: sp[:reservoir] },
                         patch: patch }
       end
     end
-    spell_step = { key: 'spell', label: 'Spell', options: spell_opts }
+    spell_step = { key: 'spell', label: spell_label, options: spell_opts }
 
     # Step 2 — Dice for the cast, choice-dependent on the picked spell. A spell
     # whose dice count is *variable* (a rolled cast, or a Reservoir pour) asks
