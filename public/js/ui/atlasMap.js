@@ -80,6 +80,14 @@ class AtlasCanvas {
     // The cast panel arms spell-area placement; we drop a local preview and
     // report the caught creatures back (nothing is persisted until commit).
     document.addEventListener('cast:arm-area', (e) => this.armArea(e.detail || {}));
+    // A viewport resize changes the cover fit — re-clamp zoom and pan so the
+    // Map keeps filling the viewport with no off-Map space showing.
+    window.addEventListener('resize', () => {
+      if (!this.world) return;
+      this.zoom = this.clampZoom(this.zoom);
+      this.clampPan();
+      this.applyTransform();
+    });
   }
 
   // The color for the next drawing: a tool's fixed color (e.g. the players'
@@ -307,30 +315,76 @@ class AtlasCanvas {
   }
 
   // ----- pan & zoom -----
+  //
+  // The view is bounded: you can never zoom out far enough to shrink the Map
+  // below the viewport, and panning can never reveal empty space beyond a Map
+  // edge. Both rules fall out of a "cover" fit — the Map always covers the
+  // viewport on both axes — enforced by minZoomLimit() (the zoom floor) and
+  // clampPan() (the pan range).
+
+  // The smallest zoom at which the Map still fully covers the viewport on both
+  // axes; zooming out past this would show off-Map space, which we forbid. It
+  // is the larger of the two axis ratios.
+  coverZoom() {
+    const map = this.snapshot.map;
+    if (!map) return this.minZoom;
+    const worldW = (map.width || 40) * BASE_CELL;
+    const worldH = (map.height || 30) * BASE_CELL;
+    const vw = this.viewport.clientWidth;
+    const vh = this.viewport.clientHeight;
+    if (!worldW || !worldH || !vw || !vh) return this.minZoom;
+    return Math.max(vw / worldW, vh / worldH);
+  }
+
+  // The effective zoom floor: never below the cover fit (so the Map always
+  // fills the viewport), honoring the config's own floor when it is tighter,
+  // and capped at the maximum so the range stays valid for a tiny Map.
+  minZoomLimit() {
+    return Math.min(this.maxZoom, Math.max(this.minZoom, this.coverZoom()));
+  }
+
+  clampZoom(z) { return clamp(z, this.minZoomLimit(), this.maxZoom); }
+
+  // Pin the pan so no viewport edge falls outside the Map. With cover enforced
+  // both displayed extents are ≥ the viewport, so each axis clamps into a valid
+  // range; an axis that is (degenerately) smaller is centered.
+  clampPan() {
+    const map = this.snapshot.map;
+    if (!map) return;
+    const dispW = (map.width || 40) * BASE_CELL * this.zoom;
+    const dispH = (map.height || 30) * BASE_CELL * this.zoom;
+    const vw = this.viewport.clientWidth;
+    const vh = this.viewport.clientHeight;
+    this.panX = dispW >= vw ? clamp(this.panX, vw - dispW, 0) : (vw - dispW) / 2;
+    this.panY = dispH >= vh ? clamp(this.panY, vh - dispH, 0) : (vh - dispH) / 2;
+  }
 
   recenter() {
     const map = this.snapshot.map;
     if (!map || !this.world) return;
+    this.zoom = this.clampZoom(this.zoom);
     const w = (map.width || 40) * BASE_CELL * this.zoom;
     const h = (map.height || 30) * BASE_CELL * this.zoom;
     this.panX = (this.viewport.clientWidth - w) / 2;
     this.panY = (this.viewport.clientHeight - h) / 2;
+    this.clampPan();
     this.applyTransform();
   }
 
   resetView() {
-    this.zoom = clamp(this.initialZoom, this.minZoom, this.maxZoom);
+    this.zoom = this.clampZoom(this.initialZoom);
     this.recenter();
   }
 
   zoomAround(factor, sx, sy) {
-    const next = clamp(this.zoom * factor, this.minZoom, this.maxZoom);
+    const next = this.clampZoom(this.zoom * factor);
     if (next === this.zoom) return;
     const wx = (sx - this.panX) / this.zoom;
     const wy = (sy - this.panY) / this.zoom;
     this.zoom = next;
     this.panX = sx - wx * this.zoom;
     this.panY = sy - wy * this.zoom;
+    this.clampPan();
     this.applyTransform();
   }
 
@@ -388,6 +442,7 @@ class AtlasCanvas {
     const onMove = (ev) => {
       this.panX = start.panX + (ev.clientX - start.x);
       this.panY = start.panY + (ev.clientY - start.y);
+      this.clampPan();
       this.applyTransform();
     };
     const onUp = () => {

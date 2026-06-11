@@ -26,8 +26,8 @@ Optional:
 
 The canvas implements two interactions:
 
-- **Pan** — click-and-drag on empty canvas (or two-finger drag on touch) translates the viewport. There is no boundary on pan extent; the user may scroll beyond the Map's declared `width` and `height` in either direction, because Tokens may be placed there.
-- **Zoom** — scroll wheel (or pinch) adjusts the zoom factor centered on the cursor. Buttons in the toolbar offer the same operation. Zoom is clamped to `[Minimum Zoom, Maximum Zoom]` from `atlas_config.yaml`. On first open of a Map the initial zoom is `Suggested Initial Zoom`; subsequent visits restore the most recent zoom and pan (held in UI state, not in Atlas state).
+- **Pan** — click-and-drag on empty canvas (or two-finger drag on touch) translates the viewport. Pan is **bounded to the Map**: it is clamped so no viewport edge ever falls outside the Map's declared `width` × `height` — the user can never scroll to reveal empty, off-Map space.
+- **Zoom** — scroll wheel (or pinch) adjusts the zoom factor centered on the cursor. Buttons in the toolbar offer the same operation. Zoom is clamped to `[Minimum Zoom, Maximum Zoom]` from `atlas_config.yaml`, **and additionally never below the cover fit** — the smallest zoom at which the Map still fully covers the viewport on both axes. Together with the pan bound this guarantees the Map always fills the viewport: you can never zoom out far enough to shrink the Map below the viewport, nor see past a Map edge. On first open of a Map the initial zoom is `Suggested Initial Zoom` (raised to the cover fit when that is larger); subsequent visits restore the most recent zoom and pan (held in UI state, not in Atlas state). A viewport resize re-applies both bounds.
 
 The stub never resizes or paginates the underlying Map. A Map with `width = 10000` renders the same way as `width = 50` — the user pans and zooms to navigate.
 
