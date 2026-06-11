@@ -1261,8 +1261,13 @@ helpers do
 
     # Step 1 — Spell, grouped by Tier (a Tier-colored "Tier N" header, then that Tier's
     # spells underneath). Tiers with no known spell are skipped. Picking a spell
-    # sets the caster Roll's Bonuses (casting-skill Competency + the Tier's
-    # inherent Bonus); the dice count is the next step.
+    # sets the caster Roll's Bonuses: casting-skill Competency, the caster's own
+    # Tier Inherent (it crosses onto the target and feeds the Ascendancy,
+    # exactly like an attacker's), and the Spell's Tier as a Guidance Bonus
+    # (magical potency, not raw Tier power — it shifts the TNs without feeding
+    # the Ascendancy). The dice count is the next step.
+    inh_table  = (Creatures::Config.tier_minimum_inherent_bonus rescue [])
+    caster_inh = Encounter::Attack.inherent_amount(inh_table, ((acc&.tier rescue nil) || 0))
     spell_opts = []
     spells.group_by { |sp| sp[:tier].to_i }.sort_by { |tier, _| tier }.each_with_index do |(tier, group_spells), gi|
       hdr = "tier-#{tier}-h"
@@ -1272,7 +1277,8 @@ helpers do
       group_spells.each do |sp|
         bpl = []
         bpl << sp[:competency] if sp[:competency]
-        bpl << ['Inherent', sp[:tier].to_i] if sp[:tier].to_i.positive?
+        bpl << ['Inherent', caster_inh] unless caster_inh.zero?
+        bpl << ['Guidance', sp[:tier].to_i] if sp[:tier].to_i.positive?
         spell_opts << { value: sp[:name], key: sp[:name], group: grp,
                         label: sp[:name], summary: sp[:name],
                         disabled: !sp[:affordable],
@@ -1362,20 +1368,21 @@ helpers do
     # always spends the full Dice Cap — no dice choice; the pool-costed
     # Defensive Actions (Dodge / Block) pick dice from the pool.
     defense_map = {}
-    inh_table = (Creatures::Config.tier_minimum_inherent_bonus rescue [])
     targets.each do |t|
       spells.each do |sp|
         opts = []
         # The target's own Inherent Tier Bonus rides every defense Roll — it
         # crosses onto the caster's TN via propagation, and Check Resolution
-        # derives the Ascendancy from the Inherent imbalance against the
-        # Spell's own Inherent (its Tier) on the caster Roll.
+        # derives the Ascendancy from the imbalance against the caster's own
+        # Tier Inherent (the Spell's Tier rides as Guidance and stays out of
+        # the Ascendancy).
         def_inh = Encounter::Attack.defender_tier_bonuses(defender_tier: t[:tier], inherent_table: inh_table)
         # The caster's base Bonus list (what the Spell step set): every branch
         # re-sets it so switching away from No defense sheds the injection.
         caster_bpl = []
         caster_bpl << sp[:competency] if sp[:competency]
-        caster_bpl << ['Inherent', sp[:tier].to_i] if sp[:tier].to_i.positive?
+        caster_bpl << ['Inherent', caster_inh] unless caster_inh.zero?
+        caster_bpl << ['Guidance', sp[:tier].to_i] if sp[:tier].to_i.positive?
         if sp[:attack_roll]
           # No defense: the target does not roll, so nothing propagates — the
           # un-rolled target's Inherent is injected onto the caster, negated,
