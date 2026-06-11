@@ -209,8 +209,14 @@ class AtlasCanvas {
   // purple fill from CSS. The image fill is set inline so it wins over the CSS.
   zoneEl(z, defs) {
     const a = z.anchor || {};
-    const cx = ((a.x || 0) + 0.5) * BASE_CELL;
-    const cy = ((a.y || 0) + 0.5) * BASE_CELL;
+    // A placed (point-anchored) Zone is centered on the grid intersection at its
+    // anchor; a creature-anchored Zone centers on that token's cell. This keeps
+    // a placed footprint aligned to the grid (an integer-radius circle / even
+    // square sits on cell lines) and matches Atlas's overlap math, which treats
+    // the anchor as the Zone's geometric center.
+    const c = (a.type === 'point') ? 0 : 0.5;
+    const cx = ((a.x || 0) + c) * BASE_CELL;
+    const cy = ((a.y || 0) + c) * BASE_CELL;
     const size = (z.size || 0) * BASE_CELL;
     let el, bx, by, bw, bh;
     if (z.shape === 'square') {
@@ -324,16 +330,17 @@ class AtlasCanvas {
 
   // ----- pan & zoom -----
   //
-  // The view is bounded: you can never zoom out far enough to shrink the Map
-  // below the viewport, and panning can never reveal empty space beyond a Map
-  // edge. Both rules fall out of a "cover" fit — the Map always covers the
-  // viewport on both axes — enforced by minZoomLimit() (the zoom floor) and
-  // clampPan() (the pan range).
+  // The view is bounded so the Map stays the subject: you can zoom out exactly
+  // far enough to fit the whole Map in the viewport but no further, and panning
+  // never pushes a Map edge past the viewport edge when the Map is larger than
+  // the viewport. The zoom floor is a "contain" fit (the whole Map visible —
+  // which letterboxes off-Map space on the shorter axis); minZoomLimit() owns
+  // the floor and clampPan() owns the pan range.
 
-  // The smallest zoom at which the Map still fully covers the viewport on both
-  // axes; zooming out past this would show off-Map space, which we forbid. It
-  // is the larger of the two axis ratios.
-  coverZoom() {
+  // The zoom at which the whole Map just fits inside the viewport (both axes
+  // visible) — the smaller of the two axis ratios. This is the most zoomed-out
+  // the view goes; at this zoom one axis fills and the other letterboxes.
+  containZoom() {
     const map = this.snapshot.map;
     if (!map) return this.minZoom;
     const worldW = (map.width || 40) * BASE_CELL;
@@ -341,21 +348,21 @@ class AtlasCanvas {
     const vw = this.viewport.clientWidth;
     const vh = this.viewport.clientHeight;
     if (!worldW || !worldH || !vw || !vh) return this.minZoom;
-    return Math.max(vw / worldW, vh / worldH);
+    return Math.min(vw / worldW, vh / worldH);
   }
 
-  // The effective zoom floor: never below the cover fit (so the Map always
-  // fills the viewport), honoring the config's own floor when it is tighter,
-  // and capped at the maximum so the range stays valid for a tiny Map.
+  // The effective zoom floor: the contain fit (so the whole Map can be shown at
+  // once), capped at the maximum so the range stays valid for a tiny Map.
   minZoomLimit() {
-    return Math.min(this.maxZoom, Math.max(this.minZoom, this.coverZoom()));
+    return Math.min(this.maxZoom, this.containZoom());
   }
 
   clampZoom(z) { return clamp(z, this.minZoomLimit(), this.maxZoom); }
 
-  // Pin the pan so no viewport edge falls outside the Map. With cover enforced
-  // both displayed extents are ≥ the viewport, so each axis clamps into a valid
-  // range; an axis that is (degenerately) smaller is centered.
+  // Pin the pan to the Map. On an axis where the Map is larger than the viewport
+  // the edges clamp so no off-Map space shows; on an axis where the Map is
+  // smaller (zoomed out toward the contain fit) it is centered, letterboxing the
+  // off-Map space evenly.
   clampPan() {
     const map = this.snapshot.map;
     if (!map) return;
@@ -742,11 +749,11 @@ class AtlasCanvas {
   placeArea(e) {
     e.preventDefault();
     const u = this.toUnits(e.clientX, e.clientY);
-    // Anchor to the cell under the cursor (floor), so the footprint centers on
-    // the clicked cell rather than snapping to the nearest grid line (which
-    // could land the effect half a cell — or a whole cell — away).
-    const x = Math.floor(u[0]);
-    const y = Math.floor(u[1]);
+    // Snap the footprint's center to the nearest grid intersection: the Zone is
+    // drawn centered on its anchor, so the effect lands on the grid right where
+    // it was clicked (no half-cell drift).
+    const x = Math.round(u[0]);
+    const y = Math.round(u[1]);
     const area = this.placingArea;
     this.placingArea = null;
     this.viewport.classList.remove('atlas-placing');
@@ -780,8 +787,8 @@ class AtlasCanvas {
     const startY = this._placedArea.y;
     const moveTo = (cx, cy) => {
       const u = this.toUnits(cx, cy);
-      const x = Math.floor(u[0]);
-      const y = Math.floor(u[1]);
+      const x = Math.round(u[0]);
+      const y = Math.round(u[1]);
       if (x === this._placedArea.x && y === this._placedArea.y) return;
       this._placedArea.x = x;
       this._placedArea.y = y;
@@ -811,19 +818,20 @@ class AtlasCanvas {
     svg.setAttribute('class', 'atlas-zones atlas-zone-preview');
     svg.setAttribute('width', w); svg.setAttribute('height', h);
     svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-    const el = this.zoneEl({ anchor: { x: x, y: y }, shape: area.shape, size: area.size });
+    const el = this.zoneEl({ anchor: { type: 'point', x: x, y: y }, shape: area.shape, size: area.size });
     if (el) svg.appendChild(el);
     this.world.appendChild(svg);
     this._areaPreview = svg;
   }
 
-  // Combatant Tokens whose center lies within the footprint centered on the
-  // clicked cell. circle: distance <= size (radius in cells); square: size on
-  // a side. Only Tokens tied to a Combatant are reported (the cast resolves by
-  // Combatant id).
+  // Combatant Tokens whose center lies within the footprint, which is centered
+  // on the grid intersection at its anchor (x, y) — matching how the Zone is
+  // drawn and how Atlas computes overlap. circle: distance <= size (radius in
+  // cells); square: size on a side. Only Tokens tied to a Combatant are
+  // reported (the cast resolves by Combatant id).
   tokensInArea(x, y, area) {
-    const acx = x + 0.5;
-    const acy = y + 0.5;
+    const acx = x;
+    const acy = y;
     const r = area.size;
     const out = [];
     (this.snapshot.tokens || []).forEach((t) => {
