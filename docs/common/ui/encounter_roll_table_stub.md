@@ -1,6 +1,6 @@
 # Encounter Roll Table Stub
 
-Fires a **Roll Table Reaction** during an attack: a Reaction Ability that resolves by rolling on a provided table (talents.yaml `roll_table:`, e.g. **Kesser's Gambit** → the **Kesser Reversal Table**). The channeler spends Combat Pool dice — rolled for **Channel Successes** — plus the Ability's Mana, a die is rolled on the table, and the matched entry is shown for the DM to adjudicate. Combat does **not** apply the entry's mechanical effect yet; the DM resolves it (future work will mechanize the supportable entries).
+Fires a **Roll Table Reaction** during an attack: a Reaction Ability that resolves by rolling on a provided table (talents.yaml `roll_table:`, e.g. **Kesser's Gambit** → the **Kesser Reversal Table**). The channeler rolls a channel check (its Combat Pool dice → **Channel Successes**), a die is rolled on the table, and the matched entry is **previewed** — the DM may **reroll** the effect freely, then **Confirm** to spend the Combat Pool dice + the Ability's Mana and lock the shown entry. Spending happens only on Confirm; a preview / reroll costs nothing. Combat does **not** apply the entry's mechanical effect; the DM adjudicates it, and the stub lists every **modifier on the channel check** (Competency, Inherent) beside the Channel Successes so the DM can set save TNs against the effect by hand.
 
 The stub rides alongside the Attack **Action Builder**, in the same place as the **Standard Shield**'s ally block (`encounter_design.md` → *Shield of Faith hangs a defended ally*). It is offered to a Combatant **other than the attacker** who holds a Roll Table Reaction. Lives in `views/_encounter_roll_table_stub.erb`; driven by `public/js/ui/turnRollTable.js`.
 
@@ -20,8 +20,10 @@ Each channeler entry carries the channel `skill` + its **Dice Cap**, the Reactio
 A **Reactions** section with one button per eligible channeler — `<Name> — <Ability> (<Skill>, <N> mana)`. Picking one:
 
 1. Mounts the **channel-check Action Builder** (`GET /encounter/roll_table_builder`) — a single supporting Roll in the channeler's Evocation / Invocation skill (its Competency + the channeler's Tier Inherent Bonus fold into the Roll), with a **Channel dice** step from the Reaction Action Minimum up to `min(Combat Pool, Dice Cap)`. The DM rolls the check; its Successes are the **Channel Successes**.
-2. On the Builder's `action:confirmed`, the chosen dice + Channel Successes POST to `/encounter/roll_table_reaction`. The server (`Encounter::State#use_roll_table_payload`) spends the dice from the channeler's Combat Pool and the Mana cost, rolls the table die, and returns the matched entry.
-3. The **result** renders: `d<die> → <face>`, the entry **name**, the **Channel Successes**, the entry **effect** text, and a note of the Combat Pool + Mana spent. The DM adjudicates the effect.
+2. On the Builder's `action:confirmed`, the chosen dice + Channel Successes POST to `/encounter/roll_table_reaction` as a **preview** (`commit:false`). The server (`Encounter::State#use_roll_table_payload`) rolls the table die and returns the matched entry **without spending** anything.
+3. The **result** renders: `d<die> → <face>`, the entry **name**, the **Channel Successes**, the entry **effect** text, the **channel-check modifiers** (`<Skill> check: +N Competency +N Inherent · <N> successes — roll any saves against this`), a "will spend" note, and two buttons:
+   - **Reroll effect** — re-POSTs the preview without a `face`, drawing a fresh die (no spend); the entry re-renders.
+   - **Confirm** — re-POSTs with `commit:true` and the shown `face`, which spends the dice from the channeler's Combat Pool + the Mana cost and locks that entry. The result re-renders with a "spent" note and the buttons removed.
 
 The channel-check Builder's `action:confirmed` is scoped to this stub (the JS stops its propagation) so the host attack's own Builder never sees the channel roll.
 
@@ -30,7 +32,7 @@ The channel-check Builder's `action:confirmed` is scoped to this stub (the JS st
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/encounter/roll_table_builder?combatant_id=&ability=` | The channel-check Action Builder fragment for a channeler. |
-| `POST` | `/encounter/roll_table_reaction` | `{ combatant_id, ability, dice, successes, face? }` — spend + roll the table. `face` is optional; omitted, the server rolls the die. Mutates Conditions (Mana), so the store is persisted on success. |
+| `POST` | `/encounter/roll_table_reaction` | `{ combatant_id, ability, dice, successes, commit?, face? }` — roll the table; spend only when `commit:true` (default). `face` locks a previewed entry on Confirm; omitted (preview / reroll), the server rolls a fresh die. The response carries the channel-check `skill_label` + `modifiers`. Mutates Conditions (Mana) only on commit, so the store is persisted then. |
 
 ## Out of scope (for now)
 

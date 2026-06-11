@@ -1348,6 +1348,10 @@ module Encounter
     # client-side; omitted rolls server-side via `rng`).
     def use_roll_table_payload(payload, rng: Random.new)
       p = deep_symbolize(payload)
+      # A preview (commit:false) rolls the table to show the entry and lets the
+      # DM reroll, spending nothing; the Confirm (commit:true, default) commits
+      # the shown face and spends the Combat Pool dice + Mana.
+      commit = p.fetch(:commit, true) != false
       combatant_id = p[:combatant_id].to_i
       c = combatant_for(combatant_id) or return { ok: false, error: 'unknown combatant' }
       creature = lookup!(c[:creature_id]) or return { ok: false, error: 'unknown creature' }
@@ -1373,9 +1377,11 @@ module Encounter
       mana_rem  = special_mana_remaining(c[:creature_id], creature)
       return { ok: false, error: 'not enough Mana' } if mana_cost.positive? && mana_rem && mana_rem < mana_cost
 
-      spend_combat_pool(combatant_id, dice)
-      if mana_cost.positive? && creature.respond_to?(:max_mana) && creature.max_mana
-        inst.apply_mana_cost(amount: mana_cost, mana_max: creature.max_mana)
+      if commit
+        spend_combat_pool(combatant_id, dice)
+        if mana_cost.positive? && creature.respond_to?(:max_mana) && creature.max_mana
+          inst.apply_mana_cost(amount: mana_cost, mana_max: creature.max_mana)
+        end
       end
 
       successes = p[:successes].to_i
@@ -1383,7 +1389,7 @@ module Encounter
       return { ok: false, error: 'roll table produced no entry' } unless result
 
       actor = special_actor_name(c, creature)
-      { ok: true, ability: name, table: table_name, pool_spent: dice, mana_spent: mana_cost,
+      { ok: true, committed: commit, ability: name, table: table_name, pool_spent: dice, mana_spent: mana_cost,
         successes: successes, face: result[:face], die: result[:die],
         entry: { name: result[:name], effect: result[:effect] },
         log: "#{actor} channels #{name}: rolled #{result[:face]} (#{result[:name]})" }

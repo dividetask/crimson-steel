@@ -77,6 +77,27 @@ RSpec.describe 'Encounter::State#use_roll_table_payload' do
     expect(cond.state.mana_spent).to eq(4)
   end
 
+  it 'previews without spending (commit:false), then commits the shown face' do
+    cond = Conditions::Instance.new
+    s = state(cond)
+    c = s.add_combatant('1')
+
+    prev = s.use_roll_table_payload({ combatant_id: c[:id], ability: "Kesser's Gambit",
+                                      dice: 4, successes: 2, face: 4, commit: false })
+    expect(prev[:ok]).to be true
+    expect(prev[:committed]).to be false
+    expect(prev[:pool_spent]).to eq(4)                       # what it *would* spend
+    expect(s.combatant(c[:id])[:combat_pool_spent]).to eq(0) # but nothing spent on a preview
+    expect(cond.state.mana_spent).to eq(0)
+
+    done = s.use_roll_table_payload({ combatant_id: c[:id], ability: "Kesser's Gambit",
+                                      dice: 4, successes: 2, face: prev[:face], commit: true })
+    expect(done[:committed]).to be true
+    expect(done[:face]).to eq(prev[:face])                   # commits the previewed entry
+    expect(s.combatant(c[:id])[:combat_pool_spent]).to eq(4)
+    expect(cond.state.mana_spent).to eq(4)
+  end
+
   it 'rolls server-side through an injected rng when no face is given' do
     s = state
     c = s.add_combatant('1')

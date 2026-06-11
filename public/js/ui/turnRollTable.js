@@ -21,15 +21,22 @@ export class TurnRollTable {
 
     stub.addEventListener('click', (e) => {
       const opt = e.target.closest && e.target.closest('.ta-rt-opt');
-      if (opt) { e.preventDefault(); TurnRollTable._pick(stub, opt); }
+      if (opt) { e.preventDefault(); TurnRollTable._pick(stub, opt); return; }
+      // Reroll the table effect without spending (a fresh face); Confirm spends
+      // the dice + Mana and commits the shown face.
+      if (e.target.closest && e.target.closest('.ta-rt-reroll')) { e.preventDefault(); TurnRollTable._fire(stub, { commit: false }); return; }
+      if (e.target.closest && e.target.closest('.ta-rt-confirm')) { e.preventDefault(); TurnRollTable._fire(stub, { commit: true, face: stub._face }); return; }
     });
     // The channel check resolves through the embedded Action Builder. Its
     // `action:confirmed` is scoped to this stub (stopPropagation) so the
-    // attack container's own listener never sees the channel roll.
+    // attack container's own listener never sees the channel roll. Confirming
+    // the channel roll previews the table entry (no spend yet).
     stub.addEventListener('action:confirmed', (e) => {
       e.stopPropagation();
       const roll = (e.detail.rolls || []).find((r) => r.id === 'channel') || {};
-      TurnRollTable._fire(stub, { dice: roll.dice_count, successes: roll.successes || 0 });
+      stub._dice = roll.dice_count;
+      stub._successes = roll.successes || 0;
+      TurnRollTable._fire(stub, { commit: false });
     });
   }
 
@@ -57,12 +64,20 @@ export class TurnRollTable {
       .catch(() => { slot.innerHTML = '<p class="ta-warn">Could not load the channel.</p>'; });
   }
 
-  static _fire(stub, extra) {
+  // POST the reaction. `opts.commit` distinguishes a preview/reroll (no spend)
+  // from the Confirm (spends dice + Mana); `opts.face` locks the previewed entry
+  // on Confirm — omit it on a reroll to draw a fresh face.
+  static _fire(stub, opts) {
     if (!stub._ability) return;
-    const payload = Object.assign({
+    opts = opts || {};
+    const payload = {
       combatant_id: parseInt(stub._combatantId, 10),
-      ability: stub._ability
-    }, extra);
+      ability: stub._ability,
+      dice: stub._dice,
+      successes: stub._successes,
+      commit: !!opts.commit
+    };
+    if (opts.face != null) payload.face = opts.face;
     fetch('/encounter/roll_table_reaction', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     })
@@ -79,7 +94,21 @@ export class TurnRollTable {
       slot.innerHTML = '<p class="ta-warn">' + esc((res && res.error) || 'Could not channel the reaction.') + '</p>';
       return;
     }
+    stub._face = res.face;
     const entry = res.entry || {};
+    const committed = !!res.committed;
+    // Every Bonus/Penalty on the channel (Evocation/Invocation) check, so the DM
+    // can set save TNs against the effect by hand.
+    const mods = (res.modifiers || [])
+      .map((m) => (m.amount >= 0 ? '+' : '') + m.amount + ' ' + m.type).join(' ') || 'none';
+    const spent = committed
+      ? ('Spent ' + esc(res.pool_spent) + ' Combat Pool and ' + esc(res.mana_spent) + ' Mana. The DM adjudicates the effect.')
+      : ('Will spend ' + esc(res.pool_spent) + ' Combat Pool and ' + esc(res.mana_spent) + ' Mana on Confirm.');
+    const actions = committed ? '' :
+      '<div class="ta-rt-actions">' +
+        '<button type="button" class="cr-mod-btn ta-rt-reroll">Reroll effect</button>' +
+        '<button type="button" class="ce-btn ta-rt-confirm">Confirm</button>' +
+      '</div>';
     slot.innerHTML =
       '<div class="ta-rt-entry">' +
         '<div class="ta-rt-entry-head">' +
@@ -88,7 +117,10 @@ export class TurnRollTable {
           '<span class="ta-rt-successes">' + esc(res.successes) + ' Channel Success' + (res.successes === 1 ? '' : 'es') + '</span>' +
         '</div>' +
         '<p class="ta-rt-entry-effect">' + esc(entry.effect) + '</p>' +
-        '<p class="ta-rt-note">Spent ' + esc(res.pool_spent) + ' Combat Pool and ' + esc(res.mana_spent) + ' Mana. The DM adjudicates the effect.</p>' +
+        '<p class="ta-rt-mods">' + esc(res.skill_label || 'Check') + ' check: ' + esc(mods) +
+          ' &middot; ' + esc(res.successes) + ' successes &mdash; roll any saves against this.</p>' +
+        '<p class="ta-rt-note">' + spent + '</p>' +
+        actions +
       '</div>';
   }
 }

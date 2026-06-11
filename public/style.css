@@ -3324,7 +3324,9 @@ body {
 .ta-rt-entry-name { font-weight: 600; }
 .ta-rt-successes { color: #64748b; font-size: 0.85em; }
 .ta-rt-entry-effect { margin: 0 0 6px; color: #334155; }
+.ta-rt-mods { margin: 0 0 6px; font-size: 0.85em; color: #334155; }
 .ta-rt-note { margin: 0; font-size: 0.85em; color: #64748b; font-style: italic; }
+.ta-rt-actions { display: flex; gap: 8px; margin-top: 10px; }
 
 /* Check Resolution Builder option lines — reuse the .cr-mod-btn palette */
 .cb-line { padding: 2px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }

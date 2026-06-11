@@ -1800,27 +1800,47 @@ helpers do
   # scale the table entry. Shaped like #special_builder_blob's Performance
   # check (one supporting Roll + a Channel-dice step), so the same Action
   # Builder component drives it.
+  # The channel check's Bonus/Penalty list (the casting skill's Competency plus
+  # the channeler's Inherent Tier Bonus), the skill, its Dice Cap and Tier — the
+  # inputs that shape the Evocation / Invocation check. Shared by the builder and
+  # the result so the same modifiers drive the roll and are shown to the DM.
+  def roll_table_channel_info(acc, creature_id)
+    found = roll_table_reaction_for(acc, creature_id) || { skill: 'evocation' }
+    ri    = roll_inputs_for(acc, found[:skill])
+    bpl   = []
+    bpl << ri[:competency_modifier] if ri[:competency_modifier]
+    tier  = (acc&.tier rescue nil)
+    bpl << ['Inherent', tier.to_i] if tier.to_i.positive?
+    { skill: found[:skill], dice_cap: ri[:dice_cap].to_i, tier: tier, bpl: bpl }
+  end
+
+  # The channel-check skill + its Bonus/Penalty list as a JSON-friendly blob,
+  # merged onto a Roll Table Reaction result so the DM sees every modifier on the
+  # check (Competency, Inherent) and can set save TNs against the effect by hand.
+  def roll_table_check_info(combatant)
+    acc  = Creatures.lookup(combatant[:creature_id]) rescue nil
+    info = roll_table_channel_info(acc, combatant[:creature_id])
+    { skill_label: Encounter::Special.pretty_skill(info[:skill]),
+      modifiers: info[:bpl].map { |type, amt| { type: type.to_s, amount: amt.to_i } } }
+  end
+
   def roll_table_builder_blob(combatant, ability_name)
     acc     = Creatures.lookup(combatant[:creature_id]) rescue nil
     die     = DiceResolution.config.die_size
     base_tn = DiceResolution.config.base_target_number
     pool    = (encounter_state.combat_pool_remaining(combatant[:id]) rescue 0) || 0
     rmin    = Encounter::Config.reaction_action_minimum
-    found   = roll_table_reaction_for(acc, combatant[:creature_id]) || { skill: 'evocation' }
-    skill   = found[:skill]
-    ri      = roll_inputs_for(acc, skill)
-
-    bpl = []
-    bpl << ri[:competency_modifier] if ri[:competency_modifier]
-    tier = (acc&.tier rescue nil)
-    bpl << ['Inherent', tier.to_i] if tier.to_i.positive?
+    info    = roll_table_channel_info(acc, combatant[:creature_id])
+    skill   = info[:skill]
+    bpl     = info[:bpl]
+    tier    = info[:tier]
 
     rolls = [{ id: 'channel', side: 'supporting', creature_name: tracker_name(combatant),
                roll_name: ability_name, die_size: die, tn: base_tn, starting_value: 0,
                base_tn: base_tn, bonus_penalty_list: bpl, dice_count: rmin, speed: 0, excluded: false,
                tier: tier }]
 
-    upper = ri[:dice_cap].to_i.positive? ? [ri[:dice_cap].to_i, pool].min : pool
+    upper = info[:dice_cap].positive? ? [info[:dice_cap], pool].min : pool
     upper = [upper, rmin].max
     set   = ->(n) { { set_dice: [{ id: 'channel', count: n }] } }
     label = Encounter::Special.pretty_skill(skill)
@@ -2788,6 +2808,14 @@ post '/encounter/roll_table_reaction' do
   payload = JSON.parse(request.body.read) rescue nil
   return encounter_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
   result = encounter_state.use_roll_table_payload(payload)
-  Conditions.store.persist! if result[:ok]
+  if result[:ok]
+    # Surface the channel check's modifiers (Competency / Inherent) so the DM can
+    # set save TNs against the rolled effect by hand.
+    combatant = encounter_state.combatant(payload['combatant_id'].to_i)
+    result = result.merge(roll_table_check_info(combatant)) if combatant
+    # Only a committed reaction (the Confirm) mutates Mana — a preview / reroll
+    # spends nothing.
+    Conditions.store.persist! if result[:committed]
+  end
   encounter_response(result)
 end
