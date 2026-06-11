@@ -21,21 +21,16 @@ const XLINK_NS = 'http://www.w3.org/1999/xlink';
 const ENC = (s) => encodeURIComponent(s);
 
 // An SVG <pattern> wrapping one image sized to a shape's bounding box, so a
-// Zone shape filled with url(#id) shows the image clipped to the shape.
+// Zone shape filled with url(#id) shows the image clipped to the shape. The
+// image renders on its own (no backing fill), so a texture with intentional
+// transparency — e.g. Grease's oily slick — shows through to the map; a Zone
+// without a texture keeps the solid-purple CSS fill instead.
 function zonePattern(id, x, y, w, h, href) {
   const pat = document.createElementNS(SVG_NS, 'pattern');
   pat.setAttribute('id', id);
   pat.setAttribute('patternUnits', 'userSpaceOnUse');
   pat.setAttribute('x', x); pat.setAttribute('y', y);
   pat.setAttribute('width', w); pat.setAttribute('height', h);
-  // A translucent purple backing under the texture: keeps a committed Zone as
-  // visible as the (solid-purple) placement preview even when the texture is
-  // sparse / transparent or fails to load.
-  const back = document.createElementNS(SVG_NS, 'rect');
-  back.setAttribute('x', x); back.setAttribute('y', y);
-  back.setAttribute('width', w); back.setAttribute('height', h);
-  back.setAttribute('fill', 'rgba(128, 90, 213, 0.30)');
-  pat.appendChild(back);
   const img = document.createElementNS(SVG_NS, 'image');
   img.setAttribute('x', x); img.setAttribute('y', y);
   img.setAttribute('width', w); img.setAttribute('height', h);
@@ -234,9 +229,17 @@ class AtlasCanvas {
     if (z.id != null) el.dataset.zoneId = z.id;
     if (z.texture && defs) {
       const pid = 'zone-tex-' + (z.id != null ? z.id : Math.random().toString(36).slice(2));
-      defs.appendChild(zonePattern(pid, bx, by, bw, bh, '/images/zones/' + z.texture));
+      const pat = zonePattern(pid, bx, by, bw, bh, '/images/zones/' + z.texture);
+      defs.appendChild(pat);
       el.classList.add('atlas-zone-textured');
       el.style.fill = 'url(#' + pid + ')';
+      // Missing / unloadable texture file: drop the image fill so the shape
+      // falls back to the solid-purple CSS fill (rather than rendering empty).
+      const img = pat.querySelector('image');
+      if (img) img.addEventListener('error', () => {
+        el.style.fill = '';
+        el.classList.remove('atlas-zone-textured');
+      });
     }
     return el;
   }
