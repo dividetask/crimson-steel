@@ -12,7 +12,12 @@
     visible_entries = @selected_chapter ? @entries.select { |e| e['chapter'] == @selected_chapter } : @entries
     dm_notes        = visible_entries.select { |e| e['entry_type'] == 'note' && e['owner_id'].nil? }
     char_notes      = visible_entries.select { |e| e['entry_type'] == 'note' && e['owner_id'] }
-    creatures_all   = @entries.select { |e| e['entry_type'] == 'creature' } # ignore chapter filter
+    creatures_all   = @entries.select { |e| e['entry_type'] == 'creature' }
+    # When a Chapter is selected, only show Characters of Interest that are
+    # Active or belong to that Chapter; the "All" view shows every one.
+    creatures_shown = @selected_chapter ?
+      creatures_all.select { |e| e['active'] || e['chapter'] == @selected_chapter } :
+      creatures_all
   %>
 
   <h2>DM Notes</h2>
@@ -34,11 +39,11 @@
   <% end %>
 
   <h2>Characters of Interest</h2>
-  <% if creatures_all.empty? %>
-    <p class="lead">No creature references yet.</p>
+  <% if creatures_shown.empty? %>
+    <p class="lead">No creature references<%= @selected_chapter ? " active or in this chapter" : '' %>.</p>
   <% end %>
   <div class="notes-list">
-    <% creatures_all.each do |e| %>
+    <% creatures_shown.each do |e| %>
       <%= erb :_chronicle_entry, locals: { entry: e, viewer: @viewer, viewing_id: @viewing_id, player_creatures: @player_creatures } %>
     <% end %>
   </div>
