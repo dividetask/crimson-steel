@@ -1,23 +1,24 @@
 import { DiceConfig } from './config.js';
 import { RandomRng } from './rng.js';
 import { Propagation } from './propagation.js';
-import { TierMismatch } from './tierMismatch.js';
+import { Ascendancy } from './ascendancy.js';
 import { TnComputation } from './tnComputation.js';
 import { Classifier } from './classifier.js';
 import { Roll } from './roll.js';
 
-// Multi-Roll composition. Applies cross-side propagation and the Tier
-// Mismatch Ascendancy modifier, defers all per-Roll math to Dice
-// Resolution, then aggregates and classifies.
+// Multi-Roll composition. Applies cross-side propagation and the
+// Ascendancy modifier, defers all per-Roll math to Dice Resolution, then
+// aggregates and classifies.
 export class CheckResolution {
-  // Cross-side Propagation followed by the Tier Mismatch Ascendancy
-  // modifier. Tier Mismatch runs AFTER Propagation so its Ascendancy entry
-  // is not itself inverted onto the other side. A Spread (area) Check uses
-  // the same bidirectional preparation — the caster and every Opposer
-  // exchange bonuses, and the caster takes its Ascendancy against each — and
-  // differs only in how `resolveCheck` aggregates (per-Opposer, below).
+  // Cross-side Propagation followed by the Ascendancy modifier. Ascendancy
+  // runs AFTER Propagation — it compares each Roll's own Inherent Bonus
+  // against the Inherent Penalties that crossed over — and its entry is not
+  // itself inverted onto the other side. A Spread (area) Check uses the
+  // same bidirectional preparation (the caster and every Opposer exchange
+  // bonuses) and differs only in how `resolveCheck` aggregates
+  // (per-Opposer, below).
   static prepare(check) {
-    return TierMismatch.apply(Propagation.apply(check));
+    return Ascendancy.apply(Propagation.apply(check));
   }
   // Pure preview: per-Roll { tn, startingValue } after propagation. No
   // dice rolled. Lists align with the input lists.

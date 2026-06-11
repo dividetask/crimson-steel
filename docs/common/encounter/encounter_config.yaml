@@ -156,8 +156,9 @@ Falling Damage Bleed Constant: 0   # actual bleed = Bleed Constant + damage deal
 # abilities alike. A weapon's Glory Property (`tier_advantage`) raises the
 # attacker's effective Tier when fighting up, shrinking Δ first; that is a
 # weapon-only adjustment, never applied to spells or abilities. (The Check
-# half — the ±2 × Δ Ascendancy modifier on opposed combat checks — resolves
-# client-side in the Dice / Check engine, not from this file.)
+# half — the Ascendancy modifier derived from the Rolls' Inherent entries
+# on opposed combat checks — resolves client-side in the Dice / Check
+# engine, not from this file.)
 Inherent Damage Reduction Per Tier: 5
 
 

@@ -171,13 +171,11 @@ helpers do
         name: base + self_tag,
         display_name: base + target_status_suffix(c[:id], c[:creature_id]) + self_tag,
         category: (creature_is_pc?(c[:creature_id]) ? 'pc' : (((tacc&.group rescue nil) == 'npc') ? 'npc' : 'enemy')),
-        dying: (encounter_state.creature_dying?(c[:id]) rescue false),
-        tier: (tacc&.tier rescue 0) || 0 }
+        dying: (encounter_state.creature_dying?(c[:id]) rescue false) }
     end
     order_targets_by_category(descs).map do |t|
       { value: t[:id], key: t[:id], label: t[:display_name], dying: t[:dying], group: t[:category],
-        patch: { set_name: [{ id: roll_id, creature_name: t[:name] }],
-                 set_tier: [{ id: roll_id, tier: t[:tier] }] } }
+        patch: { set_name: [{ id: roll_id, creature_name: t[:name] }] } }
     end
   end
 
@@ -718,18 +716,15 @@ helpers do
     rolls = [
       { id: 'attacker', side: 'supporting', creature_name: tracker_name(attacker),
         roll_name: 'Attack', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false,
-        tier: atk_tier },
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false },
       { id: 'defender', side: 'opposing', creature_name: '—',
         roll_name: 'Defense', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
-        tier: nil },
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true },
       # A Shield of Faith caster defending the target — a second Opposing Roll,
       # hidden until the defender chooses it (fueled by Reservoir dice).
       { id: 'shield', side: 'opposing', creature_name: '—',
         roll_name: 'Shield of Faith', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
-        tier: nil }
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true }
     ]
 
     # Map of defender Combatant id -> the caster shielding them and the dice they
@@ -810,18 +805,20 @@ helpers do
       weapons.each do |w|
         comp = w[:competency] ? [w[:competency]] : []
         # Tier modifiers on the attack check: the attacker's (Glory-adjusted)
-        # Inherent Bonus on both branches, plus an Ascendancy penalty equal to
-        # the un-rolled defender's Inherent on the No-defense branch (a defended
-        # branch lets the defender's Inherent propagate instead). The defender's
-        # own Inherent rides its defense Roll (see `def_tier`).
+        # Inherent Bonus on both branches, plus — on the No-defense branch —
+        # the un-rolled defender's Inherent, negated (a defended branch lets
+        # the defender's Inherent cross via propagation instead). Check
+        # Resolution derives the Ascendancy from the resulting Inherent
+        # imbalance. The defender's own Inherent rides its defense Roll (see
+        # `def_tier`).
         atk_tier_none = Encounter::Attack.attacker_tier_bonuses(
           attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
           inherent_table: inh_table, no_defense: true
         )
         def_tier = Encounter::Attack.defender_tier_bonuses(defender_tier: t[:tier], inherent_table: inh_table)
         # The attacker's own (Glory-adjusted) Inherent Bonus for a defended
-        # branch — no Ascendancy here, since the defender rolls and its own
-        # Inherent propagates onto the attacker's TN as the Ascendancy.
+        # branch — no injected entry here, since the defender rolls and its
+        # own Inherent crosses onto the attacker's TN via propagation.
         atk_tier_def = Encounter::Attack.attacker_tier_bonuses(
           attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
           inherent_table: inh_table, no_defense: false
@@ -889,7 +886,7 @@ helpers do
           # A Dodge's Competency helps the defender's own Roll but is NOT
           # propagated onto the attacker as a penalty — Check Resolution's
           # per-Roll `no_propagate` field carries that (the defender's Inherent
-          # still crosses as Ascendancy). Other defences propagate normally.
+          # still crosses). Other defences propagate normally.
           def_no_prop = b[:key] == 'dodge' ? ['Competency'] : []
           mk = lambda do |dice, label, disabled|
             { value: "#{b[:key]}|#{dice}", group: b[:group], label: label,
@@ -972,10 +969,9 @@ helpers do
       sh_bpl << ['Inherent', sh_inh] unless sh_inh.zero?
       sh_bpl << ['Guidance', sh[:bonus].to_i] if sh[:bonus].to_i.positive?
       # The shield Roll's patch for a given dice count (the caster's Roll — its
-      # name, Tier, +N Guidance bonus, and dice).
+      # name, +N Guidance bonus, and dice).
       shield_patch = lambda do |dice|
         { set_dice: [{ id: 'shield', count: dice }],
-          set_tier: [{ id: 'shield', tier: sh[:tier] }],
           set_bpl:  [{ id: 'shield', bonus_penalty_list: sh_bpl }],
           set_name: [{ id: 'shield', creature_name: sh[:caster_name], roll_name: sh[:spell_name] }],
           set_excluded: [{ id: 'shield', excluded: false }] }
@@ -1257,12 +1253,10 @@ helpers do
     rolls = [
       { id: 'caster', side: 'supporting', creature_name: tracker_name(caster),
         roll_name: 'Cast', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false,
-        tier: (acc&.tier rescue nil) },
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false },
       { id: 'target', side: 'opposing', creature_name: '—',
         roll_name: 'Defense', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
-        tier: nil }
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true }
     ]
 
     # Step 1 — Spell, grouped by Tier (a Tier-colored "Tier N" header, then that Tier's
@@ -1368,14 +1362,32 @@ helpers do
     # always spends the full Dice Cap — no dice choice; the pool-costed
     # Defensive Actions (Dodge / Block) pick dice from the pool.
     defense_map = {}
+    inh_table = (Creatures::Config.tier_minimum_inherent_bonus rescue [])
     targets.each do |t|
       spells.each do |sp|
         opts = []
+        # The target's own Inherent Tier Bonus rides every defense Roll — it
+        # crosses onto the caster's TN via propagation, and Check Resolution
+        # derives the Ascendancy from the Inherent imbalance against the
+        # Spell's own Inherent (its Tier) on the caster Roll.
+        def_inh = Encounter::Attack.defender_tier_bonuses(defender_tier: t[:tier], inherent_table: inh_table)
+        # The caster's base Bonus list (what the Spell step set): every branch
+        # re-sets it so switching away from No defense sheds the injection.
+        caster_bpl = []
+        caster_bpl << sp[:competency] if sp[:competency]
+        caster_bpl << ['Inherent', sp[:tier].to_i] if sp[:tier].to_i.positive?
         if sp[:attack_roll]
+          # No defense: the target does not roll, so nothing propagates — the
+          # un-rolled target's Inherent is injected onto the caster, negated,
+          # so the derived Ascendancy matches the defended case.
+          none_bpl = caster_bpl + def_inh.map { |type, amt| [type, -amt] }
           opts << { value: 'none', group: 'none', label: 'No defense', summary: 'No defense',
-                    patch: { set_excluded: [{ id: 'target', excluded: true }] } }
-          opts.concat(cast_defense_branch('dodge', 'Dodge', t[:dodge], speed: 0, save: false, pool: t[:pool]))
-          opts.concat(cast_defense_branch('block', 'Block', t[:martial], speed: 0, save: false, pool: t[:pool])) if t[:has_shield]
+                    patch: { set_bpl: [{ id: 'caster', bonus_penalty_list: none_bpl }],
+                             set_excluded: [{ id: 'target', excluded: true }] } }
+          opts.concat(cast_defense_branch('dodge', 'Dodge', t[:dodge], speed: 0, save: false, pool: t[:pool],
+                                          extra_bpl: def_inh, caster_bpl: caster_bpl))
+          opts.concat(cast_defense_branch('block', 'Block', t[:martial], speed: 0, save: false, pool: t[:pool],
+                                          extra_bpl: def_inh, caster_bpl: caster_bpl)) if t[:has_shield]
         elsif sp[:save]
           attr = sp[:save]['attribute'].to_s
           # Always-On Save bonuses (Cloak) plus the spell's School as the
@@ -1385,7 +1397,7 @@ helpers do
           extra = tacc ? CreatureModifiers.save_modifiers(tacc, attr, descriptors: [sp[:school]].compact) : []
           opts.concat(cast_defense_branch("save:#{attr}", "#{attr_label(attr)} save",
                                           t[:saves][attr.to_sym] || t[:dodge], speed: 0, save: true,
-                                          pool: t[:pool], extra_bpl: extra))
+                                          pool: t[:pool], extra_bpl: extra + def_inh, caster_bpl: caster_bpl))
         end
         defense_map["#{t[:id]}|#{sp[:name]}"] = opts
       end
@@ -1417,14 +1429,18 @@ helpers do
   # option with no dice choice. The pool-costed Defensive Actions (Dodge /
   # Block, `save: false`) show a button per affordable die count plus a trailing
   # Bonus note.
-  def cast_defense_branch(key, name, inputs, speed:, save:, pool:, extra_bpl: [])
+  def cast_defense_branch(key, name, inputs, speed:, save:, pool:, extra_bpl: [], caster_bpl: nil)
     di   = inputs || { dice_cap: 0 }
     dcmp = di[:competency_modifier] ? [di[:competency_modifier]] : []
     dcmp += Array(extra_bpl)
     cap  = di[:dice_cap].to_i
     mk = lambda do |dice, label, disabled|
+      # A rolled defense restores the caster's base list (sheds the No-defense
+      # injection); the target's own Inherent crosses via propagation instead.
+      set_bpl = [{ id: 'target', bonus_penalty_list: dcmp }]
+      set_bpl.unshift({ id: 'caster', bonus_penalty_list: caster_bpl }) if caster_bpl
       { value: "#{key}|#{dice}", group: key, label: label, summary: "#{name} — #{dice} dice", disabled: disabled,
-        patch: { set_bpl: [{ id: 'target', bonus_penalty_list: dcmp }],
+        patch: { set_bpl: set_bpl,
                  set_dice: [{ id: 'target', count: dice }],
                  set_speed: [{ id: 'target', speed: speed }],
                  set_name: [{ id: 'target', roll_name: name }],
@@ -2353,16 +2369,19 @@ get '/encounter/cast_area_rolls' do
   attr = save && save['attribute'].to_s
   die     = DiceResolution.config.die_size
   base_tn = DiceResolution.config.base_target_number
+  inh_table = (Creatures::Config.tier_minimum_inherent_bonus rescue [])
   rolls = Array(params[:affected]).filter_map do |cid|
     c   = encounter_state.combatant(cid.to_i) or next
     acc = Creatures.lookup(c[:creature_id]) rescue nil
     ri  = attr ? roll_inputs_for(acc, "#{attr}_save", attribute_override: attr.to_sym) : {}
     bpl = ri[:competency_modifier] ? [ri[:competency_modifier]] : []
+    # Each caught creature's Inherent Tier Bonus rides its Save Roll — the
+    # Inherent crossing is what Check Resolution derives Ascendancy from.
+    bpl += Encounter::Attack.defender_tier_bonuses(defender_tier: ((acc&.tier rescue nil) || 0), inherent_table: inh_table)
     { id: "save-#{c[:id]}", side: 'opposing', creature_name: tracker_name(c),
       roll_name: (attr ? "#{attr_label(attr)} save" : 'Save'),
       die_size: die, tn: base_tn, starting_value: 0, base_tn: base_tn,
-      bonus_penalty_list: bpl, dice_count: ri[:dice_cap].to_i, speed: 0, excluded: false,
-      tier: (acc&.tier rescue nil) }
+      bonus_penalty_list: bpl, dice_count: ri[:dice_cap].to_i, speed: 0, excluded: false }
   end
   erb :_roll_stub, layout: false, locals: { rolls: rolls, wrapper: false }
 end

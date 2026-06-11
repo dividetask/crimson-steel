@@ -17,8 +17,9 @@ module Encounter
   #
   # This Ruby module owns the *Inherent damage reduction* half, applied
   # server-side when damage is resolved. The *Ascendancy* check modifier
-  # is computed client-side in the JS Check Resolution engine
-  # (public/js/tierMismatch.js), since Rolls resolve there.
+  # is derived client-side in the JS Check Resolution engine
+  # (public/js/ascendancy.js) from the Rolls' Inherent entries, since
+  # Rolls resolve there.
   module TierMismatch
     module_function
 

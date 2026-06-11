@@ -79,21 +79,22 @@ module Encounter
     #
     # Every Creature's Inherent Bonus (Creatures' Tier Minimum Inherent Bonus
     # table) applies to its checks, not only its Attributes. On a weapon attack
-    # both sides carry their Inherent Bonus, and the Tier-gap effect — the
-    # Ascendancy — is produced by Check Resolution's cross-side propagation:
-    # when a Roll's Inherent crosses to the opposing Roll it is inverted *and
-    # relabeled Ascendancy* (see propagation.js → CROSS_SIDE_RELABEL), so a
-    # higher-Tier defender's Inherent lands on the attacker's TN as an
-    # Ascendancy Penalty. Ascendancy only exists across a Tier gap — equal-Tier
-    # opponents exchange none (the Inherent does not cross between equal-Tier
-    # Rolls). When the defender declares no Defensive Action it does not roll —
-    # nothing propagates — so Combat supplies the same Ascendancy explicitly:
-    # the defender's Inherent, negated, again only when the Tiers differ. A
-    # weapon's Glory Property (`tier_advantage`) treats the wielder as that
+    # both sides carry their Inherent Bonus; Check Resolution's cross-side
+    # propagation inverts each side's Inherent onto the other as an Inherent
+    # Penalty (it keeps its name), and the Ascendancy step then amplifies any
+    # imbalance: a Roll whose Inherent Bonus exceeds its crossed Inherent
+    # Penalty gains an Ascendancy Bonus of 2 x the gap, and vice versa (see
+    # check_resolution_design.md → Ascendancy). Equal Inherents cancel — no
+    # Ascendancy. When the defender declares no Defensive Action it does not
+    # roll — nothing propagates — so Combat injects the crossing itself: the
+    # un-rolled defender's Inherent, negated, onto the attacker's Roll, which
+    # lets Check Resolution derive the same Ascendancy as the defended case.
+    # A weapon's Glory Property (`tier_advantage`) treats the wielder as that
     # many Tiers higher when fighting up, lifting its Inherent Bonus and
-    # closing the gap (at equal effective Tier no Ascendancy applies at all).
-    # Magnitudes come entirely from the Inherent table — Ascendancy invents no
-    # new number.
+    # closing the gap (a closed gap means balanced Inherents and so no
+    # Ascendancy at all). Combat never computes an Ascendancy amount — it only
+    # supplies Inherent entries; the 2 x amplification lives in Check
+    # Resolution.
 
     # The wielder's effective Tier for the attack: raised by a Glory weapon's
     # `tier_advantage`, but only when the defender outranks the attacker.
@@ -112,20 +113,20 @@ module Encounter
     end
 
     # The attacker roll's Tier modifiers: its (Glory-adjusted) Inherent Bonus,
-    # plus — only against an undefended target of a DIFFERENT Tier — an
-    # Ascendancy penalty equal to the defender's Inherent (the advantage that
-    # would otherwise propagate). Ascendancy only exists across a Tier gap:
-    # equal-Tier opponents exchange none, matching propagation.js (where the
-    # Inherent does not cross between equal-Tier Rolls).
+    # plus — against an undefended target — the defender's Inherent, negated.
+    # An un-rolled defender propagates nothing, so this injects the same
+    # Inherent Penalty cross-side propagation would have delivered; Check
+    # Resolution's Ascendancy step then amplifies any imbalance exactly as in
+    # the defended case (equal Inherents cancel and produce no Ascendancy).
     # Returns a bonus_penalty_list of [type, amount] pairs.
     def attacker_tier_bonuses(attacker_tier:, defender_tier:, tier_advantage:, inherent_table:, no_defense:)
       eff = effective_attacker_tier(attacker_tier, defender_tier, tier_advantage)
       list = []
       inh = inherent_amount(inherent_table, eff)
       list << ['Inherent', inh] unless inh.zero?
-      if no_defense && eff != defender_tier.to_i
-        asc = -inherent_amount(inherent_table, defender_tier)
-        list << ['Ascendancy', asc] unless asc.zero?
+      if no_defense
+        opp = inherent_amount(inherent_table, defender_tier)
+        list << ['Inherent', -opp] unless opp.zero?
       end
       list
     end

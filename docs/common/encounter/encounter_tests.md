@@ -172,9 +172,9 @@ With `Tier Minimum Inherent Bonus: [0, 1, 2, 3, 4, 5]`:
 
 **Glory lifts the attacker's Inherent.** The same call with `tier_advantage: 1` → `[['Inherent', 2]]` — the wielder is treated as Tier 2, so its Inherent matches the defender's and the gap closes.
 
-**No-defense adds an Ascendancy penalty — only across a Tier gap.** With `no_defense: true` and no Glory → `[['Inherent', 1], ['Ascendancy', -2]]` (the un-rolled Tier-2 defender's advantage, negated; nets −1 on the TN). With Glory the effective Tier rises to the defender's — equal Tiers exchange no Ascendancy — so → `[['Inherent', 2]]` (the gap is closed; only the lifted Inherent rides).
+**No-defense injects the un-rolled defender's Inherent, negated.** With `no_defense: true` and no Glory → `[['Inherent', 1], ['Inherent', -2]]` (the Tier-2 defender does not roll, so nothing would propagate; the injected entry recreates the crossing, and Check Resolution derives the `['Ascendancy', -2]` from the imbalance exactly as in the defended case). With Glory the effective Tier rises to the defender's → `[['Inherent', 2], ['Inherent', -2]]` — balanced, so no Ascendancy will be derived.
 
-**Equal Tiers exchange no Ascendancy.** `attacker_tier_bonuses(attacker_tier: 2, defender_tier: 2, tier_advantage: 0, no_defense: true)` → `[['Inherent', 2]]` — no Ascendancy entry between same-Tier opponents (mirroring propagation, where the Inherent does not cross between equal-Tier Rolls).
+**Equal Tiers inject a crossing that cancels.** `attacker_tier_bonuses(attacker_tier: 2, defender_tier: 2, tier_advantage: 0, no_defense: true)` → `[['Inherent', 2], ['Inherent', -2]]` — net zero on the TN and no derived Ascendancy, matching the defended case where the equal Inherents cross and cancel the same way.
 
 **Tier 0 contributes nothing.** Tier-0 attacker vs Tier-0 defender yields `[]` from both `attacker_tier_bonuses` and `defender_tier_bonuses` (the Inherent Bonus at Tier 0 is 0).
 
@@ -309,7 +309,7 @@ With `Tier Minimum Inherent Bonus: [0, 1, 2, 3, 4, 5]`:
 
 ## Tier Mismatch
 
-The Ascendancy (Check) half is tested in the JavaScript suite (`test/check_resolution/tier_mismatch.test.js`); the Inherent damage-reduction half is tested here / in `spec/encounter`.
+The Ascendancy (Check) half is tested in the JavaScript suite (`test/check_resolution/ascendancy.test.js`); the Inherent damage-reduction half is tested here / in `spec/encounter`.
 
 **Inherent damage reduction scales with the Tier difference.** `inherent_damage_reduction(defender, attacker)` returns `5 × Δ` when the defender out-Tiers the attacker (`(3, 1) → 10`), and 0 when the defender is equal or lower (`(1, 1)`, `(1, 3) → 0`). Tier 0 counts as 0.5 and the result is floored (`(1, 0) → 2`).
 
@@ -319,5 +319,5 @@ The Ascendancy (Check) half is tested in the JavaScript suite (`test/check_resol
 
 **Effective-Tier override shrinks the gap.** Passing `attacker.tier_bonus` to the attack payload raises the attacker's effective Tier for that attack — Glorious Charge's +1 against a one-Tier-higher foe drives Δ to 0, dropping the Inherent DR to `inherent_dr: 0`.
 
-**Ascendancy on the Check (JS).** `TierMismatch.ascendancyModifier(actor, opponent)` returns `['Ascendancy', 2 × Δ]` — a Bonus when the actor out-Tiers the opponent (`(3, 1) → +4`), a Penalty when out-Tiered (`(1, 3) → −4`), and null at equal Tier or when a Tier is absent. Tier 0 counts as 0.5 and the magnitude is floored (`(1, 0) → +1`). `CheckResolution` runs it after Propagation, so a Tier-2 attacker vs a Tier-1 defender resolves to attacker TN 4 / defender TN 8 (the defender's Penalty is not inverted back onto the attacker).
+**Ascendancy on the Check (JS).** `Ascendancy.modifier(bonus_penalty_list)` returns `['Ascendancy', floor(2 × gap)]`, where the gap is the Roll's strongest Inherent Bonus minus its strongest Inherent Penalty after propagation — a Bonus when its own Inherent is stronger (`[['Inherent', 2], ['Inherent', -1]] → +2`), a Penalty when the crossed Penalty is stronger (`[['Inherent', 1], ['Inherent', -3]] → −4`), and null when they balance or no Inherent entry exists. No Tier is read. `CheckResolution` runs it after Propagation; its entry is never inverted back onto the other side. The full worked examples live in `../check_resolution/check_resolution_tests.md` → *Ascendancy*.
 
