@@ -276,7 +276,7 @@ helpers do
         creature_id:  c[:creature_id],
         name:         tracker_name(c),
         loot_table:   acc.record[:loot_table],
-        loot:         inv.map { |s| { name: Equipment::DisplayName.call(s, cat), quantity: s.quantity } } }
+        loot:         inv.map { |s| { name: CreatureSheet.item_display_name(s, cat), quantity: s.quantity } } }
     end
   end
 
@@ -310,7 +310,7 @@ helpers do
     cat = Equipment.catalog
     rows = stacks.each_with_index.map do |stack, i|
       { ref:      i,
-        name:     Equipment::DisplayName.call(stack, cat),
+        name:     CreatureSheet.item_display_name(stack, cat),
         icon:     item_icon_web_path(stack.item_type),
         quantity: stack.quantity }
     end
@@ -1385,7 +1385,7 @@ helpers do
       next unless defn['grants_spell']
       spell = s.stored_spell || defn['spell']
       next unless spell
-      { ref: i, item_type: s.item_type, display: Equipment::DisplayName.call(s, cat),
+      { ref: i, item_type: s.item_type, display: CreatureSheet.item_display_name(s, cat),
         spell: spell, tier: s.tier, form: item_form_of(s.item_type, defn) }
     end
   end
@@ -1556,8 +1556,7 @@ helpers do
                                aff: ->(n) { n <= pool }, patch: set,
                                summary: ->(n) { "#{skill_label} — #{n} dice" },
                                lead_label: skill_label,
-                               header_label: skill_label,
-                               info: "#{skill_label} — up to #{cap} dice")
+                               header_label: skill_label)
           dice_map[dkey]   = g[:body]
           header_map[dkey] = [g[:header]]
         else
@@ -1944,8 +1943,8 @@ helpers do
   # value is "<prefix>|<n>"; `aff` / `patch` / `summary` are lambdas of the count.
   # `header_min` makes the header select the minimum (a Reaction-minimum defence)
   # rather than the max affordable. Returns { body:, header: }.
-  def dice_count_group(prefix:, group:, min:, max:, aff:, patch:, summary:, info:,
-                       header_label:, key: nil, lead_label: nil, header_min: false)
+  def dice_count_group(prefix:, group:, min:, max:, aff:, patch:, summary:,
+                       header_label:, info: nil, key: nil, lead_label: nil, header_min: false)
     aff_max = (min..max).select { |n| aff.call(n) }.max
     opt = lambda do |dice, label, disabled|
       o = { value: "#{prefix}|#{dice}", group: group, label: label,
@@ -1956,7 +1955,8 @@ helpers do
     body = []
     body << opt.call(aff_max || max, lead_label, aff_max.nil?) if lead_label
     (min..max).each { |n| body << opt.call(n, n.to_s, !aff.call(n)) }
-    body << { kind: 'info', group: group, value: "#{group}|info", label: info }
+    # Optional trailing note (e.g. an Attack's weapon bonuses). Omitted when empty.
+    body << { kind: 'info', group: group, value: "#{group}|info", label: info } if info && !info.to_s.empty?
     hdice = header_min ? min : (aff_max || max)
     { body: body, header: { value: "#{prefix}|#{hdice}", label: header_label,
                             disabled: (header_min ? !aff.call(min) : aff_max.nil?) } }
