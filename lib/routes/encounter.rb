@@ -1316,7 +1316,10 @@ helpers do
       action_min: action_min,
       long_cast: !!(act && act[:kind].to_s == 'real_time' && act[:minutes].to_i >= 1),
       affordable: mana_left.nil? || mana_cost <= mana_left,
-      item: item, self_only: self_only }
+      # A Spell that can only target the caster (a Potion drunk on oneself, or a
+      # Spell declaring `target: self`) knows its target already — the Target
+      # step shouldn't ask. `self_only` forces (and auto-applies) the self Target.
+      item: item, self_only: self_only || v['target'].to_s == 'self' }
   end
 
   # Equipped Wands / Rings (any `grants_spell` Item): each adds its Spell to the
@@ -1487,10 +1490,11 @@ helpers do
     # action — the client arms the Atlas, the DM clicks to drop the footprint,
     # and the creatures it covers become the affected set (no single Target).
     combatant_target_opts = target_options(encounter_state.combatants, roll_id: 'target', self_id: caster[:id])
-    # A self-only castable (a drunk Potion / applied Oil — the user is the
-    # target) offers only the actor itself in the Target step.
+    # A self-only castable (a Potion drunk on oneself, or a `target: self` Spell)
+    # already knows its target — so the lone self option is `auto`-applied and
+    # the Target step never asks (turn_action_stub.md → "never ask what it knows").
     self_combatant   = encounter_state.combatant(caster[:id])
-    self_target_opts = self_combatant ? target_options([self_combatant], roll_id: 'target', self_id: caster[:id]) : []
+    self_target_opts = self_combatant ? target_options([self_combatant], roll_id: 'target', self_id: caster[:id]).map { |o| o.merge(auto: true) } : []
     target_map = {}
     spells.each do |sp|
       target_map[sp[:key]] =
