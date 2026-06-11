@@ -1293,20 +1293,17 @@ helpers do
   # through so the resolve endpoint can decrement it and impose Item-Form
   # Toxicity. A Potion / Oil targets the drinker (self).
   def consumable_castables(actor, acc, pool)
-    consumable_spell_items(actor[:creature_id]).flat_map do |it|
+    consumable_spell_items(actor[:creature_id]).map do |it|
       v = (Abilities.lookup(it[:spell]) rescue nil) || {}
-      # Each consumable offers a skill choice — the Spell's own primary casting
-      # skill plus Evocation (the item-form default), deduped — one castable per
-      # offered skill. The chosen skill rolls the check, so it determines how
-      # much bleeding a Heal clears. The skill rides the option key so the two
-      # variants never collide and the resolver can read it back.
-      item_skill_options(v).map do |skill|
-        castable_descriptor(acc, it[:spell], it[:tier], pool, nil,
-                            skill: skill, mana_cost: 0,
-                            key: "item:#{it[:ref]}:#{skill}",
-                            display: "#{it[:display]} &mdash; #{Encounter::Special.pretty_skill(skill)}",
-                            item: it, self_only: it[:form] == 'potion')
-      end
+      # One castable per Item (the list selects an *item*, not a skill). The Spell
+      # step picks the item; a rolled consumable then offers a Skill step — the
+      # Spell's own primary skill plus Evocation (the item-form default). The
+      # chosen skill rolls the check, so it determines how much bleeding a Heal
+      # clears.
+      castable_descriptor(acc, it[:spell], it[:tier], pool, nil,
+                          mana_cost: 0, key: "item:#{it[:ref]}", display: it[:display],
+                          item: it, self_only: it[:form] == 'potion',
+                          skill_options: item_skill_options(v))
     end
   end
 
@@ -1330,10 +1327,9 @@ helpers do
   # unique identity (the Spell name for a known/granted Spell, "item:<ref>" for
   # a consumable so two items of the same Spell never collide). `item` carries
   # the originating Consumable; `self_only` forces the Target step to self.
-  def castable_descriptor(acc, name, tier, pool, mana_left, skill:, mana_cost:,
-                          key: nil, display: nil, item: nil, self_only: false)
+  def castable_descriptor(acc, name, tier, pool, mana_left, skill: nil, mana_cost:,
+                          key: nil, display: nil, item: nil, self_only: false, skill_options: nil)
     v   = (Abilities.lookup(name) rescue nil) || {}
-    ri  = roll_inputs_for(acc, skill)
     # Area footprint (Hash, or the first footprint Aspect of an Aspect-list area
     # like Grease). Area Spells are placed on the map, not targeted.
     raw  = (Abilities.catalog.ability(name) rescue nil) || {}
@@ -1352,12 +1348,29 @@ helpers do
                        raw.dig('channel', 'effect_hash', 'bleed_reduction'))
     requires_roll = !fills_reservoir &&
                     !!(v['attack_roll'] || Array(v['save']).first || Array(v['damage_type']).compact.first || channel_check)
+
+    # Per-skill roll inputs for the casting skills this castable offers. Sorted
+    # by prowess (Dice Cap, then Competency) so the highest-bonus skill is the
+    # primary one — the Skill step's top-bar quick-pick. A no-roll cast has no
+    # check, so it offers no skill choice (collapsed to the primary).
+    candidate_skills = (skill_options || [skill]).compact
+    candidate_skills = ['evocation'] if candidate_skills.empty?
+    skopts = candidate_skills.uniq.map do |sk|
+      r = roll_inputs_for(acc, sk)
+      comp = r[:competency_modifier]
+      { skill: sk, label: Encounter::Special.pretty_skill(sk),
+        dice_cap: r[:dice_cap].to_i, competency: comp, bonus: (comp ? comp[1].to_i : 0) }
+    end
+    skopts.sort_by! { |o| [-o[:dice_cap], -o[:bonus]] }
+    skopts = [skopts.first] if !requires_roll && skopts.any?
+    primary = skopts.first || { skill: 'evocation', dice_cap: 0, competency: nil }
+
     # The Combat Pool dice a cast costs at minimum — its Action category's Action
     # Minimum (Main 4 / Bonus 2 / Free 0).
     action_min = Encounter::Special.action_cost(act && act[:alias])
     { name: name, key: (key || name), display: (display || name),
-      tier: tier, mana_cost: mana_cost, skill: skill,
-      dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier],
+      tier: tier, mana_cost: mana_cost, skill: primary[:skill], skill_options: skopts,
+      dice_cap: primary[:dice_cap], competency: primary[:competency],
       damage_type: Array(v['damage_type']).compact.first, school: v['school'],
       attack_roll: !!v['attack_roll'], save: Array(v['save']).first,
       area: (area.is_a?(Hash) ? area : nil),
@@ -1455,10 +1468,17 @@ helpers do
         tier: nil }
     ]
 
+    # A Skill step is inserted (after Spell) whenever a castable offers more than
+    # one casting skill — i.e. the consumable Items, which let the DM roll Heal
+    # with Healing or Evocation. When present, the Skill step (not the Spell step)
+    # sets the caster's Competency, so the Spell step here only names the cast.
+    has_skill_step = spells.any? { |sp| Array(sp[:skill_options]).size > 1 }
+
     # Step 1 — Spell, grouped by Tier (a Tier-colored "Tier N" header, then that Tier's
     # spells underneath). Tiers with no known spell are skipped. Picking a spell
     # sets the caster Roll's Bonuses (casting-skill Competency + the Tier's
-    # inherent Bonus); the dice count is the next step.
+    # inherent Bonus); the dice count is the next step. (With a Skill step, the
+    # Competency is deferred to that step — see below.)
     spell_opts = []
     spells.group_by { |sp| sp[:tier].to_i }.sort_by { |tier, _| tier }.each_with_index do |(tier, group_spells), gi|
       hdr = "tier-#{tier}-h"
@@ -1466,20 +1486,49 @@ helpers do
       br  = gi.zero? ? '' : '<br>'
       spell_opts << { kind: 'info', group: hdr, value: "#{hdr}|label", label: %(#{br}<span class="cb-tier-head tier-#{tier}">Tier #{tier}</span>) }
       group_spells.each do |sp|
-        bpl = []
-        bpl << sp[:competency] if sp[:competency]
-        bpl << ['Inherent', sp[:tier].to_i] if sp[:tier].to_i.positive?
+        patch = { set_speed: [{ id: 'caster', speed: 0 }],
+                  set_name:  [{ id: 'caster', roll_name: "Cast #{sp[:display]}" }] }
+        unless has_skill_step
+          bpl = []
+          bpl << sp[:competency] if sp[:competency]
+          bpl << ['Inherent', sp[:tier].to_i] if sp[:tier].to_i.positive?
+          patch[:set_bpl] = [{ id: 'caster', bonus_penalty_list: bpl }]
+        end
         spell_opts << { value: sp[:key], key: sp[:key], group: grp,
                         label: sp[:display], summary: sp[:display],
                         disabled: !sp[:affordable],
                         spell_name: sp[:name],
                         cast: { roll: sp[:requires_roll], reservoir: sp[:reservoir] },
-                        patch: { set_bpl:   [{ id: 'caster', bonus_penalty_list: bpl }],
-                                 set_speed: [{ id: 'caster', speed: 0 }],
-                                 set_name:  [{ id: 'caster', roll_name: "Cast #{sp[:display]}" }] } }
+                        patch: patch }
       end
     end
     spell_step = { key: 'spell', label: 'Spell', options: spell_opts }
+
+    # Step 1b — Skill (only when a castable offers a choice). One option per
+    # offered skill, each setting the caster's Competency + the Spell Tier's
+    # Inherent Bonus. A single-skill castable auto-applies (nothing to ask). The
+    # top-bar quick-pick shows only the highest-prowess skill (the primary).
+    skill_step = nil
+    if has_skill_step
+      skill_map = {}
+      skill_header_map = {}
+      spells.each do |sp|
+        opts = Array(sp[:skill_options]).map do |so|
+          bpl = []
+          bpl << so[:competency] if so[:competency]
+          bpl << ['Inherent', sp[:tier].to_i] if sp[:tier].to_i.positive?
+          { value: so[:skill], key: so[:skill], group: 'skill',
+            label: so[:label], summary: so[:label],
+            patch: { set_bpl: [{ id: 'caster', bonus_penalty_list: bpl }] } }
+        end
+        opts.first[:auto] = true if opts.size == 1 && opts.first
+        skill_map[sp[:key]] = opts
+        primary = Array(sp[:skill_options]).first
+        skill_header_map[sp[:key]] = primary ? [{ value: primary[:skill], label: primary[:label] }] : []
+      end
+      skill_step = { key: 'skill', label: 'Skill', options_by: %w[spell], options_map: skill_map,
+                     header_options_by: %w[spell], header_options_map: skill_header_map }
+    end
 
     # Step 2 — Dice for the cast, choice-dependent on the picked spell. A spell
     # whose dice count is *variable* (a rolled cast, or a Reservoir pour) asks
@@ -1495,45 +1544,53 @@ helpers do
     dice_map = {}
     header_map = {}
     spells.each do |sp|
-      cap = sp[:dice_cap]
-      min = sp[:action_min].to_i
-      if sp[:requires_roll] || sp[:reservoir]
-        if cap < min
-          dice_map[sp[:key]] = [{ kind: 'info', group: 'dice', value: 'dice|none', label: 'no dice available' }]
-          next
+      # The Dice Cap depends on the chosen skill, so with a Skill step the dice
+      # options are keyed per (spell, skill); without one, per spell.
+      variants = has_skill_step ? Array(sp[:skill_options]) :
+                 [{ skill: sp[:skill], label: Encounter::Special.pretty_skill(sp[:skill]), dice_cap: sp[:dice_cap] }]
+      variants.each do |so|
+        dkey = has_skill_step ? "#{sp[:key]}|#{so[:skill]}" : sp[:key]
+        cap  = so[:dice_cap].to_i
+        min  = sp[:action_min].to_i
+        if sp[:requires_roll] || sp[:reservoir]
+          if cap < min
+            dice_map[dkey] = [{ kind: 'info', group: 'dice', value: 'dice|none', label: 'no dice available' }]
+            next
+          end
+          skill_label = so[:label]
+          aff_max     = [cap, pool].min
+          set = ->(n) { { set_dice: [{ id: 'caster', count: n }] } }
+          # Shaped exactly like the Attack weapon/dice step via the shared
+          # dice_count_group helper: a "<skill> (max N)" lead, a button per
+          # count, and a top-right header quick-pick that names the casting
+          # skill (e.g. "Arcana") rather than a generic "Max".
+          g = dice_count_group(prefix: dkey, group: 'dice', min: min, max: cap,
+                               aff: ->(n) { n <= pool }, patch: set,
+                               summary: ->(n) { "#{skill_label} — #{n} dice" },
+                               lead_label: "#{skill_label} (max #{aff_max})",
+                               header_label: skill_label,
+                               info: "#{skill_label} — up to #{cap} dice")
+          dice_map[dkey]   = g[:body]
+          header_map[dkey] = [g[:header]]
+        else
+          # Known dice count — auto-applied (the builder skips the step) when the
+          # caster can afford it; otherwise shown as a blocked option.
+          affordable = min <= pool
+          opt = { value: "#{dkey}|#{min}", key: min, group: 'dice',
+                  label: "#{min} dice", summary: "#{min} dice",
+                  disabled: !affordable,
+                  patch: { set_dice: [{ id: 'caster', count: min }] } }
+          opt[:auto] = true if affordable
+          dice_map[dkey] = [opt]
         end
-        skill_label = Encounter::Special.pretty_skill(sp[:skill])
-        aff_max     = [cap, pool].min
-        set = ->(n) { { set_dice: [{ id: 'caster', count: n }] } }
-        # Shaped exactly like the Attack weapon/dice step via the shared
-        # dice_count_group helper: a "<skill> (max N)" lead, a button per
-        # count, and a top-right header quick-pick that names the casting
-        # skill (e.g. "Arcana") rather than a generic "Max".
-        g = dice_count_group(prefix: sp[:key], group: 'dice', min: min, max: cap,
-                             aff: ->(n) { n <= pool }, patch: set,
-                             summary: ->(n) { "#{skill_label} — #{n} dice" },
-                             lead_label: "#{skill_label} (max #{aff_max})",
-                             header_label: skill_label,
-                             info: "#{skill_label} — up to #{cap} dice")
-        dice_map[sp[:key]]   = g[:body]
-        header_map[sp[:key]] = [g[:header]]
-      else
-        # Known dice count — auto-applied (the builder skips the step) when the
-        # caster can afford it; otherwise shown as a blocked option.
-        affordable = min <= pool
-        opt = { value: "#{sp[:key]}|#{min}", key: min, group: 'dice',
-                label: "#{min} dice", summary: "#{min} dice",
-                disabled: !affordable,
-                patch: { set_dice: [{ id: 'caster', count: min }] } }
-        opt[:auto] = true if affordable
-        dice_map[sp[:key]] = [opt]
       end
     end
     # The cast's Dice are a resource (the Combat Pool / Reservoir dice spent),
     # surfaced in the result block — not a "what" choice — so they leave no
     # summary row (no_summary).
-    dice_step = { key: 'dice', label: 'Dice', options_by: %w[spell], options_map: dice_map,
-                  header_options_by: %w[spell], header_options_map: header_map, no_summary: true }
+    dice_keys  = has_skill_step ? %w[spell skill] : %w[spell]
+    dice_step = { key: 'dice', label: 'Dice', options_by: dice_keys, options_map: dice_map,
+                  header_options_by: dice_keys, header_options_map: header_map, no_summary: true }
 
     # Step 3 — Target, choice-dependent on the Spell. A normal Spell lists the
     # Combatants; an **area Spell** instead offers a single "Place on the map"
@@ -1600,7 +1657,7 @@ helpers do
     end
     defense_step = { key: 'defense', label: 'Target&rsquo;s defense', options_by: %w[target spell], options_map: defense_map }
 
-    steps = [spell_step, dice_step, target_step, defense_step]
+    steps = [spell_step, skill_step, dice_step, target_step, defense_step].compact
     steps.concat(luck_steps(actor_id: caster[:id],
                             targets: [{ roll_id: 'caster', label: tracker_name(caster) },
                                       { roll_id: 'target', label: 'Defender' }]))
