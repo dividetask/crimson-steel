@@ -76,9 +76,9 @@ export class TurnItem {
     const rolls = detail.rolls || [];
     const item = TurnItem._item(container, choices);
     const spellName = item ? item.spell : choices.spell;
-    // The Skill step records the casting skill the DM picked — carry it so the
-    // result shows it (the roll already used its Competency / Dice Cap).
-    const skill = choices.skill || null;
+    // The casting skill rides the chosen Dice option value ("item:<ref>|<skill>|<n>")
+    // — carry it so the result shows it (the roll already used its Competency).
+    const skill = String(choices.dice || '').split('|')[1] || null;
     const caster = rolls.find((r) => r.id === 'caster') || {};
 
     // Area Item: the placed footprint determines the affected creatures (the
