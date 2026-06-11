@@ -75,60 +75,47 @@ test('Non-lead Opposing Rolls receive only the Initiator inversion', () => {
   assert.equal(params.opposing[1].tn, 9);
 });
 
-test("A creature's Inherent becomes the opponent's Ascendancy when it crosses sides", () => {
+test('A crossed Inherent keeps its name and drives the Ascendancy', () => {
   // Tier-1 attacker (Inherent +1) vs Tier-2 defender (Inherent +2).
   const params = CheckResolution.previewParameters({
     supporting: [{ bonusPenaltyList: [['Inherent', 1]] }],
     opposing: [{ bonusPenaltyList: [['Inherent', 2]] }],
   });
-  // Attacker keeps its own Inherent; the defender's Inherent crosses as an
-  // Ascendancy Penalty. Net +1 - 2 = -1 → TN 8 - (-1) = 9 (fighting up is harder).
-  assert.deepEqual(params.supporting[0].bonusPenaltyList, [['Inherent', 1], ['Ascendancy', -2]]);
+  // Attacker: own +1 Inherent, the defender's crossed as a -2 Inherent
+  // Penalty, and the one-point deficit amplified into a -2 Ascendancy.
+  // Net +1 - 2 - 2 = -3 → TN 8 + 3 = 11 clamps to the Maximum TN 9
+  // (fighting up is harder; the overflow becomes Starting Failures).
+  assert.deepEqual(params.supporting[0].bonusPenaltyList,
+    [['Inherent', 1], ['Inherent', -2], ['Ascendancy', -2]]);
   assert.equal(params.supporting[0].tn, 9);
-  // The defender sees the attacker's Inherent as its own Ascendancy (a Bonus,
-  // since it out-ranks): +2 Inherent, -1 Ascendancy → net +1 → TN 7.
-  assert.deepEqual(params.opposing[0].bonusPenaltyList, [['Inherent', 2], ['Ascendancy', -1]]);
-  assert.equal(params.opposing[0].tn, 7);
+  assert.equal(params.supporting[0].startingValue, -2);
+  // The defender mirrors it: +2 - 1 + 2 = +3 → TN 5.
+  assert.deepEqual(params.opposing[0].bonusPenaltyList,
+    [['Inherent', 2], ['Inherent', -1], ['Ascendancy', 2]]);
+  assert.equal(params.opposing[0].tn, 5);
 });
 
-test('Equal-Tier opponents exchange no Ascendancy at all', () => {
-  // Both Rolls carry tier 2: the Inherent does not cross — each side keeps
-  // only its own +2 Inherent, and no Ascendancy entry appears anywhere.
+test('Equal Inherents cancel and produce no Ascendancy', () => {
+  // Both sides carry Inherent +2: each crosses onto the other, the Bonus
+  // and Penalty balance, and no Ascendancy entry appears anywhere.
   const params = CheckResolution.previewParameters({
-    supporting: [{ tier: 2, bonusPenaltyList: [['Inherent', 2]] }],
-    opposing: [{ tier: 2, bonusPenaltyList: [['Inherent', 2]] }],
-  });
-  assert.deepEqual(params.supporting[0].bonusPenaltyList, [['Inherent', 2]]);
-  assert.deepEqual(params.opposing[0].bonusPenaltyList, [['Inherent', 2]]);
-  // Each TN improves by its own Inherent only: TN 8 - 2 = 6, symmetric.
-  assert.equal(params.supporting[0].tn, 6);
-  assert.equal(params.opposing[0].tn, 6);
-});
-
-test('Tier-less Rolls keep the structural crossing (Inherent → Ascendancy)', () => {
-  // Without tiers the equal-Tier carve-out cannot apply; the Inherent still
-  // crosses, relabeled — the pre-Tier behavior for non-combat checks.
-  const params = CheckResolution.computeParameters({
     supporting: [{ bonusPenaltyList: [['Inherent', 2]] }],
     opposing: [{ bonusPenaltyList: [['Inherent', 2]] }],
   });
-  // +2 Inherent and -2 Ascendancy (different Types, both apply) net to 0 → TN 8.
+  assert.deepEqual(params.supporting[0].bonusPenaltyList, [['Inherent', 2], ['Inherent', -2]]);
+  assert.deepEqual(params.opposing[0].bonusPenaltyList, [['Inherent', 2], ['Inherent', -2]]);
+  // The +2 and -2 net to zero on each side: Base TN 8, symmetric.
   assert.equal(params.supporting[0].tn, 8);
+  assert.equal(params.opposing[0].tn, 8);
 });
 
 test('An explicit Ascendancy entry never crosses sides', () => {
-  // A no-defense attack carries its Ascendancy directly (the server supplies
-  // it when the defender does not roll). It must not invert onto another
-  // Opposing Roll (e.g. a shielding ally) as a phantom bonus.
+  // Ascendancy is derived per Roll, never exchanged: a pre-existing entry
+  // (e.g. from re-preparing an already-prepared Check) must not invert onto
+  // the other side as a phantom bonus.
   const params = CheckResolution.previewParameters({
-    supporting: [{ tier: 1, bonusPenaltyList: [['Inherent', 1], ['Ascendancy', -2]] }],
-    opposing: [{ tier: 2, bonusPenaltyList: [['Inherent', 2]] }],
+    supporting: [{ bonusPenaltyList: [['Ascendancy', 4]] }],
+    opposing: [{ bonusPenaltyList: [['Competency', 1]] }],
   });
-  const shieldTypes = params.opposing[0].bonusPenaltyList.map((e) => e[0]);
-  assert.ok(shieldTypes.includes('Inherent'));
-  // The opposing Roll's Ascendancy entries come only from its own Tier
-  // Mismatch (+2, it out-Tiers the attacker) and the crossed attacker
-  // Inherent (−1) — the attacker's explicit −2 never inverts into a +2.
-  const ascValues = params.opposing[0].bonusPenaltyList.filter((e) => e[0] === 'Ascendancy').map((e) => e[1]);
-  assert.deepEqual(ascValues.sort((a, b) => a - b), [-1, 2]);
+  assert.deepEqual(params.opposing[0].bonusPenaltyList, [['Competency', 1]]);
 });

@@ -3,7 +3,7 @@ require 'encounter'
 
 RSpec.describe Encounter::TierMismatch do
   # The Ascendancy check modifier lives in the JS Check Resolution engine
-  # (public/js/tierMismatch.js); this Ruby module owns the server-side
+  # (public/js/ascendancy.js); this Ruby module owns the server-side
   # Inherent damage reduction half.
   describe '.inherent_damage_reduction' do
     it 'is 5 per Tier the defender stands above the attacker' do
