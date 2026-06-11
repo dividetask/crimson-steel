@@ -67,6 +67,8 @@ characters:
       - item: Potion of Heal
         tier: 0
         quantity: 2
+      - item: Kesser's Ring
+        equipped: true
       - item: Lute
       - item: Ritual book
         inscribed_spells:
