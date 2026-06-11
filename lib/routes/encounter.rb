@@ -1829,7 +1829,7 @@ helpers do
     (rmin..upper).each { |n| opts << { value: n, key: 'dice', group: 'dice', label: n.to_s,
                                        summary: "#{n} dice", patch: set.call(n) } }
     steps = [{ key: 'dice', label: 'Channel dice', options: opts,
-               header_options: [{ value: upper, label: "Max (#{upper})" }] }]
+               header_options: [{ value: upper, label: label }] }]
 
     { title: "#{tracker_name(combatant)} — #{ability_name}",
       stub_id: "roll-table-#{combatant[:id]}", rolls: rolls, steps: steps }
@@ -2248,7 +2248,7 @@ helpers do
                  summary: "#{skill_label} — #{upper} dice", patch: set.call(upper) }]
       (min..upper).each { |n| opts << { value: n, key: 'dice', group: 'dice', label: n.to_s,
                                         summary: "#{n} dice", patch: set.call(n) } }
-      { options: opts, header: { value: upper, label: "Max (#{upper})" } }
+      { options: opts, header: { value: upper, label: skill_label } }
     end
 
     steps = []
