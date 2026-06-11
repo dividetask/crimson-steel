@@ -942,7 +942,7 @@
 
       ],
       "owner_id": null,
-      "active": true,
+      "active": false,
       "creature_id": 2020,
       "creature_token": "/images/scene/1777490469-29bd66ec-Harkon.webp",
       "tier": null
@@ -1002,7 +1002,7 @@
 
       ],
       "owner_id": null,
-      "active": true,
+      "active": false,
       "creature_id": 2010,
       "creature_token": null,
       "tier": null
@@ -1137,7 +1137,7 @@
       "public_description": "Elven noble with some magical training. Drav informed him of you and where you were hiding. He offered to help you in exchange for land and a title under Lady Hawthorne.",
       "dm_description": "Posing as a landless noble / minor wizard (divination + a few low combat spells). Came from the temple's doppelganger nest. Core trait: he reads surface thoughts — assume he knows whatever's been thought near him.\r\n\r\nWhat he already knows\r\nPetey is a sentient ring with dimensional storage and a sticky-fingers problem.\r\nThe party is walking around with a ridiculous arsenal of artifacts\r\nHe'll likely learn they carry a slip of paper bearing a true name of a devil/demon/fey — usable in Planar Binding. This is the jackpot in his eyes.\r\n\r\nThe party dangled a noble title + land for helping rescue Hawthorne. To a \"landless noble,\" that's irresistible → he'll actually help and protect them in the near term, because the reward and the loot both require them alive and successful.\r\n\r\nIngratiating, useful, always says the reassuring thing (he's reading them). Volunteers \"divinations\" that are really laundered mind-reading — handy, and a way to steer decisions.\r\nWorks the personality-items: flatters Petey, feeds Narn a bloody tale, plays the gracious patron. Tries to become the person Petey likes (dangerous — Petey may \"gift\" him things).\r\n\r\nMight try to get Silovan killed",
       "image": "/images/scene/1777490391-331dd9fb-Caelian_di_Soliastres.webp",
-      "shared": false,
+      "shared": true,
       "hidden_from": [
 
       ],
@@ -1195,14 +1195,14 @@
       "scene_position": 67,
       "title": "",
       "public_description": "Mercenary sellsword from the eastern provinces. Met at the slaver's temple where he agreed to help you escape in exchange for his life. He sheltered you in the city while you recovered from your injuries.",
-      "dm_description": "",
+      "dm_description": "Doppleganger now disguised as Caelian di Soliastres",
       "image": "/images/scene/1777490163-e4878a18-Drav.webp",
       "shared": true,
       "hidden_from": [
 
       ],
       "owner_id": null,
-      "active": true,
+      "active": false,
       "creature_id": 2030,
       "creature_token": "/images/scene/1777490163-e4878a18-Drav.webp",
       "tier": null
@@ -1222,7 +1222,7 @@
 
       ],
       "owner_id": null,
-      "active": false,
+      "active": true,
       "creature_id": 2031,
       "creature_token": "/images/scene/1777591489-9c85dd74-Varen.webp",
       "tier": null
@@ -1297,7 +1297,24 @@
       ],
       "owner_id": null,
       "active": true
+    },
+    {
+      "id": 73,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 73,
+      "scene_position": 69,
+      "title": "Skip the Fort",
+      "public_description": "",
+      "dm_description": "The big problem: the fort is the gatekeeper of the onward route. The way into the hidden valley/stronghold is guarded knowledge — caravans know it and won't share, and the looted route map only goes as far as the fort. Skip the fort and they're advancing without directions.\r\n\r\nHow they could still find it (pick one, or none and let them stall):\r\n\r\nTail a shipment. The fort periodically forwards \"special cargo\" onward. Hide and follow the next escort leaving the fort → bypass the assault and get led to the secret route. The clean skip (see below).\r\nSqueeze an escaped slave / scout. A fleeing slave can give the general direction only — not the actual entrance.\r\nThe doppelganger's \"divinations.\" Available, plausible, and exactly the kind of thing he'd offer — and exactly the kind of thing he'd fake to steer them. High risk.\r\nWithout any of these: dead ends, lost days, and the Hawthorne clock burning anyway.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
     }
   ],
-  "next_id": 73
+  "next_id": 74
 }
