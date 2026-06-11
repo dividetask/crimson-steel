@@ -9,6 +9,7 @@ import { SavePreview } from './js/ui/savePreview.js';
 import { TurnAttack } from './js/ui/turnAttack.js';
 import { AtlasMap } from './js/ui/atlasMap.js';
 import { TurnCast } from './js/ui/turnCast.js';
+import { TurnItem } from './js/ui/turnItem.js';
 import { TurnMove } from './js/ui/turnMove.js';
 import { TurnSpecial } from './js/ui/turnSpecial.js';
 import { LootPile } from './js/ui/lootPile.js';
@@ -517,6 +518,11 @@ document.addEventListener('mouseover', function (e) {
     if (key === 'move') {
       var moveContainer = panel.querySelector('.ta-move');
       if (moveContainer) TurnMove.ensureLoaded(moveContainer);
+    }
+    // Lazily build the Item (Potion / Scroll) flow the first time it is opened.
+    if (key === 'item') {
+      var itemContainer = panel.querySelector('.ta-item');
+      if (itemContainer) TurnItem.ensureLoaded(itemContainer);
     }
   });
 
