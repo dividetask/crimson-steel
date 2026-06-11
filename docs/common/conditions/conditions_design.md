@@ -187,6 +187,14 @@ Returns: the updated Active Affliction record.
 
 A Potency that decays to zero in a later resolution removes the entry; re-inflicting then re-inserts at the end, not in its previous position, with `next_resolution_round` set fresh from the new inflict call's `current_round`.
 
+### Reduce Affliction Potency (`REDUCE_AFFLICTION_POTENCY`)
+
+Inputs: Affliction name, `amount` (integer).
+
+Behavior: drain an active Affliction's Potency by `amount` — a magical cure rather than a Saving Throw (e.g. a Heal spell clears bleeding by `spell_tier × 2` per casting success). Floor the Potency at zero; when it reaches zero, remove the entry. Unlike *Resolve Affliction*, this neither rolls a save nor applies the Affliction's per-Severity effect — it only lowers the Potency. The Affliction's catalog rule is not consulted, so the caller may cure an Affliction by name without the catalog.
+
+Returns: the Potency actually removed (`min(amount, potency_before)`); zero when the Affliction is not active or `amount` is not positive.
+
 ### Resolve Affliction (`RESOLVE_AFFLICTION`)
 
 Inputs: Affliction name, a Save Input, optional `current_round` (integer).

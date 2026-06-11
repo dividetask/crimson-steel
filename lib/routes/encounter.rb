@@ -1293,20 +1293,36 @@ helpers do
   # through so the resolve endpoint can decrement it and impose Item-Form
   # Toxicity. A Potion / Oil targets the drinker (self).
   def consumable_castables(actor, acc, pool)
-    consumable_spell_items(actor[:creature_id]).map do |it|
+    consumable_spell_items(actor[:creature_id]).flat_map do |it|
       v = (Abilities.lookup(it[:spell]) rescue nil) || {}
-      castable_descriptor(acc, it[:spell], it[:tier], pool, nil,
-                          skill: item_cast_skill(v), mana_cost: 0,
-                          key: "item:#{it[:ref]}", display: it[:display], item: it,
-                          self_only: it[:form] == 'potion')
+      # Each consumable offers a skill choice — the Spell's own primary casting
+      # skill plus Evocation (the item-form default), deduped — one castable per
+      # offered skill. The chosen skill rolls the check, so it determines how
+      # much bleeding a Heal clears. The skill rides the option key so the two
+      # variants never collide and the resolver can read it back.
+      item_skill_options(v).map do |skill|
+        castable_descriptor(acc, it[:spell], it[:tier], pool, nil,
+                            skill: skill, mana_cost: 0,
+                            key: "item:#{it[:ref]}:#{skill}",
+                            display: "#{it[:display]} &mdash; #{Encounter::Special.pretty_skill(skill)}",
+                            item: it, self_only: it[:form] == 'potion')
+      end
     end
   end
 
-  # The casting skill a Spell cast *from an item* uses: the Spell's own first
-  # `skills` entry, defaulting to Evocation (equipment_design.md → "Casting
-  # skill"). The user need not be a caster; the item supplies the Spell.
+  # The casting skill a Spell cast *from an item* uses by default: the Spell's
+  # own first `skills` entry, defaulting to Evocation (equipment_design.md →
+  # "Casting skill"). The user need not be a caster; the item supplies the Spell.
   def item_cast_skill(variant)
     (Array(variant && variant['skills']).first || 'evocation').to_s
+  end
+
+  # The casting skills a consumable offers: the Spell's own primary skill and
+  # Evocation (item-form default), deduped and order-preserving. So a Potion of
+  # Heal offers Healing / Evocation; an Arcana potion offers Arcana / Evocation;
+  # an Evocation spell offers Evocation alone.
+  def item_skill_options(variant)
+    [item_cast_skill(variant), 'evocation'].uniq
   end
 
   # One castable descriptor for the Cast / Item builders. `name` is the Spell
@@ -1330,8 +1346,12 @@ helpers do
     channel_mode = v.dig('channel', 'mode').to_s
     fills_reservoir = %w[reservoir auto].include?(channel_mode) &&
                       v.dig('reservoir', 'fill', 'source').to_s == 'channel_dice'
+    # A channel that scales an effect with casting successes (e.g. Heal's
+    # bleed_reduction = spell_tier*2*success) needs a real casting check rolled.
+    channel_check = !!(v.dig('channel', 'effect_hash', 'bleed_reduction') ||
+                       raw.dig('channel', 'effect_hash', 'bleed_reduction'))
     requires_roll = !fills_reservoir &&
-                    !!(v['attack_roll'] || Array(v['save']).first || Array(v['damage_type']).compact.first)
+                    !!(v['attack_roll'] || Array(v['save']).first || Array(v['damage_type']).compact.first || channel_check)
     # The Combat Pool dice a cast costs at minimum — its Action category's Action
     # Minimum (Main 4 / Bonus 2 / Free 0).
     action_min = Encounter::Special.action_cost(act && act[:alias])
@@ -1959,6 +1979,22 @@ helpers do
       spell['tier'] = info[:tier] if info
     end
     spell['mana_cost'] ||= mana_cost_for_tier(spell['tier']) unless spell['tier'].nil?
+
+    # A Heal-style channel reduces the target's bleeding by a formula scaled by
+    # the casting successes (Heal: `spell_tier*2*success`, Tier 0 → 0.5). Resolve
+    # the formula to a concrete amount here — bound to the *spell's* Tier (not the
+    # caster's) and the rolled successes — so the resolver just applies it.
+    if spell['bleed_reduction'].nil? && base_name
+      raw_v   = (Abilities.catalog.ability(base_name) rescue nil) || {}
+      formula = raw_v.dig('channel', 'effect_hash', 'bleed_reduction')
+      if formula
+        tier       = spell['tier'].to_i
+        tier_value = tier.zero? ? 0.5 : tier
+        succ       = (caster['successes'] || 0).to_i
+        amt        = (Abilities::Formula.evaluate(formula.to_s, 'tier' => tier_value, 'success' => succ) rescue 0)
+        spell['bleed_reduction'] = [amt.floor, 0].max
+      end
+    end
 
     if Abilities.respond_to?(:resolve_spell) && spell['name']
       resolved = (Abilities.resolve_spell(base_name, tier: spell['tier']) rescue nil)

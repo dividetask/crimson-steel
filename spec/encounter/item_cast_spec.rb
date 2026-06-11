@@ -72,6 +72,27 @@ RSpec.describe 'Encounter — Item cast contract' do
     expect(healed[:healed][:minor]).to eq(30) # the entered 30, not the spell's default 4
   end
 
+  it 'reduces the target bleeding by the resolved channel amount (spell_tier*2*successes)' do
+    inst = Conditions::Instance.new(
+      state: Conditions::State.new(afflictions: { 'bleeding' => { potency: 5, inflicting_tier: 2 } })
+    )
+    s = state(inst)
+    drinker = s.add_combatant('1')
+
+    # The route resolves the channel formula to a concrete amount; here a Tier-1
+    # Heal with 2 successes → 1*2*2 = 4 reduced.
+    out = s.resolve_cast_payload(
+      commit: true,
+      spell: { name: 'Heal', tier: 1, cast_skill: 'healing', mana_cost: 0, bleed_reduction: 4 },
+      caster: { id: drinker[:id], dice: 4, successes: 2 },
+      targets: [{ id: drinker[:id], effects: [{ kind: 'heal', severity_map: { minor: 4 } }] }]
+    )
+
+    br = out[:targets].first[:applied].find { |a| a[:kind] == 'bleed_reduction' }
+    expect(br[:removed]).to eq(4)
+    expect(inst.state.afflictions['bleeding'][:potency]).to eq(1) # 5 - 4
+  end
+
   it 'still spends the Combat Pool dice the cast rolls' do
     inst = Conditions::Instance.new
     s = state(inst)

@@ -213,6 +213,7 @@ export class TurnCast {
     if (a.kind === 'mana') return `mana +${a.restored != null ? a.restored : a.amount}`;
     if (a.kind === 'temp_hp') return `temp HP ${num(a.amount)}`;
     if (a.kind === 'effect') return esc(a.name);
+    if (a.kind === 'bleed_reduction') return `bleeding −${num(a.removed != null ? a.removed : a.requested)}`;
     return a.error ? `error: ${esc(a.error)}` : '';
   }
 

@@ -949,6 +949,7 @@ module Encounter
         mana_spent = mana_cost.positive? ? caster_inst.apply_mana_cost(amount: mana_cost, mana_max: mana_max) : 0
         tox = apply_cast_toxicity(caster_inst, toxicity, polarity, cha, tier)
         applied = resolved.map { |t| apply_cast_target(t, spell) }
+        apply_bleed_reduction!(applied, spell[:bleed_reduction].to_i, commit: true)
         sustain = p[:sustain] ? register_cast_sustain(caster[:id], spell, p[:sustain], channel_dice: caster[:dice].to_i) : nil
         base.merge(mana_spent: mana_spent, toxicity: tox, targets: applied, sustain: sustain)
       else
@@ -956,6 +957,7 @@ module Encounter
         mana_spent = mana_cost.positive? ? [mana_cost, available].min : 0
         tox = preview_cast_toxicity(caster_inst, toxicity, polarity, cha, tier)
         previews = resolved.map { |t| preview_cast_target(t) }
+        apply_bleed_reduction!(previews, spell[:bleed_reduction].to_i, commit: false)
         sustain  = p[:sustain] ? { kind: deep_symbolize(p[:sustain])[:kind].to_s, spell_name: spell[:name] } : nil
         base.merge(mana_spent: mana_spent, toxicity: tox, targets: previews, sustain: sustain)
       end
@@ -1668,6 +1670,24 @@ module Encounter
     def apply_cast_target(t, spell)
       applied = Array(t[:effects]).map { |e| route_cast_effect(t[:id], e, spell) }.compact
       { id: t[:id], outcome: t[:outcome], applied: applied }
+    end
+
+    # A Heal-style channel reduces each target's bleeding by `amount` (the spell
+    # already resolved `spell_tier*2*success` to a number). On commit it drains
+    # the target's `bleeding` Affliction Potency (Conditions' Reduce Affliction
+    # Potency); a preview just reports the amount. Appended to the target's
+    # applied Effects so the result shows it.
+    def apply_bleed_reduction!(targets, amount, commit:)
+      return if amount.to_i <= 0
+      targets.each do |t|
+        if commit
+          inst = target_conditions(t[:id])
+          removed = inst ? inst.reduce_affliction_potency('bleeding', amount) : 0
+          t[:applied] = Array(t[:applied]) + [{ kind: 'bleed_reduction', requested: amount, removed: removed }]
+        else
+          t[:applied] = Array(t[:applied]) + [{ kind: 'bleed_reduction', requested: amount }]
+        end
+      end
     end
 
     # Replace each heal Effect's Severity map with the DM-entered amounts (one

@@ -76,6 +76,9 @@ export class TurnItem {
     const rolls = detail.rolls || [];
     const item = TurnItem._item(container, choices);
     const spellName = item ? item.spell : choices.spell;
+    // The chosen skill rides the option key ("item:<ref>:<skill>") — carry it so
+    // the cast rolls (and the result shows) the skill the DM picked.
+    const skill = String(choices.spell || '').split(':')[2] || null;
     const caster = rolls.find((r) => r.id === 'caster') || {};
 
     // Area Item: the placed footprint determines the affected creatures (the
@@ -89,7 +92,7 @@ export class TurnItem {
       return {
         commit: commit,
         spell_name: spellName,
-        spell: { name: spellName, tier: item ? item.tier : null },
+        spell: { name: spellName, tier: item ? item.tier : null, cast_skill: skill },
         item: TurnItem._itemRef(item),
         luck: ActionBuilder.luckSpends(choices),
         caster: { id: container._casterId, dice: caster.dice_count, speed: caster.speed || 0, successes: caster.successes },
@@ -114,7 +117,7 @@ export class TurnItem {
     return {
       commit: commit,
       spell_name: spellName,
-      spell: { name: spellName, tier: item ? item.tier : null },
+      spell: { name: spellName, tier: item ? item.tier : null, cast_skill: skill },
       item: TurnItem._itemRef(item),
       luck: ActionBuilder.luckSpends(choices),
       caster: { id: container._casterId, dice: caster.dice_count, speed: caster.speed || 0, successes: caster.successes },
