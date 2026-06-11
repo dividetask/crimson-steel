@@ -2037,8 +2037,11 @@ body {
 }
 .ce-modal-image-stage:active { cursor: grabbing; }
 .ce-modal-image {
-  max-width: none;
-  max-height: none;
+  /* Fit the whole image within the viewport at rest (scale 1) so opening the
+     lightbox never crops it; scroll/pinch zoom enlarges it past these bounds
+     via the transform, which max-width/height does not constrain. */
+  max-width: 100vw;
+  max-height: 100vh;
   user-select: none;
   -webkit-user-drag: none;
   transform-origin: center center;
