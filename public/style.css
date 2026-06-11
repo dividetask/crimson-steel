@@ -3574,8 +3574,14 @@ body {
   /* Image fill is set inline (wins over this); keep the purple outline. */
   stroke: rgba(128, 90, 213, 0.85);
 }
-/* Local, un-committed placement preview — dashed to read as provisional. */
-.atlas-zone-preview .atlas-zone { stroke-dasharray: 6 4; }
+/* Local, un-committed placement preview — dashed to read as provisional, and
+   draggable so the caster can re-aim it before confirming (the .atlas-zones
+   layer is click-through, so the shape itself re-enables pointer events). */
+.atlas-zone-preview .atlas-zone {
+  stroke-dasharray: 6 4;
+  pointer-events: auto;
+  cursor: move;
+}
 .atlas-empty {
   position: absolute;
   top: 50%;
