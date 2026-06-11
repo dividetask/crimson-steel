@@ -473,9 +473,6 @@ export class ActionBuilder {
     (patch.set_nudge || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.nudge = p.clear ? null : { sign: p.sign, count: p.count, max: !!p.max }; }));
     (patch.set_name || []).forEach((p) => ActionBuilder._setName(root, p));
     (patch.set_excluded || []).forEach((p) => ActionBuilder._setExcluded(root, p.id, p.excluded));
-    // The Roll's Creature Tier, used by Check Resolution's Tier Mismatch
-    // Ascendancy. The defender's Tier is set when a Target is chosen.
-    (patch.set_tier || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.tier = p.tier; }));
     // Re-preview every Roll's TN through Check Resolution so each row reflects
     // the propagated math after any change.
     ActionBuilder._previewTns(root);
@@ -499,7 +496,7 @@ export class ActionBuilder {
       .filter((g) => !g.classList.contains('roll-group-excluded'));
     const rollFor = (g) => {
       let c; try { c = JSON.parse(g.dataset.config); } catch (e) { return null; }
-      return { _g: g, side: g.dataset.side, baseTn: c.base_tn, tier: c.tier,
+      return { _g: g, side: g.dataset.side, baseTn: c.base_tn,
                bonusPenaltyList: c.bonus_penalty_list || [], noPropagate: c.no_propagate || [],
                startingContribution: 0 };
     };

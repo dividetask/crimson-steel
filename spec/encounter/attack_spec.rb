@@ -67,24 +67,27 @@ RSpec.describe Encounter::Attack do
         .to eq([['Inherent', 2]])
     end
 
-    it 'adds an Ascendancy penalty (the un-rolled defender Inherent) on a no-defense attack' do
-      # Without Glory: +1 Inherent and −2 Ascendancy nets to −1 on the TN (harder).
+    it 'injects the un-rolled defender Inherent, negated, on a no-defense attack' do
+      # The un-rolled defender propagates nothing, so its Inherent is injected
+      # directly (keeping its name); Check Resolution derives the Ascendancy
+      # from the imbalance exactly as in the defended case.
       expect(described_class.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 0,
                                                    inherent_table: table, no_defense: true))
-        .to eq([['Inherent', 1], ['Ascendancy', -2]])
-      # Glory raises the effective Tier to the defender's — equal Tiers, so no
-      # Ascendancy at all: the gap is closed and only the lifted Inherent rides.
+        .to eq([['Inherent', 1], ['Inherent', -2]])
+      # Glory lifts the attacker's Inherent to the defender's — the entries
+      # balance, so Check Resolution will derive no Ascendancy.
       expect(described_class.attacker_tier_bonuses(attacker_tier: 1, defender_tier: 2, tier_advantage: 1,
                                                    inherent_table: table, no_defense: true))
-        .to eq([['Inherent', 2]])
+        .to eq([['Inherent', 2], ['Inherent', -2]])
     end
 
-    it 'exchanges no Ascendancy between equal-Tier opponents' do
-      # Same Tier, no defense: the attacker keeps its Inherent and takes no
-      # Ascendancy (Ascendancy only exists across a Tier gap).
+    it 'injects the crossing for equal-Tier opponents too (it cancels in the TN)' do
+      # Same Tier, no defense: bonus and penalty balance — net zero on the TN
+      # and no Ascendancy — matching the defended case, where the equal
+      # Inherents cross and cancel the same way.
       expect(described_class.attacker_tier_bonuses(attacker_tier: 2, defender_tier: 2, tier_advantage: 0,
                                                    inherent_table: table, no_defense: true))
-        .to eq([['Inherent', 2]])
+        .to eq([['Inherent', 2], ['Inherent', -2]])
     end
 
     it 'drops zero Tier-0 modifiers' do
