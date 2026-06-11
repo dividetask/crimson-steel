@@ -20,27 +20,6 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const XLINK_NS = 'http://www.w3.org/1999/xlink';
 const ENC = (s) => encodeURIComponent(s);
 
-// An SVG <pattern> wrapping one image sized to a shape's bounding box, so a
-// Zone shape filled with url(#id) shows the image clipped to the shape. The
-// image renders on its own (no backing fill), so a texture with intentional
-// transparency — e.g. Grease's oily slick — shows through to the map; a Zone
-// without a texture keeps the solid-purple CSS fill instead.
-function zonePattern(id, x, y, w, h, href) {
-  const pat = document.createElementNS(SVG_NS, 'pattern');
-  pat.setAttribute('id', id);
-  pat.setAttribute('patternUnits', 'userSpaceOnUse');
-  pat.setAttribute('x', x); pat.setAttribute('y', y);
-  pat.setAttribute('width', w); pat.setAttribute('height', h);
-  const img = document.createElementNS(SVG_NS, 'image');
-  img.setAttribute('x', x); img.setAttribute('y', y);
-  img.setAttribute('width', w); img.setAttribute('height', h);
-  img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-  img.setAttributeNS(XLINK_NS, 'href', href);
-  img.setAttribute('href', href);
-  pat.appendChild(img);
-  return pat;
-}
-
 export const AtlasMap = {
   initAll() {
     document.querySelectorAll('.atlas-stub').forEach((section) => {
@@ -213,35 +192,49 @@ class AtlasCanvas {
     const cx = ((a.x || 0) + c) * BASE_CELL;
     const cy = ((a.y || 0) + c) * BASE_CELL;
     const size = (z.size || 0) * BASE_CELL;
-    let el, bx, by, bw, bh;
+    // Bounding box (bx, by, bw, bh) plus a factory for the Zone's shape (so we
+    // can build one for display and an identical one to clip the texture).
+    let bx, by, bw, bh, makeShape;
     if (z.shape === 'square') {
       bx = cx - size / 2; by = cy - size / 2; bw = bh = size;
-      el = document.createElementNS(SVG_NS, 'rect');
-      el.setAttribute('x', bx); el.setAttribute('y', by);
-      el.setAttribute('width', bw); el.setAttribute('height', bh);
+      makeShape = () => svgEl('rect', { x: bx, y: by, width: bw, height: bh });
     } else {
       // circle (default); line / cone rendering is deferred.
       bx = cx - size; by = cy - size; bw = bh = size * 2;
-      el = document.createElementNS(SVG_NS, 'circle');
-      el.setAttribute('cx', cx); el.setAttribute('cy', cy); el.setAttribute('r', size);
+      makeShape = () => svgEl('circle', { cx: cx, cy: cy, r: size });
     }
+    const el = makeShape();
     el.setAttribute('class', 'atlas-zone');
     if (z.id != null) el.dataset.zoneId = z.id;
-    if (z.texture && defs) {
-      const pid = 'zone-tex-' + (z.id != null ? z.id : Math.random().toString(36).slice(2));
-      const pat = zonePattern(pid, bx, by, bw, bh, '/images/zones/' + z.texture);
-      defs.appendChild(pat);
-      el.classList.add('atlas-zone-textured');
-      el.style.fill = 'url(#' + pid + ')';
-      // Missing / unloadable texture file: drop the image fill so the shape
-      // falls back to the solid-purple CSS fill (rather than rendering empty).
-      const img = pat.querySelector('image');
-      if (img) img.addEventListener('error', () => {
-        el.style.fill = '';
-        el.classList.remove('atlas-zone-textured');
-      });
-    }
-    return el;
+    if (!z.texture || !defs) return el; // no texture → solid-purple CSS fill
+
+    // Textured: draw the image clipped to the Zone's shape, with the shape kept
+    // on top as the outline. A clipPath + positioned <image> places the texture
+    // exactly over the bounding box; an SVG <pattern> positions its content
+    // ambiguously across browsers, which offset the image into a corner.
+    const uid = (z.id != null ? z.id : Math.random().toString(36).slice(2));
+    const clipId = 'zone-clip-' + uid;
+    const clip = svgEl('clipPath', { id: clipId });
+    clip.appendChild(makeShape());
+    defs.appendChild(clip);
+    const href = '/images/zones/' + z.texture;
+    const img = svgEl('image', { x: bx, y: by, width: bw, height: bh,
+      preserveAspectRatio: 'xMidYMid slice', 'clip-path': 'url(#' + clipId + ')' });
+    img.setAttributeNS(XLINK_NS, 'href', href);
+    img.setAttribute('href', href);
+    el.classList.add('atlas-zone-textured');
+    el.style.fill = 'none'; // the image is the fill; the shape stays as the outline
+    // Missing / unloadable texture file: drop the image and restore the solid
+    // purple fill rather than rendering an empty (outline-only) shape.
+    img.addEventListener('error', () => {
+      img.remove();
+      el.style.fill = '';
+      el.classList.remove('atlas-zone-textured');
+    });
+    const g = svgEl('g', {});
+    g.appendChild(img);
+    g.appendChild(el);
+    return g;
   }
 
   buildAnnotationLayer(w, h) {
