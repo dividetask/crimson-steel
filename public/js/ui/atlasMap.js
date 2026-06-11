@@ -10,7 +10,10 @@
 // (rect/ellipse), and Text. Each drawing commits via /atlas/add_annotation.
 //
 // Combat integrations: in Select mode the DM drags a Token to move it, or
-// clicks it (while the Attack pane is open) to target that Combatant.
+// clicks it (while the Attack pane is open) to target that Combatant. A Cast's
+// "Place on the map" arms a spell-area footprint; once dropped it stays
+// draggable so the caster can re-aim it — moving it recomputes which creatures
+// it catches — until the cast is committed.
 
 const BASE_CELL = 28;          // CSS px per Map Unit at zoom factor 1.0.
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -60,6 +63,7 @@ class AtlasCanvas {
     this.tool = 'select';
     this.placing = null;   // creature_id armed for placement, or null
     this.placingArea = null; // {shape, size} armed for spell-area placement
+    this._placedArea = null; // {x, y, area} dropped (un-committed) footprint, draggable
   }
 
   start() {
@@ -356,6 +360,10 @@ class AtlasCanvas {
       if (this.tool !== 'select') {
         if (this.tool === 'text') return this.beginText(e);
         return this.beginDraw(e);
+      }
+      // A dropped-but-uncommitted spell footprint can be dragged to re-aim it.
+      if (this._placedArea && e.target.closest && e.target.closest('.atlas-zone-preview')) {
+        return this.beginAreaDrag(e);
       }
       const tokenEl = e.target.closest('.atlas-token');
       if (tokenEl && this.viewer === 'dm') return this.beginTokenDrag(e, tokenEl);
@@ -676,12 +684,54 @@ class AtlasCanvas {
     const area = this.placingArea;
     this.placingArea = null;
     this.viewport.classList.remove('atlas-placing');
-    this.hidePlaceHint();
+    // Keep the footprint live and draggable until the cast is committed, so the
+    // caster can re-aim it; each move re-reports the caught creatures.
+    this._placedArea = { x: x, y: y, area: area };
     this.renderAreaPreview(x, y, area);
-    const hits = this.tokensInArea(x, y, area);
+    this.showPlaceHint('Drag the spell effect to re-aim it before confirming');
+    this.emitAreaPlaced();
+  }
+
+  // Recompute the creatures the current footprint catches and report them to
+  // the cast panel (nothing is persisted until the cast is committed).
+  emitAreaPlaced() {
+    const p = this._placedArea;
+    if (!p) return;
+    const hits = this.tokensInArea(p.x, p.y, p.area);
     document.dispatchEvent(new CustomEvent('cast:area-placed', {
-      detail: { x: x, y: y, shape: area.shape, size: area.size, hits: hits }
+      detail: { x: p.x, y: p.y, shape: p.area.shape, size: p.area.size, hits: hits }
     }));
+  }
+
+  // Drag a dropped (un-committed) spell footprint to a new cell. The preview
+  // follows the pointer snapped to Grid cells; releasing on a new cell
+  // recomputes the caught creatures and re-reports them to the cast panel.
+  beginAreaDrag(e) {
+    e.preventDefault();
+    this.hideTip();
+    const area = this._placedArea.area;
+    const startX = this._placedArea.x;
+    const startY = this._placedArea.y;
+    const moveTo = (cx, cy) => {
+      const u = this.toUnits(cx, cy);
+      const x = Math.round(u[0]);
+      const y = Math.round(u[1]);
+      if (x === this._placedArea.x && y === this._placedArea.y) return;
+      this._placedArea.x = x;
+      this._placedArea.y = y;
+      this.renderAreaPreview(x, y, area);
+    };
+    this.viewport.setPointerCapture(e.pointerId);
+    const onMove = (ev) => moveTo(ev.clientX, ev.clientY);
+    const onUp = (ev) => {
+      this.viewport.removeEventListener('pointermove', onMove);
+      this.viewport.removeEventListener('pointerup', onUp);
+      moveTo(ev.clientX, ev.clientY);
+      // Only re-report (and re-fetch Save Rolls) when the footprint actually moved.
+      if (this._placedArea.x !== startX || this._placedArea.y !== startY) this.emitAreaPlaced();
+    };
+    this.viewport.addEventListener('pointermove', onMove);
+    this.viewport.addEventListener('pointerup', onUp);
   }
 
   // A local-only preview of the footprint (purple), cleared on the next place

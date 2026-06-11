@@ -65,6 +65,10 @@ Dragging is suppressed entirely when `chrome = false`.
 
 The DM-only *Place Token* affordance opens a picker of the active Combatants. Choosing one **arms placement**: the next press on the canvas drops the Token at that cell, and the DM may drag before releasing to position it (a ghost follows the cursor, snapped to Grid cells; release commits *Place Token* at that cell). `Esc` cancels an armed placement. This replaces dropping the Token at a fixed default position — it lands where the DM puts it.
 
+### Placing a spell area
+
+A Cast's "Place on the map" option (an area Spell, per `turn_action_stub.md` → Cast) **arms area placement**: the next press on the canvas drops the spell's footprint at that cell, snapped to the Grid. Unlike a Token, the footprint is **not yet committed** — it is a local, dashed preview that lives only in the canvas until the cast is committed, and the caster may **re-aim it** by dragging the footprint to a new cell. Both the initial drop and each subsequent move recompute which Combatant Tokens the footprint catches and report them to the cast panel (via `cast:area-placed`), so the affected creatures — and their Saving Throws — update to match wherever the effect currently sits. Nothing is persisted to the Map until the cast is committed; re-aiming before that point is free.
+
 ## Drawing tools
 
 The toolbar carries a group of drawing tools that create Atlas **Annotations** (see `atlas_design.md` → *Manage Annotations*). A tool is a mode: while one is active, pointer gestures on the canvas draw instead of panning. Selecting *Select* mode returns to pan/drag.
