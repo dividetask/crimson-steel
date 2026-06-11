@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RollAndSort } from '../../public/js/rollAndSort.js';
-import { SequenceRng } from '../../public/js/rng.js';
+import { SequenceRng } from '../../public/js/sequenceRng.js';
 
 // docs/common/check_resolution/check_resolution_tests.md — "Roll and Sort"
 

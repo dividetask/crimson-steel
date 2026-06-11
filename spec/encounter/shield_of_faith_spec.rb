@@ -64,4 +64,19 @@ RSpec.describe 'Encounter — Shield of Faith block' do
     res = s.combatant(caster[:id])[:concentration].find { |e| e[:spell_name] == 'Shield of Faith' }
     expect(res[:reservoir]).to eq(5) # untouched on preview
   end
+
+  it "a Combat-Pool shield (the Shield spell) blocks and spends the caster's Combat Pool, not a Reservoir" do
+    s = state
+    atk = s.add_combatant('1'); dfn = s.add_combatant('2'); caster = s.add_combatant('3')
+    before = s.combatant(caster[:id])[:combat_pool_spent]
+    out = s.resolve_attack_payload(
+      target_id: dfn[:id], damage_bonus: 0,
+      attacker: { id: atk[:id], dice: 6, speed: 0, successes: 5 },
+      defense: { choice: 'none' },
+      shield: { id: caster[:id], successes: 3, dice: 4, dice_source: 'combat_pool', spell_name: 'Standard Shield' },
+      allies: [])
+    expect(out[:net_dos]).to eq(2) # 5 attacker − 3 shield
+    expect(s.combatant(caster[:id])[:combat_pool_spent]).to eq(before + 4) # block dice spent from the pool
+    expect(s.combatant(caster[:id])[:concentration]).to be_empty # no reservoir involved
+  end
 end

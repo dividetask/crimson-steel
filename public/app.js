@@ -9,6 +9,8 @@ import { SavePreview } from './js/ui/savePreview.js';
 import { TurnAttack } from './js/ui/turnAttack.js';
 import { AtlasMap } from './js/ui/atlasMap.js';
 import { TurnCast } from './js/ui/turnCast.js';
+import { TurnItem } from './js/ui/turnItem.js';
+import { TurnMove } from './js/ui/turnMove.js';
 import { TurnSpecial } from './js/ui/turnSpecial.js';
 import { LootPile } from './js/ui/lootPile.js';
 import { PostCombatLoot } from './js/ui/postCombatLoot.js';
@@ -313,10 +315,16 @@ document.addEventListener('mouseover', function (e) {
 
   // -- Roster Sidebar: <details> open/closed persistence ---------------
   //
-  // Each group's open state lives in localStorage under
-  // `cs-roster-group:<data-group-key>`. We restore on load and write
-  // on toggle.
-  var ROSTER_STORAGE_PREFIX = 'cs-roster-group:';
+  // Groups default to collapsed. A group's open state is remembered while
+  // the DM navigates, but only for the current server run: the key is
+  // scoped by the server's boot id (data-boot-id on the sidebar) and held
+  // in sessionStorage, so a server restart (new boot id) reverts every
+  // group to collapsed.
+  function rosterStorageKey(key) {
+    var aside = document.querySelector('.cs-roster-sidebar');
+    var bootId = aside ? (aside.getAttribute('data-boot-id') || '') : '';
+    return 'cs-roster-group:' + bootId + ':' + key;
+  }
 
   function restoreRosterGroups() {
     var groups = document.querySelectorAll('.cs-roster-sidebar .cs-roster-group');
@@ -324,12 +332,10 @@ document.addEventListener('mouseover', function (e) {
       var key = g.getAttribute('data-group-key');
       if (!key) return;
       var stored = null;
-      try { stored = localStorage.getItem(ROSTER_STORAGE_PREFIX + key); } catch (e) {}
-      if (stored === 'open') {
-        g.setAttribute('open', '');
-      } else if (stored === 'closed') {
-        g.removeAttribute('open');
-      }
+      try { stored = sessionStorage.getItem(rosterStorageKey(key)); } catch (e) {}
+      // Default collapsed; only an explicit 'open' from this server run re-expands.
+      if (stored === 'open') g.setAttribute('open', '');
+      else g.removeAttribute('open');
     });
   }
 
@@ -352,8 +358,8 @@ document.addEventListener('mouseover', function (e) {
     var key = g.getAttribute('data-group-key');
     if (!key) return;
     try {
-      localStorage.setItem(ROSTER_STORAGE_PREFIX + key, g.open ? 'open' : 'closed');
-    } catch (e2) { /* localStorage unavailable */ }
+      sessionStorage.setItem(rosterStorageKey(key), g.open ? 'open' : 'closed');
+    } catch (e2) { /* sessionStorage unavailable */ }
   }, true);
 
   // -- Roster Sidebar: Encounter mutations -----------------------------
@@ -473,8 +479,9 @@ document.addEventListener('mouseover', function (e) {
   // action's label, clear the confirm slot (no Commit ready yet). Shared with
   // TurnSpecial via the exported helper on window (see turnSpecial.js).
   function selectTurnAction(panel, label) {
-    var lbl = panel.querySelector('.ta-selected-label');
-    if (lbl) lbl.textContent = label;
+    // Stash the chosen action's name; each host folds it into its builder as the
+    // first step row (mountActionRow). Collapse the category menu.
+    panel.dataset.actionLabel = label;
     var slot = panel.querySelector('.ta-confirm-slot');
     if (slot) slot.innerHTML = '';
     panel.classList.add('ta-has-selection');
@@ -507,6 +514,16 @@ document.addEventListener('mouseover', function (e) {
       var castContainer = panel.querySelector('.ta-cast');
       if (castContainer) TurnCast.ensureLoaded(castContainer);
     }
+    // Move renders its (editable) Combat-Pool result block on open.
+    if (key === 'move') {
+      var moveContainer = panel.querySelector('.ta-move');
+      if (moveContainer) TurnMove.ensureLoaded(moveContainer);
+    }
+    // Lazily build the Item (Potion / Scroll) flow the first time it is opened.
+    if (key === 'item') {
+      var itemContainer = panel.querySelector('.ta-item');
+      if (itemContainer) TurnItem.ensureLoaded(itemContainer);
+    }
   });
 
   // Change (in the selected-action row): re-open the category menu and clear
@@ -522,8 +539,7 @@ document.addEventListener('mouseover', function (e) {
     panel.querySelectorAll('.ta-special-opt').forEach(function (b) { b.classList.remove('cr-mod-selected'); });
     var result = panel.querySelector('.ta-special-result');
     if (result) { result.hidden = true; result.innerHTML = ''; }
-    var slot = panel.querySelector('.ta-confirm-slot');
-    if (slot) slot.innerHTML = '';
+    panel.querySelectorAll('.ta-confirm-slot').forEach(function (s) { s.innerHTML = ''; });
   });
 
   // The Commit button mirrored into the selected-action row's confirm slot is
@@ -534,7 +550,7 @@ document.addEventListener('mouseover', function (e) {
     if (!proxy) return;
     e.preventDefault();
     var panel = proxy.closest('.turn-action');
-    var real = panel && panel.querySelector('.ta-pane.ta-pane-active .ta-commit');
+    var real = panel && panel.querySelector('.ta-pane.ta-pane-active .ar-commit');
     if (real) real.click();
   });
 

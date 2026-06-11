@@ -20,7 +20,7 @@
   sheet_href  = ->(id) { "/character-sheets?creature_id=#{id}&detail=#{detail_mode}" }
 %>
 
-<aside class="cs-roster-sidebar">
+<aside class="cs-roster-sidebar" data-boot-id="<%= SERVER_BOOT_ID %>">
 
   <% # ---- Players ------------------------------------------------------- %>
   <details class="cs-roster-group" data-group-key="players">
@@ -59,6 +59,34 @@
     <% else %>
       <ul class="cs-roster-list">
         <% npcs.each do |row| %>
+          <% active = row[:active] == true %>
+          <li class="cs-roster-row cs-roster-npc<%= ' cs-roster-current' if current_row.call(row) %><%= ' cs-player-absent' unless active %>"
+              data-creature-id="<%= row[:id] %>"
+              data-roster-kind="npc">
+            <a class="cs-roster-name" href="<%= sheet_href.call(row[:id]) %>"><%= row[:name] %></a>
+            <button type="button"
+                    class="cs-roster-btn cs-player-toggle cs-active-toggle <%= active ? 'cs-player-active' : 'cs-player-absent' %>"
+                    aria-pressed="<%= active %>"
+                    data-creature-id="<%= row[:id] %>"
+                    data-roster-kind="npc"
+                    title="<%= active ? 'Mark absent' : 'Mark active' %>">
+              <%= active ? 'Active' : 'Absent' %>
+            </button>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </details>
+
+  <% # ---- Inactive NPCs (not in the current Scene) --------------------- %>
+  <details class="cs-roster-group" data-group-key="inactive-npcs">
+    <summary class="cs-roster-summary">Inactive NPCs</summary>
+    <% inactive_npcs = roster[:inactive_npcs] || [] %>
+    <% if inactive_npcs.empty? %>
+      <div class="cs-roster-empty">—</div>
+    <% else %>
+      <ul class="cs-roster-list">
+        <% inactive_npcs.each do |row| %>
           <% active = row[:active] == true %>
           <li class="cs-roster-row cs-roster-npc<%= ' cs-roster-current' if current_row.call(row) %><%= ' cs-player-absent' unless active %>"
               data-creature-id="<%= row[:id] %>"

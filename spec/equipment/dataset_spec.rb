@@ -31,13 +31,13 @@ RSpec.describe Equipment::Dataset do
       creature_accessor: Equipment::Dataset::CreatureAdapter.new(ds)
     )
     inst.add_item('party', item: 'Gold', quantity: 100)
-    inst.add_item('creature:1', item: 'Healing Potion', tier: 0, quantity: 1)
+    inst.add_item('creature:1', item: 'Potion of Heal', tier: 0, quantity: 1)
 
     expect(File.exist?(@data_path)).to be true
     reloaded = load
     party_gold = reloaded.inventory('party').find { |s| s.item_type == 'Gold' }
     expect(party_gold.quantity).to eq(base_gold + 100)
-    expect(reloaded.inventory('character:1').count { |s| s.item_type == 'Healing Potion' }).to be >= 1
+    expect(reloaded.inventory('character:1').count { |s| s.item_type == 'Potion of Heal' }).to be >= 1
   end
 
   it 'round-trips Ground Piles by location' do

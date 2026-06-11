@@ -1,23 +1,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CheckResolution } from '../../public/js/check.js';
-import { SequenceRng } from '../../public/js/rng.js';
+import { SequenceRng } from '../../public/js/sequenceRng.js';
 
 // docs/common/check_resolution/check_resolution_tests.md — "Resolve a Check".
 //
-// Each Roll below carries no Bonus/Penalty (so TN stays at the Base of 6
+// Each Roll below carries no Bonus/Penalty (so TN stays at the Base of 8
 // and propagation is a no-op); dice are crafted to land on the DoIS each
-// case names. At TN 6 a 7 is a Success (+1) and a 1 is a Failure (-1).
+// case names. At TN 8 an 8 is a Success (+1) and a 1 is a Failure (-1).
 
 test('A solo Check produces a Degree of Success equal to its Roll DoIS', () => {
-  const rng = new SequenceRng([7, 7, 7]); // +3
+  const rng = new SequenceRng([8, 8, 8]); // +3
   const r = CheckResolution.resolveCheck({ supporting: [{ diceCount: 3 }], opposing: [] }, rng);
   assert.equal(r.degreeOfSuccess, 3);
   assert.equal(r.outcome, 'success');
 });
 
 test('An opposed Check subtracts Opposing DoIS', () => {
-  const rng = new SequenceRng([7, 7, 7, 7, 7, /* opposing */ 7, 7]); // +5 vs +2
+  const rng = new SequenceRng([8, 8, 8, 8, 8, /* opposing */ 8, 8]); // +5 vs +2
   const r = CheckResolution.resolveCheck(
     { supporting: [{ diceCount: 5 }], opposing: [{ diceCount: 2 }] },
     rng
@@ -27,7 +27,7 @@ test('An opposed Check subtracts Opposing DoIS', () => {
 });
 
 test('Multiple Supporting Rolls aggregate', () => {
-  const rng = new SequenceRng([7, 7, /* */ 7, /* */ 1]); // +2, +1, -1
+  const rng = new SequenceRng([8, 8, /* */ 8, /* */ 1]); // +2, +1, -1
   const r = CheckResolution.resolveCheck(
     { supporting: [{ diceCount: 2 }, { diceCount: 1 }, { diceCount: 1 }], opposing: [] },
     rng
@@ -37,7 +37,7 @@ test('Multiple Supporting Rolls aggregate', () => {
 });
 
 test('Multiple Opposing Rolls aggregate', () => {
-  const rng = new SequenceRng([7, 7, 7, 7, /* opposing */ 7, 7, /* */ 7, 7, 7]); // +4 vs (+2 + +3)
+  const rng = new SequenceRng([8, 8, 8, 8, /* opposing */ 8, 8, /* */ 8, 8, 8]); // +4 vs (+2 + +3)
   const r = CheckResolution.resolveCheck(
     { supporting: [{ diceCount: 4 }], opposing: [{ diceCount: 2 }, { diceCount: 3 }] },
     rng
@@ -68,7 +68,7 @@ test('Check-level Fumble fires regardless of per-Roll failure_modifier', () => {
 });
 
 test('An opposed Check that nets to zero is a failure', () => {
-  const rng = new SequenceRng([7, 7, 7, /* opposing */ 7, 7, 7]); // +3 vs +3
+  const rng = new SequenceRng([8, 8, 8, /* opposing */ 8, 8, 8]); // +3 vs +3
   const r = CheckResolution.resolveCheck(
     { supporting: [{ diceCount: 3 }], opposing: [{ diceCount: 3 }] },
     rng
@@ -78,7 +78,7 @@ test('An opposed Check that nets to zero is a failure', () => {
 });
 
 test('Per-Roll results are returned alongside the aggregate', () => {
-  const rng = new SequenceRng([7, 7, 7]);
+  const rng = new SequenceRng([8, 8, 8]);
   const r = CheckResolution.resolveCheck(
     { supporting: [{ diceCount: 1 }, { diceCount: 1 }], opposing: [{ diceCount: 1 }] },
     rng

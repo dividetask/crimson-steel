@@ -8,6 +8,9 @@
   #     (plus the DM's Advance Time control, the natural place to pass time).
   phase    = @phase
   peaceful = %i[traveling social downtime].include?(phase)
+  # Characters of Interest (Creature References) appear in the Downtime and
+  # Traveling Phases.
+  show_interest = %i[downtime traveling].include?(phase)
 %>
 
 <%# Advance Time (DM): the peaceful Phases, where time passes between
@@ -48,7 +51,7 @@
 <%# Turn Action panel (turn_action_stub.md): DM-only, acts on the Acting
     Combatant. Rendered only when a Combatant currently holds the turn. %>
 <% if @viewer == :dm && phase == :combat && @acting_row %>
-  <%= erb :_turn_action, locals: { acting: @acting_row, dead: @acting_dead, saves: @acting_saves, main_actions: @acting_main_actions, special_options: @acting_special } %>
+  <%= erb :_turn_action, locals: { acting: @acting_row, dead: @acting_dead, saves: @acting_saves, main_actions: @acting_main_actions, special_options: @acting_special, has_spells: @acting_has_spells, has_items: @acting_has_items } %>
 <% end %>
 
 <%# Atlas map (atlas_stub.md): Combat Phase only (both viewers). DM places
@@ -121,16 +124,30 @@
     them only in the peaceful Phases (in Combat / Looting players get the
     Initiative + Map / loot stubs instead). %>
 <% if @viewer == :dm || peaceful %>
+  <% scene_notes = @active_entries.select { |e| e['entry_type'] == 'note' } %>
   <section class="scene-section">
-    <% if @active_entries.any? %>
+    <% if scene_notes.any? %>
       <div class="scene-list">
-        <% @active_entries.each do |e| %>
+        <% scene_notes.each do |e| %>
           <%= erb :_chronicle_entry, locals: { entry: e, viewer: @viewer, viewing_id: @viewing_id, player_creatures: @player_creatures } %>
         <% end %>
       </div>
     <% else %>
       <p class="lead">No active scene entries.</p>
     <% end %>
+  </section>
+<% end %>
+
+<%# Characters of Interest (Creature References): shown during the Downtime
+    and Traveling Phases, at 1/3 width like the scene notes. %>
+<% if show_interest && @interest_entries.any? %>
+  <section class="scene-section scene-interest">
+    <h3>Characters of Interest</h3>
+    <div class="scene-list">
+      <% @interest_entries.each do |e| %>
+        <%= erb :_chronicle_entry, locals: { entry: e, viewer: @viewer, viewing_id: @viewing_id, player_creatures: @player_creatures } %>
+      <% end %>
+    </div>
   </section>
 <% end %>
 

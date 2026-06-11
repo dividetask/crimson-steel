@@ -71,7 +71,8 @@ module CreatureSheet
     cls   = classes.map { |c| "#{c[:key].split('_').map(&:capitalize).join(' ')} #{c[:level]}" }.join(' / ')
     { name: accessor.name, player: accessor.player,
       summary: [race, cls].reject(&:empty?).join(' '),
-      tier: tier, bab: (accessor.ranks_for('martial') rescue 0) }
+      tier: tier, hide_tier: !!(accessor.record[:hide_tier] rescue false),
+      bab: (accessor.ranks_for('martial') rescue 0) }
   end
 
   # Trained skills across all the Creature's classes, with Dice Cap +
@@ -225,7 +226,7 @@ module CreatureSheet
     grouped = { equipped: [], consumable: [], ammunition: [], other: [] }
     inv.each do |s|
       it = cat&.item_type(s.item_type)
-      name = (Equipment::Details.item_details(s, cat)[:display_name] rescue s.item_type)
+      name = (item_display_name(s, cat) rescue (Equipment::Details.item_details(s, cat)[:display_name] rescue s.item_type))
       row = { name: name, quantity: s.quantity }
       if s.equipped
         grouped[:equipped] << row
@@ -254,7 +255,7 @@ module CreatureSheet
       d = Equipment::Details.item_details(s, cat)
       desc = d[:description]
       next if desc.nil? || desc.to_s.strip.empty?
-      { name: d[:display_name], description: desc }
+      { name: (item_display_name(s, cat) rescue d[:display_name]), description: desc }
     end.uniq
   rescue StandardError
     []
@@ -295,10 +296,13 @@ module CreatureSheet
   end
 
   # Spells the Creature knows from Class spellcasting — the spell-typed
-  # entries among its Granted Abilities, grouped by Tier.
+  # entries among its Granted Abilities, grouped by Tier. A Creature's
+  # deity/domains never grant spells above the Creature's own Tier (the
+  # highest Tier it can cast), so Tiers beyond that are dropped.
   def spells(accessor)
     keys = (accessor.granted_abilities rescue []).map { |g| g[:name] }
-    spell_groups(keys)
+    cap  = (accessor.tier rescue 0)
+    spell_groups(keys).select { |g| g[:tier] <= cap }
   end
 
   # Rituals — the spells inscribed in the Creature's carried Ritual
@@ -363,22 +367,26 @@ module CreatureSheet
       idx = {}
       (Abilities.catalog.catalog rescue {}).each do |ckey, e|
         next unless e.is_a?(Hash) && e['type'] == 'spell'
-        spell_variants(ckey, e).each { |tier, vname| idx[norm.call(vname)] ||= { tier: tier, name: vname } }
+        spell_variants(ckey, e).each do |tier, vname, base, axis|
+          idx[norm.call(vname)] ||= { tier: tier, name: vname, base: base, axis: axis }
+        end
       end
       idx
     end
   end
 
-  # [ [tier, display_name], … ] for a spell: the catalog key, plus every
-  # per-Tier variant from its `name` array or constructed from `prefix`/`suffix`
-  # (mirroring Abilities' name construction: `[prefix, key, suffix]`).
+  # [ [tier, display_name, base_key, axis_index], … ] for a spell: the catalog
+  # key (axis 0), plus every per-Tier variant from its `name` array or
+  # constructed from `prefix`/`suffix` (mirroring Abilities' name construction:
+  # `[prefix, key, suffix]`). `base`/`axis` let a constructed name be resolved
+  # back to its catalog entry + Tier-axis index for Abilities.lookup.
   def spell_variants(key, entry)
     tiers = Array(entry['tier'])
     tiers = [0] if tiers.empty?
     name   = entry['name']
     prefix = entry['prefix']
     suffix = entry['suffix']
-    out = [[tiers.map(&:to_i).min, key.to_s]]
+    out = [[tiers.map(&:to_i).min, key.to_s, key.to_s, 0]]
     tiers.each_with_index do |t, i|
       vname =
         if name.is_a?(Array)                          then name[i]
@@ -387,9 +395,36 @@ module CreatureSheet
           [(prefix.is_a?(Array) ? prefix[i] : prefix), key, (suffix.is_a?(Array) ? suffix[i] : suffix)]
             .reject { |p| p.nil? || p.to_s.strip.empty? }.join(' ')
         end
-      out << [t.to_i, vname.to_s] if vname && !vname.to_s.strip.empty?
+      out << [t.to_i, vname.to_s, key.to_s, i] if vname && !vname.to_s.strip.empty?
     end
     out
+  end
+
+  # The Tier-resolved name of a Spell-form Item's spell — "Heal" at Tier 0 is
+  # "Heal Petty Wounds" — so a Potion / Scroll / Wand of a multi-Tier spell reads
+  # as the specific variant. Falls back to the base name for a single-Tier spell.
+  def spell_variant_name(spell, tier)
+    entry = (Abilities.catalog.ability(spell) rescue nil) or return spell.to_s
+    variants = (spell_variants(spell, entry) rescue [])
+    # Prefer the Tier's constructed variant over the bare catalog-key entry that
+    # also sits at the lowest Tier.
+    hit = variants.find { |t, name, _b, _a| t.to_i == tier.to_i && name.to_s != spell.to_s }
+    hit ||= variants.find { |t, _n, _b, _a| t.to_i == tier.to_i }
+    (hit && hit[1]) || spell.to_s
+  end
+
+  # Display name for an inventory Stack with a spell-form Item's spell resolved to
+  # the Stack's Tier ("Potion of Heal" at Tier 0 → "Potion of Heal Petty Wounds").
+  # Substitutes the trailing base spell name in the generated Display Name; leaves
+  # a non-spell item, or a handwritten / overridden name, untouched.
+  def item_display_name(stack, catalog)
+    base = Equipment::DisplayName.call(stack, catalog)
+    defn = (catalog && catalog.definition_of(stack.item_type)) || {}
+    spell = stack.stored_spell || defn['spell']
+    return base unless spell
+    vname = spell_variant_name(spell, stack.tier)
+    return base if vname.to_s == spell.to_s || vname.to_s.empty?
+    base.sub(/#{Regexp.escape(spell.to_s)}\s*\z/, vname)
   end
 
   def inventory(accessor)
@@ -414,7 +449,6 @@ module CreatureSheet
   end
 
   def attributes_table(accessor, attrs)
-    jack = jack_of_all_trades?(accessor)
     %i[Strength Dexterity Constitution Intelligence Wisdom Charisma]
       .zip(%i[str dex con int wis cha]).map do |label, k|
       save = (Proficiencies::Compute.roll_inputs(key: "#{k}_save", creature: accessor, attribute_override: k) rescue nil)
@@ -431,28 +465,22 @@ module CreatureSheet
       attr_bonus = (CreatureModifiers.attribute_bonus(accessor, k) rescue 0)
       { attr: label.to_s, key: k, score: attrs[k], half: attrs[k] / 2,
         attr_bonus: attr_bonus,
+        # Ordered components that sum to the Effective Attribute (base,
+        # racial, inherent, then per-Bonus-Type Modifiers) — the popup's
+        # breakdown line. Computed by the Creature, not here.
+        breakdown: (accessor.attribute_breakdown(k) rescue []),
         # An Attribute Check is a pure Attribute roll — it uses no Skill
         # ranks, so its Ranks cell is always 0.
         check: { dice: check_dice, bonus: check_bonus, ranks: 0 },
         save:  { dice: (save ? save[:dice_cap] : 0),
                  bonus: (save && save[:competency_modifier] ? save[:competency_modifier][1] : 0),
                  ranks: save_ranks(accessor, k), tokens: save_tokens },
-        # Only meaningful when the Creature has the Floor Ability (Jack
-        # of All Trades) — the Dice Cap + Bonus an untrained Skill driven
-        # by this Attribute would roll. nil otherwise so the sheet can
-        # omit the row.
-        untrained: (jack ? untrained_roll(accessor, k) : nil) }
+        # The Dice Cap + Bonus an untrained (zero-rank) Skill driven by
+        # this Attribute would roll — the Non-Proficiency Penalty for a
+        # normal Creature, or the Floor Ability (Jack of All Trades) lift
+        # for one that carries it. Shown for every Creature.
+        unskilled: unskilled_roll(accessor, k) }
     end
-  end
-
-  # Does the Creature carry the Proficiencies Floor Ability (default
-  # Jack of All Trades)? Drives whether the minimal sheet's Attribute
-  # popup shows an untrained-Skill row.
-  def jack_of_all_trades?(accessor)
-    ability = Proficiencies::Config.floor_ability
-    ability && accessor.has_ability(ability)
-  rescue StandardError
-    false
   end
 
   # Ranks the Creature has in an Attribute's Saving Throw proficiency
@@ -463,10 +491,12 @@ module CreatureSheet
     0
   end
 
-  # Dice Cap + Bonus (and the Floor-granted ranks) for an untrained
+  # Dice Cap + Bonus (and any Floor-granted ranks) for an unskilled
   # (zero-rank) Skill driven by an Attribute, sourced from Proficiencies
-  # (never recomputed here).
-  def untrained_roll(accessor, attr)
+  # (never recomputed here). For a normal Creature this carries the
+  # Non-Proficiency Penalty; a Creature with the Floor Ability (Jack of
+  # All Trades) gets its lift instead, so its ranks read floor(level/2).
+  def unskilled_roll(accessor, attr)
     ri = Proficiencies::Compute.untrained_roll_inputs(attribute: attr, creature: accessor)
     { dice: ri[:dice_cap],
       bonus: (ri[:competency_modifier] ? ri[:competency_modifier][1] : 0),

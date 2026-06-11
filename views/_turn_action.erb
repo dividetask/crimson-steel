@@ -29,6 +29,8 @@
 <% saves ||= [] %>
 <% special_options ||= [] %>
 <% main_actions ||= -1 %>
+<% has_spells = false unless defined?(has_spells) %>
+<% has_items = false unless defined?(has_items) %>
 <%
   incapacitated = !acting[:can_act]
   state_suffix  = dead ? 'Dead' : (incapacitated ? 'Incapacitated' : nil)
@@ -39,13 +41,16 @@
   dash = '—'
 
   # Generic Main-Action buttons. An incapacitated Combatant can only end its
-  # turn, so it is offered no Main Actions.
-  main_generic = incapacitated ? [] : [
-    { key: 'attack', label: 'Attack' },
-    { key: 'move',   label: 'Move' },
-    { key: 'cast',   label: 'Cast' },
-    { key: 'item',   label: 'Item' }
-  ]
+  # turn, so it is offered no Main Actions. Cast is offered only when the
+  # Combatant knows a spell (has_spells).
+  main_generic = if incapacitated
+                   []
+                 else
+                   [{ key: 'attack', label: 'Attack' },
+                    { key: 'move',   label: 'Move' }] +
+                     (has_spells ? [{ key: 'cast', label: 'Cast' }] : []) +
+                     (has_items ? [{ key: 'item', label: 'Item' }] : [])
+                 end
   free_generic = [{ key: 'end_turn', label: 'End Turn' }]
 
   # Special Abilities grouped by their action category (skipped when
@@ -92,16 +97,11 @@
       each Special Ability button is handled by TurnSpecial. The wrapping
       .ta-special is what TurnSpecial delegates its clicks from. %>
   <div class="ta-special ta-actions-menu" data-combatant-id="<%= acting[:combatant_id] %>">
-    <%# Once an action is picked the category groups collapse to this row: the
-        chosen action with a Change button (re-opens the menu), and a slot on
-        the right where the action's Confirm/Commit button surfaces — so the
-        DM confirms from the top of the stub without reaching down to the
-        result. Shown via the `ta-has-selection` class on .turn-action. %>
-    <div class="ta-selected-action">
-      <span class="ta-selected-label"></span>
-      <button type="button" class="ta-change"><span class="cr-change-icon">↶</span> Change</button>
-      <span class="ta-confirm-slot"></span>
-    </div>
+    <%# Once an action is picked the category groups collapse (ta-has-selection)
+        and the chosen action is folded into the builder as its first step row
+        (mountActionRow) — an "Action" row with a Change button (re-opens the
+        menu) and the confirm slot the Commit proxy lands in — so it reads in
+        the same pattern as Target / Weapon / Defense. %>
     <% categories.each do |cat, heading, generics, specials_in_cat| %>
       <% next if generics.empty? && specials_in_cat.empty? %>
       <div class="ta-cat-group">
@@ -135,16 +135,12 @@
 
       <div class="ta-pane" data-ta-pane="move">
         <%# Move (turn_action_stub.md → Move): a Main Action that spends a flat
-            Move Cost in Combat Pool dice and confirms. %>
-        <% can_move = pool && pool[:remaining] >= move_cost %>
-        <p class="ta-pane-lead">Move spends <strong><%= move_cost %></strong> Combat Pool dice (no other effect). Confirm to spend them.</p>
-        <% unless can_move %>
-          <p class="ta-warn">Not enough Combat Pool (<%= pool ? pool[:remaining] : 0 %>/<%= move_cost %>).</p>
-        <% end %>
-        <form method="post" action="/encounter/move">
-          <input type="hidden" name="combatant_id" value="<%= acting[:combatant_id] %>">
-          <button type="submit" class="ce-btn ta-confirm"<%= ' disabled' unless can_move %>>Confirm Move</button>
-        </form>
+            Move Cost in Combat Pool dice. Rendered through the shared Action
+            Result block (TurnMove) so the spent dice are an editable field and
+            it confirms exactly like Attack / Cast. %>
+        <div class="ta-move" data-combatant-id="<%= acting[:combatant_id] %>"
+             data-move-cost="<%= move_cost %>"
+             data-pool-remaining="<%= pool ? pool[:remaining] : 0 %>"></div>
       </div>
 
       <div class="ta-pane" data-ta-pane="cast">
@@ -155,11 +151,21 @@
       </div>
 
       <div class="ta-pane" data-ta-pane="item">
-        <p class="ta-pane-lead ta-staged">Use a carried consumable (potion, scroll, alchemical item) on a target via Equipment&rsquo;s Consume Item. Coming next.</p>
+        <%# Item use (turn_action_stub.md → Item): a thin host for the shared
+            Action Builder, exactly like Cast. The server precomputes the
+            builder blob (GET /encounter/item_builder) listing the actor's
+            Potions / Scrolls; TurnItem mounts it and, on confirm, POSTs to
+            /encounter/resolve_cast with the chosen Item so the cast resolves,
+            imposes Item-Form Toxicity (Potions), and decrements the charge. %>
+        <div class="ta-item" data-actor-id="<%= acting[:combatant_id] %>"
+             data-pool-remaining="<%= pool ? pool[:remaining] : 0 %>">
+          <p class="ta-attack-loading">Loading items…</p>
+        </div>
       </div>
     <% end %>
 
     <div class="ta-pane" data-ta-pane="end_turn">
+      <%= erb :_ta_action_row, locals: { label: 'End Turn' } %>
       <p class="ta-pane-lead">Advance to the next Combatant in initiative order. Clears this Combatant&rsquo;s luck points; a Round wrap advances the Timestamp. The next Combatant&rsquo;s Combat Pool and Main Actions refresh automatically.</p>
       <form method="post" action="/encounter/advance_turn">
         <button type="submit" class="ce-btn ta-confirm">End Turn</button>

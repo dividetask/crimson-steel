@@ -109,6 +109,26 @@ Slots:
   - body
   - chest
   - feet
+  - finger
+  - hands
+  - head
+  - neck
+  - shoulders
+  - wrists
+
+# Tattoo Slots — a parallel Slot namespace for Tattoos (see the Tattoos
+# catalog block). A Tattoo occupies its body location like a worn Item,
+# but in this separate namespace: a `chest` Tattoo does NOT conflict
+# with chest Armor, only with another `chest` Tattoo. The Creatures
+# domain enforces "one Tattoo per Tattoo Slot" independently of the
+# worn-Item Slot rule above.
+Tattoo Slots:
+  - back
+  - belt
+  - body
+  - chest
+  - feet
+  - finger
   - hands
   - head
   - neck
@@ -224,6 +244,11 @@ Weapons:
     damage_type: Piercing
     ammo_type: Arrow
     base_price: 50
+  Short bow:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Arrow
+    base_price: 50
   Crossbow:
     category: Ranged
     damage_type: Piercing
@@ -239,6 +264,20 @@ Weapons:
     damage_type: Piercing
     tags: [thrown]
     base_price: 4
+  Bola:
+    category: Ranged
+    damage_type: Bludgeoning
+    base_damage: 0
+    threshold: null
+    tags: [thrown]
+    base_price: 5
+  Net:
+    category: Ranged
+    damage_type: Bludgeoning
+    base_damage: 0
+    threshold: null
+    tags: [thrown]
+    base_price: 1
   Mace:
     category: One Handed
     damage_type: Bludgeoning
@@ -287,11 +326,55 @@ Weapons:
     damage_type: Slashing
     tags: [heavy]
     base_price: 60
+  Great axe:
+    category: Two Handed
+    damage_type: Slashing
+    tags: [heavy]
+    base_price: 50
+  Falchion:
+    category: One Handed
+    damage_type: Slashing
+    base_price: 30
   Quarterstaff:
     category: Two Handed
     damage_type: Bludgeoning
     tags: [double_weapon]
     base_price: 2
+  Battleaxe:
+    category: One Handed
+    damage_type: Slashing
+    base_price: 10
+  Greataxe:
+    category: Two Handed
+    damage_type: Slashing
+    tags: [heavy]
+    base_price: 20
+  Falchion:
+    category: Two Handed
+    damage_type: Slashing
+    base_price: 75
+  # Shortbow shares the Longbow's profile (Ranged, Piercing, Arrow ammo);
+  # priced lower as the lighter, shorter-ranged bow.
+  Shortbow:
+    category: Ranged
+    damage_type: Piercing
+    ammo_type: Arrow
+    base_price: 25
+  # Bola — a thrown entangling weapon (10-ft range). Its damage field adds
+  # nothing to the attack (`base_damage: 0`); a creature it hits must make a
+  # Dexterity save or fall prone. `range_feet` and `on_hit_save` are
+  # declarative — the save's Combat wiring is not yet implemented.
+  Bola:
+    category: Ranged
+    damage_type: Bludgeoning
+    base_damage: 0
+    tags: [thrown]
+    range_feet: 10
+    on_hit_save:
+      attribute: dex
+      fail: prone
+      success: "0"
+    base_price: 5
 
 # Magical Weapon Properties. `applies_to` keys: `melee`, `ranged`,
 # `ammo`. A Property with `has_subtype: true` has a Display block
@@ -411,7 +494,7 @@ Ammunition:
   Arrow:
     base_price: 5
     bundle_size: 20
-    used_by: [Longbow]
+    used_by: [Longbow, Shortbow]
   Bolt:
     base_price: 5
     bundle_size: 20
@@ -428,6 +511,10 @@ Ammunition:
 # Per-Category defaults. Shields carry null Damage Reduction and
 # null Resilience Increment — Combat reads these specifically.
 Armor Category Defaults:
+  Clothing:
+    damage_reduction: 0
+    resilience_increment: 1
+    thickness: 1
   Light:
     damage_reduction: 1
     resilience_increment: 1
@@ -449,6 +536,9 @@ Armor Category Defaults:
 # `hit_points` string is a formula Combat evaluates; `thickness`
 # substitutes from the wearing Armor's Category Defaults.
 Materials:
+  Cloth:
+    hardness: 0
+    hit_points: "5 * thickness"
   Leather:
     hardness: 2
     hit_points: "5 * thickness"
@@ -486,6 +576,11 @@ Armor:
     material: Metal
     metal: true
     base_price: 150
+  Breastplate:
+    category: Medium
+    material: Metal
+    metal: true
+    base_price: 200
   Plate mail:
     category: Heavy
     material: Metal
@@ -495,14 +590,19 @@ Armor:
     category: Shield
     material: Wood
     base_price: 3
+  Light metal shield:
+    category: Shield
+    material: Metal
+    metal: true
+    base_price: 9
   Tower shield:
     category: Shield
     material: Metal
     metal: true
     base_price: 30
   Robes:
-    category: Light
-    material: Leather
+    category: Clothing
+    material: Cloth
     base_price: 1
 
 # Magical Armor Properties. `applies_to` keys: `all_armor` (any
@@ -628,12 +728,6 @@ Consumables:
     category: Consumable
     base_price: 25
     innately_usable: true
-  Healing Potion:
-    category: Consumable
-    spell: Heal
-    tier: [0, 1, 2, 3, 4, 5]
-    base_price: [25, 100, 400, 1600, 6400, 25600]
-    innately_usable: true
 
 Books:
   Ritual book:
@@ -658,6 +752,15 @@ Misc Items:
   Whetstone:
     category: Item
     base_price: 0.2
+  Humanoid skull:
+    category: Item
+    base_price: 0
+  Necklace of animal fangs:
+    category: Item
+    base_price: 0
+  Manacles:
+    category: Item
+    base_price: 2
   Thieves' tools:
     category: Item
     slot: bag
@@ -678,3 +781,118 @@ Misc Items:
     category: Item
     slot: bag
     base_price: 60
+
+  # Generic wearable base Items — the mundane gear that magical
+  # Properties are applied to (a plain Ring becomes a "Ring of X").
+  # Each occupies the named worn Slot (one Item per Slot).
+  Ring:
+    category: Item
+    slot: finger
+    base_price: 5
+  Amulet:
+    category: Item
+    slot: neck
+    base_price: 5
+  Cloak:
+    category: Item
+    slot: shoulders
+    base_price: 5
+  Hat:
+    category: Item
+    slot: head
+    base_price: 2
+  Boots:
+    category: Item
+    slot: feet
+    base_price: 2
+  Belt:
+    category: Item
+    slot: belt
+    base_price: 2
+  Bracer:
+    category: Item
+    slot: wrists
+    base_price: 5
+  # A Wand is held; while equipped it adds its `spell` to the wielder's
+  # castable list (see Wands in equipment_design.md). Channels Mana from
+  # the wielder and imposes no Magic Toxicity.
+  Wand:
+    category: Item
+    slot: hands
+    base_price: 25
+  Pouch:
+    category: Item
+    slot: bag
+    base_price: 1
+  Backpack:
+    category: Item
+    slot: back
+    base_price: 2
+
+  # Generic slotless base Items — carried, never worn.
+  Trinket:
+    category: Item
+    base_price: 1
+  Bottle:
+    category: Item
+    base_price: 0.5
+  Kerosene:
+    category: Item
+    base_price: 1
+
+# =====================================================================
+# TATTOOS
+# =====================================================================
+# A Tattoo is permanent body art that grants one or more Abilities. It
+# occupies a Tattoo Slot (a parallel namespace to worn-Item Slots — see
+# "Tattoo Slots" above), so a Tattoo never competes with Armor or worn
+# gear for the same body location; it only competes with another Tattoo
+# in the same Tattoo Slot. Tattoos are:
+#   - always equipped (no `equipped` field; they have no un-equipped
+#     state and are never toggled),
+#   - permanent (they cannot be removed or unequipped), and
+#   - granting (`grants` lists the Ability names conferred while borne —
+#     which, being permanent, is always).
+# The catalog is open; consuming projects add their own Tattoos.
+
+Tattoos:
+  # Example Tattoo — a chest tattoo granting the Sneak Attack Talent, but
+  # only ever at Class Level 1 (so its bonus never scales with the
+  # wearer's own level). A `grants` entry may be a plain Ability name, or
+  # `{ ability:, class_level: }` to pin the level the Ability is granted at.
+  Tattoo of the Viper:
+    category: Tattoo
+    slot: chest
+    grants:
+      - ability: Sneak Attack
+        class_level: 1
+    base_price: 5000
+
+# =====================================================================
+# POISON VIALS
+# =====================================================================
+# Poison Vials are NOT enumerated here. Like the Spell-Form Items
+# (Scroll / Potion / Oil / Wand), they are autogenerated by the Catalog —
+# one "Vial of <Poison>" per Affliction of category "poison" in
+# `conditions/conditions_afflictions.yaml`. Each generated Vial is a
+# Consumable carrying its `poison` (the Affliction key) and holds its
+# doses as the Stack `quantity`. Structure only for now: applying a dose
+# (to a weapon, or thrown / applied to a target) is not yet wired into
+# Combat. A project may still author an explicit Vial entry under a
+# `Poison Vials:` block to override a generated one.
+
+# =====================================================================
+# UNIQUE ITEMS
+# =====================================================================
+# One-of-a-kind named Items. They carry no `base_price` (no gold value)
+# and `no_store: true` keeps them out of Store provisioning — the DM
+# places them; they are never bought or sold. `grants` confers Abilities
+# to the wielder while equipped (a plain Ability name, or
+# `{ ability:, class_level: }`).
+Unique Items:
+  Kesser's Ring:
+    category: Item
+    slot: finger
+    no_store: true
+    grants: [Kesser's Gambit]
+    description: "A plain band that hums with reversal. While worn, it grants Kesser's Gambit to the wielder."

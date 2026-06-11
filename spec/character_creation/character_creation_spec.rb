@@ -49,8 +49,7 @@ RSpec.describe CharacterCreation, type: :model do
   describe '.blob classes' do
     let(:by_key) { CharacterCreation.classes.each_with_object({}) { |c, h| h[c[:key]] = c } }
 
-    it 'drops the deleted Ranger class and includes the new Sorcerer' do
-      expect(by_key).not_to have_key('ranger')
+    it 'includes the Sorcerer class added in character creation' do
       expect(by_key).to have_key('sorcerer')
     end
 
@@ -127,8 +126,11 @@ RSpec.describe CharacterCreation, type: :model do
   describe '.create!' do
     around do |example|
       Dir.mktmpdir do |dir|
-        Creatures::Dataset.data_dir = dir
+        # reset! clears @data_dir, so it must run BEFORE pointing the dataset at
+        # the tmpdir — otherwise create! falls back to the real data/ overlay
+        # and leaks test PCs into the live campaign file.
         Creatures::Dataset.reset!
+        Creatures::Dataset.data_dir = dir
         example.run
       ensure
         Creatures::Dataset.reset!

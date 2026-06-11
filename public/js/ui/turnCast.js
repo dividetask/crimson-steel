@@ -1,5 +1,6 @@
 import { ActionBuilder } from './actionBuilder.js';
-import { placeCommitProxy } from './turnCommit.js';
+import { ActionResult } from './actionResult.js';
+import { placeCommitProxy, mountActionRow } from './turnCommit.js';
 
 // Turn Action panel — Cast (turn_action_stub.md → Cast).
 //
@@ -20,7 +21,7 @@ export class TurnCast {
 
     container.addEventListener('action:confirmed', (e) => TurnCast._preview(container, e.detail));
     container.addEventListener('click', (e) => {
-      if (e.target.closest && e.target.closest('.ta-commit')) { e.preventDefault(); TurnCast._commit(container); }
+      if (e.target.closest && e.target.closest('.ar-commit')) { e.preventDefault(); TurnCast._commit(container); }
     });
     // Capture an area placement (re-placement re-fires via the Target step's
     // own Change button, which re-arms the "Place on the map" option).
@@ -32,8 +33,12 @@ export class TurnCast {
       .then((html) => {
         container.innerHTML = html + '<div class="ta-result tc-result" hidden></div>';
         const builder = container.querySelector('.action-builder');
-        if (builder) { ActionBuilder.ensureLoaded(builder); container._builder = builder; }
-        else container.innerHTML = '<p class="ta-warn">This Combatant knows no castable spells.</p>';
+        if (builder) {
+          ActionBuilder.ensureLoaded(builder);
+          container._builder = builder;
+          const panel = container.closest && container.closest('.turn-action');
+          mountActionRow(builder, (panel && panel.dataset.actionLabel) || 'Cast');
+        } else { container.innerHTML = '<p class="ta-warn">This Combatant knows no castable spells.</p>'; }
       })
       .catch(() => { container.innerHTML = '<p class="ta-warn">Could not load the cast.</p>'; });
   }
@@ -101,12 +106,39 @@ export class TurnCast {
 
   static _preview(container, detail) {
     container._lastDetail = detail;
-    TurnCast._post(container, TurnCast._payload(container, detail, false), (res) => TurnCast._renderResult(container, res));
+    // A no-roll cast surfaces its details automatically (detail.auto); the blue
+    // title "Confirm" then commits (a non-auto confirm). A rolled cast previews
+    // on the DM's Confirm, then commits from the result's own button.
+    if (detail.noRoll && !detail.auto) { TurnCast._commit(container); return; }
+    TurnCast._post(container, TurnCast._payload(container, detail, false), (res) => TurnCast._renderResult(container, res, detail));
   }
 
   static _commit(container) {
     if (!container._lastDetail) return;
-    TurnCast._post(container, TurnCast._payload(container, container._lastDetail, true), () => window.location.reload());
+    const payload = TurnCast._payload(container, container._lastDetail, true);
+    payload.override = TurnCast._gatherOverride(container);
+    TurnCast._post(container, payload, () => window.location.reload());
+  }
+
+  // Read the editable result fields (Mana, per-participant Combat Pool) into an
+  // override the cast resolver applies on commit.
+  static _gatherOverride(container) {
+    const f = ActionResult.fields(container.querySelector('.tc-result'));
+    const o = {};
+    if ('mana' in f) o.mana = f.mana;
+    const pools = Object.keys(f).filter((k) => k.indexOf('pool:') === 0)
+      .map((k) => ({ id: num(k.slice(5)), amount: f[k] }));
+    if (pools.length) o.pool_spends = pools;
+    // Edited heal Severities: "heal:<targetId>:<severity>" → one override per
+    // target with its Severity map.
+    const heals = {};
+    Object.keys(f).filter((k) => k.indexOf('heal:') === 0).forEach((k) => {
+      const parts = k.split(':');
+      (heals[parts[1]] = heals[parts[1]] || {})[parts[2]] = f[k];
+    });
+    const healList = Object.keys(heals).map((id) => ({ target_id: num(id), severity_map: heals[id] }));
+    if (healList.length) o.heals = healList;
+    return o;
   }
 
   static _post(container, payload, onOk) {
@@ -122,24 +154,56 @@ export class TurnCast {
       .catch(() => TurnCast._warn(container, 'Could not resolve the cast.'));
   }
 
-  static _renderResult(container, res) {
+  // Render the cast outcome through the shared Action Result renderer — the same
+  // markup the Attack result uses. Mana and per-participant Combat Pool are the
+  // editable fields; the spell line, per-target outcomes, and sustain are
+  // read-only notes.
+  static _renderResult(container, res, detail) {
     const slot = container.querySelector('.tc-result');
     if (!slot) return;
-    const lines = [];
+    // A no-roll cast commits from the blue title "Confirm" — so the result block
+    // shows only the details (no separate Commit button / proxy). A rolled cast
+    // keeps its own Commit button.
+    const noRoll = !!(detail && detail.noRoll);
     const tox = res.toxicity || {};
-    lines.push(`<p class="tc-line"><strong>${esc(res.spell || 'Spell')}</strong> — ${esc(res.cast_skill || '')}` +
-      ` · Mana ${num(res.mana_spent)}${tox.requested ? ` · Toxicity ${num(tox.requested)}${tox.accepted === false ? ' (blocked)' : ''}` : ''}</p>`);
-    (res.targets || []).forEach((t) => {
-      const fx = (t.applied || []).map((a) => TurnCast._fxText(a)).filter(Boolean).join(', ');
-      lines.push(`<p class="tc-line">#${t.id}: ${esc(t.outcome)}${fx ? ' — ' + fx : ''}</p>`);
+    const nameOf = TurnCast._namer(container);
+    // A consumable Item cast (Potion / Scroll) costs no Mana — the Item supplies
+    // the spell — so it shows no Mana row on the confirm page.
+    const fields = res.consumable ? [] : [{ key: 'mana', label: 'Mana', value: num(res.mana_spent), editable: true }];
+    (res.pool_spends || []).filter((s) => s.amount > 0).forEach((s) => {
+      fields.push({ key: `pool:${s.id}`, label: `Combat Pool — ${nameOf(s.id)}`, value: num(s.amount), editable: true });
     });
-    if (res.sustain) lines.push(`<p class="tc-line">Sustain: ${esc(res.sustain.kind)}</p>`);
-    lines.push(`<div class="ta-actions"><button type="button" class="ce-btn ta-commit">Commit cast</button></div>`);
-    slot.innerHTML = lines.join('');
+    // A heal Effect cures Minor / Moderate / (sometimes) Major damage — surface
+    // one editable box per Severity so the DM sets exactly how much it restores.
+    // The boxes replace the read-only heal note for that target.
+    const healTargets = (res.targets || []).filter((t) => (t.applied || []).some((a) => a.kind === 'heal'));
+    healTargets.forEach((t) => {
+      (t.applied || []).filter((a) => a.kind === 'heal').forEach((a) => {
+        const sev = a.severity_map || a.healed || {};
+        ['minor', 'moderate', 'major'].forEach((k) => {
+          if (num(sev[k]) <= 0) return;
+          const who = healTargets.length > 1 ? `${nameOf(t.id)} — ` : '';
+          fields.push({ key: `heal:${t.id}:${k}`, label: `Heal ${who}${k}`, value: num(sev[k]), editable: true });
+        });
+      });
+    });
+    const notes = [{
+      label: res.spell || 'Spell',
+      value: (res.cast_skill || '') +
+        (tox.requested ? ` · Toxicity ${num(tox.requested)}${tox.accepted === false ? ' (blocked)' : ''}` : '')
+    }];
+    (res.targets || []).forEach((t) => {
+      // The heal Severities show as editable fields above, so drop them here.
+      const fx = (t.applied || []).filter((a) => a.kind !== 'heal').map((a) => TurnCast._fxText(a)).filter(Boolean).join(', ');
+      notes.push({ label: `#${t.id}`, value: `${t.outcome || ''}${fx ? ' — ' + fx : ''}` });
+    });
+    if (res.sustain) notes.push({ label: 'Sustain', value: res.sustain.kind });
+    ActionResult.render(slot, { fields, notes, commitLabel: noRoll ? null : 'Commit cast' });
     slot.hidden = false;
-    // Surface a Commit button at the top of the Turn Action stub (the action
-    // menu's confirm slot) so the DM commits without reaching down here.
-    placeCommitProxy(container, 'Commit cast');
+    // A rolled cast surfaces a Commit proxy at the top; a no-roll cast commits
+    // from the blue title "Confirm", so it needs neither a result Commit nor a
+    // proxy.
+    if (!noRoll) placeCommitProxy(container, 'Commit cast');
   }
 
   static _fxText(a) {
@@ -149,6 +213,7 @@ export class TurnCast {
     if (a.kind === 'mana') return `mana +${a.restored != null ? a.restored : a.amount}`;
     if (a.kind === 'temp_hp') return `temp HP ${num(a.amount)}`;
     if (a.kind === 'effect') return esc(a.name);
+    if (a.kind === 'bleed_reduction') return `bleeding −${num(a.removed != null ? a.removed : a.requested)}`;
     return a.error ? `error: ${esc(a.error)}` : '';
   }
 
@@ -156,6 +221,29 @@ export class TurnCast {
     const slot = container.querySelector('.tc-result');
     if (slot) { slot.hidden = false; slot.innerHTML = `<p class="ta-warn">${esc(msg)}</p>`; }
   }
+
+  // Resolve a Combatant id to a display name from the builder's roll groups (the
+  // caster and any target), so the Combat-Pool rows read by name like Attack's.
+  static _namer(container) {
+    const map = {};
+    container.querySelectorAll('.roll-group').forEach((g) => {
+      const nm = g.querySelector('.creature-name');
+      if (nm) map[g.dataset.rollId] = nameText(nm);
+    });
+    const choices = (container._lastDetail || {}).choices || {};
+    const byId = {};
+    byId[container._casterId] = map.caster || ('#' + container._casterId);
+    if (choices.target != null) byId[choices.target] = map.target || ('#' + choices.target);
+    return (id) => byId[id] || ('#' + id);
+  }
+}
+
+// Read only the creature-name cell's own text nodes (excluding the .tn-tip
+// tooltip span) so the TN computation text doesn't leak into the name.
+function nameText(el) {
+  let t = '';
+  el.childNodes.forEach((n) => { if (n.nodeType === 3) t += n.textContent; });
+  return t.trim() || el.textContent.trim();
 }
 
 function num(v) { const n = parseInt(v, 10); return Number.isNaN(n) ? 0 : n; }

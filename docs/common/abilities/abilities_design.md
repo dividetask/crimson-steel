@@ -395,7 +395,8 @@ Flat numeric bonuses while the Creature has the Ability are handled by Modifiers
 
 ### Owned by the Abilities domain
 
-- Loading and validating `spells.yaml`, `talents.yaml`, `stateful_abilities.yaml`, `modifier_abilities.yaml`, and `abilities_config.yaml`.
+- Loading and validating `spells.yaml`, `talents.yaml`, `stateful_abilities.yaml`, `modifier_abilities.yaml`, `roll_tables.yaml`, and `abilities_config.yaml`.
+- Loading and validating **Roll Tables** (`roll_tables.yaml`): named die-tables an Ability fires on. A Catalog Ability points at one through its `roll_table:` field (a Talent like Kesser's Gambit → the *Kesser Reversal Table*). Each table declares a `die` and one `entries` row per face, keyed `1..die`, each with a `name` and `effect`; the validator rejects a missing/out-of-range face, an entry missing its `name`/`effect`, and any Ability whose `roll_table` names a table that does not exist. Exposed through `Abilities.roll_table(name)` and `Abilities.roll_table_for(ability)`. The combat-side roll + resource spend lives in the Encounter domain (`encounter_roll_table_stub.md`); Abilities only stores the table.
 - Schema validation: rejecting unknown Types, Schools, Casting Skills, Item Forms, Properties, Save Attributes, Save Outcome Keys, Action Aliases, Real-Time Aliases, Range names, Area Shapes, Damage Type names, Trigger Event names, Bonus Type names, Polarity values; checking Variant parallel-list lengths; rejecting overrides of structural fields; rejecting universal-entry leaks; rejecting Abilities that declare both `tier` (as a list) and `aspects`; rejecting `school`/`items`/`item_only`/`polarity` on Talents.
 - Validating Severity rules: every damage Effect has a determinable Severity; `damage_type: physical` requires `threshold`; `threshold` rejected on non-physical Abilities.
 - Resolving Variants: applying Overrides, constructing names, performing `{name}` and `{aspect}` substitution.

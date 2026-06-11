@@ -1,7 +1,15 @@
 import { DiceConfig } from './config.js';
+import { Ascendancy } from './ascendancy.js';
 
 // TN computation: turn a Roll's bonus_penalty_list and
 // starting_contribution into a final TN and Starting Value.
+//
+// Ascendancy (Tier-mismatch amplification) is derived here, as a step of
+// Roll Resolution: before stacking, any Inherent imbalance in the list
+// yields a derived Ascendancy entry (see ascendancy.js). Because it lives in
+// TN computation rather than Check Resolution, every Roll that carries an
+// Inherent Penalty — a combat Roll after Propagation, or a one-sided Roll
+// such as an Affliction save — picks it up.
 //
 // Per-Type stacking: for each Bonus/Penalty Type only the highest
 // positive and the lowest negative entry contribute; the rest are
@@ -10,6 +18,14 @@ import { DiceConfig } from './config.js';
 // becomes Starting Value (Bonuses below Minimum → Starting Successes,
 // Penalties above Maximum → Starting Failures).
 export class TnComputation {
+  // The list with its derived Ascendancy entry appended (or unchanged when
+  // no Inherent imbalance is present). Per-Type stacking makes a duplicate
+  // append idempotent, so this is safe to apply more than once.
+  static withAscendancy(list) {
+    const mod = Ascendancy.modifier(list || []);
+    return mod ? (list || []).concat([mod]) : (list || []);
+  }
+
   // roll: { bonusPenaltyList?: [[typeName, value], ...], startingContribution?: number }
   static compute(roll, config = DiceConfig.default()) {
     const list = roll.bonusPenaltyList || [];
@@ -39,7 +55,7 @@ export class TnComputation {
     const highestPositive = new Map();
     const lowestNegative = new Map();
 
-    for (const [type, value, source] of list) {
+    for (const [type, value, source] of TnComputation.withAscendancy(list)) {
       if (value > 0) {
         if (!highestPositive.has(type) || value > highestPositive.get(type).value) {
           highestPositive.set(type, { value, source });

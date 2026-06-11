@@ -122,16 +122,19 @@
     group_config[:base_tn]            = roll[:base_tn]            if roll[:base_tn]
     group_config[:bonus_penalty_list] = roll[:bonus_penalty_list] if roll[:bonus_penalty_list]
     group_config[:speed]              = roll[:speed]             if roll.key?(:speed)
-    # Creature Tier for the Check Resolution Tier Mismatch (Ascendancy).
-    group_config[:tier]               = roll[:tier]              if roll.key?(:tier)
 
     # Computation line for the character-cell TN tooltip: "Base ±mods = TN n".
     # A Bonus lowers the TN, so it shows as a negative term ("−2 Competency");
-    # a Penalty raises it, shown as positive. (This is the pre-JS fallback; the
-    # Check Builder re-renders it via Check Resolution after propagation.)
+    # a Penalty raises it, shown as positive. The list is run through
+    # `with_ascendancy` so the derived Tier-mismatch Ascendancy term appears
+    # (it is folded into `tn` the same way), and zero-amount entries — e.g. a
+    # Tier-0 opponent's +0 Inherent Penalty, which only gates the Ascendancy —
+    # are dropped. (This is the pre-JS fallback; the Check Builder re-renders it
+    # via Check Resolution after propagation.)
     tn_breakdown =
       if roll[:base_tn]
-        terms = Array(roll[:bonus_penalty_list]).map do |type, amt, source|
+        terms = Array(DiceResolution.with_ascendancy(roll[:bonus_penalty_list])).filter_map do |type, amt, source|
+          next if amt.to_i.zero?
           label = source ? "(#{source})" : type
           "#{amt.to_i >= 0 ? '+' : '−'}#{amt.to_i.abs} #{label}"
         end

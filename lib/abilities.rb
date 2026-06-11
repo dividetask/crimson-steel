@@ -80,6 +80,19 @@ module Abilities
     entry && entry['trigger']
   end
 
+  # A named Roll Table (roll_tables.yaml) verbatim, or nil for an
+  # unknown name. See `Abilities::Catalog#roll_table`.
+  def roll_table(name)
+    catalog.roll_table(name)
+  end
+
+  # The Roll Table name a Catalog Ability fires on (its `roll_table`
+  # field), or nil when it declares none / isn't a Catalog Ability.
+  def roll_table_for(name)
+    entry = catalog.ability(name)
+    entry && entry['roll_table']
+  end
+
   # Modifier Entries verbatim across every Ability flavor that carries
   # `modifiers:`. Always returns a list (empty when none / unknown).
   def get_modifiers(name, source: nil)

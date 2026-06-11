@@ -38,7 +38,7 @@
   </header>
   <div class="cs-subtitle cs-subtitle-full">
     <em><%= h[:summary] %></em><br>
-    <em>Tier <span class="cs-tier-num"><%= h[:tier] %></span>&nbsp;&nbsp;&nbsp;BAB: <%= h[:bab] %></em>
+    <em><% unless h[:hide_tier] %>Tier <span class="cs-tier-num"><%= h[:tier] %></span>&nbsp;&nbsp;&nbsp;<% end %>BAB: <%= h[:bab] %></em>
   </div>
 
   <section class="cs-section cs-vitals-strip">

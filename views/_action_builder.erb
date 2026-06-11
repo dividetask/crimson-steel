@@ -41,7 +41,8 @@
           # Non-interactive descriptive text (TN Bonus/Penalty breakdown).
           %(<span class="cb-bonus-note">#{o[:label]}</span>)
         else
-          %(<button type="button" class="cr-mod-btn cb-opt" data-step="#{step[:key]}" ) +
+          cls = o[:dying] ? 'cr-mod-btn cb-opt cb-opt-dying' : 'cr-mod-btn cb-opt'
+          %(<button type="button" class="#{cls}" data-step="#{step[:key]}" ) +
             %(data-value="#{CGI.escapeHTML(o[:value].to_s)}"#{o[:disabled] ? ' disabled' : ''}>#{o[:label]}</button>)
         end
       end.join(' ')

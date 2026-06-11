@@ -28,6 +28,48 @@ helpers do
     !!(a && !Array(a.tags).include?('enemy_template'))
   end
 
+  # The spawn-time Roll Tables declared on a Creature (template), for the
+  # roll-tables stub shown above the sheet. Returns nil when the Creature
+  # has none (e.g. a Player or a spawned instance). Each table is the
+  # record's own normalized shape; the equipment loadout is expanded into
+  # readable rows.
+  def roll_tables_data(id)
+    rec = (Creatures.lookup(id).record rescue nil) or return nil
+    data = {}
+    data[:equipment]        = equipment_loadout_summary(rec[:equipment_table]) if rec[:equipment_table]
+    data[:race]             = rec[:race_table]   unless Array(rec[:race_table]).empty?
+    data[:classes]          = rec[:class_table]  unless Array(rec[:class_table]).empty?
+    data[:skills]           = Array(rec[:skill_table])
+    data.delete(:skills) if data[:skills].empty?
+    data[:tier_advancement] = rec[:tier_advancement_table] if rec[:tier_advancement_table]
+    data.empty? ? nil : data
+  end
+
+  # Flatten an Equipment Loot Table into displayable rows: each row lists
+  # the item(s) it can grant, with per-option chances, the gating `when`,
+  # and whether the result is equipped. Option lists referenced by name
+  # are resolved. Returns { id:, rows: [...] }, or nil for an unknown id.
+  def equipment_loadout_summary(table_id)
+    lt    = (Equipment::LootTables.load rescue nil) or return { id: table_id, rows: [] }
+    table = lt.table(table_id) or return { id: table_id, rows: [] }
+    rows = Array(table['rolls']).map do |row|
+      opts = row['options']
+      items =
+        if opts.is_a?(String)
+          Array(lt.option_list(opts)).map { |o| { name: o.dig('item', 'item'), chance: o['chance'] } }
+        elsif opts.is_a?(Array)
+          opts.map { |o| { name: o.dig('item', 'item'), chance: o['chance'] } }
+        elsif row['item']
+          [{ name: row.dig('item', 'item'), qty: row.dig('item', 'quantity') }]
+        else
+          []
+        end
+      { equipped: row['equipped'], when: row['when'], chance: row['chance'],
+        items: items.reject { |i| i[:name].to_s.empty? } }
+    end
+    { id: table_id, rows: rows }
+  end
+
   # Equippable: every Weapon and Armor, plus an Item only when it
   # declares an equipment Slot. Items without a Slot (Rations, Bedroll,
   # Whetstone) are carried but not worn/wielded; Consumables, Ammunition,
@@ -94,7 +136,7 @@ helpers do
   def inventory_row(stack, index, catalog = Equipment.catalog)
     {
       index:      index,
-      name:       Equipment::DisplayName.call(stack, catalog),
+      name:       (CreatureSheet.item_display_name(stack, catalog) rescue Equipment::DisplayName.call(stack, catalog)),
       icon:       item_icon_web_path(stack.item_type),
       category:   catalog.category_of(stack.item_type),
       quantity:   stack.quantity,

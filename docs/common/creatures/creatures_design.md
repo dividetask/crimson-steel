@@ -26,8 +26,14 @@ The on-disk shape persisted in the `creatures_data_*.example.{json,yaml}` files 
 | `race` | string | required | Key into `creatures_race.yaml`. Names a single Race entry. Multi-level inheritance is expressed through that entry's `parent:` chain — there is no separate `race_aspect` field. |
 | `attributes` | map of attribute key → integer | required | The six raw scores (`str`, `dex`, `con`, `int`, `wis`, `cha`). Every key is required; default zero is *not* assumed. |
 | `tier` | integer or null | null | Tier Override. When non-null, *Get Tier* returns this verbatim and Tier Breakpoints are ignored. When null, Tier is auto-computed from Total Class Level against the breakpoint list selected by the Creature's `tags`. |
+| `hide_tier` | boolean | false | Display-only flag. When true, the Creature's Tier is withheld from the rendered sheet (the real Tier is still stored and still drives HP/Mana/Toxicity and every other formula). For Creatures whose power level is meant to be hidden from players. |
 | `advancement` | Advancement Block | `{}` | Holds the Creature's classes and tier attribute advancement picks. See *Advancement Block* below. |
 | `loot_table` | string or null | null | Optional Loot Table ID (defined in Equipment). When set, Equipment's *Collect Combat Loot* rolls this table for the Creature on top of moving its Inventory. |
+| `equipment_table` | string or null | null | Optional Equipment Loot Table ID rolled **once at spawn time** to generate the Creature's starting loadout — equipped gear, ammunition, and pocket change. Distinct from `loot_table` (death drops). The consuming project rolls it immediately after *Spawn Creature From Template* (see that entry point). |
+| `race_table` | list of `{race, chance}` | `[]` | Optional weighted race list rolled **once at spawn time** to choose the spawn's `race` (e.g. a Slaver that is 50% orc, else human/elf/dwarf). `chance` values are absolute and conventionally sum to 1; leftover probability falls through to the last entry. Every `race` must resolve in `creatures_race.yaml`. The template's own `race` field is the default shown before any spawn. *Spawn Creature From Template* resolves the table to a concrete `race` and clears it on the spawn. |
+| `class_table` | list of `{class, chance, level?, skills?, choices?, domain_picks?}` | `[]` | Optional weighted class list rolled **once at spawn time** to choose the spawn's class (e.g. a Slaver that is 50% warrior, else fighter/cleric/rogue). The chosen entry **replaces** `advancement.classes` with a single Class Entry (`level` defaults to 1; `skills`/`choices` optional). `chance` semantics match `race_table`. Every `class` must resolve in `creatures_advancement.yaml`. The template's own `advancement.classes` is the default shown before any spawn. An optional `domain_picks` (list of `{count, from}`) rolls that many **distinct** Cleric domains from each pool (never repeating across draws) and writes them to the spawn's `choices.domains` — used to give a cleric spawn a randomized domain spread. |
+| `skill_table` | list of skill keys | `[]` | Optional candidate skill list. At spawn the list is shuffled and the first **N** are assigned to the spawn's (single) class, where N is the Skill Pick Budget — `Skill Pick Formula` (`floor(int/4) + bonus_skills`) evaluated against the spawn's resolved Effective Intelligence and the rolled class's `bonus_skills`. The count does **not** scale with Class Level (higher level advances the chosen skills, it does not grant more of them). Entries may be Set Instances (`perform_percussion`) but not bare Set Skill keys. |
+| `tier_advancement_table` | `{count, from}` or null | null | Optional spec rolled **once at spawn time** to fill Tier Attribute Advancement: `count` picks, each chosen uniformly (repeats allowed) from the `from` attribute list, appended to `tier_attribute_advancement`. Used to randomize a tiered creature's chosen attribute bonuses (e.g. a Tier-2 Lieutenant's two picks across Str/Con/Cha/Dex). |
 | `metadata` | dict | `{}` | Caller-supplied free-form data. Creatures does not interpret. Used by consuming projects for portrait paths, custom flags, etc. |
 
 `mana_spent`, `hp_damage`, equipped items, active Conditions, and similar runtime state are **not** stored on the Creature record — they live in Conditions, Equipment, and elsewhere, keyed by Creature ID.
@@ -51,7 +57,7 @@ The value under a key in `advancement.classes`.
 |---|---|---|---|
 | `level` | integer | required | Class Level (≥ 0). |
 | `skills` | list of string | `[]` | Skill keys the Creature has chosen to train in this Class. Set Instances are valid (e.g. `perform_dance`); bare Set Skill keys (ending in `_`) are not. |
-| `choices` | dict | `{}` | Per-Class catalog choices. Free-form keys; the consuming Class entry interprets each one. Common keys include `spellcasting: [<spell_name>, ...]` (the spells chosen for the Class's Spellcasting-type ability — Bardic Spellcasting, Arcane Spellcasting, Druidic Spellcasting, Ranger Spellcasting, or the Cleric's `domain` resolution), `deity: <name>` and `domains: [<name>, ...]` (Cleric — up to three domains; the legacy single `domain: <name>` is still accepted), Bard's Versatile Performance subject, etc. Creatures stores and round-trips the dict opaquely; spells listed under `choices.spellcasting` are surfaced as Granted Abilities by *Get Granted Abilities*. |
+| `choices` | dict | `{}` | Per-Class catalog choices. Free-form keys; the consuming Class entry interprets each one. Common keys include `spellcasting: [<spell_name>, ...]` (the spells chosen for the Class's Spellcasting-type ability — Bardic Spellcasting, Arcane Spellcasting, Druidic Spellcasting, or the Cleric's `domain` resolution), `deity: <name>` and `domains: [<name>, ...]` (Cleric — up to three domains; the legacy single `domain: <name>` is still accepted), Bard's Versatile Performance subject, etc. Creatures stores and round-trips the dict opaquely; spells listed under `choices.spellcasting` are surfaced as Granted Abilities by *Get Granted Abilities*. |
 
 A bare integer in place of a Class Entry is shorthand: `fighter: 1` is equivalent to `fighter: { level: 1 }`.
 
@@ -93,6 +99,7 @@ The schema for entries in `creatures_advancement.yaml`'s `Classes:` map. Looked 
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `parent_class` | string or null | null | When non-null, this Class is an **Archetype** of the named parent Class. See *Archetype* below. |
+| `npc_class` | boolean | false | When true, this is an NPC/enemy-only Class (e.g. `warrior`, `commoner`) excluded from the player-character class picker (*pc_class_keys*). Otherwise a normal Class in every mechanical respect. |
 | `martial_advancement` | enum | required | One of `aligned`, `unaligned`, `opposed`. The rate at which each Class Level adds Martial ranks. (Martial is computed from this field, not from any proficiency list.) |
 | `bonus_skills` | integer | 0 | Bonus Skill picks per Class Level used by the `Skill Pick Formula`. Advisory — Creatures does not enforce trained-skill counts. |
 | `mana_per_level` | integer | 0 | Mana per Class Level contributed by this Class. Folds into Max Mana on top of the per-Tier `Mana Base Formula`. |
@@ -244,6 +251,23 @@ Deduplicate while preserving first-encounter order. Filter by `source` when supp
 
 Returns: a list of `{ name, source }` records. `source` is one of `race` or `class:<class_key>`. The Class source carries the Class key so consumers (e.g. Floor Ability's `level_for_ability`) can recover the granting Class. Spells contributed via `choices.spellcasting` (and via deity/domain) report the granting Class as their source.
 
+#### Kesser — Reversal Table (d10)
+
+The deity Kesser's 4th-level Channel Divinity, **Kesser's Gambit** (`talents.yaml`, `roll_table: Kesser Reversal Table`), is a Reaction triggered on an attack or spell roll. The channeler rolls a d10 here; **Channel Successes** scale the entries. The table below is the canonical description; it is provided as data in `../abilities/roll_tables.yaml` and rolled in combat through the Roll Table Stub (`../ui/encounter_roll_table_stub.md`). Kesser's Ring (`../equipment/equipment_config.yaml` → *Unique Items*) grants the same Gambit, rolled with **Evocation** rather than a Cleric's **Invocation**.
+
+| d10 | Effect |
+|---|---|
+| 1 | **Disaster.** Channel Successes are added or subtracted, whichever is worse for the cleric, to all checks. |
+| 2 | **Backfire.** Attack causes a magical explosion. The damage dealt is dealt again to all creatures within 30'. A Charisma check against Channel Successes can reduce the damage taken by half. |
+| 3 | **Sympathy.** Both attacker, channeler, and target take the attack's damage in full. Channeler can choose to increase or decrease damage by Channel Successes but must make the same choice for all affected creatures. |
+| 4 | **Counter.** The target gets a free weapon attack after this attack resolves with starting successes equal to Channel Successes. |
+| 5 | **Wild Deflection.** Attack changes target to a random creature in range instead — channeler picks if ties. |
+| 6 | **Reversal.** Attacker and target swap tiers and dice for the attack. |
+| 7 | **Surprise.** Target is flatfooted for this attack and all dice spent on defence are lost. Channeler can choose to increase or reduce damage dealt by Channel Successes. |
+| 8 | **Naked.** Attacker's sword and target's armor teleport to a random square within 30'. Both gain a Charisma save against Channel Successes to resist. If a weapon teleports, the attack still resolves with a natural attack instead. |
+| 9 | **Lucky Break.** All creatures gain a luck bonus or penalty on their roll equal to Channel Successes. |
+| 10 | **Crit.** Channel Successes are added or subtracted, whichever is best for the channeler, to all checks. |
+
 ### Look up Class
 
 Input: a Class key.
@@ -350,6 +374,10 @@ Returns: the new Creature ID.
 
 The new record is persistent — it lives in the same dataset as PCs and templates and is round-tripped by Save Creatures. Lifecycle management (deletion after combat resolution) is the caller's responsibility. The post-combat loot stub in Equipment is the conventional caller for cleanup via *Delete Creature*.
 
+When the template carries a `race_table`, the spawn rolls it (weighted by `chance`, using the caller-supplied `rng`) to pick a concrete `race`, writes that onto the spawn, and clears the spawn's `race_table`. The consuming project seeds this resolved `race` as a roll variable when rolling the `equipment_table`, so race-aware loadouts can branch with `when: { race: <race> }`. A `class_table` resolves the same way (same `rng`): the chosen entry replaces the spawn's `advancement.classes` with one Class Entry, and the table is cleared.
+
+The spawn deep-copies the template's `equipment_table` (when present). Creatures itself does not roll it — generating the spawn's loadout is the consuming project's job, performed immediately after this call (and after *Roll Random Encounter*): roll the `equipment_table` via Equipment's *Roll Loot Table*, *Add Item* each produced Stack to the spawn, then *Reconcile Loadout*. Equipped rows in the table become the spawn's combat loadout; non-equipped rows (coins, trophies) are carried and collected by *Collect Combat Loot* on death.
+
 ### Delete Creature
 
 Inputs: Creature ID.
@@ -396,7 +424,7 @@ Reads the Creature Record. For each attribute `a`:
 2. `racial = racial_adjustment_for(race)[a]` — see *Racial Adjustment Resolution*.
 3. `per_tier = Tier Minimum Inherent Bonus[tier]` — read directly from `creatures_config.yaml`'s per-Tier list.
 4. `chosen = Per-Tier Inherent Chosen Bonus Amount × count of attribute key a in the slice of `tier_attribute_advancement` consumed by Tiers 2..tier`. The slice is built by walking the Tiers in order, taking `Tier Inherent Chosen Bonus Count[t]` entries from the head of the list for each Tier `t`. Tier 1 grants only the Per-Tier Inherent Bonus, not the Chosen Bonus — the Chosen Bonus begins at Tier 2.
-5. `effective = base + racial + per_tier + chosen`.
+5. `effective = max(1, base + racial + per_tier + chosen)` — every Effective Attribute floors at 1, so racial penalties (notably beasts' -8 Int) never drive a score below 1.
 
 With the default `Tier Minimum Inherent Bonus: [0, 1, 2, 3, 4, 5]`, step 3 produces +0 at Tier 0, +1 at Tier 1, +2 at Tier 2, and so on. Tier 1 is the first Tier with a non-zero Per-Tier Inherent Bonus; Tier 2 is the first Tier with chosen bonus picks (per `Tier Inherent Chosen Bonus Count: [0, 0, 2, 2, 2, 2]`).
 

@@ -20,13 +20,14 @@ module Abilities
     # Conditions; see conditions_design.md "Toxicity Source Kind").
     POLARITIES = %w[positive forced].freeze
 
-    attr_reader :config, :catalog, :stateful, :modifier_abilities
+    attr_reader :config, :catalog, :stateful, :modifier_abilities, :roll_tables
 
-    def initialize(config: nil, catalog: {}, stateful: {}, modifier_abilities: {})
+    def initialize(config: nil, catalog: {}, stateful: {}, modifier_abilities: {}, roll_tables: {})
       @config = config || Config.new
       @catalog = catalog
       @stateful = stateful
       @modifier_abilities = modifier_abilities
+      @roll_tables = roll_tables
     end
 
     def self.load(dir = DEFAULT_DIR, config: nil)
@@ -35,6 +36,8 @@ module Abilities
       talents = YAML.safe_load_file(File.join(dir, 'talents.yaml')) || {}
       stateful = YAML.safe_load_file(File.join(dir, 'stateful_abilities.yaml')) || {}
       modifier_abilities = YAML.safe_load_file(File.join(dir, 'modifier_abilities.yaml')) || {}
+      roll_tables_path = File.join(dir, 'roll_tables.yaml')
+      roll_tables = File.exist?(roll_tables_path) ? (YAML.safe_load_file(roll_tables_path) || {}) : {}
 
       catalog = {}
       [spells, talents].each do |doc|
@@ -45,7 +48,8 @@ module Abilities
         config: config,
         catalog: catalog,
         stateful: stateful,
-        modifier_abilities: modifier_abilities
+        modifier_abilities: modifier_abilities,
+        roll_tables: roll_tables
       )
       instance.validate!
       instance
@@ -78,11 +82,20 @@ module Abilities
       @modifier_abilities[name.to_s]
     end
 
+    # A named Roll Table (roll_tables.yaml) verbatim, or nil for an
+    # unknown name. Shape: { 'die' => Integer, 'entries' => { face =>
+    # { 'name' =>, 'effect' => } } }.
+    def roll_table(name)
+      @roll_tables[name.to_s]
+    end
+
     # ---- Validation -----------------------------------------------------
 
     def validate!
       @catalog.each { |name, entry| validate_ability!(name, entry) }
       @modifier_abilities.each { |name, entry| validate_modifier_ability!(name, entry) }
+      @roll_tables.each { |name, entry| validate_roll_table!(name, entry) }
+      validate_roll_table_refs!
       true
     end
 
@@ -348,6 +361,35 @@ module Abilities
     def validate_modifier_ability!(name, entry)
       return unless entry.is_a?(Hash)
       validate_modifiers!(name, entry['modifiers'])
+    end
+
+    # A Roll Table declares a `die` and one `entries` row per face,
+    # keyed 1..die, each carrying a `name` and `effect`.
+    def validate_roll_table!(name, entry)
+      err(name, 'roll table must be a mapping') unless entry.is_a?(Hash)
+      die = entry['die']
+      err(name, 'roll table die must be a positive integer') unless die.is_a?(Integer) && die.positive?
+      entries = entry['entries']
+      err(name, 'roll table must define entries') unless entries.is_a?(Hash)
+      (1..die).each do |face|
+        row = entries[face]
+        err(name, "roll table is missing the entry for face #{face}") unless row.is_a?(Hash)
+        %w[name effect].each do |k|
+          err(name, "roll table face #{face} is missing #{k}") if row[k].to_s.strip.empty?
+        end
+      end
+      extra = entries.keys - (1..die).to_a
+      err(name, "roll table has entries outside 1..#{die}: #{extra.inspect}") unless extra.empty?
+    end
+
+    # Every Catalog Ability that points at a `roll_table` must name a
+    # table that exists.
+    def validate_roll_table_refs!
+      @catalog.each do |name, entry|
+        ref = entry.is_a?(Hash) && entry['roll_table']
+        next unless ref
+        err(name, "references unknown roll_table #{ref.inspect}") unless @roll_tables.key?(ref.to_s)
+      end
     end
   end
 end

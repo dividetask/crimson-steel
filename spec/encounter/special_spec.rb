@@ -289,6 +289,20 @@ RSpec.describe 'Encounter::State special actions' do
       expect(cond.get_modifiers('attack')).to eq([['Competency', 2]])
     end
 
+    it 'Strength Devotion applies its +2 str/con Active Effect when used' do
+      cond = build_instance
+      s = state(creature([{ name: 'Strength Devotion', source: 'class:cleric' }]), cond)
+      c = s.add_combatant('1')
+      out = s.use_special_payload(combatant_id: c[:id], ability: 'Strength Devotion')
+
+      expect(out[:ok]).to be true
+      expect(out[:applied_effects]).to include('strength_devotion')
+      expect(cond.active_effect_names).to include('strength_devotion')
+      # The +2 Morale Modifiers fold into str / con (CreatureModifiers reads them).
+      expect(cond.get_modifiers('str')).to eq([['Morale', 2]])
+      expect(cond.get_modifiers('con')).to eq([['Morale', 2]])
+    end
+
     it 'rage’s Resilience Modifier raises the Combat damage-bucketing resilience' do
       cond = build_instance
       s = state(creature(bard_abilities), cond)
