@@ -1,5 +1,5 @@
 import { DiceConfig } from '../config.js';
-import { RandomRng } from '../rng.js';
+import { RandomRng } from '../randomRng.js';
 import { Reroll } from '../reroll.js';
 import { Nudge } from '../nudge.js';
 import { Scoring } from '../scoring.js';

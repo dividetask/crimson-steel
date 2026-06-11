@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CheckResolution } from '../../public/js/check.js';
-import { SequenceRng } from '../../public/js/rng.js';
+import { SequenceRng } from '../../public/js/sequenceRng.js';
 
 // Spread (area effect): one caster Supporting Roll opposed by N independent
 // Opposing Rolls (each caught creature's Save), resolved per-creature.

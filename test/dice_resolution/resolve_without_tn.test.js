@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Roll } from '../../public/js/roll.js';
 import { DiceResultString } from '../../public/js/diceResultString.js';
 import { DiceConfig } from '../../public/js/config.js';
-import { SequenceRng } from '../../public/js/rng.js';
+import { SequenceRng } from '../../public/js/sequenceRng.js';
 
 // docs/common/dice_resolution/dice_resolution_tests.md
 // "Resolve a Roll without a Target Number"

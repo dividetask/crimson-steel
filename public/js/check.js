@@ -1,5 +1,5 @@
 import { DiceConfig } from './config.js';
-import { RandomRng } from './rng.js';
+import { RandomRng } from './randomRng.js';
 import { Propagation } from './propagation.js';
 import { TnComputation } from './tnComputation.js';
 import { Classifier } from './classifier.js';
