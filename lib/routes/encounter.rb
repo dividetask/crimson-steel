@@ -1250,12 +1250,42 @@ helpers do
   def granted_item_castables(caster, acc, pool, mana_left)
     known = (CreatureSheet.spells(acc) rescue []).flat_map { |g| Array(g[:names]).map(&:to_s) }
     granted_spell_items(caster[:creature_id]).filter_map do |it|
-      next if known.include?(it[:spell].to_s)
-      v    = (Abilities.lookup(it[:spell]) rescue nil) || {}
+      # Resolve the Wand's Spell to its Tier variant ("Heal" → "Heal Lesser
+      # Wounds") so it reads — and dedupes against known Spells — by the same
+      # name a caster who knew it would see.
+      vname = spell_variant_name(it[:spell], it[:tier])
+      next if known.include?(vname)
+      v    = (Abilities.lookup(vname) rescue nil) || {}
       cost = mana_cost_for_tier(it[:tier])
-      castable_descriptor(acc, it[:spell], it[:tier], pool, mana_left,
+      castable_descriptor(acc, vname, it[:tier], pool, mana_left,
                           skill: item_cast_skill(v), mana_cost: cost)
     end
+  end
+
+  # The Tier-resolved name of a Spell-form Item's spell — e.g. "Heal" at Tier 1
+  # is "Heal Lesser Wounds", so a Potion / Wand of Heal reads as the specific
+  # cure it is rather than the ambiguous base name. Falls back to the base Spell
+  # name for a single-Tier spell with no per-Tier variants.
+  def spell_variant_name(spell, tier)
+    entry = (Abilities.catalog.ability(spell) rescue nil) or return spell.to_s
+    variants = (CreatureSheet.spell_variants(spell, entry) rescue [])
+    # spell_variants also yields a bare catalog-key entry (axis 0) that shares the
+    # lowest Tier; prefer the Tier's *constructed* variant name ("Heal Petty
+    # Wounds") over that bare key ("Heal") when both match.
+    hit = variants.find { |t, name, _base, _axis| t.to_i == tier.to_i && name.to_s != spell.to_s }
+    hit ||= variants.find { |t, _name, _base, _axis| t.to_i == tier.to_i }
+    (hit && hit[1]) || spell.to_s
+  end
+
+  # A Spell-form Item's display name with its Spell resolved to the Stack's Tier
+  # variant — "Potion of Heal" at Tier 1 becomes "Potion of Heal Lesser Wounds"
+  # so the Tier is never ambiguous. Substitutes the trailing base Spell name in
+  # the generated display; leaves a handwritten / overridden name untouched.
+  def item_display_with_variant(stack, cat, spell, tier)
+    base  = Equipment::DisplayName.call(stack, cat)
+    vname = spell_variant_name(spell, tier)
+    return base if vname.to_s == spell.to_s || vname.to_s.empty?
+    base.sub(/#{Regexp.escape(spell.to_s)}\s*\z/, vname)
   end
 
   # Carried Potions / Scrolls as castable descriptors: no Mana cost, the Spell's
@@ -1353,7 +1383,7 @@ helpers do
       form = item_form_of(s.item_type, defn)
       next unless %w[potion scroll].include?(form)
       { ref: i, owner_id: owner, item_type: s.item_type,
-        display: Equipment::DisplayName.call(s, cat),
+        display: item_display_with_variant(s, cat, spell, s.tier),
         spell: spell, tier: s.tier, form: form, quantity: s.quantity }
     end
   end

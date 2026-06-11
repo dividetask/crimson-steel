@@ -54,6 +54,24 @@ RSpec.describe 'Encounter — Item cast contract' do
     expect(inst.state.magic_toxicity).to eq(4)      # actually applied to the drinker
   end
 
+  it 'applies the DM heal override (one box per Severity) instead of the spell default' do
+    inst = Conditions::Instance.new
+    inst.apply_hit_point_damage(minor: 50)
+    s = state(inst)
+    drinker = s.add_combatant('1')
+
+    out = s.resolve_cast_payload(
+      commit: true,
+      spell: { name: 'Heal', tier: 1, cast_skill: 'healing', mana_cost: 0 },
+      caster: { id: drinker[:id], dice: 0, successes: 0 },
+      targets: [{ id: drinker[:id], effects: [{ kind: 'heal', severity_map: { minor: 4 } }] }],
+      override: { heals: [{ target_id: drinker[:id], severity_map: { minor: 30 } }] }
+    )
+
+    healed = out[:targets].first[:applied].find { |a| a[:kind] == 'heal' }
+    expect(healed[:healed][:minor]).to eq(30) # the entered 30, not the spell's default 4
+  end
+
   it 'still spends the Combat Pool dice the cast rolls' do
     inst = Conditions::Instance.new
     s = state(inst)

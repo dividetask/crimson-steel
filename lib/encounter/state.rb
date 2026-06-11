@@ -940,6 +940,10 @@ module Encounter
                pool_spends: pool_spends, mana_cost: mana_cost, mana_max: mana_max }
 
       if commit
+        # DM heal override: the confirm page exposes an editable box per Severity
+        # of a heal Effect; fold those amounts onto the resolved targets before
+        # they are applied so the cure heals exactly what the DM entered.
+        apply_heal_override!(resolved, over[:heals]) if over[:heals]
         pool_spends.each { |s| spend_combat_pool(s[:id], s[:amount].to_i) }
         apply_luck_spends(p[:luck])
         mana_spent = mana_cost.positive? ? caster_inst.apply_mana_cost(amount: mana_cost, mana_max: mana_max) : 0
@@ -1658,6 +1662,26 @@ module Encounter
     def apply_cast_target(t, spell)
       applied = Array(t[:effects]).map { |e| route_cast_effect(t[:id], e, spell) }.compact
       { id: t[:id], outcome: t[:outcome], applied: applied }
+    end
+
+    # Replace each heal Effect's Severity map with the DM-entered amounts (one
+    # editable box per Severity on the confirm page). Keyed by target id; a
+    # Severity left blank or non-positive is dropped, so the heal cures exactly
+    # what was entered. Non-heal Effects and untouched targets are unchanged.
+    def apply_heal_override!(resolved, heals)
+      by_id = {}
+      Array(heals).each { |h| by_id[h[:target_id].to_i] = (h[:severity_map] || {}) }
+      resolved.each do |t|
+        ov = by_id[t[:id].to_i] or next
+        t[:effects] = Array(t[:effects]).map do |e|
+          next e unless e[:kind].to_s == 'heal'
+          sev = %i[minor moderate major].each_with_object({}) do |k, h|
+            v = (ov[k] || ov[k.to_s]).to_i
+            h[k] = v if v.positive?
+          end
+          e.merge(severity_map: sev)
+        end
+      end
     end
 
     def route_cast_effect(target_id, eff, spell)
