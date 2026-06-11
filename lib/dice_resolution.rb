@@ -28,15 +28,18 @@ module DiceResolution
 
   # Compute a Roll's Target Number and Starting Value from a Bonus /
   # Penalty list — the Ruby twin of the JS `TnComputation` the Check
-  # stub uses. Per-Type stacking: for each Bonus/Penalty Type only the
-  # highest positive and the lowest negative entry contribute. The TN
-  # candidate is `Base TN - Net Modifier`, clamped to [Minimum, Maximum];
-  # whatever the clamp discards becomes Starting Value (Bonuses below the
-  # Minimum become Starting Successes, Penalties above the Maximum become
-  # Starting Failures). `list` is an Array of `[type, amount]` pairs.
-  # Returns `{ tn:, starting_value: }`.
+  # stub uses. The Tier-mismatch Ascendancy entry is derived here first
+  # (the Ruby twin of `ascendancy.js`), so any Roll computed server-side —
+  # an Affliction save composes the saver's Inherent Bonus and the
+  # inflicter's Inherent Penalty — picks it up. Per-Type stacking: for each
+  # Bonus/Penalty Type only the highest positive and the lowest negative
+  # entry contribute. The TN candidate is `Base TN - Net Modifier`, clamped
+  # to [Minimum, Maximum]; whatever the clamp discards becomes Starting Value
+  # (Bonuses below the Minimum become Starting Successes, Penalties above the
+  # Maximum become Starting Failures). `list` is an Array of `[type, amount]`
+  # pairs. Returns `{ tn:, starting_value: }`.
   def compute_target_number(list, cfg = config)
-    candidate = cfg.base_target_number - net_modifier(list)
+    candidate = cfg.base_target_number - net_modifier(with_ascendancy(list))
     min = cfg.minimum_target_number
     max = cfg.maximum_target_number
     if candidate < min
@@ -60,6 +63,47 @@ module DiceResolution
       end
     end
     highest.values.sum + lowest.values.sum
+  end
+
+  ASCENDANCY_PER_POINT = 2
+
+  # The list with its derived Ascendancy entry appended (or unchanged when no
+  # Inherent imbalance is present).
+  def with_ascendancy(list)
+    mod = ascendancy_modifier(list)
+    mod ? Array(list) + [mod] : Array(list)
+  end
+
+  # The Ascendancy `[type, amount]` pair for a Bonus/Penalty list, or nil.
+  # Derived only when an Inherent *Penalty* (value <= 0; 0 counts — the
+  # injected Tier-0 opponent) is present, so a Roll with an Inherent Bonus but
+  # no opposing creature derives nothing. Magnitude is
+  # `floor(PER_POINT x gap)`, the gap measured on effective (0 -> 0.5) values.
+  # The Ruby twin of `ascendancy.js`.
+  def ascendancy_modifier(list)
+    bonus = 0.0
+    penalty = 0.0
+    penalty_present = false
+    Array(list).each do |type, amount|
+      next unless type.to_s == 'Inherent'
+      v = amount.to_f
+      bonus = v if v > bonus
+      if v <= 0
+        penalty_present = true
+        penalty = v if v < penalty
+      end
+    end
+    return nil unless penalty_present
+    gap = ascendancy_effective(bonus) - ascendancy_effective(-penalty)
+    return nil if gap.zero?
+    magnitude = (ASCENDANCY_PER_POINT * gap.abs).floor
+    return nil if magnitude.zero?
+    ['Ascendancy', gap.negative? ? -magnitude : magnitude]
+  end
+
+  # Tier 0 -> 0.5: a zero side of the comparison reads as the Tier-0 value.
+  def ascendancy_effective(value)
+    value.zero? ? 0.5 : value
   end
 end
 

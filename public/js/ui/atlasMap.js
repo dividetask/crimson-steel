@@ -10,30 +10,15 @@
 // (rect/ellipse), and Text. Each drawing commits via /atlas/add_annotation.
 //
 // Combat integrations: in Select mode the DM drags a Token to move it, or
-// clicks it (while the Attack pane is open) to target that Combatant.
+// clicks it (while the Attack pane is open) to target that Combatant. A Cast's
+// "Place on the map" arms a spell-area footprint; once dropped it stays
+// draggable so the caster can re-aim it — moving it recomputes which creatures
+// it catches — until the cast is committed.
 
 const BASE_CELL = 28;          // CSS px per Map Unit at zoom factor 1.0.
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const XLINK_NS = 'http://www.w3.org/1999/xlink';
 const ENC = (s) => encodeURIComponent(s);
-
-// An SVG <pattern> wrapping one image sized to a shape's bounding box, so a
-// Zone shape filled with url(#id) shows the image clipped to the shape.
-function zonePattern(id, x, y, w, h, href) {
-  const pat = document.createElementNS(SVG_NS, 'pattern');
-  pat.setAttribute('id', id);
-  pat.setAttribute('patternUnits', 'userSpaceOnUse');
-  pat.setAttribute('x', x); pat.setAttribute('y', y);
-  pat.setAttribute('width', w); pat.setAttribute('height', h);
-  const img = document.createElementNS(SVG_NS, 'image');
-  img.setAttribute('x', x); img.setAttribute('y', y);
-  img.setAttribute('width', w); img.setAttribute('height', h);
-  img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-  img.setAttributeNS(XLINK_NS, 'href', href);
-  img.setAttribute('href', href);
-  pat.appendChild(img);
-  return pat;
-}
 
 export const AtlasMap = {
   initAll() {
@@ -60,6 +45,7 @@ class AtlasCanvas {
     this.tool = 'select';
     this.placing = null;   // creature_id armed for placement, or null
     this.placingArea = null; // {shape, size} armed for spell-area placement
+    this._placedArea = null; // {x, y, area} dropped (un-committed) footprint, draggable
   }
 
   start() {
@@ -76,6 +62,14 @@ class AtlasCanvas {
     // The cast panel arms spell-area placement; we drop a local preview and
     // report the caught creatures back (nothing is persisted until commit).
     document.addEventListener('cast:arm-area', (e) => this.armArea(e.detail || {}));
+    // A viewport resize changes the cover fit — re-clamp zoom and pan so the
+    // Map keeps filling the viewport with no off-Map space showing.
+    window.addEventListener('resize', () => {
+      if (!this.world) return;
+      this.zoom = this.clampZoom(this.zoom);
+      this.clampPan();
+      this.applyTransform();
+    });
   }
 
   // The color for the next drawing: a tool's fixed color (e.g. the players'
@@ -189,30 +183,58 @@ class AtlasCanvas {
   // purple fill from CSS. The image fill is set inline so it wins over the CSS.
   zoneEl(z, defs) {
     const a = z.anchor || {};
-    const cx = ((a.x || 0) + 0.5) * BASE_CELL;
-    const cy = ((a.y || 0) + 0.5) * BASE_CELL;
+    // A placed (point-anchored) Zone is centered on the grid intersection at its
+    // anchor; a creature-anchored Zone centers on that token's cell. This keeps
+    // a placed footprint aligned to the grid (an integer-radius circle / even
+    // square sits on cell lines) and matches Atlas's overlap math, which treats
+    // the anchor as the Zone's geometric center.
+    const c = (a.type === 'point') ? 0 : 0.5;
+    const cx = ((a.x || 0) + c) * BASE_CELL;
+    const cy = ((a.y || 0) + c) * BASE_CELL;
     const size = (z.size || 0) * BASE_CELL;
-    let el, bx, by, bw, bh;
+    // Bounding box (bx, by, bw, bh) plus a factory for the Zone's shape (so we
+    // can build one for display and an identical one to clip the texture).
+    let bx, by, bw, bh, makeShape;
     if (z.shape === 'square') {
       bx = cx - size / 2; by = cy - size / 2; bw = bh = size;
-      el = document.createElementNS(SVG_NS, 'rect');
-      el.setAttribute('x', bx); el.setAttribute('y', by);
-      el.setAttribute('width', bw); el.setAttribute('height', bh);
+      makeShape = () => svgEl('rect', { x: bx, y: by, width: bw, height: bh });
     } else {
       // circle (default); line / cone rendering is deferred.
       bx = cx - size; by = cy - size; bw = bh = size * 2;
-      el = document.createElementNS(SVG_NS, 'circle');
-      el.setAttribute('cx', cx); el.setAttribute('cy', cy); el.setAttribute('r', size);
+      makeShape = () => svgEl('circle', { cx: cx, cy: cy, r: size });
     }
+    const el = makeShape();
     el.setAttribute('class', 'atlas-zone');
     if (z.id != null) el.dataset.zoneId = z.id;
-    if (z.texture && defs) {
-      const pid = 'zone-tex-' + (z.id != null ? z.id : Math.random().toString(36).slice(2));
-      defs.appendChild(zonePattern(pid, bx, by, bw, bh, '/images/zones/' + z.texture));
-      el.classList.add('atlas-zone-textured');
-      el.style.fill = 'url(#' + pid + ')';
-    }
-    return el;
+    if (!z.texture || !defs) return el; // no texture → solid-purple CSS fill
+
+    // Textured: draw the image clipped to the Zone's shape, with the shape kept
+    // on top as the outline. A clipPath + positioned <image> places the texture
+    // exactly over the bounding box; an SVG <pattern> positions its content
+    // ambiguously across browsers, which offset the image into a corner.
+    const uid = (z.id != null ? z.id : Math.random().toString(36).slice(2));
+    const clipId = 'zone-clip-' + uid;
+    const clip = svgEl('clipPath', { id: clipId });
+    clip.appendChild(makeShape());
+    defs.appendChild(clip);
+    const href = '/images/zones/' + z.texture;
+    const img = svgEl('image', { x: bx, y: by, width: bw, height: bh,
+      preserveAspectRatio: 'xMidYMid slice', 'clip-path': 'url(#' + clipId + ')' });
+    img.setAttributeNS(XLINK_NS, 'href', href);
+    img.setAttribute('href', href);
+    el.classList.add('atlas-zone-textured');
+    el.style.fill = 'none'; // the image is the fill; the shape stays as the outline
+    // Missing / unloadable texture file: drop the image and restore the solid
+    // purple fill rather than rendering an empty (outline-only) shape.
+    img.addEventListener('error', () => {
+      img.remove();
+      el.style.fill = '';
+      el.classList.remove('atlas-zone-textured');
+    });
+    const g = svgEl('g', {});
+    g.appendChild(img);
+    g.appendChild(el);
+    return g;
   }
 
   buildAnnotationLayer(w, h) {
@@ -303,30 +325,77 @@ class AtlasCanvas {
   }
 
   // ----- pan & zoom -----
+  //
+  // The view is bounded so the Map stays the subject: you can zoom out exactly
+  // far enough to fit the whole Map in the viewport but no further, and panning
+  // never pushes a Map edge past the viewport edge when the Map is larger than
+  // the viewport. The zoom floor is a "contain" fit (the whole Map visible —
+  // which letterboxes off-Map space on the shorter axis); minZoomLimit() owns
+  // the floor and clampPan() owns the pan range.
+
+  // The zoom at which the whole Map just fits inside the viewport (both axes
+  // visible) — the smaller of the two axis ratios. This is the most zoomed-out
+  // the view goes; at this zoom one axis fills and the other letterboxes.
+  containZoom() {
+    const map = this.snapshot.map;
+    if (!map) return this.minZoom;
+    const worldW = (map.width || 40) * BASE_CELL;
+    const worldH = (map.height || 30) * BASE_CELL;
+    const vw = this.viewport.clientWidth;
+    const vh = this.viewport.clientHeight;
+    if (!worldW || !worldH || !vw || !vh) return this.minZoom;
+    return Math.min(vw / worldW, vh / worldH);
+  }
+
+  // The effective zoom floor: the contain fit (so the whole Map can be shown at
+  // once), capped at the maximum so the range stays valid for a tiny Map.
+  minZoomLimit() {
+    return Math.min(this.maxZoom, this.containZoom());
+  }
+
+  clampZoom(z) { return clamp(z, this.minZoomLimit(), this.maxZoom); }
+
+  // Pin the pan to the Map. On an axis where the Map is larger than the viewport
+  // the edges clamp so no off-Map space shows; on an axis where the Map is
+  // smaller (zoomed out toward the contain fit) it is centered, letterboxing the
+  // off-Map space evenly.
+  clampPan() {
+    const map = this.snapshot.map;
+    if (!map) return;
+    const dispW = (map.width || 40) * BASE_CELL * this.zoom;
+    const dispH = (map.height || 30) * BASE_CELL * this.zoom;
+    const vw = this.viewport.clientWidth;
+    const vh = this.viewport.clientHeight;
+    this.panX = dispW >= vw ? clamp(this.panX, vw - dispW, 0) : (vw - dispW) / 2;
+    this.panY = dispH >= vh ? clamp(this.panY, vh - dispH, 0) : (vh - dispH) / 2;
+  }
 
   recenter() {
     const map = this.snapshot.map;
     if (!map || !this.world) return;
+    this.zoom = this.clampZoom(this.zoom);
     const w = (map.width || 40) * BASE_CELL * this.zoom;
     const h = (map.height || 30) * BASE_CELL * this.zoom;
     this.panX = (this.viewport.clientWidth - w) / 2;
     this.panY = (this.viewport.clientHeight - h) / 2;
+    this.clampPan();
     this.applyTransform();
   }
 
   resetView() {
-    this.zoom = clamp(this.initialZoom, this.minZoom, this.maxZoom);
+    this.zoom = this.clampZoom(this.initialZoom);
     this.recenter();
   }
 
   zoomAround(factor, sx, sy) {
-    const next = clamp(this.zoom * factor, this.minZoom, this.maxZoom);
+    const next = this.clampZoom(this.zoom * factor);
     if (next === this.zoom) return;
     const wx = (sx - this.panX) / this.zoom;
     const wy = (sy - this.panY) / this.zoom;
     this.zoom = next;
     this.panX = sx - wx * this.zoom;
     this.panY = sy - wy * this.zoom;
+    this.clampPan();
     this.applyTransform();
   }
 
@@ -357,6 +426,10 @@ class AtlasCanvas {
         if (this.tool === 'text') return this.beginText(e);
         return this.beginDraw(e);
       }
+      // A dropped-but-uncommitted spell footprint can be dragged to re-aim it.
+      if (this._placedArea && e.target.closest && e.target.closest('.atlas-zone-preview')) {
+        return this.beginAreaDrag(e);
+      }
       const tokenEl = e.target.closest('.atlas-token');
       if (tokenEl && this.viewer === 'dm') return this.beginTokenDrag(e, tokenEl);
       this.beginPan(e);
@@ -380,6 +453,7 @@ class AtlasCanvas {
     const onMove = (ev) => {
       this.panX = start.panX + (ev.clientX - start.x);
       this.panY = start.panY + (ev.clientY - start.y);
+      this.clampPan();
       this.applyTransform();
     };
     const onUp = () => {
@@ -671,17 +745,62 @@ class AtlasCanvas {
   placeArea(e) {
     e.preventDefault();
     const u = this.toUnits(e.clientX, e.clientY);
+    // Snap the footprint's center to the nearest grid intersection: the Zone is
+    // drawn centered on its anchor, so the effect lands on the grid right where
+    // it was clicked (no half-cell drift).
     const x = Math.round(u[0]);
     const y = Math.round(u[1]);
     const area = this.placingArea;
     this.placingArea = null;
     this.viewport.classList.remove('atlas-placing');
-    this.hidePlaceHint();
+    // Keep the footprint live and draggable until the cast is committed, so the
+    // caster can re-aim it; each move re-reports the caught creatures.
+    this._placedArea = { x: x, y: y, area: area };
     this.renderAreaPreview(x, y, area);
-    const hits = this.tokensInArea(x, y, area);
+    this.showPlaceHint('Drag the spell effect to re-aim it before confirming');
+    this.emitAreaPlaced();
+  }
+
+  // Recompute the creatures the current footprint catches and report them to
+  // the cast panel (nothing is persisted until the cast is committed).
+  emitAreaPlaced() {
+    const p = this._placedArea;
+    if (!p) return;
+    const hits = this.tokensInArea(p.x, p.y, p.area);
     document.dispatchEvent(new CustomEvent('cast:area-placed', {
-      detail: { x: x, y: y, shape: area.shape, size: area.size, hits: hits }
+      detail: { x: p.x, y: p.y, shape: p.area.shape, size: p.area.size, hits: hits }
     }));
+  }
+
+  // Drag a dropped (un-committed) spell footprint to a new cell. The preview
+  // follows the pointer snapped to Grid cells; releasing on a new cell
+  // recomputes the caught creatures and re-reports them to the cast panel.
+  beginAreaDrag(e) {
+    e.preventDefault();
+    this.hideTip();
+    const area = this._placedArea.area;
+    const startX = this._placedArea.x;
+    const startY = this._placedArea.y;
+    const moveTo = (cx, cy) => {
+      const u = this.toUnits(cx, cy);
+      const x = Math.round(u[0]);
+      const y = Math.round(u[1]);
+      if (x === this._placedArea.x && y === this._placedArea.y) return;
+      this._placedArea.x = x;
+      this._placedArea.y = y;
+      this.renderAreaPreview(x, y, area);
+    };
+    this.viewport.setPointerCapture(e.pointerId);
+    const onMove = (ev) => moveTo(ev.clientX, ev.clientY);
+    const onUp = (ev) => {
+      this.viewport.removeEventListener('pointermove', onMove);
+      this.viewport.removeEventListener('pointerup', onUp);
+      moveTo(ev.clientX, ev.clientY);
+      // Only re-report (and re-fetch Save Rolls) when the footprint actually moved.
+      if (this._placedArea.x !== startX || this._placedArea.y !== startY) this.emitAreaPlaced();
+    };
+    this.viewport.addEventListener('pointermove', onMove);
+    this.viewport.addEventListener('pointerup', onUp);
   }
 
   // A local-only preview of the footprint (purple), cleared on the next place
@@ -695,19 +814,20 @@ class AtlasCanvas {
     svg.setAttribute('class', 'atlas-zones atlas-zone-preview');
     svg.setAttribute('width', w); svg.setAttribute('height', h);
     svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-    const el = this.zoneEl({ anchor: { x: x, y: y }, shape: area.shape, size: area.size });
+    const el = this.zoneEl({ anchor: { type: 'point', x: x, y: y }, shape: area.shape, size: area.size });
     if (el) svg.appendChild(el);
     this.world.appendChild(svg);
     this._areaPreview = svg;
   }
 
-  // Combatant Tokens whose center lies within the footprint centered on the
-  // clicked cell. circle: distance <= size (radius in cells); square: size on
-  // a side. Only Tokens tied to a Combatant are reported (the cast resolves by
-  // Combatant id).
+  // Combatant Tokens whose center lies within the footprint, which is centered
+  // on the grid intersection at its anchor (x, y) — matching how the Zone is
+  // drawn and how Atlas computes overlap. circle: distance <= size (radius in
+  // cells); square: size on a side. Only Tokens tied to a Combatant are
+  // reported (the cast resolves by Combatant id).
   tokensInArea(x, y, area) {
-    const acx = x + 0.5;
-    const acy = y + 0.5;
+    const acx = x;
+    const acy = y;
     const r = area.size;
     const out = [];
     (this.snapshot.tokens || []).forEach((t) => {

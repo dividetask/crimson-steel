@@ -30,6 +30,7 @@
 <% special_options ||= [] %>
 <% main_actions ||= -1 %>
 <% has_spells = false unless defined?(has_spells) %>
+<% has_items = false unless defined?(has_items) %>
 <%
   incapacitated = !acting[:can_act]
   state_suffix  = dead ? 'Dead' : (incapacitated ? 'Incapacitated' : nil)
@@ -48,7 +49,7 @@
                    [{ key: 'attack', label: 'Attack' },
                     { key: 'move',   label: 'Move' }] +
                      (has_spells ? [{ key: 'cast', label: 'Cast' }] : []) +
-                     [{ key: 'item', label: 'Item' }]
+                     (has_items ? [{ key: 'item', label: 'Item' }] : [])
                  end
   free_generic = [{ key: 'end_turn', label: 'End Turn' }]
 
@@ -150,14 +151,15 @@
       </div>
 
       <div class="ta-pane" data-ta-pane="item">
-        <%# Item use is not built yet; render the shared Action row + result shell
-            so it reads like every other action once wired. %>
-        <%= erb :_ta_action_row, locals: { label: 'Item' } %>
-        <div class="ar">
-          <div class="ar-note-row">
-            <span class="ar-note-label">Item</span>
-            <span class="ar-note-value">Use a carried consumable (potion, scroll, alchemical item) on a target via Equipment&rsquo;s Consume Item &mdash; coming next.</span>
-          </div>
+        <%# Item use (turn_action_stub.md → Item): a thin host for the shared
+            Action Builder, exactly like Cast. The server precomputes the
+            builder blob (GET /encounter/item_builder) listing the actor's
+            Potions / Scrolls; TurnItem mounts it and, on confirm, POSTs to
+            /encounter/resolve_cast with the chosen Item so the cast resolves,
+            imposes Item-Form Toxicity (Potions), and decrements the charge. %>
+        <div class="ta-item" data-actor-id="<%= acting[:combatant_id] %>"
+             data-pool-remaining="<%= pool ? pool[:remaining] : 0 %>">
+          <p class="ta-attack-loading">Loading items…</p>
         </div>
       </div>
     <% end %>

@@ -37,6 +37,18 @@ get '/encounter' do
   end
 
   @active_entries = @active_entries.sort_by { |e| e['scene_position'] || 9999 }
+
+  # Characters of Interest (Creature Reference Entries) — shown in the
+  # Encounter during the Downtime / Traveling Phases. Only ACTIVE
+  # references appear in the Scene. Visibility-filtered for player
+  # viewers; the DM sees every active one.
+  if @viewer == :dm
+    @interest_entries = @store.list_entries(entry_type: 'creature', active_only: true)
+  else
+    @interest_entries = @store.list_entries(entry_type: 'creature', active_only: true, visible_to: @viewing_id)
+  end
+  @interest_entries = @interest_entries.sort_by { |e| [e['chapter'] || 0, e['notes_position'] || 9999] }
+
   @chapters       = @store.list_chapters
   @current_chapter = @store.current_chapter
   @player_creatures = player_creatures
@@ -80,16 +92,22 @@ get '/encounter' do
   # usable non-Spell, non-Reaction Abilities, computed at render time.
   @acting_special = (@viewer == :dm && @acting_row) ? (@encounter_state.special_options(@acting_row[:combatant_id]) rescue []) : []
 
-  # Cast pane (turn_action_stub.md → Cast): offered only when the Acting
-  # Combatant actually knows a spell. A monster or other non-caster gets no
-  # Cast button.
+  # Cast pane (turn_action_stub.md → Cast): offered when the Acting Combatant
+  # knows a spell *or* wields a Wand / Ring that grants one. A monster or other
+  # non-caster with no spell-granting Item gets no Cast button.
   @acting_has_spells =
     if @acting_row
       aacc = Creatures.lookup(@acting_row[:creature_id]) rescue nil
-      aacc ? (CreatureSheet.spells(aacc) rescue []).any? { |g| Array(g[:names]).any? } : false
+      knows = aacc ? (CreatureSheet.spells(aacc) rescue []).any? { |g| Array(g[:names]).any? } : false
+      knows || (granted_spell_items(@acting_row[:creature_id]).any? rescue false)
     else
       false
     end
+
+  # Item pane (turn_action_stub.md → Item): offered only when the Acting
+  # Combatant carries a usable Potion / Scroll.
+  @acting_has_items =
+    @acting_row ? (consumable_spell_items(@acting_row[:creature_id]).any? rescue false) : false
 
   # Bardic Inspiration (and any reservoir-mode Performance): the live
   # Reservoirs a DM can discharge to grant Luck. DM-only; off-turn, since a
@@ -171,13 +189,11 @@ helpers do
         name: base + self_tag,
         display_name: base + target_status_suffix(c[:id], c[:creature_id]) + self_tag,
         category: (creature_is_pc?(c[:creature_id]) ? 'pc' : (((tacc&.group rescue nil) == 'npc') ? 'npc' : 'enemy')),
-        dying: (encounter_state.creature_dying?(c[:id]) rescue false),
-        tier: (tacc&.tier rescue 0) || 0 }
+        dying: (encounter_state.creature_dying?(c[:id]) rescue false) }
     end
     order_targets_by_category(descs).map do |t|
       { value: t[:id], key: t[:id], label: t[:display_name], dying: t[:dying], group: t[:category],
-        patch: { set_name: [{ id: roll_id, creature_name: t[:name] }],
-                 set_tier: [{ id: roll_id, tier: t[:tier] }] } }
+        patch: { set_name: [{ id: roll_id, creature_name: t[:name] }] } }
     end
   end
 
@@ -270,7 +286,7 @@ helpers do
         creature_id:  c[:creature_id],
         name:         tracker_name(c),
         loot_table:   acc.record[:loot_table],
-        loot:         inv.map { |s| { name: Equipment::DisplayName.call(s, cat), quantity: s.quantity } } }
+        loot:         inv.map { |s| { name: CreatureSheet.item_display_name(s, cat), quantity: s.quantity } } }
     end
   end
 
@@ -304,7 +320,7 @@ helpers do
     cat = Equipment.catalog
     rows = stacks.each_with_index.map do |stack, i|
       { ref:      i,
-        name:     Equipment::DisplayName.call(stack, cat),
+        name:     CreatureSheet.item_display_name(stack, cat),
         icon:     item_icon_web_path(stack.item_type),
         quantity: stack.quantity }
     end
@@ -718,18 +734,15 @@ helpers do
     rolls = [
       { id: 'attacker', side: 'supporting', creature_name: tracker_name(attacker),
         roll_name: 'Attack', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false,
-        tier: atk_tier },
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false },
       { id: 'defender', side: 'opposing', creature_name: '—',
         roll_name: 'Defense', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
-        tier: nil },
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true },
       # A Shield of Faith caster defending the target — a second Opposing Roll,
       # hidden until the defender chooses it (fueled by Reservoir dice).
       { id: 'shield', side: 'opposing', creature_name: '—',
         roll_name: 'Shield of Faith', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
-        tier: nil }
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true }
     ]
 
     # Map of defender Combatant id -> the caster shielding them and the dice they
@@ -810,18 +823,20 @@ helpers do
       weapons.each do |w|
         comp = w[:competency] ? [w[:competency]] : []
         # Tier modifiers on the attack check: the attacker's (Glory-adjusted)
-        # Inherent Bonus on both branches, plus an Ascendancy penalty equal to
-        # the un-rolled defender's Inherent on the No-defense branch (a defended
-        # branch lets the defender's Inherent propagate instead). The defender's
-        # own Inherent rides its defense Roll (see `def_tier`).
+        # Inherent Bonus on both branches, plus — on the No-defense branch —
+        # the un-rolled defender's Inherent, negated (a defended branch lets
+        # the defender's Inherent cross via propagation instead). Check
+        # Resolution derives the Ascendancy from the resulting Inherent
+        # imbalance. The defender's own Inherent rides its defense Roll (see
+        # `def_tier`).
         atk_tier_none = Encounter::Attack.attacker_tier_bonuses(
           attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
           inherent_table: inh_table, no_defense: true
         )
         def_tier = Encounter::Attack.defender_tier_bonuses(defender_tier: t[:tier], inherent_table: inh_table)
         # The attacker's own (Glory-adjusted) Inherent Bonus for a defended
-        # branch — no Ascendancy here, since the defender rolls and its own
-        # Inherent propagates onto the attacker's TN as the Ascendancy.
+        # branch — no injected entry here, since the defender rolls and its
+        # own Inherent crosses onto the attacker's TN via propagation.
         atk_tier_def = Encounter::Attack.attacker_tier_bonuses(
           attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
           inherent_table: inh_table, no_defense: false
@@ -889,7 +904,7 @@ helpers do
           # A Dodge's Competency helps the defender's own Roll but is NOT
           # propagated onto the attacker as a penalty — Check Resolution's
           # per-Roll `no_propagate` field carries that (the defender's Inherent
-          # still crosses as Ascendancy). Other defences propagate normally.
+          # still crosses). Other defences propagate normally.
           def_no_prop = b[:key] == 'dodge' ? ['Competency'] : []
           mk = lambda do |dice, label, disabled|
             { value: "#{b[:key]}|#{dice}", group: b[:group], label: label,
@@ -968,14 +983,14 @@ helpers do
       # so its skill never opposed the attack.
       sh_bpl = []
       sh_bpl << sh[:competency] if sh[:competency]
-      sh_inh = Encounter::Attack.inherent_amount(inh_table, sh[:tier].to_i)
-      sh_bpl << ['Inherent', sh_inh] unless sh_inh.zero?
+      # Emitted even at Tier 0 (a 0), so the shielding caster's Inherent crosses
+      # to the attacker and the Ascendancy gate fires.
+      sh_bpl << ['Inherent', Encounter::Attack.inherent_amount(inh_table, sh[:tier].to_i)]
       sh_bpl << ['Guidance', sh[:bonus].to_i] if sh[:bonus].to_i.positive?
       # The shield Roll's patch for a given dice count (the caster's Roll — its
-      # name, Tier, +N Guidance bonus, and dice).
+      # name, +N Guidance bonus, and dice).
       shield_patch = lambda do |dice|
         { set_dice: [{ id: 'shield', count: dice }],
-          set_tier: [{ id: 'shield', tier: sh[:tier] }],
           set_bpl:  [{ id: 'shield', bonus_penalty_list: sh_bpl }],
           set_name: [{ id: 'shield', creature_name: sh[:caster_name], roll_name: sh[:spell_name] }],
           set_excluded: [{ id: 'shield', excluded: false }] }
@@ -1192,55 +1207,240 @@ helpers do
   # inherent Bonus; the Builder resolves it client-side and the choices +
   # Successes come back to /encounter/resolve_cast.
   def cast_builder_blob(caster)
-    acc      = Creatures.lookup(caster[:creature_id]) rescue nil
-    die      = DiceResolution.config.die_size
-    base_tn  = DiceResolution.config.base_target_number
-    pool     = (encounter_state.combat_pool_remaining(caster[:id]) rescue 0) || 0
-    mana_max = (acc&.max_mana rescue nil)
+    acc        = Creatures.lookup(caster[:creature_id]) rescue nil
+    pool       = (encounter_state.combat_pool_remaining(caster[:id]) rescue 0) || 0
+    mana_max   = (acc&.max_mana rescue nil)
     mana_spent = (Conditions.store.instance_for(caster[:creature_id]).state.mana_spent rescue 0)
     mana_left  = mana_max ? [mana_max - mana_spent, 0].max : nil
 
-    spells = (CreatureSheet.spells(acc) rescue []).flat_map do |g|
+    # The Cast list is the Combatant's known Spells plus the Spells granted by
+    # any equipped Wand / Ring (equipment_design.md → Wand): a granted Spell is
+    # cast as if known, channelling the wielder's own Mana, so it pays the same
+    # per-Tier Mana Cost. Hide Spells that take a minute or longer — they aren't
+    # cast in the heat of combat.
+    spells = (known_spell_castables(acc, pool, mana_left) +
+              granted_item_castables(caster, acc, pool, mana_left))
+             .reject { |sp| sp[:long_cast] }
+
+    build_cast_blob(caster: caster, acc: acc, spells: spells, pool: pool,
+                    title: "#{tracker_name(caster)} casts", stub_id: "cast-#{caster[:id]}")
+  end
+
+  # Action Builder blob for the Item pane (turn_action_stub.md → Item): the
+  # decoupled Cast builder, but the "Spell" list is the actor's carried Potions
+  # and Scrolls. Each consumable casts its Item's Spell with the Spell's own
+  # casting skill (Evocation by default) and costs no Mana; a committed cast
+  # decrements the Consumable (and a Potion / Oil imposes Item-Form Magic
+  # Toxicity). Reuses the same builder, resolve endpoint, and result renderer as
+  # Cast — only the castable list and the resolve glue differ.
+  def item_builder_blob(actor)
+    acc  = Creatures.lookup(actor[:creature_id]) rescue nil
+    pool = (encounter_state.combat_pool_remaining(actor[:id]) rescue 0) || 0
+    spells = consumable_castables(actor, acc, pool).reject { |sp| sp[:long_cast] }
+    build_cast_blob(caster: actor, acc: acc, spells: spells, pool: pool,
+                    title: "#{tracker_name(actor)} uses an item", stub_id: "item-#{actor[:id]}",
+                    spell_label: 'Item', cast_verb: 'Use')
+  end
+
+  # The Combatant's known Spells as castable descriptors (the Cast list).
+  def known_spell_castables(acc, pool, mana_left)
+    (CreatureSheet.spells(acc) rescue []).flat_map do |g|
       cost = mana_cost_for_tier(g[:tier])
       Array(g[:names]).map do |name|
         v     = (Abilities.lookup(name) rescue nil) || {}
         skill = cast_skill_for(acc, v, name)
-        ri    = roll_inputs_for(acc, skill)
-        # Area footprint (Hash, or the first footprint Aspect of an Aspect-list
-        # area like Grease). Area Spells are placed on the map, not targeted.
-        raw   = (Abilities.catalog.ability(name) rescue nil) || {}
-        ra    = raw['area']
-        area  = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
-        act   = (Abilities.resolve_activation(v) rescue nil)
-        # A reservoir/auto channel pours its cast dice into a Reservoir — those
-        # casts ask for a dice count but roll nothing (a Save/attack_roll on such
-        # a Spell governs its per-turn channel, not the cast). A casting check is
-        # rolled only for a non-reservoir Save / attack-roll / damage Spell.
-        channel_mode = v.dig('channel', 'mode').to_s
-        fills_reservoir = %w[reservoir auto].include?(channel_mode) &&
-                          v.dig('reservoir', 'fill', 'source').to_s == 'channel_dice'
-        requires_roll = !fills_reservoir &&
-                        !!(v['attack_roll'] || Array(v['save']).first || Array(v['damage_type']).compact.first)
-        # The Combat Pool dice a cast costs at minimum — its Action category's
-        # Action Minimum (Main 4 / Bonus 2 / Free 0), not a flat 2. A no-roll,
-        # no-Reservoir Spell costs exactly this and asks nothing; a rolled or
-        # Reservoir Spell asks for a count from here up to the Dice Cap.
-        action_min = Encounter::Special.action_cost(act && act[:alias])
-        { name: name, tier: g[:tier], mana_cost: cost, skill: skill,
-          dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier],
-          damage_type: Array(v['damage_type']).compact.first, school: v['school'],
-          attack_roll: !!v['attack_roll'], save: Array(v['save']).first,
-          area: (area.is_a?(Hash) ? area : nil),
-          requires_roll: requires_roll,
-          reservoir: fills_reservoir,
-          action_min: action_min,
-          long_cast: !!(act && act[:kind].to_s == 'real_time' && act[:minutes].to_i >= 1),
-          affordable: mana_left.nil? || cost <= mana_left }
+        castable_descriptor(acc, name, g[:tier], pool, mana_left, skill: skill, mana_cost: cost)
       end
     end
-    # Hide Spells that take a minute or longer to cast — they aren't cast in the
-    # heat of combat.
-    spells = spells.reject { |sp| sp[:long_cast] }
+  end
+
+  # Spells granted by equipped Wands / Rings — folded into the Cast list as
+  # normal casts (the wielder's own Mana). A Spell already known is skipped so
+  # it isn't listed twice.
+  def granted_item_castables(caster, acc, pool, mana_left)
+    known = (CreatureSheet.spells(acc) rescue []).flat_map { |g| Array(g[:names]).map(&:to_s) }
+    granted_spell_items(caster[:creature_id]).filter_map do |it|
+      # Resolve the Wand's Spell to its Tier variant ("Heal" → "Heal Lesser
+      # Wounds") so it reads — and dedupes against known Spells — by the same
+      # name a caster who knew it would see.
+      vname = spell_variant_name(it[:spell], it[:tier])
+      next if known.include?(vname)
+      v    = (Abilities.lookup(vname) rescue nil) || {}
+      cost = mana_cost_for_tier(it[:tier])
+      castable_descriptor(acc, vname, it[:tier], pool, mana_left,
+                          skill: item_cast_skill(v), mana_cost: cost)
+    end
+  end
+
+  # The Tier-resolved name of a Spell-form Item's spell ("Heal" at Tier 0 →
+  # "Heal Petty Wounds"). Canonical impl lives in CreatureSheet so the character
+  # sheet and the combat panes resolve the same name.
+  def spell_variant_name(spell, tier)
+    CreatureSheet.spell_variant_name(spell, tier)
+  end
+
+  # A Spell-form Item's display name with its Spell resolved to the Stack's Tier
+  # variant — "Potion of Heal" at Tier 0 → "Potion of Heal Petty Wounds".
+  def item_display_with_variant(stack, cat, _spell, _tier)
+    CreatureSheet.item_display_name(stack, cat)
+  end
+
+  # Carried Potions / Scrolls as castable descriptors: no Mana cost, the Spell's
+  # own casting skill, and the originating Item (ref / owner / form) carried
+  # through so the resolve endpoint can decrement it and impose Item-Form
+  # Toxicity. A Potion / Oil targets the drinker (self).
+  def consumable_castables(actor, acc, pool)
+    consumable_spell_items(actor[:creature_id]).map do |it|
+      v = (Abilities.lookup(it[:spell]) rescue nil) || {}
+      # One castable per Item (the list selects an *item*, not a skill). The Item
+      # step picks the item; the Dice step then offers the casting skills (the
+      # Spell's own primary skill plus Evocation, the item-form default). `quantity`
+      # decorates the button only — the summary row keeps the plain name.
+      castable_descriptor(acc, it[:spell], it[:tier], pool, nil,
+                          mana_cost: 0, key: "item:#{it[:ref]}", display: it[:display],
+                          item: it, self_only: it[:form] == 'potion',
+                          quantity: it[:quantity], skill_options: item_skill_options(v))
+    end
+  end
+
+  # The casting skill a Spell cast *from an item* uses by default: the Spell's
+  # own first `skills` entry, defaulting to Evocation (equipment_design.md →
+  # "Casting skill"). The user need not be a caster; the item supplies the Spell.
+  def item_cast_skill(variant)
+    (Array(variant && variant['skills']).first || 'evocation').to_s
+  end
+
+  # The casting skills a consumable offers: the Spell's own primary skill and
+  # Evocation (item-form default), deduped and order-preserving. So a Potion of
+  # Heal offers Healing / Evocation; an Arcana potion offers Arcana / Evocation;
+  # an Evocation spell offers Evocation alone.
+  def item_skill_options(variant)
+    [item_cast_skill(variant), 'evocation'].uniq
+  end
+
+  # One castable descriptor for the Cast / Item builders. `name` is the Spell
+  # resolved & rolled; `display` is the button label; `key` is the option's
+  # unique identity (the Spell name for a known/granted Spell, "item:<ref>" for
+  # a consumable so two items of the same Spell never collide). `item` carries
+  # the originating Consumable; `self_only` forces the Target step to self.
+  def castable_descriptor(acc, name, tier, pool, mana_left, skill: nil, mana_cost:,
+                          key: nil, display: nil, item: nil, self_only: false,
+                          skill_options: nil, quantity: nil)
+    v   = (Abilities.lookup(name) rescue nil) || {}
+    # Area footprint (Hash, or the first footprint Aspect of an Aspect-list area
+    # like Grease). Area Spells are placed on the map, not targeted.
+    raw  = (Abilities.catalog.ability(name) rescue nil) || {}
+    ra   = raw['area']
+    area = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
+    act  = (Abilities.resolve_activation(v) rescue nil)
+    # A reservoir/auto channel pours its cast dice into a Reservoir — those casts
+    # ask for a dice count but roll nothing. A casting check is rolled only for a
+    # non-reservoir Save / attack-roll / damage Spell.
+    channel_mode = v.dig('channel', 'mode').to_s
+    fills_reservoir = %w[reservoir auto].include?(channel_mode) &&
+                      v.dig('reservoir', 'fill', 'source').to_s == 'channel_dice'
+    # A channel that scales an effect with casting successes (e.g. Heal's
+    # bleed_reduction = spell_tier*2*success) needs a real casting check rolled.
+    channel_check = !!(v.dig('channel', 'effect_hash', 'bleed_reduction') ||
+                       raw.dig('channel', 'effect_hash', 'bleed_reduction'))
+    requires_roll = !fills_reservoir &&
+                    !!(v['attack_roll'] || Array(v['save']).first || Array(v['damage_type']).compact.first || channel_check)
+
+    # Per-skill roll inputs for the casting skills this castable offers. Sorted
+    # by prowess (Dice Cap, then Competency) so the highest-bonus skill is the
+    # primary one — the Skill step's top-bar quick-pick. A no-roll cast has no
+    # check, so it offers no skill choice (collapsed to the primary).
+    candidate_skills = (skill_options || [skill]).compact
+    candidate_skills = ['evocation'] if candidate_skills.empty?
+    skopts = candidate_skills.uniq.map do |sk|
+      r = roll_inputs_for(acc, sk)
+      comp = r[:competency_modifier]
+      { skill: sk, label: Encounter::Special.pretty_skill(sk),
+        dice_cap: r[:dice_cap].to_i, competency: comp, bonus: (comp ? comp[1].to_i : 0) }
+    end
+    skopts.sort_by! { |o| [-o[:dice_cap], -o[:bonus]] }
+    skopts = [skopts.first] if !requires_roll && skopts.any?
+    primary = skopts.first || { skill: 'evocation', dice_cap: 0, competency: nil }
+
+    # The Combat Pool dice a cast costs at minimum — its Action category's Action
+    # Minimum (Main 4 / Bonus 2 / Free 0).
+    action_min = Encounter::Special.action_cost(act && act[:alias])
+    { name: name, key: (key || name), display: (display || name),
+      tier: tier, mana_cost: mana_cost, skill: primary[:skill], skill_options: skopts,
+      dice_cap: primary[:dice_cap], competency: primary[:competency],
+      damage_type: Array(v['damage_type']).compact.first, school: v['school'],
+      attack_roll: !!v['attack_roll'], save: Array(v['save']).first,
+      area: (area.is_a?(Hash) ? area : nil),
+      requires_roll: requires_roll,
+      reservoir: fills_reservoir,
+      action_min: action_min,
+      long_cast: !!(act && act[:kind].to_s == 'real_time' && act[:minutes].to_i >= 1),
+      affordable: mana_left.nil? || mana_cost <= mana_left,
+      # A Spell that can only target the caster (a Potion drunk on oneself, or a
+      # Spell declaring `target: self`) knows its target already — the Target
+      # step shouldn't ask. `self_only` forces (and auto-applies) the self Target.
+      item: item, self_only: self_only || v['target'].to_s == 'self', quantity: quantity }
+  end
+
+  # Equipped Wands / Rings (any `grants_spell` Item): each adds its Spell to the
+  # wielder's Cast list while equipped (equipment_design.md → Wand).
+  def granted_spell_items(creature_id)
+    cat = Equipment.catalog
+    inv = (Equipment.instance.get_inventory(equipment_owner(creature_id)) rescue [])
+    inv.each_with_index.filter_map do |s, i|
+      next unless s.equipped
+      defn = cat.definition_of(s.item_type) || {}
+      next unless defn['grants_spell']
+      spell = s.stored_spell || defn['spell']
+      next unless spell
+      { ref: i, item_type: s.item_type, display: CreatureSheet.item_display_name(s, cat),
+        spell: spell, tier: s.tier, form: item_form_of(s.item_type, defn) }
+    end
+  end
+
+  # Carried Potions / Scrolls (Consumable spell-form Items) the actor can use
+  # this turn — each becomes an Item-pane button that casts the Item's Spell.
+  def consumable_spell_items(creature_id)
+    cat   = Equipment.catalog
+    owner = equipment_owner(creature_id)
+    inv   = (Equipment.instance.get_inventory(owner) rescue [])
+    inv.each_with_index.filter_map do |s, i|
+      next unless s.quantity.to_i.positive?
+      next unless cat.category_of(s.item_type) == 'Consumable'
+      defn  = cat.definition_of(s.item_type) || {}
+      spell = s.stored_spell || defn['spell']
+      next unless spell
+      form = item_form_of(s.item_type, defn)
+      next unless %w[potion scroll].include?(form)
+      { ref: i, owner_id: owner, item_type: s.item_type,
+        display: item_display_with_variant(s, cat, spell, s.tier),
+        spell: spell, tier: s.tier, form: form, quantity: s.quantity }
+    end
+  end
+
+  # An Item's form (potion / oil / scroll / wand / ring): a catalog `form:`
+  # wins, otherwise it is inferred from the Item Type name (mirrors
+  # Equipment::Consumption#item_form, plus Ring for spell-granting rings).
+  def item_form_of(item_type, defn)
+    return defn['form'].to_s if defn && defn['form']
+    n = item_type.to_s.downcase
+    return 'potion' if n.include?('potion')
+    return 'oil'    if n.include?('oil')
+    return 'scroll' if n.include?('scroll')
+    return 'wand'   if n.include?('wand')
+    return 'ring'   if n.include?('ring')
+    ''
+  end
+
+  # Assemble the decoupled Action Builder blob for a Cast over a list of
+  # castable descriptors (known Spells, Wand/Ring Spells, or consumable Items).
+  # Shared by cast_builder_blob and item_builder_blob: a Spell step (grouped by
+  # Tier), a choice-dependent Dice step, a Target step (self-only when the
+  # castable demands it), and a target-Defense step. Options are keyed by each
+  # castable's unique `key`; the button shows its `display`.
+  def build_cast_blob(caster:, acc:, spells:, pool:, title:, stub_id:, spell_label: 'Spell', cast_verb: 'Cast')
+    die     = DiceResolution.config.die_size
+    base_tn = DiceResolution.config.base_target_number
 
     targets = encounter_state.combatants.map do |c|
       tacc = Creatures.lookup(c[:creature_id]) rescue nil
@@ -1257,18 +1457,28 @@ helpers do
     rolls = [
       { id: 'caster', side: 'supporting', creature_name: tracker_name(caster),
         roll_name: 'Cast', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false,
-        tier: (acc&.tier rescue nil) },
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 2, speed: 0, excluded: false },
       { id: 'target', side: 'opposing', creature_name: '—',
         roll_name: 'Defense', die_size: die, tn: base_tn, starting_value: 0,
-        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
-        tier: nil }
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true }
     ]
+
+    # A Skill step is inserted (after Spell) whenever a castable offers more than
+    # one casting skill — i.e. the consumable Items, which let the DM roll Heal
+    # with Healing or Evocation. When present, the Skill step (not the Spell step)
+    # sets the caster's Competency, so the Spell step here only names the cast.
+    has_skill_step = spells.any? { |sp| Array(sp[:skill_options]).size > 1 }
 
     # Step 1 — Spell, grouped by Tier (a Tier-colored "Tier N" header, then that Tier's
     # spells underneath). Tiers with no known spell are skipped. Picking a spell
-    # sets the caster Roll's Bonuses (casting-skill Competency + the Tier's
-    # inherent Bonus); the dice count is the next step.
+    # sets the caster Roll's Bonuses: casting-skill Competency, the caster's own
+    # Tier Inherent (it crosses onto the target and feeds the Ascendancy,
+    # exactly like an attacker's), and the Spell's Tier as a Guidance Bonus
+    # (magical potency, not raw Tier power — it shifts the TNs without feeding
+    # the Ascendancy). The dice count is the next step. (With a Skill step, the
+    # Competency and Bonuses are deferred to that step — see below.)
+    inh_table  = (Creatures::Config.tier_minimum_inherent_bonus rescue [])
+    caster_inh = Encounter::Attack.inherent_amount(inh_table, ((acc&.tier rescue nil) || 0))
     spell_opts = []
     spells.group_by { |sp| sp[:tier].to_i }.sort_by { |tier, _| tier }.each_with_index do |(tier, group_spells), gi|
       hdr = "tier-#{tier}-h"
@@ -1276,19 +1486,30 @@ helpers do
       br  = gi.zero? ? '' : '<br>'
       spell_opts << { kind: 'info', group: hdr, value: "#{hdr}|label", label: %(#{br}<span class="cb-tier-head tier-#{tier}">Tier #{tier}</span>) }
       group_spells.each do |sp|
-        bpl = []
-        bpl << sp[:competency] if sp[:competency]
-        bpl << ['Inherent', sp[:tier].to_i] if sp[:tier].to_i.positive?
-        spell_opts << { value: sp[:name], key: sp[:name], group: grp,
-                        label: sp[:name], summary: sp[:name],
+        patch = { set_speed: [{ id: 'caster', speed: 0 }],
+                  set_name:  [{ id: 'caster', roll_name: "#{cast_verb} #{sp[:display]}" }] }
+        unless has_skill_step
+          bpl = []
+          bpl << sp[:competency] if sp[:competency]
+          # Emitted even at Tier 0 (a 0) so the caster's Inherent crosses to the
+          # target and the target's Ascendancy gate fires; the Spell's Tier
+          # rides as Guidance and stays out of the Ascendancy.
+          bpl << ['Inherent', caster_inh]
+          bpl << ['Guidance', sp[:tier].to_i] if sp[:tier].to_i.positive?
+          patch[:set_bpl] = [{ id: 'caster', bonus_penalty_list: bpl }]
+        end
+        # The carried quantity decorates the *button* only (e.g. "… ×2"); the
+        # summary row keeps the plain name.
+        button = sp[:quantity].to_i > 1 ? "#{sp[:display]} ×#{sp[:quantity]}" : sp[:display]
+        spell_opts << { value: sp[:key], key: sp[:key], group: grp,
+                        label: button, summary: sp[:display],
                         disabled: !sp[:affordable],
+                        spell_name: sp[:name],
                         cast: { roll: sp[:requires_roll], reservoir: sp[:reservoir] },
-                        patch: { set_bpl:   [{ id: 'caster', bonus_penalty_list: bpl }],
-                                 set_speed: [{ id: 'caster', speed: 0 }],
-                                 set_name:  [{ id: 'caster', roll_name: "Cast #{sp[:name]}" }] } }
+                        patch: patch }
       end
     end
-    spell_step = { key: 'spell', label: 'Spell', options: spell_opts }
+    spell_step = { key: 'spell', label: spell_label, options: spell_opts }
 
     # Step 2 — Dice for the cast, choice-dependent on the picked spell. A spell
     # whose dice count is *variable* (a rolled cast, or a Reservoir pour) asks
@@ -1297,46 +1518,69 @@ helpers do
     # its Action Minimum) skips the step — the option is auto-applied with no
     # button. Either way each die is spent from the Combat Pool, so counts past
     # the remaining Pool are disabled.
-    # Shaped like the Attack weapon step: each rolled spell's Dice options lead
-    # with a "<casting skill> (max N)" quick-pick (selects the max affordable
-    # dice), then a button per count, plus a top-right header quick-pick for the
-    # max. A no-roll, known-count buff keeps its single auto-applied option.
+    #
+    # When a castable offers a **skill choice** (the consumable Items: roll Heal
+    # with Healing or Evocation), the skill is folded into this step rather than
+    # asked separately — one Dice row per available skill (each labelled by that
+    # skill, like the Attack weapon rows), and picking a die sets both the dice
+    # count and that skill's Competency. Only the highest-prowess skill's max is a
+    # top-bar quick-pick.
     dice_map = {}
     header_map = {}
     spells.each do |sp|
-      cap = sp[:dice_cap]
-      min = sp[:action_min].to_i
-      if sp[:requires_roll] || sp[:reservoir]
-        if cap < min
-          dice_map[sp[:name]] = [{ kind: 'info', group: 'dice', value: 'dice|none', label: 'no dice available' }]
-          next
+      variants = has_skill_step ? Array(sp[:skill_options]) :
+                 [{ skill: sp[:skill], label: Encounter::Special.pretty_skill(sp[:skill]),
+                    dice_cap: sp[:dice_cap], competency: sp[:competency] }]
+      body   = []
+      header = []
+      variants.each_with_index do |so, idx|
+        cap = so[:dice_cap].to_i
+        min = sp[:action_min].to_i
+        # Picking a die sets the count and, when the skill is chosen here, that
+        # skill's Competency, the caster's own Tier Inherent, and the Spell's
+        # Tier as a Guidance Bonus.
+        set = lambda do |n|
+          patch = { set_dice: [{ id: 'caster', count: n }] }
+          if has_skill_step
+            bpl = []
+            bpl << so[:competency] if so[:competency]
+            # Emitted even at Tier 0 (a 0) so the caster's Inherent crosses to
+            # the target and the target's Ascendancy gate fires; the Spell's
+            # Tier rides as Guidance and stays out of the Ascendancy.
+            bpl << ['Inherent', caster_inh]
+            bpl << ['Guidance', sp[:tier].to_i] if sp[:tier].to_i.positive?
+            patch[:set_bpl] = [{ id: 'caster', bonus_penalty_list: bpl }]
+          end
+          patch
         end
-        skill_label = Encounter::Special.pretty_skill(sp[:skill])
-        aff_max     = [cap, pool].min
-        set = ->(n) { { set_dice: [{ id: 'caster', count: n }] } }
-        # Shaped exactly like the Attack weapon/dice step via the shared
-        # dice_count_group helper: a "<skill> (max N)" lead, a button per
-        # count, and a top-right header quick-pick that names the casting
-        # skill (e.g. "Arcana") rather than a generic "Max".
-        g = dice_count_group(prefix: sp[:name], group: 'dice', min: min, max: cap,
-                             aff: ->(n) { n <= pool }, patch: set,
-                             summary: ->(n) { "#{skill_label} — #{n} dice" },
-                             lead_label: "#{skill_label} (max #{aff_max})",
-                             header_label: skill_label,
-                             info: "#{skill_label} — up to #{cap} dice")
-        dice_map[sp[:name]]   = g[:body]
-        header_map[sp[:name]] = [g[:header]]
-      else
-        # Known dice count — auto-applied (the builder skips the step) when the
-        # caster can afford it; otherwise shown as a blocked option.
-        affordable = min <= pool
-        opt = { value: "#{sp[:name]}|#{min}", key: min, group: 'dice',
-                label: "#{min} dice", summary: "#{min} dice",
-                disabled: !affordable,
-                patch: { set_dice: [{ id: 'caster', count: min }] } }
-        opt[:auto] = true if affordable
-        dice_map[sp[:name]] = [opt]
+        grp    = "dice-#{so[:skill]}"
+        prefix = "#{sp[:key]}|#{so[:skill]}"
+        if sp[:requires_roll] || sp[:reservoir]
+          if cap < min
+            body << { kind: 'info', group: grp, value: "#{prefix}|none", label: "#{so[:label]} — no dice available" }
+            next
+          end
+          g = dice_count_group(prefix: prefix, group: grp, min: min, max: cap,
+                               aff: ->(n) { n <= pool }, patch: set,
+                               summary: ->(n) { "#{so[:label]} — #{n} dice" },
+                               lead_label: so[:label],
+                               header_label: so[:label])
+          body.concat(g[:body])
+          # Only the primary (highest-prowess) skill goes on the top bar.
+          header << g[:header] if idx.zero?
+        else
+          # Known dice count — auto-applied (the builder skips the step) when the
+          # caster can afford it; otherwise shown as a blocked option.
+          affordable = min <= pool
+          opt = { value: "#{prefix}|#{min}", key: min, group: grp,
+                  label: "#{min} dice", summary: "#{min} dice",
+                  disabled: !affordable, patch: set.call(min) }
+          opt[:auto] = true if affordable && variants.size == 1
+          body.concat([opt])
+        end
       end
+      dice_map[sp[:key]]   = body
+      header_map[sp[:key]] = header
     end
     # The cast's Dice are a resource (the Combat Pool / Reservoir dice spent),
     # surfaced in the result block — not a "what" choice — so they leave no
@@ -1349,13 +1593,20 @@ helpers do
     # action — the client arms the Atlas, the DM clicks to drop the footprint,
     # and the creatures it covers become the affected set (no single Target).
     combatant_target_opts = target_options(encounter_state.combatants, roll_id: 'target', self_id: caster[:id])
+    # A self-only castable (a Potion drunk on oneself, or a `target: self` Spell)
+    # already knows its target — so the lone self option is `auto`-applied and
+    # the Target step never asks (turn_action_stub.md → "never ask what it knows").
+    self_combatant   = encounter_state.combatant(caster[:id])
+    self_target_opts = self_combatant ? target_options([self_combatant], roll_id: 'target', self_id: caster[:id]).map { |o| o.merge(auto: true) } : []
     target_map = {}
     spells.each do |sp|
-      target_map[sp[:name]] =
+      target_map[sp[:key]] =
         if sp[:area]
           [{ value: 'place', key: 'place', group: 'place', label: 'Place on the map',
              summary: 'Place the spell effect on the Atlas',
              place: { shape: sp[:area]['shape'], size: sp[:area]['size'], save: !!sp[:save] } }]
+        elsif sp[:self_only]
+          self_target_opts
         else
           combatant_target_opts
         end
@@ -1371,11 +1622,32 @@ helpers do
     targets.each do |t|
       spells.each do |sp|
         opts = []
+        # The target's own Inherent Tier Bonus rides every defense Roll — it
+        # crosses onto the caster's TN via propagation, and Check Resolution
+        # derives the Ascendancy from the imbalance against the caster's own
+        # Tier Inherent (the Spell's Tier rides as Guidance and stays out of
+        # the Ascendancy).
+        def_inh = Encounter::Attack.defender_tier_bonuses(defender_tier: t[:tier], inherent_table: inh_table)
+        # The caster's base Bonus list (what the Spell step set): every branch
+        # re-sets it so switching away from No defense sheds the injection.
+        caster_bpl = []
+        caster_bpl << sp[:competency] if sp[:competency]
+        # Emitted even at Tier 0 (a 0), so a Tier-0 caster's Inherent still
+        # crosses to the target and the target's Ascendancy gate fires.
+        caster_bpl << ['Inherent', caster_inh]
+        caster_bpl << ['Guidance', sp[:tier].to_i] if sp[:tier].to_i.positive?
         if sp[:attack_roll]
+          # No defense: the target does not roll, so nothing propagates — the
+          # un-rolled target's Inherent is injected onto the caster, negated,
+          # so the derived Ascendancy matches the defended case.
+          none_bpl = caster_bpl + def_inh.map { |type, amt| [type, -amt] }
           opts << { value: 'none', group: 'none', label: 'No defense', summary: 'No defense',
-                    patch: { set_excluded: [{ id: 'target', excluded: true }] } }
-          opts.concat(cast_defense_branch('dodge', 'Dodge', t[:dodge], speed: 0, save: false, pool: t[:pool]))
-          opts.concat(cast_defense_branch('block', 'Block', t[:martial], speed: 0, save: false, pool: t[:pool])) if t[:has_shield]
+                    patch: { set_bpl: [{ id: 'caster', bonus_penalty_list: none_bpl }],
+                             set_excluded: [{ id: 'target', excluded: true }] } }
+          opts.concat(cast_defense_branch('dodge', 'Dodge', t[:dodge], speed: 0, save: false, pool: t[:pool],
+                                          extra_bpl: def_inh, caster_bpl: caster_bpl))
+          opts.concat(cast_defense_branch('block', 'Block', t[:martial], speed: 0, save: false, pool: t[:pool],
+                                          extra_bpl: def_inh, caster_bpl: caster_bpl)) if t[:has_shield]
         elsif sp[:save]
           attr = sp[:save]['attribute'].to_s
           # Always-On Save bonuses (Cloak) plus the spell's School as the
@@ -1385,16 +1657,16 @@ helpers do
           extra = tacc ? CreatureModifiers.save_modifiers(tacc, attr, descriptors: [sp[:school]].compact) : []
           opts.concat(cast_defense_branch("save:#{attr}", "#{attr_label(attr)} save",
                                           t[:saves][attr.to_sym] || t[:dodge], speed: 0, save: true,
-                                          pool: t[:pool], extra_bpl: extra))
+                                          pool: t[:pool], extra_bpl: extra + def_inh, caster_bpl: caster_bpl))
         end
-        defense_map["#{t[:id]}|#{sp[:name]}"] = opts
+        defense_map["#{t[:id]}|#{sp[:key]}"] = opts
       end
     end
     # Area Spells resolve in the placed footprint, not against a single defender,
     # so their "defense" step is a single Confirm that excludes the lone Target
     # Roll (the caught creatures are resolved at commit).
     spells.select { |sp| sp[:area] }.each do |sp|
-      defense_map["place|#{sp[:name]}"] = [
+      defense_map["place|#{sp[:key]}"] = [
         { value: 'area', key: 'area', group: 'area', label: 'Resolve in the area',
           summary: 'Apply to the creatures in the footprint',
           patch: { set_excluded: [{ id: 'target', excluded: true }] } }
@@ -1402,13 +1674,18 @@ helpers do
     end
     defense_step = { key: 'defense', label: 'Target&rsquo;s defense', options_by: %w[target spell], options_map: defense_map }
 
-    steps = [spell_step, dice_step, target_step, defense_step]
+    steps = [spell_step, dice_step, target_step, defense_step].compact
     steps.concat(luck_steps(actor_id: caster[:id],
                             targets: [{ roll_id: 'caster', label: tracker_name(caster) },
                                       { roll_id: 'target', label: 'Defender' }]))
 
-    { title: "#{tracker_name(caster)} casts", stub_id: "cast-#{caster[:id]}",
-      rolls: rolls, steps: steps }
+    blob = { title: title, stub_id: stub_id, rolls: rolls, steps: steps }
+    # Item casts: map each consumable option's key → its originating Item (ref /
+    # owner / form / Spell / Tier) so the Item pane host can carry it onto the
+    # resolve payload. Empty for a pure Cast builder.
+    items = spells.select { |sp| sp[:item] }.each_with_object({}) { |sp, h| h[sp[:key]] = sp[:item] }
+    blob[:items] = items unless items.empty?
+    blob
   end
 
   # One Defensive Action / Saving Throw branch for the Cast Defense step (mirror
@@ -1417,14 +1694,18 @@ helpers do
   # option with no dice choice. The pool-costed Defensive Actions (Dodge /
   # Block, `save: false`) show a button per affordable die count plus a trailing
   # Bonus note.
-  def cast_defense_branch(key, name, inputs, speed:, save:, pool:, extra_bpl: [])
+  def cast_defense_branch(key, name, inputs, speed:, save:, pool:, extra_bpl: [], caster_bpl: nil)
     di   = inputs || { dice_cap: 0 }
     dcmp = di[:competency_modifier] ? [di[:competency_modifier]] : []
     dcmp += Array(extra_bpl)
     cap  = di[:dice_cap].to_i
     mk = lambda do |dice, label, disabled|
+      # A rolled defense restores the caster's base list (sheds the No-defense
+      # injection); the target's own Inherent crosses via propagation instead.
+      set_bpl = [{ id: 'target', bonus_penalty_list: dcmp }]
+      set_bpl.unshift({ id: 'caster', bonus_penalty_list: caster_bpl }) if caster_bpl
       { value: "#{key}|#{dice}", group: key, label: label, summary: "#{name} — #{dice} dice", disabled: disabled,
-        patch: { set_bpl: [{ id: 'target', bonus_penalty_list: dcmp }],
+        patch: { set_bpl: set_bpl,
                  set_dice: [{ id: 'target', count: dice }],
                  set_speed: [{ id: 'target', speed: speed }],
                  set_name: [{ id: 'target', roll_name: name }],
@@ -1535,7 +1816,141 @@ helpers do
   # The Mana Cost of a reaction Ability (its catalog `mana_cost`), e.g. 4 for
   # Better Lucky Than Good / Danger Sense / Primal Tenacity.
   def reaction_mana_cost(ability_name)
-    (Abilities.catalog.ability(ability_name)&.dig('mana_cost') rescue nil).to_i
+    # Resolve through #lookup so an inherited cost (a Channel Divinity Talent
+    # inherits Mana Cost from the base Channel Divinity) is honored.
+    cost = (Abilities.lookup(ability_name)&.dig('mana_cost') rescue nil)
+    cost ||= (Abilities.catalog.ability(ability_name)&.dig('mana_cost') rescue nil)
+    cost.to_i
+  end
+
+  # ---- Roll Table Reactions (encounter_roll_table_stub.md) ---------------
+  #
+  # A Reaction Ability that fires on a provided table — Kesser's Gambit →
+  # the Kesser Reversal Table. Offered, during an attack, to a Combatant
+  # other than the attacker who holds such an Ability, in the same place as
+  # the Standard Shield's ally block. The channeler spends Combat Pool dice
+  # (rolled for Channel Successes through Evocation / Invocation) and Mana;
+  # a die is rolled on the table and the entry reported for the DM.
+
+  # The Ability names an equipped Item grants its wearer (its definition's
+  # `grants` list — a plain name, or `{ ability:, class_level: }`). Combat
+  # does not yet fold equipped grants into Creatures' Granted Abilities, so
+  # this reads them straight off the equipped Items.
+  def equipped_granted_abilities(creature_id)
+    cat = Equipment.catalog
+    inv = (Equipment.instance.get_inventory(equipment_owner(creature_id)) rescue [])
+    inv.select(&:equipped).flat_map do |s|
+      it = cat.item_type(s.item_type)
+      Array(it && it[:definition] && it[:definition]['grants']).map do |g|
+        (g.is_a?(Hash) ? g['ability'] : g).to_s
+      end
+    end.reject(&:empty?).uniq
+  rescue StandardError
+    []
+  end
+
+  # The first Roll Table Reaction a Combatant can field, with the casting
+  # skill its *source* dictates: an equipped Item grant (Kesser's Ring) rolls
+  # with **Evocation**; a Cleric's Channel Divinity grant rolls with
+  # **Invocation**. Returns { ability:, table:, source:, skill: } or nil.
+  def roll_table_reaction_for(acc, creature_id)
+    equipped_granted_abilities(creature_id).each do |name|
+      table = Abilities.roll_table_for(name) or next
+      return { ability: name, table: table, source: 'item', skill: 'evocation' }
+    end
+    (acc&.granted_abilities rescue []).each do |g|
+      table = Abilities.roll_table_for(g[:name]) or next
+      skill = g[:source].to_s.start_with?('class:') ? 'invocation' : 'evocation'
+      return { ability: g[:name], table: table, source: 'class', skill: skill }
+    end
+    nil
+  end
+
+  # Combatants other than the attacker who can answer this attack with a Roll
+  # Table Reaction. Each entry carries the channel skill + its Dice Cap, the
+  # Mana cost, and whether the channeler can afford it (≥ Reaction Minimum in
+  # the pool, and enough Mana).
+  def roll_table_reaction_channelers(attacker_id)
+    rmin = Encounter::Config.reaction_action_minimum
+    encounter_state.combatants.filter_map do |c|
+      next if c[:id] == attacker_id
+      acc = Creatures.lookup(c[:creature_id]) rescue nil
+      next unless acc
+      found = roll_table_reaction_for(acc, c[:creature_id]) or next
+      pool  = (encounter_state.combat_pool_remaining(c[:id]) rescue 0) || 0
+      ri    = roll_inputs_for(acc, found[:skill])
+      cost  = reaction_mana_cost(found[:ability])
+      mana_left = combatant_mana_left(c[:creature_id], acc)
+      afford_pool = pool >= rmin
+      afford_mana = mana_left.nil? || mana_left >= cost
+      { combatant_id: c[:id], name: tracker_name(c), ability: found[:ability],
+        table: found[:table], source: found[:source], skill: found[:skill],
+        skill_label: Encounter::Special.pretty_skill(found[:skill]), dice_cap: ri[:dice_cap].to_i,
+        mana_cost: cost, pool: pool,
+        disabled: !(afford_pool && afford_mana),
+        disabled_reason: (!afford_pool ? 'not enough Combat Pool' : (!afford_mana ? 'not enough Mana' : nil)) }
+    end
+  end
+
+  # A single-Roll channel-check builder for a Roll Table Reaction — the
+  # channeler rolls `Reaction Minimum..min(pool, Dice Cap)` dice in its
+  # Evocation / Invocation skill; the Successes are the Channel Successes that
+  # scale the table entry. Shaped like #special_builder_blob's Performance
+  # check (one supporting Roll + a Channel-dice step), so the same Action
+  # Builder component drives it.
+  # The channel check's Bonus/Penalty list (the casting skill's Competency plus
+  # the channeler's Inherent Tier Bonus), the skill, its Dice Cap and Tier — the
+  # inputs that shape the Evocation / Invocation check. Shared by the builder and
+  # the result so the same modifiers drive the roll and are shown to the DM.
+  def roll_table_channel_info(acc, creature_id)
+    found = roll_table_reaction_for(acc, creature_id) || { skill: 'evocation' }
+    ri    = roll_inputs_for(acc, found[:skill])
+    bpl   = []
+    bpl << ri[:competency_modifier] if ri[:competency_modifier]
+    tier  = (acc&.tier rescue nil)
+    bpl << ['Inherent', tier.to_i] if tier.to_i.positive?
+    { skill: found[:skill], dice_cap: ri[:dice_cap].to_i, tier: tier, bpl: bpl }
+  end
+
+  # The channel-check skill + its Bonus/Penalty list as a JSON-friendly blob,
+  # merged onto a Roll Table Reaction result so the DM sees every modifier on the
+  # check (Competency, Inherent) and can set save TNs against the effect by hand.
+  def roll_table_check_info(combatant)
+    acc  = Creatures.lookup(combatant[:creature_id]) rescue nil
+    info = roll_table_channel_info(acc, combatant[:creature_id])
+    { skill_label: Encounter::Special.pretty_skill(info[:skill]),
+      modifiers: info[:bpl].map { |type, amt| { type: type.to_s, amount: amt.to_i } } }
+  end
+
+  def roll_table_builder_blob(combatant, ability_name)
+    acc     = Creatures.lookup(combatant[:creature_id]) rescue nil
+    die     = DiceResolution.config.die_size
+    base_tn = DiceResolution.config.base_target_number
+    pool    = (encounter_state.combat_pool_remaining(combatant[:id]) rescue 0) || 0
+    rmin    = Encounter::Config.reaction_action_minimum
+    info    = roll_table_channel_info(acc, combatant[:creature_id])
+    skill   = info[:skill]
+    bpl     = info[:bpl]
+    tier    = info[:tier]
+
+    rolls = [{ id: 'channel', side: 'supporting', creature_name: tracker_name(combatant),
+               roll_name: ability_name, die_size: die, tn: base_tn, starting_value: 0,
+               base_tn: base_tn, bonus_penalty_list: bpl, dice_count: rmin, speed: 0, excluded: false,
+               tier: tier }]
+
+    upper = info[:dice_cap].positive? ? [info[:dice_cap], pool].min : pool
+    upper = [upper, rmin].max
+    set   = ->(n) { { set_dice: [{ id: 'channel', count: n }] } }
+    label = Encounter::Special.pretty_skill(skill)
+    opts  = [{ value: upper, key: 'dice', group: 'dice', label: label,
+               summary: "#{label} — #{upper} dice", patch: set.call(upper) }]
+    (rmin..upper).each { |n| opts << { value: n, key: 'dice', group: 'dice', label: n.to_s,
+                                       summary: "#{n} dice", patch: set.call(n) } }
+    steps = [{ key: 'dice', label: 'Channel dice', options: opts,
+               header_options: [{ value: upper, label: label }] }]
+
+    { title: "#{tracker_name(combatant)} — #{ability_name}",
+      stub_id: "roll-table-#{combatant[:id]}", rolls: rolls, steps: steps }
   end
 
   # Resolve a Spell name — a catalog key OR a constructed per-Tier variant name
@@ -1562,8 +1977,8 @@ helpers do
   # value is "<prefix>|<n>"; `aff` / `patch` / `summary` are lambdas of the count.
   # `header_min` makes the header select the minimum (a Reaction-minimum defence)
   # rather than the max affordable. Returns { body:, header: }.
-  def dice_count_group(prefix:, group:, min:, max:, aff:, patch:, summary:, info:,
-                       header_label:, key: nil, lead_label: nil, header_min: false)
+  def dice_count_group(prefix:, group:, min:, max:, aff:, patch:, summary:,
+                       header_label:, info: nil, key: nil, lead_label: nil, header_min: false)
     aff_max = (min..max).select { |n| aff.call(n) }.max
     opt = lambda do |dice, label, disabled|
       o = { value: "#{prefix}|#{dice}", group: group, label: label,
@@ -1574,7 +1989,8 @@ helpers do
     body = []
     body << opt.call(aff_max || max, lead_label, aff_max.nil?) if lead_label
     (min..max).each { |n| body << opt.call(n, n.to_s, !aff.call(n)) }
-    body << { kind: 'info', group: group, value: "#{group}|info", label: info }
+    # Optional trailing note (e.g. an Attack's weapon bonuses). Omitted when empty.
+    body << { kind: 'info', group: group, value: "#{group}|info", label: info } if info && !info.to_s.empty?
     hdice = header_min ? min : (aff_max || max)
     { body: body, header: { value: "#{prefix}|#{hdice}", label: header_label,
                             disabled: (header_min ? !aff.call(min) : aff_max.nil?) } }
@@ -1611,6 +2027,23 @@ helpers do
     # catalog key + Tier axis so every Abilities lookup below succeeds.
     base_name, = spell_base_axis(spell['name']) if spell['name']
 
+    # A consumable Item cast (a Potion / Scroll from the Item pane): the Item,
+    # not the caster, supplies the Spell — so it costs no Mana and rolls the
+    # Spell's own casting skill (Evocation by default, equipment_design.md →
+    # "Casting skill"). A Potion imposes Item-Form Magic Toxicity on the drinker
+    # (Item-Form Toxicity); a Scroll imposes none. Setting mana_cost to 0 and
+    # cast_skill here pre-empts the caster-based resolution below.
+    if (item = payload['item']) && spell['name']
+      spell['mana_cost'] = 0
+      spell['cast_skill'] ||= item_cast_skill(resolve_named_spell(spell['name']))
+      if item['form'].to_s == 'potion'
+        ccomb = (encounter_state.combatant(caster['id'].to_i) rescue nil)
+        cacc  = ccomb && (Creatures.lookup(ccomb[:creature_id]) rescue nil)
+        spell['toxicity'] = (Equipment.instance.item_form_toxicity(
+          item_tier: item['tier'].to_i, target_tier: (cacc&.tier rescue nil)) rescue 0)
+      end
+    end
+
     # Resolve the caster's own Casting Skill (a Cleric's Invocation) so the
     # casting check rolls that Skill, not the Spell's generic `arcana` default.
     if spell['cast_skill'].nil? && caster['id'] && spell['name']
@@ -1625,6 +2058,22 @@ helpers do
       spell['tier'] = info[:tier] if info
     end
     spell['mana_cost'] ||= mana_cost_for_tier(spell['tier']) unless spell['tier'].nil?
+
+    # A Heal-style channel reduces the target's bleeding by a formula scaled by
+    # the casting successes (Heal: `spell_tier*2*success`, Tier 0 → 0.5). Resolve
+    # the formula to a concrete amount here — bound to the *spell's* Tier (not the
+    # caster's) and the rolled successes — so the resolver just applies it.
+    if spell['bleed_reduction'].nil? && base_name
+      raw_v   = (Abilities.catalog.ability(base_name) rescue nil) || {}
+      formula = raw_v.dig('channel', 'effect_hash', 'bleed_reduction')
+      if formula
+        tier       = spell['tier'].to_i
+        tier_value = tier.zero? ? 0.5 : tier
+        succ       = (caster['successes'] || 0).to_i
+        amt        = (Abilities::Formula.evaluate(formula.to_s, 'tier' => tier_value, 'success' => succ) rescue 0)
+        spell['bleed_reduction'] = [amt.floor, 0].max
+      end
+    end
 
     if Abilities.respond_to?(:resolve_spell) && spell['name']
       resolved = (Abilities.resolve_spell(base_name, tier: spell['tier']) rescue nil)
@@ -1665,8 +2114,13 @@ helpers do
 
     # Area Spells (Obscuring Mist, Darkness, Web, Create Pit, Silence) carry an
     # `area` footprint placed on the map at commit time. For an Aspect-list area
-    # (Grease: object vs. area), use the first footprint Aspect.
-    raw_entry = variant || {}
+    # (Grease: object vs. area), use the first footprint Aspect. Read the area
+    # from the *raw* Catalog entry, not the resolved Variant: `area` is a
+    # parallel/Aspect field, so the Variant at axis 0 may have already collapsed
+    # an Aspect-list area to its first (non-footprint) element (e.g. Grease's
+    # `object` aspect → nil), losing the footprint.
+    base_name, = spell_base_axis(spell['name']) if spell['name']
+    raw_entry = (Abilities.catalog.ability(base_name) rescue nil) || variant || {}
     raw_area  = raw_entry['area']
     area_hash = raw_area.is_a?(Array) ? raw_area.find { |x| x.is_a?(Hash) } : raw_area
     # Each creature caught in the footprint gets the area's on-enter Effect (its
@@ -1839,6 +2293,20 @@ helpers do
     apply_shielded_condition(ally['id'], spell['name'].to_s)
   end
 
+  # Decrement the Consumable a committed Item cast used (one charge), then run
+  # Equipment's Cleanup so an emptied Stack drops. Returns the item's display
+  # name for the result, or nil when the payload carries no Item.
+  def consume_cast_item!(payload)
+    item  = payload['item'] or return nil
+    owner = item['owner_id']
+    ref   = item['ref']
+    return nil if owner.nil? || ref.nil?
+    inst = Equipment.instance
+    inst.remove_item(owner, ref.to_i, quantity: 1)
+    inst.cleanup(owner)
+    item['display'] || item['item_type']
+  end
+
   # Mark the shielded Combatant with the `shielded` named effect for display.
   def apply_shielded_condition(combatant_id, source_name)
     c = encounter_state.combatant(combatant_id.to_i) or return
@@ -1916,11 +2384,11 @@ helpers do
       upper = (check_channel && dice_cap.to_i.positive?) ? [dice_cap.to_i, pool].min : pool
       upper = [upper, min].max
       set   = ->(n) { { set_dice: [{ id: 'performance', count: n }] } }
-      opts  = [{ value: upper, key: 'dice', group: 'dice', label: "#{skill_label} (max #{upper})",
+      opts  = [{ value: upper, key: 'dice', group: 'dice', label: skill_label,
                  summary: "#{skill_label} — #{upper} dice", patch: set.call(upper) }]
       (min..upper).each { |n| opts << { value: n, key: 'dice', group: 'dice', label: n.to_s,
                                         summary: "#{n} dice", patch: set.call(n) } }
-      { options: opts, header: { value: upper, label: "Max (#{upper})" } }
+      { options: opts, header: { value: upper, label: skill_label } }
     end
 
     steps = []
@@ -2300,7 +2768,14 @@ get '/encounter/attack_builder' do
   require_dm!
   attacker = encounter_state.combatant(params[:attacker_id].to_i)
   return encounter_error(404, 'unknown attacker') unless attacker
-  erb :_action_builder, layout: false, locals: { builder: attack_builder_blob(attacker) }
+  builder_html = erb :_action_builder, layout: false, locals: { builder: attack_builder_blob(attacker) }
+  # A Roll Table Reaction (Kesser's Gambit) a bystander may answer this attack
+  # with rides alongside the builder, in the same place as the Standard Shield's
+  # ally block. Rendered only when an eligible channeler exists.
+  channelers = roll_table_reaction_channelers(attacker[:id])
+  return builder_html if channelers.empty?
+  builder_html + erb(:_encounter_roll_table_stub, layout: false,
+                     locals: { channelers: channelers, attacker_id: attacker[:id] })
 end
 
 post '/encounter/resolve_attack' do
@@ -2339,6 +2814,18 @@ get '/encounter/cast_builder' do
   erb :_action_builder, layout: false, locals: { builder: cast_builder_blob(caster) }
 end
 
+# item_builder serves the Item pane's builder blob (turn_action_stub.md → Item):
+# the actor's carried Potions / Scrolls as castable options. The pane resolves
+# the casting check + target Saves client-side and POSTs to resolve_cast with an
+# `item` field, which costs no Mana, imposes Item-Form Toxicity for Potions, and
+# decrements the Consumable on commit.
+get '/encounter/item_builder' do
+  require_dm!
+  actor = encounter_state.combatant(params[:actor_id].to_i)
+  return encounter_error(404, 'unknown combatant') unless actor
+  erb :_action_builder, layout: false, locals: { builder: item_builder_blob(actor) }
+end
+
 # One opposing Save Roll per creature caught in an area Spell's footprint —
 # the Spread Opposers. Rendered as roll-group <tbody>s the cast builder swaps
 # into its dice table after the DM places the effect on the map.
@@ -2353,16 +2840,19 @@ get '/encounter/cast_area_rolls' do
   attr = save && save['attribute'].to_s
   die     = DiceResolution.config.die_size
   base_tn = DiceResolution.config.base_target_number
+  inh_table = (Creatures::Config.tier_minimum_inherent_bonus rescue [])
   rolls = Array(params[:affected]).filter_map do |cid|
     c   = encounter_state.combatant(cid.to_i) or next
     acc = Creatures.lookup(c[:creature_id]) rescue nil
     ri  = attr ? roll_inputs_for(acc, "#{attr}_save", attribute_override: attr.to_sym) : {}
     bpl = ri[:competency_modifier] ? [ri[:competency_modifier]] : []
+    # Each caught creature's Inherent Tier Bonus rides its Save Roll — the
+    # Inherent crossing is what Check Resolution derives Ascendancy from.
+    bpl += Encounter::Attack.defender_tier_bonuses(defender_tier: ((acc&.tier rescue nil) || 0), inherent_table: inh_table)
     { id: "save-#{c[:id]}", side: 'opposing', creature_name: tracker_name(c),
       roll_name: (attr ? "#{attr_label(attr)} save" : 'Save'),
       die_size: die, tn: base_tn, starting_value: 0, base_tn: base_tn,
-      bonus_penalty_list: bpl, dice_count: ri[:dice_cap].to_i, speed: 0, excluded: false,
-      tier: (acc&.tier rescue nil) }
+      bonus_penalty_list: bpl, dice_count: ri[:dice_cap].to_i, speed: 0, excluded: false }
   end
   erb :_roll_stub, layout: false, locals: { rolls: rolls, wrapper: false }
 end
@@ -2373,6 +2863,9 @@ post '/encounter/resolve_cast' do
   return encounter_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
   enrich_cast_payload!(payload)
   result = encounter_state.resolve_cast_payload(payload)
+  # An Item cast (Potion / Scroll) costs no Mana — flag it so the result block
+  # omits the (always-zero) Mana row on both preview and commit.
+  result = result.merge(consumable: true) if payload['item']
   # A committed cast mutated Conditions (HP / mana / toxicity / temp HP /
   # active effects) — persist so it survives a restart. A preview mutates
   # nothing. An area Spell also drops a Zone on the active Map.
@@ -2380,6 +2873,11 @@ post '/encounter/resolve_cast' do
     zone = (place_spell_area_zone!(payload) rescue nil)
     result = result.merge(zone: zone) if zone
     grant_defend_reaction!(payload) rescue nil
+    # A committed Item cast (Potion / Scroll from the Item pane) decrements the
+    # Consumable by one — the Cast pipeline applied its Effects / Toxicity; only
+    # the Inventory side remains.
+    consumed = (consume_cast_item!(payload) rescue nil)
+    result = result.merge(item_consumed: consumed) if consumed
     Conditions.store.persist!
     encounter_state.spend_main_action(payload.dig('caster', 'id').to_i) # Cast is a Main Action
   end
@@ -2409,5 +2907,38 @@ post '/encounter/use_special' do
   return encounter_error(400, cap_err) if cap_err
   result = encounter_state.use_special_payload(payload)
   Conditions.store.persist! if result[:ok]
+  encounter_response(result)
+end
+
+# The channel-check Action Builder for a Roll Table Reaction (Kesser's
+# Gambit), rendered as an HTML fragment the attack panel injects when the
+# DM picks a channeler. The DM rolls the Channel check; the Successes +
+# chosen dice POST to /encounter/roll_table_reaction.
+get '/encounter/roll_table_builder' do
+  require_dm!
+  combatant = encounter_state.combatant(params[:combatant_id].to_i)
+  return encounter_error(404, 'unknown combatant') unless combatant
+  ability = params[:ability].to_s
+  erb :_action_builder, layout: false, locals: { builder: roll_table_builder_blob(combatant, ability) }
+end
+
+# Fire a Roll Table Reaction (encounter_roll_table_stub.md): spend the
+# channeler's Combat Pool dice + Mana, roll the table, and report the entry
+# with the Channel Successes the channel check produced. Mutates Conditions
+# (Mana), so persist its store on success.
+post '/encounter/roll_table_reaction' do
+  require_dm!
+  payload = JSON.parse(request.body.read) rescue nil
+  return encounter_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
+  result = encounter_state.use_roll_table_payload(payload)
+  if result[:ok]
+    # Surface the channel check's modifiers (Competency / Inherent) so the DM can
+    # set save TNs against the rolled effect by hand.
+    combatant = encounter_state.combatant(payload['combatant_id'].to_i)
+    result = result.merge(roll_table_check_info(combatant)) if combatant
+    # Only a committed reaction (the Confirm) mutates Mana — a preview / reroll
+    # spends nothing.
+    Conditions.store.persist! if result[:committed]
+  end
   encounter_response(result)
 end

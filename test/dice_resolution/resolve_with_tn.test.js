@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Roll } from '../../public/js/roll.js';
 import { TnComputation } from '../../public/js/tnComputation.js';
-import { SequenceRng } from '../../public/js/rng.js';
+import { SequenceRng } from '../../public/js/sequenceRng.js';
 
 // docs/common/dice_resolution/dice_resolution_tests.md
 // "Resolve a Roll with a Target Number"

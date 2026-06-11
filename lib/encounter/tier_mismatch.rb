@@ -16,9 +16,11 @@ module Encounter
   # callers fold that into the tier they pass.
   #
   # This Ruby module owns the *Inherent damage reduction* half, applied
-  # server-side when damage is resolved. The *Ascendancy* check modifier
-  # is computed client-side in the JS Check Resolution engine
-  # (public/js/tierMismatch.js), since Rolls resolve there.
+  # server-side when damage is resolved. The *Ascendancy* half is derived as a
+  # step of TN computation (Roll Resolution) from a Roll's Inherent entries —
+  # `public/js/ascendancy.js` for client-side combat Rolls, and the Ruby twin
+  # in `DiceResolution.compute_target_number` for server-computed Rolls such as
+  # an Affliction save. It is no longer a Check Resolution operation.
   module TierMismatch
     module_function
 

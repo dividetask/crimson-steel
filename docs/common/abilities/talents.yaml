@@ -126,7 +126,7 @@ Kesser's Gambit:
   mana_cost: 4
   activation_time: reaction
   roll_table: Kesser Reversal Table
-  description: "As a reaction triggered on an attack or spell roll, roll a d10 on the Kesser Reversal Table."
+  description: "Kesser's deity Channel Divinity, gained at Cleric level 4. As a reaction triggered on an attack or spell roll, roll a d10 on the Kesser Reversal Table (see creatures_design.md). Channel Successes scale the table's entries."
 
 Sneak Attack:
   type: talent

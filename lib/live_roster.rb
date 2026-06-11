@@ -1,6 +1,7 @@
 require 'creatures'
 require 'creatures/random_encounter'
 require 'encounter'
+require 'chronicle'
 
 # Builds the Roster Sidebar structure exclusively from the live
 # Creatures domain (docs/common/creatures + data/) and the Random
@@ -8,8 +9,9 @@ require 'encounter'
 # Sheets page and the Encounter tracker share this so they stay in sync.
 #
 # Shape (consumed by views/_creatures_roster_sidebar.erb):
-#   { players:    [{ id, name, active, copy_count }],
-#     npcs:       [{ id, name, active, copy_count }],
+#   { players:       [{ id, name, active, copy_count }],
+#     npcs:          [{ id, name, active, copy_count }],  # Scene-active NPCs
+#     inactive_npcs: [{ id, name, active, copy_count }],  # not in the Scene
 #     categories: [{ key, name,
 #                    templates: [{ id, name, copy_count, spawned: [...] }],
 #                    random_encounter_tables: [{ table_id, name }] }] }
@@ -24,10 +26,17 @@ module LiveRoster
         copy_count: enc_state.copy_count(rec[:id]) }
     end
 
-    npcs = creatures_in_group('npc').map do |rec|
+    # An NPC is "active" when its Chronicle Creature Reference is active
+    # (in the current Scene). Active NPCs list under "NPCs"; the rest move
+    # to "Inactive NPCs". The per-row `active` flag still reflects combat
+    # roster membership (it drives the Add/Remove toggle).
+    scene_active = scene_active_creature_ids
+    all_npcs = creatures_in_group('npc').map do |rec|
       { id: rec[:id], name: rec[:name], active: enc_state.includes_creature?(rec[:id]),
         copy_count: enc_state.copy_count(rec[:id]) }
     end
+    npcs          = all_npcs.select { |row| scene_active.include?(row[:id]) }
+    inactive_npcs = all_npcs.reject { |row| scene_active.include?(row[:id]) }
 
     # Group enemy templates by their `category:<key>` tag, and join the
     # Random Encounter Tables filed under the same category.
@@ -48,7 +57,16 @@ module LiveRoster
         templates: by_cat[key][:templates], random_encounter_tables: by_cat[key][:random_encounter_tables] }
     end
 
-    { players: players, npcs: npcs, categories: categories }
+    { players: players, npcs: npcs, inactive_npcs: inactive_npcs, categories: categories }
+  end
+
+  # Creature IDs whose Chronicle Creature Reference is currently active
+  # (in the Scene). Used to split NPCs into active / inactive groups.
+  def scene_active_creature_ids
+    Chronicle.store.list_entries(entry_type: 'creature', active_only: true)
+             .map { |e| e['creature_id'] }.compact
+  rescue StandardError
+    []
   end
 
   # Live creatures ordered by load order, returning the raw records.

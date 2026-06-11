@@ -7,6 +7,7 @@ require_relative 'encounter/tier_mismatch'
 require_relative 'encounter/attack'
 require_relative 'encounter/cast'
 require_relative 'encounter/special'
+require_relative 'encounter/roll_table'
 require_relative 'encounter/state'
 
 # Encounter domain. See docs/common/encounter/encounter_design.md.

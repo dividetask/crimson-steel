@@ -236,6 +236,10 @@ export class ActionBuilder {
     // (a buff, or a reservoir-channel like Shield of Faith) skips the Luck steps
     // — its dice are charged/poured, not rolled.
     if (opt.cast) cb.noRoll = !opt.cast.roll;
+    // The resolved Spell name behind the chosen option (equals the value for a
+    // known Spell; the underlying Spell for an Item whose option is keyed by the
+    // Stack). Used by the area-placement Save fetch so it resolves the Spell.
+    if (opt.spell_name != null) cb.spellName = opt.spell_name;
     // An area Spell's "Place on the map" option arms the Atlas; the actual
     // footprint (and the creatures it catches) come back via cast:area-placed.
     if (opt.place) {
@@ -399,7 +403,7 @@ export class ActionBuilder {
 
     const params = new URLSearchParams();
     params.set('caster_id', casterId);
-    params.set('spell', cb.choices.spell ? cb.choices.spell.value : '');
+    params.set('spell', cb.spellName || (cb.choices.spell ? cb.choices.spell.value : ''));
     hits.forEach((h) => params.append('affected[]', h.combatant_id));
     fetch('/encounter/cast_area_rolls?' + params.toString(), { headers: { Accept: 'text/html' } })
       .then((r) => r.text())
@@ -469,9 +473,6 @@ export class ActionBuilder {
     (patch.set_nudge || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.nudge = p.clear ? null : { sign: p.sign, count: p.count, max: !!p.max }; }));
     (patch.set_name || []).forEach((p) => ActionBuilder._setName(root, p));
     (patch.set_excluded || []).forEach((p) => ActionBuilder._setExcluded(root, p.id, p.excluded));
-    // The Roll's Creature Tier, used by Check Resolution's Tier Mismatch
-    // Ascendancy. The defender's Tier is set when a Target is chosen.
-    (patch.set_tier || []).forEach((p) => ActionBuilder._mutate(root, p.id, (c) => { c.tier = p.tier; }));
     // Re-preview every Roll's TN through Check Resolution so each row reflects
     // the propagated math after any change.
     ActionBuilder._previewTns(root);
@@ -495,7 +496,7 @@ export class ActionBuilder {
       .filter((g) => !g.classList.contains('roll-group-excluded'));
     const rollFor = (g) => {
       let c; try { c = JSON.parse(g.dataset.config); } catch (e) { return null; }
-      return { _g: g, side: g.dataset.side, baseTn: c.base_tn, tier: c.tier,
+      return { _g: g, side: g.dataset.side, baseTn: c.base_tn,
                bonusPenaltyList: c.bonus_penalty_list || [], noPropagate: c.no_propagate || [],
                startingContribution: 0 };
     };

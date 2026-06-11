@@ -940,11 +940,16 @@ module Encounter
                pool_spends: pool_spends, mana_cost: mana_cost, mana_max: mana_max }
 
       if commit
+        # DM heal override: the confirm page exposes an editable box per Severity
+        # of a heal Effect; fold those amounts onto the resolved targets before
+        # they are applied so the cure heals exactly what the DM entered.
+        apply_heal_override!(resolved, over[:heals]) if over[:heals]
         pool_spends.each { |s| spend_combat_pool(s[:id], s[:amount].to_i) }
         apply_luck_spends(p[:luck])
         mana_spent = mana_cost.positive? ? caster_inst.apply_mana_cost(amount: mana_cost, mana_max: mana_max) : 0
         tox = apply_cast_toxicity(caster_inst, toxicity, polarity, cha, tier)
         applied = resolved.map { |t| apply_cast_target(t, spell) }
+        apply_bleed_reduction!(applied, spell[:bleed_reduction].to_i, commit: true)
         sustain = p[:sustain] ? register_cast_sustain(caster[:id], spell, p[:sustain], channel_dice: caster[:dice].to_i) : nil
         base.merge(mana_spent: mana_spent, toxicity: tox, targets: applied, sustain: sustain)
       else
@@ -952,6 +957,7 @@ module Encounter
         mana_spent = mana_cost.positive? ? [mana_cost, available].min : 0
         tox = preview_cast_toxicity(caster_inst, toxicity, polarity, cha, tier)
         previews = resolved.map { |t| preview_cast_target(t) }
+        apply_bleed_reduction!(previews, spell[:bleed_reduction].to_i, commit: false)
         sustain  = p[:sustain] ? { kind: deep_symbolize(p[:sustain])[:kind].to_s, spell_name: spell[:name] } : nil
         base.merge(mana_spent: mana_spent, toxicity: tox, targets: previews, sustain: sustain)
       end
@@ -1325,6 +1331,72 @@ module Encounter
       result
     end
 
+    # Resolve a Roll Table reaction (encounter_roll_table_stub.md) — a
+    # Reaction Ability that fires on a provided table (talents.yaml
+    # `roll_table:`, e.g. Kesser's Gambit → the Kesser Reversal Table).
+    # Unlike a Special action this is a Reaction, so it does not pass
+    # through #use_special_payload; the host (the attack flow) offers it
+    # to a Combatant other than the attacker.
+    #
+    # The channeler spends `dice` from its Combat Pool (Reaction Action
+    # Minimum up to the pool) — the dice the DM rolled for the channel
+    # check — plus the Ability's Mana Cost, then a die is rolled on the
+    # table and the matched entry reported with the Channel Successes the
+    # check produced. Combat does not apply the entry; the DM adjudicates.
+    #
+    # Payload (symbol or string keys): combatant_id, ability (display
+    # name), dice (Combat Pool spent on the channel check), successes
+    # (Channel Successes rolled), face (optional — a die the DM rolled
+    # client-side; omitted rolls server-side via `rng`).
+    def use_roll_table_payload(payload, rng: Random.new)
+      p = deep_symbolize(payload)
+      # A preview (commit:false) rolls the table to show the entry and lets the
+      # DM reroll, spending nothing; the Confirm (commit:true, default) commits
+      # the shown face and spends the Combat Pool dice + Mana.
+      commit = p.fetch(:commit, true) != false
+      combatant_id = p[:combatant_id].to_i
+      c = combatant_for(combatant_id) or return { ok: false, error: 'unknown combatant' }
+      creature = lookup!(c[:creature_id]) or return { ok: false, error: 'unknown creature' }
+
+      name  = p[:ability].to_s
+      table_name = Abilities.roll_table_for(name)
+      return { ok: false, error: "#{name} has no roll table" } unless table_name
+      table = Abilities.roll_table(table_name)
+      return { ok: false, error: "unknown roll table #{table_name}" } unless table
+
+      reaction_min = Config.reaction_action_minimum
+      dice = p.key?(:dice) ? p[:dice].to_i : reaction_min
+      return { ok: false, error: "must spend at least #{reaction_min} dice" } if dice < reaction_min
+      pool_rem = combat_pool_remaining(combatant_id)
+      return { ok: false, error: 'not enough Combat Pool' } if dice > pool_rem
+
+      # Kesser's Gambit inherits its Mana Cost from the base Channel
+      # Divinity Talent — resolve the inherited value, falling back to the
+      # raw catalog entry.
+      raw       = Abilities.catalog.ability(name)
+      mana_cost = Integer((Abilities.lookup(name)&.dig('mana_cost') rescue nil) || (raw && raw['mana_cost']) || 0)
+      inst      = conditions_for(c[:creature_id])
+      mana_rem  = special_mana_remaining(c[:creature_id], creature)
+      return { ok: false, error: 'not enough Mana' } if mana_cost.positive? && mana_rem && mana_rem < mana_cost
+
+      if commit
+        spend_combat_pool(combatant_id, dice)
+        if mana_cost.positive? && creature.respond_to?(:max_mana) && creature.max_mana
+          inst.apply_mana_cost(amount: mana_cost, mana_max: creature.max_mana)
+        end
+      end
+
+      successes = p[:successes].to_i
+      result    = RollTable.roll(table, face: p[:face], successes: successes, rng: rng)
+      return { ok: false, error: 'roll table produced no entry' } unless result
+
+      actor = special_actor_name(c, creature)
+      { ok: true, committed: commit, ability: name, table: table_name, pool_spent: dice, mana_spent: mana_cost,
+        successes: successes, face: result[:face], die: result[:die],
+        entry: { name: result[:name], effect: result[:effect] },
+        log: "#{actor} channels #{name}: rolled #{result[:face]} (#{result[:name]})" }
+    end
+
     # ---------- Granted Actions ----------
 
     def grant_action(action)
@@ -1598,6 +1670,44 @@ module Encounter
     def apply_cast_target(t, spell)
       applied = Array(t[:effects]).map { |e| route_cast_effect(t[:id], e, spell) }.compact
       { id: t[:id], outcome: t[:outcome], applied: applied }
+    end
+
+    # A Heal-style channel reduces each target's bleeding by `amount` (the spell
+    # already resolved `spell_tier*2*success` to a number). On commit it drains
+    # the target's `bleeding` Affliction Potency (Conditions' Reduce Affliction
+    # Potency); a preview just reports the amount. Appended to the target's
+    # applied Effects so the result shows it.
+    def apply_bleed_reduction!(targets, amount, commit:)
+      return if amount.to_i <= 0
+      targets.each do |t|
+        if commit
+          inst = target_conditions(t[:id])
+          removed = inst ? inst.reduce_affliction_potency('bleeding', amount) : 0
+          t[:applied] = Array(t[:applied]) + [{ kind: 'bleed_reduction', requested: amount, removed: removed }]
+        else
+          t[:applied] = Array(t[:applied]) + [{ kind: 'bleed_reduction', requested: amount }]
+        end
+      end
+    end
+
+    # Replace each heal Effect's Severity map with the DM-entered amounts (one
+    # editable box per Severity on the confirm page). Keyed by target id; a
+    # Severity left blank or non-positive is dropped, so the heal cures exactly
+    # what was entered. Non-heal Effects and untouched targets are unchanged.
+    def apply_heal_override!(resolved, heals)
+      by_id = {}
+      Array(heals).each { |h| by_id[h[:target_id].to_i] = (h[:severity_map] || {}) }
+      resolved.each do |t|
+        ov = by_id[t[:id].to_i] or next
+        t[:effects] = Array(t[:effects]).map do |e|
+          next e unless e[:kind].to_s == 'heal'
+          sev = %i[minor moderate major].each_with_object({}) do |k, h|
+            v = (ov[k] || ov[k.to_s]).to_i
+            h[k] = v if v.positive?
+          end
+          e.merge(severity_map: sev)
+        end
+      end
     end
 
     def route_cast_effect(target_id, eff, spell)

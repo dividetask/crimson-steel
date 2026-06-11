@@ -26,8 +26,8 @@ Optional:
 
 The canvas implements two interactions:
 
-- **Pan** — click-and-drag on empty canvas (or two-finger drag on touch) translates the viewport. There is no boundary on pan extent; the user may scroll beyond the Map's declared `width` and `height` in either direction, because Tokens may be placed there.
-- **Zoom** — scroll wheel (or pinch) adjusts the zoom factor centered on the cursor. Buttons in the toolbar offer the same operation. Zoom is clamped to `[Minimum Zoom, Maximum Zoom]` from `atlas_config.yaml`. On first open of a Map the initial zoom is `Suggested Initial Zoom`; subsequent visits restore the most recent zoom and pan (held in UI state, not in Atlas state).
+- **Pan** — click-and-drag on empty canvas (or two-finger drag on touch) translates the viewport. Pan is **bounded to the Map**: on an axis where the Map is larger than the viewport it is clamped so no viewport edge falls past a Map edge (no off-Map space scrolls into view); on an axis where the Map is smaller than the viewport (when zoomed out toward the fit) the Map is centered, letterboxing the off-Map space evenly.
+- **Zoom** — scroll wheel (or pinch) adjusts the zoom factor centered on the cursor. Buttons in the toolbar offer the same operation. Zoom is clamped to `[Minimum Zoom, Maximum Zoom]` from `atlas_config.yaml`, **with the zoom-out floor set to the contain fit** — the smallest zoom at which the **whole Map fits in the viewport at once** (both axes visible). At that floor one axis fills the viewport and the shorter axis letterboxes (off-Map space shows around the Map); you cannot zoom out further than "the whole Map at once". On first open of a Map the initial zoom is `Suggested Initial Zoom` (clamped to the floor); subsequent visits restore the most recent zoom and pan (held in UI state, not in Atlas state). A viewport resize re-applies both bounds.
 
 The stub never resizes or paginates the underlying Map. A Map with `width = 10000` renders the same way as `width = 50` — the user pans and zooms to navigate.
 
@@ -64,6 +64,10 @@ Dragging is suppressed entirely when `chrome = false`.
 ### Placing a Token
 
 The DM-only *Place Token* affordance opens a picker of the active Combatants. Choosing one **arms placement**: the next press on the canvas drops the Token at that cell, and the DM may drag before releasing to position it (a ghost follows the cursor, snapped to Grid cells; release commits *Place Token* at that cell). `Esc` cancels an armed placement. This replaces dropping the Token at a fixed default position — it lands where the DM puts it.
+
+### Placing a spell area
+
+A Cast's "Place on the map" option (an area Spell, per `turn_action_stub.md` → Cast) **arms area placement**: the next press on the canvas drops the spell's footprint at that cell, snapped to the Grid. Unlike a Token, the footprint is **not yet committed** — it is a local, dashed preview that lives only in the canvas until the cast is committed, and the caster may **re-aim it** by dragging the footprint to a new cell. Both the initial drop and each subsequent move recompute which Combatant Tokens the footprint catches and report them to the cast panel (via `cast:area-placed`), so the affected creatures — and their Saving Throws — update to match wherever the effect currently sits. Nothing is persisted to the Map until the cast is committed; re-aiming before that point is free.
 
 ## Drawing tools
 

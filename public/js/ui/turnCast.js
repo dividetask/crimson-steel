@@ -129,6 +129,15 @@ export class TurnCast {
     const pools = Object.keys(f).filter((k) => k.indexOf('pool:') === 0)
       .map((k) => ({ id: num(k.slice(5)), amount: f[k] }));
     if (pools.length) o.pool_spends = pools;
+    // Edited heal Severities: "heal:<targetId>:<severity>" → one override per
+    // target with its Severity map.
+    const heals = {};
+    Object.keys(f).filter((k) => k.indexOf('heal:') === 0).forEach((k) => {
+      const parts = k.split(':');
+      (heals[parts[1]] = heals[parts[1]] || {})[parts[2]] = f[k];
+    });
+    const healList = Object.keys(heals).map((id) => ({ target_id: num(id), severity_map: heals[id] }));
+    if (healList.length) o.heals = healList;
     return o;
   }
 
@@ -158,9 +167,25 @@ export class TurnCast {
     const noRoll = !!(detail && detail.noRoll);
     const tox = res.toxicity || {};
     const nameOf = TurnCast._namer(container);
-    const fields = [{ key: 'mana', label: 'Mana', value: num(res.mana_spent), editable: true }];
+    // A consumable Item cast (Potion / Scroll) costs no Mana — the Item supplies
+    // the spell — so it shows no Mana row on the confirm page.
+    const fields = res.consumable ? [] : [{ key: 'mana', label: 'Mana', value: num(res.mana_spent), editable: true }];
     (res.pool_spends || []).filter((s) => s.amount > 0).forEach((s) => {
       fields.push({ key: `pool:${s.id}`, label: `Combat Pool — ${nameOf(s.id)}`, value: num(s.amount), editable: true });
+    });
+    // A heal Effect cures Minor / Moderate / (sometimes) Major damage — surface
+    // one editable box per Severity so the DM sets exactly how much it restores.
+    // The boxes replace the read-only heal note for that target.
+    const healTargets = (res.targets || []).filter((t) => (t.applied || []).some((a) => a.kind === 'heal'));
+    healTargets.forEach((t) => {
+      (t.applied || []).filter((a) => a.kind === 'heal').forEach((a) => {
+        const sev = a.severity_map || a.healed || {};
+        ['minor', 'moderate', 'major'].forEach((k) => {
+          if (num(sev[k]) <= 0) return;
+          const who = healTargets.length > 1 ? `${nameOf(t.id)} — ` : '';
+          fields.push({ key: `heal:${t.id}:${k}`, label: `Heal ${who}${k}`, value: num(sev[k]), editable: true });
+        });
+      });
     });
     const notes = [{
       label: res.spell || 'Spell',
@@ -168,7 +193,8 @@ export class TurnCast {
         (tox.requested ? ` · Toxicity ${num(tox.requested)}${tox.accepted === false ? ' (blocked)' : ''}` : '')
     }];
     (res.targets || []).forEach((t) => {
-      const fx = (t.applied || []).map((a) => TurnCast._fxText(a)).filter(Boolean).join(', ');
+      // The heal Severities show as editable fields above, so drop them here.
+      const fx = (t.applied || []).filter((a) => a.kind !== 'heal').map((a) => TurnCast._fxText(a)).filter(Boolean).join(', ');
       notes.push({ label: `#${t.id}`, value: `${t.outcome || ''}${fx ? ' — ' + fx : ''}` });
     });
     if (res.sustain) notes.push({ label: 'Sustain', value: res.sustain.kind });
@@ -187,6 +213,7 @@ export class TurnCast {
     if (a.kind === 'mana') return `mana +${a.restored != null ? a.restored : a.amount}`;
     if (a.kind === 'temp_hp') return `temp HP ${num(a.amount)}`;
     if (a.kind === 'effect') return esc(a.name);
+    if (a.kind === 'bleed_reduction') return `bleeding −${num(a.removed != null ? a.removed : a.requested)}`;
     return a.error ? `error: ${esc(a.error)}` : '';
   }
 

@@ -1,5 +1,5 @@
 import { DiceConfig } from './config.js';
-import { RandomRng } from './rng.js';
+import { RandomRng } from './randomRng.js';
 import { Roll } from './roll.js';
 
 // Order a list of Rolls relative to each other — no TN, no Successes, no

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CheckResolution } from '../../public/js/check.js';
-import { SequenceRng } from '../../public/js/rng.js';
+import { SequenceRng } from '../../public/js/sequenceRng.js';
 
 // docs/common/check_resolution/check_resolution_tests.md — "Resolve a Check".
 //

@@ -80,6 +80,28 @@ Two Supporting Rolls (the Initiator with `[(Skill, +5)]` and an unarmed ally wit
 
 The ally's empty list contributes nothing back to the Defender — there's nothing to invert. But the Defender's Armor still propagates to *both* Supporting Rolls (the Defender is the lead Opposer, so it broadcasts to all Supporters). The ally's whole contribution on this Check is to throw an extra DoIS attempt at the Defender, paying the inverted Armor cost in exchange for whatever dice they roll.
 
+## Ascendancy — when raw power tips the scales
+
+Some Bonuses measure training or circumstance; the **Inherent** Bonus measures raw, Tier-derived power. When two sides of a Check aren't in the same league, the gap does more than shift a die or two — the system amplifies it with the **Ascendancy** modifier.
+
+It works on the Inherent entries on a Roll, and nothing else. It is **not** a Check step — it's derived per Roll during TN computation (Roll Resolution), so any Roll with an Inherent imbalance gets it, combat or not (an Affliction save, which carries the saver's Inherent Bonus and the inflicter's Inherent Penalty, is amplified the same way):
+
+1. For a combat Check, propagation runs first, so each Roll holds its own Inherent Bonus plus the other side's Inherent as an inverted Inherent Penalty. (A one-sided Roll like a save already has both entries.)
+2. TN computation compares the Roll's strongest Inherent Bonus `B` with its strongest Inherent Penalty `P` (only the strongest of each counts, exactly like per-Type stacking).
+3. If they differ, the Roll gains one extra entry: an **Ascendancy Bonus of 2 × the gap** (rounded down) when its own Inherent is stronger, or an **Ascendancy Penalty of 2 × the gap** when the Penalty is stronger. If they balance, nothing is added.
+
+The **gate**: a Roll derives Ascendancy only when it carries an Inherent **Penalty** (an Inherent entry of value ≤ 0). A lone Inherent Bonus has no opponent, so it derives nothing; an opposed skill check, carrying no Inherent entries at all, likewise sees no Ascendancy. Nobody passes a Tier to Check Resolution; the Inherent entries carry all the information. One wrinkle inherited from the Tier table: a Tier-0 creature's Inherent is 0, so a combat builder **injects a +0 Inherent Penalty** against a Tier-0 opponent precisely so the gate fires — and a zero side of the comparison counts as **0.5**, the usual Tier-0 convention. Fighting a Tier-0 creature as a Tier 1 is a ±1 Ascendancy pair, not ±2.
+
+### Worked example — Adam, Ben, Carol, and Dawn
+
+Adam makes the Initiating Roll and Ben supports him; Dawn makes the Defending Roll and Carol opposes alongside her.
+
+**Everyone equal.** All four carry `Inherent +2`. After propagation each Roll holds `+2` and a crossed `−2` — balanced. **No one gets an Ascendancy.**
+
+**Adam +2 vs Dawn +1.** Adam ends with his `Inherent +2`, Dawn's crossed `Inherent −1`, and — one point ahead — an `Ascendancy +2` Bonus. Dawn gets the exact opposite: `Inherent +1`, `Inherent −2`, `Ascendancy −2`. Out-classing your opponent helps twice over.
+
+**Adam +2 vs Dawn +1 and Carol +3.** Adam receives both Opposers' Inherents, but only the strongest (Carol's `−3`) counts against his `+2` — one point behind, so `Ascendancy −2`. Carol, facing Adam's crossed `−2` with her `+3`, gains `Ascendancy +2`. Dawn, facing the same `−2` with her `+1`, takes `Ascendancy −2`. Even though Carol and Dawn are on the same side, each measures her own standing against the opposition.
+
 ## Aggregating to the Check's Degree of Success
 
 After every Roll resolves on its own, sum them across the two sides:

@@ -206,6 +206,28 @@ module Conditions
       end
     end
 
+    # ===== Reduce Affliction Potency =====
+    #
+    # A magical cure that drains an active Affliction's Potency by `amount`
+    # (e.g. a Heal spell clears bleeding by spell_tier*2 per casting success).
+    # Floors at zero, removing the Affliction when its Potency reaches zero.
+    # Returns the Potency actually removed; a no-op (0) when the Affliction is
+    # not active or `amount` is not positive.
+    def reduce_affliction_potency(name, amount)
+      name  = name.to_s
+      entry = @state.afflictions[name]
+      return 0 unless entry && amount.to_i.positive?
+      before  = entry[:potency].to_i
+      removed = [amount.to_i, before].min
+      after   = before - removed
+      if after <= 0
+        @state.afflictions.delete(name)
+      else
+        entry[:potency] = after
+      end
+      removed
+    end
+
     # ===== Resolve Affliction =====
     #
     # The save Roll happens in the caller (Dice Resolution). Pass the

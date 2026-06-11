@@ -10,7 +10,7 @@ A vertical scroll of sections, stacked top-to-bottom:
 
 1. **Chapter filter tabs** — `All`, followed by one tab per Chapter from Chronicle's *List Chapters* entry point (in number order). The currently-selected Chapter tab is rendered in the selected state.
 2. **DM Notes** — every Entry with `entry_type = note` and `owner_id = null`, filtered by the chosen Chapter. Each Note is rendered with `chronicle_entry_stub`. Below the list, a DM-only Add Note form.
-3. **Characters of Interest** — every Entry with `entry_type = creature`. Each is rendered with `chronicle_entry_stub`. Below the list, a DM-only Add Creature Reference form. This section ignores the Chapter filter.
+3. **Characters of Interest** — Entries with `entry_type = creature`. With `All` selected, every Creature Reference is shown. With a specific Chapter selected, the list narrows to Creature References that are `active` **or** belong to that Chapter. Each is rendered with `chronicle_entry_stub`. Below the list, a DM-only Add Creature Reference form.
 4. **Character Notes** — when the viewer is a player, the viewing Creature's owned Notes (`entry_type = note` and `owner_id = viewing creature id`), filtered by the chosen Chapter. Each Note is rendered with `chronicle_entry_stub`. Below the list, an Add Note form locked to the viewing Creature as `owner_id`. Hidden entirely when the viewer is the Game Master.
 
 ## Parameters
@@ -26,7 +26,7 @@ Optional:
 
 ## Chapter filtering
 
-Filtering is applied locally to the DM Notes and Character Notes sections only. The Characters of Interest section is unaffected — Creature References are not Chapter-scoped in this view.
+Filtering is applied locally. DM Notes and Character Notes are restricted to the chosen Chapter. Characters of Interest are restricted to Creature References that are `active` or belong to the chosen Chapter; the `All` view shows every Creature Reference.
 
 - When the selected Chapter is `null`, no Chapter filtering is applied.
 - When a Chapter is selected, an Entry matches when its `chapter` field equals the selected number.

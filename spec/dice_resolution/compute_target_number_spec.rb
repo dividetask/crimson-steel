@@ -36,4 +36,41 @@ RSpec.describe 'DiceResolution.compute_target_number' do
     # net -5 -> candidate 13 -> clamp to 9, starting_value = -(13 - 9) = -4.
     expect(DiceResolution.compute_target_number([['Competency', -5]])).to eq(tn: 9, starting_value: -4)
   end
+
+  # Tier-mismatch Ascendancy is derived here (Roll Resolution), the Ruby twin
+  # of ascendancy.js. It folds a derived `['Ascendancy', 2 × gap]` into the
+  # net before stacking, but only when an Inherent Penalty (value <= 0, a 0
+  # counts) is present.
+  describe 'Ascendancy derivation' do
+    it 'amplifies an Inherent imbalance into the TN' do
+      # Inherent +2 and -1: net Inherent +1, plus derived Ascendancy +2 -> net
+      # +3 -> TN 8 - 3 = 5.
+      expect(DiceResolution.compute_target_number([['Inherent', 2], ['Inherent', -1]]))
+        .to eq(tn: 5, starting_value: 0)
+    end
+
+    it 'derives a Penalty when the Inherent deficit is the stronger side' do
+      # +1 vs -3: net Inherent -2, derived Ascendancy -4 -> net -6 -> candidate
+      # 14 -> clamp 9, starting_value = -(14 - 9) = -5.
+      expect(DiceResolution.compute_target_number([['Inherent', 1], ['Inherent', -3]]))
+        .to eq(tn: 9, starting_value: -5)
+    end
+
+    it 'derives nothing from a lone Inherent Bonus (no opposing creature)' do
+      expect(DiceResolution.compute_target_number([['Inherent', 2]])).to eq(tn: 6, starting_value: 0)
+    end
+
+    it 'fires on a +0 Inherent Penalty (Tier-0 opponent), reading the 0 as 0.5' do
+      # Tier 2 vs Tier 0: the 0 Penalty does not move the TN itself (net_modifier
+      # drops 0s), but the gate fires and the gap 2 - 0.5 = 1.5 -> +3 Ascendancy.
+      # net = Inherent +2 + Ascendancy +3 = +5 -> TN 8 - 5 = 3.
+      expect(DiceResolution.compute_target_number([['Inherent', 2], ['Inherent', 0]]))
+        .to eq(tn: 3, starting_value: 0)
+    end
+
+    it 'derives nothing when the Inherents balance' do
+      expect(DiceResolution.compute_target_number([['Inherent', 2], ['Inherent', -2]]))
+        .to eq(tn: 8, starting_value: 0)
+    end
+  end
 end
