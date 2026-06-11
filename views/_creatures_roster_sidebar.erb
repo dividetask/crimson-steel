@@ -78,6 +78,34 @@
     <% end %>
   </details>
 
+  <% # ---- Inactive NPCs (not in the current Scene) --------------------- %>
+  <details class="cs-roster-group" data-group-key="inactive-npcs">
+    <summary class="cs-roster-summary">Inactive NPCs</summary>
+    <% inactive_npcs = roster[:inactive_npcs] || [] %>
+    <% if inactive_npcs.empty? %>
+      <div class="cs-roster-empty">—</div>
+    <% else %>
+      <ul class="cs-roster-list">
+        <% inactive_npcs.each do |row| %>
+          <% active = row[:active] == true %>
+          <li class="cs-roster-row cs-roster-npc<%= ' cs-roster-current' if current_row.call(row) %><%= ' cs-player-absent' unless active %>"
+              data-creature-id="<%= row[:id] %>"
+              data-roster-kind="npc">
+            <a class="cs-roster-name" href="<%= sheet_href.call(row[:id]) %>"><%= row[:name] %></a>
+            <button type="button"
+                    class="cs-roster-btn cs-player-toggle cs-active-toggle <%= active ? 'cs-player-active' : 'cs-player-absent' %>"
+                    aria-pressed="<%= active %>"
+                    data-creature-id="<%= row[:id] %>"
+                    data-roster-kind="npc"
+                    title="<%= active ? 'Mark absent' : 'Mark active' %>">
+              <%= active ? 'Active' : 'Absent' %>
+            </button>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </details>
+
   <% # ---- One section per themed category ------------------------------ %>
   <% Array(roster[:categories]).each do |cat| %>
     <details class="cs-roster-group" data-group-key="<%= cat[:key] %>">

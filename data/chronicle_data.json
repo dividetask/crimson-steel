@@ -1,0 +1,1303 @@
+{
+  "campaign_name": "",
+  "timestamp": {
+    "day_index": 0,
+    "round_of_day": 0
+  },
+  "current_chapter": 5,
+  "chapters": [
+    {
+      "number": 1,
+      "name": "The Heist"
+    },
+    {
+      "number": 2,
+      "name": "Fey Wilds"
+    },
+    {
+      "number": 3,
+      "name": "Rescuing Farmer Jon"
+    },
+    {
+      "number": 4,
+      "name": "Discrete Acquisition"
+    },
+    {
+      "number": 5,
+      "name": "Rescuing Hawthorne"
+    }
+  ],
+  "entries": [
+    {
+      "id": 1,
+      "entry_type": "note",
+      "chapter": 1,
+      "notes_position": 1,
+      "scene_position": 1,
+      "title": "Orman Harrington Request",
+      "public_description": "My brother passed several years ago. He was a crafter. He made jewelry. This is all I have left of his. This was stolen by an influential elf. A powerful mage I suspect. I would ask the guards for assistance but they do not help when it involves mages or the connected, also they would ask for proof it is mine and I have none. This mage, his name is Alric. I would not ask you to try to take it from him directly, I know that is beyond your abilities. No, I was unable to seek this item out until recently. It has come to my attention that he has gifted the item away, to someone of far less means. Someone I think that is within your abilities. Her name Gilda. I suspect his wife would not like to know about her.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 2,
+      "entry_type": "note",
+      "chapter": 1,
+      "notes_position": 2,
+      "scene_position": 2,
+      "title": "The Theft",
+      "public_description": "Stumpy pretended to lose his balance tripping into a waitress and pulled her blouse down and Olga spat her drink out over a flame in suprise to the sudden sight. Meanwhile, using the distraction, Lysander tried to lift the necklace. Lysander failed and ended up ripping it off her neck attracting the attention of the guards and a priestess. Lysander ran but not before getting a firebolt to his ass.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 3,
+      "entry_type": "note",
+      "chapter": 1,
+      "notes_position": 3,
+      "scene_position": 3,
+      "title": "The Locket",
+      "public_description": "Looking at the locket after escaping Lysander saw a middle aged elven looking man inside",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 4,
+      "entry_type": "note",
+      "chapter": 1,
+      "notes_position": 4,
+      "scene_position": 4,
+      "title": "Reward",
+      "public_description": "Collecting their reward the party neglected to tell Orman about their partial failure. They were supposed to do it unnoticed",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 5,
+      "entry_type": "note",
+      "chapter": 1,
+      "notes_position": 5,
+      "scene_position": 5,
+      "title": "Caught",
+      "public_description": "The party fled town and made it to a village several days away. They awoke the next day to three people in their room: Alric, Virelle, and Sylwen. Virelle demanded they be executed but Alric thought that was too dull and uninteresting of a punishment. He instead sent them to his sisters as he put it. Before being banished to the fey wilds Stumpy was given a bottle of ale that Alric never asked to be returned.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 6,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 6,
+      "scene_position": 6,
+      "title": "Arrival in the Fey Wilds",
+      "public_description": "You suddenly find yourselves standing inside a vast chamber, the air thick with the scent of blooming flowers and the rich earthiness of moss. The walls are not walls at all but living, breathing plants—intertwining vines and creeping ivy wrap around the stone, their leaves pulsing faintly with light. Thick flowers of every color imaginable hang from the ceiling like chandeliers, their petals opening and closing in rhythm with some unseen, gentle breeze.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 7,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 7,
+      "scene_position": 7,
+      "title": "Dala's Request",
+      "public_description": "Intruders into my realm. How brave must you be to come here? I could simply send you back to the mundane, but what would be the fun in that? No, no. I have tasks that need to be done. I am bored and uninterested in such trivial things my playthings. You could do them though, I think five tasks wouldn’t take you too long, but then again time can get very stretchy out here. How many years has already passed I wonder",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 8,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 8,
+      "scene_position": 8,
+      "title": "First Task",
+      "public_description": "Frendamus is late in delivering Dala's slippers. The slippers were stolen and after some investigation a trail was followed to a warehouse owned by a Lark named Lydia. They find Lydia dancing uncontrolably in the corner. Finding the slippers they left her to her fate but not before helping themselves to some of her possessions.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 9,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 9,
+      "scene_position": 9,
+      "title": "Reward",
+      "public_description": "Frendamus is greatly relieved you found the slippers and rewarded you with your choice of footware. She seems confused about any questions related to the purpose or abilities of her items. Olga notes some footwraps that she decides to keep. Crude at first glance—just heavy bands of leather and knotted cord—but each strap bears burn-scars, bite-marks, and dried blood. When bound tightly up the calves and feet, they flex and pulse with primal tension. The name Martha is burned into the inside of one of the straps.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 10,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 10,
+      "scene_position": 10,
+      "title": "Strange Effects",
+      "public_description": "Olga's nose appears to grow a bit larger and Stumpy turns greenish. It is suspected that the fey food had this effect on them. Olga's sense of smell improves and Stumpy seems to need less food. These changes eventually go away after returning home",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 11,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 11,
+      "scene_position": 11,
+      "title": "Second Task",
+      "public_description": "Now. My feast draws near, and I grow bored of honeyed fruits and marrowless bones. I crave something wild. Bring me an emberboar. Alive. Chained, if you must, but breathing. I want its rage hot and thrashing when I slit its throat beneath the bloom moon.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 12,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 12,
+      "scene_position": 12,
+      "title": "Wild Hunt Preperations",
+      "public_description": "The party located the Wild Hunt after a few weeks of waiting and gathering information. Deciding it would be reckless to show up without something to show they decide to hunt a bear. One is found and a trophy is made of it.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 13,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 13,
+      "scene_position": 13,
+      "title": "Wild Hunt",
+      "public_description": "The path winds through twisted groves and bioluminescent thickets until the trees suddenly part, revealing a wide, slow-moving river gleaming beneath the wan light of a shifting Feywild moon. Mist surrounds the area, curling and dancing like living things. The scent of moss and wildflowers is thick in the air, mingled with the faint, metallic tang of old blood. Upon approaching they are given a riddle but are unable to solve it. Next it is requested the share a deed of valor which Stumpy does. Instead of challenging them to a duel, as is custom, the offering of the bear trophy sufficed.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 14,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 14,
+      "scene_position": 14,
+      "title": "Robbing a drunk",
+      "public_description": "Lysander recognized Athach from the locket and decided to investigate him as subtly as he could. Athach was uninterested in talking to anyone wanting only to sulk. Stumpy challenged him to a drinking contest and won the mans most valuable possession: A name written on a piece of paper. Athach laughed as they took it mentioning how the name would get them killed. Lysander then robbed him finding several gems worth nearly a thousand gold, the most by far that Lysander had ever stolen. He also found a key with the name Orin engraved in it.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 15,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 15,
+      "scene_position": 15,
+      "title": "Interesting Friends",
+      "public_description": "Lysander made friends with Harkon and secured a promise of a future meeting.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 16,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 16,
+      "scene_position": 16,
+      "title": "Successfull Hunt",
+      "public_description": "The boar was killed and delivered to Dala",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 17,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 17,
+      "scene_position": 17,
+      "title": "Third Task",
+      "public_description": "Getting the boar in time for the feast Dala tasks the party to attend so that she may show you off to her guests. The party manages to acquire a false bottomed chalice, steal a ring from a rude noble, and fingerbang a drunk chick.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 18,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 18,
+      "scene_position": 18,
+      "title": "Fourth Task",
+      "public_description": "The party is asked to help a hopeless Satyr find love.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 19,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 19,
+      "scene_position": 19,
+      "title": "Shopping",
+      "public_description": "Olga manages to get an axe crafted using the axe blade stolen from Lydia. Stumpy purchases a set of armbands with the name Narn on it trading away his knowledge of a skill. Lysander buys some thieving equipment and convinces the shopkeeper to help him out. Since the shop keeper also hates Severus she gifts Lysander a ring with the name Petey scrawled on it.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 20,
+      "entry_type": "note",
+      "chapter": 2,
+      "notes_position": 20,
+      "scene_position": 20,
+      "title": "Getting a Goat Laid",
+      "public_description": "Trying to get Beau laid proves nearly impossible, and the party decides to give up looking. Instead Olga decides to sleep with him and hope Dala will accept that as a success",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 21,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 21,
+      "scene_position": 21,
+      "title": "Return to Ashwood",
+      "public_description": "The players find themselves back in Ashwood in the Stumbling Stag. 43 have passed",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 22,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 22,
+      "scene_position": 22,
+      "title": "Mayor Tamsin Holt",
+      "public_description": "“Gerrick Bain hasn’t come into town in three days, and now his neighbors say his farm’s gone silent. Chickens, cows—everything’s gone. I’ll give you twenty gold to take a look and come back with something useful.”",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 23,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 23,
+      "scene_position": 23,
+      "title": "Investigation",
+      "public_description": "Gerrick's house was empty, but no sign of a fight. It appeared all of his animals were led away",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 24,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 24,
+      "scene_position": 24,
+      "title": "Cultist",
+      "public_description": "Following the tracks they found two cultists complaining about wanting to kill 'that bitch'. The party quickly killed one and subdued the other only to find out they were complaining about carrying water for a cow who was the 'bitch' they were complaining about. Lysander decided they needed to kill them to avoid reprisals even though it appeared they were innocent.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 25,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 25,
+      "scene_position": 25,
+      "title": "Sha’tin Cult Cave",
+      "public_description": "Following the tracks further they found a cave and took out the two guards, then disguised their voices and appearance (using magic) as the cultists. They tried to lure people to come out and be ambushed but the lead cultist was busy completing his ritual. He got annoyed with stumpy and used a spell to crush stumpies heart, then enthralled everyone forcing them to watch as he completed his ritual. Olga, enhanced by her legwraps, overcame the compulsion and killed him. Watching him twitching on the ground Olga felt compelled to finish him and watched as the axe drank up his essence. The other cultists were slaughtered.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 26,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 26,
+      "scene_position": 26,
+      "title": "Return of the Locket",
+      "public_description": "Alric's locket, taken from the party before being sent to the fey wilds was found on one of the cultists. Unsure if they should take it the decision was made for them when it magically disappeared, only to be found later inside Lysander's backpack.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 27,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 27,
+      "scene_position": 27,
+      "title": "Information Learned about Sha’tin",
+      "public_description": "Title: The Whisper in Chains\r\nDomain: Devils, obedience, corruption of the will.\r\nSymbols: A broken manacle with its ends curled inward like fangs.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 28,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 28,
+      "scene_position": 28,
+      "title": "Notable Loot",
+      "public_description": "A ceremonial dagger of blood drinking (Casts cure light wounds on self after sacrificing a creature. Effect destroys victims soul preventing reincarnation or afterlife)",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 29,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 29,
+      "scene_position": 29,
+      "title": "A Useful Introduction",
+      "public_description": "After arriving back in town the mayor informed you that she is writing to the dutchess of Ironford to tell her of your deeds. A week later a letter arrived which disappeared before it could be read. Guessing it was an invitation by Lady Hawthorne was easy enough and the party decided to head out. When the later was later found it read as follows:\r\n\r\nTo Lysander, Olga, and Stephen,\r\nYour recent deeds in Ashwood have not gone unnoticed. Word of your courage, resourcefulness, and success in protecting the townsfolk from grave danger has reached my attention, and I wish to extend my personal gratitude.\r\nYou are cordially invited to my estate for a feast in your honor. It is my hope to meet you in person, hear of your adventures, and discuss opportunities for further service in these lands.\r\nYour presence will be most welcome, and arrangements will be made to ensure your comfort during your stay.\r\nWith respect and anticipation,\r\nLady Selara Hawthorne\r\nDuchess of Ironford",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 30,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 30,
+      "scene_position": 30,
+      "title": "Bandits Mysteriously Charmed",
+      "public_description": "Some bandits overturned a cart feigning a need for help. They demanded a toll to pass but suddenly changed their turn once their leader fell under a charm effect. It unclear how this happened but was clear that the effect originated with Olga. There was also a few instances of items disappearing",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 31,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 31,
+      "scene_position": 31,
+      "title": "Rumors of Vrakka's Hand",
+      "public_description": "A group of angry coal burners is met and pacified with offers of alcohol and drugs. They speak about a band of raiders that sack towns carting away it's residents harassing towns. A name of a drug dealer local to Sorinks is shared",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 32,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 32,
+      "scene_position": 32,
+      "title": "Petey",
+      "public_description": "Lysander decides to try to communicate with their thief stalker by simply talking out loud hoping he will hear them. Wooden blocks with letters are created and left out with the intention of allowing their 'friend' to pick up letters to form words. It is soon learned that Lysander has a telepathic link to his ring which has been 'borrowing' his stuff.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 33,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 33,
+      "scene_position": 33,
+      "title": "A Botched Bribe",
+      "public_description": "Entering town Petey recognized the guard and told Lysander to bribe him. The guard insulted by this became angry and demanded to search the parties possessions. Petey continued to insist the guard's name was Ruslan even after it became clear his name was Tavik. \r\nStumpy, wearing Alric's amulet, allows the female guard to look inside watching her reation carefully. She indicates her attraction to the man pictured inside mistakenly assuming he was Stumpy's lover.\r\nThe party is allowed inside",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 34,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 34,
+      "scene_position": 34,
+      "title": "The Offended Adventurer",
+      "public_description": "In town the party meets Kael and Varen. Kael gets into an argument with Stumpy which ends in  a drinking competition that Stumpy wins. Olga befriends Varen and Varen leads Kael upstairs to sleep off the drink",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 35,
+      "entry_type": "note",
+      "chapter": 3,
+      "notes_position": 35,
+      "scene_position": 35,
+      "title": "The Party",
+      "public_description": "Lady Hawthorne throws a feast and invites adventurers and nobles including Kael and Varen. At the event, Lysander tells embellished story of their adventures - crowd loves it, Kael doesn't. A priest of Shelyn mistakenly believes Lyasander worships his goddess. Party notices Lysander now wearing a Shelyn necklace (wasn't there before). Lysander plays along ",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 36,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 36,
+      "scene_position": 36,
+      "title": "Discrete Job",
+      "public_description": "Silovan Kreshholm approaches you at the party and asks you to perform a job for Lady Hawthorne. He wants the party to acquire rare herbs and return them to the mansion. 2500 gold for the job with 300 gold up front. It is made clear that this job is not to be discussed with anyone.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 37,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 37,
+      "scene_position": 37,
+      "title": "Journey to Volkmar",
+      "public_description": "Party traveled to Volkmar over two days. Attacked by wolves en route—Lysander badly injured. Arrived and began investigating Borim's location. Petey stole a Poison of Sleeping Death. Decided to find someone who gossips. Met Tavi Redholm (halfling) and Aeris Silvaren (elf) at a tavern. Tavi was telling an exaggerated story about a wolf \"two stories high\" he barely escaped. Both directed party northeast—Borim likely lives in a cave. Also learned that Borim often harvests rare herbs found in the northeast",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 38,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 38,
+      "scene_position": 38,
+      "title": "Enslaving the Alchemist",
+      "public_description": "Party tracked cart tracks near herbs. Led them to Borim's cave. Borim tried to make them leave. Gary (Olga's axe) dominated Borim. Borim gave Lysander a tattoo and created the Crimson Tincture. Two lycanthropes arrived—party killed them. Gave Borim a potion of forgetfulness and made him drink it.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 39,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 39,
+      "scene_position": 39,
+      "title": "Flight from Wolves",
+      "public_description": "The party made haste but was run down by a group of large wolves. Turning to fight they realized these were werewolves. Lysander noticed a man watching in the distance and tried to get him to help, but was unsuccessful. The wolves were killed and Olga finished off the Alpha wolf. Killing the Alpha made her axe grow in power.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 40,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 40,
+      "scene_position": 40,
+      "title": "A chance Encounter",
+      "public_description": "Theron, exposed by Lysander, introduces himself. It is learned that he was sent to keep the party safe which he took very literally. He did not help in the fight because he believed they would live. He escorted the party back to town.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 41,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 41,
+      "scene_position": 41,
+      "title": "Sacking of Sorinsk",
+      "public_description": "Smoke still rises from several buildings throughout the town - thin gray columns that stain the sky. The town walls show scorch marks and broken sections. The main gate hangs crooked on its hinges.\r\nAs you approach, the devastation becomes clearer. The main street is littered with debris - broken furniture, overturned carts, shattered barrels spilling their contents. Windows are smashed. Doors hang open or have been torn from their frames.\r\nA few townspeople move through the wreckage like ghosts, salvaging what they can. They move slowly, mechanically, in shock. Some are bandaged. Others simply stare at nothing.\r\n    • The docks are damaged - pilings broken, debris floating in the water \r\n    • Several ships are missing from the harbor \r\n    • Guard posts are abandoned or destroyed \r\n    • The manor house on the hill shows signs of forced entry \r\n    • Many buildings are intact but looted \r\n    • People are alive but traumatized \r\nKael and Varen fought the raiders when they hit the tavern. Varen was knocked out and dragged away.\r\nThe raiders all had Blue and Orange fish tattoos.\r\n",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 42,
+      "entry_type": "note",
+      "chapter": 4,
+      "notes_position": 42,
+      "scene_position": 42,
+      "title": "Letter from Hawthorne",
+      "public_description": "",
+      "dm_description": "",
+      "image": "/images/scene/1776379229-da341abd-Letter.png",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 43,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 43,
+      "scene_position": 43,
+      "title": "Town Purchases",
+      "public_description": "Purchased Items\r\nLesser Ward (5hp) (4 scrolls)\r\nLesser Healing (4 scrolls)\r\nGrease (4 scroll for lysander)\r\nDisguise Self (2 potions for stumpy)\r\nMana Potion (4 mana, 7 sat) (4 stumpy)\r\nExpeditious Retreat (2 potions for Stumpy, 2 scrolls for lysander and cotton, 1 potion olga)\r\n2nd level (150gp scroll), (300 potion), (4k wand)\r\nInvisibility (2 potions stumpy and olga, 2 scrolls lysander and cotton, 1 scroll for lysander book)\r\nDarkness (1 scroll lysander)\r\nWeb (1 scroll lysander)\r\nCreate Pit (2 scrolls lysander, cottonballs)\r\nDisguise Other (1 scroll lysander for book)\r\nspiritual weapon (1 scroll for stumpy)\r\n",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 44,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 44,
+      "scene_position": 44,
+      "title": "[Loot] Orc Slaughter",
+      "public_description": "1000 coins (Total value = 2025 gp, weight 20 lbs)\r\n31 gems (Total value = 2307 gp)\r\nOil of Ablative Barrier (uc, 300 gp)\r\n2 x Oil of Arcane Mark (cr, 25 gp)\r\nOil of Light (cr, 25 gp)\r\nOil of Purify Food and Drink (cr, 25 gp)\r\nOil of Sanctify Corpse (um, 50 gp)\r\nPotion of Ant Haul (apg, 50 gp)\r\n3 x Potion of Cure Light Wounds (cr, 50 gp)\r\n2 x Potion of Enlarge Person (cr, 50 gp)\r\nPotion of Fox's Cunning (cr, 300 gp)\r\n2 x Potion of Guidance (cr, 25 gp)\r\n2 x Potion of Hide from Animals (cr, 50 gp)\r\nPotion of Pass without Trace (cr, 50 gp)\r\nPotion of Reduce Person (cr, 50 gp)\r\nPotion of Remove Fear (cr, 50 gp)\r\nPotion of Resistance (cr, 25 gp)\r\nPotion of Shield of Faith (cr, 50 gp)\r\n2 x Potion of Stabilize (cr, 25 gp)\r\nPotion of Virtue (cr, 25 gp)\r\n\r\n    2 x Amphora of Vinegar (2 gp, 80 lb)\r\n    Artisan's Tools (5 gp, 5 lb)\r\n    3 x Backpack (2 gp, 2 lb)\r\n    4 x Bag of 10 Pitons (1 gp, 5 lb)\r\n    2 x Bag of 20 Marbles (2 sp, 1 lb)\r\n    19 x Bag of 20 Sling Bullets (2 sp, 10 lb)\r\n    7 x Bag of Chalk (1 sp, 1/2 lb)\r\n    2 x Bag of Chestnuts (1 gp, 1 lb)\r\n    7 x Bag of Common Spice (1 gp, 1 lb)\r\n    Bag of Dried Mushrooms (1 gp, 1 lb)\r\n    19 x Bag of Iron Nails (5 sp, 1 lb)\r\n    41 x Bag of Salt (2 sp, 1 lb)\r\n    7 x Bag of Wheat (1 cp, 1 lb)\r\n    Barrel (2 gp, 30 lb)\r\n    15 x Basket (4 sp, 1 lb)\r\n    16 x Bedroll (1 sp, 5 lb)\r\n    12 x Bolt of Canvas (1 gp, 10 lb)\r\n    10 x Bolt of Linen (5 gp, 10 lb)\r\n    2 x Bottle of Brandywine (5 gp, 4 lb)\r\n    6 x Bottle of Common Wine (1 sp, 4 lb)\r\n    Bottle of Honey (4 sp, 4 lb)\r\n    9 x Bottle of Olive Oil (3 gp, 4 lb)\r\n    14 x Bottle of Spiced Wine (2 gp, 4 lb)\r\n    2 x Bottle of Vinegar (1 sp, 4 lb)\r\n    Bow Saw (5 gp, 5 lb)\r\n    3 x Box of 20 Arrowheads (5 sp, 1 lb)\r\n    5 x Box of 20 Candles (2 sp, 1 lb)\r\n    8 x Box of Charcoal (1 sp, 20 lb)\r\n    Box of Firewood (1 cp, 20 lb)\r\n    3 x Bucket (5 sp, 2 lb)\r\n    Cart (15 gp, 200 lb)\r\n    Chandelier (50 gp)\r\n    Chariot (100 gp, 200 lb)\r\n    3 x Cheap Wig (1 sp)\r\n    13 x Chisel (5 sp, 2 lb)\r\n    Clay Pitcher (2 cp, 5 lb)\r\n    4 x Clay Tankard (2 cp, 2 lb)\r\n    3 x Common Wig (1 gp)\r\n    Courtier's Outfit (30 gp, 6 lb)\r\n    Crowbar (2 gp, 5 lb)\r\n    Fishing Net (4 gp, 5 lb)\r\n    9 x Flask of Oil (1 sp, 1 lb)\r\n    11 x Flint and Steel (1 gp)\r\n    2 x Game Board (1 gp, 2 lb)\r\n    Glasscutter (2 gp)\r\n    4 x Hammer (5 sp, 2 lb)\r\n    2 x Handsaw (3 gp, 5 lb)\r\n    Hemp Rope (50') (1 gp, 10 lb)\r\n    16 x Iron Bar (1 sp, 5 lb)\r\n    3 x Iron Pot (8 sp, 4 lb)\r\n    2 x Ladder (10') (2 sp, 20 lb)\r\n    Large Iron Box (2 gp, 100 lb)\r\n    3 x Loaf of Bread (2 cp, 1/2 lb)\r\n    Low Boots (1 gp, 2 lb)\r\n    13 x Manacles (15 gp, 2 lb)\r\n    Merchant's Scale (2 gp, 1 lb)\r\n    2 x Pair of Dice (1 sp)\r\n    2 x Pair of Oars (4 gp, 20 lb)\r\n    2 x Pitchfork (2 gp, 5 lb)\r\n    2 x Piton (1 sp, 1/2 lb)\r\n    2 x Pouch of Tobacco (5 sp, 1 lb)\r\n    11 x Rack of Firewood (1 sp, 200 lb)\r\n    4 x Rake (2 gp, 10 lb)\r\n    Riding Saddle (10 gp, 25 lb)\r\n    2 x Rope Net (10' x 10') (4 gp, 40 lb)\r\n    Sack (1 sp, 1/2 lb)\r\n    Sack of Apples (5 gp, 50 lb)\r\n    4 x Sack of Wheat (5 sp, 50 lb)\r\n    Salted Ham (2 gp, 4 lb)\r\n    2 x Scroll Case (1 gp, 1/2 lb)\r\n    Sedan Chair (100 gp, 60 lb)\r\n    2 x Sewing Needle (5 sp)\r\n    37 x Sickle (1 gp, 2 lb)\r\n    2 x Signet Ring (5 gp)\r\n    Sled (20 gp, 300 lb)\r\n    22 x Sledge (1 gp, 10 lb)\r\n    Small Cage (10 gp)\r\n    3 x Small Cask of Ale (2 sp, 8 lb)\r\n    2 x Small Cask of Common Spice (5 gp, 5 lb)\r\n    Small Cask of Dried Figs (3 gp, 8 lb)\r\n    27 x Small Cask of Oil (8 sp, 5 lb)\r\n    3 x Small Cask of Wax (2 sp, 5 lb)\r\n    10 x Small Glass Rod (1 sp)\r\n    Small Hunting Trap (4 gp, 5 lb)\r\n    Small Wooden Chest (1 gp, 10 lb)\r\n    2 x Spade (2 gp, 8 lb)\r\n    Table (30 gp)\r\n    2 x Tiny Lead Box (1 gp, 5 lb)\r\n    3 x Tiny Wooden Box (5 sp, 1 lb)\r\n    3 x Tongs (3 gp, 2 lb)\r\n    Vial of Ink (8 gp)\r\n    Waterskin (1 gp, 1/2 lb)\r\n    22 x Wedge of Cheese (8 sp, 4 lb)\r\n    3 x Whetsone (2 cp, 1 lb)\r\n    2 x Wooden Drum (5 gp, 3 lb)\r\n    Wool Cloak (5 sp, 3 lb)\r\n\r\nTotal value = 1016 gp 6 sp\r\n\r\nScroll of Burning Hands (cr, 25 gp)\r\nScroll of Darkvision (cr, 150 gp)\r\nScroll of Disguise Self (cr, 25 gp)\r\nScroll of Magic Missile (cr, 25 gp)\r\nScroll of Obscuring Mist (cr, 25 gp)\r\nScroll of Protection from Chaos (cr, 25 gp)\r\nScroll of Protection from Evil (cr, 25 gp)\r\nScroll of Ray of Sickening (um, 25 gp)\r\nScroll of Remove Fear (cr, 25 gp)\r\n2 x Scroll of Resist Energy (cr, 150 gp)\r\nWand of Create Water (cr, 375 gp)\r\nWand of Identify (cr, 1000 gp)\r\nWand of Know Direction (cr, 375 gp)\r\nWand of Inflict Light Wounds (cr, 1000 gp)",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 45,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 45,
+      "scene_position": 45,
+      "title": "Bullying a ride",
+      "public_description": "Theron convinces the sole remaining captain to sail you to Elredd and Highport. Kael agrees to join you. The trip will take approximately 5 days. You set sail on the Silver Surgeon with Captain Casimir Rybar. The next full moon is in four days during which time Hawthorne's brother will likely become a lycanthrope.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 46,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 46,
+      "scene_position": 46,
+      "title": "Kraken",
+      "public_description": "The day before arriving in Elredd the ship is attacked by a Kraken. A glancing blow from the creature injures Olga but the wounds regenerate much quicker then they should. After eating about a dozen sailors the Kraken retreats into the depths. ",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 48,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 48,
+      "scene_position": 48,
+      "title": "Highport City Map",
+      "public_description": "",
+      "dm_description": "",
+      "image": "/images/scene/1777524319-8111ffba-Highport-map-sm.jpg",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
+    },
+    {
+      "id": 49,
+      "entry_type": "creature",
+      "chapter": 1,
+      "notes_position": 49,
+      "scene_position": 49,
+      "title": "",
+      "public_description": "Alric's wife. Elven woman with silver eyes. Was last seen wearing a dark crimson cloak over black leather and a silver necklace of a wasp. Worshiper of Callistria",
+      "dm_description": "",
+      "image": "/images/scene/1777591419-96d364db-Virelle.webp",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2011,
+      "creature_token": "/images/scene/1777591419-96d364db-Virelle.webp",
+      "tier": null
+    },
+    {
+      "id": 50,
+      "entry_type": "creature",
+      "chapter": 1,
+      "notes_position": 50,
+      "scene_position": 50,
+      "title": "",
+      "public_description": "Alric and Virelle's friend. Virelle didn't seem to like her much. Sylwen is a striking elf with angular features and long silver hair that flows like a silken veil. Her lavender eyes glow faintly in low light, and her skin carries an ethereal, almost translucent quality. She is of average elven height, graceful and slender, last seen wearing a deep violet robe adorned with silver embroidery. Her movements are fluid, and she seems to always be poised.",
+      "dm_description": "",
+      "image": "/images/scene/1777606231-58937c6b-Sylwen.webp",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2012,
+      "creature_token": "/images/scene/1777606231-58937c6b-Sylwen.webp",
+      "tier": null
+    },
+    {
+      "id": 51,
+      "entry_type": "creature",
+      "chapter": 1,
+      "notes_position": 51,
+      "scene_position": 51,
+      "title": "",
+      "public_description": "Alric is slender, with sharp elven features. He dresses in elegant green and gold finery, embroidered with thorn motifs and adorned with tiny bells that chime softly with his movements. Soft leather boots rise to mid-calf, supple and well-made. A silver chain rests just beneath his collar, mostly hidden. He carries a slim cane—clearly decorative, but possibly more—and a silver ring set with a black opal gleams whenever it catches the light. He never seems to give a straight answer; often speaks in rhymes or riddles. Seems constantly amused.",
+      "dm_description": "",
+      "image": "/images/scene/1777573482-a0132274-ALdric.webp",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2013,
+      "creature_token": "/images/scene/1777573482-a0132274-ALdric.webp",
+      "tier": null
+    },
+    {
+      "id": 52,
+      "entry_type": "creature",
+      "chapter": 1,
+      "notes_position": 52,
+      "scene_position": 52,
+      "title": "",
+      "public_description": "Middle-aged man who hired your party in Ashwood. He hired you to steal Alric's Locket",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2023,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 53,
+      "entry_type": "creature",
+      "chapter": 2,
+      "notes_position": 53,
+      "scene_position": 53,
+      "title": "",
+      "public_description": "Dala Nyssira is a fey noble who agreed to send the party back home in exchange for a few tasks. She is a tall, ethereal figure with pale, green-tinged skin and piercing golden amber eyes that occasionally shimmer with light. Her long, silvery hair flows in soft waves, interwoven with flowers and ivy that slowly moves and shifts on it’s own. She wears a gown made of living flowers, each blooming with insects flying around drinking the nectar. Her movements are graceful and silent, and her voice is musical, carrying both an enchanting and commanding presence.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2014,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 54,
+      "entry_type": "creature",
+      "chapter": 2,
+      "notes_position": 54,
+      "scene_position": 54,
+      "title": "",
+      "public_description": "Eladrin Undead Skeleton Mage. A gaunt, skeletal figure clad in bark-wrapped chainmail, with a tattered cloak of autumn leaves and a massive stag skull fused to her own. Her breath fogs unnaturally warm even in the chill air.",
+      "dm_description": "",
+      "image": "/images/scene/1777490469-29bd66ec-Harkon.webp",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true,
+      "creature_id": 2020,
+      "creature_token": "/images/scene/1777490469-29bd66ec-Harkon.webp",
+      "tier": null
+    },
+    {
+      "id": 55,
+      "entry_type": "creature",
+      "chapter": 2,
+      "notes_position": 55,
+      "scene_position": 55,
+      "title": "",
+      "public_description": "True elf guest at the feast, distant relative of Princess Dala. Foppish, rich, arrogant, and deeply insecure",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2028,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 56,
+      "entry_type": "creature",
+      "chapter": 2,
+      "notes_position": 56,
+      "scene_position": 56,
+      "title": "",
+      "public_description": "Elven noble so enraged with his former lover that he convinced the Wild Hunt to kill her.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2029,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 57,
+      "entry_type": "creature",
+      "chapter": 3,
+      "notes_position": 57,
+      "scene_position": 57,
+      "title": "",
+      "public_description": "Drug dealer in Sorinks\r\n    • Thin, wiry build, always looks slightly underfed \r\n    • Pale skin, dark circles under his eyes \r\n    • Keeps his dark hair slicked back with too much oil \r\n    • Wears a faded gray coat with many pockets \r\n    • Nervous energy - constantly moving, twitching, fidgeting \r\n    • Has a habit of rubbing his fingers together ",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true,
+      "creature_id": 2010,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 58,
+      "entry_type": "creature",
+      "chapter": 3,
+      "notes_position": 58,
+      "scene_position": 58,
+      "title": "",
+      "public_description": "A wiry woman in her 60s with a perpetually worried expression and a sharp tongue. She's practical, skeptical of adventurers, but too desperate to turn down help.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2017,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 59,
+      "entry_type": "creature",
+      "chapter": 4,
+      "notes_position": 59,
+      "scene_position": 59,
+      "title": "",
+      "public_description": "Middle age Wood elf. Lean build, moves with absolute silence. Dark green and brown practical clothing that blends. Wears a small pin with Lady Hawthorne's crest. Lady Hawthorne's intelligence agent. Hired the party for a job",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2018,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 60,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 60,
+      "scene_position": 60,
+      "title": "",
+      "public_description": "Adventurer, early 30s, barbarian",
+      "dm_description": "",
+      "image": "/images/scene/1777571926-97f95988-Kael.webp",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true,
+      "creature_id": 40,
+      "creature_token": "/images/scene/1777571926-97f95988-Kael.webp",
+      "tier": null
+    },
+    {
+      "id": 61,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 61,
+      "scene_position": 61,
+      "title": "",
+      "public_description": "(missing) Duchess of Ironford region, lives in Sorinsk, brother is sick with lycanthropy. Kidnapped by Vrakka's Hand",
+      "dm_description": "",
+      "image": "/images/scene/1777571218-0a24931c-LadyHawthorne.webp",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true,
+      "creature_id": 2021,
+      "creature_token": "/images/scene/1777571218-0a24931c-LadyHawthorne.webp",
+      "tier": null
+    },
+    {
+      "id": 62,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 62,
+      "scene_position": 62,
+      "title": "",
+      "public_description": "(missing) Brother of Selara Hawthorne, sick with lycanthropy. Kidnapped by Vrakka's Hand",
+      "dm_description": "",
+      "image": "/images/scene/1777571432-97150d94-VarenHawthorne.webp",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true,
+      "creature_id": 2022,
+      "creature_token": "/images/scene/1777571432-97150d94-VarenHawthorne.webp",
+      "tier": null
+    },
+    {
+      "id": 63,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 63,
+      "scene_position": 63,
+      "title": "",
+      "public_description": "Half orc slaver, leader of Vrakka's hand",
+      "dm_description": "",
+      "image": "/images/scene/1777572332-630d0cc3-Vrakka.webp",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true,
+      "creature_id": 2024,
+      "creature_token": "/images/scene/1777572332-630d0cc3-Vrakka.webp",
+      "tier": null
+    },
+    {
+      "id": 64,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 64,
+      "scene_position": 64,
+      "title": "",
+      "public_description": "Elven noble with some magical training. Drav informed him of you and where you were hiding. He offered to help you in exchange for land and a title under Lady Hawthorne.",
+      "dm_description": "Posing as a landless noble / minor wizard (divination + a few low combat spells). Came from the temple's doppelganger nest. Core trait: he reads surface thoughts — assume he knows whatever's been thought near him.\r\n\r\nWhat he already knows\r\nPetey is a sentient ring with dimensional storage and a sticky-fingers problem.\r\nThe party is walking around with a ridiculous arsenal of artifacts\r\nHe'll likely learn they carry a slip of paper bearing a true name of a devil/demon/fey — usable in Planar Binding. This is the jackpot in his eyes.\r\n\r\nThe party dangled a noble title + land for helping rescue Hawthorne. To a \"landless noble,\" that's irresistible → he'll actually help and protect them in the near term, because the reward and the loot both require them alive and successful.\r\n\r\nIngratiating, useful, always says the reassuring thing (he's reading them). Volunteers \"divinations\" that are really laundered mind-reading — handy, and a way to steer decisions.\r\nWorks the personality-items: flatters Petey, feeds Narn a bloody tale, plays the gracious patron. Tries to become the person Petey likes (dangerous — Petey may \"gift\" him things).\r\n\r\nMight try to get Silovan killed",
+      "image": "/images/scene/1777490391-331dd9fb-Caelian_di_Soliastres.webp",
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true,
+      "creature_id": 2025,
+      "creature_token": "/images/scene/1777490391-331dd9fb-Caelian_di_Soliastres.webp",
+      "tier": null
+    },
+    {
+      "id": 65,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 65,
+      "scene_position": 65,
+      "title": "",
+      "public_description": "(missing) 3/4 wood elf, 1/4 orc, ranger/druid, Silovan's agent who is helping search for his employeers",
+      "dm_description": "",
+      "image": "/images/scene/1777571828-cc7cdbc5-Theron_Ashfeld.webp",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true,
+      "creature_id": 2026,
+      "creature_token": "/images/scene/1777571828-cc7cdbc5-Theron_Ashfeld.webp",
+      "tier": null
+    },
+    {
+      "id": 66,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 66,
+      "scene_position": 66,
+      "title": "",
+      "public_description": "(missing) Theron's lynx companion, dark gray with silver tips",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2027,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 67,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 67,
+      "scene_position": 67,
+      "title": "",
+      "public_description": "Mercenary sellsword from the eastern provinces. Met at the slaver's temple where he agreed to help you escape in exchange for his life. He sheltered you in the city while you recovered from your injuries.",
+      "dm_description": "",
+      "image": "/images/scene/1777490163-e4878a18-Drav.webp",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true,
+      "creature_id": 2030,
+      "creature_token": "/images/scene/1777490163-e4878a18-Drav.webp",
+      "tier": null
+    },
+    {
+      "id": 68,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 68,
+      "scene_position": 68,
+      "title": "",
+      "public_description": "(missing) Kael's companion, female rogue, understands Thieves' Cant, spoke with Lysander, open to partnership with Olga. Kidnapped by Vrakka's Hand",
+      "dm_description": "",
+      "image": "/images/scene/1777591489-9c85dd74-Varen.webp",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2031,
+      "creature_token": "/images/scene/1777591489-9c85dd74-Varen.webp",
+      "tier": null
+    },
+    {
+      "id": 69,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 69,
+      "scene_position": 69,
+      "title": "",
+      "public_description": "Helped you escape, now the captain of the Ghoul.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 2019,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 70,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 70,
+      "scene_position": 1,
+      "title": " Caravan Survivors",
+      "public_description": "",
+      "dm_description": "Knowledge is tiered. Grunts know the road; leaders know the cargo. Nobody low-level knows where Hawthorne ultimately went — only that she was \"moved ahead.\"\r\n\r\nRenzo di Calvo — Merchant (talkative, cowardly, self-preserving)\r\nFolds fast under any real threat; will trade info for his life without loyalty.\r\nKnows: the cargo manifest and that \"the ransom-lady\" was forwarded ahead under heavy escort before the caravan left — flushed out early because intruders hit the temple. Knows the fort is the next handoff point, not the final stop. Can name Koi as the buyer and that payment runs through the fort's overseer.\r\nCarries (if not looted): the route map, a strongbox key, a slaver toll-token/signet.\r\n\r\nVurgan — Interpreter, half-orc (pragmatic, survivor, oddly chatty)\r\nNot loyal to the slavers — a hired tongue. Talks to stay useful/alive. Sardonic.\r\nKnows: the toll arrangement with the hill tribes (goblins, gnolls, flinds) and how to bluff through — the passwords, the customary toll, which tribe holds which stretch. This is the party's golden ticket through the wilderness.\r\nWill guide them for survival's sake but is never trustworthy — flips to the slavers' side the instant it's safer.\r\n\r\nPetra Kovin — Slave Handler (resentful, bitter, leaks under pressure)\r\nHates the work, hates her bosses; bitterness makes her talk.\r\nKnows: which named prisoners came through and where they're held now — confirms Silovan (held for interrogation, not sale) and Doran (bulk stock, possibly to be sold to a visiting merchant) are at the fort. Confirms Hawthorne did not come with this caravan.\r\n\r\nThe Cleric — STONEWALL. Fanatic, won't break, may bait/lie/curse them. Use for contrast — set expectations that not everyone talks.\r\nThe 6 soldiers / 2 veterans know only road-and-toll basics (Vurgan's info, less detail).",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 71,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 71,
+      "scene_position": 2,
+      "title": "The Fort (Hill Fort / \"Slavers' Stockade\")",
+      "public_description": "Approach: small stockade atop a steep hill, commanding the countryside. Surrounded by a warding ditch (20 ft wide, 10 ft deep). Only access: a road winding from the north through a narrow valley to a drawbridge.",
+      "dm_description": "Walls: stone curtain wall at the drawbridge (35 ft, manned parapet). Earthen rampart + wooden stockade on W/S/E sides. Outer walls spiked downward to stop climbers. Guarded wall-walk all around.\r\n\r\nInside: open courtyard → 4-story gatehouse (massive, defensible all sides) → U-shaped stone keep with an enclosed garden. Dungeon level below (where prisoners/cells are). Filthy, vermin-infested, partly fire-scarred from a past sacking — repairs are crude (exploitable weak points).\r\n\r\nGarrison leaders\r\nOverseer / minor slave-lord — runs the fort, cruel, a fighter-mage. Suggest reskinning as Lucian de Sombra (your Koi magic-user agent, Tier 3).\r\nFort commander + his ogre second.\r\nBlackthorn — ogre mage, special agent of the higher council, runs the dungeon. Reskin as a Koi enforcer.\r\nTwo humanoid clerics (goblin witch-doctor, hobgoblin shaman) — roam as wandering encounters.\r\nGatehouse captain + half-orc lieutenant — where caught intruders are dragged for interrogation.\r\n\r\nAlarm & defense (defensive/delaying posture):\r\nGong → upper fort alerted end of that turn. Shout → next turn. Dungeon alerts one turn after the fort.\r\nOnce alerted: barracks guards take 1 turn to arm, then block ground entrances; wall guards lay down missile fire. No one found asleep/unarmed.\r\nIf the party retreats and returns: defenses strengthened, ambushes set. (They've already tipped the operation by destroying the caravan — consider the fort mildly pre-warned.)",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 72,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 72,
+      "scene_position": 3,
+      "title": "Journey to the Fort",
+      "public_description": "The fort is several more days south through the Drachensgrab hills.",
+      "dm_description": "Daily wilderness encounter check (roll once per travel day):\r\n\r\nHumanoid patrol (most common) — toll/bluff opportunity.\r\nOrc raiding party — hostile; the hired half-orc guide fights orcs to the death (they'd flay him as a renegade).\r\nHumanoid scout / wildman scout spotted (they're being watched regardless — assume the tribes track their passage).\r\nRain / no encounter.",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    }
+  ],
+  "next_id": 73
+}

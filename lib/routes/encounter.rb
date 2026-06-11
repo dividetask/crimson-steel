@@ -37,6 +37,18 @@ get '/encounter' do
   end
 
   @active_entries = @active_entries.sort_by { |e| e['scene_position'] || 9999 }
+
+  # Characters of Interest (Creature Reference Entries) — shown in the
+  # Encounter during the Downtime / Traveling Phases. Only ACTIVE
+  # references appear in the Scene. Visibility-filtered for player
+  # viewers; the DM sees every active one.
+  if @viewer == :dm
+    @interest_entries = @store.list_entries(entry_type: 'creature', active_only: true)
+  else
+    @interest_entries = @store.list_entries(entry_type: 'creature', active_only: true, visible_to: @viewing_id)
+  end
+  @interest_entries = @interest_entries.sort_by { |e| [e['chapter'] || 0, e['notes_position'] || 9999] }
+
   @chapters       = @store.list_chapters
   @current_chapter = @store.current_chapter
   @player_creatures = player_creatures
