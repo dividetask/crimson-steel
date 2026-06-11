@@ -35,10 +35,6 @@ Heal:
   polarity: positive
   range: Touch
   target: "1"
-  save:
-    - attribute: wis
-      fail: "0"
-      success: halved
   duration: rank turns
   skills: [healing, nature, perform_]
   items: [potion, oil]

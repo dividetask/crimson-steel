@@ -158,7 +158,9 @@ export class TurnCast {
     const noRoll = !!(detail && detail.noRoll);
     const tox = res.toxicity || {};
     const nameOf = TurnCast._namer(container);
-    const fields = [{ key: 'mana', label: 'Mana', value: num(res.mana_spent), editable: true }];
+    // A consumable Item cast (Potion / Scroll) costs no Mana — the Item supplies
+    // the spell — so it shows no Mana row on the confirm page.
+    const fields = res.consumable ? [] : [{ key: 'mana', label: 'Mana', value: num(res.mana_spent), editable: true }];
     (res.pool_spends || []).filter((s) => s.amount > 0).forEach((s) => {
       fields.push({ key: `pool:${s.id}`, label: `Combat Pool — ${nameOf(s.id)}`, value: num(s.amount), editable: true });
     });

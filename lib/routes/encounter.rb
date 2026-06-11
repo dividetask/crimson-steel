@@ -2690,6 +2690,9 @@ post '/encounter/resolve_cast' do
   return encounter_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
   enrich_cast_payload!(payload)
   result = encounter_state.resolve_cast_payload(payload)
+  # An Item cast (Potion / Scroll) costs no Mana — flag it so the result block
+  # omits the (always-zero) Mana row on both preview and commit.
+  result = result.merge(consumable: true) if payload['item']
   # A committed cast mutated Conditions (HP / mana / toxicity / temp HP /
   # active effects) — persist so it survives a restart. A preview mutates
   # nothing. An area Spell also drops a Zone on the active Map.
