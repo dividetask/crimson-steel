@@ -1665,8 +1665,13 @@ helpers do
 
     # Area Spells (Obscuring Mist, Darkness, Web, Create Pit, Silence) carry an
     # `area` footprint placed on the map at commit time. For an Aspect-list area
-    # (Grease: object vs. area), use the first footprint Aspect.
-    raw_entry = variant || {}
+    # (Grease: object vs. area), use the first footprint Aspect. Read the area
+    # from the *raw* Catalog entry, not the resolved Variant: `area` is a
+    # parallel/Aspect field, so the Variant at axis 0 may have already collapsed
+    # an Aspect-list area to its first (non-footprint) element (e.g. Grease's
+    # `object` aspect → nil), losing the footprint.
+    base_name, = spell_base_axis(spell['name']) if spell['name']
+    raw_entry = (Abilities.catalog.ability(base_name) rescue nil) || variant || {}
     raw_area  = raw_entry['area']
     area_hash = raw_area.is_a?(Array) ? raw_area.find { |x| x.is_a?(Hash) } : raw_area
     # Each creature caught in the footprint gets the area's on-enter Effect (its

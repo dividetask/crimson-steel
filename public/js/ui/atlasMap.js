@@ -28,6 +28,14 @@ function zonePattern(id, x, y, w, h, href) {
   pat.setAttribute('patternUnits', 'userSpaceOnUse');
   pat.setAttribute('x', x); pat.setAttribute('y', y);
   pat.setAttribute('width', w); pat.setAttribute('height', h);
+  // A translucent purple backing under the texture: keeps a committed Zone as
+  // visible as the (solid-purple) placement preview even when the texture is
+  // sparse / transparent or fails to load.
+  const back = document.createElementNS(SVG_NS, 'rect');
+  back.setAttribute('x', x); back.setAttribute('y', y);
+  back.setAttribute('width', w); back.setAttribute('height', h);
+  back.setAttribute('fill', 'rgba(128, 90, 213, 0.30)');
+  pat.appendChild(back);
   const img = document.createElementNS(SVG_NS, 'image');
   img.setAttribute('x', x); img.setAttribute('y', y);
   img.setAttribute('width', w); img.setAttribute('height', h);
@@ -734,8 +742,11 @@ class AtlasCanvas {
   placeArea(e) {
     e.preventDefault();
     const u = this.toUnits(e.clientX, e.clientY);
-    const x = Math.round(u[0]);
-    const y = Math.round(u[1]);
+    // Anchor to the cell under the cursor (floor), so the footprint centers on
+    // the clicked cell rather than snapping to the nearest grid line (which
+    // could land the effect half a cell — or a whole cell — away).
+    const x = Math.floor(u[0]);
+    const y = Math.floor(u[1]);
     const area = this.placingArea;
     this.placingArea = null;
     this.viewport.classList.remove('atlas-placing');
@@ -769,8 +780,8 @@ class AtlasCanvas {
     const startY = this._placedArea.y;
     const moveTo = (cx, cy) => {
       const u = this.toUnits(cx, cy);
-      const x = Math.round(u[0]);
-      const y = Math.round(u[1]);
+      const x = Math.floor(u[0]);
+      const y = Math.floor(u[1]);
       if (x === this._placedArea.x && y === this._placedArea.y) return;
       this._placedArea.x = x;
       this._placedArea.y = y;
