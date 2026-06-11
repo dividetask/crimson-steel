@@ -136,7 +136,7 @@ helpers do
   def inventory_row(stack, index, catalog = Equipment.catalog)
     {
       index:      index,
-      name:       Equipment::DisplayName.call(stack, catalog),
+      name:       (CreatureSheet.item_display_name(stack, catalog) rescue Equipment::DisplayName.call(stack, catalog)),
       icon:       item_icon_web_path(stack.item_type),
       category:   catalog.category_of(stack.item_type),
       quantity:   stack.quantity,

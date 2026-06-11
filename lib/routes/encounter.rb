@@ -1262,30 +1262,17 @@ helpers do
     end
   end
 
-  # The Tier-resolved name of a Spell-form Item's spell — e.g. "Heal" at Tier 1
-  # is "Heal Lesser Wounds", so a Potion / Wand of Heal reads as the specific
-  # cure it is rather than the ambiguous base name. Falls back to the base Spell
-  # name for a single-Tier spell with no per-Tier variants.
+  # The Tier-resolved name of a Spell-form Item's spell ("Heal" at Tier 0 →
+  # "Heal Petty Wounds"). Canonical impl lives in CreatureSheet so the character
+  # sheet and the combat panes resolve the same name.
   def spell_variant_name(spell, tier)
-    entry = (Abilities.catalog.ability(spell) rescue nil) or return spell.to_s
-    variants = (CreatureSheet.spell_variants(spell, entry) rescue [])
-    # spell_variants also yields a bare catalog-key entry (axis 0) that shares the
-    # lowest Tier; prefer the Tier's *constructed* variant name ("Heal Petty
-    # Wounds") over that bare key ("Heal") when both match.
-    hit = variants.find { |t, name, _base, _axis| t.to_i == tier.to_i && name.to_s != spell.to_s }
-    hit ||= variants.find { |t, _name, _base, _axis| t.to_i == tier.to_i }
-    (hit && hit[1]) || spell.to_s
+    CreatureSheet.spell_variant_name(spell, tier)
   end
 
   # A Spell-form Item's display name with its Spell resolved to the Stack's Tier
-  # variant — "Potion of Heal" at Tier 1 becomes "Potion of Heal Lesser Wounds"
-  # so the Tier is never ambiguous. Substitutes the trailing base Spell name in
-  # the generated display; leaves a handwritten / overridden name untouched.
-  def item_display_with_variant(stack, cat, spell, tier)
-    base  = Equipment::DisplayName.call(stack, cat)
-    vname = spell_variant_name(spell, tier)
-    return base if vname.to_s == spell.to_s || vname.to_s.empty?
-    base.sub(/#{Regexp.escape(spell.to_s)}\s*\z/, vname)
+  # variant — "Potion of Heal" at Tier 0 → "Potion of Heal Petty Wounds".
+  def item_display_with_variant(stack, cat, _spell, _tier)
+    CreatureSheet.item_display_name(stack, cat)
   end
 
   # Carried Potions / Scrolls as castable descriptors: no Mana cost, the Spell's
@@ -1300,8 +1287,10 @@ helpers do
       # Spell's own primary skill plus Evocation (the item-form default). The
       # chosen skill rolls the check, so it determines how much bleeding a Heal
       # clears.
+      # Show the carried quantity on the button when more than one is held.
+      label = it[:quantity].to_i > 1 ? "#{it[:display]} &times;#{it[:quantity]}" : it[:display]
       castable_descriptor(acc, it[:spell], it[:tier], pool, nil,
-                          mana_cost: 0, key: "item:#{it[:ref]}", display: it[:display],
+                          mana_cost: 0, key: "item:#{it[:ref]}", display: label,
                           item: it, self_only: it[:form] == 'potion',
                           skill_options: item_skill_options(v))
     end
@@ -1558,7 +1547,6 @@ helpers do
             next
           end
           skill_label = so[:label]
-          aff_max     = [cap, pool].min
           set = ->(n) { { set_dice: [{ id: 'caster', count: n }] } }
           # Shaped exactly like the Attack weapon/dice step via the shared
           # dice_count_group helper: a "<skill> (max N)" lead, a button per
@@ -1567,7 +1555,7 @@ helpers do
           g = dice_count_group(prefix: dkey, group: 'dice', min: min, max: cap,
                                aff: ->(n) { n <= pool }, patch: set,
                                summary: ->(n) { "#{skill_label} — #{n} dice" },
-                               lead_label: "#{skill_label} (max #{aff_max})",
+                               lead_label: skill_label,
                                header_label: skill_label,
                                info: "#{skill_label} — up to #{cap} dice")
           dice_map[dkey]   = g[:body]
@@ -1921,7 +1909,7 @@ helpers do
     upper = [upper, rmin].max
     set   = ->(n) { { set_dice: [{ id: 'channel', count: n }] } }
     label = Encounter::Special.pretty_skill(skill)
-    opts  = [{ value: upper, key: 'dice', group: 'dice', label: "#{label} (max #{upper})",
+    opts  = [{ value: upper, key: 'dice', group: 'dice', label: label,
                summary: "#{label} — #{upper} dice", patch: set.call(upper) }]
     (rmin..upper).each { |n| opts << { value: n, key: 'dice', group: 'dice', label: n.to_s,
                                        summary: "#{n} dice", patch: set.call(n) } }
@@ -2357,7 +2345,7 @@ helpers do
       upper = (check_channel && dice_cap.to_i.positive?) ? [dice_cap.to_i, pool].min : pool
       upper = [upper, min].max
       set   = ->(n) { { set_dice: [{ id: 'performance', count: n }] } }
-      opts  = [{ value: upper, key: 'dice', group: 'dice', label: "#{skill_label} (max #{upper})",
+      opts  = [{ value: upper, key: 'dice', group: 'dice', label: skill_label,
                  summary: "#{skill_label} — #{upper} dice", patch: set.call(upper) }]
       (min..upper).each { |n| opts << { value: n, key: 'dice', group: 'dice', label: n.to_s,
                                         summary: "#{n} dice", patch: set.call(n) } }

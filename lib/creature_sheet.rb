@@ -226,7 +226,7 @@ module CreatureSheet
     grouped = { equipped: [], consumable: [], ammunition: [], other: [] }
     inv.each do |s|
       it = cat&.item_type(s.item_type)
-      name = (Equipment::Details.item_details(s, cat)[:display_name] rescue s.item_type)
+      name = (item_display_name(s, cat) rescue (Equipment::Details.item_details(s, cat)[:display_name] rescue s.item_type))
       row = { name: name, quantity: s.quantity }
       if s.equipped
         grouped[:equipped] << row
@@ -255,7 +255,7 @@ module CreatureSheet
       d = Equipment::Details.item_details(s, cat)
       desc = d[:description]
       next if desc.nil? || desc.to_s.strip.empty?
-      { name: d[:display_name], description: desc }
+      { name: (item_display_name(s, cat) rescue d[:display_name]), description: desc }
     end.uniq
   rescue StandardError
     []
@@ -398,6 +398,33 @@ module CreatureSheet
       out << [t.to_i, vname.to_s, key.to_s, i] if vname && !vname.to_s.strip.empty?
     end
     out
+  end
+
+  # The Tier-resolved name of a Spell-form Item's spell — "Heal" at Tier 0 is
+  # "Heal Petty Wounds" — so a Potion / Scroll / Wand of a multi-Tier spell reads
+  # as the specific variant. Falls back to the base name for a single-Tier spell.
+  def spell_variant_name(spell, tier)
+    entry = (Abilities.catalog.ability(spell) rescue nil) or return spell.to_s
+    variants = (spell_variants(spell, entry) rescue [])
+    # Prefer the Tier's constructed variant over the bare catalog-key entry that
+    # also sits at the lowest Tier.
+    hit = variants.find { |t, name, _b, _a| t.to_i == tier.to_i && name.to_s != spell.to_s }
+    hit ||= variants.find { |t, _n, _b, _a| t.to_i == tier.to_i }
+    (hit && hit[1]) || spell.to_s
+  end
+
+  # Display name for an inventory Stack with a spell-form Item's spell resolved to
+  # the Stack's Tier ("Potion of Heal" at Tier 0 → "Potion of Heal Petty Wounds").
+  # Substitutes the trailing base spell name in the generated Display Name; leaves
+  # a non-spell item, or a handwritten / overridden name, untouched.
+  def item_display_name(stack, catalog)
+    base = Equipment::DisplayName.call(stack, catalog)
+    defn = (catalog && catalog.definition_of(stack.item_type)) || {}
+    spell = stack.stored_spell || defn['spell']
+    return base unless spell
+    vname = spell_variant_name(spell, stack.tier)
+    return base if vname.to_s == spell.to_s || vname.to_s.empty?
+    base.sub(/#{Regexp.escape(spell.to_s)}\s*\z/, vname)
   end
 
   def inventory(accessor)
