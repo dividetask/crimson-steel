@@ -34,6 +34,8 @@ Defines the vocabulary used by `dice_resolution_design.md` and `dice_resolution_
 
 **Value Adjustment** (also called **Nudge**): An adjustment that shifts one or more dice values. In standard mode it targets one die; in maximum mode it shifts every die. Adjusted values are clamped to the legal die range.
 
+**Ascendancy**: The Tier-mismatch amplification derived during TN computation from a Roll's Inherent imbalance — `floor(2 × gap)` between its strongest Inherent Bonus and strongest Inherent Penalty, a Bonus when the former leads and a Penalty when the latter does. Gated on a present Inherent Penalty (value ≤ 0, a 0 counts); a zero side reads as 0.5 (Tier 0). See `dice_resolution_design.md` → *Ascendancy*.
+
 ## Encoding
 
 **Dice Result String**: A sortable text encoding of a Roll's final dice, ordered from highest to lowest. Designed so a list of these strings, sorted alphabetically, reproduces the die-by-die comparison of the underlying Rolls.

@@ -971,8 +971,9 @@ helpers do
       # so its skill never opposed the attack.
       sh_bpl = []
       sh_bpl << sh[:competency] if sh[:competency]
-      sh_inh = Encounter::Attack.inherent_amount(inh_table, sh[:tier].to_i)
-      sh_bpl << ['Inherent', sh_inh] unless sh_inh.zero?
+      # Emitted even at Tier 0 (a 0), so the shielding caster's Inherent crosses
+      # to the attacker and the Ascendancy gate fires.
+      sh_bpl << ['Inherent', Encounter::Attack.inherent_amount(inh_table, sh[:tier].to_i)]
       sh_bpl << ['Guidance', sh[:bonus].to_i] if sh[:bonus].to_i.positive?
       # The shield Roll's patch for a given dice count (the caster's Roll — its
       # name, +N Guidance bonus, and dice).
@@ -1414,7 +1415,9 @@ helpers do
       group_spells.each do |sp|
         bpl = []
         bpl << sp[:competency] if sp[:competency]
-        bpl << ['Inherent', caster_inh] unless caster_inh.zero?
+        # Emitted even at Tier 0 (a 0) so the caster's Inherent crosses to the
+        # target and the target's Ascendancy gate fires.
+        bpl << ['Inherent', caster_inh]
         bpl << ['Guidance', sp[:tier].to_i] if sp[:tier].to_i.positive?
         spell_opts << { value: sp[:key], key: sp[:key], group: grp,
                         label: sp[:display], summary: sp[:display],
@@ -1525,7 +1528,9 @@ helpers do
         # re-sets it so switching away from No defense sheds the injection.
         caster_bpl = []
         caster_bpl << sp[:competency] if sp[:competency]
-        caster_bpl << ['Inherent', caster_inh] unless caster_inh.zero?
+        # Emitted even at Tier 0 (a 0), so a Tier-0 caster's Inherent still
+        # crosses to the target and the target's Ascendancy gate fires.
+        caster_bpl << ['Inherent', caster_inh]
         caster_bpl << ['Guidance', sp[:tier].to_i] if sp[:tier].to_i.positive?
         if sp[:attack_roll]
           # No defense: the target does not roll, so nothing propagates — the

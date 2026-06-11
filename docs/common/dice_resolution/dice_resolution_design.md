@@ -150,6 +150,8 @@ These are the rules the public entry points compose. Each rule is stated as a co
 
 Reads a Roll's `bonus_penalty_list` and `starting_contribution`. Produces final TN and Starting Value.
 
+The **Ascendancy** entry (below) is derived first, from any Inherent imbalance in the list, and folded in before stacking.
+
 Per-Type stacking: for each Bonus/Penalty Type, only the highest-positive entry and the lowest-negative entry contribute. All other entries on that Type are ignored. The contributing entries from all Types sum into the TN Net Modifier.
 
 Final TN = `clamp(Base Target Number - TN Net Modifier, Minimum Target Number, Maximum Target Number)`.
@@ -157,6 +159,22 @@ Final TN = `clamp(Base Target Number - TN Net Modifier, Minimum Target Number, M
 Starting Value = `starting_contribution` + the TN Net Modifier overflow past the TN bounds, signed:
 - A Bonus that pushed TN below Minimum contributes positively (Starting Successes).
 - A Penalty that pushed TN above Maximum contributes negatively (Starting Failures).
+
+### Ascendancy (Tier-mismatch amplification)
+
+Derived as the first step of **TN computation**, from the Roll's own `bonus_penalty_list` — nothing else is read (Rolls carry no Tier). Because it lives in Roll Resolution, it applies to *every* Roll whose list carries an Inherent imbalance: a combat Roll after Check Resolution's cross-side propagation has delivered the opponent's Inherent as a Penalty, or a one-sided Roll such as an Affliction save (which composes the saver's Inherent Bonus and the inflicter's Inherent Penalty directly).
+
+Compare the Roll's strongest **Inherent** Bonus `B` against its strongest **Inherent** Penalty `P` (both as magnitudes — the same per-Type stacking this operation uses). When they differ, fold one derived entry into the list:
+
+- `B > P` — an **Ascendancy Bonus** of `floor(2 × (B − P))`.
+- `P > B` — an **Ascendancy Penalty** of `floor(2 × (P − B))`.
+- `B = P` — no entry.
+
+**Gate.** The derivation runs only when the list carries an Inherent **Penalty** — an Inherent entry with value `≤ 0`. A Roll with an Inherent Bonus but no Inherent Penalty involves no other creature and derives nothing; a Roll with no Inherent entries at all (an opposed *skill* check) likewise derives nothing. A Penalty of exactly `0` still fires the gate: a combat builder injects a `+0` Inherent Penalty against a Tier-0 opponent precisely so the gap can be amplified.
+
+The Inherent value stands in for the Tier (the Tier Minimum Inherent Bonus table is `[0, 1, 2, 3, 4, 5]`), so the **Tier 0 counts as 0.5** convention applies: a side of the comparison that is zero reads as `0.5`. A Tier-2 Roll against a Tier-0 opponent (its `+0` Inherent Penalty) gains `floor(2 × (2 − 0.5)) = +3`; `+1` Inherent against `+4` yields `−6`. The amplification doubles the gap: fighting up hurts twice over (the Inherent Penalty *and* the Ascendancy Penalty), fighting down helps twice over.
+
+This is the Roll-Resolution half of the Tier Mismatch rule defined in `../encounter/encounter_design.md`; the Inherent damage-reduction half is applied server-side at damage time. How combat puts the Inherent entries on its Rolls — own Tier on each Roll, the opponent's crossed by propagation or injected against an undefended / Tier-0 target — is in `../check_resolution/check_resolution_design.md`.
 
 ### Scoring
 

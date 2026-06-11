@@ -1,24 +1,22 @@
 import { DiceConfig } from './config.js';
 import { RandomRng } from './rng.js';
 import { Propagation } from './propagation.js';
-import { Ascendancy } from './ascendancy.js';
 import { TnComputation } from './tnComputation.js';
 import { Classifier } from './classifier.js';
 import { Roll } from './roll.js';
 
-// Multi-Roll composition. Applies cross-side propagation and the
-// Ascendancy modifier, defers all per-Roll math to Dice Resolution, then
-// aggregates and classifies.
+// Multi-Roll composition. Applies cross-side propagation, defers all per-Roll
+// math to Dice Resolution, then aggregates and classifies.
 export class CheckResolution {
-  // Cross-side Propagation followed by the Ascendancy modifier. Ascendancy
-  // runs AFTER Propagation — it compares each Roll's own Inherent Bonus
-  // against the Inherent Penalties that crossed over — and its entry is not
-  // itself inverted onto the other side. A Spread (area) Check uses the
-  // same bidirectional preparation (the caster and every Opposer exchange
-  // bonuses) and differs only in how `resolveCheck` aggregates
+  // Cross-side Propagation only. The Tier-mismatch Ascendancy modifier is no
+  // longer a Check step — it is derived per Roll during TN computation (Roll
+  // Resolution, see tnComputation.js / ascendancy.js), reading the Inherent
+  // Penalties Propagation has by then crossed over. A Spread (area) Check
+  // uses the same bidirectional preparation (the caster and every Opposer
+  // exchange bonuses) and differs only in how `resolveCheck` aggregates
   // (per-Opposer, below).
   static prepare(check) {
-    return Ascendancy.apply(Propagation.apply(check));
+    return Propagation.apply(check);
   }
   // Pure preview: per-Roll { tn, startingValue } after propagation. No
   // dice rolled. Lists align with the input lists.
@@ -39,11 +37,13 @@ export class CheckResolution {
     const propagated = CheckResolution.prepare(check);
     const compute = (roll) => {
       if (!roll) return null;
-      const list = roll.bonusPenaltyList || [];
+      // The displayed list includes the derived Ascendancy entry (if any) so
+      // the breakdown matches the TN, which TN computation derives the same way.
+      const list = TnComputation.withAscendancy(roll.bonusPenaltyList || []);
       const { tn, startingValue } = TnComputation.compute(roll, config);
       // `contributions` carries each contributing entry's signed TN influence,
       // so a UI can render the breakdown without doing any TN math itself.
-      return { tn, startingValue, bonusPenaltyList: list, contributions: TnComputation.contributions(list) };
+      return { tn, startingValue, bonusPenaltyList: list, contributions: TnComputation.contributions(roll.bonusPenaltyList || []) };
     };
     return {
       supporting: propagated.supporting.map(compute),

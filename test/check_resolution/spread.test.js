@@ -8,7 +8,7 @@ import { SequenceRng } from '../../public/js/rng.js';
 // check_resolution_design.md → Spread Check.
 
 test('each caught creature measures its Inherent against the caster', () => {
-  const prepared = CheckResolution.prepare({
+  const prepared = CheckResolution.previewParameters({
     spread: true,
     supporting: [{ bonusPenaltyList: [['Inherent', 3]] }],
     opposing: [
@@ -32,7 +32,7 @@ test('prepare propagates bonuses both ways for an area cast', () => {
   // Bidirectional: the caster's Inherent reaches the Opposer (keeping its
   // name), the Opposer's Competency and Inherent reach the caster, and each
   // Roll then derives its Ascendancy from its own Inherent imbalance.
-  const prepared = CheckResolution.prepare({
+  const prepared = CheckResolution.previewParameters({
     spread: true,
     supporting: [{ bonusPenaltyList: [['Inherent', 2]] }],
     opposing: [{ bonusPenaltyList: [['Competency', 3], ['Inherent', 1]] }],

@@ -27,9 +27,9 @@ The save Roll carries a Bonus/Penalty list and renders the same TN-breakdown too
 - the caller's `save_modifiers` (the Creature's own save Competency plus Always-On Save Bonuses — racial resistances, a Cloak of Resistance, ...);
 - the **Creature Tier Inherent Bonus** — an `Inherent` Bonus equal to the Creature's own `tier`: its natural advantage from its Tier makes the Affliction easier to shake off;
 - the **Potency Save Penalty** — a `Competency` Penalty of `floor(potency / potency_divisor)` (the same penalty Conditions' *Resolve Affliction* injects when it scores the save);
-- the **Inflicter Tier Penalty** — an `Inherent` Penalty equal to the Affliction's `inflicter_tier`: a wound dealt by a higher-Tier creature is harder to shake off.
+- the **Inflicter Tier Penalty** — an `Inherent` Penalty equal to the Affliction's `inflicter_tier`: a wound dealt by a higher-Tier creature is harder to shake off. It is emitted even at Tier 0 (a `0`), so the Inherent imbalance against the inflicter is always present.
 
-The TN is then `DiceResolution.compute_target_number(list)` (Base TN − Net Modifier, clamped to the configured bounds; overflow past the bounds becomes Starting Successes / Failures, shown as `R+`/`R-` on the params line). The stub computes the TN itself, so callers no longer pass a `save_tn`.
+The TN is then `DiceResolution.compute_target_number(list)` (Base TN − Net Modifier, clamped to the configured bounds; overflow past the bounds becomes Starting Successes / Failures, shown as `R+`/`R-` on the params line). The stub computes the TN itself, so callers no longer pass a `save_tn`. Because the list carries both the saver's Inherent Bonus and the inflicter's Inherent Penalty, `compute_target_number` derives the Tier-mismatch **Ascendancy** from the imbalance (see `../dice_resolution/dice_resolution_design.md` → *Ascendancy*) — the same amplification a combat check gets, so out-classing the inflicter shrugs the wound off twice over and being out-classed by it bites twice.
 
 ## Layout
 

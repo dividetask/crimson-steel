@@ -9,16 +9,18 @@ import { CheckResolution } from '../../public/js/check.js';
 
 test('a noPropagate Bonus Type does not cross sides; others still do', () => {
   const params = CheckResolution.computeParameters({
-    supporting: [{ bonusPenaltyList: [] }],
+    // A Tier-0 attacker carries an explicit Inherent 0 (the combat builders
+    // emit it so the gap crosses to the opponent and the Ascendancy gate fires).
+    supporting: [{ bonusPenaltyList: [['Inherent', 0]] }],
     opposing: [{ bonusPenaltyList: [['Competency', 2], ['Inherent', 1]], noPropagate: ['Competency'] }],
   });
   // Attacker (supporting): only the defender's Inherent crosses (as a -1
-  // Inherent Penalty); the +2 Competency is held back. The attacker has no
-  // Inherent of its own (Tier 0 reads as 0.5), so it takes a -1 Ascendancy.
+  // Inherent Penalty); the +2 Competency is held back. Its own Inherent 0
+  // reads as the Tier-0 value 0.5, so it takes a -1 Ascendancy.
   // Net = -2; TN = 8 + 2 = 10, clamped to the Maximum TN 9.
   assert.equal(params.supporting[0].tn, 9);
-  // Defender keeps BOTH its own Bonuses, and its +1 Inherent against the
-  // Tier-0 attacker gains a +1 Ascendancy (net +4 → TN 4).
+  // Defender keeps BOTH its own Bonuses; the attacker's Inherent 0 crosses as
+  // a +0 Inherent Penalty, so its +1 Inherent gains a +1 Ascendancy (net +4 → TN 4).
   assert.equal(params.opposing[0].tn, 4);
 });
 

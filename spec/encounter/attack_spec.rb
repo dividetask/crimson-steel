@@ -90,10 +90,15 @@ RSpec.describe Encounter::Attack do
         .to eq([['Inherent', 2], ['Inherent', -2]])
     end
 
-    it 'drops zero Tier-0 modifiers' do
+    it 'emits Tier-0 Inherent modifiers as 0 (so the Ascendancy gate fires)' do
+      # A Tier-0 creature still emits an Inherent 0: its own 0 crosses so the
+      # opponent's Ascendancy gate fires, and the injected defender 0 is the
+      # Inherent Penalty the attacker's gate needs (a present Penalty, 0 read
+      # as the Tier-0 value 0.5). Net zero on the TN — net_modifier drops 0s.
       expect(described_class.attacker_tier_bonuses(attacker_tier: 0, defender_tier: 0, tier_advantage: 0,
-                                                   inherent_table: table, no_defense: true)).to eq([])
-      expect(described_class.defender_tier_bonuses(defender_tier: 0, inherent_table: table)).to eq([])
+                                                   inherent_table: table, no_defense: true))
+        .to eq([['Inherent', 0], ['Inherent', 0]])
+      expect(described_class.defender_tier_bonuses(defender_tier: 0, inherent_table: table)).to eq([['Inherent', 0]])
     end
 
     it 'gives the defender its Inherent Bonus to propagate' do

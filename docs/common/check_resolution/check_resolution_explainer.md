@@ -84,13 +84,13 @@ The ally's empty list contributes nothing back to the Defender — there's nothi
 
 Some Bonuses measure training or circumstance; the **Inherent** Bonus measures raw, Tier-derived power. When two sides of a Check aren't in the same league, the gap does more than shift a die or two — the system amplifies it with the **Ascendancy** modifier.
 
-It works on the Inherent entries left behind by propagation, and nothing else:
+It works on the Inherent entries on a Roll, and nothing else. It is **not** a Check step — it's derived per Roll during TN computation (Roll Resolution), so any Roll with an Inherent imbalance gets it, combat or not (an Affliction save, which carries the saver's Inherent Bonus and the inflicter's Inherent Penalty, is amplified the same way):
 
-1. Propagation runs as usual, so each Roll now holds its own Inherent Bonus plus the other side's Inherent as an inverted Inherent Penalty.
-2. Each Roll compares its strongest Inherent Bonus `B` with its strongest Inherent Penalty `P` (only the strongest of each counts, exactly like per-Type stacking).
-3. If they differ, the Roll gains one extra entry: an **Ascendancy Bonus of 2 × the gap** (rounded down) when its own Inherent is stronger, or an **Ascendancy Penalty of 2 × the gap** when the crossed Penalty is stronger. If they balance — or the Roll has no Inherent entries at all — nothing is added.
+1. For a combat Check, propagation runs first, so each Roll holds its own Inherent Bonus plus the other side's Inherent as an inverted Inherent Penalty. (A one-sided Roll like a save already has both entries.)
+2. TN computation compares the Roll's strongest Inherent Bonus `B` with its strongest Inherent Penalty `P` (only the strongest of each counts, exactly like per-Type stacking).
+3. If they differ, the Roll gains one extra entry: an **Ascendancy Bonus of 2 × the gap** (rounded down) when its own Inherent is stronger, or an **Ascendancy Penalty of 2 × the gap** when the Penalty is stronger. If they balance, nothing is added.
 
-That's the whole rule. Nobody passes a Tier to Check Resolution; the Inherent entries carry all the information, and only combat Rolls carry Inherent entries — so an opposed skill check never sees an Ascendancy. One wrinkle inherited from the Tier table: a Tier-0 creature's Inherent is 0, so it contributes no entry — when a Roll *does* have Inherent entries, a zero or missing side of the comparison counts as **0.5**, the usual Tier-0 convention. Fighting a Tier-0 creature as a Tier 1 is a ±1 Ascendancy pair, not ±2.
+The **gate**: a Roll derives Ascendancy only when it carries an Inherent **Penalty** (an Inherent entry of value ≤ 0). A lone Inherent Bonus has no opponent, so it derives nothing; an opposed skill check, carrying no Inherent entries at all, likewise sees no Ascendancy. Nobody passes a Tier to Check Resolution; the Inherent entries carry all the information. One wrinkle inherited from the Tier table: a Tier-0 creature's Inherent is 0, so a combat builder **injects a +0 Inherent Penalty** against a Tier-0 opponent precisely so the gate fires — and a zero side of the comparison counts as **0.5**, the usual Tier-0 convention. Fighting a Tier-0 creature as a Tier 1 is a ±1 Ascendancy pair, not ±2.
 
 ### Worked example — Adam, Ben, Carol, and Dawn
 
