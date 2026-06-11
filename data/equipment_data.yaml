@@ -1,470 +1,441 @@
-# Loot — Inventory and Item Tracking (example)
-# Tracks who owns what. Item type definitions live in
-# `equipment_config.yaml`. This file holds quantities and per-instance
-# identity fields (tier, properties, stored spell, durability, name
-# override, restock target).
-# See `equipment_glossary.md` and `equipment_design.md`.
-
-# Owner IDs:
-#   Character:    "character:<id>"
-#   Party:        "party"
-#   Ground pile:  "ground:<location>"
-#   Shop:         "shop:<id>"
-# Character IDs are integers matching the character roster.
-
-# Stack identity & merging: two Stacks merge when item, tier, properties
-# (in order), stored_spell, durability_damage, name override, and
-# value_in_gold (for Gems) are all equal. Quantity and restock_target
-# are NOT identity fields.
-
-# Item Stack fields:
-#   item               REQUIRED. Key from equipment_config.yaml.
-#   quantity           Default 1. Fractional allowed for Currency.
-#   tier               Default 0 (non-magical).
-#   properties         List. String (non-subtyped) or {name, subtype}.
-#   stored_spell       Spell held in Spell Storing/Crystal. Blank = expended.
-#   durability_damage  Default 0.
-#   name               Display-name override. Default = generated.
-#   restock_target     Top-up target for Restock; paid from owner wealth.
-#   value_in_gold      Required on Gem stacks; absent elsewhere.
-#   description        Free-text override. Reserved for unique items
-#                      whose flavor isn't captured by their Type +
-#                      Properties (e.g. the Lute of the Wandering Bard).
-#                      Generic catalog items must not carry a description
-#                      here — their description lives in equipment_config.yaml.
-
-# =====================================================================
-# Characters
-# =====================================================================
+# Crimson Steel — Inventory and Item Tracking (live campaign data).
+#
+# Migrated from the legacy `equipment.json` export, PCs only (owner ids
+# 1, 2, 3, 4, 40). Item type definitions live in `equipment_config.yaml`.
+#
+# Item-type mapping (legacy name -> catalog Item Type). Descriptions are
+# copied verbatim from the source export; items the source left without a
+# description carry none here. `bonus` -> `tier`; `quantity`/`equipped`
+# are carried as-is.
 
 characters:
 
+  # =============================================================
+  # 1 — Stumpy
+  # =============================================================
   1:
     inventory:
-      - item: Rapier
+      - item: Plate mail
+        equipped: true
+      - item: Light wooden shield
+        tier: 1
+        name: "Mirror Leaf Shield"
+        description: "A shining mental shield. It’s magic reduces TN to block and increases TN to attack you. Ranged magic attacks can be reflected"
+        equipped: true
+      - item: Battleaxe
         tier: 1
         properties:
           - name: Emotional
+        name: "Last Laugh Axe"
+        description: "A jagged battle axe that giggles when drawn. It deals an additional 4 dice of emotional damage"
         equipped: true
-      - item: Hand crossbow
-        equipped: true
-      - item: Bolt
-        quantity: 20
-      - item: Studded leather
-        equipped: true
+      - item: Longbow
       - item: Cloak of Resistance
         tier: 1
         guidance_bonus: 1
         equipped: true
-      - item: Headband of Charisma
-        tier: 1
-        guidance_bonus: 2
-        equipped: true
-      - item: Lute
-        tier: 1
-        name: "Lute of the Wandering Bard"
-        description: "Once per scene, grant Bardic Inspiration without spending the action."
-      - item: Healing Potion
-        tier: 0
+      - item: Bottle
+        name: "Alric's Liquor"
+        description: "Unknown properties. Elegant glass bottle with a crystal stopper shaped like a blooming thistle. Magically refills."
+      - item: Bracer
+        name: "Narn (Armband)"
+        description: "Unknown properties. Forged from dull red iron and wrapped in worn leather stamped with crude battle scenes, this child-sized armband resizes to fit its wearer."
+      - item: Vial of Krithrak Spider Venom
         quantity: 2
-      - item: Lute
-      - item: Ritual book
-        inscribed_spells:
-          - detect_magic
-          - light
-          - resistance
-          - message
-          - mage_hand
-          - disguise_self
-          - silence
-          - charm_person
-          - command
-          - friends
-      - item: Rations
-        quantity: 5
-      - item: Bedroll
-      - item: Gold
-        quantity: 32
+        equipped: true
+      - item: Kerosene
+        quantity: 2
+      - item: Alchemist's fire
+        quantity: 3
+      - item: Acid jar
+      - item: Dagger
+        tier: 1
+        name: "Ceremonial Dagger of Blood Drinking"
+        description: "Sacrificing a helpless victim destroys its soul and casts cure light wounds without any magical saturation. The victim must be your magical density or more. May have additional effects."
+      - item: Potion of Recharge
+        tier: 0
+      - item: Potion of Recharge
+        tier: 1
+        quantity: 4
+      - item: Scroll of Heal
+        tier: 1
+        quantity: 8
+      - item: Scroll of Heal
+        tier: 2
+      - item: Potion of Blindspot
+        tier: 2
+      - item: Scroll of Spiritual Weapon
+        tier: 2
+        quantity: 4
+      - item: Potion of Expeditious Retreat
+        tier: 1
+        quantity: 2
+      - item: Scroll of Ward
+        tier: 1
+        quantity: 4
+      - item: Scroll of Ward
+        tier: 2
+        quantity: 4
+      - item: Hat
+        tier: 1
+        name: "Hat of Disguise"
+        description: "This allows the wearer to benefit from the effects of Disguise Self. The appearance of the hat may be changed within the bounds of the spell but cannot be hidden."
+      - item: Potion of Darkvision
+        tier: 2
 
+  # =============================================================
+  # 2 — Olga
+  # =============================================================
   2:
     inventory:
-      - item: Warhammer
-        equipped: true
-      - item: Javelin
-        quantity: 3
-      - item: Tower shield
-        equipped: true
-      - item: Chain mail
-        equipped: true
-      - item: Healing Potion
-        tier: 0
-        quantity: 1
-      - item: Whetstone
-      - item: Rations
-        quantity: 5
-      - item: Gold
-        quantity: 28
-
-  3:
-    inventory:
-      - item: Quarterstaff
-        equipped: true
-      - item: Headband of Intelligence
-        tier: 1
-        guidance_bonus: 2
-        equipped: true
-      - item: Crossbow
-      - item: Bolt
-        quantity: 20
-      - item: Ritual book
-        inscribed_spells:
-          - heal
-          - ward
-          - speak_with_plants
-          - entangle
-      - item: Healing Potion
-        tier: 0
-      - item: Gold
-        quantity: 52
-      - item: Silver
-        quantity: 8
-
-  4:
-    inventory:
-      - item: Short sword
-        equipped: true
-      - item: Dagger
-        equipped: true
       - item: Leather armor
-        equipped: true
-      - item: Healing Potion
-        tier: 0
-        quantity: 3
-      - item: Thieves' tools
-      - item: Gold
-        quantity: 24
-
-  5:
-    inventory:
-      - item: Longbow
-        equipped: true
-      - item: Dagger
-        equipped: true
-      - item: Studded leather
-        equipped: true
-      - item: Arrow
-        quantity: 20
-      - item: Rations
-        quantity: 5
-      - item: Gold
-        quantity: 18
-
-  6:
-    inventory:
-      - item: Quarterstaff
-        equipped: true
-      - item: Sling
-      - item: Stone
-        quantity: 20
-      - item: Hide armor
-        equipped: true
-      - item: Healing Potion
-        tier: 0
-        quantity: 2
-      - item: Gold
-        quantity: 14
-
-  7:
-    inventory:
-      - item: Mace
-        tier: 2
-        properties:
-          - name: Elemental
-            subtype: Fire
-        equipped: true
-      - item: Headband of Wisdom
         tier: 1
-        guidance_bonus: 2
         equipped: true
-      - item: Crossbow
-      - item: Bolt
-        quantity: 20
-      - item: Chain mail
-        equipped: true
-      - item: Healing Potion
-        tier: 0
-        quantity: 3
-      - item: Rations
-        quantity: 5
-      - item: Gold
-        quantity: 22
-
-  8:
-    inventory:
-      - item: Great sword
+      - item: Greataxe
         tier: 2
-        properties:
-          - name: Vicious
+        name: "Gary (Axe)"
+        description: "Unknown properties. Two handed +2 great axe. Found in the Fey Wilds. It became more powerful after killing the cultists."
         equipped: true
-      - item: Belt of Strength
+      - item: Boots
+        name: "Martha (Footwraps)"
+        description: "Unknown properties. Footwraps. You have felt a great amount of emotion coming from these wraps. After taking damage in combat you gain one point of luck that can be used to reroll one of your attack dice. Only one point can be granted per round from this item."
+        equipped: true
+      - item: Ring
         tier: 1
-        guidance_bonus: 2
+        name: "Ring of Parry"
+        description: "Allows a single free parry once per day"
         equipped: true
       - item: Javelin
         quantity: 4
-      - item: Hide armor
-        equipped: true
-      - item: Healing Potion
-        tier: 0
-        quantity: 2
-      - item: Rations
+      - item: Bola
         quantity: 5
-      - item: Bedroll
-      - item: Gold
-        quantity: 16
-
-  9:
-    inventory:
-      - item: Rapier
-        equipped: true
-      - item: Dagger
-        equipped: true
-      - item: Studded leather
-        equipped: true
-      - item: Healing Potion
-        tier: 0
+      - item: Vial of Krithrak Spider Venom
         quantity: 2
-      - item: Thieves' tools
-      - item: Ritual book
-      - item: Gold
-        quantity: 20
-
-  10:
-    inventory:
-      - item: Rapier
-        equipped: true
-      - item: Sling
-      - item: Stone
-        quantity: 20
-      - item: Lute
-        equipped: true
-      - item: Leather armor
-        equipped: true
-      - item: Healing Potion
-        tier: 0
+      - item: Potion of Ward
+        tier: 1
         quantity: 2
-      - item: Gold
-        quantity: 19
-
-  # Enemy gear. Each template carries a weapon + armor so the combat
-  # tracker has real Damage Resilience / weapon dice to work with.
-
-  100:
-    inventory:
-      - item: Short sword
-        equipped: true
-      - item: Leather armor
-        equipped: true
-      - item: Dagger
-
-  101:
-    inventory:
-      - item: Great sword
-        equipped: true
-      - item: Hide armor
-        equipped: true
-
-  102:
-    inventory:
-      - item: Long sword
-        equipped: true
-      - item: Chain shirt
-        equipped: true
-      - item: Hand crossbow
-        equipped: true
-      - item: Bolt
-        quantity: 12
-
-  103:
-    inventory:
-      - item: Long sword
-        equipped: true
-      - item: Studded leather
-        equipped: true
-
-  104:
-    inventory:
-      - item: Quarterstaff
-
-  106:
-    inventory:
-      - item: Spear
-        equipped: true
-      - item: Chain mail
-        equipped: true
-      - item: Tower shield
-        equipped: true
-
-  107:
-    inventory:
-      - item: Mace
-        equipped: true
-      - item: Robes
-        equipped: true
-
-  # General Red Tier templates (creatures_data_general_red_tier) — give the
-  # goblins a real weapon so the combat tracker has weapon dice to work with.
-  302:  # Goblin — short sword + light shield (can Parry and Block)
-    inventory:
-      - item: Short sword
-        equipped: true
-      - item: Light wooden shield
-        equipped: true
-      - item: Leather armor
-        equipped: true
-  303:  # Goblin Archer — hand crossbow + dagger sidearm
-    inventory:
-      - item: Hand crossbow
-        equipped: true
-      - item: Bolt
-        quantity: 20
-      - item: Dagger
-        equipped: true
-      - item: Leather armor
-        equipped: true
-  304:  # Cultist — dagger + robes
-    inventory:
-      - item: Dagger
-        equipped: true
-      - item: Robes
-        equipped: true
-  305:  # Cult Fanatic — mace + leather
-    inventory:
-      - item: Mace
-        equipped: true
-      - item: Leather armor
-        equipped: true
-
-  # Rise of the Slavelords templates (creatures_data_rise_of_the_slavelords).
-  350:  # Slaver Merchant — dagger
-    inventory:
-      - item: Dagger
-        equipped: true
-      - item: Studded leather
-        equipped: true
-  351:  # Slaver Lieutenant — long sword + chain shirt
-    inventory:
-      - item: Long sword
-        equipped: true
-      - item: Chain shirt
-        equipped: true
-  352:  # Half-Orc Soldier — spear + hide armor
-    inventory:
-      - item: Spear
-        equipped: true
-      - item: Hide armor
-        equipped: true
-  353:  # Orc Interpreter — short sword
-    inventory:
-      - item: Short sword
-        equipped: true
-      - item: Leather armor
-        equipped: true
-  354:  # Stockade Guard — mace + light shield
-    inventory:
-      - item: Mace
-        equipped: true
-      - item: Light wooden shield
-        equipped: true
-      - item: Chain shirt
-        equipped: true
-
-  # Fey Favors templates (creatures_data_fey_favors) — fey, not animals, so
-  # they carry a weapon (mostly light/improvised blades).
-  400:  # Sprite — dagger
-    inventory:
-      - item: Dagger
-        equipped: true
-  401:  # Pixie — dagger
-    inventory:
-      - item: Dagger
-        equipped: true
-  402:  # Dryad — quarterstaff
-    inventory:
-      - item: Quarterstaff
-        equipped: true
-  403:  # Brownie — dagger
-    inventory:
-      - item: Dagger
-        equipped: true
-  404:  # Will-o'-Wisp Spark — dagger (token sidearm; fights mainly by other means)
-    inventory:
-      - item: Dagger
-        equipped: true
-
-  # NPC quest-giver (creatures_data_npcs).
-  2001:  # Daven Korr — dagger (a townsman's belt knife)
-    inventory:
-      - item: Dagger
-        equipped: true
-
-  # Shipped in-progress-combat instances (creatures_data_combat_example):
-  # the two Goblins carry the same gear as their 302 template.
-  2004:  # Goblin A — short sword + light shield
-    inventory:
-      - item: Short sword
-        equipped: true
-      - item: Light wooden shield
-        equipped: true
-      - item: Leather armor
-        equipped: true
-  2005:  # Goblin B — short sword + light shield
-    inventory:
-      - item: Short sword
-        equipped: true
-      - item: Light wooden shield
-        equipped: true
-      - item: Leather armor
-        equipped: true
-
-# =====================================================================
-# Party — Owner ID "party". Group-shared items.
-# =====================================================================
-
-party:
-  inventory:
-    - item: Gold
-      quantity: 50275
-    - item: Bolt
-      quantity: 60
-      restock_target: 120
-    - item: Gem
-      name: Uncut Sapphire
-      value_in_gold: 200
-      quantity: 1
-
-# =====================================================================
-# Ground piles — Owner ID "ground:<location>". Free-form locations.
-# =====================================================================
-
-ground_piles:
-
-  - location: "Goblin cave — entrance"
-    inventory:
-      - item: Arrow
-        quantity: 11
-      - item: Dagger
+      - item: Potion of Heal
+        tier: 2
+        quantity: 4
+      - item: Kerosene
         quantity: 2
-      - item: Gold
-        quantity: 8
-      - item: Silver
-        quantity: 23
+      - item: Alchemist's fire
+        quantity: 3
+      - item: Acid jar
+      - item: Potion of Blindspot
+        tier: 2
+      - item: Potion of Expeditious Retreat
+        tier: 1
+      - item: Belt of Strength
+        tier: 1
+        guidance_bonus: 1
+        equipped: true
+      - item: Potion of Darkvision
+        tier: 2
 
-  - location: "Abandoned shrine — altar"
+  # =============================================================
+  # 3 — Lysander
+  # =============================================================
+  3:
     inventory:
-      - item: Mace
+      - item: Leather armor
+        tier: 1
+        equipped: true
+      - item: Longbow
         tier: 1
         properties:
-          - name: Radiant
+          - name: Emotional
+        name: "Wyrd Bow of Mirth"
+        equipped: true
+      - item: Dagger
+        equipped: true
+      - item: Cloak
+        tier: 1
+        name: "Elven Cloak"
+        equipped: true
+      - item: Headband of Intelligence
+        tier: 1
+        guidance_bonus: 1
+        name: "+1 Face Tattoo of Fox's Cunning"
+        description: "A permanent tattoo that increases the bearer's enhancement bonus to Intelligence."
+      - item: Hat
+        tier: 1
+        name: "Circlet of Bough-King"
+        equipped: true
+      - item: Trinket
+        name: "Orin (Key)"
+        description: "Unknown properties. A small, tarnished silver key, the kind that might open a simple padlock or shackle. The name 'Orin' is crudely scratched into the bow (handle) as if carved by an unsteady hand. The key is unexpectedly warm to the touch and occasionally pulses with a faint, gentle golden light."
+      - item: Ring
+        name: "Petey (Ring)"
+        description: "A simple brass ring shaped like a curled ribbon, slightly tarnished with age. Inside is etched the name 'Petey' in childish scrawl. Sentient, dimensional storage, and can steal items from 10’. It may have additional properties."
+        equipped: true
+      - item: Ring
+        tier: 2
+        name: "Ring of Bound Whimsy"
+        description: "Allows you to animate an inanimate object once per day for 5 minutes."
+        equipped: true
+      - item: Trinket
+        name: "Tempting Gold Coin"
+        description: "Anyone who sees the coin feels compelled to possess it. Mind effecting, range 30 feet, and effect lasts 1 minute."
+      - item: Scroll of Obscuring Mist
+        tier: 1
+      - item: Potion of Heal
+        tier: 2
+      - item: Potion of Heal
+        tier: 1
+        quantity: 4
+      - item: Potion of Recharge
+        tier: 1
+        quantity: 2
+      - item: Kerosene
+        quantity: 2
+      - item: Acid jar
+      - item: Vial of Sleep Venom
+        name: "Sleeping Death (Poison)"
+        description: "Injestable poison. Causes unconciousness and appearance of death for 8 to 12 hours."
+      - item: Vial of Krithrak Spider Venom
+        quantity: 6
+      - item: Arrow
+        tier: 2
+        name: "Poison Arrows"
+        description: "Injury poison. Causes moderate constitution damage."
+        quantity: 5
+      - item: Arrow
+        tier: 3
+        name: "+3 Heart Seeker Arrows"
+        description: "Bypasses tier disparity. Inflicts 4x damage on crit."
+      - item: Trinket
+        tier: 1
+        name: "Mirror Marble"
+        description: "This small glass orb, when crushed, creates a temporary illusory duplicate of the holder for 3 rounds."
+      - item: Trinket
+        name: "Miscellaneous items"
+        description: "Glass eye, poisoner's chalice, chess board"
+      - item: Ritual book
+        inscribed_spells:
+          - resistance
+          - acid_dart
+          - light
+          - electricity_dart
+          - repair
+          - detect_magic
+          - summon_mount
+          - charm_person
+          - disguise_self
+          - obscuring_mist
+          - minor_recharge
+          - create_illusionary_image
+          - greater_disguise
+          - blindspot
+          - basic_recharge
+      - item: Scroll of Blindspot
+        tier: 2
+        quantity: 2
+      - item: Scroll of Darkness
+        tier: 2
+      - item: Scroll of Web
+        tier: 2
+      - item: Scroll of Grease
+        tier: 1
+        quantity: 4
+      - item: Scroll of Expeditious Retreat
+        tier: 1
+        quantity: 2
+      - item: Scroll of Create Pit
+        tier: 2
+        quantity: 3
+      - item: Scroll of Blur
+        tier: 2
+      - item: Potion of Darkvision
+        tier: 2
+
+  # =============================================================
+  # 4 — Cottonballs
+  # =============================================================
+  4:
+    inventory:
       - item: Leather armor
-        durability_damage: 5
+        tier: 1
+        equipped: true
+      - item: Shortbow
+        tier: 1
+        properties:
+          - name: Elemental
+            subtype: Acid
+        equipped: true
+      - item: Drums
+        tier: 1
+        equipped: true
+      - item: Rapier
+      - item: Wand of Benign Transposition
+        tier: 1
+      - item: Wand of Expeditious Excavation
+        tier: 1
+      - item: Pouch
+        name: "Trailmix Bag"
+        description: "A seemingly unremarkable leather pouch of trail rations. It contains an assortment of nuts, berries, and sweets sufficient to feed five people. Every night it is magically refilled."
+      - item: Amulet
+        name: "Alric's Locket"
+        description: "An ordinary looking silver locket"
+        equipped: true
+      - item: Potion of Heal
+        tier: 2
+      - item: Potion of Heal
+        tier: 1
+        quantity: 4
+      - item: Potion of Recharge
+        tier: 1
+        quantity: 2
+      - item: Kerosene
+        quantity: 2
+      - item: Alchemist's fire
+        quantity: 3
+      - item: Acid jar
+      - item: Scroll of Blindspot
+        tier: 2
+        quantity: 2
+      - item: Scroll of Expeditious Retreat
+        tier: 1
+      - item: Ring
+        tier: 3
+        name: "Desna's Whim"
+        description: "Unknown Properties. Can be activated as a reaction to another's check with unpredictable results."
+        equipped: true
+      - item: Scroll of Create Pit
+        tier: 2
+        quantity: 2
+      - item: Scroll of Blur
+        tier: 2
+        quantity: 2
+      - item: Potion of Darkvision
+        tier: 2
+
+  # =============================================================
+  # 40 — Kael
+  # =============================================================
+  40:
+    inventory:
+      - item: Leather armor
+        tier: 1
+        equipped: true
+      - item: Falchion
+        tier: 1
+        properties:
+          - name: Elemental
+            subtype: Acid
+        equipped: true
+
+  # =============================================================
+  # Imported caravan-ambush enemies (97-112)
+  # =============================================================
+  1097:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Chain shirt
+        tier: 1
+        equipped: true
+  1099:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+      - item: Potion of Heal
+        tier: 1
+      - item: Potion of Ablative Barrier
+        tier: 2
+  1100:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+      - item: Oil of Arcane Mark
+  1101:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        tier: 1
+        equipped: true
+      - item: Potion of Delay Poison
+        tier: 2
+  1102:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+  1103:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+      - item: Potion of Jump
+        tier: 1
+  1104:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+      - item: Oil of Arcane Mark
+      - item: Potion of Invigorate
+        tier: 1
+  1105:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+      - item: Potion of Spider Climb
+        tier: 2
+  1106:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+  1108:
+    inventory:
+      - item: Whip
+        equipped: true
+      - item: Short sword
+      - item: Leather armor
+        equipped: true
+  1109:
+    inventory:
+      - item: Whip
+        equipped: true
+      - item: Short sword
+      - item: Leather armor
+        equipped: true
+  1110:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Breastplate
+        tier: 1
+        equipped: true
+  1111:
+    inventory: []
+  1112:
+    inventory:
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Chain shirt
+        equipped: true
+      - item: Oil of Light
+      - item: Oil of Goodberry
+        tier: 1

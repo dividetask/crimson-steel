@@ -1,0 +1,172 @@
+# Rise of the Slavelords — Creature Templates
+#
+# Crimson Steel's Rise-of-the-Slavelords campaign cast: slaver
+# captains, lieutenants, merchant escorts, and the orc / half-orc
+# soldiers they travel with. Pairs with the Caravan Ambush and
+# Stockade Patrol random encounter tables in random_encounter_tables.yaml.
+#
+# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
+# Each template's `tags` include `enemy_template` plus
+# `category:rise_of_the_slavelords`.
+
+name: Rise of the Slavelords
+
+characters:
+
+  - id: 350
+    name: Slaver Merchant
+    metadata:
+      creature_token: "/images/icons/human token.webp"
+    group: enemy
+    tags: [enemy_template, category:rise_of_the_slavelords]
+    race: human
+    tier: 2
+    attributes: { str: 9, dex: 11, con: 11, int: 13, wis: 11, cha: 13 }
+    advancement:
+      classes:
+        rogue:
+          level: 6
+          skills: [deception, intimidate, perception, persuasion, sense_motive]
+    equipment_table: slaver_loadout
+
+  - id: 351
+    name: Slaver Lieutenant
+    metadata:
+      creature_token: "/images/icons/orc token.webp"
+    group: enemy
+    tags: [enemy_template, category:rise_of_the_slavelords]
+    race: orc
+    tier: 2
+    attributes: { str: 19, dex: 14, con: 8, int: 12, wis: 11, cha: 9 }
+    advancement:
+      classes:
+        fighter:
+          level: 8
+          skills: [athletics, intimidate, perception]
+    equipment_table: slaver_loadout
+
+  - id: 352
+    name: Half-Orc Soldier
+    metadata:
+      creature_token: "/images/icons/orc rogue.webp"
+    group: enemy
+    tags: [enemy_template, category:rise_of_the_slavelords]
+    race: half_orc
+    tier: 1
+    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
+    advancement:
+      classes:
+        fighter:
+          level: 4
+          skills: [athletics, intimidate, perception]
+    equipment_table: soldier_loadout
+
+  - id: 353
+    name: Orc Interpreter
+    metadata:
+      creature_token: "/images/icons/orc rogue.webp"
+    group: enemy
+    tags: [enemy_template, category:rise_of_the_slavelords]
+    race: orc
+    tier: 0
+    attributes: { str: 8, dex: 13, con: 10, int: 16, wis: 10, cha: 16 }
+    advancement:
+      classes:
+        fighter:
+          level: 2
+          skills: [athletics, intimidate, persuasion, sense_motive]
+    equipment_table: slaver_loadout
+
+  - id: 354
+    name: Stockade Guard
+    metadata:
+      creature_token: "/images/icons/orc token.webp"
+    group: enemy
+    tags: [enemy_template, category:rise_of_the_slavelords]
+    race: orc
+    tier: 1
+    attributes: { str: 12, dex: 10, con: 7, int: 8, wis: 9, cha: 7 }
+    advancement:
+      classes:
+        fighter:
+          level: 5
+          skills: [athletics, intimidate]
+    equipment_table: slaver_loadout
+
+  # Tier-1 slaver. Race AND class are rolled at spawn: race is 50% orc,
+  # else equal human/elf/dwarf (race_table); class is 50% warrior, else
+  # equal fighter/cleric/rogue (class_table). Base 10s before racial
+  # modifiers and the Tier-1 inherent bonus. Gear (race-aware) is rolled
+  # from the slaver_loadout Equipment Loot Table. All slavers worship
+  # Mortheth (the cleric variant takes him as its deity).
+  - id: 355
+    name: Slaver
+    metadata:
+      creature_token: "/images/icons/human token.webp"
+      deity: Mortheth
+    group: enemy
+    tags: [enemy_template, category:rise_of_the_slavelords]
+    race: orc
+    tier: 1
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+    advancement:
+      classes:
+        warrior: 1
+    equipment_table: slaver_loadout
+    race_table:
+      - { race: orc,   chance: 0.5 }
+      - { race: human, chance: 0.1667 }
+      - { race: elf,   chance: 0.1667 }
+      - { race: dwarf, chance: 0.1666 }
+    class_table:
+      - { class: warrior, chance: 0.5 }
+      - { class: fighter, chance: 0.1667 }
+      - class: cleric
+        chance: 0.1667
+        choices: { deity: Mortheth }
+        # Two domains from Mortheth's own set, plus one from a wider pool.
+        domain_picks:
+          - { count: 2, from: [Artifice, Death, Earth, Greed, Ruin] }
+          - { count: 1, from: [Plague, Travel, Vengeance, Secrets, Tempest, Cunning, Despair, Knowledge] }
+      - { class: rogue,   chance: 0.1666 }
+    # Candidate skills, shuffled at spawn; the spawn keeps the first N it can
+    # train (Skill Pick Budget from its rolled class + Effective Intelligence).
+    skill_table: [athletics, perception, religion, restricted_magic, sense_motive, healing]
+
+  # Tier-2 slaver lieutenant. Same rules as the Slaver (race rolled 50% orc
+  # else human/elf/dwarf; race-aware slaver_loadout; worships Mortheth) but
+  # Tier 2, class is barbarian / fighter / cleric / rogue (equal), and the
+  # two Tier-2 chosen attribute bonuses roll onto Str/Con/Cha/Dex.
+  - id: 356
+    name: Slaver Lieutenant
+    metadata:
+      creature_token: "/images/icons/human token.webp"
+      deity: Mortheth
+    group: enemy
+    tags: [enemy_template, category:rise_of_the_slavelords]
+    race: orc
+    tier: 2
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+    advancement:
+      classes:
+        fighter: 4
+    equipment_table: slaver_loadout
+    race_table:
+      - { race: orc,   chance: 0.5 }
+      - { race: human, chance: 0.1667 }
+      - { race: elf,   chance: 0.1667 }
+      - { race: dwarf, chance: 0.1666 }
+    class_table:
+      - { class: barbarian, chance: 0.25, level: 4 }
+      - { class: fighter,   chance: 0.25, level: 4 }
+      - class: cleric
+        chance: 0.25
+        level: 4
+        choices: { deity: Mortheth }
+        domain_picks:
+          - { count: 2, from: [Artifice, Death, Earth, Greed, Ruin] }
+          - { count: 1, from: [Plague, Travel, Vengeance, Secrets, Tempest, Cunning, Despair, Knowledge] }
+      - { class: rogue,     chance: 0.25, level: 4 }
+    # Tier 2 grants two chosen attribute bonuses; roll each onto one of these.
+    tier_advancement_table: { count: 2, from: [str, con, cha, dex] }
+    skill_table: [athletics, perception, religion, restricted_magic, sense_motive, healing]
