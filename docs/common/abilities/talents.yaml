@@ -310,6 +310,15 @@ Ape Slam:
   description: "Grants the Slam natural weapon."
   grants_equipment: ["Slam"]
 
+# The ankheg's acid-sheathed Bite. Mirrors the Corrosive (Elemental: Acid)
+# weapon property, applied to the natural Bite (Jaws) it grants: a hit deals
+# the bite's normal damage plus an acid rider. The acid rider is run by the
+# DM; only the base Bite (Jaws) is wired into Combat.
+Ankheg Bite:
+  type: talent
+  description: "Grants the Bite (Jaws) natural weapon, sheathed in acid: like the Corrosive (Elemental: Acid) weapon property, the bite deals extra acid damage on a hit. The DM adjudicates the acid rider; the mechanics are not yet wired into Combat."
+  grants_equipment: ["Bite (Jaws)"]
+
 Rend:
   type: talent
   trigger:

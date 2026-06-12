@@ -152,6 +152,9 @@ low_light_vision:
 frost_breath:
   description: "Once per encounter the creature can exhale a 30-foot cone of freezing air, dealing cold damage to everything caught in it (a Dexterity save halves the damage). The DM adjudicates the effect; the mechanics are not yet wired into Combat."
 
+spit_acid:
+  description: "Once per encounter the creature can spit a stream of acid at a target, dealing 10 acid damage plus its successes on the attack (a Dexterity save halves the damage). The DM adjudicates the effect; the mechanics are not yet wired into Combat."
+
 absorb_persona:
   description: "Learn the memories of a helpless creature, storing them as a Persona. Requires 1 day per level of the creature; the target gains a Charisma save to resist. You can store up to 1 Persona per two character levels — drop a stored Persona to make room for another."
 

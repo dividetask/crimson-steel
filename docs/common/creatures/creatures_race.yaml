@@ -328,6 +328,23 @@ war_dog:
   parent: canine
   attribute_adjustments: { str: 2, con: 2 }
 
+# A burrowing, acid-spitting ambusher that erupts from beneath the hill
+# fort's courtyard mud. Parented to the `beast` root (not large_beast) so
+# its hand-set stat block stands as written, without the bestial -8 Int.
+# Large, with a tough carapace (natural armor), an acid-sheathed Bite
+# (Ankheg Bite), and a once-per-encounter acid spit. The spit and the
+# carapace/belly AC split are run by the DM.
+ankheg:
+  parent: beast
+  size: large
+  abilities:
+    - name: natural_armor_2
+      min_level: 0
+    - name: Ankheg Bite
+      min_level: 0
+    - name: spit_acid
+      min_level: 0
+
 # A large, frost-breathing dire wolf. Parented to the `beast` root (not
 # large_beast) so it keeps a near-human cunning: only -2 Int, not the
 # bestial -8. +6 Str / +4 Con, speed 50, natural armor, and a Bite. Its

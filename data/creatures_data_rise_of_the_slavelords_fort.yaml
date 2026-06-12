@@ -685,3 +685,53 @@ characters:
   tier: 2
   metadata:
     creature_token: "/images/icons/winter wolf token.webp"
+- id: 381
+  name: Ankheg
+  race: ankheg
+  attributes:
+    str: 18
+    dex: 11
+    con: 17
+    int: 1
+    wis: 12
+    cha: 5
+  advancement:
+    classes:
+      warrior: 5
+  group: enemy
+  tags:
+  - enemy_template
+  - beast
+  - ambusher
+  - category:rise_of_the_slavelords_fort
+  tier: 2
+  metadata:
+    creature_token: "/images/icons/ankheg token.webp"
+- id: 382
+  name: Sergeant Jon
+  race: human
+  attributes:
+    str: 14
+    dex: 13
+    con: 13
+    int: 10
+    wis: 12
+    cha: 11
+  advancement:
+    classes:
+      fighter:
+        level: 4
+        skills:
+        - athletics
+        - perception
+        - intimidate
+        - sense_motive
+  group: npc
+  tags:
+  - npc_template
+  - haunt
+  - hostile_in_area
+  - category:rise_of_the_slavelords_fort
+  tier: 1
+  metadata:
+    creature_token: "/images/icons/human guard token.webp"
