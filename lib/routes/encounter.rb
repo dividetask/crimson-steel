@@ -2103,6 +2103,12 @@ helpers do
     spell['cast_skill'] ||= (Array(variant && variant['skills']).first || Encounter::Cast::DEFAULT_CAST_SKILL)
 
     effects = cast_effects_from_consumption(r['effects'])
+    # Temporary-HP Spells (Ward) expire with the Spell's duration: carry the
+    # duration onto the temp_hp Effect so resolve_cast_payload can compute the
+    # expiry Round and the matching Ward condition fades with it.
+    if variant && variant['duration']
+      effects = effects.map { |e| e['kind'] == 'temp_hp' ? e.merge('duration' => variant['duration']) : e }
+    end
     # Buff Spells carry a `modifiers:` list (Magic Weapon, Magic Vestments,
     # Expeditious Retreat, Resistance, Protection from Poison, …). Carry it
     # through as a `modifiers` cast Effect; resolve_cast_payload evaluates the

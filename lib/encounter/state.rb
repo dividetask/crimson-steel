@@ -937,6 +937,18 @@ module Encounter
         t.merge(effects: fx)
       end
 
+      # Temporary-HP buffs (Ward) carry a turns-based `duration`; compute the
+      # expiry Round once so the temp HP — and the Ward condition that mirrors
+      # it — fade together when the Spell ends.
+      resolved = resolved.map do |t|
+        next t if Array(t[:effects]).none? { |e| e[:kind].to_s == 'temp_hp' && e[:duration] }
+        fx = Array(t[:effects]).map do |e|
+          next e unless e[:kind].to_s == 'temp_hp' && e[:duration] && e[:ends_on_round].nil?
+          e.merge(ends_on_round: modifier_ends_on_round(e[:duration], mod_binds))
+        end
+        t.merge(effects: fx)
+      end
+
       # Combat Pool: the caster's casting-time Speed + dice, plus any pool-costed
       # Defensive Action (Dodge / Block) the defender spent. A Save spell's
       # Saving Throw costs none. DM may override the spends.
@@ -1737,6 +1749,11 @@ module Encounter
       when 'temp_hp'
         inst.apply_temporary_hit_points(amount: eff[:amount].to_i, source_id: cast_source_id(spell),
                                         ends_on_round: eff[:ends_on_round])
+        # Ward shows a matching condition that expires together with its temp HP.
+        if spell[:name].to_s == 'Ward' && inst.respond_to?(:apply_named_effect)
+          inst.apply_named_effect('ward', source_id: "#{cast_source_id(spell)}:ward",
+                                  ends_on_round: eff[:ends_on_round])
+        end
         { kind: 'temp_hp', amount: eff[:amount].to_i }
       when 'effect'
         inst.apply_named_effect(eff[:name].to_s, source_id: cast_source_id(spell),

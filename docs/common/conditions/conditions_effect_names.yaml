@@ -257,3 +257,9 @@ Effect Names:
     mechanics:
       - kind: display
         text: "The shielding caster may block attacks against this creature with Reservoir dice (an Ally Defense)."
+
+  ward:
+    description: "Protected by a Ward — temporary hit points that absorb damage until the spell expires."
+    mechanics:
+      - kind: display
+        text: "Has temporary hit points from Ward; they and this condition fade together when the spell expires."
