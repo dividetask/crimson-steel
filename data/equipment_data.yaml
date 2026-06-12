@@ -337,6 +337,7 @@ characters:
         equipped: true
       - item: Ring of Shooting Stars
         tier: 2
+        name: "Ring of Shooting Stars"
       - item: Gem
         name: Gemstone
         value_in_gold: 500
