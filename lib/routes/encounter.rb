@@ -548,21 +548,24 @@ helpers do
   #
   # One compact health card per Creature, shown at the top of the Encounter
   # in every Phase except Combat. Players see every Player Character's card
-  # with their own Creature first; the DM additionally sees the non-PC
-  # Combatants (the enemies still being treated after a fight) after the PCs.
-  # Sourced from the live roster + Conditions + Equipment, the same domains
-  # the Combat Tracker reads. Returns an ordered array of card locals.
+  # with their own Creature first; the DM additionally sees the NPC *ally*
+  # Combatants (group `npc`) after the PCs. Enemies never get a card. Sourced
+  # from the live roster + Conditions + Equipment, the same domains the Combat
+  # Tracker reads. Returns an ordered array of card locals.
   def downtime_cards(viewer, viewing_id)
     rows = encounter_state.combatants.filter_map do |c|
       acc = Creatures.lookup(c[:creature_id]) rescue nil
       next nil unless acc
-      is_pc = Array(acc.tags).include?('player_character')
+      is_pc  = Array(acc.tags).include?('player_character')
+      is_npc = !is_pc && ((acc.group rescue nil).to_s == 'npc')
+      # Enemies get no card; players see only the Player Characters.
+      next nil unless is_pc || is_npc
       next nil if viewer != :dm && !is_pc
       { is_pc: is_pc, card: downtime_card_data(c[:creature_id], acc) }
     end
     ordered =
       if viewer == :dm
-        # PCs first (in roster order), then the NPCs / enemies.
+        # PCs first (in roster order), then the NPC allies.
         rows.partition { |r| r[:is_pc] }.flatten
       else
         # The viewing player's own card first, the rest of the party after.
@@ -594,20 +597,45 @@ helpers do
     }
   end
 
-  # The Consumable Equipment Stacks a Creature carries, as the card's
-  # Healing-items rows ({name, tier, quantity}) — Equipment's *Get Inventory*
-  # filtered to the Consumable Item Type Category (equipment_design.md).
+  # The Healing Consumables a Creature carries, as the card's Healing-items
+  # rows ({name, tier, quantity}) — Equipment's *Get Inventory*, filtered to
+  # the Consumable Item Type Category and then to the items that actually
+  # heal (see healing_consumable?). Mana recharges, buffs, poisons, and
+  # offensive Consumables are left off the card.
   def downtime_consumables(creature_id)
     cat  = Equipment.catalog
     inst = Equipment.instance
     inst.get_inventory("creature:#{creature_id}").filter_map do |stack|
       next nil unless cat.category_of(stack.item_type) == 'Consumable'
+      next nil unless healing_consumable?(stack, cat)
       { name:     (CreatureSheet.item_display_name(stack, cat) rescue Equipment::DisplayName.call(stack, cat)),
         tier:     stack.tier,
         quantity: stack.quantity }
     end
   rescue StandardError
     []
+  end
+
+  # A Consumable counts as a Healing item when the Spell it carries restores
+  # Hit Points (a Heal — a negative `*_damage` Effect entry) or grants
+  # Temporary Hit Points (a Ward — a `temp_hp` Effect). This mirrors how
+  # Equipment's *Consume Item* routes Effects (consumption.rb): Mana
+  # recharges, buffs, and offensive Consumables route elsewhere and so are
+  # not surfaced as Healing items.
+  HEAL_DAMAGE_KEYS = %w[minor_damage moderate_damage major_damage].freeze
+  def healing_consumable?(stack, cat)
+    defn  = cat.definition_of(stack.item_type) || {}
+    spell = (stack.respond_to?(:stored_spell) ? stack.stored_spell : nil) || defn['spell']
+    return false unless spell
+    resolved = Abilities.resolve_spell(spell, tier: stack.tier) rescue nil
+    return false unless resolved
+    effects = resolved[:effects] || resolved['effects'] || []
+    effects.any? do |e|
+      e = e.transform_keys(&:to_s)
+      e.key?('temp_hp') || HEAL_DAMAGE_KEYS.any? { |k| (v = e[k]) && v.to_i < 0 }
+    end
+  rescue StandardError
+    false
   end
 
   # ---- Urgent Actions panel (conditions_bulk_affliction_stub.md) -----
