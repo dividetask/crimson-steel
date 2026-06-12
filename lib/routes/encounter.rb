@@ -104,10 +104,11 @@ get '/encounter' do
       false
     end
 
-  # Item pane (turn_action_stub.md → Item): offered only when the Acting
-  # Combatant carries a usable Potion / Scroll.
+  # Item pane (turn_action_stub.md → Item): offered when the Acting Combatant
+  # carries a usable Potion / Scroll, or wields a spell-granting Wand / Ring.
   @acting_has_items =
-    @acting_row ? (consumable_spell_items(@acting_row[:creature_id]).any? rescue false) : false
+    @acting_row ? ((consumable_spell_items(@acting_row[:creature_id]).any? ||
+                    granted_spell_items(@acting_row[:creature_id]).any?) rescue false) : false
 
   # Bardic Inspiration (and any reservoir-mode Performance): the live
   # Reservoirs a DM can discharge to grant Luck. DM-only; off-turn, since a
@@ -1234,16 +1235,22 @@ helpers do
   end
 
   # Action Builder blob for the Item pane (turn_action_stub.md → Item): the
-  # decoupled Cast builder, but the "Spell" list is the actor's carried Potions
-  # and Scrolls. Each consumable casts its Item's Spell with the Spell's own
-  # casting skill (Evocation by default) and costs no Mana; a committed cast
-  # decrements the Consumable (and a Potion / Oil imposes Item-Form Magic
-  # Toxicity). Reuses the same builder, resolve endpoint, and result renderer as
-  # Cast — only the castable list and the resolve glue differ.
+  # decoupled Cast builder, but the "Spell" list is every Spell the actor can
+  # cast *from an item* — carried Potions / Scrolls (consumed on use, no Mana,
+  # Potion / Oil imposes Item-Form Magic Toxicity) plus the Spells granted by
+  # equipped Wands / Rings (the wielder's own Mana, nothing consumed). The
+  # Wand / Ring Spells also appear under Cast; listing them here too gives one
+  # place to fire every item-sourced Spell. Reuses the same builder, resolve
+  # endpoint, and result renderer as Cast — only the castable list differs.
   def item_builder_blob(actor)
-    acc  = Creatures.lookup(actor[:creature_id]) rescue nil
-    pool = (encounter_state.combat_pool_remaining(actor[:id]) rescue 0) || 0
-    spells = consumable_castables(actor, acc, pool).reject { |sp| sp[:long_cast] }
+    acc        = Creatures.lookup(actor[:creature_id]) rescue nil
+    pool       = (encounter_state.combat_pool_remaining(actor[:id]) rescue 0) || 0
+    mana_max   = (acc&.max_mana rescue nil)
+    mana_spent = (Conditions.store.instance_for(actor[:creature_id]).state.mana_spent rescue 0)
+    mana_left  = mana_max ? [mana_max - mana_spent, 0].max : nil
+    spells = (consumable_castables(actor, acc, pool) +
+              granted_item_castables(actor, acc, pool, mana_left))
+             .reject { |sp| sp[:long_cast] }
     build_cast_blob(caster: actor, acc: acc, spells: spells, pool: pool,
                     title: "#{tracker_name(actor)} uses an item", stub_id: "item-#{actor[:id]}",
                     spell_label: 'Item', cast_verb: 'Use')
@@ -1275,7 +1282,7 @@ helpers do
       v    = (Abilities.lookup(vname) rescue nil) || {}
       cost = mana_cost_for_tier(it[:tier])
       castable_descriptor(acc, vname, it[:tier], pool, mana_left,
-                          skill: item_cast_skill(v), mana_cost: cost)
+                          skill_options: item_skill_options(v, acc), mana_cost: cost)
     end
   end
 
@@ -1306,7 +1313,7 @@ helpers do
       castable_descriptor(acc, it[:spell], it[:tier], pool, nil,
                           mana_cost: 0, key: "item:#{it[:ref]}", display: it[:display],
                           item: it, self_only: it[:form] == 'potion',
-                          quantity: it[:quantity], skill_options: item_skill_options(v))
+                          quantity: it[:quantity], skill_options: item_skill_options(v, acc))
     end
   end
 
@@ -1317,12 +1324,21 @@ helpers do
     (Array(variant && variant['skills']).first || 'evocation').to_s
   end
 
-  # The casting skills a consumable offers: the Spell's own primary skill and
-  # Evocation (item-form default), deduped and order-preserving. So a Potion of
-  # Heal offers Healing / Evocation; an Arcana potion offers Arcana / Evocation;
-  # an Evocation spell offers Evocation alone.
-  def item_skill_options(variant)
-    [item_cast_skill(variant), 'evocation'].uniq
+  # The casting skills a Spell cast *from an item* offers: every skill the
+  # Spell lists, plus Evocation (the universal item-form skill) — deduped and
+  # order-preserving. Anyone activating an item may roll any of these, whether
+  # or not they are a caster. A Set-Skill family (e.g. `perform_`) is resolved
+  # to the actor's trained instance and dropped when they train none (it cannot
+  # be rolled bare). So a Spark Shower ring offers Nature / Arcana / Evocation;
+  # a Heal potion offers Healing / Nature / Evocation (plus the actor's
+  # Performance, if any); an Evocation-only Spell offers Evocation alone.
+  def item_skill_options(variant, acc = nil)
+    listed = Array(variant && variant['skills']).map(&:to_s).flat_map do |s|
+      next [s] unless s.end_with?('_')
+      resolved = acc ? resolve_skill_family(acc, s) : s
+      resolved.to_s.end_with?('_') ? [] : [resolved.to_s]
+    end
+    (listed + ['evocation']).uniq
   end
 
   # One castable descriptor for the Cast / Item builders. `name` is the Spell
