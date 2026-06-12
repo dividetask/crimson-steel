@@ -427,10 +427,16 @@ helpers do
     inst.active_effect_names.each do |name|
       badges << { kind: 'effect', label: name.to_s.split(/[_\s]+/).map(&:capitalize).join(' ') }
     end
-    # Bardic Inspiration / reservoir Performances, and Luck Points granted.
+    # Bardic Inspiration / reservoir Performances, and Luck Points granted; plus
+    # auto-mode Spells (Spiritual Weapon) that self-sustain from a persistent
+    # Reservoir — shown as an active-spell badge so the caster sees the spell is
+    # up and how many dice it strikes with each turn.
     Array(combatant[:concentration]).each do |e|
-      next unless e[:mode] == 'reservoir' && e[:reservoir].to_i.positive?
-      badges << { kind: 'luck', label: "#{e[:spell_name]}: #{e[:reservoir]}" }
+      next unless e[:reservoir].to_i.positive?
+      case e[:mode]
+      when 'reservoir' then badges << { kind: 'luck',   label: "#{e[:spell_name]}: #{e[:reservoir]}" }
+      when 'auto'      then badges << { kind: 'effect', label: "#{e[:spell_name]} (#{e[:reservoir]})" }
+      end
     end
     badges << { kind: 'luck', label: "Luck: #{combatant[:luck_points]}" } if combatant[:luck_points].to_i.positive?
     badges << { kind: 'major', label: "Major: #{state.hp_damage[:major]}" } if (state.hp_damage[:major] || 0).positive?
@@ -1333,9 +1339,12 @@ helpers do
     ra   = raw['area']
     area = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
     act  = (Abilities.resolve_activation(v) rescue nil)
-    # A reservoir/auto channel pours its cast dice into a Reservoir — those casts
-    # ask for a dice count but roll nothing. A casting check is rolled only for a
-    # non-reservoir Save / attack-roll / damage Spell.
+    # A reservoir/auto channel pours its cast dice into a Reservoir. Most such
+    # casts ask for a dice count but roll nothing (Shield of Faith, Bardic
+    # Inspiration). An attack-roll / Save reservoir Spell (Spiritual Weapon) is
+    # the exception: the cast is itself an opposed strike, so the same dice both
+    # roll the attack against the target and fill the Reservoir it strikes from
+    # on later turns.
     channel_mode = v.dig('channel', 'mode').to_s
     fills_reservoir = %w[reservoir auto].include?(channel_mode) &&
                       v.dig('reservoir', 'fill', 'source').to_s == 'channel_dice'
@@ -1343,8 +1352,11 @@ helpers do
     # bleed_reduction = spell_tier*2*success) needs a real casting check rolled.
     channel_check = !!(v.dig('channel', 'effect_hash', 'bleed_reduction') ||
                        raw.dig('channel', 'effect_hash', 'bleed_reduction'))
-    requires_roll = !fills_reservoir &&
-                    !!(v['attack_roll'] || Array(v['save']).first || Array(v['damage_type']).compact.first || channel_check)
+    # An attack-roll or Save Spell always rolls its casting check — even when it
+    # also fills a Reservoir. A plain damage Spell rolls only when it isn't a
+    # pure Reservoir pour.
+    requires_roll = !!(v['attack_roll'] || Array(v['save']).first || channel_check) ||
+                    (!fills_reservoir && !!Array(v['damage_type']).compact.first)
 
     # Per-skill roll inputs for the casting skills this castable offers. Sorted
     # by prowess (Dice Cap, then Competency) so the highest-bonus skill is the
