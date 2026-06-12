@@ -2992,8 +2992,13 @@ end
 get '/encounter/cast_area_rolls' do
   require_dm!
   return encounter_error(404, 'unknown caster') unless encounter_state.combatant(params[:caster_id].to_i)
-  v    = (Abilities.lookup(params[:spell].to_s) rescue nil) || {}
-  raw  = (Abilities.catalog.ability(params[:spell].to_s) rescue nil) || {}
+  # Resolve the (possibly variant / per-Tier) Spell name to its Variant — a
+  # bare `Abilities.lookup` only knows base catalog keys, so a variant name
+  # (e.g. "Create Illusionary Sound") would miss the `save` and leave every
+  # caught creature at zero Save dice.
+  v    = resolve_named_spell(params[:spell].to_s)
+  base, = spell_base_axis(params[:spell].to_s)
+  raw  = (Abilities.catalog.ability(base) rescue nil) || {}
   ra   = raw['area']
   area = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
   save = Array(v['save']).first || (area.is_a?(Hash) ? Array(area['on_enter']).first : nil)
