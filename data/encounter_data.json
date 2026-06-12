@@ -19,14 +19,14 @@
       "creature_id": "2",
       "name": "",
       "initiative_string": "X86541",
-      "combat_pool_spent": 7,
+      "combat_pool_spent": 0,
       "time_tick_schedule": [
         1
       ],
       "luck_points": 0,
       "concentration": [],
       "casting": [],
-      "main_actions_remaining": -1
+      "main_actions_remaining": 2
     },
     {
       "id": 4,
@@ -116,7 +116,7 @@
     "round_of_day": 0
   },
   "elapsed_time_ticks": 0,
-  "acting_combatant_id": 3,
+  "acting_combatant_id": 2,
   "granted_actions": [],
   "dm_luck_points": 0,
   "phase": "downtime"

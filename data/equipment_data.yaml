@@ -30,6 +30,7 @@ characters:
         shaped like a blooming thistle. Magically refills.
     - item: Bracer
       name: Narn (Armband)
+      equipped: true
       description: Unknown properties. Forged from dull red iron and wrapped in worn
         leather stamped with crude battle scenes, this child-sized armband resizes
         to fit its wearer.
@@ -73,6 +74,7 @@ characters:
     - item: Hat
       tier: 1
       name: Hat of Disguise
+      equipped: true
       description: This allows the wearer to benefit from the effects of Disguise
         Self. The appearance of the hat may be changed within the bounds of the spell
         but cannot be hidden.
@@ -265,12 +267,16 @@ characters:
       guidance_bonus: 1
       guidance_attribute: perform_percussion
     - item: Rapier
+      equipped: true
     - item: Wand of Benign Transposition
       tier: 1
+      equipped: true
     - item: Wand of Expeditious Excavation
       tier: 1
+      equipped: true
     - item: Pouch
       name: Trailmix Bag
+      equipped: true
       description: A seemingly unremarkable leather pouch of trail rations. It contains
         an assortment of nuts, berries, and sweets sufficient to feed five people.
         Every night it is magically refilled.
