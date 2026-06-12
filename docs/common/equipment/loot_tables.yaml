@@ -340,3 +340,49 @@ loot_tables:
               Fortification: 1
               Elemental Resistance: 2
               none: 1
+
+  # Ragged hunter gear of the Drachensgrab wildmen (Rise of the Slavelords).
+  # Rolled at spawn for the wildmen templates (372 Morag, 373 Kotto, 375
+  # Hunter, 376 Scout). Primitive woodland kit: no metal beyond leather, no
+  # magic. The uploaded source proposed per-role `role_overrides`, but the
+  # loader binds one table per template, so this is a single representative
+  # loadout for all four.
+  wildmen_loadout:
+    rolls:
+
+      # Armor — 45% leather, 35% hide (else furs / bare-chested).
+      - equipped: true
+        options:
+          - { chance: 0.45, item: { item: Leather armor } }
+          - { chance: 0.35, item: { item: Hide armor } }
+
+      # Primary melee — always one: spear / club / hand axe / stone knife.
+      - equipped: true
+        options:
+          - { chance: 0.35, item: { item: Spear } }
+          - { chance: 0.30, item: { item: Club } }
+          - { chance: 0.20, item: { item: Hand axe } }
+          - { chance: 0.15, item: { item: Dagger, name: "Stone Knife" } }
+
+      # Ranged / thrown — shortbow / longbow / sling (else none).
+      - equipped: true
+        as: ranged
+        options:
+          - { chance: 0.45, key: shortbow, item: { item: Shortbow } }
+          - { chance: 0.25, key: longbow,  item: { item: Longbow } }
+          - { chance: 0.15, key: sling,    item: { item: Sling } }
+
+      # Ammunition for the rolled ranged weapon (Sling fires Stone, not the
+      # "Sling bullet" the source named — that item type doesn't exist).
+      - when: { ranged: shortbow }
+        item: { item: Arrow, quantity: 20 }
+      - when: { ranged: longbow }
+        item: { item: Arrow, quantity: 20 }
+      - when: { ranged: sling }
+        item: { item: Stone, quantity: 20 }
+
+      # Sundry / flavor — a charm, a pelt, or trail rations (else nothing).
+      - options:
+          - { chance: 0.35, item: { item: Trinket, name: "Bone-and-feather charm" } }
+          - { chance: 0.25, item: { item: Trinket, name: "Tanned pelt" } }
+          - { chance: 0.20, item: { item: Rations, name: "Dried meat strips" } }
