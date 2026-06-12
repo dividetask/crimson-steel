@@ -1,151 +1,654 @@
-# Rise of the Slavelords — The Hill Fort (Stockade) Creature Templates
-#
-# Named leaders of the slavers' hill fort: the fortified caravan terminus
-# south of Highport where the party tracks the slave shipments. Pairs with
-# a Stockade Patrol random encounter table (random_encounter_tables.yaml)
-# and the signature gear in equipment_data.yaml — equipment owner ids match
-# the named-leader creature ids below.
-#
-# ID space: this file uses 357-363. The base Rise-of-the-Slavelords
-# creatures file uses 350-356; the PC/caravan equipment file uses owner
-# ids 1-4, 40, and 1097-1112. None of those collide with the ids here.
-#
-# Crimson Steel reskin notes:
-#   * All slavers worship Mortheth; cleric variants take him as deity with
-#     domains from Artifice / Death / Earth / Greed / Ruin plus a wider
-#     pool, exactly as the base slaver templates.
-#   * The fort answers to the Koi syndicate.
-#   * Tiers are pitched for a Tier-2 party: named leaders Tier 2-3. PRUNE
-#     leader loot before handing it over; the party is already
-#     artifact-heavy.
-
-name: Rise of the Slavelords — Hill Fort
-
+---
 characters:
-
-  # ============================================================
-  # NAMED LEADERS — unique. Explicit signature gear lives in the
-  # equipment data file under matching owner ids.
-  # ============================================================
-
-  # 357 — Minor slave-lord and overseer of the fort. Module analogue:
-  # Markessa (MU5/F5). A scheming fighter-mage, most favored of the minor
-  # lords. Runs interrogations herself; has captured spellcasters executed
-  # and the rest sent to the cavelings. Cruel, vain, ambitious.
-  # Signature spells (DM ref): charm person, hold person, mirror image,
-  # web, magic missile, blindspot. Charms a front-liner, then lets the
-  # fort's bodies do the dying.
-  - id: 357
-    name: Hill Fort Overseer
-    metadata:
-      creature_token: "/images/icons/elf mage token.webp"
-      deity: Mortheth
-    group: enemy
-    tags: [enemy_template, fort_leader, category:rise_of_the_slavelords_fort]
-    race: elf
-    tier: 3
-    attributes: { str: 12, dex: 16, con: 13, int: 18, wis: 12, cha: 15 }
-    advancement:
-      classes:
-        wizard:
-          level: 5
-          skills: [arcana, deception, intimidate, sense_motive]
-        fighter:
-          level: 5
-          skills: [athletics, perception]
-
-  # 358 — Fort commander. Module analogue: Icar. BLIND, but has memorized
-  # the fort and bolts his furniture in place; fights by sound and habit
-  # (treat as full blindsight within the fort, heavy penalties in unfamiliar
-  # ground). Holds a treasure cache.
-  - id: 358
-    name: Fort Commander Icar
-    metadata:
-      creature_token: "/images/icons/human fighter token.webp"
-      deity: Mortheth
-    group: enemy
-    tags: [enemy_template, fort_leader, category:rise_of_the_slavelords_fort]
-    race: human
-    tier: 2
-    attributes: { str: 17, dex: 14, con: 16, int: 11, wis: 15, cha: 10 }
-    advancement:
-      classes:
-        fighter:
-          level: 8
-          skills: [athletics, intimidate, perception, sense_motive]
-
-  # 359 — The Executioner. Icar's second; a hulking ogre headsman who
-  # carries out Markessa/Overseer's sentences. Slow, brutal, obedient.
-  - id: 359
-    name: The Executioner
-    metadata:
-      creature_token: "/images/icons/ogre token.webp"
-    group: enemy
-    tags: [enemy_template, fort_leader, category:rise_of_the_slavelords_fort]
-    race: ogre
-    tier: 2
-    attributes: { str: 19, dex: 8, con: 17, int: 6, wis: 8, cha: 5 }
-    advancement:
-      classes:
-        fighter:
-          level: 4
-          skills: [athletics, intimidate]
-
-  # 361 — Gatehouse captain. Module analogue: Gorbin Stalworth. Intruders
-  # who are caught are dragged here for interrogation. CARRIES THE IRON
-  # RING OF KEYS (fort doors, gates, and slave-cell shackles).
-  - id: 361
-    name: Gatehouse Captain Gorbin
-    metadata:
-      creature_token: "/images/icons/human guard token.webp"
-      deity: Mortheth
-    group: enemy
-    tags: [enemy_template, fort_leader, category:rise_of_the_slavelords_fort]
-    race: human
-    tier: 2
-    attributes: { str: 15, dex: 12, con: 14, int: 11, wis: 11, cha: 10 }
-    advancement:
-      classes:
-        fighter:
-          level: 5
-          skills: [athletics, intimidate, perception]
-
-  # 362 — Gorbin's lieutenant. Module analogue: Kairn, a half-orc.
-  - id: 362
-    name: Lieutenant Kairn
-    metadata:
-      creature_token: "/images/icons/orc rogue.webp"
-      deity: Mortheth
-    group: enemy
-    tags: [enemy_template, fort_leader, category:rise_of_the_slavelords_fort]
-    race: half_orc
-    tier: 1
-    attributes: { str: 16, dex: 13, con: 14, int: 9, wis: 10, cha: 8 }
-    advancement:
-      classes:
-        fighter:
-          level: 4
-          skills: [athletics, intimidate]
-
-  # 363 — Goblin witch-doctor, assistant to the Overseer. Module analogue:
-  # Guliyet. Serves as one of the fort's clerics; wanders as a roaming
-  # encounter. Cleric of Mortheth.
-  - id: 363
-    name: Witch-Doctor Guliyet
-    metadata:
-      creature_token: "/images/icons/goblin shaman token.webp"
-      deity: Mortheth
-    group: enemy
-    tags: [enemy_template, fort_leader, category:rise_of_the_slavelords_fort]
-    race: goblin
-    tier: 1
-    attributes: { str: 8, dex: 14, con: 11, int: 11, wis: 15, cha: 12 }
-    advancement:
-      classes:
-        cleric:
-          level: 4
-          skills: [religion, intimidate, sense_motive, healing]
-          choices: { deity: Mortheth }
-          domain_picks:
-            - { count: 2, from: [Artifice, Death, Earth, Greed, Ruin] }
-            - { count: 1, from: [Plague, Vengeance, Despair, Cunning] }
+- id: 357
+  name: Hill Fort Overseer
+  race: elf
+  attributes:
+    str: 12
+    dex: 16
+    con: 13
+    int: 18
+    wis: 12
+    cha: 15
+  advancement:
+    classes:
+      wizard:
+        level: 5
+        skills:
+        - arcana
+        - deception
+        - intimidate
+        - sense_motive
+      fighter:
+        level: 5
+        skills:
+        - athletics
+        - perception
+  group: npc
+  tags:
+  - fort_leader
+  - category:rise_of_the_slavelords_fort
+  tier: 3
+  metadata:
+    creature_token: "/images/icons/elf mage token.webp"
+    deity: Mortheth
+- id: 358
+  name: Fort Commander Icar
+  race: human
+  attributes:
+    str: 17
+    dex: 14
+    con: 16
+    int: 11
+    wis: 15
+    cha: 10
+  advancement:
+    classes:
+      fighter:
+        level: 8
+        skills:
+        - athletics
+        - intimidate
+        - perception
+        - sense_motive
+  group: npc
+  tags:
+  - fort_leader
+  - category:rise_of_the_slavelords_fort
+  tier: 2
+  metadata:
+    creature_token: "/images/icons/human fighter token.webp"
+    deity: Mortheth
+- id: 359
+  name: The Executioner
+  race: ogre
+  attributes:
+    str: 19
+    dex: 8
+    con: 17
+    int: 6
+    wis: 8
+    cha: 5
+  advancement:
+    classes:
+      fighter:
+        level: 4
+        skills:
+        - athletics
+        - intimidate
+  group: npc
+  tags:
+  - fort_leader
+  - category:rise_of_the_slavelords_fort
+  tier: 2
+  metadata:
+    creature_token: "/images/icons/ogre token.webp"
+- id: 360
+  name: Dungeon Warden
+  race: oni
+  attributes:
+    str: 18
+    dex: 13
+    con: 16
+    int: 14
+    wis: 13
+    cha: 15
+  advancement:
+    classes:
+      wizard:
+        level: 4
+        skills:
+        - arcana
+        - deception
+        - intimidate
+        - perception
+        - sense_motive
+  group: npc
+  tags:
+  - fort_leader
+  - koi_agent
+  - category:rise_of_the_slavelords_fort
+  tier: 3
+  metadata:
+    creature_token: "/images/icons/oni token.webp"
+- id: 361
+  name: Gatehouse Captain Gorbin
+  race: human
+  attributes:
+    str: 15
+    dex: 12
+    con: 14
+    int: 11
+    wis: 11
+    cha: 10
+  advancement:
+    classes:
+      fighter:
+        level: 5
+        skills:
+        - athletics
+        - intimidate
+        - perception
+  group: npc
+  tags:
+  - fort_leader
+  - category:rise_of_the_slavelords_fort
+  tier: 2
+  metadata:
+    creature_token: "/images/icons/human guard token.webp"
+    deity: Mortheth
+- id: 362
+  name: Lieutenant Kairn
+  race: half_orc
+  attributes:
+    str: 16
+    dex: 13
+    con: 14
+    int: 9
+    wis: 10
+    cha: 8
+  advancement:
+    classes:
+      fighter:
+        level: 4
+        skills:
+        - athletics
+        - intimidate
+  group: npc
+  tags:
+  - fort_leader
+  - category:rise_of_the_slavelords_fort
+  tier: 1
+  metadata:
+    creature_token: "/images/icons/orc rogue.webp"
+    deity: Mortheth
+- id: 363
+  name: Witch-Doctor Guliyet
+  race: goblin
+  attributes:
+    str: 8
+    dex: 14
+    con: 11
+    int: 11
+    wis: 15
+    cha: 12
+  advancement:
+    classes:
+      cleric:
+        level: 4
+        skills:
+        - religion
+        - intimidate
+        - sense_motive
+        - healing
+        choices:
+          deity: Mortheth
+          domains:
+          - Death
+          - Greed
+          - Healing
+      wizard:
+        level: 4
+        skills:
+        - arcana
+        - stealth
+  group: npc
+  tags:
+  - fort_leader
+  - category:rise_of_the_slavelords_fort
+  tier: 1
+  metadata:
+    creature_token: "/images/icons/goblin shaman token.webp"
+    deity: Mortheth
+- id: 364
+  name: Shaman Adhu Nazaryet
+  race: hobgoblin
+  attributes:
+    str: 13
+    dex: 12
+    con: 13
+    int: 10
+    wis: 15
+    cha: 11
+  advancement:
+    classes:
+      cleric:
+        level: 4
+        skills:
+        - religion
+        - athletics
+        - perception
+        - healing
+        choices:
+          deity: Mortheth
+          domains:
+          - Death
+          - Knowledge
+          - Healing
+  group: npc
+  tags:
+  - fort_leader
+  - category:rise_of_the_slavelords_fort
+  tier: 1
+  metadata:
+    creature_token: "/images/icons/hobgoblin shaman token.webp"
+    deity: Mortheth
+- id: 365
+  name: Hobgoblin Trooper
+  race: hobgoblin
+  attributes:
+    str: 14
+    dex: 12
+    con: 13
+    int: 10
+    wis: 10
+    cha: 8
+  advancement:
+    classes:
+      fighter:
+        level: 1
+        skills:
+        - athletics
+        - perception
+  group: enemy
+  tags:
+  - enemy_template
+  - garrison
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  equipment_table: soldier_loadout
+  metadata:
+    creature_token: "/images/icons/hobgoblin token.webp"
+- id: 366
+  name: Hobgoblin Sergeant
+  race: hobgoblin
+  attributes:
+    str: 15
+    dex: 12
+    con: 14
+    int: 10
+    wis: 11
+    cha: 9
+  advancement:
+    classes:
+      fighter:
+        level: 2
+        skills:
+        - athletics
+        - intimidate
+        - perception
+  group: enemy
+  tags:
+  - enemy_template
+  - garrison
+  - category:rise_of_the_slavelords_fort
+  tier: 1
+  equipment_table: slaver_loadout
+  metadata:
+    creature_token: "/images/icons/hobgoblin token.webp"
+- id: 367
+  name: Gnoll Marauder
+  race: gnoll
+  attributes:
+    str: 16
+    dex: 13
+    con: 14
+    int: 8
+    wis: 11
+    cha: 8
+  advancement:
+    classes:
+      fighter:
+        level: 2
+        skills:
+        - athletics
+        - intimidate
+        - perception
+  group: enemy
+  tags:
+  - enemy_template
+  - garrison
+  - category:rise_of_the_slavelords_fort
+  tier: 1
+  equipment_table: slaver_loadout
+  metadata:
+    creature_token: "/images/icons/gnoll token.webp"
+- id: 368
+  name: Orc Wall Crossbowman
+  race: orc
+  attributes:
+    str: 14
+    dex: 14
+    con: 12
+    int: 9
+    wis: 10
+    cha: 7
+  advancement:
+    classes:
+      fighter:
+        level: 1
+        skills:
+        - athletics
+        - perception
+  group: enemy
+  tags:
+  - enemy_template
+  - garrison
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  equipment_table: soldier_loadout
+  metadata:
+    creature_token: "/images/icons/orc token.webp"
+- id: 369
+  name: Carnivorous Ape
+  race: carnivorous_ape
+  attributes:
+    str: 18
+    dex: 13
+    con: 15
+    int: 5
+    wis: 12
+    cha: 7
+  advancement:
+    classes:
+      warrior:
+        level: 5
+  group: enemy
+  tags:
+  - enemy_template
+  - beast
+  - man_eater
+  - category:rise_of_the_slavelords_fort
+  tier: 1
+  metadata:
+    creature_token: "/images/icons/ape token.webp"
+- id: 370
+  name: Fort War Dog
+  race: war_dog
+  attributes:
+    str: 14
+    dex: 13
+    con: 14
+    int: 2
+    wis: 12
+    cha: 6
+  advancement:
+    classes:
+      warrior:
+        level: 2
+  group: enemy
+  tags:
+  - enemy_template
+  - beast
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  metadata:
+    creature_token: "/images/icons/war dog token.webp"
+- id: 371
+  name: Captive Medusa
+  race: medusa
+  attributes:
+    str: 10
+    dex: 15
+    con: 12
+    int: 12
+    wis: 13
+    cha: 15
+  advancement:
+    classes:
+      rogue:
+        level: 5
+        skills:
+        - deception
+        - perception
+        - sense_motive
+        - stealth
+  group: npc
+  tags:
+  - special
+  - potential_ally
+  - category:rise_of_the_slavelords_fort
+  tier: 2
+  metadata:
+    creature_token: "/images/icons/medusa token.webp"
+- id: 372
+  name: Wildman Chieftain Morag
+  race: human
+  attributes:
+    str: 14
+    dex: 16
+    con: 13
+    int: 11
+    wis: 14
+    cha: 12
+  advancement:
+    classes:
+      fighter:
+        level: 5
+        skills:
+        - athletics
+        - perception
+        - stealth
+        - survival
+        - nature
+        - intimidate
+  group: npc
+  tags:
+  - named
+  - potential_ally
+  - faction:wildmen
+  - category:rise_of_the_slavelords_fort
+  tier: 1
+  equipment_table: wildmen_loadout
+  metadata:
+    creature_token: "/images/icons/human token.webp"
+- id: 373
+  name: Wildman Witch Doctor Kotto
+  race: human
+  attributes:
+    str: 9
+    dex: 12
+    con: 11
+    int: 14
+    wis: 15
+    cha: 13
+  advancement:
+    classes:
+      cleric:
+        level: 4
+        skills:
+        - religion
+        - nature
+        - healing
+        - sense_motive
+        choices:
+          domains:
+          - Nature
+          - Healing
+          - Trickery
+      wizard:
+        level: 4
+        skills:
+        - arcana
+        - stealth
+  group: npc
+  tags:
+  - named
+  - potential_ally
+  - faction:wildmen
+  - category:rise_of_the_slavelords_fort
+  tier: 3
+  equipment_table: wildmen_loadout
+  metadata:
+    creature_token: "/images/icons/human token.webp"
+- id: 374
+  name: Wildman Crone
+  race: human
+  attributes:
+    str: 7
+    dex: 9
+    con: 9
+    int: 11
+    wis: 13
+    cha: 10
+  advancement:
+    classes:
+      cleric:
+        level: 1
+  group: enemy
+  tags:
+  - enemy_template
+  - noncombatant
+  - faction:wildmen
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  metadata:
+    creature_token: "/images/icons/human token.webp"
+- id: 375
+  name: Wildman Hunter
+  race: human
+  attributes:
+    str: 12
+    dex: 14
+    con: 12
+    int: 9
+    wis: 11
+    cha: 9
+  advancement:
+    classes:
+      fighter:
+        level: 1
+        skills:
+        - perception
+        - stealth
+        - survival
+  group: enemy
+  tags:
+  - enemy_template
+  - faction:wildmen
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  equipment_table: wildmen_loadout
+  metadata:
+    creature_token: "/images/icons/human token.webp"
+- id: 376
+  name: Wildman Scout
+  race: human
+  attributes:
+    str: 11
+    dex: 16
+    con: 11
+    int: 10
+    wis: 12
+    cha: 9
+  advancement:
+    classes:
+      fighter:
+        level: 2
+        skills:
+        - stealth
+        - perception
+        - survival
+        - athletics
+  group: enemy
+  tags:
+  - enemy_template
+  - faction:wildmen
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  equipment_table: wildmen_loadout
+  metadata:
+    creature_token: "/images/icons/human token.webp"
+- id: 377
+  name: Wildman Child
+  race: human
+  attributes:
+    str: 6
+    dex: 12
+    con: 8
+    int: 8
+    wis: 8
+    cha: 9
+  advancement:
+    classes:
+      warrior:
+        level: 1
+  group: enemy
+  tags:
+  - enemy_template
+  - noncombatant
+  - faction:wildmen
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  metadata:
+    creature_token: "/images/icons/human token.webp"
+- id: 378
+  name: Wildman Captive
+  race: human
+  attributes:
+    str: 9
+    dex: 10
+    con: 9
+    int: 10
+    wis: 10
+    cha: 10
+  advancement:
+    classes:
+      warrior:
+        level: 1
+  group: enemy
+  tags:
+  - enemy_template
+  - noncombatant
+  - captive
+  - faction:wildmen
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  metadata:
+    creature_token: "/images/icons/human token.webp"
+- id: 379
+  name: Goblin Skulker
+  race: goblin
+  attributes:
+    str: 11
+    dex: 14
+    con: 11
+    int: 10
+    wis: 9
+    cha: 8
+  advancement:
+    classes:
+      warrior:
+        level: 1
+  group: enemy
+  tags:
+  - enemy_template
+  - garrison
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  equipment_table: soldier_loadout
+  metadata:
+    creature_token: "/images/icons/goblin token.webp"
+- id: 380
+  name: Winter Wolf
+  race: winter_wolf
+  attributes:
+    str: 18
+    dex: 13
+    con: 16
+    int: 9
+    wis: 13
+    cha: 10
+  advancement:
+    classes:
+      warrior:
+        level: 6
+  group: enemy
+  tags:
+  - enemy_template
+  - beast
+  - companion
+  - category:rise_of_the_slavelords_fort
+  tier: 2
+  metadata:
+    creature_token: "/images/icons/winter wolf token.webp"

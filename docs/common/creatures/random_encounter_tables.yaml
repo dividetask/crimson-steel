@@ -74,3 +74,77 @@ general_goblin_ambush:
       spawn:
         - template_id: "303"
           count: 2
+
+# --- Rise of the Slavelords — Hill Fort -------------------------------
+# Roaming garrison patrols, allied bands, loosed beasts, and Guliyet's
+# winter wolf. Template ids are the hill-fort creatures
+# (creatures_data_rise_of_the_slavelords_fort.yaml).
+
+hill_fort_patrol:
+  name: "Hill fort patrol"
+  category: rise_of_the_slavelords_fort
+  rolls:
+    # A hobgoblin patrol of 3-12: a sergeant leading a knot of troopers.
+    - spawn:
+        - template_id: "366"          # Hobgoblin Sergeant
+          count: 1
+        - template_id: "365"          # Hobgoblin Troopers (2-11)
+          count: "1d10 + 1"
+    # A roaming shaman sometimes walks with the patrol.
+    - chance: 0.3
+      spawn:
+        - template_id: "364"          # Shaman Adhu Nazaryet
+          count: 1
+
+hill_fort_gnoll_band:
+  name: "Gnoll band"
+  category: rise_of_the_slavelords_fort
+  rolls:
+    # Allied hyena-folk hired on as muscle, 2-12 strong. (No distinct
+    # band-leader template ships; treat the toughest roll as the leader.)
+    - spawn:
+        - template_id: "367"          # Gnoll Marauders (2-12)
+          count: "2d6"
+
+hill_fort_mixed_rabble:
+  name: "Orcs and goblins"
+  category: rise_of_the_slavelords_fort
+  rolls:
+    # The lower rungs of the garrison — orc crossbowmen and goblin skulkers.
+    - spawn:
+        - template_id: "368"          # Orc Wall Crossbowmen (2-5)
+          count: "1d4 + 1"
+        - template_id: "379"          # Goblin Skulkers (2-7)
+          count: "1d6 + 1"
+    # A hobgoblin file sometimes stiffens the rabble.
+    - chance: 0.5
+      spawn:
+        - template_id: "365"          # Hobgoblin Troopers (1-4)
+          count: "1d4"
+
+hill_fort_war_dogs:
+  name: "War dogs loosed"
+  category: rise_of_the_slavelords_fort
+  rolls:
+    # Guard-hounds run loose in the yards, 2-8 to a pack.
+    - spawn:
+        - template_id: "370"          # Fort War Dogs (2-8)
+          count: "2d4"
+
+hill_fort_carnivorous_apes:
+  name: "Carnivorous apes"
+  category: rise_of_the_slavelords_fort
+  rolls:
+    # Man-eaters loosed to roam, encountered in 1-3.
+    - spawn:
+        - template_id: "369"          # Carnivorous Apes (1-3)
+          count: "1d3"
+
+hill_fort_winter_wolf:
+  name: "Winter wolf"
+  category: rise_of_the_slavelords_fort
+  rolls:
+    # Guliyet's bound winter wolf — a single dangerous companion.
+    - spawn:
+        - template_id: "380"          # Winter Wolf
+          count: 1

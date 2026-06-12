@@ -203,6 +203,42 @@ doppelganger:
     - name: borrowed_talent
       min_level: 0
 
+# Disciplined martial goblinoids — the bulk of the slavers' hill-fort
+# garrison. +2 Str/Con, low-light vision. Medium / speed 30 from humanoid.
+hobgoblin:
+  parent: humanoid
+  attribute_adjustments: { str: 2, con: 2 }
+  abilities:
+    - name: low_light_vision
+      min_level: 0
+
+# Hyena-headed raiders; hired muscle from the surrounding tribes. +4 Str,
+# +2 Con, -2 Int/Cha, low-light vision. Medium / speed 30 from humanoid.
+gnoll:
+  parent: humanoid
+  attribute_adjustments: { str: 4, con: 2, int: -2, cha: -2 }
+  abilities:
+    - name: low_light_vision
+      min_level: 0
+
+# Ogre-mage: a large, cunning spellcaster-brute. +8 Str, +6 Con, +2 Int/Cha,
+# low-light vision. Large / speed 30 from humanoid. Its innate magic
+# (invisibility, flight, regeneration, cone of cold) is run by the DM.
+oni:
+  parent: humanoid
+  size: large
+  attribute_adjustments: { str: 8, con: 6, int: 2, cha: 2 }
+  abilities:
+    - name: low_light_vision
+      min_level: 0
+
+# Serpent-haired gazer. +2 Dex, +4 Cha. Medium / speed 30 from humanoid.
+# The petrifying gaze is run as a DM-narrated effect, not a coded ability.
+medusa:
+  parent: humanoid
+  attribute_adjustments: { dex: 2, cha: 4 }
+  abilities: []
+
 # --- Fey races ---------------------------------------------------------
 
 fey:
@@ -272,4 +308,31 @@ spider:
   speed: 20
   abilities:
     - name: Spider Bite
+      min_level: 0
+
+# A large man-eating ape (parent: large_beast). Inherits +4 Str/Con and
+# natural_armor_2. Roams the hill fort hunting prisoners.
+carnivorous_ape:
+  parent: large_beast
+  size: large
+
+# A fort guard-hound (parent: canine). +2 Str/Con over the canine baseline;
+# inherits the Canine Bite.
+war_dog:
+  parent: canine
+  attribute_adjustments: { str: 2, con: 2 }
+
+# A large, frost-breathing dire wolf. Parented to the `beast` root (not
+# large_beast) so it keeps a near-human cunning: only -2 Int, not the
+# bestial -8. +6 Str / +4 Con, speed 50, natural armor, and a Bite. Its
+# frost breath is run by the DM.
+winter_wolf:
+  parent: beast
+  size: large
+  speed: 50
+  attribute_adjustments: { str: 6, con: 4, int: -2 }
+  abilities:
+    - name: natural_armor_2
+      min_level: 0
+    - name: Canine Bite
       min_level: 0

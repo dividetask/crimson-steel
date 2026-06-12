@@ -352,6 +352,18 @@ Weapons:
     category: One Handed
     damage_type: Slashing
     base_price: 10
+  # Primitive one-handed bludgeon — a wildmen / commoner sidearm.
+  Club:
+    category: One Handed
+    damage_type: Bludgeoning
+    tags: [light]
+    base_price: 1
+  # A light hatchet, balanced to throw as well as hack.
+  Hand axe:
+    category: One Handed
+    damage_type: Slashing
+    tags: [light, thrown]
+    base_price: 6
   Greataxe:
     category: Two Handed
     damage_type: Slashing
