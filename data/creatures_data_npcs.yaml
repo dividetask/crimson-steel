@@ -224,9 +224,36 @@ characters:
     name: Caelian di Soliastres
     group: npc
     tags: []
-    race: elf   # "Elven noble" in the note (base elf; say if high/wood/eladrin)
+    # Poses as a landless elf noble / minor wizard; truly a doppelganger
+    # (see chronicle). Reads surface thoughts and launders them as
+    # "divinations" — hence the divination-heavy spellbook below.
+    race: doppelganger
     tier: 3
-    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+    attributes: { str: 21, dex: 16, con: 15, int: 20, wis: 17, cha: 20 }
+    advancement:
+      classes:
+        wizard:
+          level: 4
+          skills: [arcana, society, sense_motive, deception, persuasion, sleight_of_hand, perception]
+          choices:
+            # Wizard point budget at level 4 is 5 + level^2 = 21 points
+            # (each spell costs 1 + tier). Divination / information core
+            # plus a couple of combat-useful picks (Grease, Elemental Dart).
+            spellcasting:
+              - Detect Magic
+              - Sift
+              - Ears of the City
+              - Message
+              - Mage Hand
+              - Light
+              - Disguise Self
+              - Charm Person
+              - Hideous Laughter
+              - Auditory Hallucination
+              - Friends
+              - Suggestion
+              - Grease
+              - Elemental Dart
 
   - id: 2026
     name: Theron Ashfeld

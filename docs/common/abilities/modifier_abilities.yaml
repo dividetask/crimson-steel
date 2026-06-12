@@ -149,6 +149,12 @@ darkvision:
 low_light_vision:
   description: "See twice as far as a human in dim light."
 
+surface_thoughts:
+  description: "Continuously reads the surface thoughts of nearby creatures, sensing their immediate intentions, mood, and what they are dwelling on — the raw input a doppelganger launders into its 'divinations'."
+
+change_shape:
+  description: "Can assume the appearance of any humanoid it has seen, copying voice and mannerisms. The disguise holds until dropped or until the doppelganger is slain."
+
 light_sensitivity:
   description: "Dazzled in bright light such as sunlight: takes a penalty on attack rolls and sight-based Perception checks while brightly illuminated."
 

@@ -187,6 +187,17 @@ ogre:
     - name: natural_armor_4
       min_level: 0
 
+# A shapechanger that wears other people's faces and reads their surface
+# thoughts. No attribute_adjustments: a doppelganger's stat line is its
+# own, not the borrowed shape's. Medium / speed 30 from humanoid.
+doppelganger:
+  parent: humanoid
+  abilities:
+    - name: change_shape
+      min_level: 0
+    - name: surface_thoughts
+      min_level: 0
+
 # --- Fey races ---------------------------------------------------------
 
 fey:

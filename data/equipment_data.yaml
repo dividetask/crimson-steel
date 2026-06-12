@@ -576,3 +576,37 @@ characters:
         quantity: 2
       - item: Potion of Heal
         tier: 2
+
+  # =============================================================
+  # 2025 — Caelian di Soliastres (doppelganger posing as a minor
+  # wizard noble). Modest "landless noble" cover kit plus infiltrator
+  # tools; nothing flashy — he survives on wits and stolen thoughts.
+  # =============================================================
+  2025:
+    inventory:
+      - item: Quarterstaff
+        name: "Noble's Cane"
+        description: "A lacquered walking cane that doubles as Caelian's arcane focus."
+        equipped: true
+      - item: Dagger
+        equipped: true
+      - item: Cloak
+        name: "Fine Traveling Cloak"
+        equipped: true
+      - item: Ring
+        name: "Signet of House Soliastres"
+        description: "A noble's signet — part of the disguise, not heirloom magic."
+        equipped: true
+      - item: Trinket
+        name: "Forged Letters of Nobility"
+        description: "Counterfeit credentials presenting Caelian as a landless noble of House Soliastres."
+      - item: Ritual book
+        name: "Caelian's Spellbook"
+        description: "A slim, well-kept spellbook leaning heavily on divinations."
+      - item: Potion of Heal
+        tier: 1
+        quantity: 2
+      - item: Potion of Expeditious Retreat
+        tier: 1
+      - item: Scroll of Blindspot
+        tier: 2
