@@ -276,7 +276,7 @@ module Encounter
       c = find!(combatant_id)
       creature = lookup!(c[:creature_id])
       return 0 unless creature
-      CombatPool.size_for(creature)
+      CombatPool.size_for(creature) + combat_pool_ability_bonus(creature, c[:creature_id])
     end
 
     def combat_pool_remaining(combatant_id)
@@ -1941,9 +1941,58 @@ module Encounter
     # resolved or computed). Used to seed an empty pool at Start Combat.
     def combat_pool_size_for(combatant)
       creature = lookup!(combatant[:creature_id])
-      creature ? CombatPool.size_for(creature) : 0
+      return 0 unless creature
+      CombatPool.size_for(creature) + combat_pool_ability_bonus(creature, combatant[:creature_id])
     rescue StandardError
       0
+    end
+
+    # Conditional Combat Pool bonus from the Creature's Granted Abilities. An
+    # ability that carries a `combat_pool` Modifier adds it to the max pool;
+    # if the ability declares a `required_condition` (e.g. Reckless Attacks
+    # needs `rage`), the bonus applies only while that Effect is active on the
+    # Creature. So a raging barbarian's pool grows by her class level, and
+    # shrinks back when the rage ends.
+    def combat_pool_ability_bonus(creature, creature_id)
+      abilities = (creature.granted_abilities rescue [])
+      return 0 if abilities.empty?
+      active = active_condition_names(creature_id)
+      abilities.sum do |g|
+        name = g[:name].to_s
+        defn = ability_def(name) or next 0
+        req = defn['required_condition']
+        next 0 if req && !active.include?(req.to_s)
+        binds = { 'level' => (creature.level_for_ability(name) rescue 0),
+                  'tier'  => (creature.tier rescue 0) }
+        Array(defn['modifiers'])
+          .select { |m| m['target'].to_s == 'combat_pool' }
+          .sum { |m| eval_modifier_amount(m['add'], binds) || 0 }
+      end
+    rescue StandardError
+      0
+    end
+
+    # The Effect Names currently active on a Creature (e.g. `rage`), or [] when
+    # Conditions can't be resolved.
+    def active_condition_names(creature_id)
+      inst = conditions_for(creature_id)
+      Array(inst.active_effect_names(current_round: (current_round rescue nil)))
+    rescue StandardError
+      []
+    end
+
+    # Resolve a Granted Ability's catalog definition. Granted names may be
+    # snake_case (from class ability_progression, e.g. `reckless_attacks`)
+    # while talent entries are Title Case (`Reckless Attacks`), so fall back to
+    # a humanized form, then to the snake-keyed Modifier-ability catalog.
+    def ability_def(name)
+      return nil unless defined?(Abilities)
+      cat = Abilities.catalog
+      cat.ability(name) ||
+        cat.ability(name.to_s.split('_').map(&:capitalize).join(' ')) ||
+        cat.modifier_ability(name)
+    rescue StandardError
+      nil
     end
 
     def blank_combatant(id, creature_id, name)

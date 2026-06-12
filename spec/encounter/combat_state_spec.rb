@@ -56,6 +56,33 @@ RSpec.describe 'Encounter::State combat mode' do
     end
   end
 
+  # Reckless Attacks carries a `combat_pool` Modifier gated on the `rage`
+  # condition, so a raging barbarian's max pool grows by her class level.
+  describe 'Combat Pool — Reckless Attacks rage bonus' do
+    def reckless_creature(level: 4)
+      obj = creature(tier: 2, wis: 12, martial: 4)
+      obj.define_singleton_method(:granted_abilities) { [{ name: 'reckless_attacks' }] }
+      obj.define_singleton_method(:level_for_ability) { |_n| level }
+      obj
+    end
+
+    it 'adds class level to the max pool only while raging' do
+      raging = { on: false }
+      cond = Object.new
+      cond.define_singleton_method(:active_effect_names) { |current_round: nil| raging[:on] ? ['rage'] : [] }
+      crit = reckless_creature
+      s = Encounter::State.new({}, data_path: data_path,
+                               creature_lookup: ->(_id) { crit },
+                               conditions_for: ->(_id) { cond },
+                               current_timestamp_fn: -> { { day_index: 0, round_of_day: 0 } })
+      c = s.add_combatant('9')
+      base = Encounter::CombatPool.size_for(crit) # martial 4, wis 12, tier 2 → 14
+      expect(s.get_combat_pool(c[:id])).to eq(base)
+      raging[:on] = true
+      expect(s.get_combat_pool(c[:id])).to eq(base + 4)
+    end
+  end
+
   describe 'Set-Value Spend' do
     it 'translates a preroll into dice_count + preroll and spends extra dice' do
       s = state
