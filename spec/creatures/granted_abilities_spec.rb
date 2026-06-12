@@ -77,4 +77,40 @@ RSpec.describe 'Creatures granted_abilities', type: :model do
     a = Creatures::Accessor.new(rec)
     expect(a.granted_abilities.map { |g| g[:name] }).to include('charm_person')
   end
+
+  context 'borrowed class entry (Borrowed Talent persona)' do
+    # A doppelganger-style persona: a borrowed wizard 4 layered on a
+    # paragon 8. It should grant the wizard's abilities/spells but add no
+    # Character Levels.
+    def borrower
+      record(
+        id: 89, name: 'Borrower', race: 'human',
+        classes: {
+          paragon: { level: 8, skills: %w[arcana perception] },
+          wizard:  { level: 4, borrowed: true,
+                     choices: { 'spellcasting' => ['Charm Person'] } }
+        }
+      )
+    end
+
+    it 'grants the borrowed class abilities and spells' do
+      names = Creatures::Accessor.new(borrower).granted_abilities.map { |g| g[:name] }
+      expect(names).to include('arcane_spellcasting', 'Charm Person')
+    end
+
+    it 'contributes no Character Levels (excluded from total_level)' do
+      expect(Creatures::Accessor.new(borrower).total_level).to eq(8)
+    end
+
+    it 'does not advance Martial / Saves / Skill ranks off the borrowed level' do
+      borrowed = Creatures::Accessor.new(borrower)
+      paragon_only = Creatures::Accessor.new(
+        record(id: 90, name: 'Plain', race: 'human',
+               classes: { paragon: { level: 8, skills: %w[arcana perception] } })
+      )
+      expect(borrowed.ranks_for('martial')).to eq(paragon_only.ranks_for('martial'))
+      expect(borrowed.ranks_for('str_save')).to eq(paragon_only.ranks_for('str_save'))
+      expect(borrowed.ranks_for('arcana')).to eq(paragon_only.ranks_for('arcana'))
+    end
+  end
 end

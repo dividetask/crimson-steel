@@ -8,11 +8,19 @@
   rolled Loot Table adds random items on top). Confirm composes Collect
   Combat Loot + Remove Combatant + Delete Creature.
 
+  NPC allies (`npc: true`) are listed first, under an "NPCs" heading, and
+  default to Ignore + Keep so they are left untouched; enemies follow and
+  default to Loot + Delete.
+
   Locals:
-    rows — [{combatant_id, creature_id, name, loot_table, loot:[{name,quantity}]}].
+    rows — [{combatant_id, creature_id, name, npc, loot_table, loot:[{name,quantity}]}].
 %>
 <% esc = ->(s) { Rack::Utils.escape_html(s.to_s) } %>
-<% combined = combine_loot(rows) %>
+<%# Only the default-looted (enemy) rows contribute to the initial preview;
+    postCombatLoot.js refines it from the live toggle state. %>
+<% combined = combine_loot(rows.reject { |r| r[:npc] }) %>
+<% has_npcs = rows.any? { |r| r[:npc] } %>
+<% has_enemies = rows.any? { |r| !r[:npc] } %>
 <section class="pcc-stub">
   <h3 class="pcc-title">Post-Combat Cleanup</h3>
 
@@ -22,12 +30,21 @@
     <form method="post" action="/encounter/post_combat_cleanup" class="pcc-form">
       <div class="pcc-body">
         <ul class="pcc-list">
+          <% prev_npc = nil %>
           <% rows.each do |row| %>
             <% cid = row[:combatant_id] %>
-            <li class="pcc-row" data-loot="<%= esc.call(row[:loot].to_json) %>" data-loot-table="<%= row[:loot_table] ? '1' : '' %>">
+            <% if row[:npc] != prev_npc %>
+              <% if row[:npc] %>
+                <li class="pcc-group-label">NPCs</li>
+              <% elsif has_npcs %>
+                <li class="pcc-group-label">Enemies</li>
+              <% end %>
+              <% prev_npc = row[:npc] %>
+            <% end %>
+            <li class="pcc-row<%= ' pcc-row-npc' if row[:npc] %>" data-loot="<%= esc.call(row[:loot].to_json) %>" data-loot-table="<%= row[:loot_table] ? '1' : '' %>">
               <span class="pcc-name"><%= esc.call(row[:name]) %></span>
-              <label class="pcc-btn pcc-loot-btn"><input type="checkbox" name="loot_<%= cid %>" value="ignore"></label>
-              <label class="pcc-btn pcc-del-btn"><input type="checkbox" name="delete_<%= cid %>" value="keep"></label>
+              <label class="pcc-btn pcc-loot-btn"><input type="checkbox" name="loot_<%= cid %>" value="ignore"<%= ' checked' if row[:npc] %>></label>
+              <label class="pcc-btn pcc-del-btn"><input type="checkbox" name="delete_<%= cid %>" value="keep"<%= ' checked' if row[:npc] %>></label>
             </li>
           <% end %>
         </ul>

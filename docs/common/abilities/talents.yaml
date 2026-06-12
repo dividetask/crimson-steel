@@ -295,6 +295,11 @@ Spider Bite:
   description: "Grants the Bite (Fangs) natural weapon."
   grants_equipment: ["Bite (Fangs)"]
 
+Ogre Slam:
+  type: talent
+  description: "Grants the Slam natural weapon."
+  grants_equipment: ["Slam"]
+
 Rend:
   type: talent
   trigger:

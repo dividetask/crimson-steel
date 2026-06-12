@@ -83,8 +83,18 @@ module Encounter
     def persist!
       FileUtils.mkdir_p(File.dirname(@data_path))
       tmp = "#{@data_path}.tmp"
-      File.write(tmp, JSON.pretty_generate(to_h))
+      File.write(tmp, pretty_json(to_h))
       File.rename(tmp, @data_path)
+    end
+
+    # Ruby's JSON.pretty_generate renders empty arrays/objects across
+    # multiple blank lines (e.g. `[\n\n  ]`). Collapse those to `[]` / `{}`.
+    # The newline requirement makes this safe against string values that
+    # merely contain brackets, since newlines inside strings are escaped.
+    def pretty_json(obj)
+      JSON.pretty_generate(obj)
+          .gsub(/\[\n\s*\]/, '[]')
+          .gsub(/\{\n\s*\}/, '{}')
     end
 
     # ---------- Roster reads ----------

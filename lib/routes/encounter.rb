@@ -104,10 +104,11 @@ get '/encounter' do
       false
     end
 
-  # Item pane (turn_action_stub.md → Item): offered only when the Acting
-  # Combatant carries a usable Potion / Scroll.
+  # Item pane (turn_action_stub.md → Item): offered when the Acting Combatant
+  # carries a usable Potion / Scroll, or wields a spell-granting Wand / Ring.
   @acting_has_items =
-    @acting_row ? (consumable_spell_items(@acting_row[:creature_id]).any? rescue false) : false
+    @acting_row ? ((consumable_spell_items(@acting_row[:creature_id]).any? ||
+                    granted_spell_items(@acting_row[:creature_id]).any?) rescue false) : false
 
   # Bardic Inspiration (and any reservoir-mode Performance): the live
   # Reservoirs a DM can discharge to grant Luck. DM-only; off-turn, since a
@@ -253,19 +254,21 @@ helpers do
   # (DM-only) loots and clears the non-PC Combatants into the active Map's
   # Ground Pile; the loot-pile stub (DM + players) distributes that pile.
 
-  # The Ground Pile location for the active Map (e.g. "map_3"), or nil
-  # when no Map is active. The pile is named after the Map, so loot left
-  # unlooted when the party changes Maps is no longer surfaced.
+  # The Ground Pile location loot is gathered into. With an active Map the
+  # pile is named after it ("map_3"), so loot left unlooted when the party
+  # changes Maps is no longer surfaced. With no active Map — a campaign that
+  # plays without the Atlas — it falls back to a single stable "loot" pile so
+  # post-combat loot is still collected and surfaced for the Sell Pile rather
+  # than silently lost when the looted Combatants are removed.
   def loot_pile_location
     id = Atlas.state.active_map_id
-    id.nil? ? nil : "map_#{id}"
+    id.nil? ? 'loot' : "map_#{id}"
   end
 
-  # The Ground Pile Owner ID for the active Map's loot pile, or nil when
-  # no Map is active.
+  # The Ground Pile Owner ID for the loot pile. Always present (see
+  # loot_pile_location); an empty pile simply renders nothing.
   def combat_pile_owner
-    loc = loot_pile_location
-    loc.nil? ? nil : "ground:#{loc}"
+    "ground:#{loot_pile_location}"
   end
 
   # The non-PC Combatants of the current roster — every Combatant whose
@@ -273,11 +276,13 @@ helpers do
   # post-combat cleanup stub offers to loot and delete, each carrying a
   # preview of the gear it would hand over (its current Inventory; a
   # loot_table adds random items on top). A dangling creature_id (record
-  # lost on restart) is skipped.
+  # lost on restart) is skipped. NPC allies (`group: npc`) are flagged and
+  # sorted to the top so the stub can list them apart from enemies and
+  # default them to Ignore / Keep.
   def post_combat_rows
     cat  = Equipment.catalog
     inst = Equipment.instance
-    encounter_state.combatants.filter_map do |c|
+    rows = encounter_state.combatants.filter_map do |c|
       acc = Creatures.lookup(c[:creature_id]) rescue nil
       next unless acc
       next if Array(acc.tags).include?('player_character')
@@ -285,9 +290,12 @@ helpers do
       { combatant_id: c[:id],
         creature_id:  c[:creature_id],
         name:         tracker_name(c),
+        npc:          ((acc.group rescue nil).to_s == 'npc'),
         loot_table:   acc.record[:loot_table],
         loot:         inv.map { |s| { name: CreatureSheet.item_display_name(s, cat), quantity: s.quantity } } }
     end
+    # NPCs first, enemies after; stable within each group (preserve roster order).
+    rows.sort_by.with_index { |r, i| [r[:npc] ? 0 : 1, i] }
   end
 
   # Aggregate the loot every row would contribute into one list (quantities
@@ -1250,16 +1258,22 @@ helpers do
   end
 
   # Action Builder blob for the Item pane (turn_action_stub.md → Item): the
-  # decoupled Cast builder, but the "Spell" list is the actor's carried Potions
-  # and Scrolls. Each consumable casts its Item's Spell with the Spell's own
-  # casting skill (Evocation by default) and costs no Mana; a committed cast
-  # decrements the Consumable (and a Potion / Oil imposes Item-Form Magic
-  # Toxicity). Reuses the same builder, resolve endpoint, and result renderer as
-  # Cast — only the castable list and the resolve glue differ.
+  # decoupled Cast builder, but the "Spell" list is every Spell the actor can
+  # cast *from an item* — carried Potions / Scrolls (consumed on use, no Mana,
+  # Potion / Oil imposes Item-Form Magic Toxicity) plus the Spells granted by
+  # equipped Wands / Rings (the wielder's own Mana, nothing consumed). The
+  # Wand / Ring Spells also appear under Cast; listing them here too gives one
+  # place to fire every item-sourced Spell. Reuses the same builder, resolve
+  # endpoint, and result renderer as Cast — only the castable list differs.
   def item_builder_blob(actor)
-    acc  = Creatures.lookup(actor[:creature_id]) rescue nil
-    pool = (encounter_state.combat_pool_remaining(actor[:id]) rescue 0) || 0
-    spells = consumable_castables(actor, acc, pool).reject { |sp| sp[:long_cast] }
+    acc        = Creatures.lookup(actor[:creature_id]) rescue nil
+    pool       = (encounter_state.combat_pool_remaining(actor[:id]) rescue 0) || 0
+    mana_max   = (acc&.max_mana rescue nil)
+    mana_spent = (Conditions.store.instance_for(actor[:creature_id]).state.mana_spent rescue 0)
+    mana_left  = mana_max ? [mana_max - mana_spent, 0].max : nil
+    spells = (consumable_castables(actor, acc, pool) +
+              granted_item_castables(actor, acc, pool, mana_left))
+             .reject { |sp| sp[:long_cast] }
     build_cast_blob(caster: actor, acc: acc, spells: spells, pool: pool,
                     title: "#{tracker_name(actor)} uses an item", stub_id: "item-#{actor[:id]}",
                     spell_label: 'Item', cast_verb: 'Use')
@@ -1291,7 +1305,7 @@ helpers do
       v    = (Abilities.lookup(vname) rescue nil) || {}
       cost = mana_cost_for_tier(it[:tier])
       castable_descriptor(acc, vname, it[:tier], pool, mana_left,
-                          skill: item_cast_skill(v), mana_cost: cost)
+                          skill_options: item_skill_options(v, acc), mana_cost: cost)
     end
   end
 
@@ -1322,7 +1336,7 @@ helpers do
       castable_descriptor(acc, it[:spell], it[:tier], pool, nil,
                           mana_cost: 0, key: "item:#{it[:ref]}", display: it[:display],
                           item: it, self_only: it[:form] == 'potion',
-                          quantity: it[:quantity], skill_options: item_skill_options(v))
+                          quantity: it[:quantity], skill_options: item_skill_options(v, acc))
     end
   end
 
@@ -1333,12 +1347,21 @@ helpers do
     (Array(variant && variant['skills']).first || 'evocation').to_s
   end
 
-  # The casting skills a consumable offers: the Spell's own primary skill and
-  # Evocation (item-form default), deduped and order-preserving. So a Potion of
-  # Heal offers Healing / Evocation; an Arcana potion offers Arcana / Evocation;
-  # an Evocation spell offers Evocation alone.
-  def item_skill_options(variant)
-    [item_cast_skill(variant), 'evocation'].uniq
+  # The casting skills a Spell cast *from an item* offers: every skill the
+  # Spell lists, plus Evocation (the universal item-form skill) — deduped and
+  # order-preserving. Anyone activating an item may roll any of these, whether
+  # or not they are a caster. A Set-Skill family (e.g. `perform_`) is resolved
+  # to the actor's trained instance and dropped when they train none (it cannot
+  # be rolled bare). So a Spark Shower ring offers Nature / Arcana / Evocation;
+  # a Heal potion offers Healing / Nature / Evocation (plus the actor's
+  # Performance, if any); an Evocation-only Spell offers Evocation alone.
+  def item_skill_options(variant, acc = nil)
+    listed = Array(variant && variant['skills']).map(&:to_s).flat_map do |s|
+      next [s] unless s.end_with?('_')
+      resolved = acc ? resolve_skill_family(acc, s) : s
+      resolved.to_s.end_with?('_') ? [] : [resolved.to_s]
+    end
+    (listed + ['evocation']).uniq
   end
 
   # One castable descriptor for the Cast / Item builders. `name` is the Spell
@@ -1405,19 +1428,26 @@ helpers do
       item: item, self_only: self_only || v['target'].to_s == 'self', quantity: quantity }
   end
 
-  # Equipped Wands / Rings (any `grants_spell` Item): each adds its Spell to the
-  # wielder's Cast list while equipped (equipment_design.md → Wand).
+  # Equipped Wands / Rings (any `grants_spell` Item): each adds its Spell(s) to
+  # the wielder's Cast list while equipped (equipment_design.md → Wand). A Wand
+  # grants a single `spell`; a multi-spell Ring (Ring of Shooting Stars) grants
+  # every name in its `spells` list. Each Spell is cast at the Spell's own Tier
+  # — never the Item's Tier (so a Tier-2 Ring still grants a Tier-0 and a Tier-1
+  # Spell). A multi-Tier Spell line (e.g. Heal) has no single Tier, so the
+  # Stack's Tier still selects the variant.
   def granted_spell_items(creature_id)
     cat = Equipment.catalog
     inv = (Equipment.instance.get_inventory(equipment_owner(creature_id)) rescue [])
-    inv.each_with_index.filter_map do |s, i|
-      next unless s.equipped
+    inv.each_with_index.flat_map do |s, i|
+      next [] unless s.equipped
       defn = cat.definition_of(s.item_type) || {}
-      next unless defn['grants_spell']
-      spell = s.stored_spell || defn['spell']
-      next unless spell
-      { ref: i, item_type: s.item_type, display: CreatureSheet.item_display_name(s, cat),
-        spell: spell, tier: s.tier, form: item_form_of(s.item_type, defn) }
+      next [] unless defn['grants_spell']
+      form = item_form_of(s.item_type, defn)
+      display = CreatureSheet.item_display_name(s, cat)
+      granted_spell_names(s, defn).map do |spell|
+        { ref: i, item_type: s.item_type, display: display,
+          spell: spell, tier: granted_spell_tier(spell, s.tier), form: form }
+      end
     end
   end
 
@@ -1450,6 +1480,22 @@ helpers do
     it = ring_parry_item(creature_id) or return
     Equipment.instance.set_parry_used_day(equipment_owner(creature_id), it[:ref],
                                           encounter_state.current_day_index)
+  end
+
+  # The Spell names a `grants_spell` Item confers: every entry of its `spells`
+  # list (a multi-spell Ring), else its single `spell` (a Wand), preferring a
+  # Stack's `stored_spell` override.
+  def granted_spell_names(stack, defn)
+    names = defn['spells'].is_a?(Array) ? defn['spells'] : [stack.stored_spell || defn['spell']]
+    names.compact.map(&:to_s)
+  end
+
+  # The Tier a granted Spell is cast at: the Spell's own Catalog Tier when it is
+  # single-Tier, falling back to the Stack's Tier for a multi-Tier Spell line
+  # (whose specific variant the Stack selects) or an unknown Spell.
+  def granted_spell_tier(spell, stack_tier)
+    t = ((Abilities.catalog.ability(spell) rescue nil) || {})['tier']
+    t.is_a?(Array) || t.nil? ? stack_tier : t
   end
 
   # Carried Potions / Scrolls (Consumable spell-form Items) the actor can use
