@@ -253,19 +253,21 @@ helpers do
   # (DM-only) loots and clears the non-PC Combatants into the active Map's
   # Ground Pile; the loot-pile stub (DM + players) distributes that pile.
 
-  # The Ground Pile location for the active Map (e.g. "map_3"), or nil
-  # when no Map is active. The pile is named after the Map, so loot left
-  # unlooted when the party changes Maps is no longer surfaced.
+  # The Ground Pile location loot is gathered into. With an active Map the
+  # pile is named after it ("map_3"), so loot left unlooted when the party
+  # changes Maps is no longer surfaced. With no active Map — a campaign that
+  # plays without the Atlas — it falls back to a single stable "loot" pile so
+  # post-combat loot is still collected and surfaced for the Sell Pile rather
+  # than silently lost when the looted Combatants are removed.
   def loot_pile_location
     id = Atlas.state.active_map_id
-    id.nil? ? nil : "map_#{id}"
+    id.nil? ? 'loot' : "map_#{id}"
   end
 
-  # The Ground Pile Owner ID for the active Map's loot pile, or nil when
-  # no Map is active.
+  # The Ground Pile Owner ID for the loot pile. Always present (see
+  # loot_pile_location); an empty pile simply renders nothing.
   def combat_pile_owner
-    loc = loot_pile_location
-    loc.nil? ? nil : "ground:#{loc}"
+    "ground:#{loot_pile_location}"
   end
 
   # The non-PC Combatants of the current roster — every Combatant whose
