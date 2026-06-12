@@ -1382,7 +1382,24 @@
       ],
       "owner_id": null,
       "active": true
+    },
+    {
+      "id": 78,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 78,
+      "scene_position": 74,
+      "title": "Kesser Reversal Table",
+      "public_description": "  die: 10\r\n  entries:\r\n    1: Disaster: \"Channel Successes are added or subtracted, whichever is worse for the cleric, to all checks.\"\r\n    2: Backfire: \"Attack causes a magical explosion. The damage dealt is dealt again to all creatures within 30'. A Charisma check against Channel Successes can reduce the damage taken by half.\"\r\n    3: Sympathy\r\n      effect: \"Both attacker, channeler, and target take the attack's damage in full. Channeler can choose to increase or decrease damage by Channel Successes but must make the same choice for all affected creatures.\"\r\n    4: Counter: \"The target gets a free weapon attack after this attack resolves with starting successes equal to Channel Successes.\"\r\n    5: Wild Deflection: \"Attack changes target to a random creature in range instead — channeler picks if ties.\"\r\n    6: Reversal: \"Attacker and target swap tiers and dice for the attack.\"\r\n    7: Surprise: \"Target is flatfooted for this attack and all dice spent on defence are lost. Channeler can choose to increase or reduce damage dealt by Channel Successes.\"\r\n    8: Naked: \"Attacker's sword and target's armor teleport to a random square within 30'. Both gain a Charisma save against Channel Successes to resist. If a weapon teleports, the attack still resolves with a natural attack instead.\"\r\n    9: Lucky Break: \"All creatures gain a luck bonus or penalty on their roll equal to Channel Successes.\"\r\n    10: Crit: \"Channel Successes are added or subtracted, whichever is best for the channeler, to all checks.\"",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
     }
   ],
-  "next_id": 78
+  "next_id": 79
 }
