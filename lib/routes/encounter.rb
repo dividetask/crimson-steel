@@ -1365,11 +1365,15 @@ helpers do
     # The Combat Pool dice a cast costs at minimum — its Action category's Action
     # Minimum (Main 4 / Bonus 2 / Free 0).
     action_min = Encounter::Special.action_cost(act && act[:alias])
-    # Multi-target: a Spell whose `target` resolves to more than one creature
-    # (e.g. `rank` → one per caster rank in the casting skill) lets the DM toggle
-    # several targets, capped at the resolved count. Single / self / area → nil.
+    # Multi-target: a Save / attack-roll Spell whose `target` resolves to more
+    # than one creature (e.g. `rank` → one per caster rank in the casting skill)
+    # lets the DM toggle several targets, capped at the resolved count. Each
+    # target resolves through the per-creature Save path, so a no-defense utility
+    # Spell stays single-target. Single / self / area → nil.
     target_rank = (acc&.ranks_for(primary[:skill]) rescue 0).to_i
-    multi_max   = multi_target_max(v['target'], target_rank)
+    multi_max   = if Array(v['save']).first || v['attack_roll']
+                    multi_target_max(v['target'], target_rank)
+                  end
     { name: name, key: (key || name), display: (display || name),
       tier: tier, mana_cost: mana_cost, skill: primary[:skill], skill_options: skopts,
       dice_cap: primary[:dice_cap], competency: primary[:competency],

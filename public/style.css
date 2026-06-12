@@ -1104,6 +1104,12 @@ body {
 
 .cr-mod-btn:hover { background: #f0f0f0; }
 
+/* Multi-target selection toggle: a selected creature turns blue (colour only,
+   no label change); unselected stays the default grey button. */
+.cb-opt-selected,
+.cb-opt-selected:hover { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
+.cb-multi-done { margin-top: 4px; }
+
 /* Dice / option choices the Combat Pool can't afford (Speed + dice >
    remaining) are greyed out and unclickable. */
 .cr-mod-btn:disabled,
