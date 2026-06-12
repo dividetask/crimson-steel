@@ -575,7 +575,12 @@ class AtlasCanvas {
   target(tokenEl) {
     const combatantId = tokenEl.dataset.combatantId;
     if (combatantId == null || combatantId === '') return;
-    const builder = document.querySelector('.turn-action .ta-attack .action-builder');
+    // Drive whichever Action Builder is open — Attack or Cast. (For a
+    // multi-target Cast the option button toggles, so clicking a token here
+    // flips that creature's selection just like clicking its button.)
+    const builders = Array.from(document.querySelectorAll(
+      '.turn-action .ta-attack .action-builder, .turn-action .ta-cast .action-builder'));
+    const builder = builders.find((b) => b.offsetParent !== null) || builders[0];
     if (!builder) return;
     const summary = builder.querySelector('.step-summary[data-step="target"]');
     if (summary && !summary.hidden) {

@@ -134,7 +134,7 @@ Create Illusion:
     - Minor Figment
   school: resonance
   range: Close
-  target: "1"
+  target: rank
   save:
     - attribute: int
       fail: believes_illusion

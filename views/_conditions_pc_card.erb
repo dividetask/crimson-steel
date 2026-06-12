@@ -66,7 +66,7 @@
       <span class="bar-seg seg-hp-moderate" style="width: <%= pct.call(moderate_dmg) %>%"></span>
       <span class="bar-seg seg-hp-major"    style="width: <%= pct.call(major_dmg) %>%"></span>
     </div>
-    <span class="pc-bar-value"><%= current_hp %>/<%= creature[:max_hp] %></span>
+    <span class="pc-bar-value"><%= current_hp %>/<%= creature[:max_hp] %><% if temp_hp.positive? %> <span class="cs-temp-hp">+<%= temp_hp %></span><% end %></span>
   </div>
 
   <div class="pc-bar-row">
