@@ -335,6 +335,12 @@ characters:
       - item: Chain shirt
         tier: 1
         equipped: true
+      - item: Ring of Shooting Stars
+        tier: 2
+      - item: Gem
+        name: Gemstone
+        value_in_gold: 500
+        quantity: 3
   1099:
     inventory:
       - item: Falchion
@@ -354,6 +360,10 @@ characters:
       - item: Chain shirt
         equipped: true
       - item: Oil of Arcane Mark
+      - item: Gem
+        name: Gemstone
+        value_in_gold: 500
+        quantity: 2
   1101:
     inventory:
       - item: Falchion
@@ -406,6 +416,10 @@ characters:
       - item: Longbow
       - item: Chain shirt
         equipped: true
+      - item: Gem
+        name: Gemstone
+        value_in_gold: 500
+        quantity: 2
   1108:
     inventory:
       - item: Whip
@@ -413,6 +427,7 @@ characters:
       - item: Short sword
       - item: Leather armor
         equipped: true
+      - item: Key chain
   1109:
     inventory:
       - item: Whip
@@ -420,6 +435,7 @@ characters:
       - item: Short sword
       - item: Leather armor
         equipped: true
+      - item: Key chain
   1110:
     inventory:
       - item: Falchion
@@ -427,6 +443,10 @@ characters:
       - item: Breastplate
         tier: 1
         equipped: true
+      - item: Gem
+        name: Gemstone
+        value_in_gold: 500
+        quantity: 2
   1111:
     inventory: []
   1112:

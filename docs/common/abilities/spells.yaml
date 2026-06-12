@@ -1017,3 +1017,40 @@ Blur:
   effects:
     - "blurred"
   description: "The touched creature's outline blurs and wavers. For the duration the creature gains the blurred effect: every Critical Success rolled on an attack against it is rerolled, blunting decisive blows."
+
+Spark Shower:
+  type: spell
+  tier: 0
+  school: resonance
+  range: Touch
+  target: "1"
+  damage_type: radiant
+  skills: [nature, arcana]
+  save:
+    - attribute: dex
+      fail: blind
+      fumble: blind
+      success: "0"
+  duration: 1 turn
+  effects:
+    - "cha / 4 + success damage"
+  description: "A shower of searing motes bursts over the touched target, dealing radiant damage equal to Charisma/4 plus one per success rolled and blinding it for 1 turn. The target may attempt a Dexterity save: a success halves the damage and negates the blindness, while a fumbled save extends the blindness to 1 minute. The tier-1 successor is Shooting Stars."
+
+Shooting Stars:
+  type: spell
+  tier: 1
+  school: resonance
+  range: Medium
+  target: "rank"
+  damage_type: radiant
+  skills: [nature, arcana]
+  prerequisite: Spark Shower
+  save:
+    - attribute: dex
+      fail: blind
+      fumble: blind
+      success: "0"
+  duration: 1 turn
+  effects:
+    - "cha / 4 + success damage"
+  description: "The tier-1 successor to Spark Shower. Streaking motes rain down on one creature per rank within Medium range, each strike dealing radiant damage equal to Charisma/4 plus one per success rolled and blinding the target for 1 turn. Each target may attempt a Dexterity save: a success halves the damage and negates the blindness, while a fumbled save extends the blindness to 1 minute."

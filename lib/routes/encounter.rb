@@ -1382,20 +1382,43 @@ helpers do
       item: item, self_only: self_only || v['target'].to_s == 'self', quantity: quantity }
   end
 
-  # Equipped Wands / Rings (any `grants_spell` Item): each adds its Spell to the
-  # wielder's Cast list while equipped (equipment_design.md → Wand).
+  # Equipped Wands / Rings (any `grants_spell` Item): each adds its Spell(s) to
+  # the wielder's Cast list while equipped (equipment_design.md → Wand). A Wand
+  # grants a single `spell`; a multi-spell Ring (Ring of Shooting Stars) grants
+  # every name in its `spells` list. Each Spell is cast at the Spell's own Tier
+  # — never the Item's Tier (so a Tier-2 Ring still grants a Tier-0 and a Tier-1
+  # Spell). A multi-Tier Spell line (e.g. Heal) has no single Tier, so the
+  # Stack's Tier still selects the variant.
   def granted_spell_items(creature_id)
     cat = Equipment.catalog
     inv = (Equipment.instance.get_inventory(equipment_owner(creature_id)) rescue [])
-    inv.each_with_index.filter_map do |s, i|
-      next unless s.equipped
+    inv.each_with_index.flat_map do |s, i|
+      next [] unless s.equipped
       defn = cat.definition_of(s.item_type) || {}
-      next unless defn['grants_spell']
-      spell = s.stored_spell || defn['spell']
-      next unless spell
-      { ref: i, item_type: s.item_type, display: CreatureSheet.item_display_name(s, cat),
-        spell: spell, tier: s.tier, form: item_form_of(s.item_type, defn) }
+      next [] unless defn['grants_spell']
+      form = item_form_of(s.item_type, defn)
+      display = CreatureSheet.item_display_name(s, cat)
+      granted_spell_names(s, defn).map do |spell|
+        { ref: i, item_type: s.item_type, display: display,
+          spell: spell, tier: granted_spell_tier(spell, s.tier), form: form }
+      end
     end
+  end
+
+  # The Spell names a `grants_spell` Item confers: every entry of its `spells`
+  # list (a multi-spell Ring), else its single `spell` (a Wand), preferring a
+  # Stack's `stored_spell` override.
+  def granted_spell_names(stack, defn)
+    names = defn['spells'].is_a?(Array) ? defn['spells'] : [stack.stored_spell || defn['spell']]
+    names.compact.map(&:to_s)
+  end
+
+  # The Tier a granted Spell is cast at: the Spell's own Catalog Tier when it is
+  # single-Tier, falling back to the Stack's Tier for a multi-Tier Spell line
+  # (whose specific variant the Stack selects) or an unknown Spell.
+  def granted_spell_tier(spell, stack_tier)
+    t = ((Abilities.catalog.ability(spell) rescue nil) || {})['tier']
+    t.is_a?(Array) || t.nil? ? stack_tier : t
   end
 
   # Carried Potions / Scrolls (Consumable spell-form Items) the actor can use

@@ -833,6 +833,10 @@ Misc Items:
   Trinket:
     category: Item
     base_price: 1
+  # A ring of keys — mundane gear, often carried by jailers and handlers.
+  Key chain:
+    category: Item
+    base_price: 1
   Bottle:
     category: Item
     base_price: 0.5
@@ -896,3 +900,14 @@ Unique Items:
     no_store: true
     grants: [Kesser's Gambit]
     description: "A plain band that hums with reversal. While worn, it grants Kesser's Gambit to the wielder."
+  # A spell-granting Ring — like a Wand, but conferring more than one Spell.
+  # `grants_spell` + a `spells` list adds every named Spell to the wearer's
+  # Cast list while equipped, each cast at the Spell's own Tier (not the
+  # Ring's), channelling the wearer's own Mana with no Magic Toxicity.
+  Ring of Shooting Stars:
+    category: Item
+    slot: finger
+    no_store: true
+    grants_spell: true
+    spells: [Spark Shower, Shooting Stars]
+    description: "A silver band set with a chip of fallen starmetal. While worn it lets the wearer cast Spark Shower and Shooting Stars using their own Mana, the way a Wand grants its spell — no charges, no Magic Toxicity. Functions only at night under open sky."
