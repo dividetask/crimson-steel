@@ -19,6 +19,13 @@ icons:
   Acid jar: acid_jar.svg
   "Alchemist's fire": alchemist_s_fire.svg
   Arrow: arrow.svg
+  # Hand-authored simple icons for base Item Types the original pack lacked.
+  Battleaxe: battleaxe.svg
+  Greataxe: greataxe.svg
+  Ring: ring.svg
+  Wand: wand.svg
+  Hat: hat.svg
+  Circlet of the Boughking: circlet.svg
   Bedroll: bedroll.svg
   Belt of Dexterity: belt_of_dexterity.svg
   Belt of Strength: belt_of_strength.svg

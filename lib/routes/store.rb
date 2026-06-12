@@ -248,9 +248,24 @@ helpers do
       slug = item_slug(name)
       return nil if slug.empty?
       file = "#{slug}.svg"
+      # A spell-form Item (Wand / Scroll / Potion / Oil of <Spell>) with no
+      # per-spell art falls back to its base form's icon (e.g. every
+      # "Wand of X" → wand.svg) rather than showing an empty placeholder.
+      unless File.exist?(File.join(settings.public_folder, 'item_images', file))
+        if (base = spell_form_base_slug(name))
+          file = "#{base}.svg"
+        end
+      end
     end
     disk = File.join(settings.public_folder, 'item_images', file)
     File.exist?(disk) ? "/item_images/#{file}" : nil
+  end
+
+  # The base slug for a spell-form Item Type ("Wand of Entangle" → "wand"),
+  # or nil for any other Item.
+  def spell_form_base_slug(name)
+    m = name.to_s.match(/\A(Wand|Scroll|Potion|Oil) of /)
+    m && m[1].downcase
   end
 
   # Charge a Player Character for `cost`: spend its own wealth first,
