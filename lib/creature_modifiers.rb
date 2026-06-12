@@ -80,6 +80,28 @@ module CreatureModifiers
     DiceResolution.net_modifier(save_modifiers(accessor, attr, descriptors: []))
   end
 
+  # The [[bonus_type, amount], ...] pairs (per-Type-stacked) an equipped Item
+  # grants to a *named skill check* — a Guidance Bonus whose `target_key` is the
+  # skill key itself (e.g. an Elven Cloak's +1 to `stealth`, a +1 Drums' bonus
+  # to `perform_drums`). Keyed by the exact skill key, so an attribute / saves
+  # Guidance never leaks in. Suitable for appending to a skill Roll's
+  # bonus_penalty_list. Empty for an ordinary skill with no such Item.
+  def skill_modifiers(accessor, key)
+    k = key.to_s
+    pairs = equipped_effects(accessor).filter_map do |e|
+      next unless e[:target_key].to_s == k
+      next unless e[:amount].is_a?(Integer) && !e[:amount].zero?
+      [e[:bonus_type].to_s, e[:amount]]
+    end
+    stack_pairs(pairs)
+  end
+
+  # Net integer skill Bonus (per-Type-stacked then summed across Types) — the
+  # single number the character sheet shows beside a skill.
+  def skill_bonus(accessor, key)
+    DiceResolution.net_modifier(skill_modifiers(accessor, key))
+  end
+
   # ---- internals -----------------------------------------------------
 
   # Every Save-applicable modifier the Creature carries for `attr`, before

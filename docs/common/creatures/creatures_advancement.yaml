@@ -347,6 +347,40 @@ Classes:
       - perception
       - profession_
 
+  # Elite generalist NPC chassis (e.g. the doppelganger). No class
+  # abilities of its own — its power is raw stats, broad skills, and
+  # strong Str/Con saves; special tricks come from the Creature's race.
+  paragon:
+    npc_class: true
+    martial_advancement: aligned
+    bonus_skills: 4
+    mana_per_level: 1
+    saves:
+      aligned: [str, con]
+      opposed: [dex, int, wis, cha]
+    aligned_proficiencies:
+      - athletics
+      - acrobatics
+      - escape_artist
+      - larceny
+      - ride
+      - sleight_of_hand
+      - local_lore
+      - stealth
+      - arcana
+      - history
+      - investigation
+      - healing
+      - invocation
+      - nature
+      - perception
+      - profession_
+      - deception
+      - disguise
+      - perform_
+      - persuasion
+      - evocation
+
 # HP and Mana formulas, indexed by Tier. The string is evaluated
 # against the Creature's Effective Attributes (`str`, `dex`, ...);
 # `tier` follows the project-wide Tier 0 → 0.5 convention. Result

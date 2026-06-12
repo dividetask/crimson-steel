@@ -77,7 +77,17 @@ module Creatures
     end
 
     def total_level
-      @record[:classes].values.sum { |e| e[:level] }
+      leveling_classes.values.sum { |e| e[:level] }
+    end
+
+    # Class entries that grant Character Levels. An entry flagged
+    # `borrowed: true` (a doppelganger's Borrowed Talent persona) grants its
+    # class abilities and spells but contributes no levels — it is excluded
+    # from Total Level and every level-scaled value (HP, Mana, Saves,
+    # Martial, Skill ranks). It still grants abilities because
+    # `granted_abilities` walks every class entry, borrowed or not.
+    def leveling_classes
+      @record[:classes].reject { |_k, e| e[:borrowed] }
     end
 
     def class_summary
@@ -116,7 +126,7 @@ module Creatures
       t = tier
       raise "Tier #{t} beyond Mana Base Formula range" if t >= formulas.length
       base = Creatures::Formula.eval(formulas[t], mana_formula_vars)
-      class_contrib = @record[:classes].sum do |key, entry|
+      class_contrib = leveling_classes.sum do |key, entry|
         cls = Creatures::Advancement.look_up_class(key) || {}
         Integer(cls['mana_per_level'] || 0) * entry[:level]
       end
@@ -131,6 +141,18 @@ module Creatures
     # Spell's generic `arcana` default.
     def trained_skills
       @record[:classes].values.flat_map { |e| Array(e[:skills]).map(&:to_s) }.uniq
+    end
+
+    # Equipped Guidance Bonuses that target a *named skill check* by its key
+    # (an Elven Cloak's +1 to `stealth`), as [[bonus_type, amount], ...] pairs
+    # to append to that skill's Roll. Consulted by Proficiencies::Compute so the
+    # bonus rides every place the skill is rolled or shown. Empty when the
+    # cross-domain bridge (Equipment) is not loaded — pure-proficiency specs.
+    def skill_modifiers(key)
+      return [] unless defined?(::CreatureModifiers)
+      ::CreatureModifiers.skill_modifiers(self, key)
+    rescue StandardError
+      []
     end
 
     # ---- ranks ----
@@ -338,13 +360,13 @@ module Creatures
     end
 
     def skill_ranks(skill_key)
-      @record[:classes].sum do |class_key, entry|
+      leveling_classes.sum do |class_key, entry|
         Proficiencies::Ranks.ranks_for_skill(class_key, entry[:level], skill_key, trained: trained?(class_key, skill_key))
       end
     end
 
     def save_ranks(attr_key)
-      @record[:classes].sum do |class_key, entry|
+      leveling_classes.sum do |class_key, entry|
         cls = Creatures::Advancement.look_up_class(class_key) || {}
         saves = cls['saves'] || {}
         # Aligned (fast) and Opposed (slow) are explicit; a Save Attribute in
@@ -362,7 +384,7 @@ module Creatures
     end
 
     def martial_ranks
-      @record[:classes].sum do |class_key, entry|
+      leveling_classes.sum do |class_key, entry|
         cls = Creatures::Advancement.look_up_class(class_key) || {}
         rate = (cls['martial_advancement'] || 'unaligned').to_sym
         Proficiencies::Ranks.apply_rate(entry[:level], rate)

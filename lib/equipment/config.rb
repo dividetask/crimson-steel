@@ -146,7 +146,26 @@ module Equipment
     # Returns { definition:, category: } for an Item Type name, or nil
     # when the name is not in any catalog block. The `Gem` Item Type is
     # built in and has no catalog entry.
-    def item_type(name)
+    # Resolve an Item Type to `{ definition:, category: }`, honoring an
+    # `inherits_from:` base: the base Type's definition fills in any field the
+    # derived Type does not set (slot, category, and — via the icon resolver —
+    # its image), so a one-off Unique Item can borrow a generic base. The
+    # `inherits_from` marker is preserved on the merged definition so callers
+    # (e.g. the icon resolver) can still walk the chain.
+    def item_type(name, _seen = [])
+      found = raw_item_type(name.to_s) or return nil
+      base_name = found[:definition]['inherits_from']
+      return found if base_name.nil? || base_name.to_s.empty? || _seen.include?(base_name.to_s)
+      base = item_type(base_name.to_s, _seen + [name.to_s]) or return found
+      # Borrow the base's traits (slot, category, and — via the icon resolver —
+      # its image), but NOT its price: a Unique Item's gold value is its own
+      # (typically none / no_store), never the generic base's base_price.
+      inherited = base[:definition].reject { |k, _| k == 'base_price' }
+      merged = inherited.merge(found[:definition])
+      { definition: merged, category: (found[:definition]['category'] || found[:category] || base[:category]).to_s }
+    end
+
+    def raw_item_type(name)
       name = name.to_s
       return { definition: {}, category: 'Gem' } if name == 'Gem'
 
@@ -256,7 +275,12 @@ module Equipment
     end
 
     def wand_form(spell, tier)
-      d = { 'spell' => spell, 'category' => 'Item', 'slot' => 'hands', 'grants_spell' => true }
+      # A Wand's Tier is the Spell's own Tier (which variant it casts), not a
+      # "+N" enhancement, so it suppresses the Tier prefix in the Display Name
+      # (a "Wand of Entangle", never a "+1 Wand of Entangle") — mirroring how
+      # the Consumable Scroll / Potion / Oil forms already read.
+      d = { 'spell' => spell, 'category' => 'Item', 'slot' => 'hands',
+            'grants_spell' => true, 'hide_tier' => true }
       d['tier'] = tier unless tier.nil?
       d
     end

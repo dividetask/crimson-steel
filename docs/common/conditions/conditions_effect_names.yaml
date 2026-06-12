@@ -284,3 +284,15 @@ Effect Names:
     mechanics:
       - kind: display
         text: "The shielding caster may block attacks against this creature with Reservoir dice (an Ally Defense)."
+
+  ward:
+    description: "Protected by a Ward — temporary hit points that absorb damage until the spell expires."
+    mechanics:
+      - kind: display
+        text: "Has temporary hit points from Ward; they and this condition fade together when the spell expires."
+
+  spiritual_weapon:
+    description: "A floating spiritual weapon hovers under the creature's control, striking once each turn."
+    mechanics:
+      - kind: display
+        text: "Each turn the spiritual weapon makes one free attack (Reservoir dice). It fades when its time runs out."

@@ -506,8 +506,13 @@ document.addEventListener('mouseover', function (e) {
     selectTurnAction(panel, btn.textContent.trim());
     // Lazily build the Attack flow the first time its pane is opened.
     if (key === 'attack') {
-      var container = panel.querySelector('.ta-attack');
+      var container = panel.querySelector('.ta-pane[data-ta-pane="attack"] .ta-attack');
       if (container) TurnAttack.ensureLoaded(container);
+    }
+    // Active Spells reuses the Attack host, pointed at its own builder.
+    if (key === 'active_spells') {
+      var activeContainer = panel.querySelector('.ta-active-spells');
+      if (activeContainer) TurnAttack.ensureLoaded(activeContainer);
     }
     // Lazily build the Cast flow the first time its pane is opened.
     if (key === 'cast') {

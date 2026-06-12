@@ -53,7 +53,7 @@
       <div class="cs-vital"><span class="cs-vital-label">Speed</span><span class="cs-vital-value"><%= demo[:speed] %></span></div>
     </div>
     <div class="cs-vitals-row">
-      <div class="cs-vital"><span class="cs-vital-label">HP</span><span class="cs-vital-value"><%= v[:hp][:current] %>/<%= v[:hp][:max] %></span></div>
+      <div class="cs-vital"><span class="cs-vital-label">HP</span><span class="cs-vital-value"><%= v[:hp][:current] %>/<%= v[:hp][:max] %><% if v[:temp_hp].to_i > 0 %> <span class="cs-temp-hp">+<%= v[:temp_hp] %></span><% end %></span></div>
       <div class="cs-vital"><span class="cs-vital-label">Mana</span><span class="cs-vital-value"><%= v[:mana][:current] %>/<%= v[:mana][:max] %></span></div>
       <div class="cs-vital"><span class="cs-vital-label">Mana Regen</span><span class="cs-vital-value"><%= v[:mana][:regen] %>/day</span></div>
     </div>

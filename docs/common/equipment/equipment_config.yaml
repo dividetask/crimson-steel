@@ -239,6 +239,14 @@ Weapons:
     speed: 0
     natural: true
     base_price: 0
+  # Slam — the natural fists/limbs attack granted by the Ogre Slam Talent.
+  Slam:
+    category: One Handed
+    damage_type: Bludgeoning
+    base_damage: "str / 2"
+    speed: 0
+    natural: true
+    base_price: 0
   Longbow:
     category: Ranged
     damage_type: Piercing
@@ -833,6 +841,10 @@ Misc Items:
   Trinket:
     category: Item
     base_price: 1
+  # A ring of keys — mundane gear, often carried by jailers and handlers.
+  Key chain:
+    category: Item
+    base_price: 1
   Bottle:
     category: Item
     base_price: 0.5
@@ -891,8 +903,36 @@ Tattoos:
 # `{ ability:, class_level: }`).
 Unique Items:
   Kesser's Ring:
-    category: Item
-    slot: finger
+    inherits_from: Ring
     no_store: true
     grants: [Kesser's Gambit]
     description: "A plain band that hums with reversal. While worn, it grants Kesser's Gambit to the wielder."
+  # A Ring that grants a once-per-day defensive Parry Reaction (`grants_parry`).
+  # While worn and charged it offers, against a melee attack, a Parry at the
+  # wielder's chosen melee weapon's Dice Cap that spends no Combat Pool. The
+  # single charge recharges at dawn (when the in-world day advances).
+  Ring of Parry:
+    inherits_from: Ring
+    no_store: true
+    grants_parry: true
+    description: "A duelist's band. Once per day it parries a single attack at the wielder's weapon Dice Cap, spending no Combat Pool. Recharges at dawn."
+  # A worn Circlet that grants a castable Spell while equipped, exactly like a
+  # Wand (`grants_spell` + `spell`): the spell joins the wearer's castable list,
+  # channels the wearer's own Mana, and imposes no Magic Toxicity.
+  Circlet of the Boughking:
+    inherits_from: Hat
+    no_store: true
+    grants_spell: true
+    spell: Entangle
+    description: "A crown of living briar. While worn, the wearer may cast Entangle."
+  # A spell-granting Ring — like a Wand, but conferring more than one Spell.
+  # `grants_spell` + a `spells` list adds every named Spell to the wearer's
+  # Cast list while equipped, each cast at the Spell's own Tier (not the
+  # Ring's), channelling the wearer's own Mana with no Magic Toxicity.
+  Ring of Shooting Stars:
+    category: Item
+    slot: finger
+    no_store: true
+    grants_spell: true
+    spells: [Spark Shower, Shooting Stars]
+    description: "A silver band set with a chip of fallen starmetal. While worn it lets the wearer cast Spark Shower and Shooting Stars using their own Mana, the way a Wand grants its spell — no charges, no Magic Toxicity. Functions only at night under open sky."

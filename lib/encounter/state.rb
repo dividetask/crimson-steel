@@ -83,8 +83,18 @@ module Encounter
     def persist!
       FileUtils.mkdir_p(File.dirname(@data_path))
       tmp = "#{@data_path}.tmp"
-      File.write(tmp, JSON.pretty_generate(to_h))
+      File.write(tmp, pretty_json(to_h))
       File.rename(tmp, @data_path)
+    end
+
+    # Ruby's JSON.pretty_generate renders empty arrays/objects across
+    # multiple blank lines (e.g. `[\n\n  ]`). Collapse those to `[]` / `{}`.
+    # The newline requirement makes this safe against string values that
+    # merely contain brackets, since newlines inside strings are escaped.
+    def pretty_json(obj)
+      JSON.pretty_generate(obj)
+          .gsub(/\[\n\s*\]/, '[]')
+          .gsub(/\{\n\s*\}/, '{}')
     end
 
     # ---------- Roster reads ----------
@@ -290,6 +300,13 @@ module Encounter
       find!(combatant_id)[:combat_pool_spent] = 0
       persist!
       get_combat_pool(combatant_id)
+    end
+
+    # The current in-world day (Chronicle Timestamp's day_index). Public surface
+    # for once-per-day item charges (a Ring of Parry recharges when this passes
+    # the day the charge was spent).
+    def current_day_index
+      current_timestamp[:day_index]
     end
 
     # Move (turn_action_stub.md → Move): spend a flat number of Combat Pool
@@ -927,6 +944,18 @@ module Encounter
         t.merge(effects: fx)
       end
 
+      # Temporary-HP buffs (Ward) carry a turns-based `duration`; compute the
+      # expiry Round once so the temp HP — and the Ward condition that mirrors
+      # it — fade together when the Spell ends.
+      resolved = resolved.map do |t|
+        next t if Array(t[:effects]).none? { |e| e[:kind].to_s == 'temp_hp' && e[:duration] }
+        fx = Array(t[:effects]).map do |e|
+          next e unless e[:kind].to_s == 'temp_hp' && e[:duration] && e[:ends_on_round].nil?
+          e.merge(ends_on_round: modifier_ends_on_round(e[:duration], mod_binds))
+        end
+        t.merge(effects: fx)
+      end
+
       # Combat Pool: the caster's casting-time Speed + dice, plus any pool-costed
       # Defensive Action (Dodge / Block) the defender spent. A Save spell's
       # Saving Throw costs none. DM may override the spends.
@@ -944,6 +973,10 @@ module Encounter
         # of a heal Effect; fold those amounts onto the resolved targets before
         # they are applied so the cure heals exactly what the DM entered.
         apply_heal_override!(resolved, over[:heals]) if over[:heals]
+        # DM damage override: the confirm page exposes an editable box per
+        # damaged target; fold the entered amount onto its damage Effect so the
+        # Severity split is recomputed from exactly what the DM committed.
+        apply_damage_override!(resolved, over[:damages]) if over[:damages]
         pool_spends.each { |s| spend_combat_pool(s[:id], s[:amount].to_i) }
         apply_luck_spends(p[:luck])
         mana_spent = mana_cost.positive? ? caster_inst.apply_mana_cost(amount: mana_cost, mana_max: mana_max) : 0
@@ -1445,12 +1478,13 @@ module Encounter
     # ---------- Concentration ----------
 
     def begin_concentration(combatant_id, spell_name:, source:, spell_tier:, cast_skill:,
-                            mode:, reservoir_reset:, initial_reservoir: 0)
+                            mode:, reservoir_reset:, initial_reservoir: 0, expires_on_round: nil)
       c = find!(combatant_id)
       c[:concentration] << {
         spell_name: spell_name, source: source, spell_tier: Integer(spell_tier),
         cast_skill: cast_skill, mode: mode.to_s, reservoir: Integer(initial_reservoir),
-        reservoir_reset: reservoir_reset.to_s, channeled_this_turn: true
+        reservoir_reset: reservoir_reset.to_s, channeled_this_turn: true,
+        expires_on_round: expires_on_round
       }
       persist!
       c[:concentration].last.dup
@@ -1531,9 +1565,14 @@ module Encounter
       # until then. Only luck points clear at end of turn.
       c[:luck_points] = 0
 
-      # End-of-turn channel check.
+      # End-of-turn channel check. A timed channel (Spiritual Weapon) ends when
+      # its expiry Round arrives; a true Concentration ends if it was not
+      # channeled this turn (auto channels never need the channel action).
       c[:concentration].reject! do |e|
-        if !e[:channeled_this_turn] && e[:mode] != 'auto'
+        if e[:expires_on_round] && current_abs_round >= e[:expires_on_round]
+          notes << { kind: :concentration_ended, source: e[:source], spell_name: e[:spell_name], reason: 'expired' }
+          true
+        elsif !e[:channeled_this_turn] && e[:mode] != 'auto'
           notes << { kind: :concentration_ended, source: e[:source], spell_name: e[:spell_name] }
           true
         else
@@ -1573,6 +1612,9 @@ module Encounter
     def trigger_concentration_saves(combatant, damage_dealt, save_resolver)
       notes = []
       combatant[:concentration].dup.each do |e|
+        # Timed channels (Spiritual Weapon) are not true Concentration — taking
+        # damage never breaks them; they end only when their time runs out.
+        next if e[:expires_on_round]
         penalty = e[:spell_tier] + damage_dealt
         passed = save_resolver.call(spell_name: e[:spell_name], cast_skill: e[:cast_skill],
                                     penalty: penalty, kind: :concentration)
@@ -1710,6 +1752,23 @@ module Encounter
       end
     end
 
+    # Replace each damage Effect's amount with the DM-entered value (one editable
+    # box per damaged target on the confirm page). Keyed by target id; the new
+    # amount (floored at 0) routes through Apply Damage exactly as the computed
+    # amount would, so the Severity split is recomputed from what the DM entered.
+    # Non-damage Effects and untouched targets are unchanged.
+    def apply_damage_override!(resolved, damages)
+      by_id = {}
+      Array(damages).each { |d| by_id[d[:target_id].to_i] = d[:amount].to_i }
+      resolved.each do |t|
+        next unless by_id.key?(t[:id].to_i)
+        amt = [by_id[t[:id].to_i], 0].max
+        t[:effects] = Array(t[:effects]).map do |e|
+          e[:kind].to_s == 'damage' ? e.merge(amount: amt) : e
+        end
+      end
+    end
+
     def route_cast_effect(target_id, eff, spell)
       inst = target_conditions(target_id) or return nil
       case eff[:kind].to_s
@@ -1727,6 +1786,12 @@ module Encounter
       when 'temp_hp'
         inst.apply_temporary_hit_points(amount: eff[:amount].to_i, source_id: cast_source_id(spell),
                                         ends_on_round: eff[:ends_on_round])
+        # Ward (and any temp-HP Spell that marks one) shows a matching condition
+        # that expires together with its temp HP.
+        if (cond = spell[:temp_hp_condition]) && inst.respond_to?(:apply_named_effect)
+          inst.apply_named_effect(cond.to_s, source_id: "#{cast_source_id(spell)}:cond",
+                                  ends_on_round: eff[:ends_on_round])
+        end
         { kind: 'temp_hp', amount: eff[:amount].to_i }
       when 'effect'
         inst.apply_named_effect(eff[:name].to_s, source_id: cast_source_id(spell),
@@ -1816,9 +1881,22 @@ module Encounter
         # straight into the Reservoir (they are not rolled). Auto reservoirs are
         # persistent (Spiritual Weapon strikes from them each turn).
         initial = %w[reservoir auto].include?(s[:mode].to_s) ? channel_dice.to_i : (s[:initial_reservoir] || 0).to_i
+        # A timed channel (Spiritual Weapon, "rank turns") carries an expiry
+        # Round; it is not true Concentration (immune to the damage-break Save)
+        # and is dropped by per-turn cleanup when its time runs out.
+        exp = concentration_expiry(caster_id, spell)
         begin_concentration(caster_id, **common, mode: (s[:mode] || 'maintain').to_s,
                             reservoir_reset: (s[:reservoir_reset] || 'per_turn').to_s,
-                            initial_reservoir: initial)
+                            initial_reservoir: initial, expires_on_round: exp)
+        # Spiritual Weapon shows a condition on the caster that fades when the
+        # weapon's time runs out.
+        if exp && spell[:name].to_s == 'Spiritual Weapon'
+          ci = conditions_for(find!(caster_id)[:creature_id])
+          if ci.respond_to?(:apply_named_effect)
+            ci.apply_named_effect('spiritual_weapon', source_id: "#{cast_source_id(spell)}:active",
+                                  ends_on_round: exp)
+          end
+        end
         { kind: 'concentration', spell_name: common[:spell_name], reservoir: initial }
       when 'long_cast'
         turns = (s[:turns_required] || 1).to_i
@@ -1830,6 +1908,18 @@ module Encounter
     def target_conditions(target_id)
       c = combatant_for(target_id) or return nil
       conditions_for(c[:creature_id])
+    end
+
+    # The absolute Round a timed channel expires on (Spiritual Weapon's
+    # "rank turns"), or nil for an open-ended channel. `rank`/`level` bind to
+    # the caster's Total Level so "rank turns" is one turn per caster level.
+    def concentration_expiry(caster_id, spell)
+      dur = spell[:duration]
+      return nil if dur.nil?
+      cc = combatant_for(caster_id) or return nil
+      acc = (lookup!(cc[:creature_id]) rescue nil)
+      lvl = (acc&.total_level rescue nil) || (acc&.tier rescue 0) || 0
+      modifier_ends_on_round(dur, { 'rank' => lvl, 'level' => lvl, 'tier' => (spell[:tier] || 0) })
     end
 
     def cast_source_id(spell)

@@ -222,12 +222,55 @@ export class ActionBuilder {
     const b = ActionBuilder._body(root, key); if (b) b.dataset.state = state;
   }
 
+  // The number of creatures the current Spell may target via the multi-select
+  // toggles (the Target step's `multi_map` keyed by the chosen Spell), or 0 for
+  // a single-target / self / area Spell.
+  static _multiMax(root, step) {
+    if (!step || step.key !== 'target' || !step.multi_by || !step.multi_map) return 0;
+    const k = step.multi_by.map((s) => (root._cb.choices[s] ? root._cb.choices[s].key : '')).join('|');
+    return step.multi_map[k] || 0;
+  }
+
+  // Toggle one creature in a multi-target selection (blue = selected). The cap
+  // is the Spell's resolved target count; a toggle past it is undone.
+  static _toggleTarget(root, step, optEl, max) {
+    optEl.classList.toggle('cb-opt-selected');
+    const body = ActionBuilder._body(root, step.key);
+    const sel = body ? Array.from(body.querySelectorAll('.cb-opt.cb-opt-selected')) : [];
+    if (sel.length > max) { optEl.classList.remove('cb-opt-selected'); return; }
+    const labels = sel.map((b) => stripTags(b.innerHTML)).join(', ');
+    ActionBuilder._setSummaryText(root, 'target', labels || 'none');
+  }
+
+  // Finish a multi-target selection: list the chosen creatures as the Target,
+  // hand them to the area machinery (per-creature Save Rolls, Defense skipped),
+  // and advance to the dice. Reuses the area cast path end-to-end.
+  static _multiDone(root, step) {
+    const body = ActionBuilder._body(root, step.key);
+    const sel = body ? Array.from(body.querySelectorAll('.cb-opt.cb-opt-selected')) : [];
+    if (!sel.length) return;
+    const hits = sel.map((b) => ({ combatant_id: parseInt(b.dataset.value, 10), label: stripTags(b.innerHTML) }));
+    const names = hits.map((h) => h.label).join(', ');
+    root._cb.choices[step.key] = { value: 'multi', key: 'multi', label: names };
+    ActionBuilder._setState(root, step.key, 'complete');
+    const sum = ActionBuilder._sumRow(root, step.key);
+    if (sum) { const v = sum.querySelector('.step-summary-value'); if (v) v.textContent = names; sum.hidden = false; }
+    document.dispatchEvent(new CustomEvent('cast:targets-selected', { detail: { hits } }));
+    ActionBuilder._activateFrom(root, ActionBuilder._index(root, step.key) + 1);
+  }
+
   static _pick(root, optEl) {
     const cb = root._cb;
     const key = optEl.dataset.step;
     const step = cb.steps[ActionBuilder._index(root, key)];
     if (!step) return;
     if (step.dynamic === 'luck') return ActionBuilder._pickLuck(root, step, optEl);
+    // Multi-target Spell: the Target step toggles creatures instead of picking
+    // one. A `data-multi-done` control finishes the selection.
+    if (ActionBuilder._multiMax(root, step) > 1) {
+      if (optEl.dataset.multiDone) return ActionBuilder._multiDone(root, step);
+      return ActionBuilder._toggleTarget(root, step, optEl, ActionBuilder._multiMax(root, step));
+    }
     const opt = ActionBuilder._optionsFor(root, step).find((o) => String(o.value) === optEl.dataset.value);
     if (!opt) return;
     cb.choices[key] = { value: opt.value, label: opt.label, key: opt.key != null ? opt.key : opt.value };
@@ -296,6 +339,16 @@ export class ActionBuilder {
         ActionBuilder._applyAuto(root, step, interactive[0]); i++; continue;
       }
       if (!step.options) { const b = ActionBuilder._body(root, step.key); if (b) b.innerHTML = ActionBuilder._optsHtml(step.key, opts); }
+      // A multi-target Target step toggles creatures (blue = selected) and ends
+      // with a Done control that finishes the selection.
+      if (ActionBuilder._multiMax(root, step) > 1) {
+        const mb = ActionBuilder._body(root, step.key);
+        if (mb && !mb.querySelector('[data-multi-done]')) {
+          mb.insertAdjacentHTML('beforeend',
+            '<div class="cb-line cb-multi-actions"><button type="button" class="cr-mod-btn cb-opt cb-multi-done" data-step="' +
+            esc(step.key) + '" data-multi-done="1">Done</button></div>');
+        }
+      }
       ActionBuilder._renderDynHeader(root, step);
       ActionBuilder._setState(root, step.key, 'active');
       return;
