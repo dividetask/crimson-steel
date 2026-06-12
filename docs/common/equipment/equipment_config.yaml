@@ -891,8 +891,7 @@ Tattoos:
 # `{ ability:, class_level: }`).
 Unique Items:
   Kesser's Ring:
-    category: Item
-    slot: finger
+    inherits_from: Ring
     no_store: true
     grants: [Kesser's Gambit]
     description: "A plain band that hums with reversal. While worn, it grants Kesser's Gambit to the wielder."
@@ -901,8 +900,7 @@ Unique Items:
   # wielder's chosen melee weapon's Dice Cap that spends no Combat Pool. The
   # single charge recharges at dawn (when the in-world day advances).
   Ring of Parry:
-    category: Item
-    slot: finger
+    inherits_from: Ring
     no_store: true
     grants_parry: true
     description: "A duelist's band. Once per day it parries a single attack at the wielder's weapon Dice Cap, spending no Combat Pool. Recharges at dawn."
@@ -910,8 +908,7 @@ Unique Items:
   # Wand (`grants_spell` + `spell`): the spell joins the wearer's castable list,
   # channels the wearer's own Mana, and imposes no Magic Toxicity.
   Circlet of the Boughking:
-    category: Item
-    slot: head
+    inherits_from: Hat
     no_store: true
     grants_spell: true
     spell: Entangle

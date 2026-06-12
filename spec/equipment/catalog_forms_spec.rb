@@ -115,10 +115,24 @@ RSpec.describe Equipment::Catalog do
     it "adds Kesser's Ring as a no-store unique Item granting Kesser's Gambit" do
       ring = catalog.item_type("Kesser's Ring")
       expect(ring[:category]).to eq('Item')
+      # slot + category are inherited from the generic Ring base (inherits_from).
       expect(ring[:definition]['slot']).to eq('finger')
       expect(ring[:definition]['no_store']).to be true
       expect(ring[:definition]['grants']).to include("Kesser's Gambit")
+      # A Unique Item never borrows the base's gold value.
       expect(ring[:definition]).not_to have_key('base_price')
+    end
+
+    it 'inherits_from fills in a base Type traits (slot/category) but not its price' do
+      expect(catalog.item_type('Ring')[:definition]['base_price']).to eq(5)
+
+      parry = catalog.item_type('Ring of Parry')
+      expect(parry[:category]).to eq('Item')           # borrowed from Ring
+      expect(parry[:definition]['slot']).to eq('finger') # borrowed from Ring
+      expect(parry[:definition]['inherits_from']).to eq('Ring')
+      expect(parry[:definition]['grants_parry']).to be true   # its own
+      expect(parry[:definition]['no_store']).to be true       # its own
+      expect(parry[:definition]).not_to have_key('base_price') # never the base's
     end
 
     it 'autogenerates Potion forms only for eligible spells (incl. the new ones)' do

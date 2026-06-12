@@ -242,29 +242,41 @@ helpers do
     name.to_s.downcase.gsub(/[^a-z0-9]+/, '_').gsub(/\A_+|_+\z/, '')
   end
 
-  def item_icon_web_path(name)
-    file = ItemIcons.map[name.to_s]
-    if file.nil? || file.to_s.empty?
-      slug = item_slug(name)
-      return nil if slug.empty?
-      file = "#{slug}.svg"
-      # A spell-form Item (Wand / Scroll / Potion / Oil of <Spell>) with no
-      # per-spell art falls back to its base form's icon (e.g. every
-      # "Wand of X" → wand.svg) rather than showing an empty placeholder.
-      unless File.exist?(File.join(settings.public_folder, 'item_images', file))
-        if (base = spell_form_base_slug(name))
-          file = "#{base}.svg"
-        end
-      end
+  def item_icon_web_path(name, _seen = [])
+    return nil if name.nil? || name.to_s.empty?
+    key = name.to_s
+    return nil if _seen.include?(key)
+    exists = ->(f) { f && !f.to_s.empty? && File.exist?(File.join(settings.public_folder, 'item_images', f)) }
+
+    # 1. Explicit Item Icon Map entry (when the mapped file ships).
+    mapped = ItemIcons.map[key]
+    return "/item_images/#{mapped}" if exists.call(mapped)
+
+    # 2. Slug-convention file ("Long sword" → long_sword.svg).
+    slug = item_slug(key)
+    return "/item_images/#{slug}.svg" if exists.call("#{slug}.svg")
+
+    # 3. Spell-/poison-form base icon: a Wand / Scroll / Potion / Oil / Vial of
+    # <X> with no per-spell art borrows its base form's icon (every
+    # "Wand of X" → wand.svg, every "Vial of X" → vial.svg).
+    if (base = spell_form_base_slug(key)) && exists.call("#{base}.svg")
+      return "/item_images/#{base}.svg"
     end
-    disk = File.join(settings.public_folder, 'item_images', file)
-    File.exist?(disk) ? "/item_images/#{file}" : nil
+
+    # 4. Inherited base Type's icon: a Unique Item (or any `inherits_from:`
+    # Type) with no icon of its own borrows the generic base's image
+    # (Ring of Parry → Ring → ring.svg).
+    defn   = (Equipment.catalog.definition_of(key) rescue nil)
+    parent = defn && defn['inherits_from']
+    return item_icon_web_path(parent, _seen + [key]) if parent && !parent.to_s.empty?
+
+    nil
   end
 
-  # The base slug for a spell-form Item Type ("Wand of Entangle" → "wand"),
-  # or nil for any other Item.
+  # The base slug for a spell-form / poison-form Item Type ("Wand of Entangle"
+  # → "wand", "Vial of Sleep Venom" → "vial"), or nil for any other Item.
   def spell_form_base_slug(name)
-    m = name.to_s.match(/\A(Wand|Scroll|Potion|Oil) of /)
+    m = name.to_s.match(/\A(Wand|Scroll|Potion|Oil|Vial) of /)
     m && m[1].downcase
   end
 
