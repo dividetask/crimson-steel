@@ -1438,11 +1438,11 @@ helpers do
       tier: tier, mana_cost: mana_cost, skill: primary[:skill], skill_options: skopts,
       dice_cap: primary[:dice_cap], competency: primary[:competency],
       damage_type: Array(v['damage_type']).compact.first, school: v['school'],
-      # A reservoir-fill channel (Spiritual Weapon) pours dice into its Reservoir
-      # and strikes on later turns — its `attack_roll` belongs to those strikes,
-      # not the cast. Suppress it so the cast doesn't demand a Defense / attack
-      # roll; it just aims at a target and fills the Reservoir.
-      attack_roll: (fills_reservoir ? false : !!v['attack_roll']), save: (fills_reservoir ? nil : Array(v['save']).first),
+      # An attack-roll / Save Spell exposes its Defense step even when it also
+      # fills a Reservoir: Spiritual Weapon's cast is itself a strike against the
+      # target (the defender gets the usual Dodge / Block), and the same dice
+      # fill the Reservoir it strikes from on later turns.
+      attack_roll: !!v['attack_roll'], save: Array(v['save']).first,
       area: (area.is_a?(Hash) ? area : nil),
       multi_max: multi_max,
       requires_roll: requires_roll,
@@ -2294,17 +2294,14 @@ helpers do
       spell['duration'] = variant['duration'] || raw_entry['duration']
     end
 
-    # A reservoir-fill channel (Spiritual Weapon) fills its Reservoir at cast and
-    # strikes on later turns; the cast itself resolves no attack.
-    reservoir_channel = %w[reservoir auto].include?((variant && variant.dig('channel', 'mode')).to_s) &&
-                        (variant && variant.dig('reservoir', 'fill', 'source')).to_s == 'channel_dice'
-
     # Damage routing for the Cast path. An attack-roll Spell resolves as a spell
     # attack — net the casting check against the target's Block / Dodge, damage
-    # from the net Successes. A Save-based damage Spell with no explicit damage
-    # Effect deals the default Spell damage (floor(casting stat / 4) + Tier +
-    # Successes); a Spell that states its own damage formula keeps it.
-    if variant && variant['attack_roll'] && !reservoir_channel
+    # from the net Successes — even when it also fills a Reservoir (Spiritual
+    # Weapon's cast strikes the target and banks the dice for its later strikes).
+    # A Save-based damage Spell with no explicit damage Effect deals the default
+    # Spell damage (floor(casting stat / 4) + Tier + Successes); a Spell that
+    # states its own damage formula keeps it.
+    if variant && variant['attack_roll']
       spell['attack_roll'] = true
       spell['damage_type'] ||= Array(variant['damage_type']).compact.first
       spell['casting_attribute'] ||= (Proficiencies.attribute_for(spell['cast_skill']) || :cha).to_s
