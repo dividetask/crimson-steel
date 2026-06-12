@@ -155,6 +155,25 @@ get '/encounter' do
     @loot_pile = nil
   end
 
+  # Downtime / peaceful-phase Conditions stubs (shown in every Phase except
+  # Combat). The PC health cards sit at the top of the page for both viewers;
+  # the DM-only Urgent Actions panel surfaces the due Affliction saves while a
+  # Creature still carries an active Affliction (combat "continues" under a
+  # peaceful Phase until every Affliction is treated).
+  if @phase != :combat
+    @conditions_catalog = Conditions::Catalog.load
+    @downtime_cards     = downtime_cards(@viewer, @viewing_id)
+    if @viewer == :dm
+      @has_active_afflictions = encounter_state.combatants.any? do |c|
+        Conditions.store.instance_for(c[:creature_id]).state.afflictions.any? rescue false
+      end
+      @urgent_groups = @has_active_afflictions ? urgent_action_groups : []
+    end
+  else
+    @downtime_cards = []
+    @urgent_groups  = []
+  end
+
   erb :encounter
 end
 
@@ -522,6 +541,126 @@ helpers do
         resolve: { url: '/encounter/resolve_affliction',
                    combatant_id: combatant[:id], affliction: name }
       }
+    end
+  end
+
+  # ---- Downtime PC cards (conditions_downtime_pc_card_stub.md) -------
+  #
+  # One compact health card per Creature, shown at the top of the Encounter
+  # in every Phase except Combat. Players see every Player Character's card
+  # with their own Creature first; the DM additionally sees the non-PC
+  # Combatants (the enemies still being treated after a fight) after the PCs.
+  # Sourced from the live roster + Conditions + Equipment, the same domains
+  # the Combat Tracker reads. Returns an ordered array of card locals.
+  def downtime_cards(viewer, viewing_id)
+    rows = encounter_state.combatants.filter_map do |c|
+      acc = Creatures.lookup(c[:creature_id]) rescue nil
+      next nil unless acc
+      is_pc = Array(acc.tags).include?('player_character')
+      next nil if viewer != :dm && !is_pc
+      { is_pc: is_pc, card: downtime_card_data(c[:creature_id], acc) }
+    end
+    ordered =
+      if viewer == :dm
+        # PCs first (in roster order), then the NPCs / enemies.
+        rows.partition { |r| r[:is_pc] }.flatten
+      else
+        # The viewing player's own card first, the rest of the party after.
+        own, others = rows.partition { |r| r[:card][:id] == viewing_id }
+        own + others
+      end
+    ordered.map { |r| r[:card] }
+  end
+
+  # The `_conditions_pc_card` locals for one Creature, read from the live
+  # Creatures / Conditions / Equipment domains.
+  def downtime_card_data(creature_id, acc)
+    inst  = Conditions.store.instance_for(creature_id)
+    race  = (acc.race || '').to_s.split('_').map(&:capitalize).join(' ')
+    klass = acc.class_summary
+               .map { |k, lvl| "#{k.to_s.split('_').map(&:capitalize).join(' ')} #{lvl}" }
+               .join(' / ')
+    {
+      id:          creature_id,
+      name:        acc.name,
+      race:        race,
+      klass:       klass,
+      tier:        acc.tier,
+      max_hp:      (acc.max_hit_points rescue 0),
+      mana_max:    (acc.max_mana rescue 0),
+      charisma:    (acc.attribute_value(:cha) rescue 0),
+      consumables: downtime_consumables(creature_id),
+      state:       inst.state
+    }
+  end
+
+  # The Consumable Equipment Stacks a Creature carries, as the card's
+  # Healing-items rows ({name, tier, quantity}) — Equipment's *Get Inventory*
+  # filtered to the Consumable Item Type Category (equipment_design.md).
+  def downtime_consumables(creature_id)
+    cat  = Equipment.catalog
+    inst = Equipment.instance
+    inst.get_inventory("creature:#{creature_id}").filter_map do |stack|
+      next nil unless cat.category_of(stack.item_type) == 'Consumable'
+      { name:     (CreatureSheet.item_display_name(stack, cat) rescue Equipment::DisplayName.call(stack, cat)),
+        tier:     stack.tier,
+        quantity: stack.quantity }
+    end
+  rescue StandardError
+    []
+  end
+
+  # ---- Urgent Actions panel (conditions_bulk_affliction_stub.md) -----
+  #
+  # The due Affliction saves across the whole roster, grouped by Creature.
+  # Each Combatant's due saves reuse `start_of_turn_saves`' per-Affliction
+  # blob, so every row renders through the same Conditions Save Resolution
+  # Stub (and its Confirm POSTs to the same /encounter/resolve_affliction).
+  # A Creature with no due Affliction this Round is omitted. DM-only.
+  def urgent_action_groups
+    encounter_state.combatants.filter_map do |c|
+      saves = start_of_turn_saves(c)
+      next nil if saves.empty?
+      { combatant_id: c[:id], creature_id: c[:creature_id],
+        name: tracker_name(c), is_pc: creature_is_pc?(c[:creature_id]),
+        saves: saves }
+    end
+  end
+
+  # Roll one Affliction save server-side and return its Degree of Individual
+  # Success — the End Turn auto-roll for a save the DM did not resolve by
+  # hand. Composes the same Bonus/Penalty list the Conditions Save Resolution
+  # Stub builds (save_modifiers + Creature Tier Inherent Bonus + Potency Save
+  # Penalty + Inflicter Tier Penalty), computes the TN through the Ruby twin
+  # of the stub's TN computation, rolls `save_dice`, and scores per the Roll
+  # rules (Die Size -> +2, a 1 -> -1, >= TN -> +1; the Roll's default
+  # Critical / Failure Modifiers, since a save carries no Damage Type).
+  ROLL_CRITICAL_MODIFIER = 2
+  ROLL_FAILURE_MODIFIER  = -1
+  def roll_affliction_save_dois(save)
+    potency        = save[:affliction][:potency].to_i
+    divisor        = save[:potency_divisor].to_i
+    creature_tier  = save[:creature][:tier].to_i
+    inflicter_tier = save[:affliction][:inflicter_tier].to_i
+    potency_penalty = divisor.positive? ? potency / divisor : 0
+
+    list = Array(save[:save_modifiers]).map do |m|
+      m.is_a?(Array) ? m : [m[:type] || m['type'], m[:amount] || m['amount']]
+    end
+    list << ['Inherent', creature_tier] if creature_tier.positive?
+    list << ['Competency', -potency_penalty] if potency_penalty.positive?
+    list << ['Inherent', -inflicter_tier]
+
+    calc = DiceResolution.compute_target_number(list)
+    tn   = calc[:tn]
+    die  = save[:die_size].to_i
+    dice = Array.new(save[:save_dice].to_i) { rand(1..die) }
+    calc[:starting_value] + dice.sum do |v|
+      if    v == die then ROLL_CRITICAL_MODIFIER
+      elsif v == 1   then ROLL_FAILURE_MODIFIER
+      elsif v >= tn  then 1
+      else 0
+      end
     end
   end
 
@@ -2862,6 +3001,28 @@ post '/encounter/advance_turn' do
   # turn-start side effects (expire the new Combatant's timed Zones) and
   # persists Conditions.
   new_id = encounter_state.advance_turn
+  begin_turn_side_effects!(new_id) if new_id
+  redirect back || '/encounter'
+end
+
+# End Turn (conditions_bulk_affliction_stub.md): the Urgent Actions panel's
+# bulk commit. Rolls every due Affliction save still on the roster that the
+# DM did NOT resolve by hand (a hand-Confirmed save already resolved and
+# rescheduled itself, so it is no longer due), applies each through
+# *Resolve Affliction*, then advances Combat by one turn (when Combat is
+# active — the peaceful Phases keep an active Combat running until every
+# Affliction is treated). The player-driven cures (Use-Item, cast) apply the
+# instant they are taken, so nothing extra is replayed here.
+post '/encounter/end_turn' do
+  require_dm!
+  encounter_state.combatants.each do |c|
+    start_of_turn_saves(c).each do |save|
+      dois = roll_affliction_save_dois(save)
+      encounter_state.resolve_affliction_save(c[:id], save[:affliction][:name], dois)
+    end
+  end
+  Conditions.store.persist!
+  new_id = encounter_state.combat_active? ? encounter_state.advance_turn : nil
   begin_turn_side_effects!(new_id) if new_id
   redirect back || '/encounter'
 end

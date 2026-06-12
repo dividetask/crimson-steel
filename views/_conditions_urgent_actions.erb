@@ -1,0 +1,82 @@
+<%#
+  Conditions Bulk Affliction Stub — the Urgent Actions panel.
+
+  See docs/common/ui/conditions_bulk_affliction_stub.md.
+
+  DM-only. Surfaces the party's due Affliction saves in one place so the DM
+  can roll them by hand or settle them all at once with End Turn. Each save
+  row reuses the Conditions Save Resolution Stub, so a hand-rolled Confirm
+  resolves through the same /encounter/resolve_affliction path used in
+  Combat's Start of Turn pane.
+
+  Locals:
+    groups       — required. Array of { combatant_id, creature_id, name,
+                   is_pc, saves: [save blob, ...] } (see urgent_action_groups).
+    end_turn_url — required. POST target for the bulk End Turn commit.
+%>
+<%
+  # One Summary line per Creature: the due Affliction saves it owes, each
+  # "<Category> (potency N)". The JS rewrites a row in place once its save is
+  # rolled, so this is the pre-roll text.
+  summary_for = lambda do |group|
+    group[:saves].map do |s|
+      a = s[:affliction]
+      label = (a[:rule]['category'] || a[:name]).to_s
+                                                 .split('_')
+                                                 .map(&:capitalize)
+                                                 .join(' ')
+      "Save vs #{label} (potency #{a[:potency]})"
+    end.join('; ')
+  end
+%>
+
+<section class="urgent-actions" data-end-turn-url="<%= end_turn_url %>">
+  <h3 class="ua-title">Urgent Actions <span class="ua-dm-tag">(DM only)</span></h3>
+
+  <% if groups.any? %>
+    <div class="ua-filter">
+      <span class="ua-filter-label">Show actions for:</span>
+      <% groups.each do |g| %>
+        <label class="ua-filter-item">
+          <input type="checkbox" class="ua-toggle" data-combatant="<%= g[:combatant_id] %>" checked>
+          <%= g[:name] %>
+        </label>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="ua-overview">
+    <div class="ua-summary">
+      <h4 class="ua-summary-h">Summary</h4>
+      <% if groups.any? %>
+        <% groups.each do |g| %>
+          <div class="ua-summary-line" data-combatant="<%= g[:combatant_id] %>">
+            <strong class="ua-summary-name"><%= g[:name] %>:</strong>
+            <span class="ua-summary-text"><%= summary_for.call(g) %></span>
+          </div>
+        <% end %>
+      <% else %>
+        <%# Afflictions are still active but none are due this Round — End Turn
+            advances Combat until the next save comes due. %>
+        <p class="ua-summary-empty">No Affliction saves are due this turn. End Turn to advance Combat until the next save comes due.</p>
+      <% end %>
+    </div>
+
+    <form method="post" action="<%= end_turn_url %>" class="ua-end-turn-form">
+      <button type="submit" class="ce-btn ua-end-turn">End Turn</button>
+    </form>
+  </div>
+
+  <% if groups.any? %>
+    <div class="ua-saves">
+      <% groups.each do |g| %>
+        <div class="ua-group" data-combatant="<%= g[:combatant_id] %>">
+          <div class="ua-group-name"><%= g[:name] %><% if g[:is_pc] %> <span class="ua-badge ua-badge-pc">PC</span><% else %> <span class="ua-badge ua-badge-npc">NPC</span><% end %></div>
+          <% g[:saves].each do |s| %>
+            <%= erb :_conditions_save_resolution, locals: { save: s } %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</section>
