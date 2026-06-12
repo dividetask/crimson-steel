@@ -2103,6 +2103,9 @@ helpers do
     spell['cast_skill'] ||= (Array(variant && variant['skills']).first || Encounter::Cast::DEFAULT_CAST_SKILL)
 
     effects = cast_effects_from_consumption(r['effects'])
+    # Carry the Spell's duration so the resolver can time effects that expire
+    # (Ward's temp HP; Spiritual Weapon's "rank turns" lifetime).
+    spell['duration'] ||= variant['duration'] if variant && variant['duration']
     # Temporary-HP Spells (Ward) expire with the Spell's duration: carry the
     # duration onto the temp_hp Effect so resolve_cast_payload can compute the
     # expiry Round and the matching Ward condition fades with it.
