@@ -229,11 +229,10 @@ characters:
     # "divinations" — hence the divination-heavy spellbook below.
     #
     # A Level 8 Paragon. The wizard:4 entry is the Borrowed Talent persona
-    # he is currently wearing (half his character level), which is what
-    # grants his spellcasting — not a real fifth-through-eighth class level.
-    # His character level for the racial abilities (Absorb Persona, Borrowed
-    # Talent) is 8; the engine's total class levels read 12 only because the
-    # borrowed persona is modeled as a class entry.
+    # he is currently wearing (half his character level). It is flagged
+    # `borrowed: true`: it grants the wizard's class abilities and spells but
+    # NO character levels, so his Total Level stays 8 (paragon only) and the
+    # borrowed persona adds nothing to HP/Mana/Saves/Martial/Skill ranks.
     #
     # Attributes below are BASE. With the doppelganger race adjustments and
     # the Tier 3 inherent +3, his effective line is the intended
@@ -245,9 +244,10 @@ characters:
       classes:
         paragon:
           level: 8
-          skills: [arcana, local_lore, sense_motive, deception, persuasion, sleight_of_hand, perception]
+          skills: [arcana, local_lore, sense_motive, deception, persuasion, sleight_of_hand, perception, linguistics]
         wizard:
           level: 4
+          borrowed: true
           choices:
             # Borrowed Talent persona. Wizard point budget at level 4 is
             # 5 + level^2 = 21 points (each spell costs 1 + tier):
