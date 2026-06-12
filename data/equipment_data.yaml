@@ -153,6 +153,8 @@ characters:
       - item: Cloak
         tier: 1
         name: "Elven Cloak"
+        guidance_attribute: stealth
+        guidance_bonus: 1
         equipped: true
       - item: Headband of Intelligence
         tier: 1
@@ -263,7 +265,9 @@ characters:
             subtype: Acid
         equipped: true
       - item: Drums
-        tier: 1
+        name: "+1 Drums"
+        guidance_attribute: perform_percussion
+        guidance_bonus: 1
         equipped: true
       - item: Rapier
       - item: Wand of Benign Transposition

@@ -2398,7 +2398,8 @@ helpers do
       # Roll; its Dice Cap bounds the choice-dependent Dice step).
       perf_opts = skills.map do |s|
         { value: s[:key], key: s[:key], label: s[:label], summary: s[:label],
-          patch: { set_bpl: [{ id: 'performance', bonus_penalty_list: (s[:competency] ? [s[:competency]] : []) }] } }
+          patch: { set_bpl: [{ id: 'performance',
+                               bonus_penalty_list: ([s[:competency]] + Array(s[:modifiers])).compact }] } }
       end
       steps << { key: 'performance', label: 'Performance', options: perf_opts }
       dice_map = {}
@@ -2413,7 +2414,7 @@ helpers do
     else
       skill = skills.first
       perform_skill = skill && skill[:key]
-      rolls[0][:bonus_penalty_list] = (skill && skill[:competency]) ? [skill[:competency]] : []
+      rolls[0][:bonus_penalty_list] = skill ? ([skill[:competency]] + Array(skill[:modifiers])).compact : []
       d = dice_for.call((skill ? skill[:label] : ability_name), skill ? skill[:dice_cap] : 0)
       steps << { key: 'dice', label: 'Channel dice', options: d[:options], header_options: [d[:header]] }
     end

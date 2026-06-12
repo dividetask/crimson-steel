@@ -368,8 +368,13 @@ module Equipment
       effects = []
       defn = @catalog.definition_of(stack.item_type) || {}
 
-      if defn.key?('guidance_bonus') && stack.guidance_bonus
-        effects << { target_key: defn['guidance_attribute'],
+      # The Guidance target is the Stack's own `guidance_attribute` when set (a
+      # one-off Item like an Elven Cloak granting +1 to `stealth`), otherwise
+      # the catalog Item Type's `guidance_attribute` (the Belts / Cloak of
+      # Resistance). Either way the Stack carries the Bonus amount.
+      gattr = stack.guidance_attribute || defn['guidance_attribute']
+      if gattr && stack.guidance_bonus
+        effects << { target_key: gattr.to_s,
                      bonus_type: 'Guidance', amount: stack.guidance_bonus }
       end
 

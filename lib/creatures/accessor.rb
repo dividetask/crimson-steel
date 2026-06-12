@@ -133,6 +133,18 @@ module Creatures
       @record[:classes].values.flat_map { |e| Array(e[:skills]).map(&:to_s) }.uniq
     end
 
+    # Equipped Guidance Bonuses that target a *named skill check* by its key
+    # (an Elven Cloak's +1 to `stealth`), as [[bonus_type, amount], ...] pairs
+    # to append to that skill's Roll. Consulted by Proficiencies::Compute so the
+    # bonus rides every place the skill is rolled or shown. Empty when the
+    # cross-domain bridge (Equipment) is not loaded — pure-proficiency specs.
+    def skill_modifiers(key)
+      return [] unless defined?(::CreatureModifiers)
+      ::CreatureModifiers.skill_modifiers(self, key)
+    rescue StandardError
+      []
+    end
+
     # ---- ranks ----
     def ranks_for(key)
       key = key.to_s
