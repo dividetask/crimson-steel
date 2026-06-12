@@ -92,6 +92,7 @@ module Creatures
         entry = { 'level' => e[:level] }
         entry['skills']  = e[:skills]  unless Array(e[:skills]).empty?
         entry['choices'] = e[:choices] unless (e[:choices] || {}).empty?
+        entry['borrowed'] = true       if e[:borrowed]
         classes[key.to_s] = entry
       end
 
@@ -272,7 +273,8 @@ module Creatures
           end
         end
         choices = entry['choices'] || {}
-        out[class_key] = { level: level, skills: skills, choices: stringify_keys(choices) }
+        out[class_key] = { level: level, skills: skills, choices: stringify_keys(choices),
+                           borrowed: entry['borrowed'] ? true : false }
       end
       out
     end
