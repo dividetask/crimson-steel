@@ -1314,7 +1314,75 @@
       ],
       "owner_id": null,
       "active": true
+    },
+    {
+      "id": 74,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 74,
+      "scene_position": 70,
+      "title": "Wildmen's Quandary",
+      "public_description": "",
+      "dm_description": "The setup (module, Chapter 4): a small tribe of wild humans clings to life in the Drachensgrab hills, hunted by the humanoids as fair game. A humanoid tribe has captured most of their women, children, and elders, and a vile religious ceremony is approaching — the captives die unless freed soon. The wildmen assume anyone traveling the caravan trail unmolested is a slaver ally, i.e., an enemy. Everything below flows from that assumption and how the party breaks it.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 75,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 75,
+      "scene_position": 71,
+      "title": "Wildmen of Note",
+      "public_description": "",
+      "dm_description": "Chieftain Morag (Tier ~1; CG hunter-chief) — desperate, proud leader. A capable tracker and warrior (surprise, bonus vs. giant-kin), but his band is too few to assault the humanoids head-on. Give him a personal stake: name one captive his own — e.g., his daughter Yorga among those taken — so the clock is personal, not abstract.\r\n\r\nWitch Doctor Kotto (Tier ~1; NG cleric-mage) — the brains of the tribe and the architect of the capture plan. Spell kit worth knowing: invisibility, scare, ventriloquism, push, affect normal fires, light, speak with animals, chant, cure light wounds (x2). He's the one who drugs and disguises; in a fight he's support, not a bruiser.\r\n\r\nThe Captives — the majority of the tribe's non-hunters, held in the humanoid village awaiting the ceremony. The emotional core and the ticking clock. Naming two or three (a mother, a small child, the chief's daughter) makes the rescue land.\r\n\r\nThe Camp Remnant — back at the wildmen camp: two young children and one aged crone, nearly defenseless. Underlines how close to extinction the tribe is.\r\n\r\nThe Humanoid Captors — whichever tribe holds the territory the party is in: goblins, gnolls, or flinds. Their village (and chief) is the raid target. Pick the tribe by where the encounter lands and give the chief a name for the raid — a gnoll pack-lord or goblin king (Tier 1–2) presiding over the coming ceremony.\r\n\r\nThe Wildman Scout — first contact for many paths: a lone human spotted spying, who flees the instant he's seen. He's the tribe's eyes, reporting whether the party behaves like slavers or like something else.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 76,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 76,
+      "scene_position": 72,
+      "title": "Wildman - The Ask",
+      "public_description": "",
+      "dm_description": "Triggered if the party has been fighting the humanoids, OR (campaign-specific) is visibly not slaver-aligned. A small wildmen mission approaches and asks for help freeing their people, offering their guidance through humanoid territory in return. Refuse, and they fall back to Path 2.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 77,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 77,
+      "scene_position": 73,
+      "title": "Wildmen - The Capture",
+      "public_description": "",
+      "dm_description": "Kotto brews a sleeping draught, hands it to an older child, casts invisibility on them, and the child sneaks into camp (40% chance of a telltale noise) to dose the stew pot, then slips out. At dinner everyone saves vs. poison at a penalty: fail = out till morning; pass = heavily impaired, may doze on watch. The wildmen then close in at night to capture, not kill. Bound and disarmed, the party learns the wildmen mean no theft or murder — they want to trade the party to the humanoids for their captured kin. From here:\r\n\r\n\r\nKeep mum / let the trade happen (the trap branch): held a day, swapped at a midnight meeting, handed over naked, given only battered non-magical gear (racial antipathy = some PCs get nothing), then pressed to lead the humanoids in hunting the wildmen. A genuinely bad spot — especially for a wounded party.\r\nEscape: break out and flee or turn the tables.\r\nReveal as agents of good: convince the wildmen they're not slavers → befriend → Note C.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
     }
   ],
-  "next_id": 74
+  "next_id": 78
 }
