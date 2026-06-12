@@ -973,6 +973,10 @@ module Encounter
         # of a heal Effect; fold those amounts onto the resolved targets before
         # they are applied so the cure heals exactly what the DM entered.
         apply_heal_override!(resolved, over[:heals]) if over[:heals]
+        # DM damage override: the confirm page exposes an editable box per
+        # damaged target; fold the entered amount onto its damage Effect so the
+        # Severity split is recomputed from exactly what the DM committed.
+        apply_damage_override!(resolved, over[:damages]) if over[:damages]
         pool_spends.each { |s| spend_combat_pool(s[:id], s[:amount].to_i) }
         apply_luck_spends(p[:luck])
         mana_spent = mana_cost.positive? ? caster_inst.apply_mana_cost(amount: mana_cost, mana_max: mana_max) : 0
@@ -1744,6 +1748,23 @@ module Encounter
             h[k] = v if v.positive?
           end
           e.merge(severity_map: sev)
+        end
+      end
+    end
+
+    # Replace each damage Effect's amount with the DM-entered value (one editable
+    # box per damaged target on the confirm page). Keyed by target id; the new
+    # amount (floored at 0) routes through Apply Damage exactly as the computed
+    # amount would, so the Severity split is recomputed from what the DM entered.
+    # Non-damage Effects and untouched targets are unchanged.
+    def apply_damage_override!(resolved, damages)
+      by_id = {}
+      Array(damages).each { |d| by_id[d[:target_id].to_i] = d[:amount].to_i }
+      resolved.each do |t|
+        next unless by_id.key?(t[:id].to_i)
+        amt = [by_id[t[:id].to_i], 0].max
+        t[:effects] = Array(t[:effects]).map do |e|
+          e[:kind].to_s == 'damage' ? e.merge(amount: amt) : e
         end
       end
     end

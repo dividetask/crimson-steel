@@ -150,6 +150,10 @@ export class TurnCast {
     });
     const healList = Object.keys(heals).map((id) => ({ target_id: num(id), severity_map: heals[id] }));
     if (healList.length) o.heals = healList;
+    // Edited damage amounts: "damage:<targetId>" → one override per target.
+    const damages = Object.keys(f).filter((k) => k.indexOf('damage:') === 0)
+      .map((k) => ({ target_id: num(k.slice(7)), amount: f[k] }));
+    if (damages.length) o.damages = damages;
     return o;
   }
 
@@ -199,14 +203,26 @@ export class TurnCast {
         });
       });
     });
+    // A damage Effect surfaces one editable box per damaged target so the DM can
+    // adjust the amount before commit (the Severity split is recomputed on the
+    // server from what is entered). The box replaces the read-only damage note.
+    const dmgTargets = (res.targets || []).filter((t) => (t.applied || []).some((a) => a.kind === 'damage'));
+    dmgTargets.forEach((t) => {
+      const a = (t.applied || []).find((x) => x.kind === 'damage');
+      const who = dmgTargets.length > 1 ? `${nameOf(t.id)} — ` : '';
+      fields.push({ key: `damage:${t.id}`, label: `Damage ${who}`.trim(), value: num(a.amount),
+                    editable: true, suffix: `${a.damage_type || ''} (${splitText(a.severity_map)})` });
+    });
     const notes = [{
       label: res.spell || 'Spell',
       value: (res.cast_skill || '') +
         (tox.requested ? ` · Toxicity ${num(tox.requested)}${tox.accepted === false ? ' (blocked)' : ''}` : '')
     }];
     (res.targets || []).forEach((t) => {
-      // The heal Severities show as editable fields above, so drop them here.
-      const fx = (t.applied || []).filter((a) => a.kind !== 'heal').map((a) => TurnCast._fxText(a)).filter(Boolean).join(', ');
+      // Heal Severities and damage amounts show as editable fields above, so
+      // drop them from the read-only outcome note here.
+      const fx = (t.applied || []).filter((a) => a.kind !== 'heal' && a.kind !== 'damage')
+        .map((a) => TurnCast._fxText(a)).filter(Boolean).join(', ');
       notes.push({ label: `#${t.id}`, value: `${t.outcome || ''}${fx ? ' — ' + fx : ''}` });
     });
     if (res.sustain) notes.push({ label: 'Sustain', value: res.sustain.kind });
