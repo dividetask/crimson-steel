@@ -235,7 +235,7 @@ characters:
     advancement:
       classes:
         commoner:
-          level: 0
+          level: 1
           skills: []
 
   - id: 1112
