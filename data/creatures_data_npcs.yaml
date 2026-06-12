@@ -227,17 +227,29 @@ characters:
     # Poses as a landless elf noble / minor wizard; truly a doppelganger
     # (see chronicle). Reads surface thoughts and launders them as
     # "divinations" — hence the divination-heavy spellbook below.
+    #
+    # A Level 8 Paragon. The wizard:4 entry is the Borrowed Talent persona
+    # he is currently wearing (half his character level), which is what
+    # grants his spellcasting — not a real fifth-through-eighth class level.
+    # His character level for the racial abilities (Absorb Persona, Borrowed
+    # Talent) is 8; the engine's total class levels read 12 only because the
+    # borrowed persona is modeled as a class entry.
+    #
+    # Attributes below are BASE. With the doppelganger race adjustments and
+    # the Tier 3 inherent +3, his effective line is the intended
+    # STR 21 / DEX 16 / CON 15 / INT 20 / WIS 17 / CHA 20.
     race: doppelganger
     tier: 3
-    attributes: { str: 21, dex: 16, con: 15, int: 20, wis: 17, cha: 20 }
+    attributes: { str: 10, dex: 11, con: 10, int: 15, wis: 10, cha: 13 }
     advancement:
       classes:
+        paragon:
+          level: 8
+          skills: [arcana, local_lore, sense_motive, deception, persuasion, sleight_of_hand, perception]
         wizard:
           level: 4
-          skills: [arcana, local_lore, sense_motive, deception, persuasion, sleight_of_hand, perception]
           choices:
-            # Caelian casts as a level-4 wizard via the doppelganger's
-            # Borrowed Talent. Wizard point budget at level 4 is
+            # Borrowed Talent persona. Wizard point budget at level 4 is
             # 5 + level^2 = 21 points (each spell costs 1 + tier):
             # divination / information core plus a couple of combat picks
             # (Grease, Fire Dart).
