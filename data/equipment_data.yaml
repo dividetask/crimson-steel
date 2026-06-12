@@ -439,3 +439,140 @@ characters:
       - item: Oil of Light
       - item: Oil of Goodberry
         tier: 1
+
+  # =============================================================
+  # Rise of the Slavelords — Hill Fort signature gear.
+  #
+  # Owner ids match the named-fort-leader creature ids in
+  # creatures_data_rise_of_the_slavelords_fort.yaml (357-363). Item-type
+  # mapping and `tier` follow equipment_config.yaml, same as above.
+  #
+  # DM NOTE: this is a lot of magic for an artifact-heavy party. Prune
+  # freely — the plot-critical pull is the Iron Ring of Keys (361).
+  # =============================================================
+
+  # 357 — Hill Fort Overseer (minor slave-lord, fighter-mage)
+  357:
+    inventory:
+      - item: Bracer
+        tier: 2
+        name: "Bracers of the Overseer"
+        description: "Grants an armor bonus to an unarmored or robed wearer, reducing the TN to be hit."
+        equipped: true
+      - item: Quarterstaff
+        tier: 2
+        name: "The Overseer's Rod"
+        description: "A black rod that holds charges. Discharge to cast hold person or loose a bolt of force. Recharges slowly."
+        equipped: true
+      - item: Ring
+        tier: 1
+        name: "Ring of Parry"
+        description: "Allows a single free parry once per day."
+        equipped: true
+      - item: Trinket
+        tier: 1
+        guidance_bonus: 1
+        name: "Slaver's Luckstone"
+        description: "+1 on all saving throws while carried."
+      - item: Amulet
+        name: "Brand of Mortheth"
+        description: "An overseer's badge of office and unholy symbol of Mortheth. Marks the bearer's authority over the fort."
+        equipped: true
+      - item: Trinket
+        name: "Overseer's Strongbox Key"
+        description: "Opens the overseer's private strongbox and quarters."
+      - item: Potion of Heal
+        tier: 2
+        quantity: 2
+      - item: Potion of Blindspot
+        tier: 2
+
+  # 358 — Fort Commander Icar (blind veteran fighter)
+  358:
+    inventory:
+      - item: Plate mail
+        equipped: true
+      - item: Battleaxe
+        tier: 1
+        name: "Icar's Axe"
+        description: "A plain, well-balanced +1 battleaxe worn smooth with use."
+        equipped: true
+      - item: Amulet
+        tier: 2
+        name: "Periapt of Proof Against Poison"
+        description: "The wearer is immune to poison. Icar relies on it."
+        equipped: true
+      - item: Trinket
+        name: "Key to the Commander's Quarters"
+        description: "Opens Icar's quarters and the closet where his cache is kept. The duplicate key is hidden on the door lintel above."
+      - item: Potion of Heal
+        tier: 2
+        quantity: 2
+
+  # 359 — The Executioner (ogre headsman)
+  359:
+    inventory:
+      - item: Greataxe
+        tier: 1
+        name: "The Cleaver"
+        description: "An oversized headsman's axe. Crude, enormous, and stained."
+        equipped: true
+      - item: Leather armor
+        name: "Stitched Hide"
+        description: "Crude hide and scrap-leather lashed over the ogre's frame."
+        equipped: true
+
+  # 361 — Gatehouse Captain Gorbin (holds the fort keys)
+  361:
+    inventory:
+      - item: Breastplate
+        tier: 1
+        equipped: true
+      - item: Battleaxe
+        equipped: true
+      - item: Longbow
+      - item: Trinket
+        tier: 1
+        name: "Iron Ring of Keys"
+        description: "A heavy iron loop of keys that unlocks the fort's gates, interior doors, and the slave-cell shackles. The single most useful thing on his belt."
+        equipped: true
+      - item: Potion of Heal
+        tier: 1
+
+  # 362 — Lieutenant Kairn (half-orc)
+  362:
+    inventory:
+      - item: Chain shirt
+        tier: 1
+        equipped: true
+      - item: Falchion
+        equipped: true
+      - item: Longbow
+      - item: Potion of Heal
+        tier: 1
+
+  # 363 — Witch-Doctor Guliyet (goblin cleric of Mortheth)
+  363:
+    inventory:
+      - item: Leather armor
+        equipped: true
+      - item: Quarterstaff
+        tier: 1
+        name: "Fetish Stick"
+        description: "A gnarled staff hung with bones, teeth, and scraps of skin."
+        equipped: true
+      - item: Amulet
+        name: "Bone Idol of Mortheth"
+        description: "A crude carved idol serving as the witch-doctor's unholy symbol."
+        equipped: true
+      - item: Trinket
+        name: "Curse Fetish"
+        description: "A knotted fetish of hair and bone the witch-doctor uses to focus a hex."
+      - item: Scroll of Spiritual Weapon
+        tier: 2
+        quantity: 2
+      - item: Scroll of Ward
+        tier: 1
+        quantity: 2
+      - item: Potion of Heal
+        tier: 2

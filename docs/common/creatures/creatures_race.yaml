@@ -175,6 +175,18 @@ kobold:
     - name: Trapfinding
       min_level: 0
 
+# +14 Str/Con, -4 Dex/Int/Wis/Cha. Large, speed 30 from humanoid.
+# Thick hide grants +4 natural armor; fights with a natural Slam.
+ogre:
+  parent: humanoid
+  size: large
+  attribute_adjustments: { str: 14, con: 14, dex: -4, int: -4, wis: -4, cha: -4 }
+  abilities:
+    - name: Ogre Slam
+      min_level: 0
+    - name: natural_armor_4
+      min_level: 0
+
 # --- Fey races ---------------------------------------------------------
 
 fey:
