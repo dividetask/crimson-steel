@@ -435,16 +435,13 @@ helpers do
     inst.active_effect_names.each do |name|
       badges << { kind: 'effect', label: name.to_s.split(/[_\s]+/).map(&:capitalize).join(' ') }
     end
-    # Bardic Inspiration / reservoir Performances, and Luck Points granted; plus
-    # auto-mode Spells (Spiritual Weapon) that self-sustain from a persistent
-    # Reservoir — shown as an active-spell badge so the caster sees the spell is
-    # up and how many dice it strikes with each turn.
+    # Bardic Inspiration / reservoir Performances, and Luck Points granted. An
+    # auto-mode Spell (Spiritual Weapon) is not surfaced here — it shows its
+    # active-spell badge through the named caster Condition applied at cast
+    # (active_effect_names, above), so it isn't double-badged.
     Array(combatant[:concentration]).each do |e|
-      next unless e[:reservoir].to_i.positive?
-      case e[:mode]
-      when 'reservoir' then badges << { kind: 'luck',   label: "#{e[:spell_name]}: #{e[:reservoir]}" }
-      when 'auto'      then badges << { kind: 'effect', label: "#{e[:spell_name]} (#{e[:reservoir]})" }
-      end
+      next unless e[:mode] == 'reservoir' && e[:reservoir].to_i.positive?
+      badges << { kind: 'luck', label: "#{e[:spell_name]}: #{e[:reservoir]}" }
     end
     badges << { kind: 'luck', label: "Luck: #{combatant[:luck_points]}" } if combatant[:luck_points].to_i.positive?
     badges << { kind: 'major', label: "Major: #{state.hp_damage[:major]}" } if (state.hp_damage[:major] || 0).positive?
