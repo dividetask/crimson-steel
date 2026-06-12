@@ -158,7 +158,7 @@ module Equipment
       weapon_counts = Hash.new(0)
 
       read_inventory(owner_id).each do |stack|
-        next unless stack.equipped
+        next unless effectively_equipped?(stack)
         category = @catalog.category_of(stack.item_type)
         index = 0
         if category == 'Weapon'
@@ -184,7 +184,7 @@ module Equipment
     # whether the loadout has been reconciled into Conditions this
     # session. Returns a list of { target_key:, bonus_type:, amount:, ... }.
     def equipped_effects(owner_id)
-      read_inventory(owner_id).select(&:equipped).flat_map { |s| stack_effects(s) }
+      read_inventory(owner_id).select { |s| effectively_equipped?(s) }.flat_map { |s| stack_effects(s) }
     rescue StandardError
       []
     end
@@ -330,6 +330,14 @@ module Equipment
 
     def equippable?(stack)
       %w[Weapon Armor Item].include?(@catalog.category_of(stack.item_type))
+    end
+
+    # Whether a Stack's effects are active. A Tattoo is permanent — it is
+    # never equippable/unequippable (see `equippable?`), so it is always
+    # borne and posts its effects regardless of the `equipped` flag. Every
+    # other category must be explicitly equipped.
+    def effectively_equipped?(stack)
+      stack.equipped || @catalog.category_of(stack.item_type) == 'Tattoo'
     end
 
     def set_equipped(owner_id, ref, value)

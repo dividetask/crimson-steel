@@ -144,12 +144,13 @@ characters:
       equipped: true
       guidance_bonus: 1
       guidance_attribute: stealth
-    - item: Headband of Intelligence
+    - item: Tattoo of the Fox
       tier: 1
-      name: "+1 Face Tattoo of Fox's Cunning"
       guidance_bonus: 1
-      description: A permanent tattoo that increases the bearer's enhancement bonus
-        to Intelligence.
+      description: A fox curled behind Lysander's ear and traced down into his
+        hairline, hidden beneath his hair unless someone looks closely. The
+        fox's cunning sharpens his mind, granting a +1 Guidance Bonus to
+        Intelligence. As a tattoo it is always borne and cannot be removed.
     - item: Circlet of the Boughking
       equipped: true
     - item: Trinket

@@ -127,6 +127,7 @@ Tattoo Slots:
   - belt
   - body
   - chest
+  - face
   - feet
   - finger
   - hands
@@ -891,6 +892,16 @@ Tattoos:
       - ability: Sneak Attack
         class_level: 1
     base_price: 5000
+  # A face-slot Tattoo granting a +1 Guidance Bonus to Intelligence. Like
+  # every Tattoo it is permanent — always borne, never (un)equipped — so it
+  # posts its bonus without an `equipped` flag. `no_store` keeps it out of
+  # shop provisioning (the DM places it). The Stack carries the Bonus value.
+  Tattoo of the Fox:
+    category: Tattoo
+    slot: face
+    guidance_attribute: int
+    no_store: true
+    description: "A small fox inked in fine lines behind the ear and along the hairline, kept hidden beneath the wearer's hair. The fox's cunning sharpens the mind, granting a +1 Guidance Bonus to Intelligence."
 
 # =====================================================================
 # POISON VIALS
