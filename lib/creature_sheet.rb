@@ -82,8 +82,10 @@ module CreatureSheet
     trained.filter_map do |key|
       next unless Proficiencies.attribute_for(key)
       ri = Proficiencies::Compute.roll_inputs(key: key, creature: accessor)
+      comp  = ri[:competency_modifier] ? ri[:competency_modifier][1] : 0
+      guide = Array(ri[:skill_modifiers]).sum { |_type, amt| amt.to_i }
       { name: pretty_skill_name(key), ranks: (accessor.ranks_for(key) rescue 0),
-        dice: ri[:dice_cap], bonus: (ri[:competency_modifier] ? ri[:competency_modifier][1] : 0) }
+        dice: ri[:dice_cap], bonus: comp + guide }
     end
   rescue StandardError
     []

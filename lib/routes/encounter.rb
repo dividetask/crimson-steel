@@ -104,10 +104,11 @@ get '/encounter' do
       false
     end
 
-  # Item pane (turn_action_stub.md → Item): offered only when the Acting
-  # Combatant carries a usable Potion / Scroll.
+  # Item pane (turn_action_stub.md → Item): offered when the Acting Combatant
+  # carries a usable Potion / Scroll, or wields a spell-granting Wand / Ring.
   @acting_has_items =
-    @acting_row ? (consumable_spell_items(@acting_row[:creature_id]).any? rescue false) : false
+    @acting_row ? ((consumable_spell_items(@acting_row[:creature_id]).any? ||
+                    granted_spell_items(@acting_row[:creature_id]).any?) rescue false) : false
 
   # Bardic Inspiration (and any reservoir-mode Performance): the live
   # Reservoirs a DM can discharge to grant Luck. DM-only; off-turn, since a
@@ -253,19 +254,21 @@ helpers do
   # (DM-only) loots and clears the non-PC Combatants into the active Map's
   # Ground Pile; the loot-pile stub (DM + players) distributes that pile.
 
-  # The Ground Pile location for the active Map (e.g. "map_3"), or nil
-  # when no Map is active. The pile is named after the Map, so loot left
-  # unlooted when the party changes Maps is no longer surfaced.
+  # The Ground Pile location loot is gathered into. With an active Map the
+  # pile is named after it ("map_3"), so loot left unlooted when the party
+  # changes Maps is no longer surfaced. With no active Map — a campaign that
+  # plays without the Atlas — it falls back to a single stable "loot" pile so
+  # post-combat loot is still collected and surfaced for the Sell Pile rather
+  # than silently lost when the looted Combatants are removed.
   def loot_pile_location
     id = Atlas.state.active_map_id
-    id.nil? ? nil : "map_#{id}"
+    id.nil? ? 'loot' : "map_#{id}"
   end
 
-  # The Ground Pile Owner ID for the active Map's loot pile, or nil when
-  # no Map is active.
+  # The Ground Pile Owner ID for the loot pile. Always present (see
+  # loot_pile_location); an empty pile simply renders nothing.
   def combat_pile_owner
-    loc = loot_pile_location
-    loc.nil? ? nil : "ground:#{loc}"
+    "ground:#{loot_pile_location}"
   end
 
   # The non-PC Combatants of the current roster — every Combatant whose
@@ -273,11 +276,13 @@ helpers do
   # post-combat cleanup stub offers to loot and delete, each carrying a
   # preview of the gear it would hand over (its current Inventory; a
   # loot_table adds random items on top). A dangling creature_id (record
-  # lost on restart) is skipped.
+  # lost on restart) is skipped. NPC allies (`group: npc`) are flagged and
+  # sorted to the top so the stub can list them apart from enemies and
+  # default them to Ignore / Keep.
   def post_combat_rows
     cat  = Equipment.catalog
     inst = Equipment.instance
-    encounter_state.combatants.filter_map do |c|
+    rows = encounter_state.combatants.filter_map do |c|
       acc = Creatures.lookup(c[:creature_id]) rescue nil
       next unless acc
       next if Array(acc.tags).include?('player_character')
@@ -285,9 +290,12 @@ helpers do
       { combatant_id: c[:id],
         creature_id:  c[:creature_id],
         name:         tracker_name(c),
+        npc:          ((acc.group rescue nil).to_s == 'npc'),
         loot_table:   acc.record[:loot_table],
         loot:         inv.map { |s| { name: CreatureSheet.item_display_name(s, cat), quantity: s.quantity } } }
     end
+    # NPCs first, enemies after; stable within each group (preserve roster order).
+    rows.sort_by.with_index { |r, i| [r[:npc] ? 0 : 1, i] }
   end
 
   # Aggregate the loot every row would contribute into one list (quantities
@@ -725,6 +733,9 @@ helpers do
         # Parry uses one of the defender's melee weapons; Block needs a shield.
         parry_weapons: equipped_melee_weapons(c[:creature_id]),
         has_shield:    equipped_shield?(c[:creature_id]),
+        # A charged Ring of Parry offers a free (no-pool) Parry at the weapon's
+        # Dice Cap — one per equipped melee weapon, against a melee attack only.
+        ring_parry:    ring_parry_available?(c[:creature_id]),
         # Reaction Abilities the target may use against this attack: the Talents
         # it has, its remaining Mana (to afford them), and whether it is Raging
         # (Primal Tenacity is a rage power). Drives Better Lucky Than Good as a
@@ -892,6 +903,16 @@ helpers do
                             name: "Parry with #{pw[:display_name]}", inputs: t[:martial],
                             speed: [pw[:speed].to_i, 0].max }
             end
+            # A charged Ring of Parry: a free Parry per melee weapon, always at
+            # the weapon's full Dice Cap, costing no Combat Pool (one daily ring
+            # charge instead). `free` makes it a single fixed-cap option below.
+            if t[:ring_parry]
+              t[:parry_weapons].each do |pw|
+                branches << { key: "ringparry:#{pw[:item_type]}", group: "ringparry:#{pw[:item_type]}",
+                              name: "Ring of Parry (#{pw[:display_name]})", inputs: t[:martial],
+                              speed: 0, free: true }
+              end
+            end
           end
         end
 
@@ -923,6 +944,16 @@ helpers do
                        set_speed: [{ id: 'defender', speed: dspd }],
                        set_name:  [{ id: 'defender', roll_name: b[:name] }],
                        set_excluded: [{ id: 'defender', excluded: false }] } }
+          end
+          if b[:free]
+            # Ring of Parry: a single option at the full Dice Cap, no Combat
+            # Pool cost and no dice picker. Disabled only when the weapon yields
+            # no Dice Cap to roll.
+            opts << mk.call(cap, "#{b[:name]} — #{cap} dice, free", cap < 1)
+            headers << { value: "#{b[:key]}|#{cap}", label: b[:name], disabled: cap < 1 }
+            opts << { kind: 'info', group: b[:group], value: "#{b[:group]}|info",
+                      label: (dcmp.empty? ? 'no Combat Pool' : "#{fmt_mods.call(dcmp)} · no Combat Pool") }
+            next
           end
           # Every Defensive Action here (Dodge / Block / Parry) is a pool-costed
           # Reaction — the DM picks dice from the Reaction Minimum up to the
@@ -1233,16 +1264,22 @@ helpers do
   end
 
   # Action Builder blob for the Item pane (turn_action_stub.md → Item): the
-  # decoupled Cast builder, but the "Spell" list is the actor's carried Potions
-  # and Scrolls. Each consumable casts its Item's Spell with the Spell's own
-  # casting skill (Evocation by default) and costs no Mana; a committed cast
-  # decrements the Consumable (and a Potion / Oil imposes Item-Form Magic
-  # Toxicity). Reuses the same builder, resolve endpoint, and result renderer as
-  # Cast — only the castable list and the resolve glue differ.
+  # decoupled Cast builder, but the "Spell" list is every Spell the actor can
+  # cast *from an item* — carried Potions / Scrolls (consumed on use, no Mana,
+  # Potion / Oil imposes Item-Form Magic Toxicity) plus the Spells granted by
+  # equipped Wands / Rings (the wielder's own Mana, nothing consumed). The
+  # Wand / Ring Spells also appear under Cast; listing them here too gives one
+  # place to fire every item-sourced Spell. Reuses the same builder, resolve
+  # endpoint, and result renderer as Cast — only the castable list differs.
   def item_builder_blob(actor)
-    acc  = Creatures.lookup(actor[:creature_id]) rescue nil
-    pool = (encounter_state.combat_pool_remaining(actor[:id]) rescue 0) || 0
-    spells = consumable_castables(actor, acc, pool).reject { |sp| sp[:long_cast] }
+    acc        = Creatures.lookup(actor[:creature_id]) rescue nil
+    pool       = (encounter_state.combat_pool_remaining(actor[:id]) rescue 0) || 0
+    mana_max   = (acc&.max_mana rescue nil)
+    mana_spent = (Conditions.store.instance_for(actor[:creature_id]).state.mana_spent rescue 0)
+    mana_left  = mana_max ? [mana_max - mana_spent, 0].max : nil
+    spells = (consumable_castables(actor, acc, pool) +
+              granted_item_castables(actor, acc, pool, mana_left))
+             .reject { |sp| sp[:long_cast] }
     build_cast_blob(caster: actor, acc: acc, spells: spells, pool: pool,
                     title: "#{tracker_name(actor)} uses an item", stub_id: "item-#{actor[:id]}",
                     spell_label: 'Item', cast_verb: 'Use')
@@ -1274,7 +1311,7 @@ helpers do
       v    = (Abilities.lookup(vname) rescue nil) || {}
       cost = mana_cost_for_tier(it[:tier])
       castable_descriptor(acc, vname, it[:tier], pool, mana_left,
-                          skill: item_cast_skill(v), mana_cost: cost)
+                          skill_options: item_skill_options(v, acc), mana_cost: cost)
     end
   end
 
@@ -1305,7 +1342,7 @@ helpers do
       castable_descriptor(acc, it[:spell], it[:tier], pool, nil,
                           mana_cost: 0, key: "item:#{it[:ref]}", display: it[:display],
                           item: it, self_only: it[:form] == 'potion',
-                          quantity: it[:quantity], skill_options: item_skill_options(v))
+                          quantity: it[:quantity], skill_options: item_skill_options(v, acc))
     end
   end
 
@@ -1316,12 +1353,21 @@ helpers do
     (Array(variant && variant['skills']).first || 'evocation').to_s
   end
 
-  # The casting skills a consumable offers: the Spell's own primary skill and
-  # Evocation (item-form default), deduped and order-preserving. So a Potion of
-  # Heal offers Healing / Evocation; an Arcana potion offers Arcana / Evocation;
-  # an Evocation spell offers Evocation alone.
-  def item_skill_options(variant)
-    [item_cast_skill(variant), 'evocation'].uniq
+  # The casting skills a Spell cast *from an item* offers: every skill the
+  # Spell lists, plus Evocation (the universal item-form skill) — deduped and
+  # order-preserving. Anyone activating an item may roll any of these, whether
+  # or not they are a caster. A Set-Skill family (e.g. `perform_`) is resolved
+  # to the actor's trained instance and dropped when they train none (it cannot
+  # be rolled bare). So a Spark Shower ring offers Nature / Arcana / Evocation;
+  # a Heal potion offers Healing / Nature / Evocation (plus the actor's
+  # Performance, if any); an Evocation-only Spell offers Evocation alone.
+  def item_skill_options(variant, acc = nil)
+    listed = Array(variant && variant['skills']).map(&:to_s).flat_map do |s|
+      next [s] unless s.end_with?('_')
+      resolved = acc ? resolve_skill_family(acc, s) : s
+      resolved.to_s.end_with?('_') ? [] : [resolved.to_s]
+    end
+    (listed + ['evocation']).uniq
   end
 
   # One castable descriptor for the Cast / Item builders. `name` is the Spell
@@ -1333,9 +1379,14 @@ helpers do
                           key: nil, display: nil, item: nil, self_only: false,
                           skill_options: nil, quantity: nil)
     v   = (Abilities.lookup(name) rescue nil) || {}
+    # A constructed per-Tier / name-axis variant name ("Standard Ward",
+    # "Create Illusionary Sound") doesn't resolve directly — fall back to the
+    # base Spell so target count, Save, School, etc. are correct.
+    bname = (spell_base_axis(name).first rescue nil) if name
+    v = ((Abilities.lookup(bname) rescue nil) || {}) if v.empty? && bname
     # Area footprint (Hash, or the first footprint Aspect of an Aspect-list area
     # like Grease). Area Spells are placed on the map, not targeted.
-    raw  = (Abilities.catalog.ability(name) rescue nil) || {}
+    raw  = (Abilities.catalog.ability(name) rescue nil) || (bname && Abilities.catalog.ability(bname) rescue nil) || {}
     ra   = raw['area']
     area = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
     act  = (Abilities.resolve_activation(v) rescue nil)
@@ -1377,12 +1428,26 @@ helpers do
     # The Combat Pool dice a cast costs at minimum — its Action category's Action
     # Minimum (Main 4 / Bonus 2 / Free 0).
     action_min = Encounter::Special.action_cost(act && act[:alias])
+    # Multi-target: a Save / attack-roll Spell whose `target` resolves to more
+    # than one creature (e.g. `rank` → one per caster rank in the casting skill)
+    # lets the DM toggle several targets, capped at the resolved count. Each
+    # target resolves through the per-creature Save path, so a no-defense utility
+    # Spell stays single-target. Single / self / area → nil.
+    target_rank = (acc&.ranks_for(primary[:skill]) rescue 0).to_i
+    multi_max   = if Array(v['save']).first || v['attack_roll']
+                    multi_target_max(v['target'], target_rank)
+                  end
     { name: name, key: (key || name), display: (display || name),
       tier: tier, mana_cost: mana_cost, skill: primary[:skill], skill_options: skopts,
       dice_cap: primary[:dice_cap], competency: primary[:competency],
       damage_type: Array(v['damage_type']).compact.first, school: v['school'],
-      attack_roll: !!v['attack_roll'], save: Array(v['save']).first,
+      # A reservoir-fill channel (Spiritual Weapon) pours dice into its Reservoir
+      # and strikes on later turns — its `attack_roll` belongs to those strikes,
+      # not the cast. Suppress it so the cast doesn't demand a Defense / attack
+      # roll; it just aims at a target and fills the Reservoir.
+      attack_roll: (fills_reservoir ? false : !!v['attack_roll']), save: (fills_reservoir ? nil : Array(v['save']).first),
       area: (area.is_a?(Hash) ? area : nil),
+      multi_max: multi_max,
       requires_roll: requires_roll,
       reservoir: fills_reservoir,
       action_min: action_min,
@@ -1394,20 +1459,86 @@ helpers do
       item: item, self_only: self_only || v['target'].to_s == 'self', quantity: quantity }
   end
 
-  # Equipped Wands / Rings (any `grants_spell` Item): each adds its Spell to the
-  # wielder's Cast list while equipped (equipment_design.md → Wand).
+  # The maximum number of creatures a Spell may target, from its `target`
+  # formula resolved at the caster's rank — or nil when it targets one creature,
+  # itself, an object, or an area (those don't use the multi-select toggles).
+  def multi_target_max(target, rank)
+    return nil if target.nil?
+    s = target.to_s
+    return nil if %w[self object 1].include?(s)
+    n = (Abilities.resolver.resolve_target({ 'target' => target }, rank: rank) rescue nil)
+    n = n.to_i if n.is_a?(Numeric)
+    (n.is_a?(Integer) && n > 1) ? n : nil
+  end
+
+  # Equipped Wands / Rings (any `grants_spell` Item): each adds its Spell(s) to
+  # the wielder's Cast list while equipped (equipment_design.md → Wand). A Wand
+  # grants a single `spell`; a multi-spell Ring (Ring of Shooting Stars) grants
+  # every name in its `spells` list. Each Spell is cast at the Spell's own Tier
+  # — never the Item's Tier (so a Tier-2 Ring still grants a Tier-0 and a Tier-1
+  # Spell). A multi-Tier Spell line (e.g. Heal) has no single Tier, so the
+  # Stack's Tier still selects the variant.
   def granted_spell_items(creature_id)
     cat = Equipment.catalog
     inv = (Equipment.instance.get_inventory(equipment_owner(creature_id)) rescue [])
-    inv.each_with_index.filter_map do |s, i|
+    inv.each_with_index.flat_map do |s, i|
+      next [] unless s.equipped
+      defn = cat.definition_of(s.item_type) || {}
+      next [] unless defn['grants_spell']
+      form = item_form_of(s.item_type, defn)
+      display = CreatureSheet.item_display_name(s, cat)
+      granted_spell_names(s, defn).map do |spell|
+        { ref: i, item_type: s.item_type, display: display,
+          spell: spell, tier: granted_spell_tier(spell, s.tier), form: form }
+      end
+    end
+  end
+
+  # The equipped Ring of Parry (`grants_parry`) a Creature wears, as
+  # `{ ref:, stack: }`, or nil. Only the first such ring is used.
+  def ring_parry_item(creature_id)
+    cat = Equipment.catalog
+    inv = (Equipment.instance.get_inventory(equipment_owner(creature_id)) rescue [])
+    inv.each_with_index do |s, i|
       next unless s.equipped
       defn = cat.definition_of(s.item_type) || {}
-      next unless defn['grants_spell']
-      spell = s.stored_spell || defn['spell']
-      next unless spell
-      { ref: i, item_type: s.item_type, display: CreatureSheet.item_display_name(s, cat),
-        spell: spell, tier: s.tier, form: item_form_of(s.item_type, defn) }
+      return { ref: i, stack: s } if defn['grants_parry']
     end
+    nil
+  end
+
+  # Whether a Creature can use its Ring of Parry against an attack right now:
+  # it wears one and the single daily charge has recharged (never spent, or
+  # spent on an earlier day than today). Dawn = a new day_index.
+  def ring_parry_available?(creature_id)
+    it = ring_parry_item(creature_id) or return false
+    used = it[:stack].parry_used_day
+    used.nil? || used.to_i < encounter_state.current_day_index
+  end
+
+  # Spend the Ring of Parry's daily charge (stamp today's day_index on it and
+  # persist), so it cannot Parry again until the next dawn. No-op if the
+  # Creature wears no ring.
+  def consume_ring_parry!(creature_id)
+    it = ring_parry_item(creature_id) or return
+    Equipment.instance.set_parry_used_day(equipment_owner(creature_id), it[:ref],
+                                          encounter_state.current_day_index)
+  end
+
+  # The Spell names a `grants_spell` Item confers: every entry of its `spells`
+  # list (a multi-spell Ring), else its single `spell` (a Wand), preferring a
+  # Stack's `stored_spell` override.
+  def granted_spell_names(stack, defn)
+    names = defn['spells'].is_a?(Array) ? defn['spells'] : [stack.stored_spell || defn['spell']]
+    names.compact.map(&:to_s)
+  end
+
+  # The Tier a granted Spell is cast at: the Spell's own Catalog Tier when it is
+  # single-Tier, falling back to the Stack's Tier for a multi-Tier Spell line
+  # (whose specific variant the Stack selects) or an unknown Spell.
+  def granted_spell_tier(spell, stack_tier)
+    t = ((Abilities.catalog.ability(spell) rescue nil) || {})['tier']
+    t.is_a?(Array) || t.nil? ? stack_tier : t
   end
 
   # Carried Potions / Scrolls (Consumable spell-form Items) the actor can use
@@ -1623,7 +1754,12 @@ helpers do
           combatant_target_opts
         end
     end
-    target_step = { key: 'target', label: 'Target', options_by: %w[spell], options_map: target_map }
+    # Multi-target Spells (target resolves to >1, e.g. the illusions at
+    # `rank`) carry a per-Spell cap so the Target step can offer toggle
+    # buttons (select up to `max`) instead of a single pick.
+    multi_map = spells.each_with_object({}) { |sp, h| h[sp[:key]] = sp[:multi_max] if sp[:multi_max] }
+    target_step = { key: 'target', label: 'Target', options_by: %w[spell], options_map: target_map,
+                    multi_by: %w[spell], multi_map: multi_map }
 
     # Step 4 — the target's Defense, choice-dependent on (target, spell): the
     # target's Saving Throw for a Save spell, Dodge / Block for an attack-roll
@@ -2115,6 +2251,18 @@ helpers do
     spell['cast_skill'] ||= (Array(variant && variant['skills']).first || Encounter::Cast::DEFAULT_CAST_SKILL)
 
     effects = cast_effects_from_consumption(r['effects'])
+    # Carry the Spell's duration so the resolver can time effects that expire
+    # (Ward's temp HP; Spiritual Weapon's "rank turns" lifetime).
+    spell['duration'] ||= variant['duration'] if variant && variant['duration']
+    # Ward shows a 'ward' condition alongside its temp HP. Mark it by *base*
+    # name so per-Tier names ("Standard Ward") still match.
+    spell['temp_hp_condition'] = 'ward' if (spell_base_axis(spell['name']).first rescue nil) == 'Ward'
+    # Temporary-HP Spells (Ward) expire with the Spell's duration: carry the
+    # duration onto the temp_hp Effect so resolve_cast_payload can compute the
+    # expiry Round and the matching Ward condition fades with it.
+    if variant && variant['duration']
+      effects = effects.map { |e| e['kind'] == 'temp_hp' ? e.merge('duration' => variant['duration']) : e }
+    end
     # Buff Spells carry a `modifiers:` list (Magic Weapon, Magic Vestments,
     # Expeditious Retreat, Resistance, Protection from Poison, …). Carry it
     # through as a `modifiers` cast Effect; resolve_cast_payload evaluates the
@@ -2149,12 +2297,17 @@ helpers do
       spell['duration'] = variant['duration'] || raw_entry['duration']
     end
 
+    # A reservoir-fill channel (Spiritual Weapon) fills its Reservoir at cast and
+    # strikes on later turns; the cast itself resolves no attack.
+    reservoir_channel = %w[reservoir auto].include?((variant && variant.dig('channel', 'mode')).to_s) &&
+                        (variant && variant.dig('reservoir', 'fill', 'source')).to_s == 'channel_dice'
+
     # Damage routing for the Cast path. An attack-roll Spell resolves as a spell
     # attack — net the casting check against the target's Block / Dodge, damage
     # from the net Successes. A Save-based damage Spell with no explicit damage
     # Effect deals the default Spell damage (floor(casting stat / 4) + Tier +
     # Successes); a Spell that states its own damage formula keeps it.
-    if variant && variant['attack_roll']
+    if variant && variant['attack_roll'] && !reservoir_channel
       spell['attack_roll'] = true
       spell['damage_type'] ||= Array(variant['damage_type']).compact.first
       spell['casting_attribute'] ||= (Proficiencies.attribute_for(spell['cast_skill']) || :cha).to_s
@@ -2410,7 +2563,8 @@ helpers do
       # Roll; its Dice Cap bounds the choice-dependent Dice step).
       perf_opts = skills.map do |s|
         { value: s[:key], key: s[:key], label: s[:label], summary: s[:label],
-          patch: { set_bpl: [{ id: 'performance', bonus_penalty_list: (s[:competency] ? [s[:competency]] : []) }] } }
+          patch: { set_bpl: [{ id: 'performance',
+                               bonus_penalty_list: ([s[:competency]] + Array(s[:modifiers])).compact }] } }
       end
       steps << { key: 'performance', label: 'Performance', options: perf_opts }
       dice_map = {}
@@ -2425,7 +2579,7 @@ helpers do
     else
       skill = skills.first
       perform_skill = skill && skill[:key]
-      rolls[0][:bonus_penalty_list] = (skill && skill[:competency]) ? [skill[:competency]] : []
+      rolls[0][:bonus_penalty_list] = skill ? ([skill[:competency]] + Array(skill[:modifiers])).compact : []
       d = dice_for.call((skill ? skill[:label] : ability_name), skill ? skill[:dice_cap] : 0)
       steps << { key: 'dice', label: 'Channel dice', options: d[:options], header_options: [d[:header]] }
     end
@@ -2807,6 +2961,12 @@ post '/encounter/resolve_attack' do
   if result[:committed]
     Conditions.store.persist!
     encounter_state.spend_main_action(payload.dig('attacker', 'id').to_i)
+    # A Ring of Parry's free Parry spends its once-per-day charge on commit, so
+    # the defender cannot use it again until dawn.
+    if payload.dig('defense', 'choice').to_s == 'ringparry'
+      def_comb = encounter_state.combatant(payload.dig('defense', 'id').to_i)
+      consume_ring_parry!(def_comb[:creature_id]) if def_comb
+    end
   end
   encounter_response(result)
 end
@@ -2844,8 +3004,13 @@ end
 get '/encounter/cast_area_rolls' do
   require_dm!
   return encounter_error(404, 'unknown caster') unless encounter_state.combatant(params[:caster_id].to_i)
-  v    = (Abilities.lookup(params[:spell].to_s) rescue nil) || {}
-  raw  = (Abilities.catalog.ability(params[:spell].to_s) rescue nil) || {}
+  # Resolve the (possibly variant / per-Tier) Spell name to its Variant — a
+  # bare `Abilities.lookup` only knows base catalog keys, so a variant name
+  # (e.g. "Create Illusionary Sound") would miss the `save` and leave every
+  # caught creature at zero Save dice.
+  v    = resolve_named_spell(params[:spell].to_s)
+  base, = spell_base_axis(params[:spell].to_s)
+  raw  = (Abilities.catalog.ability(base) rescue nil) || {}
   ra   = raw['area']
   area = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
   save = Array(v['save']).first || (area.is_a?(Hash) ? Array(area['on_enter']).first : nil)

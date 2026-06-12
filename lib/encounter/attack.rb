@@ -21,7 +21,14 @@ module Encounter
     DEFENSES = {
       'parry' => { proficiency: 'martial',   attribute_override: nil,  applies: %w[melee],              pool_cost: true  },
       'block' => { proficiency: 'martial',   attribute_override: nil,  applies: %w[melee ranged spell], pool_cost: true  },
-      'dodge' => { proficiency: 'dex_save',  attribute_override: :dex, applies: %w[melee ranged spell], pool_cost: true  }
+      'dodge' => { proficiency: 'dex_save',  attribute_override: :dex, applies: %w[melee ranged spell], pool_cost: true  },
+      # A Ring of Parry's free Parry: Martial, melee only, like a Parry but it
+      # spends NO Combat Pool (pool_cost false) and always rolls the weapon's
+      # full Dice Cap. Costs one daily ring charge instead, consumed on commit.
+      # `conditional` — only available when the defender wears a charged ring, so
+      # it is NOT in the universal eligible-defenses list (the builder injects it
+      # per-defender), though it still resolves as a normal defense.
+      'ringparry' => { proficiency: 'martial', attribute_override: nil, applies: %w[melee], pool_cost: false, conditional: true }
     }.freeze
 
     ATTACK_KINDS = %w[melee ranged spell].freeze
@@ -37,9 +44,13 @@ module Encounter
       spec && spec[:applies].include?(attack_kind.to_s)
     end
 
-    # The eligible Defensive Actions against an attack of `attack_kind`.
+    # The universally-eligible Defensive Actions against an attack of
+    # `attack_kind`. Conditional defenses (a Ring of Parry, available only when
+    # the defender wears a charged ring) are excluded — the builder injects
+    # those per-defender.
     def eligible_defenses(attack_kind)
-      DEFENSES.keys.select { |d| defense_eligible?(d, attack_kind) }
+      DEFENSES.reject { |_d, spec| spec[:conditional] }.keys
+              .select { |d| defense_eligible?(d, attack_kind) }
     end
 
     # Attacker Bonuses (encounter_config.yaml). Flatfooted applies whenever

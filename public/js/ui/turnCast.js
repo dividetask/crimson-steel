@@ -26,6 +26,7 @@ export class TurnCast {
     // Capture an area placement (re-placement re-fires via the Target step's
     // own Change button, which re-arms the "Place on the map" option).
     document.addEventListener('cast:area-placed', (e) => TurnCast._areaPlaced(container, e.detail || {}));
+    document.addEventListener('cast:targets-selected', (e) => TurnCast._targetsSelected(container, e.detail || {}));
 
     container.innerHTML = '<p class="ta-attack-loading">Loading spells…</p>';
     fetch('/encounter/cast_builder?caster_id=' + encodeURIComponent(container._casterId), { headers: { Accept: 'text/html' } })
@@ -46,8 +47,18 @@ export class TurnCast {
   // Record an area placement: stash it for the payload and hand it to the
   // builder, which lists the affected creatures as the Target and gives each a
   // Save (Opposed) Roll. No separate "placed" box.
+  // A multi-target selection (toggled creatures, no footprint) reuses the area
+  // machinery: list the chosen creatures as targets, each with a Save Roll, and
+  // skip the single-target Defense step. No placement point.
+  static _targetsSelected(container, detail) {
+    container._placement = null;
+    container._spread = true;
+    if (container._builder) ActionBuilder.areaPlaced(container._builder, container._casterId, detail);
+  }
+
   static _areaPlaced(container, detail) {
     container._placement = detail;
+    container._spread = false;
     if (container._builder) ActionBuilder.areaPlaced(container._builder, container._casterId, detail);
   }
 
@@ -58,23 +69,24 @@ export class TurnCast {
     const spellName = choices.spell;
     const caster = rolls.find((r) => r.id === 'caster') || {};
 
-    // Area Spell: the placed footprint determines the affected creatures (the
-    // Spread Opposers). Each caught creature's Save Roll nets against the cast
-    // independently; send the placement point + each creature's Save successes.
-    if (container._placement) {
-      const p = container._placement;
-      const targets = rolls
-        .filter((r) => String(r.id).indexOf('save-') === 0)
-        .map((r) => ({ id: parseInt(String(r.id).replace('save-', ''), 10), save: { successes: r.successes } }));
-      return {
+    // Spread cast — an area Spell's placed footprint OR a multi-target toggle
+    // selection. Each affected creature has its own Save Roll netting against
+    // the cast independently; send each creature's Save successes (plus the
+    // placement point for an area Spell).
+    const spreadTargets = rolls
+      .filter((r) => String(r.id).indexOf('save-') === 0)
+      .map((r) => ({ id: parseInt(String(r.id).replace('save-', ''), 10), save: { successes: r.successes } }));
+    if (container._placement || spreadTargets.length) {
+      const out = {
         commit: commit,
         spell_name: spellName,
         spell: { name: spellName },
         luck: ActionBuilder.luckSpends(choices),
         caster: { id: container._casterId, dice: caster.dice_count, speed: caster.speed || 0, successes: caster.successes },
-        placement: { x: p.x, y: p.y },
-        targets: targets
+        targets: spreadTargets
       };
+      if (container._placement) out.placement = { x: container._placement.x, y: container._placement.y };
+      return out;
     }
 
     const tgtRoll = rolls.find((r) => r.id === 'target');

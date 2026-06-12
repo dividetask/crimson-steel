@@ -1,0 +1,11 @@
+# Crimson Steel — combat_example overlay (intentionally empty).
+#
+# The shipped docs example (creatures_data_combat_example.example.yaml)
+# defines a sample combat — a Wolf and two Goblins (ids 2003-2005). Those
+# demo creatures are NOT part of the live campaign, so this data/ overlay
+# overrides the example with an empty roster to keep them from loading.
+# Delete this file (or the whole data/ dir) to see the shipped demo again.
+
+name: Combat Example
+
+characters: []

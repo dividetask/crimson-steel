@@ -1,0 +1,191 @@
+# Crimson Steel — Enemy roster (example data).
+#
+# Holds two kinds of entries (both share the same schema):
+#
+#   * Enemy templates — long-lived catalog entries that Random Encounter Tables
+#     and the DM enemy sidebar reference. Tagged `enemy_template` plus
+#     one or more `category:<bucket>` tags. Conventionally id 100..999.
+#
+#   * Spawned enemies — instance records created when an Random Encounter Table
+#     resolves or the DM adds a creature from a template. Each spawn is
+#     a distinct Creature with its own ID (no two Combatants share a
+#     Creature record). Spawns are typically deleted by the post-combat
+#     loot stub (Equipment) once the DM marks them for removal. They
+#     conventionally start at id 1000.
+#
+# See `creatures_data_pcs.example.yaml` for the full Creature schema.
+
+characters:
+
+  - id: 100
+    name: Pirate
+    metadata:
+      creature_token: "/images/icons/human token.webp"
+    group: enemy
+    tags: [enemy_template, category:general]
+    race: human
+    attributes:
+      str: 13
+      dex: 14
+      con: 13
+      int: 12
+      wis: 10
+      cha: 8
+    advancement:
+      classes:
+        rogue:
+          level: 1
+          skills:
+            - acrobatics
+            - athletics
+            - deception
+            - intimidate
+            - perception
+            - profession_sailor
+            - sense_motive
+
+  - id: 101
+    name: Orc Patrol
+    metadata:
+      creature_token: "/images/icons/orc token.webp"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: orc
+    tier: 1
+    attributes: { str: 12, dex: 10, con: 9, int: 8, wis: 9, cha: 7 }
+    advancement:
+      classes:
+        fighter:
+          level: 3
+          skills: [athletics, intimidate]
+    equipment_table: slaver_loadout
+
+  - id: 102
+    name: Orc Patrol Captain
+    metadata:
+      creature_token: "/images/icons/orc token.webp"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: orc
+    tier: 2
+    attributes: { str: 19, dex: 14, con: 8, int: 12, wis: 11, cha: 9 }
+    advancement:
+      classes:
+        fighter:
+          level: 8
+          skills: [athletics, intimidate, perception]
+    equipment_table: slaver_loadout
+
+  - id: 103
+    name: Half-Orc Soldier
+    metadata:
+      creature_token: "/images/icons/orc rogue.webp"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: half_orc
+    tier: 1
+    attributes: { str: 17, dex: 12, con: 14, int: 9, wis: 9, cha: 7 }
+    advancement:
+      classes:
+        fighter:
+          level: 4
+          skills: [athletics, intimidate, perception]
+    equipment_table: soldier_loadout
+
+  - id: 104
+    name: Slave
+    metadata:
+      creature_token: "/images/icons/slaves token.webp"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan, noncombatant]
+    race: human
+    tier: 0
+    attributes: { str: 9, dex: 9, con: 9, int: 9, wis: 9, cha: 9 }
+    advancement:
+      classes:
+        commoner:
+          level: 0
+          skills: []
+
+  - id: 105
+    name: Wardog
+    metadata:
+      creature_token: "/images/icons/war dog token.webp"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: canine
+    tier: 2
+    attributes: { str: 15, dex: 13, con: 13, int: 9, wis: 14, cha: 8 }
+    advancement:
+      classes:
+        feral:
+          level: 3
+          skills: [nature, perception]
+
+  - id: 106
+    name: Stockade Guard
+    metadata:
+      creature_token: "/images/icons/orc token.webp"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_stockade]
+    race: orc
+    tier: 1
+    attributes: { str: 12, dex: 10, con: 9, int: 8, wis: 9, cha: 7 }
+    advancement:
+      classes:
+        fighter:
+          level: 3
+          skills: [athletics, intimidate]
+    equipment_table: slaver_loadout
+
+  - id: 107
+    name: Cleric Slaver
+    metadata:
+      creature_token: "/images/icons/human token.webp"
+      deity: Mortheth
+    group: enemy
+    tags: [enemy_template, category:slave_lords_temple]
+    race: orc
+    tier: 3
+    attributes: { str: 12, dex: 11, con: 7, int: 13, wis: 15, cha: 13 }
+    advancement:
+      classes:
+        cleric:
+          level: 8
+          skills: [healing, intimidate, perception, religion, sense_motive]
+          choices:
+            deity: Mortheth
+            domains: [Death, Greed, Ruin]
+    equipment_table: slaver_loadout
+
+  - id: 108
+    name: Half-Orc Veteran
+    metadata:
+      creature_token: "/images/icons/orc rogue.webp"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: half_orc
+    tier: 2
+    attributes: { str: 19, dex: 11, con: 15, int: 8, wis: 8, cha: 6 }
+    advancement:
+      classes:
+        fighter:
+          level: 7
+          skills: [athletics, intimidate, perception, sense_motive]
+    equipment_table: soldier_loadout
+
+  - id: 109
+    name: Orc Handler
+    metadata:
+      creature_token: "/images/icons/orc token.webp"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: orc
+    tier: 1
+    attributes: { str: 10, dex: 11, con: 8, int: 9, wis: 10, cha: 9 }
+    advancement:
+      classes:
+        fighter:
+          level: 3
+          skills: [animal_handling, intimidate]
+    equipment_table: slaver_loadout

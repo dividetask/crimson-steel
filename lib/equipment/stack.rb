@@ -10,14 +10,14 @@ module Equipment
   class Stack
     attr_accessor :item_type, :quantity, :tier, :properties, :inscribed_spells,
                   :stored_spell, :durability_damage, :name_override, :equipped,
-                  :value_in_gold, :gem_name, :guidance_bonus, :restock_target,
-                  :description
+                  :value_in_gold, :gem_name, :guidance_bonus, :guidance_attribute,
+                  :restock_target, :description, :parry_used_day
 
     def initialize(item_type:, quantity: 1, tier: 0, properties: [],
                    inscribed_spells: [], stored_spell: nil, durability_damage: 0,
                    name_override: nil, equipped: false, value_in_gold: nil,
-                   gem_name: nil, guidance_bonus: nil, restock_target: nil,
-                   description: nil)
+                   gem_name: nil, guidance_bonus: nil, guidance_attribute: nil,
+                   restock_target: nil, description: nil, parry_used_day: nil)
       @item_type         = item_type.to_s
       @quantity          = quantity
       @tier              = Integer(tier)
@@ -30,8 +30,18 @@ module Equipment
       @value_in_gold     = value_in_gold
       @gem_name          = gem_name
       @guidance_bonus    = guidance_bonus.nil? ? nil : Integer(guidance_bonus)
+      # An optional per-Stack Guidance target (a skill key like `stealth` or
+      # `perform_drums`): lets a one-off magic Item grant a Guidance Bonus to a
+      # named check without a bespoke catalog Item Type. Falls back to the
+      # Item Type's own `guidance_attribute` when absent (the catalog Belts).
+      @guidance_attribute = guidance_attribute&.to_s
       @restock_target    = restock_target.nil? ? nil : Integer(restock_target)
       @description       = description
+      # The in-world day_index a once-per-day item charge was last spent (a Ring
+      # of Parry). nil = never spent / fully charged. Not an identity field — a
+      # spent and an unspent Ring still merge as the same Item (quantity 1 in
+      # practice). Recharges when the current day_index passes this value.
+      @parry_used_day    = parry_used_day.nil? ? nil : Integer(parry_used_day)
     end
 
     # Accepts a Stack (returned as-is), or a raw hash with either the
@@ -55,8 +65,10 @@ module Equipment
         value_in_gold:     h['value_in_gold'],
         gem_name:          h['gem_name'] || (is_gem ? h['name'] : nil),
         guidance_bonus:    h['guidance_bonus'],
+        guidance_attribute: h['guidance_attribute'],
         restock_target:    h['restock_target'],
-        description:       h['description']
+        description:       h['description'],
+        parry_used_day:    h['parry_used_day']
       )
     end
 
@@ -81,7 +93,7 @@ module Equipment
         @properties.map { |p| [p[:name], p[:subtype], p[:cost]] },
         @inscribed_spells.dup,
         @stored_spell, @durability_damage, @name_override, @equipped,
-        @value_in_gold, @gem_name, @guidance_bonus
+        @value_in_gold, @gem_name, @guidance_bonus, @guidance_attribute
       ]
     end
 
@@ -118,8 +130,9 @@ module Equipment
         stored_spell: @stored_spell, durability_damage: @durability_damage,
         name_override: @name_override, equipped: @equipped,
         value_in_gold: @value_in_gold, gem_name: @gem_name,
-        guidance_bonus: @guidance_bonus, restock_target: @restock_target,
-        description: @description
+        guidance_bonus: @guidance_bonus, guidance_attribute: @guidance_attribute,
+        restock_target: @restock_target,
+        description: @description, parry_used_day: @parry_used_day
       )
     end
 
@@ -148,8 +161,10 @@ module Equipment
       h['equipped']          = true               if @equipped
       h['value_in_gold']     = @value_in_gold     unless @value_in_gold.nil?
       h['guidance_bonus']    = @guidance_bonus    unless @guidance_bonus.nil?
+      h['guidance_attribute'] = @guidance_attribute if @guidance_attribute
       h['restock_target']    = @restock_target    unless @restock_target.nil?
       h['description']       = @description        if @description
+      h['parry_used_day']    = @parry_used_day     unless @parry_used_day.nil?
       h
     end
   end

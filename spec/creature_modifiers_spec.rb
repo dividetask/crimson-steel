@@ -49,6 +49,29 @@ RSpec.describe CreatureModifiers do
     end
   end
 
+  describe '.skill_modifiers (equipment Guidance to a named skill)' do
+    it 'returns the Guidance only for the exact skill key, not other skills or saves' do
+      allow(described_class).to receive(:equipped_effects).and_return(
+        [{ target_key: 'stealth',           bonus_type: 'Guidance', amount: 1 },
+         { target_key: 'perform_percussion', bonus_type: 'Guidance', amount: 1 },
+         { target_key: 'saves',             bonus_type: 'Guidance', amount: 2 }]
+      )
+      expect(described_class.skill_modifiers(human, 'stealth')).to eq([['Guidance', 1]])
+      expect(described_class.skill_bonus(human, 'perform_percussion')).to eq(1)
+      # An unrelated skill, and the 'saves' Guidance, never leak in.
+      expect(described_class.skill_modifiers(human, 'perception')).to eq([])
+      expect(described_class.skill_bonus(human, 'wis_save')).to eq(0)
+    end
+
+    it 'per-Type stacks (keeps the highest of two same-Type bonuses)' do
+      allow(described_class).to receive(:equipped_effects).and_return(
+        [{ target_key: 'stealth', bonus_type: 'Guidance', amount: 1 },
+         { target_key: 'stealth', bonus_type: 'Guidance', amount: 3 }]
+      )
+      expect(described_class.skill_bonus(human, 'stealth')).to eq(3)
+    end
+  end
+
   describe '.save_modifiers' do
     it 'includes the Cloak (Guidance to saves) on every save, unconditionally' do
       allow(described_class).to receive(:equipped_effects).and_return(

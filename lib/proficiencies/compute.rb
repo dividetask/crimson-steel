@@ -51,7 +51,25 @@ module Proficiencies
       # check*; a Saving Throw (`*_save`) never takes it.
       bonus_penalty += Config.non_proficiency_penalty if !trained && !key.end_with?('_save')
       modifier = bonus_penalty.zero? ? nil : ['Competency', bonus_penalty]
-      { dice_cap: dice_cap, competency_modifier: modifier }
+      out = { dice_cap: dice_cap, competency_modifier: modifier }
+      # Equipped skill-targeted Guidance (an Elven Cloak's +1 to `stealth`) only
+      # decorates the result when present, so the bare proficiency shape (and the
+      # pure-module specs) are unchanged for a skill with no such Item.
+      skill_mods = skill_modifiers_for(creature, key)
+      out[:skill_modifiers] = skill_mods unless skill_mods.empty?
+      out
+    end
+
+    # Equipped Guidance Bonuses that target this skill key by name (e.g. an
+    # Elven Cloak's +1 to `stealth`), as a list of [type, amount] pairs to
+    # append to the Roll's bonus_penalty_list — a different Bonus Type than the
+    # Competency, so it stacks alongside rather than merging. Empty when the
+    # creature does not expose the bridge (pure-proficiency unit specs).
+    def skill_modifiers_for(creature, key)
+      return [] unless creature.respond_to?(:skill_modifiers)
+      Array(creature.skill_modifiers(key))
+    rescue StandardError
+      []
     end
 
     # Roll inputs for an *untrained* (zero-rank) non-Restricted Skill

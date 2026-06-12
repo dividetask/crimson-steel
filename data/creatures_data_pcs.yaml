@@ -1,0 +1,162 @@
+---
+characters:
+- id: 1
+  name: Stumpy
+  metadata:
+    creature_token: /images/characters/Stumpy.webp
+  race: hill_dwarf
+  attributes:
+    str: 10
+    dex: 12
+    con: 11
+    int: 12
+    wis: 12
+    cha: 9
+  advancement:
+    tier_attribute_advancement:
+    - wis
+    - con
+    classes:
+      cleric:
+        level: 4
+        skills:
+        - invocation
+        - sense_motive
+        - arcana
+        - nature
+        - intimidate
+        - perception
+        choices:
+          deity: Karthak
+          domains:
+          - War
+          - Healing
+          - Glory
+          spellcasting:
+          - sacred_flame
+          - magic_vestments
+          - healing_word
+          - command
+          - divine_favor
+          - magic_weapon
+          - spiritual_weapon
+          - hold_person
+          - silence
+          - blind
+          - protection_from_poison
+          - standard_surgery
+  player: Jarett
+  tags:
+  - player_character
+- id: 2
+  name: Olga
+  metadata:
+    creature_token: /images/characters/Olga.webp
+  race: human
+  attributes:
+    str: 14
+    dex: 14
+    con: 12
+    int: 8
+    wis: 10
+    cha: 7
+  advancement:
+    tier_attribute_advancement:
+    - str
+    - con
+    classes:
+      barbarian:
+        level: 4
+        skills:
+        - athletics
+        - nature
+        - sense_motive
+        - stealth
+  player: Candace
+  tags:
+  - player_character
+- id: 3
+  name: Lysander
+  metadata:
+    creature_token: /images/characters/Lysander.webp
+  race: high_elf
+  attributes:
+    str: 7
+    dex: 13
+    con: 11
+    int: 9
+    wis: 13
+    cha: 11
+  advancement:
+    tier_attribute_advancement:
+    - dex
+    - cha
+    classes:
+      arcane_trickster:
+        level: 4
+        skills:
+        - arcana
+        - stealth
+        - larceny
+        - sleight_of_hand
+        - deception
+        - persuasion
+        - perception
+        - game_chess
+        choices:
+          spellcasting:
+          - fire_dart
+          - message
+          - silent_portal
+          - create_illusionary_sound
+          - mage_hand
+          - hideous_laughter
+          - illusion_of_calm
+          - auditory_hallucination
+  player: Zack
+  tags:
+  - player_character
+- id: 4
+  name: Cottonballs
+  metadata:
+    creature_token: /images/characters/Cottonballs.webp
+  race: satyr
+  attributes:
+    str: 9
+    dex: 12
+    con: 12
+    int: 10
+    wis: 11
+    cha: 12
+  advancement:
+    tier_attribute_advancement:
+    - dex
+    - cha
+    classes:
+      bard:
+        level: 4
+        skills:
+        - perform_sing
+        - perform_percussion
+        - animal_handling
+        - persuasion
+        - perception
+        - evocation
+        - nature
+        choices:
+          versatile_performance:
+          - sing
+          spellcasting:
+          - detect_magic
+          - friends
+          - create_illusionary_sound
+          - sift
+          - vacuous_vessel
+          - vicious_mockery
+          - biting_words
+          - ears_of_the_city
+          - create_illusionary_image
+          - timely_inspiration
+  player: Dave
+  tags:
+  - player_character
