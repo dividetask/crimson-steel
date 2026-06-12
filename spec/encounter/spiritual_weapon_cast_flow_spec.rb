@@ -89,4 +89,22 @@ RSpec.describe 'Spiritual Weapon cast flow', type: :request do
     labels = (action['options'] || []).map { |o| o['summary'] || o['label'] }.compact
     expect(labels.join(' ')).to include('Spiritual Weapon')
   end
+
+  it 'lets the target Parry the Spiritual Weapon strike (it is a melee attack)' do
+    # The defender wields a melee weapon to Parry with.
+    allow_any_instance_of(Sinatra::Application).to receive(:equipped_melee_weapons)
+      .and_return([{ item_type: 'longsword', display_name: 'Longsword', speed: 0 }])
+    # Give the caster a live Spiritual Weapon Reservoir so the strike is offered.
+    Encounter.state.send(:begin_concentration, @caster[:id], spell_name: 'Spiritual Weapon',
+                         source: 'x', spell_tier: 2, cast_skill: 'invocation',
+                         mode: 'auto', reservoir_reset: 'persistent', initial_reservoir: 5)
+
+    get "/encounter/attack_builder?attacker_id=#{@caster[:id]}"
+    blob = builder_blob(last_response.body)
+    defense = blob['steps'].find { |s| s['key'] == 'defense' }
+    opts = (defense['options_map'] || {})["#{@target[:id]}|spiritual_weapon"]
+    expect(opts).not_to be_nil
+    values = opts.map { |o| o['value'] }.compact
+    expect(values.any? { |v| v.to_s.start_with?('parry:') }).to be(true)
+  end
 end

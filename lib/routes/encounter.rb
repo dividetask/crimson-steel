@@ -695,9 +695,11 @@ helpers do
     # Spiritual Weapon: while the caster channels it, the floating weapon strikes
     # each turn with a number of dice equal to its (persistent) Reservoir — a
     # force attack that costs no Combat Pool and does not consume the Reservoir.
+    # It is a melee strike (a weapon hovering beside the target taking swings),
+    # not a ranged attack, so the target may Parry it like any normal melee blow.
     sw = Array(attacker[:concentration]).find { |e| e[:spell_name].to_s == 'Spiritual Weapon' && e[:reservoir].to_i.positive? }
     if sw
-      weapons << { item_type: 'spiritual_weapon', display_name: 'Spiritual Weapon', ranged: true,
+      weapons << { item_type: 'spiritual_weapon', display_name: 'Spiritual Weapon', ranged: false,
                    speed: 0, damage_types: ['force'], threshold: 0, bleed: 0, base_damage: 0,
                    dice_cap: sw[:reservoir].to_i, competency: nil }
     end
