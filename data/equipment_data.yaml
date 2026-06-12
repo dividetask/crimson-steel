@@ -295,12 +295,8 @@ characters:
       tier: 2
     - item: Scroll of Expeditious Retreat
       tier: 1
-    - item: Ring
-      tier: 3
-      name: Desna's Whim
+    - item: Desna's Whim
       equipped: true
-      description: Unknown Properties. Can be activated as a reaction to another's
-        check with unpredictable results.
     - item: Scroll of Create Pit
       quantity: 2
       tier: 2
