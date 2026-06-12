@@ -1365,12 +1365,18 @@ helpers do
     # The Combat Pool dice a cast costs at minimum — its Action category's Action
     # Minimum (Main 4 / Bonus 2 / Free 0).
     action_min = Encounter::Special.action_cost(act && act[:alias])
+    # Multi-target: a Spell whose `target` resolves to more than one creature
+    # (e.g. `rank` → one per caster rank in the casting skill) lets the DM toggle
+    # several targets, capped at the resolved count. Single / self / area → nil.
+    target_rank = (acc&.ranks_for(primary[:skill]) rescue 0).to_i
+    multi_max   = multi_target_max(v['target'], target_rank)
     { name: name, key: (key || name), display: (display || name),
       tier: tier, mana_cost: mana_cost, skill: primary[:skill], skill_options: skopts,
       dice_cap: primary[:dice_cap], competency: primary[:competency],
       damage_type: Array(v['damage_type']).compact.first, school: v['school'],
       attack_roll: !!v['attack_roll'], save: Array(v['save']).first,
       area: (area.is_a?(Hash) ? area : nil),
+      multi_max: multi_max,
       requires_roll: requires_roll,
       reservoir: fills_reservoir,
       action_min: action_min,
@@ -1380,6 +1386,18 @@ helpers do
       # Spell declaring `target: self`) knows its target already — the Target
       # step shouldn't ask. `self_only` forces (and auto-applies) the self Target.
       item: item, self_only: self_only || v['target'].to_s == 'self', quantity: quantity }
+  end
+
+  # The maximum number of creatures a Spell may target, from its `target`
+  # formula resolved at the caster's rank — or nil when it targets one creature,
+  # itself, an object, or an area (those don't use the multi-select toggles).
+  def multi_target_max(target, rank)
+    return nil if target.nil?
+    s = target.to_s
+    return nil if %w[self object 1].include?(s)
+    n = (Abilities.resolver.resolve_target({ 'target' => target }, rank: rank) rescue nil)
+    n = n.to_i if n.is_a?(Numeric)
+    (n.is_a?(Integer) && n > 1) ? n : nil
   end
 
   # Equipped Wands / Rings (any `grants_spell` Item): each adds its Spell to the
@@ -1611,7 +1629,12 @@ helpers do
           combatant_target_opts
         end
     end
-    target_step = { key: 'target', label: 'Target', options_by: %w[spell], options_map: target_map }
+    # Multi-target Spells (target resolves to >1, e.g. the illusions at
+    # `rank`) carry a per-Spell cap so the Target step can offer toggle
+    # buttons (select up to `max`) instead of a single pick.
+    multi_map = spells.each_with_object({}) { |sp, h| h[sp[:key]] = sp[:multi_max] if sp[:multi_max] }
+    target_step = { key: 'target', label: 'Target', options_by: %w[spell], options_map: target_map,
+                    multi_by: %w[spell], multi_map: multi_map }
 
     # Step 4 — the target's Defense, choice-dependent on (target, spell): the
     # target's Saving Throw for a Save spell, Dodge / Block for an attack-roll
