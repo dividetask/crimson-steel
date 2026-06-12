@@ -292,6 +292,13 @@ module Encounter
       get_combat_pool(combatant_id)
     end
 
+    # The current in-world day (Chronicle Timestamp's day_index). Public surface
+    # for once-per-day item charges (a Ring of Parry recharges when this passes
+    # the day the charge was spent).
+    def current_day_index
+      current_timestamp[:day_index]
+    end
+
     # Move (turn_action_stub.md → Move): spend a flat number of Combat Pool
     # dice (Config Move Cost) with no other mechanical effect. Returns
     # { ok:, pool_spent:, pool_remaining: }, or { ok: false, error: } when the

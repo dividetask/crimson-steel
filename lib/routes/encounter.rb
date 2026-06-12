@@ -719,6 +719,9 @@ helpers do
         # Parry uses one of the defender's melee weapons; Block needs a shield.
         parry_weapons: equipped_melee_weapons(c[:creature_id]),
         has_shield:    equipped_shield?(c[:creature_id]),
+        # A charged Ring of Parry offers a free (no-pool) Parry at the weapon's
+        # Dice Cap — one per equipped melee weapon, against a melee attack only.
+        ring_parry:    ring_parry_available?(c[:creature_id]),
         # Reaction Abilities the target may use against this attack: the Talents
         # it has, its remaining Mana (to afford them), and whether it is Raging
         # (Primal Tenacity is a rage power). Drives Better Lucky Than Good as a
@@ -886,6 +889,16 @@ helpers do
                             name: "Parry with #{pw[:display_name]}", inputs: t[:martial],
                             speed: [pw[:speed].to_i, 0].max }
             end
+            # A charged Ring of Parry: a free Parry per melee weapon, always at
+            # the weapon's full Dice Cap, costing no Combat Pool (one daily ring
+            # charge instead). `free` makes it a single fixed-cap option below.
+            if t[:ring_parry]
+              t[:parry_weapons].each do |pw|
+                branches << { key: "ringparry:#{pw[:item_type]}", group: "ringparry:#{pw[:item_type]}",
+                              name: "Ring of Parry (#{pw[:display_name]})", inputs: t[:martial],
+                              speed: 0, free: true }
+              end
+            end
           end
         end
 
@@ -917,6 +930,16 @@ helpers do
                        set_speed: [{ id: 'defender', speed: dspd }],
                        set_name:  [{ id: 'defender', roll_name: b[:name] }],
                        set_excluded: [{ id: 'defender', excluded: false }] } }
+          end
+          if b[:free]
+            # Ring of Parry: a single option at the full Dice Cap, no Combat
+            # Pool cost and no dice picker. Disabled only when the weapon yields
+            # no Dice Cap to roll.
+            opts << mk.call(cap, "#{b[:name]} — #{cap} dice, free", cap < 1)
+            headers << { value: "#{b[:key]}|#{cap}", label: b[:name], disabled: cap < 1 }
+            opts << { kind: 'info', group: b[:group], value: "#{b[:group]}|info",
+                      label: (dcmp.empty? ? 'no Combat Pool' : "#{fmt_mods.call(dcmp)} · no Combat Pool") }
+            next
           end
           # Every Defensive Action here (Dodge / Block / Parry) is a pool-costed
           # Reaction — the DM picks dice from the Reaction Minimum up to the
@@ -1396,6 +1419,37 @@ helpers do
       { ref: i, item_type: s.item_type, display: CreatureSheet.item_display_name(s, cat),
         spell: spell, tier: s.tier, form: item_form_of(s.item_type, defn) }
     end
+  end
+
+  # The equipped Ring of Parry (`grants_parry`) a Creature wears, as
+  # `{ ref:, stack: }`, or nil. Only the first such ring is used.
+  def ring_parry_item(creature_id)
+    cat = Equipment.catalog
+    inv = (Equipment.instance.get_inventory(equipment_owner(creature_id)) rescue [])
+    inv.each_with_index do |s, i|
+      next unless s.equipped
+      defn = cat.definition_of(s.item_type) || {}
+      return { ref: i, stack: s } if defn['grants_parry']
+    end
+    nil
+  end
+
+  # Whether a Creature can use its Ring of Parry against an attack right now:
+  # it wears one and the single daily charge has recharged (never spent, or
+  # spent on an earlier day than today). Dawn = a new day_index.
+  def ring_parry_available?(creature_id)
+    it = ring_parry_item(creature_id) or return false
+    used = it[:stack].parry_used_day
+    used.nil? || used.to_i < encounter_state.current_day_index
+  end
+
+  # Spend the Ring of Parry's daily charge (stamp today's day_index on it and
+  # persist), so it cannot Parry again until the next dawn. No-op if the
+  # Creature wears no ring.
+  def consume_ring_parry!(creature_id)
+    it = ring_parry_item(creature_id) or return
+    Equipment.instance.set_parry_used_day(equipment_owner(creature_id), it[:ref],
+                                          encounter_state.current_day_index)
   end
 
   # Carried Potions / Scrolls (Consumable spell-form Items) the actor can use
@@ -2796,6 +2850,12 @@ post '/encounter/resolve_attack' do
   if result[:committed]
     Conditions.store.persist!
     encounter_state.spend_main_action(payload.dig('attacker', 'id').to_i)
+    # A Ring of Parry's free Parry spends its once-per-day charge on commit, so
+    # the defender cannot use it again until dawn.
+    if payload.dig('defense', 'choice').to_s == 'ringparry'
+      def_comb = encounter_state.combatant(payload.dig('defense', 'id').to_i)
+      consume_ring_parry!(def_comb[:creature_id]) if def_comb
+    end
   end
   encounter_response(result)
 end

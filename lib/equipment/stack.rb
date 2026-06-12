@@ -11,13 +11,13 @@ module Equipment
     attr_accessor :item_type, :quantity, :tier, :properties, :inscribed_spells,
                   :stored_spell, :durability_damage, :name_override, :equipped,
                   :value_in_gold, :gem_name, :guidance_bonus, :guidance_attribute,
-                  :restock_target, :description
+                  :restock_target, :description, :parry_used_day
 
     def initialize(item_type:, quantity: 1, tier: 0, properties: [],
                    inscribed_spells: [], stored_spell: nil, durability_damage: 0,
                    name_override: nil, equipped: false, value_in_gold: nil,
                    gem_name: nil, guidance_bonus: nil, guidance_attribute: nil,
-                   restock_target: nil, description: nil)
+                   restock_target: nil, description: nil, parry_used_day: nil)
       @item_type         = item_type.to_s
       @quantity          = quantity
       @tier              = Integer(tier)
@@ -37,6 +37,11 @@ module Equipment
       @guidance_attribute = guidance_attribute&.to_s
       @restock_target    = restock_target.nil? ? nil : Integer(restock_target)
       @description       = description
+      # The in-world day_index a once-per-day item charge was last spent (a Ring
+      # of Parry). nil = never spent / fully charged. Not an identity field — a
+      # spent and an unspent Ring still merge as the same Item (quantity 1 in
+      # practice). Recharges when the current day_index passes this value.
+      @parry_used_day    = parry_used_day.nil? ? nil : Integer(parry_used_day)
     end
 
     # Accepts a Stack (returned as-is), or a raw hash with either the
@@ -62,7 +67,8 @@ module Equipment
         guidance_bonus:    h['guidance_bonus'],
         guidance_attribute: h['guidance_attribute'],
         restock_target:    h['restock_target'],
-        description:       h['description']
+        description:       h['description'],
+        parry_used_day:    h['parry_used_day']
       )
     end
 
@@ -126,7 +132,7 @@ module Equipment
         value_in_gold: @value_in_gold, gem_name: @gem_name,
         guidance_bonus: @guidance_bonus, guidance_attribute: @guidance_attribute,
         restock_target: @restock_target,
-        description: @description
+        description: @description, parry_used_day: @parry_used_day
       )
     end
 
@@ -158,6 +164,7 @@ module Equipment
       h['guidance_attribute'] = @guidance_attribute if @guidance_attribute
       h['restock_target']    = @restock_target    unless @restock_target.nil?
       h['description']       = @description        if @description
+      h['parry_used_day']    = @parry_used_day     unless @parry_used_day.nil?
       h
     end
   end

@@ -137,6 +137,19 @@ module Equipment
     def equip_stack(owner_id, ref)   ; set_equipped(owner_id, ref, true)  ; end
     def unequip_stack(owner_id, ref) ; set_equipped(owner_id, ref, false) ; end
 
+    # Record a once-per-day item charge (a Ring of Parry) as spent on
+    # `day_index`, or nil to recharge it. Persists without remerging — the
+    # charge is a non-identity field, so this never splits or combines the
+    # Stack. Returns the updated Stack, or ERROR for an unknown ref.
+    def set_parry_used_day(owner_id, ref, day_index)
+      inv = read_inventory(owner_id)
+      idx = resolve_index(inv, ref)
+      return ERROR unless idx
+      inv[idx].parry_used_day = day_index.nil? ? nil : Integer(day_index)
+      write_inventory(owner_id, inv)
+      inv[idx]
+    end
+
     # ===== Reconcile Loadout =====
     def reconcile_loadout(owner_id)
       prefix = "equipment:#{owner_id}:"
