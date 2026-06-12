@@ -25,6 +25,9 @@ icons:
   Bolt: bolt.svg
   Chain mail: chain_mail.svg
   Chain shirt: chain_shirt.svg
+  # The generic Cloak base Item reuses the cloak illustration (it is a plain
+  # cloak drawing, not specific to the Resistance enchantment).
+  Cloak: cloak_of_resistance.svg
   Cloak of Resistance: cloak_of_resistance.svg
   Copper: copper.svg
   Crossbow: crossbow.svg

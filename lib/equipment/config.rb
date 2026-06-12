@@ -256,7 +256,12 @@ module Equipment
     end
 
     def wand_form(spell, tier)
-      d = { 'spell' => spell, 'category' => 'Item', 'slot' => 'hands', 'grants_spell' => true }
+      # A Wand's Tier is the Spell's own Tier (which variant it casts), not a
+      # "+N" enhancement, so it suppresses the Tier prefix in the Display Name
+      # (a "Wand of Entangle", never a "+1 Wand of Entangle") — mirroring how
+      # the Consumable Scroll / Potion / Oil forms already read.
+      d = { 'spell' => spell, 'category' => 'Item', 'slot' => 'hands',
+            'grants_spell' => true, 'hide_tier' => true }
       d['tier'] = tier unless tier.nil?
       d
     end

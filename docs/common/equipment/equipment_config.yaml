@@ -896,3 +896,13 @@ Unique Items:
     no_store: true
     grants: [Kesser's Gambit]
     description: "A plain band that hums with reversal. While worn, it grants Kesser's Gambit to the wielder."
+  # A worn Circlet that grants a castable Spell while equipped, exactly like a
+  # Wand (`grants_spell` + `spell`): the spell joins the wearer's castable list,
+  # channels the wearer's own Mana, and imposes no Magic Toxicity.
+  Circlet of the Boughking:
+    category: Item
+    slot: head
+    no_store: true
+    grants_spell: true
+    spell: Entangle
+    description: "A crown of living briar. While worn, the wearer may cast Entangle."

@@ -16,10 +16,11 @@ characters:
   1:
     inventory:
       - item: Plate mail
+        tier: 1
         equipped: true
       - item: Light wooden shield
         tier: 1
-        name: "Mirror Leaf Shield"
+        name: "Mirror Shield"
         description: "A shining mental shield. It’s magic reduces TN to block and increases TN to attack you. Ranged magic attacks can be reflected"
         equipped: true
       - item: Battleaxe
@@ -93,7 +94,7 @@ characters:
         equipped: true
       - item: Greataxe
         tier: 2
-        name: "Gary (Axe)"
+        name: "Gary Axe"
         description: "Unknown properties. Two handed +2 great axe. Found in the Fey Wilds. It became more powerful after killing the cultists."
         equipped: true
       - item: Boots
@@ -145,7 +146,7 @@ characters:
         tier: 1
         properties:
           - name: Emotional
-        name: "Wyrd Bow of Mirth"
+        name: "Wyrd Bow of Myrth"
         equipped: true
       - item: Dagger
         equipped: true
@@ -158,9 +159,7 @@ characters:
         guidance_bonus: 1
         name: "+1 Face Tattoo of Fox's Cunning"
         description: "A permanent tattoo that increases the bearer's enhancement bonus to Intelligence."
-      - item: Hat
-        tier: 1
-        name: "Circlet of Bough-King"
+      - item: Circlet of the Boughking
         equipped: true
       - item: Trinket
         name: "Orin (Key)"
