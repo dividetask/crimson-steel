@@ -1,5 +1,24 @@
 <%= erb :_timekeeping_stub, locals: { timestamp: @timestamp } %>
 
+<%# Downtime PC health cards (conditions_downtime_pc_card_stub.md): every
+    Phase except Combat, both viewers, at the very top of the page. Players
+    see every Player Character (own card first); the DM also sees the NPC /
+    enemy Combatants. %>
+<% if @phase != :combat && @downtime_cards && @downtime_cards.any? %>
+  <section class="pc-card-grid downtime-cards">
+    <% @downtime_cards.each do |card| %>
+      <%= erb :_conditions_pc_card, locals: { creature: card, catalog: @conditions_catalog, viewer: @viewer } %>
+    <% end %>
+  </section>
+<% end %>
+
+<%# Urgent Actions (conditions_bulk_affliction_stub.md): DM-only, every Phase
+    except Combat, shown whenever a Creature still carries an active
+    Affliction. Resolves the party's due Affliction saves in bulk. %>
+<% if @viewer == :dm && @phase != :combat && @has_active_afflictions %>
+  <%= erb :_conditions_urgent_actions, locals: { groups: @urgent_groups || [], end_turn_url: '/encounter/end_turn' } %>
+<% end %>
+
 <%
   # The Encounter Phase (DM's menu dropdown) selects which stubs show.
   #   combat   — hide Advance Time; show Initiative + Map; notes DM-only.

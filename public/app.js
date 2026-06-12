@@ -14,6 +14,7 @@ import { TurnMove } from './js/ui/turnMove.js';
 import { TurnSpecial } from './js/ui/turnSpecial.js';
 import { LootPile } from './js/ui/lootPile.js';
 import { PostCombatLoot } from './js/ui/postCombatLoot.js';
+import { UrgentActions } from './js/ui/urgentActions.js';
 
 // Loot Pile: confirm the DM's Delete Pile before it submits.
 document.addEventListener('submit', function (e) {
@@ -104,6 +105,10 @@ document.addEventListener('click', function (e) {
 
 document.addEventListener('change', function (e) {
   SavePreview.syncFromResultInput(e.target);
+  // Urgent Actions: toggle a Creature's save block, and refresh its Summary
+  // line when one of its saves changes.
+  if (e.target.closest('.ua-toggle')) UrgentActions.handleToggle(e.target);
+  if (e.target.closest('.urgent-actions')) UrgentActions.refreshFrom(e.target);
 });
 
 // Hovering an Attribute cell dismisses any click-stuck popup on the
