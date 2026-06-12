@@ -18,8 +18,7 @@ Initiative Divisor: 2
 #
 # Combatant pool size is computed in two stages:
 #
-#   budget = floor((martial_proficiency_ranks
-#                   + floor(attribute / Combat Pool Divisor))
+#   budget = floor(((martial_proficiency_ranks * 2) + attribute)
 #                  / Turns Per Round[tier])
 #
 # Then the budget buys pool points in tiers of size Combat Pool Step.
@@ -29,7 +28,6 @@ Initiative Divisor: 2
 # the next point is discarded. Every combatant is guaranteed at
 # least Combat Pool Step points.
 Combat Pool Attribute: wis
-Combat Pool Divisor: 2
 Combat Pool Step: 4
 
 # Turns per round indexed by Tier (Tier 0 → index 0). A Tier beyond

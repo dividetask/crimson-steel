@@ -7,10 +7,10 @@ module Encounter
     module_function
 
     # Stage 1 — Budget.
-    #   budget = floor((martial_ranks + floor(attribute / Divisor)) / Turns Per Round[tier])
+    #   budget = floor((martial_ranks*2 + attribute) / Turns Per Round[tier])
     def budget(martial_ranks:, attribute:, tier:)
       turns = Config.turns_for_tier(tier)
-      raw = martial_ranks + (attribute / Config.combat_pool_divisor)
+      raw = (martial_ranks * 2) + attribute
       raw / turns
     end
 

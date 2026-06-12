@@ -11,7 +11,7 @@ RSpec.describe 'Encounter::State combat mode' do
   after { FileUtils.remove_entry(tmpdir) if File.exist?(tmpdir) }
 
   # Minimal Creature double. martial ranks 4, wis 12, tier 0 → Combat
-  # Pool budget 10 → pool 11.
+  # Pool budget 20 → pool 14.
   def creature(tier: 0, wis: 12, martial: 4, max_hp: 20, tags: [])
     obj = Object.new
     obj.define_singleton_method(:tier) { tier }
@@ -36,15 +36,15 @@ RSpec.describe 'Encounter::State combat mode' do
     it 'Get returns the computed pool size' do
       s = state
       c = s.add_combatant('101')
-      expect(s.get_combat_pool(c[:id])).to eq(11)
+      expect(s.get_combat_pool(c[:id])).to eq(14)
     end
 
     it 'Spend increments combat_pool_spent and refuses overdraft' do
       s = state
       c = s.add_combatant('101')
-      expect(s.spend_combat_pool(c[:id], 3)).to eq(8)   # 11 - 3
+      expect(s.spend_combat_pool(c[:id], 3)).to eq(11)  # 14 - 3
       expect(s.spend_combat_pool(c[:id], 100)).to be_nil # overdraft refused
-      expect(s.combat_pool_remaining(c[:id])).to eq(8)
+      expect(s.combat_pool_remaining(c[:id])).to eq(11)
     end
 
     it 'Reset zeroes the spend' do
@@ -52,7 +52,7 @@ RSpec.describe 'Encounter::State combat mode' do
       c = s.add_combatant('101')
       s.spend_combat_pool(c[:id], 5)
       s.reset_combat_pool(c[:id])
-      expect(s.combat_pool_remaining(c[:id])).to eq(11)
+      expect(s.combat_pool_remaining(c[:id])).to eq(14)
     end
   end
 
@@ -62,7 +62,7 @@ RSpec.describe 'Encounter::State combat mode' do
       c = s.add_combatant('101')
       out = s.set_value_spend(c[:id], dice_cap: 7, preroll_count: 4)
       expect(out).to eq(dice_count: 3, preroll: 4)
-      expect(s.combat_pool_remaining(c[:id])).to eq(7) # 11 - 4 (ratio 1)
+      expect(s.combat_pool_remaining(c[:id])).to eq(10) # 14 - 4 (ratio 1)
     end
 
     it 'refuses a preroll exceeding the Dice Cap' do
