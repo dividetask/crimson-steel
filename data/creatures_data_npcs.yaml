@@ -234,11 +234,13 @@ characters:
       classes:
         wizard:
           level: 4
-          skills: [arcana, society, sense_motive, deception, persuasion, sleight_of_hand, perception]
+          skills: [arcana, local_lore, sense_motive, deception, persuasion, sleight_of_hand, perception]
           choices:
-            # Wizard point budget at level 4 is 5 + level^2 = 21 points
-            # (each spell costs 1 + tier). Divination / information core
-            # plus a couple of combat-useful picks (Grease, Elemental Dart).
+            # Caelian casts as a level-4 wizard via the doppelganger's
+            # Borrowed Talent. Wizard point budget at level 4 is
+            # 5 + level^2 = 21 points (each spell costs 1 + tier):
+            # divination / information core plus a couple of combat picks
+            # (Grease, Fire Dart).
             spellcasting:
               - Detect Magic
               - Sift
@@ -249,11 +251,11 @@ characters:
               - Disguise Self
               - Charm Person
               - Hideous Laughter
-              - Auditory Hallucination
+              - Visual Illusion
               - Friends
               - Suggestion
               - Grease
-              - Elemental Dart
+              - Fire Dart
 
   - id: 2026
     name: Theron Ashfeld

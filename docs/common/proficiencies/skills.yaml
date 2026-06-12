@@ -69,7 +69,7 @@ Skills:
   religion:
     attribute: int
     description: Knowledge of deities, holy sites, and religious rites.
-  society:
+  local_lore:
     attribute: int
     description: Knowledge of humanoid races, laws, customs, and the workings of civilized settlements — the local lore Pathfinder calls Knowledge (Local).
 

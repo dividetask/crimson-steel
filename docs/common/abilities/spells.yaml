@@ -28,6 +28,25 @@ Elemental Dart:
     description: "Throw {aspect} dart at any valid target within range."
   description: "A ranged dart of {aspect}. Resolves as a ranged attack. While channeled, the caster may throw additional darts."
 
+# Single-element Elemental Dart. Elemental Dart itself is a category (an
+# aspect axis); a caster who learns the dart picks one concrete element.
+Fire Dart:
+  type: spell
+  tier: 0
+  damage_type: fire
+  school: resonance
+  range: Close
+  target: "1"
+  attack_roll: true
+  duration: rank turns
+  channel:
+    mode: fire
+    apply_on_cast: true
+    retarget: true
+    attack_roll: true
+    description: "Throw a fire dart at any valid target within range."
+  description: "A ranged dart of fire. Resolves as a ranged attack. While channeled, the caster may throw additional darts."
+
 Heal:
   type: spell
   tier: [0, 1, 2, 3, 4, 5]
@@ -565,6 +584,24 @@ Auditory Hallucination:
     apply_on_cast: false
     description: "Adjust the sounds the targets hear."
   description: "Targets will hear any sound you can imagine. The sounds the creature hears will be based upon their knowledge not yours such as the sound of their chieftain's voice. All targets hear the same hallucination."
+
+Visual Illusion:
+  type: spell
+  tier: 1
+  school: enchantment
+  range: Medium
+  target: "rank"
+  save:
+    - attribute: wis
+      fail: believes_illusion
+      success: "0"
+  duration: "rank turns"
+  skills: [arcana, perform_]
+  channel:
+    mode: fire
+    apply_on_cast: false
+    description: "Adjust the images the targets see."
+  description: "Targets see any image you can imagine. The images the creature sees are drawn from their knowledge, not yours. All targets see the same illusion."
 
 Entangle:
   type: spell

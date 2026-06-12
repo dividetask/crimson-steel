@@ -149,11 +149,17 @@ darkvision:
 low_light_vision:
   description: "See twice as far as a human in dim light."
 
+absorb_persona:
+  description: "Learn the memories of a helpless creature, storing them as a Persona. Requires 1 day per level of the creature; the target gains a Charisma save to resist. You can store up to 1 Persona per two character levels — drop a stored Persona to make room for another."
+
 surface_thoughts:
-  description: "Continuously reads the surface thoughts of nearby creatures, sensing their immediate intentions, mood, and what they are dwelling on — the raw input a doppelganger launders into its 'divinations'."
+  description: "Glean the surface thoughts of all creatures within 30 feet. Creatures gain a Wisdom save to resist, but do not detect the intrusion unless you fumble the check."
 
 change_shape:
-  description: "Can assume the appearance of any humanoid it has seen, copying voice and mannerisms. The disguise holds until dropped or until the doppelganger is slain."
+  description: "Assume the form of any Persona you have stored. Changing form takes 1 minute."
+
+borrowed_talent:
+  description: "Gain the class abilities of a stored Persona, at a class level equal to the lower of half your character level or the Persona's own class level."
 
 light_sensitivity:
   description: "Dazzled in bright light such as sunlight: takes a penalty on attack rolls and sight-based Perception checks while brightly illuminated."
