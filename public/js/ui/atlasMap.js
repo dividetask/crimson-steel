@@ -704,7 +704,11 @@ class AtlasCanvas {
       panel.addEventListener('click', (e) => {
         const chip = e.target.closest('.atlas-place-chip');
         if (!chip) return;
-        panel.hidden = true;
+        // Keep the place panel OPEN so the DM can drop several Tokens in a row
+        // without reopening it; placing a Token only re-renders the map, not
+        // this panel. The active chip is flagged so it's clear which is armed.
+        panel.querySelectorAll('.atlas-place-chip').forEach((c) =>
+          c.classList.toggle('atlas-place-chip-armed', c === chip));
         // Arm placement: the DM then clicks (or drags) on the map to drop the
         // Token at the chosen cell, rather than auto-dropping at the center.
         this.armPlace(chip.dataset.creatureId, chip.textContent.trim());
@@ -729,6 +733,9 @@ class AtlasCanvas {
     this.viewport.classList.remove('atlas-placing');
     this.hidePlaceHint();
     if (this._ghost) { this._ghost.remove(); this._ghost = null; }
+    // Drop the armed highlight on the place panel's chips (the panel stays open).
+    this.section.querySelectorAll('.atlas-place-chip-armed')
+        .forEach((c) => c.classList.remove('atlas-place-chip-armed'));
   }
 
   // ----- placing a spell area (local preview only) -----

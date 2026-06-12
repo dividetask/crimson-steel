@@ -3530,6 +3530,12 @@ body {
   cursor: pointer;
 }
 .atlas-place-chip:hover { background: #2f2f2f; }
+.atlas-place-chip-armed,
+.atlas-place-chip-armed:hover {
+  background: #1d4ed8;
+  border-color: #3b82f6;
+  color: #fff;
+}
 .atlas-place-empty { font-size: 12px; color: #777; font-style: italic; }
 
 /* --- Canvas (viewport clips; world is panned/zoomed via transform) --- */
