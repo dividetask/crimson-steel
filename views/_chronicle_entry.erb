@@ -17,8 +17,12 @@
   pub         = entry['public_description'].to_s
   dm_text     = entry['dm_description'].to_s
   has_image   = !entry['image'].nil? && !entry['image'].empty?
+  # The card has expandable text (and so opens the full-text modal on click)
+  # when there is public text, or GM text the DM can see. Mirrors the
+  # condition guarding the .ce-body below.
+  expandable  = (!pub.empty?) || (is_dm && !dm_text.empty?)
 %>
-<article class="ce-card <%= entry['active'] ? 'ce-active' : 'ce-inactive' %> <%= is_creature ? 'ce-creature' : 'ce-note' %>" data-entry-id="<%= entry['id'] %>">
+<article class="ce-card <%= entry['active'] ? 'ce-active' : 'ce-inactive' %> <%= is_creature ? 'ce-creature' : 'ce-note' %> <%= expandable ? 'ce-expandable' : '' %>" data-entry-id="<%= entry['id'] %>">
   <header class="ce-head">
     <div class="ce-title <%= tier ? "tier-#{tier}" : '' %>">
       <%= title.empty? ? '<em class="ce-no-title">(untitled)</em>' : Rack::Utils.escape_html(title) %>
@@ -43,7 +47,7 @@
       </div>
     <% end %>
 
-    <% if (!pub.empty?) || (is_dm && !dm_text.empty?) %>
+    <% if expandable %>
       <div class="ce-body" data-text-modal="1" tabindex="0" role="button" aria-label="Open full text">
         <% unless pub.empty? %>
           <div class="ce-body-block ce-body-public"><%= Rack::Utils.escape_html(pub).gsub("\n", '<br>') %></div>
