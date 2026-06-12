@@ -773,7 +773,7 @@ helpers do
     # offered as attacks but never carried as inventory.
     acc = Creatures.lookup(creature_id) rescue nil
     natural = (acc ? CreatureSheet.granted_natural_weapons(acc) : []).map do |name|
-      weapon_row(Equipment::Details.weapon_details(Equipment::Stack.normalize('item' => name), cat), name)
+      weapon_row(Equipment::Details.weapon_details(Equipment::Stack.from_catalog(name, cat), cat), name)
     end
     # Everyone can attack Unarmed (Speed 0) — always offered, never carried.
     rows + natural + [weapon_row(Equipment::Details.weapon_details(Equipment::Stack.normalize('item' => 'Unarmed'), cat), 'Unarmed')]

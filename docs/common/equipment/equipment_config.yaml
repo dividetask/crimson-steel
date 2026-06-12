@@ -240,6 +240,21 @@ Weapons:
     speed: 0
     natural: true
     base_price: 0
+  # The ankheg's acid-sheathed Bite. A Bite (Jaws) that intrinsically carries
+  # the Corrosive (Elemental: Acid) Weapon Property, so a hit adds that
+  # property's acid Damage Rider — the "elemental weapon property applied to a
+  # bite". `intrinsic_properties` are hydrated onto the synthetic attack Stack
+  # the creature wields (Stack.from_catalog). Being `natural`, it is never
+  # carried in inventory and is excluded from Shops and the magic weapon Store.
+  Bite (Acid):
+    category: One Handed
+    damage_type: Piercing
+    base_damage: "str / 2"
+    speed: 0
+    natural: true
+    intrinsic_properties:
+      - { name: Elemental, subtype: Acid }
+    base_price: 0
   # Slam — the natural fists/limbs attack granted by the Ogre Slam Talent.
   Slam:
     category: One Handed

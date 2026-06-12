@@ -523,7 +523,7 @@ module CreatureSheet
   # attack the Creature has, never an item carried in inventory.
   def natural_weapon_details(accessor, cat = Equipment.catalog)
     granted_natural_weapons(accessor).map do |name|
-      Equipment::Details.weapon_details(Equipment::Stack.normalize('item' => name), cat)
+      Equipment::Details.weapon_details(Equipment::Stack.from_catalog(name, cat), cat)
     end
   rescue StandardError
     []

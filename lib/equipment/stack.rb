@@ -72,6 +72,19 @@ module Equipment
       )
     end
 
+    # Build a synthetic Stack for a catalog Item by name, hydrating any
+    # `intrinsic_properties` the Item Type declares. Used for the natural-
+    # attack Stacks a Creature wields but never carries in inventory (e.g.
+    # the ankheg's acid-sheathed Bite, whose Elemental(Acid) rider is baked
+    # into the catalog entry rather than applied to a carried weapon).
+    def self.from_catalog(name, catalog)
+      defn = (catalog.item_type(name) || {})[:definition] || {}
+      raw = { 'item' => name }
+      props = defn['intrinsic_properties']
+      raw['properties'] = props if props.is_a?(Array) && !props.empty?
+      normalize(raw)
+    end
+
     # A Property Application is `{name:, subtype:, cost:}`. Accepts a
     # bare string (non-subtyped), or a hash with any subset of keys.
     def self.normalize_property(p)
