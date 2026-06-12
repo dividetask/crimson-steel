@@ -42,7 +42,9 @@ RSpec.describe 'Encounter — Ward' do
   def cast_ward(s, caster, ally, amount: 5)
     s.resolve_cast_payload(
       caster: { id: caster[:id], dice: 0, speed: 0, successes: 0 },
-      spell:  { name: 'Ward', tier: 1, cast_skill: 'invocation', mana_cost: 0 },
+      # enrich_cast_payload! marks the temp-HP condition by base name; simulate
+      # that here (the spec drives resolve_cast_payload directly).
+      spell:  { name: 'Ward', tier: 1, cast_skill: 'invocation', mana_cost: 0, temp_hp_condition: 'ward' },
       targets: [{ id: ally[:id],
                   effects: [{ kind: 'temp_hp', amount: amount, duration: 'rank turns' }] }]
     )

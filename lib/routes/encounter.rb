@@ -1327,9 +1327,14 @@ helpers do
                           key: nil, display: nil, item: nil, self_only: false,
                           skill_options: nil, quantity: nil)
     v   = (Abilities.lookup(name) rescue nil) || {}
+    # A constructed per-Tier / name-axis variant name ("Standard Ward",
+    # "Create Illusionary Sound") doesn't resolve directly — fall back to the
+    # base Spell so target count, Save, School, etc. are correct.
+    bname = (spell_base_axis(name).first rescue nil) if name
+    v = ((Abilities.lookup(bname) rescue nil) || {}) if v.empty? && bname
     # Area footprint (Hash, or the first footprint Aspect of an Aspect-list area
     # like Grease). Area Spells are placed on the map, not targeted.
-    raw  = (Abilities.catalog.ability(name) rescue nil) || {}
+    raw  = (Abilities.catalog.ability(name) rescue nil) || (bname && Abilities.catalog.ability(bname) rescue nil) || {}
     ra   = raw['area']
     area = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
     act  = (Abilities.resolve_activation(v) rescue nil)
@@ -1378,7 +1383,11 @@ helpers do
       tier: tier, mana_cost: mana_cost, skill: primary[:skill], skill_options: skopts,
       dice_cap: primary[:dice_cap], competency: primary[:competency],
       damage_type: Array(v['damage_type']).compact.first, school: v['school'],
-      attack_roll: !!v['attack_roll'], save: Array(v['save']).first,
+      # A reservoir-fill channel (Spiritual Weapon) pours dice into its Reservoir
+      # and strikes on later turns — its `attack_roll` belongs to those strikes,
+      # not the cast. Suppress it so the cast doesn't demand a Defense / attack
+      # roll; it just aims at a target and fills the Reservoir.
+      attack_roll: (fills_reservoir ? false : !!v['attack_roll']), save: (fills_reservoir ? nil : Array(v['save']).first),
       area: (area.is_a?(Hash) ? area : nil),
       multi_max: multi_max,
       requires_roll: requires_roll,
@@ -2133,6 +2142,9 @@ helpers do
     # Carry the Spell's duration so the resolver can time effects that expire
     # (Ward's temp HP; Spiritual Weapon's "rank turns" lifetime).
     spell['duration'] ||= variant['duration'] if variant && variant['duration']
+    # Ward shows a 'ward' condition alongside its temp HP. Mark it by *base*
+    # name so per-Tier names ("Standard Ward") still match.
+    spell['temp_hp_condition'] = 'ward' if (spell_base_axis(spell['name']).first rescue nil) == 'Ward'
     # Temporary-HP Spells (Ward) expire with the Spell's duration: carry the
     # duration onto the temp_hp Effect so resolve_cast_payload can compute the
     # expiry Round and the matching Ward condition fades with it.
@@ -2173,12 +2185,17 @@ helpers do
       spell['duration'] = variant['duration'] || raw_entry['duration']
     end
 
+    # A reservoir-fill channel (Spiritual Weapon) fills its Reservoir at cast and
+    # strikes on later turns; the cast itself resolves no attack.
+    reservoir_channel = %w[reservoir auto].include?((variant && variant.dig('channel', 'mode')).to_s) &&
+                        (variant && variant.dig('reservoir', 'fill', 'source')).to_s == 'channel_dice'
+
     # Damage routing for the Cast path. An attack-roll Spell resolves as a spell
     # attack — net the casting check against the target's Block / Dodge, damage
     # from the net Successes. A Save-based damage Spell with no explicit damage
     # Effect deals the default Spell damage (floor(casting stat / 4) + Tier +
     # Successes); a Spell that states its own damage formula keeps it.
-    if variant && variant['attack_roll']
+    if variant && variant['attack_roll'] && !reservoir_channel
       spell['attack_roll'] = true
       spell['damage_type'] ||= Array(variant['damage_type']).compact.first
       spell['casting_attribute'] ||= (Proficiencies.attribute_for(spell['cast_skill']) || :cha).to_s

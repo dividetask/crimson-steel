@@ -1758,9 +1758,10 @@ module Encounter
       when 'temp_hp'
         inst.apply_temporary_hit_points(amount: eff[:amount].to_i, source_id: cast_source_id(spell),
                                         ends_on_round: eff[:ends_on_round])
-        # Ward shows a matching condition that expires together with its temp HP.
-        if spell[:name].to_s == 'Ward' && inst.respond_to?(:apply_named_effect)
-          inst.apply_named_effect('ward', source_id: "#{cast_source_id(spell)}:ward",
+        # Ward (and any temp-HP Spell that marks one) shows a matching condition
+        # that expires together with its temp HP.
+        if (cond = spell[:temp_hp_condition]) && inst.respond_to?(:apply_named_effect)
+          inst.apply_named_effect(cond.to_s, source_id: "#{cast_source_id(spell)}:cond",
                                   ends_on_round: eff[:ends_on_round])
         end
         { kind: 'temp_hp', amount: eff[:amount].to_i }
