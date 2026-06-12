@@ -141,13 +141,11 @@ Sneak Attack:
 Reckless Attacks:
   type: talent
   required_condition: rage
-  trigger:
-    on: attack_action
-    condition: attack_action
-    effect:
-      kind: bonus_dice
-      dice: "level"
-  description: "While raging: when taking a full attack action, gain an additional number of dice for that attack equal to your class level."
+  modifiers:
+    - target: combat_pool
+      type: Circumstance
+      add: level
+  description: "While raging, you throw caution aside: your maximum Combat Pool increases by your class level, fueling more and fiercer attacks. The bonus lasts only while the rage is up."
 
 Primal Tenacity:
   type: talent
