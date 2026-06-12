@@ -89,13 +89,40 @@ Effect Names:
         amount: 2
         applies_to: [melee_attacks_against]
 
-  frightened:
-    description: "The target must flee from the source of the effect and may take no actions on its turn other than those that help it flee."
+  # Fear ladder: shaken (-1) < frightened (-2, must flee) < panicked
+  # (-3, must flee + drops held items). Each rung is a Morale Penalty on
+  # all checks, mirroring `flustered`'s broad applies_to set.
+  shaken:
+    description: "The target is shaken, suffering a -1 Morale penalty on all checks."
     mechanics:
+      - kind: modifier
+        modifier_type: Morale
+        amount: -1
+        applies_to: [attack_checks, ability_checks, spell_checks]
+
+  frightened:
+    description: "The target takes a -2 Morale penalty on all checks and must flee from the source of the effect, taking no actions on its turn other than those that help it flee. It also suffers a -2 Circumstance penalty on saves against fear (fear_saves)."
+    mechanics:
+      - kind: modifier
+        modifier_type: Morale
+        amount: -2
+        applies_to: [attack_checks, ability_checks, spell_checks]
       - kind: modifier
         modifier_type: Circumstance
         amount: -2
         applies_to: [fear_saves]
+      - kind: display
+        text: "The target must flee from the source of the effect and may take no actions on its turn other than those that help it flee."
+
+  panicked:
+    description: "The target is panicked, suffering a -3 Morale penalty on all checks. It must flee from the source of the effect and drops anything held in its hands."
+    mechanics:
+      - kind: modifier
+        modifier_type: Morale
+        amount: -3
+        applies_to: [attack_checks, ability_checks, spell_checks]
+      - kind: display
+        text: "The target must flee from the source of the effect, may take no actions on its turn other than those that help it flee, and drops anything held in its hands."
 
   flustered:
     description: "The target is rattled and distracted, suffering a penalty to its rolls until the condition ends."

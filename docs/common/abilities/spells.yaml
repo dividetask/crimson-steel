@@ -1087,3 +1087,88 @@ Shooting Stars:
       success: "0"
   duration: 1 turn
   description: "The tier-1 successor to Spark Shower. Streaking motes rain down on one creature per rank within Medium range, each strike dealing radiant damage that scales with the attribute used to cast the spell (Charisma when cast through Evocation) plus one per success rolled, and blinding the target for 1 turn. Each target may attempt a Dexterity save: a success halves the damage and negates the blindness, while a fumbled save extends the blindness to 1 minute."
+
+# --- Death domain ---
+
+Cause Fear:
+  type: spell
+  tier: 1
+  school: enchantment
+  range: Close
+  target: "1"
+  save:
+    - attribute: wis
+      fail: frightened
+      fumble: panicked
+      success: shaken
+  duration: rank turns
+  description: "Strike a single target within range with supernatural dread. On a failed Wisdom save the target gains the frightened condition; on a fumbled save it is panicked instead; on a successful save it is merely shaken. The condition lasts 1 round per rank."
+
+Doom:
+  type: spell
+  tier: 1
+  school: enchantment
+  range: Medium
+  area:
+    shape: circle
+    size: 6
+  duration: rank turns
+  skills: [arcana, perform_]
+  effects:
+    - shaken
+  description: "A pall of doom settles over a 30-foot-radius circle within range. Every creature in the area is afflicted with the shaken effect — a -1 Morale penalty on all checks — for the duration (1 round per rank)."
+
+Murderous Command:
+  type: spell
+  inherits_from: Command
+  description: "Give the target a single overriding command, which it carries out by attacking its nearest ally. Identical to Command in every other respect."
+
+Death Knell:
+  type: spell
+  tier: 1
+  school: pneumancy
+  range: Touch
+  target: "1"
+  skills: [restricted]
+  save:
+    - attribute: cha
+      fail: "max_hit_points*2 major damage"
+      success: "0"
+  duration: instant
+  description: "Restricted necromancy. Touch a helpless creature; it must make a Charisma save or be instantly slain, taking major damage equal to twice its maximum hit points. When the spell takes its toll, the caster is restored to full health, healing 99 minor, 99 moderate, and 99 major damage."
+
+Call of Kali Ma:
+  type: spell
+  tier: 2
+  school: pneumancy
+  range: Medium
+  target: "1"
+  save:
+    - attribute: con
+      fail: "success major damage"
+      success: "0"
+  effects:
+    - paralyzed
+  target_escape_save:
+    action: free
+    attribute: con
+  channel:
+    mode: maintain
+  duration: concentration
+  description: "Channel the wrath of Kali Ma into a single target, which is paralyzed for as long as the caster concentrates. At the end of each round the target may attempt a Constitution save to end the spell; while it persists the target takes major damage equal to the caster's net successes (after accounting for the save)."
+
+# --- Greed domain ---
+
+Beguiling Gift:
+  type: spell
+  tier: 1
+  school: enchantment
+  range: Close
+  target: "1"
+  save:
+    - attribute: wis
+      fail: compelled
+      success: "0"
+  duration: 1 turn
+  skills: [arcana, perform_]
+  description: "Offer the target an object. On a failed Wisdom save the target is compelled to take the offered object and use it. Lasts 1 round."
