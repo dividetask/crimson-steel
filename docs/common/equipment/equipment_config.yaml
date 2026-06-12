@@ -895,13 +895,6 @@ Unique Items:
     no_store: true
     grants: [Kesser's Gambit]
     description: "A plain band that hums with reversal. While worn, it grants Kesser's Gambit to the wielder."
-  # The Ring of Desna's Whim: grants its wearer the Desna's Whim Reaction (a
-  # roll on the reversal table in answer to another creature's check).
-  Desna's Whim:
-    inherits_from: Ring
-    no_store: true
-    grants: [Desna's Whim]
-    description: "An opalescent band sacred to Desna. As a reaction to another creature's check, the wearer may invoke Desna's Whim for an unpredictable result."
   # A Ring that grants a once-per-day defensive Parry Reaction (`grants_parry`).
   # While worn and charged it offers, against a melee attack, a Parry at the
   # wielder's chosen melee weapon's Dice Cap that spends no Combat Pool. The

@@ -128,18 +128,6 @@ Kesser's Gambit:
   roll_table: Kesser Reversal Table
   description: "Kesser's deity Channel Divinity, gained at Cleric level 4. As a reaction triggered on an attack or spell roll, roll a d10 on the Kesser Reversal Table (see creatures_design.md). Channel Successes scale the table's entries."
 
-# A Reaction granted by the Ring of Desna's Whim (an equipped Item, not a Class
-# feature). It rides the same reversal table as Kesser's Gambit — the goddess's
-# luck is as fickle as the trickster's — so its result is equally unpredictable.
-Desna's Whim:
-  type: talent
-  inherits_from: Kesser's Gambit
-  # Declared explicitly (not just inherited) because roll_table_for reads the
-  # raw Catalog entry: a Reaction needs its table named on its own entry to be
-  # offered in combat.
-  roll_table: Kesser Reversal Table
-  description: "Desna's fickle blessing, granted by her ring. As a reaction to another creature's attack or spell roll, spend 4 Mana and roll a d10 on the Kesser Reversal Table — the result is unpredictable. Channel Successes scale the entry."
-
 Sneak Attack:
   type: talent
   trigger:
