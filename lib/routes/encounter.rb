@@ -275,11 +275,13 @@ helpers do
   # post-combat cleanup stub offers to loot and delete, each carrying a
   # preview of the gear it would hand over (its current Inventory; a
   # loot_table adds random items on top). A dangling creature_id (record
-  # lost on restart) is skipped.
+  # lost on restart) is skipped. NPC allies (`group: npc`) are flagged and
+  # sorted to the top so the stub can list them apart from enemies and
+  # default them to Ignore / Keep.
   def post_combat_rows
     cat  = Equipment.catalog
     inst = Equipment.instance
-    encounter_state.combatants.filter_map do |c|
+    rows = encounter_state.combatants.filter_map do |c|
       acc = Creatures.lookup(c[:creature_id]) rescue nil
       next unless acc
       next if Array(acc.tags).include?('player_character')
@@ -287,9 +289,12 @@ helpers do
       { combatant_id: c[:id],
         creature_id:  c[:creature_id],
         name:         tracker_name(c),
+        npc:          ((acc.group rescue nil).to_s == 'npc'),
         loot_table:   acc.record[:loot_table],
         loot:         inv.map { |s| { name: CreatureSheet.item_display_name(s, cat), quantity: s.quantity } } }
     end
+    # NPCs first, enemies after; stable within each group (preserve roster order).
+    rows.sort_by.with_index { |r, i| [r[:npc] ? 0 : 1, i] }
   end
 
   # Aggregate the loot every row would contribute into one list (quantities

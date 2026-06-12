@@ -3789,6 +3789,17 @@ body {
 .pcc-list { list-style: none; margin: 0; padding: 0; flex: 1 1 auto; }
 .pcc-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
 .pcc-name { font-weight: 700; min-width: 110px; }
+/* Group heading separating NPC allies (top) from enemies. */
+.pcc-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  padding: 8px 0 2px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 2px;
+}
 
 /* Single toggle button: a hidden checkbox with the label drawn via CSS.
  * Sized to match the note cards' Public / Active tags. Default (unchecked)
