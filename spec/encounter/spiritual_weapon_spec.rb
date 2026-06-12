@@ -43,24 +43,6 @@ RSpec.describe 'Encounter — Spiritual Weapon' do
     expect(held[:reservoir_reset]).to eq('persistent')
   end
 
-  it 'casting it as an attack roll hits a defender and still fills the Reservoir' do
-    s = state
-    caster = s.add_combatant('1'); dfn = s.add_combatant('2')
-    out = s.resolve_cast_payload(
-      caster: { id: caster[:id], dice: 5, speed: 0, successes: 4 },
-      spell:  { name: 'Spiritual Weapon', tier: 2, cast_skill: 'invocation', mana_cost: 0,
-                attack_roll: true, damage_type: 'force', casting_attribute: 'cha' },
-      targets: [{ id: dfn[:id], defense: { choice: 'dodge', successes: 1, dice: 2, speed: 0 } }],
-      sustain: { kind: 'concentration', mode: 'auto', reservoir_reset: 'persistent' }
-    )
-    tgt = out[:targets].first
-    expect(tgt[:outcome]).to eq('hit')                   # net 3 (4 - 1) lands
-    expect(tgt[:applied].first[:damage_type]).to eq('force')
-    expect(out[:sustain][:reservoir]).to eq(5)           # the 5 cast dice persist
-    held = s.combatant(caster[:id])[:concentration].find { |e| e[:spell_name] == 'Spiritual Weapon' }
-    expect(held[:reservoir]).to eq(5)
-  end
-
   it "the strike deals force damage and costs no Combat Pool (Reservoir dice)" do
     s = state
     caster = s.add_combatant('1'); dfn = s.add_combatant('2')

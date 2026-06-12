@@ -110,6 +110,12 @@ get '/encounter' do
     @acting_row ? ((consumable_spell_items(@acting_row[:creature_id]).any? ||
                     granted_spell_items(@acting_row[:creature_id]).any?) rescue false) : false
 
+  # Active Spells pane (turn_action_stub.md → Active Spells): offered when the
+  # Acting Combatant channels an active persistent Spell it can strike with
+  # (a live Spiritual Weapon Reservoir).
+  @acting_has_active_spells =
+    @acting_row ? (active_spell_strikes(@encounter_state.combatant(@acting_row[:combatant_id])).any? rescue false) : false
+
   # Bardic Inspiration (and any reservoir-mode Performance): the live
   # Reservoirs a DM can discharge to grant Luck. DM-only; off-turn, since a
   # discharge is a Reaction (turn_action_stub.md → Special).
@@ -672,7 +678,18 @@ helpers do
   # design, attacker TN folds in Competency + Unaware (per target) + Flatfooted
   # (only when no defense is declared); the defender's Roll + dice are baked
   # per (target, weapon, defense). The blob is large by design.
-  def attack_builder_blob(attacker)
+  # The Combatant's active persistent-Spell strikes (Spiritual Weapon): each
+  # auto-channel Concentration entry holding a live Reservoir is a conjured
+  # weapon that strikes through the Active Spells action. Drives both the
+  # Active Spells menu button and that pane's weapon list.
+  def active_spell_strikes(combatant)
+    Array(combatant[:concentration]).select { |e| e[:mode] == 'auto' && e[:reservoir].to_i.positive? }
+  end
+
+  # `active_spells: true` builds the Active Spells pane — the same Attack flow,
+  # but its weapon list is the conjured strikes from the Combatant's active
+  # persistent Spells (Spiritual Weapon) rather than its real equipped weapons.
+  def attack_builder_blob(attacker, active_spells: false)
     acc      = Creatures.lookup(attacker[:creature_id]) rescue nil
     die      = DiceResolution.config.die_size
     base_tn  = DiceResolution.config.base_target_number
@@ -687,21 +704,27 @@ helpers do
     # which applies cross-side propagation and computes every TN itself.
     fmt_mods = ->(list) { list.map { |type, amt| "#{amt >= 0 ? '+' : ''}#{amt} #{type}" }.join(' ') }
 
-    weapons = equipped_weapons(attacker[:creature_id]).map do |w|
+    # The Attack pane lists real equipped weapons; the Active Spells pane lists
+    # only the active-Spell strikes (so a conjured weapon never clutters the
+    # normal Attack list, and vice versa).
+    weapons = active_spells ? [] : equipped_weapons(attacker[:creature_id]).map do |w|
       attr = w[:ranged] ? :dex : :str
       ri   = roll_inputs_for(acc, 'martial', attribute_override: attr)
       w.merge(dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier])
     end
-    # Spiritual Weapon: while the caster channels it, the floating weapon strikes
-    # each turn with a number of dice equal to its (persistent) Reservoir — a
-    # force attack that costs no Combat Pool and does not consume the Reservoir.
-    # It is a melee strike (a weapon hovering beside the target taking swings),
-    # not a ranged attack, so the target may Parry it like any normal melee blow.
-    sw = Array(attacker[:concentration]).find { |e| e[:spell_name].to_s == 'Spiritual Weapon' && e[:reservoir].to_i.positive? }
-    if sw
-      weapons << { item_type: 'spiritual_weapon', display_name: 'Spiritual Weapon', ranged: false,
-                   speed: 0, damage_types: ['force'], threshold: 0, bleed: 0, base_damage: 0,
-                   dice_cap: sw[:reservoir].to_i, competency: nil }
+    # Spiritual Weapon (and any auto-channel strike Spell): while the caster
+    # channels it, the floating weapon strikes each turn with a number of dice
+    # equal to its (persistent) Reservoir — a force attack that costs no Combat
+    # Pool and does not consume the Reservoir. It is a melee strike (a weapon
+    # hovering beside the target taking swings), not a ranged attack, so the
+    # target may Parry it like any normal melee blow. Surfaced only in the
+    # Active Spells pane.
+    if active_spells
+      active_spell_strikes(attacker).each do |sw|
+        weapons << { item_type: 'spiritual_weapon', display_name: sw[:spell_name].to_s, ranged: false,
+                     speed: 0, damage_types: ['force'], threshold: 0, bleed: 0, base_damage: 0,
+                     dice_cap: sw[:reservoir].to_i, competency: nil }
+      end
     end
 
     atk_tier = (acc&.tier rescue nil)
@@ -1389,12 +1412,11 @@ helpers do
     ra   = raw['area']
     area = ra.is_a?(Array) ? ra.find { |x| x.is_a?(Hash) } : ra
     act  = (Abilities.resolve_activation(v) rescue nil)
-    # A reservoir/auto channel pours its cast dice into a Reservoir. Most such
-    # casts ask for a dice count but roll nothing (Shield of Faith, Bardic
-    # Inspiration). An attack-roll / Save reservoir Spell (Spiritual Weapon) is
-    # the exception: the cast is itself an opposed strike, so the same dice both
-    # roll the attack against the target and fill the Reservoir it strikes from
-    # on later turns.
+    # A reservoir/auto channel pours its cast dice into a Reservoir — those casts
+    # ask for a dice count but roll nothing. Spiritual Weapon's *cast* only
+    # conjures the weapon (fills the Reservoir + flags the caster); its attack
+    # belongs to the Active Spells action, not the cast. A casting check is
+    # rolled only for a non-reservoir Save / attack-roll / damage Spell.
     channel_mode = v.dig('channel', 'mode').to_s
     fills_reservoir = %w[reservoir auto].include?(channel_mode) &&
                       v.dig('reservoir', 'fill', 'source').to_s == 'channel_dice'
@@ -1402,11 +1424,8 @@ helpers do
     # bleed_reduction = spell_tier*2*success) needs a real casting check rolled.
     channel_check = !!(v.dig('channel', 'effect_hash', 'bleed_reduction') ||
                        raw.dig('channel', 'effect_hash', 'bleed_reduction'))
-    # An attack-roll or Save Spell always rolls its casting check — even when it
-    # also fills a Reservoir. A plain damage Spell rolls only when it isn't a
-    # pure Reservoir pour.
-    requires_roll = !!(v['attack_roll'] || Array(v['save']).first || channel_check) ||
-                    (!fills_reservoir && !!Array(v['damage_type']).compact.first)
+    requires_roll = !fills_reservoir &&
+                    !!(v['attack_roll'] || Array(v['save']).first || Array(v['damage_type']).compact.first || channel_check)
 
     # Per-skill roll inputs for the casting skills this castable offers. Sorted
     # by prowess (Dice Cap, then Competency) so the highest-bonus skill is the
@@ -1440,11 +1459,11 @@ helpers do
       tier: tier, mana_cost: mana_cost, skill: primary[:skill], skill_options: skopts,
       dice_cap: primary[:dice_cap], competency: primary[:competency],
       damage_type: Array(v['damage_type']).compact.first, school: v['school'],
-      # An attack-roll / Save Spell exposes its Defense step even when it also
-      # fills a Reservoir: Spiritual Weapon's cast is itself a strike against the
-      # target (the defender gets the usual Dodge / Block), and the same dice
-      # fill the Reservoir it strikes from on later turns.
-      attack_roll: !!v['attack_roll'], save: Array(v['save']).first,
+      # A reservoir-fill channel (Spiritual Weapon) pours dice into its Reservoir
+      # and strikes on later turns through the Active Spells action — its
+      # `attack_roll` belongs to those strikes, not the cast. Suppress it so the
+      # cast doesn't demand a Defense / attack roll; it just conjures the weapon.
+      attack_roll: (fills_reservoir ? false : !!v['attack_roll']), save: (fills_reservoir ? nil : Array(v['save']).first),
       area: (area.is_a?(Hash) ? area : nil),
       multi_max: multi_max,
       requires_roll: requires_roll,
@@ -2296,14 +2315,18 @@ helpers do
       spell['duration'] = variant['duration'] || raw_entry['duration']
     end
 
+    # A reservoir-fill channel (Spiritual Weapon) fills its Reservoir at cast and
+    # strikes on later turns through the Active Spells action; the cast itself
+    # resolves no attack.
+    reservoir_channel = %w[reservoir auto].include?((variant && variant.dig('channel', 'mode')).to_s) &&
+                        (variant && variant.dig('reservoir', 'fill', 'source')).to_s == 'channel_dice'
+
     # Damage routing for the Cast path. An attack-roll Spell resolves as a spell
     # attack — net the casting check against the target's Block / Dodge, damage
-    # from the net Successes — even when it also fills a Reservoir (Spiritual
-    # Weapon's cast strikes the target and banks the dice for its later strikes).
-    # A Save-based damage Spell with no explicit damage Effect deals the default
-    # Spell damage (floor(casting stat / 4) + Tier + Successes); a Spell that
-    # states its own damage formula keeps it.
-    if variant && variant['attack_roll']
+    # from the net Successes. A Save-based damage Spell with no explicit damage
+    # Effect deals the default Spell damage (floor(casting stat / 4) + Tier +
+    # Successes); a Spell that states its own damage formula keeps it.
+    if variant && variant['attack_roll'] && !reservoir_channel
       spell['attack_roll'] = true
       spell['damage_type'] ||= Array(variant['damage_type']).compact.first
       spell['casting_attribute'] ||= (Proficiencies.attribute_for(spell['cast_skill']) || :cha).to_s
@@ -2934,6 +2957,23 @@ get '/encounter/attack_builder' do
   # A Roll Table Reaction (Kesser's Gambit) a bystander may answer this attack
   # with rides alongside the builder, in the same place as the Standard Shield's
   # ally block. Rendered only when an eligible channeler exists.
+  channelers = roll_table_reaction_channelers(attacker[:id])
+  return builder_html if channelers.empty?
+  builder_html + erb(:_encounter_roll_table_stub, layout: false,
+                     locals: { channelers: channelers, attacker_id: attacker[:id] })
+end
+
+# The Action Builder for the Acting Combatant's Active Spells action — the
+# strikes from its active persistent Spells (Spiritual Weapon). It is the same
+# Attack flow (target / weapon+dice / full Defense incl. Parry / ally Defense /
+# Luck), so it resolves through the very same /encounter/resolve_attack the
+# Attack pane uses; only the weapon list (the conjured strikes) differs.
+get '/encounter/active_spells_builder' do
+  require_dm!
+  attacker = encounter_state.combatant(params[:attacker_id].to_i)
+  return encounter_error(404, 'unknown attacker') unless attacker
+  builder_html = erb :_action_builder, layout: false,
+                     locals: { builder: attack_builder_blob(attacker, active_spells: true) }
   channelers = roll_table_reaction_channelers(attacker[:id])
   return builder_html if channelers.empty?
   builder_html + erb(:_encounter_roll_table_stub, layout: false,

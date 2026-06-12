@@ -51,7 +51,7 @@
 <%# Turn Action panel (turn_action_stub.md): DM-only, acts on the Acting
     Combatant. Rendered only when a Combatant currently holds the turn. %>
 <% if @viewer == :dm && phase == :combat && @acting_row %>
-  <%= erb :_turn_action, locals: { acting: @acting_row, dead: @acting_dead, saves: @acting_saves, main_actions: @acting_main_actions, special_options: @acting_special, has_spells: @acting_has_spells, has_items: @acting_has_items } %>
+  <%= erb :_turn_action, locals: { acting: @acting_row, dead: @acting_dead, saves: @acting_saves, main_actions: @acting_main_actions, special_options: @acting_special, has_spells: @acting_has_spells, has_items: @acting_has_items, has_active_spells: @acting_has_active_spells } %>
 <% end %>
 
 <%# Atlas map (atlas_stub.md): Combat Phase only (both viewers). DM places

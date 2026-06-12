@@ -31,6 +31,7 @@
 <% main_actions ||= -1 %>
 <% has_spells = false unless defined?(has_spells) %>
 <% has_items = false unless defined?(has_items) %>
+<% has_active_spells = false unless defined?(has_active_spells) %>
 <%
   incapacitated = !acting[:can_act]
   state_suffix  = dead ? 'Dead' : (incapacitated ? 'Incapacitated' : nil)
@@ -49,6 +50,7 @@
                    [{ key: 'attack', label: 'Attack' },
                     { key: 'move',   label: 'Move' }] +
                      (has_spells ? [{ key: 'cast', label: 'Cast' }] : []) +
+                     (has_active_spells ? [{ key: 'active_spells', label: 'Active Spells' }] : []) +
                      (has_items ? [{ key: 'item', label: 'Item' }] : [])
                  end
   free_generic = [{ key: 'end_turn', label: 'End Turn' }]
@@ -132,6 +134,22 @@
           <p class="ta-attack-loading">Loading attack options…</p>
         </div>
       </div>
+
+      <% if has_active_spells %>
+        <%# Active Spells (turn_action_stub.md → Active Spells): strike with an
+            active persistent Spell (Spiritual Weapon). It reuses the Attack
+            host — same target / weapon+dice / Defense / Ally Defense / Luck
+            flow — only pointed at /encounter/active_spells_builder, whose
+            weapon list is the conjured strikes; it resolves through the same
+            /encounter/resolve_attack. %>
+        <div class="ta-pane" data-ta-pane="active_spells">
+          <div class="ta-attack ta-active-spells" data-attacker-id="<%= acting[:combatant_id] %>"
+               data-builder-url="/encounter/active_spells_builder"
+               data-pool-remaining="<%= pool ? pool[:remaining] : 0 %>">
+            <p class="ta-attack-loading">Loading active spells…</p>
+          </div>
+        </div>
+      <% end %>
 
       <div class="ta-pane" data-ta-pane="move">
         <%# Move (turn_action_stub.md → Move): a Main Action that spends a flat
