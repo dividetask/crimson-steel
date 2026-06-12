@@ -1518,6 +1518,10 @@ body {
   position: relative;
   background: #fff;
 }
+/* The whole expandable card opens the full-text modal on click, so its
+   header/title reads as clickable too (not just the body text region). */
+.ce-card.ce-expandable .ce-head,
+.ce-card.ce-expandable .ce-title { cursor: pointer; }
 .ce-content.ce-has-image .ce-body {
   height: 100px;
 }

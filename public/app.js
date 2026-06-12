@@ -299,13 +299,14 @@ document.addEventListener('mouseover', function (e) {
       openRitualModal(ritual);
       return;
     }
-    var body = e.target.closest('[data-text-modal="1"]');
-    if (body) {
-      var card = body.closest('.ce-card');
-      if (card) {
-        e.preventDefault();
-        openTextModal(card);
-      }
+    // A click anywhere on an expandable note / creature-reference card opens
+    // the full-text modal — so tapping the title, the card, or the body text
+    // all enlarge the note. Image clicks (the lightbox, handled above) and the
+    // edit/footer controls are excluded so they keep their own behavior.
+    var card = e.target.closest('.ce-card.ce-expandable');
+    if (card && !e.target.closest('.ce-foot, a, button, input, textarea, select, label, summary')) {
+      e.preventDefault();
+      openTextModal(card);
     }
   });
 
