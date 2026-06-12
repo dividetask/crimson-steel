@@ -237,11 +237,11 @@ characters:
   name: Hobgoblin Trooper
   race: hobgoblin
   attributes:
-    str: 14
-    dex: 12
-    con: 13
-    int: 10
-    wis: 10
+    str: 11
+    dex: 10
+    con: 10
+    int: 9
+    wis: 9
     cha: 8
   advancement:
     classes:
@@ -263,11 +263,11 @@ characters:
   name: Hobgoblin Sergeant
   race: hobgoblin
   attributes:
-    str: 15
-    dex: 12
-    con: 14
-    int: 10
-    wis: 11
+    str: 11
+    dex: 10
+    con: 11
+    int: 9
+    wis: 10
     cha: 9
   advancement:
     classes:
@@ -290,11 +290,11 @@ characters:
   name: Gnoll Marauder
   race: gnoll
   attributes:
-    str: 16
-    dex: 13
-    con: 14
+    str: 11
+    dex: 10
+    con: 10
     int: 8
-    wis: 11
+    wis: 9
     cha: 8
   advancement:
     classes:
@@ -317,12 +317,12 @@ characters:
   name: Orc Wall Crossbowman
   race: orc
   attributes:
-    str: 14
-    dex: 14
-    con: 12
+    str: 10
+    dex: 11
+    con: 9
     int: 9
     wis: 10
-    cha: 7
+    cha: 8
   advancement:
     classes:
       fighter:
@@ -343,12 +343,12 @@ characters:
   name: Carnivorous Ape
   race: carnivorous_ape
   attributes:
-    str: 18
-    dex: 13
-    con: 15
-    int: 5
-    wis: 12
-    cha: 7
+    str: 11
+    dex: 10
+    con: 11
+    int: 9
+    wis: 10
+    cha: 9
   advancement:
     classes:
       warrior:
@@ -366,12 +366,12 @@ characters:
   name: Fort War Dog
   race: war_dog
   attributes:
-    str: 14
-    dex: 13
-    con: 14
-    int: 2
-    wis: 12
-    cha: 6
+    str: 10
+    dex: 11
+    con: 10
+    int: 9
+    wis: 11
+    cha: 9
   advancement:
     classes:
       warrior:
@@ -508,11 +508,11 @@ characters:
   name: Wildman Hunter
   race: human
   attributes:
-    str: 12
-    dex: 14
-    con: 12
+    str: 10
+    dex: 11
+    con: 10
     int: 9
-    wis: 11
+    wis: 10
     cha: 9
   advancement:
     classes:
@@ -535,11 +535,11 @@ characters:
   name: Wildman Scout
   race: human
   attributes:
-    str: 11
-    dex: 16
-    con: 11
-    int: 10
-    wis: 12
+    str: 9
+    dex: 11
+    con: 9
+    int: 9
+    wis: 10
     cha: 9
   advancement:
     classes:
@@ -610,12 +610,12 @@ characters:
   name: Goblin Skulker
   race: goblin
   attributes:
-    str: 11
-    dex: 14
-    con: 11
+    str: 9
+    dex: 10
+    con: 9
     int: 10
     wis: 9
-    cha: 8
+    cha: 9
   advancement:
     classes:
       warrior:
@@ -633,11 +633,11 @@ characters:
   name: Winter Wolf
   race: winter_wolf
   attributes:
-    str: 18
-    dex: 13
-    con: 16
-    int: 9
-    wis: 13
+    str: 11
+    dex: 10
+    con: 11
+    int: 10
+    wis: 11
     cha: 10
   advancement:
     classes:
