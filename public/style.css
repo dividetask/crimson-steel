@@ -19,16 +19,17 @@ body {
   display: flex;
   align-items: center;
   padding: 0 16px;
-  height: 36px;
+  height: 72px;
   max-width: 1100px;
   margin: 0 auto;
 }
 
 .menu-items {
+	font-size: 18px;
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 32px;
   /* Absorb the free space so the right-hand nav controls (Phase / View As /
      player Character name / server address) always sit flush right. */
   margin-right: auto;
