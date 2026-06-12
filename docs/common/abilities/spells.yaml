@@ -1032,9 +1032,7 @@ Spark Shower:
       fumble: blind
       success: "0"
   duration: 1 turn
-  effects:
-    - "cha / 4 + success damage"
-  description: "A shower of searing motes bursts over the touched target, dealing radiant damage equal to Charisma/4 plus one per success rolled and blinding it for 1 turn. The target may attempt a Dexterity save: a success halves the damage and negates the blindness, while a fumbled save extends the blindness to 1 minute. The tier-1 successor is Shooting Stars."
+  description: "A shower of searing motes bursts over the touched target, dealing radiant damage that scales with the attribute used to cast the spell (Charisma when cast through Evocation) plus one per success rolled, and blinding it for 1 turn. The target may attempt a Dexterity save: a success halves the damage and negates the blindness, while a fumbled save extends the blindness to 1 minute. The tier-1 successor is Shooting Stars."
 
 Shooting Stars:
   type: spell
@@ -1051,6 +1049,4 @@ Shooting Stars:
       fumble: blind
       success: "0"
   duration: 1 turn
-  effects:
-    - "cha / 4 + success damage"
-  description: "The tier-1 successor to Spark Shower. Streaking motes rain down on one creature per rank within Medium range, each strike dealing radiant damage equal to Charisma/4 plus one per success rolled and blinding the target for 1 turn. Each target may attempt a Dexterity save: a success halves the damage and negates the blindness, while a fumbled save extends the blindness to 1 minute."
+  description: "The tier-1 successor to Spark Shower. Streaking motes rain down on one creature per rank within Medium range, each strike dealing radiant damage that scales with the attribute used to cast the spell (Charisma when cast through Evocation) plus one per success rolled, and blinding the target for 1 turn. Each target may attempt a Dexterity save: a success halves the damage and negates the blindness, while a fumbled save extends the blindness to 1 minute."
