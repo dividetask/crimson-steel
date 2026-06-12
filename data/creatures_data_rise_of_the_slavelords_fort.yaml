@@ -353,6 +353,11 @@ characters:
     classes:
       warrior:
         level: 5
+        skills:
+        - perception
+        - survival
+        - athletics
+        - intimidate
   group: enemy
   tags:
   - enemy_template
@@ -376,6 +381,9 @@ characters:
     classes:
       warrior:
         level: 2
+        skills:
+        - perception
+        - survival
   group: enemy
   tags:
   - enemy_template
@@ -495,6 +503,11 @@ characters:
     classes:
       cleric:
         level: 1
+        skills:
+        - healing
+        - nature
+        - religion
+        - sense_motive
   group: enemy
   tags:
   - enemy_template
@@ -502,6 +515,7 @@ characters:
   - faction:wildmen
   - category:rise_of_the_slavelords_fort
   tier: 0
+  equipment_table: crone_loadout
   metadata:
     creature_token: "/images/icons/human token.webp"
 - id: 375
@@ -573,6 +587,11 @@ characters:
     classes:
       warrior:
         level: 1
+        skills:
+        - stealth
+        - deception
+        - acrobatics
+        - sleight_of_hand
   group: enemy
   tags:
   - enemy_template
@@ -580,6 +599,7 @@ characters:
   - faction:wildmen
   - category:rise_of_the_slavelords_fort
   tier: 0
+  equipment_table: wildman_child_loadout
   metadata:
     creature_token: "/images/icons/human token.webp"
 - id: 378
@@ -596,6 +616,10 @@ characters:
     classes:
       warrior:
         level: 1
+        skills:
+        - athletics
+        - survival
+        - perception
   group: enemy
   tags:
   - enemy_template
@@ -620,13 +644,18 @@ characters:
     classes:
       warrior:
         level: 1
+        skills:
+        - stealth
+        - perception
+        - deception
+        - acrobatics
   group: enemy
   tags:
   - enemy_template
   - garrison
   - category:rise_of_the_slavelords_fort
   tier: 0
-  equipment_table: soldier_loadout
+  equipment_table: skulker_loadout
   metadata:
     creature_token: "/images/icons/goblin token.webp"
 - id: 380
@@ -643,6 +672,10 @@ characters:
     classes:
       warrior:
         level: 6
+        skills:
+        - perception
+        - survival
+        - stealth
   group: enemy
   tags:
   - enemy_template

@@ -300,6 +300,16 @@ Ogre Slam:
   description: "Grants the Slam natural weapon."
   grants_equipment: ["Slam"]
 
+Ape Bite:
+  type: talent
+  description: "Grants the Bite (Jaws) natural weapon."
+  grants_equipment: ["Bite (Jaws)"]
+
+Ape Slam:
+  type: talent
+  description: "Grants the Slam natural weapon."
+  grants_equipment: ["Slam"]
+
 Rend:
   type: talent
   trigger:

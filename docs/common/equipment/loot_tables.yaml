@@ -386,3 +386,66 @@ loot_tables:
           - { chance: 0.35, item: { item: Trinket, name: "Bone-and-feather charm" } }
           - { chance: 0.25, item: { item: Trinket, name: "Tanned pelt" } }
           - { chance: 0.20, item: { item: Rations, name: "Dried meat strips" } }
+
+  # A wildman crone's meager kit — a worn cloak, a gnarled staff or bone
+  # knife, and pouches of herbs and charms. Rolled at spawn for the
+  # Wildman Crone (374). Primitive: no metal armor, no magic.
+  crone_loadout:
+    rolls:
+
+      # Worn cloak against the cold (else just furs).
+      - equipped: true
+        chance: 0.7
+        item: { item: Cloak, name: "Patched fur cloak" }
+
+      # A weapon — a gnarled walking staff or a small bone knife.
+      - equipped: true
+        options:
+          - { chance: 0.6, item: { item: Quarterstaff, name: "Gnarled walking staff" } }
+          - { chance: 0.4, item: { item: Dagger, name: "Bone knife" } }
+
+      # Herbs, charms, foraged food.
+      - options:
+          - { chance: 0.5, item: { item: Trinket, name: "Pouch of dried herbs" } }
+          - { chance: 0.4, item: { item: Trinket, name: "Bundle of bone charms" } }
+      - chance: 0.5
+        item: { item: Rations, name: "Foraged roots" }
+
+  # A wildman child carries little — always a knife, sometimes a sling and a
+  # pocketful of stones. Rolled at spawn for the Wildman Child (377).
+  wildman_child_loadout:
+    rolls:
+
+      - equipped: true
+        item: { item: Dagger, name: "Child's knife" }
+
+      # Half the time, a sling and stones.
+      - as: ranged
+        options:
+          - { chance: 0.5, key: sling, item: { item: Sling } }
+      - when: { ranged: sling }
+        item: { item: Stone, quantity: 20 }
+
+  # A goblin skulker travels light for ambush and escape — scraps of leather,
+  # a short blade, and a sling for softening targets at range. Rolled at spawn
+  # for the Goblin Skulker (379).
+  skulker_loadout:
+    rolls:
+
+      - equipped: true
+        item: { item: Leather armor }
+
+      - equipped: true
+        options:
+          - { chance: 0.6, item: { item: Short sword } }
+          - { chance: 0.4, item: { item: Dagger } }
+
+      - equipped: true
+        as: ranged
+        options:
+          - { chance: 0.7, key: sling, item: { item: Sling } }
+      - when: { ranged: sling }
+        item: { item: Stone, quantity: 20 }
+
+      - chance: 0.4
+        item: { item: Copper, quantity: "2d6" }
