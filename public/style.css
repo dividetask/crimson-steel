@@ -3965,3 +3965,65 @@ body {
 /* Running "selected / max Targets" count above a multi-select target list. */
 .cb-multi-count { font-size: 0.85rem; font-weight: 600; margin: 0 0 4px; }
 .cb-multi-count.cb-multi-full { color: #2563eb; }
+
+/* --- Compendium: clickable Glossary keywords + rendered formulas --- */
+
+/* A keyword carries its definition in a popup, revealed on hover, keyboard
+   focus, or a click-toggled sticky state (touch-friendly). */
+.cr-kw {
+  position: relative;
+  cursor: help;
+  font-weight: 600;
+  color: #882f1f;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+.cr-kw:focus { outline: 2px solid #d6a700; outline-offset: 1px; }
+
+.cr-kw-pop {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 1.5em;
+  z-index: 30;
+  width: max-content;
+  max-width: 280px;
+  padding: 8px 10px;
+  background: #fffaf0;
+  border: 1px solid #b9472c;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(43, 26, 19, 0.22);
+  font-weight: normal;
+  text-align: left;
+  white-space: normal;
+}
+.cr-kw:hover .cr-kw-pop,
+.cr-kw:focus .cr-kw-pop,
+.cr-kw:focus-within .cr-kw-pop,
+.cr-kw.cr-kw-open .cr-kw-pop {
+  display: block;
+}
+
+.cr-kw-pop-title {
+  display: block;
+  font-variant: small-caps;
+  color: #882f1f;
+  font-weight: bold;
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+.cr-kw-pop-body {
+  display: block;
+  color: #3a2a20;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* A rendered formula (config values filled in, runtime variables kept). */
+.explainer code.cr-formula {
+  background: #f6efe3;
+  border: 1px solid #e0cda8;
+  color: #5a3d00;
+  font-size: 12px;
+  padding: 1px 6px;
+}

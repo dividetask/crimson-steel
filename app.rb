@@ -10,8 +10,7 @@ enable :sessions
 
 $LOAD_PATH.unshift(File.join(__dir__, 'lib'))
 
-require_relative 'lib/glossary_docs'
-require_relative 'lib/explainer_docs'
+require_relative 'lib/compendium_docs'
 require_relative 'lib/helpers'
 
 # Page routes. Every menu link maps to a route file here; a link whose

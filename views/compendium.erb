@@ -1,18 +1,9 @@
-<%
-  nav_items =
-    [{ key: 'glossary', label: 'Glossary', href: '/compendium?view=glossary' }] +
-    ExplainerDocs.keys.map do |key|
-      { key: key, label: ExplainerDocs.title_for(key), href: "/compendium?view=#{key}" }
-    end
-  has_mermaid = @view != 'glossary' && @explainer_html&.include?('class="mermaid"')
-%>
-
 <div class="compendium-layout">
   <aside class="compendium-nav">
     <ul>
-      <% nav_items.each do |item| %>
+      <% @nav_items.each do |item| %>
         <li class="<%= 'active' if @view == item[:key] %>">
-          <a href="<%= item[:href] %>"><%= item[:label] %></a>
+          <a href="/compendium?view=<%= item[:key] %>"><%= h(item[:label]) %></a>
         </li>
       <% end %>
     </ul>
@@ -21,17 +12,22 @@
   <section class="compendium-content">
     <% if @view == 'glossary' %>
       <h1>Glossary</h1>
-      <p class="lead">Vocabulary used throughout the Crimson Steel rules. Common terms take precedence over per-domain definitions.</p>
+      <p class="lead">Plain-English definitions of the terms used throughout the rules.</p>
       <%= @glossary_html %>
-    <% elsif @explainer_html %>
+    <% elsif @overview_html %>
       <article class="explainer">
-        <%= @explainer_html %>
+        <%= @overview_html %>
       </article>
+    <% else %>
+      <h1><%= h(@title) %></h1>
+      <p class="lead">This chapter has no overview yet.</p>
     <% end %>
   </section>
 </div>
 
-<% if has_mermaid %>
+<script src="/compendium.js"></script>
+
+<% if @has_mermaid %>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <script>
     mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'strict' });

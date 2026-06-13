@@ -1,13 +1,21 @@
-COMPENDIUM_VIEWS = (['glossary'] + ExplainerDocs.keys).freeze
+# Compendium — the player-facing rules browser. The left nav lists one
+# entry per game-rules chapter overview (docs/game_rules/<chapter>/
+# <chapter>_overview.md), with the Glossary pinned last. See
+# docs/website_design/compendium.md.
 
 get '/compendium' do
-  @view = COMPENDIUM_VIEWS.include?(params[:view]) ? params[:view] : 'glossary'
+  views   = CompendiumDocs.view_keys
+  default = views.first || 'glossary'
+  @view   = views.include?(params[:view]) ? params[:view] : default
+
+  @nav_items = CompendiumDocs.nav_items
+  @title     = CompendiumDocs.title_for(@view)
 
   if @view == 'glossary'
-    @glossary_html = GlossaryDocs.render
+    @glossary_html = CompendiumDocs.render_glossary
   else
-    @explainer_html  = ExplainerDocs.render(@view)
-    @explainer_title = ExplainerDocs.title_for(@view)
+    @overview_html = CompendiumDocs.render_overview(@view)
+    @has_mermaid   = @overview_html ? CompendiumDocs.overview_has_mermaid?(@overview_html) : false
   end
 
   erb :compendium

@@ -1,18 +1,30 @@
 # Check Resolution Configuration
+#
+# Scalars (Die Size, Minimum Dice, …) are injected wherever the overview writes
+# {{Name}}. Values written with <Variable> references are *formulas*: the
+# overview expands nested formulas and fills in config scalars, but keeps the
+# runtime variables (<Attribute>, <Prowess>, <Dice Modifier>) symbolic. See
+# docs/website_design/compendium.md.
 
 Die Size: 10
 Minimum Dice: 6
 Dice Range: 5
-Attribute Contribution Formula: "<Attribute> / 2"
-Dice Cap Formula: "<Minimum Dice> + ((<Attribute Contribution Formula> + <Prowess>) % <Dice Range>)"
 Base Target Number: 8
 Minimum Target Number: 3
 Maximum Target Number: 9
 Default Success Threshold: 2
 Default Fumble Threshold: 2
 
-# Single-character labels for die values 10+ in an Dice Result String.
+# Formulas (function definitions). Variables in <angle brackets> are either
+# other config entries or runtime values supplied per check.
+Attribute Contribution Formula: "<Attribute> / 2"
+Dice Cap Formula: "<Minimum Dice> + ((<Attribute Contribution Formula> + <Prowess>) % <Dice Range>)"
+Maximum Dice Formula: "<Minimum Dice> + <Dice Range> - 1"
+Starting Value Formula: "min(0, <Minimum Target Number> - <Dice Modifier>) - min(0, <Dice Modifier> - <Maximum Target Number>)"
+Check Target Number Formula: "clamp(<Base Target Number> + <Dice Modifier>, <Minimum Target Number>, <Maximum Target Number>)"
+
+# Single-character labels for die values 10+ in a Dice Result String.
 # Values 1-9 use '1'-'9'. Values 10+ use characters from this string.
-# If this string is too short to cover every possible values then 
-# instead use A,B,C … Z. Boot errors if encoding is non-monotonic
+# If this string is too short to cover every possible value then instead
+# use A,B,C … Z. Boot errors if encoding is non-monotonic.
 Dice Result String Encoding: "X"
