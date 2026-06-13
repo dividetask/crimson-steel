@@ -34,7 +34,7 @@ leaving the page.
 
 **Aptitude Check**: A Check for a trained skill, where practice and know-how improve your odds.
 
-**Saving Throw**: A Check made to resist or avoid something happening to you, such as a spell, a trap, or a poison.
+**Saving Throw**: A roll made to resist or avoid magical or mundane effects such as compulsions, explosions, or entangling vines. Also includes recognizing illusions by their inconsistencies.
 
 **Opposed Aptitude Check**: A Check where two creatures pit the same kind of skill directly against each other, like an arm-wrestle or a battle of wits.
 

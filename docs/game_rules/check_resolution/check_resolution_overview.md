@@ -1,9 +1,17 @@
+# Check Resolution Overview
+
 # Checks
 
-Whenever you attempt something that could fail, you make a **[[Check]]**.
+Whenever you attempt something that could fail, you make a [[check]].
 Pushing a boulder, picking a lock, recalling a rumor, swinging a blade,
 shrugging off a poison — each is resolved the same way: you gather a handful
-of dice and roll them against a **[[Target Number]]**.
+of dice and roll them against a [[target number]].
+
+## Rolls
+
+Each **[[check]]** is made up of one or more **[[rolls]]**. Some **[[checks]]** 
+only involve one creature and thus only involve one **[[roll]]**, while others
+involve multiple creatures and each creature has their on **[[roll]]**.
 
 Every die has **{{Die Size}}** sides, and a die *succeeds* when it rolls at or
 above the Target Number. A die can also crit when it rolls a **{{Die Size}}**,
@@ -12,32 +20,36 @@ and fails when it rolls a 1.
 There are several kinds of Check, and the later sections of this chapter spell
 each one out:
 
-- **[[Attribute Check|Attribute Checks]]** — raw tests of an ability that cannot
-be trained.
-of a single attribute.
-- **[[Aptitude Check|Aptitude Checks]]** — tests of a trained skill.
-- **[[Saving Throw|Saving Throw Checks]]** — resisting something done to you.
-- **[[Opposed Aptitude Check|Opposed Aptitude Checks]]** — skill against skill.
-- **Single-Target, Multi-Target, and Area [[Spell Check|Spell Checks]]** — landing a spell.
-- **[[Combat Check|Combat Checks]]** — striking and defending in a fight.
+- **[[Attribute Check]]** — raw tests of an ability that does not benefit from training such as pushing something heavy, or attempting to remember something you heard earlier.
+- **[[Aptitude Check]]** — tests of an activities that does do benefit from training such as picking a lock, lying, or identifying a monster.
+- **[[Opposed Aptitude Check]]** — An aptitude check involving two or more creatures opposing each other, such as attempting to see through a lie, winning a board game, or noticing a creature attempting to hide.
+- **[[Single-Target Magic Check]]** — A check attempting to impose a negative condition on another creature involving a magic spell or magical ability. This always involves a casting roll, and a saving throw. It can also involve supporting rolls that aid the casting roll, and opposing rolls that aid the saving throw. 
+- **[[Multi-Target Magic Check]]** — A check attempting to impose a negative condition on one or more creatures involving a magic spell or magical ability. Thts always involves a casting roll, and a saving throw for each targeted creature. It can also involve supporting rolls that aid the casting roll, and opposing rolls that aid all of the saving throws. 
+- **[[Area Magic Check]]** — A check attempting to impose a negative condition on all creatures in a defined area involving a magic spell or magical ability. This always involves a casting roll, and a saving throw for each creature in the area. It can also involve supporting rolls that aid the casting roll, and opposing rolls that aid all of the saving throws. 
+- **[[Combat Check]]** — A check attempting hit another creature in combat with a melee or ranged weapon. This always involves a attack roll, and may include a defences roll. It can also include supporting rolls that aid the attack roll, and opposing rolls that hamper the attack roll. 
+- **[[Magic Combat Check]]** — A check attempting hit another creature in combat with a magical spell or ability. This always involves a casting roll, and may include a defence roll. It can also include supporting rolls that aid the casting roll, and opposing rolls that hamper the casting roll. 
 
 What changes between them is mostly *how the bonuses and penalties are shared*
 among the creatures involved. The rest of the machinery is the same, so we
 cover it first.
 
-# The Dice Cap
+## Dice Cap
 
-Each Check rolls between **{{Minimum Dice}}** and **{{Maximum Dice Formula}}**
-dice. The exact number — the **[[Dice Cap]]** — comes from the most relevant
-[[Attribute]] for the task together with the creature's **[[Prowess]]**:
+Each **[[roll]]** rolls between **{{Minimum Dice}}** and **{{Maximum Dice Formula}}**
+dice. The exact number is calculated using the most relevant [[Attribute]] for the task 
+together with the creature's **[[Prowess]]**:
 
 > **Dice Cap** = {{Dice Cap Formula}}
 
-A higher attribute or more Prowess earns you more dice, and therefore more
-chances to roll a success.
+A higher attribute or more Prowess will earn you more dice until you hit the 
+**[[maximum dice]]** at which point it will reset back to the **[[minimum dice]]**. 
+It will continue to bounce between these two values. Having more dice will increase
+the number of successes you are likely to roll. Whenever **[[prowess ]]** or
+attribute increases push your **[[dice cap]]** back to down, your **[[check]]** will 
+be compensated with a lower **[[target number]]** or additional 
+**[[starting successes]]**.
 
 ```test
-# Dice Cap — with Minimum Dice 3 and Dice Range 5 for these cases.
 global:
   Minimum Dice: 3
   Dice Range: 5
@@ -54,22 +66,22 @@ cases:
     expect: { Dice Cap: 7 }
 ```
 
-# Bonuses and Penalties
+## Dice Modifier
 
-A Check's Target Number is rarely the bare base. Circumstances, equipment, and
-spells shift it: a **[[Bonus]]** lowers the Target Number (making the Check
-easier), and a **[[Penalty]]** raises it (making the Check harder).
+A **[[check]]**'s **[[target number]]** is rarely the bare base. Circumstances, 
+equipment, and spells shift it: a **[[bonus]]** lowers the **[[target number]]** 
+(making the Check easier), and a **[[penalty]]** raises it (making the 
+**[[check]]** harder).
 
-Every Bonus and Penalty has a **[[Bonus Type|type]]** — Circumstance, Guidance,
-Equipment, and the like. **Bonuses and Penalties of the same type do not
-stack.** Only the single largest Bonus of each type and the single harshest
-Penalty of each type are counted; the rest are ignored.
+Every bonus and penalty has a **[[bonus type]]** — circumstance, guidance,
+inherent, morale, and ascendancy. **Bonuses and penalties of the same type do 
+not stack.** Only the single largest bonus of each type and the single harshest
+penalty of each type are counted; the rest are ignored.
 
-Once same-type stacking is settled, add up the surviving Bonuses and subtract
-the surviving Penalties. That total is the **[[Dice Modifier]]**.
+Once same-type stacking is settled, add up the surviving bonuses and subtract
+the surviving penalties. That total is the **[[dice modifier]]**.
 
 ```test
-# Dice Modifier — same-type stacking keeps only the strongest of each type.
 cases:
   - where:  { bonuses: { Circumstance: [4, 2] }, penalties: {} }
     expect: { Dice Modifier: +4 }
@@ -83,18 +95,17 @@ cases:
     expect: { Dice Modifier: +2 }
 ```
 
-# Starting Value
+## Starting Value
 
-A Target Number can never drop below **{{Minimum Target Number}}** or climb
-above **{{Maximum Target Number}}**. When the Dice Modifier is large enough to
-push it past one of those limits, the leftover doesn't vanish — it becomes a
-**[[Starting Value]]** that is carried into your score: a head start when you
-were over-qualified, or a hole to climb out of when you were overmatched.
+A **[[target number]]** can never drop below the **[[minimum target number]]** 
+({{Minimum Target Number}}) or climb above the **[[maximum target number}}**
+({{Maximum Target Number}}). When the **[[Dice Modifier]]** is large enough to
+push it past one of those limits, the leftover becomes the **[[Starting Value]]** 
+that is carried into your score.
 
 > **Starting Value** = {{Starting Value Formula}}
 
 ```test
-# Starting Value — with Minimum Target Number 3 and Maximum Target Number 9.
 global:
   Minimum Target Number: 3
   Maximum Target Number: 9
@@ -107,9 +118,9 @@ cases:
     expect: { Starting Value: 0 }
 ```
 
-# The Check Target Number
+# The Roll Target Number
 
-With the Dice Modifier in hand, the Check's Target Number is the
+With the Dice Modifier in hand, the Roll's Target Number is the
 **[[Base Target Number]]** ({{Base Target Number}}) shifted by the Dice
 Modifier, then clamped to its allowed range:
 
