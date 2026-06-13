@@ -28,15 +28,19 @@ Damage is tracked at one of three severities, healed worst-first:
 
 A creature's [[damage reduction]] is subtracted from each incoming hit before it is dealt. Armor and tough hide raise it, and bonuses and penalties adjust it, with same-type entries stacking as on any other roll.
 
-# Inherent Damage Reduction
+# Ascendancy Damage Reduction
 
-@function Inherent Damage Reduction
+@function Ascendancy Damage Reduction
 
-A higher-[[tier]] defender shrugs off part of a lower-Tier attacker's damage:
+[[ascendancy]] also shows up as damage: a higher-[[tier]] defender shrugs off part of a lower-Tier attacker's damage.
 
-> **Inherent Damage Reduction** = {{Inherent Damage Reduction Formula}}
+> **Ascendancy Damage Reduction** = {{Ascendancy Damage Reduction Formula}}
 
-The Tier gap is the defender's Tier minus the attacker's (Tier 0 counts as one-half); an attacker of equal or higher Tier is reduced by nothing.
+The Tier gap is the defender's Tier minus the attacker's effective Tier (Tier 0 counts as one-half); an attacker of equal or higher Tier is reduced by nothing.
+
+# Glory
+
+A weapon with the [[glory]] enchantment treats its wielder as one or more Tiers higher when attacking a higher-Tier foe, shrinking the Tier gap before ascendancy damage reduction applies — so the wielder loses less damage fighting up. Glory affects only weapon attacks, never spells or abilities.
 
 # Damage Resilience
 

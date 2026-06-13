@@ -102,13 +102,15 @@ Definitions of the terms used throughout the rules. Click any keyword in a chapt
 
 **Acid Counter**: The amount of acid on a creature; each turn it deals that much minor damage and then halves.
 
+**Glory**: A weapon enchantment that treats its wielder as higher-Tier when attacking a higher-Tier foe, reducing the ascendancy damage reduction it suffers.
+
 ## Power & Tier
 
 **Tier**: A measure of magical power and density. Tier 0 counts as one-half in formulas.
 
 **Inherent**: A bonus that comes from a creature's Tier.
 
-**Ascendancy**: A bonus or penalty that amplifies a Tier mismatch between the two sides of a Check, favoring the higher Tier.
+**Ascendancy**: A Tier-mismatch amplifier favoring the higher Tier — a bonus or penalty on a check, and damage reduction on a hit.
 
 ## Multiple Participants
 
