@@ -161,3 +161,11 @@ A short example: the attacker has a +2 Circumstance bonus and the defender a +1 
 # Magic Combat Checks
 
 A combat check whose attack is a spell or ability: a casting roll against an optional defense roll, with bonuses inverting across the sides exactly as in a weapon [[combat check]]. The spell's Tier rides along as a guidance bonus and both combatants carry an [[inherent]] entry, so **[[ascendancy]] applies**.
+
+# Additional Damage
+
+@function Additional Damage
+
+When an attack hits, a damage source may grant extra dice — an elemental weapon grants four. Roll them against the attack's [[target number]]: each [[success]] deals 1 point of the source's damage and a [[critical success|crit]] deals 2, while 1s do nothing.
+
+> **Additional Damage** = {{Additional Damage Formula}}

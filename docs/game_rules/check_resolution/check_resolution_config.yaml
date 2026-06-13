@@ -14,6 +14,7 @@ Dice Cap Formula: "<Minimum Dice> + ((<Attribute Contribution Formula> + <Prowes
 Maximum Dice Formula: "<Minimum Dice> + <Dice Range> - 1"
 Starting Value Formula: "min(0, <Minimum Target Number> - <Dice Modifier>) - min(0, <Dice Modifier> - <Maximum Target Number>)"
 Roll Target Number Formula: "clamp(<Base Target Number> + <Dice Modifier>, <Minimum Target Number>, <Maximum Target Number>)"
+Additional Damage Formula: "<Successes> + <Crits>"
 
 # Single-character labels for die values 10+ in an Dice Result String.
 # Values 1-9 use '1'-'9'. Values 10+ use characters from this string.

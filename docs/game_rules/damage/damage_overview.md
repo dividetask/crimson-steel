@@ -32,4 +32,4 @@ A creature dies when any one of its three tracks — hit points, any single attr
 
 # Additional Damage Checks
 
-Some weapons and abilities — elemental weapons and the like — deal additional damage that is rolled separately from the main hit. That extra damage is resolved by its own check through a function in [Check Resolution](../check_resolution/check_resolution_overview.md).
+On a hit, an elemental weapon adds {{Elemental Weapon Dice}} dice to the attack. Each success deals 1 point of the weapon's element and a [[critical success|crit]] deals 2, while 1s do nothing; some elements also boost what a crit does. Other damage sources — emotional and the like — work the same way. The roll is resolved by the Additional Damage function in [Check Resolution](../check_resolution/check_resolution_overview.md).
