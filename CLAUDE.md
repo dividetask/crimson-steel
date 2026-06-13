@@ -4,14 +4,8 @@
 
 Crimson Steel DM Tools is a local server that allows other players to connect to in order to view their character sheets, game notes, inventory, items for sale, current statuses, and view information relevant to their current choices. It also allows the DM to manage this information, add monsters, manage combat, manage hit points, and other useful tools.
 
-- **Common design documents** (`.md` files in `docs/common/`) — General, project-agnostic rules: dice/check resolution, shared UI conventions, glossary terms.
-- **Project design documents** (`.md` files in `docs/project/`) — Crimson Steel–specific rules: menu layout, page access, server behavior, anything that customizes the common rules for this project.
-- **Configuration templates** (`.yaml.example` files in `docs/`) — Contains default rule data, and example campaign data
-- **Configuration files** (`.json` in `data/`) — Contains rule data, and campaign data
-
-### Documentation precedence
-
-When a rule in `docs/project/` conflicts with a rule in `docs/common/`, the `docs/project/` rule wins. Treat `docs/common/` as the default behavior and `docs/project/` as the Crimson Steel override.
+- **Configuration templates** (`.example.yaml` files in `docs/`) — Contains default rule data, and example campaign data
+- **Configuration files** (`.json` in `data/`) — Contains rule data, and campaign data — replaces any corresponding .example.yaml files
 
 ### DM vs. player identification
 
@@ -20,7 +14,7 @@ The website identifies viewers by where their HTTP request originates:
 - A request whose remote address is the same machine as the server (loopback addresses such as `127.0.0.1` and `::1`) is treated as the **DM**.
 - Every other request — anyone connecting from another device on the LAN — is treated as a **player**.
 
-There is no login, password, or account selection. Identity is purely based on whether the request comes from the server host. The DM may temporarily view the site as a player would (see `docs/project/menu_layout.md`); that toggle is a UI convenience and does not change the underlying identification rule.
+There is no login, password, or account selection. Identity is purely based on whether the request comes from the server host. The DM may temporarily view the site as a player would; that toggle is a UI convenience and does not change the underlying identification rule.
 
 ## Critical Rules
 

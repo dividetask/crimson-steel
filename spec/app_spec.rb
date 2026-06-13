@@ -1,5 +1,5 @@
 RSpec.describe 'Crimson Steel DM Tools' do
-  describe 'Compendium (the one coded page)' do
+  describe 'Compendium' do
     it 'renders the glossary' do
       get '/compendium'
       expect(last_response).to be_ok
