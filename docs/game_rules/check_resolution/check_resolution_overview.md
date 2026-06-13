@@ -31,7 +31,7 @@ Each [[roll]] rolls between **{{Minimum Dice}}** and **{{Maximum Dice Formula}}*
 
 > **Dice Cap** = {{Dice Cap Formula}}
 
-A higher attribute or more Prowess earns you more dice until you hit the [[maximum dice]], at which point it resets to the [[minimum dice]] and keeps bouncing between those two values. More dice means more likely successes. Whenever a rise in [[prowess]] or attribute pushes your [[dice cap]] back down, your [[check]] is compensated with a lower [[target number]] or additional [[starting successes]].
+A higher attribute or more Prowess earns you more dice until you hit the [[maximum dice]], at which point it resets to the [[minimum dice]] and keeps bouncing between those two values. Whenever a reset pushes your [[dice cap]] back down, your [[check]] is compensated with a lower [[target number]] or additional [[starting successes]].
 
 ```test
 global:
@@ -125,8 +125,8 @@ When a creature attempts something it is genuinely trained in, it adds a [[compe
 
 Most checks involve more than one creature, and the interesting question is how one creature's bonuses and penalties affect the others. The sections below give the exact rule for each kind of check. Two ideas recur:
 
-- **Inversion.** On a contested check, a bonus that helps one side is felt as a same-type penalty by the other. This lets a single set of dice settle the contest — no separate "attacker rolls, then defender rolls, then subtract" step.
-- [[ascendancy]] — most bonuses come from training, but the [[inherent]] bonus comes from raw [[tier]] power. When the two sides are badly mismatched in Tier, ascendancy amplifies the gap, helping the stronger creature and hurting the weaker. It only ever looks at inherent bonuses and penalties.
+- **Inversion.** On a contested check, a bonus that helps one side is felt as a same-type penalty by the other, so a single set of dice settles the contest.
+- [[ascendancy]] — when the two sides are mismatched in Tier, it amplifies the gap, helping the higher-Tier creature and hurting the lower. It looks only at [[inherent]] bonuses and penalties.
 
 # Attribute Checks
 
