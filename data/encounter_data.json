@@ -105,9 +105,94 @@
       "concentration": [],
       "casting": [],
       "main_actions_remaining": -1
+    },
+    {
+      "id": 57,
+      "creature_id": "2032",
+      "name": "",
+      "initiative_string": "",
+      "combat_pool_spent": 0,
+      "time_tick_schedule": [
+        1
+      ],
+      "luck_points": 0,
+      "concentration": [],
+      "casting": [],
+      "main_actions_remaining": -1
+    },
+    {
+      "id": 58,
+      "creature_id": "2033",
+      "name": "",
+      "initiative_string": "",
+      "combat_pool_spent": 0,
+      "time_tick_schedule": [
+        1
+      ],
+      "luck_points": 0,
+      "concentration": [],
+      "casting": [],
+      "main_actions_remaining": -1
+    },
+    {
+      "id": 59,
+      "creature_id": "2034",
+      "name": "",
+      "initiative_string": "",
+      "combat_pool_spent": 0,
+      "time_tick_schedule": [
+        1
+      ],
+      "luck_points": 0,
+      "concentration": [],
+      "casting": [],
+      "main_actions_remaining": -1
+    },
+    {
+      "id": 60,
+      "creature_id": "2035",
+      "name": "",
+      "initiative_string": "",
+      "combat_pool_spent": 0,
+      "time_tick_schedule": [
+        1
+      ],
+      "luck_points": 0,
+      "concentration": [],
+      "casting": [],
+      "main_actions_remaining": -1
+    },
+    {
+      "id": 61,
+      "creature_id": "2036",
+      "name": "",
+      "initiative_string": "",
+      "combat_pool_spent": 0,
+      "time_tick_schedule": [
+        1
+      ],
+      "luck_points": 0,
+      "concentration": [],
+      "casting": [],
+      "main_actions_remaining": -1
+    },
+    {
+      "id": 62,
+      "creature_id": "373",
+      "name": "",
+      "initiative_string": "",
+      "combat_pool_spent": 0,
+      "time_tick_schedule": [
+        1,
+        2
+      ],
+      "luck_points": 0,
+      "concentration": [],
+      "casting": [],
+      "main_actions_remaining": -1
     }
   ],
-  "next_combatant_id": 57,
+  "next_combatant_id": 63,
   "excluded_pcs": [],
   "time_ticks_per_round": 2,
   "time_tick": 1,
@@ -119,5 +204,5 @@
   "acting_combatant_id": 2,
   "granted_actions": [],
   "dm_luck_points": 0,
-  "phase": "downtime"
+  "phase": "traveling"
 }

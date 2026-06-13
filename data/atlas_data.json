@@ -1,10 +1,177 @@
 {
-  "maps": [],
-  "tokens": [],
-  "annotations": [],
-  "active_map_id": null,
-  "next_map_id": 1,
-  "next_token_id": 1,
+  "maps": [
+    {
+      "id": 1,
+      "name": "Desert",
+      "image": null,
+      "width": 50,
+      "height": 50,
+      "grid": {
+        "type": "square",
+        "origin": [
+          0,
+          0
+        ]
+      },
+      "archived": false,
+      "notes": ""
+    }
+  ],
+  "tokens": [
+    {
+      "id": 11,
+      "map_id": 1,
+      "creature_id": "2036",
+      "x": 36.0,
+      "y": 37.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 12,
+      "map_id": 1,
+      "creature_id": "2035",
+      "x": 5.0,
+      "y": 35.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 13,
+      "map_id": 1,
+      "creature_id": "2034",
+      "x": 37.0,
+      "y": 31.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 14,
+      "map_id": 1,
+      "creature_id": "2033",
+      "x": 6.0,
+      "y": 27.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 15,
+      "map_id": 1,
+      "creature_id": "2032",
+      "x": 38.0,
+      "y": 24.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 16,
+      "map_id": 1,
+      "creature_id": "373",
+      "x": 21.0,
+      "y": 42.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 17,
+      "map_id": 1,
+      "creature_id": "3",
+      "x": 5.0,
+      "y": 2.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 18,
+      "map_id": 1,
+      "creature_id": "2",
+      "x": 10.0,
+      "y": 1.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 19,
+      "map_id": 1,
+      "creature_id": "4",
+      "x": 13.0,
+      "y": 11.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 20,
+      "map_id": 1,
+      "creature_id": "1",
+      "x": 15.0,
+      "y": 4.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 21,
+      "map_id": 1,
+      "creature_id": "40",
+      "x": 12.0,
+      "y": 5.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 22,
+      "map_id": 1,
+      "creature_id": "2025",
+      "x": 7.0,
+      "y": 1.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    }
+  ],
+  "zones": [
+
+  ],
+  "annotations": [
+
+  ],
+  "active_map_id": 1,
+  "next_map_id": 2,
+  "next_token_id": 23,
   "next_zone_id": 1,
   "next_annotation_id": 1
 }

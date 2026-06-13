@@ -1,8 +1,8 @@
 {
   "campaign_name": "",
   "timestamp": {
-    "day_index": 0,
-    "round_of_day": 0
+    "day_index": 1,
+    "round_of_day": 12200
   },
   "current_chapter": 5,
   "chapters": [
@@ -1274,7 +1274,7 @@
       "public_description": "Approach: small stockade atop a steep hill, commanding the countryside. Surrounded by a warding ditch (20 ft wide, 10 ft deep). Only access: a road winding from the north through a narrow valley to a drawbridge.",
       "dm_description": "Walls: stone curtain wall at the drawbridge (35 ft, manned parapet). Earthen rampart + wooden stockade on W/S/E sides. Outer walls spiked downward to stop climbers. Guarded wall-walk all around.\r\n\r\nInside: open courtyard → 4-story gatehouse (massive, defensible all sides) → U-shaped stone keep with an enclosed garden. Dungeon level below (where prisoners/cells are). Filthy, vermin-infested, partly fire-scarred from a past sacking — repairs are crude (exploitable weak points).\r\n\r\nGarrison leaders\r\nOverseer / minor slave-lord — runs the fort, cruel, a fighter-mage. Suggest reskinning as Lucian de Sombra (your Koi magic-user agent, Tier 3).\r\nFort commander + his ogre second.\r\nBlackthorn — ogre mage, special agent of the higher council, runs the dungeon. Reskin as a Koi enforcer.\r\nTwo humanoid clerics (goblin witch-doctor, hobgoblin shaman) — roam as wandering encounters.\r\nGatehouse captain + half-orc lieutenant — where caught intruders are dragged for interrogation.\r\n\r\nAlarm & defense (defensive/delaying posture):\r\nGong → upper fort alerted end of that turn. Shout → next turn. Dungeon alerts one turn after the fort.\r\nOnce alerted: barracks guards take 1 turn to arm, then block ground entrances; wall guards lay down missile fire. No one found asleep/unarmed.\r\nIf the party retreats and returns: defenses strengthened, ambushes set. (They've already tipped the operation by destroying the caravan — consider the fort mildly pre-warned.)",
       "image": null,
-      "shared": false,
+      "shared": true,
       "hidden_from": [
 
       ],

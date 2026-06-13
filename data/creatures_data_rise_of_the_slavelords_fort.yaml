@@ -697,7 +697,8 @@ characters:
     cha: 5
   advancement:
     classes:
-      warrior: 5
+      warrior:
+        level: 5
   group: enemy
   tags:
   - enemy_template
@@ -735,3 +736,140 @@ characters:
   tier: 1
   metadata:
     creature_token: "/images/icons/human guard token.webp"
+- id: 2032
+  name: Wildman Scout
+  race: human
+  attributes:
+    str: 9
+    dex: 11
+    con: 9
+    int: 9
+    wis: 10
+    cha: 9
+  advancement:
+    classes:
+      fighter:
+        level: 2
+        skills:
+        - stealth
+        - perception
+        - survival
+        - athletics
+  group: enemy
+  tags:
+  - faction:wildmen
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  equipment_table: wildmen_loadout
+  metadata:
+    creature_token: "/images/icons/human token.webp"
+  spawned_from: 376
+- id: 2033
+  name: Wildman Scout
+  race: human
+  attributes:
+    str: 9
+    dex: 11
+    con: 9
+    int: 9
+    wis: 10
+    cha: 9
+  advancement:
+    classes:
+      fighter:
+        level: 2
+        skills:
+        - stealth
+        - perception
+        - survival
+        - athletics
+  group: enemy
+  tags:
+  - faction:wildmen
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  equipment_table: wildmen_loadout
+  metadata:
+    creature_token: "/images/icons/human token.webp"
+  spawned_from: 376
+- id: 2034
+  name: Wildman Hunter
+  race: human
+  attributes:
+    str: 10
+    dex: 11
+    con: 10
+    int: 9
+    wis: 10
+    cha: 9
+  advancement:
+    classes:
+      fighter:
+        level: 1
+        skills:
+        - perception
+        - stealth
+        - survival
+  group: enemy
+  tags:
+  - faction:wildmen
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  equipment_table: wildmen_loadout
+  metadata:
+    creature_token: "/images/icons/human token.webp"
+  spawned_from: 375
+- id: 2035
+  name: Wildman Hunter
+  race: human
+  attributes:
+    str: 10
+    dex: 11
+    con: 10
+    int: 9
+    wis: 10
+    cha: 9
+  advancement:
+    classes:
+      fighter:
+        level: 1
+        skills:
+        - perception
+        - stealth
+        - survival
+  group: enemy
+  tags:
+  - faction:wildmen
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  equipment_table: wildmen_loadout
+  metadata:
+    creature_token: "/images/icons/human token.webp"
+  spawned_from: 375
+- id: 2036
+  name: Wildman Hunter
+  race: human
+  attributes:
+    str: 10
+    dex: 11
+    con: 10
+    int: 9
+    wis: 10
+    cha: 9
+  advancement:
+    classes:
+      fighter:
+        level: 1
+        skills:
+        - perception
+        - stealth
+        - survival
+  group: enemy
+  tags:
+  - faction:wildmen
+  - category:rise_of_the_slavelords_fort
+  tier: 0
+  equipment_table: wildmen_loadout
+  metadata:
+    creature_token: "/images/icons/human token.webp"
+  spawned_from: 375

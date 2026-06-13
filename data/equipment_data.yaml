@@ -80,6 +80,8 @@ characters:
         but cannot be hidden.
     - item: Potion of Darkvision
       tier: 2
+    - item: Potion of Ablative Barrier
+      tier: 2
   2:
     inventory:
     - item: Leather armor
@@ -171,7 +173,6 @@ characters:
     - item: Ring
       tier: 2
       name: Ring of Bound Whimsy
-      equipped: true
       description: Allows you to animate an inanimate object once per day for 5 minutes.
     - item: Trinket
       name: Tempting Gold Coin
@@ -250,6 +251,12 @@ characters:
       tier: 2
     - item: Potion of Darkvision
       tier: 2
+    - item: Potion of Jump
+      tier: 1
+    - item: Ring of Shooting Stars
+      tier: 2
+      name: Ring of Shooting Stars
+      equipped: true
   4:
     inventory:
     - item: Leather armor
@@ -500,14 +507,74 @@ characters:
       tier: 1
     - item: Scroll of Blindspot
       tier: 2
-ground_piles:
-- inventory:
+    - item: Gem
+      quantity: 2
+      name: Gemstone
+      value_in_gold: 500
+    - item: Potion of Delay Poison
+      tier: 1
+  2032:
+    inventory:
+    - item: Hide armor
+      equipped: true
+    - item: Hand axe
+      equipped: true
+    - item: Shortbow
+      equipped: true
+    - item: Arrow
+      quantity: 20
+  2033:
+    inventory:
+    - item: Leather armor
+      equipped: true
+    - item: Club
+      equipped: true
+    - item: Shortbow
+      equipped: true
+    - item: Arrow
+      quantity: 20
+    - item: Trinket
+      name: Tanned pelt
+  2034:
+    inventory:
+    - item: Leather armor
+      equipped: true
+    - item: Hand axe
+      equipped: true
+    - item: Shortbow
+      equipped: true
+    - item: Arrow
+      quantity: 20
+    - item: Trinket
+      name: Bone-and-feather charm
+  2035:
+    inventory:
+    - item: Hide armor
+      equipped: true
+    - item: Spear
+      equipped: true
+    - item: Sling
+      equipped: true
+    - item: Stone
+      quantity: 20
+    - item: Trinket
+      name: Bone-and-feather charm
+  2036:
+    inventory:
+    - item: Hide armor
+      equipped: true
+    - item: Hand axe
+      equipped: true
+    - item: Trinket
+      name: Bone-and-feather charm
+party:
+  inventory:
   - item: Falchion
     quantity: 11
   - item: Breastplate
     tier: 1
   - item: Gem
-    quantity: 9
+    quantity: 7
     name: Gemstone
     value_in_gold: 500
   - item: Whip
@@ -523,26 +590,14 @@ ground_piles:
   - item: Chain shirt
     quantity: 2
     tier: 1
-  - item: Potion of Delay Poison
-    tier: 2
   - item: Chain shirt
     quantity: 8
-  - item: Potion of Jump
-    tier: 1
   - item: Oil of Arcane Mark
     quantity: 2
   - item: Potion of Invigorate
     tier: 1
   - item: Potion of Heal
     tier: 1
-  - item: Potion of Ablative Barrier
-    tier: 2
-  - item: Potion of Spider Climb
-    tier: 2
   - item: Oil of Light
   - item: Oil of Goodberry
     tier: 1
-  - item: Ring of Shooting Stars
-    tier: 2
-    name: Ring of Shooting Stars
-  location: loot
