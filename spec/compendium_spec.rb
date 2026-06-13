@@ -39,11 +39,9 @@ RSpec.describe 'Compendium rendering' do
       expect(html).not_to include('Dice Cap: 3') # contents of a test block
     end
 
-    it 'marks function sections with a badge and strips the @function line' do
-      expect(html).to include('cr-fn-tag')
-      expect(html).to include('ƒ function')
-      expect(html).to include('Dice Cap')
+    it 'drops programmer-only @function metadata from the player view' do
       expect(html).not_to include('@function')
+      expect(html).not_to include('cr-fn')
     end
   end
 

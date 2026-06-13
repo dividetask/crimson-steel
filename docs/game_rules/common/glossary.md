@@ -60,7 +60,7 @@ leaving the page.
 
 **Penalty**: A negative modifier that makes a Roll harder by raising its Target Number.
 
-**Bonus Type**: The category a Bonus or Penalty belongs to (Circumstance, Guidance, Equipment, and so on). Bonuses and Penalties of the same type do not stack — only the single largest Bonus and the single harshest Penalty of each type count.
+**Bonus Type**: The category a Bonus or Penalty belongs to — Circumstance, Guidance, Inherent, Morale, or Ascendancy. Bonuses and Penalties of the same type do not stack — only the single largest Bonus and the single harshest Penalty of each type count.
 
 **Dice Modifier**: The combined effect of all the Bonuses and Penalties on a Check, after same-type stacking is settled: add the best Bonus of each type and subtract the worst Penalty of each type.
 

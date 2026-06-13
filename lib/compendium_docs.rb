@@ -77,7 +77,7 @@ module CompendiumDocs
 
     md = File.read(path, encoding: 'UTF-8')
     md = strip_tests(md)
-    md = inject_function_tags(md, tokens)
+    md = strip_function_tags(md)
     md = inject_keywords(md, glossary, tokens)
     md = inject_variables(md, config, tokens)
 
@@ -136,18 +136,12 @@ module CompendiumDocs
     md.gsub(/^[ \t]*```test[^\n]*\n.*?\n[ \t]*```[ \t]*$\n?/m, '')
   end
 
-  # ---- Function sections -----------------------------------------------
-
-  # `@function <Name>` on its own line (right under a section heading) marks
-  # that section as defining a function — the variable it calculates. It
-  # renders as a small "ƒ function" badge; prose sections have none.
-  def inject_function_tags(md, tokens)
-    md.gsub(/^[ \t]*@function[ \t]+(.+?)[ \t]*$/) do
-      name = $1.strip
-      frag = %(<span class="cr-fn-tag"><span class="cr-fn-badge">ƒ function</span> ) +
-             %(#{escape(name)}</span>)
-      store(tokens, frag)
-    end
+  # `@function <Name>` lines (right under a section heading) are programmer
+  # metadata — they record which variable a section's rules calculate. They
+  # are not for players, so they are dropped from the rendered page (and kept
+  # in the source, like the ```test``` blocks).
+  def strip_function_tags(md)
+    md.gsub(/^[ \t]*@function[ \t]+.*$\n?/, '')
   end
 
   # ---- Keywords --------------------------------------------------------
