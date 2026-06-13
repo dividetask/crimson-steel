@@ -6,12 +6,15 @@ shrugging off a poison — each is resolved the same way: you gather a handful
 of dice and roll them against a **[[Target Number]]**.
 
 Every die has **{{Die Size}}** sides, and a die *succeeds* when it rolls at or
-above the Target Number. Add up your successes and you have your result.
+above the Target Number. A die can also crit when it rolls a **{{Die Size}}**,
+and fails when it rolls a 1.
 
 There are several kinds of Check, and the later sections of this chapter spell
 each one out:
 
-- **[[Attribute Check|Attribute Checks]]** — raw tests of a single attribute.
+- **[[Attribute Check|Attribute Checks]]** — raw tests of an ability that cannot
+be trained.
+of a single attribute.
 - **[[Aptitude Check|Aptitude Checks]]** — tests of a trained skill.
 - **[[Saving Throw|Saving Throw Checks]]** — resisting something done to you.
 - **[[Opposed Aptitude Check|Opposed Aptitude Checks]]** — skill against skill.
