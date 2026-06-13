@@ -22,6 +22,42 @@ Damage is tracked at one of three severities, healed worst-first:
 - [[moderate damage]] — deep wounds and fractures.
 - [[major damage]] — grievous injuries; heals slowest.
 
+# Damage Reduction
+
+@function Damage Reduction
+
+A creature's [[damage reduction]] is subtracted from each incoming hit before it is dealt. Armor and tough hide raise it, and bonuses and penalties adjust it, with same-type entries stacking as on any other roll.
+
+# Inherent Damage Reduction
+
+@function Inherent Damage Reduction
+
+A higher-[[tier]] defender shrugs off part of a lower-Tier attacker's damage:
+
+> **Inherent Damage Reduction** = {{Inherent Damage Reduction Formula}}
+
+The Tier gap is the defender's Tier minus the attacker's (Tier 0 counts as one-half); an attacker of equal or higher Tier is reduced by nothing.
+
+# Damage Resilience
+
+@function Damage Resilience
+
+[[damage resilience]] is added to a weapon's [[weapon threshold]] when its damage is sorted into severities, so more resilience keeps more of a hit at the lighter severities. Bonuses and penalties adjust it the same way.
+
+# Weapon Thresholds
+
+Physical damage is sorted into severities by the weapon's [[weapon threshold]]: the first threshold + [[damage resilience]] points land as [[minor damage]], the next that many as [[moderate damage]], and the rest as [[major damage]]. Damage of other types uses its own fixed severity instead.
+
+# Acid Damage
+
+@function Acid Damage
+
+Acid lingers on a creature as an [[acid counter]]. Each turn it deals that much [[minor damage]] and then halves, shrinking away over several turns:
+
+> **Acid Damage** = {{Acid Damage Formula}}
+
+Other recurring damage is handled the same way.
+
 # Death Threshold
 
 @function Death Threshold

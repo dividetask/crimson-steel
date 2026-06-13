@@ -2,5 +2,8 @@
 
 Death Multiplier: 2.0
 Elemental Weapon Dice: 4
+Inherent Damage Reduction Per Tier: 5
 
 Death Threshold Formula: "floor(<Death Multiplier> * <Track Maximum>)"
+Inherent Damage Reduction Formula: "floor(<Inherent Damage Reduction Per Tier> * <Tier Gap>)"
+Acid Damage Formula: "floor(<Acid Counter> / 2)"

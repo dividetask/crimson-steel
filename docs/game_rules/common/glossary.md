@@ -94,6 +94,14 @@ Definitions of the terms used throughout the rules. Click any keyword in a chapt
 
 **Death Threshold**: The amount on a track — hit points, an attribute, or Magic Toxicity — that kills a creature once crossed.
 
+**Damage Reduction**: An amount subtracted from each incoming hit.
+
+**Damage Resilience**: A creature property added to a weapon's threshold when its damage is sorted into severities.
+
+**Weapon Threshold**: A weapon value that sizes each severity band when its damage is sorted.
+
+**Acid Counter**: The amount of acid on a creature; each turn it deals that much minor damage and then halves.
+
 ## Power & Tier
 
 **Tier**: A measure of magical power and density. Tier 0 counts as one-half in formulas.
