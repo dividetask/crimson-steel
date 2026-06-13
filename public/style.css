@@ -3973,7 +3973,6 @@ body {
 .cr-kw {
   position: relative;
   cursor: help;
-  font-weight: 600;
   color: #882f1f;
   text-decoration: underline dotted;
   text-underline-offset: 2px;

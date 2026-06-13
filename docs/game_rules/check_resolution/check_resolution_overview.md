@@ -9,9 +9,9 @@ of dice and roll them against a [[target number]].
 
 ## Rolls
 
-Each **[[check]]** is made up of one or more **[[rolls]]**. Some **[[checks]]** 
-only involve one creature and thus only involve one **[[roll]]**, while others
-involve multiple creatures and each creature has their on **[[roll]]**.
+Each [[check]] is made up of one or more [[rolls]]. Some [[checks]]
+only involve one creature and thus only involve one [[roll]], while others
+involve multiple creatures and each creature has their on [[roll]].
 
 Every die has **{{Die Size}}** sides, and a die *succeeds* when it rolls at or
 above the Target Number. A die can also crit when it rolls a **{{Die Size}}**,
@@ -20,14 +20,14 @@ and fails when it rolls a 1.
 There are several kinds of Check, and the later sections of this chapter spell
 each one out:
 
-- **[[Attribute Check]]** — raw tests of an ability that does not benefit from training such as pushing something heavy, or attempting to remember something you heard earlier.
-- **[[Aptitude Check]]** — tests of an activities that does do benefit from training such as picking a lock, lying, or identifying a monster.
-- **[[Opposed Aptitude Check]]** — An aptitude check involving two or more creatures opposing each other, such as attempting to see through a lie, winning a board game, or noticing a creature attempting to hide.
-- **[[Single-Target Magic Check]]** — A check attempting to impose a negative condition on another creature involving a magic spell or magical ability. This always involves a casting roll, and a saving throw. It can also involve supporting rolls that aid the casting roll, and opposing rolls that aid the saving throw. 
-- **[[Multi-Target Magic Check]]** — A check attempting to impose a negative condition on one or more creatures involving a magic spell or magical ability. Thts always involves a casting roll, and a saving throw for each targeted creature. It can also involve supporting rolls that aid the casting roll, and opposing rolls that aid all of the saving throws. 
-- **[[Area Magic Check]]** — A check attempting to impose a negative condition on all creatures in a defined area involving a magic spell or magical ability. This always involves a casting roll, and a saving throw for each creature in the area. It can also involve supporting rolls that aid the casting roll, and opposing rolls that aid all of the saving throws. 
-- **[[Combat Check]]** — A check attempting hit another creature in combat with a melee or ranged weapon. This always involves a attack roll, and may include a defences roll. It can also include supporting rolls that aid the attack roll, and opposing rolls that hamper the attack roll. 
-- **[[Magic Combat Check]]** — A check attempting hit another creature in combat with a magical spell or ability. This always involves a casting roll, and may include a defence roll. It can also include supporting rolls that aid the casting roll, and opposing rolls that hamper the casting roll. 
+- [[attribute check]] — raw tests of an ability that does not benefit from training such as pushing something heavy, or attempting to remember something you heard earlier.
+- [[aptitude check]] — tests of an activities that does do benefit from training such as picking a lock, lying, or identifying a monster.
+- [[opposed aptitude check]] — An aptitude check involving two or more creatures opposing each other, such as attempting to see through a lie, winning a board game, or noticing a creature attempting to hide.
+- [[single-target magic check]] — A check attempting to impose a negative condition on another creature involving a magic spell or magical ability. This always involves a casting roll, and a saving throw. It can also involve supporting rolls that aid the casting roll, and opposing rolls that aid the saving throw.
+- [[multi-target magic check]] — A check attempting to impose a negative condition on one or more creatures involving a magic spell or magical ability. Thts always involves a casting roll, and a saving throw for each targeted creature. It can also involve supporting rolls that aid the casting roll, and opposing rolls that aid all of the saving throws.
+- [[area magic check]] — A check attempting to impose a negative condition on all creatures in a defined area involving a magic spell or magical ability. This always involves a casting roll, and a saving throw for each creature in the area. It can also involve supporting rolls that aid the casting roll, and opposing rolls that aid all of the saving throws.
+- [[combat check]] — A check attempting hit another creature in combat with a melee or ranged weapon. This always involves a attack roll, and may include a defences roll. It can also include supporting rolls that aid the attack roll, and opposing rolls that hamper the attack roll.
+- [[magic combat check]] — A check attempting hit another creature in combat with a magical spell or ability. This always involves a casting roll, and may include a defence roll. It can also include supporting rolls that aid the casting roll, and opposing rolls that hamper the casting roll.
 
 What changes between them is mostly *how the bonuses and penalties are shared*
 among the creatures involved. The rest of the machinery is the same, so we
@@ -35,19 +35,19 @@ cover it first.
 
 ## Dice Cap
 
-Each **[[roll]]** rolls between **{{Minimum Dice}}** and **{{Maximum Dice Formula}}**
-dice. The exact number is calculated using the most relevant [[Attribute]] for the task 
-together with the creature's **[[Prowess]]**:
+Each [[roll]] rolls between **{{Minimum Dice}}** and **{{Maximum Dice Formula}}**
+dice. The exact number is calculated using the most relevant [[attribute]] for the task
+together with the creature's [[prowess]]:
 
 > **Dice Cap** = {{Dice Cap Formula}}
 
-A higher attribute or more Prowess will earn you more dice until you hit the 
-**[[maximum dice]]** at which point it will reset back to the **[[minimum dice]]**. 
+A higher attribute or more Prowess will earn you more dice until you hit the
+[[maximum dice]] at which point it will reset back to the [[minimum dice]].
 It will continue to bounce between these two values. Having more dice will increase
-the number of successes you are likely to roll. Whenever **[[prowess ]]** or
-attribute increases push your **[[dice cap]]** back to down, your **[[check]]** will 
-be compensated with a lower **[[target number]]** or additional 
-**[[starting successes]]**.
+the number of successes you are likely to roll. Whenever [[prowess]] or
+attribute increases push your [[dice cap]] back to down, your [[check]] will
+be compensated with a lower [[target number]] or additional
+[[starting successes]].
 
 ```test
 global:
@@ -68,18 +68,18 @@ cases:
 
 ## Dice Modifier
 
-A **[[check]]**'s **[[target number]]** is rarely the bare base. Circumstances, 
-equipment, and spells shift it: a **[[bonus]]** lowers the **[[target number]]** 
-(making the Check easier), and a **[[penalty]]** raises it (making the 
-**[[check]]** harder).
+A [[check]]'s [[target number]] is rarely the bare base. Circumstances,
+equipment, and spells shift it: a [[bonus]] lowers the [[target number]]
+(making the Check easier), and a [[penalty]] raises it (making the
+[[check]] harder).
 
-Every bonus and penalty has a **[[bonus type]]** — circumstance, guidance,
-inherent, morale, and ascendancy. **Bonuses and penalties of the same type do 
+Every bonus and penalty has a [[bonus type]] — circumstance, guidance,
+inherent, morale, and ascendancy. **Bonuses and penalties of the same type do
 not stack.** Only the single largest bonus of each type and the single harshest
 penalty of each type are counted; the rest are ignored.
 
 Once same-type stacking is settled, add up the surviving bonuses and subtract
-the surviving penalties. That total is the **[[dice modifier]]**.
+the surviving penalties. That total is the [[dice modifier]].
 
 ```test
 cases:
@@ -97,10 +97,10 @@ cases:
 
 ## Starting Value
 
-A **[[target number]]** can never drop below the **[[minimum target number]]** 
-({{Minimum Target Number}}) or climb above the **[[maximum target number}}**
-({{Maximum Target Number}}). When the **[[Dice Modifier]]** is large enough to
-push it past one of those limits, the leftover becomes the **[[Starting Value]]** 
+A [[target number]] can never drop below the [[minimum target number]]
+({{Minimum Target Number}}) or climb above the [[maximum target number]]
+({{Maximum Target Number}}). When the [[dice modifier]] is large enough to
+push it past one of those limits, the leftover becomes the [[starting value]]
 that is carried into your score.
 
 > **Starting Value** = {{Starting Value Formula}}
@@ -121,7 +121,7 @@ cases:
 # The Roll Target Number
 
 With the Dice Modifier in hand, the Roll's Target Number is the
-**[[Base Target Number]]** ({{Base Target Number}}) shifted by the Dice
+[[base target number]] ({{Base Target Number}}) shifted by the Dice
 Modifier, then clamped to its allowed range:
 
 > **Check Target Number** = {{Check Target Number Formula}}
@@ -134,14 +134,14 @@ described above.)
 # Degree of Success and Check Outcome
 
 Roll your dice against the Check Target Number and count the successes. The
-**[[Degree of Success]]** is the Supporting side's total minus the Opposing
-side's total; when it is negative, its size is the **[[Degree of Failure]]**.
+[[degree of success]] is the Supporting side's total minus the Opposing
+side's total; when it is negative, its size is the [[degree of failure]].
 
-The **[[Check Outcome]]** is then read from the Degree of Success:
+The [[check outcome]] is then read from the Degree of Success:
 
-- **[[Success]]** if it reaches the success threshold.
-- **[[Fumble]]** if it sinks to the fumble threshold below zero.
-- **[[Failure]]** otherwise — including a Degree of Success of exactly zero.
+- [[success]] if it reaches the success threshold.
+- [[fumble]] if it sinks to the fumble threshold below zero.
+- [[failure]] otherwise — including a Degree of Success of exactly zero.
 
 Unlike a single Roll, a Check **can always Fumble**, no matter how its
 individual Rolls are protected.
@@ -149,7 +149,7 @@ individual Rolls are protected.
 # Competency Bonus
 
 When a creature attempts something it is genuinely trained in, it adds a
-**[[Competency Bonus]]** reflecting its skill and [[Tier]]. The exact size is
+[[competency bonus]] reflecting its skill and [[tier]]. The exact size is
 set per Check by the acting creature's proficiency.
 
 > *(Drafting note: the Competency Bonus formula is not yet pinned down in the
@@ -164,8 +164,8 @@ the exact rule for each kind of Check. Two ideas recur:
 - **Inversion.** On a contested Check, a Bonus that helps one side is felt as a
   Penalty by the other. This lets a single set of dice settle the contest — no
   separate "attacker rolls, then defender rolls, then subtract" step.
-- **[[Ascendancy]].** Some Bonuses come from training; the **[[Inherent]]**
-  Bonus comes from raw [[Tier]] power. When the two sides are badly mismatched
+- [[ascendancy]]. Some Bonuses come from training; the [[inherent]]
+  Bonus comes from raw [[tier]] power. When the two sides are badly mismatched
   in Tier, Ascendancy amplifies the gap — helping the stronger creature twice
   over and hurting the weaker one just as much. Ascendancy only ever looks at
   Inherent Bonuses and Penalties; it ignores everything else.
@@ -191,7 +191,7 @@ Like Attribute Checks, an Aptitude Check is **not affected by Ascendancy**.
 # Saving Throw Checks
 
 A Saving Throw is made to resist something happening to you — a spell, a trap,
-a poison. It is a one-sided Check: you carry your own [[Inherent]] Bonus, and
+a poison. It is a one-sided Check: you carry your own [[inherent]] Bonus, and
 the source of the danger contributes its Inherent as a Penalty against you.
 Because both Inherent entries are present, **Ascendancy applies**: out-Tiering
 the source helps you resist, while being overmatched makes resisting harder.
@@ -214,7 +214,7 @@ and Penalties **invert across the gap** — the caster's casting bonuses are fel
 as Penalties by the target, and the target's defenses are felt as Penalties by
 the caster.
 
-Both sides carry their [[Inherent]] Bonus (the spell's own Tier rides along as
+Both sides carry their [[inherent]] Bonus (the spell's own Tier rides along as
 a Guidance Bonus, *not* an Inherent, so it stays out of the comparison), so
 **Ascendancy applies** between caster and target.
 
@@ -226,12 +226,12 @@ invert onto **every** target, and each target's defenses invert back onto the
 caster — but the targets do not affect one another.
 
 The Check resolves once for the caster, then nets against each target's Roll in
-turn, producing one [[Check Outcome]] per target. **Ascendancy applies**
+turn, producing one [[check outcome]] per target. **Ascendancy applies**
 between the caster and each target independently.
 
 # Area Spell Checks
 
-An area spell — a fireball, a cloud of gas — is a **[[Spread Check]]**: one
+An area spell — a fireball, a cloud of gas — is a [[spread check]]: one
 caster against everyone caught in the area, with no single defender. It is
 prepared like a Multi-Target Spell Check (the caster's bonuses invert onto each
 caught creature, and each caught creature's defenses invert back onto the
@@ -254,7 +254,7 @@ participant's Bonuses and Penalties invert across the sides:
 - Supporting allies receive only the primary defender's inverted entries.
 - Other defenders receive only the attacker's inverted entries.
 
-Each creature carries its own Tier as an [[Inherent]] entry, so **Ascendancy
+Each creature carries its own Tier as an [[inherent]] entry, so **Ascendancy
 applies**: a higher-Tier combatant presses its advantage, and a lower-Tier one
 feels the gap.
 
