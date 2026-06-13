@@ -1,0 +1,5 @@
+# Damage Configuration
+
+Death Multiplier: 2.0
+
+Death Threshold Formula: "floor(<Death Multiplier> * <Track Maximum>)"

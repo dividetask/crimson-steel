@@ -80,6 +80,20 @@ Definitions of the terms used throughout the rules. Click any keyword in a chapt
 
 **Fumble**: A Check that fails badly enough to backfire.
 
+## Damage
+
+**Damage Type**: The kind of damage a source deals: physical, elemental, radiant, emotional, or force.
+
+**Damage Severity**: How serious a wound is: Minor, Moderate, or Major.
+
+**Minor Damage**: The least severe damage; heals fastest.
+
+**Moderate Damage**: Mid-severity damage.
+
+**Major Damage**: The most severe damage; heals slowest.
+
+**Death Threshold**: The amount on a track — hit points, an attribute, or Magic Toxicity — that kills a creature once crossed.
+
 ## Power & Tier
 
 **Tier**: A measure of magical power and density. Tier 0 counts as one-half in formulas.
