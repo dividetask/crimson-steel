@@ -26,6 +26,10 @@ leaving the page.
 
 **Dice Cap**: The number of dice you roll for a Check, set by the most relevant attribute and your Prowess. More dice mean more chances to succeed.
 
+**Minimum Dice**: The fewest dice any Check rolls — the floor your Dice Cap resets to once it passes the Maximum Dice.
+
+**Maximum Dice**: The most dice any Check rolls — the ceiling your Dice Cap reaches before it resets back to the Minimum Dice.
+
 **Prowess**: A measure of how practiced and capable a creature is. Higher Prowess raises the Dice Cap, letting you roll more dice.
 
 **Attribute**: A creature's core scores (such as Might or Wits) that describe its raw capabilities. The most relevant attribute to a Check helps set its Dice Cap.
@@ -38,9 +42,15 @@ leaving the page.
 
 **Opposed Aptitude Check**: A Check where two creatures pit the same kind of skill directly against each other, like an arm-wrestle or a battle of wits.
 
-**Spell Check**: A Check made to land a spell on its target or targets.
+**Single-Target Magic Check**: A Check to land a spell or magical ability on one creature — the caster's casting roll against the target's Saving Throw.
 
-**Combat Check**: A Check made to strike, defend, or otherwise act in a fight.
+**Multi-Target Magic Check**: A Check to land a spell or magical ability on several named creatures at once — one casting roll against each target's own Saving Throw.
+
+**Area Magic Check**: A Check to land a spell or magical ability on every creature in a defined area — one casting roll against each caught creature's Saving Throw.
+
+**Combat Check**: A Check to hit another creature in combat with a weapon — an attack roll against the target's defense.
+
+**Magic Combat Check**: A Combat Check whose attack is a spell or magical ability rather than a weapon — a casting roll against the target's defense.
 
 **Competency Bonus**: A bonus a creature adds to a Check it is genuinely skilled at, reflecting its training and Tier.
 
@@ -55,6 +65,8 @@ leaving the page.
 **Dice Modifier**: The combined effect of all the Bonuses and Penalties on a Check, after same-type stacking is settled: add the best Bonus of each type and subtract the worst Penalty of each type.
 
 **Starting Value**: An adjustment carried into a Roll's score when the Bonuses or Penalties would have pushed the Target Number past its minimum or maximum. It preserves the part of a modifier that the Target Number alone couldn't hold.
+
+**Starting Successes**: Successes added to a Roll's score before any dice are rolled — the positive side of a Starting Value, granted (for example) when a rise in attribute or Prowess resets your Dice Cap back to the Minimum Dice.
 
 ## Outcomes
 
