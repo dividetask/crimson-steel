@@ -17,7 +17,7 @@ config so a change there flows everywhere.
 | `Dice Cap Formula` | `Attribute`, `Prowess`, + config scalars | _planned_ `lib/check_resolution/dice_cap.rb` |
 | `Maximum Dice Formula` | config scalars only (evaluates to a constant) | folded into the Dice Cap implementation |
 | `Starting Value Formula` | `Dice Modifier`, + config scalars | _planned_ `lib/check_resolution/starting_value.rb` |
-| `Check Target Number Formula` | `Dice Modifier`, + config scalars | _planned_ `lib/check_resolution/target_number.rb` |
+| `Roll Target Number Formula` | `Dice Modifier`, + config scalars | _planned_ `lib/check_resolution/target_number.rb` |
 | `Attribute Contribution Formula` | `Attribute` | folded into the Dice Cap implementation |
 
 > The `lib/check_resolution/` domain has not been re-added since the project was

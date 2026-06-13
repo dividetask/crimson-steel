@@ -8,7 +8,7 @@ the player-facing rules in [`../game_rules`](../game_rules) rather than
 restating them. In particular:
 
 - They **do not rewrite** formulas that already live in a chapter's
-  `<chapter>_config.yaml` (e.g. Dice Cap, Starting Value, Check Target Number).
+  `<chapter>_config.yaml` (e.g. Dice Cap, Starting Value, Roll Target Number).
   They point at the canonical definition and say which files implement it.
 - They **may define formulas that `game_rules` does not specify** — internal
   computations that never surface to players (for example, the same-type

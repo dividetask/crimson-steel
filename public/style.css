@@ -4018,6 +4018,25 @@ body {
   line-height: 1.45;
 }
 
+/* "ƒ function" badge marking a section that defines a function (@function). */
+.cr-fn-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant: small-caps;
+  letter-spacing: 0.02em;
+  color: #6b4a36;
+  font-size: 12px;
+}
+.cr-fn-badge {
+  background: #5a3d00;
+  color: #fff7e0;
+  border-radius: 3px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-style: italic;
+}
+
 /* A rendered formula (config values filled in, runtime variables kept). */
 .explainer code.cr-formula {
   background: #f6efe3;

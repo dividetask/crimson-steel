@@ -77,6 +77,7 @@ module CompendiumDocs
 
     md = File.read(path, encoding: 'UTF-8')
     md = strip_tests(md)
+    md = inject_function_tags(md, tokens)
     md = inject_keywords(md, glossary, tokens)
     md = inject_variables(md, config, tokens)
 
@@ -133,6 +134,20 @@ module CompendiumDocs
   # Drop ```test … ``` fenced blocks before anything else sees them.
   def strip_tests(md)
     md.gsub(/^[ \t]*```test[^\n]*\n.*?\n[ \t]*```[ \t]*$\n?/m, '')
+  end
+
+  # ---- Function sections -----------------------------------------------
+
+  # `@function <Name>` on its own line (right under a section heading) marks
+  # that section as defining a function — the variable it calculates. It
+  # renders as a small "ƒ function" badge; prose sections have none.
+  def inject_function_tags(md, tokens)
+    md.gsub(/^[ \t]*@function[ \t]+(.+?)[ \t]*$/) do
+      name = $1.strip
+      frag = %(<span class="cr-fn-tag"><span class="cr-fn-badge">ƒ function</span> ) +
+             %(#{escape(name)}</span>)
+      store(tokens, frag)
+    end
   end
 
   # ---- Keywords --------------------------------------------------------

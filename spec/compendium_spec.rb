@@ -38,6 +38,13 @@ RSpec.describe 'Compendium rendering' do
       expect(html).not_to include('```test')
       expect(html).not_to include('Dice Cap: 3') # contents of a test block
     end
+
+    it 'marks function sections with a badge and strips the @function line' do
+      expect(html).to include('cr-fn-tag')
+      expect(html).to include('ƒ function')
+      expect(html).to include('Dice Cap')
+      expect(html).not_to include('@function')
+    end
   end
 
   describe 'keyword resolution' do
