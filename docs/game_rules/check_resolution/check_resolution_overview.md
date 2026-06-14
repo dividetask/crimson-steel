@@ -10,8 +10,6 @@ Each [[check]] is made up of one or more [[rolls]]. Some [[checks]] only involve
 
 Every die has **{{Die Size}}** sides, and a die *succeeds* when it rolls at or above the [[target number]]. A die can also crit when it rolls a **{{Die Size}}**, and fails when it rolls a 1.
 
-There are several kinds of Check, and the later sections of this chapter spell each one out:
-
 - [[attribute check]] — a raw test of an ability that does not benefit from training, such as pushing something heavy or recalling something you heard earlier.
 - [[aptitude check]] — a test of an activity that does benefit from training, such as picking a lock, lying, or identifying a monster.
 - [[opposed aptitude check]] — an aptitude check between two or more creatures opposing each other, such as seeing through a lie, winning a board game, or noticing a creature trying to hide.
@@ -50,6 +48,42 @@ cases:
     expect: { Dice Cap: 7 }
 ```
 
+# Competency Bonus
+
+@function Attribute Competency Bonus
+@function Aptitude Competency Bonus
+
+Competency bonuses come from natural ability ([[attributes]]) or aptitude from training ([[prowess]]). Some spells or abilities might artificially raise or lower this bonus, but typically this bonus only increases from increasing in level or from equipping items that grant bonuses to your character's attributes. For attributes this values starts at {{Competency Bonus Base}} and is increased everytime [[dice cap]] rolls over to the [[minimum dice]]. For aptitude this values is decreased by {{Unskilled Penalty Value}} when a creature is untrained.
+
+> **Attribute Competency Bonus** = {{Attribute Competency Bonus Formula}}
+> **Aptitude Competency Bonus** = {{Aptitude Competency Bonus Formula}}
+
+```test
+global:
+	Attribute Contribution Formula: "<Attribute> / 2"
+	Dice Range: 5
+	Competency Bonus Base: -1
+	Attribute Competency Bonus Formula: "floor((<Attribute Contribution Formula> + <Prowess>) / <Dice Range>)"
+	Aptitude Competency Bonus Formula: "<Attribute Competency Bonus Formula> - (min(Prowess, 1) * <Unskilled Penalty Value>)"
+	Unskilled Penalty Value: -2
+cases:
+  - where: { Attribute: 0,  Prowess: 10 }
+    expect: { Attribute Competency Bonus: 1 }
+    expect: { Aptitude Competency Bonus: 1 }
+  - where: { Attribute: 10, Prowess: 0  }
+    expect: { Attribute Competency Bonus: 0 }
+    expect: { Aptitude Competency Bonus: -1 }
+  - where: { Attribute: 2,  Prowess: 10 }
+    expect: { Attribute Competency Bonus: 1 }
+    expect: { Aptitude Competency Bonus: 1 }
+  - where: { Attribute: 10, Prowess: 2  }
+    expect: { Attribute Competency Bonus: 0 }
+    expect: { Aptitude Competency Bonus: 0 }
+  - where: { Attribute: 10, Prowess: 4  }
+    expect: { Attribute Competency Bonus: 0 }
+    expect: { Aptitude Competency Bonus: 0 }
+```
+
 ## Dice Modifier
 
 @function Dice Modifier
@@ -78,7 +112,7 @@ cases:
 
 @function Starting Value
 
-A [[target number]] can never drop below the [[minimum target number]] ({{Minimum Target Number}}) or climb above the [[maximum target number]] ({{Maximum Target Number}}). When the [[dice modifier]] is large enough to push it past one of those limits, the leftover becomes the [[starting value]] carried into your score.
+A [[target number]] can never drop below {{Minimum Target Number}} (the [[minimum target number]]) or climb above {{Maximum Target Number}} (the [[maximum target number]]). When the [[dice modifier]] is large enough to push it past one of those limits, the leftover increases or decreases the [[starting value]] affecting your result before the dice are rolled.
 
 > **Starting Value** = {{Starting Value Formula}}
 
@@ -95,6 +129,13 @@ cases:
     expect: { Starting Value: 0 }
 ```
 
+# Sharing Bonuses Between Creatures
+
+Most checks involve more than one creature, and the interesting question is how one creature's bonuses and penalties affect the others. The sections below give the exact rule for each kind of check. Two ideas recur:
+
+- **Inversion.** On a contested check, a bonus that helps one side is felt as a same-type penalty by the other, so a single set of dice settles the contest.
+- [[ascendancy]] — when the two sides are mismatched in Tier, it amplifies the gap, helping the higher-Tier creature and hurting the lower. It looks only at [[inherent]] bonuses and penalties.
+
 # Roll Target Number
 
 @function Roll Target Number
@@ -105,9 +146,14 @@ With the Dice Modifier in hand, a [[roll]]'s [[target number]] is the [[base tar
 
 If the shifted value would fall below {{Minimum Target Number}} it is set to {{Minimum Target Number}}; if it would rise above {{Maximum Target Number}} it is set to {{Maximum Target Number}}. Any overflow becomes the Starting Value described above.
 
-# Degree of Success and Check Outcome
+# Degree of Individual Success
 
-Roll your dice against the Roll Target Number and count the successes. The [[degree of success]] is the supporting side's total minus the opposing side's total; when it is negative, its size is the [[degree of failure]].
+Roll your dice against the Roll Target Number and count the successes. Each die rolling a 1 typically counts as -1, and each die rolling a {{Die Size}} (a {{critical}}) is typically counted twice adding 2 succesess rather then 1. Not all rolls will count failures, and some count criticals as much as 4 or even 5. The results of your [[roll]] is the sum of each die's contribution. 
+
+
+# Check Outcome
+
+The [[degree of success]] is the supporting side's total minus the opposing side's total; when it is negative, its size is the [[degree of failure]].
 
 The [[check outcome]] is read from the degree of success:
 
@@ -116,17 +162,6 @@ The [[check outcome]] is read from the degree of success:
 - [[failure]] otherwise — including a degree of success of exactly zero.
 
 Unlike a single roll, a check **can always fumble**, no matter how its individual rolls are protected.
-
-# Competency Bonus
-
-When a creature attempts something it is genuinely trained in, it adds a [[competency bonus]] reflecting its skill and [[tier]]. The exact size is set per check by the acting creature's proficiency.
-
-# Sharing Bonuses Between Creatures
-
-Most checks involve more than one creature, and the interesting question is how one creature's bonuses and penalties affect the others. The sections below give the exact rule for each kind of check. Two ideas recur:
-
-- **Inversion.** On a contested check, a bonus that helps one side is felt as a same-type penalty by the other, so a single set of dice settles the contest.
-- [[ascendancy]] — when the two sides are mismatched in Tier, it amplifies the gap, helping the higher-Tier creature and hurting the lower. It looks only at [[inherent]] bonuses and penalties.
 
 # Attribute Checks
 

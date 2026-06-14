@@ -6,11 +6,15 @@ Dice Range: 5
 Base Target Number: 8
 Minimum Target Number: 3
 Maximum Target Number: 9
+Competency Bonus Base: -1
+Unskilled Penalty Value: -2
 Default Success Threshold: 2
 Default Fumble Threshold: 2
 
 Attribute Contribution Formula: "<Attribute> / 2"
 Dice Cap Formula: "<Minimum Dice> + ((<Attribute Contribution Formula> + <Prowess>) % <Dice Range>)"
+Attribute Competency Bonus Formula: "floor((<Attribute Contribution Formula> + <Prowess>) / <Dice Range>)"
+Aptitude Competency Bonus Formula: "<Attribute Competency Bonus Formula> - (min(Prowess, 1) * <Unskilled Penalty Value>)"
 Maximum Dice Formula: "<Minimum Dice> + <Dice Range> - 1"
 Starting Value Formula: "min(0, <Minimum Target Number> - <Dice Modifier>) - min(0, <Dice Modifier> - <Maximum Target Number>)"
 Roll Target Number Formula: "clamp(<Base Target Number> + <Dice Modifier>, <Minimum Target Number>, <Maximum Target Number>)"
