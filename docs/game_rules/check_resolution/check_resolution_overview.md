@@ -19,7 +19,7 @@ Every die has **{{Die Size}}** sides, and a die *succeeds* when it rolls at or a
 - [[combat check]] — an attempt to hit another creature in combat with a melee or ranged weapon. It always involves an attack roll and may include a defense roll, and may add supporting rolls that aid the attack roll and opposing rolls that hamper it.
 - [[magic combat check]] — an attempt to hit another creature in combat with a magic spell or ability. It always involves a casting roll and may include a defense roll, and may add supporting rolls that aid the casting roll and opposing rolls that hamper it.
 
-What changes between them is mostly *how the bonuses and penalties are shared* among the creatures involved. The rest of the machinery is the same, so we cover it first.
+What changes between them is how bonuses and penalties are shared among the creatures involved, and how each reads its result. The shared machinery comes first.
 
 ## Dice Cap
 
@@ -53,7 +53,7 @@ cases:
 @function Attribute Competency Bonus
 @function Aptitude Competency Bonus
 
-Competency bonuses come from natural ability ([[attributes]]) or aptitude from training ([[prowess]]). Some spells or abilities might artificially raise or lower this bonus, but typically this bonus only increases from increasing in level or from equipping items that grant bonuses to your character's attributes. For attributes this values starts at {{Competency Bonus Base}} and is increased everytime [[dice cap]] rolls over to the [[minimum dice]]. For aptitude this values is decreased by {{Unskilled Penalty Value}} when a creature is untrained.
+Competency bonuses come from natural ability ([[attributes]]) or aptitude from training ([[prowess]]). Some spells or abilities might artificially raise or lower this bonus, but typically it only increases as you gain levels or equip items that grant bonuses to your character's attributes. For attributes this value starts at {{Competency Bonus Base}} and increases every time the [[dice cap]] rolls over to the [[minimum dice]]. For aptitude this value is adjusted by {{Unskilled Penalty Value}} when a creature is untrained.
 
 > **Attribute Competency Bonus** = {{Attribute Competency Bonus Formula}}
 > **Aptitude Competency Bonus** = {{Aptitude Competency Bonus Formula}}
@@ -131,7 +131,7 @@ cases:
 
 # Sharing Bonuses Between Creatures
 
-Most checks involve more than one creature, and the interesting question is how one creature's bonuses and penalties affect the others. The sections below give the exact rule for each kind of check. Two ideas recur:
+When a check involves more than one creature, one creature's bonuses and penalties affect the others. The sections below give the exact rule for each kind of check. Two ideas recur:
 
 - **Inversion.** On a contested check, a bonus that helps one side is felt as a same-type penalty by the other, so a single set of dice settles the contest.
 - [[ascendancy]] — when the two sides are mismatched in Tier, it amplifies the gap, helping the higher-Tier creature and hurting the lower. It looks only at [[inherent]] bonuses and penalties.
@@ -148,54 +148,47 @@ If the shifted value would fall below {{Minimum Target Number}} it is set to {{M
 
 # Degree of Individual Success
 
-Roll your dice against the Roll Target Number and count the successes. Each die rolling a 1 typically counts as -1, and each die rolling a {{Die Size}} (a {{critical}}) is typically counted twice adding 2 succesess rather then 1. Not all rolls will count failures, and some count criticals as much as 4 or even 5. The results of your [[roll]] is the sum of each die's contribution. 
+Roll your dice against the Roll Target Number and add up their contributions. By default a die at or above the target number is a [[success]] worth +1, a die rolling a {{Die Size}} (a [[critical success|critical]]) is worth +2, and a die rolling a 1 is worth −1. Some rolls don't count 1s, and some count a critical as much as +4 or +5. A roll's [[degree of individual success]] is the sum of its dice plus its [[starting value]].
 
+# Degree of Success
 
-# Check Outcome
+A check with one [[roll]] uses that roll's [[degree of individual success]] directly. When a check has rolls on opposing sides, its [[degree of success]] is the supporting side's total minus the opposing side's; a negative degree of success is a [[degree of failure]] of the same size.
 
-The [[degree of success]] is the supporting side's total minus the opposing side's total; when it is negative, its size is the [[degree of failure]].
-
-The [[check outcome]] is read from the degree of success:
-
-- [[success]] if it reaches the success threshold.
-- [[fumble]] if it sinks to the fumble threshold below zero.
-- [[failure]] otherwise — including a degree of success of exactly zero.
-
-Unlike a single roll, a check **can always fumble**, no matter how its individual rolls are protected.
+What a degree of success means depends on the kind of check — each type below says how it reads its result.
 
 # Attribute Checks
 
-The most basic check, for tasks training doesn't help with. Compute the [[dice cap]] from the relevant attribute using **0 for Prowess**, then add your Tier's [[inherent]] bonus and any [[competency bonus]]. Attribute checks are usually unopposed and are **not affected by [[ascendancy]]**.
+The simplest check, for tasks training doesn't help with. Its [[dice cap]] comes from the relevant attribute with **0 for Prowess**, plus your Tier's [[inherent]] bonus and your attribute [[competency bonus]]. An attribute check is unopposed: its [[degree of success]] is a [[success]] if it reaches the success threshold, a [[fumble]] if it sinks to the fumble threshold below zero, or a [[failure]] in between (a degree of success of zero is a failure). A check can always fumble. Attribute checks are **not affected by [[ascendancy]]**.
 
 # Aptitude Checks
 
-Like an attribute check, but the [[dice cap]] uses the relevant skill's [[prowess]] and you add that skill's [[competency bonus]]. Also **not affected by [[ascendancy]]**.
+Like an attribute check, but the [[dice cap]] uses the relevant skill's [[prowess]] and it adds that skill's aptitude [[competency bonus]]. Its [[degree of success]] is classified into [[success]], [[failure]], or [[fumble]] the same way, and it is **not affected by [[ascendancy]]**.
 
 # Opposed Aptitude Checks
 
-Two or more creatures pit the same skill directly against each other — an arm-wrestle, a staring contest, a chase. **A copy of each creature's bonuses becomes a same-type penalty against its opponent**, and the highest result wins. These carry no [[inherent]] entries, so **[[ascendancy]] does not apply**.
+Two or more creatures pit the same skill directly against each other — an arm-wrestle, a staring contest, a chase. **A copy of each creature's bonuses becomes a same-type penalty against its opponent.** There is no threshold: the creature with the highest [[degree of individual success]] wins. These carry no [[inherent]] entries, so **[[ascendancy]] does not apply**.
 
 # Single-Target Magic Checks
 
-The caster's casting roll opposes the target's [[saving throw]]; supporting rolls aid the cast and opposing rolls aid the save. The two sides' bonuses **invert** onto each other as same-type penalties. Both carry an [[inherent]] bonus (the spell's Tier rides along as a guidance bonus, not an inherent), so **[[ascendancy]] applies**.
+The caster's casting roll opposes the target's [[saving throw]]; supporting rolls aid the cast and opposing rolls aid the save. The two sides' bonuses **invert** onto each other as same-type penalties. The condition takes hold when the [[degree of success]] (casting minus save) is positive, and a larger margin makes it take hold more strongly. Both sides carry an [[inherent]] bonus (the spell's Tier rides along as a guidance bonus, not an inherent), so **[[ascendancy]] applies**.
 
 # Multi-Target Magic Checks
 
-One casting roll faces each named target's own [[saving throw]]. The caster's bonuses invert onto every save and each target's defenses invert back onto the caster, but the targets do not affect one another. The cast resolves once and nets against each save in turn, giving one [[check outcome]] per target, with **[[ascendancy]]** judged against each target separately.
+One casting roll faces each named target's own [[saving throw]]. The caster's bonuses invert onto every save and each target's defenses invert back onto the caster, but the targets do not affect one another. The cast resolves once and nets against each save in turn — one result per target, each read as in a single-target magic check — with **[[ascendancy]]** judged against each target separately.
 
 # Area Magic Checks
 
-An area spell is a [[spread check]]: one caster against everyone in the area, with no single defender. It is prepared like a multi-target check, but every caught creature is a peer. The cast resolves once and each caught creature nets against it independently, giving **one outcome per creature**, with **[[ascendancy]]** judged against each.
+An area spell is a [[spread check]]: one caster against everyone in the area, with no single defender. It is prepared like a multi-target check, but every caught creature is a peer. The cast resolves once and each caught creature nets against it independently, giving **one result per creature** (each read as in a single-target magic check), with **[[ascendancy]]** judged against each.
 
 # Combat Checks
 
-An attack roll faces an optional defense roll; supporting rolls aid the attack and opposing rolls hamper it. Bonuses invert across the sides: the attacker (the [[initiating roll]]) takes every defender's inverted entries, the primary defender (the [[defending roll]]) takes every attacker's, and any extra roll on a side takes only the lead opponent's. Each creature carries its Tier as an [[inherent]] entry, so **[[ascendancy]] applies**.
+An attack roll faces an optional defense roll; supporting rolls aid the attack and opposing rolls hamper it. Bonuses invert across the sides: the attacker (the [[initiating roll]]) takes every defender's inverted entries, the primary defender (the [[defending roll]]) takes every attacker's, and any extra roll on a side takes only the lead opponent's. A positive [[degree of success]] is a hit, and its size sets how much damage gets through. Each creature carries its Tier as an [[inherent]] entry, so **[[ascendancy]] applies**.
 
 A short example: the attacker has a +2 Circumstance bonus and the defender a +1 Morale bonus. After inversion the attacker carries +2 Circumstance and the defender's inverted −1 Morale, while the defender carries +1 Morale and the attacker's inverted −2 Circumstance — so the attacker faces an easier target number and the defender a harder one.
 
 # Magic Combat Checks
 
-A combat check whose attack is a spell or ability: a casting roll against an optional defense roll, with bonuses inverting across the sides exactly as in a weapon [[combat check]]. The spell's Tier rides along as a guidance bonus and both combatants carry an [[inherent]] entry, so **[[ascendancy]] applies**.
+A combat check whose attack is a spell or ability: a casting roll against an optional defense roll, with bonuses inverting across the sides exactly as in a weapon [[combat check]], and its result read the same way — a positive [[degree of success]] lands the spell and its size scales the effect. The spell's Tier rides along as a guidance bonus and both combatants carry an [[inherent]] entry, so **[[ascendancy]] applies**.
 
 # Additional Damage
 

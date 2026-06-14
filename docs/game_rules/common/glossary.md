@@ -68,6 +68,8 @@ Definitions of the terms used throughout the rules. Click any keyword in a chapt
 
 ## Outcomes
 
+**Degree of Individual Success**: A single roll's result — the sum of its dice's contributions plus its Starting Value.
+
 **Degree of Success**: The Supporting side's successes minus the Opposing side's.
 
 **Degree of Failure**: The size of a negative Degree of Success.
