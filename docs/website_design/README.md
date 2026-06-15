@@ -21,5 +21,3 @@ the Compendium; they are reference material for whoever is building the site.
 
 - [`compendium.md`](compendium.md) — the Compendium rules browser: nav,
   markup, keyword popups, formula/variable injection, and the renderer.
-- [`check_resolution.md`](check_resolution.md) — where the Check Resolution
-  formulas are implemented, plus the internal formulas `game_rules` leaves out.
