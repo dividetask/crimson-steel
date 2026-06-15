@@ -1,7 +1,6 @@
 # Damage Configuration
 
 Death Multiplier: 2.0
-Elemental Weapon Dice: 4
 Ascendancy Damage Reduction Per Tier: 5
 
 Death Threshold Formula: "floor(<Death Multiplier> * <Track Maximum>)"

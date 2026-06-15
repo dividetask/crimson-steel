@@ -2,17 +2,7 @@
 
 # Damage
 
-When an attack or effect lands it deals damage. Every point of damage has a [[damage type]] and a [[damage severity]], and damage accumulates on a creature until it crosses a [[death threshold]].
-
-# Damage Types
-
-Every source of damage has a [[damage type]]:
-
-- **Physical** — bludgeoning, slashing, and piercing.
-- **Elemental** — fire, cold, acid, and electricity.
-- **Radiant**, **emotional**, and **force**.
-
-A damage type sets the [[damage severity]] of the damage it deals, and may carry a mechanic — for example acid builds an Acid Counter, and cold inflicts Shock.
+When an attack or effect lands it deals damage. Every point of damage has a [[damage type]] and a [[damage severity]]. A creature dies when damage equals or exceeds a [[death threshold]].
 
 # Damage Severity
 
@@ -20,13 +10,27 @@ Damage is tracked at one of three severities, healed worst-first:
 
 - [[minor damage]] — bruises and shallow cuts; heals fastest.
 - [[moderate damage]] — deep wounds and fractures.
-- [[major damage]] — grievous injuries; heals slowest.
+- [[major damage]] — grievous crippling injuries; heals slowest. Each point of [[major damage]] imparts two points of [[pain]] reducing combat effectiveness.
+
+# Damage Types
+
+Every source of damage has a [[damage type]]:
+
+- **Physical** — Tangible kinetic harm inflicted by physical forces such as weapons, gravity, or falling objects. All physical damage comes from one of the following categories: bludgeoning, slashing, and piercing. All physical damage is treated the same unless a creature has a resistance or vulnerability to a specific damage subtype. Physical damage always has a [[threshold]] value. The first points of physical damage are minor damage up to the [[threshold]], with damage beyond that [[threshold]] upgrading to moderate damage, and major damage if the damage exceeds twice the [[threshold]].
+- **Fire** — A subtype of Elemental damage originating from heat, or open flames. When rolling for fire damage the total damage is increased by 1. Fire damage is always moderate damage.
+- **Cold** — A subtype of Elemental damage originating from freezing temperatures. Cold damage is always minor damage but each point of damage inflicts an equal amount of [[shock]].
+- **Acid** — A subtype of Elemental damage originating from caustic substances. Acid damage is always moderate damage and deals persistent damage each turn until it becomes exhausted.
+- **Electricity** — A subtype of Elemental damage originating from electricity. Damage from Electricity is doubled against creatures wearing metal armor.
+- **Radiant** — Harm caused by intense light and radiant energy — sunlight, searing brightness, heat radiation, and the burns they inflict. Radiant is typically minor damage. Against vulnerable creatures, such as undead and shadow based creatures, it deals double damage upgraded to major damage.
+- **Force** — Pure magical kinetic energy that is not reduced against incorporeal enemies. Force damage is always minor damage.
+- **Emotional** — A damage type representing acute psychological trauma, stress, or ego depletion that reduces a character's resolve and will to fight without leaving physical marks. Emotional damage is always minor damage. [[Criticals]] rolled for emotional damage do triple damage.
+- **Necrotic** — A damage type representing accelerated biological decay and cell death that rapidly rots living tissue, muscles, and organic matter on contact. Necrotic damage is always major damage, but has no effect on the undead or creatures without biological bodies.
 
 # Damage Reduction
 
 @function Damage Reduction
 
-A creature's [[damage reduction]] is subtracted from each incoming hit before it is dealt. Armor and tough hide raise it, and bonuses and penalties adjust it, with same-type entries stacking as on any other roll.
+A creature's [[damage reduction]] is subtracted from each incoming hit before it is dealt. Bonuses and penalties from armor, magic, or circumstances adjust it.
 
 # Ascendancy Damage Reduction
 
@@ -40,7 +44,7 @@ The Tier gap is the defender's Tier minus the attacker's effective Tier (Tier 0 
 
 # Glory
 
-A weapon with the [[glory]] enchantment treats its wielder as one or more Tiers higher when attacking a higher-Tier foe, shrinking the Tier gap before ascendancy damage reduction applies — so the wielder loses less damage fighting up. Glory affects only weapon attacks, never spells or abilities.
+A weapon with the [[glory]] enchantment treats its wielder as one or more [[Tiers]] higher when attacking a higher-Tier foe, shrinking the [[Tier]] gap before ascendancy damage reduction applies — so the wielder loses less damage fighting up. Glory affects only weapon attacks.
 
 # Damage Resilience
 
