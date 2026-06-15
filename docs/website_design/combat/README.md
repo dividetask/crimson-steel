@@ -1,16 +1,20 @@
 # Combat Encounter Stub
 
-The Combat Encounter Stub is the Game Master's surface for running a fight on
-`/encounter`. It is **DM-only** and composes three nested pieces:
+The Combat Encounter Stub is the Game Master's surface for **taking actions** in
+a fight on `/encounter` — attack, move, cast a spell, use an item or special
+ability, end the turn. It is **DM-only** and composes two pieces:
 
-1. **Combat Tracker** — every Combatant in initiative order, with at-a-glance
-   vitals and the turn indicator. (`combat_encounter_stub.md` → *Combat Tracker*)
-2. **Turn Action panel** — drives the Acting Combatant's turn: start-of-turn
+1. **Turn Action panel** — drives the Acting Combatant's turn: start-of-turn
    saves, then the action menu (Attack, Move, Cast, Item, Special, End Turn).
    (`combat_encounter_stub.md` → *Turn Action panel*)
-3. **Action Builder** — a domain-agnostic wizard that composes one action
+2. **Action Builder** — a domain-agnostic wizard that composes one action
    (target, dice, defense, luck) and then mounts the Check Resolution roll
    table to roll it. (`combat_encounter_stub.md` → *Action Builder*)
+
+It renders directly below the **Initiative Stub** (the Combat Tracker, which
+shows turn order and vitals) and acts on whichever Combatant that tracker marks
+as acting. The tracker is documented separately in
+[`../initiative`](../initiative/README.md).
 
 ## Why this lives in `website_design`
 

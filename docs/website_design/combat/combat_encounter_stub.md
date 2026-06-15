@@ -1,74 +1,25 @@
 # Combat Encounter Stub
 
-The DM's combat surface on `/encounter`, rendered top to bottom as the
-**Combat Tracker**, then (for the Acting Combatant) the **Turn Action panel**,
-whose action panes mount the **Action Builder**. The whole stub is **DM-only**;
-player viewers see only the Combat Tracker, and only while a Combat is active.
+The controls that let the Acting Combatant **take an action** — attack, move,
+cast a spell, use an item, use a special ability, or end the turn. It is the
+**Turn Action panel** plus the **Action Builder** it mounts to compose and roll
+each action.
 
-It owns the *flow* and the *action economy*; it owns no rules math. Every roll
-goes through the Check Resolution roll table, every point of damage through the
-Damage domain, and every change to a Creature through Conditions. The exact
+It renders on `/encounter` directly below the Initiative Stub (the Combat
+Tracker, documented in [`../initiative`](../initiative/initiative_stub.md)) and
+acts on whichever Combatant the tracker marks as acting (`acting_combatant_id`).
+It is **DM-only**.
+
+It owns the *action flow* and the *action economy*; it owns no rules math. Every
+roll goes through the Check Resolution roll table, every point of damage through
+the Damage domain, and every change to a Creature through Conditions. The exact
 calls are pinned in [`required_interfaces.md`](required_interfaces.md).
-
----
-
-## Combat Tracker
-
-A table titled **Combat Tracker**, one row per Combatant in the active Combat,
-ordered by Initiative String descending (ties broken by Combat ID). The Acting
-Combatant's row is emphasized (yellow background, bold initiative, a `▶` in the
-turn-control cell instead of `Set`).
-
-Columns, left to right:
-
-1. **Turn control** — `▶` on the acting row (read-only); `Set` on every other
-   row, which makes that Combatant the Acting Combatant (the GM override for
-   out-of-band turn changes).
-2. **Initiative** — the Combatant's Initiative String.
-3. **Name** — resolved via Creatures' *Look up Creature*, falling back to a
-   stored `name`, then `Creature #<id>`.
-4. **HP** — a bar with up to four proportional segments (green current, light-red
-   Minor, red Moderate, dark-red Major) over the Creature's Max HP, plus a
-   `<current>/<max>` line that appends `<n> Mod` / `<n> Maj` when non-zero.
-   Damage severities and Max HP come from Conditions / Creatures.
-5. **Mana** — `<remaining>/<max>` + bar (`max − mana_spent`).
-6. **Combat Pool** — `<remaining>/<max>`; max via *Get Combat Pool*.
-7. **Magic Toxicity** — Conditions' `magic_toxicity`, color-ramped toward the
-   Toxicity Threshold.
-8. **Conditions** — colored badges: `<n> Shock`, `<n> Pain` (the tracker's term
-   for the Acid Counter), `Bleed: <potency>`, `Poison: <potency>`, `Major: <n>`,
-   and any other Active Effect. Each badge has a DM-only `×` that calls the
-   matching Conditions removal entry point.
-9. **Ability Damage** — one chip per `(attribute, severity)` in Conditions'
-   `ability_damage` (e.g. `Str Minor 2`).
-
-A row whose Combatant returns false from Conditions' *Creature Can Act?* gets a
-red background — the GM may need to act for it.
-
-### Killed Combatants, PC roster, page controls
-
-- **Killed Combatants** — a second table beneath the tracker listing every
-  Combatant whose Creature is Dead (Conditions' *Dead?*), with **Name** and
-  **Cause**. Hidden when the host passes `show_killed = false`.
-- **PC roster panel** (DM-only) — a checkbox per Player Character (Creatures
-  tagged `player_character`); checked = in combat. Toggling POSTs the new set
-  to *Set PC Exclusions*. Persists across fights.
-- **Page-level controls** below the table: **Next Turn** (*Advance Turn*),
-  **Reroll Initiative**, **Start Combat** / **End Combat** (mutually exclusive
-  by combat state), and a read-only **DM Luck Points** total.
-
-### Scene embed
-
-When embedded in a scene rather than the Combat page, the host passes a
-read-only flag (suppresses `Set`, badge `×`, inline edits) and may pass a
-name-masking flag that renders non-PC names as `DM` to player viewers.
 
 ---
 
 ## Turn Action panel
 
-Renders directly below the Combat Tracker and drives the Acting Combatant
-(`acting_combatant_id`). DM-only.
+Drives the Acting Combatant.
 
 ### Header and resources
 
@@ -79,10 +30,10 @@ Actions** left this turn.
 
 ### Turn start (automatic)
 
-When the turn passes to a Combatant, Combat begins its turn server-side with no
-DM input: it **refills the Combat Pool** to full, **grants two Main Actions**
-(`MAIN_ACTIONS_PER_TURN`; the cap is tracked, not enforced), **clears expired
-Active Effects** (Conditions) and **expires** the Combatant's timed spell Zones.
+When the turn passes to a Combatant, its turn begins server-side with no DM
+input: the **Combat Pool refills** to full, **two Main Actions** are granted
+(`MAIN_ACTIONS_PER_TURN`; the cap is tracked, not enforced), **expired Active
+Effects** clear (Conditions) and the Combatant's timed spell Zones expire.
 
 ### Afflictions due this Round
 
@@ -191,6 +142,7 @@ Invokes *Advance Turn*: applies per-turn cleanup to the outgoing Combatant
 (clearing `luck_points`; the pool is **not** refilled), skips Combatants who
 cannot act, and **begins the incoming Combatant's turn** (Turn start, above). A
 Round wrap also runs per-round cleanup and advances the Chronicle timestamp.
+(The **Next Turn** button itself lives on the tracker — see `../initiative`.)
 
 ### Behavior notes
 
@@ -251,5 +203,6 @@ and any future Check.
 
 ## Required interfaces
 
-Everything above that reaches outside Combat is enumerated, per domain, in
-[`required_interfaces.md`](required_interfaces.md).
+Everything above that reaches outside this stub is enumerated, per domain, in
+[`required_interfaces.md`](required_interfaces.md). The Combat Tracker's own
+dependencies live in [`../initiative/required_interfaces.md`](../initiative/required_interfaces.md).
