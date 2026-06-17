@@ -11,6 +11,7 @@ enable :sessions
 $LOAD_PATH.unshift(File.join(__dir__, 'lib'))
 
 require_relative 'lib/compendium_docs'
+require_relative 'lib/combat/sample_turn'
 require_relative 'lib/helpers'
 
 # Page routes. Every menu link maps to a route file here; a link whose
@@ -18,7 +19,7 @@ require_relative 'lib/helpers'
 # renders the "Not Yet Implemented" page. To bring a page online, drop its
 # route file (and view) back in and add it to this list; to take it
 # offline, remove it again.
-%w[home compendium view_as].each do |name|
+%w[home compendium view_as status].each do |name|
   require_relative "lib/routes/#{name}"
 end
 

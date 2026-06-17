@@ -1,0 +1,29 @@
+<%
+  require 'json'
+  nav_items = [
+    { key: 'combat', label: 'Combat' }
+  ]
+%>
+
+<div class="status-layout">
+  <aside class="status-nav">
+    <ul>
+      <% nav_items.each do |item| %>
+        <li class="<%= 'active' if @view == item[:key] %>">
+          <a href="/status?view=<%= item[:key] %>"><%= h(item[:label]) %></a>
+        </li>
+      <% end %>
+    </ul>
+  </aside>
+
+  <section class="status-content">
+    <% if @view == 'combat' %>
+      <h1>Combat &mdash; Encounter Stub</h1>
+      <p class="lead">The turn-action controls (<code>docs/website_design/combat/combat_encounter_stub.md</code>), driven entirely by self-contained sample data (<code>docs/website_design/combat/test_data.md</code>). Walk a turn one step at a time; nothing is saved.</p>
+      <%= erb :_turn_action, locals: { blob: @combat_blob } %>
+    <% end %>
+  </section>
+</div>
+
+<script type="application/json" id="combat-blob"><%= @combat_blob.to_json %></script>
+<script src="/combat.js"></script>

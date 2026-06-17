@@ -4026,3 +4026,48 @@ body {
   font-size: 12px;
   padding: 1px 6px;
 }
+
+/* --- Status page: combat encounter stub demo --- */
+.status-layout { display: flex; gap: 24px; align-items: flex-start; }
+.status-nav { flex: 0 0 180px; }
+.status-nav ul { list-style: none; margin: 0; padding: 0; }
+.status-nav li { margin: 0 0 2px; }
+.status-nav a { display: block; padding: 6px 10px; border-radius: 4px; color: #882f1f; text-decoration: none; }
+.status-nav a:hover { background: #f3e7da; }
+.status-nav li.active a { background: #882f1f; color: #fff7e0; }
+.status-content { flex: 1 1 auto; min-width: 0; }
+
+.turn-action { border: 1px solid #d9a98a; border-radius: 6px; background: #fffaf0; padding: 14px 16px; max-width: 640px; }
+.ta-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid #e0cda8; padding-bottom: 8px; margin-bottom: 10px; }
+.ta-title { margin: 0; font-size: 17px; color: #5a3d00; }
+.ta-state { color: #b9472c; font-size: 13px; }
+.ta-resources { display: flex; gap: 14px; font-size: 13px; }
+.ta-res-label { font-variant: small-caps; color: #6b4a36; margin-right: 3px; }
+
+.ta-flow { display: flex; flex-direction: column; gap: 8px; }
+.ta-row { display: flex; align-items: center; gap: 8px; background: #f6efe3; border: 1px solid #e0cda8; border-radius: 4px; padding: 5px 8px; font-size: 13px; }
+.ta-row-label { font-variant: small-caps; color: #6b4a36; }
+.ta-row-value { font-weight: 600; color: #4d2e1e; flex: 1 1 auto; }
+.ta-change { background: none; border: 1px solid #d9a98a; border-radius: 3px; color: #882f1f; font-size: 11px; padding: 2px 7px; cursor: pointer; }
+.ta-change:hover { background: #f3e7da; }
+
+.ta-panel { border: 1px dashed #d9a98a; border-radius: 5px; padding: 10px 12px; background: #fff; }
+.ta-panel-title { font-variant: small-caps; font-weight: bold; color: #882f1f; font-size: 13px; margin-bottom: 6px; }
+.ta-group-head { font-variant: small-caps; color: #5a3d00; font-size: 12px; font-weight: bold; margin: 8px 0 4px; }
+.ta-line { display: flex; flex-wrap: wrap; gap: 6px; }
+.ta-btn { background: #fffaf0; border: 1px solid #b9472c; border-radius: 4px; color: #5a3d00; font-size: 13px; padding: 4px 10px; cursor: pointer; }
+.ta-btn:hover { background: #f3e7da; }
+.ta-btn.ta-on { background: #882f1f; color: #fff7e0; }
+.ta-btn.ta-disabled { opacity: 0.4; cursor: not-allowed; border-style: dashed; }
+.ta-toggle { border-style: dotted; }
+
+.ta-commit { background: #5a3d00; color: #fff7e0; border: none; border-radius: 4px; font-size: 13px; padding: 6px 14px; cursor: pointer; margin: 6px 0; }
+.ta-commit:hover { background: #6b4a36; }
+.ta-lead { font-size: 13px; color: #4d2e1e; margin: 0 0 6px; }
+.ta-done { color: #2e6b2e; font-weight: 600; font-size: 13px; }
+
+.ta-roll-line { display: flex; gap: 12px; font-size: 13px; padding: 3px 0; border-bottom: 1px solid #f0e6d6; }
+.ta-roll-name { flex: 0 0 220px; color: #5a3d00; }
+.ta-roll-dice { flex: 1 1 auto; font-family: monospace; color: #6b4a36; }
+.ta-roll-total { font-weight: bold; color: #4d2e1e; }
+.ta-net { margin-top: 8px; font-weight: bold; color: #882f1f; }

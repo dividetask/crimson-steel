@@ -5,10 +5,8 @@ cast a spell, use an item, use a special ability, or end the turn. It is the
 **Turn Action panel** plus the **Action Builder** it mounts to compose and roll
 each action.
 
-It owns the *action flow* and the *action economy*; it owns no rules math. Every
-roll goes through the Check Resolution roll table, every point of damage through
-the Damage domain, and every change to a Creature through Conditions. The exact
-calls are pinned in [`required_interfaces.md`](required_interfaces.md).
+The cross-domain calls it makes are listed in
+[`required_interfaces.md`](required_interfaces.md).
 
 ---
 

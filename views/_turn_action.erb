@@ -1,0 +1,28 @@
+<%#
+  Turn Action stub shell — docs/website_design/combat/combat_encounter_stub.md.
+  The header + resources render here; the action menu and the step machine are
+  built client-side by public/combat.js from the embedded sample blob.
+
+  Local: blob — the sample-turn data (see test_data.md).
+%>
+<%
+  c    = blob[:combatant]
+  dash = '—'
+  ma   = c[:main_actions].to_i.negative? ? dash : c[:main_actions].to_s
+%>
+<section class="turn-action" data-combatant>
+  <header class="ta-header">
+    <h3 class="ta-title">
+      <%= h(c[:name]) %>&rsquo;s Turn<% if c[:incapacitated] %> <span class="ta-state">(Incapacitated)</span><% end %>
+    </h3>
+    <div class="ta-resources">
+      <span class="ta-res"><span class="ta-res-label">Mana</span> <%= c[:mana][:remaining] %>/<%= c[:mana][:max] %></span>
+      <span class="ta-res"><span class="ta-res-label">Combat Pool</span> <span class="ta-pool-remaining"><%= c[:pool][:remaining] %></span>/<%= c[:pool][:max] %></span>
+      <span class="ta-res"><span class="ta-res-label">Main Actions</span> <%= ma %></span>
+    </div>
+  </header>
+
+  <%# The step stack (collapsed rows) + the active step's panel are rendered
+      here by combat.js. The first step is the Action menu. %>
+  <div class="ta-flow"></div>
+</section>
