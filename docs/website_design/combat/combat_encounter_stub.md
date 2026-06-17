@@ -31,14 +31,11 @@ Effects** clear (Conditions) and the Combatant's timed spell Zones expire.
 ### Afflictions due this round
 
 The turn opens with one **Save Resolution** sub-stub per Affliction the
-**Afflictions** domain reports as due this turn. Combat does not decide what is
-due, nor how an unscheduled Affliction is handled — it asks Afflictions for the
-due list and the save data (the Creature, the Affliction rule + Potency, the
-save's Dice Cap and Target Number) and renders one sub-stub per entry. The DM
-rolls the save and confirms; the net result goes back to Afflictions' *Resolve
-Affliction*, which applies the consequence and reschedules. See
-[`required_interfaces.md`](required_interfaces.md) → *Afflictions* / *Check
-Resolution*.
+**Afflictions** domain reports as due, built from the save data it supplies
+(the Creature, the Affliction rule + Potency, the Dice Cap, the Target Number).
+The DM rolls and confirms; the result goes back to Afflictions' *Resolve
+Affliction*. See [`required_interfaces.md`](required_interfaces.md) →
+*Afflictions*.
 
 ---
 
