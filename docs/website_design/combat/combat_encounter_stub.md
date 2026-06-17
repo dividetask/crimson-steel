@@ -85,7 +85,8 @@ step is chosen.
   the Cast flow exactly, except a **Potion** auto-targets the drinker, **Dice**
   offers one row per usable casting skill, and no Mana is spent.
 - **Move** — a single **Confirm Move** (spends the Move Cost; no roll).
-- **Special** — one of:
+- **Special Abilities** — Special Ability (pick *which* usable ability), then by
+  its kind:
   - *channeled* (e.g. Bardic Performance): *[pick Performance, if several]* →
     Dice → Roll → **Confirm** (which shows the Luck the Reservoir will gain);
   - *named-effect* (e.g. Rage): **Confirm** (applies the named Effect);
@@ -101,12 +102,18 @@ catalog.
 Each step's panel, defined once.
 
 - **Action Choice** — buttons: `Attack`, `Cast`, `Move`, `Item`,
-  `Active Spells`, `Special`, `End Turn`. A button is **hidden** when it has
-  nothing to offer: `Cast` (the Combatant knows no spell and holds no
-  spell-granting item), `Item` (no usable consumable), `Active Spells` (no usable
-  active persistent spell), `Special` (no usable special ability). When the
-  Combatant cannot act (Conditions' *Creature Can Act?* false) only `End Turn`
-  shows and the header reads `(Incapacitated)`.
+  `Active Spells`, `Special Abilities`, `End Turn`. Individual abilities are
+  **not** listed here — `Special Abilities` is one button that opens the Special
+  Ability step. A button is **hidden** when it has nothing to offer: `Cast` (the
+  Combatant knows no spell and holds no spell-granting item), `Item` (no usable
+  consumable), `Active Spells` (no usable active persistent spell),
+  `Special Abilities` (no usable special ability). When the Combatant cannot act
+  (Conditions' *Creature Can Act?* false) only `End Turn` shows and the header
+  reads `(Incapacitated)`.
+- **Special Ability** — the Combatant's usable non-Spell abilities (Rage, Bardic
+  Inspiration, Turn Undead, …), one button each, labelled with its activation
+  (Main / Bonus / Free). Picking one proceeds by its kind (see *The action
+  flow*).
 - **Target** — every other Combatant, with a quick-pick for the nearest enemy.
   For an attack the attack kind (`melee` / `ranged` / `spell`) follows the
   weapon chosen next.

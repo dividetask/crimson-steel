@@ -26,41 +26,43 @@
       label: 'Action', key: 'action',
       groups: function () {
         var inc = B.combatant.incapacitated;
-        var spec = function (k) { return (B.specials || []).filter(function (s) { return s.activation === k; }); };
-        var btn = function (s) { return { value: 'special:' + s.name, label: s.name }; };
-        var main = inc ? [] : [{ value: 'attack', label: 'Attack' }, { value: 'move', label: 'Move' }]
+        var opts = inc ? [] : [{ value: 'attack', label: 'Attack' }, { value: 'move', label: 'Move' }]
           .concat((B.spells || []).length ? [{ value: 'cast', label: 'Cast' }] : [])
           .concat((B.items || []).length ? [{ value: 'item', label: 'Item' }] : [])
           .concat((B.active_spells || []).length ? [{ value: 'active_spells', label: 'Active Spells' }] : [])
-          .concat(spec('main').map(btn));
-        var bonus = inc ? [] : spec('bonus').map(btn);
-        var free = [{ value: 'end_turn', label: 'End Turn' }].concat(inc ? [] : spec('free').map(btn));
-        var g = [];
-        if (main.length) g.push({ heading: 'Main Action', opts: main });
-        if (bonus.length) g.push({ heading: 'Bonus Action', opts: bonus });
-        if (free.length) g.push({ heading: 'Free Action', opts: free });
-        return g;
+          .concat((B.specials || []).length ? [{ value: 'special', label: 'Special Abilities' }] : []);
+        opts.push({ value: 'end_turn', label: 'End Turn' });
+        return [{ opts: opts }];
       },
       summary: function (v) {
-        var o = [].concat.apply([], this.groups().map(function (g) { return g.opts; }));
-        var hit = o.filter(function (x) { return x.value === v; })[0];
-        return hit ? hit.label : v;
+        var o = this.groups()[0].opts.filter(function (x) { return x.value === v; })[0];
+        return o ? o.label : v;
       },
       next: function (v) {
-        if (v.indexOf('special:') === 0) {
-          var s = B.specials.filter(function (x) { return x.name === v.slice(8); })[0];
-          choices.special = s;
-          if (s.kind === 'channeled') return { step: 'dice' };
-          if (s.kind === 'named') return { confirm: 'Apply ' + s.name + '.' };
-          return { confirm: 'Use ' + s.name + '; the DM resolves its targets and saves.' };
-        }
         switch (v) {
           case 'attack': case 'active_spells': return { step: 'target' };
           case 'cast': return { step: 'spell' };
           case 'item': return { step: 'item' };
+          case 'special': return { step: 'special' };
           case 'move': return { confirm: 'Spend ' + B.config.move_cost + ' Combat Pool dice to Move.' };
           case 'end_turn': return { confirm: 'Advance to the next Combatant in initiative order.' };
         }
+      }
+    },
+
+    special: {
+      label: 'Special Ability', key: 'special',
+      groups: function () {
+        return [{ opts: (B.specials || []).map(function (s) {
+          return { value: s.name, label: s.name + ' (' + s.activation + ')' };
+        }) }];
+      },
+      summary: function (v) { return v; },
+      next: function (v) {
+        var s = (B.specials || []).filter(function (x) { return x.name === v; })[0];
+        if (s.kind === 'channeled') { choices.actorName = s.name; return { step: 'dice' }; }
+        if (s.kind === 'named') return { confirm: 'Apply ' + s.name + '.' };
+        return { confirm: 'Use ' + s.name + '; the DM resolves its targets and saves.' };
       }
     },
 
