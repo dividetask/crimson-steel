@@ -52,7 +52,7 @@ cases:
     expect: { Dice Cap: 7 }
 ```
 
-# Competency Bonus
+## Competency Bonus
 
 @function Attribute Competency Bonus
 @function Aptitude Competency Bonus
@@ -161,7 +161,7 @@ Each creature involved in the roll not only adds or subtracts their results from
 
 Each creature involved in the roll gains an ascendancy bonus or penalty depending upon the inherent bonuses and inherent penalties they have for the roll. If their highest inherent bonus is higher then their most severe inherent penalty, then they gain an ascendancy bonus based upon the difference between the bonus and penalty, otherwise they gain an ascendancy penalty based upon the difference between the same two numbers.
 
-# Magic Combat Checks
+## Magic Combat Checks
 
 A combat check whose attack is a spell or ability: a casting roll against an optional defense roll, with bonuses inverting across the sides exactly as in a weapon [[combat check]], and its result read the same way — a positive [[degree of success]] lands the spell and its size scales the effect. The spell's Tier rides along as a guidance bonus and both combatants carry an [[inherent]] entry, so **[[ascendancy]] applies**.
 
