@@ -12,42 +12,7 @@ calls are pinned in [`required_interfaces.md`](required_interfaces.md).
 
 ---
 
-
-## Action Choice
-
-This panel will have the following options: Attack, Cast, Move, Item, Active Spells, Special Abilities, and End Turn.
-Cast will be hidden if the creature doesn't know any spells and doesn't have any items allowing spell casting.
-Item will be hidden if the creature doesn't have any consumable items that can be used.
-Active Spell will be hidden if there are no active spells that the creature cast, than can be utilized.
-Special Abilities will be hidden if the creature doesn't have any special abilities that can be used.
-
-After a choice is made this will turn into a row with the following text "Action: <action>" and a button saying "change" on the right hand side of the row. There will be an icon next to change, and the <action> text will be replaced with the text of the button they pushed.
-
-Proceed to Target
-
-## Spell Choice
-
-This panel will list all of the spells the active player organized by tier. These spells will have a header row above them stating the tier of the spell with the mana cost for spells of that tier next to it. (i.e. "Tier 2 (6 mana)")
-
-If the creature has spells that it does not have enough mana to cast then those spells will appear but appear greyed out.
-
-After a choice is made this will turn into a row with the following text "Cast: <spell>" and a button saying "change" on the right hand side of the row. There will be an icon next to change, and the <spell> text will be replaced with the text of the button they pushed.
-
-If the spell is single target, proceed to Target. If the target is area, proceed to Area Effect. If the spell is multi target proceed to multi target. 
-
-If the spell a magic combat check, after choosing Target, proceed to Defences.
-
-If the spell allows a saving throw then proceed to Luck.
-
-## Item Choice
-
-This panel will have a button for each of the consumable items the active player has availible to use with the text "<item> x<quantity>"
-
-After a choice is made this will turn into a row with the following text "Item: <item>" and a button saying "change" on the right hand side of the row. There will be an icon next to change, and the <item> text will be replaced with the text of the button they pushed.
-
-## Target Choice
-
-When the creature
+## The turn
 
 ### Header and resources
 
@@ -63,171 +28,169 @@ input: the **Combat Pool refills** to full, **two Main Actions** are granted
 (`MAIN_ACTIONS_PER_TURN`; the cap is tracked, not enforced), **expired Active
 Effects** clear (Conditions) and the Combatant's timed spell Zones expire.
 
-### Afflictions due this Round
+### Afflictions due this round
 
 The turn opens with one **Save Resolution** sub-stub per Affliction due this
 Round (Next Resolution Round arrived, or active-but-unscheduled). Each is built
 from a `save` blob (the Creature, the Affliction rule + Potency, the save's Dice
-Cap and Target Number). The DM rolls the save and confirms; the net DoIS is
+Cap and Target Number). The DM rolls the save and confirms; the net result is
 applied through Conditions' *Resolve Affliction*. See
-[`required_interfaces.md`](required_interfaces.md) → *Conditions* and *Check
+[`required_interfaces.md`](required_interfaces.md) → *Conditions* / *Check
 Resolution*.
 
-### Action menu
+---
 
-The Combatant's actions as buttons grouped under **Main Action**, **Bonus
-Action**, and **Free Action**:
+## How a step works
 
-- **Main Action** — `Attack`, `Move`, `Cast`, `Item`, `Active Spells` (only
-  while channeling a usable persistent Spell), and any `main`-activation Special
-  Ability.
-- **Bonus Action** — any `bonus`-activation Special Ability.
-- **Free Action** — `End Turn`, and any `free`-activation Special Ability.
+The panel builds an action **one step at a time**. Every step behaves the same
+way, so the behavior is stated once here and never repeated per step.
 
-An empty category is skipped. When the Combatant cannot act (Conditions'
-*Creature Can Act?* false), it is offered only **End Turn** and the header gains
-`(Incapacitated)`. Picking an action collapses the menu to a **selected-action
-row** (`<action> [Change]`) carrying a **confirm slot** where a ready Attack /
-Cast surfaces its **Commit** button.
+A step is a set of buttons. Picking one:
 
-### Action panes
+1. **collapses the step to a summary row** — the step's label, a colon, the
+   chosen value, and a **Change** button (preceded by a change icon) on the
+   right, e.g. `Action: Attack   ⟳ Change`; and
+2. **advances to the next step** (determined per *The action flow* below).
 
-#### Attack
+Two automatic cases never prompt: a step with a single forced outcome (a
+Potion's target is always the drinker) resolves itself and shows its row, and a
+step that does not apply to the current action is skipped.
 
-Mounts the **Action Builder**. Combat precomputes the builder blob and, on the
-builder's confirm, applies the result. Builder steps:
+Pressing **Change** on any summary row re-opens that step's buttons, **discards
+its choice and any dice or modifiers it contributed**, and **rewinds every later
+step — and the final roll — back to unmade**; the DM re-walks from that step.
+Nothing touches the game until the final **Commit** (or, for a no-roll action,
+**Confirm**).
 
-1. **Target** — every other Combatant, with an enemy quick-pick. Attack kind
-   (`melee` / `ranged` / `spell`) follows the chosen weapon.
-2. **Weapon & dice** — one row per equipped weapon (details from Equipment),
-   with dice buttons `2…Dice Cap`. Pool cost to roll `n` dice is `Speed + n`;
-   unaffordable counts are greyed.
-3. **Target's defense** — `No defense` or an eligible Defensive Action: `Dodge`
-   (borrows `dex_save`, any kind), `Block` (Martial, any kind), `Parry`
-   (Martial, melee only). All three are pool-costed; the DM picks the dice.
-4. **Luck** — one step per source able to spend Luck as a Reaction (each other
-   Combatant's Bardic Inspiration Reservoir, plus the DM's DM Luck): Bardic
-   Inspiration (reroll low) and Unsettling Words (reroll high) per in-play Roll.
+---
 
-Each option carries a **patch** mutating the seed Rolls. Combat folds in the
-attacker Bonuses (Flatfooted / Unaware / Helpless) and each side's **Inherent**
-entry, then Check Resolution's cross-side propagation and Ascendancy resolve the
-Tier mismatch (see [`required_interfaces.md`](required_interfaces.md) → *Check
-Resolution*). When every step is resolved the embedded Check Resolution roll
-table appears (`Roll All` / `Confirm` + the dice table); on confirm Combat nets
-Supporting − Opposing Successes, recomputes weapon damage, applies **Ascendancy
-Damage Reduction**, and routes positive damage through the Damage domain's
-*Apply Damage*. A magical weapon's **Damage Riders** roll as a second phase of
-the same builder, each applying as its own Severity Calculation. The DM may edit
-**Damage / Bleed / Poison** before the final Commit.
+## The action flow
 
-#### Move
+**Action Choice** is always the first step. The action chosen there decides
+which steps follow. The *Steps* catalog below defines each step's buttons once;
+this section defines, per action, the order they appear in and how the **next**
+step is chosen.
 
-Spends the **Move Cost** in Combat Pool dice and one Main Action — no other
-effect. A `Confirm Move` button (disabled when unaffordable).
+- **Attack** — Target → Weapon & Dice → Defence → *[Reactions]* → Luck → Roll → Commit.
+- **Active Spells** — identical to Attack, over the conjured strikes; the strike
+  is **free** (no Combat Pool) and does not consume its Reservoir.
+- **Cast** — Spell → Dice → *target* → *defence* → *[Reactions]* → *luck* → Roll → Commit, where:
+  - *target* is **Target** for a single-target spell, **Area Placement** for an
+    area spell, or **Multi-Target** for a multi-target spell; a `self` spell
+    auto-targets the caster.
+  - *defence* is **Defence** for an attack-roll (magic combat) spell; for a
+    save spell each target's **saving throw** is added automatically at its full
+    Dice Cap (no Defence step); a utility spell has neither.
+  - *luck*, **Roll**, and **Dice** appear only when the cast rolls dice. A
+    **no-roll buff** (a fixed-cost spell that rolls nothing) skips Dice, Luck,
+    and Roll and ends at **Confirm**.
+- **Item** — Item → Dice → *target* → *defence* → *[Reactions]* → *luck* → Roll → Commit:
+  the Cast flow exactly, except a **Potion** auto-targets the drinker, **Dice**
+  offers one row per usable casting skill, and no Mana is spent.
+- **Move** — a single **Confirm Move** (spends the Move Cost; no roll).
+- **Special** — one of:
+  - *channeled* (e.g. Bardic Performance): *[pick Performance, if several]* →
+    Dice → Roll → **Confirm** (which shows the Luck the Reservoir will gain);
+  - *named-effect* (e.g. Rage): **Confirm** (applies the named Effect);
+  - *other* (e.g. Turn Undead): **Confirm** (spends the action; the DM
+    adjudicates targets / saves manually).
+- **End Turn** — a single **Confirm**, then *Advance Turn*.
 
-#### Cast
+*[Reactions]* is the optional Supporting / Opposing Actions step — see the
+catalog.
 
-Steps: **Spell** (known spells + any granted by an equipped Wand/Ring, grouped
-by Tier, mana-unaffordable ones disabled) → **Dice** (variable count from the
-spell's Action Minimum up to the casting-skill Dice Cap; a no-roll buff is
-auto-applied with no button and skips the roll) → **Target(s)** (driven by the
-spell's `target` / `area` / `save`) → **Defense** (the target's Saving Throw at
-full Dice Cap for a Save spell, Dodge / Block for an attack-roll spell). On
-submit the **Abilities** domain resolves the spell's Effects; Combat routes
-them — Mana via Conditions' *Apply Mana Cost*, **magic toxicity** via *Apply
-Magic Toxicity* (gated by the Toxicity Threshold), damage via the Damage
-domain, heal / Temporary HP / mana / Active Effects via Conditions — and
-registers a Concentration / Long Cast entry for a sustained spell. An area spell
-drops a Zone on the Map.
+## Steps
 
-#### Item
+Each step's panel, defined once.
 
-Reuses the Cast flow: a **Potion** casts its spell on the drinker (self), a
-**Scroll** exactly as casting the spell. Costs **no Mana** (the item supplied
-it); a Potion imposes Item-Form Magic Toxicity, a Scroll none; the charge
-decrements on commit and a Main Action is spent. Wands / Rings are not consumed
-here — their spell lives in the Cast list.
+- **Action Choice** — buttons: `Attack`, `Cast`, `Move`, `Item`,
+  `Active Spells`, `Special`, `End Turn`. A button is **hidden** when it has
+  nothing to offer: `Cast` (the Combatant knows no spell and holds no
+  spell-granting item), `Item` (no usable consumable), `Active Spells` (no usable
+  active persistent spell), `Special` (no usable special ability). When the
+  Combatant cannot act (Conditions' *Creature Can Act?* false) only `End Turn`
+  shows and the header reads `(Incapacitated)`.
+- **Target** — every other Combatant, with a quick-pick for the nearest enemy.
+  For an attack the attack kind (`melee` / `ranged` / `spell`) follows the
+  weapon chosen next.
+- **Weapon & Dice** — one row per equipped weapon (Active Spells: per conjured
+  strike), each with dice buttons `2…Dice Cap`. The Combat Pool cost to roll `n`
+  dice is `Speed + n`; counts the pool can't afford are greyed.
+- **Spell** — the Combatant's known spells plus any spell an equipped Wand / Ring
+  grants, grouped by Tier under a `Tier <n> (<cost> mana)` header. A spell the
+  Combatant can't afford the Mana for is shown greyed.
+- **Dice** — how many dice to roll on the casting check: buttons from the spell's
+  **Action Minimum** up to the casting-skill **Dice Cap**, bounded by the Combat
+  Pool. For an **Item**, one such row per usable casting skill. The step is
+  **auto-applied (no buttons)** when the spell's dice are fixed (a no-roll buff).
+- **Item** — one button per usable consumable, `<item> ×<quantity>`, grouped by
+  Tier.
+- **Area Placement** — drop the spell's footprint on the Map; every caught
+  creature becomes a defender that rolls its own saving throw.
+- **Multi-Target** — pick the spell's named targets; each becomes a defender that
+  rolls its own saving throw.
+- **Defence** — the target's reaction: `No defense`, `Dodge` (any attack kind),
+  `Block` (any attack kind), or `Parry` (melee weapon attacks only). Each costs
+  Combat Pool, so the DM picks the dice (Reaction minimum up to the pool, capped
+  by the Dice Cap). A target that cannot act is **Helpless** and is offered only
+  `No defense`.
+- **Reactions** *(optional)* — ally **Supporting** rolls and foe **Opposing**
+  rolls offered when available (e.g. a caster's Shield-of-Faith block of an
+  ally, a Roll-Table Reaction). Each is its own pool-costed roll added to the
+  Check; inserted before Luck.
+- **Luck** *(only when the action rolls dice)* — one step per source able to
+  spend Luck as a reaction: each *other* Combatant holding a Bardic Inspiration
+  Reservoir, plus the **DM** when it holds DM Luck. Per in-play roll it offers a
+  Bardic Inspiration bonus (reroll low dice) and/or an Unsettling Words penalty
+  (reroll high dice), each bounded by `min(the source's Luck, that roll's dice)`.
+- **Roll** — the embedded **Check Resolution roll table** (`Roll All` + `Confirm`
+  + the dice table). The DM rolls, may reroll / nudge or type a manual result,
+  then Confirms. Mounted only when a step actually rolled dice.
+- **Commit** — applies the action (see below). For an attack whose hit lands and
+  whose weapon carries magical **Damage Riders**, a **rider roll** phase runs
+  first (the rider dice at the attack's Target Number); then the editable
+  **Damage / Bleed / Poison** (plus a box per rider) appear before Commit.
 
-#### Active Spells
+## Commit — what each action applies
 
-Strikes with an active persistent Spell (e.g. Spiritual Weapon). Reuses the
-Attack flow verbatim; the strike is **free** (no Combat Pool) and does **not**
-consume the Reservoir.
+On Commit the stub spends the Combat Pool (`Speed + dice`; saving throws and
+no-roll buffs cost none) and routes the outcome — never computing rules itself:
 
-#### Special
+- **Attack / Active Spells** — net Supporting − Opposing successes, recompute the
+  weapon damage, apply **Ascendancy Damage Reduction**, and route positive
+  damage through the Damage domain's *Apply Damage*; Bleed / Poison inflict
+  through Conditions.
+- **Cast / Item** — the **Abilities** domain resolves the spell's Effects;
+  Conditions takes Mana (*Apply Mana Cost*; Item spends none), Magic Toxicity
+  (*Apply Magic Toxicity*, gated by the Toxicity Threshold; a Potion adds
+  Item-Form Toxicity), and any heal / Temporary HP / mana / Active Effect; damage
+  routes through the Damage domain; a sustained spell registers a Concentration /
+  Long Cast entry and an area spell drops a Zone on the Map. An Item decrements
+  its charge.
+- **Move** — spends the Move Cost and one Main Action.
+- **Special** — debits `mana_cost`; a named-effect applies via Conditions' *Apply
+  Named Effect*, a channel fills its Reservoir, anything else is reported for the
+  DM to adjudicate.
+- **End Turn** — *Advance Turn* (per-turn cleanup on the outgoing Combatant, then
+  the next Combatant's automatic turn start; a Round wrap also runs per-round
+  cleanup and advances the Chronicle timestamp). The **Next Turn** button itself
+  lives on the tracker (see [`../initiative`](../initiative/initiative_stub.md)).
 
-Uses a non-Spell Ability that needs no Reaction (Bardic Performance, Rage, Turn
-Undead, …), each a button under its activation category. Resolving it debits its
-`mana_cost`; a channeled Performance mounts the Action Builder to roll the
-skill check, a self-target named Effect (Rage) applies via Conditions' *Apply
-Named Effect*, and anything else spends the Action Minimum and reports it for the
-DM to adjudicate. Definitions come from the **Abilities** domain.
+## Behavior notes
 
-#### End Turn
-
-Invokes *Advance Turn*: applies per-turn cleanup to the outgoing Combatant
-(clearing `luck_points`; the pool is **not** refilled), skips Combatants who
-cannot act, and **begins the incoming Combatant's turn** (Turn start, above). A
-Round wrap also runs per-round cleanup and advances the Chronicle timestamp.
-(The **Next Turn** button itself lives on the tracker — see `../initiative`.)
-
-### Behavior notes
-
-- Each pane is client-side until submit; only submit POSTs back.
-- The Combat Pool is spent on submit as `Speed + dice`. Saving Throws never cost
-  Combat Pool; Defensive Actions do.
+- Each step is client-side until Commit; only Commit / Confirm POSTs back.
 - **DM Luck Points** are a Combat-level pool, persisting until *End Combat*.
 
----
+## Under the hood — the Action Builder
 
-## Action Builder
-
-A reusable, **domain-agnostic** wizard for composing an action — an Attack, a
-Cast, a Special — from DM choices, then rolling it. It owns the *step flow* and
-**composes the Check Resolution roll table** as its terminal step, mounting the
-*Roll All* affordance **only when a step actually rolls dice** (a no-roll buff
-just confirms). It knows nothing about Combat, Damage, or Conditions: the host
-precomputes the blob and acts on the confirmed result.
-
-### Parameters
-
-A blob of DM-pickable options; a null/empty list omits its step.
-
-| Parameter | Shape | Purpose |
-|---|---|---|
-| `target_options` | `[{creature_ref, name}]` | Target picker. |
-| `action_options` | `[{name, min_dice, max_dice, speed?, damage?}]` | The actor's action; `min_dice == max_dice` locks the dice and omits the step. |
-| `actor_pool` / `defender_pool` | integer | Caps dice the actor / defender may spend. |
-| `defense_options` | `[{name, min_dice, max_dice, speed?}]` | The defender's reaction. |
-| `supporting_actions` / `opposing_actions` | `[{creature_ref, action_name, min_dice, max_dice, pool}]` | Ally / foe reactions. |
-| `reroll_sources` / `mass_reroll_sources` / `nudge_sources` | `[{creature_ref, creature_name, source_name, direction, pool?}]` | Luck-step sources. |
-| `rolls` | `[{creature_name, roll_name, dice_count, tn, die_size, starting_value, side}]` | The seed Rolls for the embedded dice table; `side` is `:supporting` / `:opposing`. |
-
-### Step model and lifecycle
-
-Steps walk in order, each skipped if its list is null/empty: **Target →
-Action → Defense → Supporting Actions → Opposing Actions → Rerolls → Mass
-Rerolls → Nudges**, then the Check Resolution roll table (Roll All + Confirm).
-Each step is **pending** (hidden), **active** (its controls occupy the shared
-`.rolls-actions` slot), or **complete** (a `<Label>: <choice> [Change]` summary
-row). Each pick carries a **patch** that mutates the seed Rolls (`set_dice`,
-`set_tn`, `set_name`, `set_excluded`, `set_reroll`, `set_nudge`); `Change`
-re-opens a step and rewinds every later step (and the dice table) to pending.
-The **Luck** step is dynamic: a per-source table whose amounts are bounded by
-`min(source Luck, that Roll's dice)`, composed onto each Roll's reroll slots
-(max of each sign — Check Resolution applies them).
-
-### Output
-
-The builder runs entirely client-side and emits one `action:confirmed` event:
-`{ choices, rolls: [{ id, side, successes, crits, dice_count }] }`. The host
-(Combat) reads it and applies the result. The builder does **not** validate
-legality (the host pre-validates) and does **not** understand saves, attacks,
-or any domain concept — the same wizard serves Affliction saves, attacks, casts,
-and any future Check.
-
----
+The wizard is the reusable, **domain-agnostic** Action Builder: it owns only the
+step flow and the embedded Check Resolution roll table, and knows nothing about
+Combat, Damage, or Conditions. The host (Combat) precomputes the option blob —
+each option carrying a **patch** that mutates the seed rolls (set dice / target
+number / name / exclusion / reroll / nudge) — and listens for the single
+`action:confirmed` event (`{ choices, rolls: [{ id, side, successes, crits,
+dice_count }] }`) to apply the result. The same wizard serves Affliction saves,
+attacks, casts, and any future Check.
 
 ## Required interfaces
 
