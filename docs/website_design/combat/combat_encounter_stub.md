@@ -5,11 +5,6 @@ cast a spell, use an item, use a special ability, or end the turn. It is the
 **Turn Action panel** plus the **Action Builder** it mounts to compose and roll
 each action.
 
-It renders on `/encounter` directly below the Initiative Stub (the Combat
-Tracker, documented in [`../initiative`](../initiative/initiative_stub.md)) and
-acts on whichever Combatant the tracker marks as acting (`acting_combatant_id`).
-It is **DM-only**.
-
 It owns the *action flow* and the *action economy*; it owns no rules math. Every
 roll goes through the Check Resolution roll table, every point of damage through
 the Damage domain, and every change to a Creature through Conditions. The exact
@@ -17,9 +12,42 @@ calls are pinned in [`required_interfaces.md`](required_interfaces.md).
 
 ---
 
-## Turn Action panel
 
-Drives the Acting Combatant.
+## Action Choice
+
+This panel will have the following options: Attack, Cast, Move, Item, Active Spells, Special Abilities, and End Turn.
+Cast will be hidden if the creature doesn't know any spells and doesn't have any items allowing spell casting.
+Item will be hidden if the creature doesn't have any consumable items that can be used.
+Active Spell will be hidden if there are no active spells that the creature cast, than can be utilized.
+Special Abilities will be hidden if the creature doesn't have any special abilities that can be used.
+
+After a choice is made this will turn into a row with the following text "Action: <action>" and a button saying "change" on the right hand side of the row. There will be an icon next to change, and the <action> text will be replaced with the text of the button they pushed.
+
+Proceed to Target
+
+## Spell Choice
+
+This panel will list all of the spells the active player organized by tier. These spells will have a header row above them stating the tier of the spell with the mana cost for spells of that tier next to it. (i.e. "Tier 2 (6 mana)")
+
+If the creature has spells that it does not have enough mana to cast then those spells will appear but appear greyed out.
+
+After a choice is made this will turn into a row with the following text "Cast: <spell>" and a button saying "change" on the right hand side of the row. There will be an icon next to change, and the <spell> text will be replaced with the text of the button they pushed.
+
+If the spell is single target, proceed to Target. If the target is area, proceed to Area Effect. If the spell is multi target proceed to multi target. 
+
+If the spell a magic combat check, after choosing Target, proceed to Defences.
+
+If the spell allows a saving throw then proceed to Luck.
+
+## Item Choice
+
+This panel will have a button for each of the consumable items the active player has availible to use with the text "<item> x<quantity>"
+
+After a choice is made this will turn into a row with the following text "Item: <item>" and a button saying "change" on the right hand side of the row. There will be an icon next to change, and the <item> text will be replaced with the text of the button they pushed.
+
+## Target Choice
+
+When the creature
 
 ### Header and resources
 
