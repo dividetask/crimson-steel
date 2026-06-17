@@ -77,8 +77,9 @@ Damage domain only tells Combat which fired.
 
 ## Conditions
 
-Conditions owns all per-Creature mutable state; Combat invokes it to read and
-mutate. Combat never stores HP, mana, toxicity, afflictions, or effects.
+Conditions owns per-Creature mutable state; Combat invokes it to read and
+mutate. Combat never stores HP, mana, toxicity, or effects. (Conditions is being
+split into parts; **Afflictions** is its own section below.)
 
 - **Apply Hit Point Damage** — `{ minor, moderate, major }` → Temporary HP
   absorbs worst-first, the rest lands as damage.
@@ -88,18 +89,33 @@ mutate. Combat never stores HP, mana, toxicity, afflictions, or effects.
   Threshold (`floor(Charisma × Tier)`, Tier 0 = 0.5) for positive sources.
 - **Apply Named Effect / Apply Effect** — grant a Condition + its Modifiers, or a
   timed modifier Active Effect with a turns-based `duration`.
-- **Resolve Affliction** — `affliction, potency, net_dois` → consequence +
-  decay / reschedule. **Reduce Affliction Potency** — `affliction, amount`.
-  **Inflict Affliction** — bleed / poison channel, scheduled to the victim's
-  next turn.
 - **Clear Expired Effects** — for the current Round. **Expire Zone Effects For** —
   drop a Combatant's elapsed spell Zones at its turn start.
 - **Creature Can Act?**, **Creature Is Dying?**, **Dead?** — booleans.
-- **Removal** — *Remove Active Effect* / *Remove Active Affliction* / clear a
-  counter (for the tracker badge `×`).
+- **Removal** — *Remove Active Effect* / clear a counter (for the tracker badge
+  `×`).
 - **Reads** — `acid_counter`, `shock`, `ability_damage` map, `magic_toxicity`,
-  `mana_spent`, Temporary HP, active afflictions (with Potency), active effects,
-  per-Severity HP damage.
+  `mana_spent`, Temporary HP, active effects, per-Severity HP damage.
+
+## Afflictions
+
+A part split out of Conditions. Combat **never** decides which Afflictions are
+due or how to interpret an unscheduled one — it asks Afflictions for the due
+list and resolves what it returns.
+
+- **Afflictions due this turn** — `creature` → the Afflictions to roll a save
+  for now. Afflictions owns the schedule and the rule for an Affliction that has
+  no schedule yet; Combat just renders one Save Resolution per returned entry.
+- **Save data for an Affliction** — the Affliction rule + Potency and the save's
+  Dice Cap / Target Number, for building the Save Resolution sub-stub.
+- **Resolve Affliction** — `affliction, potency, net result` → apply the
+  consequence and decay / reschedule.
+- **Reduce Affliction Potency** — `affliction, amount` (e.g. a Heal clearing
+  Bleed). **Remove Active Affliction** — for the tracker badge `×`.
+- **Inflict Affliction** — bleed / poison channel (Afflictions sets the
+  schedule).
+- **Reads** — active Afflictions with Potency (for the tracker's Bleed / Poison
+  badges).
 
 ## Creatures
 

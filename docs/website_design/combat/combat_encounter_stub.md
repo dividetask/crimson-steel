@@ -30,12 +30,14 @@ Effects** clear (Conditions) and the Combatant's timed spell Zones expire.
 
 ### Afflictions due this round
 
-The turn opens with one **Save Resolution** sub-stub per Affliction due this
-Round (Next Resolution Round arrived, or active-but-unscheduled). Each is built
-from a `save` blob (the Creature, the Affliction rule + Potency, the save's Dice
-Cap and Target Number). The DM rolls the save and confirms; the net result is
-applied through Conditions' *Resolve Affliction*. See
-[`required_interfaces.md`](required_interfaces.md) → *Conditions* / *Check
+The turn opens with one **Save Resolution** sub-stub per Affliction the
+**Afflictions** domain reports as due this turn. Combat does not decide what is
+due, nor how an unscheduled Affliction is handled — it asks Afflictions for the
+due list and the save data (the Creature, the Affliction rule + Potency, the
+save's Dice Cap and Target Number) and renders one sub-stub per entry. The DM
+rolls the save and confirms; the net result goes back to Afflictions' *Resolve
+Affliction*, which applies the consequence and reschedules. See
+[`required_interfaces.md`](required_interfaces.md) → *Afflictions* / *Check
 Resolution*.
 
 ---
@@ -159,7 +161,7 @@ no-roll buffs cost none) and routes the outcome — never computing rules itself
 - **Attack / Active Spells** — net Supporting − Opposing successes, recompute the
   weapon damage, apply **Ascendancy Damage Reduction**, and route positive
   damage through the Damage domain's *Apply Damage*; Bleed / Poison inflict
-  through Conditions.
+  through Afflictions.
 - **Cast / Item** — the **Abilities** domain resolves the spell's Effects;
   Conditions takes Mana (*Apply Mana Cost*; Item spends none), Magic Toxicity
   (*Apply Magic Toxicity*, gated by the Toxicity Threshold; a Potion adds

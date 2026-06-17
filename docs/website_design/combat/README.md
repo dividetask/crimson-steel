@@ -27,9 +27,9 @@ combat stub expects from each other domain** so the branches stay compatible.
 
 Those expectations are the partial stubs in
 [`required_interfaces.md`](required_interfaces.md): one section per domain
-(Check Resolution, Damage, Conditions, Creatures, Proficiencies, Equipment,
-Abilities). Each section is the slice of that domain the combat stub calls —
-the contract the domain's own branch must satisfy.
+(Check Resolution, Damage, Conditions, Afflictions, Creatures, Proficiencies,
+Equipment, Abilities). Each section is the slice of that domain the combat stub
+calls — the contract the domain's own branch must satisfy.
 
 ## Contents
 
