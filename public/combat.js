@@ -226,34 +226,49 @@
 
   function render() {
     root.innerHTML = '';
+    var wrap = el('div', 'rolls-wrapper action-builder');
+    var header = el('div', 'rolls-header');
+    var title = el('span', 'rolls-title');
+    var titleMain = el('span', 'rolls-title-main', 'Action');
+    title.appendChild(titleMain);
+    header.appendChild(title);
+    var actions = el('div', 'rolls-actions');
+    header.appendChild(actions);
+    wrap.appendChild(header);
+
+    var sums = el('div', 'step-summaries');
     rows.forEach(function (r, i) {
-      var row = el('div', 'ta-row');
-      row.appendChild(el('span', 'ta-row-label', r.label + ':'));
-      row.appendChild(el('span', 'ta-row-value', r.summaryText));
-      var ch = el('button', 'ta-change'); ch.innerHTML = '&#8624; Change';
+      var row = el('div', 'step-summary');
+      row.appendChild(el('span', 'step-summary-label', r.label));
+      row.appendChild(el('span', 'step-summary-value', r.summaryText));
+      var ch = el('button', 'cr-step-change');
+      ch.innerHTML = '<span class="cr-change-icon">↶</span> Change';
       ch.onclick = function () { changeTo(i); };
       row.appendChild(ch);
-      root.appendChild(row);
+      sums.appendChild(row);
     });
-    if (active.step) renderStep(STEPS[active.step]);
-    else if (active.roll) renderRoll();
-    else if (active.confirm) renderConfirm(active.confirm);
+    wrap.appendChild(sums);
+
+    if (active.step) { titleMain.textContent = STEPS[active.step].label; renderStepBody(wrap, STEPS[active.step]); }
+    else if (active.roll) { titleMain.textContent = 'Roll'; renderRoll(wrap, actions); }
+    else if (active.confirm) { titleMain.textContent = 'Confirm'; renderConfirm(wrap, actions, active.confirm); }
+
+    root.appendChild(wrap);
   }
 
-  function renderStep(def) {
-    var panel = el('div', 'ta-panel');
-    panel.appendChild(el('div', 'ta-panel-title', def.label));
-    var picked = []; // for multi
+  function renderStepBody(wrap, def) {
+    var body = el('div', 'step-body');
+    var picked = []; // for multi-select steps
     def.groups().forEach(function (g) {
-      if (g.heading) panel.appendChild(el('div', 'ta-group-head', g.heading));
-      var line = el('div', 'ta-line');
+      if (g.heading) body.appendChild(el('div', 'cb-tier-head', g.heading));
+      var line = el('div', 'cb-line');
       g.opts.forEach(function (o) {
-        var b = el('button', 'ta-btn' + (o.toggle ? ' ta-toggle' : ''), o.label);
-        if (o.disabled) { b.disabled = true; b.classList.add('ta-disabled'); }
+        var b = el('button', 'cr-mod-btn cb-opt', o.label);
+        if (o.disabled) b.disabled = true;
         b.onclick = function () {
           if (def.multi) {
             if (o.value === '__done') { commitStep(def, picked.slice()); return; }
-            b.classList.toggle('ta-on');
+            b.classList.toggle('cb-opt-selected');
             var idx = picked.indexOf(o.value);
             if (idx >= 0) picked.splice(idx, 1); else picked.push(o.value);
           } else {
@@ -262,9 +277,9 @@
         };
         line.appendChild(b);
       });
-      panel.appendChild(line);
+      body.appendChild(line);
     });
-    root.appendChild(panel);
+    wrap.appendChild(body);
   }
 
   function commitStep(def, value) {
@@ -275,13 +290,17 @@
     render();
   }
 
-  function renderConfirm(text) {
-    var panel = el('div', 'ta-panel');
-    panel.appendChild(el('p', 'ta-lead', text));
-    var b = el('button', 'ta-commit', 'Commit');
-    b.onclick = function () { panel.replaceChild(el('p', 'ta-done', '✓ Committed (demo — nothing saved).'), b); };
-    panel.appendChild(b);
-    root.appendChild(panel);
+  function renderConfirm(wrap, actions, text) {
+    var body = el('div', 'step-body');
+    body.appendChild(el('p', 'ta-pane-lead', text));
+    wrap.appendChild(body);
+    var b = el('button', 'btn-confirm', 'Confirm');
+    b.onclick = function () {
+      actions.innerHTML = '';
+      body.innerHTML = '';
+      body.appendChild(el('p', 'ta-pane-lead', '✓ Committed (demo — nothing saved).'));
+    };
+    actions.appendChild(b);
   }
 
   function seedRolls() {
@@ -297,16 +316,16 @@
     return rolls;
   }
 
-  function renderRoll() {
+  function renderRoll(wrap, actions) {
     var rolls = seedRolls();
-    var panel = el('div', 'ta-panel');
-    panel.appendChild(el('div', 'ta-panel-title', 'Roll'));
-    var rollBtn = el('button', 'ta-commit', 'Roll All');
-    panel.appendChild(rollBtn);
-    var out = el('div'); panel.appendChild(out);
+    var body = el('div', 'step-body');
+    wrap.appendChild(body);
+    var rollBtn = el('button', 'btn-roll-all', 'Roll All');
+    actions.appendChild(rollBtn);
     rollBtn.onclick = function () {
-      out.innerHTML = ''; rollBtn.remove();
+      actions.innerHTML = '';
       var sup = 0, opp = 0;
+      var results = el('div', 'rolls-results');
       rolls.forEach(function (r) {
         var dice = [], total = 0;
         for (var i = 0; i < r.dice; i++) {
@@ -315,19 +334,22 @@
           total += d === DIE ? 2 : (d >= r.tn ? 1 : (d === 1 ? -1 : 0));
         }
         if (r.side === 'supporting') sup += total; else opp += total;
-        var line = el('div', 'ta-roll-line');
-        line.appendChild(el('span', 'ta-roll-name', r.name + ' (' + r.dice + 'd vs ' + r.tn + ')'));
-        line.appendChild(el('span', 'ta-roll-dice', dice.join(' ')));
-        line.appendChild(el('span', 'ta-roll-total', (total >= 0 ? '+' : '') + total));
-        out.appendChild(line);
+        var rowEl = el('div', 'rolls-result-row');
+        rowEl.appendChild(el('span', 'rolls-result-name', r.name + ' (' + r.dice + 'd vs ' + r.tn + ')'));
+        rowEl.appendChild(el('span', 'rolls-result-value', dice.join(' ') + '  =  ' + (total >= 0 ? '+' : '') + total));
+        results.appendChild(rowEl);
       });
       var net = sup - opp;
-      out.appendChild(el('div', 'ta-net', 'Net Degree of Success: ' + (net >= 0 ? '+' : '') + net));
-      var commit = el('button', 'ta-commit', 'Commit');
-      commit.onclick = function () { commit.replaceWith(el('p', 'ta-done', '✓ Committed (demo — nothing saved).')); };
-      out.appendChild(commit);
+      results.appendChild(el('div', 'cb-net', 'Net Degree of Success: ' + (net >= 0 ? '+' : '') + net));
+      body.innerHTML = '';
+      body.appendChild(results);
+      var commit = el('button', 'btn-confirm', 'Commit');
+      commit.onclick = function () {
+        actions.innerHTML = '';
+        results.appendChild(el('div', 'cb-net', '✓ Committed (demo — nothing saved).'));
+      };
+      actions.appendChild(commit);
     };
-    root.appendChild(panel);
   }
 
   function changeTo(i) {
