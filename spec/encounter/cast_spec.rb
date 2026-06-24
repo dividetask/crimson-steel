@@ -439,6 +439,22 @@ RSpec.describe 'Encounter::State#resolve_cast_payload' do
     expect(cond.state.magic_toxicity).to eq(0)
   end
 
+  it 'honors a DM damage override on commit, re-bucketing the Severity split' do
+    cond = build_instance
+    s = state(cond)
+    caster = s.add_combatant('1'); tgt = s.add_combatant('2')
+    out = s.resolve_cast_payload(
+      caster: { id: caster[:id], dice: 3, speed: 1, successes: 3 },
+      spell:  { name: 'Firebolt', tier: 1, mana_cost: 0 },
+      targets: [{ id: tgt[:id], effects: [{ kind: 'damage', amount: 4, damage_type: 'fire', threshold: 0 }] }],
+      override: { damages: [{ target_id: tgt[:id], amount: 9 }] }
+    )
+    applied = out[:targets].first[:applied].first
+    expect(applied[:kind]).to eq('damage')
+    expect(applied[:amount]).to eq(9)                     # the DM-entered amount, not 4
+    expect(cond.state.hp_damage.values.sum).to eq(10)    # 9 override + the standard +1 per hit
+  end
+
   it 'rejects a payload with no caster id without mutating' do
     s = state
     out = s.resolve_cast_payload(spell: { name: 'Firebolt' }, targets: [])

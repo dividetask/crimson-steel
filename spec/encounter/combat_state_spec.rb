@@ -11,7 +11,7 @@ RSpec.describe 'Encounter::State combat mode' do
   after { FileUtils.remove_entry(tmpdir) if File.exist?(tmpdir) }
 
   # Minimal Creature double. martial ranks 4, wis 12, tier 0 → Combat
-  # Pool budget 10 → pool 11.
+  # Pool budget 20 → pool 14.
   def creature(tier: 0, wis: 12, martial: 4, max_hp: 20, tags: [])
     obj = Object.new
     obj.define_singleton_method(:tier) { tier }
@@ -36,15 +36,15 @@ RSpec.describe 'Encounter::State combat mode' do
     it 'Get returns the computed pool size' do
       s = state
       c = s.add_combatant('101')
-      expect(s.get_combat_pool(c[:id])).to eq(11)
+      expect(s.get_combat_pool(c[:id])).to eq(14)
     end
 
     it 'Spend increments combat_pool_spent and refuses overdraft' do
       s = state
       c = s.add_combatant('101')
-      expect(s.spend_combat_pool(c[:id], 3)).to eq(8)   # 11 - 3
+      expect(s.spend_combat_pool(c[:id], 3)).to eq(11)  # 14 - 3
       expect(s.spend_combat_pool(c[:id], 100)).to be_nil # overdraft refused
-      expect(s.combat_pool_remaining(c[:id])).to eq(8)
+      expect(s.combat_pool_remaining(c[:id])).to eq(11)
     end
 
     it 'Reset zeroes the spend' do
@@ -52,7 +52,34 @@ RSpec.describe 'Encounter::State combat mode' do
       c = s.add_combatant('101')
       s.spend_combat_pool(c[:id], 5)
       s.reset_combat_pool(c[:id])
-      expect(s.combat_pool_remaining(c[:id])).to eq(11)
+      expect(s.combat_pool_remaining(c[:id])).to eq(14)
+    end
+  end
+
+  # Reckless Attacks carries a `combat_pool` Modifier gated on the `rage`
+  # condition, so a raging barbarian's max pool grows by her class level.
+  describe 'Combat Pool — Reckless Attacks rage bonus' do
+    def reckless_creature(level: 4)
+      obj = creature(tier: 2, wis: 12, martial: 4)
+      obj.define_singleton_method(:granted_abilities) { [{ name: 'reckless_attacks' }] }
+      obj.define_singleton_method(:level_for_ability) { |_n| level }
+      obj
+    end
+
+    it 'adds class level to the max pool only while raging' do
+      raging = { on: false }
+      cond = Object.new
+      cond.define_singleton_method(:active_effect_names) { |current_round: nil| raging[:on] ? ['rage'] : [] }
+      crit = reckless_creature
+      s = Encounter::State.new({}, data_path: data_path,
+                               creature_lookup: ->(_id) { crit },
+                               conditions_for: ->(_id) { cond },
+                               current_timestamp_fn: -> { { day_index: 0, round_of_day: 0 } })
+      c = s.add_combatant('9')
+      base = Encounter::CombatPool.size_for(crit) # martial 4, wis 12, tier 2 → 14
+      expect(s.get_combat_pool(c[:id])).to eq(base)
+      raging[:on] = true
+      expect(s.get_combat_pool(c[:id])).to eq(base + 4)
     end
   end
 
@@ -62,7 +89,7 @@ RSpec.describe 'Encounter::State combat mode' do
       c = s.add_combatant('101')
       out = s.set_value_spend(c[:id], dice_cap: 7, preroll_count: 4)
       expect(out).to eq(dice_count: 3, preroll: 4)
-      expect(s.combat_pool_remaining(c[:id])).to eq(7) # 11 - 4 (ratio 1)
+      expect(s.combat_pool_remaining(c[:id])).to eq(10) # 14 - 4 (ratio 1)
     end
 
     it 'refuses a preroll exceeding the Dice Cap' do

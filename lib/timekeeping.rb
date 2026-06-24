@@ -107,6 +107,38 @@ module Timekeeping
   def hour_of_day(round_of_day, cfg = config)
     (round_of_day * cfg.round_length) / 3600
   end
+
+  # ---------- Inverse helpers (DM "set date/time" control) ----------
+
+  # The signed day_index for a Calendar Date — the inverse of calendar_date.
+  # Clamps the month into range; the day-of-month is taken as given (so the
+  # caller can over/underflow a month deliberately, e.g. "day 0").
+  def to_day_index(year:, month:, day_of_month:, cfg: config)
+    year  = Integer(year)
+    month = Integer(month)
+    dom   = Integer(day_of_month)
+    start = cfg.default_starting_year
+
+    di = 0
+    if year >= start
+      (start...year).each { |y| di += cfg.days_per_year(y) }
+    else
+      (year...start).each { |y| di -= cfg.days_per_year(y) }
+    end
+
+    lengths = cfg.month_lengths_for(year)
+    m = month.clamp(1, lengths.size)
+    (0...(m - 1)).each { |i| di += lengths[i] }
+    di + (dom - 1)
+  end
+
+  # The round_of_day for a clock time, clamped to [0, rounds_per_day - 1].
+  def round_of_day_for(hour:, minute: 0, second: 0, cfg: config)
+    seconds = Integer(hour) * 3600 + Integer(minute) * 60 + Integer(second)
+    rod = seconds / cfg.round_length
+    rpd = cfg.rounds_per_day
+    rod.clamp(0, rpd - 1)
+  end
 end
 
 require_relative 'timekeeping/config'

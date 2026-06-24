@@ -19,20 +19,25 @@ body {
   display: flex;
   align-items: center;
   padding: 0 16px;
-  height: 36px;
+  height: 72px;
   max-width: 1100px;
   margin: 0 auto;
 }
 
 .menu-items {
+	font-size: 18px;
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 18px;
   /* Absorb the free space so the right-hand nav controls (Phase / View As /
      player Character name / server address) always sit flush right. */
   margin-right: auto;
 }
+/* Item spacing via margins rather than flexbox `gap`, so the menu items
+   stay spread out on browsers without flex-gap support (Safari 12 / iOS
+   12 ignore `gap` and would jam the items together). */
+.menu-items > li { margin-right: 32px; }
+.menu-items > li:last-child { margin-right: 0; }
 
 .menu-items a {
   color: #fff;
@@ -96,6 +101,14 @@ body {
   color: #fff;
   font-size: 12px;
   font-weight: 600;
+  margin-right: 12px;
+}
+/* An unassigned device shows its short device id here instead of a Character
+   name — de-emphasized and monospaced to read as an identifier, not a name. */
+.player-device {
+  color: rgba(255, 255, 255, 0.7);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
   margin-right: 12px;
 }
 
@@ -1104,6 +1117,12 @@ body {
 
 .cr-mod-btn:hover { background: #f0f0f0; }
 
+/* Multi-target selection toggle: a selected creature turns blue (colour only,
+   no label change); unselected stays the default grey button. */
+.cb-opt-selected,
+.cb-opt-selected:hover { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
+.cb-multi-done { margin-top: 4px; }
+
 /* Dice / option choices the Combat Pool can't afford (Speed + dice >
    remaining) are greyed out and unclickable. */
 .cr-mod-btn:disabled,
@@ -1310,7 +1329,10 @@ body {
 
 .tk-sky {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 0;
 }
 
@@ -1375,11 +1397,16 @@ body {
   letter-spacing: 1px;
 }
 
-.tk-advance {
+/* All time controls — Advance Time, Rest for the night, and Set date/time —
+   live in ONE grey box directly under the time display. Advance Time and Set
+   date/time stack on the left; Rest for the night sits on the right. */
+.tk-controls {
   display: flex;
-  gap: 6px;
-  align-items: center;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
   flex-wrap: wrap;
+  gap: 8px 16px;
   margin: 0 0 16px 0;
   padding: 8px 12px;
   background: #f3f4f6;
@@ -1387,7 +1414,51 @@ body {
   border-radius: 3px;
   font-size: 11px;
 }
+.tk-controls-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tk-advance, .tk-set, .tk-rest {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0;
+}
 .tk-advance-label { font-weight: bold; margin-right: 4px; }
+.tk-set-field { display: inline-flex; align-items: center; gap: 3px; }
+/* Thin inputs: drop the number spinners so the narrow width stays clean. */
+.tk-set-field input { width: 30px; text-align: center; }
+.tk-set-field input[name="year"] { width: 42px; }
+.tk-set-field input::-webkit-outer-spin-button,
+.tk-set-field input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.tk-set-field input { -moz-appearance: textfield; appearance: textfield; }
+
+/* Affliction relief — one card per Creature with a round-cadence Affliction. */
+.ar-panel { margin: 0 0 16px 0; }
+.ar-h { font-size: 13px; margin: 0 0 8px; }
+.ar-dm { font-size: 10px; color: #9ca3af; font-weight: normal; }
+.ar-card { border: 1px solid #e5e7eb; border-radius: 4px; padding: 10px 12px; margin: 0 0 10px;
+  background: #fff; font-size: 12px; }
+.ar-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ar-name { font-weight: bold; }
+.ar-pc { font-size: 10px; background: #dbeafe; color: #1e40af; border-radius: 9999px; padding: 1px 6px; }
+.ar-field { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.ar-aiders { margin-bottom: 8px; }
+.ar-aiders-label { font-weight: 600; font-size: 11px; margin-bottom: 4px; }
+.ar-none { color: #9ca3af; font-style: italic; margin: 0; }
+.ar-aider { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+.ar-aider-name { min-width: 140px; }
+.ar-actions { display: flex; gap: 8px; }
+.ar-result { margin-top: 10px; border-top: 1px solid #f1f5f9; padding-top: 8px; }
+.ar-round { margin: 0 0 8px; }
+.ar-round-h { font-weight: bold; margin-bottom: 2px; }
+.ar-roll-line { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin: 1px 0 1px 12px; }
+.ar-actor { font-weight: 600; min-width: 90px; }
+.ar-totals { font-weight: 600; margin-top: 6px; }
+.ar-final { font-weight: 600; margin-top: 2px; }
+.ar-totals.ar-died, .ar-final.ar-died { color: #b91c1c; }
 
 .tk-stack {
   display: flex;
@@ -1453,6 +1524,31 @@ body {
 
 .ce-no-title { color: #999; }
 
+/* Explicit Expand buttons on note cards and images. Always-visible,
+   touch-friendly fallback for the click/tap-to-expand behavior. */
+.ce-expand-btn {
+  flex: 0 0 auto;
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 2px 8px;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ce-expand-btn:hover { background: #dbeafe; }
+.ce-expand-btn-image {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  padding: 0 6px;
+  font-size: 14px;
+  background: rgba(239, 246, 255, 0.9);
+}
+
 .ce-tag-row {
   display: flex;
   gap: 4px;
@@ -1494,6 +1590,7 @@ body {
   background: #f0f0f0;
   border-right: 1px solid #e5e7eb;
   overflow: hidden;
+  position: relative;
 }
 .ce-content.ce-has-image .ce-image img {
   width: 100%;
@@ -1511,6 +1608,10 @@ body {
   position: relative;
   background: #fff;
 }
+/* The whole expandable card opens the full-text modal on click, so its
+   header/title reads as clickable too (not just the body text region). */
+.ce-card.ce-expandable .ce-head,
+.ce-card.ce-expandable .ce-title { cursor: pointer; }
 .ce-content.ce-has-image .ce-body {
   height: 100px;
 }
@@ -1998,7 +2099,10 @@ body {
 
 .ce-modal {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background: rgba(10, 12, 20, 0.88);
   z-index: 1000;
   display: flex;
@@ -2063,7 +2167,8 @@ body {
 /* Text modal */
 .ce-modal-text-stage {
   background: #fff;
-  width: min(780px, 92vw);
+  width: 92vw;
+  max-width: 780px;
   max-height: 84vh;
   overflow-y: auto;
   padding: 28px 32px;
@@ -3530,6 +3635,12 @@ body {
   cursor: pointer;
 }
 .atlas-place-chip:hover { background: #2f2f2f; }
+.atlas-place-chip-armed,
+.atlas-place-chip-armed:hover {
+  background: #1d4ed8;
+  border-color: #3b82f6;
+  color: #fff;
+}
 .atlas-place-empty { font-size: 12px; color: #777; font-style: italic; }
 
 /* --- Canvas (viewport clips; world is panned/zoomed via transform) --- */
@@ -3789,6 +3900,17 @@ body {
 .pcc-list { list-style: none; margin: 0; padding: 0; flex: 1 1 auto; }
 .pcc-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
 .pcc-name { font-weight: 700; min-width: 110px; }
+/* Group heading separating NPC allies (top) from enemies. */
+.pcc-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  padding: 8px 0 2px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 2px;
+}
 
 /* Single toggle button: a hidden checkbox with the label drawn via CSS.
  * Sized to match the note cards' Public / Active tags. Default (unchecked)
@@ -3901,6 +4023,16 @@ body {
   color: #1a3d6d;
 }
 
+.assignment-ua code {
+  font-family: monospace;
+  font-size: 11px;
+  color: #444;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.assignment-ua { max-width: 360px; }
+
 .assignment-tag {
   display: inline-block;
   margin-left: 6px;
@@ -3965,3 +4097,88 @@ body {
 /* Running "selected / max Targets" count above a multi-select target list. */
 .cb-multi-count { font-size: 0.85rem; font-weight: 600; margin: 0 0 4px; }
 .cb-multi-count.cb-multi-full { color: #2563eb; }
+
+/* === Downtime PC cards on the Encounter page === */
+
+/* The card grid sits at the top of the page in the peaceful Phases. */
+.downtime-cards { margin: 0 0 16px; }
+
+/* === Urgent Actions panel (conditions_bulk_affliction_stub.md) === */
+
+.urgent-actions {
+  border: 1px solid #e3b7b3;
+  background: #fdf6f5;
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin: 0 0 16px;
+}
+
+.ua-title {
+  margin: 0 0 10px;
+  color: #b3261e;
+  font-size: 15px;
+}
+.ua-dm-tag { font-weight: 400; font-size: 12px; color: #9a6a66; }
+
+.ua-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  margin-bottom: 12px;
+}
+.ua-filter-label { font-weight: 600; font-size: 12px; color: #555; }
+.ua-filter-item { font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
+
+/* Summary block + the tall End Turn button beside it. */
+.ua-overview {
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+  margin-bottom: 12px;
+}
+.ua-summary {
+  flex: 1 1 auto;
+  border: 1px solid #ead6d4;
+  background: #fff;
+  border-radius: 3px;
+  padding: 8px 10px;
+}
+.ua-summary-h {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #888;
+}
+.ua-summary-line { font-size: 12px; line-height: 1.5; }
+.ua-summary-empty { font-size: 12px; color: #888; margin: 0; }
+.ua-summary-name { color: #333; }
+.ua-summary-text { color: #555; }
+
+.ua-end-turn-form { display: flex; flex: 0 0 140px; }
+.ua-end-turn {
+  flex: 1 1 auto;
+  background: #b3261e;
+  color: #fff;
+  border: 1px solid #95201a;
+  font-weight: 600;
+  font-size: 14px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.ua-end-turn:hover { background: #95201a; }
+
+/* Per-Creature save groups, shown / hidden by the filter checkboxes. */
+.ua-group { margin-bottom: 14px; }
+.ua-group.ua-hidden { display: none; }
+.ua-group-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+.ua-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+.ua-badge-pc { background: #dcfce7; color: #166534; }
+.ua-badge-npc { background: #fee2e2; color: #991b1b; }

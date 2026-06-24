@@ -41,7 +41,13 @@ Domains:
     channel_divinity: Touch of Chaos
   Cunning: {}
   Darkness: {}
-  Death: {}
+  Death:
+    spells:
+      - Cause Fear
+      - Doom
+      - Murderous Command
+      - Death Knell
+      - Call of Kali Ma
   Despair: {}
   Earth: {}
   Fire:
@@ -55,7 +61,9 @@ Domains:
       - Advanced Ward
       - Superior Ward
     channel_divinity: Glorious Charge
-  Greed: {}
+  Greed:
+    spells:
+      - Beguiling Gift
   Healing:
     spells:
       - Heal Petty Wounds

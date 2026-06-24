@@ -7,7 +7,7 @@ Externally-observable behavior of the Encounter domain's public entry points. Ea
 Tests use the defaults from `encounter_config.yaml` unless noted:
 
 - Initiative Attribute = `wis`, Initiative Divisor = 2.
-- Combat Pool Attribute = `wis`, Combat Pool Divisor = 2, Combat Pool Step = 4.
+- Combat Pool Attribute = `wis`, Combat Pool Step = 4. Budget = `floor(((martial_ranks * 2) + wis) / Turns Per Round[tier])`.
 - Turns Per Round = `[1, 1, 1, 2, 4, 8]`.
 - Free Action Cost = 0, Bonus Action Minimum = 2, Main Action Minimum = 4.
 - Flatfooted Bonus = `{Circumstance, +1}`, Unaware Bonus = `{Circumstance, +2}`.

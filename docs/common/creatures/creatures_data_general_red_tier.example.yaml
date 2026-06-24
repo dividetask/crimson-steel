@@ -115,7 +115,7 @@ characters:
   - id: 307
     name: Common Orc
     metadata:
-      creature_token: "/images/icons/orc token.webp"
+      creature_token: "/images/icons/orc token.png"
     group: enemy
     tags: [enemy_template, category:general_red_tier]
     race: orc

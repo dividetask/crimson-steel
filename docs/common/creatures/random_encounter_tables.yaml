@@ -22,22 +22,18 @@ slave_lords_caravan:
   name: "Caravan ambush"
   category: rise_of_the_slavelords
   rolls:
-    # A slaver merchant rides with the coffle.
     - spawn:
-        - { template_id: "350", count: 1 }          # Slaver Merchant
-    # His half-orc soldier escort, with a veteran or two among them.
+        - { template_id: "350", count: 1 }
     - spawn:
-        - { template_id: "103", count: "1d4 + 2" }  # Half-Orc Soldiers (3-6)
+        - { template_id: "103", count: "1d4 + 2" }
     - chance: 0.5
       spawn:
-        - { template_id: "108", count: "1d2" }      # Half-Orc Veterans (1-2)
-    # An interpreter to parley, and drovers working the line.
+        - { template_id: "108", count: "1d2" }
     - spawn:
-        - { template_id: "353", count: 1 }          # Orc Interpreter
-        - { template_id: "109", count: "1d2" }      # Orc Handlers (1-2)
-    # The chained captives in tow — noncombatants.
+        - { template_id: "353", count: 1 }
+        - { template_id: "109", count: "1d2" }
     - spawn:
-        - { template_id: "104", count: "1d4 + 1" }  # Slaves (2-5)
+        - { template_id: "104", count: "1d4 + 1" }
 
 stockade_patrol:
   name: "Stockade patrol"
@@ -74,3 +70,63 @@ general_goblin_ambush:
       spawn:
         - template_id: "303"
           count: 2
+
+hill_fort_patrol:
+  name: "Hill fort patrol"
+  category: rise_of_the_slavelords_fort
+  rolls:
+    - spawn:
+        - template_id: "366"
+          count: 1
+        - template_id: "365"
+          count: "1d10 + 1"
+    - chance: 0.3
+      spawn:
+        - template_id: "364"
+          count: 1
+
+hill_fort_gnoll_band:
+  name: "Gnoll band"
+  category: rise_of_the_slavelords_fort
+  rolls:
+    - spawn:
+        - template_id: "367"
+          count: "2d6"
+
+hill_fort_mixed_rabble:
+  name: "Orcs and goblins"
+  category: rise_of_the_slavelords_fort
+  rolls:
+    - spawn:
+        - template_id: "368"
+          count: "1d4 + 1"
+        - template_id: "379"
+          count: "1d6 + 1"
+    - chance: 0.5
+      spawn:
+        - template_id: "365"
+          count: "1d4"
+
+hill_fort_war_dogs:
+  name: "War dogs loosed"
+  category: rise_of_the_slavelords_fort
+  rolls:
+    - spawn:
+        - template_id: "370"
+          count: "2d4"
+
+hill_fort_carnivorous_apes:
+  name: "Carnivorous apes"
+  category: rise_of_the_slavelords_fort
+  rolls:
+    - spawn:
+        - template_id: "369"
+          count: "1d3"
+
+hill_fort_winter_wolf:
+  name: "Winter wolf"
+  category: rise_of_the_slavelords_fort
+  rolls:
+    - spawn:
+        - template_id: "380"
+          count: 1

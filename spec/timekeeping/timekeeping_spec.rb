@@ -149,4 +149,33 @@ RSpec.describe Timekeeping do
       )
     end
   end
+
+  describe '.to_day_index (inverse of .calendar_date)' do
+    it 'round-trips the Calendar Date across month/year boundaries' do
+      [0, 1, 31, 100, 365, 366, 800, -1, -40].each do |di|
+        c = described_class.calendar_date(di, cfg)
+        expect(described_class.to_day_index(
+          year: c[:year], month: c[:month], day_of_month: c[:day_of_month], cfg: cfg
+        )).to eq(di), "day_index #{di} did not round-trip"
+      end
+    end
+
+    it 'clamps an out-of-range month into the year' do
+      base = described_class.to_day_index(year: 4710, month: 1, day_of_month: 1, cfg: cfg)
+      expect(described_class.to_day_index(year: 4710, month: 99, day_of_month: 1, cfg: cfg)).to be >= base
+    end
+  end
+
+  describe '.round_of_day_for' do
+    it 'converts a clock time to a round_of_day' do
+      expect(described_class.round_of_day_for(hour: 1, minute: 0, cfg: cfg)).to eq(600)
+      expect(described_class.round_of_day_for(hour: 0, minute: 1, cfg: cfg)).to eq(10)
+    end
+
+    it 'clamps to the bounds of the Day' do
+      rpd = cfg.rounds_per_day
+      expect(described_class.round_of_day_for(hour: 999, cfg: cfg)).to eq(rpd - 1)
+      expect(described_class.round_of_day_for(hour: -5, cfg: cfg)).to eq(0)
+    end
+  end
 end

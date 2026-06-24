@@ -39,7 +39,6 @@ module Equipment
       @active_generic = {}
     end
 
-    # ===== Restock =====
     def restock(owner_id)
       inv = read_inventory(owner_id)
       understocked = inv.select { |s| s.restock_target && s.quantity < s.restock_target }
@@ -61,12 +60,10 @@ module Equipment
       @loot ||= LootTables.load
     end
 
-    # ===== Get Inventory =====
     def get_inventory(owner_id)
       read_inventory(owner_id)
     end
 
-    # ===== Add Item =====
     def add_item(owner_id, stack)
       stack = hydrate(Stack.normalize(stack))
       inv = read_inventory(owner_id)
@@ -82,7 +79,6 @@ module Equipment
       result
     end
 
-    # ===== Remove Item =====
     def remove_item(owner_id, ref, quantity: nil)
       inv = read_inventory(owner_id)
       idx = resolve_index(inv, ref)
@@ -95,7 +91,6 @@ module Equipment
       stack.quantity
     end
 
-    # ===== Adjust Stack Quantity =====
     def adjust_stack_quantity(owner_id, ref, new_quantity)
       return ERROR if new_quantity < 0
       inv = read_inventory(owner_id)
@@ -106,7 +101,6 @@ module Equipment
       new_quantity
     end
 
-    # ===== Transfer Stack =====
     def transfer_stack(from_owner_id, to_owner_id, ref, quantity: nil)
       inv = read_inventory(from_owner_id)
       idx = resolve_index(inv, ref)
@@ -121,7 +115,6 @@ module Equipment
       add_item(to_owner_id, moved)
     end
 
-    # ===== Cleanup =====
     def cleanup(owner_id)
       inv = read_inventory(owner_id)
       kept = inv.reject { |s| s.quantity <= 0 && s.restock_target.nil? }
@@ -133,11 +126,18 @@ module Equipment
       kept
     end
 
-    # ===== Equip / Unequip =====
     def equip_stack(owner_id, ref)   ; set_equipped(owner_id, ref, true)  ; end
     def unequip_stack(owner_id, ref) ; set_equipped(owner_id, ref, false) ; end
 
-    # ===== Reconcile Loadout =====
+    def set_parry_used_day(owner_id, ref, day_index)
+      inv = read_inventory(owner_id)
+      idx = resolve_index(inv, ref)
+      return ERROR unless idx
+      inv[idx].parry_used_day = day_index.nil? ? nil : Integer(day_index)
+      write_inventory(owner_id, inv)
+      inv[idx]
+    end
+
     def reconcile_loadout(owner_id)
       prefix = "equipment:#{owner_id}:"
       @conditions&.remove_effects_by_prefix(prefix)
@@ -145,7 +145,7 @@ module Equipment
       weapon_counts = Hash.new(0)
 
       read_inventory(owner_id).each do |stack|
-        next unless stack.equipped
+        next unless effectively_equipped?(stack)
         category = @catalog.category_of(stack.item_type)
         index = 0
         if category == 'Weapon'
@@ -164,19 +164,12 @@ module Equipment
       posted
     end
 
-    # The Active Effects every equipped Stack would post (Guidance Bonus +
-    # Property effects), without touching Conditions. Lets read-only
-    # consumers (the character sheet, modifier aggregation) see a
-    # Creature's equipped Guidance / Property bonuses regardless of
-    # whether the loadout has been reconciled into Conditions this
-    # session. Returns a list of { target_key:, bonus_type:, amount:, ... }.
     def equipped_effects(owner_id)
-      read_inventory(owner_id).select(&:equipped).flat_map { |s| stack_effects(s) }
+      read_inventory(owner_id).select { |s| effectively_equipped?(s) }.flat_map { |s| stack_effects(s) }
     rescue StandardError
       []
     end
 
-    # ===== Detail-fetchers =====
     def get_item_details(arg, ref = nil)
       stack = resolve_stack(arg, ref) or return ERROR
       Details.item_details(stack, @catalog)
@@ -192,13 +185,11 @@ module Equipment
       Details.armor_details(stack, @catalog)
     end
 
-    # ===== Is Item-Only? =====
     def is_item_only?(spell_name)
       return false unless @abilities.respond_to?(:item_only?)
       !!@abilities.item_only?(spell_name)
     end
 
-    # ===== Total Wealth / Debit Wealth =====
     def get_total_wealth(owner_id)
       from_r(total_wealth_r(owner_id))
     end
@@ -319,6 +310,10 @@ module Equipment
       %w[Weapon Armor Item].include?(@catalog.category_of(stack.item_type))
     end
 
+    def effectively_equipped?(stack)
+      stack.equipped || @catalog.category_of(stack.item_type) == 'Tattoo'
+    end
+
     def set_equipped(owner_id, ref, value)
       inv = read_inventory(owner_id)
       idx = resolve_index(inv, ref)
@@ -362,14 +357,13 @@ module Equipment
       end
     end
 
-    # The Active Effects an equipped Stack posts: its Guidance Bonus
-    # (if any) followed by each Property's declared static effects.
     def stack_effects(stack)
       effects = []
       defn = @catalog.definition_of(stack.item_type) || {}
 
-      if defn.key?('guidance_bonus') && stack.guidance_bonus
-        effects << { target_key: defn['guidance_attribute'],
+      gattr = stack.guidance_attribute || defn['guidance_attribute']
+      if gattr && stack.guidance_bonus
+        effects << { target_key: gattr.to_s,
                      bonus_type: 'Guidance', amount: stack.guidance_bonus }
       end
 
@@ -394,8 +388,6 @@ module Equipment
       else []
       end
     end
-
-    # ---- Wealth helpers ------------------------------------------------
 
     def wealth_stack?(stack)
       cat = @catalog.category_of(stack.item_type)

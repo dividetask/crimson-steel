@@ -575,7 +575,12 @@ class AtlasCanvas {
   target(tokenEl) {
     const combatantId = tokenEl.dataset.combatantId;
     if (combatantId == null || combatantId === '') return;
-    const builder = document.querySelector('.turn-action .ta-attack .action-builder');
+    // Drive whichever Action Builder is open — Attack or Cast. (For a
+    // multi-target Cast the option button toggles, so clicking a token here
+    // flips that creature's selection just like clicking its button.)
+    const builders = Array.from(document.querySelectorAll(
+      '.turn-action .ta-attack .action-builder, .turn-action .ta-cast .action-builder'));
+    const builder = builders.find((b) => b.offsetParent !== null) || builders[0];
     if (!builder) return;
     const summary = builder.querySelector('.step-summary[data-step="target"]');
     if (summary && !summary.hidden) {
@@ -704,7 +709,11 @@ class AtlasCanvas {
       panel.addEventListener('click', (e) => {
         const chip = e.target.closest('.atlas-place-chip');
         if (!chip) return;
-        panel.hidden = true;
+        // Keep the place panel OPEN so the DM can drop several Tokens in a row
+        // without reopening it; placing a Token only re-renders the map, not
+        // this panel. The active chip is flagged so it's clear which is armed.
+        panel.querySelectorAll('.atlas-place-chip').forEach((c) =>
+          c.classList.toggle('atlas-place-chip-armed', c === chip));
         // Arm placement: the DM then clicks (or drags) on the map to drop the
         // Token at the chosen cell, rather than auto-dropping at the center.
         this.armPlace(chip.dataset.creatureId, chip.textContent.trim());
@@ -729,6 +738,9 @@ class AtlasCanvas {
     this.viewport.classList.remove('atlas-placing');
     this.hidePlaceHint();
     if (this._ghost) { this._ghost.remove(); this._ghost = null; }
+    // Drop the armed highlight on the place panel's chips (the panel stays open).
+    this.section.querySelectorAll('.atlas-place-chip-armed')
+        .forEach((c) => c.classList.remove('atlas-place-chip-armed'));
   }
 
   // ----- placing a spell area (local preview only) -----

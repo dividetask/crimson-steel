@@ -12,23 +12,14 @@ helpers do
     dm_view? ? :dm : :player
   end
 
-  # The Creature the current viewer "is", for visibility filtering.
-  # Players don't have logins, so for now everyone on the LAN is
-  # treated as a single shared player Creature. The DM has no
-  # viewing Creature ID (full visibility); when the DM is viewing
-  # as a player, we surface the first player Creature.
   def viewing_creature_id
     return nil if viewer_role == :dm
     Creatures.player_controlled.first&.dig(:id)
   end
 
-  # Display name of the Creature the current player viewer is playing, for
-  # the top menu. The device's assigned Character wins; otherwise the shared
-  # first player Creature (matching viewing_creature_id). nil for the DM's
-  # own view (the DM gets the View-As toggle there instead).
   def viewing_creature_name
     return nil if viewer_role == :dm
-    cid = assigned_character_id || viewing_creature_id
+    cid = assigned_character_id
     return nil unless cid
     info = (Creatures.get(cid) rescue nil)
     info && info[:name]
@@ -38,8 +29,6 @@ helpers do
     Creatures.player_controlled
   end
 
-  # Resolve a Creature Reference Entry's display name and tier from
-  # the Creatures domain, honoring any Entry-level tier override.
   def resolve_creature_for(entry)
     cid  = entry['creature_id']
     info = Creatures.get(cid) || { name: "Creature ##{cid}", tier: nil }
@@ -72,8 +61,6 @@ before '/chronicle/*' do
   halt 403 unless dm_view?
 end
 
-# ---------- Time advance ----------
-
 post '/chronicle/advance-time' do
   rounds = params[:rounds].to_i
   days   = params[:days].to_i
@@ -81,14 +68,38 @@ post '/chronicle/advance-time' do
   redirect(request.referer || '/encounter')
 end
 
-# ---------- Campaign name ----------
+post '/chronicle/set-time' do
+  di  = Timekeeping.to_day_index(
+    year: params[:year].to_i, month: params[:month].to_i, day_of_month: params[:day].to_i
+  )
+  rod = Timekeeping.round_of_day_for(hour: params[:hour].to_i, minute: params[:minute].to_i)
+  chronicle_store.set_time(day_index: di, round_of_day: rod)
+  redirect(request.referer || '/encounter')
+end
+
+post '/chronicle/rest-night' do
+  Creatures.player_controlled.each do |pc|
+    acc  = (Creatures.lookup(pc[:id]) rescue nil) or next
+    inst = Conditions.store.instance_for(pc[:id])
+    inst.apply_natural_recovery(
+      recovery_ticks: 1,
+      mode: :fast,
+      character_tier: (acc.tier rescue 0) || 0,
+      mana_max: (acc.max_mana rescue 0) || 0,
+      magic_toxicity_attribute_score: (acc.attribute_value(:cha) rescue 0) || 0
+    )
+  end
+  Conditions.store.persist!
+  ts = chronicle_store.timestamp
+  day_index = (ts[:day_index] || ts['day_index']).to_i + 1
+  chronicle_store.set_time(day_index: day_index, round_of_day: Timekeeping.round_of_day_for(hour: 8))
+  redirect(request.referer || '/encounter')
+end
 
 post '/chronicle/campaign-name' do
   chronicle_store.campaign_name = params[:campaign_name].to_s
   redirect(request.referer || '/notes')
 end
-
-# ---------- Chapters ----------
 
 post '/chronicle/chapters' do
   number = parse_chapter(params[:number]) || (chronicle_store.list_chapters.map { |c| c[:number] }.max || 0) + 1
@@ -120,8 +131,6 @@ post '/chronicle/current-chapter' do
   chronicle_store.current_chapter = params[:number].to_i
   redirect(request.referer || '/notes')
 end
-
-# ---------- Entries ----------
 
 post '/chronicle/entries' do
   attrs = build_entry_attrs_from_params(params, owner_override: nil)
@@ -177,8 +186,6 @@ post '/chronicle/entries/:id/notes-position' do
   chronicle_store.set_notes_position(params[:id].to_i, params[:position].to_i)
   redirect(request.referer || '/notes')
 end
-
-# ---------- Helper to assemble form params into Entry attrs ----------
 
 helpers do
   def build_entry_attrs_from_params(params, owner_override: nil)

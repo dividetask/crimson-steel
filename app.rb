@@ -5,6 +5,7 @@ set :port, 4567
 set :bind, '0.0.0.0'
 set :views, File.join(__dir__, 'views')
 set :public_folder, File.join(__dir__, 'public')
+set :static_cache_control, [:no_cache]
 set :erb, escape_html: false
 enable :sessions
 

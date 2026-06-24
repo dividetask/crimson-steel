@@ -75,7 +75,11 @@ module Encounter
       trained.select { |k| families.any? { |f| f.end_with?('_') ? (k.start_with?(f) && k != f) : k == f } }
              .map do |k|
         ri = (Proficiencies::Compute.roll_inputs(key: k, creature: accessor) rescue {})
-        { key: k, label: pretty_skill(k), dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier] }
+        row = { key: k, label: pretty_skill(k), dice_cap: ri[:dice_cap].to_i,
+                competency: ri[:competency_modifier] }
+        mods = Array(ri[:skill_modifiers])
+        row[:modifiers] = mods unless mods.empty?
+        row
       end
     rescue StandardError
       []

@@ -18,6 +18,7 @@
       <thead>
         <tr>
           <th>Device</th>
+          <th>Browser</th>
           <th>Last Seen</th>
           <th>Assigned Character</th>
           <th>Change</th>
@@ -35,6 +36,7 @@
               <code><%= h assignment_short_id(device_id) %></code>
               <% if is_current %><span class="assignment-tag">this device</span><% end %>
             </td>
+            <td class="assignment-ua"><code><%= h assignment_user_agent(d['user_agent']) %></code></td>
             <td class="assignment-seen"><%= assignment_format_seen(d['last_seen']) %></td>
             <td class="assignment-assigned">
               <% if assigned %>

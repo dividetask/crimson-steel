@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- brim -->
+  <ellipse cx="32" cy="48" rx="26" ry="7" fill="#3d5a8a" stroke="#26385a" stroke-width="2"/>
+  <!-- pointed cone -->
+  <path d="M32 6 C 36 22 40 36 46 46 C 40 49 24 49 18 46 C 24 36 28 22 32 6 Z"
+        fill="#4a6db0" stroke="#26385a" stroke-width="2" stroke-linejoin="round"/>
+  <!-- band + buckle -->
+  <path d="M21 43 C 27 46 37 46 43 43 L 43 39 C 37 42 27 42 21 39 Z" fill="#caa64a" stroke="#7a5e1e" stroke-width="1.5"/>
+  <rect x="29" y="37" width="6" height="6" rx="1" fill="#caa64a" stroke="#7a5e1e" stroke-width="1.5"/>
+  <!-- star accent -->
+  <circle cx="33" cy="22" r="2" fill="#ffe06a"/>
+</svg>

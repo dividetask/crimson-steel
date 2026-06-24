@@ -39,6 +39,19 @@ RSpec.describe DeviceRegistry do
       expect(r.find('abc')).not_to be_nil
     end
 
+    it 'records the browser User-Agent when one is supplied' do
+      r = registry
+      r.touch('abc', 'Mozilla/5.0 (iPad) Safari/605')
+      expect(r.find('abc')['user_agent']).to eq('Mozilla/5.0 (iPad) Safari/605')
+    end
+
+    it 'leaves an existing User-Agent untouched on a request without one' do
+      r = registry
+      r.touch('abc', 'Mozilla/5.0 (iPad) Safari/605')
+      r.touch('abc')
+      expect(r.find('abc')['user_agent']).to eq('Mozilla/5.0 (iPad) Safari/605')
+    end
+
     it 'updates last_seen on a returning device without duplicating it' do
       r = registry
       r.touch('abc')

@@ -71,6 +71,13 @@ natural_armor_2:
       type: Racial
       add: 2
 
+natural_armor_4:
+  description: "Thick hide grants +4 damage reduction."
+  modifiers:
+    - target: damage_reduction
+      type: Racial
+      add: 4
+
 ferocity:
   description: "+3 damage resilience."
   modifiers:
@@ -141,6 +148,24 @@ darkvision:
 
 low_light_vision:
   description: "See twice as far as a human in dim light."
+
+frost_breath:
+  description: "Once per encounter the creature can exhale a 30-foot cone of freezing air, dealing cold damage to everything caught in it (a Dexterity save halves the damage). The DM adjudicates the effect; the mechanics are not yet wired into Combat."
+
+spit_acid:
+  description: "Once per encounter the creature can spit a stream of acid at a target, dealing 10 acid damage plus its successes on the attack (a Dexterity save halves the damage). The DM adjudicates the effect; the mechanics are not yet wired into Combat."
+
+absorb_persona:
+  description: "Learn the memories of a helpless creature, storing them as a Persona. Requires 1 day per level of the creature; the target gains a Charisma save to resist. You can store up to 1 Persona per two character levels — drop a stored Persona to make room for another."
+
+surface_thoughts:
+  description: "Glean the surface thoughts of all creatures within 30 feet. Creatures gain a Wisdom save to resist, but do not detect the intrusion unless you fumble the check."
+
+change_shape:
+  description: "Assume the form of any Persona you have stored. Changing form takes 1 minute."
+
+borrowed_talent:
+  description: "Gain the class abilities of a stored Persona, at a class level equal to the lower of half your character level or the Persona's own class level."
 
 light_sensitivity:
   description: "Dazzled in bright light such as sunlight: takes a penalty on attack rolls and sight-based Perception checks while brightly illuminated."

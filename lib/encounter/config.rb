@@ -25,7 +25,6 @@ module Encounter
 
     # ---- Combat Pool ----
     def combat_pool_attribute = (data['Combat Pool Attribute'] || 'wis').to_sym
-    def combat_pool_divisor   = Integer(data['Combat Pool Divisor'] || 2)
     def combat_pool_step      = Integer(data['Combat Pool Step'] || 4)
 
     # Granted-Ability names that suppress Flatfooted (and Unaware).

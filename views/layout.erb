@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Crimson Steel</title>
   <link rel="stylesheet" href="/style.css">
 </head>
@@ -41,12 +43,24 @@
 
     <%# A player viewer (a real player, or the DM while Viewing As Player)
         sees the name of the Character they are playing where the DM's
-        View-As control sits. Players never get the Phase selector. %>
-    <% if viewer_role == :player && viewing_creature_name %>
-      <span class="player-creature" title="You are playing this Character"><%= h(viewing_creature_name) %></span>
+        View-As control sits. A device with no assigned Character shows its
+        device id instead (matching the Status page assignment table), rather
+        than borrowing the first Character's name. Players never get the Phase
+        selector. %>
+    <% if viewer_role == :player %>
+      <% if viewing_creature_name %>
+        <span class="player-creature" title="You are playing this Character"><%= h(viewing_creature_name) %></span>
+      <% else %>
+        <span class="player-device" title="This device is not assigned a Character — ask the DM to assign one"><%= h(assignment_short_id(current_device_id)) %></span>
+      <% end %>
     <% end %>
 
-    <span class="server-addr"><%= server_address %>:<%= request.port %></span>
+    <%# Server address is shown to the DM only (and hidden while the DM is
+        Viewing As Player, so the preview matches what a real player sees).
+        Players never see the server's IP. %>
+    <% if dm_view? %>
+      <span class="server-addr"><%= server_address %>:<%= request.port %></span>
+    <% end %>
   </nav>
 
   <main class="page">
