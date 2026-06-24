@@ -89,13 +89,30 @@ Effect Names:
         amount: 2
         applies_to: [melee_attacks_against]
 
-  frightened:
-    description: "The target must flee from the source of the effect and may take no actions on its turn other than those that help it flee."
+  # Fear ladder: (-1) shaken, (-2, must flee) frightened, (-3, must flee, drop held items) panicked
+  shaken:
+    description: "The target is shaken, suffering a -1 Morale penalty on all checks."
     mechanics:
       - kind: modifier
-        modifier_type: Circumstance
+        modifier_type: Morale
+        amount: -1
+        applies_to: [attack_checks, ability_checks, spell_checks]
+
+  frightened:
+    description: "The target is frightened, suffering a -2 Morale penalty on all checks and must flee from the source of the effect."
+    mechanics:
+      - kind: modifier
+        modifier_type: Morale
         amount: -2
-        applies_to: [fear_saves]
+        applies_to: [attack_checks, ability_checks, spell_checks]
+
+  panicked:
+    description: "The target is panicked, suffering a -3 Morale penalty on all checks, must flee from the source of the effect, and must drop anything held in its hands."
+    mechanics:
+      - kind: modifier
+        modifier_type: Morale
+        amount: -3
+        applies_to: [attack_checks, ability_checks, spell_checks]
 
   flustered:
     description: "The target is rattled and distracted, suffering a penalty to its rolls until the condition ends."
@@ -257,3 +274,15 @@ Effect Names:
     mechanics:
       - kind: display
         text: "The shielding caster may block attacks against this creature with Reservoir dice (an Ally Defense)."
+
+  ward:
+    description: "Protected by a Ward — temporary hit points that absorb damage until the spell expires."
+    mechanics:
+      - kind: display
+        text: "Has temporary hit points from Ward; they and this condition fade together when the spell expires."
+
+  spiritual_weapon:
+    description: "A floating spiritual weapon hovers under the creature's control, striking once each turn."
+    mechanics:
+      - kind: display
+        text: "Each turn the spiritual weapon makes one free attack (Reservoir dice). It fades when its time runs out."

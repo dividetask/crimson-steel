@@ -4,8 +4,9 @@
   # The Encounter Phase (DM's menu dropdown) selects which stubs show.
   #   combat   — hide Advance Time; show Initiative + Map; notes DM-only.
   #   looting  — show only the loot stubs (DM also sees notes underneath).
-  #   traveling / social / downtime ("peaceful") — show only the notes
-  #     (plus the DM's Advance Time control, the natural place to pass time).
+  #   traveling / social / downtime ("peaceful") — show the notes plus the
+  #     DM's Advance Time + Rest controls, which sit directly under the time
+  #     display (the natural place to pass time).
   phase    = @phase
   peaceful = %i[traveling social downtime].include?(phase)
   # Characters of Interest (Creature References) appear in the Downtime and
@@ -13,18 +14,70 @@
   show_interest = %i[downtime traveling].include?(phase)
 %>
 
-<%# Advance Time (DM): the peaceful Phases, where time passes between
-    scenes. Hidden in Combat (time is tracked by rounds/ticks) and Looting. %>
+<%# Advance Time + Rest (DM): the peaceful Phases, where time passes between
+    scenes. Sits directly under the time display. Hidden in Combat (time is
+    tracked by rounds/ticks) and Looting. Players never see it. %>
 <% if @viewer == :dm && peaceful %>
-  <form method="post" action="/chronicle/advance-time" class="tk-advance">
-    <span class="tk-advance-label">Advance time:</span>
-    <button type="submit" name="rounds" value="10" class="ce-btn">+1 min</button>
-    <button type="submit" name="rounds" value="100" class="ce-btn">+10 min</button>
-    <button type="submit" name="rounds" value="600" class="ce-btn">+1 hour</button>
-    <button type="submit" name="rounds" value="2400" class="ce-btn">+4 hours</button>
-    <button type="submit" name="days"   value="1"    class="ce-btn">+1 day</button>
-    <button type="submit" name="rounds" value="-600" class="ce-btn">−1 hour</button>
-  </form>
+  <div class="tk-controls">
+    <div class="tk-controls-main">
+      <form method="post" action="/chronicle/advance-time" class="tk-advance">
+        <span class="tk-advance-label">Advance time:</span>
+        <button type="submit" name="rounds" value="10" class="ce-btn">+1 min</button>
+        <button type="submit" name="rounds" value="100" class="ce-btn">+10 min</button>
+        <button type="submit" name="rounds" value="600" class="ce-btn">+1 hour</button>
+        <button type="submit" name="rounds" value="2400" class="ce-btn">+4 hours</button>
+        <button type="submit" name="days"   value="1"    class="ce-btn">+1 day</button>
+        <button type="submit" name="rounds" value="-600" class="ce-btn">−1 hour</button>
+      </form>
+      <%# Set date/time: jump straight to an absolute Calendar Date + clock
+          time. Prefilled with the current moment. %>
+      <%
+        ts_now  = @timestamp.transform_keys(&:to_sym)
+        cal_now = Timekeeping.calendar_date(ts_now[:day_index])
+        hh_now, mm_now, = Timekeeping.time_of_day(ts_now[:round_of_day]).split(':').map(&:to_i)
+      %>
+      <form method="post" action="/chronicle/set-time" class="tk-set">
+        <span class="tk-advance-label">Set date/time:</span>
+        <label class="tk-set-field">Day <input type="number" name="day" value="<%= cal_now[:day_of_month] %>" min="1" step="1"></label>
+        <label class="tk-set-field">Month <input type="number" name="month" value="<%= cal_now[:month] %>" min="1" step="1"></label>
+        <label class="tk-set-field">Year <input type="number" name="year" value="<%= cal_now[:year] %>" step="1"></label>
+        <label class="tk-set-field">Hour <input type="number" name="hour" value="<%= hh_now %>" min="0" max="23" step="1"></label>
+        <label class="tk-set-field">Min <input type="number" name="minute" value="<%= mm_now %>" min="0" max="59" step="1"></label>
+        <button type="submit" class="ce-btn">Set</button>
+      </form>
+    </div>
+    <%# Rest for the night (right side): set the clock to 08:00 the next day
+        and apply one night of fast Natural Recovery (HP, ability damage, mana,
+        Magic Toxicity decay) to every PC. %>
+    <form method="post" action="/chronicle/rest-night" class="tk-rest">
+      <button type="submit" class="ce-btn ce-btn-primary">🌙 Rest for the night</button>
+    </form>
+  </div>
+<% end %>
+
+<%# Downtime PC health cards (conditions_downtime_pc_card_stub.md): every
+    Phase except Combat, both viewers, at the very top of the page. Players
+    see every Player Character (own card first); the DM also sees the NPC /
+    enemy Combatants. %>
+<% if @phase != :combat && @downtime_cards && @downtime_cards.any? %>
+  <section class="pc-card-grid downtime-cards">
+    <% @downtime_cards.each do |card| %>
+      <%= erb :_conditions_pc_card, locals: { creature: card, catalog: @conditions_catalog, viewer: @viewer } %>
+    <% end %>
+  </section>
+<% end %>
+
+<%# Affliction relief (conditions_bulk_affliction_stub.md): DM-only, every Phase
+    except Combat. One card per Creature carrying a round-cadence Affliction
+    (bleed, round poisons). Each card fast-forwards the save round by round —
+    optionally aided by Heal channelers — then Confirms to apply. %>
+<% if @viewer == :dm && @phase != :combat && @relief_groups && @relief_groups.any? %>
+  <section class="ar-panel">
+    <h3 class="ar-h">Afflictions <span class="ar-dm">(DM only)</span></h3>
+    <% @relief_groups.each do |g| %>
+      <%= erb :_conditions_affliction_relief, locals: { group: g } %>
+    <% end %>
+  </section>
 <% end %>
 
 <%# Initiative stub: Combat Phase only (both viewers). The Start/End Combat
@@ -51,7 +104,7 @@
 <%# Turn Action panel (turn_action_stub.md): DM-only, acts on the Acting
     Combatant. Rendered only when a Combatant currently holds the turn. %>
 <% if @viewer == :dm && phase == :combat && @acting_row %>
-  <%= erb :_turn_action, locals: { acting: @acting_row, dead: @acting_dead, saves: @acting_saves, main_actions: @acting_main_actions, special_options: @acting_special, has_spells: @acting_has_spells, has_items: @acting_has_items } %>
+  <%= erb :_turn_action, locals: { acting: @acting_row, dead: @acting_dead, saves: @acting_saves, main_actions: @acting_main_actions, special_options: @acting_special, has_spells: @acting_has_spells, has_items: @acting_has_items, has_active_spells: @acting_has_active_spells } %>
 <% end %>
 
 <%# Atlas map (atlas_stub.md): Combat Phase only (both viewers). DM places

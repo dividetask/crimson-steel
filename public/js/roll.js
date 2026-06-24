@@ -19,8 +19,8 @@ export class Roll {
   // Returns { tn, startingValue, initialDice, rerollChanges, nudgeChanges,
   //           finalDice, dois, criticalCount, outcome }.
   static resolveWithTn(roll, rng = new RandomRng(), config = DiceConfig.default()) {
-    const failureModifier = roll.failureModifier ?? config.defaultFailureModifier;
-    const criticalModifier = roll.criticalModifier ?? config.defaultCriticalModifier;
+    const failureModifier = roll.failureModifier != null ? roll.failureModifier : config.defaultFailureModifier;
+    const criticalModifier = roll.criticalModifier != null ? roll.criticalModifier : config.defaultCriticalModifier;
 
     const { tn, startingValue } = TnComputation.compute(roll, config);
     const initialDice = rng.rollDice(roll.diceCount, config.dieSize);

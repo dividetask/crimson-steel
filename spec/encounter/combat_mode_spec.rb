@@ -7,8 +7,8 @@ RSpec.describe 'Encounter combat-mode operations' do
   describe Encounter::CombatPool do
     it 'computes the Budget' do
       # martial 4, attribute 12, tier 0 (Turns Per Round[0] = 1):
-      # floor((4 + floor(12/2)) / 1) = 10
-      expect(described_class.budget(martial_ranks: 4, attribute: 12, tier: 0)).to eq(10)
+      # floor(((4 * 2) + 12) / 1) = 20
+      expect(described_class.budget(martial_ranks: 4, attribute: 12, tier: 0)).to eq(20)
     end
 
     it 'buys the largest pool whose tiered cost fits the Budget' do

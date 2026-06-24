@@ -17,12 +17,23 @@
   pub         = entry['public_description'].to_s
   dm_text     = entry['dm_description'].to_s
   has_image   = !entry['image'].nil? && !entry['image'].empty?
+  # The card has expandable text (and so opens the full-text modal on click)
+  # when there is public text, or GM text the DM can see. Mirrors the
+  # condition guarding the .ce-body below.
+  expandable  = (!pub.empty?) || (is_dm && !dm_text.empty?)
 %>
-<article class="ce-card <%= entry['active'] ? 'ce-active' : 'ce-inactive' %> <%= is_creature ? 'ce-creature' : 'ce-note' %>" data-entry-id="<%= entry['id'] %>">
+<article class="ce-card <%= entry['active'] ? 'ce-active' : 'ce-inactive' %> <%= is_creature ? 'ce-creature' : 'ce-note' %> <%= expandable ? 'ce-expandable' : '' %>" data-entry-id="<%= entry['id'] %>">
   <header class="ce-head">
     <div class="ce-title <%= tier ? "tier-#{tier}" : '' %>">
       <%= title.empty? ? '<em class="ce-no-title">(untitled)</em>' : Rack::Utils.escape_html(title) %>
     </div>
+
+    <% if expandable %>
+      <%# Explicit Expand button. The whole card is also click/tap-to-expand
+          (handled in app.js), but a real <button> fires reliably on touch
+          devices and older browsers where a tap on a plain element may not. %>
+      <button type="button" class="ce-expand-btn" data-expand-note="1" aria-label="Open full text">⤢ Expand</button>
+    <% end %>
 
     <% if is_dm %>
       <div class="ce-tag-row">
@@ -38,12 +49,24 @@
 
   <div class="ce-content <%= has_image ? 'ce-has-image' : '' %>">
     <% if has_image %>
+      <% img_fallback = image_fallback_src(entry['image']) %>
       <div class="ce-image">
-        <img src="<%= Rack::Utils.escape_html(entry['image']) %>" alt="" data-lightbox="1">
+        <% if img_fallback %>
+          <%# WebP with a JPG/PNG fallback: modern browsers use the WebP
+              source; browsers that can't decode WebP (Safari 12 / iOS 12)
+              fall back to the <img>. %>
+          <picture>
+            <source srcset="<%= h entry['image'] %>" type="image/webp">
+            <img src="<%= h img_fallback %>" alt="" data-lightbox="1">
+          </picture>
+        <% else %>
+          <img src="<%= h entry['image'] %>" alt="" data-lightbox="1">
+        <% end %>
+        <button type="button" class="ce-expand-btn ce-expand-btn-image" data-expand-image="1" aria-label="Expand image">⤢</button>
       </div>
     <% end %>
 
-    <% if (!pub.empty?) || (is_dm && !dm_text.empty?) %>
+    <% if expandable %>
       <div class="ce-body" data-text-modal="1" tabindex="0" role="button" aria-label="Open full text">
         <% unless pub.empty? %>
           <div class="ce-body-block ce-body-public"><%= Rack::Utils.escape_html(pub).gsub("\n", '<br>') %></div>

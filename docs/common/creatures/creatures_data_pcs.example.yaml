@@ -47,7 +47,7 @@ characters:
   - id: 1
     name: Ash Windmere
     metadata:
-      creature_token: "/images/icons/human token.webp"
+      creature_token: "/images/icons/human token.png"
     player: Sam
     race: human
     attributes:
@@ -188,7 +188,7 @@ characters:
   - id: 8
     name: Garroth Vask
     metadata:
-      creature_token: "/images/icons/human token.webp"
+      creature_token: "/images/icons/human token.png"
     player: Drew
     race: human
     tier: 2

@@ -458,8 +458,7 @@ Two stages.
 
 **Stage 1 — Budget**:
 ```
-budget = floor((martial_proficiency_ranks
-                + floor(combat_pool_attribute / Combat Pool Divisor))
+budget = floor(((martial_proficiency_ranks * 2) + combat_pool_attribute)
                / Turns Per Round[tier])
 ```
 

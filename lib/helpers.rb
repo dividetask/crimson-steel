@@ -15,6 +15,23 @@ helpers do
     Rack::Utils.escape_html(text.to_s)
   end
 
+  # For an image URL path that points at a WebP file, return the URL of a
+  # sibling JPG/PNG fallback if one exists on disk (same basename), else
+  # nil. Older browsers (Safari 12 / iOS 12) cannot decode WebP, so the
+  # chronicle image markup serves the fallback to them via <picture>.
+  # Returns nil for non-WebP images (a plain <img> already works there).
+  def image_fallback_src(url_path)
+    s = url_path.to_s
+    return nil unless s.downcase.end_with?('.webp')
+    base = s.sub(/\.webp\z/i, '')
+    %w[.jpg .jpeg .png].each do |ext|
+      candidate = base + ext
+      disk = File.join(settings.public_folder, candidate)
+      return candidate if File.file?(disk)
+    end
+    nil
+  end
+
   def dm_host?
     LOOPBACK_ADDRS.include?(request.ip)
   end
@@ -34,7 +51,7 @@ helpers do
                             httponly: true,
                             expires:  Time.now + (60 * 60 * 24 * 365 * 5))
       end
-      DeviceRegistry.instance.touch(device_id)
+      DeviceRegistry.instance.touch(device_id, request.user_agent)
     end
   end
 
@@ -53,6 +70,14 @@ helpers do
   def assignment_short_id(device_id)
     s = device_id.to_s
     s.length > 8 ? s[0, 8] : s
+  end
+
+  # The browser User-Agent recorded for a device, or a dash when none has
+  # been captured yet. Shown in the device table so the DM can see exactly
+  # what each connecting device is running.
+  def assignment_user_agent(ua)
+    s = ua.to_s.strip
+    s.empty? ? '—' : s
   end
 
   # Human-friendly "last seen" timestamp for the assignment stub.

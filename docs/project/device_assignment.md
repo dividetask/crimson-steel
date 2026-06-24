@@ -23,6 +23,7 @@ The `DeviceRegistry` class (`lib/device_registry.rb`) owns the device list and p
 | `device_id`    | The UUID from the cookie (the primary key).                       |
 | `character_id` | The assigned player Character's id, or `null` when unassigned.    |
 | `last_seen`    | ISO-8601 timestamp of the device's most recent request.           |
+| `user_agent`   | The browser User-Agent string from the device's most recent request, or `null` if none was sent. A diagnostic aid for device-specific display problems. |
 
 The registry starts empty and contains only devices that have genuinely connected — the DM's own machine appears on first load, and each player device is added on its first request. The stub shortens device ids to eight characters for display.
 
@@ -31,6 +32,7 @@ The registry starts empty and contains only devices that have genuinely connecte
 The Status page's default landing pane ([menu_layout.md](menu_layout.md), Status page layout) renders the assignment table from `views/_assignment_stub.erb`. Columns:
 
 - **Device** — the eight-character id preview; the viewing device is badged **this device**.
+- **Browser** — the device's recorded `user_agent` string (a dash when none has been captured), so the DM can see what each device is running.
 - **Last Seen** — the formatted `last_seen` timestamp.
 - **Assigned Character** — the bound Character's name, or *unassigned*.
 - **Change** — a per-row form (a Character dropdown plus a Save button) that posts to `/devices/assign`.

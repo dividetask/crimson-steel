@@ -29,7 +29,6 @@ undead:
     - name: undead_traits
       min_level: 0
 
-# --- Humanoid races ----------------------------------------------------
 human:
   parent: humanoid
   attribute_adjustments:
@@ -78,8 +77,6 @@ wood_elf:
     wis: 2
   abilities: []
 
-# Not a playable sub-race (absent from character_creation.yaml's
-# Playable Races) — exists for NPCs such as the Eladrin nobles.
 eladrin:
   parent: elf
   attribute_adjustments:
@@ -115,8 +112,6 @@ half_orc:
   parent: humanoid
   abilities: []
 
-# Full-blooded orc. +4 Str/Con, -2 Int/Wis/Cha; low-light vision and
-# Ferocity (fights on past 0 HP). Medium / speed 30 from humanoid.
 orc:
   parent: humanoid
   attribute_adjustments: { str: 4, con: 4, int: -2, wis: -2, cha: -2 }
@@ -144,8 +139,6 @@ satyr:
     - name: enchantment_resistance
       min_level: 0
 
-# -4 Str/Con/Int/Cha, -2 Wis, +4 Dex. Small, low-light vision, and the
-# Fast Movement trait (+10 ft).
 goblin:
   parent: humanoid
   size: small
@@ -157,9 +150,6 @@ goblin:
     - name: fast_movement
       min_level: 0
 
-# -4 Str, -2 Con/Wis, +2 Dex/Int. Small, speed 30. Low-light vision,
-# scaled hide (+1 damage reduction / resilience), light sensitivity, and
-# Trapfinding.
 kobold:
   parent: humanoid
   size: small
@@ -175,15 +165,61 @@ kobold:
     - name: Trapfinding
       min_level: 0
 
-# --- Fey races ---------------------------------------------------------
+ogre:
+  parent: humanoid
+  size: large
+  attribute_adjustments: { str: 14, con: 14, dex: -4, int: -4, wis: -4, cha: -4 }
+  abilities:
+    - name: Slam
+      min_level: 0
+    - name: natural_armor_4
+      min_level: 0
+
+doppelganger:
+  parent: humanoid
+  attribute_adjustments: { str: 8, dex: 2, con: 2, int: 2, wis: 4, cha: 4 }
+  abilities:
+    - name: absorb_persona
+      min_level: 0
+    - name: surface_thoughts
+      min_level: 0
+    - name: change_shape
+      min_level: 0
+    - name: borrowed_talent
+      min_level: 0
+
+hobgoblin:
+  parent: humanoid
+  attribute_adjustments: { str: 2, con: 2 }
+  abilities:
+    - name: low_light_vision
+      min_level: 0
+
+gnoll:
+  parent: humanoid
+  attribute_adjustments: { str: 4, con: 2, int: -2, cha: -2 }
+  abilities:
+    - name: low_light_vision
+      min_level: 0
+
+oni:
+  parent: humanoid
+  size: large
+  attribute_adjustments: { str: 8, con: 6, int: 2, cha: 2 }
+  abilities:
+    - name: low_light_vision
+      min_level: 0
+
+medusa:
+  parent: humanoid
+  attribute_adjustments: { dex: 2, cha: 4 }
+  abilities: []
 
 fey:
   size: small
   speed: 30
   abilities: []
 
-# A fey race (parent: fey). Not playable. Size set to medium — the noble
-# Sidhe are human-sized, unlike the small fey root.
 sidhe:
   parent: fey
   size: medium
@@ -192,23 +228,11 @@ sidhe:
     cha: 2
   abilities: []
 
-# --- Animal races ------------------------------------------------------
-# `beast` is the root Animal race; every beast is one of its subtypes
-# (canine, spider, ...). Subtypes set their own speed and grant a Natural
-# Attack Talent (Canine Bite / Spider Bite) whose `grants_equipment` names
-# the Bite weapon in the Equipment catalog. The bite is offered as an
-# attack but is never carried as an inventory item.
-
 beast:
   size: medium
   speed: 30
   abilities: []
 
-# Size-keyed beast templates. Every beast inherits its attribute
-# adjustments from one of these and then its concrete subtype
-# (canine, spider, ...) layers on speed and a Natural Attack. All
-# beasts take -8 Int (the min-1 Effective Attribute clamp keeps the
-# score at 1) and -4 Wis/Cha.
 tiny_beast:
   parent: beast
   size: tiny
@@ -236,12 +260,49 @@ canine:
   parent: medium_beast
   speed: 40
   abilities:
-    - name: Canine Bite
+    - name: Jaw Bite
       min_level: 0
 
 spider:
   parent: medium_beast
   speed: 20
   abilities:
-    - name: Spider Bite
+    - name: Fang Bite
+      min_level: 0
+
+carnivorous_ape:
+  parent: large_beast
+  size: large
+  abilities:
+    - name: Slam
+      min_level: 0
+    - name: Jaw Bite
+      min_level: 0
+
+war_dog:
+  parent: canine
+  attribute_adjustments: { str: 2, con: 2 }
+
+ankheg:
+  parent: beast
+  size: large
+  abilities:
+    - name: natural_armor_2
+      min_level: 0
+    - name: Acid Bite
+      min_level: 0
+    - name: spit_acid
+      min_level: 0
+
+winter_wolf:
+  parent: beast
+  size: large
+  speed: 50
+  attribute_adjustments: { str: 6, con: 4, int: -2 }
+  abilities:
+    - name: natural_armor_2
+      min_level: 0
+    - name: Jaw Bite
+      min_level: 0
+    - name: frost_breath
       min_level: 0

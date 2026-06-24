@@ -33,7 +33,7 @@ function el(tag, attrs, ...children) {
       else if (val !== false && val != null) node.setAttribute(key, val);
     }
   }
-  children.flat().forEach((child) => {
+  [].concat.apply([], children).forEach((child) => {
     if (child == null || child === false) return;
     node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
   });
@@ -610,7 +610,7 @@ class CharacterCreator {
 
       spellList.innerHTML = '';
       const chosen = this.availableDomains(sel).filter((x) => this.state.domains.includes(x.name));
-      const spells = chosen.flatMap((x) => x.spells);
+      const spells = chosen.reduce((acc, x) => acc.concat(x.spells), []);
       if (spells.length) {
         spellList.appendChild(el('div', { class: 'cc-domain-spells-title', text: 'Granted domain spells' }));
         spells.forEach((s) => spellList.appendChild(el('span', { class: 'cc-chip', text: s })));

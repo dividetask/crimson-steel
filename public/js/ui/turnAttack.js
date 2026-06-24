@@ -65,7 +65,11 @@ export class TurnAttack {
     });
 
     container.innerHTML = '<p class="ta-attack-loading">Loading attack…</p><div class="ta-result" hidden></div>';
-    fetch('/encounter/attack_builder?attacker_id=' + encodeURIComponent(attackerId), { headers: { Accept: 'text/html' } })
+    // The Active Spells pane reuses this host but loads a different builder (its
+    // weapon list is the conjured Spell strikes); resolution is identical, so it
+    // still posts to /encounter/resolve_attack.
+    const builderUrl = container.getAttribute('data-builder-url') || '/encounter/attack_builder';
+    fetch(builderUrl + '?attacker_id=' + encodeURIComponent(attackerId), { headers: { Accept: 'text/html' } })
       .then((r) => r.text())
       .then((html) => {
         container.innerHTML = html + '<div class="ta-result" hidden></div>';

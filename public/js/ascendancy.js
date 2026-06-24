@@ -30,10 +30,6 @@
 // not itself propagated. No Roll field beyond `bonusPenaltyList` is read — in
 // particular, Rolls do not carry a `tier`.
 export class Ascendancy {
-  static PER_POINT = 2;
-  static TYPE = 'Ascendancy';
-  static INHERENT = 'Inherent';
-
   // Tier 0 -> 0.5: a zero side of the comparison reads as the Tier-0 value.
   static effective(value) {
     return value === 0 ? 0.5 : value;
@@ -70,3 +66,10 @@ export class Ascendancy {
     return [Ascendancy.TYPE, gap < 0 ? -magnitude : magnitude];
   }
 }
+
+// Class fields assigned after the declaration rather than as `static`
+// class fields, so the module parses on older engines (Safari < 14.1,
+// Firefox < 75) that some players' tablets run.
+Ascendancy.PER_POINT = 2;
+Ascendancy.TYPE = 'Ascendancy';
+Ascendancy.INHERENT = 'Inherent';

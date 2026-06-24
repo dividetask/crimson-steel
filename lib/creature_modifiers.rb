@@ -21,31 +21,16 @@ require 'dice_resolution'
 module CreatureModifiers
   module_function
 
-  # Net (per-Type-stacked) integer bonus to an Attribute target — e.g.
-  # 'str'. Today only equipped Guidance items target Attributes; ability
-  # modifiers are folded in too for forward-compatibility. Unconditional
-  # only (Attribute bonuses carry no descriptor context).
   def attribute_bonus(accessor, attr)
     DiceResolution.net_modifier(attribute_pairs(accessor, attr.to_s))
   end
 
-  # Display tokens for the Attribute breakdown popup: each Always-On
-  # Attribute bonus (equipped Guidance, Modifier abilities, active-effect
-  # Attribute Modifiers) per Bonus Type, after per-Type stacking. The sum
-  # of the token amounts equals #attribute_bonus. Returns
-  # [{ amount:, type: }], at most one positive and one negative per Type.
   def attribute_bonus_tokens(accessor, attr)
     stack_pairs(attribute_pairs(accessor, attr.to_s)).map do |type, amount|
       { amount: amount, type: type }
     end
   end
 
-  # The [[bonus_type, amount], ...] pairs (already per-Type-stacked) that
-  # apply to an Attribute's Saving Throw, given a descriptor context.
-  # Equipment Guidance to `saves` (the Cloak) and any "<attr>_save" effect
-  # always apply; Modifier-ability Save bonuses apply only when
-  # unconditional or when one of their descriptors is in `descriptors`.
-  # Suitable for appending to a Roll's bonus_penalty_list.
   def save_modifiers(accessor, attr, descriptors: [])
     ctx = Array(descriptors).map(&:to_s)
     applicable = raw_save_entries(accessor, attr).select do |en|
@@ -54,13 +39,6 @@ module CreatureModifiers
     stack_pairs(applicable.map { |en| [en[:type], en[:amount]] })
   end
 
-  # Display tokens for the green "+X" beside a Save: every applicable Save
-  # bonus broken out as a signed amount, with `conditional: true` on
-  # descriptor-scoped ones (poison / enchantment / charm) so the sheet can
-  # flag them with a `*`. Inherent bonuses are excluded — per the project
-  # rule they stay baked into the underlying value rather than itemised.
-  # Returns [{ amount:, conditional:, type: }] (per-Type, per-conditional
-  # stacked), unconditional entries first.
   def save_bonus_tokens(accessor, attr)
     entries = raw_save_entries(accessor, attr).reject { |en| en[:type] == 'Inherent' }
     entries.group_by { |en| [en[:type], en[:conditional]] }.flat_map do |(type, cond), list|
@@ -74,19 +52,25 @@ module CreatureModifiers
     end.sort_by { |t| [t[:conditional] ? 1 : 0, t[:type]] }
   end
 
-  # Net unconditional Save bonus for an Attribute — kept for callers that
-  # want a single integer. Conditional resistances are excluded.
   def unconditional_save_bonus(accessor, attr)
     DiceResolution.net_modifier(save_modifiers(accessor, attr, descriptors: []))
   end
 
-  # ---- internals -----------------------------------------------------
+  def skill_modifiers(accessor, key)
+    k = key.to_s
+    pairs = equipped_effects(accessor).filter_map do |e|
+      next unless e[:target_key].to_s == k
+      next unless e[:amount].is_a?(Integer) && !e[:amount].zero?
+      [e[:bonus_type].to_s, e[:amount]]
+    end
+    stack_pairs(pairs)
+  end
 
-  # Every Save-applicable modifier the Creature carries for `attr`, before
-  # context filtering or stacking: equipped Guidance / Property effects on
-  # `saves` (or "<attr>_save") and Modifier-ability Save bonuses. Each
-  # entry tracks its descriptors and whether it is conditional (descriptor-
-  # scoped rather than unconditional / `all`).
+  def skill_bonus(accessor, key)
+    DiceResolution.net_modifier(skill_modifiers(accessor, key))
+  end
+
+  # ---- internals -----------------------------------------------------
   def raw_save_entries(accessor, attr)
     entries = []
     equipped_effects(accessor).each do |e|
@@ -118,17 +102,10 @@ module CreatureModifiers
       amt = eval_amount(m['add'], accessor, name)
       pairs << [m['type'].to_s, amt] if amt.is_a?(Integer) && !amt.zero?
     end
-    # Active-effect (Conditions) Attribute Modifiers — e.g. Strength Devotion's
-    # +2 Morale to str/con while the buff is up. These fold in like equipped
-    # bonuses, so the Effective Attribute (and everything derived from it)
-    # reflects the buff.
     condition_attribute_pairs(accessor, target).each { |p| pairs << p }
     pairs
   end
 
-  # [[bonus_type, amount], ...] active-effect Attribute Modifiers for `target`
-  # from the Creature's Conditions instance. Empty when Conditions is not
-  # loaded or the Creature has no record.
   def condition_attribute_pairs(accessor, target)
     return [] unless defined?(Conditions)
     inst = (Conditions.store.instance_for(accessor.id) rescue nil)
@@ -168,11 +145,6 @@ module CreatureModifiers
     []
   end
 
-  # [[ability_name, modifier_hash], ...] across every **passive** Modifier
-  # Entry the Creature's Granted Abilities carry. An **active** ability — one
-  # with an `activation_time` (a Channel Divinity action like Strength
-  # Devotion, used as a Main/Bonus/Free action) — does NOT contribute its
-  # Modifiers Always-On; those apply only when the action is used.
   def ability_modifier_entries(accessor)
     return [] unless defined?(Abilities)
     (accessor.granted_abilities rescue []).flat_map do |g|
@@ -184,8 +156,6 @@ module CreatureModifiers
     []
   end
 
-  # Whether a Granted Ability is an action (declares an `activation_time`), as
-  # opposed to a passive Modifier ability whose Modifiers are Always-On.
   def active_ability?(name)
     entry = (Abilities.catalog.ability(name) rescue nil)
     !!(entry && !entry['activation_time'].to_s.strip.empty?)
@@ -193,8 +163,6 @@ module CreatureModifiers
     false
   end
 
-  # A Modifier's `add`: an Integer verbatim, or a Formula string resolved
-  # against the granting ability's level and the Creature's Tier.
   def eval_amount(add, accessor, ability_name)
     return add if add.is_a?(Integer)
     return nil if add.nil?

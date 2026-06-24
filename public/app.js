@@ -14,6 +14,8 @@ import { TurnMove } from './js/ui/turnMove.js';
 import { TurnSpecial } from './js/ui/turnSpecial.js';
 import { LootPile } from './js/ui/lootPile.js';
 import { PostCombatLoot } from './js/ui/postCombatLoot.js';
+import { UrgentActions } from './js/ui/urgentActions.js';
+import { DiceRenderer } from './js/ui/diceRenderer.js';
 
 // Loot Pile: confirm the DM's Delete Pile before it submits.
 document.addEventListener('submit', function (e) {
@@ -104,6 +106,10 @@ document.addEventListener('click', function (e) {
 
 document.addEventListener('change', function (e) {
   SavePreview.syncFromResultInput(e.target);
+  // Urgent Actions: toggle a Creature's save block, and refresh its Summary
+  // line when one of its saves changes.
+  if (e.target.closest('.ua-toggle')) UrgentActions.handleToggle(e.target);
+  if (e.target.closest('.urgent-actions')) UrgentActions.refreshFrom(e.target);
 });
 
 // Hovering an Attribute cell dismisses any click-stuck popup on the
@@ -281,10 +287,31 @@ document.addEventListener('mouseover', function (e) {
   }
 
   document.addEventListener('click', function (e) {
+    // Explicit Expand buttons (notes / images). Real <button> elements
+    // fire a click on tap in every browser, so these work even where a
+    // tap on the card/image itself does not (older / touch browsers).
+    var expandImgBtn = e.target.closest('[data-expand-image="1"]');
+    if (expandImgBtn) {
+      e.preventDefault();
+      var imgWrap = expandImgBtn.closest('.ce-content') || expandImgBtn.parentElement;
+      var targetImg = imgWrap && imgWrap.querySelector('[data-lightbox="1"]');
+      // currentSrc reflects the <picture> the browser actually chose (WebP on
+      // modern browsers, the JPG/PNG fallback on older ones).
+      if (targetImg) openImageLightbox(targetImg.currentSrc || targetImg.getAttribute('src'));
+      return;
+    }
+    var expandNoteBtn = e.target.closest('[data-expand-note="1"]');
+    if (expandNoteBtn) {
+      e.preventDefault();
+      var noteCard = expandNoteBtn.closest('.ce-card');
+      if (noteCard) openTextModal(noteCard);
+      return;
+    }
+
     var img = e.target.closest('[data-lightbox="1"]');
     if (img) {
       e.preventDefault();
-      var src = img.tagName === 'IMG' ? img.getAttribute('src') : img.getAttribute('href');
+      var src = img.tagName === 'IMG' ? (img.currentSrc || img.getAttribute('src')) : img.getAttribute('href');
       openImageLightbox(src);
       return;
     }
@@ -294,13 +321,14 @@ document.addEventListener('mouseover', function (e) {
       openRitualModal(ritual);
       return;
     }
-    var body = e.target.closest('[data-text-modal="1"]');
-    if (body) {
-      var card = body.closest('.ce-card');
-      if (card) {
-        e.preventDefault();
-        openTextModal(card);
-      }
+    // A click anywhere on an expandable note / creature-reference card opens
+    // the full-text modal — so tapping the title, the card, or the body text
+    // all enlarge the note. Image clicks (the lightbox, handled above) and the
+    // edit/footer controls are excluded so they keep their own behavior.
+    var card = e.target.closest('.ce-card.ce-expandable');
+    if (card && !e.target.closest('.ce-foot, a, button, input, textarea, select, label, summary')) {
+      e.preventDefault();
+      openTextModal(card);
     }
   });
 
@@ -506,8 +534,13 @@ document.addEventListener('mouseover', function (e) {
     selectTurnAction(panel, btn.textContent.trim());
     // Lazily build the Attack flow the first time its pane is opened.
     if (key === 'attack') {
-      var container = panel.querySelector('.ta-attack');
+      var container = panel.querySelector('.ta-pane[data-ta-pane="attack"] .ta-attack');
       if (container) TurnAttack.ensureLoaded(container);
+    }
+    // Active Spells reuses the Attack host, pointed at its own builder.
+    if (key === 'active_spells') {
+      var activeContainer = panel.querySelector('.ta-active-spells');
+      if (activeContainer) TurnAttack.ensureLoaded(activeContainer);
     }
     // Lazily build the Cast flow the first time its pane is opened.
     if (key === 'cast') {
@@ -600,5 +633,107 @@ document.addEventListener('mouseover', function (e) {
       if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
       else if (ev.key === 'Escape') { ev.preventDefault(); restore(); }
     });
+  });
+})();
+
+// Affliction relief (per-creature stub): "Roll all rounds" previews the
+// alternating Constitution save + Heal channels until the Affliction clears,
+// then "Confirm & apply" re-runs the same RNG seed on the live state.
+(function () {
+  function cardData(card) {
+    var sel = card.querySelector('.ar-affliction');
+    var aiders = [];
+    card.querySelectorAll('.ar-aider').forEach(function (row) {
+      var on = row.querySelector('.ar-aider-on');
+      if (!on || !on.checked) return;
+      var tier = row.querySelector('.ar-aider-tier');
+      aiders.push({ creature_id: parseInt(row.getAttribute('data-aider'), 10),
+                    tier: tier ? parseInt(tier.value, 10) : 0 });
+    });
+    return { combatant_id: card.getAttribute('data-combatant'),
+             affliction: sel ? sel.value : '', aiders: aiders };
+  }
+
+  function run(params) {
+    var body = Object.keys(params).map(function (k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+    }).join('&');
+    return fetch('/encounter/resolve_affliction_run', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body
+    }).then(function (r) { return r.json(); });
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function dice(roll) {
+    if (!roll || !roll.values) return '';
+    return DiceRenderer.renderDice(roll.values, roll.tn, roll.die_size, roll.starting, 'shown');
+  }
+
+  function rollLine(r) {
+    var succ = r.successes + ' success' + (Math.abs(r.successes) === 1 ? '' : 'es');
+    var pot = 'potency ' + r.potency_before + '→' + r.potency_after;
+    var dmg = (r.kind === 'save' && r.damage > 0) ? ', ' + r.damage + ' minor damage' : '';
+    return '<div class="ar-roll-line"><span class="ar-actor">' + esc(r.actor) + '</span> ' +
+      dice(r.roll) + ', ' + succ + ', ' + pot + dmg + '</div>';
+  }
+
+  function renderResult(card, data) {
+    var res = data.result || {};
+    var rounds = (res.log || []).map(function (e) {
+      var lines = (e.rolls || []).map(rollLine).join('');
+      return '<div class="ar-round"><div class="ar-round-h">Round ' + e.round + '</div>' + lines + '</div>';
+    }).join('');
+    var hp = res.hp_damage || {};
+    var hpStr = ['minor', 'moderate', 'major'].filter(function (s) { return hp[s] > 0; })
+      .map(function (s) { return hp[s] + ' ' + s; }).join(', ') || 'none';
+    var manaStr = Object.keys(res.aider_mana || {})
+      .map(function (k) { return res.aider_mana[k] + ' mana'; }).join(', ');
+    var outcome = res.died ? 'Died' : (res.cleared ? 'Cleared' : 'Not cleared (cap reached)');
+    var finalLine = (res.max_hp && res.final_hp !== null && res.final_hp !== undefined)
+      ? '<div class="ar-final' + (res.final_hp <= 0 ? ' ar-died' : '') + '">Final HP ' +
+        res.final_hp + '/' + res.max_hp + '</div>'
+      : '';
+    var box = card.querySelector('.ar-result');
+    box.innerHTML = '<div class="ar-rounds">' + rounds + '</div>' +
+      '<div class="ar-totals' + (res.died ? ' ar-died' : '') + '">' + outcome +
+      ' in ' + res.rounds + ' rounds · HP taken: ' + hpStr +
+      (manaStr ? ' · ' + manaStr : '') + '</div>' + finalLine;
+    box.hidden = false;
+  }
+
+  document.addEventListener('click', function (e) {
+    var roll = e.target.closest('.ar-roll');
+    if (roll) {
+      var card = roll.closest('.ar-card'); if (!card) return;
+      var d = cardData(card);
+      roll.disabled = true; roll.textContent = 'Rolling…';
+      run({ combatant_id: d.combatant_id, affliction: d.affliction,
+            aiders: JSON.stringify(d.aiders), commit: 'false' })
+        .then(function (data) {
+          roll.disabled = false; roll.textContent = 'Roll all rounds';
+          if (!data || !data.ok) return;
+          renderResult(card, data);
+          var c = card.querySelector('.ar-confirm');
+          c.hidden = false; c.setAttribute('data-seed', data.seed);
+        })
+        .catch(function () { roll.disabled = false; roll.textContent = 'Roll all rounds'; });
+      return;
+    }
+    var confirm = e.target.closest('.ar-confirm');
+    if (confirm) {
+      var card2 = confirm.closest('.ar-card'); if (!card2) return;
+      var d2 = cardData(card2);
+      confirm.disabled = true; confirm.textContent = 'Applying…';
+      run({ combatant_id: d2.combatant_id, affliction: d2.affliction,
+            aiders: JSON.stringify(d2.aiders), commit: 'true',
+            seed: confirm.getAttribute('data-seed') })
+        .then(function () { window.location.reload(); })
+        .catch(function () { confirm.disabled = false; confirm.textContent = 'Confirm & apply'; });
+    }
   });
 })();

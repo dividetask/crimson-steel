@@ -44,10 +44,7 @@ Default Bonus Surcharge:
 
 # Divisor applied to a magical Ammunition Stack's magical cost.
 # Per-unit magical cost = (Tier Surcharge + sum(Property cost)) /
-# Magical Ammunition Divisor.
 Magical Ammunition Divisor: 100
-
-# Same idea for non-ammo Consumables (potions, oils, scrolls).
 Consumable Surcharge Divisor: 10
 
 # Multiplier applied to any Item Type flagged `innately_usable: true`
@@ -58,19 +55,9 @@ Innately Usable Price Multiplier: 2.0
 # DISPLAY NAME
 # =====================================================================
 
-# Substituted into the Tier prefix with `{tier}`. Tier 0 omits the
-# prefix entirely; Item Types whose Category appears in Tier Hidden
-# For also omit it.
 Tier Prefix Format: "+{tier}"
-
-# Item Categories whose Generated Display Name suppresses the Tier
-# prefix. Potions, for example, conventionally read "Potion of X"
-# without a +N prefix.
 Tier Hidden For:
   - Consumable
-
-# When a Property's Display block does not declare a `position`,
-# this is used. One of `prefix` or `suffix`.
 Default Property Position: prefix
 
 # =====================================================================
@@ -78,17 +65,7 @@ Default Property Position: prefix
 # =====================================================================
 # Saturation imposed by *Consume Item* on Potions and Oils. Scrolls
 # and Wands impose no saturation through Equipment.
-#
-# Both lists are indexed by Item Tier (0..5). Base is the saturation
-# imposed when the target Creature's Tier is greater than or equal
-# to the item's Tier; Minimum is the floor any caller-supplied
-# reducer cannot push the final value below. When the target's Tier
-# is strictly lower than the item's Tier, both Base and Minimum are
-# multiplied by Lower Tier Multiplier.
-#
-# Example: a Tier 2 Potion on a target of Tier 2+ imposes 6
-# saturation, reducible to 3. The same Potion on a target of Tier 1
-# imposes 12 saturation, reducible to 6.
+
 Consumable Saturation:
   Minimum: [1, 2, 3, 4, 5, 6]
   Base:    [2, 4, 6, 8, 10, 12]
@@ -97,10 +74,6 @@ Consumable Saturation:
 # =====================================================================
 # SLOTS
 # =====================================================================
-# Body slot strings an equippable Item or piece of Armor may occupy.
-# Worn armor and held weapons use implicit slots (`body`, `hand`)
-# and are not listed here. The Creatures domain enforces "one Item
-# per Slot" at equip time.
 
 Slots:
   - back
@@ -116,17 +89,12 @@ Slots:
   - shoulders
   - wrists
 
-# Tattoo Slots — a parallel Slot namespace for Tattoos (see the Tattoos
-# catalog block). A Tattoo occupies its body location like a worn Item,
-# but in this separate namespace: a `chest` Tattoo does NOT conflict
-# with chest Armor, only with another `chest` Tattoo. The Creatures
-# domain enforces "one Tattoo per Tattoo Slot" independently of the
-# worn-Item Slot rule above.
 Tattoo Slots:
   - back
   - belt
   - body
   - chest
+  - face
   - feet
   - finger
   - hands
@@ -139,13 +107,6 @@ Tattoo Slots:
 # WEAPONS
 # =====================================================================
 
-# Weapon Categories — the weapon's weight class, which sets its default
-# `speed` and `base_damage`. `base_damage` is the default damage formula
-# evaluated by Combat (Equipment only stores the string). `speed` is the
-# weapon's flat Combat-Pool surcharge for an attack: the cost to roll N
-# dice is `speed + N` (a flat per-action surcharge, NOT a per-die
-# multiplier). Resolution: a per-weapon `speed` → first Weapon Tag with
-# `speed` → this Category default.
 Weapon Categories:
   Ranged:
     base_damage: "str / 4"
@@ -157,10 +118,6 @@ Weapon Categories:
     base_damage: "str / 2"
     speed: 3
 
-# Weapon Tags — mundane structural tags, distinct from magical
-# Weapon Properties. `damage_formula` overrides the Category
-# default; the first Tag carrying one wins when a Weapon has
-# multiple Tags. `speed` overrides the Category speed the same way.
 Weapon Tags:
   thrown:
     damage_formula: "str / 4 - 2"
@@ -180,14 +137,6 @@ Weapon Tags:
   lesslethal:
     description: On a successful hit, inflicts a non-lethal stunning effect.
 
-# Damage Type defaults — a weapon's default `bleed` and `threshold` come
-# from its Damage Type(s). Multi-Type Weapons use the highest Bleed and
-# the lowest Threshold across their Damage Types. A per-weapon `bleed` /
-# `threshold` overrides the Damage-Type default (an explicit `threshold:`
-# wins even when null). On a hit, the Bleed actually inflicted is this
-# value plus the damage dealt (see encounter_config.yaml → "actual bleed
-# = Bleed Constant + damage dealt"), so a 0-Bleed weapon still bleeds for
-# the damage it deals.
 Damage Type Defaults:
   Slashing:
     bleed: 7
@@ -199,19 +148,7 @@ Damage Type Defaults:
     bleed: 3
     threshold: 4
 
-# Reference Weapon catalog. The list is open — consuming projects add
-# entries via override files. A weapon's defaults are derived, not
-# repeated per entry: `speed` + `base_damage` from its `category` (weight
-# class), and `bleed` + `threshold` from its `damage_type`. An entry only
-# needs `category` and `damage_type`; it may additionally set any of
-# `speed`, `base_damage`, `bleed`, or `threshold` to override the derived
-# default for that one weapon.
 Weapons:
-  # Unarmed — every Creature can make this attack with no weapon equipped.
-  # Speed 0, damage `str / 4 - 4`, Threshold 8 (overrides the Bludgeoning
-  # default). Combat offers it implicitly; it is never carried as inventory.
-  # `natural: true` marks it (and other natural attacks like claws/bite) as
-  # unable to Parry without a special ability — see `natural` in the design.
   Unarmed:
     category: One Handed
     damage_type: Bludgeoning
@@ -220,9 +157,6 @@ Weapons:
     threshold: 8
     natural: true
     base_price: 0
-  # Natural bites carried by beast subtypes. `affliction` names a
-  # Conditions Affliction the bite injects on a hit; Combat offers a
-  # poison input alongside damage / bleed in the attack resolution.
   Bite (Fangs):
     category: One Handed
     damage_type: Piercing
@@ -235,6 +169,23 @@ Weapons:
   Bite (Jaws):
     category: One Handed
     damage_type: Piercing
+    base_damage: "str / 2"
+    speed: 0
+    natural: true
+    base_price: 0
+
+  Bite (Acid):
+    category: One Handed
+    damage_type: Piercing
+    base_damage: "str / 2"
+    speed: 0
+    natural: true
+    intrinsic_properties:
+      - { name: Elemental, subtype: Acid }
+    base_price: 0
+  Slam:
+    category: One Handed
+    damage_type: Bludgeoning
     base_damage: "str / 2"
     speed: 0
     natural: true
@@ -344,6 +295,18 @@ Weapons:
     category: One Handed
     damage_type: Slashing
     base_price: 10
+  # Primitive one-handed bludgeon — a wildmen / commoner sidearm.
+  Club:
+    category: One Handed
+    damage_type: Bludgeoning
+    tags: [light]
+    base_price: 1
+  # A light hatchet, balanced to throw as well as hack.
+  Hand axe:
+    category: One Handed
+    damage_type: Slashing
+    tags: [light, thrown]
+    base_price: 6
   Greataxe:
     category: Two Handed
     damage_type: Slashing
@@ -833,6 +796,10 @@ Misc Items:
   Trinket:
     category: Item
     base_price: 1
+  # A ring of keys — mundane gear, often carried by jailers and handlers.
+  Key chain:
+    category: Item
+    base_price: 1
   Bottle:
     category: Item
     base_price: 0.5
@@ -867,6 +834,16 @@ Tattoos:
       - ability: Sneak Attack
         class_level: 1
     base_price: 5000
+  # A face-slot Tattoo granting a +1 Guidance Bonus to Intelligence. Like
+  # every Tattoo it is permanent — always borne, never (un)equipped — so it
+  # posts its bonus without an `equipped` flag. `no_store` keeps it out of
+  # shop provisioning (the DM places it). The Stack carries the Bonus value.
+  Tattoo of the Fox:
+    category: Tattoo
+    slot: face
+    guidance_attribute: int
+    no_store: true
+    description: "A small fox inked in fine lines behind the ear and along the hairline, kept hidden beneath the wearer's hair. The fox's cunning sharpens the mind, granting a +1 Guidance Bonus to Intelligence."
 
 # =====================================================================
 # POISON VIALS
@@ -891,8 +868,36 @@ Tattoos:
 # `{ ability:, class_level: }`).
 Unique Items:
   Kesser's Ring:
-    category: Item
-    slot: finger
+    inherits_from: Ring
     no_store: true
     grants: [Kesser's Gambit]
     description: "A plain band that hums with reversal. While worn, it grants Kesser's Gambit to the wielder."
+  # A Ring that grants a once-per-day defensive Parry Reaction (`grants_parry`).
+  # While worn and charged it offers, against a melee attack, a Parry at the
+  # wielder's chosen melee weapon's Dice Cap that spends no Combat Pool. The
+  # single charge recharges at dawn (when the in-world day advances).
+  Ring of Parry:
+    inherits_from: Ring
+    no_store: true
+    grants_parry: true
+    description: "A duelist's band. Once per day it parries a single attack at the wielder's weapon Dice Cap, spending no Combat Pool. Recharges at dawn."
+  # A worn Circlet that grants a castable Spell while equipped, exactly like a
+  # Wand (`grants_spell` + `spell`): the spell joins the wearer's castable list,
+  # channels the wearer's own Mana, and imposes no Magic Toxicity.
+  Circlet of the Boughking:
+    inherits_from: Hat
+    no_store: true
+    grants_spell: true
+    spell: Entangle
+    description: "A crown of living briar. While worn, the wearer may cast Entangle."
+  # A spell-granting Ring — like a Wand, but conferring more than one Spell.
+  # `grants_spell` + a `spells` list adds every named Spell to the wearer's
+  # Cast list while equipped, each cast at the Spell's own Tier (not the
+  # Ring's), channelling the wearer's own Mana with no Magic Toxicity.
+  Ring of Shooting Stars:
+    category: Item
+    slot: finger
+    no_store: true
+    grants_spell: true
+    spells: [Spark Shower, Shooting Stars]
+    description: "A silver band set with a chip of fallen starmetal. While worn it lets the wearer cast Spark Shower and Shooting Stars using their own Mana, the way a Wand grants its spell — no charges, no Magic Toxicity. Functions only at night under open sky."

@@ -12,7 +12,7 @@ The bar has two regions:
 2. **Right-aligned group** — pushed to the far right of the bar, in this order:
    - **Encounter Phase selector** (DM only) — a dropdown, immediately to the left of the View-As toggle, that sets the Encounter Phase: `Combat`, `Looting`, `Traveling`, `Social Encounter`, or `Downtime`. It is a pure view selector — it only changes which stubs the Encounter page shows (see the Encounter page entry below) and does **not** start or stop Combat mechanics. Changing it takes effect immediately. The Phase persists with the Encounter and defaults to `Downtime`. Players never see this dropdown.
    - **View-As toggle** (DM only) — When the DM is currently viewing the site as a DM, the button reads `View As Player`; pressing it switches the session to the player view and the button label flips to `View As DM`. Pressing it again returns to the DM view. Players never see this button.
-   - **Server address** — the server's IP address (and port, if non-default), shown as plain text at the far-right edge of the bar, immediately to the right of the View-As toggle.
+   - **Server address** (DM only) — the server's IP address (and port, if non-default), shown as plain text at the far-right edge of the bar, immediately to the right of the View-As toggle. Players never see the server address, and it is hidden while the DM is viewing as a player.
 
 When a DM is viewing as a player, the menu obeys the player visibility rules for the duration of the override.
 

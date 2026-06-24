@@ -19,12 +19,45 @@ icons:
   Acid jar: acid_jar.svg
   "Alchemist's fire": alchemist_s_fire.svg
   Arrow: arrow.svg
+  # Hand-authored simple icons for base Item Types the original pack lacked.
+  Battleaxe: battleaxe.svg
+  Greataxe: greataxe.svg
+  Great axe: greataxe.svg
+  Ring: ring.svg
+  Wand: wand.svg
+  Hat: hat.svg
+  Amulet: amulet.svg
+  Belt: belt.svg
+  Belt of Constitution: belt_of_strength.svg
+  Headband of Wisdom: headband_of_intelligence.svg
+  Headband of Charisma: headband_of_intelligence.svg
+  Boots: boots.svg
+  Bracer: bracer.svg
+  Backpack: backpack.svg
+  Pouch: pouch.svg
+  Bottle: bottle.svg
+  Trinket: trinket.svg
+  Kerosene: kerosene.svg
+  Bola: bola.svg
+  Net: net.svg
+  Manacles: manacles.svg
+  Humanoid skull: skull.svg
+  Necklace of animal fangs: necklace.svg
+  Falchion: falchion.svg
+  Shortbow: shortbow.svg
+  Short bow: shortbow.svg
+  Breastplate: breastplate.svg
+  Light metal shield: light_wooden_shield.svg
+  Tattoo of the Viper: tattoo.svg
   Bedroll: bedroll.svg
   Belt of Dexterity: belt_of_dexterity.svg
   Belt of Strength: belt_of_strength.svg
   Bolt: bolt.svg
   Chain mail: chain_mail.svg
   Chain shirt: chain_shirt.svg
+  # The generic Cloak base Item reuses the cloak illustration (it is a plain
+  # cloak drawing, not specific to the Resistance enchantment).
+  Cloak: cloak_of_resistance.svg
   Cloak of Resistance: cloak_of_resistance.svg
   Copper: copper.svg
   Crossbow: crossbow.svg

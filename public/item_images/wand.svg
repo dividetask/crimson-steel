@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- shaft -->
+  <rect x="14" y="46" width="36" height="6" rx="3" transform="rotate(-45 32 49)" fill="#5a3b6e" stroke="#33203f" stroke-width="2"/>
+  <!-- tip band -->
+  <rect x="40" y="20" width="8" height="6" rx="2" transform="rotate(-45 44 23)" fill="#caa64a" stroke="#7a5e1e" stroke-width="1.5"/>
+  <!-- star tip -->
+  <path d="M46 8 l 2.4 5 5.4 .7 -4 3.7 1.1 5.3 -4.9 -2.7 -4.9 2.7 1.1 -5.3 -4 -3.7 5.4 -.7 Z"
+        fill="#ffe06a" stroke="#c79a1e" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>

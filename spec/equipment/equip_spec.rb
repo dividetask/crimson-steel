@@ -107,4 +107,35 @@ RSpec.describe 'Equip and Reconcile Loadout' do
       ])
     end
   end
+
+  # A Tattoo is permanent: it is never (un)equippable, so it posts its
+  # effects regardless of the `equipped` flag.
+  describe 'Tattoos are always borne' do
+    it 'posts a Tattoo Guidance Bonus without the equipped flag' do
+      accessor.set_inventory('3', [Equipment::Stack.normalize(
+        item: 'Tattoo of the Fox', tier: 1, guidance_bonus: 1
+      )])
+      inst.reconcile_loadout('creature:3')
+      expect(conditions.applied).to eq([{
+        target_key: 'int', bonus_type: 'Guidance', amount: 1,
+        source_id: 'equipment:creature:3:Tattoo of the Fox:face'
+      }])
+    end
+
+    it 'surfaces the Tattoo effect via equipped_effects without the flag' do
+      accessor.set_inventory('3', [Equipment::Stack.normalize(
+        item: 'Tattoo of the Fox', tier: 1, guidance_bonus: 1
+      )])
+      expect(inst.equipped_effects('creature:3')).to eq([
+        { target_key: 'int', bonus_type: 'Guidance', amount: 1 }
+      ])
+    end
+
+    it 'refuses to (un)equip a Tattoo through the toggle' do
+      accessor.set_inventory('3', [Equipment::Stack.normalize(
+        item: 'Tattoo of the Fox', guidance_bonus: 1
+      )])
+      expect(inst.equip_stack('creature:3', 0)).to be(Equipment::ERROR)
+    end
+  end
 end

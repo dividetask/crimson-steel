@@ -39,6 +39,7 @@ module Equipment
         return catalog.tier_prefix_format.gsub('{tier}', stack.guidance_bonus.to_s)
       end
       return '' if stack.tier.to_i < 1
+      return '' if definition.is_a?(Hash) && definition['hide_tier']
       return '' if category && catalog.tier_hidden_for.include?(category)
       catalog.tier_prefix_format.gsub('{tier}', stack.tier.to_s)
     end

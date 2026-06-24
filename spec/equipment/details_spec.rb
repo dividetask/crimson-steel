@@ -112,6 +112,25 @@ RSpec.describe Equipment::Details do
       expect(described_class.weapon_details(stack(item_type: 'Long sword', tier: 0), catalog)[:damage_riders]).to eq([])
     end
 
+    it "hydrates a natural weapon's intrinsic Elemental(Acid) property into an acid rider" do
+      # The ankheg's Bite (Acid) bakes the Corrosive (Elemental: Acid) Property
+      # into the catalog entry; Stack.from_catalog applies it to the synthetic
+      # attack Stack so the bite carries the property's acid Damage Rider.
+      bite = Equipment::Stack.from_catalog('Bite (Acid)', catalog)
+      d = described_class.weapon_details(bite, catalog)
+      expect(d[:display_name]).to eq('Corrosive Bite (Acid)')
+      expect(d[:damage_types]).to eq(['Piercing'])
+      expect(d[:damage_riders]).to eq([
+        { property: 'Elemental', subtype: 'Acid', label: 'Corrosive', dice: 4,
+          kind: 'damage', damage_type: 'acid', amount: 1, severity: nil }
+      ])
+    end
+
+    it 'leaves a plain Bite (Jaws) rider-free (intrinsic acid is local to Bite (Acid))' do
+      jaws = Equipment::Stack.from_catalog('Bite (Jaws)', catalog)
+      expect(described_class.weapon_details(jaws, catalog)[:damage_riders]).to eq([])
+    end
+
     it 'surfaces a Glory weapon Tier Advantage; a mundane weapon has none' do
       glorious = described_class.weapon_details(
         stack(item_type: 'Long sword', tier: 1, properties: [{ name: 'Glory' }]), catalog

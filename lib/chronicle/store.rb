@@ -1,13 +1,6 @@
 require 'fileutils'
 
 module Chronicle
-  # Holds Chronicle state in memory and persists every mutation back
-  # to disk. Load order:
-  #   1. data/chronicle_data.json (if present)
-  #   2. docs/common/chronicle/chronicle_data.example.json
-  #
-  # On load the example file is treated as read-only; mutations are
-  # always written to the data path.
   class Store
     DATA_PATH    = File.expand_path('../../data/chronicle_data.json', __dir__)
     EXAMPLE_PATH = File.expand_path('../../docs/common/chronicle/chronicle_data.example.json', __dir__)
@@ -31,8 +24,6 @@ module Chronicle
       backfill_positions!
     end
 
-    # ---------- Snapshot / persistence ----------
-
     def to_h
       {
         'campaign_name'   => @campaign_name,
@@ -50,8 +41,6 @@ module Chronicle
       File.write(tmp, JSON.pretty_generate(to_h))
       File.rename(tmp, @data_path)
     end
-
-    # ---------- Campaign metadata ----------
 
     def campaign_name
       @campaign_name
@@ -73,7 +62,11 @@ module Chronicle
       @timestamp.dup
     end
 
-    # ---------- Chapters ----------
+    def set_time(day_index:, round_of_day:)
+      @timestamp = { day_index: Integer(day_index), round_of_day: Integer(round_of_day) }
+      persist!
+      @timestamp.dup
+    end
 
     def list_chapters
       @chapters.sort_by { |c| c[:number] }.map(&:dup)
@@ -118,8 +111,6 @@ module Chronicle
       @current_chapter
     end
 
-    # ---------- Entries ----------
-
     def add_entry(attrs)
       h = Entry.stringify_keys(attrs)
       h['id']    = @next_id
@@ -153,7 +144,6 @@ module Chronicle
       @entries.find { |e| e['id'] == id }
     end
 
-    # Filters are conjunctive. Pass nil/absent to ignore a filter.
     def list_entries(chapter: nil, entry_type: nil, active_only: false, visible_to: nil)
       result = @entries.dup
       result.select! { |e| e['chapter'] == chapter }       if chapter
@@ -165,16 +155,12 @@ module Chronicle
       result
     end
 
-    # Visibility rule per docs/common/chronicle/chronicle_design.md.
-    # When viewing_creature_id is nil we treat the viewer as the DM.
     def visible?(entry, viewing_creature_id: nil)
       return true if viewing_creature_id.nil?
       return false if (entry['hidden_from'] || []).include?(viewing_creature_id)
       return true if entry['shared']
       entry['owner_id'] == viewing_creature_id
     end
-
-    # ---------- Reorder ----------
 
     def set_notes_position(id, position)
       entry = get_entry(id)
@@ -195,8 +181,6 @@ module Chronicle
       persist!
       entry
     end
-
-    # ---------- Internal ----------
 
     private
 

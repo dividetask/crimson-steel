@@ -111,7 +111,7 @@
       <% end %>
     </div>
     <div class="cs-hp-mana">
-      <div class="cs-hp-line"><span class="cs-hp-label">HP</span> <%= v[:hp][:current] %>/<%= v[:hp][:max] %></div>
+      <div class="cs-hp-line"><span class="cs-hp-label">HP</span> <%= v[:hp][:current] %>/<%= v[:hp][:max] %><% if v[:temp_hp].to_i > 0 %> <span class="cs-temp-hp">+<%= v[:temp_hp] %></span><% end %></div>
       <div class="cs-mana-line">
         <span class="cs-mana-label">Mana</span> <%= v[:mana][:current] %>/<%= v[:mana][:max] %>,
         <span class="cs-tox">Toxicity <%= v[:toxicity][:current] %>/<%= v[:toxicity][:threshold] %></span>

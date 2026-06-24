@@ -55,9 +55,13 @@ class DeviceRegistry
 
   # Returns the record for device_id, creating it on first sight and
   # stamping last_seen either way. This is the per-request entry point.
-  def touch(device_id)
+  # The browser's User-Agent string is recorded when supplied so the DM
+  # can see what each connecting device is running (a diagnostic aid for
+  # device-specific display problems).
+  def touch(device_id, user_agent = nil)
     rec = find(device_id) || create(device_id)
     rec['last_seen'] = Time.now.iso8601
+    rec['user_agent'] = user_agent unless user_agent.nil? || user_agent.to_s.empty?
     persist!
     rec
   end
@@ -92,7 +96,8 @@ class DeviceRegistry
   private
 
   def blank_record(device_id)
-    { 'device_id' => device_id, 'character_id' => nil, 'last_seen' => Time.now.iso8601 }
+    { 'device_id' => device_id, 'character_id' => nil, 'last_seen' => Time.now.iso8601,
+      'user_agent' => nil }
   end
 
   def normalize_character_id(value)

@@ -1,0 +1,58 @@
+<%#
+  Per-creature Affliction relief card. See conditions_bulk_affliction_stub.md.
+  One card per Creature carrying a round-cadence Affliction. The DM optionally
+  adds Heal channelers, presses "Roll all rounds" to fast-forward the save +
+  channels until the Affliction clears (preview), then "Confirm & apply".
+
+  Locals:
+    group — { combatant_id, creature_id, name, is_pc,
+              afflictions: [{ name, category, potency, save_attr }],
+              aiders: [{ creature_id, name, tiers:[...], channeling }] }
+%>
+<%
+  group       ||= {}
+  afflictions   = group[:afflictions] || []
+  aiders        = group[:aiders] || []
+%>
+<article class="ar-card" data-combatant="<%= group[:combatant_id] %>" data-creature="<%= group[:creature_id] %>">
+  <header class="ar-card-head">
+    <span class="ar-name"><%= Rack::Utils.escape_html(group[:name].to_s) %></span>
+    <% if group[:is_pc] %><span class="ar-pc">PC</span><% end %>
+  </header>
+
+  <label class="ar-field">
+    <span>Affliction</span>
+    <select class="ar-affliction">
+      <% afflictions.each do |a| %>
+        <option value="<%= Rack::Utils.escape_html(a[:name].to_s) %>">
+          <%= a[:category].to_s.capitalize %> — potency <%= a[:potency] %> (<%= a[:save_attr].to_s.upcase %> save)
+        </option>
+      <% end %>
+    </select>
+  </label>
+
+  <div class="ar-aiders">
+    <div class="ar-aiders-label">Heal channelers</div>
+    <% if aiders.empty? %>
+      <p class="ar-none">No creature present knows the Heal spell.</p>
+    <% end %>
+    <% aiders.each do |ai| %>
+      <label class="ar-aider" data-aider="<%= ai[:creature_id] %>">
+        <input type="checkbox" class="ar-aider-on">
+        <span class="ar-aider-name"><%= Rack::Utils.escape_html(ai[:name].to_s) %><%= ai[:channeling] ? ' · channeling' : '' %></span>
+        <select class="ar-aider-tier" title="Heal tier (sets the mana cost and the tier×2 bleed reduction per success)">
+          <% (ai[:tiers] || []).each do |t| %>
+            <option value="<%= t %>">Tier <%= t %></option>
+          <% end %>
+        </select>
+      </label>
+    <% end %>
+  </div>
+
+  <div class="ar-actions">
+    <button type="button" class="ce-btn ar-roll">Roll all rounds</button>
+    <button type="button" class="ce-btn ce-btn-primary ar-confirm" hidden>Confirm &amp; apply</button>
+  </div>
+
+  <div class="ar-result" hidden></div>
+</article>

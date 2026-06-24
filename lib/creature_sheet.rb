@@ -82,8 +82,10 @@ module CreatureSheet
     trained.filter_map do |key|
       next unless Proficiencies.attribute_for(key)
       ri = Proficiencies::Compute.roll_inputs(key: key, creature: accessor)
+      comp  = ri[:competency_modifier] ? ri[:competency_modifier][1] : 0
+      guide = Array(ri[:skill_modifiers]).sum { |_type, amt| amt.to_i }
       { name: pretty_skill_name(key), ranks: (accessor.ranks_for(key) rescue 0),
-        dice: ri[:dice_cap], bonus: (ri[:competency_modifier] ? ri[:competency_modifier][1] : 0) }
+        dice: ri[:dice_cap], bonus: comp + guide }
     end
   rescue StandardError
     []
@@ -521,7 +523,7 @@ module CreatureSheet
   # attack the Creature has, never an item carried in inventory.
   def natural_weapon_details(accessor, cat = Equipment.catalog)
     granted_natural_weapons(accessor).map do |name|
-      Equipment::Details.weapon_details(Equipment::Stack.normalize('item' => name), cat)
+      Equipment::Details.weapon_details(Equipment::Stack.from_catalog(name, cat), cat)
     end
   rescue StandardError
     []
