@@ -1,441 +1,603 @@
-# Crimson Steel — Inventory and Item Tracking (live campaign data).
-#
-# Migrated from the legacy `equipment.json` export, PCs only (owner ids
-# 1, 2, 3, 4, 40). Item type definitions live in `equipment_config.yaml`.
-#
-# Item-type mapping (legacy name -> catalog Item Type). Descriptions are
-# copied verbatim from the source export; items the source left without a
-# description carry none here. `bonus` -> `tier`; `quantity`/`equipped`
-# are carried as-is.
-
+---
 characters:
-
-  # =============================================================
-  # 1 — Stumpy
-  # =============================================================
   1:
     inventory:
-      - item: Plate mail
-        equipped: true
-      - item: Light wooden shield
-        tier: 1
-        name: "Mirror Leaf Shield"
-        description: "A shining mental shield. It’s magic reduces TN to block and increases TN to attack you. Ranged magic attacks can be reflected"
-        equipped: true
-      - item: Battleaxe
-        tier: 1
-        properties:
-          - name: Emotional
-        name: "Last Laugh Axe"
-        description: "A jagged battle axe that giggles when drawn. It deals an additional 4 dice of emotional damage"
-        equipped: true
-      - item: Longbow
-      - item: Cloak of Resistance
-        tier: 1
-        guidance_bonus: 1
-        equipped: true
-      - item: Bottle
-        name: "Alric's Liquor"
-        description: "Unknown properties. Elegant glass bottle with a crystal stopper shaped like a blooming thistle. Magically refills."
-      - item: Bracer
-        name: "Narn (Armband)"
-        description: "Unknown properties. Forged from dull red iron and wrapped in worn leather stamped with crude battle scenes, this child-sized armband resizes to fit its wearer."
-      - item: Vial of Krithrak Spider Venom
-        quantity: 2
-        equipped: true
-      - item: Kerosene
-        quantity: 2
-      - item: Alchemist's fire
-        quantity: 3
-      - item: Acid jar
-      - item: Dagger
-        tier: 1
-        name: "Ceremonial Dagger of Blood Drinking"
-        description: "Sacrificing a helpless victim destroys its soul and casts cure light wounds without any magical saturation. The victim must be your magical density or more. May have additional effects."
-      - item: Potion of Recharge
-        tier: 0
-      - item: Potion of Recharge
-        tier: 1
-        quantity: 4
-      - item: Scroll of Heal
-        tier: 1
-        quantity: 8
-      - item: Scroll of Heal
-        tier: 2
-      - item: Potion of Blindspot
-        tier: 2
-      - item: Scroll of Spiritual Weapon
-        tier: 2
-        quantity: 4
-      - item: Potion of Expeditious Retreat
-        tier: 1
-        quantity: 2
-      - item: Scroll of Ward
-        tier: 1
-        quantity: 4
-      - item: Scroll of Ward
-        tier: 2
-        quantity: 4
-      - item: Hat
-        tier: 1
-        name: "Hat of Disguise"
-        description: "This allows the wearer to benefit from the effects of Disguise Self. The appearance of the hat may be changed within the bounds of the spell but cannot be hidden."
-      - item: Potion of Darkvision
-        tier: 2
-
-  # =============================================================
-  # 2 — Olga
-  # =============================================================
+    - item: Plate mail
+      tier: 1
+      equipped: true
+    - item: Light wooden shield
+      tier: 1
+      name: Mirror Shield
+      equipped: true
+      description: A shining mental shield. It’s magic reduces TN to block and increases
+        TN to attack you. Ranged magic attacks can be reflected
+    - item: Battleaxe
+      tier: 1
+      properties:
+      - Emotional
+      name: Last Laugh Axe
+      equipped: true
+      description: A jagged battle axe that giggles when drawn. It deals an additional
+        4 dice of emotional damage
+    - item: Longbow
+    - item: Cloak of Resistance
+      tier: 1
+      equipped: true
+      guidance_bonus: 1
+    - item: Bottle
+      name: Alric's Liquor
+      description: Unknown properties. Elegant glass bottle with a crystal stopper
+        shaped like a blooming thistle. Magically refills.
+    - item: Bracer
+      name: Narn (Armband)
+      equipped: true
+      description: Unknown properties. Forged from dull red iron and wrapped in worn
+        leather stamped with crude battle scenes, this child-sized armband resizes
+        to fit its wearer.
+    - item: Vial of Krithrak Spider Venom
+      quantity: 2
+      equipped: true
+    - item: Kerosene
+      quantity: 2
+    - item: Alchemist's fire
+      quantity: 3
+    - item: Acid jar
+    - item: Dagger
+      tier: 1
+      name: Ceremonial Dagger of Blood Drinking
+      description: Sacrificing a helpless victim destroys its soul and casts cure
+        light wounds without any magical saturation. The victim must be your magical
+        density or more. May have additional effects.
+    - item: Potion of Recharge
+    - item: Potion of Recharge
+      quantity: 4
+      tier: 1
+    - item: Scroll of Heal
+      quantity: 8
+      tier: 1
+    - item: Scroll of Heal
+      tier: 2
+    - item: Potion of Blindspot
+      tier: 2
+    - item: Scroll of Spiritual Weapon
+      quantity: 4
+      tier: 2
+    - item: Potion of Expeditious Retreat
+      quantity: 2
+      tier: 1
+    - item: Scroll of Ward
+      quantity: 4
+      tier: 1
+    - item: Scroll of Ward
+      quantity: 4
+      tier: 2
+    - item: Hat
+      tier: 1
+      name: Hat of Disguise
+      equipped: true
+      description: This allows the wearer to benefit from the effects of Disguise
+        Self. The appearance of the hat may be changed within the bounds of the spell
+        but cannot be hidden.
+    - item: Potion of Darkvision
+      tier: 2
+    - item: Potion of Ablative Barrier
+      tier: 2
   2:
     inventory:
-      - item: Leather armor
-        tier: 1
-        equipped: true
-      - item: Greataxe
-        tier: 2
-        name: "Gary (Axe)"
-        description: "Unknown properties. Two handed +2 great axe. Found in the Fey Wilds. It became more powerful after killing the cultists."
-        equipped: true
-      - item: Boots
-        name: "Martha (Footwraps)"
-        description: "Unknown properties. Footwraps. You have felt a great amount of emotion coming from these wraps. After taking damage in combat you gain one point of luck that can be used to reroll one of your attack dice. Only one point can be granted per round from this item."
-        equipped: true
-      - item: Ring
-        tier: 1
-        name: "Ring of Parry"
-        description: "Allows a single free parry once per day"
-        equipped: true
-      - item: Javelin
-        quantity: 4
-      - item: Bola
-        quantity: 5
-      - item: Vial of Krithrak Spider Venom
-        quantity: 2
-      - item: Potion of Ward
-        tier: 1
-        quantity: 2
-      - item: Potion of Heal
-        tier: 2
-        quantity: 4
-      - item: Kerosene
-        quantity: 2
-      - item: Alchemist's fire
-        quantity: 3
-      - item: Acid jar
-      - item: Potion of Blindspot
-        tier: 2
-      - item: Potion of Expeditious Retreat
-        tier: 1
-      - item: Belt of Strength
-        tier: 1
-        guidance_bonus: 1
-        equipped: true
-      - item: Potion of Darkvision
-        tier: 2
-
-  # =============================================================
-  # 3 — Lysander
-  # =============================================================
+    - item: Leather armor
+      tier: 1
+      equipped: true
+    - item: Greataxe
+      tier: 2
+      name: Gary Axe
+      equipped: true
+      description: Unknown properties. Two handed +2 great axe. Found in the Fey Wilds.
+        It became more powerful after killing the cultists.
+    - item: Boots
+      name: Martha (Footwraps)
+      equipped: true
+      description: Unknown properties. Footwraps. You have felt a great amount of
+        emotion coming from these wraps. After taking damage in combat you gain one
+        point of luck that can be used to reroll one of your attack dice. Only one
+        point can be granted per round from this item.
+    - item: Ring of Parry
+      equipped: true
+    - item: Javelin
+      quantity: 4
+    - item: Bola
+      quantity: 5
+    - item: Vial of Krithrak Spider Venom
+      quantity: 2
+    - item: Potion of Ward
+      quantity: 2
+      tier: 1
+    - item: Potion of Heal
+      quantity: 4
+      tier: 2
+    - item: Kerosene
+      quantity: 2
+    - item: Alchemist's fire
+      quantity: 3
+    - item: Acid jar
+    - item: Potion of Blindspot
+      tier: 2
+    - item: Potion of Expeditious Retreat
+      tier: 1
+    - item: Belt of Strength
+      tier: 1
+      equipped: true
+      guidance_bonus: 1
+    - item: Potion of Darkvision
+      tier: 2
   3:
     inventory:
-      - item: Leather armor
-        tier: 1
-        equipped: true
-      - item: Longbow
-        tier: 1
-        properties:
-          - name: Emotional
-        name: "Wyrd Bow of Mirth"
-        equipped: true
-      - item: Dagger
-        equipped: true
-      - item: Cloak
-        tier: 1
-        name: "Elven Cloak"
-        equipped: true
-      - item: Headband of Intelligence
-        tier: 1
-        guidance_bonus: 1
-        name: "+1 Face Tattoo of Fox's Cunning"
-        description: "A permanent tattoo that increases the bearer's enhancement bonus to Intelligence."
-      - item: Hat
-        tier: 1
-        name: "Circlet of Bough-King"
-        equipped: true
-      - item: Trinket
-        name: "Orin (Key)"
-        description: "Unknown properties. A small, tarnished silver key, the kind that might open a simple padlock or shackle. The name 'Orin' is crudely scratched into the bow (handle) as if carved by an unsteady hand. The key is unexpectedly warm to the touch and occasionally pulses with a faint, gentle golden light."
-      - item: Ring
-        name: "Petey (Ring)"
-        description: "A simple brass ring shaped like a curled ribbon, slightly tarnished with age. Inside is etched the name 'Petey' in childish scrawl. Sentient, dimensional storage, and can steal items from 10’. It may have additional properties."
-        equipped: true
-      - item: Ring
-        tier: 2
-        name: "Ring of Bound Whimsy"
-        description: "Allows you to animate an inanimate object once per day for 5 minutes."
-        equipped: true
-      - item: Trinket
-        name: "Tempting Gold Coin"
-        description: "Anyone who sees the coin feels compelled to possess it. Mind effecting, range 30 feet, and effect lasts 1 minute."
-      - item: Scroll of Obscuring Mist
-        tier: 1
-      - item: Potion of Heal
-        tier: 2
-      - item: Potion of Heal
-        tier: 1
-        quantity: 4
-      - item: Potion of Recharge
-        tier: 1
-        quantity: 2
-      - item: Kerosene
-        quantity: 2
-      - item: Acid jar
-      - item: Vial of Sleep Venom
-        name: "Sleeping Death (Poison)"
-        description: "Injestable poison. Causes unconciousness and appearance of death for 8 to 12 hours."
-      - item: Vial of Krithrak Spider Venom
-        quantity: 6
-      - item: Arrow
-        tier: 2
-        name: "Poison Arrows"
-        description: "Injury poison. Causes moderate constitution damage."
-        quantity: 5
-      - item: Arrow
-        tier: 3
-        name: "+3 Heart Seeker Arrows"
-        description: "Bypasses tier disparity. Inflicts 4x damage on crit."
-      - item: Trinket
-        tier: 1
-        name: "Mirror Marble"
-        description: "This small glass orb, when crushed, creates a temporary illusory duplicate of the holder for 3 rounds."
-      - item: Trinket
-        name: "Miscellaneous items"
-        description: "Glass eye, poisoner's chalice, chess board"
-      - item: Ritual book
-        inscribed_spells:
-          - resistance
-          - acid_dart
-          - light
-          - electricity_dart
-          - repair
-          - detect_magic
-          - summon_mount
-          - charm_person
-          - disguise_self
-          - obscuring_mist
-          - minor_recharge
-          - create_illusionary_image
-          - greater_disguise
-          - blindspot
-          - basic_recharge
-      - item: Scroll of Blindspot
-        tier: 2
-        quantity: 2
-      - item: Scroll of Darkness
-        tier: 2
-      - item: Scroll of Web
-        tier: 2
-      - item: Scroll of Grease
-        tier: 1
-        quantity: 4
-      - item: Scroll of Expeditious Retreat
-        tier: 1
-        quantity: 2
-      - item: Scroll of Create Pit
-        tier: 2
-        quantity: 3
-      - item: Scroll of Blur
-        tier: 2
-      - item: Potion of Darkvision
-        tier: 2
-
-  # =============================================================
-  # 4 — Cottonballs
-  # =============================================================
+    - item: Leather armor
+      tier: 1
+      equipped: true
+    - item: Longbow
+      tier: 1
+      properties:
+      - Emotional
+      name: Wyrd Bow of Myrth
+      equipped: true
+    - item: Dagger
+      equipped: true
+    - item: Cloak
+      tier: 1
+      name: Elven Cloak
+      equipped: true
+      guidance_bonus: 1
+      guidance_attribute: stealth
+    - item: Tattoo of the Fox
+      tier: 1
+      guidance_bonus: 1
+      description: A fox curled behind Lysander's ear and traced down into his hairline,
+        hidden beneath his hair unless someone looks closely. The fox's cunning sharpens
+        his mind, granting a +1 Guidance Bonus to Intelligence. As a tattoo it is
+        always borne and cannot be removed.
+    - item: Circlet of the Boughking
+      equipped: true
+    - item: Trinket
+      name: Orin (Key)
+      description: Unknown properties. A small, tarnished silver key, the kind that
+        might open a simple padlock or shackle. The name 'Orin' is crudely scratched
+        into the bow (handle) as if carved by an unsteady hand. The key is unexpectedly
+        warm to the touch and occasionally pulses with a faint, gentle golden light.
+    - item: Ring
+      name: Petey (Ring)
+      equipped: true
+      description: A simple brass ring shaped like a curled ribbon, slightly tarnished
+        with age. Inside is etched the name 'Petey' in childish scrawl. Sentient,
+        dimensional storage, and can steal items from 10’. It may have additional
+        properties.
+    - item: Ring
+      tier: 2
+      name: Ring of Bound Whimsy
+      description: Allows you to animate an inanimate object once per day for 5 minutes.
+    - item: Trinket
+      name: Tempting Gold Coin
+      description: Anyone who sees the coin feels compelled to possess it. Mind effecting,
+        range 30 feet, and effect lasts 1 minute.
+    - item: Scroll of Obscuring Mist
+      tier: 1
+    - item: Potion of Heal
+      tier: 2
+    - item: Potion of Heal
+      quantity: 4
+      tier: 1
+    - item: Potion of Recharge
+      quantity: 2
+      tier: 1
+    - item: Kerosene
+      quantity: 2
+    - item: Acid jar
+    - item: Vial of Sleep Venom
+      name: Sleeping Death (Poison)
+      description: Injestable poison. Causes unconciousness and appearance of death
+        for 8 to 12 hours.
+    - item: Vial of Krithrak Spider Venom
+      quantity: 6
+    - item: Arrow
+      quantity: 5
+      tier: 2
+      name: Poison Arrows
+      description: Injury poison. Causes moderate constitution damage.
+    - item: Arrow
+      tier: 3
+      name: "+3 Heart Seeker Arrows"
+      description: Bypasses tier disparity. Inflicts 4x damage on crit.
+    - item: Trinket
+      tier: 1
+      name: Mirror Marble
+      description: This small glass orb, when crushed, creates a temporary illusory
+        duplicate of the holder for 3 rounds.
+    - item: Trinket
+      name: Miscellaneous items
+      description: Glass eye, poisoner's chalice, chess board
+    - item: Ritual book
+      inscribed_spells:
+      - resistance
+      - acid_dart
+      - light
+      - electricity_dart
+      - repair
+      - detect_magic
+      - summon_mount
+      - charm_person
+      - disguise_self
+      - obscuring_mist
+      - minor_recharge
+      - create_illusionary_image
+      - greater_disguise
+      - blindspot
+      - basic_recharge
+    - item: Scroll of Blindspot
+      quantity: 2
+      tier: 2
+    - item: Scroll of Darkness
+      tier: 2
+    - item: Scroll of Web
+      tier: 2
+    - item: Scroll of Grease
+      quantity: 4
+      tier: 1
+    - item: Scroll of Expeditious Retreat
+      quantity: 2
+      tier: 1
+    - item: Scroll of Create Pit
+      quantity: 3
+      tier: 2
+    - item: Scroll of Blur
+      tier: 2
+    - item: Potion of Darkvision
+      tier: 2
+    - item: Potion of Jump
+      tier: 1
+    - item: Ring of Shooting Stars
+      tier: 2
+      name: Ring of Shooting Stars
+      equipped: true
   4:
     inventory:
-      - item: Leather armor
-        tier: 1
-        equipped: true
-      - item: Shortbow
-        tier: 1
-        properties:
-          - name: Elemental
-            subtype: Acid
-        equipped: true
-      - item: Drums
-        tier: 1
-        equipped: true
-      - item: Rapier
-      - item: Wand of Benign Transposition
-        tier: 1
-      - item: Wand of Expeditious Excavation
-        tier: 1
-      - item: Pouch
-        name: "Trailmix Bag"
-        description: "A seemingly unremarkable leather pouch of trail rations. It contains an assortment of nuts, berries, and sweets sufficient to feed five people. Every night it is magically refilled."
-      - item: Amulet
-        name: "Alric's Locket"
-        description: "An ordinary looking silver locket"
-        equipped: true
-      - item: Potion of Heal
-        tier: 2
-      - item: Potion of Heal
-        tier: 1
-        quantity: 4
-      - item: Potion of Recharge
-        tier: 1
-        quantity: 2
-      - item: Kerosene
-        quantity: 2
-      - item: Alchemist's fire
-        quantity: 3
-      - item: Acid jar
-      - item: Scroll of Blindspot
-        tier: 2
-        quantity: 2
-      - item: Scroll of Expeditious Retreat
-        tier: 1
-      - item: Ring
-        tier: 3
-        name: "Desna's Whim"
-        description: "Unknown Properties. Can be activated as a reaction to another's check with unpredictable results."
-        equipped: true
-      - item: Scroll of Create Pit
-        tier: 2
-        quantity: 2
-      - item: Scroll of Blur
-        tier: 2
-        quantity: 2
-      - item: Potion of Darkvision
-        tier: 2
-
-  # =============================================================
-  # 40 — Kael
-  # =============================================================
+    - item: Leather armor
+      tier: 1
+      equipped: true
+    - item: Shortbow
+      tier: 1
+      properties:
+      - name: Elemental
+        subtype: Acid
+      equipped: true
+    - item: Drums
+      name: "+1 Drums"
+      equipped: true
+      guidance_bonus: 1
+      guidance_attribute: perform_percussion
+    - item: Rapier
+      equipped: true
+    - item: Wand of Benign Transposition
+      tier: 1
+      equipped: true
+    - item: Wand of Expeditious Excavation
+      tier: 1
+      equipped: true
+    - item: Pouch
+      name: Trailmix Bag
+      equipped: true
+      description: A seemingly unremarkable leather pouch of trail rations. It contains
+        an assortment of nuts, berries, and sweets sufficient to feed five people.
+        Every night it is magically refilled.
+    - item: Amulet
+      name: Alric's Locket
+      equipped: true
+      description: An ordinary looking silver locket
+    - item: Potion of Heal
+      tier: 2
+    - item: Potion of Heal
+      quantity: 4
+      tier: 1
+    - item: Potion of Recharge
+      quantity: 2
+      tier: 1
+    - item: Kerosene
+      quantity: 2
+    - item: Alchemist's fire
+      quantity: 3
+    - item: Acid jar
+    - item: Scroll of Blindspot
+      quantity: 2
+      tier: 2
+    - item: Scroll of Expeditious Retreat
+      tier: 1
+    - item: Kesser's Ring
+      equipped: true
+    - item: Scroll of Create Pit
+      quantity: 2
+      tier: 2
+    - item: Scroll of Blur
+      quantity: 2
+      tier: 2
+    - item: Potion of Darkvision
+      tier: 2
   40:
     inventory:
-      - item: Leather armor
-        tier: 1
-        equipped: true
-      - item: Falchion
-        tier: 1
-        properties:
-          - name: Elemental
-            subtype: Acid
-        equipped: true
-
-  # =============================================================
-  # Imported caravan-ambush enemies (97-112)
-  # =============================================================
+    - item: Leather armor
+      tier: 1
+      equipped: true
+    - item: Falchion
+      tier: 1
+      properties:
+      - name: Elemental
+        subtype: Acid
+      equipped: true
   1097:
-    inventory:
-      - item: Falchion
-        equipped: true
-      - item: Chain shirt
-        tier: 1
-        equipped: true
+    inventory: []
   1099:
-    inventory:
-      - item: Falchion
-        equipped: true
-      - item: Longbow
-      - item: Chain shirt
-        equipped: true
-      - item: Potion of Heal
-        tier: 1
-      - item: Potion of Ablative Barrier
-        tier: 2
+    inventory: []
   1100:
-    inventory:
-      - item: Falchion
-        equipped: true
-      - item: Longbow
-      - item: Chain shirt
-        equipped: true
-      - item: Oil of Arcane Mark
+    inventory: []
   1101:
-    inventory:
-      - item: Falchion
-        equipped: true
-      - item: Longbow
-      - item: Chain shirt
-        tier: 1
-        equipped: true
-      - item: Potion of Delay Poison
-        tier: 2
+    inventory: []
   1102:
-    inventory:
-      - item: Falchion
-        equipped: true
-      - item: Longbow
-      - item: Chain shirt
-        equipped: true
+    inventory: []
   1103:
-    inventory:
-      - item: Falchion
-        equipped: true
-      - item: Longbow
-      - item: Chain shirt
-        equipped: true
-      - item: Potion of Jump
-        tier: 1
+    inventory: []
   1104:
-    inventory:
-      - item: Falchion
-        equipped: true
-      - item: Longbow
-      - item: Chain shirt
-        equipped: true
-      - item: Oil of Arcane Mark
-      - item: Potion of Invigorate
-        tier: 1
+    inventory: []
   1105:
-    inventory:
-      - item: Falchion
-        equipped: true
-      - item: Longbow
-      - item: Chain shirt
-        equipped: true
-      - item: Potion of Spider Climb
-        tier: 2
+    inventory: []
   1106:
-    inventory:
-      - item: Falchion
-        equipped: true
-      - item: Longbow
-      - item: Chain shirt
-        equipped: true
+    inventory: []
   1108:
-    inventory:
-      - item: Whip
-        equipped: true
-      - item: Short sword
-      - item: Leather armor
-        equipped: true
+    inventory: []
   1109:
-    inventory:
-      - item: Whip
-        equipped: true
-      - item: Short sword
-      - item: Leather armor
-        equipped: true
+    inventory: []
   1110:
-    inventory:
-      - item: Falchion
-        equipped: true
-      - item: Breastplate
-        tier: 1
-        equipped: true
+    inventory: []
   1111:
     inventory: []
   1112:
+    inventory: []
+  357:
     inventory:
-      - item: Falchion
-        equipped: true
-      - item: Longbow
-      - item: Chain shirt
-        equipped: true
-      - item: Oil of Light
-      - item: Oil of Goodberry
-        tier: 1
+    - item: Bracer
+      tier: 2
+      name: Bracers of the Overseer
+      equipped: true
+      description: Grants an armor bonus to an unarmored or robed wearer, reducing
+        the TN to be hit.
+    - item: Quarterstaff
+      tier: 2
+      name: The Overseer's Rod
+      equipped: true
+      description: A black rod that holds charges. Discharge to cast hold person or
+        loose a bolt of force. Recharges slowly.
+    - item: Ring
+      tier: 1
+      name: Ring of Parry
+      equipped: true
+      description: Allows a single free parry once per day.
+    - item: Trinket
+      tier: 1
+      name: Slaver's Luckstone
+      guidance_bonus: 1
+      description: "+1 on all saving throws while carried."
+    - item: Amulet
+      name: Brand of Mortheth
+      equipped: true
+      description: An overseer's badge of office and unholy symbol of Mortheth. Marks
+        the bearer's authority over the fort.
+    - item: Trinket
+      name: Overseer's Strongbox Key
+      description: Opens the overseer's private strongbox and quarters.
+    - item: Potion of Heal
+      quantity: 2
+      tier: 2
+    - item: Potion of Blindspot
+      tier: 2
+  358:
+    inventory:
+    - item: Plate mail
+      equipped: true
+    - item: Battleaxe
+      tier: 1
+      name: Icar's Axe
+      equipped: true
+      description: A plain, well-balanced +1 battleaxe worn smooth with use.
+    - item: Amulet
+      tier: 2
+      name: Periapt of Proof Against Poison
+      equipped: true
+      description: The wearer is immune to poison. Icar relies on it.
+    - item: Trinket
+      name: Key to the Commander's Quarters
+      description: Opens Icar's quarters and the closet where his cache is kept. The
+        duplicate key is hidden on the door lintel above.
+    - item: Potion of Heal
+      quantity: 2
+      tier: 2
+  359:
+    inventory:
+    - item: Greataxe
+      tier: 1
+      name: The Cleaver
+      equipped: true
+      description: An oversized headsman's axe. Crude, enormous, and stained.
+    - item: Leather armor
+      name: Stitched Hide
+      equipped: true
+      description: Crude hide and scrap-leather lashed over the ogre's frame.
+  361:
+    inventory:
+    - item: Breastplate
+      tier: 1
+      equipped: true
+    - item: Battleaxe
+      equipped: true
+    - item: Longbow
+    - item: Trinket
+      tier: 1
+      name: Iron Ring of Keys
+      equipped: true
+      description: A heavy iron loop of keys that unlocks the fort's gates, interior
+        doors, and the slave-cell shackles. The single most useful thing on his belt.
+    - item: Potion of Heal
+      tier: 1
+  362:
+    inventory:
+    - item: Chain shirt
+      tier: 1
+      equipped: true
+    - item: Falchion
+      equipped: true
+    - item: Longbow
+    - item: Potion of Heal
+      tier: 1
+  363:
+    inventory:
+    - item: Leather armor
+      equipped: true
+    - item: Quarterstaff
+      tier: 1
+      name: Fetish Stick
+      equipped: true
+      description: A gnarled staff hung with bones, teeth, and scraps of skin.
+    - item: Amulet
+      name: Bone Idol of Mortheth
+      equipped: true
+      description: A crude carved idol serving as the witch-doctor's unholy symbol.
+    - item: Trinket
+      name: Curse Fetish
+      description: A knotted fetish of hair and bone the witch-doctor uses to focus
+        a hex.
+    - item: Scroll of Spiritual Weapon
+      quantity: 2
+      tier: 2
+    - item: Scroll of Ward
+      quantity: 2
+      tier: 1
+    - item: Potion of Heal
+      tier: 2
+  2025:
+    inventory:
+    - item: Quarterstaff
+      name: Noble's Cane
+      equipped: true
+      description: A lacquered walking cane that doubles as Caelian's arcane focus.
+    - item: Dagger
+      equipped: true
+    - item: Cloak
+      name: Fine Traveling Cloak
+      equipped: true
+    - item: Ring
+      name: Signet of House Soliastres
+      equipped: true
+      description: A noble's signet — part of the disguise, not heirloom magic.
+    - item: Trinket
+      name: Forged Letters of Nobility
+      description: Counterfeit credentials presenting Caelian as a landless noble
+        of House Soliastres.
+    - item: Ritual book
+      name: Caelian's Spellbook
+      description: A slim, well-kept spellbook leaning heavily on divinations.
+    - item: Potion of Heal
+      quantity: 2
+      tier: 1
+    - item: Potion of Expeditious Retreat
+      tier: 1
+    - item: Scroll of Blindspot
+      tier: 2
+    - item: Gem
+      quantity: 2
+      name: Gemstone
+      value_in_gold: 500
+    - item: Potion of Delay Poison
+      tier: 1
+  2032:
+    inventory:
+    - item: Hide armor
+      equipped: true
+    - item: Hand axe
+      equipped: true
+    - item: Shortbow
+      equipped: true
+    - item: Arrow
+      quantity: 20
+  2033:
+    inventory:
+    - item: Leather armor
+      equipped: true
+    - item: Club
+      equipped: true
+    - item: Shortbow
+      equipped: true
+    - item: Arrow
+      quantity: 20
+    - item: Trinket
+      name: Tanned pelt
+  2034:
+    inventory:
+    - item: Leather armor
+      equipped: true
+    - item: Hand axe
+      equipped: true
+    - item: Shortbow
+      equipped: true
+    - item: Arrow
+      quantity: 20
+    - item: Trinket
+      name: Bone-and-feather charm
+  2035:
+    inventory:
+    - item: Hide armor
+      equipped: true
+    - item: Spear
+      equipped: true
+    - item: Sling
+      equipped: true
+    - item: Stone
+      quantity: 20
+    - item: Trinket
+      name: Bone-and-feather charm
+  2036:
+    inventory:
+    - item: Hide armor
+      equipped: true
+    - item: Hand axe
+      equipped: true
+    - item: Trinket
+      name: Bone-and-feather charm
+party:
+  inventory:
+  - item: Falchion
+    quantity: 11
+  - item: Breastplate
+    tier: 1
+  - item: Gem
+    quantity: 7
+    name: Gemstone
+    value_in_gold: 500
+  - item: Whip
+    quantity: 2
+  - item: Short sword
+    quantity: 2
+  - item: Leather armor
+    quantity: 2
+  - item: Key chain
+    quantity: 2
+  - item: Longbow
+    quantity: 9
+  - item: Chain shirt
+    quantity: 2
+    tier: 1
+  - item: Chain shirt
+    quantity: 8
+  - item: Oil of Arcane Mark
+    quantity: 2
+  - item: Potion of Invigorate
+    tier: 1
+  - item: Potion of Heal
+    tier: 1
+  - item: Oil of Light
+  - item: Oil of Goodberry
+    tier: 1

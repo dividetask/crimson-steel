@@ -2,182 +2,25 @@
   "creatures": {
     "3": {
       "hp_damage": {
-        "minor": 3
+        "minor": 1
       },
-      "magic_toxicity": 4,
-      "afflictions": {
-        "bleeding": {
-          "potency": 11,
-          "inflicting_tier": 2,
-          "next_resolution_round": null
-        }
-      }
-    },
-    "1110": {
-      "hp_damage": {
-        "minor": 27,
-        "moderate": 11
-      },
-      "afflictions": {
-        "bleeding": {
-          "potency": 67,
-          "inflicting_tier": 3,
-          "next_resolution_round": null
-        }
-      }
-    },
-    "1109": {
-      "hp_damage": {
-        "minor": 7,
-        "moderate": 7,
-        "major": 5
-      },
-      "afflictions": {
-        "bleeding": {
-          "potency": 26,
-          "inflicting_tier": 1,
-          "next_resolution_round": null
-        }
-      }
-    },
-    "1101": {
-      "hp_damage": {
-        "minor": 6,
-        "moderate": 1
-      },
-      "afflictions": {
-        "bleeding": {
-          "potency": 3,
-          "inflicting_tier": 0,
-          "next_resolution_round": null
-        }
-      }
+      "magic_toxicity": 0
     },
     "2": {
       "hp_damage": {
-        "minor": 11,
+        "minor": 9,
         "moderate": 4
       },
-      "magic_toxicity": 8,
+      "magic_toxicity": 4,
       "afflictions": {
-        "bleeding": {
-          "potency": 9,
-          "inflicting_tier": 2,
-          "next_resolution_round": null
-        }
-      }
-    },
-    "4": {
-      "mana_spent": 1
-    },
-    "1103": {
-      "hp_damage": {
-        "minor": 9,
-        "moderate": 4,
-        "major": 2
-      },
-      "afflictions": {
-        "bleeding": {
-          "potency": 9,
-          "inflicting_tier": 1,
-          "next_resolution_round": null
-        }
-      }
-    },
-    "1104": {
-      "hp_damage": {
-        "minor": 10,
-        "moderate": 4,
-        "major": 1
-      },
-      "afflictions": {
-        "bleeding": {
-          "potency": 7,
-          "inflicting_tier": 1,
-          "next_resolution_round": null
-        }
-      }
-    },
-    "1102": {
-      "hp_damage": {
-        "minor": 6,
-        "moderate": 4,
-        "major": 1
-      },
-      "afflictions": {
-        "bleeding": {
-          "potency": 11,
-          "inflicting_tier": 1,
-          "next_resolution_round": null
-        }
-      }
-    },
-    "1099": {
-      "hp_damage": {
-        "minor": 5,
-        "moderate": 5,
-        "major": 6
-      },
-      "afflictions": {
-        "bleeding": {
-          "potency": 23,
-          "inflicting_tier": 1,
-          "next_resolution_round": null
-        }
       }
     },
     "1": {
       "hp_damage": {
         "moderate": 5
       },
-      "mana_spent": 11,
-      "magic_toxicity": 9
-    },
-    "1105": {
-      "hp_damage": {
-        "minor": 6,
-        "moderate": 5,
-        "major": 7
-      },
-      "afflictions": {
-        "bleeding": {
-          "potency": 21,
-          "inflicting_tier": 1,
-          "next_resolution_round": null
-        }
-      }
-    },
-    "1112": {
-      "hp_damage": {
-        "minor": 23,
-        "moderate": 4,
-        "major": 3
-      },
-      "afflictions": {
-        "bleeding": {
-          "potency": 9,
-          "inflicting_tier": 1,
-          "next_resolution_round": null
-        }
-      }
-    },
-    "1111": {
-      "hp_damage": {
-        "minor": 12
-      }
-    },
-    "1108": {
-      "hp_damage": {
-        "minor": 7,
-        "moderate": 5
-      },
-      "afflictions": {
-        "bleeding": {
-          "potency": 10,
-          "inflicting_tier": 1,
-          "next_resolution_round": null
-        }
-      }
+      "mana_spent": 4,
+      "magic_toxicity": 4
     }
   }
 }

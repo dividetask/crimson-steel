@@ -20,7 +20,7 @@ characters:
   - id: 100
     name: Pirate
     metadata:
-      creature_token: "/images/icons/human token.webp"
+      creature_token: "/images/icons/human token.png"
     group: enemy
     tags: [enemy_template, category:general]
     race: human
@@ -47,7 +47,7 @@ characters:
   - id: 101
     name: Orc Patrol
     metadata:
-      creature_token: "/images/icons/orc token.webp"
+      creature_token: "/images/icons/orc token.png"
     group: enemy
     tags: [enemy_template, category:slave_lords_caravan]
     race: orc
@@ -63,7 +63,7 @@ characters:
   - id: 102
     name: Orc Patrol Captain
     metadata:
-      creature_token: "/images/icons/orc token.webp"
+      creature_token: "/images/icons/orc token.png"
     group: enemy
     tags: [enemy_template, category:slave_lords_caravan]
     race: orc
@@ -79,7 +79,7 @@ characters:
   - id: 103
     name: Half-Orc Soldier
     metadata:
-      creature_token: "/images/icons/orc rogue.webp"
+      creature_token: "/images/icons/orc rogue.png"
     group: enemy
     tags: [enemy_template, category:slave_lords_caravan]
     race: half_orc
@@ -95,7 +95,7 @@ characters:
   - id: 104
     name: Slave
     metadata:
-      creature_token: "/images/icons/slaves token.webp"
+      creature_token: "/images/icons/slaves token.png"
     group: enemy
     tags: [enemy_template, category:slave_lords_caravan, noncombatant]
     race: human
@@ -104,13 +104,13 @@ characters:
     advancement:
       classes:
         commoner:
-          level: 0
+          level: 1
           skills: []
 
   - id: 105
     name: Wardog
     metadata:
-      creature_token: "/images/icons/war dog token.webp"
+      creature_token: "/images/icons/war dog token.png"
     group: enemy
     tags: [enemy_template, category:slave_lords_caravan]
     race: canine
@@ -125,7 +125,7 @@ characters:
   - id: 106
     name: Stockade Guard
     metadata:
-      creature_token: "/images/icons/orc token.webp"
+      creature_token: "/images/icons/orc token.png"
     group: enemy
     tags: [enemy_template, category:slave_lords_stockade]
     race: orc
@@ -141,7 +141,7 @@ characters:
   - id: 107
     name: Cleric Slaver
     metadata:
-      creature_token: "/images/icons/human token.webp"
+      creature_token: "/images/icons/human token.png"
       deity: Mortheth
     group: enemy
     tags: [enemy_template, category:slave_lords_temple]
@@ -161,7 +161,7 @@ characters:
   - id: 108
     name: Half-Orc Veteran
     metadata:
-      creature_token: "/images/icons/orc rogue.webp"
+      creature_token: "/images/icons/orc rogue.png"
     group: enemy
     tags: [enemy_template, category:slave_lords_caravan]
     race: half_orc
@@ -177,7 +177,7 @@ characters:
   - id: 109
     name: Orc Handler
     metadata:
-      creature_token: "/images/icons/orc token.webp"
+      creature_token: "/images/icons/orc token.png"
     group: enemy
     tags: [enemy_template, category:slave_lords_caravan]
     race: orc

@@ -1,8 +1,8 @@
 {
   "campaign_name": "",
   "timestamp": {
-    "day_index": 0,
-    "round_of_day": 0
+    "day_index": 1,
+    "round_of_day": 12200
   },
   "current_chapter": 5,
   "chapters": [
@@ -836,7 +836,7 @@
       "title": "",
       "public_description": "Alric's wife. Elven woman with silver eyes. Was last seen wearing a dark crimson cloak over black leather and a silver necklace of a wasp. Worshiper of Callistria",
       "dm_description": "",
-      "image": "/images/scene/1777591419-96d364db-Virelle.webp",
+      "image": "/images/scene/1777591419-96d364db-Virelle.png",
       "shared": true,
       "hidden_from": [
 
@@ -844,7 +844,7 @@
       "owner_id": null,
       "active": false,
       "creature_id": 2011,
-      "creature_token": "/images/scene/1777591419-96d364db-Virelle.webp",
+      "creature_token": "/images/scene/1777591419-96d364db-Virelle.png",
       "tier": null
     },
     {
@@ -856,7 +856,7 @@
       "title": "",
       "public_description": "Alric and Virelle's friend. Virelle didn't seem to like her much. Sylwen is a striking elf with angular features and long silver hair that flows like a silken veil. Her lavender eyes glow faintly in low light, and her skin carries an ethereal, almost translucent quality. She is of average elven height, graceful and slender, last seen wearing a deep violet robe adorned with silver embroidery. Her movements are fluid, and she seems to always be poised.",
       "dm_description": "",
-      "image": "/images/scene/1777606231-58937c6b-Sylwen.webp",
+      "image": "/images/scene/1777606231-58937c6b-Sylwen.png",
       "shared": true,
       "hidden_from": [
 
@@ -864,7 +864,7 @@
       "owner_id": null,
       "active": false,
       "creature_id": 2012,
-      "creature_token": "/images/scene/1777606231-58937c6b-Sylwen.webp",
+      "creature_token": "/images/scene/1777606231-58937c6b-Sylwen.png",
       "tier": null
     },
     {
@@ -876,7 +876,7 @@
       "title": "",
       "public_description": "Alric is slender, with sharp elven features. He dresses in elegant green and gold finery, embroidered with thorn motifs and adorned with tiny bells that chime softly with his movements. Soft leather boots rise to mid-calf, supple and well-made. A silver chain rests just beneath his collar, mostly hidden. He carries a slim cane—clearly decorative, but possibly more—and a silver ring set with a black opal gleams whenever it catches the light. He never seems to give a straight answer; often speaks in rhymes or riddles. Seems constantly amused.",
       "dm_description": "",
-      "image": "/images/scene/1777573482-a0132274-ALdric.webp",
+      "image": "/images/scene/1777573482-a0132274-ALdric.png",
       "shared": true,
       "hidden_from": [
 
@@ -884,7 +884,7 @@
       "owner_id": null,
       "active": false,
       "creature_id": 2013,
-      "creature_token": "/images/scene/1777573482-a0132274-ALdric.webp",
+      "creature_token": "/images/scene/1777573482-a0132274-ALdric.png",
       "tier": null
     },
     {
@@ -936,7 +936,7 @@
       "title": "",
       "public_description": "Eladrin Undead Skeleton Mage. A gaunt, skeletal figure clad in bark-wrapped chainmail, with a tattered cloak of autumn leaves and a massive stag skull fused to her own. Her breath fogs unnaturally warm even in the chill air.",
       "dm_description": "",
-      "image": "/images/scene/1777490469-29bd66ec-Harkon.webp",
+      "image": "/images/scene/1777490469-29bd66ec-Harkon.png",
       "shared": true,
       "hidden_from": [
 
@@ -944,7 +944,7 @@
       "owner_id": null,
       "active": false,
       "creature_id": 2020,
-      "creature_token": "/images/scene/1777490469-29bd66ec-Harkon.webp",
+      "creature_token": "/images/scene/1777490469-29bd66ec-Harkon.png",
       "tier": null
     },
     {
@@ -1056,7 +1056,7 @@
       "title": "",
       "public_description": "Adventurer, early 30s, barbarian",
       "dm_description": "",
-      "image": "/images/scene/1777571926-97f95988-Kael.webp",
+      "image": "/images/scene/1777571926-97f95988-Kael.png",
       "shared": true,
       "hidden_from": [
 
@@ -1064,7 +1064,7 @@
       "owner_id": null,
       "active": true,
       "creature_id": 40,
-      "creature_token": "/images/scene/1777571926-97f95988-Kael.webp",
+      "creature_token": "/images/scene/1777571926-97f95988-Kael.png",
       "tier": null
     },
     {
@@ -1076,7 +1076,7 @@
       "title": "",
       "public_description": "(missing) Duchess of Ironford region, lives in Sorinsk, brother is sick with lycanthropy. Kidnapped by Vrakka's Hand",
       "dm_description": "",
-      "image": "/images/scene/1777571218-0a24931c-LadyHawthorne.webp",
+      "image": "/images/scene/1777571218-0a24931c-LadyHawthorne.png",
       "shared": true,
       "hidden_from": [
 
@@ -1084,7 +1084,7 @@
       "owner_id": null,
       "active": true,
       "creature_id": 2021,
-      "creature_token": "/images/scene/1777571218-0a24931c-LadyHawthorne.webp",
+      "creature_token": "/images/scene/1777571218-0a24931c-LadyHawthorne.png",
       "tier": null
     },
     {
@@ -1096,7 +1096,7 @@
       "title": "",
       "public_description": "(missing) Brother of Selara Hawthorne, sick with lycanthropy. Kidnapped by Vrakka's Hand",
       "dm_description": "",
-      "image": "/images/scene/1777571432-97150d94-VarenHawthorne.webp",
+      "image": "/images/scene/1777571432-97150d94-VarenHawthorne.png",
       "shared": true,
       "hidden_from": [
 
@@ -1104,7 +1104,7 @@
       "owner_id": null,
       "active": true,
       "creature_id": 2022,
-      "creature_token": "/images/scene/1777571432-97150d94-VarenHawthorne.webp",
+      "creature_token": "/images/scene/1777571432-97150d94-VarenHawthorne.png",
       "tier": null
     },
     {
@@ -1116,7 +1116,7 @@
       "title": "",
       "public_description": "Half orc slaver, leader of Vrakka's hand",
       "dm_description": "",
-      "image": "/images/scene/1777572332-630d0cc3-Vrakka.webp",
+      "image": "/images/scene/1777572332-630d0cc3-Vrakka.png",
       "shared": true,
       "hidden_from": [
 
@@ -1124,7 +1124,7 @@
       "owner_id": null,
       "active": true,
       "creature_id": 2024,
-      "creature_token": "/images/scene/1777572332-630d0cc3-Vrakka.webp",
+      "creature_token": "/images/scene/1777572332-630d0cc3-Vrakka.png",
       "tier": null
     },
     {
@@ -1136,7 +1136,7 @@
       "title": "",
       "public_description": "Elven noble with some magical training. Drav informed him of you and where you were hiding. He offered to help you in exchange for land and a title under Lady Hawthorne.",
       "dm_description": "Posing as a landless noble / minor wizard (divination + a few low combat spells). Came from the temple's doppelganger nest. Core trait: he reads surface thoughts — assume he knows whatever's been thought near him.\r\n\r\nWhat he already knows\r\nPetey is a sentient ring with dimensional storage and a sticky-fingers problem.\r\nThe party is walking around with a ridiculous arsenal of artifacts\r\nHe'll likely learn they carry a slip of paper bearing a true name of a devil/demon/fey — usable in Planar Binding. This is the jackpot in his eyes.\r\n\r\nThe party dangled a noble title + land for helping rescue Hawthorne. To a \"landless noble,\" that's irresistible → he'll actually help and protect them in the near term, because the reward and the loot both require them alive and successful.\r\n\r\nIngratiating, useful, always says the reassuring thing (he's reading them). Volunteers \"divinations\" that are really laundered mind-reading — handy, and a way to steer decisions.\r\nWorks the personality-items: flatters Petey, feeds Narn a bloody tale, plays the gracious patron. Tries to become the person Petey likes (dangerous — Petey may \"gift\" him things).\r\n\r\nMight try to get Silovan killed",
-      "image": "/images/scene/1777490391-331dd9fb-Caelian_di_Soliastres.webp",
+      "image": "/images/scene/1777490391-331dd9fb-Caelian_di_Soliastres.png",
       "shared": true,
       "hidden_from": [
 
@@ -1144,7 +1144,7 @@
       "owner_id": null,
       "active": true,
       "creature_id": 2025,
-      "creature_token": "/images/scene/1777490391-331dd9fb-Caelian_di_Soliastres.webp",
+      "creature_token": "/images/scene/1777490391-331dd9fb-Caelian_di_Soliastres.png",
       "tier": null
     },
     {
@@ -1156,7 +1156,7 @@
       "title": "",
       "public_description": "(missing) 3/4 wood elf, 1/4 orc, ranger/druid, Silovan's agent who is helping search for his employeers",
       "dm_description": "",
-      "image": "/images/scene/1777571828-cc7cdbc5-Theron_Ashfeld.webp",
+      "image": "/images/scene/1777571828-cc7cdbc5-Theron_Ashfeld.png",
       "shared": true,
       "hidden_from": [
 
@@ -1164,7 +1164,7 @@
       "owner_id": null,
       "active": true,
       "creature_id": 2026,
-      "creature_token": "/images/scene/1777571828-cc7cdbc5-Theron_Ashfeld.webp",
+      "creature_token": "/images/scene/1777571828-cc7cdbc5-Theron_Ashfeld.png",
       "tier": null
     },
     {
@@ -1196,7 +1196,7 @@
       "title": "",
       "public_description": "Mercenary sellsword from the eastern provinces. Met at the slaver's temple where he agreed to help you escape in exchange for his life. He sheltered you in the city while you recovered from your injuries.",
       "dm_description": "Doppleganger now disguised as Caelian di Soliastres",
-      "image": "/images/scene/1777490163-e4878a18-Drav.webp",
+      "image": "/images/scene/1777490163-e4878a18-Drav.png",
       "shared": true,
       "hidden_from": [
 
@@ -1204,7 +1204,7 @@
       "owner_id": null,
       "active": false,
       "creature_id": 2030,
-      "creature_token": "/images/scene/1777490163-e4878a18-Drav.webp",
+      "creature_token": "/images/scene/1777490163-e4878a18-Drav.png",
       "tier": null
     },
     {
@@ -1216,7 +1216,7 @@
       "title": "",
       "public_description": "(missing) Kael's companion, female rogue, understands Thieves' Cant, spoke with Lysander, open to partnership with Olga. Kidnapped by Vrakka's Hand",
       "dm_description": "",
-      "image": "/images/scene/1777591489-9c85dd74-Varen.webp",
+      "image": "/images/scene/1777591489-9c85dd74-Varen.png",
       "shared": true,
       "hidden_from": [
 
@@ -1224,7 +1224,7 @@
       "owner_id": null,
       "active": true,
       "creature_id": 2031,
-      "creature_token": "/images/scene/1777591489-9c85dd74-Varen.webp",
+      "creature_token": "/images/scene/1777591489-9c85dd74-Varen.png",
       "tier": null
     },
     {
@@ -1248,23 +1248,6 @@
       "tier": null
     },
     {
-      "id": 70,
-      "entry_type": "note",
-      "chapter": 5,
-      "notes_position": 70,
-      "scene_position": 1,
-      "title": " Caravan Survivors",
-      "public_description": "",
-      "dm_description": "Knowledge is tiered. Grunts know the road; leaders know the cargo. Nobody low-level knows where Hawthorne ultimately went — only that she was \"moved ahead.\"\r\n\r\nRenzo di Calvo — Merchant (talkative, cowardly, self-preserving)\r\nFolds fast under any real threat; will trade info for his life without loyalty.\r\nKnows: the cargo manifest and that \"the ransom-lady\" was forwarded ahead under heavy escort before the caravan left — flushed out early because intruders hit the temple. Knows the fort is the next handoff point, not the final stop. Can name Koi as the buyer and that payment runs through the fort's overseer.\r\nCarries (if not looted): the route map, a strongbox key, a slaver toll-token/signet.\r\n\r\nVurgan — Interpreter, half-orc (pragmatic, survivor, oddly chatty)\r\nNot loyal to the slavers — a hired tongue. Talks to stay useful/alive. Sardonic.\r\nKnows: the toll arrangement with the hill tribes (goblins, gnolls, flinds) and how to bluff through — the passwords, the customary toll, which tribe holds which stretch. This is the party's golden ticket through the wilderness.\r\nWill guide them for survival's sake but is never trustworthy — flips to the slavers' side the instant it's safer.\r\n\r\nPetra Kovin — Slave Handler (resentful, bitter, leaks under pressure)\r\nHates the work, hates her bosses; bitterness makes her talk.\r\nKnows: which named prisoners came through and where they're held now — confirms Silovan (held for interrogation, not sale) and Doran (bulk stock, possibly to be sold to a visiting merchant) are at the fort. Confirms Hawthorne did not come with this caravan.\r\n\r\nThe Cleric — STONEWALL. Fanatic, won't break, may bait/lie/curse them. Use for contrast — set expectations that not everyone talks.\r\nThe 6 soldiers / 2 veterans know only road-and-toll basics (Vurgan's info, less detail).",
-      "image": null,
-      "shared": false,
-      "hidden_from": [
-
-      ],
-      "owner_id": null,
-      "active": true
-    },
-    {
       "id": 71,
       "entry_type": "note",
       "chapter": 5,
@@ -1274,7 +1257,7 @@
       "public_description": "Approach: small stockade atop a steep hill, commanding the countryside. Surrounded by a warding ditch (20 ft wide, 10 ft deep). Only access: a road winding from the north through a narrow valley to a drawbridge.",
       "dm_description": "Walls: stone curtain wall at the drawbridge (35 ft, manned parapet). Earthen rampart + wooden stockade on W/S/E sides. Outer walls spiked downward to stop climbers. Guarded wall-walk all around.\r\n\r\nInside: open courtyard → 4-story gatehouse (massive, defensible all sides) → U-shaped stone keep with an enclosed garden. Dungeon level below (where prisoners/cells are). Filthy, vermin-infested, partly fire-scarred from a past sacking — repairs are crude (exploitable weak points).\r\n\r\nGarrison leaders\r\nOverseer / minor slave-lord — runs the fort, cruel, a fighter-mage. Suggest reskinning as Lucian de Sombra (your Koi magic-user agent, Tier 3).\r\nFort commander + his ogre second.\r\nBlackthorn — ogre mage, special agent of the higher council, runs the dungeon. Reskin as a Koi enforcer.\r\nTwo humanoid clerics (goblin witch-doctor, hobgoblin shaman) — roam as wandering encounters.\r\nGatehouse captain + half-orc lieutenant — where caught intruders are dragged for interrogation.\r\n\r\nAlarm & defense (defensive/delaying posture):\r\nGong → upper fort alerted end of that turn. Shout → next turn. Dungeon alerts one turn after the fort.\r\nOnce alerted: barracks guards take 1 turn to arm, then block ground entrances; wall guards lay down missile fire. No one found asleep/unarmed.\r\nIf the party retreats and returns: defenses strengthened, ambushes set. (They've already tipped the operation by destroying the caravan — consider the fort mildly pre-warned.)",
       "image": null,
-      "shared": false,
+      "shared": true,
       "hidden_from": [
 
       ],
@@ -1288,8 +1271,8 @@
       "notes_position": 72,
       "scene_position": 3,
       "title": "Journey to the Fort",
-      "public_description": "The fort is several more days south through the Drachensgrab hills.",
-      "dm_description": "Daily wilderness encounter check (roll once per travel day):\r\n\r\nHumanoid patrol (most common) — toll/bluff opportunity.\r\nOrc raiding party — hostile; the hired half-orc guide fights orcs to the death (they'd flay him as a renegade).\r\nHumanoid scout / wildman scout spotted (they're being watched regardless — assume the tribes track their passage).\r\nRain / no encounter.",
+      "public_description": "You traveled for 2 more days south and are now in the Drachensgrab hills. A child snuck into your camp and poisoned your stew. Cottonballs heard him, and you found the tracks to your stew. Afterwards Caelian forced the Cleric captive to drink the soup confirming it was poisoned with a sleeping agent.",
+      "dm_description": "",
       "image": null,
       "shared": true,
       "hidden_from": [
@@ -1299,15 +1282,219 @@
       "active": true
     },
     {
-      "id": 73,
+      "id": 74,
       "entry_type": "note",
       "chapter": 5,
-      "notes_position": 73,
-      "scene_position": 69,
-      "title": "Skip the Fort",
-      "public_description": "",
-      "dm_description": "The big problem: the fort is the gatekeeper of the onward route. The way into the hidden valley/stronghold is guarded knowledge — caravans know it and won't share, and the looted route map only goes as far as the fort. Skip the fort and they're advancing without directions.\r\n\r\nHow they could still find it (pick one, or none and let them stall):\r\n\r\nTail a shipment. The fort periodically forwards \"special cargo\" onward. Hide and follow the next escort leaving the fort → bypass the assault and get led to the secret route. The clean skip (see below).\r\nSqueeze an escaped slave / scout. A fleeing slave can give the general direction only — not the actual entrance.\r\nThe doppelganger's \"divinations.\" Available, plausible, and exactly the kind of thing he'd offer — and exactly the kind of thing he'd fake to steer them. High risk.\r\nWithout any of these: dead ends, lost days, and the Hawthorne clock burning anyway.",
+      "notes_position": 74,
+      "scene_position": 70,
+      "title": "Wildmen's Quandary",
+      "public_description": "A small tribe of wild humans clings to life in the Drachensgrab hills, hunted by the humanoids as fair game. A humanoid tribe has captured most of their women, children, and elders, and a vile religious ceremony is approaching — the captives die unless freed soon. The wildmen assumed you were with them and tried to poison you. Lysander convinced them that you were friendly.",
+      "dm_description": "",
       "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 75,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 75,
+      "scene_position": 71,
+      "title": "Wildmen of Note",
+      "public_description": "",
+      "dm_description": "Chieftain Morag (Tier ~1; CG hunter-chief) — desperate, proud leader. A capable tracker and warrior (surprise, bonus vs. giant-kin), but his band is too few to assault the humanoids head-on. Give him a personal stake: name one captive his own — e.g., his daughter Yorga among those taken — so the clock is personal, not abstract.\r\n\r\nWitch Doctor Kotto (Tier ~1; NG cleric-mage) — the brains of the tribe and the architect of the capture plan. Spell kit worth knowing: invisibility, scare, ventriloquism, push, affect normal fires, light, speak with animals, chant, cure light wounds (x2). He's the one who drugs and disguises; in a fight he's support, not a bruiser.\r\n\r\nThe Captives — the majority of the tribe's non-hunters, held in the humanoid village awaiting the ceremony. The emotional core and the ticking clock. Naming two or three (a mother, a small child, the chief's daughter) makes the rescue land.\r\n\r\nThe Camp Remnant — back at the wildmen camp: two young children and one aged crone, nearly defenseless. Underlines how close to extinction the tribe is.\r\n\r\nThe Humanoid Captors — whichever tribe holds the territory the party is in: goblins, gnolls, or flinds. Their village (and chief) is the raid target. Pick the tribe by where the encounter lands and give the chief a name for the raid — a gnoll pack-lord or goblin king (Tier 1–2) presiding over the coming ceremony.\r\n\r\nThe Wildman Scout — first contact for many paths: a lone human spotted spying, who flees the instant he's seen. He's the tribe's eyes, reporting whether the party behaves like slavers or like something else.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 78,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 78,
+      "scene_position": 74,
+      "title": "Kesser Reversal Table",
+      "public_description": "  die: 10\r\n  entries:\r\n    1: Disaster: \"Channel Successes are added or subtracted, whichever is worse for the cleric, to all checks.\"\r\n    2: Backfire: \"Attack causes a magical explosion. The damage dealt is dealt again to all creatures within 30'. A Charisma check against Channel Successes can reduce the damage taken by half.\"\r\n    3: Sympathy\r\n      effect: \"Both attacker, channeler, and target take the attack's damage in full. Channeler can choose to increase or decrease damage by Channel Successes but must make the same choice for all affected creatures.\"\r\n    4: Counter: \"The target gets a free weapon attack after this attack resolves with starting successes equal to Channel Successes.\"\r\n    5: Wild Deflection: \"Attack changes target to a random creature in range instead — channeler picks if ties.\"\r\n    6: Reversal: \"Attacker and target swap tiers and dice for the attack.\"\r\n    7: Surprise: \"Target is flatfooted for this attack and all dice spent on defence are lost. Channeler can choose to increase or reduce damage dealt by Channel Successes.\"\r\n    8: Naked: \"Attacker's sword and target's armor teleport to a random square within 30'. Both gain a Charisma save against Channel Successes to resist. If a weapon teleports, the attack still resolves with a natural attack instead.\"\r\n    9: Lucky Break: \"All creatures gain a luck bonus or penalty on their roll equal to Channel Successes.\"\r\n    10: Crit: \"Channel Successes are added or subtracted, whichever is best for the channeler, to all checks.\"",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 79,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 79,
+      "scene_position": 75,
+      "title": "Caravan Ambush",
+      "public_description": "Caelian di Soliastres led you to a slave caravan. The voyage took 3 days and you successfully ambushed them. The cleric leader was uncooperative, but Caelian believed he could still provide information. You agree to keep him alive but slaughtered the rest of the crew. ",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 80,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 80,
+      "scene_position": 76,
+      "title": " The Escaped Slave",
+      "public_description": "As the party comes within sight of the fort, they spot a lone figure getting out — scrambling down a rope from a high window in the curtain wall's upper west stretch, dropping past the ditch, and bolting.",
+      "dm_description": "”I escaped by hiding in the courtyard after the caravan arrived. I was not\r\ncounted, and so after waiting for darkness, I worked my way to the outer wall. There I found rope and clambered down from the second story. I know little of the defenses, my friends, but I do know that hobgoblins are many within the stockade, and some weird snuffling creature helps them guard the walls. It almost caught me. 1 could hear it’s snuffling noises as it came nearer and nearer. A wind came up, though, and the moan of\r\nit screened out the snuffling noises. When the wind died down, I could hear nothing. It must have been the providence of the gods that I was not caught then.”\r\n\r\nWhat he gives (let it come out in fragments):\r\n\r\n\r\nThe upper west wing is sealed and the garrison won't enter it — they think it's haunted. There's a window you can rope up to, and stairs down from it into the courtyard. (The bypass.)\r\nA warning baked into his trauma: the stairs are rigged — a flash that blinds, then glass everywhere and people falling down the steps. (The glass-globe trap — now fair-warned.)\r\n\"Something's up there.\" Cold, moaning, shadows of men fighting. He won't go back. (The haunt, Jon — foreshadowed, not explained.)\r\nIncidental fort color: the mud by the gate (\"don't cross the middle\"), the war dogs, that slaves get marched out in work details (seeds the disguise-exit idea).",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 81,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 81,
+      "scene_position": 77,
+      "title": "Drawbridge & Outer Gate",
+      "public_description": "The road claws up the last of the hill and dead-ends at a deep ditch. Across it, a raised drawbridge and a lowered portcullis seal a stone gate-tower thirty-five feet high, its parapet toothed with downward spikes. Arrow slits watch the road every few paces.\r\n\r\nDitch: 20 ft wide, 10 ft deep, rings the whole fort.\r\n\r\nGate: drawbridge up, portcullis down. ",
+      "dm_description": "The winches are inside (area 4), triple-locked; keys on a barracks sergeant (8b west).\r\nBypassed entirely by the haunted-wing route (Zone 2) or talked through with the slaver bluff (if they have the gate sign).\r\nConnects: north road ↔ drawbridge tunnel (4-area crossing); the curtain wall (Zone 2) flanks the gate above.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 82,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 82,
+      "scene_position": 78,
+      "title": "ZONE 2 — The Curtain Wall",
+      "public_description": "",
+      "dm_description": "1a — Wall-Walk (East & West)\r\n\r\nA narrow, moonlit walk along the top of the wall, maybe five feet wide, the outer rim set with iron spikes. Loose stones are piled at intervals — ready to be hurled down.\r\n\r\nOccupants: 2 Orc Wall Crossbowmen (368) or Hobgoblin Troopers (365) per section; one always lunges to raise the alarm.\r\nEast walkway: a heavily barred trapdoor in the floor drops to the haunted wing; guards fire at anything coming up through it at +4 to hit while shouting the alarm.\r\nConnects: down via 1c ladder to the courtyard; to the haunted wing (2) via the barred trapdoor (which the guards refuse to use).\r\n\r\n\r\n1b — West Guard House\r\n\r\nA cramped bunkroom, a coal fire smoldering in the corner. A halfling's skull is nailed to the door at eye height.\r\n\r\nOccupants: 2 Hobgoblin Troopers (365), one asleep.\r\nConnects: 1a, 1c.\r\n\r\n\r\n1c — Gatehouse Inner Room\r\n\r\nCrates of salted food stacked to the ceiling, a two-piece ladder leaned against the wall.\r\n\r\nA toppling crate is a good noise cue. The ladder is how the guards reach the wall-walk without using the haunted stair.\r\nConnects: 1b, 1d, wall-walk.\r\n\r\n\r\n1d — East Guard House\r\n\r\nBunks and a scarred table; a crow shifts on its perch and fixes you with a black eye.\r\n\r\nOccupants: 2 Hobgoblin Troopers (365) + 1 Hobgoblin Sergeant (366) with the pet crow.\r\nLoot: small coin, a carved wooden hawk (25 sp).\r\nConnects: 1a, 1c.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 83,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 83,
+      "scene_position": 79,
+      "title": "ZONE 3 — The Haunted Wing",
+      "public_description": "",
+      "dm_description": "The air changes the moment you're inside — colder, still, wrong. The hobgoblins shun this whole floor; no torch is lit here. This is the stealth lane.\r\n\r\n2a — West Walkway (rope entry)\r\n\r\nA slops window opens onto the ditch; a knotted rope still hangs from it. Inside, dust, old bloodstains, and silence.\r\n\r\nThe party's way in (rope up from the ditch) and the escaped slave's way out.\r\nHigh-Wisdom characters feel watched. Connects: 2b.\r\n\r\n\r\n2b — West Guard Post\r\n\r\nAn abandoned post, bones scattered across the floor — the remains of men who died at their stations.\r\n\r\nThe bones are Jon's comrades' last stand (lore tie to the haunt). Connects: 2a, 2c.\r\n\r\n\r\n2c — The Stairs (TRAP)\r\n\r\nA flight of stone steps down toward a latched door. Faint glints catch the light near the treads.\r\n\r\nThree trip-wires, three separate find-traps checks — miss any one and it trips. Triggered:\r\n\r\nFoot of stairs: flash bursts — blinds everyone present for 4 rounds, no save.\r\nHead of stairs: ~3,000 glass beads scatter; anyone on that spot takes 1d6.\r\nPile-up: after one round, the first character to move without declaring caution slips and tumbles down, dragging others with them — 1d6 + 1 per person who lands on them. Avoid by crawling / sweeping beads / not moving while blind.\r\n\r\nNo guards investigate (they won't enter). Loud but raises no alarm.\r\nTop of stairs is bricked up; bottom door self-latches behind the party (inside-only latch; reopen with a dagger, 2 rounds) and opens into the outer courtyard (5).\r\nConnects: 2b ↔ 2d ↔ down to courtyard.\r\n\r\n\r\n2d — Room Over the Gate\r\n\r\nMurder holes look down on the drawbridge avenue. A heavy winch sits locked in the corner beside a cask of rancid oil.\r\n\r\nThe drawbridge/portcullis winch is here but locked — the keys can work it to drop the bridge for the rest of the party.\r\nConnects: 2c ↔ 2e.\r\n\r\n\r\n2e — East Guard Post\r\n\r\nA skeleton slumps against the wall, still gripping a rusted blade. The faint clash of battle seems to rise and fade in the edge of hearing.\r\n\r\nBattle-sounds (save vs. spells to hear) — telegraph for the haunt next door. Connects: 2d ↔ 2f.\r\n\r\n\r\n2f — The Haunt (Sergeant Jon, 382)\r\n\r\nLight flickers without a source. A glowing mist gathers, resolving into a gaunt man with black hollows for eyes, reaching toward you.\r\n\r\nJon (382) — area-bound within ~60 ft, defends this stretch and the trapdoor. Run all ghost layers by hand: touch drains 2 Dex (no save); at Dex 0 he possesses; opposite-alignment bodies he strangles instead (1, 2, 4, 8…); immune to non-silver/non-magic weapons; can't be turned; only exorcism ends him.\r\nThe answer is to leave — step out of his area and the threat ends; withdrawing satisfies his duty and may lay him to rest. Hold person ejects him from a possessed body.\r\nHidden under a floor-stone: a small coin cache + a ruby ring (revealed by possession or a search).\r\nConnects: 2e; barred trapdoor up to 1a (east).",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 84,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 84,
+      "scene_position": 80,
+      "title": "ZONE 4 — The Gate Crossing",
+      "public_description": "",
+      "dm_description": "4 — Winch Room\r\n\r\nA low stone chamber; two great winches stand wound and locked. Pale spiders drift across the ceiling, glowing faintly.\r\n\r\nThe spiders are harmless. Winches: 3 locks each; keys on the 8b west-tower sergeant. Working a winch lowers the bridge/portcullis.\r\nConnects: drawbridge tunnel, outer courtyard.\r\n\r\n\r\n5 — Outer Courtyard (ANKHEG)\r\n\r\nAn open yard between the curtain wall and the gatehouse. A broad patch of churned mud fronts the inner gate. The crickets go suddenly, completely silent.\r\n\r\nBuried ankheg (381) in the 30-ft mud morass — the silence is the tell (high-TN awareness to avoid surprise). Run by hand: hard carapace vs. easy belly (1–2 attackers/round), bite hurls prone into the mud, acid line at ~half HP.\r\nIts death-wail raises the fort alarm regardless of how quiet the fight was. The mud cuts movement to ¼; a faller loses a round.\r\nPortcullis jammed ~1 ft up: crawl under to reach the entryway.\r\nConnects: winch room / haunted-wing stair (in), entryway (out).\r\n\r\n\r\nEntryway of Fire (TRAP — if alarmed)\r\n\r\nA narrow gate-tunnel, twenty feet of stone with dark murder holes overhead.\r\n\r\nArmed only if the alarm is already up. Flaming oil pours from the holes, igniting stacked goods. Within 10 ft of the blaze: 1d4/round; running the channel ~3 damage per segment (save halves; wet blanket / courtyard mud drops it to 1/segment, no save). Wall guards add arrow fire (poor angle at the entry, deadly if the party flees back across the courtyard).\r\nIf the ankheg was beaten silently and no alarm went up, this never arms.\r\nConnects: courtyard ↔ gatehouse / parade ground.\r\n\r\n\r\n\r\nZONE 5 — The Gatehouse (7–8) · the garrison hub\r\n\r\nAvoid, don't clear. The gatehouse is built to pin intruders in one room and bury them in bodies. Roving patrol: 4 Hobgoblin Troopers (365) + 1 Sergeant (366), 1-in-6 per turn.\r\n\r\n7a — Stables\r\n\r\nOxen and horses shift in their stalls; three heavy wagons stand ready. A hayloft looms ten feet up. A large iron gong hangs by the door.\r\n\r\n\r\nOccupants: 2 young Hobgoblin Troopers (365).\r\nThe gong: ringing it brings 6–30 hobgoblins boiling out in 1 turn. The single worst noise in the fort — kill the two quietly or the assault is over before it starts.\r\nConnects: parade ground, 8b.\r\n\r\n\r\n7b / 8a — Stair Rooms & Spy-Hole Door\r\n\r\nA padlocked, iron-barred door with a sliding spy-hole. A gruff voice demands the word.\r\n\r\nPassword-gated — and the party has none unless they pried the gate sign from the caravan cleric. Occupants: 2 Hobgoblin Troopers (365) + 2 Goblin Skulkers (379) with halberds.\r\nConnects: up into 8b.\r\n\r\n\r\n8b — Gatehouse Barracks\r\n\r\nTier on tier of bunks and weapon racks across three connected towers, thick with the smell of unwashed bodies.\r\n\r\nOccupants (the bulk of the garrison): ~22 Hobgoblin Troopers (365) + 2 Sergeants (366) in the main hall; ~10 + a sergeant in the east tower; 4 over the gate tending the hot-oil pots (murder-hole trap — poured on anyone below the gate if the alarm sounds); ~10 + a sergeant in the west tower with a rack of 17 light crossbows and the winch keys on the sergeant's belt.\r\nThis is the room a frontal assault dies in. Connects: 7a, 8a, 8c, 8d.\r\n\r\n\r\n8c — Captain of the Gatehouse (interrogation room)\r\n\r\nA banded-mail officer rises from a table strewn with manifests; a second looms behind him. A cluster of iron keys hangs on a peg, and a trapdoor sits in the ceiling.\r\n\r\nOccupants: Captain Gorbin (361) — hidden loaded crossbow, sword \"Sundancer\" — and Lieutenant Kairn (362), greatsword \"Winnower.\" Caught intruders are dragged here.\r\nKeys to all gatehouse + curtain-wall doors on the wall peg. Ceiling trapdoor calls barracks troops down.\r\nConnects: 8b, up to 8d / the keep.\r\n\r\n\r\n8d — Inner Wall-Walk\r\n\r\nA walkway overlooking the open muster yard below.\r\n\r\nOccupants: Hobgoblin Troopers (368/365) on watch — they can see the whole parade ground, so crossing it openly is spotted from here.\r\nConnects: 8b/8c ↔ parade ground.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 85,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 85,
+      "scene_position": 81,
+      "title": "ZONE 5 — The Gatehouse (7–8) · the garrison hub",
+      "public_description": "",
+      "dm_description": "Avoid, don't clear. The gatehouse is built to pin intruders in one room and bury them in bodies. Roving patrol: 4 Hobgoblin Troopers (365) + 1 Sergeant (366), 1-in-6 per turn.\r\n\r\n7a — Stables\r\n\r\nOxen and horses shift in their stalls; three heavy wagons stand ready. A hayloft looms ten feet up. A large iron gong hangs by the door.\r\n\r\nOccupants: 2 young Hobgoblin Troopers (365).\r\nThe gong: ringing it brings 6–30 hobgoblins boiling out in 1 turn. The single worst noise in the fort — kill the two quietly or the assault is over before it starts.\r\nConnects: parade ground, 8b.\r\n\r\n\r\n7b / 8a — Stair Rooms & Spy-Hole Door\r\n\r\nA padlocked, iron-barred door with a sliding spy-hole. A gruff voice demands the word.\r\n\r\nPassword-gated — and the party has none unless they pried the gate sign from the caravan cleric. Occupants: 2 Hobgoblin Troopers (365) + 2 Goblin Skulkers (379) with halberds.\r\nConnects: up into 8b.\r\n\r\n\r\n8b — Gatehouse Barracks\r\n\r\nTier on tier of bunks and weapon racks across three connected towers, thick with the smell of unwashed bodies.\r\n\r\nOccupants (the bulk of the garrison): ~22 Hobgoblin Troopers (365) + 2 Sergeants (366) in the main hall; ~10 + a sergeant in the east tower; 4 over the gate tending the hot-oil pots (murder-hole trap — poured on anyone below the gate if the alarm sounds); ~10 + a sergeant in the west tower with a rack of 17 light crossbows and the winch keys on the sergeant's belt.\r\nThis is the room a frontal assault dies in. Connects: 7a, 8a, 8c, 8d.\r\n\r\n\r\n8c — Captain of the Gatehouse (interrogation room)\r\n\r\nA banded-mail officer rises from a table strewn with manifests; a second looms behind him. A cluster of iron keys hangs on a peg, and a trapdoor sits in the ceiling.\r\n\r\nOccupants: Captain Gorbin (361) — hidden loaded crossbow, sword \"Sundancer\" — and Lieutenant Kairn (362), greatsword \"Winnower.\" Caught intruders are dragged here.\r\nKeys to all gatehouse + curtain-wall doors on the wall peg. Ceiling trapdoor calls barracks troops down.\r\nConnects: 8b, up to 8d / the keep.\r\n\r\n\r\n8d — Inner Wall-Walk\r\n\r\nA walkway overlooking the open muster yard below.\r\n\r\nOccupants: Hobgoblin Troopers (368/365) on watch — they can see the whole parade ground, so crossing it openly is spotted from here.\r\nConnects: 8b/8c ↔ parade ground.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 86,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 86,
+      "scene_position": 82,
+      "title": "ZONE 6 — The Inner Keep (condensed/adapted)",
+      "public_description": "",
+      "dm_description": "Parade Ground\r\n\r\nA wide muster yard of packed earth, roughly eighty feet by sixty. Something large and four-legged lifts its head and growls; further off, a hunched shape lopes along the far wall.\r\n\r\nOccupants: 2–4 Fort War Dogs (370) loose (attack any non-resident scent) and 1–2 Carnivorous Apes (369) roaming \"for food.\" Watched from 8d above.\r\nThe hub: every keep door and the dungeon stair open off it.\r\nConnects: gatehouse (N); Overseer's Hall, Commander's Quarters, Executioner's Post, Shaman's Shrine, Slave Pens, Dungeon Stair.\r\n\r\n\r\nOverseer's Hall\r\n\r\nA cold stone hall hung with a few looted tapestries; an iron-bound strongbox sits behind a heavy chair. A robed figure turns, and a goblin at her side bares its teeth as a white-furred wolf rises.\r\n\r\nOccupants: Hill Fort Overseer (357) [Tier 3 boss], Witch-Doctor Guliyet (363), and her Winter Wolf (380) (Guliyet's whistle also summons it if she's met elsewhere).\r\nStrongbox: her key (equipment file). A private passage runs from here down to the dungeon stair — a back way to Silovan that skips the parade ground.\r\nConnects: parade ground; private passage → dungeon stair.\r\n\r\n\r\nCommander's Quarters\r\n\r\nA spartan room, everything bolted in place — table, chair, chest — as if arranged for someone who cannot see. A narrow closet door is chained shut, and from behind it comes a faint dry slithering.\r\n\r\nOccupants: Fort Commander Icar (358) [Tier 2, blind — fights by memory and sound, treat as blindsight in the fort]. In the chained closet: the Captive Medusa (371), guarding his cache; Icar's Periapt of Proof Against Poison is why he's unharmed near her.\r\nFreeing the medusa turns her loose on the garrison — a major lever. Icar's cache (coin, gems, potions) is in the closet she guards.\r\nConnects: parade ground.\r\n\r\n\r\nExecutioner's Post\r\n\r\nA blood-darkened block stands in a fenced yard beside the pens; a hulking ogre leans on a notched axe.\r\n\r\nOccupant: The Executioner (359) [ogre]. Carries out the Overseer's sentences; positioned between the parade ground and the slave pens.\r\nConnects: parade ground, slave pens.\r\n\r\n\r\nShaman's Shrine\r\n\r\nA reeking shrine of bone and hide, daubed with old blood; a hobgoblin in fetishes looks up mid-chant.\r\n\r\nOccupants: Shaman Adhu Nazaryet (364) + 2–8 Hobgoblin Troopers (365) at worship.\r\nConnects: parade ground.\r\n\r\n\r\nSlave Pens (rescue: Doran, Varen-rogue)\r\n\r\nBarred cells along a filthy run, packed with chained, branded captives. Goblins with keys lounge by the gate, bored.\r\n\r\nCaptives: Doran Svetov and Varen-the-rogue, plus generic townsfolk/wildman captives. Turnkeys: 2–4 Goblin Skulkers (379).\r\nThe revolt lever: these prisoners will fight their captors given a chance and weapons. Freeing and arming them is the party's best distraction force. (Coffle them back up for the disguised exit.)\r\nConnects: parade ground, Executioner's post, dungeon stair.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 87,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 87,
+      "scene_position": 83,
+      "title": "ZONE 7 — The Dungeon (condensed/adapted) · wakes 1 turn after the fort",
+      "public_description": "",
+      "dm_description": "Dungeon Stair\r\n\r\nA guarded stair (or a trapdoor beneath the Overseer's hall) drops into damp dark.\r\n\r\nReaching the dungeon before the alarm is the goal — once the upper fort wakes, this level follows one turn later.\r\nConnects: parade ground / Overseer's private passage → Warden's Hall.\r\n\r\n\r\nWarden's Hall\r\n\r\nA vaulted undercroft lit by greasy torches. A massive horned figure unfolds from a chair, far too calm to be afraid.\r\n\r\nOccupant: Dungeon Warden (360) [Tier 3 oni / Koi agent]. Run his ogre-mage tricks by hand (invisibility, flight, charm, gaseous form, regeneration, a once-daily cone of cold). He knows the onward route to the stronghold and carries the Sigil of the Koi Council (proof of who runs the fort) and the master cell ring.\r\nConnects: dungeon stair, cells, the pit.\r\n\r\n\r\nInterrogation Cells (SILOVAN — primary objective)\r\n\r\nA short cell block, one door reinforced. Inside, a battered wood-elf looks up — alive, watchful, worked-over.\r\n\r\nCaptive: Silovan — held for interrogation, not sale. Clock: he may break or be near death; freeing him also gets the party someone who can later unmask Callihan. Turnkeys: 1–2 Goblin Skulkers (379).\r\nConnects: Warden's Hall.\r\n\r\n\r\nThe Pit / Feeding Den\r\n\r\nA reeking shaft in the floor; below, things move and gibber, and old bones crunch underfoot.\r\n\r\nWhere prisoners the Overseer is \"done with\" are fed to the Carnivorous Apes (369) (1–3). A grim hazard and a place a body can vanish.\r\nConnects: cell block.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 88,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 88,
+      "scene_position": 84,
+      "title": "Stockade Map",
+      "public_description": "",
+      "dm_description": "",
+      "image": "/uploads/0c82f1671165cee6.png",
       "shared": false,
       "hidden_from": [
 
@@ -1316,5 +1503,5 @@
       "active": true
     }
   ],
-  "next_id": 74
+  "next_id": 89
 }

@@ -224,9 +224,50 @@ characters:
     name: Caelian di Soliastres
     group: npc
     tags: []
-    race: elf   # "Elven noble" in the note (base elf; say if high/wood/eladrin)
+    # Poses as a landless elf noble / minor wizard; truly a doppelganger
+    # (see chronicle). Reads surface thoughts and launders them as
+    # "divinations" — hence the divination-heavy spellbook below.
+    #
+    # A Level 8 Paragon. The wizard:4 entry is the Borrowed Talent persona
+    # he is currently wearing (half his character level). It is flagged
+    # `borrowed: true`: it grants the wizard's class abilities and spells but
+    # NO character levels, so his Total Level stays 8 (paragon only) and the
+    # borrowed persona adds nothing to HP/Mana/Saves/Martial/Skill ranks.
+    #
+    # Attributes below are BASE. With the doppelganger race adjustments and
+    # the Tier 3 inherent +3, his effective line is the intended
+    # STR 21 / DEX 16 / CON 15 / INT 20 / WIS 17 / CHA 20.
+    race: doppelganger
     tier: 3
-    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+    attributes: { str: 10, dex: 11, con: 10, int: 15, wis: 10, cha: 13 }
+    advancement:
+      classes:
+        paragon:
+          level: 8
+          skills: [arcana, local_lore, sense_motive, deception, persuasion, sleight_of_hand, perception, linguistics]
+        wizard:
+          level: 4
+          borrowed: true
+          choices:
+            # Borrowed Talent persona. Wizard point budget at level 4 is
+            # 5 + level^2 = 21 points (each spell costs 1 + tier):
+            # divination / information core plus a couple of combat picks
+            # (Grease, Fire Dart).
+            spellcasting:
+              - Detect Magic
+              - Sift
+              - Ears of the City
+              - Message
+              - Mage Hand
+              - Light
+              - Disguise Self
+              - Charm Person
+              - Hideous Laughter
+              - Visual Illusion
+              - Friends
+              - Suggestion
+              - Grease
+              - Fire Dart
 
   - id: 2026
     name: Theron Ashfeld

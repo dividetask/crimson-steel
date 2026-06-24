@@ -2,6 +2,8 @@
 characters:
 - id: 1
   name: Stumpy
+  metadata:
+    creature_token: /images/characters/Stumpy.png
   race: hill_dwarf
   attributes:
     str: 10
@@ -48,6 +50,8 @@ characters:
   - player_character
 - id: 2
   name: Olga
+  metadata:
+    creature_token: /images/characters/Olga.png
   race: human
   attributes:
     str: 14
@@ -73,6 +77,8 @@ characters:
   - player_character
 - id: 3
   name: Lysander
+  metadata:
+    creature_token: /images/characters/Lysander.png
   race: high_elf
   attributes:
     str: 7
@@ -112,6 +118,8 @@ characters:
   - player_character
 - id: 4
   name: Cottonballs
+  metadata:
+    creature_token: /images/characters/Cottonballs.png
   race: satyr
   attributes:
     str: 9
