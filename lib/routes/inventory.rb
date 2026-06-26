@@ -20,21 +20,31 @@
 #   POST /inventory/claim_equip  — move one from the Party and equip it
 
 helpers do
-  # A Creature whose inventory may be managed: it exists and is not an
-  # enemy_template stat block (templates are shared and have no real
-  # inventory of their own).
-  def manageable_creature?(id)
-    a = Creatures.lookup(id) rescue nil
-    !!(a && !Array(a.tags).include?('enemy_template'))
+  # A template (an enemy_template stat block) — never a concrete character.
+  # The enemy_template tag is the template marker, but group is authoritative:
+  # a promoted NPC keeps group 'npc' even if a stray enemy_template tag lingers
+  # from before promotion, and is not a template.
+  def creature_template?(rec)
+    return false if %w[npc pc].include?(rec[:group].to_s)
+    Array(rec[:tags]).include?('enemy_template')
   end
 
-  # The spawn-time Roll Tables declared on a Creature (template), for the
-  # roll-tables stub shown above the sheet. Returns nil when the Creature
-  # has none (e.g. a Player or a spawned instance). Each table is the
-  # record's own normalized shape; the equipment loadout is expanded into
-  # readable rows.
+  # A Creature whose inventory may be managed: it exists and is not a
+  # template stat block (templates are shared and have no real inventory).
+  def manageable_creature?(id)
+    a = Creatures.lookup(id) rescue nil
+    !!(a && !creature_template?(a.record))
+  end
+
+  # The spawn-time Roll Tables declared on a template, for the roll-tables
+  # stub shown above the sheet. Returns nil for anything that is not a
+  # template — a Player, an NPC, or a spawned instance — even if it retains
+  # vestigial table fields (e.g. equipment_table kept on a spawn for loadout
+  # rolls). Each table is the record's own normalized shape; the equipment
+  # loadout is expanded into readable rows.
   def roll_tables_data(id)
     rec = (Creatures.lookup(id).record rescue nil) or return nil
+    return nil unless creature_template?(rec)
     data = {}
     data[:equipment]        = equipment_loadout_summary(rec[:equipment_table]) if rec[:equipment_table]
     data[:race]             = rec[:race_table]   unless Array(rec[:race_table]).empty?
@@ -158,6 +168,14 @@ helpers do
   def inventory_quantity(param, available)
     n = (Integer(param) rescue available)
     n = available if n > available
+    n < 1 ? 1 : n
+  end
+
+  # Like inventory_quantity but does NOT clamp to what is available: the loot
+  # pile's Give lets the DM hand out more than the pile holds. Defaults to the
+  # available amount when the field is blank/invalid; minimum 1.
+  def loot_give_quantity(param, available)
+    n = (Integer(param) rescue available)
     n < 1 ? 1 : n
   end
 end

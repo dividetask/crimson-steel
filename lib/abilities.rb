@@ -56,6 +56,13 @@ module Abilities
     resolver.resolve_target(ability, rank: rank, bindings: stringify(bindings))
   end
 
+  # Resolve an Area `size` (a 5-foot-square count, possibly a per-rank
+  # Formula like "8*rank") to a concrete non-negative integer, or nil when
+  # it cannot be evaluated. See abilities_design.md "Area".
+  def resolve_area_size(size, rank: 0, **bindings)
+    resolver.resolve_area_size(size, rank: rank, bindings: stringify(bindings))
+  end
+
   # Resolve a Spell into the consumption view Equipment routes at
   # Consume Item time: `{ effects: [...], polarity: :positive | :forced }`.
   # `tier` selects the Variant on a Tier-axis Spell. Returns nil for an

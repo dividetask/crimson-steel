@@ -84,5 +84,14 @@ RSpec.describe 'Item-cast skills and pane listing', type: :request do
       spark = granted.find { |g| g[:name] == 'Spark Shower' }
       expect(spark[:skill_options].map { |s| s[:skill] }).to eq(%w[nature arcana evocation])
     end
+
+    it 'grants each named Tier-axis variant at its own tier, not the item tier' do
+      # The Ring is tier 2, but it names the Spark Shower (Tier 0) and
+      # Shooting Stars (Tier 1) variants explicitly, so each must be offered
+      # at its own tier rather than the item's stack tier.
+      granted = helpers.send(:granted_item_castables, @cid, acc, 10, 12)
+      expect(granted.find { |g| g[:name] == 'Spark Shower' }[:tier]).to eq(0)
+      expect(granted.find { |g| g[:name] == 'Shooting Stars' }[:tier]).to eq(1)
+    end
   end
 end

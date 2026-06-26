@@ -115,6 +115,23 @@ module Creatures
     nil
   end
 
+  # Promote a generated/spawned Creature to a named NPC: optionally rename it
+  # and set its group to `npc`, then persist its source file. An NPC is kept
+  # (grouped as an ally) through post-combat cleanup rather than deleted with
+  # the enemy spawns.
+  def promote_to_npc(id, name = nil)
+    rec = Dataset.get(id) or raise ArgumentError, "no Creature with id #{id}"
+    n = name.to_s.strip
+    rec[:name]  = n unless n.empty?
+    rec[:group] = 'npc'
+    # An NPC is a concrete character, not a spawn template — drop the
+    # enemy_template tag so the Character Sheet renders the real sheet rather
+    # than the template (spawn tables) view.
+    rec[:tags] = Array(rec[:tags]).reject { |t| t == 'enemy_template' }
+    Dataset.persist_source!(rec[:source]) if rec[:source]
+    rec
+  end
+
   # ---- random encounter / spawn / delete ------------------------------
 
   def spawn_from_template(template_id, name_override: nil, loot_table: nil, rng: Random.new)

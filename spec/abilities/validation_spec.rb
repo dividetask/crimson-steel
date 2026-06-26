@@ -44,6 +44,16 @@ RSpec.describe 'Abilities::Catalog#validate!' do
     end
   end
 
+  describe 'range' do
+    it 'accepts an inline per-rank range formula' do
+      expect(build_ability_catalog('A' => { 'type' => 'spell', 'range' => '50*rank' }).validate!).to be true
+    end
+
+    it 'rejects a string that is neither a known range nor an evaluable formula' do
+      expect_invalid({ 'Bad' => { 'type' => 'spell', 'range' => 'Closee' } }, 'unknown range')
+    end
+  end
+
   it 'loads the shipped catalog without error' do
     expect { Abilities::Catalog.load }.not_to raise_error
   end

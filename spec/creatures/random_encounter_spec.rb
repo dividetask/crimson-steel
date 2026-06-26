@@ -92,5 +92,35 @@ RSpec.describe 'Creatures encounter operations', type: :model do
       expect(ids).to all be_an(Integer)
       ids.each { |id| expect(Creatures.lookup(id)).not_to be_nil }
     end
+
+    it 'raises MissingTemplates (not a mid-roll crash) when a referenced template is absent' do
+      # hill_fort_gnoll_band references template 367, which lives only in the
+      # untracked campaign data file — absent from the example dataset.
+      expect { Creatures.roll_random_encounter('hill_fort_gnoll_band') }
+        .to raise_error(Creatures::RandomEncounter::MissingTemplates) do |e|
+          expect(e.table_id).to eq('hill_fort_gnoll_band')
+          expect(e.missing).to include(367)
+        end
+    end
+
+    it 'spawns nothing when validation fails (no partial encounter)' do
+      max_before = Creatures::Dataset.all.keys.max
+      expect { Creatures.roll_random_encounter('hill_fort_gnoll_band') }
+        .to raise_error(Creatures::RandomEncounter::MissingTemplates)
+      expect(Creatures::Dataset.all.keys.max).to eq(max_before)
+    end
+  end
+
+  describe 'missing_template_ids' do
+    it 'returns the distinct unresolved template ids for a table' do
+      table = Creatures::RandomEncounter.tables['hill_fort_patrol']
+      missing = Creatures::RandomEncounter.missing_template_ids(table)
+      expect(missing).to match_array([364, 365, 366])
+    end
+
+    it 'is empty when every referenced template resolves' do
+      table = Creatures::RandomEncounter.tables['general_pirate_raid']
+      expect(Creatures::RandomEncounter.missing_template_ids(table)).to be_empty
+    end
   end
 end

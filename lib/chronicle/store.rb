@@ -112,14 +112,7 @@ module Chronicle
     end
 
     def add_entry(attrs)
-      h = Entry.stringify_keys(attrs)
-      h['id']    = @next_id
-      @next_id  += 1
-      h['chapter']        ||= @current_chapter
-      h['notes_position'] ||= next_notes_position(Integer(h['chapter']))
-      h['scene_position'] ||= next_scene_position
-      entry = Entry.normalize(h)
-      @entries << entry
+      entry = build_and_append_entry(attrs)
       persist!
       entry['id']
     end
@@ -130,6 +123,34 @@ module Chronicle
       @entries[idx] = Entry.merge(@entries[idx], updates)
       persist!
       @entries[idx]
+    end
+
+    # Ensure a Creature Reference exists for each given creature_id, creating a
+    # minimal one (in the current Chapter) for any that lack one — keeps Notes'
+    # Characters of Interest in sync with the npc roster. Persists once if any
+    # were created; returns the number created.
+    def ensure_creature_references(creature_ids, active: false)
+      have    = referenced_creature_ids
+      created = 0
+      Array(creature_ids).each do |cid|
+        cid = (Integer(cid) rescue nil) or next
+        next if have.include?(cid)
+        build_and_append_entry(blank_creature_reference(cid, active: active))
+        have << cid
+        created += 1
+      end
+      persist! if created.positive?
+      created
+    end
+
+    # Create a Creature Reference for `creature_id` if absent, and make it
+    # active either way (used when a Creature is promoted to an NPC).
+    def activate_creature_reference(creature_id)
+      cid = Integer(creature_id)
+      ref = @entries.find { |e| e['entry_type'] == 'creature' && e['creature_id'] == cid }
+      ref ? (ref['active'] = true) : (ref = build_and_append_entry(blank_creature_reference(cid, active: true)))
+      persist!
+      ref
     end
 
     def delete_entry(id)
@@ -183,6 +204,32 @@ module Chronicle
     end
 
     private
+
+    # Build a normalized Entry (id, positions, chapter default) and append it,
+    # without persisting — the caller persists. Shared by add_entry and the
+    # Creature-Reference ensure/activate helpers.
+    def build_and_append_entry(attrs)
+      h = Entry.stringify_keys(attrs)
+      h['id']    = @next_id
+      @next_id  += 1
+      h['chapter']        ||= @current_chapter
+      h['notes_position'] ||= next_notes_position(Integer(h['chapter']))
+      h['scene_position'] ||= next_scene_position
+      entry = Entry.normalize(h)
+      @entries << entry
+      entry
+    end
+
+    # A minimal Creature Reference (name/tier resolve from the Creature record).
+    def blank_creature_reference(creature_id, active:)
+      { entry_type: 'creature', creature_id: creature_id, chapter: @current_chapter,
+        active: active, title: '', public_description: '', dm_description: '',
+        image: nil, shared: false, hidden_from: [], owner_id: nil }
+    end
+
+    def referenced_creature_ids
+      @entries.select { |e| e['entry_type'] == 'creature' }.map { |e| e['creature_id'] }
+    end
 
     def normalize_timestamp(t)
       t ||= {}

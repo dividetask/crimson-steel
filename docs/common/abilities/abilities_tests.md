@@ -46,7 +46,9 @@ Tests for the public entry points of the Abilities domain. Unless a test specifi
 
 **Self range returns 0 regardless of rank.**
 
-**An unknown named range is a validation error at load time** (not at resolution).
+**An inline per-rank range Formula evaluates against `rank`.** A Spell with `range: "50*rank"` resolves to 150 feet at `rank = 3` — no shared named Range is needed for a one-off per-rank range.
+
+**An unknown range is a validation error at load time** (not at resolution). A string that is neither a known named Range nor an evaluable Formula (e.g. a typo like `"Closee"`) is rejected at load.
 
 ---
 

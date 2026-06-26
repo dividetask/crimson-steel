@@ -50,10 +50,14 @@ module Abilities
       r = ability['range']
       return nil if r.nil?
       return r if r.is_a?(Integer)
-      formula = @config.range_formulas[r]
-      raise ArgumentError, "unknown range #{r.inspect}" unless formula
       reach ||= @config.default_reach_feet
-      Formula.evaluate(formula, 'rank' => rank, 'reach' => reach)
+      # A named Range (Close/Medium/Long/Touch/Self) evaluates its catalog
+      # formula; any other string is an inline per-rank formula declared
+      # directly on the Spell (e.g. "50*rank"), the same way `target` and
+      # an Area `size` may carry their own Formula.
+      expr = @config.range_formulas[r] || r.to_s
+      value = Formula.evaluate(expr, 'rank' => rank, 'reach' => reach)
+      value.is_a?(Float) ? value.floor : value
     end
 
     def resolve_activation(ability)
@@ -87,6 +91,26 @@ module Abilities
       rescue Formula::UnresolvedName, ArgumentError
         t
       end
+    end
+
+    # Resolve an Area's `size` to a concrete non-negative integer count of
+    # 5-foot squares. A bare Integer is returned as-is; a numeric string is
+    # parsed; any other string is treated as a Formula (e.g. "rank",
+    # "8*rank") and evaluated against `rank`, then floored. Returns nil when
+    # the value is missing or the Formula references a name that cannot be
+    # bound, so a caller can fall back rather than crash.
+    def resolve_area_size(size, rank: 0, bindings: {})
+      return nil if size.nil?
+      return [size, 0].max if size.is_a?(Integer)
+      s = size.to_s
+      return [s.to_i, 0].max if s.match?(/\A-?\d+\z/)
+      ctx = { 'rank' => rank }
+      bindings.each { |k, v| ctx[k.to_s] = v }
+      value = Formula.evaluate(s, ctx)
+      value = value.floor if value.is_a?(Float)
+      [value.to_i, 0].max
+    rescue Formula::UnresolvedName, ArgumentError
+      nil
     end
 
     # ---- Spell consumption view ----------------------------------------

@@ -450,13 +450,33 @@ document.addEventListener('mouseover', function (e) {
       .then(refreshSidebar);
   });
 
+  // Guard a mutating roster button against double-fire: a rapid double-click
+  // on the small +/− buttons would otherwise spawn (or delete) twice. Claim
+  // the button (disabling it so a second click can't dispatch) until the
+  // request settles; refreshSidebar replaces the row, but release anyway in
+  // case the request failed and the button is still on the page.
+  function claimButton(btn) {
+    if (btn.disabled || btn.dataset.busy === '1') return false;
+    btn.dataset.busy = '1';
+    btn.disabled = true;
+    return true;
+  }
+
+  function releaseButton(btn) {
+    btn.disabled = false;
+    delete btn.dataset.busy;
+  }
+
   document.addEventListener('click', function (e) {
     var btn = e.target.closest && e.target.closest('.cs-roster-add');
     if (!btn) return;
     e.preventDefault();
     var templateId = btn.getAttribute('data-template-id') || btn.getAttribute('data-creature-id');
     if (!templateId) return;
-    postForm('/encounter/spawn_and_add', { template_id: templateId }).then(refreshSidebar);
+    if (!claimButton(btn)) return;
+    postForm('/encounter/spawn_and_add', { template_id: templateId })
+      .then(refreshSidebar)
+      .finally(function () { releaseButton(btn); });
   });
 
   document.addEventListener('click', function (e) {
@@ -465,7 +485,10 @@ document.addEventListener('mouseover', function (e) {
     e.preventDefault();
     var creatureId = btn.getAttribute('data-creature-id');
     if (!creatureId) return;
-    postForm('/encounter/delete_creature', { creature_id: creatureId }).then(refreshSidebar);
+    if (!claimButton(btn)) return;
+    postForm('/encounter/delete_creature', { creature_id: creatureId })
+      .then(refreshSidebar)
+      .finally(function () { releaseButton(btn); });
   });
 
   // -- Encounter Roll Result panel -------------------------------------
@@ -475,15 +498,16 @@ document.addEventListener('mouseover', function (e) {
   // rolls the table, spawns the Creatures, adds them to the roster, and
   // renders the result panel above the main sheet. The sidebar is then
   // refreshed so the new spawned-instance rows appear under their templates.
-  function fetchEncounterRoll(tableId) {
+  function fetchEncounterRoll(tableId, btn) {
     var slot = document.getElementById('random-encounter-roll-result');
-    if (!slot) return;
+    if (!slot) { if (btn) releaseButton(btn); return; }
     fetch('/random_encounters/roll/' + encodeURIComponent(tableId), {
       headers: { 'Accept': 'text/html' }
     })
       .then(function (r) { return r.text(); })
       .then(function (html) { slot.innerHTML = html; return refreshSidebar(); })
-      .catch(function () { /* leave previous panel in place */ });
+      .catch(function () { /* leave previous panel in place */ })
+      .finally(function () { if (btn) releaseButton(btn); });
   }
 
   document.addEventListener('click', function (e) {
@@ -492,7 +516,8 @@ document.addEventListener('mouseover', function (e) {
     e.preventDefault();
     var tableId = btn.getAttribute('data-table-id');
     if (!tableId) return;
-    fetchEncounterRoll(tableId);
+    if (!claimButton(btn)) return;
+    fetchEncounterRoll(tableId, btn);
   });
 
   // -- Turn Action panel: grouped action buttons ----------------------

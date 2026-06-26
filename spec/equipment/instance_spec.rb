@@ -72,6 +72,23 @@ RSpec.describe Equipment::Instance do
       inst.cleanup('creature:1')
       expect(inst.get_inventory('creature:1')).to be_empty
     end
+
+    it 'rejects giving more than the source holds without allow_overdraw' do
+      inst.add_item('ground:x', s(item: 'Arrow', quantity: 3))
+      expect(inst.transfer_stack('ground:x', 'party', 0, quantity: 5)).to be(Equipment::ERROR)
+      expect(inst.get_inventory('ground:x')[0].quantity).to eq(3)
+    end
+
+    it 'with allow_overdraw gives the full amount, floors the source at 0, and keeps it' do
+      inst.add_item('ground:x', s(item: 'Arrow', quantity: 3))
+      inst.transfer_stack('ground:x', 'creature:1', 0, quantity: 5, allow_overdraw: true)
+      # Target receives the full requested amount, even beyond what existed.
+      expect(inst.get_inventory('creature:1').find { |st| st.item_type == 'Arrow' }.quantity).to eq(5)
+      # Source floors at 0 and stays on the pile (no delete) — only Loot prunes.
+      src = inst.get_inventory('ground:x')
+      expect(src.length).to eq(1)
+      expect(src[0].quantity).to eq(0)
+    end
   end
 
   describe 'Cleanup' do

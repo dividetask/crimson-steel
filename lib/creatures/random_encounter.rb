@@ -20,6 +20,20 @@ module Creatures
       '../../docs/common/creatures/random_encounter_tables.yaml', __dir__
     )
 
+    # Raised when a table references template Creatures that aren't in the
+    # loaded Dataset — typically because the table ships in tracked config but
+    # the referenced Creatures live in an untracked, per-deployment data file.
+    class MissingTemplates < ArgumentError
+      attr_reader :table_id, :missing
+
+      def initialize(table_id, missing)
+        @table_id = table_id
+        @missing  = missing
+        super("Random Encounter Table #{table_id.inspect} references " \
+              "missing template Creature ids: #{missing.join(', ')}")
+      end
+    end
+
     module_function
 
     # ---- Spawn / Delete -------------------------------------------------
@@ -162,12 +176,32 @@ module Creatures
       true
     end
 
+    # Collect the distinct template_ids a table references whose Creatures are
+    # not present in the loaded Dataset. Empty when every ref resolves.
+    def missing_template_ids(table)
+      ids = []
+      Array(table['rolls']).each do |row|
+        Array(row['spawn']).each do |sref|
+          tid = Integer(sref['template_id'])
+          ids << tid unless Dataset.get(tid)
+        end
+      end
+      ids.uniq
+    end
+
     # Roll Random Encounter. Returns the list of newly-spawned Creature IDs
     # in roll order. The optional `seed` makes the result
     # reproducible (used by tests and replayable encounter rolls).
+    #
+    # Raises MissingTemplates if any referenced template Creature is absent
+    # from the Dataset, so the caller can report it rather than spawning a
+    # partial encounter or crashing mid-roll.
     def roll_random_encounter(table_id, seed: nil)
       table = tables[table_id.to_s]
       raise ArgumentError, "no Random Encounter Table #{table_id.inspect}" unless table
+
+      missing = missing_template_ids(table)
+      raise MissingTemplates.new(table_id, missing) unless missing.empty?
 
       rng = seed.nil? ? Random.new : Random.new(seed)
       vars = {}

@@ -326,4 +326,42 @@ RSpec.describe Chronicle::Store do
       expect(File.exist?(missing)).to be false
     end
   end
+
+  describe '#ensure_creature_references' do
+    it 'creates an inactive reference for each npc lacking one, idempotently' do
+      store = baseline
+      store.add_entry(creature_payload(creature_id: 1001, active: true)) # already referenced
+
+      created = store.ensure_creature_references([1001, 1002, 1003])
+      expect(created).to eq(2) # 1002, 1003; 1001 already had one
+
+      refs = store.list_entries(entry_type: 'creature')
+      expect(refs.map { |e| e['creature_id'] }).to contain_exactly(1001, 1002, 1003)
+      new_ones = refs.select { |e| [1002, 1003].include?(e['creature_id']) }
+      expect(new_ones).to all(satisfy { |e| e['active'] == false })       # back-filled inactive
+      expect(new_ones).to all(satisfy { |e| e['chapter'] == 1 })          # current chapter
+
+      # Idempotent: a second call creates nothing.
+      expect(store.ensure_creature_references([1001, 1002, 1003])).to eq(0)
+    end
+  end
+
+  describe '#activate_creature_reference' do
+    it 'creates an active reference when none exists' do
+      store = baseline
+      ref = store.activate_creature_reference(1005)
+      expect(ref['creature_id']).to eq(1005)
+      expect(ref['active']).to be(true)
+      expect(store.list_entries(entry_type: 'creature').size).to eq(1)
+    end
+
+    it 'activates an existing (inactive) reference instead of duplicating it' do
+      store = baseline
+      store.add_entry(creature_payload(creature_id: 1006, active: false))
+      store.activate_creature_reference(1006)
+      refs = store.list_entries(entry_type: 'creature').select { |e| e['creature_id'] == 1006 }
+      expect(refs.size).to eq(1)
+      expect(refs.first['active']).to be(true)
+    end
+  end
 end

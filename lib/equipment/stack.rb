@@ -3,13 +3,15 @@ module Equipment
     attr_accessor :item_type, :quantity, :tier, :properties, :inscribed_spells,
                   :stored_spell, :durability_damage, :name_override, :equipped,
                   :value_in_gold, :gem_name, :guidance_bonus, :guidance_attribute,
-                  :restock_target, :description, :parry_used_day
+                  :restock_target, :description
+    attr_reader :daily_charges
 
     def initialize(item_type:, quantity: 1, tier: 0, properties: [],
                    inscribed_spells: [], stored_spell: nil, durability_damage: 0,
                    name_override: nil, equipped: false, value_in_gold: nil,
                    gem_name: nil, guidance_bonus: nil, guidance_attribute: nil,
-                   restock_target: nil, description: nil, parry_used_day: nil)
+                   restock_target: nil, description: nil, daily_charges: nil,
+                   parry_used_day: nil)
       @item_type         = item_type.to_s
       @quantity          = quantity
       @tier              = Integer(tier)
@@ -25,7 +27,14 @@ module Equipment
       @guidance_attribute = guidance_attribute&.to_s
       @restock_target    = restock_target.nil? ? nil : Integer(restock_target)
       @description       = description
-      @parry_used_day    = parry_used_day.nil? ? nil : Integer(parry_used_day)
+      # Per-day item charges keyed by feature (e.g. 'parry'): { day:, used: }.
+      # The cap (uses per day) lives in the catalog; recharge is implicit — a
+      # use stamped on an earlier day reads as 0 today.
+      @daily_charges     = self.class.normalize_daily_charges(daily_charges)
+      # Migrate the legacy once-per-day parry charge onto the general map.
+      if parry_used_day && !@daily_charges.key?('parry')
+        @daily_charges['parry'] = { day: Integer(parry_used_day), used: 1 }
+      end
     end
 
     def self.normalize(raw)
@@ -50,6 +59,7 @@ module Equipment
         guidance_attribute: h['guidance_attribute'],
         restock_target:    h['restock_target'],
         description:       h['description'],
+        daily_charges:     h['daily_charges'],
         parry_used_day:    h['parry_used_day']
       )
     end
@@ -71,6 +81,37 @@ module Equipment
           subtype: h['subtype'],
           cost: h['cost'] }
       end
+    end
+
+    # Coerce a raw daily-charges map ({key => {day:, used:}}, string- or
+    # symbol-keyed) into a normalized { 'key' => { day: Int, used: Int } }.
+    def self.normalize_daily_charges(raw)
+      return {} unless raw.is_a?(Hash)
+      raw.each_with_object({}) do |(k, v), out|
+        v = v.transform_keys(&:to_s) if v.respond_to?(:transform_keys)
+        next unless v.is_a?(Hash) && v['day']
+        out[k.to_s] = { day: Integer(v['day']), used: Integer(v['used'] || 1) }
+      end
+    end
+
+    # Uses of `key` already spent on `today` — 0 once the last use was on an
+    # earlier day (the charge has recharged).
+    def daily_uses(key, today)
+      c = @daily_charges[key.to_s]
+      c && c[:day] == Integer(today) ? c[:used] : 0
+    end
+
+    # Record one use of `key` on `today`, resetting the count on a new day.
+    def record_daily_use(key, today)
+      key = key.to_s
+      today = Integer(today)
+      c = @daily_charges[key]
+      if c && c[:day] == today
+        c[:used] += 1
+      else
+        @daily_charges[key] = { day: today, used: 1 }
+      end
+      self
     end
 
     def identity
@@ -113,7 +154,7 @@ module Equipment
         value_in_gold: @value_in_gold, gem_name: @gem_name,
         guidance_bonus: @guidance_bonus, guidance_attribute: @guidance_attribute,
         restock_target: @restock_target,
-        description: @description, parry_used_day: @parry_used_day
+        description: @description, daily_charges: serialize_daily_charges
       )
     end
 
@@ -142,8 +183,16 @@ module Equipment
       h['guidance_attribute'] = @guidance_attribute if @guidance_attribute
       h['restock_target']    = @restock_target    unless @restock_target.nil?
       h['description']       = @description        if @description
-      h['parry_used_day']    = @parry_used_day     unless @parry_used_day.nil?
+      h['daily_charges']     = serialize_daily_charges unless @daily_charges.empty?
       h
+    end
+
+    private
+
+    def serialize_daily_charges
+      @daily_charges.each_with_object({}) do |(k, v), out|
+        out[k] = { 'day' => v[:day], 'used' => v[:used] }
+      end
     end
   end
 end

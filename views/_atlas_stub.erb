@@ -14,7 +14,7 @@
   carry a ring and the Acting Combatant an animated one. DM drags a Token to
   move it, or clicks it (while the Attack pane is open) to target it.
 
-  Locals: snapshot, maps, active_id, viewer, placeable.
+  Locals: snapshot, maps, active_id, viewer, placeable, terrain.
 
   Deferred (later passes): per-player ownership gating of Move Token, Zones,
   and touch pinch-zoom.
@@ -87,6 +87,7 @@
         <button type="button" class="atlas-tool-btn atlas-tool" data-tool="rect"<%= ' disabled' unless map %> title="Draw a rectangle">Rect</button>
         <button type="button" class="atlas-tool-btn atlas-tool" data-tool="ellipse"<%= ' disabled' unless map %> title="Draw an ellipse">Circle</button>
         <button type="button" class="atlas-tool-btn atlas-tool" data-tool="text"<%= ' disabled' unless map %> title="Place a text label">Text</button>
+        <button type="button" class="atlas-tool-btn atlas-tool atlas-tool-dmtext" data-tool="dmtext"<%= ' disabled' unless map %> title="Place a note only the DM can see">DM Note</button>
         <input type="color" class="atlas-color" value="#4aa3ff" title="Drawing color">
       <% else %>
         <button type="button" class="atlas-tool-btn atlas-tool atlas-arrow-attack" data-tool="arrow" data-color="#e74c3c"<%= ' disabled' unless map %> title="Red arrow">Attack</button>
@@ -96,6 +97,23 @@
       <% end %>
       <button type="button" class="atlas-tool-btn atlas-clear-drawings"<%= ' disabled' unless map %> title="Clear drawings"><%= dm ? 'Clear Drawings' : 'Clear My Arrows' %></button>
     </div>
+
+    <%# Terrain brushes (atlas_stub.md → Terrain). DM-only texture fills drawn
+        like rectangles; each repeats one tile per Grid cell. Persistent map
+        structure — not removed by Clear Drawings. %>
+    <% if dm && !terrain.empty? %>
+      <div class="atlas-tool-sep"></div>
+      <div class="atlas-tool-group atlas-terrain-tools">
+        <span class="atlas-tool-tag" title="Paint terrain by dragging a rectangle">Terrain:</span>
+        <% terrain.each do |t| %>
+          <button type="button" class="atlas-tool-btn atlas-tool atlas-terrain-brush" data-tool="terrain"
+                  data-texture="<%= t[:texture] %>"<%= ' disabled' unless map %>
+                  style="background-image:url('/images/terrain/<%= t[:texture] %>')"
+                  title="Paint <%= t[:label].downcase %>"><%= t[:label] %></button>
+        <% end %>
+        <button type="button" class="atlas-tool-btn atlas-tool atlas-terrain-erase" data-tool="terrain-erase"<%= ' disabled' unless map %> title="Drag a box to erase terrain">Erase</button>
+      </div>
+    <% end %>
 
     <% if dm %>
       <div class="atlas-spacer"></div>

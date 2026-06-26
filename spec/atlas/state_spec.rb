@@ -410,6 +410,15 @@ RSpec.describe Atlas::State do
       expect(state.add_annotation(map_id: 99, type: 'arrow', points: [[0, 0], [1, 1]])).to eq(Atlas::ERROR)
     end
 
+    it 'stores and round-trips the dm_only flag (defaults to false)' do
+      plain  = state.add_annotation(map_id: map_id, type: 'text', points: [[1, 1]], text: 'seen')
+      secret = state.add_annotation(map_id: map_id, type: 'text', points: [[2, 2]], text: 'hidden', dm_only: true)
+      expect(state.get_annotation(plain)[:dm_only]).to eq(false)
+      expect(state.get_annotation(secret)[:dm_only]).to eq(true)
+      reloaded = described_class.load(data_path: data_path, example_path: '/nonexistent')
+      expect(reloaded.get_annotation(secret)[:dm_only]).to eq(true)
+    end
+
     it 'List Annotations filters conjunctively by map, type, and author' do
       other = state.add_map(name: 'Other')
       state.add_annotation(map_id: map_id, type: 'arrow', points: [[0, 0], [1, 1]], author: 'player')
@@ -425,6 +434,17 @@ RSpec.describe Atlas::State do
       id = state.add_annotation(map_id: map_id, type: 'arrow', points: [[0, 0], [1, 1]])
       state.remove_annotation(id)
       expect(state.get_annotation(id)).to be_nil
+    end
+
+    it 'Edit Annotation updates text and points, but refuses id / map_id' do
+      id = state.add_annotation(map_id: map_id, type: 'text', points: [[1, 1]], text: 'old', dm_only: true)
+      state.edit_annotation(id, text: 'new', points: [[2, 3]])
+      ann = state.get_annotation(id)
+      expect(ann[:text]).to eq('new')
+      expect(ann[:points]).to eq([[2, 3]])
+      expect(ann[:dm_only]).to eq(true)         # untouched fields persist
+      expect(state.edit_annotation(id, map_id: 999)).to eq(Atlas::ERROR)
+      expect(state.edit_annotation(0xdead, text: 'x')).to eq(Atlas::ERROR)
     end
 
     it 'Clear Annotations On Map can scope to a single author' do
@@ -453,6 +473,85 @@ RSpec.describe Atlas::State do
       other = state.add_map(name: 'Other')
       state.delete_map(other)
       expect(state.get_annotation(keep)).not_to be_nil
+    end
+  end
+
+  describe 'Terrain' do
+    let(:map_id) { add_forest }
+
+    it 'Add Terrain stores a textured rectangle and assigns an id' do
+      id = state.add_terrain(map_id: map_id, points: [[0, 0], [5, 4]], texture: 'wall.png')
+      expect(id).to be_a(Integer)
+      t = state.get_terrain(id)
+      expect(t[:texture]).to eq('wall.png')
+      expect(t[:shape_kind]).to eq('rect')        # default
+      expect(t[:points]).to eq([[0, 0], [5, 4]])
+    end
+
+    it 'Add Terrain on an unknown Map returns the sentinel' do
+      expect(state.add_terrain(map_id: 99, points: [[0, 0], [1, 1]], texture: 'dirt.png')).to eq(Atlas::ERROR)
+    end
+
+    it 'List Terrain filters by map' do
+      other = state.add_map(name: 'Other')
+      state.add_terrain(map_id: map_id, points: [[0, 0], [1, 1]], texture: 'dirt.png')
+      state.add_terrain(map_id: map_id, points: [[2, 2], [3, 3]], texture: 'stone.png')
+      state.add_terrain(map_id: other,  points: [[0, 0], [1, 1]], texture: 'wall.png')
+      expect(state.list_terrain(map_id: map_id).length).to eq(2)
+      expect(state.list_terrain.length).to eq(3)
+    end
+
+    it 'Remove and Clear Terrain delete fills' do
+      a = state.add_terrain(map_id: map_id, points: [[0, 0], [1, 1]], texture: 'dirt.png')
+      state.add_terrain(map_id: map_id, points: [[2, 2], [3, 3]], texture: 'stone.png')
+      state.remove_terrain(a)
+      expect(state.get_terrain(a)).to be_nil
+      expect(state.clear_terrain_on_map(map_id)).to eq(1)
+      expect(state.list_terrain(map_id: map_id)).to eq([])
+    end
+
+    it 'persists Terrain across a reload' do
+      state.add_terrain(map_id: map_id, points: [[1, 1], [6, 5]], texture: 'wall.png', shape_kind: 'ellipse')
+      reloaded = described_class.load(data_path: data_path, example_path: '/nonexistent')
+      t = reloaded.list_terrain(map_id: map_id).first
+      expect(t[:texture]).to eq('wall.png')
+      expect(t[:shape_kind]).to eq('ellipse')
+      expect(t[:points]).to eq([[1, 1], [6, 5]])
+    end
+
+    it 'Delete Map cascades to its Terrain (like Tokens)' do
+      doomed = state.add_terrain(map_id: map_id, points: [[0, 0], [2, 2]], texture: 'dirt.png')
+      state.delete_map(map_id)
+      expect(state.get_terrain(doomed)).to be_nil
+    end
+
+    it 'Clear Annotations On Map never removes Terrain' do
+      terrain = state.add_terrain(map_id: map_id, points: [[0, 0], [2, 2]], texture: 'stone.png')
+      state.add_annotation(map_id: map_id, type: 'arrow', points: [[0, 0], [1, 1]])
+      state.clear_annotations_on_map(map_id)
+      expect(state.get_terrain(terrain)).not_to be_nil
+    end
+
+    it 'Erase Terrain Box punches a hole, leaving the surrounding ring' do
+      state.add_terrain(map_id: map_id, points: [[0, 0], [10, 10]], texture: 'wall.png')
+      affected = state.erase_terrain_box(map_id, 3, 3, 7, 7)
+      expect(affected).to eq(1)
+      fills = state.list_terrain(map_id: map_id)
+      expect(fills.length).to eq(4)             # ring of four remainder rects
+      # the erased hole is covered by none of the remainders
+      covered = ->(x, y) { fills.any? { |t| xs = t[:points].map { |p| p[0] }; ys = t[:points].map { |p| p[1] }
+                                            x >= xs.min && x < xs.max && y >= ys.min && y < ys.max } }
+      expect(covered.call(5, 5)).to be(false)   # inside the hole
+      expect(covered.call(1, 1)).to be(true)    # still walled
+    end
+
+    it 'Erase Terrain Box removes a fully-covered fill and reports zero on a miss' do
+      a = state.add_terrain(map_id: map_id, points: [[2, 2], [4, 4]], texture: 'dirt.png')
+      expect(state.erase_terrain_box(map_id, 0, 0, 10, 10)).to eq(1)
+      expect(state.get_terrain(a)).to be_nil
+      b = state.add_terrain(map_id: map_id, points: [[1, 1], [2, 2]], texture: 'dirt.png')
+      expect(state.erase_terrain_box(map_id, 50, 50, 60, 60)).to eq(0)
+      expect(state.get_terrain(b)).not_to be_nil
     end
   end
 end

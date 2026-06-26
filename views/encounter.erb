@@ -1,5 +1,31 @@
 <%= erb :_timekeeping_stub, locals: { timestamp: @timestamp } %>
 
+<%# DM-only Phase override: renders the DM's own Encounter view in a chosen
+    Phase without changing what the party sees. The party Phase is still set
+    from the menu dropdown; "Same as party" here clears the override. %>
+<% if @viewer == :dm %>
+  <%
+    party_label = (encounter_phases.find { |v, _| v == @party_phase } || []).last
+    preview_label = (encounter_phases.find { |v, _| v == @dm_phase_override } || []).last
+  %>
+  <div class="dm-phase-override">
+    <form method="post" action="/encounter/dm_phase" class="phase-form">
+      <label class="phase-label">My view
+        <select name="phase" class="phase-select" onchange="this.form.submit()">
+          <option value="party"<%= ' selected' unless @dm_phase_override %>>Same as party (<%= party_label %>)</option>
+          <% encounter_phases.each do |val, label| %>
+            <option value="<%= val %>"<%= ' selected' if @dm_phase_override == val %>><%= label %></option>
+          <% end %>
+        </select>
+      </label>
+      <noscript><button type="submit" class="ce-btn phase-set">Set</button></noscript>
+    </form>
+    <% if @dm_phase_override %>
+      <span class="dm-phase-note">Previewing <strong><%= preview_label %></strong> — players still see <strong><%= party_label %></strong>.</span>
+    <% end %>
+  </div>
+<% end %>
+
 <%
   # The Encounter Phase (DM's menu dropdown) selects which stubs show.
   #   combat   — hide Advance Time; show Initiative + Map; notes DM-only.
@@ -116,7 +142,8 @@
         maps: @atlas_maps,
         active_id: @atlas_active_id,
         viewer: @viewer,
-        placeable: @atlas_placeable
+        placeable: @atlas_placeable,
+        terrain: @atlas_terrain
       } %>
 <% end %>
 

@@ -99,11 +99,34 @@ helpers do
                      width: map[:width], height: map[:height],
                      grid: map[:grid], archived: map[:archived] },
       tokens:      tokens.map { |t| atlas_token_view(t, acting_id, viewer) },
-      # Annotations (drawings) are shared — every viewer sees them all.
-      annotations: atlas_state.list_annotations(map_id: map[:id]),
+      # Annotations (drawings) are shared — but a dm_only drawing (a secret
+      # text note) is stripped from a player's snapshot, like a hidden Token.
+      annotations: atlas_state.list_annotations(map_id: map[:id])
+                              .reject { |a| a[:dm_only] && viewer != :dm },
+      # Terrain (painted walls / dirt / stone floor). Map structure — every
+      # viewer sees it; only the DM may edit it.
+      terrain:     atlas_state.list_terrain(map_id: map[:id]),
       # Zones (spell areas / hazards). Anchor x/y are resolved Map Units.
       zones:       atlas_state.list_zones(map_id: map[:id])
     }
+  end
+
+  # Terrain palette for the DM toolbar: the texture files present in
+  # public/images/terrain paired with a display label. A file with no entry
+  # in the label map still appears (titleized from its name), so dropping a
+  # new texture into the folder surfaces a brush with no code change.
+  TERRAIN_LABELS = { 'wall.png' => 'Wall', 'dirt.png' => 'Dirt', 'stone.png' => 'Stone' }.freeze
+  TERRAIN_DIR = File.expand_path('../../public/images/terrain', __dir__)
+
+  def atlas_terrain_textures
+    Dir.glob(File.join(TERRAIN_DIR, '*.{png,webp,jpg,jpeg,gif}')).map { |f| File.basename(f) }.sort
+  end
+
+  def atlas_terrain_palette
+    atlas_terrain_textures.map do |file|
+      label = TERRAIN_LABELS[file] || File.basename(file, '.*').split(/[_\-\s]+/).map(&:capitalize).join(' ')
+      { texture: file, label: label }
+    end
   end
 
   # Drawing is allowed for the DM always, and for a player while Combat is
@@ -278,10 +301,13 @@ post '/atlas/add_annotation' do
   points = Array(payload['points']).map { |p| [p[0].to_f, p[1].to_f] }
   return atlas_error(400, 'points are required') if points.empty?
 
+  # Only the DM may mark a drawing dm_only (a secret note); a player's
+  # drawings are always shared.
+  dm_only = viewer == :dm && !!payload['dm_only']
   id = atlas_state.add_annotation(
     map_id: map[:id], type: type, points: points,
     color: payload['color'], shape_kind: payload['shape_kind'],
-    text: payload['text'], author: viewer.to_s
+    text: payload['text'], author: viewer.to_s, dm_only: dm_only
   )
   return atlas_error(409, 'could not add annotation') if id == Atlas::ERROR
   clear_player_drawings! if viewer == :dm
@@ -299,13 +325,90 @@ post '/atlas/remove_annotation' do
   atlas_response(ok: true, snapshot: atlas_map_snapshot(viewer))
 end
 
+# Edit an Annotation in place — retext (the DM editing a note) and/or
+# reposition (dragging it). Body: { annotation_id, text?, points? } where
+# points is a JSON array of [x, y] pairs. Same authorship gate as removal.
+post '/atlas/edit_annotation' do
+  viewer = viewer_role
+  return atlas_error(403, 'cannot draw here') unless atlas_can_draw?(viewer)
+  ann = atlas_state.get_annotation(params[:annotation_id].to_i)
+  return atlas_error(404, 'unknown annotation') unless ann
+  return atlas_error(403, 'not your annotation') if viewer != :dm && ann[:author] != 'player'
+
+  fields = {}
+  fields[:text] = params[:text].to_s if params.key?('text')
+  if params.key?('points')
+    pts = JSON.parse(params[:points]) rescue nil
+    return atlas_error(400, 'invalid points') unless pts.is_a?(Array) && !pts.empty?
+    fields[:points] = pts.map { |p| [p[0].to_f, p[1].to_f] }
+  end
+  return atlas_error(400, 'nothing to edit') if fields.empty?
+  atlas_state.edit_annotation(ann[:id], **fields)
+  atlas_response(ok: true, snapshot: atlas_map_snapshot(viewer))
+end
+
 post '/atlas/clear_annotations' do
   viewer = viewer_role
   return atlas_error(403, 'cannot draw here') unless atlas_can_draw?(viewer)
   map = atlas_state.get_active_map
   return atlas_error(409, 'no active map') unless map
-  # The DM clears every drawing; a player clears only their own.
+  # The DM clears every drawing; a player clears only their own. Terrain is
+  # never touched here — it is permanent map structure, not a drawing.
   author = viewer == :dm ? nil : 'player'
   removed = atlas_state.clear_annotations_on_map(map[:id], author: author)
   atlas_response(ok: true, removed: removed, snapshot: atlas_map_snapshot(viewer))
+end
+
+# ---- Terrain (painted map structure) ---------------------------------
+#
+# DM only. The DM drags a rectangle filled with a repeating texture (wall /
+# dirt / stone floor) to build a scene. Terrain persists like Tokens — it is
+# not swept by Clear Drawings. JSON body: { points, texture, shape_kind }.
+
+post '/atlas/add_terrain' do
+  require_dm!
+  payload = JSON.parse(request.body.read) rescue nil
+  return atlas_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
+
+  texture = payload['texture'].to_s
+  return atlas_error(400, 'unknown texture') unless atlas_terrain_textures.include?(texture)
+
+  map = atlas_state.get_active_map
+  return atlas_error(409, 'no active map') unless map
+  points = Array(payload['points']).map { |p| [p[0].to_f, p[1].to_f] }
+  return atlas_error(400, 'points are required') if points.length < 2
+
+  shape_kind = %w[rect ellipse].include?(payload['shape_kind'].to_s) ? payload['shape_kind'].to_s : 'rect'
+  id = atlas_state.add_terrain(map_id: map[:id], points: points, texture: texture, shape_kind: shape_kind)
+  return atlas_error(409, 'could not add terrain') if id == Atlas::ERROR
+  atlas_response(ok: true, terrain_id: id, snapshot: atlas_map_snapshot(:dm))
+end
+
+post '/atlas/remove_terrain' do
+  require_dm!
+  atlas_state.remove_terrain(params[:terrain_id].to_i)
+  atlas_response(ok: true, snapshot: atlas_map_snapshot(:dm))
+end
+
+post '/atlas/clear_terrain' do
+  require_dm!
+  map = atlas_state.get_active_map
+  return atlas_error(409, 'no active map') unless map
+  removed = atlas_state.clear_terrain_on_map(map[:id])
+  atlas_response(ok: true, removed: removed, snapshot: atlas_map_snapshot(:dm))
+end
+
+# Eraser box tool: subtract a rectangular region from the Map's Terrain.
+# JSON body: { points: [[x0, y0], [x1, y1]] } (opposite corners, Map Units).
+post '/atlas/erase_terrain' do
+  require_dm!
+  payload = JSON.parse(request.body.read) rescue nil
+  return atlas_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
+  pts = Array(payload['points']).map { |p| [p[0].to_f, p[1].to_f] }
+  return atlas_error(400, 'points are required') if pts.length < 2
+
+  map = atlas_state.get_active_map
+  return atlas_error(409, 'no active map') unless map
+  erased = atlas_state.erase_terrain_box(map[:id], pts[0][0], pts[0][1], pts[1][0], pts[1][1])
+  atlas_response(ok: true, erased: erased, snapshot: atlas_map_snapshot(:dm))
 end

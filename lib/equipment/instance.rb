@@ -101,16 +101,22 @@ module Equipment
       new_quantity
     end
 
-    def transfer_stack(from_owner_id, to_owner_id, ref, quantity: nil)
+    # Move `quantity` of Stack `ref` from one owner to another. With
+    # allow_overdraw, the target may be given more than the source holds (the
+    # source floors at 0 and is kept in place rather than going negative) —
+    # used by the loot pile's per-item Give, where the DM may hand out any
+    # amount and zero-quantity Stacks must remain on the pile.
+    def transfer_stack(from_owner_id, to_owner_id, ref, quantity: nil, allow_overdraw: false)
       inv = read_inventory(from_owner_id)
       idx = resolve_index(inv, ref)
       return ERROR unless idx
       stack = inv[idx]
       qty = quantity.nil? ? stack.quantity : quantity
-      return ERROR if qty <= 0 || qty > stack.quantity
+      return ERROR if qty <= 0
+      return ERROR if qty > stack.quantity && !allow_overdraw
 
       moved = stack.with_quantity(qty)
-      stack.quantity -= qty
+      stack.quantity = [stack.quantity - qty, 0].max
       write_inventory(from_owner_id, inv)
       add_item(to_owner_id, moved)
     end
@@ -129,11 +135,21 @@ module Equipment
     def equip_stack(owner_id, ref)   ; set_equipped(owner_id, ref, true)  ; end
     def unequip_stack(owner_id, ref) ; set_equipped(owner_id, ref, false) ; end
 
-    def set_parry_used_day(owner_id, ref, day_index)
+    # Remaining daily uses of `key` on the Stack `ref` carries: the per-day
+    # cap minus the uses already spent today. A once-per-day item (cap 1)
+    # is "available" while this is positive.
+    def daily_charge_remaining(stack, key, cap, today)
+      cap.to_i - stack.daily_uses(key, today)
+    end
+
+    # Spend one daily use of `key` on the Stack at `ref`, stamping `today`.
+    # The charge recharges on its own when the day rolls over (Stack tracks the
+    # day each feature was last used). Returns the updated Stack, or ERROR.
+    def spend_daily_charge!(owner_id, ref, key, today)
       inv = read_inventory(owner_id)
       idx = resolve_index(inv, ref)
       return ERROR unless idx
-      inv[idx].parry_used_day = day_index.nil? ? nil : Integer(day_index)
+      inv[idx].record_daily_use(key, today)
       write_inventory(owner_id, inv)
       inv[idx]
     end
