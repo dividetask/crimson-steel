@@ -21,7 +21,7 @@ The schema for entries in `spells.yaml` and `talents.yaml`. Looked up by display
 | `aspects` | list of string | no | An Aspect-axis Variant. Mutually exclusive with a list `tier`. |
 | `school` | string | spell only | Key into `Spell Schools`. Rejected on Talents. |
 | `activation_time` | string | no | Action Alias, Real-Time Alias, `"<N> turns"`, or `"<N> minutes"`. **Default `main`** when omitted on a Spell or Talent without a `trigger`. |
-| `range` | string or int | no* | Named Range or feet. *Optional when `trigger` is present.* |
+| `range` | string or int | no* | A named Range (e.g. `Close`), a bare integer in feet, or an inline per-rank Formula declared on the Spell (e.g. `"50*rank"`). *Optional when `trigger` is present.* |
 | `target` | string | no | `"self"`, `"object"`, an integer string, or a Formula. **Optional.** A Spell with an `area` and no `target` affects every creature in the area. A Spell with both `target` and `area` uses the named target as the area's anchor (when the Area's `anchor` is `target`). A Spell with `target` only and no `area` directly names creatures or an object. |
 | `requires_willing` | bool | no | Default `false`. When `true`, the Ability only affects willing targets; unwilling targets are unaffected even if no save is offered. Implicit `true` for `target: self`. |
 | `save` | list of Save Spec | no | **Default `[]`** (no save) when omitted. |
@@ -167,7 +167,7 @@ A Reservoir Discharge with `amount: "X..dice_cap"` follows the normal Dice Cap r
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `shape` | enum | required | `line`, `cone`, `square`, `circle`. *(configurable)* |
-| `size` | non-neg int | required | In 5-foot squares. Never feet. |
+| `size` | non-neg int or Formula | required | In 5-foot squares. Never feet. May be a Formula string (e.g. `"rank"`, `"8*rank"`) resolved against `rank` and floored at cast time, the same way `range` and `target` scale. |
 | `anchor` | enum | `point` | Where the area is centered. `point` (caster designates a point at cast time), `target` (centered on and moves with the Ability's named target), `caster` (centered on and moves with the caster). |
 | `on_enter` | Save Block | null | Save Block applied to any Creature that enters the Zone after cast. Becomes the `on_enter` trigger of the Conditions Zone Effect when the spell creates a Zone. |
 | `on_end_of_turn` | Save Block | null | Save Block applied to any Creature that ends a turn inside the Zone. Becomes the `on_end_of_turn` trigger of the Conditions Zone Effect. |
@@ -244,6 +244,7 @@ Input: the Catalog Ability and an optional per-cast `reach`.
 Returns range in feet:
 - A bare integer `range` is returned as-is.
 - A named Range is looked up in `Range Formulas` and evaluated against `rank` and the caller's `reach` (defaulting to `Default Reach Feet`).
+- Any other string is treated as an inline Formula declared on the Spell and evaluated against `rank` and `reach` (and floored). This is for one-off per-rank ranges (e.g. `"50*rank"`) that don't warrant a shared named Range. A string that is neither a known Range nor an evaluable Formula (a typo'd Range name) is a load-time validation error.
 
 ### Resolve a Catalog Ability's activation time
 
@@ -263,6 +264,10 @@ The `value` field on an Action result is a categorical label, not a duration. Co
 ### Resolve a Catalog Ability's target
 
 Returns `'self'` or a non-negative integer count. Formula strings evaluate against `rank` and the Effect Hash. A target count of zero means the Ability has no valid targets and cannot be cast.
+
+### Resolve an Area's size
+
+Input: an Area `size` value and a `rank`. Returns a concrete non-negative integer count of 5-foot squares: a bare integer (or numeric string) is returned as-is; any other string is a Formula evaluated against `rank` and floored. Returns `null` when the value is missing or the Formula references an unbindable name, so the caller can fall back rather than crash. The casting pipeline resolves the size before handing the footprint to Atlas (which requires an integer).
 
 ### Resolve a Spell for item consumption
 

@@ -73,6 +73,22 @@ body {
 
 .phase-set { margin-left: 6px; }
 
+/* DM-only Phase override on the Encounter page (white content area). */
+.dm-phase-override {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+  padding: 8px 10px;
+  background: #f6f6f6;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+.dm-phase-override .phase-form { margin-right: 0; }
+.dm-phase-override .phase-label { color: #333; font-size: 13px; }
+.dm-phase-note { color: #8a5a00; font-size: 13px; }
+
 .view-as-form {
   margin-right: 12px;
 }
@@ -2080,20 +2096,26 @@ body {
    Scene page uses a two-column grid so cards take half the
    screen and the scene reads as a denser overview. */
 
+/* `minmax(0, 1fr)` (not the default `1fr` = `minmax(auto, 1fr)`) keeps all
+   three columns exactly equal: without the 0 minimum, a card whose header
+   row (title + Expand + PRIVATE/PUBLIC + ACTIVE badges, laid out
+   `flex-wrap: nowrap`) is naturally wider blows its column out and starves
+   the others. The matching `min-width: 0` lets each card shrink to its
+   column so the title ellipsis can engage. */
 .notes-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 16px;
 }
 .scene-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 16px;
 }
 .notes-list .ce-card,
-.scene-list .ce-card { margin: 0; }
+.scene-list .ce-card { margin: 0; min-width: 0; }
 
 /* === Image lightbox & text modal === */
 
@@ -3847,6 +3869,61 @@ body {
 .atlas-tool.atlas-arrow-sneak   { border-left: 4px solid #9b59b6; }
 .atlas-tool.atlas-arrow-careful { border-left: 4px solid #f1c40f; }
 
+/* --- Terrain (painted walls / dirt / stone floor) --- */
+.atlas-terrain {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;            /* terrain never intercepts canvas gestures */
+}
+/* Keep the small source tiles crisp (pixel art) instead of blurring them as
+   they scale up with zoom. */
+.atlas-terrain-tile { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+/* A dm_only text note: italicised and lock-prefixed so the DM can see at a
+   glance the players' view does not include it. */
+.atlas-annotation-secret { font-style: italic; }
+
+/* The annotation layer is click-through, but a DM's text note re-enables
+   pointer events so it can be clicked to edit or dragged to move. */
+.atlas-annotation-editable { pointer-events: auto; cursor: move; }
+
+/* Terrain brush buttons show a thumbnail of their texture; the label rides on
+   top with a shadow for legibility. The armed brush gets the active outline. */
+.atlas-tool-tag { align-self: center; color: #888; font-size: 12px; padding: 0 2px; }
+.atlas-terrain-brush {
+  background-size: 22px;
+  background-repeat: repeat;
+  image-rendering: pixelated;
+  color: #fff;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+}
+.atlas-terrain-brush:hover { background-color: transparent; }
+/* Armed brush: keep the thumbnail visible, mark it with a ring. */
+.atlas-terrain-brush.atlas-tool-active {
+  background-color: transparent;
+  outline: 2px solid #4aa3ff;
+  outline-offset: -2px;
+}
+/* Eraser tool + its live selection box. */
+.atlas-terrain-erase { border-left: 4px solid #e74c3c; }
+.atlas-terrain-erase-box {
+  fill: rgba(231, 76, 60, 0.18);
+  stroke: #e74c3c;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+
+/* Inline editor for a text note (DM): retext, Save, or Delete. */
+.atlas-note-editor {
+  position: absolute;
+  z-index: 31;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.atlas-note-editor .atlas-text-input { position: static; }
+
 /* No-icon token marker: a `?` (atlas_stub.md). */
 .atlas-token-qmark {
   font-size: 15px;
@@ -3939,6 +4016,11 @@ body {
 .pcc-loot-btn:has(input:checked)::after { content: "Ignore"; }
 .pcc-del-btn::after  { content: "Delete"; }
 .pcc-del-btn:has(input:checked)::after { content: "Keep"; }
+.pcc-npc-btn::after  { content: "\2192 NPC"; }
+.pcc-npc-btn:has(input:checked)::after { content: "\2713 NPC"; }
+/* The rename field appears only once "→ NPC" is toggled on. */
+.pcc-npc-name { display: none; width: 130px; }
+.pcc-row:has(.pcc-npc-btn input:checked) .pcc-npc-name { display: inline-block; }
 
 /* Combined loot preview (right side). */
 .pcc-loot { flex: 0 0 auto; text-align: right; font-size: 13px; }

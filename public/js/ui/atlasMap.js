@@ -7,7 +7,14 @@
 // Drawing tools (atlas_stub.md → Drawing tools): a tool is a mode. While a
 // draw tool is active, canvas gestures create Atlas Annotations instead of
 // panning. Players get the Arrow tool only; the DM gets Arrow, Shape
-// (rect/ellipse), and Text. Each drawing commits via /atlas/add_annotation.
+// (rect/ellipse), Text, and a "DM Note" (dm_only text only the DM sees).
+// Each drawing commits via /atlas/add_annotation.
+//
+// Terrain tools (atlas_stub.md → Terrain): DM-only texture brushes (Wall /
+// Dirt / Stone). They draw rectangles like the Shape tool, but each rect is
+// filled with a repeating texture (one tile per Grid cell) and committed via
+// /atlas/add_terrain as permanent map structure — terrain persists below the
+// drawings/tokens and is not swept by Clear Drawings.
 //
 // Combat integrations: in Select mode the DM drags a Token to move it, or
 // clicks it (while the Attack pane is open) to target that Combatant. A Cast's
@@ -43,6 +50,8 @@ class AtlasCanvas {
     this.panX = 0;
     this.panY = 0;
     this.tool = 'select';
+    this.uid = Math.random().toString(36).slice(2);  // scopes this canvas's SVG ids
+    this._terrainTexture = null;  // active terrain brush's texture, or null
     this.placing = null;   // creature_id armed for placement, or null
     this.placingArea = null; // {shape, size} armed for spell-area placement
     this._placedArea = null; // {x, y, area} dropped (un-committed) footprint, draggable
@@ -105,6 +114,11 @@ class AtlasCanvas {
     if (map.image) bg.style.backgroundImage = 'url("' + map.image + '")';
     this.world.appendChild(bg);
 
+    // Terrain (painted walls / dirt / stone floor) sits directly on the
+    // background and below the grid, so grid lines stay visible over it.
+    this.terrainLayer = this.buildTerrainLayer(w, h, map);
+    this.world.appendChild(this.terrainLayer);
+
     // Grid as explicit geometry (an SVG path), not a repeating-gradient
     // background. A CSS gradient is rasterised once and then scaled by the
     // world's zoom transform, which makes its periodic 1px lines alias against
@@ -159,6 +173,78 @@ class AtlasCanvas {
   // units paints as a single pixel after that scale — independent of zoom.
   updateGridStroke() {
     if (this.gridPath) this.gridPath.setAttribute('stroke-width', String(1 / this.zoom));
+  }
+
+  // SVG layer of Terrain: rectangles (or ellipses) filled with a repeating
+  // texture. Each distinct texture gets one <pattern> in the layer's <defs>,
+  // sized to one Grid cell and aligned to the Grid Origin so tiles line up
+  // with the grid; shapes then fill with url(#pattern).
+  buildTerrainLayer(w, h, map) {
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'atlas-terrain');
+    svg.setAttribute('width', w);
+    svg.setAttribute('height', h);
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    const defs = document.createElementNS(SVG_NS, 'defs');
+    svg.appendChild(defs);
+    svg._defs = defs;
+    svg._patterns = {};            // texture filename -> pattern id (dedupe)
+    const grid = map && map.grid;
+    svg._origin = [
+      ((((grid && grid.origin && grid.origin[0]) || 0) * BASE_CELL) % BASE_CELL + BASE_CELL) % BASE_CELL,
+      ((((grid && grid.origin && grid.origin[1]) || 0) * BASE_CELL) % BASE_CELL + BASE_CELL) % BASE_CELL
+    ];
+    (this.snapshot.terrain || []).forEach((t) => {
+      const el = this.terrainEl(svg, t);
+      if (el) svg.appendChild(el);
+    });
+    return svg;
+  }
+
+  // The <pattern> id for a texture on this layer, created on first use. One
+  // tile = one Map Unit (BASE_CELL px), so the texture repeats once per cell.
+  terrainPattern(svg, texture) {
+    if (svg._patterns[texture]) return svg._patterns[texture];
+    const id = 'terrain-pat-' + this.uid + '-' + Object.keys(svg._patterns).length;
+    const pat = svgEl('pattern', { id: id, patternUnits: 'userSpaceOnUse',
+      width: BASE_CELL, height: BASE_CELL, x: svg._origin[0], y: svg._origin[1] });
+    const img = svgEl('image', { x: 0, y: 0, width: BASE_CELL, height: BASE_CELL,
+      preserveAspectRatio: 'none', class: 'atlas-terrain-tile' });
+    const href = '/images/terrain/' + encodeURIComponent(texture);
+    img.setAttributeNS(XLINK_NS, 'href', href);
+    img.setAttribute('href', href);
+    pat.appendChild(img);
+    svg._defs.appendChild(pat);
+    svg._patterns[texture] = id;
+    return id;
+  }
+
+  // The eraser tool's live selection box (Map Units → world px). A dashed,
+  // translucent-red rectangle marking the region terrain will be erased from.
+  eraseBoxEl(points) {
+    const pts = (points || []).map((p) => [p[0] * BASE_CELL, p[1] * BASE_CELL]);
+    if (pts.length < 2) return null;
+    const x0 = Math.min(pts[0][0], pts[1][0]); const y0 = Math.min(pts[0][1], pts[1][1]);
+    const w = Math.abs(pts[1][0] - pts[0][0]); const h = Math.abs(pts[1][1] - pts[0][1]);
+    if (w <= 0 || h <= 0) return null;
+    return svgEl('rect', { x: x0, y: y0, width: w, height: h, class: 'atlas-terrain-erase-box' });
+  }
+
+  // One Terrain shape, filled with its repeating texture. `points` are the two
+  // opposite corners (Map Units); world px = unit * BASE_CELL.
+  terrainEl(svg, t) {
+    const pts = (t.points || []).map((p) => [p[0] * BASE_CELL, p[1] * BASE_CELL]);
+    if (pts.length < 2) return null;
+    const x0 = Math.min(pts[0][0], pts[1][0]); const y0 = Math.min(pts[0][1], pts[1][1]);
+    const w = Math.abs(pts[1][0] - pts[0][0]); const h = Math.abs(pts[1][1] - pts[0][1]);
+    if (w <= 0 || h <= 0) return null;
+    const fill = 'url(#' + this.terrainPattern(svg, t.texture) + ')';
+    const attrs = { fill: fill, class: 'atlas-terrain-fill' };
+    if (t.id != null) attrs['data-terrain-id'] = t.id;
+    if (t.shape_kind === 'ellipse') {
+      return svgEl('ellipse', Object.assign(attrs, { cx: x0 + w / 2, cy: y0 + h / 2, rx: w / 2, ry: h / 2 }));
+    }
+    return svgEl('rect', Object.assign(attrs, { x: x0, y: y0, width: w, height: h }));
   }
 
   // SVG layer of Zones (spell areas / hazards). A circle's `size` is its radius
@@ -278,9 +364,18 @@ class AtlasCanvas {
       return svgEl('rect', Object.assign(attrs, { x: x0, y: y0, width: w, height: h }));
     }
     if (a.type === 'text' && pts.length >= 1) {
-      const t = svgEl('text', { x: pts[0][0], y: pts[0][1], fill: color, 'font-size': 16,
-        'font-weight': 700, class: 'atlas-annotation atlas-annotation-text' });
-      t.textContent = a.text || '';
+      // A dm_only note (only the DM's snapshot carries these) is badged with a
+      // lock so the DM can tell at a glance the players cannot see it. For the
+      // DM, a real (committed) text note is clickable to edit / drag to move.
+      const editable = this.viewer === 'dm' && a.id != null;
+      const cls = 'atlas-annotation atlas-annotation-text' +
+        (a.dm_only ? ' atlas-annotation-secret' : '') +
+        (editable ? ' atlas-annotation-editable' : '');
+      const attrs = { x: pts[0][0], y: pts[0][1], fill: color, 'font-size': 16,
+        'font-weight': 700, class: cls };
+      if (editable) attrs['data-ann-id'] = a.id;
+      const t = svgEl('text', attrs);
+      t.textContent = (a.dm_only ? '🔒 ' : '') + (a.text || '');
       return t;
     }
     return null;
@@ -423,13 +518,16 @@ class AtlasCanvas {
       // Placing a Combatant: drop / drag the new Token to the clicked cell.
       if (this.placing) return this.beginPlace(e);
       if (this.tool !== 'select') {
-        if (this.tool === 'text') return this.beginText(e);
+        if (this.tool === 'text' || this.tool === 'dmtext') return this.beginText(e);
         return this.beginDraw(e);
       }
       // A dropped-but-uncommitted spell footprint can be dragged to re-aim it.
       if (this._placedArea && e.target.closest && e.target.closest('.atlas-zone-preview')) {
         return this.beginAreaDrag(e);
       }
+      // A DM text note: drag to move it, or click (no drag) to edit / delete.
+      const noteEl = e.target.closest('.atlas-annotation-editable');
+      if (noteEl && this.viewer === 'dm') return this.beginNoteDrag(e, noteEl);
       const tokenEl = e.target.closest('.atlas-token');
       if (tokenEl && this.viewer === 'dm') return this.beginTokenDrag(e, tokenEl);
       this.beginPan(e);
@@ -507,34 +605,51 @@ class AtlasCanvas {
     return [Math.round(p[0] - ox) + ox, Math.round(p[1] - oy) + oy];
   }
 
-  // Drag-to-draw for arrow / rect / ellipse, with a live preview element.
+  // Drag-to-draw for arrow / rect / ellipse / terrain, with a live preview.
+  // Terrain and shapes snap to Grid corners (so they tile/align to cells);
+  // arrows are drawn freely.
   beginDraw(e) {
     e.preventDefault();
     this.hideTip();
-    const type = this.tool === 'arrow' ? 'arrow' : 'shape';
-    const shapeKind = this.tool === 'rect' ? 'rect' : (this.tool === 'ellipse' ? 'ellipse' : null);
-    const snap = (p) => (type === 'shape' ? this.snapToCorner(p) : p);
+    const isErase = this.tool === 'terrain-erase';
+    const isTerrain = this.tool === 'terrain';
+    const type = this.tool === 'arrow' ? 'arrow' : (isTerrain ? 'terrain' : 'shape');
+    const shapeKind = this.tool === 'rect' ? 'rect' : (this.tool === 'ellipse' ? 'ellipse' : (isTerrain ? 'rect' : null));
+    const texture = isTerrain ? this._terrainTexture : null;
+    const snapped = type !== 'arrow';
+    const snap = (p) => (snapped ? this.snapToCorner(p) : p);
     const start = snap(this.toUnits(e.clientX, e.clientY));
-    const preview = { type, shape_kind: shapeKind, color: this.color(), points: [start, start] };
-    let el = this.annotationEl(this.annLayer, preview, 'preview');
-    if (el) this.annLayer.appendChild(el);
+    // A preview element: terrain (and the eraser box) render through the
+    // terrain layer; everything else through the annotation layer.
+    const layer = (isTerrain || isErase) ? this.terrainLayer : this.annLayer;
+    const build = (pts) => {
+      if (isErase) return this.eraseBoxEl(pts);
+      if (isTerrain) return this.terrainEl(layer, { shape_kind: shapeKind, texture, points: pts });
+      return this.annotationEl(layer, { type, shape_kind: shapeKind, color: this.color(), points: pts }, 'preview');
+    };
+    let el = build([start, start]);
+    if (el) layer.appendChild(el);
     this.viewport.setPointerCapture(e.pointerId);
 
+    let end = start;
     const onMove = (ev) => {
-      preview.points[1] = snap(this.toUnits(ev.clientX, ev.clientY));
-      const next = this.annotationEl(this.annLayer, preview, 'preview');
-      if (next && el) { this.annLayer.replaceChild(next, el); el = next; }
+      end = snap(this.toUnits(ev.clientX, ev.clientY));
+      const next = build([start, end]); // null while the span is still zero
+      if (el) el.remove();
+      el = next;
+      if (el) layer.appendChild(el);
     };
-    const onUp = (ev) => {
+    const onUp = () => {
       this.viewport.removeEventListener('pointermove', onMove);
       this.viewport.removeEventListener('pointerup', onUp);
-      const end = snap(this.toUnits(ev.clientX, ev.clientY));
-      // For a shape, require a non-zero cell span; an arrow needs a small drag.
-      const span = type === 'shape'
+      // A shape / terrain rect needs a non-zero cell span; an arrow a small drag.
+      const span = snapped
         ? (Math.abs(end[0] - start[0]) >= 1 && Math.abs(end[1] - start[1]) >= 1)
         : (Math.hypot(end[0] - start[0], end[1] - start[1]) >= 0.2);
       if (!span) { this.render(); return; } // too small — discard preview
-      this.postDraw({ type, shape_kind: shapeKind, color: this.color(), points: [start, end] });
+      if (isErase) this.postTerrain({ points: [start, end] }, '/atlas/erase_terrain');
+      else if (isTerrain) this.postTerrain({ shape_kind: shapeKind, texture, points: [start, end] });
+      else this.postDraw({ type, shape_kind: shapeKind, color: this.color(), points: [start, end] });
     };
     this.viewport.addEventListener('pointermove', onMove);
     this.viewport.addEventListener('pointerup', onUp);
@@ -557,17 +672,101 @@ class AtlasCanvas {
     this.viewport.appendChild(input);
     input.focus();
     let done = false;
+    const dmOnly = this.tool === 'dmtext';
+    if (dmOnly) input.placeholder = 'DM-only note…';
     const finish = (commit) => {
       if (done) return; done = true;
       const text = input.value.trim();
       input.remove();
-      if (commit && text) this.postDraw({ type: 'text', color: this.color(), points: [at], text });
+      if (commit && text) this.postDraw({ type: 'text', color: this.color(), points: [at], text, dm_only: dmOnly });
     };
     input.addEventListener('keydown', (ev) => {
       if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
       else if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
     });
     input.addEventListener('blur', () => finish(true));
+  }
+
+  // ----- editing a text note (DM): drag to move, click to edit / delete -----
+
+  beginNoteDrag(e, noteEl) {
+    e.preventDefault();
+    this.hideTip();
+    const id = parseInt(noteEl.dataset.annId, 10);
+    const start = { x: e.clientX, y: e.clientY };
+    const origin = { x: parseFloat(noteEl.getAttribute('x')), y: parseFloat(noteEl.getAttribute('y')) };
+    let moved = false;
+    noteEl.setPointerCapture(e.pointerId);
+    const onMove = (ev) => {
+      const dx = ev.clientX - start.x; const dy = ev.clientY - start.y;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+      if (moved) {
+        noteEl.setAttribute('x', origin.x + dx / this.zoom);
+        noteEl.setAttribute('y', origin.y + dy / this.zoom);
+      }
+    };
+    const onUp = (ev) => {
+      noteEl.removeEventListener('pointermove', onMove);
+      noteEl.removeEventListener('pointerup', onUp);
+      if (moved) {
+        const x = parseFloat(noteEl.getAttribute('x')) / BASE_CELL;
+        const y = parseFloat(noteEl.getAttribute('y')) / BASE_CELL;
+        this.postRender('/atlas/edit_annotation', { annotation_id: id, points: JSON.stringify([[x, y]]) });
+      } else {
+        this.openNoteEditor(id, ev.clientX, ev.clientY);
+      }
+    };
+    noteEl.addEventListener('pointermove', onMove);
+    noteEl.addEventListener('pointerup', onUp);
+  }
+
+  // Inline editor for a text note: retext (Save / Enter), Delete, or cancel
+  // (Escape / click away). An emptied note is deleted.
+  openNoteEditor(id, clientX, clientY) {
+    const ann = (this.snapshot.annotations || []).find((a) => a.id === id);
+    if (!ann) return;
+    const r = this.viewport.getBoundingClientRect();
+    const wrap = document.createElement('div');
+    wrap.className = 'atlas-note-editor';
+    wrap.style.left = (clientX - r.left) + 'px';
+    wrap.style.top = (clientY - r.top) + 'px';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'atlas-text-input';
+    input.value = ann.text || '';
+    const save = document.createElement('button');
+    save.type = 'button'; save.className = 'atlas-tool-btn'; save.textContent = 'Save';
+    const del = document.createElement('button');
+    del.type = 'button'; del.className = 'atlas-tool-btn atlas-danger'; del.textContent = 'Delete';
+    wrap.append(input, save, del);
+    // The editor sits inside the viewport; stop its gestures from bubbling to
+    // the canvas pan/draw handler (which would preventDefault the clicks).
+    wrap.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+    this.viewport.appendChild(wrap);
+    input.focus(); input.select();
+
+    let done = false;
+    const close = () => {
+      if (done) return; done = true;
+      wrap.remove();
+      document.removeEventListener('pointerdown', onDocDown, true);
+    };
+    const commit = () => {
+      const text = input.value.trim();
+      close();
+      if (!text) this.postRender('/atlas/remove_annotation', { annotation_id: id });
+      else this.postRender('/atlas/edit_annotation', { annotation_id: id, text });
+    };
+    save.addEventListener('click', commit);
+    del.addEventListener('click', () => { close(); this.postRender('/atlas/remove_annotation', { annotation_id: id }); });
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); close(); }
+    });
+    // A pointerdown outside the editor cancels (deferred so the opening click
+    // doesn't immediately close it).
+    const onDocDown = (ev) => { if (!wrap.contains(ev.target)) close(); };
+    setTimeout(() => document.addEventListener('pointerdown', onDocDown, true), 0);
   }
 
   // ----- click-to-target (turn_action_stub.md → Attack) -----
@@ -634,6 +833,7 @@ class AtlasCanvas {
         if (btn.disabled) return;
         this.tool = btn.dataset.tool;
         this._toolColor = btn.dataset.color || null;  // fixed color per tool, if any
+        this._terrainTexture = btn.dataset.texture || null;  // terrain brush, if any
         this.section.querySelectorAll('.atlas-tool').forEach((b) =>
           b.classList.toggle('atlas-tool-active', b === btn));
         this.viewport.classList.toggle('atlas-drawing', this.tool !== 'select');
@@ -915,6 +1115,19 @@ class AtlasCanvas {
   // JSON-bodied draw mutation; re-render the canvas from the returned snapshot.
   postDraw(obj) {
     fetch('/atlas/add_annotation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj) })
+      .then((r) => r.json().catch(() => null))
+      .then((res) => {
+        if (res && res.snapshot) { this.snapshot = res.snapshot; this.render(); this.applyTransform(); }
+        else this.render(); // drop the preview on failure
+      })
+      .catch(() => this.render());
+  }
+
+  // JSON-bodied terrain mutation; re-render the canvas from the returned
+  // snapshot (mirrors postDraw, but for the persistent terrain layer). Serves
+  // both painting (/atlas/add_terrain) and the eraser (/atlas/erase_terrain).
+  postTerrain(obj, url = '/atlas/add_terrain') {
+    fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj) })
       .then((r) => r.json().catch(() => null))
       .then((res) => {
         if (res && res.snapshot) { this.snapshot = res.snapshot; this.render(); this.applyTransform(); }

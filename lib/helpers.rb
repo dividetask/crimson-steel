@@ -112,9 +112,28 @@ helpers do
      [:downtime,  'Downtime']]
   end
 
-  # The Phase currently in effect (drives which Encounter stubs show).
+  # The actual (party) Phase — what players see and what the menu dropdown
+  # sets. The DM's own view may diverge via a private override (below).
   def current_encounter_phase
     Encounter.state.phase
+  end
+
+  # A DM-only, session-local Phase override. When set, the DM's Encounter
+  # view renders this Phase instead of the party's, letting the DM prepare a
+  # Phase without changing what players see. Ignored for any non-DM viewer,
+  # and cleared whenever the actual (party) Phase changes. Returns the
+  # override symbol, or nil when the DM is following the party.
+  def dm_phase_override
+    return nil unless dm_view?
+    sym = session[:dm_phase_override].to_s
+    sym = sym.empty? ? nil : sym.to_sym
+    encounter_phases.any? { |val, _| val == sym } ? sym : nil
+  end
+
+  # The Phase the current viewer should render: the DM's private override
+  # when one is set, otherwise the shared party Phase.
+  def effective_encounter_phase
+    dm_phase_override || Encounter.state.phase
   end
 
   def menu_items

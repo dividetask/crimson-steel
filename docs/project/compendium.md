@@ -8,8 +8,9 @@ The Compendium is doc-driven. Every chapter on the page is a markdown file in `d
 
 The Compendium uses a two-pane layout that mirrors the Status page convention: a left-hand navigation column sized at ~180px, and a right-hand content pane that takes the rest of the width. The currently-selected nav entry is highlighted. The left nav always shows, in order:
 
-1. **Glossary** — the default landing pane.
-2. **One entry per registered Explainer chapter**, in the order they're declared in `lib/explainer_docs.rb`.
+1. **Magical Tier** — pinned as the first entry, above the Glossary. It is a registered Explainer chapter (`magical_tier`); the page lifts it to the top of the nav.
+2. **Glossary** — the default landing pane (visiting `/compendium` with no `?view=` still lands here).
+3. **One entry per remaining registered Explainer chapter**, in the order they're declared in `lib/explainer_docs.rb`.
 
 Sub-views are addressed via `?view=<key>`. The global URL stays under `/compendium`; the global menu's `Compendium` link returns the viewer to the default sub-view (Glossary).
 

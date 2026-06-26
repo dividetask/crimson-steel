@@ -1,9 +1,12 @@
 <%
-  nav_items =
-    [{ key: 'glossary', label: 'Glossary', href: '/compendium?view=glossary' }] +
-    ExplainerDocs.keys.map do |key|
-      { key: key, label: ExplainerDocs.title_for(key), href: "/compendium?view=#{key}" }
-    end
+  explainer_items = ExplainerDocs.keys.map do |key|
+    { key: key, label: ExplainerDocs.title_for(key), href: "/compendium?view=#{key}" }
+  end
+  glossary_item = { key: 'glossary', label: 'Glossary', href: '/compendium?view=glossary' }
+  # 'Magical Tier' is pinned as the first nav entry, above the Glossary;
+  # the remaining Explainer chapters follow in declared order.
+  pinned, rest = explainer_items.partition { |i| i[:key] == 'magical_tier' }
+  nav_items = pinned + [glossary_item] + rest
   has_mermaid = @view != 'glossary' && @explainer_html&.include?('class="mermaid"')
 %>
 

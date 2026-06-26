@@ -13,11 +13,19 @@
     dm_notes        = visible_entries.select { |e| e['entry_type'] == 'note' && e['owner_id'].nil? }
     char_notes      = visible_entries.select { |e| e['entry_type'] == 'note' && e['owner_id'] }
     creatures_all   = @entries.select { |e| e['entry_type'] == 'creature' }
-    # When a Chapter is selected, only show Characters of Interest that are
-    # Active or belong to that Chapter; the "All" view shows every one.
-    creatures_shown = @selected_chapter ?
-      creatures_all.select { |e| e['active'] || e['chapter'] == @selected_chapter } :
-      creatures_all
+    # Characters of Interest filtering:
+    #   • "All": every Creature Reference, active or inactive.
+    #   • a Chapter: References assigned to that Chapter (active or inactive),
+    #     plus Chapter-less References only while they are active.
+    creatures_shown =
+      if @selected_chapter.nil?
+        creatures_all
+      else
+        creatures_all.select do |e|
+          ch = e['chapter']
+          (ch.nil? || ch.to_s.empty?) ? e['active'] : ch == @selected_chapter
+        end
+      end
   %>
 
   <h2>DM Notes</h2>

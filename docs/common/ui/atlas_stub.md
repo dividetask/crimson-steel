@@ -76,19 +76,32 @@ The toolbar carries a group of drawing tools that create Atlas **Annotations** (
 - **Arrow** — drag from tail to head; commits an `arrow` Annotation on release. Arrows are drawn freely (no snapping).
 - **Shape** — drag a bounding box; commits a `shape` Annotation. The DM picks the shape kind (`rect` or `ellipse`). Shape corners **snap to Grid corners** (whole Map Units, offset by the Grid Origin) so rectangles and ellipses align to cells, and shapes render with a **solid fill**.
 - **Text** — click to place an anchor, type into an inline field, and commit a `text` Annotation. (No browser prompt — the field is inline, per the project's UI conventions.)
+- **DM Note** — like Text, but commits the `text` Annotation with `dm_only = true`. Only the DM's snapshot carries dm_only Annotations, so the players' view never includes the note. The DM sees it badged (a lock prefix and italic styling) to make clear it is hidden from players. DM-only.
+
+In Select mode the DM can manage any text note (including DM Notes): **drag** it to move it (commits *Edit Annotation* with new points), or **click** it to open an inline editor — **Save** the new text (committing *Edit Annotation*; an emptied note is deleted), or **Delete** it (committing *Remove Annotation*). Players cannot edit or move notes.
 
 Each tool commits through Atlas's *Add Annotation* with the current viewer's role as the Annotation's `author`; the canvas then renders every Annotation on the Map beneath the Token layer. Snapping is applied client-side before the call — Atlas itself stores the supplied points verbatim (it neither snaps nor clamps).
 
-A **Clear Drawings** affordance removes Annotations via *Clear Annotations On Map*. For the DM it clears every Annotation on the Map; for a player it clears only their own (scoped by `author`).
+A **Clear Drawings** affordance removes Annotations via *Clear Annotations On Map*. For the DM it clears every Annotation on the Map; for a player it clears only their own (scoped by `author`). Clear Drawings never touches Terrain.
+
+## Terrain
+
+Below the drawing tools (DM only) is a **Terrain** group: texture brushes that paint the Map's structure — **Wall**, **Dirt**, **Stone floor** — for building a scene such as a fort. A brush is a mode like the drawing tools, but it paints **Terrain** (see `atlas_design.md` → *Manage Terrain*), not an Annotation:
+
+- Drag a bounding box (corners **snap to Grid corners**, like Shape) to paint a rectangle filled with the brush's texture. The texture **repeats — one tile per Grid cell** — and renders below the grid lines and above the Map Image. Commits through *Add Terrain* on release.
+- The toolbar shows one brush per texture available to the UI; each brush button previews its texture.
+- An **Erase** tool removes terrain by region: drag a box (a dashed red selection that snaps to Grid corners) and, on release, terrain inside it is subtracted via *Erase Terrain Box* — partial overlaps are trimmed to the box edges, not deleted whole.
+
+Terrain is permanent map structure: players see it on the Active Map, but only the DM may paint or erase it, and **Clear Drawings does not remove it**. (Deleting the Map does — Terrain cascades with the Map, like Tokens.)
 
 ### Role gating
 
 The drawing tools obey the viewer role:
 
-- **DM** — the **Arrow** tool (with a color swatch that sets the new Annotation's color), the **Shape** tool (rect / ellipse), and the **Text** tool; plus *Clear Drawings* (clears all).
-- **Player** — four fixed-color **arrow** buttons instead of a generic Arrow tool, each drawing an `arrow` of a preset color: **Attack** (red), **Move** (blue), **Sneak** (purple), **Careful** (yellow). Players also get *Clear Drawings* scoped to their own arrows. The Shape and Text tools (and the color swatch) are not offered to players.
+- **DM** — the **Arrow** tool (with a color swatch that sets the new Annotation's color), the **Shape** tool (rect / ellipse), the **Text** and **DM Note** tools, and the **Terrain** brushes and **Erase** tool; plus *Clear Drawings* (clears all). The DM may also edit / move / delete text notes in Select mode.
+- **Player** — four fixed-color **arrow** buttons instead of a generic Arrow tool, each drawing an `arrow` of a preset color: **Attack** (red), **Move** (blue), **Sneak** (purple), **Careful** (yellow). Players also get *Clear Drawings* scoped to their own arrows. The Shape, Text, DM Note, and Terrain tools (and the color swatch) are not offered to players.
 
-Atlas itself does not enforce this (it records whatever `author`/`type` it is given); the stub is the gate, refusing to surface the Shape and Text tools to a player and tagging every player-drawn Annotation with `author = player`.
+Atlas itself does not enforce this (it records whatever it is given); the stub is the gate, refusing to surface the Shape / Text / DM Note / Terrain / Erase tools to a player and tagging every player-drawn Annotation with `author = player`. The server endpoints back this up: the Terrain endpoints (*Add Terrain*, *Erase Terrain Box*, *Clear Terrain*) require the DM, *Edit Annotation* applies the same authorship gate as removal, and a `dm_only` Annotation is stripped from any player snapshot.
 
 ### Player arrows are transient
 

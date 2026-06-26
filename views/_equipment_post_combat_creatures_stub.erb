@@ -45,6 +45,13 @@
               <span class="pcc-name"><%= esc.call(row[:name]) %></span>
               <label class="pcc-btn pcc-loot-btn"><input type="checkbox" name="loot_<%= cid %>" value="ignore"<%= ' checked' if row[:npc] %>></label>
               <label class="pcc-btn pcc-del-btn"><input type="checkbox" name="delete_<%= cid %>" value="keep"<%= ' checked' if row[:npc] %>></label>
+              <%# Promote a generated monster to a named NPC ally. Checking it
+                  reveals a rename field; on Confirm the Creature is kept (not
+                  looted or deleted) and its group becomes npc. Enemies only. %>
+              <% unless row[:npc] %>
+                <label class="pcc-btn pcc-npc-btn"><input type="checkbox" name="npc_<%= cid %>" value="1"></label>
+                <input type="text" class="pcc-npc-name" name="npc_name_<%= cid %>" value="<%= esc.call(row[:name]) %>" placeholder="NPC name">
+              <% end %>
             </li>
           <% end %>
         </ul>

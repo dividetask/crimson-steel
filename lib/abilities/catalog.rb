@@ -217,7 +217,14 @@ module Abilities
       values.each do |v|
         next if v.nil? || v.is_a?(Integer)
         next if @config.range_formulas.key?(v)
-        err(name, "unknown range #{v.inspect}")
+        # Not a named Range — accept an inline per-rank formula (e.g.
+        # "50*rank") but reject a string that cannot evaluate, which catches
+        # typos of a named Range like "Closee".
+        begin
+          Formula.evaluate(v.to_s, 'rank' => 0, 'reach' => @config.default_reach_feet)
+        rescue StandardError
+          err(name, "unknown range #{v.inspect}")
+        end
       end
     end
 
@@ -302,7 +309,9 @@ module Abilities
         shape = ar['shape']
         err(name, "unknown area shape #{shape.inspect}") unless @config.area_shapes.key?(shape)
         size = ar['size']
-        err(name, 'area size must be a non-negative integer') unless size.is_a?(Integer) && size >= 0
+        ok = (size.is_a?(Integer) && size >= 0) ||
+             (size.is_a?(String) && !size.strip.empty?)
+        err(name, 'area size must be a non-negative integer or a per-rank formula') unless ok
       end
     end
 

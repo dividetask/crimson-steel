@@ -45,14 +45,15 @@
           </div>
           <div class="provision-card-body">
             <div class="provision-card-name loot-name-row">
-              <span class="loot-name"><%= row[:quantity] > 1 ? "#{row[:quantity]}× " : '' %><%= esc.call(row[:name]) %></span>
+              <span class="loot-name"><%= row[:quantity] != 1 ? "#{row[:quantity]}× " : '' %><%= esc.call(row[:name]) %></span>
               <label class="loot-flag-btn" title="Toggle Sell Pile / Discard">
                 <input type="checkbox" name="flag_<%= i %>" value="discard">
               </label>
             </div>
 
             <div class="provision-card-actions loot-actions">
-              <input type="number" name="qty_<%= i %>" class="inv-qty" value="<%= row[:quantity] %>" min="1" max="<%= row[:quantity] %>">
+              <%# No max: the DM's Give may hand out more than the pile holds. %>
+              <input type="number" name="qty_<%= i %>" class="inv-qty" value="<%= [row[:quantity], 1].max %>" min="1">
 
               <% if can_claim %>
                 <button type="submit" formaction="/encounter/loot_pile/claim" name="index" value="<%= i %>" class="ce-btn ce-btn-primary">Claim</button>

@@ -37,11 +37,13 @@ module Atlas
       @tokens  = (raw['tokens'] || []).map { |t| normalize_token(t) }
       @zones   = (raw['zones']  || []).map { |z| normalize_zone(z) }
       @annotations = (raw['annotations'] || []).map { |a| normalize_annotation(a) }
+      @terrain = (raw['terrain'] || []).map { |t| normalize_terrain(t) }
       @active_map_id = raw['active_map_id']
       @next_map_id   = Integer(raw['next_map_id']   || ((@maps.map   { |m| m[:id] }.max || 0) + 1))
       @next_token_id = Integer(raw['next_token_id'] || ((@tokens.map { |t| t[:id] }.max || 0) + 1))
       @next_zone_id  = Integer(raw['next_zone_id']  || ((@zones.map  { |z| z[:id] }.max || 0) + 1))
       @next_annotation_id = Integer(raw['next_annotation_id'] || ((@annotations.map { |a| a[:id] }.max || 0) + 1))
+      @next_terrain_id = Integer(raw['next_terrain_id'] || ((@terrain.map { |t| t[:id] }.max || 0) + 1))
     end
 
     # ---------- Snapshot / persistence ----------
@@ -52,11 +54,13 @@ module Atlas
         'tokens'        => @tokens.map { |t| stringify_token(t) },
         'zones'         => @zones.map  { |z| stringify_zone(z) },
         'annotations'   => @annotations.map { |a| stringify_annotation(a) },
+        'terrain'       => @terrain.map { |t| stringify_terrain(t) },
         'active_map_id' => @active_map_id,
         'next_map_id'   => @next_map_id,
         'next_token_id' => @next_token_id,
         'next_zone_id'  => @next_zone_id,
-        'next_annotation_id' => @next_annotation_id
+        'next_annotation_id' => @next_annotation_id,
+        'next_terrain_id' => @next_terrain_id
       }
     end
 
@@ -123,12 +127,14 @@ module Atlas
       map.dup
     end
 
-    # Destructive: removes the Map and cascades to every Token on it.
-    # Zones on the Map are left for the consumer (Conditions) to reap.
+    # Destructive: removes the Map and cascades to every Token and Terrain
+    # fill on it (Terrain is the Map's painted structure, so it dies with the
+    # Map). Zones on the Map are left for the consumer (Conditions) to reap.
     def delete_map(id)
       map = map_for(id) or return ERROR
       @maps.delete(map)
       @tokens.reject! { |t| t[:map_id] == id }
+      @terrain.reject! { |t| t[:map_id] == id }
       @active_map_id = nil if @active_map_id == id
       persist!
       map.dup
@@ -302,7 +308,10 @@ module Atlas
     # corners of its bounding box), one for text. `author` records who drew
     # it (`dm` / `player`); enforcement of who may draw what is the
     # consumer's concern. Atlas treats coordinates as opaque (no clamping).
-    def add_annotation(map_id:, type:, points:, color: nil, shape_kind: nil, text: nil, author: 'dm')
+    # `dm_only` marks a drawing only the DM should see (e.g. a secret text
+    # note). Atlas stores the flag; filtering it out of player snapshots is
+    # the consumer's concern, exactly as with a hidden Token.
+    def add_annotation(map_id:, type:, points:, color: nil, shape_kind: nil, text: nil, author: 'dm', dm_only: false)
       return ERROR unless map_for(map_id)
       ann = {
         id:         @next_annotation_id,
@@ -312,12 +321,34 @@ module Atlas
         color:      color.nil? ? nil : color.to_s,
         shape_kind: shape_kind.nil? ? nil : shape_kind.to_s,
         text:       text.nil? ? nil : text.to_s,
-        author:     author.to_s
+        author:     author.to_s,
+        dm_only:    !!dm_only
       }
       @next_annotation_id += 1
       @annotations << ann
       persist!
       ann[:id]
+    end
+
+    # Update one or more fields of an Annotation. `id` and `map_id` are
+    # immutable — an attempt to change either returns ERROR (Annotation
+    # unchanged). Used to retext, recolor, or reposition a drawing (e.g. the
+    # DM editing or moving a note).
+    def edit_annotation(id, **fields)
+      ann = annotation_for(id) or return ERROR
+      return ERROR if fields.key?(:id) || fields.key?(:map_id)
+      fields.each do |k, v|
+        case k
+        when :type       then ann[:type] = v.to_s
+        when :points     then ann[:points] = Array(v).map { |p| [p[0], p[1]] }
+        when :color      then ann[:color] = v.nil? ? nil : v.to_s
+        when :shape_kind then ann[:shape_kind] = v.nil? ? nil : v.to_s
+        when :text       then ann[:text] = v.nil? ? nil : v.to_s
+        when :dm_only    then ann[:dm_only] = !!v
+        end
+      end
+      persist!
+      ann.dup
     end
 
     def remove_annotation(id)
@@ -348,6 +379,98 @@ module Atlas
       @annotations -= removed
       persist!
       removed.length
+    end
+
+    # ---------- Manage Terrain ----------
+
+    # Terrain is the Map's painted structure — rectangles filled with a
+    # repeating texture (walls, dirt, stone floor) the DM lays down to build
+    # a scene. Unlike an Annotation it is permanent map furniture: it is not
+    # swept by Clear Annotations and persists until the DM clears it (or the
+    # Map is deleted). `texture` is the fill image's filename; `points` are
+    # the two opposite corners of the rectangle in Map Units (opaque — no
+    # clamping or snapping, exactly as Token positions).
+    def add_terrain(map_id:, points:, texture:, shape_kind: 'rect')
+      return ERROR unless map_for(map_id)
+      t = {
+        id:         @next_terrain_id,
+        map_id:     map_id,
+        shape_kind: shape_kind.to_s,
+        points:     Array(points).map { |p| [p[0], p[1]] },
+        texture:    texture.to_s
+      }
+      @next_terrain_id += 1
+      @terrain << t
+      persist!
+      t[:id]
+    end
+
+    def remove_terrain(id)
+      t = terrain_for(id) or return nil
+      @terrain.delete(t)
+      persist!
+      t.dup
+    end
+
+    def get_terrain(id)
+      terrain_for(id)&.dup
+    end
+
+    def list_terrain(map_id: nil)
+      result = @terrain
+      result = result.select { |t| t[:map_id] == map_id } if map_id
+      result.map(&:dup)
+    end
+
+    def clear_terrain_on_map(map_id)
+      removed = @terrain.select { |t| t[:map_id] == map_id }
+      @terrain -= removed
+      persist!
+      removed.length
+    end
+
+    # Erase the rectangular region (x0, y0)-(x1, y1) (Map Units) from a Map's
+    # Terrain — the eraser box tool. A rect fill overlapping the box is
+    # replaced by the (up to four) rectangles that remain after subtracting
+    # the box; a fully covered fill vanishes. An ellipse fill that overlaps is
+    # removed wholesale (the brushes only paint rects, so this is rare).
+    # Returns the number of fills the box touched.
+    def erase_terrain_box(map_id, x0, y0, x1, y1)
+      bx0, bx1 = [x0, x1].minmax
+      by0, by1 = [y0, y1].minmax
+      affected = 0
+      result = []
+      @terrain.each do |t|
+        unless t[:map_id] == map_id
+          result << t
+          next
+        end
+        xs = t[:points].map { |p| p[0] }
+        ys = t[:points].map { |p| p[1] }
+        ax0, ax1 = xs.minmax
+        ay0, ay1 = ys.minmax
+        ix0 = [ax0, bx0].max; iy0 = [ay0, by0].max
+        ix1 = [ax1, bx1].min; iy1 = [ay1, by1].min
+        if ix0 >= ix1 || iy0 >= iy1
+          result << t           # no overlap — keep as-is
+          next
+        end
+        affected += 1
+        next unless t[:shape_kind] == 'rect'   # ellipse: drop it entirely
+        remainders = []
+        remainders << [ax0, ay0, ax1, iy0] if iy0 > ay0   # strip above the box
+        remainders << [ax0, iy1, ax1, ay1] if iy1 < ay1   # strip below
+        remainders << [ax0, iy0, ix0, iy1] if ix0 > ax0   # strip left
+        remainders << [ix1, iy0, ax1, iy1] if ix1 < ax1   # strip right
+        remainders.each do |(rx0, ry0, rx1, ry1)|
+          result << { id: @next_terrain_id, map_id: map_id, shape_kind: 'rect',
+                      points: [[rx0, ry0], [rx1, ry1]], texture: t[:texture] }
+          @next_terrain_id += 1
+        end
+      end
+      @terrain = result
+      persist! if affected.positive?
+      affected
     end
 
     # ---------- Bulk operations ----------
@@ -382,6 +505,7 @@ module Atlas
     def token_for(id) = @tokens.find { |t| t[:id] == id }
     def zone_for(id)  = @zones.find  { |z| z[:id] == id }
     def annotation_for(id) = @annotations.find { |a| a[:id] == id }
+    def terrain_for(id)    = @terrain.find    { |t| t[:id] == id }
 
     def default_grid = { type: Config.default_grid_type, origin: [0, 0] }
 
@@ -494,7 +618,17 @@ module Atlas
         color:      a['color'].nil? ? nil : a['color'].to_s,
         shape_kind: a['shape_kind'].nil? ? nil : a['shape_kind'].to_s,
         text:       a['text'].nil? ? nil : a['text'].to_s,
-        author:     (a['author'] || 'dm').to_s }
+        author:     (a['author'] || 'dm').to_s,
+        dm_only:    !!a['dm_only'] }
+    end
+
+    def normalize_terrain(t)
+      t = t.transform_keys(&:to_s) if t.respond_to?(:transform_keys)
+      { id:         Integer(t['id']),
+        map_id:     t['map_id'],
+        shape_kind: (t['shape_kind'] || 'rect').to_s,
+        points:     Array(t['points']).map { |p| [p[0], p[1]] },
+        texture:    (t['texture'] || '').to_s }
     end
 
     def normalize_anchor(a)
@@ -532,7 +666,13 @@ module Atlas
     def stringify_annotation(a)
       { 'id' => a[:id], 'map_id' => a[:map_id], 'type' => a[:type],
         'points' => a[:points], 'color' => a[:color],
-        'shape_kind' => a[:shape_kind], 'text' => a[:text], 'author' => a[:author] }
+        'shape_kind' => a[:shape_kind], 'text' => a[:text],
+        'author' => a[:author], 'dm_only' => a[:dm_only] }
+    end
+
+    def stringify_terrain(t)
+      { 'id' => t[:id], 'map_id' => t[:map_id], 'shape_kind' => t[:shape_kind],
+        'points' => t[:points], 'texture' => t[:texture] }
     end
   end
 end

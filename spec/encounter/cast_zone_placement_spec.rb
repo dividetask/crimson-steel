@@ -71,6 +71,29 @@ RSpec.describe 'POST /encounter/resolve_cast — area Spell Zone placement', typ
     expect(zones.first[:anchor][:y]).to eq(6)
   end
 
+  it 'resolves a per-rank Area size Formula to a concrete Zone size on commit' do
+    # Petty Scry's area is `size: "rank"`. The cast must evaluate that
+    # Formula to a concrete integer before the footprint reaches Atlas — a
+    # bare "rank" string would blow up Atlas's `Integer(...)`. The resolved
+    # square count tracks the caster's rank, so we only assert it landed as
+    # a positive integer rather than coupling to fixed creature data.
+    header 'Host', 'localhost'
+    post '/encounter/resolve_cast', JSON.generate(
+      commit: true,
+      spell_name: 'Petty Scry', spell: { name: 'Petty Scry' },
+      caster: { id: @caster[:id], dice: 2, speed: 0, successes: 2 },
+      placement: { x: 7, y: 8 },
+      targets: []
+    ), 'CONTENT_TYPE' => 'application/json', 'REMOTE_ADDR' => '127.0.0.1'
+
+    expect(last_response.status).to eq(200)
+    zones = Atlas.state.list_zones(map_id: @map_id)
+    expect(zones.size).to eq(1)
+    expect(zones.first[:shape]).to eq('circle')
+    expect(zones.first[:size]).to be_a(Integer)
+    expect(zones.first[:size]).to be > 0
+  end
+
   it 'places a Zone for an Aspect-list area Spell (Grease: object vs. area)' do
     header 'Host', 'localhost'
     post '/encounter/resolve_cast', JSON.generate(

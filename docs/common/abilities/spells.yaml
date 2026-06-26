@@ -1105,10 +1105,10 @@ Beguiling Gift:
 
 Spark Shower:
   type: spell
-  tier: 0
+  tier: [0, 1]
+  name: [Spark Shower, Shooting Stars]
   school: resonance
-  range: Touch
-  target: "1"
+  target: ["1", "rank"]
   damage_type: radiant
   skills: [nature, arcana]
   save:
@@ -1117,21 +1117,80 @@ Spark Shower:
       fumble: blind
       success: "0"
   duration: 1 turn
-  description: "A shower of searing motes bursts over the touched target, dealing radiant damage that scales with the attribute used to cast the spell (Charisma when cast through Evocation) plus one per success rolled, and blinding it for 1 turn. The target may attempt a Dexterity save: a success halves the damage and negates the blindness, while a fumbled save extends the blindness to 1 minute. The tier-1 successor is Shooting Stars."
+  variant_overrides:
+    - range: Touch
+      description: "A shower of searing motes bursts over the target, dealing radiant damage that scales with the attribute used to cast the spell plus one per success, and blinding it. A Dexterity save halves the damage and negates the blindness, while a fumble extends it to 1 minute."
+    - range: Medium
+      description: "Streaking motes rain down, each strike dealing radiant damage that scales with the attribute used to cast the spell plus one per success, and blinding the target. A Dexterity save halves the damage and negates the blindness, while a fumble extends it to 1 minute."
 
-Shooting Stars:
+Scry:
   type: spell
-  tier: 1
-  school: resonance
-  range: Medium
-  target: "rank"
-  damage_type: radiant
-  skills: [nature, arcana]
-  prerequisite: Spark Shower
-  save:
-    - attribute: dex
-      fail: blind
-      fumble: blind
-      success: "0"
-  duration: 1 turn
-  description: "The tier-1 successor to Spark Shower. Streaking motes rain down on one creature per rank within Medium range, each strike dealing radiant damage that scales with the attribute used to cast the spell plus one per success rolled, and blinding the target for 1 turn. Each target may attempt a Dexterity save: a success halves the damage and negates the blindness, while a fumbled save extends the blindness to 1 minute."
+  tier: [0, 1, 2, 3]
+  prefix: [Petty, Lesser, Basic, Improved]
+  school: augury
+  target: [self, self, "1", "1"]
+  duration: rank minutes
+  resolution: dm
+  area: { shape: circle, size: "rank", anchor: point }
+  variant_overrides:
+    - range: "50*rank"
+      description: "See a remote location. Requires an unobstructed path. The location is not illuminated, and darkvision and other senses do not function through the scry."
+    - range: "100*rank"
+      description: "See a remote location. Requires an unobstructed path. Provides minor illumination visible only to the scrier; darkvision and other senses do not function through the scry. The line can make small bends around trees, but cannot change direction more than 10 degrees from the direct path."
+    - range: "200*rank"
+      save:
+        - attribute: cha
+          save_target: target
+          fail: "0"
+          success: "0"
+      description: "See a remote location regardless of light level as though you had darkvision. May target a creature or a location within range. A targeted creature gets a Charisma save to negate the spell unless the caster has a piece of the target's body (hair, blood, etc.). Targeting a creature out of range fails, and the caster cannot tell a successful save from an out-of-range target."
+    - range: "1000*rank"
+      save:
+        - attribute: cha
+          save_target: target
+          fail: "0"
+          success: "0"
+      description: "See a remote location regardless of light level as though you had darkvision. May target a creature or a location within range. A targeted creature gets a Charisma save to negate the spell unless the caster has a piece of the target's body (hair, blood, etc.). Caster knows if target made a successful save. All senses can see through the scry as though the creature was in the target location as do any other detection spells."
+
+Detect Traps:
+  type: spell
+  tier: [0, 1, 2]
+  name: [Detect Traps, Detect Hidden, Pierce the Veil]
+  school: augury
+  range: Self
+  target: self
+  effects:
+    - trapfinding
+  variant_overrides:
+    - duration: 1 turn
+      modifiers:
+        - { target: perception, type: Guidance, descriptors: [traps], add: 1 }
+      description: "Temporarily gain the rogue's trapfinding skill and a +1 Guidance bonus to Perception to notice traps."
+    - duration: rank turns
+      modifiers:
+        - { target: perception, type: Guidance, descriptors: [traps, secret_doors], add: 3 }
+      description: "Temporarily gain the rogue's trapfinding skill and a +3 Guidance bonus to Perception to notice traps and secret doors."
+    - duration: rank minutes
+      modifiers:
+        - { target: perception, type: Guidance, descriptors: [traps, secret_doors], add: 5 }
+      description: "Temporarily gain the rogue's trapfinding skill and a +5 Guidance bonus to Perception to notice traps and secret doors. Can be dismissed to attempt to dispel an illusion spell of this tier or lower."
+
+Trailsense:
+  type: spell
+  tier: [0, 1, 2]
+  prefix: [Faint, Keen, Greater]
+  school: augury
+  range: Self
+  target: self
+  duration: rank minutes
+  area:
+    - { shape: circle, size: "rank", anchor: caster }
+    - { shape: circle, size: "2*rank", anchor: caster }
+    - { shape: circle, size: "8*rank", anchor: caster }
+  variant_overrides:
+    - activation_time: "10 minutes"
+      description: "Detects the frequency of travel in the target area over a number of days equal to rank. You cannot see which creatures passed through but you can see their aura rank, travel direction, and any large objects (such as wagons) that accompanied them. In addition you can detect, within a few hours, when they were in this area last."
+    - activation_time: "5 minutes"
+      description: "Detects the frequency of travel in the target area over a number of days equal to rank. You cannot see which creatures passed through but you can see their vague outline, aura rank, travel direction, and any large objects (such as wagons) that accompanied them. In addition you can detect, within a few hours, when they were in this area last."
+    - activation_time: "2 turns"
+      description: "Detects the frequency of travel in the target area over a number of days equal to rank. You cannot see creatures of your rank or higher that passed through but you can see their vague outline, aura rank, travel direction, and any large objects (such as wagons) that accompanied them. In addition you can detect, within a few hours, when they were in this area last. Creatures of a lower rank can be seen clearly and you can glimpse faint emotions they had while passing through."

@@ -81,8 +81,21 @@ A free-form drawing placed on a Map by a viewer — distinct from a Zone (which 
 | `text` | string or null | For `text` Annotations only. The string to render. Null otherwise. |
 | `color` | string or null | Stroke / fill color hint. Null defers to a viewer-default. |
 | `author` | `dm` \| `player` | Who drew the Annotation. Atlas stores it; permission enforcement is the consumer's concern. |
+| `dm_only` | boolean | When true, only the DM should see the Annotation (e.g. a secret text note). Atlas stores the flag; filtering it out of a player's view is the consumer's concern, exactly as with a hidden Token. Defaults to false. |
 
 Atlas treats `points` as opaque Map Units (no clamping or snapping), exactly as it does Token positions.
+
+### Terrain
+
+Painted map structure: a rectangle (or ellipse) filled with a **repeating** texture — the walls, dirt, and stone floor a DM lays down to build a scene. Terrain is distinct from an Annotation: it is permanent furniture, not a transient marking. It is *not* swept by *Clear Annotations* and persists until the DM clears it (or the Map is deleted). It is also distinct from a Zone (which carries rules-driven Zone Effect lifecycle); Terrain carries no mechanical meaning.
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | integer | Terrain ID. Assigned by Atlas. |
+| `map_id` | Map ID | The Map the Terrain is painted on. |
+| `shape_kind` | `rect` \| `ellipse` | Footprint shape. *(catalog configurable)* |
+| `points` | list of `(number, number)` | Opposite corners of the footprint's bounding box, in Map Units. Opaque (no clamping / snapping), like Token positions. |
+| `texture` | string | Fill image's filename, resolved by the UI against its terrain texture folder. The image repeats (one tile per Grid cell). |
 
 ### Atlas State
 
@@ -92,11 +105,13 @@ Atlas treats `points` as opaque Map Units (no clamping or snapping), exactly as 
 | `tokens` | list of Token | All Tokens that exist. |
 | `zones` | list of Zone | All Zones currently placed. |
 | `annotations` | list of Annotation | All Annotations currently drawn. |
+| `terrain` | list of Terrain | All Terrain fills currently painted. |
 | `active_map_id` | Map ID or null | The Active Map, or null when no Map is active. |
 | `next_map_id` | integer | Next ID to assign when creating a Map. |
 | `next_token_id` | integer | Next ID to assign when creating a Token. |
 | `next_zone_id` | integer | Next ID to assign when creating a Zone. |
 | `next_annotation_id` | integer | Next ID to assign when creating an Annotation. |
+| `next_terrain_id` | integer | Next ID to assign when creating a Terrain fill. |
 
 ## Public entry points
 
@@ -106,7 +121,7 @@ Atlas treats `points` as opaque Map Units (no clamping or snapping), exactly as 
 - **Edit Map** — updates one or more fields of an existing Map by ID. Width and height may be changed at any time; existing Token positions are not adjusted (positions outside the new extent remain valid, per the *Map Width* glossary entry).
 - **Archive Map** — sets `archived = true` on the Map. If the Map was the Active Map, `active_map_id` is set to null. Tokens belonging to the Map are retained.
 - **Unarchive Map** — sets `archived = false` on the Map.
-- **Delete Map** — removes the Map by ID and removes every Token whose `map_id` matches. If the Map was the Active Map, `active_map_id` is set to null. Distinct from Archive — destructive and not reversible.
+- **Delete Map** — removes the Map by ID and removes every Token and Terrain fill whose `map_id` matches. If the Map was the Active Map, `active_map_id` is set to null. Distinct from Archive — destructive and not reversible.
 - **Get Map** — returns a single Map by ID, regardless of archive state. Returns nothing for an unknown ID.
 - **List Maps** — returns Maps filtered by the parameters below. Filters combine conjunctively.
   - `include_archived` — boolean, default false. When false, archived Maps are excluded.
@@ -139,13 +154,25 @@ Atlas treats `points` as opaque Map Units (no clamping or snapping), exactly as 
 
 ### Manage Annotations
 
-- **Add Annotation** — creates an Annotation on a Map. Inputs: `map_id`, `type`, `points`, and the optional `shape_kind`, `text`, `color`, `author`. The Map must exist. Atlas assigns the Annotation ID. Returns the assigned ID. Atlas does not validate that `author` is permitted to draw `type` — that gate is the consumer's (e.g. the UI restricts players to `arrow`).
+- **Add Annotation** — creates an Annotation on a Map. Inputs: `map_id`, `type`, `points`, and the optional `shape_kind`, `text`, `color`, `author`, `dm_only`. The Map must exist. Atlas assigns the Annotation ID. Returns the assigned ID. Atlas does not validate that `author` is permitted to draw `type` — that gate is the consumer's (e.g. the UI restricts players to `arrow`).
+- **Edit Annotation** — updates one or more fields of an Annotation by ID (e.g. retext or reposition a note). `id` and `map_id` are immutable; changing either returns the error sentinel. Unknown ID returns the sentinel.
 - **Remove Annotation** — deletes an Annotation by ID. Quiet no-op when already gone.
 - **Get Annotation** — returns a single Annotation by ID.
 - **List Annotations** — returns Annotations filtered by `map_id`, `type`, and `author` (all optional). Filters combine conjunctively.
 - **Clear Annotations On Map** — removes Annotations on a Map. With an optional `author` filter, removes only that author's Annotations (e.g. a player clearing only their own arrows); without it, clears every Annotation on the Map.
 
-Annotations are independent of Tokens and Zones: *Delete Map* cascades to Tokens only, so a consumer that wants a Map's Annotations gone calls *Clear Annotations On Map* (mirroring *Clear Zones On Map*).
+Annotations are independent of Tokens and Zones: *Delete Map* cascades to Tokens and Terrain only, so a consumer that wants a Map's Annotations gone calls *Clear Annotations On Map* (mirroring *Clear Zones On Map*).
+
+### Manage Terrain
+
+- **Add Terrain** — paints a Terrain fill on a Map. Inputs: `map_id`, `points`, `texture`, and the optional `shape_kind` (defaults to `rect`). The Map must exist. Atlas assigns the Terrain ID. Returns the assigned ID. Coordinates are opaque (no clamping / snapping).
+- **Remove Terrain** — deletes a Terrain fill by ID. Quiet no-op when already gone.
+- **Get Terrain** — returns a single Terrain fill by ID.
+- **List Terrain** — returns Terrain fills filtered by `map_id` (optional).
+- **Erase Terrain Box** — subtracts a rectangular region `(x0, y0)-(x1, y1)` (Map Units) from a Map's Terrain (the eraser box tool). A `rect` fill overlapping the box is replaced by the up-to-four rectangles that remain after removing the box; a fully covered fill is deleted. An `ellipse` fill that overlaps is removed wholesale. Returns the number of fills the box touched.
+- **Clear Terrain On Map** — removes every Terrain fill whose `map_id` matches. Returns the count removed.
+
+Terrain is permanent map structure: unlike Annotations it is *not* removed by *Clear Annotations On Map*. It *is* cascaded by *Delete Map* (it dies with the Map it is painted on, like Tokens).
 
 ### Bulk operations
 
@@ -167,7 +194,7 @@ Unarchiving restores the Map to default listings without further side effects. T
 
 ### Delete semantics
 
-*Delete Map* is the destructive counterpart. Cascading Token deletion is part of the contract — Atlas does not leave orphan Tokens pointing at non-existent Maps. Callers wanting a recoverable variant should use Archive instead.
+*Delete Map* is the destructive counterpart. Cascading Token and Terrain deletion is part of the contract — Atlas does not leave orphan Tokens or Terrain fills pointing at non-existent Maps. Callers wanting a recoverable variant should use Archive instead.
 
 ### Position handling
 

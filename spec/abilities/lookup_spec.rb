@@ -79,6 +79,11 @@ RSpec.describe 'Abilities.resolve_range' do
     expect(Abilities.resolve_range('Elemental Dart', axis_index: 1, rank: 3)).to eq(20)
   end
 
+  it 'evaluates an inline per-rank range formula declared on the Spell' do
+    r = build_ability_resolver('F' => { 'type' => 'spell', 'range' => '50*rank' })
+    expect(r.resolve_range(r.resolve('F'), rank: 3)).to eq(150)
+  end
+
   it 'uses Default Reach Feet for Touch when no reach is supplied' do
     expect(Abilities.resolve_range('Heal', axis_index: 0)).to eq(5)
     expect(Abilities.resolve_range('Heal', axis_index: 0, reach: 10)).to eq(10)
@@ -113,5 +118,39 @@ RSpec.describe 'Abilities.resolve_target' do
   it 'returns self verbatim' do
     r = build_ability_resolver('S' => { 'type' => 'spell', 'target' => 'self' })
     expect(r.resolve_target(r.resolve('S'))).to eq('self')
+  end
+end
+
+RSpec.describe 'Abilities.resolve_area_size' do
+  it 'returns a bare integer size as-is' do
+    expect(Abilities.resolve_area_size(4)).to eq(4)
+  end
+
+  it 'parses a numeric string' do
+    expect(Abilities.resolve_area_size('6')).to eq(6)
+  end
+
+  it 'evaluates a per-rank formula against rank and floors it' do
+    expect(Abilities.resolve_area_size('rank', rank: 3)).to eq(3)
+    expect(Abilities.resolve_area_size('2*rank', rank: 3)).to eq(6)
+    expect(Abilities.resolve_area_size('8*rank', rank: 5)).to eq(40)
+  end
+
+  it 'never returns a negative size' do
+    expect(Abilities.resolve_area_size(-2)).to eq(0)
+  end
+
+  it 'returns nil for a missing size' do
+    expect(Abilities.resolve_area_size(nil)).to be_nil
+  end
+
+  it 'resolves the per-rank radius declared on a shipped scry Spell' do
+    petty = Abilities.lookup('Scry', axis_index: 0) # Petty Scry
+    expect(Abilities.resolve_area_size(petty['area']['size'], rank: 4)).to eq(4)
+  end
+
+  it 'resolves the per-tier, per-rank radius on the shipped Trailsense variants' do
+    keen = Abilities.lookup('Trailsense', axis_index: 1) # Tier 1 → 2*rank
+    expect(Abilities.resolve_area_size(keen['area']['size'], rank: 4)).to eq(8)
   end
 end

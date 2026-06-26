@@ -17,6 +17,11 @@ get '/notes' do
       @current_chapter
     end
 
+  # Keep Characters of Interest in sync with the npc roster: every `npc`
+  # Creature gets a (DM-only, inactive) Creature Reference if it lacks one, so
+  # it is visible and toggleable here. Promotion creates an active one instead.
+  @store.ensure_creature_references(Creatures.list(group: 'npc').map { |id, _| id }) if @viewer == :dm
+
   entries = if @viewer == :dm
               @store.list_entries
             else

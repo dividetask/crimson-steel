@@ -11,6 +11,10 @@ require 'kramdown-parser-gfm'
 # so the client-side Mermaid script picks them up.
 module ExplainerDocs
   SOURCES = {
+    'magical_tier' => {
+      title: 'Magical Tier',
+      path:  File.expand_path('../docs/common/magical_tier/magical_tier_explainer.md', __dir__)
+    },
     'dice' => {
       title: 'Dice Resolution',
       path:  File.expand_path('../docs/common/dice_resolution/dice_resolution_explainer.md', __dir__)

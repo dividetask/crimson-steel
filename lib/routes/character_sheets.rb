@@ -81,11 +81,26 @@ get '/random_encounters/roll/:table_id' do
   table_id = params[:table_id]
   halt 404 unless Creatures::RandomEncounter.tables.key?(table_id)
 
-  spawn_ids = Creatures.roll_random_encounter(table_id)
+  table = Creatures::RandomEncounter.tables[table_id]
+
+  begin
+    spawn_ids = Creatures.roll_random_encounter(table_id)
+  rescue Creatures::RandomEncounter::MissingTemplates => e
+    # The table references Creatures that aren't in this deployment's data
+    # (tables ship in tracked config; the Creatures live in untracked data).
+    # Report it instead of 500ing or spawning a partial encounter.
+    result = {
+      table_id:   table_id,
+      table_name: table['name'] || table_id,
+      subtitle:   "Can't roll — these template Creatures aren't in your data: " \
+                  "#{e.missing.join(', ')}.",
+      rolls:      []
+    }
+    halt erb(:_random_encounter_roll_result, layout: false, locals: { result: result })
+  end
+
   spawn_ids.each { |id| equip_spawned_creature(id) }
   spawn_ids.each { |id| Encounter.state.add_combatant(id) }
-
-  table = Creatures::RandomEncounter.tables[table_id]
 
   # Group spawns by name for a compact "3× Goblin" display.
   grouped = spawn_ids.each_with_object({}) do |id, acc|

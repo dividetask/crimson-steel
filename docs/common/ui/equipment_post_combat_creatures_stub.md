@@ -17,6 +17,7 @@ A panel titled **Post-Combat Cleanup**, then a **list** — one row per non-PC C
 1. **Name** — the Combatant's display name (read through `creature_lookup`).
 2. **Loot toggle** — a single two-state button. `Loot` (default, crimson) means "move this Creature's Inventory plus any rolled Loot Table contents into the pile"; clicking flips it to the muted `Ignore` ("leave the Inventory in place").
 3. **Delete toggle** — a single two-state button. `Delete` (default, crimson) means "remove the Creature record after looting via Creatures' *Delete Creature*"; clicking flips it to `Keep` ("leave the Creature record in the dataset" — e.g., a recurring named villain who escaped).
+4. **→ NPC toggle** — enemy rows only (an existing NPC ally row omits it). A two-state button that promotes a generated monster into a named NPC ally. Toggling it on reveals a **rename field** (pre-filled with the current name); on Confirm the Creature is renamed and its group set to `npc`, and it is **kept** — neither looted nor deleted — regardless of the other two toggles.
 
 On the **right side**, a single combined preview of the loot the current selection will gather: the Inventories of every row still set to `Loot`, aggregated into one list (Stack names, quantities summed, with `N×` for quantities > 1), plus a muted "+ random loot" line when any of those Creatures has a Loot Table. It updates as the DM toggles rows between `Loot` and `Ignore`.
 
@@ -26,6 +27,7 @@ Below the list, a single **Confirm** button.
 
 When the DM presses Confirm, the stub:
 
+0. For every row whose **→ NPC** toggle is on, promotes the Creature via Creatures' *Promote to NPC* (rename + group `npc`). These rows are then skipped by the loot and delete steps below — a new ally keeps its gear and its record.
 1. Composes the Combat Loot Entries for every row whose Loot toggle is `Loot` and calls Equipment's *Collect Combat Loot* once, gathering into the active Map's Ground Pile (`ground:map_<map_id>`). That pile is the destination, and it is what the loot-pile stub then distributes. Loot left unlooted when the party moves to a different Map is no longer surfaced (the next Map has its own pile).
 2. For every row whose Delete toggle is `Delete`, calls Combat's *Remove Combatant* followed by Creatures' *Delete Creature*. (Combat removal first so any concentration/casting references unwind cleanly; then the Creature record is gone.)
 3. Persists. The looted-and-deleted rows disappear from the page.
