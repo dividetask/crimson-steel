@@ -1,0 +1,38 @@
+# General Orange Tier — Creature Templates
+#
+# Crimson Steel's "general use" Orange Tier (Tier 1) enemy templates.
+# Orange is the Tier-1 band in the UI Tier Color mapping (red = Tier 0,
+# orange = Tier 1; see docs/common/ui/ui_conventions.md). These are the
+# step-up adversaries the DM reaches for once a Red Tier (Tier 0)
+# encounter no longer threatens the party.
+#
+# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
+# Each template's `tags` include `enemy_template` plus
+# `category:general_orange_tier`; the Character Sheets page's Roster
+# Sidebar uses that category tag to group templates and encounter tables
+# under the matching heading.
+
+name: General Orange Tier
+
+characters:
+
+  # The Cloaker — a Large aberration that lurks overhead disguised as a
+  # hanging black cloak, then drops to engulf and smother lone prey. Stats
+  # and abilities are adapted from the D&D 5e and Pathfinder stat blocks
+  # (Damage Transfer, Moan, Phantasms / Shadow Shift, Engulf, blindsense),
+  # rescaled to a Tier-1 threat. Its identity stats live on the `cloaker`
+  # race entry (creatures_race.yaml), so the base attributes here are the
+  # neutral 10s the race then adjusts. `tier: 1` is an explicit Tier
+  # Override — the Cloaker reads as Orange regardless of its Class Level.
+  - id: 320
+    name: Cloaker
+    metadata:
+      creature_token: "/images/icons/Collection/Abberations/abberant prowler.png"
+    group: enemy
+    tags: [enemy_template, category:general_orange_tier]
+    race: cloaker
+    tier: 1
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+    advancement:
+      classes:
+        feral: 5

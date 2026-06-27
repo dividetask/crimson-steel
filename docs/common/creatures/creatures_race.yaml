@@ -306,3 +306,64 @@ winter_wolf:
       min_level: 0
     - name: frost_breath
       min_level: 0
+
+# --- Aberrations -------------------------------------------------------
+
+# Root for the Far-Realm-touched things: alien biology and minds that
+# never evolved under a sun. Darkvision and an inhuman psyche (resistance
+# to having their thoughts read or predicted) are common to the line.
+aberration:
+  size: medium
+  speed: 30
+  abilities:
+    - name: darkvision
+      min_level: 0
+    - name: aberrant_mind
+      min_level: 0
+
+# The Cloaker — a Large predator that hangs in the dark like a forgotten
+# black cloak, then drops to smother prey. Glides on leathery wings,
+# lashes with a barbed tail, and warps the senses with its bone-deep moan
+# and a flock of shadowy phantasms. Stats blend the D&D 5e and Pathfinder
+# stat blocks; the Creature record carries base 10s, so the effective
+# scores are these adjustments + 10 + the Tier-1 inherent bonus.
+cloaker:
+  parent: aberration
+  size: large
+  speed: 10
+  attribute_adjustments: { str: 6, dex: 5, con: 4, int: 3, wis: 3, cha: 4 }
+  abilities:
+    - name: natural_armor_2
+      min_level: 0
+    # Glides on its cloak-like body; near-useless on the ground (Speed 10).
+    - name: flight
+      min_level: 0
+    # Hunts by vibration and air movement — sees its surroundings even in
+    # pitch dark or when blinded.
+    - name: blindsense
+      min_level: 0
+    # Bright light leaves it sluggish and reluctant (a hunter of deep caves).
+    - name: light_sensitivity
+      min_level: 0
+    # Hangs motionless against a wall, indistinguishable from a real cloak
+    # until it strikes.
+    - name: false_appearance
+      min_level: 0
+    # While wrapped around a victim, splits incoming harm — half the damage
+    # it would take is dealt to the engulfed Creature instead.
+    - name: damage_transfer
+      min_level: 0
+    # Drops over a grabbed target, blinding and smothering it.
+    - name: Engulf
+      min_level: 0
+    - name: Bite
+      min_level: 0
+    - name: Tail Lash
+      min_level: 0
+    # A subsonic moan that strikes nearby Creatures with fear (Wisdom save).
+    - name: Moan
+      min_level: 0
+    # Conjures shadowy duplicates of itself that mirror its movements,
+    # making it hard to tell the real Cloaker from the illusions.
+    - name: Phantasms
+      min_level: 0
