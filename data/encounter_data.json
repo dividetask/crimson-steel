@@ -107,22 +107,19 @@
       "main_actions_remaining": -1
     },
     {
-      "id": 62,
+      "id": 63,
       "creature_id": "373",
       "name": "",
       "initiative_string": "",
       "combat_pool_spent": 0,
-      "time_tick_schedule": [
-        1,
-        2
-      ],
+      "time_tick_schedule": [],
       "luck_points": 0,
       "concentration": [],
       "casting": [],
       "main_actions_remaining": -1
     }
   ],
-  "next_combatant_id": 63,
+  "next_combatant_id": 64,
   "excluded_pcs": [],
   "time_ticks_per_round": null,
   "time_tick": null,
@@ -131,5 +128,5 @@
   "acting_combatant_id": null,
   "granted_actions": [],
   "dm_luck_points": 0,
-  "phase": "combat"
+  "phase": "downtime"
 }

@@ -1,11 +1,43 @@
 {
   "maps": [
     {
-      "id": 1,
-      "name": "Desert",
+      "id": 2,
+      "name": "Stockade Entrance",
+      "image": null,
+      "width": 70,
+      "height": 70,
+      "grid": {
+        "type": "square",
+        "origin": [
+          0,
+          0
+        ]
+      },
+      "archived": false,
+      "notes": ""
+    },
+    {
+      "id": 3,
+      "name": "Stockade West",
       "image": null,
       "width": 50,
       "height": 50,
+      "grid": {
+        "type": "square",
+        "origin": [
+          0,
+          0
+        ]
+      },
+      "archived": false,
+      "notes": ""
+    },
+    {
+      "id": 4,
+      "name": "Slave Room",
+      "image": null,
+      "width": 20,
+      "height": 15,
       "grid": {
         "type": "square",
         "origin": [
@@ -19,82 +51,34 @@
   ],
   "tokens": [
     {
-      "id": 11,
-      "map_id": 1,
-      "creature_id": "2036",
-      "x": 36.0,
-      "y": 37.0,
-      "size": 1,
-      "label": null,
-      "image": null,
-      "owner_id": null,
-      "hidden": false
-    },
-    {
-      "id": 12,
-      "map_id": 1,
-      "creature_id": "2035",
-      "x": 5.0,
-      "y": 35.0,
-      "size": 1,
-      "label": null,
-      "image": null,
-      "owner_id": null,
-      "hidden": false
-    },
-    {
-      "id": 13,
-      "map_id": 1,
-      "creature_id": "2034",
-      "x": 37.0,
-      "y": 31.0,
-      "size": 1,
-      "label": null,
-      "image": null,
-      "owner_id": null,
-      "hidden": false
-    },
-    {
-      "id": 14,
-      "map_id": 1,
-      "creature_id": "2033",
-      "x": 6.0,
-      "y": 27.0,
-      "size": 1,
-      "label": null,
-      "image": null,
-      "owner_id": null,
-      "hidden": false
-    },
-    {
-      "id": 15,
-      "map_id": 1,
-      "creature_id": "2032",
-      "x": 38.0,
-      "y": 24.0,
-      "size": 1,
-      "label": null,
-      "image": null,
-      "owner_id": null,
-      "hidden": false
-    },
-    {
-      "id": 16,
-      "map_id": 1,
-      "creature_id": "373",
-      "x": 21.0,
-      "y": 42.0,
-      "size": 1,
-      "label": null,
-      "image": null,
-      "owner_id": null,
-      "hidden": false
-    },
-    {
-      "id": 17,
-      "map_id": 1,
+      "id": 23,
+      "map_id": 2,
       "creature_id": "3",
-      "x": 5.0,
+      "x": 1.0,
+      "y": 1.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 24,
+      "map_id": 2,
+      "creature_id": "2",
+      "x": 3.0,
+      "y": 0.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 25,
+      "map_id": 2,
+      "creature_id": "4",
+      "x": 3.0,
       "y": 2.0,
       "size": 1,
       "label": null,
@@ -103,10 +87,10 @@
       "hidden": false
     },
     {
-      "id": 18,
-      "map_id": 1,
-      "creature_id": "2",
-      "x": 10.0,
+      "id": 26,
+      "map_id": 2,
+      "creature_id": "1",
+      "x": 5.0,
       "y": 1.0,
       "size": 1,
       "label": null,
@@ -115,11 +99,11 @@
       "hidden": false
     },
     {
-      "id": 19,
-      "map_id": 1,
-      "creature_id": "4",
-      "x": 13.0,
-      "y": 11.0,
+      "id": 27,
+      "map_id": 2,
+      "creature_id": "40",
+      "x": 0.0,
+      "y": 3.0,
       "size": 1,
       "label": null,
       "image": null,
@@ -127,10 +111,10 @@
       "hidden": false
     },
     {
-      "id": 20,
-      "map_id": 1,
-      "creature_id": "1",
-      "x": 15.0,
+      "id": 28,
+      "map_id": 2,
+      "creature_id": "2025",
+      "x": 2.0,
       "y": 4.0,
       "size": 1,
       "label": null,
@@ -139,11 +123,11 @@
       "hidden": false
     },
     {
-      "id": 21,
-      "map_id": 1,
-      "creature_id": "40",
-      "x": 12.0,
-      "y": 5.0,
+      "id": 29,
+      "map_id": 2,
+      "creature_id": "373",
+      "x": 0.0,
+      "y": 1.0,
       "size": 1,
       "label": null,
       "image": null,
@@ -151,11 +135,23 @@
       "hidden": false
     },
     {
-      "id": 22,
-      "map_id": 1,
+      "id": 30,
+      "map_id": 4,
+      "creature_id": "3",
+      "x": 6.0,
+      "y": 4.0,
+      "size": 1,
+      "label": null,
+      "image": null,
+      "owner_id": null,
+      "hidden": false
+    },
+    {
+      "id": 31,
+      "map_id": 4,
       "creature_id": "2025",
-      "x": 7.0,
-      "y": 1.0,
+      "x": 4.0,
+      "y": 5.0,
       "size": 1,
       "label": null,
       "image": null,
@@ -167,11 +163,701 @@
 
   ],
   "annotations": [
-
+    {
+      "id": 1,
+      "map_id": 2,
+      "type": "shape",
+      "points": [
+        [
+          30.0,
+          30.0
+        ],
+        [
+          40.0,
+          21.0
+        ]
+      ],
+      "color": "#241f00",
+      "shape_kind": "rect",
+      "text": null,
+      "author": "dm",
+      "dm_only": false
+    },
+    {
+      "id": 2,
+      "map_id": 2,
+      "type": "shape",
+      "points": [
+        [
+          30.0,
+          24.0
+        ],
+        [
+          12.0,
+          27.0
+        ]
+      ],
+      "color": "#a87300",
+      "shape_kind": "rect",
+      "text": null,
+      "author": "dm",
+      "dm_only": false
+    },
+    {
+      "id": 3,
+      "map_id": 2,
+      "type": "shape",
+      "points": [
+        [
+          40.0,
+          24.0
+        ],
+        [
+          57.0,
+          27.0
+        ]
+      ],
+      "color": "#a87300",
+      "shape_kind": "rect",
+      "text": null,
+      "author": "dm",
+      "dm_only": false
+    },
+    {
+      "id": 4,
+      "map_id": 2,
+      "type": "shape",
+      "points": [
+        [
+          57.0,
+          25.0
+        ],
+        [
+          61.0,
+          28.0
+        ]
+      ],
+      "color": "#a87300",
+      "shape_kind": "rect",
+      "text": null,
+      "author": "dm",
+      "dm_only": false
+    },
+    {
+      "id": 5,
+      "map_id": 2,
+      "type": "shape",
+      "points": [
+        [
+          61.0,
+          27.0
+        ],
+        [
+          64.0,
+          72.0
+        ]
+      ],
+      "color": "#a87300",
+      "shape_kind": "rect",
+      "text": null,
+      "author": "dm",
+      "dm_only": false
+    },
+    {
+      "id": 6,
+      "map_id": 2,
+      "type": "shape",
+      "points": [
+        [
+          12.0,
+          25.0
+        ],
+        [
+          8.0,
+          28.0
+        ]
+      ],
+      "color": "#a87300",
+      "shape_kind": "rect",
+      "text": null,
+      "author": "dm",
+      "dm_only": false
+    },
+    {
+      "id": 7,
+      "map_id": 2,
+      "type": "shape",
+      "points": [
+        [
+          8.0,
+          27.0
+        ],
+        [
+          5.0,
+          71.0
+        ]
+      ],
+      "color": "#a87300",
+      "shape_kind": "rect",
+      "text": null,
+      "author": "dm",
+      "dm_only": false
+    },
+    {
+      "id": 8,
+      "map_id": 2,
+      "type": "shape",
+      "points": [
+        [
+          5.0,
+          28.0
+        ],
+        [
+          8.0,
+          26.0
+        ]
+      ],
+      "color": "#a87300",
+      "shape_kind": "rect",
+      "text": null,
+      "author": "dm",
+      "dm_only": false
+    },
+    {
+      "id": 9,
+      "map_id": 4,
+      "type": "shape",
+      "points": [
+        [
+          11.0,
+          4.0
+        ],
+        [
+          19.0,
+          6.0
+        ]
+      ],
+      "color": "#4aa3ff",
+      "shape_kind": "rect",
+      "text": null,
+      "author": "dm",
+      "dm_only": false
+    },
+    {
+      "id": 10,
+      "map_id": 4,
+      "type": "shape",
+      "points": [
+        [
+          4.0,
+          7.0
+        ],
+        [
+          6.0,
+          9.0
+        ]
+      ],
+      "color": "#333d00",
+      "shape_kind": "rect",
+      "text": null,
+      "author": "dm",
+      "dm_only": false
+    },
+    {
+      "id": 11,
+      "map_id": 4,
+      "type": "shape",
+      "points": [
+        [
+          6.0,
+          10.0
+        ],
+        [
+          4.0,
+          12.0
+        ]
+      ],
+      "color": "#305700",
+      "shape_kind": "rect",
+      "text": null,
+      "author": "dm",
+      "dm_only": false
+    },
+    {
+      "id": 12,
+      "map_id": 4,
+      "type": "shape",
+      "points": [
+        [
+          6.0,
+          7.0
+        ],
+        [
+          4.0,
+          9.0
+        ]
+      ],
+      "color": "#000000",
+      "shape_kind": "rect",
+      "text": null,
+      "author": "dm",
+      "dm_only": false
+    }
   ],
-  "active_map_id": 1,
-  "next_map_id": 2,
-  "next_token_id": 23,
+  "terrain": [
+    {
+      "id": 1,
+      "map_id": 2,
+      "shape_kind": "rect",
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          70.0,
+          70.0
+        ]
+      ],
+      "texture": "dirt.png"
+    },
+    {
+      "id": 2,
+      "map_id": 2,
+      "shape_kind": "rect",
+      "points": [
+        [
+          16.0,
+          31.0
+        ],
+        [
+          14.0,
+          32.0
+        ]
+      ],
+      "texture": "wall.png"
+    },
+    {
+      "id": 3,
+      "map_id": 2,
+      "shape_kind": "rect",
+      "points": [
+        [
+          15.0,
+          32.0
+        ],
+        [
+          13.0,
+          33.0
+        ]
+      ],
+      "texture": "wall.png"
+    },
+    {
+      "id": 4,
+      "map_id": 2,
+      "shape_kind": "rect",
+      "points": [
+        [
+          14.0,
+          33.0
+        ],
+        [
+          12.0,
+          34.0
+        ]
+      ],
+      "texture": "wall.png"
+    },
+    {
+      "id": 8,
+      "map_id": 2,
+      "shape_kind": "rect",
+      "points": [
+        [
+          13.0,
+          34.0
+        ],
+        [
+          12.0,
+          80.0
+        ]
+      ],
+      "texture": "wall.png"
+    },
+    {
+      "id": 9,
+      "map_id": 2,
+      "shape_kind": "rect",
+      "points": [
+        [
+          54.0,
+          31.0
+        ],
+        [
+          56.0,
+          32.0
+        ]
+      ],
+      "texture": "wall.png"
+    },
+    {
+      "id": 10,
+      "map_id": 2,
+      "shape_kind": "rect",
+      "points": [
+        [
+          55.0,
+          32.0
+        ],
+        [
+          57.0,
+          33.0
+        ]
+      ],
+      "texture": "wall.png"
+    },
+    {
+      "id": 11,
+      "map_id": 2,
+      "shape_kind": "rect",
+      "points": [
+        [
+          56.0,
+          33.0
+        ],
+        [
+          58.0,
+          34.0
+        ]
+      ],
+      "texture": "wall.png"
+    },
+    {
+      "id": 12,
+      "map_id": 2,
+      "shape_kind": "rect",
+      "points": [
+        [
+          58.0,
+          34.0
+        ],
+        [
+          57.0,
+          73.0
+        ]
+      ],
+      "texture": "wall.png"
+    },
+    {
+      "id": 13,
+      "map_id": 2,
+      "shape_kind": "rect",
+      "points": [
+        [
+          33.0,
+          30.0
+        ],
+        [
+          36.0,
+          29.0
+        ]
+      ],
+      "texture": "wall.png"
+    },
+    {
+      "id": 14,
+      "map_id": 2,
+      "shape_kind": "rect",
+      "points": [
+        [
+          15.0,
+          30.0
+        ],
+        [
+          55.0,
+          31.0
+        ]
+      ],
+      "texture": "wall.png"
+    },
+    {
+      "id": 30,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          1.0,
+          1.0
+        ]
+      ],
+      "texture": "stone.png"
+    },
+    {
+      "id": 31,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          0.0,
+          3.0
+        ],
+        [
+          1.0,
+          9.0
+        ]
+      ],
+      "texture": "stone.png"
+    },
+    {
+      "id": 28,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          3.0,
+          0.0
+        ],
+        [
+          6.0,
+          1.0
+        ]
+      ],
+      "texture": "stone.png"
+    },
+    {
+      "id": 17,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          6.0,
+          1.0
+        ],
+        [
+          5.0,
+          3.0
+        ]
+      ],
+      "texture": "stone.png"
+    },
+    {
+      "id": 18,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          6.0,
+          3.0
+        ],
+        [
+          3.0,
+          4.0
+        ]
+      ],
+      "texture": "stone.png"
+    },
+    {
+      "id": 19,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          4.0,
+          4.0
+        ],
+        [
+          3.0,
+          9.0
+        ]
+      ],
+      "texture": "stone.png"
+    },
+    {
+      "id": 20,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          4.0,
+          9.0
+        ],
+        [
+          0.0,
+          10.0
+        ]
+      ],
+      "texture": "stone.png"
+    },
+    {
+      "id": 21,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          6.0,
+          3.0
+        ],
+        [
+          20.0,
+          4.0
+        ]
+      ],
+      "texture": "stone.png"
+    },
+    {
+      "id": 33,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          19.0,
+          9.0
+        ],
+        [
+          20.0,
+          10.0
+        ]
+      ],
+      "texture": "stone.png"
+    },
+    {
+      "id": 24,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          19.0,
+          9.0
+        ],
+        [
+          20.0,
+          4.0
+        ]
+      ],
+      "texture": "stone.png"
+    },
+    {
+      "id": 25,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          4.0,
+          3.0
+        ],
+        [
+          5.0,
+          4.0
+        ]
+      ],
+      "texture": "dirt.png"
+    },
+    {
+      "id": 26,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          19.0,
+          8.0
+        ],
+        [
+          20.0,
+          9.0
+        ]
+      ],
+      "texture": "dirt.png"
+    },
+    {
+      "id": 29,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          2.0,
+          9.0
+        ],
+        [
+          1.0,
+          10.0
+        ]
+      ],
+      "texture": "dirt.png"
+    },
+    {
+      "id": 34,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          4.0,
+          10.0
+        ],
+        [
+          3.0,
+          12.0
+        ]
+      ],
+      "texture": "stone.png"
+    },
+    {
+      "id": 35,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          3.0,
+          12.0
+        ],
+        [
+          20.0,
+          13.0
+        ]
+      ],
+      "texture": "stone.png"
+    },
+    {
+      "id": 36,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          19.0,
+          12.0
+        ],
+        [
+          20.0,
+          8.0
+        ]
+      ],
+      "texture": "stone.png"
+    },
+    {
+      "id": 37,
+      "map_id": 4,
+      "shape_kind": "rect",
+      "points": [
+        [
+          19.0,
+          11.0
+        ],
+        [
+          20.0,
+          12.0
+        ]
+      ],
+      "texture": "dirt.png"
+    }
+  ],
+  "active_map_id": 4,
+  "next_map_id": 5,
+  "next_token_id": 32,
   "next_zone_id": 1,
-  "next_annotation_id": 1
+  "next_annotation_id": 13,
+  "next_terrain_id": 38
 }

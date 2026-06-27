@@ -1501,7 +1501,247 @@
       ],
       "owner_id": null,
       "active": true
+    },
+    {
+      "id": 89,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 89,
+      "scene_position": 85,
+      "title": "",
+      "public_description": "",
+      "dm_description": "",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 357,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 90,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 90,
+      "scene_position": 85,
+      "title": "",
+      "public_description": "",
+      "dm_description": "",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 358,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 91,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 91,
+      "scene_position": 85,
+      "title": "",
+      "public_description": "",
+      "dm_description": "",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 359,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 92,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 92,
+      "scene_position": 85,
+      "title": "",
+      "public_description": "",
+      "dm_description": "",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 360,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 93,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 93,
+      "scene_position": 85,
+      "title": "",
+      "public_description": "",
+      "dm_description": "",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 361,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 94,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 94,
+      "scene_position": 85,
+      "title": "",
+      "public_description": "",
+      "dm_description": "",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 362,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 95,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 95,
+      "scene_position": 85,
+      "title": "",
+      "public_description": "",
+      "dm_description": "",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 363,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 96,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 96,
+      "scene_position": 85,
+      "title": "",
+      "public_description": "",
+      "dm_description": "",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 364,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 97,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 97,
+      "scene_position": 85,
+      "title": "",
+      "public_description": "",
+      "dm_description": "",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 371,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 98,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 98,
+      "scene_position": 85,
+      "title": "",
+      "public_description": "",
+      "dm_description": "",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 372,
+      "creature_token": null,
+      "tier": null
+    },
+    {
+      "id": 99,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 99,
+      "scene_position": 85,
+      "title": "",
+      "public_description": "",
+      "dm_description": "",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true,
+      "creature_id": 373,
+      "creature_token": null,
+      "tier": 3
+    },
+    {
+      "id": 100,
+      "entry_type": "creature",
+      "chapter": 5,
+      "notes_position": 100,
+      "scene_position": 85,
+      "title": "",
+      "public_description": "",
+      "dm_description": "",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false,
+      "creature_id": 382,
+      "creature_token": null,
+      "tier": null
     }
   ],
-  "next_id": 89
+  "next_id": 101
 }
