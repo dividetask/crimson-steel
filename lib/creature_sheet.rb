@@ -8,8 +8,8 @@ require 'abilities'
 require 'dice_resolution'
 require_relative 'creature_modifiers'
 
-# Builds the sheet hash the character-sheet partials
-# (_creature_minimal / _creature_full) consume, sourced exclusively
+# Builds the sheet hash the character-sheet partial
+# (_creature_minimal) consumes, sourced exclusively
 # from the live domains — Creatures (identity, attributes, classes,
 # skills, abilities), Conditions (current HP / Mana / Toxicity), and
 # Encounter / Equipment (Combat Pool, equipped weapon actions). This
@@ -91,6 +91,30 @@ module CreatureSheet
     []
   end
 
+  # Every Skill the Creature could attempt — concrete Catalog Skills plus
+  # the Creature's own trained Set-Skill instances (e.g. craft_blacksmith) —
+  # each with its Dice Cap + Bonus from Proficiencies. Untrained Skills carry
+  # the Non-Proficiency Penalty (Proficiencies owns that), so the panel shows
+  # what an untrained attempt actually rolls. Bare Set-Skill families (keys
+  # ending `_`) are dropped: they can't be rolled without a concrete instance.
+  def all_skills(accessor)
+    keys = Proficiencies.skills.keys.reject { |k| k.end_with?('_') }
+    keys |= Array((accessor.trained_skills rescue []))
+    keys.filter_map do |key|
+      next if key.end_with?('_')
+      attr = Proficiencies.attribute_for(key)
+      next unless attr
+      ri    = Proficiencies::Compute.roll_inputs(key: key, creature: accessor)
+      comp  = ri[:competency_modifier] ? ri[:competency_modifier][1] : 0
+      guide = Array(ri[:skill_modifiers]).sum { |_type, amt| amt.to_i }
+      ranks = (accessor.ranks_for(key) rescue 0).to_i
+      { key: key, name: pretty_skill_name(key), attribute: attr.to_s,
+        ranks: ranks, dice: ri[:dice_cap], bonus: comp + guide, trained: ranks.positive? }
+    end.sort_by { |s| s[:name] }
+  rescue StandardError
+    []
+  end
+
   def vitals(accessor, tier)
     max_hp   = (accessor.max_hit_points rescue 0)
     max_mana = (accessor.max_mana rescue 0)
@@ -103,8 +127,12 @@ module CreatureSheet
     # effect Modifiers (e.g. Rage's Circumstance bonus), each broken out so
     # a raging Creature reads "3+2" rather than a baked-in "5". Inherent
     # Modifiers stay folded into the base.
+    pieces = equipment_defense_pieces(accessor)
+    direct = direct_defense_attributes(accessor)
     dr_break  = defense_breakdown(defense[:damage_reduction],  cond, 'damage_reduction')
+                  .merge(components: defense_math(pieces, direct[:damage_reduction], cond, 'damage_reduction', :damage_reduction))
     res_break = defense_breakdown(defense[:damage_resilience], cond, 'damage_resilience')
+                  .merge(components: defense_math(pieces, direct[:damage_resilience], cond, 'damage_resilience', :damage_resilience))
     {
       hp:   { current: [max_hp - hp_dmg, 0].max, max: max_hp },
       mana: { current: (st ? [max_mana - st.mana_spent, 0].max : max_mana), max: max_mana,
@@ -132,6 +160,53 @@ module CreatureSheet
     { base: base, tokens: tokens, total: base + tokens.sum { |t| t[:amount] } }
   end
 
+  # Ordered per-source contributions summing to a Damage Reduction /
+  # Resilience total, for the sheet's click-to-open math popup: each equipped
+  # Armor piece, then a direct Creature stat, then each active-effect Modifier
+  # labelled by the ability / spell that granted it (Rage, not "Circumstance").
+  # Same-Bonus-Type Modifiers do not stack, so a loser is still listed but
+  # flagged `applied: false` for a struck-out display. `which` is
+  # :damage_reduction or :damage_resilience; `key` is the Modifier target key.
+  # Returns [{ amount:, label:, applied: }].
+  def defense_math(pieces, direct_amount, cond, key, which)
+    comps = Array(pieces).map do |p|
+      amount = (which == :damage_reduction ? p[:damage_reduction] : p[:resilience]).to_i
+      { amount: amount, label: p[:name].to_s, applied: true }
+    end
+    comps << { amount: direct_amount.to_i, label: 'innate', applied: true }
+    mods = cond ? (cond.modifier_breakdown(key.to_s) rescue []) : []
+    mods.each do |m|
+      comps << { amount: m[:amount].to_i, label: humanize_source(m[:source]), applied: m[:applied] != false }
+    end
+    # A source that contributes nothing (a Shield's null Reduction/Resilience,
+    # a mundane Tier-0 Armor's zero Resilience, an absent stat) is not shown.
+    comps.reject { |c| c[:amount].to_i.zero? }
+  end
+
+  # A Modifier source token (snake_case Named-Effect keys, e.g. "magic_vestments")
+  # rendered for display as spaced words ("magic vestments"). Rage stays "rage".
+  def humanize_source(source)
+    source.to_s.tr('_', ' ')
+  end
+
+  # Per-equipped-Armor Damage Reduction / Resilience contributions (with the
+  # Resilience factors) for the math popup. Empty on any lookup failure.
+  def equipment_defense_pieces(accessor)
+    stacks = Equipment.instance.get_inventory("creature:#{accessor.id}")
+    Equipment::Details.defensive_components(stacks, Equipment.catalog)
+  rescue StandardError
+    []
+  end
+
+  # A Creature's own direct Damage Reduction / Resilience stat (monsters that
+  # carry the values as attributes), combined with equipped Armor everywhere.
+  def direct_defense_attributes(accessor)
+    { damage_reduction:  (accessor.respond_to?(:damage_reduction)  ? accessor.damage_reduction.to_i  : 0),
+      damage_resilience: (accessor.respond_to?(:damage_resilience) ? accessor.damage_resilience.to_i : 0) }
+  rescue StandardError
+    { damage_reduction: 0, damage_resilience: 0 }
+  end
+
   # Sum of the active-effect Modifiers targeting a key (e.g. damage_reduction),
   # after Conditions' per-Bonus-Type stacking. Zero when no Conditions record.
   def condition_modifier_total(cond, key)
@@ -152,11 +227,22 @@ module CreatureSheet
     0
   end
 
-  # Sum equipped Armor + Shield mitigation via Equipment.
+  # Sum equipped Armor + Shield mitigation via Equipment, plus any direct
+  # `damage_reduction` / `damage_resilience` the Creature exposes itself
+  # (monsters that carry the values as attributes). Combat combines the same
+  # two sources (Encounter::State#equipped_defensive_totals), so the sheet
+  # and the applied mitigation stay in agreement.
   def defensive_totals(accessor)
     cat    = Equipment.catalog
     stacks = Equipment.instance.get_inventory("creature:#{accessor.id}")
-    Equipment::Details.defensive_totals(stacks, cat)
+    totals = Equipment::Details.defensive_totals(stacks, cat)
+    if accessor.respond_to?(:damage_reduction)
+      totals[:damage_reduction] += accessor.damage_reduction.to_i
+    end
+    if accessor.respond_to?(:damage_resilience)
+      totals[:damage_resilience] += accessor.damage_resilience.to_i
+    end
+    totals
   rescue StandardError
     { damage_reduction: 0, damage_resilience: 0 }
   end
@@ -246,7 +332,7 @@ module CreatureSheet
   end
 
   # Descriptions of the named magic items the Creature carries, for the
-  # sheet's Item Descriptions section (creatures_full_stub.md). The text
+  # sheet's Item Descriptions section (creatures_minimal_stub.md). The text
   # is each Stack's resolved description — a unique-item override, or the
   # generic Item Type's catalog description — supplied by Equipment's
   # Get Item Details. Items with no description on file are skipped, and
@@ -318,11 +404,27 @@ module CreatureSheet
     []
   end
 
-  # Item Spells — spells stored in carried scrolls / wands (Stacks with
-  # a `stored_spell`).
+  # Item Spells — every Spell the Creature can cast from a carried item.
+  # Two sources: a Stack's `stored_spell` (scrolls / wands), and an equipped
+  # spell-granting item (`grants_spell`) that names its Spells on the catalog
+  # definition — a single `spell` (e.g. a Circlet of Entangle) or a `spells`
+  # list (e.g. a Ring of Shooting Stars). Each is grouped at the Spell's own
+  # Tier.
   def item_spells(accessor)
-    inventory(accessor).filter_map { |s| s.stored_spell unless s.stored_spell.to_s.empty? }
-                       .then { |keys| spell_groups(keys) }
+    cat  = (Equipment.catalog rescue nil)
+    keys = []
+    inventory(accessor).each do |s|
+      keys << s.stored_spell unless s.stored_spell.to_s.empty?
+      next unless s.equipped && cat
+      defn = (cat.definition_of(s.item_type) rescue nil) || {}
+      next unless defn['grants_spell']
+      if defn['spells'].is_a?(Array)
+        keys.concat(defn['spells'])
+      elsif defn['spell']
+        keys << defn['spell']
+      end
+    end
+    spell_groups(keys.compact)
   rescue StandardError
     []
   end
@@ -383,13 +485,24 @@ module CreatureSheet
   # `[prefix, key, suffix]`). `base`/`axis` let a constructed name be resolved
   # back to its catalog entry + Tier-axis index for Abilities.lookup.
   def spell_variants(key, entry)
-    tiers = Array(entry['tier'])
-    tiers = [0] if tiers.empty?
-    name   = entry['name']
-    prefix = entry['prefix']
-    suffix = entry['suffix']
-    out = [[tiers.map(&:to_i).min, key.to_s, key.to_s, 0]]
-    tiers.each_with_index do |t, i|
+    tiers   = Array(entry['tier'])
+    aspects = entry['aspects']
+    name    = entry['name']
+    prefix  = entry['prefix']
+    suffix  = entry['suffix']
+    base_tier = tiers.empty? ? 0 : tiers.map(&:to_i).min
+    # The Variant Axis is the Tier list, else the aspect list, else a single
+    # Variant — mirroring the Abilities resolver. Aspect-axis Spells (e.g.
+    # Elemental Dart → Fire / Acid / Electricity / Cold Dart) all share the
+    # Spell's one Tier; Tier-axis Spells step through their Tiers.
+    axis_len =
+      if entry['tier'].is_a?(Array) && !tiers.empty? then tiers.length
+      elsif aspects.is_a?(Array) && !aspects.empty?  then aspects.length
+      else 1
+      end
+    out = [[base_tier, key.to_s, key.to_s, 0]]
+    (0...axis_len).each do |i|
+      t = entry['tier'].is_a?(Array) ? tiers[i].to_i : base_tier
       vname =
         if name.is_a?(Array)                          then name[i]
         elsif name.is_a?(String) && !name.strip.empty? then name
@@ -535,6 +648,30 @@ module CreatureSheet
     (accessor.granted_abilities rescue []).flat_map { |g| Abilities.granted_equipment(g[:name]) }.uniq
   rescue StandardError
     []
+  end
+
+  # The Roll Resolution Stub hash for one Skill Roll — Dice Cap + the
+  # Competency / Skill-Modifier Bonus/Penalty list run through Dice
+  # Resolution's Target Number computation (the already-written TN handling).
+  # Returns nil when the key doesn't resolve to a rollable Skill.
+  def skill_roll(accessor, key)
+    key = key.to_s
+    return nil if key.empty? || key.end_with?('_')
+    return nil unless Proficiencies.attribute_for(key)
+    ri  = Proficiencies::Compute.roll_inputs(key: key, creature: accessor)
+    bpl = []
+    bpl << ri[:competency_modifier] if ri[:competency_modifier]
+    bpl.concat(Array(ri[:skill_modifiers]))
+    cfg     = DiceResolution.config
+    base_tn = cfg.base_target_number
+    tn_info = DiceResolution.compute_target_number(bpl)
+    { creature_name: accessor.name, roll_name: "#{pretty_skill_name(key)} check",
+      ranks: (accessor.ranks_for(key) rescue 0).to_i,
+      dice_count: ri[:dice_cap].to_i, die_size: cfg.die_size,
+      tn: tn_info[:tn], starting_value: tn_info[:starting_value],
+      base_tn: base_tn, bonus_penalty_list: bpl }
+  rescue StandardError
+    nil
   end
 
   def conditions_for(creature_id)

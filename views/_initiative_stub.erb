@@ -73,7 +73,7 @@
       </thead>
       <tbody>
         <% rows.each do |row| %>
-          <tr class="initiative-row<%= ' initiative-row-acting' if row[:acting] %><%= ' initiative-row-cannot-act' unless row[:can_act] %>"
+          <tr class="initiative-row<%= ' initiative-row-acting' if row[:acting] %><%= ' initiative-row-cannot-act' unless row[:can_act] %><%= ' initiative-row-skipped' if row[:skipped] %>"
               data-combatant-id="<%= row[:combatant_id] %>"
               data-creature-id="<%= row[:creature_id] %>">
 
@@ -95,13 +95,17 @@
             <% editable = viewer == :dm && !static %>
             <td class="initiative-col-init<%= ' initiative-init-editable' if editable %>"
                 <%= "data-combatant-id=\"#{row[:combatant_id]}\" data-init=\"#{row[:initiative]}\" title=\"Double-click to set initiative\"" if editable %>><%= row[:initiative] || dash %></td>
-            <td class="initiative-col-name"><%= row[:name] %></td>
+            <td class="initiative-col-name"><%= row[:name] %><% if row[:skipped] %> <span class="initiative-skip">(skip)</span><% end %></td>
 
             <td class="initiative-col-hp">
               <% if row[:hp] %>
                 <% hp = row[:hp] %>
+                <%# hide_numbers: players see an enemy's HP bar as a rough
+                    health gauge, but not its raw current/max (nor the
+                    tooltip that would reveal them). %>
+                <% hide_nums = hp[:hide_numbers] %>
                 <div class="hp-inline">
-                  <div class="hp-bar" title="<%= hp[:current] %>/<%= hp[:max] %>">
+                  <div class="hp-bar"<% unless hide_nums %> title="<%= hp[:current] %>/<%= hp[:max] %>"<% end %>>
                     <span class="hp-seg hp-cur"  style="width: <%= pct.call(hp[:current], hp[:max]) %>%"></span>
                     <span class="hp-seg hp-minor" style="width: <%= pct.call(hp[:minor], hp[:max]) %>%"></span>
                     <span class="hp-seg hp-mod"   style="width: <%= pct.call(hp[:moderate], hp[:max]) %>%"></span>
@@ -109,7 +113,9 @@
                   </div>
                   <%# Just current / max — the Minor / Moderate / Major split
                       is conveyed by the bar's colored segments. %>
-                  <span class="hp-num"><%= hp[:current] %>/<%= hp[:max] %></span>
+                  <% unless hide_nums %>
+                    <span class="hp-num"><%= hp[:current] %>/<%= hp[:max] %></span>
+                  <% end %>
                 </div>
               <% else %>
                 <span class="initiative-dash"><%= dash %></span>

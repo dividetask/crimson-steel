@@ -64,6 +64,18 @@ Defines the vocabulary used by `atlas_design.md` and `atlas_tests.md`. Atlas own
 
 **Annotation Author**: Who drew an Annotation — the DM or a player. The DM may draw any Kind; players may draw Arrows only. Atlas records the Author; enforcing who may draw what is the consumer's concern.
 
+## Terrain
+
+**Terrain**: Painted map structure — a rectangle (or ellipse) filled with a repeating texture (wall, dirt, stone floor) the DM lays down to build a scene. Permanent furniture: not swept by Clear Annotations, cascaded by Delete Map.
+
+## Fog
+
+**Fog**: A rectangle (or ellipse) region the DM paints to conceal part of a Map from players — the spatial half of Fog of War. Carries no texture and no mechanical meaning; it is a visibility mask. Permanent map structure like Terrain: not swept by Clear Annotations, cascaded by Delete Map.
+
+**Fog of War**: The concealment of a Map from players wherever Fog is painted. **Disabled by default** — a Map with no Fog restricts nothing. Atlas records Fog regions; deciding what a given viewer sees (a player's view is restricted, the DM's is not) is the consumer's concern, exactly as with a hidden Token.
+
+**Reveal**: The tool that erases Fog by region — the mirror of the Terrain eraser. Uncovering a fogged area returns it to the players' sight.
+
 ## Viewport (UI-side)
 
 **Viewport**: The visible portion of a Map presented to a viewer. The Viewport's pan and zoom are UI state — Atlas does not store them.

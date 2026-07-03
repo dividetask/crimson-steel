@@ -69,7 +69,12 @@ export class TurnAttack {
     // weapon list is the conjured Spell strikes); resolution is identical, so it
     // still posts to /encounter/resolve_attack.
     const builderUrl = container.getAttribute('data-builder-url') || '/encounter/attack_builder';
-    fetch(builderUrl + '?attacker_id=' + encodeURIComponent(attackerId), { headers: { Accept: 'text/html' } })
+    // Active Spells panes name the specific channelled strike to build (by
+    // Spell name); the plain Attack pane has none.
+    const params = new URLSearchParams({ attacker_id: attackerId });
+    const strikeSpell = container.getAttribute('data-strike-spell');
+    if (strikeSpell != null && strikeSpell !== '') params.set('strike_spell', strikeSpell);
+    fetch(builderUrl + '?' + params.toString(), { headers: { Accept: 'text/html' } })
       .then((r) => r.text())
       .then((html) => {
         container.innerHTML = html + '<div class="ta-result" hidden></div>';
@@ -105,6 +110,10 @@ export class TurnAttack {
       luck: ActionBuilder.luckSpends(choices),
       attacker: { id: parseInt(container._attackerId, 10), dice: atk.dice_count, speed: atk.speed, successes: atk.successes }
     };
+    // An Active Spells strike names its Spell so a committed strike can remember
+    // the target it hit (the weapon then stops re-asking on later strikes).
+    const strikeSpell = container.getAttribute('data-strike-spell');
+    if (strikeSpell) base.active_spell_name = strikeSpell;
 
     // Target's own defense (Dodge / Block / Parry / none).
     const def = rolls.find((r) => r.id === 'defender');
@@ -304,8 +313,9 @@ export class TurnAttack {
     const rolls = container._riderRolls || {};
     const fields = [];
     const gap = num(res.inherent_dr) > 0 ? ` (−${num(res.inherent_dr)} tier mismatch)` : '';
+    const dr = num(res.passive_dr) > 0 ? ` (−${num(res.passive_dr)} reduction)` : '';
     fields.push({ key: 'damage', label: 'Damage', value: res.damage, editable: true,
-                  suffix: (res.damage_type || '') + gap, split: true });
+                  suffix: (res.damage_type || '') + gap + dr, split: true });
     // One bonus-damage field per rider, plus a self-damage field for a rider
     // that bites the wielder.
     (container._riders || []).forEach((rider) => {

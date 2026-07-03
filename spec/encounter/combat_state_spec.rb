@@ -149,6 +149,32 @@ RSpec.describe 'Encounter::State combat mode' do
       s.set_acting_combatant(a[:id])
       expect(s.advance_turn).to eq(b[:id])
     end
+
+    it 'no-ops (no crash) when Combat has not started — Time Ticks unseeded' do
+      s = state
+      s.add_combatant('1'); s.add_combatant('2')
+      # No start_combat: @time_tick is nil, so advancing must not do nil Time
+      # Tick arithmetic (End Turn shown in the Combat phase before Start Combat).
+      expect(s.combat_active?).to be(false)
+      expect { expect(s.advance_turn).to be_nil }.not_to raise_error
+    end
+  end
+
+  describe 'Partial-round skip (Time Ticks)' do
+    it 'a lower-Tier Combatant sits out the ticks its schedule excludes' do
+      # tier-0 → 1 turn/round; tier-3 → 2 turns/round (Turns Per Round config).
+      s = state(creatures: { '1' => creature(tier: 0), '2' => creature(tier: 3) })
+      low  = s.add_combatant('1')
+      high = s.add_combatant('2')
+      s.start_combat
+      last = s.time_ticks_per_round
+      expect(last).to be > 1
+      # On the last tick the fast (tier-3) Combatant acts; the slow one is
+      # skipped — exactly the rows the Tracker greys with "(skip)".
+      acting = s.acting_combatants(last).map { |c| c[:id] }
+      expect(acting).to include(high[:id])
+      expect(acting).not_to include(low[:id])
+    end
   end
 
   describe 'Apply Damage' do

@@ -2,11 +2,50 @@
 # attack-payload enrichment / defender-reaction helpers. Extracted from
 # routes/encounter.rb (a separate, accumulating helpers block).
 helpers do
+  # Auto-channel strike Spells with a live Reservoir (Spiritual Weapon) — the
+  # ones whose Active Spells button opens a strike (Attack) flow.
   def active_spell_strikes(combatant)
     Array(combatant[:concentration]).select { |e| e[:mode] == 'auto' && e[:reservoir].to_i.positive? }
   end
 
-  def attack_builder_blob(attacker, active_spells: false)
+  # Every active concentration Spell the Combatant is channelling — an auto
+  # strike (Spiritual Weapon) or any Spell holding a live Reservoir (Shield of
+  # Faith). Each gets its own Active Spells button and a Conditions-column
+  # badge; all can be ended, and the auto strikes additionally Attack.
+  def active_concentration_spells(combatant)
+    Array(combatant[:concentration]).select { |e| e[:mode] == 'auto' || e[:reservoir].to_i.positive? }
+  end
+
+  # Every active persistent Spell a Combatant is sustaining, normalized to one
+  # descriptor each: concentration Spells (auto strike / live Reservoir) plus
+  # any granted defend-action with no matching concentration entry — a Standard
+  # Shield conjures no Reservoir, so it lives only as a defend-action. Each
+  # descriptor is joined to whom it is aimed at (a strike's stored `target_id`,
+  # or a protective Spell's defended ally). Deduped by Spell name so Shield of
+  # Faith (concentration + defend-action) lists once.
+  #   { spell_name:, reservoir: (int|nil), mode: 'auto'|'reservoir'|'defend',
+  #     target_id: (int|nil), defends: (int|nil) }
+  def active_persistent_spells(combatant)
+    grants = encounter_state.granted_actions.select { |g| g[:combatant_id] == combatant[:id] && g[:defends] }
+    out  = []
+    seen = {}
+    active_concentration_spells(combatant).each do |e|
+      name = e[:spell_name].to_s
+      guard = grants.find { |g| g[:spell_name].to_s == name }
+      out << { spell_name: name, reservoir: e[:reservoir], mode: e[:mode].to_s,
+               target_id: e[:target_id], defends: guard && guard[:defends] }
+      seen[name] = true
+    end
+    grants.each do |g|
+      name = g[:spell_name].to_s
+      next if seen[name]
+      seen[name] = true
+      out << { spell_name: name, reservoir: nil, mode: 'defend', target_id: nil, defends: g[:defends] }
+    end
+    out
+  end
+
+  def attack_builder_blob(attacker, active_spells: false, strike_spell: nil)
     acc      = Creatures.lookup(attacker[:creature_id]) rescue nil
     die      = DiceResolution.config.die_size
     base_tn  = DiceResolution.config.base_target_number
@@ -21,17 +60,42 @@ helpers do
     # which applies cross-side propagation and computes every TN itself.
     fmt_mods = ->(list) { list.map { |type, amt| "#{amt >= 0 ? '+' : ''}#{amt} #{type}" }.join(' ') }
 
+    # The weapon's own Bonus list on the attacker's Roll: its Competency
+    # (martial for a weapon, the casting Skill for a Spell strike) plus any
+    # Guidance a Spell strike carries (Guidance equal to the Spell's Tier).
+    weapon_bpl = lambda do |w|
+      list = []
+      list << w[:competency] if w[:competency]
+      list << ['Guidance', w[:guidance].to_i] if w[:guidance].to_i.positive?
+      list
+    end
+
     weapons = active_spells ? [] : equipped_weapons(attacker[:creature_id]).map do |w|
       attr = w[:ranged] ? :dex : :str
       ri   = roll_inputs_for(acc, 'martial', attribute_override: attr)
       w.merge(dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier])
     end
 
+    strike_target_id = nil
     if active_spells
-      active_spell_strikes(attacker).each do |sw|
+      # Each active persistent Spell has its own turn-panel button; the pane
+      # names the specific strike to build via strike_spell. With no name
+      # (a direct builder call) every strike is offered, as before.
+      strikes = active_spell_strikes(attacker)
+      strikes = strikes.select { |sw| sw[:spell_name].to_s == strike_spell.to_s } unless strike_spell.nil?
+      # A weapon already aimed at a target strikes it without re-asking (below).
+      strike_target_id = strikes.first[:target_id] if strikes.length == 1 && strikes.first[:target_id]
+      strikes.each do |sw|
+        # The strike rolls the Spell's casting Check: the caster's Competency
+        # from their casting Skill (a Cleric's Invocation) rides the roll, plus
+        # a Guidance Bonus equal to the Spell's Tier — the same bonuses a
+        # normal cast of the Spell carries (see encounter_cast_ui.rb).
+        strike_skill = sw[:cast_skill].to_s
+        strike_comp  = strike_skill.empty? ? nil : roll_inputs_for(acc, strike_skill)[:competency_modifier]
         weapons << { item_type: 'spiritual_weapon', display_name: sw[:spell_name].to_s, ranged: false,
                      speed: 0, damage_types: ['force'], threshold: 0, bleed: 0, base_damage: 0,
-                     dice_cap: sw[:reservoir].to_i, competency: nil }
+                     dice_cap: sw[:reservoir].to_i, competency: strike_comp,
+                     guidance: sw[:spell_tier].to_i }
       end
     end
 
@@ -98,10 +162,19 @@ helpers do
     enemy_targets = enemy_targets.reject { |t| encounter_state.creature_dying?(t[:id]) rescue false }
     enemy_targets = order_targets_by_distance(attacker, enemy_targets)
     header_targets = enemy_targets.first(5)
-    target_step = { key: 'target', label: 'Target',
-                    header_options: header_targets.map { |t| { value: t[:id], label: t[:display_name] } },
-                    options: target_options(encounter_state.combatants.reject { |c| c[:id] == attacker[:id] },
-                                            roll_id: 'defender') }
+    all_target_opts = target_options(encounter_state.combatants.reject { |c| c[:id] == attacker[:id] },
+                                     roll_id: 'defender')
+    aimed = strike_target_id && all_target_opts.find { |o| o[:value] == strike_target_id }
+    target_step =
+      if aimed
+        # A Spiritual Weapon already aimed at a target strikes it without asking:
+        # a single forced (auto) option the builder applies with no button.
+        { key: 'target', label: 'Target', options: [aimed.merge(auto: true)] }
+      else
+        { key: 'target', label: 'Target',
+          header_options: header_targets.map { |t| { value: t[:id], label: t[:display_name] } },
+          options: all_target_opts }
+      end
 
     action_opts = []
     action_quick = []
@@ -110,10 +183,19 @@ helpers do
       speed = [w[:speed].to_i, 0].max
       disp  = w[:display_name]
       grp   = w[:item_type]
-      bpl   = w[:competency] ? [w[:competency]] : []
+      bpl   = weapon_bpl.call(w)
       set_atk = lambda do |dice|
         { set_dice: [{ id: 'attacker', count: dice }], set_speed: [{ id: 'attacker', speed: speed }],
           set_bpl: [{ id: 'attacker', bonus_penalty_list: bpl }] }
+      end
+      if active_spells
+        # An active-spell strike (Spiritual Weapon) always rolls its full
+        # Reservoir — there is no dice count to choose. Offer a single forced
+        # (`auto`) option the builder applies without a button, so the pane
+        # goes straight to Target without asking for dice.
+        action_opts << { value: "#{w[:item_type]}|#{cap}", key: w[:item_type], auto: true, group: grp,
+                         summary: "#{disp} — #{cap} Reservoir dice", patch: set_atk.call(cap) }
+        next
       end
       free = w[:item_type] == 'spiritual_weapon'
       g = dice_count_group(prefix: w[:item_type], key: w[:item_type], group: grp, min: 2, max: cap,
@@ -129,7 +211,7 @@ helpers do
     defense_header_map = {}
     targets.each do |t|
       weapons.each do |w|
-        comp = w[:competency] ? [w[:competency]] : []
+        comp = weapon_bpl.call(w)
         atk_tier_none = Encounter::Attack.attacker_tier_bonuses(
           attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
           inherent_table: inh_table, no_defense: true
@@ -173,8 +255,12 @@ helpers do
           dcmp  = (di[:competency_modifier] ? [di[:competency_modifier]] : []) + def_tier
           cap   = di[:dice_cap].to_i
           dspd  = b[:speed]
+          # Declaring any Defensive Action (Dodge / Block / Parry / Ring of
+          # Parry) removes Flatfooted (encounter_design.md → Flatfooted
+          # interaction), so no branch carries the Flatfooted advantage — it
+          # applies only to the No-defense option (atk_none_bpl above).
           atk_branch_bpl = comp + atk_tier_def + Encounter::Attack.attacker_bonuses(
-            flatfooted: (b[:key] != 'dodge') && !t[:flatfooted_immune], unaware: false, helpless: t[:helpless])
+            flatfooted: false, unaware: false, helpless: t[:helpless])
           def_no_prop = b[:key] == 'dodge' ? ['Competency'] : []
           mk = lambda do |dice, label, disabled|
             { value: "#{b[:key]}|#{dice}", group: b[:group], label: label,
@@ -331,7 +417,14 @@ helpers do
       payload['attack_kind'] ||= 'ranged'
       atk['speed'] = 0
       payload['attacker'] = atk
-      payload['weapon'] = { 'damage_types' => ['force'], 'threshold' => 0, 'bleed' => 0, 'base_damage' => 0 }
+      # A Spiritual Weapon strike deals the default Spell damage: floor(casting
+      # stat / 4) + Spell Tier + casting-skill Competency (the net Successes are
+      # added downstream in resolve_attack_payload). Same bonuses that ride the
+      # strike's Roll (Competency + Guidance) — Competency counts twice by
+      # design: it applies to both the roll and the damage.
+      payload['weapon'] = { 'damage_types' => ['force'], 'threshold' => 0, 'bleed' => 0,
+                            'base_damage' => spiritual_weapon_base_damage(combatant_id: atk['id'].to_i,
+                                                                          spell_name: payload['active_spell_name']) }
       payload['free_attacker_pool'] = true
       return
     end
@@ -341,11 +434,34 @@ helpers do
     payload['attack_kind'] ||= w[:ranged] ? 'ranged' : 'melee'
     atk['speed'] = w[:speed]
     payload['attacker'] = atk
+    # Weapon Competency (the martial Competency Modifier) applies to both the
+    # attack Roll and the damage, so fold it into the weapon's base damage.
+    mcomp = acc ? roll_inputs_for(acc, 'martial', attribute_override: (w[:ranged] ? :dex : :str))[:competency_modifier] : nil
+    base_damage = evaluate_weapon_damage(w[:damage_formula], acc) + (mcomp ? mcomp[1].to_i : 0)
     payload['weapon'] = { 'damage_types' => w[:damage_types], 'threshold' => w[:threshold],
                           'bleed' => w[:bleed], 'affliction' => w[:affliction],
                           'affliction_potency' => w[:affliction_potency],
-                          'base_damage' => evaluate_weapon_damage(w[:damage_formula], acc),
+                          'base_damage' => base_damage,
                           'damage_riders' => w[:damage_riders], 'tier_advantage' => w[:tier_advantage] }
+  end
+
+  # Base damage for a Spiritual Weapon strike: floor(casting stat / 4) + Spell
+  # Tier + casting-skill Competency (the Successes are added by
+  # resolve_attack_payload). Reads the strike's concentration entry for its
+  # cast skill + Tier; returns 0 when the entry is gone.
+  def spiritual_weapon_base_damage(combatant_id:, spell_name:)
+    combatant = encounter_state.combatant(combatant_id) or return 0
+    entry = Array(combatant[:concentration]).find do |e|
+      e[:mode].to_s == 'auto' && e[:spell_name].to_s == spell_name.to_s
+    end
+    return 0 unless entry
+    acc   = Creatures.lookup(combatant[:creature_id]) rescue nil
+    skill = entry[:cast_skill].to_s
+    attr  = (Proficiencies.attribute_for(skill) || :cha)
+    cstat = (acc&.attribute_value(attr) rescue 0).to_i
+    comp  = skill.empty? ? nil : roll_inputs_for(acc, skill)[:competency_modifier]
+    Encounter::Cast.default_spell_damage(casting_stat: cstat, tier: entry[:spell_tier],
+                                         successes: 0, competency: (comp ? comp[1].to_i : 0))
   end
 
   POST_ROLL_REACTIONS = {

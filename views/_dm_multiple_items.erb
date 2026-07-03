@@ -1,0 +1,18 @@
+<%#
+  The no-roll consumables every selected Character carries (intersection), for
+  the Multiple group Item action. Picking one shows a confirm preview (the Magic
+  Toxicity each Character takes); Confirm applies it to each selected Character
+  (self, no roll) and subtracts one from each.
+  Locals: @items — [{ item_type, display }].
+%>
+<div class="cb-tier-head">Items carried by all</div>
+<% if @items.empty? %>
+  <p class="dm-mult-none">No no-roll item is carried by every selected character.</p>
+<% else %>
+  <div class="cb-line">
+    <% @items.each do |it| %>
+      <button type="button" class="cr-mod-btn cb-opt dm-mult-item" data-item="<%= h(it[:item_type]) %>"><%= h(it[:display]) %></button>
+    <% end %>
+  </div>
+  <div class="dm-mult-item-preview"></div>
+<% end %>

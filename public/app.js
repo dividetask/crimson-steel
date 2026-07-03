@@ -10,12 +10,16 @@ import { TurnAttack } from './js/ui/turnAttack.js';
 import { AtlasMap } from './js/ui/atlasMap.js';
 import { TurnCast } from './js/ui/turnCast.js';
 import { TurnItem } from './js/ui/turnItem.js';
+import { TurnSkill } from './js/ui/turnSkill.js';
+import { TurnMultiple } from './js/ui/turnMultiple.js';
+import { ActionBuilder } from './js/ui/actionBuilder.js';
 import { TurnMove } from './js/ui/turnMove.js';
 import { TurnSpecial } from './js/ui/turnSpecial.js';
 import { LootPile } from './js/ui/lootPile.js';
 import { PostCombatLoot } from './js/ui/postCombatLoot.js';
 import { UrgentActions } from './js/ui/urgentActions.js';
 import { DiceRenderer } from './js/ui/diceRenderer.js';
+import { CompactRoll } from './js/ui/compactRoll.js';
 
 // Loot Pile: confirm the DM's Delete Pile before it submits.
 document.addEventListener('submit', function (e) {
@@ -33,6 +37,16 @@ document.addEventListener('click', function (e) {
   });
   if (attrCell) {
     attrCell.classList.toggle('cs-pop-open');
+    return;
+  }
+
+  // Log page: clicking a TN cell toggles a sticky popup with the TN math.
+  const tnCell = e.target.closest('.log-tn-has-pop');
+  document.querySelectorAll('.log-tn-has-pop.log-tn-open').forEach(function (c) {
+    if (c !== tnCell) c.classList.remove('log-tn-open');
+  });
+  if (tnCell) {
+    tnCell.classList.toggle('log-tn-open');
     return;
   }
 
@@ -341,6 +355,95 @@ document.addEventListener('mouseover', function (e) {
     if (card) openTextModal(card);
   });
 
+  // -- Character Sheet: spell descriptions + Skill list / Skill Roll ----
+  //
+  // creatures_minimal_stub.md. Clicking a spell name opens its description;
+  // clicking the "Skills" heading opens the full Skill list; clicking a Roll
+  // button there opens the Roll Resolution Stub for that Skill. Each is a
+  // server-rendered fragment dropped into a modal popup (reusing makeOverlay).
+  function openFragmentModal(html, extraClass) {
+    var overlay = makeOverlay('ce-modal-text-modal' + (extraClass ? ' ' + extraClass : ''));
+    var stage = document.createElement('div');
+    stage.className = 'ce-modal-text-stage';
+    stage.innerHTML = html;
+    overlay.insertBefore(stage, overlay.firstChild);
+    return overlay;
+  }
+
+  function fetchIntoModal(url, extraClass) {
+    fetch(url, { headers: { 'Accept': 'text/html' } })
+      .then(function (r) { return r.text(); })
+      .then(function (html) { openFragmentModal(html, extraClass); })
+      .catch(function () { /* leave the page as-is on failure */ });
+  }
+
+  document.addEventListener('click', function (e) {
+    var spell = e.target.closest && e.target.closest('.cs-spell-link');
+    if (spell) {
+      e.preventDefault();
+      var name = spell.getAttribute('data-spell-name') || spell.textContent.trim();
+      fetchIntoModal('/spell-detail?name=' + encodeURIComponent(name), 'cs-spell-modal');
+      return;
+    }
+    var school = e.target.closest && e.target.closest('.cs-school-link');
+    if (school) {
+      e.preventDefault();
+      var sk = school.getAttribute('data-school');
+      if (sk) fetchIntoModal('/spell-school?name=' + encodeURIComponent(sk), 'cs-school-modal');
+      return;
+    }
+    var skillsTitle = e.target.closest && e.target.closest('.cs-skills-title');
+    if (skillsTitle) {
+      e.preventDefault();
+      var cid = skillsTitle.getAttribute('data-creature-id');
+      if (cid) fetchIntoModal('/skills-panel?creature_id=' + encodeURIComponent(cid), 'cs-skills-modal');
+      return;
+    }
+    var rollBtn = e.target.closest && e.target.closest('.cs-skill-roll-btn');
+    if (rollBtn) {
+      e.preventDefault();
+      var rcid = rollBtn.getAttribute('data-creature-id');
+      var key  = rollBtn.getAttribute('data-skill-key');
+      var group = rollBtn.closest('.cs-skill-group');
+      var panel = rollBtn.closest('.cs-skills-panel');
+      var slotRow = group && group.querySelector('.cs-skill-roll-row');
+      var slot = slotRow && slotRow.querySelector('.cs-skill-roll-slot');
+      if (!rcid || !key || !slot) return;
+      // Only one Skill's roll is shown at a time — hide/clear any others.
+      if (panel) {
+        panel.querySelectorAll('.cs-skill-roll-row').forEach(function (row) {
+          if (row === slotRow) return;
+          row.hidden = true;
+          var other = row.querySelector('.cs-skill-roll-slot');
+          if (other) other.innerHTML = '';
+        });
+      }
+      // The Roll button IS the roll: fetch the compact stub, reveal it inline
+      // beneath the Skill row, and roll it immediately (which POSTs to the Log).
+      fetch('/skill-roll?creature_id=' + encodeURIComponent(rcid) +
+            '&key=' + encodeURIComponent(key), { headers: { 'Accept': 'text/html' } })
+        .then(function (r) { return r.text(); })
+        .then(function (html) {
+          slot.innerHTML = html;
+          slotRow.hidden = false;
+          var compact = slot.querySelector('.compact-roll');
+          if (compact) CompactRoll.roll(compact);
+        })
+        .catch(function () { /* leave the row as-is on failure */ });
+      return;
+    }
+  });
+
+  // Keyboard activation for the "Skills" heading (it is a role="button").
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var skillsTitle = e.target.closest && e.target.closest('.cs-skills-title');
+    if (!skillsTitle) return;
+    e.preventDefault();
+    var cid = skillsTitle.getAttribute('data-creature-id');
+    if (cid) fetchIntoModal('/skills-panel?creature_id=' + encodeURIComponent(cid), 'cs-skills-modal');
+  });
+
   // -- Roster Sidebar: <details> open/closed persistence ---------------
   //
   // Groups default to collapsed. A group's open state is remembered while
@@ -562,10 +665,19 @@ document.addEventListener('mouseover', function (e) {
       var container = panel.querySelector('.ta-pane[data-ta-pane="attack"] .ta-attack');
       if (container) TurnAttack.ensureLoaded(container);
     }
-    // Active Spells reuses the Attack host, pointed at its own builder.
-    if (key === 'active_spells') {
-      var activeContainer = panel.querySelector('.ta-active-spells');
-      if (activeContainer) TurnAttack.ensureLoaded(activeContainer);
+    // Active Spells: each channelled Spell has its own button/pane (key
+    // "active_spell:<index>"). Opening the pane presents its concentration
+    // options (Attack / End) first — reset to that step, hiding any attack
+    // flow left open from a previous visit. The Attack option lazily loads
+    // the strike builder (see the .ta-conc-attack handler below).
+    if (key.indexOf('active_spell:') === 0) {
+      var concPane = panel.querySelector('.ta-pane[data-ta-pane="' + key + '"]');
+      if (concPane) {
+        var opts = concPane.querySelector('.ta-conc-options');
+        var atkHost = concPane.querySelector('.ta-active-spells');
+        if (opts) opts.hidden = false;
+        if (atkHost) atkHost.hidden = true;
+      }
     }
     // Lazily build the Cast flow the first time its pane is opened.
     if (key === 'cast') {
@@ -582,6 +694,25 @@ document.addEventListener('mouseover', function (e) {
       var itemContainer = panel.querySelector('.ta-item');
       if (itemContainer) TurnItem.ensureLoaded(itemContainer);
     }
+    // Skill (out-of-combat only): wire the Skill / target picker.
+    if (key === 'skill') {
+      var skillContainer = panel.querySelector('.ta-skill');
+      if (skillContainer) TurnSkill.ensureLoaded(skillContainer);
+    }
+  });
+
+  // Active Spells → Attack: reveal and lazily build the strike flow for the
+  // channelled Spell whose options step this button belongs to. (End is a
+  // plain confirm-guarded <form> POST, handled by LootPile.handleConfirmSubmit.)
+  document.addEventListener('click', function (e) {
+    var atkOpt = e.target.closest && e.target.closest('.ta-conc-attack');
+    if (!atkOpt) return;
+    var conc = atkOpt.closest('.ta-conc');
+    if (!conc) return;
+    var opts = conc.querySelector('.ta-conc-options');
+    var atkHost = conc.querySelector('.ta-active-spells');
+    if (opts) opts.hidden = true;
+    if (atkHost) { atkHost.hidden = false; TurnAttack.ensureLoaded(atkHost); }
   });
 
   // Change (in the selected-action row): re-open the category menu and clear
@@ -598,6 +729,10 @@ document.addEventListener('mouseover', function (e) {
     var result = panel.querySelector('.ta-special-result');
     if (result) { result.hidden = true; result.innerHTML = ''; }
     panel.querySelectorAll('.ta-confirm-slot').forEach(function (s) { s.innerHTML = ''; });
+    // Restart each already-loaded builder from its first step, so re-selecting
+    // the same action asks its first question again (which Spell / which Item)
+    // instead of resuming where the abandoned attempt left off.
+    panel.querySelectorAll('.action-builder').forEach(function (b) { ActionBuilder.reset(b); });
   });
 
   // The Commit button mirrored into the selected-action row's confirm slot is
@@ -617,6 +752,47 @@ document.addEventListener('mouseover', function (e) {
   // delegate from the .ta-special wrapper as soon as the panel renders.
   document.querySelectorAll('.turn-action .ta-special').forEach(function (el) {
     TurnSpecial.ensureLoaded(el);
+  });
+
+  // DM Page — out-of-combat actions: pick a Character to run the Turn Action
+  // panel for them. The panel is fetched over JS and mounted below the picker
+  // so selecting a Character never reloads the page. The picker buttons carry
+  // no selected state; the mounted panel shows whose turn it is.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('.dm-actor-btn');
+    if (!btn) return;
+    var slot = document.getElementById('dm-actor-panel');
+    if (!slot) return;
+    var id = btn.getAttribute('data-actor-id');
+    slot.innerHTML = '<p class="ta-attack-loading">Loading actions…</p>';
+    fetch('/dm/actor_panel?actor_id=' + encodeURIComponent(id), { headers: { Accept: 'text/html' } })
+      .then(function (r) { return r.ok ? r.text() : Promise.reject(); })
+      .then(function (html) {
+        slot.innerHTML = html;
+        // The mounted panel's Special Ability buttons need TurnSpecial wired;
+        // its menu / Item / Cast controllers are document-delegated already.
+        slot.querySelectorAll('.turn-action .ta-special').forEach(function (el) {
+          TurnSpecial.ensureLoaded(el);
+        });
+      })
+      .catch(function () { slot.innerHTML = '<p class="ta-warn">Could not load the actions.</p>'; });
+  });
+
+  // DM Page — the "Multiple" group action: mount the group selection panel in
+  // the same slot (a group of Characters acting together, skill or item).
+  document.addEventListener('click', function (e) {
+    if (!(e.target.closest && e.target.closest('.dm-multiple-btn'))) return;
+    var slot = document.getElementById('dm-actor-panel');
+    if (!slot) return;
+    slot.innerHTML = '<p class="ta-attack-loading">Loading…</p>';
+    fetch('/dm/multiple', { headers: { Accept: 'text/html' } })
+      .then(function (r) { return r.ok ? r.text() : Promise.reject(); })
+      .then(function (html) {
+        slot.innerHTML = html;
+        var panel = slot.querySelector('.dm-multiple');
+        if (panel) TurnMultiple.ensureLoaded(panel);
+      })
+      .catch(function () { slot.innerHTML = '<p class="ta-warn">Could not load the group action.</p>'; });
   });
 
   // -- Combat Tracker: double-click to edit Initiative (DM only) -------

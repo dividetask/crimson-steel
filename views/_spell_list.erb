@@ -1,0 +1,78 @@
+<%#
+  Spell List — Compendium page (docs/common/ui/abilities_spell_list_stub.md).
+  A filterable table of every Catalog Spell. Clicking a Spell name opens its
+  detail popup (the shared /spell-detail modal, wired by app.js).
+
+  Each row is an individual Spell Variant (sorted by Tier). Clicking a Spell
+  name opens its detail popup; clicking its School opens the School description.
+
+  Locals:
+    spells  — [{ name, school, tier:Int, skills:[key], skills_label,
+                save, range, duration, activation }]
+    schools — sorted unique School keys for the School filter.
+    skills  — sorted unique Casting Skill keys for the Skill filter.
+%>
+<%
+  esc  = ->(s) { Rack::Utils.escape_html(s.to_s) }
+  titl = ->(s) { s.to_s.tr('_', ' ').split.map { |w| w.empty? ? w : w[0].upcase + w[1..] }.join(' ') }
+%>
+<div class="spell-list" data-spell-list>
+  <h1>Spells</h1>
+  <p class="lead">Every spell in the catalog. Click a spell to see its full description. Use the filters to narrow the list.</p>
+
+  <div class="spell-list-filters">
+    <label>School
+      <select data-filter="school">
+        <option value="">All</option>
+        <% schools.each do |sc| %><option value="<%= esc.call(sc) %>"><%= titl.call(sc) %></option><% end %>
+      </select>
+    </label>
+    <label>Tier
+      <select data-filter="tier">
+        <option value="">All</option>
+        <% (0..5).each do |t| %><option value="<%= t %>"><%= t %></option><% end %>
+      </select>
+    </label>
+    <label>Skill
+      <select data-filter="skill">
+        <option value="">All</option>
+        <% skills.each do |sk| %><option value="<%= esc.call(sk) %>"><%= titl.call(sk) %></option><% end %>
+      </select>
+    </label>
+    <button type="button" class="ce-btn" data-filter-clear>Clear</button>
+  </div>
+
+  <div class="spell-list-scroll">
+  <table class="spell-list-table">
+    <thead>
+      <tr>
+        <th>Name</th><th>School</th>
+        <th>Skills</th><th>Save</th><th>Range</th><th>Duration</th><th>Activation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% spells.each do |sp| %>
+        <tr class="spell-row"
+            data-school="<%= esc.call(sp[:school]) %>"
+            data-tiers="<%= sp[:tier] %>"
+            data-skills="<%= Array(sp[:skills]).map { |s| esc.call(s) }.join(',') %>">
+          <td>
+            <button type="button" class="cs-spell-link tier-<%= sp[:tier] %>" data-spell-name="<%= esc.call(sp[:name]) %>"><%= esc.call(sp[:name]) %></button>
+          </td>
+          <td>
+            <% if sp[:school] && !sp[:school].empty? %>
+              <button type="button" class="spell-school-badge cs-school-link" data-school="<%= esc.call(sp[:school]) %>"><%= titl.call(sp[:school]) %></button>
+            <% end %>
+          </td>
+          <td><%= esc.call(sp[:skills_label]) %></td>
+          <td><%= sp[:save] ? esc.call(sp[:save]) : '&mdash;' %></td>
+          <td><%= esc.call(sp[:range]) %></td>
+          <td><%= sp[:duration].to_s.empty? ? '&mdash;' : esc.call(sp[:duration]) %></td>
+          <td><%= esc.call(sp[:activation]) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  </div>
+  <p class="spell-list-empty" data-empty hidden>No spells match those filters.</p>
+</div>

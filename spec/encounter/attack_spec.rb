@@ -31,9 +31,10 @@ RSpec.describe Encounter::Attack do
         .to eq([['Circumstance', 1, 'flatfooted'], ['Circumstance', 2, 'unaware']])
     end
 
-    it 'keeps Flatfooted for a non-Dodge defence (Block / Parry) but not for Dodge' do
-      # The route passes flatfooted:true for Block/Parry/no-defence and
-      # flatfooted:false only for a Dodge.
+    it 'emits the Flatfooted advantage only when the flag is set' do
+      # The caller passes flatfooted:true only for the No-defense case; any
+      # declared Defensive Action (Dodge / Block / Parry) passes flatfooted:false
+      # (encounter_design.md → Flatfooted interaction).
       expect(described_class.attacker_bonuses(flatfooted: true,  unaware: false)).to eq([['Circumstance', 1, 'flatfooted']])
       expect(described_class.attacker_bonuses(flatfooted: false, unaware: false)).to eq([])
     end
@@ -152,6 +153,20 @@ RSpec.describe Encounter::Attack do
       expect(d[:pool_cost]).to be true
       expect(d[:min_dice]).to eq(Encounter::Config.reaction_action_minimum)
       expect(d[:max_dice]).to eq(4) # min(dice_cap 7, pool_remaining 4)
+    end
+
+    it 'drops the attacker Flatfooted advantage when the target declares a Parry (or Block)' do
+      # A parrying defender is not Flatfooted, so the attacker gets no Flatfooted
+      # Circumstance bonus — consistent with spec[:target][:flatfooted] = false.
+      %w[parry block].each do |defense|
+        spec = described_class.build_spec(
+          attacker: attacker, target: target, attack_kind: 'melee', weapon: weapon,
+          attacker_dice_cap: 6, attacker_competency: ['Competency', 2], unaware: true,
+          declared_defense: defense, defender_inputs: { dice_cap: 5, pool_remaining: 8 }
+        )
+        expect(spec[:target][:flatfooted]).to be false
+        expect(spec[:attacker][:bonus_penalty_list]).not_to include(['Circumstance', 1, 'flatfooted'])
+      end
     end
 
     it 'rejects an ineligible declared defense' do

@@ -1,5 +1,7 @@
 get '/character-sheets' do
-  @detail = params[:detail] == 'full' ? 'full' : 'minimal'
+  # There is a single sheet layout (the minimal sheet). `@detail` is kept as a
+  # constant so links that still carry a `detail` query param stay harmless.
+  @detail = 'minimal'
 
   # The sheet is rendered exclusively from the live Creatures domain
   # (docs/common/creatures + data/) via the CreatureSheet bridge —

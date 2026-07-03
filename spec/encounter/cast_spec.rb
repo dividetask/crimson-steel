@@ -74,14 +74,20 @@ RSpec.describe Encounter::Cast do
   end
 
   describe '.default_spell_damage' do
-    it 'is floor(casting stat / 4) + Tier + Successes' do
+    it 'is floor(casting stat / 4) + Tier + Successes (Competency defaults to 0)' do
       # 14/4 = 3, + tier 2 + 3 successes = 8.
       expect(described_class.default_spell_damage(casting_stat: 14, tier: 2, successes: 3)).to eq(8)
     end
 
-    it 'treats Tier 0 as 0.5 and floors the total' do
-      # 14/4 = 3, + 0.5 + 3 = 6.5 -> 6.
-      expect(described_class.default_spell_damage(casting_stat: 14, tier: 0, successes: 3)).to eq(6)
+    it 'adds the casting-skill Competency to the damage' do
+      # 18/4 = 4, + tier 2 + Competency 3 + 6 successes = 15 (the Spiritual
+      # Weapon example: 18 Wisdom, Invocation +3, Tier-2 spell, 6 successes).
+      expect(described_class.default_spell_damage(casting_stat: 18, tier: 2, successes: 6, competency: 3)).to eq(15)
+    end
+
+    it 'treats Tier 0 as 0.5 and floors the total (with Competency)' do
+      # 14/4 = 3, + 0.5 + Competency 2 + 3 successes = 8.5 -> 8.
+      expect(described_class.default_spell_damage(casting_stat: 14, tier: 0, successes: 3, competency: 2)).to eq(8)
     end
   end
 

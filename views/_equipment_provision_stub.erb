@@ -28,6 +28,17 @@
   # escape_html is globally off (app.rb), so escape any creature / item
   # name we interpolate into text or attributes.
   esc = ->(s) { Rack::Utils.escape_html(s.to_s) }
+
+  # The Buy button (and, for the DM only, a Give button beside it — Give hands
+  # the item over for free, without spending gold). `extra` adds a shared class
+  # to both buttons (e.g. the Alchemy/Magical batch buttons). The JS wires
+  # `.provision-add` to Buy and `.provision-give` to a free add.
+  give_on  = (defined?(viewer) ? viewer : nil) == :dm
+  buy_give = lambda do |extra = ''|
+    out = %(<button type="button" class="ce-btn ce-btn-primary provision-add#{extra}">Buy</button>)
+    out += %(<button type="button" class="ce-btn provision-give#{extra}">Give</button>) if give_on
+    out
+  end
 %>
 <section class="provision" data-checkout-url="/store/checkout">
   <div class="provision-header">
@@ -43,7 +54,9 @@
 
   <div class="provision-body">
     <div class="provision-main">
-      <%# ---- Weapons & Armor: dropdown + per-item Add ---- %>
+      <%# Weapons, Armor and Scrolls/Potions/Oils share one row (side by side). %>
+      <div class="provision-row">
+      <%# ---- Weapons & Armor: dropdown + per-item Buy ---- %>
       <% [['Weapons', weapons], ['Armor', armor]].each do |title, items| %>
         <section class="provision-section">
           <h2><%= title %></h2>
@@ -67,7 +80,7 @@
                   <div class="provision-card-price"><%= fmt.call(it[:price]) %> gp</div>
                   <div class="provision-card-buy">
                     <input type="number" class="provision-qty provision-qty-single" value="1" min="0">
-                    <button type="button" class="ce-btn ce-btn-primary provision-add">Add</button>
+                    <%= buy_give.call %>
                   </div>
                 </div>
               </div>
@@ -75,6 +88,48 @@
           </div>
         </section>
       <% end %>
+
+      <%# ---- Scrolls / Potions / Oils: form + spell + tier, live-priced ---- %>
+      <% si = defined?(spell_items) ? spell_items : nil %>
+      <% if si && !Array(si[:spells]).empty? %>
+        <section class="provision-section">
+          <h2>Scrolls, Potions &amp; Oils</h2>
+          <div class="provision-recipient">
+            <label>Recipient
+              <select class="provision-creature-select">
+                <% creatures.each do |c| %>
+                  <option value="<%= c[:id] %>" data-pc="<%= !!c[:pc] %>"><%= esc.call(c[:name]) %></option>
+                <% end %>
+              </select>
+            </label>
+          </div>
+          <div class="provision-grid">
+            <div class="provision-card provision-card-spellitem" data-price="0"
+                 data-spells='<%= Rack::Utils.escape_html(si[:spells].to_json) %>'>
+              <div class="provision-card-body">
+                <div class="provision-card-name">Scroll / Potion / Oil</div>
+                <label class="provision-bonus">Form
+                  <select class="spellitem-form">
+                    <option value="scroll">Scroll</option>
+                    <option value="potion">Potion</option>
+                    <option value="oil">Oil</option>
+                  </select>
+                </label>
+                <label class="provision-bonus">Spell
+                  <select class="spellitem-spell"></select>
+                </label>
+                <label class="provision-bonus">Tier
+                  <select class="spellitem-tier"></select>
+                </label>
+                <div class="provision-card-price"><span class="provision-price-amount">0</span> gp</div>
+                <div class="provision-note spellitem-note" hidden></div>
+                <div class="provision-card-buy"><%= buy_give.call %></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      <% end %>
+      </div><%# end .provision-row %>
 
       <%# ---- Alchemy: dropdown + "selected" box + one box per PC ---- %>
       <section class="provision-section">
@@ -108,7 +163,7 @@
                     </label>
                   <% end %>
                 </div>
-                <button type="button" class="ce-btn ce-btn-primary provision-add provision-alch-buy">Add</button>
+                <div class="provision-buy-row"><%= buy_give.call(' provision-alch-buy') %></div>
               </div>
             </div>
           <% end %>
@@ -158,7 +213,7 @@
                     </label>
                   <% end %>
                 </div>
-                <button type="button" class="ce-btn ce-btn-primary provision-add provision-alch-buy">Add</button>
+                <div class="provision-buy-row"><%= buy_give.call(' provision-alch-buy') %></div>
               </div>
             </div>
           <% end %>
@@ -210,7 +265,7 @@
                 <div class="provision-card-price"><span class="provision-price-amount">0</span> gp</div>
                 <div class="provision-note mw-note" hidden></div>
                 <div class="provision-card-buy">
-                  <button type="button" class="ce-btn ce-btn-primary provision-add">Add</button>
+                  <%= buy_give.call %>
                 </div>
               </div>
             </div>
@@ -252,7 +307,7 @@
                 </label>
                 <div class="provision-card-price"><span class="provision-price-amount">0</span> gp</div>
                 <div class="provision-card-buy">
-                  <button type="button" class="ce-btn ce-btn-primary provision-add">Add</button>
+                  <%= buy_give.call %>
                 </div>
               </div>
             </div>
@@ -260,11 +315,6 @@
         </section>
       <% end %>
 
-      <%# ---- Potions: deferred until the Abilities domain is wired ---- %>
-      <section class="provision-section provision-disabled">
-        <h2>Potions</h2>
-        <p class="provision-note">Coming soon — one item per potion-capable Spell, sorted and colored by Tier. Pending the Abilities domain.</p>
-      </section>
     </div>
 
     <%# ---- Shopping Cart (right side; JS-managed; hidden when empty) ---- %>

@@ -1,0 +1,43 @@
+<%#
+  Skills Panel fragment — the full Skill list a player reaches by clicking
+  the "Skills" heading on the Character Sheet. Rendered without layout and
+  injected into a modal. Lists every Skill (trained and untrained) with the
+  Creature's Dice Cap and Bonus, and a Roll button that reveals the Roll
+  Resolution Stub for that Skill inline, directly beneath its row.
+
+  Locals:
+    creature_id   — the Creature the Skills belong to.
+    creature_name — display name (optional).
+    skills        — Array of { key, name, attribute, dice, bonus, trained }.
+    unavailable   — true when the Creature could not be resolved.
+%>
+<div class="cs-skills-panel">
+  <div class="ce-modal-text-title">Skills<%= " — #{creature_name}" if defined?(creature_name) && creature_name %></div>
+
+  <% if defined?(unavailable) && unavailable %>
+    <p>Skills are not available for this creature.</p>
+  <% else %>
+    <table class="cs-skills-panel-table">
+      <thead>
+        <tr><th>Skill</th><th class="cs-num">Dice</th><th class="cs-num">Bonus</th><th></th></tr>
+      </thead>
+      <% skills.each do |s| %>
+        <tbody class="cs-skill-group">
+          <tr class="<%= s[:trained] ? 'cs-skill-trained' : 'cs-skill-untrained' %>">
+            <td class="cs-skill-name"><%= s[:name] %> <span class="cs-skill-attr">(<%= s[:attribute].upcase %>)</span></td>
+            <td class="cs-num"><%= s[:dice] %>d</td>
+            <td class="cs-num"><%= sprintf('%+d', s[:bonus]) %></td>
+            <td class="cs-num">
+              <button type="button" class="cs-skill-roll-btn"
+                      data-creature-id="<%= creature_id %>" data-skill-key="<%= s[:key] %>"
+                      data-skill-name="<%= s[:name] %>">Roll</button>
+            </td>
+          </tr>
+          <tr class="cs-skill-roll-row" hidden>
+            <td colspan="4" class="cs-skill-roll-slot"></td>
+          </tr>
+        </tbody>
+      <% end %>
+    </table>
+  <% end %>
+</div>

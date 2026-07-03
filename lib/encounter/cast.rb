@@ -49,13 +49,16 @@ module Encounter
     end
 
     # Default damage for a damage-dealing Spell that declares no explicit damage
-    # Effect: floor(casting stat / 4) + Spell Tier + Successes rolled. The
-    # casting stat is the attribute backing the Spell's casting skill. Tier 0 is
-    # treated as 0.5 (project formula convention); the total is floored. A Spell
-    # that states its own damage formula overrides this default.
-    def default_spell_damage(casting_stat:, tier:, successes:)
+    # Effect: floor(casting stat / 4) + Spell Tier + casting-skill Competency +
+    # Successes rolled. The casting stat is the attribute backing the Spell's
+    # casting skill; the Competency is that skill's Competency Modifier (which
+    # also rides the casting-check Roll — Competency applies to both the roll
+    # and the damage). Tier 0 is treated as 0.5 (project formula convention);
+    # the total is floored. A Spell that states its own damage formula overrides
+    # this default.
+    def default_spell_damage(casting_stat:, tier:, successes:, competency: 0)
       tier_value = tier.to_i.zero? ? 0.5 : tier.to_i
-      (casting_stat.to_i / 4 + tier_value + successes.to_i).floor
+      (casting_stat.to_i / 4 + tier_value + competency.to_i + successes.to_i).floor
     end
 
     # Floor-halve a single resolved Effect for the Halved rule. Damage /

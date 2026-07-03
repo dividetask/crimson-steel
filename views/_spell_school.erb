@@ -1,0 +1,19 @@
+<%#
+  Spell School description fragment — opened in a modal when a School is
+  clicked on the Spell List. Sourced from abilities_config.yaml → Spell Schools.
+
+  Locals:
+    school      — the School key (e.g. "resonance").
+    description — its description text, or nil when none is on file.
+%>
+<%
+  titl = ->(s) { s.to_s.tr('_', ' ').split.map { |w| w.empty? ? w : w[0].upcase + w[1..] }.join(' ') }
+%>
+<div class="cs-school-detail">
+  <div class="ce-modal-text-title"><%= titl.call(school) %> School</div>
+  <% if description && !description.to_s.strip.empty? %>
+    <p class="cs-school-desc"><%= description %></p>
+  <% else %>
+    <p>No description is on file for this school.</p>
+  <% end %>
+</div>

@@ -60,12 +60,11 @@
       <% end %>
 
     <% when 'creatures' %>
-      <h1>Creatures &mdash; Character Sheet Stubs</h1>
-      <p class="lead">Each sample Creature is rendered twice: first through the Minimal Sheet stub (<code>docs/common/ui/creatures_minimal_stub.md</code>), then through the Full Sheet stub (<code>docs/common/ui/creatures_full_stub.md</code>). Use this page to compare the two layouts side-by-side; the live <code>/character-sheets</code> page picks one or the other via the detail-mode toggle.</p>
+      <h1>Creatures &mdash; Character Sheet Stub</h1>
+      <p class="lead">Each sample Creature is rendered through the Minimal Sheet stub (<code>docs/common/ui/creatures_minimal_stub.md</code>) &mdash; the single sheet layout the live <code>/character-sheets</code> page uses.</p>
       <% @creature_demos.each do |demo| %>
         <h2 class="cs-demo-label"><%= demo[:label] %></h2>
         <%= erb :_creature_minimal, locals: { demo: demo } %>
-        <%= erb :_creature_full,    locals: { demo: demo } %>
       <% end %>
 
     <% when 'encounter' %>

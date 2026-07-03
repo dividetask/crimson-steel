@@ -13,9 +13,7 @@ A two-region card:
    - **Tier** — `0` through `5` (the Tiers the Abilities domain recognizes).
    - **Skill** — every Casting Skill that appears on at least one Spell.
    - **Clear** — resets all three dropdowns.
-2. **Spell table** — one row per Catalog Ability whose `type` is `spell`. The base name is shown; Variants are not listed separately. Clicking a row navigates to that Spell's detail page (`abilities_spell_detail_stub`).
-
-DM-only affordance: an **Add Spell** form below the table. Hidden for player viewers.
+2. **Spell table** — one row per **individual Spell Variant**: a Tier-axis Spell is expanded to one row per Tier (Heal → Heal Petty Wounds, Heal Lesser Wounds, …), an aspect-axis Spell to one row per aspect (Elemental Dart → Fire / Acid / Electricity / Cold Dart); a single-Variant Spell is one row. Rows are **sorted by Tier, lowest first** — there is no Tier column. Clicking a spell name opens its detail popup (`abilities_spell_detail_stub`); clicking its **School** badge opens the School's description (from `abilities_config.yaml` → `Spell Schools`).
 
 ## Parameters
 
@@ -36,12 +34,13 @@ Multiple filters compose with AND.
 
 ## Spell table columns
 
+Rows are ordered by Tier (lowest first); the Tier is the ordering key and has no column of its own.
+
 | Column | Source |
 |---|---|
-| Name | The Catalog Ability's base name. |
-| School | The Spell's `school`, rendered as a badge. |
-| Tier(s) | A single integer for single-Tier Spells; a range (e.g. `0–2`) for Tier-axis Variants. |
-| Skills | The resolved `skills` list, comma-joined. |
+| Name | The resolved Variant name (Heal Petty Wounds, Fire Dart, …). |
+| School | The Spell's `school`, rendered as a badge; clicking it opens the School description. |
+| Skills | The resolved `skills` list, comma-joined, excluding the Universal Spell Casting Skills (Evocation). |
 | Save | The Save Spec's Save Attribute, or `—` when `save` is empty. |
 | Range | The named Range or feet from the Catalog Ability's `range` field. |
 | Duration | The `duration` field as a string. For Channeled Abilities the field is the maximum sustained duration. |

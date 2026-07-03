@@ -80,7 +80,7 @@ The toolbar carries a group of drawing tools that create Atlas **Annotations** (
 
 In Select mode the DM can manage any text note (including DM Notes): **drag** it to move it (commits *Edit Annotation* with new points), or **click** it to open an inline editor — **Save** the new text (committing *Edit Annotation*; an emptied note is deleted), or **Delete** it (committing *Remove Annotation*). Players cannot edit or move notes.
 
-Each tool commits through Atlas's *Add Annotation* with the current viewer's role as the Annotation's `author`; the canvas then renders every Annotation on the Map beneath the Token layer. Snapping is applied client-side before the call — Atlas itself stores the supplied points verbatim (it neither snaps nor clamps).
+Each tool commits through Atlas's *Add Annotation* with the current viewer's role as the Annotation's `author`; the canvas then renders shape and text Annotations beneath the Token layer, while **arrows render on top of everything** — above tokens and fog — since they are transient pointers used to indicate a spot. Snapping is applied client-side before the call — Atlas itself stores the supplied points verbatim (it neither snaps nor clamps).
 
 A **Clear Drawings** affordance removes Annotations via *Clear Annotations On Map*. For the DM it clears every Annotation on the Map; for a player it clears only their own (scoped by `author`). Clear Drawings never touches Terrain.
 
@@ -93,6 +93,22 @@ Below the drawing tools (DM only) is a **Terrain** group: texture brushes that p
 - An **Erase** tool removes terrain by region: drag a box (a dashed red selection that snaps to Grid corners) and, on release, terrain inside it is subtracted via *Erase Terrain Box* — partial overlaps are trimmed to the box edges, not deleted whole.
 
 Terrain is permanent map structure: players see it on the Active Map, but only the DM may paint or erase it, and **Clear Drawings does not remove it**. (Deleting the Map does — Terrain cascades with the Map, like Tokens.)
+
+## Fog of war
+
+Beside the Terrain group (DM only) is a **Fog** group that conceals part of the Map from players (see `atlas_design.md` → *Manage Fog*). Fog of war is **off by default**: a Map with no fog restricts nothing. It turns on where the DM paints it — like Terrain, it is a mode that paints a **Fog** region, not an Annotation:
+
+- **Hide** — drag a bounding box (corners **snap to Grid corners**, like Shape / Terrain) to conceal that rectangle. Commits through *Add Fog* on release.
+- **Reveal** — drag a box (a dashed red selection, like the Terrain eraser) and, on release, fog inside it is subtracted via *Erase Fog Box* — partial overlaps are trimmed to the box edges, not deleted whole. **On a Map that has no fog yet, Reveal first fogs the whole Map**, so the drag opens a clear window into an otherwise concealed Map (fog over everything but the revealed area) — the "hide everything, reveal here" workflow. Once the Map has fog, Reveal only erases.
+- **Clear Fog** — removes all fog on the Map via *Clear Fog On Map*, revealing the whole Map to players again.
+- **Fog: Shown / Hidden** — a DM-only toggle that shows or hides the fog overlay in **the DM's own view** (the cross-hatch can obscure the map when the DM is working). It changes nothing about the fog data or the player view — players still see the fog. The preference is sticky (persisted in the browser) and never applies to a player viewer. Any fog adjustment automatically switches this back to *Shown*, so the DM always sees the fog they are editing — otherwise, with the overlay toggled off, the change lands in a hidden layer and looks like nothing happened. This covers selecting either fog brush (**Hide** or **Reveal**), drawing or erasing fog, **Clear Fog**, and editing or deleting a fog region from the **Elements** panel.
+
+Fog renders as the same **grey diagonal cross-hatch** with a dashed border for both viewers; only the base differs:
+
+- **DM** — the cross-hatch is **translucent**, so the DM sees the concealed area through it and knows at a glance what the players cannot (unless the DM has toggled the overlay off in their view).
+- **Player** — the same cross-hatch is **opaque**, drawn on top of everything, so the map image, terrain, and any token beneath it are hidden. A token whose center sits under fog is also dropped from the player's snapshot server-side (its position never reaches the browser), so revealing the fog is the only way a player learns what was there.
+
+Fog is permanent map structure like Terrain: only the DM may paint, reveal, or clear it, **Clear Drawings does not remove it**, and it cascades with the Map on *Delete Map*.
 
 ### Role gating
 
@@ -107,10 +123,20 @@ Atlas itself does not enforce this (it records whatever it is given); the stub i
 
 Player arrows are momentary tactical suggestions, not durable map state. **Whenever the DM makes any change to the Map** — moving or placing a Token, drawing, switching or editing the Map, clearing Tokens, and so on — every player-drawn Annotation on the Active Map is removed (the host calls *Clear Annotations On Map* scoped to `author = player` on each DM mutation). DM-drawn Annotations persist until the DM clears them. This keeps the map readable: a player points somewhere, the DM acts, and the suggestion clears itself.
 
+## Elements panel
+
+A DM-only **Elements** button opens a panel that lists every element on the Active Map — Tokens, Terrain fills, Fog regions, and Drawings (Annotations) — grouped by kind, each with its coordinates in editable numeric fields (Map Units) and a **Delete**. It is an edit/delete surface only; new elements are added with the toolbar tools.
+
+- **Token** — `x`, `y`, `size`. Save repositions (via *Move Token*, so anchor-following Zones keep up) and resizes.
+- **Terrain** / **Fog** — the two corners `x0, y0, x1, y1`. Save commits *Edit Terrain* / *Edit Fog*, so the DM can type exact bounds (e.g. a wall from `(4, 4)` to `(20, 5)`) rather than dragging.
+- **Drawing** — an arrow/shape's two corners, or a text note's anchor `x, y` plus its text. Save commits *Edit Annotation*.
+
+The panel is built from the render snapshot and refreshes after every edit, delete, or other map change made while it is open. Zones (rules-driven Zone Effects) are **not** listed here — their lifecycle belongs to the Conditions domain, not manual map editing.
+
 ## Visibility filtering
 
 - DM viewer: every Token on the rendered Map is shown, regardless of `hidden`.
-- Player viewer: Tokens with `hidden = true` are not shown. Tokens with `hidden = false` are shown regardless of `owner_id`.
+- Player viewer: Tokens with `hidden = true` are not shown. Tokens with `hidden = false` are shown regardless of `owner_id`. Additionally, a Token whose center lies under a **Fog** region is not shown (see *Fog of war*).
 
 The stub does the filtering itself for performance reasons; the parent does not need to pre-filter the Token list.
 
@@ -137,5 +163,5 @@ In both cases the stub renders one canvas instance. Multiple canvases on the sam
 
 - It does not interpret Map Units. The Map's units are a Campaign convention; the stub treats them as opaque numbers and applies the current zoom factor.
 - It does not snap Tokens to Grid cells. Snapping, if desired, is a UI extension that intercepts drag-and-drop before the Atlas *Move Token* call.
-- It does not draw line-of-sight or fog of war. Those are future extensions.
+- It does not compute dynamic line-of-sight (automatic vision from a token's position). Fog of war is supported, but as **manually painted** regions (see *Fog of war*), not computed sight lines.
 - It does not subscribe to Combat. The parent page is responsible for passing the Combat roster (and `acting_combatant_id`) when it wants Combatant highlighting.

@@ -1,0 +1,224 @@
+<%#
+  DM Page — the DM-only operations surface (docs/project/menu_layout.md). The
+  DM's out-of-combat toolkit: a Scene Round tracker + the time-passing controls,
+  and the Roll Log (every player Skill Roll, newest first, with the actual dice
+  so the DM can see and verify each result). Refresh to pick up new rolls.
+
+  Locals:
+    @entries     — Array of Roll entries (RollLog.store.recent), newest first.
+    @timestamp   — the current Chronicle Timestamp { day_index:, round_of_day: }.
+    @scene_round — the current out-of-combat Scene Round (integer, ≥ 1).
+%>
+<div class="dm-page">
+  <h1 class="dm-page-title">DM</h1>
+
+  <%# Time + Scene Round: the out-of-combat clock. The timekeeping stub shows
+      the current moment; the Scene Round tracker counts rounds "like Combat"
+      (each Next Round also ticks the clock one Round); the Advance Time / Set
+      date-time / Rest controls reuse the Chronicle endpoints (which redirect
+      back here via the referer). %>
+  <section class="dm-time">
+    <%= erb :_timekeeping_stub, locals: { timestamp: @timestamp } %>
+
+    <div class="dm-round-tracker">
+      <span class="dm-round-label">Scene Round <strong><%= @scene_round %></strong></span>
+      <form method="post" action="/dm/round/next" class="dm-round-form">
+        <button type="submit" class="ce-btn ce-btn-primary">Next Round ▶</button>
+      </form>
+      <form method="post" action="/dm/round/reset" class="dm-round-form"
+            onsubmit="return confirm('Reset the Scene Round to 1?');">
+        <button type="submit" class="ce-btn">Reset</button>
+      </form>
+    </div>
+
+    <div class="tk-controls">
+      <div class="tk-controls-main">
+        <form method="post" action="/chronicle/advance-time" class="tk-advance">
+          <span class="tk-advance-label">Advance time:</span>
+          <button type="submit" name="rounds" value="10" class="ce-btn">+1 min</button>
+          <button type="submit" name="rounds" value="100" class="ce-btn">+10 min</button>
+          <button type="submit" name="rounds" value="600" class="ce-btn">+1 hour</button>
+          <button type="submit" name="rounds" value="2400" class="ce-btn">+4 hours</button>
+          <button type="submit" name="days"   value="1"    class="ce-btn">+1 day</button>
+          <button type="submit" name="rounds" value="-600" class="ce-btn">−1 hour</button>
+        </form>
+        <%
+          ts_now  = @timestamp.transform_keys(&:to_sym)
+          cal_now = Timekeeping.calendar_date(ts_now[:day_index])
+          hh_now, mm_now, = Timekeeping.time_of_day(ts_now[:round_of_day]).split(':').map(&:to_i)
+        %>
+        <form method="post" action="/chronicle/set-time" class="tk-set">
+          <span class="tk-advance-label">Set date/time:</span>
+          <label class="tk-set-field">Day <input type="number" name="day" value="<%= cal_now[:day_of_month] %>" min="1" step="1"></label>
+          <label class="tk-set-field">Month <input type="number" name="month" value="<%= cal_now[:month] %>" min="1" step="1"></label>
+          <label class="tk-set-field">Year <input type="number" name="year" value="<%= cal_now[:year] %>" step="1"></label>
+          <label class="tk-set-field">Hour <input type="number" name="hour" value="<%= hh_now %>" min="0" max="23" step="1"></label>
+          <label class="tk-set-field">Min <input type="number" name="minute" value="<%= mm_now %>" min="0" max="59" step="1"></label>
+          <button type="submit" class="ce-btn">Set</button>
+        </form>
+      </div>
+      <form method="post" action="/chronicle/rest-night" class="tk-rest">
+        <button type="submit" class="ce-btn ce-btn-primary">🌙 Rest for the night</button>
+      </form>
+    </div>
+  </section>
+
+  <%# Party overview: the Downtime PC Card per Player Character
+      (conditions_downtime_pc_card_stub.md) — the compact status cards shown at
+      the top of the Encounter page during downtime. %>
+  <% if @downtime_cards && @downtime_cards.any? %>
+    <section class="dm-party">
+      <h2>Party</h2>
+      <div class="pc-card-grid downtime-cards">
+        <% @downtime_cards.each do |card| %>
+          <%= erb :_conditions_pc_card, locals: { creature: card, catalog: @conditions_catalog, viewer: :dm } %>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+
+  <%# Out-of-combat actions: pick a Character, then run the Combat Turn Action
+      panel for them with Attack / Move / End Turn hidden — so they can drink a
+      Potion, use an Item, or cast a utility Spell outside of Combat. Picking a
+      Character fetches the panel over JS (no page reload). %>
+  <section class="dm-actions-oob">
+    <h2>Out-of-combat actions</h2>
+    <p class="lead">Pick a character to use an item, drink a potion, or cast a spell outside of combat.</p>
+    <div class="dm-actor-picker">
+      <% Array(@dm_actors).each do |a| %>
+        <button type="button" class="ce-btn dm-actor-btn" data-actor-id="<%= a[:combatant_id] %>"><%= h(a[:name]) %></button>
+      <% end %>
+      <%# Multiple: a group action across several characters (skill or item). %>
+      <button type="button" class="ce-btn dm-multiple-btn">Multiple</button>
+    </div>
+    <div id="dm-actor-panel" class="dm-actor-panel"></div>
+  </section>
+
+  <%# Quick Monster: stand up a stub enemy mid-session (monster_creation.erb). %>
+  <section class="dm-monsters">
+    <h2>Monsters</h2>
+    <p class="lead">Met something that isn't in the roster? Build a stub enemy fast — it saves to the enemy roster and can be added to Combat.</p>
+    <a href="/monster-creation" class="ce-btn ce-btn-primary">+ Quick Monster</a>
+  </section>
+<%
+  die_size = DiceResolution.config.die_size
+
+  die_class = lambda do |v|
+    next 'empty'   if v.nil?
+    next 'fail'    if v == 1
+    next 'crit'    if v == die_size
+    'neutral'
+  end
+
+  # Render one Roll's dice (Starting squares + rolled dice) as the coloured
+  # .die boxes, coloured against that Roll's own TN.
+  render_dice = lambda do |entry|
+    tn = entry['tn'].to_i
+    sv = entry['starting_value'].to_i
+    out = +'[ '
+    if sv != 0
+      cls = sv.positive? ? 'success' : 'fail'
+      sv.abs.times { out << %(<span class="die #{cls} starting-die">&nbsp;</span>) }
+      out << ' '
+    end
+    dice = Array(entry['dice'])
+    if dice.empty?
+      out << '&mdash;'
+    else
+      out << dice.map { |v|
+        next %(<span class="die empty">&nbsp;</span>) if v.nil?
+        cls = v >= tn && v != die_size && v != 1 ? 'success' : die_class.call(v)
+        %(<span class="die #{cls}">#{v}</span>)
+      }.join(', ')
+    end
+    out << ' ]'
+    out
+  end
+
+  result_text = lambda do |entry|
+    d = entry['dois'].to_i
+    c = entry['critical_count'].to_i
+    s = "#{d} #{d.abs == 1 ? 'success' : 'successes'}"
+    c.positive? ? "#{s} · #{c} #{c == 1 ? 'crit' : 'crits'}" : s
+  end
+
+  # The TN math, as lines for the popup: the Base Target Number, each
+  # Bonus/Penalty as its effect ON the TN (a Bonus lowers it, so a +2
+  # Competency shows as "− 2 Competency"), then the resulting TN. Derived from
+  # the stored base_tn + bonus_penalty_list, so the arithmetic is self-checking.
+  # Returns nil for older entries recorded before the breakdown was captured.
+  tn_math_lines = lambda do |entry|
+    base = entry['base_tn']
+    next nil if base.nil?
+    lines = ["Base #{base.to_i}"]
+    Array(DiceResolution.with_ascendancy(entry['bonus_penalty_list'])).each do |type, amount, source|
+      amt = amount.to_i
+      next if amt.zero?
+      contrib = -amt   # a Bonus (positive amount) lowers the TN
+      label = source ? "(#{source})" : type
+      lines << "#{contrib >= 0 ? '+' : '−'}#{contrib.abs} #{label}"
+    end
+    lines << "= TN #{entry['tn'].to_i}"
+    lines
+  end
+
+  fmt_time = lambda do |at|
+    at.to_i.positive? ? Time.at(at.to_i).strftime('%b %-d, %H:%M:%S') : '—'
+  end
+%>
+
+<section class="log-page">
+  <div class="log-head">
+    <h2>Roll Log</h2>
+    <% if @entries.any? %>
+      <form method="post" action="/dm/clear" class="log-clear-form"
+            onsubmit="return confirm('Clear the entire Roll Log?');">
+        <button type="submit" class="log-clear-btn">Clear Log</button>
+      </form>
+    <% end %>
+  </div>
+  <p class="lead">Every Skill Roll a player makes is recorded here. Refresh to see new rolls.</p>
+
+  <% if @entries.empty? %>
+    <p class="log-empty">No rolls yet.</p>
+  <% else %>
+    <table class="log-table">
+      <thead>
+        <tr>
+          <th>Time</th><th>Character</th><th>Roll</th>
+          <th class="cs-num">Ranks</th><th class="cs-num">TN</th><th>Dice</th><th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @entries.each do |entry| %>
+          <% math = tn_math_lines.call(entry) %>
+          <tr>
+            <td class="log-time"><%= fmt_time.call(entry['at']) %></td>
+            <td class="log-char"><%= h(entry['creature_name']) %></td>
+            <td class="log-roll-name"><%= h(entry['roll_name']) %></td>
+            <td class="cs-num"><%= entry['ranks'] %></td>
+            <td class="cs-num log-tn-cell<%= ' log-tn-has-pop' if math %>"<%= math ? ' tabindex="0" role="button" aria-label="Target Number math"' : '' %>>
+              <span class="log-tn-value"><%= entry['tn'] %></span>
+              <% if math %>
+                <div class="log-tn-pop" role="tooltip">
+                  <div class="log-tn-pop-title">Target Number</div>
+                  <% math.each do |line| %>
+                    <div class="log-tn-pop-line"><%= h(line) %></div>
+                  <% end %>
+                </div>
+              <% end %>
+            </td>
+            <td class="log-dice"><%= render_dice.call(entry) %></td>
+            <td class="log-result"><%= result_text.call(entry) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</section>
+</div>
+
+<%# Turn Action panel controllers (Item / Cast / Special) are wired in app.js
+    via document-level delegation, so the out-of-combat action panel above
+    behaves exactly like the Combat one. %>
+<script type="module" src="/app.js"></script>

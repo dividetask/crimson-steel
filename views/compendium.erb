@@ -3,10 +3,11 @@
     { key: key, label: ExplainerDocs.title_for(key), href: "/compendium?view=#{key}" }
   end
   glossary_item = { key: 'glossary', label: 'Glossary', href: '/compendium?view=glossary' }
+  spells_item   = { key: 'spells',   label: 'Spells',   href: '/compendium?view=spells' }
   # 'Magical Tier' is pinned as the first nav entry, above the Glossary;
   # the remaining Explainer chapters follow in declared order.
   pinned, rest = explainer_items.partition { |i| i[:key] == 'magical_tier' }
-  nav_items = pinned + [glossary_item] + rest
+  nav_items = pinned + [glossary_item, spells_item] + rest
   has_mermaid = @view != 'glossary' && @explainer_html&.include?('class="mermaid"')
 %>
 
@@ -26,6 +27,8 @@
       <h1>Glossary</h1>
       <p class="lead">Vocabulary used throughout the Crimson Steel rules. Common terms take precedence over per-domain definitions.</p>
       <%= @glossary_html %>
+    <% elsif @view == 'spells' %>
+      <%= erb :_spell_list, locals: { spells: @spells_list, schools: @spell_schools, skills: @spell_skills } %>
     <% elsif @explainer_html %>
       <article class="explainer">
         <%= @explainer_html %>
@@ -39,4 +42,11 @@
   <script>
     mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'strict' });
   </script>
+<% end %>
+
+<% if @view == 'spells' %>
+  <%# Loads the shared spell-detail modal (clicking a spell opens its popup)
+      and the local filter controller. %>
+  <script type="module" src="/app.js"></script>
+  <script type="module" src="/js/ui/spellList.js"></script>
 <% end %>

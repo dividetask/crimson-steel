@@ -1,0 +1,86 @@
+<%#
+  Spell Detail fragment — docs/common/ui/abilities_spell_detail_stub.md.
+  Rendered without layout and injected into a modal on the Character Sheet
+  when a player clicks a spell. Read-only: it describes the Spell, it never
+  rolls or casts.
+
+  Locals:
+    spell — resolved Variant Hash (Abilities.lookup), or nil when the name
+            did not resolve to a Catalog Spell.
+    requested_name — the name the viewer clicked (shown when unresolved).
+%>
+<% if spell.nil? %>
+  <div class="cs-spell-detail">
+    <div class="ce-modal-text-title"><%= requested_name %></div>
+    <p>No reference is on file for this spell.</p>
+  </div>
+<% else %>
+  <%
+    tiers = Array(spell['tier']).compact
+    tier_label =
+      if tiers.length > 1 then "#{tiers.min}–#{tiers.max}"
+      elsif tiers.length == 1 then tiers.first.to_s
+      else nil
+      end
+    saves = Array(spell['save']).filter_map do |s|
+      next unless s.is_a?(Hash) && s['attribute']
+      s['attribute'].to_s.upcase
+    end
+    save_label = saves.empty? ? '—' : saves.uniq.join(' / ')
+    # The Universal Spell Casting Skills (Evocation) are appended to every
+    # Spell's `skills` at lookup time, but no Skill actually carries Evocation
+    # as a Casting Skill — it is the innate / item-granted path (scrolls,
+    # potions, wands, and some classes allow it) rather than a Skill on the
+    # list. So it is dropped from the Casting Skills shown here.
+    universal = Array((Abilities.catalog.config.universal_casting_skills rescue [])).map(&:to_s)
+    skills = Array(spell['skills']).reject { |s| universal.include?(s.to_s) }
+                                   .map { |s| s.to_s.tr('_', ' ').split.map(&:capitalize).join(' ') }
+    items  = Array(spell['items']).map { |s| s.to_s.tr('_', ' ').split.map(&:capitalize).join(' ') }
+    act =
+      case spell['activation_time'].to_s
+      when '', 'main' then 'Main Action'
+      else spell['activation_time'].to_s.tr('_', ' ').split.map(&:capitalize).join(' ')
+      end
+    range = spell['range'].is_a?(Integer) ? "#{spell['range']} ft" : spell['range'].to_s
+  %>
+  <article class="cs-spell-detail">
+    <header class="cs-spell-detail-head">
+      <h2 class="cs-spell-detail-name"><%= spell['name'] %></h2>
+      <div class="cs-spell-detail-tags">
+        <% if spell['school'] %>
+          <span class="cs-spell-badge"><%= spell['school'].to_s.capitalize %></span>
+        <% end %>
+        <% if tier_label %>
+          <span class="cs-spell-badge cs-spell-tier-badge">Tier <%= tier_label %></span>
+        <% end %>
+      </div>
+    </header>
+
+    <table class="cs-spell-stats">
+      <tbody>
+        <tr><th>Range</th><td><%= range.empty? ? '—' : range %></td></tr>
+        <tr><th>Duration</th><td><%= spell['duration'].to_s.empty? ? '—' : spell['duration'] %></td></tr>
+        <tr><th>Activation</th><td><%= act %></td></tr>
+        <tr><th>Save</th><td><%= save_label %></td></tr>
+      </tbody>
+    </table>
+
+    <% if skills.any? %>
+      <div class="cs-spell-detail-line"><strong>Casting Skills:</strong> <%= skills.join(', ') %></div>
+    <% end %>
+
+    <% if spell['description'] && !spell['description'].to_s.strip.empty? %>
+      <div class="cs-spell-detail-desc"><%= spell['description'] %></div>
+    <% end %>
+
+    <% if spell['channel'].is_a?(Hash) && spell['channel']['description'] %>
+      <div class="cs-spell-detail-channel">
+        <strong>Channeled:</strong> <%= spell['channel']['description'] %>
+      </div>
+    <% end %>
+
+    <% if items.any? %>
+      <div class="cs-spell-detail-line"><strong>Available as:</strong> <%= items.join(', ') %></div>
+    <% end %>
+  </article>
+<% end %>

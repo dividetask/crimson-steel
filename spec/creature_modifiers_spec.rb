@@ -174,6 +174,85 @@ RSpec.describe 'CreatureSheet.defense_breakdown' do
   end
 end
 
+RSpec.describe 'CreatureSheet.defensive_totals' do
+  require 'creature_sheet'
+
+  # An accessor that exposes Damage Reduction / Resilience directly (a monster
+  # stat). Equipment resolves to zero for a synthetic id, so the totals equal
+  # the direct attributes — the same two sources Combat combines, so the sheet
+  # and the applied mitigation agree.
+  let(:accessor) do
+    obj = Object.new
+    obj.define_singleton_method(:id) { 'unknown-creature' }
+    obj.define_singleton_method(:damage_reduction) { 2 }
+    obj.define_singleton_method(:damage_resilience) { 5 }
+    obj
+  end
+
+  it "adds a Creature's direct Damage Reduction / Resilience to its Armor totals" do
+    totals = CreatureSheet.defensive_totals(accessor)
+    expect(totals[:damage_reduction]).to eq(2)
+    expect(totals[:damage_resilience]).to eq(5)
+  end
+end
+
+RSpec.describe 'CreatureSheet.defense_math (popup breakdown)' do
+  require 'creature_sheet'
+  cond = Struct.new(:mods) { def modifier_breakdown(key) = mods[key] || [] }
+
+  let(:pieces) do
+    [{ name: 'Leather armor', tier: 1, damage_reduction: 1, resilience: 1, resilience_increment: 1 }]
+  end
+
+  it 'labels each active-effect Modifier by its granting ability, not the Bonus Type' do
+    c = cond.new({ 'damage_reduction' =>
+      [{ source: 'rage', bonus_type: 'Circumstance', amount: 2, applied: true }] })
+    comps = CreatureSheet.defense_math(pieces, 0, c, 'damage_reduction', :damage_reduction)
+    expect(comps).to eq([
+      { amount: 1, label: 'Leather armor', applied: true },
+      { amount: 2, label: 'rage', applied: true }
+    ])
+  end
+
+  it 'humanizes a snake_case source (magic_vestments -> "magic vestments")' do
+    c = cond.new({ 'damage_resilience' =>
+      [{ source: 'magic_vestments', bonus_type: 'Guidance', amount: 3, applied: true }] })
+    comps = CreatureSheet.defense_math(pieces, 0, c, 'damage_resilience', :damage_resilience)
+    expect(comps).to eq([
+      { amount: 1, label: 'Leather armor', applied: true },
+      { amount: 3, label: 'magic vestments', applied: true }
+    ])
+  end
+
+  it 'keeps a non-stacking loser in the list, flagged applied: false' do
+    c = cond.new({ 'damage_reduction' => [
+      { source: 'rage',        bonus_type: 'Circumstance', amount: 2, applied: true },
+      { source: 'some_talent', bonus_type: 'Circumstance', amount: 1, applied: false }
+    ] })
+    comps = CreatureSheet.defense_math([], 0, c, 'damage_reduction', :damage_reduction)
+    expect(comps).to eq([
+      { amount: 2, label: 'rage', applied: true },
+      { amount: 1, label: 'some talent', applied: false }
+    ])
+  end
+
+  it 'includes a direct Creature stat as an "innate" term' do
+    comps = CreatureSheet.defense_math([], 2, nil, 'damage_reduction', :damage_reduction)
+    expect(comps).to eq([{ amount: 2, label: 'innate', applied: true }])
+  end
+
+  it 'omits sources that contribute nothing (a Shield, mundane Resilience, absent stat)' do
+    # A Shield contributes null (0) Reduction and 0 Resilience; a Tier-0 Armor
+    # contributes 0 Resilience. Neither should appear as a "+0" term.
+    shield = { name: 'Mirror Shield', tier: 1, damage_reduction: 0, resilience: 0, resilience_increment: nil }
+    leather0 = { name: 'Leather armor', tier: 0, damage_reduction: 1, resilience: 0, resilience_increment: 1 }
+    dr  = CreatureSheet.defense_math([shield, leather0], 0, nil, 'damage_reduction', :damage_reduction)
+    res = CreatureSheet.defense_math([shield, leather0], 0, nil, 'damage_resilience', :damage_resilience)
+    expect(dr).to eq([{ amount: 1, label: 'Leather armor', applied: true }]) # Shield's 0 dropped
+    expect(res).to eq([]) # both contribute 0 Resilience
+  end
+end
+
 RSpec.describe 'Racial resistance abilities are granted' do
   include CreaturesFixtures
 

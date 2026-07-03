@@ -24,6 +24,7 @@
 require 'json'
 require 'store_magic_weapons'
 require 'store_magical_armor'
+require 'store_spell_items'
 
 get '/store' do
   cat        = Equipment.catalog
@@ -36,6 +37,7 @@ get '/store' do
   @magical   = guidance_items(cat)
   @magical_weapons = magical_weapon_builder(cat)
   @magical_armor   = magical_armor_builder(cat)
+  @spell_items     = StoreSpellItems.builder(cat)
   # The shared Party wallet, shown at the top-right of the Store.
   @party_gold = (Equipment.instance.get_total_wealth('party') rescue 0)
   erb :store
@@ -74,12 +76,23 @@ post '/store/checkout' do
     end
 
     # A magical-weapon line carries `properties` (a list of {name, subtype})
-    # and a `tier`; a magical-armor line carries a `tier` with no properties.
+    # and a `tier`; a magical-armor line carries a `tier` with no properties;
+    # a Scroll/Potion line is a spell-form Consumable (detected server-side).
     # The server validates eligibility and re-derives the price (never
     # trusting the client). Guidance Items carry a +N Bonus only, and the Tier
     # is re-derived from the catalog. Everything else is mundane.
     if ln['properties'].is_a?(Array) && !ln['properties'].empty?
       built = magical_weapon_fields(item, ln['properties'], ln['tier'], cat)
+      if built[:error]
+        errors << "#{qty}× #{item} (#{built[:error]})"
+        next
+      end
+      fields = built[:fields].merge('quantity' => qty)
+      label  = built[:label]
+    elsif StoreSpellItems.spell_form_item?(item, cat)
+      form  = item.start_with?('Potion') ? 'potion' : item.start_with?('Oil') ? 'oil' : 'scroll'
+      spell = item.sub(/\A(Scroll|Potion|Oil) of /, '')
+      built = StoreSpellItems.fields(spell, form, ln['tier'], cat)
       if built[:error]
         errors << "#{qty}× #{item} (#{built[:error]})"
         next
@@ -115,10 +128,23 @@ post '/store/checkout' do
 
     name  = creature_name(cid)
     owner = "character:#{cid}"
-    unit  = Equipment::Pricing.unit_price(Equipment::Stack.normalize(fields), cat)
+    # Scroll/Potion/Oil lines are priced by the Store's own rule (Scroll = half
+    # the Potion/Oil price; Tier 0 = half Tier 1) so the charge matches the
+    # builder's shown price; everything else uses the catalog Unit Price.
+    unit =
+      if StoreSpellItems.spell_form_item?(fields['item'], cat)
+        StoreSpellItems.line_price(fields['item'], fields['tier'], cat)
+      else
+        Equipment::Pricing.unit_price(Equipment::Stack.normalize(fields), cat)
+      end
     cost  = unit * qty
 
-    if player_character?(cid)
+    # A "Give" line hands the item over for free — but only the DM may gift, so
+    # the flag is honored solely on a DM (loopback) request; a player's line is
+    # always charged normally.
+    gift = truthy(ln['gift']) && dm_view?
+
+    if player_character?(cid) && !gift
       unless charge_pc_then_party(inst, owner, cost)
         errors << "#{qty}× #{label} for #{name} (not enough wealth)"
         next
@@ -126,9 +152,9 @@ post '/store/checkout' do
       inst.add_item(owner, Equipment::Stack.normalize(fields))
       done << "#{qty}× #{label} → #{name} (#{store_fmt_price(cost)} gp)"
     else
-      # Non-PC recipients (NPCs, enemies) are provisioned for free.
+      # Non-PC recipients (NPCs, enemies) — and DM gifts to a PC — are free.
       inst.add_item(owner, Equipment::Stack.normalize(fields))
-      done << "#{qty}× #{label} → #{name} (free)"
+      done << "#{qty}× #{label} → #{name} (#{gift && player_character?(cid) ? 'gift' : 'free'})"
     end
   end
 
@@ -305,6 +331,11 @@ helpers do
 
   def creature_for(cid)
     Creatures.lookup(Integer(cid)) rescue (Creatures.lookup(cid) rescue nil)
+  end
+
+  # A checkout line's `gift` flag, tolerant of JSON's true / "true" / 1.
+  def truthy(v)
+    v == true || v.to_s == 'true' || v.to_s == '1'
   end
 
   # Gold is integer-valued by convention; fractional prices show two

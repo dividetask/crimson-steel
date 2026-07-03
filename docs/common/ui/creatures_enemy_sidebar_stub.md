@@ -21,7 +21,7 @@ One collapsible group per Creature `group` value (e.g. `enemy`, `npc`) plus any 
 Inside a group:
 
 1. **Creature rows** — one per Creature record in the group. Each row shows:
-   - The Creature name (clickable; opens the Creature in detail via `creatures_full_stub` or `creatures_minimal_stub`). Spawned instances render their `name` (which mirrors the template's `name` by default) — when the parent groups spawns under their template, the row indents under the template.
+   - The Creature name (clickable; opens the Creature in detail via `creatures_minimal_stub`). Spawned instances render their `name` (which mirrors the template's `name` by default) — when the parent groups spawns under their template, the row indents under the template.
    - **Copy count** — the number of Combatants in the active Combat whose `creature_id` matches this Creature record. A small badge beside the row; suppressed when zero.
    - `+` button — emits an `add_combatant` event carrying the Creature ID. For an enemy template (tag `enemy_template`) the parent first calls Creatures' *Spawn Creature From Template* to produce a fresh Creature record, then *Add Combatant* on the new ID. For a non-template Creature (a PC, NPC, or already-spawned enemy) the parent calls *Add Combatant* directly. Either path is followed by *Reroll Initiative* with `missing_only = true`.
    - `−` button — emits a `remove_combatant` event for the most recently added Combatant with this Creature ID. The parent page resolves through Combat's *Remove Combatant*. Hidden when the copy count is zero. *Remove Combatant* alone does **not** delete the Creature record — that happens through the post-combat cleanup flow in `equipment_post_combat_creatures_stub.md`.
@@ -43,7 +43,7 @@ The entire sidebar is DM-only. Player viewers do not see the sidebar.
 
 ## Composition
 
-Embedded by pages that surface non-PC Creatures alongside the active Combat — typically the Combat page's enemy detail surface and any dedicated bestiary page. The host page renders the sidebar alongside the main panel (which shows one Creature at a time via `creatures_full_stub` or `creatures_minimal_stub`).
+Embedded by pages that surface non-PC Creatures alongside the active Combat — typically the Combat page's enemy detail surface and any dedicated bestiary page. The host page renders the sidebar alongside the main panel (which shows one Creature at a time via `creatures_minimal_stub`).
 
 When the host page is showing a specific Creature, the sidebar highlights that Creature's row.
 

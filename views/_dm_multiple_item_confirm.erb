@@ -1,0 +1,17 @@
+<%#
+  Confirm step for the Multiple group Item action: the Magic Toxicity each
+  selected Character will take from the chosen Item, and a Confirm button that
+  applies it (self, no roll) and subtracts one per Character.
+  Locals: @item_type — String; @rows — [{ name, toxicity }].
+%>
+<div class="cb-tier-head">Confirm — <%= h(@item_type) %></div>
+<% if @rows.empty? %>
+  <p class="dm-mult-none">No selected character carries that item.</p>
+<% else %>
+  <ul class="dm-mult-tox">
+    <% @rows.each do |r| %>
+      <li><%= h(r[:name]) %> — +<%= r[:toxicity] %> magic toxicity</li>
+    <% end %>
+  </ul>
+  <button type="button" class="ce-btn ce-btn-primary dm-mult-item-confirm" data-item="<%= h(@item_type) %>">Confirm ▶</button>
+<% end %>

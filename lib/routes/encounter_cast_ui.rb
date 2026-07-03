@@ -48,7 +48,7 @@ helpers do
     granted_spell_items(caster[:creature_id]).filter_map do |it|
       vname = spell_variant_name(it[:spell], it[:tier])
       next if known.include?(vname)
-      v    = (Abilities.lookup(vname) rescue nil) || {}
+      v    = spell_variant_definition(vname)
       cost = mana_cost_for_tier(it[:tier])
       castable_descriptor(acc, vname, it[:tier], pool, mana_left,
                           skill_options: item_skill_options(v, acc), mana_cost: cost)
@@ -59,13 +59,26 @@ helpers do
     CreatureSheet.spell_variant_name(spell, tier)
   end
 
+  # The catalog definition behind a Spell name, falling back to the base Spell
+  # when the name is a Variant. A Variant name (e.g. "Shooting Stars", a Variant
+  # of "Spark Shower") is not itself a catalog key, so a bare Abilities.lookup
+  # returns nil — dropping the base Spell's casting Skills (nature / arcana) and
+  # leaving only the default `evocation` for a granted Item like the Ring of
+  # Shooting Stars.
+  def spell_variant_definition(name)
+    v = (Abilities.lookup(name) rescue nil)
+    return v if v && !v.empty?
+    base, = spell_base_axis(name)
+    (base && (Abilities.lookup(base) rescue nil)) || {}
+  end
+
   def item_display_with_variant(stack, cat, _spell, _tier)
     CreatureSheet.item_display_name(stack, cat)
   end
 
   def consumable_castables(actor, acc, pool)
     consumable_spell_items(actor[:creature_id]).map do |it|
-      v = (Abilities.lookup(it[:spell]) rescue nil) || {}
+      v = spell_variant_definition(it[:spell])
       castable_descriptor(acc, it[:spell], it[:tier], pool, nil,
                           mana_cost: 0, key: "item:#{it[:ref]}", display: it[:display],
                           item: it, self_only: it[:form] == 'potion',
@@ -142,7 +155,11 @@ helpers do
       action_min: action_min,
       long_cast: !!(act && act[:kind].to_s == 'real_time' && act[:minutes].to_i >= 1),
       affordable: mana_left.nil? || mana_cost <= mana_left,
-      item: item, self_only: self_only || v['target'].to_s == 'self', quantity: quantity }
+      item: item, self_only: self_only || v['target'].to_s == 'self',
+      # An object-targeted Spell (Silent Portal targets a door/window, not a
+      # Creature) has no Creature to pick — the Target step auto-resolves with
+      # no defender rather than prompting for one.
+      object_target: v['target'].to_s == 'object', quantity: quantity }
   end
 
   def multi_target_max(target, rank)
@@ -313,6 +330,15 @@ helpers do
 
     dice_map = {}
     header_map = {}
+    # The "which skill" button shows the Skill name plus the Character's own
+    # Competency bonus for that Skill (e.g. "Arcana +3"), so the DM can compare
+    # skills at a glance. The Competency is the skill-specific part of the Roll's
+    # bonuses (Inherent / Guidance are the same whichever Skill is chosen).
+    skill_lead_label = lambda do |so|
+      amt  = (so[:competency] && so[:competency][1]).to_i
+      sign = amt >= 0 ? "+#{amt}" : amt.to_s
+      %(#{so[:label]} <span class="cb-skill-bonus">#{sign}</span>)
+    end
     spells.each do |sp|
       variants = has_skill_step ? Array(sp[:skill_options]) :
                  [{ skill: sp[:skill], label: Encounter::Special.pretty_skill(sp[:skill]),
@@ -343,8 +369,8 @@ helpers do
           g = dice_count_group(prefix: prefix, group: grp, min: min, max: cap,
                                aff: ->(n) { n <= pool }, patch: set,
                                summary: ->(n) { "#{so[:label]} — #{n} dice" },
-                               lead_label: so[:label],
-                               header_label: so[:label])
+                               lead_label: skill_lead_label.call(so),
+                               header_label: skill_lead_label.call(so))
           body.concat(g[:body])
           # Only the primary (highest-prowess) skill goes on the top bar.
           header << g[:header] if idx.zero?
@@ -373,6 +399,12 @@ helpers do
           [{ value: 'place', key: 'place', group: 'place', label: 'Place on the map',
              summary: 'Place the spell effect on the Atlas',
              place: { shape: sp[:area]['shape'], size: sp[:area]['size'], save: !!sp[:save] } }]
+        elsif sp[:object_target]
+          # No Creature target: a single auto option that excludes the (absent)
+          # defender Roll, so the builder never prompts for a target.
+          [{ value: 'object', key: 'object', group: 'object', label: 'Object',
+             summary: 'Object', auto: true,
+             patch: { set_excluded: [{ id: 'target', excluded: true }] } }]
         elsif sp[:self_only]
           self_target_opts
         else

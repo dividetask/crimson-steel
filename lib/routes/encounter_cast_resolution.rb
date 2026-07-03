@@ -98,6 +98,16 @@ helpers do
       apply_resolved_spell!(payload, resolved) if resolved
     end
     spell['cast_skill'] ||= Encounter::Cast::DEFAULT_CAST_SKILL
+
+    # Casting-skill Competency also feeds the default Spell-damage formula
+    # (floor(stat/4) + Tier + Competency + Successes): Competency applies to
+    # both the casting Roll and the damage. Resolve it from the caster + skill.
+    if spell['cast_competency'].nil? && caster['id']
+      ccomb = (encounter_state.combatant(caster['id'].to_i) rescue nil)
+      cacc  = ccomb && (Creatures.lookup(ccomb[:creature_id]) rescue nil)
+      comp  = cacc ? roll_inputs_for(cacc, spell['cast_skill'])[:competency_modifier] : nil
+      spell['cast_competency'] = comp ? comp[1].to_i : 0
+    end
   end
 
   def apply_resolved_spell!(payload, resolved)
@@ -141,7 +151,7 @@ helpers do
       spell['attack_roll'] = true
       spell['damage_type'] ||= Array(variant['damage_type']).compact.first
       spell['casting_attribute'] ||= (Proficiencies.attribute_for(spell['cast_skill']) || :cha).to_s
-    elsif variant && Array(variant['damage_type']).compact.any? && effects.none? { |e| e['kind'] == 'damage' }
+    elsif variant && !reservoir_channel && Array(variant['damage_type']).compact.any? && effects.none? { |e| e['kind'] == 'damage' }
       spell['default_damage'] = true
       spell['damage_type'] ||= Array(variant['damage_type']).compact.first
       spell['casting_attribute'] ||= (Proficiencies.attribute_for(spell['cast_skill']) || :cha).to_s
@@ -274,6 +284,52 @@ helpers do
     c = encounter_state.combatant(combatant_id.to_i) or return
     inst = Conditions.store.instance_for(c[:creature_id])
     inst.apply_named_effect('shielded', source_id: "shield:#{source_name}") if inst.respond_to?(:apply_named_effect)
+  rescue StandardError
+    nil
+  end
+
+  # Drop the `shielded` marker from whichever Combatant a protective Spell
+  # currently guards (its granted defend-action's ally).
+  def clear_shielded_condition!(caster_id, spell_name)
+    prior = encounter_state.granted_actions.find { |g| g[:source].to_s == spell_name.to_s && g[:combatant_id] == caster_id }
+    return unless prior && (old_ally = encounter_state.combatant(prior[:defends]))
+    inst = (Conditions.store.instance_for(old_ally[:creature_id]) rescue nil)
+    inst.remove_effects_by_prefix("shield:#{spell_name}") if inst.respond_to?(:remove_effects_by_prefix)
+  end
+
+  # Retarget a protective Spell (Shield of Faith): move the `shielded` marker to
+  # the new ally and rebuild the caster's granted defend-action so the block now
+  # guards them. The block's Dice Cap tracks the caster's casting Skill, as at
+  # cast time (grant_defend_reaction!).
+  def retarget_defend_action!(caster_id, spell_name, ally_id)
+    v = resolve_named_spell(spell_name)
+    spec = spell_defends_spec(v) or return
+    caster = encounter_state.combatant(caster_id) or return
+    # Preserve the block's parameters as first cast. Read them from the existing
+    # grant (a Standard Shield conjures no concentration entry, so the grant is
+    # the only record); fall back to the concentration entry / recomputing them.
+    prior  = encounter_state.granted_actions.find { |g| g[:source].to_s == spell_name.to_s && g[:combatant_id] == caster_id }
+    entry  = Array(caster[:concentration]).find { |e| e[:spell_name].to_s == spell_name.to_s }
+    skill  = ((prior && prior[:cast_skill]) || (entry && entry[:cast_skill]) || Encounter::Cast::DEFAULT_CAST_SKILL).to_s
+    cacc   = (Creatures.lookup(caster[:creature_id]) rescue nil)
+    cap    = (prior && prior[:dice_cap]) || (roll_inputs_for(cacc, skill)[:dice_cap].to_i rescue 0)
+    bonus  = (prior && prior[:shield_bonus]) || v['shield_bonus'].to_i
+    clear_shielded_condition!(caster_id, spell_name)
+    encounter_state.revoke_action { |g| g[:source].to_s == spell_name.to_s && g[:combatant_id] == caster_id }
+    encounter_state.grant_action({ combatant_id: caster_id, name: spell_name, source: spell_name,
+                                   spell_name: spell_name, defends: ally_id, cast_skill: skill,
+                                   dice_cap: cap.to_i, dice_source: spec[:block_dice],
+                                   shield_bonus: bonus.to_i })
+    apply_shielded_condition(ally_id, spell_name)
+    Conditions.store.persist!
+  end
+
+  # Tear down a protective Spell's defend-action + shielded marker when the
+  # Spell is ended.
+  def retarget_end_defend_action!(caster_id, spell_name)
+    clear_shielded_condition!(caster_id, spell_name)
+    encounter_state.revoke_action { |g| g[:source].to_s == spell_name.to_s && g[:combatant_id] == caster_id }
+    Conditions.store.persist!
   rescue StandardError
     nil
   end

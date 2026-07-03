@@ -55,6 +55,12 @@ class AtlasCanvas {
     this.placing = null;   // creature_id armed for placement, or null
     this.placingArea = null; // {shape, size} armed for spell-area placement
     this._placedArea = null; // {x, y, area} dropped (un-committed) footprint, draggable
+    // The DM may hide the fog overlay in their own view (it can obscure the
+    // map) without changing what players see. A sticky, DM-only preference.
+    this.fogHidden = false;
+    if (this.viewer === 'dm') {
+      try { this.fogHidden = localStorage.getItem('atlas-fog-hidden') === '1'; } catch (e) { /* ignore */ }
+    }
   }
 
   start() {
@@ -133,10 +139,28 @@ class AtlasCanvas {
     // Zones (spell areas / hazards) sit above the grid but below tokens.
     this.world.appendChild(this.buildZoneLayer(w, h));
 
-    this.annLayer = this.buildAnnotationLayer(w, h);
+    // Annotations that sit BELOW tokens: shapes and text. Arrows are split out
+    // into a separate top layer (built after fog) so a pointer arrow is never
+    // hidden behind a token or the fog.
+    this.annLayer = this.buildAnnotationLayer(w, h, (a) => a.type !== 'arrow');
     this.world.appendChild(this.annLayer);
 
     (this.snapshot.tokens || []).forEach((t) => this.world.appendChild(this.tokenEl(t)));
+
+    // Fog of war sits on TOP of everything: for a player it is opaque black,
+    // concealing the map image, terrain, and any token beneath it; for the DM
+    // it is translucent, so the DM sees the map through it but knows what the
+    // players cannot. A map with no fog paints nothing (fog is off by default).
+    this.fogLayer = this.buildFogLayer(w, h);
+    // The DM can hide the overlay in their own view; players always see it.
+    if (this.viewer === 'dm' && this.fogHidden) this.fogLayer.style.display = 'none';
+    this.world.appendChild(this.fogLayer);
+
+    // Arrows draw on top of everything — tokens and fog included — since they
+    // are transient pointers the table uses to indicate a spot.
+    this.annTopLayer = this.buildAnnotationLayer(w, h, (a) => a.type === 'arrow');
+    this.world.appendChild(this.annTopLayer);
+
     this.viewport.appendChild(this.world);
     this.applyTransform();
   }
@@ -247,6 +271,55 @@ class AtlasCanvas {
     return svgEl('rect', Object.assign(attrs, { x: x0, y: y0, width: w, height: h }));
   }
 
+  // SVG layer of Fog of war regions — rectangles (or ellipses) the DM paints to
+  // conceal part of the map. Both viewers get the same grey diagonal cross-hatch
+  // (a per-layer <pattern>) with a dashed border; the only difference is the
+  // base tile: the DM's is translucent so the map reads through it, the player's
+  // is opaque so the concealed area shows nothing underneath. Empty when the map
+  // has no fog (fog is disabled by default).
+  buildFogLayer(w, h) {
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'atlas-fog atlas-fog-' + this.viewer);
+    svg.setAttribute('width', w);
+    svg.setAttribute('height', h);
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    const defs = document.createElementNS(SVG_NS, 'defs');
+    const pid = 'fog-hatch-' + this.uid;
+    const pat = svgEl('pattern', { id: pid, patternUnits: 'userSpaceOnUse', width: 8, height: 8 });
+    // Translucent base for the DM (see-through), opaque for players (concealing).
+    const base = this.viewer === 'dm' ? 'rgba(128, 130, 135, 0.6)' : 'rgb(125, 128, 133)';
+    pat.appendChild(svgEl('rect', { x: 0, y: 0, width: 8, height: 8, fill: base }));
+    pat.appendChild(svgEl('path', { d: 'M0,8 L8,0 M-2,2 L2,-2 M6,10 L10,6',
+      stroke: 'rgba(238, 239, 242, 0.55)', 'stroke-width': 1.4 }));
+    defs.appendChild(pat);
+    svg.appendChild(defs);
+    svg._hatch = pid;
+    (this.snapshot.fog || []).forEach((f) => {
+      const el = this.fogEl(svg, f);
+      if (el) svg.appendChild(el);
+    });
+    return svg;
+  }
+
+  // One Fog region. `points` are the two opposite corners (Map Units); world px
+  // = unit * BASE_CELL. Filled with the layer's diagonal-hatch pattern (set
+  // inline) so the region reads as deliberately concealed, with the dashed
+  // border styled in CSS.
+  fogEl(svg, f) {
+    const pts = (f.points || []).map((p) => [p[0] * BASE_CELL, p[1] * BASE_CELL]);
+    if (pts.length < 2) return null;
+    const x0 = Math.min(pts[0][0], pts[1][0]); const y0 = Math.min(pts[0][1], pts[1][1]);
+    const w = Math.abs(pts[1][0] - pts[0][0]); const h = Math.abs(pts[1][1] - pts[0][1]);
+    if (w <= 0 || h <= 0) return null;
+    const attrs = { class: 'atlas-fog-fill' };
+    if (f.id != null) attrs['data-fog-id'] = f.id;
+    if (svg && svg._hatch) attrs.fill = 'url(#' + svg._hatch + ')';
+    if (f.shape_kind === 'ellipse') {
+      return svgEl('ellipse', Object.assign(attrs, { cx: x0 + w / 2, cy: y0 + h / 2, rx: w / 2, ry: h / 2 }));
+    }
+    return svgEl('rect', Object.assign(attrs, { x: x0, y: y0, width: w, height: h }));
+  }
+
   // SVG layer of Zones (spell areas / hazards). A circle's `size` is its radius
   // in Map Units; a square's `size` is its side. Both center on the anchor cell.
   buildZoneLayer(w, h) {
@@ -323,7 +396,9 @@ class AtlasCanvas {
     return g;
   }
 
-  buildAnnotationLayer(w, h) {
+  // `filter` (optional) picks which Annotations this layer draws — used to
+  // split arrows (drawn on top of everything) from shapes/text (below tokens).
+  buildAnnotationLayer(w, h, filter) {
     const svg = document.createElementNS(SVG_NS, 'svg');
     svg.setAttribute('class', 'atlas-annotations');
     svg.setAttribute('width', w);
@@ -333,6 +408,7 @@ class AtlasCanvas {
     svg.appendChild(defs);
     svg._defs = defs;
     (this.snapshot.annotations || []).forEach((a) => {
+      if (filter && !filter(a)) return;
       const el = this.annotationEl(svg, a);
       if (el) svg.appendChild(el);
     });
@@ -611,20 +687,27 @@ class AtlasCanvas {
   beginDraw(e) {
     e.preventDefault();
     this.hideTip();
-    const isErase = this.tool === 'terrain-erase';
+    const isTerrainErase = this.tool === 'terrain-erase';
+    const isFogErase = this.tool === 'fog-erase';
+    const isErase = isTerrainErase || isFogErase;   // both drag a dashed erase box
     const isTerrain = this.tool === 'terrain';
-    const type = this.tool === 'arrow' ? 'arrow' : (isTerrain ? 'terrain' : 'shape');
-    const shapeKind = this.tool === 'rect' ? 'rect' : (this.tool === 'ellipse' ? 'ellipse' : (isTerrain ? 'rect' : null));
+    const isFog = this.tool === 'fog';
+    const type = this.tool === 'arrow' ? 'arrow' : (isTerrain ? 'terrain' : (isFog ? 'fog' : 'shape'));
+    const shapeKind = this.tool === 'rect' ? 'rect' : (this.tool === 'ellipse' ? 'ellipse' : ((isTerrain || isFog) ? 'rect' : null));
     const texture = isTerrain ? this._terrainTexture : null;
     const snapped = type !== 'arrow';
     const snap = (p) => (snapped ? this.snapToCorner(p) : p);
     const start = snap(this.toUnits(e.clientX, e.clientY));
-    // A preview element: terrain (and the eraser box) render through the
-    // terrain layer; everything else through the annotation layer.
-    const layer = (isTerrain || isErase) ? this.terrainLayer : this.annLayer;
+    // A preview element: terrain (and its eraser box) render through the terrain
+    // layer, fog (and its eraser box) through the fog layer, everything else
+    // through the annotation layer.
+    const layer = (isTerrain || isTerrainErase) ? this.terrainLayer
+      : ((isFog || isFogErase) ? this.fogLayer
+        : (type === 'arrow' ? this.annTopLayer : this.annLayer));
     const build = (pts) => {
       if (isErase) return this.eraseBoxEl(pts);
       if (isTerrain) return this.terrainEl(layer, { shape_kind: shapeKind, texture, points: pts });
+      if (isFog) return this.fogEl(layer, { shape_kind: shapeKind, points: pts });
       return this.annotationEl(layer, { type, shape_kind: shapeKind, color: this.color(), points: pts }, 'preview');
     };
     let el = build([start, start]);
@@ -647,8 +730,10 @@ class AtlasCanvas {
         ? (Math.abs(end[0] - start[0]) >= 1 && Math.abs(end[1] - start[1]) >= 1)
         : (Math.hypot(end[0] - start[0], end[1] - start[1]) >= 0.2);
       if (!span) { this.render(); return; } // too small — discard preview
-      if (isErase) this.postTerrain({ points: [start, end] }, '/atlas/erase_terrain');
+      if (isTerrainErase) this.postTerrain({ points: [start, end] }, '/atlas/erase_terrain');
+      else if (isFogErase) this.postFog({ points: [start, end] }, '/atlas/erase_fog');
       else if (isTerrain) this.postTerrain({ shape_kind: shapeKind, texture, points: [start, end] });
+      else if (isFog) this.postFog({ shape_kind: shapeKind, points: [start, end] });
       else this.postDraw({ type, shape_kind: shapeKind, color: this.color(), points: [start, end] });
     };
     this.viewport.addEventListener('pointermove', onMove);
@@ -837,6 +922,11 @@ class AtlasCanvas {
         this.section.querySelectorAll('.atlas-tool').forEach((b) =>
           b.classList.toggle('atlas-tool-active', b === btn));
         this.viewport.classList.toggle('atlas-drawing', this.tool !== 'select');
+        // Picking a fog brush means the DM wants to work with fog — reveal the
+        // overlay in their own view so fog they draw is visible. Without this, a
+        // DM who earlier clicked "Fog: Hidden" draws fog into a display:none
+        // layer and it looks like drawing does nothing (players still see it).
+        if (this.tool === 'fog' || this.tool === 'fog-erase') this.revealFogView();
       });
     });
     on('.atlas-clear-drawings', 'click', () => {
@@ -846,7 +936,7 @@ class AtlasCanvas {
 
     if (this.viewer !== 'dm') return;
 
-    const panels = Array.from(this.section.querySelectorAll('.atlas-form-panel, .atlas-place-panel'));
+    const panels = Array.from(this.section.querySelectorAll('.atlas-form-panel, .atlas-place-panel, .atlas-elements-panel'));
     const togglePanel = (sel) => {
       const target = this.section.querySelector(sel);
       panels.forEach((p) => { if (p !== target) p.hidden = true; });
@@ -901,6 +991,32 @@ class AtlasCanvas {
     on('.atlas-clear-btn', 'click', () => {
       if (!window.confirm('Remove every token on this map?')) return;
       this.postRender('/atlas/clear_tokens', {});
+    });
+
+    on('.atlas-fog-clear', 'click', () => {
+      if (!window.confirm('Reveal the whole map (clear all fog)?')) return;
+      this.postRender('/atlas/clear_fog', {});
+    });
+
+    // Fog view toggle: show/hide the fog overlay in the DM's OWN view only
+    // (it can obscure the map). Does not touch the fog data or the player view.
+    const syncFogToggle = () => {
+      const b = this.section.querySelector('.atlas-fog-view-toggle');
+      if (!b) return;
+      b.textContent = this.fogHidden ? 'Fog: Hidden' : 'Fog: Shown';
+      b.classList.toggle('atlas-fog-view-off', this.fogHidden);
+    };
+    syncFogToggle();
+    on('.atlas-fog-view-toggle', 'click', () => {
+      this.fogHidden = !this.fogHidden;
+      try { localStorage.setItem('atlas-fog-hidden', this.fogHidden ? '1' : '0'); } catch (e) { /* ignore */ }
+      if (this.fogLayer) this.fogLayer.style.display = this.fogHidden ? 'none' : '';
+      syncFogToggle();
+    });
+
+    on('.atlas-elements-toggle', 'click', () => {
+      const p = togglePanel('.atlas-elements-panel');
+      if (p && !p.hidden) this.populateElements();
     });
 
     const panel = this.section.querySelector('.atlas-place-panel');
@@ -1104,11 +1220,192 @@ class AtlasCanvas {
     if (hint) hint.hidden = true;
   }
 
+  // ----- elements panel (list / edit / delete every element) -----
+
+  // Rebuild the Elements list from the current snapshot: one editable row per
+  // Token, Terrain fill, Fog region, and Drawing on the Active Map, grouped by
+  // kind. Purely edit + delete — adding is done with the toolbar tools.
+  populateElements() {
+    const panel = this.section.querySelector('.atlas-elements-panel');
+    if (!panel) return;
+    const list = panel.querySelector('.atlas-elements-list');
+    list.innerHTML = '';
+    const snap = this.snapshot || {};
+    const groups = [
+      ['Tokens', (snap.tokens || []).map((t) => this.elRowToken(t))],
+      ['Terrain', (snap.terrain || []).map((t) => this.elRowRect(
+        'Terrain — ' + prettyTexture(t.texture) + ' (' + (t.shape_kind || 'rect') + ')',
+        t, '/atlas/edit_terrain', 'terrain_id', '/atlas/remove_terrain'))],
+      ['Fog of war', (snap.fog || []).map((f) => this.elRowRect(
+        'Fog (' + (f.shape_kind || 'rect') + ')',
+        f, '/atlas/edit_fog', 'fog_id', '/atlas/remove_fog'))],
+      ['Drawings', (snap.annotations || []).map((a) => this.elRowAnnotation(a))]
+    ];
+    let total = 0;
+    groups.forEach(([title, rows]) => {
+      if (!rows.length) return;
+      total += rows.length;
+      const head = document.createElement('div');
+      head.className = 'atlas-el-group';
+      head.textContent = title + ' (' + rows.length + ')';
+      list.appendChild(head);
+      rows.forEach((r) => list.appendChild(r));
+    });
+    if (!total) {
+      const p = document.createElement('p');
+      p.className = 'atlas-elements-empty';
+      p.textContent = 'No elements on this map yet.';
+      list.appendChild(p);
+    }
+  }
+
+  // A generic element row: a title, one or more coordinate points rendered as
+  // `( x, y )` groups joined by arrows, optional scalar extras (e.g. a token's
+  // size) and an optional text field, then Save / Delete. `onSave` receives the
+  // points (array of [x, y]), the extras (array of numbers), and the text.
+  elRow(opts) {
+    const row = document.createElement('div');
+    row.className = 'atlas-el-row';
+    const title = document.createElement('div');
+    title.className = 'atlas-el-title';
+    title.textContent = opts.title;
+    row.appendChild(title);
+
+    const fieldsWrap = document.createElement('div');
+    fieldsWrap.className = 'atlas-el-fields';
+
+    // Coordinate points as ( <x>, <y> ) groups joined by ` → `.
+    const pointInputs = (opts.points || []).map((pt, i) => {
+      if (i > 0) {
+        const sep = document.createElement('span');
+        sep.className = 'atlas-el-arrow';
+        sep.textContent = '→';
+        fieldsWrap.appendChild(sep);
+      }
+      const grp = document.createElement('span');
+      grp.className = 'atlas-el-point';
+      const xi = this.elNum(pt[0]);
+      const yi = this.elNum(pt[1]);
+      grp.appendChild(document.createTextNode('('));
+      grp.appendChild(xi);
+      grp.appendChild(document.createTextNode(', '));
+      grp.appendChild(yi);
+      grp.appendChild(document.createTextNode(')'));
+      fieldsWrap.appendChild(grp);
+      return [xi, yi];
+    });
+
+    // Scalar extras (e.g. a token's size), rendered as `label <input>`.
+    const extraInputs = (opts.extras || []).map((f) => {
+      const lab = document.createElement('label');
+      lab.className = 'atlas-el-field';
+      lab.appendChild(document.createTextNode(f.label));
+      const inp = this.elNum(f.value);
+      lab.appendChild(inp);
+      fieldsWrap.appendChild(lab);
+      return inp;
+    });
+
+    let textInput = null;
+    if (opts.text) {
+      const lab = document.createElement('label');
+      lab.className = 'atlas-el-field atlas-el-field-wide';
+      lab.appendChild(document.createTextNode(opts.text.label));
+      textInput = document.createElement('input');
+      textInput.type = 'text'; textInput.value = opts.text.value || '';
+      textInput.className = 'atlas-el-text';
+      lab.appendChild(textInput);
+      fieldsWrap.appendChild(lab);
+    }
+    row.appendChild(fieldsWrap);
+
+    const actions = document.createElement('div');
+    actions.className = 'atlas-el-actions';
+    const save = document.createElement('button');
+    save.type = 'button'; save.className = 'atlas-tool-btn atlas-el-save'; save.textContent = 'Save';
+    save.addEventListener('click', () => opts.onSave(
+      pointInputs.map(([xi, yi]) => [parseFloat(xi.value), parseFloat(yi.value)]),
+      extraInputs.map((i) => parseFloat(i.value)),
+      textInput ? textInput.value : null
+    ));
+    const del = document.createElement('button');
+    del.type = 'button'; del.className = 'atlas-tool-btn atlas-danger'; del.textContent = 'Delete';
+    del.addEventListener('click', () => { if (window.confirm('Delete this element?')) opts.onDelete(); });
+    actions.appendChild(save);
+    actions.appendChild(del);
+    row.appendChild(actions);
+    return row;
+  }
+
+  elNum(value) {
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.step = 'any'; inp.value = value;
+    inp.className = 'atlas-el-num';
+    return inp;
+  }
+
+  elRowToken(t) {
+    return this.elRow({
+      title: 'Token — ' + (t.label || ('#' + t.id)),
+      points: [[t.x, t.y]],
+      extras: [{ label: 'size', value: t.size }],
+      onSave: (pts, ex) => this.postRender('/atlas/edit_token',
+        { token_id: t.id, x: pts[0][0], y: pts[0][1], size: ex[0] }),
+      onDelete: () => this.postRender('/atlas/remove_token', { token_id: t.id })
+    });
+  }
+
+  // Terrain / Fog: a two-corner rectangle ( x0, y0 ) → ( x1, y1 ).
+  elRowRect(title, el, editUrl, idKey, removeUrl) {
+    const p = el.points || [[0, 0], [0, 0]];
+    return this.elRow({
+      title: title,
+      points: [[p[0][0], p[0][1]], [p[1][0], p[1][1]]],
+      onSave: (pts) => {
+        const body = { points: JSON.stringify([pts[0], pts[1]]) };
+        body[idKey] = el.id;
+        this.postRender(editUrl, body);
+      },
+      onDelete: () => { const body = {}; body[idKey] = el.id; this.postRender(removeUrl, body); }
+    });
+  }
+
+  elRowAnnotation(a) {
+    const kind = 'Drawing — ' + a.type + (a.shape_kind ? ' (' + a.shape_kind + ')' : '') + (a.dm_only ? ' 🔒' : '');
+    if (a.type === 'text') {
+      const p = (a.points && a.points[0]) || [0, 0];
+      return this.elRow({
+        title: kind,
+        points: [[p[0], p[1]]],
+        text: { label: 'text', value: a.text || '' },
+        onSave: (pts, ex, txt) => this.postRender('/atlas/edit_annotation',
+          { annotation_id: a.id, points: JSON.stringify([pts[0]]), text: txt }),
+        onDelete: () => this.postRender('/atlas/remove_annotation', { annotation_id: a.id })
+      });
+    }
+    const p = a.points || [[0, 0], [0, 0]];
+    return this.elRow({
+      title: kind,
+      points: [[p[0][0], p[0][1]], [p[1][0], p[1][1]]],
+      onSave: (pts) => this.postRender('/atlas/edit_annotation',
+        { annotation_id: a.id, points: JSON.stringify([pts[0], pts[1]]) }),
+      onDelete: () => this.postRender('/atlas/remove_annotation', { annotation_id: a.id })
+    });
+  }
+
   // ----- requests -----
 
   postRender(url, body) {
+    // Any fog adjustment made through this path — Clear Fog, or editing /
+    // deleting a fog region from the Elements panel — reveals the DM's fog
+    // overlay first, so a DM who had it toggled off sees the change.
+    if (String(url).indexOf('fog') !== -1) this.revealFogView();
     formPost(url, body).then((res) => {
       if (res && res.snapshot) { this.snapshot = res.snapshot; this.render(); this.applyTransform(); }
+      // Keep the Elements panel in sync after an edit / delete (or any mutation
+      // made while it is open — e.g. dragging a token).
+      const ep = this.section.querySelector('.atlas-elements-panel');
+      if (ep && !ep.hidden) this.populateElements();
     });
   }
 
@@ -1136,6 +1433,38 @@ class AtlasCanvas {
       .catch(() => this.render());
   }
 
+  // JSON-bodied fog mutation; re-render the canvas from the returned snapshot
+  // (mirrors postTerrain, for the fog-of-war layer). Serves both painting
+  // (/atlas/add_fog) and the reveal eraser (/atlas/erase_fog).
+  postFog(obj, url = '/atlas/add_fog') {
+    // Drawing or erasing fog reveals the DM's overlay so the edit is visible
+    // even if it was toggled off (belt-and-suspenders with the fog-brush
+    // selection reveal, so any code path that adds/erases fog stays visible).
+    this.revealFogView();
+    fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj) })
+      .then((r) => r.json().catch(() => null))
+      .then((res) => {
+        if (res && res.snapshot) { this.snapshot = res.snapshot; this.render(); this.applyTransform(); }
+        else this.render(); // drop the preview on failure
+      })
+      .catch(() => this.render());
+  }
+
+  // Reveal the fog overlay in the DM's own view — the inverse of the "Fog:
+  // Hidden" toggle. Called when the DM selects a fog brush so fog they draw is
+  // immediately visible (the preference is sticky in localStorage, so it can
+  // otherwise stay hidden across sessions). No-op for players or when the
+  // overlay is already shown; the persisted preference and toggle button are
+  // kept in sync.
+  revealFogView() {
+    if (this.viewer !== 'dm' || !this.fogHidden) return;
+    this.fogHidden = false;
+    try { localStorage.setItem('atlas-fog-hidden', '0'); } catch (e) { /* ignore */ }
+    if (this.fogLayer) this.fogLayer.style.display = '';
+    const b = this.section.querySelector('.atlas-fog-view-toggle');
+    if (b) { b.textContent = 'Fog: Shown'; b.classList.remove('atlas-fog-view-off'); }
+  }
+
   postReload(url, body, target) {
     formPost(url, body).then(() => { window.location = target || window.location.href; });
   }
@@ -1161,6 +1490,15 @@ function qmark() {
   span.className = 'atlas-token-qmark';
   span.textContent = '?';
   return span;
+}
+
+// A readable label for a terrain texture filename (e.g. "grass_lush.png" →
+// "Grass Lush"). Used only for the Elements list; the toolbar labels come from
+// the server's TERRAIN_LABELS.
+function prettyTexture(file) {
+  const name = String(file || '').replace(/\.[^.]+$/, '').split(/[_\-\s]+/).filter(Boolean)
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+  return name || 'Fill';
 }
 
 function parseJSON(s) { try { return JSON.parse(s); } catch (e) { return null; } }

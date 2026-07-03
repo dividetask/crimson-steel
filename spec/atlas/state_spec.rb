@@ -501,6 +501,20 @@ RSpec.describe Atlas::State do
       expect(state.list_terrain.length).to eq(3)
     end
 
+    it 'Edit Terrain updates a fill\'s corners in place (keeping its id)' do
+      id = state.add_terrain(map_id: map_id, points: [[1, 1], [2, 2]], texture: 'wall.png')
+      result = state.edit_terrain(id, points: [[4, 4], [20, 5]])
+      expect(result[:id]).to eq(id)
+      expect(state.get_terrain(id)[:points]).to eq([[4, 4], [20, 5]])
+      expect(state.get_terrain(id)[:texture]).to eq('wall.png')   # unchanged
+    end
+
+    it 'Edit Terrain refuses an unknown id or a map_id change' do
+      id = state.add_terrain(map_id: map_id, points: [[0, 0], [1, 1]], texture: 'dirt.png')
+      expect(state.edit_terrain(99, points: [[0, 0], [1, 1]])).to eq(Atlas::ERROR)
+      expect(state.edit_terrain(id, map_id: 7)).to eq(Atlas::ERROR)
+    end
+
     it 'Remove and Clear Terrain delete fills' do
       a = state.add_terrain(map_id: map_id, points: [[0, 0], [1, 1]], texture: 'dirt.png')
       state.add_terrain(map_id: map_id, points: [[2, 2], [3, 3]], texture: 'stone.png')
@@ -552,6 +566,109 @@ RSpec.describe Atlas::State do
       b = state.add_terrain(map_id: map_id, points: [[1, 1], [2, 2]], texture: 'dirt.png')
       expect(state.erase_terrain_box(map_id, 50, 50, 60, 60)).to eq(0)
       expect(state.get_terrain(b)).not_to be_nil
+    end
+  end
+
+  describe 'Fog (fog of war)' do
+    let(:map_id) { add_forest }
+
+    it 'a fresh Map has no Fog (fog of war is disabled by default)' do
+      expect(state.list_fog(map_id: map_id)).to eq([])
+    end
+
+    it 'Add Fog stores a region and assigns an id' do
+      id = state.add_fog(map_id: map_id, points: [[0, 0], [5, 4]])
+      expect(id).to be_a(Integer)
+      f = state.get_fog(id)
+      expect(f[:shape_kind]).to eq('rect')        # default
+      expect(f[:points]).to eq([[0, 0], [5, 4]])
+    end
+
+    it 'Add Fog on an unknown Map returns the sentinel' do
+      expect(state.add_fog(map_id: 99, points: [[0, 0], [1, 1]])).to eq(Atlas::ERROR)
+    end
+
+    it 'List Fog filters by map' do
+      other = state.add_map(name: 'Other')
+      state.add_fog(map_id: map_id, points: [[0, 0], [1, 1]])
+      state.add_fog(map_id: map_id, points: [[2, 2], [3, 3]])
+      state.add_fog(map_id: other,  points: [[0, 0], [1, 1]])
+      expect(state.list_fog(map_id: map_id).length).to eq(2)
+      expect(state.list_fog.length).to eq(3)
+    end
+
+    it 'Edit Fog updates a region\'s corners in place (keeping its id)' do
+      id = state.add_fog(map_id: map_id, points: [[0, 0], [3, 3]])
+      result = state.edit_fog(id, points: [[2, 2], [9, 9]])
+      expect(result[:id]).to eq(id)
+      expect(state.get_fog(id)[:points]).to eq([[2, 2], [9, 9]])
+    end
+
+    it 'Edit Fog refuses an unknown id or a map_id change' do
+      id = state.add_fog(map_id: map_id, points: [[0, 0], [1, 1]])
+      expect(state.edit_fog(99, points: [[0, 0], [1, 1]])).to eq(Atlas::ERROR)
+      expect(state.edit_fog(id, map_id: 7)).to eq(Atlas::ERROR)
+    end
+
+    it 'Remove and Clear Fog delete regions' do
+      a = state.add_fog(map_id: map_id, points: [[0, 0], [1, 1]])
+      state.add_fog(map_id: map_id, points: [[2, 2], [3, 3]])
+      state.remove_fog(a)
+      expect(state.get_fog(a)).to be_nil
+      expect(state.clear_fog_on_map(map_id)).to eq(1)
+      expect(state.list_fog(map_id: map_id)).to eq([])
+    end
+
+    it 'Fog ids are independent of Terrain ids' do
+      t = state.add_terrain(map_id: map_id, points: [[0, 0], [1, 1]], texture: 'wall.png')
+      f = state.add_fog(map_id: map_id, points: [[0, 0], [1, 1]])
+      expect(f).to eq(t)                          # both are the first id in their own sequence
+      expect(state.get_terrain(f)[:texture]).to eq('wall.png')
+      expect(state.get_fog(t)).not_to be_nil
+    end
+
+    it 'persists Fog (and next_fog_id) across a reload' do
+      state.add_fog(map_id: map_id, points: [[1, 1], [6, 5]], shape_kind: 'ellipse')
+      reloaded = described_class.load(data_path: data_path, example_path: '/nonexistent')
+      f = reloaded.list_fog(map_id: map_id).first
+      expect(f[:shape_kind]).to eq('ellipse')
+      expect(f[:points]).to eq([[1, 1], [6, 5]])
+      # a fresh region still gets a unique id after the reload
+      expect(reloaded.add_fog(map_id: map_id, points: [[0, 0], [1, 1]])).to eq(f[:id] + 1)
+    end
+
+    it 'Delete Map cascades to its Fog (like Terrain)' do
+      doomed = state.add_fog(map_id: map_id, points: [[0, 0], [2, 2]])
+      state.delete_map(map_id)
+      expect(state.get_fog(doomed)).to be_nil
+    end
+
+    it 'Clear Annotations On Map never removes Fog' do
+      fog = state.add_fog(map_id: map_id, points: [[0, 0], [2, 2]])
+      state.add_annotation(map_id: map_id, type: 'arrow', points: [[0, 0], [1, 1]])
+      state.clear_annotations_on_map(map_id)
+      expect(state.get_fog(fog)).not_to be_nil
+    end
+
+    it 'Erase Fog Box (the Reveal tool) punches a hole, leaving the surrounding ring' do
+      state.add_fog(map_id: map_id, points: [[0, 0], [10, 10]])
+      affected = state.erase_fog_box(map_id, 3, 3, 7, 7)
+      expect(affected).to eq(1)
+      regions = state.list_fog(map_id: map_id)
+      expect(regions.length).to eq(4)             # ring of four remainder rects
+      covered = ->(x, y) { regions.any? { |f| xs = f[:points].map { |p| p[0] }; ys = f[:points].map { |p| p[1] }
+                                            x >= xs.min && x < xs.max && y >= ys.min && y < ys.max } }
+      expect(covered.call(5, 5)).to be(false)     # revealed hole
+      expect(covered.call(1, 1)).to be(true)      # still fogged
+    end
+
+    it 'Erase Fog Box removes a fully-covered region and reports zero on a miss' do
+      a = state.add_fog(map_id: map_id, points: [[2, 2], [4, 4]])
+      expect(state.erase_fog_box(map_id, 0, 0, 10, 10)).to eq(1)
+      expect(state.get_fog(a)).to be_nil
+      b = state.add_fog(map_id: map_id, points: [[1, 1], [2, 2]])
+      expect(state.erase_fog_box(map_id, 50, 50, 60, 60)).to eq(0)
+      expect(state.get_fog(b)).not_to be_nil
     end
   end
 end

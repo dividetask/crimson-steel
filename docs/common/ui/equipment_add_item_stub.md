@@ -18,7 +18,7 @@ A single form with the following fields:
 | Quantity | number | Defaults to 1. Fractional values are accepted only for Currency Item Types per `equipment_design.md`. |
 | Properties | repeatable group | Zero or more Property Applications. Each entry has a Property name (dropdown over the catalog) and — when the Property has `has_subtype: true` — a Subtype dropdown. Cost is copied from the catalog at submit time. |
 | Equipped | checkbox | Initial `equipped` flag. Defaults to false. |
-| Description | textarea | Free-form text stored in the Stack's `metadata.description`. Surfaced by `creatures_minimal_stub` and `creatures_full_stub` in their Item Descriptions section. |
+| Description | textarea | Free-form text stored in the Stack's `metadata.description`. Surfaced by `creatures_minimal_stub` in its Item Descriptions section. |
 
 Below: Submit button.
 

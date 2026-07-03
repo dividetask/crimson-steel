@@ -358,6 +358,18 @@ module Conditions
         end
       end
       @state.effects = kept
+      # Non-modifier Mechanics (flag / display / reroll, e.g. Spiritual Weapon's
+      # `spiritual_weapon` marker) live on the sidecar list under the same
+      # source_id contract, so purge them by the same prefix.
+      kept_mechs = []
+      @state.named_effect_mechanics.each do |m|
+        if m[:source_id].to_s.start_with?(prefix)
+          removed << m
+        else
+          kept_mechs << m
+        end
+      end
+      @state.named_effect_mechanics = kept_mechs
       removed
     end
 
@@ -380,6 +392,52 @@ module Conditions
         out << [bonus_type, neg] if neg
       end
       out
+    end
+
+    # ===== Modifier Breakdown =====
+    # Per-source view of the Modifiers on a target, *before* the per-Bonus-Type
+    # collapsing Get Modifiers does — so a sheet can name the ability / spell
+    # behind each bonus and show which ones lost the non-stacking contest.
+    # Each entry: { source:, bonus_type:, amount:, applied: }. `applied` is
+    # true only for the single winner of each (Bonus Type, sign) group (the
+    # max positive / min negative, matching Get Modifiers' totals); the rest
+    # are still returned, flagged `applied: false`, for a struck-out display.
+    # Zero amounts are dropped.
+    def modifier_breakdown(target_key, current_round: nil)
+      relevant = @state.effects.select do |e|
+        next false unless effect_targets?(e[:target_key], target_key)
+        next false if current_round && e[:ends_on_round] && e[:ends_on_round] <= current_round
+        next false unless e[:amount].is_a?(Integer)
+        next false if e[:amount].zero?
+        true
+      end
+      winners = {}
+      relevant.group_by { |e| e[:bonus_type] }.each do |bt, list|
+        if (p = list.select { |e| e[:amount].positive? }.max_by { |e| e[:amount] })
+          winners[[bt, :pos]] = p.object_id
+        end
+        if (n = list.select { |e| e[:amount].negative? }.min_by { |e| e[:amount] })
+          winners[[bt, :neg]] = n.object_id
+        end
+      end
+      relevant.map do |e|
+        sign = e[:amount].positive? ? :pos : :neg
+        { source: modifier_source_label(e), bonus_type: e[:bonus_type].to_s,
+          amount: e[:amount], applied: winners[[e[:bonus_type], sign]] == e.object_id }
+      end
+    end
+
+    # A human-facing source name for a Modifier Active Effect: the granting
+    # Named Effect (Rage, Magic Vestments — carried in `metadata.effect_name`)
+    # when present, else the most meaningful segment of the `source_id`
+    # (skipping domain prefixes), else the Bonus Type as a last resort.
+    def modifier_source_label(e)
+      md = e[:metadata] || {}
+      name = md['effect_name'] || md[:effect_name]
+      return name.to_s unless name.nil? || name.to_s.strip.empty?
+      generic = %w[spell equipment encounter cast special affliction condition creature]
+      seg = e[:source_id].to_s.split(':').reject { |s| s.empty? }
+      (seg.reject { |s| generic.include?(s.downcase) }.first || seg.last || e[:bonus_type]).to_s
     end
 
     # ===== Apply Acid Damage =====
