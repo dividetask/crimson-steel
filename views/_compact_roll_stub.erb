@@ -1,0 +1,37 @@
+<%#
+  Compact Roll Stub — a one-line Roll surface for a player's Skill Roll, about
+  the height of a Skill row. It has no Roll button of its own: the Skill list's
+  Roll button both opens it and performs the roll (the client rolls it the
+  moment this fragment is injected). It shows only the Target Number, the dice
+  (coloured .die boxes — green success / red 1 / blue crit, same as the full
+  stub), any Starting Value, and the result, then POSTs the roll to the Log.
+
+  Locals:
+    roll          — the Roll hash (CreatureSheet.skill_roll): tn, dice_count,
+                    die_size, starting_value, roll_name, creature_name.
+    creature_id   — the roller's Creature id (sent to the Log).
+%>
+<%
+  require 'json'
+  sv = roll[:starting_value].to_i
+
+  starting_squares = +''
+  if sv != 0
+    cls = sv.positive? ? 'success' : 'fail'
+    sv.abs.times { starting_squares << %(<span class="die #{cls} starting-die">&nbsp;</span>) }
+    starting_squares << ' '
+  end
+
+  config = { tn: roll[:tn], dice_count: roll[:dice_count],
+             die_size: roll[:die_size], starting_value: sv }
+  # base_tn + bonus_penalty_list travel with the roll so the Log page can show
+  # the TN math; ranks so the Log can show how trained the Skill was.
+  meta   = { creature_id: creature_id, creature_name: roll[:creature_name],
+             roll_name: roll[:roll_name], ranks: roll[:ranks].to_i,
+             base_tn: roll[:base_tn], bonus_penalty_list: roll[:bonus_penalty_list] }
+%>
+<span class="compact-roll" data-config='<%= config.to_json %>' data-meta='<%= meta.to_json %>'>
+  <span class="compact-roll-param">TN <%= roll[:tn] %></span>
+  <span class="compact-roll-dice"><span class="dice-placeholder">[ <%= starting_squares %>&mdash; ]</span></span>
+  <span class="compact-roll-result"></span>
+</span>

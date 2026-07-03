@@ -71,7 +71,7 @@ Optional:
 
 ## Composition
 
-Embedded by the Character Sheets page (`/character-sheets`) to the left of the main sheet panel. The host page renders the sidebar plus the chosen creature's `creatures_minimal_stub` or `creatures_full_stub`. The sidebar's name links point at `/character-sheets?i=<sheet_index>&detail=<minimal|full>`; the parent preserves the current `detail` mode across navigations.
+Embedded by the Character Sheets page (`/character-sheets`) to the left of the main sheet panel. The host page renders the sidebar plus the chosen creature's `creatures_minimal_stub` (the single sheet layout). The sidebar's name links point at `/character-sheets?i=<sheet_index>`.
 
 ## LocalStorage persistence
 

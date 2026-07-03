@@ -161,6 +161,28 @@ The baseline state for each test (unless overridden) is: no Maps, no Tokens, `ac
 
 **Erase Terrain Box subtracts a region from rect fills.** Erasing a box from the interior of one rect fill replaces it with the remainder rectangles (a ring of up to four) and reports one fill touched; a box covering a fill entirely removes it; a box missing every fill reports zero and changes nothing.
 
+## Fog (fog of war)
+
+**A fresh Map has no Fog.** List Fog on a new Map returns empty — fog of war is disabled by default.
+
+**Add Fog stores a region and assigns an ID.** Add Fog with `points = [(0, 0), (5, 4)]`: returns an integer ID; Get Fog returns the record with those points and `shape_kind = rect` (the default). Fog carries no texture.
+
+**Add Fog on an unknown Map returns the sentinel.** With no Map 99: Add Fog with `map_id = 99` returns the error sentinel; nothing is created.
+
+**List Fog filters by Map.** `map_id` restricts to that Map's Fog; omitting it returns every Map's Fog.
+
+**Remove and Clear Fog delete regions.** Remove Fog deletes one by ID; Clear Fog On Map removes every region on the Map and returns the count.
+
+**Fog IDs are independent of Terrain IDs.** Each collection has its own `next_*_id` sequence, so the first Fog and the first Terrain fill may share the numeric ID; Get Fog and Get Terrain resolve to their own records.
+
+**Fog persists across reload.** A Fog region written and reloaded from disk round-trips its points and shape kind, and `next_fog_id` is preserved so a later Add Fog still gets a fresh ID.
+
+**Delete Map cascades to Fog.** Deleting a Map removes every Fog region whose `map_id` matches (like Terrain and Tokens) — no orphan Fog remains.
+
+**Clear Annotations On Map never removes Fog.** Fog is permanent map structure: after Clear Annotations On Map, the Map's Fog is untouched.
+
+**Erase Fog Box (the Reveal tool) subtracts a region from rect fog.** Erasing a box from the interior of one rect region replaces it with the remainder rectangles (a ring of up to four) and reports one region touched; a box covering a region entirely removes it; a box missing every region reports zero and changes nothing. (Mechanically identical to *Erase Terrain Box*.)
+
 ## Edge cases
 
 **Token referencing a deleted Creature is still returned.** The Creatures domain removes Creature 1001 after a Token was placed for it. Get Token on that Token still returns the Token record with `creature_id = 1001` intact. The UI is responsible for rendering a placeholder; Atlas does not validate.

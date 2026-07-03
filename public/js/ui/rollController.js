@@ -84,6 +84,10 @@ export class RollController {
       criticalModifier,
     }, config);
 
+    // Stash the final (post-reroll/nudge) dice so a host that logs the Roll —
+    // e.g. the DM Page Skill action — can record the actual dice it showed.
+    group.dataset.rolledDice = JSON.stringify(current);
+
     const inputs = group.querySelectorAll('.result-input');
     if (inputs[0]) {
       inputs[0].value = dois;

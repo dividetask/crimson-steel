@@ -30,6 +30,26 @@ RSpec.describe 'Apply Named Effect' do
     expect(inst.state.effects).to be_empty
   end
 
+  it 'names the granting Effect in modifier_breakdown (Rage, not the Bonus Type)' do
+    inst = build_instance
+    inst.apply_named_effect('rage', source_id: 'special:rage', bindings: { 'level' => 5 })
+    dr = inst.modifier_breakdown('damage_reduction')
+    expect(dr).to eq([{ source: 'rage', bonus_type: 'Circumstance', amount: 2, applied: true }])
+  end
+
+  it 'flags a same-Bonus-Type loser as applied: false (non-stacking)' do
+    inst = build_instance
+    # Rage's +2 Circumstance wins; a weaker +1 Circumstance from elsewhere loses.
+    inst.apply_named_effect('rage', source_id: 'special:rage', bindings: { 'level' => 5 })
+    inst.apply_effect(source_id: 'special:lesser:0', bonus_type: 'Circumstance',
+                      amount: 1, target_key: 'damage_reduction')
+    dr = inst.modifier_breakdown('damage_reduction')
+    expect(dr).to contain_exactly(
+      { source: 'rage',   bonus_type: 'Circumstance', amount: 2, applied: true },
+      { source: 'lesser', bonus_type: 'Circumstance', amount: 1, applied: false }
+    )
+  end
+
   it 're-applying the same Effect Name overwrites every Mechanic slot' do
     inst = build_instance
     inst.apply_named_effect('paralyzed', source_id: 'x')

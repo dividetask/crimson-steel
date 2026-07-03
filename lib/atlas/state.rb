@@ -38,12 +38,14 @@ module Atlas
       @zones   = (raw['zones']  || []).map { |z| normalize_zone(z) }
       @annotations = (raw['annotations'] || []).map { |a| normalize_annotation(a) }
       @terrain = (raw['terrain'] || []).map { |t| normalize_terrain(t) }
+      @fog     = (raw['fog']     || []).map { |f| normalize_fog(f) }
       @active_map_id = raw['active_map_id']
       @next_map_id   = Integer(raw['next_map_id']   || ((@maps.map   { |m| m[:id] }.max || 0) + 1))
       @next_token_id = Integer(raw['next_token_id'] || ((@tokens.map { |t| t[:id] }.max || 0) + 1))
       @next_zone_id  = Integer(raw['next_zone_id']  || ((@zones.map  { |z| z[:id] }.max || 0) + 1))
       @next_annotation_id = Integer(raw['next_annotation_id'] || ((@annotations.map { |a| a[:id] }.max || 0) + 1))
       @next_terrain_id = Integer(raw['next_terrain_id'] || ((@terrain.map { |t| t[:id] }.max || 0) + 1))
+      @next_fog_id     = Integer(raw['next_fog_id']     || ((@fog.map     { |f| f[:id] }.max || 0) + 1))
     end
 
     # ---------- Snapshot / persistence ----------
@@ -55,12 +57,14 @@ module Atlas
         'zones'         => @zones.map  { |z| stringify_zone(z) },
         'annotations'   => @annotations.map { |a| stringify_annotation(a) },
         'terrain'       => @terrain.map { |t| stringify_terrain(t) },
+        'fog'           => @fog.map { |f| stringify_fog(f) },
         'active_map_id' => @active_map_id,
         'next_map_id'   => @next_map_id,
         'next_token_id' => @next_token_id,
         'next_zone_id'  => @next_zone_id,
         'next_annotation_id' => @next_annotation_id,
-        'next_terrain_id' => @next_terrain_id
+        'next_terrain_id' => @next_terrain_id,
+        'next_fog_id'   => @next_fog_id
       }
     end
 
@@ -127,14 +131,16 @@ module Atlas
       map.dup
     end
 
-    # Destructive: removes the Map and cascades to every Token and Terrain
-    # fill on it (Terrain is the Map's painted structure, so it dies with the
-    # Map). Zones on the Map are left for the consumer (Conditions) to reap.
+    # Destructive: removes the Map and cascades to every Token, Terrain fill,
+    # and Fog region on it (Terrain and Fog are the Map's painted structure, so
+    # they die with the Map). Zones on the Map are left for the consumer
+    # (Conditions) to reap.
     def delete_map(id)
       map = map_for(id) or return ERROR
       @maps.delete(map)
       @tokens.reject! { |t| t[:map_id] == id }
       @terrain.reject! { |t| t[:map_id] == id }
+      @fog.reject! { |f| f[:map_id] == id }
       @active_map_id = nil if @active_map_id == id
       persist!
       map.dup
@@ -405,6 +411,23 @@ module Atlas
       t[:id]
     end
 
+    # Update one or more fields of a Terrain fill by ID (e.g. the DM retyping a
+    # wall's corners in the Elements panel). `id` and `map_id` are immutable —
+    # an attempt to change either returns ERROR (fill unchanged).
+    def edit_terrain(id, **fields)
+      t = terrain_for(id) or return ERROR
+      return ERROR if fields.key?(:id) || fields.key?(:map_id)
+      fields.each do |k, v|
+        case k
+        when :points     then t[:points] = Array(v).map { |p| [p[0], p[1]] }
+        when :shape_kind then t[:shape_kind] = v.to_s
+        when :texture    then t[:texture] = v.to_s
+        end
+      end
+      persist!
+      t.dup
+    end
+
     def remove_terrain(id)
       t = terrain_for(id) or return nil
       @terrain.delete(t)
@@ -436,39 +459,93 @@ module Atlas
     # removed wholesale (the brushes only paint rects, so this is rare).
     # Returns the number of fills the box touched.
     def erase_terrain_box(map_id, x0, y0, x1, y1)
-      bx0, bx1 = [x0, x1].minmax
-      by0, by1 = [y0, y1].minmax
-      affected = 0
-      result = []
-      @terrain.each do |t|
-        unless t[:map_id] == map_id
-          result << t
-          next
-        end
-        xs = t[:points].map { |p| p[0] }
-        ys = t[:points].map { |p| p[1] }
-        ax0, ax1 = xs.minmax
-        ay0, ay1 = ys.minmax
-        ix0 = [ax0, bx0].max; iy0 = [ay0, by0].max
-        ix1 = [ax1, bx1].min; iy1 = [ay1, by1].min
-        if ix0 >= ix1 || iy0 >= iy1
-          result << t           # no overlap — keep as-is
-          next
-        end
-        affected += 1
-        next unless t[:shape_kind] == 'rect'   # ellipse: drop it entirely
-        remainders = []
-        remainders << [ax0, ay0, ax1, iy0] if iy0 > ay0   # strip above the box
-        remainders << [ax0, iy1, ax1, ay1] if iy1 < ay1   # strip below
-        remainders << [ax0, iy0, ix0, iy1] if ix0 > ax0   # strip left
-        remainders << [ix1, iy0, ax1, iy1] if ix1 < ax1   # strip right
-        remainders.each do |(rx0, ry0, rx1, ry1)|
-          result << { id: @next_terrain_id, map_id: map_id, shape_kind: 'rect',
-                      points: [[rx0, ry0], [rx1, ry1]], texture: t[:texture] }
-          @next_terrain_id += 1
+      @terrain, affected = erase_box(@terrain, map_id, x0, y0, x1, y1) do |fill, rx0, ry0, rx1, ry1|
+        rem = { id: @next_terrain_id, map_id: map_id, shape_kind: 'rect',
+                points: [[rx0, ry0], [rx1, ry1]], texture: fill[:texture] }
+        @next_terrain_id += 1
+        rem
+      end
+      persist! if affected.positive?
+      affected
+    end
+
+    # ---------- Manage Fog (fog of war) ----------
+
+    # Fog is the Map's hidden structure — rectangles (or ellipses) the DM
+    # paints to conceal part of the Map from players. Fog carries no texture
+    # and no mechanical meaning; it is a visibility mask. Like Terrain it is
+    # permanent map furniture: it is not swept by Clear Annotations and
+    # persists until the DM clears it (or the Map is deleted). `points` are the
+    # two opposite corners of the rectangle in Map Units (opaque — no clamping
+    # or snapping, exactly as Token positions). Fog defaults to disabled: a Map
+    # with no Fog regions restricts nothing.
+    def add_fog(map_id:, points:, shape_kind: 'rect')
+      return ERROR unless map_for(map_id)
+      f = {
+        id:         @next_fog_id,
+        map_id:     map_id,
+        shape_kind: shape_kind.to_s,
+        points:     Array(points).map { |p| [p[0], p[1]] }
+      }
+      @next_fog_id += 1
+      @fog << f
+      persist!
+      f[:id]
+    end
+
+    # Update one or more fields of a Fog region by ID (e.g. the DM retyping its
+    # corners in the Elements panel). `id` and `map_id` are immutable — an
+    # attempt to change either returns ERROR (region unchanged).
+    def edit_fog(id, **fields)
+      f = fog_for(id) or return ERROR
+      return ERROR if fields.key?(:id) || fields.key?(:map_id)
+      fields.each do |k, v|
+        case k
+        when :points     then f[:points] = Array(v).map { |p| [p[0], p[1]] }
+        when :shape_kind then f[:shape_kind] = v.to_s
         end
       end
-      @terrain = result
+      persist!
+      f.dup
+    end
+
+    def remove_fog(id)
+      f = fog_for(id) or return nil
+      @fog.delete(f)
+      persist!
+      f.dup
+    end
+
+    def get_fog(id)
+      fog_for(id)&.dup
+    end
+
+    def list_fog(map_id: nil)
+      result = @fog
+      result = result.select { |f| f[:map_id] == map_id } if map_id
+      result.map(&:dup)
+    end
+
+    def clear_fog_on_map(map_id)
+      removed = @fog.select { |f| f[:map_id] == map_id }
+      @fog -= removed
+      persist!
+      removed.length
+    end
+
+    # Reveal tool: subtract the rectangular region (x0, y0)-(x1, y1) (Map Units)
+    # from a Map's Fog — the mirror of Erase Terrain Box. A rect region
+    # overlapping the box is replaced by the (up to four) rectangles that remain
+    # after subtracting the box; a fully covered region vanishes; an ellipse
+    # region that overlaps is removed wholesale. Returns the number of regions
+    # the box touched.
+    def erase_fog_box(map_id, x0, y0, x1, y1)
+      @fog, affected = erase_box(@fog, map_id, x0, y0, x1, y1) do |_region, rx0, ry0, rx1, ry1|
+        rem = { id: @next_fog_id, map_id: map_id, shape_kind: 'rect',
+                points: [[rx0, ry0], [rx1, ry1]] }
+        @next_fog_id += 1
+        rem
+      end
       persist! if affected.positive?
       affected
     end
@@ -506,6 +583,7 @@ module Atlas
     def zone_for(id)  = @zones.find  { |z| z[:id] == id }
     def annotation_for(id) = @annotations.find { |a| a[:id] == id }
     def terrain_for(id)    = @terrain.find    { |t| t[:id] == id }
+    def fog_for(id)        = @fog.find        { |f| f[:id] == id }
 
     def default_grid = { type: Config.default_grid_type, origin: [0, 0] }
 
@@ -557,6 +635,45 @@ module Atlas
 
     def boxes_overlap?(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1)
       ax0 < bx1 && ax1 > bx0 && ay0 < by1 && ay1 > by0
+    end
+
+    # Subtract the box (x0, y0)-(x1, y1) from every `rect` fill on `map_id` in
+    # `collection`, returning `[new_collection, touched_count]`. A rect that
+    # overlaps the box is replaced by the up-to-four remainder rectangles built
+    # by `make.call(fill, rx0, ry0, rx1, ry1)`; a fully covered rect vanishes;
+    # an ellipse that overlaps is dropped wholesale. Shared by Erase Terrain Box
+    # and Erase Fog Box — the only difference is the remainder record `make`
+    # builds (Terrain keeps its texture; Fog has none).
+    def erase_box(collection, map_id, x0, y0, x1, y1)
+      bx0, bx1 = [x0, x1].minmax
+      by0, by1 = [y0, y1].minmax
+      affected = 0
+      result = []
+      collection.each do |fill|
+        unless fill[:map_id] == map_id
+          result << fill           # different Map — keep as-is
+          next
+        end
+        xs = fill[:points].map { |p| p[0] }
+        ys = fill[:points].map { |p| p[1] }
+        ax0, ax1 = xs.minmax
+        ay0, ay1 = ys.minmax
+        ix0 = [ax0, bx0].max; iy0 = [ay0, by0].max
+        ix1 = [ax1, bx1].min; iy1 = [ay1, by1].min
+        if ix0 >= ix1 || iy0 >= iy1
+          result << fill           # no overlap — keep as-is
+          next
+        end
+        affected += 1
+        next unless fill[:shape_kind] == 'rect'   # ellipse: drop it entirely
+        remainders = []
+        remainders << [ax0, ay0, ax1, iy0] if iy0 > ay0   # strip above the box
+        remainders << [ax0, iy1, ax1, ay1] if iy1 < ay1   # strip below
+        remainders << [ax0, iy0, ix0, iy1] if ix0 > ax0   # strip left
+        remainders << [ix1, iy0, ax1, iy1] if ix1 < ax1   # strip right
+        remainders.each { |(rx0, ry0, rx1, ry1)| result << yield(fill, rx0, ry0, rx1, ry1) }
+      end
+      [result, affected]
     end
 
     # ----- normalization (load) -----
@@ -631,6 +748,14 @@ module Atlas
         texture:    (t['texture'] || '').to_s }
     end
 
+    def normalize_fog(f)
+      f = f.transform_keys(&:to_s) if f.respond_to?(:transform_keys)
+      { id:         Integer(f['id']),
+        map_id:     f['map_id'],
+        shape_kind: (f['shape_kind'] || 'rect').to_s,
+        points:     Array(f['points']).map { |p| [p[0], p[1]] } }
+    end
+
     def normalize_anchor(a)
       a ||= {}
       a = a.transform_keys(&:to_s) if a.respond_to?(:transform_keys)
@@ -673,6 +798,11 @@ module Atlas
     def stringify_terrain(t)
       { 'id' => t[:id], 'map_id' => t[:map_id], 'shape_kind' => t[:shape_kind],
         'points' => t[:points], 'texture' => t[:texture] }
+    end
+
+    def stringify_fog(f)
+      { 'id' => f[:id], 'map_id' => f[:map_id], 'shape_kind' => f[:shape_kind],
+        'points' => f[:points] }
     end
   end
 end

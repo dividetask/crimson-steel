@@ -20,7 +20,7 @@ post '/character-creation' do
     payload = JSON.parse(request.body.read)
     raise ArgumentError, 'malformed request' unless payload.is_a?(Hash)
     id = CharacterCreation.create!(payload)
-    { ok: true, id: id, redirect: "/character-sheets?creature_id=#{id}&detail=full" }.to_json
+    { ok: true, id: id, redirect: "/character-sheets?creature_id=#{id}" }.to_json
   rescue JSON::ParserError
     status 400
     { ok: false, error: 'invalid JSON' }.to_json

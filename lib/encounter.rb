@@ -10,6 +10,7 @@ require_relative 'encounter/special'
 require_relative 'encounter/roll_table'
 require_relative 'encounter/state'
 require_relative 'encounter/affliction_relief'
+require_relative 'encounter/visibility'
 
 # Encounter domain. See docs/common/encounter/encounter_design.md.
 #

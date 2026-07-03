@@ -72,9 +72,21 @@ A Combatant whose turn has been skipped by *Advance Turn* — i.e., one for whom
 
 The stub queries *Creature Can Act?* for each Combatant when rendering. The result is presentation-only — the stub does not call *Advance Turn* or otherwise mutate Combat state.
 
+## Partial-round skip highlight
+
+Within a Round, higher-Tier Combatants act on more **Time Ticks** than lower-Tier ones (each Combatant's Time Tick Schedule lists the ticks it acts on). On any given tick — a partial round / "half turn" — only the Combatants scheduled for the **current** Time Tick act; the rest sit that tick out. Those sitting-out rows are **greyed** and marked **`(skip)`** next to the name, so the GM can see at a glance who is passed over this partial round versus who still acts.
+
+This is distinct from the *Cannot-act highlight* above (Dead / Dying / a "cannot act" condition): a `(skip)` row is a healthy Combatant that simply is not scheduled for the current Time Tick. The flag is set only while Combat is active (Time Ticks seeded) and is presentation-only — a Combatant not scheduled for the current tick is exactly one absent from *Acting Combatants* for that tick.
+
 ## Placement and visibility
 
 Embedded by `views/encounter.erb` directly below the Timekeeping Stub. The stub is rendered for the DM at all times; player viewers see it only when Combat is active (`Encounter.state.combat_active?` is true). The Encounter page's host template guards rendering accordingly.
+
+### Player visibility of non-player vitals
+
+Only the party's own Player Characters show full vitals to players — every other Combatant's vitals (enemy **or** NPC) are the DM's to see, matching the rest of the app where players never see non-PC creatures' details. When the viewer is a player, each non-Player-Character row has its **Mana** and **Conditions** columns blanked, and its cannot-act highlight suppressed so incapacitation is not leaked through row styling. Its **HP bar** stays visible as a rough health gauge, but the raw `current/max` numbers (and the tooltip that would reveal them) are withheld, and its **Magic Toxicity** is blanked outright — unless the viewer qualifies for the See Injury exception below. The **Combat Pool** column stays visible to players. Player-Character rows always render in full, and the DM always sees every column.
+
+The one exception is the cleric ability **See Injury** (`see_injury`). When the viewing device's assigned Character has that ability, non-PC rows also show their **HP numbers** and **Magic Toxicity** — but still not Mana or Conditions (identifying an affliction requires a Heal check, per the ability's description). This reflects the assigned Character's sight, so it also applies when the DM previews via "View as Player" with their device assigned to a See Injury cleric. Redaction is applied by `Encounter::Visibility.redact_rows` after the row hashes are built in `build_tracker_row`, keyed off each row's `is_pc` flag and the viewer's `see_injury` status.
 
 ## Embedded in a scene
 

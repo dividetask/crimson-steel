@@ -168,6 +168,24 @@ module Equipment
         end
     end
 
+    # Per-equipped-Armor contributions, so a sheet can spell out the math
+    # behind the Damage Reduction / Resilience totals piece by piece. One
+    # entry per equipped Armor / Shield Stack: its display name, Tier, the
+    # Damage Reduction it grants, and its Resilience with the
+    # `tier × increment` factors that produced it (increment nil for a
+    # Shield). See defensive_totals for the summed form.
+    def defensive_components(stacks, catalog)
+      Array(stacks)
+        .select { |s| s.equipped && (it = catalog.item_type(s.item_type)) && it[:category] == 'Armor' }
+        .map do |s|
+          ad = armor_details(s, catalog)
+          { name: ad[:display_name], tier: s.tier.to_i,
+            damage_reduction: ad[:damage_reduction].to_i,
+            resilience: ad[:resilience].to_i,
+            resilience_increment: ad[:resilience_increment] }
+        end
+    end
+
     # ---- weapon field resolution ---------------------------------------
 
     # Per-weapon `base_damage` override → first Tag carrying a

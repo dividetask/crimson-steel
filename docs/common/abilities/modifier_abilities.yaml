@@ -143,6 +143,9 @@ far_sight:
 
 # --- Passive sensory / flag-style (modifiers-pending) -------------------
 
+see_injury:
+  description: "You can see injuries, afflictions, magical saturation, and the life energy flowing through all creatures including the negative life energy of undead. The range of this ability starts at 10 feet and increases by 5 feet every two levels. All creatures can hide this aura from you and automatically attempt to do so whenever they make a stealth check. This will allow you to make a heal check to identify the details of an affliction affecting a creature within range. This ability does not work if you are blinded."
+
 darkvision:
   description: "See in darkness as if it were dim light, up to 60 feet."
 

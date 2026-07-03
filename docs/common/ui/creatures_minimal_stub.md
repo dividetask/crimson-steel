@@ -1,6 +1,6 @@
 # Creature Minimal Stub
 
-A reusable UI component that displays a single Creature in compact form. The full sheet variant is `creatures_full_stub.md`. The application chooses which to render based on a toggle; switching between them displays opposite-named buttons (`Show full sheet` while minimal is active, `Show minimal` while full is active).
+A reusable UI component that displays a single Creature in compact form. This is the single Character Sheet layout — there is no separate full-sheet variant.
 
 See `ui_conventions.md` for shared rules.
 
@@ -31,6 +31,7 @@ The card has full-width regions at the top, a two-column body in the middle, and
    - **Right column** (to the right of HP / Mana): two lines.
      - Line 1: `Damage Reduction <base><tokens>`. Label small-caps maroon, bold. The base is the equipped-Armor value (plus any Inherent Modifier, kept baked in); each active-effect Modifier is broken out as a signed token, so a raging Creature reads `3+2` rather than `5`.
      - Line 2: `Damage Resilience <base><tokens>`. Same styling and rule.
+     - **Damage Reduction / Resilience popup.** Hovering, keyboard-focusing, or clicking/tapping either line reveals a small popup anchored to that line (the same reveal/click-toggle machinery as the Attribute popup — only one popup is visible at a time). Below the line's name the popup shows a **breakdown line** as `<amount> (<source>)` terms summing to the total — the first amount leads unsigned, later ones carry their sign: each equipped Armor piece that contributes, then a direct Creature stat as `innate`, then each active-effect Modifier labelled by **the ability / spell that granted it** (`rage`, not the Bonus Type `Circumstance`). A source that contributes nothing — a Shield (null Reduction / Resilience), a mundane Tier-0 Armor's zero Resilience, an absent stat — is omitted rather than shown as a `+0` term. Two Modifiers of the same Bonus Type do **not** stack (only the strongest applies): both are listed, but the one that loses is **struck out and greyed** so it reads as present-but-not-applied and the total counts only the winner. Examples: `6 (+1 Plate mail) = 6`; a raging Creature reads `1 (+1 Leather armor) + 2 (rage) = 3`. Conditions supplies the per-source Modifier breakdown (with the applied / not-applied flag) and Equipment the per-piece Armor contributions; the stub never assembles them.
 
 3. **Initiative · Perception · Speed row** (full width, three equal columns)
    - `Initiative <dice_count>` — the dice count Combat would roll on a fresh initiative roll. No `d` suffix.
@@ -42,10 +43,11 @@ Below the Initiative · Perception · Speed row the sheet splits into two column
 4. **Actions** (left column) — section heading `ACTIONS`. A table with columns `Name`, `Spd`, `Roll`, `Bonus`, `Dmg`, `Notes`. One row per usable action. The four numeric columns are center-aligned; `Bonus` shows an explicit sign on positive values; `Dmg` shows `—` when the action deals no damage. Always rendered — empty actions table is still allowed; the stub renders a single default `Dodge` row when no equipped weapons are found.
 
 5. **Skills** (left column) — section heading `SKILLS`. A table with columns `Name`, `Ranks`, `Dice`, `Bonus`. One row per Skill the Creature has trained. The `Bonus` column shows an explicit sign on positive values. Omitted when the Creature has no trained Skills. The number of trained Skills a Creature is expected to have is derived from the `Skill Pick Formula` in `creatures_config.yaml` against the Creature's Effective Intelligence and the Class's `bonus_skills` field; the section reflects whatever Skills the Creature actually trains.
+   - **`SKILLS` heading opens the full Skill list.** Clicking (or keyboard-activating) the section heading opens a modal listing **every** Skill — trained and untrained — with the Creature's Dice Cap and Bonus for each (no Ranks column), an untrained Skill carrying the Non-Proficiency Penalty (Proficiencies owns that computation). Each row carries a **Roll** button that reveals a **compact roll — about one row tall — inline, directly beneath that Skill's row** (not in a separate popup). That Roll button *is* the roll: there is no second button; clicking it rolls immediately. The compact roll drops the character-name / check table and shows only the Target Number, the dice, and any Starting Value, then the result; the Roll's Dice Cap and Target Number come from Proficiencies + Dice Resolution. The dice render as the same coloured `.die` boxes as the full stub (green success / red 1 / blue crit). Rolling **POSTs the roll to the Log page** (`menu_layout.md` → Log) so a player rolls once, in the open, and cannot silently re-roll for a better result unseen. Only one Skill's roll is shown at a time — rolling another Skill hides the previous one. Bare Set-Skill families (keys ending `_`) are excluded from the list — only concrete Skills, plus the Creature's own trained Set-Skill instances, appear.
 
-6. **Spells** (right column) — `SPELLS`. One line per spell tier the Creature has at least one spell in: `Tier <n>. <names, comma-separated>`. The `Tier <n>.` label is italic and uses the Tier Color **of that spell tier** (not the Creature's Tier). Omitted when the Creature has no spells.
+6. **Spells** (right column) — `SPELLS`. Lists **every spell the Creature can cast** — the spells granted by its Classes together with the spells it can cast from carried items — a scroll or wand's stored spell, and every spell named by a worn spell-granting item (`grants_spell`, e.g. a Ring of Shooting Stars) — merged and grouped by Tier (each at the spell's own Tier), with duplicate names collapsed. One line per spell tier the Creature has at least one castable spell in: `Tier <n>. <names, comma-separated>`. The `Tier <n>.` label is italic and uses the Tier Color **of that spell tier** (not the Creature's Tier). Each spell name is clickable: clicking it opens that spell's description in a modal (`abilities_spell_detail_stub.md`). Omitted when the Creature has no castable spells.
 
-7. **Rituals** (right column) — `RITUALS`. Same line format as Spells. Omitted when the Creature has no rituals.
+7. **Rituals** (right column) — `RITUALS`. Same line format as Spells, sourced from the Creature's carried Ritual books. Spell names are clickable to their description just like the Spells section. Omitted when the Creature has no rituals.
 
 Below the Actions / Skills / Spells / Rituals / Items two-column body the sheet renders a second two-column row holding Abilities and Item Descriptions side by side.
 
@@ -69,7 +71,6 @@ Required:
 Optional:
 - Viewing Player ID. Used by the application to determine the player's identity for visibility filtering done at the parent level.
 - `chrome` — boolean, default true. When false, the outer card framing (parchment background, top Tier-Color border, section rules) is suppressed and the stub renders as a bare block suitable for embedding inside a parent stub's wrapper. Parents that compose multiple creature blocks under a shared header pass `chrome = false` to avoid stacked card chrome.
-- Detail-mode toggle target — the route the toggle button posts to in order to switch between this stub and `creatures_full_stub.md`. The toggle reads `Show full sheet` while the minimal view is active, is rendered at the **bottom-left** of the card, and visually sits below every other section. The application may persist the last-picked mode in `localStorage` keyed by Creature ID (see `ui_conventions.md`); a `?detail=full` or `?detail=minimal` query parameter on the page URL overrides the stored value when present.
 
 ## Visibility
 
@@ -85,7 +86,7 @@ The stub composes data from:
 - **Abilities domain** — Ability description text. The stub looks each granted-ability name up via `lookup_catalog_ability`; unrecognized names fall back to a Title-Case rendering of the snake_case key with no description body.
 - **Proficiencies domain** — Perception's Competency Modifier; the per-Attribute Attribute / Save Dice Caps and Bonuses and the unskilled-Skill Dice Cap and Bonus (Non-Proficiency Penalty, or the Floor Ability lift) shown in the Attribute popup.
 - **Creatures domain (attribute breakdown)** — the ordered base / racial / inherent / per-Bonus-Type components summing to each Effective Attribute, shown as the popup's breakdown line.
-- **Equipment + Conditions domains** — Damage Reduction and Damage Resilience (equipped Armor totals plus active-effect Modifiers).
+- **Equipment + Conditions domains** — Damage Reduction and Damage Resilience (equipped Armor totals plus active-effect Modifiers), and the per-Armor-piece contributions — each piece's Reduction and its Resilience `tier × increment` factors — that fill the math popup.
 - **CreatureModifiers bridge** — the Always-On Attribute and Save bonuses (equipped Guidance items + Modifier abilities), per-Bonus-Type stacked. Attribute bonuses fold into the Creature's Effective Attributes and show as a green `+X`; Save bonuses are surfaced as broken-out signed tokens beside each Save, conditional ones flagged with `*`.
 - **Combat config** — Initiative Attribute and Initiative Divisor for the dice count display. The stub does not roll initiative; it shows what the dice count would be on a fresh roll.
 

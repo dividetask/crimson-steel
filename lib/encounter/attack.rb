@@ -79,8 +79,11 @@ module Encounter
       bonuses << attacker_competency if attacker_competency
       bonuses.concat(Array(attacker_modifiers))
       no_def = declared_defense.nil?
-      bonuses.concat(attacker_bonuses(flatfooted: (no_def || declared_defense.to_s != 'dodge'),
-                                      unaware: (no_def && unaware)))
+      # Declaring ANY accepted Defensive Action (Dodge / Block / Parry) removes
+      # the defender's Flatfooted status (encounter_design.md → Flatfooted
+      # interaction), so the attacker's Flatfooted advantage applies only when no
+      # defense is declared — matching spec[:target][:flatfooted] below.
+      bonuses.concat(attacker_bonuses(flatfooted: no_def, unaware: (no_def && unaware)))
 
       spec = {
         attacker: {

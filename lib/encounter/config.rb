@@ -49,6 +49,11 @@ module Encounter
     # Move (turn_action_stub.md → Move): a flat Combat Pool cost, no other effect.
     def move_cost               = Integer(data['Move Cost'] || 4)
 
+    # Retarget (turn_action_stub.md → Active Spells → Retarget): a Main Action
+    # that redirects an active persistent Spell (Spiritual Weapon / Shield of
+    # Faith) to a new target for a flat Combat Pool cost.
+    def retarget_cost           = Integer(data['Retarget Cost'] || 4)
+
     # ---- Set-Value Spend ----
     def set_value_spend_ratio = Integer(data['Set Value Spend Ratio'] || 1)
 

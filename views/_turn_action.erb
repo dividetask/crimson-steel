@@ -32,6 +32,12 @@
 <% has_spells = false unless defined?(has_spells) %>
 <% has_items = false unless defined?(has_items) %>
 <% has_active_spells = false unless defined?(has_active_spells) %>
+<% active_spells ||= [] %>
+<% roster ||= [] %>
+<%# out_of_combat: the DM Page reuses this panel to run a Character's actions
+    outside of Combat (drink a Potion, use an Item, cast a utility Spell). In
+    that mode the Combat-only actions — Attack, Move, End Turn — are dropped. %>
+<% out_of_combat = false unless defined?(out_of_combat) %>
 <%
   incapacitated = !acting[:can_act]
   state_suffix  = dead ? 'Dead' : (incapacitated ? 'Incapacitated' : nil)
@@ -43,17 +49,19 @@
 
   # Generic Main-Action buttons. An incapacitated Combatant can only end its
   # turn, so it is offered no Main Actions. Cast is offered only when the
-  # Combatant knows a spell (has_spells).
+  # Combatant knows a spell (has_spells). Out of Combat, Attack and Move are
+  # dropped (Combat-only) — only Cast / Active Spells / Item remain.
   main_generic = if incapacitated
                    []
                  else
-                   [{ key: 'attack', label: 'Attack' },
-                    { key: 'move',   label: 'Move' }] +
+                   (out_of_combat ? [] : [{ key: 'attack', label: 'Attack' },
+                                          { key: 'move',   label: 'Move' }]) +
                      (has_spells ? [{ key: 'cast', label: 'Cast' }] : []) +
-                     (has_active_spells ? [{ key: 'active_spells', label: 'Active Spells' }] : []) +
-                     (has_items ? [{ key: 'item', label: 'Item' }] : [])
+                     active_spells.map { |sw| { key: "active_spell:#{sw[:index]}", label: "#{sw[:spell_name]} (conc)" } } +
+                     (has_items ? [{ key: 'item', label: 'Item' }] : []) +
+                     (out_of_combat ? [{ key: 'skill', label: 'Skill' }] : [])
                  end
-  free_generic = [{ key: 'end_turn', label: 'End Turn' }]
+  free_generic = out_of_combat ? [] : [{ key: 'end_turn', label: 'End Turn' }]
 
   # Special Abilities grouped by their action category (skipped when
   # incapacitated, since none can be used).
@@ -128,38 +136,94 @@
       clicked (app.js toggles .ta-pane-active). All hidden until selected. %>
   <div class="ta-panes">
     <% unless incapacitated %>
-      <div class="ta-pane" data-ta-pane="attack">
-        <div class="ta-attack" data-attacker-id="<%= acting[:combatant_id] %>"
-             data-pool-remaining="<%= pool ? pool[:remaining] : 0 %>">
-          <p class="ta-attack-loading">Loading attack options…</p>
-        </div>
-      </div>
-
-      <% if has_active_spells %>
-        <%# Active Spells (turn_action_stub.md → Active Spells): strike with an
-            active persistent Spell (Spiritual Weapon). It reuses the Attack
-            host — same target / weapon+dice / Defense / Ally Defense / Luck
-            flow — only pointed at /encounter/active_spells_builder, whose
-            weapon list is the conjured strikes; it resolves through the same
-            /encounter/resolve_attack. %>
-        <div class="ta-pane" data-ta-pane="active_spells">
-          <div class="ta-attack ta-active-spells" data-attacker-id="<%= acting[:combatant_id] %>"
-               data-builder-url="/encounter/active_spells_builder"
+      <% unless out_of_combat %>
+        <div class="ta-pane" data-ta-pane="attack">
+          <div class="ta-attack" data-attacker-id="<%= acting[:combatant_id] %>"
                data-pool-remaining="<%= pool ? pool[:remaining] : 0 %>">
-            <p class="ta-attack-loading">Loading active spells…</p>
+            <p class="ta-attack-loading">Loading attack options…</p>
           </div>
         </div>
       <% end %>
 
-      <div class="ta-pane" data-ta-pane="move">
-        <%# Move (turn_action_stub.md → Move): a Main Action that spends a flat
-            Move Cost in Combat Pool dice. Rendered through the shared Action
-            Result block (TurnMove) so the spent dice are an editable field and
-            it confirms exactly like Attack / Cast. %>
-        <div class="ta-move" data-combatant-id="<%= acting[:combatant_id] %>"
-             data-move-cost="<%= move_cost %>"
-             data-pool-remaining="<%= pool ? pool[:remaining] : 0 %>"></div>
-      </div>
+      <%# Active Spells (turn_action_stub.md → Active Spells): one pane per
+          active concentration Spell the Combatant channels — each opened by its
+          own Main-Action button (<spell> (conc)). Opening the pane presents the
+          Spell's concentration options as a first step: every active Spell can
+          be **ended**, and an auto-channel strike Spell (Spiritual Weapon)
+          additionally offers **Attack** — the strike flow. Attack reuses the
+          Attack host — same Target / Defense / Ally Defense / Luck — pointed at
+          /encounter/active_spells_builder for that Spell (data-strike-spell);
+          the strike rolls its full Reservoir, so the Weapon & dice step is
+          auto-applied and never asks for a count, and it resolves through the
+          same /encounter/resolve_attack. End posts to
+          /encounter/end_active_spell (confirm-guarded). %>
+      <% retarget_cost = Encounter::Config.retarget_cost %>
+      <% active_spells.each do |sw| %>
+        <div class="ta-pane" data-ta-pane="active_spell:<%= sw[:index] %>">
+          <div class="ta-conc" data-spell-name="<%= sw[:spell_name] %>">
+            <% verb = sw[:can_strike] ? 'striking' : 'protecting' %>
+            <p class="ta-pane-lead">Concentrating on <strong><%= sw[:spell_name] %></strong><% if sw[:current_target] %> — <%= verb %> <strong><%= sw[:current_target] %></strong><% end %>.</p>
+            <div class="cb-line ta-conc-options">
+              <% if sw[:can_strike] %>
+                <button type="button" class="cr-mod-btn cb-opt ta-conc-attack">Attack</button>
+              <% end %>
+              <% if sw[:can_refill] %>
+                <%# Refill (turn_action_stub.md → Active Spells → Refill): channel
+                    Combat Pool dice into the Reservoir (1:1) as a Main Action. %>
+                <form method="post" action="/encounter/refill_active_spell" class="ta-conc-refill-form">
+                  <input type="hidden" name="combatant_id" value="<%= acting[:combatant_id] %>">
+                  <input type="hidden" name="spell_name" value="<%= sw[:spell_name] %>">
+                  <input type="number" name="dice" class="ta-conc-dice" min="1" value="<%= retarget_cost %>">
+                  <button type="submit" class="cr-mod-btn cb-opt ta-conc-refill"
+                          data-confirm="Refill <%= sw[:spell_name] %> — channel that many Combat Pool dice into its Reservoir (Main Action)?">Refill</button>
+                </form>
+              <% end %>
+              <% if sw[:can_retarget] %>
+                <%# Retarget (turn_action_stub.md → Active Spells → Retarget): a
+                    Main Action costing a flat Combat Pool amount that redirects
+                    the Spell to any Combatant. %>
+                <form method="post" action="/encounter/retarget_active_spell" class="ta-conc-retarget-form">
+                  <input type="hidden" name="combatant_id" value="<%= acting[:combatant_id] %>">
+                  <input type="hidden" name="spell_name" value="<%= sw[:spell_name] %>">
+                  <select name="target_id" class="ta-conc-target">
+                    <% roster.each do |r| %>
+                      <option value="<%= r[:id] %>"<%= ' selected' if sw[:current_target] == r[:name] %>><%= r[:name] %></option>
+                    <% end %>
+                  </select>
+                  <button type="submit" class="cr-mod-btn cb-opt ta-conc-retarget"
+                          data-confirm="Retarget <%= sw[:spell_name] %> — spend <%= retarget_cost %> Combat Pool dice and a Main Action?">Retarget (<%= retarget_cost %> dice)</button>
+                </form>
+              <% end %>
+              <form method="post" action="/encounter/end_active_spell" class="ta-conc-end-form">
+                <input type="hidden" name="combatant_id" value="<%= acting[:combatant_id] %>">
+                <input type="hidden" name="spell_name" value="<%= sw[:spell_name] %>">
+                <button type="submit" class="cr-mod-btn cb-opt ta-conc-end"
+                        data-confirm="End <%= sw[:spell_name] %>?">End</button>
+              </form>
+            </div>
+            <% if sw[:can_strike] %>
+              <div class="ta-attack ta-active-spells" data-attacker-id="<%= acting[:combatant_id] %>"
+                   data-builder-url="/encounter/active_spells_builder"
+                   data-strike-spell="<%= sw[:spell_name] %>"
+                   data-pool-remaining="<%= pool ? pool[:remaining] : 0 %>" hidden>
+                <p class="ta-attack-loading">Loading <%= sw[:spell_name] %>…</p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <% unless out_of_combat %>
+        <div class="ta-pane" data-ta-pane="move">
+          <%# Move (turn_action_stub.md → Move): a Main Action that spends a flat
+              Move Cost in Combat Pool dice. Rendered through the shared Action
+              Result block (TurnMove) so the spent dice are an editable field and
+              it confirms exactly like Attack / Cast. %>
+          <div class="ta-move" data-combatant-id="<%= acting[:combatant_id] %>"
+               data-move-cost="<%= move_cost %>"
+               data-pool-remaining="<%= pool ? pool[:remaining] : 0 %>"></div>
+        </div>
+      <% end %>
 
       <div class="ta-pane" data-ta-pane="cast">
         <div class="ta-cast" data-caster-id="<%= acting[:combatant_id] %>"
@@ -180,14 +244,29 @@
           <p class="ta-attack-loading">Loading items…</p>
         </div>
       </div>
+
+      <% if out_of_combat %>
+        <%# Skill (out-of-combat only): a thin host for the shared Action Builder,
+            exactly like Cast. The server precomputes the builder blob
+            (GET /dm/skill_builder): a Skill step (each Skill rolled at max dice)
+            then, for an opposed Skill only, a Target step. TurnSkill mounts it;
+            the builder's roll table rolls both sides and shows the net. %>
+        <div class="ta-pane" data-ta-pane="skill">
+          <div class="ta-skill" data-actor-id="<%= acting[:combatant_id] %>">
+            <p class="ta-attack-loading">Loading skills…</p>
+          </div>
+        </div>
+      <% end %>
     <% end %>
 
-    <div class="ta-pane" data-ta-pane="end_turn">
-      <%= erb :_ta_action_row, locals: { label: 'End Turn' } %>
-      <p class="ta-pane-lead">Advance to the next Combatant in initiative order. Clears this Combatant&rsquo;s luck points; a Round wrap advances the Timestamp. The next Combatant&rsquo;s Combat Pool and Main Actions refresh automatically.</p>
-      <form method="post" action="/encounter/advance_turn">
-        <button type="submit" class="ce-btn ta-confirm">End Turn</button>
-      </form>
-    </div>
+    <% unless out_of_combat %>
+      <div class="ta-pane" data-ta-pane="end_turn">
+        <%= erb :_ta_action_row, locals: { label: 'End Turn' } %>
+        <p class="ta-pane-lead">Advance to the next Combatant in initiative order. Clears this Combatant&rsquo;s luck points; a Round wrap advances the Timestamp. The next Combatant&rsquo;s Combat Pool and Main Actions refresh automatically.</p>
+        <form method="post" action="/encounter/advance_turn">
+          <button type="submit" class="ce-btn ta-confirm">End Turn</button>
+        </form>
+      </div>
+    <% end %>
   </div>
 </section>

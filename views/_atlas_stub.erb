@@ -115,11 +115,27 @@
       </div>
     <% end %>
 
+    <%# Fog of war (atlas_stub.md → Fog of war). DM-only. Drag a box to hide a
+        region of the Active Map from players; Reveal erases fog by box. Off by
+        default — a Map with no fog restricts nothing. Persistent map structure,
+        not swept by Clear Drawings. %>
+    <% if dm %>
+      <div class="atlas-tool-sep"></div>
+      <div class="atlas-tool-group atlas-fog-tools">
+        <span class="atlas-tool-tag" title="Hide part of the map from players by dragging a rectangle">Fog:</span>
+        <button type="button" class="atlas-tool-btn atlas-tool atlas-fog-brush" data-tool="fog"<%= ' disabled' unless map %> title="Drag a box to hide it from players">Hide</button>
+        <button type="button" class="atlas-tool-btn atlas-tool atlas-fog-reveal" data-tool="fog-erase"<%= ' disabled' unless map %> title="Drag a box to reveal (erase fog)">Reveal</button>
+        <button type="button" class="atlas-tool-btn atlas-fog-clear"<%= ' disabled' unless map %> title="Reveal the whole map (clear all fog)">Clear Fog</button>
+        <button type="button" class="atlas-tool-btn atlas-fog-view-toggle"<%= ' disabled' unless map %> title="Show or hide the fog overlay in your view only — players still see the fog">Fog: Shown</button>
+      </div>
+    <% end %>
+
     <% if dm %>
       <div class="atlas-spacer"></div>
       <div class="atlas-tool-group">
         <button type="button" class="atlas-tool-btn atlas-place-toggle"<%= ' disabled' if archived_view || map.nil? %> title="Place a combatant's icon on the map">Place Token</button>
         <button type="button" class="atlas-tool-btn atlas-clear-btn"<%= ' disabled' if archived_view || map.nil? %> title="Remove every token on this map">Clear Tokens</button>
+        <button type="button" class="atlas-tool-btn atlas-elements-toggle"<%= ' disabled' if map.nil? %> title="List, edit coordinates, and delete every element on this map">Elements</button>
       </div>
     <% end %>
   </header>
@@ -162,6 +178,15 @@
           <% end %>
         </div>
       <% end %>
+    </div>
+
+    <%# Elements panel — lists every element on the Active Map (tokens, terrain,
+        fog, drawings) with editable coordinates and a Delete. Populated by JS
+        from the render snapshot; it does not add elements (use the tools). %>
+    <div class="atlas-elements-panel" hidden>
+      <h4 class="atlas-form-title">Map elements</h4>
+      <p class="atlas-elements-hint">Edit an element's coordinates (Map Units) and Save, or Delete it. Use the toolbar tools above to add new elements.</p>
+      <div class="atlas-elements-list"></div>
     </div>
   <% end %>
 

@@ -1,0 +1,27 @@
+<%#
+  Skill action panel (single actor): pick a Skill (rolled at max dice), then —
+  for an opposed Skill — multi-select target(s). Roll reuses the Check
+  Resolution Stub via /dm/skill_check. Driven by TurnSkill.
+
+  Locals: @actor_id; @skills — [{ key, name, bonus, opposed }];
+          @targets — [{ combatant_id, name }].
+%>
+<div class="ta-skill-panel" data-actor-id="<%= @actor_id %>">
+  <div class="cb-tier-head">Skill</div>
+  <div class="cb-line">
+    <% @skills.each do |s| %>
+      <button type="button" class="cr-mod-btn cb-opt ta-sk-skill"
+              data-skill="<%= s[:key] %>" data-opposed="<%= s[:opposed] ? '1' : '' %>">
+        <%= h(s[:name]) %> <span class="cb-skill-bonus"><%= sprintf('%+d', s[:bonus].to_i) %></span>
+      </button>
+    <% end %>
+  </div>
+
+  <div class="ta-sk-targets" hidden>
+    <div class="cb-tier-head">Targets (opposed) — optional</div>
+    <%= erb :_creature_multiselect, locals: { creatures: @targets, group: 'targets' } %>
+  </div>
+
+  <button type="button" class="ce-btn ce-btn-primary ta-sk-roll" hidden>Roll ▶</button>
+  <div class="ta-skill-result"></div>
+</div>

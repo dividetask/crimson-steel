@@ -479,6 +479,11 @@ module Encounter
     # Cleanup to the outgoing Combatant and crossing Time Ticks /
     # Rounds as needed.
     def advance_turn
+      # Turns only advance once Combat has started (initiative rolled, Time
+      # Ticks seeded). Before that @time_tick is nil, so advancing a turn — e.g.
+      # the End Turn button showing in the Combat phase before Start Combat —
+      # must no-op rather than crash on nil Time-Tick arithmetic.
+      return nil unless combat_active?
       apply_per_turn_cleanup(@acting_combatant_id) if @acting_combatant_id
       guard = 0
       loop do
@@ -777,6 +782,11 @@ module Encounter
       atk_eff_tier = Encounter::Attack.effective_attacker_tier(
         atk_tier, combatant_tier(p[:target_id]), weapon[:tier_advantage].to_i)
       inherent_dr = TierMismatch.inherent_damage_reduction(combatant_tier(p[:target_id]), atk_eff_tier)
+      # Passive Damage Reduction: the defender's equipped Armor + direct
+      # attribute + active-effect DR Modifiers (e.g. Rage). Subtracted from
+      # the base weapon damage before the Severity split, alongside the Tier-
+      # Mismatch Inherent DR and any one-shot Primal Tenacity Reaction.
+      passive_dr = defender_reduction(p[:target_id])
 
       if net.positive?
         base = weapon[:base_damage] ? weapon[:base_damage].to_i : p[:damage_bonus].to_i
@@ -787,7 +797,8 @@ module Encounter
         # severity split (floored at 0).
         # Primal Tenacity's one-shot Damage Reduction is subtracted here, like
         # the Tier-Mismatch Inherent DR, before the Severity split (floored at 0).
-        computed = [base + net - inherent_dr - extra_reduce, 0].max
+        # Passive Damage Reduction (Armor / attribute / Rage) is subtracted too.
+        computed = [base + net - inherent_dr - passive_dr - extra_reduce, 0].max
         damage = over.key?(:damage) ? over[:damage].to_i : computed
         bleed  = over.key?(:bleed)  ? over[:bleed].to_i  : weapon[:bleed].to_i + damage
         # Poison potency = the weapon's Affliction Potency constant + the
@@ -816,13 +827,15 @@ module Encounter
         riders = Array(weapon[:damage_riders]).each_with_index.map { |r, i| r.merge(id: i) }
         rider_outcomes = apply_attack_riders(p[:target_id], attacker[:id], riders, p[:rider_results], commit)
         { ok: true, damage: damage, severity_map: sev, net_dos: net, damage_type: dtype,
-          threshold: threshold, damage_resilience: resil, inherent_dr: inherent_dr, bleed: bleed,
+          threshold: threshold, damage_resilience: resil, inherent_dr: inherent_dr,
+          passive_dr: passive_dr, bleed: bleed,
           poison: poison, poison_name: poison_label,
           riders: riders, rider_outcomes: rider_outcomes,
           pool_spends: pool_spends, committed: commit }
       else
         { ok: true, damage: 0, severity_map: {}, net_dos: net, damage_type: dtype,
-          threshold: threshold, damage_resilience: resil, inherent_dr: inherent_dr, bleed: 0,
+          threshold: threshold, damage_resilience: resil, inherent_dr: inherent_dr,
+          passive_dr: passive_dr, bleed: 0,
           poison: 0, poison_name: poison_label,
           pool_spends: pool_spends, committed: commit }
       end
@@ -903,7 +916,8 @@ module Encounter
         default_fx = { kind: 'damage', damage_type: (spell[:damage_type] || 'force').to_s,
                        threshold: spell[:threshold].to_i,
                        amount: Cast.default_spell_damage(casting_stat: casting_stat,
-                                                         tier: spell[:tier], successes: caster[:successes]) }
+                                                         tier: spell[:tier], successes: caster[:successes],
+                                                         competency: spell[:cast_competency].to_i) }
         targets = targets.map do |t|
           Array(t[:effects]).any? { |e| e[:kind].to_s == 'damage' } ? t : t.merge(effects: [default_fx] + Array(t[:effects]))
         end
@@ -916,16 +930,21 @@ module Encounter
         attack_roll ? cast_attack_target(t, spell, caster, casting_stat) : cast_save_target(t, caster)
       end
 
-      # Tier Mismatch Inherent damage reduction: a higher-Tier target shrugs
-      # off 5 damage per Tier it stands above the caster. Subtracted from each
-      # resolved damage Effect (after Save halving) so preview and commit agree.
-      # The caster's effective Tier may be raised via caster.tier_bonus.
+      # Damage reduction before the Severity split, subtracted from each
+      # resolved damage Effect (after Save halving) so preview and commit agree:
+      #   - Tier Mismatch Inherent DR: a higher-Tier target shrugs off 5 damage
+      #     per Tier it stands above the caster (caster tier may be raised via
+      #     caster.tier_bonus).
+      #   - Passive DR: the target's equipped Armor + direct attribute +
+      #     active-effect DR Modifiers (Rage) — spells are reduced by it too.
       caster_eff_tier = combatant_tier(caster[:id]) + caster[:tier_bonus].to_i
       resolved = resolved.map do |t|
         dr = TierMismatch.inherent_damage_reduction(combatant_tier(t[:id]), caster_eff_tier)
-        next t if dr.zero? || Array(t[:effects]).empty?
+        passive = defender_reduction(t[:id])
+        total_reduce = dr + passive
+        next t if total_reduce.zero? || Array(t[:effects]).empty?
         reduced = Array(t[:effects]).map do |e|
-          e[:kind].to_s == 'damage' ? e.merge(amount: [e[:amount].to_i - dr, 0].max, inherent_dr: dr) : e
+          e[:kind].to_s == 'damage' ? e.merge(amount: [e[:amount].to_i - total_reduce, 0].max, inherent_dr: dr, passive_dr: passive) : e
         end
         t.merge(effects: reduced)
       end
@@ -1001,6 +1020,17 @@ module Encounter
     def defender_resilience(combatant_id)
       c = combatant_for(combatant_id) or return 0
       defender_damage_resilience(lookup!(c[:creature_id])) + condition_resilience(c[:creature_id])
+    rescue StandardError
+      0
+    end
+
+    # The target's passive Damage Reduction — equipped Armor + direct
+    # attribute + active-effect DR Modifiers (Rage) — subtracted from an
+    # incoming hit before the Severity split. Mirrors defender_resilience;
+    # excludes the one-shot Primal Tenacity Reaction (carried separately).
+    def defender_reduction(combatant_id)
+      c = combatant_for(combatant_id) or return 0
+      defender_damage_reduction(lookup!(c[:creature_id])) + condition_reduction(c[:creature_id])
     rescue StandardError
       0
     end
@@ -1116,6 +1146,16 @@ module Encounter
     # added to equipped-Armor Resilience in the bucketing pipeline.
     def condition_resilience(creature_id)
       conditions_for(creature_id).get_modifiers('damage_resilience').sum { |_type, amount| amount.to_i }
+    rescue StandardError
+      0
+    end
+
+    # Active-effect Damage Reduction Modifiers (e.g. Rage's Circumstance DR)
+    # for a Creature, added to equipped-Armor Reduction when reducing an
+    # incoming hit. Excludes the one-shot Primal Tenacity Reaction, which
+    # rides the attack payload separately (`extra_reduce`).
+    def condition_reduction(creature_id)
+      conditions_for(creature_id).get_modifiers('damage_reduction').sum { |_type, amount| amount.to_i }
     rescue StandardError
       0
     end
@@ -1512,6 +1552,31 @@ module Encounter
       entry.dup
     end
 
+    # Channel more dice into a Reservoir Spell (Shield of Faith), topping up the
+    # block dice available. Only reservoir-mode entries refill: an auto strike
+    # (Spiritual Weapon) refuses — its Reservoir is fixed at cast and never
+    # changes. Returns the updated entry, or nil when there is no such entry or
+    # the Spell is not a reservoir channel.
+    def refill_reservoir(combatant_id, spell_name, amount)
+      c = find!(combatant_id)
+      entry = c[:concentration].find { |e| e[:spell_name] == spell_name } or return nil
+      return nil unless entry[:mode] == 'reservoir'
+      entry[:reservoir] = [entry[:reservoir].to_i + amount.to_i, 0].max
+      persist!
+      entry.dup
+    end
+
+    # Record which Combatant an active persistent Spell is aimed at (Spiritual
+    # Weapon's current strike target). Retargeting sets this; the strike reads
+    # it so it never re-asks for a target.
+    def set_concentration_target(combatant_id, spell_name, target_id)
+      c = find!(combatant_id)
+      entry = c[:concentration].find { |e| e[:spell_name] == spell_name } or return nil
+      entry[:target_id] = target_id
+      persist!
+      entry.dup
+    end
+
     def end_concentration(combatant_id, spell_name)
       c = find!(combatant_id)
       entry = c[:concentration].find { |e| e[:spell_name] == spell_name }
@@ -1701,7 +1766,8 @@ module Encounter
       effects = if base_effects.any? { |e| e[:kind].to_s == 'damage' }
                   base_effects
                 else
-                  dmg = Cast.default_spell_damage(casting_stat: casting_stat, tier: spell[:tier], successes: net)
+                  dmg = Cast.default_spell_damage(casting_stat: casting_stat, tier: spell[:tier], successes: net,
+                                                  competency: spell[:cast_competency].to_i)
                   [{ kind: 'damage', damage_type: (spell[:damage_type] || 'force').to_s,
                      threshold: spell[:threshold].to_i, amount: dmg }] + base_effects
                 end
@@ -2232,18 +2298,48 @@ module Encounter
       key.to_s.split(/[_\s]+/).reject(&:empty?).map { |w| w[0].upcase + w[1..] }.join(' ')
     end
 
-    # The defender's Damage Resilience for Runtime Bucketing. Honors a
-    # creature that exposes it directly (test doubles); otherwise sums
-    # the resilience of its equipped Armor via Equipment. Defaults to 0
-    # when neither source is available.
+    # The defender's Damage Resilience for Runtime Bucketing: a creature's
+    # own `damage_resilience` (when it exposes one directly — monsters, test
+    # doubles) plus the Resilience of its equipped Armor via Equipment. The
+    # sheet combines the same two sources (CreatureSheet#defensive_totals),
+    # so the displayed and applied values agree. Defaults to 0.
     def defender_damage_resilience(creature)
-      return 0 unless creature
-      return creature.damage_resilience.to_i if creature.respond_to?(:damage_resilience)
-      return 0 unless creature.respond_to?(:id)
-      stacks = Equipment.instance.get_inventory("creature:#{creature.id}")
-      Equipment::Details.defensive_totals(stacks, Equipment.catalog)[:damage_resilience]
+      equipped_defensive_totals(creature)[:damage_resilience]
     rescue StandardError
       0
+    end
+
+    # The defender's passive Damage Reduction — the mirror of
+    # defender_damage_resilience: the creature's own `damage_reduction`
+    # (direct attribute) plus its equipped Armor's Reduction. Subtracted
+    # from incoming damage before the Severity split (weapon and spell
+    # paths), alongside the Tier-Mismatch Inherent DR.
+    def defender_damage_reduction(creature)
+      equipped_defensive_totals(creature)[:damage_reduction]
+    rescue StandardError
+      0
+    end
+
+    # { damage_reduction:, damage_resilience: } for a Creature: its direct
+    # attributes (when exposed) added to its equipped-Armor totals.
+    def equipped_defensive_totals(creature)
+      totals = { damage_reduction: 0, damage_resilience: 0 }
+      return totals unless creature
+      if creature.respond_to?(:damage_reduction)
+        totals[:damage_reduction] += creature.damage_reduction.to_i
+      end
+      if creature.respond_to?(:damage_resilience)
+        totals[:damage_resilience] += creature.damage_resilience.to_i
+      end
+      if creature.respond_to?(:id)
+        stacks = Equipment.instance.get_inventory("creature:#{creature.id}")
+        armor  = Equipment::Details.defensive_totals(stacks, Equipment.catalog)
+        totals[:damage_reduction]  += armor[:damage_reduction].to_i
+        totals[:damage_resilience] += armor[:damage_resilience].to_i
+      end
+      totals
+    rescue StandardError
+      { damage_reduction: 0, damage_resilience: 0 }
     end
 
     def tier_of(creature_id)

@@ -1,0 +1,89 @@
+<%#
+  Quick Monster builder (lib/routes/monster_creation.rb). A fast server-rendered
+  form that stands up a stub enemy Creature mid-session. Saved monsters are
+  tagged enemy_template + category:custom so they appear in the Roster's enemy
+  list and can be added to Combat.
+
+  Locals:
+    @blob  — MonsterCreation.blob (races, classes, skills, attribute keys).
+    @form  — echoed submission on validation error (empty on first load).
+    @error — validation message to show, or nil.
+%>
+<% f = @form || {} %>
+<% fa = (f['attributes'] || {}) %>
+<div class="monster-creation">
+  <h1 class="dm-page-title">Quick Monster</h1>
+  <p class="lead">Stand up a stub enemy fast. Its abilities come from the race and class you pick; it is saved to the enemy roster and can be added to Combat like any other template.</p>
+
+  <% if @error %>
+    <p class="mc-error"><%= h(@error) %></p>
+  <% end %>
+
+  <form method="post" action="/monster-creation" class="mc-form">
+    <div class="mc-row">
+      <label class="tk-set-field mc-grow">Name
+        <input type="text" name="name" value="<%= h(f['name']) %>" required autofocus>
+      </label>
+      <label class="tk-set-field">Race
+        <select name="race" required>
+          <option value="">— race —</option>
+          <% @blob[:races].each do |r| %>
+            <option value="<%= r[:key] %>"<%= ' selected' if f['race'] == r[:key] %>><%= r[:label] %></option>
+          <% end %>
+        </select>
+      </label>
+    </div>
+
+    <div class="mc-row">
+      <label class="tk-set-field">Class <span class="mc-opt">(optional)</span>
+        <select name="class">
+          <option value="">— none —</option>
+          <% @blob[:classes].each do |c| %>
+            <option value="<%= c[:key] %>"<%= ' selected' if f['class'] == c[:key] %>><%= c[:label] %></option>
+          <% end %>
+        </select>
+      </label>
+      <label class="tk-set-field">Level
+        <input type="number" name="level" value="<%= h(f['level'].to_s.empty? ? '1' : f['level']) %>" min="1" step="1">
+      </label>
+      <label class="tk-set-field">Tier <span class="mc-opt">(optional)</span>
+        <input type="number" name="tier" value="<%= h(f['tier']) %>" min="0" step="1" placeholder="auto">
+      </label>
+      <label class="tk-set-field mc-check">
+        <input type="checkbox" name="hide_tier" value="1"<%= ' checked' if MonsterCreation.truthy?(f['hide_tier']) %>>
+        Hide Tier from players
+      </label>
+    </div>
+
+    <fieldset class="mc-attrs">
+      <legend>Attributes</legend>
+      <% @blob[:attributes].each do |k| %>
+        <label class="tk-set-field mc-attr"><%= k.upcase %>
+          <input type="number" name="attr_<%= k %>" value="<%= h(fa[k].to_s.empty? ? @blob[:default_attribute] : fa[k]) %>" step="1">
+        </label>
+      <% end %>
+    </fieldset>
+
+    <fieldset class="mc-skills">
+      <legend>Trained Skills <span class="mc-opt">(optional — apply to the class)</span></legend>
+      <div class="mc-skill-grid">
+        <% chosen = Array(f['skills']) %>
+        <% @blob[:skills].each do |s| %>
+          <label class="mc-skill">
+            <input type="checkbox" name="skills[]" value="<%= s[:key] %>"<%= ' checked' if chosen.include?(s[:key]) %>>
+            <%= s[:label] %>
+          </label>
+        <% end %>
+      </div>
+    </fieldset>
+
+    <label class="tk-set-field mc-grow">Token image path <span class="mc-opt">(optional)</span>
+      <input type="text" name="token" value="<%= h(f['token']) %>" placeholder="/images/icons/orc token.png">
+    </label>
+
+    <div class="mc-actions">
+      <button type="submit" class="ce-btn ce-btn-primary">Create Monster</button>
+      <a href="/dm" class="ce-btn mc-cancel">Cancel</a>
+    </div>
+  </form>
+</div>

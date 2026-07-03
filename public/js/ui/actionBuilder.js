@@ -421,6 +421,16 @@ export class ActionBuilder {
     ActionBuilder._activateFrom(root, ti);
   }
 
+  // Restart the whole flow from its first step (clearing every prior choice) —
+  // used when the Turn Action panel's action-row Change re-opens the action
+  // menu, so re-selecting the same action (e.g. Cast) asks the first question
+  // (which Spell) again instead of resuming mid-flow. No-op before the builder
+  // has loaded its steps.
+  static reset(root) {
+    if (!root || !root._cb || !root._cb.steps || !root._cb.steps.length) return;
+    ActionBuilder._change(root, root._cb.steps[0].key);
+  }
+
   static _optsHtml(stepKey, opts) {
     const groups = {};
     const order = [];

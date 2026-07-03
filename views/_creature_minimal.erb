@@ -3,12 +3,9 @@
   #
   # Locals:
   #   demo            — required. Sample data; see lib/status/sample_creatures.rb.
-  #   toggle_target   — optional. The route the toggle button posts to.
-  #                     When omitted the toggle is rendered as a no-op label.
   #   chrome          — optional boolean (default true). When false suppress
   #                     the outer card framing.
   chrome_on     = defined?(chrome)        ? chrome        : true
-  toggle_href   = defined?(toggle_target) ? toggle_target : nil
 
   h  = demo[:header]
   v  = demo[:vitals]
@@ -35,6 +32,30 @@
       star = t[:conditional] ? '*' : ''
       %(<span class="#{cls}">#{star}#{format('%+d', amt)}</span>)
     end.join
+  end
+
+  # Click/hover popup showing the math behind a Damage Reduction / Resilience
+  # total: each contributing source as `<amount> (<source>)` — the first
+  # amount unsigned, later ones signed — summing to the total. Reuses the
+  # Attribute popup's .cs-attr-pop machinery (CSS reveal + JS click-toggle).
+  def_pop = lambda do |title, brk|
+    comps = Array((brk || {})[:components])
+    total = (brk || {})[:total].to_i
+    body =
+      if comps.empty?
+        '<span class="cs-def-note">no sources</span>'
+      else
+        comps.each_with_index.map do |c, i|
+          amt   = c[:amount].to_i
+          lead  = i.zero? ? amt.to_s : %(#{amt.negative? ? '&minus;' : '+'} #{amt.abs})
+          # Labels include DM-authored Item names — escape them.
+          label = Rack::Utils.escape_html(c[:label].to_s)
+          term  = %(#{lead} <span class="cs-def-note">(#{label})</span>)
+          # A Modifier that lost the non-stacking contest is shown struck out.
+          c[:applied] == false ? %(<span class="cs-def-unused">#{term}</span>) : term
+        end.join(' ')
+      end
+    %(<div class="cs-attr-pop cs-def-pop" role="tooltip"><div class="cs-attr-pop-title">#{Rack::Utils.escape_html(title.to_s)}</div><div class="cs-attr-pop-breakdown">#{body} = <strong>#{total}</strong></div></div>)
   end
 %>
 
@@ -120,10 +141,23 @@
     <%
       drb  = (v[:defense_breakdown] || {})[:damage_reduction]
       resb = (v[:defense_breakdown] || {})[:damage_resilience]
+      # Static demos carry only scalar totals; synthesize a single-term
+      # breakdown so the math popup still renders (real sheets supply the
+      # full per-source components from CreatureSheet#vitals).
+      drb  ||= { base: v[:damage_reduction].to_i, tokens: [], total: v[:damage_reduction].to_i,
+                 components: [{ amount: v[:damage_reduction].to_i, label: 'armor' }] }
+      resb ||= { base: v[:damage_resilience].to_i, tokens: [], total: v[:damage_resilience].to_i,
+                 components: [{ amount: v[:damage_resilience].to_i, label: 'armor' }] }
     %>
     <div class="cs-defense">
-      <div class="cs-def-line"><span class="cs-def-label">Damage Reduction</span> <span class="cs-def-value cs-nowrap"><%= drb ? drb[:base] : v[:damage_reduction] %><%= mod_tokens.call(drb[:tokens]) if drb %></span></div>
-      <div class="cs-def-line"><span class="cs-def-label">Damage Resilience</span> <span class="cs-def-value cs-nowrap"><%= resb ? resb[:base] : v[:damage_resilience] %><%= mod_tokens.call(resb[:tokens]) if resb %></span></div>
+      <div class="cs-def-line cs-attr-has-pop" tabindex="0" role="button" aria-label="Damage Reduction breakdown">
+        <span class="cs-def-label">Damage Reduction</span> <span class="cs-def-value cs-nowrap"><%= drb ? drb[:base] : v[:damage_reduction] %><%= mod_tokens.call(drb[:tokens]) if drb %></span>
+        <%= def_pop.call('Damage Reduction', drb) %>
+      </div>
+      <div class="cs-def-line cs-attr-has-pop" tabindex="0" role="button" aria-label="Damage Resilience breakdown">
+        <span class="cs-def-label">Damage Resilience</span> <span class="cs-def-value cs-nowrap"><%= resb ? resb[:base] : v[:damage_resilience] %><%= mod_tokens.call(resb[:tokens]) if resb %></span>
+        <%= def_pop.call('Damage Resilience', resb) %>
+      </div>
     </div>
   </section>
 
@@ -134,8 +168,27 @@
   </section>
 
   <%
+    # Castable Spells = the spells the Creature can cast from its Classes
+    # (demo[:spells]) merged with those it can cast from carried items such
+    # as wands or rings (demo[:item_spells], any item holding a stored spell),
+    # grouped by Tier with duplicate names collapsed.
+    spell_by_tier = {}
+    (Array(demo[:spells]) + Array(demo[:item_spells])).each do |grp|
+      list = (spell_by_tier[grp[:tier]] ||= [])
+      Array(grp[:names]).each { |n| list << n unless list.include?(n) }
+    end
+    combined_spells = spell_by_tier.keys.sort.map { |t| { tier: t, names: spell_by_tier[t] } }
+
+    # Render a spell name as a button that opens its description in a modal.
+    spell_link = lambda do |names|
+      Array(names).map do |n|
+        esc = Rack::Utils.escape_html(n.to_s)
+        %(<button type="button" class="cs-spell-link" data-spell-name="#{esc}">#{esc}</button>)
+      end.join(', ')
+    end
+
     items_have_content = it[:equipped].any? || it[:consumable].any? || it[:other].any?
-    right_has_content  = items_have_content || demo[:spells].any? || demo[:rituals].any?
+    right_has_content  = items_have_content || combined_spells.any? || demo[:rituals].any?
   %>
 
   <div class="cs-minimal-body<%= ' cs-no-right' unless right_has_content %>">
@@ -163,7 +216,9 @@
 
       <% if demo[:skills].any? %>
         <section class="cs-section cs-skills-min">
-          <h3 class="cs-section-h">Skills</h3>
+          <h3 class="cs-section-h cs-skills-title" role="button" tabindex="0"
+              data-creature-id="<%= demo[:id] %>"
+              aria-label="Show all skills">Skills</h3>
           <table class="cs-skills-table">
             <thead><tr><th>Name</th><th class="cs-num">Ranks</th><th class="cs-num">Dice</th><th class="cs-num">Bonus</th></tr></thead>
             <tbody>
@@ -183,13 +238,13 @@
 
     <% if right_has_content %>
       <div class="cs-col cs-col-right">
-        <% if demo[:spells].any? %>
+        <% if combined_spells.any? %>
           <section class="cs-section cs-spells-min">
             <h3 class="cs-section-h">Spells</h3>
-            <% demo[:spells].each do |grp| %>
+            <% combined_spells.each do |grp| %>
               <div class="cs-spell-line">
                 <em class="cs-tier-label tier-<%= grp[:tier] %>">Tier <%= grp[:tier] %>.</em>
-                <%= grp[:names].join(', ') %>
+                <%= spell_link.call(grp[:names]) %>
               </div>
             <% end %>
           </section>
@@ -201,7 +256,7 @@
             <% demo[:rituals].each do |grp| %>
               <div class="cs-spell-line">
                 <em class="cs-tier-label tier-<%= grp[:tier] %>">Tier <%= grp[:tier] %>.</em>
-                <%= grp[:names].join(', ') %>
+                <%= spell_link.call(grp[:names]) %>
               </div>
             <% end %>
           </section>
@@ -264,11 +319,4 @@
     </div>
   <% end %>
 
-  <div class="cs-toggle">
-    <% if toggle_href %>
-      <a class="cs-toggle-btn" href="<%= toggle_href %>">Show full sheet</a>
-    <% else %>
-      <span class="cs-toggle-btn cs-toggle-static">Show full sheet</span>
-    <% end %>
-  </div>
 </article>

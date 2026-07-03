@@ -90,7 +90,13 @@ helpers do
     map = map_id ? atlas_state.get_map(map_id) : atlas_state.get_active_map
     return { ok: true, viewer: viewer.to_s, map: nil, tokens: [] } unless map
     acting_id = encounter_state.acting_combatant_id
+    fog = atlas_state.list_fog(map_id: map[:id])
     tokens = atlas_state.list_tokens(map_id: map[:id], include_hidden: viewer == :dm)
+    # Fog of war restricts a player's sight: a Token whose center sits under a
+    # Fog region is dropped from the player snapshot entirely, so its position
+    # never reaches the browser (defense in depth beyond the opaque overlay the
+    # client paints). The DM sees through the fog, so their Tokens are untouched.
+    tokens = tokens.reject { |t| atlas_token_under_fog?(t, fog) } if viewer != :dm
     {
       ok:          true,
       viewer:      viewer.to_s,
@@ -107,15 +113,44 @@ helpers do
       # viewer sees it; only the DM may edit it.
       terrain:     atlas_state.list_terrain(map_id: map[:id]),
       # Zones (spell areas / hazards). Anchor x/y are resolved Map Units.
-      zones:       atlas_state.list_zones(map_id: map[:id])
+      zones:       atlas_state.list_zones(map_id: map[:id]),
+      # Fog of war regions. Shared to both viewers (the client masks the view
+      # with them) — opaque black for a player, translucent for the DM.
+      fog:         fog
     }
+  end
+
+  # Whether a Token's center sits inside any Fog region's bounding box — the
+  # test used to hide fogged Tokens from players. Ellipse fog is treated by its
+  # bounding box here (the fog brush paints rectangles), which errs toward
+  # hiding rather than leaking a Token's position.
+  def atlas_token_under_fog?(token, fog)
+    cx = token[:x].to_f + token[:size].to_f / 2.0
+    cy = token[:y].to_f + token[:size].to_f / 2.0
+    fog.any? do |f|
+      xs = f[:points].map { |p| p[0].to_f }
+      ys = f[:points].map { |p| p[1].to_f }
+      cx >= xs.min && cx <= xs.max && cy >= ys.min && cy <= ys.max
+    end
   end
 
   # Terrain palette for the DM toolbar: the texture files present in
   # public/images/terrain paired with a display label. A file with no entry
   # in the label map still appears (titleized from its name), so dropping a
   # new texture into the folder surfaces a brush with no code change.
-  TERRAIN_LABELS = { 'wall.png' => 'Wall', 'dirt.png' => 'Dirt', 'stone.png' => 'Stone' }.freeze
+  TERRAIN_LABELS = {
+    'wall.png'       => 'Wall',
+    'dirt.png'       => 'Dirt',
+    'dirt_dark.png'  => 'Dark Dirt',
+    'dirt_rocky.png' => 'Rocky Dirt',
+    'stone.png'      => 'Stone',
+    'grass.png'      => 'Grass',
+    'grass_dry.png'  => 'Dry Grass',
+    'grass_lush.png' => 'Lush Grass',
+    'thatch.png'     => 'Thatch Roof',
+    'tileroof.png'   => 'Tile Roof',
+    'building.png'   => 'Buildings'
+  }.freeze
   TERRAIN_DIR = File.expand_path('../../public/images/terrain', __dir__)
 
   def atlas_terrain_textures
@@ -206,6 +241,21 @@ end
 post '/atlas/remove_token' do
   require_dm!
   atlas_state.remove_token(params[:token_id].to_i)
+  clear_player_drawings!
+  atlas_response(ok: true, snapshot: atlas_map_snapshot(:dm))
+end
+
+# Edit a Token's geometry from the Elements panel: reposition (via Move Token,
+# so anchor-following Zones keep up) and/or resize. Body: { token_id, x?, y?,
+# size? }.
+post '/atlas/edit_token' do
+  require_dm!
+  token = atlas_state.get_token(params[:token_id].to_i)
+  return atlas_error(404, 'unknown token') unless token
+  x = params[:x].to_s.empty? ? token[:x] : params[:x].to_f
+  y = params[:y].to_s.empty? ? token[:y] : params[:y].to_f
+  atlas_state.move_token(token[:id], x, y)
+  atlas_state.edit_token(token[:id], size: params[:size].to_f) unless params[:size].to_s.empty?
   clear_player_drawings!
   atlas_response(ok: true, snapshot: atlas_map_snapshot(:dm))
 end
@@ -390,6 +440,18 @@ post '/atlas/remove_terrain' do
   atlas_response(ok: true, snapshot: atlas_map_snapshot(:dm))
 end
 
+# Edit a Terrain fill's corners from the Elements panel. Body: { terrain_id,
+# points } where points is a JSON array of two [x, y] corners (Map Units).
+post '/atlas/edit_terrain' do
+  require_dm!
+  pts = JSON.parse(params[:points]) rescue nil
+  return atlas_error(400, 'invalid points') unless pts.is_a?(Array) && pts.length >= 2
+  points = pts.map { |p| [p[0].to_f, p[1].to_f] }
+  result = atlas_state.edit_terrain(params[:terrain_id].to_i, points: points)
+  return atlas_error(404, 'unknown terrain') if result == Atlas::ERROR
+  atlas_response(ok: true, snapshot: atlas_map_snapshot(:dm))
+end
+
 post '/atlas/clear_terrain' do
   require_dm!
   map = atlas_state.get_active_map
@@ -410,5 +472,82 @@ post '/atlas/erase_terrain' do
   map = atlas_state.get_active_map
   return atlas_error(409, 'no active map') unless map
   erased = atlas_state.erase_terrain_box(map[:id], pts[0][0], pts[0][1], pts[1][0], pts[1][1])
+  atlas_response(ok: true, erased: erased, snapshot: atlas_map_snapshot(:dm))
+end
+
+# ---- Fog of war (hidden map structure) -------------------------------
+#
+# DM only. The DM drags a rectangle to conceal part of the Active Map from
+# players (their snapshot loses any Token under the fog, and the client
+# paints the region opaque). Fog persists like Terrain — it is not swept by
+# Clear Drawings and dies only with the Map or an explicit clear. Disabled by
+# default: a Map with no fog restricts nothing. JSON body: { points,
+# shape_kind }.
+
+post '/atlas/add_fog' do
+  require_dm!
+  payload = JSON.parse(request.body.read) rescue nil
+  return atlas_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
+
+  map = atlas_state.get_active_map
+  return atlas_error(409, 'no active map') unless map
+  points = Array(payload['points']).map { |p| [p[0].to_f, p[1].to_f] }
+  return atlas_error(400, 'points are required') if points.length < 2
+
+  shape_kind = %w[rect ellipse].include?(payload['shape_kind'].to_s) ? payload['shape_kind'].to_s : 'rect'
+  id = atlas_state.add_fog(map_id: map[:id], points: points, shape_kind: shape_kind)
+  return atlas_error(409, 'could not add fog') if id == Atlas::ERROR
+  atlas_response(ok: true, fog_id: id, snapshot: atlas_map_snapshot(:dm))
+end
+
+post '/atlas/remove_fog' do
+  require_dm!
+  atlas_state.remove_fog(params[:fog_id].to_i)
+  atlas_response(ok: true, snapshot: atlas_map_snapshot(:dm))
+end
+
+# Edit a Fog region's corners from the Elements panel. Body: { fog_id, points }
+# where points is a JSON array of two [x, y] corners (Map Units).
+post '/atlas/edit_fog' do
+  require_dm!
+  pts = JSON.parse(params[:points]) rescue nil
+  return atlas_error(400, 'invalid points') unless pts.is_a?(Array) && pts.length >= 2
+  points = pts.map { |p| [p[0].to_f, p[1].to_f] }
+  result = atlas_state.edit_fog(params[:fog_id].to_i, points: points)
+  return atlas_error(404, 'unknown fog') if result == Atlas::ERROR
+  atlas_response(ok: true, snapshot: atlas_map_snapshot(:dm))
+end
+
+post '/atlas/clear_fog' do
+  require_dm!
+  map = atlas_state.get_active_map
+  return atlas_error(409, 'no active map') unless map
+  removed = atlas_state.clear_fog_on_map(map[:id])
+  atlas_response(ok: true, removed: removed, snapshot: atlas_map_snapshot(:dm))
+end
+
+# Reveal tool: subtract a rectangular region from the Map's Fog (the mirror of
+# the Terrain eraser). JSON body: { points: [[x0, y0], [x1, y1]] }.
+#
+# "Hide everything, reveal here": if the Map has no Fog yet, Reveal first fogs
+# the whole Map, so the drag cuts a clear window into an otherwise concealed
+# Map (fog over everything but the revealed area). Once a Map has Fog, Reveal
+# only erases. The full-Map extent uses the Map's width/height, falling back to
+# the same blank-canvas size the renderer uses (40x30, see atlasMap.js render).
+post '/atlas/erase_fog' do
+  require_dm!
+  payload = JSON.parse(request.body.read) rescue nil
+  return atlas_error(400, 'invalid JSON payload') unless payload.is_a?(Hash)
+  pts = Array(payload['points']).map { |p| [p[0].to_f, p[1].to_f] }
+  return atlas_error(400, 'points are required') if pts.length < 2
+
+  map = atlas_state.get_active_map
+  return atlas_error(409, 'no active map') unless map
+  if atlas_state.list_fog(map_id: map[:id]).empty?
+    w = map[:width]  || 40
+    h = map[:height] || 30
+    atlas_state.add_fog(map_id: map[:id], points: [[0, 0], [w, h]])
+  end
+  erased = atlas_state.erase_fog_box(map[:id], pts[0][0], pts[0][1], pts[1][0], pts[1][1])
   atlas_response(ok: true, erased: erased, snapshot: atlas_map_snapshot(:dm))
 end

@@ -139,11 +139,12 @@ helpers do
   def menu_items
     [
       { label: 'Home',             href: '/',                 dm_only: false },
-      { label: 'Character Sheets', href: '/character-sheets', dm_only: false },
+      { label: 'Sheets',           href: '/character-sheets', dm_only: false },
       { label: 'Encounter',        href: '/encounter',        dm_only: false },
       { label: 'Store',            href: '/store',            dm_only: false },
       { label: 'Notes',            href: '/notes',            dm_only: false },
       { label: 'Compendium',       href: '/compendium',       dm_only: false },
+      { label: 'DM',               href: '/dm',               dm_only: true  },
       { label: 'Status',           href: '/status',           dm_only: true  }
     ]
   end

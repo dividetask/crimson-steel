@@ -57,6 +57,16 @@ get '/encounter' do
   end
 
   @acting_row  = @tracker_rows.find { |r| r[:acting] }
+
+  # Hide enemy vitals (HP / Mana / Toxicity / Pool / Conditions) from
+  # players. A cleric viewing with See Injury still sees enemy HP and Magic
+  # Toxicity. Runs after @acting_row is captured so the DM-only turn panel
+  # keeps the unredacted row.
+  sees_injury = @viewer != :dm && viewer_sees_injury?
+  @tracker_rows = Encounter::Visibility.redact_rows(
+    @tracker_rows, viewer: @viewer, sees_injury: sees_injury
+  )
+
   @acting_dead = @acting_row ? @encounter_state.creature_dead?(@acting_row[:combatant_id]) : false
   acting_combatant = @acting_row ? @encounter_state.combatant(@acting_row[:combatant_id]) : nil
   @acting_saves = acting_combatant ? start_of_turn_saves(acting_combatant) : []
@@ -83,8 +93,44 @@ get '/encounter' do
     @acting_row ? ((consumable_spell_items(@acting_row[:creature_id]).any? ||
                     granted_spell_items(@acting_row[:creature_id]).any?) rescue false) : false
 
-  @acting_has_active_spells =
-    @acting_row ? (active_spell_strikes(@encounter_state.combatant(@acting_row[:combatant_id])).any? rescue false) : false
+  # One entry per active concentration Spell the Acting Combatant is
+  # channelling (an auto strike like Spiritual Weapon, or a Reservoir Spell
+  # like Shield of Faith). Each becomes its own Main-Action button in the turn
+  # panel (see _turn_action.erb → Active Spells): all can be ended, and the
+  # auto strikes (can_strike) additionally open the Attack flow, keyed by
+  # spell_name. `index` is just a stable per-button DOM key.
+  @acting_active_spells =
+    if @acting_row
+      cid = @acting_row[:combatant_id]
+      entries = (active_persistent_spells(@encounter_state.combatant(cid)) rescue [])
+      entries.each_with_index.map do |e, i|
+        variant = (resolve_named_spell(e[:spell_name]) rescue nil)
+        # Whom the Spell is aimed at: a strike's stored target, else a protective
+        # Spell's defended ally.
+        aim_id = e[:target_id] || e[:defends]
+        aim = aim_id && @encounter_state.combatant(aim_id)
+        { index: i, spell_name: e[:spell_name].to_s, reservoir: e[:reservoir].to_i,
+          mode: e[:mode].to_s,
+          # Auto strike (Spiritual Weapon) → Attack; reservoir channel (Shield of
+          # Faith) → Refill; a Spell that retargets (channel.retarget) or defends
+          # a target (Shield of Faith / Standard Shield) → Retarget.
+          can_strike: (e[:mode].to_s == 'auto' && e[:reservoir].to_i.positive?),
+          can_refill: (e[:mode].to_s == 'reservoir'),
+          can_retarget: !!(variant && (variant.dig('channel', 'retarget') || spell_defends_spec(variant))),
+          current_target: aim && tracker_name(aim) }
+      end
+    else
+      []
+    end
+  @acting_has_active_spells = @acting_active_spells.any?
+  # Retarget target roster (everyone else): the Retarget option's picker.
+  @acting_roster =
+    if @acting_row
+      @encounter_state.combatants.reject { |c| c[:id] == @acting_row[:combatant_id] }
+                      .map { |c| { id: c[:id], name: tracker_name(c) } }
+    else
+      []
+    end
 
   @inspirations = if @viewer == :dm
                     @encounter_state.combatants.flat_map do |c|
@@ -196,6 +242,19 @@ helpers do
     [status, { 'Content-Type' => 'application/json' }, JSON.generate(ok: false, error: msg)]
   end
 
+  # True when the viewing device's assigned Character has the See Injury
+  # ability — the cleric exception that lets a player see non-PC HP numbers
+  # and Magic Toxicity on the Combat Tracker. This reflects the assigned
+  # Character's sight, so it also applies when the DM previews via "View as
+  # Player" with their device assigned to a See Injury cleric. False for an
+  # unassigned device or a Character without the ability.
+  def viewer_sees_injury?
+    cid = assigned_character_id
+    return false unless cid
+    acc = (Creatures.lookup(cid) rescue nil)
+    !!(acc && acc.has_ability('see_injury'))
+  end
+
   def build_tracker_row(combatant, acting_id)
     creature = Creatures.lookup(combatant[:creature_id]) rescue nil
     name = if !combatant[:name].to_s.empty?
@@ -216,9 +275,16 @@ helpers do
       acting:       (combatant[:id] == acting_id),
       can_act:      true,
       hp:           nil, mana: nil, toxicity: nil,
-      badges:       []
+      badges:       [],
+      is_pc:        false
     }
     return row unless creature
+
+    # Only the party's own Player Characters show full vitals to players;
+    # every other Combatant — enemy or NPC alike — has its vitals hidden from
+    # them (see Encounter::Visibility). This mirrors the rest of the app,
+    # where players only ever see Player Characters (e.g. downtime cards).
+    row[:is_pc] = Array(creature.tags).include?('player_character')
 
     pool_max = (encounter_state.get_combat_pool(combatant[:id]) rescue nil)
     if pool_max
@@ -255,12 +321,31 @@ helpers do
     inst.affliction_badges.each do |a|
       badges << { kind: a[:category], label: "#{a[:name].to_s.capitalize}: #{a[:potency]}" }
     end
+    # Active concentration Spells (Shield of Faith's Reservoir, an auto-channel
+    # Spiritual Weapon, …) belong in the Conditions column. A Spell that also
+    # flags a same-named Active Effect (Spiritual Weapon's `spiritual_weapon`
+    # marker) would double up, so drop that Effect badge in favour of the
+    # concentration badge below.
+    conc_entries = active_persistent_spells(combatant)
+    norm = ->(s) { s.to_s.downcase.gsub(/[^a-z0-9]+/, '') }
+    conc_keys = conc_entries.map { |e| norm.call(e[:spell_name]) }
     inst.active_effect_names.each do |name|
+      next if conc_keys.include?(norm.call(name))
       badges << { kind: 'effect', label: name.to_s.split(/[_\s]+/).map(&:capitalize).join(' ') }
     end
-    Array(combatant[:concentration]).each do |e|
-      next unless e[:mode] == 'reservoir' && e[:reservoir].to_i.positive?
-      badges << { kind: 'luck', label: "#{e[:spell_name]}: #{e[:reservoir]}" }
+    conc_entries.each do |e|
+      label = e[:spell_name].to_s
+      # Show whom the Spell is aimed at: a strike Spell (Spiritual Weapon) at
+      # its stored target; a protective Spell (Shield of Faith / Standard
+      # Shield) at the defended ally (e.g. "Shield of Faith → Olga").
+      aim_id = e[:target_id] || e[:defends]
+      if aim_id && (aim = encounter_state.combatant(aim_id))
+        label += " → #{tracker_name(aim)}"
+      end
+      # Reservoir Spells show their remaining dice; an auto strike / a Reservoir-
+      # less shield just show the Spell (their block dice come from elsewhere).
+      label += ": #{e[:reservoir]}" if e[:mode] == 'reservoir'
+      badges << { kind: 'conc', label: label }
     end
     badges << { kind: 'luck', label: "Luck: #{combatant[:luck_points]}" } if combatant[:luck_points].to_i.positive?
     badges << { kind: 'major', label: "Major: #{state.hp_damage[:major]}" } if (state.hp_damage[:major] || 0).positive?
@@ -273,6 +358,14 @@ helpers do
         toxicity_threshold: (row.dig(:toxicity, :threshold) || 0)
       )
     end
+
+    # Partial-round skip (encounter_initiative_stub.md): on a Time Tick, only
+    # Combatants scheduled for that tick act (higher Tiers act on more ticks);
+    # the rest sit this "half turn" out. Flag them so the Tracker greys them
+    # and marks "(skip)". Only meaningful once Combat has started.
+    tick = encounter_state.time_tick
+    row[:skipped] = !!(encounter_state.combat_active? && tick &&
+                       !Array(combatant[:time_tick_schedule]).include?(tick))
 
     row
   end
@@ -980,11 +1073,83 @@ get '/encounter/active_spells_builder' do
   attacker = encounter_state.combatant(params[:attacker_id].to_i)
   return encounter_error(404, 'unknown attacker') unless attacker
   builder_html = erb :_action_builder, layout: false,
-                     locals: { builder: attack_builder_blob(attacker, active_spells: true) }
+                     locals: { builder: attack_builder_blob(attacker, active_spells: true,
+                                                             strike_spell: params[:strike_spell]) }
   channelers = roll_table_reaction_channelers(attacker[:id])
   return builder_html if channelers.empty?
   builder_html + erb(:_encounter_roll_table_stub, layout: false,
                      locals: { channelers: channelers, attacker_id: attacker[:id] })
+end
+
+# End an active persistent Spell (turn_action_stub.md → Active Spells → End).
+# Drops the Combatant's concentration entry for the Spell and clears the
+# caster-side Active Effect it flagged (Spiritual Weapon's `spiritual_weapon`
+# marker), keyed off the concentration's source so only that Spell's Effect
+# goes. A no-expiry Spell otherwise lasts forever, so this is how the DM
+# dismisses one.
+post '/encounter/end_active_spell' do
+  require_dm!
+  combatant_id = params[:combatant_id].to_i
+  spell_name   = params[:spell_name].to_s
+  combatant    = encounter_state.combatant(combatant_id)
+  ended        = encounter_state.end_concentration(combatant_id, spell_name)
+  if ended && combatant && ended[:source]
+    inst = (Conditions.store.instance_for(combatant[:creature_id]) rescue nil)
+    if inst.respond_to?(:remove_effects_by_prefix)
+      inst.remove_effects_by_prefix(ended[:source].to_s)
+      Conditions.store.persist!
+    end
+  end
+  # A protective Spell also carries a granted defend-action + a shielded marker
+  # on its ally; drop both so the block is no longer offered.
+  retarget_end_defend_action!(combatant_id, spell_name)
+  redirect back || '/encounter'
+end
+
+# Redirect an active persistent Spell to a new target (turn_action_stub.md →
+# Active Spells → Retarget). A Main Action costing a flat Combat Pool amount:
+# a strike Spell (Spiritual Weapon) stores the target on its concentration
+# entry so the strike stops re-asking; a protective Spell (Shield of Faith)
+# rebuilds its granted defend-action so the block now guards the new ally.
+post '/encounter/retarget_active_spell' do
+  require_dm!
+  combatant_id = params[:combatant_id].to_i
+  spell_name   = params[:spell_name].to_s
+  target_id    = params[:target_id].to_i
+  caster = encounter_state.combatant(combatant_id)
+  target = encounter_state.combatant(target_id)
+  if caster && target && !spell_name.empty?
+    cost      = Encounter::Config.retarget_cost
+    remaining = (encounter_state.combat_pool_remaining(combatant_id) rescue 0).to_i
+    encounter_state.spend_combat_pool(combatant_id, [cost, remaining].min) if remaining.positive?
+    encounter_state.spend_main_action(combatant_id)
+    encounter_state.set_concentration_target(combatant_id, spell_name, target_id)
+    variant = (resolve_named_spell(spell_name) rescue nil)
+    retarget_defend_action!(combatant_id, spell_name, target_id) if variant && spell_defends_spec(variant)
+  end
+  redirect back || '/encounter'
+end
+
+# Refill a Reservoir Spell (turn_action_stub.md → Active Spells → Refill):
+# channel `dice` Combat Pool dice into the Spell's Reservoir at 1:1 as a Main
+# Action, topping up its block dice. Only reservoir-mode Spells refill (Shield
+# of Faith); an auto strike (Spiritual Weapon) never changes its Reservoir, so
+# refill_reservoir refuses it. Channels only what the pool can afford.
+post '/encounter/refill_active_spell' do
+  require_dm!
+  combatant_id = params[:combatant_id].to_i
+  spell_name   = params[:spell_name].to_s
+  dice         = params[:dice].to_i
+  caster = encounter_state.combatant(combatant_id)
+  if caster && !spell_name.empty? && dice.positive?
+    remaining = (encounter_state.combat_pool_remaining(combatant_id) rescue 0).to_i
+    spend = [dice, remaining].min
+    if spend.positive? && encounter_state.refill_reservoir(combatant_id, spell_name, spend)
+      encounter_state.spend_combat_pool(combatant_id, spend)
+      encounter_state.spend_main_action(combatant_id)
+    end
+  end
+  redirect back || '/encounter'
 end
 
 post '/encounter/resolve_attack' do
@@ -1004,6 +1169,13 @@ post '/encounter/resolve_attack' do
   if result[:committed]
     Conditions.store.persist!
     encounter_state.spend_main_action(payload.dig('attacker', 'id').to_i)
+    # An Active Spells strike remembers the target it just struck, so a weapon
+    # that had no target set (a fresh / seeded one) stops re-asking on later
+    # strikes; Retarget is how the DM changes it thereafter.
+    if payload['active_spell_name'] && payload['target_id']
+      encounter_state.set_concentration_target(payload.dig('attacker', 'id').to_i,
+                                               payload['active_spell_name'].to_s, payload['target_id'].to_i)
+    end
     # A Ring of Parry's free Parry spends its once-per-day charge on commit, so
     # the defender cannot use it again until dawn.
     if payload.dig('defense', 'choice').to_s == 'ringparry'

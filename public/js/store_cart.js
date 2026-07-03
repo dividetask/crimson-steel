@@ -43,17 +43,21 @@ function initCart(root) {
 
   // A string that distinguishes variants of the same item so the cart only
   // merges identical ones: a Guidance Bonus, a magical weapon's properties +
-  // tier, or a magical armor's tier (no properties).
+  // tier, a magical armor's tier, or a Scroll/Potion's form + tier. A gift
+  // (free DM give) never merges with a paid line, so it carries a `G` prefix.
   function variantKey(bonus, extra) {
-    if (extra && extra.properties) return 'p' + JSON.stringify(extra.properties) + 't' + (extra.tier || '');
-    if (extra && extra.tier) return 'a' + 't' + extra.tier;
-    if (bonus) return 'b' + bonus;
-    return '';
+    const g = extra && extra.gift ? 'G' : '';
+    if (extra && extra.spellForm) return g + 's' + (extra.form || '') + 't' + (extra.tier || '');
+    if (extra && extra.properties) return g + 'p' + JSON.stringify(extra.properties) + 't' + (extra.tier || '');
+    if (extra && extra.tier) return g + 'a' + 't' + extra.tier;
+    if (bonus) return g + 'b' + bonus;
+    return g;
   }
 
   // Add (or merge) one line. Quantities <= 0 are ignored. Lines merge only
   // when item, variant, and recipient all match. `extra` (optional) carries
-  // a magical weapon's { properties, tier, label }.
+  // a magical weapon's { properties, tier, label }, a spell form's
+  // { spellForm, form, tier, label }, and/or a { gift } flag (free give).
   function addLine(item, bonus, unitPrice, recipientId, recipientName, isPc, quantity, extra) {
     const qty = parseInt(quantity, 10);
     if (!recipientId || !Number.isFinite(qty) || qty <= 0) return;
@@ -65,7 +69,75 @@ function initCart(root) {
                       variantKey: vk,
                       properties: (extra && extra.properties) || null,
                       tier: (extra && extra.tier) || null,
-                      label: (extra && extra.label) || null });
+                      label: (extra && extra.label) || null,
+                      gift: !!(extra && extra.gift) });
+  }
+
+  // The Scrolls/Potions/Oils data embedded on a card:
+  // [{ name, scroll, potion, oil, tiers:[{tier, scroll, potion, oil}] }].
+  function spellItemData(card) {
+    return JSON.parse(card.dataset.spells || '[]');
+  }
+
+  // A Spell offers the Scroll form always; Potion / Oil only when its data flag
+  // is set.
+  function spellSupportsForm(sp, form) {
+    return form === 'scroll' ? true : !!sp[form];
+  }
+
+  // Fill the Spell dropdown with just the Spells that offer the selected Form,
+  // so the Form choice drives the Spell list (and no option ever disables).
+  function populateSpellOptions(card) {
+    const spells = spellItemData(card);
+    const form = card.querySelector('.spellitem-form').value;
+    const sel = card.querySelector('.spellitem-spell');
+    const prev = sel.value;
+    sel.innerHTML = '';
+    spells.filter((s) => spellSupportsForm(s, form)).forEach((s) => {
+      const o = document.createElement('option');
+      o.value = s.name; o.textContent = s.name;
+      sel.appendChild(o);
+    });
+    if (Array.from(sel.options).some((o) => o.value === prev)) sel.value = prev;
+  }
+
+  // Fill the Tier dropdown from the selected Spell's tiers.
+  function populateSpellTiers(card) {
+    const spells = spellItemData(card);
+    const name = card.querySelector('.spellitem-spell').value;
+    const tierSel = card.querySelector('.spellitem-tier');
+    const sp = spells.find((s) => s.name === name) || { tiers: [] };
+    const prev = tierSel.value;
+    tierSel.innerHTML = '';
+    sp.tiers.forEach((t) => {
+      const o = document.createElement('option');
+      o.value = t.tier; o.textContent = t.tier;
+      tierSel.appendChild(o);
+    });
+    if (sp.tiers.some((t) => String(t.tier) === prev)) tierSel.value = prev;
+  }
+
+  // Read a Scrolls/Potions/Oils card into a priced state. The Spell list is
+  // already filtered to the Form, so the only invalid case is an empty list.
+  function spellItemState(card) {
+    const spells = spellItemData(card);
+    const form = card.querySelector('.spellitem-form').value;
+    const name = card.querySelector('.spellitem-spell').value;
+    const tier = parseInt(card.querySelector('.spellitem-tier').value, 10) || 0;
+    const sp = spells.find((s) => s.name === name);
+    const row = sp && (sp.tiers.find((t) => t.tier === tier) || sp.tiers[0]);
+    const price = row ? (row[form] || 0) : 0;
+    const item = `${form.charAt(0).toUpperCase()}${form.slice(1)} of ${name}`;
+    const label = `${item} (Tier ${tier})`;
+    return { form, name, tier, price, item, label, valid: !!sp };
+  }
+
+  // Refresh a Scrolls/Potions/Oils card's shown price and buttons.
+  function updateSpellItem(card) {
+    const st = spellItemState(card);
+    const amount = card.querySelector('.provision-price-amount');
+    if (amount) amount.textContent = fmt(st.price);
+    card.querySelectorAll('.provision-add, .provision-give').forEach((b) => { b.disabled = !st.valid; });
   }
 
   // Read a Magical Weapon card's three selects into a priced, validated
@@ -142,7 +214,8 @@ function initCart(root) {
              price: opt ? parseFloat(opt.dataset.price) || 0 : 0 };
   }
 
-  function fromCard(card) {
+  function fromCard(card, opts) {
+    const gift  = !!(opts && opts.gift);
     const item  = card.dataset.item;
     // A magical-item card prices off the chosen +N option; everything
     // else off the card's flat data-price.
@@ -159,7 +232,7 @@ function initCart(root) {
       const r = selectedRecipient(card);
       if (r) {
         const extra = { properties: [{ name: st.property.name, subtype: st.property.subtype || null }],
-                        tier: st.tier, label: st.label };
+                        tier: st.tier, label: st.label, gift };
         addLine(st.weapon.name, null, st.price, r.id, r.name, r.isPc, 1, extra);
       }
       render();
@@ -172,8 +245,23 @@ function initCart(root) {
       const st = magicArmorState(card);
       const r = selectedRecipient(card);
       if (r) {
-        const extra = { tier: st.tier, label: st.label };
+        const extra = { tier: st.tier, label: st.label, gift };
         addLine(st.armor.name, null, st.price, r.id, r.name, r.isPc, 1, extra);
+      }
+      render();
+      return;
+    }
+
+    if (card.classList.contains('provision-card-spellitem')) {
+      // Scrolls & Potions: spell + form + tier from three selects, bought
+      // (one) for the section's dropdown recipient. A Potion of a Spell with
+      // no potion form adds nothing.
+      const st = spellItemState(card);
+      if (!st.valid) { updateSpellItem(card); return; }
+      const r = selectedRecipient(card);
+      if (r) {
+        const extra = { spellForm: true, form: st.form, tier: st.tier, label: st.label, gift };
+        addLine(st.item, null, st.price, r.id, r.name, r.isPc, 1, extra);
       }
       render();
       return;
@@ -184,9 +272,9 @@ function initCart(root) {
       // an enemy) plus one box per Player Character.
       const sel = selectedRecipient(card);
       const selBox = card.querySelector('.provision-qty-selected');
-      if (sel) addLine(item, bonus, price, sel.id, sel.name, sel.isPc, selBox && selBox.value);
+      if (sel) addLine(item, bonus, price, sel.id, sel.name, sel.isPc, selBox && selBox.value, { gift });
       card.querySelectorAll('.provision-qty-pc').forEach((box) => {
-        addLine(item, bonus, price, box.dataset.recipientId, box.dataset.recipientName, true, box.value);
+        addLine(item, bonus, price, box.dataset.recipientId, box.dataset.recipientName, true, box.value, { gift });
       });
       if (selBox) selBox.value = 0;
       card.querySelectorAll('.provision-qty-pc').forEach((box) => { box.value = 0; });
@@ -194,7 +282,7 @@ function initCart(root) {
       // Weapons / Armor: the dropdown recipient + single quantity box.
       const r = selectedRecipient(card);
       const box = card.querySelector('.provision-qty-single');
-      if (r) addLine(item, bonus, price, r.id, r.name, r.isPc, box && box.value);
+      if (r) addLine(item, bonus, price, r.id, r.name, r.isPc, box && box.value, { gift });
       if (box) box.value = 1;
     }
     render();
@@ -207,7 +295,8 @@ function initCart(root) {
 
   function render() {
     const count = lines.reduce((n, l) => n + l.quantity, 0);
-    const total = lines.reduce((s, l) => s + (l.isPc ? l.unitPrice * l.quantity : 0), 0);
+    // A gift is free even for a PC, so it never contributes to the total.
+    const total = lines.reduce((s, l) => s + (l.isPc && !l.gift ? l.unitPrice * l.quantity : 0), 0);
     countEl.textContent = count;
     totalEl.textContent = fmt(total);
 
@@ -218,7 +307,7 @@ function initCart(root) {
 
       const desc = document.createElement('span');
       desc.className = 'provision-cart-line-desc';
-      const cost = l.isPc ? `${fmt(l.unitPrice * l.quantity)} gp` : 'free';
+      const cost = l.gift ? 'gift' : (l.isPc ? `${fmt(l.unitPrice * l.quantity)} gp` : 'free');
       const label = l.label || (l.bonus ? `+${l.bonus} ${l.item}` : l.item);
       desc.textContent = `${l.quantity}× ${label} → ${l.recipientName} (${cost})`;
 
@@ -252,7 +341,8 @@ function initCart(root) {
         const line = { item: l.item, recipient_id: l.recipientId, quantity: l.quantity };
         if (l.bonus) line.guidance_bonus = l.bonus;
         if (l.properties) { line.properties = l.properties; line.tier = l.tier; }
-        else if (l.tier) { line.tier = l.tier; } // magical armor: tier, no properties
+        else if (l.tier) { line.tier = l.tier; } // magical armor or scroll/potion: tier
+        if (l.gift) line.gift = true;
         return line;
       }),
     };
@@ -276,6 +366,29 @@ function initCart(root) {
   // ---- wiring ----
   root.querySelectorAll('.provision-add').forEach((btn) => {
     btn.addEventListener('click', () => fromCard(btn.closest('.provision-card')));
+  });
+
+  // "Give" (DM only): the same add, marked as a free gift.
+  root.querySelectorAll('.provision-give').forEach((btn) => {
+    btn.addEventListener('click', () => fromCard(btn.closest('.provision-card'), { gift: true }));
+  });
+
+  // Scrolls/Potions/Oils cards: Form drives the Spell list; Spell drives the
+  // Tier list; any change reprices.
+  root.querySelectorAll('.provision-card-spellitem').forEach((card) => {
+    card.querySelector('.spellitem-form').addEventListener('change', () => {
+      populateSpellOptions(card);
+      populateSpellTiers(card);
+      updateSpellItem(card);
+    });
+    card.querySelector('.spellitem-spell').addEventListener('change', () => {
+      populateSpellTiers(card);
+      updateSpellItem(card);
+    });
+    card.querySelector('.spellitem-tier').addEventListener('change', () => updateSpellItem(card));
+    populateSpellOptions(card);
+    populateSpellTiers(card);
+    updateSpellItem(card);
   });
 
   // Magical-item cards: changing the +N Bonus updates the card's shown

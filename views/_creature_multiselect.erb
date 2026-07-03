@@ -1,0 +1,15 @@
+<%#
+  Reusable multi-select of creatures — a row of toggle buttons. Shared by the
+  Multiple group action (Characters / Targets) and the Skill action's target
+  selection. No role labels; the button text is just the name.
+
+  Locals:
+    creatures — Array of { combatant_id:, name: }.
+    group     — a scope key ("chars" / "targets") the host reads (data-ms-group)
+                to know which selection a toggled button belongs to.
+%>
+<div class="cb-line creature-multiselect" data-ms-group="<%= group %>">
+  <% Array(creatures).each do |c| %>
+    <button type="button" class="cr-mod-btn cb-opt ms-opt" data-ms-group="<%= group %>" data-id="<%= c[:combatant_id] %>"><%= h(c[:name]) %></button>
+  <% end %>
+</div>

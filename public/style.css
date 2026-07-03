@@ -1941,6 +1941,13 @@ body {
 .initiative-row-cannot-act { background: #fee2e2; }
 .initiative-row-cannot-act.initiative-row-acting { background: #fde68a; }
 
+/* Partial-round skip: a Combatant not scheduled for the current Time Tick is
+   greyed and marked "(skip)". The acting row keeps its highlight. */
+.initiative-row-skipped { color: #94a3b8; background: #f1f5f9; }
+.initiative-row-skipped .hp-num,
+.initiative-row-skipped .cond-badge { opacity: 0.55; }
+.initiative-skip { color: #64748b; font-size: 0.85em; font-style: italic; }
+
 .initiative-dash { color: #94a3b8; }
 
 /* HP bar */
@@ -1979,6 +1986,7 @@ body {
 .cond-major   { background: #7f1d1d; }
 .cond-effect  { background: #ea580c; }
 .cond-luck    { background: #0891b2; }
+.cond-conc    { background: #0d9488; }
 .cond-other   { background: #64748b; }
 
 /* Bardic Inspiration discharge panel (turn_action_stub.md → Special) */
@@ -2425,6 +2433,36 @@ body {
   align-items: baseline;
   justify-content: flex-start;
   gap: 8px;
+}
+/* A Damage Reduction / Resilience line carrying a math popup is interactive,
+   reusing the Attribute popup's .cs-attr-pop reveal (hover / focus / click). */
+.cs-card.cs-minimal .cs-def-line.cs-attr-has-pop {
+  position: relative;
+  cursor: pointer;
+}
+.cs-card.cs-minimal .cs-def-line.cs-attr-has-pop:hover .cs-def-label,
+.cs-card.cs-minimal .cs-def-line.cs-attr-has-pop:focus-within .cs-def-label,
+.cs-card.cs-minimal .cs-def-line.cs-attr-has-pop.cs-pop-open .cs-def-label {
+  text-decoration: underline dotted;
+}
+.cs-card.cs-minimal .cs-def-line.cs-attr-has-pop:hover .cs-attr-pop,
+.cs-card.cs-minimal .cs-def-line.cs-attr-has-pop:focus-within .cs-attr-pop,
+.cs-card.cs-minimal .cs-def-line.cs-attr-has-pop.cs-pop-open .cs-attr-pop {
+  display: block;
+}
+.cs-card.cs-minimal .cs-def-pop {
+  min-width: 184px;
+}
+/* Muted source note inside the math popup — e.g. "(rage)". */
+.cs-card.cs-minimal .cs-def-note {
+  color: #8a6a52;
+  font-style: italic;
+}
+/* A Modifier that lost the same-Bonus-Type non-stacking contest: struck out
+   and greyed so it reads as present-but-not-applied. */
+.cs-card.cs-minimal .cs-def-unused {
+  text-decoration: line-through;
+  opacity: 0.55;
 }
 .cs-card.cs-minimal .cs-def-label {
   font-variant: small-caps;
@@ -3165,8 +3203,21 @@ body {
 
 .provision-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 12px;
+}
+/* Weapons, Armor and Scrolls/Potions/Oils share one row (side by side). */
+.provision-row {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+.provision-row > .provision-section {
+  flex: 1 1 280px;
+  min-width: 260px;
+  margin-bottom: 0;
 }
 .provision-card {
   display: flex;
@@ -3402,6 +3453,14 @@ body {
 .ta-pane-lead { margin: 0 0 12px; color: #334155; }
 .ta-pane-lead.ta-staged { color: #64748b; font-style: italic; }
 
+/* Active Spells concentration options (Attack / Refill / Retarget / End): keep
+   each option <form> inline so the buttons sit together in one row. */
+.ta-conc-end-form,
+.ta-conc-refill-form,
+.ta-conc-retarget-form { display: inline; }
+.ta-conc-target { margin-right: 4px; vertical-align: middle; }
+.ta-conc-dice { width: 3.2em; margin-right: 4px; vertical-align: middle; }
+
 /* Next Turn control — page chrome between the Combat Tracker and the
    Turn Action stub (encounter_initiative_stub.md). */
 .encounter-next-turn { margin: 10px 0; display: flex; justify-content: flex-end; }
@@ -3463,6 +3522,9 @@ body {
 .cb-line .cr-mod-btn { margin-right: 0; }
 /* TN Bonus/Penalty breakdown shown after a group's dice buttons. */
 .cb-bonus-note { font-size: 11px; color: #555; font-style: italic; margin-left: 4px; }
+/* The Competency bonus shown on a "which skill" cast button (e.g. Arcana +3). */
+.cb-skill-bonus { opacity: 0.85; font-size: 0.9em; margin-left: 3px; }
+.cb-opt-selected .cb-skill-bonus { opacity: 1; }
 .roll-group-excluded { display: none; }
 
 /* Luck step (turn_action_stub.md → Luck): one table per source (a Bard's
@@ -3664,6 +3726,70 @@ body {
   color: #fff;
 }
 .atlas-place-empty { font-size: 12px; color: #777; font-style: italic; }
+
+/* --- Elements panel (list / edit / delete every element on the map) --- */
+.atlas-elements-panel {
+  border-bottom: 1px solid #2c2c2c;
+  background: #181818;
+  padding: 8px 10px;
+}
+.atlas-elements-panel[hidden] { display: none; }
+.atlas-elements-hint { margin: 0 0 8px; font-size: 12px; color: #999; }
+.atlas-elements-empty { font-size: 12px; color: #777; font-style: italic; }
+.atlas-elements-list { max-height: 260px; overflow-y: auto; }
+.atlas-el-group {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #7f8c8d;
+  margin: 8px 0 4px;
+}
+.atlas-el-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 5px 0;
+  border-top: 1px solid #242424;
+}
+.atlas-el-title { flex: 1 1 160px; font-size: 12px; color: #ddd; min-width: 120px; }
+.atlas-el-fields { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.atlas-el-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #999;
+}
+/* A coordinate point rendered as ( <x>, <y> ). */
+.atlas-el-point {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: #999;
+  font-size: 12px;
+}
+.atlas-el-arrow { color: #8aa; margin: 0 2px; }
+.atlas-el-num {
+  width: 48px;
+  background: #222;
+  color: #eee;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+.atlas-el-field-wide .atlas-el-text {
+  width: 140px;
+  background: #222;
+  color: #eee;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+.atlas-el-actions { display: flex; gap: 4px; }
+.atlas-el-save { border-left: 4px solid #2ecc71; }
 
 /* --- Canvas (viewport clips; world is panned/zoomed via transform) --- */
 .atlas-viewport {
@@ -3913,6 +4039,34 @@ body {
   stroke-width: 2;
   stroke-dasharray: 6 4;
 }
+
+/* --- Fog of war (hidden map structure) --- */
+.atlas-fog {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;            /* fog never intercepts canvas gestures */
+}
+/* Both viewers get the same grey diagonal cross-hatch fill (set inline from the
+   layer's <pattern> — translucent for the DM so the map reads through, opaque
+   for players so nothing shows underneath) with a light dashed border. The fill
+   is inline so it wins over CSS here; this rule owns the border. */
+.atlas-fog-fill {
+  stroke: rgba(226, 228, 232, 0.95);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+/* DM-only toggle for hiding the fog overlay in the DM's own view. */
+.atlas-fog-view-toggle { border-left: 4px solid #888; }
+.atlas-fog-view-toggle.atlas-fog-view-off {
+  border-left-color: #4aa3ff;
+  color: #7fbfff;
+}
+/* Fog toolbar: the Hide brush reads slate, the Reveal eraser red (like the
+   terrain eraser). */
+.atlas-fog-brush { border-left: 4px solid #34406a; }
+.atlas-fog-brush.atlas-tool-active { outline: 2px solid #4aa3ff; outline-offset: -2px; }
+.atlas-fog-reveal { border-left: 4px solid #e74c3c; }
 
 /* Inline editor for a text note (DM): retext, Save, or Delete. */
 .atlas-note-editor {
@@ -4264,3 +4418,373 @@ body {
 }
 .ua-badge-pc { background: #dcfce7; color: #166534; }
 .ua-badge-npc { background: #fee2e2; color: #991b1b; }
+
+/* =====================================================================
+   Character Sheet — clickable spells (description modal) + Skill list
+   ===================================================================== */
+
+/* Spell names on the sheet read as inline links that open a description. */
+.cs-card .cs-spell-link {
+  display: inline;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: #6b1f1f;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.cs-card .cs-spell-link:hover,
+.cs-card .cs-spell-link:focus { color: #9a2a2a; text-decoration-style: solid; outline: none; }
+
+/* The "Skills" heading is clickable (opens the full Skill list). */
+.cs-card .cs-skills-title { cursor: pointer; }
+.cs-card .cs-skills-title::after {
+  content: " \25B8";          /* small ▸ affordance */
+  font-size: 0.8em;
+  opacity: 0.6;
+}
+.cs-card .cs-skills-title:hover,
+.cs-card .cs-skills-title:focus { color: #9a2a2a; outline: none; }
+
+/* Spell Detail modal */
+.cs-spell-detail-head { margin-bottom: 12px; }
+.cs-spell-detail-name {
+  font-size: 22px;
+  font-weight: bold;
+  margin: 0 0 8px;
+  color: #2b1a13;
+}
+.cs-spell-detail-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.cs-spell-badge {
+  display: inline-block;
+  background: #efe3c8;
+  color: #5a3b1a;
+  border: 1px solid #d9c49a;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+.cs-spell-tier-badge { background: #e7e0f3; border-color: #c8b9e6; color: #4a3470; }
+.cs-spell-stats {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 15px;
+}
+.cs-spell-stats th,
+.cs-spell-stats td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid #eee;
+}
+.cs-spell-stats th { width: 32%; color: #6b1f1f; font-weight: bold; }
+.cs-spell-detail-line { margin: 8px 0; font-size: 15px; }
+.cs-spell-detail-desc { margin: 12px 0; line-height: 1.6; }
+.cs-spell-detail-channel {
+  margin: 10px 0;
+  padding: 8px 12px;
+  background: #f4eedf;
+  border-left: 3px solid #b89b6a;
+  font-size: 14px;
+}
+
+/* Skill list modal */
+.cs-skills-panel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.cs-skills-panel-table th {
+  text-align: left;
+  color: #6b1f1f;
+  border-bottom: 2px solid #d9c49a;
+  padding: 4px 8px;
+}
+.cs-skills-panel-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid #eee;
+}
+.cs-skills-panel-table .cs-num { text-align: center; }
+.cs-skills-panel-table .cs-skill-attr { color: #99836a; font-size: 12px; }
+.cs-skills-panel-table .cs-skill-untrained { color: #6b5a48; }
+.cs-skill-roll-btn {
+  border: 1px solid #b89b6a;
+  background: #f0e6cf;
+  color: #5a3b1a;
+  border-radius: 4px;
+  padding: 2px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.cs-skill-roll-btn:hover { background: #e6d6b0; }
+
+/* Inline compact roll revealed beneath a Skill row — about one row tall. */
+.cs-skills-panel-table .cs-skill-roll-slot {
+  padding: 4px 8px 6px;
+  background: #faf4e6;
+  border-bottom: 1px solid #d9c49a;
+}
+
+/* =====================================================================
+   Compact Skill-Roll stub (inline under a Skill) + Log page
+   ===================================================================== */
+
+/* One-line inline roll, about the height of a Skill row. */
+.compact-roll {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 13px;
+}
+.compact-roll-param { color: #5a3b1a; font-weight: bold; white-space: nowrap; }
+.compact-roll-dice { line-height: 1; }
+.compact-roll-result { font-weight: bold; color: #2b1a13; white-space: nowrap; }
+
+/* DM Page */
+.dm-page-title {
+  color: #6b1f1f;
+  margin: 0 0 16px;
+}
+.dm-time {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #d9c49a;
+}
+.dm-round-tracker {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 12px 0;
+}
+.dm-round-label { font-size: 15px; color: #2b1a13; }
+.dm-round-label strong { color: #6b1f1f; font-size: 17px; }
+.dm-round-form { margin: 0; }
+.dm-page .log-page { display: block; }
+.dm-party {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #d9c49a;
+}
+.dm-party h2 { color: #6b1f1f; margin: 0 0 10px; }
+.dm-actions-oob {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #d9c49a;
+}
+.dm-actions-oob h2 { color: #6b1f1f; margin: 0 0 6px; }
+.dm-actor-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+/* Plain buttons — black text on a white background, no selected/active color
+   change (the mounted panel shows whose turn it is). */
+.dm-actor-btn {
+  background: #fff;
+  color: #000;
+  border: 1px solid #cbd5e1;
+}
+.dm-actor-btn:hover { background: #f3f4f6; }
+.dm-actor-panel { margin-top: 12px; }
+
+/* Multiple (group action) + Skill target selection */
+.dm-mult-step { margin-bottom: 12px; }
+.dm-mult-result, .ta-skill-result { margin-top: 10px; }
+.dm-mult-net {
+  margin-top: 8px;
+  font-weight: bold;
+  color: #6b1f1f;
+}
+.ta-sk-targets { margin: 8px 0; }
+.ta-sk-roll { margin-top: 6px; }
+.dm-monsters {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #d9c49a;
+}
+.dm-monsters h2 { color: #6b1f1f; margin: 0 0 6px; }
+
+/* Quick Monster builder */
+.mc-error {
+  background: #f7e2e2;
+  border: 1px solid #b23b3b;
+  color: #8a1f1f;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+.mc-form { max-width: 760px; }
+.mc-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+.mc-grow { flex: 1 1 100%; }
+.mc-grow input[type="text"] { width: 100%; box-sizing: border-box; }
+.mc-opt { color: #8a7a68; font-weight: normal; font-size: 12px; }
+.mc-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+.mc-attrs, .mc-skills {
+  border: 1px solid #d9c49a;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.mc-attrs legend, .mc-skills legend { color: #6b1f1f; font-weight: bold; padding: 0 6px; }
+.mc-attrs { display: flex; flex-wrap: wrap; gap: 14px; }
+.mc-attr input { width: 64px; }
+.mc-skill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 4px 14px;
+}
+.mc-skill { font-size: 13px; color: #2b1a13; display: flex; gap: 6px; align-items: center; }
+.mc-actions { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+.mc-cancel { text-decoration: none; }
+
+/* Log page */
+.log-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.log-clear-btn {
+  border: 1px solid #b23b3b;
+  background: #f7e2e2;
+  color: #8a1f1f;
+  border-radius: 4px;
+  padding: 4px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+.log-clear-btn:hover { background: #f0cccc; }
+.log-empty { color: #6b5a48; font-style: italic; }
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 14px;
+}
+.log-table th {
+  text-align: left;
+  color: #6b1f1f;
+  border-bottom: 2px solid #d9c49a;
+  padding: 6px 10px;
+}
+.log-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+.log-table .cs-num { text-align: center; }
+.log-time { color: #6b5a48; white-space: nowrap; }
+.log-char { font-weight: bold; }
+.log-result { font-weight: bold; white-space: nowrap; }
+
+/* Log page: clickable TN cell with the TN-math popup. */
+.log-tn-cell.log-tn-has-pop { position: relative; cursor: pointer; }
+.log-tn-cell.log-tn-has-pop .log-tn-value { text-decoration: underline dotted; text-underline-offset: 2px; }
+.log-tn-pop {
+  display: none;
+  position: absolute;
+  z-index: 50;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  min-width: 150px;
+  background: #fffdf6;
+  color: #2b1a13;
+  border: 1px solid #d9c49a;
+  border-radius: 4px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  padding: 8px 12px;
+  text-align: left;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: normal;
+  white-space: nowrap;
+}
+.log-tn-cell.log-tn-has-pop:hover .log-tn-pop,
+.log-tn-cell.log-tn-has-pop:focus .log-tn-pop,
+.log-tn-cell.log-tn-open .log-tn-pop { display: block; }
+.log-tn-pop-title {
+  font-weight: bold;
+  color: #6b1f1f;
+  border-bottom: 1px solid #e5d6b8;
+  margin-bottom: 4px;
+  padding-bottom: 3px;
+}
+.log-tn-pop-line { line-height: 1.5; }
+.log-tn-pop-line:last-child { font-weight: bold; margin-top: 3px; }
+
+/* Store: Buy + Give button pair, and the Scrolls & Potions builder. */
+.provision-buy-row { display: flex; gap: 6px; margin-top: 6px; }
+.provision-card-buy { display: flex; gap: 6px; align-items: center; }
+.provision-give { white-space: nowrap; }
+.provision-card-spellitem .provision-bonus { display: block; margin: 4px 0; }
+
+/* Compendium Spell List page */
+.spell-list-filters {
+  display: flex;
+  gap: 14px;
+  align-items: end;
+  flex-wrap: wrap;
+  margin: 12px 0 16px;
+}
+.spell-list-filters label { display: flex; flex-direction: column; font-size: 13px; gap: 3px; }
+.spell-list-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.spell-list-table th {
+  text-align: left;
+  color: #6b1f1f;
+  border-bottom: 2px solid #d9c49a;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+.spell-list-table td { padding: 6px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+.spell-list-table .cs-num { text-align: center; }
+.spell-list-table .cs-spell-link {
+  border: none; background: none; padding: 0; margin: 0; font: inherit; font-weight: bold;
+  /* A <button> defaults to centered text, so a wrapped two-word name would
+     look indented ("   Auditory / Hallucination"). Force left alignment. */
+  text-align: left;
+  color: #6b1f1f; text-decoration: underline dotted; text-underline-offset: 2px; cursor: pointer;
+}
+/* The table has many columns; let it scroll sideways instead of being clipped
+   by the narrow Compendium content pane. */
+.spell-list-scroll { overflow-x: auto; }
+.spell-list-table { min-width: max-content; }
+.spell-list-table th, .spell-list-table td { white-space: nowrap; }
+.spell-list-table .cs-spell-link:hover { color: #9a2a2a; text-decoration-style: solid; }
+.spell-school-badge {
+  display: inline-block; background: #efe3c8; color: #5a3b1a;
+  border: 1px solid #d9c49a; border-radius: 9999px; padding: 1px 9px; font-size: 12px;
+}
+.spell-list-empty { color: #6b5a48; font-style: italic; margin-top: 12px; }
+
+/* Clickable spell School badge (opens the School description). */
+button.spell-school-badge { font-family: inherit; }
+.spell-school-badge.cs-school-link { cursor: pointer; }
+.spell-school-badge.cs-school-link:hover { background: #e6d6b0; }
+.cs-school-desc { line-height: 1.6; }
+
+/* Spell names are coloured by their Tier (Tier Colors, matching the sheet). */
+.spell-list-table .cs-spell-link.tier-0 { color: #c0392b; }
+.spell-list-table .cs-spell-link.tier-1 { color: #d35400; }
+.spell-list-table .cs-spell-link.tier-2 { color: #b8860b; }
+.spell-list-table .cs-spell-link.tier-3 { color: #27ae60; }
+.spell-list-table .cs-spell-link.tier-4 { color: #2980b9; }
+.spell-list-table .cs-spell-link.tier-5 { color: #8e44ad; }

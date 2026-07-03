@@ -1,0 +1,48 @@
+<%#
+  Multiple (group action) selection panel — reached from the "Multiple" button
+  in the out-of-combat actor picker. Driven by TurnMultiple:
+
+    1. Characters — multi-select (anyone on Initiative).
+    2. Action — Skill or Item.
+       • Skill — pick a Skill, then optionally pick target(s) (the opposed side),
+         then Roll → the Check Resolution Stub with the best-vs-worst net pairings.
+         Confirm logs every roll.
+       • Item — pick a no-roll self-buff Item every selected Character carries;
+         Use applies it to each (self, no roll) and subtracts one.
+
+  Locals: @combatants — [{ combatant_id, name }]; @skills — [{ key, name }].
+%>
+<div class="dm-multiple">
+  <section class="dm-mult-step" data-mult-step="chars">
+    <div class="cb-tier-head">Characters</div>
+    <%= erb :_creature_multiselect, locals: { creatures: @combatants, group: 'chars' } %>
+    <button type="button" class="ce-btn dm-mult-next" disabled>Next ▶</button>
+  </section>
+
+  <section class="dm-mult-step" data-mult-step="mode" hidden>
+    <div class="cb-tier-head">Action</div>
+    <div class="cb-line">
+      <button type="button" class="cr-mod-btn cb-opt dm-mult-mode" data-mode="skill">Skill</button>
+      <button type="button" class="cr-mod-btn cb-opt dm-mult-mode" data-mode="item">Item</button>
+    </div>
+  </section>
+
+  <section class="dm-mult-step" data-mult-step="skill" hidden>
+    <div class="cb-tier-head">Skill</div>
+    <div class="cb-line">
+      <% @skills.each do |s| %>
+        <button type="button" class="cr-mod-btn cb-opt dm-mult-skill" data-skill="<%= s[:key] %>"><%= h(s[:name]) %></button>
+      <% end %>
+    </div>
+  </section>
+
+  <section class="dm-mult-step" data-mult-step="targets" hidden>
+    <div class="cb-tier-head">Targets (opposed) — optional</div>
+    <%= erb :_creature_multiselect, locals: { creatures: @combatants, group: 'targets' } %>
+    <button type="button" class="ce-btn ce-btn-primary dm-mult-roll">Roll ▶</button>
+  </section>
+
+  <section class="dm-mult-step" data-mult-step="items" hidden></section>
+
+  <div class="dm-mult-result"></div>
+</div>
