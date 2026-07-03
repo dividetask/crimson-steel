@@ -191,10 +191,6 @@ characters:
     - item: Kerosene
       quantity: 2
     - item: Acid jar
-    - item: Vial of Sleep Venom
-      name: Sleeping Death (Poison)
-      description: Injestable poison. Causes unconciousness and appearance of death
-        for 8 to 12 hours.
     - item: Vial of Krithrak Spider Venom
       quantity: 6
     - item: Arrow
@@ -232,7 +228,6 @@ characters:
       - blindspot
       - basic_recharge
     - item: Scroll of Blindspot
-      quantity: 2
       tier: 2
     - item: Scroll of Darkness
       tier: 2
@@ -601,3 +596,7 @@ party:
   - item: Oil of Light
   - item: Oil of Goodberry
     tier: 1
+  - item: Vial of Sleep Venom
+    name: Sleeping Death (Poison)
+    description: Injestable poison. Causes unconciousness and appearance of death
+      for 8 to 12 hours.

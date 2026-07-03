@@ -1741,7 +1741,41 @@
       "creature_id": 382,
       "creature_token": null,
       "tier": null
+    },
+    {
+      "id": 101,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 101,
+      "scene_position": 86,
+      "title": "Infiltration",
+      "public_description": "Lysander and Caelian read scrolls of blindspot and drank potions of spider climb. They entered the fort climbing the western wall noticing a patrol they avoided. Looking down they saw many buildings and found one section suspiciously desolate. Exploring they eventually found a smithy and armorer workshop and a third building with soft moaning coming from it. \r\n\r\nLysander identified the sound as that of a monster while Caelian became suspiciously insistent the slaves were in this room but refused to elaborate on how he knew. Lysander wanted to leave but Caelian said he will go with or without Lysander. Upon entering they encountered a cloaker and Lysander was nearly suffocated by it. Scared and on the verge of panic Lysander threw a vial of poison at the open maw of the creature hoping to incapacitate it but missed. All hope was lost until he noticed the vial was back in his hand as Petey had caught and returned it. Trying again he succeeded in getting it down the creatures throat.\r\n\r\nIt took 5 rounds of being battered by the creature while Caelian tried helplessly to hurt the creature before the poison finished the creature off.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 102,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 102,
+      "scene_position": 87,
+      "title": "Rescue",
+      "public_description": "After subduing the cloaker you found a group of a dozen prisoners all dazed and confused but none of them were Hawthorne. Varen was among them and after a healing potion she was ready to accompany the party on the escape.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
     }
   ],
-  "next_id": 101
+  "next_id": 103
 }

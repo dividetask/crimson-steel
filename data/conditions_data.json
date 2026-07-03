@@ -4,16 +4,35 @@
       "hp_damage": {
         "minor": 1
       },
-      "magic_toxicity": 0
+      "named_effect_mechanics": [
+        {
+          "source_id": "encounter:cast:Blindspot:0",
+          "kind": "flag",
+          "data": {
+            "kind": "flag",
+            "flag": "unseen"
+          },
+          "ends_on_round": null,
+          "effect_name": "blindspot"
+        },
+        {
+          "source_id": "encounter:cast:Blindspot:1",
+          "kind": "display",
+          "data": {
+            "kind": "display",
+            "text": "The creature is unseen by each observer that failed its save. The DM adjudicates the consequences of invisibility (attacks against the unseen creature, the creature's own attacks, Perception to locate it, etc.)."
+          },
+          "ends_on_round": null,
+          "effect_name": "blindspot"
+        }
+      ]
     },
     "2": {
       "hp_damage": {
         "minor": 9,
         "moderate": 4
       },
-      "magic_toxicity": 4,
-      "afflictions": {
-      }
+      "magic_toxicity": 4
     },
     "1": {
       "hp_damage": {
@@ -21,6 +40,30 @@
       },
       "mana_spent": 4,
       "magic_toxicity": 4
+    },
+    "2025": {
+      "named_effect_mechanics": [
+        {
+          "source_id": "encounter:cast:Blindspot:0",
+          "kind": "flag",
+          "data": {
+            "kind": "flag",
+            "flag": "unseen"
+          },
+          "ends_on_round": null,
+          "effect_name": "blindspot"
+        },
+        {
+          "source_id": "encounter:cast:Blindspot:1",
+          "kind": "display",
+          "data": {
+            "kind": "display",
+            "text": "The creature is unseen by each observer that failed its save. The DM adjudicates the consequences of invisibility (attacks against the unseen creature, the creature's own attacks, Perception to locate it, etc.)."
+          },
+          "ends_on_round": null,
+          "effect_name": "blindspot"
+        }
+      ]
     }
   }
 }
