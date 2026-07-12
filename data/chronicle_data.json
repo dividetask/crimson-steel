@@ -1775,7 +1775,58 @@
       ],
       "owner_id": null,
       "active": true
+    },
+    {
+      "id": 103,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 103,
+      "scene_position": 88,
+      "title": "** BARD DECISIONS **",
+      "public_description": "All classes gain archtypes at level 3. Ultimately what that looks like can be up to you. So far I have the following ideas\r\n\r\nDancing Dervish\r\n\r\nMartial Focused Bard. Martial proficiency improves one step from unaligned to aligned.\r\nGain Weapon and Armor Training as a fighter half your level\r\n\r\nMagician\r\n\r\nGain 4 mana per level as opposed to 2. Can choose to learn any wizard spell as well as bard spells but must use the arcana skill when learning spells not on the bard list\r\n\r\nDivine Prophet\r\n\r\nGain a domain and all of the benefits from it. Must worship a deity. Gain medium armor proficiency and weapon proficiency with dieties favored weapon.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 104,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 104,
+      "scene_position": 89,
+      "title": "Stockade Note",
+      "public_description": "",
+      "dm_description": "It is agreed that old Klim has grown softhearted. I shall look forward to having you sit on the Inner Council with me. There will soon be many openings. It is imperative that the operations fail at the hands of the outsiders. Others will be blamed. I must be able to move the base as I choose.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 105,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 105,
+      "scene_position": 90,
+      "title": "** Cleric Decisions **",
+      "public_description": "All classes gain an archetype at level 3\r\n\r\nBattle Cleric\r\nMartial proficiency improves one step from unaligned to aligned\r\n\r\nMystic Theurge\r\nLearn a number of wizard spells as though you were a wizard half your cleric level in addition to the spells gained through your domains. Spells learned through domains do not count towards understanding wizard spells and thus may need to be learned a second time to pick their higher level versions. These spells are still cast using Arcana rather then Invocation.\r\n\r\nEvangelist\r\nGain Perform Orator as an unaligned skill. If the skill is already known then you may choose another skill to learn. You may use bardic performance for that skill as though you were a bard. This skill may only be used to espouse your religion.",
+      "dm_description": "",
+      "image": null,
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
     }
   ],
-  "next_id": 103
+  "next_id": 106
 }
