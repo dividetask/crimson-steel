@@ -1826,7 +1826,41 @@
       ],
       "owner_id": null,
       "active": true
+    },
+    {
+      "id": 106,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 106,
+      "scene_position": 91,
+      "title": "Room 31",
+      "public_description": "",
+      "dm_description": "What's actually in the room\r\nA gray-bearded man in a drab gray cloak, sitting at a desk, writing. He's a slave merchant, bored, waiting for his purchased stock to be prepped for the drive to market. Chain mail and a longsword under the cloak. He'll assume the party are mercenaries and talk to them until they betray themselves through ignorance — then he stalls for time.\r\nHe is stalling for a reason. His two guards are in the kitchen fetching his supper and come back five rounds after the party enters. They're Cari and Filch — cavelings, Markessa's failed experiments, elves once, now gray scaly things with bulbous eyes and clawed padded feet. They climb like cats, move silently, hide in shadows at 90%, and surprise on 1–5. If the door's closed they'll listen at it first, then knock — Filch tries to draw people out while Cari waits beside the door. Neither can speak.\r\n\r\nLeather chest under the bed: 600 gp, 20 pp, five amethysts at 50 gp each — and the papers detailing the slave route. These are the module's explicit \"this leads to the next chapter\" item.\r\nOn the desk where he's writing: a thin wooden wand. A wand of opening — strike a locked or bound object and it opens, like knock. Twelve charges left.\r\n\r\nShe's been in that room-of-slaves block, dazed but a rogue. What she plausibly knows, in her own words:\r\nThe gray man down the hall isn't garrison. He's a buyer — he's been in that room three days, complaining about the delay, and he had them bring him a desk. He writes constantly. He's got two things with him that don't talk. They walk on their hands and feet and they don't make a sound, and once when the door was open I saw one go up a wall.",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
+    },
+    {
+      "id": 107,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 107,
+      "scene_position": 92,
+      "title": "Stockade Letter",
+      "public_description": "Lord Bucholtz having proved himself, the Council will not miss him.\r\nThe old man has gone soft. He counts the ledgers and speaks of restraint, and the Council listens to him because it has always listened to him. That will end.\r\nThere will be openings. When there are, I should like you to sit with me.\r\nUnderstand what is required. The stockade must fall, and it must fall to the outsiders — not to us, not to any hand that can be traced. Let them do it. Let the loss be total and let it be theirs. Others will answer for it, and the answering will be public. Do nothing to hinder them and nothing to help them; a garrison that dies confused is a garrison that tells no tales.\r\nI must be free to move the base as I choose. See that I am.",
+      "dm_description": "",
+      "image": null,
+      "shared": false,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": true
     }
   ],
-  "next_id": 106
+  "next_id": 108
 }
