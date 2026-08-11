@@ -376,3 +376,216 @@ loot_tables:
 
       - chance: 0.4
         item: { item: Copper, quantity: "2d6" }
+
+  gnoll_loadout:
+    rolls:
+      - equipped: true
+        options:
+          - { chance: 0.6, item: { item: Hide armor } }
+          - { chance: 0.3, item: { item: Leather armor } }
+      - equipped: true
+        options:
+          - { chance: 0.40, item: { item: Spear } }
+          - { chance: 0.35, item: { item: Hand axe } }
+          - { chance: 0.25, item: { item: Club } }
+      - chance: 0.4
+        item: { item: Javelin, quantity: "1d3 + 1" }
+      - item: { item: Copper, quantity: "2d10" }
+      - chance: 0.3
+        item: { item: Silver, quantity: "1d4" }
+      - chance: 0.15
+        item: { item: Trinket, name: "Bone fetish" }
+
+  gnoll_hunter_loadout:
+    rolls:
+      - equipped: true
+        options:
+          - { chance: 0.7, item: { item: Leather armor } }
+          - { chance: 0.3, item: { item: Hide armor } }
+      - equipped: true
+        as: ranged
+        options:
+          - { chance: 0.6, key: shortbow, item: { item: Shortbow } }
+          - { chance: 0.4, key: longbow,  item: { item: Longbow } }
+      - when: { ranged: shortbow }
+        item: { item: Arrow, quantity: 20 }
+      - when: { ranged: longbow }
+        item: { item: Arrow, quantity: 20 }
+      - options:
+          - { chance: 0.5, item: { item: Spear } }
+          - { chance: 0.3, item: { item: Short sword } }
+          - { chance: 0.2, item: { item: Hand axe } }
+      - item: { item: Copper, quantity: "3d10" }
+      - chance: 0.4
+        item: { item: Silver, quantity: "2d4" }
+      - chance: 0.15
+        item: { item: Gold, quantity: "1d3" }
+      - chance: 0.1
+        item: { item: Gem, quantity: 1, value_in_gold: 15 }
+      - chance: 0.2
+        item: { item: Trinket, name: "Hyena-tooth necklace" }
+
+  gnoll_pack_lord_loadout:
+    rolls:
+      - equipped: true
+        options:
+          - { chance: 0.5, item: { item: Hide armor } }
+          - { chance: 0.4, item: { item: Chain shirt } }
+          - { chance: 0.1, item: { item: Breastplate } }
+      - equipped: true
+        as: melee
+        options:
+          - { chance: 0.30, key: one_handed, item: { item: Battleaxe } }
+          - { chance: 0.30, key: two_handed, item: { item: Greataxe } }
+          - { chance: 0.25, key: one_handed, item: { item: Falchion } }
+          - { chance: 0.15, key: two_handed, item: { item: Great sword } }
+      - equipped: true
+        when: { melee: one_handed }
+        chance: 0.5
+        item: { item: Light metal shield }
+      - item: { item: Silver, quantity: "3d10" }
+      - chance: 0.5
+        item: { item: Gold, quantity: "2d4" }
+      - chance: 0.25
+        item: { item: Gem, quantity: 1, value_in_gold: 25 }
+      - chance: 0.3
+        item: { item: Necklace of animal fangs }
+
+  gnoll_fang_loadout:
+    rolls:
+      - equipped: true
+        options:
+          - { chance: 0.6, item: { item: Hide armor } }
+          - { chance: 0.3, item: { item: Breastplate } }
+      - equipped: true
+        options:
+          - { chance: 0.5, item: { item: Greataxe } }
+          - { chance: 0.3, item: { item: Great sword } }
+          - { chance: 0.2, item: { item: Battleaxe } }
+      - item: { item: Gold, quantity: "4d6 + 10" }
+      - chance: 0.5
+        item: { item: Gem, quantity: 1, value_in_gold: 50 }
+      - chance: 0.6
+        item: { item: Trinket, name: "Demon-fang idol" }
+      - chance: 0.2
+        options: tier_one_magical_melee
+
+  hyena_loot:
+    rolls:
+      - chance: 0.5
+        item: { item: Trinket, name: "Hyena pelt" }
+      - chance: 0.2
+        item: { item: Trinket, name: "Gnaw-scarred bone" }
+
+  mountain_raider_loadout:
+    rolls:
+      - equipped: true
+        options:
+          - { chance: 0.5, item: { item: Hide armor } }
+          - { chance: 0.4, item: { item: Leather armor } }
+          - { chance: 0.1, item: { item: Chain shirt } }
+      - equipped: true
+        options:
+          - { chance: 0.4, item: { item: Battleaxe } }
+          - { chance: 0.3, item: { item: Greataxe } }
+          - { chance: 0.3, item: { item: Hand axe } }
+      - item: { item: Copper, quantity: "5d10" }
+      - chance: 0.5
+        item: { item: Silver, quantity: "2d6" }
+      - chance: 0.2
+        item: { item: Gold, quantity: "1d4" }
+      - chance: 0.1
+        item: { item: Gem, quantity: 1, value_in_gold: 15 }
+
+  raider_scout_loadout:
+    rolls:
+      - equipped: true
+        options:
+          - { chance: 0.8, item: { item: Leather armor } }
+          - { chance: 0.2, item: { item: Studded leather } }
+      - equipped: true
+        as: ranged
+        options:
+          - { chance: 0.7, key: shortbow, item: { item: Shortbow } }
+          - { chance: 0.3, key: sling,    item: { item: Sling } }
+      - when: { ranged: shortbow }
+        item: { item: Arrow, quantity: 20 }
+      - when: { ranged: sling }
+        item: { item: Stone, quantity: 20 }
+      - options:
+          - { chance: 0.5, item: { item: Short sword } }
+          - { chance: 0.3, item: { item: Dagger } }
+          - { chance: 0.2, item: { item: Rapier } }
+      - item: { item: Copper, quantity: "4d10" }
+      - chance: 0.5
+        item: { item: Silver, quantity: "2d6" }
+      - chance: 0.3
+        item: { item: Thieves' tools }
+      - chance: 0.1
+        item: { item: Gem, quantity: 1, value_in_gold: 15 }
+
+  raider_tracker_loadout:
+    rolls:
+      - equipped: true
+        options:
+          - { chance: 0.6, item: { item: Leather armor } }
+          - { chance: 0.4, item: { item: Studded leather } }
+      - equipped: true
+        as: ranged
+        options:
+          - { chance: 0.7, key: longbow,  item: { item: Longbow } }
+          - { chance: 0.3, key: shortbow, item: { item: Shortbow } }
+      - item: { item: Arrow, quantity: 20 }
+      - options:
+          - { chance: 0.5, item: { item: Short sword } }
+          - { chance: 0.3, item: { item: Hand axe } }
+          - { chance: 0.2, item: { item: Dagger } }
+      - item: { item: Silver, quantity: "3d8" }
+      - chance: 0.4
+        item: { item: Gold, quantity: "1d4" }
+      - chance: 0.5
+        item: { item: Rations, name: "Trail jerky" }
+      - chance: 0.3
+        item: { item: Trinket, name: "Fur-and-feather charm" }
+
+  raider_chieftain_loadout:
+    rolls:
+      - equipped: true
+        options:
+          - { chance: 0.5, item: { item: Chain shirt } }
+          - { chance: 0.3, item: { item: Breastplate } }
+          - { chance: 0.2, item: { item: Hide armor } }
+      - equipped: true
+        as: melee
+        options:
+          - { chance: 0.40, key: two_handed, item: { item: Greataxe } }
+          - { chance: 0.25, key: two_handed, item: { item: Great sword } }
+          - { chance: 0.35, key: one_handed, item: { item: Battleaxe } }
+      - equipped: true
+        when: { melee: one_handed }
+        chance: 0.5
+        item: { item: Light metal shield }
+      - item: { item: Gold, quantity: "4d6 + 10" }
+      - chance: 0.5
+        item: { item: Gem, quantity: 1, value_in_gold: 50 }
+      - chance: 0.3
+        item: { item: Necklace of animal fangs }
+      - chance: 0.2
+        options: tier_one_magical_melee
+
+  raider_shaman_loadout:
+    rolls:
+      - equipped: true
+        options:
+          - { chance: 0.6, item: { item: Hide armor } }
+          - { chance: 0.4, item: { item: Leather armor } }
+      - equipped: true
+        options:
+          - { chance: 0.5, item: { item: Quarterstaff, name: "Totem staff" } }
+          - { chance: 0.5, item: { item: Mace } }
+      - item: { item: Trinket, name: "Bone-and-bead prayer totem" }
+      - item: { item: Silver, quantity: "3d8" }
+      - chance: 0.3
+        item: { item: Gold, quantity: "1d4" }
+      - chance: 0.4
+        item: { item: Rations, name: "Foraged herbs" }

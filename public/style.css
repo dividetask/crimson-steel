@@ -4788,3 +4788,117 @@ button.spell-school-badge { font-family: inherit; }
 .spell-list-table .cs-spell-link.tier-3 { color: #27ae60; }
 .spell-list-table .cs-spell-link.tier-4 { color: #2980b9; }
 .spell-list-table .cs-spell-link.tier-5 { color: #8e44ad; }
+
+/* --- Compendium: Classes list + detail --------------------------------- */
+/* Card grid of playable classes; each card opens the class-detail modal. */
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.class-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  padding: 14px 16px;
+  background: #fbf6ea;
+  border: 1px solid #d9c49a;
+  border-left: 4px solid #9a2a2a;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+.class-card:hover {
+  background: #f4ead9;
+  box-shadow: 0 2px 8px rgba(90, 40, 20, 0.15);
+}
+.class-card-name { font-size: 17px; font-weight: bold; color: #6b1f1f; }
+.class-card-summary { font-size: 13px; line-height: 1.45; color: #5a4636; }
+
+/* Class detail modal fragment. */
+.cs-class-detail { max-width: 680px; }
+.cs-class-detail-name { font-size: 22px; font-weight: bold; margin: 0 0 4px; color: #2b1a13; }
+.cs-class-detail-sub {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8a6a3a;
+  margin: 0 0 10px;
+}
+.cs-class-detail-missing { color: #6b5a48; font-style: italic; }
+
+/* Archetypes section: clickable chips that open the archetype's page. */
+.cs-class-archetypes { margin-top: 18px; }
+.cs-class-archetypes h3 { font-size: 16px; color: #6b1f1f; margin: 0 0 4px; }
+.cs-class-archetypes-lead { margin: 0 0 8px; font-size: 14px; color: #5a4636; }
+.cs-class-archetype-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.cs-class-archetype {
+  font: inherit;
+  cursor: pointer;
+  padding: 6px 12px;
+  background: #fbf6ea;
+  border: 1px solid #d9c49a;
+  border-left: 3px solid #9a2a2a;
+  border-radius: 6px;
+  color: #6b1f1f;
+  font-weight: bold;
+}
+.cs-class-archetype:hover { background: #f4ead9; }
+
+/* Proficiencies block + skill lines, styled like the design-doc class page. */
+.cs-class-profs {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  background: #f4eedf;
+  border-left: 3px solid #b89b6a;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.cs-class-profs h3 { font-size: 13px; margin: 0 0 4px; color: #6b1f1f; text-transform: uppercase; letter-spacing: 0.03em; }
+.cs-class-label { font-weight: bold; color: #6b1f1f; }
+.cs-class-skillsline { margin: 8px 0; font-size: 14px; color: #4a3a2c; }
+.cs-class-skills { margin: 6px 0; font-size: 14px; line-height: 1.5; }
+.cs-class-allskills { margin: 6px 0 12px; font-size: 13px; }
+.cs-class-allskills summary { cursor: pointer; font-weight: bold; color: #6b1f1f; }
+.cs-class-allskills > div { margin-top: 6px; color: #5a4636; line-height: 1.5; }
+
+/* Level progression table (Level / Mana / ranks / saves / spells / special). */
+.cs-class-table-scroll { overflow-x: auto; margin: 14px 0 4px; }
+.cs-class-table { border-collapse: collapse; font-size: 13px; width: 100%; }
+.cs-class-table th {
+  background: #6b1f1f;
+  color: #f7efe0;
+  padding: 5px 8px;
+  text-align: center;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.cs-class-table td { padding: 5px 8px; border-bottom: 1px solid #eadfca; text-align: center; white-space: nowrap; }
+.cs-class-table tbody tr:nth-child(odd) { background: #faf5ea; }
+/* The Special column takes the remaining width and wraps; the numeric
+   columns stay as narrow as their content. */
+.cs-class-table .cs-class-special { text-align: left; white-space: normal; width: 40%; }
+.cs-class-table .cs-class-spellgroup { border-bottom: 1px solid #a85454; }
+.cs-class-table th.cs-class-tier { font-weight: normal; font-size: 12px; }
+.cs-class-table td.cs-class-tier { width: 1%; }
+.cs-class-tiernote { margin: 6px 0 0; font-size: 13px; color: #6b1f1f; font-weight: bold; }
+
+.cs-class-features { margin-top: 18px; }
+.cs-class-features h3 { font-size: 16px; color: #6b1f1f; margin: 0 0 8px; }
+.cs-class-feature-level { margin-bottom: 10px; }
+.cs-class-feature-level h4 {
+  font-size: 13px;
+  margin: 0 0 4px;
+  color: #8a6a3a;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.cs-class-feature-level ul { margin: 0; padding-left: 18px; }
+.cs-class-feature-level li { margin-bottom: 5px; line-height: 1.5; }
+.cs-class-feature-name { font-weight: bold; color: #33251a; }
+.cs-class-feature-sep { color: #8a6a3a; }
+.cs-class-feature-desc { font-size: 14px; color: #4a3a2c; }

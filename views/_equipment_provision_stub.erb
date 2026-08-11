@@ -54,172 +54,8 @@
 
   <div class="provision-body">
     <div class="provision-main">
-      <%# Weapons, Armor and Scrolls/Potions/Oils share one row (side by side). %>
+      <%# Magical Weapons, Magical Armor and Scrolls/Potions/Oils share one row (side by side). %>
       <div class="provision-row">
-      <%# ---- Weapons & Armor: dropdown + per-item Buy ---- %>
-      <% [['Weapons', weapons], ['Armor', armor]].each do |title, items| %>
-        <section class="provision-section">
-          <h2><%= title %></h2>
-          <div class="provision-recipient">
-            <label>Recipient
-              <select class="provision-creature-select">
-                <% creatures.each do |c| %>
-                  <option value="<%= c[:id] %>" data-pc="<%= !!c[:pc] %>"><%= esc.call(c[:name]) %></option>
-                <% end %>
-              </select>
-            </label>
-          </div>
-          <div class="provision-grid">
-            <% items.each do |it| %>
-              <div class="provision-card" data-item="<%= esc.call(it[:name]) %>" data-price="<%= it[:price] %>">
-                <div class="provision-pic<%= ' provision-pic-empty' unless it[:icon] %>" title="<%= esc.call(it[:name]) %>">
-                  <% if it[:icon] %><img src="<%= it[:icon] %>" alt="" loading="lazy"><% end %>
-                </div>
-                <div class="provision-card-body">
-                  <div class="provision-card-name"><%= esc.call(it[:name]) %></div>
-                  <div class="provision-card-price"><%= fmt.call(it[:price]) %> gp</div>
-                  <div class="provision-card-buy">
-                    <input type="number" class="provision-qty provision-qty-single" value="1" min="0">
-                    <%= buy_give.call %>
-                  </div>
-                </div>
-              </div>
-            <% end %>
-          </div>
-        </section>
-      <% end %>
-
-      <%# ---- Scrolls / Potions / Oils: form + spell + tier, live-priced ---- %>
-      <% si = defined?(spell_items) ? spell_items : nil %>
-      <% if si && !Array(si[:spells]).empty? %>
-        <section class="provision-section">
-          <h2>Scrolls, Potions &amp; Oils</h2>
-          <div class="provision-recipient">
-            <label>Recipient
-              <select class="provision-creature-select">
-                <% creatures.each do |c| %>
-                  <option value="<%= c[:id] %>" data-pc="<%= !!c[:pc] %>"><%= esc.call(c[:name]) %></option>
-                <% end %>
-              </select>
-            </label>
-          </div>
-          <div class="provision-grid">
-            <div class="provision-card provision-card-spellitem" data-price="0"
-                 data-spells='<%= Rack::Utils.escape_html(si[:spells].to_json) %>'>
-              <div class="provision-card-body">
-                <div class="provision-card-name">Scroll / Potion / Oil</div>
-                <label class="provision-bonus">Form
-                  <select class="spellitem-form">
-                    <option value="scroll">Scroll</option>
-                    <option value="potion">Potion</option>
-                    <option value="oil">Oil</option>
-                  </select>
-                </label>
-                <label class="provision-bonus">Spell
-                  <select class="spellitem-spell"></select>
-                </label>
-                <label class="provision-bonus">Tier
-                  <select class="spellitem-tier"></select>
-                </label>
-                <div class="provision-card-price"><span class="provision-price-amount">0</span> gp</div>
-                <div class="provision-note spellitem-note" hidden></div>
-                <div class="provision-card-buy"><%= buy_give.call %></div>
-              </div>
-            </div>
-          </div>
-        </section>
-      <% end %>
-      </div><%# end .provision-row %>
-
-      <%# ---- Alchemy: dropdown + "selected" box + one box per PC ---- %>
-      <section class="provision-section">
-        <h2>Alchemy</h2>
-        <div class="provision-recipient">
-          <label>Recipient
-            <select class="provision-creature-select">
-              <% creatures.each do |c| %>
-                <option value="<%= c[:id] %>" data-pc="<%= !!c[:pc] %>"><%= esc.call(c[:name]) %></option>
-              <% end %>
-            </select>
-          </label>
-        </div>
-        <div class="provision-grid">
-          <% alchemy.each do |it| %>
-            <div class="provision-card provision-card-batch" data-item="<%= esc.call(it[:name]) %>" data-price="<%= it[:price] %>">
-              <div class="provision-pic<%= ' provision-pic-empty' unless it[:icon] %>" title="<%= esc.call(it[:name]) %>">
-                <% if it[:icon] %><img src="<%= it[:icon] %>" alt="" loading="lazy"><% end %>
-              </div>
-              <div class="provision-card-body">
-                <div class="provision-card-name"><%= esc.call(it[:name]) %></div>
-                <div class="provision-card-price"><%= fmt.call(it[:price]) %> gp</div>
-                <div class="provision-alch-boxes">
-                  <label class="provision-box">
-                    <input type="number" class="provision-qty provision-qty-selected" value="0" min="0"> selected
-                  </label>
-                  <% players.each do |p| %>
-                    <label class="provision-box">
-                      <input type="number" class="provision-qty provision-qty-pc" value="0" min="0"
-                             data-recipient-id="<%= p[:id] %>" data-recipient-name="<%= esc.call(p[:name]) %>"> <%= esc.call(p[:name]) %>
-                    </label>
-                  <% end %>
-                </div>
-                <div class="provision-buy-row"><%= buy_give.call(' provision-alch-buy') %></div>
-              </div>
-            </div>
-          <% end %>
-        </div>
-      </section>
-
-      <%# ---- Magical Items: dropdown + per-item +N Bonus + Alchemy-style boxes ---- %>
-      <section class="provision-section">
-        <h2>Magical Items</h2>
-        <div class="provision-recipient">
-          <label>Recipient
-            <select class="provision-creature-select">
-              <% creatures.each do |c| %>
-                <option value="<%= c[:id] %>" data-pc="<%= !!c[:pc] %>"><%= esc.call(c[:name]) %></option>
-              <% end %>
-            </select>
-          </label>
-        </div>
-        <div class="provision-grid">
-          <% magical.each do |it| %>
-            <%
-              first = it[:options].first || { bonus: nil, tier: nil, price: 0 }
-            %>
-            <div class="provision-card provision-card-batch provision-card-guidance"
-                 data-item="<%= esc.call(it[:name]) %>" data-price="<%= first[:price] %>">
-              <div class="provision-pic<%= ' provision-pic-empty' unless it[:icon] %>" title="<%= esc.call(it[:name]) %>">
-                <% if it[:icon] %><img src="<%= it[:icon] %>" alt="" loading="lazy"><% end %>
-              </div>
-              <div class="provision-card-body">
-                <div class="provision-card-name"><%= esc.call(it[:name]) %></div>
-                <label class="provision-bonus">Bonus
-                  <select class="provision-bonus-select">
-                    <% it[:options].each do |o| %>
-                      <option value="<%= o[:bonus] %>" data-price="<%= o[:price] %>" data-tier="<%= o[:tier] %>">+<%= o[:bonus] %></option>
-                    <% end %>
-                  </select>
-                </label>
-                <div class="provision-card-price"><span class="provision-price-amount"><%= fmt.call(first[:price]) %></span> gp</div>
-                <div class="provision-alch-boxes">
-                  <label class="provision-box">
-                    <input type="number" class="provision-qty provision-qty-selected" value="0" min="0"> selected
-                  </label>
-                  <% players.each do |p| %>
-                    <label class="provision-box">
-                      <input type="number" class="provision-qty provision-qty-pc" value="0" min="0"
-                             data-recipient-id="<%= p[:id] %>" data-recipient-name="<%= esc.call(p[:name]) %>"> <%= esc.call(p[:name]) %>
-                    </label>
-                  <% end %>
-                </div>
-                <div class="provision-buy-row"><%= buy_give.call(' provision-alch-buy') %></div>
-              </div>
-            </div>
-          <% end %>
-        </div>
-      </section>
-
       <%# ---- Magical Weapons: pick weapon + property + tier, live-priced ---- %>
       <% mw = defined?(magical_weapons) ? magical_weapons : nil %>
       <% if mw && !Array(mw[:weapons]).empty? && !Array(mw[:properties]).empty? %>
@@ -314,6 +150,170 @@
           </div>
         </section>
       <% end %>
+
+      <%# ---- Scrolls / Potions / Oils: form + spell + tier, live-priced ---- %>
+      <% si = defined?(spell_items) ? spell_items : nil %>
+      <% if si && !Array(si[:spells]).empty? %>
+        <section class="provision-section">
+          <h2>Scrolls, Potions &amp; Oils</h2>
+          <div class="provision-recipient">
+            <label>Recipient
+              <select class="provision-creature-select">
+                <% creatures.each do |c| %>
+                  <option value="<%= c[:id] %>" data-pc="<%= !!c[:pc] %>"><%= esc.call(c[:name]) %></option>
+                <% end %>
+              </select>
+            </label>
+          </div>
+          <div class="provision-grid">
+            <div class="provision-card provision-card-spellitem" data-price="0"
+                 data-spells='<%= Rack::Utils.escape_html(si[:spells].to_json) %>'>
+              <div class="provision-card-body">
+                <div class="provision-card-name">Scroll / Potion / Oil</div>
+                <label class="provision-bonus">Form
+                  <select class="spellitem-form">
+                    <option value="scroll">Scroll</option>
+                    <option value="potion">Potion</option>
+                    <option value="oil">Oil</option>
+                  </select>
+                </label>
+                <label class="provision-bonus">Spell
+                  <select class="spellitem-spell"></select>
+                </label>
+                <label class="provision-bonus">Tier
+                  <select class="spellitem-tier"></select>
+                </label>
+                <div class="provision-card-price"><span class="provision-price-amount">0</span> gp</div>
+                <div class="provision-note spellitem-note" hidden></div>
+                <div class="provision-card-buy"><%= buy_give.call %></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      <% end %>
+      </div><%# end .provision-row %>
+
+      <%# ---- Weapons & Armor (mundane): dropdown + per-item Buy ---- %>
+      <% [['Weapons', weapons], ['Armor', armor]].each do |title, items| %>
+        <section class="provision-section">
+          <h2><%= title %></h2>
+          <div class="provision-recipient">
+            <label>Recipient
+              <select class="provision-creature-select">
+                <% creatures.each do |c| %>
+                  <option value="<%= c[:id] %>" data-pc="<%= !!c[:pc] %>"><%= esc.call(c[:name]) %></option>
+                <% end %>
+              </select>
+            </label>
+          </div>
+          <div class="provision-grid">
+            <% items.each do |it| %>
+              <div class="provision-card" data-item="<%= esc.call(it[:name]) %>" data-price="<%= it[:price] %>">
+                <div class="provision-pic<%= ' provision-pic-empty' unless it[:icon] %>" title="<%= esc.call(it[:name]) %>">
+                  <% if it[:icon] %><img src="<%= it[:icon] %>" alt="" loading="lazy"><% end %>
+                </div>
+                <div class="provision-card-body">
+                  <div class="provision-card-name"><%= esc.call(it[:name]) %></div>
+                  <div class="provision-card-price"><%= fmt.call(it[:price]) %> gp</div>
+                  <div class="provision-card-buy">
+                    <input type="number" class="provision-qty provision-qty-single" value="1" min="0">
+                    <%= buy_give.call %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </section>
+      <% end %>
+
+      <%# ---- Alchemy: dropdown + "selected" box + one box per PC ---- %>
+      <section class="provision-section">
+        <h2>Alchemy</h2>
+        <div class="provision-recipient">
+          <label>Recipient
+            <select class="provision-creature-select">
+              <% creatures.each do |c| %>
+                <option value="<%= c[:id] %>" data-pc="<%= !!c[:pc] %>"><%= esc.call(c[:name]) %></option>
+              <% end %>
+            </select>
+          </label>
+        </div>
+        <div class="provision-grid">
+          <% alchemy.each do |it| %>
+            <div class="provision-card provision-card-batch" data-item="<%= esc.call(it[:name]) %>" data-price="<%= it[:price] %>">
+              <div class="provision-pic<%= ' provision-pic-empty' unless it[:icon] %>" title="<%= esc.call(it[:name]) %>">
+                <% if it[:icon] %><img src="<%= it[:icon] %>" alt="" loading="lazy"><% end %>
+              </div>
+              <div class="provision-card-body">
+                <div class="provision-card-name"><%= esc.call(it[:name]) %></div>
+                <div class="provision-card-price"><%= fmt.call(it[:price]) %> gp</div>
+                <div class="provision-alch-boxes">
+                  <label class="provision-box">
+                    <input type="number" class="provision-qty provision-qty-selected" value="0" min="0"> selected
+                  </label>
+                  <% players.each do |p| %>
+                    <label class="provision-box">
+                      <input type="number" class="provision-qty provision-qty-pc" value="0" min="0"
+                             data-recipient-id="<%= p[:id] %>" data-recipient-name="<%= esc.call(p[:name]) %>"> <%= esc.call(p[:name]) %>
+                    </label>
+                  <% end %>
+                </div>
+                <div class="provision-buy-row"><%= buy_give.call(' provision-alch-buy') %></div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </section>
+
+      <%# ---- Magical Items: dropdown + per-item +N Bonus + Alchemy-style boxes ---- %>
+      <section class="provision-section">
+        <h2>Magical Items</h2>
+        <div class="provision-recipient">
+          <label>Recipient
+            <select class="provision-creature-select">
+              <% creatures.each do |c| %>
+                <option value="<%= c[:id] %>" data-pc="<%= !!c[:pc] %>"><%= esc.call(c[:name]) %></option>
+              <% end %>
+            </select>
+          </label>
+        </div>
+        <div class="provision-grid">
+          <% magical.each do |it| %>
+            <%
+              first = it[:options].first || { bonus: nil, tier: nil, price: 0 }
+            %>
+            <div class="provision-card provision-card-batch provision-card-guidance"
+                 data-item="<%= esc.call(it[:name]) %>" data-price="<%= first[:price] %>">
+              <div class="provision-pic<%= ' provision-pic-empty' unless it[:icon] %>" title="<%= esc.call(it[:name]) %>">
+                <% if it[:icon] %><img src="<%= it[:icon] %>" alt="" loading="lazy"><% end %>
+              </div>
+              <div class="provision-card-body">
+                <div class="provision-card-name"><%= esc.call(it[:name]) %></div>
+                <label class="provision-bonus">Bonus
+                  <select class="provision-bonus-select">
+                    <% it[:options].each do |o| %>
+                      <option value="<%= o[:bonus] %>" data-price="<%= o[:price] %>" data-tier="<%= o[:tier] %>">+<%= o[:bonus] %></option>
+                    <% end %>
+                  </select>
+                </label>
+                <div class="provision-card-price"><span class="provision-price-amount"><%= fmt.call(first[:price]) %></span> gp</div>
+                <div class="provision-alch-boxes">
+                  <label class="provision-box">
+                    <input type="number" class="provision-qty provision-qty-selected" value="0" min="0"> selected
+                  </label>
+                  <% players.each do |p| %>
+                    <label class="provision-box">
+                      <input type="number" class="provision-qty provision-qty-pc" value="0" min="0"
+                             data-recipient-id="<%= p[:id] %>" data-recipient-name="<%= esc.call(p[:name]) %>"> <%= esc.call(p[:name]) %>
+                    </label>
+                  <% end %>
+                </div>
+                <div class="provision-buy-row"><%= buy_give.call(' provision-alch-buy') %></div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </section>
 
     </div>
 

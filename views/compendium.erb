@@ -4,10 +4,11 @@
   end
   glossary_item = { key: 'glossary', label: 'Glossary', href: '/compendium?view=glossary' }
   spells_item   = { key: 'spells',   label: 'Spells',   href: '/compendium?view=spells' }
+  classes_item  = { key: 'classes',  label: 'Classes',  href: '/compendium?view=classes' }
   # 'Magical Tier' is pinned as the first nav entry, above the Glossary;
   # the remaining Explainer chapters follow in declared order.
   pinned, rest = explainer_items.partition { |i| i[:key] == 'magical_tier' }
-  nav_items = pinned + [glossary_item, spells_item] + rest
+  nav_items = pinned + [glossary_item, spells_item, classes_item] + rest
   has_mermaid = @view != 'glossary' && @explainer_html&.include?('class="mermaid"')
 %>
 
@@ -29,6 +30,8 @@
       <%= @glossary_html %>
     <% elsif @view == 'spells' %>
       <%= erb :_spell_list, locals: { spells: @spells_list, schools: @spell_schools, skills: @spell_skills } %>
+    <% elsif @view == 'classes' %>
+      <%= erb :_class_list, locals: { classes: @classes_list } %>
     <% elsif @explainer_html %>
       <article class="explainer">
         <%= @explainer_html %>
@@ -49,4 +52,9 @@
       and the local filter controller. %>
   <script type="module" src="/app.js"></script>
   <script type="module" src="/js/ui/spellList.js"></script>
+<% end %>
+
+<% if @view == 'classes' %>
+  <%# app.js delegates the .cs-class-link clicks that open the class-detail modal. %>
+  <script type="module" src="/app.js"></script>
 <% end %>

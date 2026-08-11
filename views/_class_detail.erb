@@ -1,0 +1,127 @@
+<%#
+  Class Detail fragment — docs/common/ui/class_list_stub.md.
+  Rendered layout-less into the shared modal when a Class is clicked on the
+  Compendium Classes list. Laid out like the Classes design document:
+  Proficiencies, the Skills count, Class / All Skills, a level progression
+  table, and the Class Features with their descriptions. No prose blurb — the
+  summary lives only on the list.
+
+  Locals:
+    detail — the ClassList.detail hash, or nil for an unknown/archetype class.
+%>
+<%
+  esc = ->(s) { Rack::Utils.escape_html(s.to_s) }
+  ord = ->(n) {
+    n = n.to_i
+    suffix = (11..13).cover?(n % 100) ? 'th' : { 1 => 'st', 2 => 'nd', 3 => 'rd' }.fetch(n % 10, 'th')
+    "#{n}#{suffix}"
+  }
+  sign = ->(n) { n.to_i >= 0 ? "+#{n.to_i}" : n.to_i.to_s }
+%>
+<% if detail.nil? %>
+  <article class="cs-class-detail">
+    <p class="cs-class-detail-missing">That class could not be found.</p>
+  </article>
+<% else %>
+  <article class="cs-class-detail">
+    <h2 class="cs-class-detail-name"><%= esc.call(detail[:name]) %></h2>
+    <% if detail[:parent_class] %>
+      <div class="cs-class-detail-sub"><%= esc.call(detail[:parent_class]) %> archetype</div>
+    <% end %>
+
+    <section class="cs-class-profs">
+      <h3>Proficiencies</h3>
+      <% unless detail[:armor].to_s.empty? %>
+        <div><span class="cs-class-label">Armor:</span> <%= esc.call(detail[:armor]) %></div>
+      <% end %>
+      <% unless detail[:weapons].to_s.empty? %>
+        <div><span class="cs-class-label">Weapons:</span> <%= esc.call(detail[:weapons]) %></div>
+      <% end %>
+      <div><span class="cs-class-label">Saving Throws:</span> <%= esc.call(detail[:saving_throws]) %></div>
+    </section>
+
+    <p class="cs-class-skillsline"><%= esc.call(detail[:skills_line]) %></p>
+    <div class="cs-class-skills"><span class="cs-class-label">Aligned Skills:</span> <%= esc.call(detail[:aligned_skills].join(', ')) %></div>
+    <% unless detail[:all_skills].empty? %>
+      <details class="cs-class-allskills">
+        <summary>All Skills</summary>
+        <div><%= esc.call(detail[:all_skills].join(', ')) %></div>
+      </details>
+    <% end %>
+
+    <% tiers = detail[:spell_tiers] %>
+    <div class="cs-class-table-scroll">
+      <table class="cs-class-table">
+        <thead>
+          <% if tiers %>
+            <tr>
+              <th rowspan="2">Level</th><th rowspan="2">Mana</th>
+              <th rowspan="2">Aligned</th><th rowspan="2">Unaligned</th><th rowspan="2">Opposed</th>
+              <th colspan="<%= tiers.length %>" class="cs-class-spellgroup">Spells Known</th>
+              <th rowspan="2">Special</th>
+            </tr>
+            <tr>
+              <% tiers.each do |t| %><th class="cs-class-tier">Tier <%= esc.call(t) %></th><% end %>
+            </tr>
+          <% else %>
+            <tr>
+              <th>Level</th><th>Mana</th><th>Aligned</th><th>Unaligned</th><th>Opposed</th><th>Special</th>
+            </tr>
+          <% end %>
+        </thead>
+        <tbody>
+          <% detail[:progression].each do |r| %>
+            <tr>
+              <td><%= ord.call(r[:level]) %></td>
+              <td><%= r[:mana] %></td>
+              <td><%= sign.call(r[:aligned]) %></td>
+              <td><%= sign.call(r[:unaligned]) %></td>
+              <td><%= sign.call(r[:opposed]) %></td>
+              <% if tiers %>
+                <% Array(r[:spells_by_tier]).each do |n| %><td class="cs-class-tier"><%= n.nil? ? '&mdash;' : n.to_i %></td><% end %>
+              <% end %>
+              <td class="cs-class-special"><%= r[:special].empty? ? '&mdash;' : esc.call(r[:special].join(', ')) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+    <% unless Array(detail[:tier_advancement]).empty? %>
+      <p class="cs-class-tiernote"><%= detail[:tier_advancement].map { |t| "Tier #{esc.call(t[:tier])} at level #{esc.call(t[:level])}" }.join(' · ') %></p>
+    <% end %>
+
+    <% unless detail[:features].empty? %>
+      <section class="cs-class-features">
+        <h3>Class Features</h3>
+        <% detail[:features].each do |grp| %>
+          <div class="cs-class-feature-level">
+            <h4>Level <%= grp[:level] %></h4>
+            <ul>
+              <% grp[:abilities].each do |ab| %>
+                <li>
+                  <span class="cs-class-feature-name"><%= esc.call(ab[:name]) %></span>
+                  <% unless ab[:description].to_s.empty? %>
+                    <span class="cs-class-feature-sep"> — </span>
+                    <span class="cs-class-feature-desc"><%= esc.call(ab[:description]) %></span>
+                  <% end %>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+      </section>
+    <% end %>
+
+    <% unless Array(detail[:archetypes]).empty? %>
+      <section class="cs-class-archetypes">
+        <h3>Archetypes</h3>
+        <p class="cs-class-archetypes-lead">On reaching level 3, a <%= esc.call(detail[:name]) %> must choose one of these archetypes:</p>
+        <div class="cs-class-archetype-list">
+          <% detail[:archetypes].each do |arc| %>
+            <button type="button" class="cs-class-link cs-class-archetype" data-class-key="<%= esc.call(arc[:key]) %>"><%= esc.call(arc[:name]) %></button>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
+  </article>
+<% end %>

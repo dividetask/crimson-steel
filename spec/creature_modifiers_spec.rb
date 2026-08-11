@@ -14,6 +14,23 @@ RSpec.describe CreatureModifiers do
   let(:elf)   { Creatures::Accessor.new(vex) }
   let(:satyr) { Creatures::Accessor.new(birch) }
 
+  describe '.check_modifiers (active-Condition roll penalties)' do
+    it 'surfaces the fear ladder Morale penalty under check keys for combat to consume' do
+      inst = Conditions::Instance.new(state: Conditions::State.new, catalog: Conditions::Catalog.load)
+      inst.apply_named_effect('frightened', source_id: 'cause_fear:1', ends_on_round: 99)
+      allow(Conditions.store).to receive(:instance_for).with(human.id).and_return(inst)
+
+      expect(described_class.check_modifiers(human, 'attack_checks')).to eq([['Morale', -2]])
+      expect(described_class.check_modifiers(human, 'spell_checks')).to eq([['Morale', -2]])
+    end
+
+    it 'returns [] when the Creature carries no matching Condition' do
+      inst = Conditions::Instance.new(state: Conditions::State.new, catalog: Conditions::Catalog.load)
+      allow(Conditions.store).to receive(:instance_for).with(human.id).and_return(inst)
+      expect(described_class.check_modifiers(human, 'attack_checks')).to eq([])
+    end
+  end
+
   describe '.attribute_bonus (equipment Guidance)' do
     it 'returns the net Guidance bonus for the matching attribute only' do
       allow(described_class).to receive(:equipped_effects).and_return(

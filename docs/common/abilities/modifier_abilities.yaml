@@ -22,7 +22,7 @@
 # --- Speed modifiers ----------------------------------------------------
 
 fast_movement:
-  description: "Increases base walking speed by 10 feet."
+  description: "You gain a +10 morale bonus to speed."
   modifiers:
     - target: speed
       type: Morale
@@ -98,10 +98,10 @@ scaled_hide:
 # --- Skill / save modifiers --------------------------------------------
 
 silver_tongue:
-  description: "+1 inherent bonus to Persuasion and Deception checks; applies when using versatile performance."
+  description: "You gain a +1 competency bonus to persuasion and deception checks. This bonus applies when using versatile performance."
   modifiers:
     - target: skill
-      type: Inherent
+      type: Competency
       descriptors: [persuasion, deception]
       add: 1
 
@@ -144,7 +144,7 @@ far_sight:
 # --- Passive sensory / flag-style (modifiers-pending) -------------------
 
 see_injury:
-  description: "You can see injuries, afflictions, magical saturation, and the life energy flowing through all creatures including the negative life energy of undead. The range of this ability starts at 10 feet and increases by 5 feet every two levels. All creatures can hide this aura from you and automatically attempt to do so whenever they make a stealth check. This will allow you to make a heal check to identify the details of an affliction affecting a creature within range. This ability does not work if you are blinded."
+  description: "You can see injuries, afflictions, magical saturation, and the life energy flowing through all creatures including the negative life energy of undead. The range of this ability starts at 10 feet and increases by 5 feet every two levels. All creatures can attempt to hide this aura from you and automatically attempt to do so whenever they make a stealth check. This will allow you to make a heal check to identify the details of an affliction affecting a creature within range. This ability does not work if you are blinded."
 
 darkvision:
   description: "See in darkness as if it were dim light, up to 60 feet."
@@ -153,10 +153,34 @@ low_light_vision:
   description: "See twice as far as a human in dim light."
 
 frost_breath:
-  description: "Once per encounter the creature can exhale a 30-foot cone of freezing air, dealing cold damage to everything caught in it (a Dexterity save halves the damage). The DM adjudicates the effect; the mechanics are not yet wired into Combat."
+  description: "Once per encounter the creature can exhale a 30-foot cone of freezing air, dealing cold damage to everything caught in it (a Dexterity save halves the damage)."
 
 spit_acid:
-  description: "Once per encounter the creature can spit a stream of acid at a target, dealing 10 acid damage plus its successes on the attack (a Dexterity save halves the damage). The DM adjudicates the effect; the mechanics are not yet wired into Combat."
+  description: "Once per encounter the creature can spit a stream of acid at a target, dealing 10 acid damage plus its successes on the attack (a Dexterity save halves the damage)."
+
+keen_smell:
+  description: "Keen sense of smell grants a bonus on Perception checks that rely on scent, and lets the creature track by smell."
+
+pack_tactics:
+  description: "The creature fights as a coordinated pack: it strikes with greater accuracy against any enemy that has one of the creature's allies adjacent to it."
+
+trip_bite:
+  description: "On a successful bite the creature can attempt to knock a Large or smaller target prone (the target resists with a Strength or Dexterity save)."
+
+false_appearance:
+  description: "While it remains motionless the creature is indistinguishable from an ordinary object — a cloaker looks like a dark leather cloak — until it moves or attacks. Creatures may make an Intelligence check to notice the inconsistency, as with an illusion."
+
+moan:
+  description: "The creature emits a subsonic moan. Each creature within 30 feet that can hear it must make a Wisdom save or be unnerved — frightened while the moan continues and briefly after. Allies of the moaning creature are unaffected."
+
+phantasms:
+  description: "The creature weaves illusory duplicates of itself (the cloaker's shadow shift). Attacks against it may strike a phantasm instead, obscuring which shape is real."
+
+engulf:
+  description: "The creature can wrap itself around a Medium or smaller target it hits, enveloping and grappling it. An engulfed victim is blinded, restrained, and unable to breathe until it escapes with a Strength or Dexterity save."
+
+damage_transfer:
+  description: "While it has a victim engulfed, the creature transfers half of any damage it takes to that victim instead of suffering it itself."
 
 absorb_persona:
   description: "Learn the memories of a helpless creature, storing them as a Persona. Requires 1 day per level of the creature; the target gains a Charisma save to resist. You can store up to 1 Persona per two character levels — drop a stored Persona to make room for another."
@@ -174,10 +198,10 @@ light_sensitivity:
   description: "Dazzled in bright light such as sunlight: takes a penalty on attack rolls and sight-based Perception checks while brightly illuminated."
 
 uncanny_dodge:
-  description: "Lets the Creature enter a Rage even if Surprised. Cannot be caught Flatfooted or Unaware unless Paralyzed or Unconscious. Certain abilities can negate this protection."
+  description: "You can enter a rage even if surprised. You are always considered to be dodging an attack even if you are unaware or do not have any dice to spend. You must be capable of moving, and some abilities negate this ability."
 
 mindless_rage:
-  description: "While raging, immune to charmed and frightened conditions."
+  description: "You cannot be charmed or frightened while raging. If you enter a rage while charmed or frightened then the effect is suspended for the duration of the rage."
 
 fey:
   description: "Counts as a fey creature rather than humanoid. Vulnerable to attacks from cold iron weapons."
@@ -188,10 +212,10 @@ ghoul_stench:
 # --- Skill substitution / training rules (modifiers-pending) ------------
 
 jack_of_all_trades:
-  description: "Treat all skills (except restricted skills) as trained, with effective ranks equal to half your level on untrained skills."
+  description: "You are considered trained with all skills and can act as though you have a number of ranks equal to half your level on skill checks without ranks except for restricted skills."
 
 versatile_performance:
-  description: "Treat a chosen Performance skill as a substitute for selected mundane skills."
+  description: "Choose one type of Perform skill and gain the ability to make performance checks with that skill in place of the performance's associated skills. If you are already trained in the associated skills you may retrain for free. The types of Perform and their associated skills are: Act (Deception, Disguise), Comedy (Deception, Intimidate), Dance (Acrobatics, Use Magic Device), Keyboard Instruments (Persuasion, Intimidate), Oratory (Persuasion, Sense Motive), Percussion (Handle Animal, Intimidate), Sing (Deception, Sense Motive), String (Deception, Persuasion), and Wind (Persuasion, Handle Animal)."
 
 armor_proficiency_light:
   description: "Gain proficiency with light armor."
@@ -208,7 +232,7 @@ bonus_racial_feat_gnome:
   description: "Choose any gnome feat."
 
 performance_feat:
-  description: "Gain Familiar, Social Spell, Spell Focus (Enchantment), or Spell Focus (Illusion) as a bonus feat."
+  description: "Choose a single feat from the Magical Performance Feat list."
 
 combat_feat:
   description: "Gain a combat feat as a bonus."

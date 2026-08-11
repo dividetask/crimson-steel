@@ -37,6 +37,17 @@
 
 Effect Names:
 
+  # Marker Condition for creatures with the Regeneration ability. Carries no
+  # roll Modifiers — the healing itself is driven by Conditions (per-round
+  # Minor mending and per-hour Major mending, tracked on the Creature's
+  # state). The `display` Mechanic registers the name so it surfaces as a
+  # Condition badge during combat.
+  regenerating:
+    description: "Each turn the creature mends minor damage equal to its tier and 1 moderate damage. Each hour 1 major is healed. Suppressed while it carries unhealed acid or fire damage."
+    mechanics:
+      - kind: display
+        text: "Regeneration: tier minor + 1 moderate per turn, 1 major/hour; stops while unhealed acid or fire damage remains."
+
   blind:
     description: "The target cannot see; all sight-based perception fails."
     mechanics:

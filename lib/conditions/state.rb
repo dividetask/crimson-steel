@@ -5,6 +5,7 @@ module Conditions
   class State
     attr_accessor :hp_damage, :ability_damage, :temporary_hit_points,
                   :mana_spent, :magic_toxicity, :shock, :acid_counter,
+                  :elemental_wound, :regen_major_round,
                   :afflictions, :effects, :named_effect_mechanics
 
     def initialize(
@@ -15,6 +16,8 @@ module Conditions
       magic_toxicity: 0,
       shock: 0,
       acid_counter: 0,
+      elemental_wound: 0,
+      regen_major_round: nil,
       afflictions: {},
       effects: [],
       named_effect_mechanics: []
@@ -26,6 +29,8 @@ module Conditions
       @magic_toxicity = Integer(magic_toxicity)
       @shock = Integer(shock)
       @acid_counter = Integer(acid_counter)
+      @elemental_wound = Integer(elemental_wound)
+      @regen_major_round = regen_major_round.nil? ? nil : Integer(regen_major_round)
       @afflictions = normalize_afflictions(afflictions)
       @effects = effects.map { |e| normalize_effect(e) }
       @named_effect_mechanics = named_effect_mechanics.map { |m| m.transform_keys(&:to_sym) }
@@ -43,6 +48,8 @@ module Conditions
         magic_toxicity:       data.fetch('magic_toxicity', 0),
         shock:                data.fetch('shock', 0),
         acid_counter:         data.fetch('acid_counter', 0),
+        elemental_wound:      data.fetch('elemental_wound', 0),
+        regen_major_round:    data['regen_major_round'],
         afflictions:          data['afflictions'] || {},
         effects:              data['effects'] || [],
         named_effect_mechanics: data['named_effect_mechanics'] || []
@@ -64,6 +71,8 @@ module Conditions
       h['magic_toxicity'] = @magic_toxicity unless @magic_toxicity.zero?
       h['shock']          = @shock          unless @shock.zero?
       h['acid_counter']   = @acid_counter   unless @acid_counter.zero?
+      h['elemental_wound'] = @elemental_wound unless @elemental_wound.zero?
+      h['regen_major_round'] = @regen_major_round unless @regen_major_round.nil?
       if @afflictions.any?
         h['afflictions'] = @afflictions.each_with_object({}) do |(name, a), m|
           m[name] = a.transform_keys(&:to_s)
@@ -168,6 +177,7 @@ module Conditions
       raise ArgumentError, "magic_toxicity must be >= 0" if @magic_toxicity < 0
       raise ArgumentError, "shock must be >= 0" if @shock < 0
       raise ArgumentError, "acid_counter must be >= 0" if @acid_counter < 0
+      raise ArgumentError, "elemental_wound must be >= 0" if @elemental_wound < 0
     end
   end
 end

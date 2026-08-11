@@ -1,14 +1,4 @@
 # General Red Tier — Creature Templates
-#
-# Crimson Steel's "general use" Red Tier (Tier 1) enemy templates.
-# Spiders, wolves, goblins, and cultists — the staple low-level
-# adversaries the DM pulls from when stocking a generic encounter.
-#
-# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
-# Each template's `tags` include `enemy_template` plus
-# `category:general_red_tier`; the Character Sheets page's Roster
-# Sidebar uses that category tag to group templates and encounter
-# tables under the matching heading.
 
 name: General Red Tier
 
@@ -92,9 +82,6 @@ characters:
       classes:
         cleric: 2
 
-  # Tier-0 rank-and-file goblin. Level 1 warrior; base 10s before the
-  # goblin racial modifiers (-4 Str/Con/Int/Cha, -2 Wis, +4 Dex). Gear is
-  # rolled at spawn from the `common_goblin_loadout` Equipment Loot Table.
   - id: 306
     name: Common Goblin
     metadata:
@@ -109,9 +96,6 @@ characters:
         warrior: 1
     equipment_table: common_goblin_loadout
 
-  # Tier-0 rank-and-file orc. Level 1 warrior; base 10s before the orc
-  # racial modifiers (+4 Str/Con, -2 Int/Wis/Cha). Gear is rolled at spawn
-  # from the `common_orc_loadout` Equipment Loot Table.
   - id: 307
     name: Common Orc
     metadata:

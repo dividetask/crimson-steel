@@ -84,10 +84,10 @@ RSpec.describe CharacterCreation, type: :model do
       expect(sel[:budget]).to eq(4)
     end
 
-    it 'limits Bards to Performance spells, 2 * level of them' do
+    it 'gives Bards a per-Tier Performance spell allotment (4 Tier-0, 2 Tier-1 at level 1)' do
       sel = by_key['bard'][:spell_selection]
-      expect(sel[:mode]).to eq('count')
-      expect(sel[:budget]).to eq(2)
+      expect(sel[:mode]).to eq('tiered_count')
+      expect(sel[:tier_caps]).to eq(0 => 4, 1 => 2, 2 => 0)
       # Every offered spell must be castable with a perform_ skill.
       every_perform = sel[:spells].all? do |sp|
         entry = Abilities.catalog.ability(sp[:key])
@@ -98,10 +98,15 @@ RSpec.describe CharacterCreation, type: :model do
       expect(every_perform).to be(true)
     end
 
-    it 'gives Arcane Tricksters a 9 + level point pool' do
-      sel = by_key['arcane_trickster'][:spell_selection]
-      expect(sel[:mode]).to eq('points')
-      expect(sel[:budget]).to eq(10)
+    it 'does not offer archetypes or NPC classes at creation (archetypes are chosen at level 3)' do
+      expect(by_key).not_to have_key('arcane_trickster')
+      expect(by_key).not_to have_key('poisoner')
+      expect(by_key).not_to have_key('ranger')
+      expect(by_key).not_to have_key('berserker')
+      expect(by_key).not_to have_key('warrior')   # npc_class
+      expect(by_key).not_to have_key('commoner')  # npc_class
+      # base classes are still offered
+      expect(by_key).to include('barbarian', 'rogue', 'wizard', 'cleric')
     end
 
     it 'has the Cleric pick a deity and domains (any but anathema)' do
@@ -154,6 +159,18 @@ RSpec.describe CharacterCreation, type: :model do
       expect(a.attribute_value(:int)).to eq(18)
       names = a.granted_abilities.map { |g| g[:name] }
       expect(names).to include('Mage Hand', 'Charm Person')
+    end
+
+    it 'persists a Bard’s per-Tier Performance spell picks (tiered_count)' do
+      id = CharacterCreation.create!(
+        'name' => 'Lyric', 'race' => 'human', 'class' => 'bard',
+        'attributes' => { 'str' => 8, 'dex' => 14, 'con' => 12, 'int' => 12, 'wis' => 10, 'cha' => 16 },
+        'skills' => %w[persuasion deception],
+        'spells' => ['Create Illusion', 'Detect Magic', 'Disguise Self', 'Friends',
+                     'Auditory Hallucination', 'Beguiling Gift']
+      )
+      names = Creatures.lookup(id).granted_abilities.map { |g| g[:name] }
+      expect(names).to include('Create Illusion', 'Friends', 'Auditory Hallucination', 'Beguiling Gift')
     end
 
     it 'records a deity / domains for the Cleric domain flow' do
