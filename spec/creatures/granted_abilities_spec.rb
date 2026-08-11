@@ -8,10 +8,13 @@ RSpec.describe 'Creatures granted_abilities', type: :model do
     a = Creatures::Accessor.new(korth)
     names = a.granted_abilities.map { |g| g[:name] }
     # Cleric levels 1-2 abilities (Cleric 4 reaches both):
-    %w[see_injury improved_healing combat_healing domain
+    %w[see_injury improved_healing domain
        channel_divinity turn_undead casting_feat].each do |ab|
       expect(names).to include(ab)
     end
+    # Combat Healing was removed from the Cleric list; Destroy Undead is level 5
+    # (a Cleric 4 has neither).
+    expect(names).not_to include('combat_healing', 'destroy_undead')
   end
 
   it 'cleric `granted_spells` appear in the list' do

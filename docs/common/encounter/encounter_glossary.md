@@ -130,6 +130,6 @@ Modifiers granted to the attacker based on the defender's state. Despite the def
 
 **Bleed Value**: A weapon property that drives bleed effects on physical damage.
 
-**Damage Resilience**: A Creature property added to Threshold during Runtime Bucketing.
+**Damage Resilience**: A Creature property added to Threshold during Runtime Bucketing. It is the sum of the Creature's **Tier** (Tier 0 contributes 0), the Damage Resilience of its equipped Armor (`tier × increment`, so mundane Tier-0 Armor adds 0), and any active Damage Resilience Modifiers. (Distinct from **Damage Reduction**, which is a flat per-Armor value subtracted from incoming damage and does *not* include the Tier.)
 
 **Metal Armor**: A classification used by certain Damage Type Mechanics (notably Electricity). *(configurable)*

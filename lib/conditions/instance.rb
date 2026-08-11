@@ -68,6 +68,7 @@ module Conditions
         leftover = pool - h
       end
 
+      reduce_elemental_wound(healed.values.sum)
       healed
     end
 
@@ -455,6 +456,64 @@ module Conditions
       damage
     end
 
+    # ===== Apply Elemental (acid/fire) Wound =====
+    # Track unhealed acid/fire hit-point damage. While this is positive,
+    # Regeneration is suppressed — but ordinary (natural) healing still
+    # works and chips this back down toward zero. Once it clears,
+    # Regeneration resumes.
+    def apply_elemental_wound(amount)
+      return @state.elemental_wound if amount <= 0
+      @state.elemental_wound += amount
+      @state.elemental_wound
+    end
+
+    # Regeneration does nothing while unhealed acid or fire damage remains.
+    def regeneration_blocked?
+      @state.elemental_wound.positive?
+    end
+
+    # ===== Regenerate (per turn) =====
+    # Each turn, Regeneration mends `minor_amount` Minor hit-point damage
+    # (the Creature's Tier, so faster, higher-Tier creatures — which take
+    # multiple turns per round — heal more) plus 1 Moderate. Each Severity
+    # heals only its own counter (no cascade, no Minor↔Moderate conversion).
+    # Major damage is left to the hourly Regeneration. Suppressed entirely
+    # while the Creature carries unhealed acid or fire damage.
+    def regenerate_turn(minor_amount)
+      return { regenerated: false, blocked: true } if regeneration_blocked?
+
+      minor    = heal_severity(:minor, [minor_amount.to_i, 0].max)
+      moderate = heal_severity(:moderate, 1)
+      { regenerated: (minor + moderate).positive?,
+        healed: { minor: minor, moderate: moderate } }
+    end
+
+    # ===== Regenerate (hourly Major) =====
+    # Regeneration mends 1 Major hit-point damage per whole hour of elapsed
+    # game time. `now_round` is the absolute game Round; `rounds_per_hour`
+    # converts hours to Rounds. The next-due Round is stored on the
+    # Creature's state (`regen_major_round`) so the cadence survives across
+    # turns, rests, and reloads — this is the "last fired at" bookkeeping.
+    #
+    # The schedule always advances with the clock; a Major only mends on an
+    # elapsed hour when the Creature is not suppressed and actually carries
+    # Major damage, so hours spent blocked (or undamaged) are not banked.
+    def regenerate_hourly_majors(now_round, rounds_per_hour)
+      rounds_per_hour = rounds_per_hour.to_i
+      return { healed_major: 0 } if rounds_per_hour <= 0 || now_round.nil?
+
+      @state.regen_major_round ||= now_round + rounds_per_hour
+      healed = 0
+      while now_round >= @state.regen_major_round
+        if !regeneration_blocked? && (@state.hp_damage[:major] || 0).positive?
+          set_hp_counter(:major, @state.hp_damage[:major] - 1)
+          healed += 1
+        end
+        @state.regen_major_round += rounds_per_hour
+      end
+      { healed_major: healed, blocked: regeneration_blocked? }
+    end
+
     # ===== Apply Mana Cost =====
     def apply_mana_cost(amount:, mana_max:)
       available = mana_max - @state.mana_spent
@@ -502,6 +561,7 @@ module Conditions
         end
       end
       summary[:hp_healed] = hp_healed
+      reduce_elemental_wound(hp_healed.values.sum)
 
       # 2. Ability Damage healing per Severity. Same per-Severity cap
       # rule as HP; within each Severity, attributes pop FIFO.
@@ -762,6 +822,32 @@ module Conditions
 
     def sev_zero_map
       SEVERITIES.each_with_object({}) { |s, h| h[s] = 0 }
+    end
+
+    # Set a Severity's hit-point-damage counter, deleting the key when it
+    # reaches zero so a fully-healed Creature serializes clean.
+    def set_hp_counter(sev, value)
+      if value <= 0
+        @state.hp_damage.delete(sev)
+      else
+        @state.hp_damage[sev] = value
+      end
+    end
+
+    # Heal up to `amount` from one Severity's counter (no cascade to other
+    # Severities). Returns how much was actually mended.
+    def heal_severity(sev, amount)
+      have = @state.hp_damage[sev] || 0
+      h = [amount.to_i, have].min
+      set_hp_counter(sev, have - h) if h.positive?
+      h
+    end
+
+    # Ordinary healing chips away at any unhealed acid/fire (elemental)
+    # wound; once it clears, Regeneration is free to resume.
+    def reduce_elemental_wound(total)
+      return if total <= 0 || @state.elemental_wound.zero?
+      @state.elemental_wound = [@state.elemental_wound - total, 0].max
     end
 
     def effect_targets?(entry_target, query)

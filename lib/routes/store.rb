@@ -22,6 +22,7 @@
 # until the Abilities domain is wired into Equipment.
 
 require 'json'
+require 'live_roster'
 require 'store_magic_weapons'
 require 'store_magical_armor'
 require 'store_spell_items'
@@ -167,14 +168,26 @@ end
 
 helpers do
   # The Creature roster for the Recipient dropdowns. Player Characters
-  # are listed first (in roster order), then everyone else. Enemies are
-  # hidden from players (answer 7); the DM sees everyone. Each entry
+  # are listed first (in roster order), then everyone else. Each entry
   # carries `pc` so the client can tell paid recipients from free ones.
+  #
+  # Visibility:
+  #   Enemies — hidden from players; the DM sees them all (unchanged).
+  #   NPCs    — hidden from players entirely (only the DM may pick an NPC
+  #             recipient), and the DM sees only NPCs that are active in the
+  #             current Scene (their Chronicle Creature Reference is active).
+  #             Inactive NPCs are dropped from the roster for everyone.
+  #   PCs     — always shown.
   def provision_roster(viewer)
+    active_npcs = LiveRoster.scene_active_creature_ids
     roster = Creatures.list.filter_map do |(id, name)|
-      a = Creatures.lookup(id)
-      enemy = (a&.group == 'enemy')
-      next if viewer == :player && enemy
+      a     = Creatures.lookup(id)
+      group = a&.group.to_s
+      next if viewer == :player && group == 'enemy'
+      if group == 'npc'
+        next if viewer == :player            # players never see NPC recipients
+        next unless active_npcs.include?(id)  # DM: only Scene-active NPCs
+      end
       pc = !!(a && (a.group == 'pc' || Array(a.tags).include?('player_character')))
       { id: id, name: name, pc: pc }
     end

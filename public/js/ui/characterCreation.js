@@ -179,6 +179,22 @@ class CharacterCreator {
     }, 0);
   }
 
+  // tiered_count helpers: the picked-spell counts grouped by Spell Tier, and
+  // the per-Tier caps in ascending Tier order.
+  countByTier() {
+    const pool = this.currentClass().spell_selection.spells || [];
+    const byTier = {};
+    this.checkedSpells().forEach((key) => {
+      const sp = pool.find((p) => p.key === key);
+      if (sp) byTier[sp.tier] = (byTier[sp.tier] || 0) + 1;
+    });
+    return byTier;
+  }
+
+  tierCapList(sel) {
+    return Object.keys(sel.tier_caps || {}).map(Number).sort((a, b) => a - b).map((t) => sel.tier_caps[t]);
+  }
+
   // ---- navigation ---------------------------------------------------
 
   canAdvance() {
@@ -199,6 +215,10 @@ class CharacterCreator {
       return !!this.state.deity && this.state.domains.length === this.requiredDomainCount(sel);
     }
     if (sel.mode === 'points') return this.spellSpent() <= sel.budget;
+    if (sel.mode === 'tiered_count') {
+      const counts = this.countByTier();
+      return Object.keys(sel.tier_caps).every((t) => (counts[t] || 0) <= sel.tier_caps[t]);
+    }
     return this.checkedSpells().length <= sel.budget; // count
   }
 
@@ -462,6 +482,7 @@ class CharacterCreator {
         let label;
         if (sel.mode === 'domain') label = 'Spells: deity & domains';
         else if (sel.mode === 'points') label = 'Spells: ' + sel.budget + ' points';
+        else if (sel.mode === 'tiered_count') label = 'Spells: ' + this.tierCapList(sel).join(' / ') + ' by tier';
         else label = 'Spells: ' + sel.budget + ' known';
         props.appendChild(el('div', { class: 'cc-prop cc-prop-spell', text: label }));
       }
@@ -640,8 +661,12 @@ class CharacterCreator {
     const byTier = {};
     (sel.spells || []).forEach((sp) => { (byTier[sp.tier] = byTier[sp.tier] || []).push(sp); });
 
+    // A tiered_count Class can only pick Tiers with a positive cap this level.
+    const tierCaps = sel.mode === 'tiered_count' ? (sel.tier_caps || {}) : null;
+
     const boxes = [];
     Object.keys(byTier).map(Number).sort((a, b) => a - b).forEach((tier) => {
+      if (tierCaps && !(tierCaps[tier] > 0)) return;
       const group = el('div', { class: 'cc-spell-group' });
       group.appendChild(el('h3', { class: 'cc-spell-tier', text: 'Tier ' + tier }));
       const grid = el('div', { class: 'cc-spell-list' });
@@ -669,6 +694,25 @@ class CharacterCreator {
 
   updateSpellsUI(sel, boxes, counter) {
     counter.innerHTML = '';
+    if (sel.mode === 'tiered_count') {
+      counter.appendChild(el('span', { class: 'cc-counter-label', text: 'Spells known' }));
+      const counts = this.countByTier();
+      Object.keys(sel.tier_caps).map(Number).sort((a, b) => a - b).forEach((t) => {
+        const have = counts[t] || 0;
+        if (sel.tier_caps[t] <= 0) return;
+        counter.appendChild(el('span', {
+          class: 'cc-counter-value' + (have > sel.tier_caps[t] ? ' cc-over' : ''),
+          text: 'Tier ' + t + ' ' + have + ' / ' + sel.tier_caps[t]
+        }));
+      });
+      boxes.forEach((b) => {
+        const t = b._spell.tier;
+        const have = counts[t] || 0;
+        b.disabled = !b.checked && have >= (sel.tier_caps[t] || 0);
+      });
+      this.refreshNav();
+      return;
+    }
     counter.appendChild(el('span', { class: 'cc-counter-label', text: sel.mode === 'points' ? 'Points spent' : 'Spells known' }));
     if (sel.mode === 'points') {
       const spent = this.spellSpent();

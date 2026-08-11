@@ -22,6 +22,13 @@ get '/spell-school' do
       locals: { school: key, description: SpellList.school_description(key) }
 end
 
+# Class Detail (class_list_stub.md) — clicking a Class on the Compendium
+# Classes list opens its full description (summary, mechanics, and Features
+# by level) in a modal. `name` is the Class key (e.g. `barbarian`).
+get '/class-detail' do
+  erb :_class_detail, layout: false, locals: { detail: ClassList.detail(params[:name]) }
+end
+
 # Skill list — every Skill (trained and untrained) with the Creature's Dice
 # Cap + Bonus, reached by clicking the sheet's "Skills" heading.
 get '/skills-panel' do

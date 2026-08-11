@@ -118,8 +118,13 @@ module CharacterCreation
 
   # ---- Classes --------------------------------------------------------
 
+  # Base playable Classes offered at character creation: every player Class
+  # (npc_class excluded) that is not an archetype. Archetypes are chosen at
+  # level 3, not at creation, so they never appear in the class picker.
   def classes
-    Creatures::Advancement.classes.keys.map { |key| class_entry(key) }
+    Creatures::Advancement.pc_class_keys
+                          .reject { |key| Creatures::Advancement.classes[key]['parent_class'] }
+                          .map { |key| class_entry(key) }
   end
 
   def class_entry(key)
@@ -184,6 +189,18 @@ module CharacterCreation
     when 'count'
       { mode: 'count', budget: eval_budget(sel['budget']),
         spells: spell_pool(sel['filter']) }
+    when 'tiered_count'
+      # The Creature picks a number of spells of each Tier (the creation-level
+      # row of the Class's per-Tier progression), from the filtered pool. When
+      # every Tier's cap is 0 at the creation level (e.g. the Bloodrager, whose
+      # spellcasting only begins at level 3), there is nothing to pick — skip
+      # the step.
+      caps = tier_caps(sel)
+      if caps.values.all?(&:zero?)
+        nil
+      else
+        { mode: 'tiered_count', tier_caps: caps, spells: spell_pool(sel['filter']) }
+      end
     when 'points'
       { mode: 'points', budget: eval_budget(sel['budget']),
         spells: spell_pool(sel['filter'], cost_expr: sel['cost']) }
@@ -231,6 +248,18 @@ module CharacterCreation
 
   def eval_budget(expr)
     Creatures::Formula.eval(expr, level: CREATION_LEVEL)
+  end
+
+  # Per-Tier spell caps for a `tiered_count` Class at the creation level:
+  # { tier => number of that Tier's spells the Creature may pick }. Reads the
+  # `by_level` row for CREATION_LEVEL, paired positionally with `tiers`.
+  def tier_caps(sel)
+    tiers  = Array(sel['tiers'])
+    by_lv  = sel['by_level'] || {}
+    counts = Array(by_lv[CREATION_LEVEL.to_s] || by_lv[CREATION_LEVEL])
+    tiers.each_with_index.each_with_object({}) do |(tier, i), caps|
+      caps[tier.to_i] = counts[i].to_i
+    end
   end
 
   # The global Domain catalog: every domain a Cleric may pick (subject to
@@ -341,7 +370,7 @@ module CharacterCreation
       choices['deity']   = deity   unless deity.empty?
       choices['domains'] = domains unless domains.empty?
       choices
-    when 'count', 'points'
+    when 'count', 'points', 'tiered_count'
       spells = Array(params['spells']).map(&:to_s).reject(&:empty?)
       spells.empty? ? {} : { 'spellcasting' => spells }
     else

@@ -1,0 +1,62 @@
+# Class Reference — Compendium "Classes" chapter
+#
+# Per-Class content that is NOT derivable from creatures_advancement.yaml:
+#   summary  — the one-line blurb shown on the Classes list (list only; the
+#              detail page carries no prose, matching the design doc).
+#   armor    — Armor Proficiency line for the detail page.
+#   weapons  — Weapon Proficiency line for the detail page.
+#
+# Everything else on the detail page — Saving Throws, the Skills count, Class
+# Skills, All Skills, the level progression table, and the Class Features —
+# is derived live from creatures_advancement.yaml, the Skill catalog, and the
+# Abilities catalog.
+#
+# Only base playable Classes appear (archetypes such as Ranger and Arcane
+# Trickster, and npc_class Classes, are never listed, so they need no entry).
+# The Armor/Weapon lines for Barbarian, Bard, Cleric, and Rogue are taken
+# from the Classes design document; the rest follow the same conventions.
+
+barbarian:
+  summary: "A furious frontline warrior who channels rage into raw damage and staying power."
+  armor: "Light armor, medium armor, shields"
+  weapons: "Simple weapons, martial weapons"
+
+bard:
+  summary: "A versatile performer whose songs inspire allies and whose magic sways the crowd."
+  armor: "Light armor"
+  weapons: "Simple weapons, hand crossbows, longswords, rapiers, shortswords"
+
+cleric:
+  summary: "A divine healer and warrior-priest who channels a deity's domains in battle."
+  armor: "Light armor, medium armor, shields"
+  weapons: "All simple weapons and the favored weapon of their deity"
+
+druid:
+  summary: "A guardian of the wild who wields the full breadth of Nature magic."
+  armor: "Light armor, medium armor (nonmetal), wooden shields"
+  weapons: "Simple weapons"
+
+fighter:
+  summary: "A disciplined master of arms who excels with any weapon and armor."
+  armor: "All armor, shields"
+  weapons: "Simple weapons, martial weapons"
+
+rogue:
+  summary: "A skilled infiltrator who strikes from the shadows and slips every trap."
+  armor: "Light armor"
+  weapons: "Simple weapons, hand crossbows, longswords, rapiers, shortswords"
+
+monk:
+  summary: "A martial artist who channels ki into stunning, unarmed precision."
+  armor: "None"
+  weapons: "Simple weapons, unarmed strikes"
+
+wizard:
+  summary: "A scholarly arcanist commanding the widest spellbook through relentless study."
+  armor: "None"
+  weapons: "Simple weapons"
+
+sorcerer:
+  summary: "An innate arcane caster whose power flows from bloodline, not books."
+  armor: "None"
+  weapons: "Simple weapons"

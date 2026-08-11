@@ -631,10 +631,23 @@ module Encounter
       end
 
       damage_dealt = result[:severity_map].values.sum
+      # Unhealed acid/fire *hit-point damage* suppresses Regeneration (see
+      # Conditions). This is the damage actually dealt by the hit — distinct
+      # from the acid_counter, which is a separate lingering-corrosion pool.
+      if damage_dealt.positive? && regen_blocking_type?(type)
+        inst.apply_elemental_wound(damage_dealt)
+      end
       notifications = trigger_concentration_saves(c, damage_dealt, save_resolver)
 
       { severity_map: result[:severity_map], side_effects: result[:side_effects],
         concentration_notifications: notifications }
+    end
+
+    # Whether a Damage Type is one whose unhealed damage shuts down
+    # Regeneration: fire or acid.
+    def regen_blocking_type?(type)
+      t = type.to_s.downcase
+      t.include?('fire') || t.include?('acid')
     end
 
     # Set-Value Spend translation (encounter_design.md → Operations).
@@ -1269,8 +1282,38 @@ module Encounter
       apply_per_turn_setup(combatant_id)
       round = current_abs_round
       cleared = round ? conditions_for(c[:creature_id]).clear_expired_effects(round) : []
+      regeneration = apply_round_regeneration(c[:creature_id], round)
       persist!
-      { cleared: cleared }
+      { cleared: cleared, regeneration: regeneration }
+    end
+
+    # If the Combatant's Creature has the Regeneration ability, mend damage
+    # at the start of its turn: Tier Minor plus 1 Moderate (so faster,
+    # higher-Tier creatures with multiple turns per round heal more), plus 1
+    # Major for every whole hour of game time that has elapsed. All are
+    # suppressed while the Creature carries unhealed acid/fire damage. Also
+    # stamps the visible `regenerating` Condition. Returns the summary, or
+    # nil when the Creature does not regenerate.
+    def apply_round_regeneration(creature_id, round)
+      creature = lookup!(creature_id)
+      return nil unless creature.respond_to?(:has_ability) && creature.has_ability('regeneration')
+      inst = conditions_for(creature_id)
+      stamp_regenerating_condition(inst)
+      tier = (creature.tier rescue 0).to_i
+      turn = inst.regenerate_turn(tier)
+      major = round ? inst.regenerate_hourly_majors(round, rounds_per_day / 24) : { healed_major: 0 }
+      { turn: turn, major: major }
+    rescue StandardError
+      nil
+    end
+
+    # Idempotently apply the marker `regenerating` Condition so it surfaces
+    # as a badge (stable source_id → re-applying replaces, never stacks).
+    def stamp_regenerating_condition(inst)
+      return unless inst.respond_to?(:apply_named_effect)
+      inst.apply_named_effect('regenerating', source_id: 'regeneration')
+    rescue StandardError
+      nil
     end
 
     # Main Actions a Combatant has left this turn (nil for an unknown
@@ -2298,11 +2341,12 @@ module Encounter
       key.to_s.split(/[_\s]+/).reject(&:empty?).map { |w| w[0].upcase + w[1..] }.join(' ')
     end
 
-    # The defender's Damage Resilience for Runtime Bucketing: a creature's
-    # own `damage_resilience` (when it exposes one directly — monsters, test
-    # doubles) plus the Resilience of its equipped Armor via Equipment. The
-    # sheet combines the same two sources (CreatureSheet#defensive_totals),
-    # so the displayed and applied values agree. Defaults to 0.
+    # The defender's Damage Resilience for Runtime Bucketing: its Tier, plus a
+    # creature's own `damage_resilience` (when it exposes one directly —
+    # monsters, test doubles), plus the Resilience of its equipped Armor via
+    # Equipment. The sheet combines the same sources
+    # (CreatureSheet#defensive_totals), so the displayed and applied values
+    # agree. Defaults to 0.
     def defender_damage_resilience(creature)
       equipped_defensive_totals(creature)[:damage_resilience]
     rescue StandardError
@@ -2325,6 +2369,10 @@ module Encounter
     def equipped_defensive_totals(creature)
       totals = { damage_reduction: 0, damage_resilience: 0 }
       return totals unless creature
+      # A Creature's Tier is flat Damage Resilience (Tier + Armor Resilience
+      # + Resilience Modifiers), Tier 0 contributing 0. Damage Reduction does
+      # not get the Tier.
+      totals[:damage_resilience] += creature.tier.to_i if creature.respond_to?(:tier)
       if creature.respond_to?(:damage_reduction)
         totals[:damage_reduction] += creature.damage_reduction.to_i
       end

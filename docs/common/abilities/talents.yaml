@@ -27,18 +27,18 @@ Rage:
   range: Self
   target: self
   mana_cost: 1
-  duration: "con/2 + level turns"
+  duration: "10 + level turns"
   effects:
     - "rage"
   effect_hash:
     level: level
-  description: "You can spend a point of mana to enter a rage for constitution/2 + class level turns. At the end of your rage you are exhausted for 10 minutes. You can enter a rage as a free action but not if you are surprised. While raging you gain the following Circumstance bonuses: one point of damage reduction plus an additional point every 3 levels, and one point of damage resilience plus an additional point every 2 levels. You also gain a number of rage powers based upon your level. You cannot enter a rage while fatigued, and you cannot extend an ongoing rage unless a power specifically states otherwise."
+  description: "You can spend a point of mana to enter a rage for 10 turns plus an additional turn per class level. At the end of your rage you are exhausted for 10 minutes. You can enter a rage as a free action but not if you are surprised. While raging you gain the following circumstantial bonuses: one point of damage reduction plus an additional point every 3 levels, and one point of damage resilience, plus an additional point every 2 levels. You also gain a number of rage powers based upon your level. You cannot enter a rage while fatigued or extend your rage unless a power specifically states otherwise."
 
 Channel Divinity:
   type: talent
   skills: [invocation]
   mana_cost: 1
-  description: "Spend mana to invoke a divine effect from your domain."
+  description: "You gain a number of abilities from your god through your chosen domains, as well as several abilities granted regardless of domain choice."
 
 Turn Undead:
   type: talent
@@ -48,10 +48,23 @@ Turn Undead:
   target: "1+rank"
   save:
     - attribute: wis
-      fail: frightened
+      fail: panicked
       success: "0"
   duration: rank turns
-  description: "Each affected undead must make a Wisdom save or be Frightened for the duration."
+  description: "All undead within 30 feet must make a Wisdom saving throw or become panicked."
+
+Destroy Undead:
+  type: talent
+  inherits_from: Turn Undead
+  description: "Undead of a lower Tier than you are instantly destroyed when they fail their Wisdom save against your Turn Undead ability. Undead of a lower Tier than you that succeed on their save take 1 point of radiant energy."
+
+Improved Healing:
+  type: talent
+  description: "Your healing spells or rituals impose less magical saturation. Decrease the magical saturation of your spells by spell level times 2. Red spells (Cantrips) count as ½ level. Cannot reduce saturation below 1."
+
+Domain:
+  type: talent
+  description: "You may choose 3 domains granted from your god. These domains cannot be anathema to your god. Each domain grants a number of spells known at each Tier. Choosing a domain in your deity's portfolio grants additional abilities. You may cast any Tier 0 or Tier 1 spells granted from your domain. At level 4 you may cast any Tier 2 spells granted by your domain. All spells gained through your domain must be cast using Invocation."
 
 Martial Devotion:
   type: talent
@@ -136,7 +149,7 @@ Sneak Attack:
     effect:
       kind: bonus_damage
       damage: "1 + (level - 1) / 2"
-  description: "Attacks deal extra damage against flat-footed creatures within 30 ft (+1 per 2 levels after 1st). Before rolling, you may impose an additional effect by raising the success requirement; the target then makes a Constitution save with a penalty equal to your sneak-attack bonus."
+  description: "Your weapon attacks deal a +1 competency bonus to damage against flat-footed creatures within 30 feet. This bonus increases by 1 at 3rd level and every 2 levels thereafter. Before rolling, you may impose an additional effect by increasing the attack's success requirement from 2 to 3. This additional effect allows the target to make a Constitution save with a penalty equal to your sneak attack bonus to negate the additional effects. Effects: increase bleeding by 10 per point of sneak attack damage, decrease the target's movement speed by half until healed."
 
 Reckless Attacks:
   type: talent
@@ -145,7 +158,7 @@ Reckless Attacks:
     - target: combat_pool
       type: Circumstance
       add: level
-  description: "While raging, you throw caution aside: your maximum Combat Pool increases by your class level, fueling more and fiercer attacks. The bonus lasts only while the rage is up."
+  description: "Gain additional dice on your attacks equal to your class level when you spend all of your remaining combat pool on an attack action."
 
 Primal Tenacity:
   type: talent
@@ -157,20 +170,54 @@ Primal Tenacity:
   duration: "1 attack"
   modifiers:
     - target: damage_reduction
-      type: Morale
+      type: Circumstance
       add: 4
-  description: "While raging: Gain a +4 Morale bonus to damage reduction against a single attack."
+  description: "You can use your reaction to gain a +4 circumstantial bonus to your damage reduction against a single attack. Costs 4 mana."
+
+# --- Barbarian archetype features -------------------------------------------
+# Weretouched Barbarian. NOTE: the natural-attack grant (claws + bite) and the
+# silver-weapon interactions below are described here but not yet wired into
+# Combat — they are class-reference text pending engine support.
+Lycanthropic Rage:
+  type: talent
+  required_condition: rage
+  effect_hash:
+    level: level
+  description: "Gain two claws and a bite attack when raging. These attacks gain a +1 guidance bonus. At level 4 it increases to +2."
+
+Lycanthropic Resistance:
+  type: talent
+  required_condition: rage
+  description: "All damage reduction and damage reduction from rage is increased by 2. All damage from silver weapons bypasses damage reduction and damage resistance gained from rage. All damage from silver weapons is increased one step in severity."
+
+# Bloodrager. The per-Tier arcana spell counts (Tier 0 = level capped at 6,
+# Tier 1 = floor(level/3) capped at 4) and casting-while-raging are described
+# here; wiring them into spell selection / casting is pending engine support.
+Bloodrager Spellcasting:
+  type: talent
+  description: "Gain a number of arcana spells known that can be cast while raging. You know a number of Tier 0 spells equal to your class level (max 6) and a number of Tier 1 spells equal to 1/3 your level (max 4). These spells can only be cast using Evocation."
 
 Trapfinding:
   type: talent
   effects:
     - "trapfinding"
-  description: "Passively sense certain magical auras from traps and illusions, and gain a perception bonus against them."
+  description: "Passively sense certain magical auras from traps and illusions, and gain a +1 competency bonus to perception against them. This increases by 1 at level 5 and every 5 class levels afterwards."
   modifiers:
     - target: skill
       type: Competency
       descriptors: [perception, traps, illusions]
-      add: "level / 5"
+      add: "1 + level / 5"
+
+# Poisoner (Rogue archetype). Deep mechanics (crafting poisons, the sneak-
+# attack potency rider) are class-reference text pending engine support.
+Precise Poisoner:
+  type: talent
+  required_condition: sneak_attack
+  description: "You gain an additional alternate effect when using sneak attack with a poisoned attack, whether from a spell or a poisoned weapon. You can choose to increase the affliction potency of your attack by 10 per point of sneak attack damage."
+
+Poison Crafter:
+  type: talent
+  description: "You may make Nature (Survival) checks to create a simple poison. These poisons last 1 week and may only be used by you. They deal minor Dexterity damage with an affliction frequency of 1/round. Each Nature success gives a single dose. At level 5 you can choose to make Strength poisons instead."
 
 Danger Sense:
   type: talent
@@ -181,9 +228,9 @@ Danger Sense:
   duration: "1 attack"
   modifiers:
     - target: damage_resilience
-      type: Competency
+      type: Luck
       add: 4
-  description: "Gain a +4 Competency bonus to damage resilience against a single attack."
+  description: "You can reflexively react to unseen dangers. When taking damage from any source, even when unaware, you can use your reaction to gain a +4 luck bonus to your damage resilience against that damage. Costs 4 mana."
 
 Better Lucky Than Good:
   type: talent
@@ -192,7 +239,7 @@ Better Lucky Than Good:
   target: self
   duration: "1 turn"
   mana_cost: 4
-  description: "Can be activated while unaware. Attacks against you (including spells) are made with half as many dice (min 3)."
+  description: "Can be activated while unaware. Spend 4 mana to cause an attack or spell against you to roll with half as many dice."
 
 Magical Performance:
   type: talent
@@ -200,11 +247,11 @@ Magical Performance:
   target: self
   duration: concentration
   skills: [perform_]
-  description: "Learn a magical variant of any Performance skill, used both for mundane checks and to create a magical performance. Maintaining a performance takes a main action each turn."
+  description: "Create a magical performance using any perform skill to create magical effects depending upon the type of performance. Magical performances cost a main action and a point of mana each turn. You can only use this ability with perform skills advanced with this class, and perform skills used for magical performance cannot be advanced by any other class."
 
 Bardic Spellcasting:
   type: talent
-  description: "Cast a number of bardic spells as a main action while performing. Spells need not be prepared each day. Casting outside a performance takes twice as long."
+  description: "Learn a number of spells that can be cast as a main action while maintaining a magical performance. Spells need not be prepared each day. Casting outside a performance takes twice as long. See the table for the number of spells known."
 
 Arcane Spellcasting:
   type: talent
@@ -222,6 +269,7 @@ Bardic Inspiration:
   mana_cost: 1
   duration: "1 turn"
   skills: [perform_]
+  description: "Use your magical performance to inspire your allies. Roll a perform check and gain a point of luck for each success rolled. Luck points gained in this manner last until the start of your next turn and can be spent to grant a luck bonus on another creature's check. You must decide how much luck you will spend on a check before the dice are rolled, and each point of luck will allow that creature to reroll a single die. Dice can never be rerolled more then once."
   channel:
     mode: reservoir
     description: "Make a Performance check; each Success grants one point of luck."
@@ -237,7 +285,7 @@ Bardic Inspiration:
 Unsettling Words:
   type: talent
   inherits_from: Bardic Inspiration
-  description: "You may use luck from youur Bardic Inspiration to force target roll to reroll successes."
+  description: "Use your magical performance to distract your enemies. You may use luck points gained from Bardic Inspiration to force enemies to reroll dice. You must decide how much luck you will spend on a check before the dice are rolled, and each point of luck will allow you to force a creature to reroll a single die of your choice. Dice can never be rerolled more then once."
 
 Combat Trickery:
   type: talent
@@ -288,6 +336,16 @@ Slam:
   type: talent
   description: "Grants a slam natural weapon."
   grants_equipment: ["Slam"]
+
+Claw:
+  type: talent
+  description: "Grants a raking claw natural weapon."
+  grants_equipment: ["Claw"]
+
+Tail Slap:
+  type: talent
+  description: "Grants a lashing tail natural weapon."
+  grants_equipment: ["Tail Slap"]
 
 Acid Bite:
   type: talent

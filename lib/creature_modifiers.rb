@@ -115,6 +115,15 @@ module CreatureModifiers
     []
   end
 
+  # Per-Bonus-Type condition Modifiers a Creature carries for a Check
+  # category key — e.g. `attack_checks`, `ability_checks`, `spell_checks`
+  # (the fear ladder's Morale penalties) or `<attr>_checks`. Returns
+  # stacked [[type, amount], …] ready to drop into a Roll's bonus/penalty
+  # list. Empty when Conditions is unavailable or the Creature carries none.
+  def check_modifiers(accessor, key)
+    condition_attribute_pairs(accessor, key.to_s)
+  end
+
   # Per-Bonus-Type stacking → at most one positive and one negative entry
   # per Type (mirrors Conditions' Get Modifiers / Dice Resolution).
   def stack_pairs(pairs)

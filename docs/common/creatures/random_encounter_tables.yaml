@@ -130,3 +130,69 @@ hill_fort_winter_wolf:
     - spawn:
         - template_id: "380"
           count: 1
+
+# --- General Orange Tier -----------------------------------------------
+
+general_dire_wolf_pack:
+  name: "Dire wolf pack"
+  category: general_orange_tier
+  rolls:
+    - spawn:
+        - template_id: "400"
+          count: "1d3 + 1"
+    - chance: 0.5
+      spawn:
+        - template_id: "301"
+          count: "1d4"
+
+general_ogre_gang:
+  name: "Ogre gang"
+  category: general_orange_tier
+  rolls:
+    - spawn:
+        - template_id: "402"
+          count: 1
+        - template_id: "401"
+          count: "1d3 + 1"
+
+# --- Humanoid warbands -------------------------------------------------
+
+gnoll_war_party:
+  name: "Gnoll war party"
+  category: humanoids
+  rolls:
+    - spawn:
+        - template_id: "702"
+          count: 1
+        - template_id: "700"
+          count: "2d4"
+    - spawn:
+        - template_id: "701"
+          count: "1d4"
+    - chance: 0.5
+      spawn:
+        - template_id: "704"
+          count: "1d4 + 1"
+    - chance: 0.25
+      spawn:
+        - template_id: "703"
+          count: 1
+
+mountain_raiders:
+  name: "Mountain raiders"
+  category: humanoids
+  rolls:
+    - spawn:
+        - template_id: "713"
+          count: 1
+        - template_id: "710"
+          count: "1d4 + 1"
+    - spawn:
+        - template_id: "711"
+          count: "1d3"
+        - template_id: "712"
+          count: "1d3"
+    - chance: 0.5
+      spawn:
+        - template_id: "714"
+          count: "1d2"

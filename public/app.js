@@ -392,6 +392,13 @@ document.addEventListener('mouseover', function (e) {
       if (sk) fetchIntoModal('/spell-school?name=' + encodeURIComponent(sk), 'cs-school-modal');
       return;
     }
+    var klass = e.target.closest && e.target.closest('.cs-class-link');
+    if (klass) {
+      e.preventDefault();
+      var ckey = klass.getAttribute('data-class-key');
+      if (ckey) fetchIntoModal('/class-detail?name=' + encodeURIComponent(ckey), 'cs-class-modal');
+      return;
+    }
     var skillsTitle = e.target.closest && e.target.closest('.cs-skills-title');
     if (skillsTitle) {
       e.preventDefault();

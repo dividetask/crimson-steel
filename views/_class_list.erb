@@ -1,0 +1,27 @@
+<%#
+  Class List — Compendium page (docs/common/ui/class_list_stub.md).
+  A card per playable Class with a short summary. Clicking a card opens the
+  Class's detail popup (the shared /class-detail modal, wired by app.js's
+  .cs-class-link delegation).
+
+  Locals:
+    classes — [{ key, name, summary }]
+%>
+<%
+  esc = ->(s) { Rack::Utils.escape_html(s.to_s) }
+%>
+<div class="class-list" data-class-list>
+  <h1>Classes</h1>
+  <p class="lead">The playable classes of Crimson Steel. Click a class to read its full description.</p>
+
+  <div class="class-grid">
+    <% classes.each do |c| %>
+      <button type="button" class="class-card cs-class-link" data-class-key="<%= esc.call(c[:key]) %>">
+        <span class="class-card-name"><%= esc.call(c[:name]) %></span>
+        <% unless c[:summary].to_s.empty? %>
+          <span class="class-card-summary"><%= esc.call(c[:summary]) %></span>
+        <% end %>
+      </button>
+    <% end %>
+  </div>
+</div>

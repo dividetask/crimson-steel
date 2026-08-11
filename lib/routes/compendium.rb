@@ -1,4 +1,4 @@
-COMPENDIUM_VIEWS = (['glossary', 'spells'] + ExplainerDocs.keys).freeze
+COMPENDIUM_VIEWS = (['glossary', 'spells', 'classes'] + ExplainerDocs.keys).freeze
 
 get '/compendium' do
   @view = COMPENDIUM_VIEWS.include?(params[:view]) ? params[:view] : 'glossary'
@@ -9,6 +9,8 @@ get '/compendium' do
     @spells_list   = SpellList.rows
     @spell_schools = @spells_list.map { |r| r[:school] }.reject(&:empty?).uniq.sort
     @spell_skills  = @spells_list.flat_map { |r| r[:skills] }.uniq.sort
+  elsif @view == 'classes'
+    @classes_list = ClassList.rows
   else
     @explainer_html  = ExplainerDocs.render(@view)
     @explainer_title = ExplainerDocs.title_for(@view)

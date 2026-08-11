@@ -1,0 +1,48 @@
+# General Orange Tier — Creature Templates
+
+name: General Orange Tier
+
+characters:
+
+  - id: 400
+    name: Dire Wolf
+    metadata:
+      creature_token: "/images/icons/Collection/Werewolves, Wolves/mordwolf.png"
+    group: enemy
+    tags: [enemy_template, category:general_orange_tier]
+    race: dire_wolf
+    tier: 1
+    attributes: { str: 12, dex: 13, con: 12, int: 3, wis: 12, cha: 8 }
+    advancement:
+      classes:
+        feral: 6
+
+  - id: 401
+    name: Ogre
+    metadata:
+      creature_token: "/images/icons/Collection/Miscellaneous Monsters/onnake ogre.png"
+    group: enemy
+    tags: [enemy_template, category:general_orange_tier]
+    race: ogre
+    tier: 1
+    attributes: { str: 10, dex: 8, con: 10, int: 6, wis: 8, cha: 7 }
+    advancement:
+      classes:
+        warrior:
+          level: 2
+          skills: [athletics, intimidate]
+
+  - id: 402
+    name: Ogre Brute
+    metadata:
+      creature_token: "/images/icons/Collection/Giants/enraged two-headed giant.png"
+    group: enemy
+    tags: [enemy_template, category:general_orange_tier]
+    race: ogre
+    tier: 1
+    attributes: { str: 12, dex: 8, con: 12, int: 6, wis: 8, cha: 8 }
+    advancement:
+      classes:
+        barbarian:
+          level: 3
+          skills: [athletics, intimidate, survival]

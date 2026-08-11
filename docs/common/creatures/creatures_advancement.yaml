@@ -39,12 +39,6 @@ Tier Breakpoints:
 # its Archetypes simultaneously — see Archetype Exclusivity in the
 # design.
 #
-# Martial is a Skill (catalog entry in proficiencies/skills.yaml).
-# Each Class categorizes it like any other Skill — there is no
-# separate `martial_advancement` field. Per-weapon and per-armor
-# bonuses come from Abilities (Weapon Training, Armor Training,
-# etc.) as Modifier entries on the Granted Ability.
-#
 # Skill lists may name bare Set Skill keys (ending `_`); a Set
 # Instance whose prefix matches the list is treated the same way.
 #
@@ -54,6 +48,11 @@ Tier Breakpoints:
 #               points  the Creature spends a point pool on spells; each
 #                       spell costs `cost` points (a formula in `tier`).
 #               count   the Creature picks a fixed NUMBER of spells.
+#               tiered_count  the Creature picks a number of spells of EACH
+#                       Spell Tier (Bard). `tiers` lists the Tiers tracked and
+#                       `by_level` gives the per-Tier counts at each class
+#                       level (positional with `tiers`); creation uses the
+#                       CREATION_LEVEL row as the per-Tier caps.
 #               domain  the Creature picks a deity + domain instead of
 #                       individual spells (Cleric); the domain's spell
 #                       list is granted via deities.yaml.
@@ -65,6 +64,8 @@ Tier Breakpoints:
 #   cost    — points mode only: formula in `tier` for one spell's cost.
 #             The result is floored to an integer, so a Tier 0 spell
 #             costs 1 (not 1.5).
+#   tiers / by_level — tiered_count mode only: the Spell Tiers tracked and the
+#             number of each known per class level (see the Bard).
 #   filter  — which Catalog spells are selectable. `any` allows every
 #             spell; otherwise the value is a casting-skill key and a
 #             spell qualifies when one of its `skills` starts with it
@@ -82,9 +83,8 @@ Classes:
       aligned: []
       opposed: [dex, int, wis, cha]
     ability_progression:
-      "1": [rage, fast_movement, reckless_attacks]
+      "1": [rage, fast_movement]
       "2": [uncanny_dodge, primal_tenacity, combat_feat]
-      "3": [mindless_rage]
     aligned_proficiencies:
       - animal_handling
       - athletics
@@ -93,6 +93,38 @@ Classes:
       - intimidate
       - nature
       - perception
+
+  berserker:
+    parent_class: barbarian
+    ability_progression:
+      "3": [reckless_attacks]
+      "4": [mindless_rage]
+
+  weretouched_barbarian:
+    parent_class: barbarian
+    ability_progression:
+      "3": [lycanthropic_rage]
+      "5": [lycanthropic_resistance]
+
+  bloodrager:
+    parent_class: barbarian
+    martial_advancement: unaligned
+    mana_per_level: 2
+    ability_progression:
+      "3": [bloodrager_spellcasting]
+    aligned_proficiencies:
+      - evocation
+    spell_selection:
+      mode: tiered_count
+      filter: arcana
+      tiers: [0, 1]
+      by_level:
+        "1": [0, 0]
+        "2": [0, 0]
+        "3": [3, 1]
+        "4": [4, 1]
+        "5": [5, 1]
+        "6": [6, 2]
 
   bard:
     martial_advancement: unaligned
@@ -109,11 +141,17 @@ Classes:
     unaligned_proficiencies:
       - restricted_magic
       - survival
-    # Bards know 2 spells per level and may only learn Performance spells.
     spell_selection:
-      mode: count
-      budget: "2 * level"
+      mode: tiered_count
       filter: perform
+      tiers: [0, 1, 2]
+      by_level:
+        "1": [4, 2, 0]
+        "2": [5, 3, 0]
+        "3": [6, 4, 0]
+        "4": [6, 5, 0]
+        "5": [6, 6, 0]
+        "6": [6, 6, 2]
 
   cleric:
     martial_advancement: unaligned
@@ -123,20 +161,13 @@ Classes:
       aligned: []
       opposed: [str, dex, con, int]
     ability_progression:
-      "1": [see_injury, improved_healing, combat_healing, domain]
+      "1": [see_injury, improved_healing, domain]
       "2": [channel_divinity, turn_undead, casting_feat]
+      "5": [destroy_undead]
     granted_spells:
-      # Every Cleric gains these regardless of deity / domain.
       - Heal
       - Ward
       - Standard Surgery
-    # Domain-specific spells and Channel Divinity abilities are looked up
-    # via the Creature's `choices.deity` and `choices.domains` keys against
-    # `creatures/deities.yaml` (each chosen domain's spells; the Channel
-    # Divinity of each chosen domain that is one of the deity's own; and the
-    # deity's Channel Divinity at Cleric level 4).
-    # Clerics do not pick individual spells in the creation flow — they pick
-    # a deity and domain, gaining that domain's spells on top of granted_spells.
     spell_selection:
       mode: domain
     aligned_proficiencies:
@@ -164,8 +195,6 @@ Classes:
       opposed: [str, dex, con, cha]
     ability_progression:
       "1": [druidic_spellcasting]
-    # Druids automatically know every Nature spell, so they pick none —
-    # the Spell Selection step is skipped for them.
     spell_selection:
       mode: auto
       filter: nature
@@ -195,10 +224,6 @@ Classes:
       - nature
       - perception
 
-  # NPC martial class. Mirrors `fighter` exactly but grants no class
-  # abilities (no weapon/armor training). `npc_class: true` keeps it
-  # out of the player-character class picker — it is for enemy and NPC
-  # stat blocks only.
   warrior:
     npc_class: true
     martial_advancement: aligned
@@ -216,10 +241,6 @@ Classes:
       - nature
       - perception
 
-  # NPC martial class for beasts. Identical to `warrior` — a copy of
-  # `fighter` that grants no class abilities (no weapon/armor training).
-  # Beasts use this instead of `commoner`, which is reserved for ordinary
-  # folk. `npc_class: true` keeps it out of the player-character picker.
   feral:
     npc_class: true
     martial_advancement: aligned
@@ -260,16 +281,28 @@ Classes:
     bonus_skills: 4
     mana_per_level: 2
     ability_progression:
-      "1": [arcane_spellcasting]
-      "2": [combat_trickery, mage_hand_legerdemain]
+      "3": [arcane_spellcasting, combat_trickery, mage_hand_legerdemain]
     aligned_proficiencies:
       - arcana
-    # Arcane Tricksters get a 9 + level point pool for any spell.
     spell_selection:
-      mode: points
-      budget: "9 + level"
-      cost: "1 + tier"
+      mode: tiered_count
       filter: any
+      tiers: [0, 1]
+      by_level:
+        "1": [0, 0]
+        "2": [0, 0]
+        "3": [3, 3]
+        "4": [4, 3]
+        "5": [4, 4]
+
+  poisoner:
+    parent_class: rogue
+    ability_progression:
+      "3": [precise_poisoner, poison_crafter]
+
+  ranger:
+    parent_class: druid
+    martial_advancement: aligned
 
   monk:
     martial_advancement: aligned
@@ -296,7 +329,6 @@ Classes:
       opposed: [str, dex, con, cha]
     ability_progression:
       "1": [arcane_spellcasting]
-    # Wizards get a 5 + level^2 point pool; each spell costs 1 + its tier.
     spell_selection:
       mode: points
       budget: "5 + level * level"
@@ -319,7 +351,6 @@ Classes:
       opposed: [str, dex, int, wis]
     ability_progression:
       "1": [arcane_spellcasting]
-    # Sorcerers know 4 spells per level and may learn any spell.
     spell_selection:
       mode: count
       budget: "4 * level"
@@ -332,7 +363,6 @@ Classes:
       - planes
       - religion
 
-  # NPC-only class (kept out of the player-character class picker).
   commoner:
     npc_class: true
     martial_advancement: opposed
@@ -378,13 +408,6 @@ Classes:
       - persuasion
       - evocation
 
-# HP and Mana formulas, indexed by Tier. The string is evaluated
-# against the Creature's Effective Attributes (`str`, `dex`, ...);
-# `tier` follows the project-wide Tier 0 → 0.5 convention. Result
-# is floored.
-#
-# `mana_per_level` on each Class contributes additively on top of
-# the per-Tier Mana base formula.
 HP Formula:
   - "con / 2"   # Tier 0
   - "con"       # Tier 1

@@ -11,7 +11,7 @@
 # Conditions chooses as the canonical home) and this file is deleted.
 
 regeneration:
-  description: "Heal damage each turn as though a day had passed. When all minor damage is healed, one point of moderate or major damage can be converted to minor damage based on the number of days it would take to heal that damage. This healing is paused for 1 minute after any fire or acid damage is taken."
+  description: "Each turn the creature mends minor damage equal to its tier plus 1 moderate damage — so faster, higher-tier creatures (which take several turns per round) heal multiple times a round. Each hour it also recovers 1 major damage. While regenerating the creature carries a visible regenerating condition. Regeneration stops working while the creature has unhealed acid or fire damage; that acid or fire damage still heals normally through natural healing, and once it is gone regeneration resumes."
 
 undead_traits:
   description: "Placeholder grouping for undead-typical immunities and weaknesses. Will be split into the proper Conditions / damage-type entries when those domains are written."

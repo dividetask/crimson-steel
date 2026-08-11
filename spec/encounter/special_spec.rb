@@ -305,9 +305,11 @@ RSpec.describe 'Encounter::State special actions' do
 
     it 'rage’s Resilience Modifier raises the Combat damage-bucketing resilience' do
       cond = build_instance
-      s = state(creature(bard_abilities), cond)
+      cre = creature(bard_abilities)
+      cre.define_singleton_method(:tier) { 0 } # isolate rage's Modifier from the Tier base
+      s = state(cre, cond)
       c = s.add_combatant('1')
-      # Before raging: no resilience, threshold 0 → bucket width 1 (the minimum).
+      # Before raging: Tier 0 + no armor → 0 resilience, threshold 0 → bucket width 1 (the minimum).
       expect(s.preview_severity(c[:id], 5, 'physical', 0)).to eq(minor: 1, moderate: 1, major: 3)
       s.use_special_payload(combatant_id: c[:id], ability: 'Rage') # +3 Resilience
       # After raging: bucket width = threshold 0 + resilience 3 → 3 Minor, 2 Moderate.

@@ -233,6 +233,24 @@ post '/inventory/claim' do
   redirect inventory_redirect(cid, params[:detail])
 end
 
+# Permanently remove qty from the Sell Pile (the shared Party Inventory) —
+# the destructive counterpart to Claim. A Discard drops an item here; Delete
+# throws it away for good. DM-only, so a player can't destroy shared party
+# gear.
+post '/inventory/sell_delete' do
+  if dm_view?
+    inst  = Equipment.instance
+    idx   = params[:index].to_i
+    stack = inst.get_inventory('party')[idx]
+    if stack
+      qty = inventory_quantity(params[:quantity], stack.quantity)
+      inst.remove_item('party', idx, quantity: qty)
+      inst.cleanup('party')
+    end
+  end
+  redirect inventory_redirect(params[:creature_id].to_s, params[:detail])
+end
+
 # Claim a single copy from the Sell Pile and equip it on the Creature.
 post '/inventory/claim_equip' do
   cid = params[:creature_id].to_s

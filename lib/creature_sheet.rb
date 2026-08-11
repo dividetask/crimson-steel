@@ -129,10 +129,15 @@ module CreatureSheet
     # Modifiers stay folded into the base.
     pieces = equipment_defense_pieces(accessor)
     direct = direct_defense_attributes(accessor)
+    # Damage Resilience = Tier + Armor Resilience + Resilience Modifiers
+    # (Tier 0 contributes 0). Combat mirrors this in
+    # Encounter::State#equipped_defensive_totals, so the displayed and applied
+    # values agree. Damage Reduction does not get the Tier.
+    tier_resil = tier.to_i
     dr_break  = defense_breakdown(defense[:damage_reduction],  cond, 'damage_reduction')
                   .merge(components: defense_math(pieces, direct[:damage_reduction], cond, 'damage_reduction', :damage_reduction))
-    res_break = defense_breakdown(defense[:damage_resilience], cond, 'damage_resilience')
-                  .merge(components: defense_math(pieces, direct[:damage_resilience], cond, 'damage_resilience', :damage_resilience))
+    res_break = defense_breakdown(defense[:damage_resilience], cond, 'damage_resilience', tier_bonus: tier_resil)
+                  .merge(components: defense_math(pieces, direct[:damage_resilience], cond, 'damage_resilience', :damage_resilience, tier_bonus: tier_resil))
     {
       hp:   { current: [max_hp - hp_dmg, 0].max, max: max_hp },
       mana: { current: (st ? [max_mana - st.mana_spent, 0].max : max_mana), max: max_mana,
@@ -151,12 +156,12 @@ module CreatureSheet
   # Split a defensive total into its base (equipped Armor + any Inherent
   # Modifiers, which stay baked in) and the broken-out active-effect tokens
   # (everything else). Returns { base:, total:, tokens: [{ amount:, conditional: }] }.
-  def defense_breakdown(armor_base, cond, key)
+  def defense_breakdown(armor_base, cond, key, tier_bonus: 0)
     pairs    = cond ? (cond.get_modifiers(key) rescue []) : []
     inherent = pairs.select { |type, _| type == 'Inherent' }.sum { |_, a| a.to_i }
     tokens   = pairs.reject { |type, _| type == 'Inherent' }
                     .map { |_type, amount| { amount: amount.to_i, conditional: false } }
-    base = armor_base.to_i + inherent
+    base = armor_base.to_i + inherent + tier_bonus.to_i
     { base: base, tokens: tokens, total: base + tokens.sum { |t| t[:amount] } }
   end
 
@@ -168,11 +173,15 @@ module CreatureSheet
   # flagged `applied: false` for a struck-out display. `which` is
   # :damage_reduction or :damage_resilience; `key` is the Modifier target key.
   # Returns [{ amount:, label:, applied: }].
-  def defense_math(pieces, direct_amount, cond, key, which)
-    comps = Array(pieces).map do |p|
+  def defense_math(pieces, direct_amount, cond, key, which, tier_bonus: 0)
+    # The Creature's Tier is a base Resilience component (labelled "tier"),
+    # listed first so the popup math reads "tier + armor + modifiers".
+    comps = []
+    comps << { amount: tier_bonus.to_i, label: 'tier', applied: true }
+    comps.concat(Array(pieces).map do |p|
       amount = (which == :damage_reduction ? p[:damage_reduction] : p[:resilience]).to_i
       { amount: amount, label: p[:name].to_s, applied: true }
-    end
+    end)
     comps << { amount: direct_amount.to_i, label: 'innate', applied: true }
     mods = cond ? (cond.modifier_breakdown(key.to_s) rescue []) : []
     mods.each do |m|

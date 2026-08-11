@@ -60,13 +60,20 @@ helpers do
     # which applies cross-side propagation and computes every TN itself.
     fmt_mods = ->(list) { list.map { |type, amt| "#{amt >= 0 ? '+' : ''}#{amt} #{type}" }.join(' ') }
 
+    # Active-Condition Modifiers the attacker carries against its attack
+    # Rolls — the fear ladder's Morale penalties (frightened/shaken/panicked)
+    # land under `attack_checks` and are consumed here.
+    atk_check_mods = acc ? (CreatureModifiers.check_modifiers(acc, 'attack_checks') rescue []) : []
+
     # The weapon's own Bonus list on the attacker's Roll: its Competency
     # (martial for a weapon, the casting Skill for a Spell strike) plus any
-    # Guidance a Spell strike carries (Guidance equal to the Spell's Tier).
+    # Guidance a Spell strike carries (Guidance equal to the Spell's Tier),
+    # plus any active-Condition attack Modifiers.
     weapon_bpl = lambda do |w|
       list = []
       list << w[:competency] if w[:competency]
       list << ['Guidance', w[:guidance].to_i] if w[:guidance].to_i.positive?
+      atk_check_mods.each { |pair| list << pair }
       list
     end
 

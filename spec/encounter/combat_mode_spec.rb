@@ -246,4 +246,49 @@ RSpec.describe 'Encounter combat-mode operations' do
       expect(s.combat_pool_remaining(c[:id])).to eq(leave)
     end
   end
+
+  describe '#preview_severity — Damage Resilience includes the Creature Tier' do
+    let(:tmpdir) { Dir.mktmpdir('enc-resil') }
+    after { FileUtils.remove_entry(tmpdir) if File.exist?(tmpdir) }
+
+    # A bare Creature double: no equipped Armor, no direct Resilience stat
+    # unless one is supplied — so the only Resilience is the Tier.
+    def resil_creature(tier:, resilience: nil)
+      obj = Object.new
+      obj.define_singleton_method(:tier) { tier }
+      obj.define_singleton_method(:tags) { [] }
+      obj.define_singleton_method(:max_hit_points) { 30 }
+      obj.define_singleton_method(:max_mana) { 8 }
+      obj.define_singleton_method(:attribute_value) { |_a| 12 }
+      obj.define_singleton_method(:ranks_for) { |_k| 2 }
+      obj.define_singleton_method(:damage_resilience) { resilience } unless resilience.nil?
+      obj
+    end
+
+    def resil_state(cre)
+      Encounter::State.new({}, data_path: File.join(tmpdir, 'e.json'),
+                           creature_lookup: ->(_id) { cre },
+                           conditions_for: ->(_id) { Conditions::Instance.new })
+    end
+
+    it 'a Tier-2 Creature (mundane gear) buckets damage against 2 Resilience' do
+      s = resil_state(resil_creature(tier: 2))
+      c = s.add_combatant('1')
+      # bucket = threshold 0 + Tier 2 = 2
+      expect(s.preview_severity(c[:id], 5, 'physical', 0)).to eq(minor: 2, moderate: 2, major: 1)
+    end
+
+    it 'a Tier-0 Creature has no Tier Resilience (bucket floors at 1)' do
+      s = resil_state(resil_creature(tier: 0))
+      c = s.add_combatant('1')
+      expect(s.preview_severity(c[:id], 5, 'physical', 0)).to eq(minor: 1, moderate: 1, major: 3)
+    end
+
+    it 'adds the Tier on top of a direct damage_resilience stat' do
+      s = resil_state(resil_creature(tier: 1, resilience: 3))
+      c = s.add_combatant('1')
+      # bucket = threshold 0 + Tier 1 + innate 3 = 4
+      expect(s.preview_severity(c[:id], 9, 'physical', 0)).to eq(minor: 4, moderate: 4, major: 1)
+    end
+  end
 end

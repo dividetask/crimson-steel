@@ -11,10 +11,6 @@
 # becomes the rolling default `min_level` for following ability
 # entries until the next context entry. Context entries are
 # flattened at config-load time.
-#
-# The shipped entries below are placeholders — sizes and speeds are
-# set where tests or example data depend on them; attribute_adjustments
-# and abilities are left empty for the campaign to fill in.
 
 # --- Roots -------------------------------------------------------------
 
@@ -305,4 +301,74 @@ winter_wolf:
     - name: Jaw Bite
       min_level: 0
     - name: frost_breath
+      min_level: 0
+
+dire_wolf:
+  parent: canine
+  size: large
+  speed: 50
+  attribute_adjustments: { str: 6, con: 4 }
+  abilities:
+    - name: keen_smell
+      min_level: 0
+    - name: pack_tactics
+      min_level: 0
+    - name: trip_bite
+      min_level: 0
+
+giant:
+  parent: humanoid
+  size: large
+  speed: 40
+  abilities: []
+
+aberration:
+  size: medium
+  speed: 30
+  abilities: []
+
+troll:
+  parent: giant
+  size: large
+  attribute_adjustments: { str: 12, con: 12, dex: 2, int: -6, wis: -2, cha: -4 }
+  abilities:
+    - name: regeneration
+      min_level: 0
+    - name: low_light_vision
+      min_level: 0
+    - name: keen_smell
+      min_level: 0
+    - name: natural_armor_2
+      min_level: 0
+    - name: Claw
+      min_level: 0
+    - name: Jaw Bite
+      min_level: 0
+    - name: Rend
+      min_level: 0
+
+cloaker:
+  parent: aberration
+  size: large
+  attribute_adjustments: { str: 6, dex: 4, con: 4, int: 2, wis: 4, cha: 2 }
+  abilities:
+    - name: darkvision
+      min_level: 0
+    - name: natural_armor_2
+      min_level: 0
+    - name: light_sensitivity
+      min_level: 0
+    - name: false_appearance
+      min_level: 0
+    - name: moan
+      min_level: 0
+    - name: phantasms
+      min_level: 0
+    - name: engulf
+      min_level: 0
+    - name: damage_transfer
+      min_level: 0
+    - name: Jaw Bite
+      min_level: 0
+    - name: Tail Slap
       min_level: 0

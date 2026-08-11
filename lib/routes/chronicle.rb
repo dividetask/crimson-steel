@@ -8,6 +8,20 @@ helpers do
     Chronicle.store
   end
 
+  # Catch up every regenerating Creature's hourly Major Regeneration to the
+  # given absolute game Round (day_index * rounds_per_day + round_of_day).
+  # Suppressed Creatures still advance their schedule but mend nothing;
+  # see Conditions#regenerate_hourly_majors.
+  def advance_regeneration_to(abs_round)
+    rounds_per_hour = Timekeeping.rounds_per_day / 24
+    Creatures::Dataset.all.each_value do |rec|
+      acc = (Creatures.lookup(rec[:id]) rescue nil) or next
+      next unless acc.respond_to?(:has_ability) && acc.has_ability('regeneration')
+      Conditions.store.instance_for(rec[:id]).regenerate_hourly_majors(abs_round, rounds_per_hour)
+    end
+    Conditions.store.persist!
+  end
+
   def viewer_role
     dm_view? ? :dm : :player
   end
@@ -74,6 +88,10 @@ post '/chronicle/set-time' do
   )
   rod = Timekeeping.round_of_day_for(hour: params[:hour].to_i, minute: params[:minute].to_i)
   chronicle_store.set_time(day_index: di, round_of_day: rod)
+  # Advancing the game clock lets regenerating Creatures mend their 1 Major
+  # per elapsed hour, the same catch-up combat runs each turn — so downtime
+  # counts toward Regeneration too.
+  advance_regeneration_to(di * Timekeeping.rounds_per_day + rod)
   redirect(request.referer || '/encounter')
 end
 
