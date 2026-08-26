@@ -5,9 +5,6 @@
 # PCs conventionally take ids 1..99; enemies 100..1999; NPCs 2000+.
 # Loading is order-independent — IDs collide across files only by mistake.
 #
-# The party is four members — one each of Bard, Wizard, Cleric, and
-# Barbarian. Other adventurers live in the NPC file.
-#
 # Schema (one entry per character under `characters:`):
 #   id          integer, unique across all creatures_data files.
 #   name        character name.

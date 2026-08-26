@@ -4,6 +4,8 @@ The Compendium is the in-app player handbook: every player and the DM use it to 
 
 The Compendium is doc-driven. Every chapter on the page is a markdown file in `docs/common/` — no chapter content is hand-written into the Ruby side. Authors edit markdown; the app reads it; the page updates on reload. Adding a new chapter is a two-line code change plus the markdown.
 
+The page also carries **DM-only reference pages** sourced from `docs/website_design/` (see [DM-only Website Design pages](#dm-only-website-design-pages) below). Players never see these; the DM sees them in a separate nav group.
+
 ## Page layout
 
 The Compendium uses a two-pane layout that mirrors the Status page convention: a left-hand navigation column sized at ~180px, and a right-hand content pane that takes the rest of the width. The currently-selected nav entry is highlighted. The left nav always shows, in order:
@@ -11,6 +13,8 @@ The Compendium uses a two-pane layout that mirrors the Status page convention: a
 1. **Magical Tier** — pinned as the first entry, above the Glossary. It is a registered Explainer chapter (`magical_tier`); the page lifts it to the top of the nav.
 2. **Glossary** — the default landing pane (visiting `/compendium` with no `?view=` still lands here).
 3. **One entry per remaining registered Explainer chapter**, in the order they're declared in `lib/explainer_docs.rb`.
+
+The DM additionally sees a **Website Design (DM)** nav group below the player entries (see [DM-only Website Design pages](#dm-only-website-design-pages)).
 
 Sub-views are addressed via `?view=<key>`. The global URL stays under `/compendium`; the global menu's `Compendium` link returns the viewer to the default sub-view (Glossary).
 
@@ -104,6 +108,25 @@ Cross-reference earlier chapters by name in prose ("see Dice Resolution → Bonu
 ### Chapter length
 
 There is no hard limit, but a chapter that wouldn't print on five reading-pages worth of body text probably wants to be split. The Conditions chapter is the long end of the current range; Dice Resolution and Check Resolution are the natural lengths.
+
+## DM-only Website Design pages
+
+Alongside the player-facing Explainer chapters, the Compendium surfaces a set of **DM-only reference pages** drawn from `docs/website_design/`. These document *how the site implements the rules* — how a stub is defined, what it relies on, and the dummy data that drives it — so the DM can inspect and fix a feature while playing. They are **not** player content.
+
+- **Registry.** The pages are declared in `lib/design_docs.rb` (`DesignDocs::SOURCES`), keyed like the Explainer chapters: `{ key => { title:, path: } }`. The current entries are `combat` (the Combat Encounter Stub — the turn, and the blob its host builds), `action_builder` (the domain-agnostic Action Builder wizard, `public/js/ui/actionBuilder.js`), `combat_interfaces` (the required interfaces), and `combat_test_data` (a worked example of the Action Builder blob).
+- **Nav.** For the DM, `views/compendium.erb` renders these below the player entries under a **Website Design (DM)** group heading (`.compendium-nav-group`). Players never see the group.
+- **Access.** Visibility is the standard DM check — `dm_view?` (loopback request and not viewing-as-player). `lib/routes/compendium.rb` only admits a `DesignDocs` `?view=` key when `dm_view?` is true; a player (or the DM viewing as a player) who requests one is bounced to the default Glossary, matching the "treated as if the page did not exist" rule in `menu_layout.md`.
+
+### Hidden developer directives
+
+Because these pages are DM-only, they may carry **developer directives and notes that are stripped from the rendered page but kept in the source file** (`DesignDocs.strip_directives`):
+
+| Source markup | Meaning | Rendered as |
+|---|---|---|
+| `@function <name>` (line) | A developer declaration. | Removed. |
+| ` ```test … ``` ` (fence) | A worked sample data blob / test cases. | Removed. |
+
+Everything else renders as ordinary Markdown (kramdown + GFM), with the same `mermaid` fence rewrite as the Explainer chapters (`DesignDocs` reuses `ExplainerDocs.rewrite_mermaid_blocks`). Cross-references between the DM pages use in-app `/compendium?view=<key>` links so the DM can hop between a stub and its interfaces.
 
 ## Authoring checklist
 

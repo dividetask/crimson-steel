@@ -51,7 +51,16 @@
       </tr>
     </thead>
     <tbody>
+      <% current_tier = nil %>
       <% spells.each do |sp| %>
+        <% if sp[:tier] != current_tier %>
+          <% current_tier = sp[:tier] %>
+          <%# Group heading before each Tier's spells. Hidden by the filter JS
+              when no spell in its Tier is currently visible. %>
+          <tr class="spell-tier-row tier-<%= current_tier %>" data-tier-header="<%= current_tier %>">
+            <th colspan="7" scope="colgroup">Tier <%= current_tier %></th>
+          </tr>
+        <% end %>
         <tr class="spell-row"
             data-school="<%= esc.call(sp[:school]) %>"
             data-tiers="<%= sp[:tier] %>"

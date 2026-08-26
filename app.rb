@@ -50,6 +50,7 @@ require_relative 'lib/live_roster'
 require_relative 'lib/test_docs'
 require_relative 'lib/glossary_docs'
 require_relative 'lib/explainer_docs'
+require_relative 'lib/design_docs'
 require_relative 'lib/device_registry'
 require_relative 'lib/helpers'
 

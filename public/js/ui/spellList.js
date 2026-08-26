@@ -14,6 +14,7 @@ function initSpellList(root) {
   };
   const clearBtn = root.querySelector('[data-filter-clear]');
   const rows = Array.from(root.querySelectorAll('.spell-row'));
+  const tierHeaders = Array.from(root.querySelectorAll('.spell-tier-row'));
   const emptyMsg = root.querySelector('[data-empty]');
 
   function apply() {
@@ -21,6 +22,7 @@ function initSpellList(root) {
     const tier = selects.tier.value;
     const skill = selects.skill.value;
     let shown = 0;
+    const visibleTiers = new Set();
     rows.forEach((row) => {
       const tiers = (row.dataset.tiers || '').split(',').filter(Boolean);
       const skills = (row.dataset.skills || '').split(',').filter(Boolean);
@@ -29,7 +31,14 @@ function initSpellList(root) {
         (!tier || tiers.includes(tier)) &&
         (!skill || skills.includes(skill));
       row.hidden = !match;
-      if (match) shown += 1;
+      if (match) {
+        shown += 1;
+        tiers.forEach((t) => visibleTiers.add(t));
+      }
+    });
+    // A Tier heading shows only while at least one of its spells is visible.
+    tierHeaders.forEach((header) => {
+      header.hidden = !visibleTiers.has(header.dataset.tierHeader);
     });
     if (emptyMsg) emptyMsg.hidden = shown !== 0;
   }

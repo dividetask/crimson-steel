@@ -14,4 +14,4 @@ regeneration:
   description: "Each turn the creature mends minor damage equal to its tier plus 1 moderate damage — so faster, higher-tier creatures (which take several turns per round) heal multiple times a round. Each hour it also recovers 1 major damage. While regenerating the creature carries a visible regenerating condition. Regeneration stops working while the creature has unhealed acid or fire damage; that acid or fire damage still heals normally through natural healing, and once it is gone regeneration resumes."
 
 undead_traits:
-  description: "Placeholder grouping for undead-typical immunities and weaknesses. Will be split into the proper Conditions / damage-type entries when those domains are written."
+  description: "The creature has the immunities and weaknesses typical of the undead."

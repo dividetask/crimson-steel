@@ -233,6 +233,16 @@ body {
   font-weight: bold;
 }
 
+.compendium-nav-group {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: bold;
+  color: #666;
+  margin: 16px 0 6px 0;
+  padding: 0 2px;
+}
+
 .compendium-content {
   min-width: 0;
 }
@@ -708,14 +718,28 @@ body {
   margin: 0;
 }
 
+/* Tier color palette. Defined once as custom properties and reused for
+   every tier-colored element (spell names, tier labels, card headers,
+   the compendium Spell List tier rows). Chosen as standard, legible
+   shades of each hue on a light background, deepening Tier 0 to a true
+   dark red. */
+:root {
+  --tier-0: #b71c1c; /* red */
+  --tier-1: #e05a00; /* orange */
+  --tier-2: #ca8a04; /* yellow/gold */
+  --tier-3: #15803d; /* green */
+  --tier-4: #1565c0; /* blue */
+  --tier-5: #7b1fa2; /* purple */
+}
+
 /* Tier color palette: applies to .pc-name (header), affliction
    potency cells, and consumable list items. */
-.tier-0 { color: #c0392b; }
-.tier-1 { color: #d35400; }
-.tier-2 { color: #b8860b; }
-.tier-3 { color: #27ae60; }
-.tier-4 { color: #2980b9; }
-.tier-5 { color: #8e44ad; }
+.tier-0 { color: var(--tier-0); }
+.tier-1 { color: var(--tier-1); }
+.tier-2 { color: var(--tier-2); }
+.tier-3 { color: var(--tier-3); }
+.tier-4 { color: var(--tier-4); }
+.tier-5 { color: var(--tier-5); }
 
 .pc-subtitle {
   color: #666;
@@ -2249,26 +2273,26 @@ body {
 
 /* Tier-color top border + name tint. ui_conventions.md mapping:
    0 red, 1 orange, 2 yellow, 3 green, 4 blue, 5 purple. */
-.cs-card.tier-0 { border-top-color: #c0392b; }
-.cs-card.tier-1 { border-top-color: #d35400; }
-.cs-card.tier-2 { border-top-color: #b8860b; }
-.cs-card.tier-3 { border-top-color: #27ae60; }
-.cs-card.tier-4 { border-top-color: #2980b9; }
-.cs-card.tier-5 { border-top-color: #8e44ad; }
+.cs-card.tier-0 { border-top-color: var(--tier-0); }
+.cs-card.tier-1 { border-top-color: var(--tier-1); }
+.cs-card.tier-2 { border-top-color: var(--tier-2); }
+.cs-card.tier-3 { border-top-color: var(--tier-3); }
+.cs-card.tier-4 { border-top-color: var(--tier-4); }
+.cs-card.tier-5 { border-top-color: var(--tier-5); }
 
-.cs-card.tier-0 .cs-name, .cs-card.tier-0 .cs-tier-num { color: #c0392b; }
-.cs-card.tier-1 .cs-name, .cs-card.tier-1 .cs-tier-num { color: #d35400; }
-.cs-card.tier-2 .cs-name, .cs-card.tier-2 .cs-tier-num { color: #b8860b; }
-.cs-card.tier-3 .cs-name, .cs-card.tier-3 .cs-tier-num { color: #27ae60; }
-.cs-card.tier-4 .cs-name, .cs-card.tier-4 .cs-tier-num { color: #2980b9; }
-.cs-card.tier-5 .cs-name, .cs-card.tier-5 .cs-tier-num { color: #8e44ad; }
+.cs-card.tier-0 .cs-name, .cs-card.tier-0 .cs-tier-num { color: var(--tier-0); }
+.cs-card.tier-1 .cs-name, .cs-card.tier-1 .cs-tier-num { color: var(--tier-1); }
+.cs-card.tier-2 .cs-name, .cs-card.tier-2 .cs-tier-num { color: var(--tier-2); }
+.cs-card.tier-3 .cs-name, .cs-card.tier-3 .cs-tier-num { color: var(--tier-3); }
+.cs-card.tier-4 .cs-name, .cs-card.tier-4 .cs-tier-num { color: var(--tier-4); }
+.cs-card.tier-5 .cs-name, .cs-card.tier-5 .cs-tier-num { color: var(--tier-5); }
 
-.cs-card .cs-tier-label.tier-0 { color: #c0392b; }
-.cs-card .cs-tier-label.tier-1 { color: #d35400; }
-.cs-card .cs-tier-label.tier-2 { color: #b8860b; }
-.cs-card .cs-tier-label.tier-3 { color: #27ae60; }
-.cs-card .cs-tier-label.tier-4 { color: #2980b9; }
-.cs-card .cs-tier-label.tier-5 { color: #8e44ad; }
+.cs-card .cs-tier-label.tier-0 { color: var(--tier-0); }
+.cs-card .cs-tier-label.tier-1 { color: var(--tier-1); }
+.cs-card .cs-tier-label.tier-2 { color: var(--tier-2); }
+.cs-card .cs-tier-label.tier-3 { color: var(--tier-3); }
+.cs-card .cs-tier-label.tier-4 { color: var(--tier-4); }
+.cs-card .cs-tier-label.tier-5 { color: var(--tier-5); }
 
 /* Header */
 .cs-card .cs-header {
@@ -2510,7 +2534,7 @@ body {
   font-weight: bold;
 }
 .cs-card.cs-minimal .cs-tox {
-  color: #8a6a52;
+  color: var(--tier-4);
   font-size: 13px;
 }
 
@@ -4782,12 +4806,27 @@ button.spell-school-badge { font-family: inherit; }
 .cs-school-desc { line-height: 1.6; }
 
 /* Spell names are coloured by their Tier (Tier Colors, matching the sheet). */
-.spell-list-table .cs-spell-link.tier-0 { color: #c0392b; }
-.spell-list-table .cs-spell-link.tier-1 { color: #d35400; }
-.spell-list-table .cs-spell-link.tier-2 { color: #b8860b; }
-.spell-list-table .cs-spell-link.tier-3 { color: #27ae60; }
-.spell-list-table .cs-spell-link.tier-4 { color: #2980b9; }
-.spell-list-table .cs-spell-link.tier-5 { color: #8e44ad; }
+.spell-list-table .cs-spell-link.tier-0 { color: var(--tier-0); }
+.spell-list-table .cs-spell-link.tier-1 { color: var(--tier-1); }
+.spell-list-table .cs-spell-link.tier-2 { color: var(--tier-2); }
+.spell-list-table .cs-spell-link.tier-3 { color: var(--tier-3); }
+.spell-list-table .cs-spell-link.tier-4 { color: var(--tier-4); }
+.spell-list-table .cs-spell-link.tier-5 { color: var(--tier-5); }
+
+/* Tier group heading rows: a labelled band ("Tier 0", "Tier 1", ...) before
+   each Tier's spells. The label takes the row's tier-N colour (inherited from
+   the shared Tier palette). */
+.spell-list-table .spell-tier-row th {
+  color: inherit;
+  background: #f2e8d2;
+  border-top: 1px solid #d9c49a;
+  border-bottom: 1px solid #d9c49a;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 
 /* --- Compendium: Classes list + detail --------------------------------- */
 /* Card grid of playable classes; each card opens the class-detail modal. */

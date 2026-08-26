@@ -229,13 +229,6 @@ Weapons:
     damage_type: Piercing
     tags: [thrown]
     base_price: 4
-  Bola:
-    category: Ranged
-    damage_type: Bludgeoning
-    base_damage: 0
-    threshold: null
-    tags: [thrown]
-    base_price: 5
   Net:
     category: Ranged
     damage_type: Bludgeoning
@@ -296,10 +289,6 @@ Weapons:
     damage_type: Slashing
     tags: [heavy]
     base_price: 50
-  Falchion:
-    category: One Handed
-    damage_type: Slashing
-    base_price: 30
   Quarterstaff:
     category: Two Handed
     damage_type: Bludgeoning
@@ -330,17 +319,11 @@ Weapons:
     category: Two Handed
     damage_type: Slashing
     base_price: 75
-  # Shortbow shares the Longbow's profile (Ranged, Piercing, Arrow ammo);
-  # priced lower as the lighter, shorter-ranged bow.
   Shortbow:
     category: Ranged
     damage_type: Piercing
     ammo_type: Arrow
     base_price: 25
-  # Bola — a thrown entangling weapon (10-ft range). Its damage field adds
-  # nothing to the attack (`base_damage: 0`); a creature it hits must make a
-  # Dexterity save or fall prone. `range_feet` and `on_hit_save` are
-  # declarative — the save's Combat wiring is not yet implemented.
   Bola:
     category: Ranged
     damage_type: Bludgeoning
@@ -348,7 +331,7 @@ Weapons:
     tags: [thrown]
     range_feet: 10
     on_hit_save:
-      attribute: dex
+      attribute: str
       fail: prone
       success: "0"
     base_price: 5
@@ -420,13 +403,6 @@ Weapon Properties:
         amount: 2
     weapon_modifiers:
       threshold_delta: 5
-  # Glory treats the wielder's Tier as `amount` higher when attacking a
-  # higher-Tier opponent, shrinking the Tier gap (Δ) that drives the Tier
-  # Mismatch Inherent damage reduction (encounter_design.md → "Tier Mismatch
-  # modifiers") and lifting its Inherent Bonus on the attack check. A
-  # weapon-only, single-target effect — it never rides a spell or area
-  # attack. `tier_advantage` is read by Combat at attack time (not posted to
-  # Conditions).
   Glory:
     min_tier: 1
     cost: 2000
@@ -443,10 +419,6 @@ Weapon Properties:
     has_subtype: false
     display:
       word: Vicious
-    # Each rider Success deals Major damage to the target (the weapon's
-    # own Damage Type, but the Severity is forced to Major). The bite is
-    # double-edged: on a hit the wielder takes a minimum of 1 Minor
-    # damage, plus 1 more Minor per rider die that came up a 1.
     damage_rider:
       dice: 4
       on_success:
@@ -759,9 +731,6 @@ Misc Items:
     slot: bag
     base_price: 60
 
-  # Generic wearable base Items — the mundane gear that magical
-  # Properties are applied to (a plain Ring becomes a "Ring of X").
-  # Each occupies the named worn Slot (one Item per Slot).
   Ring:
     category: Item
     slot: finger
@@ -790,9 +759,6 @@ Misc Items:
     category: Item
     slot: wrists
     base_price: 5
-  # A Wand is held; while equipped it adds its `spell` to the wielder's
-  # castable list (see Wands in equipment_design.md). Channels Mana from
-  # the wielder and imposes no Magic Toxicity.
   Wand:
     category: Item
     slot: hands
@@ -806,11 +772,9 @@ Misc Items:
     slot: back
     base_price: 2
 
-  # Generic slotless base Items — carried, never worn.
   Trinket:
     category: Item
     base_price: 1
-  # A ring of keys — mundane gear, often carried by jailers and handlers.
   Key chain:
     category: Item
     base_price: 1
@@ -837,10 +801,6 @@ Misc Items:
 # The catalog is open; consuming projects add their own Tattoos.
 
 Tattoos:
-  # Example Tattoo — a chest tattoo granting the Sneak Attack Talent, but
-  # only ever at Class Level 1 (so its bonus never scales with the
-  # wearer's own level). A `grants` entry may be a plain Ability name, or
-  # `{ ability:, class_level: }` to pin the level the Ability is granted at.
   Tattoo of the Viper:
     category: Tattoo
     slot: chest
@@ -848,10 +808,6 @@ Tattoos:
       - ability: Sneak Attack
         class_level: 1
     base_price: 5000
-  # A face-slot Tattoo granting a +1 Guidance Bonus to Intelligence. Like
-  # every Tattoo it is permanent — always borne, never (un)equipped — so it
-  # posts its bonus without an `equipped` flag. `no_store` keeps it out of
-  # shop provisioning (the DM places it). The Stack carries the Bonus value.
   Tattoo of the Fox:
     category: Tattoo
     slot: face
@@ -886,30 +842,18 @@ Unique Items:
     no_store: true
     grants: [Kesser's Gambit]
     description: "A plain band that hums with reversal. While worn, it grants Kesser's Gambit to the wielder."
-  # A Ring that grants a defensive Parry Reaction (`grants_parry`), limited to
-  # `uses_per_day` Parries (default 1). While worn and charged it offers,
-  # against a melee attack, a Parry at the wielder's chosen melee weapon's Dice
-  # Cap that spends no Combat Pool. The charge recharges at dawn (when the
-  # in-world day advances) — tracked generically as a per-day item charge.
   Ring of Parry:
     inherits_from: Ring
     no_store: true
     grants_parry: true
     uses_per_day: 1
     description: "A duelist's band. Once per day it parries a single attack at the wielder's weapon Dice Cap, spending no Combat Pool. Recharges at dawn."
-  # A worn Circlet that grants a castable Spell while equipped, exactly like a
-  # Wand (`grants_spell` + `spell`): the spell joins the wearer's castable list,
-  # channels the wearer's own Mana, and imposes no Magic Toxicity.
   Circlet of the Boughking:
     inherits_from: Hat
     no_store: true
     grants_spell: true
     spell: Entangle
     description: "A crown of living briar. While worn, the wearer may cast Entangle."
-  # A spell-granting Ring — like a Wand, but conferring more than one Spell.
-  # `grants_spell` + a `spells` list adds every named Spell to the wearer's
-  # Cast list while equipped, each cast at the Spell's own Tier (not the
-  # Ring's), channelling the wearer's own Mana with no Magic Toxicity.
   Ring of Shooting Stars:
     category: Item
     slot: finger
