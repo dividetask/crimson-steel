@@ -90,7 +90,7 @@ RSpec.describe Equipment::Catalog do
       expect(d['tags']).to include('thrown')
       expect(d['tags']).not_to include('lesslethal')
       expect(d['range_feet']).to eq(10)
-      expect(d['on_hit_save']).to include('attribute' => 'dex', 'fail' => 'prone')
+      expect(d['on_hit_save']).to include('attribute' => 'str', 'fail' => 'prone')
     end
 
     it 'autogenerates Poison Vials from the real Conditions poison catalog' do

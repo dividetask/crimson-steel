@@ -275,6 +275,35 @@ RSpec.describe 'Spiritual Weapon Option-2 flow', type: :request do
     expect(Encounter.state.granted_actions.any? { |g| g[:spell_name] == 'Standard Shield' }).to be(false)
   end
 
+  it 'never asks for a dice count — the strike auto-rolls its full Reservoir' do
+    conjure!(dice: 5)
+    get "/encounter/active_spells_builder?attacker_id=#{@caster[:id]}&strike_index=0"
+    blob = builder_blob(last_response.body)
+    action = blob['steps'].find { |s| s['key'] == 'action' }
+    # A single forced (auto) option the builder applies without a button, set
+    # to the whole Reservoir — no 2..N dice choices, no header quick-picks.
+    interactive = (action['options'] || []).reject { |o| o['kind'] == 'info' }
+    expect(interactive.length).to eq(1)
+    expect(interactive.first['auto']).to be(true)
+    expect(interactive.first['value']).to eq('spiritual_weapon|5')
+    expect(action['header_options'] || []).to be_empty
+  end
+
+  it "rolls the strike with the caster's casting-Skill Competency and a Guidance bonus equal to the Spell Tier" do
+    # The strike rolls the casting Check: the caster's Invocation Competency
+    # rides the roll, and every Spell adds Guidance equal to its Tier (2 here).
+    allow_any_instance_of(Sinatra::Application).to receive(:roll_inputs_for).and_wrap_original do |orig, acc, key, **kw|
+      key.to_s == 'invocation' ? { dice_cap: 6, competency_modifier: ['Competency', 3] } : orig.call(acc, key, **kw)
+    end
+    conjure!(dice: 5)
+    get "/encounter/active_spells_builder?attacker_id=#{@caster[:id]}&strike_index=0"
+    blob = builder_blob(last_response.body)
+    action = blob['steps'].find { |s| s['key'] == 'action' }
+    bpl = action['options'].first.dig('patch', 'set_bpl').first['bonus_penalty_list']
+    expect(bpl).to include(['Competency', 3])  # from Invocation ranks
+    expect(bpl).to include(['Guidance', 2])    # equal to the Spell Tier
+  end
+
   it 'resolves an Active Spells strike as a free attack that deals force damage' do
     conjure!
     post '/encounter/resolve_attack', JSON.generate(

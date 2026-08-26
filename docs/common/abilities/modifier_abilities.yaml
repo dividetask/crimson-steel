@@ -165,7 +165,7 @@ pack_tactics:
   description: "The creature fights as a coordinated pack: it strikes with greater accuracy against any enemy that has one of the creature's allies adjacent to it."
 
 trip_bite:
-  description: "On a successful bite the creature can attempt to knock a Large or smaller target prone (the target resists with a Strength or Dexterity save)."
+  description: "On a successful bite the creature can attempt to knock a Large or smaller target prone (the target resists with a Strength save)."
 
 false_appearance:
   description: "While it remains motionless the creature is indistinguishable from an ordinary object — a cloaker looks like a dark leather cloak — until it moves or attacks. Creatures may make an Intelligence check to notice the inconsistency, as with an illusion."
@@ -177,7 +177,7 @@ phantasms:
   description: "The creature weaves illusory duplicates of itself (the cloaker's shadow shift). Attacks against it may strike a phantasm instead, obscuring which shape is real."
 
 engulf:
-  description: "The creature can wrap itself around a Medium or smaller target it hits, enveloping and grappling it. An engulfed victim is blinded, restrained, and unable to breathe until it escapes with a Strength or Dexterity save."
+  description: "The creature can wrap itself around a Medium or smaller target it hits, enveloping and grappling it. An engulfed victim is blinded, restrained, and unable to breathe until it escapes with a Strength save."
 
 damage_transfer:
   description: "While it has a victim engulfed, the creature transfers half of any damage it takes to that victim instead of suffering it itself."

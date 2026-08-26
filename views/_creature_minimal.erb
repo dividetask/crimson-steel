@@ -34,6 +34,26 @@
     end.join
   end
 
+  # Join inline HTML tokens with commas so a comma never starts a wrapped
+  # line: the separating comma is glued to the token before it (the break
+  # falls after the comma, on the following space). For an `atomic:` token
+  # (a whole spell button) the token and its comma move together; for a
+  # plain-text token only its LAST WORD keeps the comma company, so a long
+  # name can still wrap between its earlier words.
+  comma_series = lambda do |tokens, atomic: false|
+    arr = Array(tokens)
+    arr.each_with_index.map do |tok, i|
+      next tok if i == arr.length - 1 # last item carries no comma
+
+      head, _sep, tail = atomic ? ['', '', tok] : tok.to_s.rpartition(' ')
+      if head.empty?
+        %(<span class="cs-nowrap">#{tail},</span>)
+      else
+        %(#{head} <span class="cs-nowrap">#{tail},</span>)
+      end
+    end.join(' ')
+  end
+
   # Click/hover popup showing the math behind a Damage Reduction / Resilience
   # total: each contributing source as `<amount> (<source>)` — the first
   # amount unsigned, later ones signed — summing to the total. Reuses the
@@ -180,11 +200,14 @@
     combined_spells = spell_by_tier.keys.sort.map { |t| { tier: t, names: spell_by_tier[t] } }
 
     # Render a spell name as a button that opens its description in a modal.
+    # Each button is an atomic inline, so its comma is glued to it (never
+    # orphaned at the start of a wrapped line).
     spell_link = lambda do |names|
-      Array(names).map do |n|
+      buttons = Array(names).map do |n|
         esc = Rack::Utils.escape_html(n.to_s)
         %(<button type="button" class="cs-spell-link" data-spell-name="#{esc}">#{esc}</button>)
-      end.join(', ')
+      end
+      comma_series.call(buttons, atomic: true)
     end
 
     items_have_content = it[:equipped].any? || it[:consumable].any? || it[:other].any?
@@ -266,16 +289,22 @@
           <section class="cs-section cs-items-min">
             <h3 class="cs-section-h">Items</h3>
             <% if it[:equipped].any? %>
-              <div class="cs-item-line"><em>Equipped.</em> <%= it[:equipped].map { |i| i[:name] }.join(', ') %></div>
+              <div class="cs-item-line"><em>Equipped.</em>
+                <%= comma_series.call(it[:equipped].map { |i| Rack::Utils.escape_html(i[:name].to_s) }) %>
+              </div>
             <% end %>
             <% if it[:consumable].any? %>
               <div class="cs-item-line"><em>Consumable.</em>
-                <%= it[:consumable].map { |i| i[:quantity].to_i > 1 ? "(#{i[:quantity]}) #{i[:name]}" : i[:name] }.join(', ') %>
+                <%= comma_series.call(it[:consumable].map { |i|
+                      label = i[:quantity].to_i > 1 ? "(#{i[:quantity]}) #{i[:name]}" : i[:name].to_s
+                      Rack::Utils.escape_html(label) }) %>
               </div>
             <% end %>
             <% if it[:other].any? %>
               <div class="cs-item-line"><em>Other.</em>
-                <%= it[:other].map { |i| i[:quantity].to_i > 1 ? "#{i[:name]} (#{i[:quantity]})" : i[:name] }.join(', ') %>
+                <%= comma_series.call(it[:other].map { |i|
+                      label = i[:quantity].to_i > 1 ? "#{i[:name]} (#{i[:quantity]})" : i[:name].to_s
+                      Rack::Utils.escape_html(label) }) %>
               </div>
             <% end %>
           </section>

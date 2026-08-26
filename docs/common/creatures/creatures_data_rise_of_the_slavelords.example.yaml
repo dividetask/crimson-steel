@@ -1,10 +1,5 @@
 # Rise of the Slavelords — Creature Templates
 #
-# Crimson Steel's Rise-of-the-Slavelords campaign cast: slaver
-# captains, lieutenants, merchant escorts, and the orc / half-orc
-# soldiers they travel with. Pairs with the Caravan Ambush and
-# Stockade Patrol random encounter tables in random_encounter_tables.yaml.
-#
 # Loaded via the standard creatures_data_*.example.{yaml,json} glob.
 # Each template's `tags` include `enemy_template` plus
 # `category:rise_of_the_slavelords`.
@@ -73,12 +68,6 @@ characters:
       classes:
         fighter: 2
 
-  # Tier-1 slaver. Race AND class are rolled at spawn: race is 50% orc,
-  # else equal human/elf/dwarf (race_table); class is 50% warrior, else
-  # equal fighter/cleric/rogue (class_table). Base 10s before racial
-  # modifiers and the Tier-1 inherent bonus. Gear (race-aware) is rolled
-  # from the slaver_loadout Equipment Loot Table. All slavers worship
-  # Mortheth (the cleric variant takes him as its deity).
   - id: 355
     name: Slaver
     metadata:
@@ -104,19 +93,12 @@ characters:
       - class: cleric
         chance: 0.1667
         choices: { deity: Mortheth }
-        # Two domains from Mortheth's own set, plus one from a wider pool.
         domain_picks:
           - { count: 2, from: [Artifice, Death, Earth, Greed, Ruin] }
           - { count: 1, from: [Plague, Travel, Vengeance, Secrets, Tempest, Cunning, Despair, Knowledge] }
       - { class: rogue,   chance: 0.1666 }
-    # Candidate skills, shuffled at spawn; the spawn keeps the first N it can
-    # train (Skill Pick Budget from its rolled class + Effective Intelligence).
     skill_table: [athletics, perception, religion, restricted_magic, sense_motive, healing]
 
-  # Tier-2 slaver lieutenant. Same rules as the Slaver (race rolled 50% orc
-  # else human/elf/dwarf; race-aware slaver_loadout; worships Mortheth) but
-  # Tier 2, class is barbarian / fighter / cleric / rogue (equal), and the
-  # two Tier-2 chosen attribute bonuses roll onto Str/Con/Cha/Dex.
   - id: 356
     name: Slaver Lieutenant
     metadata:
@@ -147,6 +129,5 @@ characters:
           - { count: 2, from: [Artifice, Death, Earth, Greed, Ruin] }
           - { count: 1, from: [Plague, Travel, Vengeance, Secrets, Tempest, Cunning, Despair, Knowledge] }
       - { class: rogue,     chance: 0.25, level: 4 }
-    # Tier 2 grants two chosen attribute bonuses; roll each onto one of these.
     tier_advancement_table: { count: 2, from: [str, con, cha, dex] }
     skill_table: [athletics, perception, religion, restricted_magic, sense_motive, healing]

@@ -1,4 +1,10 @@
 # General Yellow Tier — Creature Templates
+#
+# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
+# Each template's `tags` include `enemy_template` plus
+# `category:general_yellow_tier`; the Character Sheets page's Roster
+# Sidebar uses that category tag to group templates and encounter
+# tables under the matching heading.
 
 name: General Yellow Tier
 

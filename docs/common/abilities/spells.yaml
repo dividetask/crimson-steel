@@ -341,7 +341,7 @@ Command:
   duration: "1 turn"
   skills: [arcana, perform_]
   properties: [language_dependent]
-  description: "Give the target a simple command. The DM adjudicates what counts as a simple command and how the target carries it out."
+  description: "Give the target one of the following commands: drop, approach, flee, or stay."
 
 Divine Favor:
   type: spell
@@ -745,7 +745,6 @@ Create Spiked Pit:
     falling_modifier: 1          # +1 damage per 10 feet from the spikes at the bottom
   duration: "rank turns"
   description: "Identical to Create Pit, but the bottom of the pit is studded with spikes. Falling into the pit (or fumbling an Athletics check during escape) deals 3 damage per 10 feet instead of 2."
-  description: "You create a 10-foot-by-10-foot extra-dimensional hole with a depth of 10 feet per two caster levels (maximum 30 feet). You must create the pit on a horizontal surface of sufficient size. Since it extends into another dimension, the pit has no weight and does not otherwise displace the original underlying material. You can create the pit in the deck of a ship as easily as in a dungeon floor or the ground of a forest. Any creature standing in the area where you first conjured the pit must make a Reflex saving throw to jump to safety in the nearest open space. In addition, the edges of the pit are sloped, and any creature ending its turn on a square adjacent to the pit must make a Reflex saving throw with a +2 bonus to avoid falling into it. Creatures subjected to an effect intended to push them into the pit (such as bull rush) do not get a saving throw to avoid falling in if they are affected by the pushing effect. Creatures who fall into the pit take falling damage as normal. The pit's coarse stone walls have a Climb DC of 25. When the duration of the spell ends, creatures within the hole rise up with the bottom of the pit until they are standing on the surface over the course of a single turn."
 
 Sift:
   type: spell
@@ -929,7 +928,7 @@ Obscuring Mist:
     texture: obscuringmist.png
   duration: "rank minutes"
   resolution: dm
-  description: "A 10-foot-radius cloud of mist billows out from a point within range. Sight is obscured for anyone trying to see into, out of, or through the mist. The DM adjudicates the resulting concealment on attacks and Perception checks. The mist's area is placed on the map as an area shape."
+  description: "A 10-foot-radius cloud of mist billows out from a point within range. Sight is obscured for anyone trying to see into, out of, or through the mist. The resulting concealment applies to attacks and Perception checks. The mist's area is placed on the map as an area shape."
 
 Expeditious Retreat:
   type: spell
@@ -986,7 +985,7 @@ Darkness:
     size: 4
   duration: "rank minutes"
   resolution: dm
-  description: "A 20-foot-radius area centered on a point within range is shrouded in magical gloom, lowering the light level there by two steps for the duration. The DM adjudicates the effects of the reduced light. The darkened area is placed on the map as an area shape."
+  description: "A 20-foot-radius area centered on a point within range is shrouded in magical gloom, lowering the light level there by two steps for the duration. The darkened area is placed on the map as an area shape."
 
 Magic Weapon:
   type: spell

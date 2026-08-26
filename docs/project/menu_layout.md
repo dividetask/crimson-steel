@@ -62,9 +62,11 @@ The Compendium page has its own internal left-hand navigation that switches the 
 
 Additional chapters (Check Resolution, Conditions, etc.) follow the same explainer pattern: a `*_explainer.md` next to the existing design/test docs, registered in `lib/explainer_docs.rb`, automatically appearing in the Compendium left-nav.
 
+Below the player entries, the **DM sees an extra `Website Design (DM)` nav group** of DM-only reference pages sourced from `docs/website_design/` and registered in `lib/design_docs.rb` (currently `Combat`, `Action Builder`, `Combat — Interfaces`, and `Combat — Test Data`). These document how a stub is implemented, what it relies on, and its dummy data. Players never see the group, and a player who requests one of these `?view=` keys is bounced to the Glossary (the "page did not exist" rule). See [compendium.md](compendium.md) for the registry and the hidden-directive rendering.
+
 The layout follows the same convention as the Status page (highlighted active entry, sub-views addressed by an implementation-chosen mechanism, global URL stays under `/compendium`). The Mermaid client-side renderer is loaded only on pages that contain a Mermaid block.
 
-The Compendium is visible to both DMs and players.
+The Compendium's player entries are visible to both DMs and players; the `Website Design (DM)` group is DM-only.
 
 ## Status page layout
 

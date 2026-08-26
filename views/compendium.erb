@@ -9,6 +9,14 @@
   # the remaining Explainer chapters follow in declared order.
   pinned, rest = explainer_items.partition { |i| i[:key] == 'magical_tier' }
   nav_items = pinned + [glossary_item, spells_item, classes_item] + rest
+
+  # DM-only "website design" reference pages. Players never see these, and a
+  # player who requests one of their ?view= keys is bounced to the Glossary
+  # by the route, so they only appear in the nav for the DM.
+  design_items = dm_view? ? DesignDocs.keys.map do |key|
+    { key: key, label: DesignDocs.title_for(key), href: "/compendium?view=#{key}" }
+  end : []
+
   has_mermaid = @view != 'glossary' && @explainer_html&.include?('class="mermaid"')
 %>
 
@@ -21,6 +29,17 @@
         </li>
       <% end %>
     </ul>
+
+    <% unless design_items.empty? %>
+      <p class="compendium-nav-group">Website Design (DM)</p>
+      <ul>
+        <% design_items.each do |item| %>
+          <li class="<%= 'active' if @view == item[:key] %>">
+            <a href="<%= item[:href] %>"><%= item[:label] %></a>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
   </aside>
 
   <section class="compendium-content">

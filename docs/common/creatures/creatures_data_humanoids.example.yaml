@@ -1,4 +1,10 @@
 # Humanoids — Mixed-Tier Warband Templates
+#
+# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
+# Each template's `tags` include `enemy_template` plus
+# `category:humanoids`; the Character Sheets page's Roster Sidebar uses
+# that category tag to group templates and encounter tables under the
+# matching heading.
 
 name: Humanoids
 
@@ -12,7 +18,6 @@ characters:
     tags: [enemy_template, category:humanoids]
     race: gnoll
     tier: 0
-    equipment_table: gnoll_loadout
     attributes: { str: 11, dex: 11, con: 11, int: 8, wis: 11, cha: 8 }
     advancement:
       classes:
@@ -28,7 +33,6 @@ characters:
     tags: [enemy_template, category:humanoids]
     race: gnoll
     tier: 1
-    equipment_table: gnoll_hunter_loadout
     attributes: { str: 12, dex: 13, con: 11, int: 8, wis: 12, cha: 8 }
     advancement:
       classes:
@@ -44,7 +48,6 @@ characters:
     tags: [enemy_template, category:humanoids]
     race: gnoll
     tier: 1
-    equipment_table: gnoll_pack_lord_loadout
     attributes: { str: 14, dex: 12, con: 13, int: 9, wis: 11, cha: 10 }
     advancement:
       classes:
@@ -60,7 +63,6 @@ characters:
     tags: [enemy_template, category:humanoids]
     race: gnoll
     tier: 2
-    equipment_table: gnoll_fang_loadout
     attributes: { str: 16, dex: 13, con: 14, int: 9, wis: 11, cha: 11 }
     advancement:
       classes:
@@ -76,7 +78,6 @@ characters:
     tags: [enemy_template, category:humanoids]
     race: canine
     tier: 0
-    equipment_table: hyena_loot
     attributes: { str: 11, dex: 13, con: 12, int: 3, wis: 12, cha: 5 }
     advancement:
       classes:
@@ -90,7 +91,6 @@ characters:
     tags: [enemy_template, category:humanoids]
     race: half_orc
     tier: 1
-    equipment_table: mountain_raider_loadout
     attributes: { str: 15, dex: 12, con: 14, int: 9, wis: 10, cha: 9 }
     advancement:
       classes:
@@ -106,7 +106,6 @@ characters:
     tags: [enemy_template, category:humanoids]
     race: human
     tier: 1
-    equipment_table: raider_scout_loadout
     attributes: { str: 11, dex: 15, con: 12, int: 11, wis: 12, cha: 10 }
     advancement:
       classes:
@@ -122,7 +121,6 @@ characters:
     tags: [enemy_template, category:humanoids]
     race: half_elf
     tier: 1
-    equipment_table: raider_tracker_loadout
     attributes: { str: 12, dex: 15, con: 12, int: 10, wis: 13, cha: 10 }
     advancement:
       classes:
@@ -138,7 +136,6 @@ characters:
     tags: [enemy_template, category:humanoids]
     race: half_orc
     tier: 2
-    equipment_table: raider_chieftain_loadout
     attributes: { str: 17, dex: 12, con: 15, int: 10, wis: 11, cha: 12 }
     advancement:
       classes:
@@ -154,7 +151,6 @@ characters:
     tags: [enemy_template, category:humanoids]
     race: human
     tier: 1
-    equipment_table: raider_shaman_loadout
     attributes: { str: 10, dex: 11, con: 12, int: 12, wis: 15, cha: 13 }
     advancement:
       classes:

@@ -37,13 +37,8 @@
 
 Effect Names:
 
-  # Marker Condition for creatures with the Regeneration ability. Carries no
-  # roll Modifiers — the healing itself is driven by Conditions (per-round
-  # Minor mending and per-hour Major mending, tracked on the Creature's
-  # state). The `display` Mechanic registers the name so it surfaces as a
-  # Condition badge during combat.
   regenerating:
-    description: "Each turn the creature mends minor damage equal to its tier and 1 moderate damage. Each hour 1 major is healed. Suppressed while it carries unhealed acid or fire damage."
+    description: "Each turn the creature mends minor damage equal to its tier plus 1 moderate, and 1 major each hour. Suppressed while it carries unhealed acid or fire damage (which still heals normally)."
     mechanics:
       - kind: display
         text: "Regeneration: tier minor + 1 moderate per turn, 1 major/hour; stops while unhealed acid or fire damage remains."
@@ -227,10 +222,6 @@ Effect Names:
       - kind: flag
         flag: raging
 
-  # War-domain Channel Divinity (Martial Devotion) grants the benefits of
-  # Weapon Training for one turn: a Competency bonus to weapon attacks that
-  # scales every 4 levels (mirrors `weapon_training` in modifier_abilities.yaml).
-  # The flag makes the buff show in the Creature's Active Effects.
   martial_devotion:
     mechanics:
       - kind: modifier
@@ -240,10 +231,6 @@ Effect Names:
       - kind: flag
         flag: martial_devotion
 
-  # Strength-domain Channel Divinity (Strength Devotion) grants +2 Morale to
-  # Strength and Constitution for its duration. The flag makes the buff show in
-  # the Creature's Active Effects; the Attribute Modifiers fold into the
-  # Creature's Effective Attributes (CreatureModifiers).
   strength_devotion:
     mechanics:
       - kind: modifier
