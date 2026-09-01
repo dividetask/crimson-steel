@@ -1,0 +1,83 @@
+# Session Test opposition — a frozen roster (docs/project/session_tests.md).
+#
+# Ids follow the campaign convention: templates 100..999, spawned
+# instances 1000+. Enough variety for the scenarios to have something to
+# fight, poison, and loot.
+
+characters:
+  - id: 100
+    name: Goblin Raider
+    group: enemy
+    tags: [enemy_template, category:session_tests]
+    race: goblin
+    equipment_table: common_goblin_loadout
+    attributes: { str: 11, dex: 14, con: 11, int: 9, wis: 9, cha: 8 }
+    advancement:
+      classes:
+        rogue: 1
+
+  - id: 101
+    name: Goblin Archer
+    group: enemy
+    tags: [enemy_template, category:session_tests]
+    race: goblin
+    equipment_table: common_goblin_loadout
+    attributes: { str: 10, dex: 15, con: 10, int: 9, wis: 10, cha: 8 }
+    advancement:
+      classes:
+        fighter: 1
+
+  # Tier 2 and armed from the soldier loadout: the one enemy in this
+  # roster who can actually wound the party. A Tier-0 goblin's spear is
+  # swallowed whole by a Tier-2 Character's Inherent damage reduction.
+  - id: 102
+    name: Bandit Captain
+    group: enemy
+    tags: [enemy_template, category:session_tests]
+    race: human
+    tier: 2
+    equipment_table: soldier_loadout
+    attributes: { str: 16, dex: 13, con: 15, int: 11, wis: 11, cha: 12 }
+    advancement:
+      classes:
+        fighter: 4
+
+  # A venomous bite: the `spider` race grants Fang Bite, whose Bite (Fangs)
+  # weapon injects the `spider_venom` Affliction on a hit. The long-term
+  # Affliction scenario needs a Creature that can actually poison someone.
+  - id: 103
+    name: Marsh Adder
+    group: enemy
+    tags: [enemy_template, category:session_tests]
+    race: spider
+    attributes: { str: 8, dex: 16, con: 10, int: 3, wis: 11, cha: 4 }
+    advancement:
+      classes:
+        rogue: 2
+
+  # Ids 302 and 303 are the templates the shipped `general_goblin_ambush`
+  # Random Encounter Table spawns. The tables ship in docs/common and name
+  # their Creatures by id, so a Campaign that supplies its own roster can
+  # only roll a table whose ids it happens to cover — see the travel
+  # scenario's "wandering encounter".
+  - id: 302
+    name: Goblin Skirmisher
+    group: enemy
+    tags: [enemy_template, category:general]
+    race: goblin
+    equipment_table: common_goblin_loadout
+    attributes: { str: 11, dex: 14, con: 11, int: 9, wis: 9, cha: 8 }
+    advancement:
+      classes:
+        rogue: 1
+
+  - id: 303
+    name: Goblin Boss
+    group: enemy
+    tags: [enemy_template, category:general]
+    race: goblin
+    equipment_table: common_goblin_loadout
+    attributes: { str: 14, dex: 13, con: 13, int: 10, wis: 10, cha: 11 }
+    advancement:
+      classes:
+        fighter: 2

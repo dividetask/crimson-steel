@@ -46,3 +46,14 @@ RSpec.configure do |c|
     FileUtils.remove_entry(dir) if dir && File.directory?(dir)
   end
 end
+
+# Session Tests (spec/sessions, docs/project/session_tests.md) emulate whole
+# play sessions over HTTP. They are slower than the unit specs and depend on
+# node for scripted dice, so a plain `rspec` skips them; they run when the
+# command targets spec/sessions or SESSION_TESTS is set. bin/session-tests
+# runs them.
+RSpec.configure do |c|
+  running_sessions = ENV['SESSION_TESTS'] ||
+                     ARGV.any? { |a| a.include?('spec/sessions') }
+  c.filter_run_excluding(:session) unless running_sessions
+end

@@ -1,0 +1,85 @@
+# Session Test inventories — frozen (docs/project/session_tests.md).
+#
+# Item keys and prices come from the real docs/common/equipment catalog;
+# only the quantities and owners are fixture data.
+
+characters:
+
+  1:
+    inventory:
+      - item: Rapier
+        equipped: true
+      - item: Studded leather
+        equipped: true
+      - item: Lute
+      - item: Rations
+        quantity: 10
+      - item: Gold
+        quantity: 120
+
+  3:
+    inventory:
+      - item: Quarterstaff
+        equipped: true
+      - item: Robes
+        equipped: true
+      - item: Rations
+        quantity: 10
+      - item: Gold
+        quantity: 95
+
+  7:
+    inventory:
+      - item: Warhammer
+        equipped: true
+      - item: Chain shirt
+        equipped: true
+      - item: Light wooden shield
+        equipped: true
+      # Spell-Form Consumables: the catalog generates one "Potion of <Spell>"
+      # per potion-capable Spell, and the Stack's `tier` picks the Variant.
+      - item: Potion of Heal
+        tier: 1
+        quantity: 3
+      - item: Scroll of Ward
+        tier: 2
+        quantity: 2
+      - item: Rations
+        quantity: 10
+      - item: Gold
+        quantity: 140
+
+  8:
+    inventory:
+      - item: Greataxe
+        equipped: true
+      - item: Hide armor
+        equipped: true
+      - item: Rations
+        quantity: 10
+      - item: Gold
+        quantity: 60
+
+  9:
+    inventory:
+      - item: Mace
+        equipped: true
+      - item: Chain shirt
+        equipped: true
+      - item: Potion of Heal
+        tier: 3
+        quantity: 2
+      - item: Rations
+        quantity: 10
+      - item: Gold
+        quantity: 300
+
+party:
+  inventory:
+    - item: Gold
+      quantity: 2000
+    - item: Rations
+      quantity: 40
+    - item: Potion of Heal
+      tier: 2
+      quantity: 4

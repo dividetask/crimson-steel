@@ -1,0 +1,187 @@
+# Session Test party — a frozen roster (see docs/project/session_tests.md).
+#
+# Never the live campaign, and never the shipped examples: these five are
+# chosen so every Spell the Session Tests cast has someone who knows it.
+#
+#   1  Ash Windmere    bard 3     — Skill checks, Timely Inspiration
+#   3  Lira Duskmoor   wizard 6   — Grease, Create Pit, Standard Shield
+#   7  Thora Stoneveil cleric 4   — Shield of Faith, Spiritual Weapon,
+#                                   the low Heal / Ward tiers
+#   8  Garroth Vask    barbarian 4 — the party's damage sponge
+#   9  Sister Auria    cleric 12  — every Heal and every Ward tier, so
+#                                   "all the healing Spells" and "all the
+#                                   ward Spells" have a caster who can
+#                                   reach the top of both axes.
+
+characters:
+  - id: 1
+    name: Ash Windmere
+    player: Sam
+    race: human
+    attributes:
+      str: 10
+      dex: 14
+      con: 12
+      int: 13
+      wis: 16
+      cha: 18
+    advancement:
+      classes:
+        bard:
+          level: 3
+          choices:
+            spellcasting:
+              - healing_word
+              - charm_person
+              - vicious_mockery
+              - timely_inspiration
+              - detect_magic
+              - repair
+          skills:
+            - perform_dance
+            - persuasion
+            - perception
+            - arcana
+
+  - id: 3
+    name: Lira Duskmoor
+    player: Jordan
+    race: elf
+    tier: 2
+    attributes:
+      str: 8
+      dex: 14
+      con: 11
+      int: 20
+      wis: 16
+      cha: 12
+    advancement:
+      classes:
+        wizard:
+          level: 6
+          choices:
+            spellcasting:
+              - fire_dart
+              - grease
+              - create_pit
+              - lesser_shield
+              - standard_shield
+              - obscuring_mist
+              - mage_hand
+              - detect_magic
+          skills:
+            - arcana
+            - perception
+            - history
+            - investigation
+
+  - id: 7
+    name: Thora Stoneveil
+    player: Avery
+    race: hill_dwarf
+    tier: 2
+    attributes:
+      str: 10
+      dex: 10
+      con: 13
+      int: 12
+      wis: 12
+      cha: 9
+    advancement:
+      tier_attribute_advancement:
+        - wis
+        - dex
+      classes:
+        cleric:
+          level: 4
+          choices:
+            deity: Karthak
+            domains: [War, Strength, Fire]
+            spellcasting:
+              - heal_petty_wounds
+              - heal_lesser_wounds
+              - heal_simple_wounds
+              - healing_word
+              - standard_surgery
+              - trivial_ward
+              - lesser_ward
+              - standard_ward
+              - shield_of_faith
+              - spiritual_weapon
+              - sacred_flame
+              - magic_weapon
+          skills:
+            - healing
+            - sense_motive
+            - invocation
+            - survival
+            - intimidate
+            - perception
+
+  - id: 8
+    name: Garroth Vask
+    player: Drew
+    race: human
+    tier: 2
+    attributes:
+      str: 14
+      dex: 12
+      con: 14
+      int: 9
+      wis: 10
+      cha: 7
+    advancement:
+      tier_attribute_advancement:
+        - str
+        - dex
+      classes:
+        barbarian:
+          level: 4
+          skills:
+            - athletics
+            - survival
+            - sense_motive
+            - stealth
+
+  - id: 9
+    name: Sister Auria
+    player: Robin
+    race: human
+    tier: 5
+    attributes:
+      str: 10
+      dex: 12
+      con: 14
+      int: 13
+      wis: 20
+      cha: 16
+    advancement:
+      classes:
+        cleric:
+          level: 12
+          choices:
+            deity: Karthak
+            domains: [Healing, Protection, Life]
+            spellcasting:
+              - heal_petty_wounds
+              - heal_lesser_wounds
+              - heal_simple_wounds
+              - heal_moderate_wounds
+              - heal_advanced_wounds
+              - heal_extreme_wounds
+              - healing_word
+              - standard_surgery
+              - trivial_ward
+              - lesser_ward
+              - standard_ward
+              - improved_ward
+              - advanced_ward
+              - superior_ward
+              - protection_from_poison
+              - shield_of_faith
+          skills:
+            - healing
+            - invocation
+            - sense_motive
+            - perception
+            - survival

@@ -6,3 +6,4 @@ data/*
 local.rb
 node_modules/
 .branches.local
+tmp/

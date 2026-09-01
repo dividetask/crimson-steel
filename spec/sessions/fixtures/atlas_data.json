@@ -1,0 +1,14 @@
+{
+  "maps": [
+    { "id": 1, "name": "Caravan Road", "image": null, "width": 30, "height": 20,
+      "grid": { "type": "square", "origin": [0, 0] }, "archived": false, "notes": "Travel scenario" },
+    { "id": 2, "name": "Harrowgate", "image": null, "width": 40, "height": 40,
+      "grid": { "type": "square", "origin": [0, 0] }, "archived": false, "notes": "City scenario" }
+  ],
+  "tokens": [],
+  "zones": [],
+  "annotations": [],
+  "terrain": [],
+  "fog": [],
+  "active_map_id": 1
+}

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Run the Session Tests (docs/project/session_tests.md).
+#
+#   bin/session-tests                    every scenario
+#   bin/session-tests spec/sessions/travel_session_spec.rb
+#
+# Transcripts of each run land in tmp/session_transcripts/.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+SESSION_TESTS=1 exec bundle exec bin/rspec "${@:-spec/sessions}"
