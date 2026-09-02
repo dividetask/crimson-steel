@@ -338,6 +338,7 @@ helpers do
       g = dice_count_group(prefix: "shield:#{sh[:caster_id]}", group: 'shield', min: 2, max: cap,
                            aff: ->(_n) { true }, patch: shield_patch, header_label: sh[:spell_name],
                            summary: ->(n) { "#{sh[:spell_name]} (#{sh[:caster_name]}) — #{n} dice" },
+                           lead_label: "#{sh[:spell_name]} (#{sh[:caster_name]})",
                            info: "#{sh[:spell_name]}#{bonus_note} by #{sh[:caster_name]} — up to #{cap} #{dice_word} dice")
       ally_defense_map["#{target_id}"] =
         [{ value: 'none', group: 'none', label: 'No defense', summary: 'No defense',
