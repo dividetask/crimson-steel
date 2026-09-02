@@ -1,0 +1,217 @@
+# Crimson Steel — NPC roster (example data).
+#
+# See `creatures_data_pcs.example.yaml` for the full Creature schema.
+
+characters:
+
+  - id: 2001
+    name: Daven Korr
+    metadata:
+      creature_token: "/images/icons/human token.png"
+    group: npc
+    tags: [noble]
+    race: human
+    tier: 1
+    attributes: { str: 10, dex: 10, con: 10, int: 12, wis: 13, cha: 14 }
+    advancement:
+      classes:
+        commoner: 1
+
+  - id: 2002
+    name: The Pale Lantern
+    metadata:
+      creature_token: "/images/icons/Collection/Undead misc/Ghosts, Specters, Nightmares, etc/crypt ghost.png"
+    group: npc
+    tags: []
+    race: undead
+    tier: 4
+    attributes: { str: 10, dex: 14, con: 10, int: 12, wis: 14, cha: 16 }
+    advancement:
+      classes: {}
+
+  - id: 2
+    name: Bryn Ironvein
+    metadata:
+      creature_token: "/images/icons/Collection/Dwarves/dwarf 2.png"
+    group: npc
+    tags: []
+    race: dwarf
+    attributes:
+      str: 18
+      dex: 10
+      con: 17
+      int: 9
+      wis: 12
+      cha: 8
+    advancement:
+      classes:
+        fighter:
+          level: 3
+          skills:
+            - athletics
+            - intimidate
+            - perception
+
+  - id: 4
+    name: Kass Thorne
+    metadata:
+      creature_token: "/images/icons/Collection/Halflings/halfling explorer.png"
+    group: npc
+    tags: []
+    race: halfling
+    attributes:
+      str: 10
+      dex: 19
+      con: 13
+      int: 14
+      wis: 12
+      cha: 11
+    advancement:
+      classes:
+        rogue:
+          level: 3
+          skills:
+            - stealth
+            - larceny
+            - sleight_of_hand
+            - perception
+            - acrobatics
+            - deception
+
+  - id: 5
+    name: Rowan Vale
+    metadata:
+      creature_token: "/images/icons/Collection/Elves and Half-Elves/elf bard.png"
+    group: npc
+    tags: []
+    race: half_elf
+    attributes:
+      str: 14
+      dex: 17
+      con: 13
+      int: 11
+      wis: 16
+      cha: 10
+    advancement:
+      classes:
+        fighter:
+          level: 3
+          skills:
+            - survival
+            - perception
+            - stealth
+            - nature
+            - animal_handling
+
+  - id: 6
+    name: Ember Blackoak
+    metadata:
+      creature_token: "/images/icons/orc rogue.png"
+    group: npc
+    tags: []
+    race: half_orc
+    attributes:
+      str: 13
+      dex: 11
+      con: 15
+      int: 10
+      wis: 18
+      cha: 9
+    advancement:
+      classes:
+        druid:
+          level: 3
+          choices:
+            spellcasting:
+              - entangle
+              - heal_lesser_wounds
+          skills:
+            - nature
+            - survival
+            - perception
+            - animal_handling
+            - healing
+
+  - id: 9
+    name: Veyl Aetheris
+    metadata:
+      creature_token: "/images/icons/Collection/Elves and Half-Elves/elf archer.png"
+    group: npc
+    tags: []
+    race: high_elf
+    tier: 2
+    attributes:
+      str: 7
+      dex: 13
+      con: 11
+      int: 11
+      wis: 11
+      cha: 11
+    advancement:
+      tier_attribute_advancement:
+        - dex
+        - cha
+      classes:
+        arcane_trickster:
+          level: 4
+          choices:
+            spellcasting:
+              - fire_dart
+              - message
+              - silent_portal
+              - create_illusionary_sound
+              - hideous_laughter
+              - illusion_of_calm
+              - auditory_hallucination
+          skills:
+            - arcana
+            - stealth
+            - larceny
+            - sleight_of_hand
+            - deception
+            - persuasion
+            - perception
+            - game_chess
+
+  - id: 10
+    name: Pippin Hoofstride
+    metadata:
+      creature_token: "/images/icons/Collection/Fey/Satyrs/satyr joyful.png"
+    group: npc
+    tags: []
+    race: satyr
+    tier: 2
+    attributes:
+      str: 9
+      dex: 12
+      con: 12
+      int: 10
+      wis: 11
+      cha: 12
+    advancement:
+      tier_attribute_advancement:
+        - dex
+        - cha
+      classes:
+        bard:
+          level: 4
+          choices:
+            spellcasting:
+              - heal_petty_wounds
+              - detect_overt_magic
+              - create_illusionary_sound
+              - friends
+              - sift
+              - vacuous_vessel
+              - vicious_mockery
+              - biting_words
+              - ears_of_the_city
+              - create_illusionary_image
+              - timely_inspiration
+          skills:
+            - perform_sing
+            - perform_percussion
+            - animal_handling
+            - persuasion
+            - evocation
+            - perception

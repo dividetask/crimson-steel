@@ -182,6 +182,15 @@ helpers do
     Encounter.state
   end
 
+  # Initiative Strings a browser test armed ahead of the roll, resolved to
+  # Combatant ids. Always empty outside CRIMSON_TEST_MODE.
+  def prerolled_initiatives
+    TestControl.prerolled_initiatives(
+      encounter_state,
+      creature_name: ->(id) { (Creatures.lookup(id)&.name rescue nil) }
+    )
+  end
+
   def target_status_suffix(combatant_id, creature_id)
     parts = []
     parts << 'dying' if (encounter_state.creature_dying?(combatant_id) rescue false)
@@ -708,7 +717,8 @@ post '/encounter/start_combat' do
   require_dm!
   reconcile_player_combatants!
   encounter_state.start_combat
-  encounter_state.reroll_initiative # roll initiative for everyone on start
+  # roll initiative for everyone on start
+  encounter_state.reroll_initiative(prerolled_initiatives: prerolled_initiatives)
   # Point the turn at the top of the initiative order so the Combat
   # Tracker shows the ▶ marker on the acting Combatant immediately, and
   # begin that first Combatant's turn (refill its Combat Pool, grant its
@@ -865,7 +875,7 @@ post '/encounter/reroll_initiative' do
   # missing ones (leaving rolled Combatants untouched). Only once every
   # Combatant has rolled does Roll Init reroll the whole field.
   any_missing = st.combatants.any? { |c| c[:initiative_string].to_s.empty? }
-  st.reroll_initiative(missing_only: any_missing)
+  st.reroll_initiative(missing_only: any_missing, prerolled_initiatives: prerolled_initiatives)
   redirect back || '/encounter'
 end
 

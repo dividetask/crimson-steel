@@ -1,5 +1,6 @@
 require 'fileutils'
 require 'json'
+require_relative '../data_paths'
 
 module Encounter
   # In-memory state for the active Encounter, persisted to
@@ -11,7 +12,7 @@ module Encounter
   # initiative ordering, turn pointer) come alive once *Start Combat*
   # runs. PC exclusions persist across lifecycles.
   class State
-    DATA_PATH    = File.expand_path('../../data/encounter_data.json', __dir__)
+    DATA_PATH    = DataPaths.path('encounter_data.json')
     EXAMPLE_PATH = File.expand_path('../../docs/common/encounter/encounter_data.example.json', __dir__)
 
     # The Encounter Phases the DM picks between from the menu dropdown.
@@ -28,8 +29,8 @@ module Encounter
     attr_reader :data_path
 
     def self.load(data_path: DATA_PATH, example_path: EXAMPLE_PATH, **opts)
-      path = File.exist?(data_path) ? data_path : example_path
-      raw = File.exist?(path) ? JSON.parse(File.read(path)) : {}
+      path = DataPaths.source(data_path, example_path)
+      raw = path ? JSON.parse(File.read(path)) : {}
       new(raw, data_path: data_path, **opts)
     end
 

@@ -52,8 +52,9 @@ require_relative 'lib/glossary_docs'
 require_relative 'lib/explainer_docs'
 require_relative 'lib/design_docs'
 require_relative 'lib/device_registry'
+require_relative 'lib/test_control'
 require_relative 'lib/helpers'
 
-%w[home character_sheets character_creation store notes compendium status view_as devices chronicle encounter encounter_looting encounter_afflictions encounter_reactions encounter_special encounter_attack_ui encounter_cast_ui encounter_cast_resolution inventory atlas sheet_modals dm monster_creation].each do |name|
+%w[home character_sheets character_creation store notes compendium status view_as devices chronicle encounter encounter_looting encounter_afflictions encounter_reactions encounter_special encounter_attack_ui encounter_cast_ui encounter_cast_resolution inventory atlas sheet_modals dm monster_creation test_control].each do |name|
   require_relative "lib/routes/#{name}"
 end

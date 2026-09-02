@@ -1,0 +1,39 @@
+characters:
+  - id: 2003
+    name: Wolf
+    metadata:
+      creature_token: "/images/icons/Collection/Werewolves, Wolves/armored wolf companion.png"
+    group: enemy
+    tags: [category:general_red_tier]
+    race: canine
+    attributes: { str: 12, dex: 15, con: 13, int: 3, wis: 12, cha: 6 }
+    advancement:
+      classes:
+        feral: 4
+    spawned_from: 301
+
+  - id: 2004
+    name: Goblin A
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin 1.png"
+    group: enemy
+    tags: [category:general_red_tier]
+    race: goblin
+    attributes: { str: 8, dex: 14, con: 10, int: 9, wis: 8, cha: 8 }
+    advancement:
+      classes:
+        rogue: 1
+    spawned_from: 302
+
+  - id: 2005
+    name: Goblin B
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin 2.png"
+    group: enemy
+    tags: [category:general_red_tier]
+    race: goblin
+    attributes: { str: 8, dex: 14, con: 10, int: 9, wis: 8, cha: 8 }
+    advancement:
+      classes:
+        rogue: 1
+    spawned_from: 302

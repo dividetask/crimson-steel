@@ -1,6 +1,7 @@
 require 'json'
 require 'time'
 require 'fileutils'
+require_relative 'data_paths'
 
 # Tracks every device that has connected to the server and remembers,
 # for each one, which player Character the DM has assigned to it.
@@ -22,7 +23,7 @@ require 'fileutils'
 # DM's own machine first, then each player device on its first request).
 class DeviceRegistry
   COOKIE    = 'crimson_device_id'.freeze
-  DATA_PATH = File.expand_path('../data/devices.json', __dir__).freeze
+  DATA_PATH = DataPaths.path('devices.json').freeze
 
   class << self
     # Process-wide registry pointed at the default data file. Routes and

@@ -1,0 +1,210 @@
+# Crimson Steel — Player Character roster (example data).
+#
+# This is one of three creatures data files (`creatures_data_*.example.yaml`)
+# the Creatures domain loads. All three share a single integer ID space.
+# PCs conventionally take ids 1..99; enemies 100..1999; NPCs 2000+.
+# Loading is order-independent — IDs collide across files only by mistake.
+#
+# Schema (one entry per character under `characters:`):
+#   id          integer, unique across all creatures_data files.
+#   name        character name.
+#   player      name of the player running the character (PC only).
+#   race        race key matching races.yaml. Sub-races (hill_dwarf,
+#               high_elf, …) inherit from their parent race.
+#   tags        optional, default `[player_character]`. Tags matching
+#               keys in advancement.yaml's `tier_advancement` contribute
+#               a breakpoint list; highest tier wins. Descriptive tags
+#               (NPC, Ally, Enemy) have no effect on tier.
+#   tier        optional. Hardcodes the tier; bypasses Advancement.
+#   attributes  six base ability scores (str, dex, con, int, wis, cha).
+#   advancement optional. Tracks classes and tier-up choices. Keys:
+#                 tier_attribute_advancement
+#                   optional flat list of attribute keys — focused-bonus
+#                   picks made at each tier-up, in order. The first
+#                   `focused_attribute_count` are tier 2's, next chunk
+#                   tier 3's, etc. May be pre-filled.
+#                 classes
+#                   map of class key (matching advancement.yaml) to:
+#                     * integer — shorthand for level count, no skills.
+#                     * map with:
+#                         level   integer level in the class.
+#                         skills  list of skill keys advancing.
+#                         choices map. Per-Class catalog choices. Common
+#                                 keys: `spellcasting: [<spell>, ...]` (the
+#                                 spells the player picked for the class's
+#                                 Spellcasting-type ability — Bardic
+#                                 Spellcasting, Arcane Spellcasting, etc.),
+#                                 `deity` + `domains: [a, b, c]` (Cleric —
+#                                 up to three; legacy single `domain` still
+#                                 accepted), Bard's Versatile Performance
+#                                 subject. Free-form — the granting Class
+#                                 interprets each key.
+
+characters:
+  - id: 1
+    name: Ash Windmere
+    metadata:
+      creature_token: "/images/icons/human token.png"
+    player: Sam
+    race: human
+    attributes:
+      str: 10
+      dex: 14
+      con: 12
+      int: 13
+      wis: 16
+      cha: 18
+    advancement:
+      classes:
+        bard:
+          level: 3
+          choices:
+            spellcasting:
+              - repair
+              - charm_person
+              - healing_word
+              - suggestion
+              - detect_magic
+              - friends
+              - create_illusionary_sound
+              - sift
+              - vacuous_vessel
+              - vicious_mockery
+              - biting_words
+              - ears_of_the_city
+              - create_illusionary_image
+              - timely_inspiration
+          skills:
+            - perform_dance
+            - persuasion
+            - perception
+            - arcana
+
+  - id: 3
+    name: Lira Duskmoor
+    metadata:
+      creature_token: "/images/icons/Collection/Elves and Half-Elves/elf archer.png"
+    player: Jordan
+    race: elf
+    attributes:
+      str: 8
+      dex: 14
+      con: 11
+      int: 20
+      wis: 16
+      cha: 12
+    advancement:
+      classes:
+        wizard:
+          level: 3
+          choices:
+            spellcasting:
+              - fire_dart
+              - light
+              - detect_magic
+              - hold_person
+              - summon_mount
+              - benign_transposition
+              - create_illusionary_image
+              - disguise_self
+              - sift
+              - message
+              - silent_portal
+              - mage_hand
+              - hideous_laughter
+              - illusion_of_calm
+              - auditory_hallucination
+              - obscuring_mist
+              - grease
+              - expeditious_retreat
+              - blindspot
+              - darkness
+              - web
+              - create_pit
+              - blur
+              - lesser_shield
+              - standard_shield
+              - greater_shield
+          skills:
+            - arcana
+            - perception
+            - history
+            - investigation
+
+  - id: 7
+    name: Thora Stoneveil
+    metadata:
+      creature_token: "/images/icons/Collection/Dwarves/dwarf 1.png"
+    player: Avery
+    race: hill_dwarf
+    tier: 2
+    attributes:
+      str: 10
+      dex: 10
+      con: 13
+      int: 12
+      wis: 12
+      cha: 9
+    advancement:
+      tier_attribute_advancement:
+        - wis
+        - dex
+      classes:
+        cleric:
+          level: 4
+          choices:
+            deity: Karthak
+            domains: [War, Strength, Fire]
+            spellcasting:
+              - heal_petty_wounds
+              - sacred_flame
+              - magic_vestments
+              - heal_lesser_wounds
+              - healing_word
+              - command
+              - lesser_ward
+              - divine_favor
+              - shield_of_faith
+              - magic_weapon
+              - spiritual_weapon
+              - hold_person
+              - silence
+              - blind
+              - heal_simple_wounds
+              - standard_ward
+              - protection_from_poison
+              - standard_surgery
+          skills:
+            - healing
+            - sense_motive
+            - invocation
+            - survival
+            - intimidate
+            - perception
+
+  - id: 8
+    name: Garroth Vask
+    metadata:
+      creature_token: "/images/icons/human token.png"
+    player: Drew
+    race: human
+    tier: 2
+    attributes:
+      str: 14
+      dex: 12
+      con: 14
+      int: 9
+      wis: 10
+      cha: 7
+    advancement:
+      tier_attribute_advancement:
+        - str
+        - dex
+      classes:
+        barbarian:
+          level: 4
+          skills:
+            - athletics
+            - survival
+            - sense_motive
+            - stealth

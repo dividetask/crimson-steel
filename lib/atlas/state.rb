@@ -1,5 +1,6 @@
 require 'fileutils'
 require 'json'
+require_relative '../data_paths'
 
 module Atlas
   # Returned by entry points that refuse an operation (unknown / archived
@@ -16,14 +17,14 @@ module Atlas
   # UI concerns. Tokens cross-reference Creatures by `creature_id`; display
   # data is resolved by the consumer through `creature_lookup`.
   class State
-    DATA_PATH    = File.expand_path('../../data/atlas_data.json', __dir__)
+    DATA_PATH    = DataPaths.path('atlas_data.json')
     EXAMPLE_PATH = File.expand_path('../../docs/common/atlas/atlas_data.example.json', __dir__)
 
     attr_reader :data_path
 
     def self.load(data_path: DATA_PATH, example_path: EXAMPLE_PATH, **opts)
-      path = File.exist?(data_path) ? data_path : example_path
-      raw  = File.exist?(path) ? JSON.parse(File.read(path)) : {}
+      path = DataPaths.source(data_path, example_path)
+      raw  = path ? JSON.parse(File.read(path)) : {}
       new(raw, data_path: data_path, **opts)
     end
 

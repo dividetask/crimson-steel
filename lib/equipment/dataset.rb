@@ -1,5 +1,6 @@
 require 'yaml'
 require 'fileutils'
+require_relative '../data_paths'
 
 module Equipment
   # Persistence-backed owner store for the running app. Holds the
@@ -16,7 +17,7 @@ module Equipment
   # CreatureAdapter (Character Inventories via the Creature accessor
   # contract).
   class Dataset
-    DATA_PATH    = File.expand_path('../../data/equipment_data.yaml', __dir__)
+    DATA_PATH    = DataPaths.path('equipment_data.yaml')
     EXAMPLE_PATH = File.expand_path('../../docs/common/equipment/equipment_data.example.yaml', __dir__)
 
     attr_reader :owners, :data_path
@@ -27,8 +28,8 @@ module Equipment
     end
 
     def self.load(data_path: DATA_PATH, example_path: EXAMPLE_PATH)
-      path = File.exist?(data_path) ? data_path : example_path
-      raw = File.exist?(path) ? (YAML.safe_load_file(path) || {}) : {}
+      path = DataPaths.source(data_path, example_path)
+      raw = path ? (YAML.safe_load_file(path) || {}) : {}
       owners = {}
 
       (raw['characters'] || {}).each do |id, body|

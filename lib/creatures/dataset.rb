@@ -1,6 +1,7 @@
 require 'yaml'
 require 'fileutils'
 require_relative 'record'
+require_relative '../data_paths'
 
 module Creatures
   # Loads + indexes every `creatures_data_*.{yaml,json}` file. For each
@@ -15,7 +16,7 @@ module Creatures
   # restart instead of living only in memory.
   module Dataset
     EXAMPLE_DIR  = File.expand_path('../../docs/common/creatures', __dir__)
-    DEFAULT_DATA_DIR = File.expand_path('../../data', __dir__)
+    DEFAULT_DATA_DIR = DataPaths.dir
     PATTERN      = 'creatures_data_*.{yaml,yml,json}'.freeze
 
     module_function
@@ -23,7 +24,7 @@ module Creatures
     # The writable overlay directory. Overridable (e.g. tests point it at
     # a tmpdir) so persistence never touches the live `data/` dir.
     def data_dir
-      @data_dir ||= DEFAULT_DATA_DIR
+      @data_dir ||= DataPaths.dir
     end
 
     def data_dir=(dir)
@@ -55,18 +56,24 @@ module Creatures
 
     # The logical source basenames (overlay form). Union of the data dir
     # (already overlay-named) and the example dir (mapped to overlay form).
+    # An isolated Campaign (DataPaths) contributes only its own files, so
+    # no example roster loads behind it.
     def source_files
       names = {}
       Dir.glob(File.join(data_dir, PATTERN)).each { |p| names[File.basename(p)] = true }
-      Dir.glob(File.join(EXAMPLE_DIR, PATTERN)).each { |p| names[overlay_name(File.basename(p))] = true }
+      if DataPaths.example_fallback?
+        Dir.glob(File.join(EXAMPLE_DIR, PATTERN)).each { |p| names[overlay_name(File.basename(p))] = true }
+      end
       names.keys.sort
     end
 
     # The path a given source is loaded from: the `data/` overlay when
     # present, otherwise the read-only `.example` file in the docs dir.
+    # Returns nil when an isolated Campaign has no file of that name.
     def load_path_for(basename)
       overlay = File.join(data_dir, basename)
       return overlay if File.exist?(overlay)
+      return nil unless DataPaths.example_fallback?
       ext = File.extname(basename)
       example = File.join(EXAMPLE_DIR, "#{File.basename(basename, ext)}.example#{ext}")
       File.exist?(example) ? example : File.join(EXAMPLE_DIR, basename)
@@ -82,7 +89,7 @@ module Creatures
       @order   = []
       source_files.each do |basename|
         path = load_path_for(basename)
-        next unless File.exist?(path)
+        next unless path && File.exist?(path)
         data = YAML.safe_load_file(path) || {}
         (data['characters'] || []).each do |raw|
           rec = Creatures::Record.normalize(raw, source: basename)

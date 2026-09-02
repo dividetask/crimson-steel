@@ -203,6 +203,10 @@ module Creatures
       missing = missing_template_ids(table)
       raise MissingTemplates.new(table_id, missing) unless missing.empty?
 
+      # A browser test arms the seed so a table's `1d3 + 1` lands on the
+      # same count every run. nil outside CRIMSON_TEST_MODE, where the
+      # roll is free as always.
+      seed ||= (TestControl.encounter_seed if defined?(TestControl) && TestControl.enabled?)
       rng = seed.nil? ? Random.new : Random.new(seed)
       vars = {}
       new_ids = []

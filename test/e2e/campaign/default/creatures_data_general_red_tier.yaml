@@ -1,0 +1,117 @@
+# General Red Tier — Creature Templates
+#
+# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
+# Each template's `tags` include `enemy_template` plus
+# `category:general_red_tier`; the Character Sheets page's Roster
+# Sidebar uses that category tag to group templates and encounter
+# tables under the matching heading.
+
+name: General Red Tier
+
+characters:
+
+  - id: 300
+    name: Medium Spider
+    metadata:
+      creature_token: "/images/icons/Collection/Beasts/Aranae and other Arthropods/giant spider.png"
+    group: enemy
+    tags: [enemy_template, category:general_red_tier]
+    race: spider
+    tier: 0
+    attributes: { str: 9, dex: 14, con: 11, int: 1, wis: 10, cha: 2 }
+    advancement:
+      classes:
+        feral: 4
+
+  - id: 301
+    name: Wolf
+    metadata:
+      creature_token: "/images/icons/Collection/Werewolves, Wolves/armored wolf companion.png"
+    group: enemy
+    tags: [enemy_template, category:general_red_tier]
+    race: canine
+    tier: 0
+    attributes: { str: 12, dex: 15, con: 13, int: 3, wis: 12, cha: 6 }
+    advancement:
+      classes:
+        feral: 4
+
+  - id: 302
+    name: Goblin
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin 1.png"
+    group: enemy
+    tags: [enemy_template, category:general_red_tier]
+    race: goblin
+    tier: 0
+    attributes: { str: 8, dex: 14, con: 10, int: 9, wis: 8, cha: 8 }
+    advancement:
+      classes:
+        rogue: 1
+
+  - id: 303
+    name: Goblin Archer
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin archer.png"
+    group: enemy
+    tags: [enemy_template, category:general_red_tier]
+    race: goblin
+    tier: 0
+    attributes: { str: 8, dex: 16, con: 10, int: 9, wis: 10, cha: 8 }
+    advancement:
+      classes:
+        rogue: 1
+
+  - id: 304
+    name: Cultist
+    metadata:
+      creature_token: "/images/icons/Collection/Spellcasters varied/Cultists/cultist leader.png"
+    group: enemy
+    tags: [enemy_template, category:general_red_tier]
+    race: human
+    tier: 0
+    attributes: { str: 10, dex: 11, con: 12, int: 11, wis: 13, cha: 12 }
+    advancement:
+      classes:
+        cleric: 1
+
+  - id: 305
+    name: Cult Fanatic
+    metadata:
+      creature_token: "/images/icons/Collection/Spellcasters varied/Cultists/arch-cultist.png"
+    group: enemy
+    tags: [enemy_template, category:general_red_tier]
+    race: human
+    tier: 0
+    attributes: { str: 10, dex: 12, con: 13, int: 12, wis: 14, cha: 14 }
+    advancement:
+      classes:
+        cleric: 2
+
+  - id: 306
+    name: Common Goblin
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin 1.png"
+    group: enemy
+    tags: [enemy_template, category:general_red_tier]
+    race: goblin
+    tier: 0
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+    advancement:
+      classes:
+        warrior: 1
+    equipment_table: common_goblin_loadout
+
+  - id: 307
+    name: Common Orc
+    metadata:
+      creature_token: "/images/icons/orc token.png"
+    group: enemy
+    tags: [enemy_template, category:general_red_tier]
+    race: orc
+    tier: 0
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+    advancement:
+      classes:
+        warrior: 1
+    equipment_table: common_orc_loadout

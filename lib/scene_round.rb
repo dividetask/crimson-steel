@@ -1,5 +1,6 @@
 require 'json'
 require 'fileutils'
+require_relative 'data_paths'
 
 # Scene Round — the DM Page's out-of-combat round counter. A lightweight
 # analogue of the Combat Tracker's Round label for scenes run outside of
@@ -13,7 +14,7 @@ module SceneRound
   ROUNDS_PER_STEP = 1
 
   class Store
-    DATA_PATH = File.expand_path('../data/scene_round.json', __dir__)
+    DATA_PATH = DataPaths.path('scene_round.json')
 
     attr_reader :data_path
 

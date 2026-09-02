@@ -1,0 +1,39 @@
+# General Yellow Tier — Creature Templates
+#
+# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
+# Each template's `tags` include `enemy_template` plus
+# `category:general_yellow_tier`; the Character Sheets page's Roster
+# Sidebar uses that category tag to group templates and encounter
+# tables under the matching heading.
+
+name: General Yellow Tier
+
+characters:
+
+  - id: 500
+    name: Troll
+    metadata:
+      creature_token: "/images/icons/Collection/Miscellaneous Monsters/Trolls/troll warrior.png"
+    group: enemy
+    tags: [enemy_template, category:general_yellow_tier]
+    race: troll
+    tier: 2
+    attributes: { str: 12, dex: 12, con: 14, int: 7, wis: 9, cha: 6 }
+    advancement:
+      classes:
+        feral: 8
+
+  - id: 501
+    name: Rock Troll
+    metadata:
+      creature_token: "/images/icons/Collection/Miscellaneous Monsters/Trolls/aggressive rock troll.png"
+    group: enemy
+    tags: [enemy_template, category:general_yellow_tier]
+    race: troll
+    tier: 2
+    attributes: { str: 14, dex: 10, con: 16, int: 7, wis: 9, cha: 6 }
+    advancement:
+      classes:
+        warrior:
+          level: 7
+          skills: [athletics, intimidate, perception]

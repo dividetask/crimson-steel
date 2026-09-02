@@ -7,3 +7,5 @@ local.rb
 node_modules/
 .branches.local
 tmp/
+test-results/
+playwright-report/

@@ -1,0 +1,161 @@
+# Crimson Steel — Enemy roster (example data).
+#
+# Holds two kinds of entries (both share the same schema):
+#
+#   * Enemy templates — long-lived catalog entries that Random Encounter Tables
+#     and the DM enemy sidebar reference. Tagged `enemy_template` plus
+#     one or more `category:<bucket>` tags. Conventionally id 100..999.
+#
+#   * Spawned enemies — instance records created when an Random Encounter Table
+#     resolves or the DM adds a creature from a template. Each spawn is
+#     a distinct Creature with its own ID (no two Combatants share a
+#     Creature record). Spawns are typically deleted by the post-combat
+#     loot stub (Equipment) once the DM marks them for removal. They
+#     conventionally start at id 1000.
+#
+# See `creatures_data_pcs.example.yaml` for the full Creature schema.
+
+characters:
+
+  - id: 100
+    name: Pirate
+    metadata:
+      creature_token: "/images/icons/human token.png"
+    group: enemy
+    tags: [enemy_template, category:general]
+    race: human
+    attributes:
+      str: 13
+      dex: 14
+      con: 13
+      int: 12
+      wis: 10
+      cha: 8
+    advancement:
+      classes:
+        rogue:
+          level: 1
+          skills:
+            - acrobatics
+            - athletics
+            - deception
+            - intimidate
+            - perception
+            - profession_sailor
+            - sense_motive
+
+  - id: 101
+    name: Orc Patrol
+    metadata:
+      creature_token: "/images/icons/orc token.png"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: human
+    attributes: { str: 16, dex: 12, con: 14, int: 8, wis: 10, cha: 8 }
+    advancement:
+      classes:
+        fighter: 1
+
+  - id: 102
+    name: Orc Patrol Captain
+    metadata:
+      creature_token: "/images/icons/orc token.png"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: human
+    attributes: { str: 17, dex: 12, con: 15, int: 9, wis: 11, cha: 10 }
+    advancement:
+      classes:
+        fighter: 3
+
+  - id: 103
+    name: Half-Orc Soldier
+    metadata:
+      creature_token: "/images/icons/orc rogue.png"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: human
+    attributes: { str: 15, dex: 12, con: 14, int: 9, wis: 10, cha: 8 }
+    advancement:
+      classes:
+        fighter: 1
+
+  - id: 104
+    name: Slave
+    metadata:
+      creature_token: "/images/icons/slaves token.png"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan, noncombatant]
+    race: human
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+    advancement:
+      classes:
+        commoner: 1
+
+  - id: 105
+    name: Wardog
+    metadata:
+      creature_token: "/images/icons/war dog token.png"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: canine
+    attributes: { str: 14, dex: 14, con: 12, int: 3, wis: 12, cha: 6 }
+    advancement:
+      classes:
+        feral: 4
+
+  - id: 106
+    name: Stockade Guard
+    metadata:
+      creature_token: "/images/icons/human token.png"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_stockade]
+    race: human
+    attributes: { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 10 }
+    advancement:
+      classes:
+        fighter: 2
+
+  - id: 107
+    name: Temple Acolyte
+    metadata:
+      creature_token: "/images/icons/human token.png"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_temple]
+    race: human
+    attributes: { str: 10, dex: 12, con: 12, int: 13, wis: 16, cha: 14 }
+    advancement:
+      classes:
+        cleric: 1
+
+  - id: 108
+    name: Half-Orc Veteran
+    metadata:
+      creature_token: "/images/icons/orc rogue.png"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: half_orc
+    tier: 2
+    attributes: { str: 19, dex: 11, con: 15, int: 8, wis: 8, cha: 6 }
+    advancement:
+      classes:
+        fighter:
+          level: 7
+          skills: [athletics, intimidate, perception, sense_motive]
+    equipment_table: soldier_loadout
+
+  - id: 109
+    name: Orc Handler
+    metadata:
+      creature_token: "/images/icons/orc token.png"
+    group: enemy
+    tags: [enemy_template, category:slave_lords_caravan]
+    race: orc
+    tier: 1
+    attributes: { str: 10, dex: 11, con: 8, int: 9, wis: 10, cha: 9 }
+    advancement:
+      classes:
+        fighter:
+          level: 3
+          skills: [animal_handling, intimidate]
+    equipment_table: slaver_loadout

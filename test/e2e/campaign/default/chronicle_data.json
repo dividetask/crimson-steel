@@ -1,0 +1,7 @@
+{
+  "campaign_name": "Browser Tests",
+  "timestamp": { "day_index": 0, "round_of_day": 4800 },
+  "current_chapter": 1,
+  "chapters": [{ "number": 1, "name": "Browser Tests" }],
+  "entries": []
+}

@@ -1,0 +1,9 @@
+{
+  "phase": "downtime",
+  "combatants": [],
+  "next_combatant_id": 1,
+  "combat_active": false,
+  "acting_combatant_id": null,
+  "round": 1,
+  "time_tick": 1
+}

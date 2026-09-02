@@ -1,0 +1,24 @@
+# General Green Tier — Creature Templates
+#
+# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
+# Each template's `tags` include `enemy_template` plus
+# `category:general_green_tier`; the Character Sheets page's Roster
+# Sidebar uses that category tag to group templates and encounter
+# tables under the matching heading.
+
+name: General Green Tier
+
+characters:
+
+  - id: 600
+    name: Cloaker
+    metadata:
+      creature_token: "/images/icons/Collection/Abberations/night stalker.png"
+    group: enemy
+    tags: [enemy_template, category:general_green_tier]
+    race: cloaker
+    tier: 3
+    attributes: { str: 12, dex: 13, con: 12, int: 12, wis: 12, cha: 12 }
+    advancement:
+      classes:
+        feral: 10

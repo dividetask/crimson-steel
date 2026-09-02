@@ -1,5 +1,6 @@
 require 'fileutils'
 require 'json'
+require_relative '../data_paths'
 
 module Conditions
   # Per-Creature Conditions store, keyed by Creature ID. Mirrors the
@@ -12,14 +13,14 @@ module Conditions
   # resolves to a fresh empty State (full HP, no afflictions) and is
   # only written out once something mutates it.
   class Store
-    DATA_PATH    = File.expand_path('../../data/conditions_data.json', __dir__)
+    DATA_PATH    = DataPaths.path('conditions_data.json')
     EXAMPLE_PATH = File.expand_path('../../docs/common/conditions/conditions_data.example.json', __dir__)
 
     attr_reader :data_path, :catalog
 
     def self.load(data_path: DATA_PATH, example_path: EXAMPLE_PATH, catalog: nil)
-      path = File.exist?(data_path) ? data_path : example_path
-      raw = File.exist?(path) ? JSON.parse(File.read(path)) : {}
+      path = DataPaths.source(data_path, example_path)
+      raw = path ? JSON.parse(File.read(path)) : {}
       new(raw, data_path: data_path, catalog: catalog)
     end
 

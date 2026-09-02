@@ -1,15 +1,16 @@
 require 'fileutils'
+require_relative '../data_paths'
 
 module Chronicle
   class Store
-    DATA_PATH    = File.expand_path('../../data/chronicle_data.json', __dir__)
+    DATA_PATH    = DataPaths.path('chronicle_data.json')
     EXAMPLE_PATH = File.expand_path('../../docs/common/chronicle/chronicle_data.example.json', __dir__)
 
     attr_reader :data_path
 
     def self.load(data_path: DATA_PATH, example_path: EXAMPLE_PATH)
-      path = File.exist?(data_path) ? data_path : example_path
-      raw = JSON.parse(File.read(path))
+      path = DataPaths.source(data_path, example_path)
+      raw = path ? JSON.parse(File.read(path)) : {}
       new(raw, data_path: data_path)
     end
 

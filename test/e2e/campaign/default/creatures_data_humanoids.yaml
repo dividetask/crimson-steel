@@ -1,0 +1,159 @@
+# Humanoids — Mixed-Tier Warband Templates
+#
+# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
+# Each template's `tags` include `enemy_template` plus
+# `category:humanoids`; the Character Sheets page's Roster Sidebar uses
+# that category tag to group templates and encounter tables under the
+# matching heading.
+
+name: Humanoids
+
+characters:
+
+  - id: 700
+    name: Gnoll
+    metadata:
+      creature_token: "/images/icons/Collection/Gnolls/gnoll neutral.png"
+    group: enemy
+    tags: [enemy_template, category:humanoids]
+    race: gnoll
+    tier: 0
+    attributes: { str: 11, dex: 11, con: 11, int: 8, wis: 11, cha: 8 }
+    advancement:
+      classes:
+        warrior:
+          level: 1
+          skills: [athletics, intimidate, perception]
+
+  - id: 701
+    name: Gnoll Hunter
+    metadata:
+      creature_token: "/images/icons/Collection/Gnolls/gnoll hunter.png"
+    group: enemy
+    tags: [enemy_template, category:humanoids]
+    race: gnoll
+    tier: 1
+    attributes: { str: 12, dex: 13, con: 11, int: 8, wis: 12, cha: 8 }
+    advancement:
+      classes:
+        rogue:
+          level: 2
+          skills: [athletics, perception, stealth, survival]
+
+  - id: 702
+    name: Gnoll Pack Lord
+    metadata:
+      creature_token: "/images/icons/Collection/Gnolls/gnoll charger.png"
+    group: enemy
+    tags: [enemy_template, category:humanoids]
+    race: gnoll
+    tier: 1
+    attributes: { str: 14, dex: 12, con: 13, int: 9, wis: 11, cha: 10 }
+    advancement:
+      classes:
+        fighter:
+          level: 3
+          skills: [athletics, intimidate, perception, survival]
+
+  - id: 703
+    name: Gnoll Fang
+    metadata:
+      creature_token: "/images/icons/Collection/Gnolls/one-eyed gnoll.png"
+    group: enemy
+    tags: [enemy_template, category:humanoids]
+    race: gnoll
+    tier: 2
+    attributes: { str: 16, dex: 13, con: 14, int: 9, wis: 11, cha: 11 }
+    advancement:
+      classes:
+        barbarian:
+          level: 5
+          skills: [athletics, intimidate, perception, survival]
+
+  - id: 704
+    name: Hyena
+    metadata:
+      creature_token: "/images/icons/Collection/Werewolves, Wolves/howling wolf.png"
+    group: enemy
+    tags: [enemy_template, category:humanoids]
+    race: canine
+    tier: 0
+    attributes: { str: 11, dex: 13, con: 12, int: 3, wis: 12, cha: 5 }
+    advancement:
+      classes:
+        feral: 2
+
+  - id: 710
+    name: Mountain Raider
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/axe-wielding barbarian.png"
+    group: enemy
+    tags: [enemy_template, category:humanoids]
+    race: half_orc
+    tier: 1
+    attributes: { str: 15, dex: 12, con: 14, int: 9, wis: 10, cha: 9 }
+    advancement:
+      classes:
+        barbarian:
+          level: 2
+          skills: [athletics, intimidate, survival]
+
+  - id: 711
+    name: Raider Scout
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/cloaked rogue.png"
+    group: enemy
+    tags: [enemy_template, category:humanoids]
+    race: human
+    tier: 1
+    attributes: { str: 11, dex: 15, con: 12, int: 11, wis: 12, cha: 10 }
+    advancement:
+      classes:
+        rogue:
+          level: 2
+          skills: [acrobatics, perception, sleight_of_hand, stealth, survival]
+
+  - id: 712
+    name: Raider Tracker
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/tundra hunter.png"
+    group: enemy
+    tags: [enemy_template, category:humanoids]
+    race: half_elf
+    tier: 1
+    attributes: { str: 12, dex: 15, con: 12, int: 10, wis: 13, cha: 10 }
+    advancement:
+      classes:
+        ranger:
+          level: 3
+          skills: [athletics, perception, stealth, survival]
+
+  - id: 713
+    name: Raider Chieftain
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/barbarian.png"
+    group: enemy
+    tags: [enemy_template, category:humanoids]
+    race: half_orc
+    tier: 2
+    attributes: { str: 17, dex: 12, con: 15, int: 10, wis: 11, cha: 12 }
+    advancement:
+      classes:
+        barbarian:
+          level: 5
+          skills: [athletics, intimidate, perception, survival]
+
+  - id: 714
+    name: Raider Shaman
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/cleric in the forest.png"
+    group: enemy
+    tags: [enemy_template, category:humanoids]
+    race: human
+    tier: 1
+    attributes: { str: 10, dex: 11, con: 12, int: 12, wis: 15, cha: 13 }
+    advancement:
+      classes:
+        cleric:
+          level: 3
+          skills: [healing, nature, perception, survival]
