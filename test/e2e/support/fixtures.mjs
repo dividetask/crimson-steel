@@ -121,35 +121,67 @@ class DungeonMaster {
 
   // The party Phase, from the menu bar. Not the DM's private "My view"
   // override — this is the Phase everyone sees.
+  // These controls submit a form and the page comes back changed. Each
+  // waits for the change it asked for rather than for a load state:
+  // the select auto-submits on change, so a load state can resolve on the
+  // document being navigated away from and leave the next step looking at
+  // a page that is about to be replaced.
   async setPartyPhase(phase) {
-    await this.page
-      .locator('form.phase-form[action="/encounter/set_phase"] select.phase-select')
-      .selectOption(phase);
-    await this.page.waitForLoadState('domcontentloaded');
+    const select = this.page.locator(
+      'form.phase-form[action="/encounter/set_phase"] select.phase-select',
+    );
+    await select.selectOption(phase);
+    await expect
+      .poll(() => select.inputValue(), { timeout: 10_000, message: `Phase never became ${phase}` })
+      .toBe(phase);
   }
 
   async rollInitiative() {
-    await Promise.all([
-      this.page.waitForLoadState('domcontentloaded'),
-      this.page.getByRole('button', { name: 'Roll Init' }).click(),
-    ]);
+    await this.page.getByRole('button', { name: 'Roll Init' }).click();
+    await expect
+      .poll(
+        async () => {
+          const inits = await this.page
+            .locator('tr.initiative-row .initiative-col-init')
+            .allTextContents();
+          return inits.length > 0 && inits.every((t) => t.trim() && t.trim() !== '—');
+        },
+        { timeout: 10_000, message: 'Initiative never landed on the Tracker' },
+      )
+      .toBe(true);
   }
 
   async startCombat() {
-    await Promise.all([
-      this.page.waitForLoadState('domcontentloaded'),
-      this.page.getByRole('button', { name: /start combat/i }).click(),
-    ]);
+    await this.page.getByRole('button', { name: /start combat/i }).click();
+    await this.page.locator('h3.ta-title').waitFor({ state: 'visible', timeout: 10_000 });
+  }
+
+  // Get Combat to its first turn.
+  //
+  // Roll Init is meant to do this on its own; today it only rolls, and
+  // Start Combat is what begins the first turn (and rerolls Initiative on
+  // the way, which is why the armed Strings are still the ones that land).
+  // combat_start.spec.mjs holds that expectation on its own and is marked
+  // test.fail() until it holds. Every other test comes through here, so
+  // when Roll Init begins the turn there is one line to delete.
+  async beginCombat() {
+    await this.rollInitiative();
+    await this.startCombat();
   }
 
   // Whose turn the Turn Action panel says it is, without the possessive:
   // "Thora Stoneveil".
   async actingCombatant() {
-    const title = await this.page.locator('h3.ta-title').innerText();
-    return title.replace(/[’']s Turn.*$/s, '').trim();
+    const title = this.page.locator('h3.ta-title');
+    // Bounded: with no Turn Action panel on the page — Combat not started,
+    // say — an unbounded read would hang until the test times out, and a
+    // timed-out test is a hard failure even under test.fail().
+    await title.waitFor({ state: 'visible', timeout: 10_000 });
+    return (await title.innerText()).replace(/[’']s Turn.*$/s, '').trim();
   }
 
-  // End Turn from the Turn Action panel: open the action, then confirm.
+  // End Turn — two presses, the same two the DM makes: the first opens
+  // the End Turn confirm screen, the second confirms it.
   async endTurn() {
     const acting = await this.actingCombatant();
     await this.page.locator('button.ta-menu-btn[data-ta-action="end_turn"]').click();

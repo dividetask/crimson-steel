@@ -78,9 +78,9 @@ test.describe('Standard Shield', () => {
     expect(rolled[0]).toMatchObject({ name: 'Thora Stoneveil', initiative: INITIATIVE['Thora Stoneveil'] });
     expect(rolled[1]).toMatchObject({ name: 'Ogre Brute', initiative: INITIATIVE['Ogre Brute'] });
 
-    // Rolling Initiative does not begin the first turn — Start Combat
-    // does. (The script this test was written from goes straight from
-    // Roll Init to Thora's turn; the button between them is this one.)
+    // On to Thora's turn. Roll Init is meant to begin it on its own;
+    // until it does, this press is what starts the first turn — see
+    // combat_start.spec.mjs.
     await dm.startCombat();
     expect(await dm.actingCombatant()).toBe('Thora Stoneveil');
 
@@ -101,8 +101,8 @@ test.describe('Standard Shield', () => {
     expect(await dm.actingCombatant()).toBe('Thora Stoneveil');
 
     // --- The Ogre Brute's turn -----------------------------------------
-    // One End Turn, not two: Thora is first and the Ogre Brute second, so
-    // a second press would hand the turn to the Combatant after him.
+    // End Turn twice: the first press opens the confirm screen, the
+    // second confirms it (see dm.endTurn).
     await dm.endTurn();
     expect(await dm.actingCombatant()).toBe('Ogre Brute');
 
@@ -149,8 +149,7 @@ test.describe('Standard Shield', () => {
   test('without it, the same Slam lands on the same target', async ({ page, dm }) => {
     await openCombat(page, dm);
     await dm.armRolls({ initiative: INITIATIVE });
-    await dm.rollInitiative();
-    await dm.startCombat();
+    await dm.beginCombat();
 
     await dm.endTurn(); // Thora casts nothing; the Ogre Brute acts
     expect(await dm.actingCombatant()).toBe('Ogre Brute');

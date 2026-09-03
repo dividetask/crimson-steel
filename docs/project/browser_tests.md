@@ -98,13 +98,10 @@ This reaches the server through `POST /__test__/rolls`, a route that only
 exists when `CRIMSON_TEST_MODE` is set (`lib/routes/test_control.rb`); in
 a real run the file defines no routes at all.
 
-Two things worth knowing about Initiative Strings. They are compared
-character by character, so a **shorter string sorts above a longer one
-that starts the same way** — `XXXX` beats `XXXXX`. Give every Combatant
-the same length and the order reads the way it looks. And preselect
-*everyone*, not just the two you care about: a Combatant left to roll
-freely can out-roll the one you meant to go first, and the test then
-passes or fails by luck.
+Preselect *everyone*, not just the two Combatants you care about: one
+left to roll freely can out-roll the one you meant to go first, and the
+test then passes or fails by luck. Watch the String lengths too — see
+"Two things that look like bugs and are not" below.
 
 ### Rolls the browser makes
 
@@ -138,7 +135,8 @@ server's base URL) and `dm`, which is the DM's browser:
 |---|---|
 | `dm.setPartyPhase('combat')` | the Phase everyone sees, from the menu bar |
 | `dm.rollInitiative()`, `dm.startCombat()` | the Combat Tracker's controls |
-| `dm.endTurn()` | End Turn, and waits until the panel names someone else |
+| `dm.beginCombat()` | get to the first turn, whatever that currently takes |
+| `dm.endTurn()` | both End Turn presses — open the confirm screen, then confirm |
 | `dm.actingCombatant()` | whose turn it is, from the Turn Action panel |
 | `dm.openAction('cast' \| 'attack' \| 'item' \| 'move')` | opens the action and returns its Action Builder pane |
 | `dm.combatTracker()` | every Tracker row: name, Initiative, HP |
@@ -208,23 +206,39 @@ Where a flow half-works, split it — one test marked `test.fail()` for the
 part being built, one plain test for the part that works today, so the
 working half keeps its coverage in the meantime.
 
+Make it fail *fast*. A test that runs out the 60-second timeout counts as
+a hard failure even under `test.fail()`, and costs a minute every run. If
+the missing behavior means an element never appears, assert on it with a
+short timeout rather than letting an unbounded read hang:
+
+```js
+await expect(page.locator('h3.ta-title')).toBeVisible({ timeout: 3_000 });
+```
+
 ## What writing the first tests turned up
 
-Three things where the app and the scripts these tests were written from
-disagree. None of them are guesses; each came out of running the flow.
+Two places where the app does not do what it should. Both are held by a
+test marked `test.fail()`, so they go green when they are fixed.
+
+**Roll Init does not begin the first turn.** It rolls the Initiative
+Strings and stops; the Turn Action panel stays empty until Start Combat
+is pressed. `combat_start.spec.mjs` holds the expectation on its own.
+Every other test gets to the first turn through `dm.beginCombat()`, which
+presses Start Combat as well — one line to delete when Roll Init does it.
 
 **The encounter roll has no preview.**
 `/random_encounters/roll/:table_id` spawns the Creatures, equips them
 from their loadout, and adds every one to the Encounter roster in the
 same request. There is no "Add to combat" button, and five presses of
 Roll leave five encounters' worth of Ogres in the Campaign.
-`random_encounter.spec.mjs` describes the split being built and is
-marked `test.fail()` until it lands.
+`random_encounter.spec.mjs` describes the split being built.
 
-**Roll Init does not begin the first turn.** Start Combat does — it is
-the button between them. `standard_shield.spec.mjs` presses it, with a
-comment saying why.
+## Two things that look like bugs and are not
 
-**One End Turn reaches the Ogre Brute, not two.** With Thora first and
-the Brute second, a second press hands the turn to the Combatant after
-him. The test presses once.
+**End Turn takes two presses.** The first opens the End Turn confirm
+screen, the second confirms it. `dm.endTurn()` makes both.
+
+**A shorter Initiative String beats a longer one that starts the same
+way.** `XXXX` sorts above `XXXXX`, because the comparison is character by
+character. Give every Combatant a String of the same length and the
+Tracker order reads the way it looks.
