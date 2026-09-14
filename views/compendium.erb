@@ -1,23 +1,35 @@
 <%
-  explainer_items = ExplainerDocs.keys.map do |key|
-    { key: key, label: ExplainerDocs.title_for(key), href: "/compendium?view=#{key}" }
-  end
+  concepts = CommonDocs.concepts
+  chapters = CommonDocs.chapters
+  dupes    = CommonDocs.duplicate_chapters
+
   glossary_item = { key: 'glossary', label: 'Glossary', href: '/compendium?view=glossary' }
   spells_item   = { key: 'spells',   label: 'Spells',   href: '/compendium?view=spells' }
   classes_item  = { key: 'classes',  label: 'Classes',  href: '/compendium?view=classes' }
-  # 'Magical Tier' is pinned as the first nav entry, above the Glossary;
-  # the remaining Explainer chapters follow in declared order.
-  pinned, rest = explainer_items.partition { |i| i[:key] == 'magical_tier' }
-  nav_items = pinned + [glossary_item, spells_item, classes_item] + rest
 
-  # DM-only "website design" reference pages. Players never see these, and a
-  # player who requests one of their ?view= keys is bounced to the Glossary
-  # by the route, so they only appear in the nav for the DM.
+  chapter_items = chapters.map do |c|
+    { key: c.key, label: c.chapter_title, chapter: c.chapter,
+      href: "/compendium?view=#{c.key}", dupe: dupes.include?(c.chapter) }
+  end
+  # The first chapter is pinned above the Glossary; the rest follow the
+  # Glossary / Spells / Classes entries in chapter order.
+  first, rest = chapter_items[0, 1], chapter_items[1..] || []
+  nav_items   = first + [glossary_item, spells_item, classes_item] + rest
+
+  # DM-only. Every concept folder under docs/common/ gets a page whether or
+  # not it is finished — a half-written concept shows up as a gap rather
+  # than silently not existing.
+  common_items = dm_view? ? concepts.map do |c|
+    { key: "common:#{c.key}", label: c.title, chapter: c.chapter,
+      href: "/compendium?view=common:#{c.key}", dupe: c.chapter && dupes.include?(c.chapter) }
+  end : []
+
   design_items = dm_view? ? DesignDocs.keys.map do |key|
     { key: key, label: DesignDocs.title_for(key), href: "/compendium?view=#{key}" }
   end : []
 
-  has_mermaid = @view != 'glossary' && @explainer_html&.include?('class="mermaid"')
+  page_html   = @doc_html.to_s + @config_html.to_s + @tests_html.to_s + @explainer_html.to_s
+  has_mermaid = page_html.include?('class="mermaid"')
 %>
 
 <div class="compendium-layout">
@@ -25,10 +37,31 @@
     <ul>
       <% nav_items.each do |item| %>
         <li class="<%= 'active' if @view == item[:key] %>">
-          <a href="<%= item[:href] %>"><%= item[:label] %></a>
+          <a href="<%= item[:href] %>">
+            <% if item[:chapter] %><span class="chapter-num"><%= item[:chapter] %>.</span> <% end %><%= item[:label] %>
+            <% if item[:dupe] %><span class="chapter-dupe" title="More than one chapter claims this number">!</span><% end %>
+          </a>
         </li>
       <% end %>
     </ul>
+
+    <% unless common_items.empty? %>
+      <p class="compendium-nav-group">Common Rules (DM)</p>
+      <ul>
+        <li class="<%= 'active' if @view == 'common' %>">
+          <a href="/compendium?view=common">Coverage</a>
+        </li>
+        <% common_items.each do |item| %>
+          <li class="<%= 'active' if @view == item[:key] %>">
+            <a href="<%= item[:href] %>">
+              <%= item[:label] %>
+              <% if item[:chapter] %><span class="chapter-num">ch. <%= item[:chapter] %></span><% end %>
+              <% if item[:dupe] %><span class="chapter-dupe" title="More than one chapter claims this number">!</span><% end %>
+            </a>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
 
     <% unless design_items.empty? %>
       <p class="compendium-nav-group">Website Design (DM)</p>
@@ -47,10 +80,66 @@
       <h1>Glossary</h1>
       <p class="lead">Vocabulary used throughout the Crimson Steel rules. Common terms take precedence over per-domain definitions.</p>
       <%= @glossary_html %>
+
     <% elsif @view == 'spells' %>
       <%= erb :_spell_list, locals: { spells: @spells_list, schools: @spell_schools, skills: @spell_skills } %>
+
     <% elsif @view == 'classes' %>
       <%= erb :_class_list, locals: { classes: @classes_list } %>
+
+    <% elsif @view == 'common' %>
+      <h1>Common Rules — Coverage</h1>
+      <p class="lead">Every concept folder under <code>docs/common/</code> and the files it does or does not carry. A missing file is a gap in the rules, not a gap in the site.</p>
+      <table class="coverage-table">
+        <thead>
+          <tr><th>Concept</th><th>Chapter</th><th>Design</th><th>Config</th><th>Glossary</th><th>Tests</th></tr>
+        </thead>
+        <tbody>
+          <% @coverage.each do |c| %>
+            <tr>
+              <th scope="row"><a href="/compendium?view=common:<%= c.key %>"><%= c.title %></a></th>
+              <td><%= c.chapter ? c.chapter : '—' %><%= ' !' if c.chapter && dupes.include?(c.chapter) %></td>
+              <td class="<%= c.design?   ? 'have' : 'missing' %>"><%= c.design?   ? 'yes' : 'missing' %></td>
+              <td class="<%= c.config?   ? 'have' : 'missing' %>"><%= c.config?   ? 'yes' : 'missing' %></td>
+              <td class="<%= c.glossary? ? 'have' : 'missing' %>"><%= c.glossary? ? 'yes' : 'missing' %></td>
+              <td class="<%= c.tests?    ? 'have' : 'missing' %>"><%= c.tests?    ? 'yes' : 'missing' %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+
+    <% elsif @concept %>
+      <article class="explainer">
+        <% if @audience == :dm %>
+          <p class="doc-crosslink">
+            Common Rules (DM)
+            <% if @concept.chapter? %>
+              &middot; <a href="/compendium?view=<%= @concept.key %>">Read chapter <%= @concept.chapter %> as a player &rarr;</a>
+            <% else %>
+              &middot; <em>not in the player's manual — no <code>@chapter</code> directive</em>
+            <% end %>
+          </p>
+        <% end %>
+
+        <% if @doc_html.to_s.empty? %>
+          <p class="doc-gap">No <code><%= @concept.key %>_design.md</code> in this concept folder yet.</p>
+        <% else %>
+          <%= @doc_html %>
+        <% end %>
+
+        <% unless @config_html.to_s.empty? %>
+          <h2 class="doc-section-h">Configuration</h2>
+          <p class="doc-section-note">Tunable values, read live from <code><%= File.basename(@concept.config_path) %></code>. These are playtest knobs — expect them to move.</p>
+          <%= @config_html %>
+        <% end %>
+
+        <% unless @tests_html.to_s.empty? %>
+          <h2 class="doc-section-h">Tests</h2>
+          <p class="doc-section-note">The canonical cases from <code><%= File.basename(@concept.tests_path) %></code>. DM-only.</p>
+          <div class="doc-tests"><%= @tests_html %></div>
+        <% end %>
+      </article>
+
     <% elsif @explainer_html %>
       <article class="explainer">
         <%= @explainer_html %>

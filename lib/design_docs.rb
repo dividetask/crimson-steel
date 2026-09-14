@@ -1,18 +1,18 @@
-require 'kramdown'
-require 'kramdown-parser-gfm'
-require 'explainer_docs'
+require 'doc_markdown'
 
 # DM-only "website design" reference docs surfaced in the Compendium.
 #
-# Unlike the player-facing Explainer chapters (docs/common/**), these live
-# under docs/website_design/** and are visible only to the DM (see
-# docs/project/compendium.md). Each entry here is one DM-only left-nav item.
+# Unlike the Common Rules pages (docs/common/**, see lib/common_docs.rb),
+# these live under docs/website_design/** and are visible only to the DM
+# (see docs/project/compendium.md). Each entry here is one DM-only left-nav
+# item. This registry stays hand-curated: docs/website_design/ has no fixed
+# per-folder file contract, so there is nothing to auto-discover.
 #
 # Because they are DM-only, these pages may carry developer directives and
 # notes that are stripped from the rendered page but kept in the source file:
 #   * `@function <name>` declaration lines, and
 #   * fenced ```test blocks (worked sample data / cases).
-# Mermaid diagrams are handled exactly as in ExplainerDocs.
+# Mermaid diagrams are handled by the shared DocMarkdown renderer.
 module DesignDocs
   SOURCES = {
     'combat' => {
@@ -47,12 +47,7 @@ module DesignDocs
     src = SOURCES[key]
     return nil unless src && File.exist?(src[:path])
 
-    md = strip_directives(File.read(src[:path], encoding: 'UTF-8'))
-    html = Kramdown::Document.new(md, input: 'GFM', hard_wrap: false).to_html
-
-    # Reuse the Explainer mermaid post-process so a diagram renders the same
-    # way on a DM design page as on a player-facing chapter.
-    ExplainerDocs.rewrite_mermaid_blocks(html)
+    DocMarkdown.render(strip_directives(File.read(src[:path], encoding: 'UTF-8')))
   end
 
   # Drop developer-only directives/notes before rendering. They stay in the

@@ -421,6 +421,179 @@ body {
 
 .explainer a:hover { text-decoration: underline; }
 
+/* === Common Rules concept pages === */
+
+/* A passage the players see. Only rendered on the DM's view of a merged
+   design doc — the player's own chapter carries no marker. */
+.doc-player {
+  border-left: 3px solid #2c5fa0;
+  background: #f6f9fd;
+  padding: 6px 12px 2px 12px;
+  margin: 10px 0 14px 0;
+  border-radius: 0 3px 3px 0;
+}
+
+.doc-player-tag {
+  margin: 0 0 4px 0;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #2c5fa0;
+  font-weight: 600;
+}
+
+.doc-player > *:last-child { margin-bottom: 6px; }
+
+.doc-crosslink {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #777;
+  border-bottom: 1px solid #e6e6e6;
+  padding-bottom: 6px;
+  margin: 0 0 14px 0;
+}
+
+.doc-crosslink a { color: #2c5fa0; text-decoration: none; }
+.doc-crosslink a:hover { text-decoration: underline; }
+
+/* A concept folder that is missing one of its files. Visible on purpose. */
+.doc-gap {
+  border: 1px dashed #c98a00;
+  background: #fffaf0;
+  color: #7a5200;
+  padding: 10px 12px;
+  font-size: 11px;
+}
+
+.doc-section-h {
+  margin-top: 26px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.doc-section-note {
+  font-size: 10px;
+  color: #777;
+  margin: -4px 0 10px 0;
+}
+
+/* A {{Config Key}} that does not resolve. Loud rather than silent. */
+.doc-missing-key {
+  background: #ffe9e9;
+  border: 1px solid #d99;
+  color: #a33;
+  padding: 0 4px;
+  border-radius: 2px;
+  font-size: 10px;
+}
+
+/* === Config tables === */
+
+.config-table {
+  border-collapse: collapse;
+  margin: 8px 0 16px 0;
+  font-size: 11px;
+  width: 100%;
+}
+
+.config-table th,
+.config-table td {
+  border: 1px solid #ddd;
+  padding: 4px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.config-table thead th {
+  background: #fafafa;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #555;
+}
+
+.config-table tbody th { font-weight: 600; white-space: nowrap; }
+.config-value code { white-space: normal; }
+
+.config-section {
+  margin: 16px 0 4px 0;
+  font-size: 12px;
+  color: #444;
+}
+
+.config-dm-only { background: #fcfaf5; }
+
+.config-badge {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #7a5200;
+  color: #fff;
+  padding: 1px 4px;
+  border-radius: 2px;
+  margin-left: 4px;
+}
+
+.config-nested {
+  margin: 0;
+  font-size: 10px;
+  white-space: pre-wrap;
+  color: #444;
+}
+
+/* === Coverage overview === */
+
+.coverage-table {
+  border-collapse: collapse;
+  font-size: 11px;
+  margin-top: 12px;
+  width: 100%;
+}
+
+.coverage-table th,
+.coverage-table td {
+  border: 1px solid #ddd;
+  padding: 4px 10px;
+  text-align: left;
+}
+
+.coverage-table thead th {
+  background: #fafafa;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #555;
+}
+
+.coverage-table a { color: #2c5fa0; text-decoration: none; }
+.coverage-table a:hover { text-decoration: underline; }
+.coverage-table .have    { color: #3a7a3a; }
+.coverage-table .missing { color: #b03030; background: #fff4f4; font-weight: 600; }
+
+/* === Chapter numbering in the nav === */
+
+.chapter-num {
+  color: #999;
+  font-size: 10px;
+}
+
+.compendium-nav li.active .chapter-num { color: #ddd; }
+
+/* Two chapters claiming the same number. */
+.chapter-dupe {
+  display: inline-block;
+  background: #b03030;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  line-height: 12px;
+  text-align: center;
+}
+
 /* === Rolls wrapper === */
 
 .rolls-wrapper {

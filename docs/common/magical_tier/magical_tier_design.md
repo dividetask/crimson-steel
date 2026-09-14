@@ -1,12 +1,19 @@
+@chapter 1 Magical Tier
+
 # Magical Tier
 
+@player
 This game takes place in a world saturated with magic. Everything has magic infusing its essence, and the power of Creatures, spells, and abilities can be categorized by how dense the magic inside it is. We call this density its **Tier** — a number from 0 to 6, with 6 being the density of gods. Most Creatures have a Tier of 0, but that is misleading, as even the lowest-Tier Creatures have some magical density; it would be more accurate to call them Tier 1/2. This density can be seen by any Creature of Tier 1 or higher, and appears as a hazy aura around them. With training, a Creature can learn to hide their aura, or even disguise it as a higher or lower one. Every time a Creature advances in Tier, all of their Attributes increase, as do their Hit Points and Mana. At higher Tiers, Creatures move faster, gaining multiple turns per round. As a general rule, fighting a Creature one Tier above you is dangerous, and a Creature two Tiers above you is fatal.
 
 ## Magic Toxicity
 
+@player
+
 Receiving magical healing, potions, and oils temporarily infuses your body with magical energy — your **Magic Toxicity** — and that energy must clear before it reaches unsafe levels. The amount you can safely carry is your **Toxicity Threshold**, derived from your Charisma and your Tier. Once your Magic Toxicity rises above your Toxicity Threshold, magical healing, potions, and oils cease to work on you, and any magic that does push past the threshold poisons you, dealing Charisma Ability Damage. Magic Toxicity clears on its own over time, and there is no way to accelerate it.
 
 ## Attributes
+
+@player
 
 Each Creature has six **Attributes** defining their physical and mental capabilities.
 

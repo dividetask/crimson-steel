@@ -4,7 +4,7 @@
 
 Crimson Steel DM Tools is a local server that allows other players to connect to in order to view their character sheets, game notes, inventory, items for sale, current statuses, and view information relevant to their current choices. It also allows the DM to manage this information, add monsters, manage combat, manage hit points, and other useful tools.
 
-- **Common design documents** (`.md` files in `docs/common/`) — General, project-agnostic rules: dice/check resolution, shared UI conventions, glossary terms.
+- **Common design documents** (`.md` files in `docs/common/`) — General, project-agnostic rules: dice/check resolution, shared UI conventions, glossary terms. One folder per concept, each following the file contract in `docs/common/file_conventions.md` — read that before adding or editing anything under `docs/common/`. A concept's `*_design.md` holds the player-facing prose and the implementer rules in one file, split by `@player` / `@implementation` markers; config values are referenced as `{{Config Key}}`, never written as literals.
 - **Project design documents** (`.md` files in `docs/project/`) — Crimson Steel–specific rules: menu layout, page access, server behavior, anything that customizes the common rules for this project.
 - **Configuration templates** (`.yaml.example` files in `docs/`) — Contains default rule data, and example campaign data
 - **Configuration files** (`.json` in `data/`) — Contains rule data, and campaign data

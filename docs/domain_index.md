@@ -1,6 +1,6 @@
 # Domain Index
 
-The domains that will have file sets per `file_conventions.md`. This list will evolve as the project progresses.
+The domains that will have file sets per [common/file_conventions.md](common/file_conventions.md). This list will evolve as the project progresses.
 
 | Domain | Description |
 |---|---|
@@ -63,4 +63,4 @@ This is a starting picture and will be refined as each domain's design takes sha
 
 - Domains in "Planned" status have no design yet; the table is a placeholder so their existence and rough purpose is captured.
 - A domain doesn't enter "In progress" until its design file is being actively written.
-- Data that consumers need before its owning domain exists lives in `orphan_data/<future_domain>.yaml`. See `file_conventions.md`. Equipment, Conditions, Abilities, and Modifiers have all migrated out of `orphan_data/` when their designs landed.
+- Data that consumers need before its owning domain exists lives in `orphan_data/<future_domain>.yaml`. See [common/file_conventions.md](common/file_conventions.md). Equipment, Conditions, Abilities, and Modifiers have all migrated out of `orphan_data/` when their designs landed.

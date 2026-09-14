@@ -2,139 +2,118 @@
 
 The Compendium is the in-app player handbook: every player and the DM use it to look up rules, terminology, and worked examples while playing. It lives at `/compendium` and is visible to DMs and players alike (see `menu_layout.md` for the access rules).
 
-The Compendium is doc-driven. Every chapter on the page is a markdown file in `docs/common/` — no chapter content is hand-written into the Ruby side. Authors edit markdown; the app reads it; the page updates on reload. Adding a new chapter is a two-line code change plus the markdown.
+The Compendium is doc-driven. Every chapter on the page comes from a markdown file under `docs/common/` — no chapter content is hand-written into the Ruby side. Authors edit markdown; the app reads it; the page updates on reload.
 
-The page also carries **DM-only reference pages** sourced from `docs/website_design/` (see [DM-only Website Design pages](#dm-only-website-design-pages) below). Players never see these; the DM sees them in a separate nav group.
+It carries three bodies of content:
+
+1. **The player's manual** — the player-facing half of each concept's design document, plus the Glossary, Spell list and Class list. Visible to everyone.
+2. **Common Rules (DM)** — the *whole* design document for every concept under `docs/common/`, with its config table and canonical tests. DM-only.
+3. **Website Design (DM)** — reference pages from `docs/website_design/` describing how this site implements the rules. DM-only.
+
+## One document, two audiences
+
+A concept's player prose and its implementer rules live in the **same file**, split by `@player` / `@implementation` markers. The file contract, the directives, and the authoring rules are defined once in [`../common/file_conventions.md`](../common/file_conventions.md) — that document is canonical; this one only describes what the page does with it.
+
+The short version:
+
+- `docs/common/<concept>/<concept>_design.md` holds both halves. A player sees the `@player` passages; the DM sees everything, with the player passages visually marked so the merged document can be reviewed at a glance.
+- `@chapter <n> [title]` places the concept in the player's manual and names it there. No `@chapter` means the concept is DM-only.
+- `{{Config Key}}` substitutes the live value from `<concept>_config.yaml`, so a worked example cannot drift from the value the code reads.
+
+There is no "which document is canonical" rule any more, because there is only one document.
 
 ## Page layout
 
-The Compendium uses a two-pane layout that mirrors the Status page convention: a left-hand navigation column sized at ~180px, and a right-hand content pane that takes the rest of the width. The currently-selected nav entry is highlighted. The left nav always shows, in order:
+Two panes, mirroring the Status page convention: a ~180px left nav and a content pane. The selected entry is highlighted. Sub-views are addressed by `?view=<key>`; the global URL stays under `/compendium`, and the menu's `Compendium` link returns the viewer to the Glossary.
 
-1. **Magical Tier** — pinned as the first entry, above the Glossary. It is a registered Explainer chapter (`magical_tier`); the page lifts it to the top of the nav.
-2. **Glossary** — the default landing pane (visiting `/compendium` with no `?view=` still lands here).
-3. **One entry per remaining registered Explainer chapter**, in the order they're declared in `lib/explainer_docs.rb`.
+The left nav shows, in order:
 
-The DM additionally sees a **Website Design (DM)** nav group below the player entries (see [DM-only Website Design pages](#dm-only-website-design-pages)).
+1. **Chapter 1** — pinned above the Glossary (currently Magical Tier).
+2. **Glossary** — the default landing pane.
+3. **Spells** and **Classes**.
+4. **The remaining chapters**, in `@chapter` order, each labelled with its number.
 
-Sub-views are addressed via `?view=<key>`. The global URL stays under `/compendium`; the global menu's `Compendium` link returns the viewer to the default sub-view (Glossary).
+The DM additionally sees a **Common Rules (DM)** group and a **Website Design (DM)** group below the player entries.
 
-When a sub-view contains a Mermaid diagram, the Mermaid client-side renderer is loaded from a CDN. Pages without Mermaid blocks do not include the script.
+When a sub-view contains a Mermaid diagram, the Mermaid renderer is loaded from a CDN. Pages without Mermaid blocks do not include the script.
+
+### Chapter numbering and duplicates
+
+Nav order comes from the `@chapter` directive, not from code. Nothing enforces uniqueness — if two concepts claim the same number, both render with a red duplicate badge in the nav and a flag on the Coverage page, so the clash is obvious on sight rather than silently resolved.
+
+### View keys
+
+| Key | View | Audience |
+|---|---|---|
+| `glossary` (default) | The merged Glossary | everyone |
+| `spells`, `classes` | The Spell and Class lists | everyone |
+| `<concept>` | That concept's chapter of the player's manual | everyone |
+| `common` | The Common Rules coverage overview | DM |
+| `common:<concept>` | That concept's full page | DM |
+| a `DesignDocs` key | A website-design page | DM |
+
+`?view=dice` and `?view=checks` still resolve, to `dice_resolution` and `check_resolution`, so links made before the concept folder became the key keep working.
+
+A player who requests a DM-only key is treated as if the page did not exist and falls back to the Glossary, matching the rule in `menu_layout.md`. A DM viewing as a player is, for this purpose, a player.
 
 ## The Glossary view
 
-The Glossary is the *union* of every glossary markdown file under `docs/common/`:
+The Glossary is the union of every glossary under `docs/common/`. The sources are **discovered, not registered**: `common_glossary.md` first (its definitions take precedence), then one group per concept folder carrying a `<concept>_glossary.md`. A glossary with no terms is silently skipped.
 
-- `docs/common/common_glossary.md`
-- `docs/common/dice_resolution/dice_resolution_glossary.md`
-- `docs/common/check_resolution/check_resolution_glossary.md`
-- `docs/common/conditions/conditions_glossary.md`
+Within a source, each `## Heading` becomes a subsection and each `**Term**: definition.` paragraph a definition-list entry. Inline `code`, *italics*, and **bold** survive.
 
-The Common Glossary is always rendered first. Per-domain glossaries follow in the order declared in `lib/glossary_docs.rb`. A glossary file with no terms (e.g. an H1 + intro paragraph only) is silently skipped — Check Resolution's currently-empty glossary file is the example.
+Term ownership is covered in [`../common/file_conventions.md`](../common/file_conventions.md).
 
-Within a source, each `## Heading` becomes a subsection; each `**Term**: definition.` paragraph becomes a definition-list entry. Inline `code`, *italics*, and **bold** survive.
+## Common Rules (DM)
 
-**Term ownership rule (also stated in `common_glossary.md`).** When a term is used in only one domain, it stays in that domain's glossary. When two or more domains use it, it moves to `common_glossary.md`. Definitions in the Common Glossary take precedence over any per-domain glossary; per-domain glossaries should reference common terms rather than redefine them.
+One nav entry per concept folder under `docs/common/`, plus a **Coverage** entry at the top of the group. Concepts are discovered by directory scan — `CommonDocs.concepts` — so there is no registry to update. `docs/common/ui/` is excluded: it holds this site's interface stubs rather than shared rules, and carries no concept file set.
 
-## Explainer chapters
+Each concept page renders, in order:
 
-Explainer chapters are the player-facing tour through a domain — narrative paragraphs, worked examples, diagrams. They sit alongside the existing `*_design.md` and `*_tests.md` files in the same `docs/common/<domain>/` directory:
+1. A header line naming the chapter and linking to its player view (or noting that the concept is not in the book).
+2. The **whole** design document, with `@player` passages wrapped in a marked block.
+3. **Configuration** — the config table, every key including those marked `@dm`.
+4. **Tests** — `<concept>_tests.md`, rendered as markdown. Never reaches a player.
 
-| Domain | File | Compendium nav key |
-|---|---|---|
-| Dice Resolution | `docs/common/dice_resolution/dice_resolution_explainer.md` | `dice` |
-| Check Resolution | `docs/common/check_resolution/check_resolution_explainer.md` | `checks` |
-| Conditions | `docs/common/conditions/conditions_explainer.md` | `conditions` |
+A concept missing its design document renders an explicit gap rather than an empty page.
 
-The registry lives in `lib/explainer_docs.rb`. Adding a chapter means:
+### Coverage
 
-1. Write `docs/common/<domain>/<domain>_explainer.md`.
-2. Append an entry to `ExplainerDocs::SOURCES` with a nav `key`, a display `title`, and the file `path`.
+`?view=common` lists every concept against the four files it should carry, with each missing file called out. This is the review surface for the docs themselves: a concept that has drifted from the intended shape shows up as a row with holes in it, rather than as a page that quietly does not exist.
 
-The Compendium left-nav auto-discovers the new entry and the route validates the key against the registry.
+### Config tables
 
-### Voice and structure
+`<concept>_config.yaml` is rendered as a Setting / Value / Description table. Values come from the YAML; **descriptions come from the comments the file already carries**, so the table reads like the file and no description has to be maintained twice. The parsing rules (section dividers, which comment block belongs to which key, the `@dm` marker) are in [`../common/file_conventions.md`](../common/file_conventions.md).
 
-Explainers are written **for the player at the table**, not for the implementer. The reference docs (`*_design.md`) remain canonical — explainers should defer to them on conflicts. Every explainer follows the same skeleton:
-
-1. **H1 title** matching the domain name.
-2. **Lead paragraph** framing what the chapter teaches and why it matters.
-3. **Reference-doc callout** as a blockquote near the top, pointing readers at the canonical design/tests files. Format:
-
-   > **Reference docs.** Implementer-facing rules live in `*_design.md` and `*_tests.md`. This chapter is the player-facing tour. When they disagree, the design doc is canonical.
-
-4. **H2 sections** covering the major concepts. Each section either explains a single concept or walks through a procedure end-to-end.
-5. **H3 "Worked example" sub-sections** under any H2 that benefits from concrete numbers.
-6. **A closing H2 section** (typically titled "What lives in the next chapter") pointing at the next domain in reading order, so the chapters chain naturally.
-
-### Diagrams
-
-Mermaid is the only diagram format. Author them as fenced code blocks with the `mermaid` language tag:
-
-````markdown
-```mermaid
-flowchart LR
-  A --> B
-```
-````
-
-The renderer rewrites kramdown's `<pre><code class="language-mermaid">` output into `<div class="mermaid">` so the client-side Mermaid library auto-picks them up. The Mermaid script is loaded only on chapters that actually contain a diagram.
-
-Diagrams should illustrate either a **procedure** (a flowchart of steps in order) or a **relationship** (a graph showing how things connect). Use `flowchart LR` for pipelines; `flowchart LR` with `subgraph` blocks for relationship graphs. Keep diagrams readable in one screen-width — long node labels and dense arrow webs don't survive the 760px content column.
-
-### Inline dice
-
-Dice illustrations inside paragraphs use the same `.die` CSS classes as the Roll Resolution stub:
-
-| Class | Color | Use for |
-|---|---|---|
-| `die fail` | red | a Failure (the lowest die value, typically 1) |
-| `die neutral` | uncolored | a value below the TN |
-| `die success` | green | a value at or above the TN |
-| `die crit` | blue | a value at the Die Size |
-
-Author them inline as `<span class="die success">7</span>`. Kramdown passes inline HTML through.
-
-### Tables, lists, blockquotes
-
-- **Tables** for structured rules (state transitions, rate tables, classification rules).
-- **Bulleted lists** for parallel definitions or independent procedure items.
-- **Numbered lists** for ordered procedures.
-- **Blockquotes** for callouts that pull a reader's eye out of the main flow — exceptions, edge cases, cross-references. Used sparingly.
-
-### Cross-references between chapters
-
-Cross-reference earlier chapters by name in prose ("see Dice Resolution → Bonuses and Penalties") rather than by markdown link. The Compendium currently has no intra-page anchors, and readers always have the left nav available.
-
-### Chapter length
-
-There is no hard limit, but a chapter that wouldn't print on five reading-pages worth of body text probably wants to be split. The Conditions chapter is the long end of the current range; Dice Resolution and Check Resolution are the natural lengths.
+Config keys default to player-visible — the values are the game's tunable rules and players need nearly all of them. A key marked `@dm` appears only on the DM page, badged.
 
 ## DM-only Website Design pages
 
-Alongside the player-facing Explainer chapters, the Compendium surfaces a set of **DM-only reference pages** drawn from `docs/website_design/`. These document *how the site implements the rules* — how a stub is defined, what it relies on, and the dummy data that drives it — so the DM can inspect and fix a feature while playing. They are **not** player content.
+Alongside the Common Rules, the Compendium surfaces reference pages drawn from `docs/website_design/`. These document *how the site implements the rules* — how a stub is defined, what it relies on, and the dummy data that drives it — so the DM can inspect and fix a feature while playing. They are **not** player content.
 
-- **Registry.** The pages are declared in `lib/design_docs.rb` (`DesignDocs::SOURCES`), keyed like the Explainer chapters: `{ key => { title:, path: } }`. The current entries are `combat` (the Combat Encounter Stub — the turn, and the blob its host builds), `action_builder` (the domain-agnostic Action Builder wizard, `public/js/ui/actionBuilder.js`), `combat_interfaces` (the required interfaces), and `combat_test_data` (a worked example of the Action Builder blob).
-- **Nav.** For the DM, `views/compendium.erb` renders these below the player entries under a **Website Design (DM)** group heading (`.compendium-nav-group`). Players never see the group.
-- **Access.** Visibility is the standard DM check — `dm_view?` (loopback request and not viewing-as-player). `lib/routes/compendium.rb` only admits a `DesignDocs` `?view=` key when `dm_view?` is true; a player (or the DM viewing as a player) who requests one is bounced to the default Glossary, matching the "treated as if the page did not exist" rule in `menu_layout.md`.
+- **Registry.** Declared in `lib/design_docs.rb` (`DesignDocs::SOURCES`) as `{ key => { title:, path: } }`. Unlike the Common Rules, this registry stays **hand-curated**: `docs/website_design/` has no fixed per-folder file contract, so there is nothing to auto-discover, and the folder's `README.md` files are navigation for a repo reader rather than pages. The current entries are `combat`, `action_builder`, `combat_interfaces`, and `combat_test_data`.
+- **Nav.** Rendered below the Common Rules group under a **Website Design (DM)** heading (`.compendium-nav-group`).
+- **Access.** The standard `dm_view?` check, exactly as for the Common Rules.
 
-### Hidden developer directives
+These pages support the same `@function` and ` ```test ` stripping as the Common Rules, and render through the same `DocMarkdown` pipeline.
 
-Because these pages are DM-only, they may carry **developer directives and notes that are stripped from the rendered page but kept in the source file** (`DesignDocs.strip_directives`):
+## Where the code lives
 
-| Source markup | Meaning | Rendered as |
-|---|---|---|
-| `@function <name>` (line) | A developer declaration. | Removed. |
-| ` ```test … ``` ` (fence) | A worked sample data blob / test cases. | Removed. |
-
-Everything else renders as ordinary Markdown (kramdown + GFM), with the same `mermaid` fence rewrite as the Explainer chapters (`DesignDocs` reuses `ExplainerDocs.rewrite_mermaid_blocks`). Cross-references between the DM pages use in-app `/compendium?view=<key>` links so the DM can hop between a stub and its interfaces.
+| Module | Responsibility |
+|---|---|
+| `lib/common_docs.rb` | Concept discovery, directive and marker parsing, `{{Config Key}}` substitution, per-audience rendering. |
+| `lib/config_tables.rb` | `*_config.yaml` → table, including the comment-derived descriptions and `@dm` visibility. |
+| `lib/doc_markdown.rb` | Shared kramdown + Mermaid rendering for every documentation surface. |
+| `lib/glossary_docs.rb` | The merged Glossary. |
+| `lib/design_docs.rb` | The hand-curated website-design pages. |
+| `lib/routes/compendium.rb` | View-key resolution and access control. |
+| `views/compendium.erb` | Nav groups and the content pane. |
 
 ## Authoring checklist
 
-Before merging a new or edited chapter:
+The per-file rules are in [`../common/file_conventions.md`](../common/file_conventions.md). For the page specifically:
 
-1. The H1 matches the registered title and the domain name.
-2. The reference-doc blockquote points at real files.
-3. Every term used appears either in `common_glossary.md` or in the matching `<domain>_glossary.md` — or, if introduced in the chapter, is defined inline at first use.
-4. Any Mermaid block renders in a browser (the CDN handles syntax errors silently — broken diagrams just don't appear).
-5. Worked examples agree numerically with the rules section above them.
-6. The closing "What lives in the next chapter" section names the next domain in reading order.
+1. A new concept folder needs no code change — it appears on the next reload.
+2. A new chapter needs only an `@chapter` line in its design doc.
+3. Check the Coverage page after adding a concept: an unexpected "missing" is either a file you still owe or a filename that does not match the convention.
+4. Any Mermaid block should be confirmed in a browser — the CDN fails silently, so a broken diagram simply does not appear.
