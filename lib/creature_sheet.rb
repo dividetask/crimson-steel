@@ -148,9 +148,31 @@ module CreatureSheet
       moderate_damage: (st ? st.hp_damage[:moderate] || 0 : 0),
       major_damage:    (st ? st.hp_damage[:major] || 0 : 0),
       combat_pool: (Encounter::CombatPool.size_for(accessor) rescue 0),
+      combat_pool_breakdown: combat_pool_breakdown(accessor, tier),
       damage_reduction: dr_break[:total], damage_resilience: res_break[:total],
       defense_breakdown: { damage_reduction: dr_break, damage_resilience: res_break }
     }
+  end
+
+  # The two-stage math behind the Combat Pool, for the sheet's click-to-open
+  # popup (encounter_design.md -> Operations -> "Combat Pool computation"):
+  # Stage 1 derives a Budget from martial ranks + the Combat Pool Attribute,
+  # divided by the Tier's Turns Per Round; Stage 2 spends that Budget on
+  # points under the tiered Buy. Nothing here is recomputed locally —
+  # Encounter::CombatPool owns every formula.
+  def combat_pool_breakdown(accessor, tier)
+    martial   = accessor.ranks_for('martial')
+    attr_key  = Encounter::Config.combat_pool_attribute
+    attribute = accessor.attribute_value(attr_key)
+    turns     = Encounter::Config.turns_for_tier(tier)
+    step      = Encounter::Config.combat_pool_step
+    budget    = Encounter::CombatPool.budget(martial_ranks: martial, attribute: attribute, tier: tier)
+    size      = Encounter::CombatPool.buy(budget, step: step)
+    { size: size, budget: budget, martial_ranks: martial,
+      attribute_key: attr_key, attribute: attribute, turns: turns, step: step,
+      cost: Encounter::CombatPool.cost_to_buy(size, step) }
+  rescue StandardError
+    nil
   end
 
   # Split a defensive total into its base (equipped Armor + any Inherent

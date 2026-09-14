@@ -2538,10 +2538,10 @@ body {
   font-size: 13px;
 }
 
-/* Initiative / Perception / Speed row. */
+/* Initiative / Combat Pool / Perception / Speed row. */
 .cs-card .cs-ips-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   border-top: 1px solid #b9472c;
   padding: 8px 0 4px;
   margin-top: 12px;
@@ -2551,6 +2551,29 @@ body {
   color: #882f1f;
   font-variant: small-caps;
   margin-right: 6px;
+}
+/* The Combat Pool cell carries the two-stage math popup, reusing the
+   Attribute popup's .cs-attr-pop reveal (hover / focus / click-toggle). */
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop {
+  position: relative;
+  cursor: pointer;
+}
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop:hover strong,
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop:focus-within strong,
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop.cs-pop-open strong {
+  text-decoration: underline dotted;
+}
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop:hover .cs-attr-pop,
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop:focus-within .cs-attr-pop,
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop.cs-pop-open .cs-attr-pop {
+  display: block;
+}
+/* Two stacked stage lines (Budget, then Pool) rather than one summed row. */
+.cs-card.cs-minimal .cs-pool-pop {
+  min-width: 250px;
+}
+.cs-card.cs-minimal .cs-pool-stage + .cs-pool-stage {
+  margin-top: 4px;
 }
 
 /* Tables — actions, combat, attributes, skills, effects. */

@@ -77,6 +77,25 @@
       end
     %(<div class="cs-attr-pop cs-def-pop" role="tooltip"><div class="cs-attr-pop-title">#{Rack::Utils.escape_html(title.to_s)}</div><div class="cs-attr-pop-breakdown">#{body} = <strong>#{total}</strong></div></div>)
   end
+
+  # Click/hover popup showing the two stages behind the Combat Pool
+  # (encounter_design.md -> "Combat Pool computation"): the Budget line
+  # spells out martial ranks + the Combat Pool Attribute over the Tier's
+  # Turns Per Round; the Pool line says what that Budget buys under the
+  # tiered Buy. CreatureSheet supplies every number; the stub only formats.
+  pool_pop = lambda do |brk|
+    return '' unless brk
+    akey  = Rack::Utils.escape_html(brk[:attribute_key].to_s.upcase)
+    buy   = %(budget #{brk[:budget]} buys #{brk[:size]} <span class="cs-def-note">(cost #{brk[:cost]})</span>)
+    %(<div class="cs-attr-pop cs-def-pop cs-pool-pop" role="tooltip">) +
+      %(<div class="cs-attr-pop-title">Combat Pool</div>) +
+      %(<div class="cs-attr-pop-breakdown">) +
+      %(<div class="cs-pool-stage"><span class="cs-def-note">Budget</span> ) +
+      %((#{brk[:martial_ranks]} martial &times; 2 + #{brk[:attribute]} #{akey}) &divide; #{brk[:turns]} ) +
+      %(<span class="cs-def-note">turns per round</span> = <strong>#{brk[:budget]}</strong></div>) +
+      %(<div class="cs-pool-stage"><span class="cs-def-note">Pool</span> #{buy} = <strong>#{brk[:size]}</strong></div>) +
+      %(</div></div>)
+  end
 %>
 
 <article class="cs-card cs-minimal tier-<%= h[:tier] %><%= ' cs-bare' unless chrome_on %>" data-creature-id="<%= demo[:id] %>">
@@ -181,8 +200,16 @@
     </div>
   </section>
 
+  <%
+    # Combat Pool — the Creature's maximum spendable dice on one of its turns
+    # (encounter_glossary.md). Static demos carry only the scalar total in
+    # vitals, so the breakdown popup is omitted when no breakdown is supplied.
+    pool_brk  = v[:combat_pool_breakdown]
+    pool_size = pool_brk ? pool_brk[:size] : v[:combat_pool].to_i
+  %>
   <section class="cs-ips-row">
     <div class="cs-ips-cell"><strong>Initiative</strong> <%= demo[:initiative][:dice_count] %></div>
+    <div class="cs-ips-cell<%= ' cs-attr-has-pop' if pool_brk %>"<% if pool_brk %> tabindex="0" role="button" aria-label="Combat Pool breakdown"<% end %>><strong>Combat Pool</strong> <%= pool_size %><%= pool_pop.call(pool_brk) %></div>
     <div class="cs-ips-cell"><strong>Perception</strong> <%= sprintf('%+d', demo[:perception][:bonus]) %></div>
     <div class="cs-ips-cell"><strong>Speed</strong> <%= demo[:speed] %></div>
   </section>
