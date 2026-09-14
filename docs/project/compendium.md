@@ -34,7 +34,7 @@ The left nav shows, in order:
 
 **A numbered entry never sits next to an unnumbered one out of order.** Chapters run as an unbroken numbered block; anything without a chapter number falls below the highest-numbered chapter; the Glossary is always the final entry and never carries a number. A gap in the nav numbering should read as a missing chapter, not as an unnumbered entry that happened to sort between two chapters.
 
-The DM additionally sees a **Common Rules (DM)** group and a **Website Design (DM)** group below the player entries. Both the Common Rules group and the Coverage table follow the same ordering rule: chapter concepts first in chapter order, then the concepts that are not in the player's manual, alphabetically.
+The DM additionally sees a **Common Rules (DM)** group and a **Website Design (DM)** group below the player entries. Every group renders from the same markup, so a chapter number reads identically wherever it appears; the Common Rules group and the Coverage table follow the same ordering rule as the player list.
 
 When a sub-view contains a Mermaid diagram, the Mermaid renderer is loaded from a CDN. Pages without Mermaid blocks do not include the script.
 
@@ -67,7 +67,7 @@ Term ownership is covered in [`../common/file_conventions.md`](../common/file_co
 
 ## Common Rules (DM)
 
-One nav entry per concept folder under `docs/common/`, plus a **Coverage** entry at the top of the group. Entries are ordered chapters-first, exactly as the player nav is. Concepts are discovered by directory scan — `CommonDocs.concepts` — so there is no registry to update. `docs/common/ui/` is excluded: it holds this site's interface stubs rather than shared rules, and carries no concept file set.
+One nav entry per concept folder under `docs/common/`, plus a **Coverage** entry at the foot of the group. The group is built to mirror the player list above it: chapter concepts first in chapter order, each labelled `<n>. <chapter title>` exactly as the player entry is; then the concepts that are not in the player's manual, alphabetically; then Coverage last, in the position the Glossary occupies in the player list. Concepts are discovered by directory scan — `CommonDocs.concepts` — so there is no registry to update. `docs/common/ui/` is excluded: it holds this site's interface stubs rather than shared rules, and carries no concept file set.
 
 Each concept page renders, in order:
 

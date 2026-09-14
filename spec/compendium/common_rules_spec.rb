@@ -216,6 +216,20 @@ RSpec.describe 'Compendium Common Rules', type: :request do
         .to be > body.index('?view=common:conditions')
     end
 
+    it 'shows a chapter number in the Common Rules group exactly as the player list does' do
+      body = visit('/compendium').body
+      nav  = body[/<aside class="compendium-nav">.*?<\/aside>/m]
+      # The number prefixes the label in both groups; nothing renders a
+      # trailing "ch. N" badge.
+      expect(nav).not_to include('ch. ')
+      expect(nav.scan(%r{<span class="chapter-num">2\.</span>\s*Dice Resolution}).size).to eq(2)
+    end
+
+    it 'puts Coverage at the foot of its group, mirroring the Glossary above' do
+      body = visit('/compendium').body
+      expect(body.index('?view=common"')).to be > body.index('?view=common:timekeeping')
+    end
+
     it 'renders the whole merged document — player prose and implementer rules' do
       body = visit('/compendium?view=common:dice_resolution').body
       expect(body).to include(IMPLEMENTER_ONLY)

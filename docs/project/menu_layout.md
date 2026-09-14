@@ -65,7 +65,7 @@ A chapter is the player-facing half of a concept's design document under `docs/c
 
 Below the player entries the **DM sees two extra nav groups**:
 
-- **Common Rules (DM)** — a **Coverage** overview plus one entry per concept folder under `docs/common/`, discovered by directory scan. Each concept page shows the whole design document (player passages visually marked), its configuration table, and its canonical tests. Coverage lists every concept against the four files it should carry so a half-finished concept is visible at a glance.
+- **Common Rules (DM)** — one entry per concept folder under `docs/common/`, discovered by directory scan, followed by a **Coverage** overview. The group mirrors the player list above it: numbered chapters first, each labelled with its number and chapter title, then the concepts that are not in the player's manual, then Coverage last — the position the Glossary holds in the player list. Each concept page shows the whole design document (player passages visually marked), its configuration table, and its canonical tests. Coverage lists every concept against the four files it should carry so a half-finished concept is visible at a glance.
 - **Website Design (DM)** — reference pages sourced from `docs/website_design/` and registered in `lib/design_docs.rb` (currently `Combat`, `Action Builder`, `Combat — Interfaces`, and `Combat — Test Data`), documenting how a stub is implemented, what it relies on, and its dummy data.
 
 Players never see either group, and a player who requests one of their `?view=` keys is bounced to the Glossary (the "page did not exist" rule). See [compendium.md](compendium.md) for the view keys and the rendering rules.

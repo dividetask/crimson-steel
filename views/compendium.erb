@@ -2,31 +2,43 @@
   chapters = CommonDocs.chapters
   dupes    = CommonDocs.duplicate_chapters
 
-  glossary_item = { key: 'glossary', label: 'Glossary', href: '/compendium?view=glossary' }
-  spells_item   = { key: 'spells',   label: 'Spells',   href: '/compendium?view=spells' }
-  classes_item  = { key: 'classes',  label: 'Classes',  href: '/compendium?view=classes' }
+  # One shape for every nav entry, so all three groups render identically:
+  # a chapter number reads the same in the Common Rules group as it does in
+  # the player list above it.
+  entry = lambda do |key, label, href, chapter = nil|
+    { key: key, label: label, href: href, chapter: chapter,
+      dupe: chapter && dupes.include?(chapter) }
+  end
 
   chapter_items = chapters.map do |c|
-    { key: c.key, label: c.chapter_title, chapter: c.chapter,
-      href: "/compendium?view=#{c.key}", dupe: dupes.include?(c.chapter) }
+    entry.call(c.key, c.chapter_title, "/compendium?view=#{c.key}", c.chapter)
   end
   # Numbered entries never interleave with unnumbered ones: the chapters run
   # in order, then the unnumbered entries, then the Glossary — which is
   # always last and never carries a chapter number.
-  nav_items = chapter_items + [spells_item, classes_item] + [glossary_item]
+  player_items = chapter_items + [
+    entry.call('spells',   'Spells',   '/compendium?view=spells'),
+    entry.call('classes',  'Classes',  '/compendium?view=classes'),
+    entry.call('glossary', 'Glossary', '/compendium?view=glossary')
+  ]
 
   # DM-only. Every concept folder under docs/common/ gets a page whether or
   # not it is finished — a half-written concept shows up as a gap rather
-  # than silently not existing. Same ordering rule: chapters first, then the
-  # concepts that are not in the player's manual.
+  # than silently not existing. Same ordering and the same labels as the
+  # player list: a concept in the manual is named by its chapter title.
   common_items = dm_view? ? CommonDocs.in_nav_order.map do |c|
-    { key: "common:#{c.key}", label: c.title, chapter: c.chapter,
-      href: "/compendium?view=common:#{c.key}", dupe: c.chapter && dupes.include?(c.chapter) }
-  end : []
+    entry.call("common:#{c.key}", c.chapter_title, "/compendium?view=common:#{c.key}", c.chapter)
+  end + [entry.call('common', 'Coverage', '/compendium?view=common')] : []
 
   design_items = dm_view? ? DesignDocs.keys.map do |key|
-    { key: key, label: DesignDocs.title_for(key), href: "/compendium?view=#{key}" }
+    entry.call(key, DesignDocs.title_for(key), "/compendium?view=#{key}")
   end : []
+
+  nav_groups = [
+    { title: nil,                     items: player_items },
+    { title: 'Common Rules (DM)',     items: common_items },
+    { title: 'Website Design (DM)',   items: design_items }
+  ].reject { |g| g[:items].empty? }
 
   page_html   = @doc_html.to_s + @config_html.to_s + @tests_html.to_s + @explainer_html.to_s
   has_mermaid = page_html.include?('class="mermaid"')
@@ -34,41 +46,16 @@
 
 <div class="compendium-layout">
   <aside class="compendium-nav">
-    <ul>
-      <% nav_items.each do |item| %>
-        <li class="<%= 'active' if @view == item[:key] %>">
-          <a href="<%= item[:href] %>">
-            <% if item[:chapter] %><span class="chapter-num"><%= item[:chapter] %>.</span> <% end %><%= item[:label] %>
-            <% if item[:dupe] %><span class="chapter-dupe" title="More than one chapter claims this number">!</span><% end %>
-          </a>
-        </li>
+    <% nav_groups.each do |group| %>
+      <% if group[:title] %>
+        <p class="compendium-nav-group"><%= group[:title] %></p>
       <% end %>
-    </ul>
-
-    <% unless common_items.empty? %>
-      <p class="compendium-nav-group">Common Rules (DM)</p>
       <ul>
-        <li class="<%= 'active' if @view == 'common' %>">
-          <a href="/compendium?view=common">Coverage</a>
-        </li>
-        <% common_items.each do |item| %>
+        <% group[:items].each do |item| %>
           <li class="<%= 'active' if @view == item[:key] %>">
             <a href="<%= item[:href] %>">
-              <%= item[:label] %>
-              <% if item[:chapter] %><span class="chapter-num">ch. <%= item[:chapter] %></span><% end %>
-              <% if item[:dupe] %><span class="chapter-dupe" title="More than one chapter claims this number">!</span><% end %>
+              <% if item[:chapter] %><span class="chapter-num"><%= item[:chapter] %>.</span> <% end %><%= item[:label] %><% if item[:dupe] %> <span class="chapter-dupe" title="More than one chapter claims this number">!</span><% end %>
             </a>
-          </li>
-        <% end %>
-      </ul>
-    <% end %>
-
-    <% unless design_items.empty? %>
-      <p class="compendium-nav-group">Website Design (DM)</p>
-      <ul>
-        <% design_items.each do |item| %>
-          <li class="<%= 'active' if @view == item[:key] %>">
-            <a href="<%= item[:href] %>"><%= item[:label] %></a>
           </li>
         <% end %>
       </ul>
