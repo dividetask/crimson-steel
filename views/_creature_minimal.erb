@@ -104,22 +104,25 @@
     rows = Array(brk[:blocks]).map do |b|
       dice  = b[:from] == b[:to] ? b[:from].to_s : %(#{b[:from]}&ndash;#{b[:to]})
       price = b[:cost_each].zero? ? 'free' : b[:cost_each].to_s
-      %(<tr><td>#{dice}</td><td class="cs-num">#{price}</td><td class="cs-num">#{b[:spent]}</td></tr>)
+      %(<tr><td>#{dice}</td><td class="cs-num">#{price}</td>) +
+        %(<td class="cs-num">#{b[:spent]}</td><td class="cs-num">#{b[:left]}</td></tr>)
     end.join
 
-    # Why the Buy stopped: the next die's price against what is left over.
-    left = brk[:remaining].to_i
-    stop = %(Next die costs #{brk[:next_die_cost]} &mdash; #{left} budget left)
+    # Why the Buy stopped. The Left column already carries what remains, so
+    # this only has to name the price the remainder could not meet.
+    stop = %(Next die costs #{brk[:next_die_cost]})
 
     %(<div class="cs-attr-pop cs-def-pop cs-pool-pop" role="tooltip">) +
       %(<div class="cs-attr-pop-title">Combat Pool</div>) +
       %(<div class="cs-attr-pop-breakdown"><div class="cs-pool-line">#{budget_sum}</div>) +
       %(<div class="cs-pool-line">#{budget_div}</div></div>) +
       %(<table class="cs-attr-pop-table cs-pool-table">) +
-      %(<thead><tr><th>Dice</th><th class="cs-num">Each</th><th class="cs-num">Cost</th></tr></thead>) +
+      %(<thead><tr><th>Dice</th><th class="cs-num">Each</th><th class="cs-num">Cost</th>) +
+      %(<th class="cs-num">Left</th></tr></thead>) +
       %(<tbody>#{rows}) +
       %(<tr class="cs-pool-total"><th>#{brk[:size]} dice</th><td></td>) +
-      %(<td class="cs-num">#{brk[:cost]} of #{brk[:budget]}</td></tr></tbody></table>) +
+      %(<td class="cs-num">#{brk[:cost]}</td><td class="cs-num">#{brk[:remaining]}</td>) +
+      %(</tr></tbody></table>) +
       %(<div class="cs-pool-stop cs-def-note">#{stop}</div>) +
       %(</div>)
   end

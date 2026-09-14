@@ -67,6 +67,22 @@ RSpec.describe 'CreatureSheet Combat Pool' do
       blocks.each { |b| expect(b[:spent]).to eq(b[:count] * b[:cost_each]) }
     end
 
+    it 'runs the Budget down block by block in the Left column' do
+      running = breakdown[:budget]
+      blocks.each do |b|
+        running -= b[:spent]
+        expect(b[:left]).to eq(running)
+      end
+      # The free first block leaves the Budget untouched, and the last block
+      # ends on what the Buy had in hand when it stopped.
+      expect(blocks.first[:left]).to eq(breakdown[:budget])
+      expect(blocks.last[:left]).to eq(breakdown[:remaining])
+    end
+
+    it 'never runs the Budget negative' do
+      blocks.each { |b| expect(b[:left]).to be >= 0 }
+    end
+
     it 'leaves the final block partial when the Pool stops mid-block' do
       # Pool 13 at Step 4 stops one die into the 13-16 block.
       brk = CreatureSheet.build(

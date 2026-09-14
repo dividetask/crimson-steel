@@ -174,7 +174,7 @@ module CreatureSheet
       # The sum before the Turns Per Round division, so the popup can split
       # the Budget across two short lines instead of one that wraps.
       before_turns: (martial * 2) + attribute,
-      cost: cost, blocks: combat_pool_blocks(size, step),
+      cost: cost, blocks: combat_pool_blocks(size, step, budget),
       # What stopped the Buy where it did: the price of the next die, and the
       # Budget left over (too little to pay it).
       remaining: budget - cost, next_die_cost: size / step }
@@ -185,16 +185,21 @@ module CreatureSheet
   # The Buy stage laid out one price block at a time, for the popup's table:
   # dice 1..Step are free, the next Step cost 1 each, the next 2 each, and so
   # on. The final block is partial when the Pool stops mid-block. Spent
-  # amounts sum to Encounter::CombatPool.cost_to_buy(size, step).
-  # Returns [{ from:, to:, count:, cost_each:, spent: }].
-  def combat_pool_blocks(size, step)
+  # amounts sum to Encounter::CombatPool.cost_to_buy(size, step), and `left`
+  # runs the Budget down block by block — the last block's `left` is what the
+  # Buy had in hand when it stopped.
+  # Returns [{ from:, to:, count:, cost_each:, spent:, left: }].
+  def combat_pool_blocks(size, step, budget)
     blocks = []
     block  = 0
+    left   = budget
     while block * step < size
-      from  = (block * step) + 1
-      to    = [(block + 1) * step, size].min
-      count = to - from + 1
-      blocks << { from: from, to: to, count: count, cost_each: block, spent: count * block }
+      from   = (block * step) + 1
+      to     = [(block + 1) * step, size].min
+      count  = to - from + 1
+      spent  = count * block
+      left  -= spent
+      blocks << { from: from, to: to, count: count, cost_each: block, spent: spent, left: left }
       block += 1
     end
     blocks

@@ -2572,7 +2572,7 @@ body {
    table (one row per block of Combat Pool Step dice). Wide enough that
    neither Budget line wraps at realistic values. */
 .cs-card.cs-minimal .cs-pool-pop {
-  min-width: 252px;
+  min-width: 288px;
 }
 /* Each stage of the Budget on its own line, so the formula reads as two
    short steps instead of one long wrapped sentence. */
@@ -2590,11 +2590,16 @@ body {
   padding: 3px 6px;
 }
 /* The dice-range column is the row's label: left-aligned and given the room
-   a range like "13-16" needs, so the two numeric columns line up cleanly. */
+   a range like "13-16" needs, so the three numeric columns line up cleanly. */
 .cs-card.cs-minimal .cs-pool-table td:first-child,
 .cs-card.cs-minimal .cs-pool-table th:first-child {
-  width: 44%;
+  width: 34%;
   text-align: left;
+}
+/* Left runs the Budget down block by block, so it reads as a column of
+   figures rather than a per-row value — muted until the total row. */
+.cs-card.cs-minimal .cs-pool-table tbody td:last-child {
+  color: #6b4a36;
 }
 /* The total is where the eye should land: a heavier rule above, no rule
    below, and the only bold figures in the table. */
