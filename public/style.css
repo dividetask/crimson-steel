@@ -2568,12 +2568,31 @@ body {
 .cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop.cs-pop-open .cs-attr-pop {
   display: block;
 }
-/* Two stacked stage lines (Budget, then Pool) rather than one summed row. */
+/* The Combat Pool popup: a Budget breakdown line over the Buy stage's
+   price table (one row per block of Combat Pool Step dice). */
 .cs-card.cs-minimal .cs-pool-pop {
-  min-width: 250px;
+  min-width: 232px;
 }
-.cs-card.cs-minimal .cs-pool-stage + .cs-pool-stage {
-  margin-top: 4px;
+.cs-card.cs-minimal .cs-pool-table {
+  margin-top: 2px;
+}
+/* The block a Creature stops inside is the interesting row, so the total
+   is set off by a rule rather than by shouting. */
+.cs-card.cs-minimal .cs-pool-total th,
+.cs-card.cs-minimal .cs-pool-total td {
+  border-top: 1px solid #d9a98a;
+  padding-top: 3px;
+}
+.cs-card.cs-minimal .cs-pool-total th {
+  text-align: left;
+  color: #4d2e1e;
+  font-weight: 600;
+}
+/* Why the Buy stopped where it did — the next die's price vs. what is left. */
+.cs-card.cs-minimal .cs-pool-stop {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 /* Tables — actions, combat, attributes, skills, effects. */

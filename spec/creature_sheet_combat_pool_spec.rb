@@ -42,6 +42,60 @@ RSpec.describe 'CreatureSheet Combat Pool' do
     expect(breakdown[:cost]).to eq(Encounter::CombatPool.cost_to_buy(breakdown[:size], breakdown[:step]))
   end
 
+  it 'shows the Budget stage its own running values rather than just the answer' do
+    expect(breakdown[:martial_doubled]).to eq(breakdown[:martial_ranks] * 2)
+    expect(breakdown[:before_turns]).to eq(breakdown[:martial_doubled] + breakdown[:attribute])
+    expect(breakdown[:budget]).to eq(breakdown[:before_turns] / breakdown[:turns])
+  end
+
+  describe 'the Buy stage price blocks' do
+    subject(:blocks) { breakdown[:blocks] }
+
+    it 'covers every die exactly once, in Step-sized blocks' do
+      expect(blocks.first[:from]).to eq(1)
+      expect(blocks.last[:to]).to eq(breakdown[:size])
+      blocks.each_cons(2) { |a, b| expect(b[:from]).to eq(a[:to] + 1) }
+      expect(blocks.sum { |b| b[:count] }).to eq(breakdown[:size])
+    end
+
+    it 'prices the first block free and each later block one point dearer' do
+      expect(blocks.first[:cost_each]).to eq(0)
+      blocks.each_with_index { |b, i| expect(b[:cost_each]).to eq(i) }
+    end
+
+    it 'spends exactly what Encounter says the Pool costs' do
+      expect(blocks.sum { |b| b[:spent] }).to eq(breakdown[:cost])
+      blocks.each { |b| expect(b[:spent]).to eq(b[:count] * b[:cost_each]) }
+    end
+
+    it 'leaves the final block partial when the Pool stops mid-block' do
+      # Pool 13 at Step 4 stops one die into the 13-16 block.
+      brk = CreatureSheet.build(
+        Creatures::Accessor.new(
+          record(attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 12, cha: 10 },
+                 tier: 3, classes: { 'fighter' => { level: 5, skills: [] } })
+        )
+      )[:vitals][:combat_pool_breakdown]
+      expect(brk[:size] % brk[:step]).not_to eq(0)
+      expect(brk[:blocks].last[:count]).to eq(brk[:size] % brk[:step])
+      expect(brk[:blocks].sum { |b| b[:spent] }).to eq(brk[:cost])
+    end
+  end
+
+  describe 'why the Buy stopped' do
+    it 'reports the next die price and the leftover Budget' do
+      expect(breakdown[:next_die_cost]).to eq(
+        Encounter::CombatPool.cost_to_buy(breakdown[:size] + 1, breakdown[:step]) - breakdown[:cost]
+      )
+      expect(breakdown[:remaining]).to eq(breakdown[:budget] - breakdown[:cost])
+    end
+
+    it 'leaves too little Budget to afford that next die' do
+      expect(breakdown[:remaining]).to be < breakdown[:next_die_cost]
+      expect(breakdown[:remaining]).to be >= 0
+    end
+  end
+
   describe 'the guaranteed minimum' do
     # Points 1..Step are free, so a Creature with no martial ranks and a
     # minimal Combat Pool Attribute still buys the Step floor at zero cost —

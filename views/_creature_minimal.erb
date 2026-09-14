@@ -79,22 +79,46 @@
   end
 
   # Click/hover popup showing the two stages behind the Combat Pool
-  # (encounter_design.md -> "Combat Pool computation"): the Budget line
-  # spells out martial ranks + the Combat Pool Attribute over the Tier's
-  # Turns Per Round; the Pool line says what that Budget buys under the
-  # tiered Buy. CreatureSheet supplies every number; the stub only formats.
+  # (encounter_design.md -> "Combat Pool computation"). Stage 1 sums martial
+  # ranks and the Combat Pool Attribute, then divides by the Tier's Turns Per
+  # Round, showing each step. Stage 2 is a purchase, not a sum, so it renders
+  # as a price table — one row per block of `Combat Pool Step` dice, the first
+  # block free and each later block a point dearer — closing with what the
+  # Pool cost against the Budget and why it stopped where it did.
+  # CreatureSheet supplies every number; the stub only formats.
   pool_pop = lambda do |brk|
     return '' unless brk
     akey  = Rack::Utils.escape_html(brk[:attribute_key].to_s.upcase)
-    buy   = %(budget #{brk[:budget]} buys #{brk[:size]} <span class="cs-def-note">(cost #{brk[:cost]})</span>)
+    turns = brk[:turns]
+
+    # Budget: "3 martial x 2 = 6, + 18 WIS = 24, / 1 turn per round = 24".
+    # The division is shown even at 1 turn per round so the formula reads the
+    # same on every sheet and the Tier's role stays visible.
+    budget_line =
+      %(#{brk[:martial_ranks]} martial &times; 2 = #{brk[:martial_doubled]}, ) +
+      %(+ #{brk[:attribute]} #{akey} = #{brk[:before_turns]}, ) +
+      %(&divide; #{turns} #{turns == 1 ? 'turn' : 'turns'} per round = <strong>#{brk[:budget]}</strong>)
+
+    rows = Array(brk[:blocks]).map do |b|
+      dice  = b[:from] == b[:to] ? b[:from].to_s : %(#{b[:from]}&ndash;#{b[:to]})
+      price = b[:cost_each].zero? ? 'free' : b[:cost_each].to_s
+      %(<tr><td>#{dice}</td><td class="cs-num">#{price}</td><td class="cs-num">#{b[:spent]}</td></tr>)
+    end.join
+
+    # Why the Buy stopped: the next die's price against what is left over.
+    left = brk[:remaining].to_i
+    stop = %(Next die costs #{brk[:next_die_cost]} &mdash; #{left} budget left)
+
     %(<div class="cs-attr-pop cs-def-pop cs-pool-pop" role="tooltip">) +
       %(<div class="cs-attr-pop-title">Combat Pool</div>) +
-      %(<div class="cs-attr-pop-breakdown">) +
-      %(<div class="cs-pool-stage"><span class="cs-def-note">Budget</span> ) +
-      %((#{brk[:martial_ranks]} martial &times; 2 + #{brk[:attribute]} #{akey}) &divide; #{brk[:turns]} ) +
-      %(<span class="cs-def-note">turns per round</span> = <strong>#{brk[:budget]}</strong></div>) +
-      %(<div class="cs-pool-stage"><span class="cs-def-note">Pool</span> #{buy} = <strong>#{brk[:size]}</strong></div>) +
-      %(</div></div>)
+      %(<div class="cs-attr-pop-breakdown"><span class="cs-def-note">Budget</span> #{budget_line}</div>) +
+      %(<table class="cs-attr-pop-table cs-pool-table">) +
+      %(<thead><tr><th>Dice</th><th class="cs-num">Each</th><th class="cs-num">Cost</th></tr></thead>) +
+      %(<tbody>#{rows}) +
+      %(<tr class="cs-pool-total"><th>#{brk[:size]} dice</th><td></td>) +
+      %(<td class="cs-num">#{brk[:cost]} of #{brk[:budget]}</td></tr></tbody></table>) +
+      %(<div class="cs-pool-stop cs-def-note">#{stop}</div>) +
+      %(</div>)
   end
 %>
 
