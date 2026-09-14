@@ -47,7 +47,8 @@ get '/compendium' do
   when 'classes'
     @classes_list = ClassList.rows
   when COMMON_COVERAGE_KEY
-    @coverage = concepts
+    # Same ordering as the nav: chapters first, then everything else.
+    @coverage = CommonDocs.in_nav_order
   else
     if @view.start_with?(COMMON_VIEW_PREFIX)
       render_common_concept(@view.delete_prefix(COMMON_VIEW_PREFIX), :dm)

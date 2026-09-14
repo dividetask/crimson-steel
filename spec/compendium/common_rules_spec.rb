@@ -208,6 +208,14 @@ RSpec.describe 'Compendium Common Rules', type: :request do
       expect(body).to include('?view=common:equipment')
     end
 
+    it 'orders the Common Rules group by chapter, then the unnumbered concepts' do
+      expect(CommonDocs.in_nav_order.map(&:chapter)).to eq([1, 2, 3, 4] + [nil] * 8)
+      body = visit('/compendium').body
+      # equipment carries no chapter, so it sorts below every chapter concept.
+      expect(body.index('?view=common:equipment'))
+        .to be > body.index('?view=common:conditions')
+    end
+
     it 'renders the whole merged document — player prose and implementer rules' do
       body = visit('/compendium?view=common:dice_resolution').body
       expect(body).to include(IMPLEMENTER_ONLY)
@@ -257,6 +265,20 @@ RSpec.describe 'Compendium Common Rules', type: :request do
       expect(body).to include('?view=magical_tier', '?view=dice_resolution',
                               '?view=check_resolution', '?view=conditions')
       expect(body.index('?view=dice_resolution')).to be < body.index('?view=check_resolution')
+    end
+
+    it 'never puts an unnumbered entry between two numbered chapters' do
+      body = visit('/compendium').body
+      last_chapter = body.index("?view=#{CommonDocs.chapters.last.key}")
+      expect(body.index('?view=spells')).to  be > last_chapter
+      expect(body.index('?view=classes')).to be > last_chapter
+    end
+
+    it 'puts the Glossary last, below the unnumbered entries, with no chapter number' do
+      body = visit('/compendium').body
+      expect(body.index('?view=glossary')).to be > body.index('?view=spells')
+      expect(body.index('?view=glossary')).to be > body.index('?view=classes')
+      expect(CommonDocs.concepts.map(&:key)).not_to include('glossary')
     end
 
     it 'renders a chapter with the player prose only' do

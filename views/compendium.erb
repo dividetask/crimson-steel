@@ -1,5 +1,4 @@
 <%
-  concepts = CommonDocs.concepts
   chapters = CommonDocs.chapters
   dupes    = CommonDocs.duplicate_chapters
 
@@ -11,15 +10,16 @@
     { key: c.key, label: c.chapter_title, chapter: c.chapter,
       href: "/compendium?view=#{c.key}", dupe: dupes.include?(c.chapter) }
   end
-  # The first chapter is pinned above the Glossary; the rest follow the
-  # Glossary / Spells / Classes entries in chapter order.
-  first, rest = chapter_items[0, 1], chapter_items[1..] || []
-  nav_items   = first + [glossary_item, spells_item, classes_item] + rest
+  # Numbered entries never interleave with unnumbered ones: the chapters run
+  # in order, then the unnumbered entries, then the Glossary — which is
+  # always last and never carries a chapter number.
+  nav_items = chapter_items + [spells_item, classes_item] + [glossary_item]
 
   # DM-only. Every concept folder under docs/common/ gets a page whether or
   # not it is finished — a half-written concept shows up as a gap rather
-  # than silently not existing.
-  common_items = dm_view? ? concepts.map do |c|
+  # than silently not existing. Same ordering rule: chapters first, then the
+  # concepts that are not in the player's manual.
+  common_items = dm_view? ? CommonDocs.in_nav_order.map do |c|
     { key: "common:#{c.key}", label: c.title, chapter: c.chapter,
       href: "/compendium?view=common:#{c.key}", dupe: c.chapter && dupes.include?(c.chapter) }
   end : []

@@ -108,6 +108,15 @@ module CommonDocs
     concepts.select(&:chapter?).sort_by { |c| [c.chapter, c.key] }
   end
 
+  # Nav order for the concept list: numbered concepts first, in chapter
+  # order, then the unnumbered ones alphabetically. Numbered and unnumbered
+  # entries never interleave — a gap in the numbering should read as a gap,
+  # not as an unnumbered entry that happens to sort between two chapters.
+  def in_nav_order
+    numbered, unnumbered = concepts.partition(&:chapter?)
+    numbered.sort_by { |c| [c.chapter, c.key] } + unnumbered.sort_by(&:title)
+  end
+
   # Chapter numbers claimed by more than one concept. Rendered as a
   # warning badge in the nav rather than silently resolved.
   def duplicate_chapters
