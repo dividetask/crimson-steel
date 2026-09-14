@@ -42,9 +42,8 @@ RSpec.describe 'CreatureSheet Combat Pool' do
     expect(breakdown[:cost]).to eq(Encounter::CombatPool.cost_to_buy(breakdown[:size], breakdown[:step]))
   end
 
-  it 'shows the Budget stage its own running values rather than just the answer' do
-    expect(breakdown[:martial_doubled]).to eq(breakdown[:martial_ranks] * 2)
-    expect(breakdown[:before_turns]).to eq(breakdown[:martial_doubled] + breakdown[:attribute])
+  it 'carries the sum before the division, so the Budget can split over two lines' do
+    expect(breakdown[:before_turns]).to eq((breakdown[:martial_ranks] * 2) + breakdown[:attribute])
     expect(breakdown[:budget]).to eq(breakdown[:before_turns] / breakdown[:turns])
   end
 

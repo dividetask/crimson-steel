@@ -91,13 +91,15 @@
     akey  = Rack::Utils.escape_html(brk[:attribute_key].to_s.upcase)
     turns = brk[:turns]
 
-    # Budget: "3 martial x 2 = 6, + 18 WIS = 24, / 1 turn per round = 24".
+    # Budget over two short lines — the sum, then the division — so neither
+    # wraps inside the popup:
+    #   3 martial x 2 + 18 WIS = 24
+    #   24 / 1 turn per round = 24 Budget
     # The division is shown even at 1 turn per round so the formula reads the
     # same on every sheet and the Tier's role stays visible.
-    budget_line =
-      %(#{brk[:martial_ranks]} martial &times; 2 = #{brk[:martial_doubled]}, ) +
-      %(+ #{brk[:attribute]} #{akey} = #{brk[:before_turns]}, ) +
-      %(&divide; #{turns} #{turns == 1 ? 'turn' : 'turns'} per round = <strong>#{brk[:budget]}</strong>)
+    budget_sum = %(#{brk[:martial_ranks]} martial &times; 2 + #{brk[:attribute]} #{akey} = #{brk[:before_turns]})
+    budget_div = %(#{brk[:before_turns]} &divide; #{turns} #{turns == 1 ? 'turn' : 'turns'} per round ) +
+                 %(= <strong>#{brk[:budget]}</strong> <span class="cs-def-note">Budget</span>)
 
     rows = Array(brk[:blocks]).map do |b|
       dice  = b[:from] == b[:to] ? b[:from].to_s : %(#{b[:from]}&ndash;#{b[:to]})
@@ -111,7 +113,8 @@
 
     %(<div class="cs-attr-pop cs-def-pop cs-pool-pop" role="tooltip">) +
       %(<div class="cs-attr-pop-title">Combat Pool</div>) +
-      %(<div class="cs-attr-pop-breakdown"><span class="cs-def-note">Budget</span> #{budget_line}</div>) +
+      %(<div class="cs-attr-pop-breakdown"><div class="cs-pool-line">#{budget_sum}</div>) +
+      %(<div class="cs-pool-line">#{budget_div}</div></div>) +
       %(<table class="cs-attr-pop-table cs-pool-table">) +
       %(<thead><tr><th>Dice</th><th class="cs-num">Each</th><th class="cs-num">Cost</th></tr></thead>) +
       %(<tbody>#{rows}) +

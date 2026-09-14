@@ -171,9 +171,9 @@ module CreatureSheet
     cost      = Encounter::CombatPool.cost_to_buy(size, step)
     { size: size, budget: budget, martial_ranks: martial,
       attribute_key: attr_key, attribute: attribute, turns: turns, step: step,
-      # The Budget's own two steps, so the popup can show its working rather
-      # than jumping from the inputs to the answer.
-      martial_doubled: martial * 2, before_turns: (martial * 2) + attribute,
+      # The sum before the Turns Per Round division, so the popup can split
+      # the Budget across two short lines instead of one that wraps.
+      before_turns: (martial * 2) + attribute,
       cost: cost, blocks: combat_pool_blocks(size, step),
       # What stopped the Buy where it did: the price of the next die, and the
       # Budget left over (too little to pay it).
