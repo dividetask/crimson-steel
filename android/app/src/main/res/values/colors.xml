@@ -2,4 +2,6 @@
 <resources>
     <color name="crimson_dark">#FF5A0E14</color>
     <color name="steel">#FFD6DCE0</color>
+    <!-- Adaptive icon background (only visible if the foreground layer ever fails to load). -->
+    <color name="ic_launcher_background">#FF2A2466</color>
 </resources>
