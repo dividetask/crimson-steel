@@ -1,0 +1,11 @@
+# Gradle / Android Studio build state (never commit)
+.gradle/
+build/
+app/build/
+local.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+# NOTE: versions/ and build-logs/ are written and committed by build_branches.sh
