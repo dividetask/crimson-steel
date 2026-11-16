@@ -8,6 +8,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import com.dividetask.crimsonsteel.data.Attribute
 import com.dividetask.crimsonsteel.data.Character
+import com.dividetask.crimsonsteel.data.Game
 import com.dividetask.crimsonsteel.dice.RollRequest
 
 /** Character sheet: vitals, Attributes (Check + Save), Skills, Abilities. Tap any roll to roll it. */
@@ -22,7 +23,7 @@ object SheetScreen {
         val v = c.vitals
         val vitals = Ui.horizontal(ctx)
         vitals.addView(stat(ctx, "HP", "${v.hp}/${v.hpMax}"), statParams(ctx))
-        vitals.addView(stat(ctx, "Mana", "${v.mana}/${v.manaMax}"), statParams(ctx))
+        vitals.addView(stat(ctx, "Mana", "${Game.turn.mana}/${v.manaMax}"), statParams(ctx))
         vitals.addView(stat(ctx, "Toxicity", "${v.toxicity}/${v.toxicityThreshold}"), statParams(ctx, last = true))
         col.addView(vitals, Ui.matchWidth(Ui.dp(ctx, 10)))
         val defense = Ui.horizontal(ctx)

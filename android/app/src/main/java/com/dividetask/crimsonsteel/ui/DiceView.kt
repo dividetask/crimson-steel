@@ -178,28 +178,7 @@ class DiceView(context: Context) : View(context) {
         canvas.translate(cx, cy)
         canvas.rotate(angle)
 
-        // d10 silhouette (pentagonal trapezohedron seen from above a vertex).
-        outline.reset()
-        outline.moveTo(0f, -r)
-        outline.lineTo(r * 0.97f, -r * 0.2f)
-        outline.lineTo(r * 0.62f, r * 0.72f)
-        outline.lineTo(0f, r)
-        outline.lineTo(-r * 0.62f, r * 0.72f)
-        outline.lineTo(-r * 0.97f, -r * 0.2f)
-        outline.close()
-
-        // Front kite face, where the number sits.
-        face.reset()
-        face.moveTo(0f, -r)
-        face.lineTo(r * 0.55f, r * 0.22f)
-        face.lineTo(0f, r * 0.52f)
-        face.lineTo(-r * 0.55f, r * 0.22f)
-        face.close()
-
-        edges.reset()
-        edges.moveTo(r * 0.55f, r * 0.22f); edges.lineTo(r * 0.97f, -r * 0.2f)
-        edges.moveTo(-r * 0.55f, r * 0.22f); edges.lineTo(-r * 0.97f, -r * 0.2f)
-        edges.moveTo(0f, r * 0.52f); edges.lineTo(0f, r)
+        D10Shape.build(r, outline, face, edges)
 
         val base = if (settled) stateColor(value) else Ui.DIE_ROLLING
         bodyPaint.color = shade(base, 0.82f)
@@ -236,4 +215,32 @@ class DiceView(context: Context) : View(context) {
     private fun shade(color: Int, f: Float): Int = Color.rgb(
         (Color.red(color) * f).toInt(), (Color.green(color) * f).toInt(), (Color.blue(color) * f).toInt(),
     )
+}
+
+/** d10 geometry shared by the rolling dice and the Combat Pool row. Centered on (0, 0), radius [r]. */
+object D10Shape {
+    fun build(r: Float, outline: Path, face: Path, edges: Path) {
+        // Silhouette (pentagonal trapezohedron seen from above a vertex).
+        outline.reset()
+        outline.moveTo(0f, -r)
+        outline.lineTo(r * 0.97f, -r * 0.2f)
+        outline.lineTo(r * 0.62f, r * 0.72f)
+        outline.lineTo(0f, r)
+        outline.lineTo(-r * 0.62f, r * 0.72f)
+        outline.lineTo(-r * 0.97f, -r * 0.2f)
+        outline.close()
+
+        // Front kite face, where the number sits.
+        face.reset()
+        face.moveTo(0f, -r)
+        face.lineTo(r * 0.55f, r * 0.22f)
+        face.lineTo(0f, r * 0.52f)
+        face.lineTo(-r * 0.55f, r * 0.22f)
+        face.close()
+
+        edges.reset()
+        edges.moveTo(r * 0.55f, r * 0.22f); edges.lineTo(r * 0.97f, -r * 0.2f)
+        edges.moveTo(-r * 0.55f, r * 0.22f); edges.lineTo(-r * 0.97f, -r * 0.2f)
+        edges.moveTo(0f, r * 0.52f); edges.lineTo(0f, r)
+    }
 }

@@ -21,6 +21,7 @@ object Ui {
     const val TEXT_DIM = 0xFF9CA3AF.toInt()
     const val TEXT_FAINT = 0xFF6B7280.toInt()
     const val GOLD = 0xFFD4A84A.toInt()
+    const val AMBER = 0xFFF59E0B.toInt()
 
     // Die colors match public/style.css (.die.fail / .success / .crit).
     const val DIE_FAIL = 0xFFEF4444.toInt()

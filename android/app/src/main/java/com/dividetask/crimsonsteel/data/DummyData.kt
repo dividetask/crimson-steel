@@ -1,6 +1,9 @@
 package com.dividetask.crimsonsteel.data
 
+import com.dividetask.crimsonsteel.dice.ActionCategory
+import com.dividetask.crimsonsteel.dice.CombatRules
 import com.dividetask.crimsonsteel.dice.DiceRules
+import com.dividetask.crimsonsteel.dice.RollInputs
 import com.dividetask.crimsonsteel.dice.RollRequest
 
 /*
@@ -21,6 +24,15 @@ data class Skill(val key: String, val name: String, val attribute: Attribute, va
 
 data class Ability(val name: String, val description: String)
 
+/** An equipped weapon. Speed is the weapon category's flat Combat Pool surcharge. */
+data class Weapon(val name: String, val category: String, val speed: Int)
+
+/** A known Spell. [skillKey] is the casting skill whose Dice Cap bounds the dice. */
+data class Spell(val name: String, val tier: Int, val skillKey: String, val category: ActionCategory = ActionCategory.MAIN)
+
+/** An Ability usable on your turn (has a free / bonus / main activation), e.g. Rage. */
+data class ActiveAbility(val name: String, val category: ActionCategory, val manaCost: Int, val summary: String)
+
 data class Vitals(
     val hp: Int, val hpMax: Int,
     val mana: Int, val manaMax: Int,
@@ -39,7 +51,22 @@ data class Character(
     val vitals: Vitals,
     val speed: Int,
     val abilities: List<Ability>,
+    val weapons: List<Weapon> = emptyList(),
+    val spells: List<Spell> = emptyList(),
+    val activeAbilities: List<ActiveAbility> = emptyList(),
 ) {
+    fun skill(key: String): Skill? = skills.find { it.key == key }
+
+    /** Dice Cap + bonus for a skill key (untrained if the character has no entry). */
+    fun skillInputs(key: String): RollInputs {
+        val s = skill(key) ?: return DiceRules.skill(0, attributes.getValue(Attribute.DEX))
+        return DiceRules.skill(s.ranks, attributes.getValue(s.attribute))
+    }
+
+    /** Combat Pool size (Combat Pool Attribute is Wisdom). */
+    val combatPool: Int
+        get() = CombatRules.combatPool(skill("martial")?.ranks ?: 0, attributes.getValue(Attribute.WIS), tier)
+
     fun attributeCheck(a: Attribute) =
         RollRequest("${a.label} check", DiceRules.attributeCheck(attributes.getValue(a)))
 
@@ -80,7 +107,7 @@ object DummyData {
     val character = Character(
         name = "Seren Ashvale",
         player = "Player",
-        summary = "Human Ranger 3",
+        summary = "Human Ranger 2 / Barbarian 1",
         tier = 1,
         attributes = mapOf(
             Attribute.STR to 14, Attribute.DEX to 18, Attribute.CON to 13,
@@ -139,6 +166,22 @@ object DummyData {
             Ability("Favored Terrain (Forest)", "Placeholder: bonus to Stealth, Survival and Perception in forests."),
             Ability("Hunter's Mark", "Placeholder: mark one creature you can see; your attacks against it gain a bonus."),
             Ability("Wild Empathy", "Placeholder: improve the attitude of an animal, as Persuasion for people."),
+            Ability("Rage", "Spend 1 mana to enter a rage for 10 turns plus 1 per class level (free action)."),
+        ),
+        // Weapon Speeds from equipment_config.yaml Weapon Categories (Ranged 2, One Handed 2); Unarmed is 0.
+        weapons = listOf(
+            Weapon("Longbow", "Ranged", 2),
+            Weapon("Short sword", "One Handed", 2),
+            Weapon("Unarmed", "Unarmed", 0),
+        ),
+        // Spells from docs/common/abilities/spells.yaml, cast with Nature.
+        spells = listOf(
+            Spell("Spark Shower", 0, "nature"),
+            Spell("Heal Petty Wounds", 0, "nature"),
+            Spell("Entangle", 1, "nature"),
+        ),
+        activeAbilities = listOf(
+            ActiveAbility("Rage", ActionCategory.FREE, 1, "Spend 1 mana, gain the rage condition."),
         ),
     )
 

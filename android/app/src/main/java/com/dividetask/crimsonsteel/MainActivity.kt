@@ -9,6 +9,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.dividetask.crimsonsteel.data.DummyData
+import com.dividetask.crimsonsteel.data.Game
 import com.dividetask.crimsonsteel.ui.InitiativeScreen
 import com.dividetask.crimsonsteel.ui.NotesScreen
 import com.dividetask.crimsonsteel.ui.SceneScreen
@@ -36,7 +37,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         savedInstanceState?.getString(KEY_TAB)?.let { name -> Tab.entries.find { it.name == name }?.let { current = it } }
 
-        val character = DummyData.character
+        val character = Game.character
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Ui.BG)
@@ -85,8 +86,8 @@ class MainActivity : Activity() {
             tv.background = if (on) Ui.rounded(Ui.SURFACE_HI, 0f) else null
         }
         val view: View = when (tab) {
-            Tab.SHEET -> SheetScreen.build(this, DummyData.character)
-            Tab.INITIATIVE -> InitiativeScreen.build(this, DummyData.initiative)
+            Tab.SHEET -> SheetScreen.build(this, Game.character)
+            Tab.INITIATIVE -> InitiativeScreen(this, Game.character, Game.turn).view
             Tab.NOTES -> NotesScreen.build(this, DummyData.notes)
             Tab.SCENE -> SceneScreen.build(this, DummyData.scene)
         }
