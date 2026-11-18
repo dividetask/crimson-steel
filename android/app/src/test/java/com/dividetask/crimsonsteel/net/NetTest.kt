@@ -1,6 +1,7 @@
 package com.dividetask.crimsonsteel.net
 
 import com.dividetask.crimsonsteel.data.Initiative
+import com.dividetask.crimsonsteel.data.SkillView
 import com.dividetask.crimsonsteel.data.Sheet
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -61,7 +62,10 @@ class NetTest {
                {"key":"attack:Rapier","label":"Attack: Rapier","kind":"attack","category":"main","detail":"",
                 "dice":[{"dice":2,"pool_cost":4,"affordable":true}],"pool_cost":null,"mana_cost":0,"disabled":false},
                {"key":"end_turn","label":"End Turn","kind":"end_turn","category":"free","detail":"","dice":[],
-                "pool_cost":0,"mana_cost":0,"disabled":false}],
+                "pool_cost":0,"mana_cost":0,"disabled":false},
+               {"key":"cast:Fire Dart","label":"Cast: Fire Dart","name":"Fire Dart","kind":"cast","tier":0,
+                "skill":{"name":"Evocation","dice":7,"bonus":2},"speed":0,"category":"main","detail":"1 mana",
+                "dice":[{"dice":4,"pool_cost":4,"affordable":true}],"pool_cost":null,"mana_cost":1,"disabled":false}],
              "requests":[{"id":"ab12","key":"move","label":"Move","category":"main","dice":null,"pool_cost":4,"mana_cost":0}]}
         """.trimIndent())
         val i = Initiative.from(j)
@@ -70,5 +74,10 @@ class NetTest {
         assertNull(i.options[0].poolCost)
         assertTrue(i.options[1].isEndTurn)
         assertEquals("Move (pool 4)", i.requests[0].summary)
+        val dart = i.options[2]
+        assertEquals("Cast Fire Dart", dart.actionText)
+        assertEquals(0, dart.tier)
+        assertEquals(SkillView("Evocation", 7, 2), dart.skill)
+        assertEquals("Attack with Rapier", i.options[0].copy(name = "Rapier").actionText)
     }
 }

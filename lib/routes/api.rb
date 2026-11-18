@@ -101,6 +101,12 @@ helpers do
     end
   end
 
+  # The skill a turn option rolls, for the app: its name, Dice Cap and bonus
+  # (the Competency Modifier's value, 0 when there is none).
+  def api_skill_view(name, dice_cap, competency)
+    { name: name.to_s, dice: dice_cap.to_i, bonus: (competency ? competency[1].to_i : 0) }
+  end
+
   def api_dice_choices(range, pool, speed: 0)
     range.map { |n| { dice: n, pool_cost: speed + n, affordable: speed + n <= pool } }
   end
@@ -116,20 +122,22 @@ helpers do
     mana = combatant_mana_left(combatant[:creature_id], acc)
     can_act = (es.creature_can_act?(combatant[:id]) rescue true)
     out = []
-    end_turn = { key: 'end_turn', label: 'End Turn', kind: 'end_turn', category: 'free',
+    end_turn = { key: 'end_turn', label: 'End Turn', name: 'End Turn', kind: 'end_turn', category: 'free',
                  detail: 'Finish your turn.', dice: [], pool_cost: 0, mana_cost: 0, disabled: false }
     return [end_turn] unless can_act && acc
 
     attack_weapons(combatant, acc).each do |w|
       speed = [w[:speed].to_i, 0].max
       cap   = w[:dice_cap].to_i
-      out << { key: "attack:#{w[:item_type]}", label: "Attack: #{w[:display_name]}", kind: 'attack', category: 'main',
-               detail: "Speed #{speed} + 1 per die · up to #{cap} dice (Martial)",
+      out << { key: "attack:#{w[:item_type]}", label: "Attack: #{w[:display_name]}", name: w[:display_name].to_s,
+               kind: 'attack', category: 'main', tier: nil,
+               skill: api_skill_view('Martial', cap, w[:competency]), speed: speed,
+               detail: "Speed #{speed} + 1 per die",
                dice: api_dice_choices(2..cap, pool, speed: speed), pool_cost: nil, mana_cost: 0 }
     end
 
     move = Encounter::Config.move_cost
-    out << { key: 'move', label: 'Move', kind: 'move', category: 'main',
+    out << { key: 'move', label: 'Move', name: 'Move', kind: 'move', category: 'main',
              detail: "Costs #{move} Combat Pool dice", dice: [], pool_cost: move, mana_cost: 0 }
 
     castable = lambda do |sp, kind, prefix|
@@ -137,12 +145,16 @@ helpers do
       cap    = sp[:dice_cap].to_i
       rolled = sp[:requires_roll] || sp[:reservoir]
       skill  = Encounter::Special.pretty_skill(sp[:skill].to_s)
-      detail = +"Tier #{sp[:tier]}"
-      detail << " · #{sp[:mana_cost]} mana" if sp[:mana_cost].to_i.positive?
-      detail << (rolled ? " · 1 per die · up to #{cap} dice (#{skill})" : " · costs #{min} Combat Pool dice")
-      detail << " · ×#{sp[:quantity]}" if sp[:quantity].to_i > 1
-      opt = { key: "#{prefix}:#{sp[:key]}", label: "#{kind == 'item' ? 'Use' : 'Cast'}: #{sp[:display]}", kind: kind,
-              category: api_category_for_cost(min), detail: detail,
+      # The Tier is not written out: the app colours the spell name by Tier
+      # (ui_conventions.md → Tier Colors), so it is sent as `tier`.
+      parts = []
+      parts << "#{sp[:mana_cost]} mana" if sp[:mana_cost].to_i.positive?
+      parts << (rolled ? '1 Combat Pool die per die rolled' : "costs #{min} Combat Pool dice")
+      parts << "\u00d7#{sp[:quantity]} carried" if sp[:quantity].to_i > 1
+      opt = { key: "#{prefix}:#{sp[:key]}", label: "#{kind == 'item' ? 'Use' : 'Cast'}: #{sp[:display]}",
+              name: sp[:display].to_s, kind: kind, tier: sp[:tier].to_i,
+              skill: (rolled ? api_skill_view(skill, cap, sp[:competency]) : nil), speed: 0,
+              category: api_category_for_cost(min), detail: parts.join(" \u00b7 "),
               dice: rolled ? api_dice_choices(min..[cap, min - 1].max, pool) : [],
               pool_cost: rolled ? nil : min, mana_cost: sp[:mana_cost].to_i }
       opt[:disabled_reason] = 'not enough Mana' unless sp[:affordable]
@@ -157,7 +169,7 @@ helpers do
 
     Array((es.special_options(combatant[:id]) rescue [])).each do |s|
       cost = s[:action_cost].to_i
-      opt = { key: "special:#{s[:name]}", label: s[:label].to_s, kind: 'special', category: s[:activation].to_s,
+      opt = { key: "special:#{s[:name]}", label: s[:label].to_s, name: s[:label].to_s, kind: 'special', category: s[:activation].to_s,
               detail: s[:summary].to_s, mana_cost: s[:mana_cost].to_i,
               dice: s[:channeled] ? api_dice_choices(cost..[pool, cost].max, pool) : [],
               pool_cost: s[:channeled] ? nil : cost }
@@ -167,7 +179,7 @@ helpers do
     end
 
     Array((active_persistent_spells(combatant) rescue [])).each do |e|
-      out << { key: "active:#{e[:spell_name]}", label: "#{e[:spell_name]} (conc)", kind: 'active_spell', category: 'main',
+      out << { key: "active:#{e[:spell_name]}", label: "#{e[:spell_name]} (conc)", name: "#{e[:spell_name]} (conc)", kind: 'active_spell', category: 'main',
                detail: 'Attack, retarget, refill or end this Spell — the DM picks the details.',
                dice: [], pool_cost: 0, mana_cost: 0 }
     end

@@ -127,7 +127,20 @@ RSpec.describe 'Android app JSON API', type: :request do
       expect(keys).to include('move', 'end_turn', 'attack:Unarmed')
       attack = j['options'].find { |o| o['key'] == 'attack:Unarmed' }
       expect(attack['dice'].first['dice']).to eq(2)
+      # The skill it rolls, with its Dice Cap and bonus, for the dice picker.
+      expect(attack['skill']).to include('name' => 'Martial')
+      expect(attack['skill']['dice']).to eq(attack['dice'].last['dice'])
+      expect(attack['name']).to eq('Unarmed')
       expect(j['me']['pool']['remaining']).to eq(j['me']['pool']['max'])
+    end
+
+    it 'sends a cast option its Tier (for the name colour) instead of writing it' do
+      start_combat_on_my_turn!
+      cast = api_get('/api/initiative')['options'].find { |o| o['kind'] == 'cast' }
+      skip 'the assigned PC knows no spells' unless cast
+      expect(cast['tier']).to be_a(Integer)
+      expect(cast['detail']).not_to include('Tier')
+      expect(cast['name']).not_to start_with('Cast')
     end
 
     it 'offers no options when it is not their turn' do

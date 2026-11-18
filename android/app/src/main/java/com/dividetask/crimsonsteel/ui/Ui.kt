@@ -23,6 +23,17 @@ object Ui {
     const val GOLD = 0xFFD4A84A.toInt()
     const val AMBER = 0xFFF59E0B.toInt()
 
+    /** Combat Pool dice the selected action would spend. */
+    const val POOL_SELECTED = 0xFFFACC15.toInt()
+
+    /** Tier Colors (docs/common/ui/ui_conventions.md): red, orange, yellow, green, blue, purple — shades for a dark background. */
+    private val TIER_COLORS = intArrayOf(
+        0xFFEF5350.toInt(), 0xFFFF9800.toInt(), 0xFFFFEB3B.toInt(),
+        0xFF66BB6A.toInt(), 0xFF42A5F5.toInt(), 0xFFAB47BC.toInt(),
+    )
+
+    fun tierColor(tier: Int): Int = TIER_COLORS.getOrElse(tier) { TEXT }
+
     // Die colors match public/style.css (.die.fail / .success / .crit).
     const val DIE_FAIL = 0xFFEF4444.toInt()
     const val DIE_SUCCESS = 0xFF22C55E.toInt()

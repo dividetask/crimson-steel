@@ -155,9 +155,19 @@ enum class ActionCategory(val key: String, val label: String) {
 
 data class DiceChoice(val dice: Int, val poolCost: Int, val affordable: Boolean)
 
+/** The skill a turn option rolls: e.g. Nature, 6 dice, +2. */
+data class SkillView(val name: String, val dice: Int, val bonus: Int)
+
 data class TurnOption(
     val key: String,
     val label: String,
+    /** The action's own name without a verb (e.g. "Fire Dart", "Longbow"). */
+    val name: String,
+    /** Spell Tier for casts and items (the name is coloured by it); null otherwise. */
+    val tier: Int?,
+    val skill: SkillView?,
+    /** Flat Combat Pool surcharge on top of one die per die (a weapon's Speed). */
+    val speed: Int,
     val kind: String,
     val category: ActionCategory,
     val detail: String,
@@ -167,6 +177,16 @@ data class TurnOption(
     val disabledReason: String?,
 ) {
     val isEndTurn: Boolean get() = kind == "end_turn"
+
+    /** What the confirm button says: "Cast Fire Dart", "Attack with Longbow", "Move"… */
+    val actionText: String
+        get() = when (kind) {
+            "cast" -> "Cast $name"
+            "attack" -> "Attack with $name"
+            "item", "special" -> "Use $name"
+            "end_turn" -> "End my turn"
+            else -> name
+        }
 }
 
 data class TurnRequest(
@@ -225,6 +245,12 @@ data class Initiative(
                     TurnOption(
                         key = o.optString("key"),
                         label = o.optString("label"),
+                        name = o.optStringOrNull("name") ?: o.optString("label"),
+                        tier = o.optIntOrNull("tier"),
+                        skill = o.optJSONObject("skill")?.let {
+                            SkillView(it.optString("name"), it.optInt("dice"), it.optInt("bonus"))
+                        },
+                        speed = o.optInt("speed"),
                         kind = o.optString("kind"),
                         category = ActionCategory.of(o.optString("category")),
                         detail = o.optString("detail"),

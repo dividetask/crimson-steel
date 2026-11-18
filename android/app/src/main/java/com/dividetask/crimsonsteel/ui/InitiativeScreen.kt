@@ -77,7 +77,8 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         top.addView(Ui.text(ctx, "$left / ${pool.max}", 18f,
             if (left > 0) PoolView.colorFor(left, pool.max) else Ui.TEXT_DIM, bold = true))
         card.addView(top, Ui.matchWidth())
-        card.addView(PoolView(ctx).apply { max = pool.max; remaining = left }, Ui.matchWidth(Ui.dp(ctx, 6)))
+        card.addView(PoolView(ctx).apply { max = pool.max; remaining = left; highlight = selectedCost(d) },
+            Ui.matchWidth(Ui.dp(ctx, 6)))
         val main = mainLeft(d)?.let { "$it / 2" } ?: "—"
         val mana = d.mana?.let { "${manaLeft(d)} / ${it.max}" } ?: "—"
         card.addView(Ui.text(ctx, "Main Actions $main  ·  Mana $mana", 13f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 6)))
@@ -134,7 +135,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
     private fun actionMenu(col: LinearLayout, d: Initiative) {
         if (d.requests.isNotEmpty()) {
-            col.addView(Ui.sectionHeader(ctx, "Requested this turn"))
+            col.addView(Ui.sectionHeader(ctx, "Sent to the DM this turn"))
             val card = Ui.card(ctx)
             for (r in d.requests) card.addView(Ui.text(ctx, "• ${r.summary}", 14f, Ui.TEXT), Ui.matchWidth(Ui.dp(ctx, 2)))
             card.addView(Ui.text(ctx, "Shown on the DM's turn panel. The DM resolves each one.", 12f, Ui.TEXT_FAINT),
@@ -180,6 +181,16 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
     private fun affordable(d: Initiative, cost: Int, serverSays: Boolean) = serverSays && cost <= poolLeft(d)
 
+    /** Combat Pool the selected option would spend with the selected dice (0 when nothing is chosen yet). */
+    private fun selectedCost(d: Initiative): Int {
+        val opt = d.options.find { it.key == selectedKey } ?: return 0
+        return if (opt.dice.isEmpty()) opt.poolCost ?: 0
+        else opt.dice.find { it.dice == selectedDice }?.poolCost ?: 0
+    }
+
+    /** "Nature: 6 dice, +2" — the skill the action rolls. */
+    private fun skillLine(opt: TurnOption): String? = opt.skill?.let { "${it.name}: ${it.dice} dice, ${Ui.signed(it.bonus)}" }
+
     private fun optionCard(d: Initiative, opt: TurnOption): View {
         val isSelected = opt.key == selectedKey
         val baseBlocker = blocker(d, opt, null)
@@ -189,10 +200,17 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                 if (isSelected) Ui.GOLD else null, Ui.dp(ctx, 1),
             )
         }
+        // Spells and spell items: the name in its Tier colour, no "Tier n" text.
+        val nameColor = when {
+            baseBlocker != null -> Ui.TEXT_FAINT
+            opt.tier != null -> Ui.tierColor(opt.tier)
+            else -> Ui.TEXT
+        }
         val title = Ui.horizontal(ctx)
-        title.addView(Ui.text(ctx, opt.label, 16f, if (baseBlocker == null) Ui.TEXT else Ui.TEXT_FAINT, bold = true), Ui.weighted())
+        title.addView(Ui.text(ctx, opt.name, 16f, nameColor, bold = true), Ui.weighted())
         if (opt.manaCost > 0) title.addView(Ui.text(ctx, "${opt.manaCost} mana", 12f, Ui.TEXT_DIM))
         card.addView(title, Ui.matchWidth())
+        skillLine(opt)?.let { card.addView(Ui.text(ctx, it, 13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 2))) }
         if (opt.detail.isNotBlank()) card.addView(Ui.text(ctx, opt.detail, 12f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 2)))
         if (baseBlocker != null && !isSelected) {
             card.addView(Ui.text(ctx, baseBlocker, 12f, Ui.DIE_FAIL), Ui.matchWidth(Ui.dp(ctx, 2)))
@@ -204,54 +222,66 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         }
 
         if (isSelected) {
+            val cost = selectedCost(d)
+            val left = poolLeft(d).coerceAtLeast(0)
+            // Exactly what is in the Combat Pool right now, with what this choice would spend in yellow.
+            card.addView(Ui.text(ctx, "Combat Pool: $left dice" + if (cost > 0) " \u2014 this uses $cost" else "",
+                13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 10)))
+            d.pool?.let { pool ->
+                card.addView(PoolView(ctx).apply { max = pool.max; remaining = left; highlight = cost },
+                    Ui.matchWidth(Ui.dp(ctx, 4)))
+            }
             if (opt.dice.isNotEmpty()) {
                 card.addView(Ui.text(ctx, "How many dice?", 13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 10)))
-                card.addView(diceButtons(d, opt), Ui.matchWidth(Ui.dp(ctx, 4)))
+                card.addView(diceStrip(d, opt), Ui.matchWidth(Ui.dp(ctx, 4)))
+                if (opt.speed > 0 && selectedDice != null) {
+                    card.addView(Ui.text(ctx, "$selectedDice dice + Speed ${opt.speed} = $cost Combat Pool dice", 12f, Ui.TEXT_DIM),
+                        Ui.matchWidth(Ui.dp(ctx, 4)))
+                }
             }
             val needsDice = opt.dice.isNotEmpty() && selectedDice == null
             val blocker = blocker(d, opt, selectedDice)
-            val cost = if (opt.dice.isEmpty()) opt.poolCost ?: 0 else opt.dice.find { it.dice == selectedDice }?.poolCost ?: 0
-            val declare = Button(ctx).apply {
-                text = when {
-                    opt.isEndTurn -> "Ask to end my turn"
-                    needsDice -> "Choose dice"
-                    else -> "Request — pool $cost"
-                }
+            val confirm = Button(ctx).apply {
+                text = if (needsDice) "Choose dice" else opt.actionText
                 isEnabled = blocker == null && !needsDice && !busy
                 setOnClickListener { request(opt) }
             }
             if (blocker != null && !needsDice) card.addView(Ui.text(ctx, blocker, 12f, Ui.DIE_FAIL), Ui.matchWidth(Ui.dp(ctx, 6)))
-            card.addView(declare, Ui.matchWidth(Ui.dp(ctx, 8)))
+            card.addView(confirm, Ui.matchWidth(Ui.dp(ctx, 8)))
+            card.addView(Ui.text(ctx, "Sent to the DM, who resolves it.", 11f, Ui.TEXT_FAINT), Ui.matchWidth(Ui.dp(ctx, 2)))
         }
         return card
     }
 
-    /** Dice-count buttons, five per row; counts the pool can't afford are disabled. */
-    private fun diceButtons(d: Initiative, opt: TurnOption): View {
-        val grid = Ui.vertical(ctx)
-        var row: LinearLayout? = null
-        opt.dice.forEachIndexed { i, choice ->
-            if (i % 5 == 0) {
-                row = Ui.horizontal(ctx)
-                grid.addView(row, Ui.matchWidth(Ui.dp(ctx, 4)))
-            }
-            val ok = affordable(d, choice.poolCost, choice.affordable)
-            val on = choice.dice == selectedDice
-            val cell = Ui.vertical(ctx).apply {
-                gravity = Gravity.CENTER_HORIZONTAL
-                setPadding(0, Ui.dp(ctx, 6), 0, Ui.dp(ctx, 6))
-                background = Ui.rounded(
-                    when { on -> Ui.CRIMSON; ok -> Ui.BG; else -> Ui.SURFACE },
-                    Ui.dpf(ctx, 8f), if (on) Ui.GOLD else Ui.SURFACE_HI, Ui.dp(ctx, 1),
-                )
-                addView(Ui.text(ctx, "${choice.dice}", 17f, if (ok) Ui.TEXT else Ui.TEXT_FAINT, bold = true))
-                addView(Ui.text(ctx, "pool ${choice.poolCost}", 10f, if (ok) Ui.TEXT_DIM else Ui.TEXT_FAINT))
-            }
-            if (ok) Ui.makeTappable(cell, ctx) { selectedDice = choice.dice; render() }
-            row!!.addView(cell, Ui.weighted().apply { marginEnd = Ui.dp(ctx, 4) })
+    /**
+     * The dice picker: one die for each die below the action's minimum (always
+     * included), then one die button per count. Choosing a count lights every
+     * die up to it — choosing 6 lights the 5 dice to its left and the 6 button.
+     */
+    private fun diceStrip(d: Initiative, opt: TurnOption): View {
+        val first = opt.dice.first().dice
+        val chips = mutableListOf<View>()
+        val chosen = selectedDice ?: 0
+        for (n in 1 until first) {
+            chips += DieChip(ctx, null).apply { lit = n <= chosen }
         }
-        val leftover = (5 - opt.dice.size % 5) % 5
-        repeat(leftover) { row?.addView(View(ctx), Ui.weighted().apply { marginEnd = Ui.dp(ctx, 4) }) }
+        for (choice in opt.dice) {
+            val ok = affordable(d, choice.poolCost, choice.affordable)
+            chips += DieChip(ctx, choice.dice).apply {
+                lit = choice.dice <= chosen
+                available = ok
+                contentDescription = "${choice.dice} dice, ${choice.poolCost} Combat Pool"
+                if (ok) Ui.makeTappable(this, ctx) { selectedDice = choice.dice; render() }
+            }
+        }
+        val perRow = 10
+        val grid = Ui.vertical(ctx)
+        chips.chunked(perRow).forEach { rowChips ->
+            val row = Ui.horizontal(ctx)
+            rowChips.forEach { row.addView(it, Ui.weighted().apply { marginEnd = Ui.dp(ctx, 2) }) }
+            repeat(perRow - rowChips.size) { row.addView(View(ctx), Ui.weighted().apply { marginEnd = Ui.dp(ctx, 2) }) }
+            grid.addView(row, Ui.matchWidth(Ui.dp(ctx, 2)))
+        }
         return grid
     }
 
@@ -267,7 +297,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         }
         if (opt.isEndTurn) {
             AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("Ask the DM to end your turn?")
+                .setTitle("End your turn?")
                 .setPositiveButton("Ask") { _, _ -> send() }
                 .setNegativeButton("Cancel", null)
                 .show()
