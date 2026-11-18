@@ -22,34 +22,7 @@ interface CookieStore {
  * `crimson_device_id` cookie, which is saved and sent on every request. The
  * DM assigns this device a Character on the web Status page.
  */
-class Api(
-    val server: ServerInfo,
-    private val cookies: CookieStore,
-    /**
-     * Opens connections on a specific network (the Wi-Fi), so a VPN on the
-     * phone can't send LAN traffic down the tunnel. Null: the default route.
-     */
-    private val opener: ((java.net.URL) -> java.net.URLConnection)? = null,
-) {
-    /** Use [opener] until it is shown not to work (e.g. a VPN that forbids bypass) and the default route does. */
-    @Volatile private var bound = opener != null
-
-    /** Run [attempt]; if a Wi-Fi-bound connection fails, log it and retry once on the default route. */
-    private fun <T> withFallback(what: String, attempt: () -> T): T {
-        try {
-            return attempt()
-        } catch (e: java.io.IOException) {
-            if (e is ApiException || !bound) throw e
-            DebugLog.i(TAG, "$what over Wi-Fi failed (${DebugLog.describe(e)}); retrying on the phone's default route")
-            bound = false
-            try {
-                return attempt().also { DebugLog.i(TAG, "default route works; using it from now on") }
-            } catch (e2: java.io.IOException) {
-                bound = true
-                throw e2
-            }
-        }
-    }
+class Api(val server: ServerInfo, private val cookies: CookieStore) {
 
     /**
      * Polling repeats the same GETs every few seconds; by default a successful
@@ -58,18 +31,16 @@ class Api(
     var logEvery = false
     private val lastStatus = java.util.concurrent.ConcurrentHashMap<String, Int>()
 
-    fun get(path: String): JSONObject = withFallback("GET $path") { request("GET", path, null, null) }
+    fun get(path: String): JSONObject = request("GET", path, null, null)
 
     fun postJson(path: String, body: JSONObject = JSONObject()): JSONObject =
-        withFallback("POST $path") { request("POST", path, body.toString(), "application/json") }
+        request("POST", path, body.toString(), "application/json")
 
     /**
      * POST a form to one of the web routes (e.g. /inventory/equip). Those
      * answer with a redirect back to the sheet, which is not followed.
      */
-    fun postForm(path: String, fields: Map<String, String>) = withFallback("POST $path") { postFormOnce(path, fields) }
-
-    private fun postFormOnce(path: String, fields: Map<String, String>) {
+    fun postForm(path: String, fields: Map<String, String>) {
         val body = fields.entries.joinToString("&") {
             URLEncoder.encode(it.key, "UTF-8") + "=" + URLEncoder.encode(it.value, "UTF-8")
         }
@@ -82,7 +53,7 @@ class Api(
             DebugLog.i(TAG, "POST $path (form) -> $status in ${System.currentTimeMillis() - started}ms")
             if (status >= 400) throw ApiException(status, "request failed")
         } catch (e: java.io.IOException) {
-            if (e !is ApiException) DebugLog.e(TAG, "POST $path (form) to ${server.baseUrl}${if (bound) " (over Wi-Fi)" else ""} failed", e)
+            if (e !is ApiException) DebugLog.e(TAG, "POST $path (form) to ${server.baseUrl} failed", e)
             throw e
         } finally {
             conn.disconnect()
@@ -90,8 +61,7 @@ class Api(
     }
 
     private fun open(method: String, path: String, contentType: String?): HttpURLConnection {
-        val url = URI(server.baseUrl + path).toURL()
-        val conn = (if (bound) opener!!(url) else url.openConnection()) as HttpURLConnection
+        val conn = URI(server.baseUrl + path).toURL().openConnection() as HttpURLConnection
         conn.requestMethod = method
         conn.connectTimeout = 4000
         conn.readTimeout = 8000
@@ -126,7 +96,7 @@ class Api(
             lastStatus[path] = status
             return json
         } catch (e: java.io.IOException) {
-            if (e !is ApiException) DebugLog.e(TAG, "$method $path to ${server.baseUrl}${if (bound) " (over Wi-Fi)" else ""} failed", e)
+            if (e !is ApiException) DebugLog.e(TAG, "$method $path to ${server.baseUrl} failed", e)
             throw e
         } finally {
             conn.disconnect()

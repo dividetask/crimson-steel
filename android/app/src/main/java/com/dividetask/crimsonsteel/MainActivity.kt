@@ -103,8 +103,8 @@ class MainActivity : Activity() {
             r.onSuccess { onHello(it) }
              .onFailure {
                  val vpnHint = if (Session.vpnActive) {
-                     "\n\nThis phone has a VPN turned on. A VPN can stop the app reaching computers on your " +
-                         "Wi-Fi: turn the VPN off, or allow local network access in its settings, then try again."
+                     "\n\nThis phone has a VPN or firewall app turned on (for example NetGuard). If it blocks " +
+                         "Crimson Steel, allow the app in it, then try again."
                  } else ""
                  showMessage("No server found",
                      "Couldn't reach a Crimson Steel server on this Wi-Fi network. Check the server is running " +

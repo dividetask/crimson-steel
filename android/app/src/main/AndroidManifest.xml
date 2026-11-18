@@ -3,7 +3,7 @@
 
     <!-- Talks to the Crimson Steel server on the local Wi-Fi network. -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Find the Wi-Fi network so requests reach the LAN even when a VPN is on. -->
+    <!-- Detect a VPN / firewall app, to explain a failed connection. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application

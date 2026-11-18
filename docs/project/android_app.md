@@ -14,7 +14,7 @@ The app never asks for an IP address. It tries, in order:
 
 If all three fail the app shows *No server found* with **Search again** (and, when the phone has a VPN on, a note that the VPN may be in the way). If the connection drops later, it searches again by itself.
 
-**VPNs.** With a VPN running, Android sends ordinary traffic into the VPN tunnel, which usually can't reach `192.168.x.x` addresses at home — broadcast discovery still works, but the web request that follows fails. So the app opens every connection to the server (and the subnet scan) on the **Wi-Fi network directly** (`LocalNetwork`, `ACCESS_NETWORK_STATE` permission). If the VPN forbids that, the app logs it and retries once on the phone's default route; if that fails too, the player has to turn the VPN off or allow local-network access in the VPN's settings.
+**VPNs and firewall apps.** The app always uses the phone's normal network route and never routes around a VPN. Firewall apps such as NetGuard work as a VPN: Android sends every app's traffic into their tunnel (`tun0`), and they drop what the player has blocked. If Crimson Steel is blocked there, broadcast discovery may still get a reply — Android sends local broadcasts (`255.255.255.255`) straight out on Wi-Fi, outside the tunnel — but the web connection that follows is blocked, and the app shows *No server found* with a note that a VPN or firewall app is on. The player allows Crimson Steel in the firewall app. Settings shows whether a VPN is on (`LocalNetwork`, `ACCESS_NETWORK_STATE` permission).
 
 The server starts the UDP responder when run with `ruby app.rb`, and from `config.ru` when started with rackup or puma (set `CRIMSON_STEEL_HTTP_PORT` if you pass rackup a different `-p`). It uses Ruby's standard library only, and prints one line per probe it answers — `[discovery] probe from <phone address> — told it to use port 4567` — so the DM can see whether a phone's search arrives.
 
@@ -139,7 +139,6 @@ What is logged:
 
 - `session` — app start (version, Android release, phone model), each search step and its result, the connection (server, campaign, device id, Character), forgetting the server.
 - `discovery` — the phone's network interfaces and broadcast addresses, every probe sent (or the error), every reply received, timeouts, the subnet scan and which hosts had the port open.
-- `network` — whether a Wi-Fi network was found and whether a VPN is on, each time a server is tried.
 - `http` — every request that fails or changes status, and every POST (turn requests, inventory actions, public rolls), with the status and time taken; the device id the first time the server issues it. Repeated polling GETs with an unchanged status are not repeated in the log.
 - `main` — which screen is showing (searching, no server, waiting, playing), losing the server, being unassigned.
 - `crash` — any uncaught exception, with its stack trace, before the app closes.

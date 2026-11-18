@@ -44,10 +44,10 @@ object Session {
 
     private lateinit var appCtx: Context
 
-    /** An API client for [s] whose connections go over the Wi-Fi network directly (see LocalNetwork). */
-    private fun newApi(s: ServerInfo) = Api(s, cookieStore, LocalNetwork.opener(appCtx))
+    /** An API client for [s]. Connections take the phone's normal route, so a VPN or firewall app (e.g. NetGuard) applies. */
+    private fun newApi(s: ServerInfo) = Api(s, cookieStore)
 
-    /** True when the phone has a VPN running (it can stop the app reaching the server). */
+    /** True when the phone has a VPN running — often a firewall app such as NetGuard, which may be blocking this app. */
     val vpnActive: Boolean get() = ::appCtx.isInitialized && LocalNetwork.vpnActive(appCtx)
 
     fun init(ctx: Context) {
@@ -111,8 +111,7 @@ object Session {
 
     /** Subnet scan fallback: the first open host that answers /api/hello as a Crimson Steel server. */
     private fun scan(): Hello? {
-        val wifiSockets = LocalNetwork.wifi(appCtx)?.socketFactory
-        for (host in ServerLocator.scanCandidates(socketFactory = wifiSockets)) {
+        for (host in ServerLocator.scanCandidates()) {
             val s = ServerInfo(host, ServerLocator.DEFAULT_HTTP_PORT, "")
             val ok = runCatching {
                 val a = newApi(s)

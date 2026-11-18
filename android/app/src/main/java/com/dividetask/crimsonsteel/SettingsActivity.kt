@@ -48,7 +48,7 @@ class SettingsActivity : Activity() {
             "Server" to (Session.serverAddress ?: "not connected"),
             "Device id" to (Session.deviceId ?: "not issued yet"),
             "Character" to (Session.sheet?.name ?: "—"),
-            "VPN" to (if (Session.vpnActive) "ON \u2014 the app talks to the server over Wi-Fi directly" else "off"),
+            "VPN" to (if (Session.vpnActive) "ON (e.g. a firewall app) \u2014 it must allow Crimson Steel" else "off"),
             "This phone" to (ServerLocator.localNetworks().joinToString { "${it.address.hostAddress}/${it.prefix}" }.ifBlank { "no network" }),
         )), Ui.matchWidth())
         col.addView(button("Search for the server again") {
